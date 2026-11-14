@@ -2,7 +2,7 @@ import { fileURLToPath } from "node:url"
 import { TailwindEntries } from "./tailwind-entries.mjs"
 
 const here = fileURLToPath(new URL("../", import.meta.url))
-const TAILWIND_ENTRIES = []
+const TAILWIND_ENTRIES = [`${here}src/webview/styles/webview.css`]
 
 export function webviewBuildOptions({ production, outdir }) {
   return {
@@ -13,7 +13,7 @@ export function webviewBuildOptions({ production, outdir }) {
     format: "iife",
     target: "es2022",
     jsx: "automatic",
-    jsxImportSource: "preact",
+    jsxImportSource: "react",
     define: { "process.env.NODE_ENV": JSON.stringify(production ? "production" : "development") },
     plugins: [new TailwindEntries({ entries: TAILWIND_ENTRIES, production })],
     sourcemap: !production,

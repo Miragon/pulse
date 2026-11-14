@@ -62,7 +62,7 @@ Exceptions, each for a reason outside our control:
   constructor share a name, like `Number('3')`;
 - `activate` and `deactivate` in `apps/vscode/src/host/extension.ts`: VS Code calls
   these exported functions;
-- Preact components and hooks (functions named `Xyz` or `useXyz` in `.tsx` files): the
+- React components and hooks (functions named `Xyz` or `useXyz` in `.tsx` files): the
   framework's idiom; their helpers follow the rules above.
 - tests and their support code.
 
@@ -113,7 +113,7 @@ the repository's `eslint.config.mjs` and proven in
 The rules were switched on package by package while the code moved to classes; since the
 move into the monorepo they hold for every layer. In the webview, helpers of components are static utility
 classes (`JsonText` and `TimeLabels` in `packages/core/runtime-view/src/webview/format`, `VariableEditorText` next to its screen), and a file that
-holds a Preact context and its hook is a `.tsx` file. In the extension, every command
+holds a React context and its hook is a `.tsx` file. In the extension, every command
 is a class implementing `Command` (`id`, `run`) that `CommandRegistrar` registers;
 `PulseExtension` wires VS Code, `CompositionRoot` wires the engines, and the panel
 manager hands the core's `Panel` sessions a `VsCodePanelEffects` per connection.
@@ -125,5 +125,5 @@ manager hands the core's `Panel` sessions a `VsCodePanelEffects` per connection.
   engines.
 - Many small files. Navigation goes by class name; the folder says the area
   (`reading/`, `views/`, `panels/`).
-- Preact components stay functions: class components are the framework's legacy API
+- React components stay functions: class components are the framework's legacy API
   and would not make the webview clearer.

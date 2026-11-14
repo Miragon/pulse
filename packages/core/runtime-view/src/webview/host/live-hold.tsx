@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "preact/hooks"
+import { useEffect, useRef } from "react"
 import type { WebviewIntent } from "../../core/protocol/index.js"
 import { useHost } from "./host-context.js"
 

@@ -425,8 +425,8 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   widgets (owner decision 2026-11-12, `apps/vscode/docs/adr/ui-foundation.md`). Where both show
   a field, a count or an action, a shared building block is the default: React's API, props and
   callbacks only, no host context (as `process-definitions-table-view.tsx` with
-  `renderActions`), which the webview renders in React too once its switch to React on pulse-ui
-  lands (owner decision D9); until then, each side builds its own. Its pull request updates
+  `renderActions`), which the webview renders in React too since its switch to React on pulse-ui
+  (owner decision D9). Its pull request updates
   `docs/vscode/parity.md`
 - BPMN: viewer lifecycle and the fixed light canvas via `useBpmnViewer` (the container
   is a forced-light island, `data-theme-mode="light"`, on the paper token) +

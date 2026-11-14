@@ -96,6 +96,18 @@ describe("useColumnSizing: the state, persistence injected", () => {
     expect(result.current.widths).toBeUndefined()
   })
 
+  it("persists the widths last set, before that change rendered", () => {
+    const save = vi.fn()
+    const { result } = renderHook(() => useColumnSizing({ save }))
+    const stale = result.current
+    act(() => {
+      stale.setWidths({ name: 150 }, false)
+      stale.setWidths({ name: 180 }, false)
+      stale.persist()
+    })
+    expect(save).toHaveBeenLastCalledWith({ name: 180 })
+  })
+
   it("keeps the widths of the columns that size, all or none", () => {
     expect(widthsOf({ a: 100, b: 50, gone: 300 }, ["a", "b"])).toEqual({ a: 100, b: 50 })
     expect(widthsOf({ a: 100 }, ["a", "b"])).toBeUndefined()

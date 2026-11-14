@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest"
 import { FIXTURES, type FixtureName } from "../../dev/webview/fixtures/states.js"
-import { mountApp, nextFrame, waitForElement, type Harness } from "./harness.js"
+import { mountApp, nextFrame, part, waitForElement, type Harness } from "./harness.js"
 
 describe("the roles and states each screen keeps", () => {
   let harness: Harness
@@ -57,11 +57,10 @@ describe("the roles and states each screen keeps", () => {
   it("shows the select-all box in the mixed state while only some instances are selected", async () => {
     const box = await open(
       "definition-selecting",
-      'input[type="checkbox"][aria-label="Select all shown instances"]',
+      '[role="checkbox"][aria-label="Select all shown instances"]',
     )
 
-    expect((box as HTMLInputElement).indeterminate).toBe(true)
-    expect((box as HTMLInputElement).checked).toBe(false)
+    expect(box.getAttribute("aria-checked")).toBe("mixed")
   })
 
   it("shows each column grip as a focusable vertical separator with its width in aria-valuenow", async () => {
@@ -97,19 +96,18 @@ describe("the roles and states each screen keeps", () => {
     expect(bar.getAttribute("aria-valuetext")).toMatch(/^[\d,]+ of [\d,]+ done$/)
   })
 
-  it("announces an informing strip as status", async () => {
-    const strip = await open("definition", '[data-part="status-strip"][data-tone="info"]')
+  it("announces an informing strip's message as status, its actions outside it", async () => {
+    const strip = await open("definition", part("status-strip", { tone: "info" }))
 
-    expect(strip.getAttribute("role")).toBe("status")
+    expect(strip.querySelectorAll('[role="status"]')).toHaveLength(1)
+    expect(strip.querySelector('[role="status"] button')).toBeNull()
   })
 
-  it("announces a danger strip as alert", async () => {
-    const strip = await open(
-      "instance-failed-again",
-      '[data-part="status-strip"][data-tone="danger"]',
-    )
+  it("announces a danger strip's message as alert", async () => {
+    const strip = await open("instance-failed-again", part("status-strip", { tone: "danger" }))
 
-    expect(strip.getAttribute("role")).toBe("alert")
+    expect(strip.querySelectorAll('[role="alert"]')).toHaveLength(1)
+    expect(strip.querySelector('[role="alert"]')?.textContent).toContain("Failed again")
   })
 
   it("announces the danger box of a failed read without a view as alert", async () => {
@@ -126,4 +124,19 @@ describe("the roles and states each screen keeps", () => {
     expect(dialog).toBeInstanceOf(HTMLDialogElement)
     expect(dialog.matches(":modal")).toBe(true)
   })
+
+  it.each<FixtureName>(["definition", "engine", "migration", "board", "board-process", "instance"])(
+    "gives no two regions of %s the same name",
+    async (name) => {
+      await open(name, "main, [data-part]")
+      const names = all('section[aria-label], section[aria-labelledby], [role="region"]').map(
+        (region) =>
+          region.getAttribute("aria-label") ??
+          document.getElementById(region.getAttribute("aria-labelledby") ?? "")?.textContent,
+      )
+
+      expect(names.length).toBeGreaterThan(0)
+      expect(new Set(names).size).toBe(names.length)
+    },
+  )
 })

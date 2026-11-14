@@ -1,3 +1,4 @@
+import { NativeSelect } from "@miragon/pulse-ui"
 import type { VersionOption } from "../../core/protocol/index.js"
 import { usePendingValue } from "../components/pending-value.js"
 import { useHost } from "../host/host-context.js"
@@ -30,10 +31,10 @@ export function VersionPicker({
     post(definitionId)
   }
   return (
-    <label class="version-picker">
-      <span class="visually-hidden">{label}</span>
-      <select
-        class="version-picker__select"
+    <label className="flex min-w-0">
+      <span className="sr-only">{label}</span>
+      <NativeSelect
+        className="max-w-70 cursor-pointer truncate px-1.5 tabular-nums max-[760px]:max-w-42"
         value={shown ?? ""}
         onChange={(event) => {
           if (event.currentTarget.value !== "") {
@@ -51,7 +52,7 @@ export function VersionPicker({
             {VersionOptionLabel.of(option)}
           </option>
         ))}
-      </select>
+      </NativeSelect>
     </label>
   )
 }

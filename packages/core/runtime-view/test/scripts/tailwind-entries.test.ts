@@ -123,6 +123,19 @@ describe("the Tailwind step of the webview build", { timeout: 30_000 }, () => {
     expect(loaded).toMatchObject({ loader: "css", resolveDir: dirname(ENTRY) })
     expect(loaded?.watchFiles).toEqual([TAILWIND_INDEX, MARKUP])
   })
+
+  test("watches the folders it scanned, so a new source file rebuilds a watch build", async () => {
+    const plugin = new (await tailwindEntries())({ entries: [ROOTED_ENTRY], production: false })
+    const loads: (() => Promise<esbuild.OnLoadResult>)[] = []
+    await plugin.setup({
+      initialOptions: {},
+      onLoad: (_options: esbuild.OnLoadOptions, load: () => Promise<esbuild.OnLoadResult>) => {
+        loads.push(load)
+      },
+    } as unknown as esbuild.PluginBuild)
+    const loaded = await loads[0]?.()
+    expect(loaded?.watchDirs).toEqual([join(dirname(ROOTED_ENTRY), "sub")])
+  })
 })
 
 describe("the webview build options", () => {

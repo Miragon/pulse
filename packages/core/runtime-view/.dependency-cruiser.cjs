@@ -26,7 +26,7 @@ const LABEL_HELPERS = `${PACKAGE}src/(core/views/labels[.]ts$|webview/format/)`
 const DIALECT_PACKAGES =
   "(^|/)node_modules/@miragon/pulse-(?!engine-core/)[^/]+-(core|client|connector|adapter)/|^@miragon/pulse-(?!engine-core(/|$))[^/]+-(core|client|connector|adapter)(/|$)|^packages/connectors/(?!engine/engine-core/)"
 const WEBVIEW_LIBRARIES =
-  "(^|/)node_modules/(preact|bpmn-js|diagram-js|@miragon/modeler-shell|@fontsource-variable/[^/]+)/"
+  "(^|/)node_modules/(react|react-dom|lucide-react|bpmn-js|diagram-js|@miragon/modeler-shell|@fontsource-variable/[^/]+)/"
 const MODEL_ADAPTER = `${PACKAGE}src/model/`
 const MODEL_LIBRARIES =
   "(^|/)node_modules/(bpmn-moddle|camunda-bpmn-moddle|zeebe-bpmn-moddle|@miragon/bpmn-modeler[^/]*)/|^(bpmn-moddle|camunda-bpmn-moddle|zeebe-bpmn-moddle|@miragon/bpmn-modeler[^/]*)(/|$)"
@@ -79,12 +79,13 @@ module.exports = {
     },
     {
       comment:
-        "The webview takes the shared building blocks of Pulse's React kit (owner decisions 2026-11-12, apps/vscode/docs/adr/ui-foundation.md): @miragon/pulse-ui by its root and its stylesheet @miragon/pulse-ui/theme.css, which the editor hosts bundle with esbuild. By D9 it moves from Preact to React on the kit in one switch; until then its own screens stay on Preact.",
+        "The webview takes the shared building blocks of Pulse's React kit (owner decisions 2026-11-12, apps/vscode/docs/adr/ui-foundation.md): @miragon/pulse-ui by its root and its stylesheet @miragon/pulse-ui/theme.css, which the editor hosts bundle with esbuild. By D9 it renders with React on the kit, without widget-shell.",
       from: { path: `${PACKAGE}src/webview/` },
       to: { path: [UI_KIT_ENTRY, UI_THEME_ENTRY] },
     },
     {
-      comment: "The webview may use its rendering libraries.",
+      comment:
+        "The webview may use its rendering libraries: React (react, react-dom), lucide-react for the icons, the diagram stack (bpmn-js, diagram-js, @miragon/modeler-shell) and the Geist fonts. Radix and the rest of the kit's own dependencies come in through @miragon/pulse-ui only.",
       from: { path: `${PACKAGE}src/webview/` },
       to: { path: WEBVIEW_LIBRARIES },
     },
@@ -159,7 +160,7 @@ module.exports = {
       name: "webview-pulse-ui-by-its-entries",
       severity: "error",
       comment:
-        "The webview imports @miragon/pulse-ui by its package entries only (owner decision 2026-11-12, apps/vscode/docs/adr/ui-foundation.md): its root, the React kit, and its stylesheet @miragon/pulse-ui/theme.css for the shared building blocks it renders, @miragon/pulse-ui/tones and, in its label helpers (webview/format/), @miragon/pulse-ui/format. Never ./testing (the brand gates read files with node:fs; tests may import it), never globals.css (the stylesheet of an app without a Tailwind entry of its own; the webview gets its own, preflight on, with its switch to React, D9) or fonts.css (the webview loads Geist itself), never another subpath, and never a file of packages/core/ui by path, its source or its build: the entries load the package's build, so a module reached by path is a second copy of the kit.",
+        "The webview imports @miragon/pulse-ui by its package entries only (owner decision 2026-11-12, apps/vscode/docs/adr/ui-foundation.md): its root, the React kit, and its stylesheet @miragon/pulse-ui/theme.css for the shared building blocks it renders, @miragon/pulse-ui/tones and, in its label helpers (webview/format/), @miragon/pulse-ui/format. Never ./testing (the brand gates read files with node:fs; tests may import it), never globals.css (the stylesheet of an app without a Tailwind entry of its own; the webview has its own, src/webview/styles/webview.css, preflight on, D9) or fonts.css (the webview loads Geist itself), never another subpath, and never a file of packages/core/ui by path, its source or its build: the entries load the package's build, so a module reached by path is a second copy of the kit.",
       from: { path: `${PACKAGE}src/webview/`, pathNot: TEST_CODE },
       to: { path: PULSE_UI, pathNot: UI_WEBVIEW_ENTRIES },
     },

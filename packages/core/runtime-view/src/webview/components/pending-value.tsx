@@ -1,4 +1,4 @@
-import { useState } from "preact/hooks"
+import { useState } from "react"
 
 interface Pending<Value> {
   readonly from: Value

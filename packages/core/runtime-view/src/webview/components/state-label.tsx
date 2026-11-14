@@ -1,24 +1,22 @@
-import { SITUATION_TONES, type Situation } from "@miragon/pulse-ui/tones"
-import { glyphs } from "./lucide-glyphs.json"
+import { CircleXIcon } from "lucide-react"
+import {
+  Icon,
+  SITUATION_TONES,
+  StateLabel as KitStateLabel,
+  TONE_ICON,
+  cn,
+  type StateLabelState,
+} from "@miragon/pulse-ui"
 import type { InstanceStateLabel } from "../../core/protocol/index.js"
-import { Icon } from "./icon.js"
 
 type StateKind = InstanceStateLabel | "Incident"
 
-const GLYPHS: Readonly<Record<StateKind, string>> = {
-  Running: glyphs.CircleDot,
-  Suspended: glyphs.Pause,
-  Completed: glyphs.CircleCheck,
-  Cancelled: glyphs.Ban,
-  Incident: glyphs.CircleX,
-}
-
-const SITUATIONS: Readonly<Record<StateKind, Situation>> = {
+const KIT_STATES: Readonly<Record<StateKind, StateLabelState>> = {
   Running: "running",
   Suspended: "suspended",
-  Completed: "ended",
-  Cancelled: "ended",
-  Incident: "openIncident",
+  Completed: "completed",
+  Cancelled: "cancelled",
+  Incident: "incident",
 }
 
 export interface StateLabelProps {
@@ -27,29 +25,20 @@ export interface StateLabelProps {
 }
 
 export function StateLabel({ state, text = state }: StateLabelProps) {
-  return (
-    <span
-      class={`state-label state-label--${SITUATION_TONES[SITUATIONS[state]]}`}
-      data-part="state-label"
-      data-tone={SITUATION_TONES[SITUATIONS[state]]}
-      title={text}
-    >
-      <Icon of={GLYPHS[state]} />
-      <span class="state-label__text">{text}</span>
-    </span>
-  )
+  return <KitStateLabel state={KIT_STATES[state]}>{text}</KitStateLabel>
 }
 
 export function IncidentFlag() {
+  const tone = SITUATION_TONES.openIncident
   return (
     <span
-      class={`state-label state-label--${SITUATION_TONES.openIncident} incident-flag`}
+      className="text-dense inline-flex min-w-0 items-baseline gap-1.5"
       data-part="incident-flag"
-      data-tone={SITUATION_TONES.openIncident}
+      data-tone={tone}
       title="Has an open incident"
     >
-      <Icon of={glyphs.CircleX} />
-      <span class="state-label__text">Incident</span>
+      <Icon icon={CircleXIcon} className={cn(TONE_ICON[tone], "self-center")} />
+      <span className="text-foreground min-w-0 truncate">Incident</span>
     </span>
   )
 }

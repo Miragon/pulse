@@ -28,6 +28,11 @@ export interface ViewBarProps {
   titleSuffix?: ReactNode
   /** Goes back in the host's history: draws the back button before everything else. */
   onBack?: () => void
+  /**
+   * The back button's name and tooltip where it says where it goes ("Back to Invoice");
+   * default: "Back".
+   */
+  backLabel?: string
   /** A 16 px icon naming what the view shows (`<Icon icon={Workflow} />`), decorative. */
   icon?: ReactNode
   /** The state of the thing shown, after the title (a `StateLabel` or a `StatusBadge`). */
@@ -103,6 +108,7 @@ export function ViewBar({
   titleText,
   titleSuffix,
   onBack,
+  backLabel,
   icon,
   badge,
   facts,
@@ -113,6 +119,7 @@ export function ViewBar({
   className,
 }: ViewBarProps) {
   const { viewBar } = useUiMessages()
+  const backName = backLabel ?? viewBar.back
   const meta = access !== undefined || live !== undefined || freshness !== undefined
   return (
     <header
@@ -141,7 +148,8 @@ export function ViewBar({
               type="button"
               variant="ghost"
               size="icon-sm"
-              aria-label={viewBar.back}
+              aria-label={backName}
+              title={backName}
               onClick={onBack}
               className="col-start-1 me-2.5"
             >

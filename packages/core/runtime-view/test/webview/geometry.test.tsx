@@ -17,9 +17,15 @@ import {
 } from "./harness.js"
 
 const SCREENS = Object.keys(FIXTURES) as FixtureName[]
-const DENSE_REGIONS = Object.values(DENSE_ICON_REGIONS)
-  .map((name) => part(name))
-  .join(", ")
+const KIT_DENSE_BUTTONS = [
+  "[data-slot='button'][data-size='xs']",
+  "[data-slot='button'][data-size='icon-xs']",
+  "[data-slot='column-menu'][data-size='icon-xs']",
+]
+const DENSE_REGIONS = [
+  ...Object.values(DENSE_ICON_REGIONS).map((name) => part(name)),
+  ...KIT_DENSE_BUTTONS,
+].join(", ")
 const TARGETS = [
   "button",
   "a[href]",
@@ -80,7 +86,8 @@ function iconFindings(root: HTMLElement): string[] {
 }
 
 function targetOf(element: HTMLElement): Element {
-  return element instanceof HTMLInputElement ? (element.closest("label") ?? element) : element
+  const boxed = element instanceof HTMLInputElement || element.getAttribute("role") === "checkbox"
+  return boxed ? (element.closest("label") ?? element) : element
 }
 
 function targetFindings(root: HTMLElement): string[] {
@@ -99,9 +106,23 @@ function findings(root: HTMLElement): string[] {
   return [...iconFindings(root), ...targetFindings(root)]
 }
 
-async function open(name: FixtureName): Promise<Harness> {
-  await page.viewport(1300, 900)
-  const harness = mountApp({ width: 1300 })
+interface Viewing {
+  readonly width: number
+  readonly theme: "light" | "dark"
+  readonly contrast?: "hoch"
+}
+
+const WIDE: Viewing = { width: 1300, theme: "light" }
+const NARROW: Viewing = { width: 650, theme: "light" }
+const HIGH_CONTRAST: Viewing = { width: 1300, theme: "dark", contrast: "hoch" }
+
+async function open(name: FixtureName, viewing: Viewing = WIDE): Promise<Harness> {
+  await page.viewport(viewing.width, 900)
+  const harness = mountApp({ width: viewing.width })
+  document.documentElement.dataset.cdTheme = viewing.theme
+  if (viewing.contrast !== undefined) {
+    document.documentElement.dataset.cdKontrast = viewing.contrast
+  }
   harness.publish(FIXTURES[name])
   await settled(harness, FIXTURES[name])
   return harness
@@ -111,12 +132,12 @@ describe("the geometry gate", () => {
   it("flags an icon off the sizes, a 12 px icon outside a dense region and a small target", async () => {
     const planted = mount(
       <div>
-        <svg class="lucide" width="14" height="14" />
+        <svg className="lucide" width="14" height="14" />
         <span data-part="filter-bar">
-          <svg class="lucide" width="12" height="12" />
+          <svg className="lucide" width="12" height="12" />
         </span>
         <span data-part="count-badge">
-          <svg class="lucide" width="12" height="12" />
+          <svg className="lucide" width="12" height="12" />
         </span>
         <button type="button" style={{ width: "20px", height: "20px", padding: 0 }}>
           x
@@ -124,6 +145,24 @@ describe("the geometry gate", () => {
         <button type="button" style={{ width: "24px", height: "24px", padding: 0 }}>
           y
         </button>
+        <button
+          type="button"
+          data-slot="button"
+          data-size="icon-xs"
+          aria-label="z"
+          style={{ width: "24px", height: "24px", padding: 0 }}
+        >
+          <svg className="lucide" width="12" height="12" />
+        </button>
+        <label style={{ display: "inline-block", width: "28px", height: "28px" }}>
+          <button
+            type="button"
+            role="checkbox"
+            aria-checked="false"
+            aria-label="w"
+            style={{ width: "18px", height: "18px", padding: 0 }}
+          />
+        </label>
       </div>,
     )
     await nextFrame()
@@ -152,6 +191,18 @@ describe("the geometry of the fixture screens", () => {
       expect(findings(harness.root)).toEqual([])
     },
   )
+
+  it.each(SCREENS)("%s keeps them at 650 px, where the bars collapse", async (name) => {
+    harness = await open(name, NARROW)
+
+    expect(findings(harness.root)).toEqual([])
+  })
+
+  it.each(SCREENS)("%s keeps them in the dark high-contrast theme", async (name) => {
+    harness = await open(name, HIGH_CONTRAST)
+
+    expect(findings(harness.root)).toEqual([])
+  })
 
   it("measures the icons it holds to the sizes, so the gate is not empty", async () => {
     harness = await open("instance-movable")

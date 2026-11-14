@@ -12,6 +12,7 @@ import {
   mountApp,
   queryPart,
   queryRole,
+  nextFrame,
   radioNamed,
   waitForElement,
   type Harness,
@@ -33,16 +34,28 @@ describe("instance list scopes", () => {
     harness.publish(FIXTURES.definition)
     await findRole(harness.root, "radiogroup", { name: "Show instances" })
 
-    for (const name of ["Running", "With incident", "Ended", "All"]) {
+    for (const name of ["With incident", "Ended", "All", "Running"]) {
       radioNamed(harness.root, name).click()
+      await nextFrame()
     }
 
     expect(harness.posted.filter((intent) => intent.type === "filterInstances")).toEqual([
-      { type: "filterInstances", filter: { scope: "running" } },
       { type: "filterInstances", filter: { scope: "withIncident" } },
       { type: "filterInstances", filter: { scope: "ended" } },
       { type: "filterInstances", filter: { scope: "all" } },
+      { type: "filterInstances", filter: { scope: "running" } },
     ])
+  })
+
+  it("posts nothing for the scope already shown", async () => {
+    harness = mountApp()
+    harness.publish(FIXTURES["definition-ended"])
+    await findRole(harness.root, "radiogroup", { name: "Show instances" })
+
+    radioNamed(harness.root, "Ended").click()
+    await nextFrame()
+
+    expect(harness.posted.filter((intent) => intent.type === "filterInstances")).toEqual([])
   })
 
   it("checks the scope of the shown list", async () => {

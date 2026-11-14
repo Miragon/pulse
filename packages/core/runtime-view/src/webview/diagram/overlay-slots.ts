@@ -1,31 +1,37 @@
-import { render, type VNode } from "preact"
+import type { ReactNode } from "react"
+import { flushSync } from "react-dom"
 
 export type OverlayKind = "badges" | "call" | "actions" | "move"
 
 export interface OverlaySlot {
   readonly key: string
   readonly anchor: HTMLElement
-  readonly node: VNode
+  readonly node: ReactNode
 }
 
 export interface OverlaySink {
   render(slots: readonly OverlaySlot[], rendered: () => void): void
 }
 
-export class PreactOverlaySink implements OverlaySink {
+export class ReactOverlaySink implements OverlaySink {
   private shown: readonly OverlaySlot[] = []
+  private attached = true
+
+  constructor(private readonly publish: (slots: readonly OverlaySlot[]) => void) {}
 
   render(slots: readonly OverlaySlot[], rendered: () => void): void {
-    if (slots !== this.shown) {
-      const kept = new Set(slots.map((slot) => slot.anchor))
-      for (const gone of this.shown.filter((slot) => !kept.has(slot.anchor))) {
-        render(null, gone.anchor)
-      }
-      for (const slot of slots) {
-        render(slot.node, slot.anchor)
-      }
+    if (this.attached && slots !== this.shown) {
       this.shown = slots
+      flushSync(() => {
+        this.publish(slots)
+      })
     }
     rendered()
+  }
+
+  detach(): void {
+    this.attached = false
+    this.shown = []
+    this.publish([])
   }
 }

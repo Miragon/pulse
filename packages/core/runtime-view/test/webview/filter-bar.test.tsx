@@ -134,7 +134,7 @@ describe("the filter bar of the definition panel", () => {
     const bar = await findPart(harness.root, "filter-bar")
     const chip = await findPart(bar, "filter-chip", { kind: "element" })
     const group = getRole(bar, "radiogroup", { name: "Show instances" })
-    const search = getRole(bar, "searchbox").closest("label")!
+    const search = getRole(bar, "searchbox").parentElement!
     const toggle = getRole(bar, "button", { name: "Legend" })
 
     expect(chip.getBoundingClientRect().top).toBeGreaterThan(group.getBoundingClientRect().bottom)

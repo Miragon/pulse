@@ -1,11 +1,13 @@
+import { Icon } from "@miragon/pulse-ui"
+import { KeyRoundIcon, UnplugIcon, type LucideIcon } from "lucide-react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import type { WebviewIntent } from "../../src/core/protocol/index.js"
 import { FIXTURES } from "../../dev/webview/fixtures/states.js"
-import { glyphs } from "../../src/webview/components/lucide-glyphs.json"
 import { HostBridge } from "../../src/webview/host/host-bridge.js"
 import {
   buttonNamed,
   fakeApi,
+  mount,
   mountApp,
   findPart,
   findRole,
@@ -15,10 +17,11 @@ import {
   type Harness,
 } from "./harness.js"
 
-function drawn(glyph: string): string {
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
-  svg.innerHTML = glyph
-  return svg.innerHTML
+function drawn(glyph: LucideIcon): string | undefined {
+  const drawing = mount(<Icon icon={glyph} />)
+  const inner = drawing.root.querySelector("svg")?.innerHTML
+  drawing.unmount()
+  return inner
 }
 
 describe("host bridge", () => {
@@ -80,10 +83,8 @@ describe("panel states", () => {
 
     await findPart(harness.root, "count-badge", { state: "stale" })
 
-    expect(queryPart(harness.root, "status-strip", { tone: "danger" })?.role).toBe("alert")
-    expect(queryPart(harness.root, "status-strip", { tone: "danger" })?.textContent).toContain(
-      "Couldn't reach prod-eu.",
-    )
+    const strip = queryPart(harness.root, "status-strip", { tone: "danger" })
+    expect(strip?.querySelector('[role="alert"]')?.textContent).toContain("Couldn't reach prod-eu.")
     expect(queryPart(harness.root, "freshness", { state: "offline" })).not.toBeNull()
     expect(queryPart(harness.root, "context-bar")?.textContent).not.toContain("PROD")
   })
@@ -101,7 +102,7 @@ describe("panel states", () => {
       const stamp = await findPart(harness.root, "freshness", { state: "offline" })
 
       expect(stamp.textContent).toBe(label)
-      expect(stamp.querySelector("svg")?.innerHTML).toBe(drawn(glyphs.KeyRound))
+      expect(stamp.querySelector("svg")?.innerHTML).toBe(drawn(KeyRoundIcon))
     },
   )
 
@@ -125,7 +126,7 @@ describe("panel states", () => {
     const stamp = await findPart(harness.root, "freshness", { state: "offline" })
 
     expect(stamp.textContent).toBe("Offline")
-    expect(stamp.querySelector("svg")?.innerHTML).toBe(drawn(glyphs.Unplug))
+    expect(stamp.querySelector("svg")?.innerHTML).toBe(drawn(UnplugIcon))
   })
 
   it("shows the skeleton only after the loading delay", async () => {

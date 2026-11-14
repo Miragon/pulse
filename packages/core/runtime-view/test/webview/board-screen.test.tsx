@@ -256,8 +256,8 @@ describe("a board", () => {
 
     expect(queryPart(summary, "counter-value")?.textContent).toBe("14")
     expect(itemTexts(getRole(summary, "list", { name: "Per process" }))).toEqual([
-      "Order fulfillmentlocal10",
-      "Order fulfillmentshop-test1",
+      "Order fulfillmentlocal10with incident",
+      "Order fulfillmentshop-test1with incident",
     ])
     allRoles(summary, "button")[0]?.click()
     expect(harness.posted).toEqual([
@@ -434,7 +434,7 @@ describe("a board", () => {
     expect(queryPart(harness.root, "context-key")).toBeNull()
   })
 
-  it("names several engines above the threshold and colours a count of incidents", async () => {
+  it("names several engines above the threshold and marks a count of incidents in words", async () => {
     const tile = {
       kind: "counter",
       title: "Orders with incident",
@@ -456,6 +456,11 @@ describe("a board", () => {
     )
     expect(queryPart(counter, "counter-value", { tone: "danger" })?.textContent).toBe("7")
     expect(partTexts(counter, "counter-count", { tone: "danger" })).toEqual(["4", "3"])
+    const value = queryPart(counter, "counter-value", { tone: "danger" })!
+    const figure = value.closest('[data-slot="count-figure"]')
+    expect(figure?.textContent).toBe("7with incident")
+    expect(figure?.querySelector("svg")).not.toBeNull()
+    expect(getComputedStyle(value).color).toBe(getComputedStyle(counter).color)
     expect(counter.querySelector("button")).toBeNull()
   })
 

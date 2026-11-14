@@ -11,7 +11,7 @@ flowchart TB
   subgraph window [VS Code window]
     direction LR
     workbench["Trees, commands, status bar, .bpmn editor"]
-    webview["Webview panels: Preact and bpmn-js"]
+    webview["Webview panels: React on pulse-ui and bpmn-js"]
   end
   subgraph host [Extension host: one Node process]
     extension["extension: wiring, connections, write policy"]
@@ -81,7 +81,7 @@ adapter per dialect family implements them.
 flowchart LR
   subgraph driving [Driving side]
     ui[VS Code UI: trees, commands, status bar]
-    webview[Webview: Preact and bpmn-js]
+    webview[Webview: React on pulse-ui and bpmn-js]
   end
   subgraph neutral [Engine-neutral]
     extension[extension: composition root, connections, panel hosts]

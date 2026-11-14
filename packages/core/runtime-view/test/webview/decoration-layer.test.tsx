@@ -1,8 +1,11 @@
+import { useState } from "react"
+import { createPortal } from "react-dom"
 import { afterEach, describe, expect, it } from "vitest"
 import type { ElementBadge } from "../../src/core/protocol/index.js"
 import { DecorationLayer, type Decorations } from "../../src/webview/diagram/decoration-layer.js"
-import { PreactOverlaySink, type OverlaySlot } from "../../src/webview/diagram/overlay-slots.js"
+import { ReactOverlaySink, type OverlaySlot } from "../../src/webview/diagram/overlay-slots.js"
 import type { DiagramElement } from "../../src/webview/diagram/diagram-elements.js"
+import { mount } from "./harness.js"
 
 function servicesWith(ids: Set<string>) {
   const markers: string[] = []
@@ -81,6 +84,21 @@ function overlaysIn(container: HTMLElement) {
   }
 }
 
+type Publish = (slots: readonly OverlaySlot[]) => void
+
+function portalSink(): ReactOverlaySink {
+  const published: { publish: Publish } = { publish: () => undefined }
+  function Portals() {
+    const [slots, setSlots] = useState<readonly OverlaySlot[]>([])
+    published.publish = setSlots
+    return <>{slots.map((slot) => createPortal(slot.node, slot.anchor, slot.key))}</>
+  }
+  mount(<Portals />)
+  return new ReactOverlaySink((slots) => {
+    published.publish(slots)
+  })
+}
+
 function slotLayer() {
   const container = document.createElement("div")
   document.body.append(container)
@@ -91,7 +109,7 @@ function slotLayer() {
     () => undefined,
     () => undefined,
   )
-  const sink = new PreactOverlaySink()
+  const sink = portalSink()
   const draw = (decorations: Decorations, between?: () => void): readonly OverlaySlot[] => {
     const slots = layer.apply(decorations)
     sink.render(slots, () => {

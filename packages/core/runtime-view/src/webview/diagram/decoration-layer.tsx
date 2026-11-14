@@ -1,4 +1,4 @@
-import type { VNode } from "preact"
+import type { ReactNode } from "react"
 import type {
   CallLink,
   ElementBadge,
@@ -184,7 +184,7 @@ export class DecorationLayer {
       this.addOverlay(
         elementId,
         "actions",
-        <span class="element-actions" data-part="element-actions">
+        <span className="element-actions" data-part="element-actions">
           {code !== undefined && <CodeButton code={code} onOpen={this.onOpenCode} />}
           {move !== undefined && <MoveEntry entry={move} />}
         </span>,
@@ -242,7 +242,7 @@ export class DecorationLayer {
     )
   }
 
-  private addOverlay(elementId: string, kind: OverlayKind, node: VNode): void {
+  private addOverlay(elementId: string, kind: OverlayKind, node: ReactNode): void {
     const key = `${elementId}#${kind}`
     if (
       this.services.registry.get(elementId) === undefined ||

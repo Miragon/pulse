@@ -1,7 +1,7 @@
 # Webview
 
-The UI inside Pulse's editor tabs: Preact screens and a bpmn-js diagram, drawn from the
-view models the core sends.
+The UI inside Pulse's editor tabs: React screens on `@miragon/pulse-ui` and a bpmn-js diagram,
+drawn from the view models the core sends.
 
 ## Why
 
@@ -38,23 +38,30 @@ Only UI state (open tab, split, column widths, zoom) stays in the webview's own 
 - `packages/core/runtime-view/src/webview/host`: the bridge to the host and the stored UI state (`HostBridge`, `UiStateStore`)
 - `packages/core/runtime-view/src/webview/screens`: the three screens, filter bars, instance tabs and the variable editor
 - `packages/core/runtime-view/src/webview/diagram`: the bpmn-js viewer with its badges and call buttons (`RuntimeCanvas`)
-- `packages/core/runtime-view/src/webview/components`: shared parts: the table with resizable columns, header bar, tabs, icons
-- `packages/core/runtime-view/src/webview/theme`, `packages/core/runtime-view/src/webview/styles`: vendored Miragon design tokens and the CSS on top of them
+- `packages/core/runtime-view/src/webview/components`: the webview's parts over pulse-ui's kit: the table with resizable columns, the header bar, tabs, scope segments, the diagram
+- `packages/core/runtime-view/src/webview/styles`: the one Tailwind entry (`webview.css`: pulse-ui's `theme.css`, the fonts, the diagram's vendor CSS) and `diagram.css`, the overlays' own classes
+- `packages/core/runtime-view/src/webview/theme`: the vendored Miragon canvas (`cd-canvas.css`) and the token values the renderer's paint is pinned to
 - `packages/core/runtime-view/dev/webview`, `packages/core/runtime-view/test/webview`: a fixture page, bundle and screenshot scripts; browser tests with a fake host
 
 ## Rules
 
-- Takes the core's protocol types, pulse-ui's `/tones` and `/format` (the latter from `format/`)
-  and, for shared building blocks, pulse-ui's React kit and `theme.css`; nothing else of ours
-  (dependency-cruiser). It moves from Preact to React on pulse-ui in one switch (D9 in
+- Takes the core's protocol types, pulse-ui's `/tones` and `/format` (the latter from `format/`),
+  pulse-ui's React kit and `theme.css`, and `react`, `react-dom` and `lucide-react`; nothing else
+  of ours (dependency-cruiser). It moved from Preact to React on pulse-ui in one switch (D9 in
   `apps/vscode/docs/adr/ui-foundation.md`)
+- Composes pulse-ui's pieces and joins classes through its `cn`; the diagram's overlays carry only
+  the classes of `diagram.css`, never utilities, so its high-contrast and forced-colours rules win
+- `styles/webview.css` puts modeler-shell's `shell.css` in a layer of its own, `shell`, below
+  `components` and `utilities`, so its `font: inherit` and `color: inherit` on the controls lose
+  to the kit; and it pins the root's font size to 100 %, so pulse-ui's density roles in `rem` keep
+  their 16 px base under the 13 px `html` of modeler-shell's stylesheets
 - No `vscode` and no Node: it runs in a browser sandbox (dependency-cruiser, `packages/core/runtime-view/tsconfig.webview.json`)
-- Colours only from Miragon `--cd-*` tokens, never `--vscode-*`; no engine words (ESLint)
+- Colours only from pulse-ui's roles over the Miragon tokens, never `--vscode-*`; no engine words (ESLint)
 
 ## Develop and test
 
 - `pnpm --filter pulse-cockpit run build`, then `pnpm --filter pulse-cockpit run dev`, runs the real core on a fake engine at localhost:5180
-- `pnpm --filter @miragon/pulse-runtime-view test` runs the browser tests in Chromium with the unit tests; `pnpm --filter pulse-cockpit test` checks the 200 000 B gzip budget of the bundle the extension ships (`apps/vscode/test/__golden__/bundle-budget.json`)
+- `pnpm --filter @miragon/pulse-runtime-view test` runs the browser tests in Chromium with the unit tests; `pnpm --filter pulse-cockpit test` checks the gzip ceilings of the script and the stylesheet the extension ships and that the bundle holds one React (`apps/vscode/test/__golden__/bundle-budget.json`)
 - `packages/core/runtime-view/dev/webview/serve.mjs` serves the fixture page with the webview alone, `screenshot.mjs` shoots its fixtures and `bundle-size.mjs` lists what the bundle is made of; run them by hand with `node`
 
 ## More

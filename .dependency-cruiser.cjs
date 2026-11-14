@@ -574,9 +574,10 @@ module.exports = {
         "pulse-ui's framework-free entries (src/format and src/tones, published as " +
         "@miragon/pulse-ui/format and @miragon/pulse-ui/tones) " +
         "import only their own folder: no React, no Radix, no tailwind-merge, no other file of " +
-        "the kit, no Node built-in. A UI on another framework (the VS Code webview on Preact) " +
-        "bundles them, so what needs React or a class map stays in the kit's root, which may " +
-        "import them, never the other way round.",
+        "the kit, no Node built-in. Framework-free code (the runtime view's core, which Pulse " +
+        "for VS Code and Pulse for Orca run outside the webview) bundles them, so what needs " +
+        "React or a class map stays in the kit's root, which may import them, never the other " +
+        "way round.",
       from: { path: UI_FOUNDATION_ENTRIES, pathNot: SRC_TEST_CODE },
       to: { pathNot: "^packages/core/ui/src/$1/" },
     },

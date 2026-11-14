@@ -5,7 +5,7 @@ import { readRepoFile, REPO_ROOT } from "./support/files.js"
 const PROBE_FILE = "packages/core/runtime-view/src/core/views/labels.ts"
 const ENGINE_CORE = "packages/connectors/engine/engine-core/src"
 const CLASS_PROBE = `${ENGINE_CORE}/model/value-kinds.ts`
-const COMPONENT_PROBE = "packages/core/runtime-view/src/webview/components/icon.tsx"
+const COMPONENT_PROBE = "packages/core/runtime-view/src/webview/app.tsx"
 
 const eslint = new ESLint({ cwd: REPO_ROOT })
 
@@ -134,7 +134,7 @@ describe("the lint gates", { timeout: 120_000 }, () => {
     expect(await rulesFiredOn(probe, filePath)).toContain("no-restricted-syntax")
   })
 
-  test("let Preact components and hooks stay functions", async () => {
+  test("let React components and hooks stay functions", async () => {
     const probe = `${readRepoFile(COMPONENT_PROBE)}\nexport function Probe() {\n  return null;\n}\n\nexport function useProbe(): number {\n  return 1;\n}\n`
     expect(await rulesFiredOn(probe, COMPONENT_PROBE)).toEqual([])
   })

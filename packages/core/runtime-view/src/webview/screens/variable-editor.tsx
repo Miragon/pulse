@@ -1,4 +1,6 @@
-import { useEffect, useId, useRef, useState } from "preact/hooks"
+import { CircleAlertIcon, TriangleAlertIcon } from "lucide-react"
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react"
+import { Button, Icon, Label, NativeSelect, TONE_ICON, Textarea, cn } from "@miragon/pulse-ui"
 import type { VariableEditor as EditorKind, VariableRow } from "../../core/protocol/index.js"
 import { useLiveHold } from "../host/live-hold.js"
 import { useSubmission } from "../host/submission.js"
@@ -45,9 +47,9 @@ function ValueInput({
   }
   if (kind === "boolean") {
     return (
-      <select
+      <NativeSelect
         ref={field}
-        class="variable-editor__field"
+        className="w-full font-mono"
         aria-label="New value"
         {...validity}
         value={text}
@@ -57,20 +59,20 @@ function ValueInput({
       >
         <option value="true">true</option>
         <option value="false">false</option>
-      </select>
+      </NativeSelect>
     )
   }
   return (
-    <textarea
+    <Textarea
       ref={field}
-      class="variable-editor__field"
+      className="font-mono"
       aria-label="New value"
       {...validity}
       rows={Math.min(12, Math.max(1, text.split("\n").length))}
-      spellcheck={false}
+      spellCheck={false}
       placeholder={kind === "date" ? "2026-10-22T10:00:00Z" : undefined}
       value={text}
-      onInput={(event) => {
+      onChange={(event) => {
         onText(event.currentTarget.value)
       }}
     />
@@ -84,23 +86,24 @@ function WriteAsPicker({
   readonly kind: InputKind
   readonly onKind: (kind: InputKind) => void
 }) {
+  const id = useId()
   return (
-    <label class="variable-editor__write-as">
-      Write as
-      <select
-        class="variable-editor__kind"
+    <div className="flex items-center gap-2">
+      <Label htmlFor={id}>Write as</Label>
+      <NativeSelect
+        id={id}
         value={kind}
         onChange={(event) => {
           onKind(event.currentTarget.value as InputKind)
         }}
       >
-        {WRITE_AS.map(([id, label]) => (
-          <option key={id} value={id}>
+        {WRITE_AS.map(([value, label]) => (
+          <option key={value} value={value}>
             {label}
           </option>
         ))}
-      </select>
-    </label>
+      </NativeSelect>
+    </div>
   )
 }
 
@@ -141,28 +144,23 @@ function EditorActions({
   readonly onClose: () => void
 }) {
   return (
-    <div class="variable-editor__actions">
-      <button
-        type="button"
-        class="button button--primary"
-        disabled={unchanged || state.busy}
-        onClick={onSave}
-      >
+    <div className="flex flex-wrap gap-2">
+      <Button type="button" disabled={unchanged || state.busy} onClick={onSave}>
         {state.mine?.status === "pending" ? "Saving…" : "Save"}
-      </button>
-      <button type="button" class="button button--secondary" onClick={onClose}>
+      </Button>
+      <Button type="button" variant="outline" onClick={onClose}>
         Cancel
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
-        class="button button--ghost"
+        variant="ghost"
         disabled={state.busy || row.valueJson === "null"}
         onClick={() => {
           state.submission.submit({ type: "setVariable", name: row.name, valueJson: "null" })
         }}
       >
         Set to null
-      </button>
+      </Button>
     </div>
   )
 }
@@ -178,15 +176,30 @@ function EditorNotes({
 }) {
   return (
     <>
-      <p class="variable-editor__hint muted" data-part="editor-hint">
+      <p className="text-small text-muted-foreground" data-part="editor-hint">
         {VariableEditorText.was(row, kind)}
       </p>
       {shadowedBy !== undefined && (
-        <p class="variable-editor__warning" data-part="editor-warning">
-          {shadowedBy} keeps its own {row.name}; this change does not reach it.
+        <p
+          className="text-small text-warning-ink flex items-start gap-1.5"
+          data-part="editor-warning"
+        >
+          <Icon icon={TriangleAlertIcon} className={cn(TONE_ICON.warning, "mt-0.5")} />
+          <span className="min-w-0">
+            {shadowedBy} keeps its own {row.name}; this change does not reach it.
+          </span>
         </p>
       )}
     </>
+  )
+}
+
+function EditorError({ id, message }: { readonly id: string; readonly message: string }) {
+  return (
+    <p id={id} className="text-small text-danger-ink flex items-start gap-1.5" role="alert">
+      <Icon icon={CircleAlertIcon} className={cn(TONE_ICON.danger, "mt-0.5")} />
+      <span className="min-w-0 wrap-anywhere">{message}</span>
+    </p>
   )
 }
 
@@ -199,7 +212,7 @@ export function VariableEditor({ row, editor, shadowedBy, onClose }: VariableEdi
       state.submission.submit({ type: "setVariable", name: row.name, valueJson: state.valueJson })
     }
   }
-  const onKeyDown = (event: KeyboardEvent): void => {
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
     event.stopPropagation()
     if (event.key === "Escape") {
       onClose()
@@ -213,7 +226,7 @@ export function VariableEditor({ row, editor, shadowedBy, onClose }: VariableEdi
   const refusal = failed?.status === "failed" ? failed.inputRefusal : undefined
   return (
     <div
-      class="variable-editor"
+      className="flex w-[min(96ch,64vw)] max-w-full flex-col gap-1.5 py-1.5"
       role="group"
       aria-label={`Edit ${row.name}`}
       onKeyDown={onKeyDown}
@@ -230,9 +243,7 @@ export function VariableEditor({ row, editor, shadowedBy, onClose }: VariableEdi
       />
       <EditorNotes row={row} kind={state.kind} shadowedBy={shadowedBy} />
       {failed?.status === "failed" && (
-        <p key={refusal} id={errorId} class="variable-editor__error" role="alert">
-          {failed.message}
-        </p>
+        <EditorError key={refusal} id={errorId} message={failed.message} />
       )}
       <EditorActions
         row={row}

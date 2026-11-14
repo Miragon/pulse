@@ -1,4 +1,5 @@
 import { answer, closeEditors, panelFrame, runCommand, showPulse } from "./vscode-driver.mjs"
+import { part } from "../support/webview-parts.mjs"
 
 const RESTING_POINTER = { x: 200, y: 860 }
 
@@ -26,14 +27,14 @@ export async function cardButton(window, name) {
 
 export async function waitForStrip(window, text, timeout = 30_000) {
   await panelFrame(window)
-    .locator('[data-part="strips"] [data-part="status-strip"]', { hasText: text })
+    .locator(`[data-part="strips"] ${part("status-strip")}`, { hasText: text })
     .waitFor({
       timeout,
     })
 }
 
 export async function waitForPanel(window) {
-  await panelFrame(window).locator('[data-part="context-bar"]', { hasText: "As of" }).waitFor({
+  await panelFrame(window).locator(part("context-bar"), { hasText: "As of" }).waitFor({
     timeout: 30_000,
   })
   await window.waitForTimeout(1500)

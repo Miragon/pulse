@@ -23,7 +23,7 @@
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": ["node"],
     "jsx": "react-jsx",
-    "jsxImportSource": "preact"
+    "jsxImportSource": "react"
   },
   "include": ["src", "test", "dev", "vitest.config.ts"],
   "exclude": ["test/*/runtime.boundary.ts"]

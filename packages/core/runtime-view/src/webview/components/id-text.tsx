@@ -1,4 +1,5 @@
-import { CopyButton } from "./copy-button.js"
+import { CopyableId } from "@miragon/pulse-ui"
+import { useHost } from "../host/host-context.js"
 
 export interface IdTextProps {
   readonly id: string
@@ -6,14 +7,15 @@ export interface IdTextProps {
   readonly label: string
 }
 
-export function IdText({ id, shortId, label }: IdTextProps) {
+export function IdText({ id, label }: IdTextProps) {
+  const host = useHost()
   return (
-    <span class="id-text">
-      <code class="id-text__value" title={id}>
-        <span class="id-text__short">{shortId}</span>
-        <span class="id-text__full">{id}</span>
-      </code>
-      <CopyButton text={id} label={label} class="id-text__copy" />
-    </span>
+    <CopyableId
+      id={id}
+      label={label}
+      onCopy={(text) => {
+        host.post({ type: "copy", text, label })
+      }}
+    />
   )
 }

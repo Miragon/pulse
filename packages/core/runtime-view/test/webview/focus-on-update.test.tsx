@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import type { DefinitionView, PanelState } from "../../src/core/protocol/index.js"
 import { FIXTURES } from "../../dev/webview/fixtures/states.js"
 import { OverlayFocus } from "../../src/webview/diagram/overlay-focus.js"
-import { findRole, getRole, mountApp, waitForElement, type Harness } from "./harness.js"
+import { findRole, getRole, mountApp, postState, waitForElement, type Harness } from "./harness.js"
 
 const READY = FIXTURES.definition as PanelState & {
   readonly status: "ready"
@@ -42,6 +42,23 @@ describe("focus across a live update", () => {
     row?.focus()
 
     harness.publish(laterRead())
+
+    await vi.waitFor(() => {
+      expect(document.activeElement?.textContent).toContain(`${key}+`)
+    })
+    expect(document.activeElement).toBe(row)
+  })
+
+  it("stays on the focused row when the states arrive as messages of their own", async () => {
+    harness = mountApp()
+    postState(READY, 1)
+    const table = await findRole<HTMLTableElement>(harness.root, "table", { name: "Instances" })
+    const row = table.tBodies[0]?.rows[1]
+    const key = READY.view.instances[1]?.businessKey ?? ""
+    row?.focus()
+
+    postState(laterRead(), 2)
+    postState(laterRead(), 3)
 
     await vi.waitFor(() => {
       expect(document.activeElement?.textContent).toContain(`${key}+`)

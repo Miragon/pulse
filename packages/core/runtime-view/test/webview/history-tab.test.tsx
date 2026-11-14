@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest"
 import { FIXTURES } from "../../dev/webview/fixtures/states.js"
-import { findPart, findRole, mountApp, type Harness } from "./harness.js"
+import { findPart, findRole, getRole, mountApp, type Harness } from "./harness.js"
 
 describe("the History tab of an instance", () => {
   let harness: Harness
@@ -13,7 +13,7 @@ describe("the History tab of an instance", () => {
     harness = mountApp()
     harness.publish(FIXTURES.instance)
     await findPart(harness.root, "incident-card")
-    harness.root.querySelector<HTMLElement>('[data-key="history"]')?.click()
+    getRole(harness.root, "tab", { name: /^History/ }).click()
     const table = await findRole(harness.root, "table", { name: "History" })
 
     const rows = [...table.querySelectorAll("tbody tr")].map((row) =>

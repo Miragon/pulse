@@ -54,7 +54,7 @@ command line interface (`apps/cli`), a VS Code extension (`apps/vscode`) and an 
 | `packages/connectors/c7/c7-adapter/`           | The C7 adapter of the runtime view (`@miragon/pulse-c7-adapter`, private): its REST client and the mapping onto the contract of `engine-core`, over c7-core; bundled by the editor hosts                                                                                                                                                                                                                                   |
 | `packages/core/ui/`                            | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the formatters and the tones without React under `/format` and `/tones`, the brand gates under `/testing`                                                                                 |
 | `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), a module's test server (`/testing`)                                                                                                                                                             |
-| `packages/core/runtime-view/`                  | The runtime view both editor hosts compose (`@miragon/pulse-runtime-view`, private) over the contract of `engine-core`: the ports a host and an engine family plug in, the core, the protocol, the Preact webview, the local model reader and the host kit (targets from `.pulse.json`, policies, the write audit)                                                                                                         |
+| `packages/core/runtime-view/`                  | The runtime view both editor hosts compose (`@miragon/pulse-runtime-view`, private) over the contract of `engine-core`: the ports a host and an engine family plug in, the core, the protocol, the webview (React on `@miragon/pulse-ui`), the local model reader and the host kit (targets from `.pulse.json`, policies, the write audit)                                                                                 |
 | `packages/core/profile/`                       | The one profile format of the CLI, the editor hosts and the MCP server (npm `@miragon/pulse-profile`): a parser from a file's text to a verdict per profile as data (a code and a key, never a value), the credential policy by where the file comes from, `refusalsOn` for what a reader cannot serve, the JSON Schema (`schema/pulse.schema.json`) and the shared fixtures (`/testing`); no runtime dependency           |
 | `packages/core/http/`                          | The one engine transport of the MCP server, the CLI and the editor hosts' adapters (npm `@miragon/pulse-http`) over the `fetch` each hands in: a deadline to the last byte, no redirects, a 64 MiB cap, one retry after a 401, reasons as data, lossless JSON, masking, the path value rule; the OAuth client (`/oauth`); conformance cases, fake fetch (`/testing`), loopback engine (`/testing/loopback`); no dependency |
 | `playground/`                                  | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                                                                                                                                                                          |
@@ -101,9 +101,9 @@ Three axes decide where code goes, and they stay apart:
   sign-in) and may build parts of its own; where two surfaces show the same thing, a shared
   building block is the default, and no surface is forced to replace its own screen. Pulse's UIs are
   one UI family by decision, React on `@miragon/pulse-ui` with one compact look (owner decision D9,
-  later on 2026-11-12, in the same record): the webview moves from Preact to React on pulse-ui in
-  one switch, a commit of the pull request that recorded D9, with no `preact/compat` bridge; until
-  that switch lands the webview is Preact. widget-shell stays the view runtime of the MCP widgets
+  later on 2026-11-12, in the same record): the webview moved from Preact to React on pulse-ui in
+  one switch, a commit of the pull request that recorded D9, with no `preact/compat` bridge.
+  widget-shell stays the view runtime of the MCP widgets
   and the web apps, never the editor hosts'. The foundation stays pulse-ui's framework-free
   `/format` and `/tones` and, in tests, `/testing` (the glossary, the count words, the brand gates);
   the runtime view's core, ports, model reader and host kit stay framework-free. The board format
@@ -223,13 +223,14 @@ nimmt das Doku-Kit der CI unverändert (`docs/.vitepress/miragon/`, `docs/public
 CI-Release neu vendoren, nie von Hand ändern).
 
 Ein `--cd-*` steht nur in vendorten Kopien, deren Manifest `SANCTIONED_TOKEN_MANIFESTS` freigibt:
-die Kopien aus `.miragon/brand-assets.yaml` (pulse-ui in `packages/core/ui/src/tokens/` und das
-Theme der Webview von VS Code und Orca in `packages/core/runtime-view/src/webview/theme/`,
+die Kopien aus `.miragon/brand-assets.yaml` (pulse-ui in `packages/core/ui/src/tokens/`, deren
+Tokens auch die Webview von VS Code und Orca über `theme.css` nimmt, und deren Diagramm-Leinwand mit
+`cd-canvas.css` und `cd-tokens.generated.json` in `packages/core/runtime-view/src/webview/theme/`,
 Prüfsummen in `.miragon/brand-assets.sha256`) und das Doku-Kit. Eine weitere Kopie kommt mit
 `brand-assets.mjs --add` aus dem Plugin miragon-brand, nie als Ausnahme im Scan. Ein Token, das
 mehrere Kopien im selben Geltungsbereich setzen (`:root`, Hell, Dunkel), hat in allen denselben
-Wert: Ändert ein CI-Release einen Wert, kommt er in alle Kopien zugleich. Der
-Drift-Test ist `packages/core/ui/src/theme/token-drift.test.ts` (mit
+Wert: Ändert ein CI-Release einen Wert, kommt er in alle Kopien zugleich. Der Drift-Test ist
+`packages/core/ui/src/theme/token-drift.test.ts` (mit
 `packages/core/ui/src/theme/vendored-tokens.test-support.ts`); `test:host` prüft das gebaute
 Stylesheet.
 
@@ -286,19 +287,17 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 
 Alle Oberflächen (die MCP-Widgets, die Web-Apps, die Webview von VS Code und Orca) haben einen
 kompakten Look aus `@miragon/pulse-ui`, nach dem Vorbild der Webview (Owner-Entscheidung D9 vom
-2026-11-12, `apps/vscode/docs/adr/ui-foundation.md`; pulse-ui, das Cockpit und die Webview ziehen
-in eigenen Commits nach). Die Dichte-Rollen stehen in `rem` in pulse-uis `theme.css`; ein Test
-hält sie bei 16 px Wurzelgröße gleich zu den Shell-Tokens des
-Guides (`--cd-shell-zeile`, `--cd-shell-eintrag`, `--cd-shell-ziel`, `--cd-shell-rand`).
-Kompakt ist der Standard. Auf Touch (`any-pointer: coarse`) und unter
-`[data-density=comfortable]` gilt die komfortable Stufe: Bedienelemente 36 px, Zeilen und
-Toolbars 40 px, Radius md auf Knöpfen. Die Schrift bleibt in jeder Stufe gleich; nur Eingaben
-zeigen auf Touch 16 px Text, damit iOS beim Fokus nicht in die Seite zoomt, und
-`[data-density=comfortable]` allein lässt sie bei 13 px. `[data-density=compact]` hält die
-kompakte Stufe auch auf Touch fest, damit die Editoren auf einem Touch-Laptop kompakt bleiben wie
-VS Code selbst; die Webview setzt es mit dem Umstieg auf ihr `<html>`. Die Eingaben behalten dort
-13 px Text, denn ihre Schrift ist eine eigene Rolle (`--field-text`), die der kompakte Pin
-erreicht. Leiste 40 px, Toolbar 36 px und Rand 12 px sind Werte des Guides und keine Abweichung.
+2026-11-12, `apps/vscode/docs/adr/ui-foundation.md`). Die Dichte-Rollen stehen in `rem` in pulse-uis
+`theme.css`; ein Test hält sie bei 16 px Wurzelgröße gleich zu den Shell-Tokens des Guides
+(`--cd-shell-zeile`, `--cd-shell-eintrag`, `--cd-shell-ziel`, `--cd-shell-rand`). Kompakt ist der
+Standard. Auf Touch (`any-pointer: coarse`) und unter `[data-density=comfortable]` gilt die
+komfortable Stufe: Bedienelemente 36 px, Zeilen und Toolbars 40 px, Radius md auf Knöpfen. Die
+Schrift bleibt in jeder Stufe gleich; nur Eingaben zeigen auf Touch 16 px Text, damit iOS beim Fokus
+nicht in die Seite zoomt, und `[data-density=comfortable]` allein lässt sie bei 13 px.
+`[data-density=compact]` hält die kompakte Stufe auch auf Touch fest, damit die Editoren auf einem
+Touch-Laptop kompakt bleiben wie VS Code selbst; die Webview setzt es auf ihr `<html>`. Die Eingaben
+behalten dort 13 px Text, denn ihre Schrift ist eine eigene Rolle (`--field-text`), die der kompakte
+Pin erreicht. Leiste 40 px, Toolbar 36 px und Rand 12 px sind Werte des Guides und keine Abweichung.
 Diese bewussten Abweichungen vom Guide gelten für alle Oberflächen (Owner-Entscheidung):
 
 - Bedienelemente (Knöpfe, Eingaben, Auswahlen) mit 28 px und klickbare Tabellenzeilen mit 28 px
@@ -323,22 +322,25 @@ Diese bewussten Abweichungen vom Guide gelten für alle Oberflächen (Owner-Ents
 ### Abweichung für die VS-Code-Webview
 
 Die Webview der VS-Code-Erweiterung, die Pulse for Orca ebenso zeigt (in
-`packages/core/runtime-view`), zieht in einem Umstieg von Preact auf React 19 und
-`@miragon/pulse-ui` um, ohne Brücke über `preact/compat` (Owner-Entscheidung D9 vom 2026-11-12,
-`apps/vscode/docs/adr/ui-foundation.md`; der Umstieg ist ein Commit der PR, die D9 festhält).
-Bis dahin läuft sie auf Preact mit eigenem CSS. Danach baut sie ihre Ansichten aus dem Kit, ohne
-widget-shell: Sie rendert die View-Modelle, die der Kern schickt, und behält ihre Host-Anbindung
-(Push-Protokoll, Live-Updates, native Bestätigung). Mit den Widgets teilt sie das Fundament aus
-pulse-ui (Töne `@miragon/pulse-ui/tones`, Formatierer `@miragon/pulse-ui/format`, Glossar,
-Zählbegriffe, Marken-Gates) und die Bausteine, die D9 aus der Webview in pulse-ui hebt
-(`ViewBar`, `StatusStrip`, `Facts`, `StateLabel`, `CountBadge`, `DataTable` …); nur die geteilte
-Ansicht mit ihrer verstellbaren Trennung und den gespeicherten Breiten bleibt im Editor. Die Hosts
-setzen `data-cd-theme`; VS Code setzt für seine Hochkontrast-Themes schon heute
-`data-cd-kontrast="hoch"`. Das Theme-Ereignis von Orca meldet nur hell oder dunkel
-(`apps/orca/types/orca/index.d.ts`): In Orca erreicht hoher Kontrast die Webview über
-`forced-colors`, und die Brücke von Pulse for Orca setzt `data-cd-kontrast="hoch"` nur, wo Orca
-hohen Kontrast meldet. Was die Oberflächen noch unterscheidet und ob es gewollt ist, steht in
-`docs/vscode/parity.md`. Für die Webview gilt zusätzlich diese
+`packages/core/runtime-view`), ist in einem Umstieg von Preact auf React 19 und `@miragon/pulse-ui`
+umgezogen, ohne Brücke über `preact/compat` (Owner-Entscheidung D9 vom 2026-11-12,
+`apps/vscode/docs/adr/ui-foundation.md`; der Umstieg ist ein Commit der PR, die D9 festhält). Ihr
+Stylesheet ist ein Tailwind-Eintrag (`packages/core/runtime-view/src/webview/styles/webview.css`:
+Preflight an, das Theme von pulse-ui und die Diagramm-CSS (diagram-js, bpmn-js, `cd-canvas.css`,
+`diagram.css`) ohne Schicht, `shell.css` von modeler-shell in einer eigenen Schicht `shell` unter
+dem Kit, die Schriftgröße der Wurzel auf 100 %, damit die Dichte-Rollen in `rem` bei 16 px bleiben),
+`<html>` trägt `data-density="compact"`. Sie baut ihre Ansichten aus dem Kit, ohne widget-shell: Sie
+rendert die View-Modelle, die der Kern schickt, und behält ihre Host-Anbindung (Push-Protokoll,
+Live-Updates, native Bestätigung). Mit den Widgets teilt sie das Fundament aus pulse-ui (Töne
+`@miragon/pulse-ui/tones`, Formatierer `@miragon/pulse-ui/format`, Glossar, Zählbegriffe,
+Marken-Gates) und die Bausteine, die D9 aus der Webview in pulse-ui hebt (`ViewBar`, `StatusStrip`,
+`Facts`, `StateLabel`, `CountBadge`, `DataTable` …); nur die geteilte Ansicht mit ihrer
+verstellbaren Trennung und den gespeicherten Breiten bleibt im Editor. Die Hosts setzen
+`data-cd-theme`; VS Code setzt für seine Hochkontrast-Themes schon heute `data-cd-kontrast="hoch"`.
+Das Theme-Ereignis von Orca meldet nur hell oder dunkel (`apps/orca/types/orca/index.d.ts`): In Orca
+erreicht hoher Kontrast die Webview über `forced-colors`, und die Brücke von Pulse for Orca setzt
+`data-cd-kontrast="hoch"` nur, wo Orca hohen Kontrast meldet. Was die Oberflächen noch unterscheidet
+und ob es gewollt ist, steht in `docs/vscode/parity.md`. Für die Webview gilt zusätzlich diese
 bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
 `apps/vscode/docs/adr/user-interface.md`):
 
@@ -480,20 +482,19 @@ Ihre 12-px-Icons (Dichte, oben) lässt `scanIconSizes` in der Webview nur in den
    app's own UI follows the design system above, and the VS Code webview takes from pulse-ui its
    foundation (`/format`, `/tones`) and, for shared building blocks, its React kit and
    stylesheet. By the owner's decision D9 of 2026-11-12 (`apps/vscode/docs/adr/ui-foundation.md`)
-   the webview moves from Preact to React on pulse-ui in one switch and then composes the kit
+   the webview moved from Preact to React on pulse-ui in one switch and composes the kit
    without widget-shell, in the one compact look of the design section.
    - **Pairs.** Six cockpit views have a counterpart in the VS Code webview (the overview, a
-     process, its instances, an instance, an incident, the history). A field, a count or an
-     action added to or changed in one is a pair feature: where both show it, a shared building
-     block is the default (React, props and callbacks only, no host context inside: no
-     `useToolQuery`, `ConfirmDialog`, `HandOffButton` or `HostBridge`), which both render in
-     React once the webview's switch lands, and each side keeps its own screen and host wiring
-     around it; until that switch (its preconditions in `apps/vscode/CLAUDE.md`), a pair feature
-     is still built on each side. Its pull request updates `docs/vscode/parity.md` by its review
-     rule. Which blocks two surfaces share is the owner's decision in normal review. A
-     primitive goes into pulse-ui, an engine block into a shared package created with the first
-     one two surfaces render; until then the cockpit side keeps its props-only content in the
-     connector (`process-definitions-table-view.tsx` with `renderActions`, `history-steps.tsx`).
+     process, its instances, an instance, an incident, the history). A field, a count or an action
+     added to or changed in one is a pair feature: where both show it, a shared building block is
+     the default (React, props and callbacks only, no host context inside: no `useToolQuery`,
+     `ConfirmDialog`, `HandOffButton` or `HostBridge`), which both render in React, and each side
+     keeps its own screen and host wiring around it. Its pull request updates
+     `docs/vscode/parity.md` by its review rule. Which blocks two surfaces share is the owner's
+     decision in normal review. A primitive goes into pulse-ui, an engine block into a shared
+     package created with the first one two surfaces render; until then the cockpit side keeps its
+     props-only content in the connector (`process-definitions-table-view.tsx` with `renderActions`,
+     `history-steps.tsx`).
    - **One kit.** Primitives, components, the tone model (`TONE_*`, `resolveTone`), `cn`, the
      formatters and the kit pieces (`Icon`, `Th`/`Td`, `TableEmptyState`, `NativeSelect` …) come
      from `@miragon/pulse-ui`, a leaf (`ui-is-a-leaf`, invariant 8); widget-shell exports only
@@ -635,8 +636,8 @@ Ihre 12-px-Icons (Dichte, oben) lässt `scanIconSizes` in der Webview nur in den
      `brand-gates.test.ts` (the host bundle's `src/ui` runs `scanGlyphs` and `scanOutlines`;
      widget-shell checks its words next to its catalogs, in
      `packages/core/widget-shell/src/ui/kit-words.test.ts`), and its en/de catalogs hold the same
-     keys; the VS Code extension runs `scanGlyphs`, `scanIconSizes`, `scanColors` and
-     `scanOutlines` over its webview (`apps/vscode/test/architecture/brand-gates.test.ts`, its
+     keys; the VS Code extension runs `scanGlyphs`, `scanIconSizes`, `scanColors`,
+     `scanOutlines` and `scanTypeScale` over its webview (`apps/vscode/test/architecture/brand-gates.test.ts`, its
      12 px icons the named deviation of the design section). One term per thing across the
      product, the VS Code extension included: `PRODUCT_GLOSSARY` (`@miragon/pulse-ui/testing`, with the brand gates; Incident,
      "Jobs ohne Versuche" / "jobs without retries", "bereitstellen", Geschäftsschlüssel,
@@ -812,9 +813,9 @@ Ihre 12-px-Icons (Dichte, oben) lässt `scanIconSizes` in der Webview nur in den
      `pulse-ui-only-its-foundation`); the webview may import pulse-ui's React kit and stylesheet
      for shared building blocks, by the package's root and `@miragon/pulse-ui/theme.css` only
      (`webview-pulse-ui-by-its-entries`; the decisions of 2026-11-12:
-     `apps/vscode/docs/adr/ui-foundation.md`, whose D9 moves the webview to React on pulse-ui in
-     one switch, its rendering libraries then `react`, `react-dom` and `lucide-react` instead of
-     `preact`, never widget-shell). A family's adapter imports only its
+     `apps/vscode/docs/adr/ui-foundation.md`, whose D9 moved the webview to React on pulse-ui in
+     one switch, its rendering libraries `react`, `react-dom` and `lucide-react`, never
+     widget-shell). A family's adapter imports only its
      own family's core, engine-core, the runtime view and the transport
      (`adapters-own-their-family`; the C7 adapter, `packages/connectors/c7/c7-adapter`, runs
      c7-core), never a client, its own family's included (`client-consumers`, owner decision
@@ -1046,7 +1047,10 @@ Ihre 12-px-Icons (Dichte, oben) lässt `scanIconSizes` in der Webview nur in den
   size is the cost of every render: `test/__golden__/bundle-budget.json` holds shrink-only gzip
   ceilings that `test-host/bundle-budget.spec.ts` checks; growth needs a `Ratchet-Exception:`
   trailer that says why. Two more shipped bundles have a shrink-only ceiling: the VS Code
-  webview's (`apps/vscode/test/__golden__/bundle-budget.json`, gzip) and the CLI's npm dist
+  webview's (`apps/vscode/test/__golden__/bundle-budget.json`, gzip, its script and its
+  stylesheet, each failing too once it shrinks more than 10 % below its ceiling; the same test
+  holds the bundle to one copy each of React, react-dom, lucide-react and pulse-ui, the esbuild
+  counterpart of invariant 4) and the CLI's npm dist
   (`apps/cli/test/__golden__/bundle-budget.json`, raw bytes, c7-core with engine-core's
   root-cause rule, http and profile bundled in, read by `scripts/published-imports.test.mjs`,
   which also makes it come down once the dist shrinks more than 10 % below it). The CLI's

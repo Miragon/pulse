@@ -1,4 +1,4 @@
-import { useEffect, useState } from "preact/hooks"
+import { useEffect, useState } from "react"
 import type { WebviewIntent, WriteState } from "../../core/protocol/index.js"
 import { useHost } from "./host-context.js"
 

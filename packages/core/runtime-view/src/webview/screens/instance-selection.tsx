@@ -1,16 +1,19 @@
+import { Checkbox } from "@miragon/pulse-ui"
+import type { ReactNode } from "react"
 import type { InstanceRow } from "../../core/protocol/index.js"
-import type { ComponentChildren } from "preact"
-import { useLayoutEffect, useRef } from "preact/hooks"
 import type { Column } from "../components/data-table.js"
 import { usePendingValue } from "../components/pending-value.js"
 import { useHost } from "../host/host-context.js"
 
 const SELECTION_WIDTH = 32
 
-function SelectionLabel({ children }: { readonly children: ComponentChildren }) {
+const SELECTION_CELL =
+  "[td:has(>&)]:p-0 [th:has(>&)]:p-0 flex h-row cursor-pointer items-center pl-(--cell-px)"
+
+function SelectionLabel({ children }: { readonly children: ReactNode }) {
   return (
     <label
-      class="selection-cell"
+      className={SELECTION_CELL}
       onClick={(event) => {
         event.stopPropagation()
       }}
@@ -28,26 +31,17 @@ function SelectionHeader({
   readonly selected: number
 }) {
   const host = useHost()
-  const box = useRef<HTMLInputElement>(null)
   const selectable = rows.filter((row) => row.selectable === true)
   const shown = selectable.filter((row) => row.selected === true).length
   const all = shown > 0 && shown === selectable.length
   const [checked, hold] = usePendingValue(all)
   const mixed = shown > 0 && !all && checked === all
-  useLayoutEffect(() => {
-    if (box.current !== null) {
-      box.current.indeterminate = mixed
-    }
-  }, [mixed])
   return (
     <SelectionLabel>
-      <input
-        ref={box}
-        type="checkbox"
-        class="selection-box"
+      <Checkbox
         aria-label="Select all shown instances"
-        checked={checked}
-        onChange={() => {
+        checked={mixed ? "indeterminate" : checked}
+        onCheckedChange={() => {
           hold(!all)
           host.post(
             all && selected > shown
@@ -68,13 +62,11 @@ function SelectionCell({ row }: { readonly row: InstanceRow }) {
   }
   return (
     <SelectionLabel>
-      <input
-        type="checkbox"
-        class="selection-box"
+      <Checkbox
         tabIndex={-1}
         aria-label={`Select ${row.businessKey ?? row.shortId}`}
         checked={checked}
-        onChange={() => {
+        onCheckedChange={() => {
           hold(!checked)
           host.post({ type: "toggleInstances", ids: [row.id], selected: !checked })
         }}

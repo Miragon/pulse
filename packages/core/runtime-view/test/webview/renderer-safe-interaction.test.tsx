@@ -24,6 +24,10 @@ function pointer(target: HTMLElement, type: string, at: { x?: number; y?: number
   )
 }
 
+function ticked(box: HTMLElement): boolean {
+  return box.getAttribute("aria-checked") === "true"
+}
+
 function captured(separator: HTMLElement): HTMLElement {
   separator.setPointerCapture = () => undefined
   return separator
@@ -106,9 +110,9 @@ describe("interaction that does not lean on the renderer's timing", () => {
     republish("definition-selecting")
     const table = await findRole<HTMLTableElement>(harness.root, "table", { name: "Instances" })
     const [first, second] = [...(table.tBodies[0]?.rows ?? [])]
-    const box = second?.querySelector("input")
+    const box = second === undefined ? undefined : getRole(second, "checkbox")
 
-    box?.dispatchEvent(new FocusEvent("focus", { bubbles: true }))
+    box?.focus()
     await nextFrame()
 
     expect(first?.tabIndex).toBe(0)
@@ -147,14 +151,14 @@ describe("interaction that does not lean on the renderer's timing", () => {
     harness = mountApp()
     republish("definition-selecting")
     const table = await findRole<HTMLTableElement>(harness.root, "table", { name: "Instances" })
-    const box = await findRole<HTMLInputElement>(table, "checkbox", { name: "Select ORD-10440" })
-    const before = box.checked
+    const box = await findRole(table, "checkbox", { name: "Select ORD-10440" })
+    const before = ticked(box)
 
     box.click()
     republish("definition-selecting")
     await nextFrame()
 
-    expect(box.checked).toBe(!before)
+    expect(ticked(box)).toBe(!before)
   })
 
   it("lets a picked version follow the host back to the version it showed before", async () => {
@@ -181,17 +185,17 @@ describe("interaction that does not lean on the renderer's timing", () => {
     harness = mountApp()
     republish("definition-selecting")
     const table = await findRole<HTMLTableElement>(harness.root, "table", { name: "Instances" })
-    const box = await findRole<HTMLInputElement>(table, "checkbox", { name: "Select ORD-10440" })
-    expect(box.checked).toBe(false)
+    const box = await findRole(table, "checkbox", { name: "Select ORD-10440" })
+    expect(ticked(box)).toBe(false)
 
     box.click()
     harness.publish(ready(tickedRow(SELECTING_DEFINITION, 1)))
     await nextFrame()
-    expect(box.checked).toBe(true)
+    expect(ticked(box)).toBe(true)
     republish("definition-selecting")
     await nextFrame()
 
-    expect(box.checked).toBe(false)
+    expect(ticked(box)).toBe(false)
   })
 
   it("puts focus into the condition dialog's Name field when it opens", async () => {

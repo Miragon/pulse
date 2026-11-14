@@ -18,6 +18,7 @@ import {
   selectTab,
   showPulse,
 } from "./vscode-driver.mjs"
+import { part } from "../support/webview-parts.mjs"
 
 export const WRITING_USE_CASES = [
   {
@@ -201,9 +202,7 @@ async function openVersion(window, label) {
   const picker = frame.getByRole("combobox", { name: "Version" })
   const value = await picker.locator("option", { hasText: label }).first().getAttribute("value")
   await picker.selectOption(value)
-  await frame
-    .locator('[data-part="context-bar"]', { hasText: "As of" })
-    .waitFor({ timeout: 30_000 })
+  await frame.locator(part("context-bar"), { hasText: "As of" }).waitFor({ timeout: 30_000 })
   await window.waitForTimeout(1500)
 }
 

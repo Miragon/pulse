@@ -4,7 +4,15 @@ import parcelReturnXml from "../../dev/webview/fixtures/parcel-return.bpmn"
 import { DEFINITION_VIEW } from "../../dev/webview/fixtures/definition.js"
 import { INSTANCE_WITH_CALLED_INCIDENT } from "../../dev/webview/fixtures/instance.js"
 import { FIXTURES } from "../../dev/webview/fixtures/states.js"
-import { allRoles, findRole, mountApp, nextFrame, waitForElement, type Harness } from "./harness.js"
+import {
+  allRoles,
+  findRole,
+  mountApp,
+  nextFrame,
+  part,
+  waitForElement,
+  type Harness,
+} from "./harness.js"
 
 const PARCEL_RETURN: DefinitionView = {
   ...DEFINITION_VIEW,
@@ -181,8 +189,10 @@ describe("jumping into a call activity from the diagram", () => {
 
     parent?.click()
 
-    expect(strip.dataset.part).toBe("status-strip")
-    expect(strip.parentElement?.textContent).toContain("credit-scoring isn't deployed on local.")
+    expect(strip.closest(part("status-strip"))).not.toBeNull()
+    expect(strip.closest(part("status-strip"))?.textContent).toContain(
+      "credit-scoring isn't deployed on local.",
+    )
     expect(parent?.title).toBe("Open the calling instance 63e79cda-cd7f-11f1-86d2-667bc3771e0d")
     expect(harness.posted).toContainEqual({
       type: "openInstance",

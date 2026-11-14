@@ -28,7 +28,9 @@ describe("a number beyond the range of a double, typed into the editor of the co
     await vi.waitFor(() => {
       expect(document.activeElement).toBe(field)
     })
-    expect(getComputedStyle(field).borderTopColor).toBe(colourOfVariable("--cd-ui-danger"))
+    await vi.waitFor(() => {
+      expect(getComputedStyle(field).borderTopColor).toBe(colourOfVariable("--danger"))
+    })
     expect(editing.fixture.effects.confirmWrite).not.toHaveBeenCalled()
     expect(editing.setVariable).not.toHaveBeenCalled()
   }

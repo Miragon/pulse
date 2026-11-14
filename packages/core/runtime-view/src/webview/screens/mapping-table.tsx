@@ -1,6 +1,14 @@
+import {
+  DataTable,
+  Icon,
+  NativeSelect,
+  TONE_ICON,
+  Td,
+  cn,
+  type DataTableColumn,
+} from "@miragon/pulse-ui"
+import { CircleXIcon, TriangleAlertIcon } from "lucide-react"
 import type { MappingRow, MigrationView } from "../../core/protocol/index.js"
-import { Icon } from "../components/icon.js"
-import { glyphs } from "../components/lucide-glyphs.json"
 import { NoValue } from "../components/no-value.js"
 import { usePendingValue } from "../components/pending-value.js"
 import { CountLabels } from "../format/count-labels.js"
@@ -15,8 +23,8 @@ function TargetSelect({ row, noteId }: MappingCellProps) {
   const host = useHost()
   const [target, pick] = usePendingValue(row.targetElementId ?? "")
   return (
-    <select
-      class="mapping-table__select"
+    <NativeSelect
+      className="min-h-control-xs h-control-xs max-w-[280px] px-2"
       aria-label={`Map ${row.sourceLabel} to`}
       aria-describedby={noteId}
       value={target}
@@ -39,7 +47,7 @@ function TargetSelect({ row, noteId }: MappingCellProps) {
           {candidate.label}
         </option>
       ))}
-    </select>
+    </NativeSelect>
   )
 }
 
@@ -48,14 +56,19 @@ function NoteCell({ row, noteId }: MappingCellProps) {
   if (note === undefined) {
     return <NoValue />
   }
+  const problem = row.problem !== undefined
   return (
     <span
       id={noteId}
-      class={row.problem === undefined ? "mapping-table__warning" : "mapping-table__problem"}
+      className="inline-flex items-center gap-1"
       data-part="mapping-note"
-      data-tone={row.problem === undefined ? "warning" : "danger"}
+      data-tone={problem ? "danger" : "warning"}
     >
-      <Icon of={glyphs.TriangleAlert} size={12} />
+      <Icon
+        icon={problem ? CircleXIcon : TriangleAlertIcon}
+        dense
+        className={problem ? TONE_ICON.danger : TONE_ICON.warning}
+      />
       {note}
     </span>
   )
@@ -63,66 +76,79 @@ function NoteCell({ row, noteId }: MappingCellProps) {
 
 function SourceCell({ row }: { readonly row: MappingRow }) {
   return (
-    <span class="mapping-table__source">
+    <span className="inline-flex items-center gap-2">
       {row.sourceLabel}
-      {row.unmappedTokens === true && <span class="mapping-table__flag">no mapping</span>}
+      {row.unmappedTokens === true && (
+        <span className="inline-flex items-center gap-1">
+          <Icon icon={CircleXIcon} className={TONE_ICON.danger} />
+          no mapping
+        </span>
+      )}
     </span>
   )
 }
 
-export function MappingTable({ view }: { readonly view: MigrationView }) {
+const FITTED = "w-[1%] whitespace-nowrap"
+
+class MappingColumns {
+  static of(view: MigrationView): DataTableColumn[] {
+    return [
+      { key: "source", label: `In v${view.source.version}` },
+      { key: "target", label: `In v${view.target?.version ?? "…"}` },
+      { key: "waiting", label: "Waiting" },
+      { key: "check", label: "Check" },
+    ]
+  }
+}
+
+function WaitingText({ waiting }: { readonly waiting: number | undefined }) {
+  return waiting === undefined ? (
+    <NoValue />
+  ) : (
+    `${CountLabels.exact(waiting)} selected ${waiting === 1 ? "waits" : "wait"} here`
+  )
+}
+
+function MappingLine({ row, view }: { readonly row: MappingRow; readonly view: MigrationView }) {
   const host = useHost()
+  const focused = row.sourceElementId === view.focused
+  const noteId =
+    row.problem === undefined && row.warning === undefined
+      ? undefined
+      : `mapping-note-${row.sourceElementId}`
   return (
-    <div class="data-table mapping-table">
-      <table aria-label="Mapping">
-        <thead>
-          <tr>
-            <th scope="col">In v{view.source.version}</th>
-            <th scope="col">In v{view.target?.version ?? "…"}</th>
-            <th scope="col">Waiting</th>
-            <th scope="col">Check</th>
-          </tr>
-        </thead>
-        <tbody>
-          {view.rows.map((row) => {
-            const noteId =
-              row.problem === undefined && row.warning === undefined
-                ? undefined
-                : `mapping-note-${row.sourceElementId}`
-            return (
-              <tr
-                key={row.sourceElementId}
-                class={row.sourceElementId === view.focused ? "is-focused" : undefined}
-                aria-current={row.sourceElementId === view.focused ? "true" : undefined}
-                onClick={() => {
-                  host.post({ type: "focusMapping", sourceElementId: row.sourceElementId })
-                }}
-              >
-                <td>
-                  <SourceCell row={row} />
-                </td>
-                <td>
-                  {view.target === undefined ? (
-                    <NoValue />
-                  ) : (
-                    <TargetSelect row={row} noteId={noteId} />
-                  )}
-                </td>
-                <td>
-                  {row.waiting === undefined ? (
-                    <NoValue />
-                  ) : (
-                    `${CountLabels.exact(row.waiting)} selected ${row.waiting === 1 ? "waits" : "wait"} here`
-                  )}
-                </td>
-                <td>
-                  <NoteCell row={row} noteId={noteId} />
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+    <tr
+      className={cn(
+        "cursor-pointer",
+        focused && "bg-info-surface outline-interaction outline-2 -outline-offset-2 outline-solid",
+      )}
+      aria-current={focused ? "true" : undefined}
+      onClick={() => {
+        host.post({ type: "focusMapping", sourceElementId: row.sourceElementId })
+      }}
+    >
+      <Td className={FITTED}>
+        <SourceCell row={row} />
+      </Td>
+      <Td className={FITTED}>
+        {view.target === undefined ? <NoValue /> : <TargetSelect row={row} noteId={noteId} />}
+      </Td>
+      <Td className={FITTED}>
+        <WaitingText waiting={row.waiting} />
+      </Td>
+      <Td>
+        <NoteCell row={row} noteId={noteId} />
+      </Td>
+    </tr>
+  )
+}
+
+export function MappingTable({ view }: { readonly view: MigrationView }) {
+  return (
+    <DataTable label="Mapping" columns={MappingColumns.of(view)} className="min-h-0 flex-1">
+      {view.rows.map((row) => (
+        <MappingLine key={row.sourceElementId} row={row} view={view} />
+      ))}
+    </DataTable>
   )
 }

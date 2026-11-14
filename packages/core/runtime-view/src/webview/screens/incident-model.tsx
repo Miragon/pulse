@@ -1,30 +1,36 @@
-import { Fragment } from "preact"
+import { FileCodeIcon, TriangleAlertIcon, WorkflowIcon } from "lucide-react"
 import type { IncidentRow, ModelFacts } from "../../core/protocol/index.js"
-import { glyphs } from "../components/lucide-glyphs.json"
-import { Icon } from "../components/icon.js"
+import { Button, Icon, type Fact } from "@miragon/pulse-ui"
 import { useHost } from "../host/host-context.js"
 
-export function IncidentModelFacts({ model }: { readonly model: ModelFacts | undefined }) {
-  if (model === undefined) {
-    return null
+export class IncidentModel {
+  static facts(model: ModelFacts | undefined): readonly Fact[] {
+    if (model === undefined) {
+      return []
+    }
+    return [
+      ...model.settings.map((setting, index) => ({
+        id: `${setting.label}-${index}`,
+        label: setting.label,
+        value: setting.value,
+        mono: true,
+        emphasis: true,
+      })),
+      { id: "model", label: "Model", value: <ModelFile model={model} /> },
+    ]
   }
+}
+
+function ModelFile({ model }: { readonly model: ModelFacts }) {
   return (
     <>
-      {model.settings.map((setting, index) => (
-        <Fragment key={`${setting.label}-${index}`}>
-          <dt>{setting.label}</dt>
-          <dd>
-            <code class="facts__code">{setting.value}</code>
-          </dd>
-        </Fragment>
-      ))}
-      <dt>Model</dt>
-      <dd>
-        {model.fileName}
-        {model.differsFromDeployed === true && (
-          <span class="facts__warning">· differs from the deployed version</span>
-        )}
-      </dd>
+      {model.fileName}
+      {model.differsFromDeployed === true && (
+        <span className="inline-flex items-center gap-1">
+          ·<Icon icon={TriangleAlertIcon} className="text-warning" />
+          {" differs from the deployed version"}
+        </span>
+      )}
     </>
   )
 }
@@ -37,29 +43,29 @@ export function IncidentModelActions({ incident }: { readonly incident: Incident
   }
   return (
     <>
-      <button
+      <Button
         type="button"
-        class="button button--secondary"
+        variant="outline"
         title={`Open ${model.fileName} at this element`}
         onClick={() => {
           host.post({ type: "openModel", incidentId: incident.id })
         }}
       >
-        <Icon of={glyphs.Workflow} />
+        <Icon icon={WorkflowIcon} />
         Open in model
-      </button>
+      </Button>
       {model.codeLabel !== undefined && (
-        <button
+        <Button
           type="button"
-          class="button button--secondary"
+          variant="outline"
           title={`Open ${model.codeLabel}`}
           onClick={() => {
             host.post({ type: "openCode", incidentId: incident.id })
           }}
         >
-          <Icon of={glyphs.FileCode} />
+          <Icon icon={FileCodeIcon} />
           Open code
-        </button>
+        </Button>
       )}
     </>
   )

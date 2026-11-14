@@ -92,7 +92,7 @@ describe("writing from the instance screen", () => {
     const strips = await findPart(harness.root, "strips")
 
     expect(strips.closest(part("diagram"))).toBeNull()
-    expect(getRole(strips, "alert").dataset.part).toBe("status-strip")
+    expect(getRole(strips, "alert").closest(part("status-strip"))).not.toBeNull()
     expect(getRole(strips, "alert").textContent).toContain("Failed again at Check credit.")
   })
 
@@ -186,8 +186,11 @@ describe("writing from the instance screen", () => {
     expect(field.value).toBe("99.5")
     expect(field.hasAttribute("aria-invalid")).toBe(false)
     expect(field.hasAttribute("aria-describedby")).toBe(false)
-    expect(getComputedStyle(field).borderTopColor).toBe(colourOfVariable("--cd-ui-linie"))
-    expect(getComputedStyle(field).borderTopColor).not.toBe(colourOfVariable("--cd-ui-danger"))
+    const calm = colourOfVariable(document.activeElement === field ? "--focus" : "--input")
+    await vi.waitFor(() => {
+      expect(getComputedStyle(field).borderTopColor).toBe(calm)
+    })
+    expect(getComputedStyle(field).borderTopColor).not.toBe(colourOfVariable("--danger"))
 
     harness.publish({
       status: "ready",

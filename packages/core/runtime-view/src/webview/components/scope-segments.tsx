@@ -1,6 +1,6 @@
+import { CircleXIcon } from "lucide-react"
+import { Icon, SegmentedControl, TONE_ICON, cn } from "@miragon/pulse-ui"
 import { CountLabels } from "../format/count-labels.js"
-import { usePendingValue } from "./pending-value.js"
-import { RovingKeys } from "./roving-keys.js"
 
 export interface ScopeOption<Scope extends string> {
   readonly scope: Scope
@@ -27,58 +27,42 @@ interface ScopeCountProps {
 function ScopeCount({ alarming, count, atLeast }: ScopeCountProps) {
   return (
     <span
-      class={alarming ? "segmented__count segmented__count--danger" : "segmented__count"}
+      className="text-muted-foreground inline-flex items-center gap-1 font-normal tabular-nums"
       data-part="segment-count"
       data-tone={alarming ? "danger" : undefined}
       title={CountLabels.exact(count, atLeast)}
     >
+      {alarming && <Icon icon={CircleXIcon} className={cn(TONE_ICON.danger)} />}
       {CountLabels.compact(count, atLeast)}
     </span>
   )
 }
 
 export function ScopeSegments<Scope extends string>(props: ScopeSegmentsProps<Scope>) {
-  const [scope, setPending] = usePendingValue(props.checked)
-  const select = (next: Scope): void => {
-    setPending(next)
-    props.onSelect(next)
-  }
-  const scopes = props.options.map((option) => option.scope)
   return (
-    <div
-      class="segmented"
-      role="radiogroup"
-      aria-label={props.label}
-      aria-busy={props.busy}
-      onKeyDown={(event) => {
-        RovingKeys.move(event, scopes, select)
-      }}
-    >
-      {props.options.map((option) => {
+    <SegmentedControl<Scope>
+      ariaLabel={props.label}
+      value={props.checked}
+      busy={props.busy}
+      onChange={props.onSelect}
+      options={props.options.map((option) => {
         const count = props.counts[option.scope]
-        return (
-          <button
-            key={option.scope}
-            type="button"
-            role="radio"
-            class="segmented__option"
-            data-key={option.scope}
-            title={props.notes?.[option.scope]}
-            aria-checked={option.scope === scope}
-            tabIndex={option.scope === scope ? 0 : -1}
-            onClick={() => {
-              select(option.scope)
-            }}
-          >
-            {`${option.label} `}
-            <ScopeCount
-              alarming={option.scope === "withIncident" && count > 0}
-              count={count}
-              atLeast={props.atLeast?.includes(option.scope) === true}
-            />
-          </button>
-        )
+        const note = props.notes?.[option.scope]
+        return {
+          value: option.scope,
+          ...(note === undefined ? {} : { note }),
+          label: (
+            <>
+              {`${option.label} `}
+              <ScopeCount
+                alarming={option.scope === "withIncident" && count > 0}
+                count={count}
+                atLeast={props.atLeast?.includes(option.scope) === true}
+              />
+            </>
+          ),
+        }
       })}
-    </div>
+    />
   )
 }

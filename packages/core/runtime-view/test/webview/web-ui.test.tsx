@@ -8,6 +8,10 @@ const COCKPIT = {
   title: "Open ORD-10442 in Cockpit on local-operaton",
 }
 
+function actionsOf(bar: HTMLElement | undefined): HTMLElement | null {
+  return bar?.querySelector<HTMLElement>('[data-slot="view-bar-actions"]') ?? null
+}
+
 function webUiButton(root: HTMLElement): HTMLButtonElement | undefined {
   const bar = queryPart(root, "context-bar")
   return allRoles<HTMLButtonElement>(bar ?? root, "button").find(
@@ -50,8 +54,10 @@ describe("the link into the engine web UI", () => {
         webUi: { ...COCKPIT, title: "Open Order fulfillment v7" },
       },
     })
-    const definitionBar = await findPart(harness.root, "context-subject")
-    const labels = [...definitionBar.querySelectorAll("button")].map((button) => button.title)
+    const definitionBar = actionsOf(await findPart(harness.root, "context-bar"))
+    const labels = allRoles<HTMLButtonElement>(definitionBar!, "button").map(
+      (button) => button.title,
+    )
 
     expect(labels.slice(-2)).toEqual(["Open order-fulfillment.bpmn", "Open Order fulfillment v7"])
 
@@ -62,9 +68,7 @@ describe("the link into the engine web UI", () => {
     })
     const instanceBar = await findPart(harness.root, "context-bar", { kind: "instance" })
 
-    expect(queryPart(instanceBar, "context-subject")?.lastElementChild).toBe(
-      webUiButton(harness.root),
-    )
+    expect(actionsOf(instanceBar)?.lastElementChild).toBe(webUiButton(harness.root))
   })
 
   it("follows the version picker in the definition header and is absent without a web UI", async () => {

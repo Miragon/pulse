@@ -131,6 +131,12 @@ describe("ViewBar", () => {
     expect(classes(back)).toContain("size-control")
   })
 
+  it("names the back button where it goes when the host says so", () => {
+    render(<ViewBar title="Instance" onBack={vi.fn()} backLabel="Back to Invoice" />)
+    expect(screen.getByRole("button", { name: "Back to Invoice" }).title).toBe("Back to Invoice")
+    expect(screen.queryByRole("button", { name: UI_MESSAGES.en.viewBar.back })).toBeNull()
+  })
+
   it("renders no meta, no break and no back button it has nothing for", () => {
     const { container } = render(<ViewBar title="Bare" />)
     expect(slot(container, "view-bar-meta")).toBeNull()

@@ -53,7 +53,7 @@ describe("the engine overview", () => {
     expect(harness.posted).toEqual([{ type: "refresh" }, { type: "openWebUi" }])
   })
 
-  it("lists the processes with their latest version and counts, incidents in red", async () => {
+  it("lists the processes with their latest version and counts, an incident count with its alarm icon and words", async () => {
     harness = mountApp()
     harness.publish(ready(ENGINE_VIEW))
     await waitForElement(harness.root, "tbody tr")
@@ -66,9 +66,16 @@ describe("the engine overview", () => {
       "Running",
       "With incident",
     ])
-    expect(cells(order)).toEqual(["Order fulfillment order-fulfillment", "v3", "150", "9"])
+    expect(cells(order)).toEqual([
+      "Order fulfillment order-fulfillment",
+      "v3",
+      "150",
+      "9Has open incidents",
+    ])
     expect(cells(shipment)).toEqual(["shipment", "v1", "1,204", "0"])
-    expect(order && queryPart(order, "incident-count", { tone: "danger" })?.textContent).toBe("9")
+    expect(order && queryPart(order, "incident-count", { tone: "danger" })?.textContent).toBe(
+      "9Has open incidents",
+    )
     expect(shipment && queryPart(shipment, "incident-count", { tone: "danger" })).toBeNull()
     expect(queryPart(harness.root, "filter-summary")?.textContent).toBe(
       "3 processes · 1,369 running · 10 with incident · all versions",
@@ -86,8 +93,15 @@ describe("the engine overview", () => {
     order?.focus()
     press(order!, "ArrowDown")
     press(document.activeElement!, "Enter", { metaKey: true })
+    const reachedWindow: string[] = []
+    const listener = (event: KeyboardEvent): void => {
+      reachedWindow.push(event.key)
+    }
+    window.addEventListener("keydown", listener)
     press(document.activeElement!, "c", { ctrlKey: true })
+    window.removeEventListener("keydown", listener)
 
+    expect(reachedWindow).toEqual([])
     expect(document.activeElement).toBe(returns)
     expect(harness.posted).toEqual([
       { type: "openProcess", bpmnProcessId: "order-fulfillment", toSide: false },

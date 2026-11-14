@@ -2,6 +2,7 @@ import type { PathRow, PathState } from "../../core/protocol/index.js"
 import { DataTable, type Column } from "../components/data-table.js"
 import { EmptyHint } from "../components/empty-hint.js"
 import { NoValue } from "../components/no-value.js"
+import { StateLabel, type StateLabelProps } from "../components/state-label.js"
 import { TimeCell } from "./waiting-tab.js"
 
 export interface HistoryTabProps {
@@ -9,7 +10,7 @@ export interface HistoryTabProps {
   readonly elementName: (elementId: string) => string
 }
 
-const STATE_LABELS: Readonly<Record<PathState, string>> = {
+const STATE_LABELS: Readonly<Record<PathState, StateLabelProps["state"]>> = {
   active: "Running",
   completed: "Completed",
   canceled: "Cancelled",
@@ -25,9 +26,7 @@ export function HistoryTab({ path, elementName }: HistoryTabProps) {
     {
       key: "state",
       label: "State",
-      render: (row) => (
-        <span class={`path-state path-state--${row.state}`}>{STATE_LABELS[row.state]}</span>
-      ),
+      render: (row) => <StateLabel state={STATE_LABELS[row.state]} />,
     },
     { key: "started", label: "Started", render: (row) => <TimeCell iso={row.startedAt} precise /> },
     { key: "ended", label: "Ended", render: (row) => <TimeCell iso={row.endedAt} precise /> },

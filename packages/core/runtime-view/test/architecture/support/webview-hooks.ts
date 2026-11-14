@@ -19,6 +19,7 @@ const SELECTOR_CLASS = new RegExp(
 const CSS_CLASS = /\.([A-Za-z_][\w-]*)/g
 const CLASS_ACCESS = /\b(?:classList|className)\b/g
 const CLASS_ATTRIBUTE = /class(?:Name)?=(?:"([^"]*)"|\{`([^`]*)`\}|\{"([^"]*)"\})/g
+const CLASS_CALL = /\bcn\(((?:[^()]|\([^()]*\))*)\)/g
 
 export class WebviewHooks {
   static sourcesUnder(root: string, extensions: readonly string[]): Map<string, string> {
@@ -38,6 +39,11 @@ export class WebviewHooks {
     for (const source of components) {
       for (const match of source.matchAll(CLASS_ATTRIBUTE)) {
         WebviewHooks.addTokens(names, match.slice(1).join(" "))
+      }
+      for (const [, call] of source.matchAll(CLASS_CALL)) {
+        for (const [literal] of (call ?? "").matchAll(STRING_LITERAL)) {
+          WebviewHooks.addTokens(names, literal.slice(1, -1))
+        }
       }
     }
     return new Set(
@@ -63,6 +69,17 @@ export class WebviewHooks {
       }
     }
     return found.sort((first, second) => first.line - second.line)
+  }
+
+  static kitSlots(source: string): Record<string, string[]> {
+    const block = /KIT_SLOTS[^=]*=\s*\{([\s\S]*?)\n\}/.exec(source)?.[1] ?? ""
+    const entries = [...block.matchAll(/^\s*"?([\w-]+)"?:\s*\[(.*)\],?\s*$/gm)].map(
+      ([, name, list]): [string, string[]] => [
+        name ?? "",
+        [...(list ?? "").matchAll(/'([^']*)'/g)].map(([, selector]) => selector ?? ""),
+      ],
+    )
+    return Object.fromEntries(entries)
   }
 
   static relativeTo(root: string, path: string): string {

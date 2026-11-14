@@ -125,8 +125,21 @@ const PLANTED: Readonly<Record<string, string>> = {
   "../profile/src/parse.ts": "export const parseProfileFile = 1;\n",
   "test/host-kit/reads-profile-fixtures.test.ts":
     "import { PROFILE_FIXTURES } from '@miragon/pulse-profile/testing';\nexport const fixtures = PROFILE_FIXTURES;\n",
+  "src/webview/renders-react.tsx":
+    "import { createRoot } from 'react-dom/client';\nimport { useState } from 'react';\nimport { XIcon } from 'lucide-react';\nexport const parts = [createRoot, useState, XIcon];\n",
+  "src/core/renders-react.ts":
+    "import { useState } from 'react';\nexport const state = useState;\n",
+  "src/webview/renders-preact.ts":
+    "import { render } from 'preact';\nexport const draw = render;\n",
+  "../../../node_modules/preact/package.json":
+    '{ "name": "preact", "exports": { ".": { "types": "./index.d.ts" } } }\n',
+  "../../../node_modules/preact/index.d.ts": "export declare const render: number;\n",
+  "src/webview/reads-radix.ts": "import { Tabs } from 'radix-ui';\nexport const tabs = Tabs;\n",
+  "../../../node_modules/radix-ui/package.json":
+    '{ "name": "radix-ui", "exports": { ".": { "types": "./index.d.ts" } } }\n',
+  "../../../node_modules/radix-ui/index.d.ts": "export declare const Tabs: number;\n",
   "package.json":
-    '{ "name": "@miragon/pulse-runtime-view", "private": true, "dependencies": { "@miragon/pulse-c7-core": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-profile": "workspace:*", "@miragon/pulse-ui": "workspace:*", "bpmn-moddle": "10.3.1" } }\n',
+    '{ "name": "@miragon/pulse-runtime-view", "private": true, "dependencies": { "@miragon/pulse-c7-core": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-profile": "workspace:*", "@miragon/pulse-ui": "workspace:*", "bpmn-moddle": "10.3.1", "lucide-react": "1.70.0", "react": "19.3.1", "react-dom": "19.3.1" } }\n',
 }
 
 const tree = new PlantedTree("packages/core/runtime-view", PLANTED)
@@ -223,6 +236,11 @@ describe("the dependency rules", () => {
         `not-in-allowed: ${at("src/core/reads-profiles.ts")} -> ${profile}`,
         `not-in-allowed: ${at("src/host-kit/connections/ships-profile-fixtures.ts")} -> ${profileTesting}`,
         `not-in-allowed: ${at("src/host-kit/connections/escapes-into-profile.ts")} -> packages/core/profile/src/parse.ts`,
+        `not-in-allowed: ${at("src/core/renders-react.ts")} -> ${at("node_modules/react/index.js")}`,
+        `not-in-allowed: ${at("src/webview/renders-preact.ts")} -> node_modules/preact/index.d.ts`,
+        `no-undeclared-dependencies: ${at("src/webview/renders-preact.ts")} -> node_modules/preact/index.d.ts`,
+        `not-in-allowed: ${at("src/webview/reads-radix.ts")} -> node_modules/radix-ui/index.d.ts`,
+        `no-undeclared-dependencies: ${at("src/webview/reads-radix.ts")} -> node_modules/radix-ui/index.d.ts`,
       ].sort(),
     )
   })

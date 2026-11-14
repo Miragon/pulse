@@ -1,5 +1,4 @@
-import type { ComponentChildren } from "preact"
-import { useCallback, useEffect, useMemo, useState } from "preact/hooks"
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
 import type { InstanceView } from "../../core/protocol/index.js"
 import { ContextBar, type Freshness } from "../components/context-bar.js"
 import { RuntimeDiagram } from "../components/runtime-diagram.js"
@@ -13,7 +12,7 @@ import { UiStateStore, type InstanceTab } from "../host/ui-state-store.js"
 import { WriteContext } from "../host/write-context.js"
 import { HistoryTab } from "./history-tab.js"
 import { IncidentsTab } from "./incidents-tab.js"
-import { InstanceHeaderDetails } from "./instance-header.js"
+import { InstanceHeaderActions, InstanceHeaderDetails } from "./instance-header.js"
 import { MovePanel } from "./move-panel.js"
 import { NoticeStrip } from "./notices.js"
 import { SplitLayout } from "./split-layout.js"
@@ -21,11 +20,13 @@ import { useTokenMove, type TokenMove } from "./token-move.js"
 import { VariablesTab } from "./variables-tab.js"
 import { WaitingTab } from "./waiting-tab.js"
 
+const REGION = "bg-card @container/list flex h-full min-h-0 flex-col"
+
 export interface InstanceScreenProps {
   readonly view: InstanceView
   readonly freshness: Freshness
   readonly stale: boolean
-  readonly problem?: ComponentChildren
+  readonly problem?: ReactNode
 }
 
 function useElementNames(view: InstanceView) {
@@ -117,10 +118,10 @@ function InstanceStrips({
   problem,
 }: {
   readonly view: InstanceView
-  readonly problem: ComponentChildren
+  readonly problem: ReactNode
 }) {
   return (
-    <div class="strip-stack" data-part="strips">
+    <div className="flex min-w-0 flex-col" data-part="strips">
       {problem}
       {view.outcome !== undefined && <NoticeStrip notice={view.outcome} />}
       {view.notice !== undefined && <NoticeStrip notice={view.notice} />}
@@ -143,9 +144,14 @@ function InstanceBar({
       title={instance.businessKey ?? instance.shortId}
       engine={view.engine}
       freshness={freshness}
+      actions={
+        <>
+          <InstanceHeaderActions />
+          <WebUiButton link={view.webUi} />
+        </>
+      }
     >
       <InstanceHeaderDetails instance={instance} />
-      <WebUiButton link={view.webUi} />
     </ContextBar>
   )
 }
@@ -199,7 +205,7 @@ function InstanceDetails({
 }) {
   if (move.choice !== undefined) {
     return (
-      <section class="list-region" aria-label="Move a token">
+      <section className={REGION} aria-label="Move a token">
         <MovePanel
           choice={move.choice}
           option={move.option}
@@ -211,7 +217,7 @@ function InstanceDetails({
     )
   }
   return (
-    <section class="list-region" aria-label="Instance details">
+    <section className={REGION} aria-label="Instance details">
       <Tabs
         label="Instance details"
         items={tabs}
@@ -221,7 +227,7 @@ function InstanceDetails({
       >
         <TabContent tab={tab} view={view} nameOf={nameOf} onShowElement={onShowElement} />
         {view.truncated && (
-          <p class="muted truncated-note">
+          <p className="text-muted-foreground px-3 py-2">
             Some lists are cut off. Pulse shows the first entries only.
           </p>
         )}
@@ -244,7 +250,7 @@ export function InstanceScreen({ view, freshness, stale, problem }: InstanceScre
   ]
   return (
     <WriteContext.Provider value={view.write}>
-      <div class="screen screen--with-strips">
+      <div className="grid h-full min-w-0 grid-rows-[auto_auto_minmax(0,1fr)]">
         <InstanceBar view={view} freshness={freshness} />
         <InstanceStrips view={view} problem={problem} />
         <SplitLayout

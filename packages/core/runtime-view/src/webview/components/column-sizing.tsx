@@ -1,121 +1,22 @@
-import { useLayoutEffect, useRef, useState } from "preact/hooks"
+import { useColumnSizing as useKitColumnSizing, type ColumnSizing } from "@miragon/pulse-ui"
 import { useHost } from "../host/host-context.js"
 import { UiStateStore } from "../host/ui-state-store.js"
-import { ColumnMeasure, type ColumnWidths } from "./column-measure.js"
-import { Separator } from "./separator.js"
+import { ColumnMeasure } from "./column-measure.js"
 
-const STEP = 8
-const SHIFT_STEP = 32
-
-export interface ColumnSizing {
-  readonly widths: ColumnWidths | undefined
-  readonly resize: (cell: Element, key: string, width: number, persist: boolean) => void
-  readonly persist: () => void
-}
+export type { ColumnSizing } from "@miragon/pulse-ui"
 
 export function useColumnSizing(
   tableId: string | undefined,
   keys: readonly string[],
 ): ColumnSizing {
   const { api } = useHost()
-  const [widths, setWidths] = useState(() =>
-    tableId === undefined ? undefined : UiStateStore.columnWidths(api, tableId, keys),
-  )
-  const live = useRef(widths)
-  const save = (next: ColumnWidths | undefined): void => {
-    if (tableId !== undefined && next !== undefined) {
-      UiStateStore.writeColumnWidths(api, tableId, next)
-    }
-  }
-  return {
-    widths,
-    resize: (cell, key, width, persist) => {
-      const next = {
-        ...(live.current ?? ColumnMeasure.widths(cell, keys)),
-        [key]: ColumnMeasure.clamp(cell, width),
-      }
-      live.current = next
-      setWidths(next)
-      if (persist) {
-        save(next)
+  return useKitColumnSizing({
+    min: ColumnMeasure.MIN,
+    load: () => (tableId === undefined ? undefined : UiStateStore.columnWidths(api, tableId, keys)),
+    save: (widths) => {
+      if (tableId !== undefined) {
+        UiStateStore.writeColumnWidths(api, tableId, widths ?? {})
       }
     },
-    persist: () => {
-      save(live.current)
-    },
-  }
-}
-
-export interface ColumnGripProps {
-  readonly label: string
-  readonly columnKey: string
-  readonly sizing: ColumnSizing
-}
-
-function useMeasuredCell() {
-  const handle = useRef<HTMLDivElement>(null)
-  const [measured, setMeasured] = useState<number | undefined>(undefined)
-  useLayoutEffect(() => {
-    const cell = handle.current?.parentElement
-    if (cell !== null && cell !== undefined) {
-      setMeasured(ColumnMeasure.width(cell))
-    }
-  }, [])
-  return { handle, measured, setMeasured }
-}
-
-export function ColumnGrip({ label, columnKey, sizing }: ColumnGripProps) {
-  const drag = useRef({ x: 0, width: 0, cell: null as Element | null })
-  const { handle, measured, setMeasured } = useMeasuredCell()
-  const width = sizing.widths?.[columnKey] ?? measured
-  const cellOf = (event: Event): Element =>
-    (event.currentTarget as Element).parentElement as Element
-  const set = (cell: Element, next: number, persist = true): void => {
-    sizing.resize(cell, columnKey, next, persist)
-  }
-  const step = (sign: number) => (event: KeyboardEvent) => {
-    const cell = cellOf(event)
-    set(cell, ColumnMeasure.width(cell) + sign * (event.shiftKey ? SHIFT_STEP : STEP))
-  }
-  const fit = (event: Event): void => {
-    set(cellOf(event), ColumnMeasure.fit(cellOf(event)))
-  }
-  return (
-    <Separator
-      class="column-grip"
-      handle={handle}
-      orientation="vertical"
-      label={`Resize column ${label}`}
-      value={width}
-      min={ColumnMeasure.MIN}
-      max={ColumnMeasure.MAX}
-      valueText={width === undefined ? undefined : `${width} pixels`}
-      keys={{
-        ArrowLeft: step(-1),
-        ArrowRight: step(1),
-        Enter: fit,
-        Home: (event) => {
-          set(cellOf(event), 0)
-        },
-      }}
-      onFocus={(event) => {
-        setMeasured(ColumnMeasure.width(cellOf(event)))
-      }}
-      onDragStart={(event) => {
-        const cell = cellOf(event)
-        drag.current = { x: event.clientX, width: ColumnMeasure.width(cell), cell }
-        set(cell, drag.current.width, false)
-      }}
-      onDrag={(event) => {
-        set(cellOf(event), drag.current.width + event.clientX - drag.current.x, false)
-      }}
-      onDragEnd={sizing.persist}
-      onDragCancel={() => {
-        if (drag.current.cell !== null) {
-          set(drag.current.cell, drag.current.width)
-        }
-      }}
-      onDoubleClick={fit}
-    />
-  )
+  })
 }

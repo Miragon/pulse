@@ -51,7 +51,7 @@ describe("bulk operations on the definition screen", () => {
 
   it("toggles one instance with its checkbox without opening it", async () => {
     const table = await open("definition-selecting")
-    const box = getRole<HTMLInputElement>(rowOf(table, "ORD-10440"), "checkbox")
+    const box = getRole<HTMLButtonElement>(rowOf(table, "ORD-10440"), "checkbox")
 
     expect(box.getAttribute("aria-label")).toBe("Select ORD-10440")
     expect(box.tabIndex).toBe(-1)
@@ -78,11 +78,11 @@ describe("bulk operations on the definition screen", () => {
 
   it("selects every shown instance from the header box, which shows a partial selection", async () => {
     const table = await open("definition-selecting")
-    const header = getRole<HTMLInputElement>(table.tHead!, "checkbox", {
+    const header = getRole<HTMLButtonElement>(table.tHead!, "checkbox", {
       name: "Select all shown instances",
     })
 
-    expect(header.indeterminate).toBe(true)
+    expect(header.getAttribute("aria-checked")).toBe("mixed")
     header.click()
 
     expect(posted("toggleInstances")).toEqual([

@@ -32,7 +32,9 @@ describe("a whole number beyond 64 bits, typed into the editor of the core's own
     await vi.waitFor(() => {
       expect(document.activeElement).toBe(field)
     })
-    expect(getComputedStyle(field).borderTopColor).toBe(colourOfVariable("--cd-ui-danger"))
+    await vi.waitFor(() => {
+      expect(getComputedStyle(field).borderTopColor).toBe(colourOfVariable("--danger"))
+    })
     expect(field.value).toBe("9223372036854775808")
     expect(editing.fixture.effects.confirmWrite).not.toHaveBeenCalled()
     expect(editing.setVariable).not.toHaveBeenCalled()

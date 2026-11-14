@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "preact/hooks"
+import { useEffect, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import type { BadgeFilter } from "../diagram/badge-cluster.js"
 import type { Decorations } from "../diagram/decoration-layer.js"
-import { PreactOverlaySink } from "../diagram/overlay-slots.js"
+import { ReactOverlaySink, type OverlaySlot } from "../diagram/overlay-slots.js"
 import { RuntimeCanvas } from "../diagram/runtime-canvas.js"
 import { useHost } from "../host/host-context.js"
 import { EmptyHint } from "./empty-hint.js"
@@ -24,6 +25,7 @@ export function RuntimeDiagram(props: RuntimeDiagramProps) {
   const latest = useRef(props)
   latest.current = props
   const [failure, setFailure] = useState<string | undefined>(undefined)
+  const [slots, setSlots] = useState<readonly OverlaySlot[]>([])
   const remembersView = props.remembersView !== false
   const keysOnCanvas = props.keysOnCanvas === true
 
@@ -31,9 +33,10 @@ export function RuntimeDiagram(props: RuntimeDiagramProps) {
     if (hostElement.current === null) {
       return undefined
     }
+    const sink = new ReactOverlaySink(setSlots)
     const created = new RuntimeCanvas({
       host: hostElement.current,
-      overlays: new PreactOverlaySink(),
+      overlays: sink,
       stateApi: api,
       onSelectElement: (elementId, scope) => {
         latest.current.onSelectElement(elementId, scope)
@@ -56,6 +59,7 @@ export function RuntimeDiagram(props: RuntimeDiagramProps) {
     void created.update(latest.current.xml, latest.current.decorations)
     return () => {
       canvas.current = null
+      sink.detach()
       created.destroy()
     }
   }, [api, host, remembersView, keysOnCanvas])
@@ -65,10 +69,11 @@ export function RuntimeDiagram(props: RuntimeDiagramProps) {
   }, [props.xml, props.decorations])
 
   return (
-    <section class="diagram-region" data-part="diagram" aria-label={props.label ?? "Diagram"}>
-      <div class="diagram-host" data-part="diagram-canvas" ref={hostElement} />
+    <section className="diagram-region" data-part="diagram" aria-label={props.label ?? "Diagram"}>
+      <div className="diagram-host" data-part="diagram-canvas" ref={hostElement} />
+      {slots.map((slot) => createPortal(slot.node, slot.anchor, slot.key))}
       {failure !== undefined && (
-        <div class="diagram-region__failure" data-part="diagram-failure">
+        <div className="diagram-region__failure" data-part="diagram-failure">
           <EmptyHint text="Couldn't draw the deployed diagram." />
         </div>
       )}

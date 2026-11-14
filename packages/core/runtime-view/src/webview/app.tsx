@@ -1,5 +1,5 @@
-import type { ComponentChildren } from "preact"
-import { useEffect, useMemo, useState } from "preact/hooks"
+import { useEffect, useMemo, useState, type ReactNode } from "react"
+import { flushSync } from "react-dom"
 import type { PanelState, PanelView } from "../core/protocol/index.js"
 import type { Freshness } from "./components/context-bar.js"
 import type { HostBridge } from "./host/host-bridge.js"
@@ -16,7 +16,7 @@ interface ViewScreenProps {
   readonly view: PanelView
   readonly freshness: Freshness
   readonly stale: boolean
-  readonly problem?: ComponentChildren
+  readonly problem?: ReactNode
 }
 
 function ViewScreen({ view, ...rest }: ViewScreenProps) {
@@ -92,9 +92,27 @@ function useActivityReports(bridge: HostBridge): void {
   }, [bridge])
 }
 
-export function App({ bridge }: { readonly bridge: HostBridge }) {
+function useHostState(bridge: HostBridge): PanelState | undefined {
   const [state, setState] = useState<PanelState | undefined>(() => bridge.current())
-  useEffect(() => bridge.subscribe(setState), [bridge])
+  useEffect(() => {
+    let subscribed = false
+    const leave = bridge.subscribe((next) => {
+      if (subscribed) {
+        flushSync(() => {
+          setState(next)
+        })
+      } else {
+        setState(next)
+      }
+    })
+    subscribed = true
+    return leave
+  }, [bridge])
+  return state
+}
+
+export function App({ bridge }: { readonly bridge: HostBridge }) {
+  const state = useHostState(bridge)
   useActivityReports(bridge)
   const backLabel = state === undefined ? undefined : bridge.back()?.label
   const host = useMemo<Host>(

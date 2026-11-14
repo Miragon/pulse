@@ -4,6 +4,7 @@ import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { downloadAndUnzipVSCode } from "@vscode/test-electron"
 import { _electron as electron } from "playwright"
+import { part } from "../support/webview-parts.mjs"
 
 const MAC_INSTALLATION = "/Applications/Visual Studio Code.app/Contents/MacOS/Code"
 const MODIFIER = process.platform === "darwin" ? "Meta" : "Control"
@@ -86,6 +87,11 @@ export async function runCommand(window, title) {
 export async function answer(window, text) {
   const input = window.locator(".quick-input-widget input")
   await input.waitFor({ state: "visible", timeout: 10_000 })
+  await window.waitForFunction(
+    () => !globalThis.document.querySelector(".quick-input-widget input")?.value.startsWith(">"),
+    undefined,
+    { timeout: 10_000 },
+  )
   await input.fill(text)
   await window.waitForTimeout(300)
   await input.press("Enter")
@@ -115,7 +121,7 @@ export async function showPulse(window) {
 export async function goToInstance(window, key) {
   await runCommand(window, "Pulse: Go to Process Instance")
   await answer(window, key)
-  await panelFrame(window).locator('[data-part="context-bar"]', { hasText: "As of" }).waitFor({
+  await panelFrame(window).locator(part("context-bar"), { hasText: "As of" }).waitFor({
     timeout: 30_000,
   })
 }

@@ -1,5 +1,16 @@
-import type { RefObject } from "preact"
-import { useEffect, useId, useRef, useState } from "preact/hooks"
+import { CircleAlertIcon } from "lucide-react"
+import { useEffect, useId, useRef, useState, type RefObject, type SyntheticEvent } from "react"
+import {
+  Button,
+  DialogBody,
+  DialogHeader,
+  Field,
+  Icon,
+  Input,
+  NativeSelect,
+  TONE_ICON,
+  cn,
+} from "@miragon/pulse-ui"
 import type { RefusedVariableCondition, VariableConditionView } from "../../core/protocol/index.js"
 import { VariableDraft, type CompareAs, type Draft, type DraftErrors } from "./variable-draft.js"
 
@@ -18,14 +29,6 @@ interface FieldProps {
   readonly onDraft: (change: (draft: Draft) => Draft) => void
 }
 
-function FieldError({ id, text }: { readonly id: string; readonly text: string | undefined }) {
-  return text === undefined ? null : (
-    <p id={id} class="condition-dialog__error">
-      {text}
-    </p>
-  )
-}
-
 function NameField({
   draft,
   errors,
@@ -38,20 +41,15 @@ function NameField({
 }) {
   const id = useId()
   return (
-    <div class="condition-dialog__field">
-      <label for={id}>Name</label>
-      <input
+    <Field id={id} label="Name" hint="Names are case sensitive." error={errors.name}>
+      <Input
         ref={input}
-        id={id}
-        class="condition-dialog__control"
         value={draft.name}
-        spellcheck={false}
+        spellCheck={false}
         maxLength={255}
         list={`${id}-names`}
-        autocomplete="off"
-        aria-invalid={errors.name !== undefined || undefined}
-        aria-describedby={`${id}-hint ${id}-error`}
-        onInput={(event) => {
+        autoComplete="off"
+        onChange={(event) => {
           const name = event.currentTarget.value
           onDraft((current) => ({ ...current, name }))
         }}
@@ -61,11 +59,7 @@ function NameField({
           <option key={name} value={name} />
         ))}
       </datalist>
-      <p id={`${id}-hint`} class="condition-dialog__hint muted">
-        Names are case sensitive.
-      </p>
-      <FieldError id={`${id}-error`} text={errors.name} />
-    </div>
+    </Field>
   )
 }
 
@@ -74,17 +68,12 @@ function ComparisonFields({
   onDraft,
   refused,
 }: FieldProps & { readonly refused: readonly RefusedVariableCondition[] }) {
-  const compareAsId = useId()
-  const operatorId = useId()
   return (
-    <div class="condition-dialog__row">
-      <div class="condition-dialog__field">
-        <label for={compareAsId}>Compare as</label>
-        <select
-          id={compareAsId}
-          class="condition-dialog__control"
+    <div className="grid grid-cols-2 gap-3">
+      <Field label="Compare as" hint="JSON and object variables can't be searched.">
+        <NativeSelect
+          className="w-full"
           value={draft.compareAs}
-          aria-describedby={`${compareAsId}-hint`}
           onChange={(event) => {
             const compareAs = event.currentTarget.value as CompareAs
             onDraft((current) => VariableDraft.withCompareAs(current, compareAs))
@@ -95,16 +84,11 @@ function ComparisonFields({
               {label}
             </option>
           ))}
-        </select>
-        <p id={`${compareAsId}-hint`} class="condition-dialog__hint muted">
-          JSON and object variables can't be searched.
-        </p>
-      </div>
-      <div class="condition-dialog__field">
-        <label for={operatorId}>Operator</label>
-        <select
-          id={operatorId}
-          class="condition-dialog__control"
+        </NativeSelect>
+      </Field>
+      <Field label="Operator">
+        <NativeSelect
+          className="w-full"
           value={draft.operator}
           onChange={(event) => {
             const chosen = event.currentTarget.value as Draft["operator"]
@@ -116,36 +100,20 @@ function ComparisonFields({
               {VariableDraft.operatorLabel(draft.compareAs, option)}
             </option>
           ))}
-        </select>
-      </div>
+        </NativeSelect>
+      </Field>
     </div>
   )
 }
 
-function ValueControl({ id, draft, errors, onDraft }: FieldProps & { readonly id: string }) {
+function ValueControl({ draft, onDraft }: FieldProps) {
   const onValue = (value: string): void => {
     onDraft((current) => ({ ...current, value }))
   }
-  if (draft.compareAs === "date") {
-    return (
-      <input
-        id={id}
-        type="datetime-local"
-        class="condition-dialog__control"
-        value={draft.value}
-        aria-invalid={errors.value !== undefined || undefined}
-        aria-describedby={`${id}-error`}
-        onInput={(event) => {
-          onValue(event.currentTarget.value)
-        }}
-      />
-    )
-  }
   if (draft.compareAs === "boolean") {
     return (
-      <select
-        id={id}
-        class="condition-dialog__control"
+      <NativeSelect
+        className="w-full"
         value={draft.value}
         onChange={(event) => {
           onValue(event.currentTarget.value)
@@ -153,18 +121,15 @@ function ValueControl({ id, draft, errors, onDraft }: FieldProps & { readonly id
       >
         <option value="true">true</option>
         <option value="false">false</option>
-      </select>
+      </NativeSelect>
     )
   }
   return (
-    <input
-      id={id}
-      class="condition-dialog__control"
+    <Input
+      type={draft.compareAs === "date" ? "datetime-local" : "text"}
       value={draft.value}
-      spellcheck={false}
-      aria-invalid={errors.value !== undefined || undefined}
-      aria-describedby={`${id}-hint ${id}-error`}
-      onInput={(event) => {
+      spellCheck={draft.compareAs === "date" ? undefined : false}
+      onChange={(event) => {
         onValue(event.currentTarget.value)
       }}
     />
@@ -172,22 +137,21 @@ function ValueControl({ id, draft, errors, onDraft }: FieldProps & { readonly id
 }
 
 function ValueField(props: FieldProps) {
-  const id = useId()
   const { compareAs, operator } = props.draft
   if (compareAs === "null") {
     return null
   }
+  const hint = [
+    compareAs === "auto" &&
+      "Automatic compares 42 as a number, true as true or false and anything else as text.",
+    operator === "like" && "Use * as a wildcard, for example ORD-*",
+  ]
+    .filter((line) => line !== false)
+    .join(" ")
   return (
-    <div class="condition-dialog__field">
-      <label for={id}>Value</label>
-      <ValueControl id={id} {...props} />
-      <p id={`${id}-hint`} class="condition-dialog__hint muted">
-        {compareAs === "auto" &&
-          "Automatic compares 42 as a number, true as true or false and anything else as text."}
-        {operator === "like" && " Use * as a wildcard, for example ORD-*"}
-      </p>
-      <FieldError id={`${id}-error`} text={props.errors.value} />
-    </div>
+    <Field label="Value" hint={hint} error={props.errors.value}>
+      <ValueControl {...props} />
+    </Field>
   )
 }
 
@@ -202,24 +166,34 @@ function useModal(onClose: () => void) {
       element?.close()
     }
   }, [])
-  const onCancel = (event: Event): void => {
+  const onCancel = (event: SyntheticEvent): void => {
     event.preventDefault()
     onClose()
   }
   return { dialog, first, onCancel }
 }
 
+function CountError({ text }: { readonly text: string | undefined }) {
+  return text === undefined ? null : (
+    <p className="text-small text-danger-ink flex items-start gap-1.5" role="alert">
+      <Icon icon={CircleAlertIcon} className={cn(TONE_ICON.danger, "mt-0.5")} />
+      <span className="min-w-0">{text}</span>
+    </p>
+  )
+}
+
 export function VariableConditionDialog(props: VariableConditionDialogProps) {
   const { initial, others, suggestions, onApply, onClose } = props
   const { dialog, first, onCancel } = useModal(onClose)
   const titleId = useId()
+  const descriptionId = useId()
   const [draft, setDraft] = useState(() => VariableDraft.from(initial))
   const [errors, setErrors] = useState<DraftErrors>({})
   const fields: FieldProps = { draft, errors, onDraft: setDraft }
   useEffect(() => {
     dialog.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
   }, [errors, dialog])
-  const apply = (event: Event): void => {
+  const apply = (event: SyntheticEvent): void => {
     event.preventDefault()
     const found = VariableDraft.errors(draft, others)
     setErrors(found)
@@ -230,33 +204,36 @@ export function VariableConditionDialog(props: VariableConditionDialogProps) {
   return (
     <dialog
       ref={dialog}
-      class="condition-dialog"
+      className="bg-popover text-popover-foreground shadow-3 backdrop:bg-scrim m-auto w-full max-w-[min(440px,calc(100%-2rem))] rounded-md border p-0 backdrop:backdrop-blur-[3px] backdrop:backdrop-grayscale"
       aria-labelledby={titleId}
+      aria-describedby={descriptionId}
       onCancel={onCancel}
       onKeyDown={(event) => {
         event.stopPropagation()
       }}
     >
-      <form class="condition-dialog__form" onSubmit={apply} noValidate>
-        <h2 id={titleId} class="condition-dialog__title">
-          {initial === undefined ? "Filter by variable" : "Edit variable condition"}
-        </h2>
-        <p class="muted">An instance matches when all conditions hold.</p>
-        <NameField {...fields} suggestions={suggestions} input={first} />
-        <ComparisonFields {...fields} refused={props.refused ?? []} />
-        <ValueField {...fields} />
-        {errors.count !== undefined && (
-          <p class="condition-dialog__error" role="alert">
-            {errors.count}
+      <form onSubmit={apply} noValidate>
+        <DialogHeader>
+          <h2 id={titleId} className="text-section">
+            {initial === undefined ? "Filter by variable" : "Edit variable condition"}
+          </h2>
+          <p id={descriptionId} className="text-muted-foreground text-dense">
+            An instance matches when all conditions hold.
           </p>
-        )}
-        <div class="condition-dialog__actions">
-          <button type="submit" class="button button--primary">
-            Apply
-          </button>
-          <button type="button" class="button button--secondary" onClick={onClose}>
+        </DialogHeader>
+        <DialogBody className="gap-4">
+          <NameField {...fields} suggestions={suggestions} input={first} />
+          <ComparisonFields {...fields} refused={props.refused ?? []} />
+          <ValueField {...fields} />
+          <CountError text={errors.count} />
+        </DialogBody>
+        <div className="flex flex-col-reverse gap-2 border-t px-6 py-4 sm:flex-row sm:justify-end">
+          <Button type="button" variant="outline" size="lg" onClick={onClose}>
             Cancel
-          </button>
+          </Button>
+          <Button type="submit" size="lg">
+            Apply
+          </Button>
         </div>
       </form>
     </dialog>

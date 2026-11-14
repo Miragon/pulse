@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { cn } from "../lib/utils.js"
 import { ColumnGrip } from "./column-grip.js"
 import { columnSizer } from "./column-measure.js"
@@ -38,17 +38,21 @@ function SizedHead({ caption, align, column, columnKey, sizer }: SizedHeadProps)
  * injected (`load`, `save`), so the kit keeps nothing itself: an MCP view passes none and its
  * widths last as long as the view, an editor keeps them in its own state. The grip, the menu and
  * their measuring come with the object it returns, so a table without `sizing` never loads them.
+ * `persist` saves the widths last set, even when that change has not rendered yet (a drag that
+ * ends right after its last move).
  */
 export function useColumnSizing({ load, save, min = COLUMN_WIDTH.min }: ColumnSizingOptions = {}) {
   const [widths, setState] = useState<ColumnWidths | undefined>(() => validWidths(load?.(), min))
+  const latest = useRef(widths)
   const sizing: ColumnSizing = {
     widths,
     min,
     setWidths: (next, persist) => {
+      latest.current = next
       setState(next)
       if (persist) save?.(next)
     },
-    persist: () => save?.(widths),
+    persist: () => save?.(latest.current),
     parts: { sizer: (keys) => columnSizer(sizing, keys), Head: SizedHead },
   }
   return sizing

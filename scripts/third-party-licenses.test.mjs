@@ -108,6 +108,22 @@ const FILES = {
   "repo/node_modules/.pnpm/styled@1.0.0/node_modules/styled/dist/styled.css": "b {}",
   "repo/node_modules/.pnpm/styled@1.0.0/node_modules/styled/extra.css":
     '@import "./dist/styled.css";',
+  "repo/node_modules/.pnpm/patterned@1.0.0/node_modules/patterned/package.json": JSON.stringify({
+    name: "patterned",
+    version: "1.0.0",
+    license: "MIT",
+    exports: {
+      ".": "./index.js",
+      "./*.css": { style: "./css/*.css" },
+      "./deep/*": "./deep-dist/*",
+    },
+  }),
+  "repo/node_modules/.pnpm/patterned@1.0.0/node_modules/patterned/css/theme.css": "e {}",
+  "repo/node_modules/.pnpm/patterned@1.0.0/node_modules/patterned/css/deep/x.css": "f {}",
+  "repo/node_modules/.pnpm/patterned@1.0.0/node_modules/patterned/deep-dist/x.css": "g {}",
+  "repo/apps/cli/src/ui/patterned.css":
+    '@import "patterned/theme.css";\n@import "patterned/deep/x.css";\n',
+  "repo/apps/cli/src/ui/unmatched.css": '@import "patterned/readme.md";\n',
   "repo/apps/cli/src/ui/main.css":
     '@import "tw";\n/* @import "gone"; */\n@import "./theme" layer(theme);\n' +
     '@import url("https://fonts.example.org/a.css");\n',
@@ -124,6 +140,8 @@ const FILES = {
 const LINKS = {
   "repo/apps/cli/node_modules/tw": "repo/node_modules/.pnpm/tw@1.0.0/node_modules/tw",
   "repo/apps/cli/node_modules/styled": "repo/node_modules/.pnpm/styled@1.0.0/node_modules/styled",
+  "repo/apps/cli/node_modules/patterned":
+    "repo/node_modules/.pnpm/patterned@1.0.0/node_modules/patterned",
 }
 
 let root = ""
@@ -788,6 +806,20 @@ describe("inlinedStylesheets", () => {
     assert.throws(
       () => inlinedStylesheets([plugin(entry(`${UI}/main.css`, [TW]), theme)]),
       /main\.css imports "\.\/theme", which names no stylesheet the build read/,
+    )
+  })
+
+  it("resolves a package's subpath patterns, the longest prefix first, under any condition", () => {
+    const P = "repo/node_modules/.pnpm/patterned@1.0.0/node_modules/patterned"
+    const read = [`${P}/css/theme.css`, `${P}/css/deep/x.css`, `${P}/deep-dist/x.css`]
+    assert.deepEqual(inlinedStylesheets([plugin(entry(`${UI}/patterned.css`, read))]), [
+      at(`${UI}/patterned.css`),
+      at(`${P}/css/theme.css`),
+      at(`${P}/deep-dist/x.css`),
+    ])
+    assert.throws(
+      () => inlinedStylesheets([plugin(entry(`${UI}/unmatched.css`, read))]),
+      /unmatched\.css imports "patterned\/readme\.md", which names no stylesheet the build read/,
     )
   })
 

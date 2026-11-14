@@ -8,6 +8,7 @@ import {
   scanGlyphs,
   scanIconSizes,
   scanOutlines,
+  scanTypeScale,
 } from "@miragon/pulse-ui/testing"
 import { afterAll, describe, expect, test } from "vitest"
 import { PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, REPO_ROOT } from "./support/files.js"
@@ -94,6 +95,10 @@ describe(
     test("the webview draws no outline at rest under forced colours", () => {
       expect(scanOutlines(WEBVIEW)).toEqual([])
     })
+
+    test("the webview sets its text on pulse-ui's type scale, at 13 px or more and in the weights 400, 600 and 700", () => {
+      expect(scanTypeScale(WEBVIEW)).toEqual([])
+    })
   },
 )
 
@@ -103,7 +108,7 @@ describe("the brand gates over the webview", PARSING_SOURCES_ON_A_BUSY_CI_RUNNER
     rmSync(root, { recursive: true, force: true })
   })
 
-  test("flag a third icon size, a raw colour, a glyph icon, an outline at rest and an allowance nothing needs", () => {
+  test("flag a third icon size, a raw colour, a glyph icon, an outline at rest, text off the type scale and an allowance nothing needs", () => {
     mkdirSync(join(root, "screens"))
     writeFileSync(
       join(root, "screens", "probe.tsx"),
@@ -114,6 +119,7 @@ describe("the brand gates over the webview", PARSING_SOURCES_ON_A_BUSY_CI_RUNNER
         'export const ink = "#1D1D1D"',
         "export const Done = () => <span>✓</span>",
         'export const frame = "rounded outline-hidden focus-visible:outline-hidden"',
+        'export const small = "text-xs font-medium"',
       ].join("\n"),
     )
     writeFileSync(
@@ -140,6 +146,10 @@ describe("the brand gates over the webview", PARSING_SOURCES_ON_A_BUSY_CI_RUNNER
     ])
     expect(scanOutlines(root)).toEqual([
       expect.objectContaining({ file: "screens/probe.tsx", line: 6, match: "outline-hidden" }),
+    ])
+    expect(scanTypeScale(root).map(({ line, rule }) => `${String(line)} ${rule}`)).toEqual([
+      "7 below-floor",
+      "7 off-weight",
     ])
   })
 })

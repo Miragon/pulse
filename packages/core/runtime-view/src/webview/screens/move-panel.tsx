@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "preact/hooks"
+import { CircleAlertIcon, TriangleAlertIcon } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
 import type { MoveOption, MoveTarget } from "../../core/protocol/index.js"
-import { Icon } from "../components/icon.js"
-import { glyphs } from "../components/lucide-glyphs.json"
+import { Button, Field, Icon, Input, NativeSelect, SectionHeading } from "@miragon/pulse-ui"
 import { useLiveHold } from "../host/live-hold.js"
 import { useSubmission } from "../host/submission.js"
 import { useWriteState } from "../host/write-context.js"
@@ -9,6 +9,7 @@ import { WriteStates } from "../host/write-states.js"
 
 const MAX_REASON_LENGTH = 500
 const PICK_HINT = "Click an element on the diagram or pick it here."
+const PANEL = "flex max-w-[96ch] flex-col gap-3 overflow-auto px-4 py-3"
 
 export interface MoveChoice {
   readonly from: string
@@ -26,17 +27,20 @@ export interface MovePanelProps {
 
 function Review({ target }: { readonly target: MoveTarget }) {
   return (
-    <ul class="move-panel__review" aria-label="What the move does">
+    <ul
+      className="border-info bg-raised m-0 flex list-disc flex-col gap-1 border-s-[3px] py-2 ps-7 pe-3"
+      aria-label="What the move does"
+    >
       {target.effects.map((effect) => (
         <li key={effect}>{effect}</li>
       ))}
       {target.warnings.map((warning) => (
-        <li key={warning} class="move-panel__warning" data-part="move-warning">
-          <Icon of={glyphs.TriangleAlert} size={12} />
+        <li key={warning} data-part="move-warning">
+          <Icon icon={TriangleAlertIcon} dense className="text-warning me-1 inline align-[-1px]" />
           {warning}
         </li>
       ))}
-      <li class="move-panel__final">This can't be undone.</li>
+      <li className="font-semibold">This can't be undone.</li>
     </ul>
   )
 }
@@ -51,10 +55,8 @@ function TargetPicker({
   readonly onPick: (elementId: string) => void
 }) {
   return (
-    <label class="move-panel__field">
-      <span>To</span>
-      <select
-        class="move-panel__input"
+    <Field label="To">
+      <NativeSelect
         value={choice.to ?? ""}
         onChange={(event) => {
           onPick(event.currentTarget.value)
@@ -68,8 +70,8 @@ function TargetPicker({
             {target.elementId === option.fromElementId ? `${target.label} (again)` : target.label}
           </option>
         ))}
-      </select>
-    </label>
+      </NativeSelect>
+    </Field>
   )
 }
 
@@ -81,20 +83,18 @@ function ReasonField({
   readonly onReason: (reason: string) => void
 }) {
   return (
-    <label class="move-panel__field">
-      <span>Reason</span>
-      <input
+    <Field label="Reason">
+      <Input
         type="text"
-        class="move-panel__input"
         maxLength={MAX_REASON_LENGTH}
         required
         placeholder="Why does the token move?"
         value={reason}
-        onInput={(event) => {
+        onChange={(event) => {
           onReason(event.currentTarget.value)
         }}
       />
-    </label>
+    </Field>
   )
 }
 
@@ -111,16 +111,16 @@ function Gone({
   }, [])
   return (
     <section
-      class="move-panel"
+      className={PANEL}
       data-part="move-panel"
       role="group"
       aria-label={`Move the token at ${fromLabel}`}
     >
       <p role="status">This token is no longer at {fromLabel}.</p>
-      <div class="move-panel__actions">
-        <button type="button" class="button button--secondary" ref={close} onClick={onClose}>
+      <div className="flex gap-2">
+        <Button type="button" variant="outline" ref={close} onClick={onClose}>
           Close
-        </button>
+        </Button>
       </div>
     </section>
   )
@@ -172,18 +172,13 @@ function MoveActions({
   readonly onClose: () => void
 }) {
   return (
-    <div class="move-panel__actions">
-      <button
-        type="button"
-        class="button button--primary"
-        disabled={form.busy}
-        onClick={form.submit}
-      >
+    <div className="flex gap-2">
+      <Button type="button" disabled={form.busy} onClick={form.submit}>
         {form.pending ? "Moving…" : "Move…"}
-      </button>
-      <button type="button" class="button button--secondary" onClick={onClose}>
+      </Button>
+      <Button type="button" variant="outline" onClick={onClose}>
         Cancel
-      </button>
+      </Button>
     </div>
   )
 }
@@ -200,7 +195,7 @@ export function MovePanel({ choice, option, fromLabel, onPick, onClose }: MovePa
   }
   return (
     <section
-      class="move-panel"
+      className={PANEL}
       data-part="move-panel"
       role="group"
       aria-label={`Move the token at ${option.fromLabel}`}
@@ -212,20 +207,21 @@ export function MovePanel({ choice, option, fromLabel, onPick, onClose }: MovePa
         }
       }}
     >
-      <h2 class="move-panel__title">Move the token at {option.fromLabel}</h2>
+      <SectionHeading as="h2" title={`Move the token at ${option.fromLabel}`} className="mb-0" />
       <TargetPicker option={option} choice={choice} onPick={onPick} />
-      <p class="move-panel__status muted" role="status">
+      <p className="text-small text-muted-foreground" role="status">
         {choice.hint ?? PICK_HINT}
       </p>
       {form.target !== undefined && <Review target={form.target} />}
       <ReasonField reason={form.reason} onReason={form.setReason} />
-      <p class="move-panel__hint muted">
+      <p className="text-small text-muted-foreground">
         Engines with a login keep the reason in their operation log. Change variables in the
         Variables tab first if the target needs them.
       </p>
       {form.error !== undefined && (
-        <p class="move-panel__error" role="alert">
-          {form.error}
+        <p className="text-danger-ink flex items-start gap-1.5" role="alert">
+          <Icon icon={CircleAlertIcon} className="text-danger mt-0.5" />
+          <span className="min-w-0 wrap-anywhere">{form.error}</span>
         </p>
       )}
       <MoveActions form={form} onClose={onClose} />

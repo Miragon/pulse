@@ -481,7 +481,7 @@ export default tseslint.config(
     },
   },
 
-  // Every tree with JSX compiles it with the automatic runtime (react-jsx: React, Preact, Orca),
+  // Every tree with JSX compiles it with the automatic runtime (react-jsx: React and Orca),
   // which needs no `React` in scope. typescript-eslint takes the classic pragma `React` unless told
   // otherwise, and so counts a JSX file's `import * as React` as used, even where the file names
   // React only in types: consistent-type-imports then misses the import that verbatimModuleSyntax
@@ -930,9 +930,9 @@ export default tseslint.config(
       ],
     },
   },
-  // The Preact webview follows the rules of hooks (Preact's hooks have React's call-order
-  // contract). The React Compiler rules of recommended-latest stay off here: they read
-  // Preact's mutable refs and diagram handles as React state.
+  // The webview follows the rules of hooks. The React Compiler rules of recommended-latest stay
+  // off in the editor trees for now: they come on in a commit of their own after the webview's
+  // switch to React (D9), which also reworks the mutable refs and diagram handles they flag.
   {
     files: [`${EDITOR_TREES}/**/*.{ts,tsx}`],
     plugins: { "react-hooks": reactHooks },

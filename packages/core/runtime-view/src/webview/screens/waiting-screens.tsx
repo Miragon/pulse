@@ -1,13 +1,16 @@
-import { useEffect, useState } from "preact/hooks"
-import { glyphs } from "../components/lucide-glyphs.json"
+import { cn, LoadingState } from "@miragon/pulse-ui"
+import { useEffect, useState } from "react"
 import type { EngineBadge, Problem } from "../../core/protocol/index.js"
 import { ContextBar } from "../components/context-bar.js"
 import { DataTable } from "../components/data-table.js"
-import { EmptyHint } from "../components/empty-hint.js"
-import { Icon } from "../components/icon.js"
 import { ProblemBox } from "./notices.js"
+import { ScreenFrame } from "./screen-frame.js"
 
 const SKELETON_DELAY_MS = 400
+
+const CENTRED = "grid place-items-center"
+
+const FAILED = "grid place-items-center p-6 [&>*]:w-[min(560px,100%)]"
 
 const SKELETON_COLUMNS = [
   { key: "a", label: "", render: () => null },
@@ -38,17 +41,17 @@ export function LoadingScreen({
 }) {
   const showSkeleton = useDelayed(SKELETON_DELAY_MS)
   return (
-    <div class="screen" aria-busy="true">
+    <div className={ScreenFrame.PLAIN} aria-busy="true">
       <ContextBar title={title} engine={engine} freshness={{ kind: "loading" }} />
-      <div class="loading-layout" data-part="loading-layout" data-skeleton={showSkeleton}>
-        <section class="diagram-region diagram-region--placeholder">
-          {showSkeleton && (
-            <EmptyHint text="Loading…" busy>
-              <Icon of={glyphs.LoaderCircle} class="spin" />
-            </EmptyHint>
-          )}
+      <div
+        className="grid min-h-0 grid-rows-[minmax(0,55fr)_minmax(0,45fr)]"
+        data-part="loading-layout"
+        data-skeleton={showSkeleton}
+      >
+        <section className={cn("bg-background relative h-full overflow-hidden", CENTRED)}>
+          {showSkeleton && <LoadingState />}
         </section>
-        <section class="list-region">
+        <section className={cn(ScreenFrame.LIST_REGION, "border-border border-t")}>
           {showSkeleton && (
             <DataTable
               label="Loading"
@@ -73,13 +76,13 @@ export function FailedScreen({
   readonly engine: EngineBadge
 }) {
   return (
-    <div class="screen">
+    <div className={ScreenFrame.PLAIN}>
       <ContextBar
         title={engine.name}
         engine={engine}
         freshness={{ kind: "offline", loginRefused: problem.loginRefused }}
       />
-      <div class="failed-layout">
+      <div className={FAILED}>
         <ProblemBox problem={problem} />
       </div>
     </div>
@@ -88,13 +91,5 @@ export function FailedScreen({
 
 export function BlankScreen() {
   const showLoader = useDelayed(SKELETON_DELAY_MS)
-  return (
-    <div class="screen failed-layout">
-      {showLoader && (
-        <EmptyHint text="Loading…" busy>
-          <Icon of={glyphs.LoaderCircle} class="spin" />
-        </EmptyHint>
-      )}
-    </div>
-  )
+  return <div className={cn("h-full min-w-0", FAILED)}>{showLoader && <LoadingState />}</div>
 }

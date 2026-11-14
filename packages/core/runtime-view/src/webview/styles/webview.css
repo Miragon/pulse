@@ -1,0 +1,40 @@
+@layer theme, base, shell, components, utilities;
+
+@import "tailwindcss";
+@source "../";
+@source "../../../node_modules/@miragon/pulse-ui/dist";
+@source not "../../../node_modules/@miragon/pulse-ui/dist/testing";
+@source not "../../../node_modules/@miragon/pulse-ui/dist/**/*.test.js";
+@import "@miragon/pulse-ui/theme.css";
+
+@import "@fontsource-variable/geist/wght.css";
+@import "@fontsource-variable/geist-mono/wght.css";
+@import "@miragon/modeler-shell/shell.css" layer(shell);
+@import "diagram-js/assets/diagram-js.css";
+@import "bpmn-js/dist/assets/bpmn-js.css";
+@import "../theme/cd-canvas.css";
+@import "./diagram.css";
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    @apply text-dense;
+  }
+
+  #pulse {
+    height: 100%;
+  }
+}
+
+:root {
+  font-size: 100%;
+}

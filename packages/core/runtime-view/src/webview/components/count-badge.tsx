@@ -1,6 +1,6 @@
-import { glyphs } from "./lucide-glyphs.json"
+import { CircleXIcon } from "lucide-react"
+import { cn, Icon } from "@miragon/pulse-ui"
 import { CountLabels } from "../format/count-labels.js"
-import { Icon } from "./icon.js"
 
 type CountBadgeVariant = "incident" | "propagated" | "running"
 
@@ -8,19 +8,27 @@ export interface CountBadgeProps {
   readonly variant: CountBadgeVariant
   readonly count?: number
   readonly stale?: boolean
+  readonly legend?: boolean
 }
 
-export function CountBadge({ variant, count, stale = false }: CountBadgeProps) {
+export function CountBadge({ variant, count, stale = false, legend = false }: CountBadgeProps) {
   const withIcon = variant !== "running"
   return (
     <span
-      class={`count-badge count-badge--${variant}${stale ? " count-badge--stale" : ""}`}
+      className={cn(
+        "count-badge",
+        `count-badge--${variant}`,
+        stale && "count-badge--stale",
+        legend && "count-badge--legend",
+      )}
       data-part="count-badge"
       data-variant={variant}
       data-state={stale ? "stale" : undefined}
     >
-      {withIcon && <Icon of={glyphs.CircleX} size={12} />}
-      {count !== undefined && <span class="count-badge__count">{CountLabels.compact(count)}</span>}
+      {withIcon && <Icon icon={CircleXIcon} dense />}
+      {count !== undefined && (
+        <span className="count-badge__count">{CountLabels.compact(count)}</span>
+      )}
     </span>
   )
 }

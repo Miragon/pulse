@@ -1,5 +1,5 @@
-import { Icon } from "../components/icon.js"
-import { glyphs } from "../components/lucide-glyphs.json"
+import { RotateCcwIcon } from "lucide-react"
+import { cn, Icon } from "@miragon/pulse-ui"
 
 export type MoveBadgeKind = "from" | "to" | "again"
 
@@ -13,14 +13,14 @@ export function MoveBadge({ kind }: { readonly kind: MoveBadgeKind }) {
   const { text, label } = TEXTS[kind]
   return (
     <span
-      class={`move-badge move-badge--${kind}`}
+      className={cn("move-badge", `move-badge--${kind}`)}
       data-part="move-badge"
       data-kind={kind}
       role="img"
       aria-label={label}
       title={label}
     >
-      {kind === "again" && <Icon of={glyphs.RotateCcw} size={12} />}
+      {kind === "again" && <Icon icon={RotateCcwIcon} dense />}
       {text}
     </span>
   )

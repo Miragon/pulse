@@ -1,7 +1,7 @@
 # Architecture
 
 - Status: accepted
-- Last reviewed: 2026-11-12 (later that day, D9 in [ui-foundation.md](ui-foundation.md): the webview moves from Preact to React on pulse-ui in one switch, no `preact/compat`, its closed world changes with that switch; earlier: the webview may import shared building blocks of pulse-ui's React kit and stylesheet by the package's root and `@miragon/pulse-ui/theme.css`, the ports, core, model reader and host kit stay framework-free, owner decision in [ui-foundation.md](ui-foundation.md); a refused target's read-only note is its refusal; the adapter gives the command of Pulse's CLI that triggers an event through the port `EngineCli`, on the engine its `CliTarget` names: the profile of a target's project file with the target's URL, or the default engine's URL); 2026-11-10 (the C7 adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the layers live in the runtime view and the engine adapter, which Pulse for Orca hosts too, the runtime view's contract is `@miragon/pulse-engine-core` and its own ports moved to `ports`; before that, the host kit's connections read the project file with `@miragon/pulse-profile`, the engine contract left the app for `@miragon/pulse-engine-core`, the engine family's neutral core, and 2026-11-08 Pulse's UI foundation in core and webview)
+- Last reviewed: 2026-11-14 (the switch of D9 landed: the webview's rendering libraries are `react`, `react-dom` and `lucide-react`); 2026-11-12 (later that day, D9 in [ui-foundation.md](ui-foundation.md): the webview moves from Preact to React on pulse-ui in one switch, no `preact/compat`, its closed world changes with that switch; earlier: the webview may import shared building blocks of pulse-ui's React kit and stylesheet by the package's root and `@miragon/pulse-ui/theme.css`, the ports, core, model reader and host kit stay framework-free, owner decision in [ui-foundation.md](ui-foundation.md); a refused target's read-only note is its refusal; the adapter gives the command of Pulse's CLI that triggers an event through the port `EngineCli`, on the engine its `CliTarget` names: the profile of a target's project file with the target's URL, or the default engine's URL); 2026-11-10 (the C7 adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the layers live in the runtime view and the engine adapter, which Pulse for Orca hosts too, the runtime view's contract is `@miragon/pulse-engine-core` and its own ports moved to `ports`; before that, the host kit's connections read the project file with `@miragon/pulse-profile`, the engine contract left the app for `@miragon/pulse-engine-core`, the engine family's neutral core, and 2026-11-08 Pulse's UI foundation in core and webview)
 
 ## Context
 
@@ -27,7 +27,7 @@ extension its host as CommonJS for Node 22 and the webview as an IIFE.
 | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
 | `ports`      | The ports only the editor hosts need, in `packages/core/runtime-view/src/ports`: `EngineAdapter` with the connection, the credentials, `EngineWebUi` and `EngineCli`, the local `ModelSource` and `CodeLocator` ports with the `WorkspaceFiles` seam and their read models. The engine contract they plug into is `@miragon/pulse-engine-core` (`packages/connectors/engine/engine-core`: the `ProcessRuntime` and `ProcessCommands` ports, read models and `RuntimeError`; its `./testing` the kit and an in-memory `FakeEngine`) | none (no DOM, no Node)                |
 | `core`       | Engine-neutral logic: use cases turn read models into view models, panel sessions handle webview intents; `packages/core/runtime-view/src/core/protocol` holds the JSON-only messages and view models                                                                                                                                                                                                                                                                                                                              | none                                  |
-| `webview`    | Preact UI and bpmn-js diagram, moving to React on pulse-ui in one switch (D9 in [ui-foundation.md](ui-foundation.md)). Renders protocol view models, sends intents                                                                                                                                                                                                                                                                                                                                                                 | browser                               |
+| `webview`    | React UI on pulse-ui (D9 in [ui-foundation.md](ui-foundation.md)) and bpmn-js diagram. Renders protocol view models, sends intents                                                                                                                                                                                                                                                                                                                                                                                                 | browser                               |
 | `c7-adapter` | `EngineAdapter`, `ProcessRuntime`, `ProcessCommands`, the Cockpit web UI and the CLI command for the Camunda 7 family ([c7-adapter.md](c7-adapter.md)); `packages/connectors/c7/c7-adapter/src/engine-rest` reads and writes the engine's REST API                                                                                                                                                                                                                                                                                 | Node                                  |
 | `model`      | `ModelSource` and `CodeLocator` for the local workspace: reads `.bpmn` files with bpmn-moddle and its vendor descriptors, finds the implementing code ([local-sources.md](local-sources.md)); the only layer with those libraries                                                                                                                                                                                                                                                                                                  | none (files through `WorkspaceFiles`) |
 | `host-kit`   | The engine-neutral host rules both hosts share: targets from `.pulse.json`, the write and live policies, the write audit, logins, panel titles                                                                                                                                                                                                                                                                                                                                                                                     | Node                                  |
@@ -74,11 +74,9 @@ core        → ports (entry only), @miragon/pulse-engine-core (main entry only)
               @miragon/pulse-ui/tones, @miragon/pulse-ui/format (only from views/labels.ts)
 protocol    → (nothing outside protocol)
 webview     → protocol (type-only), @miragon/pulse-ui/tones,
-              @miragon/pulse-ui/format (only from format/), preact,
-              bpmn-js, diagram-js, modeler-shell, fonts,
+              @miragon/pulse-ui/format (only from format/), react, react-dom,
+              lucide-react, bpmn-js, diagram-js, modeler-shell, fonts,
               @miragon/pulse-ui (the React kit) and @miragon/pulse-ui/theme.css
-              for shared building blocks; with the switch to React (D9) react,
-              react-dom and lucide-react instead of preact
               (no ./testing, globals.css or fonts.css, no other subpath)
 adapter     → @miragon/pulse-engine-core, @miragon/pulse-c7-core (main entries only), ports,
               @miragon/pulse-http (main entry only, from src/engine-rest/http)
@@ -119,16 +117,16 @@ running or suspended instance), and the formatters (times to the millisecond, re
 one duration form, exact and compact counts with their lower bound, short ids), both of which the
 MCP widgets read too. They import nothing (the repository's
 `ui-foundation-entries-import-nothing`), so esbuild bundles about a kilobyte of them and no React.
-On its own screens the webview draws a tone with its own CSS ([user-interface.md](user-interface.md)),
+The webview draws a tone through the kit's pieces (`StateLabel`, `CountFigure`, `StatusStrip`) and
+its diagram badges ([user-interface.md](user-interface.md)),
 `TimeLabels` and `CountLabels` (webview) and `Labels` (core) delegate to the formatters and set
 their locale (English, a 24-hour clock: `en-u-hc-h23`, once per layer: `Labels` in the core,
 `LabelLocale` in the webview), and the repository's date and number gates keep `Intl` and
 `toFixed` out of core and webview. The ports, the core, the model reader and the host kit stay
 framework-free: `pulse-ui-only-its-foundation` keeps pulse-ui's React kit, its stylesheets and
-`./testing` out of them. The webview keeps Preact as its runtime until its switch to React on
-pulse-ui (D9 of the owner decisions of 2026-11-12, [ui-foundation.md](ui-foundation.md), which also
-lists what lands before the switch), and may import pulse-ui's React kit and its stylesheet for
-shared building blocks, components on React that take props and callbacks only:
+`./testing` out of them. The webview renders with React on pulse-ui since its switch (D9 of the
+owner decisions of 2026-11-12, [ui-foundation.md](ui-foundation.md)), and imports pulse-ui's React
+kit and its stylesheet for its screens and the shared building blocks, components on React that take props and callbacks only:
 `webview-pulse-ui-by-its-entries` admits pulse-ui's root and `@miragon/pulse-ui/theme.css` besides
 `./tones` and `./format`, never `./testing`, `globals.css`, `fonts.css`, another subpath or a file
 of the package by path. Only those label helpers import
@@ -315,4 +313,4 @@ surfaces share up to building blocks ([ui-foundation.md](ui-foundation.md)). The
 world admits pulse-ui's React kit and its stylesheet for shared building blocks; the ports, the
 core, the model reader and the host kit stay framework-free. Later that day the owner replaced
 `preact/compat` by one switch of the webview to React on pulse-ui (D9), with which its rendering
-libraries become `react`, `react-dom` and `lucide-react`.
+libraries became `react`, `react-dom` and `lucide-react` (landed 2026-11-14).

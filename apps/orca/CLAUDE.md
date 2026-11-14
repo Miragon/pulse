@@ -93,16 +93,16 @@ repository's `http-consumers`), over the worker's global `fetch`. The repository
 nothing else. `pnpm lint:architecture:orca` says where an import belongs.
 
 The frames show the runtime view's webview. By the owner's decision D9 of 2026-11-12
-(`apps/vscode/docs/adr/ui-foundation.md`) it moves from Preact to React 19 on `@miragon/pulse-ui` in
-one switch, a commit of the pull request that recorded D9, in the one compact look of every surface;
-until then it is Preact. Orca's build is readable (`apps/orca/scripts/build.mjs`): it takes the
+(`apps/vscode/docs/adr/ui-foundation.md`) it moved from Preact to React 19 on `@miragon/pulse-ui` in
+one switch, a commit of the pull request that recorded D9, in the one compact look of every surface.
+Orca's build is readable (`apps/orca/scripts/build.mjs`): it takes the
 webview's esbuild options of a build that ships (`production: true`, which defines
 `process.env.NODE_ENV` as production, so React's development build never ships) and turns off
 their minifying and source maps. The frames' bridge
 (`apps/orca/src/editor/bridge.ts`) sets `data-cd-theme`. Orca's theme event reports only light or
 dark (`apps/orca/types/orca/index.d.ts`), so in Orca high contrast reaches the webview through
 `forced-colors`, and the bridge sets `data-cd-kontrast="hoch"` only where Orca reports high
-contrast. With the switch the plugin's licence list follows the new bundle.
+contrast.
 
 The project file is `.pulse.json`, read through the host kit (`TargetsParser` over
 `@miragon/pulse-profile`, the rules in `apps/vscode/CLAUDE.md`); `ProjectFile` of the host kit
@@ -143,8 +143,8 @@ file's path (the host kit's `CredentialStore`).
 - The plugin folder ships `LICENSE` and `THIRD_PARTY_LICENSES.txt` (`PLUGIN_FILES` of
   `apps/orca/scripts/build.mjs`; the release's folder check in
   `.github/workflows/publish-orca-plugin.yml` names both): the works of others esbuild bundles
-  into the worker, the panel, the frames' bridge and the webview (packages, fonts, the Lucide
-  geometry of `lucide-glyphs.json`) with their licence files, read from the metafiles of the four
+  into the worker, the panel, the frames' bridge and the webview (packages, fonts, the components
+  pulse-ui's primitives build on, shadcn/ui) with their licence files, read from the metafiles of the four
   builds (`pluginBuilds`), and from what the webview's Tailwind step inlines, which no metafile
   names (`inlinedStylesheets`), by the repository's licence list (`scripts/third-party-licenses.mjs`).
   `apps/orca/test/third-party-licenses.test.ts` fails while it misses a work or lists one the

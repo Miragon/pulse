@@ -1,9 +1,16 @@
-import type { Ref } from "preact"
+import type {
+  FocusEvent,
+  KeyboardEvent,
+  MouseEvent,
+  PointerEvent,
+  Ref,
+  SyntheticEvent,
+} from "react"
 
-type SeparatorKeys = Readonly<Record<string, (event: KeyboardEvent) => void>>
+type SeparatorKeys = Readonly<Record<string, (event: KeyboardEvent<HTMLDivElement>) => void>>
 
 export interface SeparatorProps {
-  readonly class: string
+  readonly className: string
   readonly label: string
   readonly orientation: "horizontal" | "vertical"
   readonly value: number | undefined
@@ -11,20 +18,20 @@ export interface SeparatorProps {
   readonly max: number
   readonly valueText?: string | undefined
   readonly keys: SeparatorKeys
-  readonly onDragStart: (event: PointerEvent) => void
-  readonly onDrag: (event: PointerEvent) => void
+  readonly onDragStart: (event: PointerEvent<HTMLDivElement>) => void
+  readonly onDrag: (event: PointerEvent<HTMLDivElement>) => void
   readonly onDragEnd: () => void
   readonly onDragCancel: () => void
-  readonly onFocus?: (event: FocusEvent) => void
-  readonly onDoubleClick?: (event: MouseEvent) => void
+  readonly onFocus?: (event: FocusEvent<HTMLDivElement>) => void
+  readonly onDoubleClick?: (event: MouseEvent<HTMLDivElement>) => void
   readonly handle?: Ref<HTMLDivElement>
 }
 
 const DRAGGING = "data-dragging"
 
 export function Separator(props: SeparatorProps) {
-  const handleOf = (event: Event): HTMLElement => event.currentTarget as HTMLElement
-  const onKeyDown = (event: KeyboardEvent): void => {
+  const handleOf = (event: SyntheticEvent<HTMLDivElement>): HTMLElement => event.currentTarget
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
     const action = props.keys[event.key]
     if (event.key === "Escape" && handleOf(event).hasAttribute(DRAGGING)) {
       event.stopPropagation()
@@ -38,7 +45,7 @@ export function Separator(props: SeparatorProps) {
   return (
     <div
       ref={props.handle ?? null}
-      class={props.class}
+      className={props.className}
       role="separator"
       aria-orientation={props.orientation}
       aria-label={props.label}
@@ -49,7 +56,7 @@ export function Separator(props: SeparatorProps) {
       tabIndex={0}
       onKeyDown={onKeyDown}
       onFocus={props.onFocus}
-      onDblClick={props.onDoubleClick}
+      onDoubleClick={props.onDoubleClick}
       onPointerDown={(event) => {
         handleOf(event).setPointerCapture(event.pointerId)
         handleOf(event).setAttribute(DRAGGING, "")

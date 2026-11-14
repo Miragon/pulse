@@ -1,21 +1,11 @@
-import { useState } from "preact/hooks"
+import { BanIcon, CheckIcon, CopyIcon, MoveRightIcon } from "lucide-react"
+import { useId } from "react"
 import { useCopied } from "../components/copy-button.js"
-import { Icon } from "../components/icon.js"
-import { glyphs } from "../components/lucide-glyphs.json"
+import { Icon } from "@miragon/pulse-ui"
 
 const MOVE_LABEL = "Move this token…"
 const COPY_LABEL = "Copy CLI command"
 const COPIED_LABEL = "Copied CLI command"
-let refusalsInDocument = 0
-
-function useRefusalIdUniqueAcrossOverlayRoots(): string {
-  const [id] = useState(() => {
-    refusalsInDocument += 1
-    return `move-entry-refusal-${String(refusalsInDocument)}`
-  })
-  return id
-}
-
 interface CliCommandEntry {
   readonly text: string
   readonly onCopy: () => void
@@ -42,7 +32,7 @@ function CopyCliCommand({
     <>
       <button
         type="button"
-        class="move-entry"
+        className="move-entry"
         data-part="move-entry"
         data-kind="copy"
         data-move-from={elementId}
@@ -55,9 +45,9 @@ function CopyCliCommand({
           markCopied()
         }}
       >
-        <Icon of={copied ? glyphs.Check : glyphs.Copy} size={12} />
+        <Icon icon={copied ? CheckIcon : CopyIcon} dense />
       </button>
-      <span class="visually-hidden" aria-live="polite">
+      <span className="move-entry__status" aria-live="polite">
         {copied ? "Copied" : ""}
       </span>
     </>
@@ -65,21 +55,21 @@ function CopyCliCommand({
 }
 
 export function MoveEntry({ entry }: { readonly entry: MoveEntryDecoration }) {
-  const refusalId = useRefusalIdUniqueAcrossOverlayRoots()
+  const refusalId = useId()
   if (entry.refusal !== undefined) {
     const label = `Can't move: ${entry.refusal}`
     return (
       <>
         <span
           id={refusalId}
-          class="move-entry move-entry--refused"
+          className="move-entry move-entry--refused"
           data-part="move-entry"
           data-state="refused"
           role="img"
           aria-label={label}
           title={label}
         >
-          <Icon of={glyphs.Ban} size={12} />
+          <Icon icon={BanIcon} dense />
         </span>
         {entry.cliCommand !== undefined && (
           <CopyCliCommand
@@ -94,7 +84,7 @@ export function MoveEntry({ entry }: { readonly entry: MoveEntryDecoration }) {
   return (
     <button
       type="button"
-      class="move-entry"
+      className="move-entry"
       data-part="move-entry"
       data-kind="move"
       data-move-from={entry.elementId}
@@ -105,7 +95,7 @@ export function MoveEntry({ entry }: { readonly entry: MoveEntryDecoration }) {
         entry.onStart()
       }}
     >
-      <Icon of={glyphs.MoveRight} size={12} />
+      <Icon icon={MoveRightIcon} dense />
     </button>
   )
 }

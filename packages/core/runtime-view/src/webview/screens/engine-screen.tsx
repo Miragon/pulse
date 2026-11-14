@@ -1,4 +1,6 @@
-import type { ComponentChildren } from "preact"
+import { CountFigure, NamedId, Toolbar } from "@miragon/pulse-ui"
+import { RotateCcwIcon } from "lucide-react"
+import type { ReactNode } from "react"
 import type {
   EngineView,
   ProcessListFilter,
@@ -9,17 +11,17 @@ import { ContextBar, type Freshness } from "../components/context-bar.js"
 import { DataTable, type Column } from "../components/data-table.js"
 import { EmptyHint } from "../components/empty-hint.js"
 import { HeaderButton } from "../components/header-button.js"
-import { glyphs } from "../components/lucide-glyphs.json"
 import { ScopeSegments, type ScopeOption } from "../components/scope-segments.js"
 import { SearchField } from "../components/search-field.js"
 import { WebUiButton } from "../components/web-ui-button.js"
 import { CountLabels } from "../format/count-labels.js"
 import { useHost } from "../host/host-context.js"
+import { ScreenFrame } from "./screen-frame.js"
 
 export interface EngineScreenProps {
   readonly view: EngineView
   readonly freshness: Freshness
-  readonly problem?: ComponentChildren
+  readonly problem?: ReactNode
 }
 
 const PROCESS_SCOPES: readonly ScopeOption<ProcessScope>[] = [
@@ -27,31 +29,37 @@ const PROCESS_SCOPES: readonly ScopeOption<ProcessScope>[] = [
   { scope: "withIncident", label: "With incident" },
 ]
 
+function IncidentCount({ count }: { readonly count: number }) {
+  const text = CountLabels.exact(count)
+  return (
+    <span data-part="incident-count" data-tone={count > 0 ? "danger" : undefined}>
+      {count > 0 ? (
+        <CountFigure situation="openIncident" label="Has open incidents">
+          {text}
+        </CountFigure>
+      ) : (
+        <CountFigure>{text}</CountFigure>
+      )}
+    </span>
+  )
+}
+
 const COLUMNS: readonly Column<ProcessRow>[] = [
   {
     key: "process",
     label: "Process",
-    render: (row) => (
-      <>
-        {row.name ?? row.bpmnProcessId}
-        {row.name !== undefined && <code class="muted"> {row.bpmnProcessId}</code>}
-      </>
-    ),
+    render: (row) => <NamedId name={row.name} id={row.bpmnProcessId} layout="inline" />,
   },
   { key: "version", label: "Latest version", render: (row) => `v${row.latestVersion}` },
-  { key: "running", label: "Running", render: (row) => CountLabels.exact(row.running) },
+  {
+    key: "running",
+    label: "Running",
+    render: (row) => <CountFigure>{CountLabels.exact(row.running)}</CountFigure>,
+  },
   {
     key: "withIncident",
     label: "With incident",
-    render: (row) => (
-      <span
-        class={row.withIncident > 0 ? "danger-count" : undefined}
-        data-part="incident-count"
-        data-tone={row.withIncident > 0 ? "danger" : undefined}
-      >
-        {CountLabels.exact(row.withIncident)}
-      </span>
-    ),
+    render: (row) => <IncidentCount count={row.withIncident} />,
   },
 ]
 
@@ -68,28 +76,27 @@ function ProcessFilterBar({
     host.post({ type: "filterProcesses", filter: next })
   }
   return (
-    <div class="filter-bar" data-part="filter-bar">
-      <ScopeSegments
-        label="Show processes"
-        options={PROCESS_SCOPES}
-        checked={scope}
-        counts={view.scopeCounts}
-        busy={refreshing}
-        onSelect={(next) => {
-          filter({ ...view.filter, scope: next })
-        }}
-      />
-      <SearchField
-        applied={view.filter.search ?? ""}
-        label="Search by name or BPMN process ID"
-        placeholder="Name or key"
-        onSearch={(search) => {
-          filter(search === "" ? { scope } : { scope, search })
-        }}
-      />
-      <span class="filter-bar__summary" data-part="filter-summary">
-        {view.summary}
-      </span>
+    <div className="contents" data-part="filter-bar">
+      <Toolbar summary={view.summary}>
+        <ScopeSegments
+          label="Show processes"
+          options={PROCESS_SCOPES}
+          checked={scope}
+          counts={view.scopeCounts}
+          busy={refreshing}
+          onSelect={(next) => {
+            filter({ ...view.filter, scope: next })
+          }}
+        />
+        <SearchField
+          applied={view.filter.search ?? ""}
+          label="Search by name or BPMN process ID"
+          placeholder="Name or key"
+          onSearch={(search) => {
+            filter(search === "" ? { scope } : { scope, search })
+          }}
+        />
+      </Toolbar>
     </div>
   )
 }
@@ -97,30 +104,34 @@ function ProcessFilterBar({
 export function EngineScreen({ view, freshness, problem }: EngineScreenProps) {
   const host = useHost()
   return (
-    <div class="screen screen--with-strips">
+    <div className={ScreenFrame.WITH_STRIPS}>
       <ContextBar
         subject="engine"
         title={view.engine.name}
         engine={view.engine}
         freshness={freshness}
+        actions={
+          <>
+            <HeaderButton
+              icon={RotateCcwIcon}
+              label="Refresh"
+              title={`Read ${view.engine.name} again`}
+              intent={{ type: "refresh" }}
+            />
+            <WebUiButton link={view.webUi} />
+          </>
+        }
       >
         {view.engine.product !== undefined && (
-          <span class="context-bar__key" data-part="context-key">
+          <span className="min-w-0 truncate max-[900px]:hidden" data-part="context-key">
             {view.engine.product}
           </span>
         )}
-        <HeaderButton
-          icon={glyphs.RotateCcw}
-          label="Refresh"
-          title={`Read ${view.engine.name} again`}
-          intent={{ type: "refresh" }}
-        />
-        <WebUiButton link={view.webUi} />
       </ContextBar>
-      <div class="strip-stack" data-part="strips">
+      <div className={ScreenFrame.STRIPS} data-part="strips">
         {problem}
       </div>
-      <section class="list-region" aria-label="Processes">
+      <section className={ScreenFrame.LIST_REGION} aria-label="Process list">
         <ProcessFilterBar view={view} refreshing={freshness.kind === "refreshing"} />
         <DataTable
           label="Processes"

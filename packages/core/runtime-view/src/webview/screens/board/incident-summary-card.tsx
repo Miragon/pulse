@@ -1,6 +1,7 @@
+import { Button } from "@miragon/pulse-ui"
 import type { IncidentSummaryRow, IncidentSummaryTile } from "../../../core/protocol/index.js"
 import { EmptyHint } from "../../components/empty-hint.js"
-import { BoardCard } from "./board-card.js"
+import { BOARD_LINE, BOARD_LINE_BUTTON, BoardCard, BoardFigure } from "./board-card.js"
 import { BoardLabels } from "./board-labels.js"
 import { useOpenTarget } from "./open-target.js"
 
@@ -10,15 +11,15 @@ interface RowProps {
 }
 
 function RowText({ row, byProcess }: RowProps) {
-  const danger = row.withIncident !== undefined && row.withIncident > 0
-  const tone = row.withIncident === undefined ? " muted" : danger ? " danger-count" : ""
   return (
     <>
-      <span class="incident-summary__label">{row.label}</span>
-      {byProcess && <span class="incident-summary__engine muted">{row.engine}</span>}
-      <span class={`incident-summary__count${tone}`}>
-        {BoardLabels.entryCount(row.withIncident)}
-      </span>
+      <span className="min-w-0 flex-1 truncate">{row.label}</span>
+      {byProcess && <span className="text-muted-foreground">{row.engine}</span>}
+      <BoardFigure
+        text={BoardLabels.entryCount(row.withIncident)}
+        alarm={row.withIncident !== undefined && row.withIncident > 0}
+        quiet={row.withIncident === undefined}
+      />
     </>
   )
 }
@@ -26,22 +27,24 @@ function RowText({ row, byProcess }: RowProps) {
 function SummaryRow({ row, byProcess }: RowProps) {
   const open = useOpenTarget()
   return (
-    <li class="incident-summary__row">
+    <li>
       {row.withIncident === undefined ? (
-        <span class="incident-summary__open incident-summary__open--static">
+        <span className={BOARD_LINE}>
           <RowText row={row} byProcess={byProcess} />
         </span>
       ) : (
-        <button
+        <Button
           type="button"
-          class="incident-summary__open"
+          variant="ghost"
+          size="sm"
+          className={BOARD_LINE_BUTTON}
           title={BoardLabels.openTitle(row.target)}
           onClick={(event) => {
             open(row.target, event.ctrlKey || event.metaKey)
           }}
         >
           <RowText row={row} byProcess={byProcess} />
-        </button>
+        </Button>
       )}
     </li>
   )
@@ -52,16 +55,15 @@ export function IncidentSummaryCard({ tile }: { readonly tile: IncidentSummaryTi
   const byProcess = tile.groupBy === "process"
   return (
     <BoardCard title={tile.title} kind="incidentSummary">
-      <p class="counter__total">
-        <span
-          class={`counter__value${tile.total !== undefined && tile.total > 0 ? " danger-count" : ""}`}
-          data-part="counter-value"
-          data-tone={tile.total !== undefined && tile.total > 0 ? "danger" : undefined}
-        >
-          {BoardLabels.count(tile.total)}
-        </span>
+      <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <BoardFigure
+          text={BoardLabels.count(tile.total)}
+          part="counter-value"
+          alarm={tile.total !== undefined && tile.total > 0}
+          className="text-title"
+        />
         {partial !== undefined && (
-          <span class="counter__partial" data-part="counter-partial">
+          <span className="text-muted-foreground" data-part="counter-partial">
             {partial}
           </span>
         )}
@@ -71,7 +73,7 @@ export function IncidentSummaryCard({ tile }: { readonly tile: IncidentSummaryTi
           text={tile.known === 0 ? "No engine was read." : "No instance has an open incident."}
         />
       ) : (
-        <ul class="incident-summary" aria-label={byProcess ? "Per process" : "Per engine"}>
+        <ul className="flex flex-col" aria-label={byProcess ? "Per process" : "Per engine"}>
           {tile.rows.map((row) => (
             <SummaryRow
               key={`${row.engine}|${row.target.bpmnProcessId ?? ""}`}

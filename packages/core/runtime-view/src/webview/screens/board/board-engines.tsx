@@ -1,6 +1,6 @@
+import { FileCodeIcon, PencilIcon, ServerIcon } from "lucide-react"
+import { Button, Icon, cn } from "@miragon/pulse-ui"
 import type { BoardEngineStatus } from "../../../core/protocol/index.js"
-import { Icon } from "../../components/icon.js"
-import { glyphs } from "../../components/lucide-glyphs.json"
 import { StatusStrip, type StripAction } from "../../components/status-strip.js"
 import { useHost } from "../../host/host-context.js"
 import { BoardLabels } from "./board-labels.js"
@@ -11,7 +11,7 @@ function useFailedActions(engine: BoardEngineStatus): StripAction[] {
   if (engine.problem?.needsCredentials === true) {
     actions.push({
       label: "Set credentials…",
-      icon: glyphs.Pencil,
+      icon: PencilIcon,
       onClick: () => {
         host.post({ type: "setBoardCredentials", engine: engine.name })
       },
@@ -20,7 +20,7 @@ function useFailedActions(engine: BoardEngineStatus): StripAction[] {
   if (engine.problem?.canEditConnection === true) {
     actions.push({
       label: "Edit connection…",
-      icon: glyphs.FileCode,
+      icon: FileCodeIcon,
       onClick: () => {
         host.post({ type: "editConnection" })
       },
@@ -41,7 +41,7 @@ function EngineProblem({ engine }: { readonly engine: BoardEngineStatus }) {
         actions={[
           {
             label: "Edit connection…",
-            icon: glyphs.FileCode,
+            icon: FileCodeIcon,
             onClick: () => {
               host.post({ type: "editConnection" })
             },
@@ -64,9 +64,11 @@ function EngineChip({ engine }: { readonly engine: BoardEngineStatus }) {
   const host = useHost()
   const production = engine.badge?.environment === "production"
   return (
-    <button
+    <Button
       type="button"
-      class={`board-engine${production ? " board-engine--production" : ""}`}
+      variant="ghost"
+      size="sm"
+      className="max-w-full min-w-0 gap-1.5 px-1.5 font-normal has-[>svg]:px-1.5"
       title={BoardLabels.openTitle({ engine: engine.name, filter: { scope: "all" } })}
       onClick={(event) => {
         host.post({
@@ -76,10 +78,12 @@ function EngineChip({ engine }: { readonly engine: BoardEngineStatus }) {
         })
       }}
     >
-      <Icon of={glyphs.Server} />
-      <span class="board-engine__name">{engine.name}</span>
-      <span class="board-engine__facts">{BoardLabels.engineFacts(engine)}</span>
-    </button>
+      <Icon icon={ServerIcon} />
+      <span className={cn("font-semibold", production && "text-danger-ink")}>{engine.name}</span>
+      <span className="text-muted-foreground min-w-0 truncate">
+        {BoardLabels.engineFacts(engine)}
+      </span>
+    </Button>
   )
 }
 
@@ -93,7 +97,11 @@ export function BoardEngines({ engines }: { readonly engines: readonly BoardEngi
           <EngineProblem key={engine.name} engine={engine} />
         ))}
       {ready.length > 0 && (
-        <div class="board-engines" role="group" aria-label="Engines of this board">
+        <div
+          className="bg-card border-border px-gutter flex flex-wrap gap-x-3 gap-y-0.5 border-b py-1"
+          role="group"
+          aria-label="Engines of this board"
+        >
           {ready.map((engine) => (
             <EngineChip key={engine.name} engine={engine} />
           ))}

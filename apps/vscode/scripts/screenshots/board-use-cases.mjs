@@ -9,6 +9,7 @@ import {
   runCommand,
   showPulse,
 } from "./vscode-driver.mjs"
+import { part } from "../support/webview-parts.mjs"
 
 const BROKEN_BOARD = fileURLToPath(
   new URL("../../sandbox/.pulse/boards/broken.board.json", import.meta.url),
@@ -21,7 +22,7 @@ async function openBoard(window, title) {
     .first()
     .click()
   await panelFrame(window)
-    .locator('[data-part="context-bar"][data-kind="board"]', { hasText: "As of" })
+    .locator(part("context-bar", { kind: "board" }), { hasText: "As of" })
     .waitFor({
       timeout: 60_000,
     })
@@ -73,7 +74,7 @@ export const BOARD_USE_CASES = [
         .first()
         .click()
       await panelFrame(window)
-        .locator('[data-part="context-bar"][data-kind="instance"]', { hasText: "As of" })
+        .locator(part("context-bar", { kind: "instance" }), { hasText: "As of" })
         .waitFor({
           timeout: 30_000,
         })
@@ -111,11 +112,9 @@ export const BOARD_USE_CASES = [
       const item = window.getByRole("treeitem", { name: /^broken\.board\.json/ }).first()
       await item.waitFor({ timeout: 30_000 })
       await item.click()
-      await panelFrame(window)
-        .locator('[data-part="status-strip"]', { hasText: "problems in" })
-        .waitFor({
-          timeout: 30_000,
-        })
+      await panelFrame(window).locator(part("status-strip"), { hasText: "problems in" }).waitFor({
+        timeout: 30_000,
+      })
       await restPointer(window)
       await window.waitForTimeout(900)
     },
@@ -155,7 +154,7 @@ export const BOARD_USE_CASES = [
         .first()
         .click()
       await panelFrame(window)
-        .locator('[data-part="context-bar"][data-kind="definition"]', { hasText: "As of" })
+        .locator(part("context-bar", { kind: "definition" }), { hasText: "As of" })
         .waitFor({
           timeout: 30_000,
         })

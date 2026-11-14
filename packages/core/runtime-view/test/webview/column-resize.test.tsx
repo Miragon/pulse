@@ -44,6 +44,10 @@ function storedWidths(harness: Harness): unknown {
   return (harness.api.getState() as { pulse?: { columnWidths?: unknown } }).pulse?.columnWidths
 }
 
+function floorOf(grip: HTMLElement): number {
+  return Math.max(48, Math.round((grip.parentElement?.firstElementChild?.scrollWidth ?? 0) + 24))
+}
+
 async function settled(): Promise<void> {
   await nextFrame()
 }
@@ -102,7 +106,7 @@ describe("resizable columns", () => {
     expect(widthOf(headers[1])).toBe((before[1] ?? 0) + 32)
   })
 
-  it("sets the minimum with Home: the label plus 24 pixels, never below 48", async () => {
+  it("sets the minimum with Home: the label and its menu plus 24 pixels, never below 48", async () => {
     harness = mountApp()
     harness.publish(FIXTURES.definition)
     const grip = await waitForElement<HTMLElement>(harness.root, '[aria-label="Resize column ID"]')
@@ -111,7 +115,8 @@ describe("resizable columns", () => {
     press(grip, "Home")
     await settled()
 
-    expect(widthOf(grip.parentElement)).toBe(Math.max(48, Math.round(label.scrollWidth + 24)))
+    expect(grip.parentElement?.contains(label)).toBe(true)
+    expect(widthOf(grip.parentElement)).toBe(floorOf(grip))
   })
 
   it("drags a column and keeps its width in the webview state of the panel", async () => {
@@ -138,6 +143,7 @@ describe("resizable columns", () => {
     await waitForElement(harness.root, '[aria-label="Resize column Business key"]')
     const grip = gripOf(harness.root, "Business key")
     const start = widthOf(grip.parentElement)
+    expect(floorOf(grip)).toBeLessThanOrEqual(start)
 
     pointer(grip, "pointerdown", 300)
     pointer(grip, "pointermove", 380)
@@ -158,6 +164,7 @@ describe("resizable columns", () => {
     await waitForElement(harness.root, '[aria-label="Resize column Business key"]')
     const grip = gripOf(harness.root, "Business key")
     const natural = widthOf(grip.parentElement)
+    expect(floorOf(grip)).toBeLessThanOrEqual(natural)
 
     press(grip, "ArrowRight", { shiftKey: true })
     await settled()
@@ -229,7 +236,7 @@ describe("resizable columns", () => {
     harness = mountApp()
     harness.publish(FIXTURES.instance)
     await findPart(harness.root, "incident-card")
-    harness.root.querySelector<HTMLElement>('[data-key="waiting"]')?.click()
+    buttonNamed(harness.root, "Waiting1").click()
     await waitForElement(harness.root, '[aria-label="Resize column Waiting at"]')
     press(gripOf(harness.root, "Waiting at"), "Home")
     buttonNamed(harness.root, "Variables6").click()

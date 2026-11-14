@@ -1,5 +1,5 @@
-import type { ComponentChildren } from "preact"
-import { useRef, useState } from "preact/hooks"
+import { cn, FOCUS_RING } from "@miragon/pulse-ui"
+import { useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react"
 import { Separator } from "../components/separator.js"
 import { useHost } from "../host/host-context.js"
 import { UiStateStore } from "../host/ui-state-store.js"
@@ -8,9 +8,17 @@ import { SplitShare } from "./split-share.js"
 const DEFAULT_SHARE = 0.55
 const KEY_STEP = 0.05
 
+const PANE = "relative min-h-0 overflow-hidden"
+
+const HANDLE = cn(
+  "bg-border hover:bg-interaction focus-visible:bg-interaction relative z-30 cursor-row-resize after:absolute after:inset-x-0 after:-inset-y-1 after:content-['']",
+  FOCUS_RING,
+  "focus-visible:ring-offset-0",
+)
+
 export interface SplitLayoutProps {
-  readonly top: ComponentChildren
-  readonly bottom: ComponentChildren
+  readonly top: ReactNode
+  readonly bottom: ReactNode
 }
 
 export function SplitLayout({ top, bottom }: SplitLayoutProps) {
@@ -31,7 +39,7 @@ export function SplitLayout({ top, bottom }: SplitLayoutProps) {
     UiStateStore.write(api, { diagramShare: clamped })
   }
 
-  const onDrag = (event: PointerEvent): void => {
+  const onDrag = (event: PointerEvent<HTMLDivElement>): void => {
     const bounds = container.current?.getBoundingClientRect()
     if (bounds === undefined || bounds.height === 0) {
       return
@@ -41,13 +49,13 @@ export function SplitLayout({ top, bottom }: SplitLayoutProps) {
 
   return (
     <div
-      class="split-layout"
+      className="grid min-h-0 grid-rows-[minmax(min(300px,50%),var(--diagram-share))_1px_minmax(120px,1fr)]"
       ref={container}
-      style={{ "--diagram-share": `${Math.round(share * 1000) / 10}%` }}
+      style={{ "--diagram-share": `${Math.round(share * 1000) / 10}%` } as CSSProperties}
     >
-      <div class="split-layout__top">{top}</div>
+      <div className={PANE}>{top}</div>
       <Separator
-        class="split-layout__handle"
+        className={HANDLE}
         orientation="horizontal"
         label="Resize diagram and list"
         min={SplitShare.MIN * 100}
@@ -72,7 +80,7 @@ export function SplitLayout({ top, bottom }: SplitLayoutProps) {
           show(atDragStart.current)
         }}
       />
-      <div class="split-layout__bottom">{bottom}</div>
+      <div className={PANE}>{bottom}</div>
     </div>
   )
 }

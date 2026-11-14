@@ -8,6 +8,7 @@ import {
   waitForPanel,
 } from "./panel-steps.mjs"
 import { closeEditors, goToInstance, panelFrame, selectTab, showPulse } from "./vscode-driver.mjs"
+import { part } from "../support/webview-parts.mjs"
 
 const SHIP_ORDER_CALL = '[data-call-for="Activity_ShipOrder"]'
 const CHARGE_PAYMENT_BADGE = '[data-badge-for="Activity_ChargePayment"]'
@@ -41,7 +42,7 @@ export const NAVIGATION_USE_CASES = [
       await openDefinition(window)
       const frame = panelFrame(window)
       await frame.locator(`${CHARGE_PAYMENT_BADGE} [data-scope="withIncident"]`).click()
-      await frame.locator('[data-part="filter-chip"]', { hasText: "Charge payment" }).waitFor()
+      await frame.locator(part("filter-chip"), { hasText: "Charge payment" }).waitFor()
       await frame
         .locator('[role="radiogroup"][aria-busy="false"] [role="radio"][aria-checked="true"]', {
           hasText: "With incident",
@@ -101,7 +102,7 @@ export const NAVIGATION_USE_CASES = [
       await goToInstanceOf(window, "ORD-10137", "Order fulfillment")
       await panelFrame(window).locator(SHIP_ORDER_CALL).click()
       await window.locator(".tab.active", { hasText: "Shipment" }).waitFor({ timeout: 30_000 })
-      await panelFrame(window).locator('[data-part="context-bar"]', { hasText: "from " }).waitFor({
+      await panelFrame(window).locator(part("context-bar"), { hasText: "from " }).waitFor({
         timeout: 30_000,
       })
       await waitForPanel(window)

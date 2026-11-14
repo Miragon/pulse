@@ -30,7 +30,7 @@ function CountButton({ badge, elementName, stale, onSelect, variant, count }: Co
   return (
     <button
       type="button"
-      class="badge-cluster__count"
+      className="badge-cluster__count"
       data-part="badge-count"
       data-scope={SCOPES[variant]}
       aria-label={description}
@@ -49,7 +49,7 @@ export function BadgeCluster(props: BadgeClusterProps) {
   const { badge } = props
   return (
     <span
-      class="badge-cluster"
+      className="badge-cluster"
       role="group"
       aria-label={props.elementName}
       data-badge-for={badge.elementId}

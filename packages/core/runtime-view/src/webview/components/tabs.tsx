@@ -1,6 +1,6 @@
-import type { ComponentChildren } from "preact"
+import type { ReactNode } from "react"
+import { Tabs as KitTabs, TabsContent, TabsList, TabsTrigger } from "@miragon/pulse-ui"
 import { CountLabels } from "../format/count-labels.js"
-import { RovingKeys } from "./roving-keys.js"
 
 export interface TabItem<Id extends string> {
   readonly id: Id
@@ -13,8 +13,36 @@ export interface TabsProps<Id extends string> {
   readonly items: readonly TabItem<Id>[]
   readonly selected: Id
   readonly onSelect: (id: Id) => void
-  readonly aside?: ComponentChildren
-  readonly children: ComponentChildren
+  readonly aside?: ReactNode
+  readonly children: ReactNode
+}
+
+const COUNT_PILL =
+  "bg-background text-muted-foreground text-small rounded-pill inline-flex min-w-4 justify-center px-[5px] font-normal tabular-nums"
+
+function TabTrigger<Id extends string>({
+  item,
+  selected,
+  onSelect,
+}: {
+  readonly item: TabItem<Id>
+  readonly selected: Id
+  readonly onSelect: (id: Id) => void
+}) {
+  return (
+    <TabsTrigger
+      value={item.id}
+      tabIndex={item.id === selected ? 0 : -1}
+      onClick={() => {
+        if (item.id !== selected) {
+          onSelect(item.id)
+        }
+      }}
+    >
+      {item.label}
+      <span className={COUNT_PILL}>{CountLabels.exact(item.count)}</span>
+    </TabsTrigger>
+  )
 }
 
 export function Tabs<Id extends string>({
@@ -26,50 +54,30 @@ export function Tabs<Id extends string>({
   children,
 }: TabsProps<Id>) {
   return (
-    <div class="tabs">
-      <div class="tabs__bar" data-part="tab-bar">
-        <div
-          class="tabs__list"
-          role="tablist"
-          aria-label={label}
-          onKeyDown={(event) => {
-            RovingKeys.move(
-              event,
-              items.map((item) => item.id),
-              onSelect,
-            )
-          }}
-        >
+    <KitTabs
+      value={selected}
+      onValueChange={(value) => {
+        const item = items.find((candidate) => candidate.id === value)
+        if (item !== undefined && item.id !== selected) {
+          onSelect(item.id)
+        }
+      }}
+      className="h-full min-h-0 gap-0"
+    >
+      <div className="min-w-0 shrink-0" data-part="tab-bar">
+        <TabsList variant="line" aria-label={label} aside={aside} tabIndex={-1}>
           {items.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              role="tab"
-              id={`tab-${item.id}`}
-              data-key={item.id}
-              aria-selected={item.id === selected}
-              aria-controls={`tabpanel-${item.id}`}
-              tabIndex={item.id === selected ? 0 : -1}
-              class="tabs__tab"
-              onClick={() => {
-                onSelect(item.id)
-              }}
-            >
-              {item.label}
-              <span class="tabs__count">{CountLabels.exact(item.count)}</span>
-            </button>
+            <TabTrigger key={item.id} item={item} selected={selected} onSelect={onSelect} />
           ))}
-        </div>
-        {aside}
+        </TabsList>
       </div>
-      <div
-        class="tabs__panel"
-        role="tabpanel"
-        id={`tabpanel-${selected}`}
-        aria-labelledby={`tab-${selected}`}
+      <TabsContent
+        value={selected}
+        tabIndex={undefined}
+        className="flex min-h-0 flex-1 flex-col overflow-auto"
       >
         {children}
-      </div>
-    </div>
+      </TabsContent>
+    </KitTabs>
   )
 }

@@ -1,11 +1,18 @@
-import type { ComponentChildren } from "preact"
+import {
+  BanIcon,
+  ClockIcon,
+  KeyRoundIcon,
+  LoaderCircleIcon,
+  PauseIcon,
+  PlayIcon,
+  UnplugIcon,
+} from "lucide-react"
+import { useEffect, useState, type ReactNode } from "react"
+import { Button, Icon, TONE_ICON } from "@miragon/pulse-ui"
 import type { LiveUpdates, Problem } from "../../core/protocol/index.js"
-import { useEffect, useState } from "preact/hooks"
-import { glyphs } from "./lucide-glyphs.json"
 import { LiveLabels } from "../format/live-labels.js"
 import { TimeLabels } from "../format/time-labels.js"
 import { useHost } from "../host/host-context.js"
-import { Icon } from "./icon.js"
 
 export type Freshness =
   | { readonly kind: "loading" }
@@ -24,6 +31,9 @@ const REFUSED_LOGIN_LABELS = {
 } as const
 
 const CLOCK_TICK_MS = 15_000
+
+const STAMP =
+  "inline-flex min-w-[24ch] items-center justify-end gap-1.5 text-right whitespace-nowrap tabular-nums"
 
 function useNow(): Date {
   const [now, setNow] = useState(() => new Date())
@@ -45,17 +55,18 @@ export function LiveButton({ live }: { readonly live: LiveUpdates | undefined })
     return null
   }
   return (
-    <button
+    <Button
       type="button"
-      class="button button--ghost button--compact live-button"
+      variant="ghost"
+      size="icon-sm"
       title={control.label}
       aria-label={control.label}
       onClick={() => {
         host.post({ type: control.intent })
       }}
     >
-      <Icon of={control.playing ? glyphs.Pause : glyphs.Play} />
-    </button>
+      <Icon icon={control.playing ? PauseIcon : PlayIcon} />
+    </Button>
   )
 }
 
@@ -73,13 +84,11 @@ function OfflineStamp({
   const title = at === undefined ? undefined : `Last read ${TimeLabels.tooltip(at)}. ${note}`.trim()
   const state = loginRefused === undefined ? "Offline" : REFUSED_LOGIN_LABELS[loginRefused]
   return (
-    <span
-      class="freshness freshness--offline"
-      data-part="freshness"
-      data-state="offline"
-      title={title}
-    >
-      <Icon of={loginRefused === undefined ? glyphs.Unplug : glyphs.KeyRound} />
+    <span className={STAMP} data-part="freshness" data-state="offline" title={title}>
+      <Icon
+        icon={loginRefused === undefined ? UnplugIcon : KeyRoundIcon}
+        className={TONE_ICON.warning}
+      />
       {`${state}${since}`}
     </span>
   )
@@ -92,15 +101,10 @@ function Stamp({
 }: {
   readonly state: "paused" | "offline" | "stale"
   readonly title: string
-  readonly children: ComponentChildren
+  readonly children: ReactNode
 }) {
   return (
-    <span
-      class={`freshness freshness--${state}`}
-      data-part="freshness"
-      data-state={state}
-      title={title}
-    >
+    <span className={STAMP} data-part="freshness" data-state={state} title={title}>
       {children}
     </span>
   )
@@ -116,7 +120,7 @@ function ReadStamp({ at, live }: { readonly at: string; readonly live?: LiveUpda
   if (live?.status === "stopped") {
     return (
       <Stamp state="offline" title={title}>
-        <Icon of={live.reason === "gone" ? glyphs.Ban : glyphs.Unplug} />
+        <Icon icon={live.reason === "gone" ? BanIcon : UnplugIcon} className={TONE_ICON.warning} />
         {`Stopped · data from ${time}`}
       </Stamp>
     )
@@ -124,7 +128,7 @@ function ReadStamp({ at, live }: { readonly at: string; readonly live?: LiveUpda
   if (live?.status === "reconnecting") {
     return (
       <Stamp state="offline" title={title}>
-        <Icon of={glyphs.Unplug} />
+        <Icon icon={UnplugIcon} className={TONE_ICON.warning} />
         {`Reconnecting… · data from ${time}`}
       </Stamp>
     )
@@ -132,13 +136,13 @@ function ReadStamp({ at, live }: { readonly at: string; readonly live?: LiveUpda
   if (LiveLabels.isStale(live, now.getTime() - Date.parse(at))) {
     return (
       <Stamp state="stale" title={title}>
-        <Icon of={glyphs.Clock} />
+        <Icon icon={ClockIcon} className={TONE_ICON.warning} />
         {`As of ${time} · ${TimeLabels.relative(at, now)}`}
       </Stamp>
     )
   }
   return (
-    <span class="freshness" data-part="freshness" data-state="fresh" title={title}>
+    <span className={STAMP} data-part="freshness" data-state="fresh" title={title}>
       {`As of ${time}`}
     </span>
   )
@@ -147,15 +151,15 @@ function ReadStamp({ at, live }: { readonly at: string; readonly live?: LiveUpda
 export function FreshnessStamp({ freshness }: { readonly freshness: Freshness }) {
   if (freshness.kind === "loading") {
     return (
-      <span class="freshness" data-part="freshness" data-state="loading">
+      <span className={STAMP} data-part="freshness" data-state="loading">
         Loading…
       </span>
     )
   }
   if (freshness.kind === "refreshing") {
     return (
-      <span class="freshness" data-part="freshness" data-state="refreshing" role="status">
-        <Icon of={glyphs.LoaderCircle} class="spin" />
+      <span className={STAMP} data-part="freshness" data-state="refreshing" role="status">
+        <Icon icon={LoaderCircleIcon} className="motion-safe:animate-spin" />
         Refreshing…
       </span>
     )

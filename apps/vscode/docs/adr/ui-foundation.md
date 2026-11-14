@@ -1,14 +1,14 @@
 # UI foundation and shared building blocks
 
 - Status: accepted
-- Last reviewed: 2026-11-12, later the same day (decided, D9: the webview moves from Preact to React 19 on `@miragon/pulse-ui` in one switch, without a `preact/compat` bridge; one compact look for every surface, on density roles over the guide's `--cd-shell-*` tokens and pulse-ui's colour roles on the guide's `--cd-ui-*` roles, numbers neutral; replaces D4 and turns D7 into the switch's preconditions); 2026-11-12 (decided: the surfaces share a core up to building blocks, not everything: formats, the engine reads and their rules, the numbers and view models of a feature more than one surface shows, and building blocks on React's API; a feature more than one surface shows, boards first, shows the same numbers on every surface; replaces the two UI families of 2026-11-08)
+- Last reviewed: 2026-11-14 (executed: the switch of D9 landed, the webview renders with React 19 on `@miragon/pulse-ui`; every precondition of D7 is in place); 2026-11-12, later the same day (decided, D9: the webview moves from Preact to React 19 on `@miragon/pulse-ui` in one switch, without a `preact/compat` bridge; one compact look for every surface, on density roles over the guide's `--cd-shell-*` tokens and pulse-ui's colour roles on the guide's `--cd-ui-*` roles, numbers neutral; replaces D4 and turns D7 into the switch's preconditions); 2026-11-12 (decided: the surfaces share a core up to building blocks, not everything: formats, the engine reads and their rules, the numbers and view models of a feature more than one surface shows, and building blocks on React's API; a feature more than one surface shows, boards first, shows the same numbers on every surface; replaces the two UI families of 2026-11-08)
 
 ## Context
 
 Pulse shows an engine on three surfaces. The MCP server's widgets are React on `@miragon/pulse-ui`
 and widget-shell, cards in an AI chat with a height budget, hand-offs to the chat and a view bundle
-every view resource inlines. This extension's webview, which Pulse for Orca shows too, is Preact
-with its own components and stylesheets, tabs in the editor next to the models and the code. The
+every view resource inlines. This extension's webview, which Pulse for Orca shows too, was Preact
+with its own components and stylesheets until the switch of D9 (2026-11-14), tabs in the editor next to the models and the code. The
 web apps of #573 are planned on React, pulse-ui and widget-shell.
 
 On 2026-11-08 the product owner decided for two UI families: the webview and the MCP widgets share
@@ -96,8 +96,8 @@ day the owner decided D9, which replaces D4 and turns D7 into the switch's preco
   and its stylesheet for shared building blocks, and from the switch of D9 on it builds its screens
   on them. The runtime view's core, ports, model reader and host kit stay framework-free: of
   pulse-ui only `./tones` and `./format`, as before.
-- **D4, Preact stays the webview's runtime (replaced by D9).** Until the switch of D9 lands, the
-  webview keeps Preact as its runtime and for its own screens; the component API of a shared
+- **D4, Preact stays the webview's runtime (replaced by D9).** Until the switch of D9 landed, the
+  webview kept Preact as its runtime and for its own screens; the component API of a shared
   building block is React's.
 - **D5, the owner decides.** Decisions about shared building blocks are the product owner's and go
   through normal review. No separate consent of a surface's author is required.
@@ -106,26 +106,30 @@ day the owner decided D9, which replaces D4 and turns D7 into the switch's preco
   look drop. `docs/vscode/parity.md` keeps listing what still differs between the pairs; its log of
   the features built on both sides may stay as history.
 - **D7, the switch's preconditions (since D9).** D7 first listed what had to land before a shared
-  building block rendered through `preact/compat`. Since D9 it lists what lands before the switch:
-  a Tailwind step in the webview's esbuild build with Tailwind's preflight on (the vendored diagram
-  styles stay unlayered above it; done, the entry with its preflight comes with the switch);
+  building block rendered through `preact/compat`. Since D9 it lists what lands before the switch,
+  and all of it landed by the switch: a Tailwind step in the webview's esbuild build with
+  Tailwind's preflight on (the vendored diagram styles stay unlayered above it; the entry,
+  `packages/core/runtime-view/src/webview/styles/webview.css`, came with the switch);
   `process.env.NODE_ENV` defined as `"production"` in every build that ships, Orca's readable one
-  included (done; a build without `production`, VS Code's watch, smoke and e2e builds and the
-  runtime view's dev page while it serves, keeps React's development build for its warnings); one
-  React instance, so one `react`, `react-dom`, `lucide-react` and pulse-ui in the bundle, checked
-  on its metafile; an accessibility and geometry baseline taken under Preact (tests by role,
-  label and `data-part`, an axe run without findings, focus kept through a live update, icon and
-  target sizes measured in Chromium; done, `packages/core/runtime-view/test/webview/geometry.test.tsx`
-  and `packages/core/runtime-view/test/architecture/webview-test-hooks.test.ts`); pulse-ui's stylesheet following the editor theme
-  (`data-cd-theme`, `data-cd-kontrast="hoch"`, `forced-colors`, reduced motion); pulse-ui's
-  density roles. These are tasks, not a gate on the decision.
+  included (a build without `production`, VS Code's watch, smoke and e2e builds and the runtime
+  view's dev page while it serves, keeps React's development build for its warnings); one React
+  instance, so one `react`, `react-dom`, `lucide-react` and pulse-ui in the bundle, checked on its
+  metafile (`apps/vscode/test/architecture/bundle-budget.test.ts`); an accessibility and geometry
+  baseline taken under Preact and kept through the switch (tests by role, label and `data-part`,
+  a kit piece's part through the harness's map of its `data-slot`, an axe run without findings,
+  focus kept through a live update, icon and target sizes measured in Chromium, at a narrow width
+  and in a high-contrast theme too: `packages/core/runtime-view/test/webview/geometry.test.tsx`
+  and `packages/core/runtime-view/test/architecture/webview-test-hooks.test.ts`); pulse-ui's
+  stylesheet following the editor theme (`data-cd-theme`, `data-cd-kontrast="hoch"`,
+  `forced-colors`, reduced motion); pulse-ui's density roles, compact by default. These were
+  tasks, not a gate on the decision.
 - **D8, homes.** The board format and the board builder go into a new published package, planned
   as @miragon/pulse-board; its dependency rules arrive with the package. Shared building blocks go
   into pulse-ui (primitives) or into a shared package created with the first engine block two
   surfaces render. Until then the cockpit side keeps its content of props and callbacks in the
   connector, as the build rule of a pair feature says.
 - **D9, the webview moves to React on pulse-ui; one compact look for every surface** (later on
-  2026-11-12; replaces D4, turns D7 into the switch's preconditions).
+  2026-11-12; replaces D4, turns D7 into the switch's preconditions; executed 2026-11-14).
   1. **One switch.** The webview, which both editor hosts show, moves from Preact to React 19 on
      `@miragon/pulse-ui` in one commit of the pull request that records D9, with no
      `preact/compat` bridge: Preact, its Lucide glyph copy and the webview's own stylesheets go,
@@ -213,39 +217,39 @@ missing value ([user-interface.md](user-interface.md)).
   and `./testing` out of them. The webview answers to `webview-pulse-ui-by-its-entries`: it imports
   `./tones`, `./format` from its `format/` folder and, for shared building blocks, pulse-ui's root
   (the React kit) and `@miragon/pulse-ui/theme.css`; never `./testing`, `globals.css` (an app
-  entry without a Tailwind entry of its own; the webview gets its own with the switch) or
+  entry without a Tailwind entry of its own; the webview has its own, `src/webview/styles/webview.css`) or
   `fonts.css`, never another subpath. No layer reaches a file of pulse-ui by path, and the
   repository's `ui-foundation-entries-import-nothing` keeps `./tones` and `./format` free of React,
   Radix and every other import ([guardrails.md](guardrails.md) lists the gates: the word scan, the
-  tone table, the brand gates, the date and number gates, the token drift test). With the switch
-  the webview's rendering libraries become `react`, `react-dom` and `lucide-react` instead of
+  tone table, the brand gates, the date and number gates, the token drift test). Since the switch
+  the webview's rendering libraries are `react`, `react-dom` and `lucide-react` instead of
   `preact`; Radix reaches it only through pulse-ui, widget-shell never.
 - The preconditions of D7 have a home each: the Tailwind step and the `NODE_ENV` define in the
   webview's esbuild options, which both hosts build with
-  (`packages/core/runtime-view/scripts/webview-build-options.mjs`; both done: the step,
-  `packages/core/runtime-view/scripts/tailwind-entries.mjs`, compiles only the entries the options
-  name, none until the switch, and the licence lists read what such an entry inlines through
-  `inlinedStylesheets` of `scripts/third-party-licenses.mjs`); the single-instance check beside
-  the bundle ceiling (`apps/vscode/test/architecture/bundle-budget.test.ts`,
+  (`packages/core/runtime-view/scripts/webview-build-options.mjs`: the step,
+  `packages/core/runtime-view/scripts/tailwind-entries.mjs`, compiles the one entry the options
+  name, and the licence lists read what it inlines through `inlinedStylesheets` of
+  `scripts/third-party-licenses.mjs`); the single-instance check beside the bundle ceilings of the
+  script and the stylesheet (`apps/vscode/test/architecture/bundle-budget.test.ts`,
   `apps/vscode/test/__golden__/bundle-budget.json`); the baseline in the webview's tests
   (`packages/core/runtime-view/test/webview`); the editor theme and the density roles in pulse-ui's
-  stylesheet (`packages/core/ui/src/theme.css`). Until the switch the webview renders no React.
+  stylesheet (`packages/core/ui/src/theme.css`).
 - With the switch, too: `prettier-plugin-tailwindcss` sorts the webview's classes; the webview's
-  second vendored copy of the Miragon token stylesheet, `cd-tokens.generated.css`, goes (its
-  manifest entry, checksums and drift test follow); `cd-tokens.generated.json`, which the
+  second vendored copy of the Miragon token stylesheet, `cd-tokens.generated.css`, went (its
+  manifest entry, checksums and drift test followed); `cd-tokens.generated.json`, which the
   renderer's paint test reads, `cd-canvas.css` and the overlay part of `diagram.css` stay for the
-  diagram; the licence lists of the .vsix and of the Orca plugin are
-  written again; the screenshots are shot again and `docs/vscode/parity.md` follows. The React
-  Compiler rules of `react-hooks`' `recommended-latest` come in a commit of their own after the
-  switch.
+  diagram; the licence lists of the .vsix and of the Orca plugin were written again and
+  `docs/vscode/parity.md` followed. The screenshots of `apps/vscode/docs/screenshots` are shot
+  again after the switch, with the product images. The React Compiler rules of `react-hooks`'
+  `recommended-latest` come in a commit of their own after the switch.
 - Per surface stays: the webview's host wiring (the push protocol and live updates, English, the
   native confirmation), its diagram runtime and overlays, the split pane and the widths it stores;
   the MCP widgets' hand-offs to the chat, their height budget, the host contexts and
   `ConfirmDialog`; each surface's sign-in. A shared building block takes these in as props and
   callbacks.
-- Until the switch lands, a pair feature is still built on each side, each with its own tests; on
+- Until the switch landed, a pair feature was built on each side, each with its own tests; on
   the MCP side its content takes props and callbacks without host context and stays in the
-  connector (D8). After it both sides compose pulse-ui's blocks.
+  connector (D8). Since the switch both sides compose pulse-ui's blocks.
 - The look changes on every surface: starters and customer modules see compact controls, 13 px
   dense text and the guide's neutrals; an inline card shows more rows in the same height budget;
   users of Pulse for VS Code and Pulse for Orca see the webview on pulse-ui. Under an MCP host's
@@ -276,4 +280,7 @@ pulse-ui, each judged twice; the product owner decided D9: the webview moves to 
 pulse-ui in one switch without `preact/compat`, compact is every surface's default, pulse-ui's
 colour roles map onto the guide's `--cd-ui-*` roles, numbers stay neutral, the webview's building
 blocks move into pulse-ui's root, and the deviations from the guide are named. D9 replaces D4, and
-D7 lists the switch's preconditions.
+D7 lists the switch's preconditions. 2026-11-14: the switch landed in one commit; a part a kit
+piece plays is found through the test harness's map of its `data-slot`, so pulse-ui carries no
+webview-only hook, the webview's stylesheet has a ceiling of its own beside its script's, and the
+screenshots are shot again with the product images after the switch (the owner's delegate).

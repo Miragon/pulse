@@ -1,18 +1,7 @@
-import "../../src/webview/theme/cd-tokens.generated.css"
-import "@fontsource-variable/geist/wght.css"
-import "@fontsource-variable/geist-mono/wght.css"
-import "diagram-js/assets/diagram-js.css"
-import "bpmn-js/dist/assets/bpmn-js.css"
-import "../../src/webview/theme/cd-canvas.css"
-import "@miragon/modeler-shell/shell.css"
-import "../../src/webview/styles/base.css"
-import "../../src/webview/styles/components.css"
-import "../../src/webview/styles/screens.css"
-import "../../src/webview/styles/migration.css"
-import "../../src/webview/styles/tables.css"
-import "../../src/webview/styles/diagram.css"
-import "../../src/webview/styles/boards.css"
-import { render, type ComponentChild } from "preact"
+import "../../src/webview/styles/webview.css"
+import { LocaleProvider } from "@miragon/pulse-ui"
+import { act, type ReactNode } from "react"
+import { createRoot } from "react-dom/client"
 import { vi } from "vitest"
 import { page, type Locator } from "vitest/browser"
 import type { PanelState, WebviewIntent } from "../../src/core/protocol/index.js"
@@ -47,12 +36,16 @@ export function postState(state: PanelState, revision: number): void {
   window.postMessage({ type: "state", revision, state }, "*")
 }
 
+function deliverState(state: PanelState, revision: number): void {
+  window.dispatchEvent(new MessageEvent("message", { data: { type: "state", revision, state } }))
+}
+
 export interface MountOptions {
   readonly width?: number
   readonly stored?: unknown
 }
 
-export type Renderable = ComponentChild
+export type Renderable = ReactNode
 
 export interface Mounted {
   readonly root: HTMLElement
@@ -60,18 +53,39 @@ export interface Mounted {
   readonly unmount: () => void
 }
 
+interface ActEnvironment {
+  IS_REACT_ACT_ENVIRONMENT?: boolean
+}
+
+function settled(work: () => void): void {
+  const environment = globalThis as ActEnvironment
+  environment.IS_REACT_ACT_ENVIRONMENT = true
+  try {
+    act(work)
+  } finally {
+    environment.IS_REACT_ACT_ENVIRONMENT = false
+  }
+}
+
 export function mount(node: Renderable, root = document.createElement("div")): Mounted {
   if (!root.isConnected) {
     document.body.append(root)
   }
-  render(node, root)
+  const reactRoot = createRoot(root)
+  settled(() => {
+    reactRoot.render(node)
+  })
   return {
     root,
     update: (next) => {
-      render(next, root)
+      settled(() => {
+        reactRoot.render(next)
+      })
     },
     unmount: () => {
-      render(null, root)
+      settled(() => {
+        reactRoot.unmount()
+      })
       root.remove()
     },
   }
@@ -79,13 +93,19 @@ export function mount(node: Renderable, root = document.createElement("div")): M
 
 export function mountApp({ width = 1200, stored }: MountOptions = {}): Harness {
   document.documentElement.dataset.cdTheme = "light"
+  document.documentElement.dataset.density = "compact"
   delete document.documentElement.dataset.cdKontrast
   const root = document.createElement("div")
   root.style.cssText = `position: fixed; inset: 0; width: ${width}px; height: 800px;`
   const posted: WebviewIntent[] = []
   const api = fakeApi(posted, stored)
   const bridge = new HostBridge(api)
-  const mounted = mount(<App bridge={bridge} />, root)
+  const mounted = mount(
+    <LocaleProvider locale="en">
+      <App bridge={bridge} />
+    </LocaleProvider>,
+    root,
+  )
   let revision = 0
   return {
     root,
@@ -94,7 +114,7 @@ export function mountApp({ width = 1200, stored }: MountOptions = {}): Harness {
     posted,
     publish: (state, at) => {
       revision = at ?? revision + 1
-      postState(state, revision)
+      deliverState(state, revision)
     },
     unmount: () => {
       mounted.unmount()
@@ -238,9 +258,33 @@ export function findRole<T extends HTMLElement = HTMLElement>(
   return vi.waitFor(() => getRole<T>(root, role, options), { timeout: 5000, interval: 25 })
 }
 
+const KIT_SLOTS: Readonly<Record<string, readonly string[]>> = {
+  "context-bar": ['[data-slot="view-bar"]'],
+  "context-subject": ['[data-slot="view-bar-subject"]'],
+  access: ['[data-slot="view-bar-access"]'],
+  freshness: ['[data-slot="view-bar-freshness"]'],
+  "status-strip": ['[data-slot="status-strip"]'],
+  "strip-title": ['[data-slot="status-strip"] p > span:first-child'],
+  "state-label": ['[data-slot="state-label"]'],
+  "segment-count": ['[data-slot="segmented-option"] > span:last-child'],
+  "tab-bar": ['[data-slot="tabs-list"]'],
+  "filter-chip": ['[data-slot="condition-chip"]'],
+  "filter-summary": ['[data-slot="toolbar-summary"]'],
+  skeleton: ['[data-slot="skeleton"]', '[data-slot="data-table-skeleton"]'],
+  "data-table": ['[data-slot="data-table"]'],
+}
+
+function hooksOf(name: string): readonly string[] {
+  const own = `[data-part="${name}"]`
+  return [own, ...(KIT_SLOTS[name] ?? []).map((slot) => `${slot}:not(${own} *)`)]
+}
+
 export function part(name: string, state?: Readonly<Record<string, string>>): string {
-  const extra = Object.entries(state ?? {}).map(([key, value]) => `[data-${key}="${value}"]`)
-  return `[data-part="${name}"]${extra.join("")}`
+  const extra = Object.entries(state ?? {})
+    .map(([key, value]) => `[data-${key}="${value}"]`)
+    .join("")
+  const hooks = hooksOf(name)
+  return hooks.length === 1 ? `${hooks.join("")}${extra}` : `:is(${hooks.join(", ")})${extra}`
 }
 
 export function queryPart(

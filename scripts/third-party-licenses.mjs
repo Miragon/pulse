@@ -471,13 +471,46 @@ const CSS_IMPORT = /@import\s+(?:url\(\s*)?(?:"([^"]*)"|'([^']*)'|([^\s"'()]+))/
 /** A specifier that names a URL, which stays a request of the stylesheet and is never bundled. */
 const isUrl = (specifier) => /^(?:[a-z][\w+.-]*:|\/\/)/i.test(specifier)
 
+/**
+ * The entry of the subpath pattern (`./*`, `./*.css`) that matches `subpath`, its `*` replaced
+ * in every target: the longest prefix wins, as Node's resolver picks.
+ */
+function patternEntry(exports, subpath) {
+  const [key] = Object.keys(exports)
+    .filter((each) => {
+      const [prefix, suffix, ...rest] = each.split("*")
+      return (
+        suffix !== undefined &&
+        rest.length === 0 &&
+        subpath.length >= prefix.length + suffix.length &&
+        subpath.startsWith(prefix) &&
+        subpath.endsWith(suffix)
+      )
+    })
+    .sort((a, b) => b.indexOf("*") - a.indexOf("*") || b.length - a.length)
+  if (key === undefined) return undefined
+  const [prefix, suffix] = key.split("*")
+  const match = subpath.slice(prefix.length, subpath.length - suffix.length)
+  const replace = (node) =>
+    typeof node === "string"
+      ? node.replaceAll("*", match)
+      : node !== null && typeof node === "object"
+        ? Object.fromEntries(Object.entries(node).map(([k, v]) => [k, replace(v)]))
+        : node
+  return replace(exports[key])
+}
+
 /** The string targets of a package's `exports` for a subpath, under any condition. */
 function exportTargets(exports, subpath) {
   const conditionsOnly =
     typeof exports === "string" ||
     Array.isArray(exports) ||
     !Object.keys(exports).some((key) => key.startsWith("."))
-  const entry = conditionsOnly ? (subpath === "." ? exports : undefined) : exports[subpath]
+  const entry = conditionsOnly
+    ? subpath === "."
+      ? exports
+      : undefined
+    : (exports[subpath] ?? patternEntry(exports, subpath))
   const leaves = (node) =>
     typeof node === "string"
       ? [node]

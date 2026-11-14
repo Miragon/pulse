@@ -8,7 +8,7 @@ import { EmptyHint } from "../../components/empty-hint.js"
 import { CountLabels } from "../../format/count-labels.js"
 import { TimeLabels } from "../../format/time-labels.js"
 import { useHost } from "../../host/host-context.js"
-import { BoardCard } from "./board-card.js"
+import { BoardCard, GROUP_NOTES, MissingNote } from "./board-card.js"
 
 const ENGINE: Column<BoardIncidentRow> = {
   key: "engine",
@@ -27,7 +27,7 @@ const COLUMNS: readonly Column<BoardIncidentRow>[] = [
     key: "message",
     label: "Message",
     render: (row) => (
-      <span class="board-incident__message" title={row.message}>
+      <span className="inline-block max-w-[48ch] truncate align-bottom" title={row.message}>
         {row.message}
       </span>
     ),
@@ -43,16 +43,11 @@ const COLUMNS: readonly Column<BoardIncidentRow>[] = [
 
 function GroupNote({ group }: { readonly group: IncidentGroup }) {
   if (group.unavailable === true) {
-    return (
-      <li
-        class="board-groups__note board-groups__note--missing"
-        data-part="group-note"
-      >{`${group.engine}: not read`}</li>
-    )
+    return <MissingNote engine={group.engine} />
   }
   const shown = CountLabels.exact(group.rows.length)
   return (
-    <li class="board-groups__note" data-part="group-note">
+    <li data-part="group-note">
       {group.more === true
         ? `${group.engine}: first ${shown}, more open`
         : `${group.engine}: ${shown} open`}
@@ -67,7 +62,7 @@ export function IncidentListCard({ tile }: { readonly tile: IncidentListTile }) 
   return (
     <BoardCard title={tile.title} kind="incidentList">
       <DataTable
-        label={tile.title}
+        label="Open incidents"
         columns={columns}
         rows={rows}
         rowKey={(row) => `${row.engine}|${row.id}`}
@@ -94,7 +89,7 @@ export function IncidentListCard({ tile }: { readonly tile: IncidentListTile }) 
           />
         }
         footer={
-          <ul class="board-groups" aria-label="Per engine">
+          <ul className={GROUP_NOTES} aria-label="Per engine">
             {tile.groups.map((group) => (
               <GroupNote key={group.engine} group={group} />
             ))}

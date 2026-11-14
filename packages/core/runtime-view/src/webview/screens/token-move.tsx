@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { InstanceView, MoveOption } from "../../core/protocol/index.js"
 import type { MoveDecoration } from "../diagram/decoration-layer.js"
 import type { MoveEntryDecoration } from "../diagram/move-entry.js"

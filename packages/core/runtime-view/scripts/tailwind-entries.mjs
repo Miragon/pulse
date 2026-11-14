@@ -41,7 +41,13 @@ export class TailwindEntries {
       loader: "css",
       resolveDir: base,
       watchFiles: [...dependencies, ...scanner.files],
+      watchDirs: TailwindEntries.#folders(scanner),
     }
+  }
+
+  static #folders(scanner) {
+    const folders = [...scanner.globs.map((glob) => glob.base), ...scanner.files.map(dirname)]
+    return [...new Set(folders)].sort()
   }
 
   static #sources({ root, sources }, base) {

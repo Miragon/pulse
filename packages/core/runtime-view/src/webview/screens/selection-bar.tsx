@@ -1,13 +1,21 @@
+import { Button } from "@miragon/pulse-ui"
 import type { SelectionView } from "../../core/protocol/index.js"
 import { CountLabels } from "../format/count-labels.js"
 import { useHost } from "../host/host-context.js"
+
+const NOTE =
+  "text-muted-foreground min-w-0 truncate @max-[47.5rem]/list:order-1 @max-[47.5rem]/list:basis-full"
 
 function SelectionCount({ selection }: { readonly selection: SelectionView }) {
   const text = selection.allMatching
     ? `All ${CountLabels.exact(selection.count)} ${selection.eligible} selected`
     : `${CountLabels.exact(selection.count)} selected`
   return (
-    <span class="selection-bar__count" data-part="selection-count" aria-live="polite">
+    <span
+      className="font-semibold whitespace-nowrap tabular-nums"
+      data-part="selection-count"
+      aria-live="polite"
+    >
       {text}
     </span>
   )
@@ -18,27 +26,29 @@ function SelectionOffers({ selection }: { readonly selection: SelectionView }) {
   return (
     <>
       {selection.offers.map((offer) => (
-        <button
+        <Button
           key={offer.action}
           type="button"
-          class="button button--secondary button--compact"
+          variant="outline"
+          size="xs"
           onClick={() => {
             host.post({ type: "startBulk", action: offer.action })
           }}
         >
           {offer.label}
-        </button>
+        </Button>
       ))}
       {selection.migration !== undefined && (
-        <button
+        <Button
           type="button"
-          class="button button--secondary button--compact"
+          variant="outline"
+          size="xs"
           onClick={() => {
             host.post({ type: "openMigration" })
           }}
         >
           {selection.migration}
-        </button>
+        </Button>
       )}
     </>
   )
@@ -47,39 +57,45 @@ function SelectionOffers({ selection }: { readonly selection: SelectionView }) {
 export function SelectionBar({ selection }: { readonly selection: SelectionView }) {
   const host = useHost()
   return (
-    <div class="selection-bar" role="group" aria-label="Selected instances">
+    <div
+      className="border-border bg-info-surface text-dense px-gutter flex min-h-8 flex-none items-center gap-2 border-b @max-[47.5rem]/list:flex-wrap @max-[47.5rem]/list:gap-y-1 @max-[47.5rem]/list:py-1"
+      role="group"
+      aria-label="Selected instances"
+    >
       <SelectionCount selection={selection} />
       {selection.matching !== undefined && (
-        <button
+        <Button
           type="button"
-          class="button button--ghost button--compact"
+          variant="ghost"
+          size="xs"
           onClick={() => {
             host.post({ type: "selectMatching" })
           }}
         >
           Select all {selection.matching} {selection.eligible}
-        </button>
+        </Button>
       )}
       {selection.overCap !== undefined && (
-        <span class="muted selection-bar__note">
+        <span className={NOTE}>
           {selection.overCap} match · narrow the filter to {selection.cap} or fewer
         </span>
       )}
-      <span class="selection-bar__spacer" />
+      <span className="flex-1" />
       {selection.blockedBy !== undefined ? (
-        <span class="muted selection-bar__note">{selection.blockedBy}</span>
+        <span className={NOTE}>{selection.blockedBy}</span>
       ) : (
         selection.count > 0 && <SelectionOffers selection={selection} />
       )}
-      <button
+      <Button
         type="button"
-        class="button button--ghost button--compact"
+        variant="ghost"
+        size="xs"
         onClick={() => {
           host.post({ type: "clearSelection" })
         }}
       >
         Clear
-      </button>
+      </Button>
     </div>
   )
 }

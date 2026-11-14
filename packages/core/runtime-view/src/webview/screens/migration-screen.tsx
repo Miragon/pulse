@@ -1,9 +1,8 @@
-import type { ComponentChildren } from "preact"
-import { useMemo } from "preact/hooks"
+import { Icon, cn } from "@miragon/pulse-ui"
+import { MoveRightIcon } from "lucide-react"
+import { useMemo, type ReactNode } from "react"
 import type { MigrationView } from "../../core/protocol/index.js"
 import { ContextBar, type Freshness } from "../components/context-bar.js"
-import { Icon } from "../components/icon.js"
-import { glyphs } from "../components/lucide-glyphs.json"
 import { EmptyHint } from "../components/empty-hint.js"
 import { RuntimeDiagram } from "../components/runtime-diagram.js"
 import type { Decorations } from "../diagram/decoration-layer.js"
@@ -19,10 +18,15 @@ export interface MigrationScreenProps {
   readonly view: MigrationView
   readonly freshness: Freshness
   readonly stale: boolean
-  readonly problem?: ComponentChildren
+  readonly problem?: ReactNode
 }
 
 const UNNAMED = (): void => undefined
+
+const DIAGRAM_CELL = "relative min-h-0 min-w-0"
+
+const DIAGRAM_LABEL =
+  "bg-card border-border text-muted-foreground left-gutter absolute top-2 z-[2] rounded-sm border px-1.5 py-0.5 font-semibold tabular-nums"
 
 function useMigrationDecorations(view: MigrationView, stale: boolean) {
   const focusedRow = view.rows.find((row) => row.sourceElementId === view.focused)
@@ -57,10 +61,10 @@ function Diagrams({ view, stale }: { readonly view: MigrationView; readonly stal
   const { source, target } = useMigrationDecorations(view, stale)
   const focused = view.focused
   return (
-    <div class="migration-diagrams">
-      <div class="migration-diagrams__grid">
-        <div class="migration-diagram" data-part="migration-diagram">
-          <span class="migration-diagram__label">v{view.source.version} · from</span>
+    <div className="@container/migration h-full overflow-y-auto">
+      <div className="divide-border grid h-full grid-cols-2 divide-x @max-[900px]/migration:h-auto @max-[900px]/migration:min-h-full @max-[900px]/migration:auto-rows-[minmax(300px,1fr)] @max-[900px]/migration:grid-cols-1 @max-[900px]/migration:divide-x-0 @max-[900px]/migration:divide-y">
+        <div className={DIAGRAM_CELL} data-part="migration-diagram">
+          <span className={DIAGRAM_LABEL}>v{view.source.version} · from</span>
           <RuntimeDiagram
             xml={view.source.diagramXml}
             decorations={source}
@@ -73,12 +77,15 @@ function Diagrams({ view, stale }: { readonly view: MigrationView; readonly stal
           />
         </div>
         {view.target === undefined ? (
-          <div class="migration-diagram migration-diagram--empty" data-part="migration-diagram">
+          <div
+            className={cn(DIAGRAM_CELL, "bg-background grid place-items-center")}
+            data-part="migration-diagram"
+          >
             <EmptyHint text="Pick the version to migrate to." />
           </div>
         ) : (
-          <div class="migration-diagram" data-part="migration-diagram">
-            <span class="migration-diagram__label">v{view.target.version} · to</span>
+          <div className={DIAGRAM_CELL} data-part="migration-diagram">
+            <span className={DIAGRAM_LABEL}>v{view.target.version} · to</span>
             <RuntimeDiagram
               xml={view.target.diagramXml}
               decorations={target}
@@ -106,16 +113,16 @@ function Diagrams({ view, stale }: { readonly view: MigrationView; readonly stal
 export function MigrationScreen({ view, freshness, stale, problem }: MigrationScreenProps) {
   const host = useHost()
   return (
-    <div class="screen screen--with-strips">
+    <div className="grid h-full min-w-0 grid-rows-[auto_auto_minmax(0,1fr)]">
       <ContextBar
         subject="migration"
         title={view.processName}
         engine={view.engine}
         freshness={freshness}
       >
-        <span class="migration-route">
+        <span className="text-muted-foreground inline-flex items-center gap-1 tabular-nums">
           v{view.source.version}
-          <Icon of={glyphs.MoveRight} />
+          <Icon icon={MoveRightIcon} />
         </span>
         <VersionPicker
           versions={view.targets}
@@ -127,7 +134,7 @@ export function MigrationScreen({ view, freshness, stale, problem }: MigrationSc
           }}
         />
       </ContextBar>
-      <div class="strip-stack" data-part="strips">
+      <div className="flex min-w-0 flex-col" data-part="strips">
         {problem}
         {view.bulk !== undefined && <BulkStrip bulk={view.bulk} />}
         <NoticeStrips notices={view.notices} />
@@ -135,7 +142,10 @@ export function MigrationScreen({ view, freshness, stale, problem }: MigrationSc
       <SplitLayout
         top={<Diagrams view={view} stale={stale} />}
         bottom={
-          <section class="list-region migration-mapping" aria-label="Mapping">
+          <section
+            className="bg-card @container/list flex h-full min-h-0 flex-col"
+            aria-label="Mapping and migration"
+          >
             <MappingTable view={view} />
             <MigrationActions offer={view.offer} summary={view.summary} />
           </section>
