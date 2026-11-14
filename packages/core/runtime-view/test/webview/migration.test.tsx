@@ -21,6 +21,12 @@ function contentWidth(cell: Element): number {
   return range.getBoundingClientRect().width
 }
 
+function markedIn(diagram: Element, marker: `pulse-${string}`): (string | null)[] {
+  return [...diagram.querySelectorAll("g.djs-element")]
+    .filter((shape) => shape.classList.contains(marker))
+    .map((shape) => shape.getAttribute("data-element-id"))
+}
+
 function contentBoxWidth(cell: Element): number {
   const style = getComputedStyle(cell)
   return (
@@ -134,6 +140,20 @@ describe("the migration screen", () => {
     buttonNamed(harness.root, "Leave the 3 out").click()
 
     expect(posted("leaveOutUnmapped")).toHaveLength(1)
+  })
+
+  it("marks in the diagram to migrate from only the element whose tokens have no mapping", async () => {
+    await open("migration-unmapped")
+    const [source, target] = allParts(harness.root, "migration-diagram")
+
+    await vi.waitFor(
+      () => {
+        expect(markedIn(source!, "pulse-unmapped")).toEqual(["Activity_ApproveOrder"])
+        expect(markedIn(target!, "pulse-move-target")).toEqual(["Activity_ApproveOrder"])
+      },
+      { timeout: 5000, interval: 25 },
+    )
+    expect(markedIn(target!, "pulse-unmapped")).toEqual([])
   })
 
   it("starts the migration only from the button and picks the target from the header", async () => {

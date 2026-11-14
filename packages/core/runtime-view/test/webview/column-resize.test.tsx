@@ -117,7 +117,7 @@ describe("resizable columns", () => {
     }
   })
 
-  it("outlines a focused grip in Highlight under forced colours, and draws nothing at rest", async () => {
+  it("outlines a focused grip in Highlight inside its target under forced colours, and draws nothing at rest", async () => {
     await emulateForcedColours("active")
     try {
       harness = mountApp()
@@ -130,7 +130,9 @@ describe("resizable columns", () => {
 
       const outline = getComputedStyle(grip)
       expect(grip.matches(":focus-visible")).toBe(true)
+      expect(grip.getBoundingClientRect().width).toBe(24)
       expect(`${outline.outlineStyle} ${outline.outlineWidth}`).toBe("solid 2px")
+      expect(outline.outlineOffset).toBe("-2px")
       expect(outline.outlineColor).toBe(systemColour("Highlight"))
     } finally {
       await emulateForcedColours("none")
