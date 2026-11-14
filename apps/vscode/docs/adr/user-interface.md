@@ -1,7 +1,7 @@
 # User interface
 
 - Status: accepted
-- Last reviewed: 2026-11-14 (the switch of D9 landed: the webview draws pulse-ui's `Icon` over `lucide-react`, its copy of Lucide's glyphs went; its bundle ceilings and the two cascade rules of its stylesheet); 2026-11-12, later the same day (decided, D9 of [ui-foundation.md](ui-foundation.md): the webview moves to React on `@miragon/pulse-ui` in one switch; its 12 px icons become the density deviation every surface shares; its notice strips become pulse-ui's `StatusStrip`; its sizes come from pulse-ui's density roles; its red and orange counts turn neutral with a tone icon); 2026-11-12 (a button beside the "can't move" sign copies the CLI command its reason names); 2026-11-09 (the Engines tree's problems in the profile format's words, a cockpitUrl's trailing `#/` dropped); 2026-11-08 (the tones of Pulse's situation table; times, durations, counts and short ids from Pulse's formatters; 2026-10-26: boards, see [boards.md](boards.md); live updates, see [live-updates.md](live-updates.md); moving a token; bulk cancel, see [writes.md](writes.md); migration, see [migrations.md](migrations.md))
+- Last reviewed: 2026-11-14 (the switch of D9 landed: the webview draws pulse-ui's `Icon` over `lucide-react`, its copy of Lucide's glyphs went; its bundle ceilings and the two cascade rules of its stylesheet; the split's handle a 24 px target with a forced-colours line); 2026-11-12, later the same day (decided, D9 of [ui-foundation.md](ui-foundation.md): the webview moves to React on `@miragon/pulse-ui` in one switch; its 12 px icons become the density deviation every surface shares; its notice strips become pulse-ui's `StatusStrip`; its sizes come from pulse-ui's density roles; its red and orange counts turn neutral with a tone icon); 2026-11-12 (a button beside the "can't move" sign copies the CLI command its reason names); 2026-11-09 (the Engines tree's problems in the profile format's words, a cockpitUrl's trailing `#/` dropped); 2026-11-08 (the tones of Pulse's situation table; times, durations, counts and short ids from Pulse's formatters; 2026-10-26: boards, see [boards.md](boards.md); live updates, see [live-updates.md](live-updates.md); moving a token; bulk cancel, see [writes.md](writes.md); migration, see [migrations.md](migrations.md))
 
 ## Context
 
@@ -123,7 +123,13 @@ action's accessible name.
 ### One filter bar, resizable tables
 
 The bottom pane of the split starts with one 36 px bar; it replaced the legend line under
-the diagram, the "Instances … · n running" header and the toolbar.
+the diagram, the "Instances … · n running" header and the toolbar. The handle between the panes
+is a 24 px target over its 1 px line (WCAG 2.5.8), 20 px above the line and 3 px below, so it
+covers none of the definition panel's filter controls, and the instance panel's tabs keep 33 of
+their 36 px outside it; the diagram's canvas ends 8 px above the line, which keeps the bpmn.io logo
+and the zoom bar out of its reach. A drag keeps the line where the pointer took hold of it. Under
+forced colours its line is `CanvasText`, and `Highlight` on hover, while dragged and with focus,
+which also outlines the target.
 
 - **Definition panel:** scopes with counts, element chip, business-key search, the
   filter button (a funnel) with one chip per variable condition and, at the far end, the legend

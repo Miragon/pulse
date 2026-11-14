@@ -1,9 +1,25 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import orderXml from "../../dev/webview/fixtures/order-fulfillment.bpmn"
+import { FIXTURES } from "../../dev/webview/fixtures/states.js"
+import type { DefinitionView, PanelState } from "../../src/core/protocol/index.js"
 import type { Decorations } from "../../src/webview/diagram/decoration-layer.js"
+import { OverlayFocus } from "../../src/webview/diagram/overlay-focus.js"
 import type { OverlaySlot } from "../../src/webview/diagram/overlay-slots.js"
 import { RuntimeCanvas } from "../../src/webview/diagram/runtime-canvas.js"
-import { fakeApi } from "./harness.js"
+import { fakeApi, mountApp, waitForElement, type Harness } from "./harness.js"
+
+const READY = FIXTURES.definition as PanelState & {
+  readonly status: "ready"
+  readonly view: DefinitionView
+}
+
+const WITHOUT_SHIP_BADGE: PanelState = {
+  ...READY,
+  view: {
+    ...READY.view,
+    badges: READY.view.badges.filter((badge) => badge.elementId !== "Activity_ShipOrder"),
+  },
+}
 
 const DECORATIONS: Decorations = {
   badges: [
@@ -84,5 +100,36 @@ describe("the runtime canvas's lifecycle", () => {
 
     expect(options.onImportFailed).toHaveBeenCalledOnce()
     canvas.destroy()
+  })
+})
+
+describe("the runtime canvas's overlays under React", () => {
+  let harness: Harness
+
+  afterEach(() => {
+    harness.unmount()
+  })
+
+  it("decorates after the effect that hands it new decorations, so React draws the overlays before focus returns", async () => {
+    const errors = vi.spyOn(console, "error")
+    const restore = OverlayFocus.restore.bind(OverlayFocus)
+    const drawnAtRestore: boolean[] = []
+    vi.spyOn(OverlayFocus, "restore").mockImplementation((anchors, held) => {
+      drawnAtRestore.push(anchors.every((anchor) => anchor.childElementCount > 0))
+      restore(anchors, held)
+    })
+    harness = mountApp()
+    harness.publish(WITHOUT_SHIP_BADGE)
+    await waitForElement(harness.root, '[data-badge-for="Activity_ApproveOrder"]')
+    const drawnBefore = drawnAtRestore.length
+
+    harness.publish(READY)
+    await waitForElement(harness.root, '[data-badge-for="Activity_ShipOrder"]')
+
+    await vi.waitFor(() => {
+      expect(drawnAtRestore.length).toBeGreaterThan(drawnBefore)
+    })
+    expect(drawnAtRestore).not.toContain(false)
+    expect(errors.mock.calls.flat().map(String).join("\n")).not.toMatch(/flushSync/)
   })
 })

@@ -1,5 +1,4 @@
-import { Button, cn, Icon, Toolbar } from "@miragon/pulse-ui"
-import { XIcon } from "lucide-react"
+import { Toolbar } from "@miragon/pulse-ui"
 import type {
   InstanceListFilter,
   RefusedVariableCondition,
@@ -8,6 +7,7 @@ import type {
 import { ScopeSegments } from "../components/scope-segments.js"
 import { SearchField } from "../components/search-field.js"
 import { DiagramLegend } from "../diagram/diagram-legend.js"
+import { ElementChip } from "./element-chip.js"
 import { InstanceFilter, SCOPE_OPTIONS } from "./instance-filter.js"
 import { VariableChips } from "./variable-chips.js"
 
@@ -33,41 +33,6 @@ const NARROW = {
     "flex min-w-0 @max-[47.5rem]/bar:order-4 @max-[47.5rem]/bar:flex-1 @max-[47.5rem]/bar:[&>*]:flex-1",
 } as const
 
-function ElementChip({ filter, elementName, onFilter }: InstanceFilterBarProps) {
-  if (filter.elementId === undefined) {
-    return null
-  }
-  const name = elementName(filter.elementId)
-  return (
-    <span
-      className={cn(
-        "border-border bg-raised text-dense min-h-control rounded-pill inline-flex max-w-60 min-w-0 shrink-0 items-center gap-1 border pr-0.5 pl-2.5",
-        NARROW.chip,
-      )}
-      data-part="filter-chip"
-      data-kind="element"
-      title={`At ${name}`}
-    >
-      <span className="min-w-0 truncate">
-        <span className="text-muted-foreground">At</span> {name}
-      </span>
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-xs"
-        className="rounded-pill text-muted-foreground hover:text-foreground focus-visible:ring-offset-0"
-        aria-label="Clear element filter"
-        title="Clear element filter"
-        onClick={() => {
-          onFilter(InstanceFilter.withoutElement(filter))
-        }}
-      >
-        <Icon icon={XIcon} className="size-4" />
-      </Button>
-    </span>
-  )
-}
-
 export function InstanceFilterBar(props: InstanceFilterBarProps) {
   const { filter, onFilter } = props
   return (
@@ -91,7 +56,12 @@ export function InstanceFilterBar(props: InstanceFilterBarProps) {
             }}
           />
         </div>
-        <ElementChip {...props} />
+        <ElementChip
+          filter={filter}
+          elementName={props.elementName}
+          onFilter={onFilter}
+          className={NARROW.chip}
+        />
         <div className={NARROW.search}>
           <SearchField
             applied={filter.businessKey ?? ""}

@@ -1,5 +1,12 @@
-import { cn, FOCUS_RING } from "@miragon/pulse-ui"
-import { useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react"
+import { cn } from "@miragon/pulse-ui"
+import {
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent,
+  type ReactNode,
+  type RefObject,
+} from "react"
 import { Separator } from "../components/separator.js"
 import { useHost } from "../host/host-context.js"
 import { UiStateStore } from "../host/ui-state-store.js"
@@ -10,10 +17,16 @@ const KEY_STEP = 0.05
 
 const PANE = "relative min-h-0 overflow-hidden"
 
+const TOP_PANE = cn(PANE, "[--diagram-inset:--spacing(2)]")
+
 const HANDLE = cn(
-  "bg-border hover:bg-interaction focus-visible:bg-interaction relative z-30 cursor-row-resize after:absolute after:inset-x-0 after:-inset-y-1 after:content-['']",
-  FOCUS_RING,
-  "focus-visible:ring-offset-0",
+  "relative z-30 -mt-5 -mb-0.75 h-6 cursor-row-resize focus-visible:outline-hidden",
+  "before:bg-border before:absolute before:inset-x-0 before:top-5 before:h-px",
+  "hover:before:bg-interaction data-dragging:before:bg-interaction focus-visible:before:bg-interaction",
+  "focus-visible:before:ring-(length:--focus-width) focus-visible:before:ring-focus",
+  "forced-colors:before:bg-[CanvasText]",
+  "forced-colors:hover:before:bg-[Highlight] forced-colors:data-dragging:before:bg-[Highlight] forced-colors:focus-visible:before:bg-[Highlight]",
+  "forced-colors:focus-visible:outline-(length:--focus-width) forced-colors:focus-visible:outline-solid forced-colors:focus-visible:outline-[Highlight] forced-colors:focus-visible:-outline-offset-(--focus-width)",
 )
 
 export interface SplitLayoutProps {
@@ -23,10 +36,8 @@ export interface SplitLayoutProps {
 
 export function SplitLayout({ top, bottom }: SplitLayoutProps) {
   const { api } = useHost()
-  const container = useRef<HTMLDivElement>(null)
   const [share, setShare] = useState(() => UiStateStore.read(api).diagramShare ?? DEFAULT_SHARE)
   const live = useRef(share)
-  const atDragStart = useRef(share)
 
   const show = (next: number): void => {
     live.current = next
@@ -39,21 +50,17 @@ export function SplitLayout({ top, bottom }: SplitLayoutProps) {
     UiStateStore.write(api, { diagramShare: clamped })
   }
 
-  const onDrag = (event: PointerEvent<HTMLDivElement>): void => {
-    const bounds = container.current?.getBoundingClientRect()
-    if (bounds === undefined || bounds.height === 0) {
-      return
-    }
-    show(SplitShare.clamp((event.clientY - bounds.top) / bounds.height))
-  }
+  const drag = useSplitDrag(live, show)
 
   return (
     <div
       className="grid min-h-0 grid-rows-[minmax(min(300px,50%),var(--diagram-share))_1px_minmax(120px,1fr)]"
-      ref={container}
+      ref={drag.container}
       style={{ "--diagram-share": `${Math.round(share * 1000) / 10}%` } as CSSProperties}
     >
-      <div className={PANE}>{top}</div>
+      <div className={TOP_PANE} ref={drag.topPane}>
+        {top}
+      </div>
       <Separator
         className={HANDLE}
         orientation="horizontal"
@@ -69,18 +76,48 @@ export function SplitLayout({ top, bottom }: SplitLayoutProps) {
             commit(live.current + KEY_STEP)
           },
         }}
-        onDragStart={() => {
-          atDragStart.current = live.current
-        }}
-        onDrag={onDrag}
+        onDragStart={drag.onDragStart}
+        onDrag={drag.onDrag}
         onDragEnd={() => {
           commit(live.current)
         }}
-        onDragCancel={() => {
-          show(atDragStart.current)
-        }}
+        onDragCancel={drag.onDragCancel}
       />
       <div className={PANE}>{bottom}</div>
     </div>
   )
+}
+
+interface SplitDrag {
+  readonly container: RefObject<HTMLDivElement | null>
+  readonly topPane: RefObject<HTMLDivElement | null>
+  readonly onDragStart: (event: PointerEvent<HTMLDivElement>) => void
+  readonly onDrag: (event: PointerEvent<HTMLDivElement>) => void
+  readonly onDragCancel: () => void
+}
+
+function useSplitDrag(live: RefObject<number>, show: (next: number) => void): SplitDrag {
+  const container = useRef<HTMLDivElement>(null)
+  const topPane = useRef<HTMLDivElement>(null)
+  const atDragStart = useRef(0)
+  const grabOffset = useRef(0)
+  return {
+    container,
+    topPane,
+    onDragStart: (event) => {
+      atDragStart.current = live.current
+      const line = topPane.current?.getBoundingClientRect().bottom ?? event.clientY
+      grabOffset.current = event.clientY - line
+    },
+    onDrag: (event) => {
+      const bounds = container.current?.getBoundingClientRect()
+      if (bounds === undefined || bounds.height === 0) {
+        return
+      }
+      show(SplitShare.clamp((event.clientY - grabOffset.current - bounds.top) / bounds.height))
+    },
+    onDragCancel: () => {
+      show(atDragStart.current)
+    },
+  }
 }

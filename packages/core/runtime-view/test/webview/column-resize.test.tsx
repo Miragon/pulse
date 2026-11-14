@@ -5,6 +5,7 @@ import { FILTERED_DEFINITION_VIEW } from "../../dev/webview/fixtures/definition.
 import { FIXTURES } from "../../dev/webview/fixtures/states.js"
 import {
   buttonNamed,
+  colourOfVariable,
   fontsLoaded,
   mountApp,
   nextFrame,
@@ -331,5 +332,68 @@ describe("the split between diagram and list", () => {
     await settled()
 
     expect(handle.getAttribute("aria-valuenow")).toBe("60")
+  })
+
+  it("moves its line as far as the pointer moves, wherever the pointer took hold of it", async () => {
+    harness = mountApp()
+    harness.publish(FIXTURES.definition)
+    const handle = await findRole(harness.root, "separator", { name: "Resize diagram and list" })
+    handle.setPointerCapture = () => undefined
+    const top = (): number => handle.getBoundingClientRect().top
+    const before = top()
+    const grabbed = before + 1
+
+    handle.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientY: grabbed }))
+    handle.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientY: grabbed + 1 }))
+    await settled()
+    const afterOne = top() - before
+    handle.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientY: grabbed + 40 }))
+    await settled()
+    const afterForty = top() - before
+    handle.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, clientY: grabbed + 40 }))
+
+    expect(Math.abs(afterOne - 1)).toBeLessThan(0.5)
+    expect(Math.abs(afterForty - 40)).toBeLessThan(0.5)
+  })
+
+  it("draws its line in CanvasText under forced colours, in Highlight with an outline once focused", async () => {
+    await emulateForcedColours("active")
+    try {
+      harness = mountApp()
+      harness.publish(FIXTURES.definition)
+      const handle = await findRole(harness.root, "separator", { name: "Resize diagram and list" })
+      const line = (): string => getComputedStyle(handle, "::before").backgroundColor
+      expect(line()).toBe(systemColour("CanvasText"))
+      expect(getComputedStyle(handle).outlineStyle).toBe("none")
+
+      handle.focus()
+      await settled()
+
+      const outline = getComputedStyle(handle)
+      expect(handle.matches(":focus-visible")).toBe(true)
+      expect(line()).toBe(systemColour("Highlight"))
+      expect(getComputedStyle(handle, "::before").boxShadow).toBe("none")
+      expect(`${outline.outlineStyle} ${outline.outlineWidth}`).toBe("solid 2px")
+      expect(outline.outlineOffset).toBe("-2px")
+      expect(outline.outlineColor).toBe(systemColour("Highlight"))
+    } finally {
+      await emulateForcedColours("none")
+    }
+  })
+
+  it("draws its line in the border role at rest and in the interaction role while dragged", async () => {
+    harness = mountApp()
+    harness.publish(FIXTURES.definition)
+    const handle = await findRole(harness.root, "separator", { name: "Resize diagram and list" })
+    handle.setPointerCapture = () => undefined
+    const line = (): string => getComputedStyle(handle, "::before").backgroundColor
+    expect(line()).toBe(colourOfVariable("--border"))
+    expect(getComputedStyle(handle, "::before").height).toBe("1px")
+
+    handle.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientY: 400 }))
+
+    expect(line()).toBe(colourOfVariable("--interaction"))
+    handle.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, clientY: 400 }))
+    expect(line()).toBe(colourOfVariable("--border"))
   })
 })

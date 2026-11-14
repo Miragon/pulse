@@ -5,6 +5,7 @@ import { FIXTURES, type FixtureName } from "../../dev/webview/fixtures/states.js
 import { DENSE_ICON_REGIONS } from "./dense-icon-regions.js"
 import {
   allParts,
+  allRoles,
   findPart,
   findRole,
   getRole,
@@ -40,6 +41,7 @@ const TARGETS = [
   "[role='separator'][tabindex]",
   "[tabindex]:not([tabindex='-1'])",
 ].join(", ")
+const SPLIT_HANDLE = "Resize diagram and list"
 
 async function settled(harness: Harness, state: PanelState): Promise<void> {
   await vi.waitFor(
@@ -102,8 +104,31 @@ function targetFindings(root: HTMLElement): string[] {
     .map((element) => `target ${describeElement(element)}`)
 }
 
+function overlaps(box: DOMRect, reach: DOMRect): boolean {
+  return (
+    box.left < reach.right &&
+    box.right > reach.left &&
+    box.top < reach.bottom &&
+    box.bottom > reach.top
+  )
+}
+
+function reachFindings(root: HTMLElement): string[] {
+  return allRoles(root, "separator", { name: SPLIT_HANDLE }).flatMap((handle) => {
+    const reach = handle.getBoundingClientRect()
+    return [...root.querySelectorAll<HTMLElement>(TARGETS)]
+      .filter((element) => element !== handle && shown(element))
+      .filter((element) => {
+        const box = element.getBoundingClientRect()
+        const free = Math.max(reach.top - box.top, box.bottom - reach.bottom)
+        return overlaps(box, reach) && Math.round(free) < 24
+      })
+      .map((element) => `reached ${describeElement(element)}`)
+  })
+}
+
 function findings(root: HTMLElement): string[] {
-  return [...iconFindings(root), ...targetFindings(root)]
+  return [...iconFindings(root), ...targetFindings(root), ...reachFindings(root)]
 }
 
 interface Viewing {
@@ -129,7 +154,7 @@ async function open(name: FixtureName, viewing: Viewing = WIDE): Promise<Harness
 }
 
 describe("the geometry gate", () => {
-  it("flags an icon off the sizes, a 12 px icon outside a dense region and a small target", async () => {
+  it("flags an icon off the sizes, a 12 px icon outside a dense region, a small target and one the split's handle covers", async () => {
     const planted = mount(
       <div>
         <svg className="lucide" width="14" height="14" />
@@ -163,6 +188,28 @@ describe("the geometry gate", () => {
             style={{ width: "18px", height: "18px", padding: 0 }}
           />
         </label>
+        <div style={{ position: "relative", height: "80px" }}>
+          <div
+            role="separator"
+            aria-orientation="horizontal"
+            aria-valuenow={50}
+            aria-label={SPLIT_HANDLE}
+            tabIndex={0}
+            style={{ position: "absolute", inset: "30px 0 auto", height: "24px", zIndex: 1 }}
+          />
+          <button
+            type="button"
+            style={{ position: "absolute", top: "40px", width: "30px", height: "30px", padding: 0 }}
+          >
+            v
+          </button>
+          <button
+            type="button"
+            style={{ position: "absolute", top: "0", width: "30px", height: "30px", padding: 0 }}
+          >
+            u
+          </button>
+        </div>
       </div>,
     )
     await nextFrame()
@@ -171,6 +218,7 @@ describe("the geometry gate", () => {
       expect.stringMatching(/^icon .*: 14 px$/),
       expect.stringMatching(/^12 px icon outside a dense region in span /),
       'target button "x" 20x20',
+      'reached button "v" 30x30',
     ])
     planted.unmount()
   })
@@ -184,7 +232,7 @@ describe("the geometry of the fixture screens", () => {
   })
 
   it.each(SCREENS)(
-    "%s draws its icons at 12 or 16 px and its targets at 24 px or more",
+    "%s draws its icons at 12 or 16 px and its targets at 24 px or more, the split's handle over none",
     async (name) => {
       harness = await open(name)
 
@@ -204,10 +252,11 @@ describe("the geometry of the fixture screens", () => {
     expect(findings(harness.root)).toEqual([])
   })
 
-  it("measures the icons it holds to the sizes, so the gate is not empty", async () => {
+  it("measures the icons it holds to the sizes and the split's handle, so the gate is not empty", async () => {
     harness = await open("instance-movable")
 
     expect(harness.root.querySelectorAll("svg.lucide").length).toBeGreaterThan(3)
+    expect(getRole(harness.root, "separator", { name: SPLIT_HANDLE }).offsetHeight).toBe(24)
   })
 
   it("keeps the sizes in the open legend, the variable editor, the condition dialog and the move panel", async () => {

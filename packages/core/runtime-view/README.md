@@ -94,7 +94,8 @@ panel at 1,300 pixels, at 650 pixels and in the dark high-contrast theme: every 
 `test/webview/dense-icon-regions.ts` maps to the files of the 12 px allowance in
 `apps/vscode/test/architecture/brand-gates.test.ts` (which holds the two lists equal and each file
 to its hook), and every interactive target at least 24 by 24 px (WCAG 2.5.8), the overlays on the
-diagram (`.djs-overlays`, the named 20 px deviation) aside.
+diagram (`.djs-overlays`, the named 20 px deviation) aside. The split's handle is such a target
+over its 1 px line, and every target it reaches over keeps 24 px of its height outside it.
 
 The architecture decisions are the extension's (`apps/vscode/docs/adr/`), where the runtime view
 grew up; the house rules are in `apps/vscode/CLAUDE.md`.
