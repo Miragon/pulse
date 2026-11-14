@@ -112,8 +112,10 @@ The project file is `.pulse.json`, read through the host kit (`TargetsParser` ov
 `@miragon/pulse-profile`, the rules in `apps/vscode/CLAUDE.md`); `ProjectFile` of the host kit
 names it and its former name, `.pulse-cli.json`, which the worker turns into one problem and no
 engine. A project file that is there but can't be read is one problem too, and no local default
-engine takes its place; only a missing file falls back to it. Logins are keyed by the project
-file's path (the host kit's `CredentialStore`).
+engine takes its place; only a missing file falls back to it (the one the setting names is a problem
+beside it). The host kit's `TargetMerge` decides the engines from what the worker read, the rule
+Pulse for VS Code runs too. Logins are keyed by the project file's path (the host kit's
+`CredentialStore`).
 
 ## Rules
 

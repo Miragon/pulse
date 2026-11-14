@@ -21,6 +21,11 @@ export type { EnvironmentSettings } from "./connections/environment-settings.js"
 export { LivePolicy } from "./connections/live-policy.js"
 export { ProjectFile } from "./connections/project-file.js"
 export { TargetHosts } from "./connections/target-hosts.js"
+export {
+  TargetMerge,
+  type DiscoveredTargets,
+  type FileVerdict,
+} from "./connections/target-merge.js"
 export { TargetPolicy } from "./connections/target-policy.js"
 export { TargetsParser, type ParsedTargets } from "./connections/targets-parser.js"
 export { TargetsProblem } from "./connections/targets-problem.js"

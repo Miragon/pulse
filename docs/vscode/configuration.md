@@ -32,6 +32,11 @@ engines. A profile with `oauth` lists its engine, but Pulse does not connect to 
 Pulse does not apply `environment`, `timeout` and `output`, yet a value of theirs the format refuses
 is a problem too.
 
+Pulse reads every `.pulse.json` in the workspace, and the first one wins a profile name; without
+any, it lists one engine on `localhost:8080`. A project file Pulse can't read, or a folder that
+holds it only under its former name, `.pulse-cli.json`, shows as a problem and lists no engine,
+not even that one.
+
 Set credentials with _Pulse: Set Credentials…_. They live in VS Code's secret storage.
 
 ## Settings

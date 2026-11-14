@@ -177,6 +177,27 @@ describe("the engine registry", () => {
     expect(harness.registry.all()).toEqual([])
   })
 
+  test("names a configured project file that is missing and keeps the local engine", async () => {
+    const harness = await RegistryHarness.loaded((worker) => {
+      worker.orca.settings.set("projectFile", join(worker.root, "gone.json"))
+      return Promise.resolve()
+    }, WorkerHarness.empty())
+
+    expect(harness.registry.projectFiles()).toEqual([])
+    expect(harness.registry.configurationProblems().map((problem) => problem.label())).toEqual([
+      "gone.json: Pulse can't read this file",
+    ])
+    expect(harness.registry.all().map((connection) => connection.target.name)).toEqual(["local"])
+  })
+
+  test("falls back to the local engine when the focused workspace holds no project file", async () => {
+    const harness = await RegistryHarness.loaded(undefined, WorkerHarness.empty())
+
+    expect(harness.registry.projectFiles()).toEqual([])
+    expect(harness.registry.configurationProblems()).toEqual([])
+    expect(harness.registry.all().map((connection) => connection.target.name)).toEqual(["local"])
+  })
+
   test("reads a configured file whatever its name", async () => {
     const harness = await RegistryHarness.loaded((worker) => {
       worker.orca.settings.set("projectFile", worker.formerProjectFile)

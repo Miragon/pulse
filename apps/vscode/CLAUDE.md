@@ -296,7 +296,10 @@ engine at history level AUDIT too
   former name (`ProjectFile.FORMER_NAME` of the host kit, which `TargetsFile` and Pulse for Orca
   read) shows one problem asking to rename it and lists none of its engines, nor the local
   default engine in its place (_Configure Engines_ opens that file and writes no second one); a
-  stored sign-in is keyed by the file's path, so the rename asks for it once more.
+  stored sign-in is keyed by the file's path, so the rename asks for it once more. A project file
+  that is there but can't be read is one problem too, and no local default engine takes its place,
+  in both hosts: one rule of the host kit, `TargetMerge`, decides their engines from the files
+  each found (`packages/core/runtime-view/test/host-kit/target-merge.test.ts`).
 - When you change a boundary, the contract, the protocol or a dependency, update the matching
   record in `apps/vscode/docs/adr/` in the same commit; the records cover the runtime view and
   the adapter, which both editor hosts run.

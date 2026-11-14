@@ -20,7 +20,7 @@ flowchart TB
   panel <-- "5: intents, host actions" --> session{{"core session"}}
 ```
 
-1. It finds every `.pulse.json` (`TargetDiscovery`), the host kit's `TargetsParser` reads it, and it takes each target's login from SecretStorage.
+1. It finds every `.pulse.json` (`TargetDiscovery`), the host kit's `TargetMerge` decides the engines from them (its `TargetsParser` reads each), and it takes each target's login from SecretStorage.
 2. The composition root picks the adapter for the target's engine; it supplies runtime and commands.
 3. Trees, status bar and panels show the connections; a reload rebinds open panels.
 4. The webview sends intents and gets the complete panel state back.

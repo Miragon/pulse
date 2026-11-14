@@ -21,9 +21,9 @@ export default mergeConfig(
         include: ["src/**/*.{ts,tsx}"],
         exclude: ["src/**/*.d.ts", "src/host/extension.ts", "src/host/pulse-extension.ts"],
         thresholds: {
-          lines: 56,
-          statements: 56,
-          functions: 53,
+          lines: 59,
+          statements: 59,
+          functions: 57,
           branches: 50,
         },
       },

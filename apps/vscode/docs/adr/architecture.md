@@ -1,7 +1,7 @@
 # Architecture
 
 - Status: accepted
-- Last reviewed: 2026-11-14 (the switch of D9 landed: the webview's rendering libraries are `react`, `react-dom` and `lucide-react`); 2026-11-12 (later that day, D9 in [ui-foundation.md](ui-foundation.md): the webview moves from Preact to React on pulse-ui in one switch, no `preact/compat`, its closed world changes with that switch; earlier: the webview may import shared building blocks of pulse-ui's React kit and stylesheet by the package's root and `@miragon/pulse-ui/theme.css`, the ports, core, model reader and host kit stay framework-free, owner decision in [ui-foundation.md](ui-foundation.md); a refused target's read-only note is its refusal; the adapter gives the command of Pulse's CLI that triggers an event through the port `EngineCli`, on the engine its `CliTarget` names: the profile of a target's project file with the target's URL, or the default engine's URL); 2026-11-10 (the C7 adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the layers live in the runtime view and the engine adapter, which Pulse for Orca hosts too, the runtime view's contract is `@miragon/pulse-engine-core` and its own ports moved to `ports`; before that, the host kit's connections read the project file with `@miragon/pulse-profile`, the engine contract left the app for `@miragon/pulse-engine-core`, the engine family's neutral core, and 2026-11-08 Pulse's UI foundation in core and webview)
+- Last reviewed: 2026-11-14 (`TargetMerge` of the host kit decides the engines of both hosts from their files, and Pulse for VS Code shows a project file it can't read as one problem with no local default engine, as Pulse for Orca did; the switch of D9 landed: the webview's rendering libraries are `react`, `react-dom` and `lucide-react`); 2026-11-12 (later that day, D9 in [ui-foundation.md](ui-foundation.md): the webview moves from Preact to React on pulse-ui in one switch, no `preact/compat`, its closed world changes with that switch; earlier: the webview may import shared building blocks of pulse-ui's React kit and stylesheet by the package's root and `@miragon/pulse-ui/theme.css`, the ports, core, model reader and host kit stay framework-free, owner decision in [ui-foundation.md](ui-foundation.md); a refused target's read-only note is its refusal; the adapter gives the command of Pulse's CLI that triggers an event through the port `EngineCli`, on the engine its `CliTarget` names: the profile of a target's project file with the target's URL, or the default engine's URL); 2026-11-10 (the C7 adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the layers live in the runtime view and the engine adapter, which Pulse for Orca hosts too, the runtime view's contract is `@miragon/pulse-engine-core` and its own ports moved to `ports`; before that, the host kit's connections read the project file with `@miragon/pulse-profile`, the engine contract left the app for `@miragon/pulse-engine-core`, the engine family's neutral core, and 2026-11-08 Pulse's UI foundation in core and webview)
 
 ## Context
 
@@ -156,7 +156,13 @@ problem changes no file of the package. The test
 `TargetsParser` to them: every profile the format takes is a target with the format's URL, auth
 type and read-only flag, or a named problem, and every fixture has exactly one expectation. The
 extension reads profile by profile: a credential, a header or a key the format does not know
-refuses that profile, never the file, and the other profiles still list engines.
+refuses that profile, never the file, and the other profiles still list engines. One rule of the
+host kit, `TargetMerge`, decides the engines of both hosts from the files each read, in order:
+within the project files the first name wins, and the local default engine, which the host hands
+in, shows only when no file gives a target, every file there could be read and no folder holds
+the file only under its former name. Such a file and such a folder are one problem each, and so
+is a file a setting names that is missing (Pulse for Orca's), which keeps the local default
+engine. A file whose profiles are all refused keeps it too.
 
 Each layer has its own `tsconfig.<layer>.json` with `lib`/`types` matching its runtime,
 so code that uses `document` in the core or `process` in the webview does not compile.
