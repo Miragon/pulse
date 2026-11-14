@@ -269,6 +269,15 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
   Der Server liefert Geist und Geist Mono selbst aus (`installFontAssets`, kein CDN), jede View
   erlaubt den Ursprung über ihre CSP `resourceDomains` (`declareServedFonts`). Blockt ein Host
   den Ursprung, rendert die Host-Schrift, ohne dass etwas wartet.
+- Diagrammbeschriftung, in den Widgets und in der Webview von VS Code und Orca
+  (Owner-Entscheidung vom 2026-11-14): Die Beschriftungen, die bpmn-js auf die Leinwand zeichnet,
+  stehen in bpmn-js' eigener Arial (`Arial, sans-serif`, 12 px in einer Form, 11 px daneben) statt
+  in Geist, das der Hinweis zum Canvas des Guides (§4) für SVG-Text verlangt. Pulse zeigt meist
+  Diagramme aus dem Camunda Modeler oder bpmn.io, deren Beschriftungsboxen für Arial bemessen
+  sind; Geist ist bis zu 8 % breiter und bräche dort Beschriftungen um, die im Modeler passen.
+  Beide Oberflächen geben bpmn-js dasselbe Objekt, `BPMN_LABEL_STYLE` aus `@miragon/pulse-ui`
+  (`useBpmnViewer` in widget-shell, die `RuntimeCanvas` der Webview). Chrome, Tooltips, die Popups
+  von diagram-js (`cd-canvas.css`), Zähl-Badges und Overlays bleiben in Geist.
 - Sprache: Deutsch und Englisch nach Host-Locale (Fallback Englisch) statt nur Deutsch.
 - Chrome: im Rahmen des Hosts (Kopf mit Titel und Aktionen) statt randlosem Canvas mit
   schwebendem Chrome in den Ecken.
@@ -346,7 +355,9 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
 
 - Diagramm: Die Zähl-Badges auf dem Diagramm bleiben gefüllte 20-px-Pillen.
 
-Ihre 12-px-Icons (Dichte, oben) lässt `scanIconSizes` in der Webview nur in den Dateien zu, die
+Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Abweichung
+„Diagrammbeschriftung“ bei den eingebetteten Chat-Widgets oben gilt für beide Oberflächen). Ihre
+12-px-Icons (Dichte, oben) lässt `scanIconSizes` in der Webview nur in den Dateien zu, die
 `apps/vscode/test/architecture/brand-gates.test.ts` je mit Grund nennt.
 
 ## Architecture invariants
@@ -570,7 +581,8 @@ Ihre 12-px-Icons (Dichte, oben) lässt `scanIconSizes` in der Webview nur in den
      A count reaches a catalog entry already formatted, and the entry puts the noun in the right
      number (`countOf`, `plural(…)`), never a `…One`/`…Other` key pair.
    - **BPMN** renders through `useBpmnViewer` + `BpmnZoomControls` on a forced-light canvas
-     whose colours all come from `BPMN_TOKENS` (`packages/core/widget-shell/src/ui/bpmn-tokens.ts`);
+     whose colours all come from `BPMN_TOKENS` (`packages/core/widget-shell/src/ui/bpmn-tokens.ts`)
+     and whose labels are bpmn-js's Arial (`BPMN_LABEL_STYLE`, the design section's deviation);
      a marker paints its shape's outline, never a label, and the canvas alone is the image (the
      hook's `ariaLabel`), its controls beside it and its count badges `aria-hidden` drawings.
    - **Paged lists** compose `usePagedListView` (the feed takes `firstResult`/`maxResults` and

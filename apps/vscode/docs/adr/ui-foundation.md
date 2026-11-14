@@ -192,7 +192,13 @@ day the owner decided D9, which replaces D4 and turns D7 into the switch's preco
      buttons, 24 px small buttons (in notice strips, to copy, and a table row's actions, so every
      row stays 28 px as in the webview; owner's delegate, 2026-11-13), weight 400 on toolbar
      labels, pill count badges, the docked strip without the 4 px edge; 12 px icons at stroke 2.5
-     in a listed set of pulse-ui's files; the diagram's count badges stay solid 20 px pills.
+     in a listed set of pulse-ui's files; the diagram's count badges stay solid 20 px pills; the
+     labels bpmn-js draws on the canvas are bpmn-js's own Arial at its sizes on both surfaces, the
+     cockpit and the webview, where the guide asks for Geist on SVG text (the owner, 2026-11-14):
+     Pulse mostly shows diagrams drawn in Camunda Modeler or bpmn.io, whose label boxes are sized
+     for Arial, and Geist, up to 8 % wider, wrapped labels that fit there. Both hand bpmn-js
+     pulse-ui's `BPMN_LABEL_STYLE`; the chrome, tooltips, popups, count badges and overlays stay
+     in Geist.
   7. **Budgets and release notes.** Each growth of a shrink-only ceiling the move needs (the
      webview's, the MCP view bundle's, the char budgets) updates the ceiling with a
      `Ratchet-Exception:` trailer that says what it buys; no checker is weakened. The webview's
@@ -294,4 +300,6 @@ piece plays is found through the test harness's map of its `data-slot`, so pulse
 webview-only hook, the webview's stylesheet has a ceiling of its own beside its script's, and the
 screenshots are shot again with the product images after the switch (the owner's delegate); in a
 commit after the switch, the webview and its tests took `react-hooks`' `recommended-latest` with
-the React Compiler rules, every rule of it an error, every finding fixed and none suppressed.
+the React Compiler rules, every rule of it an error, every finding fixed and none suppressed. Later
+on 2026-11-14 the owner chose bpmn-js's Arial for the labels on the canvas of both surfaces, a
+deviation D9 names, since the label boxes of diagrams drawn in the modelers are sized for it.

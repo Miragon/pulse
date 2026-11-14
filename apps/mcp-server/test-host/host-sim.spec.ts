@@ -1172,6 +1172,60 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
     await expect(values.getByRole("row").nth(1)).toContainText("approveInvoice")
   })
 
+  // The labels bpmn-js draws are its own Arial at its sizes, the canvas text of Camunda Modeler and
+  // bpmn.io, whose label boxes are sized for it (a named deviation: the guide asks for Geist on SVG
+  // text). "Invoice rejected" fits its 80 px box in Arial (77 px) and would wrap in Geist (81 px);
+  // the count badge over the canvas, chrome, stays in Geist.
+  test("the diagram's labels keep bpmn-js's Arial, so a label sized for it keeps one line, the badge Geist", async ({
+    page,
+  }) => {
+    const app = await openView(page, {
+      args: { engine: HEALTHY_ENGINE, view: "process-detail", processDefinitionKey: "invoice" },
+    })
+    const modes = app.getByRole("radiogroup", { name: "Process flow display" })
+    await expect(modes).toBeVisible({ timeout: 15_000 })
+    await modes.getByRole("radio", { name: "Running" }).click()
+    const canvas = app.getByRole("img", { name: "BPMN process diagram" })
+    await expect(canvas.locator(".djs-connection")).toHaveCount(4, { timeout: 15_000 })
+    const badge = app.locator(".bpmn-overlay-badge--instance-count")
+    await expect(badge).toHaveText(["2"])
+    await canvas.evaluate(() => document.fonts.ready)
+
+    const drawn = await canvas.evaluate((svg) => {
+      const text = (id: string) => svg.querySelector(`[data-element-id="${id}"] text`)!
+      const font = (el: Element) => {
+        const style = getComputedStyle(el)
+        return { family: style.fontFamily, size: style.fontSize }
+      }
+      const rejected = text("EndEvent_rejected_label")
+      const box = svg.querySelector('[data-element-id="EndEvent_rejected_label"] .djs-hit')!
+      const context = document.createElement("canvas").getContext("2d")!
+      context.font = "11px Geist"
+      return {
+        rejected: {
+          text: rejected.textContent,
+          lines: rejected.querySelectorAll("tspan").length,
+          ...font(rejected),
+        },
+        task: font(text("approveInvoice")),
+        box: Number(box.getAttribute("width")),
+        geistLoaded: document.fonts.check("11px Geist"),
+        inGeist: context.measureText(rejected.textContent ?? "").width,
+      }
+    })
+    // The case is one Geist would break: the box is narrower than the label in Geist.
+    expect(drawn.geistLoaded).toBe(true)
+    expect(drawn.inGeist).toBeGreaterThan(drawn.box)
+    expect(drawn.rejected).toEqual({
+      text: "Invoice rejected",
+      lines: 1,
+      family: "Arial, sans-serif",
+      size: "11px",
+    })
+    expect(drawn.task).toEqual({ family: "Arial, sans-serif", size: "12px" })
+    expect(await badge.evaluate((el) => getComputedStyle(el).fontFamily)).toMatch(/^"?Geist"?,/)
+  })
+
   // The flow's "Throughput" end to end: the real feed's history reads against the stub, the heat
   // painted in the theme's ramp on the built diagram, and the values under it.
   test("the process flow paints what the last 30 days' instances passed, read from the history", async ({

@@ -11,7 +11,8 @@ import {
   type WebviewStateApi,
 } from "@miragon/modeler-shell/vscode/webview"
 import type { ShellHandle } from "@miragon/modeler-shell"
-import { CANVAS_TEXT_STYLE, CanvasRoles, RENDERER_COLORS } from "./canvas-roles.js"
+import { BPMN_LABEL_STYLE } from "@miragon/pulse-ui"
+import { CanvasRoles, RENDERER_COLORS } from "./canvas-roles.js"
 import { CanvasShell } from "./canvas-shell.js"
 import {
   DecorationLayer,
@@ -77,7 +78,7 @@ export class RuntimeCanvas {
       container: this.shell.canvas,
       additionalModules: [OutlineModule, shellModule],
       bpmnRenderer: RENDERER_COLORS,
-      textRenderer: CANVAS_TEXT_STYLE,
+      textRenderer: BPMN_LABEL_STYLE,
     })
     this.registry = this.viewer.get<ElementRegistryLike>("elementRegistry")
     this.elements = new DiagramElements(this.registry)

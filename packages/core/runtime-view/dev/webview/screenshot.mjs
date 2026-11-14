@@ -30,16 +30,80 @@ async function openTab(forcedColors) {
   return context.newPage()
 }
 
+const SKELETONS =
+  "[data-part='skeleton'], [data-slot='skeleton'], [data-slot='data-table-skeleton']"
+const STILL_FRAMES = 12
+const FRAME_LIMIT = 600
+const SHOWN_TIMEOUT = 30_000
+
+function shown({ loading, skeletons }) {
+  const { document } = globalThis
+  if (loading) {
+    return document.querySelector(skeletons) !== null
+  }
+  const diagrams = [...document.querySelectorAll("[data-part='diagram']")]
+  const drawn = diagrams.every(
+    (diagram) =>
+      diagram.querySelector("g.djs-element") !== null ||
+      diagram.querySelector("[data-part='diagram-failure']") !== null,
+  )
+  return document.querySelector("h1") !== null && drawn
+}
+
+async function heldStill({ frames, limit }) {
+  const { document, requestAnimationFrame } = globalThis
+  const frame = () => new Promise((resolve) => requestAnimationFrame(() => resolve()))
+  const layout = () =>
+    [
+      document.documentElement.scrollHeight,
+      ...[...document.querySelectorAll(".djs-container svg .viewport")].map((viewport) =>
+        viewport.getAttribute("transform"),
+      ),
+    ].join("|")
+  let last = layout()
+  let still = 0
+  for (let seen = 0; seen < limit && still < frames; seen += 1) {
+    await frame()
+    const now = layout()
+    still = now === last ? still + 1 : 0
+    last = now
+  }
+  return { settled: still >= frames, layout: last }
+}
+
+async function waitUntilStill(tab0, loading) {
+  await tab0.evaluate(() => globalThis.document.fonts.ready)
+  await tab0.waitForFunction(shown, { loading, skeletons: SKELETONS }, { timeout: SHOWN_TIMEOUT })
+  const { settled, layout } = await tab0.evaluate(heldStill, {
+    frames: STILL_FRAMES,
+    limit: FRAME_LIMIT,
+  })
+  if (!settled) {
+    throw new Error(
+      `The layout did not hold still for ${STILL_FRAMES} frames within ${FRAME_LIMIT} (last: ${layout}).`,
+    )
+  }
+}
+
+async function settle(tab0, shot, loading) {
+  try {
+    await waitUntilStill(tab0, loading)
+  } catch (error) {
+    throw new Error(`${shot}: ${error.message}`, { cause: error })
+  }
+}
+
 async function shoot(tab0, fixture, theme, mode) {
+  const shot = `${fixture} (${theme}${mode})`
   await tab0.goto(`${page}?fixture=${fixture}&theme=${theme}`)
-  await tab0.waitForTimeout(fixture.startsWith("loading") ? 700 : 900)
+  await settle(tab0, shot, fixture.startsWith("loading"))
   if (tab !== undefined) {
     await tab0.getByRole("tab", { name: new RegExp(`^${tab}`) }).click()
-    await tab0.waitForTimeout(200)
+    await settle(tab0, `${shot}, tab ${tab}`, false)
   }
   if (expand !== undefined) {
     await tab0.getByRole("button", { name: `Expand the value of ${expand}` }).click()
-    await tab0.waitForTimeout(150)
+    await settle(tab0, `${shot}, value ${expand}`, false)
   }
   const name = `${fixture}${tab === undefined ? "" : `-tab-${tab.toLowerCase()}`}${suffix}-${theme}${mode}.png`
   await tab0.screenshot({ path: `${outDir}/${name}` })

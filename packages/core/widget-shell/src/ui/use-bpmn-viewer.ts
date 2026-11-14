@@ -8,6 +8,7 @@ import {
   type RefObject,
 } from "react"
 import NavigatedViewer from "bpmn-js/lib/NavigatedViewer"
+import { BPMN_LABEL_STYLE } from "@miragon/pulse-ui"
 import { BPMN_TOKENS, cdVar } from "./bpmn-tokens.js"
 import { useInlineBudget } from "./inline-budget.js"
 
@@ -276,7 +277,8 @@ export function useBpmnViewer({
     const container = containerRef.current
     if (!container || !bpmnXml) return
 
-    const viewer = new NavigatedViewer({ container })
+    // The labels in bpmn-js's Arial, handed over explicitly: the same object as the webview's.
+    const viewer = new NavigatedViewer({ container, textRenderer: BPMN_LABEL_STYLE })
     viewerRef.current = viewer
     let cancelled = false
     let importCleanup: (() => void) | null = null

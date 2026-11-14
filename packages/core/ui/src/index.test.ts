@@ -17,6 +17,7 @@ describe("the @miragon/pulse-ui entry", () => {
       "AlertDescription",
       "AlertTitle",
       "AppEmptyState",
+      "BPMN_LABEL_STYLE",
       "Badge",
       "Button",
       "CD_TOKENS",

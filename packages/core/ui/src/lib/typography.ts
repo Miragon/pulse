@@ -20,6 +20,10 @@
  * micro-labels. A label that used to be a 10–11 px uppercase caption is
  * {@link MICRO_LABEL}: 13 px, semibold, normal case.
  *
+ * The labels bpmn-js draws on a BPMN canvas are not on this scale: they keep
+ * bpmn-js's Arial at 12 and 11 px in the diagram's units, which the canvas
+ * zooms (`BPMN_LABEL_STYLE`).
+ *
  * Weights are 400 (`font-normal`), 600 (`font-semibold`) and 700
  * (`font-bold`) only, as in the guide: no 500.
  *

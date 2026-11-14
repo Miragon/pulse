@@ -1,6 +1,8 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react"
+import { BPMN_LABEL_STYLE } from "@miragon/pulse-ui"
+import TextRenderer from "bpmn-js/lib/draw/TextRenderer"
 import {
   DIAGRAM_MAX_HEIGHT,
   DIAGRAM_MIN_HEIGHT,
@@ -57,9 +59,11 @@ const mock = vi.hoisted(() => {
   class MockViewer {
     static containers: HTMLElement[] = []
     static canvases: FakeCanvas[] = []
+    static options: Array<Record<string, unknown>> = []
     canvas: FakeCanvas
     constructor(opts: { container: HTMLElement }) {
       MockViewer.containers.push(opts.container)
+      MockViewer.options.push(opts)
       this.canvas = new FakeCanvas(opts.container)
       MockViewer.canvases.push(this.canvas)
       // bpmn-js's frame inside the container: the canvas is its focusable SVG, the drilldown
@@ -146,6 +150,7 @@ afterEach(() => {
   cleanup()
   mock.MockViewer.containers.length = 0
   mock.MockViewer.canvases.length = 0
+  mock.MockViewer.options.length = 0
   document.documentElement.classList.remove("dark")
 })
 
@@ -175,6 +180,23 @@ describe("useBpmnViewer canvas (#339, N122)", () => {
 
     rerender(<Diagram xml={XML} />)
     expectLightCanvas(canvas())
+  })
+})
+
+describe("useBpmnViewer draws the labels as the modelers do (Arial, a named deviation)", () => {
+  it("hands bpmn-js the kit's label style, the one object the webview of the editors hands it too", async () => {
+    render(<Diagram xml={XML} />)
+
+    await waitFor(() => expect(mock.MockViewer.options).toHaveLength(1))
+    expect(mock.MockViewer.options[0]?.textRenderer).toBe(BPMN_LABEL_STYLE)
+  })
+
+  it("is bpmn-js's own default style, the one Camunda Modeler and bpmn.io size label boxes with", () => {
+    const ours = new TextRenderer(BPMN_LABEL_STYLE)
+    const modelers = new TextRenderer()
+
+    expect(ours.getDefaultStyle()).toEqual(modelers.getDefaultStyle())
+    expect(ours.getExternalStyle()).toEqual(modelers.getExternalStyle())
   })
 })
 

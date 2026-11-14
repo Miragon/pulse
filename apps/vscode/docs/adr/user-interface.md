@@ -67,7 +67,12 @@ confronted with runtime data (#1688).
   engine nor environment (a board's names its engines, since it spans several): the Engines
   tree and the status bar do, and every write dialog
   names both ([writes.md](writes.md)).
-- Geist / Geist Mono, Lucide icons in the webview, codicons on native surfaces. The
+- Geist / Geist Mono, Lucide icons in the webview, codicons on native surfaces. The labels
+  bpmn-js draws on the diagram are its own Arial (12 px in a shape, 11 px beside it), the canvas
+  text of Camunda Modeler and bpmn.io, whose label boxes are sized for it: Geist, up to 8 % wider,
+  wrapped labels that fit there. A named deviation the cockpit shares (owner, 2026-11-14; D9 in
+  [ui-foundation.md](ui-foundation.md)): both hand bpmn-js pulse-ui's `BPMN_LABEL_STYLE`, and the
+  diagram's tooltips, popups, badges and overlays stay in Geist. The
   webview draws pulse-ui's `Icon` over `lucide-react`, at the repository's one pin. An icon is
   16 px in the chrome and 12 px beside dense text and on the diagram's 20 px overlays
   (count and move badges, the code and move buttons, inline links and warnings): 12 px is a

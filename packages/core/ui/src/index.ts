@@ -162,6 +162,7 @@ export { ROLE_TOKENS } from "./theme/role-tokens.js"
 export { usePortalContainer } from "./theme/portal-container.js"
 export { CD_TOKENS, CD_TOKENS_VERSION, type CdTokenName } from "./theme/cd-tokens.js"
 export { fontFaces, GEIST_FONT_FILES, type FontFacesOptions } from "./theme/fonts.js"
+export { BPMN_LABEL_STYLE } from "./theme/bpmn-labels.js"
 export {
   adoptHostFontVariables,
   HOST_FONT_VARIABLES,
