@@ -80,6 +80,26 @@ describe("the outcome of a retry", () => {
     })
   })
 
+  test("names the element it moved on from by the instance's path or its diagram, never its id", () => {
+    const passed = viewWith({
+      path: [
+        {
+          elementId: "Activity_ChargePayment",
+          elementName: "Charge payment",
+          startedAt: "2026-10-21T08:00:00Z",
+          endedAt: "2026-10-21T08:01:00Z",
+          state: "completed",
+        },
+      ],
+    })
+    const drawn = viewWith({
+      diagramXml: '<bpmn:serviceTask id="Activity_ChargePayment" name="Charge&#10;payment" />',
+    })
+
+    expect(WriteOutcomes.afterRetry(INCIDENT, passed).title).toBe("Moved on from Charge payment.")
+    expect(WriteOutcomes.afterRetry(INCIDENT, drawn).title).toBe("Moved on from Charge payment.")
+  })
+
   test("names the element with its name when the instance waits there", () => {
     const view = viewWith({
       waitStates: [

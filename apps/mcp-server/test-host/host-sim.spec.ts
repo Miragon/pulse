@@ -1779,9 +1779,9 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
     await expect(region).toBeVisible({ timeout: 15_000 })
     const { scrollWidth, clientWidth } = await documentOverflow(app)
     expect(scrollWidth, "the document never scrolls sideways").toBeLessThanOrEqual(clientWidth)
-    // The last data column against the pinned row actions, at both ends of
-    // the region's scroll: without the region's own scroll it would stay
-    // under the actions, out of reach.
+    // The last column (the row actions, which scroll with the row under 40rem) against the
+    // region's right edge, at both ends of its scroll: without the region's own scroll it would
+    // stay past that edge, out of reach.
     const lastColumn = (at: "start" | "end") =>
       region.evaluate((el, side) => {
         el.scrollLeft = side === "end" ? el.scrollWidth : 0
@@ -1790,58 +1790,46 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
         )
         return {
           scrolled: el.scrollLeft,
-          right: cells.at(-2)!.getBoundingClientRect().right,
-          actionsLeft: cells.at(-1)!.getBoundingClientRect().left,
+          right: cells.at(-1)!.getBoundingClientRect().right,
+          regionRight: el.getBoundingClientRect().left + el.clientLeft + el.clientWidth,
         }
       }, at)
     const start = await lastColumn("start")
     expect(start.right, "the table really overflows its region").toBeGreaterThan(
-      start.actionsLeft + 1,
+      start.regionRight + 1,
     )
     const end = await lastColumn("end")
     expect(end.scrolled, "the region itself scrolls").toBeGreaterThan(0)
-    expect(end.right, "the last column scrolls into view").toBeLessThanOrEqual(end.actionsLeft + 1)
+    expect(end.right, "the last column scrolls into view").toBeLessThanOrEqual(end.regionRight + 1)
   })
 
-  test("a job table that overflows: the row actions stay at the region's right edge while it scrolls", async ({
+  test("a job table that overflows a narrow region: its row actions scroll with the row, pinned from 40rem up only, so no column lies under them", async ({
     page,
   }) => {
     const app = await openView(page, { args: JOBS_ARGS, width: NARROW_WIDTH })
     const region = app.getByRole("region", { name: "Jobs", exact: true })
     await expect(region).toBeVisible({ timeout: 15_000 })
-    const sizes = await region.evaluate((el) => ({
-      scroll: el.scrollWidth,
-      client: el.clientWidth,
-    }))
-    expect(sizes.scroll, "the table really overflows its region").toBeGreaterThan(sizes.client)
-    const { scrollWidth, clientWidth } = await documentOverflow(app)
-    expect(scrollWidth, "the document never scrolls sideways").toBeLessThanOrEqual(clientWidth)
-
-    for (const end of ["start", "end"] as const) {
-      const edges = await region.evaluate((el, at) => {
-        el.scrollLeft = at === "end" ? el.scrollWidth : 0
-        const box = el.getBoundingClientRect()
-        const action = el.querySelector("tbody tr > :last-child")!.getBoundingClientRect()
-        return {
-          scrolled: el.scrollLeft,
-          // The padding box's right edge: where `right: 0` pins the column.
-          regionRight: box.left + el.clientLeft + el.clientWidth,
-          actionLeft: action.left,
-          actionRight: action.right,
-          regionLeft: box.left,
-        }
-      }, end)
-      if (end === "end") expect(edges.scrolled).toBeGreaterThan(0)
-      expect(Math.abs(edges.actionRight - edges.regionRight), `pinned at the ${end}`).toBeLessThan(
-        1.5,
+    const layout = await region.evaluate((el) => {
+      const row = [...el.querySelectorAll("tbody tr:first-child > *")].filter(
+        (cell) => getComputedStyle(cell).display !== "none",
       )
-      expect(edges.actionLeft).toBeGreaterThan(edges.regionLeft)
-    }
+      const actions = row.at(-1)!
+      return {
+        overflows: el.scrollWidth > el.clientWidth,
+        position: getComputedStyle(actions).position,
+        under: row
+          .slice(0, -1)
+          .filter(
+            (cell) => cell.getBoundingClientRect().right > actions.getBoundingClientRect().left + 1,
+          ).length,
+      }
+    })
+    expect(layout).toEqual({ overflows: true, position: "static", under: 0 })
   })
 
   test("keyboard focus on a table region shows inside its box (WCAG 2.4.7)", async ({ page }) => {
-    // The overview's definitions region spans its card; the jobs region pins a
-    // column over its right edge.
+    // The overview's definitions region spans its card; the jobs region overflows its
+    // narrow card and scrolls.
     const views = [
       { scenario: { width: INLINE_WIDTH }, name: DEFINITIONS_TABLE },
       { scenario: { args: JOBS_ARGS, width: NARROW_WIDTH }, name: "Jobs" },

@@ -28,6 +28,8 @@ const ROW_REVEAL =
 const COPY_REVEAL =
   "invisible focus-visible:visible in-[tr:hover]:visible in-[tr:focus-within]:visible any-pointer-coarse:visible"
 
+const SIZED_COLUMN = "group-data-[state=fixed]/data-table:max-w-none"
+
 function EditButton({ row, editing }: { readonly row: VariableRow; readonly editing: Editing }) {
   const write = useWriteState()
   return (
@@ -55,6 +57,7 @@ function ValueText({ row, open }: { readonly row: VariableRow; readonly open: bo
       <pre
         className={cn(
           "border-border bg-background text-dense my-0.5 max-w-[min(96ch,64vw)] rounded-sm border px-3 py-2 font-mono wrap-anywhere whitespace-pre-wrap",
+          SIZED_COLUMN,
           TEXT_BLOCK_FRAME,
         )}
       >
@@ -64,7 +67,10 @@ function ValueText({ row, open }: { readonly row: VariableRow; readonly open: bo
   }
   const cutOff = row.truncated ? " (cut off)" : ""
   return (
-    <code className="max-w-[min(64ch,56vw)] truncate font-mono" title={`${row.valueJson}${cutOff}`}>
+    <code
+      className={cn("max-w-[min(64ch,56vw)] truncate font-mono", SIZED_COLUMN)}
+      title={`${row.valueJson}${cutOff}`}
+    >
       {row.valueJson}
     </code>
   )

@@ -40,15 +40,22 @@ export function LogText({
   return <p className={cn(LOG_TEXT, "break-words", className)}>{text}</p>
 }
 
-/** The preview as a native disclosure (keyboard and screen-reader ready) over the whole text. */
+/**
+ * The preview as a native disclosure (keyboard and screen-reader ready) over the whole text, which
+ * wraps at its lines and breaks a long unbroken token (a URL, an encoded payload) anywhere, so it
+ * never scrolls sideways. In a table row (`line`) the whole text takes the width its line has and
+ * never widens the column: its own width counts for nothing in the table's layout.
+ */
 function LogDisclosure({
   text,
   title,
+  line = false,
   className,
   onToggle,
 }: {
   text: string
   title?: string
+  line?: boolean
   className?: string
   onToggle?: (open: boolean) => void
 }) {
@@ -59,7 +66,8 @@ function LogDisclosure({
       </summary>
       <pre
         className={cn(
-          "bg-muted border-border text-small mt-1 rounded-sm border p-2 font-mono whitespace-pre-wrap",
+          "bg-muted border-border text-small mt-1 rounded-sm border p-2 font-mono wrap-anywhere whitespace-pre-wrap",
+          line && "[contain:inline-size]",
           TEXT_BLOCK_FRAME,
         )}
       >
@@ -94,7 +102,7 @@ function useCutLine() {
 
 /**
  * The one line of a table row. A line its column cuts turns into a disclosure, and one that is
- * open stays one while it is open, though its whole text may widen the column until it fits.
+ * open stays one while it is open; its whole text wraps in the column's width, never widening it.
  */
 function LogLine({ text, className }: { text: string; className?: string }) {
   const [cut, attach] = useCutLine()
@@ -103,7 +111,7 @@ function LogLine({ text, className }: { text: string; className?: string }) {
   return (
     <div ref={attach} className={cn(LINE_FLOOR, className)}>
       {disclosed ? (
-        <LogDisclosure text={text} title={text} className="min-w-0" onToggle={setOpen} />
+        <LogDisclosure text={text} title={text} line className="min-w-0" onToggle={setOpen} />
       ) : (
         <p title={text} className={cn(LOG_TEXT, "min-w-0 truncate")}>
           {text}

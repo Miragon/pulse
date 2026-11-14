@@ -524,6 +524,13 @@ export interface IncidentDetailJob {
   dueDate: string | null
 }
 
+/** A failed external task an incident names: its worker's error details, as the engine gives them. */
+export interface IncidentDetailExternalTask {
+  id: string
+  /** Null when its worker sent none, the task is gone or the engine rejected the read. */
+  errorDetails: string | null
+}
+
 export interface IncidentDetailData extends EngineVendorInfo {
   incidentId: string
   incidentType: string
@@ -545,6 +552,8 @@ export interface IncidentDetailData extends EngineVendorInfo {
 
   // Null for external-task incidents
   job: IncidentDetailJob | null
+  /** The failed external task of a `failedExternalTask` incident, null for every other. */
+  externalTask: IncidentDetailExternalTask | null
   recovery: IncidentRecovery
 
   instance: {

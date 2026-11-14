@@ -108,6 +108,7 @@ describe("one action group per view, one action size", () => {
       engineVendor: "CIB seven",
       diagramDefinitionId: null,
       job: null,
+      externalTask: null,
       recovery: { action: "resolve" },
       instance: {
         id: "pi-1",

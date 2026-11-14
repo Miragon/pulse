@@ -254,6 +254,40 @@ describe("resizable columns", () => {
     expect(widthOf(grip.parentElement)).toBe(Math.round(visible / 2))
   })
 
+  it("shows a value whole in a widened Value column, its open text without a cap of its own", async () => {
+    harness = mountApp({
+      width: 1600,
+      stored: { pulse: { columnWidths: { variables: { name: 140, type: 100, value: 1100 } } } },
+    })
+    harness.publish(FIXTURES.instance)
+    await findPart(harness.root, "incident-card")
+    buttonNamed(harness.root, "Variables6").click()
+    await findPart(harness.root, "data-table", { state: "fixed" })
+    const value = [...harness.root.querySelectorAll<HTMLElement>("td code")].find((code) =>
+      code.textContent.startsWith('{"id":"C-77"'),
+    )!
+    await settled()
+
+    expect(value.getBoundingClientRect().width).toBeGreaterThan(600)
+    expect(value.scrollWidth).toBeLessThanOrEqual(value.clientWidth)
+    getRole(harness.root, "button", { name: "Expand the value of customer" }).click()
+    const open = await waitForElement<HTMLElement>(harness.root, "td pre")
+    expect(getComputedStyle(open).maxWidth).toBe("none")
+  })
+
+  it("keeps a value on its cap while the columns fit their content", async () => {
+    harness = mountApp({ width: 1600 })
+    harness.publish(FIXTURES.instance)
+    await findPart(harness.root, "incident-card")
+    buttonNamed(harness.root, "Variables6").click()
+    await findPart(harness.root, "data-table", { state: "auto" })
+    const value = [...harness.root.querySelectorAll<HTMLElement>("td code")].find((code) =>
+      code.textContent.startsWith('{"id":"C-77"'),
+    )!
+
+    expect(getComputedStyle(value).maxWidth).not.toBe("none")
+  })
+
   it("restores kept widths and ignores widths it cannot trust", async () => {
     harness = mountApp({
       stored: {

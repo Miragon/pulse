@@ -75,9 +75,13 @@ describe("an incident table: one line per row, the message taking the rest", () 
       const { container } = renderIn(() => <Table subject={subject} />)
       const messages = [...container.querySelectorAll("[data-incident-message]")]
       expect(messages.map((m) => m.textContent)).toEqual([LONG, "—"])
-      expect(messages[0].getAttribute("title")).toBe(LONG)
-      expect(classes(messages[0])).toEqual(expect.arrayContaining(["truncate", "min-w-0"]))
-      expect(classes(messages[0].parentElement)).toContain("grid-cols-[minmax(10rem,max-content)]")
+      // pulse-ui's LogText line: one line, its whole text in its title, 10rem at least.
+      const line = messages[0].querySelector("[title]")!
+      expect(line.getAttribute("title")).toBe(LONG)
+      expect(classes(line)).toEqual(expect.arrayContaining(["truncate", "min-w-0"]))
+      expect(classes(messages[0].firstElementChild)).toContain(
+        "grid-cols-[minmax(10rem,max-content)]",
+      )
       // The type beside it as its state label, its icon alone in a narrow region.
       const type = messages[0].closest("td")!.querySelector("[data-slot='state-label']")!
       expect(type.getAttribute("title")).toBe("failedJob")

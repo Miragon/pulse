@@ -614,6 +614,16 @@
   ) {
     border-color: Highlight;
   }
+  /* A line list (a view's tabs in their bar, a navigation's items) reaches
+     1 px over its bar's rule elsewhere, so the open bar covers it. Here the
+     other tabs' Canvas edges would cover it too, so the list stops on the
+     rule: the rule runs whole, the open tab's Highlight bar on it. */
+  :is(
+    [data-slot="tabs-bar"][data-variant="line"] > [data-slot="tabs-list"],
+    [data-slot="nav-tabs"] > ul
+  ) {
+    margin-bottom: 0;
+  }
   [data-slot="card"] {
     border-style: solid;
     border-width: 1px;

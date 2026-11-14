@@ -5,6 +5,7 @@ import {
   PagedListFooter,
   DrillButton,
   formatTimestamp,
+  LogText,
   NamedId,
   StateLabel,
   Td,
@@ -88,10 +89,10 @@ function IncidentElement({ incident }: { incident: IncidentInstance }) {
 
 /**
  * The incident's type as its state label and its message on one line, never a pill stacked above
- * it or a message wrapped into a tall row: the message is cut with an ellipsis, its whole text in
- * its title and on the incident's page, and keeps 10rem, so a narrow table scrolls inside its
- * region instead of squeezing it. Under 28rem the type shows its icon alone, its word read out and
- * in its title.
+ * it or a message wrapped into a tall row: the message is pulse-ui's `LogText` line, cut with an
+ * ellipsis, its whole text in its title, on a disclosure where it is cut and on the incident's
+ * page, and keeps 10rem, so a narrow table scrolls inside its region instead of squeezing it.
+ * Under 28rem the type shows its icon alone, its word read out and in its title.
  */
 function IncidentMessage({ incident }: { incident: IncidentInstance }) {
   const message = incident.incidentMessage
@@ -100,15 +101,9 @@ function IncidentMessage({ incident }: { incident: IncidentInstance }) {
       <StateLabel state="incident" iconOnlyBelow="md" className="shrink-0">
         {incident.incidentType}
       </StateLabel>
-      <span className="grid min-w-0 grid-cols-[minmax(10rem,max-content)]">
-        <span
-          data-incident-message=""
-          className="text-muted-foreground text-small min-w-0 truncate font-mono"
-          title={message ?? undefined}
-        >
-          {message || "—"}
-        </span>
-      </span>
+      <div data-incident-message="" className="min-w-0">
+        <LogText text={message} line />
+      </div>
     </div>
   )
 }

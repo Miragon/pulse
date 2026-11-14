@@ -177,7 +177,10 @@ export const deSweep: MessageCatalog = {
   "incidentDetail.variablesHint": ({ count }) => countOf(count, "Variable", "Variablen"),
   "incidentDetail.variablesTitle": "Variablen",
   "incidentFailure.errorMessageTitle": "Fehlermeldung",
+  "incidentFailure.externalTask": "External Task",
   "incidentFailure.job": "Job",
+  "incidentFailure.noErrorDetails":
+    "Die Engine liefert keine Fehlerdetails. Vielleicht hat der Worker den Fehler ohne Details gemeldet, oder den Task gibt es nicht mehr.",
   "incidentFailure.noStacktrace":
     "Die Engine liefert keinen Stacktrace. Vielleicht hat der Job keine Exception, oder der Stacktrace wurde gelöscht.",
   "incidentFailure.resolveAria": "Incident als gelöst markieren",
@@ -345,7 +348,8 @@ export const deSweep: MessageCatalog = {
   "procIncFlow.modeAria": "Anzeige des Prozessablaufs",
   "procIncFlow.modeIncidents": "Incidents",
   "procIncFlow.modeRunning": "Laufend",
-  "procIncFlow.modeThroughput": "Durchlauf · 30 Tage",
+  "procIncFlow.modeThroughput": "Durchlauf",
+  "procIncFlow.modeThroughputWindow": "30 Tage",
   "procIncFlow.noBpmnDiagram": "Kein BPMN-Diagramm verfügbar",
   "procIncFlow.noDataAvailable": "Keine Daten verfügbar",
   "procIncFlow.noHistory":

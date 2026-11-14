@@ -74,14 +74,42 @@ const TABS_BAR = {
  * A line list in its bar stays one line and scrolls inside itself where its tabs need more room
  * than the bar has, its scrollbar hidden: a tab that takes the focus (the arrows, a click on a cut
  * one) scrolls into view, so every tab stays reachable by keyboard, and a swipe or a wheel with
- * Shift scrolls it. It reaches 1 px over the bar's rule, so the open tab's 2 px bar covers the rule
- * as it does outside a scroll container; the tabs scroll to the bar's edges, the list's own sides
- * inside the scroll.
+ * Shift scrolls it; the selected tab scrolls into view too, once drawn and whenever the selection
+ * changes. It reaches 1 px over the bar's rule, so the open tab's 2 px bar covers the rule as it
+ * does outside a scroll container (under forced colours it stops on the rule, theme.css, so the
+ * other tabs' edges in Canvas never hide it); the tabs scroll to the bar's edges, the list's own
+ * sides inside the scroll.
  */
 const LIST_IN_BAR = {
   default: "",
   line: "min-w-0 flex-1 -mb-px border-b-0 overflow-x-auto overflow-y-hidden [scrollbar-width:none] group-data-[orientation=horizontal]/tabs:min-h-0",
 } as const
+
+/**
+ * Scrolls a line list in its bar to its selected tab: once drawn, again once the fonts have
+ * loaded, and whenever another tab becomes the selected one (a host's view switching tabs), so a
+ * selected tab never waits for the focus to come into view. A swipe of the reader's own stays
+ * where it is: nothing scrolls back while the selection holds. It is the bar's ref, one function
+ * for every bar, so React runs it once per bar drawn; a caller's ref goes to the list untouched,
+ * and a new one on each render never runs it again.
+ */
+function revealSelected(bar: HTMLDivElement | null): (() => void) | undefined {
+  const list = bar?.querySelector<HTMLElement>('[data-slot="tabs-list"]')
+  if (!list) return undefined
+  const reveal = () => {
+    const selected = list.querySelector<HTMLElement>('[role="tab"][data-state="active"]')
+    if (selected) revealInList(selected)
+  }
+  reveal()
+  if ("fonts" in document) void document.fonts.ready.then(reveal)
+  const observer = new MutationObserver((changes) => {
+    if (changes.some((change) => (change.target as HTMLElement).dataset.state === "active")) {
+      reveal()
+    }
+  })
+  observer.observe(list, { subtree: true, attributeFilter: ["data-state"] })
+  return () => observer.disconnect()
+}
 
 function TabsList({
   className,
@@ -118,6 +146,7 @@ function TabsList({
     <TabsVariantContext.Provider value={shape}>
       {inBar ? (
         <div
+          ref={shape === "line" ? revealSelected : undefined}
           data-slot="tabs-bar"
           data-variant={shape}
           className={cn(TABS_BAR[shape], beside && shape === "line" && "pr-gutter", className)}

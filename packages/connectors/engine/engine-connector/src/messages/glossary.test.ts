@@ -138,7 +138,9 @@ describe("the decided wording", () => {
     ["procIncFlow.modeRunning", "Laufend", "Running"],
     ["procIncFlow.valuesColRunning", "Laufend", "Running"],
     // What the last 30 days' instances passed: a cohort read from the history, never "Häufigkeit".
-    ["procIncFlow.modeThroughput", "Durchlauf · 30 Tage", "Throughput · 30 days"],
+    // The mode reads "Durchlauf · 30 Tage", its window hidden visually in a narrow card.
+    ["procIncFlow.modeThroughput", "Durchlauf", "Throughput"],
+    ["procIncFlow.modeThroughputWindow", "30 Tage", "30 days"],
     ["procIncFlow.valuesColPassed", "Durchläufe", "Passes"],
     // An engine that refuses the server's login runs (F2): describeError's 401 and 403 in short,
     // never "unreachable", and its count says the same.

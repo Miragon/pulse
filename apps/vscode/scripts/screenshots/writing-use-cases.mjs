@@ -148,10 +148,10 @@ export const MOVING_USE_CASES = [
     file: "move-token-entry",
     title: "Start a move on the diagram",
     shows:
-      "A click on Charge payment, where the token of ORD-10131 waits with its incident, adds a move button under its shape, beside the code button.",
+      "A click on Charge payment, where the token of ORD-10132 waits with its incident, adds a move button under its shape, beside the code button.",
     run: async (window) => {
       await closeEditors(window)
-      await goToInstance(window, "ORD-10131")
+      await goToInstance(window, "ORD-10132")
       await panelFrame(window)
         .locator('g.djs-element[data-element-id="Activity_ChargePayment"] .djs-hit')
         .click()

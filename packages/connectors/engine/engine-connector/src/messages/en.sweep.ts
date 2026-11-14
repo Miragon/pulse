@@ -177,7 +177,10 @@ export const enSweep: MessageCatalog = {
   "incidentDetail.variablesHint": ({ count }) => countOf(count, "variable", "variables"),
   "incidentDetail.variablesTitle": "Variables",
   "incidentFailure.errorMessageTitle": "Error message",
+  "incidentFailure.externalTask": "External task",
   "incidentFailure.job": "Job",
+  "incidentFailure.noErrorDetails":
+    "The engine returned no error details. The worker may have reported the failure without them, or the task is gone.",
   "incidentFailure.noStacktrace":
     "The engine returned no stacktrace. The job may have no exception, or the stacktrace was cleared.",
   "incidentFailure.resolveAria": "Mark incident as resolved",
@@ -343,7 +346,8 @@ export const enSweep: MessageCatalog = {
   "procIncFlow.modeAria": "Process flow display",
   "procIncFlow.modeIncidents": "Incidents",
   "procIncFlow.modeRunning": "Running",
-  "procIncFlow.modeThroughput": "Throughput · 30 days",
+  "procIncFlow.modeThroughput": "Throughput",
+  "procIncFlow.modeThroughputWindow": "30 days",
   "procIncFlow.noBpmnDiagram": "No BPMN diagram available",
   "procIncFlow.noDataAvailable": "No data available",
   "procIncFlow.noHistory":

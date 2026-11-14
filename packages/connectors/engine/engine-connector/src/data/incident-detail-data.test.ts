@@ -95,6 +95,36 @@ describe("buildIncidentDetailData through the REST contract", () => {
     expect(data.job).toBeNull()
   })
 
+  it("reads a failed external task's error details as text/plain, the text its worker reported", async () => {
+    const { data, engine } = await build({
+      "GET /incident/inc-1": {
+        body: incident({ incidentType: "failedExternalTask", configuration: "ext-1" }),
+      },
+      "GET /external-task/ext-1/errorDetails": { contentType: "text/plain", body: STACK },
+    })
+    expect(data.externalTask).toEqual({ id: "ext-1", errorDetails: STACK })
+    const read = engine.requests.find((r) => r.path === "/external-task/ext-1/errorDetails")
+    expect(read?.headers.accept).toBe("text/plain")
+  })
+
+  it("keeps the incident without error details when the task is gone", async () => {
+    const { data } = await build({
+      "GET /incident/inc-1": {
+        body: incident({ incidentType: "failedExternalTask", configuration: "ext-1" }),
+      },
+    })
+    expect(data.externalTask).toEqual({ id: "ext-1", errorDetails: null })
+  })
+
+  it("reads no error details for a job's incident", async () => {
+    const { data, engine } = await build({
+      "GET /incident/inc-1": { body: incident({}) },
+      "GET /job": { body: [{ id: "job-1", retries: 0 }] },
+    })
+    expect(data.externalTask).toBeNull()
+    expect(engine.requests.some((r) => r.path.startsWith("/external-task"))).toBe(false)
+  })
+
   it("takes a delegated incident's failure target from its root cause", async () => {
     const { data } = await build({
       "GET /incident/inc-1": {

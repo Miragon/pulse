@@ -91,7 +91,7 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
   const onToggleKey = useToggleKey(props)
   return (
     <div
-      className="flex min-h-0 min-w-0 flex-1 flex-col"
+      className="group/data-table flex min-h-0 min-w-0 flex-1 flex-col"
       data-part="data-table"
       data-state={fixed ? "fixed" : "auto"}
       onKeyDown={onToggleKey}

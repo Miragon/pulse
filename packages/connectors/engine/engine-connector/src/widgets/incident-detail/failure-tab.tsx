@@ -16,7 +16,11 @@ import {
 import { HandOffButton, IdText } from "@miragon/pulse-widget-shell/widgets"
 import { Check, RotateCcw } from "lucide-react"
 
-import type { IncidentDetailData, IncidentDetailJob } from "../../view-models.js"
+import type {
+  IncidentDetailData,
+  IncidentDetailExternalTask,
+  IncidentDetailJob,
+} from "../../view-models.js"
 
 import { AlarmCount } from "../lib/alarm-count.js"
 import { DoneMark } from "../lib/done-mark.js"
@@ -188,32 +192,44 @@ function RetryButton({
   )
 }
 
+/**
+ * The engine's text behind the failure: a failed job's stacktrace, a failed external task's error
+ * details as its worker reported them (the webview shows both as the incident's stacktrace).
+ */
 export function StacktraceTab({ data }: { data: IncidentDetailData }) {
   const t = useT()
-  const job = data.job
-  if (!job) {
+  if (data.job) {
     return (
-      <Alert>
-        <AlertDescription>{t("incidentFailure.noStacktrace")}</AlertDescription>
-      </Alert>
+      <div className="flex flex-col gap-3">
+        <p className="text-muted-foreground text-small inline-flex items-center gap-2">
+          {t("incidentFailure.job")} <IdText value={data.job.id} />
+        </p>
+        <EngineText text={data.job.stacktrace} none={t("incidentFailure.noStacktrace")} />
+      </div>
     )
   }
+  if (data.externalTask) return <ErrorDetails task={data.externalTask} />
+  return <EngineText text={null} none={t("incidentFailure.noStacktrace")} />
+}
+
+function ErrorDetails({ task }: { task: IncidentDetailExternalTask }) {
+  const t = useT()
   return (
     <div className="flex flex-col gap-3">
       <p className="text-muted-foreground text-small inline-flex items-center gap-2">
-        {t("incidentFailure.job")} <IdText value={job.id} />
+        {t("incidentFailure.externalTask")} <IdText value={task.id} />
       </p>
-      <StacktraceSection job={job} />
+      <EngineText text={task.errorDetails} none={t("incidentFailure.noErrorDetails")} />
     </div>
   )
 }
 
-function StacktraceSection({ job }: { job: IncidentDetailJob }) {
+function EngineText({ text, none }: { text: IncidentDetailJob["stacktrace"]; none: string }) {
   const t = useT()
-  if (!job.stacktrace) {
+  if (!text) {
     return (
       <Alert>
-        <AlertDescription>{t("incidentFailure.noStacktrace")}</AlertDescription>
+        <AlertDescription>{none}</AlertDescription>
       </Alert>
     )
   }
@@ -225,7 +241,7 @@ function StacktraceSection({ job }: { job: IncidentDetailJob }) {
         TEXT_BLOCK_FRAME,
       )}
     >
-      {job.stacktrace}
+      {text}
     </pre>
   )
 }

@@ -10,12 +10,13 @@ import { HEALTHY_ENGINE, REALISTIC_ENGINE, REALISTIC_HOST_ENV } from "./engines.
  * actions scroll, so do a cluster's and the instance list's (its segments one line each), a 400 px chat keeps each incident row one line and each group's title its share
  * and reads a scrolling column's head without a cut word, a narrow card draws the instance's
  * diagram clear of its zoom bar and bpmn.io's link, keeps its tabs one line scrolling in their bar,
- * each job's row one line (a cut error opening on its whole text by keyboard) and the instance
- * search's placeholder whole, every table's row actions
+ * each job's row one line (a cut error opening on its whole text by keyboard, one unbroken token
+ * broken inside its column, the actions scrolling with the row), the process flow's modes one line
+ * and the instance search's placeholder whole, every table's row actions
  * sit right-aligned under their head, a footer's noun follows its count, a
  * header's count stays a neutral number beside its tone's icon and its title its share, the head's
  * sections (pulse-ui's NavTabs) open by keyboard, forced colours keep the open tab, the head's
- * open section and a docked strip and draw a tone's icon in its text's system colour, a fact's term sits on its value's baseline, and the detail
+ * open section, the rule under both and a docked strip and draw a tone's icon in its text's system colour, a fact's term sits on its value's baseline, and the detail
  * views pass axe, their BPMN diagram included, with a failed refresh docked under the bar.
  */
 
@@ -335,22 +336,27 @@ async function narrowTable(region: Locator) {
     rows: [...el.querySelectorAll("tbody tr")].map((row) =>
       Math.round(row.getBoundingClientRect().height),
     ),
-    messages: [...el.querySelectorAll<HTMLElement>("[data-incident-message]")].map((message) => ({
-      width: Math.round(message.getBoundingClientRect().width),
-      // What the reader sees of it at rest: up to the region's edge or a pinned cell over it.
-      visible: Math.round(
-        Math.min(
-          message.getBoundingClientRect().right,
-          el.getBoundingClientRect().right,
-          ...[...message.closest("tr")!.children]
-            .filter((cell) => getComputedStyle(cell).position === "sticky")
-            .map((cell) => cell.getBoundingClientRect().left),
-        ) - message.getBoundingClientRect().left,
-      ),
-      lines: Math.round(message.getBoundingClientRect().height / 20),
-      cut: message.scrollWidth > message.clientWidth,
-      title: message.title,
-    })),
+    messages: [...el.querySelectorAll<HTMLElement>("[data-incident-message]")].map((message) => {
+      // pulse-ui's LogText line: the line that holds the title, a disclosure's summary where cut.
+      const line = message.querySelector<HTMLElement>("[title]")!
+      return {
+        width: Math.round(message.getBoundingClientRect().width),
+        // What the reader sees of it at rest: up to the region's edge or a pinned cell over it.
+        visible: Math.round(
+          Math.min(
+            message.getBoundingClientRect().right,
+            el.getBoundingClientRect().right,
+            ...[...message.closest("tr")!.children]
+              .filter((cell) => getComputedStyle(cell).position === "sticky")
+              .map((cell) => cell.getBoundingClientRect().left),
+          ) - message.getBoundingClientRect().left,
+        ),
+        lines: Math.round(message.getBoundingClientRect().height / 20),
+        cut: line.scrollWidth > line.clientWidth,
+        disclosure: line.tagName === "SUMMARY",
+        title: line.title,
+      }
+    }),
   }))
 }
 
@@ -433,7 +439,7 @@ test.describe("a 400 px chat", () => {
       expect(message.visible, "its 10rem in view at rest").toBeGreaterThanOrEqual(160)
       expect(message.lines).toBe(1)
     }
-    expect(seen.messages[1]).toMatchObject({ cut: true, title: LONG_MESSAGE })
+    expect(seen.messages[1]).toMatchObject({ cut: true, disclosure: true, title: LONG_MESSAGE })
     // An instance with a business key shows the key alone here, its id in the title and read out.
     const label = region.locator("tbody tr").first().locator("td").first()
     await expect(label).toContainText("INV-2026-0041")
@@ -957,6 +963,26 @@ async function fittedDiagram(app: FrameLocator) {
     .toBe(true)
 }
 
+/** A job's error of one unbroken token (an encoded payload), longer than any column. */
+const UNBROKEN_ERROR = `PaymentGatewayException:${"Q2FyZERlY2xpbmVk".repeat(24)}`
+
+/** The jobs' first job fails with {@link UNBROKEN_ERROR}, in the start data and in the feed. */
+async function longJobError(page: Page) {
+  await page.route("**/host/call", async (route) => {
+    const call = route.request().postDataJSON() as { name: string }
+    if (call.name !== "engine_open_cockpit" && call.name !== "engine_jobs_data") {
+      return route.continue()
+    }
+    const json = (await (await route.fetch()).json()) as {
+      result: { structuredContent: { start?: { data: unknown } } & Record<string, unknown> }
+    }
+    const content = json.result.structuredContent
+    const data = (content.start?.data ?? content) as { jobs: Array<{ exceptionMessage: string }> }
+    data.jobs[0].exceptionMessage = UNBROKEN_ERROR
+    return route.fulfill({ json })
+  })
+}
+
 test.describe("a narrow card's details", () => {
   for (const width of [320, 400]) {
     test(`at ${width} px the instance's diagram lies clear of the zoom bar and bpmn.io's link, whole on its canvas`, async ({
@@ -1043,6 +1069,92 @@ test.describe("a narrow card's details", () => {
     await expect(text).toBeHidden()
     await expect.poll(height).toBe(28)
     await expect(error, "still a disclosure, its line still cut").toHaveCount(1)
+  })
+
+  for (const width of [320, 400]) {
+    test(`at ${width} px the jobs' actions scroll with the row: no column under them`, async ({
+      page,
+    }) => {
+      const app = await openView(page, { engine: HEALTHY_ENGINE, view: "jobs" }, { width })
+      const region = app.getByRole("region", { name: /^Jobs$/ })
+      await expect(app.getByText(/^Showing \d+ of 16 jobs$/)).toBeVisible({ timeout: 15_000 })
+      const rows = await region.evaluate((el) =>
+        [...el.querySelectorAll("tbody tr")].map((row) => {
+          const cells = [...row.children].filter(
+            (cell) => getComputedStyle(cell).display !== "none",
+          )
+          const actions = cells.at(-1)!
+          const left = actions.getBoundingClientRect().left
+          return {
+            position: getComputedStyle(actions).position,
+            covered: cells
+              .slice(0, -1)
+              .filter((cell) => cell.getBoundingClientRect().right > left + 1)
+              .map((cell) => (cell as HTMLElement).innerText),
+          }
+        }),
+      )
+      expect(rows.length).toBeGreaterThan(0)
+      for (const row of rows) expect(row).toEqual({ position: "static", covered: [] })
+    })
+  }
+
+  test("at 400 px a job's error of one unbroken token opens inside its column, broken anywhere", async ({
+    page,
+  }) => {
+    await longJobError(page)
+    const app = await openView(page, { engine: HEALTHY_ENGINE, view: "jobs" }, { width: 400 })
+    const region = app.getByRole("region", { name: /^Jobs$/ })
+    const error = region.locator(`td:nth-child(4) summary[title="${UNBROKEN_ERROR}"]`)
+    await expect(error).toBeVisible({ timeout: 15_000 })
+    const column = () =>
+      error.evaluate((summary) => ({
+        cell: Math.round(summary.closest("td")!.getBoundingClientRect().width),
+        table: summary.closest("[role='region']")!.scrollWidth,
+      }))
+    const before = await column()
+
+    await error.focus()
+    await page.keyboard.press("Enter")
+    const text = region.locator("td:nth-child(4) details[open] pre")
+    await expect(text).toHaveText(UNBROKEN_ERROR)
+    const open = await text.evaluate((pre) => ({
+      lines: Math.round(pre.getBoundingClientRect().height / 16),
+      sideways: pre.scrollWidth > pre.clientWidth,
+    }))
+    expect(open.sideways, "the whole breaks anywhere, never scrolls sideways").toBe(false)
+    expect(open.lines, "it wraps onto lines of its own").toBeGreaterThan(2)
+    expect(await column(), "the column and the table as wide as before").toEqual(before)
+  })
+
+  test("at 320 px the process flow's modes stay one line, Throughput's window kept in its name", async ({
+    page,
+  }) => {
+    const app = await openView(page, PROCESS_ARGS, { width: 320 })
+    const modes = app.getByRole("radiogroup", { name: "Process flow display" })
+    await expect(modes).toBeVisible({ timeout: 15_000 })
+    await expect(modes.getByRole("radio", { name: "Throughput · 30 days" })).toBeVisible()
+    const seen = await modes.evaluate((group) => ({
+      lines: new Set(
+        [...group.querySelectorAll('[role="radio"]')].map((radio) =>
+          Math.round(radio.getBoundingClientRect().top),
+        ),
+      ).size,
+      inside: group.getBoundingClientRect().right <= document.documentElement.clientWidth,
+    }))
+    expect(seen).toEqual({ lines: 1, inside: true })
+  })
+
+  test("at 760 px the process flow's Throughput shows its window", async ({ page }) => {
+    const app = await openView(page, PROCESS_ARGS, { width: 760 })
+    const throughput = app
+      .getByRole("radiogroup", { name: "Process flow display" })
+      .getByRole("radio", { name: "Throughput · 30 days" })
+    await expect(throughput).toBeVisible({ timeout: 15_000 })
+    const window = await throughput.evaluate(
+      (radio) => radio.querySelector("span > span")!.getBoundingClientRect().width,
+    )
+    expect(window, "· 30 days on screen").toBeGreaterThan(30)
   })
 
   test("at 760 px the instance's diagram keeps bpmn-js's own fit, centred, where nothing lies over it", async ({
@@ -1170,6 +1282,39 @@ test.describe("forced colours", () => {
     expect(seen.open).toEqual([`solid 2px ${seen.highlight}`])
     expect(seen.others.length).toBeGreaterThan(0)
     for (const edge of seen.others) expect(edge).toBe(`solid 2px ${seen.canvas}`)
+  })
+
+  test("the rule under a view's tabs and under the head's sections runs whole: no other tab or section reaches over it", async ({
+    page,
+  }) => {
+    await page.emulateMedia({ forcedColors: "active" })
+    const instance = await openView(page, INSTANCE_ARGS)
+    const tabs = instance.getByRole("tablist")
+    await expect(tabs.getByRole("tab", { selected: true })).toBeVisible({ timeout: 15_000 })
+    const tabsOver = await tabs.evaluate((list) => {
+      const bar = list.parentElement!
+      const rule =
+        bar.getBoundingClientRect().bottom - parseFloat(getComputedStyle(bar).borderBottomWidth)
+      return [...list.querySelectorAll('[role="tab"]')]
+        .filter((tab) => tab.getBoundingClientRect().bottom > rule + 0.5)
+        .map((tab) => tab.textContent)
+    })
+    expect(tabsOver, "no tab over the bar's rule").toEqual([])
+
+    const overview = await openView(page, { engine: HEALTHY_ENGINE })
+    const sections = overview.getByRole("navigation", { name: "Cockpit sections" })
+    await expect(sections.getByRole("button", { name: "Overview" })).toBeVisible({
+      timeout: 15_000,
+    })
+    const sectionsOver = await sections.evaluate((nav) => {
+      const head = nav.closest('[data-slot="cockpit-head"]')!
+      const rule =
+        head.getBoundingClientRect().bottom - parseFloat(getComputedStyle(head).borderBottomWidth)
+      return [...nav.querySelectorAll("button")]
+        .filter((item) => item.getBoundingClientRect().bottom > rule + 0.5)
+        .map((item) => item.textContent)
+    })
+    expect(sectionsOver, "no section over the head's rule").toEqual([])
   })
 
   for (const [name, args, prepare, hostEnv] of [

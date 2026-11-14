@@ -75,7 +75,7 @@ describe.each([
     expect(head.querySelector("[data-list-table-scrolls]")?.textContent).toBe(word)
   })
 
-  it("the jobs: named, right-aligned over the pinned actions", () => {
+  it("the jobs: named, right-aligned over the actions, its word read where they scroll", () => {
     render(
       <TestViewHost locale={locale}>
         <JobPanelWidget data={JOBS} engine="prod" />
@@ -84,7 +84,8 @@ describe.each([
     const head = lastHead()
     expect(head.textContent).toBe(word)
     expect(head.className).toContain("text-right")
-    expect(head.querySelector("[data-list-table-scrolls]")).toBeNull()
+    // Pinned from 40rem up only, so Retries and Error stay clear of them in a narrow card.
+    expect(head.querySelector("[data-list-table-scrolls]")?.textContent).toBe(word)
   })
 
   it("an instance's variables where they can be edited: named, right-aligned over the pinned edit", async () => {

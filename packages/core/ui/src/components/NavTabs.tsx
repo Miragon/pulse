@@ -18,7 +18,8 @@ export interface NavTabsProps extends Omit<ComponentProps<"nav">, "aria-label" |
  * each a link or a button the reader reaches with Tab and opens with Enter (a navigation, never a
  * tab list with arrow keys). It is at least a toolbar high and draws no rule of its own: put it in
  * a bar that draws one (a head's `border-b`, or `className="border-b"`), and the current item's
- * 2 px bar lands on that rule. Where the items do not fit, they wrap onto a further line, so every
+ * 2 px bar lands on that rule (under forced colours the items stop on it, so the others' edges in
+ * Canvas never hide it, theme.css). Where the items do not fit, they wrap onto a further line, so every
  * item stays whole and reachable, never cut, hidden or scrolled out of sight.
  */
 export function NavTabs({ ariaLabel, className, children, ...props }: NavTabsProps) {

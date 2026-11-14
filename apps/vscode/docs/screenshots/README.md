@@ -39,7 +39,7 @@ Taken from VS Code against the shop sandbox (`apps/vscode/sandbox/`). Recreate t
 | 30 | From the incident to the worker | [30-local-sources-open-code.png](30-local-sources-open-code.png) | Open code opens ChargePaymentWorker.java as a tab over the panel at the line that subscribes to the task type charge-payment. |
 | 31 | A local model that differs from the deployed version | [31-local-sources-model-differs.png](31-local-sources-model-differs.png) | The shipment of ORD-10142 runs on Shipment v1, but shipment.bpmn in the workspace adds a step: the card says that the local file differs from the deployed version. |
 | 32 | Model and code of any element in the diagram | [32-local-sources-selected-element.png](32-local-sources-selected-element.png) | A click on Reserve stock in the diagram of ORD-10129 selects it: a code button on its shape, like the jump arrow of a call activity, opens ReserveStockWorker.java. Charge payment, which has the incident, shows its code button without a click. |
-| 33 | Start a move on the diagram | [33-move-token-entry.png](33-move-token-entry.png) | A click on Charge payment, where the token of ORD-10131 waits with its incident, adds a move button under its shape, beside the code button. |
+| 33 | Start a move on the diagram | [33-move-token-entry.png](33-move-token-entry.png) | A click on Charge payment, where the token of ORD-10132 waits with its incident, adds a move button under its shape, beside the code button. |
 | 34 | Move a token past a broken step | [34-move-token.png](34-move-token.png) | The move button opens the move panel: the diagram marks where the token may go, and once a target is picked the source shows −1, the target +1 and the review list what happens. |
 | 35 | A move is always confirmed | [35-move-token-confirm.png](35-move-token-confirm.png) | Even on the local engine a move asks first, names what happens and says that it cannot be undone. |
 | 36 | Migrate selected instances | [36-migration-entry.png](36-migration-entry.png) | On an older version, the selection bar offers Migrate to version… next to Cancel instances…; the ids stay in Pulse, the webview names none. |
@@ -247,7 +247,7 @@ A click on Reserve stock in the diagram of ORD-10129 selects it: a code button o
 
 ## 33. Start a move on the diagram
 
-A click on Charge payment, where the token of ORD-10131 waits with its incident, adds a move button under its shape, beside the code button.
+A click on Charge payment, where the token of ORD-10132 waits with its incident, adds a move button under its shape, beside the code button.
 
 ![Start a move on the diagram](33-move-token-entry.png)
 

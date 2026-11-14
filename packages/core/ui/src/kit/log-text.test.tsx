@@ -33,6 +33,11 @@ describe("LogText: one truncation policy for engine text", () => {
     const pre = details?.querySelector("pre")
     expect(pre?.textContent).toBe(text)
     for (const c of TEXT_BLOCK_FRAME.split(" ")) expect(pre?.getAttribute("class")).toContain(c)
+    // A long unbroken token breaks anywhere, so the whole never scrolls sideways.
+    expect(pre?.getAttribute("class")?.split(" ")).toEqual(
+      expect.arrayContaining(["whitespace-pre-wrap", "wrap-anywhere"]),
+    )
+    expect(pre?.getAttribute("class")).not.toContain("contain")
   })
 })
 
@@ -64,6 +69,10 @@ describe("LogText in a table row (`line`): one line at the row height", () => {
     expect(classes(summary)).toContain("truncate")
     expect(summary?.getAttribute("title")).toBe(text)
     expect(details?.querySelector("pre")?.textContent).toBe(text)
+    // Open, the whole wraps in the line's width and never widens the column.
+    expect(classes(details?.querySelector("pre"))).toEqual(
+      expect.arrayContaining(["wrap-anywhere", "[contain:inline-size]"]),
+    )
   })
 
   it("titles nothing outside a row: the text shows whole there", () => {

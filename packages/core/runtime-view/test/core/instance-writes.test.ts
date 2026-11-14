@@ -5,7 +5,7 @@ import { InstancePanel } from "../../src/core/panels/instance-panel.js"
 import type { InstanceView, PanelState } from "../../src/core/protocol/index.js"
 import { panelFixture, type FixtureOptions } from "./support/panel-fixture.js"
 
-const CHARGE = "Activity_ChargePayment"
+const CHARGE = "Charge payment"
 
 function readyView(state: PanelState): InstanceView {
   if (state.status !== "ready" || state.view.kind !== "instance") {

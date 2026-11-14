@@ -302,7 +302,7 @@ export function JobPanelWidget({
     { label: t("jobPanel.colRetries"), align: "right" },
     { label: t("jobPanel.colError") },
     { label: t("jobPanel.colCreated"), align: "right", hideBelow: "md" },
-    { label: t("jobPanel.colActions"), align: "right", sticky: true },
+    { label: t("jobPanel.colActions"), align: "right", sticky: "sm" },
   ]
 
   return (
