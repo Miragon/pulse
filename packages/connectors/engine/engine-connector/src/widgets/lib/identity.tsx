@@ -10,21 +10,21 @@ import { IdText } from "@miragon/pulse-widget-shell/widgets"
 const LINE_TRACK = "grid min-w-0 grid-cols-[minmax(var(--named-id-floor,8rem),max-content)]"
 
 /**
- * A table's subject column (an instance, an element) fits its content, as pulse-ui's `DataTable`
- * fits its drawn rows: the head takes `SUBJECT_COLUMN`, its cells `SUBJECT_CELL`. The subject is
- * whole while the region has room, so a name or a message column beside it gives way first; under
- * 28rem (a phone-width chat) it gives way down to the one line's floor (8rem), cut with an
- * ellipsis, and the table scrolls in its region.
+ * A table's subject column (an instance, an element) fits its content (`fit` on its `ListTable`
+ * column, pulse-ui's `DataTable` `fit`), which keeps the subject whole while the region has room,
+ * so a name or a message column beside it gives way first. Under 28rem (a phone-width chat) the
+ * subject sets its own floor back to 8rem, over the whole text its column hands down: it gives way
+ * to its ellipsis there, and the table scrolls in its region.
  */
-export const SUBJECT_COLUMN = "w-[1%]"
-export const SUBJECT_CELL = "[--named-id-floor:max-content] @max-md:[--named-id-floor:8rem]"
+export const NARROW_SUBJECT_FLOOR = "@max-md:[--named-id-floor:8rem]"
 
 /**
  * Matches `instanceName`, which toasts and confirmations use. In a table cell (the default) it is
  * one line, so the row keeps the row height (invariant 6): the business key, then the short id
  * quiet in mono with its copy button; where the column is short of room the key is cut with an
  * ellipsis, the whole in its title. In a region under 28rem (a phone-width chat) an instance with
- * a key shows the key alone, its id still in the title and read out. Without a key the short id
+ * a key shows the key alone, its id still in the title and read out, and gives way down to 8rem
+ * also in a column that fits its content (`NARROW_SUBJECT_FLOOR`). Without a key the short id
  * shows alone, whole. `wrap` is for a line of facts outside a table (a detail's header), where
  * the key and the id wrap between them, never cut.
  */
@@ -52,7 +52,7 @@ export function InstanceLabel({
     return <IdText value={id} className={cn("text-muted-foreground", className)} />
   }
   return (
-    <span data-instance-label="" className={cn(LINE_TRACK, className)}>
+    <span data-instance-label="" className={cn(LINE_TRACK, NARROW_SUBJECT_FLOOR, className)}>
       <span className="flex min-w-0 items-center gap-2">
         <span
           className="text-foreground min-w-0 truncate font-semibold"

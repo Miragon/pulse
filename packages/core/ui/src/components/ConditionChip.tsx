@@ -30,8 +30,8 @@ export interface ConditionChipProps {
  * A condition a list is filtered by, as a 28 px pill on the raised surface (the webview's
  * variable chip): its text, an edit button when `onEdit` is set (the text itself) and a 24 px
  * remove button, each named with the chip's text. Up to 240 px wide, the text cut with an
- * ellipsis and whole in its title. Removing hands the focus to `opener`. A filter you toggle on
- * and off is a `FilterBar` chip instead.
+ * ellipsis and whole in its title; the remove button shows its own name on hover. Removing hands
+ * the focus to `opener`. A filter you toggle on and off is a `FilterBar` chip instead.
  */
 export function ConditionChip({
   label,
@@ -49,6 +49,7 @@ export function ConditionChip({
       {label}
     </>
   )
+  const removeName = conditionChip.remove({ label: text })
   const remove = () => {
     onRemove()
     opener?.current?.focus()
@@ -79,7 +80,9 @@ export function ConditionChip({
         type="button"
         variant="ghost"
         size="icon-xs"
-        aria-label={conditionChip.remove({ label: text })}
+        aria-label={removeName}
+        // Its own name on hover, never the chip's text it would take from the chip's title.
+        title={removeName}
         onClick={remove}
         className="rounded-pill text-muted-foreground hover:text-foreground focus-visible:ring-offset-0"
       >

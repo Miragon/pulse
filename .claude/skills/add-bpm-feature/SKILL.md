@@ -312,7 +312,8 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   `md` hides inline, shows in fullscreen), the row actions are the LAST column with
   `sticky: true` (pinned at the region's right edge, Retry never scrolled away), or
   `sticky: "sm"` where a pinned column would cover a narrow region's message (pinned from
-  640 px up, scrolling with the row below). A caption
+  640 px up, scrolling with the row below), under a head that names them ("Actions"). A column
+  that fits its one line (an id, a time, the row actions beside a long text) takes `fit`. A caption
   keeps one line; a wide table of figures passes `wrapHeads` so its captions wrap instead. Rows
   stay hand-composed `<tr>` + `Td`, one cell per column (the rules address cell
   positions). An id column is `IdCell` (`IdText` inline): Geist Mono, shortened
@@ -374,8 +375,11 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   (`widgets/lib/identity.tsx`: the business key, the UUID a copyable `IdText` chip, one line in
   a table cell, the key alone under 28rem, `wrap` on a line of facts; the words of
   `instanceName`); a table with a long text column (an engine message) lets the other columns
-  fit their content (`w-[1%]` on their heads) and keeps the text one line with a floor, so it
-  scrolls in its region instead of squeezing (`process-incidents/incident-table.tsx`); a drill passes the target's `label` so its breadcrumb reads
+  fit their content (`fit: true` on their `ListTable` columns, pulse-ui's `DataTable` `fit`: the
+  head as narrow as its cells' one line, a `NamedId` in them whole, never a width class of your
+  own) and keeps the text one line with a floor, so it scrolls in its region instead of
+  squeezing (`process-incidents/incident-table.tsx`; under 28rem a subject gives way to 8rem by
+  its own `NARROW_SUBJECT_FLOOR`); a drill passes the target's `label` so its breadcrumb reads
   the name. The builder reads names as enrichment (`fetchNamesByDefinition` with
   `processNameIn`/`elementNameIn`, `fetchDefinitionsById`, `fetchBusinessKeys`), every
   diagram name through widget-shell's `readBpmnNames`/`parseBpmnNames` (never a regex of your

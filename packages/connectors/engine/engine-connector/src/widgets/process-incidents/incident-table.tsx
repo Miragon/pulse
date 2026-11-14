@@ -26,7 +26,7 @@ import { useHandOff, type HandOff } from "../lib/hand-off.js"
 import { useT } from "../../messages/use-t.js"
 import { EngineActionDialog } from "../lib/engine-action-dialog.js"
 import { useIncidentRecovery, type IncidentRecoveryState } from "./use-incident-recovery.js"
-import { InstanceLabel, SUBJECT_CELL, SUBJECT_COLUMN } from "../lib/identity.js"
+import { InstanceLabel, NARROW_SUBJECT_FLOOR } from "../lib/identity.js"
 import { DoneMark } from "../lib/done-mark.js"
 import { MoreActions } from "../lib/more-actions.js"
 import { WriteError } from "../lib/write-error.js"
@@ -70,20 +70,21 @@ function RecoveryButton({
   )
 }
 
-/** Where an incident sits, by its element's name (the id where it has none); never blank. */
+/**
+ * Where an incident sits, by its element's name (the id where it has none); never blank. Whole in
+ * its fitted column, down to 8rem in a phone-width chat, as an instance is.
+ */
 function IncidentElement({ incident }: { incident: IncidentInstance }) {
   return incident.activityId ? (
-    <NamedId name={incident.activityName} id={incident.activityId} />
+    <NamedId
+      name={incident.activityName}
+      id={incident.activityId}
+      className={NARROW_SUBJECT_FLOOR}
+    />
   ) : (
     <span className="text-muted-foreground">{"—"}</span>
   )
 }
-
-/**
- * A column that fits its content (pulse-ui's `DataTable` does so for its drawn rows): the message
- * column takes the room the others leave.
- */
-const FIT_COLUMN = SUBJECT_COLUMN
 
 /**
  * The incident's type as its state label and its message on one line, never a pill stacked above
@@ -137,18 +138,18 @@ export function IncidentTable({
   const columns: ListTableColumn[] = [
     {
       label: byInstance ? t("procIncTable.columnInstance") : t("procIncTable.columnActivity"),
-      className: FIT_COLUMN,
+      fit: true,
     },
     { label: t("procIncTable.columnErrorMessage") },
     {
       label: t("procIncTable.columnTime"),
       align: "right" as const,
       hideBelow: "md" as const,
-      className: FIT_COLUMN,
+      fit: true,
     },
     // Pinned from 40rem up only: in a narrower region a pinned column would cover the message, so
     // the actions scroll with the row and the message keeps its 10rem in view.
-    { label: t("procIncTable.columnActions"), sticky: "sm" as const, className: FIT_COLUMN },
+    { label: t("procIncTable.columnActions"), sticky: "sm" as const, fit: true },
   ]
 
   // The table on the surface it lies on, its head the kit's (`Th` paints `--table-surface`): the
@@ -168,7 +169,7 @@ export function IncidentTable({
         return (
           <Fragment key={incident.id}>
             <tr>
-              <Td className={SUBJECT_CELL}>
+              <Td>
                 {byInstance ? (
                   // One instance label (#322 U13): its business key, the UUID a copyable chip.
                   <InstanceLabel
@@ -182,7 +183,7 @@ export function IncidentTable({
               <Td>
                 <IncidentMessage incident={incident} />
               </Td>
-              <Td align="right" className="text-muted-foreground text-small whitespace-nowrap">
+              <Td align="right" className="text-muted-foreground text-small">
                 {formatTimestamp(incident.incidentTimestamp)}
               </Td>
               <Td>

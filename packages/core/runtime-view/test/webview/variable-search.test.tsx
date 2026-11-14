@@ -239,7 +239,9 @@ describe("the variable search of the definition panel", () => {
     harness.publish(ready({ ...DEFINITION_VIEW, filter: CONDITIONS, variableLabels: LABELS }))
     await vi.waitFor(() => labelled(harness.root, "Filter by variables, 2 active"))
 
-    labelled(harness.root, "Remove condition amount > 100").click()
+    const remove = labelled(harness.root, "Remove condition amount > 100")
+    expect(remove.title).toBe("Remove condition amount > 100")
+    remove.click()
     expect(lastFilter(harness)).toEqual({ scope: "running", variables: [CONDITIONS.variables![0]] })
 
     const chip = labelled(harness.root, 'Edit condition route = "review"')

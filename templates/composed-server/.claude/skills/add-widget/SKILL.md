@@ -52,7 +52,8 @@ what reads the host or calls a tool. Neither re-exports the other's names:
   `DataTable`: a named, keyboard-reachable scroll region with a sticky head
   and 28 px rows, so a wide table never widens the view;
   `hideBelow` on a column a narrow view can do without; `sticky` on the last
-  column, the row actions; `sort` on the column the rows are ordered by;
+  column, the row actions; `fit` on a column as narrow as its one line (an
+  id, a time) beside a long text; `sort` on the column the rows are ordered by;
   `groups` to head adjacent columns) with hand-composed `<tr>` + the kit's
   `Td` rows; `IdCell` (view runtime) for an id column (Geist Mono, shortened,
   a copy button); the kit's `TableEmptyState` instead of an empty frame

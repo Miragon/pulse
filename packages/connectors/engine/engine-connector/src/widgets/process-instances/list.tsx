@@ -27,7 +27,6 @@ import { ENGINE_PROCESS_INSTANCES_DATA } from "../../tool-names.js"
 import { InstancesHeader } from "./list-header.js"
 import { InstanceRow } from "./instance-row.js"
 import { useHandOff } from "../lib/hand-off.js"
-import { SUBJECT_COLUMN } from "../lib/identity.js"
 import { describeInstancesView, type InstanceChip } from "./hand-offs.js"
 import { instanceName } from "../lib/write-feedback.js"
 import { useT } from "../../messages/use-t.js"
@@ -199,7 +198,7 @@ export function ProcessInstancesView({
             }
             columns={[
               // The instance whole while there is room; the process gives way first.
-              { label: t("processInstances.colBusinessKey"), className: SUBJECT_COLUMN },
+              { label: t("processInstances.colBusinessKey"), fit: true },
               // The state and an open incident on one line in one column, right after the ids as
               // the webview has it, so a narrow chat that scrolls the table sideways still shows it.
               { label: t("processInstances.colState") },

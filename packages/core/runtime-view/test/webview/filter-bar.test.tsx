@@ -158,8 +158,10 @@ describe("the filter bar of the definition panel", () => {
       "Clear element filter",
     ])
     expect(allParts(harness.root, "filter-chip")).toEqual([chip])
+    const clear = getRole(chip, "button", { name: "Clear element filter" })
+    expect(clear.title).toBe("Clear element filter")
 
-    getRole(chip, "button", { name: "Clear element filter" }).click()
+    clear.click()
 
     expect(filtersPosted(harness)).toEqual([
       { type: "filterInstances", filter: { scope: "withIncident" } },

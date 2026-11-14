@@ -2,7 +2,7 @@ import { formatNumber, NamedId, StateLabel, Td, VersionChip, DrillButton } from 
 import { HandOffButton } from "@miragon/pulse-widget-shell/widgets"
 import type { ProcessInstanceRow } from "../../view-models.js"
 import { useHandOff } from "../lib/hand-off.js"
-import { InstanceLabel, SUBJECT_CELL } from "../lib/identity.js"
+import { InstanceLabel } from "../lib/identity.js"
 import { instanceName } from "../lib/write-feedback.js"
 import { useT } from "../../messages/use-t.js"
 import { rootCauseHandOff } from "./hand-offs.js"
@@ -47,7 +47,7 @@ export function InstanceRow({
   const { ask } = useHandOff()
   return (
     <tr>
-      <Td className={SUBJECT_CELL}>
+      <Td>
         {/* One instance label (#322 U13): the business key, the UUID a
             copyable chip beside it, never a three-line UUID. */}
         <InstanceLabel id={row.id} businessKey={row.businessKey} />

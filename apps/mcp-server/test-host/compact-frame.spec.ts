@@ -655,19 +655,20 @@ test.describe("a 320 px card's tables", () => {
   })
 })
 
-async function actionsHeadOverButtons(region: Locator) {
-  return region.evaluate((el) => {
+/** `group` is what a row's last cell holds its actions in: a group of them, or its one button. */
+async function actionsHeadOverButtons(region: Locator, group = "div") {
+  return region.evaluate((el, group) => {
     const head = [...el.querySelectorAll("thead th")].at(-1)!
     const range = document.createRange()
     range.selectNodeContents(head)
-    const groups = [...el.querySelectorAll("tbody tr td:last-child > div")]
+    const groups = [...el.querySelectorAll(`tbody tr td:last-child > ${group}`)]
     return {
       head: head.textContent,
       align: getComputedStyle(head).textAlign,
       word: Math.round(range.getBoundingClientRect().right),
       buttons: [...new Set(groups.map((group) => Math.round(group.getBoundingClientRect().right)))],
     }
-  })
+  }, group)
 }
 
 test.describe("a 760 px card's action heads", () => {
@@ -690,6 +691,45 @@ test.describe("a 760 px card's action heads", () => {
     const region = app.getByRole("region", { name: "Running instances", exact: true })
     await expect(region.locator("tbody tr").first()).toBeVisible({ timeout: 15_000 })
     const seen = await actionsHeadOverButtons(region)
+    expect(seen).toMatchObject({ head: "Actions", align: "right" })
+    expect(seen.buttons).toEqual([seen.word])
+  })
+
+  test("the overview's processes and the jobs name their actions head, over their buttons", async ({
+    page,
+  }) => {
+    const views = [
+      { args: { engine: HEALTHY_ENGINE }, region: /^Deployed process definitions/ },
+      { args: { engine: HEALTHY_ENGINE, view: "jobs" }, region: /^Jobs$/ },
+    ]
+    for (const view of views) {
+      const app = await openView(page, view.args, { width: 760 })
+      const region = app.getByRole("region", { name: view.region })
+      await expect(region.locator("tbody tr").first()).toBeVisible({ timeout: 15_000 })
+      await expect(region.getByRole("columnheader", { name: "Actions" })).toHaveCount(1)
+      const seen = await actionsHeadOverButtons(region)
+      expect(seen).toMatchObject({ head: "Actions", align: "right" })
+      expect(seen.buttons).toEqual([seen.word])
+    }
+  })
+
+  test("an instance's variables name their edit column's head where the deployment offers the edit", async ({
+    page,
+  }) => {
+    const app = await openView(page, INSTANCE_ARGS, {
+      hostEnv: "HOST_SIM_OPERATIONS_URL",
+      width: 760,
+    })
+    await app
+      .getByRole("tab", { name: /^Variables/ })
+      .first()
+      .click({ timeout: 15_000 })
+    const region = app.getByRole("region", { name: "Process instance variables" })
+    await expect(region.getByRole("button", { name: "Edit" }).first()).toBeVisible({
+      timeout: 15_000,
+    })
+    await expect(region.getByRole("columnheader", { name: "Actions" })).toHaveCount(1)
+    const seen = await actionsHeadOverButtons(region, "button")
     expect(seen).toMatchObject({ head: "Actions", align: "right" })
     expect(seen.buttons).toEqual([seen.word])
   })

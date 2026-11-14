@@ -44,6 +44,14 @@ describe("ConditionChip", () => {
     expect(classes(remove)).toContain("size-control-xs")
   })
 
+  it("shows the remove button's own name on hover, the chip's text everywhere else", () => {
+    render(<ConditionChip prefix="At" label="Check order" onEdit={vi.fn()} onRemove={vi.fn()} />)
+    const remove = screen.getByRole("button", { name: "Remove filter At Check order" })
+    expect(remove.getAttribute("title")).toBe("Remove filter At Check order")
+    const edit = screen.getByRole("button", { name: "Edit filter At Check order" })
+    expect(edit.closest("[title]")?.getAttribute("title")).toBe("At Check order")
+  })
+
   it("hands its edit button to the editor, whose dialog gives the focus back to it on close", async () => {
     function Editable() {
       const [open, setOpen] = useState(false)

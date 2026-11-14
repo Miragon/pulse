@@ -240,7 +240,9 @@ export function VariablesTable({
         { label: t("instanceSections.columnName") },
         { label: t("instanceSections.columnType") },
         { label: t("instanceSections.columnValue") },
-        ...(editable ? [{ plain: true, sticky: true }] : []),
+        ...(editable
+          ? [{ label: t("instanceSections.columnActions"), align: "right" as const, sticky: true }]
+          : []),
       ]}
     >
       {entries.map(([name, variable]) => (

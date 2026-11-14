@@ -114,9 +114,11 @@ export function IncidentDetailWidget({
     available: refreshError === null,
   })
 
+  // New highlights reimport the diagram: one array per activity, so a refetch never redraws it.
+  const activityId = data?.activityId
   const highlights = useMemo<BpmnHighlight[]>(
-    () => [{ kind: "incident", activityIds: data ? [data.activityId] : [] }],
-    [data?.activityId],
+    () => [{ kind: "incident", activityIds: activityId === undefined ? [] : [activityId] }],
+    [activityId],
   )
 
   if (!data) return guard

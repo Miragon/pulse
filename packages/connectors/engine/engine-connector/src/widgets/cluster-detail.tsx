@@ -38,7 +38,7 @@ import {
 import { AlarmCount } from "./lib/alarm-count.js"
 import { useActionAllowed } from "./lib/engine-action.js"
 import { useHandOff, type ViewContext } from "./lib/hand-off.js"
-import { InstanceLabel, SUBJECT_CELL, SUBJECT_COLUMN } from "./lib/identity.js"
+import { InstanceLabel } from "./lib/identity.js"
 import { instanceName } from "./lib/write-feedback.js"
 import { useT } from "../messages/use-t.js"
 
@@ -196,7 +196,7 @@ function IncidentRow({
   const label = instanceName(row.processInstanceId, row.businessKey)
   return (
     <tr>
-      <Td className={SUBJECT_CELL}>
+      <Td>
         <InstanceLabel id={row.processInstanceId} businessKey={row.businessKey} />
       </Td>
       {showProcess && (
@@ -316,7 +316,7 @@ function ClusterDetailView({
                   ariaLabel={t("clusterDetail.affectedInstances")}
                   columns={[
                     // The instance whole while there is room; the process gives way first.
-                    { label: t("clusterDetail.colInstance"), className: SUBJECT_COLUMN },
+                    { label: t("clusterDetail.colInstance"), fit: true },
                     ...(spansProcesses(data)
                       ? [{ label: t("clusterDetail.colProcess"), hideBelow: "sm" as const }]
                       : []),

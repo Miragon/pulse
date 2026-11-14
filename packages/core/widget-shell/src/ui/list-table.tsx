@@ -40,6 +40,12 @@ export interface ListTableColumn {
    */
   sticky?: boolean | ColumnBreakpoint
   sort?: ColumnSort
+  /**
+   * Fits its content (pulse-ui's `DataTable` `fit`): as narrow as its cells' one line, a `NamedId`
+   * in them whole, so a column without it (a message, a name) takes the room it leaves. For an
+   * identifying column, a time or the row actions beside a long text.
+   */
+  fit?: boolean
 }
 
 /**
@@ -187,8 +193,9 @@ function GroupRow({ groups }: { groups: ReadonlyArray<ListTableGroup> }) {
  * compact rows, ids in one line) with the columns a narrow region drops (`hideBelow`), a pinned
  * action column, heads over groups of columns, and the inline fit: inside `PagedRows` it hands
  * its body to the paged fit instead of capping twice. Rows stay hand-composed per widget, since
- * cells differ; the rules address cell positions. Its columns fit their content and are not
- * sized: it hands `DataTable` no `sizing`, so no head has a grip or a column menu.
+ * cells differ; the rules address cell positions. Its columns are laid out by their content, a
+ * column marked `fit` as narrow as its one line, and are not sized: it hands `DataTable` no
+ * `sizing`, so no head has a grip or a column menu.
  */
 export function ListTable({
   columns,
@@ -225,6 +232,7 @@ export function ListTable({
     align: column.align,
     plain: column.plain,
     sort: column.sort,
+    fit: column.fit,
     className: column.className,
   }))
   return (

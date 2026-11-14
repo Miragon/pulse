@@ -151,6 +151,38 @@ describe("ListTable: the table never widens the document (U2, WCAG 1.4.10)", () 
     expect(screen.getByRole("columnheader").className).not.toContain("whitespace-nowrap")
   })
 
+  it("fits a column marked `fit` to its one line (DataTable's fit), the others laid out by content", () => {
+    const { container } = render(
+      <ListTable
+        ariaLabel="Incidents"
+        columns={[
+          { label: "Instance", fit: true },
+          { label: "Message" },
+          { label: "Actions", sticky: "sm", fit: true },
+        ]}
+      >
+        <tr>
+          <Td>INV-1</Td>
+          <Td>Card declined</Td>
+          <Td>
+            <button type="button">Open</button>
+          </Td>
+        </tr>
+        <tr>
+          <td colSpan={3}>Retry failed</td>
+        </tr>
+      </ListTable>,
+    )
+    const fits = screen
+      .getAllByRole("columnheader")
+      .map((head) => head.className.split(/\s+/).includes("w-[1%]"))
+    expect(fits).toEqual([true, false, true])
+    const marks = [...container.querySelectorAll("tbody tr")].map((row) =>
+      [...row.children].map((cell) => cell.hasAttribute("data-fit")),
+    )
+    expect(marks).toEqual([[true, false, true], [false]])
+  })
+
   it("scopes each table on its own", () => {
     render(
       <>

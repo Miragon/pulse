@@ -73,7 +73,8 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   a way to the rest (fullscreen where the host offers it); the BPMN canvas stays at 320 px.
   Layout, states and feedback: `ListTable`, over pulse-ui's `DataTable`, scrolls inside a
   named, keyboard-reachable region with a sticky head and 28 px rows (column priorities via
-  `hideBelow`, the row actions pinned with `sticky`, the sorted
+  `hideBelow`, the row actions pinned with `sticky`, a column as narrow as its one line with
+  `fit`, pulse-ui's `DataTable` `fit`, so a long text column takes the rest, the sorted
   column marked with `sort`, heads over adjacent columns with `groups`, captions that wrap in a
   wide table of figures with `wrapHeads`), `IdCell`/`IdText`
   show an id shortened in Geist Mono with a copy button (the short form, `shortId`, and the
