@@ -1,0 +1,33 @@
+{
+  "case": "deadline-exceeded",
+  "connection": {
+    "credentials": {
+      "kind": "none"
+    },
+    "endpoint": "http://127.0.0.1:<port>/v2"
+  },
+  "probes": [
+    {
+      "call": "describeEngine",
+      "outcome": {
+        "failure": "unreachable",
+        "hint": null,
+        "message": "http://127.0.0.1:<port>/v2/topology did not answer within 60000 ms"
+      },
+      "sent": [
+        "GET /v2/topology"
+      ]
+    },
+    {
+      "call": "getInstanceDetail 9007199254740993",
+      "outcome": {
+        "failure": "unreachable",
+        "hint": null,
+        "message": "http://127.0.0.1:<port>/v2/topology did not answer within 60000 ms"
+      },
+      "sent": [
+        "GET /v2/topology"
+      ]
+    }
+  ]
+}

@@ -35,13 +35,19 @@ at least one engine test, and an engines config that runs every one and switches
 a profile of `.pulse.json` with its login; `c8:down` removes it.
 
 Its wire passes the transport's conformance cases it can express
-(`test/wire/transport-cases.test.ts`). Its closed-world dependency rules are
+(`test/wire/transport-cases.test.ts`), and its error-path goldens (`test/goldens/`) pin what it
+reports for the failures the MCP server, the CLI and the C7 adapter pin, made with a Camunda 8
+cluster's answers, and for those of Camunda 8 alone: a token endpoint's refusal and hold, the
+renewal of a refused token, the version floor, the `/v2` hint and a cluster without secondary
+storage (`test/__golden__/error-paths/README.md`; an intended change runs `golden:update`, never a
+hand edit). Its closed-world dependency rules are
 `.dependency-cruiser.cjs` (`pnpm lint:architecture:c8-adapter`; only the wire imports the
 transport, by its main entry and `./oauth`); the decisions behind it are
 `apps/vscode/docs/adr/c8-adapter.md`.
 
 ```sh
-pnpm --filter @miragon/pulse-c8-adapter test   # against a fake REST API and the transport's loopback engine, coverage floors
+pnpm --filter @miragon/pulse-c8-adapter test   # against a fake REST API and the transport's loopback engine, the goldens, coverage floors
+pnpm --fail-if-no-match --filter @miragon/pulse-c8-adapter golden:update   # rewrite the error-path goldens (refused in CI)
 pnpm exec turbo run build --filter=@miragon/pulse-c8-adapter...   # once, before the engine suite
 PULSE_ENGINE_IMAGE=camunda/camunda:8.9.28 PULSE_C8_STORAGE=h2 PULSE_C8_SECURITY=oidc \
   pnpm --filter @miragon/pulse-c8-adapter run test:engines   # one leg; needs podman/docker

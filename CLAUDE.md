@@ -1081,12 +1081,17 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
   `packages/connectors/c7/c7-adapter/test/goldens/`, also pin one list of
   failures: redirect, 401 per auth type, wrong root, missing resource, a secret in an engine
   text, deadline, refused, TLS, DNS, size, `€`, `.` and `..`, `//`, token line breaks, integers
-  beyond 2^53. Each `__golden__/error-paths/README.md` says per case what is pinned, not
-  reachable or deferred, and which later step changes a pinned bug. Each surface keeps its copy
-  of the cases and the engine answers that make them (`error-cases.ts`);
-  `scripts/error-path-goldens.test.mjs` holds the three copies and the case tables equal. The
-  update path is each package's `golden:update`, refused in CI, never a hand edit:
-  `pnpm --fail-if-no-match --filter <package> golden:update`.
+  beyond 2^53. The C8 adapter of the editor hosts
+  (`packages/connectors/c8/c8-adapter/test/goldens/`) pins the same list with the answers of a
+  Camunda 8 cluster (problem details on `/v2`, tokens from a token endpoint), and in a second
+  table the cases of Camunda 8 alone: a token endpoint's refusal and hold, the renewal of a
+  refused token, the version floor, the `/v2` hint, a cluster without secondary storage. Each
+  `__golden__/error-paths/README.md` says per case what is pinned, not reachable or deferred,
+  and which later step changes a pinned bug. Each surface keeps its copy of the cases and the
+  engine answers that make them (`error-cases.ts`); `scripts/error-path-goldens.test.mjs` holds
+  the four case lists and first tables equal, and the copies of the three surfaces of the
+  Camunda 7 REST API below their headers. The update path is each package's `golden:update`,
+  refused in CI, never a hand edit: `pnpm --fail-if-no-match --filter <package> golden:update`.
 - **The widget bundle has a budget.** Every view resource inlines the whole bundle, so its
   size is the cost of every render: `test/__golden__/bundle-budget.json` holds shrink-only gzip
   ceilings that `test-host/bundle-budget.spec.ts` checks; growth needs a `Ratchet-Exception:`

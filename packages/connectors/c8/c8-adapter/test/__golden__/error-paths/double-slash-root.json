@@ -1,0 +1,23 @@
+{
+  "case": "double-slash-root",
+  "connection": {
+    "credentials": {
+      "kind": "none"
+    },
+    "endpoint": "http://127.0.0.1:<port>/v2//"
+  },
+  "probes": [
+    {
+      "call": "describeEngine",
+      "outcome": {
+        "returned": {
+          "product": "Camunda 8",
+          "version": "8.9.28"
+        }
+      },
+      "sent": [
+        "GET /v2/topology"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "case": "token-endpoint-rate-limit",
+  "connection": {
+    "credentials": {
+      "audience": "camunda",
+      "clientId": "pulse-reader",
+      "clientSecret": "reader-secret",
+      "kind": "clientCredentials",
+      "tokenEndpoint": "http://127.0.0.1:<port>/realms/pulse/protocol/openid-connect/token"
+    },
+    "endpoint": "http://127.0.0.1:<port>/v2"
+  },
+  "probes": [
+    {
+      "call": "describeEngine",
+      "outcome": {
+        "failure": "engineFailure",
+        "hint": null,
+        "message": "The token endpoint limits requests from this address. Pulse waits as long as the endpoint asks before it requests another token."
+      },
+      "sent": [
+        "POST /realms/pulse/protocol/openid-connect/token grant_type=client_credentials&audience=camunda&client_id=pulse-reader&client_secret=reader-secret"
+      ]
+    },
+    {
+      "atSecond": 29,
+      "call": "describeEngine",
+      "outcome": {
+        "failure": "engineFailure",
+        "hint": null,
+        "message": "The token endpoint limits requests from this address. Pulse waits as long as the endpoint asks before it requests another token."
+      },
+      "sent": []
+    },
+    {
+      "atSecond": 31,
+      "call": "describeEngine",
+      "outcome": {
+        "returned": {
+          "product": "Camunda 8",
+          "version": "8.9.28"
+        }
+      },
+      "sent": [
+        "POST /realms/pulse/protocol/openid-connect/token grant_type=client_credentials&audience=camunda&client_id=pulse-reader&client_secret=reader-secret",
+        "GET /v2/topology [Bearer tok-after-the-wait]"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "case": "unauthorized-none",
+  "connection": {
+    "credentials": {
+      "kind": "none"
+    },
+    "endpoint": "http://127.0.0.1:<port>/v2"
+  },
+  "probes": [
+    {
+      "call": "describeEngine",
+      "outcome": {
+        "failure": "unauthorized",
+        "hint": null,
+        "message": "HTTP 401 Unauthorized: An Authentication object was not found in the SecurityContext"
+      },
+      "sent": [
+        "GET /v2/topology"
+      ]
+    },
+    {
+      "call": "getInstanceDetail 9007199254740993",
+      "outcome": {
+        "failure": "unauthorized",
+        "hint": null,
+        "message": "HTTP 401 Unauthorized: An Authentication object was not found in the SecurityContext"
+      },
+      "sent": [
+        "GET /v2/topology"
+      ]
+    }
+  ]
+}

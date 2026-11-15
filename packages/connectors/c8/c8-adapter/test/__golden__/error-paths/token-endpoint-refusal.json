@@ -1,0 +1,48 @@
+{
+  "case": "token-endpoint-refusal",
+  "connection": {
+    "credentials": {
+      "audience": "camunda",
+      "clientId": "pulse-reader",
+      "clientSecret": "reader-secret",
+      "kind": "clientCredentials",
+      "tokenEndpoint": "http://127.0.0.1:<port>/realms/pulse/protocol/openid-connect/token"
+    },
+    "endpoint": "http://127.0.0.1:<port>/v2"
+  },
+  "probes": [
+    {
+      "call": "describeEngine",
+      "outcome": {
+        "failure": "unauthorized",
+        "hint": "Check the client ID and the secret you entered for this engine.",
+        "message": "The token endpoint refused the client ID or secret (unauthorized_client)."
+      },
+      "sent": [
+        "POST /realms/pulse/protocol/openid-connect/token grant_type=client_credentials&audience=camunda&client_id=pulse-reader&client_secret=reader-secret"
+      ]
+    },
+    {
+      "atSecond": 59,
+      "call": "describeEngine",
+      "outcome": {
+        "failure": "unauthorized",
+        "hint": "Check the client ID and the secret you entered for this engine.",
+        "message": "The token endpoint refused the client ID or secret (unauthorized_client)."
+      },
+      "sent": []
+    },
+    {
+      "atSecond": 61,
+      "call": "describeEngine",
+      "outcome": {
+        "failure": "unauthorized",
+        "hint": "Check the client ID and the secret you entered for this engine.",
+        "message": "The token endpoint refused the client ID or secret (unauthorized_client)."
+      },
+      "sent": [
+        "POST /realms/pulse/protocol/openid-connect/token grant_type=client_credentials&audience=camunda&client_id=pulse-reader&client_secret=reader-secret"
+      ]
+    }
+  ]
+}

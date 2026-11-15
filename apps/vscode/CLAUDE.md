@@ -23,7 +23,7 @@ pnpm lint:deadcode:exports                      # knip over every workspace but 
 pnpm --filter pulse-cockpit test                 # the host's unit and architecture tests, coverage floors, the brand and word scans
 pnpm --filter @miragon/pulse-runtime-view test   # core, model, host kit and webview (Chromium) tests, coverage floors per layer
 pnpm --filter @miragon/pulse-c7-adapter test     # the C7 adapter against a recorded REST API and its error-path goldens
-pnpm --filter @miragon/pulse-c8-adapter test     # the C8 adapter against a fake REST API and the transport's loopback engine
+pnpm --filter @miragon/pulse-c8-adapter test     # the C8 adapter against a fake REST API, the transport's loopback engine and its error-path goldens
 pnpm --filter @miragon/pulse-engine-core test   # the kit's self-tests: the fake passes every law, 71 saboteurs fail theirs
 pnpm --filter @miragon/pulse-c7-adapter run test:engines # adapter conformance on a real engine; needs podman/docker
 pnpm --filter @miragon/pulse-c8-adapter run test:engines # on a local Camunda 8 cluster; needs PULSE_ENGINE_IMAGE=camunda/camunda:<version>
@@ -276,6 +276,12 @@ engine at history level AUDIT too
   the files and the case table in `packages/connectors/c7/c7-adapter/test/__golden__/error-paths/`)
   pin what it reports for the engine failures that table lists. An intended change runs
   `pnpm --fail-if-no-match --filter @miragon/pulse-c7-adapter golden:update` (refused in CI)
+  and commits the diff; never edit a golden by hand.
+- The C8 adapter's error-path goldens (`packages/connectors/c8/c8-adapter/test/goldens/`, the
+  files and the two case tables in `packages/connectors/c8/c8-adapter/test/__golden__/error-paths/`)
+  pin what it reports for the same cases, made with the answers of a Camunda 8 cluster, and for
+  the cases of Camunda 8 alone in the second table. An intended change runs
+  `pnpm --fail-if-no-match --filter @miragon/pulse-c8-adapter golden:update` (refused in CI)
   and commits the diff; never edit a golden by hand.
 - A new gate is a rule in a standard tool (ESLint, dependency-cruiser, knip, tsc, Vitest) or
   a test. A rule you write proves it bites with a case in the `test/architecture` of the package

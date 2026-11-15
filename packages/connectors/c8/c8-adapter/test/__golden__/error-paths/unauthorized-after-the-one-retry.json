@@ -1,0 +1,41 @@
+{
+  "case": "unauthorized-after-the-one-retry",
+  "connection": {
+    "credentials": {
+      "audience": "camunda",
+      "clientId": "pulse-reader",
+      "clientSecret": "reader-secret",
+      "kind": "clientCredentials",
+      "tokenEndpoint": "http://127.0.0.1:<port>/realms/pulse/protocol/openid-connect/token"
+    },
+    "endpoint": "http://127.0.0.1:<port>/v2"
+  },
+  "probes": [
+    {
+      "call": "describeEngine",
+      "outcome": {
+        "failure": "unauthorized",
+        "hint": null,
+        "message": "HTTP 401 Unauthorized"
+      },
+      "sent": [
+        "POST /realms/pulse/protocol/openid-connect/token grant_type=client_credentials&audience=camunda&client_id=pulse-reader&client_secret=reader-secret",
+        "GET /v2/topology [Bearer tok-one-1]"
+      ]
+    },
+    {
+      "atSecond": 31,
+      "call": "describeEngine",
+      "outcome": {
+        "failure": "unauthorized",
+        "hint": null,
+        "message": "HTTP 401 Unauthorized"
+      },
+      "sent": [
+        "GET /v2/topology [Bearer tok-one-1]",
+        "POST /realms/pulse/protocol/openid-connect/token grant_type=client_credentials&audience=camunda&client_id=pulse-reader&client_secret=reader-secret",
+        "GET /v2/topology [Bearer tok-two-2]"
+      ]
+    }
+  ]
+}

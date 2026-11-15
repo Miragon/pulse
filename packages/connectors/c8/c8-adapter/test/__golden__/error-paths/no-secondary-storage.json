@@ -1,0 +1,35 @@
+{
+  "case": "no-secondary-storage",
+  "connection": {
+    "credentials": {
+      "kind": "none"
+    },
+    "endpoint": "http://127.0.0.1:<port>/v2"
+  },
+  "probes": [
+    {
+      "call": "describeEngine",
+      "outcome": {
+        "returned": {
+          "product": "Camunda 8",
+          "version": "8.9.28"
+        }
+      },
+      "sent": [
+        "GET /v2/topology"
+      ]
+    },
+    {
+      "call": "getInstanceDetail 9007199254740993",
+      "outcome": {
+        "failure": "misconfigured",
+        "hint": "Pulse reads the cluster's search API, which needs secondary storage such as Elasticsearch, OpenSearch or a relational database.",
+        "message": "This cluster runs without secondary storage, so Pulse has nothing to read."
+      },
+      "sent": [
+        "GET /v2/process-instances/9007199254740993",
+        "GET /v2/topology"
+      ]
+    }
+  ]
+}

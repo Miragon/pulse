@@ -1,0 +1,22 @@
+{
+  "case": "url-of-operate",
+  "connection": {
+    "credentials": {
+      "kind": "none"
+    },
+    "endpoint": "http://127.0.0.1:<port>/operate"
+  },
+  "probes": [
+    {
+      "call": "describeEngine",
+      "outcome": {
+        "failure": "misconfigured",
+        "hint": "The profile's url must be the REST root of the cluster and end in /v2.",
+        "message": "HTTP 404 Not Found: No endpoint GET /operate/topology."
+      },
+      "sent": [
+        "GET /operate/topology"
+      ]
+    }
+  ]
+}

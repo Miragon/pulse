@@ -5,23 +5,36 @@ import { describe, it } from "node:test"
 import { REPO_ROOT } from "./source-scan.mjs"
 
 /**
- * The error-path goldens (T0) of the three interfaces name the same cases in the same order and
- * make each case with the same engine answers, and the MCP server's and the CLI's output goldens
- * (W0) read the same engine. Apps share no code, so each surface keeps its own copy of the case
+ * The error-path goldens (T0) of the interfaces name the same cases in the same order: the MCP
+ * server's, the CLI's and the two adapters' of the editor hosts. The three surfaces that speak the
+ * Camunda 7 REST API make each case with the same engine answers, and the MCP server's and the
+ * CLI's output goldens (W0) read the same engine; the C8 adapter makes the cases with its own
+ * answers, since a Camunda 8 cluster answers otherwise, and pins the cases of Camunda 8 alone in a
+ * second table of its README. Apps share no code, so each surface keeps its own copy of the case
  * list and its answers (error-cases.ts), its test and its fixtures; each surface's own test holds
- * its README table to its list and its golden files, and this guard holds the three tables, the
- * three case files and the two world copies to one another, below their headers. Each case is a
- * conformance case of the transport too (@miragon/pulse-http/testing, TRANSPORT_CASES), under the
- * same name, which every wiring of the transport runs.
+ * its README tables to its lists and its golden files, and this guard holds the four first tables
+ * and the four case lists to one another, and the three C7 case files and the two world copies to
+ * one another below their headers. Each shared case is a conformance case of the transport too
+ * (@miragon/pulse-http/testing, TRANSPORT_CASES), under the same name, which every wiring of the
+ * transport runs.
  */
 
-const SURFACES = ["apps/mcp-server", "apps/cli", "packages/connectors/c7/c7-adapter"]
+const SURFACES = [
+  "apps/mcp-server",
+  "apps/cli",
+  "packages/connectors/c7/c7-adapter",
+  "packages/connectors/c8/c8-adapter",
+]
 
+/** The case files of the surfaces that speak the Camunda 7 REST API: the same answers. */
 const CASE_FILES = [
   "apps/mcp-server/test/engine-goldens/error-cases.ts",
   "apps/cli/test/support/error-cases.ts",
   "packages/connectors/c7/c7-adapter/test/goldens/error-cases.ts",
 ]
+
+/** The C8 adapter's case file: the same case list, its own answers. */
+const C8_CASE_FILE = "packages/connectors/c8/c8-adapter/test/goldens/error-cases.ts"
 
 /** The files of the transport's conformance cases, one per group. */
 const TRANSPORT_CASE_FILES = ["wire-cases.ts", "credential-cases.ts", "request-cases.ts"].map(
@@ -38,9 +51,30 @@ function transportNames(source) {
   return [...source.matchAll(/^ {4}name: "([a-z0-9-]+)",$/gm)].map((match) => match[1])
 }
 
-/** The case names of a README table, in order: rows of the form `| \`case\` | status |`. */
+/** A README's first table: its lines from the first that starts with `|` to the next that does not. */
+function firstTable(markdown) {
+  const lines = markdown.split("\n")
+  const start = lines.findIndex((line) => line.startsWith("|"))
+  if (start === -1) return ""
+  const end = lines.findIndex((line, index) => index > start && !line.startsWith("|"))
+  return lines.slice(start, end === -1 ? undefined : end).join("\n")
+}
+
+/**
+ * The shared case names of a README, in order: the rows of its first table of the form
+ * `| \`case\` | status |`. A table after it (the C8 adapter's cases of Camunda 8 alone) is the
+ * surface's own.
+ */
 function caseNames(markdown) {
-  return [...markdown.matchAll(/^\| `([a-z0-9-]+)` \| [a-z ]+? \|/gm)].map((match) => match[1])
+  return [...firstTable(markdown).matchAll(/^\| `([a-z0-9-]+)` \| [a-z ]+? \|/gm)].map(
+    (match) => match[1],
+  )
+}
+
+/** The names of a case file's `ERROR_PATH_CASES` list, in order; none when it holds no list. */
+function listedCases(source) {
+  const list = /export const ERROR_PATH_CASES = \[([^\]]*)\] as const/.exec(source)?.[1] ?? ""
+  return [...list.matchAll(/"([a-z0-9-]+)"/g)].map((match) => match[1])
 }
 
 /**
@@ -66,6 +100,37 @@ describe("the error-path cases", () => {
     assert.deepEqual(caseNames(table), ["redirect", "too-large-response"])
   })
 
+  it("reads the first table only, never a surface's own table after it", () => {
+    const readme = [
+      "# Goldens",
+      "",
+      "| Case | Status | Why |",
+      "| ---- | ------ | --- |",
+      "| `redirect` | pinned | a 302 |",
+      "",
+      "The cases of one engine alone:",
+      "",
+      "| Case | Status | Why |",
+      "| ---- | ------ | --- |",
+      "| `version-below-the-floor` | pinned | 8.8 |",
+    ].join("\n")
+    assert.deepEqual(caseNames(readme), ["redirect"])
+    assert.deepEqual(caseNames("no table at all"), [])
+  })
+
+  it("reads a case file's list and nothing after it", () => {
+    const source = [
+      "export const ERROR_PATH_CASES = [",
+      '  "redirect",',
+      '  "unauthorized-none",',
+      "] as const",
+      "",
+      'export const CAMUNDA_8_CASES = ["version-below-the-floor"] as const',
+    ].join("\n")
+    assert.deepEqual(listedCases(source), ["redirect", "unauthorized-none"])
+    assert.deepEqual(listedCases('const OTHER = ["redirect"]'), [])
+  })
+
   it("are the same on every surface, in the same order", () => {
     const [first, ...others] = SURFACES.map((dir) => ({
       dir,
@@ -76,6 +141,17 @@ describe("the error-path cases", () => {
       assert.deepEqual(other.names, first.names, `${other.dir} differs from ${first.dir}`)
     }
   })
+
+  it("are the same list in every case file, the C8 adapter's included", () => {
+    const [first, ...others] = [...CASE_FILES, C8_CASE_FILE].map((rel) => ({
+      rel,
+      names: listedCases(read(rel)),
+    }))
+    assert.ok(first.names.length >= 18, `${first.rel} lists only ${first.names.length} cases`)
+    for (const other of others) {
+      assert.deepEqual(other.names, first.names, `${other.rel} differs from ${first.rel}`)
+    }
+  })
 })
 
 describe("the shared files", () => {
@@ -84,7 +160,7 @@ describe("the shared files", () => {
     assert.equal(sharedBody('import x\n\nexport const A = ["a"]\n'), '\nexport const A = ["a"]\n')
   })
 
-  it("make each case with the same list and answers on every surface", () => {
+  it("make each case with the same list and answers on every surface of the Camunda 7 REST API", () => {
     const [first, ...others] = CASE_FILES.map((rel) => ({ rel, body: sharedBody(read(rel)) }))
     assert.ok(first.body.includes("export const ERROR_PATH_CASES"), "the scanner reads no cases")
     for (const other of others) {

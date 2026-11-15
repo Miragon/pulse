@@ -1,0 +1,83 @@
+{
+  "case": "integer-beyond-2-53",
+  "connection": {
+    "credentials": {
+      "kind": "none"
+    },
+    "endpoint": "http://127.0.0.1:<port>/v2"
+  },
+  "probes": [
+    {
+      "call": "getInstanceDetail 9007199254740993",
+      "outcome": {
+        "returned": {
+          "calledInstances": [],
+          "incidents": [],
+          "instance": {
+            "businessKey": "ORD-1001",
+            "definition": {
+              "bpmnProcessId": "pulse-order",
+              "id": "2251799813685326",
+              "name": "Order fulfillment",
+              "version": 2
+            },
+            "hasIncident": false,
+            "id": "9007199254740993",
+            "startedAt": "2026-11-15T08:41:12.345Z",
+            "state": "running"
+          },
+          "path": [
+            {
+              "canceled": false,
+              "elementId": "Event_OrderReceived",
+              "elementName": "Order received",
+              "endedAt": "2026-11-15T08:41:12.345Z",
+              "startedAt": "2026-11-15T08:41:12.345Z"
+            },
+            {
+              "canceled": false,
+              "elementId": "Activity_ChargePayment",
+              "elementName": "Charge payment",
+              "startedAt": "2026-11-15T08:41:12.345Z"
+            }
+          ],
+          "truncated": false,
+          "variables": [
+            {
+              "kind": "integer",
+              "name": "big",
+              "scope": {
+                "kind": "instance"
+              },
+              "truncated": false,
+              "valueJson": "9223372036854775807"
+            }
+          ],
+          "waitStates": [
+            {
+              "elementId": "Activity_ChargePayment",
+              "elementName": "Charge payment",
+              "instanceId": "9007199254740993",
+              "kind": "workerTask",
+              "retriesLeft": 3,
+              "since": "2026-11-15T08:41:12.345Z",
+              "taskType": "charge-payment"
+            }
+          ]
+        }
+      },
+      "sent": [
+        "GET /v2/process-instances/9007199254740993",
+        "GET /v2/topology",
+        "POST /v2/element-instances/search",
+        "POST /v2/element-instances/search",
+        "POST /v2/incidents/search",
+        "POST /v2/jobs/search",
+        "POST /v2/message-subscriptions/search",
+        "POST /v2/process-instances/search",
+        "POST /v2/user-tasks/search",
+        "POST /v2/variables/search"
+      ]
+    }
+  ]
+}

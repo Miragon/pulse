@@ -219,8 +219,16 @@ once per process; no host composes it in this step.
 - CI runs no Camunda 8 image until the licence question of #531 has an answer: the images fall
   under Camunda's Self-Managed non-production terms, which allow development and tests. CI proves
   the adapter on the fake REST API and the transport's loopback engine only, so a regression
-  against a real cluster shows in a local run. The error-path goldens follow in their own
-  commit.
+  against a real cluster shows in a local run.
+- The error-path goldens (`packages/connectors/c8/c8-adapter/test/goldens/`) pin what the adapter
+  reports on loopback engines over the real `fetch`: the cases the MCP server, the CLI and the C7
+  adapter pin, under their names, with the answers a Camunda 8.9 cluster and Keycloak give (a
+  bearer token from a token endpoint where the others send a fixed one; passthrough not
+  reachable), and the cases of Camunda 8 alone: a token endpoint's refusal and its hold, a rate
+  limit's wait, the one renewal of a refused token, the version floor, the `/v2` hint for
+  Operate's address and a cluster without secondary storage
+  (`packages/connectors/c8/c8-adapter/test/__golden__/error-paths/README.md`).
+  `scripts/error-path-goldens.test.mjs` holds its case list and first table to the other surfaces'.
 - Two profiles that name the same client of the same cluster with different secrets, audiences or
   scopes replace each other's token source, so each of their reads asks for a token.
 
@@ -237,3 +245,6 @@ once per process; no host composes it in this step.
   or scopes replaces (#617).
 - 2026-11-15: the conformance kit on a local cluster (#543's matrix, Thomas Heinrichs), with no
   CI job until #531 (#617).
+- 2026-11-15: error-path goldens under the names of the other surfaces with the answers of a
+  Camunda 8 cluster, plus the cases of Camunda 8 alone, among them #543's token wording and version
+  floor (#617).

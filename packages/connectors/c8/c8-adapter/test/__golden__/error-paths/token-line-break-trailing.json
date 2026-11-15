@@ -1,0 +1,26 @@
+{
+  "case": "token-line-break-trailing",
+  "connection": {
+    "credentials": {
+      "audience": "camunda",
+      "clientId": "pulse-reader",
+      "clientSecret": "reader-secret",
+      "kind": "clientCredentials",
+      "tokenEndpoint": "http://127.0.0.1:<port>/realms/pulse/protocol/openid-connect/token"
+    },
+    "endpoint": "http://127.0.0.1:<port>/v2"
+  },
+  "probes": [
+    {
+      "call": "describeEngine",
+      "outcome": {
+        "failure": "unexpectedResponse",
+        "hint": null,
+        "message": "The token endpoint answered with a token outside the Bearer token syntax (RFC 6750)."
+      },
+      "sent": [
+        "POST /realms/pulse/protocol/openid-connect/token grant_type=client_credentials&audience=camunda&client_id=pulse-reader&client_secret=reader-secret"
+      ]
+    }
+  ]
+}

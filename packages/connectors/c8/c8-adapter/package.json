@@ -21,6 +21,7 @@
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
     "test:engines": "vitest run --config vitest.engines.config.ts",
+    "golden:update": "turbo run build --filter=@miragon/pulse-c8-adapter^... --output-logs=errors-only && GOLDEN_UPDATE=1 vitest run --project unit --coverage.enabled=false",
     "c8:up": "node scripts/c8.mjs up",
     "c8:down": "node scripts/c8.mjs down",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.build.json",

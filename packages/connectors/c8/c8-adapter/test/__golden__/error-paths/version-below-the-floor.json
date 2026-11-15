@@ -1,0 +1,33 @@
+{
+  "case": "version-below-the-floor",
+  "connection": {
+    "credentials": {
+      "kind": "none"
+    },
+    "endpoint": "http://127.0.0.1:<port>/v2"
+  },
+  "probes": [
+    {
+      "call": "describeEngine",
+      "outcome": {
+        "failure": "misconfigured",
+        "hint": null,
+        "message": "Pulse reads Camunda 8.9 or newer. This cluster runs 8.8.12."
+      },
+      "sent": [
+        "GET /v2/topology"
+      ]
+    },
+    {
+      "call": "getInstanceDetail 9007199254740993",
+      "outcome": {
+        "failure": "misconfigured",
+        "hint": null,
+        "message": "Pulse reads Camunda 8.9 or newer. This cluster runs 8.8.12."
+      },
+      "sent": [
+        "GET /v2/topology"
+      ]
+    }
+  ]
+}

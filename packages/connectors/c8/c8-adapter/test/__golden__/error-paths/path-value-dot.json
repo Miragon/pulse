@@ -1,0 +1,29 @@
+{
+  "case": "path-value-dot",
+  "connection": {
+    "credentials": {
+      "kind": "none"
+    },
+    "endpoint": "http://127.0.0.1:<port>/v2"
+  },
+  "probes": [
+    {
+      "call": "getInstanceDetail .",
+      "outcome": {
+        "returned": "undefined"
+      },
+      "sent": [
+        "GET /v2/topology"
+      ]
+    },
+    {
+      "call": "getInstanceDetail ..",
+      "outcome": {
+        "returned": "undefined"
+      },
+      "sent": [
+        "GET /v2/topology"
+      ]
+    }
+  ]
+}

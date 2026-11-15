@@ -25,7 +25,8 @@ Never edit a golden by hand. An intended change runs
 the diff. The MCP server (`apps/mcp-server/test/__golden__/error-paths`) and the C7 adapter of
 Pulse for VS Code and Pulse for Orca
 (`packages/connectors/c7/c7-adapter/test/__golden__/error-paths`) pin the same cases under
-the same names.
+the same names. The C8 adapter (`packages/connectors/c8/c8-adapter/test/__golden__/error-paths`)
+pins them under the same names with the answers of a Camunda 8 cluster.
 
 The network codes (ECONNREFUSED, ENOTFOUND, DEPTH_ZERO_SELF_SIGNED_CERT) come from Node, not from
 the CLI; they are checked with Node 22.23.4 (CI runs the newest Node 22) and 24.15.0. `dns-failure`
