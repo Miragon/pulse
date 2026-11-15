@@ -2,8 +2,9 @@
 
 - Status: accepted
 - Last reviewed: 2026-11-15 (the wire on `@miragon/pulse-http` and its OAuth client, the REST
-  client with checked views, the wording of its failures and the version floor; the package
-  `@miragon/pulse-c8-adapter` in the c8 family, which no host composes in this step)
+  client with checked views, the wording of its failures, the version floor and the reads onto
+  the contract's read models; the package `@miragon/pulse-c8-adapter` in the c8 family, which no
+  host composes in this step)
 
 ## Context
 
@@ -21,15 +22,33 @@ the last byte, no redirect, the 64 MiB cap, one retry after a 401 and the maskin
 `@miragon/pulse-http`'s, and the client credentials grant with its single flight, early renewal,
 holds and `Retry-After` is `clientCredentialsTokens` of `@miragon/pulse-http/oauth`. The adapter
 re-lands on both and keeps what is its own: the cluster's REST calls, its views, its failures'
-words and the version floor.
+words, the version floor and the reads.
+
+The reads rest on the answers of #543's spike on real engines, 8.9.27 and 8.10.8, each on H2 and
+on Elasticsearch, each without security, with basic authentication and with OIDC:
+
+| Question                                                                      | Answer                                                                                                                  |
+| ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Are `active` and `incidents` of the element statistics disjoint?              | Yes                                                                                                                     |
+| Does a child's incident flag the parent, and does the call activity count it? | Yes: `hasIncident` on the parent, the call activity reads `active 0, incidents 1`, without an `incidentKey`             |
+| Does an embedded sub-process count the incident of an element inside it?      | Yes, like a call activity: `active 0, incidents 1` on the sub-process, `hasIncident` without an `incidentKey`           |
+| Do `variables` filters match element-scope variables?                         | Yes, on both storages                                                                                                   |
+| What does `$gt` on a variable value do?                                       | It answers 400 ("cannot be parsed"), and so does `$lt`                                                                  |
+| What does a client without read permission get?                               | `topology` 200, searches 200 with empty lists, single GETs 403                                                          |
+| Do statistics list idle processes?                                            | No. They work on H2. `isLatestVersion` sorts only by process id and tenant                                              |
+| Does the element search return a `PROCESS` row? Does a 1,000-key `$in` work?  | No row. Yes. A non-numeric key is a 400. Start times tie within a millisecond, so sort by key                           |
+| Where does a count stop?                                                      | `totalItems` stops at 10,000 with `hasMoreTotalItems: true` on Elasticsearch; statistics stay exact                     |
+| What do two tenants with the same process look like?                          | Statistics and searches span every tenant the login may read. Each tenant has its own versions, so `v1` can exist twice |
+| Does a definition's XML arrive with its instances?                            | Not always: on Elasticsearch an instance's elements can be readable before its definition's XML is                      |
 
 ## Decision
 
 `packages/connectors/c8/c8-adapter` (`@miragon/pulse-c8-adapter`, private, bundled by the editor
 hosts) is the c8 family's adapter of the runtime view. In this step it holds the wire, the REST
-client, the wording of failures and the version floor, composed per connection by
-`CamundaClients`, which holds the one `ClientCredentialsSources` of its process; the readers, the
-runtime and the plug of the ports join the same package in the commits after this one.
+client, the wording of failures, the version floor and the readers with their mappings onto the
+contract's read models; `CamundaClients` composes a client per connection and holds the one
+`ClientCredentialsSources` of its process. The runtime that answers the contract with these
+readers and the plug of the ports join the same package in the commits after this one.
 
 - **No client library, no CLI.** `@camunda8/orchestration-cluster-api` brings 1.5 MB of
   JavaScript and zod, which the closed world forbids, reads its settings from the environment,
@@ -77,6 +96,50 @@ runtime and the plug of the ports join the same package in the commits after thi
   per client; below 8.9 a read fails as `misconfigured` with the version it found. 8.8 has no
   `businessId` and no statistics endpoints. A version that does not parse is left to the cluster,
   and a failed read is tried again.
+- **The reads (`src/reading`, `src/mapping`).** One reader per question of the contract, each a
+  class over the REST client, and the mappings from the checked views onto engine-core's read
+  models (#543, with bba04dea and 557a4ce7). What the laws forced:
+  - A key is a decimal Java long: an optional minus and 1 to 19 digits within its range, since the
+    cluster answers 400 beyond it. Anything else is unknown and costs no call (`Keys`), which "Go
+    to instance" and the id laws rely on.
+  - The definitions are the newest latest version of each process across tenants, a deleted one
+    left out, an idle one with zero counts, and the statistics' counts summed over tenants; the
+    versions come newest first with their row of the statistics by version.
+  - Running is `endDate: { $exists: false }`, the order `startDate` descending, then
+    `processInstanceKey`. A page cursor carries the rows seen and the cluster's cursor, and a
+    search goes on past a capped total. A count comes from the search; a capped one falls back to
+    the exact statistics for a plain running count of the engine, a process or a version, and is
+    `{ count: 10000, atLeast: true }` otherwise.
+  - A variable's `equals` is `$eq`, its `notEquals` `$notIn` with one value: on H2 `$neq` with a
+    numeric value skips text values. `like` goes out as `$like` with the JSON quotes around the
+    pattern and `?` and `\` escaped. Greater than, less than and a date fail as `unsupported`
+    before anything is sent.
+  - An incident names its version from one read per definition (`DefinitionRefsCache`, which
+    reads a missing or failed one again), and a row whose definition is gone is left out. Its
+    details are its error message with the root cause by engine-core's `RootCauses`, the rule
+    every dialect shares, instead of #543's copy of it.
+  - A container's own incidents (a call activity, an embedded or event sub-process, an ad-hoc
+    sub-process, a transaction) come from one `incidents` search per such element with an
+    incident. The rest of its count belongs to the elements inside it and counts as active; on a
+    call activity it is also `incidentsInCalledInstances`. When that search stops counting (above
+    10,000 on Elasticsearch), the row keeps the cluster's counts. engine-core gains no field for
+    it.
+  - `calledFromElementId` comes from `parentElementInstanceKey`, a called process from
+    `zeebe:calledElement` by its binding (latest, or its version tag; a deployment binding names
+    no definition, and a call whose process a FEEL expression decides is left out). `BpmnText`
+    reads the diagram as text, as the C7 family's reader does, but like an XML parser where it
+    matters: self-closing elements, both quote styles, entities, and comments and CDATA removed
+    until none is left, so a comment that a removal puts together hides nothing (557a4ce7). A
+    diagram is read once and a missing one is none.
+  - An instance is read first, because an ended read stops live updates. Its details follow,
+    over the whole called tree with at most 50 instances, eight members at a time, and
+    `truncated` says when it holds only part of it. The wait states come from the active elements
+    and their open jobs of any kind, so a long history can't push them out. A listener job of the
+    process itself is a wait at the BPMN process id, a container waits only on an open job or an
+    incident of its own, and a message subscription belongs to an element by key and element id,
+    so a boundary event's message is not its host's wait (bba04dea). The path keeps the newest
+    10,000 runs, and a cut sets `truncated`; a local variable of a run past the cut keeps its
+    element through one `GET /element-instances/{key}`, looked up once per reader.
 - **Closed world.** `packages/connectors/c8/c8-adapter/.dependency-cruiser.cjs`
   (`pnpm lint:architecture:c8-adapter`): its own modules, engine-core's main entry, the runtime
   view's ports, and in `src/wire` alone the transport's main entry and `./oauth`
@@ -100,6 +163,13 @@ runtime and the plug of the ports join the same package in the commits after thi
 - `packages/connectors/c8/c8-adapter/test/wire/client-credentials.test.ts` holds the token reuse:
   a connection built anew sends no second token request and keeps a refusal's hold, another secret
   asks at once.
+- The reads are proven on the fake REST API: each reader in
+  `packages/connectors/c8/c8-adapter/test/reading`, the instance detail by topic in
+  `packages/connectors/c8/c8-adapter/test/reading/instance-detail`, the mappings in
+  `packages/connectors/c8/c8-adapter/test/mapping`.
+- A container with more than 10,000 incidents of its own on Elasticsearch keeps the cluster's
+  unsplit counts, so its row can count incidents inside it as its own. The conformance world never
+  reaches that many.
 - The adapter is proven on a fake REST API in this step; the conformance kit on a local cluster
   and the error-path goldens come with the runtime. CI runs no Camunda 8 image until the licence
   question of #531 has an answer: the images fall under Camunda's Self-Managed non-production
@@ -110,3 +180,6 @@ runtime and the plug of the ports join the same package in the commits after thi
 - 2026-11-05: read-only first, on the floor 8.9 (#543, Thomas Heinrichs).
 - 2026-11-15: the wire on `@miragon/pulse-http` and its OAuth client instead of #543's own HTTP
   seam and grant; the adapter is a package of the c8 family (#617).
+- 2026-11-15: the reads of #543 as readers over the REST client, the root cause by engine-core's
+  `RootCauses`; a capped search for a container's own incidents keeps the cluster's counts, with
+  no new field in engine-core (#617).

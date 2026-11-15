@@ -11,8 +11,9 @@ transport.
 It holds the wire (`src/wire`: `CamundaWire` over `@miragon/pulse-http`, 60 s and 64 MiB on a
 read-only connection, none, Basic or a bearer token from `clientCredentialsTokens` of
 `@miragon/pulse-http/oauth`, one token source per client kept by `ClientCredentialsSources`), the
-REST client with its checked views (`src/rest`), the wording of failures (`src/errors`) and the
-version floor (`src/reading`). `CamundaClients` builds a client per connection. Thomas Heinrichs
+REST client with its checked views (`src/rest`), the wording of failures (`src/errors`), the
+readers and the version floor (`src/reading`) and the mappings onto the read models of
+engine-core (`src/mapping`). `CamundaClients` builds a client per connection. Thomas Heinrichs
 built the adapter in #543; this package re-lands it on the shared transport.
 
 Its wire passes the transport's conformance cases it can express

@@ -40,13 +40,15 @@ flowchart LR
 - `packages/connectors/c8/c8-adapter/src/wire`: `CamundaWire` over the transport, the token sources and the reasons of each failure
 - `packages/connectors/c8/c8-adapter/src/rest`: the REST client: requests, paging, parsed and checked views
 - `packages/connectors/c8/c8-adapter/src/errors`: `ErrorTranslation` and `TokenTexts`, from a failure to a `RuntimeError`
-- `packages/connectors/c8/c8-adapter/src/reading`: the version floor
+- `packages/connectors/c8/c8-adapter/src/reading`: one reader per question (definitions, diagrams, element statistics, called processes, instances and their counts, an instance's detail and wait states, incidents, variable names) and the version floor
+- `packages/connectors/c8/c8-adapter/src/mapping`: keys, page cursors, the BPMN text reader, and the views mapped onto engine-core's read models (the root cause by its `RootCauses`)
 
 ## Rules
 
 - `packages/connectors/c8/c8-adapter/src` imports only engine-core's main entry, the runtime view's ports and, in its wire, the main entry and `./oauth` of `@miragon/pulse-http`; no Node built-in, no c7 package (dependency-cruiser)
 - Engine words are allowed here, not in contract, core or webview; classes, no comments (ESLint)
 - A secret never appears in an error, and a refused token request is not repeated within its hold
+- A key that is no Java long names nothing and costs no call; a capped search says so (`truncated`, `atLeast`) or keeps the cluster's counts
 
 ## More
 
