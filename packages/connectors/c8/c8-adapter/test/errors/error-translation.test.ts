@@ -1,6 +1,6 @@
 import { RuntimeError } from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
-import { CamundaClients } from "../../src/index.js"
+import { CamundaClients } from "../../src/camunda-clients.js"
 import { ErrorTranslation } from "../../src/errors/error-translation.js"
 import type { CamundaClient } from "../../src/rest/index.js"
 import { clientWith, page, problem, REST_URL } from "../support/fake-camunda-rest.js"
@@ -13,7 +13,7 @@ function translated(read: (client: CamundaClient) => Promise<unknown>, answer: u
 }
 
 function clientOn(send: typeof fetch, endpoint = REST_URL): CamundaClient {
-  return new CamundaClients(send).of({ endpoint, credentials: { kind: "none" } })
+  return new CamundaClients(send, () => Date.now()).of({ endpoint, credentials: { kind: "none" } })
 }
 
 describe("the translation of a cluster's failures", () => {

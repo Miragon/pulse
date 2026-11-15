@@ -86,20 +86,21 @@ describe("client credentials", () => {
     expect(login.tokenForms).toHaveLength(2)
   })
 
-  test("ask at once with another secret, keeping each secret's token apart", async () => {
+  test("ask at once with another secret, which replaces the source of that client", async () => {
     const login = new LoginService()
     login.answerToken = refusing
     await login.read()
 
     login.answerToken = () => jsonAnswer({ access_token: "fresh", expires_in: 3600 })
     expect(await login.read({ ...CREDENTIALS, clientSecret: "another-secret" })).toBe("answered")
-    expect(await login.read()).toMatchObject(REFUSED_CLIENT)
+    expect(await login.read()).toBe("answered")
 
     expect(login.tokenForms.map((form) => form.get("client_secret"))).toEqual([
       SECRET,
       "another-secret",
+      SECRET,
     ])
-    expect(login.apiAuthorizations).toEqual(["Bearer fresh"])
+    expect(login.apiAuthorizations).toEqual(["Bearer fresh", "Bearer fresh"])
   })
 
   test("never show the token the cluster echoes in an error", async () => {

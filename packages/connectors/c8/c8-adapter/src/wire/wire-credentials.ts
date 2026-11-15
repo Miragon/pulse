@@ -4,18 +4,19 @@ import {
   type Credential,
   noCredential,
 } from "@miragon/pulse-http"
-import type { EngineCredentials } from "@miragon/pulse-runtime-view/ports"
+import type { EngineConnection, EngineCredentials } from "@miragon/pulse-runtime-view/ports"
 import type { ClientCredentialsSources } from "./client-credentials-sources.js"
 
 export class WireCredentials {
-  static of(credentials: EngineCredentials, sources: ClientCredentialsSources): Credential {
+  static of(connection: EngineConnection, sources: ClientCredentialsSources): Credential {
+    const credentials = connection.credentials
     switch (credentials.kind) {
       case "none":
         return noCredential
       case "basic":
         return basicCredential(credentials.username, credentials.password)
       case "clientCredentials":
-        return bearerCredential(sources.of(credentials))
+        return bearerCredential(sources.of(connection.endpoint, credentials))
     }
   }
 

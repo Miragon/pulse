@@ -8,7 +8,7 @@ export class CamundaClients {
   private readonly platform: WirePlatform
   private readonly sources: ClientCredentialsSources
 
-  constructor(send: typeof fetch = fetch, now: () => number = () => Date.now()) {
+  constructor(send: typeof fetch, now: () => number) {
     this.platform = { send: (input, init) => send(input, init), now }
     this.sources = new ClientCredentialsSources(this.platform)
   }

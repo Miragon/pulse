@@ -1,6 +1,6 @@
 import type { EngineCredentials } from "@miragon/pulse-runtime-view/ports"
 import { onTestFinished } from "vitest"
-import { CamundaClients } from "../../src/index.js"
+import { CamundaClients } from "../../src/camunda-clients.js"
 import type { CamundaClient } from "../../src/rest/index.js"
 
 export const REST_URL = "http://camunda.test/v2"
@@ -155,6 +155,9 @@ export function clientWith(
   credentials: EngineCredentials = NONE,
 ): { readonly camunda: FakeCamundaRest; readonly client: CamundaClient } {
   const camunda = fakeCamundaRest(routes)
-  const client = new CamundaClients(camunda.send).of({ endpoint: REST_URL, credentials })
+  const client = new CamundaClients(camunda.send, () => Date.now()).of({
+    endpoint: REST_URL,
+    credentials,
+  })
   return { camunda, client }
 }

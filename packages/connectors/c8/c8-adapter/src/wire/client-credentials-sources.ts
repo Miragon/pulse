@@ -5,19 +5,25 @@ import type { WirePlatform } from "./wire-platform.js"
 
 export type ClientCredentials = Extract<EngineCredentials, { readonly kind: "clientCredentials" }>
 
+interface KeptSource {
+  readonly settings: string
+  readonly source: TokenSource
+}
+
 export class ClientCredentialsSources {
-  private readonly sources = new Map<string, TokenSource>()
+  private readonly sources = new Map<string, KeptSource>()
 
   constructor(private readonly platform: WirePlatform) {}
 
-  of(credentials: ClientCredentials): TokenSource {
-    const key = ClientCredentialsSources.keyOf(credentials)
-    const known = this.sources.get(key)
-    if (known !== undefined) {
-      return known
+  of(endpoint: string, credentials: ClientCredentials): TokenSource {
+    const client = JSON.stringify([endpoint, credentials.tokenEndpoint, credentials.clientId])
+    const settings = ClientCredentialsSources.settingsOf(credentials)
+    const kept = this.sources.get(client)
+    if (kept?.settings === settings) {
+      return kept.source
     }
     const source = this.created(credentials)
-    this.sources.set(key, source)
+    this.sources.set(client, { settings, source })
     return source
   }
 
@@ -35,14 +41,8 @@ export class ClientCredentialsSources {
     })
   }
 
-  private static keyOf(credentials: ClientCredentials): string {
-    const { tokenEndpoint, clientId, clientSecret, audience, scopes } = credentials
-    return JSON.stringify([
-      tokenEndpoint,
-      clientId,
-      clientSecret,
-      audience ?? null,
-      [...(scopes ?? [])].sort(),
-    ])
+  private static settingsOf(credentials: ClientCredentials): string {
+    const { clientSecret, audience, scopes } = credentials
+    return JSON.stringify([clientSecret, audience ?? null, [...(scopes ?? [])].sort()])
   }
 }

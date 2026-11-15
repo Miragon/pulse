@@ -96,7 +96,7 @@ export class CamundaWire {
       return createHttp(
         {
           url: connection.endpoint,
-          credential: WireCredentials.of(connection.credentials, sources),
+          credential: WireCredentials.of(connection, sources),
           timeoutMs: TIMEOUT_MS,
           maxAnswerBytes: MAX_ANSWER_BYTES,
           readOnly: true,

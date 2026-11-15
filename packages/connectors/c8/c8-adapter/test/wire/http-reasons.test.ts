@@ -1,6 +1,6 @@
 import { type FailureDetails, type FailureReason, HttpFailure } from "@miragon/pulse-http"
 import { describe, expect, test } from "vitest"
-import { CamundaClients } from "../../src/index.js"
+import { CamundaClients } from "../../src/camunda-clients.js"
 import { ErrorTranslation } from "../../src/errors/error-translation.js"
 import { HttpReasons } from "../../src/wire/http-reasons.js"
 import { REST_URL } from "../support/fake-camunda-rest.js"
@@ -114,10 +114,13 @@ describe("the reasons of a failed request", () => {
     ],
   ] as const)("refuse every call with %s, sending nothing", async (_name, credentials, message) => {
     const sent: unknown[] = []
-    const client = new CamundaClients((input) => {
-      sent.push(input)
-      return Promise.resolve(Response.json({ gatewayVersion: "8.10.8" }))
-    }).of({ endpoint: REST_URL, credentials })
+    const client = new CamundaClients(
+      (input) => {
+        sent.push(input)
+        return Promise.resolve(Response.json({ gatewayVersion: "8.10.8" }))
+      },
+      () => Date.now(),
+    ).of({ endpoint: REST_URL, credentials })
 
     await expect(ErrorTranslation.translated(() => client.topology())).rejects.toMatchObject({
       failure: "misconfigured",

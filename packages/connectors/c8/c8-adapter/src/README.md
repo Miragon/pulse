@@ -27,16 +27,17 @@ flowchart LR
   rest -- "6: checked views" --> reader
 ```
 
-1. A reader asks the REST client for what it needs, e.g. "the open incidents of instance X".
+1. The runtime hands a question to its reader, which asks the REST client for what it needs, e.g. "the open incidents of instance X".
 2. `rest` turns that into requests to the wire: a GET, a search as a reading POST, or a diagram's XML.
-3. With client credentials the wire gets a token from the connection's token source, one per client and secret.
+3. With client credentials the wire gets a token from the connection's token source, one per cluster and client.
 4. It sends the request on a read-only connection, never follows a redirect, stops after 60 s or 64 MiB.
 5. It answers with the text or with a reason, data that names no type of the transport.
 6. `rest` checks each field it reads; `errors` turns a failure into a `RuntimeError` with its way out.
 
 ## Where things are
 
-- `packages/connectors/c8/c8-adapter/src`: `CamundaClients` builds a client per connection and holds the token sources
+- `packages/connectors/c8/c8-adapter/src`: `C8Adapter`, the plug of the ports; `C8ProcessRuntime`, which answers the contract with the readers after the version floor; `CamundaClients`, which builds a client per connection and holds the token sources
+- `packages/connectors/c8/c8-adapter/src/web-ui`: `OperateWebUi`, the links into Operate
 - `packages/connectors/c8/c8-adapter/src/wire`: `CamundaWire` over the transport, the token sources and the reasons of each failure
 - `packages/connectors/c8/c8-adapter/src/rest`: the REST client: requests, paging, parsed and checked views
 - `packages/connectors/c8/c8-adapter/src/errors`: `ErrorTranslation` and `TokenTexts`, from a failure to a `RuntimeError`
@@ -48,7 +49,7 @@ flowchart LR
 - `packages/connectors/c8/c8-adapter/src` imports only engine-core's main entry, the runtime view's ports and, in its wire, the main entry and `./oauth` of `@miragon/pulse-http`; no Node built-in, no c7 package (dependency-cruiser)
 - Engine words are allowed here, not in contract, core or webview; classes, no comments (ESLint)
 - A secret never appears in an error, and a refused token request is not repeated within its hold
-- A key that is no Java long names nothing and costs no call; a capped search says so (`truncated`, `atLeast`) or keeps the cluster's counts
+- A key that is no Java long names nothing and costs no call; a capped search says so where the contract has room for it (`truncated`, `atLeast`) or keeps the cluster's counts
 
 ## More
 

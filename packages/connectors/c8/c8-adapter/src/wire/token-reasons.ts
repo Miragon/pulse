@@ -1,3 +1,4 @@
+import { HttpFailure } from "@miragon/pulse-http"
 import type { AnswerProblem, TokenFailure, TokenFailureKind } from "@miragon/pulse-http/oauth"
 import type { TokenAnswerProblem, TokenReason, TokenTrouble } from "./wire-reason.js"
 
@@ -33,8 +34,14 @@ export class TokenReasons {
       code: failure.code,
       problem: failure.problem === undefined ? undefined : PROBLEMS[failure.problem],
       holdMs: failure.holdMs,
+      capBytes: TokenReasons.capOf(failure),
       cause: failure,
     }
+  }
+
+  private static capOf(failure: TokenFailure): number | undefined {
+    const cause = failure.cause
+    return failure.kind === "too-large" && cause instanceof HttpFailure ? cause.limit : undefined
   }
 
   private static shown(url: string): string {

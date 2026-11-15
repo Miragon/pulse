@@ -9,6 +9,8 @@ interface Worded {
 
 type Wording = (reason: TokenReason) => Worded
 
+const MIB = 1024 * 1024
+
 const ENDPOINT_HINT = "The profile's tokenEndpoint must be the URL that issues tokens."
 const REQUEST_HINT =
   "Check the audience and the scopes in the profile. Pulse sends them as written."
@@ -48,9 +50,9 @@ export class TokenTexts {
       message: "The token endpoint answered with a redirect.",
       hint: ENDPOINT_HINT,
     }),
-    "too-large": () => ({
+    "too-large": (reason) => ({
       failure: "unexpectedResponse",
-      message: "The token endpoint answered with more than 1 MiB.",
+      message: TokenTexts.tooLarge(reason.capBytes),
     }),
     unexpected: (reason) => TokenTexts.unexpected(reason),
     unreachable: (reason) => ({
@@ -73,6 +75,14 @@ export class TokenTexts {
       cause: reason.cause,
       ...(hint === undefined ? {} : { hint }),
     })
+  }
+
+  private static tooLarge(bytes: number | undefined): string {
+    if (bytes === undefined) {
+      return "The token endpoint's answer is larger than Pulse accepts."
+    }
+    const size = bytes % MIB === 0 ? `${String(bytes / MIB)} MiB` : `${String(bytes)} bytes`
+    return `The token endpoint answered with more than ${size}.`
   }
 
   private static refusedClient(reason: TokenReason): Worded {

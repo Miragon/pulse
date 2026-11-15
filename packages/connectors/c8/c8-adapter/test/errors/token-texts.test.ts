@@ -24,7 +24,7 @@ function answering(answer: () => Response): Promise<unknown> {
   return login.read()
 }
 
-function reasonOf(trouble: TokenReason["trouble"]): TokenReason {
+function reasonOf(trouble: TokenReason["trouble"], capBytes?: number): TokenReason {
   return {
     kind: "token",
     trouble,
@@ -33,6 +33,7 @@ function reasonOf(trouble: TokenReason["trouble"]): TokenReason {
     code: undefined,
     problem: undefined,
     holdMs: 5000,
+    capBytes,
     cause: undefined,
   }
 }
@@ -225,10 +226,27 @@ describe("a token endpoint's refusal", () => {
         hint: REQUEST_HINT,
       },
     ],
+    [
+      "too-large",
+      {
+        failure: "unexpectedResponse",
+        message: "The token endpoint's answer is larger than Pulse accepts.",
+      },
+    ],
   ])("words a %s that names neither status nor code", (trouble, expected) => {
     const error = TokenTexts.errorOf(reasonOf(trouble))
 
     expect(error).toMatchObject(expected)
     expect(error.hint).toBe(expected.hint)
+  })
+
+  test.each([
+    [1024 * 1024, "1 MiB"],
+    [3 * 1024 * 1024, "3 MiB"],
+    [1500, "1500 bytes"],
+  ])("words an answer above a cap of %i bytes as more than %s", (capBytes, size) => {
+    expect(TokenTexts.errorOf(reasonOf("too-large", capBytes)).message).toBe(
+      `The token endpoint answered with more than ${size}.`,
+    )
   })
 })

@@ -1,7 +1,8 @@
 # Runtime contract
 
 - Status: accepted
-- Last reviewed: 2026-11-14 (on the C7 family "with incident" is an open incident the runtime
+- Last reviewed: 2026-11-15 (what a Camunda 8 cluster answers, through the C8 adapter's
+  runtime); 2026-11-14 (on the C7 family "with incident" is an open incident the runtime
   holds now, on every history level; the read laws run on a C7 engine at history level AUDIT
   too); 2026-11-11 (a number holds a double); 2026-11-10 (the plug every dialect
   family provides; a whole number holds 64 bits); 2026-11-09 (the engine
@@ -14,7 +15,7 @@ C7 family engines and Camunda 8 expose similar runtime data with different
 vocabulary, identifiers and consistency. In C7 `processDefinitionKey` is the BPMN id;
 in C8 `processDefinitionId` is the BPMN id and `processDefinitionKey` an int64 per
 version. C7 copies an incident to every parent of a call chain; C8 keeps it in the
-child. C7 stores engine stack traces; C8 only has the worker's error message. C8
+child. C7 stores engine stack traces; C8 has the worker's or the engine's error message. C8
 search results are eventually consistent and page with cursors.
 
 ## Decision
@@ -79,7 +80,7 @@ plug every dialect family provides:
 given an `EngineConnection` (endpoint and credentials) it returns a `ProcessRuntime` and,
 when the family can write, `ProcessCommands`. `webUi(webUiUrl)` takes the configured URL
 of the engine's web UI and, when it fits the family's web UI, returns an `EngineWebUi`:
-its `name` ("Cockpit") and the routes into it: `overviewUrl()` (its start page,
+its `name` ("Cockpit", "Operate") and the routes into it: `overviewUrl()` (its start page,
 for the engine overview), `instanceUrl(InstanceSummary)` and
 `definitionUrl(DefinitionRef)`. A link needs neither endpoint nor credentials, so the URL
 is not part of the connection; a target without one gets no web UI. The adapter
@@ -136,11 +137,12 @@ for any workspace, and the conformance kit does not cover them
 - **Statistics are disjoint.** `active` counts element instances without an incident
   raised at that element, so `active + incidents` is what the element holds;
   `incidentsInCalledInstances` marks active tokens whose called instance failed. One known
-  exception, documented instead of typed for now: Camunda 8 splits a container's row with one
+  exception, documented instead of typed: Camunda 8 splits a container's row with one
   incident search per container, and when that search stops counting (above 10,000 on
   Elasticsearch) the row keeps the cluster's counts, every incident inside the container as
-  raised there. The rule does not hold for such a row; an optional field of
-  `ElementStatistics` for it comes with the Camunda 8 adapter.
+  raised there. The rule does not hold for such a row, and `ElementStatistics` gains no field for
+  it: the conformance world never reaches that many, and a field would weaken the law that holds
+  the counts apart ([c8-adapter.md](c8-adapter.md)).
 - **Neutral work vocabulary.** A `workerTask` wait names its `taskType` (C7 topic, C8
   job type); `Incident.job?` names the unit of work that failed (C7 job or external
   task with its topic, C8 job key and type).
@@ -230,6 +232,27 @@ for any workspace, and the conformance kit does not cover them
   `autoTypedValue`), as the C7 adapter would for a variable without a type. A test of the C7
   adapter holds its reading of a variable without a type and of a Double variable to
   `isWholeNumber` and `isFiniteNumber`.
+
+### What a Camunda 8 cluster answers
+
+The C8 adapter (`packages/connectors/c8/c8-adapter`, [c8-adapter.md](c8-adapter.md)) answers the
+contract read-only, through the Orchestration Cluster REST API from 8.9 on:
+
+- **No writes.** `commands` and `cli` answer `undefined`, so the runtime view offers no write and
+  no `pulse` command for a Camunda 8 engine.
+- **No migration planning.** `proposeMigration?` and `checkMigration?` are absent, as a pair; no
+  bulk operation starts, so `getBulkOperation` answers `undefined` and `getBulkFailures` `[]`.
+- **Refused conditions.** `refusedVariableConditions?()` names `ordering` and `date`: the cluster
+  compares variable values as text.
+- **Counts that stop.** A search counts up to 10,000 on Elasticsearch; above that a count is
+  exact only where the cluster's statistics give it (running instances of the engine, a process
+  or a version) and `{ count: 10000, atLeast: true }` otherwise.
+- **Error messages.** `IncidentDetails` is the incident's error message as the worker or the
+  engine wrote it (`kind: "errorMessage"`), with its root cause by `RootCauses`.
+- **Undivided rows.** A container's statistics row keeps the cluster's counts when the search for
+  its own incidents stops counting (Statistics are disjoint, above).
+- **Late reads.** Its searches lag behind the cluster's state by up to a few seconds, which the
+  live updates already allow for ([live-updates.md](live-updates.md)).
 
 ### Conformance kit
 
@@ -344,13 +367,14 @@ business key fail the ids law too, as does a search that ignores the instance id
 
 - Every adapter is proven against the same laws on a real engine
   (`*.engine.test.ts`); an architecture test fails when an adapter has none.
-- The contract is meant for engines beyond the C7 family. During the spike a Camunda 8 adapter
-  on the REST API v2 passed every law against an API mock with a read lag and was removed again
-  to keep the prototype small. On a real Camunda 8 the adapter of #543 needed four neutral
-  changes, which the contract carries since its first release: an instance count that may be a
-  lower bound, the failure `unsupported`, the variable conditions an engine declares it refuses,
-  and migration planning as an optional pair of methods. Its undivided element statistics above
-  the incident search's cap stay a documented exception until that adapter lands.
+- The contract holds beyond the C7 family. During the spike a Camunda 8 adapter on the REST API
+  v2 passed every law against an API mock with a read lag and was removed again to keep the
+  prototype small. On a real Camunda 8 the adapter of #543 needed four neutral changes, which the
+  contract carries since its first release: an instance count that may be a lower bound, the
+  failure `unsupported`, the variable conditions an engine declares it refuses, and migration
+  planning as an optional pair of methods. The C8 adapter answers the contract with them and
+  nothing more; its undivided element statistics above the incident search's cap stay a
+  documented exception.
 - Every change to the contract is a change to a published package: a new port, read model or
   law lands in `packages/connectors/engine/engine-core` with its saboteur, and the kit's
   self-tests run there (`packages/connectors/engine/engine-core/test`, 71 saboteurs). Below 1.0 the package makes no

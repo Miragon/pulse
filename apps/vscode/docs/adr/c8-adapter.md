@@ -3,8 +3,9 @@
 - Status: accepted
 - Last reviewed: 2026-11-15 (the wire on `@miragon/pulse-http` and its OAuth client, the REST
   client with checked views, the wording of its failures, the version floor and the reads onto
-  the contract's read models; the package `@miragon/pulse-c8-adapter` in the c8 family, which no
-  host composes in this step)
+  the contract's read models; the runtime that answers the contract, the plug `C8Adapter` with
+  its links into Operate and one token source per cluster and client; the package
+  `@miragon/pulse-c8-adapter` in the c8 family, which no host composes in this step)
 
 ## Context
 
@@ -44,11 +45,12 @@ on Elasticsearch, each without security, with basic authentication and with OIDC
 ## Decision
 
 `packages/connectors/c8/c8-adapter` (`@miragon/pulse-c8-adapter`, private, bundled by the editor
-hosts) is the c8 family's adapter of the runtime view. In this step it holds the wire, the REST
-client, the wording of failures, the version floor and the readers with their mappings onto the
-contract's read models; `CamundaClients` composes a client per connection and holds the one
-`ClientCredentialsSources` of its process. The runtime that answers the contract with these
-readers and the plug of the ports join the same package in the commits after this one.
+hosts) is the c8 family's adapter of the runtime view. It holds the wire, the REST client, the
+wording of failures, the version floor, the readers with their mappings onto the contract's read
+models, the runtime that answers the contract with them and the plug of the ports: `C8Adapter`,
+the package's one export, holds one `CamundaClients`, which builds a client per connection and
+holds the one `ClientCredentialsSources` of the adapter. A composition root builds the adapter
+once per process; no host composes it in this step.
 
 - **No client library, no CLI.** `@camunda8/orchestration-cluster-api` brings 1.5 MB of
   JavaScript and zod, which the closed world forbids, reads its settings from the environment,
@@ -69,20 +71,25 @@ readers and the plug of the ports join the same package in the commits after thi
   endpoint without its query). A `POST` search reads JSON losslessly (`WireJson`): an integer
   beyond 2^53 keeps its digits, so a view refuses it as no number instead of rounding it.
 - **Token sources (`ClientCredentialsSources`).** The idea of #543's `TokenSources`, on the
-  transport: one source per token endpoint, client ID, secret, audience and scopes (in any order),
-  in memory. The editor hosts build their connections anew on every reload, so a connection built
-  anew takes the source that is there and keeps its token and its hold: a wrong secret costs one
-  token request a minute, not one per read, and a changed secret gets a source of its own. The
-  client authenticates with `client_secret_post`, as the Camunda login services expect, and the
-  form names an audience and scopes only when the connection does.
+  transport: one source per cluster and client (the connection's URL, the token endpoint and the
+  client ID), in memory. The editor hosts build their connections anew on every reload, so a
+  connection built anew with the same secret, audience and scopes (in any order) takes the source
+  that is there and keeps its token and its hold: a wrong secret costs one token request a minute,
+  not one per read. A changed secret, audience or scopes replaces the source of that cluster's
+  client and asks at once, so a corrected secret leaves no source behind that keeps the old one in
+  memory, and two clusters that share a client keep a token each. The client authenticates with
+  `client_secret_post`, as the Camunda login services expect, and the form names an audience and
+  scopes only when the connection does.
 - **The REST client (`src/rest`).** `RestCamundaClient` has one method per call of `/v2` the reads
   need; `CamundaViews` turns each answer into a checked view, field by field, so an answer of
-  another shape fails as `unexpectedResponse`. A search pages by its cursor up to 10,000 rows and
-  says when it cut, a statistics read by offset, and a search over keys asks for at most 1,000 at a
-  time. A lookup by key reads a 404 with the title `NOT_FOUND` as none (an 8.10 endpoint on 8.9
-  answers `Not Found`, which fails), and a key the transport refuses before sending (`.`, `..`) as
-  none too. `CamundaRequestError` is built from the wire's reasons; only the wire imports the
-  transport.
+  another shape fails as `unexpectedResponse`. A search pages by its cursor up to 10,000 rows, a
+  statistics read by offset up to 10,000 rows, and a search over keys asks for at most 1,000 at a
+  time. An instance's rows say when they cut (its detail's `truncated`); the definitions, their
+  versions and their statistics stop at 10,000 rows without saying so, since the contract's lists
+  of them carry no cut and no cluster the spike saw comes near. A lookup by key reads a 404 with
+  the title `NOT_FOUND` as none (an 8.10 endpoint on 8.9 answers `Not Found`, which fails), and a
+  key the transport refuses before sending (`.`, `..`) as none too. `CamundaRequestError` is
+  built from the wire's reasons; only the wire imports the transport.
 - **Failures (`src/errors`).** `ErrorTranslation` maps a request error onto the contract's
   failures: 401 `unauthorized`, 403 `forbidden`, a redirect and a 404 `misconfigured`, any other
   status `engineFailure`, no answer `unreachable`. A 404 that names no missing resource gets the
@@ -90,8 +97,10 @@ readers and the plug of the ports join the same package in the commits after thi
   missing secondary storage says that the cluster has nothing to read. `TokenTexts` words a token
   failure with its way out (031dc1f4 of #543): a refused client by its code, a refused audience or
   scope with the profile's settings to check, a 403 with what the client may get a token for, a
-  redirect or another status with the `tokenEndpoint` to check; it never shows the secret, the
-  description or the body.
+  redirect or another status with the `tokenEndpoint` to check, and a token answer above the cap
+  with the cap the transport's OAuth client applied, which the wire takes from that failure alone
+  (`packages/connectors/c8/c8-adapter/test/wire/token-reasons.test.ts`: a timeout's deadline is no
+  cap); it never shows the secret, the description or the body.
 - **Version floor (`src/reading/version-floor.ts`).** The cluster's `gatewayVersion` is read once
   per client; below 8.9 a read fails as `misconfigured` with the version it found. 8.8 has no
   `businessId` and no statistics endpoints. A version that does not parse is left to the cluster,
@@ -140,6 +149,23 @@ readers and the plug of the ports join the same package in the commits after thi
     so a boundary event's message is not its host's wait (bba04dea). The path keeps the newest
     10,000 runs, and a cut sets `truncated`; a local variable of a run past the cut keeps its
     element through one `GET /element-instances/{key}`, looked up once per reader.
+- **The runtime (`C8ProcessRuntime`).** It answers each question of `ProcessRuntime` with its
+  reader, after the version floor, and turns every failure into a `RuntimeError` through
+  `ErrorTranslation`. `describeEngine` names the product `Camunda 8` and the cluster's
+  `gatewayVersion`. A count is a lower bound (`atLeast`) where the cluster stops counting and no
+  statistics give the exact number. `refusedVariableConditions()` names `ordering` and `date`,
+  which fail as `unsupported` before anything is sent. An incident's details are its whole error
+  message with its root cause, none for a key that cannot exist or a missing incident. The runtime
+  is read-only by absence (#543): `proposeMigration` and `checkMigration` do not exist, so the
+  runtime view offers no migration, `getBulkOperation` answers `undefined` and `getBulkFailures`
+  none, since no bulk operation starts.
+- **The plug (`C8Adapter`).** `runtime(connection)` builds a `C8ProcessRuntime` over a client of
+  its `CamundaClients`, so every runtime of the adapter shares its token sources. `commands` and
+  `cli` answer `undefined`: the adapter writes nothing, and the `pulse` CLI reads no Camunda 8
+  cluster. `webUi(webUiUrl)` gives `OperateWebUi`, the links into Operate, for a URL whose path
+  ends in `/operate`: the overview its root, an instance `processes/<key>`, a version the process
+  list filtered to that process and version, with the running instances and those with an
+  incident. Any other URL gets no web UI, the cluster's root included.
 - **Closed world.** `packages/connectors/c8/c8-adapter/.dependency-cruiser.cjs`
   (`pnpm lint:architecture:c8-adapter`): its own modules, engine-core's main entry, the runtime
   view's ports, and in `src/wire` alone the transport's main entry and `./oauth`
@@ -162,7 +188,13 @@ readers and the plug of the ports join the same package in the commits after thi
   connection: a request marked as a write is refused, and nothing is sent.
 - `packages/connectors/c8/c8-adapter/test/wire/client-credentials.test.ts` holds the token reuse:
   a connection built anew sends no second token request and keeps a refusal's hold, another secret
-  asks at once.
+  asks at once. `packages/connectors/c8/c8-adapter/test/c8-adapter-tokens.test.ts` holds it for
+  the runtimes of one adapter: a reload keeps the token and the hold, a corrected secret, audience
+  or scopes replaces the source of that cluster's client, and two clusters keep a token each.
+- `packages/connectors/c8/c8-adapter/test/c8-runtime.test.ts` holds the runtime to the contract on
+  the fake REST API (the floor before every question, the failures, the refused conditions, what
+  it does not answer, one question per reader), and
+  `packages/connectors/c8/c8-adapter/test/c8-web-ui.test.ts` the links into Operate.
 - The reads are proven on the fake REST API: each reader in
   `packages/connectors/c8/c8-adapter/test/reading`, the instance detail by topic in
   `packages/connectors/c8/c8-adapter/test/reading/instance-detail`, the mappings in
@@ -171,9 +203,11 @@ readers and the plug of the ports join the same package in the commits after thi
   unsplit counts, so its row can count incidents inside it as its own. The conformance world never
   reaches that many.
 - The adapter is proven on a fake REST API in this step; the conformance kit on a local cluster
-  and the error-path goldens come with the runtime. CI runs no Camunda 8 image until the licence
-  question of #531 has an answer: the images fall under Camunda's Self-Managed non-production
-  terms.
+  and the error-path goldens follow in their own commits. CI runs no Camunda 8 image until the
+  licence question of #531 has an answer: the images fall under Camunda's Self-Managed
+  non-production terms.
+- Two profiles that name the same client of the same cluster with different secrets, audiences or
+  scopes replace each other's token source, so each of their reads asks for a token.
 
 ## Decision log
 
@@ -183,3 +217,6 @@ readers and the plug of the ports join the same package in the commits after thi
 - 2026-11-15: the reads of #543 as readers over the REST client, the root cause by engine-core's
   `RootCauses`; a capped search for a container's own incidents keeps the cluster's counts, with
   no new field in engine-core (#617).
+- 2026-11-15: the runtime answers the contract read-only and `C8Adapter` is the package's plug,
+  with links into Operate; a token source per cluster and client, which a changed secret, audience
+  or scopes replaces (#617).

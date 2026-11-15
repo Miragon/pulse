@@ -22,6 +22,7 @@ export interface TokenReason {
   readonly code: string | undefined
   readonly problem: TokenAnswerProblem | undefined
   readonly holdMs: number
+  readonly capBytes: number | undefined
   readonly cause: unknown
 }
 

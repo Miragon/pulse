@@ -1,5 +1,6 @@
 import type { EngineCredentials } from "@miragon/pulse-runtime-view/ports"
-import { CamundaClients } from "../../src/index.js"
+import { CamundaClients } from "../../src/camunda-clients.js"
+import { C8Adapter } from "../../src/index.js"
 import { ErrorTranslation } from "../../src/errors/error-translation.js"
 import type { CamundaClient } from "../../src/rest/index.js"
 import type { ClientCredentials } from "../../src/wire/client-credentials-sources.js"
@@ -25,12 +26,19 @@ export class LoginService {
 
   readonly apiAuthorizations: (string | null)[] = []
 
+  readonly apiCalls: string[] = []
+
   answerToken: () => Response = () =>
     jsonAnswer({ access_token: `token-${String(this.tokenForms.length)}`, expires_in: 3600 })
 
   answerApi: () => Response = () => jsonAnswer({ gatewayVersion: "8.10.8" })
 
   readonly clients = new CamundaClients(
+    (input, init) => this.answered(new Request(input, init)),
+    () => this.now,
+  )
+
+  readonly adapter = new C8Adapter(
     (input, init) => this.answered(new Request(input, init)),
     () => this.now,
   )
@@ -47,9 +55,21 @@ export class LoginService {
     )
   }
 
+  readFrom(endpoint: string, credentials: EngineCredentials = CREDENTIALS): Promise<unknown> {
+    return this.adapter
+      .runtime({ endpoint, credentials })
+      .describeEngine()
+      .then(
+        () => "answered",
+        (error: unknown) => error,
+      )
+  }
+
   private async answered(request: Request): Promise<Response> {
     if (!request.url.startsWith(TOKEN_URL)) {
-      this.apiAuthorizations.push(request.headers.get("Authorization"))
+      const authorization = request.headers.get("Authorization")
+      this.apiCalls.push(`${new URL(request.url).pathname} ${String(authorization)}`)
+      this.apiAuthorizations.push(authorization)
       return this.answerApi()
     }
     this.tokenForms.push(new URLSearchParams(await request.text()))
