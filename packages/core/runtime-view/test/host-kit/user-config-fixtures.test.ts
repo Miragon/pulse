@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs"
 import {
   authTypeOf,
+  dialectOf,
   parseProfileFile,
   type Profile,
   SECRET_KEYS,
@@ -24,6 +25,7 @@ const AUTH_KINDS: Readonly<Record<string, EngineTarget["auth"]["kind"]>> = {
   none: "none",
   basic: "basic",
   oauth: "oauth2",
+  clientCredentials: "clientCredentials",
 }
 
 const expected = JSON.parse(readFileSync(EXPECTED, "utf8")) as Readonly<Record<string, Expected>>
@@ -90,6 +92,7 @@ describe("the shared profile fixtures read as the CLI's user config", () => {
         } else {
           expect(target.endpoint).toBe(profile.url)
           expect(target.auth.kind).toBe(AUTH_KINDS[authTypeOf(profile)])
+          expect(target.engine).toBe(dialectOf(profile))
           expect(target.source).toEqual({ kind: "user-config", path: FILE })
         }
       }

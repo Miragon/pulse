@@ -6,6 +6,7 @@ import { describe, expect, test, vi } from "vitest"
 import { InstanceId } from "@miragon/pulse-engine-core"
 import {
   type Connection,
+  type EngineTarget,
   UserConfigLocation,
   type UserConfigVerdict,
 } from "@miragon/pulse-runtime-view/host-kit"
@@ -16,6 +17,14 @@ import { Prompts } from "../src/worker/prompts.js"
 import { WorkerServices } from "../src/worker/worker-services.js"
 import type { WriteConfirmation } from "../src/worker/write-confirmation.js"
 import { FakeOrca } from "./fake-orca.js"
+
+const PROD_EU: EngineTarget = {
+  name: "prod-eu",
+  engine: "c7",
+  endpoint: "https://prod-eu.shop.invalid/engine-rest",
+  auth: { kind: "basic" },
+  source: { kind: "file", path: "/shop/.pulse.json" },
+}
 
 class Harness {
   readonly orca = new FakeOrca()
@@ -333,11 +342,30 @@ describe("the services of the worker", () => {
   test("ask for a login in the panel and with a notification", () => {
     const harness = new Harness(undefined)
 
-    harness.services.askForLogin({ target: { name: "prod-eu" } } as Connection)
+    harness.services.askForLogin({ target: PROD_EU } as Connection)
 
     expect(harness.orca.postsOf("engines.login")).toEqual([{ engine: "prod-eu" }])
     expect(harness.orca.callsOf("notifications.show")).toEqual([
       { title: "Sign in to prod-eu", body: "Open the Pulse panel to enter the login." },
+    ])
+  })
+
+  test("say why an engine takes no login instead of asking for one", () => {
+    const harness = new Harness(undefined)
+
+    harness.services.askForLogin({
+      target: { ...PROD_EU, name: "c8-open", engine: "c8", auth: { kind: "none" } },
+    } as Connection)
+
+    expect(harness.orca.postsOf("engines.login")).toEqual([])
+    expect(harness.orca.callsOf("notifications.show")).toEqual([])
+    expect(harness.orca.postsOf("notices.show")).toEqual([
+      {
+        notice: {
+          tone: "neutral",
+          text: "The profile c8-open uses auth.type none, so Pulse sends no login. Set its auth.type to basic or clientCredentials in .pulse.json.",
+        },
+      },
     ])
   })
 

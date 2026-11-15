@@ -90,7 +90,7 @@ describe("parsing the profiles of .pulse.json", () => {
     const content = JSON.stringify({
       profiles: {
         ok: { url: "http://localhost:8088/engine-rest", auth: { type: "oauth" } },
-        cluster: { url: "http://localhost:8088/v2", flavor: "camunda8" },
+        cluster: { url: "http://localhost:8088/v2", flavor: "camunda8", headers: { "X-A": "b" } },
         named: { url: "http://localhost:8080/engine-rest", engine: "orders" },
         "bad-url": { url: "not a url" },
         bearer: { url: "http://localhost:8080/engine-rest", auth: { type: "bearer" } },
@@ -103,7 +103,7 @@ describe("parsing the profiles of .pulse.json", () => {
     expect(parsed.targets.map((target) => target.name)).toEqual(["ok"])
     expect(parsed.targets[0]?.auth).toEqual({ kind: "oauth2" })
     expect(parsed.problems.map((problem) => problem.detail())).toEqual([
-      `${FILE}: profile "cluster": This client does not speak the API of this flavor.`,
+      `${FILE}: profile "cluster": This client does not apply headers, so it refuses the profile rather than ignore it. Remove headers from this profile, or use one without them.`,
       `${FILE}: profile "named": engine names a process engine this client does not reach: it reaches only "default".`,
       `${FILE}: profile "bad-url": url is no URL: use a URL such as http://localhost:8080/engine-rest.`,
       `${FILE}: profile "bearer": This client cannot authenticate with this auth.type. Set auth.type to none or basic, or keep this profile for the CLI.`,
@@ -263,7 +263,9 @@ describe("the target policy", () => {
         kind: "savedForAnotherEndpoint",
         savedFor: "https://prod.example.com",
       }),
-    ).toContain("changed since its credentials were saved for https://prod.example.com")
+    ).toBe(
+      "The endpoint of prod-eu moved from https://prod.example.com to https://evil.example.com since you saved its credentials. Check the change, then set the credentials again.",
+    )
   })
 
   test("refuses basic authentication over plain HTTP to a remote host", () => {

@@ -62,6 +62,10 @@ class FakeEngines implements EngineFactories {
     return undefined
   }
 
+  canWrite(): boolean {
+    return false
+  }
+
   webUi(): undefined {
     return undefined
   }

@@ -1,8 +1,9 @@
 import type { FailureReason, HttpFailure } from "@miragon/pulse-http"
 import { AnswerReasons } from "./answer-reasons.js"
+import { SecretMask } from "./secret-mask.js"
 import type { UnansweredReason, WireReason } from "./wire-reason.js"
 
-type Worded = (failure: HttpFailure) => WireReason
+type Worded = (failure: HttpFailure, mask: SecretMask) => WireReason
 
 const REDIRECT_HINT =
   "Pulse never follows a redirect: point the cluster URL at the REST API root itself, which ends in /v2 (https:// if the cluster redirects from http://). A redirect to a login page means the credentials are missing or expired."
@@ -37,8 +38,8 @@ export class HttpReasons {
         failure,
       ),
     redirect: (failure) => HttpReasons.redirected(failure),
-    unauthorized: (failure) => HttpReasons.answered(failure),
-    status: (failure) => HttpReasons.answered(failure),
+    unauthorized: (failure, mask) => HttpReasons.answered(failure, mask),
+    status: (failure, mask) => HttpReasons.answered(failure, mask),
     "invalid-answer": (failure) => HttpReasons.unexpected("the cluster answered no JSON", failure),
     "invalid-request": (failure) => HttpReasons.unsendable(failure),
     "refused-write": (failure) =>
@@ -50,8 +51,8 @@ export class HttpReasons {
       HttpReasons.unusable(`The credentials for ${failure.target} cannot be sent`, failure),
   }
 
-  static of(failure: HttpFailure): WireReason {
-    return HttpReasons.WORDING[failure.reason](failure)
+  static of(failure: HttpFailure, mask = SecretMask.NONE): WireReason {
+    return HttpReasons.WORDING[failure.reason](failure, mask)
   }
 
   private static unreached(failure: HttpFailure, reason: string, hint?: string): WireReason {
@@ -88,9 +89,9 @@ export class HttpReasons {
     }
   }
 
-  private static answered(failure: HttpFailure): WireReason {
+  private static answered(failure: HttpFailure, mask: SecretMask): WireReason {
     if (failure.answer !== undefined) {
-      return AnswerReasons.of(failure.answer, failure)
+      return AnswerReasons.of(failure.answer, failure, mask)
     }
     const status = failure.status ?? 0
     return {

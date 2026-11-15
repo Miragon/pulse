@@ -111,7 +111,14 @@ policy, the rest of the write policy, the write audit, the audited commands, the
 here: the credential store's refusal of a login saved for another origin (`savedForAnotherEndpoint`,
 `test/host-kit/credential-store.test.ts`) and `NotificationText.withoutLinks`, which defuses links
 in engine text (`test/host-kit/notification-text.test.ts`); so does the connection builder, which
-names a refused target's way out as its read-only note (`test/host-kit/connection-builder.test.ts`).
+names a refused target's way out as its read-only note, that of an engine whose adapter brings no
+commands too, and else says that Pulse only reads such an engine
+(`test/host-kit/connection-builder.test.ts`). The client
+credentials of a Camunda 8 profile have theirs too: a client secret bound to the origins of the
+cluster and the token endpoint, never sent over plain HTTP beyond this machine, and the login a
+target asks for, or why it asks for none (`test/host-kit/client-credentials.test.ts`). This
+machine is the literal loopback hosts for writes and the LOCAL badge, while the clear-text check
+reads the profile format's loopback, all of 127.0.0.0/8 (`test/host-kit/this-machine.test.ts`).
 The routing tests both hosts had live here too: `EngineRoot`, the one body both composition roots
 build from their adapters, hands a target to its dialect's adapter with its credentials, refuses,
 and names the web UI, the CLI and the local target (`test/host-kit/engine-root.test.ts`).

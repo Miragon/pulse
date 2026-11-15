@@ -66,6 +66,7 @@ describe("the composition root", () => {
       "Operate",
     ])
     expect(engines.commands(CLUSTER, { kind: "none" })).toBeUndefined()
+    expect([engines.canWrite(LOCAL_TARGET), engines.canWrite(CLUSTER)]).toEqual([true, false])
     expect(engines.cli(CLUSTER, endpoint)).toBeUndefined()
   })
 

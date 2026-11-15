@@ -319,6 +319,7 @@ describe("a connection", () => {
     return {
       runtime: () => ({}) as never,
       commands: () => (withCommands ? commands : undefined),
+      canWrite: () => withCommands,
       webUi: () => undefined,
       cli: () => undefined,
     }
@@ -350,7 +351,7 @@ describe("a connection", () => {
     expect(noAdapter.commands).toBeUndefined()
     expect(noAdapter.badge.access).toEqual({
       writable: false,
-      note: "Read-only. Pulse does not change data on this engine.",
+      note: "Read-only. Pulse reads this engine and changes no data on it.",
     })
   })
 

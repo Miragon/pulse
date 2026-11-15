@@ -4,7 +4,7 @@ import type { IncidentDetails } from "@miragon/pulse-engine-core"
 import type { SourceLocation } from "@miragon/pulse-runtime-view/ports"
 import type { InstanceChoice } from "@miragon/pulse-runtime-view/core"
 import type { Environment } from "@miragon/pulse-runtime-view/protocol"
-import { type Connection, ProjectFile } from "@miragon/pulse-runtime-view/host-kit"
+import { type Connection, ProjectFile, TargetLogin } from "@miragon/pulse-runtime-view/host-kit"
 import type { OrcaWorkerApi } from "orca/worker"
 import type { Notice, PromptAnswer, UserConfigRow } from "../protocol.js"
 import type { ServiceHost } from "./effects-host.js"
@@ -116,6 +116,11 @@ export class WorkerServices implements ServiceHost {
 
   askForLogin(connection: Connection): void {
     const engine = connection.target.name
+    const login = TargetLogin.of(connection.target)
+    if ("refused" in login) {
+      this.notice({ tone: "neutral", text: login.refused })
+      return
+    }
     this.orca.panels.post("engines.login", { engine })
     void this.orca.host
       .call("notifications.show", {

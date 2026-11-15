@@ -5,8 +5,9 @@
   client with checked views, the wording of its failures, the version floor and the reads onto
   the contract's read models; the runtime that answers the contract, the plug `C8Adapter` with
   its links into Operate and one token source per cluster and client; the package
-  `@miragon/pulse-c8-adapter` in the c8 family, which no host composes in this step; the
-  conformance kit on a local cluster, which no CI job starts until #531)
+  `@miragon/pulse-c8-adapter` in the c8 family, which both editor hosts compose for their
+  `camunda8` profiles; the conformance kit on a local cluster, which no CI job starts until #531;
+  the client secret masked in the cluster's texts, the Operate of a SaaS cluster)
 
 ## Context
 
@@ -50,8 +51,8 @@ hosts) is the c8 family's adapter of the runtime view. It holds the wire, the RE
 wording of failures, the version floor, the readers with their mappings onto the contract's read
 models, the runtime that answers the contract with them and the plug of the ports: `C8Adapter`,
 the package's one export, holds one `CamundaClients`, which builds a client per connection and
-holds the one `ClientCredentialsSources` of the adapter. A composition root builds the adapter
-once per process; no host composes it in this step.
+holds the one `ClientCredentialsSources` of the adapter. The composition root of each editor host
+builds the adapter once per process.
 
 - **No client library, no CLI.** `@camunda8/orchestration-cluster-api` brings 1.5 MB of
   JavaScript and zod, which the closed world forbids, reads its settings from the environment,
@@ -81,6 +82,10 @@ once per process; no host composes it in this step.
   memory, and two clusters that share a client keep a token each. The client authenticates with
   `client_secret_post`, as the Camunda login services expect, and the form names an audience and
   scopes only when the connection does.
+  A cluster that quotes the client secret back in an error text (a stack trace) gets it masked
+  like the issued token, in its message and title and in a token endpoint's error code
+  (`SecretMask`), though the secret goes to the token endpoint alone (owner's delegate,
+  2026-11-15).
 - **The REST client (`src/rest`).** `RestCamundaClient` has one method per call of `/v2` the reads
   need; `CamundaViews` turns each answer into a checked view, field by field, so an answer of
   another shape fails as `unexpectedResponse`. A search pages by its cursor up to 10,000 rows, a
@@ -164,9 +169,12 @@ once per process; no host composes it in this step.
   its `CamundaClients`, so every runtime of the adapter shares its token sources. `commands` and
   `cli` answer `undefined`: the adapter writes nothing, and the `pulse` CLI reads no Camunda 8
   cluster. `webUi(webUiUrl)` gives `OperateWebUi`, the links into Operate, for a URL whose path
-  ends in `/operate`: the overview its root, an instance `processes/<key>`, a version the process
-  list filtered to that process and version, with the running instances and those with an
-  incident. Any other URL gets no web UI, the cluster's root included.
+  ends in `/operate` (Self-Managed) or that names a SaaS cluster's Operate
+  (`<region>.operate.camunda.io/<cluster>`): the overview its root, an instance `processes/<key>`,
+  a version the process list filtered to that process and version (`processDefinitionId`,
+  `processDefinitionVersion`), with the running instances and those with an incident, the routes
+  and parameters of Operate 8.9 and 8.10 (read from their bundles). Any other URL gets no web UI,
+  the cluster's root included.
 - **Closed world.** `packages/connectors/c8/c8-adapter/.dependency-cruiser.cjs`
   (`pnpm lint:architecture:c8-adapter`): its own modules, engine-core's main entry, the runtime
   view's ports, and in `src/wire` alone the transport's main entry and `./oauth`
@@ -248,3 +256,6 @@ once per process; no host composes it in this step.
 - 2026-11-15: error-path goldens under the names of the other surfaces with the answers of a
   Camunda 8 cluster, plus the cases of Camunda 8 alone, among them #543's token wording and version
   floor (#617).
+- 2026-11-15: both editor hosts read `camunda8` profiles through this adapter, read-only, signed in
+  with none, Basic or client credentials (#543, Thomas Heinrichs); the cluster's texts mask the
+  client secret too; the Operate of a SaaS cluster gets its links (#617).

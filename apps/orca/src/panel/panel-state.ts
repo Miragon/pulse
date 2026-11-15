@@ -1,10 +1,19 @@
 import { atom, plugin, read, set, type PanelContext } from "orca"
-import type { EngineList, FileRow, FoundInstance, ModelRow, Notice, Prompt } from "../protocol.js"
+import type {
+  EngineList,
+  FileRow,
+  FoundInstance,
+  LoginRow,
+  ModelRow,
+  Notice,
+  Prompt,
+} from "../protocol.js"
 
 export interface Login {
   readonly engine: string
-  readonly username: string
-  readonly password: string
+  readonly fields: LoginRow
+  readonly identity: string
+  readonly secret: string
   readonly failed: boolean
 }
 
@@ -35,7 +44,7 @@ export class PanelState {
         PanelState.notice(notice)
       }),
       plugin.on("engines.login", ({ engine }) => {
-        set(PanelState.login, { engine, username: "", password: "", failed: false })
+        PanelState.askForLogin(engine)
       }),
       plugin.on("engines.focus", ({ key }) => {
         set(PanelState.selected, key)
@@ -66,6 +75,16 @@ export class PanelState {
         answer.engines.filter((engine) => engine.active).map((engine) => `engine|${engine.name}`),
       )
     }
+  }
+
+  static askForLogin(engine: string | undefined): void {
+    const fields = read(PanelState.list)?.engines.find((row) => row.name === engine)?.login
+    set(
+      PanelState.login,
+      engine === undefined || fields === undefined
+        ? undefined
+        : { engine, fields, identity: "", secret: "", failed: false },
+    )
   }
 
   static async loadPrompts(): Promise<void> {

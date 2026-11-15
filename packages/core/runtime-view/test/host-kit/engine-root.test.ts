@@ -40,6 +40,7 @@ class RecordingAdapter implements EngineAdapter {
   constructor(
     readonly name: string,
     readonly localEndpoint: string,
+    private readonly writes = true,
   ) {
     this.bpmn = {
       descriptor: { prefix: name, uri: `http://${name}.invalid/bpmn` },
@@ -56,9 +57,9 @@ class RecordingAdapter implements EngineAdapter {
     return this.runtimeOfIt
   }
 
-  commands(connection: EngineConnection): ProcessCommands {
+  commands(connection: EngineConnection): ProcessCommands | undefined {
     this.connections.push(connection)
-    return this.commandsOfIt
+    return this.writes ? this.commandsOfIt : undefined
   }
 
   webUi(webUiUrl: string): EngineWebUi {
@@ -79,7 +80,7 @@ class RecordingAdapter implements EngineAdapter {
 
 function rootOver(local: "c7" | "c8" = "c7") {
   const c7 = new RecordingAdapter("first", "http://localhost:9090/engine-rest")
-  const c8 = new RecordingAdapter("second", "http://localhost:8088/v2")
+  const c8 = new RecordingAdapter("second", "http://localhost:8088/v2", false)
   return { c7, c8, root: EngineRoot.of({ c7, c8 }, { local }) }
 }
 
@@ -109,6 +110,47 @@ describe("the engine root both editor hosts build from their adapters", () => {
       LOGIN,
       { kind: "none" },
     ])
+  })
+
+  test("passes client credentials with the profile's token endpoint, audience and scopes to a target configured for them", () => {
+    const { c8, root } = rootOver()
+    const auth = {
+      kind: "clientCredentials",
+      tokenEndpoint: "http://localhost:18089/realms/pulse/protocol/openid-connect/token",
+      audience: "camunda",
+      scopes: ["read"],
+    } as const
+    const client: Credentials = { kind: "clientCredentials", clientId: "pulse", clientSecret: "s3" }
+
+    root.runtime({ ...CLUSTER, auth }, client)
+    root.runtime(
+      { ...CLUSTER, auth: { kind: "clientCredentials", tokenEndpoint: auth.tokenEndpoint } },
+      client,
+    )
+    root.runtime({ ...CLUSTER, auth }, LOGIN)
+    root.runtime({ ...CLUSTER, auth: { kind: "basic" } }, client)
+    root.runtime(CLUSTER, client)
+
+    expect(c8.connections.map((connection) => connection.credentials)).toEqual([
+      { ...auth, clientId: "pulse", clientSecret: "s3" },
+      {
+        kind: "clientCredentials",
+        tokenEndpoint: auth.tokenEndpoint,
+        clientId: "pulse",
+        clientSecret: "s3",
+      },
+      { kind: "none" },
+      { kind: "none" },
+      { kind: "none" },
+    ])
+  })
+
+  test("says whether the adapter of a target's dialect changes data, whatever the login", () => {
+    const { root } = rootOver()
+
+    expect(root.canWrite(SHOP)).toBe(true)
+    expect(root.canWrite(CLUSTER)).toBe(false)
+    expect(root.commands(CLUSTER, NO_LOGIN)).toBeUndefined()
   })
 
   test("gives a refused target a failing runtime with the reason and no commands", async () => {

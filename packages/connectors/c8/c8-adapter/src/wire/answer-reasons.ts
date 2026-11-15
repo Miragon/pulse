@@ -7,14 +7,15 @@ import {
   problemOf,
   statusTextOf,
 } from "@miragon/pulse-http"
+import { SecretMask } from "./secret-mask.js"
 import type { AnsweredReason } from "./wire-reason.js"
 
 type Answer = Pick<HttpAnswer, "status" | "statusText" | "contentType" | "body">
 
 export class AnswerReasons {
-  static of(answer: Answer, cause?: unknown): AnsweredReason {
+  static of(answer: Answer, cause?: unknown, mask = SecretMask.NONE): AnsweredReason {
     const { type, message } = problemOf(answer)
-    const problem = clipText([type, message].filter(Boolean).join(": "))
+    const problem = clipText(mask.text([type, message].filter(Boolean).join(": ")))
     const status = AnswerReasons.statusLine(answer.status, answer.statusText)
     return {
       kind: "answered",

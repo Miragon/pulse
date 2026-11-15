@@ -36,14 +36,7 @@ class EnginesTree {
   static select(key: string): void {
     set(PanelState.selected, key)
     const [kind, engine] = key.split("|")
-    const row = read(PanelState.list)?.engines.find((candidate) => candidate.name === engine)
-    const needsLogin = kind !== "definition" && row?.needsLogin === true
-    set(
-      PanelState.login,
-      needsLogin && engine !== undefined
-        ? { engine, username: "", password: "", failed: false }
-        : undefined,
-    )
+    PanelState.askForLogin(kind === "definition" ? undefined : engine)
   }
 
   static act(key: string): void {

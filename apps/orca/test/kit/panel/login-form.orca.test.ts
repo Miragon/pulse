@@ -1,7 +1,7 @@
 import { mount, type TestPanel } from "orca/testing"
 import { afterEach, expect, test } from "vitest"
 import * as panel from "../../../src/panel/engines.js"
-import { engineList, panelHost, sent, SHOP_DEV, SHOP_TEST } from "./panel-host.js"
+import { C8_SAAS, engineList, panelHost, sent, SHOP_DEV, SHOP_TEST } from "./panel-host.js"
 
 const TREE = { role: "tree" }
 const SAVE = { role: "button", text: "Save login" }
@@ -33,6 +33,50 @@ test("shows the login form when an engine that needs a login is selected", async
   expect(shown.refusals).toEqual([])
 })
 
+test("names the host a login goes to", async () => {
+  const shown = await mounted()
+
+  await shown.selectItem(TREE, "engine|shop-test")
+
+  expect(shown.find({ text: "Pulse sends it to localhost:18091." })).not.toBeNull()
+})
+
+test("asks only for the client secret of a client the profile names, and saves it", async () => {
+  const host = panelHost({
+    "engines.list": engineList([SHOP_DEV, C8_SAAS]),
+    "engines.setCredentials": { ok: true },
+  })
+  const shown = await mounted(host)
+  await shown.selectItem(TREE, "engine|c8-saas")
+
+  expect(shown.find({ label: "Username" })).toBeNull()
+  expect(shown.find(SAVE)?.disabled).toBe(true)
+  await shown.type({ label: "Client secret" }, "reader-secret", { submit: true })
+
+  expect(sent(host, "engines.setCredentials")).toEqual([
+    { engine: "c8-saas", secret: "reader-secret" },
+  ])
+  expect(shown.errors).toEqual([])
+})
+
+test("saves nothing on Enter while a field is empty", async () => {
+  const host = panelHost({ "engines.list": TWO_ENGINES, "engines.setCredentials": { ok: true } })
+  const shown = await mounted(host)
+  await shown.post("engines.login", { engine: "shop-test" })
+
+  await shown.type({ label: "Password" }, "s3cret", { submit: true })
+
+  expect(sent(host, "engines.setCredentials")).toEqual([])
+})
+
+test("asks for no login when an engine without one is meant", async () => {
+  const shown = await mounted()
+
+  await shown.post("engines.login", { engine: "shop-dev" })
+
+  expect(shown.find({ label: "Password" })).toBeNull()
+})
+
 test("shows no login form for an engine without a login", async () => {
   const shown = await mounted()
 
@@ -51,7 +95,7 @@ test("saves the typed login and reloads the engines", async () => {
   await shown.press(SAVE)
 
   expect(sent(host, "engines.setCredentials")).toEqual([
-    { engine: "shop-test", username: "demo", password: "s3cret" },
+    { engine: "shop-test", identity: "demo", secret: "s3cret" },
   ])
   expect(shown.find({ label: "Username" })).toBeNull()
   expect(sent(host, "engines.list")).toHaveLength(2)

@@ -11,6 +11,7 @@ import {
   EnvironmentClassifier,
   type FileVerdict,
   LivePolicy,
+  type Login,
   ProjectFile,
   TargetMerge,
   type TargetsProblem,
@@ -142,12 +143,12 @@ export class EngineRegistry {
     EngineRegistry.fire(this.written)
   }
 
-  async saveLogin(name: string, username: string, password: string): Promise<boolean> {
+  async saveLogin(name: string, login: Login): Promise<boolean> {
     const connection = this.byName(name)
     if (connection === undefined) {
       return false
     }
-    await this.credentials.write(connection.target, username, password)
+    await this.credentials.write(connection.target, login)
     await this.reload()
     return true
   }

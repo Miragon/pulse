@@ -22,6 +22,8 @@ type EngineAdapters = Readonly<Record<Dialect, EngineAdapter>>
 
 type LocalAdapter = EngineAdapter & { readonly localEndpoint: string }
 
+const NO_CREDENTIALS = { kind: "none" } as const
+
 export class EngineRoot implements EngineFactories {
   private constructor(
     private readonly adapters: EngineAdapters,
@@ -55,6 +57,12 @@ export class EngineRoot implements EngineFactories {
       : undefined
   }
 
+  canWrite(target: EngineTarget): boolean {
+    return (
+      this.adapters[target.engine].commands(this.connectionOf(target, NO_CREDENTIALS)) !== undefined
+    )
+  }
+
   webUi(target: EngineTarget): EngineWebUi | undefined {
     return target.webUiUrl === undefined
       ? undefined
@@ -81,8 +89,21 @@ export class EngineRoot implements EngineFactories {
   }
 
   private engineCredentials(target: EngineTarget, credentials: Credentials): EngineCredentials {
-    return target.auth.kind === "basic" && credentials.kind === "basic"
-      ? credentials
-      : { kind: "none" }
+    const { auth } = target
+    if (auth.kind === "basic" && credentials.kind === "basic") {
+      return credentials
+    }
+    if (auth.kind !== "clientCredentials" || credentials.kind !== "clientCredentials") {
+      return NO_CREDENTIALS
+    }
+    const { tokenEndpoint, audience, scopes } = auth
+    return {
+      kind: "clientCredentials",
+      tokenEndpoint,
+      clientId: credentials.clientId,
+      clientSecret: credentials.clientSecret,
+      ...(audience === undefined ? {} : { audience }),
+      ...(scopes === undefined ? {} : { scopes }),
+    }
   }
 }

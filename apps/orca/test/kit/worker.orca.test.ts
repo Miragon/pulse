@@ -95,7 +95,7 @@ describe("the engines", () => {
     const list = await running.request("engines.list")
 
     expect(namesOf(list)).toEqual(["shop-dev", "shop-test", "mine"])
-    expect(list.engines.map((engine) => engine.needsLogin)).toEqual([false, false, false])
+    expect(list.engines.map((engine) => engine.login)).toEqual([undefined, undefined, undefined])
     expect(list.userConfig).toEqual({
       path: join(configHome, "pulse-cli", "config.json"),
       named: false,
@@ -117,7 +117,10 @@ describe("the engines", () => {
     expect(running.host.data().settings.projectFile).toBe(projectFile)
     expect(list.projectFile).toBe(projectFile)
     expect(namesOf(list)).toEqual(["shop-dev", "shop-test"])
-    expect(list.engines.map((engine) => engine.needsLogin)).toEqual([false, true])
+    expect(list.engines.map((engine) => engine.login)).toEqual([
+      undefined,
+      { identity: "Username", secret: "Password", sendsTo: "Pulse sends it to 127.0.0.1:9." },
+    ])
     expect(list.engines.map((engine) => engine.problem?.title)).toEqual([
       "Can't reach shop-dev.",
       "Can't reach shop-test.",
@@ -162,8 +165,8 @@ describe("the engines", () => {
 
     const saved = await running.request("engines.setCredentials", {
       engine: "shop-test",
-      username: "demo",
-      password: "s3cret",
+      identity: "demo",
+      secret: "s3cret",
     })
 
     expect(saved).toEqual({ ok: true })
@@ -179,8 +182,8 @@ describe("the engines", () => {
 
     const saved = await running.request("engines.setCredentials", {
       engine: "shop-test",
-      username: "demo",
-      password: "s3cret",
+      identity: "demo",
+      secret: "s3cret",
     })
 
     expect(saved).toEqual({ ok: false })

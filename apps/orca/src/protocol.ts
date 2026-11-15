@@ -17,12 +17,18 @@ export interface DefinitionRow {
   readonly withIncident: number
 }
 
+export interface LoginRow {
+  readonly identity?: string
+  readonly secret: string
+  readonly sendsTo: string
+}
+
 export interface EngineRow {
   readonly name: string
   readonly description: string
   readonly active: boolean
   readonly writable: boolean
-  readonly needsLogin: boolean
+  readonly login?: LoginRow
   readonly problem?: EngineProblem
   readonly definitions: readonly DefinitionRow[]
 }
@@ -137,7 +143,7 @@ declare module "orca" {
     "engines.activate": { input: { engine: string }; output: { ok: boolean } }
     "engines.setProjectFile": { input: { path: string }; output: { ok: boolean } }
     "engines.setCredentials": {
-      input: { engine: string; username: string; password: string }
+      input: { engine: string; identity?: string; secret: string }
       output: { ok: boolean }
     }
     "engines.configure": { output: { path: string } }

@@ -36,6 +36,8 @@ export interface ProfileOrigin {
   readonly project?: string | undefined
   /** The config file named by --config or PULSE_CLI_CONFIG it comes from. */
   readonly configFile?: string | undefined
+  /** It was selected as the defaultProfile of the project file or of the config file. */
+  readonly defaultOf?: "project" | "config" | undefined
 }
 
 /** The file a profile comes from as messages name it: `your config file` for the user's own. */
@@ -68,8 +70,13 @@ const SET_OPTIONS: Readonly<Record<string, string>> = {
   headers: "-H 'Name: value'",
 }
 
-/** The way out of a problem a code has one for, by code; `flag` is " --project" or "". */
-const CODE_HINTS: Readonly<Partial<Record<ProblemCode, (name: string, flag: string) => string>>> = {
+/**
+ * The way out of a problem a code has one for, by code; `flag` is " --project" or "", `use` the
+ * way to make another profile the default when the file's defaultProfile chose it, else "".
+ */
+const CODE_HINTS: Readonly<
+  Partial<Record<ProblemCode, (name: string, flag: string, use: string) => string>>
+> = {
   "secret-header": (name, flag) =>
     `A project file is shared, so secret headers go into ${ENV.headers} or a profile of your own config file. Remove it with \`pulse config unset ${name} headers${flag}\`.`,
   "auth-type-not-served": (name, flag) => authTypeHint(name, flag),
@@ -78,8 +85,20 @@ const CODE_HINTS: Readonly<Partial<Record<ProblemCode, (name: string, flag: stri
     `Fix auth.type or flavor in the file, or remove all auth settings with \`pulse config unset ${name} auth${flag}\`.`,
   "token-endpoint-missing": () =>
     "Set auth.tokenEndpoint in the file: pulse config does not edit client credentials.",
-  "dialect-not-served": () =>
-    `The CLI reads engines of the Camunda 7 REST API (${FLAVORS.join(", ")}) and leaves this profile as it stands: choose another one with --profile or ${ENV.profile}, or give --url, which selects no profile.`,
+  "dialect-not-served": (_name, _flag, use) =>
+    `The CLI reads engines of the Camunda 7 REST API (${FLAVORS.join(", ")}) and leaves this profile as it stands for Pulse for VS Code and Pulse for Orca, which read Camunda 8 too: choose another one with --profile or ${ENV.profile}${use}, or give --url, which selects no profile.`,
+}
+
+/** The file whose defaultProfile chose a profile: the project file when it names one, else yours. */
+export function defaultFileOf(config: LoadedConfig): "project" | "config" {
+  return config.project?.defaultProfile === true ? "project" : "config"
+}
+
+/** How to make another profile the default of the file whose defaultProfile chose this one. */
+function useHint(defaultOf: ProfileOrigin["defaultOf"]): string {
+  if (defaultOf === undefined) return ""
+  const flag = defaultOf === "project" ? " --project" : ""
+  return `, make another one the default with \`pulse config use <profile>${flag}\``
 }
 
 function authTypeHint(name: string, flag: string): string {
@@ -112,11 +131,16 @@ function keyHint(name: string, problem: Problem, flag: string): string | undefin
  * `pulse config` command that removes or sets the key, else fixing the file. A name that is no
  * valid name is not repeated: the commands say `<profile>`.
  */
-export function problemHint(name: string, problem: Problem, project: boolean): string {
+export function problemHint(
+  name: string,
+  problem: Problem,
+  project: boolean,
+  defaultOf?: ProfileOrigin["defaultOf"],
+): string {
   const flag = project ? " --project" : ""
   const shown = PROFILE_NAME.test(name) ? name : "<profile>"
   return (
-    CODE_HINTS[problem.code]?.(shown, flag) ??
+    CODE_HINTS[problem.code]?.(shown, flag, useHint(defaultOf)) ??
     keyHint(shown, problem, flag) ??
     `Fix the profile in the file, or change it with \`pulse config set ${shown} <options>${flag}\`.`
   )
@@ -132,7 +156,9 @@ export function refusedProfileError(
   const [first] = problems
   return configError(
     `${shown} of ${fileOf(origin)} cannot be used: ${describeProblems(problems)}`,
-    first === undefined ? undefined : problemHint(name, first, origin.project !== undefined),
+    first === undefined
+      ? undefined
+      : problemHint(name, first, origin.project !== undefined, origin.defaultOf),
   )
 }
 

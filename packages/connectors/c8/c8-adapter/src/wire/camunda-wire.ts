@@ -14,6 +14,7 @@ import type { EngineConnection } from "@miragon/pulse-runtime-view/ports"
 import { AnswerReasons } from "./answer-reasons.js"
 import type { ClientCredentialsSources } from "./client-credentials-sources.js"
 import { HttpReasons } from "./http-reasons.js"
+import { SecretMask } from "./secret-mask.js"
 import { TokenReasons } from "./token-reasons.js"
 import { WireCredentials } from "./wire-credentials.js"
 import type { WirePlatform } from "./wire-platform.js"
@@ -41,6 +42,7 @@ export class CamundaWire {
   private constructor(
     private readonly http: Http | WireReason,
     private readonly tokenEndpoint: string | undefined,
+    private readonly mask: SecretMask,
   ) {}
 
   static of(
@@ -49,7 +51,8 @@ export class CamundaWire {
     platform: WirePlatform,
   ): CamundaWire {
     const tokenEndpoint = WireCredentials.tokenEndpointOf(connection.credentials)
-    return new CamundaWire(CamundaWire.httpOf(connection, sources, platform), tokenEndpoint)
+    const http = CamundaWire.httpOf(connection, sources, platform)
+    return new CamundaWire(http, tokenEndpoint, SecretMask.of(connection.credentials))
   }
 
   async exchange(request: WireRequest): Promise<WireOutcome> {
@@ -66,16 +69,16 @@ export class CamundaWire {
         ...(request.body === undefined ? {} : { body: request.body }),
       })
       return answer.status >= 400
-        ? { reason: AnswerReasons.of(answer) }
+        ? { reason: this.mask.reason(AnswerReasons.of(answer, undefined, this.mask)) }
         : { text: decodeText(answer) }
     } catch (error: unknown) {
-      return { reason: this.reasonOf(error) }
+      return { reason: this.mask.reason(this.reasonOf(error)) }
     }
   }
 
   private reasonOf(error: unknown): WireReason {
     if (error instanceof HttpFailure) {
-      return HttpReasons.of(error)
+      return HttpReasons.of(error, this.mask)
     }
     if (error instanceof TokenFailure) {
       return TokenReasons.of(error, this.tokenEndpoint ?? "")

@@ -36,6 +36,20 @@ describe("the Operate links", () => {
     )
   })
 
+  test.each([
+    ["https://bru-2.operate.camunda.io/12345678-90ab-cdef-1234-567890abcdef"],
+    ["https://bru-2.operate.camunda.io/12345678-90ab-cdef-1234-567890abcdef/"],
+  ])("go into the Operate of a SaaS cluster at %s, which names the cluster in its path", (url) => {
+    const webUi = new C8Adapter().webUi(url)
+    const base = "https://bru-2.operate.camunda.io/12345678-90ab-cdef-1234-567890abcdef"
+
+    expect(webUi?.overviewUrl()).toBe(base)
+    expect(webUi?.instanceUrl(INSTANCE)).toBe(`${base}/processes/2251799813685329`)
+    expect(webUi?.definitionUrl(DEFINITION)).toBe(
+      `${base}/processes?processDefinitionId=order+fulfilment&processDefinitionVersion=3&active=true&incidents=true`,
+    )
+  })
+
   test("keep the origin and the path to Operate, never a query or a route copied along", () => {
     const webUi = new C8Adapter().webUi("http://localhost:8080/operate?tab=2#/processes")
 
@@ -47,6 +61,12 @@ describe("the Operate links", () => {
     ["another web app", "http://localhost:8080/tasklist"],
     ["a path that only starts with Operate", "http://localhost:8080/operate/processes"],
     ["no URL", "not a url"],
+    ["a SaaS Operate without a cluster", "https://bru-2.operate.camunda.io/"],
+    ["a page inside a SaaS Operate", "https://bru-2.operate.camunda.io/12345678/processes"],
+    [
+      "a host that only looks like SaaS Operate",
+      "https://bru-2.operate.camunda.io.example.com/1234",
+    ],
   ])("are absent for %s", (_name, url) => {
     expect(new C8Adapter().webUi(url)).toBeUndefined()
   })

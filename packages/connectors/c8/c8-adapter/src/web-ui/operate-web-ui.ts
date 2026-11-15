@@ -2,6 +2,8 @@ import type { DefinitionRef, InstanceSummary } from "@miragon/pulse-engine-core"
 import type { EngineWebUi } from "@miragon/pulse-runtime-view/ports"
 
 const WEB_APP_ROOT = /^(.*\/operate)\/?$/
+const SAAS_OPERATE_HOST = /^[a-z0-9-]+\.operate\.camunda\.io$/
+const SAAS_CLUSTER_ROOT = /^(\/[^/]+)\/?$/
 
 export class OperateWebUi implements EngineWebUi {
   readonly name = "Operate"
@@ -13,7 +15,7 @@ export class OperateWebUi implements EngineWebUi {
       return undefined
     }
     const url = new URL(webUiUrl)
-    const root = WEB_APP_ROOT.exec(url.pathname)?.[1]
+    const root = WEB_APP_ROOT.exec(url.pathname)?.[1] ?? OperateWebUi.saasRootOf(url)
     return root === undefined ? undefined : new OperateWebUi(`${url.origin}${root}`)
   }
 
@@ -33,5 +35,11 @@ export class OperateWebUi implements EngineWebUi {
       incidents: "true",
     })
     return `${this.base}/processes?${query.toString()}`
+  }
+
+  private static saasRootOf(url: URL): string | undefined {
+    return SAAS_OPERATE_HOST.test(url.hostname)
+      ? SAAS_CLUSTER_ROOT.exec(url.pathname)?.[1]
+      : undefined
   }
 }

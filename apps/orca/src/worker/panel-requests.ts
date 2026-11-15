@@ -1,5 +1,5 @@
 import type { OrcaWorkerApi, PanelCaller } from "orca/worker"
-import type { TargetsProblem } from "@miragon/pulse-runtime-view/host-kit"
+import type { Login, TargetsProblem } from "@miragon/pulse-runtime-view/host-kit"
 import type { ConfigurationProblem, EngineList, ViewRequest } from "../protocol.js"
 import { BoardTemplate } from "./board-template.js"
 import type { CockpitViews } from "./cockpit-views.js"
@@ -62,8 +62,8 @@ export class PanelRequests {
       await registry.reload()
       return { ok: true }
     })
-    panels.handle("engines.setCredentials", ({ engine, username, password }) =>
-      this.saveLogin(engine, username, password),
+    panels.handle("engines.setCredentials", ({ engine, identity, secret }) =>
+      this.saveLogin(engine, { ...(identity === undefined ? {} : { identity }), secret }),
     )
     panels.handle("engines.configure", async () => ({ path: await services.configure() }))
     panels.handle("engines.openUserConfig", async () => {
@@ -147,18 +147,14 @@ export class PanelRequests {
     return { path }
   }
 
-  private async saveLogin(
-    engine: string,
-    username: string,
-    password: string,
-  ): Promise<{ ok: boolean }> {
+  private async saveLogin(engine: string, login: Login): Promise<{ ok: boolean }> {
     const protection = (await this.orca.host.call("secrets.protection")) as { status: string }
     if (protection.status !== "os-keyring") {
       this.orca.log("Logins are not saved: this machine offers no OS key store to Orca.")
       return { ok: false }
     }
     await this.parts.ready()
-    const ok = await this.parts.registry.saveLogin(engine, username, password)
+    const ok = await this.parts.registry.saveLogin(engine, login)
     this.orca.panels.post("engines.changed", { reason: "login" })
     return { ok }
   }

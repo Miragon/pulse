@@ -87,8 +87,9 @@ too. The engine-neutral part lives in packages the editor hosts share: the runti
 `tsconfig.<layer>.json` and dependency rules) over the engine contract of
 `@miragon/pulse-engine-core`, and the adapters of that contract, one per dialect family: the C7
 adapter (`packages/connectors/c7/c7-adapter`) and the C8 adapter
-(`packages/connectors/c8/c8-adapter`, read-only). Both composition roots wire both adapters; the
-project file's parser serves only the c7 dialect, so no target reaches the C8 adapter.
+(`packages/connectors/c8/c8-adapter`, read-only). Both composition roots wire both adapters, and
+a `camunda8` profile is a target of the C8 adapter, signed in with none, Basic or client
+credentials.
 This app holds only the VS Code wiring.
 
 | You want to…                                                    | Put it in                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Never                                      |
@@ -296,10 +297,16 @@ engine at history level AUDIT too
   editor hosts cannot serve (`headers`, the auth types bearer and passthrough, a named process
   engine, a missing `url`), worded by the format's `describeProblem`, and adds its own way out
   behind an auth type it refuses or the format does not take and behind `headers`: the auth
-  types a target then connects with (`EditorAuth.connectsWith`, so not `oauth`, whose profile
-  lists its engine and is refused on connect by `TargetPolicy.refusal`, which names `none`, or
-  `basic` without the OAuth keys, since `basic` does not take them), and to remove `headers`,
-  naming no editor, since both hosts show it. `EditorAuth`
+  types a target then connects with, per dialect (`EditorAuth.connectsWith`, so not `oauth`,
+  whose profile lists its engine and is refused on connect by `TargetPolicy.refusal`, which names
+  `none`, or `basic` without the OAuth keys, since `basic` does not take them; `clientCredentials`
+  on `camunda8` alone), and to remove `headers`, naming no editor, since both hosts show it, and
+  the CLI only for a profile of its dialect. It refuses a token endpoint the client secret would
+  go to that is no http or https URL or carries credentials or a fragment, and `TargetPolicy`
+  refuses one on plain http beyond this machine as it refuses such a cluster URL; a login is
+  saved per target and bound to the origins of both URLs (`CredentialStore`), and Set
+  Credentials asks for what the profile lacks (`TargetLogin`: the client ID and secret, or the
+  secret alone). `EditorAuth`
   (`packages/core/runtime-view/src/host-kit/connections/editor-auth.ts`) words every way out, on
   reading and on connecting, once, next to the auth kinds and `EditorAuth.connectsWith`. The move
   refusal's way out through the CLI is the core's `CliWayOut`, its command the adapter's `EngineCli`

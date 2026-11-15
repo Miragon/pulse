@@ -56,8 +56,8 @@ export class PulseExtension {
       new TargetDiscovery(root.engines.localTarget()),
     )
     const picker = new ConnectionPicker(registry)
-    const setCredentials = new SetCredentialsCommand(registry, credentials, picker)
     const openTargetsFile = new OpenTargetsFileCommand(registry)
+    const setCredentials = new SetCredentialsCommand(registry, credentials, picker, openTargetsFile)
     const documents = new IncidentDocuments()
     const sources = root.localSources(new VsCodeWorkspaceFiles())
     const attention = new WindowAttention()

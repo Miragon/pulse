@@ -94,6 +94,7 @@ const ECHOED_SECRETS =
   "Failed to execute the request: the payment call of order B-7 failed\n" +
   "\tsent Authorization: Basic ZGVtbzpkZW1vLXNlY3JldA== for user demo, password demo-secret\n" +
   "\tsent Authorization: Bearer tok-demo-123\n" +
+  "\tasked for it with client_id=pulse-reader&client_secret=reader-secret\n" +
   STACK_FRAME.repeat(8) +
   "the end of the cluster's message"
 

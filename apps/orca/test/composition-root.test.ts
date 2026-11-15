@@ -67,6 +67,7 @@ describe("the composition root of the worker", () => {
       "Operate",
     ])
     expect(engines.commands(CLUSTER, { kind: "none" })).toBeUndefined()
+    expect([engines.canWrite(LOCAL_TARGET), engines.canWrite(CLUSTER)]).toEqual([true, false])
   })
 
   test("reads Camunda 7, Camunda 8 and a model naming both with the adapters' BPMN dialects", async () => {

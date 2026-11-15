@@ -37,7 +37,7 @@ comment, so they are explained here:
   and under Operate's path;
 - `missingInstance`: the cluster's 404 `NOT_FOUND` for an instance key it does not know;
 - `echoesSecrets`: a token, then a 500 whose detail (over 500 characters, with line breaks)
-  echoes the Basic value, the password and the bearer token of the cases;
+  echoes the Basic value, the password, the bearer token and the client secret of the cases;
 - `issuing`: a token endpoint at Keycloak's path that answers as Keycloak does (Bearer, 300 s)
   and hands out the listed tokens in turn, the last one again once they run out;
 - `refusingTheClient`: Keycloak's 401 `unauthorized_client` for a wrong secret;
@@ -76,8 +76,8 @@ settles it rewrites the golden with `golden:update`.
 | `unauthorized-passthrough` | not reachable | the editors have no caller whose token they could forward: passthrough is the MCP server's alone | |
 | `wrong-rest-root` | pinned | the URL lacks `/v2`, and the cluster answers `/topology` with its own 404: `misconfigured` with the `/v2` hint; the same for `getInstanceDetail` | none planned |
 | `missing-resource` | pinned | 404 `NOT_FOUND` for the instance: `getInstanceDetail` returns no detail, after the version read | none planned |
-| `engine-text-echoes-secret-basic` | pinned | a 500 whose detail echoes the Basic value, the password and a token: `engineFailure`, the configured password and Basic value read `***`, the other token stays, the message on one line and cut after 500 characters | none planned |
-| `engine-text-echoes-secret-bearer` | pinned | the same 500 to the token the endpoint issued: the token reads `***`; the Basic value and the password are no credential of this connection and stay, and the client secret goes to the token endpoint alone | none planned; open: whether the cluster's texts mask the client secret too |
+| `engine-text-echoes-secret-basic` | pinned | a 500 whose detail echoes the Basic value, the password, a token and a client secret: `engineFailure`, the configured password and Basic value read `***`, the other token and the client secret stay, the message on one line and cut after 500 characters | none planned |
+| `engine-text-echoes-secret-bearer` | pinned | the same 500 to the token the endpoint issued: the token and the client secret read `***`, though the secret went to the token endpoint alone; the Basic value and the password are no credential of this connection and stay | none planned |
 | `deadline-exceeded` | pinned | a cluster that never answers: `unreachable`. The test turns the transport's timer of 60000 ms into one of 300 ms, so the text names the adapter's own 60000 ms; the same for `getInstanceDetail` | none planned |
 | `unreachable` | pinned | a closed loopback port: `unreachable`, ECONNREFUSED | none planned |
 | `tls-failure` | pinned | a self-signed certificate: `unreachable`, the failed TLS handshake with its code and the certificate hint | none planned |

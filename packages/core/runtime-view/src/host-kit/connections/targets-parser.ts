@@ -1,6 +1,4 @@
 import {
-  authTypeOf,
-  type Dialect,
   describeProblem,
   dialectOf,
   parseProfileFile,
@@ -22,11 +20,9 @@ export interface ParsedTargets {
   readonly problems: readonly TargetsProblem[]
 }
 
-const DIALECTS: readonly Dialect[] = ["c7"]
-
 const SURFACE: Surface = {
-  dialects: DIALECTS,
-  authTypes: ["none", "basic", "oauth"],
+  dialects: EditorAuth.DIALECTS,
+  authTypes: EditorAuth.AUTH_TYPES,
   urlRequired: true,
   defaultEngineOnly: true,
   refusedKeys: ["headers"],
@@ -66,30 +62,25 @@ export class TargetsParser {
 
   private targetOf(verdict: ProfileVerdict): EngineTarget | TargetsProblem {
     const { name, profile } = verdict
-    const refusals = profile === undefined ? verdict.problems : refusalsOn(profile, SURFACE)
-    const auth = profile === undefined ? undefined : EditorAuth.kindOf(authTypeOf(profile))
-    const engine = profile === undefined ? undefined : this.engineOf(profile)
-    if (
-      refusals.length > 0 ||
-      name === undefined ||
-      profile?.url === undefined ||
-      auth === undefined ||
-      engine === undefined
-    ) {
+    if (profile === undefined || name === undefined) {
+      return this.refusal(verdict, verdict.problems)
+    }
+    const refusals = refusalsOn(profile, SURFACE)
+    if (refusals.length > 0 || profile.url === undefined) {
       return this.refusal(verdict, refusals)
+    }
+    const auth = EditorAuth.of(profile)
+    if ("refused" in auth) {
+      return this.problem(`${TargetsParser.subjectOf(verdict)}: ${auth.refused}`)
     }
     return {
       name,
-      engine,
+      engine: dialectOf(profile),
       endpoint: profile.url,
       auth,
       source: { kind: this.source.kind, path: this.path },
       ...this.optionalsOf(profile),
     }
-  }
-
-  private engineOf(profile: Profile): Dialect | undefined {
-    return DIALECTS.find((dialect) => dialect === dialectOf(profile))
   }
 
   private optionalsOf(profile: Profile): Pick<EngineTarget, "webUiUrl" | "readOnly"> {
@@ -100,45 +91,36 @@ export class TargetsParser {
   }
 
   private refusal(verdict: ProfileVerdict, problems: readonly Problem[]): TargetsProblem {
-    const subject =
-      verdict.name === undefined
-        ? `profile ${String(verdict.index + 1)}`
-        : `profile "${verdict.name}"`
     const sentences = problems.map((problem) => describeProblem(problem))
     const waysOut = problems.flatMap((problem) => this.wayOut(problem, verdict.profile) ?? [])
-    return this.problem(`${subject}: ${[...sentences, ...new Set(waysOut)].join(" ")}`)
+    return this.problem(
+      `${TargetsParser.subjectOf(verdict)}: ${[...sentences, ...new Set(waysOut)].join(" ")}`,
+    )
   }
 
   private wayOut(problem: Problem, profile: Profile | undefined): string | undefined {
     const { code, key } = problem
     if (AUTH_KEY_CODES.has(code) || (code === "invalid" && key === "auth.type")) {
-      return EditorAuth.WAYS_OUT.authKeys
+      return EditorAuth.authKeysWayOut()
     }
-    if (code === "key-not-served") {
-      return key === "headers" ? this.headersWayOut() : undefined
-    }
-    return code === "auth-type-not-served" ? this.authTypeWayOut(profile) : undefined
-  }
-
-  private headersWayOut(): string {
-    return this.source.isUserConfig()
-      ? EditorAuth.WAYS_OUT.headersOfTheCli
-      : EditorAuth.WAYS_OUT.headers
-  }
-
-  private authTypeWayOut(profile: Profile | undefined): string | undefined {
-    if (profile === undefined || this.engineOf(profile) === undefined) {
+    if (profile === undefined) {
       return undefined
     }
-    if (authTypeOf(profile) !== "passthrough") {
-      return EditorAuth.WAYS_OUT.authType
+    if (code === "key-not-served") {
+      return key === "headers" ? EditorAuth.headersWayOut(profile, this.source) : undefined
     }
-    return this.source.isUserConfig()
-      ? EditorAuth.WAYS_OUT.setAuthType
-      : EditorAuth.WAYS_OUT.passthrough
+    return code === "auth-type-not-served"
+      ? EditorAuth.authTypeWayOut(profile, this.source)
+      : undefined
   }
 
   private problem(message: string, severity?: "warning"): TargetsProblem {
     return new TargetsProblem(this.path, message, severity, this.source)
+  }
+
+  private static subjectOf(verdict: ProfileVerdict): string {
+    return verdict.name === undefined
+      ? `profile ${String(verdict.index + 1)}`
+      : `profile "${verdict.name}"`
   }
 }

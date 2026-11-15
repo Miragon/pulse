@@ -167,8 +167,51 @@ describe("a command that uses a Camunda 8 profile", () => {
       'Profile "c8" of your config file cannot be used: This client does not speak the API of this flavor. This client cannot authenticate with this auth.type.',
     )
     expect(error.details.hint).toBe(
-      "The CLI reads engines of the Camunda 7 REST API (operaton, cibseven, camunda7) and leaves this profile as it stands: choose another one with --profile or PULSE_CLI_PROFILE, or give --url, which selects no profile.",
+      "The CLI reads engines of the Camunda 7 REST API (operaton, cibseven, camunda7) and leaves this profile as it stands for Pulse for VS Code and Pulse for Orca, which read Camunda 8 too: choose another one with --profile or PULSE_CLI_PROFILE, or give --url, which selects no profile.",
     )
+  })
+
+  it("names the way to another default when the file's defaultProfile chose it", () => {
+    const own = parseConfigFile(
+      JSON.stringify({
+        defaultProfile: "open",
+        profiles: { open: { url: C8_URL, flavor: "camunda8" } },
+      }),
+      "/home/me/config.json",
+    )
+    expect(failure(() => resolveConfig({}, {}, own)).details.hint).toBe(
+      "The CLI reads engines of the Camunda 7 REST API (operaton, cibseven, camunda7) and leaves this profile as it stands for Pulse for VS Code and Pulse for Orca, which read Camunda 8 too: choose another one with --profile or PULSE_CLI_PROFILE, make another one the default with `pulse config use <profile>`, or give --url, which selects no profile.",
+    )
+    const project = parseProjectFile(
+      JSON.stringify({
+        defaultProfile: "open",
+        profiles: { open: { url: C8_URL, flavor: "camunda8" } },
+      }),
+      "/repo/.pulse.json",
+    )
+    const loaded = mergeProject(undefined, {
+      source: { path: "/repo/.pulse.json", directory: "/repo" },
+      file: project,
+    })
+    expect(failure(() => resolveConfig({}, {}, loaded)).details.hint).toContain(
+      "make another one the default with `pulse config use <profile> --project`, or give --url",
+    )
+  })
+
+  it("names no default when a flag or PULSE_CLI_PROFILE chose the profile", () => {
+    const own = parseConfigFile(
+      JSON.stringify({
+        defaultProfile: "open",
+        profiles: { open: { url: C8_URL, flavor: "camunda8" } },
+      }),
+      "/home/me/config.json",
+    )
+    for (const hint of [
+      failure(() => resolveConfig({ profile: "open" }, {}, own)).details.hint,
+      failure(() => resolveConfig({}, { PULSE_CLI_PROFILE: "open" }, own)).details.hint,
+    ]) {
+      expect(hint).not.toContain("pulse config use")
+    }
   })
 
   it("names the way out of an auth type the flavor does not take, in the project file too", () => {

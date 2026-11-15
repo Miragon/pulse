@@ -33,7 +33,7 @@ function inMemorySecrets() {
 
 async function savedFor(endpoint: string) {
   const secrets = inMemorySecrets()
-  await secrets.store.write(profile("prod-eu", endpoint), "demo", "s3cret")
+  await secrets.store.write(profile("prod-eu", endpoint), { identity: "demo", secret: "s3cret" })
   return secrets
 }
 
@@ -96,8 +96,11 @@ describe("reading a saved login", () => {
 describe("the secret scope", () => {
   test("follows the modeler scheme of file path and target name", async () => {
     const { stored, store } = inMemorySecrets()
-    await store.write(profile("dev", "http://x"), "demo", "demo")
-    await store.write(LOCAL_TARGET, "demo", "demo")
+    await store.write(profile("dev", "http://x"), { identity: "demo", secret: "demo" })
+    await store.write(
+      { ...LOCAL_TARGET, auth: { kind: "basic" } },
+      { identity: "demo", secret: "demo" },
+    )
     expect([...stored.keys()].filter((key) => key.endsWith(".username"))).toEqual([
       `pulse.connection.${FILE}::dev.username`,
       "pulse.connection.default::local.username",
@@ -111,8 +114,8 @@ describe("the secret scope", () => {
       ...profile("dev", "http://x"),
       source: { kind: "user-config", path: own },
     }
-    await store.write(profile("dev", "http://x"), "team", "team-secret")
-    await store.write(mine, "me", "my-secret")
+    await store.write(profile("dev", "http://x"), { identity: "team", secret: "team-secret" })
+    await store.write(mine, { identity: "me", secret: "my-secret" })
 
     expect(await store.read(mine)).toEqual({ kind: "basic", username: "me", password: "my-secret" })
     expect(stored.get(`pulse.connection.${own}::dev.username`)).toBe("me")
