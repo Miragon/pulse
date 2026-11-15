@@ -82,9 +82,11 @@ missing.
   runtime's process-instance filter). `instancesWithIncident(port, scope)` lists the instances of
   a version, a process or a business key with one, `countWithIncident` counts them,
   `withIncidentAmong(port, ids)` flags listed instances and `withIncidentByVersion` counts per
-  version. The history's incident filters find nothing below history level FULL, which writes no
-  incident to the history: `unrecordedIncidents(port)` tells that from a true "none" before a
-  history query by incident answers.
+  version; the runtime's `InstanceSearch` pages the history's rows of those instances and counts
+  them in one runtime count where the runtime knows the whole filter. The history's incident
+  filters find nothing below history level FULL, which writes no incident to the history:
+  `unrecordedIncidents(port)` tells that from a true "none" before a history query by incident
+  answers.
 - **Plans:** the pure parts of retry (`planRetry`, `retriesWrite`), advance (`chooseWait`,
   `advanceSteps`) and wait (`parseCondition`, `decide`, `poll`).
 - **Routes:** the route of each operation of the REST API: method, path template, effect (`read`,
@@ -106,12 +108,22 @@ missing.
   API's version), `DefinitionReader` (every process by its latest version, its versions newest
   first, each with its running instances and those "with incident", a version's BPMN XML),
   `ElementStatisticsReader` (per element of a version the waiting tokens, the incidents raised
-  there and those of called instances) and `CalledProcessReader` (each call activity of a version
-  with the version its binding starts). A by-id read of something the engine does not know
-  answers undefined (an engine 404 that names it, or a 500 `NullValueException`, as `inspect` reads
-  an instance that ended); a list is read page by page until a shorter page, and an answer that is
-  no list fails. `incidentRowsOf`, `isRootIncident` and `definitionRefOf` are what those readers
-  share with yours. `JsonView` reads an engine answer with checks: `JsonView.of(answer, "incident")`
+  there and those of called instances), `CalledProcessReader` (each call activity of a version
+  with the version its binding starts), `InstanceSearch` (the history's instances newest first,
+  paged by offset behind the contract's cursor, each flagged with "with incident", and their
+  count; a variable condition's value as the engine reads it, every integer beyond 2^53 in it
+  digit for digit), `VariableNameReader` (the variable names of a version's newest 50 instances),
+  `IncidentSearch` (the root incidents newest first with the version each was raised in and the
+  job or external task `incidentRecovery` names) and `IncidentDetailsReader` (the stack trace or
+  error details `CAUSE_OPERATIONS` names, else the incident's message, with the root cause by
+  engine-core's `RootCauses`). A by-id read of something the engine does not know answers
+  undefined (an engine 404 that names it, or a 500 `NullValueException`, as `inspect` reads an
+  instance that ended); a list is read page by page until a shorter page, and an answer that is
+  no list fails. `incidentRowsOf`, `isRootIncident`, `definitionRefOf`, `timestampOf`,
+  `instanceStateOf`, `incidentDetailsOf` and `readHistoricInstances` are what those readers share
+  with yours. The history's instance query and the variable names are `POST`s that only read:
+  your transport sends a route by its method, the body as JSON. `JsonView` reads an engine answer
+  with checks: `JsonView.of(answer, "incident")`
   is the object, `requiredString("id")`, `optionalNumber("version")`, `optionalList("children")` and
   the like read its values as the engine documents them, and an answer of another shape fails as
   `RuntimeError("unexpectedResponse")` in words that name what was wrong (`id is missing`,
@@ -162,8 +174,9 @@ package.
   and health verdict from the same rules, flags its instance rows with `withIncidentAmong` and
   checks a history query by incident with `unrecordedIncidents`.
 - Pulse for VS Code and Pulse for Orca bundle it in their C7 adapter: it answers the engine, its
-  processes, a version's diagram, the counts on it and the processes it calls with the readers of
-  `./runtime`, reads every engine answer through `JsonView` and checks every id with `isEngineId`,
+  processes, a version's diagram, the counts on it, the processes it calls, the instances and their
+  count, a version's variable names, the open incidents and an incident's details with the readers
+  of `./runtime`, reads every engine answer through `JsonView` and checks every id with `isEngineId`,
   an instance's panel reads through `loadInstance`, an incident's retry and the incident list take
   its job or external task from `incidentRecovery`, its details their request from
   `CAUSE_OPERATIONS`; a variable change without a type that is no JSON string, object or array is

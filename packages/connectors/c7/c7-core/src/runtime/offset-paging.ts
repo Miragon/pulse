@@ -1,17 +1,30 @@
-import { PageCursor, type Page, type PageRequest } from "@miragon/pulse-engine-core"
+/**
+ * Offset paging behind the engine contract's cursor (`PageRequest`, `Page` of
+ * @miragon/pulse-engine-core): the cursor is the offset of the next row, and one row more than the
+ * page is asked for, so a page tells whether another follows without a count.
+ */
 
+import { type Page, PageCursor, type PageRequest } from "@miragon/pulse-engine-core"
+
+/** The rows of a request: `firstResult` and `maxResults`, the engine's paging. */
 export interface OffsetWindow {
   readonly firstResult: number
   readonly maxResults: number
 }
 
+/** A page by its offset. */
 export class OffsetPaging {
   constructor(private readonly page: PageRequest) {}
 
+  /**
+   * The rows to ask for: the page from its offset and one more. A cursor that is no offset of
+   * this paging fails as a `RangeError`.
+   */
   window(): OffsetWindow {
     return { firstResult: this.offset(), maxResults: this.page.limit + 1 }
   }
 
+  /** The page of `rows` (read by {@link window}), its items by `toItems`, and the next cursor if more follow. */
   pageOf<Row, Item>(
     rows: readonly Row[],
     toItems: (pageRows: readonly Row[]) => readonly Item[],

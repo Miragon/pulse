@@ -7,7 +7,6 @@ export type { EngineRequestFailure } from "./http/engine-request-error.js"
 export { EngineTexts } from "./http/engine-texts.js"
 export { RestEngineClient, VARIABLE_PAGE_SIZE } from "./rest-engine-client.js"
 export { RestEngineWriter } from "./rest-engine-writer.js"
-export { RecoveryTargets } from "./recovery-targets.js"
 export type { EngineClient } from "./engine-client.js"
 export type { EngineWriter } from "./engine-writer.js"
 export type {
@@ -16,9 +15,6 @@ export type {
   BatchView,
   HistoricBatchView,
   FailedJobView,
-  HistoricInstanceQuery,
-  HistoricInstanceView,
-  VariableQueryCondition,
   InspectView,
   MigrationInstructionView,
   VariableView,

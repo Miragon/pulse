@@ -20,12 +20,16 @@ import {
   type Variable,
   type WaitState,
 } from "@miragon/pulse-engine-core"
-import { definitionRefOf, definitionRefOfInstance } from "@miragon/pulse-c7-core/runtime"
+import {
+  definitionRefOf,
+  definitionRefOfInstance,
+  incidentDetailsOf,
+  instanceStateOf,
+  optionalTimestampOf,
+  timestampOf,
+} from "@miragon/pulse-c7-core/runtime"
 import { ErrorTranslation } from "../errors/error-translation.js"
-import { IncidentTexts } from "../mapping/incident-texts.js"
 import { InspectedVariables } from "../mapping/inspected-variables.js"
-import { InstanceStates } from "../mapping/instance-states.js"
-import { Timestamps } from "../mapping/timestamps.js"
 import {
   Present,
   VARIABLE_PAGE_SIZE,
@@ -93,11 +97,11 @@ export class InstanceDetailReader {
       instance,
       path: view.timeline.map((entry) => ({
         elementId: ElementId(entry.activityId),
-        startedAt: Timestamps.fromEngine(entry.startTime),
+        startedAt: timestampOf(entry.startTime),
         canceled: entry.canceled === true,
         ...Present.fields({
           elementName: entry.activityName,
-          endedAt: Timestamps.optional(entry.endTime),
+          endedAt: optionalTimestampOf(entry.endTime),
         }),
       })),
       waitStates,
@@ -114,12 +118,12 @@ export class InstanceDetailReader {
     return {
       id: InstanceId(view.id),
       definition: definitionRefOf(view.definition),
-      state: InstanceStates.of(view.state),
+      state: instanceStateOf(view.state),
       hasIncident: view.incidents.length > 0 || (view.propagatedIncidents ?? 0) > 0,
       ...Present.fields({
         businessKey: view.businessKey,
-        startedAt: Timestamps.optional(view.startTime),
-        endedAt: Timestamps.optional(view.endTime),
+        startedAt: optionalTimestampOf(view.startTime),
+        endedAt: optionalTimestampOf(view.endTime),
         parentInstanceId: view.parentId === undefined ? undefined : InstanceId(view.parentId),
       }),
     }
@@ -132,7 +136,7 @@ export class InstanceDetailReader {
         return {
           ...base,
           kind: "userTask",
-          ...Present.fields({ assignee: wait.assignee, dueAt: Timestamps.optional(wait.due) }),
+          ...Present.fields({ assignee: wait.assignee, dueAt: optionalTimestampOf(wait.due) }),
         }
       case "externalTask":
         return {
@@ -148,7 +152,7 @@ export class InstanceDetailReader {
           ...base,
           kind: "timer",
           ...Present.fields({
-            dueAt: Timestamps.optional(wait.dueDate === "" ? undefined : wait.dueDate),
+            dueAt: optionalTimestampOf(wait.dueDate === "" ? undefined : wait.dueDate),
           }),
         }
       case "message":
@@ -167,7 +171,7 @@ export class InstanceDetailReader {
       ...Present.fields({
         elementName: wait.activityName,
         attachedToElementId: wait.attachedTo === undefined ? undefined : ElementId(wait.attachedTo),
-        since: Timestamps.optional(wait.since),
+        since: optionalTimestampOf(wait.since),
         incidentId: wait.incidentId === undefined ? undefined : IncidentId(wait.incidentId),
       }),
     }
@@ -195,7 +199,7 @@ export class InstanceDetailReader {
       elementId: ElementId(incident.activityId),
       type: incident.type,
       message: incident.message ?? "",
-      createdAt: Timestamps.fromEngine(incident.since),
+      createdAt: timestampOf(incident.since),
       ...Present.fields({
         retriesLeft:
           waiting !== undefined && "retriesLeft" in waiting ? waiting.retriesLeft : undefined,
@@ -203,7 +207,7 @@ export class InstanceDetailReader {
         details:
           stacktrace === undefined
             ? undefined
-            : IncidentTexts.details(
+            : incidentDetailsOf(
                 "stacktrace",
                 stacktrace.join("\n"),
                 stacktrace.length >= MAX_STACKTRACE_LINES,
@@ -232,7 +236,7 @@ export class InstanceDetailReader {
       id: InstanceId(child.id),
       parentInstanceId: InstanceId(child.parentId),
       bpmnProcessId: BpmnProcessId(child.key),
-      state: InstanceStates.of(child.state),
+      state: instanceStateOf(child.state),
       ...Present.fields({
         calledFromElementId: call === undefined ? undefined : ElementId(call.activityId),
       }),

@@ -13,8 +13,8 @@ import {
   type FailedJobView,
   type HistoricBatchView,
 } from "../engine-rest/index.js"
+import { optionalTimestampOf } from "@miragon/pulse-c7-core/runtime"
 import { ErrorTranslation } from "../errors/error-translation.js"
-import { Timestamps } from "../mapping/timestamps.js"
 
 const KINDS: Readonly<Record<string, BulkOperationKind>> = {
   "instance-deletion": "cancelInstances",
@@ -69,7 +69,7 @@ export class BulkOperationReader {
       : {
           ...base,
           state: "ended",
-          ...Present.fields({ endedAt: Timestamps.optional(batch.endTime) }),
+          ...Present.fields({ endedAt: optionalTimestampOf(batch.endTime) }),
         }
   }
 
@@ -82,7 +82,7 @@ export class BulkOperationReader {
       id: BulkOperationId(batch.id),
       kind,
       total: batch.totalJobs * batch.invocationsPerBatchJob,
-      ...Present.fields({ startedAt: Timestamps.optional(batch.startTime) }),
+      ...Present.fields({ startedAt: optionalTimestampOf(batch.startTime) }),
     }
   }
 

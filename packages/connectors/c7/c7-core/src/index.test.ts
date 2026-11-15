@@ -125,14 +125,23 @@ describe("the @miragon/pulse-c7-core entries", () => {
       "DefinitionReader",
       "ElementStatisticsReader",
       "EngineReader",
+      "IncidentDetailsReader",
+      "IncidentSearch",
+      "InstanceSearch",
       "JsonView",
+      "VariableNameReader",
       "definitionRefOf",
       "definitionRefOfInstance",
       "engineIdOf",
+      "incidentDetailsOf",
       "incidentRowOf",
       "incidentRowsOf",
+      "instanceStateOf",
       "isEngineId",
       "isRootIncident",
+      "optionalTimestampOf",
+      "readHistoricInstances",
+      "timestampOf",
     ])
   })
 

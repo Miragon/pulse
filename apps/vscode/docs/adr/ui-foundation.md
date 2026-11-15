@@ -36,7 +36,8 @@ A review on 2026-11-12 checked those facts and found:
   surfaces need a shared builder and shared reads, not shared components alone.
 - Boards ([boards.md](boards.md)) are planned for the MCP server and the web apps. The VS Code
   board read "with incident" two ways until 2026-11-14: its counter counted the history with
-  `incidentStatus=open` (`packages/connectors/c7/c7-adapter/src/reading/instance-search.ts`), its
+  `incidentStatus=open` (then the C7 adapter's instance search, now
+  `packages/connectors/c7/c7-core/src/runtime/instance-search.ts`), its
   incident summary and its engine strip scanned the runtime incidents (then the C7 adapter's
   definition reader, now `packages/connectors/c7/c7-core/src/runtime/definition-reader.ts`). Both
   read the runtime now, c7-core's rule (`packages/connectors/c7/c7-core/src/with-incident.ts`).

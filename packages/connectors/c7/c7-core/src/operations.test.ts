@@ -1,4 +1,4 @@
-import { DefinitionId } from "@miragon/pulse-engine-core"
+import { DefinitionId, ElementId, IncidentId } from "@miragon/pulse-engine-core"
 import { describe, expect, it } from "vitest"
 import { type Condition, measure } from "./conditions.js"
 import { readStatus } from "./engine-status.js"
@@ -15,6 +15,10 @@ import { CalledProcessReader } from "./runtime/called-process-reader.js"
 import { DefinitionReader } from "./runtime/definition-reader.js"
 import { ElementStatisticsReader } from "./runtime/element-statistics-reader.js"
 import { EngineReader } from "./runtime/engine-reader.js"
+import { IncidentDetailsReader } from "./runtime/incident-details-reader.js"
+import { IncidentSearch } from "./runtime/incident-search.js"
+import { InstanceSearch } from "./runtime/instance-search.js"
+import { VariableNameReader } from "./runtime/variable-name-reader.js"
 import type { Route } from "./testing/fake-port.js"
 import { fakeFailure, fakePort } from "./testing/fake-port.js"
 import { P } from "./testing/fixture.js"
@@ -102,22 +106,56 @@ describe("the with-incident operations", () => {
 describe("the runtime operations", () => {
   it("are all the reads of the runtime send", async () => {
     const definition = { id: "order:1:x", key: "order", version: 1 }
+    const instance = {
+      id: "p1",
+      processDefinitionId: definition.id,
+      processDefinitionKey: definition.key,
+      processDefinitionVersion: 1,
+      state: "ACTIVE",
+    }
+    const incident = {
+      id: "i1",
+      incidentType: "failedJob",
+      activityId: "a",
+      incidentTimestamp: "2026-10-21T18:44:04.554+0000",
+    }
     const routes: Record<string, Route> = {
       getTelemetryData: () => {
         throw fakeFailure(404, "InvalidRequestException")
       },
       getRestAPIVersion: () => ({ version: "7.24.0" }),
       getProcessDefinitionStatistics: () => [{ definition, instances: 1 }],
+      getProcessInstances: () => [{ id: "p1", definitionId: definition.id }],
+      getProcessInstancesCount: () => ({ count: 1 }),
       getProcessDefinitionBpmn20Xml: () => ({ bpmn20Xml: "<definitions/>" }),
       getActivityStatistics: () => [],
+      getIncident: (input) => ({
+        ...incident,
+        incidentType: input.pathArgs[0] === "i1" ? "failedJob" : "failedExternalTask",
+        configuration: "t1",
+      }),
+      getStacktrace: () => "boom",
+      getExternalTaskErrorDetails: () => "down",
+      queryHistoricProcessInstances: () => [instance],
+      queryHistoricProcessInstancesCount: () => ({ count: 1 }),
+      queryHistoricVariableInstances: () => [{ name: "amount" }],
     }
     const port = fakePort(only(RUNTIME_OPERATIONS, routes))
     const id = DefinitionId("order:1:x")
+    const definitions = new DefinitionReader(port)
+    const instances = new InstanceSearch(port)
     await new EngineReader(port).describe()
-    await new DefinitionReader(port).list()
-    await new DefinitionReader(port).diagramXml(id)
+    await definitions.list()
+    await definitions.diagramXml(id)
     await new ElementStatisticsReader(port).of(id)
     await new CalledProcessReader(port).read(id)
+    await instances.search({}, { limit: 5 })
+    await instances.count({ withIncident: true })
+    await instances.count({ withIncident: true, activeElementId: ElementId("a") })
+    await new VariableNameReader(port).names(id)
+    await new IncidentSearch(port, definitions).search({}, { limit: 5 })
+    await new IncidentDetailsReader(port).read(IncidentId("i1"))
+    await new IncidentDetailsReader(port).read(IncidentId("i2"))
     const sent = new Set(port.calls.map((call) => call.operationId))
     expect([...sent].sort()).toEqual([...RUNTIME_OPERATIONS].sort())
   })

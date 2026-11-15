@@ -1,8 +1,10 @@
 /**
  * The runtime's incidents as the engine answers them (`/incident`), read through `JsonView`, so an
- * unusable one fails as `RuntimeError("unexpectedResponse")`, and which of them is a root incident.
+ * unusable one fails as `RuntimeError("unexpectedResponse")`, which of them is a root incident and
+ * which job or external task one names.
  */
 
+import { incidentRecovery } from "../incident-recovery.js"
 import { compact } from "../util.js"
 import { JsonView } from "./json-view.js"
 
@@ -51,4 +53,21 @@ export function incidentRowsOf(answer: unknown): IncidentRow[] {
  */
 export function isRootIncident(incident: Pick<IncidentRow, "id" | "rootCauseIncidentId">): boolean {
   return incident.rootCauseIncidentId === undefined || incident.rootCauseIncidentId === incident.id
+}
+
+/**
+ * The job or external task whose retry clears `incident`, as `incidentRecovery` names it: none for a
+ * custom type and none without a `configuration`.
+ */
+export function recoveryIdOf(
+  incident: Pick<IncidentRow, "incidentType" | "configuration">,
+): string | undefined {
+  const recovery = incidentRecovery(incident)
+  switch (recovery.action) {
+    case "retry-job":
+      return recovery.jobId
+    case "retry-external-task":
+      return recovery.externalTaskId
+  }
+  return undefined
 }

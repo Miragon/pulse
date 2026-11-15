@@ -20,12 +20,6 @@ export class VariableViewParser {
     }))
   }
 
-  static names(value: unknown): string[] {
-    return JsonView.listOf(value, "historic variable instances").map((record) =>
-      record.requiredString("name"),
-    )
-  }
-
   private static scopeElementOf(
     activityInstanceId: string,
     processInstanceId: string,

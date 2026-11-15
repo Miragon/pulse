@@ -4,19 +4,6 @@ import type {
   TimelineEntry,
 } from "@miragon/pulse-c7-core"
 
-export interface HistoricInstanceView {
-  readonly id: string
-  readonly businessKey?: string
-  readonly processDefinitionId: string
-  readonly processDefinitionKey: string
-  readonly processDefinitionVersion: number
-  readonly processDefinitionName?: string
-  readonly state: string
-  readonly startTime?: string
-  readonly endTime?: string
-  readonly superProcessInstanceId?: string
-}
-
 export interface VariableView {
   readonly name: string
   readonly type?: string
@@ -74,34 +61,6 @@ export interface MigrationReportView {
 export type InspectView = InstanceView & {
   readonly definition: InspectedDefinitionView & { readonly version: number }
   readonly timeline: readonly TimelineEntry[]
-}
-
-export interface IncidentQuery {
-  readonly processDefinitionId?: string
-  readonly processDefinitionKeyIn?: readonly string[]
-  readonly processInstanceId?: string
-}
-
-export interface VariableQueryCondition {
-  readonly name: string
-  readonly operator: "eq" | "neq" | "gt" | "lt" | "like"
-  readonly value: unknown
-}
-
-export interface HistoricInstanceQuery {
-  readonly processDefinitionId?: string
-  readonly processDefinitionKey?: string
-  readonly processInstanceIds?: readonly string[]
-  readonly processInstanceBusinessKey?: string
-  readonly unfinished?: true
-  readonly finished?: true
-  readonly activityIdIn?: readonly string[]
-  readonly variables?: readonly VariableQueryCondition[]
-}
-
-export interface OffsetPage {
-  readonly firstResult: number
-  readonly maxResults: number
 }
 
 export interface TransitionInstanceView {

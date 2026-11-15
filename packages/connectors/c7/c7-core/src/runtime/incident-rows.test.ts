@@ -1,6 +1,6 @@
 import { RuntimeError } from "@miragon/pulse-engine-core"
 import { describe, expect, it } from "vitest"
-import { incidentRowOf, incidentRowsOf, isRootIncident } from "./incident-rows.js"
+import { incidentRowOf, incidentRowsOf, isRootIncident, recoveryIdOf } from "./incident-rows.js"
 
 const REQUIRED = {
   id: "inc-1",
@@ -100,5 +100,25 @@ describe("isRootIncident", () => {
 
   it("is no incident copied up from a called instance", () => {
     expect(isRootIncident({ id: "inc-2", rootCauseIncidentId: "inc-1" })).toBe(false)
+  })
+})
+
+describe("recoveryIdOf", () => {
+  it("is the job a failed job names", () => {
+    expect(recoveryIdOf({ incidentType: "failedJob", configuration: "job-1" })).toBe("job-1")
+  })
+
+  it("is the external task a failed external task names", () => {
+    expect(recoveryIdOf({ incidentType: "failedExternalTask", configuration: "task-1" })).toBe(
+      "task-1",
+    )
+  })
+
+  it.each([
+    ["a custom type", { incidentType: "invoiceMismatch", configuration: "inv-1" }],
+    ["a failed job without a configuration", { incidentType: "failedJob" }],
+    ["an empty configuration", { incidentType: "failedExternalTask", configuration: "" }],
+  ])("is none for %s", (_name, incident) => {
+    expect(recoveryIdOf(incident)).toBeUndefined()
   })
 })

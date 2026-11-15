@@ -29,16 +29,16 @@ import {
   DefinitionReader,
   ElementStatisticsReader,
   EngineReader,
+  IncidentDetailsReader,
+  IncidentSearch,
+  InstanceSearch,
+  VariableNameReader,
 } from "@miragon/pulse-c7-core/runtime"
 import { ErrorTranslation } from "./errors/error-translation.js"
 import type { EngineClient } from "./engine-rest/index.js"
 import { BulkOperationReader } from "./reading/bulk-operation-reader.js"
-import { IncidentDetailsReader } from "./reading/incident-details-reader.js"
-import { IncidentSearch } from "./reading/incident-search.js"
 import { InstanceDetailReader } from "./reading/instance-detail-reader.js"
-import { InstanceSearch } from "./reading/instance-search.js"
 import { MigrationReader } from "./reading/migration-reader.js"
-import { VariableNameReader } from "./reading/variable-name-reader.js"
 
 export interface C7Readers {
   readonly engine: EngineReader
@@ -64,11 +64,11 @@ export class C7ProcessRuntime implements ProcessRuntime {
       definitions,
       statistics: new ElementStatisticsReader(client.port),
       calls: new CalledProcessReader(client.port),
-      instances: new InstanceSearch(client),
-      variableNames: new VariableNameReader(client),
+      instances: new InstanceSearch(client.port),
+      variableNames: new VariableNameReader(client.port),
       instanceDetails: new InstanceDetailReader(client),
-      incidents: new IncidentSearch(client, definitions),
-      incidentDetails: new IncidentDetailsReader(client),
+      incidents: new IncidentSearch(client.port, definitions),
+      incidentDetails: new IncidentDetailsReader(client.port),
       bulkOperations: new BulkOperationReader(client),
       migrations: new MigrationReader(client),
     })

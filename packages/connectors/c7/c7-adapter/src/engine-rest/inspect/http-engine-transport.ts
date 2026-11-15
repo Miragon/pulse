@@ -30,16 +30,16 @@ export class HttpEngineTransport implements RoutedWire<EngineAnswer> {
   }
 
   async send(route: Route, input: OperationInput): Promise<EngineAnswer> {
-    if (route.method !== "GET" || route.effect !== "read") {
+    if (!HttpEngineTransport.isSendable(route, input)) {
       throw new RangeError(
-        `The inspection sends reading GETs only, not ${route.operationId} (${route.method}, ${route.effect})`,
+        `The port sends reads only, a GET without a body and a POST with one, not ${route.operationId} (${route.method}, ${route.effect}, ${input.body === undefined ? "no body" : "a body"})`,
       )
     }
     const path = CoreRequests.pathOf(route, input.pathArgs)
-    if (CoreRequests.answersText(route)) {
+    if (route.method === "GET" && CoreRequests.answersText(route)) {
       return { text: await this.http.text(path) }
     }
-    return { json: await this.http.read(path, input.query) }
+    return { json: await this.http.read(path, input.query, input.body) }
   }
 
   json(answer: EngineAnswer): unknown {
@@ -58,5 +58,14 @@ export class HttpEngineTransport implements RoutedWire<EngineAnswer> {
     return status === undefined || !(error instanceof EngineRequestError)
       ? undefined
       : { status, ...Present.fields({ engineType: error.engineType }) }
+  }
+
+  private static isSendable(route: Route, input: OperationInput): boolean {
+    if (route.effect !== "read") {
+      return false
+    }
+    return route.method === "POST"
+      ? input.body !== undefined
+      : route.method === "GET" && input.body === undefined
   }
 }

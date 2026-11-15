@@ -260,7 +260,7 @@ describe("the lint gates", { timeout: 120_000 }, () => {
   })
 
   test.each([
-    "packages/connectors/c7/c7-adapter/src/mapping/timestamps.ts",
+    "packages/connectors/c7/c7-adapter/src/writing/cancel-body.ts",
     "packages/connectors/c7/c7-adapter/src/engine-rest/present.ts",
     "packages/connectors/c8/c8-adapter/src/wire/wire-credentials.ts",
     "packages/connectors/c8/c8-adapter/src/rest/present.ts",

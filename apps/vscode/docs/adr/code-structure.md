@@ -38,7 +38,7 @@ visible responsibility per file.
    public methods say what the class does and come first; private methods say how.
    Module-level constants are fine.
 3. **Utility classes** hold stateless helpers that several classes need, as static
-   methods, named after the concept (`Timestamps.fromEngine`, `JsonText.pretty`). No
+   methods, named after the concept (`RequestArguments.identifier`, `JsonText.pretty`). No
    `utils.ts` grab bags; a utility class has one topic.
 4. **Roles are interfaces.** A class implements an interface when it plays a role that
    has, or is meant to have, more than one player, or when it is a seam other code

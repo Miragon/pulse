@@ -64,16 +64,25 @@ export const WITH_INCIDENT_OPERATIONS = [
 
 /**
  * The reads of the engine contract (`./runtime`): what the engine is, its processes and their
- * versions with "with incident", a version's diagram, the counts on it and the processes it calls.
+ * versions with "with incident", a version's diagram, the counts on it and the processes it calls,
+ * the history's instances and their count with the runtime's "with incident", a version's variable
+ * names, the open incidents and an incident with the text of its cause.
  */
 export const RUNTIME_OPERATIONS = [
   "getTelemetryData",
   "getRestAPIVersion",
   "getProcessDefinitionStatistics",
   "getProcessInstances",
+  "getProcessInstancesCount",
   "getProcessDefinitionBpmn20Xml",
   "getActivityStatistics",
   "getIncidents",
+  "getIncident",
+  "getStacktrace",
+  "getExternalTaskErrorDetails",
+  "queryHistoricProcessInstances",
+  "queryHistoricProcessInstancesCount",
+  "queryHistoricVariableInstances",
 ] as const
 
 /** Every operation c7-core sends, once each, in code unit order: all of them read. */

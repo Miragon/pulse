@@ -12,6 +12,7 @@
  "getHistoricProcessInstance": {"operationId":"getHistoricProcessInstance","method":"GET","path":"/history/process-instance/{id}","effect":"read","engineScoped":true,"accepts":["application/json"]},
  "getHistoricProcessInstances": {"operationId":"getHistoricProcessInstances","method":"GET","path":"/history/process-instance","effect":"read","engineScoped":true,"accepts":["application/json"]},
  "getHistoricVariableInstances": {"operationId":"getHistoricVariableInstances","method":"GET","path":"/history/variable-instance","effect":"read","engineScoped":true,"accepts":["application/json"]},
+ "getIncident": {"operationId":"getIncident","method":"GET","path":"/incident/{id}","effect":"read","engineScoped":true,"accepts":["application/json"]},
  "getIncidents": {"operationId":"getIncidents","method":"GET","path":"/incident","effect":"read","engineScoped":true,"accepts":["application/json"]},
  "getIncidentsCount": {"operationId":"getIncidentsCount","method":"GET","path":"/incident/count","effect":"read","engineScoped":true,"accepts":["application/json"]},
  "getJobDefinitions": {"operationId":"getJobDefinitions","method":"GET","path":"/job-definition","effect":"read","engineScoped":true,"accepts":["application/json"]},
@@ -28,5 +29,8 @@
  "getStacktrace": {"operationId":"getStacktrace","method":"GET","path":"/job/{id}/stacktrace","effect":"read","engineScoped":true,"accepts":["text/plain"]},
  "getTasks": {"operationId":"getTasks","method":"GET","path":"/task","effect":"read","engineScoped":true,"accepts":["application/json"]},
  "getTasksCount": {"operationId":"getTasksCount","method":"GET","path":"/task/count","effect":"read","engineScoped":true,"accepts":["application/json"]},
- "getTelemetryData": {"operationId":"getTelemetryData","method":"GET","path":"/telemetry/data","effect":"read","engineScoped":true,"accepts":["application/json"]}
+ "getTelemetryData": {"operationId":"getTelemetryData","method":"GET","path":"/telemetry/data","effect":"read","engineScoped":true,"accepts":["application/json"]},
+ "queryHistoricProcessInstances": {"operationId":"queryHistoricProcessInstances","method":"POST","path":"/history/process-instance","effect":"read","engineScoped":true,"accepts":["application/json"]},
+ "queryHistoricProcessInstancesCount": {"operationId":"queryHistoricProcessInstancesCount","method":"POST","path":"/history/process-instance/count","effect":"read","engineScoped":true,"accepts":["application/json"]},
+ "queryHistoricVariableInstances": {"operationId":"queryHistoricVariableInstances","method":"POST","path":"/history/variable-instance","effect":"read","engineScoped":true,"accepts":["application/json"]}
 }

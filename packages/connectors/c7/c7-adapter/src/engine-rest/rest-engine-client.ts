@@ -1,23 +1,17 @@
+import { createEnginePort, RAW_VARIABLES_QUERY, type EnginePort } from "@miragon/pulse-c7-core"
 import {
-  countWithIncident,
-  createEnginePort,
-  instancesWithIncident,
-  RAW_VARIABLES_QUERY,
-  withIncidentAmong,
-  type EnginePort,
-  type IncidentScope,
-  type InstanceWithIncident,
-} from "@miragon/pulse-c7-core"
-import { incidentRowOf, incidentRowsOf, type IncidentRow } from "@miragon/pulse-c7-core/runtime"
+  readHistoricInstances,
+  type HistoricInstanceQuery,
+  type HistoricInstanceRow,
+  type OffsetWindow,
+} from "@miragon/pulse-c7-core/runtime"
 import type { EngineClient } from "./engine-client.js"
 import type { EngineHttp } from "./http/engine-http.js"
-import { CoreRequests } from "./inspect/core-requests.js"
 import { HttpEngineTransport } from "./inspect/http-engine-transport.js"
 import { InstanceInspection } from "./inspect/instance-inspection.js"
 import { RequestArguments } from "./request-arguments.js"
 import { ActivityInstanceViewParser } from "./views/activity-instance-view-parser.js"
 import { BatchViewParser } from "./views/batch-view-parser.js"
-import { HistoricInstanceViewParser } from "./views/historic-instance-view-parser.js"
 import { MigrationViewParser } from "./views/migration-view-parser.js"
 import { VariableViewParser } from "./views/variable-view-parser.js"
 import type {
@@ -25,23 +19,14 @@ import type {
   BatchStatisticsView,
   FailedJobView,
   HistoricBatchView,
-  HistoricInstanceQuery,
-  HistoricInstanceView,
-  IncidentQuery,
   InspectView,
   MigrationPlanView,
   MigrationReportView,
-  OffsetPage,
   VariableView,
 } from "./views/views.js"
 
 export const VARIABLE_PAGE_SIZE = 500
-const MAX_NAMED_VARIABLES = 2000
 const MAX_FAILED_JOBS = 100
-const NEWEST_FIRST = [
-  { sortBy: "startTime", sortOrder: "desc" },
-  { sortBy: "instanceId", sortOrder: "asc" },
-]
 
 export class RestEngineClient implements EngineClient {
   readonly port: EnginePort
@@ -50,53 +35,11 @@ export class RestEngineClient implements EngineClient {
     this.port = createEnginePort(HttpEngineTransport.over(http))
   }
 
-  async incidents(query: IncidentQuery, page?: OffsetPage): Promise<IncidentRow[]> {
-    const filter = {
-      processDefinitionId: RequestArguments.optionalIdentifier(query.processDefinitionId),
-      processDefinitionKeyIn: RequestArguments.identifierList(query.processDefinitionKeyIn),
-      processInstanceId: RequestArguments.optionalIdentifier(query.processInstanceId),
-      sortBy: "incidentTimestamp",
-      sortOrder: "desc",
-    }
-    return incidentRowsOf(
-      page === undefined
-        ? await this.http.readAll("/incident", filter)
-        : await this.http.read("/incident", { ...filter, ...RestEngineClient.pageOf(page) }),
-    )
-  }
-
-  instancesWithIncident(scope: IncidentScope): Promise<InstanceWithIncident[]> {
-    return instancesWithIncident(this.port, scope)
-  }
-
-  countWithIncident(scope: IncidentScope): Promise<number> {
-    return countWithIncident(this.port, scope)
-  }
-
-  withIncidentAmong(instanceIds: readonly string[]): Promise<ReadonlySet<string>> {
-    return withIncidentAmong(this.port, instanceIds)
-  }
-
-  async incident(incidentId: string): Promise<IncidentRow> {
-    return incidentRowOf(await this.http.read(`/incident/${RequestArguments.segment(incidentId)}`))
-  }
-
-  async historicInstances(
+  historicInstances(
     query: HistoricInstanceQuery,
-    page: OffsetPage,
-  ): Promise<HistoricInstanceView[]> {
-    return HistoricInstanceViewParser.instances(
-      await this.http.read("/history/process-instance", RestEngineClient.pageOf(page), {
-        ...query,
-        sorting: NEWEST_FIRST,
-      }),
-    )
-  }
-
-  async historicInstanceCount(query: HistoricInstanceQuery): Promise<number> {
-    return HistoricInstanceViewParser.count(
-      await this.http.read("/history/process-instance/count", {}, query),
-    )
+    page: OffsetWindow,
+  ): Promise<HistoricInstanceRow[]> {
+    return readHistoricInstances(this.port, query, page)
   }
 
   async inspect(instanceId: string): Promise<InspectView | undefined> {
@@ -119,21 +62,6 @@ export class RestEngineClient implements EngineClient {
         maxResults: String(VARIABLE_PAGE_SIZE),
       }),
     )
-  }
-
-  async historicVariableNames(instanceIds: readonly string[]): Promise<string[]> {
-    return VariableViewParser.names(
-      await this.http.read(
-        "/history/variable-instance",
-        { ...RAW_VARIABLES_QUERY, maxResults: String(MAX_NAMED_VARIABLES) },
-        { processInstanceIdIn: instanceIds },
-      ),
-    )
-  }
-
-  causeText(operationId: string, resourceId: string): Promise<string> {
-    const id = RequestArguments.identifier(resourceId)
-    return this.http.text(CoreRequests.textPath(operationId, id))
   }
 
   async batchStatistics(batchId: string): Promise<BatchStatisticsView | undefined> {
@@ -184,9 +112,5 @@ export class RestEngineClient implements EngineClient {
     return MigrationViewParser.report(
       await this.http.read("/migration/validate", {}, { ...plan, instructions }),
     )
-  }
-
-  private static pageOf(page: OffsetPage): Record<string, string> {
-    return { firstResult: String(page.firstResult), maxResults: String(page.maxResults) }
   }
 }

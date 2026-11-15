@@ -11,7 +11,8 @@ triggers an event (`src/cli`), the vocabulary of Camunda 7's BPMN files (`C7Bpmn
 hosts (`apps/vscode`, `apps/orca`) bundle it through their composition roots. It is the adapter of
 the c7 family, whose dialect it implements (`adapters-own-their-family` in the repository's
 `.dependency-cruiser.cjs`). It takes these C7 REST rules from c7-core, never as a copy: the reads
-of the engine, its processes, a version's diagram, the counts on it and the processes it calls
+of the engine, its processes, a version's diagram, the counts on it, the processes it calls, the
+instances and their count, a version's variable names, the open incidents and an incident's details
 (`./runtime`, over its port), the inspection of an instance, which incident types the engine raises
 itself (`BUILT_IN_INCIDENT_TYPES`), which job or external task an incident names, for its retry and
 in the incident list (`incidentRecovery`), which request holds an incident's cause

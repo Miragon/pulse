@@ -133,8 +133,9 @@ reader. The C7 adapter (`packages/connectors/c7/c7-adapter`, its tests beside it
 `@miragon/pulse-c7-core`, the core of the Camunda 7 REST dialect family c7, the workflow domain
 the CLI and the MCP server run too, through its main entry, and the engine contract's reads with
 what they build on through its `./runtime` entry (the readers of the engine, its processes, the
-counts on a diagram and the processes a version calls; `JsonView`, the checked reads of an engine
-answer, and `isEngineId`, the one id rule), which the CLI never imports (the repository's
+counts on a diagram, the processes a version calls, its instances, a version's variable names, the
+open incidents and an incident's details; `JsonView`, the checked reads of an engine answer, and
+`isEngineId`, the one id rule), which the CLI never imports (the repository's
 `cli-without-the-c7-runtime`); no other part of the editor hosts imports it
 (`runtime-view-is-dialect-neutral`, `extension-is-dialect-neutral`; the repository's
 `adapters-own-their-family`). The adapter's wire (`packages/connectors/c7/c7-adapter/src/engine-rest/http`,
@@ -234,7 +235,7 @@ package (the planned @miragon/pulse-board). "With incident" reads one way in the
 every C7 surface (owner decision 2026-11-14): an open incident the runtime holds now, on every
 history level, by c7-core's rule (`packages/connectors/c7/c7-core/src/with-incident.ts`), for the
 board's counter and the instance lists
-(`packages/connectors/c7/c7-adapter/src/reading/instance-search.ts`: the history's rows of the
+(`packages/connectors/c7/c7-core/src/runtime/instance-search.ts`: the history's rows of the
 runtime's ids) as for its incident summary, the engine strip and the version counts
 (`packages/connectors/c7/c7-core/src/runtime/definition-reader.ts`); the read laws run on an
 engine at history level AUDIT too
