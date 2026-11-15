@@ -509,9 +509,10 @@ describe("connector resource gate (invariant 3): a connector's views belong in t
     `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.ts`,
     "packages/connectors/c7/c7-client/src/__probe__.ts",
     "packages/connectors/newfamily/newfamily-connector/src/__probe__.ts",
-    // engine-core's src and the C7 adapter's, where the blocks of Pulse for VS Code's house
+    // engine-core's src and the family adapters', where the blocks of Pulse for VS Code's house
     // rules carry the gate in their union, the id constructors' block too.
     "packages/connectors/c7/c7-adapter/src/__probe__.ts",
+    "packages/connectors/c8/c8-adapter/src/wire/__probe__.ts",
     "packages/connectors/engine/engine-core/src/__probe__.ts",
     "packages/connectors/engine/engine-core/src/testing/fake/__probe__.ts",
     "packages/connectors/engine/engine-core/src/model/ids.ts",
@@ -953,6 +954,7 @@ describe("no import or re-export of types alone stays in the emitted JavaScript"
     "packages/connectors/c7/c7-client/src/__probe__.ts",
     "packages/connectors/c7/c7-core/src/__probe__.ts",
     "packages/connectors/c7/c7-adapter/test/__probe__.test.ts",
+    "packages/connectors/c8/c8-adapter/test/__probe__.test.ts",
     `${ENGINE_CONNECTOR_SRC_DIR}/__probe__.ts`,
     "packages/connectors/engine/engine-core/src/__probe__.ts",
     ...WIDGET_TREE_PATHS,

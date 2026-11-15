@@ -36,6 +36,7 @@ pnpm test && pnpm lint`) covers the extension too.
 | `pnpm --filter pulse-cockpit test`                         | the host's unit and architecture tests, coverage floors, brand and word scans of runtime view and host, the bundle budget    |
 | `pnpm --filter @miragon/pulse-runtime-view test`           | the core, model, host kit and webview tests (the webview's in Chromium), with the coverage floors, the host kit's among them |
 | `pnpm --filter @miragon/pulse-c7-adapter test`             | the C7 adapter against recorded REST routes and its error-path goldens, with the coverage floors                             |
+| `pnpm --filter @miragon/pulse-c8-adapter test`             | the C8 adapter against a fake REST API and the transport's loopback engine, with the coverage floors                         |
 | `pnpm --filter pulse-cockpit run typecheck`                | the app, then the host and the tooling with their globals only                                                               |
 | `pnpm --filter @miragon/pulse-runtime-view run typecheck`  | the runtime view, then each layer with its runtime's globals only                                                            |
 | `pnpm --filter pulse-cockpit run lint`                     | ESLint with the extension's house rules                                                                                      |
@@ -43,6 +44,7 @@ pnpm test && pnpm lint`) covers the extension too.
 | `pnpm lint:architecture:vscode`                            | the closed-world dependency rules of the host                                                                                |
 | `pnpm lint:architecture:runtime-view`                      | the closed-world dependency rules of the runtime view's layers                                                               |
 | `pnpm lint:architecture:c7-adapter`                        | the closed-world dependency rules of the C7 adapter                                                                          |
+| `pnpm lint:architecture:c8-adapter`                        | the closed-world dependency rules of the C8 adapter                                                                          |
 | `pnpm lint:deadcode`                                       | knip over every workspace, the extension included: no dead file, dependency or enum member                                   |
 | `pnpm lint:deadcode:exports`                               | knip over every workspace but docs: no unused export or exported type                                                        |
 | `pnpm --filter @miragon/pulse-c7-adapter run test:engines` | conformance kit against a real engine (`PULSE_ENGINE_IMAGE`, testcontainers)                                                 |

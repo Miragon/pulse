@@ -1,6 +1,6 @@
+import type { EngineCredentials } from "@miragon/pulse-runtime-view/ports"
 import { describe, expect, test, vi } from "vitest"
 import { EngineHttp, EngineRequestError } from "../../src/engine-rest/index.js"
-import type { EngineCredentials } from "../../src/engine-rest/http/engine-wire.js"
 import { engineFailure, REST_URL } from "../support/fake-engine-rest.js"
 
 const MEGABYTE = new Uint8Array(1024 * 1024)
@@ -219,6 +219,16 @@ describe("the engine's HTTP connection", () => {
       "a password with a line break",
       httpWith({ kind: "basic", username: "demo", password: "s3\ncret" }),
       "The user name or password holds a control character",
+    ],
+    [
+      "client credentials, which only Camunda 8 takes",
+      httpWith({
+        kind: "clientCredentials",
+        tokenEndpoint: "https://login.example.com/oauth/token",
+        clientId: "pulse",
+        clientSecret: "s3cret",
+      }),
+      "This engine takes no client credentials: sign in to it with basic authentication or none",
     ],
   ])(
     "refuses every call on a connection with %s, sending nothing",

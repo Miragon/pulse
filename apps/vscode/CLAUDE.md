@@ -17,11 +17,13 @@ pnpm --filter pulse-cockpit run lint             # ESLint with the house rules b
 pnpm lint:architecture:vscode                   # the closed-world dependency rules of the host
 pnpm lint:architecture:runtime-view             # the closed-world rules of the runtime view's layers
 pnpm lint:architecture:c7-adapter               # the closed-world rules of the C7 adapter
+pnpm lint:architecture:c8-adapter               # the closed-world rules of the C8 adapter
 pnpm lint:deadcode                              # knip over every workspace: dead files, dependencies, enum members
 pnpm lint:deadcode:exports                      # knip over every workspace but docs: unused exports and types
 pnpm --filter pulse-cockpit test                 # the host's unit and architecture tests, coverage floors, the brand and word scans
 pnpm --filter @miragon/pulse-runtime-view test   # core, model, host kit and webview (Chromium) tests, coverage floors per layer
 pnpm --filter @miragon/pulse-c7-adapter test     # the C7 adapter against a recorded REST API and its error-path goldens
+pnpm --filter @miragon/pulse-c8-adapter test     # the C8 adapter against a fake REST API and the transport's loopback engine
 pnpm --filter @miragon/pulse-engine-core test   # the kit's self-tests: the fake passes every law, 71 saboteurs fail theirs
 pnpm --filter @miragon/pulse-c7-adapter run test:engines # adapter conformance on a real engine; needs podman/docker
 pnpm --filter pulse-cockpit run test:smoke       # the extension activates in a real VS Code
@@ -78,12 +80,13 @@ and `TESTCONTAINERS_RYUK_DISABLED=true` for `test:engines`.
 ## Where code goes
 
 Pulse for VS Code is the VS Code host of the runtime view that Pulse for Orca (`apps/orca`) hosts
-too. The engine-neutral part lives in two packages the editor hosts share: the runtime view
+too. The engine-neutral part lives in packages the editor hosts share: the runtime view
 (`packages/core/runtime-view`, layers under its `src`, each with its own
 `tsconfig.<layer>.json` and dependency rules) over the engine contract of
-`@miragon/pulse-engine-core`, and the C7 adapter of that contract
-(`packages/connectors/c7/c7-adapter`, the c7 dialect family's). This app holds only the VS Code
-wiring.
+`@miragon/pulse-engine-core`, and the adapters of that contract, one per dialect family: the C7
+adapter (`packages/connectors/c7/c7-adapter`) and the C8 adapter
+(`packages/connectors/c8/c8-adapter`, read-only, which no composition root wires in this step).
+This app holds only the VS Code wiring.
 
 | You want to…                                                    | Put it in                                                                                                                                                                                                                                                                                                           | Never                                      |
 | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
@@ -92,6 +95,7 @@ wiring.
 | Interpret runtime data (grouping, view models, panel behaviour) | `packages/core/runtime-view/src/core`                                                                                                                                                                                                                                                                               | `vscode`, DOM, Node, engine words          |
 | Change what the webview shows                                   | `packages/core/runtime-view/src/core/protocol` (types) and `packages/core/runtime-view/src/webview`                                                                                                                                                                                                                 | logic in the webview, `--vscode-*` colours |
 | Talk to Operaton / CIB seven / Camunda 7                        | `packages/connectors/c7/c7-adapter/src` (mapping) and `packages/connectors/c7/c7-adapter/src/engine-rest` (REST client; its `inspect` runs c7-core over it); inspect, wait states, an incident's retry target and cause request, variable typing in `@miragon/pulse-c7-core`, the root cause in `RootCauses`        | imports from core, webview or host; a copy |
+| Talk to Camunda 8 (the Orchestration Cluster REST API)          | `packages/connectors/c8/c8-adapter/src/rest` (`RestCamundaClient`, checked views) over its wire `packages/connectors/c8/c8-adapter/src/wire` (`CamundaWire`, `ClientCredentialsSources`); the words of its failures in `packages/connectors/c8/c8-adapter/src/errors`                                               | a client library, a copy of the transport  |
 | Add an engine family                                            | `packages/connectors/<family>/<family>-adapter` with a class implementing `EngineAdapter` + an `*.engine.test.ts` running the `ConformanceKit` (`@miragon/pulse-engine-core/testing`) + one entry in each composition root (`apps/vscode/src/host/composition-root.ts`, `apps/orca/src/worker/composition-root.ts`) | branching on engines anywhere else         |
 | Read the local `.bpmn` model or find the implementing code      | `packages/core/runtime-view/src/model` (behind `ModelSource` / `CodeLocator`), per `apps/vscode/docs/adr/local-sources.md`                                                                                                                                                                                          | moddle or bpmn-modeler libs anywhere else  |
 | Add a port only the editor hosts need                           | `packages/core/runtime-view/src/ports` (`EngineAdapter`, `EngineWebUi`, `EngineCli`, `ModelSource`, `CodeLocator`, `WorkspaceFiles`)                                                                                                                                                                                | an IDE port in engine-core                 |
@@ -100,7 +104,8 @@ wiring.
 
 The dependency rules are closed-world, one config per package (`apps/vscode/.dependency-cruiser.cjs`,
 `packages/core/runtime-view/.dependency-cruiser.cjs`,
-`packages/connectors/c7/c7-adapter/.dependency-cruiser.cjs`): an import that is not
+`packages/connectors/c7/c7-adapter/.dependency-cruiser.cjs`,
+`packages/connectors/c8/c8-adapter/.dependency-cruiser.cjs`): an import that is not
 explicitly allowed fails its `pnpm lint:architecture:<package>` with a message that says where it
 belongs (dependency-cruiser reports it as `not-in-allowed` and takes the wording from the forbidden
 rule of that name, which never fires itself). Nothing outside them is allowed, so no widget-shell,
@@ -127,7 +132,13 @@ imports it (`runtime-view-is-dialect-neutral`, `extension-is-dialect-neutral`; t
 `EngineHttp`) sends through `@miragon/pulse-http`, the transport the CLI and the MCP server send
 through, by its main entry and nowhere else in the adapter (`http-only-in-the-wire`,
 `http-by-its-main-entry`); the runtime view and the hosts never import it (the repository's
-`http-consumers`); the adapter sends over the global `fetch` of the host's runtime. The host
+`http-consumers`); the adapter sends over the global `fetch` of the host's runtime. The C8
+adapter's wire (`packages/connectors/c8/c8-adapter/src/wire`, `CamundaWire`) sends through the
+same transport, a read-only connection, and gets its tokens from the transport's client
+credentials grant (`@miragon/pulse-http/oauth`), by those two entries and nowhere else in the
+adapter (`http-only-in-the-wire`, `http-by-its-entries`); one `ClientCredentialsSources` per
+process keeps a token and a refusal's hold across the connections a reload builds anew, and the
+C7 adapter's wire refuses client credentials before it sends. The host
 kit's connections (`packages/core/runtime-view/src/host-kit/connections`) read the project files with Pulse's
 profile format, `@miragon/pulse-profile`, through its main entry (the runtime view's closed
 world; the repository's `profile-consumers`), as the CLI does. The runtime view's core and
@@ -341,7 +352,7 @@ engine at history level AUDIT too
   name ends none), "follows" as a promise, "later", "soon", "future", "planned" or "coming", a
   next or named release, "for now", "currently" and "will support" in the texts of the runtime
   view, the host, the packages whose texts both editors show (engine-core, the C7 adapter,
-  c7-core, `@miragon/pulse-http`, `@miragon/pulse-profile`) and the manifest and board schema;
+  the C8 adapter, c7-core, `@miragon/pulse-http`, `@miragon/pulse-profile`) and the manifest and board schema;
   it reads a sentence that a value, an inline tag or a `+` splits as one (its rules in
   `apps/vscode/test/architecture/support/promise-words.ts`, which Pulse for Orca's gate holds
   word for word); a state text such as "Not called yet" keeps its word only as an allowance

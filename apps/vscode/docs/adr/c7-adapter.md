@@ -83,7 +83,8 @@ MCP server run too. The package belongs to the c7 family, whose dialect it imple
   page of 500. A connection for reads is the transport's `readOnly` and refuses every write
   before it leaves (`unsupported`, below); `C7Adapter.commands` builds the writer on its own
   connection, a test holds both. A URL or credentials the transport cannot use (a user name with a colon) fail
-  each call as `misconfigured`, sending nothing. Only the wire imports the transport, by its
+  each call as `misconfigured`, sending nothing, and so do client credentials, which only the C8
+  adapter takes ([c8-adapter.md](c8-adapter.md)). Only the wire imports the transport, by its
   main entry (`http-only-in-the-wire`, `http-by-its-main-entry` in
   `packages/connectors/c7/c7-adapter/.dependency-cruiser.cjs`); the runtime view and the
   hosts never do (the repository's `http-consumers`). The wire passes the transport's

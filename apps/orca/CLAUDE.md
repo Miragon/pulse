@@ -153,7 +153,7 @@ config at the default location names a profile of the sandbox.
   ends when Orca aborts it: Orca has no close event, and `orca plugin check` waits for every
   request in flight.
 - Commit messages are Conventional Commits with the scope `orca`. The catalog's release notes
-  take the changelog lines of the scopes `orca`, `runtime-view` and `c7-adapter`
+  take the changelog lines of the scopes `orca`, `runtime-view`, `c7-adapter` and `c8-adapter`
   (`apps/orca/scripts/release-notes.mjs`).
 - A release publishes `dist` into `Miragon/orca-plugins` as `plugins/pulse-cockpit`, listed as
   `miragon.pulse-cockpit` (`.github/workflows/publish-orca-plugin.yml`). The id is that

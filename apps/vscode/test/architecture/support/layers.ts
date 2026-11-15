@@ -21,6 +21,7 @@ export const ENGINE_CORE_SOURCES = "packages/connectors/engine/engine-core/src"
 export const SHOWN_PACKAGES: readonly (readonly [string, string])[] = [
   ["engine-core", ENGINE_CORE_SOURCES],
   ["the C7 adapter", "packages/connectors/c7/c7-adapter/src"],
+  ["the C8 adapter", "packages/connectors/c8/c8-adapter/src"],
   ["c7-core", "packages/connectors/c7/c7-core/src"],
   ["the transport", "packages/core/http/src"],
   ["the profile format", "packages/core/profile/src"],

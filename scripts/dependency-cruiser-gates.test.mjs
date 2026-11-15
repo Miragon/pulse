@@ -39,6 +39,7 @@ const EXT = "apps/vscode"
 const ORCA = "apps/orca"
 const RUNTIME_VIEW = "packages/core/runtime-view"
 const C7_ADAPTER = "packages/connectors/c7/c7-adapter"
+const C8_ADAPTER = "packages/connectors/c8/c8-adapter"
 const SHELL = "packages/core/widget-shell"
 const UI = "packages/core/ui"
 const PROFILE = "packages/core/profile"
@@ -62,6 +63,7 @@ const WORKSPACE = {
   [ORCA]: { name: "@miragon/pulse-orca", private: true },
   [RUNTIME_VIEW]: { name: "@miragon/pulse-runtime-view", private: true },
   [C7_ADAPTER]: { name: "@miragon/pulse-c7-adapter", private: true },
+  [C8_ADAPTER]: { name: "@miragon/pulse-c8-adapter", private: true },
   [SHELL]: { name: "@miragon/pulse-widget-shell" },
   [UI]: { name: "@miragon/pulse-ui" },
   [PROFILE]: { name: "@miragon/pulse-profile" },
@@ -181,6 +183,8 @@ const ADAPTER_SRC = `${C7_ADAPTER}/src/index.ts`
 const BILLING_ADAPTER_SRC = `${BILLING_ADAPTER}/src/index.ts`
 const VIEW = "@miragon/pulse-runtime-view"
 const ADAPTER = "@miragon/pulse-c7-adapter"
+const C8_ADAPTER_SRC = `${C8_ADAPTER}/src/index.ts`
+const C8_ADAPTER_NAME = "@miragon/pulse-c8-adapter"
 const SHELL_SRC = `${SHELL}/src/index.ts`
 const UI_SRC = `${UI}/src/index.ts`
 const C7_SRC = `${C7}/src/index.ts`
@@ -869,6 +873,23 @@ const SUITES = [
       [`${C7_ADAPTER}/src/ports.ts`, `${VIEW}/ports`, [], "type"],
       [ADAPTER_SRC, "./lib.ts", []],
       [ADAPTER_SRC, "reactive", []],
+      // The C8 adapter is the c8 family's: not the c7 family's core or adapter, in each shape,
+      // and the C7 adapter not the C8 adapter's.
+      [C8_ADAPTER_SRC, C7_CORE, [ADAPTER_FAMILY]],
+      [C8_ADAPTER_SRC, ADAPTER, [ADAPTER_FAMILY]],
+      [`${C8_ADAPTER}/src/c7-routes.ts`, `${C7_CORE}/routes`, [ADAPTER_FAMILY]],
+      [
+        `${C8_ADAPTER}/src/escape-c7.ts`,
+        "../../../c7/c7-adapter/src/index.ts",
+        [ADAPTER_FAMILY, DEEP],
+      ],
+      [ADAPTER_SRC, C8_ADAPTER_NAME, [ADAPTER_FAMILY]],
+      // Allowed: engine-core, the runtime view's ports, the transport and its OAuth client, which
+      // the C8 adapter's wire gets its tokens from (its closed world holds both to the wire).
+      [`${C8_ADAPTER}/src/a.ts`, ENGINE_CORE_NAME, []],
+      [`${C8_ADAPTER}/src/ports.ts`, `${VIEW}/ports`, [], "type"],
+      [`${C8_ADAPTER}/src/wire/http.ts`, HTTP_NAME, []],
+      [`${C8_ADAPTER}/src/wire/oauth.ts`, `${HTTP_NAME}/oauth`, []],
     ],
   },
   {
@@ -916,9 +937,16 @@ const SUITES = [
         "../../../../packages/connectors/c7/c7-adapter/src/index.ts",
         [DEEP],
       ],
+      // The C8 adapter's consumers are the same: keyed on the role.
+      [SERVER_SRC, C8_ADAPTER_NAME, [ADAPTER_USERS]],
+      [`${CLI}/src/workflow/c8-adapter.ts`, C8_ADAPTER_NAME, [HEADLESS, ADAPTER_USERS]],
+      [ENGINE_CONNECTOR_SRC, C8_ADAPTER_NAME, [ADAPTER_USERS]],
+      [VIEW_SRC, C8_ADAPTER_NAME, [VIEW_ENGINE, ADAPTER_USERS]],
       // Allowed: the editor hosts' composition roots.
       [`${EXT}/src/host/composition-root.ts`, ADAPTER, []],
       [`${ORCA}/src/worker/composition-root.ts`, ADAPTER, []],
+      [`${EXT}/src/host/composition-root.ts`, C8_ADAPTER_NAME, []],
+      [`${ORCA}/src/worker/composition-root.ts`, C8_ADAPTER_NAME, []],
     ],
   },
   {
@@ -1757,6 +1785,10 @@ const SUITES = [
         "../../../billing/billing-client/src/index.ts",
         [ADAPTER_FAMILY, CLIENT_USERS, DEEP],
       ],
+      // The C8 adapter takes no client either: its own family's is client-consumers' alone,
+      // another family's trips adapters-own-their-family as well.
+      [C8_ADAPTER_SRC, "@miragon/pulse-c8-client", [CLIENT_USERS]],
+      [C8_ADAPTER_SRC, "@miragon/pulse-c7-client", [ADAPTER_FAMILY, CLIENT_USERS]],
       // Allowed: the engine module (the dialects' clients), a connector of its own family, and
       // tests anywhere (the CLI's stay cli-is-headless's), an adapter's with its own family's
       // client too (its tests with another family's client stay adapters-own-their-family's).
@@ -2468,13 +2500,14 @@ describe("a failing cruise says the fix", () => {
   const config = createRequire(import.meta.url)(CONFIG)
   const { scripts } = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"))
 
-  // The closed worlds of the editor hosts and of the two packages they share, each with its
+  // The closed worlds of the editor hosts and of the packages they share, each with its
   // own config and script.
   const CLOSED_WORLDS = {
     "lint:architecture:vscode": "apps/vscode/.dependency-cruiser.cjs",
     "lint:architecture:orca": "apps/orca/.dependency-cruiser.cjs",
     "lint:architecture:runtime-view": "packages/core/runtime-view/.dependency-cruiser.cjs",
     "lint:architecture:c7-adapter": "packages/connectors/c7/c7-adapter/.dependency-cruiser.cjs",
+    "lint:architecture:c8-adapter": "packages/connectors/c8/c8-adapter/.dependency-cruiser.cjs",
   }
 
   for (const script of [...ARCHITECTURE_SCRIPTS, ...Object.keys(CLOSED_WORLDS)]) {

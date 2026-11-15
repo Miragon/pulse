@@ -52,6 +52,7 @@ command line interface (`apps/cli`), a VS Code extension (`apps/vscode`) and an 
 | `packages/connectors/c7/c7-client/`            | The SDK of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-client`): the REST SDK generated from c7-core's one spec (`src/generated/`), `createEngineClient` over the `fetch` it is handed and the SDK-bound reads (`src/sdk-reads/`); a leaf                                                                                                                                                                 |
 | `packages/connectors/c7/c7-core/`              | The core of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-core`), its workflow domain and pure engine REST rules: port, selection, inspect, status triage, the root cause of an incident (`causeOf`), retry/advance plans, dates, filters, variable writes, the one spec and its routes (`routeOf`, `intentOf`, `./routes`); one runtime dependency, engine-core's main entry                               |
 | `packages/connectors/c7/c7-adapter/`           | The C7 adapter of the runtime view (`@miragon/pulse-c7-adapter`, private): its REST client and the mapping onto the contract of `engine-core`, over c7-core; bundled by the editor hosts                                                                                                                                                                                                                                   |
+| `packages/connectors/c8/c8-adapter/`           | The C8 adapter of the runtime view (`@miragon/pulse-c8-adapter`, private): Camunda 8 through the Orchestration Cluster REST API, read-only, its wire on the transport with client credentials (`@miragon/pulse-http/oauth`), its REST client with checked views; for the editor hosts                                                                                                                                      |
 | `packages/core/ui/`                            | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the formatters and the tones without React under `/format` and `/tones`, the brand gates under `/testing`                                                                                 |
 | `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, `mountPage`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), a module's test server (`/testing`)                                                                                                                                                |
 | `packages/core/runtime-view/`                  | The runtime view both editor hosts compose (`@miragon/pulse-runtime-view`, private) over the contract of `engine-core`: the ports a host and an engine family plug in, the core, the protocol, the webview (React on `@miragon/pulse-ui`), the local model reader and the host kit (targets from `.pulse.json` and the CLI's user config, policies, the write audit)                                                       |
@@ -68,11 +69,14 @@ Three axes decide where code goes, and they stay apart:
 
 - Vendor (CIB seven, Operaton, Camunda 7): runtime config per engine, `flavor` →
   `EngineProvider` (invariant 8), never a package or an app.
-- Dialect (an engine API family; one today, the Camunda 7 REST API all three vendors serve):
-  one package family under `packages/connectors/<dialect>/`, named for the API family it speaks
-  (`c7` today, with its client `@miragon/pulse-c7-client`, its core `@miragon/pulse-c7-core` and
-  the runtime view's C7 adapter `@miragon/pulse-c7-adapter`, private; `c8` later), whose core
-  implements the contract of the engine family's core. The engine family
+- Dialect (an engine API family; two today, the Camunda 7 REST API all three vendors serve and
+  Camunda 8's Orchestration Cluster REST API): one package family under
+  `packages/connectors/<dialect>/`, named for the API family it speaks (`c7`, with its client
+  `@miragon/pulse-c7-client`, its core `@miragon/pulse-c7-core` and the runtime view's C7 adapter
+  `@miragon/pulse-c7-adapter`, private; `c8`, with the runtime view's C8 adapter
+  `@miragon/pulse-c8-adapter` alone, private, which the editor hosts read Camunda 8 through and
+  which `ENGINE_DIALECTS` leaves out, since the MCP server serves no second dialect), whose core,
+  where the family has one, implements the contract of the engine family's core. The engine family
   (`packages/connectors/engine/`) is the neutral layer above the dialects (owner decisions
   2026-11-07, 2026-11-08 and 2026-11-09): ONE MCP server app (`apps/mcp-server`) and ONE module,
   `engine` (`engine-connector`), serve every dialect, the module importing the clients and cores
@@ -123,7 +127,8 @@ one port per family, the home of the family's pure rules; extracted on its secon
 `c7-core`, which the CLI bundles and the C7 adapter and the engine connector run) and, when the
 editor hosts read a dialect's engines, `<family>-adapter` (the dialect's implementation of the
 engine contract for the runtime view, proven by engine-core's conformance kit on a real engine;
-today `c7-adapter`, the C7 adapter, which runs c7-core).
+today `c7-adapter`, the C7 adapter, which runs c7-core, and `c8-adapter`, the C8 adapter, whose
+family has no client or core of its own: it sends through the transport and its OAuth client).
 A family's tool input
 schemas live in its connector, next to the tools
 (`packages/connectors/engine/engine-connector/src/schemas/`), so a client carries no zod:
@@ -877,7 +882,9 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      connector sends through it, behind `resolveEngine`/`withEngine`; never its tools, data
      builders or widgets), and tests anywhere, never the MCP server app's shipped code
      (`http-consumers`, `HTTP_USERS`; in the C7 adapter only its wire, `src/engine-rest/http`, by
-     its closed world's `http-only-in-the-wire`, and only by the main entry); the
+     its closed world's `http-only-in-the-wire`, and only by the main entry; in the C8 adapter
+     only its wire, `src/wire`, by the main entry and `./oauth`, whose client credentials grant
+     gives it its tokens); the
      engine family's core (`@miragon/pulse-engine-core`,
      `packages/connectors/engine/engine-core`) is a family core like any other, importing only its
      own modules (`family-core-is-a-leaf`), and is imported only where a dialect is implemented,
@@ -1129,8 +1136,8 @@ The release workflows hold the publish credentials and no pull request runs them
 workspace (its header lists each check).
 
 - **One release-please train.** Conventional commits on `main` drive `release-please.yml`: one
-  Release PR (tag `v<version>`) bumps the root, every app, the eight packages, the two private
-  packages the editor hosts bundle, the Orca plugin's manifest, the template's pins and the
+  Release PR (tag `v<version>`) bumps the root, every app, the eight packages, the three private
+  packages of the editor hosts, the Orca plugin's manifest, the template's pins and the
   c7-client User-Agent in lockstep (`extra-files` in `release-please-config.json`).
   Merging it creates the release; every publish job then waits for manual approval of the
   `release` environment gate.
@@ -1140,7 +1147,7 @@ workspace (its header lists each check).
   from another repository. The pack job runs `pnpm pack`, which rewrites `workspace:*` (npm's
   own pack would ship it verbatim); the one job that holds `id-token: write` runs no package
   manager. The server app, the two editor hosts and the packages only they bundle (the runtime
-  view, the C7 adapter) stay private. The `miragon-ai` names
+  view, the C7 and C8 adapters) stay private. The `miragon-ai` names
   used up to 0.20.0 are retired, and so is the npm name of engine-client, the c7 family's client
   up to 0.27 (now `@miragon/pulse-c7-client`); never reuse them. `@miragon/pulse-engine-core`
   held the c7 family's rules up to 0.27 (now `@miragon/pulse-c7-core`) and from 0.28 on is the
@@ -1185,10 +1192,10 @@ workspace (its header lists each check).
 
 | Check             | Coverage                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `pnpm build`      | turbo `build` everywhere: tsc emit of the packages and server code, the server app's Vite widget bundle (`build:ui`), the CLI's tsdown bundle (`apps/cli/dist`), the declarations of the runtime view and the C7 adapter, and the esbuild bundles of the VS Code extension and the Orca plugin (`apps/orca/dist`, the plugin folder); excludes widget `.tsx` type errors in packages                                                                                                                                                                                                                                                                                                                               |
+| `pnpm build`      | turbo `build` everywhere: tsc emit of the packages and server code, the server app's Vite widget bundle (`build:ui`), the CLI's tsdown bundle (`apps/cli/dist`), the declarations of the runtime view and the C7 and C8 adapters, and the esbuild bundles of the VS Code extension and the Orca plugin (`apps/orca/dist`, the plugin folder); excludes widget `.tsx` type errors in packages                                                                                                                                                                                                                                                                                                                       |
 | `pnpm typecheck`  | **The only check that type-checks widget code**: `tsc -p tsconfig.widgets.json` in the engine connector and widget-shell (its view half), `tsc -p tsconfig.ui.json` (and `tsconfig.test.json`) in the server app; the runtime view per layer (`packages/core/runtime-view/tsconfig.<layer>.json`), the editor hosts per part, each with that part's runtime globals only                                                                                                                                                                                                                                                                                                                                           |
 | `pnpm test`       | Vitest unit tests, the server app's wire-contract tests and tools/list goldens (in-process boot, loopback HTTP), the engine output and error-path goldens of the three interfaces (the CLI, the MCP server and the C7 adapter of the editor hosts), the architecture tests of the editor hosts and the packages they share, the per-package coverage floors, then `node --test` over `scripts/*.test.mjs` (repo guards and gate self-tests, below the table); docs-refs, old-names and `lint:package-scripts` also run in Lint + Format; **no widget rendering** (the runtime view's webview tests render in Chromium; locally once: `pnpm --filter @miragon/pulse-runtime-view exec playwright install chromium`) |
-| `pnpm lint`       | The build-free gates first (`lint:naming`, `lint:package-scripts`, `lint:github`, `lint:ratchets`, which needs `git fetch origin`), then ESLint per package incl. the pattern gates, dependency-cruiser (`lint:architecture`, `:cli`, `:vscode`, `:runtime-view`, `:c7-adapter`, `:orca`) and knip (`lint:deadcode`: everything but exports and types; `:exports`: exports and types in every workspace but the vendored docs kit), and last `lint:configs` (the config files no tsconfig holds and no package lints: `DEFAULT_PROJECT_FILES` in `eslint.config.mjs`)                                                                                                                                              |
+| `pnpm lint`       | The build-free gates first (`lint:naming`, `lint:package-scripts`, `lint:github`, `lint:ratchets`, which needs `git fetch origin`), then ESLint per package incl. the pattern gates, dependency-cruiser (`lint:architecture`, `:cli`, `:vscode`, `:runtime-view`, `:c7-adapter`, `:c8-adapter`, `:orca`) and knip (`lint:deadcode`: everything but exports and types; `:exports`: exports and types in every workspace but the vendored docs kit), and last `lint:configs` (the config files no tsconfig holds and no package lints: `DEFAULT_PROJECT_FILES` in `eslint.config.mjs`)                                                                                                                               |
 | `pnpm fitness`    | Report: architecture graph, per-package coverage and the mutation scores of c7-core, the transport, engine-core's rules and the profile format; locally after `pnpm test` (no CI job on a pull request), else the "Mutation summary" job of `.github/workflows/mutation-nightly.yml`                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | `./gradlew build` | The playground engine (`playground/cibseven-example/`): Kotlin compile + unit tests of its processes; CI "CIB Seven Example (Build + Test)", in `pnpm check:all`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `test:host`       | `pnpm --filter @miragon/pulse-mcp-server test:host`: Playwright host simulation of the **built** widget bundle behind a SEP-1865 host shim, the real `engine_open_cockpit` against a stub engine (`pinned …` scenarios are known defects, flipped when fixed); CI "Widget host simulation (test:host)"; run it for changes to widget-shell, pulse-ui, `src/ui/` or the `@modelcontextprotocol/ext-apps` pin                                                                                                                                                                                                                                                                                                        |
@@ -1214,7 +1221,8 @@ request's secrets only for its `--show-secrets`, owner decision 2026-11-10). Bes
 (invariants 8 and 1), the naming, package-scripts, ratchet, GitHub-config, CI-scope, entry-list and pack-content checks each prove
 themselves on planted violations in fixtures; the gates of the editor hosts and of the packages
 they share live in the `test/architecture` of `apps/vscode`, `apps/orca`,
-`packages/core/runtime-view` and `packages/connectors/c7/c7-adapter`.
+`packages/core/runtime-view`, `packages/connectors/c7/c7-adapter` and
+`packages/connectors/c8/c8-adapter`.
 
 A green `pnpm build && pnpm typecheck && pnpm test && pnpm lint` (`pnpm check` runs them) is the minimum bar for
 every change, in that order (`scripts/published-imports.test.mjs` reads the built CLI bundle);

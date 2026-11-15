@@ -16,6 +16,7 @@ const CHANGELOG = `# Changelog
 
 * **cli:** a new command ([#1](https://github.com/Miragon/pulse/issues/1))
 * **orca:** the panel lists boards ([#2](https://github.com/Miragon/pulse/issues/2))
+* **c8-adapter:** a cluster's version is read once ([#7](https://github.com/Miragon/pulse/issues/7))
 
 
 ### Bug Fixes
@@ -56,6 +57,7 @@ describe("the catalog's release notes", () => {
         "### Features",
         "",
         "* **orca:** the panel lists boards ([#2](https://github.com/Miragon/pulse/issues/2))",
+        "* **c8-adapter:** a cluster's version is read once ([#7](https://github.com/Miragon/pulse/issues/7))",
         "",
         "### Bug Fixes",
         "",
@@ -78,7 +80,8 @@ describe("the catalog's release notes", () => {
     const notes = await notesFor(
       CHANGELOG.replaceAll("**orca:**", "**cli:**")
         .replaceAll("**runtime-view:**", "**cli:**")
-        .replaceAll("**c7-adapter:**", "**cli:**"),
+        .replaceAll("**c7-adapter:**", "**cli:**")
+        .replaceAll("**c8-adapter:**", "**cli:**"),
       "v0.28.0",
     )
 
