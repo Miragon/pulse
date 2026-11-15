@@ -45,4 +45,5 @@ Its test charter is in `apps/vscode/sandbox/README.md`.
 ## Next steps
 
 - [Configuration](./configuration.md): add your own engines.
+- [Camunda 8](./camunda8.md): a cluster's profile and login, and a local cluster to try it on.
 - [Usage](./usage.md): what the views and panels do.

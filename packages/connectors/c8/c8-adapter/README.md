@@ -62,4 +62,5 @@ default), `basic` or `oidc`; `c8:up` takes the same as `--storage` and `--securi
 the newest image of `cluster-settings.json` unless `PULSE_ENGINE_IMAGE` names another. Run one
 leg at a time: an Elasticsearch leg needs about 3 GB more memory than an H2 leg. The legs cover
 Self-Managed on H2 and Elasticsearch: no OpenSearch, no other relational database and no SaaS
-cluster.
+cluster. The last run of all twelve is in `docs/vscode/camunda8.md`, which tells users what is
+tested: a change to the stack or the suite runs them again and updates that table.

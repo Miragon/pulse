@@ -529,13 +529,15 @@ const DOCS_BUDGETS = {
   // The VS Code extension's pages (docs/vscode/).
   "vscode/index.md": 50,
   "vscode/installation.md": 50,
-  "vscode/configuration.md": 90,
+  "vscode/configuration.md": 95,
+  // A cluster's profile and login, what differs and the conformance matrix, a row per leg.
+  "vscode/camunda8.md": 125,
   "vscode/usage.md": 80,
   "vscode/boards.md": 70,
-  "vscode/architecture.md": 50,
+  "vscode/architecture.md": 60,
   // Every difference between the MCP cockpit and the webview, a row each: it grows with a
   // feature built on one side and shrinks with one that closes a row.
-  "vscode/parity.md": 210,
+  "vscode/parity.md": 211,
   // The Orca plugin's pages (docs/orca/).
   "orca/index.md": 40,
   "orca/installation.md": 50,

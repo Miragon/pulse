@@ -14,8 +14,9 @@ implementation of its own, and the conformance kit proves that it means the same
 1.0: pin the exact version and update all `@miragon/pulse-*` packages together.
 
 The engine family is the neutral layer above the dialects: its module, the MCP server's engine
-module, serves every dialect, and this package is its core. A dialect (Camunda 7 REST today,
-Camunda 8 later) is a family of its own whose core implements this contract.
+module, serves every dialect, and this package is its core. A dialect (Camunda 7 REST, and
+Camunda 8's REST API, which the editor hosts read) is a family of its own whose core or adapter
+implements this contract.
 
 ## Install
 
@@ -103,7 +104,7 @@ never with a flag that can disagree with what the engine does:
   10,000 on Elasticsearch), the row keeps the cluster's counts: every incident inside the
   container reads as raised there and none as in a called instance. "Statistics are disjoint"
   (`active + incidents` is what the element holds) does not hold for such a row. The contract has
-  no field for it yet; `ElementStatistics` gains an optional one with the Camunda 8 adapter.
+  no field for it, and the conformance world never reaches that many.
 
 ## What it leaves to you
 

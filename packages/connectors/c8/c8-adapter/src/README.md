@@ -14,25 +14,38 @@ and no child process. Its tokens come from the transport's OAuth client.
 
 ```mermaid
 flowchart LR
-  reader["reader"]
+  root(["composition root"])
+  core(["core"])
   subgraph adapter ["c8-adapter"]
+    plug["C8Adapter"]
+    runtime["C8ProcessRuntime"]
+    reader["reader"]
     rest["rest"]
     wire["wire"]
   end
-  reader -- "1: cluster calls" --> rest
-  rest -- "2: requests" --> wire
-  wire -. "3: token" .-> login[("token endpoint")]
-  wire -. "4: REST calls" .-> cluster[("/v2")]
-  wire -- "5: text or a reason" --> rest
-  rest -- "6: checked views" --> reader
+  root -- "1: connection" --> plug
+  plug -- "1: runtime" --> runtime
+  core -- "2: ask" --> runtime
+  runtime -- "2: question" --> reader
+  reader -- "3: cluster calls" --> rest
+  rest -- "4: requests" --> wire
+  wire -. "5: token" .-> login[("token endpoint")]
+  wire -. "6: REST calls" .-> cluster[("/v2")]
+  wire -- "7: text or a reason" --> rest
+  rest -- "8: checked views" --> reader
+  reader -- "9: read model" --> runtime
+  runtime -- "9: answer or RuntimeError" --> core
 ```
 
-1. The runtime hands a question to its reader, which asks the REST client for what it needs, e.g. "the open incidents of instance X".
-2. `rest` turns that into requests to the wire: a GET, a search as a reading POST, or a diagram's XML.
-3. With client credentials the wire gets a token from the connection's token source, one per cluster and client.
-4. It sends the request on a read-only connection, never follows a redirect, stops after 60 s or 64 MiB.
-5. It answers with the text or with a reason, data that names no type of the transport.
-6. `rest` checks each field it reads; `errors` turns a failure into a `RuntimeError` with its way out.
+1. A composition root hands `C8Adapter` a connection; `runtime(connection)` builds a `C8ProcessRuntime` over a client of its `CamundaClients`, so every runtime shares the adapter's token sources.
+2. The core asks through the `ProcessRuntime` port; the runtime checks the version floor and hands the question to its reader.
+3. The reader asks the REST client for what it needs, e.g. "the open incidents of instance X".
+4. `rest` turns that into requests to the wire: a GET, a search as a reading POST, or a diagram's XML.
+5. With client credentials the wire gets a token from the connection's token source, one per cluster and client.
+6. It sends the request on a read-only connection, never follows a redirect, stops after 60 s or 64 MiB.
+7. It answers with the text or with a reason, data that names no type of the transport.
+8. `rest` checks each field it reads.
+9. The reader maps the views onto engine-core's read models; `errors` turns a failure into a `RuntimeError` with its way out, which the runtime throws.
 
 ## Where things are
 

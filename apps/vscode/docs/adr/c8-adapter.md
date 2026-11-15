@@ -232,7 +232,9 @@ builds the adapter once per process.
   8.9 and 8.10 on H2 or Elasticsearch, without security, with Basic or with OIDC (Keycloak); the
   suite skips unless `PULSE_ENGINE_IMAGE` names `camunda/camunda`, so one leg runs at a time, by
   hand. `c8:up` starts the same stack seeded for manual runs. The matrix covers Self-Managed on
-  H2 and Elasticsearch, no OpenSearch, no other relational database and no SaaS cluster.
+  H2 and Elasticsearch, no OpenSearch, no other relational database and no SaaS cluster; its
+  twelve legs and their last results are in `docs/vscode/camunda8.md`, the page that tells users
+  what is tested.
 - CI runs no Camunda 8 image until the licence question of #531 has an answer: the images fall
   under Camunda's Self-Managed non-production terms, which allow development and tests. CI proves
   the adapter on the fake REST API and the transport's loopback engine only, so a regression
@@ -272,3 +274,5 @@ builds the adapter once per process.
   again, and the token texts say how long the token endpoint's hold lasts (#617).
 - 2026-11-15: a cluster's 401 to a connection without a login says to add one with Set
   credentials, without the cluster's internal detail (#617).
+- 2026-11-15: all twelve legs of the matrix pass (8.9.28 and 8.10.9, H2 and Elasticsearch, none,
+  Basic and OIDC), recorded in the user docs, which claim no more than they prove (#617).

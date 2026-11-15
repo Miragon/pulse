@@ -41,6 +41,9 @@ Three clients work on the same engines; pick the one that fits where you work.
 | [CLI](apps/cli/README.md)               | Your terminal, scripts and coding agents | [npm](https://www.npmjs.com/package/@miragon/pulse-cli) · Homebrew `miragon/tap/pulse-cli` · [executables for Linux, macOS and Windows](https://miragon.github.io/pulse/cli/installation) | Pre-1.0 |
 | [VS Code](apps/vscode/README.md)        | VS Code 1.101+, and editors on Open VSX  | [Marketplace](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse-cockpit) · [Open VSX](https://open-vsx.org/extension/miragon-gmbh/pulse-cockpit)                     | Early   |
 
+The VS Code extension and [Pulse for Orca](apps/orca/README.md) also read Camunda 8 clusters from
+8.9 on, without writing ([Camunda 8](https://miragon.github.io/pulse/vscode/camunda8)).
+
 ## Get started
 
 Try Pulse in your AI chat on the hosted playground, a seeded CIB seven engine that is read-only

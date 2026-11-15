@@ -23,8 +23,9 @@ and the CLI see the same engines. They live in two files:
 }
 ```
 
-Pulse reads `url`, `flavor` (`camunda7`, `cibseven` or `operaton`; `camunda7` when absent), `engine`
-(the default engine only), `auth.type` (`none`, `basic` or `oauth`; without a type a `username`
+Pulse reads `url`, `flavor` (`camunda7`, `cibseven` or `operaton`, `camunda7` when absent, or
+[`camunda8`](./camunda8.md)), `engine` (the default engine only), `auth.type` (`none`, `basic`,
+`oauth` on the Camunda 7 flavors, `clientCredentials` on `camunda8`; without a type a `username`
 means `basic`), `cockpitUrl` and `readOnly` (no writes from Pulse either), by the rules of the CLI
 and the MCP server: one profile format, `@miragon/pulse-profile`. URLs lose trailing slashes, and a
 profile with a value the format refuses never becomes an engine. Pulse reads profile by profile: a
@@ -45,13 +46,15 @@ CLI, even one Pulse can't use. With `PULSE_CLI_CONFIG` set, Pulse reads only the
 its full path, like the CLI, and the Engines view says so. Without any profile it lists one engine
 on `localhost:8080`. A file Pulse can't read, a missing file `PULSE_CLI_CONFIG` names, or a folder
 that holds the project file only under its former name, `.pulse-cli.json`, shows as a problem and
-lists no engine, not even that one.
+lists no engine, not even that one. A file with a `camunda8` profile needs a CLI of your
+extension's version or newer: the CLI up to 0.27 refuses the whole file, a newer one only that
+profile, when you pick it.
 
 _Pulse: Configure Engines_ (the gear of the Engines view) opens the file for your engines: with a
 folder open the one you pick, this project's or your CLI config; without one your CLI config,
-created readable by you only (mode `0600`) with a profile to fill in. Set credentials with _Pulse:
-Set Credentials…_; they live in VS Code's secret storage, per profile and file, and Pulse reads
-none of the credentials your CLI config holds for the CLI.
+created readable by you only (mode `0600`) with a profile to fill in. _Pulse: Set Credentials…_
+asks for a login (a username and password, or a client's ID and secret) and keeps it in VS Code's
+secret storage, per profile and file; Pulse reads none of the credentials your CLI config holds.
 
 ## Settings
 
@@ -75,16 +78,17 @@ turn them on. They pause after 15 minutes without activity.
 With `cockpitUrl`, the definition and instance panels get an _Open in Cockpit_ button. Pulse
 never guesses this URL. It must be an `http` or `https` URL without credentials:
 
-| Engine                                   | `cockpitUrl`                          |
-| ---------------------------------------- | ------------------------------------- |
-| Camunda 7, Operaton, CIB seven (Cockpit) | ends in `/app/cockpit/<engine name>/` |
-| CIB seven webclient                      | ends in `/webapp/`                    |
+| Engine                                   | `cockpitUrl`                                                                   |
+| ---------------------------------------- | ------------------------------------------------------------------------------ |
+| Camunda 7, Operaton, CIB seven (Cockpit) | ends in `/app/cockpit/<engine name>/`                                          |
+| CIB seven webclient                      | ends in `/webapp/`                                                             |
+| Camunda 8 (_Open in Operate_)            | ends in `/operate`, on SaaS `https://<region>.operate.camunda.io/<cluster id>` |
 
 ## Proxy and certificates
 
 Pulse calls the engine's REST API from the extension host with VS Code's network settings
 (`http.proxy`, `http.systemCertificates`, `http.proxyStrictSSL`), through `@miragon/pulse-http`,
 the transport the CLI and the MCP server send through too. It never follows a redirect, reads at
-most 64 MiB of an answer, gives up on a call after 60 s and shows a password the engine echoes
-in an error as `***` (a password of four characters or more). A certificate VS Code does not trust and a host name that does not resolve each say so,
-with what to check.
+most 64 MiB of an answer, gives up on a call after 60 s and shows a password, client secret or
+token the engine echoes in an error as `***` (four characters or more). A certificate VS Code does
+not trust and a host name that does not resolve each say so, with what to check.

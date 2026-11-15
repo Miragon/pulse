@@ -19,6 +19,7 @@ flowchart TB
     subgraph adapters [Adapters: one per dialect family]
       direction LR
       c7[c7-adapter]
+      c8[c8-adapter: read-only]
       next["adapter for the next engine"]
     end
   end
@@ -30,7 +31,8 @@ flowchart TB
   end
 
   c7engines["Operaton, CIB seven, Camunda 7: /engine-rest"]
-  webui["Cockpit in the browser"]
+  c8cluster["Camunda 8: /v2, its token endpoint"]
+  webui["Cockpit or Operate in the browser"]
 
   user --> workbench & webview
   workbench <-- "1: tree items, commands" --> extension
@@ -43,6 +45,7 @@ flowchart TB
   extension -. "10: web UI link" .-> webui
   core -- "4: questions and writes, read models back" --> adapters
   c7 -. "6: REST JSON" .-> c7engines
+  c8 -. "6: REST JSON, tokens" .-> c8cluster
   c7 ~~~ webui
   classDef planned stroke-dasharray: 5 5
   class next planned
@@ -52,25 +55,26 @@ Thin lines are calls inside a process (the VS Code API or a port), thick lines a
 messages to another process, dotted lines leave the machine. The dashed box is where the
 next engine plugs in: one more adapter package and one entry in the composition root.
 
-| #   | Who → whom                      | About what                                                                                                                | How                                                                                                                      |
-| --- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| 1   | VS Code ⇄ extension             | engines and processes in the trees, commands, the status bar, the `.bpmn` file in the editor                              | VS Code API (`TreeDataProvider`, commands)                                                                               |
-| 2   | webview ⇄ extension             | intents out (`ready`, `filterInstances`, `openCall`, `retryIncident`, …); the complete panel state with a revision back   | `postMessage`, JSON, checked by `MessageGuards`; the webview drops stale revisions                                       |
-| 3   | extension ⇄ core                | the intent for a panel session; host actions back: open a panel, pick an instance, confirm a write, copy, open the web UI | method calls: `Panel.handle`, `PanelEffects`                                                                             |
-| 4   | core → adapter                  | engine questions and writes; read models back, or a `RuntimeError`                                                        | the ports `ProcessRuntime` and `ProcessCommands`, async                                                                  |
-| 5   | extension → adapter             | a configured target becomes a runtime, commands (wrapped in the audit) and web UI links                                   | `EngineAdapter`, only in `composition-root.ts`                                                                           |
-| 6   | c7-adapter → C7 family          | definitions, instances, incidents, variables; retries and variable changes                                                | HTTP(S) REST `/engine-rest` through `@miragon/pulse-http` over VS Code's `fetch`, basic auth; no redirects, 60 s, 64 MiB |
-| 7   | extension → your files          | the engines to show, the model to compare with a deployed version, stack frames to link to your sources                   | `.pulse.json` (watched), `.bpmn` files, `pulse.*` settings                                                               |
-| 8   | extension → SecretStorage       | user name and password per target, bound to the endpoint's origin                                                         | VS Code `SecretStorage`                                                                                                  |
-| 9   | extension → output channel      | one audit line per confirmation and per write, without values                                                             | the "Pulse" output channel                                                                                               |
-| 10  | extension → the engine's web UI | the shown version or instance, or the engine's start page                                                                 | `vscode.env.openExternal` with a URL built from the target's `cockpitUrl`                                                |
+| #   | Who → whom                      | About what                                                                                                                | How                                                                                                                                  |
+| --- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | VS Code ⇄ extension             | engines and processes in the trees, commands, the status bar, the `.bpmn` file in the editor                              | VS Code API (`TreeDataProvider`, commands)                                                                                           |
+| 2   | webview ⇄ extension             | intents out (`ready`, `filterInstances`, `openCall`, `retryIncident`, …); the complete panel state with a revision back   | `postMessage`, JSON, checked by `MessageGuards`; the webview drops stale revisions                                                   |
+| 3   | extension ⇄ core                | the intent for a panel session; host actions back: open a panel, pick an instance, confirm a write, copy, open the web UI | method calls: `Panel.handle`, `PanelEffects`                                                                                         |
+| 4   | core → adapter                  | engine questions and writes; read models back, or a `RuntimeError`                                                        | the ports `ProcessRuntime` and `ProcessCommands`, async                                                                              |
+| 5   | extension → adapter             | a configured target becomes a runtime, commands (wrapped in the audit) and web UI links                                   | `EngineAdapter`, only in `composition-root.ts`                                                                                       |
+| 6   | c7-adapter → C7 family          | definitions, instances, incidents, variables; retries and variable changes                                                | HTTP(S) REST `/engine-rest` through `@miragon/pulse-http` over VS Code's `fetch`, basic auth; no redirects, 60 s, 64 MiB             |
+| 6   | c8-adapter → Camunda 8          | definitions, instances, incidents, variables, wait states; no writes                                                      | HTTP(S) REST `/v2` through `@miragon/pulse-http`, read-only, basic auth or client credentials (`/oauth`); no redirects, 60 s, 64 MiB |
+| 7   | extension → your files          | the engines to show, the model to compare with a deployed version, stack frames to link to your sources                   | `.pulse.json` (watched), `.bpmn` files, `pulse.*` settings                                                                           |
+| 8   | extension → SecretStorage       | user name and password, or a client's ID and secret, per target, bound to the origins of the endpoint and token endpoint  | VS Code `SecretStorage`                                                                                                              |
+| 9   | extension → output channel      | one audit line per confirmation and per write, without values                                                             | the "Pulse" output channel                                                                                                           |
+| 10  | extension → the engine's web UI | the shown version or instance, or the engine's start page                                                                 | `vscode.env.openExternal` with a URL built from the target's `cockpitUrl`                                                            |
 
 Pulse reads what an engine is running and shows it next to the models. Writes
 (retry an incident, change a variable) are guarded and audited
 ([writes.md](adr/writes.md)). Each package has a README with its own picture:
 [engine contract](../../../packages/connectors/engine/engine-core/README.md), [ports](../../../packages/core/runtime-view/src/ports/README.md), [core](../../../packages/core/runtime-view/src/core/README.md),
 [webview](../../../packages/core/runtime-view/src/webview/README.md), [extension](../src/host/README.md),
-[c7-adapter](../../../packages/connectors/c7/c7-adapter/src/README.md).
+[c7-adapter](../../../packages/connectors/c7/c7-adapter/src/README.md), [c8-adapter](../../../packages/connectors/c8/c8-adapter/src/README.md).
 
 ## 2. Ports and adapters
 
@@ -98,6 +102,8 @@ flowchart LR
     c7Commands[c7-adapter: C7ProcessCommands]
     fake[engine-core testing: FakeEngine]
     c7Runtime[c7-adapter: C7ProcessRuntime]
+    c8Adapter[c8-adapter: C8Adapter]
+    c8Runtime[c8-adapter: C8ProcessRuntime, read-only]
   end
 
   ui --> extension
@@ -106,9 +112,9 @@ flowchart LR
   extension -- one adapter per engine kind --> adapterPort
   core --> runtime
   core --> commands
-  adapterPort -.-> c7Adapter & next
+  adapterPort -.-> c7Adapter & c8Adapter & next
   commands -.-> c7Commands & fake
-  runtime -.-> fake & c7Runtime
+  runtime -.-> fake & c7Runtime & c8Runtime
   classDef planned stroke-dasharray: 5 5
   class next planned
 ```
@@ -179,7 +185,9 @@ on the kit. The core, the ports, the model reader and the host kit import nothin
 Operaton and CIB seven are forks of Camunda 7 and keep its REST API. So one adapter
 serves all three, and the conformance kit proves it on Operaton and CIB seven in CI (Camunda 7
 passed on 7.24.0 until its image left Docker Hub in November 2026). Camunda 8 is a
-different engine (Zeebe) with a different API, so it would get an adapter of its own.
+different engine (Zeebe) with a different API, so it has an adapter of its own, the C8 adapter
+(`packages/connectors/c8/c8-adapter`, [c8-adapter.md](adr/c8-adapter.md)), which reads and never
+writes.
 
 ```mermaid
 flowchart LR
@@ -205,7 +213,7 @@ flowchart LR
 | Does the C7 adapter cover all three? | Yes: all 48 read laws and 15 command laws pass on Operaton 2.1.5 and CIB seven 2.2.0; Camunda 7.24.0 passed until its image left Docker Hub                       |
 | Do we need an adapter per fork?      | No, only per API family                                                                                                                                           |
 | What does a new dialect family need? | A package `packages/connectors/<family>/<family>-adapter` with an `EngineAdapter` and its `BpmnDialect`, its conformance test, one entry in each composition root |
-| Where does Camunda 8 stand?          | Not included. The spike built a C8 adapter on REST v2 against an API mock, then removed it to keep the prototype small                                            |
+| Where does Camunda 8 stand?          | In the C8 adapter, read-only, from 8.9 on; the read laws pass on a local cluster (8.9 and 8.10, H2 and Elasticsearch, none, Basic and OIDC), no CI job until #531 |
 
 ## 5. Reading an instance
 
@@ -263,6 +271,7 @@ flowchart LR
   kit[ConformanceKit: 48 read laws, 15 command laws]
   kit --> fake[FakeEngine in memory]
   kit --> c7[C7Adapter on Operaton and CIB seven in containers]
+  kit --> c8["C8Adapter: the read laws on a local Camunda 8 cluster, by hand until #531"]
   saboteurs[Saboteurs: broken runtimes] -- each must fail its law --> kit
 ```
 

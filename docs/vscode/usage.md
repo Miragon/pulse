@@ -53,7 +53,8 @@ business key.
 ## Writes
 
 Retry incidents, change variables and move tokens: on local engines by default, elsewhere only
-when `pulse.writes` allows it ([Configuration](./configuration.md#settings)). Every write asks
+when `pulse.writes` allows it ([Configuration](./configuration.md#settings)), and never on a
+[Camunda 8](./camunda8.md) cluster, which Pulse only reads. Every write asks
 first, names its exact target and leaves an audit line in the output channel "Pulse". A changed
 variable keeps its type. One that holds null is written as what you pick under _Write as_ (text,
 whole number, number, true or false, JSON). The editor marks a value it cannot write and says why

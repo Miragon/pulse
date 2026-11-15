@@ -12,6 +12,9 @@ flowchart LR
   worker --> adapter["C7 adapter: REST"]
   adapter --> contract
   adapter -- "@miragon/pulse-http" --> engines["Operaton, CIB seven, Camunda 7: /engine-rest"]
+  worker --> c8["C8 adapter: REST, read-only"]
+  c8 --> contract
+  c8 -- "@miragon/pulse-http" --> cluster["Camunda 8: /v2"]
 ```
 
 | Part                      | Holds                                                                                        |

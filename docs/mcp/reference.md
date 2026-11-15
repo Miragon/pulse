@@ -123,7 +123,8 @@ It replaces the single-engine variables, which the boot then names as ignored:
 
 A profile's name is its engine id: the per-call `engine` selector, advertised as an enum of every
 configured id, and the name the cockpit shows. `url` is the REST root; `flavor` (`cibseven` |
-`operaton` | `camunda7`, default `camunda7`) selects the cockpit-link routes and display name;
+`operaton` | `camunda7`, default `camunda7`; a `camunda8` profile, which Pulse for VS Code and Pulse
+for Orca read, is refused here) selects the cockpit-link routes and display name;
 `cockpitUrl`, `timeout` (it beats `ENGINE_REQUEST_TIMEOUT_MS`) and `readOnly` (no tool writes to that
 engine, whatever the toolset) are optional. Each profile signs in on its own (`none`, `basic`,
 `bearer`, `passthrough`), and a secret never sits in the file: `auth.passwordEnv` or

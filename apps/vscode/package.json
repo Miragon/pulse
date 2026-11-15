@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.27.1",
   "displayName": "Miragon Pulse",
-  "description": "See what your process engine is running, right next to your BPMN models: definitions, instances, incidents and variables. Retry incidents and fix variables, guarded.",
+  "description": "See what your process engine is running, right next to your BPMN models: definitions, instances, incidents and variables. Retry incidents and fix variables, guarded. For Operaton, CIB seven and Camunda 7, and Camunda 8 read-only.",
   "publisher": "miragon-gmbh",
   "icon": "media/icon.png",
   "galleryBanner": {
@@ -34,6 +34,7 @@
     "operaton",
     "cib seven",
     "camunda 7",
+    "camunda 8",
     "incidents",
     "workflow",
     "runtime"
@@ -66,7 +67,7 @@
     "viewsWelcome": [
       {
         "view": "pulse.engines",
-        "contents": "See what your process engine is running: definitions, instances, incidents. Retry incidents and fix variables on local engines.\n[Configure Engines](command:pulse.openTargetsFile)\nEngines from .pulse.json and your CLI config show up here on their own. Works with Operaton, CIB seven and Camunda 7."
+        "contents": "See what your process engine is running: definitions, instances, incidents. Retry incidents and fix variables on local engines.\n[Configure Engines](command:pulse.openTargetsFile)\nEngines from .pulse.json and your CLI config show up here on their own. Works with Operaton, CIB seven and Camunda 7, and reads Camunda 8."
       }
     ],
     "commands": [

@@ -7,7 +7,8 @@
 
 An [Orca](https://www.onorca.dev) plugin that shows what your Camunda 7, CIB seven or Operaton
 engine is running, right next to your BPMN models: definitions, instances, incidents and
-variables. It is an early version, and its features can still change. It is not in Orca's plugin
+variables. It reads [Camunda 8](https://miragon.github.io/pulse/vscode/camunda8) clusters too, from
+8.9 on, without writing. It is an early version, and its features can still change. It is not in Orca's plugin
 directory yet: until then you [load it from the source](#install). Pulse also runs in
 [VS Code, your AI chat and your terminal](https://github.com/Miragon/pulse#readme).
 

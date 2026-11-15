@@ -40,8 +40,8 @@ A few layering rules keep modules independently usable and a second engine diale
   _vendors_ (CIB seven, Operaton, Camunda 7) are per-engine runtime configuration
   (`flavor` on the engine entry, resolved to an `EngineProvider` carrying only the
   real differences: cockpit routes, branding, client hook), never packages or apps.
-  A _dialect_ (an engine API family: Camunda 7 today, Camunda 8 later) is one package
-  family under `packages/connectors/<dialect>/` (`c7` today). A family is one source the
+  A _dialect_ (an engine API family: Camunda 7, and Camunda 8 in the editors) is one package
+  family under `packages/connectors/<dialect>/` (`c7`, `c8`). A family is one source the
   server reads, a dialect or another source (a metrics store, say): its client, its core when
   its interfaces share a pure domain and, for a source that is no dialect, its connector (the
   MCP module). A package two interfaces share is extracted on its second consumer into the
