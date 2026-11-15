@@ -1,3 +1,5 @@
+import type { BoardProblem } from "./board-problems.js"
+
 export type BoardColumn =
   "engine" | "process" | "version" | "businessKey" | "state" | "startedAt" | "endedAt" | "incident"
 
@@ -54,8 +56,17 @@ export type BoardWidget =
 
 export type BoardWidgetType = BoardWidget["widget"]
 
+export interface RefusedWidget {
+  readonly widget?: string
+  readonly title?: string
+  readonly refused: readonly BoardProblem[]
+}
+
+export type BoardTile = BoardWidget | RefusedWidget
+
 export interface BoardDefinition {
   readonly title: string
   readonly engines: readonly string[]
-  readonly rows: readonly (readonly BoardWidget[])[]
+  readonly tenants?: readonly string[]
+  readonly rows: readonly (readonly BoardTile[])[]
 }

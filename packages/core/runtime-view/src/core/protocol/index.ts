@@ -22,6 +22,7 @@ export type {
   InstanceGroup,
   InstanceListTile,
   ProcessDiagramTile,
+  RefusedTile,
 } from "./board-views.js"
 export type {
   BulkKind,

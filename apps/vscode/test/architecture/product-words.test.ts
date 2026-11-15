@@ -87,9 +87,14 @@ describe("the extension's texts", PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, () => {
   test("in the board format, whose problems both editors show, use the product's words too", () => {
     const format = join(REPO_ROOT, BOARD_SOURCES)
     expect(Object.keys(sourceTexts(format))).toEqual(
-      expect.arrayContaining([expect.stringMatching(/^format\/board-parser\.ts:/)]),
+      expect.arrayContaining([expect.stringMatching(/^format\/board-problems\.ts:/)]),
     )
     expect(wordFindings(format)).toEqual([])
+  })
+
+  test("in the board format, read by the promise scan, say what a board with tenants does today", () => {
+    const texts = PromiseWords.texts(join(REPO_ROOT, BOARD_SOURCES), NOT_SHIPPED)
+    expect(texts).toEqual(expect.arrayContaining([expect.stringMatching(/no tenant filter/)]))
   })
 
   test("name the counts with the count terms the MCP widgets use", () => {

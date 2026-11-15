@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest"
 import manifest from "../../package.json" with { type: "json" }
 import document from "../../schema/board.schema.json" with { type: "json" }
 import { BoardVocabulary } from "../../src/index.js"
-import { BOARD_FIXTURES } from "../../src/testing/index.js"
+import { BOARD_FIXTURES, type BoardFixture } from "../../src/testing/index.js"
 
 interface Node {
   readonly type?: string
@@ -14,10 +14,13 @@ interface Node {
   readonly additionalProperties?: boolean
   readonly uniqueItems?: boolean
   readonly minItems?: number
+  readonly minLength?: number
   readonly items?: Node
   readonly enum?: readonly unknown[]
   readonly const?: unknown
   readonly oneOf?: readonly Node[]
+  readonly if?: Node
+  readonly then?: Node
 }
 
 interface Schema extends Node {
@@ -59,6 +62,14 @@ function propOf(widget: string, prop: string): Node | undefined {
   return widgetNamed(widget).properties?.props?.properties?.[prop]
 }
 
+function readsInFull({ verdict }: BoardFixture): boolean {
+  return (
+    "board" in verdict &&
+    verdict.notes.length === 0 &&
+    verdict.board.rows.flat().every((tile) => !("refused" in tile))
+  )
+}
+
 function schemaTakes(text: string): boolean {
   try {
     return validate(JSON.parse(text))
@@ -98,21 +109,32 @@ describe("the board schema", () => {
     expect(propOf("instanceList", "columns")?.minItems).toBe(1)
   })
 
+  test("takes tenants as a list of different ids, as it takes the engines", () => {
+    const tenants = schema.properties?.tenants
+    expect(tenants?.uniqueItems).toBe(true)
+    expect(tenants?.minItems).toBe(1)
+    expect(tenants?.items?.minLength).toBe(1)
+  })
+
+  test("marks a filter of ended instances with incident, which can only read 0", () => {
+    const filter = schema.definitions.filter
+    expect(filter?.if?.properties?.state?.const).toBe("ended")
+    expect(filter?.then?.properties?.withIncident?.const).toBe(false)
+  })
+
   test.each(BOARD_FIXTURES.map((fixture) => [fixture.name, fixture] as const))(
-    "%s: says what the fixture pins, and takes every board the parser takes",
+    "%s: says what the fixture pins, and takes every board the parser reads in full",
     (_name, fixture) => {
       const takes = schemaTakes(fixture.text)
       expect(takes, JSON.stringify(validate.errors)).toBe(fixture.schema)
-      if ("board" in fixture.verdict) {
-        expect(takes, "the parser takes it").toBe(true)
+      if (readsInFull(fixture)) {
+        expect(takes, "the parser reads it without a note or a refused widget").toBe(true)
       }
     },
   )
 
   test("refuses some fixtures and is blind to what only the parser sees in others", () => {
-    const blind = BOARD_FIXTURES.filter(
-      (fixture) => fixture.schema && "problems" in fixture.verdict,
-    )
+    const blind = BOARD_FIXTURES.filter((fixture) => fixture.schema && !readsInFull(fixture))
     expect(BOARD_FIXTURES.filter((fixture) => !fixture.schema).length).toBeGreaterThan(10)
     expect(blind.map((fixture) => fixture.name)).toEqual(
       expect.arrayContaining(["thirteen-widgets", "blank-title", "engine-outside-the-board"]),

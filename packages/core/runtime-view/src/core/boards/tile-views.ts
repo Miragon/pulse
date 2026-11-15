@@ -9,6 +9,7 @@ import type {
   InstanceGroupModel,
   InstanceListModel,
   ProcessDiagramModel,
+  RefusedModel,
   TileModel,
 } from "@miragon/pulse-board/builder"
 import type { Incident, InstanceSummary } from "@miragon/pulse-engine-core"
@@ -27,11 +28,13 @@ import type {
   InstanceGroup,
   InstanceListTile,
   ProcessDiagramTile,
+  RefusedTile,
 } from "../protocol/index.js"
 import { ElementBadges } from "../views/element-badges.js"
 import { Labels } from "../views/labels.js"
 import { BoardFilters } from "./board-filters.js"
 import type { BoardRuntime } from "./board-runtime.js"
+import { ProblemTexts } from "./problem-texts.js"
 
 const WITH_INCIDENT = { scope: "withIncident" } as const
 
@@ -50,6 +53,17 @@ export class TileViews {
         return this.processDiagram(tile)
       case "incidentList":
         return Promise.resolve(TileViews.incidentList(tile))
+      case "refused":
+        return Promise.resolve(TileViews.refused(tile))
+    }
+  }
+
+  private static refused({ widget, title, problems }: RefusedModel): RefusedTile {
+    return {
+      kind: "refused",
+      title: title ?? (widget === undefined ? "Widget" : `Widget "${widget}"`),
+      ...(widget === undefined ? {} : { widget }),
+      problems: ProblemTexts.of(problems),
     }
   }
 

@@ -359,6 +359,135 @@ describe("a board across engines", () => {
   })
 })
 
+describe("a board with a widget it refuses", () => {
+  const RUNNING = { widget: "counter", props: { title: "Running", filter: ORDER } }
+
+  test("shows the widget's problems in its place and reads the widgets beside it", async () => {
+    const ended = {
+      widget: "instanceList",
+      props: { title: "Ended with incident", filter: { state: "ended", withIncident: true } },
+    }
+    const fixture = boardFixture(
+      {
+        title: "Payments",
+        engines: ["shop"],
+        rows: [{ row: [ended, { widget: "chart" }, 3, RUNNING] }],
+      },
+      [{ name: "shop", runtime: SHOP }],
+    )
+
+    await new BoardPanel(fixture.context).handle({ type: "ready" })
+
+    expect(fixture.view().problems).toEqual([])
+    expect(fixture.view().rows[0]?.slice(0, 3)).toEqual([
+      {
+        kind: "refused",
+        title: "Ended with incident",
+        widget: "instanceList",
+        problems: [
+          {
+            path: "rows[0].row[0].props.filter.withIncident",
+            reason:
+              'only matches running instances, since an ended instance has no open incident; remove it or use state "running"',
+          },
+        ],
+      },
+      {
+        kind: "refused",
+        title: 'Widget "chart"',
+        widget: "chart",
+        problems: [
+          {
+            path: "rows[0].row[1].widget",
+            reason:
+              "must be one of counter, instanceList, incidentSummary, processDiagram, incidentList",
+          },
+        ],
+      },
+      {
+        kind: "refused",
+        title: "Widget",
+        problems: [{ path: "rows[0].row[2]", reason: "must be an object" }],
+      },
+    ])
+    expect(fixture.view().rows[0]?.[3]).toMatchObject({
+      kind: "counter",
+      title: "Running",
+      total: 12,
+    })
+    expect(fixture.calls.get("shop")).toEqual([
+      "describeEngine",
+      "listDefinitions",
+      "countInstances",
+    ])
+  })
+
+  test("opens nothing for a refused widget", async () => {
+    const ended = {
+      widget: "counter",
+      props: { filter: { process: "order", state: "ended", withIncident: true } },
+    }
+    const fixture = boardFixture(board([ended], ["shop"]), [{ name: "shop", runtime: SHOP }])
+    const panel = new BoardPanel(fixture.context)
+    await panel.handle({ type: "ready" })
+
+    await panel.handle({
+      type: "openBoardProcess",
+      engine: "shop",
+      bpmnProcessId: "order",
+      filter: { scope: "withIncident" },
+      toSide: false,
+    })
+
+    expect(fixture.navigation.openDefinition).not.toHaveBeenCalled()
+  })
+
+  test("names a root key it does not know as a note and shows the board", async () => {
+    const fixture = boardFixture({ ...board([RUNNING], ["shop"]), layout: "wide" }, [
+      { name: "shop", runtime: SHOP },
+    ])
+
+    await new BoardPanel(fixture.context).handle({ type: "ready" })
+
+    expect(fixture.view()).toMatchObject({
+      problems: [],
+      notes: [
+        {
+          path: "layout",
+          reason: "is not a key this version of Pulse knows; Pulse shows the board without it",
+        },
+      ],
+      rows: [[{ kind: "counter", total: 12 }]],
+    })
+  })
+
+  test("refuses every widget of a board that names tenants and reads none of them", async () => {
+    const fixture = boardFixture({ ...board([RUNNING], ["shop"]), tenants: ["acme"] }, [
+      { name: "shop", runtime: SHOP },
+    ])
+
+    await new BoardPanel(fixture.context).handle({ type: "ready" })
+
+    expect(fixture.view().rows).toEqual([
+      [
+        {
+          kind: "refused",
+          title: "Running",
+          widget: "counter",
+          problems: [
+            {
+              path: "tenants",
+              reason:
+                "is set, but Pulse has no tenant filter and would read every tenant here; remove tenants to show this widget",
+            },
+          ],
+        },
+      ],
+    ])
+    expect(fixture.calls.get("shop")).toEqual(["describeEngine", "listDefinitions"])
+  })
+})
+
 describe("a board file that changes", () => {
   const COUNTER = { widget: "counter", props: { filter: ORDER } }
 
@@ -375,6 +504,7 @@ describe("a board file that changes", () => {
       engines: [],
       rows: [],
       problems: [{ path: "(file)", reason: "is not valid JSON" }],
+      notes: [],
     })
   })
 

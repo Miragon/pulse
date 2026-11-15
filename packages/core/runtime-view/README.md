@@ -70,16 +70,16 @@ the webview in a selector or as a class it expects (diagram-js's and bpmn-js's o
 diagram's `pulse-*` markers, which bpmn-js sets, stay), and holds the scripts' map equal to the
 harness's. The hooks:
 
-| Hook              | Parts                                                                                                                                                                                 |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| bar and states    | `context-bar` (`data-kind`: engine, definition, instance, migration, board, pending), `context-subject`, `context-key`, `access`, `freshness`, `strips`                               |
-| notices           | `status-strip`, `strip-title`, `status-box`, `bulk-strip`, `empty-hint`, `loading-layout`, `skeleton`                                                                                 |
-| lists             | `data-table` (`data-state`: auto, fixed), `column-label`, `table-empty`, `table-footer`, `filter-bar`, `filter-chip`, `filter-summary`, `segment-count`, `selection-count`, `tab-bar` |
-| states and counts | `state-label`, `incident-flag`, `count-badge`, `incident-count`                                                                                                                       |
-| instance          | `incident-card`, `variable-name`, `editor-hint`, `editor-warning`, `caller-link`, `called-instance-link`                                                                              |
-| diagram           | `diagram`, `diagram-canvas`, `diagram-failure`, `badge-count`, `call-button`, `element-actions`, `move-entry`, `move-badge`, `code-button`, `move-panel`, `move-warning`              |
-| migration         | `migration-diagram`, `migration-summary`, `migration-refusal`, `mapping-note`                                                                                                         |
-| boards            | `board-card` (`data-kind`: the tile's kind), `counter-value`, `counter-partial`, `counter-threshold`, `counter-entry`, `counter-count`, `group-note`                                  |
+| Hook              | Parts                                                                                                                                                                                                                         |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| bar and states    | `context-bar` (`data-kind`: engine, definition, instance, migration, board, pending), `context-subject`, `context-key`, `access`, `freshness`, `strips`                                                                       |
+| notices           | `status-strip`, `strip-title`, `status-box`, `bulk-strip`, `empty-hint`, `loading-layout`, `skeleton`                                                                                                                         |
+| lists             | `data-table` (`data-state`: auto, fixed), `column-label`, `table-empty`, `table-footer`, `filter-bar`, `filter-chip`, `filter-summary`, `segment-count`, `selection-count`, `tab-bar`                                         |
+| states and counts | `state-label`, `incident-flag`, `count-badge`, `incident-count`                                                                                                                                                               |
+| instance          | `incident-card`, `variable-name`, `editor-hint`, `editor-warning`, `caller-link`, `called-instance-link`                                                                                                                      |
+| diagram           | `diagram`, `diagram-canvas`, `diagram-failure`, `badge-count`, `call-button`, `element-actions`, `move-entry`, `move-badge`, `code-button`, `move-panel`, `move-warning`                                                      |
+| migration         | `migration-diagram`, `migration-summary`, `migration-refusal`, `mapping-note`                                                                                                                                                 |
+| boards            | `board-card` (`data-kind`: the tile's kind, `refused` for a widget the file breaks), `refused-reason`, `board-notes`, `counter-value`, `counter-partial`, `counter-threshold`, `counter-entry`, `counter-count`, `group-note` |
 
 The kit's slots a part resolves to as well: `context-bar` `view-bar`, `context-subject`
 `view-bar-subject`, `access` `view-bar-access`, `freshness` `view-bar-freshness`, `status-strip`

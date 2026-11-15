@@ -13,6 +13,7 @@ import type {
   InstanceListWidget,
   ProcessDiagramWidget,
 } from "../format/board-definition.js"
+import type { BoardProblem } from "../format/board-problems.js"
 
 export interface EngineTotals {
   readonly running: number
@@ -92,8 +93,20 @@ export interface IncidentListModel {
   readonly groups: readonly IncidentGroupModel[]
 }
 
+export interface RefusedModel {
+  readonly kind: "refused"
+  readonly widget?: string
+  readonly title?: string
+  readonly problems: readonly BoardProblem[]
+}
+
 export type TileModel =
-  CounterModel | InstanceListModel | IncidentSummaryModel | ProcessDiagramModel | IncidentListModel
+  | CounterModel
+  | InstanceListModel
+  | IncidentSummaryModel
+  | ProcessDiagramModel
+  | IncidentListModel
+  | RefusedModel
 
 export interface BoardModel {
   readonly title: string

@@ -8,7 +8,12 @@ import { EngineLane } from "../../src/core/refresh/engine-lane.js"
 import { SharedDefinitions } from "../../src/core/refresh/shared-definitions.js"
 import { badgeOf, boardFixture, stubbed, summary } from "./support/board-fixture.js"
 
-const SOURCE = { fileName: "shop.board.json", asOf: new Date("2026-10-26T09:00:00Z"), problems: [] }
+const SOURCE = {
+  fileName: "shop.board.json",
+  asOf: new Date("2026-10-26T09:00:00Z"),
+  problems: [],
+  notes: [],
+}
 
 function configured(name: string): BoardEngine {
   const runtime = stubbed({ getDiagramXml: () => Promise.resolve(undefined) })

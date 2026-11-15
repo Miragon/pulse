@@ -1,9 +1,6 @@
-export type Json = Readonly<Record<string, unknown>>
+import type { BoardProblem, ChoiceProblemCode, PlainProblemCode } from "./board-problems.js"
 
-export interface BoardProblem {
-  readonly path: string
-  readonly reason: string
-}
+export type Json = Readonly<Record<string, unknown>>
 
 export class ParseProblems {
   private readonly found: BoardProblem[] = []
@@ -20,31 +17,44 @@ export class ParseProblems {
     return this.found
   }
 
-  add(path: string, reason: string): void {
-    this.found.push({ path: path === "" ? "(file)" : path, reason })
+  add(problem: BoardProblem): void {
+    this.found.push(problem.path === "" ? { ...problem, path: "(file)" } : problem)
   }
 
-  checked<Value>(valid: boolean, value: Value, path: string, reason: string): Value | undefined {
+  plain(path: string, code: PlainProblemCode): void {
+    this.add({ path, code })
+  }
+
+  choice(path: string, code: ChoiceProblemCode, choices: readonly string[]): void {
+    this.add({ path, code, values: { choices } })
+  }
+
+  checked<Value>(
+    valid: boolean,
+    value: Value,
+    path: string,
+    code: PlainProblemCode,
+  ): Value | undefined {
     if (valid) {
       return value
     }
-    this.add(path, reason)
+    this.plain(path, code)
     return undefined
   }
 
   record(value: unknown, path: string): Json | undefined {
     const valid = typeof value === "object" && value !== null && !Array.isArray(value)
-    return this.checked(valid, value as Json, path, "must be an object")
+    return this.checked(valid, value as Json, path, "notAnObject")
   }
 
   items(value: unknown, path: string): readonly unknown[] | undefined {
-    return this.checked(Array.isArray(value), value as unknown[], path, "must be a list")
+    return this.checked(Array.isArray(value), value as unknown[], path, "notAList")
   }
 
   onlyKeys(record: Json, allowed: readonly string[], path: string): void {
     for (const key of Object.keys(record)) {
       if (!allowed.includes(key)) {
-        this.add(ParseProblems.key(path, key), `is not a known key; use ${allowed.join(", ")}`)
+        this.choice(ParseProblems.key(path, key), "unknownKey", allowed)
       }
     }
   }
@@ -55,12 +65,7 @@ export class ParseProblems {
       return undefined
     }
     const valid = typeof value === "string" && value.trim() !== ""
-    return this.checked(
-      valid,
-      value as string,
-      ParseProblems.key(path, key),
-      "must be a text that is not empty",
-    )
+    return this.checked(valid, value as string, ParseProblems.key(path, key), "blankText")
   }
 
   oneOf<Choice extends string>(
@@ -73,15 +78,19 @@ export class ParseProblems {
     if (value === undefined) {
       return undefined
     }
-    return this.checked(
-      choices.includes(value as Choice),
-      value as Choice,
-      ParseProblems.key(path, key),
-      `must be one of ${choices.join(", ")}`,
-    )
+    if (choices.includes(value as Choice)) {
+      return value as Choice
+    }
+    this.choice(ParseProblems.key(path, key), "notOneOf", choices)
+    return undefined
   }
 
-  names(record: Json, key: string, path: string): readonly string[] | undefined {
+  names(
+    record: Json,
+    key: string,
+    path: string,
+    code: "engineNames" | "tenantIds" = "engineNames",
+  ): readonly string[] | undefined {
     const value = record[key]
     if (value === undefined) {
       return undefined
@@ -91,11 +100,6 @@ export class ParseProblems {
       value.length > 0 &&
       value.every((name) => typeof name === "string" && name.trim() !== "") &&
       new Set(value).size === value.length
-    return this.checked(
-      valid,
-      value as string[],
-      ParseProblems.key(path, key),
-      "must be a list of different engine names that is not empty",
-    )
+    return this.checked(valid, value as string[], ParseProblems.key(path, key), code)
   }
 }

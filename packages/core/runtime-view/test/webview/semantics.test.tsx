@@ -185,18 +185,23 @@ describe("the roles and states each screen keeps", () => {
     ).toHaveLength(1)
   })
 
-  it.each<FixtureName>(["definition", "engine", "migration", "board", "board-process", "instance"])(
-    "gives no two regions of %s the same name",
-    async (name) => {
-      await open(name, "main, [data-part]")
-      const names = all('section[aria-label], section[aria-labelledby], [role="region"]').map(
-        (region) =>
-          region.getAttribute("aria-label") ??
-          document.getElementById(region.getAttribute("aria-labelledby") ?? "")?.textContent,
-      )
+  it.each<FixtureName>([
+    "definition",
+    "engine",
+    "migration",
+    "board",
+    "board-refused",
+    "board-process",
+    "instance",
+  ])("gives no two regions of %s the same name", async (name) => {
+    await open(name, "main, [data-part]")
+    const names = all('section[aria-label], section[aria-labelledby], [role="region"]').map(
+      (region) =>
+        region.getAttribute("aria-label") ??
+        document.getElementById(region.getAttribute("aria-labelledby") ?? "")?.textContent,
+    )
 
-      expect(names.length).toBeGreaterThan(0)
-      expect(new Set(names).size).toBe(names.length)
-    },
-  )
+    expect(names.length).toBeGreaterThan(0)
+    expect(new Set(names).size).toBe(names.length)
+  })
 })

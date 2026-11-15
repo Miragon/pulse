@@ -14,6 +14,7 @@ export class BoardVocabulary {
     "schemaVersion",
     "title",
     "engines",
+    "tenants",
     "rows",
   ]
   static readonly REQUIRED: readonly string[] = ["title", "engines", "rows"]

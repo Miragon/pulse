@@ -112,4 +112,5 @@ export const PROCESS_BOARD_VIEW: BoardView = {
     ],
   ],
   problems: [],
+  notes: [],
 }

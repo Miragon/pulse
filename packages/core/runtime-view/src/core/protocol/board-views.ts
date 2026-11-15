@@ -134,13 +134,25 @@ export interface IncidentListTile {
   readonly groups: readonly IncidentGroup[]
 }
 
-export type BoardTile =
-  CounterTile | InstanceListTile | IncidentSummaryTile | ProcessDiagramTile | IncidentListTile
-
 export interface BoardProblem {
   readonly path: string
   readonly reason: string
 }
+
+export interface RefusedTile {
+  readonly kind: "refused"
+  readonly title: string
+  readonly widget?: string
+  readonly problems: readonly BoardProblem[]
+}
+
+export type BoardTile =
+  | CounterTile
+  | InstanceListTile
+  | IncidentSummaryTile
+  | ProcessDiagramTile
+  | IncidentListTile
+  | RefusedTile
 
 export interface BoardView {
   readonly kind: "board"
@@ -150,4 +162,5 @@ export interface BoardView {
   readonly engines: readonly BoardEngineStatus[]
   readonly rows: readonly (readonly BoardTile[])[]
   readonly problems: readonly BoardProblem[]
+  readonly notes: readonly BoardProblem[]
 }

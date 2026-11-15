@@ -14,6 +14,7 @@ import { IncidentListCard } from "./incident-list-card.js"
 import { IncidentSummaryCard } from "./incident-summary-card.js"
 import { InstanceListCard } from "./instance-list-card.js"
 import { ProcessDiagramCard } from "./process-diagram-card.js"
+import { ProblemList, RefusedCard } from "./refused-card.js"
 
 export interface BoardScreenProps {
   readonly view: BoardView
@@ -80,7 +81,32 @@ function ProblemsStrip({ view }: { readonly view: BoardView }) {
   )
 }
 
-function ProblemList({ view }: { readonly view: BoardView }) {
+function NotesStrip({ view }: { readonly view: BoardView }) {
+  const host = useHost()
+  if (view.notes.length === 0) {
+    return null
+  }
+  return (
+    <div className="min-w-0" data-part="board-notes">
+      <StatusStrip
+        tone="info"
+        title={`${CountLabels.plural(view.notes.length, "note")} in ${view.fileName}.`}
+        details={BoardLabels.notes(view)}
+        actions={[
+          {
+            label: "Open file",
+            icon: FileCodeIcon,
+            onClick: () => {
+              host.post({ type: "openBoardFile" })
+            },
+          },
+        ]}
+      />
+    </div>
+  )
+}
+
+function FileProblems({ view }: { readonly view: BoardView }) {
   if (view.problems.length === 0) {
     return null
   }
@@ -92,13 +118,9 @@ function ProblemList({ view }: { readonly view: BoardView }) {
         title={`Problems in ${view.fileName}`}
         className="mb-0 px-3"
       />
-      <ul className="flex flex-col gap-1 px-3">
-        {view.problems.map((problem) => (
-          <li key={`${problem.path} ${problem.reason}`}>
-            <code>{problem.path}</code> {problem.reason}
-          </li>
-        ))}
-      </ul>
+      <div className="px-3">
+        <ProblemList problems={view.problems} label={`Problems in ${view.fileName}`} />
+      </div>
     </Card>
   )
 }
@@ -115,6 +137,8 @@ function Tile({ tile }: { readonly tile: BoardTile }) {
       return <ProcessDiagramCard tile={tile} />
     case "incidentList":
       return <IncidentListCard tile={tile} />
+    case "refused":
+      return <RefusedCard tile={tile} />
   }
 }
 
@@ -124,13 +148,14 @@ export function BoardScreen({ view, freshness }: BoardScreenProps) {
       <BoardHeader view={view} freshness={freshness} />
       <div className="flex min-w-0 flex-col" data-part="strips">
         <ProblemsStrip view={view} />
+        <NotesStrip view={view} />
         <BoardEngines engines={view.engines} />
       </div>
       <main
         className="bg-background @container/board flex min-h-0 flex-col gap-3 overflow-auto p-3"
         aria-label={view.title}
       >
-        <ProblemList view={view} />
+        <FileProblems view={view} />
         {view.rows.map((row, index) => (
           <div
             className="grid min-w-0 auto-cols-[minmax(0,1fr)] grid-flow-col gap-3 @max-[760px]/board:grid-flow-row"

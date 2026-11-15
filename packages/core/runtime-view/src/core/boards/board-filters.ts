@@ -3,10 +3,7 @@ import type { InstanceListFilter } from "../protocol/index.js"
 
 export class BoardFilters {
   static listFilter(filter: BoardFilter): InstanceListFilter | undefined {
-    if (
-      filter.withIncident === false ||
-      (filter.withIncident === true && filter.state === "ended")
-    ) {
+    if (filter.withIncident === false) {
       return undefined
     }
     const scope = filter.withIncident === true ? "withIncident" : filter.state

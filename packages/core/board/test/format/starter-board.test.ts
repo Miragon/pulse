@@ -19,12 +19,7 @@ describe("the starter board", () => {
 
   test("without engines is written as it is, and the parser names the engines it lacks", () => {
     expect(BoardParser.parse(StarterBoard.of("Shop", []))).toEqual({
-      problems: [
-        {
-          path: "engines",
-          reason: "must be a list of different engine names that is not empty",
-        },
-      ],
+      problems: [{ path: "engines", code: "engineNames" }],
     })
   })
 })

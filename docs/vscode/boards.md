@@ -10,8 +10,9 @@ reads; it never writes to an engine.
 ## A board file
 
 Pulse reads every `.pulse/boards/*.board.json` in the workspace and lists it in the **Boards**
-view. **Pulse: New Board…** writes a starter board with your engines. Editing the file gives
-completion and checks from the board schema; Pulse reloads an open board when you save.
+view with its count of problems, or of notes (keys it does not know). **Pulse: New Board…**
+writes a starter board with your engines. Editing the file gives completion and checks from the
+board schema; Pulse reloads an open board when you save.
 
 ```json
 {
@@ -54,15 +55,14 @@ completion and checks from the board schema; Pulse reloads an open board when yo
 
 The `filter` takes `process` (BPMN process ID, every version), `activeElement` (needs
 `process`), `state` (`running`, the default, or `ended`), `withIncident` (an open incident now,
-which an ended instance never has) and `businessKey`.
-Columns are `engine`, `process`, `version`, `businessKey`, `state`, `startedAt`, `endedAt` and
-`incident`.
+so `true` never with `ended`) and `businessKey`. A board with `tenants` shows no numbers: Pulse
+has no tenant filter. Columns are `engine`, `process`, `version`, `businessKey`, `state`,
+`startedAt`, `endedAt` and `incident`.
 
 ## Several engines
 
-Every row and every number keeps the engine it came from, and a click opens the instance or
-the process on that engine. An engine that cannot be read, or that is not in your
-`.pulse.json` or CLI config, gets one strip on top and "not read" in its cells; a total then says how
-many engines it counts. A click on a count in a diagram opens the process filtered to that
-element. A broken file lists each problem with its path and reason and keeps
-showing the last valid version.
+Every row and every number keeps the engine it came from, and a click opens the instance or the
+process on that engine. An engine that cannot be read, or that is not in your `.pulse.json` or CLI
+config, gets one strip on top and "not read" in its cells; a total then says how many engines it
+counts. A click on a count in a diagram opens the process filtered to that element. A broken widget
+lists its problems in its place, a broken file over its last valid version.

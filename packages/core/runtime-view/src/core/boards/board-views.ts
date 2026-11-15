@@ -9,6 +9,7 @@ export interface BoardSource {
   readonly fileName: string
   readonly asOf: Date
   readonly problems: readonly BoardProblem[]
+  readonly notes: readonly BoardProblem[]
 }
 
 export class BoardViews {
@@ -33,6 +34,7 @@ export class BoardViews {
       engines: [],
       rows: [],
       problems: source.problems,
+      notes: source.notes,
     }
   }
 
@@ -56,6 +58,7 @@ export class BoardViews {
       engines: model.engines.map((engine) => this.status(engine)),
       rows,
       problems: source.problems,
+      notes: source.notes,
     }
   }
 

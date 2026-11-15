@@ -30,11 +30,16 @@ export class BuilderWorld {
     return { source: { name, reads }, calls }
   }
 
-  static board(widgets: readonly unknown[], engines: readonly string[]): BoardDefinition {
+  static board(
+    widgets: readonly unknown[],
+    engines: readonly string[],
+    root: Readonly<Record<string, unknown>> = {},
+  ): BoardDefinition {
     const parsed = BoardParser.parse(
       JSON.stringify({
         title: "Orders",
         engines,
+        ...root,
         rows: widgets.map((widget) => ({ row: [widget] })),
       }),
     )

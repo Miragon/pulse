@@ -144,14 +144,52 @@ export const BOARD_VIEW: BoardView = {
     ],
   ],
   problems: [],
+  notes: [],
 }
 
 export const BROKEN_BOARD_VIEW: BoardView = {
   ...BOARD_VIEW,
-  problems: [
+  problems: [{ path: "title", reason: "must be a text that is not empty" }],
+}
+
+export const REFUSED_BOARD_VIEW: BoardView = {
+  ...BOARD_VIEW,
+  rows: [
+    [
+      ...(BOARD_VIEW.rows[0] ?? []).slice(0, 1),
+      {
+        kind: "refused",
+        title: "Ended orders with incident",
+        widget: "counter",
+        problems: [
+          {
+            path: "rows[0].row[1].props.filter.withIncident",
+            reason:
+              'only matches running instances, since an ended instance has no open incident; remove it or use state "running"',
+          },
+        ],
+      },
+    ],
+    ...BOARD_VIEW.rows.slice(1),
+    [
+      {
+        kind: "refused",
+        title: 'Widget "chart"',
+        widget: "chart",
+        problems: [
+          {
+            path: "rows[2].row[0].widget",
+            reason:
+              "must be one of counter, instanceList, incidentSummary, processDiagram, incidentList",
+          },
+        ],
+      },
+    ],
+  ],
+  notes: [
     {
-      path: "rows[0].row[0].props.filter.activeElement",
-      reason: "needs a process: element ids are only unique within one process",
+      path: "layout",
+      reason: "is not a key this version of Pulse knows; Pulse shows the board without it",
     },
   ],
 }

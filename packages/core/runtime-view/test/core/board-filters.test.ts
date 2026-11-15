@@ -17,7 +17,7 @@ describe("a board filter", () => {
 
   test("opens nothing when the definition panel has no scope for the same instances", () => {
     expect(BoardFilters.listFilter({ state: "running", withIncident: false })).toBeUndefined()
-    expect(BoardFilters.listFilter({ state: "ended", withIncident: true })).toBeUndefined()
+    expect(BoardFilters.listFilter({ state: "ended", withIncident: false })).toBeUndefined()
   })
 
   test("names itself when the widget has no title", () => {

@@ -49,7 +49,7 @@ Taken from VS Code against the shop sandbox (`apps/vscode/sandbox/`). Recreate t
 | 40 | A board is a JSON file in the repository | [40-board-file.png](40-board-file.png) | `.pulse/boards/shop-operations.board.json` names three engines and five widgets; the schema completes and checks every key. |
 | 41 | One board across several engines | [41-board-across-engines.png](41-board-across-engines.png) | The Boards view lists the board; the panel counts and lists across shop-dev and shop-test, every row and number keeps its engine, and the unreachable prod-eu only empties its own cells. |
 | 42 | A board row opens the instance on its engine | [42-board-opens-instance.png](42-board-opens-instance.png) | A click on a row opens that instance in the instance panel of the engine it came from. |
-| 43 | A broken board says where and why | [43-board-problems.png](43-board-problems.png) | A board with a contradicting filter and an unknown widget: the tree marks it and the panel lists each problem with its path and reason. |
+| 43 | A broken widget says where and why, in its place | [43-board-problems.png](43-board-problems.png) | A board with a contradicting filter, an unknown widget and a key Pulse does not know: the tree counts its problems, each broken widget lists its problems with path and reason where it would be, the counter beside them reads, and the unknown key is a note. |
 | 44 | A board around one process | [44-board-process.png](44-board-process.png) | `order-fulfillment.board.json` draws the deployed diagram on shop-dev and shop-test with waiting and incident badges, lists the open incidents of both engines with element and message, and the running orders below. |
 | 45 | A count in a board diagram opens the process there | [45-board-diagram-opens-element.png](45-board-diagram-opens-element.png) | A click on the incident count at an element opens the process on that engine, filtered to the instances with incident at that element. |
 
@@ -305,11 +305,11 @@ A click on a row opens that instance in the instance panel of the engine it came
 
 ![A board row opens the instance on its engine](42-board-opens-instance.png)
 
-## 43. A broken board says where and why
+## 43. A broken widget says where and why, in its place
 
-A board with a contradicting filter and an unknown widget: the tree marks it and the panel lists each problem with its path and reason.
+A board with a contradicting filter, an unknown widget and a key Pulse does not know: the tree counts its problems, each broken widget lists its problems with path and reason where it would be, the counter beside them reads, and the unknown key is a note.
 
-![A broken board says where and why](43-board-problems.png)
+![A broken widget says where and why, in its place](43-board-problems.png)
 
 ## 44. A board around one process
 

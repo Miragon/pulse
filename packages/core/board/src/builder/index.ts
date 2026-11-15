@@ -12,6 +12,7 @@ export type {
   InstanceGroupModel,
   InstanceListModel,
   ProcessDiagramModel,
+  RefusedModel,
   TileModel,
 } from "./board-model.js"
 export type { BoardReads, EngineSource } from "./board-reads.js"

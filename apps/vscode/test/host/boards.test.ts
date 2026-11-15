@@ -301,6 +301,44 @@ describe("the boards view", () => {
     tree.dispose()
   })
 
+  test("counts the problems of its refused widgets and, without them, its notes", async () => {
+    const broken = { widget: "counter", props: { filter: { state: "ended", withIncident: true } } }
+    const payments = {
+      title: "Payments",
+      engines: ["shop"],
+      rows: [{ row: [broken, { widget: "chart" }] }],
+    }
+    fake.files.set("/w/.pulse/boards/payments.board.json", JSON.stringify(payments))
+    fake.files.set(
+      "/w/.pulse/boards/tenants.board.json",
+      JSON.stringify({
+        title: "Tenants",
+        engines: ["shop"],
+        tenants: ["acme"],
+        rows: [{ row: [{ widget: "incidentList" }, { widget: "incidentSummary" }] }],
+      }),
+    )
+    fake.files.set(
+      "/w/.pulse/boards/wide.board.json",
+      JSON.stringify({ title: "Wide", engines: ["shop"], layout: "wide", rows: [] }),
+    )
+    const tree = new BoardsTree()
+
+    const items = (await tree.getChildren()).map((node) => tree.getTreeItem(node))
+
+    expect(items.map((item) => [item.label, item.description])).toEqual([
+      ["Payments", "payments.board.json · 2 problems"],
+      ["Tenants", "tenants.board.json · 2 problems"],
+      ["Wide", "wide.board.json · 1 note"],
+    ])
+    expect(items.map((item) => (item.iconPath as { id: string }).id)).toEqual([
+      "error",
+      "error",
+      "dashboard",
+    ])
+    tree.dispose()
+  })
+
   test("counts several problems and announces when there is no board", async () => {
     fake.files.set("/w/.pulse/boards/empty.board.json", "{}")
     const tree = new BoardsTree()

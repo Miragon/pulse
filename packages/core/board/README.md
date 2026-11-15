@@ -32,20 +32,33 @@ npm install @miragon/pulse-board @miragon/pulse-engine-core
 ## Minimal example
 
 ```ts
-import { BoardParser } from "@miragon/pulse-board"
+import { BoardParser, BoardProblems, BoardTiles, type BoardProblem } from "@miragon/pulse-board"
 
 const parsed = BoardParser.parse(text)
+const say = (problem: BoardProblem) =>
+  console.log(`${problem.path} ${BoardProblems.describe(problem)}`)
 if ("board" in parsed) {
-  for (const row of parsed.board.rows) console.log(row.map((widget) => widget.widget))
+  for (const tile of BoardTiles.of(parsed.board).flat()) {
+    if ("refused" in tile) tile.refused.forEach(say)
+    else console.log(tile.widget)
+  }
+  parsed.notes.forEach(say)
 } else {
-  for (const problem of parsed.problems) console.log(`${problem.path} ${problem.reason}`)
+  parsed.problems.forEach(say)
 }
 ```
 
-`BoardParser.parse` returns `{ board }` or `{ problems }`, never both: a board with defaults
-filled in (running instances, the board's engines, the default columns), or every problem it
-found, each with the JSON path it is about (`rows[0].row[1].props.filter.state`, or `(file)` for
-the document) and the reason in English.
+`BoardParser.parse` returns `{ board, notes }` or `{ problems }`, never both. The file fails only
+when it gives no board: it is not JSON or no object, its `schemaVersion` is other than 1,
+`title`, `engines` or `rows` is missing, or one of them, a row or `tenants` is of the wrong shape.
+Everything inside a widget (a bad or unknown prop, an unknown widget, a widget after the 12th that
+reads) refuses that widget in its place, as `{ widget, title, refused }`, and the others read. A root key the format
+does not know is a note, and the board shows without it. A board has its defaults filled in
+(running instances, the board's engines, the default columns). A problem and a note are data,
+`{ path, code, values }`: the JSON path it is about (`rows[0].row[1].props.filter.state`, or
+`(file)` for the document), a code from `BoardProblemCode` and the values its words need;
+`BoardProblems.describe` words it in English, the sentence after the path, so a reader may word
+the codes in its own language.
 
 ## The format
 
@@ -77,8 +90,21 @@ the document) and the reason in English.
 - The widgets: `counter`, `instanceList`, `incidentSummary`, `processDiagram` and
   `incidentList`, at most 12 on a board.
 - One filter vocabulary: `process`, `activeElement` (needs `process`, never with `ended`),
-  `state` (`running` by default, or `ended`), `withIncident`, `businessKey`.
+  `state` (`running` by default, or `ended`), `withIncident` (`true` never with `ended`, since
+  an ended instance holds no open incident and such a widget could only show 0), `businessKey`.
+- `tenants`, optional: a list of different tenant ids. `BoardTiles.of(board)` gives a board's rows
+  as a reader reads them, each widget of such a board refused in its place (`tenantsNotRead`),
+  because no read of the engine contract filters by tenant on both dialects, and a widget would
+  read every tenant. The builder reads a board through it, and so does a reader that counts a
+  board's problems.
 - `schemaVersion` 1, or none, which reads as 1.
+
+The version rule: `schemaVersion` protects an older reader from a newer file. A root key that
+changes what any widget reads (a tenant, a time window, a scope) or a changed meaning takes a new
+version, and an older reader refuses that file. Under version 1 only root keys that change how
+the board looks may be added, which an older reader notes and skips; new widgets and new props
+stay in version 1, because an older reader refuses such a widget in its place. A newer reader
+refusing what an older one accepted is a breaking change of this package, not a new version.
 
 `BoardVocabulary` lists every key, widget, prop, state, grouping and column, so a reader of its
 own can be held to the parser, as the package holds its JSON Schema.
@@ -102,7 +128,9 @@ engine without reads is one the reader has not configured. It returns a `BoardMo
 - per engine `ready` with its `EngineInfo` and its totals (running, with incident) from the
   definitions, `failed` with the error as thrown by `describeEngine`, or `notConfigured`. A failed
   engine is asked nothing else.
-- per tile the parsed widget and its numbers: a counter's count per engine with a lower bound
+- per tile the parsed widget and its numbers, or `refused` with its problems, which reads
+  nothing: a widget the parser refused, and each widget `BoardTiles` refuses on a board with
+  `tenants` (`tenantsNotRead`). A counter's count per engine with a lower bound
   (`atLeast`) carried into the sum and a threshold's `above` or, for a lower bound at or below it,
   `undecided`; an instance list's first page per engine with its total; the instances with
   incident per engine or per process, most first; an incident list's first incidents per engine and
@@ -128,30 +156,32 @@ the problem at `engines`.
 
 `schema/board.schema.json` (`@miragon/pulse-board/schema/board.schema.json`) lets an editor
 complete and check a board file. It knows exactly the keys, widgets, props and values the parser
-reads, and takes every board of the fixtures below that the parser takes; what only the parser
-sees (more than 12 widgets, a widget naming an engine outside the board, an element without its
-process) it leaves to the parser. Pulse for VS Code ships a copy of it, held equal by a test.
+reads, marks a root key the parser only notes and a filter of ended instances with incident, and
+takes every board of the fixtures below that the parser reads without a note or a refused widget;
+what only the parser sees (more than 12 widgets, a widget naming an engine outside the board, an
+element without its process) it leaves to the parser. Pulse for VS Code ships a copy of it, held equal by a test.
 
 ## Fixtures
 
 `@miragon/pulse-board/testing` exports `BOARD_FIXTURES`: each case a board file's text, whether
-the JSON Schema takes it and the parser's verdict as data, a board with its defaults filled in or
-every problem with its path. The package's tests run them through the parser and the schema; a
+the JSON Schema takes it and the parser's verdict as data, a board with its defaults filled in,
+its refused widgets and its notes, or every problem of a file that gives no board. The package's tests run them through the parser and the schema; a
 reader of its own runs them through its path.
 
 ## Entries
 
-| Entry                                           | Holds                                                                                               |
-| ----------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `@miragon/pulse-board`                          | `BoardParser`, `BoardVocabulary`, `StarterBoard` and the types of a board, its widgets and problems |
-| `@miragon/pulse-board/builder`                  | `BoardBuilder`, `DiagramBadges`, `CollapsedShapes` and the types of `BoardModel` and `BoardReads`   |
-| `@miragon/pulse-board/schema/board.schema.json` | The JSON Schema of a board file                                                                     |
-| `@miragon/pulse-board/testing`                  | `BOARD_FIXTURES`, the shared fixtures                                                               |
+| Entry                                           | Holds                                                                                                                              |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `@miragon/pulse-board`                          | `BoardParser`, `BoardProblems`, `BoardTiles`, `BoardVocabulary`, `StarterBoard` and the types of a board, its widgets and problems |
+| `@miragon/pulse-board/builder`                  | `BoardBuilder`, `DiagramBadges`, `CollapsedShapes` and the types of `BoardModel` and `BoardReads`                                  |
+| `@miragon/pulse-board/schema/board.schema.json` | The JSON Schema of a board file                                                                                                    |
+| `@miragon/pulse-board/testing`                  | `BOARD_FIXTURES`, the shared fixtures                                                                                              |
 
 ## Stability
 
 Below 1.0 the format has no stability promise beyond the release train: a change that makes a
-file valid today refused tomorrow says so in its changelog entry. The same holds for the builder's
+file or a widget valid today refused tomorrow is a breaking change and says so in its changelog
+entry (the version rule above). The same holds for the builder's
 `BoardModel`, the input of every surface that renders a board, and for its peer: the builder takes
 the `@miragon/pulse-engine-core` of the same release.
 

@@ -1,7 +1,27 @@
 import { describe, expect, it } from "vitest"
 import { BoardParser } from "../format/board-parser.js"
+import type { BoardProblem } from "../format/board-problems.js"
 import entries from "./board-fixtures.json" with { type: "json" }
-import { BOARD_FIXTURES } from "./index.js"
+import { BOARD_FIXTURES, type BoardFixture } from "./index.js"
+
+class FixtureVerdicts {
+  static problemsOf({ verdict }: BoardFixture): readonly BoardProblem[] {
+    if ("problems" in verdict) {
+      return verdict.problems
+    }
+    return verdict.board.rows.flat().flatMap((tile) => ("refused" in tile ? tile.refused : []))
+  }
+
+  static notesOf({ verdict }: BoardFixture): readonly BoardProblem[] {
+    return "notes" in verdict ? verdict.notes : []
+  }
+
+  static keysOf(verdict: unknown): string {
+    return Object.keys(verdict as object)
+      .sort()
+      .join()
+  }
+}
 
 const FIXTURE_KEYS = ["name", "about", "text", "file", "schema", "verdict"]
 
@@ -15,7 +35,7 @@ describe("the shared board fixtures", () => {
     }
   })
 
-  it("state each case as a text or a file, never both, with one verdict", () => {
+  it("state each case as a text or a file, never both, with one verdict: problems, or a board with its notes", () => {
     for (const entry of entries as readonly Readonly<Record<string, unknown>>[]) {
       const name = String(entry.name)
       expect(
@@ -24,7 +44,7 @@ describe("the shared board fixtures", () => {
       ).toEqual([])
       expect("text" in entry !== "file" in entry, name).toBe(true)
       expect(typeof entry.schema, name).toBe("boolean")
-      expect(Object.keys(entry.verdict as object), name).toHaveLength(1)
+      expect(["problems", "board,notes"], name).toContain(FixtureVerdicts.keysOf(entry.verdict))
     }
   })
 
@@ -37,13 +57,14 @@ describe("the shared board fixtures", () => {
     )
   })
 
-  it("cover boards and refusals, of the file, the document, a row, a widget and a filter", () => {
-    const problems = BOARD_FIXTURES.flatMap((fixture) =>
-      "problems" in fixture.verdict ? fixture.verdict.problems : [],
+  it("cover boards, notes and refusals, of the file, the document, a row, a widget and a filter", () => {
+    const paths = BOARD_FIXTURES.flatMap((fixture) => FixtureVerdicts.problemsOf(fixture)).map(
+      (problem) => problem.path,
     )
-    const paths = problems.map((problem) => problem.path)
+    const notes = BOARD_FIXTURES.flatMap((fixture) => FixtureVerdicts.notesOf(fixture))
 
     expect(BOARD_FIXTURES.filter((fixture) => "board" in fixture.verdict).length).toBeGreaterThan(4)
+    expect(notes.map((note) => note.code)).toEqual(["ignoredKey"])
     expect(paths).toEqual(
       expect.arrayContaining([
         "(file)",
@@ -51,6 +72,9 @@ describe("the shared board fixtures", () => {
         "rows[0]",
         "rows[0].row[0].props",
         "rows[0].row[0].props.filter.activeElement",
+        "rows[0].row[0].props.filter.withIncident",
+        "rows[1].row[5]",
+        "tenants",
       ]),
     )
   })

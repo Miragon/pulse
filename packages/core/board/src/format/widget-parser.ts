@@ -9,8 +9,6 @@ interface Common {
 }
 
 export class WidgetParser {
-  private static readonly ONE_OF_COLUMNS = `must be one of ${BoardVocabulary.COLUMNS.join(", ")}`
-
   private readonly filters: FilterParser
 
   constructor(
@@ -35,7 +33,7 @@ export class WidgetParser {
     this.problems.onlyKeys(props, BoardVocabulary.PROPS[type], propsPath)
     for (const key of BoardVocabulary.REQUIRED_PROPS[type]) {
       if (props[key] === undefined) {
-        this.problems.add(ParseProblems.key(propsPath, key), "is missing")
+        this.problems.plain(ParseProblems.key(propsPath, key), "missing")
       }
     }
     return this.widgetOf(type, props, propsPath)
@@ -43,7 +41,7 @@ export class WidgetParser {
 
   private typeOf(record: Json, path: string): BoardWidgetType | undefined {
     if (record.widget === undefined) {
-      this.problems.add(ParseProblems.key(path, "widget"), "is missing")
+      this.problems.plain(ParseProblems.key(path, "widget"), "missing")
       return undefined
     }
     return this.problems.oneOf(record, "widget", BoardVocabulary.WIDGETS, path)
@@ -98,10 +96,7 @@ export class WidgetParser {
 
   private diagramOf(props: Json, path: string, common: Common): BoardWidget | undefined {
     if (common.engines.length !== 1) {
-      this.problems.add(
-        ParseProblems.key(path, "engines"),
-        "must name one engine, because a diagram shows the deployment of one engine",
-      )
+      this.problems.plain(ParseProblems.key(path, "engines"), "diagramOnOneEngine")
     }
     const process = this.problems.text(props, "process", path)
     return process === undefined ? undefined : { widget: "processDiagram", ...common, process }
@@ -112,10 +107,11 @@ export class WidgetParser {
     const engines = this.problems.names(props, "engines", path) ?? this.boardEngines
     const outside = engines.filter((name) => !this.boardEngines.includes(name))
     if (outside.length > 0) {
-      this.problems.add(
-        ParseProblems.key(path, "engines"),
-        `may only name engines of the board; ${outside.join(", ")} is not in its engines`,
-      )
+      this.problems.add({
+        path: ParseProblems.key(path, "engines"),
+        code: "engineOutsideBoard",
+        values: { engines: outside },
+      })
     }
     return { engines, ...(title === undefined ? {} : { title }) }
   }
@@ -125,12 +121,7 @@ export class WidgetParser {
       return undefined
     }
     const valid = typeof value === "number" && Number.isInteger(value) && value >= 0
-    return this.problems.checked(
-      valid,
-      value as number,
-      path,
-      "must be a whole number of 0 or more",
-    )
+    return this.problems.checked(valid, value as number, path, "notWholeNumber")
   }
 
   private columnsOf(value: unknown, path: string): readonly BoardColumn[] {
@@ -139,7 +130,7 @@ export class WidgetParser {
     }
     const columns = this.problems.items(value, path) ?? []
     if (columns.length === 0 && Array.isArray(value)) {
-      this.problems.add(path, "must name at least one column")
+      this.problems.plain(path, "noColumns")
     }
     columns.forEach((column, index) => {
       this.checkColumn(column, ParseProblems.index(path, index))
@@ -149,11 +140,11 @@ export class WidgetParser {
 
   private checkColumn(column: unknown, path: string): void {
     if (typeof column === "string" && column.startsWith("var:")) {
-      this.problems.add(path, `cannot show a variable; ${WidgetParser.ONE_OF_COLUMNS}`)
+      this.problems.choice(path, "variableColumn", BoardVocabulary.COLUMNS)
       return
     }
     if (!BoardVocabulary.COLUMNS.includes(column as BoardColumn)) {
-      this.problems.add(path, WidgetParser.ONE_OF_COLUMNS)
+      this.problems.choice(path, "notOneOf", BoardVocabulary.COLUMNS)
     }
   }
 }

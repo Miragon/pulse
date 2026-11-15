@@ -84,9 +84,9 @@ export const BOARD_USE_CASES = [
   },
   {
     file: "board-problems",
-    title: "A broken board says where and why",
+    title: "A broken widget says where and why, in its place",
     shows:
-      "A board with a contradicting filter and an unknown widget: the tree marks it and the panel lists each problem with its path and reason.",
+      "A board with a contradicting filter, an unknown widget and a key Pulse does not know: the tree counts its problems, each broken widget lists its problems with path and reason where it would be, the counter beside them reads, and the unknown key is a note.",
     run: async (window) => {
       await closeEditors(window)
       await writeFile(
@@ -95,13 +95,24 @@ export const BOARD_USE_CASES = [
           {
             title: "Broken board",
             engines: ["shop-dev"],
+            layout: "wide",
             rows: [
               {
                 row: [
-                  { widget: "counter", props: { filter: { activeElement: "Activity_ShipOrder" } } },
-                  { widget: "chart" },
+                  {
+                    widget: "counter",
+                    props: {
+                      title: "Waiting for shipping",
+                      filter: { activeElement: "Activity_ShipOrder" },
+                    },
+                  },
+                  {
+                    widget: "counter",
+                    props: { title: "Running orders", filter: { process: "order-fulfillment" } },
+                  },
                 ],
               },
+              { row: [{ widget: "chart" }] },
             ],
           },
           undefined,
@@ -109,12 +120,18 @@ export const BOARD_USE_CASES = [
         )}\n`,
       )
       await showPulse(window)
-      const item = window.getByRole("treeitem", { name: /^broken\.board\.json/ }).first()
+      const item = window
+        .getByRole("treeitem", { name: /^Broken board, broken\.board\.json/ })
+        .first()
       await item.waitFor({ timeout: 30_000 })
       await item.click()
-      await panelFrame(window).locator(part("status-strip"), { hasText: "problems in" }).waitFor({
-        timeout: 30_000,
-      })
+      await panelFrame(window)
+        .locator(part("board-card", { kind: "refused" }))
+        .first()
+        .waitFor({ timeout: 30_000 })
+      await panelFrame(window)
+        .locator(part("context-bar", { kind: "board" }), { hasText: "As of" })
+        .waitFor({ timeout: 30_000 })
       await restPointer(window)
       await window.waitForTimeout(900)
     },

@@ -1,11 +1,26 @@
 import { describe, expect, test } from "vitest"
-import { BoardParser, type BoardParse } from "../../src/index.js"
+import { BoardParser, BoardProblems, type BoardParse, type BoardProblem } from "../../src/index.js"
+
+function worded(problems: readonly BoardProblem[]) {
+  return problems.map((problem) => ({
+    path: problem.path,
+    reason: BoardProblems.describe(problem),
+  }))
+}
 
 function problemsOf(parse: BoardParse) {
   if (!("problems" in parse)) {
     throw new Error("expected problems")
   }
-  return parse.problems
+  return worded(parse.problems)
+}
+
+function refusalsOf(parse: BoardParse, column = 0, row = 0) {
+  const tile = "board" in parse ? parse.board.rows[row]?.[column] : undefined
+  if (tile === undefined || !("refused" in tile)) {
+    throw new Error("expected a refused widget")
+  }
+  return worded(tile.refused)
 }
 
 function parseBoard(board: unknown): BoardParse {
@@ -39,6 +54,7 @@ describe("the board parser", () => {
           ],
         ],
       },
+      notes: [],
     })
   })
 
@@ -106,10 +122,6 @@ describe("the board parser", () => {
   test("names every missing or misshapen key of the document", () => {
     expect(problemsOf(parseBoard([]))).toEqual([{ path: "(file)", reason: "must be an object" }])
     expect(problemsOf(parseBoard({ layout: 1 }))).toEqual([
-      {
-        path: "layout",
-        reason: "is not a known key; use $schema, schemaVersion, title, engines, rows",
-      },
       { path: "title", reason: "is missing" },
       { path: "engines", reason: "is missing" },
       { path: "rows", reason: "is missing" },
@@ -132,11 +144,11 @@ describe("the board parser", () => {
     ])
   })
 
-  test("names rows and widgets that are not shaped right", () => {
+  test("gives no board for rows that are not shaped right, naming each", () => {
     const board = {
       title: "Shop",
       engines: ["shop-dev"],
-      rows: [1, { cells: [] }, { row: "x" }, { row: [{ props: {} }, { widget: "chart" }, 3] }],
+      rows: [1, { cells: [] }, { row: "x" }, { row: [{ widget: "chart" }] }],
     }
 
     expect(problemsOf(parseBoard(board))).toEqual([
@@ -144,20 +156,97 @@ describe("the board parser", () => {
       { path: "rows[1].cells", reason: "is not a known key; use row" },
       { path: "rows[1].row", reason: "is missing" },
       { path: "rows[2].row", reason: "must be a list" },
-      { path: "rows[3].row[0].widget", reason: "is missing" },
+    ])
+  })
+
+  test("refuses a widget that is not shaped right in its place and reads the ones beside it", () => {
+    const parsed = parseBoard({
+      title: "Shop",
+      engines: ["shop-dev"],
+      rows: [
+        {
+          row: [
+            { props: { title: "No type" } },
+            { widget: "chart", props: { title: " " } },
+            3,
+            { widget: "counter", props: { title: "Running" } },
+          ],
+        },
+      ],
+    })
+
+    expect(refusalsOf(parsed)).toEqual([{ path: "rows[0].row[0].widget", reason: "is missing" }])
+    expect(refusalsOf(parsed, 1)).toEqual([
       {
-        path: "rows[3].row[1].widget",
+        path: "rows[0].row[1].widget",
         reason:
           "must be one of counter, instanceList, incidentSummary, processDiagram, incidentList",
       },
-      { path: "rows[3].row[2]", reason: "must be an object" },
     ])
+    expect(refusalsOf(parsed, 2)).toEqual([{ path: "rows[0].row[2]", reason: "must be an object" }])
+    expect("board" in parsed && parsed.board.rows[0]).toEqual([
+      { title: "No type", refused: [{ path: "rows[0].row[0].widget", code: "missing" }] },
+      {
+        widget: "chart",
+        refused: [
+          { path: "rows[0].row[1].widget", code: "notOneOf", values: expect.anything() as unknown },
+        ],
+      },
+      { refused: [{ path: "rows[0].row[2]", code: "notAnObject" }] },
+      {
+        widget: "counter",
+        title: "Running",
+        engines: ["shop-dev"],
+        filter: { state: "running" },
+      },
+    ])
+  })
+
+  test("notes a root key it does not know and shows the board without it", () => {
+    expect(parseBoard({ title: "Shop", engines: ["a"], layout: "wide", rows: [] })).toEqual({
+      board: { title: "Shop", engines: ["a"], rows: [] },
+      notes: [{ path: "layout", code: "ignoredKey" }],
+    })
+    expect(worded([{ path: "layout", code: "ignoredKey" }]).map((note) => note.reason)).toEqual([
+      "is not a key this version of Pulse knows; Pulse shows the board without it",
+    ])
+  })
+
+  test("keeps the tenants a board names and gives no board for tenants of the wrong shape", () => {
+    expect(parseBoard({ title: "Shop", engines: ["a"], tenants: ["acme"], rows: [] })).toEqual({
+      board: { title: "Shop", engines: ["a"], tenants: ["acme"], rows: [] },
+      notes: [],
+    })
+    for (const tenants of ["acme", [], ["acme", "acme"], [" "]]) {
+      expect(problemsOf(parseBoard({ title: "Shop", engines: ["a"], tenants, rows: [] }))).toEqual([
+        { path: "tenants", reason: "must be a list of different tenant ids that is not empty" },
+      ])
+    }
+  })
+
+  test("refuses a widget of ended instances with incident, which could only show 0", () => {
+    for (const widget of ["counter", "instanceList"]) {
+      const filter = { process: "order", state: "ended", withIncident: true }
+
+      expect(refusalsOf(parseBoard(withWidget({ widget, props: { filter } })))).toEqual([
+        {
+          path: "rows[0].row[0].props.filter.withIncident",
+          reason:
+            'only matches running instances, since an ended instance has no open incident; remove it or use state "running"',
+        },
+      ])
+    }
+    const without = { state: "ended", withIncident: false }
+
+    expect(
+      parseBoard(withWidget({ widget: "counter", props: { filter: without } })),
+    ).toHaveProperty("board.rows.0.0.filter", without)
   })
 
   test("names props that do not belong to the widget", () => {
     const widget = { widget: "incidentSummary", props: { groupBy: "type", filter: {} }, span: 2 }
 
-    expect(problemsOf(parseBoard(withWidget(widget)))).toEqual([
+    expect(refusalsOf(parseBoard(withWidget(widget)))).toEqual([
       {
         path: "rows[0].row[0].span",
         reason: "is not a known key; use widget, props",
@@ -168,7 +257,7 @@ describe("the board parser", () => {
       },
       { path: "rows[0].row[0].props.groupBy", reason: "must be one of engine, process" },
     ])
-    expect(problemsOf(parseBoard(withWidget({ widget: "counter", props: 1 })))).toEqual([
+    expect(refusalsOf(parseBoard(withWidget({ widget: "counter", props: 1 })))).toEqual([
       { path: "rows[0].row[0].props", reason: "must be an object" },
     ])
   })
@@ -181,7 +270,7 @@ describe("the board parser", () => {
       },
     }
 
-    expect(problemsOf(parseBoard(withWidget(widget)))).toEqual([
+    expect(refusalsOf(parseBoard(withWidget(widget)))).toEqual([
       {
         path: "rows[0].row[0].props.filter.owner",
         reason: "is not a known key; use process, activeElement, state, withIncident, businessKey",
@@ -197,14 +286,14 @@ describe("the board parser", () => {
       },
     ])
     expect(
-      problemsOf(parseBoard(withWidget({ widget: "counter", props: { filter: [] } }))),
+      refusalsOf(parseBoard(withWidget({ widget: "counter", props: { filter: [] } }))),
     ).toEqual([{ path: "rows[0].row[0].props.filter", reason: "must be an object" }])
   })
 
   test("only lets a widget narrow the engines of the board", () => {
     const widget = { widget: "counter", props: { engines: ["shop-dev", "prod-eu"] } }
 
-    expect(problemsOf(parseBoard(withWidget(widget)))).toEqual([
+    expect(refusalsOf(parseBoard(withWidget(widget)))).toEqual([
       {
         path: "rows[0].row[0].props.engines",
         reason: "may only name engines of the board; prod-eu is not in its engines",
@@ -216,7 +305,7 @@ describe("the board parser", () => {
     for (const warnAbove of [-1, 1.5, "10"]) {
       const widget = { widget: "counter", props: { warnAbove } }
 
-      expect(problemsOf(parseBoard(withWidget(widget)))).toEqual([
+      expect(refusalsOf(parseBoard(withWidget(widget)))).toEqual([
         { path: "rows[0].row[0].props.warnAbove", reason: "must be a whole number of 0 or more" },
       ])
     }
@@ -227,23 +316,38 @@ describe("the board parser", () => {
     const known =
       "must be one of engine, process, version, businessKey, state, startedAt, endedAt, incident"
 
-    expect(problemsOf(parseBoard(withWidget(widget)))).toEqual([
+    expect(refusalsOf(parseBoard(withWidget(widget)))).toEqual([
       { path: "rows[0].row[0].props.columns[1]", reason: `cannot show a variable; ${known}` },
       { path: "rows[0].row[0].props.columns[2]", reason: known },
     ])
     expect(
-      problemsOf(parseBoard(withWidget({ widget: "instanceList", props: { columns: "engine" } }))),
+      refusalsOf(parseBoard(withWidget({ widget: "instanceList", props: { columns: "engine" } }))),
     ).toEqual([{ path: "rows[0].row[0].props.columns", reason: "must be a list" }])
   })
 
   test("keeps a board at 12 widgets so it stays cheap for the engines", () => {
-    const row = { row: Array.from({ length: 7 }, () => COUNTER) }
-    const board = { title: "Shop", engines: ["shop-dev"], rows: [row, row] }
+    const titled = { widget: "counter", props: { title: "Last" } }
+    const row = { row: [...Array.from({ length: 6 }, () => COUNTER), { widget: "chart" }] }
+    const board = {
+      title: "Shop",
+      engines: ["shop-dev"],
+      rows: [row, { ...row, row: [...row.row, titled] }],
+    }
+    const parsed = parseBoard(board)
+    const rows = "board" in parsed ? parsed.board.rows : []
 
-    expect(problemsOf(parseBoard(board))).toEqual([
+    expect(rows.flat().filter((tile) => !("refused" in tile))).toHaveLength(12)
+    expect(rows[1]?.[7]).toEqual({
+      widget: "counter",
+      title: "Last",
+      refused: [
+        { path: "rows[1].row[7]", code: "tooManyWidgets", values: { position: 13, max: 12 } },
+      ],
+    })
+    expect(refusalsOf(parsed, 7, 1)).toEqual([
       {
-        path: "rows",
-        reason: "hold 14 widgets; a board shows at most 12, so it stays cheap for the engines",
+        path: "rows[1].row[7]",
+        reason: "is widget 13; a board shows at most 12, so it stays cheap for the engines",
       },
     ])
   })
@@ -259,7 +363,7 @@ describe("the board parser", () => {
       { path: "engines", reason: "must be a list of different engine names that is not empty" },
     ])
     expect(
-      problemsOf(parseBoard(withWidget({ widget: "instanceList", props: { columns: [] } }))),
+      refusalsOf(parseBoard(withWidget({ widget: "instanceList", props: { columns: [] } }))),
     ).toEqual([{ path: "rows[0].row[0].props.columns", reason: "must name at least one column" }])
   })
 

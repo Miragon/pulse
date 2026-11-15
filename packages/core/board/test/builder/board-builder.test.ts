@@ -81,6 +81,80 @@ describe("the engines of a board", () => {
   })
 })
 
+describe("a refused widget", () => {
+  test("stays in its place with its problems, and nothing is read for it", async () => {
+    const shop = BuilderWorld.counted("shop", BuilderWorld.world())
+    const board = BuilderWorld.board(
+      [
+        { widget: "chart", props: { title: "Throughput" } },
+        {
+          widget: "counter",
+          props: { title: "Ended", filter: { state: "ended", withIncident: true } },
+        },
+        { widget: "incidentSummary" },
+      ],
+      ["shop"],
+    )
+
+    const model = await BoardBuilder.build(board, [shop.source])
+
+    expect(model.rows.map((row) => row.map((tile) => tile.kind))).toEqual([
+      ["refused"],
+      ["refused"],
+      ["incidentSummary"],
+    ])
+    expect(model.rows[0]).toEqual([
+      {
+        kind: "refused",
+        widget: "chart",
+        title: "Throughput",
+        problems: [
+          { path: "rows[0].row[0].widget", code: "notOneOf", values: expect.anything() as unknown },
+        ],
+      },
+    ])
+    expect(model.rows[1]).toEqual([
+      {
+        kind: "refused",
+        widget: "counter",
+        title: "Ended",
+        problems: [{ path: "rows[1].row[0].props.filter.withIncident", code: "endedWithIncident" }],
+      },
+    ])
+    expect(shop.calls).toEqual(["describeEngine", "listDefinitions"])
+  })
+
+  test("without a widget or a title of its own stays a refused widget without them", async () => {
+    const board = BuilderWorld.board([3], ["shop"])
+
+    const model = await BoardBuilder.build(board, [{ name: "shop", reads: BuilderWorld.world() }])
+
+    expect(model.rows).toEqual([
+      [{ kind: "refused", problems: [{ path: "rows[0].row[0]", code: "notAnObject" }] }],
+    ])
+  })
+
+  test("is every widget of a board that names tenants, since no read filters by tenant", async () => {
+    const shop = BuilderWorld.counted("shop", BuilderWorld.world())
+    const board = BuilderWorld.board(
+      [{ widget: "counter", props: { title: "Running" } }, { widget: "incidentList" }, 3],
+      ["shop"],
+      { tenants: ["acme"] },
+    )
+
+    const model = await BoardBuilder.build(board, [shop.source])
+
+    const tenants = [{ path: "tenants", code: "tenantsNotRead" }]
+    expect(model.rows).toEqual([
+      [{ kind: "refused", widget: "counter", title: "Running", problems: tenants }],
+      [{ kind: "refused", widget: "incidentList", problems: tenants }],
+      [{ kind: "refused", problems: [{ path: "rows[2].row[0]", code: "notAnObject" }] }],
+    ])
+    expect(model.engines).toEqual([expect.objectContaining({ name: "shop", state: "ready" })])
+    expect(shop.calls).toEqual(["describeEngine", "listDefinitions"])
+  })
+})
+
 describe("a counter", () => {
   test("sums the counts it read, says how many engines answered and never reads a failure as 0", async () => {
     const board = BuilderWorld.board(

@@ -1,4 +1,4 @@
-import { BoardParser } from "@miragon/pulse-board"
+import { BoardParser, BoardTiles } from "@miragon/pulse-board"
 import * as vscode from "vscode"
 import { COMMAND } from "../commands/command-ids.js"
 import { BoardFiles } from "./board-files.js"
@@ -7,6 +7,7 @@ export interface BoardNode {
   readonly file: vscode.Uri
   readonly title?: string
   readonly problems: number
+  readonly notes: number
 }
 
 const HAS_BOARDS = "pulse.hasBoards"
@@ -62,21 +63,31 @@ export class BoardsTree implements vscode.TreeDataProvider<BoardNode>, vscode.Di
   private async nodeOf(file: vscode.Uri): Promise<BoardNode> {
     const content = await BoardFiles.read(file).catch(() => "")
     const parsed = BoardParser.parse(content)
-    return "board" in parsed
-      ? { file, title: parsed.board.title, problems: 0 }
-      : { file, problems: parsed.problems.length }
+    if ("problems" in parsed) {
+      return { file, problems: parsed.problems.length, notes: 0 }
+    }
+    const refused = BoardTiles.of(parsed.board)
+      .flat()
+      .flatMap((tile) => ("refused" in tile ? tile.refused : []))
+    return { file, title: parsed.board.title, problems: refused.length, notes: parsed.notes.length }
   }
 
   private descriptionOf(node: BoardNode, name: string): string {
-    if (node.problems === 0) {
+    const counted = this.countOf(node)
+    if (counted === undefined) {
       return name
     }
-    return node.title === undefined
-      ? this.problemLabel(node)
-      : `${name} · ${this.problemLabel(node)}`
+    return node.title === undefined ? counted : `${name} · ${counted}`
   }
 
-  private problemLabel(node: BoardNode): string {
-    return node.problems === 1 ? "1 problem" : `${node.problems} problems`
+  private countOf(node: BoardNode): string | undefined {
+    if (node.problems > 0) {
+      return this.plural(node.problems, "problem")
+    }
+    return node.notes > 0 ? this.plural(node.notes, "note") : undefined
+  }
+
+  private plural(count: number, noun: string): string {
+    return `${count} ${count === 1 ? noun : `${noun}s`}`
   }
 }

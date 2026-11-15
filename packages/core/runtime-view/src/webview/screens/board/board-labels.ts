@@ -22,6 +22,10 @@ export class BoardLabels {
       : "Pulse shows the board once you fix them."
   }
 
+  static notes(view: BoardView): string {
+    return view.notes.map((note) => `${note.path} ${note.reason}`).join("\n")
+  }
+
   static engineFacts(engine: BoardEngineStatus): string {
     const environment = engine.badge?.environment
     return [

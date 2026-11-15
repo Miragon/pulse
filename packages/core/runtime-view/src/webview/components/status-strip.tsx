@@ -20,6 +20,7 @@ export interface StatusStripProps {
   readonly tone: Tone
   readonly title: string
   readonly detail?: string | undefined
+  readonly details?: string | undefined
   readonly actions?: readonly StripAction[]
 }
 
@@ -51,13 +52,14 @@ export function StripButton({ action }: { readonly action: StripAction }) {
   )
 }
 
-export function StatusStrip({ tone, title, detail, actions = [] }: StatusStripProps) {
+export function StatusStrip({ tone, title, detail, details, actions = [] }: StatusStripProps) {
   return (
     <KitStatusStrip
       tone={tone}
       icon={TONE_GLYPHS[tone]}
       title={title}
       {...(detail === undefined ? {} : { detail })}
+      {...(details === undefined ? {} : { details })}
       actions={actions.map((action) => ({
         label: action.label,
         icon: action.icon,

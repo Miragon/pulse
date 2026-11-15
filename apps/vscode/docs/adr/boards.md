@@ -1,7 +1,7 @@
 # Boards
 
 - Status: accepted
-- Last reviewed: 2026-11-15 (the format moved out of the runtime view into the published package `@miragon/pulse-board`, with its JSON Schema, shared fixtures and one starter board for both editors; the builder followed into its `./builder` entry, and the runtime view renders its model); 2026-11-14 (the counter and the incident summary read "with incident" one way, c7-core's runtime rule); 2026-11-12 (boards are the first feature of D2; the format and the builder move to a new published package); 2026-11-09 (the project file is read with `@miragon/pulse-profile`; before that 2026-11-04, the CLI's rules)
+- Last reviewed: 2026-11-15 (a broken widget is refused in its place instead of the whole board, an unknown root key is a note, problems and notes are data with codes, the version rule, `tenants`, and a widget of ended instances with incident is refused; before that the same day, the format moved out of the runtime view into the published package `@miragon/pulse-board`, with its JSON Schema, shared fixtures and one starter board for both editors; the builder followed into its `./builder` entry, and the runtime view renders its model); 2026-11-14 (the counter and the incident summary read "with incident" one way, c7-core's runtime rule); 2026-11-12 (boards are the first feature of D2; the format and the builder move to a new published package); 2026-11-09 (the project file is read with `@miragon/pulse-profile`; before that 2026-11-04, the CLI's rules)
 
 ## Context
 
@@ -38,18 +38,43 @@ What they found:
 `.pulse/boards/<name>.board.json`, anywhere in the workspace, read by `BoardParser` of Pulse's
 board format `@miragon/pulse-board` (`packages/core/board/src/format`, the format without a
 runtime dependency, which the runtime view's core and the Boards view import through the package's
-main entry) and validated by hand, unlike `.pulse.json`, which `@miragon/pulse-profile` parses. Every problem names its JSON path and reason. `schemaVersion`
-1, `title`, `engines` (profile names of `.pulse.json`, the only engine id the extension has) and
+main entry) and validated by hand, unlike `.pulse.json`, which `@miragon/pulse-profile` parses. Every problem and every note is data, its JSON path, a code and the values its words need
+(`{ path, code, values }`), which `BoardProblems.describe` words in English, so another surface
+may word the codes in its language. `schemaVersion`
+1, `title`, `engines` (profile names of `.pulse.json`, the only engine id the extension has),
+`tenants` (optional, tenant ids) and
 `rows`, each `{ "row": [...] }` of `{ "widget", "props" }`, the toolkit's layout grammar. The
 widgets are `counter`, `instanceList`, `incidentSummary`, `processDiagram` and `incidentList`; a
 widget may narrow the board's engines, and a `processDiagram` names exactly one. One filter
 vocabulary without aliases: `process`, `activeElement` (needs `process`, never with `ended`),
-`state` (`running` by default, `ended`), `withIncident`, `businessKey`. At most 12 widgets.
+`state` (`running` by default, `ended`), `withIncident` (`true` never with `ended`: an ended
+instance holds no open incident, so such a counter or list could only read 0), `businessKey`. At
+most 12 widgets. The file fails only when it gives no board (not JSON, no object, another
+`schemaVersion`, `title`, `engines` or `rows` missing, or one of them, a row or `tenants` of the
+wrong shape), and a broken save keeps the last valid board under its problems. A broken widget (a
+bad or unknown prop, an unknown widget, a widget after the 12th that reads) is refused in its
+place with its problems, which the board shows in a card where the widget would be, while the
+others read; a root key the format does not know is a note, a quiet strip over the board. The Boards view counts
+the problems of a file or of its refused widgets ("payments.board.json · 2 problems") and, without
+them, its notes. `tenants` is kept, but each widget of such a board is refused in its place
+(`tenantsNotRead`): no read of the contract filters by tenant on both dialects, and a widget
+would read every tenant. The rule is the format's (`BoardTiles`), which the builder and the
+Boards view both read, so the view counts these refusals as problems too.
+
+The version rule: `schemaVersion` protects an older reader from a newer file. A root key that
+changes what any widget reads (a tenant, a time window, a scope) or a changed meaning takes a new
+version, and an older reader refuses that file. Under version 1 only root keys that change how
+the board looks may be added, which an older reader notes; new widgets and new props stay in
+version 1, because an older reader refuses such a widget in its place. A newer reader refusing
+what an older one accepted is a breaking change of the package, not a new version.
+
 The JSON Schema is the format's too (`packages/core/board/schema/board.schema.json`, published as
 the package's `./schema/board.schema.json`): the package's
 `packages/core/board/test/format/board-schema.test.ts` holds it equal to `BoardVocabulary` and
 runs it over the shared fixtures (`BOARD_FIXTURES` of its `./testing` entry, a text and its
-verdict each), of which it takes every board the parser takes. The editor validates with a
+verdict each), of which it takes every board the parser reads without a note or a refused
+widget, and marks an unknown root key and a filter of ended instances with incident. The editor
+validates with a
 checked-in copy, `apps/vscode/schemas/board.schema.json` (`jsonValidation`, shipped in the .vsix),
 which `apps/vscode/test/architecture/board-schema.test.ts` holds byte-equal to the package's
 schema, read through its export; a copy made at build time would be missing after a turbo cache
@@ -132,3 +157,7 @@ an open board on save, and **Pulse: New Board…** writes the format's starter b
 | Diagram scope    | One engine, latest version                                 | Deployments and versions differ between engines  |
 | Schema home      | The format's package, a copy held equal in the extension   | A build copy is missing after a turbo cache hit  |
 | Builder home     | `@miragon/pulse-board/builder`, a model of no text         | D2: every surface, one builder over one read     |
+| A broken widget  | Refused in its place; an unknown root key is a note        | One typo no longer hides every number            |
+| Version rule     | A root key that changes what a widget reads is a version   | An older reader never reads a newer file wrong   |
+| Ended, incident  | Refused in its place                                       | It could only ever read 0                        |
+| `tenants`        | Kept, each widget refused until the contract filters       | Reading every tenant would show others' numbers  |

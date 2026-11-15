@@ -1,11 +1,15 @@
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import type {
   BoardView,
   CounterEntry,
   CounterTile,
   PanelState,
 } from "../../src/core/protocol/index.js"
-import { BOARD_VIEW, BROKEN_BOARD_VIEW } from "../../dev/webview/fixtures/board.js"
+import {
+  BOARD_VIEW,
+  BROKEN_BOARD_VIEW,
+  REFUSED_BOARD_VIEW,
+} from "../../dev/webview/fixtures/board.js"
 import { TimeLabels } from "../../src/webview/format/time-labels.js"
 import {
   allParts,
@@ -17,6 +21,7 @@ import {
   mountApp,
   part,
   queryPart,
+  queryRole,
   waitForElement,
   type Harness,
 } from "./harness.js"
@@ -416,10 +421,66 @@ describe("a board", () => {
     expect(strip.textContent).toContain("1 problem in shop-operations.board.json.")
     expect(strip.textContent).toContain("Pulse shows the last valid version until you fix them.")
     expect(itemTexts(getRole(harness.root, "region", { name: /^Problems in / }))).toEqual([
-      "rows[0].row[0].props.filter.activeElement needs a process: element ids are only unique within one process",
+      "title must be a text that is not empty",
     ])
     buttonNamed(strip, "Open file").click()
     expect(harness.posted).toEqual([{ type: "openBoardFile" }])
+  })
+
+  it("shows a broken widget's problems in its place and reads the widgets beside it", async () => {
+    harness = mountApp()
+    harness.publish(ready(REFUSED_BOARD_VIEW))
+    await findPart(harness.root, "board-card", { kind: "refused" })
+    const refused = card(harness.root, "Ended orders with incident")
+
+    expect(refused.dataset.kind).toBe("refused")
+    expect(queryPart(refused, "refused-reason")?.textContent).toBe(
+      "Pulse reads nothing for this widget until you fix it.",
+    )
+    expect(itemTexts(getRole(refused, "list", { name: "Problems of this widget" }))).toEqual([
+      'rows[0].row[1].props.filter.withIncident only matches running instances, since an ended instance has no open incident; remove it or use state "running"',
+    ])
+    expect(card(harness.root, 'Widget "chart"').dataset.kind).toBe("refused")
+    expect(queryPart(card(harness.root, "Waiting for payment"), "counter-value")?.textContent).toBe(
+      "12",
+    )
+    expect(partTexts(harness.root, "strip-title")).toEqual([
+      "1 note in shop-operations.board.json.",
+      "Can't reach prod-eu.",
+      "billing-prod is not in .pulse.json or your CLI config.",
+    ])
+    expect(queryRole(harness.root, "region", { name: /^Problems in / })).toBeNull()
+
+    buttonNamed(refused, "Open file").click()
+    expect(harness.posted).toEqual([{ type: "openBoardFile" }])
+  })
+
+  it("names a note of the file in a quiet strip, the list behind Details", async () => {
+    harness = mountApp()
+    harness.publish(ready(REFUSED_BOARD_VIEW))
+    const notes = await findPart(harness.root, "board-notes")
+    expect(queryPart(notes, "status-strip")?.dataset.tone).toBe("info")
+    expect(queryPart(notes, "strip-title")?.textContent).toBe(
+      "1 note in shop-operations.board.json.",
+    )
+    const details = buttonNamed(notes, "Details")
+    details.click()
+    await vi.waitFor(() => {
+      expect(details.getAttribute("aria-expanded")).toBe("true")
+    })
+    expect(document.getElementById(details.getAttribute("aria-controls") ?? "")?.textContent).toBe(
+      "layout is not a key this version of Pulse knows; Pulse shows the board without it",
+    )
+    buttonNamed(notes, "Open file").click()
+    expect(harness.posted).toEqual([{ type: "openBoardFile" }])
+  })
+
+  it("shows no note strip for a file without notes", async () => {
+    harness = mountApp()
+    harness.publish(ready(BOARD_VIEW))
+    await findPart(harness.root, "board-card", { kind: "counter" })
+
+    expect(queryPart(harness.root, "board-notes")).toBeNull()
   })
 
   it("says it shows nothing until a broken file is fixed when no version was valid", async () => {
