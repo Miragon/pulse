@@ -30,6 +30,7 @@
  "getTasks": {"operationId":"getTasks","method":"GET","path":"/task","effect":"read","engineScoped":true,"accepts":["application/json"]},
  "getTasksCount": {"operationId":"getTasksCount","method":"GET","path":"/task/count","effect":"read","engineScoped":true,"accepts":["application/json"]},
  "getTelemetryData": {"operationId":"getTelemetryData","method":"GET","path":"/telemetry/data","effect":"read","engineScoped":true,"accepts":["application/json"]},
+ "getVariableInstances": {"operationId":"getVariableInstances","method":"GET","path":"/variable-instance","effect":"read","engineScoped":true,"accepts":["application/json"]},
  "queryHistoricProcessInstances": {"operationId":"queryHistoricProcessInstances","method":"POST","path":"/history/process-instance","effect":"read","engineScoped":true,"accepts":["application/json"]},
  "queryHistoricProcessInstancesCount": {"operationId":"queryHistoricProcessInstancesCount","method":"POST","path":"/history/process-instance/count","effect":"read","engineScoped":true,"accepts":["application/json"]},
  "queryHistoricVariableInstances": {"operationId":"queryHistoricVariableInstances","method":"POST","path":"/history/variable-instance","effect":"read","engineScoped":true,"accepts":["application/json"]}

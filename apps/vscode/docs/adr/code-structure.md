@@ -1,7 +1,7 @@
 # Code structure
 
 - Status: accepted
-- Last reviewed: 2026-11-15 (the composition roots build the host kit's `EngineRoot` over a record of one adapter per dialect; an adapter brings its BPMN dialect); 2026-11-10 (one adapter per dialect family, the C7 adapter in the c7 family); 2026-10-28
+- Last reviewed: 2026-11-15 (the C7 adapter's instance detail is read by c7-core's `InstanceDetailReader` over the client's port; the composition roots build the host kit's `EngineRoot` over a record of one adapter per dialect; an adapter brings its BPMN dialect); 2026-11-10 (one adapter per dialect family, the C7 adapter in the c7 family); 2026-10-28
 
 ## Context
 
@@ -31,8 +31,8 @@ visible responsibility per file.
 
 ### Classes own behaviour
 
-1. **One class per file**, named after it: `InstanceDetailReader` lives in
-   `instance-detail-reader.ts`. Types and interfaces that are part of that class's API
+1. **One class per file**, named after it: `HttpEngineTransport` lives in
+   `http-engine-transport.ts`. Types and interfaces that are part of that class's API
    may sit next to it.
 2. **No module-level functions.** Behaviour is a method of the class that owns the job:
    public methods say what the class does and come first; private methods say how.
@@ -68,6 +68,10 @@ Exceptions, each for a reason outside our control:
 
 ### Example: reading an instance in the C7 adapter
 
+The adapter's runtime asks c7-core's reader (`@miragon/pulse-c7-core/runtime`, whose own style
+keeps its readers as classes over the port and their mappings as functions) over the port of its
+client; the reader takes the inspection through its constructor, as a test passes a fake.
+
 ```mermaid
 classDiagram
   direction LR
@@ -81,18 +85,23 @@ classDiagram
     +getInstanceDetail(id)
   }
   class InstanceDetailReader {
-    -EngineClient client
+    -EnginePort port
+    -Inspection inspection
     +read(id) InstanceDetail
-    -definitionsOfIncidentInstances(view)
-    -incidentOf(incident, facts)
-    -calledInstanceOf(child, view)
+    -definitionsOf(view)
   }
   class EngineClient {
     <<interface>>
+    +EnginePort port
+  }
+  class EnginePort {
+    <<interface>>
   }
   ProcessRuntime <|.. C7ProcessRuntime
+  C7ProcessRuntime --> EngineClient
   C7ProcessRuntime --> InstanceDetailReader
-  InstanceDetailReader --> EngineClient
+  InstanceDetailReader --> EnginePort
+  EngineClient --> EnginePort
 ```
 
 ### Enforcement

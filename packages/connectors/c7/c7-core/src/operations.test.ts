@@ -1,4 +1,4 @@
-import { DefinitionId, ElementId, IncidentId } from "@miragon/pulse-engine-core"
+import { DefinitionId, ElementId, IncidentId, InstanceId } from "@miragon/pulse-engine-core"
 import { describe, expect, it } from "vitest"
 import { type Condition, measure } from "./conditions.js"
 import { readStatus } from "./engine-status.js"
@@ -17,11 +17,12 @@ import { ElementStatisticsReader } from "./runtime/element-statistics-reader.js"
 import { EngineReader } from "./runtime/engine-reader.js"
 import { IncidentDetailsReader } from "./runtime/incident-details-reader.js"
 import { IncidentSearch } from "./runtime/incident-search.js"
+import { InstanceDetailReader } from "./runtime/instance-detail-reader.js"
 import { InstanceSearch } from "./runtime/instance-search.js"
 import { VariableNameReader } from "./runtime/variable-name-reader.js"
 import type { Route } from "./testing/fake-port.js"
 import { fakeFailure, fakePort } from "./testing/fake-port.js"
-import { P } from "./testing/fixture.js"
+import { historyDto, P } from "./testing/fixture.js"
 import { APPROVE_INCIDENT, approveRoutes } from "./testing/inspect-routes.js"
 import { NOW } from "./testing/status.js"
 import {
@@ -156,10 +157,32 @@ describe("the runtime operations", () => {
     await new IncidentSearch(port, definitions).search({}, { limit: 5 })
     await new IncidentDetailsReader(port).read(IncidentId("i1"))
     await new IncidentDetailsReader(port).read(IncidentId("i2"))
-    const sent = new Set(port.calls.map((call) => call.operationId))
+    const details = await instanceDetailSends()
+    const sent = new Set([...port.calls.map((call) => call.operationId), ...details])
     expect([...sent].sort()).toEqual([...RUNTIME_OPERATIONS].sort())
   })
 })
+
+/** What the instance detail sends for a running instance with an incident in a called one and for an ended one. */
+async function instanceDetailSends(): Promise<string[]> {
+  const extra: Record<string, Route> = {
+    getVariableInstances: () => [],
+    queryHistoricProcessInstances: () => [],
+  }
+  const running = fakePort(only(RUNTIME_OPERATIONS, { ...approveRoutes(), ...extra }))
+  const ended = fakePort(
+    only(RUNTIME_OPERATIONS, {
+      ...extra,
+      getProcessInstance: () => {
+        throw fakeFailure(404, "InvalidRequestException")
+      },
+      getHistoricProcessInstance: () => ({ ...historyDto, state: "COMPLETED" }),
+    }),
+  )
+  await new InstanceDetailReader(running).read(InstanceId(P))
+  await new InstanceDetailReader(ended).read(InstanceId(P))
+  return [...running.calls, ...ended.calls].map((call) => call.operationId)
+}
 
 describe("CORE_OPERATIONS", () => {
   it("is every operation of the composites, the wait, with incident and the runtime, once each, in order", () => {

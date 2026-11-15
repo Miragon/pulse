@@ -9,10 +9,8 @@ import type {
   BatchStatisticsView,
   HistoricBatchView,
   FailedJobView,
-  InspectView,
   MigrationPlanView,
   MigrationReportView,
-  VariableView,
 } from "./views/views.js"
 
 export interface EngineClient {
@@ -21,9 +19,7 @@ export interface EngineClient {
     query: HistoricInstanceQuery,
     page: OffsetWindow,
   ): Promise<HistoricInstanceRow[]>
-  inspect(instanceId: string): Promise<InspectView | undefined>
   activityInstances(instanceId: string): Promise<ActivityInstanceView>
-  variables(instanceId: string): Promise<VariableView[]>
   batchStatistics(batchId: string): Promise<BatchStatisticsView | undefined>
   historicBatch(batchId: string): Promise<HistoricBatchView>
   failedJobs(jobDefinitionId: string): Promise<FailedJobView[]>

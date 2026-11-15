@@ -127,6 +127,7 @@ describe("the @miragon/pulse-c7-core entries", () => {
       "EngineReader",
       "IncidentDetailsReader",
       "IncidentSearch",
+      "InstanceDetailReader",
       "InstanceSearch",
       "JsonView",
       "VariableNameReader",

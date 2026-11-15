@@ -113,8 +113,13 @@ missing.
   paged by offset behind the contract's cursor, each flagged with "with incident", and their
   count; a variable condition's value as the engine reads it, every integer beyond 2^53 in it
   digit for digit), `VariableNameReader` (the variable names of a version's newest 50 instances),
-  `IncidentSearch` (the root incidents newest first with the version each was raised in and the
-  job or external task `incidentRecovery` names) and `IncidentDetailsReader` (the stack trace or
+  `InstanceDetailReader` (an instance's detail: `loadInstance`'s rounds without history and its
+  path from the history, in parallel with its typed variables of every scope, which the
+  inspection's variable map stands in for when they cannot be read, then the version of each
+  called instance one of its root incidents was raised in; each value as `JSON.stringify` writes
+  it, so an integer the wire kept as raw JSON keeps its digits), `IncidentSearch` (the root
+  incidents newest first with the version each was raised in and the job or external task
+  `incidentRecovery` names) and `IncidentDetailsReader` (the stack trace or
   error details `CAUSE_OPERATIONS` names, else the incident's message, with the root cause by
   engine-core's `RootCauses`). A by-id read of something the engine does not know answers
   undefined (an engine 404 that names it, or a 500 `NullValueException`, as `inspect` reads an
@@ -175,9 +180,9 @@ package.
   checks a history query by incident with `unrecordedIncidents`.
 - Pulse for VS Code and Pulse for Orca bundle it in their C7 adapter: it answers the engine, its
   processes, a version's diagram, the counts on it, the processes it calls, the instances and their
-  count, a version's variable names, the open incidents and an incident's details with the readers
-  of `./runtime`, reads every engine answer through `JsonView` and checks every id with `isEngineId`,
-  an instance's panel reads through `loadInstance`, an incident's retry and the incident list take
+  count, a version's variable names, an instance's detail, the open incidents and an incident's
+  details with the readers of `./runtime` (an instance's panel through `loadInstance`), reads every
+  engine answer through `JsonView` and checks every id with `isEngineId`, an incident's retry and the incident list take
   its job or external task from `incidentRecovery`, its details their request from
   `CAUSE_OPERATIONS`; a variable change without a type that is no JSON string, object or array is
   typed by `autoTypedValue`, every change is sent in the form of `toEngineVariable`, and every "with

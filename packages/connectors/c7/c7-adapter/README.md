@@ -3,25 +3,26 @@
 The C7 adapter of Pulse's runtime view (`packages/core/runtime-view`): Operaton, CIB seven and
 Camunda 7 behind the engine contract of `@miragon/pulse-engine-core`, the neutral core of the
 engine family. Its REST client (`src/engine-rest`) runs the c7 dialect's workflow domain
-(`@miragon/pulse-c7-core`) over the engine, its mapping (`src/mapping`, `src/writing`) turns the
-answers into the contract's read models and commands, and `C7Adapter` is the plug of the runtime
-view's ports (`@miragon/pulse-runtime-view/ports`), the web UI and the command of the CLI that
-triggers an event (`src/cli`), the vocabulary of Camunda 7's BPMN files (`C7BpmnDialect`, over
-`camunda-bpmn-moddle`) and the local engine a host falls back to included. Private: the editor
-hosts (`apps/vscode`, `apps/orca`) bundle it through their composition roots. It is the adapter of
-the c7 family, whose dialect it implements (`adapters-own-their-family` in the repository's
-`.dependency-cruiser.cjs`). It takes these C7 REST rules from c7-core, never as a copy: the reads
-of the engine, its processes, a version's diagram, the counts on it, the processes it calls, the
-instances and their count, a version's variable names, the open incidents and an incident's details
-(`./runtime`, over its port), the inspection of an instance, which incident types the engine raises
-itself (`BUILT_IN_INCIDENT_TYPES`), which job or external task an incident names, for its retry and
-in the incident list (`incidentRecovery`), which request holds an incident's cause
+(`@miragon/pulse-c7-core`) over the engine, its readers (`src/reading`) and writes
+(`src/writing`) turn the answers into the contract's read models and commands, and `C7Adapter`
+is the plug of the runtime view's ports (`@miragon/pulse-runtime-view/ports`), the web UI and the
+command of the CLI that triggers an event (`src/cli`), the vocabulary of Camunda 7's BPMN files
+(`C7BpmnDialect`, over `camunda-bpmn-moddle`) and the local engine a host falls back to included.
+Private: the editor hosts (`apps/vscode`, `apps/orca`) bundle it through their composition roots.
+It is the adapter of the c7 family, whose dialect it implements (`adapters-own-their-family` in
+the repository's `.dependency-cruiser.cjs`). It takes these C7 REST rules from c7-core, never as a
+copy: the reads of the engine, its processes, a version's diagram, the counts on it, the
+processes it calls, the instances and their count, a version's variable names, an instance's
+detail (with the inspection of the instance), the open incidents and an incident's details
+(`./runtime`, over its port), which incident types the engine raises itself
+(`BUILT_IN_INCIDENT_TYPES`), which job or external task an incident names, for its retry and in
+the incident list (`incidentRecovery`), which request holds an incident's cause
 (`CAUSE_OPERATIONS`), how a written variable is typed (`autoTypedValue`, `toEngineVariable`), and
 what "with incident" is (an open incident the runtime holds now, `instancesWithIncident`,
 `countWithIncident`, `withIncidentAmong`), on every history level. It sends every request through
 `@miragon/pulse-http`, the transport the CLI and the MCP server send through, from its wire alone
 (`src/engine-rest/http`: `EngineHttp`, 60 s and 64 MiB, over the global `fetch` of its host's
-runtime), and its inspection goes out as routes of c7-core's `CORE_ROUTES`.
+runtime), and c7-core's reads go out as routes of c7-core's `CORE_ROUTES`.
 
 The conformance kit of the contract (`@miragon/pulse-engine-core/testing`) proves it on a real
 engine (`test/c7-conformance.engine.test.ts`, `test:engines`, in Testcontainers; the CI's

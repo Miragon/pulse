@@ -120,7 +120,7 @@ describe("a write on a connection that only reads", () => {
   test.each(Object.entries(WRITES))(
     "%s fails as unsupported before anything is written, never as a missing resource",
     async (_command, write) => {
-      const { commands, engine } = fakeCommands(write.reads, {}, false)
+      const { commands, engine } = fakeCommands(write.reads, false)
 
       const error = await failureOf(write.attempt(commands))
 
@@ -136,7 +136,7 @@ describe("a write on a connection that only reads", () => {
   )
 
   test("leaves the incident of a retry as it is, never reported gone", async () => {
-    const { commands } = fakeCommands(WRITES.retryIncident.reads, {}, false)
+    const { commands } = fakeCommands(WRITES.retryIncident.reads, false)
 
     const error = await failureOf(commands.retryIncident(INCIDENT))
 
@@ -145,7 +145,7 @@ describe("a write on a connection that only reads", () => {
   })
 
   test("words it through the runtime view's Problems: the read-only text, no edit of the connection", async () => {
-    const { commands } = fakeCommands([], {}, false)
+    const { commands } = fakeCommands([], false)
 
     const problem = Problems.of(await failureOf(commands.stopBulkOperation(BATCH)), ENGINE)
 

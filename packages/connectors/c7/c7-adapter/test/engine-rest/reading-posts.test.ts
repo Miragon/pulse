@@ -1,6 +1,11 @@
 import { intentOf, routeOf } from "@miragon/pulse-c7-core"
 import { ROUTES } from "@miragon/pulse-c7-core/routes"
-import { DefinitionId, IncidentId, type ProcessRuntime } from "@miragon/pulse-engine-core"
+import {
+  DefinitionId,
+  IncidentId,
+  InstanceId,
+  type ProcessRuntime,
+} from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
 import { C7ProcessRuntime } from "../../src/c7-process-runtime.js"
 import { RestEngineClient } from "../../src/engine-rest/index.js"
@@ -19,9 +24,7 @@ const PLAN = {
 
 const READS: Readonly<Record<string, Read>> = {
   historicInstances: (client) => client.historicInstances({ unfinished: true }, PAGE),
-  inspect: (client) => client.inspect("p1"),
   activityInstances: (client) => client.activityInstances("p1"),
-  variables: (client) => client.variables("p1"),
   batchStatistics: (client) => client.batchStatistics("b1"),
   historicBatch: (client) => client.historicBatch("b1"),
   failedJobs: (client) => client.failedJobs("jd1"),
@@ -37,6 +40,7 @@ const RUNTIME_READS: readonly RuntimeRead[] = [
     ),
   (runtime) => runtime.countInstances({ lifecycle: "running" }),
   (runtime) => runtime.listVariableNames(DefinitionId("order:1")),
+  (runtime) => runtime.getInstanceDetail(InstanceId("p1")),
   (runtime) => runtime.searchIncidents({}, { limit: 5 }),
   (runtime) => runtime.getIncidentDetails(IncidentId("i1")),
 ]

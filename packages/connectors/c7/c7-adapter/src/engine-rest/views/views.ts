@@ -1,16 +1,3 @@
-import type {
-  DefinitionView as InspectedDefinitionView,
-  InstanceView,
-  TimelineEntry,
-} from "@miragon/pulse-c7-core"
-
-export interface VariableView {
-  readonly name: string
-  readonly type?: string
-  readonly valueJson: string
-  readonly scopeElementId?: string
-}
-
 export interface BatchRef {
   readonly id: string
 }
@@ -56,11 +43,6 @@ export interface MigrationInstructionReportView {
 
 export interface MigrationReportView {
   readonly instructionReports: readonly MigrationInstructionReportView[]
-}
-
-export type InspectView = InstanceView & {
-  readonly definition: InspectedDefinitionView & { readonly version: number }
-  readonly timeline: readonly TimelineEntry[]
 }
 
 export interface TransitionInstanceView {

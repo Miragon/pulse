@@ -1,4 +1,4 @@
-import { createEnginePort, RAW_VARIABLES_QUERY, type EnginePort } from "@miragon/pulse-c7-core"
+import { createEnginePort, type EnginePort } from "@miragon/pulse-c7-core"
 import {
   readHistoricInstances,
   type HistoricInstanceQuery,
@@ -8,24 +8,19 @@ import {
 import type { EngineClient } from "./engine-client.js"
 import type { EngineHttp } from "./http/engine-http.js"
 import { HttpEngineTransport } from "./inspect/http-engine-transport.js"
-import { InstanceInspection } from "./inspect/instance-inspection.js"
 import { RequestArguments } from "./request-arguments.js"
 import { ActivityInstanceViewParser } from "./views/activity-instance-view-parser.js"
 import { BatchViewParser } from "./views/batch-view-parser.js"
 import { MigrationViewParser } from "./views/migration-view-parser.js"
-import { VariableViewParser } from "./views/variable-view-parser.js"
 import type {
   ActivityInstanceView,
   BatchStatisticsView,
   FailedJobView,
   HistoricBatchView,
-  InspectView,
   MigrationPlanView,
   MigrationReportView,
-  VariableView,
 } from "./views/views.js"
 
-export const VARIABLE_PAGE_SIZE = 500
 const MAX_FAILED_JOBS = 100
 
 export class RestEngineClient implements EngineClient {
@@ -42,25 +37,11 @@ export class RestEngineClient implements EngineClient {
     return readHistoricInstances(this.port, query, page)
   }
 
-  async inspect(instanceId: string): Promise<InspectView | undefined> {
-    return new InstanceInspection(this.http).inspect(RequestArguments.identifier(instanceId))
-  }
-
   async activityInstances(instanceId: string): Promise<ActivityInstanceView> {
     return ActivityInstanceViewParser.tree(
       await this.http.read(
         `/process-instance/${RequestArguments.segment(instanceId)}/activity-instances`,
       ),
-    )
-  }
-
-  async variables(instanceId: string): Promise<VariableView[]> {
-    return VariableViewParser.instances(
-      await this.http.read("/variable-instance", {
-        processInstanceIdIn: RequestArguments.identifier(instanceId),
-        ...RAW_VARIABLES_QUERY,
-        maxResults: String(VARIABLE_PAGE_SIZE),
-      }),
     )
   }
 

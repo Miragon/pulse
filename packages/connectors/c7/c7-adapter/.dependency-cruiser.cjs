@@ -86,7 +86,7 @@ module.exports = {
       name: "http-only-in-the-wire",
       severity: "error",
       comment:
-        "Only the adapter's wire (src/engine-rest/http) sends: EngineHttp is the one place that imports the transport @miragon/pulse-http, by its package entry or by path. Send through EngineHttp (read, find, readAll, text, write) and word a failure in its EngineRequestError.",
+        "Only the adapter's wire (src/engine-rest/http) sends: EngineHttp is the one place that imports the transport @miragon/pulse-http, by its package entry or by path. Send through EngineHttp (read, find, text, write) and word a failure in its EngineRequestError.",
       from: { path: `${PACKAGE}src/`, pathNot: [WIRE, TEST_CODE] },
       to: { path: HTTP_PACKAGE },
     },

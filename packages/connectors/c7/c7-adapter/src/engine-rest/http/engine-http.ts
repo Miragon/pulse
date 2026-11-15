@@ -21,8 +21,6 @@ interface EngineRequest {
   readonly accept?: string
 }
 
-const PAGE_SIZE = 500
-
 export class EngineHttp {
   private readonly wire: Http | EngineRequestError
   private readonly loginSent: boolean
@@ -37,24 +35,6 @@ export class EngineHttp {
       return this.json({ method: "GET", path, query, intent: "read" })
     }
     return this.json({ method: "POST", path, query, intent: "read", body: JSON.stringify(body) })
-  }
-
-  async readAll(path: string, query: Query = {}): Promise<unknown[]> {
-    const items: unknown[] = []
-    for (;;) {
-      const page = await this.read(path, {
-        ...query,
-        firstResult: String(items.length),
-        maxResults: String(PAGE_SIZE),
-      })
-      if (!Array.isArray(page)) {
-        throw new UnexpectedAnswerError(`${path} is not a list`)
-      }
-      items.push(...(page as unknown[]))
-      if (page.length < PAGE_SIZE) {
-        return items
-      }
-    }
   }
 
   async find(path: string, query: Query = {}): Promise<unknown> {
