@@ -15,11 +15,6 @@ const PLAN = {
 }
 
 const READS: Readonly<Record<string, Read>> = {
-  product: (client) => client.product(),
-  version: (client) => client.version(),
-  definitionStatistics: (client) => client.definitionStatistics(),
-  activityStatistics: (client) => client.activityStatistics("order:1"),
-  diagramXml: (client) => client.diagramXml("order:1"),
   incidents: (client) => client.incidents({ processInstanceId: "p1" }, PAGE),
   instancesWithIncident: (client) =>
     client.instancesWithIncident({ processDefinitionKey: "order" }),

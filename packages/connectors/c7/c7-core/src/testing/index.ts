@@ -2,7 +2,8 @@
  * Test helpers of @miragon/pulse-c7-core: the verified workflow fixture, the status fixture,
  * wait states of every kind, a recording fake port and a fake clock; and the seams tests reach
  * below the entry's API: the pure rules behind inspect and status, the paging rule of the port,
- * and the operations each composite sends (a port adapter's test holds its table equal to them).
+ * and the operations each composite and the runtime send (a port adapter's test holds its table
+ * equal to them).
  */
 
 export * from "./fixture.js"
@@ -20,7 +21,12 @@ export {
 } from "./fake-port.js"
 export { pageQuery } from "../port.js"
 export { countByIds, ID_CHUNK } from "../requests.js"
-export { INSPECT_OPERATIONS, STATUS_OPERATIONS, WITH_INCIDENT_OPERATIONS } from "../operations.js"
+export {
+  INSPECT_OPERATIONS,
+  RUNTIME_OPERATIONS,
+  STATUS_OPERATIONS,
+  WITH_INCIDENT_OPERATIONS,
+} from "../operations.js"
 export { mergeCandidates } from "../select.js"
 export { incidentCause } from "../inspect.js"
 export { instanceView } from "../snapshot.js"

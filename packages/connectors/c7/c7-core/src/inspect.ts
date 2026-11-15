@@ -109,7 +109,7 @@ async function endedData(port: EnginePort, id: string, history: Rec, options: In
  * The instance ended between two rounds (a job executor finished it): its activity instances
  * answer 404, its variables 500 NullValueException (verified on all three engines).
  */
-function endedMeanwhile(port: EnginePort, error: unknown): boolean {
+export function endedMeanwhile(port: EnginePort, error: unknown): boolean {
   const failure = port.failure(error)
   if (isMissing(failure)) return true
   return failure?.status === 500 && failure.engineType === "NullValueException"

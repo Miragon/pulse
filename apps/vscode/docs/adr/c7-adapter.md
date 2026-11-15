@@ -1,7 +1,7 @@
 # Camunda 7 family adapter
 
 - Status: accepted
-- Last reviewed: 2026-11-15 (a 401 to a connection without a login says to add one with Set credentials); 2026-11-14 ("with incident" reads one way, c7-core's rule: an open incident the runtime holds now, on every history level; the instance search pages the history's rows of the runtime's ids, and the read laws run on an engine at history level AUDIT too); 2026-11-12 (`C7Adapter.cli` gives the CLI command that triggers the event a token waits for, `PulseCli`, on the engine its `CliTarget` names: a profile with the target's URL, which beats a `PULSE_CLI_URL` of the user's shell and which the CLI refuses beside a profile of the same name in the user's config file that holds headers, whatever their names, or credentials for another origin, or the default engine's URL, on which the CLI takes no profile); 2026-11-11 (the editor hosts send the adapter no number beyond the range of a double, which it writes as text without a type; the refusal of a number that is not finite is c7-core's `toEngineVariable`, of which the adapter keeps no copy); 2026-11-10 (the adapter sends through `@miragon/pulse-http` and its inspection goes out as routes of c7-core's `CORE_ROUTES`; the incident retry's target, the built-in incident types, the request of an incident's cause and the typing of a written variable come from c7-core; the adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the adapter is a package, which Pulse for Orca bundles too)
+- Last reviewed: 2026-11-15 (the engine, its processes, a version's diagram, the counts on it and the processes it calls are read by c7-core's readers of `./runtime` over the client's port, with the same requests; a 401 to a connection without a login says to add one with Set credentials); 2026-11-14 ("with incident" reads one way, c7-core's rule: an open incident the runtime holds now, on every history level; the instance search pages the history's rows of the runtime's ids, and the read laws run on an engine at history level AUDIT too); 2026-11-12 (`C7Adapter.cli` gives the CLI command that triggers the event a token waits for, `PulseCli`, on the engine its `CliTarget` names: a profile with the target's URL, which beats a `PULSE_CLI_URL` of the user's shell and which the CLI refuses beside a profile of the same name in the user's config file that holds headers, whatever their names, or credentials for another origin, or the default engine's URL, on which the CLI takes no profile); 2026-11-11 (the editor hosts send the adapter no number beyond the range of a double, which it writes as text without a type; the refusal of a number that is not finite is c7-core's `toEngineVariable`, of which the adapter keeps no copy); 2026-11-10 (the adapter sends through `@miragon/pulse-http` and its inspection goes out as routes of c7-core's `CORE_ROUTES`; the incident retry's target, the built-in incident types, the request of an incident's cause and the typing of a written variable come from c7-core; the adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the adapter is a package, which Pulse for Orca bundles too)
 
 ## Context
 
@@ -44,8 +44,9 @@ MCP server run too. The package belongs to the c7 family, whose dialect it imple
 - **One edge to c7-core, bundled.** c7-core has no runtime dependency but the engine
   contract's main entry and no Node built-in, takes its engine through a caller's port and
   returns data. Only this adapter
-  imports it among the editor hosts' code (its main entry and `./runtime`, what the engine
-  contract's reads build on: `JsonView` and the id rule `isEngineId`;
+  imports it among the editor hosts' code (its main entry and `./runtime`: the engine contract's
+  reads c7-core holds, which `C7ProcessRuntime` runs over the client's port, and what they build
+  on, `JsonView` and the id rule `isEngineId`;
   `packages/connectors/c7/c7-adapter/.dependency-cruiser.cjs`, the runtime view's
   `runtime-view-is-dialect-neutral`, the hosts' `extension-is-dialect-neutral` and
   `plugin-is-dialect-neutral`, and the root rule `adapters-own-their-family`, which lets a
@@ -63,14 +64,15 @@ MCP server run too. The package belongs to the c7 family, whose dialect it imple
   the extension's missing resource (below), so c7-core's port reads a missing record, activity
   tree or stack trace exactly as the adapter does elsewhere.
 
-- **Typed calls.** The `EngineClient` interface exposes `definitionStatistics`,
-  `activityStatistics`, `diagramXml`, `historicInstances`, `historicInstanceCount`,
+- **Typed calls.** The `EngineClient` interface exposes `port` (c7-core's port over
+  `EngineHttp`, which c7-core's readers of the engine, its processes, a version's diagram, the
+  counts on it and the processes it calls run on), `historicInstances`, `historicInstanceCount`,
   `inspect`, `variables`, `incidents`, `instancesWithIncident`, `countWithIncident`,
   `withIncidentAmong` (c7-core's "with incident" over its port), `incident`, `causeText` (the
   text route of `CORE_ROUTES` by operation id, any other refused before it leaves),
-  `activityInstances`, `batchStatistics`, `historicBatch`, `failedJobs`, `migrationPlan`,
-  `migrationReport`, `product` and `version` with typed views; `RestEngineClient`
-  implements it, `EngineWriter`/`RestEngineWriter` the writes.
+  `activityInstances`, `batchStatistics`, `historicBatch`, `failedJobs`, `migrationPlan` and
+  `migrationReport` with typed views; `RestEngineClient` implements it,
+  `EngineWriter`/`RestEngineWriter` the writes.
 - **One HTTP seam, the shared transport.** `EngineHttp` (`src/engine-rest/http`, the
   adapter's wire) is a thin facade (`read`, `find`, `readAll`, `text`, `write`, each with
   its intent) over `Http.send` of `@miragon/pulse-http`, the transport the CLI and the MCP
@@ -367,23 +369,25 @@ there are ids.
 Classes as in [code-structure.md](code-structure.md). Two places wire: `C7Adapter` builds
 an `EngineHttp` per connection (for reads or for writes) around the `fetch` it is given,
 whose transport `EngineWire` builds;
-`C7ProcessRuntime.create(client)` builds one reader per question. A reader decides which
+`C7ProcessRuntime.create(client)` builds one reader per question, c7-core's over the client's
+`port` where c7-core holds it (`./runtime`). A reader decides which
 engine calls answer a port method and maps their answers to the contract's read models in
 private methods; nothing else does either. What one call needs from another (the inspected
 instance, the definitions by instance) goes in as a parameter, never as constructor state.
 
-| Folder                                                      | Classes                                                                                                                                                                                                                             | Job                                                                                                                                             |
-| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `packages/connectors/c7/c7-adapter/src/web-ui`              | `CockpitWebUi`                                                                                                                                                                                                                      | the routes into Cockpit or the CIB seven webclient                                                                                              |
-| `packages/connectors/c7/c7-adapter/src`                     | `C7Adapter`, `C7ProcessRuntime`, `C7ProcessCommands`                                                                                                                                                                                | the entry and the two ports; every port call runs through `ErrorTranslation`                                                                    |
-| `packages/connectors/c7/c7-adapter/src/reading`             | `EngineReader`, `DefinitionReader`, `ElementStatisticsReader`, `CalledProcessReader`, `InstanceSearch`, `InstanceDetailReader`, `IncidentSearch`, `IncidentDetailsReader`, `BulkOperationReader`, `MigrationReader`, `OffsetPaging` | which engine calls answer a port method, in parallel where possible, and their answers as read models; offset paging behind the cursor          |
-| `packages/connectors/c7/c7-adapter/src/mapping`             | `DefinitionRefs`, `InstanceStates`, `Timestamps`, `RootIncident`, `IncidentTexts`, `InspectedVariables`                                                                                                                             | the translations several readers share, without I/O; the root cause of incident details (`RootCauses`)                                          |
-| `packages/connectors/c7/c7-adapter/src/writing`             | `VariableBody`, `CancelBody`, `MigrationBody`, `Redaction`, `SourceToken`, `MoveBody`                                                                                                                                               | the bodies of a variable change (typed by c7-core), a move, a cancel and a migration, the allowed types, what to keep out of any error message  |
-| `packages/connectors/c7/c7-adapter/src/errors`              | `ErrorTranslation`                                                                                                                                                                                                                  | engine failures to `RuntimeError`: `translated`, `unlessMissing`, `commanded<Result>`, `submitted<Result>`, `isRefusal`                         |
-| `packages/connectors/c7/c7-adapter/src/engine-rest`         | `EngineClient`/`RestEngineClient`, `EngineWriter`/`RestEngineWriter`, `RecoveryTargets`, `RequestArguments`, `Present`                                                                                                              | one method per engine call; the job or external task c7-core's `incidentRecovery` names; strict ids (c7-core's `isEngineId`) and variable names |
-| `packages/connectors/c7/c7-adapter/src/engine-rest/http`    | `EngineHttp`, `EngineWire`, `EngineRequestError`, `ErrorAnswers`, `HttpFailures`, `EngineTexts`                                                                                                                                     | the wire: one request over `@miragon/pulse-http`, lossless JSON, failures with status, engine type and hint, the cut of an engine text          |
-| `packages/connectors/c7/c7-adapter/src/engine-rest/inspect` | `InstanceInspection`, `HttpEngineTransport`, `CoreRequests`                                                                                                                                                                         | `inspect`: c7-core's rounds over `EngineHttp`, its instance view as the adapter's `InspectView`, the path from the history                      |
-| `packages/connectors/c7/c7-adapter/src/engine-rest/views`   | `LosslessJson`, `UnexpectedAnswerError` (the wire's) and one parser per view                                                                                                                                                        | the engine's JSON to typed views, checked at runtime by c7-core's `JsonView`                                                                    |
+| Folder                                                      | Classes                                                                                                                                       | Job                                                                                                                                                                                                                                                                         |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/connectors/c7/c7-adapter/src/web-ui`              | `CockpitWebUi`                                                                                                                                | the routes into Cockpit or the CIB seven webclient                                                                                                                                                                                                                          |
+| `packages/connectors/c7/c7-adapter/src`                     | `C7Adapter`, `C7ProcessRuntime`, `C7ProcessCommands`                                                                                          | the entry and the two ports; every port call runs through `ErrorTranslation`                                                                                                                                                                                                |
+| `packages/connectors/c7/c7-core/src/runtime`                | `EngineReader`, `DefinitionReader`, `ElementStatisticsReader`, `CalledProcessReader`                                                          | c7-core's readers over the client's port: the engine, its processes and versions, a version's diagram, the counts on it and the processes it calls; with them the incidents of an answer, the root incident and a version's reference (`isRootIncident`, `definitionRefOf`) |
+| `packages/connectors/c7/c7-adapter/src/reading`             | `InstanceSearch`, `InstanceDetailReader`, `IncidentSearch`, `IncidentDetailsReader`, `BulkOperationReader`, `MigrationReader`, `OffsetPaging` | which engine calls answer a port method, in parallel where possible, and their answers as read models; offset paging behind the cursor                                                                                                                                      |
+| `packages/connectors/c7/c7-adapter/src/mapping`             | `InstanceStates`, `Timestamps`, `IncidentTexts`, `InspectedVariables`                                                                         | the translations several readers share, without I/O; the root cause of incident details (`RootCauses`)                                                                                                                                                                      |
+| `packages/connectors/c7/c7-adapter/src/writing`             | `VariableBody`, `CancelBody`, `MigrationBody`, `Redaction`, `SourceToken`, `MoveBody`                                                         | the bodies of a variable change (typed by c7-core), a move, a cancel and a migration, the allowed types, what to keep out of any error message                                                                                                                              |
+| `packages/connectors/c7/c7-adapter/src/errors`              | `ErrorTranslation`                                                                                                                            | engine failures to `RuntimeError`: `translated`, `unlessMissing`, `commanded<Result>`, `submitted<Result>`, `isRefusal`                                                                                                                                                     |
+| `packages/connectors/c7/c7-adapter/src/engine-rest`         | `EngineClient`/`RestEngineClient`, `EngineWriter`/`RestEngineWriter`, `RecoveryTargets`, `RequestArguments`, `Present`                        | one method per engine call; the job or external task c7-core's `incidentRecovery` names; strict ids (c7-core's `isEngineId`) and variable names                                                                                                                             |
+| `packages/connectors/c7/c7-adapter/src/engine-rest/http`    | `EngineHttp`, `EngineWire`, `EngineRequestError`, `ErrorAnswers`, `HttpFailures`, `EngineTexts`                                               | the wire: one request over `@miragon/pulse-http`, lossless JSON, failures with status, engine type and hint, the cut of an engine text                                                                                                                                      |
+| `packages/connectors/c7/c7-adapter/src/engine-rest/inspect` | `InstanceInspection`, `HttpEngineTransport`, `CoreRequests`                                                                                   | `inspect`: c7-core's rounds over `EngineHttp`, its instance view as the adapter's `InspectView`, the path from the history                                                                                                                                                  |
+| `packages/connectors/c7/c7-adapter/src/engine-rest/views`   | `LosslessJson`, `UnexpectedAnswerError` (the wire's) and one parser per view                                                                  | the engine's JSON to typed views, checked at runtime by c7-core's `JsonView`                                                                                                                                                                                                |
 
 Tests construct `new C7Adapter(send)` with a fake `fetch` that answers recorded REST
 routes and so run every class above.
@@ -410,13 +414,13 @@ routes and so run every class above.
   an id the engine does not know one history read more, and for an ended instance one
   read of its path more (the parallel one, before the adapter knows that it ended).
 - Rules the adapter still holds next to c7-core, for a later cut: the fallbacks of an
-  incident's cause text (`IncidentDetailsReader`), the root incident (`RootIncident`) and the
-  readings of `HttpEngineTransport` beyond c7-core's missing 404 (a refused id, a 500
-  `NullValueException`). Which incident types the engine raises itself, what a retry retries
-  and which request holds an incident's cause are c7-core's (`BUILT_IN_INCIDENT_TYPES`,
-  `incidentRecovery`, `CAUSE_OPERATIONS`), so a built-in incident with an empty
-  `configuration` is `skipped` as one without, no longer `gone`, and `searchIncidents` lists
-  it without a job, as `inspect` always did.
+  incident's cause text (`IncidentDetailsReader`) and the readings of `HttpEngineTransport`
+  beyond c7-core's missing 404 (a refused id, a 500 `NullValueException`); the root incident
+  is c7-core's (`isRootIncident`). Which incident types the engine raises itself, what a retry
+  retries and which request holds an incident's cause are c7-core's (`BUILT_IN_INCIDENT_TYPES`,
+  `incidentRecovery`, `CAUSE_OPERATIONS`), so a built-in incident with an empty `configuration` is
+  `skipped` as one without, no longer `gone`, and `searchIncidents` lists it without a job, as
+  `inspect` always did.
 - Since a written variable is typed by c7-core (`autoTypedValue`, `toEngineVariable`), a new
   variable (or one that holds null) given an integer beyond int64 or a number beyond the
   range of a double is a String of its exact text, no longer a Long the engine refused or a

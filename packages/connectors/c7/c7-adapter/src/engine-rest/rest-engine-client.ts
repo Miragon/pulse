@@ -8,6 +8,7 @@ import {
   type IncidentScope,
   type InstanceWithIncident,
 } from "@miragon/pulse-c7-core"
+import { incidentRowOf, incidentRowsOf, type IncidentRow } from "@miragon/pulse-c7-core/runtime"
 import type { EngineClient } from "./engine-client.js"
 import type { EngineHttp } from "./http/engine-http.js"
 import { CoreRequests } from "./inspect/core-requests.js"
@@ -16,28 +17,21 @@ import { InstanceInspection } from "./inspect/instance-inspection.js"
 import { RequestArguments } from "./request-arguments.js"
 import { ActivityInstanceViewParser } from "./views/activity-instance-view-parser.js"
 import { BatchViewParser } from "./views/batch-view-parser.js"
-import { DefinitionViewParser } from "./views/definition-view-parser.js"
-import { EngineViewParser } from "./views/engine-view-parser.js"
 import { HistoricInstanceViewParser } from "./views/historic-instance-view-parser.js"
-import { IncidentViewParser } from "./views/incident-view-parser.js"
 import { MigrationViewParser } from "./views/migration-view-parser.js"
 import { VariableViewParser } from "./views/variable-view-parser.js"
 import type {
   ActivityInstanceView,
-  ActivityStatisticsView,
   BatchStatisticsView,
-  DefinitionStatisticsView,
   FailedJobView,
   HistoricBatchView,
   HistoricInstanceQuery,
   HistoricInstanceView,
   IncidentQuery,
-  IncidentView,
   InspectView,
   MigrationPlanView,
   MigrationReportView,
   OffsetPage,
-  ProductView,
   VariableView,
 } from "./views/views.js"
 
@@ -50,41 +44,13 @@ const NEWEST_FIRST = [
 ]
 
 export class RestEngineClient implements EngineClient {
-  private readonly core: EnginePort
+  readonly port: EnginePort
 
   constructor(private readonly http: EngineHttp) {
-    this.core = createEnginePort(HttpEngineTransport.over(http))
+    this.port = createEnginePort(HttpEngineTransport.over(http))
   }
 
-  async product(): Promise<ProductView> {
-    return EngineViewParser.product(await this.http.read("/telemetry/data"))
-  }
-
-  async version(): Promise<string> {
-    return EngineViewParser.version(await this.http.read("/version"))
-  }
-
-  async definitionStatistics(): Promise<DefinitionStatisticsView[]> {
-    return DefinitionViewParser.definitionStatistics(
-      await this.http.read("/process-definition/statistics"),
-    )
-  }
-
-  async activityStatistics(definitionId: string): Promise<ActivityStatisticsView[]> {
-    return DefinitionViewParser.activityStatistics(
-      await this.http.read(
-        `/process-definition/${RequestArguments.segment(definitionId)}/statistics`,
-      ),
-    )
-  }
-
-  async diagramXml(definitionId: string): Promise<string> {
-    return DefinitionViewParser.diagramXml(
-      await this.http.read(`/process-definition/${RequestArguments.segment(definitionId)}/xml`),
-    )
-  }
-
-  async incidents(query: IncidentQuery, page?: OffsetPage): Promise<IncidentView[]> {
+  async incidents(query: IncidentQuery, page?: OffsetPage): Promise<IncidentRow[]> {
     const filter = {
       processDefinitionId: RequestArguments.optionalIdentifier(query.processDefinitionId),
       processDefinitionKeyIn: RequestArguments.identifierList(query.processDefinitionKeyIn),
@@ -92,7 +58,7 @@ export class RestEngineClient implements EngineClient {
       sortBy: "incidentTimestamp",
       sortOrder: "desc",
     }
-    return IncidentViewParser.incidents(
+    return incidentRowsOf(
       page === undefined
         ? await this.http.readAll("/incident", filter)
         : await this.http.read("/incident", { ...filter, ...RestEngineClient.pageOf(page) }),
@@ -100,21 +66,19 @@ export class RestEngineClient implements EngineClient {
   }
 
   instancesWithIncident(scope: IncidentScope): Promise<InstanceWithIncident[]> {
-    return instancesWithIncident(this.core, scope)
+    return instancesWithIncident(this.port, scope)
   }
 
   countWithIncident(scope: IncidentScope): Promise<number> {
-    return countWithIncident(this.core, scope)
+    return countWithIncident(this.port, scope)
   }
 
   withIncidentAmong(instanceIds: readonly string[]): Promise<ReadonlySet<string>> {
-    return withIncidentAmong(this.core, instanceIds)
+    return withIncidentAmong(this.port, instanceIds)
   }
 
-  async incident(incidentId: string): Promise<IncidentView> {
-    return IncidentViewParser.incident(
-      await this.http.read(`/incident/${RequestArguments.segment(incidentId)}`),
-    )
+  async incident(incidentId: string): Promise<IncidentRow> {
+    return incidentRowOf(await this.http.read(`/incident/${RequestArguments.segment(incidentId)}`))
   }
 
   async historicInstances(

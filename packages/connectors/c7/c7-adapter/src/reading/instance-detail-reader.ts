@@ -20,8 +20,8 @@ import {
   type Variable,
   type WaitState,
 } from "@miragon/pulse-engine-core"
+import { definitionRefOf, definitionRefOfInstance } from "@miragon/pulse-c7-core/runtime"
 import { ErrorTranslation } from "../errors/error-translation.js"
-import { DefinitionRefs } from "../mapping/definition-refs.js"
 import { IncidentTexts } from "../mapping/incident-texts.js"
 import { InspectedVariables } from "../mapping/inspected-variables.js"
 import { InstanceStates } from "../mapping/instance-states.js"
@@ -63,7 +63,7 @@ export class InstanceDetailReader {
   }
 
   private async definitionsOfIncidentInstances(view: InspectView): Promise<DefinitionsByInstance> {
-    const definitions = new Map([[view.id, DefinitionRefs.of(view.definition)]])
+    const definitions = new Map([[view.id, definitionRefOf(view.definition)]])
     const calledIds = view.incidents
       .map((incident) => incident.processInstanceId)
       .filter(
@@ -76,7 +76,7 @@ export class InstanceDetailReader {
         { firstResult: 0, maxResults: called.length },
       )
       for (const row of rows) {
-        definitions.set(row.id, DefinitionRefs.ofInstance(row))
+        definitions.set(row.id, definitionRefOfInstance(row))
       }
     }
     return definitions
@@ -113,7 +113,7 @@ export class InstanceDetailReader {
   private summaryOf(view: InspectView): InstanceSummary {
     return {
       id: InstanceId(view.id),
-      definition: DefinitionRefs.of(view.definition),
+      definition: definitionRefOf(view.definition),
       state: InstanceStates.of(view.state),
       hasIncident: view.incidents.length > 0 || (view.propagatedIncidents ?? 0) > 0,
       ...Present.fields({

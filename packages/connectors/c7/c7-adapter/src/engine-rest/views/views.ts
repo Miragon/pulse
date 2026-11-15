@@ -4,42 +4,6 @@ import type {
   TimelineEntry,
 } from "@miragon/pulse-c7-core"
 
-export interface ProductView {
-  readonly name: string
-  readonly version: string
-}
-
-export interface DefinitionView {
-  readonly id: string
-  readonly key: string
-  readonly version: number
-  readonly name?: string
-  readonly deploymentId?: string
-  readonly versionTag?: string
-}
-
-export interface DefinitionStatisticsView {
-  readonly definition: DefinitionView
-  readonly instances: number
-}
-
-export interface ActivityStatisticsView {
-  readonly activityId: string
-  readonly instances: number
-}
-
-export interface IncidentView {
-  readonly id: string
-  readonly incidentType: string
-  readonly activityId: string
-  readonly processInstanceId?: string
-  readonly processDefinitionId?: string
-  readonly incidentMessage?: string
-  readonly incidentTimestamp: string
-  readonly rootCauseIncidentId?: string
-  readonly configuration?: string
-}
-
 export interface HistoricInstanceView {
   readonly id: string
   readonly businessKey?: string

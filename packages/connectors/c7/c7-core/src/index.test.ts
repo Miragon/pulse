@@ -119,8 +119,21 @@ describe("the @miragon/pulse-c7-core entries", () => {
     expect(Object.keys(routes)).toEqual(["ROUTES"])
   })
 
-  it("export exactly the checked views and the id rule from ./runtime", () => {
-    expect(Object.keys(runtime).sort()).toEqual(["JsonView", "engineIdOf", "isEngineId"])
+  it("export exactly the readers, the checked views, the id rule and what readers share from ./runtime", () => {
+    expect(Object.keys(runtime).sort()).toEqual([
+      "CalledProcessReader",
+      "DefinitionReader",
+      "ElementStatisticsReader",
+      "EngineReader",
+      "JsonView",
+      "definitionRefOf",
+      "definitionRefOfInstance",
+      "engineIdOf",
+      "incidentRowOf",
+      "incidentRowsOf",
+      "isEngineId",
+      "isRootIncident",
+    ])
   })
 
   it("export exactly the fixtures, the fake port and the test seams from ./testing", () => {
@@ -144,6 +157,7 @@ describe("the @miragon/pulse-c7-core entries", () => {
       "PARENT_DEF",
       "RECEIVE",
       "ROOT_NODE",
+      "RUNTIME_OPERATIONS",
       "SIGNAL",
       "STACKTRACE",
       "STATUS_OPERATIONS",

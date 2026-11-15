@@ -1,4 +1,5 @@
 import { toEngineDate, type IncidentScope } from "@miragon/pulse-c7-core"
+import { definitionRefOfInstance } from "@miragon/pulse-c7-core/runtime"
 import {
   InstanceId,
   type InstanceFilter,
@@ -17,7 +18,6 @@ import {
   type HistoricInstanceView,
   type VariableQueryCondition,
 } from "../engine-rest/index.js"
-import { DefinitionRefs } from "../mapping/definition-refs.js"
 import { InstanceStates } from "../mapping/instance-states.js"
 import { Timestamps } from "../mapping/timestamps.js"
 import { OffsetPaging, type OffsetWindow } from "./offset-paging.js"
@@ -145,7 +145,7 @@ export class InstanceSearch {
   private summaryOf(row: HistoricInstanceView, hasIncident: boolean): InstanceSummary {
     return {
       id: InstanceId(row.id),
-      definition: DefinitionRefs.ofInstance(row),
+      definition: definitionRefOfInstance(row),
       state: InstanceStates.of(row.state),
       hasIncident,
       ...Present.fields({

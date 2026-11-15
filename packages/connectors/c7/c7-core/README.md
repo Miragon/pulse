@@ -22,7 +22,7 @@ npm install @miragon/pulse-c7-core
 It has no peers. Its one runtime dependency is
 [`@miragon/pulse-engine-core`](https://www.npmjs.com/package/@miragon/pulse-engine-core), the
 engine family's core and the contract every engine dialect implements, whose root-cause rule
-(`RootCauses`) it applies and whose `RuntimeError` its `./runtime` entry throws.
+(`RootCauses`) it applies and whose `ProcessRuntime` reads its `./runtime` entry answers.
 
 ## Minimal example
 
@@ -100,17 +100,26 @@ missing.
   before anything is sent). `failureOf(status, problem)` is the engine failure of an error answer:
   the status and the exception type, message and code its body states (`problemOf` of
   `@miragon/pulse-http` reads them).
-- **Runtime:** `@miragon/pulse-c7-core/runtime`, an entry of its own, holds what the reads of
-  engine-core's `ProcessRuntime` build on, for a surface that implements that contract.
-  `JsonView` reads an engine answer with checks: `JsonView.of(answer, "incident")` is the object,
-  `requiredString("id")`, `optionalNumber("version")`, `optionalList("children")` and the like
-  read its values as the engine documents them, and an answer of another shape fails as
+- **Runtime:** `@miragon/pulse-c7-core/runtime`, an entry of its own, holds the reads of
+  engine-core's `ProcessRuntime` over your port, for a surface that implements that contract, one
+  reader per question: `EngineReader` (the product and version telemetry names, else the REST
+  API's version), `DefinitionReader` (every process by its latest version, its versions newest
+  first, each with its running instances and those "with incident", a version's BPMN XML),
+  `ElementStatisticsReader` (per element of a version the waiting tokens, the incidents raised
+  there and those of called instances) and `CalledProcessReader` (each call activity of a version
+  with the version its binding starts). A by-id read of something the engine does not know
+  answers undefined (an engine 404 that names it, or a 500 `NullValueException`, as `inspect` reads
+  an instance that ended); a list is read page by page until a shorter page, and an answer that is
+  no list fails. `incidentRowsOf`, `isRootIncident` and `definitionRefOf` are what those readers
+  share with yours. `JsonView` reads an engine answer with checks: `JsonView.of(answer, "incident")`
+  is the object, `requiredString("id")`, `optionalNumber("version")`, `optionalList("children")` and
+  the like read its values as the engine documents them, and an answer of another shape fails as
   `RuntimeError("unexpectedResponse")` in words that name what was wrong (`id is missing`,
   `incidents[1] is not an object`); an integer the caller kept as raw JSON (`JSON.rawJSON`, beyond
-  2^53) is a value, never an object. `isEngineId(value)` is the one id rule of the family (a
-  letter, digit or underscore, then word characters, dots, colons and hyphens), so an id that
-  would change a path or a query is refused before a request leaves; `engineIdOf(value)` fails
-  one as `RuntimeError("misconfigured")`.
+  2^53) is a value, never an object. `isEngineId(value)` is the one id rule of the family (a letter,
+  digit or underscore, then word characters, dots, colons and hyphens), so an id that would change a
+  path or a query is refused before a request leaves; `engineIdOf(value)` fails one as
+  `RuntimeError("misconfigured")`.
 - **Engine REST rules:** dates (`toEngineDate`, `engineDateInput` in a `DateInputReading`:
   `OFFSET_REQUIRED` refuses a time without an offset, `UTC_WITHOUT_OFFSET` reads it as UTC;
   `engineDateMillis`, `latestEngineDate`), true-only and `…Like` filters (`trueOnly`,
@@ -152,23 +161,24 @@ package.
   `engine_inspect_process_instance` and `engine_status`, builds its cockpit's failure clusters
   and health verdict from the same rules, flags its instance rows with `withIncidentAmong` and
   checks a history query by incident with `unrecordedIncidents`.
-- Pulse for VS Code and Pulse for Orca bundle it in their C7 adapter: it reads every engine
-  answer through `JsonView` and checks every id with `isEngineId` (`./runtime`), an instance's
-  panel reads through `loadInstance`, an incident's retry and the incident list take its job or
-  external task from `incidentRecovery`, its details their request from `CAUSE_OPERATIONS`; a
-  variable change without a type that is no JSON string, object or array is typed by
-  `autoTypedValue`, every change is sent in the form of `toEngineVariable`, and every
-  "with incident" (a process's and a version's count, an instance list's scope and its rows'
-  flags) is the runtime's of `with-incident.ts`.
+- Pulse for VS Code and Pulse for Orca bundle it in their C7 adapter: it answers the engine, its
+  processes, a version's diagram, the counts on it and the processes it calls with the readers of
+  `./runtime`, reads every engine answer through `JsonView` and checks every id with `isEngineId`,
+  an instance's panel reads through `loadInstance`, an incident's retry and the incident list take
+  its job or external task from `incidentRecovery`, its details their request from
+  `CAUSE_OPERATIONS`; a variable change without a type that is no JSON string, object or array is
+  typed by `autoTypedValue`, every change is sent in the form of `toEngineVariable`, and every "with
+  incident" (a process's and a version's count, an instance list's scope and its rows' flags) is the
+  runtime's of `with-incident.ts`.
 
 ## Testing helpers
 
 `@miragon/pulse-c7-core/testing` exports the verified workflow fixture, the status fixture, wait
 states of every kind, `fakePort` (a recording port over canned answers that refuses any operation
 without a route) and `fakeClock`. It also exports the rules behind the entry's functions that
-tests reach directly, and `INSPECT_OPERATIONS`, `STATUS_OPERATIONS` and
-`WITH_INCIDENT_OPERATIONS`, the operations each composite sends: a port that maps operations one by
-one holds its table equal to them in a test.
+tests reach directly, and `INSPECT_OPERATIONS`, `STATUS_OPERATIONS`, `WITH_INCIDENT_OPERATIONS`
+and `RUNTIME_OPERATIONS`, the operations each composite and the runtime's readers send: a port that
+maps operations one by one holds its table equal to them in a test.
 
 ## Help and feedback
 

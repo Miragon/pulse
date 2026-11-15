@@ -1,34 +1,27 @@
-import type { IncidentScope, InstanceWithIncident } from "@miragon/pulse-c7-core"
+import type { EnginePort, IncidentScope, InstanceWithIncident } from "@miragon/pulse-c7-core"
+import type { IncidentRow } from "@miragon/pulse-c7-core/runtime"
 import type {
   ActivityInstanceView,
-  ActivityStatisticsView,
   BatchStatisticsView,
   HistoricBatchView,
-  DefinitionStatisticsView,
   FailedJobView,
   HistoricInstanceQuery,
   HistoricInstanceView,
   IncidentQuery,
-  IncidentView,
   InspectView,
   MigrationPlanView,
   MigrationReportView,
   OffsetPage,
-  ProductView,
   VariableView,
 } from "./views/views.js"
 
 export interface EngineClient {
-  product(): Promise<ProductView>
-  version(): Promise<string>
-  definitionStatistics(): Promise<DefinitionStatisticsView[]>
-  activityStatistics(definitionId: string): Promise<ActivityStatisticsView[]>
-  diagramXml(definitionId: string): Promise<string>
-  incidents(query: IncidentQuery, page?: OffsetPage): Promise<IncidentView[]>
+  readonly port: EnginePort
+  incidents(query: IncidentQuery, page?: OffsetPage): Promise<IncidentRow[]>
   instancesWithIncident(scope: IncidentScope): Promise<InstanceWithIncident[]>
   countWithIncident(scope: IncidentScope): Promise<number>
   withIncidentAmong(instanceIds: readonly string[]): Promise<ReadonlySet<string>>
-  incident(incidentId: string): Promise<IncidentView>
+  incident(incidentId: string): Promise<IncidentRow>
   historicInstances(query: HistoricInstanceQuery, page: OffsetPage): Promise<HistoricInstanceView[]>
   historicInstanceCount(query: HistoricInstanceQuery): Promise<number>
   inspect(instanceId: string): Promise<InspectView | undefined>

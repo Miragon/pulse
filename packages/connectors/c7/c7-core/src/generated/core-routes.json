@@ -1,5 +1,6 @@
 {
  "getActivityInstanceTree": {"operationId":"getActivityInstanceTree","method":"GET","path":"/process-instance/{id}/activity-instances","effect":"read","engineScoped":true,"accepts":["application/json"]},
+ "getActivityStatistics": {"operationId":"getActivityStatistics","method":"GET","path":"/process-definition/{id}/statistics","effect":"read","engineScoped":true,"accepts":["application/json"]},
  "getBatchStatistics": {"operationId":"getBatchStatistics","method":"GET","path":"/batch/statistics","effect":"read","engineScoped":true,"accepts":["application/json"]},
  "getEventSubscriptions": {"operationId":"getEventSubscriptions","method":"GET","path":"/event-subscription","effect":"read","engineScoped":true,"accepts":["application/json"]},
  "getExternalTaskErrorDetails": {"operationId":"getExternalTaskErrorDetails","method":"GET","path":"/external-task/{id}/errorDetails","effect":"read","engineScoped":true,"accepts":["text/plain"]},
@@ -16,6 +17,7 @@
  "getJobDefinitions": {"operationId":"getJobDefinitions","method":"GET","path":"/job-definition","effect":"read","engineScoped":true,"accepts":["application/json"]},
  "getJobs": {"operationId":"getJobs","method":"GET","path":"/job","effect":"read","engineScoped":true,"accepts":["application/json"]},
  "getJobsCount": {"operationId":"getJobsCount","method":"GET","path":"/job/count","effect":"read","engineScoped":true,"accepts":["application/json"]},
+ "getProcessDefinitionBpmn20Xml": {"operationId":"getProcessDefinitionBpmn20Xml","method":"GET","path":"/process-definition/{id}/xml","effect":"read","engineScoped":true,"accepts":["application/json"]},
  "getProcessDefinitionStatistics": {"operationId":"getProcessDefinitionStatistics","method":"GET","path":"/process-definition/statistics","effect":"read","engineScoped":true,"accepts":["application/json"]},
  "getProcessDefinitions": {"operationId":"getProcessDefinitions","method":"GET","path":"/process-definition","effect":"read","engineScoped":true,"accepts":["application/json"]},
  "getProcessInstance": {"operationId":"getProcessInstance","method":"GET","path":"/process-instance/{id}","effect":"read","engineScoped":true,"accepts":["application/json"]},
@@ -25,5 +27,6 @@
  "getRestAPIVersion": {"operationId":"getRestAPIVersion","method":"GET","path":"/version","effect":"read","engineScoped":false,"accepts":["application/json"]},
  "getStacktrace": {"operationId":"getStacktrace","method":"GET","path":"/job/{id}/stacktrace","effect":"read","engineScoped":true,"accepts":["text/plain"]},
  "getTasks": {"operationId":"getTasks","method":"GET","path":"/task","effect":"read","engineScoped":true,"accepts":["application/json"]},
- "getTasksCount": {"operationId":"getTasksCount","method":"GET","path":"/task/count","effect":"read","engineScoped":true,"accepts":["application/json"]}
+ "getTasksCount": {"operationId":"getTasksCount","method":"GET","path":"/task/count","effect":"read","engineScoped":true,"accepts":["application/json"]},
+ "getTelemetryData": {"operationId":"getTelemetryData","method":"GET","path":"/telemetry/data","effect":"read","engineScoped":true,"accepts":["application/json"]}
 }

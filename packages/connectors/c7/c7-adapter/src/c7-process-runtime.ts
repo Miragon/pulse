@@ -24,13 +24,15 @@ import type {
   ProcessRuntime,
   VersionSummary,
 } from "@miragon/pulse-engine-core"
+import {
+  CalledProcessReader,
+  DefinitionReader,
+  ElementStatisticsReader,
+  EngineReader,
+} from "@miragon/pulse-c7-core/runtime"
 import { ErrorTranslation } from "./errors/error-translation.js"
 import type { EngineClient } from "./engine-rest/index.js"
 import { BulkOperationReader } from "./reading/bulk-operation-reader.js"
-import { CalledProcessReader } from "./reading/called-process-reader.js"
-import { DefinitionReader } from "./reading/definition-reader.js"
-import { ElementStatisticsReader } from "./reading/element-statistics-reader.js"
-import { EngineReader } from "./reading/engine-reader.js"
 import { IncidentDetailsReader } from "./reading/incident-details-reader.js"
 import { IncidentSearch } from "./reading/incident-search.js"
 import { InstanceDetailReader } from "./reading/instance-detail-reader.js"
@@ -56,12 +58,12 @@ export class C7ProcessRuntime implements ProcessRuntime {
   constructor(private readonly readers: C7Readers) {}
 
   static create(client: EngineClient): C7ProcessRuntime {
-    const definitions = new DefinitionReader(client)
+    const definitions = new DefinitionReader(client.port)
     return new C7ProcessRuntime({
-      engine: new EngineReader(client),
+      engine: new EngineReader(client.port),
       definitions,
-      statistics: new ElementStatisticsReader(client),
-      calls: new CalledProcessReader(client),
+      statistics: new ElementStatisticsReader(client.port),
+      calls: new CalledProcessReader(client.port),
       instances: new InstanceSearch(client),
       variableNames: new VariableNameReader(client),
       instanceDetails: new InstanceDetailReader(client),

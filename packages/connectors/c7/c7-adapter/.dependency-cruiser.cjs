@@ -70,7 +70,7 @@ module.exports = {
       name: "not-in-allowed",
       severity: "error",
       comment:
-        "No entry of `allowed` in packages/connectors/c7/c7-adapter/.dependency-cruiser.cjs permits this import. The adapter uses its own modules, the main entry of @miragon/pulse-engine-core (the contract), the main entry of @miragon/pulse-c7-core (the c7 dialect's workflow domain) and its ./runtime entry (what the engine contract's reads build on), never another subpath, the runtime view's ports (@miragon/pulse-runtime-view/ports), in its BPMN dialect (src/c7-bpmn-dialect.ts) the descriptor of camunda-bpmn-moddle, in its wire (src/engine-rest/http) the main entry of the transport @miragon/pulse-http, and no Node built-in: the REST client runs on the global fetch of its host's runtime.",
+        "No entry of `allowed` in packages/connectors/c7/c7-adapter/.dependency-cruiser.cjs permits this import. The adapter uses its own modules, the main entry of @miragon/pulse-engine-core (the contract), the main entry of @miragon/pulse-c7-core (the c7 dialect's workflow domain) and its ./runtime entry (the engine contract's reads and what they build on), never another subpath, the runtime view's ports (@miragon/pulse-runtime-view/ports), in its BPMN dialect (src/c7-bpmn-dialect.ts) the descriptor of camunda-bpmn-moddle, in its wire (src/engine-rest/http) the main entry of the transport @miragon/pulse-http, and no Node built-in: the REST client runs on the global fetch of its host's runtime.",
       from: {},
       to: { path: "^$" },
     },

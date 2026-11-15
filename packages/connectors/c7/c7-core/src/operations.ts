@@ -1,7 +1,8 @@
 /**
- * The operations each composite may send, by operation id: the contract with a port adapter that
- * maps operations one by one (the engine connector holds its table equal to the union), and the
- * list `CORE_ROUTES` holds the route of (scripts/generate-routes.ts picks them from the table).
+ * The operations each composite and the reads of `./runtime` may send, by operation id: the
+ * contract with a port adapter that maps operations one by one (the engine connector holds its
+ * table equal to the union), and the list `CORE_ROUTES` holds the route of
+ * (scripts/generate-routes.ts picks them from the table).
  */
 
 /** `inspectInstance`: the selection reads, the rounds of the instance view and its root causes. */
@@ -61,6 +62,20 @@ export const WITH_INCIDENT_OPERATIONS = [
   "getHistoricIncidents",
 ] as const
 
+/**
+ * The reads of the engine contract (`./runtime`): what the engine is, its processes and their
+ * versions with "with incident", a version's diagram, the counts on it and the processes it calls.
+ */
+export const RUNTIME_OPERATIONS = [
+  "getTelemetryData",
+  "getRestAPIVersion",
+  "getProcessDefinitionStatistics",
+  "getProcessInstances",
+  "getProcessDefinitionBpmn20Xml",
+  "getActivityStatistics",
+  "getIncidents",
+] as const
+
 /** Every operation c7-core sends, once each, in code unit order: all of them read. */
 export const CORE_OPERATIONS: readonly string[] = [
   ...new Set<string>([
@@ -68,5 +83,6 @@ export const CORE_OPERATIONS: readonly string[] = [
     ...STATUS_OPERATIONS,
     ...CONDITION_OPERATIONS,
     ...WITH_INCIDENT_OPERATIONS,
+    ...RUNTIME_OPERATIONS,
   ]),
 ].sort()

@@ -8,15 +8,13 @@ import {
   type Page,
   type PageRequest,
 } from "@miragon/pulse-engine-core"
-import { RootIncident } from "../mapping/root-incident.js"
-import { Timestamps } from "../mapping/timestamps.js"
 import {
-  Present,
-  RecoveryTargets,
-  type EngineClient,
-  type IncidentView,
-} from "../engine-rest/index.js"
-import type { DefinitionReader } from "./definition-reader.js"
+  isRootIncident,
+  type DefinitionReader,
+  type IncidentRow,
+} from "@miragon/pulse-c7-core/runtime"
+import { Timestamps } from "../mapping/timestamps.js"
+import { Present, RecoveryTargets, type EngineClient } from "../engine-rest/index.js"
 import { OffsetPaging } from "./offset-paging.js"
 
 export class IncidentSearch {
@@ -39,12 +37,12 @@ export class IncidentSearch {
     ])
     return paging.pageOf(rows, (pageRows) =>
       pageRows
-        .filter((row) => RootIncident.is(row))
+        .filter((row) => isRootIncident(row))
         .flatMap((row) => this.incidentOf(row, definitionsById.get(row.processDefinitionId ?? ""))),
     )
   }
 
-  private incidentOf(row: IncidentView, definition: DefinitionRef | undefined): Incident[] {
+  private incidentOf(row: IncidentRow, definition: DefinitionRef | undefined): Incident[] {
     if (row.processInstanceId === undefined || definition === undefined) {
       return []
     }

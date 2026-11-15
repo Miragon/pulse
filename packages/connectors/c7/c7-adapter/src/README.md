@@ -43,8 +43,9 @@ Writes (`ProcessCommands`) take the same road on a connection that may write.
 ## Where things are
 
 - `packages/connectors/c7/c7-adapter/src`: `C7Adapter` builds a runtime and commands per engine connection and names the local engine a host falls back to; `C7BpmnDialect`, the vocabulary of Camunda 7's BPMN files (the one file that imports `camunda-bpmn-moddle`'s descriptor)
-- `packages/connectors/c7/c7-adapter/src/reading`: one reader per question, e.g. `InstanceDetailReader`, with its own mapping
-- `packages/connectors/c7/c7-adapter/src/mapping`: what several readers share: definition refs, states, timestamps, root incidents, the root cause of incident details (`RootCauses`)
+- `packages/connectors/c7/c7-core/src/runtime`: c7-core's readers of the engine, its processes, the counts on a diagram and the processes a version calls, which `C7ProcessRuntime` runs over the client's port; with them the incidents of an answer, the root incident and a version's reference, which the adapter's readers take from there
+- `packages/connectors/c7/c7-adapter/src/reading`: one reader per question the adapter still answers itself, e.g. `InstanceDetailReader`, with its own mapping
+- `packages/connectors/c7/c7-adapter/src/mapping`: what several of those readers share: states, timestamps, the root cause of incident details (`RootCauses`)
 - `packages/connectors/c7/c7-adapter/src/writing`, `packages/connectors/c7/c7-adapter/src/errors`: the bodies of a variable change and a move, the token a move cancels; failures to `RuntimeError`
 - `packages/connectors/c7/c7-adapter/src/web-ui`: `CockpitWebUi`: links into Cockpit or the CIB seven webclient
 - `packages/connectors/c7/c7-adapter/src/engine-rest`: the REST client: requests, paging, parsed and checked views, ids checked by c7-core's `isEngineId`

@@ -1,16 +1,16 @@
 import { CAUSE_OPERATIONS } from "@miragon/pulse-c7-core"
+import { isRootIncident, type IncidentRow } from "@miragon/pulse-c7-core/runtime"
 import type { IncidentDetails, IncidentId } from "@miragon/pulse-engine-core"
 import { ErrorTranslation } from "../errors/error-translation.js"
 import { IncidentTexts } from "../mapping/incident-texts.js"
-import { RootIncident } from "../mapping/root-incident.js"
-import { RecoveryTargets, type IncidentView, type EngineClient } from "../engine-rest/index.js"
+import { RecoveryTargets, type EngineClient } from "../engine-rest/index.js"
 
 export class IncidentDetailsReader {
   constructor(private readonly client: EngineClient) {}
 
   async read(incidentId: IncidentId): Promise<IncidentDetails | undefined> {
     const incident = await ErrorTranslation.unlessMissing(() => this.client.incident(incidentId))
-    if (incident === undefined || !RootIncident.is(incident)) {
+    if (incident === undefined || !isRootIncident(incident)) {
       return undefined
     }
     const engineText = await this.engineTextOf(incident)
@@ -24,7 +24,7 @@ export class IncidentDetailsReader {
     return undefined
   }
 
-  private engineTextOf(incident: IncidentView): Promise<string | undefined> {
+  private engineTextOf(incident: IncidentRow): Promise<string | undefined> {
     const operation = CAUSE_OPERATIONS.get(incident.incidentType)
     const target = RecoveryTargets.of(incident)
     if (operation === undefined || target === undefined) {
