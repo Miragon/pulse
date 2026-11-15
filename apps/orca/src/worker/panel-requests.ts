@@ -1,7 +1,7 @@
 import type { OrcaWorkerApi, PanelCaller } from "orca/worker"
+import { StarterBoard } from "@miragon/pulse-board"
 import type { Login, TargetsProblem } from "@miragon/pulse-runtime-view/host-kit"
 import type { ConfigurationProblem, EngineList, ViewRequest } from "../protocol.js"
-import { BoardTemplate } from "./board-template.js"
 import type { CockpitViews } from "./cockpit-views.js"
 import { EngineRows } from "./engine-rows.js"
 import type { EngineRegistry } from "./engine-registry.js"
@@ -141,7 +141,7 @@ export class PanelRequests {
     const path = await this.parts.files.createBoard(
       await this.parts.services.root(),
       slug,
-      BoardTemplate.of(title, engines),
+      StarterBoard.of(title, engines),
     )
     await this.parts.workspaces.openFile(path)
     return { path }

@@ -15,3 +15,4 @@ export type {
 export { BoardParser, type BoardParse } from "./format/board-parser.js"
 export { BoardVocabulary } from "./format/board-vocabulary.js"
 export type { BoardProblem } from "./format/parse-problems.js"
+export { StarterBoard } from "./format/starter-board.js"

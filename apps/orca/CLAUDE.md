@@ -89,9 +89,10 @@ root-owned core files in the repository root and `apps/orca/dist/.orca`: remove 
 
 The dependency rules are closed-world (`apps/orca/.dependency-cruiser.cjs`): the worker uses the
 runtime view's ports, core, protocol and host kit, the main entry of the engine contract
-`@miragon/pulse-engine-core` (its ids and read models), `orca/worker` and Node built-ins; the panel
-`orca` and the protocol's types; the frames the protocol's types; only the composition root the
-adapters and the model reader. No part imports a dialect's core (`plugin-is-dialect-neutral`) or
+`@miragon/pulse-engine-core` (its ids and read models), the main entry of the board format
+`@miragon/pulse-board` (the starter board of a new board), `orca/worker` and Node built-ins; the
+panel `orca` and the protocol's types; the frames the protocol's types; only the composition root
+the adapters and the model reader. No part imports a dialect's core (`plugin-is-dialect-neutral`) or
 the transport `@miragon/pulse-http`, which the adapters' wires alone send through (the
 repository's `http-consumers`), over the worker's global `fetch`. The repository's licence list
 (`scripts/third-party-licenses.mjs`), which the licence test reads, may use Node built-ins and

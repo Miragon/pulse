@@ -75,14 +75,39 @@ the document) and the reason in English.
   `state` (`running` by default, or `ended`), `withIncident`, `businessKey`.
 - `schemaVersion` 1, or none, which reads as 1.
 
-`BoardVocabulary` lists every key, widget, prop, state, grouping and column, so a JSON Schema
-or a reader of its own can be held to the parser.
+`BoardVocabulary` lists every key, widget, prop, state, grouping and column, so a reader of its
+own can be held to the parser, as the package holds its JSON Schema.
+
+## A new board
+
+`StarterBoard.of(title, engines)` returns the text of the board Pulse for VS Code's **Pulse: New
+Board…** and Pulse for Orca's new board write: the instances running and those with an incident,
+the incidents per process and a list of the running instances, over the engines it is given. It
+adds no engine of its own: a starter board written without engines is refused when it is read, with
+the problem at `engines`.
+
+## The JSON Schema
+
+`schema/board.schema.json` (`@miragon/pulse-board/schema/board.schema.json`) lets an editor
+complete and check a board file. It knows exactly the keys, widgets, props and values the parser
+reads, and takes every board of the fixtures below that the parser takes; what only the parser
+sees (more than 12 widgets, a widget naming an engine outside the board, an element without its
+process) it leaves to the parser. Pulse for VS Code ships a copy of it, held equal by a test.
+
+## Fixtures
+
+`@miragon/pulse-board/testing` exports `BOARD_FIXTURES`: each case a board file's text, whether
+the JSON Schema takes it and the parser's verdict as data, a board with its defaults filled in or
+every problem with its path. The package's tests run them through the parser and the schema; a
+reader of its own runs them through its path.
 
 ## Entries
 
-| Entry                  | Holds                                                                               |
-| ---------------------- | ----------------------------------------------------------------------------------- |
-| `@miragon/pulse-board` | `BoardParser`, `BoardVocabulary` and the types of a board, its widgets and problems |
+| Entry                                           | Holds                                                                                               |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `@miragon/pulse-board`                          | `BoardParser`, `BoardVocabulary`, `StarterBoard` and the types of a board, its widgets and problems |
+| `@miragon/pulse-board/schema/board.schema.json` | The JSON Schema of a board file                                                                     |
+| `@miragon/pulse-board/testing`                  | `BOARD_FIXTURES`, the shared fixtures                                                               |
 
 ## Stability
 

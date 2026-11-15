@@ -1,7 +1,7 @@
 {
   "name": "@miragon/pulse-board",
   "version": "0.27.1",
-  "description": "The board file format of Pulse: the types of a board, a parser that takes the text of a .board.json file and returns the board or every problem with its JSON path, and the vocabulary of its widgets, filters and columns. No runtime dependency.",
+  "description": "The board file format of Pulse: the types of a board, a parser that takes the text of a .board.json file and returns the board or every problem with its JSON path, the vocabulary of its widgets, filters and columns, a starter board, the JSON Schema for editors and the shared fixtures. No runtime dependency.",
   "license": "MIT",
   "keywords": [
     "bpmn",
@@ -29,6 +29,7 @@
   "files": [
     "dist",
     "!dist/**/*.test.*",
+    "schema",
     "src",
     "!src/**/*.test.*",
     "!src/**/*.test-support.*",
@@ -41,6 +42,11 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./schema/board.schema.json": "./schema/board.schema.json",
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js"
     }
   },
   "scripts": {
@@ -51,6 +57,7 @@
     "lint:fix": "eslint src test --fix"
   },
   "devDependencies": {
+    "ajv": "8.20.0",
     "typescript": "6.0.3",
     "vitest": "5.1.0"
   }

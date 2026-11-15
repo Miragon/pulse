@@ -1,7 +1,9 @@
-export class BoardTemplate {
+import { BoardVocabulary } from "./board-vocabulary.js"
+
+export class StarterBoard {
   static of(title: string, engines: readonly string[]): string {
     const board = {
-      schemaVersion: 1,
+      schemaVersion: BoardVocabulary.SCHEMA_VERSION,
       title,
       engines,
       rows: [

@@ -1,10 +1,10 @@
 import { describe, expect, test, vi } from "vitest"
+import { StarterBoard } from "@miragon/pulse-board"
 import { FailingRuntime, type ProcessRuntime, RuntimeError } from "@miragon/pulse-engine-core"
 import { FakeEngine, FakeWorld } from "@miragon/pulse-engine-core/testing"
 import type { BoardTile, BoardView } from "@miragon/pulse-runtime-view/protocol"
 import type { Connection } from "@miragon/pulse-runtime-view/host-kit"
 import { LOCAL_TARGET } from "./local-target.js"
-import { BoardTemplate } from "../src/worker/board-template.js"
 import { BoardViews } from "../src/worker/board-views.js"
 import type { EngineRegistry } from "../src/worker/engine-registry.js"
 import { ConnectionLive } from "./connection-live.js"
@@ -39,7 +39,7 @@ class Harness {
 
   static async ready(engines: readonly string[] = ["shop"]): Promise<Harness> {
     const harness = new Harness()
-    harness.boards.attach("frame", BoardTemplate.of("Shop", engines))
+    harness.boards.attach("frame", StarterBoard.of("Shop", engines))
     await harness.boards.intent("frame", { type: "ready" })
     return harness
   }

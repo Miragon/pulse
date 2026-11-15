@@ -1,4 +1,5 @@
 import * as vscode from "vscode"
+import { StarterBoard } from "@miragon/pulse-board"
 import { BoardFiles } from "../boards/board-files.js"
 import type { BoardPanels } from "../boards/board-panels.js"
 import type { ConnectionRegistry } from "../connections/connection-registry.js"
@@ -33,7 +34,7 @@ export class NewBoardCommand implements Command {
     const engines = this.registry.all().map((connection) => connection.target.name)
     await vscode.workspace.fs.writeFile(
       file,
-      new TextEncoder().encode(BoardFiles.template(title.trim(), engines)),
+      new TextEncoder().encode(StarterBoard.of(title.trim(), engines)),
     )
     await vscode.window.showTextDocument(file)
     this.boards.open(file)

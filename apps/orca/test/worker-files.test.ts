@@ -1,6 +1,7 @@
 import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises"
 import { basename, join } from "node:path"
 import { afterEach, describe, expect, test } from "vitest"
+import { StarterBoard } from "@miragon/pulse-board"
 import type { FileRow, FoundInstance, ModelRow } from "../src/protocol.js"
 import activate, { deactivate } from "../src/worker/main.js"
 import { EDITOR_FRAME } from "./fake-orca.js"
@@ -43,14 +44,15 @@ describe("boards in the workspace", () => {
     })
   })
 
-  test("name a board without a usable title after its kind", async () => {
+  test("name a board without a usable title after its kind and write the starter board", async () => {
     const harness = await started()
 
     const created = (await harness.request("boards.create", { title: "!!!" })) as { path: string }
-    const board = JSON.parse(await readFile(created.path, "utf8")) as { engines: string[] }
 
     expect(created.path).toMatch(/board\.board\.json$/)
-    expect(board.engines).toEqual(["shop-dev", "prod-eu"])
+    expect(await readFile(created.path, "utf8")).toBe(
+      StarterBoard.of("!!!", ["shop-dev", "prod-eu"]),
+    )
   })
 
   test("in a nested folder show their folder relative to the workspace", async () => {

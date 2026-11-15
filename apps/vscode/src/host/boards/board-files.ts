@@ -23,27 +23,4 @@ export class BoardFiles {
   static fileIn(folder: vscode.Uri, slug: string): vscode.Uri {
     return vscode.Uri.joinPath(folder, ...FOLDER, `${slug}${SUFFIX}`)
   }
-
-  static template(title: string, engines: readonly string[], process?: string): string {
-    const filter = process === undefined ? {} : { process }
-    const board = {
-      schemaVersion: 1,
-      title,
-      engines,
-      rows: [
-        {
-          row: [
-            { widget: "counter", props: { title: "Running", filter } },
-            {
-              widget: "counter",
-              props: { title: "With incident", filter: { ...filter, withIncident: true } },
-            },
-            { widget: "incidentSummary", props: { title: "With incident per process" } },
-          ],
-        },
-        { row: [{ widget: "instanceList", props: { filter } }] },
-      ],
-    }
-    return `${JSON.stringify(board, undefined, 2)}\n`
-  }
 }

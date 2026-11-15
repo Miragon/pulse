@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test, vi } from "vitest"
+import { StarterBoard } from "@miragon/pulse-board"
 import type { Prompt } from "../src/protocol.js"
 import activate, { deactivate } from "../src/worker/main.js"
-import { BoardTemplate } from "../src/worker/board-template.js"
 import { EDITOR_FRAME, PULSE_PANEL } from "./fake-orca.js"
 import { REMOTE_ENDPOINT, WorkerHarness } from "./worker-harness.js"
 
@@ -145,7 +145,7 @@ describe("boards in editor tabs", () => {
     const harness = await WorkerHarness.withProject()
     harness.adapter.unauthorized.add(REMOTE_ENDPOINT)
     activate(harness.orca.api())
-    const text = BoardTemplate.of("Shop", ["shop-dev", "prod-eu"])
+    const text = StarterBoard.of("Shop", ["shop-dev", "prod-eu"])
     await harness.request("board.attach", { text }, EDITOR_FRAME)
     await harness.request("cockpit.intent", { intent: { type: "ready" } }, EDITOR_FRAME)
 
@@ -170,7 +170,7 @@ describe("boards in editor tabs", () => {
 
   test("render the board text and follow its edits", async () => {
     const harness = await started()
-    const text = BoardTemplate.of("Shop", ["shop-dev"])
+    const text = StarterBoard.of("Shop", ["shop-dev"])
 
     expect(await harness.request("board.attach", { text }, EDITOR_FRAME)).toEqual({
       attached: true,
@@ -186,7 +186,7 @@ describe("boards in editor tabs", () => {
 
   test("copy from a board within the click", async () => {
     const harness = await started()
-    await harness.request("board.attach", { text: BoardTemplate.of("Shop", []) }, EDITOR_FRAME)
+    await harness.request("board.attach", { text: StarterBoard.of("Shop", []) }, EDITOR_FRAME)
 
     const answer = await harness.request(
       "cockpit.intent",

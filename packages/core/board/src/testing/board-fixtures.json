@@ -1,0 +1,743 @@
+[
+  {
+    "name": "not-json",
+    "about": "Text that is not JSON gives no board.",
+    "text": "{ \"title\": \"Shop\"\n",
+    "schema": false,
+    "verdict": { "problems": [{ "path": "(file)", "reason": "is not valid JSON" }] }
+  },
+  {
+    "name": "root-array",
+    "about": "A root that is no object gives no board.",
+    "text": "[]\n",
+    "schema": false,
+    "verdict": { "problems": [{ "path": "(file)", "reason": "must be an object" }] }
+  },
+  {
+    "name": "starter-board",
+    "about": "The starter board both editors write, with the engines they know.",
+    "file": {
+      "schemaVersion": 1,
+      "title": "Shop",
+      "engines": ["shop-dev", "shop-test"],
+      "rows": [
+        {
+          "row": [
+            { "widget": "counter", "props": { "title": "Running", "filter": {} } },
+            {
+              "widget": "counter",
+              "props": { "title": "With incident", "filter": { "withIncident": true } }
+            },
+            { "widget": "incidentSummary", "props": { "title": "With incident per process" } }
+          ]
+        },
+        { "row": [{ "widget": "instanceList", "props": { "filter": {} } }] }
+      ]
+    },
+    "schema": true,
+    "verdict": {
+      "board": {
+        "title": "Shop",
+        "engines": ["shop-dev", "shop-test"],
+        "rows": [
+          [
+            {
+              "widget": "counter",
+              "engines": ["shop-dev", "shop-test"],
+              "title": "Running",
+              "filter": { "state": "running" }
+            },
+            {
+              "widget": "counter",
+              "engines": ["shop-dev", "shop-test"],
+              "title": "With incident",
+              "filter": { "state": "running", "withIncident": true }
+            },
+            {
+              "widget": "incidentSummary",
+              "engines": ["shop-dev", "shop-test"],
+              "title": "With incident per process",
+              "groupBy": "process"
+            }
+          ],
+          [
+            {
+              "widget": "instanceList",
+              "engines": ["shop-dev", "shop-test"],
+              "filter": { "state": "running" },
+              "columns": ["businessKey", "process", "state", "startedAt"]
+            }
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "name": "empty-rows",
+    "about": "A board without widgets is a board; no schemaVersion reads as 1.",
+    "file": { "title": "Shop", "engines": ["shop-dev"], "rows": [] },
+    "schema": true,
+    "verdict": { "board": { "title": "Shop", "engines": ["shop-dev"], "rows": [] } }
+  },
+  {
+    "name": "defaults",
+    "about": "The parser fills in running instances, the board's engines and the default columns.",
+    "file": {
+      "title": "Shop",
+      "engines": ["shop-dev", "shop-test"],
+      "rows": [
+        { "row": [{ "widget": "instanceList", "props": { "filter": { "process": "order" } } }] }
+      ]
+    },
+    "schema": true,
+    "verdict": {
+      "board": {
+        "title": "Shop",
+        "engines": ["shop-dev", "shop-test"],
+        "rows": [
+          [
+            {
+              "widget": "instanceList",
+              "engines": ["shop-dev", "shop-test"],
+              "filter": { "state": "running", "process": "order" },
+              "columns": ["businessKey", "process", "state", "startedAt"]
+            }
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "name": "every-widget",
+    "about": "Every widget with every prop it takes, a schema link and the version.",
+    "file": {
+      "$schema": "./board.schema.json",
+      "schemaVersion": 1,
+      "title": "Order operations",
+      "engines": ["shop-dev", "shop-test"],
+      "rows": [
+        {
+          "row": [
+            {
+              "widget": "counter",
+              "props": {
+                "title": "Waiting for payment",
+                "engines": ["shop-dev"],
+                "filter": {
+                  "process": "order",
+                  "activeElement": "Task_Pay",
+                  "state": "running",
+                  "withIncident": false,
+                  "businessKey": "B-1"
+                },
+                "warnAbove": 10
+              }
+            },
+            {
+              "widget": "instanceList",
+              "props": {
+                "title": "Ended orders",
+                "engines": ["shop-test"],
+                "filter": { "process": "order", "state": "ended" },
+                "columns": [
+                  "engine",
+                  "process",
+                  "version",
+                  "businessKey",
+                  "state",
+                  "startedAt",
+                  "endedAt",
+                  "incident"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "row": [
+            {
+              "widget": "incidentSummary",
+              "props": {
+                "title": "Per engine",
+                "engines": ["shop-dev", "shop-test"],
+                "groupBy": "engine"
+              }
+            },
+            {
+              "widget": "processDiagram",
+              "props": { "title": "Order", "engines": ["shop-dev"], "process": "order" }
+            },
+            {
+              "widget": "incidentList",
+              "props": {
+                "title": "Order incidents",
+                "engines": ["shop-dev", "shop-test"],
+                "process": "order"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "schema": true,
+    "verdict": {
+      "board": {
+        "title": "Order operations",
+        "engines": ["shop-dev", "shop-test"],
+        "rows": [
+          [
+            {
+              "widget": "counter",
+              "engines": ["shop-dev"],
+              "title": "Waiting for payment",
+              "filter": {
+                "state": "running",
+                "process": "order",
+                "activeElement": "Task_Pay",
+                "businessKey": "B-1",
+                "withIncident": false
+              },
+              "warnAbove": 10
+            },
+            {
+              "widget": "instanceList",
+              "engines": ["shop-test"],
+              "title": "Ended orders",
+              "filter": { "state": "ended", "process": "order" },
+              "columns": [
+                "engine",
+                "process",
+                "version",
+                "businessKey",
+                "state",
+                "startedAt",
+                "endedAt",
+                "incident"
+              ]
+            }
+          ],
+          [
+            {
+              "widget": "incidentSummary",
+              "engines": ["shop-dev", "shop-test"],
+              "title": "Per engine",
+              "groupBy": "engine"
+            },
+            {
+              "widget": "processDiagram",
+              "engines": ["shop-dev"],
+              "title": "Order",
+              "process": "order"
+            },
+            {
+              "widget": "incidentList",
+              "engines": ["shop-dev", "shop-test"],
+              "title": "Order incidents",
+              "process": "order"
+            }
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "name": "twelve-widgets",
+    "about": "A board holds at most 12 widgets.",
+    "file": {
+      "title": "Shop",
+      "engines": ["shop-dev", "shop-test"],
+      "rows": [
+        {
+          "row": [
+            { "widget": "counter", "props": { "filter": { "process": "order" } } },
+            { "widget": "counter", "props": { "filter": { "process": "order" } } },
+            { "widget": "counter", "props": { "filter": { "process": "order" } } },
+            { "widget": "counter", "props": { "filter": { "process": "order" } } },
+            { "widget": "counter", "props": { "filter": { "process": "order" } } },
+            { "widget": "counter", "props": { "filter": { "process": "order" } } }
+          ]
+        },
+        {
+          "row": [
+            { "widget": "counter", "props": { "filter": { "process": "order" } } },
+            { "widget": "counter", "props": { "filter": { "process": "order" } } },
+            { "widget": "counter", "props": { "filter": { "process": "order" } } },
+            { "widget": "counter", "props": { "filter": { "process": "order" } } },
+            { "widget": "counter", "props": { "filter": { "process": "order" } } },
+            { "widget": "counter", "props": { "filter": { "process": "order" } } }
+          ]
+        }
+      ]
+    },
+    "schema": true,
+    "verdict": {
+      "board": {
+        "title": "Shop",
+        "engines": ["shop-dev", "shop-test"],
+        "rows": [
+          [
+            {
+              "widget": "counter",
+              "engines": ["shop-dev", "shop-test"],
+              "filter": { "state": "running", "process": "order" }
+            },
+            {
+              "widget": "counter",
+              "engines": ["shop-dev", "shop-test"],
+              "filter": { "state": "running", "process": "order" }
+            },
+            {
+              "widget": "counter",
+              "engines": ["shop-dev", "shop-test"],
+              "filter": { "state": "running", "process": "order" }
+            },
+            {
+              "widget": "counter",
+              "engines": ["shop-dev", "shop-test"],
+              "filter": { "state": "running", "process": "order" }
+            },
+            {
+              "widget": "counter",
+              "engines": ["shop-dev", "shop-test"],
+              "filter": { "state": "running", "process": "order" }
+            },
+            {
+              "widget": "counter",
+              "engines": ["shop-dev", "shop-test"],
+              "filter": { "state": "running", "process": "order" }
+            }
+          ],
+          [
+            {
+              "widget": "counter",
+              "engines": ["shop-dev", "shop-test"],
+              "filter": { "state": "running", "process": "order" }
+            },
+            {
+              "widget": "counter",
+              "engines": ["shop-dev", "shop-test"],
+              "filter": { "state": "running", "process": "order" }
+            },
+            {
+              "widget": "counter",
+              "engines": ["shop-dev", "shop-test"],
+              "filter": { "state": "running", "process": "order" }
+            },
+            {
+              "widget": "counter",
+              "engines": ["shop-dev", "shop-test"],
+              "filter": { "state": "running", "process": "order" }
+            },
+            {
+              "widget": "counter",
+              "engines": ["shop-dev", "shop-test"],
+              "filter": { "state": "running", "process": "order" }
+            },
+            {
+              "widget": "counter",
+              "engines": ["shop-dev", "shop-test"],
+              "filter": { "state": "running", "process": "order" }
+            }
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "name": "thirteen-widgets",
+    "about": "A 13th widget refuses the board, which the schema cannot see.",
+    "file": {
+      "title": "Shop",
+      "engines": ["shop-dev", "shop-test"],
+      "rows": [
+        {
+          "row": [
+            { "widget": "counter", "props": { "filter": { "process": "order" } } },
+            { "widget": "counter", "props": { "filter": { "process": "order" } } },
+            { "widget": "counter", "props": { "filter": { "process": "order" } } },
+            { "widget": "counter", "props": { "filter": { "process": "order" } } },
+            { "widget": "counter", "props": { "filter": { "process": "order" } } },
+            { "widget": "counter", "props": { "filter": { "process": "order" } } },
+            { "widget": "counter", "props": { "filter": { "process": "order" } } }
+          ]
+        },
+        {
+          "row": [
+            { "widget": "counter", "props": { "filter": { "process": "order" } } },
+            { "widget": "counter", "props": { "filter": { "process": "order" } } },
+            { "widget": "counter", "props": { "filter": { "process": "order" } } },
+            { "widget": "counter", "props": { "filter": { "process": "order" } } },
+            { "widget": "counter", "props": { "filter": { "process": "order" } } },
+            { "widget": "counter", "props": { "filter": { "process": "order" } } }
+          ]
+        }
+      ]
+    },
+    "schema": true,
+    "verdict": {
+      "problems": [
+        {
+          "path": "rows",
+          "reason": "hold 13 widgets; a board shows at most 12, so it stays cheap for the engines"
+        }
+      ]
+    }
+  },
+  {
+    "name": "schema-version-2",
+    "about": "A newer schemaVersion than this reader knows refuses the board and names the version.",
+    "file": {
+      "title": "Shop",
+      "engines": ["shop-dev", "shop-test"],
+      "schemaVersion": 2,
+      "rows": [{ "row": [{ "widget": "counter", "props": { "filter": { "process": "order" } } }] }]
+    },
+    "schema": false,
+    "verdict": {
+      "problems": [
+        { "path": "schemaVersion", "reason": "is 2; this version of Pulse reads version 1" }
+      ]
+    }
+  },
+  {
+    "name": "unknown-root-key",
+    "about": "A root key the format does not know refuses the board; required keys that are missing too.",
+    "file": { "layout": 1 },
+    "schema": false,
+    "verdict": {
+      "problems": [
+        {
+          "path": "layout",
+          "reason": "is not a known key; use $schema, schemaVersion, title, engines, rows"
+        },
+        { "path": "title", "reason": "is missing" },
+        { "path": "engines", "reason": "is missing" },
+        { "path": "rows", "reason": "is missing" }
+      ]
+    }
+  },
+  {
+    "name": "blank-title",
+    "about": "A title of blanks is no title, which the schema cannot see.",
+    "file": { "title": " ", "engines": ["shop-dev"], "rows": [] },
+    "schema": true,
+    "verdict": { "problems": [{ "path": "title", "reason": "must be a text that is not empty" }] }
+  },
+  {
+    "name": "no-engines",
+    "about": "A board names at least one engine.",
+    "file": { "title": "Shop", "engines": [], "rows": [] },
+    "schema": false,
+    "verdict": {
+      "problems": [
+        {
+          "path": "engines",
+          "reason": "must be a list of different engine names that is not empty"
+        }
+      ]
+    }
+  },
+  {
+    "name": "engine-twice",
+    "about": "A board names each engine once.",
+    "file": { "title": "Shop", "engines": ["shop-dev", "shop-dev"], "rows": [] },
+    "schema": false,
+    "verdict": {
+      "problems": [
+        {
+          "path": "engines",
+          "reason": "must be a list of different engine names that is not empty"
+        }
+      ]
+    }
+  },
+  {
+    "name": "blank-engine-name",
+    "about": "An engine name of blanks is no name, which the schema cannot see.",
+    "file": { "title": "Shop", "engines": [" "], "rows": [] },
+    "schema": true,
+    "verdict": {
+      "problems": [
+        {
+          "path": "engines",
+          "reason": "must be a list of different engine names that is not empty"
+        }
+      ]
+    }
+  },
+  {
+    "name": "rows-not-a-list",
+    "about": "rows that is no list gives no board.",
+    "file": { "title": "Shop", "engines": ["shop-dev"], "rows": {} },
+    "schema": false,
+    "verdict": { "problems": [{ "path": "rows", "reason": "must be a list" }] }
+  },
+  {
+    "name": "misshapen-rows",
+    "about": "Every row and widget that is not shaped right is named by its path.",
+    "file": {
+      "title": "Shop",
+      "engines": ["shop-dev"],
+      "rows": [
+        1,
+        { "cells": [] },
+        { "row": "x" },
+        { "row": [{ "props": {} }, { "widget": "chart" }, 3] }
+      ]
+    },
+    "schema": false,
+    "verdict": {
+      "problems": [
+        { "path": "rows[0]", "reason": "must be an object" },
+        { "path": "rows[1].cells", "reason": "is not a known key; use row" },
+        { "path": "rows[1].row", "reason": "is missing" },
+        { "path": "rows[2].row", "reason": "must be a list" },
+        { "path": "rows[3].row[0].widget", "reason": "is missing" },
+        {
+          "path": "rows[3].row[1].widget",
+          "reason": "must be one of counter, instanceList, incidentSummary, processDiagram, incidentList"
+        },
+        { "path": "rows[3].row[2]", "reason": "must be an object" }
+      ]
+    }
+  },
+  {
+    "name": "unknown-props",
+    "about": "A prop of another widget, an unknown key and an unknown grouping are each named.",
+    "file": {
+      "title": "Shop",
+      "engines": ["shop-dev", "shop-test"],
+      "rows": [
+        {
+          "row": [
+            { "widget": "incidentSummary", "props": { "groupBy": "type", "filter": {} }, "span": 2 }
+          ]
+        }
+      ]
+    },
+    "schema": false,
+    "verdict": {
+      "problems": [
+        { "path": "rows[0].row[0].span", "reason": "is not a known key; use widget, props" },
+        {
+          "path": "rows[0].row[0].props.filter",
+          "reason": "is not a known key; use title, engines, groupBy"
+        },
+        { "path": "rows[0].row[0].props.groupBy", "reason": "must be one of engine, process" }
+      ]
+    }
+  },
+  {
+    "name": "props-not-an-object",
+    "about": "props that is no object refuses the widget.",
+    "file": {
+      "title": "Shop",
+      "engines": ["shop-dev", "shop-test"],
+      "rows": [{ "row": [{ "widget": "counter", "props": 1 }] }]
+    },
+    "schema": false,
+    "verdict": { "problems": [{ "path": "rows[0].row[0].props", "reason": "must be an object" }] }
+  },
+  {
+    "name": "contradicting-filter",
+    "about": "An element without its process or on ended instances, a flag that is no boolean and an unknown key.",
+    "file": {
+      "title": "Shop",
+      "engines": ["shop-dev", "shop-test"],
+      "rows": [
+        {
+          "row": [
+            {
+              "widget": "counter",
+              "props": {
+                "filter": {
+                  "activeElement": "Task_Pay",
+                  "state": "ended",
+                  "withIncident": "yes",
+                  "owner": 1
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "schema": false,
+    "verdict": {
+      "problems": [
+        {
+          "path": "rows[0].row[0].props.filter.owner",
+          "reason": "is not a known key; use process, activeElement, state, withIncident, businessKey"
+        },
+        { "path": "rows[0].row[0].props.filter.withIncident", "reason": "must be true or false" },
+        {
+          "path": "rows[0].row[0].props.filter.activeElement",
+          "reason": "needs a process: element ids are only unique within one process"
+        },
+        {
+          "path": "rows[0].row[0].props.filter.activeElement",
+          "reason": "only matches running instances; remove it or use state \"running\""
+        }
+      ]
+    }
+  },
+  {
+    "name": "element-without-process",
+    "about": "An element id needs its process, which the schema cannot see.",
+    "file": {
+      "title": "Shop",
+      "engines": ["shop-dev", "shop-test"],
+      "rows": [
+        { "row": [{ "widget": "counter", "props": { "filter": { "activeElement": "Task_Pay" } } }] }
+      ]
+    },
+    "schema": true,
+    "verdict": {
+      "problems": [
+        {
+          "path": "rows[0].row[0].props.filter.activeElement",
+          "reason": "needs a process: element ids are only unique within one process"
+        }
+      ]
+    }
+  },
+  {
+    "name": "element-on-ended-instances",
+    "about": "An element only matches running instances, which the schema cannot see.",
+    "file": {
+      "title": "Shop",
+      "engines": ["shop-dev", "shop-test"],
+      "rows": [
+        {
+          "row": [
+            {
+              "widget": "instanceList",
+              "props": {
+                "filter": { "process": "order", "activeElement": "Task_Pay", "state": "ended" }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "schema": true,
+    "verdict": {
+      "problems": [
+        {
+          "path": "rows[0].row[0].props.filter.activeElement",
+          "reason": "only matches running instances; remove it or use state \"running\""
+        }
+      ]
+    }
+  },
+  {
+    "name": "engine-outside-the-board",
+    "about": "A widget may only narrow the board's engines, which the schema cannot see.",
+    "file": {
+      "title": "Shop",
+      "engines": ["shop-dev", "shop-test"],
+      "rows": [
+        { "row": [{ "widget": "counter", "props": { "engines": ["shop-dev", "prod-eu"] } }] }
+      ]
+    },
+    "schema": true,
+    "verdict": {
+      "problems": [
+        {
+          "path": "rows[0].row[0].props.engines",
+          "reason": "may only name engines of the board; prod-eu is not in its engines"
+        }
+      ]
+    }
+  },
+  {
+    "name": "diagram-on-two-engines",
+    "about": "A diagram draws from one engine, so on a board of two it names one, which the schema cannot see.",
+    "file": {
+      "title": "Shop",
+      "engines": ["shop-dev", "shop-test"],
+      "rows": [{ "row": [{ "widget": "processDiagram", "props": { "process": "order" } }] }]
+    },
+    "schema": true,
+    "verdict": {
+      "problems": [
+        {
+          "path": "rows[0].row[0].props.engines",
+          "reason": "must name one engine, because a diagram shows the deployment of one engine"
+        }
+      ]
+    }
+  },
+  {
+    "name": "diagram-without-process",
+    "about": "A diagram names its process.",
+    "file": {
+      "title": "Shop",
+      "engines": ["shop-dev", "shop-test"],
+      "rows": [{ "row": [{ "widget": "processDiagram", "props": { "engines": ["shop-dev"] } }] }]
+    },
+    "schema": false,
+    "verdict": { "problems": [{ "path": "rows[0].row[0].props.process", "reason": "is missing" }] }
+  },
+  {
+    "name": "threshold-not-whole",
+    "about": "A threshold is a whole number of 0 or more.",
+    "file": {
+      "title": "Shop",
+      "engines": ["shop-dev", "shop-test"],
+      "rows": [{ "row": [{ "widget": "counter", "props": { "warnAbove": 1.5 } }] }]
+    },
+    "schema": false,
+    "verdict": {
+      "problems": [
+        {
+          "path": "rows[0].row[0].props.warnAbove",
+          "reason": "must be a whole number of 0 or more"
+        }
+      ]
+    }
+  },
+  {
+    "name": "variable-column",
+    "about": "A list shows no variable and no unknown column.",
+    "file": {
+      "title": "Shop",
+      "engines": ["shop-dev", "shop-test"],
+      "rows": [
+        {
+          "row": [
+            { "widget": "instanceList", "props": { "columns": ["engine", "var:amount", "owner"] } }
+          ]
+        }
+      ]
+    },
+    "schema": false,
+    "verdict": {
+      "problems": [
+        {
+          "path": "rows[0].row[0].props.columns[1]",
+          "reason": "cannot show a variable; must be one of engine, process, version, businessKey, state, startedAt, endedAt, incident"
+        },
+        {
+          "path": "rows[0].row[0].props.columns[2]",
+          "reason": "must be one of engine, process, version, businessKey, state, startedAt, endedAt, incident"
+        }
+      ]
+    }
+  },
+  {
+    "name": "no-columns",
+    "about": "A list names at least one column.",
+    "file": {
+      "title": "Shop",
+      "engines": ["shop-dev", "shop-test"],
+      "rows": [{ "row": [{ "widget": "instanceList", "props": { "columns": [] } }] }]
+    },
+    "schema": false,
+    "verdict": {
+      "problems": [
+        { "path": "rows[0].row[0].props.columns", "reason": "must name at least one column" }
+      ]
+    }
+  }
+]

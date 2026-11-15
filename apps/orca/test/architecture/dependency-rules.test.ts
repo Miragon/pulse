@@ -17,6 +17,15 @@ const PLANTED: Readonly<Record<string, string>> = {
     "import { InstanceId } from '@miragon/pulse-engine-core';\nimport type { WorkspaceFiles } from '@miragon/pulse-runtime-view/ports';\nexport type Files = WorkspaceFiles;\nexport const id = InstanceId;\n",
   "src/worker/ships-the-fake.ts":
     "import { FakeEngine } from '@miragon/pulse-engine-core/testing';\nexport const fake = FakeEngine;\n",
+  "src/worker/writes-a-board.ts":
+    "import { StarterBoard } from '@miragon/pulse-board';\nexport const board = StarterBoard;\n",
+  "src/worker/ships-the-board-fixtures.ts":
+    "import { BOARD_FIXTURES } from '@miragon/pulse-board/testing';\nexport const fixtures = BOARD_FIXTURES;\n",
+  "src/worker/escapes-into-the-board.ts":
+    "import { StarterBoard } from '../../../../packages/core/board/src/index.ts';\nexport const board = StarterBoard;\n",
+  "../../packages/core/board/src/index.ts": "export const StarterBoard = 1;\n",
+  "src/panel/writes-a-board.ts":
+    "import { StarterBoard } from '@miragon/pulse-board';\nexport const board = StarterBoard;\n",
   "src/panel/names-an-id.ts":
     "import { InstanceId } from '@miragon/pulse-engine-core';\nexport const id = InstanceId;\n",
   "src/worker/escapes-into-the-contract.ts":
@@ -54,7 +63,7 @@ const PLANTED: Readonly<Record<string, string>> = {
   "test/worker/anything.test.ts":
     "import { FakeEngine } from '@miragon/pulse-engine-core/testing';\nexport const fake = FakeEngine;\n",
   "package.json":
-    '{ "name": "@miragon/pulse-orca", "private": true, "dependencies": { "@miragon/pulse-runtime-view": "workspace:*", "@miragon/pulse-c7-adapter": "workspace:*", "@miragon/pulse-c8-adapter": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-c7-core": "workspace:*" } }\n',
+    '{ "name": "@miragon/pulse-orca", "private": true, "dependencies": { "@miragon/pulse-board": "workspace:*", "@miragon/pulse-runtime-view": "workspace:*", "@miragon/pulse-c7-adapter": "workspace:*", "@miragon/pulse-c8-adapter": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-c7-core": "workspace:*" } }\n',
 }
 
 const tree = new PlantedTree("apps/orca", PLANTED)
@@ -77,6 +86,9 @@ describe("the dependency rules", () => {
     const camunda8 = at("node_modules/@miragon/pulse-c8-adapter/dist/index.d.ts")
     const engineCore = at("node_modules/@miragon/pulse-engine-core/dist/index.d.ts")
     const engineCoreTesting = at("node_modules/@miragon/pulse-engine-core/dist/testing/index.d.ts")
+    const board = at("node_modules/@miragon/pulse-board/dist/index.d.ts")
+    const boardTesting = at("node_modules/@miragon/pulse-board/dist/testing/index.d.ts")
+    const boardSource = "packages/core/board/src/index.ts"
     const contractBuild = "packages/connectors/engine/engine-core/dist/index.js"
     const c7Core = "node_modules/@miragon/pulse-c7-core/dist/index.d.ts"
     const c7CoreSubpath = "@miragon/pulse-c7-core/cause"
@@ -94,6 +106,9 @@ describe("the dependency rules", () => {
         `not-in-allowed: ${at("src/worker/wires-camunda-8.ts")} -> ${camunda8}`,
         `not-in-allowed: ${at("src/worker/ships-the-fake.ts")} -> ${engineCoreTesting}`,
         `not-in-allowed: ${at("src/panel/names-an-id.ts")} -> ${engineCore}`,
+        `not-in-allowed: ${at("src/worker/ships-the-board-fixtures.ts")} -> ${boardTesting}`,
+        `not-in-allowed: ${at("src/worker/escapes-into-the-board.ts")} -> ${boardSource}`,
+        `not-in-allowed: ${at("src/panel/writes-a-board.ts")} -> ${board}`,
         `engine-core-only-by-its-entries: ${at("src/worker/escapes-into-the-contract.ts")} -> ${contractBuild}`,
         `not-in-allowed: ${at("src/worker/escapes-into-the-contract.ts")} -> ${contractBuild}`,
         `plugin-is-dialect-neutral: ${at("src/worker/runs-c7-core.ts")} -> ${c7Core}`,

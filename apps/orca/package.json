@@ -22,6 +22,7 @@
     "lint:fix": "eslint src test scripts --fix"
   },
   "dependencies": {
+    "@miragon/pulse-board": "workspace:*",
     "@miragon/pulse-c7-adapter": "workspace:*",
     "@miragon/pulse-c8-adapter": "workspace:*",
     "@miragon/pulse-engine-core": "workspace:*",

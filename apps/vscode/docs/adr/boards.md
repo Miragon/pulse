@@ -1,7 +1,7 @@
 # Boards
 
 - Status: accepted
-- Last reviewed: 2026-11-15 (the format moved out of the runtime view into the published package `@miragon/pulse-board`; the builder follows); 2026-11-14 (the counter and the incident summary read "with incident" one way, c7-core's runtime rule); 2026-11-12 (boards are the first feature of D2; the format and the builder move to a new published package); 2026-11-09 (the project file is read with `@miragon/pulse-profile`; before that 2026-11-04, the CLI's rules)
+- Last reviewed: 2026-11-15 (the format moved out of the runtime view into the published package `@miragon/pulse-board`, with its JSON Schema, shared fixtures and one starter board for both editors; the builder follows); 2026-11-14 (the counter and the incident summary read "with incident" one way, c7-core's runtime rule); 2026-11-12 (boards are the first feature of D2; the format and the builder move to a new published package); 2026-11-09 (the project file is read with `@miragon/pulse-profile`; before that 2026-11-04, the CLI's rules)
 
 ## Context
 
@@ -45,9 +45,16 @@ widgets are `counter`, `instanceList`, `incidentSummary`, `processDiagram` and `
 widget may narrow the board's engines, and a `processDiagram` names exactly one. One filter
 vocabulary without aliases: `process`, `activeElement` (needs `process`, never with `ended`),
 `state` (`running` by default, `ended`), `withIncident`, `businessKey`. At most 12 widgets.
-The editor validates with `apps/vscode/schemas/board.schema.json` (`jsonValidation`, shipped in
-the .vsix); `apps/vscode/test/architecture/board-schema.test.ts` holds it equal to
-`BoardVocabulary`.
+The JSON Schema is the format's too (`packages/core/board/schema/board.schema.json`, published as
+the package's `./schema/board.schema.json`): the package's
+`packages/core/board/test/format/board-schema.test.ts` holds it equal to `BoardVocabulary` and
+runs it over the shared fixtures (`BOARD_FIXTURES` of its `./testing` entry, a text and its
+verdict each), of which it takes every board the parser takes. The editor validates with a
+checked-in copy, `apps/vscode/schemas/board.schema.json` (`jsonValidation`, shipped in the .vsix),
+which `apps/vscode/test/architecture/board-schema.test.ts` holds byte-equal to the package's
+schema, read through its export; a copy made at build time would be missing after a turbo cache
+hit, under `pnpm test:one` and in a dev host started with F5, so a change to the schema copies it
+over in the same commit.
 
 Not interchangeable with the MCP server's layouts: same layout grammar, different widgets, data
 binding and engine scope. No per-user boards, no interval in the file (a workspace file must
@@ -77,7 +84,8 @@ and `openBoardFile` carry engine names and ids; `BoardTargets` opens only what t
 lists, on the engine it came from, through the host's `BoardNavigation`
 (`apps/vscode/src/host/boards/board-panels.ts`), which reuses the panel manager's existing
 panels. The **Boards** view lists the files (shown only when there are any), a watcher reloads
-an open board on save, and **Pulse: New Board…** writes a starter board.
+an open board on save, and **Pulse: New Board…** writes the format's starter board
+(`StarterBoard.of(title, engines)`), the one Pulse for Orca writes too.
 
 ## Consequences
 
@@ -109,3 +117,4 @@ an open board on save, and **Pulse: New Board…** writes a starter board.
 | Merge of lists   | One table, rows of each engine together, totals per engine | No order across engines in the contract          |
 | Workspace trust  | No `capabilities`: off in untrusted folders                | `limited` would allow engine reads there         |
 | Diagram scope    | One engine, latest version                                 | Deployments and versions differ between engines  |
+| Schema home      | The format's package, a copy held equal in the extension   | A build copy is missing after a turbo cache hit  |
