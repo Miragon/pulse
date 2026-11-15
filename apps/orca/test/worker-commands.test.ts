@@ -1,4 +1,5 @@
 import { access, rename, writeFile } from "node:fs/promises"
+import { join } from "node:path"
 import { afterEach, describe, expect, test, vi } from "vitest"
 import type { EngineList } from "../src/protocol.js"
 import activate, { deactivate } from "../src/worker/main.js"
@@ -92,6 +93,76 @@ describe("the commands of the worker", () => {
 
     expect(await harness.request("engines.configure")).toEqual({ path: harness.projectFile })
   })
+
+  test("show the panel the CLI config and open it only where a workspace holds it", async () => {
+    const harness = await WorkerHarness.withProject()
+    const inside = join(harness.root, "cli.json")
+    harness.nameUserConfig(inside)
+    await harness.writeUserConfig({ mine: { url: "http://localhost:1/x" } }, inside)
+    activate(harness.orca.api())
+
+    const list = (await harness.request("engines.list")) as EngineList
+
+    expect(list.userConfig).toEqual({ path: inside, named: true, present: true, openable: true })
+    expect(await harness.request("engines.openUserConfig")).toEqual({ opened: true })
+    expect(harness.orca.callsOf("editor.open")).toEqual([{ workspaceId: "shop", path: "cli.json" }])
+  })
+
+  test("configure the engines in the file PULSE_CLI_CONFIG names, never in the project file", async () => {
+    const harness = await WorkerHarness.withProject()
+    const inside = join(harness.root, "cli.json")
+    harness.nameUserConfig(inside)
+    await harness.writeUserConfig({ mine: { url: "http://localhost:1/x" } }, inside)
+    activate(harness.orca.api())
+
+    const list = (await harness.request("engines.list")) as EngineList
+
+    expect(list.projectFile).toBe("")
+    expect(await harness.orca.run("pulse.configureEngines")).toBe(`Opened ${inside}.`)
+    expect(harness.orca.callsOf("editor.open")).toEqual([{ workspaceId: "shop", path: "cli.json" }])
+  })
+
+  test("open no CLI config outside every workspace, and say where it is", async () => {
+    const harness = await started(WorkerHarness.withProject())
+
+    const list = (await harness.request("engines.list")) as EngineList
+
+    expect(list.userConfig).toEqual({
+      path: harness.userConfigFile,
+      named: false,
+      present: false,
+      openable: false,
+    })
+    expect(await harness.request("engines.openUserConfig")).toEqual({ opened: false })
+    expect(harness.orca.callsOf("editor.open")).toEqual([])
+    expect(harness.orca.logs.at(-1)).toContain(`Edit ${harness.userConfigFile} in another editor.`)
+  })
+
+  test("open no CLI config it read outside every workspace, and say where it is", async () => {
+    const harness = await WorkerHarness.withProject()
+    await harness.writeUserConfig({ mine: { url: "http://localhost:1/x" } })
+    activate(harness.orca.api())
+
+    const list = (await harness.request("engines.list")) as EngineList
+
+    expect(list.engines.map((row) => row.name)).toContain("mine")
+    expect(list.userConfig).toEqual({
+      path: harness.userConfigFile,
+      named: false,
+      present: true,
+      openable: false,
+    })
+    expect(await harness.request("engines.openUserConfig")).toEqual({ opened: false })
+    expect(harness.orca.callsOf("editor.open")).toEqual([])
+    expect(harness.orca.postsOf("notices.show")).toEqual([
+      {
+        notice: {
+          tone: "neutral",
+          text: `Orca opens files of a workspace only, and no workspace holds your CLI config. Edit ${harness.userConfigFile} in another editor.`,
+        },
+      },
+    ])
+  })
 })
 
 describe("what the worker follows", () => {
@@ -172,6 +243,29 @@ describe("what the worker follows", () => {
       async () => {
         const list = (await harness.request("engines.list")) as EngineList
         expect(list.engines.map((row) => row.name)).toEqual(["shop-dev", "prod-eu"])
+      },
+      { timeout: 4000 },
+    )
+  })
+
+  test("reloads when the CLI's user config appears with its folder, and when it changes", async () => {
+    const harness = await started(WorkerHarness.withProject())
+    await harness.request("engines.list")
+    const names = async () =>
+      ((await harness.request("engines.list")) as EngineList).engines.map((row) => row.name)
+
+    await harness.writeUserConfig({ mine: { url: "http://localhost:1/x" } })
+    await vi.waitFor(
+      async () => {
+        expect(await names()).toEqual(["shop-dev", "prod-eu", "mine"])
+      },
+      { timeout: 4000 },
+    )
+
+    await harness.writeUserConfig({ ours: { url: "http://localhost:1/x" } })
+    await vi.waitFor(
+      async () => {
+        expect(await names()).toEqual(["shop-dev", "prod-eu", "ours"])
       },
       { timeout: 4000 },
     )

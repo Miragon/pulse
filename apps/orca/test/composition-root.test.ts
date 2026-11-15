@@ -1,4 +1,5 @@
-import { describe, expect, test } from "vitest"
+import { join } from "node:path"
+import { describe, expect, test, vi } from "vitest"
 import { FailingRuntime } from "@miragon/pulse-engine-core"
 import { type EngineTarget, LOCAL_TARGET } from "@miragon/pulse-runtime-view/host-kit"
 import { CompositionRoot } from "../src/worker/composition-root.js"
@@ -71,5 +72,15 @@ describe("the composition root of the worker", () => {
       "models",
       "code",
     ])
+  })
+
+  test("finds the CLI's user config from the worker's environment, as the CLI does", () => {
+    const isolated = join(process.env.XDG_CONFIG_HOME ?? "", "pulse-cli", "config.json")
+    vi.stubEnv("PULSE_CLI_CONFIG", "/work/ci.json")
+    const named = CompositionRoot.userConfig()
+    vi.unstubAllEnvs()
+
+    expect([named.path, named.explicit]).toEqual(["/work/ci.json", true])
+    expect(CompositionRoot.userConfig().path).toBe(isolated)
   })
 })

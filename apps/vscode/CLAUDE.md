@@ -291,8 +291,8 @@ engine at history level AUDIT too
   (`packages/core/runtime-view/test/host-kit/project-file-fixtures.expected.json`, one entry per
   fixture); `packages/core/runtime-view/test/host-kit/project-file-fixtures.test.ts` holds
   `TargetsParser` to both. A profile the format takes is a target with its URL, auth type and
-  read-only flag, or a named problem; a value the format refuses never becomes an engine. Pulse
-  for VS Code reads the CLI's user config too, where the CLI finds it: the host kit's
+  read-only flag, or a named problem; a value the format refuses never becomes an engine. Both
+  editor hosts read the CLI's user config too, where the CLI finds it: the host kit's
   `UserConfigLocation` (over `node:path`, the environment, home and platform handed in) and the
   CLI's `configFilePath` run one case table, `CLI_CONFIG_LOCATIONS` of
   `@miragon/pulse-profile/testing`. Its `ProfileSource` reads it under the policy `env-or-literal`,
@@ -303,11 +303,13 @@ engine at history level AUDIT too
   `TargetsParser` to every shared fixture read that way. `TargetMerge` joins it after the
   project files, a profile of the user winning a name as a whole, a refused one too, and a
   non-blank `PULSE_CLI_CONFIG` means that file only, as in the CLI (a relative or missing one is a
-  problem and lists no engine). Every VS Code a harness starts and the host's unit tests read it in
+  problem and lists no engine), from the read of `UserConfigRead.of`, which reads nothing at a
+  relative path. Every VS Code a harness starts and the host's unit tests read it in
   a temporary folder (`XDG_CONFIG_HOME`, `APPDATA`), never the one of whoever runs them: they blank
   `PULSE_CLI_CONFIG` (never set it to a file, which would hide the project files), VS Code starts
   with `--force-disable-user-env`, so a shell profile sets neither, and the folder goes when the run
-  ends (`apps/vscode/test/architecture/harness-isolation.test.ts`). A folder that holds the project file
+  ends (`apps/vscode/test/architecture/harness-isolation.test.ts`); Pulse for Orca's runs keep
+  their own rule (`apps/orca/CLAUDE.md`). A folder that holds the project file
   only under its former name (`ProjectFile.FORMER_NAME` of the host kit, which `TargetsFile` and
   Pulse for Orca read) shows one problem asking to rename it and lists none of its engines, nor the local
   default engine in its place (_Configure Engines_ opens that file and writes no second one); a

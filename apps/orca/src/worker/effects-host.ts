@@ -12,7 +12,7 @@ export interface ServiceHost {
   notice(notice: Notice): void
   showIncident(engine: string, title: string, details: IncidentDetails): void
   openLocation(location: SourceLocation): void
-  editConnection(): void
+  editConnection(connection?: Connection): void
   askForLogin(connection: Connection): void
   turnOnLiveUpdates(environment: Environment): void
   noteWrite(): void

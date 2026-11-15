@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { describe, expect, test, vi } from "vitest"
-import { WriteAudit } from "@miragon/pulse-runtime-view/host-kit"
+import { TargetMerge, WriteAudit } from "@miragon/pulse-runtime-view/host-kit"
 import { EngineRegistry } from "../src/worker/engine-registry.js"
 import { OrcaSettings } from "../src/worker/orca-settings.js"
 import { OrcaWorkspaces } from "../src/worker/orca-workspaces.js"
@@ -159,7 +159,7 @@ describe("the engine registry", () => {
     expect(harness.registry.projectFiles()).toEqual([])
     expect(harness.registry.formerProjectFiles()).toEqual([])
     expect(harness.registry.configurationProblems().map((problem) => problem.label())).toEqual([
-      ".pulse.json: Pulse can't read this file",
+      `.pulse.json: ${TargetMerge.UNREADABLE}`,
     ])
     expect(harness.registry.all()).toEqual([])
   })
@@ -172,7 +172,7 @@ describe("the engine registry", () => {
     }, WorkerHarness.empty())
 
     expect(harness.registry.configurationProblems().map((problem) => problem.label())).toEqual([
-      "engines: Pulse can't read this file",
+      `engines: ${TargetMerge.UNREADABLE}`,
     ])
     expect(harness.registry.all()).toEqual([])
   })
@@ -185,7 +185,7 @@ describe("the engine registry", () => {
 
     expect(harness.registry.projectFiles()).toEqual([])
     expect(harness.registry.configurationProblems().map((problem) => problem.label())).toEqual([
-      "gone.json: Pulse can't read this file",
+      `gone.json: ${TargetMerge.MISSING}`,
     ])
     expect(harness.registry.all().map((connection) => connection.target.name)).toEqual(["local"])
   })
@@ -206,6 +206,109 @@ describe("the engine registry", () => {
 
     expect(harness.registry.projectFiles()).toEqual([harness.worker.formerProjectFile])
     expect(harness.registry.formerProjectFiles()).toEqual([])
+  })
+})
+
+describe("the engines of the CLI's user config", () => {
+  const MINE = { mine: { url: "http://mine.shop.invalid/engine-rest" } }
+
+  function sourcesOf(harness: RegistryHarness): string[][] {
+    return harness.registry
+      .all()
+      .map((connection) => [connection.target.name, connection.target.source.kind])
+  }
+
+  test("join after the project file's, and a profile of the user wins a name whole", async () => {
+    const harness = await RegistryHarness.loaded((worker) =>
+      worker.writeUserConfig({ ...MINE, "prod-eu": { url: "http://localhost:18091/engine-rest" } }),
+    )
+
+    expect(sourcesOf(harness)).toEqual([
+      ["shop-dev", "file"],
+      ["prod-eu", "user-config"],
+      ["mine", "user-config"],
+    ])
+    expect(harness.registry.userConfigVerdict()).toMatchObject({
+      kind: "read",
+      path: harness.worker.userConfigFile,
+    })
+  })
+
+  test("list without any workspace", async () => {
+    const harness = await RegistryHarness.loaded(async (worker) => {
+      worker.orca.hostAnswers = { "workspace.list": { workspaces: [] } }
+      await worker.writeUserConfig(MINE)
+    })
+
+    expect(sourcesOf(harness)).toEqual([["mine", "user-config"]])
+    expect(harness.registry.projectFiles()).toEqual([])
+  })
+
+  test("are none while the file does not exist, which is no problem", async () => {
+    const harness = await RegistryHarness.loaded()
+
+    expect(harness.registry.userConfigLocation().path).toBe(harness.worker.userConfigFile)
+    expect(harness.registry.userConfigVerdict()).toEqual({
+      kind: "missing",
+      path: harness.worker.userConfigFile,
+    })
+    expect(harness.registry.configurationProblems()).toEqual([])
+  })
+
+  test("come only from the file PULSE_CLI_CONFIG names, which says so", async () => {
+    const harness = await RegistryHarness.loaded(async (worker) => {
+      const named = join(worker.configHome, "ci.json")
+      worker.nameUserConfig(named)
+      await worker.writeUserConfig(MINE, named)
+    })
+
+    expect(sourcesOf(harness)).toEqual([["mine", "user-config"]])
+    expect(harness.registry.configurationProblems().map((problem) => problem.label())).toEqual([
+      `CLI config: ${TargetMerge.NAMED_ONLY}`,
+    ])
+    expect(harness.registry.projectFiles()).toEqual([])
+  })
+
+  test("are none, nor the local engine, when PULSE_CLI_CONFIG names a missing file", async () => {
+    const harness = await RegistryHarness.loaded((worker) => {
+      worker.nameUserConfig(join(worker.configHome, "gone.json"))
+      return Promise.resolve()
+    })
+
+    expect(harness.registry.all()).toEqual([])
+    expect(harness.registry.configurationProblems().map((problem) => problem.label())).toEqual([
+      `CLI config: ${TargetMerge.NAMED_MISSING}`,
+    ])
+    expect(harness.registry.projectFiles()).toEqual([])
+  })
+
+  test("keep the environments of the settings beside the project file it reads no engine from", async () => {
+    const harness = await RegistryHarness.loaded(async (worker) => {
+      const named = join(worker.configHome, "ci.json")
+      worker.nameUserConfig(named)
+      await worker.writeUserConfig({ "prod-eu": { url: "http://prod.shop.invalid/x" } }, named)
+      await mkdir(join(worker.root, ".vscode"))
+      await writeFile(
+        join(worker.root, ".vscode", "settings.json"),
+        JSON.stringify({ "pulse.environments": { "prod-eu": "production" } }),
+      )
+    })
+
+    expect(harness.registry.projectFiles()).toEqual([])
+    expect(harness.environmentOf("prod-eu")).toBe("production")
+  })
+
+  test("are read from no file PULSE_CLI_CONFIG names by a relative path", async () => {
+    const harness = await RegistryHarness.loaded((worker) => {
+      worker.nameUserConfig("ci.json")
+      return Promise.resolve()
+    })
+
+    expect(harness.registry.userConfigVerdict()).toBeUndefined()
+    expect(harness.registry.all()).toEqual([])
+    expect(harness.registry.configurationProblems().map((problem) => problem.label())).toEqual([
+      `CLI config: ${TargetMerge.RELATIVE}`,
+    ])
   })
 })
 

@@ -66,6 +66,10 @@ export class PanelRequests {
       this.saveLogin(engine, username, password),
     )
     panels.handle("engines.configure", async () => ({ path: await services.configure() }))
+    panels.handle("engines.openUserConfig", async () => {
+      await this.parts.ready()
+      return { opened: await services.openUserConfig() }
+    })
     panels.handle("instances.find", ({ query }) => this.find(query))
     panels.handle("boards.list", () => this.boards())
     panels.handle("boards.open", async ({ path }) => {
@@ -98,6 +102,7 @@ export class PanelRequests {
     const active = registry.active()
     return {
       projectFile: registry.projectFiles()[0] ?? "",
+      userConfig: await this.parts.services.userConfigRow(),
       engines: await Promise.all(
         registry.all().map((connection) => EngineRows.of(connection, connection === active)),
       ),

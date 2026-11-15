@@ -5,10 +5,10 @@
 Pulse reads your engines as profiles of the [Pulse CLI](../cli/configuration.md), so the extension
 and the CLI see the same engines. They live in two files:
 
-| File                                               | Holds                       | Read by                                  |
-| -------------------------------------------------- | --------------------------- | ---------------------------------------- |
-| `.pulse.json` in your workspace, the project file  | the engines of a repository | your team, through the repository        |
-| `~/.config/pulse-cli/config.json`, your CLI config | your own engines            | every VS Code window and the CLI for you |
+| File                                               | Holds                       | Read by                                                  |
+| -------------------------------------------------- | --------------------------- | -------------------------------------------------------- |
+| `.pulse.json` in your workspace, the project file  | the engines of a repository | your team, through the repository                        |
+| `~/.config/pulse-cli/config.json`, your CLI config | your own engines            | every VS Code window, Pulse for Orca and the CLI for you |
 
 ```json
 {

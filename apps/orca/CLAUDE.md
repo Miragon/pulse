@@ -114,8 +114,23 @@ names it and its former name, `.pulse-cli.json`, which the worker turns into one
 engine. A project file that is there but can't be read is one problem too, and no local default
 engine takes its place; only a missing file falls back to it (the one the setting names is a problem
 beside it). The host kit's `TargetMerge` decides the engines from what the worker read, the rule
-Pulse for VS Code runs too. Logins are keyed by the project file's path (the host kit's
-`CredentialStore`).
+Pulse for VS Code runs too. Logins are keyed by the path of the file a profile comes from (the host
+kit's `CredentialStore`).
+
+The worker reads the CLI's user config too, by the rules of Pulse for VS Code
+(`apps/vscode/CLAUDE.md`): the host kit's `UserConfigLocation` finds it, `UserConfigRead.of` reads
+it and `TargetMerge` joins it after the project file. Only the composition root finds it, from the
+worker's environment, home folder and platform (`CompositionRoot.userConfig`); the worker's unit
+tests point it at a folder of each test's own, and the unit tests, the kit tests and
+`orca plugin check` (through `apps/orca/scripts/orca.mjs`) read a temporary config home with
+`PULSE_CLI_CONFIG` blank (`apps/orca/test/architecture/user-config-isolation.test.ts`).
+`UserConfigWatch` watches the file's folder, or the folder above it while that is missing. Orca's
+`editor.open` reaches files of a workspace only, and the panel has no clipboard: the panel shows the
+file's path and opens it only where a workspace holds it, and the plugin never creates it. With
+`PULSE_CLI_CONFIG` set, the registry lists no project file (the settings beside it still classify
+the engines), the panel names the variable's file as the source and the gear opens that file.
+`test:smoke` runs in your own Orca, whose environment it cannot set, so it stops when your CLI
+config at the default location names a profile of the sandbox.
 
 ## Rules
 

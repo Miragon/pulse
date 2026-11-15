@@ -4,6 +4,7 @@ import {
   IconButton,
   plugin,
   read,
+  Row,
   Select,
   set,
   Spinner,
@@ -14,7 +15,7 @@ import {
   type PanelContext,
   type TreeItem,
 } from "orca"
-import type { EngineList, EngineRow } from "../protocol.js"
+import type { EngineList, EngineRow, UserConfigRow } from "../protocol.js"
 import { GoToInstance } from "./go-to-instance.js"
 import { LoginForm } from "./login-form.js"
 import { PanelState } from "./panel-state.js"
@@ -100,11 +101,18 @@ export function setup(context: PanelContext): void {
   PanelState.setup(context)
 }
 
+function sourceOf(answer: EngineList): string {
+  if (answer.userConfig.named) {
+    return "CLI config from PULSE_CLI_CONFIG"
+  }
+  if (answer.projectFile !== "") {
+    return answer.projectFile.split("/").slice(-2).join("/")
+  }
+  return answer.userConfig.present ? "No project file" : "Default engine on localhost"
+}
+
 function Header({ answer }: { readonly answer: EngineList }) {
-  const shown =
-    answer.projectFile === ""
-      ? "Default engine on localhost"
-      : answer.projectFile.split("/").slice(-2).join("/")
+  const shown = sourceOf(answer)
   return (
     <Toolbar label="Engines">
       <Text muted size="xs">
@@ -121,6 +129,23 @@ function Header({ answer }: { readonly answer: EngineList }) {
         onPress={() => void plugin.request("engines.configure")}
       />
     </Toolbar>
+  )
+}
+
+function CliConfig({ config }: { readonly config: UserConfigRow }) {
+  return (
+    <Row gap="sm" align="center" justify="between">
+      <Text muted size="xs">
+        {config.present ? `CLI config: ${config.path}` : `No CLI config at ${config.path}`}
+      </Text>
+      {config.openable ? (
+        <IconButton
+          icon="file"
+          label="Open your CLI config"
+          onPress={() => void plugin.request("engines.openUserConfig")}
+        />
+      ) : null}
+    </Row>
   )
 }
 
@@ -150,6 +175,7 @@ export default function Panel() {
   return (
     <Stack gap="sm">
       <Header answer={answer} />
+      <CliConfig config={answer.userConfig} />
       {read(PanelState.prompts).map((prompt) => (
         <PromptCard key={prompt.id} prompt={prompt} />
       ))}
@@ -165,7 +191,7 @@ export default function Panel() {
         <EmptyState
           icon="database"
           title="No engines"
-          description="Configure engines in a .pulse.json."
+          description="Configure engines in a .pulse.json or your CLI config."
         />
       ) : (
         <Tree

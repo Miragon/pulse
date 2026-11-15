@@ -1,22 +1,11 @@
 import type { EngineTarget } from "./engine-target.js"
+import type { FileVerdict, UserConfigVerdict } from "./file-verdict.js"
 import { ProfileSource } from "./profile-source.js"
 import { ProjectFile } from "./project-file.js"
 import { type ParsedTargets, TargetsParser } from "./targets-parser.js"
 import { TargetsProblem } from "./targets-problem.js"
 import { UserConfigLocation } from "./user-config-location.js"
-
-type FileFailure = "missing" | "unreadable" | "former-name"
-
-export type FileVerdict =
-  | { readonly kind: "read"; readonly path: string; readonly text: string }
-  | { readonly kind: FileFailure; readonly path: string }
-
-export type UserConfigVerdict = Exclude<FileVerdict, { readonly kind: "former-name" }>
-
-export interface UserConfigRead {
-  readonly location: UserConfigLocation
-  readonly verdict?: UserConfigVerdict
-}
+import type { UserConfigRead } from "./user-config-read.js"
 
 export interface DiscoveredTargets {
   readonly targets: readonly EngineTarget[]
@@ -30,7 +19,11 @@ const NOTHING: ParsedTargets = { names: [], targets: [], problems: [] }
 const VARIABLE = UserConfigLocation.VARIABLE
 
 export class TargetMerge {
-  static readonly UNREADABLE = "Pulse can't read this file"
+  static readonly UNREADABLE =
+    "Pulse can't read this file. Check that the path names a file, not a folder, and that you have read access to it."
+
+  static readonly MISSING =
+    "A setting names this file, which does not exist. Create it, or change the setting."
 
   static readonly RELATIVE = `${VARIABLE} names your CLI config by a relative path, and Pulse has no folder to resolve it from. Set the variable to the file's full path.`
 
@@ -44,7 +37,7 @@ export class TargetMerge {
     if (user?.location.explicit === true) {
       return this.named(user, files.length > 0)
     }
-    const verdict = user?.verdict
+    const verdict = user?.verdict()
     const projects = files.map((file) => TargetMerge.parsed(file, ProfileSource.PROJECT))
     const own = TargetMerge.ownOf(verdict)
     const verdicts = verdict === undefined ? files : [...files, verdict]
@@ -56,8 +49,9 @@ export class TargetMerge {
   }
 
   private named(user: UserConfigRead, hidesProjectFiles: boolean): DiscoveredTargets {
-    const { location, verdict } = user
-    if (location.isRelative() || verdict === undefined) {
+    const { location } = user
+    const verdict = user.verdict()
+    if (verdict === undefined) {
       return TargetMerge.failed(location.path, TargetMerge.RELATIVE)
     }
     if (verdict.kind !== "read") {
@@ -100,12 +94,20 @@ export class TargetMerge {
     if (file.kind === "read") {
       return new TargetsParser(file.path, source).parse(file.text)
     }
-    const message = file.kind === "former-name" ? ProjectFile.RENAME : TargetMerge.UNREADABLE
     return {
       names: [],
       targets: [],
-      problems: [new TargetsProblem(file.path, message, undefined, source)],
+      problems: [
+        new TargetsProblem(file.path, TargetMerge.failureOf(file.kind), undefined, source),
+      ],
     }
+  }
+
+  private static failureOf(kind: FileVerdict["kind"]): string {
+    if (kind === "former-name") {
+      return ProjectFile.RENAME
+    }
+    return kind === "missing" ? TargetMerge.MISSING : TargetMerge.UNREADABLE
   }
 
   private static joined(projects: readonly ParsedTargets[], own: ParsedTargets): EngineTarget[] {

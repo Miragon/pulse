@@ -860,8 +860,8 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      leaf as well, which takes the text of a profile file and returns a verdict per profile as data,
      reading no file and no environment (`profile-is-a-leaf`), and only the readers of profiles
      import it: the CLI's config layer, the connections of the runtime view's host kit (where Pulse
-     for VS Code and Pulse for Orca parse their project files and Pulse for VS Code the CLI's user
-     config), the engine connector's configuration, and tests (`profile-consumers`,
+     for VS Code and Pulse for Orca parse their project files and the CLI's user config), the
+     engine connector's configuration, and tests (`profile-consumers`,
      `PROFILE_READERS`; the CLI, the editor hosts and the engine connector read their profiles with
      it, the connector its engines under the credential policy `env`: a secret only by the name of an
      `ENGINE_SECRET_*` variable); the

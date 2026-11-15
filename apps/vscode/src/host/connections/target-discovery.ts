@@ -5,7 +5,7 @@ import {
   LOCAL_TARGET,
   TargetMerge,
   type UserConfigLocation,
-  type UserConfigRead,
+  UserConfigRead,
   type UserConfigVerdict,
 } from "@miragon/pulse-runtime-view/host-kit"
 import { TargetsFile } from "./targets-file.js"
@@ -37,16 +37,12 @@ export class TargetDiscovery {
     )
   }
 
-  private static async userConfig(location: UserConfigLocation): Promise<UserConfigRead> {
-    if (location.isRelative()) {
-      return { location }
-    }
-    const verdict = await TargetDiscovery.read(
-      vscode.Uri.file(location.path),
-      location.path,
-      (error) => (TargetDiscovery.isMissing(error) ? "missing" : "unreadable"),
+  private static userConfig(location: UserConfigLocation): Promise<UserConfigRead> {
+    return UserConfigRead.of(location, (path) =>
+      TargetDiscovery.read(vscode.Uri.file(path), path, (error) =>
+        TargetDiscovery.isMissing(error) ? "missing" : "unreadable",
+      ),
     )
-    return { location, verdict }
   }
 
   private static read(

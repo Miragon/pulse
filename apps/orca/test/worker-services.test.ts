@@ -1,10 +1,14 @@
-import { mkdtemp, readFile } from "node:fs/promises"
+import { access, mkdtemp, readFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import { describe, expect, test, vi } from "vitest"
 import { InstanceId } from "@miragon/pulse-engine-core"
-import type { Connection } from "@miragon/pulse-runtime-view/host-kit"
+import {
+  type Connection,
+  UserConfigLocation,
+  type UserConfigVerdict,
+} from "@miragon/pulse-runtime-view/host-kit"
 import type { EngineRegistry } from "../src/worker/engine-registry.js"
 import { OrcaSettings } from "../src/worker/orca-settings.js"
 import { OrcaWorkspaces } from "../src/worker/orca-workspaces.js"
@@ -17,16 +21,28 @@ class Harness {
   readonly orca = new FakeOrca()
   readonly prompts = new Prompts(() => undefined)
   readonly files: string[] = []
+  userConfig: UserConfigVerdict | undefined
+  named: string | undefined
   readonly registry = {
     projectFiles: () => this.files,
     formerProjectFiles: (): string[] => [],
+    userConfigLocation: () =>
+      new UserConfigLocation(
+        { XDG_CONFIG_HOME: this.configHome, PULSE_CLI_CONFIG: this.named },
+        "/home/me",
+        "linux",
+      ),
+    userConfigVerdict: () => this.userConfig,
     reload: vi.fn(() => Promise.resolve()),
     applyLiveSettings: vi.fn(() => Promise.resolve()),
     noteWrite: vi.fn(),
   }
   readonly services: WorkerServices
 
-  constructor(readonly root: string | undefined) {
+  constructor(
+    readonly root: string | undefined,
+    readonly configHome = "/home/me/.config",
+  ) {
     const workspaces =
       root === undefined
         ? []
@@ -47,6 +63,37 @@ class Harness {
 
   static async inWorkspace(): Promise<Harness> {
     return new Harness(await mkdtemp(join(tmpdir(), "pulse-services-")))
+  }
+
+  static async holdingTheCliConfig(): Promise<Harness> {
+    const root = await mkdtemp(join(tmpdir(), "pulse-services-"))
+    return new Harness(root, join(root, "dotfiles"))
+  }
+
+  static async apartFromTheCliConfig(): Promise<Harness> {
+    return new Harness(
+      await mkdtemp(join(tmpdir(), "pulse-services-")),
+      await mkdtemp(join(tmpdir(), "pulse-services-home-")),
+    )
+  }
+
+  get userConfigFile(): string {
+    return this.named ?? join(this.configHome, "pulse-cli", "config.json")
+  }
+
+  read(): UserConfigVerdict {
+    return { kind: "read", path: this.userConfigFile, text: "{}" }
+  }
+
+  outsideNotice(): unknown[] {
+    return [
+      {
+        notice: {
+          tone: "neutral",
+          text: `Orca opens files of a workspace only, and no workspace holds your CLI config. Edit ${this.userConfigFile} in another editor.`,
+        },
+      },
+    ]
   }
 
   opened(): unknown[] {
@@ -157,6 +204,129 @@ describe("the services of the worker", () => {
         tone: "danger",
         text: "Pulse can't open the project file: Error: Open a local workspace in Orca first.",
       })
+    })
+  })
+
+  test("open the CLI config where a workspace holds it", async () => {
+    const harness = await Harness.holdingTheCliConfig()
+    harness.userConfig = harness.read()
+
+    expect(await harness.services.userConfigRow()).toEqual({
+      path: harness.userConfigFile,
+      named: false,
+      present: true,
+      openable: true,
+    })
+    expect(await harness.services.openUserConfig()).toBe(true)
+    expect(harness.opened()).toEqual(["dotfiles/pulse-cli/config.json"])
+  })
+
+  test("say where the CLI config is when no workspace holds it, and never create it", async () => {
+    const harness = await Harness.inWorkspace()
+    harness.userConfig = { kind: "missing", path: harness.userConfigFile }
+
+    expect(await harness.services.userConfigRow()).toEqual({
+      path: "/home/me/.config/pulse-cli/config.json",
+      named: false,
+      present: false,
+      openable: false,
+    })
+    expect(await harness.services.openUserConfig()).toBe(false)
+    expect(harness.opened()).toEqual([])
+    expect(harness.orca.postsOf("notices.show")).toEqual([
+      {
+        notice: {
+          tone: "neutral",
+          text: "Orca opens files of a workspace only, and no workspace holds your CLI config. Edit /home/me/.config/pulse-cli/config.json in another editor.",
+        },
+      },
+    ])
+    await expect(access(harness.userConfigFile)).rejects.toThrow()
+  })
+
+  test("open no CLI config it read outside every workspace, and say where it is", async () => {
+    const harness = await Harness.apartFromTheCliConfig()
+    harness.userConfig = harness.read()
+
+    expect(await harness.services.userConfigRow()).toEqual({
+      path: harness.userConfigFile,
+      named: false,
+      present: true,
+      openable: false,
+    })
+    expect(await harness.services.openUserConfig()).toBe(false)
+    expect(harness.opened()).toEqual([])
+    expect(harness.orca.postsOf("notices.show")).toEqual(harness.outsideNotice())
+  })
+
+  test("configure the engines in the file PULSE_CLI_CONFIG names and create no project file", async () => {
+    const harness = await Harness.inWorkspace()
+    harness.named = join(harness.root ?? "", "ci.json")
+    harness.userConfig = harness.read()
+
+    expect(await harness.services.configure()).toBe(harness.named)
+    expect(harness.opened()).toEqual(["ci.json"])
+    expect(harness.registry.reload).not.toHaveBeenCalled()
+    await expect(access(join(harness.root ?? "", ".pulse.json"))).rejects.toThrow()
+  })
+
+  test("say where the file PULSE_CLI_CONFIG names is when no workspace holds it", async () => {
+    const harness = await Harness.apartFromTheCliConfig()
+    harness.named = join(harness.configHome, "ci.json")
+    harness.userConfig = harness.read()
+
+    await expect(harness.services.configure()).rejects.toThrow(
+      `No local Orca workspace holds ${harness.named}.`,
+    )
+    harness.services.editConnection()
+
+    await vi.waitFor(() => {
+      expect(harness.orca.postsOf("notices.show")).toEqual([
+        ...harness.outsideNotice(),
+        ...harness.outsideNotice(),
+      ])
+    })
+    expect(await harness.services.userConfigRow()).toMatchObject({ named: true, openable: false })
+    expect(harness.opened()).toEqual([])
+  })
+
+  test("count a CLI config it cannot read as there, but open none", async () => {
+    const harness = await Harness.holdingTheCliConfig()
+    harness.userConfig = { kind: "unreadable", path: harness.userConfigFile }
+
+    expect(await harness.services.userConfigRow()).toMatchObject({ present: true, openable: false })
+  })
+
+  test("open the CLI config to edit an engine it names", async () => {
+    const harness = await Harness.holdingTheCliConfig()
+    harness.userConfig = harness.read()
+    const source = { kind: "user-config", path: harness.userConfigFile }
+
+    harness.services.editConnection({ target: { name: "mine", source } } as Connection)
+
+    await vi.waitFor(() => {
+      expect(harness.opened()).toEqual(["dotfiles/pulse-cli/config.json"])
+    })
+    expect(harness.registry.reload).not.toHaveBeenCalled()
+  })
+
+  test("say when it cannot open the CLI config", async () => {
+    const harness = await Harness.holdingTheCliConfig()
+    harness.userConfig = harness.read()
+    harness.orca.failingHostCalls.add("workspace.open")
+    const source = { kind: "user-config", path: harness.userConfigFile }
+
+    harness.services.editConnection({ target: { name: "mine", source } } as Connection)
+
+    await vi.waitFor(() => {
+      expect(harness.orca.postsOf("notices.show")).toEqual([
+        {
+          notice: {
+            tone: "danger",
+            text: "Pulse can't open your CLI config: Error: workspace.open failed",
+          },
+        },
+      ])
     })
   })
 

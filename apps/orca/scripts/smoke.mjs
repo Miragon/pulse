@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process"
-import { existsSync } from "node:fs"
-import { join, resolve } from "node:path"
+import { existsSync, readFileSync } from "node:fs"
+import { homedir } from "node:os"
+import { isAbsolute, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
 const app = fileURLToPath(new URL("../", import.meta.url))
@@ -19,6 +20,7 @@ class Smoke {
       `No plugin folder at ${plugin}: build it first.`,
     )
     Smoke.require(existsSync(projectFile), `No project file at ${projectFile}.`)
+    Smoke.checkCliConfigs()
     Smoke.load()
     Smoke.request("engines.setProjectFile", { path: projectFile })
     const engines = Smoke.waitForEngines()
@@ -32,6 +34,36 @@ class Smoke {
     Smoke.settle()
     Smoke.checkLogs()
     Smoke.step("ok")
+  }
+
+  static checkCliConfigs() {
+    const sandbox = Object.keys(Smoke.profilesOf(projectFile))
+    for (const file of Smoke.cliConfigs()) {
+      const clashes = Object.keys(Smoke.profilesOf(file)).filter((name) => sandbox.includes(name))
+      Smoke.require(
+        clashes.length === 0,
+        `Your CLI config ${file} names ${clashes.join(", ")}, as the sandbox does, and Pulse for Orca would show your profiles in their place. Rename them there, or move the file away while the smoke test runs.`,
+      )
+    }
+  }
+
+  static cliConfigs() {
+    const homes =
+      process.platform === "win32"
+        ? [process.env.APPDATA ?? join(homedir(), "AppData", "Roaming")]
+        : [join(homedir(), ".config"), process.env.XDG_CONFIG_HOME ?? ""]
+    return [...new Set(homes)]
+      .filter((home) => isAbsolute(home))
+      .map((home) => join(home, "pulse-cli", "config.json"))
+      .filter((file) => existsSync(file))
+  }
+
+  static profilesOf(file) {
+    try {
+      return JSON.parse(readFileSync(file, "utf8")).profiles ?? {}
+    } catch {
+      return {}
+    }
   }
 
   static load() {

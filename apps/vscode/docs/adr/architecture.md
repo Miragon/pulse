@@ -1,7 +1,7 @@
 # Architecture
 
 - Status: accepted
-- Last reviewed: 2026-11-14 (Pulse for VS Code reads the CLI's user config: `UserConfigLocation`, `ProfileSource` and the user config's rules of `TargetMerge` in the host kit; `TargetMerge` of the host kit decides the engines of both hosts from their files, and Pulse for VS Code shows a project file it can't read as one problem with no local default engine, as Pulse for Orca did; the switch of D9 landed: the webview's rendering libraries are `react`, `react-dom` and `lucide-react`); 2026-11-12 (later that day, D9 in [ui-foundation.md](ui-foundation.md): the webview moves from Preact to React on pulse-ui in one switch, no `preact/compat`, its closed world changes with that switch; earlier: the webview may import shared building blocks of pulse-ui's React kit and stylesheet by the package's root and `@miragon/pulse-ui/theme.css`, the ports, core, model reader and host kit stay framework-free, owner decision in [ui-foundation.md](ui-foundation.md); a refused target's read-only note is its refusal; the adapter gives the command of Pulse's CLI that triggers an event through the port `EngineCli`, on the engine its `CliTarget` names: the profile of a target's project file with the target's URL, or the default engine's URL); 2026-11-10 (the C7 adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the layers live in the runtime view and the engine adapter, which Pulse for Orca hosts too, the runtime view's contract is `@miragon/pulse-engine-core` and its own ports moved to `ports`; before that, the host kit's connections read the project file with `@miragon/pulse-profile`, the engine contract left the app for `@miragon/pulse-engine-core`, the engine family's neutral core, and 2026-11-08 Pulse's UI foundation in core and webview)
+- Last reviewed: 2026-11-15 (Pulse for Orca reads the CLI's user config too: a host hands `TargetMerge` the read of the host kit's `UserConfigRead.of`, which reads no relative path; Orca watches the file's folder, or the folder above while it is missing, and opens the file only where a workspace holds it); 2026-11-14 (Pulse for VS Code reads the CLI's user config: `UserConfigLocation`, `ProfileSource` and the user config's rules of `TargetMerge` in the host kit; `TargetMerge` of the host kit decides the engines of both hosts from their files, and Pulse for VS Code shows a project file it can't read as one problem with no local default engine, as Pulse for Orca did; the switch of D9 landed: the webview's rendering libraries are `react`, `react-dom` and `lucide-react`); 2026-11-12 (later that day, D9 in [ui-foundation.md](ui-foundation.md): the webview moves from Preact to React on pulse-ui in one switch, no `preact/compat`, its closed world changes with that switch; earlier: the webview may import shared building blocks of pulse-ui's React kit and stylesheet by the package's root and `@miragon/pulse-ui/theme.css`, the ports, core, model reader and host kit stay framework-free, owner decision in [ui-foundation.md](ui-foundation.md); a refused target's read-only note is its refusal; the adapter gives the command of Pulse's CLI that triggers an event through the port `EngineCli`, on the engine its `CliTarget` names: the profile of a target's project file with the target's URL, or the default engine's URL); 2026-11-10 (the C7 adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the layers live in the runtime view and the engine adapter, which Pulse for Orca hosts too, the runtime view's contract is `@miragon/pulse-engine-core` and its own ports moved to `ports`; before that, the host kit's connections read the project file with `@miragon/pulse-profile`, the engine contract left the app for `@miragon/pulse-engine-core`, the engine family's neutral core, and 2026-11-08 Pulse's UI foundation in core and webview)
 
 ## Context
 
@@ -165,7 +165,7 @@ is a file a setting names that is missing (Pulse for Orca's), which keeps the lo
 engine. A file whose profiles are all refused keeps it too.
 
 The CLI's user config (`~/.config/pulse-cli/config.json`, found as the CLI finds it, or the file
-`PULSE_CLI_CONFIG` names) is the second home of profiles, which Pulse for VS Code reads. The rule
+`PULSE_CLI_CONFIG` names) is the second home of profiles, which both hosts read. The rule
 that finds it stays with each reader, since the format reads no file system: the host kit's
 `UserConfigLocation` takes the environment, the home folder and the platform from its host, and it
 and the CLI's `configFilePath` run one case table, `CLI_CONFIG_LOCATIONS` of
@@ -175,12 +175,17 @@ credential and no variable of it, Set Credentials keys a login by profile and fi
 reads `CLI config: …`, its way out never asking to remove what the CLI needs. `TargetMerge` joins
 it with the CLI's rules: the project files first, then the user config, whose profile wins a name
 as a whole, a refused one too; a non-blank `PULSE_CLI_CONFIG` means that file only, with a warning
-while it hides project files, and a relative or missing one is a problem with no engine.
+while it hides project files, and a relative or missing one is a problem with no engine. A host
+hands it the read of `UserConfigRead.of`, which reads the file at its full path and nothing at a
+relative one, so no read can name a file it did not read.
 `packages/core/runtime-view/test/host-kit/user-config-fixtures.expected.json` holds `TargetsParser`
 to every shared fixture read as the user config. Pulse for VS Code reloads when the file changes or
 is saved, and when its folder appears or goes (a watcher in the folder above it), so the CLI's first
-write, which makes the folder and the file at once, shows without a refresh. Pulse writes two files
-only, both through _Configure Engines_: a missing project file from its template, and a missing user
+write, which makes the folder and the file at once, shows without a refresh. Pulse for Orca watches
+the file's folder, or the folder above it while that is missing, and moves into the folder when it
+appears; Orca's `editor.open` reaches files of a workspace only, so the panel shows the file's path
+and Pulse for Orca opens it only where a workspace holds it and never creates it. Pulse for VS Code
+writes two files only, both through _Configure Engines_: a missing project file from its template, and a missing user
 config with no profiles, created exclusively with mode `0600`.
 
 Each layer has its own `tsconfig.<layer>.json` with `lib`/`types` matching its runtime,

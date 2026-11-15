@@ -66,7 +66,8 @@ secrets for logins, and files in your workspace for its tabs.
    ```
 
 2. Open the Pulse panel in Orca's right sidebar: it lists your engines and their processes.
-   Without a project file, Pulse tries an engine on `localhost:8080`.
+   It reads the engines of your CLI config too, after those of the project file. Without any,
+   Pulse tries an engine on `localhost:8080`.
 3. Open a process from the panel to see its deployed diagram with its badges, or a `.bpmn` under
    **Local models** to compare it with the engine.
 

@@ -1,8 +1,8 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, relative } from "node:path"
 import { mockHost, mountWorker, type MockHostOptions, type TestWorker } from "orca/testing"
-import { afterEach, beforeEach, describe, expect, test } from "vitest"
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 import type { EngineList } from "../../src/protocol.js"
 import * as main from "../../src/worker/main.js"
 
@@ -79,6 +79,36 @@ describe("the engines", () => {
     expectNoRefusals(running)
   })
 
+  test("are the profiles of the project file, then those of the CLI config", async () => {
+    const configHome = join(root, "home")
+    await mkdir(join(configHome, "pulse-cli"), { recursive: true })
+    await writeFile(
+      join(configHome, "pulse-cli", "config.json"),
+      JSON.stringify({
+        profiles: { mine: { url: UNREACHABLE }, "shop-test": { url: UNREACHABLE } },
+      }),
+    )
+    vi.stubEnv("XDG_CONFIG_HOME", configHome)
+    const running = await withProject()
+    vi.unstubAllEnvs()
+
+    const list = await running.request("engines.list")
+
+    expect(namesOf(list)).toEqual(["shop-dev", "shop-test", "mine"])
+    expect(list.engines.map((engine) => engine.needsLogin)).toEqual([false, false, false])
+    expect(list.userConfig).toEqual({
+      path: join(configHome, "pulse-cli", "config.json"),
+      named: false,
+      present: true,
+      openable: true,
+    })
+    expect(await running.request("engines.openUserConfig")).toEqual({ opened: true })
+    expect(running.host.callsOf("editor.open")).toEqual([
+      { workspaceId: "w1", path: "home/pulse-cli/config.json" },
+    ])
+    expectNoRefusals(running)
+  })
+
   test("are the profiles of the project file the setting names", async () => {
     const running = await withProject()
 
@@ -99,7 +129,7 @@ describe("the engines", () => {
     expectNoRefusals(running)
   })
 
-  test("name a project file Pulse can't read as a problem", async () => {
+  test("name a missing project file the setting names as a problem, beside the local engine", async () => {
     const running = await started()
     const missing = join(root, "missing", ".pulse.json")
 
@@ -107,7 +137,10 @@ describe("the engines", () => {
     const list = await running.request("engines.list")
 
     expect(list.problems).toEqual([
-      { text: ".pulse.json: Pulse can't read this file", tone: "danger" },
+      {
+        text: ".pulse.json: A setting names this file, which does not exist. Create it, or change the setting.",
+        tone: "danger",
+      },
     ])
     expect(namesOf(list)).toEqual(["local"])
   })

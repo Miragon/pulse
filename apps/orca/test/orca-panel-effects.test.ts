@@ -125,7 +125,7 @@ describe("the effects of a view in Orca", () => {
     await effects.confirmBulk({} as never)
 
     expect(services.showIncident).toHaveBeenCalledWith("shop", "Failed", details)
-    expect(services.editConnection).toHaveBeenCalled()
+    expect(services.editConnection).toHaveBeenCalledWith(connection)
     expect(services.askForLogin).toHaveBeenCalledWith(connection)
     expect(services.openLocation).toHaveBeenCalledTimes(2)
     expect(services.turnOnLiveUpdates).toHaveBeenCalledWith("test")

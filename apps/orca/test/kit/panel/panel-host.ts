@@ -1,5 +1,10 @@
 import { mockHost, type MockHost, type MockRequests } from "orca/testing"
-import type { ConfigurationProblem, EngineList, EngineRow } from "../../../src/protocol.js"
+import type {
+  ConfigurationProblem,
+  EngineList,
+  EngineRow,
+  UserConfigRow,
+} from "../../../src/protocol.js"
 
 export const SHOP_DEV: EngineRow = {
   name: "shop-dev",
@@ -28,15 +33,24 @@ export const SIGN_IN_PROBLEM = {
   needsCredentials: true,
 }
 
+export const NO_CLI_CONFIG: UserConfigRow = {
+  path: "/home/me/.config/pulse-cli/config.json",
+  named: false,
+  present: false,
+  openable: false,
+}
+
 export function engineList(
   engines: readonly EngineRow[],
   options: {
     readonly projectFile?: string
+    readonly userConfig?: UserConfigRow
     readonly problems?: readonly ConfigurationProblem[]
   } = {},
 ): EngineList {
   return {
     projectFile: options.projectFile ?? "/work/shop/.pulse.json",
+    userConfig: options.userConfig ?? NO_CLI_CONFIG,
     engines,
     problems: options.problems ?? [],
   }

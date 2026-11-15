@@ -75,7 +75,7 @@ describe("a board", () => {
 
     expect(partTexts(strips, "strip-title")).toEqual([
       "Can't reach prod-eu.",
-      "billing-prod is not in .pulse.json.",
+      "billing-prod is not in .pulse.json or your CLI config.",
     ])
     for (const button of allParts(strips, "status-strip").flatMap((strip) =>
       allRoles(strip, "button"),

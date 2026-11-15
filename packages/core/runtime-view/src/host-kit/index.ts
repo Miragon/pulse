@@ -22,17 +22,13 @@ export { LivePolicy } from "./connections/live-policy.js"
 export { ProjectFile } from "./connections/project-file.js"
 export { TargetHosts } from "./connections/target-hosts.js"
 export { ProfileSource, type ProfileSourceKind } from "./connections/profile-source.js"
-export {
-  TargetMerge,
-  type DiscoveredTargets,
-  type FileVerdict,
-  type UserConfigRead,
-  type UserConfigVerdict,
-} from "./connections/target-merge.js"
+export type { FileVerdict, UserConfigVerdict } from "./connections/file-verdict.js"
+export { TargetMerge, type DiscoveredTargets } from "./connections/target-merge.js"
 export { TargetPolicy } from "./connections/target-policy.js"
 export { TargetsParser, type ParsedTargets } from "./connections/targets-parser.js"
 export { TargetsProblem } from "./connections/targets-problem.js"
 export { UserConfigLocation } from "./connections/user-config-location.js"
+export { UserConfigRead } from "./connections/user-config-read.js"
 export {
   WriteAudit,
   type AuditLog,

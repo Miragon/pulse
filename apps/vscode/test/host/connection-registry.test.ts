@@ -126,7 +126,7 @@ describe("the connections of Pulse for VS Code", () => {
     expect(connections.all()).toEqual([])
     expect(connections.active()).toBeUndefined()
     expect(connections.configurationProblems().map((problem) => problem.label())).toEqual([
-      ".pulse.json: Pulse can't read this file",
+      ".pulse.json: Pulse can't read this file. Check that the path names a file, not a folder, and that you have read access to it.",
     ])
   })
 

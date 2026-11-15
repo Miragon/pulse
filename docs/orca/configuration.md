@@ -11,17 +11,26 @@ problem in the panel while the other profiles still list engines. A note on the 
 `defaultProfile` that names no profile, a key the format does not know) shows as a warning.
 
 The plugin takes the project file its setting names, else the `.pulse.json` at the root of the
-focused workspace, else one engine on `localhost:8080`. It reads the file again when it changes.
-A project file that is there but Pulse can't read (a folder of that name, a file without read
-access) shows as a problem and lists no engine, not even the one on `localhost:8080`.
-The gear in the panel opens it, created from a template when there is none. A workspace that holds
+focused workspace. It reads your CLI config too, the file of your own engines that the CLI and
+Pulse for VS Code read, found as the CLI finds it (`~/.config/pulse-cli/config.json`, the rules in
+[Pulse for VS Code](../vscode/configuration.md#engines)): its profiles follow those of the project
+file, and one of the same name takes that profile's place as a whole. With `PULSE_CLI_CONFIG` set
+in Orca's environment, Pulse reads only the file it names, like the CLI. Without any profile it
+lists one engine on `localhost:8080`. It reads both files again when they change.
+A file that is there but Pulse can't read (a folder of that name, a file without read access),
+or a missing file `PULSE_CLI_CONFIG` names, shows as a problem and lists no engine, not even the
+one on `localhost:8080`.
+The gear in the panel opens the project file, created from a template when there is none; with
+`PULSE_CLI_CONFIG` set, the panel names that file as the source and the gear opens it instead. The
+panel shows where your CLI config is; since Orca opens files of a workspace only, Pulse opens it
+only where a workspace holds it, and never creates it. A workspace that holds
 the project file only under its former name, `.pulse-cli.json`, shows one problem asking you to
 rename it and lists none of its engines, not even the one on `localhost:8080`; the gear opens that
 file and creates no second one.
 
 Credentials go in with the login form of the panel, which opens when an engine needs one. They
-live in Orca's secret storage, in the OS key store, bound to the project file's path and the
-engine's address.
+live in Orca's secret storage, in the OS key store, bound to the file's path and the engine's
+address; Pulse reads none of the credentials your CLI config holds for the CLI.
 
 ## Settings
 

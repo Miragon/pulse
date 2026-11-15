@@ -148,7 +148,7 @@ describe("the project files Pulse reads", () => {
 
     expect(targets).toEqual([])
     expect(problems.map((problem) => problem.label())).toEqual([
-      ".pulse.json: Pulse can't read this file",
+      `.pulse.json: ${TargetMerge.UNREADABLE}`,
     ])
   })
 
@@ -160,7 +160,7 @@ describe("the project files Pulse reads", () => {
     const { targets, problems } = await TargetDiscovery.discover(USER)
 
     expect(targets.map((target) => target.name)).toEqual(["b"])
-    expect(problems).toEqual([new TargetsProblem(CURRENT_A, "Pulse can't read this file")])
+    expect(problems).toEqual([new TargetsProblem(CURRENT_A, TargetMerge.UNREADABLE)])
   })
 
   test("name a project file it cannot read before a folder with the former name only", async () => {
@@ -172,7 +172,7 @@ describe("the project files Pulse reads", () => {
 
     expect(targets).toEqual([])
     expect(problems).toEqual([
-      new TargetsProblem(CURRENT_A, "Pulse can't read this file"),
+      new TargetsProblem(CURRENT_A, TargetMerge.UNREADABLE),
       new TargetsProblem(FORMER_B, TargetsFile.RENAME),
     ])
   })
@@ -262,7 +262,7 @@ describe("the CLI's user config", () => {
 
     expect(await discovered()).toEqual({
       targets: [],
-      problems: [["CLI config: Pulse can't read this file", undefined]],
+      problems: [[`CLI config: ${TargetMerge.UNREADABLE}`, undefined]],
     })
   })
 

@@ -1,3 +1,4 @@
+import { homedir } from "node:os"
 import { C7Adapter } from "@miragon/pulse-c7-adapter"
 import type { LocalSources } from "@miragon/pulse-runtime-view/core"
 import { BpmnModelSource, WorkspaceCodeLocator } from "@miragon/pulse-runtime-view/model"
@@ -22,6 +23,7 @@ import {
   type EngineKind,
   type EngineTarget,
   TargetPolicy,
+  UserConfigLocation,
 } from "@miragon/pulse-runtime-view/host-kit"
 
 type EngineAdapters = Readonly<Record<EngineKind, EngineAdapter>>
@@ -55,6 +57,10 @@ export class CompositionRoot implements EngineFactories {
 
   cli(target: EngineTarget, cliTarget: CliTarget): EngineCli | undefined {
     return this.adapters[target.engine].cli(cliTarget)
+  }
+
+  static userConfig(): UserConfigLocation {
+    return new UserConfigLocation(process.env, homedir(), process.platform)
   }
 
   static localSources(files: WorkspaceFiles): LocalSources {

@@ -32,8 +32,16 @@ export interface ConfigurationProblem {
   readonly tone: "warning" | "danger"
 }
 
+export interface UserConfigRow {
+  readonly path: string
+  readonly named: boolean
+  readonly present: boolean
+  readonly openable: boolean
+}
+
 export interface EngineList {
   readonly projectFile: string
+  readonly userConfig: UserConfigRow
   readonly engines: readonly EngineRow[]
   readonly problems: readonly ConfigurationProblem[]
 }
@@ -133,6 +141,7 @@ declare module "orca" {
       output: { ok: boolean }
     }
     "engines.configure": { output: { path: string } }
+    "engines.openUserConfig": { output: { opened: boolean } }
     "instances.find": { input: { query: string }; output: { found: readonly FoundInstance[] } }
     "boards.list": { output: { boards: readonly FileRow[] } }
     "boards.create": { input: { title: string }; output: { path: string } }

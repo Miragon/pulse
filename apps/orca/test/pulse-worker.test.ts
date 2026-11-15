@@ -74,7 +74,7 @@ describe("the Pulse worker", () => {
     expect(list.engines.map((row) => row.name)).toEqual(["local"])
   })
 
-  test("names a configured project file it cannot read", async () => {
+  test("names a configured project file that is missing", async () => {
     const harness = await WorkerHarness.empty()
     harness.orca.settings.set("projectFile", `${harness.root}/missing.json`)
     activate(harness.orca.api())
@@ -82,7 +82,7 @@ describe("the Pulse worker", () => {
     const list = (await harness.request("engines.list")) as EngineList
 
     expect(list.problems).toEqual([
-      { text: expect.stringContaining("Pulse can't read this file") as unknown, tone: "danger" },
+      { text: expect.stringContaining("which does not exist") as unknown, tone: "danger" },
     ])
   })
 

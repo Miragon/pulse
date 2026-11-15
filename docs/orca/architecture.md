@@ -36,6 +36,8 @@ Pulse for Orca works around these, and moves on when Orca offers them:
 - The worker does not know the active editor, so "Show runtime data for this model" is the
   list of local models in the panel.
 - `editor.open` takes no line, so incident details, models and code open at the top.
+- `editor.open` reaches files of a workspace only, and the panel has no clipboard, so the panel
+  shows your CLI config's path and opens the file only where a workspace holds it.
 - Tree items have no badge, colour or row action.
 - Orca grants a plugin's secrets to all its parts; Pulse reads them in the worker only.
 

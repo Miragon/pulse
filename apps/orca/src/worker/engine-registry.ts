@@ -14,6 +14,9 @@ import {
   ProjectFile,
   TargetMerge,
   type TargetsProblem,
+  type UserConfigLocation,
+  UserConfigRead,
+  type UserConfigVerdict,
   type WriteAudit,
   type EnvironmentSettings,
 } from "@miragon/pulse-runtime-view/host-kit"
@@ -28,18 +31,21 @@ type Listener = () => void
 
 interface Discovered extends DiscoveredTargets {
   readonly files: readonly string[]
+  readonly user: UserConfigRead
 }
 
 export class EngineRegistry {
   private connections: readonly Connection[] = []
   private problems: readonly TargetsProblem[] = []
   private files: readonly string[] = []
+  private userVerdict: UserConfigVerdict | undefined
   private activeName: string | undefined
   private environments: EnvironmentSettings = { user: undefined, workspace: [] }
   private readonly lanes = new EngineLanes()
   private readonly merge = new TargetMerge(LOCAL_TARGET)
   private readonly credentials: CredentialStore
   private readonly builder: ConnectionBuilder
+  private readonly location: UserConfigLocation
   private readonly changed = new Set<Listener>()
   private readonly written = new Set<Listener>()
   private reloads: Promise<void> = Promise.resolve()
@@ -56,6 +62,7 @@ export class EngineRegistry {
       audit,
       OrcaSettings.WRITES_WORDING,
     )
+    this.location = CompositionRoot.userConfig()
   }
 
   reload(): Promise<void> {
@@ -105,7 +112,15 @@ export class EngineRegistry {
   }
 
   projectFiles(): readonly string[] {
-    return this.files
+    return this.location.explicit ? [] : this.files
+  }
+
+  userConfigLocation(): UserConfigLocation {
+    return this.location
+  }
+
+  userConfigVerdict(): UserConfigVerdict | undefined {
+    return this.userVerdict
   }
 
   configurationProblems(): readonly TargetsProblem[] {
@@ -162,6 +177,7 @@ export class EngineRegistry {
       ),
     )
     this.files = discovered.files
+    this.userVerdict = discovered.user.verdict()
     this.problems = discovered.problems
     EngineRegistry.fire(this.changed)
   }
@@ -173,7 +189,10 @@ export class EngineRegistry {
         ? await this.focusedProjectFile()
         : [await EngineRegistry.configuredFile(configured)]
     const files = verdicts.flatMap((verdict) => (verdict.kind === "read" ? [verdict.path] : []))
-    return { files, ...this.merge.merge(verdicts) }
+    const user = await UserConfigRead.of(this.location, (path) =>
+      EngineRegistry.configuredFile(path),
+    )
+    return { files, user, ...this.merge.merge(verdicts, user) }
   }
 
   private async focusedProjectFile(): Promise<readonly FileVerdict[]> {
@@ -193,11 +212,11 @@ export class EngineRegistry {
     return present ? [{ kind: "former-name", path: former }] : []
   }
 
-  private static async configuredFile(file: string): Promise<FileVerdict> {
+  private static async configuredFile(file: string): Promise<UserConfigVerdict> {
     return (await EngineRegistry.verdictOf(file)) ?? { kind: "missing", path: file }
   }
 
-  private static async verdictOf(file: string): Promise<FileVerdict | undefined> {
+  private static async verdictOf(file: string): Promise<UserConfigVerdict | undefined> {
     try {
       return { kind: "read", path: file, text: await readFile(file, "utf8") }
     } catch (error) {

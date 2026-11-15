@@ -2,9 +2,10 @@
 
 ## The panel
 
-The Pulse panel in Orca's right sidebar lists the engines of the project file with their process
-definitions and incident counts. Enter on an engine opens its overview, on a process its
-definition, each in an editor tab. The panel also holds:
+The Pulse panel in Orca's right sidebar lists the engines of the project file and your CLI config
+with their process definitions and incident counts, and shows where your CLI config is. Enter on
+an engine opens its overview, on a process its definition, each in an editor tab. The panel also
+holds:
 
 - **Active engine**: the engine the status bar shows with its incidents.
 - **Go to instance**: an instance id or a business key opens the instance, a list when several
