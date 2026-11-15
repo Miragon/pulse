@@ -35,6 +35,39 @@ function bodyOf(call: FakeCall | undefined): string {
 const SORTING =
   '"sorting":[{"sortBy":"startTime","sortOrder":"desc"},{"sortBy":"instanceId","sortOrder":"asc"}]'
 
+function runningRow(id: string) {
+  return { ...RUNNING, id }
+}
+
+/** The history's rows of the window a request asks for. */
+function historyOf(rows: readonly { readonly id: string }[]): Route {
+  return (input) => {
+    const first = Number(input.query.firstResult)
+    return rows.slice(first, first + Number(input.query.maxResults))
+  }
+}
+
+/** The runtime's flag: of the ids asked for, those of `failing`. */
+function flagsOf(failing: readonly string[]): Route {
+  return (input) =>
+    String(input.query.processInstanceIds)
+      .split(",")
+      .filter((id) => failing.includes(id))
+      .map((id) => ({ id, definitionId: "order:1:a" }))
+}
+
+function windowsOf(calls: readonly FakeCall[]): unknown[] {
+  return calls
+    .filter((call) => call.operationId === "queryHistoricProcessInstances")
+    .map((call) => call.input.query)
+}
+
+function flagRequestsOf(calls: readonly FakeCall[]): unknown[] {
+  return calls
+    .filter((call) => call.operationId === "getProcessInstances")
+    .map((call) => call.input.query.processInstanceIds)
+}
+
 describe("InstanceSearch.search", () => {
   it("pages the history's rows newest first and flags the running ones the runtime holds an incident for", async () => {
     const { port, search } = searchOver({
@@ -206,6 +239,90 @@ describe("InstanceSearch.search", () => {
       search.search({ withIncident: true }, { limit: 5, after: PageCursor("x") }),
     ).rejects.toThrow(RangeError)
     expect(sent(port.calls)).toStrictEqual(["getProcessInstances"])
+  })
+})
+
+describe("InstanceSearch.search without an incident", () => {
+  it("fills the page past the instances with an incident, so no page is empty with a cursor", async () => {
+    const rows = ["p1", "p2", "p3", "p4"].map((id) => runningRow(id))
+    const { port, search } = searchOver({
+      queryHistoricProcessInstances: historyOf(rows),
+      getProcessInstances: flagsOf(["p1", "p2"]),
+    })
+
+    const first = await search.search({ withIncident: false }, { limit: 1 })
+    const second = await search.search(
+      { withIncident: false },
+      { limit: 1, after: PageCursor("3") },
+    )
+
+    expect(first.items.map((item) => [item.id, item.hasIncident])).toStrictEqual([["p3", false]])
+    expect(first.next).toBe("3")
+    expect(second).toStrictEqual({ items: [expect.objectContaining({ id: "p4" })] })
+    expect(windowsOf(port.calls)).toStrictEqual([
+      { firstResult: "0", maxResults: "2" },
+      { firstResult: "2", maxResults: "4" },
+      { firstResult: "3", maxResults: "2" },
+    ])
+    expect(flagRequestsOf(port.calls)).toStrictEqual(["p1,p2", "p3,p4", "p4"])
+  })
+
+  it("does not read again the instances with an incident between the page and the next one without", async () => {
+    const rows = ["p1", "p2", "p3", "p4", "p5"].map((id) => runningRow(id))
+    const { port, search } = searchOver({
+      queryHistoricProcessInstances: historyOf(rows),
+      getProcessInstances: flagsOf(["p2", "p3", "p4"]),
+    })
+
+    const page = await search.search({ withIncident: false }, { limit: 1 })
+
+    expect(page.items.map((item) => item.id)).toStrictEqual(["p1"])
+    expect(page.next).toBe("4")
+    expect(windowsOf(port.calls)).toStrictEqual([
+      { firstResult: "0", maxResults: "2" },
+      { firstResult: "2", maxResults: "4" },
+    ])
+  })
+
+  it("asks the flags of every running row of a window, the one after the page too, 50 ids per request", async () => {
+    const rows = Array.from({ length: 52 }, (_row, index) => runningRow(`p${String(index)}`))
+    const { port, search } = searchOver({
+      queryHistoricProcessInstances: historyOf(rows),
+      getProcessInstances: flagsOf([]),
+    })
+
+    const page = await search.search({ withIncident: false }, { limit: 50 })
+
+    expect(page.items).toHaveLength(50)
+    expect(page.next).toBe("50")
+    const flagged = flagRequestsOf(port.calls).map((ids) => String(ids).split(","))
+    expect(flagged.map((ids) => ids.length)).toStrictEqual([50, 1])
+    expect(flagged.flat()).toStrictEqual(rows.slice(0, 51).map((row) => row.id))
+  })
+
+  it("asks for no more rows than there are ids and reads no window past them", async () => {
+    const { port, search } = searchOver({
+      queryHistoricProcessInstances: historyOf([FAILING, runningRow("p3")]),
+      getProcessInstances: flagsOf(["p1"]),
+    })
+
+    const page = await search.search(
+      { withIncident: false, instanceIds: [InstanceId("p1"), InstanceId("p3")] },
+      { limit: 5 },
+    )
+
+    expect(page).toStrictEqual({ items: [expect.objectContaining({ id: "p3" })] })
+    expect(windowsOf(port.calls)).toStrictEqual([{ firstResult: "0", maxResults: "2" }])
+    expect(bodyOf(port.calls[0])).toBe(`{"processInstanceIds":["p1","p3"],${SORTING}}`)
+  })
+
+  it("fails a cursor of another paging before it sends anything", async () => {
+    const { port, search } = searchOver({})
+
+    await expect(
+      search.search({ withIncident: false }, { limit: 5, after: PageCursor("x") }),
+    ).rejects.toThrow(RangeError)
+    expect(port.calls).toStrictEqual([])
   })
 })
 

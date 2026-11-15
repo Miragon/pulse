@@ -696,23 +696,13 @@ describe("the C7 runtime over recorded engine answers", () => {
     expect(await runtime.getInstanceDetail(InstanceId("00000000-0000"))).toBeUndefined()
   })
 
-  test("lists root incidents only, each with the version it was raised in", async () => {
+  test("lists root incidents only, newest first, each with the version it was raised in", async () => {
     const { runtime, engine } = fakeRuntime([ROUTE.allIncidents, ROUTE.definitionStatistics])
 
     const page = await runtime.searchIncidents({}, { limit: 50 })
 
     expect(page).toEqual({
       items: [
-        {
-          id: WORLD_IDS.chargeIncident,
-          instanceId: WORLD_IDS.charge,
-          definition: ORDER_V1,
-          elementId: "Activity_ChargePayment",
-          type: "failedJob",
-          message: CHARGE_MESSAGE,
-          createdAt: "2026-10-21T18:44:04.554Z",
-          job: { id: WORLD_IDS.chargeJob },
-        },
         {
           id: WORLD_IDS.labelIncident,
           instanceId: WORLD_IDS.label,
@@ -722,6 +712,16 @@ describe("the C7 runtime over recorded engine answers", () => {
           message: LABEL_MESSAGE,
           createdAt: "2026-10-21T18:44:04.613Z",
           job: { id: WORLD_IDS.labelJob },
+        },
+        {
+          id: WORLD_IDS.chargeIncident,
+          instanceId: WORLD_IDS.charge,
+          definition: ORDER_V1,
+          elementId: "Activity_ChargePayment",
+          type: "failedJob",
+          message: CHARGE_MESSAGE,
+          createdAt: "2026-10-21T18:44:04.554Z",
+          job: { id: WORLD_IDS.chargeJob },
         },
       ],
     })
@@ -756,8 +756,8 @@ describe("the C7 runtime over recorded engine answers", () => {
     const page = await runtime.searchIncidents({}, { limit: 50 })
 
     expect(page.items.map((incident) => [incident.id, incident.job])).toEqual([
-      ["external", { id: "external-target" }],
       ["custom", undefined],
+      ["external", { id: "external-target" }],
     ])
   })
 

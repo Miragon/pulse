@@ -1,7 +1,9 @@
 /**
  * Offset paging behind the engine contract's cursor (`PageRequest`, `Page` of
  * @miragon/pulse-engine-core): the cursor is the offset of the next row, and one row more than the
- * page is asked for, so a page tells whether another follows without a count.
+ * page is asked for, so a page tells whether another follows without a count. A search that drops
+ * rows of the engine's answer fills its page with `FillingPages` (`filling-pages.ts`), whose first
+ * window is this one.
  */
 
 import { type Page, PageCursor, type PageRequest } from "@miragon/pulse-engine-core"
@@ -24,7 +26,10 @@ export class OffsetPaging {
     return { firstResult: this.offset(), maxResults: this.page.limit + 1 }
   }
 
-  /** The page of `rows` (read by {@link window}), its items by `toItems`, and the next cursor if more follow. */
+  /**
+   * The page of `rows` (read by {@link window}), its items by `toItems`, one per row, and the next
+   * cursor if more follow.
+   */
   pageOf<Row, Item>(
     rows: readonly Row[],
     toItems: (pageRows: readonly Row[]) => readonly Item[],

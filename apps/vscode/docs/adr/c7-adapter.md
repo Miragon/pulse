@@ -463,13 +463,18 @@ routes and so run every class above.
 - OAuth2 targets are refused when they connect (the host kit's `TargetPolicy`), with a message
   that names the way out: auth.type none, or basic without the OAuth keys, or the profile kept
   for the CLI.
-- Known limits: pages can come back shorter than the limit when filters run after
-  paging (root incidents only, `withIncident: false`); ended instances show the
-  variables `inspect` reports, without engine types for plain values. Below history
-  level FULL the engine keeps no historic batch: a finished batch reads `undefined` (the
-  core then reconciles by ids) and a Stop after it ended is rejected. With
-  `invocationsPerBatchJob` above 1 the item counts are approximate, because the last
-  job may hold fewer items. Variable conditions read the historic variables, so below
-  history level AUDIT a search by variables finds nothing, running instances included.
-  JSON and object variables cannot be searched: the engine keeps their value serialized.
-  A text value written in the engine's date format is read as a date by the engine.
+- Known limits: a page of root incidents or of instances without an incident
+  (`withIncident: false`) drops rows of the engine's answer and fills from further
+  windows, at most 10 in all (c7-core's README), so only a page where nearly every row
+  drops can come back short, even empty, with a cursor at the first row not read and no
+  kept row skipped. Its cut follows the engine's order, and `GET /incident` sorts by the
+  time alone: of two incidents raised in the same millisecond at a page's boundary, one
+  may repeat or be skipped between two reads. Ended instances show the variables `inspect`
+  reports, without engine types for plain values. Below history level FULL the engine
+  keeps no historic batch: a finished batch reads `undefined` (the core then reconciles by
+  ids) and a Stop after it ended is rejected. With `invocationsPerBatchJob` above 1 the
+  item counts are approximate, because the last job may hold fewer items. Variable
+  conditions read the historic variables, so below history level AUDIT a search by
+  variables finds nothing, running instances included. JSON and object variables cannot be
+  searched: the engine keeps their value serialized. A text value written in the engine's
+  date format is read as a date by the engine.

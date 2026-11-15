@@ -36,6 +36,22 @@ function searchOver(incidents: Route) {
   return { port, search: new IncidentSearch(port, new DefinitionReader(port)) }
 }
 
+/** The incidents of the window a request asks for, in the order given. */
+function incidentsOf(rows: readonly object[]): Route {
+  return (input) => {
+    const first = Number(input.query.firstResult)
+    return rows.slice(first, first + Number(input.query.maxResults))
+  }
+}
+
+function rootIncident(id: string, incidentTimestamp = ROOT.incidentTimestamp) {
+  return { ...ROOT, id, rootCauseIncidentId: id, incidentTimestamp }
+}
+
+function idsOf(page: { readonly items: readonly { readonly id: string }[] }): string[] {
+  return page.items.map((incident) => incident.id)
+}
+
 async function rejection(read: Promise<unknown>): Promise<unknown> {
   return read.then(
     () => undefined,
@@ -200,6 +216,82 @@ describe("IncidentSearch.search", () => {
       RangeError,
     )
     expect(port.calls).toStrictEqual([])
+  })
+
+  it("fills the page past the incidents copied up from called instances, reading the versions once", async () => {
+    const { port, search } = searchOver(
+      incidentsOf([
+        { ...ROOT, id: "inc-2", rootCauseIncidentId: "inc-9" },
+        ROOT,
+        rootIncident("inc-3"),
+      ]),
+    )
+
+    const page = await search.search({}, { limit: 1 })
+
+    expect(idsOf(page)).toStrictEqual(["inc-1"])
+    expect(page.next).toBe("2")
+    expect(port.calls.map((call) => call.operationId)).toStrictEqual([
+      "getIncidents",
+      "getProcessDefinitionStatistics",
+      "getIncidents",
+    ])
+    expect(port.calls[2]?.input.query).toMatchObject({ firstResult: "2", maxResults: "4" })
+  })
+
+  it("keeps no incident without its instance or of a version the engine does not list", async () => {
+    const { search } = searchOver(
+      incidentsOf([
+        { ...ROOT, id: "inc-2", rootCauseIncidentId: "inc-2", processInstanceId: undefined },
+        { ...ROOT, id: "inc-3", rootCauseIncidentId: "inc-3", processDefinitionId: "gone:1:x" },
+        { ...ROOT, id: "inc-4", rootCauseIncidentId: "inc-4", processDefinitionId: undefined },
+        ROOT,
+      ]),
+    )
+
+    expect(await search.search({}, { limit: 1 })).toStrictEqual({
+      items: [expect.objectContaining({ id: "inc-1" })],
+    })
+  })
+
+  it("cuts incidents raised at once in the engine's order and sorts only the page it returns", async () => {
+    const { search } = searchOver(incidentsOf([rootIncident("inc-b"), rootIncident("inc-a")]))
+
+    const first = await search.search({}, { limit: 1 })
+    const second = await search.search({}, { limit: 1, after: PageCursor("1") })
+    const whole = await search.search({}, { limit: 2 })
+
+    expect([idsOf(first), first.next, idsOf(second), second.next]).toStrictEqual([
+      ["inc-b"],
+      "1",
+      ["inc-a"],
+      undefined,
+    ])
+    expect(idsOf(whole)).toStrictEqual(["inc-a", "inc-b"])
+  })
+
+  it("stops at the tenth window, its cursor the first incident not read, keeping what it read", async () => {
+    const copy = { ...ROOT, id: "inc-copy", rootCauseIncidentId: "inc-9" }
+    const { port, search } = searchOver(
+      incidentsOf([...Array<object>(1509).fill(copy), ROOT, rootIncident("inc-2")]),
+    )
+
+    const page = await search.search({}, { limit: 1 })
+
+    expect(page).toStrictEqual({ items: [expect.objectContaining({ id: "inc-1" })], next: "1510" })
+    expect(port.calls.filter((call) => call.operationId === "getIncidents")).toHaveLength(10)
+  })
+
+  it("returns the page newest first, whatever order the engine answered in", async () => {
+    const { search } = searchOver(
+      incidentsOf([
+        rootIncident("inc-1", "2026-10-21T18:44:04.554+0000"),
+        rootIncident("inc-2", "2026-10-21T18:44:04.613+0200"),
+        rootIncident("inc-3", "2026-10-21T18:44:05.000+0000"),
+      ]),
+    )
+
+    expect(idsOf(await search.search({}, { limit: 50 }))).toStrictEqual(["inc-3", "inc-1", "inc-2"])
   })
 
   it("fails an answer that is no list of incidents", async () => {

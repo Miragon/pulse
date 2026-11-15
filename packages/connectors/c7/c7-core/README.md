@@ -120,8 +120,8 @@ missing.
   from the history, in parallel with its typed variables of every scope, which the inspection's
   variable map stands in for when they cannot be read, then the version of each called instance one
   of its root incidents was raised in; each value as `JSON.stringify` writes it, so an integer the
-  wire kept as raw JSON keeps its digits), `IncidentSearch` (the root incidents newest first with
-  the version each was raised in and the job or external task `incidentRecovery` names),
+  wire kept as raw JSON keeps its digits), `IncidentSearch` (the root incidents newest first, then by
+  id, with the version each was raised in and the job or external task `incidentRecovery` names),
   `IncidentDetailsReader` (the stack trace or error details `CAUSE_OPERATIONS` names, else the
   incident's message, with the root cause by engine-core's `RootCauses`), `BulkOperationReader` (a
   batch that cancels or migrates instances from its statistics while the runtime holds it, else from
@@ -131,7 +131,20 @@ missing.
   reading `POST`s that change no event trigger; a mapping is one source and one target activity). A
   by-id read of something the engine does not know answers undefined (an engine 404 that names it,
   or a 500 `NullValueException`, as `inspect` reads an instance that ended); a list is read page by
-  page until a shorter page, and an answer that is no list fails. The readers stay inside the
+  page until a shorter page, and an answer that is no list fails. A page of the instances without an
+  incident and a page of incidents drop rows of the engine's answer (an instance the runtime flags;
+  an incident copied up from a called instance, without its instance or of a version the engine does
+  not list), so they fill: after the page and one row more they read further windows from where the
+  last one ended, each twice the last up to 500 rows, at most 10 windows in all, the first included,
+  while they keep fewer rows than that. Up to that bound a page holds its limit while more follow,
+  and its cursor is the engine offset of the next kept row, so a dropped row is not read again;
+  after the tenth window it is the first row not read, so a page where nearly every row drops (deep
+  call chains, a backlog mostly with incidents) may be short, even empty, but no kept row is
+  skipped. The instances without an incident ask the flags of every running row of each window (an
+  ended instance holds no open incident; at limit 50 one request more, for the 51st). The cut is in
+  the engine's order, and only the page returned is sorted: `GET /incident` sorts by the time alone,
+  so of two kept incidents raised in the same millisecond at a page's boundary one may repeat or be
+  skipped if the database orders them differently between two reads. The readers stay inside the
   entry; beside `C7Runtime` it exports the reads a surface's commands check before they write:
   `findActivityTree` (the activity instance tree of a running instance, its scopes and transition
   instances, a move's token among them; none for an instance that does not run or an id no engine
