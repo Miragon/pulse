@@ -57,6 +57,7 @@ command line interface (`apps/cli`), a VS Code extension (`apps/vscode`) and an 
 | `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, `mountPage`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), a module's test server (`/testing`)                                                                                                                                                                                                                                                |
 | `packages/core/runtime-view/`                  | The runtime view both editor hosts compose (`@miragon/pulse-runtime-view`, private) over the contract of `engine-core`: the ports a host and an engine family plug in, the core, the protocol, the webview (React on `@miragon/pulse-ui`), the local model reader and the host kit (targets from `.pulse.json` and the CLI's user config, policies, the write audit)                                                                                                                                                       |
 | `packages/core/profile/`                       | The one profile format of the CLI, the editor hosts and the MCP server (npm `@miragon/pulse-profile`): a parser from a file's text to a verdict per profile as data (a code and a key, never a value), the credential policy by where the file comes from, `refusalsOn` for what a reader cannot serve, the JSON Schema (`schema/pulse.schema.json`) and the shared fixtures (`/testing`); no runtime dependency                                                                                                           |
+| `packages/core/board/`                         | The board file format of the editor hosts and every surface that shows a board (npm `@miragon/pulse-board`): the types of a board, `BoardParser` from a file's text to the board or every problem with its JSON path, `BoardVocabulary` (widgets, filters, columns, limits); read by the runtime view's core and the editor hosts; no runtime dependency, Pulse for VS Code's house rules                                                                                                                                  |
 | `packages/core/http/`                          | The one engine transport of the MCP server, the CLI and the editor hosts' adapters (npm `@miragon/pulse-http`) over the `fetch` each hands in: a deadline to the last byte, no redirects, a 64 MiB cap, one retry after a 401, reasons as data, lossless JSON, masking, the path value rule; the OAuth client (`/oauth`); conformance cases, fake fetch (`/testing`), loopback engine (`/testing/loopback`); no dependency                                                                                                 |
 | `playground/`                                  | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `docs/`                                        | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                                                                                                                                                                                                                                                                                                                 |
@@ -111,8 +112,9 @@ Three axes decide where code goes, and they stay apart:
   and the web apps, never the editor hosts'. The foundation stays pulse-ui's framework-free
   `/format` and `/tones` and, in tests, `/testing` (the glossary, the count words, the brand gates);
   the runtime view's core, ports, model reader and host kit stay framework-free. The board format
-  and the board builder go into a new published package (the
-  planned @miragon/pulse-board, whose dependency rules arrive with it); a shared building block
+  and the board builder go into a published package, `@miragon/pulse-board`
+  (`packages/core/board`), which holds the format with its dependency rules since 2026-11-15 and
+  takes the builder next; a shared building block
   goes into pulse-ui (a primitive) or into a shared package created with the first engine block
   two surfaces render. `docs/vscode/parity.md` lists what still differs between the views both
   show.
@@ -850,9 +852,10 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      profile format where it reads its profiles (what `profile-consumers` admits; it may bundle it
      with its core, `CLI_BUNDLES`) and the transport where it sends its engine requests (what
      `http-consumers` admits; it bundles it too). The
-     editor hosts import only the runtime view and a family's adapter (`runtime-view-consumers`,
+     editor hosts import only the runtime view, a family's adapter (`runtime-view-consumers`,
      `adapter-consumers`; their closed worlds let only the composition roots wire the adapter) and
-     of the family cores engine-core's main entry alone, for the contract's ids and read models
+     the board format's main entry where they read board files (`board-consumers`), and of the
+     family cores engine-core's main entry alone, for the contract's ids and read models
      (`editor-hosts-reach-dialects-through-adapters`). The runtime view
      (`packages/core/runtime-view`) is foundation code with one edge into a family, the owner's
      decision of 2026-11-09 on #585: engine-core by its entries
@@ -880,7 +883,12 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      engine connector's configuration, and tests (`profile-consumers`,
      `PROFILE_READERS`; the CLI, the editor hosts and the engine connector read their profiles with
      it, the connector its engines under the credential policy `env`: a secret only by the name of an
-     `ENGINE_SECRET_*` variable); the
+     `ENGINE_SECRET_*` variable); the board format (`@miragon/pulse-board`, `packages/core/board`)
+     is a leaf too, which takes the text of a board file and returns the board or every problem
+     with its JSON path, reading no file and no engine (`board-format-is-a-leaf`), and only where a
+     surface reads its board files is it imported: the runtime view's core (its closed world keeps
+     the protocol, which holds its own board types, free of it) and the editor hosts' src, and tests
+     (`board-consumers`, `BOARD_READERS`; the engine connector joins when it shows a board); the
      transport (`@miragon/pulse-http`, `packages/core/http`) is a leaf too, which
      runs over an injected `fetch` on the web platform's globals, no npm package and no Node
      built-in (`http-is-a-leaf`; ESLint's `no-restricted-globals` keeps out what only a browser
@@ -1152,12 +1160,12 @@ The release workflows hold the publish credentials and no pull request runs them
 workspace (its header lists each check).
 
 - **One release-please train.** Conventional commits on `main` drive `release-please.yml`: one
-  Release PR (tag `v<version>`) bumps the root, every app, the eight packages, the three private
+  Release PR (tag `v<version>`) bumps the root, every app, the nine packages, the three private
   packages of the editor hosts, the Orca plugin's manifest, the template's pins and the
   c7-client User-Agent in lockstep (`extra-files` in `release-please-config.json`).
   Merging it creates the release; every publish job then waits for manual approval of the
   `release` environment gate.
-- **npm:** the eight packages and `@miragon/pulse-cli` publish through
+- **npm:** the nine packages and `@miragon/pulse-cli` publish through
   `publish-npm-package.yml` with OIDC trusted publishing (no NPM_TOKEN, provenance attached).
   Each names this repository in its `repository` field, since npm refuses a provenance publish
   from another repository. The pack job runs `pnpm pack`, which rewrites `workspace:*` (npm's

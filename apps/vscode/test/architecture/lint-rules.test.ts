@@ -5,6 +5,7 @@ import { readRepoFile, REPO_ROOT } from "./support/files.js"
 const PROBE_FILE = "packages/core/runtime-view/src/core/views/labels.ts"
 const ENGINE_CORE = "packages/connectors/engine/engine-core/src"
 const CLASS_PROBE = `${ENGINE_CORE}/model/value-kinds.ts`
+const BOARD_FORMAT = "packages/core/board/src/format"
 const COMPONENT_PROBE = "packages/core/runtime-view/src/webview/app.tsx"
 const WEBVIEW_TEST_PROBE = "packages/core/runtime-view/test/webview/harness.tsx"
 const HOOKS_SET = "recommended-latest"
@@ -96,15 +97,19 @@ describe("the lint gates", { timeout: 120_000 }, () => {
     `${ENGINE_CORE}/ports/process-runtime.ts`,
     `${ENGINE_CORE}/model/ids.ts`,
     `${ENGINE_CORE}/testing/fake/fake-engine.ts`,
+    `${BOARD_FORMAT}/board-parser.ts`,
     "packages/core/runtime-view/src/ports/engine-adapter.ts",
     "packages/core/runtime-view/src/ports/bpmn-dialect.ts",
     "packages/core/runtime-view/src/model/model/model-parser.ts",
     "packages/core/runtime-view/src/model/code/workspace-code-locator.ts",
-  ])("keep engine words out of the contract and the model reader: %s", async (filePath) => {
-    expect(await rulesFiredOn(readRepoFile(filePath), filePath)).toEqual([])
-    const probe = `${readRepoFile(filePath)}\nexport type Key = 'processInstanceKey';\n`
-    expect(await rulesFiredOn(probe, filePath)).toEqual(["no-restricted-syntax"])
-  })
+  ])(
+    "keep engine words out of the contract, the board format and the model reader: %s",
+    async (filePath) => {
+      expect(await rulesFiredOn(readRepoFile(filePath), filePath)).toEqual([])
+      const probe = `${readRepoFile(filePath)}\nexport type Key = 'processInstanceKey';\n`
+      expect(await rulesFiredOn(probe, filePath)).toEqual(["no-restricted-syntax"])
+    },
+  )
 
   test("let the neutral words of the contract through", async () => {
     const neutral = withProbe("export const ids = 'elementId bpmnProcessId definitionId c78';")
@@ -154,6 +159,16 @@ describe("the lint gates", { timeout: 120_000 }, () => {
   ])("format dates and numbers through the UI foundation only: %s", async (filePath, line) => {
     const probe = `${readRepoFile(filePath)}\n${line}\n`
     expect(await rulesFiredOn(probe, filePath)).toContain("no-restricted-syntax")
+  })
+
+  test.each([
+    "export const total = (1234).toLocaleString();",
+    "export const share = (0.5).toFixed(1);",
+    "export const at = new Date(0).toLocaleDateString('en');",
+  ])("keep the board format's counts and dates out of a locale: %s", async (line) => {
+    const filePath = `${BOARD_FORMAT}/board-parser.ts`
+    const probe = `${readRepoFile(filePath)}\n${line}\n`
+    expect(await rulesFiredOn(probe, filePath)).toEqual(["no-restricted-syntax"])
   })
 
   test.each([
@@ -266,10 +281,27 @@ describe("the lint gates", { timeout: 120_000 }, () => {
     "packages/connectors/c8/c8-adapter/src/rest/present.ts",
     "packages/core/runtime-view/src/host-kit/notification-text.ts",
     "packages/core/runtime-view/src/host-kit/connections/target-hosts.ts",
+    `${BOARD_FORMAT}/filter-parser.ts`,
   ])("hold the adapters and the extension to the same class structure: %s", async (filePath) => {
     const probe = `${readRepoFile(filePath)}\nexport function helper(): number {\n  return 1;\n}\nexport class Second {}\n`
     expect(await rulesFiredOn(probe, filePath)).toEqual(
       expect.arrayContaining(["no-restricted-syntax", "max-classes-per-file"]),
+    )
+  })
+
+  test("hold the board format to the comment ban and the complexity budget", async () => {
+    const filePath = `${BOARD_FORMAT}/widget-parser.ts`
+    expect(await rulesFiredOn(readRepoFile(filePath), filePath)).toEqual([])
+    const branches = Array.from(
+      { length: 11 },
+      (_, index) => `    if (value === ${index}) return ${index};`,
+    )
+    const tangled = readRepoFile(filePath).replace(
+      "export class WidgetParser {",
+      `export class WidgetParser {\n  static tangled(value: number): number {\n${branches.join("\n")}\n    return -1;\n  }\n`,
+    )
+    expect(await rulesFiredOn(`// explain\n${tangled}`, filePath)).toEqual(
+      expect.arrayContaining(["pulse-vscode/no-comments", "complexity"]),
     )
   })
 

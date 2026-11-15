@@ -35,6 +35,7 @@ export const DEFAULT_PROJECT_FILES = [
   "packages/connectors/engine/engine-connector/vitest.engines.config.ts",
   "packages/connectors/engine/engine-core/vitest.config.ts",
   "packages/connectors/engine/engine-core/vitest.stryker.config.ts",
+  "packages/core/board/vitest.config.ts",
   "packages/core/http/vitest.config.ts",
   "packages/core/http/vitest.stryker.config.ts",
   "packages/core/profile/vitest.config.ts",
@@ -330,6 +331,14 @@ const ENGINE_CORE_SRC = "packages/connectors/engine/engine-core/src/**/*.{ts,mts
 const ENGINE_CORE_TESTS = "packages/connectors/engine/engine-core/test/**/*.ts"
 const ENGINE_CORE_CONFIGS = "packages/connectors/engine/engine-core/*.ts"
 const ENGINE_CORE_PROBE = "packages/connectors/engine/engine-core/test/runtime.boundary.ts"
+// The board format (packages/core/board), which left the runtime view's core for a package of its
+// own, keeps every one of these rules too, as engine-core does: each block that held engine-core
+// names the package's paths beside it (BOARD_SRC, BOARD_TESTS, BOARD_CONFIGS). It is no family's
+// package, so the connector resource gate stays out of its union, and its engine words say where
+// they belong in its own terms (BOARD_WORDS_MESSAGE).
+const BOARD_SRC = "packages/core/board/src/**/*.{ts,mts,cts,tsx}"
+const BOARD_TESTS = "packages/core/board/test/**/*.ts"
+const BOARD_CONFIGS = "packages/core/board/*.ts"
 const vscodeNoComments = {
   meta: {
     type: "suggestion",
@@ -359,6 +368,8 @@ const VSCODE_ENGINE_WORDS_MESSAGE =
   "Engine vocabulary belongs in packages/connectors/<family>/<family>-adapter and the composition roots. Use the neutral words of the contract here (elementId, definitionId, bpmnProcessId, instanceId)."
 const ENGINE_CORE_WORDS_MESSAGE =
   "Engine vocabulary belongs in a dialect's implementation (its engine adapter, its core), never in the engine family's neutral core, the contract every dialect implements. Use the contract's neutral words (elementId, definitionId, bpmnProcessId, instanceId)."
+const BOARD_WORDS_MESSAGE =
+  "Engine vocabulary belongs in a dialect's implementation (its engine adapter, its core), never in the board format, which every surface reads the same. Use the board's own words and the contract's neutral ones (process, activeElement, elementId, bpmnProcessId, instanceId)."
 const VSCODE_HOST_COLOUR_MESSAGE =
   "The webview takes no colour from VS Code. Use a Miragon token (--cd-*) from packages/core/runtime-view/src/webview/theme instead of a --vscode-* variable."
 const VSCODE_CLASS_MESSAGE =
@@ -391,6 +402,10 @@ const vscodeNeutralCode = [
 const engineCoreNeutralCode = [
   ...vscodeForbiddenWords(VSCODE_ENGINE_WORDS, ENGINE_CORE_WORDS_MESSAGE),
   ...vscodeForbiddenWords(VSCODE_ENGINE_SPELLINGS, ENGINE_CORE_WORDS_MESSAGE),
+]
+const boardNeutralCode = [
+  ...vscodeForbiddenWords(VSCODE_ENGINE_WORDS, BOARD_WORDS_MESSAGE),
+  ...vscodeForbiddenWords(VSCODE_ENGINE_SPELLINGS, BOARD_WORDS_MESSAGE),
 ]
 const vscodeHostColours = vscodeForbiddenWords("--vscode-", VSCODE_HOST_COLOUR_MESSAGE)
 const vscodeHostEngineWords = [
@@ -719,6 +734,9 @@ export default tseslint.config(
       ENGINE_CORE_SRC,
       ENGINE_CORE_TESTS,
       ENGINE_CORE_CONFIGS,
+      BOARD_SRC,
+      BOARD_TESTS,
+      BOARD_CONFIGS,
     ],
     extends: [tseslint.configs.strictTypeChecked, tseslint.configs.stylisticTypeChecked],
   },
@@ -738,6 +756,9 @@ export default tseslint.config(
       ENGINE_CORE_SRC,
       ENGINE_CORE_TESTS,
       ENGINE_CORE_CONFIGS,
+      BOARD_SRC,
+      BOARD_TESTS,
+      BOARD_CONFIGS,
     ],
     plugins: { "pulse-vscode": { rules: { "no-comments": vscodeNoComments } } },
     linterOptions: { noInlineConfig: true, reportUnusedDisableDirectives: "error" },
@@ -762,6 +783,7 @@ export default tseslint.config(
       `${RUNTIME_VIEW}/test/webview/harness.tsx`,
       "apps/vscode/test/smoke/*.cjs",
       ENGINE_CORE_SRC,
+      BOARD_SRC,
     ],
     rules: {
       "max-lines": ["error", { max: 300, skipBlankLines: true }],
@@ -775,6 +797,7 @@ export default tseslint.config(
       `${EDITOR_TREES}/test/**/*.ts`,
       `${EDITOR_TREES}/test/**/*.test.tsx`,
       ENGINE_CORE_TESTS,
+      BOARD_TESTS,
     ],
     rules: { "@typescript-eslint/no-non-null-assertion": "off" },
   },
@@ -787,6 +810,16 @@ export default tseslint.config(
   },
   {
     files: ["packages/connectors/engine/engine-core/test/**/*.test.ts"],
+    rules: { "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }] },
+  },
+  // The board format's tests and config files keep the same budgets as engine-core's: 300
+  // effective lines for a config file and a test support module, 400 for a test file.
+  {
+    files: [BOARD_TESTS, BOARD_CONFIGS],
+    rules: { "max-lines": ["error", { max: 300, skipBlankLines: true, skipComments: true }] },
+  },
+  {
+    files: ["packages/core/board/test/**/*.test.ts"],
     rules: { "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }] },
   },
   {
@@ -827,6 +860,22 @@ export default tseslint.config(
         ...engineCoreNeutralCode,
         ...vscodeModuleFunctionGate,
         ...connectorResourceGate,
+      ],
+    },
+  },
+  // The board format's src: its engine words and module functions, and the date and number gates
+  // it kept from the runtime view's core, whose problem texts both editors show: it writes its
+  // counts in plain digits, never in a locale. No family's package, so no connector resource gate
+  // in its union.
+  {
+    files: [BOARD_SRC],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        ...boardNeutralCode,
+        ...vscodeModuleFunctionGate,
+        ...widgetDateGate,
+        ...widgetNumberGate,
       ],
     },
   },
@@ -912,7 +961,7 @@ export default tseslint.config(
     },
   },
   {
-    files: [`${EDITOR_TREES}/src/**/*.{ts,tsx}`, ENGINE_CORE_SRC],
+    files: [`${EDITOR_TREES}/src/**/*.{ts,tsx}`, ENGINE_CORE_SRC, BOARD_SRC],
     rules: {
       "max-classes-per-file": ["error", 1],
       "@typescript-eslint/member-ordering": [

@@ -1,3 +1,4 @@
+import { BoardVocabulary } from "@miragon/pulse-board"
 import {
   RuntimeError,
   type BpmnProcessId,
@@ -12,7 +13,6 @@ import {
   type ProcessRuntime,
 } from "@miragon/pulse-engine-core"
 import type { SharedDefinitions } from "../refresh/shared-definitions.js"
-import { BoardVocabulary } from "./board-vocabulary.js"
 
 export type Read<Value> = { readonly value: Value } | { readonly failed: true }
 

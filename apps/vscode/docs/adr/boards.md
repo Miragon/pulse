@@ -1,7 +1,7 @@
 # Boards
 
 - Status: accepted
-- Last reviewed: 2026-11-14 (the counter and the incident summary read "with incident" one way, c7-core's runtime rule); 2026-11-12 (boards are the first feature of D2; the format and the builder move to a new published package); 2026-11-09 (the project file is read with `@miragon/pulse-profile`; before that 2026-11-04, the CLI's rules)
+- Last reviewed: 2026-11-15 (the format moved out of the runtime view into the published package `@miragon/pulse-board`; the builder follows); 2026-11-14 (the counter and the incident summary read "with incident" one way, c7-core's runtime rule); 2026-11-12 (boards are the first feature of D2; the format and the builder move to a new published package); 2026-11-09 (the project file is read with `@miragon/pulse-profile`; before that 2026-11-04, the CLI's rules)
 
 ## Context
 
@@ -35,9 +35,10 @@ What they found:
 
 ### Format
 
-`.pulse/boards/<name>.board.json`, anywhere in the workspace, read by `BoardParser`
-(`packages/core/runtime-view/src/core/boards`) and validated by hand, unlike `.pulse.json`, which
-`@miragon/pulse-profile` parses. Every problem names its JSON path and reason. `schemaVersion`
+`.pulse/boards/<name>.board.json`, anywhere in the workspace, read by `BoardParser` of Pulse's
+board format `@miragon/pulse-board` (`packages/core/board/src/format`, a package without a
+runtime dependency, which the runtime view's core and the Boards view import through its main
+entry) and validated by hand, unlike `.pulse.json`, which `@miragon/pulse-profile` parses. Every problem names its JSON path and reason. `schemaVersion`
 1, `title`, `engines` (profile names of `.pulse.json`, the only engine id the extension has) and
 `rows`, each `{ "row": [...] }` of `{ "widget", "props" }`, the toolkit's layout grammar. The
 widgets are `counter`, `instanceList`, `incidentSummary`, `processDiagram` and `incidentList`; a
@@ -88,7 +89,9 @@ an open board on save, and **Pulse: New Board…** writes a starter board.
 - Boards are the first feature of the owner decision D2 of 2026-11-12
   ([ui-foundation.md](ui-foundation.md)): once another surface shows them, every surface shows a
   board's numbers from one builder over one read, so the format and the builder leave the runtime
-  view for a new published package (the planned @miragon/pulse-board). The counter's and the
+  view for a published package, `@miragon/pulse-board`: the format moved on 2026-11-15 (its
+  problems read as before; a count in one reads in plain digits, which differs only from 1,000
+  widgets on), the builder follows. The counter's and the
   incident summary's readings of "with incident" are one since 2026-11-14 (owner decision): an
   open incident the runtime holds now, c7-core's rule, on every history level.
 - `.pulse.json` is parsed in the CLI and in the extension by one package, Pulse's profile

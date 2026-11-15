@@ -24,7 +24,7 @@ const ADAPTER: Readonly<Record<string, string>> = {
   "src/engine-rest/reads-the-c7-runtime.ts":
     "import { JsonView } from '@miragon/pulse-c7-core/runtime';\nexport const view = JsonView;\n",
   "src/reads-the-core.ts":
-    "import { BoardParser } from '@miragon/pulse-runtime-view/core';\nexport const parser = BoardParser;\n",
+    "import { BoardPanel } from '@miragon/pulse-runtime-view/core';\nexport const panel = BoardPanel;\n",
   "src/reads-the-client.ts":
     "import { createEngineClient } from '@miragon/pulse-c7-client';\nexport const client = createEngineClient;\n",
   "src/engine-rest/http/sends.ts":

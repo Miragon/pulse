@@ -1,5 +1,4 @@
-import type { BoardColumn } from "../protocol/index.js"
-import type { BoardWidget, BoardWidgetType } from "./board-definition.js"
+import type { BoardColumn, BoardWidget, BoardWidgetType } from "./board-definition.js"
 import { BoardVocabulary } from "./board-vocabulary.js"
 import { FilterParser } from "./filter-parser.js"
 import { ParseProblems, type Json } from "./parse-problems.js"

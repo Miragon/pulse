@@ -1,4 +1,5 @@
-import type { BoardColumn } from "../protocol/index.js"
+export type BoardColumn =
+  "engine" | "process" | "version" | "businessKey" | "state" | "startedAt" | "endedAt" | "incident"
 
 export type BoardState = "running" | "ended"
 

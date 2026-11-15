@@ -1,7 +1,7 @@
+import type { IncidentListWidget } from "@miragon/pulse-board"
 import { BpmnProcessId, type Incident } from "@miragon/pulse-engine-core"
 import type { BoardIncidentRow, IncidentGroup, IncidentListTile } from "../protocol/index.js"
 import { Labels } from "../views/labels.js"
-import type { IncidentListWidget } from "./board-definition.js"
 import { EngineReads } from "./engine-reads.js"
 import type { ProbedEngine } from "./engine-probe.js"
 

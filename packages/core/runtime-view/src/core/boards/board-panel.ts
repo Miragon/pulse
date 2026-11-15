@@ -1,9 +1,8 @@
+import { BoardParser, type BoardDefinition } from "@miragon/pulse-board"
 import { BpmnProcessId, InstanceId } from "@miragon/pulse-engine-core"
 import type { Panel } from "../panels/panel.js"
 import type { BoardView, WebviewIntent } from "../protocol/index.js"
-import type { BoardDefinition } from "./board-definition.js"
 import type { BoardContext } from "./board-engine.js"
-import { BoardParser } from "./board-parser.js"
 import { BoardTargets } from "./board-targets.js"
 import { BoardViewBuilder } from "./board-view-builder.js"
 

@@ -1,6 +1,6 @@
+import type { BoardFilter } from "@miragon/pulse-board"
 import { BpmnProcessId, ElementId, type InstanceFilter } from "@miragon/pulse-engine-core"
 import type { InstanceListFilter } from "../protocol/index.js"
-import type { BoardFilter } from "./board-definition.js"
 
 export class BoardFilters {
   static query(filter: BoardFilter): InstanceFilter {

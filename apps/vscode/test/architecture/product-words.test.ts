@@ -11,6 +11,7 @@ import {
 import { afterAll, describe, expect, test } from "vitest"
 import { APP_ROOT, PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, REPO_ROOT } from "./support/files.js"
 import {
+  BOARD_SOURCES,
   ENGINE_CORE_SOURCES,
   HOST_LAYERS,
   HOST_SOURCES,
@@ -81,6 +82,14 @@ describe("the extension's texts", PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, () => {
       expect.arrayContaining([expect.stringMatching(/^model\/move-reasons\.ts:/)]),
     )
     expect(wordFindings(contract)).toEqual([])
+  })
+
+  test("in the board format, whose problems both editors show, use the product's words too", () => {
+    const format = join(REPO_ROOT, BOARD_SOURCES)
+    expect(Object.keys(sourceTexts(format))).toEqual(
+      expect.arrayContaining([expect.stringMatching(/^format\/board-parser\.ts:/)]),
+    )
+    expect(wordFindings(format)).toEqual([])
   })
 
   test("name the counts with the count terms the MCP widgets use", () => {

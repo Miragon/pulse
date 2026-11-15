@@ -18,7 +18,7 @@ const ADAPTER: Readonly<Record<string, string>> = {
   "src/ships-engine-core-testing.ts":
     "import { FakeEngine } from '@miragon/pulse-engine-core/testing';\nexport const fake = FakeEngine;\n",
   "src/reads-the-core.ts":
-    "import { BoardParser } from '@miragon/pulse-runtime-view/core';\nexport const parser = BoardParser;\n",
+    "import { BoardPanel } from '@miragon/pulse-runtime-view/core';\nexport const panel = BoardPanel;\n",
   "src/reads-the-c7-core.ts":
     "import { causeOf } from '@miragon/pulse-c7-core';\nexport const cause = causeOf;\n",
   "src/wire/sends.ts":

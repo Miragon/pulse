@@ -10,7 +10,7 @@ import type { ConnectionRegistry } from "../../src/host/connections/connection-r
 import type { PanelManager } from "../../src/host/panels/panel-manager.js"
 import type { HostMessage, PanelState } from "@miragon/pulse-runtime-view/protocol"
 import { RuntimeError } from "@miragon/pulse-engine-core"
-import { BoardParser } from "@miragon/pulse-runtime-view/core"
+import { BoardParser } from "@miragon/pulse-board"
 import { instance } from "./support/board-instance.js"
 
 interface FakeUri {

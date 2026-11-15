@@ -114,7 +114,8 @@ the repository's `eslint.config.mjs` and proven in
 - `no-restricted-syntax` rejects module-level function declarations and functions
   assigned to module-level constants in shipped code (the `src` of the hosts, the runtime view
   and the adapter), with the exceptions above, in every layer: `ports`, `core`, `webview`, the
-  adapter, `model`, `host-kit` and `host`, and in engine-core;
+  adapter, `model`, `host-kit` and `host`, and in engine-core and the board format
+  (`packages/core/board`);
 - `max-classes-per-file: 1`;
 - `@typescript-eslint/member-ordering`: fields, constructor, public before private
   methods;

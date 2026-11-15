@@ -1,6 +1,9 @@
-import type { BoardProblem } from "../protocol/index.js"
-
 export type Json = Readonly<Record<string, unknown>>
+
+export interface BoardProblem {
+  readonly path: string
+  readonly reason: string
+}
 
 export class ParseProblems {
   private readonly found: BoardProblem[] = []

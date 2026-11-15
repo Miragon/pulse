@@ -40,7 +40,7 @@ const PLANTED: Readonly<Record<string, string>> = {
   "src/panel/reaches-the-worker.ts":
     "import { used } from '../worker/wires-the-view.ts';\nexport const reached = used;\n",
   "src/panel/runs-the-core.ts":
-    "import { BoardParser } from '@miragon/pulse-runtime-view/core';\nexport const parser = BoardParser;\n",
+    "import { BoardPanel } from '@miragon/pulse-runtime-view/core';\nexport const panel = BoardPanel;\n",
   "src/editor/reads-the-protocol.ts":
     "import type { Message } from '../protocol.ts';\nexport type Shown = Message;\n",
   "src/editor/reads-node.ts":

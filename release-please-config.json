@@ -57,6 +57,11 @@
         },
         {
           "type": "json",
+          "path": "packages/core/board/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
           "path": "packages/core/http/package.json",
           "jsonpath": "$.version"
         },

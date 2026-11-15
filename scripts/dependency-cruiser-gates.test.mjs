@@ -43,6 +43,7 @@ const C8_ADAPTER = "packages/connectors/c8/c8-adapter"
 const SHELL = "packages/core/widget-shell"
 const UI = "packages/core/ui"
 const PROFILE = "packages/core/profile"
+const BOARD = "packages/core/board"
 const HTTP = "packages/core/http"
 const ENGINE_CORE = "packages/connectors/engine/engine-core"
 const C7 = "packages/connectors/c7/c7-core"
@@ -67,6 +68,7 @@ const WORKSPACE = {
   [SHELL]: { name: "@miragon/pulse-widget-shell" },
   [UI]: { name: "@miragon/pulse-ui" },
   [PROFILE]: { name: "@miragon/pulse-profile" },
+  [BOARD]: { name: "@miragon/pulse-board" },
   [HTTP]: { name: "@miragon/pulse-http" },
   [ENGINE_CORE]: { name: "@miragon/pulse-engine-core", main: "dist/index.js" },
   [C7]: { name: "@miragon/pulse-c7-core" },
@@ -133,6 +135,8 @@ const HEADLESS = "cli-is-headless"
 const CORE_LEAF = "family-core-is-a-leaf"
 const PROFILE_LEAF = "profile-is-a-leaf"
 const PROFILE_USERS = "profile-consumers"
+const BOARD_LEAF = "board-format-is-a-leaf"
+const BOARD_USERS = "board-consumers"
 const HTTP_LEAF = "http-is-a-leaf"
 const HTTP_USERS = "http-consumers"
 const HTTP_LOOPBACK = "http-loopback-only-its-sockets"
@@ -193,6 +197,8 @@ const C7_CORE = "@miragon/pulse-c7-core"
 const BILLING_CORE_NAME = "@miragon/pulse-billing-core"
 const PROFILE_NAME = "@miragon/pulse-profile"
 const PROFILE_SRC = `${PROFILE}/src/index.ts`
+const BOARD_NAME = "@miragon/pulse-board"
+const BOARD_SRC = `${BOARD}/src/index.ts`
 const HTTP_NAME = "@miragon/pulse-http"
 const HTTP_SRC = `${HTTP}/src/index.ts`
 const ENGINE_CORE_NAME = "@miragon/pulse-engine-core"
@@ -249,6 +255,8 @@ const LEAVES = [
   `${C7}/dist/runtime/index.js`,
   `${PROFILE}/src/target.ts`,
   `${PROFILE}/src/lib.ts`,
+  `${BOARD}/src/target.ts`,
+  `${BOARD}/src/format/lib.ts`,
   `${HTTP}/src/target.ts`,
   `${HTTP}/src/lib.ts`,
   `${ENGINE_CORE}/src/target.ts`,
@@ -467,6 +475,58 @@ const SUITES = [
       [`${ENGINE_CONNECTOR}/src/module.test.ts`, `${PROFILE_NAME}/testing`, []],
       [`${SHELL}/src/profile.test.ts`, PROFILE_NAME, []],
       [`${CLI}/test/support/profiles.ts`, `${PROFILE_NAME}/testing`, []],
+    ],
+  },
+  {
+    rule: BOARD_LEAF,
+    title: "the board format imports only its own modules: no package, no npm module, no built-in",
+    cases: [
+      // Not even a sibling of packages/core: core-is-foundation lets the others import one.
+      [BOARD_SRC, "@miragon/pulse-ui", [BOARD_LEAF]],
+      [BOARD_SRC, PROFILE_NAME, [BOARD_LEAF, PROFILE_USERS]],
+      [BOARD_SRC, ENGINE_CORE_NAME, [BOARD_LEAF, CORE, ENGINE_CORE_USERS]],
+      [BOARD_SRC, C7_CORE, [CORE, BOARD_LEAF]],
+      [BOARD_SRC, "@miragon/pulse-cli", [NO_APP, BOARD_LEAF]],
+      ...["zod", "react", "reactive", "node:fs"].map((spec) => [BOARD_SRC, spec, [BOARD_LEAF]]),
+      [`${BOARD}/src/format/escape.ts`, "../../../ui/src/target.ts", [BOARD_LEAF, DEEP]],
+      [`${BOARD}/src/format/parser.ts`, "./lib.ts", []],
+      [`${BOARD}/src/entry.ts`, "./format/lib.ts", []],
+      [`${BOARD}/src/a.test.ts`, "vitest", []],
+    ],
+  },
+  {
+    rule: BOARD_USERS,
+    title: "the board format is read where a surface reads its board files, and in tests",
+    cases: [
+      [SERVER_SRC, BOARD_NAME, [BOARD_USERS]],
+      [SHELL_SRC, BOARD_NAME, [BOARD_USERS]],
+      [UI_SRC, BOARD_NAME, [UI_LEAF, BOARD_USERS]],
+      [PROFILE_SRC, BOARD_NAME, [PROFILE_LEAF, BOARD_USERS]],
+      [C7_SRC, BOARD_NAME, [CORE_LEAF, BOARD_USERS]],
+      [CLI_SRC, BOARD_NAME, [HEADLESS, BOARD_USERS]],
+      // The engine connector shows no board yet: it joins by a rule change of its own.
+      [ENGINE_CONNECTOR_SRC, BOARD_NAME, [BOARD_USERS]],
+      [ADAPTER_SRC, BOARD_NAME, [ADAPTER_FAMILY, BOARD_USERS]],
+      // Of the runtime view only its core reads board files.
+      [`${RUNTIME_VIEW}/src/host-kit/board.ts`, BOARD_NAME, [BOARD_USERS]],
+      [`${RUNTIME_VIEW}/src/webview/board.ts`, BOARD_NAME, [BOARD_USERS]],
+      [`${RUNTIME_VIEW}/src/ports/board.ts`, BOARD_NAME, [BOARD_USERS]],
+      [`${RUNTIME_VIEW}/src/corex/board.ts`, BOARD_NAME, [BOARD_USERS]],
+      [
+        `${SERVER}/src/escape-board.ts`,
+        "../../../packages/core/board/src/target.ts",
+        [BOARD_USERS, DEEP],
+      ],
+      // An unresolved subpath (shape 3: dependency-cruiser reads no exports map).
+      [`${SHELL}/src/board-sub.ts`, `${BOARD_NAME}/sub`, [BOARD_USERS]],
+      // Allowed: the runtime view's core, the editor hosts' src, and tests anywhere.
+      [`${RUNTIME_VIEW}/src/core/boards/board-panel.ts`, BOARD_NAME, []],
+      [EXT_SRC, BOARD_NAME, []],
+      [ORCA_SRC, BOARD_NAME, []],
+      [`${RUNTIME_VIEW}/test/core/board.test.ts`, BOARD_NAME, []],
+      [`${RUNTIME_VIEW}/test/core/support/board.ts`, BOARD_NAME, []],
+      [`${SHELL}/test/support/board.ts`, BOARD_NAME, []],
+      [`${SHELL}/src/board.test.ts`, BOARD_NAME, []],
     ],
   },
   {

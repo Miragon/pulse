@@ -1,6 +1,6 @@
+import type { CounterWidget } from "@miragon/pulse-board"
 import type { InstanceCount } from "@miragon/pulse-engine-core"
 import type { CounterEntry, CounterTile } from "../protocol/index.js"
-import type { CounterWidget } from "./board-definition.js"
 import { BoardFilters } from "./board-filters.js"
 import { EngineReads } from "./engine-reads.js"
 import type { ProbedEngine } from "./engine-probe.js"

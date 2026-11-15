@@ -305,6 +305,7 @@
   },
   "dependencies": {
     "@miragon/modeler-shell": "0.12.0",
+    "@miragon/pulse-board": "workspace:*",
     "@miragon/pulse-c7-adapter": "workspace:*",
     "@miragon/pulse-c8-adapter": "workspace:*",
     "@miragon/pulse-engine-core": "workspace:*",

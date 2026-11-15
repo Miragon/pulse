@@ -1,5 +1,5 @@
+import type { BoardDefinition, BoardWidget } from "@miragon/pulse-board"
 import type { BoardProblem, BoardTile, BoardView } from "../protocol/index.js"
-import type { BoardDefinition, BoardWidget } from "./board-definition.js"
 import type { BoardEngine } from "./board-engine.js"
 import { CounterTiles } from "./counter-tiles.js"
 import { EngineProbe, type ProbedEngine } from "./engine-probe.js"

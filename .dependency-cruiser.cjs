@@ -37,9 +37,10 @@
  * core's src, a family's adapter) and where the runtime view of the editor hosts reads its
  * answers (engine-core-consumers).
  * The foundation packages every family builds on live under `packages/core/` (npm names
- * without a role suffix, e.g. `@miragon/pulse-widget-shell`), never one family's code; two of
+ * without a role suffix, e.g. `@miragon/pulse-widget-shell`), never one family's code; three of
  * them are leaves only their consumers import: the profile format (`@miragon/pulse-profile`,
- * PROFILE), read where a surface reads its profiles, and the transport (`@miragon/pulse-http`,
+ * PROFILE), read where a surface reads its profiles, the board format (`@miragon/pulse-board`,
+ * BOARD), read where a surface reads its board files, and the transport (`@miragon/pulse-http`,
  * HTTP), used where a surface sends its engine requests. The apps under `apps/` sit ON TOP of
  * the packages: the MCP server (`@miragon/pulse-mcp-server`) composes the
  * connectors; of the interface apps, the CLI (apps/cli, `@miragon/pulse-cli`) imports no
@@ -50,7 +51,8 @@
  * plugin (apps/orca, `@miragon/pulse-orca`), compose the runtime view (packages/core/runtime-view)
  * with the family adapters (c7-adapter, c8-adapter) and read the contract's ids and read models
  * from engine-core's main entry, all of which esbuild bundles; the runtime view's host kit reads
- * the project files with the profile format. No package and no app imports an app (the closed-world
+ * the project files with the profile format, its core and Pulse for VS Code's Boards view the
+ * board files with the board format. No package and no app imports an app (the closed-world
  * rules of the editor hosts and of the two packages they share live in each one's own
  * .dependency-cruiser.cjs).
  * APP_PACKAGES below names every app's npm name; the
@@ -193,6 +195,22 @@ const PROFILE_READERS = [
   "^packages/core/runtime-view/src/host-kit/connections/",
   "^packages/connectors/engine/engine-connector/src/(?:module|engine-profiles|engine-provider)[.]ts$",
 ]
+
+/**
+ * The board format (packages/core/board, npm `@miragon/pulse-board`): the one parser of the board
+ * files (`.pulse/boards/*.board.json`) and their vocabulary, for every surface that shows a board.
+ * A foundation package and a leaf like the profile format, so it stays out of CORE_BUNDLES too:
+ * its own rules are board-format-is-a-leaf and board-consumers.
+ */
+const BOARD = { name: "@miragon/pulse-board", tree: "packages/core/board" }
+
+/**
+ * Where a surface reads its board files, the only shipped importers of BOARD: the runtime view's
+ * core (the board panel both editor hosts open; its closed world admits the edge on its own and
+ * keeps the protocol free of it) and the src of the editor hosts (Pulse for VS Code's Boards
+ * view). Tests import it anywhere.
+ */
+const BOARD_READERS = [`${RUNTIME_VIEW_TREE}src/core/`, ...EDITOR_HOST_SOURCES]
 
 /**
  * The transport (packages/core/http, npm `@miragon/pulse-http`): one HTTP client over an
@@ -791,6 +809,40 @@ module.exports = {
         ],
       },
       to: { path: [`^${escapeRegExp(PROFILE.tree)}/`, ...npm(escapeRegExp(PROFILE.name))] },
+    },
+    {
+      name: "board-format-is-a-leaf",
+      severity: "error",
+      comment:
+        "The board format (packages/core/board, @miragon/pulse-board) has no runtime " +
+        "dependency: its shipped code imports only its own modules, no workspace package, no " +
+        "npm package and no Node built-in. It parses the text of a board file a reader hands " +
+        "it: finding and reading the file, the engines a board names, the reads of its numbers " +
+        "and every word a person reads around its problems stay with the reader (the runtime " +
+        "view's board panel, Pulse for VS Code's Boards view). Its tests may import vitest.",
+      from: { path: `^${escapeRegExp(BOARD.tree)}/src/`, pathNot: ["[.]test[.]ts$"] },
+      to: { pathNot: `^${escapeRegExp(BOARD.tree)}/src/` },
+    },
+    {
+      name: "board-consumers",
+      severity: "error",
+      comment:
+        "The board format (@miragon/pulse-board) may be imported only where a surface reads its " +
+        "board files (BOARD_READERS): the runtime view's core " +
+        "(packages/core/runtime-view/src/core, the board panel both editor hosts open) and the " +
+        "src of the editor hosts (apps/vscode, apps/orca: the Boards view), and by tests " +
+        "anywhere. Not the runtime view's other layers, no other package and no other app " +
+        "until it shows a board itself, through a rule change of its own. A relative escape " +
+        "into packages/core/board is a violation too.",
+      from: {
+        pathNot: [
+          ...BOARD_READERS,
+          `^${escapeRegExp(BOARD.tree)}/(?:src|test)/`,
+          ...SRC_TEST_CODE,
+          `^${PACKAGE_ROOT}/(?:test|test-host)/`,
+        ],
+      },
+      to: { path: [`^${escapeRegExp(BOARD.tree)}/`, ...npm(escapeRegExp(BOARD.name))] },
     },
     {
       name: "http-is-a-leaf",

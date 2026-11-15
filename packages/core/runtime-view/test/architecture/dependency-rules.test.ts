@@ -131,6 +131,19 @@ const PLANTED: Readonly<Record<string, string>> = {
   "../profile/src/parse.ts": "export const parseProfileFile = 1;\n",
   "test/host-kit/reads-profile-fixtures.test.ts":
     "import { PROFILE_FIXTURES } from '@miragon/pulse-profile/testing';\nexport const fixtures = PROFILE_FIXTURES;\n",
+  "src/core/reads-a-board.ts":
+    "import { BoardParser } from '@miragon/pulse-board';\nexport const parser = BoardParser;\n",
+  "src/core/protocol/reads-a-board.ts":
+    "import type { BoardColumn } from '@miragon/pulse-board';\nexport type Column = BoardColumn;\n",
+  "src/host-kit/reads-a-board.ts":
+    "import { BoardParser } from '@miragon/pulse-board';\nexport const parser = BoardParser;\n",
+  "src/webview/reads-a-board.ts":
+    "import type { BoardColumn } from '@miragon/pulse-board';\nexport type Column = BoardColumn;\n",
+  "test/core/reads-a-board.test.ts":
+    "import { BoardVocabulary } from '@miragon/pulse-board';\nexport const vocabulary = BoardVocabulary;\n",
+  "src/core/escapes-into-the-board.ts":
+    "import { BoardParser } from '../../../board/src/index.ts';\nexport const parser = BoardParser;\n",
+  "../board/src/index.ts": "export const BoardParser = 1;\n",
   "src/webview/renders-react.tsx":
     "import { createRoot } from 'react-dom/client';\nimport { useState } from 'react';\nimport { XIcon } from 'lucide-react';\nexport const parts = [createRoot, useState, XIcon];\n",
   "src/core/renders-react.ts":
@@ -145,7 +158,7 @@ const PLANTED: Readonly<Record<string, string>> = {
     '{ "name": "radix-ui", "exports": { ".": { "types": "./index.d.ts" } } }\n',
   "../../../node_modules/radix-ui/index.d.ts": "export declare const Tabs: number;\n",
   "package.json":
-    '{ "name": "@miragon/pulse-runtime-view", "private": true, "dependencies": { "@miragon/pulse-c7-core": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-profile": "workspace:*", "@miragon/pulse-ui": "workspace:*", "bpmn-moddle": "10.3.1", "lucide-react": "1.70.0", "react": "19.3.1", "react-dom": "19.3.1" }, "devDependencies": { "camunda-bpmn-moddle": "8.0.2" } }\n',
+    '{ "name": "@miragon/pulse-runtime-view", "private": true, "dependencies": { "@miragon/pulse-board": "workspace:*", "@miragon/pulse-c7-core": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-profile": "workspace:*", "@miragon/pulse-ui": "workspace:*", "bpmn-moddle": "10.3.1", "lucide-react": "1.70.0", "react": "19.3.1", "react-dom": "19.3.1" }, "devDependencies": { "camunda-bpmn-moddle": "8.0.2" } }\n',
 }
 
 const tree = new PlantedTree("packages/core/runtime-view", PLANTED)
@@ -174,6 +187,7 @@ describe("the dependency rules", () => {
     const format = at("node_modules/@miragon/pulse-ui/dist/format/index.d.ts")
     const profile = at("node_modules/@miragon/pulse-profile/dist/index.d.ts")
     const profileTesting = at("node_modules/@miragon/pulse-profile/dist/testing/index.d.ts")
+    const board = at("node_modules/@miragon/pulse-board/dist/index.d.ts")
     const c7Core = "node_modules/@miragon/pulse-c7-core/dist/index.d.ts"
     const c7CoreSubpath = "@miragon/pulse-c7-core/cause"
     const c7CoreSource = "packages/connectors/c7/c7-core/src/cause.ts"
@@ -249,6 +263,10 @@ describe("the dependency rules", () => {
         `not-in-allowed: ${at("src/core/reads-profiles.ts")} -> ${profile}`,
         `not-in-allowed: ${at("src/host-kit/connections/ships-profile-fixtures.ts")} -> ${profileTesting}`,
         `not-in-allowed: ${at("src/host-kit/connections/escapes-into-profile.ts")} -> packages/core/profile/src/parse.ts`,
+        `protocol-imports-nothing: ${at("src/core/protocol/reads-a-board.ts")} -> ${board}`,
+        `not-in-allowed: ${at("src/host-kit/reads-a-board.ts")} -> ${board}`,
+        `not-in-allowed: ${at("src/webview/reads-a-board.ts")} -> ${board}`,
+        `not-in-allowed: ${at("src/core/escapes-into-the-board.ts")} -> packages/core/board/src/index.ts`,
         `not-in-allowed: ${at("src/core/renders-react.ts")} -> ${at("node_modules/react/index.js")}`,
         `not-in-allowed: ${at("src/webview/renders-preact.ts")} -> node_modules/preact/index.d.ts`,
         `no-undeclared-dependencies: ${at("src/webview/renders-preact.ts")} -> node_modules/preact/index.d.ts`,

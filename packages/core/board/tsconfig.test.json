@@ -1,0 +1,10 @@
+{
+  // The tests under test/. They see the same globals as src/ (no DOM, no Node): the format's
+  // tests hand the parser a text, as every reader does.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "."
+  },
+  "include": ["test"]
+}

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { BoardParser, type BoardParse } from "../../src/core/boards/board-parser.js"
+import { BoardParser, type BoardParse } from "../../src/index.js"
 
 function problemsOf(parse: BoardParse) {
   if (!("problems" in parse)) {
@@ -85,6 +85,18 @@ describe("the board parser", () => {
     })
   })
 
+  test("reads a filter without a process as one over every process", () => {
+    const parsed = parseBoard(
+      withWidget({ widget: "counter", props: { filter: { state: "ended" } } }),
+    )
+
+    expect("board" in parsed && parsed.board.rows[0]?.[0]).toEqual({
+      widget: "counter",
+      engines: ["shop-dev", "shop-test"],
+      filter: { state: "ended" },
+    })
+  })
+
   test("names a file that is not JSON", () => {
     expect(problemsOf(BoardParser.parse("{ title"))).toEqual([
       { path: "(file)", reason: "is not valid JSON" },
@@ -108,6 +120,9 @@ describe("the board parser", () => {
     ])
     expect(problemsOf(parseBoard({ title: "Shop", engines: ["a"], rows: {} }))).toEqual([
       { path: "rows", reason: "must be a list" },
+    ])
+    expect(problemsOf(parseBoard({ title: "Shop", engines: ["a"] }))).toEqual([
+      { path: "rows", reason: "is missing" },
     ])
   })
 

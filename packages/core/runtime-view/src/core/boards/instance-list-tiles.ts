@@ -1,3 +1,4 @@
+import type { InstanceListWidget } from "@miragon/pulse-board"
 import type { InstanceSummary } from "@miragon/pulse-engine-core"
 import type {
   BoardColumn,
@@ -6,7 +7,6 @@ import type {
   InstanceListTile,
 } from "../protocol/index.js"
 import { Labels } from "../views/labels.js"
-import type { InstanceListWidget } from "./board-definition.js"
 import { BoardFilters } from "./board-filters.js"
 import { EngineReads } from "./engine-reads.js"
 import type { ProbedEngine } from "./engine-probe.js"

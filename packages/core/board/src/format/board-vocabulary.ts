@@ -1,5 +1,9 @@
-import type { BoardColumn } from "../protocol/index.js"
-import type { BoardState, BoardWidgetType, IncidentGrouping } from "./board-definition.js"
+import type {
+  BoardColumn,
+  BoardState,
+  BoardWidgetType,
+  IncidentGrouping,
+} from "./board-definition.js"
 
 export class BoardVocabulary {
   static readonly SCHEMA_VERSION = 1

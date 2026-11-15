@@ -1,7 +1,7 @@
+import type { ProcessDiagramWidget } from "@miragon/pulse-board"
 import type { DefinitionSummary } from "@miragon/pulse-engine-core"
 import type { BoardDiagram, ProcessDiagramTile } from "../protocol/index.js"
 import { ElementBadges } from "../views/element-badges.js"
-import type { ProcessDiagramWidget } from "./board-definition.js"
 import { EngineReads } from "./engine-reads.js"
 import type { ProbedEngine } from "./engine-probe.js"
 

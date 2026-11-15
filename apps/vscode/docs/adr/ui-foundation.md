@@ -1,7 +1,7 @@
 # UI foundation and shared building blocks
 
 - Status: accepted
-- Last reviewed: 2026-11-14 (executed: the switch of D9 landed, the webview renders with React 19 on `@miragon/pulse-ui`; every precondition of D7 is in place; its follow-up landed too: the webview and its tests follow `react-hooks`' `recommended-latest`, the React Compiler rules included, every rule of it an error; decided: "with incident" reads one way on every C7 surface, an open incident the runtime holds now, so the board's two readings are one); 2026-11-12, later the same day (decided, D9: the webview moves from Preact to React 19 on `@miragon/pulse-ui` in one switch, without a `preact/compat` bridge; one compact look for every surface, on density roles over the guide's `--cd-shell-*` tokens and pulse-ui's colour roles on the guide's `--cd-ui-*` roles, numbers neutral; replaces D4 and turns D7 into the switch's preconditions); 2026-11-12 (decided: the surfaces share a core up to building blocks, not everything: formats, the engine reads and their rules, the numbers and view models of a feature more than one surface shows, and building blocks on React's API; a feature more than one surface shows, boards first, shows the same numbers on every surface; replaces the two UI families of 2026-11-08)
+- Last reviewed: 2026-11-15 (executed for the format, D8: the board file format moved into the published package `@miragon/pulse-board` with its dependency rules; the board builder follows); 2026-11-14 (executed: the switch of D9 landed, the webview renders with React 19 on `@miragon/pulse-ui`; every precondition of D7 is in place; its follow-up landed too: the webview and its tests follow `react-hooks`' `recommended-latest`, the React Compiler rules included, every rule of it an error; decided: "with incident" reads one way on every C7 surface, an open incident the runtime holds now, so the board's two readings are one); 2026-11-12, later the same day (decided, D9: the webview moves from Preact to React 19 on `@miragon/pulse-ui` in one switch, without a `preact/compat` bridge; one compact look for every surface, on density roles over the guide's `--cd-shell-*` tokens and pulse-ui's colour roles on the guide's `--cd-ui-*` roles, numbers neutral; replaces D4 and turns D7 into the switch's preconditions); 2026-11-12 (decided: the surfaces share a core up to building blocks, not everything: formats, the engine reads and their rules, the numbers and view models of a feature more than one surface shows, and building blocks on React's API; a feature more than one surface shows, boards first, shows the same numbers on every surface; replaces the two UI families of 2026-11-08)
 
 ## Context
 
@@ -125,8 +125,9 @@ day the owner decided D9, which replaces D4 and turns D7 into the switch's preco
   stylesheet following the editor theme (`data-cd-theme`, `data-cd-kontrast="hoch"`,
   `forced-colors`, reduced motion); pulse-ui's density roles, compact by default. These were
   tasks, not a gate on the decision.
-- **D8, homes.** The board format and the board builder go into a new published package, planned
-  as @miragon/pulse-board; its dependency rules arrive with the package. Shared building blocks go
+- **D8, homes.** The board format and the board builder go into a new published package,
+  `@miragon/pulse-board` (`packages/core/board`); the format moved on 2026-11-15 with its
+  dependency rules (`board-format-is-a-leaf`, `board-consumers`), the builder follows. Shared building blocks go
   into pulse-ui (primitives) or into a shared package created with the first engine block two
   surfaces render. Until then the cockpit side keeps its content of props and callbacks in the
   connector, as the build rule of a pair feature says.

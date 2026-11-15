@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, test } from "vitest"
-import { BoardParser, BoardVocabulary } from "@miragon/pulse-runtime-view/core"
+import { BoardParser, BoardVocabulary } from "@miragon/pulse-board"
 import { APP_ROOT } from "./support/files.js"
 
 interface Node {

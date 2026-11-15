@@ -34,6 +34,11 @@ const PLANTED: Readonly<Record<string, string>> = {
     '{ "name": "@miragon/pulse-c7-core", "exports": { ".": { "types": "./dist/index.d.ts" } } }\n',
   "../../node_modules/@miragon/pulse-c7-core/dist/index.d.ts":
     "export declare const causeOf: number;\n",
+  "src/host/reads-a-board.ts":
+    "import { BoardParser } from '@miragon/pulse-board';\nexport const parser = BoardParser;\n",
+  "src/host/escapes-into-the-board.ts":
+    "import { BoardParser } from '../../../../packages/core/board/src/index.ts';\nexport const parser = BoardParser;\n",
+  "../../packages/core/board/src/index.ts": "export const BoardParser = 1;\n",
   "src/host/cycle-a.ts": "import { b } from './cycle-b.ts';\nexport const a = () => b();\n",
   "src/host/cycle-b.ts": "import { a } from './cycle-a.ts';\nexport const b = () => a();\n",
   "test/host/anything.test.ts":
@@ -44,7 +49,7 @@ const PLANTED: Readonly<Record<string, string>> = {
   "../../scripts/third-party-licenses.mjs":
     "import { readFileSync } from 'node:fs';\nimport * as esbuild from 'esbuild';\nimport { core } from '../packages/core/runtime-view/src/core/index.ts';\nexport const inventoryOf = [readFileSync, esbuild, core];\n",
   "package.json":
-    '{ "name": "pulse-cockpit", "private": true, "dependencies": { "@miragon/pulse-runtime-view": "workspace:*", "@miragon/pulse-c7-adapter": "workspace:*", "@miragon/pulse-c8-adapter": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-c7-core": "workspace:*" } }\n',
+    '{ "name": "pulse-cockpit", "private": true, "dependencies": { "@miragon/pulse-board": "workspace:*", "@miragon/pulse-runtime-view": "workspace:*", "@miragon/pulse-c7-adapter": "workspace:*", "@miragon/pulse-c8-adapter": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-c7-core": "workspace:*" } }\n',
 }
 
 const tree = new PlantedTree("apps/vscode", PLANTED)
@@ -81,6 +86,7 @@ describe("the dependency rules", () => {
         "model-libraries-stay-in-the-model-adapter: apps/vscode/src/host/reads-model-library.ts -> bpmn-moddle",
         "no-circular: apps/vscode/src/host/cycle-a.ts -> apps/vscode/src/host/cycle-b.ts",
         "not-in-allowed: apps/vscode/src/host/escapes-into-the-view.ts -> packages/core/runtime-view/src/core/index.ts",
+        "not-in-allowed: apps/vscode/src/host/escapes-into-the-board.ts -> packages/core/board/src/index.ts",
         "not-in-allowed: scripts/third-party-licenses.mjs -> packages/core/runtime-view/src/core/index.ts",
         "not-in-allowed: scripts/third-party-licenses.mjs -> esbuild",
         "not-to-unresolvable: scripts/third-party-licenses.mjs -> esbuild",
