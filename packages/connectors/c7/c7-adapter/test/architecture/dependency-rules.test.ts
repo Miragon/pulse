@@ -21,6 +21,8 @@ const ADAPTER: Readonly<Record<string, string>> = {
     "import { pageQuery } from '@miragon/pulse-c7-core/testing';\nexport const page = pageQuery;\n",
   "src/reads-c7-routes.ts":
     "import { routeOf } from '@miragon/pulse-c7-core/routes';\nexport const route = routeOf;\n",
+  "src/engine-rest/reads-the-c7-runtime.ts":
+    "import { JsonView } from '@miragon/pulse-c7-core/runtime';\nexport const view = JsonView;\n",
   "src/reads-the-core.ts":
     "import { BoardParser } from '@miragon/pulse-runtime-view/core';\nexport const parser = BoardParser;\n",
   "src/reads-the-client.ts":

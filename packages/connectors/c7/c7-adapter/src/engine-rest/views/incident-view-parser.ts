@@ -1,19 +1,19 @@
+import { JsonView } from "@miragon/pulse-c7-core/runtime"
 import { Present } from "../present.js"
-import { JsonObject } from "./json-object.js"
 import type { IncidentView } from "./views.js"
 
 export class IncidentViewParser {
   static incident(value: unknown): IncidentView {
-    return IncidentViewParser.incidentOf(JsonObject.of(value, "incident"))
+    return IncidentViewParser.incidentOf(JsonView.of(value, "incident"))
   }
 
   static incidents(value: unknown): IncidentView[] {
-    return JsonObject.listOf(value, "incidents").map((record) =>
+    return JsonView.listOf(value, "incidents").map((record) =>
       IncidentViewParser.incidentOf(record),
     )
   }
 
-  private static incidentOf(record: JsonObject): IncidentView {
+  private static incidentOf(record: JsonView): IncidentView {
     return {
       id: record.requiredString("id"),
       incidentType: record.requiredString("incidentType"),

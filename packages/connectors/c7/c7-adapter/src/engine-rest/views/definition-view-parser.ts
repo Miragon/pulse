@@ -1,9 +1,9 @@
+import { JsonView } from "@miragon/pulse-c7-core/runtime"
 import { Present } from "../present.js"
-import { JsonObject } from "./json-object.js"
 import type { ActivityStatisticsView, DefinitionStatisticsView, DefinitionView } from "./views.js"
 
 export class DefinitionViewParser {
-  static definition(record: JsonObject): DefinitionView {
+  static definition(record: JsonView): DefinitionView {
     return {
       id: record.requiredString("id"),
       key: record.requiredString("key"),
@@ -17,7 +17,7 @@ export class DefinitionViewParser {
   }
 
   static definitionStatistics(value: unknown): DefinitionStatisticsView[] {
-    return JsonObject.listOf(value, "definition statistics").map((row) => ({
+    return JsonView.listOf(value, "definition statistics").map((row) => ({
       definition: DefinitionViewParser.definition(
         row.object("definition", "statistics definition"),
       ),
@@ -26,13 +26,13 @@ export class DefinitionViewParser {
   }
 
   static activityStatistics(value: unknown): ActivityStatisticsView[] {
-    return JsonObject.listOf(value, "activity statistics").map((row) => ({
+    return JsonView.listOf(value, "activity statistics").map((row) => ({
       activityId: row.requiredString("id"),
       instances: row.requiredNumber("instances"),
     }))
   }
 
   static diagramXml(value: unknown): string {
-    return JsonObject.of(value, "definition XML").requiredString("bpmn20Xml")
+    return JsonView.of(value, "definition XML").requiredString("bpmn20Xml")
   }
 }

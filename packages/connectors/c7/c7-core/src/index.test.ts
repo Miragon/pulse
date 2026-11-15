@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import * as core from "./index.js"
 import * as routes from "./routes.js"
+import * as runtime from "./runtime/index.js"
 import * as testing from "./testing/index.js"
 
 /**
@@ -116,6 +117,10 @@ describe("the @miragon/pulse-c7-core entries", () => {
 
   it("export exactly the whole route table from ./routes", () => {
     expect(Object.keys(routes)).toEqual(["ROUTES"])
+  })
+
+  it("export exactly the checked views and the id rule from ./runtime", () => {
+    expect(Object.keys(runtime).sort()).toEqual(["JsonView", "engineIdOf", "isEngineId"])
   })
 
   it("export exactly the fixtures, the fake port and the test seams from ./testing", () => {

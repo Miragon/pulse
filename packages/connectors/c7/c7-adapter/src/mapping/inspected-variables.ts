@@ -1,4 +1,5 @@
-import { JsonObject, LosslessJson, Present, type VariableView } from "../engine-rest/index.js"
+import { JsonView } from "@miragon/pulse-c7-core/runtime"
+import { LosslessJson, Present, type VariableView } from "../engine-rest/index.js"
 
 export class InspectedVariables {
   static of(variables: Readonly<Record<string, unknown>> | undefined): VariableView[] {
@@ -8,7 +9,7 @@ export class InspectedVariables {
   }
 
   private static variableOf(name: string, value: unknown): VariableView {
-    const typed = JsonObject.ifObject(value)
+    const typed = JsonView.ifObject(value)
     const type = typed?.value("type")
     if (typed === undefined || typeof type !== "string") {
       return { name, valueJson: LosslessJson.stringify(value) }

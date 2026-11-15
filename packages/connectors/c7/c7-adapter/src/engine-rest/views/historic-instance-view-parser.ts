@@ -1,19 +1,19 @@
+import { JsonView } from "@miragon/pulse-c7-core/runtime"
 import { Present } from "../present.js"
-import { JsonObject } from "./json-object.js"
 import type { HistoricInstanceView } from "./views.js"
 
 export class HistoricInstanceViewParser {
   static instances(value: unknown): HistoricInstanceView[] {
-    return JsonObject.listOf(value, "historic process instances").map((record) =>
+    return JsonView.listOf(value, "historic process instances").map((record) =>
       HistoricInstanceViewParser.instanceOf(record),
     )
   }
 
   static count(value: unknown): number {
-    return JsonObject.of(value, "historic process instance count").requiredNumber("count")
+    return JsonView.of(value, "historic process instance count").requiredNumber("count")
   }
 
-  private static instanceOf(record: JsonObject): HistoricInstanceView {
+  private static instanceOf(record: JsonView): HistoricInstanceView {
     return {
       id: record.requiredString("id"),
       processDefinitionId: record.requiredString("processDefinitionId"),

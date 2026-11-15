@@ -1,12 +1,12 @@
-import { JsonObject } from "./json-object.js"
+import { JsonView } from "@miragon/pulse-c7-core/runtime"
 import type { ActivityInstanceView, TransitionInstanceView } from "./views.js"
 
 export class ActivityInstanceViewParser {
   static tree(value: unknown): ActivityInstanceView {
-    return ActivityInstanceViewParser.activityInstance(JsonObject.of(value, "activity instance"))
+    return ActivityInstanceViewParser.activityInstance(JsonView.of(value, "activity instance"))
   }
 
-  private static activityInstance(record: JsonObject): ActivityInstanceView {
+  private static activityInstance(record: JsonView): ActivityInstanceView {
     return {
       id: record.requiredString("id"),
       activityId: record.requiredString("activityId"),
@@ -19,7 +19,7 @@ export class ActivityInstanceViewParser {
     }
   }
 
-  private static transitionInstance(record: JsonObject): TransitionInstanceView {
+  private static transitionInstance(record: JsonView): TransitionInstanceView {
     return { id: record.requiredString("id"), activityId: record.requiredString("activityId") }
   }
 }

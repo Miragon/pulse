@@ -1,5 +1,4 @@
 export { Present } from "./present.js"
-export { JsonObject } from "./views/json-object.js"
 export { LosslessJson } from "./views/lossless-json.js"
 export { UnexpectedAnswerError } from "./views/unexpected-answer-error.js"
 export { EngineHttp } from "./http/engine-http.js"

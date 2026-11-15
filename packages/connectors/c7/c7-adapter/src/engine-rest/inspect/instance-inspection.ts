@@ -10,8 +10,8 @@ import {
   type InstanceView,
   type TimelineEntry,
 } from "@miragon/pulse-c7-core"
+import { JsonView } from "@miragon/pulse-c7-core/runtime"
 import type { EngineHttp } from "../http/engine-http.js"
-import { JsonObject } from "../views/json-object.js"
 import { UnexpectedAnswerError } from "../views/unexpected-answer-error.js"
 import type { InspectView } from "../views/views.js"
 import { HttpEngineTransport } from "./http-engine-transport.js"
@@ -61,7 +61,7 @@ export class InstanceInspection {
   }
 
   private static requireWhereAndWhenEachStepRan(rows: readonly unknown[]): void {
-    for (const row of JsonObject.listOf(rows, "activity instance")) {
+    for (const row of JsonView.listOf(rows, "activity instance")) {
       row.requiredString("activityId")
       row.requiredString("startTime")
     }

@@ -1,4 +1,5 @@
 import { MAX_STACKTRACE_LINES } from "@miragon/pulse-c7-core"
+import { RuntimeError } from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
 import { RestEngineClient } from "../../src/engine-rest/index.js"
 import { InspectedVariables } from "../../src/mapping/inspected-variables.js"
@@ -316,9 +317,9 @@ describe("inspecting an instance over REST", () => {
       () => undefined,
       (error: unknown) => error,
     )
-    expect(failure).toBeInstanceOf(Error)
-    expect((failure as Error).name).toBe("UnexpectedAnswerError")
-    expect((failure as Error).message).toContain(`${field} is missing`)
+    expect(failure).toBeInstanceOf(RuntimeError)
+    expect((failure as RuntimeError).failure).toBe("unexpectedResponse")
+    expect((failure as RuntimeError).message).toContain(`${field} is missing`)
   })
 
   test("fails when the engine fails to read the variables", async () => {

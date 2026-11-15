@@ -144,6 +144,7 @@ const VIEW_ENGINE = "runtime-view-builds-on-the-engine-contract"
 const ADAPTER_USERS = "adapter-consumers"
 const HOSTS = "editor-hosts-reach-dialects-through-adapters"
 const CLI_CORE_LAYERS = "cli-family-core-only-in-named-layers"
+const CLI_RUNTIME = "cli-without-the-c7-runtime"
 const NO_TESTING = "shipped-code-not-to-testing"
 const DEEP = "no-cross-package-deep-imports"
 const CIRCULAR = "no-circular"
@@ -244,6 +245,8 @@ const LEAVES = [
   `${C7}/src/target.ts`,
   `${C7}/src/lib.ts`,
   `${C7}/src/testing/fixture.ts`,
+  `${C7}/src/runtime/json-view.ts`,
+  `${C7}/dist/runtime/index.js`,
   `${PROFILE}/src/target.ts`,
   `${PROFILE}/src/lib.ts`,
   `${HTTP}/src/target.ts`,
@@ -1023,6 +1026,37 @@ const SUITES = [
       // Another family's core is cli-is-headless's alone.
       [`${CLI}/src/cli/other-core.ts`, BILLING_CORE_NAME, [HEADLESS]],
       [`${CLI}/src/f.test.ts`, C7_CORE, []],
+    ],
+  },
+  {
+    rule: CLI_RUNTIME,
+    title: "the CLI never imports c7-core's ./runtime entry, which only a family's adapter runs",
+    cases: [
+      // In every layer, the ones that may import the core included, and in its tests.
+      [`${CLI}/src/workflow/runtime.ts`, `${C7_CORE}/runtime`, [CLI_RUNTIME]],
+      [CLI_SRC, `${C7_CORE}/runtime`, [CLI_CORE_LAYERS, CLI_RUNTIME]],
+      [`${CLI}/src/workflow/runtime.test.ts`, `${C7_CORE}/runtime`, [CLI_RUNTIME]],
+      [`${CLI}/test/support/runtime.ts`, `${C7_CORE}/runtime`, [CLI_RUNTIME]],
+      [`${CLI}/scripts/runtime.ts`, `${C7_CORE}/runtime`, [CLI_CORE_LAYERS, CLI_RUNTIME]],
+      // Its build resolved through the CLI's own link (shape 2), by a type too, and a relative
+      // escape.
+      [`${CLI}/src/workflow/runtime-build.ts`, `${C7_CORE}/dist/runtime/index.js`, [CLI_RUNTIME]],
+      [
+        `${CLI}/src/engine-port/runtime.ts`,
+        `${C7_CORE}/dist/runtime/index.js`,
+        [CLI_RUNTIME],
+        "type",
+      ],
+      [
+        `${CLI}/src/workflow/escape-runtime.ts`,
+        "../../../../packages/connectors/c7/c7-core/src/runtime/json-view.ts",
+        [CLI_RUNTIME, DEEP, HEADLESS],
+      ],
+      // Anchored: a look-alike subpath and the other entries stay the CLI's to bundle.
+      [`${CLI}/src/workflow/runtimes.ts`, `${C7_CORE}/runtimes`, []],
+      [`${CLI}/src/workflow/routes.ts`, `${C7_CORE}/routes`, []],
+      // Allowed: the C7 adapter runs it.
+      [`${C7_ADAPTER}/src/engine-rest/runtime.ts`, `${C7_CORE}/runtime`, []],
     ],
   },
   {

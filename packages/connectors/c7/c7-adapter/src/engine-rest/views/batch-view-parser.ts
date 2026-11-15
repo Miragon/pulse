@@ -1,5 +1,5 @@
+import { JsonView } from "@miragon/pulse-c7-core/runtime"
 import { Present } from "../present.js"
-import { JsonObject } from "./json-object.js"
 import type {
   BatchRef,
   BatchStatisticsView,
@@ -10,11 +10,11 @@ import type {
 
 export class BatchViewParser {
   static reference(value: unknown): BatchRef {
-    return { id: JsonObject.of(value, "batch").requiredString("id") }
+    return { id: JsonView.of(value, "batch").requiredString("id") }
   }
 
   static statistics(value: unknown): BatchStatisticsView | undefined {
-    const [first] = JsonObject.listOf(value, "batch statistics")
+    const [first] = JsonView.listOf(value, "batch statistics")
     if (first === undefined) {
       return undefined
     }
@@ -27,7 +27,7 @@ export class BatchViewParser {
   }
 
   static historic(value: unknown): HistoricBatchView {
-    const record = JsonObject.of(value, "historic batch")
+    const record = JsonView.of(value, "historic batch")
     return {
       ...BatchViewParser.batchOf(record),
       ...Present.fields({ endTime: record.optionalString("endTime") }),
@@ -35,13 +35,13 @@ export class BatchViewParser {
   }
 
   static failedJobs(value: unknown): FailedJobView[] {
-    return JsonObject.listOf(value, "failed jobs").map((job) => ({
+    return JsonView.listOf(value, "failed jobs").map((job) => ({
       id: job.requiredString("id"),
       ...Present.fields({ exceptionMessage: job.optionalString("exceptionMessage") }),
     }))
   }
 
-  private static batchOf(record: JsonObject): BatchView {
+  private static batchOf(record: JsonView): BatchView {
     return {
       id: record.requiredString("id"),
       type: record.requiredString("type"),

@@ -84,7 +84,8 @@ webview     → protocol (type-only), @miragon/pulse-ui/tones,
               lucide-react, bpmn-js, diagram-js, modeler-shell, fonts,
               @miragon/pulse-ui (the React kit) and @miragon/pulse-ui/theme.css
               (no ./testing, globals.css or fonts.css, no other subpath)
-adapter     → @miragon/pulse-engine-core, @miragon/pulse-c7-core (main entries only), ports,
+adapter     → @miragon/pulse-engine-core (main entry only), ports,
+              @miragon/pulse-c7-core (main entry and ./runtime only),
               @miragon/pulse-http (main entry only, from src/engine-rest/http),
               camunda-bpmn-moddle's descriptor (only from src/c7-bpmn-dialect.ts)
 c8-adapter  → @miragon/pulse-engine-core (main entry only), ports,
@@ -115,7 +116,8 @@ the local ports and their read models. The package keeps the extension's house r
 repository's ESLint config names its paths next to the editor trees') and imports nothing (the
 repository's `family-core-is-a-leaf`); in the repository the runtime view's `ports`, `core`,
 `model` and `host-kit`, the adapter, the hosts and their tests and dev hosts import it, besides
-the `src` of a dialect's core (c7-core takes `RootCauses` from its main entry) and tests anywhere;
+the `src` of a dialect's core (c7-core takes `RootCauses` and, in its `./runtime` entry,
+`RuntimeError` from its main entry) and tests anywhere;
 the engine connector and the CLI do not until they serve a second dialect
 (`engine-core-consumers`). The runtime view is foundation code, and this is its one edge into a
 family, which the owner accepted (`runtime-view-builds-on-the-engine-contract`). They import its

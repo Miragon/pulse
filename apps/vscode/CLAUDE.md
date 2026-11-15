@@ -131,8 +131,11 @@ without a stability promise. The host reaches the runtime view only through the 
 ports, core, protocol and host kit, and only its composition root the adapters and the model
 reader. The C7 adapter (`packages/connectors/c7/c7-adapter`, its tests beside it) imports
 `@miragon/pulse-c7-core`, the core of the Camunda 7 REST dialect family c7, the workflow domain
-the CLI and the MCP server run too, through its main entry; no other part of the editor hosts
-imports it (`runtime-view-is-dialect-neutral`, `extension-is-dialect-neutral`; the repository's
+the CLI and the MCP server run too, through its main entry, and what the engine contract's reads
+build on through its `./runtime` entry (`JsonView`, the checked reads of an engine answer, and
+`isEngineId`, the one id rule), which the CLI never imports (the repository's
+`cli-without-the-c7-runtime`); no other part of the editor hosts imports it
+(`runtime-view-is-dialect-neutral`, `extension-is-dialect-neutral`; the repository's
 `adapters-own-their-family`). The adapter's wire (`packages/connectors/c7/c7-adapter/src/engine-rest/http`,
 `EngineHttp`) sends through `@miragon/pulse-http`, the transport the CLI and the MCP server send
 through, by its main entry and nowhere else in the adapter (`http-only-in-the-wire`,

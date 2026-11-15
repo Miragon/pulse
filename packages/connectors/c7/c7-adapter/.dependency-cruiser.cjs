@@ -9,6 +9,7 @@ const PORTS_ENTRY = "(^|/)node_modules/@miragon/pulse-runtime-view/dist/ports/in
 const ENGINE_CORE_ENTRY = "(^|/)node_modules/@miragon/pulse-engine-core/dist/index[.]d[.]ts$"
 const CONFORMANCE_KIT = "(^|/)node_modules/@miragon/pulse-engine-core/dist/testing/index[.]d[.]ts$"
 const C7_CORE_ENTRY = "(^|/)node_modules/@miragon/pulse-c7-core/dist/index[.]d[.]ts$"
+const C7_RUNTIME_ENTRY = "(^|/)node_modules/@miragon/pulse-c7-core/dist/runtime/index[.]d[.]ts$"
 const WIRE = `${PACKAGE}src/engine-rest/http/`
 const HTTP_ENTRY = "(^|/)node_modules/@miragon/pulse-http/dist/index[.]d[.]ts$"
 const HTTP_PACKAGE =
@@ -53,6 +54,12 @@ module.exports = {
     },
     {
       comment:
+        "The adapter reads the engine's answers and checks its ids with what c7-core's ./runtime entry (@miragon/pulse-c7-core/runtime) builds the engine contract's reads on: JsonView and the one engine id rule, which the editor hosts bundle.",
+      from: { path: `${PACKAGE}src/` },
+      to: { path: C7_RUNTIME_ENTRY },
+    },
+    {
+      comment:
         "The adapter's wire (src/engine-rest/http: EngineHttp and the wording of its failures) sends every engine request through @miragon/pulse-http, the transport the CLI and the MCP server send through too (its main entry), which the editor hosts bundle.",
       from: { path: WIRE },
       to: { path: HTTP_ENTRY },
@@ -63,7 +70,7 @@ module.exports = {
       name: "not-in-allowed",
       severity: "error",
       comment:
-        "No entry of `allowed` in packages/connectors/c7/c7-adapter/.dependency-cruiser.cjs permits this import. The adapter uses its own modules, the main entries of @miragon/pulse-engine-core (the contract) and @miragon/pulse-c7-core (the c7 dialect's workflow domain), never a subpath, the runtime view's ports (@miragon/pulse-runtime-view/ports), in its BPMN dialect (src/c7-bpmn-dialect.ts) the descriptor of camunda-bpmn-moddle, in its wire (src/engine-rest/http) the main entry of the transport @miragon/pulse-http, and no Node built-in: the REST client runs on the global fetch of its host's runtime.",
+        "No entry of `allowed` in packages/connectors/c7/c7-adapter/.dependency-cruiser.cjs permits this import. The adapter uses its own modules, the main entry of @miragon/pulse-engine-core (the contract), the main entry of @miragon/pulse-c7-core (the c7 dialect's workflow domain) and its ./runtime entry (what the engine contract's reads build on), never another subpath, the runtime view's ports (@miragon/pulse-runtime-view/ports), in its BPMN dialect (src/c7-bpmn-dialect.ts) the descriptor of camunda-bpmn-moddle, in its wire (src/engine-rest/http) the main entry of the transport @miragon/pulse-http, and no Node built-in: the REST client runs on the global fetch of its host's runtime.",
       from: {},
       to: { path: "^$" },
     },

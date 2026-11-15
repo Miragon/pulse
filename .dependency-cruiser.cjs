@@ -166,6 +166,12 @@ const CORE_BUNDLERS = Object.keys(CORE_BUNDLES)
 const CLI_CORE = escapeRegExp(CORE_BUNDLES["^apps/cli/"].name)
 
 /**
+ * c7-core's ./runtime entry as its tree (src/runtime/): what the reads of the engine contract
+ * build on, which a family's adapter runs and the CLI never carries (cli-without-the-c7-runtime).
+ */
+const C7_RUNTIME_TREE = `^${escapeRegExp(CORE_BUNDLES["^apps/cli/"].tree)}/src/runtime/`
+
+/**
  * The profile format (packages/core/profile, npm `@miragon/pulse-profile`): the one parser of the
  * profile files of the CLI, Pulse for VS Code and the MCP server. A foundation package, not a
  * family core, so it stays out of CORE_BUNDLES (whose keys loosen family-core-consumers): its own
@@ -897,7 +903,8 @@ module.exports = {
         "A family's adapter (packages/connectors/<family>/<family>-adapter) maps its engines onto " +
         "the engine contract of @miragon/pulse-engine-core for the runtime view: it imports its " +
         "own family's core (the C7 adapter, @miragon/pulse-c7-adapter, runs " +
-        "@miragon/pulse-c7-core; its closed world holds its src to the main entry) and " +
+        "@miragon/pulse-c7-core; its closed world holds its src to the main entry and " +
+        "./runtime, what the engine contract's reads build on) and " +
         "ADAPTER_IMPORTS (engine-core, the runtime view @miragon/pulse-runtime-view, whose " +
         "./ports name the plug it provides, and the transport @miragon/pulse-http, HTTP_USERS), " +
         "no other workspace package: no connector, another family's core or client, or the UI. " +
@@ -997,6 +1004,19 @@ module.exports = {
         ],
       },
       to: { path: npm(CLI_CORE) },
+    },
+    {
+      name: "cli-without-the-c7-runtime",
+      severity: "error",
+      comment:
+        "The CLI (apps/cli) implements no engine contract, so it never imports c7-core's " +
+        "./runtime entry (@miragon/pulse-c7-core/runtime: what the reads of engine-core's " +
+        "ProcessRuntime build on, which a family's adapter runs), by its name or by a relative " +
+        "escape into c7-core's src/runtime: tsdown would inline it into the npm dist for nothing. " +
+        "The workflow commands read through the main entry's composites (inspectInstance, " +
+        "readStatus) over the CLI's own engine port.",
+      from: { path: "^apps/cli/" },
+      to: { path: [...npm(`${CLI_CORE}/(?:runtime|dist/runtime)`), C7_RUNTIME_TREE] },
     },
     {
       name: "shipped-code-not-to-testing",

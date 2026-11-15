@@ -1,5 +1,5 @@
+import { JsonView } from "@miragon/pulse-c7-core/runtime"
 import { Present } from "../present.js"
-import { JsonObject } from "./json-object.js"
 import { LosslessJson } from "./lossless-json.js"
 import type { VariableView } from "./views.js"
 
@@ -7,7 +7,7 @@ const MULTI_INSTANCE_BODY = "#multiInstanceBody"
 
 export class VariableViewParser {
   static instances(value: unknown): VariableView[] {
-    return JsonObject.listOf(value, "variable instances").map((record) => ({
+    return JsonView.listOf(value, "variable instances").map((record) => ({
       name: record.requiredString("name"),
       valueJson: LosslessJson.stringify(record.value("value") ?? null),
       ...Present.fields({
@@ -21,7 +21,7 @@ export class VariableViewParser {
   }
 
   static names(value: unknown): string[] {
-    return JsonObject.listOf(value, "historic variable instances").map((record) =>
+    return JsonView.listOf(value, "historic variable instances").map((record) =>
       record.requiredString("name"),
     )
   }

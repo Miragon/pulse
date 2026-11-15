@@ -4,7 +4,6 @@ interface ReviverContext {
 
 interface RawJsonSupport {
   rawJSON(text: string): unknown
-  isRawJSON(value: unknown): boolean
 }
 
 const rawJsonSupport = JSON as unknown as RawJsonSupport
@@ -14,10 +13,6 @@ export class LosslessJson {
     return JSON.parse(text, (_key: string, value: unknown, context?: ReviverContext) =>
       LosslessJson.keptExact(value, context),
     ) as unknown
-  }
-
-  static isRaw(value: unknown): boolean {
-    return rawJsonSupport.isRawJSON(value)
   }
 
   static stringify(value: unknown): string {

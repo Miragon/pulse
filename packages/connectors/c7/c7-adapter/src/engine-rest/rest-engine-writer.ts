@@ -1,10 +1,10 @@
+import { JsonView } from "@miragon/pulse-c7-core/runtime"
 import type { EngineWriter, RetryOutcome } from "./engine-writer.js"
 import { EngineRequestError } from "./http/engine-request-error.js"
 import type { EngineHttp } from "./http/engine-http.js"
 import { RecoveryTargets } from "./recovery-targets.js"
 import { RequestArguments } from "./request-arguments.js"
 import { BatchViewParser } from "./views/batch-view-parser.js"
-import { JsonObject } from "./views/json-object.js"
 import type { BatchRef } from "./views/views.js"
 
 const ONE_RETRY = JSON.stringify({ retries: 1 })
@@ -70,14 +70,14 @@ export class RestEngineWriter implements EngineWriter {
     await this.http.write("DELETE", `/batch/${batch}`, undefined, { cascade: "false" })
   }
 
-  private async rootCauseOf(incidentId: string): Promise<JsonObject | undefined> {
+  private async rootCauseOf(incidentId: string): Promise<JsonView | undefined> {
     const path = `/incident/${RequestArguments.segment(incidentId)}`
-    const incident = JsonObject.of(await this.http.read(path), "incident")
+    const incident = JsonView.of(await this.http.read(path), "incident")
     const rootId = incident.optionalString("rootCauseIncidentId")
     if (rootId === undefined || rootId === incident.requiredString("id")) {
       return incident
     }
     const root = await this.http.find(`/incident/${RequestArguments.segment(rootId)}`)
-    return root === undefined ? undefined : JsonObject.of(root, "root cause incident")
+    return root === undefined ? undefined : JsonView.of(root, "root cause incident")
   }
 }
