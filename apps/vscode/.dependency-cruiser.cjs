@@ -50,7 +50,8 @@ module.exports = {
       to: { dependencyTypes: ["core"] },
     },
     {
-      comment: "Only the composition root knows the engine adapters and the model adapter.",
+      comment:
+        "Only the composition root knows the engine adapters (the C7 adapter, the C8 adapter) and the model adapter.",
       from: { path: `${APP}src/host/composition-root[.]ts$` },
       to: { path: [ADAPTER_ENTRY, MODEL_ENTRY] },
     },
@@ -76,7 +77,7 @@ module.exports = {
       name: "model-libraries-stay-in-the-model-adapter",
       severity: "error",
       comment:
-        "BPMN model libraries (bpmn-moddle, its vendor descriptors, bpmn-modeler libs) belong in packages/core/runtime-view/src/model only. Read what you need through the ModelSource or CodeLocator port instead.",
+        "BPMN model libraries (bpmn-moddle, bpmn-modeler libs) belong in packages/core/runtime-view/src/model only, a vendor's descriptor in the BPMN dialect of its family's adapter. Read what you need through the ModelSource or CodeLocator port instead.",
       from: { pathNot: "(^|/)node_modules/" },
       to: { path: MODEL_LIBRARIES },
     },

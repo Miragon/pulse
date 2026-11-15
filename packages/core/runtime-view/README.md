@@ -8,14 +8,14 @@ the ports, read models and failure kinds every dialect answers in, the conforman
 fake (`./testing`), which its layers and the hosts import directly (owner decision 2026-11-09 on
 #585: one home of the contract, no second copy here).
 
-| Layer    | Path                | Entry                                               | Holds                                                                                                                        |
-| -------- | ------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| ports    | `src/ports`         | `@miragon/pulse-runtime-view/ports`                 | the ports only the editor hosts need: `EngineAdapter`, the local model and its code                                          |
-| core     | `src/core`          | `@miragon/pulse-runtime-view/core`                  | panels, boards, refresh loops, view models                                                                                   |
-| protocol | `src/core/protocol` | `@miragon/pulse-runtime-view/protocol`              | the JSON messages and view models between a host and the webview                                                             |
-| model    | `src/model`         | `@miragon/pulse-runtime-view/model`                 | the local `.bpmn` reader and the code locator, behind the local ports                                                        |
-| webview  | `src/webview`       | `@miragon/pulse-runtime-view/webview-build-options` | the webview, React on pulse-ui, each host bundles into its frames                                                            |
-| host kit | `src/host-kit`      | `@miragon/pulse-runtime-view/host-kit`              | the rules every editor host shares: targets from `.pulse.json` and the CLI's user config, write and live policies, the audit |
+| Layer    | Path                | Entry                                               | Holds                                                                                                                                                                                                 |
+| -------- | ------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ports    | `src/ports`         | `@miragon/pulse-runtime-view/ports`                 | the ports only the editor hosts need: `EngineAdapter` with the `BpmnDialect` an adapter brings, the local model and its code                                                                          |
+| core     | `src/core`          | `@miragon/pulse-runtime-view/core`                  | panels, boards, refresh loops, view models                                                                                                                                                            |
+| protocol | `src/core/protocol` | `@miragon/pulse-runtime-view/protocol`              | the JSON messages and view models between a host and the webview                                                                                                                                      |
+| model    | `src/model`         | `@miragon/pulse-runtime-view/model`                 | the local `.bpmn` reader and the code locator, behind the local ports                                                                                                                                 |
+| webview  | `src/webview`       | `@miragon/pulse-runtime-view/webview-build-options` | the webview, React on pulse-ui, each host bundles into its frames                                                                                                                                     |
+| host kit | `src/host-kit`      | `@miragon/pulse-runtime-view/host-kit`              | the rules every editor host shares: `EngineRoot` (the adapters per dialect, the local target, the dialects), targets from `.pulse.json` and the CLI's user config, write and live policies, the audit |
 
 Each layer has its own `tsconfig.<layer>.json` with its runtime's globals only, and its own
 closed-world dependency rules (`.dependency-cruiser.cjs`, `pnpm lint:architecture:runtime-view`):
@@ -112,6 +112,9 @@ here: the credential store's refusal of a login saved for another origin (`saved
 `test/host-kit/credential-store.test.ts`) and `NotificationText.withoutLinks`, which defuses links
 in engine text (`test/host-kit/notification-text.test.ts`); so does the connection builder, which
 names a refused target's way out as its read-only note (`test/host-kit/connection-builder.test.ts`).
+The routing tests both hosts had live here too: `EngineRoot`, the one body both composition roots
+build from their adapters, hands a target to its dialect's adapter with its credentials, refuses,
+and names the web UI, the CLI and the local target (`test/host-kit/engine-root.test.ts`).
 A new rule of the host kit brings its test under `test/host-kit/`.
 
 ```sh

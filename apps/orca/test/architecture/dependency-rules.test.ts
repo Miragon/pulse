@@ -7,7 +7,9 @@ const PLANTED: Readonly<Record<string, string>> = {
   "src/worker/wires-the-view.ts":
     "import { PanelTitle } from '@miragon/pulse-runtime-view/host-kit';\nimport type { OrcaWorkerApi } from 'orca/worker';\nimport { readFile } from 'node:fs/promises';\nimport type { Message } from '../protocol.ts';\nexport type Api = OrcaWorkerApi | Message;\nexport const used = [PanelTitle, readFile];\n",
   "src/worker/composition-root.ts":
-    "import { C7Adapter } from '@miragon/pulse-c7-adapter';\nimport { BpmnModelSource } from '@miragon/pulse-runtime-view/model';\nexport const wired = [C7Adapter, BpmnModelSource];\n",
+    "import { C7Adapter } from '@miragon/pulse-c7-adapter';\nimport { C8Adapter } from '@miragon/pulse-c8-adapter';\nimport { BpmnModelSource } from '@miragon/pulse-runtime-view/model';\nexport const wired = [C7Adapter, C8Adapter, BpmnModelSource];\n",
+  "src/worker/wires-camunda-8.ts":
+    "import { C8Adapter } from '@miragon/pulse-c8-adapter';\nexport const wired = C8Adapter;\n",
   "src/worker/not-the-root.ts":
     "import { C7Adapter } from '@miragon/pulse-c7-adapter';\nexport const wired = C7Adapter;\n",
   "src/worker/draws.ts": "import { Text } from 'orca';\nexport const text = Text;\n",
@@ -52,7 +54,7 @@ const PLANTED: Readonly<Record<string, string>> = {
   "test/worker/anything.test.ts":
     "import { FakeEngine } from '@miragon/pulse-engine-core/testing';\nexport const fake = FakeEngine;\n",
   "package.json":
-    '{ "name": "@miragon/pulse-orca", "private": true, "dependencies": { "@miragon/pulse-runtime-view": "workspace:*", "@miragon/pulse-c7-adapter": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-c7-core": "workspace:*" } }\n',
+    '{ "name": "@miragon/pulse-orca", "private": true, "dependencies": { "@miragon/pulse-runtime-view": "workspace:*", "@miragon/pulse-c7-adapter": "workspace:*", "@miragon/pulse-c8-adapter": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-c7-core": "workspace:*" } }\n',
 }
 
 const tree = new PlantedTree("apps/orca", PLANTED)
@@ -72,6 +74,7 @@ describe("the dependency rules", () => {
     const at = (path: string): string => `apps/orca/${path}`
     const view = at("node_modules/@miragon/pulse-runtime-view/dist/core/index.d.ts")
     const adapter = at("node_modules/@miragon/pulse-c7-adapter/dist/index.d.ts")
+    const camunda8 = at("node_modules/@miragon/pulse-c8-adapter/dist/index.d.ts")
     const engineCore = at("node_modules/@miragon/pulse-engine-core/dist/index.d.ts")
     const engineCoreTesting = at("node_modules/@miragon/pulse-engine-core/dist/testing/index.d.ts")
     const contractBuild = "packages/connectors/engine/engine-core/dist/index.js"
@@ -88,6 +91,7 @@ describe("the dependency rules", () => {
         `not-in-allowed: ${at("src/panel/runs-the-core.ts")} -> ${view}`,
         `not-in-allowed: ${at("src/worker/draws.ts")} -> orca`,
         `not-in-allowed: ${at("src/worker/not-the-root.ts")} -> ${adapter}`,
+        `not-in-allowed: ${at("src/worker/wires-camunda-8.ts")} -> ${camunda8}`,
         `not-in-allowed: ${at("src/worker/ships-the-fake.ts")} -> ${engineCoreTesting}`,
         `not-in-allowed: ${at("src/panel/names-an-id.ts")} -> ${engineCore}`,
         `engine-core-only-by-its-entries: ${at("src/worker/escapes-into-the-contract.ts")} -> ${contractBuild}`,

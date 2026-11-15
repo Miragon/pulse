@@ -6,7 +6,8 @@ import {
   type InstanceSummary,
 } from "@miragon/pulse-engine-core"
 import type { MigrationTarget } from "@miragon/pulse-runtime-view/core"
-import { type Connection, LOCAL_TARGET, WriteAudit } from "@miragon/pulse-runtime-view/host-kit"
+import { type Connection, WriteAudit } from "@miragon/pulse-runtime-view/host-kit"
+import { LOCAL_TARGET } from "./local-target.js"
 import type { EffectsHost } from "../src/worker/effects-host.js"
 import { OrcaPanelEffects } from "../src/worker/orca-panel-effects.js"
 

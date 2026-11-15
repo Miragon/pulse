@@ -1,6 +1,9 @@
 import { afterAll, describe, expect, test } from "vitest"
 import { PlantedTree } from "./support/planted-tree.js"
 
+const DESCRIPTOR_IMPORT =
+  "import camunda from 'camunda-bpmn-moddle/resources/camunda.json' with { type: 'json' };\n"
+
 const PLANTED: Readonly<Record<string, string>> = {
   "src/ports/ids.ts": "export const id = 1;\n",
   "src/ports/index.ts": "export * from './ids.ts';\n",
@@ -26,6 +29,9 @@ const PLANTED: Readonly<Record<string, string>> = {
     "import { BpmnModdle } from 'bpmn-moddle';\nexport const moddle = BpmnModdle;\n",
   "src/model/reads-model-library.ts":
     "import { BpmnModdle } from 'bpmn-moddle';\nexport const moddle = BpmnModdle;\n",
+  "src/model/reads-a-descriptor.ts": `${DESCRIPTOR_IMPORT}export const vocabulary = camunda;\n`,
+  "src/host-kit/reads-a-descriptor.ts": `${DESCRIPTOR_IMPORT}export const vocabulary = camunda;\n`,
+  "test/model/support/stands-in.ts": `${DESCRIPTOR_IMPORT}export const vocabulary = camunda;\n`,
   "src/ports/speaks-the-contract.ts":
     "import type { ProcessRuntime } from '@miragon/pulse-engine-core';\nexport type Runtime = ProcessRuntime;\n",
   "src/core/speaks-the-contract.ts":
@@ -139,7 +145,7 @@ const PLANTED: Readonly<Record<string, string>> = {
     '{ "name": "radix-ui", "exports": { ".": { "types": "./index.d.ts" } } }\n',
   "../../../node_modules/radix-ui/index.d.ts": "export declare const Tabs: number;\n",
   "package.json":
-    '{ "name": "@miragon/pulse-runtime-view", "private": true, "dependencies": { "@miragon/pulse-c7-core": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-profile": "workspace:*", "@miragon/pulse-ui": "workspace:*", "bpmn-moddle": "10.3.1", "lucide-react": "1.70.0", "react": "19.3.1", "react-dom": "19.3.1" } }\n',
+    '{ "name": "@miragon/pulse-runtime-view", "private": true, "dependencies": { "@miragon/pulse-c7-core": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-profile": "workspace:*", "@miragon/pulse-ui": "workspace:*", "bpmn-moddle": "10.3.1", "lucide-react": "1.70.0", "react": "19.3.1", "react-dom": "19.3.1" }, "devDependencies": { "camunda-bpmn-moddle": "8.0.2" } }\n',
 }
 
 const tree = new PlantedTree("packages/core/runtime-view", PLANTED)
@@ -174,9 +180,16 @@ describe("the dependency rules", () => {
     const tonesSource = "packages/core/ui/src/tones/count-tone.ts"
     const tonesBuild = "packages/core/ui/dist/tones/count-tone.js"
     const adapter = "@miragon/pulse-c7-adapter"
+    const descriptor = at("node_modules/camunda-bpmn-moddle/resources/camunda.json")
     expect(tree.violations()).toEqual(
       [
         `model-libraries-stay-in-the-model-adapter: ${at("src/host-kit/reads-model-library.ts")} -> ${moddle}`,
+        `moddle-descriptors-stay-in-the-adapters: ${at("src/model/reads-a-descriptor.ts")} -> ${descriptor}`,
+        `not-in-allowed: ${at("src/model/reads-a-descriptor.ts")} -> ${descriptor}`,
+        `src-not-to-dev-dependencies: ${at("src/model/reads-a-descriptor.ts")} -> ${descriptor}`,
+        `moddle-descriptors-stay-in-the-adapters: ${at("src/host-kit/reads-a-descriptor.ts")} -> ${descriptor}`,
+        `not-in-allowed: ${at("src/host-kit/reads-a-descriptor.ts")} -> ${descriptor}`,
+        `src-not-to-dev-dependencies: ${at("src/host-kit/reads-a-descriptor.ts")} -> ${descriptor}`,
         `no-circular: ${at("src/core/cycle-a.ts")} -> ${at("src/core/cycle-b.ts")}`,
         `not-in-allowed: ${at("src/core/deep-ports.ts")} -> ${at("src/ports/ids.ts")}`,
         `not-in-allowed: ${at("src/core/uses-node.ts")} -> fs`,

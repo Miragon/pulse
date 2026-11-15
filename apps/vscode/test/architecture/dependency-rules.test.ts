@@ -5,7 +5,9 @@ const PLANTED: Readonly<Record<string, string>> = {
   "src/host/wires-the-view.ts":
     "import { PanelTitle } from '@miragon/pulse-runtime-view/host-kit';\nimport type { StateMessage } from '@miragon/pulse-runtime-view/protocol';\nimport type { WorkspaceFiles } from '@miragon/pulse-runtime-view/ports';\nexport type Message = StateMessage | WorkspaceFiles;\nexport const title = PanelTitle;\n",
   "src/host/composition-root.ts":
-    "import { C7Adapter } from '@miragon/pulse-c7-adapter';\nimport { BpmnModelSource } from '@miragon/pulse-runtime-view/model';\nexport const wired = [C7Adapter, BpmnModelSource];\n",
+    "import { C7Adapter } from '@miragon/pulse-c7-adapter';\nimport { C8Adapter } from '@miragon/pulse-c8-adapter';\nimport { BpmnModelSource } from '@miragon/pulse-runtime-view/model';\nexport const wired = [C7Adapter, C8Adapter, BpmnModelSource];\n",
+  "src/host/wires-camunda-8.ts":
+    "import { C8Adapter } from '@miragon/pulse-c8-adapter';\nexport const wired = C8Adapter;\n",
   "src/host/not-the-root.ts":
     "import { C7Adapter } from '@miragon/pulse-c7-adapter';\nexport const wired = C7Adapter;\n",
   "src/host/reads-the-model.ts":
@@ -42,7 +44,7 @@ const PLANTED: Readonly<Record<string, string>> = {
   "../../scripts/third-party-licenses.mjs":
     "import { readFileSync } from 'node:fs';\nimport * as esbuild from 'esbuild';\nimport { core } from '../packages/core/runtime-view/src/core/index.ts';\nexport const inventoryOf = [readFileSync, esbuild, core];\n",
   "package.json":
-    '{ "name": "pulse-cockpit", "private": true, "dependencies": { "@miragon/pulse-runtime-view": "workspace:*", "@miragon/pulse-c7-adapter": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-c7-core": "workspace:*" } }\n',
+    '{ "name": "pulse-cockpit", "private": true, "dependencies": { "@miragon/pulse-runtime-view": "workspace:*", "@miragon/pulse-c7-adapter": "workspace:*", "@miragon/pulse-c8-adapter": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-c7-core": "workspace:*" } }\n',
 }
 
 const tree = new PlantedTree("apps/vscode", PLANTED)
@@ -60,6 +62,7 @@ describe("the dependency rules", () => {
 
   test("fire on every planted violation and on nothing else", { timeout: 60_000 }, () => {
     const adapter = "apps/vscode/node_modules/@miragon/pulse-c7-adapter/dist/index.d.ts"
+    const camunda8 = "apps/vscode/node_modules/@miragon/pulse-c8-adapter/dist/index.d.ts"
     const model = "apps/vscode/node_modules/@miragon/pulse-runtime-view/dist/model/index.d.ts"
     const engineCoreTesting =
       "apps/vscode/node_modules/@miragon/pulse-engine-core/dist/testing/index.d.ts"
@@ -82,6 +85,7 @@ describe("the dependency rules", () => {
         "not-in-allowed: scripts/third-party-licenses.mjs -> esbuild",
         "not-to-unresolvable: scripts/third-party-licenses.mjs -> esbuild",
         `not-in-allowed: apps/vscode/src/host/not-the-root.ts -> ${adapter}`,
+        `not-in-allowed: apps/vscode/src/host/wires-camunda-8.ts -> ${camunda8}`,
         "not-in-allowed: apps/vscode/src/host/reads-model-library.ts -> bpmn-moddle",
         `not-in-allowed: apps/vscode/src/host/reads-the-model.ts -> ${model}`,
         `not-in-allowed: apps/vscode/src/host/ships-the-fake.ts -> ${engineCoreTesting}`,

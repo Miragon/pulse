@@ -1,7 +1,8 @@
 # Runtime contract
 
 - Status: accepted
-- Last reviewed: 2026-11-15 (what a Camunda 8 cluster answers, through the C8 adapter's runtime,
+- Last reviewed: 2026-11-15 (an adapter brings its BPMN dialect and the local engine's endpoint,
+  the host kit's `EngineRoot` chooses between the adapters; what a Camunda 8 cluster answers, through the C8 adapter's runtime,
   proven by the read laws on a local cluster); 2026-11-14 (on the C7 family "with incident" is an
   open incident the runtime holds now, on every history level; the read laws run on a C7 engine at
   history level AUDIT too); 2026-11-11 (a number holds a double); 2026-11-10 (the plug every dialect
@@ -84,7 +85,10 @@ for the engine overview), `instanceUrl(InstanceSummary)` and
 `definitionUrl(DefinitionRef)`. A link needs neither endpoint nor credentials, so the URL
 is not part of the connection; a target without one gets no web UI. The adapter
 knows the routes; nobody guesses the web UI from the endpoint. The composition root holds
-one adapter per engine kind of a target and is the only place that chooses between them.
+one adapter per dialect of a target, and the host kit's `EngineRoot` it builds from them is the
+only place that chooses between them. An adapter also brings its `BpmnDialect`, the vocabulary
+of its vendor's BPMN files, which the model reader of the local sources reads them in, and, for
+the C7 adapter, the endpoint of the local engine a host falls back to.
 
 ### Local sources
 

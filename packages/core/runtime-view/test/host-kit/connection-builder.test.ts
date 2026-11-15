@@ -11,7 +11,8 @@ import {
   type ConnectionSettings,
 } from "../../src/host-kit/connections/connection-builder.js"
 import type { Credentials, EngineFactories } from "../../src/host-kit/connections/connection.js"
-import { LOCAL_TARGET, type EngineTarget } from "../../src/host-kit/connections/engine-target.js"
+import type { EngineTarget } from "../../src/host-kit/connections/engine-target.js"
+import { LOCAL_TARGET } from "./support/local-target.js"
 import { TargetPolicy } from "../../src/host-kit/connections/target-policy.js"
 import { WriteAudit } from "../../src/host-kit/connections/write-audit.js"
 

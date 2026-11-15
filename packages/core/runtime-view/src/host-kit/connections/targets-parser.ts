@@ -1,5 +1,6 @@
 import {
   authTypeOf,
+  type Dialect,
   describeProblem,
   dialectOf,
   parseProfileFile,
@@ -11,7 +12,7 @@ import {
   type Surface,
 } from "@miragon/pulse-profile"
 import { EditorAuth } from "./editor-auth.js"
-import type { EngineKind, EngineTarget } from "./engine-target.js"
+import type { EngineTarget } from "./engine-target.js"
 import { ProfileSource } from "./profile-source.js"
 import { TargetsProblem } from "./targets-problem.js"
 
@@ -21,7 +22,7 @@ export interface ParsedTargets {
   readonly problems: readonly TargetsProblem[]
 }
 
-const DIALECTS: readonly EngineKind[] = ["c7"]
+const DIALECTS: readonly Dialect[] = ["c7"]
 
 const SURFACE: Surface = {
   dialects: DIALECTS,
@@ -87,7 +88,7 @@ export class TargetsParser {
     }
   }
 
-  private engineOf(profile: Profile): EngineKind | undefined {
+  private engineOf(profile: Profile): Dialect | undefined {
     return DIALECTS.find((dialect) => dialect === dialectOf(profile))
   }
 

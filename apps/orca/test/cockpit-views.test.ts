@@ -4,9 +4,9 @@ import { DiagramCache, EngineLane } from "@miragon/pulse-runtime-view/core"
 import {
   ConnectionBuilder,
   type EngineTarget,
-  LOCAL_TARGET,
   WriteAudit,
 } from "@miragon/pulse-runtime-view/host-kit"
+import { LOCAL_TARGET } from "./local-target.js"
 import { CompositionRoot } from "../src/worker/composition-root.js"
 import { OrcaSettings } from "../src/worker/orca-settings.js"
 import { ConnectionLive } from "./connection-live.js"
@@ -20,7 +20,7 @@ afterEach(() => {
 
 function cliOf(target: EngineTarget) {
   return new ConnectionBuilder(
-    CompositionRoot.create(),
+    CompositionRoot.create().engines,
     new WriteAudit({ info: () => undefined }),
     OrcaSettings.WRITES_WORDING,
   ).build(target, { kind: "none" }, "local", {

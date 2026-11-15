@@ -119,9 +119,10 @@ flowchart LR
   (`packages/connectors/engine/engine-core/src/model`). The runtime view
   (`packages/core/runtime-view`) imports them directly; its `src/ports` holds `EngineAdapter` and
   the local ports. No engine word appears in them.
-- **Adapters:** a class per role (`C7ProcessRuntime implements ProcessRuntime`, …). The
-  composition root picks the adapter by the target's `engine` and is the only place that
-  does.
+- **Adapters:** a class per role (`C7ProcessRuntime implements ProcessRuntime`, …), and each
+  brings the BPMN vocabulary of its vendor (`BpmnDialect`) for the local model reader. The host
+  kit's `EngineRoot`, which each composition root builds over one adapter per dialect, picks the
+  adapter by the target's `engine` and is the only place that does.
 - **Core:** panel sessions and view builders work on read models only; the webview
   renders the view models the core sends.
 
@@ -134,6 +135,7 @@ flowchart TB
   extension --> ports[ports]
   extension -- bundled --> engineCore["@miragon/pulse-engine-core"]
   extension -- composition root only --> adapterC7[c7-adapter]
+  extension -- composition root only --> adapterC8[c8-adapter]
   hostKit -- connections only, bundled --> profile["@miragon/pulse-profile"]
   hostKit --> core
   ports --> engineCore
@@ -143,6 +145,8 @@ flowchart TB
   adapterC7 --> ports
   adapterC7 --> engineCore
   adapterC7 -- bundled --> c7Core["@miragon/pulse-c7-core"]
+  adapterC8 --> ports
+  adapterC8 --> engineCore
   core -- bundled --> tones["@miragon/pulse-ui/tones"]
   webview -- bundled --> tones
   core -- bundled --> format["@miragon/pulse-ui/format"]
@@ -151,15 +155,15 @@ flowchart TB
 ```
 
 Every import edge not drawn fails the closed world of its package (dependency-cruiser:
-`pnpm lint:architecture:vscode`, `:runtime-view`, `:c7-adapter`). The layers live in the
-runtime view (`packages/core/runtime-view`) and the C7 adapter
-(`packages/connectors/c7/c7-adapter`), which Pulse for Orca hosts too, and esbuild
-bundles each workspace package that reaches the extension. engine-core, the core of the engine
-family, holds the contract every engine dialect implements, the language they answer in, and is
-the runtime view's one contract: its ports, core, model reader and host kit, the adapter and the
-host import its main entry (its kit and fake only in tests and the dev hosts). c7-core is the core
-of the Camunda 7 REST dialect family c7, the workflow domain the CLI and the MCP server run too:
-only the C7 adapter imports it. `@miragon/pulse-profile` is Pulse's profile format, which the CLI
+`pnpm lint:architecture:vscode`, `:runtime-view`, `:c7-adapter`, `:c8-adapter`). The layers live
+in the runtime view (`packages/core/runtime-view`) and the adapters
+(`packages/connectors/c7/c7-adapter`, `packages/connectors/c8/c8-adapter`), which Pulse for Orca
+hosts too, and esbuild bundles each workspace package that reaches the extension. engine-core, the
+core of the engine family, holds the contract every engine dialect implements, the language they
+answer in, and is the runtime view's one contract: its ports, core, model reader and host kit, the
+adapters and the host import its main entry (its kit and fake only in tests and the dev hosts).
+c7-core is the core of the Camunda 7 REST dialect family c7, the workflow domain the CLI and the
+MCP server run too: only the C7 adapter imports it. `@miragon/pulse-profile` is Pulse's profile format, which the CLI
 reads its files with too: only the host kit's connections import it, through its main entry, to
 read `.pulse.json`. `@miragon/pulse-ui/tones` and `@miragon/pulse-ui/format` are
 Pulse's UI foundation without React: the tone vocabulary and the one tone per situation, and the
@@ -196,12 +200,12 @@ flowchart LR
   rest -- HTTP /engine-rest --> family
 ```
 
-| Question                             | Answer                                                                                                                                      |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Does the C7 adapter cover all three? | Yes: all 48 read laws and 15 command laws pass on Operaton 2.1.5 and CIB seven 2.2.0; Camunda 7.24.0 passed until its image left Docker Hub |
-| Do we need an adapter per fork?      | No, only per API family                                                                                                                     |
-| What does a new dialect family need? | A package `packages/connectors/<family>/<family>-adapter` with an `EngineAdapter`, its conformance test, one entry in each composition root |
-| Where does Camunda 8 stand?          | Not included. The spike built a C8 adapter on REST v2 against an API mock, then removed it to keep the prototype small                      |
+| Question                             | Answer                                                                                                                                                            |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Does the C7 adapter cover all three? | Yes: all 48 read laws and 15 command laws pass on Operaton 2.1.5 and CIB seven 2.2.0; Camunda 7.24.0 passed until its image left Docker Hub                       |
+| Do we need an adapter per fork?      | No, only per API family                                                                                                                                           |
+| What does a new dialect family need? | A package `packages/connectors/<family>/<family>-adapter` with an `EngineAdapter` and its `BpmnDialect`, its conformance test, one entry in each composition root |
+| Where does Camunda 8 stand?          | Not included. The spike built a C8 adapter on REST v2 against an API mock, then removed it to keep the prototype small                                            |
 
 ## 5. Reading an instance
 

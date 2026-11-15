@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest"
 import { EngineBadges } from "../../src/host-kit/connections/engine-badges.js"
-import { LOCAL_TARGET, type EngineTarget } from "../../src/host-kit/connections/engine-target.js"
+import type { EngineTarget } from "../../src/host-kit/connections/engine-target.js"
+import { LOCAL_TARGET } from "./support/local-target.js"
 import { EnvironmentClassifier } from "../../src/host-kit/connections/environment-classifier.js"
 import { TargetPolicy } from "../../src/host-kit/connections/target-policy.js"
 import { TargetsParser } from "../../src/host-kit/connections/targets-parser.js"

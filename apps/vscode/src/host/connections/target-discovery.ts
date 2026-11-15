@@ -1,8 +1,8 @@
 import * as vscode from "vscode"
 import {
   type DiscoveredTargets,
+  type EngineTarget,
   type FileVerdict,
-  LOCAL_TARGET,
   TargetMerge,
   type UserConfigLocation,
   UserConfigRead,
@@ -16,9 +16,13 @@ const MISSING = "FileNotFound"
 type Failure = Exclude<UserConfigVerdict["kind"], "read">
 
 export class TargetDiscovery {
-  private static readonly MERGE = new TargetMerge(LOCAL_TARGET)
+  private readonly merge: TargetMerge
 
-  static async discover(
+  constructor(local: EngineTarget) {
+    this.merge = new TargetMerge(local)
+  }
+
+  async discover(
     location: UserConfigLocation = UserConfigFile.location(),
   ): Promise<DiscoveredTargets> {
     const found = await vscode.workspace.findFiles(TargetsFile.GLOB, "**/node_modules/**")
@@ -31,10 +35,7 @@ export class TargetDiscovery {
       kind: "former-name",
       path: file.fsPath,
     }))
-    return TargetDiscovery.MERGE.merge(
-      [...current, ...former],
-      await TargetDiscovery.userConfig(location),
-    )
+    return this.merge.merge([...current, ...former], await TargetDiscovery.userConfig(location))
   }
 
   private static userConfig(location: UserConfigLocation): Promise<UserConfigRead> {

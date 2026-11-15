@@ -30,7 +30,8 @@
     "@miragon/pulse-c7-core": "workspace:*",
     "@miragon/pulse-engine-core": "workspace:*",
     "@miragon/pulse-http": "workspace:*",
-    "@miragon/pulse-runtime-view": "workspace:*"
+    "@miragon/pulse-runtime-view": "workspace:*",
+    "camunda-bpmn-moddle": "8.0.2"
   },
   "devDependencies": {
     "@types/node": "22.20.5",

@@ -2,12 +2,12 @@ import { VSCODE_WRITES_WORDING } from "../../src/host/connections/writes-wording
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 import {
-  LOCAL_TARGET,
   TargetMerge,
   TargetsProblem,
   UserConfigLocation,
   WritePolicy,
 } from "@miragon/pulse-runtime-view/host-kit"
+import { LOCAL_TARGET } from "./support/local-target.js"
 import { TargetDiscovery } from "../../src/host/connections/target-discovery.js"
 import { TargetsFile } from "../../src/host/connections/targets-file.js"
 import { UserConfigFile } from "../../src/host/connections/user-config-file.js"
@@ -47,6 +47,7 @@ vi.mock("vscode", () => ({
 const OWN = "/home/dev/.config/pulse-cli/config.json"
 const NAMED = "/ci/pulse.json"
 const USER = new UserConfigLocation({}, "/home/dev", "linux")
+const DISCOVERY = new TargetDiscovery(LOCAL_TARGET)
 const CURRENT_A = join("/work/a", TargetsFile.NAME)
 const CURRENT_B = join("/work/b", TargetsFile.NAME)
 const FORMER_B = join("/work/b", ".pulse-cli.json")
@@ -63,7 +64,7 @@ function profiles(entries: Record<string, unknown>): string {
 }
 
 async function discovered(location: UserConfigLocation = USER) {
-  const { targets, problems } = await TargetDiscovery.discover(location)
+  const { targets, problems } = await DISCOVERY.discover(location)
   return {
     targets: targets.map((target) => [target.name, target.endpoint, target.source.kind]),
     problems: problems.map((problem) => [problem.label(), problem.severity]),
@@ -98,7 +99,7 @@ describe("the project files Pulse reads", () => {
       profiles({ shared: "http://b:8080/engine-rest", b: "http://b:8080/engine-rest" }),
     )
 
-    const { targets, problems } = await TargetDiscovery.discover(USER)
+    const { targets, problems } = await DISCOVERY.discover(USER)
 
     expect(targets.map((target) => [target.name, target.endpoint])).toEqual([
       ["shared", "http://a:8080/engine-rest"],
@@ -110,7 +111,7 @@ describe("the project files Pulse reads", () => {
   test("show a folder with the file under its former name only as a problem, never its engines nor the local default", async () => {
     fake.files.set(FORMER_B, profiles({ old: "http://old:8080/engine-rest" }))
 
-    const { targets, problems } = await TargetDiscovery.discover(USER)
+    const { targets, problems } = await DISCOVERY.discover(USER)
 
     expect(targets).toEqual([])
     expect(problems).toEqual([new TargetsProblem(FORMER_B, TargetsFile.RENAME)])
@@ -124,7 +125,7 @@ describe("the project files Pulse reads", () => {
     fake.files.set(CURRENT_A, profiles({ a: "http://a:8080/engine-rest" }))
     fake.files.set(join("/work/a", ".pulse-cli.json"), "not JSON")
 
-    const { targets, problems } = await TargetDiscovery.discover(USER)
+    const { targets, problems } = await DISCOVERY.discover(USER)
 
     expect(targets.map((target) => target.name)).toEqual(["a"])
     expect(problems).toEqual([])
@@ -134,7 +135,7 @@ describe("the project files Pulse reads", () => {
     fake.files.set(CURRENT_A, profiles({ a: "http://a:8080/engine-rest" }))
     fake.files.set(FORMER_B, profiles({ old: "http://old:8080/engine-rest" }))
 
-    const { targets, problems } = await TargetDiscovery.discover(USER)
+    const { targets, problems } = await DISCOVERY.discover(USER)
 
     expect(targets.map((target) => target.name)).toEqual(["a"])
     expect(problems).toEqual([new TargetsProblem(FORMER_B, TargetsFile.RENAME)])
@@ -144,7 +145,7 @@ describe("the project files Pulse reads", () => {
     fake.files.set(CURRENT_A, profiles({ a: "http://a:8080/engine-rest" }))
     fake.unreadable.add(CURRENT_A)
 
-    const { targets, problems } = await TargetDiscovery.discover(USER)
+    const { targets, problems } = await DISCOVERY.discover(USER)
 
     expect(targets).toEqual([])
     expect(problems.map((problem) => problem.label())).toEqual([
@@ -157,7 +158,7 @@ describe("the project files Pulse reads", () => {
     fake.files.set(CURRENT_B, profiles({ b: "http://b:8080/engine-rest" }))
     fake.unreadable.add(CURRENT_A)
 
-    const { targets, problems } = await TargetDiscovery.discover(USER)
+    const { targets, problems } = await DISCOVERY.discover(USER)
 
     expect(targets.map((target) => target.name)).toEqual(["b"])
     expect(problems).toEqual([new TargetsProblem(CURRENT_A, TargetMerge.UNREADABLE)])
@@ -168,7 +169,7 @@ describe("the project files Pulse reads", () => {
     fake.files.set(CURRENT_A, profiles({ a: "http://a:8080/engine-rest" }))
     fake.unreadable.add(CURRENT_A)
 
-    const { targets, problems } = await TargetDiscovery.discover(USER)
+    const { targets, problems } = await DISCOVERY.discover(USER)
 
     expect(targets).toEqual([])
     expect(problems).toEqual([
@@ -178,7 +179,7 @@ describe("the project files Pulse reads", () => {
   })
 
   test("falls back to the local engine without any project file", async () => {
-    expect(await TargetDiscovery.discover(USER)).toEqual({ targets: [LOCAL_TARGET], problems: [] })
+    expect(await DISCOVERY.discover(USER)).toEqual({ targets: [LOCAL_TARGET], problems: [] })
   })
 
   test("names the file a read-only profile comes from", () => {
@@ -201,7 +202,7 @@ describe("the CLI's user config", () => {
   test("lists its profiles without any project file", async () => {
     fake.files.set(OWN, profiles({ saas: "https://saas.example.com/engine-rest" }))
 
-    const { targets } = await TargetDiscovery.discover(USER)
+    const { targets } = await DISCOVERY.discover(USER)
 
     expect(targets).toEqual([
       {
@@ -245,7 +246,7 @@ describe("the CLI's user config", () => {
       }),
     )
 
-    const { targets } = await TargetDiscovery.discover(USER)
+    const { targets } = await DISCOVERY.discover(USER)
 
     expect(targets[0]?.auth).toEqual({ kind: "basic" })
     expect(JSON.stringify(targets)).not.toContain("S3cret")
@@ -294,9 +295,9 @@ describe("the CLI's user config", () => {
     const named = "C:\\ci\\pulse.json"
     const windows = new UserConfigLocation({ PULSE_CLI_CONFIG: named }, "C:\\Users\\dev", "win32")
 
-    const missing = await TargetDiscovery.discover(windows)
+    const missing = await DISCOVERY.discover(windows)
     fake.files.set("c:\\ci\\pulse.json", profiles({ ci: "http://ci:8080/engine-rest" }))
-    const { targets } = await TargetDiscovery.discover(windows)
+    const { targets } = await DISCOVERY.discover(windows)
 
     expect(missing.problems.map((problem) => problem.path)).toEqual([named])
     expect(targets.map((target) => target.source)).toEqual([{ kind: "user-config", path: named }])

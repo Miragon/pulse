@@ -1,5 +1,6 @@
 import { describe, expect, test, vi } from "vitest"
-import { LOCAL_TARGET, type EngineTarget } from "../../src/host-kit/connections/engine-target.js"
+import type { EngineTarget } from "../../src/host-kit/connections/engine-target.js"
+import { LOCAL_TARGET } from "./support/local-target.js"
 import type { FileVerdict, UserConfigVerdict } from "../../src/host-kit/connections/file-verdict.js"
 import { ProjectFile } from "../../src/host-kit/connections/project-file.js"
 import { TargetMerge } from "../../src/host-kit/connections/target-merge.js"

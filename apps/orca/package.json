@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@miragon/pulse-c7-adapter": "workspace:*",
+    "@miragon/pulse-c8-adapter": "workspace:*",
     "@miragon/pulse-engine-core": "workspace:*",
     "@miragon/pulse-runtime-view": "workspace:*"
   },

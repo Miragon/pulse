@@ -1,4 +1,5 @@
-import { type Connection, LOCAL_TARGET } from "@miragon/pulse-runtime-view/host-kit"
+import type { Connection } from "@miragon/pulse-runtime-view/host-kit"
+import { LOCAL_TARGET } from "./support/local-target.js"
 import { beforeEach, describe, expect, test, vi } from "vitest"
 import { ConnectionEditor } from "../../src/host/commands/connection-editor.js"
 import type { OpenTargetsFileCommand } from "../../src/host/commands/open-targets-file-command.js"

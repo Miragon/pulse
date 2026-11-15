@@ -1,7 +1,7 @@
 # Architecture
 
 - Status: accepted
-- Last reviewed: 2026-11-15 (the C8 adapter's architecture test fails while it has no engine test, as the C7 adapter's does; Pulse for Orca reads the CLI's user config too: a host hands `TargetMerge` the read of the host kit's `UserConfigRead.of`, which reads no relative path; Orca watches the file's folder, or the folder above while it is missing, and opens the file only where a workspace holds it); 2026-11-14 (Pulse for VS Code reads the CLI's user config: `UserConfigLocation`, `ProfileSource` and the user config's rules of `TargetMerge` in the host kit; `TargetMerge` of the host kit decides the engines of both hosts from their files, and Pulse for VS Code shows a project file it can't read as one problem with no local default engine, as Pulse for Orca did; the switch of D9 landed: the webview's rendering libraries are `react`, `react-dom` and `lucide-react`); 2026-11-12 (later that day, D9 in [ui-foundation.md](ui-foundation.md): the webview moves from Preact to React on pulse-ui in one switch, no `preact/compat`, its closed world changes with that switch; earlier: the webview may import shared building blocks of pulse-ui's React kit and stylesheet by the package's root and `@miragon/pulse-ui/theme.css`, the ports, core, model reader and host kit stay framework-free, owner decision in [ui-foundation.md](ui-foundation.md); a refused target's read-only note is its refusal; the adapter gives the command of Pulse's CLI that triggers an event through the port `EngineCli`, on the engine its `CliTarget` names: the profile of a target's project file with the target's URL, or the default engine's URL); 2026-11-10 (the C7 adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the layers live in the runtime view and the engine adapter, which Pulse for Orca hosts too, the runtime view's contract is `@miragon/pulse-engine-core` and its own ports moved to `ports`; before that, the host kit's connections read the project file with `@miragon/pulse-profile`, the engine contract left the app for `@miragon/pulse-engine-core`, the engine family's neutral core, and 2026-11-08 Pulse's UI foundation in core and webview)
+- Last reviewed: 2026-11-15 (the adapters bring their BPMN dialect, `BpmnDialect` of the ports, and the model reader names no vendor; one body serves both composition roots, the host kit's `EngineRoot` over a record of one adapter per dialect, which wires the C8 adapter too and names the dialect of the local engine, #567 by Thomas Heinrichs; the C8 adapter's architecture test fails while it has no engine test, as the C7 adapter's does; Pulse for Orca reads the CLI's user config too: a host hands `TargetMerge` the read of the host kit's `UserConfigRead.of`, which reads no relative path; Orca watches the file's folder, or the folder above while it is missing, and opens the file only where a workspace holds it); 2026-11-14 (Pulse for VS Code reads the CLI's user config: `UserConfigLocation`, `ProfileSource` and the user config's rules of `TargetMerge` in the host kit; `TargetMerge` of the host kit decides the engines of both hosts from their files, and Pulse for VS Code shows a project file it can't read as one problem with no local default engine, as Pulse for Orca did; the switch of D9 landed: the webview's rendering libraries are `react`, `react-dom` and `lucide-react`); 2026-11-12 (later that day, D9 in [ui-foundation.md](ui-foundation.md): the webview moves from Preact to React on pulse-ui in one switch, no `preact/compat`, its closed world changes with that switch; earlier: the webview may import shared building blocks of pulse-ui's React kit and stylesheet by the package's root and `@miragon/pulse-ui/theme.css`, the ports, core, model reader and host kit stay framework-free, owner decision in [ui-foundation.md](ui-foundation.md); a refused target's read-only note is its refusal; the adapter gives the command of Pulse's CLI that triggers an event through the port `EngineCli`, on the engine its `CliTarget` names: the profile of a target's project file with the target's URL, or the default engine's URL); 2026-11-10 (the C7 adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the layers live in the runtime view and the engine adapter, which Pulse for Orca hosts too, the runtime view's contract is `@miragon/pulse-engine-core` and its own ports moved to `ports`; before that, the host kit's connections read the project file with `@miragon/pulse-profile`, the engine contract left the app for `@miragon/pulse-engine-core`, the engine family's neutral core, and 2026-11-08 Pulse's UI foundation in core and webview)
 
 ## Context
 
@@ -28,9 +28,9 @@ extension its host as CommonJS for Node 22 and the webview as an IIFE.
 | `ports`      | The ports only the editor hosts need, in `packages/core/runtime-view/src/ports`: `EngineAdapter` with the connection, the credentials, `EngineWebUi` and `EngineCli`, the local `ModelSource` and `CodeLocator` ports with the `WorkspaceFiles` seam and their read models. The engine contract they plug into is `@miragon/pulse-engine-core` (`packages/connectors/engine/engine-core`: the `ProcessRuntime` and `ProcessCommands` ports, read models and `RuntimeError`; its `./testing` the kit and an in-memory `FakeEngine`) | none (no DOM, no Node)                |
 | `core`       | Engine-neutral logic: use cases turn read models into view models, panel sessions handle webview intents; `packages/core/runtime-view/src/core/protocol` holds the JSON-only messages and view models                                                                                                                                                                                                                                                                                                                              | none                                  |
 | `webview`    | React UI on pulse-ui (D9 in [ui-foundation.md](ui-foundation.md)) and bpmn-js diagram. Renders protocol view models, sends intents                                                                                                                                                                                                                                                                                                                                                                                                 | browser                               |
-| `c7-adapter` | `EngineAdapter`, `ProcessRuntime`, `ProcessCommands`, the Cockpit web UI and the CLI command for the Camunda 7 family ([c7-adapter.md](c7-adapter.md)); `packages/connectors/c7/c7-adapter/src/engine-rest` reads and writes the engine's REST API                                                                                                                                                                                                                                                                                 | Node                                  |
-| `c8-adapter` | `EngineAdapter` and `ProcessRuntime` for Camunda 8, read-only, and the Operate web UI ([c8-adapter.md](c8-adapter.md)): its wire on the transport with client credentials, the REST client of the Orchestration Cluster REST API with checked views, the readers, the words of its failures; no composition root wires it in this step                                                                                                                                                                                             | Node                                  |
-| `model`      | `ModelSource` and `CodeLocator` for the local workspace: reads `.bpmn` files with bpmn-moddle and its vendor descriptors, finds the implementing code ([local-sources.md](local-sources.md)); the only layer with those libraries                                                                                                                                                                                                                                                                                                  | none (files through `WorkspaceFiles`) |
+| `c7-adapter` | `EngineAdapter`, `ProcessRuntime`, `ProcessCommands`, the Cockpit web UI, the CLI command and the BPMN dialect for the Camunda 7 family ([c7-adapter.md](c7-adapter.md)); `packages/connectors/c7/c7-adapter/src/engine-rest` reads and writes the engine's REST API                                                                                                                                                                                                                                                               | Node                                  |
+| `c8-adapter` | `EngineAdapter` and `ProcessRuntime` for Camunda 8, read-only, and the Operate web UI ([c8-adapter.md](c8-adapter.md)): its wire on the transport with client credentials, the REST client of the Orchestration Cluster REST API with checked views, the readers, the words of its failures, its BPMN dialect; both composition roots wire it, and the project file's parser serves only the c7 dialect, so no target reaches it                                                                                                   | Node                                  |
+| `model`      | `ModelSource` and `CodeLocator` for the local workspace: reads `.bpmn` files with bpmn-moddle in the vocabulary of the adapters' BPMN dialects, finds the implementing code ([local-sources.md](local-sources.md)); the only layer with bpmn-moddle                                                                                                                                                                                                                                                                                | none (files through `WorkspaceFiles`) |
 | `host-kit`   | The engine-neutral host rules both hosts share: targets from `.pulse.json` and the CLI's user config, the write and live policies, the write audit, logins, panel titles                                                                                                                                                                                                                                                                                                                                                           | Node                                  |
 | `host`       | VS Code host: composition root, connections, tree, panels, commands, status bar                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Node + `vscode`                       |
 
@@ -52,6 +52,7 @@ flowchart TB
   extension --> ports
   extension --> engineCore["@miragon/pulse-engine-core"]
   extension -- composition root only --> adapterC7[c7-adapter]
+  extension -- composition root only --> adapterC8[c8-adapter]
   extension -- composition root only --> modelAdapter[model-adapter]
   ports --> engineCore
   modelAdapter --> ports
@@ -67,6 +68,9 @@ flowchart TB
   adapterC7 --> engineCore
   adapterC7 --> c7core["@miragon/pulse-c7-core"]
   adapterC7 --> http["@miragon/pulse-http"]
+  adapterC8 --> ports
+  adapterC8 --> engineCore
+  adapterC8 --> http
   http -. "fetch" .-> rest[[engine REST API]]
 ```
 
@@ -81,9 +85,14 @@ webview     → protocol (type-only), @miragon/pulse-ui/tones,
               @miragon/pulse-ui (the React kit) and @miragon/pulse-ui/theme.css
               (no ./testing, globals.css or fonts.css, no other subpath)
 adapter     → @miragon/pulse-engine-core, @miragon/pulse-c7-core (main entries only), ports,
-              @miragon/pulse-http (main entry only, from src/engine-rest/http)
+              @miragon/pulse-http (main entry only, from src/engine-rest/http),
+              camunda-bpmn-moddle's descriptor (only from src/c7-bpmn-dialect.ts)
+c8-adapter  → @miragon/pulse-engine-core (main entry only), ports,
+              @miragon/pulse-http (main entry and ./oauth, from src/wire),
+              zeebe-bpmn-moddle's descriptor (only from src/c8-bpmn-dialect.ts)
 model       → ports (entry only), @miragon/pulse-engine-core (main entry only),
-              bpmn-moddle, camunda-bpmn-moddle, zeebe-bpmn-moddle (nothing else may import these)
+              bpmn-moddle (nothing else may import it; a vendor's descriptor comes from
+              the adapter's BPMN dialect)
 host-kit    → core, protocol, ports, @miragon/pulse-engine-core (main entry only), Node built-ins
               @miragon/pulse-profile (main entry only, from host-kit/connections/)
 host        → core, protocol, ports, host-kit, @miragon/pulse-engine-core (main entry only),
@@ -195,26 +204,35 @@ so code that uses `document` in the core or `process` in the webview does not co
 
 ### Composition root
 
-`apps/vscode/src/host/composition-root.ts` is the only place that knows engines. Its
-class `CompositionRoot` holds one `EngineAdapter` per engine kind (`c7` → `C7Adapter`
-in a `Record<EngineKind, EngineAdapter>`, so a new kind does not compile without its
-adapter) and implements `EngineFactories`: for a configured target it
-returns the `ProcessRuntime` and, where the adapter has them, the `ProcessCommands`,
-the `EngineWebUi` (for a target with a `cockpitUrl`) and the `EngineCli` (for the `CliTarget` the
-connection builder names: the target's profile with its endpoint when it comes from a file,
-the endpoint of the default engine) of the adapter for `target.engine`. A target the target policy
+`apps/vscode/src/host/composition-root.ts` and `apps/orca/src/worker/composition-root.ts` are the
+only places that know engines, and each holds two things: the record of one `EngineAdapter` per
+dialect (`c7` → `C7Adapter`, `c8` → `C8Adapter`) and the model reader. The record is a
+`Record<Dialect, EngineAdapter>` over the dialects of `@miragon/pulse-profile`, so a new dialect
+does not compile without its adapter, and the root names the dialect of the local engine
+(`local: "c7"`), whose adapter alone brings a local endpoint (`localEndpoint`, required by type
+for the named one). Both hand it to the host kit's `EngineRoot`
+(`packages/core/runtime-view/src/host-kit/connections/engine-root.ts`, `EngineRoot.of`), the one
+body both hosts share, which implements `EngineFactories`: for a configured target it returns the
+`ProcessRuntime` and, where the adapter has them, the `ProcessCommands`, the `EngineWebUi` (for a
+target with a `cockpitUrl`) and the `EngineCli` (for the `CliTarget` the connection builder names:
+the target's profile with its endpoint when it comes from a file, the endpoint of the default
+engine) of the adapter for `target.engine`, the target's dialect. A target the target policy
 refuses (OAuth2, credentials saved for another endpoint, basic credentials over plain HTTP) gets a
-`FailingRuntime` with the refusal text and no commands; the connection builder keeps
-the commands only when the write policy allows them, and where it allows them for a refused
-target, its read-only note is that refusal, which names the way out ([writes.md](writes.md)). The
-static `CompositionRoot.create` builds the adapters; nothing else constructs one.
+`FailingRuntime` with the refusal text and no commands; the connection builder keeps the commands
+only when the write policy allows them, and where it allows them for a refused target, its
+read-only note is that refusal, which names the way out ([writes.md](writes.md)). `EngineRoot`
+also gives the local target `TargetMerge` falls back to (`localTarget()`) and the BPMN dialects of
+the adapters, which the composition root hands the model reader (`localSources(files)`). The
+static `CompositionRoot.create` builds the adapters once per process; nothing else constructs one.
+The project file's parser (`TargetsParser`) serves the c7 dialect only, so no target reaches the
+C8 adapter through it.
 
 The rest of the extension is VS Code wiring. `activate` in `extension.ts` hands the
 `ExtensionContext` to `PulseExtension`, which builds the connection registry, the
 trees, the status bar, the panel manager and the commands (each a class implementing
 `Command`, registered by `CommandRegistrar`) and puts them into the context's
-subscriptions. No DI container, no plugin registry: adding an engine means one adapter
-folder and one entry in the composition root's adapter map.
+subscriptions. No DI container, no plugin registry: adding a dialect means one adapter
+package, with its BPMN dialect, and one entry in each composition root's record.
 
 ### Host ⇄ webview protocol
 

@@ -4,7 +4,9 @@ import {
   type ProcessCommands,
   type ProcessRuntime,
 } from "@miragon/pulse-engine-core"
+import { EngineRoot } from "@miragon/pulse-runtime-view/host-kit"
 import type {
+  BpmnDialect,
   CliTarget,
   EngineAdapter,
   EngineCli,
@@ -21,6 +23,15 @@ export class FakeAdapter implements EngineAdapter {
   readonly unauthorized = new Set<string>()
   readonly cliTargets: CliTarget[] = []
   readonly cliOfIt: EngineCli = { triggerCommand: () => undefined }
+  readonly localEndpoint = "http://localhost:8080/engine-rest"
+  readonly bpmn: BpmnDialect = {
+    descriptor: { prefix: "fake", uri: "http://fake.invalid/bpmn" },
+    fallback: true,
+    implementations: [],
+    mappings: [],
+    errorDefinitions: [],
+    workerMarkers: [],
+  }
 
   runtime(connection: EngineConnection): ProcessRuntime {
     this.connections.push(connection)
@@ -52,6 +63,6 @@ export class FakeAdapter implements EngineAdapter {
   }
 
   root(): CompositionRoot {
-    return new CompositionRoot({ c7: this })
+    return new CompositionRoot(EngineRoot.of({ c7: this, c8: this }, { local: "c7" }))
   }
 }

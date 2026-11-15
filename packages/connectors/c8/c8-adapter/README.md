@@ -11,15 +11,17 @@ transport.
 Its one export is `C8Adapter`, the plug of the runtime view's ports: `runtime(connection)` gives a
 `C8ProcessRuntime`, which answers the engine contract read-only (no writes, no migration planning,
 ordering and date conditions refused, counts that may be a lower bound), `webUi(url)` the links
-into Operate, and `commands` and `cli` nothing. It holds the wire (`src/wire`: `CamundaWire` over
-`@miragon/pulse-http`, 60 s and 64 MiB on a read-only connection, none, Basic or a bearer token
-from `clientCredentialsTokens` of `@miragon/pulse-http/oauth`, one token source per cluster and
-client kept by `ClientCredentialsSources`), the REST client with its checked views (`src/rest`),
-the wording of failures (`src/errors`), the readers and the version floor (`src/reading`) and the
-mappings onto the read models of engine-core (`src/mapping`). `CamundaClients` builds a client per
-connection over the adapter's one set of token sources, so a composition root builds the adapter
-once per process. Thomas Heinrichs built the adapter in #543; this package re-lands it on the
-shared transport.
+into Operate, `bpmn` the vocabulary of Camunda 8's BPMN files (`C8BpmnDialect`, over
+`zeebe-bpmn-moddle`) for the runtime view's model reader, and `commands` and `cli` nothing. It
+holds the wire (`src/wire`: `CamundaWire` over `@miragon/pulse-http`, 60 s and 64 MiB on a
+read-only connection, none, Basic or a bearer token from `clientCredentialsTokens` of
+`@miragon/pulse-http/oauth`, one token source per cluster and client kept by
+`ClientCredentialsSources`), the REST client with its checked views (`src/rest`), the wording of
+failures (`src/errors`), the readers and the version floor (`src/reading`) and the mappings onto
+the read models of engine-core (`src/mapping`). `CamundaClients` builds a client per connection
+over the adapter's one set of token sources, so a composition root builds the adapter once per
+process. Thomas Heinrichs built the adapter in #543; this package re-lands it on the shared
+transport.
 
 The conformance kit of the contract (`@miragon/pulse-engine-core/testing`) proves it on a local
 Camunda 8 cluster in Testcontainers (`test/c8-conformance.engine.test.ts`, `test:engines`): the

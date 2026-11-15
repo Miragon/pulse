@@ -29,7 +29,9 @@ const WEBVIEW_LIBRARIES =
   "(^|/)node_modules/(react|react-dom|lucide-react|bpmn-js|diagram-js|@miragon/modeler-shell|@fontsource-variable/[^/]+)/"
 const MODEL_ADAPTER = `${PACKAGE}src/model/`
 const MODEL_LIBRARIES =
-  "(^|/)node_modules/(bpmn-moddle|camunda-bpmn-moddle|zeebe-bpmn-moddle|@miragon/bpmn-modeler[^/]*)/|^(bpmn-moddle|camunda-bpmn-moddle|zeebe-bpmn-moddle|@miragon/bpmn-modeler[^/]*)(/|$)"
+  "(^|/)node_modules/(bpmn-moddle|@miragon/bpmn-modeler[^/]*)/|^(bpmn-moddle|@miragon/bpmn-modeler[^/]*)(/|$)"
+const MODDLE_DESCRIPTORS = "(^|/)node_modules/[^/]+-bpmn-moddle/|^[^/]+-bpmn-moddle(/|$)"
+const MODEL_TESTS = `${PACKAGE}test/model/`
 
 module.exports = {
   allowedSeverity: "error",
@@ -56,7 +58,8 @@ module.exports = {
       to: { path: PORTS_ENTRY },
     },
     {
-      comment: "The model adapter depends on the ports and reads models with the moddle libraries.",
+      comment:
+        "The model adapter depends on the ports and reads models with bpmn-moddle, in the vocabulary of the BPMN dialects the adapters hand it (BpmnDialect).",
       from: { path: `${PACKAGE}src/model/` },
       to: { path: [PORTS_ENTRY, MODEL_LIBRARIES] },
     },
@@ -112,7 +115,7 @@ module.exports = {
       name: "not-in-allowed",
       severity: "error",
       comment:
-        "No entry of `allowed` in packages/core/runtime-view/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md). A layer uses its own modules and another layer only through its index.ts: the ports, the core, the model adapter and the host kit speak the main entry of @miragon/pulse-engine-core, the engine family's neutral core (never ./testing), the core and the model adapter reach the ports, the model adapter also the moddle libraries, core and webview @miragon/pulse-ui/tones and their label helpers (core/views/labels.ts, webview/format/) @miragon/pulse-ui/format, the webview protocol types, its rendering libraries and, for shared building blocks, @miragon/pulse-ui's root and @miragon/pulse-ui/theme.css, the host kit core, protocol, ports and Node built-ins, its connections also @miragon/pulse-profile's main entry. The runtime view knows no editor host and no dialect.",
+        "No entry of `allowed` in packages/core/runtime-view/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md). A layer uses its own modules and another layer only through its index.ts: the ports, the core, the model adapter and the host kit speak the main entry of @miragon/pulse-engine-core, the engine family's neutral core (never ./testing), the core and the model adapter reach the ports, the model adapter also bpmn-moddle (never a vendor's descriptor, which its family's adapter brings), core and webview @miragon/pulse-ui/tones and their label helpers (core/views/labels.ts, webview/format/) @miragon/pulse-ui/format, the webview protocol types, its rendering libraries and, for shared building blocks, @miragon/pulse-ui's root and @miragon/pulse-ui/theme.css, the host kit core, protocol, ports and Node built-ins, its connections also @miragon/pulse-profile's main entry. The runtime view knows no editor host and no dialect.",
       from: {},
       to: { path: "^$" },
     },
@@ -128,9 +131,17 @@ module.exports = {
       name: "model-libraries-stay-in-the-model-adapter",
       severity: "error",
       comment:
-        "BPMN model libraries (bpmn-moddle, its vendor descriptors, bpmn-modeler libs) belong in packages/core/runtime-view/src/model only. Read what you need through the ModelSource or CodeLocator port instead.",
+        "BPMN model libraries (bpmn-moddle, bpmn-modeler libs) belong in packages/core/runtime-view/src/model only. Read what you need through the ModelSource or CodeLocator port instead.",
       from: { pathNot: [MODEL_ADAPTER, "(^|/)node_modules/"] },
       to: { path: MODEL_LIBRARIES },
+    },
+    {
+      name: "moddle-descriptors-stay-in-the-adapters",
+      severity: "error",
+      comment:
+        "A vendor's moddle descriptor (the JSON of a *-bpmn-moddle package) belongs to its family's adapter, whose BPMN dialect (BpmnDialect of the ports, such as packages/connectors/c7/c7-adapter/src/c7-bpmn-dialect.ts) hands it to the model reader. The runtime view names no vendor; only the model reader's tests (test/model) read a descriptor, for the dialects they stand in with.",
+      from: { pathNot: [MODEL_TESTS, "(^|/)node_modules/"] },
+      to: { path: MODDLE_DESCRIPTORS },
     },
     {
       name: "runtime-view-is-dialect-neutral",

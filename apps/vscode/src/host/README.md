@@ -21,7 +21,7 @@ flowchart TB
 ```
 
 1. It finds every `.pulse.json` and the CLI's user config (`TargetDiscovery`, `UserConfigFile`), the host kit's `TargetMerge` decides the engines from them (its `TargetsParser` reads each), and it takes each target's login from SecretStorage.
-2. The composition root picks the adapter for the target's engine; it supplies runtime and commands.
+2. The host kit's `EngineRoot`, which the composition root builds over one adapter per dialect, picks the adapter of the target's dialect; it supplies runtime and commands.
 3. Trees, status bar and panels show the connections; a reload rebinds open panels.
 4. The webview sends intents and gets the complete panel state back.
 5. A core session handles each intent and asks the panel for dialogs, other panels or links.

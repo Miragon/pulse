@@ -307,8 +307,9 @@ const noExportTypeSideEffects = {
 // apps/vscode/docs/adr/guardrails.md): no comments (the inline rule below, never
 // switched off inline: noInlineConfig), behaviour in classes, one class per file,
 // budgets (complexity 10, 300 lines, 60 per function, 4 parameters, 20 statements),
-// no engine words in the contract, the core and the webview, no --vscode-* colour in
-// the webview, dates and numbers in the runtime view's core and webview through pulse-ui's
+// no engine words in the contract, the core, the model reader and the webview, nor in the hosts
+// and the host kit outside the composition roots and the project file's parser, no --vscode-*
+// colour in the webview, dates and numbers in the runtime view's core and webview through pulse-ui's
 // formatters (the date and number gates of the widget trees).
 // apps/vscode/test/architecture/lint-rules.test.ts lints a probe per rule. Their
 // no-restricted-syntax blocks name these trees only, so they never replace a selector of the MCP
@@ -808,8 +809,9 @@ export default tseslint.config(
     rules: { "@typescript-eslint/no-require-imports": "off" },
   },
   // Every layer of the runtime view is engine-neutral and keeps behaviour in classes (its ports
-  // take exactly this); the blocks of the core, the model reader, the webview and the host kit
-  // below replace it with their own unions.
+  // and its model reader, which reads a model in the vocabulary of the BPMN dialects the adapters
+  // bring, take exactly this); the blocks of the core, the webview and the host kit below replace
+  // it with their own unions.
   {
     files: [`${RUNTIME_VIEW}/src/**/*.ts`],
     rules: { "no-restricted-syntax": ["error", ...vscodeNeutralCode, ...vscodeModuleFunctionGate] },
@@ -835,10 +837,6 @@ export default tseslint.config(
     rules: {
       "no-restricted-syntax": ["error", ...engineCoreNeutralCode, ...connectorResourceGate],
     },
-  },
-  {
-    files: [`${RUNTIME_VIEW}/src/model/**/*.ts`],
-    rules: { "no-restricted-syntax": ["error", ...vscodeModuleFunctionGate] },
   },
   // A family's adapter is a package of a family: the connector resource gate stays in its union.
   {
@@ -901,8 +899,7 @@ export default tseslint.config(
   {
     files: [
       "apps/vscode/src/host/composition-root.ts",
-      "apps/vscode/src/host/connections/**",
-      `${RUNTIME_VIEW}/src/host-kit/connections/**`,
+      `${RUNTIME_VIEW}/src/host-kit/connections/targets-parser.ts`,
       "apps/orca/src/worker/composition-root.ts",
     ],
     rules: { "no-restricted-syntax": ["error", ...vscodeModuleFunctionGate] },

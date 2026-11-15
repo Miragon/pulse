@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, test, vi } from "vitest"
 import type { Attention, Panel, PanelContext } from "@miragon/pulse-runtime-view/core"
 import type { PanelState, WebviewIntent } from "@miragon/pulse-runtime-view/protocol"
-import { type Connection, LOCAL_TARGET } from "@miragon/pulse-runtime-view/host-kit"
+import type { Connection } from "@miragon/pulse-runtime-view/host-kit"
+import { LOCAL_TARGET } from "./local-target.js"
 import { CockpitView } from "../src/worker/cockpit-view.js"
 import { FakeOrca } from "./fake-orca.js"
 

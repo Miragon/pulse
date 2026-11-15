@@ -9,7 +9,7 @@ import {
   type TargetsProblem,
 } from "@miragon/pulse-runtime-view/host-kit"
 import { PulseSettings } from "./pulse-settings.js"
-import { TargetDiscovery } from "./target-discovery.js"
+import type { TargetDiscovery } from "./target-discovery.js"
 
 const ACTIVE_KEY = "pulse.activeEngine"
 
@@ -26,10 +26,11 @@ export class ConnectionRegistry implements vscode.Disposable {
     private readonly state: vscode.Memento,
     private readonly credentials: CredentialStore,
     private readonly builder: ConnectionBuilder,
+    private readonly discovery: TargetDiscovery,
   ) {}
 
   async reload(): Promise<void> {
-    const discovered = await TargetDiscovery.discover()
+    const discovered = await this.discovery.discover()
     const environments = PulseSettings.environments()
     const writes = PulseSettings.writes()
     const requests = await Promise.all(

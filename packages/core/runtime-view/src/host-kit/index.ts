@@ -10,12 +10,8 @@ export { CredentialStore, type SecretStorage } from "./connections/credential-st
 export { EndpointPath } from "./connections/endpoint-path.js"
 export { EngineBadges } from "./connections/engine-badges.js"
 export { EngineLanes, type LaneRequest } from "./connections/engine-lanes.js"
-export {
-  LOCAL_TARGET,
-  type EngineKind,
-  type TargetAuth,
-  type EngineTarget,
-} from "./connections/engine-target.js"
+export { EngineRoot } from "./connections/engine-root.js"
+export type { TargetAuth, EngineTarget } from "./connections/engine-target.js"
 export { EnvironmentClassifier } from "./connections/environment-classifier.js"
 export type { EnvironmentSettings } from "./connections/environment-settings.js"
 export { LivePolicy } from "./connections/live-policy.js"

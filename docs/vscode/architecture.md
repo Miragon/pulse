@@ -7,7 +7,7 @@ serves Operaton, CIB seven and Camunda 7 over their REST API, with the c7 family
 domain (`@miragon/pulse-c7-core`, shared with the CLI and the MCP server, bundled) for inspecting an
 instance, an incident's retry target and cause and a variable's type, and with the contract's rule
 for a failure's root cause (`RootCauses`, c7-core applies it too); a new dialect family is one more
-adapter package, proven by the conformance kit, and one entry per composition root.
+adapter package with its BPMN vocabulary, proven by the conformance kit, and one entry per root.
 
 ```mermaid
 flowchart LR

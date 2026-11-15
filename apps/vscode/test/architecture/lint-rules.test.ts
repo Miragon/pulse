@@ -97,7 +97,10 @@ describe("the lint gates", { timeout: 120_000 }, () => {
     `${ENGINE_CORE}/model/ids.ts`,
     `${ENGINE_CORE}/testing/fake/fake-engine.ts`,
     "packages/core/runtime-view/src/ports/engine-adapter.ts",
-  ])("keep engine words out of the contract: %s", async (filePath) => {
+    "packages/core/runtime-view/src/ports/bpmn-dialect.ts",
+    "packages/core/runtime-view/src/model/model/model-parser.ts",
+    "packages/core/runtime-view/src/model/code/workspace-code-locator.ts",
+  ])("keep engine words out of the contract and the model reader: %s", async (filePath) => {
     expect(await rulesFiredOn(readRepoFile(filePath), filePath)).toEqual([])
     const probe = `${readRepoFile(filePath)}\nexport type Key = 'processInstanceKey';\n`
     expect(await rulesFiredOn(probe, filePath)).toEqual(["no-restricted-syntax"])
@@ -107,6 +110,29 @@ describe("the lint gates", { timeout: 120_000 }, () => {
     const neutral = withProbe("export const ids = 'elementId bpmnProcessId definitionId c78';")
     expect(await rulesFiredOn(neutral)).toEqual([])
   })
+
+  test.each([
+    "packages/core/runtime-view/src/host-kit/connections/engine-root.ts",
+    "packages/core/runtime-view/src/host-kit/connections/engine-target.ts",
+    "apps/vscode/src/host/connections/target-discovery.ts",
+    "apps/orca/src/worker/engine-registry.ts",
+  ])("keep engine words out of the hosts outside their composition roots: %s", async (filePath) => {
+    expect(await rulesFiredOn(readRepoFile(filePath), filePath)).toEqual([])
+    const probe = `${readRepoFile(filePath)}\nexport type Flavor = 'camunda8';\n`
+    expect(await rulesFiredOn(probe, filePath)).toEqual(["no-restricted-syntax"])
+  })
+
+  test.each([
+    "apps/vscode/src/host/composition-root.ts",
+    "apps/orca/src/worker/composition-root.ts",
+    "packages/core/runtime-view/src/host-kit/connections/targets-parser.ts",
+  ])(
+    "let the composition roots and the project file's parser name a dialect: %s",
+    async (filePath) => {
+      const probe = `${readRepoFile(filePath)}\nexport type Flavor = 'camunda8';\n`
+      expect(await rulesFiredOn(probe, filePath)).toEqual([])
+    },
+  )
 
   test("keep the engine CLI out of the extension outside its composition root", async () => {
     const host = "export const cli = 'engine-cli';\n"

@@ -10,7 +10,8 @@ import { FakeEngine, FakeWorld, PatchedRuntime } from "@miragon/pulse-engine-cor
 import { DiagramCache } from "@miragon/pulse-runtime-view/core"
 import { ConnectionLive } from "./support/connection-live.js"
 import { describe, expect, test, vi } from "vitest"
-import { type Connection, LOCAL_TARGET, TargetsProblem } from "@miragon/pulse-runtime-view/host-kit"
+import { type Connection, TargetsProblem } from "@miragon/pulse-runtime-view/host-kit"
+import { LOCAL_TARGET } from "./support/local-target.js"
 import { EnginesTree, type EnginesTreeNode } from "../../src/host/explorer/engines-tree.js"
 import { FakeRegistry } from "./support/fake-registry.js"
 import {

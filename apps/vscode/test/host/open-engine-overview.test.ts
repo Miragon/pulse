@@ -4,7 +4,8 @@ import { ConnectionLive } from "./support/connection-live.js"
 import { describe, expect, test, vi } from "vitest"
 import type { ConnectionPicker } from "../../src/host/commands/connection-picker.js"
 import { OpenEngineOverviewCommand } from "../../src/host/commands/open-engine-overview-command.js"
-import { type Connection, LOCAL_TARGET } from "@miragon/pulse-runtime-view/host-kit"
+import type { Connection } from "@miragon/pulse-runtime-view/host-kit"
+import { LOCAL_TARGET } from "./support/local-target.js"
 import { FakeRegistry } from "./support/fake-registry.js"
 
 vi.mock("vscode", () => import("./support/vscode-fake.js"))

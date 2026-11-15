@@ -5,11 +5,11 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 import { OpenTargetsFileCommand } from "../../src/host/commands/open-targets-file-command.js"
 import {
   type Connection,
-  LOCAL_TARGET,
   TargetMerge,
   TargetsProblem,
   UserConfigLocation,
 } from "@miragon/pulse-runtime-view/host-kit"
+import { LOCAL_TARGET } from "./support/local-target.js"
 import type { ConnectionRegistry } from "../../src/host/connections/connection-registry.js"
 import { TargetsFile } from "../../src/host/connections/targets-file.js"
 import { UserConfigFile } from "../../src/host/connections/user-config-file.js"

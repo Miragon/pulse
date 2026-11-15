@@ -33,7 +33,7 @@ export default mergeConfig(
           lines: 64,
           statements: 64,
           functions: 62,
-          branches: 57,
+          branches: 58,
         },
       },
       projects: [

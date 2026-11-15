@@ -1,82 +1,29 @@
 import { homedir } from "node:os"
 import { C7Adapter } from "@miragon/pulse-c7-adapter"
+import { C8Adapter } from "@miragon/pulse-c8-adapter"
 import type { LocalSources } from "@miragon/pulse-runtime-view/core"
+import { EngineRoot, UserConfigLocation } from "@miragon/pulse-runtime-view/host-kit"
 import { BpmnModelSource, WorkspaceCodeLocator } from "@miragon/pulse-runtime-view/model"
-import {
-  FailingRuntime,
-  RuntimeError,
-  type ProcessCommands,
-  type ProcessRuntime,
-} from "@miragon/pulse-engine-core"
-import type {
-  CliTarget,
-  EngineAdapter,
-  EngineCli,
-  EngineConnection,
-  EngineCredentials,
-  EngineWebUi,
-  WorkspaceFiles,
-} from "@miragon/pulse-runtime-view/ports"
-import {
-  type Credentials,
-  type EngineFactories,
-  type EngineKind,
-  type EngineTarget,
-  TargetPolicy,
-  UserConfigLocation,
-} from "@miragon/pulse-runtime-view/host-kit"
+import type { WorkspaceFiles } from "@miragon/pulse-runtime-view/ports"
 
-type EngineAdapters = Readonly<Record<EngineKind, EngineAdapter>>
-
-export class CompositionRoot implements EngineFactories {
-  constructor(private readonly adapters: EngineAdapters) {}
+export class CompositionRoot {
+  constructor(readonly engines: EngineRoot) {}
 
   static create(): CompositionRoot {
-    return new CompositionRoot({ c7: new C7Adapter() })
-  }
-
-  runtime(target: EngineTarget, credentials: Credentials): ProcessRuntime {
-    const refused = TargetPolicy.refusal(target, credentials)
-    if (refused !== undefined) {
-      return new FailingRuntime(new RuntimeError("misconfigured", refused))
-    }
-    return this.adapters[target.engine].runtime(this.connectionOf(target, credentials))
-  }
-
-  commands(target: EngineTarget, credentials: Credentials): ProcessCommands | undefined {
-    return TargetPolicy.refusal(target, credentials) === undefined
-      ? this.adapters[target.engine].commands(this.connectionOf(target, credentials))
-      : undefined
-  }
-
-  webUi(target: EngineTarget): EngineWebUi | undefined {
-    return target.webUiUrl === undefined
-      ? undefined
-      : this.adapters[target.engine].webUi(target.webUiUrl)
-  }
-
-  cli(target: EngineTarget, cliTarget: CliTarget): EngineCli | undefined {
-    return this.adapters[target.engine].cli(cliTarget)
+    return new CompositionRoot(
+      EngineRoot.of({ c7: new C7Adapter(), c8: new C8Adapter() }, { local: "c7" }),
+    )
   }
 
   static userConfig(): UserConfigLocation {
     return new UserConfigLocation(process.env, homedir(), process.platform)
   }
 
-  static localSources(files: WorkspaceFiles): LocalSources {
-    return { models: new BpmnModelSource(files), code: new WorkspaceCodeLocator(files) }
-  }
-
-  private connectionOf(target: EngineTarget, credentials: Credentials): EngineConnection {
+  localSources(files: WorkspaceFiles): LocalSources {
+    const dialects = this.engines.dialects()
     return {
-      endpoint: target.endpoint,
-      credentials: this.engineCredentials(target, credentials),
+      models: new BpmnModelSource(files, dialects),
+      code: new WorkspaceCodeLocator(files, dialects),
     }
-  }
-
-  private engineCredentials(target: EngineTarget, credentials: Credentials): EngineCredentials {
-    return target.auth.kind === "basic" && credentials.kind === "basic"
-      ? credentials
-      : { kind: "none" }
   }
 }

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 import { FakeEngine, FakeWorld } from "@miragon/pulse-engine-core/testing"
-import { type Connection, LOCAL_TARGET } from "@miragon/pulse-runtime-view/host-kit"
+import type { Connection } from "@miragon/pulse-runtime-view/host-kit"
+import { LOCAL_TARGET } from "./local-target.js"
 import type { EngineRegistry } from "../src/worker/engine-registry.js"
 import { EnginesLive } from "../src/worker/engines-live.js"
 import { OrcaLive } from "../src/worker/orca-live.js"

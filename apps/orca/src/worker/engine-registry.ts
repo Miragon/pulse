@@ -7,7 +7,7 @@ import {
   CredentialStore,
   type DiscoveredTargets,
   EngineLanes,
-  LOCAL_TARGET,
+  type EngineRoot,
   EnvironmentClassifier,
   type FileVerdict,
   LivePolicy,
@@ -29,6 +29,11 @@ const ACTIVE_KEY = "activeEngine"
 
 type Listener = () => void
 
+export interface RegistryWiring {
+  readonly audit: WriteAudit
+  readonly engines: EngineRoot
+}
+
 interface Discovered extends DiscoveredTargets {
   readonly files: readonly string[]
   readonly user: UserConfigRead
@@ -42,7 +47,7 @@ export class EngineRegistry {
   private activeName: string | undefined
   private environments: EnvironmentSettings = { user: undefined, workspace: [] }
   private readonly lanes = new EngineLanes()
-  private readonly merge = new TargetMerge(LOCAL_TARGET)
+  private readonly merge: TargetMerge
   private readonly credentials: CredentialStore
   private readonly builder: ConnectionBuilder
   private readonly location: UserConfigLocation
@@ -54,14 +59,11 @@ export class EngineRegistry {
     private readonly orca: OrcaWorkerApi,
     private readonly settings: OrcaSettings,
     private readonly workspaces: OrcaWorkspaces,
-    audit: WriteAudit,
+    { audit, engines }: RegistryWiring,
   ) {
     this.credentials = new CredentialStore(new OrcaSecretStorage(orca.secrets))
-    this.builder = new ConnectionBuilder(
-      CompositionRoot.create(),
-      audit,
-      OrcaSettings.WRITES_WORDING,
-    )
+    this.builder = new ConnectionBuilder(engines, audit, OrcaSettings.WRITES_WORDING)
+    this.merge = new TargetMerge(engines.localTarget())
     this.location = CompositionRoot.userConfig()
   }
 

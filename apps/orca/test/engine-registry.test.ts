@@ -14,12 +14,10 @@ class RegistryHarness {
 
   constructor(readonly worker: WorkerHarness) {
     const api = worker.orca.api()
-    this.registry = new EngineRegistry(
-      api,
-      new OrcaSettings(api),
-      new OrcaWorkspaces(api),
-      new WriteAudit({ info: () => undefined }),
-    )
+    this.registry = new EngineRegistry(api, new OrcaSettings(api), new OrcaWorkspaces(api), {
+      audit: new WriteAudit({ info: () => undefined }),
+      engines: worker.adapter.root().engines,
+    })
     this.statusBar = new StatusBar(api, this.registry)
   }
 

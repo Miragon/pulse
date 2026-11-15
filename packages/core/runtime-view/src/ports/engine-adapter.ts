@@ -6,6 +6,7 @@ import type {
   ProcessRuntime,
   WaitState,
 } from "@miragon/pulse-engine-core"
+import type { BpmnDialect } from "./bpmn-dialect.js"
 
 export type EngineCredentials =
   | { readonly kind: "none" }
@@ -40,6 +41,8 @@ export type CliTarget =
   | { readonly kind: "endpoint"; readonly endpoint: string }
 
 export interface EngineAdapter {
+  readonly bpmn: BpmnDialect
+  readonly localEndpoint?: string
   runtime(connection: EngineConnection): ProcessRuntime
   commands(connection: EngineConnection): ProcessCommands | undefined
   webUi(webUiUrl: string): EngineWebUi | undefined

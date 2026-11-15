@@ -16,13 +16,13 @@ import {
   ConnectionBuilder,
   type Credentials,
   type EngineFactories,
-  LOCAL_TARGET,
   type EngineTarget,
   WriteAudit,
   WritePolicy,
   NotificationText,
   type EnvironmentSettings,
 } from "@miragon/pulse-runtime-view/host-kit"
+import { LOCAL_TARGET } from "./support/local-target.js"
 import { EngineBulkRuns } from "../../src/host/connections/engine-bulk-runs.js"
 
 const NO_LOGIN: Credentials = { kind: "none" }

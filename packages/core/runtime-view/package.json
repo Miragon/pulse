@@ -53,12 +53,10 @@
     "@miragon/pulse-ui": "workspace:*",
     "bpmn-js": "18.31.1",
     "bpmn-moddle": "10.3.1",
-    "camunda-bpmn-moddle": "8.0.2",
     "diagram-js": "15.28.1",
     "lucide-react": "1.70.0",
     "react": "19.3.1",
-    "react-dom": "19.3.1",
-    "zeebe-bpmn-moddle": "2.0.0"
+    "react-dom": "19.3.1"
   },
   "devDependencies": {
     "@tailwindcss/node": "4.3.5",
@@ -70,10 +68,12 @@
     "@vitest/browser-playwright": "5.1.0",
     "@vitest/coverage-v8": "5.1.0",
     "axe-core": "4.14.0",
+    "camunda-bpmn-moddle": "8.0.2",
     "esbuild": "0.28.2",
     "playwright": "1.64.1",
     "tailwindcss": "4.3.5",
     "typescript": "6.0.3",
-    "vitest": "5.1.0"
+    "vitest": "5.1.0",
+    "zeebe-bpmn-moddle": "2.0.0"
   }
 }

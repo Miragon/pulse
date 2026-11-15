@@ -3,7 +3,8 @@
 Guidance for agents working on Pulse for Orca: the Orca plugin `pulse-cockpit`
 (`@miragon/pulse-orca`), the runtime view of Pulse for VS Code inside Orca. It is an interface
 app of the Pulse monorepo and the second editor host of the runtime view
-(`packages/core/runtime-view`) and the C7 adapter (`packages/connectors/c7/c7-adapter`).
+(`packages/core/runtime-view`) and the adapters (`packages/connectors/c7/c7-adapter`,
+`packages/connectors/c8/c8-adapter`).
 The repository's package rules hold here (the root `CLAUDE.md`), and so do the rules of
 `apps/vscode/CLAUDE.md` for everything both hosts share (the house rules, the ADRs in
 `apps/vscode/docs/adr/`); this file adds what is Orca's.
@@ -90,8 +91,8 @@ The dependency rules are closed-world (`apps/orca/.dependency-cruiser.cjs`): the
 runtime view's ports, core, protocol and host kit, the main entry of the engine contract
 `@miragon/pulse-engine-core` (its ids and read models), `orca/worker` and Node built-ins; the panel
 `orca` and the protocol's types; the frames the protocol's types; only the composition root the
-adapter and the model reader. No part imports a dialect's core (`plugin-is-dialect-neutral`) or
-the transport `@miragon/pulse-http`, which the C7 adapter's wire alone sends through (the
+adapters and the model reader. No part imports a dialect's core (`plugin-is-dialect-neutral`) or
+the transport `@miragon/pulse-http`, which the adapters' wires alone send through (the
 repository's `http-consumers`), over the worker's global `fetch`. The repository's licence list
 (`scripts/third-party-licenses.mjs`), which the licence test reads, may use Node built-ins and
 nothing else. `pnpm lint:architecture:orca` says where an import belongs.

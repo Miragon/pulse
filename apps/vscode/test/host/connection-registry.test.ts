@@ -9,8 +9,10 @@ import {
 import { join } from "node:path"
 import { beforeEach, describe, expect, test, vi } from "vitest"
 import { ConnectionRegistry } from "../../src/host/connections/connection-registry.js"
+import { TargetDiscovery } from "../../src/host/connections/target-discovery.js"
 import { TargetsFile } from "../../src/host/connections/targets-file.js"
 import { VSCODE_WRITES_WORDING } from "../../src/host/connections/writes-wording.js"
+import { LOCAL_TARGET } from "./support/local-target.js"
 
 const fake = vi.hoisted(() => ({
   files: new Map<string, string>(),
@@ -78,6 +80,7 @@ function registry(): ConnectionRegistry {
       new WriteAudit({ info: () => undefined }),
       VSCODE_WRITES_WORDING,
     ),
+    new TargetDiscovery(LOCAL_TARGET),
   )
 }
 

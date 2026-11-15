@@ -1,6 +1,7 @@
 import type { ElementImplementation } from "../../src/ports/index.js"
 import { describe, expect, test } from "vitest"
 import { WorkspaceCodeLocator } from "../../src/model/index.js"
+import { DIALECTS } from "./support/dialects.js"
 import { MemoryFiles } from "./support/memory-files.js"
 import {
   AUDIT_SERVICE,
@@ -37,7 +38,7 @@ const files = new MemoryFiles({
 })
 
 function locate(implementation: ElementImplementation) {
-  return new WorkspaceCodeLocator(files).locate(implementation)
+  return new WorkspaceCodeLocator(files, DIALECTS).locate(implementation)
 }
 
 describe("the workspace code locator", () => {
@@ -106,6 +107,25 @@ describe("the workspace code locator", () => {
       locate({ kind: "class", className: "io.miragon.Missing" }),
     ])
     expect(found).toEqual([undefined, undefined, undefined, undefined])
+  })
+
+  test("knows a subscription by the markers of the dialects it is given", async () => {
+    const constants = "file:///workspace/a/Constants.java"
+    const worker = "file:///workspace/b/PayWorker.java"
+    const sources = new MemoryFiles({
+      [constants]: 'String PAY = "pay";',
+      [worker]: '@JobWorker(type = "pay")',
+    })
+    const pay = { kind: "workerTask", taskType: "pay" } as const
+
+    expect(await new WorkspaceCodeLocator(sources, DIALECTS).locate(pay)).toEqual({
+      uri: worker,
+      line: 1,
+    })
+    expect(await new WorkspaceCodeLocator(sources, []).locate(pay)).toEqual({
+      uri: constants,
+      line: 1,
+    })
   })
 
   test("takes task types literally", async () => {

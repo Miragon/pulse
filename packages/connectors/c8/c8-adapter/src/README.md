@@ -36,7 +36,7 @@ flowchart LR
 
 ## Where things are
 
-- `packages/connectors/c8/c8-adapter/src`: `C8Adapter`, the plug of the ports; `C8ProcessRuntime`, which answers the contract with the readers after the version floor; `CamundaClients`, which builds a client per connection and holds the token sources
+- `packages/connectors/c8/c8-adapter/src`: `C8Adapter`, the plug of the ports; `C8ProcessRuntime`, which answers the contract with the readers after the version floor; `CamundaClients`, which builds a client per connection and holds the token sources; `C8BpmnDialect`, the vocabulary of Camunda 8's BPMN files (the one file that imports `zeebe-bpmn-moddle`'s descriptor)
 - `packages/connectors/c8/c8-adapter/src/web-ui`: `OperateWebUi`, the links into Operate
 - `packages/connectors/c8/c8-adapter/src/wire`: `CamundaWire` over the transport, the token sources and the reasons of each failure
 - `packages/connectors/c8/c8-adapter/src/rest`: the REST client: requests, paging, parsed and checked views
@@ -46,7 +46,7 @@ flowchart LR
 
 ## Rules
 
-- `packages/connectors/c8/c8-adapter/src` imports only engine-core's main entry, the runtime view's ports and, in its wire, the main entry and `./oauth` of `@miragon/pulse-http`; no Node built-in, no c7 package (dependency-cruiser)
+- `packages/connectors/c8/c8-adapter/src` imports only engine-core's main entry, the runtime view's ports, in its BPMN dialect the descriptor of `zeebe-bpmn-moddle` and, in its wire, the main entry and `./oauth` of `@miragon/pulse-http`; no Node built-in, no c7 package (dependency-cruiser)
 - Engine words are allowed here, not in contract, core or webview; classes, no comments (ESLint)
 - A secret never appears in an error, and a refused token request is not repeated within its hold
 - A key that is no Java long names nothing and costs no call; a capped search says so where the contract has room for it (`truncated`, `atLeast`) or keeps the cluster's counts

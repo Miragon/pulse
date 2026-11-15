@@ -3,9 +3,14 @@ import { PlantedTree } from "./support/planted-tree.js"
 
 const PACKAGE = "packages/connectors/c7/c7-adapter"
 const MANIFEST =
-  '{ "name": "@miragon/pulse-c7-adapter", "private": true, "dependencies": { "@miragon/pulse-c7-core": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-http": "workspace:*", "@miragon/pulse-runtime-view": "workspace:*" } }\n'
+  '{ "name": "@miragon/pulse-c7-adapter", "private": true, "dependencies": { "@miragon/pulse-c7-core": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-http": "workspace:*", "@miragon/pulse-runtime-view": "workspace:*", "camunda-bpmn-moddle": "8.0.2" } }\n'
+
+const DESCRIPTOR_IMPORT =
+  "import camunda from 'camunda-bpmn-moddle/resources/camunda.json' with { type: 'json' };\n"
 
 const ADAPTER: Readonly<Record<string, string>> = {
+  "src/c7-bpmn-dialect.ts": `${DESCRIPTOR_IMPORT}export const dialect = camunda;\n`,
+  "src/mapping/reads-a-descriptor.ts": `${DESCRIPTOR_IMPORT}export const vocabulary = camunda;\n`,
   "src/index.ts":
     "import type { ProcessRuntime } from '@miragon/pulse-engine-core';\nimport type { EngineAdapter } from '@miragon/pulse-runtime-view/ports';\nimport { causeOf } from '@miragon/pulse-c7-core';\nexport type Runtime = ProcessRuntime | EngineAdapter;\nexport const adapter = causeOf;\n",
   "src/mapping-uses-node.ts":
@@ -78,6 +83,7 @@ describe("the dependency rules", () => {
     const loopback = at("node_modules/@miragon/pulse-http/dist/testing/loopback/index.d.ts")
     const oauth = at("node_modules/@miragon/pulse-http/dist/oauth/index.d.ts")
     const httpSubpath = "@miragon/pulse-http/attempt"
+    const descriptor = at("node_modules/camunda-bpmn-moddle/resources/camunda.json")
     const httpSource = "packages/core/http/src/http.ts"
     expect(adapter.violations()).toEqual([
       `engine-test-runs-the-conformance-kit: ${at("test/c7.engine.test.ts")} -> ${at("test/c7.engine.test.ts")}`,
@@ -88,12 +94,14 @@ describe("the dependency rules", () => {
       `http-only-in-the-wire: ${at("src/errors/escapes-into-http.ts")} -> ${httpSource}`,
       `http-only-in-the-wire: ${at("src/mapping/reads-http-subpath.ts")} -> ${httpSubpath}`,
       `http-only-in-the-wire: ${at("src/reading/sends-itself.ts")} -> ${http}`,
+      `moddle-descriptor-only-in-the-bpmn-dialect: ${at("src/mapping/reads-a-descriptor.ts")} -> ${descriptor}`,
       `not-in-allowed: ${at("src/engine-rest/http/escapes-into-http.ts")} -> ${httpSource}`,
       `not-in-allowed: ${at("src/engine-rest/http/reads-an-unexported-file.ts")} -> ${httpSubpath}`,
       `not-in-allowed: ${at("src/engine-rest/http/reads-oauth.ts")} -> ${oauth}`,
       `not-in-allowed: ${at("src/engine-rest/http/sends-a-test-engine.ts")} -> ${loopback}`,
       `not-in-allowed: ${at("src/errors/escapes-into-http.ts")} -> ${httpSource}`,
       `not-in-allowed: ${at("src/mapping-uses-node.ts")} -> child_process`,
+      `not-in-allowed: ${at("src/mapping/reads-a-descriptor.ts")} -> ${descriptor}`,
       `not-in-allowed: ${at("src/mapping/reads-http-subpath.ts")} -> ${httpSubpath}`,
       `not-in-allowed: ${at("src/reading/sends-itself.ts")} -> ${http}`,
       `not-in-allowed: ${at("src/reads-c7-routes.ts")} -> ${c7Routes}`,

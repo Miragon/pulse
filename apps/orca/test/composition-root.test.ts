@@ -1,77 +1,92 @@
 import { join } from "node:path"
+import { BpmnProcessId, ElementId } from "@miragon/pulse-engine-core"
+import type { EngineTarget } from "@miragon/pulse-runtime-view/host-kit"
+import type { WorkspaceFiles } from "@miragon/pulse-runtime-view/ports"
 import { describe, expect, test, vi } from "vitest"
-import { FailingRuntime } from "@miragon/pulse-engine-core"
-import { type EngineTarget, LOCAL_TARGET } from "@miragon/pulse-runtime-view/host-kit"
 import { CompositionRoot } from "../src/worker/composition-root.js"
 import { OrcaWorkspaceFiles } from "../src/worker/orca-workspace-files.js"
-import { FakeAdapter } from "./fake-adapter.js"
+import { LOCAL_TARGET } from "./local-target.js"
 
-const LOGIN = { kind: "basic", username: "demo", password: "demo" } as const
-const BASIC: EngineTarget = { ...LOCAL_TARGET, name: "shop", auth: { kind: "basic" } }
+const CLUSTER: EngineTarget = {
+  ...LOCAL_TARGET,
+  name: "cluster",
+  engine: "c8",
+  endpoint: "http://localhost:8088/v2",
+}
+
+const MODELS: Readonly<Record<string, string>> = {
+  "/shop/payment.bpmn": [
+    '<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:camunda="http://camunda.org/schema/1.0/bpmn">',
+    '<bpmn:process id="payment"><bpmn:serviceTask id="Activity_Charge" camunda:type="external" camunda:topic="charge-payment" />',
+    "</bpmn:process></bpmn:definitions>",
+  ].join(""),
+  "/shop/shipping.bpmn": [
+    '<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0">',
+    '<bpmn:process id="shipping"><bpmn:serviceTask id="Activity_Book"><bpmn:extensionElements>',
+    '<zeebe:taskDefinition type="book-carrier" /></bpmn:extensionElements></bpmn:serviceTask>',
+    "</bpmn:process></bpmn:definitions>",
+  ].join(""),
+  "/shop/migrated.bpmn": [
+    '<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"',
+    ' xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0">',
+    '<bpmn:process id="migrated"><bpmn:serviceTask id="Activity_Charge"><bpmn:extensionElements>',
+    '<zeebe:taskDefinition type="charge-payment" />',
+    '<zeebe:ioMapping><zeebe:input source="=order.total" target="amount" /></zeebe:ioMapping>',
+    "</bpmn:extensionElements></bpmn:serviceTask></bpmn:process></bpmn:definitions>",
+  ].join(""),
+}
+
+const FILES: WorkspaceFiles = {
+  find: (glob) => Promise.resolve(glob.endsWith(".bpmn") ? Object.keys(MODELS) : []),
+  read: (uri) => Promise.resolve(MODELS[uri] ?? ""),
+}
+
+async function configurationOf(bpmnProcessId: string, elementId: string) {
+  const { models } = CompositionRoot.create().localSources(FILES)
+  const model = await models.modelOf(BpmnProcessId(bpmnProcessId))
+  const element =
+    model === undefined ? undefined : await models.elementIn(model, ElementId(elementId))
+  return element?.configuration
+}
 
 describe("the composition root of the worker", () => {
-  test("passes a login only to an engine configured for basic authentication", () => {
-    const adapter = new FakeAdapter()
-    const root = adapter.root()
-
-    root.runtime(BASIC, LOGIN)
-    root.runtime(LOCAL_TARGET, LOGIN)
-
-    expect(adapter.connections.map((connection) => connection.credentials)).toEqual([
-      LOGIN,
-      { kind: "none" },
-    ])
-    expect(root.commands(BASIC, LOGIN)).toBe(adapter.engine)
+  test("falls back to the local engine of the C7 adapter", () => {
+    expect(CompositionRoot.create().engines.localTarget()).toEqual(LOCAL_TARGET)
   })
 
-  test("refuses a login over plain HTTP to a remote engine", () => {
-    const root = new FakeAdapter().root()
-    const remote = { ...BASIC, endpoint: "http://engine.shop.invalid/engine-rest" }
+  test("wires the C7 adapter and the C8 adapter, each for its dialect", () => {
+    const { engines } = CompositionRoot.create()
+    const cockpit = {
+      ...LOCAL_TARGET,
+      webUiUrl: "http://localhost:8080/camunda/app/cockpit/default/",
+    }
+    const operate = { ...CLUSTER, webUiUrl: "http://localhost:8088/operate" }
 
-    expect(root.runtime(remote, LOGIN)).toBeInstanceOf(FailingRuntime)
-    expect(root.commands(remote, LOGIN)).toBeUndefined()
-  })
-
-  test("refuses an engine that signs in with OAuth2 and names the way out", async () => {
-    const adapter = new FakeAdapter()
-    const root = adapter.root()
-    const oauth: EngineTarget = { ...LOCAL_TARGET, name: "shop", auth: { kind: "oauth2" } }
-
-    await expect(root.runtime(oauth, LOGIN).listDefinitions()).rejects.toMatchObject({
-      failure: "misconfigured",
-      message:
-        'Profile "shop" uses auth.type oauth, which this client cannot authenticate with. Set auth.type to none, or to basic without the OAuth keys, or keep this profile for the CLI.',
-    })
-    expect(root.commands(oauth, LOGIN)).toBeUndefined()
-    expect(adapter.connections).toEqual([])
-  })
-
-  test("knows the web app only of an engine with its URL", () => {
-    const root = new FakeAdapter().root()
-
-    expect(root.webUi(LOCAL_TARGET)).toBeUndefined()
-    expect(root.webUi({ ...LOCAL_TARGET, webUiUrl: "http://localhost:8080/cockpit" })?.name).toBe(
+    expect([engines.webUi(cockpit)?.name, engines.webUi(operate)?.name]).toEqual([
       "Cockpit",
-    )
-  })
-
-  test("asks the adapter for its CLI, which names the target it is given", () => {
-    const adapter = new FakeAdapter()
-    const root = adapter.root()
-    const profile = { kind: "profile", name: "shop", endpoint: BASIC.endpoint } as const
-    const endpoint = { kind: "endpoint", endpoint: LOCAL_TARGET.endpoint } as const
-
-    expect(root.cli(BASIC, profile)).toBe(adapter.cliOfIt)
-    expect(root.cli(LOCAL_TARGET, endpoint)).toBe(adapter.cliOfIt)
-    expect(adapter.cliTargets).toEqual([profile, endpoint])
-  })
-
-  test("builds the real engines and the local sources", () => {
-    expect(CompositionRoot.create()).toBeInstanceOf(CompositionRoot)
-    expect(Object.keys(CompositionRoot.localSources(new OrcaWorkspaceFiles(() => [])))).toEqual([
-      "models",
-      "code",
+      "Operate",
     ])
+    expect(engines.commands(CLUSTER, { kind: "none" })).toBeUndefined()
+  })
+
+  test("reads Camunda 7, Camunda 8 and a model naming both with the adapters' BPMN dialects", async () => {
+    expect((await configurationOf("payment", "Activity_Charge"))?.implementation).toEqual({
+      kind: "workerTask",
+      taskType: "charge-payment",
+    })
+    expect((await configurationOf("shipping", "Activity_Book"))?.implementation).toEqual({
+      kind: "workerTask",
+      taskType: "book-carrier",
+    })
+    expect(await configurationOf("migrated", "Activity_Charge")).toEqual({
+      implementation: { kind: "workerTask", taskType: "charge-payment" },
+      inputs: [{ target: "amount", source: "=order.total" }],
+      outputs: [],
+      errors: [],
+    })
+    expect(
+      Object.keys(CompositionRoot.create().localSources(new OrcaWorkspaceFiles(() => []))),
+    ).toEqual(["models", "code"])
   })
 
   test("finds the CLI's user config from the worker's environment, as the CLI does", () => {

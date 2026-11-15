@@ -1,4 +1,5 @@
 import type {
+  BpmnDialect,
   CodeLocator,
   ElementImplementation,
   SourceLocation,
@@ -9,14 +10,18 @@ import { SourceSearch } from "./source-search.js"
 const JVM_SOURCES = "{java,kt,groovy,scala}"
 const WORKER_SOURCES = `**/*.{java,kt,groovy,scala,js,ts}`
 const BEAN_NAME = /^[$#]\{\s*([A-Za-z_$][\w$]*)/
-const SUBSCRIPTION =
-  "(?:ExternalTaskSubscription|JobWorker|ZeebeWorker|subscribe|jobType|topicName)\\b.*"
 
 export class WorkspaceCodeLocator implements CodeLocator {
   private readonly search: SourceSearch
+  private readonly subscription: string | undefined
 
-  constructor(files: WorkspaceFiles) {
+  constructor(files: WorkspaceFiles, dialects: readonly BpmnDialect[]) {
     this.search = new SourceSearch(files)
+    const markers = dialects.flatMap((dialect) => dialect.workerMarkers)
+    this.subscription =
+      markers.length === 0
+        ? undefined
+        : `(?:${markers.map((marker) => this.escaped(marker)).join("|")})\\b.*`
   }
 
   locate(implementation: ElementImplementation): Promise<SourceLocation | undefined> {
@@ -60,10 +65,11 @@ export class WorkspaceCodeLocator implements CodeLocator {
   }
 
   private async worker(taskType: string): Promise<SourceLocation | undefined> {
-    return (
-      (await this.search.firstLine(WORKER_SOURCES, this.quoted(taskType, SUBSCRIPTION))) ??
-      (await this.search.firstLine(WORKER_SOURCES, this.quoted(taskType)))
-    )
+    const subscribed =
+      this.subscription === undefined
+        ? undefined
+        : await this.search.firstLine(WORKER_SOURCES, this.quoted(taskType, this.subscription))
+    return subscribed ?? (await this.search.firstLine(WORKER_SOURCES, this.quoted(taskType)))
   }
 
   private quoted(literal: string, before = ""): RegExp {

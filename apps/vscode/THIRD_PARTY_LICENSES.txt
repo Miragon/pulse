@@ -65,6 +65,7 @@ Pulse's own packages in the bundles, under the MIT licence in LICENSE:
 
   @miragon/pulse-c7-adapter
   @miragon/pulse-c7-core
+  @miragon/pulse-c8-adapter
   @miragon/pulse-engine-core
   @miragon/pulse-http
   @miragon/pulse-profile

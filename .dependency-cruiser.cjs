@@ -48,9 +48,9 @@
  * the transport for its http layer), and the two editor hosts, the VS Code extension
  * (apps/vscode, the unscoped `pulse-cockpit`, because vsce rejects scoped names) and the Orca
  * plugin (apps/orca, `@miragon/pulse-orca`), compose the runtime view (packages/core/runtime-view)
- * with a family adapter (c7-adapter) and read the contract's ids and read models from
- * engine-core's main entry, all of which esbuild bundles; the runtime view's host kit reads the
- * project files with the profile format. No package and no app imports an app (the closed-world
+ * with the family adapters (c7-adapter, c8-adapter) and read the contract's ids and read models
+ * from engine-core's main entry, all of which esbuild bundles; the runtime view's host kit reads
+ * the project files with the profile format. No package and no app imports an app (the closed-world
  * rules of the editor hosts and of the two packages they share live in each one's own
  * .dependency-cruiser.cjs).
  * APP_PACKAGES below names every app's npm name; the

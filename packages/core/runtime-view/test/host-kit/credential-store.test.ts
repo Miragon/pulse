@@ -3,7 +3,8 @@ import {
   CredentialStore,
   type SecretStorage,
 } from "../../src/host-kit/connections/credential-store.js"
-import { LOCAL_TARGET, type EngineTarget } from "../../src/host-kit/connections/engine-target.js"
+import type { EngineTarget } from "../../src/host-kit/connections/engine-target.js"
+import { LOCAL_TARGET } from "./support/local-target.js"
 
 const FILE = "/work/.pulse.json"
 const PROD = "https://prod.example.com/engine-rest"

@@ -42,7 +42,7 @@ Writes (`ProcessCommands`) take the same road on a connection that may write.
 
 ## Where things are
 
-- `packages/connectors/c7/c7-adapter/src`: `C7Adapter` builds a runtime and commands per engine connection
+- `packages/connectors/c7/c7-adapter/src`: `C7Adapter` builds a runtime and commands per engine connection and names the local engine a host falls back to; `C7BpmnDialect`, the vocabulary of Camunda 7's BPMN files (the one file that imports `camunda-bpmn-moddle`'s descriptor)
 - `packages/connectors/c7/c7-adapter/src/reading`: one reader per question, e.g. `InstanceDetailReader`, with its own mapping
 - `packages/connectors/c7/c7-adapter/src/mapping`: what several readers share: definition refs, states, timestamps, root incidents, the root cause of incident details (`RootCauses`)
 - `packages/connectors/c7/c7-adapter/src/writing`, `packages/connectors/c7/c7-adapter/src/errors`: the bodies of a variable change and a move, the token a move cancels; failures to `RuntimeError`
@@ -53,7 +53,7 @@ Writes (`ProcessCommands`) take the same road on a connection that may write.
 
 ## Rules
 
-- `packages/connectors/c7/c7-adapter/src` imports only the main entries of `@miragon/pulse-engine-core` (the contract) and `@miragon/pulse-c7-core`, the runtime view's ports, in its wire (`src/engine-rest/http`) the main entry of `@miragon/pulse-http`, and no Node built-in (dependency-cruiser); no other layer of the editor hosts imports c7-core or the transport
+- `packages/connectors/c7/c7-adapter/src` imports only the main entries of `@miragon/pulse-engine-core` (the contract) and `@miragon/pulse-c7-core`, the runtime view's ports, in its BPMN dialect the descriptor of `camunda-bpmn-moddle`, in its wire (`src/engine-rest/http`) the main entry of `@miragon/pulse-http`, and no Node built-in (dependency-cruiser); no other layer of the editor hosts imports c7-core or the transport
 - Engine words are allowed here, not in contract, core or webview; classes, no comments (ESLint)
 
 ## Proven on

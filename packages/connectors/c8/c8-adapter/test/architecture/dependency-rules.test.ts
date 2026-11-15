@@ -3,9 +3,14 @@ import { PlantedTree } from "./support/planted-tree.js"
 
 const PACKAGE = "packages/connectors/c8/c8-adapter"
 const MANIFEST =
-  '{ "name": "@miragon/pulse-c8-adapter", "private": true, "dependencies": { "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-http": "workspace:*", "@miragon/pulse-runtime-view": "workspace:*" } }\n'
+  '{ "name": "@miragon/pulse-c8-adapter", "private": true, "dependencies": { "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-http": "workspace:*", "@miragon/pulse-runtime-view": "workspace:*", "zeebe-bpmn-moddle": "2.0.0" } }\n'
+
+const DESCRIPTOR_IMPORT =
+  "import zeebe from 'zeebe-bpmn-moddle/resources/zeebe.json' with { type: 'json' };\n"
 
 const ADAPTER: Readonly<Record<string, string>> = {
+  "src/c8-bpmn-dialect.ts": `${DESCRIPTOR_IMPORT}export const dialect = zeebe;\n`,
+  "src/mapping/reads-a-descriptor.ts": `${DESCRIPTOR_IMPORT}export const vocabulary = zeebe;\n`,
   "src/index.ts":
     "import type { ProcessRuntime } from '@miragon/pulse-engine-core';\nimport type { EngineConnection } from '@miragon/pulse-runtime-view/ports';\nexport type Runtime = ProcessRuntime | EngineConnection;\n",
   "src/reading/uses-node.ts":
@@ -68,6 +73,7 @@ describe("the dependency rules", () => {
     const oauth = at("node_modules/@miragon/pulse-http/dist/oauth/index.d.ts")
     const loopback = at("node_modules/@miragon/pulse-http/dist/testing/loopback/index.d.ts")
     const httpSubpath = "@miragon/pulse-http/attempt"
+    const descriptor = at("node_modules/zeebe-bpmn-moddle/resources/zeebe.json")
     const httpSource = "packages/core/http/src/http.ts"
     expect(adapter.violations()).toEqual([
       `engine-test-runs-the-conformance-kit: ${at("test/c8.engine.test.ts")} -> ${at("test/c8.engine.test.ts")}`,
@@ -76,7 +82,9 @@ describe("the dependency rules", () => {
       `http-by-its-entries: ${at("src/wire/sends-a-test-engine.ts")} -> ${loopback}`,
       `http-only-in-the-wire: ${at("src/errors/asks-for-tokens.ts")} -> ${oauth}`,
       `http-only-in-the-wire: ${at("src/rest/sends-itself.ts")} -> ${http}`,
+      `moddle-descriptor-only-in-the-bpmn-dialect: ${at("src/mapping/reads-a-descriptor.ts")} -> ${descriptor}`,
       `not-in-allowed: ${at("src/errors/asks-for-tokens.ts")} -> ${oauth}`,
+      `not-in-allowed: ${at("src/mapping/reads-a-descriptor.ts")} -> ${descriptor}`,
       `not-in-allowed: ${at("src/reading/uses-node.ts")} -> fs/promises`,
       `not-in-allowed: ${at("src/reads-the-c7-core.ts")} -> @miragon/pulse-c7-core`,
       `not-in-allowed: ${at("src/reads-the-core.ts")} -> ${view}`,

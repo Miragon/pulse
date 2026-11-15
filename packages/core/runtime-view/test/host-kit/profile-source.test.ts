@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest"
-import { LOCAL_TARGET, type EngineTarget } from "../../src/host-kit/connections/engine-target.js"
+import type { EngineTarget } from "../../src/host-kit/connections/engine-target.js"
+import { LOCAL_TARGET } from "./support/local-target.js"
 import { ProfileSource } from "../../src/host-kit/connections/profile-source.js"
 import { TargetsProblem } from "../../src/host-kit/connections/targets-problem.js"
 import { WritePolicy } from "../../src/host-kit/connections/write-policy.js"
