@@ -1,4 +1,3 @@
-import { BpmnStructure } from "../bpmn/bpmn-structure.js"
 import type { InstanceHeader, InstanceView, ParentLink } from "../protocol/index.js"
 import { CalledInstanceLinks } from "./called-instance-links.js"
 import { CallLinks } from "./call-links.js"
@@ -32,7 +31,7 @@ export class InstanceViewBuilder {
       asOf: this.snapshot.asOf.toISOString(),
       instance: header,
       diagramXml: this.snapshot.diagramXml,
-      markers: new InstanceMarkers(detail, BpmnStructure.of(this.snapshot.diagramXml)).markers(),
+      markers: InstanceMarkers.of(detail, this.snapshot.diagramXml).markers(),
       calls: CallLinks.ofInstance(this.snapshot.calledProcesses, detail).links(
         this.snapshot.engine.name,
       ),

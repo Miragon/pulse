@@ -8,6 +8,7 @@ const ENGINE_CORE_ENTRY = "(^|/)node_modules/@miragon/pulse-engine-core/dist/ind
 const ENGINE_CORE_TREE = "^packages/connectors/engine/engine-core/"
 const PROFILE_ENTRY = "(^|/)node_modules/@miragon/pulse-profile/dist/index[.]d[.]ts$"
 const BOARD_ENTRY = "(^|/)node_modules/@miragon/pulse-board/dist/index[.]d[.]ts$"
+const BOARD_BUILDER_ENTRY = "(^|/)node_modules/@miragon/pulse-board/dist/builder/index[.]d[.]ts$"
 const PULSE_UI = "(^|/)node_modules/@miragon/pulse-ui/|^@miragon/pulse-ui(/|$)|^packages/core/ui/"
 const UI_FOUNDATION =
   "(^|/)node_modules/@miragon/pulse-ui/dist/(format|tones)/|^@miragon/pulse-ui/(format|tones)$"
@@ -107,9 +108,9 @@ module.exports = {
     },
     {
       comment:
-        "The core reads the board files with Pulse's board format (@miragon/pulse-board, its main entry: the types of a board, the parser and the vocabulary, no runtime dependency), which the editor hosts bundle with esbuild. The protocol keeps its own board types and imports nothing (protocol-imports-nothing).",
+        "The core reads the board files with Pulse's board format (@miragon/pulse-board, its main entry: the types of a board, the parser and the vocabulary, no runtime dependency) and builds a board's numbers with its builder (@miragon/pulse-board/builder: the seven board reads over the engine contract into a model of no text, and the roll-up onto collapsed sub-processes the definition and instance views draw too), which the editor hosts bundle with esbuild. The protocol keeps its own board types and imports nothing (protocol-imports-nothing).",
       from: { path: `${PACKAGE}src/core/` },
-      to: { path: BOARD_ENTRY },
+      to: { path: [BOARD_ENTRY, BOARD_BUILDER_ENTRY] },
     },
     {
       comment: "The host kit runs in a host's Node and may use Node built-ins.",
@@ -122,7 +123,7 @@ module.exports = {
       name: "not-in-allowed",
       severity: "error",
       comment:
-        "No entry of `allowed` in packages/core/runtime-view/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md). A layer uses its own modules and another layer only through its index.ts: the ports, the core, the model adapter and the host kit speak the main entry of @miragon/pulse-engine-core, the engine family's neutral core (never ./testing), the core and the model adapter reach the ports, the model adapter also bpmn-moddle (never a vendor's descriptor, which its family's adapter brings), core and webview @miragon/pulse-ui/tones and their label helpers (core/views/labels.ts, webview/format/) @miragon/pulse-ui/format, the webview protocol types, its rendering libraries and, for shared building blocks, @miragon/pulse-ui's root and @miragon/pulse-ui/theme.css, the host kit core, protocol, ports and Node built-ins, its connections also @miragon/pulse-profile's main entry, and the core @miragon/pulse-board's main entry. The runtime view knows no editor host and no dialect.",
+        "No entry of `allowed` in packages/core/runtime-view/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md). A layer uses its own modules and another layer only through its index.ts: the ports, the core, the model adapter and the host kit speak the main entry of @miragon/pulse-engine-core, the engine family's neutral core (never ./testing), the core and the model adapter reach the ports, the model adapter also bpmn-moddle (never a vendor's descriptor, which its family's adapter brings), core and webview @miragon/pulse-ui/tones and their label helpers (core/views/labels.ts, webview/format/) @miragon/pulse-ui/format, the webview protocol types, its rendering libraries and, for shared building blocks, @miragon/pulse-ui's root and @miragon/pulse-ui/theme.css, the host kit core, protocol, ports and Node built-ins, its connections also @miragon/pulse-profile's main entry, and the core @miragon/pulse-board's main entry and ./builder. The runtime view knows no editor host and no dialect.",
       from: {},
       to: { path: "^$" },
     },

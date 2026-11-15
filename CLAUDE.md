@@ -57,7 +57,7 @@ command line interface (`apps/cli`), a VS Code extension (`apps/vscode`) and an 
 | `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, `mountPage`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), a module's test server (`/testing`)                                                                                                                                                                                                                                                |
 | `packages/core/runtime-view/`                  | The runtime view both editor hosts compose (`@miragon/pulse-runtime-view`, private) over the contract of `engine-core`: the ports a host and an engine family plug in, the core, the protocol, the webview (React on `@miragon/pulse-ui`), the local model reader and the host kit (targets from `.pulse.json` and the CLI's user config, policies, the write audit)                                                                                                                                                       |
 | `packages/core/profile/`                       | The one profile format of the CLI, the editor hosts and the MCP server (npm `@miragon/pulse-profile`): a parser from a file's text to a verdict per profile as data (a code and a key, never a value), the credential policy by where the file comes from, `refusalsOn` for what a reader cannot serve, the JSON Schema (`schema/pulse.schema.json`) and the shared fixtures (`/testing`); no runtime dependency                                                                                                           |
-| `packages/core/board/`                         | The board file format of the editor hosts and every surface that shows a board (npm `@miragon/pulse-board`): the types of a board, `BoardParser` from a file's text to the board or every problem with its JSON path, `BoardVocabulary` (widgets, filters, columns, limits), `StarterBoard`, the JSON Schema (`schema/board.schema.json`) and the shared fixtures (`/testing`); read by the runtime view's core and the editor hosts; no runtime dependency, Pulse for VS Code's house rules                               |
+| `packages/core/board/`                         | The board file format and builder (npm `@miragon/pulse-board`): its types, `BoardParser` from a file's text to the board or every problem with its JSON path, `BoardVocabulary`, `StarterBoard`, the JSON Schema (`schema/board.schema.json`), the fixtures (`/testing`) and `/builder` (a board's numbers over seven reads of engine-core, an optional peer; no text); read by the runtime view's core and the editor hosts; the format has no runtime dependency; Pulse for VS Code's house rules                        |
 | `packages/core/http/`                          | The one engine transport of the MCP server, the CLI and the editor hosts' adapters (npm `@miragon/pulse-http`) over the `fetch` each hands in: a deadline to the last byte, no redirects, a 64 MiB cap, one retry after a 401, reasons as data, lossless JSON, masking, the path value rule; the OAuth client (`/oauth`); conformance cases, fake fetch (`/testing`), loopback engine (`/testing/loopback`); no dependency                                                                                                 |
 | `playground/`                                  | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `docs/`                                        | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                                                                                                                                                                                                                                                                                                                 |
@@ -113,8 +113,8 @@ Three axes decide where code goes, and they stay apart:
   `/format` and `/tones` and, in tests, `/testing` (the glossary, the count words, the brand gates);
   the runtime view's core, ports, model reader and host kit stay framework-free. The board format
   and the board builder go into a published package, `@miragon/pulse-board`
-  (`packages/core/board`), which holds the format with its dependency rules since 2026-11-15 and
-  takes the builder next; a shared building block
+  (`packages/core/board`), which holds both with their dependency rules since 2026-11-15 (the
+  builder in `@miragon/pulse-board/builder`, whose model the runtime view renders); a shared building block
   goes into pulse-ui (a primitive) or into a shared package created with the first engine block
   two surfaces render. `docs/vscode/parity.md` lists what still differs between the views both
   show.
@@ -154,7 +154,10 @@ of a family's adapter) and where the runtime view reads the contract's answers (
 contract): the runtime view's layers that speak it (`src/ports`, `src/core`, `src/model`,
 `src/host-kit`, never its webview) and the editor hosts' src, which name its ids
 (`engine-core-consumers`); `packages/core/runtime-view` importing a family's core is the one edge
-of the foundation into a family, which the owner accepted (`runtime-view-builds-on-the-engine-contract`).
+of the foundation into a family, which the owner accepted (`runtime-view-builds-on-the-engine-contract`),
+and the board builder (`@miragon/pulse-board/builder`, `packages/core/board/src/builder`) the
+named exception written like it: it reads seven reads of `ProcessRuntime` through engine-core's
+main entry alone (`board-builder-builds-on-the-engine-contract`), the format stays a leaf.
 The ports only the editor hosts need (`EngineAdapter`, the engine's web UI, the local model and
 its code) stay in the runtime view's `src/ports`, never in engine-core. The engine connector
 (although engine-core is its own family's core) or the CLI importing it directly waits until it
@@ -885,10 +888,17 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      it, the connector its engines under the credential policy `env`: a secret only by the name of an
      `ENGINE_SECRET_*` variable); the board format (`@miragon/pulse-board`, `packages/core/board`)
      is a leaf too, which takes the text of a board file and returns the board or every problem
-     with its JSON path, reading no file and no engine (`board-format-is-a-leaf`), and only where a
-     surface reads its board files is it imported: the runtime view's core (its closed world keeps
-     the protocol, which holds its own board types, free of it) and the editor hosts' src, and tests
-     (`board-consumers`, `BOARD_READERS`; the engine connector joins when it shows a board); the
+     with its JSON path, reading no file and no engine, and never reaches its builder
+     (`board-format-is-a-leaf`), and only where a surface reads its board files is it imported: the
+     runtime view's core (its closed world keeps the protocol, which holds its own board types, free
+     of it) and the editor hosts' src, and tests (`board-consumers`, `BOARD_READERS`; the engine
+     connector joins when it shows a board); its builder (`@miragon/pulse-board/builder`,
+     `src/builder`) is the package's named exception, which imports only its own modules, the
+     format and engine-core's main entry, no npm package and no Node built-in
+     (`board-builder-builds-on-the-engine-contract`; engine-core an optional peer), and only the
+     runtime view's core and tests import it (`board-builder-consumers`, `BOARD_BUILDERS`); the
+     package's tests that read the contract import of the families engine-core alone, by its
+     entries (`board-tests-build-on-the-engine-contract`); the
      transport (`@miragon/pulse-http`, `packages/core/http`) is a leaf too, which
      runs over an injected `fetch` on the web platform's globals, no npm package and no Node
      built-in (`http-is-a-leaf`; ESLint's `no-restricted-globals` keeps out what only a browser
@@ -911,10 +921,12 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      entry alone (`family-core-is-a-leaf`; c7-core takes `RootCauses` from it, so the CLI
      bundles it with c7-core and never imports it), and the src of a family's adapter
      (`ENGINE_CORE_IMPLEMENTERS`), where the runtime view reads the contract's answers, its
-     layers `src/ports`, `src/core`, `src/model` and `src/host-kit` (never its webview) and the
-     editor hosts' src (`ENGINE_CORE_READERS`; the closed worlds hold them to the main entry and
+     layers `src/ports`, `src/core`, `src/model` and `src/host-kit` (never its webview), the
+     editor hosts' src and the board builder (`ENGINE_CORE_READERS`; the closed worlds and
+     `board-builder-builds-on-the-engine-contract` hold them to the main entry, the closed worlds
      their tests and dev harnesses to the package's entries), and by test files and test-support
-     anywhere and the test trees of the runtime view and the adapters (`ENGINE_CORE_TESTS`);
+     anywhere and the test trees of the runtime view, the adapters and the board package
+     (`ENGINE_CORE_TESTS`);
      never the engine connector (although it is its own family's core) or the CLI until they
      serve a second dialect, another family's core or a `./testing`
      entry, which ships (`engine-core-consumers`), and it keeps the extension's ESLint house
@@ -1047,11 +1059,12 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
   (`save-exact=true` in `.npmrc`). Consumer-shared libraries are RANGED `peerDependencies`, so
   a downstream app dedupes them (`react`/`react-dom` `^19.2.0`, `zod` `^4.4.0`, `bpmn-js`
   `^18.31.1`, `@miragon/pulse-ui` and `@miragon/pulse-widget-shell` as `workspace:^`, packed to
-  `^<version>`), each also an EXACT devDependency. `bpmn-js` is a peer of widget-shell
-  (`./widgets` exports the BPMN viewer, so every view bundle imports it) and of the engine
-  connector, which draws diagrams. A published package imports only what its `dependencies` or
-  `peerDependencies` declare (`scripts/published-imports.test.mjs`), and its tarball ships no
-  test, every module its entries reach and every source its maps name
+  `^<version>`; `@miragon/pulse-engine-core` too, an optional peer of `@miragon/pulse-board`,
+  whose `./builder` alone reads it), each also an EXACT devDependency. `bpmn-js` is a peer of
+  widget-shell (`./widgets` exports the BPMN viewer, so every view bundle imports it) and of the
+  engine connector, which draws diagrams. A published package imports only what its
+  `dependencies` or `peerDependencies` declare (`scripts/published-imports.test.mjs`), and its
+  tarball ships no test, every module its entries reach and every source its maps name
   (`scripts/pack-contents.mjs`, run by `scripts/test-template.sh`): each library ships `dist`
   and its `src` (a connector's is the template's reference implementation). The official SDK
   (`@modelcontextprotocol/server`, `/node`, `/ext-apps`) follows the same split: a ranged peer

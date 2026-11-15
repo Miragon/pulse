@@ -205,12 +205,45 @@ const PROFILE_READERS = [
 const BOARD = { name: "@miragon/pulse-board", tree: "packages/core/board" }
 
 /**
- * Where a surface reads its board files, the only shipped importers of BOARD: the runtime view's
- * core (the board panel both editor hosts open; its closed world admits the edge on its own and
- * keeps the protocol free of it) and the src of the editor hosts (Pulse for VS Code's Boards
- * view). Tests import it anywhere.
+ * Where a surface reads its board files, the only shipped importers of BOARD's main entry: the
+ * runtime view's core (the board panel both editor hosts open; its closed world admits the edge on
+ * its own and keeps the protocol free of it) and the src of the editor hosts (Pulse for VS Code's
+ * Boards view). Tests import it anywhere.
  */
 const BOARD_READERS = [`${RUNTIME_VIEW_TREE}src/core/`, ...EDITOR_HOST_SOURCES]
+
+/**
+ * The board builder (`@miragon/pulse-board/builder`, the package's src/builder/): a board's
+ * numbers over the seven board reads of the engine contract, a model of no text, and the roll-up
+ * onto collapsed sub-processes. The package's named exception, written like the runtime view's:
+ * it builds on the main entry of engine-core (board-builder-builds-on-the-engine-contract), the
+ * format stays a leaf. As an import reaches it: a relative escape into its tree, resolved through
+ * an importer's node_modules to its build (shape 2) or bare (shape 3).
+ */
+const BOARD_BUILDER_TREE = `^${escapeRegExp(BOARD.tree)}/src/builder/`
+const BOARD_BUILDER = [
+  BOARD_BUILDER_TREE,
+  `(?:^|/)node_modules/${escapeRegExp(BOARD.name)}/dist/builder/`,
+  `^${escapeRegExp(BOARD.name)}/builder(?:/|$)`,
+]
+
+/**
+ * Where a surface builds a board's numbers, the only shipped importers of the builder: the runtime
+ * view's core (the board panel and the definition and instance views, which draw the same roll-up).
+ * The engine connector joins when it shows a board, by a rule change of its own. Tests import it
+ * anywhere.
+ */
+const BOARD_BUILDERS = [`${RUNTIME_VIEW_TREE}src/core/`]
+
+/**
+ * The board package's tests that read the engine contract its builder builds on: its test tree and
+ * the builder's own test files. core-is-foundation leaves them out, since they import engine-core
+ * and its ./testing entry (the kit's fake and world); board-tests-build-on-the-engine-contract
+ * keeps every other family's package out of them. The format's own tests stay under
+ * core-is-foundation.
+ */
+const BOARD_TEST_TREE = `^${escapeRegExp(BOARD.tree)}/test/`
+const BOARD_TESTS = [BOARD_TEST_TREE, `${BOARD_BUILDER_TREE}.+[.]test[.]ts$`]
 
 /**
  * The transport (packages/core/http, npm `@miragon/pulse-http`): one HTTP client over an
@@ -289,25 +322,32 @@ const ENGINE_CORE_IMPLEMENTERS = [
  * engine-core, one home of the contract): the runtime view's layers that speak it (src/ports, the
  * ports an editor host and an engine family plug in; src/core; src/model; src/host-kit), never its
  * webview, which renders protocol view models, and the editor hosts' src, which wire them and
- * name ids. Their closed worlds hold each to engine-core's main entry. The engine connector
+ * name ids. Their closed worlds hold each to engine-core's main entry. The board builder
+ * (`@miragon/pulse-board/builder`, BOARD_BUILDER_TREE) reads the seven board reads through it too,
+ * held to the main entry by board-builder-builds-on-the-engine-contract. The engine connector
  * (although engine-core is its own family's core, which engine-connector-spans-the-dialects
  * admits) and the CLI do not, until they serve a second dialect (owner decision 2026-11-09): they
  * reach it through c7-core's causeOf. Test files and test-support import it anywhere, the
- * test trees of the runtime view and the adapters too (ENGINE_CORE_TESTS).
+ * test trees of the runtime view, the adapters and the board package too (ENGINE_CORE_TESTS).
  */
 const ENGINE_CORE_READERS = [
   `${RUNTIME_VIEW_TREE}src/(?:ports|core|model|host-kit)/`,
   ...EDITOR_HOST_SOURCES,
+  BOARD_BUILDER_TREE,
 ]
 
 /**
- * The test trees of the packages that run the contract, the runtime view's and the family
- * adapters' (their support modules, fakes and worlds, which are no *.test.ts): they import
- * engine-core and its ./testing entry. Another package's test tree imports it only from a test
- * file or test-support, as its src does. The editor hosts' test trees answer to their closed
- * worlds; the CLI's are cli-is-headless's.
+ * The test trees of the packages that run the contract, the runtime view's, the family
+ * adapters' and the board package's, whose builder reads it (their support modules, fakes and
+ * worlds, which are no *.test.ts): they import engine-core and its ./testing entry. Another
+ * package's test tree imports it only from a test file or test-support, as its src does. The
+ * editor hosts' test trees answer to their closed worlds; the CLI's are cli-is-headless's.
  */
-const ENGINE_CORE_TESTS = [`${RUNTIME_VIEW_TREE}test/`, `${FAMILY_ADAPTER_TREE}test/`]
+const ENGINE_CORE_TESTS = [
+  `${RUNTIME_VIEW_TREE}test/`,
+  `${FAMILY_ADAPTER_TREE}test/`,
+  BOARD_TEST_TREE,
+]
 
 /**
  * engine-core's main entry as an import reaches it: resolved through the importer's
@@ -541,8 +581,14 @@ module.exports = {
         "families need the same thing, extract it INTO a core package (on the second concrete " +
         "consumer); what one family needs stays in that family (its -core), never in packages/core. " +
         "What every dialect implements lives in the engine family's core, engine-core, not here. " +
-        "The runtime view answers to runtime-view-builds-on-the-engine-contract.",
-      from: { path: "^packages/core/", pathNot: RUNTIME_VIEW_TREE },
+        "The runtime view answers to runtime-view-builds-on-the-engine-contract, the board " +
+        "builder (packages/core/board/src/builder) to board-builder-builds-on-the-engine-contract " +
+        "and the board package's tests that read the engine contract (its test tree, the " +
+        "builder's own tests) to board-tests-build-on-the-engine-contract.",
+      from: {
+        path: "^packages/core/",
+        pathNot: [RUNTIME_VIEW_TREE, BOARD_BUILDER_TREE, BOARD_TEST_TREE],
+      },
       to: {
         path: [
           "^packages/connectors/",
@@ -814,14 +860,59 @@ module.exports = {
       name: "board-format-is-a-leaf",
       severity: "error",
       comment:
-        "The board format (packages/core/board, @miragon/pulse-board) has no runtime " +
-        "dependency: its shipped code imports only its own modules, no workspace package, no " +
-        "npm package and no Node built-in. It parses the text of a board file a reader hands " +
-        "it: finding and reading the file, the engines a board names, the reads of its numbers " +
-        "and every word a person reads around its problems stay with the reader (the runtime " +
-        "view's board panel, Pulse for VS Code's Boards view). Its tests may import vitest.",
-      from: { path: `^${escapeRegExp(BOARD.tree)}/src/`, pathNot: ["[.]test[.]ts$"] },
-      to: { pathNot: `^${escapeRegExp(BOARD.tree)}/src/` },
+        "The board format (packages/core/board, @miragon/pulse-board, its main entry and " +
+        "./testing) has no runtime dependency: its shipped code imports only its own modules, " +
+        "never the builder (src/builder), no workspace package, no npm package and no Node " +
+        "built-in. It parses the text of a board file a reader hands it: finding and reading " +
+        "the file, the engines a board names and every word a person reads around its problems " +
+        "stay with the reader (the runtime view's board panel, Pulse for VS Code's Boards view); " +
+        "the reads of its numbers are the builder's. Its tests may import vitest.",
+      from: {
+        path: `^${escapeRegExp(BOARD.tree)}/src/`,
+        pathNot: ["[.]test[.]ts$", BOARD_BUILDER_TREE],
+      },
+      to: { pathNot: `^${escapeRegExp(BOARD.tree)}/src/(?!builder/)` },
+    },
+    {
+      name: "board-builder-builds-on-the-engine-contract",
+      severity: "error",
+      comment:
+        "The board builder (packages/core/board/src/builder, @miragon/pulse-board/builder) is the " +
+        "board package's one edge into a family, the named exception written like the runtime " +
+        "view's (decided with the package's home on 2026-11-15): it builds a board's numbers " +
+        "over the seven board reads of the engine contract, so it imports its own modules, the " +
+        "board format (src/format) and the main entry of @miragon/pulse-engine-core (an optional " +
+        "peer of the package), nothing else: no other subpath of engine-core (./testing ships " +
+        "the kit), no relative escape into its tree, no other workspace package, no npm package " +
+        "and no Node built-in. Every word, format and navigation stays with the surface that " +
+        "renders the model (the runtime view's BoardViews). Its tests may import vitest and the " +
+        "kit.",
+      from: { path: BOARD_BUILDER_TREE, pathNot: ["[.]test[.]ts$"] },
+      to: {
+        pathNot: [`^${escapeRegExp(BOARD.tree)}/src/(?:builder|format)/`, ...ENGINE_CORE_ENTRY],
+      },
+    },
+    {
+      name: "board-tests-build-on-the-engine-contract",
+      severity: "error",
+      comment:
+        "The board package's tests that read the engine contract its builder builds on, its " +
+        "test tree (packages/core/board/test) and the builder's own tests " +
+        "(packages/core/board/src/builder/*.test.ts), which core-is-foundation leaves out, import " +
+        "of the families only @miragon/pulse-engine-core, by its package entries: the main entry " +
+        "and ./testing, the kit's fake and world (engine-core-consumers admits both). No " +
+        "connector, client, adapter or other family core (a dialect's core such as c7-core stays " +
+        "with its family's adapter; a board test reads the contract over the kit's fake), and no " +
+        "relative escape into engine-core's tree. The format's own tests answer to " +
+        "core-is-foundation.",
+      from: { path: BOARD_TESTS },
+      to: {
+        path: [
+          "^packages/connectors/",
+          "@miragon/pulse-[^/]+-(connector|client|core|adapter)(/|$)",
+        ],
+        pathNot: npm(escapeRegExp(ENGINE_CORE.name)),
+      },
     },
     {
       name: "board-consumers",
@@ -833,7 +924,8 @@ module.exports = {
         "src of the editor hosts (apps/vscode, apps/orca: the Boards view), and by tests " +
         "anywhere. Not the runtime view's other layers, no other package and no other app " +
         "until it shows a board itself, through a rule change of its own. A relative escape " +
-        "into packages/core/board is a violation too.",
+        "into packages/core/board is a violation too. Its builder answers to " +
+        "board-builder-consumers.",
       from: {
         pathNot: [
           ...BOARD_READERS,
@@ -842,7 +934,32 @@ module.exports = {
           `^${PACKAGE_ROOT}/(?:test|test-host)/`,
         ],
       },
-      to: { path: [`^${escapeRegExp(BOARD.tree)}/`, ...npm(escapeRegExp(BOARD.name))] },
+      to: {
+        path: [`^${escapeRegExp(BOARD.tree)}/`, ...npm(escapeRegExp(BOARD.name))],
+        pathNot: BOARD_BUILDER,
+      },
+    },
+    {
+      name: "board-builder-consumers",
+      severity: "error",
+      comment:
+        "The board builder (@miragon/pulse-board/builder) may be imported only where a surface " +
+        "builds a board's numbers (BOARD_BUILDERS): the runtime view's core " +
+        "(packages/core/runtime-view/src/core: the board panel, and the definition and instance " +
+        "views, which draw the same roll-up onto collapsed sub-processes), and by tests anywhere. " +
+        "Not the editor hosts' src (they read board files, the runtime view builds their numbers), " +
+        "not the runtime view's other layers, no other package and no other app until it shows a " +
+        "board itself, through a rule change of its own. A relative escape into " +
+        "packages/core/board/src/builder is a violation too.",
+      from: {
+        pathNot: [
+          ...BOARD_BUILDERS,
+          `^${escapeRegExp(BOARD.tree)}/(?:src|test)/`,
+          ...SRC_TEST_CODE,
+          `^${PACKAGE_ROOT}/(?:test|test-host)/`,
+        ],
+      },
+      to: { path: BOARD_BUILDER },
     },
     {
       name: "http-is-a-leaf",
@@ -911,12 +1028,13 @@ module.exports = {
         "implements) is imported only where a dialect is implemented (ENGINE_CORE_IMPLEMENTERS): " +
         "the src of a dialect's core (a family ENGINE_DIALECTS names), never its ./testing entry " +
         "(src/testing/, which ships on npm), and the src of a family's adapter of the runtime " +
-        "view; and where the runtime view reads the contract's answers (ENGINE_CORE_READERS): " +
-        "its layers src/ports, src/core, src/model and src/host-kit (never its webview, which " +
-        "renders protocol view models) and the src of the editor hosts, apps/vscode and apps/orca; " +
-        "by test files and test-support anywhere and in the test trees of the runtime view and " +
-        "the adapters. Not another family's " +
-        "core, not " +
+        "view; and where the contract's answers are read (ENGINE_CORE_READERS): the runtime " +
+        "view's layers src/ports, src/core, src/model and src/host-kit (never its webview, which " +
+        "renders protocol view models), the src of the editor hosts, apps/vscode and apps/orca, " +
+        "and the board builder (packages/core/board/src/builder, held to the main entry by " +
+        "board-builder-builds-on-the-engine-contract); by test files and test-support anywhere " +
+        "and in the test trees of the runtime view, the adapters and the board package " +
+        "(ENGINE_CORE_TESTS). Not another family's core, not " +
         "the engine connector (although engine-core is its own family's core) and not the CLI, " +
         "until they serve a second dialect (owner decision 2026-11-09: they reach it through " +
         "c7-core's causeOf), not the MCP server app and no other package. A relative escape into " +

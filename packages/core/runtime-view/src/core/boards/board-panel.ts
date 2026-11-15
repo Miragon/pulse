@@ -1,10 +1,11 @@
 import { BoardParser, type BoardDefinition } from "@miragon/pulse-board"
+import { BoardBuilder } from "@miragon/pulse-board/builder"
 import { BpmnProcessId, InstanceId } from "@miragon/pulse-engine-core"
 import type { Panel } from "../panels/panel.js"
 import type { BoardView, WebviewIntent } from "../protocol/index.js"
 import type { BoardContext } from "./board-engine.js"
 import { BoardTargets } from "./board-targets.js"
-import { BoardViewBuilder } from "./board-view-builder.js"
+import { BoardViews, type BoardSource } from "./board-views.js"
 
 export class BoardPanel implements Panel {
   private board: BoardDefinition | undefined
@@ -81,16 +82,21 @@ export class BoardPanel implements Panel {
     if (ticket === this.latest) {
       this.board = parsed.board
     }
-    const engines = this.context.engines(parsed.board.engines)
-    return BoardViewBuilder.build(parsed.board, engines, { fileName, asOf, problems: [] })
+    return this.build(parsed.board, { fileName, asOf, problems: [] })
   }
 
-  private async fallback(source: Parameters<typeof BoardViewBuilder.unreadable>[0]) {
+  private async fallback(source: BoardSource): Promise<BoardView> {
     const board = this.board
     if (board === undefined) {
-      return BoardViewBuilder.unreadable(source)
+      return BoardViews.unreadable(source)
     }
-    return BoardViewBuilder.build(board, this.context.engines(board.engines), source)
+    return this.build(board, source)
+  }
+
+  private async build(board: BoardDefinition, source: BoardSource): Promise<BoardView> {
+    const views = new BoardViews(this.context.engines(board.engines))
+    const model = await BoardBuilder.build(board, views.sources())
+    return views.of(model, source)
   }
 
   private publish(refreshing: boolean): void {

@@ -331,11 +331,11 @@ const ENGINE_CORE_SRC = "packages/connectors/engine/engine-core/src/**/*.{ts,mts
 const ENGINE_CORE_TESTS = "packages/connectors/engine/engine-core/test/**/*.ts"
 const ENGINE_CORE_CONFIGS = "packages/connectors/engine/engine-core/*.ts"
 const ENGINE_CORE_PROBE = "packages/connectors/engine/engine-core/test/runtime.boundary.ts"
-// The board format (packages/core/board), which left the runtime view's core for a package of its
-// own, keeps every one of these rules too, as engine-core does: each block that held engine-core
-// names the package's paths beside it (BOARD_SRC, BOARD_TESTS, BOARD_CONFIGS). It is no family's
-// package, so the connector resource gate stays out of its union, and its engine words say where
-// they belong in its own terms (BOARD_WORDS_MESSAGE).
+// The board format and its builder (packages/core/board), which left the runtime view's core for a
+// package of their own, keep every one of these rules too, as engine-core does: each block that
+// held engine-core names the package's paths beside it (BOARD_SRC, BOARD_TESTS, BOARD_CONFIGS). It
+// is no family's package, so the connector resource gate stays out of its union, and its engine
+// words say where they belong in its own terms (BOARD_WORDS_MESSAGE).
 const BOARD_SRC = "packages/core/board/src/**/*.{ts,mts,cts,tsx}"
 const BOARD_TESTS = "packages/core/board/test/**/*.ts"
 const BOARD_CONFIGS = "packages/core/board/*.ts"
@@ -369,7 +369,7 @@ const VSCODE_ENGINE_WORDS_MESSAGE =
 const ENGINE_CORE_WORDS_MESSAGE =
   "Engine vocabulary belongs in a dialect's implementation (its engine adapter, its core), never in the engine family's neutral core, the contract every dialect implements. Use the contract's neutral words (elementId, definitionId, bpmnProcessId, instanceId)."
 const BOARD_WORDS_MESSAGE =
-  "Engine vocabulary belongs in a dialect's implementation (its engine adapter, its core), never in the board format, which every surface reads the same. Use the board's own words and the contract's neutral ones (process, activeElement, elementId, bpmnProcessId, instanceId)."
+  "Engine vocabulary belongs in a dialect's implementation (its engine adapter, its core), never in the board format and its builder, which every surface reads the same. Use the board's own words and the contract's neutral ones (process, activeElement, elementId, bpmnProcessId, instanceId)."
 const VSCODE_HOST_COLOUR_MESSAGE =
   "The webview takes no colour from VS Code. Use a Miragon token (--cd-*) from packages/core/runtime-view/src/webview/theme instead of a --vscode-* variable."
 const VSCODE_CLASS_MESSAGE =

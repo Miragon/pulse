@@ -137,6 +137,9 @@ const PROFILE_LEAF = "profile-is-a-leaf"
 const PROFILE_USERS = "profile-consumers"
 const BOARD_LEAF = "board-format-is-a-leaf"
 const BOARD_USERS = "board-consumers"
+const BOARD_BUILDER = "board-builder-builds-on-the-engine-contract"
+const BOARD_BUILDER_USERS = "board-builder-consumers"
+const BOARD_TESTS = "board-tests-build-on-the-engine-contract"
 const HTTP_LEAF = "http-is-a-leaf"
 const HTTP_USERS = "http-consumers"
 const HTTP_LOOPBACK = "http-loopback-only-its-sockets"
@@ -199,6 +202,7 @@ const PROFILE_NAME = "@miragon/pulse-profile"
 const PROFILE_SRC = `${PROFILE}/src/index.ts`
 const BOARD_NAME = "@miragon/pulse-board"
 const BOARD_SRC = `${BOARD}/src/index.ts`
+const BOARD_BUILDER_SRC = `${BOARD}/src/builder/index.ts`
 const HTTP_NAME = "@miragon/pulse-http"
 const HTTP_SRC = `${HTTP}/src/index.ts`
 const ENGINE_CORE_NAME = "@miragon/pulse-engine-core"
@@ -257,6 +261,8 @@ const LEAVES = [
   `${PROFILE}/src/lib.ts`,
   `${BOARD}/src/target.ts`,
   `${BOARD}/src/format/lib.ts`,
+  `${BOARD}/src/builder/lib.ts`,
+  `${BOARD}/dist/builder/index.js`,
   `${HTTP}/src/target.ts`,
   `${HTTP}/src/lib.ts`,
   `${ENGINE_CORE}/src/target.ts`,
@@ -489,9 +495,87 @@ const SUITES = [
       [BOARD_SRC, "@miragon/pulse-cli", [NO_APP, BOARD_LEAF]],
       ...["zod", "react", "reactive", "node:fs"].map((spec) => [BOARD_SRC, spec, [BOARD_LEAF]]),
       [`${BOARD}/src/format/escape.ts`, "../../../ui/src/target.ts", [BOARD_LEAF, DEEP]],
+      // The format never reaches its builder: the main entry, the format and ./testing stay free
+      // of the engine contract the builder reads.
+      [`${BOARD}/src/format/builds.ts`, "../builder/lib.ts", [BOARD_LEAF]],
+      [`${BOARD}/src/builds.ts`, "./builder/lib.ts", [BOARD_LEAF]],
+      [`${BOARD}/src/testing/builds.ts`, "../builder/lib.ts", [BOARD_LEAF]],
       [`${BOARD}/src/format/parser.ts`, "./lib.ts", []],
       [`${BOARD}/src/entry.ts`, "./format/lib.ts", []],
       [`${BOARD}/src/a.test.ts`, "vitest", []],
+    ],
+  },
+  {
+    rule: BOARD_BUILDER,
+    title:
+      "the board builder imports its own modules, the format and engine-core's main entry: no " +
+      "other package, no npm module, no built-in",
+    cases: [
+      [BOARD_BUILDER_SRC, `${ENGINE_CORE_NAME}/testing`, [BOARD_BUILDER, NO_TESTING]],
+      [`${BOARD}/src/builder/model.ts`, `${ENGINE_CORE_NAME}/model`, [BOARD_BUILDER]],
+      [
+        `${BOARD}/src/builder/escape.ts`,
+        "../../../../connectors/engine/engine-core/src/target.ts",
+        [BOARD_BUILDER, DEEP],
+      ],
+      [
+        `${BOARD}/src/builder/escape-build.ts`,
+        "../../../../connectors/engine/engine-core/dist/index.js",
+        [BOARD_BUILDER, DEEP],
+      ],
+      [BOARD_BUILDER_SRC, C7_CORE, [BOARD_BUILDER]],
+      [BOARD_BUILDER_SRC, "@miragon/pulse-c7-client", [BOARD_BUILDER, CLIENT_USERS]],
+      [BOARD_BUILDER_SRC, "@miragon/pulse-ui", [BOARD_BUILDER]],
+      [BOARD_BUILDER_SRC, PROFILE_NAME, [BOARD_BUILDER, PROFILE_USERS]],
+      ...["zod", "react", "reactive", "node:fs"].map((spec) => [
+        BOARD_BUILDER_SRC,
+        spec,
+        [BOARD_BUILDER],
+      ]),
+      [`${BOARD}/src/builder/escape-ui.ts`, "../../../ui/src/target.ts", [BOARD_BUILDER, DEEP]],
+      // Allowed: engine-core's main entry, the format, its own modules, and in its tests vitest
+      // and the kit (the package's test tree reads engine-core like the runtime view's).
+      [BOARD_BUILDER_SRC, ENGINE_CORE_NAME, []],
+      [`${BOARD}/src/builder/reads.ts`, ENGINE_CORE_NAME, [], "type"],
+      [`${BOARD}/src/builder/tiles.ts`, "../format/lib.ts", []],
+      [`${BOARD}/src/builder/builder.ts`, "./lib.ts", []],
+      [`${BOARD}/src/builder/a.test.ts`, "vitest", []],
+      [`${BOARD}/test/builder/support/world.ts`, `${ENGINE_CORE_NAME}/testing`, []],
+      [`${BOARD}/test/builder/tiles.test.ts`, ENGINE_CORE_NAME, []],
+    ],
+  },
+  {
+    rule: BOARD_TESTS,
+    title:
+      "the board package's tests read the engine contract: engine-core by its entries, no other " +
+      "family's package",
+    cases: [
+      // Its test tree, a test file or a support module, and the builder's own test files.
+      [`${BOARD}/test/builder/support/probe.ts`, C7_CORE, [BOARD_TESTS]],
+      [`${BOARD}/test/builder/probe.test.ts`, C7_CORE, [BOARD_TESTS]],
+      [`${BOARD}/test/format/routes.test.ts`, `${C7_CORE}/routes`, [BOARD_TESTS]],
+      [`${BOARD}/src/builder/probe.test.ts`, C7_CORE, [BOARD_TESTS]],
+      [`${BOARD}/test/builder/support/module.ts`, "@miragon/pulse-engine-connector", [BOARD_TESTS]],
+      [`${BOARD}/test/builder/client.test.ts`, "@miragon/pulse-c7-client", [BOARD_TESTS]],
+      [`${BOARD}/test/builder/adapter.test.ts`, ADAPTER, [ADAPTER_USERS, BOARD_TESTS]],
+      [`${BOARD}/test/builder/billing.test.ts`, BILLING_CORE_NAME, [BOARD_TESTS]],
+      [
+        `${BOARD}/test/builder/escape-c7.test.ts`,
+        "../../../../connectors/c7/c7-core/src/target.ts",
+        [BOARD_TESTS, DEEP],
+      ],
+      // Not engine-core by path either: its package entries only.
+      [
+        `${BOARD}/test/builder/support/escape.ts`,
+        "../../../../../connectors/engine/engine-core/src/target.ts",
+        [BOARD_TESTS, DEEP],
+      ],
+      // Allowed: engine-core's main entry and its kit, the package's own modules, the runner.
+      [`${BOARD}/test/builder/support/fake.ts`, `${ENGINE_CORE_NAME}/testing`, []],
+      [`${BOARD}/test/builder/reads.test.ts`, ENGINE_CORE_NAME, []],
+      [`${BOARD}/src/builder/kit.test.ts`, `${ENGINE_CORE_NAME}/testing`, []],
+      [`${BOARD}/test/builder/own.test.ts`, "../../src/builder/lib.ts", []],
+      [`${BOARD}/test/format/runner.test.ts`, "vitest", []],
     ],
   },
   {
@@ -527,6 +611,41 @@ const SUITES = [
       [`${RUNTIME_VIEW}/test/core/support/board.ts`, BOARD_NAME, []],
       [`${SHELL}/test/support/board.ts`, BOARD_NAME, []],
       [`${SHELL}/src/board.test.ts`, BOARD_NAME, []],
+    ],
+  },
+  {
+    rule: BOARD_BUILDER_USERS,
+    title: "the board builder is imported where a surface builds a board's numbers, and in tests",
+    cases: [
+      // The editor hosts read board files; the runtime view builds their numbers.
+      [EXT_SRC, `${BOARD_NAME}/builder`, [BOARD_BUILDER_USERS]],
+      [ORCA_SRC, `${BOARD_NAME}/builder`, [BOARD_BUILDER_USERS]],
+      // Shape 2: resolved through the importer's node_modules to the build.
+      [`${EXT}/src/host/built.ts`, `${BOARD_NAME}/dist/builder/index.js`, [BOARD_BUILDER_USERS]],
+      [
+        `${EXT}/src/host/escape-builder.ts`,
+        "../../../../packages/core/board/src/builder/lib.ts",
+        [BOARD_BUILDER_USERS, DEEP],
+      ],
+      // The engine connector shows no board yet: it joins by a rule change of its own.
+      [ENGINE_CONNECTOR_SRC, `${BOARD_NAME}/builder`, [BOARD_BUILDER_USERS]],
+      [SERVER_SRC, `${BOARD_NAME}/builder`, [BOARD_BUILDER_USERS]],
+      [SHELL_SRC, `${BOARD_NAME}/builder`, [BOARD_BUILDER_USERS]],
+      [
+        `${SERVER}/src/escape-builder.ts`,
+        "../../../packages/core/board/src/builder/lib.ts",
+        [BOARD_BUILDER_USERS, DEEP],
+      ],
+      // Of the runtime view only its core builds a board's numbers.
+      [`${RUNTIME_VIEW}/src/host-kit/builder.ts`, `${BOARD_NAME}/builder`, [BOARD_BUILDER_USERS]],
+      [`${RUNTIME_VIEW}/src/webview/builder.ts`, `${BOARD_NAME}/builder`, [BOARD_BUILDER_USERS]],
+      // Allowed: the runtime view's core (the board panel, the views that draw the roll-up), and
+      // tests anywhere.
+      [`${RUNTIME_VIEW}/src/core/boards/board-panel.ts`, `${BOARD_NAME}/builder`, []],
+      [`${RUNTIME_VIEW}/src/core/views/element-badges.ts`, `${BOARD_NAME}/builder`, [], "type"],
+      [`${RUNTIME_VIEW}/test/core/board-views.test.ts`, `${BOARD_NAME}/builder`, []],
+      [`${RUNTIME_VIEW}/test/core/support/builder.ts`, `${BOARD_NAME}/builder`, []],
+      [`${EXT}/src/host/builder.test.ts`, `${BOARD_NAME}/builder`, []],
     ],
   },
   {
@@ -746,6 +865,11 @@ const SUITES = [
       [`${C7}/src/cause.test.ts`, `${ENGINE_CORE_NAME}/testing`, []],
       [`${ENGINE_CONNECTOR}/src/contract.test-support.ts`, `${ENGINE_CORE_NAME}/testing`, []],
       [`${ENGINE_CORE}/src/testing/kit.ts`, "../ports.ts", []],
+      // The board builder reads the contract's main entry, the board package's tests its kit;
+      // the format never.
+      [`${BOARD}/src/builder/contract.ts`, ENGINE_CORE_NAME, []],
+      [`${BOARD}/test/builder/world.ts`, `${ENGINE_CORE_NAME}/testing`, []],
+      [`${BOARD}/src/format/contract.ts`, ENGINE_CORE_NAME, [BOARD_LEAF, CORE, ENGINE_CORE_USERS]],
     ],
   },
   {
@@ -1248,6 +1372,11 @@ const SUITES = [
       [SHELL_SRC, "hono", []],
       [`${SHELL}/src/ui/view.ts`, "@miragon/pulse-ui", []],
       [SHELL_SRC, "@miragon/pulse-mcp-server-kit", []],
+      // The board builder answers to its own rule, the board package's tests to
+      // board-tests-build-on-the-engine-contract; the rest of the board package to this one.
+      [`${BOARD}/src/builder/engine.ts`, ENGINE_CORE_NAME, []],
+      [`${BOARD}/test/builder/kit.ts`, `${ENGINE_CORE_NAME}/testing`, []],
+      [`${BOARD}/src/testing/connector.ts`, "@miragon/pulse-engine-connector", [CORE, BOARD_LEAF]],
     ],
   },
   {

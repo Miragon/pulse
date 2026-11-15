@@ -141,6 +141,21 @@ const PLANTED: Readonly<Record<string, string>> = {
     "import type { BoardColumn } from '@miragon/pulse-board';\nexport type Column = BoardColumn;\n",
   "test/core/reads-a-board.test.ts":
     "import { BoardVocabulary } from '@miragon/pulse-board';\nexport const vocabulary = BoardVocabulary;\n",
+  "src/core/builds-a-board.ts":
+    "import { BoardBuilder } from '@miragon/pulse-board/builder';\nexport const builder = BoardBuilder;\n",
+  "src/core/views/rolls-up-badges.ts":
+    "import { DiagramBadges } from '@miragon/pulse-board/builder';\nexport const badges = DiagramBadges;\n",
+  "src/core/protocol/builds-a-board.ts":
+    "import type { BoardModel } from '@miragon/pulse-board/builder';\nexport type Model = BoardModel;\n",
+  "src/host-kit/builds-a-board.ts":
+    "import { BoardBuilder } from '@miragon/pulse-board/builder';\nexport const builder = BoardBuilder;\n",
+  "src/webview/builds-a-board.ts":
+    "import type { BoardModel } from '@miragon/pulse-board/builder';\nexport type Model = BoardModel;\n",
+  "test/core/builds-a-board.test.ts":
+    "import { BoardBuilder } from '@miragon/pulse-board/builder';\nexport const builder = BoardBuilder;\n",
+  "src/core/escapes-into-the-builder.ts":
+    "import { BoardBuilder } from '../../../board/src/builder/index.ts';\nexport const builder = BoardBuilder;\n",
+  "../board/src/builder/index.ts": "export const BoardBuilder = 1;\n",
   "src/core/escapes-into-the-board.ts":
     "import { BoardParser } from '../../../board/src/index.ts';\nexport const parser = BoardParser;\n",
   "../board/src/index.ts": "export const BoardParser = 1;\n",
@@ -188,6 +203,7 @@ describe("the dependency rules", () => {
     const profile = at("node_modules/@miragon/pulse-profile/dist/index.d.ts")
     const profileTesting = at("node_modules/@miragon/pulse-profile/dist/testing/index.d.ts")
     const board = at("node_modules/@miragon/pulse-board/dist/index.d.ts")
+    const builder = at("node_modules/@miragon/pulse-board/dist/builder/index.d.ts")
     const c7Core = "node_modules/@miragon/pulse-c7-core/dist/index.d.ts"
     const c7CoreSubpath = "@miragon/pulse-c7-core/cause"
     const c7CoreSource = "packages/connectors/c7/c7-core/src/cause.ts"
@@ -267,6 +283,10 @@ describe("the dependency rules", () => {
         `not-in-allowed: ${at("src/host-kit/reads-a-board.ts")} -> ${board}`,
         `not-in-allowed: ${at("src/webview/reads-a-board.ts")} -> ${board}`,
         `not-in-allowed: ${at("src/core/escapes-into-the-board.ts")} -> packages/core/board/src/index.ts`,
+        `protocol-imports-nothing: ${at("src/core/protocol/builds-a-board.ts")} -> ${builder}`,
+        `not-in-allowed: ${at("src/host-kit/builds-a-board.ts")} -> ${builder}`,
+        `not-in-allowed: ${at("src/webview/builds-a-board.ts")} -> ${builder}`,
+        `not-in-allowed: ${at("src/core/escapes-into-the-builder.ts")} -> packages/core/board/src/builder/index.ts`,
         `not-in-allowed: ${at("src/core/renders-react.ts")} -> ${at("node_modules/react/index.js")}`,
         `not-in-allowed: ${at("src/webview/renders-preact.ts")} -> node_modules/preact/index.d.ts`,
         `no-undeclared-dependencies: ${at("src/webview/renders-preact.ts")} -> node_modules/preact/index.d.ts`,

@@ -1,7 +1,7 @@
 # Boards
 
 - Status: accepted
-- Last reviewed: 2026-11-15 (the format moved out of the runtime view into the published package `@miragon/pulse-board`, with its JSON Schema, shared fixtures and one starter board for both editors; the builder follows); 2026-11-14 (the counter and the incident summary read "with incident" one way, c7-core's runtime rule); 2026-11-12 (boards are the first feature of D2; the format and the builder move to a new published package); 2026-11-09 (the project file is read with `@miragon/pulse-profile`; before that 2026-11-04, the CLI's rules)
+- Last reviewed: 2026-11-15 (the format moved out of the runtime view into the published package `@miragon/pulse-board`, with its JSON Schema, shared fixtures and one starter board for both editors; the builder followed into its `./builder` entry, and the runtime view renders its model); 2026-11-14 (the counter and the incident summary read "with incident" one way, c7-core's runtime rule); 2026-11-12 (boards are the first feature of D2; the format and the builder move to a new published package); 2026-11-09 (the project file is read with `@miragon/pulse-profile`; before that 2026-11-04, the CLI's rules)
 
 ## Context
 
@@ -36,9 +36,9 @@ What they found:
 ### Format
 
 `.pulse/boards/<name>.board.json`, anywhere in the workspace, read by `BoardParser` of Pulse's
-board format `@miragon/pulse-board` (`packages/core/board/src/format`, a package without a
-runtime dependency, which the runtime view's core and the Boards view import through its main
-entry) and validated by hand, unlike `.pulse.json`, which `@miragon/pulse-profile` parses. Every problem names its JSON path and reason. `schemaVersion`
+board format `@miragon/pulse-board` (`packages/core/board/src/format`, the format without a
+runtime dependency, which the runtime view's core and the Boards view import through the package's
+main entry) and validated by hand, unlike `.pulse.json`, which `@miragon/pulse-profile` parses. Every problem names its JSON path and reason. `schemaVersion`
 1, `title`, `engines` (profile names of `.pulse.json`, the only engine id the extension has) and
 `rows`, each `{ "row": [...] }` of `{ "widget", "props" }`, the toolkit's layout grammar. The
 widgets are `counter`, `instanceList`, `incidentSummary`, `processDiagram` and `incidentList`; a
@@ -62,9 +62,19 @@ not add load), no writes.
 
 ### Reading
 
+The numbers come from one builder over one read (D2): `BoardBuilder` of
+`@miragon/pulse-board/builder` (`packages/core/board/src/builder`) reads seven reads of the
+contract (`BoardReads`: `describeEngine`, `listDefinitions`, `countInstances`, `searchInstances`,
+`getDiagramXml`, `getElementStatistics`, `searchIncidents`) and returns a `BoardModel` of no text,
+formatting, diagram or navigation: per engine ready, failed with its error or not configured, per
+tile the widget and its numbers from the contract's read models. The runtime view renders it
+(`BoardViews` in `packages/core/runtime-view/src/core/boards`: titles, short ids, state words, an
+engine's problem, the targets a click opens and the diagram to draw), over a `BoardRuntime` per
+engine and load that reads the definitions through the panel's `SharedDefinitions` and the
+diagram once for the builder and the drawing.
 `BoardPanel` publishes only `ready` states, so `PanelState` and `ViewSession` stay
-single-engine. Per engine it probes `describeEngine` first and reads nothing else from an engine
-that fails it; `EngineReads` reads each distinct question once per engine and load. Honest
+single-engine. Per engine the builder probes `describeEngine` first and reads nothing else from an
+engine that fails it; it reads each distinct question once per engine and load. Honest
 numbers: totals come from counts and the shared definitions, never from page lengths; a failed
 read shows "not read", never 0; a total says how many engines it counts ("from 2 of 3 engines"); a
 threshold warns per engine, and a count that is only a lower bound at or below it reads
@@ -72,8 +82,10 @@ threshold warns per engine, and a count that is only a lower bound at or below i
 engine's total, in one table with an engine column and the rows of each engine together, because the contract promises no order across
 engines. `incidentSummary` counts instances with incident from `listDefinitions`, one call per
 engine. `processDiagram` draws the latest version of one engine's deployment with the
-element statistics of that version, the same diagram and badges the definition panel draws
-(`ElementBadges`); a click on a count opens that panel at the element. `incidentList` shows
+element statistics of that version, the same diagram and badges the definition panel draws: both
+roll the counts inside a collapsed sub-process up onto it with the builder's `DiagramBadges`, and
+the instance panel marks such a shape with its `CollapsedShapes`; a click on a count opens that
+panel at the element. `incidentList` shows
 each engine's first 50 open incidents from `searchIncidents` and says when more are open, since
 the contract has no incident count. A broken save keeps the last valid board under its problems.
 
@@ -99,7 +111,8 @@ an open board on save, and **Pulse: New Board…** writes the format's starter b
   board's numbers from one builder over one read, so the format and the builder leave the runtime
   view for a published package, `@miragon/pulse-board`: the format moved on 2026-11-15 (its
   problems read as before; a count in one reads in plain digits, which differs only from 1,000
-  widgets on), the builder follows. The counter's and the
+  widgets on), the builder the same day into `./builder`, with the same numbers from the same
+  reads; the MCP server and the web app render its model when they show boards. The counter's and the
   incident summary's readings of "with incident" are one since 2026-11-14 (owner decision): an
   open incident the runtime holds now, c7-core's rule, on every history level.
 - `.pulse.json` is parsed in the CLI and in the extension by one package, Pulse's profile
@@ -118,3 +131,4 @@ an open board on save, and **Pulse: New Board…** writes the format's starter b
 | Workspace trust  | No `capabilities`: off in untrusted folders                | `limited` would allow engine reads there         |
 | Diagram scope    | One engine, latest version                                 | Deployments and versions differ between engines  |
 | Schema home      | The format's package, a copy held equal in the extension   | A build copy is missing after a turbo cache hit  |
+| Builder home     | `@miragon/pulse-board/builder`, a model of no text         | D2: every surface, one builder over one read     |

@@ -1,20 +1,7 @@
 import type { BoardFilter } from "@miragon/pulse-board"
-import { BpmnProcessId, ElementId, type InstanceFilter } from "@miragon/pulse-engine-core"
 import type { InstanceListFilter } from "../protocol/index.js"
 
 export class BoardFilters {
-  static query(filter: BoardFilter): InstanceFilter {
-    return {
-      lifecycle: filter.state,
-      ...(filter.process === undefined ? {} : { bpmnProcessId: BpmnProcessId(filter.process) }),
-      ...(filter.activeElement === undefined
-        ? {}
-        : { activeElementId: ElementId(filter.activeElement) }),
-      ...(filter.withIncident === undefined ? {} : { withIncident: filter.withIncident }),
-      ...(filter.businessKey === undefined ? {} : { businessKey: filter.businessKey }),
-    }
-  }
-
   static listFilter(filter: BoardFilter): InstanceListFilter | undefined {
     if (
       filter.withIncident === false ||

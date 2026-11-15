@@ -8,20 +8,25 @@ The board file format of Pulse. A board keeps the operational questions a team a
 again in one view: how many orders wait at a step, which incidents are open across "our"
 processes, which instances of a process run. It is a JSON file in the repository
 (`.pulse/boards/<name>.board.json`), versioned and shared like the code. Pulse for VS Code and
-Pulse for Orca read it today; this package holds the format, so every surface that shows a board
-reads the same file the same way. Below 1.0: pin the exact version and update all
-`@miragon/pulse-*` packages together.
+Pulse for Orca read it today; this package holds the format and the builder of a board's numbers,
+so every surface that shows a board reads the same file the same way and shows the same numbers.
+Below 1.0: pin the exact version and update all `@miragon/pulse-*` packages together.
 
 ## What it is not
 
-No runtime dependency, no file system, no engine: it imports only its own modules and parses the
-text it is handed. Finding and reading the file, the engines a board names, reading its numbers
-and saying what follows from a problem stay with the reader.
+No runtime dependency, no file system, no engine of its own: the format imports only its own
+modules and parses the text it is handed. Finding and reading the file and saying what follows from
+a problem stay with the reader. The builder (`@miragon/pulse-board/builder`) reads a board's
+numbers through the engines the reader hands it, over the engine contract of
+`@miragon/pulse-engine-core` (an optional peer: install it next to this package to use the
+builder), and returns them as data: no text, no formatting, no diagram, no navigation.
 
 ## Install
 
 ```sh
 npm install @miragon/pulse-board
+# with the builder, the engine contract it reads over:
+npm install @miragon/pulse-board @miragon/pulse-engine-core
 ```
 
 ## Minimal example
@@ -78,6 +83,39 @@ the document) and the reason in English.
 `BoardVocabulary` lists every key, widget, prop, state, grouping and column, so a reader of its
 own can be held to the parser, as the package holds its JSON Schema.
 
+## The builder
+
+```ts
+import { BoardBuilder } from "@miragon/pulse-board/builder"
+
+const model = await BoardBuilder.build(board, [
+  { name: "shop-dev", reads: runtimeOf("shop-dev") },
+  { name: "shop-test" },
+])
+```
+
+`BoardBuilder.build(board, engines)` takes a parsed board and, per engine of the board, its name
+and its reads (`BoardReads`, seven reads of `ProcessRuntime`: `describeEngine`, `listDefinitions`,
+`countInstances`, `searchInstances`, `getDiagramXml`, `getElementStatistics`, `searchIncidents`); an
+engine without reads is one the reader has not configured. It returns a `BoardModel`:
+
+- per engine `ready` with its `EngineInfo` and its totals (running, with incident) from the
+  definitions, `failed` with the error as thrown by `describeEngine`, or `notConfigured`. A failed
+  engine is asked nothing else.
+- per tile the parsed widget and its numbers: a counter's count per engine with a lower bound
+  (`atLeast`) carried into the sum and a threshold's `above` or, for a lower bound at or below it,
+  `undecided`; an instance list's first page per engine with its total; the instances with
+  incident per engine or per process, most first; an incident list's first incidents per engine and
+  whether more are open; a diagram's latest version (`DefinitionRef`) with its badges, the counts
+  per element rolled up onto collapsed sub-processes, or `notDeployed`.
+
+Honest numbers: a read that fails leaves its number out (a surface shows "not read", never 0), a
+total says how many engines it counts (`known`), totals come from counts and the definitions, never
+from the length of a page, and each distinct question is read once per engine and build.
+`DiagramBadges.of(xml, statistics)` is the roll-up (the incidents inside a collapsed sub-process
+counted on its shape too) and `CollapsedShapes.of(xml)` the reader of the collapsed sub-processes
+around an element, so a surface draws its process views by the same rule as a board.
+
 ## A new board
 
 `StarterBoard.of(title, engines)` returns the text of the board Pulse for VS Code's **Pulse: New
@@ -106,13 +144,16 @@ reader of its own runs them through its path.
 | Entry                                           | Holds                                                                                               |
 | ----------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | `@miragon/pulse-board`                          | `BoardParser`, `BoardVocabulary`, `StarterBoard` and the types of a board, its widgets and problems |
+| `@miragon/pulse-board/builder`                  | `BoardBuilder`, `DiagramBadges`, `CollapsedShapes` and the types of `BoardModel` and `BoardReads`   |
 | `@miragon/pulse-board/schema/board.schema.json` | The JSON Schema of a board file                                                                     |
 | `@miragon/pulse-board/testing`                  | `BOARD_FIXTURES`, the shared fixtures                                                               |
 
 ## Stability
 
 Below 1.0 the format has no stability promise beyond the release train: a change that makes a
-file valid today refused tomorrow says so in its changelog entry.
+file valid today refused tomorrow says so in its changelog entry. The same holds for the builder's
+`BoardModel`, the input of every surface that renders a board, and for its peer: the builder takes
+the `@miragon/pulse-engine-core` of the same release.
 
 ## Licence
 

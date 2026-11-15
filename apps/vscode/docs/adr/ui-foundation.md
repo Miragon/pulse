@@ -1,7 +1,7 @@
 # UI foundation and shared building blocks
 
 - Status: accepted
-- Last reviewed: 2026-11-15 (executed for the format, D8: the board file format moved into the published package `@miragon/pulse-board` with its dependency rules; the board builder follows); 2026-11-14 (executed: the switch of D9 landed, the webview renders with React 19 on `@miragon/pulse-ui`; every precondition of D7 is in place; its follow-up landed too: the webview and its tests follow `react-hooks`' `recommended-latest`, the React Compiler rules included, every rule of it an error; decided: "with incident" reads one way on every C7 surface, an open incident the runtime holds now, so the board's two readings are one); 2026-11-12, later the same day (decided, D9: the webview moves from Preact to React 19 on `@miragon/pulse-ui` in one switch, without a `preact/compat` bridge; one compact look for every surface, on density roles over the guide's `--cd-shell-*` tokens and pulse-ui's colour roles on the guide's `--cd-ui-*` roles, numbers neutral; replaces D4 and turns D7 into the switch's preconditions); 2026-11-12 (decided: the surfaces share a core up to building blocks, not everything: formats, the engine reads and their rules, the numbers and view models of a feature more than one surface shows, and building blocks on React's API; a feature more than one surface shows, boards first, shows the same numbers on every surface; replaces the two UI families of 2026-11-08)
+- Last reviewed: 2026-11-15 (executed for boards, D8: the board file format moved into the published package `@miragon/pulse-board` with its dependency rules, and the board builder followed into its `./builder` entry, whose model the runtime view renders, D2 for boards); 2026-11-14 (executed: the switch of D9 landed, the webview renders with React 19 on `@miragon/pulse-ui`; every precondition of D7 is in place; its follow-up landed too: the webview and its tests follow `react-hooks`' `recommended-latest`, the React Compiler rules included, every rule of it an error; decided: "with incident" reads one way on every C7 surface, an open incident the runtime holds now, so the board's two readings are one); 2026-11-12, later the same day (decided, D9: the webview moves from Preact to React 19 on `@miragon/pulse-ui` in one switch, without a `preact/compat` bridge; one compact look for every surface, on density roles over the guide's `--cd-shell-*` tokens and pulse-ui's colour roles on the guide's `--cd-ui-*` roles, numbers neutral; replaces D4 and turns D7 into the switch's preconditions); 2026-11-12 (decided: the surfaces share a core up to building blocks, not everything: formats, the engine reads and their rules, the numbers and view models of a feature more than one surface shows, and building blocks on React's API; a feature more than one surface shows, boards first, shows the same numbers on every surface; replaces the two UI families of 2026-11-08)
 
 ## Context
 
@@ -126,8 +126,11 @@ day the owner decided D9, which replaces D4 and turns D7 into the switch's preco
   `forced-colors`, reduced motion); pulse-ui's density roles, compact by default. These were
   tasks, not a gate on the decision.
 - **D8, homes.** The board format and the board builder go into a new published package,
-  `@miragon/pulse-board` (`packages/core/board`); the format moved on 2026-11-15 with its
-  dependency rules (`board-format-is-a-leaf`, `board-consumers`), the builder follows. Shared building blocks go
+  `@miragon/pulse-board` (`packages/core/board`); executed for boards on 2026-11-15: the format
+  moved with its dependency rules (`board-format-is-a-leaf`, `board-consumers`), the builder
+  followed into `@miragon/pulse-board/builder`, a model of no text over seven reads of the engine
+  contract with the roll-up onto collapsed sub-processes, the package's one edge into a family
+  (`board-builder-builds-on-the-engine-contract`, `board-builder-consumers`). Shared building blocks go
   into pulse-ui (primitives) or into a shared package created with the first engine block two
   surfaces render. Until then the cockpit side keeps its content of props and callbacks in the
   connector, as the build rule of a pair feature says.
@@ -276,10 +279,11 @@ missing value ([user-interface.md](user-interface.md)).
 - Boards move first. Before they move onto one builder over one read, the board's two readings of
   "with incident" (the counter's history count and the incident summary's runtime scan) settle to
   one: the owner chose the runtime's on 2026-11-14 (an open incident now, on every history level,
-  on every C7 surface). Two owner decisions fall due then too: the board package's home (under
-  `packages/core` with an exception like the runtime view's, or a role-suffixed package of the
-  engine family) and whether the engine connector may import engine-core's read models before it
-  serves a second dialect.
+  on every C7 surface). Two owner decisions fall due then too: the board package's home, settled
+  on 2026-11-15 under `packages/core` with an exception like the runtime view's (its builder alone
+  reads engine-core, `board-builder-builds-on-the-engine-contract`), and whether the engine
+  connector may import engine-core's read models before it serves a second dialect, which falls
+  due when the MCP server shows boards.
 - Outside boards and the views that move onto shared numbers, users of both tools still see
   different numbers for the same process, under the same words.
 

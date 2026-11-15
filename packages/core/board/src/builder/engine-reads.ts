@@ -1,67 +1,56 @@
-import { BoardVocabulary } from "@miragon/pulse-board"
-import {
-  RuntimeError,
-  type BpmnProcessId,
-  type DefinitionId,
-  type DefinitionSummary,
-  type ElementStatistics,
-  type Incident,
-  type InstanceCount,
-  type InstanceFilter,
-  type InstanceSummary,
-  type Page,
-  type ProcessRuntime,
+import type {
+  BpmnProcessId,
+  DefinitionId,
+  DefinitionSummary,
+  ElementStatistics,
+  Incident,
+  InstanceCount,
+  InstanceFilter,
+  InstanceSummary,
+  Page,
 } from "@miragon/pulse-engine-core"
-import type { SharedDefinitions } from "../refresh/shared-definitions.js"
+import { BoardVocabulary } from "../format/board-vocabulary.js"
+import type { BoardReads } from "./board-reads.js"
 
 export type Read<Value> = { readonly value: Value } | { readonly failed: true }
 
 export class EngineReads {
   private readonly started = new Map<string, Promise<Read<unknown>>>()
 
-  constructor(
-    private readonly runtime: ProcessRuntime,
-    private readonly definitions: SharedDefinitions,
-  ) {}
+  constructor(private readonly reads: BoardReads) {}
 
   static valueOf<Value>(read: Read<Value>): Value | undefined {
     return "value" in read ? read.value : undefined
   }
 
   summaries(): Promise<Read<readonly DefinitionSummary[]>> {
-    return this.once("summaries", () => this.definitions.read(0))
+    return this.once("summaries", () => this.reads.listDefinitions())
   }
 
   count(filter: InstanceFilter): Promise<Read<InstanceCount>> {
-    return this.once(`count|${JSON.stringify(filter)}`, () => this.runtime.countInstances(filter))
+    return this.once(`count|${JSON.stringify(filter)}`, () => this.reads.countInstances(filter))
   }
 
   firstPage(filter: InstanceFilter): Promise<Read<readonly InstanceSummary[]>> {
     return this.once(`page|${JSON.stringify(filter)}`, async () => {
-      const page = await this.runtime.searchInstances(filter, { limit: BoardVocabulary.LIST_LIMIT })
+      const page = await this.reads.searchInstances(filter, { limit: BoardVocabulary.LIST_LIMIT })
       return page.items
     })
   }
 
-  diagram(definitionId: DefinitionId): Promise<Read<string>> {
-    return this.once(`diagram|${definitionId}`, async () => {
-      const xml = await this.runtime.getDiagramXml(definitionId)
-      if (xml === undefined) {
-        throw new RuntimeError("unexpectedResponse", "The engine has no diagram.")
-      }
-      return xml
-    })
+  diagram(definitionId: DefinitionId): Promise<Read<string | undefined>> {
+    return this.once(`diagram|${definitionId}`, () => this.reads.getDiagramXml(definitionId))
   }
 
   statistics(definitionId: DefinitionId): Promise<Read<readonly ElementStatistics[]>> {
     return this.once(`statistics|${definitionId}`, () =>
-      this.runtime.getElementStatistics(definitionId),
+      this.reads.getElementStatistics(definitionId),
     )
   }
 
   incidents(bpmnProcessId: BpmnProcessId | undefined): Promise<Read<Page<Incident>>> {
     return this.once(`incidents|${bpmnProcessId ?? ""}`, () =>
-      this.runtime.searchIncidents(bpmnProcessId === undefined ? {} : { bpmnProcessId }, {
+      this.reads.searchIncidents(bpmnProcessId === undefined ? {} : { bpmnProcessId }, {
         limit: BoardVocabulary.LIST_LIMIT,
       }),
     )
