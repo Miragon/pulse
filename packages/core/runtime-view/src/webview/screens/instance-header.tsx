@@ -66,10 +66,14 @@ function ParentLink({ parent }: { readonly parent: NonNullable<InstanceHeader["p
   )
 }
 
+export function InstanceId({ instance }: { readonly instance: InstanceHeader }) {
+  return <IdText id={instance.id} shortId={instance.shortId} label="instance ID" />
+}
+
 export function InstanceHeaderDetails({ instance }: { readonly instance: InstanceHeader }) {
   return (
     <>
-      <IdText id={instance.id} shortId={instance.shortId} label="instance ID" />
+      {instance.businessKey !== undefined && <InstanceId instance={instance} />}
       <DefinitionLink instance={instance} />
       {instance.parent !== undefined && <ParentLink parent={instance.parent} />}
       <Timing instance={instance} />

@@ -77,6 +77,11 @@ export function credentialFor(engineId: string, auth: EngineAuth): Credential {
   }
 }
 
+const NO_CREDENTIALS_HINT =
+  "The engine requires authentication, but none is configured. Set it in the server's " +
+  "configuration: auth in the engine's profile (its secret in an ENGINE_SECRET_* variable), or " +
+  "ENGINE_AUTH_TYPE with ENGINE_USERNAME and ENGINE_PASSWORD or ENGINE_TOKEN."
+
 /**
  * The sentence a 401 adds to its message: the remedy depends on where the credential came
  * from. Asked when the 401 arrives, so passthrough tells a missing caller token from a rejected
@@ -90,7 +95,7 @@ export function unauthorizedHint(type: EngineAuthType): () => string {
           ? "The engine rejected the forwarded bearer token."
           : "The MCP request carried no bearer token to pass through."
     case "none":
-      return () => "The engine requires authentication, but none is configured."
+      return () => NO_CREDENTIALS_HINT
     default:
       return () => "The engine rejected the configured credentials."
   }

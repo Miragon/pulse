@@ -178,6 +178,23 @@ describe("the engine's HTTP connection", () => {
     })
   })
 
+  test("says to add a login when the engine asks for one and Pulse sent none", async () => {
+    const asked = () => Promise.resolve(new Response("", { status: 401 }))
+    await expect(httpAnswering(asked).read("/version")).rejects.toMatchObject({
+      failure: "answered",
+      status: 401,
+      message: "HTTP 401 Unauthorized",
+      hint: "The engine asks for a login, and Pulse sent none. Add one with Set credentials.",
+    })
+    const refused = new EngineHttp({
+      url: REST_URL,
+      credentials: { kind: "basic", username: "demo", password: "s3cret" },
+      writes: false,
+      send: asked,
+    })
+    await expect(refused.read("/version")).rejects.toMatchObject({ status: 401, hint: undefined })
+  })
+
   test("masks the credentials an engine text echoes", async () => {
     const echo = `password s3cret,\n\tsent Basic ${btoa("demo:s3cret")}`
     const http = new EngineHttp({

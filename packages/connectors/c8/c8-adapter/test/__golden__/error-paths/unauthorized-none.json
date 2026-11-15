@@ -11,8 +11,8 @@
       "call": "describeEngine",
       "outcome": {
         "failure": "unauthorized",
-        "hint": null,
-        "message": "HTTP 401 Unauthorized: An Authentication object was not found in the SecurityContext"
+        "hint": "The cluster asks for a login, and Pulse sent none. Add one with Set credentials.",
+        "message": "HTTP 401 Unauthorized"
       },
       "sent": [
         "GET /v2/topology"
@@ -22,8 +22,8 @@
       "call": "getInstanceDetail 9007199254740993",
       "outcome": {
         "failure": "unauthorized",
-        "hint": null,
-        "message": "HTTP 401 Unauthorized: An Authentication object was not found in the SecurityContext"
+        "hint": "The cluster asks for a login, and Pulse sent none. Add one with Set credentials.",
+        "message": "HTTP 401 Unauthorized"
       },
       "sent": [
         "GET /v2/topology"

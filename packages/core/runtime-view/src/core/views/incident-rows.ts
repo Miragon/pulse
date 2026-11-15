@@ -52,14 +52,20 @@ export class IncidentRows {
     const rootCause = details?.rootCause
     return details === undefined || rootCause === undefined
       ? {}
-      : { rootCause, causeLabel: IncidentRows.causeLabel(details, incident) }
+      : { rootCause, causeLabel: this.causeLabel(details, incident) }
   }
 
-  private static causeLabel(details: IncidentDetails, incident: Incident): CauseLabel {
+  private causeLabel(details: IncidentDetails, incident: Incident): CauseLabel {
     if (details.kind === "stacktrace") {
       return "Root cause"
     }
-    return incident.job === undefined ? "Cause" : "Worker error"
+    return this.stopsAWorkerTask(incident) ? "Worker error" : "Cause"
+  }
+
+  private stopsAWorkerTask(incident: Incident): boolean {
+    return this.snapshot.detail.waitStates.some(
+      (wait) => wait.incidentId === incident.id && wait.kind === "workerTask",
+    )
   }
 
   private completeDetails(incident: Incident): IncidentDetails | undefined {

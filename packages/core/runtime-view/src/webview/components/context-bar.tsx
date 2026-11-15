@@ -26,7 +26,8 @@ const SUBJECT_GLYPHS: Readonly<Record<Subject, LucideIcon>> = {
 
 export interface ContextBarProps {
   readonly subject?: Subject
-  readonly title: string
+  readonly title: ReactNode
+  readonly titleText?: string
   readonly engine: EngineBadge
   readonly freshness: Freshness
   readonly children?: ReactNode
@@ -62,6 +63,7 @@ function HostControls({ engine, freshness }: Pick<ContextBarProps, "engine" | "f
 export function ContextBar({
   subject,
   title,
+  titleText,
   engine,
   freshness,
   children,
@@ -72,6 +74,7 @@ export function ContextBar({
     <div className="min-w-0 shrink-0" data-part="context-bar" data-kind={subject ?? "pending"}>
       <ViewBar
         title={title}
+        {...(titleText === undefined ? {} : { titleText })}
         icon={subject === undefined ? undefined : <Icon icon={SUBJECT_GLYPHS[subject]} />}
         {...BackTarget.propsOf(host)}
         facts={children}

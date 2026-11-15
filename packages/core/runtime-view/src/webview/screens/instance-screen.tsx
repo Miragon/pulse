@@ -12,7 +12,7 @@ import { UiStateStore, type InstanceTab } from "../host/ui-state-store.js"
 import { WriteContext } from "../host/write-context.js"
 import { HistoryTab } from "./history-tab.js"
 import { IncidentsTab } from "./incidents-tab.js"
-import { InstanceHeaderActions, InstanceHeaderDetails } from "./instance-header.js"
+import { InstanceHeaderActions, InstanceHeaderDetails, InstanceId } from "./instance-header.js"
 import { MovePanel } from "./move-panel.js"
 import { NoticeStrip } from "./notices.js"
 import { SplitLayout } from "./split-layout.js"
@@ -141,7 +141,8 @@ function InstanceBar({
   return (
     <ContextBar
       subject="instance"
-      title={instance.businessKey ?? instance.shortId}
+      title={instance.businessKey ?? <InstanceId instance={instance} />}
+      titleText={instance.businessKey ?? instance.id}
       engine={view.engine}
       freshness={freshness}
       actions={

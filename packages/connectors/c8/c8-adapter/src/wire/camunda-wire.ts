@@ -36,6 +36,9 @@ const TIMEOUT_MS = 60_000
 const REFUSED_TOKEN_HINT =
   "The cluster refused this client's token. Check that the client has the rights to read the cluster and that the profile names the audience the cluster expects. If the client ID or secret changed, enter them again with Set credentials."
 
+const NO_LOGIN_HINT =
+  "The cluster asks for a login, and Pulse sent none. Add one with Set credentials."
+
 const CREDENTIAL_PROBLEMS: Readonly<Record<CredentialProblem, string>> = {
   "user-colon": "The user name holds a colon, which basic authentication cannot send",
   "control-character": "The user name or password holds a control character",
@@ -47,6 +50,7 @@ export class CamundaWire {
     private readonly http: Http | WireReason,
     private readonly tokenEndpoint: string | undefined,
     private readonly mask: SecretMask,
+    private readonly loginSent: boolean,
   ) {}
 
   static of(
@@ -56,7 +60,8 @@ export class CamundaWire {
   ): CamundaWire {
     const tokenEndpoint = WireCredentials.tokenEndpointOf(connection.credentials)
     const http = CamundaWire.httpOf(connection, sources, platform)
-    return new CamundaWire(http, tokenEndpoint, SecretMask.of(connection.credentials))
+    const mask = SecretMask.of(connection.credentials)
+    return new CamundaWire(http, tokenEndpoint, mask, connection.credentials.kind !== "none")
   }
 
   async exchange(request: WireRequest): Promise<WireOutcome> {
@@ -82,9 +87,19 @@ export class CamundaWire {
 
   private answered(answer: HttpAnswer): AnsweredReason {
     const reason = AnswerReasons.of(answer, undefined, this.mask)
-    return answer.status === 401 && this.tokenEndpoint !== undefined
-      ? { ...reason, hint: REFUSED_TOKEN_HINT }
-      : reason
+    if (answer.status !== 401) {
+      return reason
+    }
+    if (this.tokenEndpoint !== undefined) {
+      return { ...reason, hint: REFUSED_TOKEN_HINT }
+    }
+    return this.loginSent
+      ? reason
+      : {
+          ...reason,
+          message: AnswerReasons.statusLine(401, answer.statusText),
+          hint: NO_LOGIN_HINT,
+        }
   }
 
   private reasonOf(error: unknown): WireReason {

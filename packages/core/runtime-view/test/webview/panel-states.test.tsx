@@ -224,4 +224,31 @@ describe("instance screen", () => {
       { type: "copy", text: "8f3c2a1e-4b7d-4c1a-9f0e-1d2c3b4a5e6f", label: "instance ID" },
     ])
   })
+
+  it("names an instance without a business key by its id once, in the title, which copies it", async () => {
+    harness = mountApp()
+    harness.publish(FIXTURES["instance-camunda8"])
+    const bar = await findPart(harness.root, "context-bar")
+    const heading = await findRole(bar, "heading", { level: 1 })
+
+    const copy = await findRole<HTMLButtonElement>(heading, "button", { name: "Copy instance ID" })
+
+    copy.click()
+
+    expect(bar.textContent.split("…13690412")).toHaveLength(2)
+    expect(heading.title).toBe("2251799813690412")
+    expect(postedOfType("copy")).toEqual([
+      { type: "copy", text: "2251799813690412", label: "instance ID" },
+    ])
+  })
+
+  it("names an instance with a business key by the key and keeps its id beside it", async () => {
+    harness = mountApp()
+    harness.publish(FIXTURES.instance)
+    const bar = await findPart(harness.root, "context-bar")
+    const heading = await findRole(bar, "heading", { level: 1 })
+
+    expect(heading.textContent).toBe("ORD-10442")
+    expect(bar.textContent.split("8f3c2a1e…")).toHaveLength(2)
+  })
 })

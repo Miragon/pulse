@@ -40,12 +40,13 @@ with EAI_AGAIN, and a resolver that rewrites NXDOMAIN reaches a real host.
 Steps are those of the transport plan (3.1): 10 put the server on `@miragon/pulse-http` (the
 engine client sends through its transport, the composites through the same client over c7-core's
 route table), 12 moves its engine settings into the profile (the `config` blocks then change with
-it).
+it). Step 3.10 of the Camunda 8 plan of #617 made the remedy of a 401 without credentials name
+where to set them, as every surface now says what to do there.
 
 | Case | Status | What the golden shows, or why there is none | Changes in step |
 | ---- | ------ | ------------------------------------------- | --------------- |
 | `redirect` | pinned | 302 to a login page: the redirect target without its query, the advice, nothing followed; for the inspect and a registrar read | none planned |
-| `unauthorized-none` | pinned | 401 without a body; the remedy for a server without engine credentials; for the inspect and a registrar read | none planned |
+| `unauthorized-none` | pinned | 401 without a body; the remedy for a server without engine credentials, where to set them (a profile's auth, or `ENGINE_AUTH_TYPE` with its credentials); for the inspect and a registrar read | 3.10 (where to set them) |
 | `unauthorized-basic` | pinned | 401 to Basic `demo`/`demo-secret`, the header as sent | none planned |
 | `unauthorized-bearer` | pinned | 401 to a static bearer token | none planned |
 | `unauthorized-passthrough` | pinned | 401 to the caller's verified token, forwarded under OAuth | none planned |

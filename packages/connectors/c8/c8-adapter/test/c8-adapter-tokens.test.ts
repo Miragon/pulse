@@ -24,14 +24,22 @@ describe("a cluster's 401", () => {
     })
   })
 
-  test.each([
-    ["no credentials", { kind: "none" }],
-    ["a Basic login", { kind: "basic", username: "demo", password: "demo" }],
-  ] as const)("to %s names no client", async (_name, credentials) => {
+  test("to no credentials names no client and says to add a login", async () => {
     const login = new LoginService()
     login.answerApi = () => new Response("", { status: 401 })
 
-    const error = await login.read(credentials)
+    expect(await login.read({ kind: "none" })).toMatchObject({
+      failure: "unauthorized",
+      message: "HTTP 401 Unauthorized",
+      hint: "The cluster asks for a login, and Pulse sent none. Add one with Set credentials.",
+    })
+  })
+
+  test("to a Basic login names no client", async () => {
+    const login = new LoginService()
+    login.answerApi = () => new Response("", { status: 401 })
+
+    const error = await login.read({ kind: "basic", username: "demo", password: "demo" })
 
     expect(error).toMatchObject({ failure: "unauthorized", message: "HTTP 401 Unauthorized" })
     expect((error as { hint?: string }).hint).toBeUndefined()

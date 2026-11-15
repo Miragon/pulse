@@ -18,6 +18,9 @@ const MODELS: Readonly<Record<string, string>> = {
   "/shop/payment.bpmn": [
     '<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:camunda="http://camunda.org/schema/1.0/bpmn">',
     '<bpmn:process id="payment"><bpmn:serviceTask id="Activity_Charge" camunda:type="external" camunda:topic="charge-payment" />',
+    '<bpmn:serviceTask id="Activity_Notify" camunda:delegateExpression="${notifier}" />',
+    '<bpmn:serviceTask id="Activity_Score" camunda:expression="${scoring.score(execution)}" />',
+    '<bpmn:serviceTask id="Activity_Topic" camunda:topic="charge-payment" />',
     "</bpmn:process></bpmn:definitions>",
   ].join(""),
   "/shop/shipping.bpmn": [
@@ -36,9 +39,24 @@ const MODELS: Readonly<Record<string, string>> = {
   ].join(""),
 }
 
+const SOURCES: Readonly<Record<string, string>> = {
+  "/shop/a/Topics.java":
+    'class Topics { String CHARGE = "charge-payment"; String BOOK = "book-carrier"; }',
+  "/shop/b/ChargeWorker.java": [
+    "class ChargeWorker {",
+    '  @ExternalTaskSubscription(topicName = "charge-payment")',
+    "}",
+  ].join("\n"),
+  "/shop/c/BookWorker.java": [
+    "class BookWorker {",
+    '  @JobWorker(type = "book-carrier")',
+    "}",
+  ].join("\n"),
+}
+
 const FILES: WorkspaceFiles = {
-  find: (glob) => Promise.resolve(glob.endsWith(".bpmn") ? Object.keys(MODELS) : []),
-  read: (uri) => Promise.resolve(MODELS[uri] ?? ""),
+  find: (glob) => Promise.resolve(Object.keys(glob.endsWith(".bpmn") ? MODELS : SOURCES)),
+  read: (uri) => Promise.resolve(MODELS[uri] ?? SOURCES[uri] ?? ""),
 }
 
 async function configurationOf(bpmnProcessId: string, elementId: string) {
@@ -88,6 +106,31 @@ describe("the composition root of the worker", () => {
     expect(
       Object.keys(CompositionRoot.create().localSources(new OrcaWorkspaceFiles(() => []))),
     ).toEqual(["models", "code"])
+  })
+
+  test("reads a delegate, an expression and a topic outside an external task by the C7 dialect", async () => {
+    const read = async (elementId: string) =>
+      (await configurationOf("payment", elementId))?.implementation
+    expect([
+      await read("Activity_Notify"),
+      await read("Activity_Score"),
+      await read("Activity_Topic"),
+    ]).toEqual([
+      { kind: "delegate", expression: "${notifier}" },
+      { kind: "expression", expression: "${scoring.score(execution)}" },
+      undefined,
+    ])
+  })
+
+  test("finds the worker of each dialect by the adapters' markers, not the first mention", async () => {
+    const { code } = CompositionRoot.create().localSources(FILES)
+    expect([
+      await code.locate({ kind: "workerTask", taskType: "charge-payment" }),
+      await code.locate({ kind: "workerTask", taskType: "book-carrier" }),
+    ]).toEqual([
+      { uri: "/shop/b/ChargeWorker.java", line: 2 },
+      { uri: "/shop/c/BookWorker.java", line: 2 },
+    ])
   })
 
   test("finds the CLI's user config from the worker's environment, as the CLI does", () => {

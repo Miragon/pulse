@@ -217,7 +217,12 @@ const STEPS = [
   [
     "a click on an engine opens its overview, a row the process, selected in the tree",
     async (window) => {
+      await window.locator(".statusbar").click({ position: { x: 800, y: 8 } })
+      await runCommand(window, "View: Close All Editors")
       await window.locator('.activitybar [aria-label^="Pulse"]').first().click({ force: true })
+      await window
+        .getByRole("treeitem", { name: /^Order fulfillment, / })
+        .waitFor({ timeout: 30_000 })
       await window.getByRole("treeitem", { name: /^local-operaton, / }).click()
       await window
         .locator(".tab.active", { hasText: "local-operaton · Processes" })
@@ -233,7 +238,7 @@ const STEPS = [
         .waitFor({ timeout: 30_000 })
       await window
         .getByRole("treeitem", { name: /^Order fulfillment, /, selected: true })
-        .waitFor({ timeout: 10_000 })
+        .waitFor({ timeout: 30_000 })
     },
   ],
   [

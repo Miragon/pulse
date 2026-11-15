@@ -168,6 +168,22 @@ describe("the Engines tree following the active panel", () => {
     expect(tree.getTreeItem(node).id).toBe("definition|local-operaton|pulse-order")
   })
 
+  test("selects the very node it shows below the engine, so VS Code fetches nothing to find it", async () => {
+    const { tree, view } = treeOf(
+      new FakeRegistry([connection(engineAnswering(() => Promise.resolve(ENGINE)))]),
+    )
+    const shown = await tree.getChildren(await firstEngine(tree))
+
+    await tree.reveal({ engineName: "local-operaton", bpmnProcessId: ORDER })
+
+    const order = shown.find(
+      (node) => node.kind === "definition" && node.node.bpmnProcessId === ORDER,
+    )
+    expect(order).toBeDefined()
+    expect(view.revealed.map(({ element }) => element)).toEqual([order])
+    expect(view.revealed[0]?.element).toBe(order)
+  })
+
   test("selects the engine of an active engine overview", async () => {
     const { tree, view } = treeOf(
       new FakeRegistry([connection(engineAnswering(() => Promise.resolve(ENGINE)))]),

@@ -93,6 +93,14 @@ const CAUSES = [
   incident("without-details"),
 ]
 
+const WORKER_WAIT: WaitState = {
+  kind: "workerTask",
+  taskType: "charge-card",
+  instanceId: ROOT,
+  elementId: ELEMENT,
+  incidentId: IncidentId("from-a-worker"),
+}
+
 function wait(kind: WaitState): WaitState {
   return kind
 }
@@ -226,8 +234,8 @@ describe("the instance view", () => {
 })
 
 describe("the cause of an incident", () => {
-  test("is labelled by its source: a stack trace, a worker's error, an error without a job", () => {
-    const view = viewOf(detailWith({ incidents: CAUSES }))
+  test("is labelled by its source: a stack trace, a worker's error, an error of the engine", () => {
+    const view = viewOf(detailWith({ incidents: CAUSES, waitStates: [WORKER_WAIT] }))
 
     expect(view.incidents.map((row) => [row.causeLabel, row.rootCause])).toEqual([
       ["Root cause", "MissingBean: no bean"],
@@ -235,6 +243,29 @@ describe("the cause of an incident", () => {
       ["Cause", "No variable customerId"],
       [undefined, undefined],
     ])
+  })
+
+  test("names a worker's error only where the incident stops a worker task, never by its job", () => {
+    const failedJob = incident("failed-job", {
+      job: { id: "job-3" },
+      details: complete("errorMessage", "Connection refused"),
+    })
+    const unlinked = incident("unlinked-job", {
+      job: { id: "job-4", type: "charge-card" },
+      details: complete("errorMessage", "Card declined"),
+    })
+    const base = { instanceId: ROOT, elementId: ELEMENT }
+    const view = viewOf(
+      detailWith({
+        incidents: [failedJob, unlinked],
+        waitStates: [
+          { ...base, kind: "asyncContinuation", retriesLeft: 0, incidentId: failedJob.id },
+          { ...base, kind: "workerTask", taskType: "charge-card" },
+        ],
+      }),
+    )
+
+    expect(view.incidents.map((row) => row.causeLabel)).toEqual(["Cause", "Cause"])
   })
 
   test("is labelled by the complete details it came from, not by the shortened ones", () => {
@@ -290,7 +321,9 @@ describe("the cause of an incident", () => {
   })
 
   test("is handed over with the label its card shows", () => {
-    const text = HandoverText.of(viewOf(detailWith({ incidents: CAUSES })))
+    const text = HandoverText.of(
+      viewOf(detailWith({ incidents: CAUSES, waitStates: [WORKER_WAIT] })),
+    )
 
     expect(text).toContain("  - Root cause: MissingBean: no bean")
     expect(text).toContain("  - Worker error: Card declined")

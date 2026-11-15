@@ -25,9 +25,11 @@ const PAGE_SIZE = 500
 
 export class EngineHttp {
   private readonly wire: Http | EngineRequestError
+  private readonly loginSent: boolean
 
   constructor(options: EngineHttpOptions) {
     this.wire = EngineWire.of(options)
+    this.loginSent = options.credentials.kind !== "none"
   }
 
   async read(path: string, query: Query = {}, body?: unknown): Promise<unknown> {
@@ -100,7 +102,7 @@ export class EngineHttp {
   private async answer(request: EngineRequest): Promise<string> {
     const answer = await this.exchange(request)
     if (answer.status >= 400) {
-      throw ErrorAnswers.errorOf(answer)
+      throw ErrorAnswers.errorOf(answer, { loginSent: this.loginSent })
     }
     return decodeText(answer)
   }

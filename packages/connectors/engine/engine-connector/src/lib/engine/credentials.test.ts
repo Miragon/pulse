@@ -69,7 +69,9 @@ describe("the check the profiles are judged with at boot", () => {
 describe("the remedy a 401 names", () => {
   it("depends on where the credential came from", () => {
     expect(unauthorizedHint("none")()).toBe(
-      "The engine requires authentication, but none is configured.",
+      "The engine requires authentication, but none is configured. Set it in the server's " +
+        "configuration: auth in the engine's profile (its secret in an ENGINE_SECRET_* variable), " +
+        "or ENGINE_AUTH_TYPE with ENGINE_USERNAME and ENGINE_PASSWORD or ENGINE_TOKEN.",
     )
     expect(unauthorizedHint("basic")()).toBe("The engine rejected the configured credentials.")
     expect(unauthorizedHint("bearer")()).toBe("The engine rejected the configured credentials.")

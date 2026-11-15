@@ -66,14 +66,16 @@ with EAI_AGAIN, and a resolver that rewrites NXDOMAIN reaches a real host.
 Steps are those of the Camunda 8 plan of #617 (3.1 to 3.9). Step 3.7 restated the echo goldens
 when the cluster's texts began to mask the client secret, and step 3.8 settled the wordings that
 were open for a token the cluster refuses and for the wait of the token endpoint's hold (the
-owner's delegate decisions of 2026-11-15). Where the last column says open, the golden pins a
+owner's delegate decisions of 2026-11-15). Step 3.10 gave a 401 without a login the hint to add
+one with Set credentials and dropped the cluster's internal detail from it, as every surface says
+what to do there. Where the last column says open, the golden pins a
 wording the owner has not settled; the fix that settles it rewrites the golden with
 `golden:update`.
 
 | Case | Status | What the golden shows, or why there is none | Changes in step |
 | ---- | ------ | ------------------------------------------- | --------------- |
 | `redirect` | pinned | a 302 to a login page: `misconfigured`, its target without the query and the hint to the REST root, which ends in `/v2`, nothing followed; `getInstanceDetail` fails at the version read alike | none planned |
-| `unauthorized-none` | pinned | a cluster with Basic security asked without credentials: `unauthorized`, "HTTP 401 Unauthorized" with the cluster's detail; the same for `getInstanceDetail` | none planned; open: the message carries the cluster's internal detail and no hint what to do |
+| `unauthorized-none` | pinned | a cluster with Basic security asked without credentials: `unauthorized`, "HTTP 401 Unauthorized" without the cluster's internal detail, with the hint to add a login with Set credentials; the same for `getInstanceDetail` | 3.10 (the hint, no internal detail) |
 | `unauthorized-basic` | pinned | the same to Basic `demo`/`demo-secret`, the header as sent | none planned |
 | `unauthorized-bearer` | pinned | client credentials: the token endpoint issues a token, the cluster refuses it with a 401 without a body: `unauthorized` "HTTP 401 Unauthorized" with the hint to check the client's rights and the audience and to enter a changed client ID or secret with Set credentials. A token younger than 30 s is not renewed, so one request goes out | none planned |
 | `unauthorized-passthrough` | not reachable | the editors have no caller whose token they could forward: passthrough is the MCP server's alone | |
