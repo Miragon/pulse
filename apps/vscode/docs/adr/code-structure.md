@@ -1,7 +1,7 @@
 # Code structure
 
 - Status: accepted
-- Last reviewed: 2026-11-15 (the C7 adapter's instance detail is read by c7-core's `InstanceDetailReader` over the client's port; the composition roots build the host kit's `EngineRoot` over a record of one adapter per dialect; an adapter brings its BPMN dialect); 2026-11-10 (one adapter per dialect family, the C7 adapter in the c7 family); 2026-10-28
+- Last reviewed: 2026-11-15 (the C7 adapter's commands take the writer and c7-core's port, the adapter keeps no reading client; the C7 adapter's instance detail is read by c7-core's `InstanceDetailReader` over the adapter's port; the composition roots build the host kit's `EngineRoot` over a record of one adapter per dialect; an adapter brings its BPMN dialect); 2026-11-10 (one adapter per dialect family, the C7 adapter in the c7 family); 2026-10-28
 
 ## Context
 
@@ -42,12 +42,12 @@ visible responsibility per file.
    `utils.ts` grab bags; a utility class has one topic.
 4. **Roles are interfaces.** A class implements an interface when it plays a role that
    has, or is meant to have, more than one player, or when it is a seam other code
-   depends on: the ports, `EngineClient` and `EngineWriter` in the C7 adapter, `Panel` in
+   depends on: the ports, `EngineWriter` in the C7 adapter, `Panel` in
    the core, `Command` and the VS Code provider interfaces in the extension. Not every
    class gets an interface: a translation with one user is a private method of that
    class (an adapter's reader maps its own answers), not a class of its own.
 5. **Constructor injection.** Ports and I/O seams come through the constructor (a
-   runtime, an engine client, the panel's effects); per-session parts may be built
+   runtime, an engine port, a writer, the panel's effects); per-session parts may be built
    inside, as the core's panels build their `ViewSession`, `CallJumps` and
    `InstanceWrites` from the context they receive. Wiring happens in a static factory
    of an adapter's entry classes (`C8ProcessRuntime.create`, c7-core's `C7Runtime.over`) or in

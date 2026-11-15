@@ -726,6 +726,13 @@ describe("the C7 runtime over recorded engine answers", () => {
       ],
     })
     expect(engine.requests).toHaveLength(2)
+    const incidents = engine.requests.find((request) => request.route === "GET /incident")
+    expect(Object.entries(incidents?.query ?? {})).toEqual([
+      ["sortBy", "incidentTimestamp"],
+      ["sortOrder", "desc"],
+      ["firstResult", "0"],
+      ["maxResults", "51"],
+    ])
   })
 
   test("lists the job of an incident type the engine raises itself, never of a custom one", async () => {

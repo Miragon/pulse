@@ -131,11 +131,15 @@ missing.
   reading `POST`s that change no event trigger; a mapping is one source and one target activity). A
   by-id read of something the engine does not know answers undefined (an engine 404 that names it,
   or a 500 `NullValueException`, as `inspect` reads an instance that ended); a list is read page by
-  page until a shorter page, and an answer that is no list fails. `incidentRowsOf`,
-  `isRootIncident`, `definitionRefOf`, `timestampOf`, `instanceStateOf`, `incidentDetailsOf`,
-  `readHistoricInstances`, `readBatchStatistics` and `findHistoricBatch` are what those readers
-  share with yours. The history's instance query, the variable names and the migration plan and its
-  check are `POST`s that only read: your transport sends a route by its method, the body as JSON.
+  page until a shorter page, and an answer that is no list fails. The readers stay inside the
+  entry; beside `C7Runtime` it exports the reads a surface's commands check before they write:
+  `findActivityTree` (the activity instance tree of a running instance, its scopes and transition
+  instances, a move's token among them; none for an instance that does not run or an id no engine
+  assigns, without a request), `readHistoricInstances` (the history's instances a query finds, newest
+  first, so a migration submits only those that still run), `readBatchStatistics` and
+  `findHistoricBatch` (a batch while the runtime holds it, else from the history, for a Stop). The
+  history's instance query, the variable names and the migration plan and its check are `POST`s
+  that only read: your transport sends a route by its method, the body as JSON.
   `JsonView` reads an engine answer with checks: `JsonView.of(answer, "incident")` is the object,
   `requiredString("id")`, `optionalNumber("version")`, `optionalList("children")` and the like read
   its values as the engine documents them, and an answer of another shape fails as
@@ -143,8 +147,8 @@ missing.
   `incidents[1] is not an object`); an integer the caller kept as raw JSON (`JSON.rawJSON`, beyond
   2^53) is a value, never an object. `isEngineId(value)` is the one id rule of the family (a letter,
   digit or underscore, then word characters, dots, colons and hyphens), so an id that would change a
-  path or a query is refused before a request leaves; `engineIdOf(value)` fails one as
-  `RuntimeError("misconfigured")`.
+  path or a query is refused before a request leaves; a read of the entry fails one as
+  `RuntimeError("misconfigured")` or reads it as none.
 - **Engine REST rules:** dates (`toEngineDate`, `engineDateInput` in a `DateInputReading`:
   `OFFSET_REQUIRED` refuses a time without an offset, `UTC_WITHOUT_OFFSET` reads it as UTC;
   `engineDateMillis`, `latestEngineDate`), true-only and `…Like` filters (`trueOnly`,
@@ -188,9 +192,11 @@ package.
   checks a history query by incident with `unrecordedIncidents`.
 - Pulse for VS Code and Pulse for Orca bundle it in their C7 adapter: its `C7Runtime` answers
   every read of the engine contract over the adapter's wire, whose failures the adapter words (an
-  instance's panel through `loadInstance`), the adapter's Stop reads a batch with
-  `readBatchStatistics` and `findHistoricBatch`, and the adapter reads every
-  engine answer through `JsonView` and checks every id with `isEngineId`, an incident's retry and the incident list take
+  instance's panel through `loadInstance`), its commands read what they check before a write
+  over the same port (a move's token with `findActivityTree`, a migration's running instances with
+  `readHistoricInstances`, a Stop's batch with `readBatchStatistics` and `findHistoricBatch`), the
+  adapter reads every answer of its writes through `JsonView` and checks every id it writes with
+  `isEngineId`, an incident's retry and the incident list take
   its job or external task from `incidentRecovery`, its details their request from
   `CAUSE_OPERATIONS`; a variable change without a type that is no JSON string, object or array is
   typed by `autoTypedValue`, every change is sent in the form of `toEngineVariable`, and every "with

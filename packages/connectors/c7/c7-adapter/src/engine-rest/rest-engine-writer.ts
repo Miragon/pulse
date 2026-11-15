@@ -1,11 +1,9 @@
 import { JsonView } from "@miragon/pulse-c7-core/runtime"
-import type { EngineWriter, RetryOutcome } from "./engine-writer.js"
+import type { BatchRef, EngineWriter, RetryOutcome } from "./engine-writer.js"
 import { EngineRequestError } from "./http/engine-request-error.js"
 import type { EngineHttp } from "./http/engine-http.js"
 import { RecoveryTargets } from "./recovery-targets.js"
 import { RequestArguments } from "./request-arguments.js"
-import { BatchViewParser } from "./views/batch-view-parser.js"
-import type { BatchRef } from "./views/views.js"
 
 const ONE_RETRY = JSON.stringify({ retries: 1 })
 
@@ -51,13 +49,11 @@ export class RestEngineWriter implements EngineWriter {
   }
 
   async deleteInstancesAsync(body: string): Promise<BatchRef> {
-    return BatchViewParser.reference(
-      await this.http.write("POST", "/process-instance/delete", body),
-    )
+    return RestEngineWriter.batchOf(await this.http.write("POST", "/process-instance/delete", body))
   }
 
   async migrateInstancesAsync(body: string): Promise<BatchRef> {
-    return BatchViewParser.reference(await this.http.write("POST", "/migration/executeAsync", body))
+    return RestEngineWriter.batchOf(await this.http.write("POST", "/migration/executeAsync", body))
   }
 
   async suspendBatch(batchId: string): Promise<void> {
@@ -68,6 +64,10 @@ export class RestEngineWriter implements EngineWriter {
   async deleteBatch(batchId: string): Promise<void> {
     const batch = RequestArguments.segment(batchId)
     await this.http.write("DELETE", `/batch/${batch}`, undefined, { cascade: "false" })
+  }
+
+  private static batchOf(answer: unknown): BatchRef {
+    return { id: JsonView.of(answer, "batch").requiredString("id") }
   }
 
   private async rootCauseOf(incidentId: string): Promise<JsonView | undefined> {

@@ -10,8 +10,15 @@ import {
   type TokenMove,
   type VariableChange,
 } from "@miragon/pulse-engine-core"
+import type { EnginePort } from "@miragon/pulse-c7-core"
+import {
+  findActivityTree,
+  findHistoricBatch,
+  readBatchStatistics,
+  readHistoricInstances,
+} from "@miragon/pulse-c7-core/runtime"
 import { ErrorTranslation } from "./errors/error-translation.js"
-import type { EngineClient, EngineWriter } from "./engine-rest/index.js"
+import type { EngineWriter } from "./engine-rest/index.js"
 import { CancelBody } from "./writing/cancel-body.js"
 import { MigrationBody } from "./writing/migration-body.js"
 import { MoveBody } from "./writing/move-body.js"
@@ -28,7 +35,7 @@ const NOT_STARTED_WHEN: ReadonlySet<RuntimeFailure> = new Set<RuntimeFailure>([
 export class C7ProcessCommands implements ProcessCommands {
   constructor(
     private readonly writer: EngineWriter,
-    private readonly client: EngineClient,
+    private readonly port: EnginePort,
   ) {}
 
   retryIncident(incidentId: IncidentId): Promise<void> {
@@ -95,9 +102,7 @@ export class C7ProcessCommands implements ProcessCommands {
 
   private async move(instanceId: InstanceId, move: TokenMove): Promise<void> {
     MoveBody.checked(move)
-    const tree = await ErrorTranslation.unlessMissing(() =>
-      this.client.activityInstances(instanceId),
-    )
+    const tree = await findActivityTree(this.port, instanceId)
     if (tree === undefined) {
       throw new RuntimeError("rejected", `Instance ${instanceId} is not running.`)
     }
@@ -130,7 +135,8 @@ export class C7ProcessCommands implements ProcessCommands {
     if (instanceIds.length === 0) {
       return []
     }
-    const instances = await this.client.historicInstances(
+    const instances = await readHistoricInstances(
+      this.port,
       {
         processDefinitionId: plan.sourceDefinitionId,
         processInstanceIds: instanceIds,
@@ -152,11 +158,10 @@ export class C7ProcessCommands implements ProcessCommands {
   }
 
   private async isHalted(batchId: string): Promise<boolean> {
-    const running = await this.client.batchStatistics(batchId)
+    const running = await readBatchStatistics(this.port, batchId)
     if (running !== undefined) {
       return running.suspended
     }
-    const ended = await ErrorTranslation.unlessMissing(() => this.client.historicBatch(batchId))
-    return ended !== undefined
+    return (await findHistoricBatch(this.port, batchId)) !== undefined
   }
 }

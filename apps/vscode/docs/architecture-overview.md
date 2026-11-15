@@ -193,19 +193,20 @@ writes.
 ```mermaid
 flowchart LR
   subgraph adapter [c7-adapter]
-    readers[Readers: C7 answers to contract read models]
-    rest[src/engine-rest: REST calls, answers checked]
+    plug[C7Adapter: the runtime and the commands per connection]
+    rest[src/engine-rest: the wire, the port over it, the writes]
   end
-  core["c7-core: inspect, wait states"]
+  core["c7-core: C7Runtime and its readers, the commands' reads, inspect, wait states"]
   rules["@miragon/pulse-engine-core: RootCauses"]
   subgraph family [Same REST API]
     camunda7[Camunda 7.24]
     operaton[Operaton 2.1]
     cibseven[CIB seven 2.2]
   end
-  readers --> rest
-  readers -- root cause --> rules
-  rest -- its port over EngineHttp --> core
+  plug --> core
+  plug --> rest
+  core -- root cause --> rules
+  core -- its port over EngineHttp --> rest
   rest -- HTTP /engine-rest --> family
 ```
 

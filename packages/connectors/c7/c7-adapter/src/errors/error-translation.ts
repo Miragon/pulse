@@ -31,17 +31,6 @@ export class ErrorTranslation {
     return ErrorTranslation.runtimeErrorOf(error, Redaction.NOTHING)
   }
 
-  static async unlessMissing<Result>(work: () => Promise<Result>): Promise<Result | undefined> {
-    try {
-      return await work()
-    } catch (error: unknown) {
-      if (EngineRequestError.isMissingResource(error)) {
-        return undefined
-      }
-      throw error
-    }
-  }
-
   static async commanded<Result>(
     work: () => Promise<Result>,
     redaction: Redaction = Redaction.NOTHING,

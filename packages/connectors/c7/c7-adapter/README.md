@@ -2,9 +2,10 @@
 
 The C7 adapter of Pulse's runtime view (`packages/core/runtime-view`): Operaton, CIB seven and
 Camunda 7 behind the engine contract of `@miragon/pulse-engine-core`, the neutral core of the
-engine family. Its REST client (`src/engine-rest`) is the port the c7 dialect's workflow domain
-(`@miragon/pulse-c7-core`) runs on, c7-core's `C7Runtime` answers every read of the contract over
-it, its writes (`src/writing`) turn the contract's commands into requests, and `C7Adapter`
+engine family, as a thin plug: its wire (`src/engine-rest`) carries the port the c7 dialect's
+workflow domain (`@miragon/pulse-c7-core`) runs on, c7-core's `C7Runtime` answers every read of the
+contract over it and its reads give the commands what they check before a write, its writes
+(`src/writing`, `src/engine-rest`) turn the contract's commands into requests, and `C7Adapter`
 is the plug of the runtime view's ports (`@miragon/pulse-runtime-view/ports`), the web UI and the
 command of the CLI that triggers an event (`src/cli`), the vocabulary of Camunda 7's BPMN files
 (`C7BpmnDialect`, over `camunda-bpmn-moddle`) and the local engine a host falls back to included.
@@ -15,7 +16,9 @@ copy: the reads of the engine, its processes, a version's diagram, the counts on
 processes it calls, the instances and their count, a version's variable names, an instance's
 detail (with the inspection of the instance), the open incidents and an incident's details, a
 bulk operation and its failures and a migration's plan and check (`C7Runtime` of `./runtime`,
-over its port), which incident types the engine raises itself
+over its port), a move's activity tree, a migration's running instances and a Stop's batch for
+the commands (`findActivityTree`, `readHistoricInstances`, `readBatchStatistics`,
+`findHistoricBatch`), which incident types the engine raises itself
 (`BUILT_IN_INCIDENT_TYPES`), which job or external task an incident names, for its retry and in
 the incident list (`incidentRecovery`), which request holds an incident's cause
 (`CAUSE_OPERATIONS`), how a written variable is typed (`autoTypedValue`, `toEngineVariable`), and

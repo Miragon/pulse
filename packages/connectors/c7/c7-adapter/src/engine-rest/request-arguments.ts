@@ -12,14 +12,6 @@ export class RequestArguments {
     return value
   }
 
-  static optionalIdentifier(value: string | undefined): string | undefined {
-    return value === undefined ? undefined : RequestArguments.identifier(value)
-  }
-
-  static identifierList(values: readonly string[] | undefined): string | undefined {
-    return values?.map((value) => RequestArguments.identifier(value)).join(",")
-  }
-
   static segment(value: string): string {
     return encodeURIComponent(RequestArguments.identifier(value))
   }

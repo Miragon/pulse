@@ -54,7 +54,7 @@ module.exports = {
     },
     {
       comment:
-        "The adapter reads the engine's answers and checks its ids with what c7-core's ./runtime entry (@miragon/pulse-c7-core/runtime) builds the engine contract's reads on: JsonView and the one engine id rule, which the editor hosts bundle.",
+        "The adapter answers the engine contract's reads with c7-core's ./runtime entry (@miragon/pulse-c7-core/runtime: C7Runtime), its commands read what they check before a write with that entry's reads (a move's activity tree, a migration's running instances, a batch's state), and it reads a write's answer with JsonView and checks its ids with the one engine id rule from there, which the editor hosts bundle.",
       from: { path: `${PACKAGE}src/` },
       to: { path: C7_RUNTIME_ENTRY },
     },
@@ -70,7 +70,7 @@ module.exports = {
       name: "not-in-allowed",
       severity: "error",
       comment:
-        "No entry of `allowed` in packages/connectors/c7/c7-adapter/.dependency-cruiser.cjs permits this import. The adapter uses its own modules, the main entry of @miragon/pulse-engine-core (the contract), the main entry of @miragon/pulse-c7-core (the c7 dialect's workflow domain) and its ./runtime entry (the engine contract's reads and what they build on), never another subpath, the runtime view's ports (@miragon/pulse-runtime-view/ports), in its BPMN dialect (src/c7-bpmn-dialect.ts) the descriptor of camunda-bpmn-moddle, in its wire (src/engine-rest/http) the main entry of the transport @miragon/pulse-http, and no Node built-in: the REST client runs on the global fetch of its host's runtime.",
+        "No entry of `allowed` in packages/connectors/c7/c7-adapter/.dependency-cruiser.cjs permits this import. The adapter uses its own modules, the main entry of @miragon/pulse-engine-core (the contract), the main entry of @miragon/pulse-c7-core (the c7 dialect's workflow domain) and its ./runtime entry (the engine contract's reads, the reads of the commands, JsonView and the id rule), never another subpath, the runtime view's ports (@miragon/pulse-runtime-view/ports), in its BPMN dialect (src/c7-bpmn-dialect.ts) the descriptor of camunda-bpmn-moddle, in its wire (src/engine-rest/http) the main entry of the transport @miragon/pulse-http, and no Node built-in: its wire runs on the global fetch of its host's runtime.",
       from: {},
       to: { path: "^$" },
     },

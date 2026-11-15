@@ -1,7 +1,8 @@
+import { createEnginePort, type EnginePort } from "@miragon/pulse-c7-core"
 import type { ProcessCommands, ProcessRuntime } from "@miragon/pulse-engine-core"
 import { C7Adapter } from "../../src/c7-adapter.js"
 import { C7ProcessCommands } from "../../src/c7-process-commands.js"
-import { EngineHttp, RestEngineClient, RestEngineWriter } from "../../src/engine-rest/index.js"
+import { EngineHttp, HttpEngineTransport, RestEngineWriter } from "../../src/engine-rest/index.js"
 import {
   fakeEngineRest,
   REST_URL,
@@ -11,6 +12,10 @@ import {
 
 export function httpOver(engine: FakeEngineRest, writes = false): EngineHttp {
   return new EngineHttp({ url: REST_URL, credentials: { kind: "none" }, writes, send: engine.send })
+}
+
+export function portOver(engine: FakeEngineRest): EnginePort {
+  return createEnginePort(HttpEngineTransport.over(httpOver(engine)))
 }
 
 export function runtimeOver(engine: FakeEngineRest): ProcessRuntime {
@@ -31,6 +36,5 @@ export function fakeCommands(
 ): { commands: ProcessCommands; engine: FakeEngineRest } {
   const engine = fakeEngineRest(routes)
   const writer = new RestEngineWriter(httpOver(engine, writes))
-  const client = new RestEngineClient(httpOver(engine))
-  return { commands: new C7ProcessCommands(writer, client), engine }
+  return { commands: new C7ProcessCommands(writer, portOver(engine)), engine }
 }

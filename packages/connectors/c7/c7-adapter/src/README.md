@@ -28,25 +28,27 @@ flowchart LR
   core -- "1: ask" --> reader
   reader -- "2: engine calls" --> rest
   rest -. "3: REST calls" .-> engine[("/engine-rest")]
-  rest -- "4: checked views" --> reader
+  rest -- "4: lossless JSON" --> reader
   reader -- "5: read model" --> core
 ```
 
 1. The core asks a question through the `ProcessRuntime` port, e.g. "details of instance X".
 2. c7-core's `C7Runtime`, which `C7Adapter` builds over the adapter's port, hands it to one of its readers, which turns it into one or more engine calls and runs them in parallel where it can.
 3. `engine-rest` sends them through the transport with the connection's credentials: it never follows a redirect, stops after 60 s or 64 MiB, masks the credentials in the engine's error answers (a password of four characters or more); a connection for reads refuses every write before it leaves, as `unsupported` ("Read-only."), never as a missing resource.
-4. It parses the JSON without losing digits and checks each field it reads with c7-core's `JsonView`.
+4. It parses the JSON without losing digits; the reader checks each field it reads with c7-core's `JsonView`.
 5. The reader turns these views into the contract's read model; a failure of the wire becomes a `RuntimeError` in the adapter's words (`ErrorTranslation.runtimeError`).
 
-Writes (`ProcessCommands`) take the same road on a connection that may write.
+Writes (`ProcessCommands`) take the same road on a connection that may write. What a command checks
+before it writes (a move's token, a migration's running instances, a refused Stop step's batch) it
+reads through c7-core's reads of `./runtime` over the port of the read connection.
 
 ## Where things are
 
 - `packages/connectors/c7/c7-adapter/src`: `C7Adapter` builds a runtime (c7-core's `C7Runtime` over the port of its wire) and commands per engine connection and names the local engine a host falls back to; `C7BpmnDialect`, the vocabulary of Camunda 7's BPMN files (the one file that imports `camunda-bpmn-moddle`'s descriptor)
-- `packages/connectors/c7/c7-core/src/runtime`: c7-core's `C7Runtime`, every read of the engine contract over the adapter's port, and its readers of the engine, its processes, the counts on a diagram, the processes a version calls, the instances and their count, a version's variable names, an instance's detail (its inspection, the path from the history, its typed variables), the open incidents and an incident's details, a bulk operation and its failures, a migration's plan and its check; with them the incidents of an answer, the root incident, a version's reference, timestamps, states and the root cause of incident details (`RootCauses`), which the adapter's readers take from there
+- `packages/connectors/c7/c7-core/src/runtime`: c7-core's `C7Runtime`, every read of the engine contract over the adapter's port, and its readers of the engine, its processes, the counts on a diagram, the processes a version calls, the instances and their count, a version's variable names, an instance's detail (its inspection, the path from the history, its typed variables), the open incidents and an incident's details, a bulk operation and its failures, a migration's plan and its check; with them the incidents of an answer, the root incident, a version's reference, timestamps, states and the root cause of incident details (`RootCauses`); beside them the reads the commands check before a write (`findActivityTree`, `readHistoricInstances`, `readBatchStatistics`, `findHistoricBatch`)
 - `packages/connectors/c7/c7-adapter/src/writing`, `packages/connectors/c7/c7-adapter/src/errors`: the bodies of a variable change and a move, the token a move cancels; failures to `RuntimeError`
 - `packages/connectors/c7/c7-adapter/src/web-ui`: `CockpitWebUi`: links into Cockpit or the CIB seven webclient
-- `packages/connectors/c7/c7-adapter/src/engine-rest`: the REST client: requests, paging, parsed and checked views, ids checked by c7-core's `isEngineId`
+- `packages/connectors/c7/c7-adapter/src/engine-rest`: the writes (`RestEngineWriter`: one method per write the commands send, a started batch's reference and an incident's root cause read by c7-core's `JsonView`, ids checked by c7-core's `isEngineId`); the wire's lossless JSON in `views`
 - `packages/connectors/c7/c7-adapter/src/engine-rest/http`: the wire: `EngineHttp` over the transport, and how each of its failures reads
 - `packages/connectors/c7/c7-adapter/src/engine-rest/inspect`: c7-core's port over `EngineHttp` (`HttpEngineTransport`, the routes of `CORE_ROUTES`, each sent by its method: a reading `GET`, or a reading `POST` with its body), which c7-core's readers and its inspection of an instance run on
 

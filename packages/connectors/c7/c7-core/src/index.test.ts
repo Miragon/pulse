@@ -119,33 +119,15 @@ describe("the @miragon/pulse-c7-core entries", () => {
     expect(Object.keys(routes)).toEqual(["ROUTES"])
   })
 
-  it("export exactly the runtime, the readers, the checked views, the id rule and what readers share from ./runtime", () => {
+  it("export exactly the runtime, the reads of the commands, the checked views and the id rule from ./runtime", () => {
     expect(Object.keys(runtime).sort()).toEqual([
       "C7Runtime",
-      "CalledProcessReader",
-      "DefinitionReader",
-      "ElementStatisticsReader",
-      "EngineReader",
-      "IncidentDetailsReader",
-      "IncidentSearch",
-      "InstanceDetailReader",
-      "InstanceSearch",
       "JsonView",
-      "VariableNameReader",
-      "definitionRefOf",
-      "definitionRefOfInstance",
-      "engineIdOf",
+      "findActivityTree",
       "findHistoricBatch",
-      "incidentDetailsOf",
-      "incidentRowOf",
-      "incidentRowsOf",
-      "instanceStateOf",
       "isEngineId",
-      "isRootIncident",
-      "optionalTimestampOf",
       "readBatchStatistics",
       "readHistoricInstances",
-      "timestampOf",
     ])
   })
 
