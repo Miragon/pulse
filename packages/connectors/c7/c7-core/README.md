@@ -189,7 +189,11 @@ package.
   the engine module that serves every dialect, runs it as the MCP tools
   `engine_inspect_process_instance` and `engine_status`, builds its cockpit's failure clusters
   and health verdict from the same rules, flags its instance rows with `withIncidentAmong` and
-  checks a history query by incident with `unrecordedIncidents`.
+  checks a history query by incident with `unrecordedIncidents`. Its engine suite runs `C7Runtime`
+  over the server's own wire, the generated SDK through its engine port, against the conformance
+  kit's read laws on real engines; no tool runs the runtime. On that wire an integer beyond 2^53
+  arrives as a string of its exact digits, so `InstanceDetailReader` writes such a variable's
+  value as a JSON string there, where the adapter's wire keeps it a number; no read law reads one.
 - Pulse for VS Code and Pulse for Orca bundle it in their C7 adapter: its `C7Runtime` answers
   every read of the engine contract over the adapter's wire, whose failures the adapter words (an
   instance's panel through `loadInstance`), its commands read what they check before a write

@@ -22,6 +22,7 @@ jobs:
     outputs:
       typescript: ${{ steps.scopes.outputs.typescript }}
       mcp: ${{ steps.scopes.outputs.mcp }}
+      mcp-engines: ${{ steps.scopes.outputs.mcp-engines }}
       template: ${{ steps.scopes.outputs.template }}
       starter-engine: ${{ steps.scopes.outputs.starter-engine }}
       cli: ${{ steps.scopes.outputs.cli }}
@@ -147,11 +148,11 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-  # Real engines in Testcontainers, one leg per flavor; each suite runs in its app's scope.
+  # Real engines in Testcontainers, one leg per flavor; each suite runs in its own scope.
   engines:
     name: Engines (${{ matrix.flavor }})
     needs: changes
-    if: needs.changes.outputs.cli == 'true' || needs.changes.outputs.vscode == 'true'
+    if: needs.changes.outputs.cli == 'true' || needs.changes.outputs.vscode == 'true' || needs.changes.outputs.mcp-engines == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -190,7 +191,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - id: build
-        run: pnpm turbo build --filter=@miragon/pulse-cli... --filter=@miragon/pulse-c7-adapter...
+        run: pnpm turbo build --filter=@miragon/pulse-cli... --filter=@miragon/pulse-c7-adapter... --filter=@miragon/pulse-engine-connector^...
 
       # Every suite runs even after a failure; the operaton leg also tests the packed tarball.
       - name: CLI integration (apps/cli)
@@ -205,6 +206,13 @@ jobs:
         env:
           PULSE_ENGINE_IMAGE: ${{ matrix.image }}
         run: pnpm --fail-if-no-match --filter @miragon/pulse-c7-adapter run test:engines
+
+      # The read laws over the MCP server's SDK wire: c7-core's runtime on the connector's port.
+      - name: MCP SDK wire conformance (packages/connectors/engine/engine-connector)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' && needs.changes.outputs.mcp-engines == 'true' }}
+        env:
+          PULSE_ENGINE_IMAGE: ${{ matrix.image }}
+        run: pnpm --fail-if-no-match --filter @miragon/pulse-engine-connector run test:engines
 
   # The one requirable check of the matrix; skipped passes.
   engines-result:

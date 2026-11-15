@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import path from "node:path"
 import { describe, it } from "node:test"
 import { fileURLToPath } from "node:url"
@@ -18,6 +18,9 @@ const PACKAGES = [
     "@miragon/pulse-ui": "workspace:*",
   }),
   pkg("packages/connectors/c7/c7-client", "@miragon/pulse-c7-client"),
+  pkg("packages/connectors/engine/engine-core", "@miragon/pulse-engine-core"),
+  pkg("packages/core/http", "@miragon/pulse-http"),
+  pkg("packages/core/profile", "@miragon/pulse-profile"),
   pkg("packages/connectors/engine/engine-connector", "@miragon/pulse-engine-connector", {
     "@miragon/pulse-c7-client": "workspace:*",
     "@miragon/pulse-c7-core": "workspace:*",
@@ -130,6 +133,7 @@ describe("scopesFor: a package's code reaches its dependents", () => {
   it("runs the MCP server's checks and the template for a client, through its connector", () => {
     assert.deepEqual(scopes("packages/connectors/c7/c7-client/src/index.ts"), [
       "mcp",
+      "mcp-engines",
       "template",
       "typescript",
     ])
@@ -139,6 +143,7 @@ describe("scopesFor: a package's code reaches its dependents", () => {
     assert.deepEqual(scopes("packages/connectors/c7/c7-core/src/inspect.ts"), [
       "cli",
       "mcp",
+      "mcp-engines",
       "orca",
       "template",
       "typescript",
@@ -165,12 +170,18 @@ describe("scopesFor: a package's code reaches its dependents", () => {
       assert.deepEqual([...scopesFor([file], alone)].sort(), [
         "cli",
         "mcp",
+        "mcp-engines",
         "template",
         "typescript",
       ])
     }
     const core = "packages/connectors/c7/c7-core/src/generated/core-routes.json"
-    assert.deepEqual([...scopesFor([core], alone)].sort(), ["mcp", "template", "typescript"])
+    assert.deepEqual([...scopesFor([core], alone)].sort(), [
+      "mcp",
+      "mcp-engines",
+      "template",
+      "typescript",
+    ])
   })
 
   it("runs the MCP server's checks for the server app itself, not only through a package", () => {
@@ -191,6 +202,70 @@ describe("scopesFor: a package's code reaches its dependents", () => {
 
   it("runs only the Orca plugin's checks for the Orca plugin", () => {
     assert.deepEqual(scopes("apps/orca/src/worker/main.ts"), ["orca", "typescript"])
+  })
+})
+
+describe("scopesFor: the MCP server's engine suite runs for what it runs", () => {
+  const CONNECTOR = "packages/connectors/engine/engine-connector"
+
+  it("turns it on for the code it runs, the world it seeds and the suite's own files", () => {
+    for (const file of [
+      "packages/connectors/c7/c7-core/src/runtime/c7-runtime.ts",
+      "packages/connectors/c7/c7-core/src/testing/seed-world.ts",
+      "packages/connectors/c7/c7-core/src/port.ts",
+      "packages/connectors/c7/c7-core/world/order.bpmn",
+      "packages/connectors/c7/c7-core/spec/patches.json",
+      "packages/connectors/c7/c7-core/src/generated/routes.json",
+      "packages/connectors/c7/c7-client/src/generated/sdk.gen.ts",
+      "packages/connectors/engine/engine-core/src/testing/conformance/laws/engine-laws.ts",
+      "packages/core/http/src/http.ts",
+      "packages/core/profile/src/index.ts",
+      `${CONNECTOR}/src/lib/core-adapter/c7-runtime.engine.test.ts`,
+      `${CONNECTOR}/src/lib/core-adapter/engine-port.ts`,
+      `${CONNECTOR}/src/lib/engine/engine-connection.ts`,
+      `${CONNECTOR}/package.json`,
+      `${CONNECTOR}/vitest.config.ts`,
+      `${CONNECTOR}/vitest.engines.config.ts`,
+    ]) {
+      assert.ok(scopes(file).includes("mcp-engines"), file)
+    }
+  })
+
+  it("leaves it off for the rest of those packages and for every other package", () => {
+    for (const file of [
+      `${CONNECTOR}/src/tools/process-instances.ts`,
+      `${CONNECTOR}/src/widgets/views.tsx`,
+      `${CONNECTOR}/src/data/feeds.ts`,
+      `${CONNECTOR}/src/lib/bpmn/definition-xml.ts`,
+      `${CONNECTOR}/src/messages/GLOSSARY.md`,
+      "packages/connectors/c7/c7-core/package.json",
+      "packages/connectors/c7/c7-core/scripts/patches.ts",
+      "packages/connectors/engine/engine-core/test/kit.test.ts",
+      "packages/connectors/c7/c7-adapter/src/index.ts",
+      "packages/core/runtime-view/src/core/index.ts",
+      "packages/core/widget-shell/src/index.ts",
+      "packages/core/ui/src/theme.css",
+      "apps/mcp-server/src/app.ts",
+      "apps/cli/src/workflow/deploy.ts",
+      "apps/vscode/src/host/extension.ts",
+    ]) {
+      assert.ok(!scopes(file).includes("mcp-engines"), file)
+    }
+  })
+
+  it("adds only itself: the connector's engine port runs the MCP server's checks as before", () => {
+    assert.deepEqual(scopes(`${CONNECTOR}/src/lib/core-adapter/engine-port.ts`), [
+      "mcp",
+      "mcp-engines",
+      "template",
+      "typescript",
+    ])
+    assert.deepEqual(scopes("packages/core/http/src/http.ts"), [
+      "mcp",
+      "mcp-engines",
+      "template",
+      "typescript",
+    ])
   })
 })
 
@@ -367,6 +442,18 @@ describe("the real workspace", () => {
     )
     for (const scope of ["cli", "orca", "vscode", "vscode-package", "mcp", "template"]) {
       assert.ok(changed.has(scope), scope)
+    }
+  })
+
+  it("names real paths for the MCP server's engine suite: the suite, its config and the world", () => {
+    for (const file of [
+      "packages/connectors/engine/engine-connector/src/lib/core-adapter/c7-runtime.engine.test.ts",
+      "packages/connectors/engine/engine-connector/vitest.engines.config.ts",
+      "packages/connectors/c7/c7-core/world/order.bpmn",
+      "packages/connectors/c7/c7-core/src/runtime/c7-runtime.ts",
+    ]) {
+      assert.ok(existsSync(path.join(repoRoot, file)), file)
+      assert.ok(scopesFor([file], packages).has("mcp-engines"), file)
     }
   })
 

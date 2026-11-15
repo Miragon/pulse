@@ -1,12 +1,17 @@
 import { afterEach, describe, expect, it } from "vitest"
 import { fetchJobStacktrace } from "@miragon/pulse-c7-client"
-import { CORE_ROUTES, isUnknownEndpoint } from "@miragon/pulse-c7-core"
-import { INSPECT_OPERATIONS, STATUS_OPERATIONS } from "@miragon/pulse-c7-core/testing"
+import { CORE_ROUTES, isUnknownEndpoint, type Route } from "@miragon/pulse-c7-core"
+import {
+  INSPECT_OPERATIONS,
+  RUNTIME_OPERATIONS,
+  STATUS_OPERATIONS,
+} from "@miragon/pulse-c7-core/testing"
 import {
   clientFor,
   type FakeEngine,
   startFakeEngine,
 } from "../../tools/test-support/fake-engine.js"
+import { createEngineConnection } from "../engine/engine-connection.js"
 import { EngineRequestError, type EngineFailureKind } from "../engine/engine-error.js"
 import { engineFailure, enginePortFor, isMissingResource, noneIfMissing } from "./engine-port.js"
 
@@ -24,8 +29,9 @@ async function engineWith(...args: Parameters<typeof startFakeEngine>) {
 const NO_INPUT = { pathArgs: [], query: {} }
 
 describe("enginePortFor", () => {
-  it("sends every operation c7-core's composites send as its route, all of them reads", () => {
-    for (const operationId of new Set([...INSPECT_OPERATIONS, ...STATUS_OPERATIONS])) {
+  it("sends every operation c7-core's composites and its runtime send as its route, all of them reads", () => {
+    const sent = [...INSPECT_OPERATIONS, ...STATUS_OPERATIONS, ...RUNTIME_OPERATIONS]
+    for (const operationId of new Set(sent)) {
       expect(CORE_ROUTES[operationId]?.effect, operationId).toBe("read")
     }
   })
@@ -97,6 +103,104 @@ describe("enginePortFor", () => {
     expect(await port.find("getProcessInstance", { pathArgs: ["gone"], query: {} })).toBeUndefined()
     expect(await port.text("getStacktrace", ["j1"])).toBe("trace")
     expect(engine.requests[1]?.headers.accept).toBe("text/plain")
+  })
+})
+
+/** The route of an operation c7-core sends; every one is in `CORE_ROUTES`. */
+function routeFor(operationId: string): Route {
+  const route = CORE_ROUTES[operationId]
+  if (route === undefined) throw new Error(`${operationId} has no route`)
+  return route
+}
+
+/** A route's path with the values `v0`, `v1`, … in its placeholders, and those values. */
+function filled(route: Route): { readonly path: string; readonly pathArgs: string[] } {
+  const pathArgs: string[] = []
+  const path = route.path.replace(/\{[^}]+\}/g, () => {
+    pathArgs.push(`v${String(pathArgs.length)}`)
+    return pathArgs.at(-1) ?? ""
+  })
+  return { path, pathArgs }
+}
+
+/**
+ * c7-core's `C7Runtime` reads over this port in the engine suite (c7-runtime.engine.test.ts):
+ * every operation of its readers goes out through the SDK wire by its route, a text route read as
+ * text, a reading `POST` with its JSON body.
+ */
+describe("the runtime's operations over the SDK wire", () => {
+  it.each([...RUNTIME_OPERATIONS])("%s goes out by its route's method and path", async (id) => {
+    const route = routeFor(id)
+    const engine = await engineWith({}, { body: { ok: true } })
+    const port = enginePortFor(clientFor(engine))
+    const { path, pathArgs } = filled(route)
+    if (route.accepts.includes("text/plain")) {
+      expect(await port.text(id, pathArgs)).toBe('{"ok":true}')
+    } else {
+      const body = route.method === "POST" ? { id } : undefined
+      expect(await port.json(id, { pathArgs, query: {}, body })).toEqual({ ok: true })
+    }
+    expect(engine.requests.map((request) => `${request.method} ${request.path}`)).toEqual([
+      `${route.method} ${path}`,
+    ])
+    expect(engine.requests[0]?.headers.accept).toBe(route.accepts.join(", "))
+  })
+})
+
+describe("the runtime's reading POSTs", () => {
+  const posts = RUNTIME_OPERATIONS.filter((id) => routeFor(id).method === "POST")
+  const readOnly = (engine: FakeEngine) =>
+    createEngineConnection(
+      { id: "ro", baseUrl: engine.baseUrl },
+      { type: "none" },
+      {
+        readOnly: true,
+      },
+    )
+
+  it("are the history's instance query, its count and its variables and the migration pair", () => {
+    expect(posts).toEqual([
+      "queryHistoricProcessInstances",
+      "queryHistoricProcessInstancesCount",
+      "queryHistoricVariableInstances",
+      "generateMigrationPlan",
+      "validateMigrationPlan",
+    ])
+  })
+
+  it.each(posts)("%s sends its query and its JSON body, on a read-only engine too", async (id) => {
+    const engine = await engineWith({}, { body: { count: 1 } })
+    const body = { processInstanceIds: ["pi-1"], sorting: [{ sortBy: "startTime" }] }
+    const input = { pathArgs: [], query: { firstResult: "0", maxResults: "500" }, body }
+    expect(await enginePortFor(readOnly(engine)).json(id, input)).toEqual({ count: 1 })
+    expect(engine.requests).toEqual([
+      expect.objectContaining({
+        method: "POST",
+        path: routeFor(id).path,
+        query: { firstResult: "0", maxResults: "500" },
+        body,
+      }),
+    ])
+    expect(engine.requests[0]?.headers["content-type"]).toMatch(/^application\/json\b/)
+  })
+
+  it("go out as reads: a write never leaves the read-only client, and no answer gets the write caveat", async () => {
+    const engine = await engineWith(
+      {},
+      { body: "<html>", contentType: "application/json;charset=UTF-8" },
+    )
+    const client = readOnly(engine)
+    await expect(client.post({ url: "/process-instance/delete", body: {} })).rejects.toThrow(
+      "the profile of this engine is read-only on this server; nothing was sent (engine ro)",
+    )
+    expect(engine.requests).toEqual([])
+    const input = { pathArgs: [], query: {}, body: {} }
+    const failed: unknown = await enginePortFor(client)
+      .json("queryHistoricProcessInstances", input)
+      .catch((error: unknown) => error)
+    expect(failed).toBeInstanceOf(EngineRequestError)
+    expect((failed as EngineRequestError).message).toBe("the answer of engine ro is no valid JSON")
+    expect(engine.requests.map((request) => request.method)).toEqual(["POST"])
   })
 })
 

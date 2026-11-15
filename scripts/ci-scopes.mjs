@@ -14,6 +14,7 @@ import { INTERFACE_PACKAGES } from "./source-scan.mjs"
 export const SCOPES = [
   "typescript",
   "mcp",
+  "mcp-engines",
   "template",
   "starter-engine",
   "cli",
@@ -92,10 +93,31 @@ export const ALSO_READ_BY = [
   // The one Camunda 7 REST spec, its patches and its route table, read as files: c7-client's
   // generate (the SDK, which the MCP server and the template build on) and the CLI's catalog
   // test read the patched spec c7-core's generate writes from them, and the licence tests of the
-  // CLI and of c7-client the spec's info, texts, LICENSE and NOTICE.
+  // CLI and of c7-client the spec's info, texts, LICENSE and NOTICE. The MCP server's engine
+  // suite sends through that SDK by that table (the rule below).
   {
     pattern: /^packages\/connectors\/c7\/c7-core\/(?:spec\/|src\/generated\/routes\.json$)/,
-    scopes: ["cli", "mcp", "template", "typescript"],
+    scopes: ["cli", "mcp", "mcp-engines", "template", "typescript"],
+  },
+  // What the MCP server's engine suite runs (the connector's test:engines in the Engines legs):
+  // c7-core's src (its runtime, the port and routes it reads by, its seed) and the world's
+  // diagrams, the SDK, engine-core's conformance kit, the transport, the profile format, and the
+  // connector's engine port and connection, its manifest and its vitest configs. Any other change
+  // of these packages leaves the suite off.
+  {
+    pattern: new RegExp(
+      "^packages/(?:" +
+        [
+          "connectors/c7/c7-core/(?:src|world)/",
+          "connectors/c7/c7-client/src/",
+          "connectors/engine/engine-core/src/",
+          "core/http/src/",
+          "core/profile/src/",
+          "connectors/engine/engine-connector/(?:src/lib/(?:core-adapter|engine)/|package\\.json$|vitest\\.(?:engines\\.)?config\\.ts$)",
+        ].join("|") +
+        ")",
+    ),
+    scopes: ["mcp-engines"],
   },
 ]
 

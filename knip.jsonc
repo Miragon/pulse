@@ -81,6 +81,12 @@
       },
     },
 
+    "packages/connectors/engine/engine-connector": {
+      "vitest": {
+        "config": ["vitest.config.ts", "vitest.engines.config.ts"],
+      },
+    },
+
     "packages/connectors/c8/c8-adapter": {
       "vitest": {
         "config": ["vitest.config.ts", "vitest.engines.config.ts"],

@@ -1,7 +1,9 @@
 # Runtime contract
 
 - Status: accepted
-- Last reviewed: 2026-11-15 (an adapter brings its BPMN dialect and the local engine's endpoint,
+- Last reviewed: 2026-11-15 (the read laws hold for the C7 family's one implementation of the
+  reads, c7-core's `C7Runtime`, over two wires: the C7 adapter's and the MCP server's generated SDK;
+  an adapter brings its BPMN dialect and the local engine's endpoint,
   the host kit's `EngineRoot` chooses between the adapters; what a Camunda 8 cluster answers, through the C8 adapter's runtime,
   proven by the read laws on a local cluster); 2026-11-14 (on the C7 family "with incident" is an
   open incident the runtime holds now, on every history level; the read laws run on a C7 engine at
@@ -264,6 +266,7 @@ flowchart LR
   kit[ConformanceKit: 48 read laws, 15 command laws]
   kit --> fake[FakeEngine in memory]
   kit --> c7[C7Adapter on Operaton and CIB seven in containers]
+  kit --> mcp[C7Runtime over the MCP server's SDK wire, same engines, read laws]
   saboteurs[Saboteurs: broken runtimes] -- each must fail its law --> kit
 ```
 
@@ -369,7 +372,14 @@ business key fail the ids law too, as does a search that ignores the instance id
 ## Consequences
 
 - Every adapter is proven against the same laws on a real engine
-  (`*.engine.test.ts`); an architecture test fails when an adapter has none. The C8 adapter's
+  (`*.engine.test.ts`); an architecture test fails when an adapter has none. The C7 family's reads
+  are one implementation, c7-core's `C7Runtime`, which the read laws run over two wires on
+  Operaton and CIB seven: the C7 adapter's and the MCP server's generated SDK through the engine
+  connector's port
+  (`packages/connectors/engine/engine-connector/src/lib/core-adapter/c7-runtime.engine.test.ts`).
+  The laws prove the answers, not equal bytes: an integer beyond 2^53 reaches the runtime over
+  the SDK as a string of its digits, and no read law reads a bulk operation, which that suite
+  reads in two cases of its own. The C8 adapter's
   engine test runs on a local Camunda 8 cluster only: CI starts no Camunda 8 image until the
   licence question of #531 has an answer ([c8-adapter.md](c8-adapter.md)).
 - The contract holds beyond the C7 family. During the spike a Camunda 8 adapter on the REST API

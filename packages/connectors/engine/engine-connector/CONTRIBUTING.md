@@ -65,3 +65,10 @@ start view), never a second view tool: see the add-bpm-feature skill.
 
 `pnpm typecheck` is the **only** check that type-checks the widget `.tsx` (via
 `tsconfig.widgets.json`). Widgets render only manually through the MCP Inspector `pnpm dev` starts; see the [developer guide](../../../../docs/mcp/developer.md).
+
+`pnpm --fail-if-no-match --filter @miragon/pulse-engine-connector test:engines` needs Docker, and
+`pnpm test` leaves it out: it starts a real engine (`PULSE_ENGINE_IMAGE`, Operaton 2.1.5 without
+one), seeds the conformance world of `@miragon/pulse-engine-core/testing` through
+`@miragon/pulse-c7-core/testing` and runs the kit's read laws on c7-core's `C7Runtime` over this
+module's engine port (`src/lib/core-adapter/c7-runtime.engine.test.ts`). CI runs it on Operaton
+and CIB seven when a file it runs changes.
