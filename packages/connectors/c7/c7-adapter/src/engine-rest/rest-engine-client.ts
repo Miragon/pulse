@@ -1,27 +1,20 @@
 import { createEnginePort, type EnginePort } from "@miragon/pulse-c7-core"
 import {
-  readHistoricInstances,
+  type BatchStatisticsRow,
+  findHistoricBatch,
+  type HistoricBatchRow,
   type HistoricInstanceQuery,
   type HistoricInstanceRow,
   type OffsetWindow,
+  readBatchStatistics,
+  readHistoricInstances,
 } from "@miragon/pulse-c7-core/runtime"
 import type { EngineClient } from "./engine-client.js"
 import type { EngineHttp } from "./http/engine-http.js"
 import { HttpEngineTransport } from "./inspect/http-engine-transport.js"
 import { RequestArguments } from "./request-arguments.js"
 import { ActivityInstanceViewParser } from "./views/activity-instance-view-parser.js"
-import { BatchViewParser } from "./views/batch-view-parser.js"
-import { MigrationViewParser } from "./views/migration-view-parser.js"
-import type {
-  ActivityInstanceView,
-  BatchStatisticsView,
-  FailedJobView,
-  HistoricBatchView,
-  MigrationPlanView,
-  MigrationReportView,
-} from "./views/views.js"
-
-const MAX_FAILED_JOBS = 100
+import type { ActivityInstanceView } from "./views/views.js"
 
 export class RestEngineClient implements EngineClient {
   readonly port: EnginePort
@@ -45,53 +38,11 @@ export class RestEngineClient implements EngineClient {
     )
   }
 
-  async batchStatistics(batchId: string): Promise<BatchStatisticsView | undefined> {
-    return BatchViewParser.statistics(
-      await this.http.read("/batch/statistics", { batchId: RequestArguments.identifier(batchId) }),
-    )
+  async batchStatistics(batchId: string): Promise<BatchStatisticsRow | undefined> {
+    return await readBatchStatistics(this.port, RequestArguments.identifier(batchId))
   }
 
-  async historicBatch(batchId: string): Promise<HistoricBatchView> {
-    return BatchViewParser.historic(
-      await this.http.read(`/history/batch/${RequestArguments.segment(batchId)}`),
-    )
-  }
-
-  async failedJobs(jobDefinitionId: string): Promise<FailedJobView[]> {
-    return BatchViewParser.failedJobs(
-      await this.http.read("/job", {
-        jobDefinitionId: RequestArguments.identifier(jobDefinitionId),
-        withException: "true",
-        noRetriesLeft: "true",
-        maxResults: String(MAX_FAILED_JOBS),
-      }),
-    )
-  }
-
-  async migrationPlan(
-    sourceDefinitionId: string,
-    targetDefinitionId: string,
-  ): Promise<MigrationPlanView> {
-    return MigrationViewParser.plan(
-      await this.http.read(
-        "/migration/generate",
-        {},
-        {
-          sourceProcessDefinitionId: sourceDefinitionId,
-          targetProcessDefinitionId: targetDefinitionId,
-          updateEventTriggers: false,
-        },
-      ),
-    )
-  }
-
-  async migrationReport(plan: MigrationPlanView): Promise<MigrationReportView> {
-    const instructions = plan.instructions.map((instruction) => ({
-      ...instruction,
-      updateEventTrigger: false,
-    }))
-    return MigrationViewParser.report(
-      await this.http.read("/migration/validate", {}, { ...plan, instructions }),
-    )
+  async historicBatch(batchId: string): Promise<HistoricBatchRow | undefined> {
+    return await findHistoricBatch(this.port, RequestArguments.identifier(batchId))
   }
 }

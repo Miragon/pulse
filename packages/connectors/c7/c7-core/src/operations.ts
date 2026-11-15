@@ -66,8 +66,10 @@ export const WITH_INCIDENT_OPERATIONS = [
  * The reads of the engine contract (`./runtime`): what the engine is, its processes and their
  * versions with "with incident", a version's diagram, the counts on it and the processes it calls,
  * the history's instances and their count with the runtime's "with incident", a version's variable
- * names, the open incidents and an incident with the text of its cause, and an instance's detail
- * (the rounds of the instance view without history, its path, its typed variables).
+ * names, the open incidents and an incident with the text of its cause, an instance's detail (the
+ * rounds of the instance view without history, its path, its typed variables), a batch from its
+ * statistics or its history with its failed jobs, and a migration plan the engine generates and
+ * validates.
  */
 export const RUNTIME_OPERATIONS = [
   "getTelemetryData",
@@ -97,6 +99,10 @@ export const RUNTIME_OPERATIONS = [
   "getHistoricVariableInstances",
   "getHistoricActivityInstances",
   "getVariableInstances",
+  "getBatchStatistics",
+  "getHistoricBatch",
+  "generateMigrationPlan",
+  "validateMigrationPlan",
 ] as const
 
 /** Every operation c7-core sends, once each, in code unit order: all of them read. */

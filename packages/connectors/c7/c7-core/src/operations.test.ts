@@ -1,4 +1,10 @@
-import { DefinitionId, ElementId, IncidentId, InstanceId } from "@miragon/pulse-engine-core"
+import {
+  BulkOperationId,
+  DefinitionId,
+  ElementId,
+  IncidentId,
+  InstanceId,
+} from "@miragon/pulse-engine-core"
 import { describe, expect, it } from "vitest"
 import { type Condition, measure } from "./conditions.js"
 import { readStatus } from "./engine-status.js"
@@ -11,6 +17,7 @@ import {
   STATUS_OPERATIONS,
   WITH_INCIDENT_OPERATIONS,
 } from "./operations.js"
+import { BulkOperationReader } from "./runtime/bulk-operation-reader.js"
 import { CalledProcessReader } from "./runtime/called-process-reader.js"
 import { DefinitionReader } from "./runtime/definition-reader.js"
 import { ElementStatisticsReader } from "./runtime/element-statistics-reader.js"
@@ -19,6 +26,7 @@ import { IncidentDetailsReader } from "./runtime/incident-details-reader.js"
 import { IncidentSearch } from "./runtime/incident-search.js"
 import { InstanceDetailReader } from "./runtime/instance-detail-reader.js"
 import { InstanceSearch } from "./runtime/instance-search.js"
+import { MigrationReader } from "./runtime/migration-reader.js"
 import { VariableNameReader } from "./runtime/variable-name-reader.js"
 import type { Route } from "./testing/fake-port.js"
 import { fakeFailure, fakePort } from "./testing/fake-port.js"
@@ -158,7 +166,8 @@ describe("the runtime operations", () => {
     await new IncidentDetailsReader(port).read(IncidentId("i1"))
     await new IncidentDetailsReader(port).read(IncidentId("i2"))
     const details = await instanceDetailSends()
-    const sent = new Set([...port.calls.map((call) => call.operationId), ...details])
+    const batches = await bulkAndMigrationSends()
+    const sent = new Set([...port.calls.map((call) => call.operationId), ...details, ...batches])
     expect([...sent].sort()).toEqual([...RUNTIME_OPERATIONS].sort())
   })
 })
@@ -182,6 +191,31 @@ async function instanceDetailSends(): Promise<string[]> {
   await new InstanceDetailReader(running).read(InstanceId(P))
   await new InstanceDetailReader(ended).read(InstanceId(P))
   return [...running.calls, ...ended.calls].map((call) => call.operationId)
+}
+
+/** What a bulk operation that ended, the failures of a running one and a migration's planning send. */
+async function bulkAndMigrationSends(): Promise<string[]> {
+  const batch = { id: "b1", type: "instance-migration", totalJobs: 2, batchJobDefinitionId: "jd1" }
+  const port = fakePort(
+    only(RUNTIME_OPERATIONS, {
+      getBatchStatistics: (input) =>
+        input.query.batchId === "b1" ? [{ ...batch, completedJobs: 0, failedJobs: 1 }] : [],
+      getHistoricBatch: () => ({ ...batch, id: "b2" }),
+      getJobs: () => [{ id: "j1" }],
+      generateMigrationPlan: () => ({
+        sourceProcessDefinitionId: "order:1:x",
+        targetProcessDefinitionId: "order:2:y",
+      }),
+      validateMigrationPlan: () => ({}),
+    }),
+  )
+  const bulk = new BulkOperationReader(port)
+  const migrations = new MigrationReader(port)
+  await bulk.read(BulkOperationId("b2"))
+  await bulk.failures(BulkOperationId("b1"))
+  const plan = await migrations.proposal(DefinitionId("order:1:x"), DefinitionId("order:2:y"))
+  await migrations.check(plan)
+  return port.calls.map((call) => call.operationId)
 }
 
 describe("CORE_OPERATIONS", () => {

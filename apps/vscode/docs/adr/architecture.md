@@ -278,7 +278,7 @@ sequenceDiagram
   actor user as User
   participant host as extension
   participant panel as core: InstancePanel
-  participant runtime as ProcessRuntime (C7ProcessRuntime)
+  participant runtime as ProcessRuntime (C7Runtime)
   participant engine as Engine REST
   participant view as Webview
 

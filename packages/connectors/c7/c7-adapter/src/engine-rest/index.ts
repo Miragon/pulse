@@ -9,11 +9,5 @@ export { RestEngineClient } from "./rest-engine-client.js"
 export { RestEngineWriter } from "./rest-engine-writer.js"
 export type { EngineClient } from "./engine-client.js"
 export type { EngineWriter } from "./engine-writer.js"
-export type {
-  ActivityInstanceView,
-  BatchStatisticsView,
-  BatchView,
-  HistoricBatchView,
-  FailedJobView,
-  MigrationInstructionView,
-} from "./views/views.js"
+export { HttpEngineTransport } from "./inspect/http-engine-transport.js"
+export type { ActivityInstanceView } from "./views/views.js"

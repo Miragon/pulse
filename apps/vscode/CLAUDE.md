@@ -132,10 +132,9 @@ ports, core, protocol and host kit, and only its composition root the adapters a
 reader. The C7 adapter (`packages/connectors/c7/c7-adapter`, its tests beside it) imports
 `@miragon/pulse-c7-core`, the core of the Camunda 7 REST dialect family c7, the workflow domain
 the CLI and the MCP server run too, through its main entry, and the engine contract's reads with
-what they build on through its `./runtime` entry (the readers of the engine, its processes, the
-counts on a diagram, the processes a version calls, its instances, a version's variable names, the
-open incidents and an incident's details; `JsonView`, the checked reads of an engine answer, and
-`isEngineId`, the one id rule), which the CLI never imports (the repository's
+what they build on through its `./runtime` entry (`C7Runtime`, which answers every read of the
+contract over the adapter's port, the batch reads of a Stop; `JsonView`, the checked reads of an
+engine answer, and `isEngineId`, the one id rule), which the CLI never imports (the repository's
 `cli-without-the-c7-runtime`); no other part of the editor hosts imports it
 (`runtime-view-is-dialect-neutral`, `extension-is-dialect-neutral`; the repository's
 `adapters-own-their-family`). The adapter's wire (`packages/connectors/c7/c7-adapter/src/engine-rest/http`,

@@ -49,8 +49,9 @@ visible responsibility per file.
 5. **Constructor injection.** Ports and I/O seams come through the constructor (a
    runtime, an engine client, the panel's effects); per-session parts may be built
    inside, as the core's panels build their `ViewSession`, `CallJumps` and
-   `InstanceWrites` from the context they receive. Wiring happens in a static `create`
-   of an adapter's entry classes (`C7ProcessRuntime.create`) or in the composition root.
+   `InstanceWrites` from the context they receive. Wiring happens in a static factory
+   of an adapter's entry classes (`C8ProcessRuntime.create`, c7-core's `C7Runtime.over`) or in
+   the composition root.
    Tests pass fakes the same way.
 6. **The budgets stay** (complexity 10, 300 lines per file, 60 per function, 4
    parameters, 20 statements). A class that outgrows them splits along its
@@ -68,9 +69,10 @@ Exceptions, each for a reason outside our control:
 
 ### Example: reading an instance in the C7 adapter
 
-The adapter's runtime asks c7-core's reader (`@miragon/pulse-c7-core/runtime`, whose own style
-keeps its readers as classes over the port and their mappings as functions) over the port of its
-client; the reader takes the inspection through its constructor, as a test passes a fake.
+The adapter's runtime is c7-core's `C7Runtime` (`@miragon/pulse-c7-core/runtime`, whose own
+style keeps its readers as classes over the port and their mappings as functions), which
+`C7Adapter` builds over the port of its wire; it asks one reader per question, and the reader takes
+the inspection through its constructor, as a test passes a fake.
 
 ```mermaid
 classDiagram
@@ -79,9 +81,12 @@ classDiagram
     <<interface>>
     getInstanceDetail(id) InstanceDetail
   }
-  class C7ProcessRuntime {
+  class C7Adapter {
+    +runtime(connection) ProcessRuntime
+  }
+  class C7Runtime {
     -C7Readers readers
-    +create(client)$ C7ProcessRuntime
+    +over(port, options)$ C7Runtime
     +getInstanceDetail(id)
   }
   class InstanceDetailReader {
@@ -90,18 +95,14 @@ classDiagram
     +read(id) InstanceDetail
     -definitionsOf(view)
   }
-  class EngineClient {
-    <<interface>>
-    +EnginePort port
-  }
   class EnginePort {
     <<interface>>
   }
-  ProcessRuntime <|.. C7ProcessRuntime
-  C7ProcessRuntime --> EngineClient
-  C7ProcessRuntime --> InstanceDetailReader
+  ProcessRuntime <|.. C7Runtime
+  C7Adapter --> C7Runtime
+  C7Adapter --> EnginePort
+  C7Runtime --> InstanceDetailReader
   InstanceDetailReader --> EnginePort
-  EngineClient --> EnginePort
 ```
 
 ### Enforcement

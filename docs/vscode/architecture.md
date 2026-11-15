@@ -20,7 +20,7 @@ flowchart LR
   core --> engineCore["@miragon/pulse-engine-core: ports and read models"]
   c7["C7 adapter"] -. implements .-> engineCore
   c7 -- "@miragon/pulse-http" --> engines["Operaton, CIB seven, Camunda 7: /engine-rest"]
-  c7 -- bundled --> c7core["c7-core: inspect, wait states, incident recovery, variable typing"]
+  c7 -- bundled --> c7core["c7-core: the contract's reads, inspect, incident recovery, variable typing"]
   c8["C8 adapter, read-only"] -. implements .-> engineCore
   c8 -- "@miragon/pulse-http and its OAuth client" --> cluster["Camunda 8: /v2"]
 ```

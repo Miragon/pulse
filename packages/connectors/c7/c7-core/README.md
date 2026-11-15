@@ -103,34 +103,42 @@ missing.
   the status and the exception type, message and code its body states (`problemOf` of
   `@miragon/pulse-http` reads them).
 - **Runtime:** `@miragon/pulse-c7-core/runtime`, an entry of its own, holds the reads of
-  engine-core's `ProcessRuntime` over your port, for a surface that implements that contract, one
-  reader per question: `EngineReader` (the product and version telemetry names, else the REST
-  API's version), `DefinitionReader` (every process by its latest version, its versions newest
-  first, each with its running instances and those "with incident", a version's BPMN XML),
-  `ElementStatisticsReader` (per element of a version the waiting tokens, the incidents raised
-  there and those of called instances), `CalledProcessReader` (each call activity of a version
-  with the version its binding starts), `InstanceSearch` (the history's instances newest first,
-  paged by offset behind the contract's cursor, each flagged with "with incident", and their
-  count; a variable condition's value as the engine reads it, every integer beyond 2^53 in it
-  digit for digit), `VariableNameReader` (the variable names of a version's newest 50 instances),
-  `InstanceDetailReader` (an instance's detail: `loadInstance`'s rounds without history and its
-  path from the history, in parallel with its typed variables of every scope, which the
-  inspection's variable map stands in for when they cannot be read, then the version of each
-  called instance one of its root incidents was raised in; each value as `JSON.stringify` writes
-  it, so an integer the wire kept as raw JSON keeps its digits), `IncidentSearch` (the root
-  incidents newest first with the version each was raised in and the job or external task
-  `incidentRecovery` names) and `IncidentDetailsReader` (the stack trace or
-  error details `CAUSE_OPERATIONS` names, else the incident's message, with the root cause by
-  engine-core's `RootCauses`). A by-id read of something the engine does not know answers
-  undefined (an engine 404 that names it, or a 500 `NullValueException`, as `inspect` reads an
-  instance that ended); a list is read page by page until a shorter page, and an answer that is
-  no list fails. `incidentRowsOf`, `isRootIncident`, `definitionRefOf`, `timestampOf`,
-  `instanceStateOf`, `incidentDetailsOf` and `readHistoricInstances` are what those readers share
-  with yours. The history's instance query and the variable names are `POST`s that only read:
-  your transport sends a route by its method, the body as JSON. `JsonView` reads an engine answer
-  with checks: `JsonView.of(answer, "incident")`
-  is the object, `requiredString("id")`, `optionalNumber("version")`, `optionalList("children")` and
-  the like read its values as the engine documents them, and an answer of another shape fails as
+  engine-core's `ProcessRuntime` over your port, for a surface that implements that contract:
+  `C7Runtime.over(port, { failureOf })` answers every one of them (it refuses no variable
+  condition); a failure c7-core words itself is a `RuntimeError` and passes as it is, every other
+  error, your wire's, becomes the `RuntimeError` your `failureOf` words. It asks one reader per
+  question: `EngineReader` (the product and version telemetry names, else the REST API's version),
+  `DefinitionReader` (every process by its latest version, its versions newest first, each with its
+  running instances and those "with incident", a version's BPMN XML), `ElementStatisticsReader` (per
+  element of a version the waiting tokens, the incidents raised there and those of called
+  instances), `CalledProcessReader` (each call activity of a version with the version its binding
+  starts), `InstanceSearch` (the history's instances newest first, paged by offset behind the
+  contract's cursor, each flagged with "with incident", and their count; a variable condition's
+  value as the engine reads it, every integer beyond 2^53 in it digit for digit),
+  `VariableNameReader` (the variable names of a version's newest 50 instances),
+  `InstanceDetailReader` (an instance's detail: `loadInstance`'s rounds without history and its path
+  from the history, in parallel with its typed variables of every scope, which the inspection's
+  variable map stands in for when they cannot be read, then the version of each called instance one
+  of its root incidents was raised in; each value as `JSON.stringify` writes it, so an integer the
+  wire kept as raw JSON keeps its digits), `IncidentSearch` (the root incidents newest first with
+  the version each was raised in and the job or external task `incidentRecovery` names),
+  `IncidentDetailsReader` (the stack trace or error details `CAUSE_OPERATIONS` names, else the
+  incident's message, with the root cause by engine-core's `RootCauses`), `BulkOperationReader` (a
+  batch that cancels or migrates instances from its statistics while the runtime holds it, else from
+  the history, counted in items; the failures of a running one from its jobs without retries, at
+  most 100, each reason on one line and cut to 300 characters, with the instance it names) and
+  `MigrationReader` (the plan the engine generates between two versions and its check of one,
+  reading `POST`s that change no event trigger; a mapping is one source and one target activity). A
+  by-id read of something the engine does not know answers undefined (an engine 404 that names it,
+  or a 500 `NullValueException`, as `inspect` reads an instance that ended); a list is read page by
+  page until a shorter page, and an answer that is no list fails. `incidentRowsOf`,
+  `isRootIncident`, `definitionRefOf`, `timestampOf`, `instanceStateOf`, `incidentDetailsOf`,
+  `readHistoricInstances`, `readBatchStatistics` and `findHistoricBatch` are what those readers
+  share with yours. The history's instance query, the variable names and the migration plan and its
+  check are `POST`s that only read: your transport sends a route by its method, the body as JSON.
+  `JsonView` reads an engine answer with checks: `JsonView.of(answer, "incident")` is the object,
+  `requiredString("id")`, `optionalNumber("version")`, `optionalList("children")` and the like read
+  its values as the engine documents them, and an answer of another shape fails as
   `RuntimeError("unexpectedResponse")` in words that name what was wrong (`id is missing`,
   `incidents[1] is not an object`); an integer the caller kept as raw JSON (`JSON.rawJSON`, beyond
   2^53) is a value, never an object. `isEngineId(value)` is the one id rule of the family (a letter,
@@ -178,10 +186,10 @@ package.
   `engine_inspect_process_instance` and `engine_status`, builds its cockpit's failure clusters
   and health verdict from the same rules, flags its instance rows with `withIncidentAmong` and
   checks a history query by incident with `unrecordedIncidents`.
-- Pulse for VS Code and Pulse for Orca bundle it in their C7 adapter: it answers the engine, its
-  processes, a version's diagram, the counts on it, the processes it calls, the instances and their
-  count, a version's variable names, an instance's detail, the open incidents and an incident's
-  details with the readers of `./runtime` (an instance's panel through `loadInstance`), reads every
+- Pulse for VS Code and Pulse for Orca bundle it in their C7 adapter: its `C7Runtime` answers
+  every read of the engine contract over the adapter's wire, whose failures the adapter words (an
+  instance's panel through `loadInstance`), the adapter's Stop reads a batch with
+  `readBatchStatistics` and `findHistoricBatch`, and the adapter reads every
   engine answer through `JsonView` and checks every id with `isEngineId`, an incident's retry and the incident list take
   its job or external task from `incidentRecovery`, its details their request from
   `CAUSE_OPERATIONS`; a variable change without a type that is no JSON string, object or array is

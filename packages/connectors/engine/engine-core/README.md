@@ -119,7 +119,8 @@ triage, verdicts and which recovery to offer.
 - Pulse for VS Code and Pulse for Orca speak it today: the runtime view they share asks these
   ports, and their C7 adapter answers them over the Camunda 7 REST API.
 - [`@miragon/pulse-c7-core`](https://www.npmjs.com/package/@miragon/pulse-c7-core), the core of
-  that dialect, applies its root-cause rule for the Pulse CLI and the MCP server.
+  that dialect, applies its root-cause rule for the Pulse CLI and the MCP server, and its
+  `C7Runtime` (`./runtime`) answers every read of `ProcessRuntime` for the C7 adapter.
 
 ## The admission rule
 
@@ -127,12 +128,12 @@ A port, read model or rule enters `@miragon/pulse-engine-core` when two dialects
 same meaning, proven by the conformance laws on both. It stays narrow: a further rule (the verdict,
 the message signature, durations) moves here only when a second dialect needs it in the CLI or the
 MCP server. It is imported where a dialect is implemented (the `src` of a dialect's core, its main
-entry alone and never from the core's `./testing`: c7-core applies `RootCauses`; the C7 adapter of
-the editor hosts) and where the runtime view of Pulse for VS Code and Pulse for Orca reads the
-answers, which keeps no contract of its own. A surface reaches it through them; the engine connector
-(although this is its own family's core) or the CLI importing it directly waits until it serves a
-second dialect, an admission decision in review, the case #488 reopens on: a second interface
-needing the same use case with the same rules.
+entry alone and never from the core's `./testing`: c7-core applies `RootCauses` and its `./runtime`
+answers `ProcessRuntime`; the C7 adapter of the editor hosts) and where the runtime view of Pulse
+for VS Code and Pulse for Orca reads the answers, which keeps no contract of its own. A surface
+reaches it through them; the engine connector (although this is its own family's core) or the CLI
+importing it directly waits until it serves a second dialect, an admission decision in review, the
+case #488 reopens on: a second interface needing the same use case with the same rules.
 
 Two admissions came ahead of their second dialect, by the owner's decision, on the evidence of the
 Camunda 8 adapter's branch (#543):
