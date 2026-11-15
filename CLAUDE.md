@@ -126,9 +126,11 @@ SDK, client, the SDK-bound reads), when the family's interfaces share a pure dom
 one port per family, the home of the family's pure rules; extracted on its second consumer, like
 `c7-core`, which the CLI bundles and the C7 adapter and the engine connector run) and, when the
 editor hosts read a dialect's engines, `<family>-adapter` (the dialect's implementation of the
-engine contract for the runtime view, proven by engine-core's conformance kit on a real engine;
-today `c7-adapter`, the C7 adapter, which runs c7-core, and `c8-adapter`, the C8 adapter, whose
-family has no client or core of its own: it sends through the transport and its OAuth client).
+engine contract for the runtime view, proven by engine-core's conformance kit on a real engine,
+the C8 adapter's on a local Camunda 8 cluster only, since CI starts no Camunda 8 image until the
+licence question of #531 has an answer; today `c7-adapter`, the C7 adapter, which runs c7-core,
+and `c8-adapter`, the C8 adapter, whose family has no client or core of its own: it sends through
+the transport and its OAuth client).
 A family's tool input
 schemas live in its connector, next to the tools
 (`packages/connectors/engine/engine-connector/src/schemas/`), so a client carries no zod:

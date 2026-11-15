@@ -5,7 +5,8 @@
   client with checked views, the wording of its failures, the version floor and the reads onto
   the contract's read models; the runtime that answers the contract, the plug `C8Adapter` with
   its links into Operate and one token source per cluster and client; the package
-  `@miragon/pulse-c8-adapter` in the c8 family, which no host composes in this step)
+  `@miragon/pulse-c8-adapter` in the c8 family, which no host composes in this step; the
+  conformance kit on a local cluster, which no CI job starts until #531)
 
 ## Context
 
@@ -202,10 +203,24 @@ once per process; no host composes it in this step.
 - A container with more than 10,000 incidents of its own on Elasticsearch keeps the cluster's
   unsplit counts, so its row can count incidents inside it as its own. The conformance world never
   reaches that many.
-- The adapter is proven on a fake REST API in this step; the conformance kit on a local cluster
-  and the error-path goldens follow in their own commits. CI runs no Camunda 8 image until the
-  licence question of #531 has an answer: the images fall under Camunda's Self-Managed
-  non-production terms.
+- The conformance kit proves the adapter on a local cluster in Testcontainers
+  (`packages/connectors/c8/c8-adapter/test/c8-conformance.engine.test.ts`, `test:engines`): the
+  read laws on the kit's world, deployed as Zeebe diagrams with the kit's element ids
+  (`packages/connectors/c8/c8-adapter/test/world`), the wait states an instance names (message,
+  timer, signal), and per login what it reads: nothing without credentials or with a wrong
+  secret (`unauthorized`), empty lists without permissions, one token across rebuilt connections
+  and parallel reads, one token request after a refused secret, a short-lived token renewed
+  without a failure. Its stack
+  (`packages/connectors/c8/c8-adapter/test/support/cluster-settings.json`) runs `camunda/camunda`
+  8.9 and 8.10 on H2 or Elasticsearch, without security, with Basic or with OIDC (Keycloak); the
+  suite skips unless `PULSE_ENGINE_IMAGE` names `camunda/camunda`, so one leg runs at a time, by
+  hand. `c8:up` starts the same stack seeded for manual runs. The matrix covers Self-Managed on
+  H2 and Elasticsearch, no OpenSearch, no other relational database and no SaaS cluster.
+- CI runs no Camunda 8 image until the licence question of #531 has an answer: the images fall
+  under Camunda's Self-Managed non-production terms, which allow development and tests. CI proves
+  the adapter on the fake REST API and the transport's loopback engine only, so a regression
+  against a real cluster shows in a local run. The error-path goldens follow in their own
+  commit.
 - Two profiles that name the same client of the same cluster with different secrets, audiences or
   scopes replace each other's token source, so each of their reads asks for a token.
 
@@ -220,3 +235,5 @@ once per process; no host composes it in this step.
 - 2026-11-15: the runtime answers the contract read-only and `C8Adapter` is the package's plug,
   with links into Operate; a token source per cluster and client, which a changed secret, audience
   or scopes replaces (#617).
+- 2026-11-15: the conformance kit on a local cluster (#543's matrix, Thomas Heinrichs), with no
+  CI job until #531 (#617).

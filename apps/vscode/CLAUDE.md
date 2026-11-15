@@ -26,6 +26,8 @@ pnpm --filter @miragon/pulse-c7-adapter test     # the C7 adapter against a reco
 pnpm --filter @miragon/pulse-c8-adapter test     # the C8 adapter against a fake REST API and the transport's loopback engine
 pnpm --filter @miragon/pulse-engine-core test   # the kit's self-tests: the fake passes every law, 71 saboteurs fail theirs
 pnpm --filter @miragon/pulse-c7-adapter run test:engines # adapter conformance on a real engine; needs podman/docker
+pnpm --filter @miragon/pulse-c8-adapter run test:engines # on a local Camunda 8 cluster; needs PULSE_ENGINE_IMAGE=camunda/camunda:<version>
+pnpm --filter @miragon/pulse-c8-adapter run c8:up -- --security oidc # a seeded Camunda 8 stack by hand; c8:down removes it
 pnpm --filter pulse-cockpit run test:smoke       # the extension activates in a real VS Code
 pnpm --filter pulse-cockpit run test:e2e         # VS Code e2e; needs `engine:up`
 pnpm --filter pulse-cockpit run test:smoke:docker # both in Docker under Xvfb: no VS Code window

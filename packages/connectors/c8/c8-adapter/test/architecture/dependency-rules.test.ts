@@ -38,10 +38,19 @@ const ADAPTER: Readonly<Record<string, string>> = {
   "package.json": MANIFEST,
 }
 
+const UNPROVEN: Readonly<Record<string, string>> = {
+  "src/index.ts": "export const adapter = 1;\n",
+  "test/c8.engine.test.ts":
+    "import { ConformanceKit } from '@miragon/pulse-engine-core/testing';\nexport const kit = ConformanceKit;\n",
+  "package.json": MANIFEST,
+}
+
 const adapter = new PlantedTree(PACKAGE, ADAPTER)
+const unproven = new PlantedTree(PACKAGE, UNPROVEN)
 
 afterAll(() => {
   adapter.dispose()
+  unproven.dispose()
 })
 
 describe("the dependency rules", () => {
@@ -78,6 +87,12 @@ describe("the dependency rules", () => {
       `not-in-allowed: ${at("src/wire/sends-a-test-engine.ts")} -> ${loopback}`,
       `not-to-unresolvable: ${at("src/reads-the-c7-core.ts")} -> @miragon/pulse-c7-core`,
       `not-to-unresolvable: ${at("src/wire/reads-an-unexported-file.ts")} -> ${httpSubpath}`,
+    ])
+  })
+
+  test("prove the adapter on an engine with the conformance kit", { timeout: 60_000 }, () => {
+    expect(unproven.violations()).toEqual([
+      `adapter-proven-on-an-engine: ${PACKAGE}/src/index.ts -> ${PACKAGE}/src/index.ts`,
     ])
   })
 })

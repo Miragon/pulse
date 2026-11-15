@@ -81,6 +81,12 @@
       },
     },
 
+    "packages/connectors/c8/c8-adapter": {
+      "vitest": {
+        "config": ["vitest.config.ts", "vitest.engines.config.ts"],
+      },
+    },
+
     "packages/connectors/c7/c7-client": {
       // Generated Camunda 7 REST SDK (pnpm generate): its export surface
       // mirrors the OpenAPI spec, not our usage.

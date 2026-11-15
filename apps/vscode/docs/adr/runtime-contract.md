@@ -1,13 +1,12 @@
 # Runtime contract
 
 - Status: accepted
-- Last reviewed: 2026-11-15 (what a Camunda 8 cluster answers, through the C8 adapter's
-  runtime); 2026-11-14 (on the C7 family "with incident" is an open incident the runtime
-  holds now, on every history level; the read laws run on a C7 engine at history level AUDIT
-  too); 2026-11-11 (a number holds a double); 2026-11-10 (the plug every dialect
-  family provides; a whole number holds 64 bits); 2026-11-09 (the engine
-  contract is the engine family's core `@miragon/pulse-engine-core`, with the four changes
-  Camunda 8 needs)
+- Last reviewed: 2026-11-15 (what a Camunda 8 cluster answers, through the C8 adapter's runtime,
+  proven by the read laws on a local cluster); 2026-11-14 (on the C7 family "with incident" is an
+  open incident the runtime holds now, on every history level; the read laws run on a C7 engine at
+  history level AUDIT too); 2026-11-11 (a number holds a double); 2026-11-10 (the plug every dialect
+  family provides; a whole number holds 64 bits); 2026-11-09 (the engine contract is the engine
+  family's core `@miragon/pulse-engine-core`, with the four changes Camunda 8 needs)
 
 ## Context
 
@@ -366,7 +365,9 @@ business key fail the ids law too, as does a search that ignores the instance id
 ## Consequences
 
 - Every adapter is proven against the same laws on a real engine
-  (`*.engine.test.ts`); an architecture test fails when an adapter has none.
+  (`*.engine.test.ts`); an architecture test fails when an adapter has none. The C8 adapter's
+  engine test runs on a local Camunda 8 cluster only: CI starts no Camunda 8 image until the
+  licence question of #531 has an answer ([c8-adapter.md](c8-adapter.md)).
 - The contract holds beyond the C7 family. During the spike a Camunda 8 adapter on the REST API
   v2 passed every law against an API mock with a read lag and was removed again to keep the
   prototype small. On a real Camunda 8 the adapter of #543 needed four neutral changes, which the

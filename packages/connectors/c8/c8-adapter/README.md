@@ -21,6 +21,19 @@ connection over the adapter's one set of token sources, so a composition root bu
 once per process. Thomas Heinrichs built the adapter in #543; this package re-lands it on the
 shared transport.
 
+The conformance kit of the contract (`@miragon/pulse-engine-core/testing`) proves it on a local
+Camunda 8 cluster in Testcontainers (`test/c8-conformance.engine.test.ts`, `test:engines`): the
+read laws on the kit's world, deployed as the Zeebe diagrams of `test/world`, the wait states an
+instance names and what each login reads. `test/support/cluster-settings.json` holds the stack:
+`camunda/camunda` 8.9 and 8.10, H2 or Elasticsearch as secondary storage, no security, Basic or
+OIDC with Keycloak (`test/support/keycloak-realm.json`). The suite skips unless
+`PULSE_ENGINE_IMAGE` names `camunda/camunda`, and no CI job runs it: Camunda's images fall under
+its Self-Managed non-production terms, and CI starts none until the licence question of #531 has
+an answer. `pnpm test` still holds the suite in place (`test/architecture/engine-config.test.ts`):
+at least one engine test, and an engines config that runs every one and switches none off.
+`c8:up` starts the same stack by hand on fixed ports, seeds a small world and prints the engine as
+a profile of `.pulse.json` with its login; `c8:down` removes it.
+
 Its wire passes the transport's conformance cases it can express
 (`test/wire/transport-cases.test.ts`). Its closed-world dependency rules are
 `.dependency-cruiser.cjs` (`pnpm lint:architecture:c8-adapter`; only the wire imports the
@@ -29,4 +42,16 @@ transport, by its main entry and `./oauth`); the decisions behind it are
 
 ```sh
 pnpm --filter @miragon/pulse-c8-adapter test   # against a fake REST API and the transport's loopback engine, coverage floors
+pnpm exec turbo run build --filter=@miragon/pulse-c8-adapter...   # once, before the engine suite
+PULSE_ENGINE_IMAGE=camunda/camunda:8.9.28 PULSE_C8_STORAGE=h2 PULSE_C8_SECURITY=oidc \
+  pnpm --filter @miragon/pulse-c8-adapter run test:engines   # one leg; needs podman/docker
+pnpm --filter @miragon/pulse-c8-adapter run c8:up -- --security oidc --storage elasticsearch
+pnpm --filter @miragon/pulse-c8-adapter run c8:down
 ```
+
+`PULSE_C8_STORAGE` is `h2` (the default) or `elasticsearch`, `PULSE_C8_SECURITY` `none` (the
+default), `basic` or `oidc`; `c8:up` takes the same as `--storage` and `--security` and starts
+the newest image of `cluster-settings.json` unless `PULSE_ENGINE_IMAGE` names another. Run one
+leg at a time: an Elasticsearch leg needs about 3 GB more memory than an H2 leg. The legs cover
+Self-Managed on H2 and Elasticsearch: no OpenSearch, no other relational database and no SaaS
+cluster.

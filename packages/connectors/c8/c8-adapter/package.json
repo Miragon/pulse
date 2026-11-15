@@ -20,9 +20,12 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
+    "test:engines": "vitest run --config vitest.engines.config.ts",
+    "c8:up": "node scripts/c8.mjs up",
+    "c8:down": "node scripts/c8.mjs down",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.build.json",
-    "lint": "eslint src test",
-    "lint:fix": "eslint src test --fix"
+    "lint": "eslint src test scripts",
+    "lint:fix": "eslint src test scripts --fix"
   },
   "dependencies": {
     "@miragon/pulse-engine-core": "workspace:*",
@@ -32,6 +35,7 @@
   "devDependencies": {
     "@types/node": "22.20.5",
     "@vitest/coverage-v8": "5.1.0",
+    "testcontainers": "12.2.1",
     "typescript": "6.0.3",
     "vitest": "5.1.0"
   }
