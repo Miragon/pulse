@@ -56,6 +56,9 @@ export const PATH_RULES = [
   { pattern: /^[^/]+\.md$/, scopes: [] },
   // Read by pulse-ui's token tests (cd-tokens.test.ts, token-drift.test.ts); CI checks the sums too.
   { pattern: /^\.miragon\/brand-assets\.(?:yaml|sha256)$/, scopes: ["brand", "typescript"] },
+  // The journeys: Pulse for VS Code's harness-isolation.test.ts reads that they start VS Code
+  // through the screenshot driver.
+  { pattern: /^\.miragon\/shots\//, scopes: ["brand", "typescript"] },
   { pattern: /^\.miragon\//, scopes: ["brand"] },
   { pattern: /^\.claude\//, scopes: [] },
   { pattern: /^\.claude-plugin\//, scopes: ["cli"] },

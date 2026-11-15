@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
+import { keptConfigHome } from "../support/config-home.mjs"
 import { removeContainer, startContainer, waitUntil } from "../support/containers.mjs"
 import { engineClient } from "../support/engine-client.mjs"
 import { endpointOf, SANDBOX_ENGINES, SHOP_DEV } from "./engines.mjs"
@@ -70,7 +71,7 @@ async function open() {
   execFileSync(
     "code",
     [`--user-data-dir=${profile}`, `--extensionDevelopmentPath=${extension}`, sandbox],
-    { stdio: "inherit" },
+    { stdio: "inherit", env: { ...process.env, ...keptConfigHome("pulse-sandbox-config") } },
   )
   console.log("Opened the sandbox in its own VS Code instance with this build of Pulse.")
 }

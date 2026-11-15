@@ -1,5 +1,6 @@
 import { AUTH_TYPES, FLAVORS, PROBLEM_CODES } from "@miragon/pulse-profile"
 import { describe, expect, test } from "vitest"
+import { ProfileSource } from "../../src/host-kit/connections/profile-source.js"
 import { TargetPolicy } from "../../src/host-kit/connections/target-policy.js"
 import { TargetsParser } from "../../src/host-kit/connections/targets-parser.js"
 
@@ -217,6 +218,52 @@ describe("a project file the extension reads", () => {
           'profile 2: The profile\'s name is not valid (it is not shown): use letters, digits, ".", "_" and "-", starting with a letter or digit.',
           undefined,
         ],
+      ],
+    })
+  })
+})
+
+describe("the CLI's user config the editors read", () => {
+  const OWN = "/home/dev/.config/pulse-cli/config.json"
+
+  function ownProblems(profiles: Record<string, unknown>) {
+    const parsed = new TargetsParser(OWN, ProfileSource.USER_CONFIG).parse(
+      JSON.stringify({ profiles }),
+    )
+    return {
+      targets: parsed.targets.map((target) => [target.name, target.auth.kind]),
+      problems: parsed.problems.map((problem) => problem.label()),
+    }
+  }
+
+  test("takes the credentials it holds for the CLI, and connects without them", () => {
+    expect(
+      ownProblems({
+        literal: { url: URL, auth: { type: "basic", username: "demo", password: "S3cret" } },
+        variable: { url: URL, auth: { username: "demo", passwordEnv: "DEMO_PASSWORD" } },
+      }),
+    ).toEqual({
+      targets: [
+        ["literal", "basic"],
+        ["variable", "basic"],
+      ],
+      problems: [],
+    })
+  })
+
+  test("leaves a profile the CLI needs as it is: never asks to remove its headers or its type", () => {
+    expect(
+      ownProblems({
+        tenant: { url: URL, headers: { "X-Tenant-Id": "acme" } },
+        gateway: { url: URL, auth: { type: "passthrough" } },
+        token: { url: URL, auth: { type: "bearer", tokenEnv: "CI_TOKEN" } },
+      }),
+    ).toEqual({
+      targets: [],
+      problems: [
+        `CLI config: profile "tenant": ${HEADERS} Keep this profile for the CLI, and add a profile without headers for this client.`,
+        `CLI config: profile "gateway": ${NOT_SERVED} ${SET_TYPE}.`,
+        `CLI config: profile "token": ${NOT_SERVED} ${SET_TYPE}, or keep this profile for the CLI.`,
       ],
     })
   })

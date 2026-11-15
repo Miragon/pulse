@@ -38,7 +38,7 @@ export class CredentialStore {
   }
 
   private secretScope(target: EngineTarget): string {
-    const scope = target.source.kind === "file" ? target.source.path : "default"
+    const scope = target.source.kind === "default" ? "default" : target.source.path
     return `${scope}::${target.name}`
   }
 

@@ -4,6 +4,7 @@ import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { downloadAndUnzipVSCode } from "@vscode/test-electron"
 import { _electron as electron } from "playwright"
+import { isolatedConfigHome } from "./support/config-home.mjs"
 import { part } from "./support/webview-parts.mjs"
 
 const EXTENSION = resolve(".")
@@ -267,6 +268,7 @@ const STEPS = [
 async function launch(userData) {
   return electron.launch({
     executablePath: await vscodeExecutable(),
+    env: { ...process.env, ...isolatedConfigHome() },
     args: [
       WORKSPACE,
       `--extensionDevelopmentPath=${EXTENSION}`,
@@ -277,6 +279,7 @@ async function launch(userData) {
       "--skip-release-notes",
       "--disable-telemetry",
       "--new-window",
+      "--force-disable-user-env",
       ...(process.env.PULSE_VSCODE_NO_SANDBOX === "1" ? ["--no-sandbox"] : []),
     ],
   })

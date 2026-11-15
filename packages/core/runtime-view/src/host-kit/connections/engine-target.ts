@@ -1,9 +1,12 @@
+import type { ProfileSourceKind } from "./profile-source.js"
+
 export type EngineKind = "c7"
 
 export type TargetAuth =
   { readonly kind: "none" } | { readonly kind: "basic" } | { readonly kind: "oauth2" }
 
-type TargetSource = { readonly kind: "file"; readonly path: string } | { readonly kind: "default" }
+type TargetSource =
+  { readonly kind: ProfileSourceKind; readonly path: string } | { readonly kind: "default" }
 
 export interface EngineTarget {
   readonly name: string

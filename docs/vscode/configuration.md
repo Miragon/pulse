@@ -2,8 +2,13 @@
 
 ## Engines
 
-Pulse reads your engines as profiles in `.pulse.json`, the project file the
-[Pulse CLI](../cli/configuration.md) reads too, so the extension and the CLI see the same engines:
+Pulse reads your engines as profiles of the [Pulse CLI](../cli/configuration.md), so the extension
+and the CLI see the same engines. They live in two files:
+
+| File                                               | Holds                       | Read by                                  |
+| -------------------------------------------------- | --------------------------- | ---------------------------------------- |
+| `.pulse.json` in your workspace, the project file  | the engines of a repository | your team, through the repository        |
+| `~/.config/pulse-cli/config.json`, your CLI config | your own engines            | every VS Code window and the CLI for you |
 
 ```json
 {
@@ -23,21 +28,30 @@ Pulse reads `url`, `flavor` (`camunda7`, `cibseven` or `operaton`; `camunda7` wh
 means `basic`), `cockpitUrl` and `readOnly` (no writes from Pulse either), by the rules of the CLI
 and the MCP server: one profile format, `@miragon/pulse-profile`. URLs lose trailing slashes, and a
 profile with a value the format refuses never becomes an engine. Pulse reads profile by profile: a
-profile that names a credential (a password, a token or the variable that holds one), sets
-`headers`, uses a key the format does not know, the auth type `bearer` or `passthrough`, or lacks
-its `url` (Pulse reads no `PULSE_CLI_*` variable) shows up as a problem in the Engines view instead
-of connecting, and the problem says what to change; the other profiles of the file still list
-engines. A profile with `oauth` lists its engine, but Pulse does not connect to it and says to set
-`auth.type` to `none`, or to `basic` without the OAuth keys, or to keep the profile for the CLI.
-Pulse does not apply `environment`, `timeout` and `output`, yet a value of theirs the format refuses
-is a problem too.
+profile that sets `headers`, uses a key the format does not know, the auth type `bearer` or
+`passthrough`, lacks its `url` (Pulse reads no `PULSE_CLI_*` variable but `PULSE_CLI_CONFIG`) or,
+in a project file, names a credential (a password, a token or the variable that holds one) shows
+up as a problem in the Engines view instead of connecting, and the problem says what to change; the
+other profiles of the file still list engines. A profile with `oauth` lists its engine, but Pulse
+does not connect to it and says to set `auth.type` to `none`, or to `basic` without the OAuth keys,
+or to keep the profile for the CLI. Pulse does not apply `environment`, `timeout` and `output`, yet
+a value of theirs the format refuses is a problem too.
 
-Pulse reads every `.pulse.json` in the workspace, and the first one wins a profile name; without
-any, it lists one engine on `localhost:8080`. A project file Pulse can't read, or a folder that
-holds it only under its former name, `.pulse-cli.json`, shows as a problem and lists no engine,
-not even that one.
+Your CLI config sits where the CLI looks for it (`$XDG_CONFIG_HOME/pulse-cli/` for an absolute
+`XDG_CONFIG_HOME`, `%APPDATA%\pulse-cli\` on Windows); a remote window (SSH, WSL, Dev Container)
+reads the remote machine's. Pulse lists the profiles of every `.pulse.json` first, the first file
+winning a name, then those of your CLI config, whose profile wins a name clash as a whole, as in the
+CLI, even one Pulse can't use. With `PULSE_CLI_CONFIG` set, Pulse reads only the file it names by
+its full path, like the CLI, and the Engines view says so. Without any profile it lists one engine
+on `localhost:8080`. A file Pulse can't read, a missing file `PULSE_CLI_CONFIG` names, or a folder
+that holds the project file only under its former name, `.pulse-cli.json`, shows as a problem and
+lists no engine, not even that one.
 
-Set credentials with _Pulse: Set Credentials…_. They live in VS Code's secret storage.
+_Pulse: Configure Engines_ (the gear of the Engines view) opens the file for your engines: with a
+folder open the one you pick, this project's or your CLI config; without one your CLI config,
+created readable by you only (mode `0600`) with a profile to fill in. Set credentials with _Pulse:
+Set Credentials…_; they live in VS Code's secret storage, per profile and file, and Pulse reads
+none of the credentials your CLI config holds for the CLI.
 
 ## Settings
 

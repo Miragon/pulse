@@ -12,9 +12,11 @@ import {
 } from "@miragon/pulse-profile"
 import { EditorAuth } from "./editor-auth.js"
 import type { EngineKind, EngineTarget } from "./engine-target.js"
+import { ProfileSource } from "./profile-source.js"
 import { TargetsProblem } from "./targets-problem.js"
 
 export interface ParsedTargets {
+  readonly names: readonly string[]
   readonly targets: readonly EngineTarget[]
   readonly problems: readonly TargetsProblem[]
 }
@@ -37,12 +39,15 @@ const AUTH_KEY_CODES: ReadonlySet<ProblemCode> = new Set([
 ])
 
 export class TargetsParser {
-  constructor(private readonly path: string) {}
+  constructor(
+    private readonly path: string,
+    private readonly source: ProfileSource = ProfileSource.PROJECT,
+  ) {}
 
   parse(content: string): ParsedTargets {
-    const file = parseProfileFile(content, { credentials: "none" })
+    const file = parseProfileFile(content, { credentials: this.source.credentials })
     if (file.problem !== undefined) {
-      return { targets: [], problems: [this.problem(describeProblem(file.problem))] }
+      return { names: [], targets: [], problems: [this.problem(describeProblem(file.problem))] }
     }
     const targets: EngineTarget[] = []
     const problems = file.notes.map((note) => this.problem(describeProblem(note), "warning"))
@@ -54,7 +59,8 @@ export class TargetsParser {
         targets.push(target)
       }
     }
-    return { targets, problems }
+    const names = file.profiles.flatMap(({ name }) => (name === undefined ? [] : [name]))
+    return { names, targets, problems }
   }
 
   private targetOf(verdict: ProfileVerdict): EngineTarget | TargetsProblem {
@@ -76,7 +82,7 @@ export class TargetsParser {
       engine,
       endpoint: profile.url,
       auth,
-      source: { kind: "file", path: this.path },
+      source: { kind: this.source.kind, path: this.path },
       ...this.optionalsOf(profile),
     }
   }
@@ -108,21 +114,30 @@ export class TargetsParser {
       return EditorAuth.WAYS_OUT.authKeys
     }
     if (code === "key-not-served") {
-      return key === "headers" ? EditorAuth.WAYS_OUT.headers : undefined
+      return key === "headers" ? this.headersWayOut() : undefined
     }
     return code === "auth-type-not-served" ? this.authTypeWayOut(profile) : undefined
+  }
+
+  private headersWayOut(): string {
+    return this.source.isUserConfig()
+      ? EditorAuth.WAYS_OUT.headersOfTheCli
+      : EditorAuth.WAYS_OUT.headers
   }
 
   private authTypeWayOut(profile: Profile | undefined): string | undefined {
     if (profile === undefined || this.engineOf(profile) === undefined) {
       return undefined
     }
-    return authTypeOf(profile) === "passthrough"
-      ? EditorAuth.WAYS_OUT.passthrough
-      : EditorAuth.WAYS_OUT.authType
+    if (authTypeOf(profile) !== "passthrough") {
+      return EditorAuth.WAYS_OUT.authType
+    }
+    return this.source.isUserConfig()
+      ? EditorAuth.WAYS_OUT.setAuthType
+      : EditorAuth.WAYS_OUT.passthrough
   }
 
   private problem(message: string, severity?: "warning"): TargetsProblem {
-    return new TargetsProblem(this.path, message, severity)
+    return new TargetsProblem(this.path, message, severity, this.source)
   }
 }

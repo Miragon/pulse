@@ -529,7 +529,7 @@ const DOCS_BUDGETS = {
   // The VS Code extension's pages (docs/vscode/).
   "vscode/index.md": 50,
   "vscode/installation.md": 50,
-  "vscode/configuration.md": 80,
+  "vscode/configuration.md": 90,
   "vscode/usage.md": 80,
   "vscode/boards.md": 70,
   "vscode/architecture.md": 50,

@@ -61,6 +61,7 @@ export class ThemeIcon {
 
 export const Uri = {
   from: (components: object): object => components,
+  file: (fsPath: string): object => ({ fsPath }),
 }
 
 export class FakeTreeView {

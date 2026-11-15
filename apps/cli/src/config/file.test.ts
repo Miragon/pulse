@@ -1,7 +1,14 @@
+import { CLI_CONFIG_LOCATIONS } from "@miragon/pulse-profile/testing"
 import { describe, expect, it } from "vitest"
 import { PulseCliError } from "../errors.js"
 import type { FileSystem } from "../runtime.js"
-import { configFilePath, parseConfigFile, readConfigFile, writeConfigFile } from "./file.js"
+import {
+  configFilePath,
+  explicitConfigPath,
+  parseConfigFile,
+  readConfigFile,
+  writeConfigFile,
+} from "./file.js"
 import type { ConfigFile } from "./types.js"
 
 const PATH = "/home/me/.config/pulse-cli/config.json"
@@ -52,48 +59,21 @@ function parseFailure(text: string): PulseCliError {
 }
 
 describe("configFilePath", () => {
+  it.each(CLI_CONFIG_LOCATIONS.map((location) => [location.about, location] as const))(
+    "finds the user config as the shared table states: %s",
+    (_about, { env, home, platform, path, explicit }) => {
+      expect(configFilePath(env, { homedir: home, platform })).toBe(path)
+      expect(explicitConfigPath(env) !== undefined).toBe(explicit)
+    },
+  )
+
   it("prefers the explicit path over PULSE_CLI_CONFIG and the defaults", () => {
     const env = { PULSE_CLI_CONFIG: "/env/config.json", XDG_CONFIG_HOME: "/xdg" }
     expect(configFilePath(env, LINUX, "./my.json")).toBe("./my.json")
   })
 
-  it("uses PULSE_CLI_CONFIG when there is no explicit path", () => {
-    expect(configFilePath({ PULSE_CLI_CONFIG: "/env/config.json" }, LINUX)).toBe("/env/config.json")
-  })
-
   it("ignores a blank explicit path and falls back to PULSE_CLI_CONFIG", () => {
     expect(configFilePath({ PULSE_CLI_CONFIG: "/env/c.json" }, LINUX, "  ")).toBe("/env/c.json")
-  })
-
-  it("ignores a blank PULSE_CLI_CONFIG", () => {
-    expect(configFilePath({ PULSE_CLI_CONFIG: "" }, LINUX)).toBe(PATH)
-  })
-
-  it("defaults to ~/.config/pulse-cli/config.json", () => {
-    expect(configFilePath({}, LINUX)).toBe(PATH)
-    expect(configFilePath({}, { homedir: "/Users/me", platform: "darwin" })).toBe(
-      "/Users/me/.config/pulse-cli/config.json",
-    )
-  })
-
-  it("honours an absolute XDG_CONFIG_HOME", () => {
-    expect(configFilePath({ XDG_CONFIG_HOME: "/xdg" }, LINUX)).toBe("/xdg/pulse-cli/config.json")
-  })
-
-  it.each(["", "relative/dir", "./xdg"])('ignores XDG_CONFIG_HOME "%s"', (xdg) => {
-    expect(configFilePath({ XDG_CONFIG_HOME: xdg }, LINUX)).toBe(PATH)
-  })
-
-  it("uses %APPDATA% on Windows", () => {
-    const env = { APPDATA: "D:\\Roaming", XDG_CONFIG_HOME: "/xdg" }
-    expect(configFilePath(env, WINDOWS)).toBe("D:\\Roaming\\pulse-cli\\config.json")
-  })
-
-  it("falls back to the roaming profile folder without a usable %APPDATA%", () => {
-    const expected = "C:\\Users\\me\\AppData\\Roaming\\pulse-cli\\config.json"
-    expect(configFilePath({}, WINDOWS)).toBe(expected)
-    expect(configFilePath({ APPDATA: "" }, WINDOWS)).toBe(expected)
-    expect(configFilePath({ APPDATA: "Roaming" }, WINDOWS)).toBe(expected)
   })
 
   it("uses the explicit path on Windows too", () => {

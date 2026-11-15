@@ -88,9 +88,9 @@ export class ConnectionBuilder {
   }
 
   private static cliTargetOf(target: EngineTarget): CliTarget {
-    return target.source.kind === "file"
-      ? { kind: "profile", name: target.name, endpoint: target.endpoint }
-      : { kind: "endpoint", endpoint: target.endpoint }
+    return target.source.kind === "default"
+      ? { kind: "endpoint", endpoint: target.endpoint }
+      : { kind: "profile", name: target.name, endpoint: target.endpoint }
   }
 
   private static identityOf(target: EngineTarget, credentials: Credentials): string | undefined {

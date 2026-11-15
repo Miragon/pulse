@@ -30,7 +30,7 @@ export default mergeConfig(
           "src/core/**": { lines: 98, statements: 98, functions: 98, branches: 90 },
           "src/model/**": { lines: 98, statements: 98, functions: 98, branches: 88 },
           "src/webview/**": { lines: 78, statements: 78, functions: 78, branches: 68 },
-          "src/host-kit/**": { lines: 69, statements: 70, functions: 70, branches: 72 },
+          "src/host-kit/**": { lines: 75, statements: 76, functions: 75, branches: 78 },
         },
       },
       projects: [

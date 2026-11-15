@@ -4,6 +4,7 @@ import { LOCAL_TARGET, type EngineTarget } from "../../src/host-kit/connections/
 import { EnvironmentClassifier } from "../../src/host-kit/connections/environment-classifier.js"
 import { TargetPolicy } from "../../src/host-kit/connections/target-policy.js"
 import { TargetsParser } from "../../src/host-kit/connections/targets-parser.js"
+import { TargetsProblem } from "../../src/host-kit/connections/targets-problem.js"
 
 const FILE = "/work/.pulse.json"
 const NONE = { user: undefined, workspace: [] }
@@ -33,6 +34,7 @@ describe("parsing the profiles of .pulse.json", () => {
     })
 
     expect(new TargetsParser(FILE).parse(content)).toEqual({
+      names: ["dev", "prod-eu"],
       targets: [
         {
           name: "dev",
@@ -134,29 +136,30 @@ describe("parsing the profiles of .pulse.json", () => {
     })
 
     expect(new TargetsParser(FILE).parse(content)).toEqual({
+      names: ["typo"],
       targets: [],
       problems: [
-        {
-          path: FILE,
-          message:
-            'profile "typo": flavor must be one of camunda7, camunda8, cibseven, operaton (the value is not shown).',
-        },
+        new TargetsProblem(
+          FILE,
+          'profile "typo": flavor must be one of camunda7, camunda8, cibseven, operaton (the value is not shown).',
+        ),
       ],
     })
   })
 
   test("reports a malformed file instead of failing", () => {
     expect(new TargetsParser(FILE).parse("{")).toEqual({
+      names: [],
       targets: [],
-      problems: [{ path: FILE, message: "The text is not valid JSON (line 1, column 2)." }],
+      problems: [new TargetsProblem(FILE, "The text is not valid JSON (line 1, column 2).")],
     })
     expect(new TargetsParser(FILE).parse('{"profiles": []}').problems).toEqual([
-      {
-        path: FILE,
-        message: "profiles must be a JSON object that maps each profile name to a profile.",
-      },
+      new TargetsProblem(
+        FILE,
+        "profiles must be a JSON object that maps each profile name to a profile.",
+      ),
     ])
-    expect(new TargetsParser(FILE).parse("{}")).toEqual({ targets: [], problems: [] })
+    expect(new TargetsParser(FILE).parse("{}")).toEqual({ names: [], targets: [], problems: [] })
   })
 
   test("names the broken file and what is wrong, for the error item in the Engines tree", () => {

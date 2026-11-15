@@ -22,10 +22,15 @@ vi.mock("vscode", async () => ({
   workspace: {
     findFiles: () => Promise.resolve([...fake.files.keys()].map((fsPath) => ({ fsPath }))),
     fs: {
-      readFile: (uri: { fsPath: string }) =>
-        fake.unreadable.has(uri.fsPath)
-          ? Promise.reject(new Error("denied"))
-          : Promise.resolve(new TextEncoder().encode(fake.files.get(uri.fsPath) ?? "")),
+      readFile: (uri: { fsPath: string }) => {
+        const content = fake.files.get(uri.fsPath)
+        if (fake.unreadable.has(uri.fsPath)) {
+          return Promise.reject(new Error("denied"))
+        }
+        return content === undefined
+          ? Promise.reject(Object.assign(new Error("missing"), { code: "FileNotFound" }))
+          : Promise.resolve(new TextEncoder().encode(content))
+      },
     },
     getConfiguration: () => ({ inspect: () => undefined }),
   },

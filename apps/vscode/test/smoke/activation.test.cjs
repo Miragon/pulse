@@ -1,6 +1,7 @@
 const assert = require("node:assert")
 const { readFileSync } = require("node:fs")
-const { join } = require("node:path")
+const { tmpdir } = require("node:os")
+const { join, relative } = require("node:path")
 const vscode = require("vscode")
 
 const manifest = JSON.parse(readFileSync(join(__dirname, "..", "..", "package.json"), "utf8"))
@@ -23,16 +24,49 @@ function pause(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds))
 }
 
+function temporaryConfigHome() {
+  const home = process.env.XDG_CONFIG_HOME
+  assert.ok(home !== undefined && !relative(tmpdir(), home).startsWith(".."), home)
+  assert.strictEqual(process.env.PULSE_CLI_CONFIG ?? "", "")
+  return home
+}
+
+async function settled(running) {
+  let done = false
+  const command = Promise.resolve(running).finally(() => {
+    done = true
+  })
+  await pause(1000)
+  if (!done) {
+    await vscode.commands.executeCommand("workbench.action.closeQuickOpen")
+  }
+  await command
+}
+
 async function configureEnginesOpens(expected) {
   for (let attempt = 0; attempt < 20; attempt += 1) {
     await vscode.commands.executeCommand("pulse.refresh")
-    await vscode.commands.executeCommand("pulse.openTargetsFile")
+    await settled(vscode.commands.executeCommand("pulse.openTargetsFile", expected.fsPath))
     if (vscode.window.activeTextEditor?.document.uri.fsPath === expected.fsPath) {
       return
     }
     await pause(250)
   }
   assert.strictEqual(vscode.window.activeTextEditor?.document.uri.fsPath, expected.fsPath)
+}
+
+async function configureEnginesChoosingTheFirst() {
+  let done = false
+  const command = Promise.resolve(vscode.commands.executeCommand("pulse.openTargetsFile")).finally(
+    () => {
+      done = true
+    },
+  )
+  for (let attempt = 0; attempt < 40 && !done; attempt += 1) {
+    await pause(250)
+    await vscode.commands.executeCommand("workbench.action.acceptSelectedQuickOpenItem")
+  }
+  await command
 }
 
 async function removeAll(uris) {
@@ -71,6 +105,34 @@ suite("Pulse in VS Code", () => {
         workspaceFile("current"),
         workspaceFile(".pulse.json"),
       ])
+    }
+  })
+
+  test("asks which file gets the engines and writes the project file of this folder", async () => {
+    try {
+      await vscode.commands.executeCommand("pulse.refresh")
+      await configureEnginesChoosingTheFirst()
+      assert.strictEqual(
+        vscode.window.activeTextEditor?.document.uri.fsPath,
+        workspaceFile(".pulse.json").fsPath,
+      )
+      await vscode.workspace.fs.stat(workspaceFile(".pulse.json"))
+    } finally {
+      await vscode.commands.executeCommand("workbench.action.closeAllEditors")
+      await removeAll([workspaceFile(".pulse.json")])
+    }
+  })
+
+  test("reads the engines of the CLI's user config in a temporary config folder", async () => {
+    const folder = vscode.Uri.file(join(temporaryConfigHome(), "pulse-cli"))
+    const own = vscode.Uri.joinPath(folder, "config.json")
+    try {
+      await vscode.workspace.fs.createDirectory(folder)
+      await vscode.workspace.fs.writeFile(own, PROFILES)
+      await configureEnginesOpens(own)
+    } finally {
+      await vscode.commands.executeCommand("workbench.action.closeAllEditors")
+      await removeAll([folder])
     }
   })
 })

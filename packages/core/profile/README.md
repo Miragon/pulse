@@ -122,6 +122,12 @@ case with its verdict under every policy and whether the schema takes it, and `o
 form a reader's test compares a `ProfileFile` in. A reader runs the fixtures through its own path
 and keeps what it makes of each verdict next to its tests.
 
+`CLI_CONFIG_LOCATIONS` holds where the CLI's user config lives: per case the environment
+(`PULSE_CLI_CONFIG`, `XDG_CONFIG_HOME`, `APPDATA`), the home folder and the platform in, the path
+and whether `PULSE_CLI_CONFIG` named it out. Finding the file needs `node:path`, which this package
+never imports, so the rule stays with each reader (the CLI's config layer, the editor hosts' host
+kit), and each runs the table in its tests.
+
 ## Mutation testing
 
 The rules are mutation-tested every night in the repository (StrykerJS over `src` without the

@@ -20,7 +20,7 @@ flowchart TB
   panel <-- "5: intents, host actions" --> session{{"core session"}}
 ```
 
-1. It finds every `.pulse.json` (`TargetDiscovery`), the host kit's `TargetMerge` decides the engines from them (its `TargetsParser` reads each), and it takes each target's login from SecretStorage.
+1. It finds every `.pulse.json` and the CLI's user config (`TargetDiscovery`, `UserConfigFile`), the host kit's `TargetMerge` decides the engines from them (its `TargetsParser` reads each), and it takes each target's login from SecretStorage.
 2. The composition root picks the adapter for the target's engine; it supplies runtime and commands.
 3. Trees, status bar and panels show the connections; a reload rebinds open panels.
 4. The webview sends intents and gets the complete panel state back.
@@ -40,7 +40,7 @@ flowchart LR
 ## Where things are
 
 - `apps/vscode/src/host/pulse-extension.ts`: wiring on activation; `apps/vscode/src/host/composition-root.ts`: the adapters
-- `apps/vscode/src/host/connections`: finding the project files and wiring the connections (`TargetDiscovery`, `ConnectionRegistry`); the rules they apply (targets, logins, write policy, audit) are the runtime view's host kit (`packages/core/runtime-view/src/host-kit`)
+- `apps/vscode/src/host/connections`: finding the project files and the CLI's user config and wiring the connections (`TargetDiscovery`, `UserConfigFile`, `ConnectionRegistry`); the rules they apply (targets, logins, write policy, audit) are the runtime view's host kit (`packages/core/runtime-view/src/host-kit`)
 - `apps/vscode/src/host/panels`: webview panels and their host actions (`PanelManager`, `VsCodePanelEffects`)
 - `apps/vscode/src/host/commands`, `apps/vscode/src/host/explorer`: one class per command, the Engines tree
 
@@ -53,7 +53,7 @@ flowchart LR
 ## Build and test
 
 `pnpm --filter pulse-cockpit run build` bundles the host and the webview into `dist/` (`apps/vscode/scripts/build.mjs`).
-`pnpm --filter pulse-cockpit test` runs `apps/vscode/test/host/` on a `vscode` fake; `test:smoke` and `test:e2e` start a real VS Code.
+`pnpm --filter pulse-cockpit test` runs `apps/vscode/test/host/` on a `vscode` fake; `test:smoke` and `test:e2e` start a real VS Code. Each of them reads the CLI's user config in a temporary folder, never yours.
 
 ## More
 

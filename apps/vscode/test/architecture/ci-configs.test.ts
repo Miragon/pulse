@@ -17,11 +17,11 @@ function optionsOf(value: unknown): Options {
   return typeof value === "object" && value !== null ? (value as Options) : {}
 }
 
-async function configOf(file: string): Promise<Options> {
+async function smokeConfigsOf(file: string): Promise<Options[]> {
   const loaded = (await import(pathToFileURL(join(APP_ROOT, file)).href)) as {
     readonly default: unknown
   }
-  return optionsOf(loaded.default)
+  return [loaded.default].flat().map(optionsOf)
 }
 
 const MANIFEST = JSON.parse(readFileSync(join(APP_ROOT, "package.json"), "utf8")) as {
@@ -41,20 +41,35 @@ describe("the configs the CI jobs run by name", () => {
     )
   })
 
-  test("run every smoke test against the built extension", async () => {
-    const smoke = await configOf(".vscode-test.mjs")
+  test("run every smoke test against the built extension, in a folder and without one", async () => {
+    const [workspace, noFolder, ...others] = await smokeConfigsOf(".vscode-test.mjs")
+    expect(others).toEqual([])
     expect(filesOf(SMOKE_TESTS).length).toBeGreaterThan(0)
-    expect(filesOf(smoke.files)).toEqual(filesOf(SMOKE_TESTS))
-    expect(smoke.extensionDevelopmentPath).toBe(".")
-    expect(statSync(join(APP_ROOT, String(smoke.workspaceFolder))).isDirectory()).toBe(true)
-    expect(Object.keys(optionsOf(smoke.mocha)).sort()).toEqual(["timeout", "ui"])
-    expect(Object.keys(smoke).sort()).toEqual([
-      "extensionDevelopmentPath",
-      "files",
-      "launchArgs",
-      "mocha",
-      expect.stringMatching(/^(version|useInstallation)$/),
-      "workspaceFolder",
-    ])
+    expect([...filesOf(workspace?.files), ...filesOf(noFolder?.files)].sort()).toEqual(
+      filesOf(SMOKE_TESTS),
+    )
+    expect(statSync(join(APP_ROOT, String(workspace?.workspaceFolder))).isDirectory()).toBe(true)
+    for (const [smoke, label, folder] of [
+      [workspace, "workspace", ["workspaceFolder"]],
+      [noFolder, "no-folder", []],
+    ] as const) {
+      const options = optionsOf(smoke)
+      expect(options.label).toBe(label)
+      expect(options.extensionDevelopmentPath).toBe(".")
+      expect(Object.keys(optionsOf(options.mocha)).sort()).toEqual(["timeout", "ui"])
+      const keys = Object.keys(options)
+      expect(keys.filter((key) => /^(version|useInstallation)$/.test(key))).toHaveLength(1)
+      expect(keys.filter((key) => !/^(version|useInstallation)$/.test(key)).sort()).toEqual(
+        [
+          "env",
+          "extensionDevelopmentPath",
+          "files",
+          "label",
+          "launchArgs",
+          "mocha",
+          ...folder,
+        ].sort(),
+      )
+    }
   })
 })

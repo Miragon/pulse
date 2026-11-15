@@ -291,10 +291,25 @@ engine at history level AUDIT too
   (`packages/core/runtime-view/test/host-kit/project-file-fixtures.expected.json`, one entry per
   fixture); `packages/core/runtime-view/test/host-kit/project-file-fixtures.test.ts` holds
   `TargetsParser` to both. A profile the format takes is a target with its URL, auth type and
-  read-only flag, or a named problem; a value the format refuses never becomes an engine. The
-  extension still reads no user config. A folder that holds the project file only under its
-  former name (`ProjectFile.FORMER_NAME` of the host kit, which `TargetsFile` and Pulse for Orca
-  read) shows one problem asking to rename it and lists none of its engines, nor the local
+  read-only flag, or a named problem; a value the format refuses never becomes an engine. Pulse
+  for VS Code reads the CLI's user config too, where the CLI finds it: the host kit's
+  `UserConfigLocation` (over `node:path`, the environment, home and platform handed in) and the
+  CLI's `configFilePath` run one case table, `CLI_CONFIG_LOCATIONS` of
+  `@miragon/pulse-profile/testing`. Its `ProfileSource` reads it under the policy `env-or-literal`,
+  whose credentials no editor reads or sends (Set Credentials stays the one source); its targets
+  carry the source `user-config`, its problems read `CLI config: …`, its ways out keep a profile the
+  CLI needs as it is, and
+  `packages/core/runtime-view/test/host-kit/user-config-fixtures.expected.json` holds
+  `TargetsParser` to every shared fixture read that way. `TargetMerge` joins it after the
+  project files, a profile of the user winning a name as a whole, a refused one too, and a
+  non-blank `PULSE_CLI_CONFIG` means that file only, as in the CLI (a relative or missing one is a
+  problem and lists no engine). Every VS Code a harness starts and the host's unit tests read it in
+  a temporary folder (`XDG_CONFIG_HOME`, `APPDATA`), never the one of whoever runs them: they blank
+  `PULSE_CLI_CONFIG` (never set it to a file, which would hide the project files), VS Code starts
+  with `--force-disable-user-env`, so a shell profile sets neither, and the folder goes when the run
+  ends (`apps/vscode/test/architecture/harness-isolation.test.ts`). A folder that holds the project file
+  only under its former name (`ProjectFile.FORMER_NAME` of the host kit, which `TargetsFile` and
+  Pulse for Orca read) shows one problem asking to rename it and lists none of its engines, nor the local
   default engine in its place (_Configure Engines_ opens that file and writes no second one); a
   stored sign-in is keyed by the file's path, so the rename asks for it once more. A project file
   that is there but can't be read is one problem too, and no local default engine takes its place,

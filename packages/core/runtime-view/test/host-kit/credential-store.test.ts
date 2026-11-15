@@ -102,4 +102,19 @@ describe("the secret scope", () => {
       "pulse.connection.default::local.username",
     ])
   })
+
+  test("keeps a profile of the CLI's user config apart from a project's of the same name", async () => {
+    const { stored, store } = inMemorySecrets()
+    const own = "/home/dev/.config/pulse-cli/config.json"
+    const mine: EngineTarget = {
+      ...profile("dev", "http://x"),
+      source: { kind: "user-config", path: own },
+    }
+    await store.write(profile("dev", "http://x"), "team", "team-secret")
+    await store.write(mine, "me", "my-secret")
+
+    expect(await store.read(mine)).toEqual({ kind: "basic", username: "me", password: "my-secret" })
+    expect(stored.get(`pulse.connection.${own}::dev.username`)).toBe("me")
+    expect(stored.get(`pulse.connection.${FILE}::dev.username`)).toBe("team")
+  })
 })

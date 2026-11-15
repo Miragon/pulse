@@ -5,6 +5,7 @@ import { join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { downloadAndUnzipVSCode } from "@vscode/test-electron"
 import { _electron as electron } from "playwright"
+import { isolatedConfigHome } from "../support/config-home.mjs"
 import { part } from "../support/webview-parts.mjs"
 
 const APP = resolve(fileURLToPath(new URL("../..", import.meta.url)))
@@ -43,6 +44,7 @@ export async function launchVsCode(workspace) {
   const userData = await userDataWithSettings()
   const app = await electron.launch({
     executablePath: await vscodeExecutable(),
+    env: { ...process.env, ...isolatedConfigHome() },
     args: [
       resolve(APP, workspace),
       `--extensionDevelopmentPath=${APP}`,
@@ -53,6 +55,7 @@ export async function launchVsCode(workspace) {
       "--skip-release-notes",
       "--disable-telemetry",
       "--new-window",
+      "--force-disable-user-env",
       ...KEYRING_FREE,
     ],
   })

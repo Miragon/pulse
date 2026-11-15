@@ -8,7 +8,8 @@ const KINDS: Readonly<Record<string, TargetAuth>> = {
 
 const SWITCHING_OAUTH_KEYS_OFF = "none"
 
-type WayOut = "authType" | "passthrough" | "authKeys" | "headers" | "oauth"
+type WayOut =
+  "authType" | "setAuthType" | "passthrough" | "authKeys" | "headers" | "headersOfTheCli" | "oauth"
 
 export class EditorAuth {
   static readonly WAYS_OUT: Readonly<Record<WayOut, string>> = EditorAuth.waysOut()
@@ -29,9 +30,12 @@ export class EditorAuth {
     const setType = `Set auth.type to ${EditorAuth.anyOf(connecting)}`
     return {
       authType: `${setType}, ${EditorAuth.keepFor("CLI")}`,
+      setAuthType: `${setType}.`,
       passthrough: `${setType}, ${EditorAuth.keepFor("MCP server")}`,
       authKeys: `This client connects with auth.type ${EditorAuth.anyOf(connecting)}: use one of them.`,
       headers: "Remove headers from this profile, or use one without them.",
+      headersOfTheCli:
+        "Keep this profile for the CLI, and add a profile without headers for this client.",
       oauth: `Set auth.type to ${SWITCHING_OAUTH_KEYS_OFF}, or to ${EditorAuth.anyOf(takingNoOAuthKeys)} without the OAuth keys, ${EditorAuth.keepFor("CLI")}`,
     }
   }

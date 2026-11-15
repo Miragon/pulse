@@ -56,8 +56,13 @@ describe("the @miragon/pulse-profile entries", () => {
     )
   })
 
-  it("export the fixtures and the form they compare in from ./testing", () => {
-    expect(Object.keys(testing).sort()).toEqual(["PROFILE_FIXTURES", "outcomeOf", "problemLabel"])
+  it("export the fixtures, the form they compare in and the config locations from ./testing", () => {
+    expect(Object.keys(testing).sort()).toEqual([
+      "CLI_CONFIG_LOCATIONS",
+      "PROFILE_FIXTURES",
+      "outcomeOf",
+      "problemLabel",
+    ])
   })
 
   it("map each flavor to the dialect it speaks: Camunda 7 REST, and Camunda 8", () => {

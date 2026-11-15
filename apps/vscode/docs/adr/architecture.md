@@ -1,7 +1,7 @@
 # Architecture
 
 - Status: accepted
-- Last reviewed: 2026-11-14 (`TargetMerge` of the host kit decides the engines of both hosts from their files, and Pulse for VS Code shows a project file it can't read as one problem with no local default engine, as Pulse for Orca did; the switch of D9 landed: the webview's rendering libraries are `react`, `react-dom` and `lucide-react`); 2026-11-12 (later that day, D9 in [ui-foundation.md](ui-foundation.md): the webview moves from Preact to React on pulse-ui in one switch, no `preact/compat`, its closed world changes with that switch; earlier: the webview may import shared building blocks of pulse-ui's React kit and stylesheet by the package's root and `@miragon/pulse-ui/theme.css`, the ports, core, model reader and host kit stay framework-free, owner decision in [ui-foundation.md](ui-foundation.md); a refused target's read-only note is its refusal; the adapter gives the command of Pulse's CLI that triggers an event through the port `EngineCli`, on the engine its `CliTarget` names: the profile of a target's project file with the target's URL, or the default engine's URL); 2026-11-10 (the C7 adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the layers live in the runtime view and the engine adapter, which Pulse for Orca hosts too, the runtime view's contract is `@miragon/pulse-engine-core` and its own ports moved to `ports`; before that, the host kit's connections read the project file with `@miragon/pulse-profile`, the engine contract left the app for `@miragon/pulse-engine-core`, the engine family's neutral core, and 2026-11-08 Pulse's UI foundation in core and webview)
+- Last reviewed: 2026-11-14 (Pulse for VS Code reads the CLI's user config: `UserConfigLocation`, `ProfileSource` and the user config's rules of `TargetMerge` in the host kit; `TargetMerge` of the host kit decides the engines of both hosts from their files, and Pulse for VS Code shows a project file it can't read as one problem with no local default engine, as Pulse for Orca did; the switch of D9 landed: the webview's rendering libraries are `react`, `react-dom` and `lucide-react`); 2026-11-12 (later that day, D9 in [ui-foundation.md](ui-foundation.md): the webview moves from Preact to React on pulse-ui in one switch, no `preact/compat`, its closed world changes with that switch; earlier: the webview may import shared building blocks of pulse-ui's React kit and stylesheet by the package's root and `@miragon/pulse-ui/theme.css`, the ports, core, model reader and host kit stay framework-free, owner decision in [ui-foundation.md](ui-foundation.md); a refused target's read-only note is its refusal; the adapter gives the command of Pulse's CLI that triggers an event through the port `EngineCli`, on the engine its `CliTarget` names: the profile of a target's project file with the target's URL, or the default engine's URL); 2026-11-10 (the C7 adapter joined the c7 family as `@miragon/pulse-c7-adapter`); 2026-11-09 (#585 merged: the layers live in the runtime view and the engine adapter, which Pulse for Orca hosts too, the runtime view's contract is `@miragon/pulse-engine-core` and its own ports moved to `ports`; before that, the host kit's connections read the project file with `@miragon/pulse-profile`, the engine contract left the app for `@miragon/pulse-engine-core`, the engine family's neutral core, and 2026-11-08 Pulse's UI foundation in core and webview)
 
 ## Context
 
@@ -30,7 +30,7 @@ extension its host as CommonJS for Node 22 and the webview as an IIFE.
 | `webview`    | React UI on pulse-ui (D9 in [ui-foundation.md](ui-foundation.md)) and bpmn-js diagram. Renders protocol view models, sends intents                                                                                                                                                                                                                                                                                                                                                                                                 | browser                               |
 | `c7-adapter` | `EngineAdapter`, `ProcessRuntime`, `ProcessCommands`, the Cockpit web UI and the CLI command for the Camunda 7 family ([c7-adapter.md](c7-adapter.md)); `packages/connectors/c7/c7-adapter/src/engine-rest` reads and writes the engine's REST API                                                                                                                                                                                                                                                                                 | Node                                  |
 | `model`      | `ModelSource` and `CodeLocator` for the local workspace: reads `.bpmn` files with bpmn-moddle and its vendor descriptors, finds the implementing code ([local-sources.md](local-sources.md)); the only layer with those libraries                                                                                                                                                                                                                                                                                                  | none (files through `WorkspaceFiles`) |
-| `host-kit`   | The engine-neutral host rules both hosts share: targets from `.pulse.json`, the write and live policies, the write audit, logins, panel titles                                                                                                                                                                                                                                                                                                                                                                                     | Node                                  |
+| `host-kit`   | The engine-neutral host rules both hosts share: targets from `.pulse.json` and the CLI's user config, the write and live policies, the write audit, logins, panel titles                                                                                                                                                                                                                                                                                                                                                           | Node                                  |
 | `host`       | VS Code host: composition root, connections, tree, panels, commands, status bar                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Node + `vscode`                       |
 
 The core in the product owner's sense is everything that is engine-neutral
@@ -164,6 +164,25 @@ the file only under its former name. Such a file and such a folder are one probl
 is a file a setting names that is missing (Pulse for Orca's), which keeps the local default
 engine. A file whose profiles are all refused keeps it too.
 
+The CLI's user config (`~/.config/pulse-cli/config.json`, found as the CLI finds it, or the file
+`PULSE_CLI_CONFIG` names) is the second home of profiles, which Pulse for VS Code reads. The rule
+that finds it stays with each reader, since the format reads no file system: the host kit's
+`UserConfigLocation` takes the environment, the home folder and the platform from its host, and it
+and the CLI's `configFilePath` run one case table, `CLI_CONFIG_LOCATIONS` of
+`@miragon/pulse-profile/testing`. A `ProfileSource` names where a file comes from: a project file
+read under `none`, the user config under `env-or-literal`, as the CLI reads it; the editors take no
+credential and no variable of it, Set Credentials keys a login by profile and file, and a problem
+reads `CLI config: …`, its way out never asking to remove what the CLI needs. `TargetMerge` joins
+it with the CLI's rules: the project files first, then the user config, whose profile wins a name
+as a whole, a refused one too; a non-blank `PULSE_CLI_CONFIG` means that file only, with a warning
+while it hides project files, and a relative or missing one is a problem with no engine.
+`packages/core/runtime-view/test/host-kit/user-config-fixtures.expected.json` holds `TargetsParser`
+to every shared fixture read as the user config. Pulse for VS Code reloads when the file changes or
+is saved, and when its folder appears or goes (a watcher in the folder above it), so the CLI's first
+write, which makes the folder and the file at once, shows without a refresh. Pulse writes two files
+only, both through _Configure Engines_: a missing project file from its template, and a missing user
+config with no profiles, created exclusively with mode `0600`.
+
 Each layer has its own `tsconfig.<layer>.json` with `lib`/`types` matching its runtime,
 so code that uses `document` in the core or `process` in the webview does not compile.
 
@@ -175,7 +194,7 @@ in a `Record<EngineKind, EngineAdapter>`, so a new kind does not compile without
 adapter) and implements `EngineFactories`: for a configured target it
 returns the `ProcessRuntime` and, where the adapter has them, the `ProcessCommands`,
 the `EngineWebUi` (for a target with a `cockpitUrl`) and the `EngineCli` (for the `CliTarget` the
-connection builder names: the target's profile with its endpoint when it comes from a project file,
+connection builder names: the target's profile with its endpoint when it comes from a file,
 the endpoint of the default engine) of the adapter for `target.engine`. A target the target policy
 refuses (OAuth2, credentials saved for another endpoint, basic credentials over plain HTTP) gets a
 `FailingRuntime` with the refusal text and no commands; the connection builder keeps
