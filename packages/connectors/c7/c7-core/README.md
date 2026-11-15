@@ -212,6 +212,15 @@ tests reach directly, and `INSPECT_OPERATIONS`, `STATUS_OPERATIONS`, `WITH_INCID
 and `RUNTIME_OPERATIONS`, the operations each composite and the runtime's readers send: a port that
 maps operations one by one holds its table equal to them in a test.
 
+`seedC7World` and `seedC7CommandWorld` seed the conformance world of
+`@miragon/pulse-engine-core/testing` into a Camunda 7 engine of the family over its REST API: they
+take the engine's REST root, a fetch-shaped `send` (`fetch` itself fits), a `wait` between polls,
+the world's plan (engine-core's `WORLD_*` values fit its types as they are) and the diagram text of
+each process, and answer the engine's ids as plain strings, which your harness brands into
+engine-core's `SeededWorld` and `CommandWorld`; its unknown ids are fixed. The world's diagrams are
+files of the repository, not of the package:
+[`packages/connectors/c7/c7-core/world/`](https://github.com/Miragon/pulse/tree/main/packages/connectors/c7/c7-core/world).
+
 ## Help and feedback
 
 - **Documentation:** the Pulse servers, CLI and modules built on these rules are explained at [miragon.github.io/pulse](https://miragon.github.io/pulse/).

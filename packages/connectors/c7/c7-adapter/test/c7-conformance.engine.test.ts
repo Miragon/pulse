@@ -2,7 +2,7 @@ import { ConformanceKit, type ConformanceHarness } from "@miragon/pulse-engine-c
 import { afterAll, beforeAll, describe, test } from "vitest"
 import { C7Adapter } from "../src/index.js"
 import { ENGINE_IMAGE, startEngine, type RunningEngine } from "./support/engine-container.js"
-import { seedCommandWorld, seedWorld } from "./support/seed-world.js"
+import { seedCommandWorld, seedWorld } from "./support/world.js"
 
 const UNREACHABLE_URL = "http://127.0.0.1:9/engine-rest"
 const BATCHES_RUN_WITHIN = {

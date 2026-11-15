@@ -131,7 +131,7 @@ describe("the @miragon/pulse-c7-core entries", () => {
     ])
   })
 
-  it("export exactly the fixtures, the fake port and the test seams from ./testing", () => {
+  it("export exactly the fixtures, the fake port, the world's seed and the test seams from ./testing", () => {
     expect(Object.keys(testing).sort()).toEqual([
       "APPROVE_INCIDENT",
       "ASYNC",
@@ -187,6 +187,8 @@ describe("the @miragon/pulse-c7-core entries", () => {
       "paidStage",
       "plainVariables",
       "runtimeDto",
+      "seedC7CommandWorld",
+      "seedC7World",
       "statistics",
       "topicStatus",
       "unknownKeys",
