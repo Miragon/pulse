@@ -146,6 +146,8 @@ interface LocalModelLink {
   readonly code?: { readonly elementId: string; readonly label: string }
 }
 
+export type CauseLabel = "Root cause" | "Worker error" | "Cause"
+
 export interface IncidentRow {
   readonly id: string
   readonly shortId: string
@@ -154,6 +156,7 @@ export interface IncidentRow {
   readonly engineType: string
   readonly message: string
   readonly rootCause?: string
+  readonly causeLabel?: CauseLabel
   readonly createdAt: string
   readonly retriesLeft?: number
   readonly detailsLabel?: string

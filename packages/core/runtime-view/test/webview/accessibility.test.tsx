@@ -155,6 +155,15 @@ describe.each(THEMES)(
       expect(await violations(harness.root)).toEqual([])
     })
 
+    it("the condition dialog of an engine that refuses ordering and date conditions has no violation", async () => {
+      harness = await open("definition-camunda8", theme, contrast)
+      harness.root.querySelector<HTMLElement>('[aria-label="Filter by variables"]')?.click()
+      await waitForElement(harness.root, "dialog[open]")
+      await nextFrame()
+
+      expect(await violations(harness.root)).toEqual([])
+    })
+
     it("the move panel has no violation", async () => {
       harness = await open("instance-movable", theme, contrast)
       harness.root

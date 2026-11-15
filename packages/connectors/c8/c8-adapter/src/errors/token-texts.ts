@@ -36,10 +36,9 @@ export class TokenTexts {
       message: "The token endpoint refused to issue a token for this client (HTTP 403).",
       hint: GRANT_HINT,
     }),
-    "rate-limited": () => ({
+    "rate-limited": (reason) => ({
       failure: "engineFailure",
-      message:
-        "The token endpoint limits requests from this address. Pulse waits as long as the endpoint asks before it requests another token.",
+      message: `The token endpoint limits requests from this address. ${TokenTexts.again(reason)}`,
     }),
     unavailable: (reason) => ({
       failure: "unreachable",
@@ -73,8 +72,27 @@ export class TokenTexts {
     const { failure, message, hint } = TokenTexts.WORDING[reason.trouble](reason)
     return new RuntimeError(failure, message, {
       cause: reason.cause,
-      ...(hint === undefined ? {} : { hint }),
+      ...(hint === undefined ? {} : { hint: `${hint} ${TokenTexts.again(reason)}` }),
     })
+  }
+
+  private static again(reason: TokenReason): string {
+    return `Pulse asks the token endpoint again ${TokenTexts.wait(reason.holdMs)} after its last answer.`
+  }
+
+  private static wait(holdMs: number): string {
+    const seconds = Math.max(1, Math.ceil(holdMs / 1000))
+    if (seconds % 60 === 0) {
+      return TokenTexts.minutes(seconds / 60)
+    }
+    if (seconds < 120) {
+      return seconds === 1 ? "a second" : `${String(seconds)} seconds`
+    }
+    return `about ${TokenTexts.minutes(Math.round(seconds / 60))}`
+  }
+
+  private static minutes(count: number): string {
+    return count === 1 ? "a minute" : `${String(count)} minutes`
   }
 
   private static tooLarge(bytes: number | undefined): string {

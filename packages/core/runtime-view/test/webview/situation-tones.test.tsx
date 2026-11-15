@@ -6,7 +6,17 @@ import {
   StateLabel,
   type StateLabelProps,
 } from "../../src/webview/components/state-label.js"
-import { mount, nextFrame, queryPart, type Mounted, type Renderable } from "./harness.js"
+import { FIXTURES } from "../../dev/webview/fixtures/states.js"
+import {
+  allParts,
+  findRole,
+  mount,
+  mountApp,
+  nextFrame,
+  queryPart,
+  type Mounted,
+  type Renderable,
+} from "./harness.js"
 
 type Paint = "backgroundColor" | "borderTopColor"
 
@@ -159,4 +169,26 @@ describe("the webview's diagram badges", () => {
       useTheme("light", undefined)
     },
   )
+})
+
+describe("the counts of an engine that stops counting", () => {
+  beforeAll(() => {
+    useTheme("light", undefined)
+  })
+
+  test("keep the tone of their situation: a lower bound neutral, the instances with incident in theirs", async () => {
+    const harness = mountApp()
+    harness.publish(FIXTURES["definition-camunda8"])
+    const group = await findRole(harness.root, "radiogroup", { name: "Show instances" })
+    await nextFrame()
+
+    const counts = allParts(group, "segment-count")
+    const toned = counts.filter((count) => count.dataset.tone !== undefined)
+
+    expect(counts.map((count) => count.textContent)).toEqual(["10k+", "37", "10k+", "20k+"])
+    expect(toned.map((count) => count.dataset.tone)).toEqual([SITUATION_TONES.openIncident])
+    expect(iconColour(toned[0]!)).toBe(colourOf("openIncident"))
+    expect(counts.filter((count) => count.querySelector("svg") !== null)).toEqual(toned)
+    harness.unmount()
+  })
 })

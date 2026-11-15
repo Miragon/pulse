@@ -63,16 +63,19 @@ the adapter; they are checked with Node 22.23.4 (CI runs the newest Node 22) and
 `dns-failure` needs a resolver that answers `.invalid` with NXDOMAIN: offline the lookup fails
 with EAI_AGAIN, and a resolver that rewrites NXDOMAIN reaches a real host.
 
-Steps are those of the Camunda 8 plan of #617 (3.1 to 3.9): none of them changes a golden here.
-Where the last column says open, the golden pins a wording the owner has not settled; the fix that
-settles it rewrites the golden with `golden:update`.
+Steps are those of the Camunda 8 plan of #617 (3.1 to 3.9). Step 3.7 restated the echo goldens
+when the cluster's texts began to mask the client secret, and step 3.8 settled the wordings that
+were open for a token the cluster refuses and for the wait of the token endpoint's hold (the
+owner's delegate decisions of 2026-11-15). Where the last column says open, the golden pins a
+wording the owner has not settled; the fix that settles it rewrites the golden with
+`golden:update`.
 
 | Case | Status | What the golden shows, or why there is none | Changes in step |
 | ---- | ------ | ------------------------------------------- | --------------- |
 | `redirect` | pinned | a 302 to a login page: `misconfigured`, its target without the query and the hint to the REST root, which ends in `/v2`, nothing followed; `getInstanceDetail` fails at the version read alike | none planned |
 | `unauthorized-none` | pinned | a cluster with Basic security asked without credentials: `unauthorized`, "HTTP 401 Unauthorized" with the cluster's detail; the same for `getInstanceDetail` | none planned; open: the message carries the cluster's internal detail and no hint what to do |
 | `unauthorized-basic` | pinned | the same to Basic `demo`/`demo-secret`, the header as sent | none planned |
-| `unauthorized-bearer` | pinned | client credentials: the token endpoint issues a token, the cluster refuses it with a 401 without a body: `unauthorized` "HTTP 401 Unauthorized". A token younger than 30 s is not renewed, so one request goes out | none planned; open: no hint for a token the cluster refuses |
+| `unauthorized-bearer` | pinned | client credentials: the token endpoint issues a token, the cluster refuses it with a 401 without a body: `unauthorized` "HTTP 401 Unauthorized" with the hint to check the client's rights and the audience and to enter a changed client ID or secret with Set credentials. A token younger than 30 s is not renewed, so one request goes out | none planned |
 | `unauthorized-passthrough` | not reachable | the editors have no caller whose token they could forward: passthrough is the MCP server's alone | |
 | `wrong-rest-root` | pinned | the URL lacks `/v2`, and the cluster answers `/topology` with its own 404: `misconfigured` with the `/v2` hint; the same for `getInstanceDetail` | none planned |
 | `missing-resource` | pinned | 404 `NOT_FOUND` for the instance: `getInstanceDetail` returns no detail, after the version read | none planned |
@@ -96,10 +99,10 @@ storage.
 
 | Case | Status | What the golden shows, or why there is none | Changes in step |
 | ---- | ------ | ------------------------------------------- | --------------- |
-| `token-endpoint-refusal` | pinned | Keycloak's 401 `unauthorized_client` for a wrong secret: `unauthorized` with the hint to check the client ID and the secret; at 59 s the refusal holds and nothing is sent, at 61 s the endpoint is asked again | none planned; open: the text does not say how long the refusal holds |
-| `token-endpoint-rate-limit` | pinned | a 429 with `Retry-After: 30`: `engineFailure`, Pulse waits as long as the endpoint asks; at 29 s nothing is sent, at 31 s a token and the read | none planned; open: the text does not say how long Pulse waits |
-| `unauthorized-renewed` | pinned | the cluster takes the second token only: the first call fails after one request, since the token is young; at 31 s the old token earns the one renewal, and the read succeeds | none planned |
-| `unauthorized-after-the-one-retry` | pinned | the cluster takes no token: at 31 s the attempt with the renewed token fails too, and no third token is asked for | none planned; open: no hint for a token the cluster refuses |
+| `token-endpoint-refusal` | pinned | Keycloak's 401 `unauthorized_client` for a wrong secret: `unauthorized` with the hint to check the client ID and the secret, and that Pulse asks the token endpoint again a minute after its last answer; at 59 s the refusal holds and nothing is sent, at 61 s the endpoint is asked again | none planned |
+| `token-endpoint-rate-limit` | pinned | a 429 with `Retry-After: 30`: `engineFailure`, Pulse asks the token endpoint again 30 seconds after its last answer; at 29 s nothing is sent, at 31 s a token and the read | none planned |
+| `unauthorized-renewed` | pinned | the cluster takes the second token only: the first call fails after one request with the hint of `unauthorized-bearer`, since the token is young; at 31 s the old token earns the one renewal, and the read succeeds | none planned |
+| `unauthorized-after-the-one-retry` | pinned | the cluster takes no token: at 31 s the attempt with the renewed token fails too, with the hint of `unauthorized-bearer`, and no third token is asked for | none planned |
 | `version-below-the-floor` | pinned | a cluster on 8.8.12: `misconfigured`, "Pulse reads Camunda 8.9 or newer"; `getInstanceDetail` is refused after the version read alike | none planned |
 | `url-of-operate` | pinned | the profile's url is Operate's address (`/operate`, as the profile's cockpitUrl): the cluster's 404 and the `/v2` hint | none planned |
 | `no-secondary-storage` | pinned | the cluster answers its version, so `describeEngine` succeeds, and every other read with a 403: `misconfigured` with the secondary storage hint, never `forbidden` | none planned |

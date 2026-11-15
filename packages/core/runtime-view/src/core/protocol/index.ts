@@ -44,6 +44,7 @@ export type { MoveOption, MoveTarget, RefusedTarget } from "./move-models.js"
 export type {
   CalledInstanceLink,
   CallLink,
+  CauseLabel,
   DefinitionView,
   ElementBadge,
   ElementMarker,

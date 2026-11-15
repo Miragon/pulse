@@ -15,7 +15,7 @@
       "call": "describeEngine",
       "outcome": {
         "failure": "unauthorized",
-        "hint": "Check the client ID and the secret you entered for this engine.",
+        "hint": "Check the client ID and the secret you entered for this engine. Pulse asks the token endpoint again a minute after its last answer.",
         "message": "The token endpoint refused the client ID or secret (unauthorized_client)."
       },
       "sent": [
@@ -27,7 +27,7 @@
       "call": "describeEngine",
       "outcome": {
         "failure": "unauthorized",
-        "hint": "Check the client ID and the secret you entered for this engine.",
+        "hint": "Check the client ID and the secret you entered for this engine. Pulse asks the token endpoint again a minute after its last answer.",
         "message": "The token endpoint refused the client ID or secret (unauthorized_client)."
       },
       "sent": []
@@ -37,7 +37,7 @@
       "call": "describeEngine",
       "outcome": {
         "failure": "unauthorized",
-        "hint": "Check the client ID and the secret you entered for this engine.",
+        "hint": "Check the client ID and the secret you entered for this engine. Pulse asks the token endpoint again a minute after its last answer.",
         "message": "The token endpoint refused the client ID or secret (unauthorized_client)."
       },
       "sent": [

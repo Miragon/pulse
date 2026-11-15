@@ -2,6 +2,7 @@ import type { PanelState } from "../../../src/core/protocol/index.js"
 import { BOARD_VIEW, BROKEN_BOARD_VIEW } from "./board.js"
 import { PROCESS_BOARD_VIEW } from "./process-board.js"
 import { BULK_RUNNING_DEFINITION, BULK_STOPPED_DEFINITION, SELECTING_DEFINITION } from "./bulk.js"
+import { C8_DEFINITION_VIEW, C8_INSTANCE_VIEW } from "./camunda8.js"
 import { DEFINITION_VIEW, ENDED_DEFINITION_VIEW, FILTERED_DEFINITION_VIEW } from "./definition.js"
 import { ENGINE_VIEW } from "./engine.js"
 import { LOCAL_ENGINE, PROD_ENGINE } from "./engines.js"
@@ -31,6 +32,7 @@ export const FIXTURES = {
     refreshing: false,
   },
   "definition-selecting": { status: "ready", view: SELECTING_DEFINITION, refreshing: false },
+  "definition-camunda8": { status: "ready", view: C8_DEFINITION_VIEW, refreshing: false },
   "definition-bulk-running": { status: "ready", view: BULK_RUNNING_DEFINITION, refreshing: false },
   "definition-bulk-stopped": { status: "ready", view: BULK_STOPPED_DEFINITION, refreshing: false },
   migration: { status: "ready", view: MIGRATION_VIEW, refreshing: false },
@@ -46,6 +48,7 @@ export const FIXTURES = {
   "instance-writable": { status: "ready", view: WRITABLE_INSTANCE, refreshing: false },
   "instance-movable": { status: "ready", view: MOVABLE_INSTANCE, refreshing: false },
   "instance-gateway": { status: "ready", view: GATEWAY_INSTANCE, refreshing: false },
+  "instance-camunda8": { status: "ready", view: C8_INSTANCE_VIEW, refreshing: false },
   "instance-retrying": {
     status: "ready",
     view: {

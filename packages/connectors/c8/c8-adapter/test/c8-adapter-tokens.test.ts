@@ -9,6 +9,45 @@ function refusing(): Response {
   return jsonAnswer({ error: "invalid_client" }, 401)
 }
 
+const REFUSED_TOKEN_HINT =
+  "The cluster refused this client's token. Check that the client has the rights to read the cluster and that the profile names the audience the cluster expects. If the client ID or secret changed, enter them again with Set credentials."
+
+describe("a cluster's 401", () => {
+  test("to a client's token says what to check and where to enter the client again", async () => {
+    const login = new LoginService()
+    login.answerApi = () => new Response("", { status: 401 })
+
+    expect(await login.read()).toMatchObject({
+      failure: "unauthorized",
+      message: "HTTP 401 Unauthorized",
+      hint: REFUSED_TOKEN_HINT,
+    })
+  })
+
+  test.each([
+    ["no credentials", { kind: "none" }],
+    ["a Basic login", { kind: "basic", username: "demo", password: "demo" }],
+  ] as const)("to %s names no client", async (_name, credentials) => {
+    const login = new LoginService()
+    login.answerApi = () => new Response("", { status: 401 })
+
+    const error = await login.read(credentials)
+
+    expect(error).toMatchObject({ failure: "unauthorized", message: "HTTP 401 Unauthorized" })
+    expect((error as { hint?: string }).hint).toBeUndefined()
+  })
+
+  test("to a client's token on another status keeps the cluster's words alone", async () => {
+    const login = new LoginService()
+    login.answerApi = () => new Response("", { status: 403 })
+
+    const error = await login.read()
+
+    expect(error).toMatchObject({ failure: "forbidden", message: "HTTP 403 Forbidden" })
+    expect((error as { hint?: string }).hint).toBeUndefined()
+  })
+})
+
 describe("the tokens of the C8 adapter", () => {
   test("serve a runtime built anew for the same cluster, as on every reload, without a second request", async () => {
     const login = new LoginService()

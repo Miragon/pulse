@@ -77,7 +77,7 @@ export class BoardLabels {
 
   static diagramMissing(tile: ProcessDiagramTile): string {
     return tile.notDeployed === true
-      ? `${tile.bpmnProcessId} is not deployed on ${tile.engine}.`
+      ? `${tile.bpmnProcessId} is not deployed on ${tile.engine}, or you may not have permission to see it.`
       : `The diagram was not read from ${tile.engine}.`
   }
 

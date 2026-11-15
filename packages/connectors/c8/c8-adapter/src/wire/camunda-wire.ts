@@ -4,6 +4,7 @@ import {
   type CredentialProblem,
   decodeText,
   type Http,
+  type HttpAnswer,
   HttpFailure,
   type Intent,
   joinUrl,
@@ -18,7 +19,7 @@ import { SecretMask } from "./secret-mask.js"
 import { TokenReasons } from "./token-reasons.js"
 import { WireCredentials } from "./wire-credentials.js"
 import type { WirePlatform } from "./wire-platform.js"
-import type { WireReason } from "./wire-reason.js"
+import type { AnsweredReason, WireReason } from "./wire-reason.js"
 
 export interface WireRequest {
   readonly method: "GET" | "POST"
@@ -31,6 +32,9 @@ export interface WireRequest {
 export type WireOutcome = { readonly text: string } | { readonly reason: WireReason }
 
 const TIMEOUT_MS = 60_000
+
+const REFUSED_TOKEN_HINT =
+  "The cluster refused this client's token. Check that the client has the rights to read the cluster and that the profile names the audience the cluster expects. If the client ID or secret changed, enter them again with Set credentials."
 
 const CREDENTIAL_PROBLEMS: Readonly<Record<CredentialProblem, string>> = {
   "user-colon": "The user name holds a colon, which basic authentication cannot send",
@@ -69,11 +73,18 @@ export class CamundaWire {
         ...(request.body === undefined ? {} : { body: request.body }),
       })
       return answer.status >= 400
-        ? { reason: this.mask.reason(AnswerReasons.of(answer, undefined, this.mask)) }
+        ? { reason: this.mask.reason(this.answered(answer)) }
         : { text: decodeText(answer) }
     } catch (error: unknown) {
       return { reason: this.mask.reason(this.reasonOf(error)) }
     }
+  }
+
+  private answered(answer: HttpAnswer): AnsweredReason {
+    const reason = AnswerReasons.of(answer, undefined, this.mask)
+    return answer.status === 401 && this.tokenEndpoint !== undefined
+      ? { ...reason, hint: REFUSED_TOKEN_HINT }
+      : reason
   }
 
   private reasonOf(error: unknown): WireReason {

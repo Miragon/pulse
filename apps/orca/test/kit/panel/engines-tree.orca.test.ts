@@ -36,7 +36,7 @@ describe("the engines tree", () => {
 
     expect(shown.summary()).toContain('Tree "Engines": 2 top-level item(s)')
     expect(shown.find(TREE)?.text).toBe(
-      "shop-dev (active) shop-test Order fulfillment Invoice No process definitions deployed",
+      "shop-dev (active) shop-test Order fulfillment Invoice No process definitions deployed, or you may not have permission to see them.",
     )
     expect(shown.expandedOf(TREE)).toEqual(["engine|shop-dev"])
     expect(shown.find({ type: "Text", text: "shop/.pulse.json" })).not.toBeNull()
@@ -54,12 +54,14 @@ describe("the engines tree", () => {
     expectClean(shown)
   })
 
-  test("says when an engine has no process definitions deployed", async () => {
+  test("says when an engine shows no process definitions, which a missing permission explains too", async () => {
     const shown = await mounted(
       panelHost({ "engines.list": engineList([{ ...SHOP_DEV, definitions: [] }]) }),
     )
 
-    expect(shown.find(TREE)?.text).toBe("shop-dev (active) No process definitions deployed")
+    expect(shown.find(TREE)?.text).toBe(
+      "shop-dev (active) No process definitions deployed, or you may not have permission to see them.",
+    )
   })
 
   test("shows the empty state and the default engine without engines", async () => {

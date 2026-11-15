@@ -15,7 +15,7 @@
       "call": "describeEngine",
       "outcome": {
         "failure": "unauthorized",
-        "hint": null,
+        "hint": "The cluster refused this client's token. Check that the client has the rights to read the cluster and that the profile names the audience the cluster expects. If the client ID or secret changed, enter them again with Set credentials.",
         "message": "HTTP 401 Unauthorized"
       },
       "sent": [

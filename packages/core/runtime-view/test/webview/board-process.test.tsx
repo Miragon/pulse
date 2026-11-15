@@ -121,7 +121,7 @@ describe("the process widgets of a board", () => {
       ),
     ).toEqual([
       "The diagram was not read from prod-eu.",
-      "order-fulfillment is not deployed on shop-test.",
+      "order-fulfillment is not deployed on shop-test, or you may not have permission to see it.",
     ])
   })
 

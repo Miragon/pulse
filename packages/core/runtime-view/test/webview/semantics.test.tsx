@@ -1,6 +1,18 @@
 import { afterEach, describe, expect, it } from "vitest"
 import { FIXTURES, type FixtureName } from "../../dev/webview/fixtures/states.js"
-import { mountApp, nextFrame, part, waitForElement, type Harness } from "./harness.js"
+import { CountLabels } from "../../src/webview/format/count-labels.js"
+import {
+  allParts,
+  allRoles,
+  getRole,
+  mountApp,
+  nextFrame,
+  part,
+  queryPart,
+  queryRole,
+  waitForElement,
+  type Harness,
+} from "./harness.js"
 
 describe("the roles and states each screen keeps", () => {
   let harness: Harness
@@ -123,6 +135,54 @@ describe("the roles and states each screen keeps", () => {
 
     expect(dialog).toBeInstanceOf(HTMLDialogElement)
     expect(dialog.matches(":modal")).toBe(true)
+  })
+
+  it("shows a read-only Camunda 8 process with counts that stopped, no selection and Operate", async () => {
+    const group = await open("definition-camunda8", '[role="radiogroup"]')
+    const radios = [...group.querySelectorAll<HTMLElement>('[role="radio"]')]
+    const counts = allParts(group, "segment-count")
+
+    expect(radios.map((radio) => radio.textContent)).toEqual([
+      "Running 10k+",
+      "With incident 37",
+      "Ended 10k+",
+      "All 20k+",
+    ])
+    expect(counts.map((count) => count.title)).toEqual([
+      CountLabels.exact(10000, true),
+      "37",
+      CountLabels.exact(10000, true),
+      CountLabels.exact(20000, true),
+    ])
+    expect(CountLabels.exact(10000, true)).toMatch(/^≥\s10,000$/u)
+    expect(counts.map((count) => count.dataset.tone)).toEqual([
+      undefined,
+      "danger",
+      undefined,
+      undefined,
+    ])
+    expect(all('[role="checkbox"]')).toEqual([])
+    expect(getRole(harness.root, "button", { name: "Open in Operate" }).title).toBe(
+      "Open Order fulfillment v3 in Operate on shop-c8",
+    )
+    expect(queryPart(harness.root, "access", { state: "read-only" })?.title).toBe(
+      "Read-only. Pulse reads this engine and changes no data on it.",
+    )
+  })
+
+  it("names a Camunda 8 incident's cause as its worker's error, offers no retry and says what is cut off", async () => {
+    const card = await open("instance-camunda8", part("incident-card"))
+    const terms = allRoles(card, "term").map((term) => term.textContent)
+
+    expect(terms[0]).toBe("Worker error")
+    expect(terms).not.toContain("Message")
+    expect(queryRole(card, "button", { name: /^Retry/ })).toBeNull()
+    expect(getRole(card, "button", { name: "Error message" })).toBeDefined()
+    expect(
+      all("p").filter(
+        (note) => note.textContent === "Some lists are cut off, so Pulse shows only part of them.",
+      ),
+    ).toHaveLength(1)
   })
 
   it.each<FixtureName>(["definition", "engine", "migration", "board", "board-process", "instance"])(

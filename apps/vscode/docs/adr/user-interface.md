@@ -1,7 +1,7 @@
 # User interface
 
 - Status: accepted
-- Last reviewed: 2026-11-14 (the switch of D9 landed: the webview draws pulse-ui's `Icon` over `lucide-react`, its copy of Lucide's glyphs went; its bundle ceilings and the two cascade rules of its stylesheet; the split's handle a 24 px target with a forced-colours line); 2026-11-12, later the same day (decided, D9 of [ui-foundation.md](ui-foundation.md): the webview moves to React on `@miragon/pulse-ui` in one switch; its 12 px icons become the density deviation every surface shares; its notice strips become pulse-ui's `StatusStrip`; its sizes come from pulse-ui's density roles; its red and orange counts turn neutral with a tone icon); 2026-11-12 (a button beside the "can't move" sign copies the CLI command its reason names); 2026-11-09 (the Engines tree's problems in the profile format's words, a cockpitUrl's trailing `#/` dropped); 2026-11-08 (the tones of Pulse's situation table; times, durations, counts and short ids from Pulse's formatters; 2026-10-26: boards, see [boards.md](boards.md); live updates, see [live-updates.md](live-updates.md); moving a token; bulk cancel, see [writes.md](writes.md); migration, see [migrations.md](migrations.md))
+- Last reviewed: 2026-11-15 (an incident's cause labelled by its source, every text that finds nothing deployed allows for a missing permission, the cut-off note names no end of a list); 2026-11-14 (the switch of D9 landed: the webview draws pulse-ui's `Icon` over `lucide-react`, its copy of Lucide's glyphs went; its bundle ceilings and the two cascade rules of its stylesheet; the split's handle a 24 px target with a forced-colours line); 2026-11-12, later the same day (decided, D9 of [ui-foundation.md](ui-foundation.md): the webview moves to React on `@miragon/pulse-ui` in one switch; its 12 px icons become the density deviation every surface shares; its notice strips become pulse-ui's `StatusStrip`; its sizes come from pulse-ui's density roles; its red and orange counts turn neutral with a tone icon); 2026-11-12 (a button beside the "can't move" sign copies the CLI command its reason names); 2026-11-09 (the Engines tree's problems in the profile format's words, a cockpitUrl's trailing `#/` dropped); 2026-11-08 (the tones of Pulse's situation table; times, durations, counts and short ids from Pulse's formatters; 2026-10-26: boards, see [boards.md](boards.md); live updates, see [live-updates.md](live-updates.md); moving a token; bulk cancel, see [writes.md](writes.md); migration, see [migrations.md](migrations.md))
 
 ## Context
 
@@ -173,7 +173,15 @@ which also outlines the target.
   the business-key search and a version switch, which resets scope and element only; the
   cancel confirmation names them in its filter line.
 - **Instance panel:** the History / Incidents / Waiting / Variables tablist on the left, the marker
-  legend button on the right.
+  legend button on the right. An incident card names its cause by its source, as the core decides
+  it (`IncidentRow.causeLabel`): "Root cause" for a stack trace, "Worker error" for the error a
+  job's worker reported, "Cause" for an error without a job, so no cause reads "Error" beside a
+  BPMN error the local model names on the same card; the handover takes the same label. A cut-off
+  list says so ("Some lists are cut off, so Pulse shows only part of them"), never which end it
+  keeps: the C7 adapter keeps the first entries, the C8 adapter the newest. Every text that finds
+  nothing deployed allows for a missing permission (the engine overview, the definition panel, a
+  board's diagram, a call button, both editors' Engines trees), since an engine shows nothing of
+  a process to a login without the right to read it.
 - **Engine overview:** the scopes _All_ and _With incident_ ("Show processes", the same
   radiogroup), a search by name or BPMN process id and, at the far end, the summary of the
   whole engine. The counts follow the search; the summary does not. A filter re-derives
@@ -291,7 +299,8 @@ read-only document.
     of 3 called instances", incidents first), none yet opens the called process (the
     button says that the process is not called yet and names it);
   - a process that is not deployed keeps an outlined button ("shipment isn't deployed
-    on shop-dev"); a click shows the same text as an info strip;
+    on shop-dev, or you may not have permission to see it"); a click shows the same text
+    as an info strip;
   - a called process only an expression decides gets no button in the definition view;
     the instance view follows its called instances.
 - A jump always opens another editor tab (or reveals it); back is VS Code's Go Back, and

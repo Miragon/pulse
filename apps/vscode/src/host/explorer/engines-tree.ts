@@ -22,6 +22,9 @@ type EngineNode = Extract<EnginesTreeNode, { kind: "engine" }>
 type DefinitionTreeNode = Extract<EnginesTreeNode, { kind: "definition" }>
 type MessageNode = Extract<EnginesTreeNode, { kind: "message" }>
 
+const NOTHING_VISIBLE =
+  "No process definitions deployed, or you may not have permission to see them."
+
 const ENVIRONMENT_LABELS = {
   local: "LOCAL",
   test: "TEST",
@@ -209,7 +212,7 @@ export class EnginesTree
   private messageItem({ text, detail, icon }: MessageNode): vscode.TreeItem {
     const item = new vscode.TreeItem(text, vscode.TreeItemCollapsibleState.None)
     item.iconPath = new vscode.ThemeIcon(icon)
-    item.tooltip = detail
+    item.tooltip = detail === "" ? text : detail
     item.description = detail
     item.accessibilityInformation = { label: [text, detail].filter(Boolean).join(" ") }
     return item
@@ -260,7 +263,7 @@ export class EnginesTree
         return [
           {
             kind: "message",
-            text: "No process definitions deployed",
+            text: NOTHING_VISIBLE,
             detail: "",
             icon: "debug-disconnect",
           },

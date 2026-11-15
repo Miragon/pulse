@@ -155,13 +155,15 @@ describe("the engine overview", () => {
         ...ENGINE_VIEW,
         processes: [],
         scopeCounts: { all: 0, withIncident: 0 },
-        emptyText: "No processes deployed on shop-dev.",
+        emptyText: "No processes deployed on shop-dev, or you may not have permission to see them.",
       }),
     )
 
     const empty = await findPart(harness.root, "table-empty")
 
-    expect(empty.textContent).toBe("No processes deployed on shop-dev.")
+    expect(empty.textContent).toBe(
+      "No processes deployed on shop-dev, or you may not have permission to see them.",
+    )
     expect(rows(harness.root)).toEqual([])
   })
 

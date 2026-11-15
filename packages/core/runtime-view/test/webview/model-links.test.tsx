@@ -108,6 +108,39 @@ describe("the model and code links of an incident", () => {
   })
 })
 
+describe("the cause of an incident", () => {
+  let harness: Harness
+
+  afterEach(() => {
+    harness.unmount()
+  })
+
+  it.each(["Root cause", "Worker error", "Cause"] as const)(
+    "carries the label %s as the core names it, whatever its details are called",
+    async (causeLabel) => {
+      harness = mountApp()
+      harness.publish({
+        status: "ready",
+        refreshing: false,
+        view: withIncident({ ...INCIDENT, detailsLabel: "Stacktrace", causeLabel }),
+      })
+      await findPart(harness.root, "incident-card")
+
+      expect(facts(harness.root)[0]).toBe(`${causeLabel}: ${INCIDENT.rootCause ?? ""}`)
+    },
+  )
+
+  it("claims no root cause for a cause without a label", async () => {
+    const { causeLabel, ...unlabelled } = INCIDENT
+    harness = mountApp()
+    harness.publish({ status: "ready", refreshing: false, view: withIncident(unlabelled) })
+    await findPart(harness.root, "incident-card")
+
+    expect(causeLabel).toBe("Root cause")
+    expect(facts(harness.root)[0]).toBe(`Cause: ${INCIDENT.rootCause ?? ""}`)
+  })
+})
+
 describe("the model link of a definition", () => {
   let harness: Harness
 

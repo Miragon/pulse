@@ -154,7 +154,8 @@ describe("jumping into a call activity from the diagram", () => {
         calls: [
           {
             elementId: "Activity_CheckCredit",
-            label: "credit-scoring isn't deployed on local-operaton",
+            label:
+              "credit-scoring isn't deployed on local-operaton, or you may not have permission to see it",
             missing: true,
           },
         ],
@@ -167,7 +168,9 @@ describe("jumping into a call activity from the diagram", () => {
 
     expect(button.dataset.state).toBe("missing")
     expect(getComputedStyle(button).borderTopStyle).toBe("solid")
-    expect(button.title).toBe("credit-scoring isn't deployed on local-operaton")
+    expect(button.title).toBe(
+      "credit-scoring isn't deployed on local-operaton, or you may not have permission to see it",
+    )
   })
 
   it("links a called instance back to its caller and shows the strip of a missing process", async () => {
@@ -179,7 +182,12 @@ describe("jumping into a call activity from the diagram", () => {
           ...INSTANCE_WITH_CALLED_INCIDENT.instance,
           parent: { instanceId: "63e79cda-cd7f-11f1-86d2-667bc3771e0d", label: "from 63e79cda…" },
         },
-        notice: { tone: "info", title: "credit-scoring isn't deployed on local.", actions: [] },
+        notice: {
+          tone: "info",
+          title:
+            "credit-scoring isn't deployed on local, or you may not have permission to see it.",
+          actions: [],
+        },
       }),
     )
     const strip = await findRole(harness.root, "status")
@@ -191,7 +199,7 @@ describe("jumping into a call activity from the diagram", () => {
 
     expect(strip.closest(part("status-strip"))).not.toBeNull()
     expect(strip.closest(part("status-strip"))?.textContent).toContain(
-      "credit-scoring isn't deployed on local.",
+      "credit-scoring isn't deployed on local, or you may not have permission to see it.",
     )
     expect(parent?.title).toBe("Open the calling instance 63e79cda-cd7f-11f1-86d2-667bc3771e0d")
     expect(harness.posted).toContainEqual({

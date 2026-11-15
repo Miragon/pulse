@@ -46,7 +46,14 @@ class IncidentFacts {
     const root: readonly Fact[] =
       incident.rootCause === undefined
         ? []
-        : [{ label: "Root cause", value: incident.rootCause, mono: true, emphasis: true }]
+        : [
+            {
+              label: incident.causeLabel ?? "Cause",
+              value: incident.rootCause,
+              mono: true,
+              emphasis: true,
+            },
+          ]
     const message: readonly Fact[] =
       incident.rootCause?.includes(incident.message) === true
         ? []

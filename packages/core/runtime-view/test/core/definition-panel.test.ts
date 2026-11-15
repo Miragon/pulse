@@ -263,7 +263,7 @@ describe("the definition panel", () => {
     })
   })
 
-  test("reports an unknown process as not found", async () => {
+  test("reports an unknown process as not deployed or not visible to the login", async () => {
     const fixture = panelFixture()
     const panel = new DefinitionPanel(fixture.context, { bpmnProcessId: BpmnProcessId("nope") })
 
@@ -271,7 +271,13 @@ describe("the definition panel", () => {
 
     expect(fixture.lastState()).toMatchObject({
       status: "failed",
-      problem: { title: "The process nope was not found." },
+      problem: {
+        title:
+          "The process nope is not deployed on local, or you may not have permission to see it.",
+        detail:
+          "Pulse finds no version of nope there. Deploy it or ask for the permission to read it, then refresh.",
+        canEditConnection: false,
+      },
     })
   })
 

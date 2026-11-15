@@ -4,12 +4,12 @@ import type { TokenReason } from "../../src/wire/wire-reason.js"
 import { jsonAnswer } from "../support/fake-camunda-rest.js"
 import { CREDENTIALS, LoginService, SECRET, TOKEN_URL } from "../support/token-endpoint.js"
 
-const ENDPOINT_HINT = "The profile's tokenEndpoint must be the URL that issues tokens."
-const REQUEST_HINT =
-  "Check the audience and the scopes in the profile. Pulse sends them as written."
-const GRANT_HINT =
-  "Check that the login service lets this client get a token for the audience and the scopes in the profile."
-const CLIENT_HINT = "Check the client ID and the secret you entered for this engine."
+const AGAIN_IN_A_MINUTE = "Pulse asks the token endpoint again a minute after its last answer."
+const ENDPOINT_HINT = `The profile's tokenEndpoint must be the URL that issues tokens. ${AGAIN_IN_A_MINUTE}`
+const REQUEST_HINT = `Check the audience and the scopes in the profile. Pulse sends them as written. ${AGAIN_IN_A_MINUTE}`
+const GRANT_HINT = `Check that the login service lets this client get a token for the audience and the scopes in the profile. ${AGAIN_IN_A_MINUTE}`
+const CLIENT_HINT = `Check the client ID and the secret you entered for this engine. ${AGAIN_IN_A_MINUTE}`
+const AGAIN_IN_5_SECONDS = "Pulse asks the token endpoint again 5 seconds after its last answer."
 const NO_TOKEN = "The token endpoint answered without a token."
 
 interface Expected {
@@ -24,7 +24,7 @@ function answering(answer: () => Response): Promise<unknown> {
   return login.read()
 }
 
-function reasonOf(trouble: TokenReason["trouble"], capBytes?: number): TokenReason {
+function reasonOf(trouble: TokenReason["trouble"], capBytes?: number, holdMs = 5000): TokenReason {
   return {
     kind: "token",
     trouble,
@@ -32,7 +32,7 @@ function reasonOf(trouble: TokenReason["trouble"], capBytes?: number): TokenReas
     status: undefined,
     code: undefined,
     problem: undefined,
-    holdMs: 5000,
+    holdMs,
     capBytes,
     cause: undefined,
   }
@@ -100,7 +100,7 @@ describe("a token endpoint's refusal", () => {
       {
         failure: "engineFailure",
         message:
-          "The token endpoint limits requests from this address. Pulse waits as long as the endpoint asks before it requests another token.",
+          "The token endpoint limits requests from this address. Pulse asks the token endpoint again 2 minutes after its last answer.",
       },
     ],
     [
@@ -206,7 +206,7 @@ describe("a token endpoint's refusal", () => {
       {
         failure: "misconfigured",
         message: `The token endpoint ${TOKEN_URL} answered with HTTP 0.`,
-        hint: ENDPOINT_HINT,
+        hint: `The profile's tokenEndpoint must be the URL that issues tokens. ${AGAIN_IN_5_SECONDS}`,
       },
     ],
     ["unavailable", { failure: "unreachable", message: "The token endpoint failed with HTTP 0." }],
@@ -215,7 +215,7 @@ describe("a token endpoint's refusal", () => {
       {
         failure: "unauthorized",
         message: "The token endpoint refused the client ID or secret (HTTP 401).",
-        hint: CLIENT_HINT,
+        hint: `Check the client ID and the secret you entered for this engine. ${AGAIN_IN_5_SECONDS}`,
       },
     ],
     [
@@ -223,7 +223,7 @@ describe("a token endpoint's refusal", () => {
       {
         failure: "misconfigured",
         message: "The token endpoint refused the request (HTTP 400).",
-        hint: REQUEST_HINT,
+        hint: `Check the audience and the scopes in the profile. Pulse sends them as written. ${AGAIN_IN_5_SECONDS}`,
       },
     ],
     [
@@ -238,6 +238,25 @@ describe("a token endpoint's refusal", () => {
 
     expect(error).toMatchObject(expected)
     expect(error.hint).toBe(expected.hint)
+  })
+
+  test.each([
+    [0, "a second"],
+    [1000, "a second"],
+    [1500, "2 seconds"],
+    [30_000, "30 seconds"],
+    [60_000, "a minute"],
+    [90_000, "90 seconds"],
+    [119_000, "119 seconds"],
+    [120_000, "2 minutes"],
+    [121_000, "about 2 minutes"],
+    [150_000, "about 3 minutes"],
+    [3_601_000, "about 60 minutes"],
+    [3_660_000, "61 minutes"],
+  ])("says that a hold of %i ms lets Pulse ask again after %s", (holdMs, wait) => {
+    expect(TokenTexts.errorOf(reasonOf("rate-limited", undefined, holdMs)).message).toBe(
+      `The token endpoint limits requests from this address. Pulse asks the token endpoint again ${wait} after its last answer.`,
+    )
   })
 
   test.each([

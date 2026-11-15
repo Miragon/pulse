@@ -22,6 +22,9 @@ import { PanelState } from "./panel-state.js"
 import { PromptCard } from "./prompt-card.js"
 import { Boards, Models } from "./workspace-files.js"
 
+const NOTHING_VISIBLE =
+  "No process definitions deployed, or you may not have permission to see them."
+
 class EnginesTree {
   static items(engines: readonly EngineRow[]): TreeItem[] {
     return engines.map((engine) => ({
@@ -77,9 +80,7 @@ class EnginesTree {
       ]
     }
     if (engine.definitions.length === 0) {
-      return [
-        { key: `empty|${engine.name}`, label: "No process definitions deployed", icon: "layers" },
-      ]
+      return [{ key: `empty|${engine.name}`, label: NOTHING_VISIBLE, icon: "layers" }]
     }
     return engine.definitions.map((definition) => ({
       key: `definition|${engine.name}|${definition.bpmnProcessId}`,

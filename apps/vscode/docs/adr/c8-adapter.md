@@ -7,7 +7,8 @@
   its links into Operate and one token source per cluster and client; the package
   `@miragon/pulse-c8-adapter` in the c8 family, which both editor hosts compose for their
   `camunda8` profiles; the conformance kit on a local cluster, which no CI job starts until #531;
-  the client secret masked in the cluster's texts, the Operate of a SaaS cluster)
+  the client secret masked in the cluster's texts, the Operate of a SaaS cluster; the hint for a
+  token the cluster refuses and the wait of the token endpoint's hold)
 
 ## Context
 
@@ -106,7 +107,13 @@ builds the adapter once per process.
   redirect or another status with the `tokenEndpoint` to check, and a token answer above the cap
   with the cap the transport's OAuth client applied, which the wire takes from that failure alone
   (`packages/connectors/c8/c8-adapter/test/wire/token-reasons.test.ts`: a timeout's deadline is no
-  cap); it never shows the secret, the description or the body.
+  cap); it never shows the secret, the description or the body. A way out and a rate limit say
+  when Pulse asks the token endpoint again, the hold after its last answer (a minute after a
+  refusal, a rate limit's `Retry-After`; an uneven hold above two minutes as "about" whole
+  minutes). The wire gives a cluster's 401 to a client's token the
+  hint to check the client's rights and the audience and to enter a changed client ID or secret
+  with Set credentials (owner's delegate, 2026-11-15); a 401 to no login or to Basic keeps the
+  cluster's words alone.
 - **Version floor (`src/reading/version-floor.ts`).** The cluster's `gatewayVersion` is read once
   per client; below 8.9 a read fails as `misconfigured` with the version it found. 8.8 has no
   `businessId` and no statistics endpoints. A version that does not parse is left to the cluster,
@@ -259,3 +266,5 @@ builds the adapter once per process.
 - 2026-11-15: both editor hosts read `camunda8` profiles through this adapter, read-only, signed in
   with none, Basic or client credentials (#543, Thomas Heinrichs); the cluster's texts mask the
   client secret too; the Operate of a SaaS cluster gets its links (#617).
+- 2026-11-15: a cluster's 401 to a client's token says what to check and where to enter the client
+  again, and the token texts say how long the token endpoint's hold lasts (#617).
