@@ -43,6 +43,7 @@ export class FakeQueries {
           this.matchesProcess(incident.definition, filter.bpmnProcessId, filter.definitionId) &&
           (filter.instanceId === undefined || incident.instanceId === filter.instanceId),
       )
+      .sort((left, right) => FakeQueries.byCodePoint(right.createdAt, left.createdAt))
   }
 
   descendantsOf(instanceId: InstanceId): FakeInstance[] {

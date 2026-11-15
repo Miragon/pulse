@@ -1,8 +1,10 @@
 # Runtime contract
 
 - Status: accepted
-- Last reviewed: 2026-11-15 (the read laws hold for the C7 family's one implementation of the
-  reads, c7-core's `C7Runtime`, over two wires: the C7 adapter's and the MCP server's generated SDK;
+- Last reviewed: 2026-11-15 (three read laws for the lists a board reads: incidents newest
+  first, pages of root incidents without gaps, every page of instances but the last full; the
+  read laws hold for the C7 family's one implementation of the reads, c7-core's `C7Runtime`,
+  over two wires: the C7 adapter's and the MCP server's generated SDK;
   an adapter brings its BPMN dialect and the local engine's endpoint,
   the host kit's `EngineRoot` chooses between the adapters; what a Camunda 8 cluster answers, through the C8 adapter's runtime,
   proven by the read laws on a local cluster); 2026-11-14 (on the C7 family "with incident" is an
@@ -263,7 +265,7 @@ contract read-only, through the Orchestration Cluster REST API from 8.9 on:
 
 ```mermaid
 flowchart LR
-  kit[ConformanceKit: 48 read laws, 15 command laws]
+  kit[ConformanceKit: 51 read laws, 15 command laws]
   kit --> fake[FakeEngine in memory]
   kit --> c7[C7Adapter on Operaton and CIB seven in containers]
   kit --> mcp[C7Runtime over the MCP server's SDK wire, same engines, read laws]
@@ -271,7 +273,7 @@ flowchart LR
 ```
 
 `@miragon/pulse-engine-core/testing` (`packages/connectors/engine/engine-core/src/testing/conformance`)
-holds 48 read laws and 15 command laws as executable cases, modelled on
+holds 51 read laws and 15 command laws as executable cases, modelled on
 `@miragon/modeler-api/conformance`:
 `new ConformanceKit(test).registerRuntimeLaws(prepare)` and `.registerCommandLaws(prepare)`
 bind them to any `(name, fn)` runner and throw a `ConformanceViolation` when a law fails. Command laws run on
@@ -298,6 +300,10 @@ also finds an instance whose token waits before an asynchronous task. `instances
 come first, in the same order on every read` holds the order of a search;
 `instances: filter and flag instances with an incident` also finds a caller by an incident in
 its called instance; `instances: counts agree with the search` requires exact counts. The
+lists a board reads have three laws more: incidents come newest first, in the same order on
+every read and across pages of one; the root incidents in pages of one come once each, every
+page but the last full; and so do the instances of a process with an incident and without one,
+whose pages of one together give the search of 50. The
 variable laws read `?` in a `like` pattern as itself and hold a declared refusal to an
 `unsupported` failure of the search and the count. Two read laws cover migration plans, on a
 runtime that plans (and fail one that has only half the pair): the proposal from order v1 to
@@ -346,8 +352,11 @@ key, counts without an incident that include those with one, variable conditions
 ignored by the search or the count, one condition instead of all, numbers compared as
 text, `%`, `_` or `?` read as wildcards, not equals finding instances without the variable,
 task-local variables left out, ended instances left out, an empty list that finds
-nothing, the oldest instances first, another order on each read, a caller not flagged by the
-incident of its called instance, a count within the world that calls itself a lower bound,
+nothing, the oldest instances first, another order on each read, the oldest incidents first,
+another incident order on each read, pages of one that list the oldest incident first,
+instances with an incident or without one and incidents filtered after the page, an ignored
+incident cursor, a last page of incidents over its limit, a caller
+not flagged by the incident of its called instance, a count within the world that calls itself a lower bound,
 a declared refusal that answers anyway, in the search or in the count alone, a refusal without
 a declaration, a declared refusal that fails with another failure or with an error that is no
 `RuntimeError`; for commands: a retry that
@@ -392,7 +401,7 @@ business key fail the ids law too, as does a search that ignores the instance id
   documented exception.
 - Every change to the contract is a change to a published package: a new port, read model or
   law lands in `packages/connectors/engine/engine-core` with its saboteur, and the kit's
-  self-tests run there (`packages/connectors/engine/engine-core/test`, 71 saboteurs). Below 1.0 the package makes no
+  self-tests run there (`packages/connectors/engine/engine-core/test`, 79 saboteurs). Below 1.0 the package makes no
   stability promise; its laws and its fake follow the extension.
 - Panel loads have fixed engine-call budgets (definition ≤ 7, three of them the scope
   counts queried in parallel with the page; instance ≤ 2 plus lazy details; both + 1

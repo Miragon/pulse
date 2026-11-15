@@ -9,7 +9,8 @@
   `camunda8` profiles; the conformance kit on a local cluster, which no CI job starts until #531;
   the client secret masked in the cluster's texts, the Operate of a SaaS cluster; the hint for a
   token the cluster refuses and the wait of the token endpoint's hold; the hint for a 401 to a
-  connection without a login)
+  connection without a login; incidents newest first and full pages by the read laws, but for an
+  incident whose version is gone)
 
 ## Context
 
@@ -138,8 +139,12 @@ builds the adapter once per process.
     numeric value skips text values. `like` goes out as `$like` with the JSON quotes around the
     pattern and `?` and `\` escaped. Greater than, less than and a date fail as `unsupported`
     before anything is sent.
-  - An incident names its version from one read per definition (`DefinitionRefsCache`, which
-    reads a missing or failed one again), and a row whose definition is gone is left out. Its
+  - Incidents come newest first (`creationTime` descending, then `incidentKey`), filtered on the
+    cluster and paged by its cursor, so a page holds its limit until the last. An incident
+    names its version from one read per definition (`DefinitionRefsCache`, which reads a
+    missing or failed one again), and a row whose definition is gone is left out after the
+    page, so such a page may hold fewer incidents than its limit while more follow; the
+    conformance world deletes no version, so the law of full pages does not reach it. Its
     details are its error message with the root cause by engine-core's `RootCauses`, the rule
     every dialect shares, instead of #543's copy of it.
   - A container's own incidents (a call activity, an embedded or event sub-process, an ad-hoc

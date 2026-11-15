@@ -26,6 +26,8 @@ export const CASE = {
   instancesByActiveElement:
     "instances: filter by the element they wait at, also before an asynchronous task",
   instancesPaging: "instances: pages without gaps or duplicates",
+  instancesPagesFull:
+    "instances: every page but the last holds its limit, with an incident and without one",
   instancesNewestFirst: "instances: the newest come first, in the same order on every read",
   instancesUtcTimestamps: "instances: timestamps are ISO-8601 in UTC",
   instancesCounted: "instances: counts agree with the search",
@@ -56,6 +58,9 @@ export const CASE = {
   incidentsRootOnly: "incidents: only root incidents are listed",
   incidentsFiltered: "incidents: filter by process and by instance",
   incidentsNameTheirVersion: "incidents: each incident names the version it was raised in",
+  incidentsNewestFirst: "incidents: the newest come first, in the same order on every read",
+  incidentsPaging:
+    "incidents: pages without gaps or duplicates, every page but the last holds its limit",
   incidentDetailsComplete: "incidents: details are complete, unknown is undefined",
   incidentDetailsNameRootCause:
     "incidents: details name their root cause in one line and point at a line of their text",

@@ -51,7 +51,7 @@ The kit binds every law to any `(name, fn)` runner and throws an `Error` naming 
 it found when one fails. Your harness deploys diagrams with the world's element ids into your engine and seeds the
 world's instances; the fake seeds it in memory. An engine whose reads lag behind its writes
 declares `writeVisibility`, one whose bulk work runs in the background `asyncWork`. The kit
-proves itself: 71 saboteurs, each the fake with one flaw, fail exactly their laws (the package's
+proves itself: 79 saboteurs, each the fake with one flaw, fail exactly their laws (the package's
 `test/`).
 
 ## What it provides
@@ -72,10 +72,15 @@ proves itself: 71 saboteurs, each the fake with one flaw, fail exactly their law
   first non-blank line, a leading class name shortened to its simple name, in one line of at most
   300 characters; `lineOf` is the line a viewer opens the text at, none without a `Caused by:`
   line.
-- **`./testing`:** the conformance kit (`ConformanceKit` with 48 read laws and 15 command laws),
+- **`./testing`:** the conformance kit (`ConformanceKit` with 51 read laws and 15 command laws),
   its fixed world (`WORLD_*`, the three neutral diagrams `NEUTRAL_DIAGRAMS` with fixed element
   ids) and `FakeEngine`, an in-memory engine that passes every law, with `PatchedRuntime` and
   `PatchedCommands` to change one answer of it in a test.
+
+A board reads lists by these laws: instances and incidents come newest first, in the same order
+on every read, incidents also across pages of one, and every page but the last holds its limit,
+also where a dialect drops rows of the engine's answer (an instance with an incident from a list
+of those without one, the copy of an incident in a calling instance).
 
 ## Where dialects differ
 

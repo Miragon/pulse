@@ -212,7 +212,7 @@ flowchart LR
 
 | Question                             | Answer                                                                                                                                                            |
 | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Does the C7 adapter cover all three? | Yes: all 48 read laws and 15 command laws pass on Operaton 2.1.5 and CIB seven 2.2.0; Camunda 7.24.0 passed until its image left Docker Hub                       |
+| Does the C7 adapter cover all three? | Yes: all 51 read laws and 15 command laws pass on Operaton 2.1.5 and CIB seven 2.2.0; Camunda 7.24.0 passed until its image left Docker Hub                       |
 | Do we need an adapter per fork?      | No, only per API family                                                                                                                                           |
 | What does a new dialect family need? | A package `packages/connectors/<family>/<family>-adapter` with an `EngineAdapter` and its `BpmnDialect`, its conformance test, one entry in each composition root |
 | Where does Camunda 8 stand?          | In the C8 adapter, read-only, from 8.9 on; the read laws pass on a local cluster (8.9 and 8.10, H2 and Elasticsearch, none, Basic and OIDC), no CI job until #531 |
@@ -270,7 +270,7 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-  kit[ConformanceKit: 48 read laws, 15 command laws]
+  kit[ConformanceKit: 51 read laws, 15 command laws]
   kit --> fake[FakeEngine in memory]
   kit --> c7[C7Adapter on Operaton and CIB seven in containers]
   kit --> c8["C8Adapter: the read laws on a local Camunda 8 cluster, by hand until #531"]
