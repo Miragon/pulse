@@ -132,8 +132,10 @@ jobs:
   # never through npm (scripts/check-github-config.mjs keeps it out of the publish-npm matrix).
   # The called workflow packages it on every release and dry run and publishes it on every release
   # as a plain release, never a pre-release.
-  # The store tokens are the organization's, as for every Miragon extension, handed down by name;
-  # only the called publish job, in the vscode-marketplace environment (main only), reads them.
+  # Both stores publish by trusted publishing (OIDC), so no store token is handed down. They bind
+  # to THIS file's name and to the called publish job's environment vscode-marketplace: renaming
+  # either breaks publishing until the stores are updated (the header of
+  # publish-vscode-extension.yml lists the registered values).
   publish-vscode:
     name: Publish VS Code extension
     needs: [release-please, gate]
@@ -148,9 +150,6 @@ jobs:
       directory: apps/vscode
       version: ${{ needs.release-please.outputs.tag_name }}
       dry_run: ${{ inputs.dry_run == true }}
-    secrets:
-      VSCE_PUBLISH: ${{ secrets.VSCE_PUBLISH }}
-      OVSX_PUBLISH: ${{ secrets.OVSX_PUBLISH }}
 
   # The Orca plugin ships into Miragon/orca-plugins, whose catalog Orca reads, never through
   # npm: the called workflow builds and checks it on every release and dry run, and publishes it
