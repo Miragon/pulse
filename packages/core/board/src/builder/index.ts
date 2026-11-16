@@ -1,4 +1,5 @@
 export { BoardBuilder } from "./board-builder.js"
+export { BoardJson, type BoardJsonOptions } from "./board-json.js"
 export type {
   BoardModel,
   CounterModel,

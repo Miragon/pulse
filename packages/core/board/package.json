@@ -1,7 +1,7 @@
 {
   "name": "@miragon/pulse-board",
   "version": "0.27.1",
-  "description": "The board file format of Pulse and its builder: the types of a board, a parser that takes the text of a .board.json file and returns the board with its notes and refused widgets or the problems of a file that gives no board, each a code with its JSON path, the vocabulary of its widgets, filters and columns, a starter board, the JSON Schema for editors and the shared fixtures, and in ./builder the board's numbers over the seven reads of the engine contract. The format has no runtime dependency; ./builder needs @miragon/pulse-engine-core, an optional peer.",
+  "description": "The board file format of Pulse and its builder: the types of a board, a parser that takes the text of a .board.json file and returns the board with its notes and refused widgets or the problems of a file that gives no board, each a code with its JSON path, the vocabulary of its widgets, filters and columns, a starter board, the JSON Schema for editors, the shared fixtures and the types of a built board's JSON form, and in ./builder the board's numbers over the seven reads of the engine contract and the one serializer into that form. The format has no runtime dependency; ./builder needs @miragon/pulse-engine-core, an optional peer.",
   "license": "MIT",
   "keywords": [
     "bpmn",

@@ -152,6 +152,37 @@ full.
 counted on its shape too) and `CollapsedShapes.of(xml)` the reader of the collapsed sub-processes
 around an element, so a surface draws its process views by the same rule as a board.
 
+## The JSON form
+
+```ts
+import { BoardJson } from "@miragon/pulse-board/builder"
+
+const data = BoardJson.of(model, {
+  failureOf: (error) => ({ code: codeOf(error), message: messageOf(error) }),
+  notes: parsed.notes,
+})
+```
+
+A `BoardModel` holds the engine contract's read models and each failed engine's error as thrown,
+so it does not travel. `BoardJson.of` turns it into `BoardData`, the one JSON form of a built
+board: a surface that hands a board on, to a webview or to an MCP view, sends this data and maps
+nothing by hand. It holds:
+
+- the board's title and the file's notes, as the parser gave them;
+- per engine `ready` with its product, version and totals, `notConfigured`, or `failed` with the
+  `failure` the surface's `failureOf` makes of the error, a code and a message of its own (the
+  contract's failure kinds, an engine error code);
+- per tile its widget as the parser gave it, of the format's own type, and its numbers as in the
+  model: a number that was not read stays out.
+
+Ids and dates are texts. Of the model it keeps each field it names, so a field the model gains
+stays out until the form names it too, and of the read models it keeps what a tile shows (an
+incident's job and details stay out), so `JSON.parse(JSON.stringify(data))` equals `data`. Its types (`BoardData`,
+`EngineData`, `TileData` and one per kind of tile) come from the main entry, without the engine
+contract, so a renderer reads them without the builder. What only a surface knows (the read time,
+its navigation, the diagram's XML) goes beside it, and the surface words every title, number and
+problem in its own language.
+
 ## A new board
 
 `StarterBoard.of(title, engines)` returns the text of the board Pulse for VS Code's **Pulse: New
@@ -179,19 +210,19 @@ tests run them through the parser and the schema; a reader of its own runs them 
 
 ## Entries
 
-| Entry                                           | Holds                                                                                                                              |
-| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `@miragon/pulse-board`                          | `BoardParser`, `BoardProblems`, `BoardTiles`, `BoardVocabulary`, `StarterBoard` and the types of a board, its widgets and problems |
-| `@miragon/pulse-board/builder`                  | `BoardBuilder`, `DiagramBadges`, `CollapsedShapes` and the types of `BoardModel` and `BoardReads`                                  |
-| `@miragon/pulse-board/schema/board.schema.json` | The JSON Schema of a board file                                                                                                    |
-| `@miragon/pulse-board/testing`                  | `BOARD_FIXTURES`, the shared fixtures                                                                                              |
+| Entry                                           | Holds                                                                                                                                                                             |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@miragon/pulse-board`                          | `BoardParser`, `BoardProblems`, `BoardTiles`, `BoardVocabulary`, `StarterBoard` and the types of a board, its widgets and problems and of a built board's JSON form (`BoardData`) |
+| `@miragon/pulse-board/builder`                  | `BoardBuilder`, `BoardJson`, `DiagramBadges`, `CollapsedShapes` and the types of `BoardModel` and `BoardReads`                                                                    |
+| `@miragon/pulse-board/schema/board.schema.json` | The JSON Schema of a board file                                                                                                                                                   |
+| `@miragon/pulse-board/testing`                  | `BOARD_FIXTURES`, the shared fixtures                                                                                                                                             |
 
 ## Stability
 
 Below 1.0 the format has no stability promise beyond the release train: a change that makes a
 file or a widget valid today refused tomorrow is a breaking change and says so in its changelog
-entry (the version rule above). The same holds for the builder's
-`BoardModel`, the input of every surface that renders a board, and for its peer: the builder takes
+entry (the version rule above). The same holds for the builder's `BoardModel` and its JSON form
+`BoardData`, the input of every surface that renders a board, and for its peer: the builder takes
 the `@miragon/pulse-engine-core` of the same release.
 
 ## Who uses it
