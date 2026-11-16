@@ -5,8 +5,8 @@
  * the editors' C7 adapter over its own wire each serve the answers on the transport's recorded
  * engine (`startRecordedEngine` of @miragon/pulse-http/testing/loopback) and must build exactly
  * the expected board, so a board shows the same numbers on every surface without an engine. A
- * request the runtime changes misses its answer and is named; the answers are then recorded again
- * from the seeded world.
+ * request the runtime changes misses its answer and is named. No script records the answers; the
+ * package's README says how to record them again by hand.
  */
 
 import recording from "./board-engine.json" with { type: "json" }

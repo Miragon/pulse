@@ -14,7 +14,8 @@ with its count of problems, or of notes (keys it does not know, a `$schema` that
 **Pulse: New Board…** writes a starter board with your engines. Editing the file gives completion
 and checks from the board schema; Pulse reloads an open board when you save. Your own tools read a
 board as Pulse does: [`@miragon/pulse-board`](https://www.npmjs.com/package/@miragon/pulse-board) on
-npm holds the format, its schema and the builder of a board's numbers.
+npm holds the format, its schema and the builder of a board's numbers. The
+[MCP server](../mcp/boards.md) shows board files from a directory of its own with the same tiles.
 
 ```json
 {
@@ -44,8 +45,7 @@ npm holds the format, its schema and the builder of a board's numbers.
 }
 ```
 
-`engines` names profiles of `.pulse.json` or your CLI config. A widget may narrow them with its own
-`engines`.
+`engines` names profiles of `.pulse.json` or your CLI config, which a widget's `engines` narrows.
 
 | Widget            | Shows                                                                                            |
 | ----------------- | ------------------------------------------------------------------------------------------------ |

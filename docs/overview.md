@@ -27,6 +27,9 @@ yet: until then you [load it from the source](./orca/installation.md#from-the-so
   words for a count, the same tone for a situation and the same formatters for a date, a
   duration, a count and an id, each with screens of its own:
   [Parity with the MCP cockpit](./vscode/parity.md) says what differs and why.
+- **Boards.** One board file shows the same tiles and numbers in the extension, the Orca plugin
+  and the MCP server's cockpit ([in the editors](./vscode/boards.md),
+  [in the chat](./mcp/boards.md)).
 - **One release.** All four carry the same version number, and every Pulse release ships the
   image `ghcr.io/miragon/pulse-server`, the npm package `@miragon/pulse-cli` and the extension
   `pulse`; the Orca plugin `miragon.pulse-cockpit` follows once Miragon's catalog lists it.

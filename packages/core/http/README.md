@@ -114,17 +114,18 @@ Where tokens are kept, how a person logs in and every word a person reads stay w
 ## The conformance cases
 
 `@miragon/pulse-http/testing` exports `TRANSPORT_CASES`: each a connection, one request, the
-engine's answers and what every wiring of the transport must observe. Run each case your client
-can express (`casesFor(["basic", "bearer", …])`, and name the rest in your test) against the
-recording engine of `@miragon/pulse-http/testing/loopback` (`startCaseEngine(kase)`: real sockets
-on 127.0.0.1, a self-signed certificate made at test time, Node only), map what your client got
-onto an `Observed` and assert that `caseFindings` finds nothing. Where a case is also one of the error-path goldens of the Pulse
-clients, it carries that golden's name. The same entry replays recorded answers,
-`startRecordedEngine(answers)`: each request gets the JSON recorded for its method, its decoded
-path, its query as a set of parameters and its JSON body, in whatever order a client sends them,
-and one nothing was recorded for gets a 500 that names it and is listed in `unanswered`. For unit tests without sockets, `recordingFetch(script)`
-records each request and answers it with the script's next entry: a `Response`, a function of the
-request, `{ fail: "ECONNREFUSED" }` or `{ hang: "headers" }`.
+engine's answers and what every wiring of the transport must observe. Run each case your client can
+express (`casesFor(["basic", "bearer", …])`, and name the rest in your test) against the recording
+engine of `@miragon/pulse-http/testing/loopback` (`startCaseEngine(kase)`: real sockets on
+127.0.0.1, a self-signed certificate made at test time, Node only), map what your client got onto an
+`Observed` and assert that `caseFindings` finds nothing. Where a case is also one of the error-path
+goldens of the Pulse clients, it carries that golden's name. The same entry replays recorded
+answers, `startRecordedEngine(answers)`: each request gets the JSON recorded for its method, its
+decoded path, its query as a set of parameters and its JSON body, in whatever order a client sends
+them, and one nothing was recorded for gets a 500 that names it and is listed in `unanswered`. For
+unit tests without sockets, `recordingFetch(script)` records each request and answers it with the
+script's next entry: a `Response`, a function of the request, `{ fail: "ECONNREFUSED" }` or
+`{ hang: "headers" }`.
 
 ## License
 

@@ -52,6 +52,13 @@ described in one profile file in the format the CLI and VS Code read too, with a
 an override per question. With passthrough auth behind OAuth, each caller's own login reaches the
 engine.
 
+## Boards your team shares
+
+A board keeps the questions your team asks again and again in one view: how many orders wait at a
+step, which processes have incidents. Point `ENGINE_BOARDS_DIR` at the board files Pulse for VS Code
+and Pulse for Orca read, then ask _"show me the leasing board"_: the chat shows its tiles with the
+numbers the editors show. [Boards](https://miragon.github.io/pulse/mcp/boards) explains the files.
+
 ## Figures straight from the engine
 
 A process's flow shows its open incidents per element, how many instances are at each element right

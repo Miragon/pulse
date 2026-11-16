@@ -7,6 +7,7 @@ import type { Command } from "./command.js"
 import { COMMAND } from "./command-ids.js"
 
 const SLUG_PARTS = /[^a-z0-9]+/g
+const SLUG_LIMIT = 64
 
 export class NewBoardCommand implements Command {
   readonly id = COMMAND.newBoard
@@ -54,6 +55,11 @@ export class NewBoardCommand implements Command {
   }
 
   private slugOf(title: string): string {
-    return title.toLowerCase().replace(SLUG_PARTS, "-").replace(/^-|-$/g, "")
+    return title
+      .toLowerCase()
+      .replace(SLUG_PARTS, "-")
+      .replace(/^-/, "")
+      .slice(0, SLUG_LIMIT)
+      .replace(/-$/, "")
   }
 }

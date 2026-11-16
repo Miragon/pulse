@@ -503,6 +503,29 @@ describe("a new board", () => {
     expect(panels).toHaveLength(1)
   })
 
+  test.each([
+    [
+      "without the dash the cut leaves",
+      `${"Order fulfillment ".repeat(3)}warehouse and payment`,
+      "order-fulfillment-order-fulfillment-order-fulfillment-warehouse",
+    ],
+    [
+      "cut inside a word",
+      `${"Order fulfillment ".repeat(3)}warehousing`,
+      "order-fulfillment-order-fulfillment-order-fulfillment-warehousin",
+    ],
+  ])("names its file within the 64 characters of a board id, %s", async (_, title, name) => {
+    fake.folders.push({ uri: uri("/w") })
+    fake.inputs.push(title)
+    const { registry, manager } = setup()
+
+    await new NewBoardCommand(registry, new BoardPanels(registry, manager)).run()
+
+    const written = BoardParser.parse(fake.files.get(`/w/.pulse/boards/${name}.board.json`) ?? "")
+    expect(written).toHaveProperty("board.title", title)
+    expect([...fake.files.keys()]).toEqual([`/w/.pulse/boards/${name}.board.json`])
+  })
+
   test("never overwrites a board that exists", async () => {
     fake.folders.push({ uri: uri("/w") })
     fake.files.set("/w/.pulse/boards/shop-payments.board.json", VALID)

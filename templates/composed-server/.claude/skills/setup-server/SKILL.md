@@ -92,6 +92,14 @@ For your own engine, edit `.env` (every field is documented inline in `.env.exam
 - `ENGINE_REQUEST_TIMEOUT_MS`: the per-request deadline (default 30000 ms); a
   hung engine then fails the tool call with a timeout error instead of
   holding it.
+- `ENGINE_BOARDS_DIR`: a directory of board files (`*.board.json`, the format
+  Pulse for VS Code and Pulse for Orca read), read at boot, so a restart
+  reloads them. `engine_list_engines` names the boards, and
+  `engine_open_cockpit` with `view` `board` and a board's id shows one across
+  the engines it names (profile names). A board's id is its file name without
+  `.board.json`. A directory or file that cannot be read fails the boot; a file
+  that gives no board warns. The tiles come from `@miragon/pulse-blocks`, which
+  `server/src/ui/globals.css` scans with `@source`.
 
 ## Step 3: select modules and toolsets
 

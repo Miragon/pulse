@@ -57,7 +57,7 @@ command line interface (`apps/cli`), a VS Code extension (`apps/vscode`) and an 
 | `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, `mountPage`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), a module's test server (`/testing`)                                                                                                                                                                                                                                                |
 | `packages/core/runtime-view/`                  | The runtime view both editor hosts compose (`@miragon/pulse-runtime-view`, private) over the contract of `engine-core`: the ports a host and an engine family plug in, the core, the protocol, the webview (React on `@miragon/pulse-ui`), the local model reader and the host kit (targets from `.pulse.json` and the CLI's user config, policies, the write audit)                                                                                                                                                       |
 | `packages/core/profile/`                       | The one profile format of the CLI, the editor hosts and the MCP server (npm `@miragon/pulse-profile`): a parser from a file's text to a verdict per profile as data (a code and a key, never a value), the credential policy by where the file comes from, `refusalsOn` for what a reader cannot serve, the JSON Schema (`schema/pulse.schema.json`) and the shared fixtures (`/testing`); no runtime dependency                                                                                                           |
-| `packages/core/board/`                         | The board file format and builder (npm `@miragon/pulse-board`): its types, `BoardParser` (the board with its notes and refused widgets, or a broken file's problems, as codes `BoardProblems` words), `BoardTiles`, `BoardVocabulary`, `StarterBoard`, the JSON Schema, the fixtures (`/testing`), `/builder` (a board's numbers over seven reads of engine-core, an optional peer; no text); read by the runtime view's core and the editor hosts; the format has no runtime dependency; Pulse for VS Code's house rules  |
+| `packages/core/board/`                         | The board file format and builder (npm `@miragon/pulse-board`): `BoardParser` (a board with its notes and refused widgets, or a file's problems as codes), `BoardProblems`, `BoardTiles`, `BoardVocabulary`, `StarterBoard`, the JSON Schema, `/testing` fixtures, `/builder` (numbers over seven reads of engine-core, an optional peer; no text), the JSON form of a built board (`BoardData`; `BoardJson.of` in `/builder`); read by the editors and the engine connector; no runtime dependency; VS Code's house rules |
 | `packages/core/blocks/`                        | Pulse's building blocks (npm `@miragon/pulse-blocks`), React on `@miragon/pulse-ui` with props, callbacks and the slots a surface brings (`Table`, `Id`, `Diagram`, `onOpen`): the tiles of a board over a built board's JSON form (`BoardGrid`, `BoardTile`), worded in en and de (`useProblemWords`, `ProblemList`); rendered by the runtime view's webview and the cockpit's board route; no React context of its own                                                                                                   |
 | `packages/core/http/`                          | The one engine transport of the MCP server, the CLI and the editor hosts' adapters (npm `@miragon/pulse-http`) over the `fetch` each hands in: a deadline to the last byte, no redirects, a 64 MiB cap, one retry after a 401, reasons as data, lossless JSON, masking, the path value rule; the OAuth client (`/oauth`); conformance cases, fake fetch (`/testing`), loopback engine (`/testing/loopback`); no dependency                                                                                                 |
 | `playground/`                                  | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
@@ -495,10 +495,12 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      feeds with it) and its `content` that route's facts. The view is picked by its name
      (= the tool's name); a composed view (a dashboard, the process detail) is ONE component
      that composes its widgets, never a layout the server sends.
-   - `*_data` feeds (spread `...appOnly`, **no** view binding; the engine module's `registerDataFeed`):
-     app-only JSON for in-widget refresh and navigation, returned as
-     `buildDataFeedResult(data)`. SEP-1865 hosts hide them from the LLM, and a widget-tool
-     result would be rendered by the host instead of returned to the in-widget `callTool()`.
+   - `*_data` feeds (spread `...appOnly`, **no** view binding; the engine module's
+     `registerDataFeed`, and for a feed that names its own engines, the board feed, a `namingFeed`
+     without `engine`, registered by `registerNamingFeed`): app-only JSON for in-widget refresh and
+     navigation, returned as `buildDataFeedResult(data)`. SEP-1865 hosts hide them from the LLM, and
+     a widget-tool result would be rendered by the host instead of returned to the in-widget
+     `callTool()`.
 
    Every tool takes STRICT input (the registrar always, a raw registration through
    `strictToolInput(…)`; the boot refuses a schema that lets an unknown key through), with no
@@ -714,7 +716,15 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      A feature more than one surface shows (boards first) shows the same numbers on every
      surface, from one builder over one read (owner decision D2 of 2026-11-12, amending E2);
      elsewhere a tool keeps its own numbers behind the same words until its view moves onto
-     shared numbers.
+     shared numbers. For boards the gates are c7-core's recorded answers with the one board they
+     give (`C7_BOARD_ENGINE`), which the board feed over the server's wire
+     (`packages/connectors/engine/engine-connector/src/data/board-data.numbers.test.ts`) and the
+     C7 adapter over its own (`packages/connectors/c7/c7-adapter/test/c7-board-numbers.test.ts`)
+     must build exactly, the cockpit's board view rendering that board in en and de
+     (`packages/connectors/engine/engine-connector/src/widgets/board/board-view.numbers.test.tsx`),
+     and the board cases of both engine suites on a live engine
+     (`packages/connectors/engine/engine-connector/src/lib/core-adapter/c7-runtime.engine.test.ts`,
+     `packages/connectors/c7/c7-adapter/test/c7-conformance.engine.test.ts`).
    - **Locale on the server.** Tool results for the model are English only (the engine module's
      cockpit facts are JSON keys); a
      verdict travels as data and the widget words it in the host's language. The server never

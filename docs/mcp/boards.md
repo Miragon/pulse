@@ -15,9 +15,9 @@ the engines it names. It shows inline in the chat or full screen, in your chat a
 with the tiles the editors show and the same numbers.
 
 In the cockpit, the landing lists the boards under the engines, each with the engines it reads.
-With boards it shows with one engine too, and a view's trail leads there through its first crumb,
-**All engines**. A board file that gives no board is listed by its id with its count of problems;
-the server's log at startup says what they are.
+With boards it shows with one engine too: in full screen, and from a drilled view through the
+first crumb of its trail, **All engines**. A board file that gives no board is listed by its id
+with its count of problems; the server's log at startup says what they are.
 
 ## What a board shows
 
@@ -36,9 +36,10 @@ the server's log at startup says what they are.
 Put the board files (`*.board.json`) in one directory and name it in `ENGINE_BOARDS_DIR`
 ([Operations](operations.md#environment-variables)). The server reads them at startup, so a
 restart reloads them. A board's id is its file name without `.board.json`: a letter or digit
-first, then letters, digits, `.`, `_` and `-`, 64 at most. A file named otherwise is skipped with
-a warning. A directory or a file that cannot be read stops the server; a file that gives no board,
-a file's note and an engine no profile names are warnings at startup.
+first, then letters, digits, `.`, `_` and `-`, 64 at most, as the editors' **New Board** names a
+file. A file named otherwise is skipped with a warning. A directory or a file that cannot be read
+stops the server; a file that gives no board, a file's note and an engine no profile names are
+warnings at startup.
 
 ```sh
 ENGINE_BOARDS_DIR=/etc/pulse/boards   # in Docker, mount the directory read-only

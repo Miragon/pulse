@@ -249,8 +249,13 @@ Operaton 2.1.5, and the board they give in the JSON form of
 ships here because this package makes the requests: the MCP server's engine connector and the
 editors' C7 adapter each serve the answers to their own wire on the transport's recorded engine
 (`startRecordedEngine` of `@miragon/pulse-http/testing/loopback`) and must build exactly that board,
-so a board shows the same numbers on every surface without an engine. A request the runtime
-changes misses its answer and is named; the answers are then recorded again from the seeded world.
+so a board shows the same numbers on every surface without an engine. A request the runtime changes
+misses its answer and is named. No script of the repository records the answers, so they are
+recorded by hand, as they were the first time: seed the world with `seedC7World` into
+`operaton/operaton:2.1.5` at history level FULL, let both wires build the board through a proxy in
+front of the engine that keeps each request (method, decoded path, query and JSON body) with the
+JSON the engine answers, check that both build the same board, and write the board file, the answers
+and that board into `packages/connectors/c7/c7-core/src/testing/board-engine.json`.
 
 ## Help and feedback
 

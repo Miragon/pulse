@@ -9,8 +9,9 @@ again in one view: how many orders wait at a step, which incidents are open acro
 processes, which instances of a process run. It is a JSON file in the repository
 (`.pulse/boards/<name>.board.json`), versioned and shared like the code
 ([Boards](https://miragon.github.io/pulse/vscode/boards) in the docs).
-[Pulse for VS Code](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse-cockpit)
-and [Pulse for Orca](https://miragon.github.io/pulse/orca/) read it today; this package holds the
+[Pulse for VS Code](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse-cockpit),
+[Pulse for Orca](https://miragon.github.io/pulse/orca/) and the
+[Pulse MCP server](https://miragon.github.io/pulse/mcp/boards) read it; this package holds the
 format and the builder of a board's numbers, so every surface that shows a board reads the same
 file the same way and shows the same numbers.
 Below 1.0: pin the exact version and update all `@miragon/pulse-*` packages together.
@@ -228,14 +229,24 @@ the `@miragon/pulse-engine-core` of the same release.
 ## Who uses it
 
 - Pulse for VS Code and Pulse for Orca: the runtime view they share reads an open board with the
-  format, builds its numbers with the builder over the engines of their profiles and draws its
-  process views by the builder's roll-up; a new board is `StarterBoard`'s text, and the Boards view
-  of VS Code counts each file's problems and notes with `BoardTiles`.
+  format, builds its numbers with the builder over the engines of their profiles, hands the webview
+  their JSON form (`BoardJson.of`) and draws its process views by the builder's roll-up; a new
+  board is `StarterBoard`'s text, and the Boards view of VS Code counts each file's problems and
+  notes with `BoardTiles`.
+- The Pulse MCP server: its engine module,
+  [`@miragon/pulse-engine-connector`](https://www.npmjs.com/package/@miragon/pulse-engine-connector),
+  reads the board files of `ENGINE_BOARDS_DIR` with the format at boot, builds a board's numbers
+  with the builder over each engine's runtime and serves them in their JSON form (`BoardJson.of`)
+  to its cockpit through the app-only feed `engine_board_data`.
+- [`@miragon/pulse-blocks`](https://www.npmjs.com/package/@miragon/pulse-blocks), Pulse's building
+  blocks: a board's tiles over the types of `BoardData`, which the webview of both editors and the
+  MCP server's cockpit render.
 
 ## Help and feedback
 
 - **Documentation:** boards in Pulse for VS Code and Pulse for Orca are explained at
-  [miragon.github.io/pulse](https://miragon.github.io/pulse/vscode/boards).
+  [miragon.github.io/pulse](https://miragon.github.io/pulse/vscode/boards), in the MCP server at
+  [Boards](https://miragon.github.io/pulse/mcp/boards).
 - **Bugs and ideas:** found a bug or missing something?
   [Open an issue](https://github.com/Miragon/pulse/issues).
 

@@ -29,12 +29,10 @@ flowchart LR
 | **CLI** (`apps/cli/`)                                       | Every engine REST operation as a command, generated from the OpenAPI spec, plus the workflow commands; on npm, Homebrew, GHCR and the GitHub release. See the [CLI docs](../cli/index.md); rules in `apps/cli/CLAUDE.md`.          |
 | **Pulse for VS Code** (`apps/vscode/`)                      | Shows what an engine runs next to the BPMN models in VS Code: the runtime view (`packages/core/runtime-view`, a React webview on pulse-ui over the engine contract) and the C7 adapter. A .vsix; rules in `apps/vscode/CLAUDE.md`. |
 | **Pulse for Orca** (`apps/orca/`)                           | The same runtime view and C7 adapter in Orca's editor tabs and a Pulse panel; an Orca plugin, rules in `apps/orca/CLAUDE.md`.                                                                                                      |
-| **engine** (`packages/connectors/engine/engine-connector/`) | Wraps the Camunda 7 / CIB seven REST API via an OpenAPI-generated client. Exposes process, task, incident, deployment, and history tools plus widgets.                                                                             |
+| **engine** (`packages/connectors/engine/engine-connector/`) | Wraps the Camunda 7 / CIB seven REST API via an OpenAPI-generated client. Exposes process, task, incident, deployment, and history tools plus widgets, and the [boards](boards.md) of `ENGINE_BOARDS_DIR`.                         |
 | **widgets** (`apps/mcp-server/dist/mcp-app.js` + `.css`)    | One Vite-built ES module + stylesheet containing React, Tailwind, and every widget. The server serves it behind one `ui://views/<tool>.html` resource per widget tool, which declares that view on itself (`showToolBinding`).     |
 
 ## Composition rules
-
-A few layering rules keep modules independently usable and a second engine dialect cheap:
 
 - Three axes keep a second engine dialect and a second interface cheap. Engine
   _vendors_ (CIB seven, Operaton, Camunda 7) are per-engine runtime configuration
@@ -61,12 +59,12 @@ A few layering rules keep modules independently usable and a second engine diale
   known env vars, toolset vocabulary, boot warnings, plugin factory
   (`packages/connectors/<family>/<family>-connector/src/module.ts`). A plugin is a name plus a
   `register(server)` that puts the module's tools, prompts and resources on the one server the
-  shared boot builds; the boot refuses a name or resource URI two modules register. The app only lists its modules and wires
-  what they share (`apps/mcp-server/src/setup.ts`); the shared boot selects the
-  modules (`MCP_ACTIVE_MODULES`), installs OAuth from the env and resolves one fail-closed
-  toolset per module per boot (a module with toolsets: read-only unless widened) and logs it.
-  The module packages are published to npm, so external composition roots can mount them next
-  to their own modules. The reference is `templates/composed-server/`.
+  shared boot builds; the boot refuses a name or resource URI two modules register. The app only
+  lists its modules and wires what they share (`apps/mcp-server/src/setup.ts`); the shared boot
+  selects the modules (`MCP_ACTIVE_MODULES`), installs OAuth from the env and resolves one
+  fail-closed toolset per module per boot (a module with toolsets: read-only unless widened) and
+  logs it. The module packages are published to npm, so external composition roots can mount them
+  next to their own modules. The reference is `templates/composed-server/`.
 - A view comes from the bundle or from its module. The engine module's views are bundle views
   (an ESLint gate blocks a resource in `packages/connectors/`). A module of yours, on npm say, may
   bring a finished HTML document as its own resource instead: nothing of it enters the bundle, so
@@ -86,25 +84,23 @@ A few layering rules keep modules independently usable and a second engine diale
 - One engine contract: `@miragon/pulse-engine-core` holds the ports, read models, laws and shared
   rules (`RootCauses`) of every dialect; the runtime view and its two editor hosts, c7-core, the C7
   and C8 adapters, the board builder and the engine connector's server layers (`runtimeOf`, its
-  runtime per dialect) use it, the CLI through c7-core.
-- Extract on the second consumer, never speculatively. A composed-views package appears with
-  the first cross-module view. A second dialect joins the engine module (`ENGINE_DIALECTS`),
-  never with a widget package or an MCP server app of its own.
+  runtime per dialect, for the boards) use it, the CLI through c7-core.
+- Extract on the second consumer, never speculatively: a second dialect joins the engine module
+  (`ENGINE_DIALECTS`), never with a widget package or an MCP server app of its own.
 
 ## Views and hosts
 
 A widget never talks to its host. It reads host-agnostic contexts from widget-shell's view
 runtime (`useViewHost` for tool calls and hand-offs, the theme, locale, display mode and height
 budget), and an adapter fills them: in a chat the MCP Apps adapter over the official `App` of
-`@modelcontextprotocol/ext-apps`, the only code that imports its view runtime (an ESLint gate
-keeps it so), on a page outside a chat the browser adapter of `mountPage`. `TestViewHost` fills
-them in tests and publishes the formatters' locale as the view root does, so a widget test reads
-the same on every machine.
+`@modelcontextprotocol/ext-apps`, by an ESLint gate the only code that imports its view runtime,
+on a page the browser adapter of `mountPage`. `TestViewHost` fills them in tests and publishes the
+formatters' locale as the view root does, so a widget test reads the same on every machine.
 
 The MCP Apps host is one host among several: a web app shows the same components through
 `mountPage` (a caller for the server's tools from the page; a hand-off, posting into no chat there,
 hidden or offering its prompt to copy). The engine module's widgets read the Camunda 7 REST
-family's data; Camunda 8 components would read engine-core's contract, a design question of its own.
+family's data, a board's tiles its JSON form, which the board builder makes over engine-core.
 
 ## What the UIs share
 
@@ -112,12 +108,13 @@ By the owner's decision of 2026-11-12, Pulse's UIs become one family, React on `
 in one compact look: the MCP widgets, a starter's and the web apps of
 [#573](https://github.com/Miragon/pulse/issues/573) with widget-shell, and the runtime view's
 webview (Pulse for VS Code and Pulse for Orca) without it, which has no host adapter, never renders
-a widget and moved from Preact to React on pulse-ui in one switch. They share a core up to building blocks: the formats (the
-board file first), pulse-ui's framework-free `@miragon/pulse-ui/tones` (`SITUATION_TONES`) and
-`@miragon/pulse-ui/format` (dates, durations, counts, short ids), from `@miragon/pulse-ui/testing`
-the product glossary, the count words and the brand gates, the engine rules of c7-core, the numbers
-of a feature several show (boards first: one builder over one read) and building blocks on React
-with props and callbacks only. Each keeps its own screens and host wiring: six cockpit views have a
+a widget and moved from Preact to React on pulse-ui in one switch. They share a core up to
+building blocks: the formats (the board file first), pulse-ui's framework-free
+`@miragon/pulse-ui/tones` (`SITUATION_TONES`) and `@miragon/pulse-ui/format`, from
+`@miragon/pulse-ui/testing` the product glossary, the count words and the brand gates, the engine
+rules of c7-core, the numbers of a feature several show (boards first: one builder over one read)
+and building blocks on React with props and callbacks only (`@miragon/pulse-blocks`, a board's
+tiles). Each keeps its own screens and host wiring: six cockpit views and a board have a
 counterpart in the editors, and [Parity with the MCP cockpit](../vscode/parity.md) lists what still
 differs. The decisions are in `apps/vscode/docs/adr/ui-foundation.md`.
 
@@ -137,14 +134,17 @@ differs. The decisions are in `apps/vscode/docs/adr/ui-foundation.md`.
    the tool's view, which the shared bundle picks by the tool's name (re-running the tool once
    where a host drops `structuredContent`). Inside the view, app-only `*_data` feeds refresh and
    page it without a model turn.
+5. A board (`view` `board`): the app-only `engine_board_data` builds a file of `ENGINE_BOARDS_DIR`
+   with `@miragon/pulse-board`'s builder over each engine it names (`runtimeOf`, c7-core's
+   `C7Runtime`), kept 30 s per caller; the cockpit draws its JSON with `@miragon/pulse-blocks`.
 
 ## Repository layout
 
-| Path                   | Description                                                                                        |
-| ---------------------- | -------------------------------------------------------------------------------------------------- |
-| `apps/mcp-server/`     | The MCP server entry point and the widget bundle.                                                  |
-| `packages/core/`       | What every family builds on: widget-shell, pulse-ui, profile, board format and builder, transport. |
-| `packages/connectors/` | One folder per family: the neutral `engine` (module, core), one per dialect (`c7`, `c8`).          |
-| `playground/`          | Demo env: showcases, Compose stack, Fly.io deployment.                                             |
+| Path                   | Description                                                                                                         |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `apps/mcp-server/`     | The MCP server entry point and the widget bundle.                                                                   |
+| `packages/core/`       | What every family builds on: widget-shell, pulse-ui, profile, board format and builder, building blocks, transport. |
+| `packages/connectors/` | One folder per family: the neutral `engine` (module, core), one per dialect (`c7`, `c8`).                           |
+| `playground/`          | Demo env: showcases, Compose stack, Fly.io deployment.                                                              |
 
 For deeper detail, [Reference](reference.md) lists every tool and toolset.

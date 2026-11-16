@@ -48,8 +48,8 @@ BPM operations across these domains (`category`): `engines`, `process-definition
   each element now, every deployed version summed onto the latest diagram; as **Throughput ·
   30 days**, what the instances started in the last 30 days passed per element, from the
   engine's history (the app-only `engine_activity_statistics_data`, `source` `history`)
-- **Boards:** with `ENGINE_BOARDS_DIR` ([Operations](operations.md#environment-variables)), the
-  app-only `engine_board_data` builds a board by its id, read from the engines it names (a failure in its place, never 0)
+- **Boards:** with `ENGINE_BOARDS_DIR`, `list_engines` names the boards, `open_cockpit` (`view`
+  `board` and its id) shows one, built by the app-only `engine_board_data` ([Boards](boards.md))
 
 ### Toolsets
 
@@ -67,10 +67,9 @@ unknown suffix warns and falls back to read-only, even under OAuth.
 
 `engine_create_deployment` additionally needs `ENGINE_ALLOW_DEPLOYMENTS=true`: deploying a BPMN or
 DMN runs code inside the engine JVM (JUEL expressions, scripts). The full surface is
-`MCP_ACTIVE_MODULES=engine:admin` plus that flag, never on a server the network can
-reach without authentication.
-A gateway or reverse proxy that terminates auth in front of the server is invisible to it, so such
-a deployment runs read-only until it names its toolsets.
+`MCP_ACTIVE_MODULES=engine:admin` plus that flag, never on a server the network can reach without
+authentication. A gateway or reverse proxy that terminates auth in front of the server is invisible
+to it, so such a deployment runs read-only until it names its toolsets.
 
 The widgets follow the toolset: an action button whose tool the toolset drops (retry, resolve
 incident, complete task, edit variable, suspend, cancel) is hidden, not disabled: the default
@@ -96,6 +95,7 @@ The most common variables. See [Operations](operations.md#environment-variables)
 | `ENGINE_AUTH_TYPE`                                     | `none`                              | `basic`, `bearer`, `passthrough`, or `none` of the single engine; a profile states its own `auth`                                                                                    |
 | `ENGINE_USERNAME` / `ENGINE_PASSWORD` / `ENGINE_TOKEN` | —                                   | Credentials for `basic`/`bearer`; `passthrough` forwards each caller's bearer token (trusted single-audience setups only: the engine could replay it against this server)            |
 | `ENGINE_REQUEST_TIMEOUT_MS`                            | `30000`                             | Per-request deadline in ms for engine calls; a hung engine fails the tool call with a timeout error                                                                                  |
+| `ENGINE_BOARDS_DIR`                                    | —                                   | The directory of the server's board files (`*.board.json`), read at startup ([Boards](boards.md))                                                                                    |
 
 ### Multi-engine
 
@@ -147,14 +147,13 @@ incidents, empty, unreachable, loading), read from the engine itself; a refused 
 refused", counted apart from an unreachable one, and opening it says why at once, as its view's one
 state and without Try again, since only whoever runs the server can fix it. An engine that answers
 the server's login with HTTP 401 reads "credentials rejected", with 403 "access denied": it runs, so
-neither the landing nor the cross-engine view calls it unreachable; the latter counts it apart,
-both give it a refused profile's warning tone, and its overview names the status. An engine's
-dot, there and in the cross-engine view, has the tone of the engine overview's verdict (ok,
-warning, critical), so one open incident below the thresholds is a warning, not an alarm. With
-two engines or more the cockpit offers the cross-engine view: each engine's health, its job
-backlog and which processes run where, read from every engine itself, as counts, never a ranking
-of the engines.
-`environment` groups the engines: the landing lists them under their environment, the engine
-switcher and `engine_list_engines` group them, and every engine view names the environment as a
-chip ("PROD") next to the engine, write confirmations included.
-Full walkthrough in [Operations](operations.md).
+neither the landing nor the cross-engine view calls it unreachable; the latter counts it apart, both
+give it a refused profile's warning tone, and its overview names the status. An engine's dot, there
+and in the cross-engine view, has the tone of the engine overview's verdict (ok, warning, critical),
+so one open incident below the thresholds is a warning, not an alarm. With two engines or more the
+cockpit offers the cross-engine view: each engine's health, its job backlog and which processes run
+where, read from every engine itself, as counts, never a ranking of the engines. `environment`
+groups the engines: the landing lists them under their environment, the engine switcher and
+`engine_list_engines` group them, and every engine view names the environment as a chip ("PROD")
+next to the engine, write confirmations included. With [boards](boards.md) the landing lists them
+under the engines and shows with one engine too. Full walkthrough in [Operations](operations.md).

@@ -130,7 +130,7 @@ triage, verdicts and which recovery to offer.
   engine connector.
 - [`@miragon/pulse-engine-connector`](https://www.npmjs.com/package/@miragon/pulse-engine-connector),
   the MCP server's engine module, runs `ProcessRuntime` over its own wire (`runtimeOf`), with its
-  failures as `RuntimeError`.
+  failures as `RuntimeError`, and builds the server's boards over it with the board builder.
 - [`@miragon/pulse-board`](https://www.npmjs.com/package/@miragon/pulse-board), the board file
   format, reads a board's numbers in its builder (`./builder`) over seven reads of
   `ProcessRuntime`, by the laws a board reads lists by.

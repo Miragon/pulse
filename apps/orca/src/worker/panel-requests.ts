@@ -15,6 +15,8 @@ import { SurfaceWatch } from "./surface-watch.js"
 import type { WorkerServices } from "./worker-services.js"
 
 const PULSE_PANEL = "engines"
+const SLUG_PARTS = /[^a-z0-9]+/g
+const SLUG_LIMIT = 64
 
 export interface PanelParts {
   readonly registry: EngineRegistry
@@ -133,18 +135,23 @@ export class PanelRequests {
   private async createBoard(title: string): Promise<{ path: string }> {
     await this.parts.ready()
     const engines = this.parts.registry.all().map((connection) => connection.target.name)
-    const slug =
-      title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "") || "board"
     const path = await this.parts.files.createBoard(
       await this.parts.services.root(),
-      slug,
+      this.slugOf(title),
       StarterBoard.of(title, engines),
     )
     await this.parts.workspaces.openFile(path)
     return { path }
+  }
+
+  private slugOf(title: string): string {
+    const slug = title
+      .toLowerCase()
+      .replace(SLUG_PARTS, "-")
+      .replace(/^-/, "")
+      .slice(0, SLUG_LIMIT)
+      .replace(/-$/, "")
+    return slug === "" ? "board" : slug
   }
 
   private async saveLogin(engine: string, login: Login): Promise<{ ok: boolean }> {

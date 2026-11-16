@@ -55,6 +55,29 @@ describe("boards in the workspace", () => {
     )
   })
 
+  test.each([
+    ["without the separators a title starts with", " · Shop · Q4", "shop-q4"],
+    [
+      "within the 64 characters of a board id, without the dash the cut leaves",
+      `${"Order fulfillment ".repeat(3)}warehouse and payment`,
+      "order-fulfillment-order-fulfillment-order-fulfillment-warehouse",
+    ],
+    [
+      "within the 64 characters of a board id, cut inside a word",
+      `${"Order fulfillment ".repeat(3)}warehousing`,
+      "order-fulfillment-order-fulfillment-order-fulfillment-warehousin",
+    ],
+  ])("name their file %s", async (_, title, name) => {
+    const harness = await started()
+
+    const created = (await harness.request("boards.create", { title })) as { path: string }
+
+    expect(basename(created.path)).toBe(`${name}.board.json`)
+    expect(await readFile(created.path, "utf8")).toBe(
+      StarterBoard.of(title, ["shop-dev", "prod-eu"]),
+    )
+  })
+
   test("in a nested folder show their folder relative to the workspace", async () => {
     const harness = await started()
     const folder = join(harness.root, "team", ".pulse", "boards")

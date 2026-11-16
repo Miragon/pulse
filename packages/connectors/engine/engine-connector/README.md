@@ -49,10 +49,17 @@ in `ENGINES_JSON` / `ENGINES_FILE`; every variable is in the
   into findings by severity, counts and a live verdict. Both cap long lists and name each cut in
   `truncated`.
 - **The cockpit view.** `engine_open_cockpit` opens the operations cockpit on any of its views
-  (overview, incidents, failure cluster, process, instances, instance, incident, jobs, history),
-  with two engines or more on the cross-engine overview (each engine's health, job backlog and
-  processes, counts only), and returns that view's facts as compact JSON; app-only `*_data` feeds
-  refresh and navigate inside it.
+  (overview, incidents, failure cluster, process, instances, instance, incident, jobs, history,
+  board), with two engines or more on the cross-engine overview (each engine's health, job backlog
+  and processes, counts only), and returns that view's facts as compact JSON; app-only `*_data`
+  feeds refresh and navigate inside it.
+- **Boards.** With `ENGINE_BOARDS_DIR`, the module reads the board files of
+  [`@miragon/pulse-board`](https://www.npmjs.com/package/@miragon/pulse-board), the format of Pulse
+  for VS Code and Pulse for Orca, at boot: `engine_list_engines` names the boards, the cockpit's
+  landing lists them, and its `board` view shows one across the engines it names, its numbers built
+  by the format's builder in the app-only `engine_board_data` (a failure in its place, never 0, kept
+  30 s per caller) and its tiles drawn by
+  [`@miragon/pulse-blocks`](https://www.npmjs.com/package/@miragon/pulse-blocks), as in the editors.
 - **Engines as profiles.** `ENGINES_FILE` or `ENGINES_JSON` hold a profile file of
   `@miragon/pulse-profile`, the format of the CLI and Pulse for VS Code; without one,
   `ENGINE_BASE_URL` and its siblings yield the profile of a single engine. A profile's name is the
@@ -67,7 +74,8 @@ in `ENGINES_JSON` / `ENGINES_FILE`; every variable is in the
   branding. A `camunda8` profile is refused, since the module speaks the Camunda 7 REST API.
 - **The engine contract.** It depends on `@miragon/pulse-engine-core`, the contract Pulse for VS
   Code and Pulse for Orca read engines through, and builds a runtime of it on each call, over the
-  client that call resolves: c7-core's `C7Runtime` over the module's own client.
+  client that call resolves: c7-core's `C7Runtime` over the module's own client, which a board
+  reads through.
 - **Toolsets that fail closed.** `read-only`, `operations` and `admin`: without an `engine:<toolset>`
   suffix the module runs `read-only` on an unauthenticated server and `operations` under OAuth, an
   empty or unknown suffix falls back to `read-only`, and widget action buttons render only for

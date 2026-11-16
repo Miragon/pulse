@@ -500,7 +500,10 @@ UI is a **cockpit route**, never a second view tool. On the server a route is fi
 4. `src/tool-names.ts`: the feed's name as an `ENGINE_*_DATA` constant.
 5. `src/data/routes.ts`: the route's entry in `COCKPIT_ROUTES`: the ids it `needs` and also
    `takes` (fields of its own `CockpitView` section, checked at compile time), its `start` (its
-   feed's read with the first page's args) and its `facts`. `src/widget-tools/cockpit.ts`
+   feed's read with the first page's args) and its `facts`. Its `scope` is `"engine"`, the
+   engine the call resolved; an app route (an `AppSection`, the board's) has `scope: "app"`,
+   reads the engines it names, starts over `NamedReadContext` and has a `namingFeed` (below), so
+   it takes no `engine` argument. `src/widget-tools/cockpit.ts`
    builds the `view` enum and checks the ids from it, and `src/data/cockpit-start.ts`
    dispatches the start view and its facts. A start param new to the cockpit also gets its
    described field in `startViewShape` (`src/widget-tools/cockpit.ts`; `StartParam` is read
@@ -550,10 +553,13 @@ call's abort signal at `ctx.mcpReq.signal`):
   widget's heading names the view); the facts are the compact JSON of the route's `facts`, the
   model-facing text channel, while the full payload travels only in `structuredContent`.
 - `*_data` feeds: describe one with `dataFeed({ name, title, description, shape, read })` in
-  `DATA_FEEDS` (`src/data/feeds.ts`); `registerDataFeed` in `data-feeds.ts` registers each and
-  spreads `...appOnly` (SEP-1865 `_meta.ui.visibility: ["app"]` plus
-  `openai/widgetAccessible`; **no** view binding) and returns `buildDataFeedResult(data)` so
-  the in-widget `callTool()` gets JSON back instead of the host rendering a new widget.
+  `DATA_FEEDS` (`src/data/feeds.ts`); a feed that names its own engines (the board feed,
+  `engine_board_data`) is a `namingFeed({ …, engines: "named", read })`, which takes no `engine`
+  and reads through `NamedReadContext`. `registerDataFeed` in `data-feeds.ts` registers each feed
+  of one engine, `registerNamingFeed` each naming feed; both spread `...appOnly` (SEP-1865
+  `_meta.ui.visibility: ["app"]` plus `openai/widgetAccessible`; **no** view binding) and return
+  `buildDataFeedResult(data)` so the in-widget `callTool()` gets JSON back instead of the host
+  rendering a new widget.
   Wrap every raw handler in `withToolErrors` (from `@miragon/pulse-widget-shell/server`).
 - Shared data paths: every number a view shows comes from ONE builder in `src/data/`
   that its `*_data` feed AND the cockpit's start view (`COCKPIT_ROUTES`) call; never
