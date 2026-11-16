@@ -29,11 +29,17 @@ export interface KitLabels {
   rowsShown: (p: { shown: string; total: string }) => string
   showAll: string
   showMore: string
-  /** The view frame (`ViewFrame`): its waiting, cancel, error and toolbar words. */
+  /**
+   * The view frame (`ViewFrame`): its waiting, cancel, error and toolbar words. `slowHint` and
+   * `viewMissing` say to ask in the chat; a page that posts to no chat shows `pageSlowHint` and
+   * `pageViewMissing`, which say to reload it. `cancelled` is a chat's alone: a page cancels no call.
+   */
   slowHint: string
+  pageSlowHint: string
   cancelled: string
   viewErrorTitle: string
   viewMissing: string
+  pageViewMissing: string
   viewCrashed: string
   enterFullscreen: string
   exitFullscreen: string
@@ -81,9 +87,11 @@ const LABELS: Record<Locale, KitLabels> = {
     showAll: "Show all",
     showMore: "Show more",
     slowHint: "This is taking longer than usual. If nothing happens, ask in the chat again.",
+    pageSlowHint: "This is taking longer than usual. If nothing happens, reload the page.",
     cancelled: "Cancelled. Ask in the chat to open this view again.",
     viewErrorTitle: "This view couldn't be loaded",
     viewMissing: "This app can't show this view. Ask in the chat to open it again.",
+    pageViewMissing: "This page can't show this view. Reload the page to open it again.",
     viewCrashed: "This element couldn't be displayed.",
     enterFullscreen: "Fullscreen",
     exitFullscreen: "Exit fullscreen",
@@ -129,9 +137,12 @@ const LABELS: Record<Locale, KitLabels> = {
     showAll: "Alle anzeigen",
     showMore: "Mehr anzeigen",
     slowHint: "Das dauert länger als üblich. Wenn nichts passiert, frag im Chat noch mal nach.",
+    pageSlowHint: "Das dauert länger als üblich. Wenn nichts passiert, lade die Seite neu.",
     cancelled: "Abgebrochen. Frag im Chat noch mal nach dieser Ansicht.",
     viewErrorTitle: "Die Ansicht konnte nicht geladen werden",
     viewMissing: "Diese App kann die Ansicht nicht anzeigen. Frag im Chat noch mal nach ihr.",
+    pageViewMissing:
+      "Diese Seite kann die Ansicht nicht anzeigen. Lade die Seite neu, um sie noch mal zu öffnen.",
     viewCrashed: "Dieses Element konnte nicht angezeigt werden.",
     enterFullscreen: "Vollbild",
     exitFullscreen: "Vollbild verlassen",

@@ -22,7 +22,7 @@ import {
 } from "@miragon/pulse-widget-shell/widgets"
 import { HISTORY_PAGE_SIZE, type HistoryTimelineData } from "../view-models.js"
 import { ENGINE_HISTORY_TIMELINE_DATA } from "../tool-names.js"
-import { useHandOff, type HandOff, type ViewContext } from "./lib/hand-off.js"
+import { useHandOff, useHandOffsShown, type HandOff, type ViewContext } from "./lib/hand-off.js"
 import { durationOutliers } from "./lib/duration-outliers.js"
 import { useT } from "../messages/use-t.js"
 import {
@@ -372,6 +372,8 @@ function HistoryHeader({
 }) {
   const t = useT()
   const { ask } = useHandOff()
+  // Its one action is a hand-off: where the host hides it, the bar has no action group.
+  const handOffs = useHandOffsShown()
   const state = instanceStateLabel(t, instance.state)
   return (
     <WidgetHeader
@@ -390,11 +392,13 @@ function HistoryHeader({
         </>
       }
       actions={
-        <HandOffButton
-          action="explainTimeline"
-          variant="toolbar"
-          prompt={ask(explainInstanceHandOff(instance, engineId, total))}
-        />
+        handOffs && (
+          <HandOffButton
+            action="explainTimeline"
+            variant="toolbar"
+            prompt={ask(explainInstanceHandOff(instance, engineId, total))}
+          />
+        )
       }
     />
   )

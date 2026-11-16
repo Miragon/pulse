@@ -103,6 +103,7 @@ export const enSweep: MessageCatalog = {
   "fleet.engineHealth.hint": "click an engine to work with it",
   "fleet.engineHealth.title": "Engine health",
   "fleet.failedJobs": "Jobs without retries",
+  "fleet.fleetAnalyses.copyHint": "copy a prompt, then the AI runs the analysis in your chat",
   "fleet.fleetAnalyses.hint": "the AI runs these analyses in the chat",
   "fleet.fleetAnalyses.title": "Analyses across all engines",
   "fleet.heading": "Cross-engine overview",

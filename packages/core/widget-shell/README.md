@@ -97,7 +97,10 @@ chat, so every widget works unchanged. The page's theme follows a `data-cd-theme
 browser's. It owns its viewport, so it shows fullscreen with no switch, and nothing reaches a
 model. A page posts into no chat, so a hand-off shows only where the page asks for it to be
 copied (`followUp: "copy"`); a widget asks the host's `followUp` with `useHostFollowUp()`, so a
-menu, a column or a section that holds hand-offs alone shows not at all where they are hidden.
+menu, a column or a section that holds hand-offs alone shows not at all where they are hidden, and
+the view's frame says to reload the page where a chat's would say to ask in the chat. A page writes
+to no engine: `useHostWrites()` answers false there (true in a chat and in `TestViewHost`), so a
+widget that asks it before it shows a write control offers none.
 
 ```ts
 import { mountPage } from "@miragon/pulse-widget-shell/widgets"

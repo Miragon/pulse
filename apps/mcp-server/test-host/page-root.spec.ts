@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs"
 import path from "node:path"
 import AxeBuilder from "@axe-core/playwright"
-import { expect, test, type Page } from "@playwright/test"
+import { expect, test, type FrameLocator, type Page } from "@playwright/test"
 import { HEALTHY_ENGINE, PAGE_SCRIPT_ENV } from "./engines.js"
 
 /**
@@ -10,11 +10,21 @@ import { HEALTHY_ENGINE, PAGE_SCRIPT_ENV } from "./engines.js"
  * ext-apps' `App`, and hands it a caller that posts each tool call to the host backend, which
  * forwards it to the server (`/host/call`). The views are the chat's, built from the same
  * sources: the view tool's data, every feed, the page's language and theme, and the hand-offs,
- * which a page that posts to no chat hides or offers to copy.
+ * which a page that posts to no chat hides or offers to copy. A page writes nothing: on the
+ * deployment that offers the widget writes, the chat's view of an instance offers them and the
+ * page's view of the same instance offers none. Its frame's words send the reader to no chat.
  */
 
 const APP = path.resolve(import.meta.dirname, "..")
 const OVERVIEW_ARGS = { engine: HEALTHY_ENGINE }
+/** The stub's invoice instance: two open incidents whose jobs have no retries, one variable. */
+const INSTANCE_ARGS = {
+  engine: HEALTHY_ENGINE,
+  view: "instance-detail",
+  processInstanceId: "pi-invoice-42",
+}
+/** The deployment that offers the widget writes (`engine:operations`). */
+const OPERATIONS_ENV = "HOST_SIM_OPERATIONS_URL"
 const JOBS_ARGS = { engine: HEALTHY_ENGINE, view: "jobs" }
 const DEFINITIONS_TABLE =
   "Deployed process definitions with running instances, jobs without retries and incidents"
@@ -27,9 +37,13 @@ interface ToolCall {
 
 interface PageQuery {
   args: Record<string, unknown>
+  /** The view tool to open; default the cockpit's. */
+  view?: string
   followUp?: "copy"
   lang?: string
   theme?: "light" | "dark"
+  /** The deployment's host page; default the read-only one (`HOST_SIM_URL`). */
+  hostEnv?: string
 }
 
 /** Every tool call the page made through its caller, in order. */
@@ -53,15 +67,58 @@ function collectErrors(page: Page): string[] {
   return errors
 }
 
-async function openPage(page: Page, { args, ...rest }: PageQuery): Promise<void> {
-  const base = process.env.HOST_SIM_URL
-  if (!base) throw new Error("HOST_SIM_URL is unset. Run via `playwright test -c test-host`")
+function hostBase(hostEnv: string): string {
+  const base = process.env[hostEnv]
+  if (!base) throw new Error(`${hostEnv} is unset. Run via \`playwright test -c test-host\``)
+  return base
+}
+
+async function openPage(
+  page: Page,
+  { args, view = "engine_open_cockpit", hostEnv = "HOST_SIM_URL", ...rest }: PageQuery,
+): Promise<void> {
+  const query = new URLSearchParams({ view, args: JSON.stringify(args), ...rest })
+  await page.goto(`${hostBase(hostEnv)}/page?${query.toString()}`)
+}
+
+/** The same view in the chat: the host page frames the server's view bundle (`#app`). */
+async function openChat(
+  page: Page,
+  args: Record<string, unknown>,
+  hostEnv: string,
+): Promise<FrameLocator> {
   const query = new URLSearchParams({
-    view: "engine_open_cockpit",
+    tool: "engine_open_cockpit",
     args: JSON.stringify(args),
-    ...rest,
+    structuredContent: "keep",
+    resultDelayMs: "0",
   })
-  await page.goto(`${base}/page?${query.toString()}`)
+  await page.goto(`${hostBase(hostEnv)}/?${query.toString()}`)
+  return page.frameLocator("#app")
+}
+
+/** The answer of the gate feed the page's widgets read (`engine_widget_actions_data`), as text. */
+function gateAnswer(page: Page): Promise<{ allowedActions?: string[] }> {
+  return page
+    .waitForResponse((response) => {
+      const request = response.request()
+      if (new URL(request.url()).pathname !== "/host/call") return false
+      return (request.postDataJSON() as ToolCall).name === "engine_widget_actions_data"
+    })
+    .then(async (response) => {
+      const outcome = (await response.json()) as { result?: { content?: { text?: string }[] } }
+      return JSON.parse(outcome.result?.content?.[0]?.text ?? "{}") as { allowedActions?: string[] }
+    })
+}
+
+/** Two frames after an answer: React has rendered what it changes. */
+async function rendered(page: Page): Promise<void> {
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  )
 }
 
 test.describe("a page outside a chat (mountPage)", () => {
@@ -158,6 +215,62 @@ test.describe("a page outside a chat (mountPage)", () => {
     await page.getByRole("button", { name: "Cross-engine overview" }).click({ timeout: 15_000 })
     await expect(page.getByRole("heading", { name: "Cross-engine overview" })).toBeVisible()
     await expect(page.getByText("Analyses across all engines")).toHaveCount(0)
+    await expect(page.getByText("the AI runs these analyses in the chat")).toHaveCount(0)
+  })
+
+  test("offers no write, where the chat's view of the same instance on the same deployment does", async ({
+    page,
+  }) => {
+    // The chat, on the deployment that offers the widget writes: Retry on an incident, Edit on a
+    // variable.
+    const chat = await openChat(page, INSTANCE_ARGS, OPERATIONS_ENV)
+    const chatIncidents = chat.getByRole("region", { name: "Incidents of this instance" })
+    await expect(chatIncidents.getByRole("button", { name: "Retry" }).first()).toBeVisible({
+      timeout: 15_000,
+    })
+    await chat
+      .getByRole("tab", { name: /^Variables/ })
+      .first()
+      .click()
+    const chatVariables = chat.getByRole("region", { name: "Process instance variables" })
+    await expect(chatVariables.getByRole("button", { name: "Edit" }).first()).toBeVisible({
+      timeout: 15_000,
+    })
+
+    // The page, on the same deployment: the gate offers it the writes too, and it shows none.
+    const gate = gateAnswer(page)
+    await openPage(page, { args: INSTANCE_ARGS, hostEnv: OPERATIONS_ENV })
+    expect((await gate).allowedActions).toEqual(
+      expect.arrayContaining(["engine_set_job_retries", "engine_set_process_instance_variable"]),
+    )
+    const incidents = page.getByRole("region", { name: "Incidents of this instance" })
+    await expect(incidents.locator("tbody tr")).toHaveCount(2, { timeout: 15_000 })
+    await rendered(page)
+    await expect(incidents.getByRole("button", { name: "Retry" })).toHaveCount(0)
+    await page
+      .getByRole("tab", { name: /^Variables/ })
+      .first()
+      .click()
+    const variables = page.getByRole("region", { name: "Process instance variables" })
+    await expect(variables.getByText("amount")).toBeVisible()
+    await expect(variables.getByRole("button", { name: "Edit" })).toHaveCount(0)
+    await expect(variables.getByRole("columnheader", { name: "Actions" })).toHaveCount(0)
+  })
+
+  test("words its states for a page: a view it cannot show, analyses to copy", async ({ page }) => {
+    await openPage(page, { args: {}, view: "engine_no_such_view" })
+    await expect(
+      page.getByText("This page can't show this view. Reload the page to open it again."),
+    ).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText(/chat/i)).toHaveCount(0)
+
+    // The fleet's analyses on a page that copies their prompts: worded for that, not the chat.
+    await openPage(page, { args: {}, followUp: "copy" })
+    await page.getByRole("button", { name: "Cross-engine overview" }).click({ timeout: 15_000 })
+    await expect(page.getByText("Analyses across all engines")).toBeVisible()
+    await expect(
+      page.getByText("copy a prompt, then the AI runs the analysis in your chat"),
+    ).toBeVisible()
     await expect(page.getByText("the AI runs these analyses in the chat")).toHaveCount(0)
   })
 

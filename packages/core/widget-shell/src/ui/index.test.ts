@@ -59,6 +59,7 @@ describe("the /widgets entry", () => {
       "useDetailView",
       "useHostDisplayMode",
       "useHostFollowUp",
+      "useHostWrites",
       "usePagedListView",
       "usePagedViewData",
       "useQueryClient",

@@ -15,7 +15,7 @@ import {
 import type { IncidentsDashboardData } from "../../view-models.js"
 import { ENGINE_INCIDENTS_DATA } from "../../tool-names.js"
 import { AlarmCount } from "../lib/alarm-count.js"
-import { useHandOff, type HandOff } from "../lib/hand-off.js"
+import { useHandOff, useHandOffsShown, type HandOff } from "../lib/hand-off.js"
 import { useT } from "../../messages/use-t.js"
 import { dashboardScope, incidentsFeed } from "./scope.js"
 
@@ -58,6 +58,7 @@ function IncidentOverviewKpiView({
   )
   const t = useT()
   const { ask } = useHandOff()
+  const handOffs = useHandOffsShown()
 
   if (!data) {
     return (
@@ -99,11 +100,14 @@ function IncidentOverviewKpiView({
             </>
           }
           actions={
-            <HandOffButton
-              action="assess"
-              variant="toolbar"
-              prompt={ask(triageIncidentsHandOff(data, engine))}
-            />
+            // Its one action is a hand-off: where the host hides it, the bar has no group.
+            handOffs && (
+              <HandOffButton
+                action="assess"
+                variant="toolbar"
+                prompt={ask(triageIncidentsHandOff(data, engine))}
+              />
+            )
           }
         />
       }

@@ -23,7 +23,14 @@ import { useDisplayModeControl } from "./display-mode-toggle.js"
 import { useInlineBudget } from "./inline-budget.js"
 import { useShellHost } from "./shell-host.js"
 import { createTestQueryClient, TestViewHost, type HostAction } from "./test-view-host.js"
-import { HostModelContext, useHostFollowUp, useViewHost } from "./view-host.js"
+import {
+  HostModelContext,
+  useHostFollowUp,
+  useHostWrites,
+  useViewHost,
+  ViewHostProvider,
+  type ViewHost,
+} from "./view-host.js"
 import { useHostDisplayMode } from "./widget-shell.js"
 
 afterEach(cleanup)
@@ -111,6 +118,30 @@ describe("TestViewHost: what the widget asked the host", () => {
     expect(followUpUnder()).toBe("chat")
     expect(followUpUnder("copy")).toBe("copy")
     expect(followUpUnder("none")).toBe("none")
+  })
+
+  it("lets a view write as a chat host does unless a test renders it as a page", () => {
+    const writesUnder = (writes?: boolean) =>
+      renderHook(() => useHostWrites(), {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <TestViewHost writes={writes}>{children}</TestViewHost>
+        ),
+      }).result.current
+    expect(hostWith().writes).toBe(true)
+    expect(writesUnder()).toBe(true)
+    expect(writesUnder(true)).toBe(true)
+    expect(writesUnder(false)).toBe(false)
+  })
+
+  it("lets a view write under an adapter that states nothing about writes", () => {
+    const adapter: ViewHost = { ...hostWith() }
+    delete adapter.writes
+    const { result } = renderHook(() => useHostWrites(), {
+      wrapper: ({ children }: { children: ReactNode }) => (
+        <ViewHostProvider host={adapter}>{children}</ViewHostProvider>
+      ),
+    })
+    expect(result.current).toBe(true)
   })
 
   it("reports each mounted model context, the last writer last", async () => {

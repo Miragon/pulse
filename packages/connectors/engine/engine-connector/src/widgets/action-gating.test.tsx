@@ -70,6 +70,23 @@ describe("every in-widget write hides its control on an engine whose profile is 
   )
 })
 
+/**
+ * A page outside a chat writes nothing (`ViewHost.writes` false, `useHostWrites`): the deployment
+ * offers every write and no engine is read-only, and still no write control shows.
+ */
+describe("every in-widget write hides its control on a host that writes nothing", () => {
+  it.each(GATING_SITES)("$site: hidden on a page", async ({ site, control }) => {
+    render(GATING_RENDERERS[site](EVERY_WRITE, queryClient, [], false))
+    await feedSettled()
+    expect(screen.queryByRole("button", { name: control })).toBeNull()
+  })
+
+  it.each(GATING_SITES)("$site: shown where the same host writes", async ({ site, control }) => {
+    render(GATING_RENDERERS[site](EVERY_WRITE, queryClient, [], true))
+    expect(await screen.findByRole("button", { name: control })).toBeTruthy()
+  })
+})
+
 const JOBS: JobPanelData = {
   totalCount: 1,
   failedCount: 1,

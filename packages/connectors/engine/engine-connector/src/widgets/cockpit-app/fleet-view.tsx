@@ -7,7 +7,7 @@ import {
   cn,
   WidgetHeader,
 } from "@miragon/pulse-ui"
-import { HandOffButton } from "@miragon/pulse-widget-shell/widgets"
+import { HandOffButton, useHostFollowUp } from "@miragon/pulse-widget-shell/widgets"
 import { ArrowRight } from "lucide-react"
 import type { CockpitDashboardData } from "../../view-models.js"
 import {
@@ -17,7 +17,7 @@ import {
 } from "../../lib/shared/environments.js"
 import { useT } from "../../messages/use-t.js"
 import { AlarmCount } from "../lib/alarm-count.js"
-import { useHandOff, useHandOffsShown, type HandOff } from "../lib/hand-off.js"
+import { useHandOff, type HandOff } from "../lib/hand-off.js"
 import { isHealthFailure } from "../lib/health-verdict.js"
 import { useEngineHealth } from "./engine-health.js"
 import { FleetLandscape } from "./fleet-landscape.js"
@@ -154,7 +154,7 @@ export function FleetView({
 }) {
   const t = useT()
   const { ask } = useHandOff()
-  const handOffs = useHandOffsShown()
+  const followUp = useHostFollowUp()
   const ids = engines.map((e) => e.id)
   // The fleet itself stays all engines, across environments.
   const engineGroups = groupEnginesByEnvironment(engines)
@@ -168,7 +168,9 @@ export function FleetView({
         title={t("fleet.heading")}
         sub={t("fleet.engineCount", { count: formatNumber(engines.length), list: idList })}
         actions={
-          handOffs && <HandOffButton action="assess" prompt={ask(fleetOverviewHandOff(fleet))} />
+          followUp !== "none" && (
+            <HandOffButton action="assess" prompt={ask(fleetOverviewHandOff(fleet))} />
+          )
         }
       />
 
@@ -193,12 +195,15 @@ export function FleetView({
 
       <FleetLandscape engineIds={ids} />
 
-      {/* Its analyses are hand-offs only: a host that shows none gets no section. */}
-      {handOffs && (
+      {/* Its analyses are hand-offs only: a host that shows none gets no section, and a page
+          that copies them says so. */}
+      {followUp !== "none" && (
         <section>
           <SectionHeading
             title={t("fleet.fleetAnalyses.title")}
-            hint={t("fleet.fleetAnalyses.hint")}
+            hint={t(
+              followUp === "copy" ? "fleet.fleetAnalyses.copyHint" : "fleet.fleetAnalyses.hint",
+            )}
           />
           <div className="flex flex-wrap items-center gap-2">
             <HandOffButton action="analyzeFailures" prompt={ask(fleetFailuresHandOff(fleet))} />

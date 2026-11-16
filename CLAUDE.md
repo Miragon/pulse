@@ -558,7 +558,11 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      host's `followUp`: `chat` posts it, a page that posts to no chat says `copy` (its prompt to
      copy) or `none` (hidden), and `AskAiButton` reads it, as does a widget whose menu,
      column or section holds hand-offs alone (`useHostFollowUp`, no tool caller), so `none`
-     leaves no empty menu.
+     leaves no empty menu, and a view's bar whose one action is a hidden hand-off passes no
+     action group; `ViewFrame` words its states by it too (a chat's say to ask in the chat, a
+     page's to reload the page). Whether a view writes is the view host's `writes`
+     (`useHostWrites`, beside `followUp`): a chat and `TestViewHost` write, a page writes
+     nothing, so no write control shows there (invariant 8's `useEngineAction`).
      The root's call hook (`useViewCall` over `resolveViewCall`) owns the stripped-result
      recovery: a host that drops `structuredContent` gets ONE re-run of the view's own view
      tool, so every view-bound tool is a read (`apps/mcp-server/test/view-registry.test.ts`).
@@ -1076,7 +1080,8 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      (`src/lib/engine/read-only.ts`) fails every tool without `readOnlyHint` on such an engine
      with `ENGINE_READ_ONLY` before its handler runs, and its transport refuses a write too.
    - **In-widget engine writes** run through ONE primitive, `useEngineAction`
-     (`engine-connector/src/widgets/lib/engine-action.ts`): the gate (`allowed` from
+     (`engine-connector/src/widgets/lib/engine-action.ts`): the gate (the host's `writes`,
+     `useHostWrites`, so a page outside a chat offers no write, AND `allowed` from
      `engine_widget_actions_data` for the engine it writes to, its `readOnlyEngines` included,
      AND `available`: no write on an ended, cancelled or
      unconfirmed instance), the confirmation that names its target, the targeted invalidation

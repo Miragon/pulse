@@ -1,16 +1,29 @@
 // @vitest-environment happy-dom
+import type { ReactElement } from "react"
 import { afterEach, describe, expect, it } from "vitest"
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react"
 import { TestViewHost, type FollowUp } from "@miragon/pulse-widget-shell/widgets"
-import type { IncidentInstance } from "../view-models.js"
+import { ENGINE_WIDGET_ACTIONS_DATA } from "../tool-names.js"
+import type {
+  ClusterDetailData,
+  HistoryTimelineData,
+  IncidentInstance,
+  IncidentsDashboardData,
+  JobPanelData,
+} from "../view-models.js"
+import { ClusterDetailWidget } from "./cluster-detail.js"
+import { HistoryTimelineWidget } from "./history-timeline.js"
+import { IncidentOverviewKpi } from "./incidents-dashboard/overview-kpi.js"
 import { VariablesTab } from "./instance-detail/variables-tab.js"
+import { JobPanelWidget } from "./job-panel.js"
 import { IncidentTable } from "./process-incidents/incident-table.js"
 import { useIncidentRecovery } from "./process-incidents/use-incident-recovery.js"
+import { InstancesHeader } from "./process-instances/list-header.js"
 
 /**
- * A menu or a row that holds hand-offs alone shows only where the host shows a hand-off: a page
- * outside a chat that hides them (`followUp` "none") gets no empty menu and no empty row, and an
- * entry of another kind keeps its menu.
+ * A menu, a row or a view's bar that holds hand-offs alone shows only where the host shows a
+ * hand-off: a page outside a chat that hides them (`followUp` "none") gets no empty menu, no
+ * empty row and no empty action group, and an entry of another kind keeps its menu.
  */
 
 afterEach(cleanup)
@@ -107,5 +120,140 @@ describe("the variables tab", () => {
     const tab = renderTab("chat")
     expect(tab.childElementCount).toBe(2)
     expect(within(tab).getByRole("button", { name: "Check variables in chat" })).toBeTruthy()
+  })
+})
+
+const DASHBOARD: IncidentsDashboardData = {
+  totalCount: 3,
+  processCount: 1,
+  affectedActivityCount: 1,
+  last24hCount: 1,
+  latestIncident: null,
+  processes: [],
+  filters: {},
+  engineVendor: "CIB seven",
+  engineId: "prod",
+}
+
+const JOBS: JobPanelData = {
+  totalCount: 1,
+  failedCount: 1,
+  jobs: [
+    {
+      id: "job-1",
+      processInstanceId: "pi-1",
+      processDefinitionKey: "invoice",
+      processDefinitionId: "invoice:1:abc",
+      processDefinitionName: "Invoice Receipt",
+      activityId: "chargeCard",
+      activityName: "Charge card",
+      retries: 0,
+      exceptionMessage: "Card declined",
+      dueDate: null,
+      suspended: false,
+      priority: 0,
+      createTime: "2026-06-11T08:00:00.000Z",
+    },
+  ],
+  filters: {},
+  engineId: "prod",
+}
+
+const HISTORY: HistoryTimelineData = {
+  processInstance: {
+    id: "pi-1",
+    processDefinitionKey: "invoice",
+    processDefinitionName: "Invoice Receipt",
+    startTime: "2026-01-01T10:00:00.000Z",
+    endTime: null,
+    durationInMillis: null,
+    state: "ACTIVE",
+  },
+  activities: [],
+  totalActivities: 0,
+  incidentActivityIds: null,
+  engineId: "prod",
+}
+
+const CLUSTER: ClusterDetailData = {
+  activityId: "callWMS",
+  activityName: "Call WMS",
+  incidentType: "failedExternalTask",
+  messageSignature: "connection timeout",
+  incidentCount: 2,
+  scannedIncidentCount: 2,
+  lastHourCount: 1,
+  last24hCount: 2,
+  firstSeen: null,
+  latestIncident: null,
+  processDefinitionKeys: ["shipping"],
+  representativeMessage: "Connection timeout",
+  incidents: [],
+  totalMatching: 0,
+  fetchedAt: "2026-06-11T14:05:00.000Z",
+  engineId: "prod",
+}
+
+/** Each view whose bar holds one action, its hand-off. */
+const BARS: ReadonlyArray<[view: string, bar: ReactElement]> = [
+  ["the incidents' overview", <IncidentOverviewKpi key="kpi" data={DASHBOARD} engine="prod" />],
+  ["the jobs", <JobPanelWidget key="jobs" data={JOBS} engine="prod" />],
+  [
+    "the instance list",
+    <InstancesHeader
+      key="instances"
+      title="Running instances"
+      processName={null}
+      scopedKey={null}
+      total={3}
+      engine="prod"
+      filters={{}}
+    />,
+  ],
+  [
+    "an instance's history",
+    <HistoryTimelineWidget key="history" data={HISTORY} processInstanceId="pi-1" engine="prod" />,
+  ],
+  [
+    "an incident cluster",
+    <ClusterDetailWidget
+      key="cluster"
+      data={CLUSTER}
+      engine="prod"
+      activityId="callWMS"
+      incidentType="failedExternalTask"
+    />,
+  ],
+]
+
+/** No write is offered, so a bar holds its hand-off alone. */
+const NO_WRITES = { [ENGINE_WIDGET_ACTIONS_DATA]: { allowedActions: [], readOnlyEngines: [] } }
+
+function barOf(followUp: FollowUp, view: ReactElement) {
+  const { container } = render(
+    <TestViewHost tools={NO_WRITES} followUp={followUp}>
+      {view}
+    </TestViewHost>,
+  )
+  const bar = container.querySelector<HTMLElement>('[data-slot="view-bar"]')
+  expect(bar).not.toBeNull()
+  return bar!
+}
+
+describe("a view's bar whose one action is a hand-off", () => {
+  it.each(BARS)("%s: draws no action group where the host hides hand-offs", (_, view) => {
+    const bar = barOf("none", view)
+    expect(bar.querySelector('[data-slot="view-bar-actions"]')).toBeNull()
+    expect(within(bar).queryByRole("button")).toBeNull()
+  })
+
+  it.each(BARS)("%s: holds the hand-off in its group in a chat", (_, view) => {
+    const bar = barOf("chat", view)
+    const group = bar.querySelector<HTMLElement>('[data-slot="view-bar-actions"]')
+    expect(
+      within(group!)
+        .getAllByRole("button")
+        .map((button) => button.title),
+    ).toEqual([expect.stringMatching(/in chat$/)])
   })
 })

@@ -389,7 +389,8 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   process names it, as in every view). A row keeps ONE deterministic action;
   its vendor link and chat hand-offs sit behind `MoreActions`, as `variant="menuitem"`
   entries (`HandOffButton`, `OpenInCockpitLink`), and a menu, a column or a section that holds
-  hand-offs alone renders only under `useHandOffsShown()` (a page may show none); a
+  hand-offs alone renders only under `useHandOffsShown()` (a page may show none), as does a
+  view bar's `actions` whose one action is a hand-off, so a page draws no empty group; a
   confirmation names an instance with `instanceTargetLines` (business key, then short id)
 - Status: a `ToneVariant` (`danger`/`warning`/`success`/`info`/`neutral`; open incident or
   failed job without retries = `danger` (`severityTone`/`countTone` from `@miragon/pulse-ui` is
@@ -604,7 +605,8 @@ call's abort signal at `ctx.mcpReq.signal`):
   write calls it through `useEngineAction`, gated by `engine_widget_actions_data`.
 - Every in-widget write runs through `useEngineAction({ tool, target, resetOn, available })`
   (`src/widgets/lib/engine-action.ts`), never a raw `useToolMutation`/`callTool`. Its
-  `allowed` is the gate, the toolset AND the subject's current state (`available`:
+  `allowed` is the gate, the host (`useHostWrites`: a page outside a chat writes nothing), the
+  toolset AND the subject's current state (`available`:
   false for an ended, cancelled or unconfirmed instance, a suspended one where the
   engine refuses the write): render the control only when true (hide it and a table
   column it would leave empty, never just disable it). List
@@ -623,7 +625,7 @@ businessKey))` …; add an entry and its `feedback.*` keys in `messages/{en,de}.
   `resetOn` changes; pass the data the marked ROWS come from, not a sibling feed).
   `src/widget-actions.test.ts` enforces all of it structurally; add
   the new call site to `src/widgets/action-gating.sites.ts` + its renderer in
-  `action-gating.test-support.tsx`.
+  `action-gating.test-support.tsx` (`action-gating.test.tsx` then holds it hidden on a page too).
 - Everything the widget tells the model goes through `useHandOff()`
   (`src/widgets/lib/hand-off.ts`): `<HandOffButton action="…" prompt={ask(handOff)} />` and
   `<HostModelContext content={context(view)}>`. A hand-off is a typed spec: an `intent`

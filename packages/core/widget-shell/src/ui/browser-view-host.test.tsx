@@ -7,7 +7,7 @@ import { BrowserViewHost, type BrowserHostOptions } from "./browser-view-host.js
 import { useDisplayModeControl } from "./display-mode-toggle.js"
 import { NO_INLINE_BUDGET, useInlineBudget } from "./inline-budget.js"
 import { useShellHost } from "./shell-host.js"
-import { HostModelContext, useViewHost } from "./view-host.js"
+import { HostModelContext, useHostWrites, useViewHost } from "./view-host.js"
 import { useHostDisplayMode } from "./widget-shell.js"
 
 /**
@@ -156,6 +156,17 @@ describe("BrowserViewHost: what a widget asks the page", () => {
     await act(async () => reactRoot?.unmount())
     await render({ followUp: "copy" })
     expect(seen.host?.followUp).toBe("copy")
+  })
+
+  it("offers no write: a page writes to no engine", async () => {
+    await render()
+    expect(seen.host?.writes).toBe(false)
+    function WritesProbe() {
+      return <output>{String(useHostWrites())}</output>
+    }
+    await act(async () => reactRoot?.unmount())
+    const container = await render({ followUp: "copy" }, <WritesProbe />)
+    expect(container.textContent).toBe("false")
   })
 
   it("tells no model anything, and still renders what a model context wraps", async () => {

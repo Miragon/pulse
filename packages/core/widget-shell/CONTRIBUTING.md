@@ -33,7 +33,7 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   error with a retry, none for a refusal no retry changes (`isPermanentError`), cancelled, ready)
   and keeps a crashing view, and each `ViewStack` row,
   inside its own error boundary. Widgets reach the host only through the view
-  host seam (`useViewHost`: `callTool`, `sendFollowUp`, `followUp`, `openExternal`; `HostModelContext`) and the query
+  host seam (`useViewHost`: `callTool`, `sendFollowUp`, `followUp`, `writes`, `openExternal`; `HostModelContext`) and the query
   hooks (`useToolQuery`, `useToolQueries` (one read per entry of a list, under `useToolQuery`'s
   keys), `useToolMutation`, `useViewData` (which seeds a feed with the view's data),
   `useQueryClient`), never ext-apps, so a widget renders under `TestViewHost`
@@ -50,7 +50,12 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   what a hand-off does: `chat` posts it (the ext-apps adapter; `TestViewHost` by default), and a
   page that posts to no chat says `copy`, where `AskAiButton` copies the prompt with a toast, or
   `none` (its default), where it renders nothing, and so does a widget's menu, column or section
-  that holds hand-offs alone (it asks `useHostFollowUp`, which hands it no tool caller). The MCP
+  that holds hand-offs alone (it asks `useHostFollowUp`, which hands it no tool caller). The view
+  frame words its states by it: a chat's say to ask in the chat, a page's to reload the page
+  (`pageSlowHint`, `pageViewMissing`; a page cancels no call, so `cancelled` stays a chat's). The
+  view host's `writes` says whether a view may write to an engine: the ext-apps adapter and
+  `TestViewHost` (unless a test passes `writes={false}`) write, a page writes nothing, and a
+  widget's write primitive asks `useHostWrites` before it shows a write control. The MCP
   bundle mounts with `mountViews` alone, so tree-shaking leaves the page root out of it
   (`apps/mcp-server/test/view-bundle.test.ts`).
 - **View builders** (`./server`): `buildViewResult(data, summary)` (a show tool's result: the

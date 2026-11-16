@@ -1,6 +1,6 @@
 import { formatNumber, StateLabel, WidgetHeader } from "@miragon/pulse-ui"
 import { HandOffButton } from "@miragon/pulse-widget-shell/widgets"
-import { useHandOff, type HandOff } from "../lib/hand-off.js"
+import { useHandOff, useHandOffsShown, type HandOff } from "../lib/hand-off.js"
 import { useT } from "../../messages/use-t.js"
 import { instancesFilterFacts, type InstancesListFilters } from "./hand-offs.js"
 
@@ -55,6 +55,8 @@ export function InstancesHeader({
 }) {
   const t = useT()
   const { ask } = useHandOff()
+  // Its one action is a hand-off: where the host hides it, the bar has no action group.
+  const handOffs = useHandOffsShown()
   return (
     <WidgetHeader
       title={title}
@@ -77,11 +79,13 @@ export function InstancesHeader({
         </>
       }
       actions={
-        <HandOffButton
-          action="assess"
-          variant="toolbar"
-          prompt={ask(triageInstancesHandOff({ scopedKey, processName, total, engine, filters }))}
-        />
+        handOffs && (
+          <HandOffButton
+            action="assess"
+            variant="toolbar"
+            prompt={ask(triageInstancesHandOff({ scopedKey, processName, total, engine, filters }))}
+          />
+        )
       }
     />
   )

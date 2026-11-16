@@ -25,6 +25,12 @@ export interface ViewHost {
   sendFollowUp: (prompt: string) => void
   /** Whether a hand-off posts (`chat`), is copied (`copy`) or shows not at all (`none`). */
   followUp: FollowUp
+  /**
+   * Whether a view may write to an engine here: absent or true in a chat and in `TestViewHost`,
+   * false on a page outside a chat (`mountPage`), which offers no write, so no write control
+   * shows there (`useHostWrites`).
+   */
+  writes?: boolean
   /** Opens a URL outside the frame. Fail-soft. */
   openExternal: (url: string) => void
   /** One node of the view's model-context tree; nested nodes join into one context. */
@@ -51,6 +57,14 @@ export function useViewHost(): ViewHost {
  */
 export function useHostFollowUp(): FollowUp {
   return useViewHost().followUp
+}
+
+/**
+ * Whether this host lets a view write to an engine, without the host's tool caller: a widget's one
+ * write primitive asks it before it shows a write control, which a host that writes nothing hides.
+ */
+export function useHostWrites(): boolean {
+  return useViewHost().writes ?? true
 }
 
 /** The ONE way a widget reports model context; build `content` with `modelContextText`. */

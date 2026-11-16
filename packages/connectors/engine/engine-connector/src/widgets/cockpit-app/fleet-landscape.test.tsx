@@ -199,6 +199,23 @@ describe("the cross-engine landscape, read from each engine", () => {
     expect(screen.queryByRole("button", { name: /in chat$/ })).toBeNull()
   })
 
+  it("words its analyses for a page that copies their prompts, never for a chat it posts to", async () => {
+    render(
+      <TestViewHost tools={TOOLS} client={queryClient} followUp="copy">
+        <FleetView engines={[{ id: "prod-a" }, { id: "prod-b" }]} onEnterEngine={() => {}} />
+      </TestViewHost>,
+    )
+    await screen.findByRole("region", { name: "Process definitions by engine" })
+    expect(screen.getByText("Analyses across all engines")).toBeTruthy()
+    expect(
+      screen.getByText("copy a prompt, then the AI runs the analysis in your chat"),
+    ).toBeTruthy()
+    expect(screen.queryByText("the AI runs these analyses in the chat")).toBeNull()
+    expect(
+      screen.getByRole("button", { name: "Copy prompt: Analyze failures in chat" }),
+    ).toBeTruthy()
+  })
+
   it("counts nothing while no engine has answered: unknown, never 0", async () => {
     render(
       <TestViewHost tools={TOOLS} client={queryClient}>

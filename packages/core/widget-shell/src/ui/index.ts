@@ -31,6 +31,7 @@ export { ViewErrorBoundary } from "./view-error-boundary.js"
 export {
   HostModelContext,
   useHostFollowUp,
+  useHostWrites,
   useViewHost,
   type FollowUp,
   type ViewHost,

@@ -7,21 +7,30 @@ import { useShellHost } from "./shell-host.js"
 import { viewCallContext, type ViewCall } from "./view-call.js"
 import { ViewDataState } from "./view-data-state.js"
 import { ViewErrorBoundary } from "./view-error-boundary.js"
-import { HostModelContext } from "./view-host.js"
+import { HostModelContext, useHostFollowUp, type FollowUp } from "./view-host.js"
 import type { ViewComponent } from "./views.js"
 
 /** After this long, the waiting line adds what to do. */
 export const SLOW_HINT_MS = 8_000
 
 /**
+ * Where the frame says what to do, a chat's words ask in the chat; a page posts to no chat, so
+ * its words say to reload the page.
+ */
+function frameLabels(labels: KitLabels, followUp: FollowUp): KitLabels {
+  if (followUp === "chat") return labels
+  return { ...labels, slowHint: labels.pageSlowHint, viewMissing: labels.pageViewMissing }
+}
+
+/**
  * The view's lifecycle around ONE view component: waiting, error (the kit's words, the raw text
  * under Details, Try again), cancelled, a missing view, then the view itself under a toolbar that
  * carries the "Reloaded at" stamp and the fullscreen switch. No title: views carry their heading.
- * Host-agnostic, so it renders under `TestViewHost` too.
+ * Host-agnostic, so it renders under `TestViewHost` too, its words for a chat or for a page.
  */
 export function ViewFrame({ call, view }: { call: ViewCall; view: ViewComponent | undefined }) {
   const frameRef = useRef<HTMLDivElement>(null)
-  const labels = kitLabels(useLocale())
+  const labels = frameLabels(kitLabels(useLocale()), useHostFollowUp())
   const { phase } = call
   // The frame stays the focus target, so a retry never drops focus to the document.
   const retry = useCallback(() => {

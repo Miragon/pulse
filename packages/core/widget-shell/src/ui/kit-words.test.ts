@@ -73,6 +73,18 @@ describe("kit copy follows the voice rules", () => {
   })
 })
 
+/** A page posts to no chat: its words never send the reader to one. */
+describe("the frame's words for a page", () => {
+  it.each([
+    ["de", /Chat/],
+    ["en", /chat/i],
+  ] as const)("%s: say to reload the page, never to ask in a chat", (language, chat) => {
+    const { pageSlowHint, pageViewMissing, slowHint, viewMissing } = KIT_LABELS[language]
+    for (const words of [pageSlowHint, pageViewMissing]) expect(words).not.toMatch(chat)
+    for (const words of [slowHint, viewMissing]) expect(words).toMatch(chat)
+  })
+})
+
 describe("kit copy uses the product glossary", () => {
   // The MCP views pause nothing of their own, so any "pause" here means the engine's suspension.
   const rules = {

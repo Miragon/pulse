@@ -103,6 +103,8 @@ export const deSweep: MessageCatalog = {
   "fleet.engineHealth.hint": "Klick eine Engine an, um mit ihr zu arbeiten",
   "fleet.engineHealth.title": "Zustand der Engines",
   "fleet.failedJobs": "Jobs ohne Versuche",
+  "fleet.fleetAnalyses.copyHint":
+    "kopier einen Prompt, dann führt die AI die Analyse in deinem Chat aus",
   "fleet.fleetAnalyses.hint": "die AI führt die Analysen im Chat aus",
   "fleet.fleetAnalyses.title": "Analysen über alle Engines",
   "fleet.heading": "Engine-übergreifende Übersicht",

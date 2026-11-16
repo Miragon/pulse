@@ -341,6 +341,8 @@ export function JobPanelWidget({
             </>
           }
           actions={
+            // Its one action is a hand-off: where the host hides it, the bar has no group.
+            handOffs &&
             failedJobs.length > 0 && (
               <HandOffButton
                 action="assess"

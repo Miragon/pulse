@@ -3,7 +3,12 @@ import { HandOffButton, OpenInCockpitLink } from "@miragon/pulse-widget-shell/wi
 
 import type { IncidentDetailData } from "../../view-models.js"
 
-import { scopingDefinitionKey, useHandOff, type HandOff } from "../lib/hand-off.js"
+import {
+  scopingDefinitionKey,
+  useHandOff,
+  useHandOffsShown,
+  type HandOff,
+} from "../lib/hand-off.js"
 import { InstanceLabel } from "../lib/identity.js"
 import { useT } from "../../messages/use-t.js"
 
@@ -44,6 +49,9 @@ export function IncidentDetailHeader({
   const t = useT()
   const { ask } = useHandOff()
   const cockpitInstanceUrl = data.cockpitInstanceUrl
+  // No link to the engine's web app and a hand-off the host hides: the bar has no action group.
+  const handOffs = useHandOffsShown()
+  const hasActions = Boolean(cockpitInstanceUrl) || handOffs
   return (
     <WidgetHeader
       badge={
@@ -67,21 +75,23 @@ export function IncidentDetailHeader({
         </>
       }
       actions={
-        <>
-          {cockpitInstanceUrl && (
-            <OpenInCockpitLink
-              url={cockpitInstanceUrl}
-              vendor={data.engineVendor}
-              label={t("incidentDetail.openInstanceIn", { vendor: data.engineVendor })}
+        hasActions && (
+          <>
+            {cockpitInstanceUrl && (
+              <OpenInCockpitLink
+                url={cockpitInstanceUrl}
+                vendor={data.engineVendor}
+                label={t("incidentDetail.openInstanceIn", { vendor: data.engineVendor })}
+                variant="toolbar"
+              />
+            )}
+            <HandOffButton
+              action="findCause"
               variant="toolbar"
+              prompt={ask(diagnoseIncidentHandOff(data))}
             />
-          )}
-          <HandOffButton
-            action="findCause"
-            variant="toolbar"
-            prompt={ask(diagnoseIncidentHandOff(data))}
-          />
-        </>
+          </>
+        )
       }
     />
   )

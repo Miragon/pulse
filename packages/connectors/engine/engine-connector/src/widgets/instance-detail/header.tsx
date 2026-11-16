@@ -17,7 +17,7 @@ import { Ban, Pause, Play, Workflow } from "lucide-react"
 import type { InstanceDetailData } from "../../view-models.js"
 import { type T, useT } from "../../messages/use-t.js"
 import { AlarmCount } from "../lib/alarm-count.js"
-import { useHandOff, type HandOff } from "../lib/hand-off.js"
+import { useHandOff, useHandOffsShown, type HandOff } from "../lib/hand-off.js"
 import { definitionVersionOf } from "../lib/identity.js"
 import { instanceName } from "../lib/write-feedback.js"
 
@@ -76,6 +76,26 @@ function diagnoseInstanceHandOff({
   }
 }
 
+interface InstanceActionProps {
+  isActionable: boolean
+  onOpenProcess?: () => void
+  onRequestSuspendToggle?: () => void
+  onRequestCancel?: () => void
+}
+
+/**
+ * Whether the bar holds an action: the way to the process, a write on a live instance, or a
+ * hand-off the host shows. With none of them it has no action group.
+ */
+function hasInstanceActions(
+  { isActionable, onOpenProcess, onRequestSuspendToggle, onRequestCancel }: InstanceActionProps,
+  handOffs: boolean,
+): boolean {
+  const writes =
+    isActionable && (onRequestSuspendToggle !== undefined || onRequestCancel !== undefined)
+  return onOpenProcess !== undefined || writes || handOffs
+}
+
 export function InstanceHeader({
   instance,
   processName,
@@ -106,6 +126,11 @@ export function InstanceHeader({
 }) {
   const t = useT()
   const { ask } = useHandOff()
+  const handOffs = useHandOffsShown()
+  const hasActions = hasInstanceActions(
+    { isActionable, onOpenProcess, onRequestSuspendToggle, onRequestCancel },
+    handOffs,
+  )
   const version = definitionVersionOf(instance.definitionId)
   return (
     <WidgetHeader
@@ -123,51 +148,53 @@ export function InstanceHeader({
       }
       // The meta line names the process (facts only); the way to it is the first action.
       actions={
-        <>
-          {onOpenProcess && (
-            <Button type="button" variant="toolbar" size="sm" onClick={onOpenProcess}>
-              <Icon icon={Workflow} />
-              {t("instanceDetail.viewProcess")}
-            </Button>
-          )}
-          {isActionable && onRequestSuspendToggle && (
-            <Button
-              type="button"
-              variant="toolbar"
-              size="sm"
-              disabled={isMutatingInstance}
-              onClick={onRequestSuspendToggle}
-            >
-              <Icon icon={isSuspended ? Play : Pause} />
-              {isSuspended ? t("instanceDetail.activate") : t("instanceDetail.suspend")}
-            </Button>
-          )}
-          {isActionable && onRequestCancel && (
-            <Button
-              type="button"
-              variant="toolbar"
-              size="sm"
-              className="text-destructive hover:text-destructive"
-              disabled={isMutatingInstance}
-              onClick={onRequestCancel}
-            >
-              <Icon icon={Ban} />
-              {t("instanceDetail.cancelInstance")}
-            </Button>
-          )}
-          <HandOffButton
-            action="findCause"
-            variant="toolbar"
-            prompt={ask(
-              diagnoseInstanceHandOff({
-                instance,
-                engineId,
-                activeActivityIds: activeActivityIds ?? [],
-                incidentActivityIds: incidentActivityIds ?? [],
-              }),
+        hasActions && (
+          <>
+            {onOpenProcess && (
+              <Button type="button" variant="toolbar" size="sm" onClick={onOpenProcess}>
+                <Icon icon={Workflow} />
+                {t("instanceDetail.viewProcess")}
+              </Button>
             )}
-          />
-        </>
+            {isActionable && onRequestSuspendToggle && (
+              <Button
+                type="button"
+                variant="toolbar"
+                size="sm"
+                disabled={isMutatingInstance}
+                onClick={onRequestSuspendToggle}
+              >
+                <Icon icon={isSuspended ? Play : Pause} />
+                {isSuspended ? t("instanceDetail.activate") : t("instanceDetail.suspend")}
+              </Button>
+            )}
+            {isActionable && onRequestCancel && (
+              <Button
+                type="button"
+                variant="toolbar"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                disabled={isMutatingInstance}
+                onClick={onRequestCancel}
+              >
+                <Icon icon={Ban} />
+                {t("instanceDetail.cancelInstance")}
+              </Button>
+            )}
+            <HandOffButton
+              action="findCause"
+              variant="toolbar"
+              prompt={ask(
+                diagnoseInstanceHandOff({
+                  instance,
+                  engineId,
+                  activeActivityIds: activeActivityIds ?? [],
+                  incidentActivityIds: incidentActivityIds ?? [],
+                }),
+              )}
+            />
+          </>
+        )
       }
     />
   )

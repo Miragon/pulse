@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { useState } from "react"
 import type { ShellHost } from "./shell-host.js"
 import { TestViewHost, type HostAction } from "./test-view-host.js"
+import type { FollowUp } from "./view-host.js"
 import type { ViewCall, ViewPhase } from "./view-call.js"
 import { ViewErrorBoundary } from "./view-error-boundary.js"
 import { SLOW_HINT_MS, ViewFrame } from "./view-frame.js"
@@ -30,6 +31,7 @@ function renderFrame(
     retry?: () => void
     host?: Partial<ShellHost>
     locale?: string
+    followUp?: FollowUp
   } = {},
 ) {
   const actions: HostAction[] = []
@@ -39,6 +41,7 @@ function renderFrame(
   render(
     <TestViewHost
       host={options.host}
+      followUp={options.followUp}
       locale={options.locale ?? "en"}
       onHostAction={(action) => actions.push(action)}
       onModelContext={(line) => lines.push(line)}
@@ -117,6 +120,47 @@ describe("ViewFrame: before the view", () => {
     ).toBeTruthy()
     expect(screen.queryByRole("button")).toBeNull()
     expect(lines).toEqual([])
+  })
+})
+
+/** A page posts to no chat (`followUp` copy or none): its frame says to reload the page. */
+describe("ViewFrame: on a page outside a chat", () => {
+  it.each(["none", "copy"] as const)(
+    "%s: says to reload the page once the wait grows long",
+    (followUp) => {
+      vi.useFakeTimers()
+      renderFrame({ phase: "waiting" }, { followUp })
+      act(() => {
+        vi.advanceTimersByTime(SLOW_HINT_MS)
+      })
+      expect(document.querySelector("[data-slot=slow-hint]")?.textContent).toBe(
+        "This is taking longer than usual. If nothing happens, reload the page.",
+      )
+    },
+  )
+
+  it("says the page can't show a view it has no component for, in the page's language", () => {
+    renderFrame(
+      { phase: "ready", data: {}, reloadedAt: null },
+      { view: null, followUp: "none", locale: "de" },
+    )
+    expect(
+      screen.getByText(
+        "Diese Seite kann die Ansicht nicht anzeigen. Lade die Seite neu, um sie noch mal zu öffnen.",
+      ),
+    ).toBeTruthy()
+    expect(screen.queryByText(/Chat/)).toBeNull()
+  })
+
+  it("keeps the chat's words in a chat", () => {
+    vi.useFakeTimers()
+    renderFrame({ phase: "waiting" }, { followUp: "chat" })
+    act(() => {
+      vi.advanceTimersByTime(SLOW_HINT_MS)
+    })
+    expect(document.querySelector("[data-slot=slow-hint]")?.textContent).toBe(
+      "This is taking longer than usual. If nothing happens, ask in the chat again.",
+    )
   })
 })
 

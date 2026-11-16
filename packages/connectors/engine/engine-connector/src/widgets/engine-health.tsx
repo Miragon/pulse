@@ -30,7 +30,7 @@ import { ENGINE_HEALTH_DATA } from "../tool-names.js"
 import { remediationHandOff, UNKNOWN_KEY as UNKNOWN } from "./remediation.js"
 import { AlarmCount } from "./lib/alarm-count.js"
 import { useActionAllowed } from "./lib/engine-action.js"
-import { useHandOff, type HandOff, type ViewContext } from "./lib/hand-off.js"
+import { useHandOff, useHandOffsShown, type HandOff, type ViewContext } from "./lib/hand-off.js"
 import { healthFailureOf, healthVerdictLine, VERDICT_TONE } from "./lib/health-verdict.js"
 import { useT } from "../messages/use-t.js"
 
@@ -327,6 +327,7 @@ export function EngineHealthView({
   const t = useT()
   const go = useNav()
   const { ask, context } = useHandOff()
+  const handOffs = useHandOffsShown()
   // Start data SEEDS the feed scoped to its engine, so a refresh re-reads that engine.
   const view = useViewData<EngineHealthData>(
     initialData,
@@ -347,6 +348,8 @@ export function EngineHealthView({
   }
 
   const badge = verdictBadge(data)
+  // No open incident to look at and a hand-off the host hides: the bar has no action group.
+  const hasActions = data.summary.totalIncidents > 0 || handOffs
 
   return (
     <WidgetShell
@@ -364,27 +367,29 @@ export function EngineHealthView({
               </>
             }
             actions={
-              <>
-                {/* The deterministic next step leads (#322 U11): with open incidents, look at
-                    them; the chat assessment follows. The cockpit's head holds the one Refresh
-                    (#322 U27). */}
-                {data.summary.totalIncidents > 0 && (
-                  <Button
-                    type="button"
+              hasActions && (
+                <>
+                  {/* The deterministic next step leads (#322 U11): with open incidents, look at
+                      them; the chat assessment follows. The cockpit's head holds the one Refresh
+                      (#322 U27). */}
+                  {data.summary.totalIncidents > 0 && (
+                    <Button
+                      type="button"
+                      variant="toolbar"
+                      size="sm"
+                      onClick={() => go({ type: "incidents" })}
+                    >
+                      <Icon icon={TriangleAlert} />
+                      {t("engineHealth.openIncidents")}
+                    </Button>
+                  )}
+                  <HandOffButton
+                    action="assess"
                     variant="toolbar"
-                    size="sm"
-                    onClick={() => go({ type: "incidents" })}
-                  >
-                    <Icon icon={TriangleAlert} />
-                    {t("engineHealth.openIncidents")}
-                  </Button>
-                )}
-                <HandOffButton
-                  action="assess"
-                  variant="toolbar"
-                  prompt={ask(triageHandOff(data, engine))}
-                />
-              </>
+                    prompt={ask(triageHandOff(data, engine))}
+                  />
+                </>
+              )
             }
           />
           {/* A failed re-pull keeps the last verdict and says it is not current, docked under

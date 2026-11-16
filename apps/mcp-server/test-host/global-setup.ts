@@ -97,9 +97,9 @@ async function deploy(
  * `HOST_SIM_OWN_VIEW_URL`, the one with board files via `HOST_SIM_BOARD_URL`, the one with one
  * engine and a board via `HOST_SIM_ONE_ENGINE_BOARD_URL` and the stub engine's
  * scenario control via
- * `HOST_SIM_ENGINE_URL` (all inherited from this process). The default deployment also serves a
- * plain page outside a chat at `/page` (`mountPage`, its script built here from `page/main.ts`,
- * its path in `HOST_SIM_PAGE_SCRIPT`).
+ * `HOST_SIM_ENGINE_URL` (all inherited from this process). The default and the write-capable
+ * deployment also serve a plain page outside a chat at `/page` (`mountPage`, its script built here
+ * from `page/main.ts`, its path in `HOST_SIM_PAGE_SCRIPT`).
  */
 export default async function globalSetup(): Promise<() => Promise<void>> {
   const pageDir = await mkdtemp(path.join(os.tmpdir(), "pulse-host-sim-page-"))
@@ -117,8 +117,13 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   // widest audience a view has to work for.
   const readOnly = await deploy(engines, undefined, page)
   // A gateway-fronted deployment naming its toolset: the widget writes are
-  // offered (write-refresh.spec.ts).
-  const operations = await deploy({ ...engines, MCP_ACTIVE_MODULES: "engine:operations" })
+  // offered (write-refresh.spec.ts), in the chat and never on its plain page, which writes
+  // nothing (page-root.spec.ts).
+  const operations = await deploy(
+    { ...engines, MCP_ACTIVE_MODULES: "engine:operations" },
+    undefined,
+    page,
+  )
   // Real-sized data on its own deployment (inline-fit.spec.ts), so the other
   // scenarios keep their engine landscape.
   const realistic = await deploy({

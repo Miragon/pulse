@@ -37,7 +37,7 @@ import {
 } from "./remediation.js"
 import { AlarmCount } from "./lib/alarm-count.js"
 import { useActionAllowed } from "./lib/engine-action.js"
-import { useHandOff, type ViewContext } from "./lib/hand-off.js"
+import { useHandOff, useHandOffsShown, type ViewContext } from "./lib/hand-off.js"
 import { InstanceLabel } from "./lib/identity.js"
 import { instanceName } from "./lib/write-feedback.js"
 import { useT } from "../messages/use-t.js"
@@ -98,6 +98,8 @@ function clusterProcesses(data: ClusterDetailData, unknown: string): string {
 function ClusterHeader({ data, engineId }: { data: ClusterDetailData; engineId: string }) {
   const t = useT()
   const { ask } = useHandOff()
+  // Its one action is a hand-off: where the host hides it, the bar has no action group.
+  const handOffs = useHandOffsShown()
   const canFix = useActionAllowed("engine_set_job_retries", engineId)
   const handOff = remediationHandOff(
     {
@@ -133,11 +135,13 @@ function ClusterHeader({ data, engineId }: { data: ClusterDetailData; engineId: 
         </>
       }
       actions={
-        <HandOffButton
-          action={canFix ? "planFix" : "explainError"}
-          variant="toolbar"
-          prompt={ask(handOff)}
-        />
+        handOffs && (
+          <HandOffButton
+            action={canFix ? "planFix" : "explainError"}
+            variant="toolbar"
+            prompt={ask(handOff)}
+          />
+        )
       }
     />
   )

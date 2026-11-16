@@ -1,7 +1,8 @@
 /**
  * The browser adapter of the view host: what a plain page outside a chat provides, mounted as the
  * host-agnostic contexts every widget reads, as the ext-apps adapter does in a chat. It speaks to
- * no host: tools go through the caller the page hands in, and nothing reaches a model.
+ * no host: tools go through the caller the page hands in, nothing reaches a model, and no view
+ * writes to an engine.
  */
 import { useMemo, useState, useSyncExternalStore, type ReactNode } from "react"
 import type { ToolResult } from "../protocol/tool-result.js"
@@ -68,11 +69,13 @@ function openInNewTab(url: string): void {
   window.open(url, "_blank", "noopener,noreferrer")
 }
 
+/** A page writes to no engine: it offers only what a view reads. */
 function browserViewHost(callTool: ToolCaller, followUp: FollowUp): ViewHost {
   return {
     callTool: async (name, args = {}) => await callTool(name, args as Record<string, unknown>),
     sendFollowUp: () => undefined,
     followUp,
+    writes: false,
     openExternal: openInNewTab,
     ModelContext: NoModelContext,
   }

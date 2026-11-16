@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import type { ReactElement } from "react"
 import { afterEach, beforeAll, describe, expect, it } from "vitest"
 import { cleanup, render, waitFor } from "@testing-library/react"
 import type { EngineHealthData, IncidentDetailData, ProcessIncidentsData } from "../view-models.js"
@@ -9,7 +10,11 @@ import { InstanceDetailWidget } from "./instance-detail.js"
 import { ProcessDetailHeader } from "./process-incidents/header.js"
 import { widgetActionsFeedFor } from "./lib/hand-off.test-support.js"
 import { instance } from "./write-path.test-support.js"
-import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
+import {
+  createTestQueryClient,
+  TestViewHost,
+  type FollowUp,
+} from "@miragon/pulse-widget-shell/widgets"
 import { buttonVariants } from "@miragon/pulse-ui"
 
 /**
@@ -62,109 +67,168 @@ async function expectOneGroup(container: HTMLElement, names: RegExp[]) {
   }
 }
 
+const DEFINITION: ProcessIncidentsData = {
+  processDefinitionKey: "leasing",
+  processDefinitionName: "Leasing",
+  diagramVersion: 2,
+  diagramDefinitionId: null,
+  cockpitUrl: "https://engine.example/cockpit/leasing",
+  runningInstances: 99,
+  incidentCount: 3,
+  last24hCount: 1,
+  failedJobs: 2,
+  totalActivityCount: 2,
+  affectedDiagramActivityCount: 1,
+  latestIncident: "2026-10-10T12:00:00.000+0000",
+  activities: [],
+  siblingsWithIncidents: null,
+  engineVendor: "CIB seven",
+  engineId: "prod-a",
+}
+
+const INCIDENT: IncidentDetailData = {
+  incidentId: "inc-1",
+  incidentType: "failedJob",
+  incidentMessage: "boom",
+  incidentTimestamp: "2026-10-09T09:30:00.000+0000",
+  activityId: "charge",
+  activityName: "Charge card",
+  processDefinitionKey: "invoice",
+  processDefinitionId: "invoice:1:abc",
+  processDefinitionName: "Invoice",
+  processDefinitionVersion: 1,
+  processInstanceId: "pi-1",
+  businessKey: null,
+  cockpitInstanceUrl: "https://engine.example/cockpit/pi-1",
+  engineVendor: "CIB seven",
+  diagramDefinitionId: null,
+  job: null,
+  externalTask: null,
+  recovery: { action: "resolve" },
+  instance: {
+    id: "pi-1",
+    definitionId: "invoice:1:abc",
+    businessKey: null,
+    suspended: false,
+    ended: false,
+  },
+  activityTree: null,
+  variables: {},
+  historyTotalCount: null,
+  engineId: "prod",
+}
+
+const HEALTH: EngineHealthData = {
+  status: "warning",
+  statusRule: "warning with any open incident",
+  summary: {
+    totalIncidents: 3,
+    lastHourIncidents: 1,
+    last24hIncidents: 2,
+    affectedActivities: 1,
+    affectedDefinitions: 1,
+    runningInstances: 12,
+    totalDefinitions: 2,
+    started24h: 10,
+    completed24h: 8,
+  },
+  clusters: [],
+  fetchedAt: "2026-06-11T14:05:00.000Z",
+  engineId: "prod",
+}
+
+/** No open incident: nothing to look at first. */
+const QUIET: EngineHealthData = {
+  ...HEALTH,
+  status: "ok",
+  summary: { ...HEALTH.summary, totalIncidents: 0, lastHourIncidents: 0, last24hIncidents: 0 },
+}
+
+const definitionView = () => (
+  <ProcessDetailHeader data={DEFINITION} processDefinitionKey="leasing" engine="prod-a" />
+)
+const incidentView = (data = INCIDENT) => (
+  <IncidentDetailWidget data={data} incidentId="inc-1" engine="prod" />
+)
+const instanceView = (data = instance()) => (
+  <InstanceDetailWidget data={data} processInstanceId="pi-1" engine="prod" />
+)
+const healthView = (data = HEALTH) => <EngineHealthView data={data} engine="prod" />
+
 describe("one action group per view, one action size", () => {
   it("definition view: running instances, the engine's web app, then the chat", async () => {
-    const data: ProcessIncidentsData = {
-      processDefinitionKey: "leasing",
-      processDefinitionName: "Leasing",
-      diagramVersion: 2,
-      diagramDefinitionId: null,
-      cockpitUrl: "https://engine.example/cockpit/leasing",
-      runningInstances: 99,
-      incidentCount: 3,
-      last24hCount: 1,
-      failedJobs: 2,
-      totalActivityCount: 2,
-      affectedDiagramActivityCount: 1,
-      latestIncident: "2026-10-10T12:00:00.000+0000",
-      activities: [],
-      siblingsWithIncidents: null,
-      engineVendor: "CIB seven",
-      engineId: "prod-a",
-    }
-    const { container } = render(
-      <TestViewHost tools={tools}>
-        <ProcessDetailHeader data={data as never} processDefinitionKey="leasing" engine="prod-a" />
-      </TestViewHost>,
-    )
+    const { container } = render(<TestViewHost tools={tools}>{definitionView()}</TestViewHost>)
     await expectOneGroup(container, [/^View running instances$/, /^Open in CIB seven/, /chat/i])
   })
 
   it("incident detail: the instance in the engine's web app, then the chat", async () => {
-    const data: IncidentDetailData = {
-      incidentId: "inc-1",
-      incidentType: "failedJob",
-      incidentMessage: "boom",
-      incidentTimestamp: "2026-10-09T09:30:00.000+0000",
-      activityId: "charge",
-      activityName: "Charge card",
-      processDefinitionKey: "invoice",
-      processDefinitionId: "invoice:1:abc",
-      processDefinitionName: "Invoice",
-      processDefinitionVersion: 1,
-      processInstanceId: "pi-1",
-      businessKey: null,
-      cockpitInstanceUrl: "https://engine.example/cockpit/pi-1",
-      engineVendor: "CIB seven",
-      diagramDefinitionId: null,
-      job: null,
-      externalTask: null,
-      recovery: { action: "resolve" },
-      instance: {
-        id: "pi-1",
-        definitionId: "invoice:1:abc",
-        businessKey: null,
-        suspended: false,
-        ended: false,
-      },
-      activityTree: null,
-      variables: {},
-      historyTotalCount: null,
-      engineId: "prod",
-    }
-    const { container } = render(
-      <TestViewHost tools={tools}>
-        <IncidentDetailWidget data={data as never} incidentId="inc-1" engine="prod" />
-      </TestViewHost>,
-    )
+    const { container } = render(<TestViewHost tools={tools}>{incidentView()}</TestViewHost>)
     await expectOneGroup(container, [/^Open instance in CIB seven/, /chat/i])
   })
 
   // Suspend and Cancel are admin writes; the operations toolset offers neither.
   it("instance detail: its process, then the chat", async () => {
-    const { container } = render(
-      <TestViewHost tools={tools}>
-        <InstanceDetailWidget data={instance()} processInstanceId="pi-1" engine="prod" />
-      </TestViewHost>,
-    )
+    const { container } = render(<TestViewHost tools={tools}>{instanceView()}</TestViewHost>)
     await expectOneGroup(container, [/^View process$/, /chat/i])
   })
 
   // The cockpit's head holds the one Refresh (#322 U27), so the overview has none of its own.
   it("engine status: the incidents, then the chat", async () => {
-    const data: EngineHealthData = {
-      status: "warning",
-      statusRule: "warning with any open incident",
-      summary: {
-        totalIncidents: 3,
-        lastHourIncidents: 1,
-        last24hIncidents: 2,
-        affectedActivities: 1,
-        affectedDefinitions: 1,
-        runningInstances: 12,
-        totalDefinitions: 2,
-        started24h: 10,
-        completed24h: 8,
-      },
-      clusters: [],
-      fetchedAt: "2026-06-11T14:05:00.000Z",
-      engineId: "prod",
-    }
+    const { container } = render(<TestViewHost tools={tools}>{healthView()}</TestViewHost>)
+    await expectOneGroup(container, [/^View incidents$/, /chat/i])
+  })
+})
+
+/**
+ * A page that hides hand-offs (`followUp` "none") keeps a bar's other actions in one group, and a
+ * bar left with nothing draws no group at all: no empty space where the chat's action stood.
+ */
+describe("a page that hides hand-offs keeps a bar's other actions, or draws no group", () => {
+  /**
+   * Renders under the page's follow-up and waits for the gate feed where the view reads it (a view
+   * that writes), so an absent write is a decision.
+   */
+  async function onPage(view: ReactElement, followUp: FollowUp = "none") {
+    const client = createTestQueryClient()
     const { container } = render(
-      <TestViewHost tools={tools}>
-        <EngineHealthView data={data as never} engine="prod" />
+      <TestViewHost tools={tools} client={client} followUp={followUp}>
+        {view}
       </TestViewHost>,
     )
-    await expectOneGroup(container, [/^View incidents$/, /chat/i])
+    await waitFor(() => {
+      const gate = client
+        .getQueryCache()
+        .find({ queryKey: ["engine-widget-actions"], exact: false })
+      expect(gate?.state.status ?? "unread").toMatch(/^(success|unread)$/)
+    })
+    return container
+  }
+
+  const noGroup = (container: HTMLElement) =>
+    expect(container.querySelector('[data-slot="view-bar-actions"]')).toBeNull()
+
+  it.each([
+    ["definition view", definitionView, [/^View running instances$/, /^Open in CIB seven/]],
+    ["incident detail", () => incidentView(), [/^Open instance in CIB seven/]],
+    ["instance detail", () => instanceView(), [/^View process$/]],
+    ["engine status", () => healthView(), [/^View incidents$/]],
+  ] as const)("%s: its deterministic actions alone", async (_, view, names) => {
+    await expectOneGroup(await onPage(view()), [...names])
+  })
+
+  it("incident detail without a link to the engine's web app: no group", async () => {
+    noGroup(await onPage(incidentView({ ...INCIDENT, cockpitInstanceUrl: null })))
+  })
+
+  it("instance detail whose process it cannot name: no group", async () => {
+    noGroup(await onPage(instanceView(instance({ definitionKey: null }))))
+  })
+
+  it("engine status without an open incident: no group", async () => {
+    noGroup(await onPage(healthView(QUIET)))
+  })
+
+  it("a page that copies hand-offs keeps each one, its prompt to copy", async () => {
+    await expectOneGroup(await onPage(healthView(QUIET), "copy"), [/^Copy prompt: Assess in chat$/])
   })
 })

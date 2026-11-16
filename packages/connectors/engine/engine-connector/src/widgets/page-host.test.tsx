@@ -8,7 +8,12 @@ import {
   type ToolCaller,
   type ToolResult,
 } from "@miragon/pulse-widget-shell/widgets"
-import { ENGINE_INCIDENTS_DATA, ENGINE_OPEN_COCKPIT } from "../tool-names.js"
+import {
+  ENGINE_INCIDENTS_DATA,
+  ENGINE_OPEN_COCKPIT,
+  ENGINE_WIDGET_ACTIONS,
+  ENGINE_WIDGET_ACTIONS_DATA,
+} from "../tool-names.js"
 import type {
   CockpitAppData,
   CockpitStart,
@@ -176,6 +181,29 @@ describe("the cockpit on a page (mountPage)", () => {
     await screen.findByRole("heading", { name: "prod-a · Incidents" })
     expect(screen.getByRole("button", { name: "Copy prompt: Assess in chat" })).toBeTruthy()
     expect(screen.queryByRole("button", { name: "Assess in chat" })).toBeNull()
+  })
+
+  it("offers no write on a page, though the deployment offers every one", async () => {
+    const view = serverFor({ view: { section: "jobs" }, data: JOBS })
+    const callTool = vi.fn<ToolCaller>((name, args) =>
+      name === ENGINE_WIDGET_ACTIONS_DATA
+        ? Promise.resolve({
+            structuredContent: { allowedActions: [...ENGINE_WIDGET_ACTIONS], readOnlyEngines: [] },
+            content: [{ type: "text", text: "{}" }],
+          })
+        : view(name, args),
+    )
+    await openCockpit(callTool, "copy", "jobs")
+    await screen.findByText("Card declined")
+    await vi.waitFor(() =>
+      expect(callTool.mock.calls.map(([name]) => name)).toContain(ENGINE_WIDGET_ACTIONS_DATA),
+    )
+    await act(async () => await Promise.resolve())
+    expect(screen.queryByRole("button", { name: "Retry job" })).toBeNull()
+    // The row keeps its menu of hand-offs to copy, so the actions column stays.
+    expect(
+      screen.getByRole("button", { name: "More actions for the job at Charge card" }),
+    ).toBeTruthy()
   })
 
   it("words a failed view call in the frame with Try again, never a blank page", async () => {
