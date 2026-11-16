@@ -1,0 +1,59 @@
+/**
+ * The web app's wire contract, which the server's sign-in and call routes (src/web) and a page's
+ * client (`/widgets`) both read, so neither half spells a path, a header or a code of its own. The
+ * app lives under `/app`, without a trailing slash, like `/mcp`: the listener answers a path that
+ * ends in one with 404.
+ */
+
+/** The routes of the web app: its sign-in, the page's API and the page a signed-out user sees. */
+export const WEB_PATHS = {
+  app: "/app",
+  login: "/app/auth/login",
+  callback: "/app/auth/callback",
+  logout: "/app/auth/logout",
+  session: "/app/api/session",
+  call: "/app/api/call",
+  signedOut: "/app/signed-out",
+} as const
+
+/**
+ * The query parameters the routes read: the login route's target to return to after the sign-in,
+ * and the signed-out page's reason.
+ */
+export const WEB_QUERY = { returnTo: "return", reason: "reason" } as const
+
+/** The header a page's write to the API carries the session's CSRF token in. */
+export const WEB_CSRF_HEADER = "x-pulse-csrf"
+
+/**
+ * The codes of the API's refusals, in its JSON answer's `code`: no session (401), a tool a page may
+ * not call, and a tool that writes.
+ */
+export const WEB_CODES = {
+  signedOut: "signed_out",
+  notForPages: "WEB_NOT_FOR_PAGES",
+  readOnly: "WEB_READ_ONLY",
+} as const
+
+export type WebCode = (typeof WEB_CODES)[keyof typeof WEB_CODES]
+
+/**
+ * Why the signed-out page shows: the identity provider refused the sign-in, the session ran out,
+ * the sign-in failed, the token lacks this server's audience, the user signed out, or the identity
+ * provider does not answer.
+ */
+export const SIGNED_OUT_REASONS = [
+  "denied",
+  "expired",
+  "failed",
+  "audience",
+  "signed_out",
+  "unavailable",
+] as const
+
+export type SignedOutReason = (typeof SIGNED_OUT_REASONS)[number]
+
+/** Whether a value read off the signed-out page's query names one of the reasons. */
+export function isSignedOutReason(value: unknown): value is SignedOutReason {
+  return SIGNED_OUT_REASONS.some((reason) => reason === value)
+}

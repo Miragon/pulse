@@ -112,6 +112,31 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
 - **Test server** (`./testing`): `recordingModuleServer`, the `ModuleServer` a module's tests
   register on, and `testServerContext`. The brand gates and the product glossary every widget
   package checks its catalogs against are `@miragon/pulse-ui/testing`. Node only.
+- **The web sign-in's rules** (`src/web`, wired into no route yet): `readWebSettings` reads the
+  `MCP_WEB_*` variables (`MCP_WEB_CLIENT_ID` turns the web app on; it needs the server's OAuth
+  provider, a client secret, session keys of at least 32 bytes and an https `MCP_URL`, plain http
+  only on localhost) and logs one line without a secret; `createSealer` seals a cookie's value as a
+  compact JWE (`dir`, `A256GCM` on jose), each key derived by HKDF-SHA256 with its own key id, the
+  first key sealing and every key opening, the cookie's name in the authenticated header and an
+  absolute expiry that `reseal` keeps; `cookies.ts` writes the `__Host-` session cookie in at most
+  three chunks of 3,800 bytes (a larger session is a failure of its own, stale chunks are cleared)
+  and the login cookie for ten minutes, both HttpOnly, Secure, SameSite=Lax on `/`;
+  `returnTarget` keeps a sign-in's return on the app (a path under `/app` in its normal form, the
+  query written again, at most 1,024 characters); `csrfRefusal` checks `Sec-Fetch-Site`, the
+  `Origin` and the CSRF header against the session's secret in constant time. The paths, the CSRF
+  header and the codes both halves read are `src/protocol/web.ts`, exported from `./widgets`. The
+  seal, the cookies, the return path and the CSRF check are mutated nightly (StrykerJS, break 90,
+  `src/web`'s suites alone); `src/web` keeps a coverage floor of 100.
+- **Fake identity provider** (`./testing/oidc`): `startFakeOidc(options)` starts an OpenID
+  Connect provider on a loopback port with Keycloak's paths, so the boot's Keycloak provider
+  (`MCP_OAUTH_KEYCLOAK_SERVER_URL` its `serverUrl`, `MCP_OAUTH_KEYCLOAK_REALM` its `realm`)
+  verifies its access tokens with the real JWT verifier: discovery, its RS256 key set, a login page
+  with a link per user and one that cancels, the code grant with PKCE S256 and the client's
+  authentication (basic or post), refresh with optional rotation and refusal, revocation and the
+  end of a session (without Keycloak's confirmation). It sets the tokens' `aud` only as an audience
+  mapper would (`audience`), since Keycloak ignores RFC 8707's `resource`; `signIn` and `decline`
+  play the browser for a test without one, and `requests`, `issued`, `revoked` and
+  `endedSessions` record what happened. Node only.
 - **Theme:** none of its own. The widgets colour through the role variables of pulse-ui's
   Miragon theme (`@miragon/pulse-ui/theme.css`: the vendored `--cd-*` corporate-design
   tokens and the roles on top, light and dark). Your stylesheet imports it after `tailwindcss`,
@@ -197,8 +222,9 @@ engine-connector widgets (and your modules')
 ```
 
 One package, two halves that share one wire protocol: `./widgets` is `src/ui`, `./server` (and
-`./testing`) the rest of `src/`, and both import the protocol modules in `src/protocol` (tool
-results, the view name, the served fonts, the translator, the BPMN-name reader), which import
+`./testing`, `./testing/oidc`) the rest of `src/`, and both import the protocol modules in
+`src/protocol` (tool results, the view name, the served fonts, the translator, the BPMN-name
+reader, the web app's paths, codes and CSRF header), which import
 nothing themselves. The shipped code of one half imports nothing of the other (tests and the
 `./testing` fixtures aside): a server never loads React and a view bundle never loads the boot.
 dependency-cruiser holds the seam (`widget-shell-views-browser-only`,

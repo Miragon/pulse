@@ -110,3 +110,14 @@ export { BpmnZoomControls, type BpmnZoomControlsProps } from "./bpmn-zoom-contro
 // Also on `/server` (src/protocol/): the one rule every module names a model's process and elements
 // by, on the server and in a view.
 export { parseBpmnNames, readBpmnNames } from "../protocol/bpmn-names.js"
+// The web app's wire contract (src/protocol/), which a page's client and the server's routes read.
+export {
+  isSignedOutReason,
+  SIGNED_OUT_REASONS,
+  WEB_CODES,
+  WEB_CSRF_HEADER,
+  WEB_PATHS,
+  WEB_QUERY,
+  type SignedOutReason,
+  type WebCode,
+} from "../protocol/web.js"

@@ -59,7 +59,7 @@ and restart (Cloudflare's quick tunnels carry no Server-Sent Events, which the s
 calls hang, use a named tunnel). Anyone with that URL reaches the server, so keep the read-only default.
 To debug, press F5 in VS Code (`.vscode/launch.json`) or run any command in a JavaScript Debug Terminal.
 
-Mutation testing covers `@miragon/pulse-c7-core`, `@miragon/pulse-http`, the root-cause, value-kind and move-reason rules of `@miragon/pulse-engine-core`, the profile format `@miragon/pulse-profile` and the board format with its builder `@miragon/pulse-board` (`MUTATED_PACKAGES`), nightly, never on a pull request: `pnpm --fail-if-no-match --filter @miragon/pulse-c7-core exec stryker run`, the same with `@miragon/pulse-http`, `@miragon/pulse-engine-core`, `@miragon/pulse-profile` and `@miragon/pulse-board`.
+Mutation testing covers `@miragon/pulse-c7-core`, `@miragon/pulse-http`, the root-cause, value-kind and move-reason rules of `@miragon/pulse-engine-core`, the profile format `@miragon/pulse-profile`, the board format with its builder `@miragon/pulse-board` and the web sign-in's rules of `@miragon/pulse-widget-shell` (`MUTATED_PACKAGES`), nightly, never on a pull request: `pnpm --fail-if-no-match --filter @miragon/pulse-c7-core exec stryker run`, the same with `@miragon/pulse-http`, `@miragon/pulse-engine-core`, `@miragon/pulse-profile`, `@miragon/pulse-board` and `@miragon/pulse-widget-shell`.
 
 Editors read only `tsconfig.json`: each widget, host-bundle and test tree has a nested one extending the `tsconfig.<x>.json` that checks it (`pnpm lint:package-scripts`); `.vscode/` pins TypeScript.
 

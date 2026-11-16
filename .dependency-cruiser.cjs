@@ -776,11 +776,12 @@ module.exports = {
     // ── The browser/server seams: widget-shell's halves and connector widgets (review P7) ──
     // widget-shell stays ONE package (`/server` and `/widgets`) because its halves share one wire
     // protocol, src/protocol/ (tool results, the view name, the served fonts, the translator, the
-    // BPMN-name reader). Three rules keep the parts apart, so a later split is a path move: the
-    // view half (src/ui) imports only itself, the protocol and the view stack; the server half
-    // (the rest of src/) never imports the view half or the view stack; the protocol imports
-    // nothing but itself. tsconfig.widgets.json (DOM, no Node types) and tsconfig.json (Node
-    // types, no DOM) hold the same seam for types; the protocol is typed under both.
+    // BPMN-name reader, the web app's paths, codes and CSRF header). Three rules keep the parts
+    // apart, so a later split is a path move: the view half (src/ui) imports only itself, the
+    // protocol and the view stack; the server half (the rest of src/) never imports the view half
+    // or the view stack; the protocol imports nothing but itself. tsconfig.widgets.json (DOM, no
+    // Node types) and tsconfig.json (Node types, no DOM) hold the same seam for types; the
+    // protocol is typed under both.
     {
       name: "widget-shell-views-browser-only",
       severity: "error",

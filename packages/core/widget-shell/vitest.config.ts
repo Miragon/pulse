@@ -33,7 +33,16 @@ export default mergeConfig(
         // (describeError's mapping table, ListTable's region and column rules,
         // the BPMN token module, the heat ramp and the type-scale gate, each
         // with its suite): measured 97.33 / 95.32 / 97.44 / 98.45.
-        thresholds: { statements: 95, branches: 93, functions: 95, lines: 96 },
+        // The web sign-in's rules (src/web: its settings, the seal, the cookies, the return path,
+        // the CSRF check) hold a floor of their own, measured 100 / 100 / 100 / 100 as they
+        // landed (2026-11-16): a line no test runs there is a security rule nobody checks.
+        thresholds: {
+          statements: 95,
+          branches: 93,
+          functions: 95,
+          lines: 96,
+          "src/web/**": { statements: 100, branches: 100, functions: 100, lines: 100 },
+        },
       },
     },
   }),

@@ -382,16 +382,18 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
     }
   })
 
-  it("the real map lists c7-core, the transport, engine-core's rules, the profile format and the board format with its builder, each with the owner's decision", () => {
+  it("the real map lists c7-core, the transport, engine-core's rules, the profile format, the board format with its builder and the web sign-in's rules, each with the owner's decision", () => {
     const engineCore = "packages/connectors/engine/engine-core"
     const profile = "packages/core/profile"
     const board = "packages/core/board"
+    const widgetShell = "packages/core/widget-shell"
     assert.deepEqual(Object.keys(MUTATED_PACKAGES), [
       CORE,
       "packages/core/http",
       engineCore,
       profile,
       board,
+      widgetShell,
     ])
     assert.match(
       MUTATED_PACKAGES[CORE],
@@ -417,6 +419,13 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
         "contract, so a surviving mutant is a wrong refusal or a wrong number on every board; its " +
         "format and builder are mutated, not its barrels or fixtures",
     )
+    assert.equal(
+      MUTATED_PACKAGES[widgetShell],
+      "owner decision 2026-11-16: the web sign-in's rules (src/web: the seal of its cookies, the " +
+        "cookies, the return path, the CSRF check) guard every session of the web app, so a " +
+        "surviving mutant there is a security hole; only those four files are mutated, not the " +
+        "boot, the view runtime or the routes around them",
+    )
   })
 
   it("the board's config mutates its format and builder without the tests and the builder's barrel, as its reason says", () => {
@@ -428,6 +437,18 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
       "src/builder/**/*.ts",
       "!src/**/*.test.ts",
       "!src/builder/index.ts",
+    ])
+  })
+
+  it("widget-shell's config mutates exactly the web sign-in's four rule files, as its reason says", () => {
+    const config = JSON.parse(
+      readFileSync(path.join(repoRoot, "packages/core/widget-shell/stryker.config.json"), "utf8"),
+    )
+    assert.deepEqual(config.mutate, [
+      "src/web/seal.ts",
+      "src/web/cookies.ts",
+      "src/web/return-path.ts",
+      "src/web/csrf.ts",
     ])
   })
 
