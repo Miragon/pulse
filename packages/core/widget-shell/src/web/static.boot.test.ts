@@ -1,4 +1,5 @@
 import path from "node:path"
+import { brotliDecompressSync } from "node:zlib"
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest"
 import { createComposedServer, type RunningServer } from "../composed-server.js"
 import { moduleOf, plain, rawRequest } from "../composed-server.test-support.js"
@@ -6,6 +7,7 @@ import { NOT_NORMAL_TARGET } from "../http-edge.js"
 import { startFakeOidc, type FakeOidc } from "../testing/oidc/index.js"
 import {
   buildWith,
+  compressible,
   FIXTURE_BUILD,
   INDEX_HTML,
   removeBuilds,
@@ -131,6 +133,8 @@ describe("the web build's assets", () => {
     expect(response.headers.get("content-type")).toBe("text/css; charset=utf-8")
     expect(response.headers.get("content-length")).toBe(String(Buffer.byteLength(STYLESHEET_CSS)))
     expect(response.headers.get("cache-control")).toBe(IMMUTABLE)
+    expect(response.headers.get("vary")).toBe("Accept-Encoding")
+    expect(response.headers.get("etag")).toMatch(/^"[\w-]{43}"$/)
     expect(await response.text()).toBe(STYLESHEET_CSS)
   })
 
@@ -177,12 +181,12 @@ describe("the web build's assets", () => {
 const probe = moduleOf({ name: "probe", register: (server) => plain(server, "probe_tool") })
 
 /** The web app on a real listener, for the targets only the listener sees as sent. */
-async function listening() {
+async function listening(env: NodeJS.ProcessEnv = {}) {
   const composed = await createComposedServer({
     info: { name: "web-test", version: "0.0.0" },
     modules: [probe],
     bundle: { jsPath: "/nonexistent/mcp-app.js" },
-    env: webEnv(fake),
+    env: webEnv(fake, env),
   })
   const server = await composed.listen({ port: 0, host: "127.0.0.1" })
   running.push(server)
@@ -229,6 +233,21 @@ describe("the listener in front of /app", () => {
         id: null,
       })
     }
+  })
+})
+
+describe("the listener and an encoded asset", () => {
+  it("sends it as /app answers it: its encoding, the length of its bytes, the bytes", async () => {
+    const script = compressible(4096)
+    const { build } = buildWith({ "assets/app.js": script })
+    const port = await listening({ MCP_WEB_DIR: build })
+    const headers = { "Accept-Encoding": "gzip, deflate, br, zstd" }
+    const answer = await rawRequest(port, { target: "/app/assets/app.js", headers })
+    const bytes = Buffer.from(answer.body, "latin1")
+    expect(answer.status).toBe(200)
+    expect(answer.head).toMatch(/^content-encoding: br$/im)
+    expect(answer.head).toMatch(new RegExp(`^content-length: ${bytes.byteLength}$`, "im"))
+    expect(brotliDecompressSync(bytes).toString("utf8")).toBe(script)
   })
 })
 

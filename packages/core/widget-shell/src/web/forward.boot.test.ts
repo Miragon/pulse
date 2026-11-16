@@ -1,4 +1,6 @@
+import http from "node:http"
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest"
+import { createComposedServer } from "../composed-server.js"
 import type { ComposableModule } from "../composition.js"
 import { getMcpRequestInfo, type McpRequestInfo } from "../request-context.js"
 import { startFakeOidc, FAKE_OIDC_USERS, type FakeOidc } from "../testing/oidc/index.js"
@@ -48,9 +50,36 @@ const run = (tool: string) => () => {
   return answer({ tool })
 }
 
+/** Whether `signal` aborts within `ms`. */
+const abortsWithin = (signal: AbortSignal, ms: number) =>
+  new Promise<boolean>((resolve) => {
+    const timer = setTimeout(() => resolve(false), ms)
+    signal.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(timer)
+        resolve(true)
+      },
+      { once: true },
+    )
+  })
+
+/** A promise and what settles it. */
+function deferred<T>() {
+  let resolve: (value: T) => void = () => {}
+  const promise = new Promise<T>((settle) => {
+    resolve = settle
+  })
+  return { promise, resolve }
+}
+
+/** The slow feed's last call: that it started, and whether its signal aborted while it ran. */
+const slow = { started: deferred<void>(), aborted: deferred<boolean>() }
+
 /**
  * A module with each kind of tool: a view tool, an app-only feed, a model read a view calls, a
- * model read none does, a write a view could call, and a feed only its admin toolset registers.
+ * model read none does, a write a view could call, a feed only its admin toolset registers, and a
+ * feed that answers only once its call is cancelled, or after three seconds.
  */
 const page: ComposableModule<object> = {
   name: "page",
@@ -76,6 +105,11 @@ const page: ComposableModule<object> = {
         { annotations: { destructiveHint: false }, ...appOnly },
         run("page_retry"),
       )
+      server.registerTool("page_slow_data", { ...read, ...appOnly }, async (ctx) => {
+        slow.started.resolve()
+        slow.aborted.resolve(await abortsWithin(ctx.mcpReq.signal, 3000))
+        return answer({ tool: "page_slow_data" })
+      })
       if (config.toolset === "admin") {
         server.registerTool("page_admin_data", { ...read, ...appOnly }, run("page_admin_data"))
       }
@@ -224,5 +258,52 @@ describe("a page's session renewed through the provider", () => {
     expect(browser.cookies.size).toBe(0)
     expect((await sessionOf(browser)).status).toBe(401)
     expect(ran).toEqual([])
+  })
+})
+
+describe("a page that leaves while its call runs", () => {
+  it("cancels the tool's call in /mcp when its connection goes away, and answers it 499", async () => {
+    fake = await startFakeOidc({ audience: RESOURCE })
+    slow.started = deferred<void>()
+    slow.aborted = deferred<boolean>()
+    const composed = await createComposedServer({
+      info: { name: "web-test", version: "0.0.0" },
+      modules: [page],
+      bundle: { jsPath: "/nonexistent/mcp-app.js" },
+      env: webEnv(fake),
+    })
+    const running = await composed.listen({ port: 0, host: "127.0.0.1" })
+    try {
+      const browser = new Browser(composed.app)
+      await signIn(browser, fake)
+      const body = JSON.stringify({ name: "page_slow_data", arguments: {} })
+      const request = http.request({
+        host: "127.0.0.1",
+        port: running.port,
+        method: "POST",
+        path: "/app/api/call",
+        headers: {
+          host: "localhost",
+          cookie: browser.cookieHeader,
+          origin: ORIGIN,
+          "sec-fetch-site": "same-origin",
+          "x-pulse-csrf": await csrfOf(browser),
+          "content-type": "application/json",
+          "content-length": Buffer.byteLength(body),
+        },
+      })
+      request.on("error", () => {})
+      request.end(body)
+      await slow.started.promise
+      logged.mockClear()
+      request.destroy()
+      expect(await slow.aborted.promise).toBe(true)
+      // The page left: no failure of /mcp, so no 5xx in the request log or the metrics.
+      const lines = () => logged.mock.calls.map(([line]) => String(line).replace(/ \d+ms/, " Nms"))
+      await vi.waitFor(() => expect(lines()).toContain("POST /app/api/call 499 Nms"))
+      expect(lines().filter((line) => / 5\d\d /.test(line))).toEqual([])
+    } finally {
+      await running.shutdown()
+    }
   })
 })

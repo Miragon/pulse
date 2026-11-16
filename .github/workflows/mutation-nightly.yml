@@ -10,8 +10,8 @@ name: Mutation (nightly)
 # @miragon/pulse-engine-core (its root-cause, value-kind and move-reason rules alone; owner
 # decision 2026-11-09), the profile format, @miragon/pulse-profile (owner decision 2026-11-07),
 # the board format with its builder, @miragon/pulse-board (owner decision 2026-11-15), and the web
-# sign-in's rules of @miragon/pulse-widget-shell (its seal, cookies, return path and CSRF check
-# alone; owner decision 2026-11-16).
+# app's server rules of @miragon/pulse-widget-shell (its seal, cookies, return path, CSRF check,
+# forward, renewal, served build and security headers alone; owner decisions 2026-11-16).
 #
 # Each leg keeps its package's Stryker incremental file in the Actions cache (every
 # stryker.config.json sets incremental: true and incrementalFile reports/stryker-incremental.json,
@@ -25,9 +25,9 @@ name: Mutation (nightly)
 # Nightly at 02:00 UTC, and by dispatch. Mutation testing resumed on 2026-11-04 after the MCP
 # server rebuild, for engine-core (now c7-core) alone; the transport joined with its package, the
 # neutral core's rules and the profile format on 2026-11-09, the board package and widget-shell's
-# web sign-in rules on 2026-11-16. A pause flips scripts/mutation-pause.mjs to true and removes the
-# schedule here (a workflow cannot read that switch); resuming flips it back and restores the
-# schedule.
+# web sign-in rules on 2026-11-16, its forward, renewal, served build and security headers later
+# that day. A pause flips scripts/mutation-pause.mjs to true and removes the schedule here (a
+# workflow cannot read that switch); resuming flips it back and restores the schedule.
 on:
   schedule:
     - cron: "0 2 * * *"
@@ -84,10 +84,10 @@ jobs:
     # files (packages/connectors/engine/engine-core, 115 mutants) in about 10 s on 17 and 15 s
     # on 4, the profile format (packages/core/profile, 1,168 mutants) in about 3 min on 4 local
     # workers, the board format and builder (packages/core/board, 1,083 mutants) in about 40 s on
-    # 11 and 70 s on 4, the web sign-in's rules (packages/core/widget-shell, 206 mutants over
-    # src/web's suites alone) in about 10 s on 11 and 15 s on 4, so 30 min leaves room for a
-    # hosted runner's 4 and the build before it. A package that joins MUTATED_PACKAGES brings its
-    # own measured time here.
+    # 11 and 70 s on 4, the web app's server rules (packages/core/widget-shell, 888 mutants over
+    # src/web's suites alone, a fifth of them static, which every suite runs) in about 3.5 min on
+    # 11 and 4 min on 4, so 30 min leaves room for a hosted runner's 4 and the build before it. A
+    # package that joins MUTATED_PACKAGES brings its own measured time here.
     timeout-minutes: 30
     strategy:
       fail-fast: false

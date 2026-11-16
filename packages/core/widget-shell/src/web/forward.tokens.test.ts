@@ -1,21 +1,30 @@
 import { describe, expect, it } from "vitest"
 import {
   bearersOf,
+  callContext,
   CLEARED,
   CSRF,
   DUE,
   EXPIRED,
   GATE_REFUSAL,
   jsonOf,
+  mcpTarget,
+  pageCall,
   result,
   RESULT,
+  ROWS,
+  scriptedProvider,
   SECOND,
+  sessionCookie,
+  sessionTokens,
   setup,
   SIGNED_OUT,
   T0,
   tokens,
+  type McpReply,
 } from "./call.test-support.js"
 import { SESSION_COOKIE } from "./cookies.js"
+import { callRoute, type McpTarget } from "./forward.js"
 import type { WebSession } from "./session.js"
 import { FLAGS } from "./sign-in.test-support.js"
 
@@ -201,5 +210,50 @@ describe("POST /app/api/call: after the gate refused the token", () => {
     expect(response.status).toBe(503)
     expect(response.headers.getSetCookie()).toEqual([])
     expect(requests).toHaveLength(1)
+  })
+})
+
+describe("POST /app/api/call: a page that leaves", () => {
+  it("cancels what it sent to /mcp, the call again after the gate's refusal too", async () => {
+    const idp = scriptedProvider(tokens("access-2"))
+    const { ctx } = callContext(idp.platform)
+    const cookie = await sessionCookie(ctx, sessionTokens(T0))
+    idp.clock.now = T0 + 30 * SECOND
+    const { target, requests } = mcpTarget(GATE_REFUSAL, result(RESULT))
+    const page = new AbortController()
+    const response = await callRoute(ctx, target)(pageCall(cookie, ROWS, {}, page.signal))
+    expect(response.status).toBe(200)
+    expect(requests.map(({ signal }) => signal.aborted)).toEqual([false, false])
+    page.abort()
+    expect(requests.map(({ signal }) => signal.aborted)).toEqual([true, true])
+  })
+
+  /** The call route over a `/mcp` that answers `reply` after the page left. */
+  async function leftDuring(reply: McpReply) {
+    const { ctx } = callContext(scriptedProvider().platform)
+    const cookie = await sessionCookie(ctx, sessionTokens(T0))
+    const page = new AbortController()
+    const { target } = mcpTarget(reply)
+    const leaving: McpTarget = {
+      ...target,
+      fetch: (request) => {
+        page.abort()
+        return target.fetch(request)
+      },
+    }
+    return callRoute(ctx, leaving)(pageCall(cookie, ROWS, {}, page.signal))
+  }
+
+  it("answers 499 when the page left before /mcp answered a result, never /mcp's 502", async () => {
+    const response = await leftDuring({ contentType: "text/event-stream", body: "" })
+    expect(await jsonOf(response)).toEqual({
+      status: 499,
+      body: { message: "Client closed request: the page left before the tool answered." },
+    })
+  })
+
+  it("answers a result /mcp gave before the page left, as any other", async () => {
+    const response = await leftDuring(result(RESULT))
+    expect(await jsonOf(response)).toEqual({ status: 200, body: { result: RESULT } })
   })
 })

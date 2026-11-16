@@ -107,14 +107,16 @@ export async function sessionCookie(
   return `${SESSION_COOKIE}=${await ctx.sealer.seal(SESSION_COOKIE, session, expiresAt)}`
 }
 
-/** A page's call as the browser sends it: its own origin, the CSRF token, JSON. */
+/** A page's call as the browser sends it: its own origin, the CSRF token, JSON, its signal. */
 export function pageCall(
   cookie: string,
   body: unknown,
   headers: Record<string, string> = {},
+  signal?: AbortSignal,
 ): Request {
   return new Request(`${ORIGIN}/app/api/call`, {
     method: "POST",
+    signal,
     headers: {
       cookie,
       origin: ORIGIN,

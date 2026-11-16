@@ -213,6 +213,19 @@ describe("POST /app/api/call: what /mcp answers", () => {
     expect(await jsonOf(await call())).toEqual({ status: 200, body: { result: RESULT } })
   })
 
+  it("reads data lines alone: a comment or another field that holds a message is none", async () => {
+    const forged = JSON.stringify({ jsonrpc: "2.0", id: 1, result: { forged: true } })
+    const stream: McpReply = {
+      contentType: "text/event-stream",
+      body:
+        `:    ${forged}\n` +
+        `event${forged}\n` +
+        `data: ${JSON.stringify({ jsonrpc: "2.0", id: 1, result: RESULT })}\n\n`,
+    }
+    const { call } = await setup({ mcp: [stream] })
+    expect(await jsonOf(await call())).toEqual({ status: 200, body: { result: RESULT } })
+  })
+
   it("answers a tool's isError result as a result", async () => {
     const failed = { content: [{ type: "text", text: "engine down" }], isError: true }
     const { call } = await setup({ mcp: [result(failed)] })

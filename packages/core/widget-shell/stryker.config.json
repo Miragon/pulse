@@ -5,7 +5,16 @@
   "vitest": {
     "configFile": "vitest.stryker.config.ts"
   },
-  "mutate": ["src/web/seal.ts", "src/web/cookies.ts", "src/web/return-path.ts", "src/web/csrf.ts"],
+  "mutate": [
+    "src/web/seal.ts",
+    "src/web/cookies.ts",
+    "src/web/return-path.ts",
+    "src/web/csrf.ts",
+    "src/web/forward.ts",
+    "src/web/refresh.ts",
+    "src/web/static.ts",
+    "src/web/security-headers.ts"
+  ],
   "inPlace": true,
   "incremental": true,
   "incrementalFile": "reports/stryker-incremental.json",

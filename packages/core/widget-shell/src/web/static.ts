@@ -11,9 +11,19 @@
  * browser goes on to the sign-in with the page and its query as the target to return to; the
  * signed-out page needs none. The page is never stored (`no-store`), an asset is immutable for a
  * year (its name carries its hash), and anything else under `/app` is 404.
+ *
+ * The boot compresses each text asset over 1 KiB once (a source map never), with brotli and gzip,
+ * and keeps an encoding only where it is smaller than the file. An asset answers in the encoding
+ * `Accept-Encoding` takes first of br, then gzip, else as the file is (also without the header),
+ * with `Vary: Accept-Encoding` and an `ETag` of exactly the bytes it sends; `If-None-Match` on that
+ * tag gets 304. A `Range` is ignored: an asset always answers whole (`Accept-Ranges: none`). The
+ * page stays as it is: a few hundred bytes that load the assets, below the size where an encoding
+ * pays.
  */
+import { createHash } from "node:crypto"
 import { readdirSync, readFileSync, realpathSync, statSync } from "node:fs"
 import path from "node:path"
+import { brotliCompressSync, constants, gzipSync } from "node:zlib"
 import type { McpHttpApp } from "../mcp-server.js"
 import { WEB_PATHS } from "../protocol/web.js"
 import { loginPage, redirect, type WebContext } from "./context.js"
@@ -22,9 +32,19 @@ import { requestSession } from "./session.js"
 
 type Bytes = Uint8Array<ArrayBuffer>
 
-interface WebAsset {
+/** An asset's bytes in one content coding, `identity` the file as it is, and their `ETag`. */
+interface Encoded {
+  readonly coding: "br" | "gzip" | "identity"
   readonly body: Bytes
+  readonly etag: string
+}
+
+interface WebAsset {
   readonly type: string
+  /** The file as it is. */
+  readonly identity: Encoded
+  /** br, then gzip: each only where it is smaller than the file. */
+  readonly encoded: readonly Encoded[]
 }
 
 export interface WebBuild {
@@ -64,9 +84,54 @@ const CONTENT_TYPES: ReadonlyMap<string, string> = new Map([
   [".wasm", "application/wasm"],
 ])
 
+const extensionOf = (name: string): string => path.extname(name).toLowerCase()
+
 /** The type an asset is served as, by its extension; an unknown one is plain bytes. */
 const typeOf = (name: string): string =>
-  CONTENT_TYPES.get(path.extname(name).toLowerCase()) ?? "application/octet-stream"
+  CONTENT_TYPES.get(extensionOf(name)) ?? "application/octet-stream"
+
+/** The text assets the boot compresses, by their extension; a source map stays as it is. */
+const COMPRESSED: ReadonlySet<string> = new Set([".js", ".mjs", ".css", ".svg", ".json", ".html"])
+
+/** The size an asset must exceed to be compressed: below it, an encoding saves next to nothing. */
+const COMPRESS_OVER_BYTES = 1024
+
+/**
+ * Brotli's quality 9 and gzip's level 9: a cockpit-sized build (about 1 MB of script and style)
+ * compresses in about 0.1 s at boot; brotli's 10 and 11 would be 6 and 7 % smaller for 7 and 18
+ * times as long.
+ */
+const ENCODERS = [
+  {
+    coding: "br",
+    encode: (body: Bytes) =>
+      brotliCompressSync(body, {
+        params: {
+          [constants.BROTLI_PARAM_QUALITY]: 9,
+          [constants.BROTLI_PARAM_SIZE_HINT]: body.byteLength,
+        },
+      }),
+  },
+  { coding: "gzip", encode: (body: Bytes) => gzipSync(body, { level: 9 }) },
+] as const
+
+/** `body` in `coding`, with a strong `ETag` of exactly these bytes. */
+const encodedAs = (coding: Encoded["coding"], body: Bytes): Encoded => ({
+  coding,
+  body,
+  etag: `"${createHash("sha256").update(body).digest("base64url")}"`,
+})
+
+/** The file `name` as an asset: its type, its bytes and the encodings smaller than them. */
+function assetOf(name: string, body: Bytes): WebAsset {
+  const identity = encodedAs("identity", body)
+  const type = typeOf(name)
+  if (body.byteLength <= COMPRESS_OVER_BYTES || !COMPRESSED.has(extensionOf(name))) {
+    return { type, identity, encoded: [] }
+  }
+  const encoded = ENCODERS.map(({ coding, encode }) => encodedAs(coding, encode(body)))
+  return { type, identity, encoded: encoded.filter((it) => it.body.byteLength < body.byteLength) }
+}
 
 /**
  * The server's own routes under `/app`, every path of `WEB_PATHS` but `/app` itself, by their first
@@ -176,7 +241,7 @@ function assetsOf(files: ReadonlyMap<string, Bytes>, dir: string): Map<string, W
   const assets = new Map<string, WebAsset>()
   for (const [name, body] of files) {
     if (!isUnder(`${WEB_PATHS.app}/${name}`, WEB_PATHS.assets)) continue
-    assets.set(servedPathOf(name, dir), { body, type: typeOf(name) })
+    assets.set(servedPathOf(name, dir), assetOf(name, body))
   }
   return assets
 }
@@ -207,15 +272,62 @@ export function readWebBuild(dir: string): WebBuild {
   return { index, pages: pagesOf(pages, dir), assets: assetsOf(files, dir) }
 }
 
-/** A file of the build as an answer, a fresh `Response` per request. */
-const fileAnswer = (body: Bytes, type: string, cacheControl: string): Response =>
+/** The page as an answer, a fresh `Response` per request, never stored. */
+const pageAnswer = (body: Bytes): Response =>
   new Response(body, {
     headers: {
-      "content-type": type,
+      "content-type": HTML,
       "content-length": String(body.byteLength),
-      "cache-control": cacheControl,
+      "cache-control": "no-store",
     },
   })
+
+/** The weight `Accept-Encoding` gives each coding it names, `*` among them, in lowercase. */
+function weightsOf(acceptEncoding: string): Map<string, number> {
+  const weights = new Map<string, number>()
+  for (const entry of acceptEncoding.split(",")) {
+    const [coding, ...params] = entry.split(";").map((part) => part.trim().toLowerCase())
+    const weight = params.find((param) => param.startsWith("q="))
+    weights.set(coding, weight === undefined ? 1 : Number(weight.slice("q=".length)))
+  }
+  return weights
+}
+
+/**
+ * The encoding of `asset` a request takes: br, then gzip, where its weight is above 0; the file as
+ * it is for a request without `Accept-Encoding`.
+ */
+function encodingFor(asset: WebAsset, acceptEncoding: string | null): Encoded {
+  if (acceptEncoding === null) return asset.identity
+  const weights = weightsOf(acceptEncoding)
+  const takes = (coding: string): boolean => (weights.get(coding) ?? weights.get("*") ?? 0) > 0
+  return asset.encoded.find(({ coding }) => takes(coding)) ?? asset.identity
+}
+
+/** Whether `If-None-Match` names `etag` (its weak form too) or `*`. */
+const isUnchanged = (ifNoneMatch: string | null, etag: string): boolean =>
+  ifNoneMatch?.split(",").some((tag) => [etag, `W/${etag}`, "*"].includes(tag.trim())) === true
+
+/**
+ * An asset as an answer to a request's `headers`: in the encoding they take, whole, or 304 with the
+ * fields that keep a cache's copy where `If-None-Match` names the copy's tag.
+ */
+function assetAnswer(asset: WebAsset, headers: Headers): Response {
+  const sent = encodingFor(asset, headers.get("accept-encoding"))
+  const cached = { etag: sent.etag, vary: "Accept-Encoding", "cache-control": IMMUTABLE }
+  if (isUnchanged(headers.get("if-none-match"), sent.etag)) {
+    return new Response(null, { status: 304, headers: cached })
+  }
+  return new Response(sent.body, {
+    headers: {
+      ...cached,
+      "content-type": asset.type,
+      "content-length": String(sent.body.byteLength),
+      "accept-ranges": "none",
+      ...(sent.coding === "identity" ? {} : { "content-encoding": sent.coding }),
+    },
+  })
+}
 
 /**
  * A page's request without a session: on to the sign-in (302), which returns to the page and its
@@ -231,10 +343,10 @@ async function signInFirst(ctx: WebContext, request: Request): Promise<Response 
 
 /** The build's routes: its assets, the signed-out page and each page behind the sign-in. */
 export function installWebBuild(app: McpHttpApp, build: WebBuild, ctx: WebContext): void {
-  const page = (): Response => fileAnswer(build.index, HTML, "no-store")
+  const page = (): Response => pageAnswer(build.index)
   app.get(`${WEB_PATHS.assets}/*`, (c) => {
     const asset = build.assets.get(c.req.path)
-    return asset === undefined ? c.notFound() : fileAnswer(asset.body, asset.type, IMMUTABLE)
+    return asset === undefined ? c.notFound() : assetAnswer(asset, c.req.raw.headers)
   })
   app.get(WEB_PATHS.signedOut, page)
   for (const pattern of build.pages) {

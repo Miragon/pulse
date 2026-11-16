@@ -133,16 +133,16 @@ asked anything), and the access token must pass the gate in front of `/mcp` befo
 keeps it. The session lives in a sealed `__Host-pulse-session` cookie (HttpOnly, Secure, SameSite=Lax,
 at most three chunks), never on the server, so every replica built with the same keys serves it.
 
-| Route                                    | What it does                                                                                                                                                       |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `GET /app/auth/login`                    | Starts a sign-in (`?return=` a page under `/app` to come back to) with the provider's web scopes and the gate's resource (RFC 8707)                                |
-| `GET /app/auth/callback`                 | Checks the callback, exchanges the code, starts a new session (a new id and CSRF secret), returns to the page; a failure goes to `/app/signed-out?reason=<reason>` |
-| `POST /app/auth/logout`                  | Takes the page's CSRF token, revokes the refresh token, clears the cookies and names where to go: the provider's end of the session, else `/app/signed-out`        |
-| `GET /app/api/session`                   | The signed-in name, the CSRF token and the session's end; `401` with `signed_out` without one                                                                      |
-| `POST /app/api/call`                     | A page's call of a server tool (`{ name, arguments }`, JSON, at most 64 KiB, with the CSRF token), forwarded to `/mcp` with the session's token; `{ result }`      |
-| `GET /app` and each page of `pages.json` | The build's page (below), `no-store`; without a session a 302 to `/app/auth/login` with the page and its query to return to                                        |
-| `GET /app/signed-out`                    | The build's page without a session, `no-store`                                                                                                                     |
-| `GET /app/assets/*`                      | The build's assets at the path a browser requests for each name, immutable for a year                                                                              |
+| Route                                    | What it does                                                                                                                                                                                       |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /app/auth/login`                    | Starts a sign-in (`?return=` a page under `/app` to come back to) with the provider's web scopes and the gate's resource (RFC 8707)                                                                |
+| `GET /app/auth/callback`                 | Checks the callback, exchanges the code, starts a new session (a new id and CSRF secret), returns to the page; a failure goes to `/app/signed-out?reason=<reason>`                                 |
+| `POST /app/auth/logout`                  | Takes the page's CSRF token, revokes the refresh token, clears the cookies and names where to go: the provider's end of the session, else `/app/signed-out`                                        |
+| `GET /app/api/session`                   | The signed-in name, the CSRF token and the session's end; `401` with `signed_out` without one                                                                                                      |
+| `POST /app/api/call`                     | A page's call of a server tool (`{ name, arguments }`, JSON, at most 64 KiB, with the CSRF token), forwarded to `/mcp` with the session's token; `{ result }`; a page that leaves cancels it (499) |
+| `GET /app` and each page of `pages.json` | The build's page (below), `no-store`; without a session a 302 to `/app/auth/login` with the page and its query to return to                                                                        |
+| `GET /app/signed-out`                    | The build's page without a session, `no-store`                                                                                                                                                     |
+| `GET /app/assets/*`                      | The build's assets at the path a browser requests for each name, immutable for a year; a text asset over 1 KiB in brotli or gzip where `Accept-Encoding` takes it                                  |
 
 A provider, `MCP_URL` (https, or http on localhost), `MCP_WEB_CLIENT_SECRET`,
 `MCP_WEB_SESSION_KEYS` (comma-separated base64url keys of at least 32 bytes; the first seals,

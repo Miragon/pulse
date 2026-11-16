@@ -106,10 +106,11 @@ export const MUTATED_PACKAGES = {
     "contract, so a surviving mutant is a wrong refusal or a wrong number on every board; its " +
     "format and builder are mutated, not its barrels or fixtures",
   "packages/core/widget-shell":
-    "owner decision 2026-11-16: the web sign-in's rules (src/web: the seal of its cookies, the " +
-    "cookies, the return path, the CSRF check) guard every session of the web app, so a " +
-    "surviving mutant there is a security hole; only those four files are mutated, not the " +
-    "boot, the view runtime or the routes around them",
+    "owner decisions 2026-11-16: the web app's server rules (src/web: the seal of its cookies, " +
+    "the cookies, the return path, the CSRF check, the forward of a page's call, the token's " +
+    "renewal, the served build, the security headers) guard every session and every call of the " +
+    "web app, so a surviving mutant there is a security hole; only those eight files are " +
+    "mutated, not the boot, the view runtime or the other routes",
 }
 
 /** The one path the CI mutation artifact and scripts/fitness-report.mjs read. */

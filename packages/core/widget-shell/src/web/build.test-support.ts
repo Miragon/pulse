@@ -2,6 +2,7 @@
  * The web build of the tests (`test-support/build`: the page, its routes and one stylesheet), and
  * copies of it in a folder of their own, beside which a test can place a file outside the build.
  */
+import { createHash } from "node:crypto"
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -19,6 +20,19 @@ export const STYLESHEET_CSS = readFileSync(
 )
 
 const made: string[] = []
+
+/** `bytes` bytes of script that compress well. */
+export const compressible = (bytes: number): string =>
+  "export const answer = 42;\n".repeat(Math.ceil(bytes / 26)).slice(0, bytes)
+
+/** `bytes` bytes that no encoding makes smaller, the same on every run. */
+export function incompressible(bytes: number): Buffer {
+  const blocks: Buffer[] = []
+  for (let block = 0; blocks.length * 32 < bytes; block += 1) {
+    blocks.push(createHash("sha256").update(String(block)).digest())
+  }
+  return Buffer.concat(blocks).subarray(0, bytes)
+}
 
 /** A copy of the fixture build in `<folder>/build`, with `files` (name: content) written over it. */
 export function buildWith(files: Record<string, string> = {}): { build: string; folder: string } {

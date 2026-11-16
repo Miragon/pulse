@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { startFakeOidc, type FakeOidc } from "../testing/oidc/index.js"
+import { createHash } from "node:crypto"
 import { INDEX_HTML, STYLESHEET, STYLESHEET_CSS } from "./build.test-support.js"
 import { WEB_CSP, webSecurityHeaders } from "./security-headers.js"
 import { bootWeb, Browser, RESOURCE, webEnv } from "./sign-in.test-support.js"
@@ -44,7 +45,7 @@ describe("webSecurityHeaders", () => {
 })
 
 describe("the security headers under /app", () => {
-  it("are exactly these on the page and on an asset, with the type, the length and the cache policy", async () => {
+  it("are exactly these on the page and on an asset, with the type, the length, the cache policy and an asset's tag", async () => {
     const browser = new Browser(await bootWeb(webEnv(fake)))
     expect(headersOf(await browser.fetch("/app/signed-out"))).toEqual({
       ...SECURED,
@@ -57,6 +58,9 @@ describe("the security headers under /app", () => {
       "content-type": "text/css; charset=utf-8",
       "content-length": String(Buffer.byteLength(STYLESHEET_CSS)),
       "cache-control": "public, max-age=31536000, immutable",
+      etag: `"${createHash("sha256").update(STYLESHEET_CSS).digest("base64url")}"`,
+      vary: "Accept-Encoding",
+      "accept-ranges": "none",
     })
   })
 

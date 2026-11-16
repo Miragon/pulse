@@ -1,9 +1,13 @@
+import { createHash } from "node:crypto"
 import { mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import path from "node:path"
+import { brotliDecompressSync, gunzipSync } from "node:zlib"
 import { afterEach, describe, expect, it } from "vitest"
 import {
   buildWith,
+  compressible,
   FIXTURE_BUILD,
+  incompressible,
   INDEX_HTML,
   removeBuilds,
   STYLESHEET,
@@ -36,7 +40,7 @@ describe("readWebBuild: what the boot reads of the web build", () => {
     expect([...build.assets.keys()]).toEqual([STYLESHEET])
     const css = build.assets.get(STYLESHEET)
     expect(css?.type).toBe("text/css; charset=utf-8")
-    expect(text(css?.body ?? new Uint8Array())).toBe(STYLESHEET_CSS)
+    expect(text(css?.identity.body ?? new Uint8Array())).toBe(STYLESHEET_CSS)
   })
 
   it("serves the assets folder alone, its subfolders too, nothing else of the build", () => {
@@ -107,7 +111,7 @@ describe("readWebBuild: what the boot reads of the web build", () => {
     const { build } = buildWith()
     symlinkSync("app-3f9a1c.css", path.join(build, "assets", "linked.css"))
     const linked = readWebBuild(build).assets.get("/app/assets/linked.css")
-    expect(text(linked?.body ?? new Uint8Array())).toBe(STYLESHEET_CSS)
+    expect(text(linked?.identity.body ?? new Uint8Array())).toBe(STYLESHEET_CSS)
   })
 
   it("reads a build whose folder is itself a link", () => {
@@ -244,5 +248,72 @@ describe("readWebBuild: the page routes of pages.json", () => {
     expect(refusalOf(build)).toBe(
       `The web build in ${build} names no page /app in pages.json, where a sign-in returns by default: build the web app with a page at /app.`,
     )
+  })
+})
+
+describe("readWebBuild: the encodings the boot keeps of an asset", () => {
+  const assetIn = (files: Record<string, string>, name: string) => {
+    const asset = readWebBuild(buildWith(files).build).assets.get(`/app/assets/${name}`)
+    if (asset === undefined) throw new Error(`no asset ${name}`)
+    return asset
+  }
+
+  it.each(["a.js", "a.mjs", "a.css", "a.svg", "a.json", "a.html", "a.JS"])(
+    "compresses the text asset %s over 1 KiB with brotli, then gzip, each to the file's bytes",
+    (name) => {
+      const body = compressible(1025)
+      const asset = assetIn({ [`assets/${name}`]: body }, name)
+      expect(asset.encoded.map(({ coding }) => coding)).toEqual(["br", "gzip"])
+      const [br, gzip] = asset.encoded
+      expect(text(brotliDecompressSync(br.body))).toBe(body)
+      expect(text(gunzipSync(gzip.body))).toBe(body)
+      expect(asset.identity).toMatchObject({ coding: "identity" })
+      expect(text(asset.identity.body)).toBe(body)
+    },
+  )
+
+  it.each(["a.js.map", "a.txt", "a.png", "a.woff2", "a.wasm", "a"])(
+    "keeps %s as it is, which is no text asset the boot compresses",
+    (name) => {
+      expect(assetIn({ [`assets/${name}`]: compressible(4096) }, name).encoded).toEqual([])
+    },
+  )
+
+  it("keeps an asset of 1 KiB or less as it is", () => {
+    expect(assetIn({ "assets/a.js": compressible(1024) }, "a.js").encoded).toEqual([])
+    expect(assetIn({ "assets/a.js": compressible(1025) }, "a.js").encoded).toHaveLength(2)
+  })
+
+  it("keeps no encoding that is larger than the file", () => {
+    const { build } = buildWith()
+    writeFileSync(path.join(build, "assets", "a.js"), incompressible(4096))
+    expect(readWebBuild(build).assets.get("/app/assets/a.js")?.encoded).toEqual([])
+  })
+
+  it("keeps no encoding as large as the file, around the size where brotli starts to save", () => {
+    const { build } = buildWith()
+    const tails = Array.from({ length: 61 }, (_, tail) => tail)
+    for (const tail of tails) {
+      const body = Buffer.concat([incompressible(1100), Buffer.alloc(tail, "a")])
+      writeFileSync(path.join(build, "assets", `a${tail}.js`), body)
+    }
+    const { assets } = readWebBuild(build)
+    const kept = tails.map((tail) => assets.get(`/app/assets/a${tail}.js`))
+    for (const asset of kept) {
+      for (const { body } of asset?.encoded ?? []) {
+        expect(body.byteLength).toBeLessThan(asset?.identity.body.byteLength ?? 0)
+      }
+    }
+    expect(kept.map((asset) => asset?.encoded.length)).toContain(0)
+    expect(kept.map((asset) => asset?.encoded.length)).toContain(1)
+  })
+
+  it("tags each encoding by exactly the bytes it sends, so no two share a tag", () => {
+    const asset = assetIn({ "assets/a.css": compressible(2048) }, "a.css")
+    const all = [asset.identity, ...asset.encoded]
+    for (const { body, etag } of all) {
+      expect(etag).toBe(`"${createHash("sha256").update(body).digest("base64url")}"`)
+    }
+    expect(new Set(all.map(({ etag }) => etag)).size).toBe(3)
   })
 })

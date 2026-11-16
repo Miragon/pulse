@@ -12,7 +12,12 @@
  * the caller's identity, the per-caller caches, passthrough, toolsets, routing and read-only
  * engines treat it as any client's call. After the gate's 401 the token is renewed once where a
  * new one may help. The page gets the tool's result (`{ result }`), never a token: renewed tokens
- * go back sealed into the session's cookie, with the expiry the sign-in gave it.
+ * go back sealed into the session's cookie, with the expiry the sign-in gave it. The forwarded
+ * request carries the page's signal, so a page that leaves or aborts its call cancels the tool's
+ * (`ctx.mcpReq.signal`); a renewal under way runs on, since other calls may share it. A call whose
+ * page left before `/mcp` answered it a result gets 499 (nginx's "client closed request"), never
+ * the 502 of a failing `/mcp`, so a page that leaves counts as no server error in the request log
+ * or the metrics.
  */
 import { LATEST_PROTOCOL_VERSION, type ToolAnnotations } from "@modelcontextprotocol/server"
 import { isExpired } from "@miragon/pulse-http/oauth"
@@ -32,6 +37,9 @@ import { pageSession, type OpenedSession, type SessionTokens } from "./session.j
 
 /** The largest body of a page's call. */
 export const WEB_CALL_MAX_BYTES = 64 * 1024
+
+/** A call whose page left before its answer: nginx's "client closed request", no server error. */
+const CLIENT_CLOSED_REQUEST = 499
 
 /** The one id of the forwarded request: it is the only message of its exchange. */
 const CALL_ID = 1
@@ -67,6 +75,9 @@ const NOT_FOR_PAGES: WebRefusal = {
 const READ_ONLY: WebRefusal = {
   code: WEB_CODES.readOnly,
   message: "Refused: the web app only reads, and this tool writes.",
+}
+const PAGE_LEFT: WebRefusal = {
+  message: "Client closed request: the page left before the tool answered.",
 }
 const PROVIDER_SILENT: WebRefusal = {
   message:
@@ -182,10 +193,15 @@ async function answerOf(response: Response): Promise<McpAnswer> {
   return { kind: "failed", message: failure }
 }
 
-/** The call as one self-contained `tools/call` to `/mcp`, with exactly an MCP client's headers. */
-async function sent(target: McpTarget, accessToken: string, call: Call): Promise<McpAnswer> {
+/**
+ * The call as one self-contained `tools/call` to `/mcp`, with exactly an MCP client's headers and
+ * the page's signal.
+ */
+async function sent(route: CallRoute, accessToken: string, call: Call): Promise<McpAnswer> {
+  const { target, signal } = route
   const request = new Request(target.url, {
     method: "POST",
+    signal,
     headers: {
       host: new URL(target.url).host,
       accept: "application/json, text/event-stream",
@@ -230,14 +246,16 @@ async function afterRefusal(
   const renewal = await route.renew(renewable)
   if (renewal.kind === "unavailable") return UNAVAILABLE
   if (renewal.kind === "refused") return ended("the identity provider refused the refresh token")
-  const answer = await sent(route.target, renewal.tokens.accessToken, call)
+  const answer = await sent(route, renewal.tokens.accessToken, call)
   if (answer.kind === "refused") return ended("the gate refused the renewed token")
   return { kind: "answered", answer, tokens: renewal.tokens }
 }
 
+/** Where a page's call goes, what renews its tokens, and the page's signal. */
 interface CallRoute {
   readonly target: McpTarget
   readonly renew: RenewalSource
+  readonly signal: AbortSignal
 }
 
 async function called(
@@ -248,7 +266,7 @@ async function called(
 ): Promise<Outcome> {
   const tokens = await tokensToSend(ctx, route.renew, session.session.tokens)
   if ("kind" in tokens) return tokens
-  const answer = await sent(route.target, tokens.accessToken, call)
+  const answer = await sent(route, tokens.accessToken, call)
   if (answer.kind === "refused") return afterRefusal(ctx, route, tokens, call)
   return { kind: "answered", answer, tokens }
 }
@@ -283,7 +301,10 @@ async function answered(
   return json(503, PROVIDER_SILENT)
 }
 
-/** `/mcp`'s answer to the page, the session's cookies renewed where its tokens were. */
+/**
+ * `/mcp`'s answer to the page (499 where the page left before a result), the session's cookies
+ * renewed where its tokens were.
+ */
 async function answerWith(
   ctx: WebContext,
   opened: OpenedSession,
@@ -299,6 +320,7 @@ async function answerWith(
     const body: WebCallAnswer = { result: answer.result }
     return json(200, body, setCookies)
   }
+  if (request.signal.aborted) return json(CLIENT_CLOSED_REQUEST, PAGE_LEFT, setCookies)
   return json(502, { message: answer.message }, setCookies)
 }
 
@@ -306,7 +328,7 @@ export function callRoute(
   ctx: WebContext,
   target: McpTarget,
 ): (request: Request) => Promise<Response> {
-  const route: CallRoute = { target, renew: renewalSource(ctx) }
+  const renew = renewalSource(ctx)
   return async (request) => {
     const opened = await pageSession(ctx, request, "Web call")
     if (opened instanceof Response) return opened
@@ -314,6 +336,7 @@ export function callRoute(
     if (call instanceof Response) return call
     const refusal = toolRefusal(target.toolConfig(call.name))
     if (refusal !== undefined) return json(403, refusal)
+    const route: CallRoute = { target, renew, signal: request.signal }
     return answered(ctx, opened, request, await called(ctx, route, opened, call))
   }
 }

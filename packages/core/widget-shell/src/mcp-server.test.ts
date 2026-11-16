@@ -191,6 +191,29 @@ describe("McpHttpApp.allowedMethods", () => {
     expect(app.allowedMethods("/mcp")).toBe("POST")
   })
 
+  // hono's router reads a trailing /* as optional: `/d/*` answers `/d` and `/d/` too.
+  it("reads a trailing /* as hono does: the path without it, with its slash, or below it", () => {
+    const app = appOf()
+    app.get("/d/*", ok).post("/e/f/*", ok)
+    for (const path of ["/d", "/d/", "/d/x", "/d/x/y"]) {
+      expect(app.allowedMethods(path), path).toBe("GET, HEAD")
+    }
+    for (const path of ["/e/f", "/e/f/", "/e/f/x"]) {
+      expect(app.allowedMethods(path), path).toBe("POST")
+    }
+    for (const path of ["/dx", "/e", "/e/fx", "/x"]) {
+      expect(app.allowedMethods(path), path).toBe("")
+    }
+  })
+
+  it("reads /* as every path", () => {
+    const app = appOf()
+    app.get("/*", ok)
+    for (const path of ["/", "/x", "/x/y"]) {
+      expect(app.allowedMethods(path), path).toBe("GET, HEAD")
+    }
+  })
+
   it("reads a pattern's literal segments literally", () => {
     const app = appOf()
     app.get("/v1.0/x", ok)

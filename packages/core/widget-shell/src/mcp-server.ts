@@ -76,13 +76,17 @@ const ALLOWED: readonly (readonly [string, readonly string[]])[] = [
 
 const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 
-/** Whether a route's pattern takes `path`, as hono reads it: literal segments, `:name`, `*`. */
+/**
+ * Whether a route's pattern takes `path`, as hono reads it: literal segments, `:name`, `*`, and a
+ * trailing `/*` optional, so `/d/*` takes `/d` and `/d/` as well as `/d/x`.
+ */
 function routeTakes(pattern: string, path: string): boolean {
-  const segments = pattern.split("/").map((segment) => {
+  const tail = pattern.endsWith("/*")
+  const segments = (tail ? pattern.slice(0, -"/*".length) : pattern).split("/").map((segment) => {
     if (segment === "*") return ".*"
     return segment.startsWith(":") ? "[^/]+" : escapeRegExp(segment)
   })
-  return new RegExp(`^${segments.join("/")}$`).test(path)
+  return new RegExp(`^${segments.join("/")}${tail ? "(?:/.*)?" : ""}$`).test(path)
 }
 
 /**

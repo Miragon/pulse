@@ -127,8 +127,9 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   CSRF secret), `logout.ts` (CSRF, revocation, the end-session URL), `session-route.ts` (name, CSRF
   token, expiry), `forward.ts` (a page's call: CSRF, JSON of at most 64 KiB, only a read a view
   calls by the boot's record, then one `tools/call` in-process to `<MCP_URL>/mcp` with exactly an
-  MCP client's headers and the session's bearer token, marked for the request log by
-  `markForwarded`; after the gate's 401 one renewal where a new token may help) and `refresh.ts`
+  MCP client's headers, the session's bearer token and the page's signal (a page that leaves
+  cancels the tool's call and gets 499, never a failing `/mcp`'s 502), marked for the request log
+  by `markForwarded`; after the gate's 401 one renewal where a new token may help) and `refresh.ts`
   (the renewal by `@miragon/pulse-http/oauth`'s policy over the tokens as the replica's clock reads
   them, one refresh per refresh token at a time, its outcome kept 30 s; a refused refresh ends the
   session). `discovery.ts` reads the provider's metadata on the first sign-in and holds it
@@ -138,7 +139,10 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   CORP same-origin, HSTS on an https `MCP_URL`), `no-store` unless the answer names a cache policy
   of its own. `static.ts` reads the web build once at boot (`readWebBuild`: regular files inside
   the folder, a link out fails the boot, `pages.json`'s page routes checked, each asset keyed by the
-  path a browser requests for its name) and serves it (`installWebBuild`: the assets immutable, the
+  path a browser requests for its name, each text asset over 1 KiB compressed once with brotli and
+  gzip, an encoding kept only where it is smaller) and serves it (`installWebBuild`: the assets
+  immutable, in the encoding `Accept-Encoding` takes first of br and gzip, else as the file is, with
+  `Vary: Accept-Encoding`, an `ETag` per encoding and 304 on it, whole whatever a `Range` asks; the
   signed-out page, each page behind the sign-in, which returns to it with its query). The sign-in
   sends through `@miragon/pulse-http/oauth` and imports the transport's main entry by type alone
   (`widget-shell-web-by-the-oauth-entry`). Its rules: `readWebSettings` reads the
@@ -155,8 +159,9 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   form, never under `/app/auth` or `/app/api`, the query written again, at most 1,024 characters); `csrfRefusal` checks `Sec-Fetch-Site`, the
   `Origin` and the CSRF header against the session's secret in constant time. The paths, the CSRF
   header and the codes both halves read are `src/protocol/web.ts`, exported from `./widgets`. The
-  seal, the cookies, the return path and the CSRF check are mutated nightly (StrykerJS, break 90,
-  `src/web`'s suites alone); `src/web` keeps a coverage floor of 100.
+  seal, the cookies, the return path, the CSRF check, the forward, the renewal, the served build
+  and the security headers are mutated nightly (StrykerJS, break 90, `src/web`'s suites alone);
+  `src/web` keeps a coverage floor of 100.
 - **Fake identity provider** (`./testing/oidc`): `startFakeOidc(options)` starts an OpenID
   Connect provider on a loopback port with Keycloak's paths, so the boot's Keycloak provider
   (`MCP_OAUTH_KEYCLOAK_SERVER_URL` its `serverUrl`, `MCP_OAUTH_KEYCLOAK_REALM` its `realm`)

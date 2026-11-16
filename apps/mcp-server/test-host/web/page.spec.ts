@@ -32,13 +32,16 @@ const DEFINITIONS_TABLE =
   "Deployed process definitions with running instances, jobs without retries and incidents"
 const STUB_DEFINITIONS = ["Customer Onboarding", "Invoice Receipt", "Order Fulfillment"]
 
-/** The page's script, as the build's index.html loads it. */
-function pageScript(): string {
+/** The page's script's name in the build (`assets/…`), as the build's index.html loads it. */
+function pageScriptName(): string {
   const index = readFileSync(path.join(WEB_BUILD, "index.html"), "utf8")
   const [, src] = /<script type="module" crossorigin src="\/app\/([^"]+)"/.exec(index) ?? []
   if (src === undefined) throw new Error("apps/web/dist/index.html loads no script")
-  return readFileSync(path.join(WEB_BUILD, src), "utf8")
+  return src
 }
+
+/** The page's script, as the build holds it. */
+const pageScript = (): string => readFileSync(path.join(WEB_BUILD, pageScriptName()), "utf8")
 
 /** Whether the page scrolls sideways: wider content than its viewport. */
 const scrollsSideways = (page: Page) =>
@@ -165,6 +168,22 @@ test.describe("the cockpit as a page", () => {
       alert.getByText("Try again. If it fails again, ask in the chat."),
       "pinned: describeError's hints ask in the chat on a page too; flip to a page's words once they say what to do there",
     ).toBeVisible()
+  })
+
+  test("loads its script compressed with brotli, decoded byte for byte the build's file", async ({
+    page,
+  }) => {
+    const name = pageScriptName()
+    const loaded = page.waitForResponse((response) => response.url().endsWith(`/app/${name}`))
+    await signIn(page, OVERVIEW_PAGE)
+    const response = await loaded
+    const file = readFileSync(path.join(WEB_BUILD, name))
+    const headers = await response.allHeaders()
+    expect(response.status()).toBe(200)
+    expect(headers["content-encoding"]).toBe("br")
+    expect(headers.vary).toBe("Accept-Encoding")
+    expect(Number(headers["content-length"])).toBeLessThan(file.byteLength)
+    expect((await response.body()).equals(file)).toBe(true)
   })
 
   test("the page's script holds no MCP Apps runtime, which the chat's bundle does", () => {

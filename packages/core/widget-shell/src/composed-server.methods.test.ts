@@ -125,6 +125,7 @@ describe("the listener: a method no Request can carry", () => {
     ["/app/signed-out", "GET, HEAD"],
     [STYLESHEET, "GET, HEAD"],
     ["/app/assets/missing.js", "GET, HEAD"],
+    ["/app/assets", "GET, HEAD"],
   ])("refuses TRACE %s with 405 and the Allow of the web app's route", async (target, allow) => {
     const fake = await startFakeOidc()
     try {
