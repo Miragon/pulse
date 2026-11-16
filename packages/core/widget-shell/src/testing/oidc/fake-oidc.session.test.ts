@@ -51,6 +51,20 @@ describe("a refresh at the fake provider", () => {
     await expect(refresh(idp, first.refreshToken)).resolves.toBeDefined()
   })
 
+  it("names the session a refresh token belongs to, a renewed one's too, and none for anything else", async () => {
+    const idp = await start()
+    const first = await signIn(idp)
+    const { sid } = decodeJwt(first.accessToken)
+    const renewed = await refresh(idp, first.refreshToken)
+    const other = await signIn(idp)
+    expect(idp.sessionOf(String(first.refreshToken))).toBe(sid)
+    expect(idp.sessionOf(String(renewed.refreshToken))).toBe(sid)
+    expect(idp.sessionOf(String(other.refreshToken))).toBe(decodeJwt(other.accessToken).sid)
+    expect(idp.sessionOf(String(other.refreshToken))).not.toBe(sid)
+    expect(idp.sessionOf(first.accessToken)).toBeUndefined()
+    expect(idp.sessionOf("unknown")).toBeUndefined()
+  })
+
   it("rotates when told to: a used refresh token is refused", async () => {
     const idp = await start({ rotateRefreshTokens: true })
     const first = await signIn(idp)

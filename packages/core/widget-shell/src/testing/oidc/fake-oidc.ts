@@ -46,6 +46,12 @@ export interface FakeOidc {
   /** Every session ended at its end-session endpoint, in order. */
   readonly endedSessions: readonly EndedSession[]
   /**
+   * The session (`sid`) a refresh token it issued belongs to, also once revoked or ended, so a
+   * test can tell its own browser's renewals and revocations from those of tests beside it;
+   * undefined for anything else.
+   */
+  sessionOf(refreshToken: string): string | undefined
+  /**
    * Plays the browser at the authorization endpoint: signs in as `username` (default: the first
    * user) and resolves with the URL the provider sends the browser back to, the client's callback
    * with its code, or with its error when the request is refused. Rejects when the provider shows
@@ -185,6 +191,7 @@ export async function startFakeOidc(options: FakeOidcOptions = {}): Promise<Fake
     issued: realm.issued,
     revoked: realm.revoked,
     endedSessions: realm.endedSessions,
+    sessionOf: (refreshToken) => realm.grants.get(refreshToken)?.sid,
     signIn: (authorizationUrl, username = firstUser) =>
       choose(authorizationUrl, CHOICE.user, username),
     decline: (authorizationUrl) => choose(authorizationUrl, CHOICE.decline, "1"),

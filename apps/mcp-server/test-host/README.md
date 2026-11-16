@@ -28,12 +28,6 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
   `ui/initialize`, and proxies every `tools/call` the view makes to the server.
 - A scenario can size the frame (`width=<px>`; default 960): the layout
   scenarios render at the 760 px a chat gives an inline view.
-- `page/` is a plain page outside a chat, the web app's shape: `page/main.ts` mounts this
-  server's views with widget-shell's `mountPage` (no ext-apps, no frame), its caller posting
-  each tool call to the host backend's `/host/call`. `global-setup.ts` builds it with the view
-  bundle's Vite config into a temporary directory, and the default and the operations
-  deployment serve it at `/page` (`?view=&args=&followUp=copy&lang=&theme=`) with the built
-  `dist/mcp-app.css`.
 - The rendering tool is the real `engine_open_cockpit` against the stub,
   opened on its overview unless a scenario names a `view` (the jobs, a process
   for the BPMN scenario, the instances on the realistic engine for the
@@ -89,7 +83,7 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
 | jobs at 320 and 400 px     | the jobs, `width: 320` and `400`                                       | each row one 28 px line, each error one line of 10rem at least, cut with an ellipsis, whole in its title; a cut one a disclosure that Enter opens on its whole text, its row back at 28 px once closed; the row actions scroll with the row, no column under them; an error of one unbroken token opens broken anywhere, its column as wide as before (`compact-frame.spec.ts`) |
 | flow modes at 320 px       | a process (`invoice`), `width: 320` and `760`                          | its three modes one line, Throughput's window in its name (on screen at 760 px) (`compact-frame.spec.ts`)                                                                                                                                                                                                                                                                       |
 | instance search            | instances (realistic engine), `width: 760` and `400`                   | the placeholder ("Search instances…") whole in the field, the words its name starts with (`compact-frame.spec.ts`)                                                                                                                                                                                                                                                              |
-| action heads at 760 px     | every table with row actions, `width: 760`                             | its "Actions" head names the column, right-aligned over the buttons, the incident tables' too (`compact-frame.spec.ts`)                                                                                                                                                                                                                                                         |
+| action heads at 760 px     | every table with row actions, `width: 760`                             | its "Actions" head names the column, right-aligned over the buttons, the incident tables' too; on the operations deployment an instance's incidents offer Retry and its variables Edit, which `test:web`'s page never shows (`compact-frame.spec.ts`)                                                                                                                           |
 | a header's count           | a process with open incidents                                          | a state label: the circled cross in its tone, the words in the foreground on no fill (`compact-frame.spec.ts`)                                                                                                                                                                                                                                                                  |
 | write refresh (operations) | the failed jobs, user clicks Retry                                     | the retry refetches the seeded feed and re-renders, **zero** re-executions                                                                                                                                                                                                                                                                                                      |
 | cockpit on an engine       | `engine_open_cockpit` with `engine`                                    | opens on that engine (the head's engine select), not on the engine picker                                                                                                                                                                                                                                                                                                       |
@@ -102,7 +96,6 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
 | a module's own view        | a tool bound to a resource of its module                               | the finished document renders from that URI under its own CSP, no prelude, its feed answers through the host (`own-view.spec.ts`)                                                                                                                                                                                                                                               |
 | refused profile            | the picker, one profile refused                                        | the refused engine reads "profile refused", opening it says why in en and de, `engine_open_cockpit` on it opens the picker (`refused-profile.spec.ts`)                                                                                                                                                                                                                          |
 | refused login              | the picker, engines that answer 401 and 403                            | "credentials rejected", "access denied", a key (en, de), not "unreachable"; counted apart as a warning, never "not answered" (`refused-login.spec.ts`)                                                                                                                                                                                                                          |
-| page outside a chat        | `/page`: `mountPage` with the page's caller, no ext-apps               | the overview from one view call through the caller, every row (no fit), no Fullscreen, no axe finding; a feed through the caller; the page's `lang` and `data-cd-theme` (switched live); hand-offs hidden or copied; on the operations deployment no Retry, no Edit (the chat has both) and no gate call; its words say to reload it; no `ui/initialize` (`page-root.spec.ts`)  |
 
 **The cockpit's chrome inline.** Every scenario of the engine module renders the cockpit, whose head
 (sections, engine switch, Refresh) sits above the route. Inline the head is the only row: a
@@ -135,5 +128,41 @@ pnpm --filter @miragon/pulse-mcp-server test:host                          # bui
 
 Not part of `pnpm test` (needs the Vite bundle and a browser). Run it locally for
 any change to the widget shell, pulse-ui, `src/ui/` or the `@modelcontextprotocol/ext-apps` pin.
-Failed scenarios leave a trace and a screenshot in `apps/mcp-server/test-results/`
+Failed scenarios leave a trace and a screenshot in `apps/mcp-server/test-results/host/`
 (`pnpm exec playwright show-trace <zip>`).
+
+## The web app on the real server (`pnpm --filter @miragon/pulse-mcp-server test:web`)
+
+`web/` is a suite of its own, run in CI as "Web app (test:web)": the page of apps/web as a browser
+reaches it, its own config (`web/playwright.config.ts`, which this suite's config ignores) and
+global setup. `test:web` builds the view bundle and apps/web first; `web/global-setup.ts` boots the
+real composition root (`createApp`) under OAuth, so with the operations toolset, with the web app
+on (`MCP_WEB_DIR` on `apps/web/dist`, never the package's `web/`, which only the image fills) at
+`http://localhost:<port>`, its `MCP_URL`, where Chromium keeps the `__Host-` cookies of plain http.
+Each deployment signs in through a fake identity provider of its own
+(`@miragon/pulse-widget-shell/testing/oidc`: Keycloak's paths, a login page with a link per user,
+the web client's callback and post-logout URIs exactly) over this suite's stub engine: `main` with
+the stub and the broken engine and access tokens of 300 s (`WEB_SIM_URL`), `short` with the stub
+alone and access tokens of 5 s, which the server renews before each call (`WEB_SIM_SHORT_URL`). The
+workers read what a provider recorded through `WEB_SIM_CONTROL_URL` (`web/web-sim.ts`), each
+refresh token named with its session; a scenario reads only its own browser's session (the
+`session_state` its sign-in returned), and ends it at the provider by the provider's cookie, never
+another's. The chat's Retry and Edit on the same instance, the positive half of `page.spec.ts`'s
+writes, are this suite's (`compact-frame.spec.ts`).
+
+| Spec               | Pass criterion                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sign-in.spec.ts`  | a browser without a session goes to the provider and comes back to the cockpit (the picker, who signed in, one view call); a deep link comes back with its query; the sign-out ends the session at the provider (its client, its post-logout URI, the refresh token revoked) and `/app` asks to sign in again; a renewal before the token expires keeps the page; a refused renewal shows the strip, and the sign-in it offers comes back to the page                 |
+| `security.spec.ts` | the session's cookies HttpOnly, Secure, SameSite=Lax, `__Host-`, no script reads them; no token of the provider in any answer's headers or body, the cookies or the storage, no request with an Authorization header; a call or sign-out without the CSRF token, with another, or from another site's form refused; a sign-in returns only to `/app`; someone else's code gives no session, a planted session gives way to the user's own; `/app/` the listener's 404 |
+| `page.spec.ts`     | the cockpit over the page's caller (one view call, every row, no Fullscreen, `lang`, no console error, axe); a feed through the caller; no hand-off and no menu, column or section that holds them alone; no Retry, no Edit and no gate call while `/mcp` lists the writes; the script without ext-apps' handshake; German and dark from the browser, `data-cd-theme` followed live; 320 px without sideways scroll, axe at WCAG 2.2 AA                               |
+
+Two `pinned …` scenarios of `page.spec.ts` hold defects a later commit fixes: a start the tool
+refuses says to ask in the chat (describeError's hints have no page words yet), and the engine
+picker scrolls sideways at 320 px in German (its cross-engine button is wider than the column
+beside the Komet). Run it like the host simulation, after `pnpm build`:
+
+```bash
+pnpm --filter @miragon/pulse-mcp-server test:web   # builds the UI and the web app, then tests
+```
+
+Failed scenarios leave a trace and a screenshot in `apps/mcp-server/test-results/web/`.

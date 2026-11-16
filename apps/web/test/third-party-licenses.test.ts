@@ -14,11 +14,12 @@ import {
 import { APP, buildWeb } from "./web-build.js"
 
 /**
- * THIRD_PARTY_LICENSES.txt, which ships beside the web build: what the page holds of works of
- * others, read from the module graph Vite builds of it from vite.config.ts, nothing written, and the
- * stylesheets it inlines into its own. The browser gets no copy, as with the view bundle. With
- * THIRD_PARTY_LICENSES_UPDATE=1 (`pnpm --fail-if-no-match --filter @miragon/pulse-web
- * third-party-licenses`) the test writes the file instead.
+ * THIRD_PARTY_LICENSES.txt, which the server image ships in /usr/share/doc/pulse-server/web (the
+ * Dockerfile; apps/mcp-server/test/third-party-licenses.test.ts holds the copy): what the page
+ * holds of works of others, read from the module graph Vite builds of it from vite.config.ts,
+ * nothing written, and the stylesheets it inlines into its own. The browser gets no copy, as with
+ * the view bundle. With THIRD_PARTY_LICENSES_UPDATE=1 (`pnpm --fail-if-no-match --filter
+ * @miragon/pulse-web third-party-licenses`) the test writes the file instead.
  */
 
 const REPO = dirname(dirname(APP))
@@ -74,8 +75,10 @@ const TEXT: LicenceFileText = {
     "",
     "The web app is the page a Pulse server serves under /app, its script and its stylesheet under",
     "/app/assets: Pulse's own code, under the MIT licence in LICENSE, which holds the works listed",
-    "here, each under its own licence. apps/web/test/third-party-licenses.test.ts of",
-    "https://github.com/Miragon/pulse writes this file from the module graph Vite builds of the page.",
+    "here, each under its own licence. The server image ghcr.io/miragon/pulse-server holds the page",
+    "in /app/web and this file in /usr/share/doc/pulse-server/web, below the image's LICENSE.",
+    "apps/web/test/third-party-licenses.test.ts of https://github.com/Miragon/pulse writes this file",
+    "from the module graph Vite builds of the page.",
   ],
   notes: [],
   artifacts: { page: "the page" },

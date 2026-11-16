@@ -66,7 +66,7 @@ docker run --rm -p 127.0.0.1:8400:8400 --network pulse_default \
 
 To exercise write paths locally, set `MCP_ACTIVE_MODULES=engine:admin` in `.env` (plus
 `ENGINE_ALLOW_DEPLOYMENTS=true` for deployments). The host simulation of the built widget bundle
-is in [`test-host/`](test-host/README.md).
+is in [`test-host/`](test-host/README.md), and so is the web app's suite on this server (`test:web`).
 
 ## Layout
 

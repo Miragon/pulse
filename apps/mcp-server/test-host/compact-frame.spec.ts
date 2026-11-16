@@ -13,7 +13,8 @@ import { HEALTHY_ENGINE, REALISTIC_ENGINE, REALISTIC_HOST_ENV } from "./engines.
  * each job's row one line (a cut error opening on its whole text by keyboard, one unbroken token
  * broken inside its column, the actions scrolling with the row), the process flow's modes one line
  * and the instance search's placeholder whole, every table's row actions
- * sit right-aligned under their head, a footer's noun follows its count, a
+ * sit right-aligned under their head (an instance's retry and edit where the deployment offers the
+ * writes, which the web app's page never shows), a footer's noun follows its count, a
  * header's count stays a neutral number beside its tone's icon and its title its share, the head's
  * sections (pulse-ui's NavTabs) open by keyboard, forced colours keep the open tab, the head's
  * open section, the rule under both and a docked strip and draw a tone's icon in its text's system colour, a fact's term sits on its value's baseline, and the detail
@@ -768,6 +769,23 @@ test.describe("a 760 px card's action heads", () => {
     const seen = await actionsHeadOverButtons(region, "button")
     expect(seen).toMatchObject({ head: "Actions", align: "right" })
     expect(seen.buttons).toEqual([seen.word])
+  })
+
+  // The positive half of test:web's page.spec.ts, which finds no Retry by this name on the page.
+  test("an instance's incidents offer their retry where the deployment offers the writes", async ({
+    page,
+  }) => {
+    const app = await openView(page, INSTANCE_ARGS, {
+      hostEnv: "HOST_SIM_OPERATIONS_URL",
+      width: 760,
+    })
+    await app
+      .getByRole("tab", { name: /^Incidents/ })
+      .first()
+      .click({ timeout: 15_000 })
+    const region = app.getByRole("region", { name: "Incidents of this instance" })
+    await expect(region.locator("tbody tr")).toHaveCount(2, { timeout: 15_000 })
+    await expect(region.getByRole("button", { name: "Retry" })).toHaveCount(2, { timeout: 15_000 })
   })
 })
 

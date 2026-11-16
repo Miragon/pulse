@@ -189,6 +189,17 @@ describe("testOnePlan", () => {
     assert.equal(plan(["apps/cli/test/test-host-fake.test.ts"]).runs.length, 1)
   })
 
+  it("points the web app's suite under test-host at its own script, not test:host's", () => {
+    assert.match(
+      plan(["apps/cli/test-host/web/sign-in.spec.ts"]).message,
+      /needs Playwright.*--filter @x\/cli test:web/,
+    )
+    assert.match(plan(["apps/cli/test-host/web"]).message, /test:web/)
+    const fromWeb = plan(["page.spec.ts"], { cwd: "/repo/apps/cli/test-host/web" })
+    assert.match(fromWeb.message, /test:web/)
+    assert.match(plan(["apps/cli/test-host/webhooks.spec.ts"]).message, /test:host/)
+  })
+
   it("resolves files of the real workspace, the extension's and a connector's", () => {
     const real = (file) =>
       testOnePlan({

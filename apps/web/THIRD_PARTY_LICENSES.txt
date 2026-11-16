@@ -2,8 +2,10 @@ Third-party licences of Pulse's web app
 
 The web app is the page a Pulse server serves under /app, its script and its stylesheet under
 /app/assets: Pulse's own code, under the MIT licence in LICENSE, which holds the works listed
-here, each under its own licence. apps/web/test/third-party-licenses.test.ts of
-https://github.com/Miragon/pulse writes this file from the module graph Vite builds of the page.
+here, each under its own licence. The server image ghcr.io/miragon/pulse-server holds the page
+in /app/web and this file in /usr/share/doc/pulse-server/web, below the image's LICENSE.
+apps/web/test/third-party-licenses.test.ts of https://github.com/Miragon/pulse writes this file
+from the module graph Vite builds of the page.
 
 Works of others in the page:
 

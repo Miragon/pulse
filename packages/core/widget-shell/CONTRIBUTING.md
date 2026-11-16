@@ -12,7 +12,9 @@ on the design kit [`@miragon/pulse-ui`](../ui). Setup and the repository's bar:
 
 `pnpm typecheck` types both halves: `tsconfig.json` (Node, no DOM) and `tsconfig.widgets.json`
 (DOM, no Node). Changes here also need `test:host` (`pnpm --filter @miragon/pulse-mcp-server test:host`)
-and a manual render check in the MCP Inspector, as the root `CLAUDE.md` describes.
+and a manual render check in the MCP Inspector, as the root `CLAUDE.md` describes; changes to
+`src/web` or the page root also need `test:web` (`pnpm --filter @miragon/pulse-mcp-server test:web`),
+the web app in Chromium on the real server.
 
 The `lucide-react` peer range still admits 0.562 only for this repo's own test graph; a host
 bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
@@ -163,8 +165,10 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   authentication (basic or post), refresh with optional rotation and refusal, revocation and the
   end of a session (without Keycloak's confirmation). It sets the tokens' `aud` only as an audience
   mapper would (`audience`), since Keycloak ignores RFC 8707's `resource`; `signIn` and `decline`
-  play the browser for a test without one, and `requests`, `issued`, `revoked` and
-  `endedSessions` record what happened. Node only.
+  play the browser for a test without one, `requests`, `issued`, `revoked` and
+  `endedSessions` record what happened, and `sessionOf` names the session a refresh token belongs
+  to, so a test tells its own browser's renewals and revocations from those of tests beside it.
+  Node only.
 - **Theme:** none of its own. The widgets colour through the role variables of pulse-ui's
   Miragon theme (`@miragon/pulse-ui/theme.css`: the vendored `--cd-*` corporate-design
   tokens and the roles on top, light and dark). Your stylesheet imports it after `tailwindcss`,

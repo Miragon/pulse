@@ -1,0 +1,160 @@
+import { randomBytes } from "node:crypto"
+import http from "node:http"
+import type { AddressInfo } from "node:net"
+import path from "node:path"
+import {
+  FAKE_OIDC_CLIENT,
+  startFakeOidc,
+  type FakeOidc,
+  type FakeOidcOptions,
+} from "@miragon/pulse-widget-shell/testing/oidc"
+import { createApp } from "../../src/app.js"
+import { BROKEN_ENGINE, HEALTHY_ENGINE } from "../engines.js"
+import { startStubEngine } from "../stub-engine.js"
+import {
+  CONTROL_ENV,
+  DEPLOYMENTS,
+  WEB_CLIENT_ID,
+  type Deployment,
+  type IdpRecord,
+} from "./web-sim.js"
+
+/** The web app's build, which `test:web` builds first: `MCP_WEB_DIR`, never the package's web/. */
+const WEB_BUILD = path.resolve(import.meta.dirname, "..", "..", "..", "web", "dist")
+
+interface WebDeployment {
+  readonly origin: string
+  readonly idp: FakeOidc
+  close(): Promise<void>
+}
+
+/** A port no listener holds now, for an origin `MCP_URL` names before the server listens on it. */
+async function freePort(): Promise<number> {
+  const probe = http.createServer()
+  await new Promise<void>((resolve) => probe.listen(0, "127.0.0.1", resolve))
+  const { port } = probe.address() as AddressInfo
+  await new Promise<void>((resolve) => probe.close(() => resolve()))
+  return port
+}
+
+/**
+ * One composition root (`createApp`, what `src/index.ts` runs) under OAuth at
+ * `http://localhost:<port>`, its own fake identity provider (Keycloak's paths, the boot's real
+ * provider table) with the web client's callback and post-logout URIs exactly, the web app on with
+ * the build of apps/web and the engines `profiles`. OAuth gives the operations toolset, so the
+ * server registers the writes a page never offers.
+ */
+async function deploy(
+  profiles: Record<string, { url: string }>,
+  idpOptions: FakeOidcOptions = {},
+): Promise<WebDeployment> {
+  const port = await freePort()
+  const origin = `http://localhost:${port}`
+  const idp = await startFakeOidc({
+    ...idpOptions,
+    audience: `${origin}/mcp`,
+    clients: [
+      {
+        ...FAKE_OIDC_CLIENT,
+        redirectUris: [`${origin}/app/auth/callback`],
+        postLogoutRedirectUris: [`${origin}/app/signed-out`],
+      },
+    ],
+  })
+  const composed = await createApp({
+    MCP_URL: origin,
+    MCP_OAUTH_KEYCLOAK_SERVER_URL: idp.serverUrl,
+    MCP_OAUTH_KEYCLOAK_REALM: idp.realm,
+    MCP_WEB_CLIENT_ID: WEB_CLIENT_ID,
+    MCP_WEB_CLIENT_SECRET: FAKE_OIDC_CLIENT.secret,
+    MCP_WEB_SESSION_KEYS: randomBytes(32).toString("base64url"),
+    MCP_WEB_DIR: WEB_BUILD,
+    ENGINES_JSON: JSON.stringify({ profiles }),
+  })
+  const running = await composed.listen({ port, host: "127.0.0.1", drainTimeoutMs: 1000 })
+  return {
+    origin,
+    idp,
+    close: async () => {
+      await running.shutdown()
+      await idp.close()
+    },
+  }
+}
+
+/**
+ * What a deployment's identity provider recorded (web-sim.ts's `IdpRecord`), each refresh token
+ * a request presented or a client revoked named with its session.
+ */
+function recordOf(idp: FakeOidc): IdpRecord {
+  const sessionOf = (token: string | null) => (token === null ? undefined : idp.sessionOf(token))
+  return {
+    issuer: idp.issuer,
+    issued: idp.issued,
+    revoked: idp.revoked.map((token) => ({ token, session: sessionOf(token) })),
+    endedSessions: idp.endedSessions,
+    grants: idp.requests
+      .filter((request) => request.endpoint === "token")
+      .map((request) => ({
+        type: request.form.get("grant_type") ?? "",
+        session: sessionOf(request.form.get("refresh_token")),
+      })),
+  }
+}
+
+/**
+ * The control of the identity providers, for the workers: `GET /idp/<deployment>` answers what the
+ * deployment's provider recorded, its issuer first.
+ */
+async function startControl(idps: Record<Deployment, FakeOidc>) {
+  const server = http.createServer((req, res) => {
+    const [, scope, name, rest] = new URL(req.url ?? "/", "http://control").pathname.split("/")
+    const idp = scope === "idp" && rest === undefined ? idps[name as Deployment] : undefined
+    if (idp === undefined || req.method !== "GET") {
+      res.writeHead(404).end()
+      return
+    }
+    res.writeHead(200, { "content-type": "application/json" })
+    res.end(JSON.stringify(recordOf(idp)))
+  })
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve))
+  return {
+    url: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
+    close: () => new Promise<void>((resolve) => server.close(() => resolve())),
+  }
+}
+
+/**
+ * Boots the system under test once per run: the REAL composition root (`createApp`) with the web
+ * app on, serving the BUILT page of apps/web (`MCP_WEB_DIR` on `apps/web/dist`) and the built view
+ * bundle, against test-host's stub engine, each deployment beside a fake identity provider of its
+ * own, everything on ephemeral loopback ports. The browser reaches a deployment at
+ * `http://localhost:<port>`, its `MCP_URL`, where Chromium keeps the `__Host-` cookies of plain
+ * http. The workers find the deployments in `WEB_SIM_URL` and `WEB_SIM_SHORT_URL` and the control
+ * of their identity providers in `WEB_SIM_CONTROL_URL` (all inherited from this process).
+ */
+export default async function globalSetup(): Promise<() => Promise<void>> {
+  const engine = await startStubEngine()
+  const main = await deploy({
+    [HEALTHY_ENGINE]: { url: engine.baseUrl },
+    [BROKEN_ENGINE]: { url: engine.brokenBaseUrl },
+  })
+  // Access tokens of 5 s are due at once by the shared expiry policy: the server renews the token
+  // before each call it forwards, and a refusal of the renewal (the session ended at the provider)
+  // ends the session.
+  const short = await deploy(
+    { [HEALTHY_ENGINE]: { url: engine.baseUrl } },
+    { accessTokenSeconds: 5 },
+  )
+  const control = await startControl({ main: main.idp, short: short.idp })
+  process.env[DEPLOYMENTS.main] = main.origin
+  process.env[DEPLOYMENTS.short] = short.origin
+  process.env[CONTROL_ENV] = control.url
+
+  return async () => {
+    await control.close()
+    await main.close()
+    await short.close()
+    await engine.close()
+  }
+}

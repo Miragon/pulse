@@ -14,10 +14,14 @@ Run them from the repository root.
 pnpm --fail-if-no-match --filter @miragon/pulse-web build                 # the page into apps/web/dist
 pnpm --fail-if-no-match --filter @miragon/pulse-web test                  # unit tests, build tests, coverage floors
 pnpm --fail-if-no-match --filter @miragon/pulse-web third-party-licenses  # write THIRD_PARTY_LICENSES.txt again
+pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server test:web       # the built page on the real server, in Chromium
 ```
 
 The page imports widget-shell, pulse-ui and the engine connector's widgets: after `pnpm install`,
 build them once (`pnpm exec turbo run build --filter=@miragon/pulse-web^...`, or `pnpm build`).
+`test:web` (`apps/mcp-server/test-host/web`, its scenarios in `apps/mcp-server/test-host/README.md`)
+signs in through a fake identity provider and runs the page on the server's `createApp`; the
+server image builds the page beside the server and serves it from `/app/web`.
 
 ## What it is
 

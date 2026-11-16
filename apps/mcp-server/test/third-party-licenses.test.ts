@@ -90,7 +90,8 @@ const TEXT: LicenceFileText = {
   ],
   notes: [
     "Node.js is not listed: the image runs the one of its base image, with its licence in",
-    "/usr/local/LICENSE.",
+    "/usr/local/LICENSE. The web app's page (/app/web), which the server serves under /app, lists",
+    "the works it holds in /usr/share/doc/pulse-server/web/THIRD_PARTY_LICENSES.txt.",
   ],
   artifacts: { view: "the view bundle" },
   titles: {
@@ -181,17 +182,34 @@ describe("THIRD_PARTY_LICENSES.txt", { timeout: 120_000 }, () => {
     ])
   })
 
-  it("ships beside LICENSE in the image, which the Docker build checks", () => {
+  it("ships beside LICENSE in the image, the web app's list in web/, which the Docker build checks", () => {
     const dockerfile = readFileSync(join(REPO, "Dockerfile"), "utf8")
     const runtime = dockerfile.slice(dockerfile.indexOf("\nFROM base AS runtime\n"))
     expect(runtime).toContain(
       "\nCOPY LICENSE apps/mcp-server/THIRD_PARTY_LICENSES.txt /usr/share/doc/pulse-server/\n",
     )
+    expect(runtime).toContain(
+      "\nCOPY apps/web/THIRD_PARTY_LICENSES.txt /usr/share/doc/pulse-server/web/\n",
+    )
     const check = readFileSync(join(REPO, ".github/workflows/docker-build.yml"), "utf8")
-    for (const file of ["LICENSE", "THIRD_PARTY_LICENSES.txt"]) {
+    for (const file of ["LICENSE", "THIRD_PARTY_LICENSES.txt", "web/THIRD_PARTY_LICENSES.txt"]) {
       expect(check).toContain(`test -s /usr/share/doc/pulse-server/${file}`)
     }
     expect(check).toContain("test -s /usr/local/LICENSE")
     expect(check).toMatch(/paths:\n(?: {6}- .*\n)*? {6}- LICENSE\n/)
+  })
+
+  it("holds the web app's build in the folder createApp serves /app from, which the Docker build checks", () => {
+    const dockerfile = readFileSync(join(REPO, "Dockerfile"), "utf8")
+    const [build, runtime] = dockerfile.split("\nFROM base AS runtime\n")
+    expect(build).toMatch(/\bpnpm turbo build\b.* --filter=@miragon\/pulse-web\.\.\.\n/)
+    expect(runtime).toMatch(/^WORKDIR \/app\n/)
+    expect(runtime).toContain("\nCOPY --from=build /app/apps/web/dist ./web\n")
+    const check = readFileSync(join(REPO, ".github/workflows/docker-build.yml"), "utf8")
+    for (const file of ["index.html", "pages.json"]) {
+      expect(check).toContain(`test -s /app/web/${file}`)
+    }
+    expect(check).toContain("test -d /app/web/assets")
+    expect(check).toMatch(/paths:\n(?: {6}- .*\n)*? {6}- apps\/web\/\*\*\n/)
   })
 })
