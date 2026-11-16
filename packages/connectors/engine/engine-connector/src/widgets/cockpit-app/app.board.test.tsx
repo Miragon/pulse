@@ -20,6 +20,9 @@ const ENGINES = [
 
 const BOARD_VIEW = { section: "board", board: "invoices" } as const satisfies CockpitView
 
+/** The board as the engine list names it (ENGINE_BOARDS_DIR). */
+const LISTED_BOARD = { id: "invoices", title: "Invoices", engines: ["prod-a", "down", "nowhere"] }
+
 /** Stable: the test host memoizes on it. Fullscreen shows the head and the trail apart. */
 const FULLSCREEN = { displayMode: "fullscreen" } as const
 
@@ -38,7 +41,12 @@ function renderBoardCockpit(engines: CockpitAppData["engines"] = ENGINES) {
       onHostAction={(action) => actions.push(action)}
       onModelContext={(text) => contexts.push(text)}
       tools={{
-        [ENGINE_LIST_ENGINES]: () => ({ engines, environments: [], defaultEngineId: null }),
+        [ENGINE_LIST_ENGINES]: () => ({
+          engines,
+          environments: [],
+          defaultEngineId: null,
+          boards: [LISTED_BOARD],
+        }),
         [ENGINE_BOARD_DATA]: () => BOARD,
         [ENGINE_BPMN_XML_DATA]: (args: Record<string, unknown>) => ({
           processDefinitionId: args.processDefinitionId,
@@ -94,10 +102,17 @@ describe("CockpitApp opens a board", () => {
     expect(within(trail()).getByRole("button", { name: "Invoices" })).toBeTruthy()
   })
 
-  it("stays on the board with one engine, which never shows the chooser", () => {
+  it("with one engine the chooser shows too: it lists the board, which opens again", async () => {
     renderBoardCockpit([{ id: "prod-a", environment: "default" }])
     expect(boardHeading()).toBeTruthy()
-    expect(screen.queryByRole("button", { name: "All engines" })).toBeNull()
+    // The chooser shows once the engine list names the board.
+    const crumbs = await screen.findByRole("navigation", { name: "Breadcrumb" })
+    fireEvent.click(within(crumbs).getByRole("button", { name: "All engines" }))
+    const boards = screen.getByRole("region", { name: "Boards" })
+    expect(within(screen.getByRole("region", { name: "Engines" })).getByRole("button")).toBeTruthy()
+    fireEvent.click(within(boards).getByRole("button", { name: /^Invoices\b/ }))
+    expect(boardHeading()).toBeTruthy()
+    expect(within(trail()).getByText("Invoices").getAttribute("aria-current")).toBe("page")
   })
 
   it("'All engines' leaves the board for the chooser", () => {

@@ -18,6 +18,7 @@ import {
   ArrowRight,
   Ban,
   CircleDashed,
+  ClipboardList,
   KeyRound,
   Layers,
   LoaderCircle,
@@ -89,6 +90,14 @@ function StatusMark({ kind, tone }: { kind: EngineStatusKind; tone: ToneVariant 
   )
 }
 
+/** A row of the chooser's lists: one 28 px line (40 px on touch) of 13 px text. */
+const ROW = "text-dense min-h-row px-cell py-cell flex w-full items-center gap-3 text-left"
+
+/** The way into a row's view, after its words. */
+function RowArrow() {
+  return <Icon icon={ArrowRight} dense className="text-muted-foreground" />
+}
+
 /** The state sits inside the button, so it is part of its accessible name. */
 function EngineRow({
   engineId,
@@ -118,10 +127,7 @@ function EngineRow({
       type="button"
       onClick={onEnter}
       data-status={kind}
-      className={cn(
-        "hover:bg-accent text-dense min-h-row px-cell py-cell flex w-full items-center gap-3 text-left transition-colors",
-        FOCUS_RING_INSET,
-      )}
+      className={cn("hover:bg-accent transition-colors", ROW, FOCUS_RING_INSET)}
     >
       <StatusMark kind={kind} tone={tone} />
       <span className="text-foreground min-w-0 truncate font-semibold">{engineId}</span>
@@ -133,8 +139,101 @@ function EngineRow({
       {/* A comma for the accessible name ("prod-a, 18 Incidents"); the eye reads the gap. */}
       <span className="sr-only">, </span>
       <span className="text-muted-foreground ms-auto shrink-0 text-right">{status}</span>
-      <Icon icon={ArrowRight} dense className="text-muted-foreground" />
+      <RowArrow />
     </button>
+  )
+}
+
+/** A board of ENGINE_BOARDS_DIR as the engine list names it: its id, its title, its engines. */
+interface ServerBoard {
+  id: string
+  title: string
+  engines: string[]
+}
+
+/** The server's boards, and its board files that give no board, by their problem count. */
+export interface ServerBoards {
+  boards: ServerBoard[]
+  refusedBoards: Array<{ id: string; problems: number }>
+}
+
+/**
+ * A board opens as the cockpit's board view, marked as its view bar marks it; its engines sit
+ * inside the button, in its name. They take only the room the title leaves, so a narrow row cuts
+ * them before the title that names the board.
+ */
+function BoardRow({ board, onOpen }: { board: ServerBoard; onOpen: () => void }) {
+  const locale = useLocale()
+  const engines = translator(locale, "board.engines", {
+    count: formatNumber(board.engines.length),
+    names: board.engines.join(", "),
+  })
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className={cn("hover:bg-accent transition-colors", ROW, FOCUS_RING_INSET)}
+    >
+      <Icon icon={ClipboardList} className="text-muted-foreground" />
+      <span className="text-foreground min-w-0 truncate font-semibold">{board.title}</span>
+      <span className="sr-only">, </span>
+      <span className="text-muted-foreground min-w-0 flex-1 truncate text-right">{engines}</span>
+      <RowArrow />
+    </button>
+  )
+}
+
+/**
+ * A board file that gives no board opens nothing: its id, refused in the tone of a refused
+ * profile, and how many problems it has. Their words are in the server's log at startup.
+ */
+function RefusedBoardRow({ id, problems }: { id: string; problems: number }) {
+  const locale = useLocale()
+  return (
+    <div className={ROW} data-status="refused">
+      <Icon icon={Ban} className={TONE_ICON.warning} />
+      <span className="text-foreground min-w-0 truncate font-semibold">{id}</span>
+      <span className="sr-only">, </span>
+      <span className="text-muted-foreground ms-auto shrink-0 text-right">
+        {translator(locale, "cockpit.landing.boardRefused", { count: formatNumber(problems) })}
+      </span>
+      {/* Where the other rows have their way in: the words end where theirs do. */}
+      <span className="size-3 shrink-0" aria-hidden="true" />
+    </div>
+  )
+}
+
+/** The boards under the engines: each opens on a click, a refused file says why it does not. */
+function BoardList({
+  boards,
+  onOpenBoard,
+}: {
+  boards: ServerBoards
+  onOpenBoard: (board: string, title: string) => void
+}) {
+  const locale = useLocale()
+  const title = translator(locale, "cockpit.landing.boards")
+  return (
+    <section aria-label={title} className="flex flex-col gap-2">
+      <SectionHeading as="h2" title={title} className="mb-0" />
+      <ul className="border-border bg-card divide-border divide-y overflow-hidden rounded-md border">
+        {boards.boards.map((board) => (
+          <li key={board.id}>
+            <BoardRow board={board} onOpen={() => onOpenBoard(board.id, board.title)} />
+          </li>
+        ))}
+        {boards.refusedBoards.map((file) => (
+          <li key={file.id}>
+            <RefusedBoardRow id={file.id} problems={file.problems} />
+          </li>
+        ))}
+      </ul>
+      {boards.refusedBoards.length > 0 && (
+        <p className="text-muted-foreground text-small">
+          {translator(locale, "cockpit.landing.boardRefusedHint")}
+        </p>
+      )}
+    </section>
   )
 }
 
@@ -166,12 +265,24 @@ export function LandingHeader({ subtitle, action }: { subtitle?: string; action?
   )
 }
 
-/** The same live health and verdict as the engine's own overview (#322 U15). */
+/** What the chooser offers: its engines, in environments where they are named, and its boards. */
+function subtitleKey(named: boolean, boards: ServerBoards | null): string {
+  if (boards && boards.boards.length > 0) return "cockpit.landing.subtitle.boards"
+  return named ? "cockpit.landing.subtitle.env" : "cockpit.landing.subtitle"
+}
+
+/**
+ * The same live health and verdict as the engine's own overview (#322 U15). With `boards` (the
+ * server's ENGINE_BOARDS_DIR) the boards follow the engines, which then have a heading of their
+ * own where no environment names them.
+ */
 export function LandingChooser({
   engines,
   defaultEngineId,
   onEnterEngine,
   onOpenFleet,
+  boards = null,
+  onOpenBoard = () => {},
   notice,
 }: {
   engines: Array<{ id: string; environment?: string }>
@@ -179,15 +290,24 @@ export function LandingChooser({
   onEnterEngine: (id: string) => void
   /** Omitted with a single engine. */
   onOpenFleet?: () => void
+  /** Null without boards: the chooser shows the engines alone. */
+  boards?: ServerBoards | null
+  onOpenBoard?: (board: string, title: string) => void
   notice?: ReactNode
 }) {
   const locale = useLocale()
   const tr = (key: string, params?: Record<string, unknown>) => translator(locale, key, params)
   const groups = groupEnginesByEnvironment(engines)
   const named = groups.length > 1 || groups[0]?.id !== DEFAULT_ENVIRONMENT_ID
-  const subtitle = tr(named ? "cockpit.landing.subtitle.env" : "cockpit.landing.subtitle", {
+  // Beside the boards, the engines have a heading too: an environment's, else "Engines".
+  const headed = named || boards !== null
+  const groupTitle = (id: string) => (named ? id : tr("cockpit.landing.engines"))
+  const groupLabel = (id: string) =>
+    named ? tr("cockpit.landing.envLabel", { env: id }) : tr("cockpit.landing.engines")
+  const subtitle = tr(subtitleKey(named, boards), {
     count: formatNumber(engines.length),
     envCount: formatNumber(groups.length),
+    boardCount: formatNumber(boards?.boards.length ?? 0),
   })
   return (
     <WidgetShell header={notice}>
@@ -206,10 +326,10 @@ export function LandingChooser({
         {groups.map((g) => (
           <section
             key={g.id}
-            aria-label={named ? tr("cockpit.landing.envLabel", { env: g.id }) : undefined}
+            aria-label={headed ? groupLabel(g.id) : undefined}
             className="flex flex-col gap-2"
           >
-            {named && <SectionHeading as="h2" title={g.id} className="mb-0" />}
+            {headed && <SectionHeading as="h2" title={groupTitle(g.id)} className="mb-0" />}
             <ul className="border-border bg-card divide-border divide-y overflow-hidden rounded-md border">
               {g.engines.map((e) => (
                 <li key={e.id}>
@@ -223,6 +343,7 @@ export function LandingChooser({
             </ul>
           </section>
         ))}
+        {boards && <BoardList boards={boards} onOpenBoard={onOpenBoard} />}
       </div>
     </WidgetShell>
   )

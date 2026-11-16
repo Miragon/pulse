@@ -81,6 +81,7 @@ pulse-ui (`COUNT_TERMS` in `@miragon/pulse-ui/testing`).
 | Engine lehnt die Anmeldung des Servers ab (⁴)   | Zugangsdaten abgelehnt (HTTP 401), Zugriff verweigert (HTTP 403)     | nicht erreichbar          | credentials rejected, access denied           | unreachable           |
 | Zeitpunkt, zu dem ein Board gelesen wurde (⁵)   | Stand („Stand 08:00“)                                                | Zuletzt aktualisiert      | As of („As of 08:00“)                         | Last updated          |
 | Name eines Boards, den kein Profil trägt        | gehört nicht zu den Engines dieses Servers                           | nicht konfiguriert        | is not among the engines of this server       | not configured        |
+| Board-Datei, die kein Board ergibt (⁶)          | Datei abgelehnt („Datei abgelehnt: 1 Problem“)                       | ungültig, fehlerhaft      | file refused („file refused: 1 problem“)      | invalid, broken       |
 
 (⁴) Die Kurzform der Titel, die `describeError` für 401 und 403 zeigt, auf der Landing und in der
 Engine-übergreifenden Übersicht, dort auch gezählt („1 mit abgelehnten Zugangsdaten“). Die Engine hat
@@ -95,6 +96,13 @@ Zeilenaktion („Öffnen“, „Open“) in `en.board.ts` und `de.board.ts`; die
 mit dem Glossar von `@miragon/pulse-blocks` (`packages/core/blocks/src/messages/GLOSSARY.md`). Der
 Server liest ein Board für einen Aufrufer höchstens alle 30 Sekunden, darum nennt die Leiste den
 Stand des Lesens, nicht den des Klicks.
+
+(⁶) Die Landing des Cockpits listet unter den Engines die Boards aus `ENGINE_BOARDS_DIR` und eine
+Datei, die kein Board ergibt, mit ihrer Zahl an Problemen; deren Wortlaut steht nur im Log beim
+Start des Servers, darum sagt die Landing, wo. „Abgelehnt“ ist dasselbe Wort wie für ein Profil,
+das der Server nicht nutzt, mit demselben Ton (warning) und demselben Icon. Eine Regel gegen
+„ungültig“ und „fehlerhaft“ gibt es nicht: ein ungültiger Wert und ein fehlerhaftes Modell sind
+andere Sachen.
 
 ## Übergaben an den Chat
 

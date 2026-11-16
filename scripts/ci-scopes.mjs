@@ -66,8 +66,8 @@ export const PATH_RULES = [
   // The shared editor settings: only the always-on format check reads them.
   { pattern: /^\.vscode\//, scopes: [] },
   { pattern: /^playground\/cibseven-example\//, scopes: ["cibseven-example"] },
-  // Read by scripts/local-env.test.mjs (the Compose file).
-  { pattern: /^playground\/docker\//, scopes: ["typescript"] },
+  // Read by scripts/local-env.test.mjs (the Compose file, the engines of the playground's board).
+  { pattern: /^playground\/(?:docker|boards)\//, scopes: ["typescript"] },
   { pattern: /^playground\//, scopes: [] },
   // The starter's try-out engine: its own job starts it; the template's format check reads it.
   {

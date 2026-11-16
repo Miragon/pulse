@@ -114,6 +114,12 @@ const ENGINE_B = {
   cockpitUrl: "http://localhost:8411/webapp",
 }
 
+/**
+ * The playground's board files (`*.board.json`, over `prod-a`), relative to the repository: `pnpm
+ * play` hands the server their absolute path as ENGINE_BOARDS_DIR, so the cockpit lists them.
+ */
+export const PLAYGROUND_BOARDS = "playground/boards"
+
 /** The variable the playground's engine profiles name for their demo password (ENGINE_SECRET_*). */
 export const PLAYGROUND_PASSWORD_VARIABLE = "ENGINE_SECRET_PLAYGROUND_PASSWORD"
 
@@ -125,6 +131,8 @@ export const PLAYGROUND_PASSWORD_VARIABLE = "ENGINE_SECRET_PLAYGROUND_PASSWORD"
  * toolset, `deploy` registers deployments, `auth` puts the server behind the playground's
  * Keycloak (.env.example, "Local playground"), with MCP_URL on localhost and the server's
  * `port`: OAuth needs it, and the realm stamps http://localhost:8400/mcp into every token's aud.
+ * `boardsDir`, an absolute path (the server resolves a relative one against its own folder), is
+ * the directory of the board files (ENGINE_BOARDS_DIR).
  */
 export function serverPreset({
   multiEngine = false,
@@ -132,6 +140,7 @@ export function serverPreset({
   deploy = false,
   auth = false,
   port = DEFAULT_SERVER_PORT,
+  boardsDir,
 } = {}) {
   const login = { type: "basic", username: "demo", passwordEnv: PLAYGROUND_PASSWORD_VARIABLE }
   const engines = multiEngine
@@ -160,6 +169,7 @@ export function serverPreset({
     HOST: "127.0.0.1",
     MCP_ACTIVE_MODULES: admin ? "engine:admin" : "engine",
     ...(deploy ? { ENGINE_ALLOW_DEPLOYMENTS: "true" } : {}),
+    ...(boardsDir ? { ENGINE_BOARDS_DIR: boardsDir } : {}),
     ...(auth
       ? {
           MCP_URL: `http://localhost:${port}`,

@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "title": "Leasing operations",
+  "engines": ["prod-a"],
+  "rows": [
+    {
+      "row": [
+        {
+          "widget": "counter",
+          "props": {
+            "title": "Waiting for a decision",
+            "filter": {
+              "process": "miraveloLeasing",
+              "activeElement": "Activity_DecideOnApplication"
+            },
+            "warnAbove": 10
+          }
+        },
+        {
+          "widget": "counter",
+          "props": {
+            "title": "Applications with incident",
+            "filter": { "process": "miraveloLeasing", "withIncident": true }
+          }
+        },
+        { "widget": "incidentSummary", "props": { "groupBy": "process" } }
+      ]
+    },
+    {
+      "row": [
+        { "widget": "processDiagram", "props": { "process": "miraveloLeasing" } },
+        { "widget": "incidentList", "props": { "process": "miraveloLeasing" } }
+      ]
+    },
+    {
+      "row": [
+        {
+          "widget": "instanceList",
+          "props": {
+            "title": "Applications waiting for a decision",
+            "filter": {
+              "process": "miraveloLeasing",
+              "activeElement": "Activity_DecideOnApplication"
+            },
+            "columns": ["businessKey", "version", "startedAt", "incident"]
+          }
+        }
+      ]
+    }
+  ]
+}

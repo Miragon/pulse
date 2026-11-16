@@ -92,7 +92,10 @@ export function FleetCrumbs({ locale, onLanding }: { locale: string; onLanding: 
   )
 }
 
-/** A board's trail, with more than one engine: the chooser, then the board by its title. */
+/**
+ * A board's trail where the chooser shows (more than one engine, or one beside the server's
+ * boards): the chooser, then the board by its title.
+ */
 export function BoardCrumbs({
   view,
   locale,

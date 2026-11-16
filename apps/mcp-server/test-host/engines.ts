@@ -45,3 +45,11 @@ export const BOARD_HOST_ENV = "HOST_SIM_BOARD_URL"
 export const INVOICES_BOARD = "invoices"
 /** Its board file that gives no board (its title is missing). */
 export const BROKEN_BOARD = "broken"
+/**
+ * Env var carrying the host page of the deployment with one engine, the healthy one, and a board
+ * over it (`fixtures/one-engine-boards`): the landing shows with one engine too (set by
+ * global-setup.ts).
+ */
+export const ONE_ENGINE_BOARD_HOST_ENV = "HOST_SIM_ONE_ENGINE_BOARD_URL"
+/** Its board over the healthy engine. */
+export const APPROVALS_BOARD = "approvals"

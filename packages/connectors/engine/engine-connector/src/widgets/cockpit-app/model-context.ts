@@ -3,6 +3,7 @@ import type { ViewContext } from "../lib/hand-off.js"
 import type { CockpitView } from "../../view-models.js"
 import type { BoardStartData } from "../../view-models.board.js"
 import { selectedEntity } from "../nav-core.js"
+import type { ServerBoards } from "./landing.js"
 
 /** The view was navigated client-side: no chat turn tells the model. */
 export function cockpitContext(engineId: string, current: CockpitView): ViewContext {
@@ -38,9 +39,14 @@ export function refusedEngineContext(engineId: string): ViewContext {
   }
 }
 
-/** No engine is open: the engine ids are facts, not an `engine` to pin. */
+/**
+ * No engine is open: the engine ids are facts, not an `engine` to pin. The boards the picker
+ * lists (ENGINE_BOARDS_DIR) are facts too, by their ids; their titles are the operator's text and
+ * stay out.
+ */
 export function landingContext(
   engineGroups: Array<{ id: string; engines: Array<{ id: string }> }>,
+  boards: ServerBoards | null = null,
 ): ViewContext {
   return {
     summary:
@@ -50,6 +56,10 @@ export function landingContext(
     facts: {
       engines: engineGroups.flatMap((g) => g.engines.map((e) => e.id)),
       environments: enginesByEnvironment(engineGroups),
+      ...(boards && {
+        boards: boards.boards.map((board) => board.id),
+        refusedBoards: boards.refusedBoards.map((board) => board.id),
+      }),
     },
   }
 }

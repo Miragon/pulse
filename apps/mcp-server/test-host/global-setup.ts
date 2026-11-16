@@ -13,6 +13,7 @@ import {
   ENGINE_CONTROL_ENV,
   HEALTHY_ENGINE,
   LOGIN_REFUSED_ENGINE,
+  ONE_ENGINE_BOARD_HOST_ENV,
   OWN_VIEW_HOST_ENV,
   PAGE_SCRIPT_ENV,
   REALISTIC_ENGINE,
@@ -93,7 +94,8 @@ async function deploy(
  * `HOST_SIM_REALISTIC_URL`, the one with a refused profile and refused logins via
  * `HOST_SIM_REFUSED_URL`, the
  * one with a module's own view via
- * `HOST_SIM_OWN_VIEW_URL`, the one with board files via `HOST_SIM_BOARD_URL` and the stub engine's
+ * `HOST_SIM_OWN_VIEW_URL`, the one with board files via `HOST_SIM_BOARD_URL`, the one with one
+ * engine and a board via `HOST_SIM_ONE_ENGINE_BOARD_URL` and the stub engine's
  * scenario control via
  * `HOST_SIM_ENGINE_URL` (all inherited from this process). The default deployment also serves a
  * plain page outside a chat at `/page` (`mountPage`, its script built here from `page/main.ts`,
@@ -164,6 +166,12 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     ...engines,
     ENGINE_BOARDS_DIR: path.join(import.meta.dirname, "fixtures", "boards"),
   })
+  // One engine beside a board over it (board.spec.ts): the landing, which a single engine never
+  // shows without boards, lists the board, and the trail's first crumb leads there.
+  const oneEngineBoards = await deploy({
+    ENGINES_JSON: JSON.stringify({ profiles: { [HEALTHY_ENGINE]: { url: engine.baseUrl } } }),
+    ENGINE_BOARDS_DIR: path.join(import.meta.dirname, "fixtures", "one-engine-boards"),
+  })
   // A module with a finished HTML view of its own next to the bundle's (own-view.spec.ts).
   const ownView = await deploy(
     { ...engines, MCP_ACTIVE_MODULES: "engine,board" },
@@ -176,6 +184,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   process.env[REFUSED_HOST_ENV] = refused.host.url
   process.env[OWN_VIEW_HOST_ENV] = ownView.host.url
   process.env[BOARD_HOST_ENV] = boards.host.url
+  process.env[ONE_ENGINE_BOARD_HOST_ENV] = oneEngineBoards.host.url
   process.env[ENGINE_CONTROL_ENV] = engine.controlUrl
 
   return async () => {
@@ -185,6 +194,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     await refused.close()
     await ownView.close()
     await boards.close()
+    await oneEngineBoards.close()
     await engine.close()
     await rm(pageDir, { recursive: true, force: true })
   }

@@ -13,6 +13,7 @@ with Docker Compose, or deploy the whole stack to Fly.io with one workflow.
 | Path                | Contents                                                                      |
 | ------------------- | ----------------------------------------------------------------------------- |
 | `cibseven-example/` | Spring Boot CIB seven engine: seeded Miravelo Leasing processes, live traffic |
+| `boards/`           | A board over the engine (`prod-a`), which `pnpm play` hands the server        |
 | `docker/`           | Compose stack: engine(s), optional Keycloak and server                        |
 | `fly/`              | Fly.io deployment: one `*.fly.toml` per app + `deploy.sh`                     |
 
@@ -36,6 +37,8 @@ pnpm stack:down     # stop (volumes kept; --wipe drops them)
   a bare `pulse` (`npm install -g @miragon/pulse-cli`, or the build
   `node apps/cli/dist/pulse-cli.js`) reaches it; your own profiles stay available with `--profile`.
 - Engine: `http://localhost:8410` (login `demo` / `demo`).
+- Boards: `pnpm play` sets `ENGINE_BOARDS_DIR` to `boards/`, so the cockpit's landing lists
+  _Leasing operations_ beside the engine ([Boards](../docs/mcp/boards.md)).
 - The engine image copies a jar (`cibseven-example/build/libs/`): `stack:up` builds it when it is
   missing or older than its sources, on a local JDK 21 or else in an `eclipse-temurin:21-jdk`
   container (Gradle cache in the Docker volume `pulse-gradle-cache`; `--jdk-container` forces it).

@@ -176,6 +176,11 @@ services:
       - ENGINE_AUTH_TYPE=basic
       - ENGINE_USERNAME=demo
       - ENGINE_PASSWORD=demo
+      # The playground's board files (../boards, over prod-a), read at boot: the cockpit's
+      # landing lists them, engine_open_cockpit opens one by its id.
+      - ENGINE_BOARDS_DIR=/boards
+    volumes:
+      - ../boards:/boards:ro
     depends_on:
       cibseven:
         condition: service_healthy

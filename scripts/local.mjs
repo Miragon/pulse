@@ -47,6 +47,7 @@ import {
   DEFAULT_SERVER_PORT,
   inspectorLink,
   inspectorPorts,
+  PLAYGROUND_BOARDS,
   portConflict,
   portOwners,
   presetToolsets,
@@ -432,7 +433,7 @@ function sayOverrides({ overridden, outranking }) {
 async function play(options) {
   const portFromEnv = process.env.PORT !== undefined
   const port = Number(process.env.PORT ?? DEFAULT_PORT)
-  const preset = serverPreset({ ...options, port })
+  const preset = serverPreset({ ...options, port, boardsDir: path.join(ROOT, PLAYGROUND_BOARDS) })
   const { env: presetEnv, ...overrides } = withPreset(preset, process.env)
   // The inspector's sign-in token: the caller's own, else a fresh one, so the ready message can
   // link the signed-in web UI. The ready message never names a token from the caller's

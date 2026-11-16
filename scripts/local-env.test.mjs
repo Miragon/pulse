@@ -13,6 +13,7 @@ import {
   inspectorLink,
   inspectorPorts,
   portConflict,
+  PLAYGROUND_BOARDS,
   PLAYGROUND_PASSWORD_VARIABLE,
   portOwners,
   presetToolsets,
@@ -117,6 +118,30 @@ describe("the presets", () => {
     const behindAuth = serverPreset({ multiEngine: true, auth: true })
     assert.equal(behindAuth.ENGINES_JSON, preset.ENGINES_JSON)
     assert.equal(behindAuth.MCP_OAUTH_KEYCLOAK_REALM, "miragon")
+  })
+
+  it("hands the server the playground's board files by their absolute path", () => {
+    assert.equal(serverPreset().ENGINE_BOARDS_DIR, undefined)
+    const preset = serverPreset({ boardsDir: "/repo/playground/boards" })
+    assert.equal(preset.ENGINE_BOARDS_DIR, "/repo/playground/boards")
+    // The board names the playground's engine, a profile with and without --multi-engine.
+    const board = JSON.parse(
+      readFileSync(
+        new URL(`../${PLAYGROUND_BOARDS}/operations.board.json`, import.meta.url),
+        "utf8",
+      ),
+    )
+    assert.deepEqual(board.engines, [serverPreset().ENGINE_ID])
+    assert.ok(
+      Object.hasOwn(
+        JSON.parse(serverPreset({ multiEngine: true }).ENGINES_JSON).profiles,
+        "prod-a",
+      ),
+    )
+    // The containerized server (`--profile full`) reads the same files, mounted read-only.
+    const server = compose.services["mcp-server"]
+    assert.ok(server.environment.includes("ENGINE_BOARDS_DIR=/boards"))
+    assert.ok(server.volumes.includes("../boards:/boards:ro"))
   })
 
   it("widens the toolset with --admin and registers deployments with --deploy", () => {

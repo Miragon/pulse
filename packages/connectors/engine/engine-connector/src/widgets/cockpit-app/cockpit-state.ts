@@ -46,6 +46,7 @@ export type CockpitAction =
   | { type: "to-fleet" }
   | { type: "to-landing" }
   | { type: "to-board" }
+  | { type: "open-board"; view: BoardView }
   | { type: "pop"; to?: number }
   | ({ type: "reconcile" } & ScopeFix)
 
@@ -99,17 +100,25 @@ interface ScopeFix {
 
 /**
  * The engine list reloads (a racing bootstrap or a restarted server): a gone engine
- * falls back explicitly instead of querying a stale id. Chooser and fleet need two engines; a
- * board reads the engines it names, whatever the list holds.
+ * falls back explicitly instead of querying a stale id. The chooser shows with two engines, or
+ * with one when the server has boards, which it lists; the fleet needs two engines; a board reads
+ * the engines it names, whatever the list holds. Without the chooser the sole engine opens.
  */
-function reconcileScope(scope: CockpitScope, engineIds: readonly string[]): ScopeFix | null {
+function reconcileScope(
+  scope: CockpitScope,
+  engineIds: readonly string[],
+  withBoards: boolean,
+): ScopeFix | null {
   if (engineIds.length === 0 || scope.kind === "board") return null
-  const sole = engineIds.length === 1 ? engineIds[0] : null
-  const fallback: CockpitScope = sole ? { kind: "engine", engineId: sole } : { kind: "landing" }
+  const chooser = engineIds.length > 1 || withBoards
+  const fallback: CockpitScope = chooser
+    ? { kind: "landing" }
+    : { kind: "engine", engineId: engineIds[0] }
   if (scope.kind === "engine") {
     return engineIds.includes(scope.engineId) ? null : { scope: fallback, gone: scope.engineId }
   }
-  return sole ? { scope: fallback, gone: null } : null
+  const stays = scope.kind === "fleet" ? engineIds.length > 1 : chooser
+  return stays ? null : { scope: fallback, gone: null }
 }
 
 /**
@@ -140,6 +149,8 @@ function cockpitReducer(state: CockpitState, action: CockpitAction): CockpitStat
       return initialState({ engineId: null })
     case "to-board":
       return state.fromBoard ? boardState(state.fromBoard, null) : state
+    case "open-board":
+      return boardState(action.view, null)
     case "reconcile":
       return { ...initialState({ engineId: null }), scope: action.scope, goneEngineId: action.gone }
     case "pop":
@@ -171,10 +182,15 @@ function bootView(start: CockpitStart | null | undefined): CockpitView | null {
   return { ...start.view, label: (start.data as BoardStartData).title }
 }
 
-/** Both in the render phase, so the chooser never flashes and a stale engine id never reaches a query. */
+/**
+ * Both in the render phase, so the chooser never flashes and a stale engine id never reaches a
+ * query. `withBoards`: the engine list names a board or a board file, so the chooser shows with
+ * one engine too.
+ */
 export function useCockpitState(
   data: CockpitAppData | null,
   engines: ReadonlyArray<{ id: string }>,
+  withBoards: boolean,
 ) {
   const boot = { engineId: data?.engineId ?? null, view: bootView(data?.start) }
   const [state, dispatch] = useReducer(cockpitReducer, boot, initialState)
@@ -183,6 +199,7 @@ export function useCockpitState(
   const scopeFix = reconcileScope(
     state.scope,
     engines.map((e) => e.id),
+    withBoards,
   )
   if (scopeFix) dispatch({ type: "reconcile", ...scopeFix })
   return [state, dispatch] as const

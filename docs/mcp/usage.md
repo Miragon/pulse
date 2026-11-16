@@ -122,5 +122,8 @@ still answers you in your language.
   each one shows within the search, whichever scope is picked. **With incident**
   is an instance with an open incident now, read from the engine's runtime on
   every history level, as Pulse for VS Code and Pulse for Orca read it.
+- A deployment with board files (`ENGINE_BOARDS_DIR`) answers _"show me the leasing board"_ with
+  the board's tiles, the ones Pulse for VS Code shows, and the cockpit's landing lists its boards
+  ([Boards](boards.md)).
 - If a tool isn't doing what you expect, ask the assistant to show you the raw
   arguments. It'll print them, and you can spot mismatches quickly.

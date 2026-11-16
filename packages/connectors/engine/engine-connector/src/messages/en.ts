@@ -32,6 +32,8 @@ export const en: MessageCatalog = {
     `${countOf(count, "engine", "engines")} configured. Pick one to work with.`,
   "cockpit.landing.subtitle.env": ({ count, envCount }) =>
     `${countOf(count, "engine", "engines")} in ${countOf(envCount, "environment", "environments")}. Pick one to work with.`,
+  "cockpit.landing.subtitle.boards": ({ count, boardCount }) =>
+    `${countOf(count, "engine", "engines")} and ${countOf(boardCount, "board", "boards")}. Pick one to work with.`,
   "cockpit.landing.envLabel": ({ env }) => `Environment ${String(env).toUpperCase()}`,
   "cockpit.landing.default": "default",
   "cockpit.landing.status.loading": "loading…",
@@ -47,6 +49,13 @@ export const en: MessageCatalog = {
   "cockpit.landing.status.idle": "no running instances",
   "cockpit.landing.status.healthy": "no incidents",
   "cockpit.landing.fleet.open": "Cross-engine overview",
+  "cockpit.landing.engines": "Engines",
+  "cockpit.landing.boards": "Boards",
+  // A board file that gives no board: refused, as a profile the server cannot use.
+  "cockpit.landing.boardRefused": ({ count }) =>
+    `file refused: ${countOf(count, "problem", "problems")}`,
+  "cockpit.landing.boardRefusedHint":
+    "Pulse shows no board for a refused file. The file's problems are in the log the server writes at startup, and whoever runs the server can fix the file.",
   "cockpit.crumb.allEngines": "All engines",
   "cockpit.crumb.fleet": "Cross-engine overview",
   "cockpit.engineGone": ({ engineId }) =>

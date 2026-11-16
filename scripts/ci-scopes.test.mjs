@@ -297,6 +297,7 @@ describe("scopesFor: paths outside the packages", () => {
 
   it("runs the TypeScript job for the files the playground and server env-name tests read", () => {
     assert.deepEqual(scopes("playground/docker/docker-compose.yml"), ["typescript"])
+    assert.deepEqual(scopes("playground/boards/operations.board.json"), ["typescript"])
     assert.deepEqual(scopes(".env.example"), ["typescript"])
   })
 

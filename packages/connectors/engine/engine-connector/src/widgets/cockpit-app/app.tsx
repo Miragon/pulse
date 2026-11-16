@@ -33,12 +33,12 @@ import {
 import { CockpitHead, CockpitTrailBar, EngineSwitch } from "./head.js"
 import { CockpitRoute } from "./routes.js"
 import { FleetView } from "./fleet-view.js"
-import { LandingChooser, LandingHeader } from "./landing.js"
+import { LandingChooser, LandingHeader, type ServerBoards } from "./landing.js"
 import { RefusedEngineGate, useProfileRefusal } from "./refused-engine.js"
 
 export type { CockpitAppData }
 
-interface EnginesResult {
+interface EnginesResult extends Partial<ServerBoards> {
   engines: Array<{ id: string; environment?: string }>
   defaultEngineId: string | null
   /** Profiles the server refused: the picker lists them too, and opening one says why. */
@@ -60,6 +60,17 @@ function listedEngines(result: EnginesResult, order: readonly ListedEngine[]): L
   const rank = new Map(order.map(({ id }, index) => [id, index]))
   const place = (id: string) => rank.get(id) ?? rank.size
   return named.sort((a, b) => place(a.id) - place(b.id))
+}
+
+/**
+ * The boards of ENGINE_BOARDS_DIR as the engine list names them (`boards` and `refusedBoards`
+ * only with the directory set), or null while there is none: a server without boards keeps the
+ * chooser to two engines and more.
+ */
+function serverBoards(result: EnginesResult | undefined): ServerBoards | null {
+  const boards = result?.boards ?? []
+  const refusedBoards = result?.refusedBoards ?? []
+  return boards.length + refusedBoards.length > 0 ? { boards, refusedBoards } : null
 }
 
 /**
@@ -118,15 +129,16 @@ function EnginesEmptyState({
 
 /**
  * The trail's first crumb: the board an engine's view was opened from leads back to it; else
- * "All engines" leads back to the chooser (#322 U15) when there is more than one engine.
+ * "All engines" leads back to the chooser (#322 U15) where it shows: with more than one engine,
+ * or with one when the server has boards.
  */
 function rootCrumb(
   fromBoard: BoardView | null,
-  engines: readonly ListedEngine[],
+  chooser: boolean,
   locale: string,
 ): string | undefined {
   if (fromBoard) return crumbLabel(fromBoard, locale)
-  return engines.length > 1 ? translator(locale, "cockpit.crumb.allEngines") : undefined
+  return chooser ? translator(locale, "cockpit.crumb.allEngines") : undefined
 }
 
 /**
@@ -138,6 +150,7 @@ function EngineBars({
   engineId,
   engines,
   engineGroups,
+  chooser,
   state,
   inline,
   onOpenFleet,
@@ -146,6 +159,8 @@ function EngineBars({
   engineId: string
   engines: readonly ListedEngine[]
   engineGroups: Array<{ id: string; engines: Array<{ id: string }> }>
+  /** The chooser shows: the trail's first crumb leads back to it. */
+  chooser: boolean
   state: CockpitState
   inline: boolean
   onOpenFleet?: () => void
@@ -153,7 +168,7 @@ function EngineBars({
 }) {
   const locale = useLocale()
   const { stack, goneEngineId, fromBoard } = state
-  const rootLabel = rootCrumb(fromBoard, engines, locale)
+  const rootLabel = rootCrumb(fromBoard, chooser, locale)
   const leave = fromBoard ? ({ type: "to-board" } as const) : ({ type: "to-landing" } as const)
   const trail = (
     <NavBreadcrumb
@@ -203,7 +218,10 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
   const { context } = useHandOff()
   const inline = useHostDisplayMode() === "inline"
 
-  const [state, dispatch] = useCockpitState(data, engines)
+  const boards = serverBoards(listed)
+  // Two engines need it to pick one; a single engine only when the server has boards to show.
+  const chooser = engines.length > 1 || boards !== null
+  const [state, dispatch] = useCockpitState(data, engines, boards !== null)
   const { scope, stack, goneEngineId } = state
   // Also before the engine list answers, or when it fails: a read already met the refusal.
   const metRefusal = useProfileRefusal(scope.kind === "engine" ? scope.engineId : null)
@@ -213,6 +231,8 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
   const openFleet = offerFleet ? () => dispatch({ type: "to-fleet" }) : undefined
 
   const enterEngine = (id: string) => dispatch({ type: "enter-engine", id })
+  const openBoard = (board: string, title: string) =>
+    dispatch({ type: "open-board", view: { section: "board", board, label: title } })
 
   const navigate: OnNavigate = dispatch
 
@@ -228,12 +248,16 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
     return (
       <NavigationFocus viewKey={nav.key} label={nav.label}>
         {/* The model hears the picker as the picker: no engine is in scope. */}
-        <HostModelContext content={context(landingContext(engineGroups))}>{null}</HostModelContext>
+        <HostModelContext content={context(landingContext(engineGroups, boards))}>
+          {null}
+        </HostModelContext>
         <LandingChooser
           engines={engines}
           defaultEngineId={enginesQuery.data?.defaultEngineId ?? null}
           onEnterEngine={enterEngine}
           onOpenFleet={openFleet}
+          boards={boards}
+          onOpenBoard={openBoard}
           notice={<EngineGoneNotice engineId={goneEngineId} />}
         />
       </NavigationFocus>
@@ -261,11 +285,11 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
     return (
       <NavigationFocus viewKey={nav.key} label={nav.label}>
         {/* A board reads the engines it names: no engine's head, the chooser one crumb away
-            where there is one. Its view says what the model sees of it. */}
+            where it shows. Its view says what the model sees of it. */}
         <WidgetShell
           flush
           header={
-            engines.length > 1 && (
+            chooser && (
               <CockpitTrailBar>
                 <BoardCrumbs
                   view={scope.view}
@@ -302,6 +326,7 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
             engineId={engineId}
             engines={engines}
             engineGroups={engineGroups}
+            chooser={chooser}
             state={state}
             inline={inline}
             onOpenFleet={openFleet}

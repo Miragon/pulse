@@ -506,6 +506,8 @@ const DOCS_BUDGETS = {
   "mcp/developer.md": 80,
   "mcp/operations.md": 120,
   "mcp/usage.md": 150,
+  // A board in the chat and the cockpit, the server's board files, a board shared with the editors.
+  "mcp/boards.md": 70,
   "mcp/reference.md": 160,
   // The CLI's pages (docs/cli/).
   "cli/index.md": 40,

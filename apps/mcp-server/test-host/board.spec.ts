@@ -1,11 +1,13 @@
 import AxeBuilder from "@axe-core/playwright"
 import { expect, test, type FrameLocator, type Locator, type Page } from "@playwright/test"
 import {
+  APPROVALS_BOARD,
   BOARD_HOST_ENV,
   BROKEN_BOARD,
   BROKEN_ENGINE,
   HEALTHY_ENGINE,
   INVOICES_BOARD,
+  ONE_ENGINE_BOARD_HOST_ENV,
 } from "./engines.js"
 
 /**
@@ -17,7 +19,8 @@ import {
  * shows refused. A tile opens the engine's own route, the trail leads back to the board, and the
  * board keeps the house rules: within the host's budget inline, every row in fullscreen, no
  * sideways scroll at 400 and 320 px, forced colours and dark, axe, and the stripped-result
- * re-run.
+ * re-run. The landing lists the boards beside the engines, a refused file with its problem count,
+ * and shows with one engine too when the server has boards.
  */
 
 const BOARD_ARGS = { view: "board", board: INVOICES_BOARD }
@@ -26,6 +29,8 @@ const TITLE = "Invoice operations"
 const OUTLAST_MS = 1_500
 
 interface Scenario {
+  /** The deployment's variable: the one with both engines and the board files by default. */
+  hostEnv?: string
   args?: Record<string, unknown>
   structuredContent?: "keep" | "strip"
   theme?: "light" | "dark"
@@ -43,8 +48,9 @@ interface HostLog {
 }
 
 async function openBoard(page: Page, scenario: Scenario = {}): Promise<FrameLocator> {
-  const base = process.env[BOARD_HOST_ENV]
-  if (!base) throw new Error(`${BOARD_HOST_ENV} is unset. Run via \`playwright test -c test-host\``)
+  const hostEnv = scenario.hostEnv ?? BOARD_HOST_ENV
+  const base = process.env[hostEnv]
+  if (!base) throw new Error(`${hostEnv} is unset. Run via \`playwright test -c test-host\``)
   const query = new URLSearchParams({
     tool: "engine_open_cockpit",
     args: JSON.stringify(scenario.args ?? BOARD_ARGS),
@@ -350,4 +356,98 @@ test.describe("a board, the cockpit's app-level route", () => {
       await expectAxeClean(page, `board (${theme})`)
     })
   }
+})
+
+test.describe("the landing lists the boards", () => {
+  const landing = (app: FrameLocator) =>
+    app.getByRole("heading", { level: 1, name: "Operations Cockpit" })
+  const boards = (app: FrameLocator, name = "Boards") => app.getByRole("region", { name })
+
+  test("beside the engines: a board by its title and engines, a refused file by its problem count; a board opens and its trail leads back", async ({
+    page,
+  }) => {
+    // No engine resolves between two without a default: the cockpit opens on the landing.
+    const app = await openBoard(page, { args: {} })
+    await expect(landing(app)).toBeVisible({ timeout: 15_000 })
+    const engines = app.getByRole("region", { name: "Engines" })
+    await expect(engines.getByRole("button")).toHaveCount(2)
+    const board = boards(app).getByRole("button", {
+      name: new RegExp(`^${TITLE}\\s*,\\s*2 engines: ${HEALTHY_ENGINE}, ${BROKEN_ENGINE}$`),
+    })
+    await expect(board).toBeVisible()
+    const refused = boards(app).locator("[data-status=refused]")
+    await expect(refused).toContainText(BROKEN_BOARD)
+    await expect(refused).toContainText(/file refused: 1 problem$/)
+    await expect(
+      boards(app).getByText(/problems are in the log the server writes at startup/),
+    ).toBeVisible()
+    // A row keeps the row height of the chooser's engines.
+    expect((await board.boundingBox())?.height).toBeLessThanOrEqual(29)
+
+    await board.click()
+    await expect(heading(app)).toBeVisible({ timeout: 15_000 })
+    const trail = app.getByRole("navigation", { name: "Breadcrumb" })
+    await trail.getByRole("button", { name: "All engines" }).click()
+    await expect(landing(app)).toBeVisible()
+  })
+
+  test("in German, and at 320 px without sideways scroll", async ({ page }) => {
+    const app = await openBoard(page, { args: {}, locale: "de-DE", width: 320 })
+    await expect(landing(app)).toBeVisible({ timeout: 15_000 })
+    await expect(boards(app).getByRole("heading", { level: 2, name: "Boards" })).toBeVisible()
+    await expect(boards(app).locator("[data-status=refused]")).toContainText(
+      "Datei abgelehnt: 1 Problem",
+    )
+    const board = boards(app).getByRole("button", {
+      name: new RegExp(`^${TITLE}\\s*,\\s*2 Engines:`),
+    })
+    await expect(board).toBeVisible()
+    // The engines give way first: the title that names the board stays whole.
+    const title = board.getByText(TITLE, { exact: true })
+    expect(await title.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true)
+    const { scrollWidth, clientWidth } = await documentOverflow(app)
+    expect(scrollWidth, "the document never scrolls sideways").toBeLessThanOrEqual(clientWidth)
+  })
+
+  test("one engine with a board: the trail's first crumb leads to the landing, which opens the board", async ({
+    page,
+  }) => {
+    // The sole engine resolves, so the cockpit opens on its overview, as without boards.
+    const app = await openBoard(page, {
+      hostEnv: ONE_ENGINE_BOARD_HOST_ENV,
+      args: {},
+      displayModes: ["inline", "fullscreen"],
+    })
+    const sections = app.getByRole("navigation", { name: "Cockpit sections" })
+    await expect(sections.getByRole("button", { name: "Overview" })).toHaveAttribute(
+      "aria-current",
+      "page",
+      { timeout: 15_000 },
+    )
+    await app.getByRole("button", { name: "Fullscreen" }).click()
+    const trail = app.getByRole("navigation", { name: "Breadcrumb" })
+    await trail.getByRole("button", { name: "All engines" }).click()
+    await expect(landing(app)).toBeVisible()
+    await expect(app.getByRole("region", { name: "Engines" }).getByRole("button")).toHaveCount(1)
+    await boards(app)
+      .getByRole("button", { name: new RegExp(`^Approvals\\s*,\\s*1 engine: ${HEALTHY_ENGINE}$`) })
+      .click()
+    await expect(heading(app, "Approvals")).toBeVisible({ timeout: 15_000 })
+    await expect(tile(app, "Waiting for approval").locator("[data-part=counter-value]")).toHaveText(
+      "2",
+    )
+    // Opened in the view, the board reads its app-only feed by its id.
+    const feedCalls = (await hostLog(page)).toolCalls.filter((c) => c.name === "engine_board_data")
+    expect(feedCalls).toEqual([
+      { name: "engine_board_data", arguments: { board: APPROVALS_BOARD } },
+    ])
+    // The board's trail leads back to the landing: it shows with one engine beside a board.
+    await expect(trail.getByRole("button", { name: "All engines" })).toBeVisible()
+  })
+
+  test("axe: the landing with its boards (WCAG 2.2 A/AA)", async ({ page }) => {
+    const app = await openBoard(page, { args: {} })
+    await expect(boards(app).locator("[data-status=refused]")).toBeVisible({ timeout: 15_000 })
+    await expectAxeClean(page, "landing with boards")
+  })
 })

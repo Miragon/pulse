@@ -1,10 +1,10 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
 import type { ComponentType } from "react"
-import { cleanup, render, screen, within } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react"
 import { TONE_ICON } from "@miragon/pulse-ui"
 import { ENGINE_COCKPIT_OVERVIEW_DATA } from "../../tool-names.js"
-import { LandingChooser } from "./landing.js"
+import { LandingChooser, type ServerBoards } from "./landing.js"
 import { TestViewHost, createTestQueryClient } from "@miragon/pulse-widget-shell/widgets"
 
 // One retry-free client per test; the test reads and pokes its cache.
@@ -177,5 +177,103 @@ describe("LandingChooser", () => {
     renderLanding(undefined, [{ id: "solo-a" }, { id: "solo-b" }])
     expect(screen.queryByRole("heading", { level: 2 })).toBeNull()
     expect(screen.getByText("2 engines configured. Pick one to work with.")).toBeTruthy()
+  })
+})
+
+/** The boards of ENGINE_BOARDS_DIR, under the engines; a file that gives no board says so. */
+describe("LandingChooser with the server's boards", () => {
+  const BOARDS: ServerBoards = {
+    boards: [{ id: "invoices", title: "Invoice operations", engines: ["prod-a", "prod-b"] }],
+    refusedBoards: [{ id: "broken", problems: 1 }],
+  }
+
+  const HINT =
+    "Pulse shows no board for a refused file. The file's problems are in the log the server writes at startup, and whoever runs the server can fix the file."
+
+  function renderBoards(locale?: string, opened: string[][] = [], boards = BOARDS) {
+    render(
+      <TestViewHost
+        tools={{ [ENGINE_COCKPIT_OVERVIEW_DATA]: overviewFeed }}
+        client={queryClient}
+        locale={locale}
+      >
+        <LandingChooser
+          engines={[{ id: "prod-a" }, { id: "prod-b" }]}
+          onEnterEngine={() => {}}
+          boards={boards}
+          onOpenBoard={(id, title) => opened.push([id, title])}
+        />
+      </TestViewHost>,
+    )
+  }
+
+  it("lists each board by its title and engines, a way into it", () => {
+    const opened: string[][] = []
+    renderBoards(undefined, opened)
+    const boards = screen.getByRole("region", { name: "Boards" })
+    expect(within(boards).getByRole("heading", { level: 2, name: "Boards" })).toBeTruthy()
+    fireEvent.click(
+      within(boards).getByRole("button", {
+        name: /^Invoice operations\s*,\s*2 engines: prod-a, prod-b$/,
+      }),
+    )
+    expect(opened).toEqual([["invoices", "Invoice operations"]])
+    expect(screen.getByText("2 engines and 1 board. Pick one to work with.")).toBeTruthy()
+  })
+
+  it("names a refused file by its id and problem count, opens nothing, and says where its problems are", () => {
+    renderBoards()
+    const boards = screen.getByRole("region", { name: "Boards" })
+    expect(within(boards).getAllByRole("button")).toHaveLength(1)
+    const refused = within(boards).getByText("broken").parentElement!
+    expect(refused.dataset.status).toBe("refused")
+    expect(refused.textContent).toContain("file refused: 1 problem")
+    expect(refused.querySelector("svg")?.getAttribute("class")).toContain(TONE_ICON.warning)
+    expect(within(boards).getByText(HINT)).toBeTruthy()
+  })
+
+  it("says nothing of refused files where every file gives a board", () => {
+    renderBoards(undefined, [], { boards: BOARDS.boards, refusedBoards: [] })
+    const boards = screen.getByRole("region", { name: "Boards" })
+    expect(within(boards).getAllByRole("button")).toHaveLength(1)
+    expect(screen.queryByText(HINT)).toBeNull()
+  })
+
+  it("counts no boards in the subtitle where every file is refused", () => {
+    renderBoards(undefined, [], { boards: [], refusedBoards: BOARDS.refusedBoards })
+    expect(screen.getByText("2 engines configured. Pick one to work with.")).toBeTruthy()
+    expect(screen.getByText(HINT)).toBeTruthy()
+  })
+
+  it("gives the engines a heading of their own beside the boards", () => {
+    renderBoards()
+    const engines = screen.getByRole("region", { name: "Engines" })
+    expect(within(engines).getByRole("heading", { level: 2, name: "Engines" })).toBeTruthy()
+    expect(within(engines).getAllByRole("button")).toHaveLength(2)
+  })
+
+  it("speaks German on a German host", () => {
+    renderBoards("de")
+    const boards = screen.getByRole("region", { name: "Boards" })
+    expect(
+      within(boards).getByRole("button", {
+        name: /^Invoice operations\s*,\s*2 Engines: prod-a, prod-b$/,
+      }),
+    ).toBeTruthy()
+    expect(within(boards).getByText("Datei abgelehnt: 1 Problem")).toBeTruthy()
+    expect(
+      within(boards).getByText(
+        "Zu einer abgelehnten Datei zeigt Pulse kein Board. Die Probleme der Datei stehen im Log, das der Server beim Start schreibt. Wer den Server betreibt, kann die Datei korrigieren.",
+      ),
+    ).toBeTruthy()
+    expect(
+      screen.getByText("2 Engines und 1 Board. Wähl aus, womit du arbeiten willst."),
+    ).toBeTruthy()
+  })
+
+  it("without boards: no boards section and the engines without a heading of their own", () => {
+    renderLanding(undefined, [{ id: "solo-a" }, { id: "solo-b" }])
+    expect(screen.queryByRole("region", { name: "Boards" })).toBeNull()
+    expect(screen.queryByRole("region", { name: "Engines" })).toBeNull()
   })
 })

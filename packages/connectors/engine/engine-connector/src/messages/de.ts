@@ -31,6 +31,8 @@ export const de: MessageCatalog = {
     `${countOf(count, "Engine", "Engines")} konfiguriert. Wähl eine, um mit ihr zu arbeiten.`,
   "cockpit.landing.subtitle.env": ({ count, envCount }) =>
     `${countOf(count, "Engine", "Engines")} in ${countOf(envCount, "Umgebung", "Umgebungen")}. Wähl eine, um mit ihr zu arbeiten.`,
+  "cockpit.landing.subtitle.boards": ({ count, boardCount }) =>
+    `${countOf(count, "Engine", "Engines")} und ${countOf(boardCount, "Board", "Boards")}. Wähl aus, womit du arbeiten willst.`,
   "cockpit.landing.envLabel": ({ env }) => `Umgebung ${String(env).toUpperCase()}`,
   "cockpit.landing.default": "Standard",
   "cockpit.landing.status.loading": "lädt …",
@@ -45,6 +47,13 @@ export const de: MessageCatalog = {
   "cockpit.landing.status.idle": "keine laufenden Instanzen",
   "cockpit.landing.status.healthy": "keine Incidents",
   "cockpit.landing.fleet.open": "Engine-übergreifende Übersicht",
+  "cockpit.landing.engines": "Engines",
+  "cockpit.landing.boards": "Boards",
+  // Eine Board-Datei, die kein Board ergibt: abgelehnt, wie ein Profil, das der Server nicht nutzt.
+  "cockpit.landing.boardRefused": ({ count }) =>
+    `Datei abgelehnt: ${countOf(count, "Problem", "Probleme")}`,
+  "cockpit.landing.boardRefusedHint":
+    "Zu einer abgelehnten Datei zeigt Pulse kein Board. Die Probleme der Datei stehen im Log, das der Server beim Start schreibt. Wer den Server betreibt, kann die Datei korrigieren.",
   "cockpit.crumb.allEngines": "Alle Engines",
   "cockpit.crumb.fleet": "Engine-übergreifende Übersicht",
   "cockpit.engineGone": ({ engineId }) =>
