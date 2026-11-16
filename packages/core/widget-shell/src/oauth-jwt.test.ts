@@ -3,9 +3,10 @@ import http from "node:http"
 import type { AddressInfo } from "node:net"
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 import type { AuthInfo } from "@modelcontextprotocol/server"
-import { oauthGate } from "./oauth-gate.js"
+import { gateTokenCheck, oauthGate } from "./oauth-gate.js"
 import { NOT_BEFORE_LEEWAY_SECONDS } from "./oauth-jwt.js"
 import { oauthKeycloakProvider, type OAuthProvider } from "./oauth-providers.js"
+import { isAudienceRefusal } from "./oauth-shared.js"
 
 /**
  * The JWT verifier against a loopback IdP that serves only its key set, with tokens this file
@@ -244,6 +245,42 @@ describe("the bearer gate: the RFC 8707 binding", () => {
   ])("refuses a resource claim that is %s", async (_case, resource, description) => {
     const token = sign({ ...good(), aud: AUD, resource })
     expect((await refusal(await call(gateOf(), bearer(token)))).description).toBe(description)
+  })
+})
+
+// The web sign-in keeps no token /mcp would refuse: it runs the gate's own check on one token,
+// and tells a token bound to another resource (a missing audience mapper) from the rest.
+describe("gateTokenCheck: the gate's check of one token", () => {
+  const check = () => gateTokenCheck(keycloak(), RESOURCE)
+
+  const thrown = (token: string) => check()(token).then(String, (error: unknown) => error)
+
+  it("answers the caller the gate would hand the handlers", async () => {
+    const info = await check()(sign({ ...good(), azp: "pulse-web" }))
+    expect(info.extra).toMatchObject({ user: { id: "u1" }, payload: { sub: "u1" } })
+    expect(info.clientId).toBe("pulse-web")
+    expect(info.resource?.href).toBe(AUD)
+  })
+
+  it.each<[string, Record<string, unknown>]>([
+    ["no aud", { aud: undefined }],
+    ["another aud", { aud: "account" }],
+    ["a resource claim of another server", { resource: "https://other.example/mcp" }],
+    ["a resource claim that is no URL", { resource: "mcp" }],
+  ])("refuses a token with %s as an audience refusal", async (_case, claims) => {
+    const error = await thrown(sign({ ...good(), ...claims }))
+    expect(error).toMatchObject({ code: "invalid_token" })
+    expect(isAudienceRefusal(error)).toBe(true)
+  })
+
+  it.each<[string, () => Record<string, unknown>]>([
+    ["an exp past", () => ({ exp: now() - 1 })],
+    ["another issuer", () => ({ iss: `${idp.url}/realms/other` })],
+    ["a blank sub", () => ({ sub: " " })],
+  ])("refuses a token with %s, and not as an audience refusal", async (_case, claims) => {
+    const error = await thrown(sign({ ...good(), ...claims() }))
+    expect(error).toMatchObject({ code: "invalid_token" })
+    expect(isAudienceRefusal(error)).toBe(false)
   })
 })
 

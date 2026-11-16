@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { OAuthError, OAuthErrorCode, type AuthInfo } from "@modelcontextprotocol/server"
 import {
+  gateTokenCheck,
   oauthDiscovery,
   oauthGate,
   resolveOAuthResource,
@@ -11,6 +12,7 @@ import {
   oauthKeycloakProvider,
   type OAuthProvider,
 } from "./oauth-providers.js"
+import { isAudienceRefusal } from "./oauth-shared.js"
 
 /** The gate in front of `/mcp` around a custom provider, discovery, the resource, the challenge. */
 
@@ -264,5 +266,30 @@ describe("toolResultChallenge: ChatGPT reads a refused tools/call as a tool resu
     ["a body that is no JSON", requestOf("{nope")],
   ])("leaves %s to the 401", async (_case, request) => {
     expect(await toolResultChallenge(request, refusalOf("{}"))).toBeUndefined()
+  })
+})
+
+// The web sign-in tells a token bound to another resource from the gate's other refusals: a
+// provider's own verifier that binds another resource is refused as one, like the JWT verifier's.
+describe("gateTokenCheck: a provider's own verifier", () => {
+  it("refuses a token its verifier binds to another resource as an audience refusal", async () => {
+    const provider = oauthCustomProvider({
+      ...keycloak(),
+      createTokenVerifier: () => ({
+        verifyAccessToken: (token) =>
+          Promise.resolve({
+            token,
+            clientId: "c",
+            scopes: [],
+            expiresAt: now() + 60,
+            resource: new URL("https://other.example/mcp"),
+          }),
+      }),
+    })
+    const error = await gateTokenCheck(provider, RESOURCE)("t").catch((refused: unknown) => refused)
+    expect(error).toBeInstanceOf(OAuthError)
+    expect(isAudienceRefusal(error)).toBe(true)
+    expect(isAudienceRefusal(new OAuthError(OAuthErrorCode.InvalidToken, "x"))).toBe(false)
+    expect(isAudienceRefusal(undefined)).toBe(false)
   })
 })

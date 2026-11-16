@@ -67,6 +67,24 @@ type ToolCallMiddleware = (ctx: unknown, next: () => Promise<unknown>) => Promis
 type RefusalHook = (refused: RefusedRequest) => void
 
 const BASE_PATH = "/mcp"
+
+/** The methods a route of `get` and `post` takes, in the order an `Allow` names them. */
+const ALLOWED: readonly (readonly [string, readonly string[]])[] = [
+  ["GET", ["GET", "HEAD"]],
+  ["POST", ["POST"]],
+]
+
+const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+
+/** Whether a route's pattern takes `path`, as hono reads it: literal segments, `:name`, `*`. */
+function routeTakes(pattern: string, path: string): boolean {
+  const segments = pattern.split("/").map((segment) => {
+    if (segment === "*") return ".*"
+    return segment.startsWith(":") ? "[^/]+" : escapeRegExp(segment)
+  })
+  return new RegExp(`^${segments.join("/")}$`).test(path)
+}
+
 /**
  * What the server does, nothing more: the lists never change at runtime, so no `list_changed`
  * is ever sent, and `resources/subscribe` has no handler (`-32601`), so `subscribe` is not
@@ -132,8 +150,9 @@ export class McpHttpApp {
 
   /**
    * What a path takes, for the listener's 405: `/mcp` and discovery as the SDK's own 405 names it,
-   * a `get` route with the HEAD hono answers on it. Empty where no route holds the path: RFC 9110
-   * wants the list on every 405, and an empty one says the path takes nothing.
+   * the `get` and `post` routes whose pattern takes the path (a `get` with the HEAD hono answers
+   * on it). Empty where no route holds the path: RFC 9110 wants the list on every 405, and an
+   * empty one says the path takes nothing.
    */
   allowedMethods = (path: string): string => {
     if (path === BASE_PATH) return "POST"
@@ -141,8 +160,16 @@ export class McpHttpApp {
     if (discovery && oauthMetadataResponse(new Request(`http://h${path}`), discovery)) {
       return "GET, HEAD, OPTIONS"
     }
-    const routes = this.#http.routes
-    return routes.some((route) => route.method === "GET" && route.path === path) ? "GET, HEAD" : ""
+    const taken = this.#http.routes.filter((route) => routeTakes(route.path, path))
+    const methods = new Set(taken.map((route) => route.method))
+    return ALLOWED.filter(([method]) => methods.has(method))
+      .flatMap(([, allow]) => allow)
+      .join(", ")
+  }
+
+  /** The resource the bearer gate binds every token to (RFC 8707), when the app has OAuth. */
+  get oauthResource(): URL | undefined {
+    return this.#oauth?.resource
   }
 
   get(path: string, handler: HttpHandler): this {

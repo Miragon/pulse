@@ -783,6 +783,9 @@ importers:
       '@fontsource-variable/geist-mono':
         specifier: 5.3.0
         version: 5.3.0
+      '@miragon/pulse-http':
+        specifier: workspace:*
+        version: link:../http
       '@modelcontextprotocol/ext-apps':
         specifier: 2.0.4
         version: 2.0.4(@modelcontextprotocol/client@2.4.0)(@modelcontextprotocol/core@2.4.0)(@modelcontextprotocol/server@2.4.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(zod@4.6.7)
@@ -802,9 +805,6 @@ importers:
         specifier: 15.1.3
         version: 15.1.3
     devDependencies:
-      '@miragon/pulse-http':
-        specifier: workspace:*
-        version: link:../http
       '@miragon/pulse-ui':
         specifier: workspace:*
         version: link:../ui

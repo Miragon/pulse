@@ -15,6 +15,7 @@ import {
   type JWTVerifyOptions,
 } from "jose"
 import {
+  audienceRefusal,
   invalidToken,
   isAllowedHttpUrl,
   nonBlank,
@@ -34,22 +35,23 @@ const isAudienceList = (value: unknown): value is string[] =>
 
 /**
  * The token's RFC 8707 binding: a `resource` claim must name this server exactly; without one,
- * `aud` (a string, or a non-empty array of strings only) must include it.
+ * `aud` (a string, or a non-empty array of strings only) must include it. Each refusal is an
+ * audience refusal (`isAudienceRefusal`).
  */
 function boundResource(claims: Claims, resource: URL): URL {
   const claimed = claims.resource
   if (claimed !== undefined) {
     if (typeof claimed !== "string") {
-      throw invalidToken("Token resource claim must be an absolute URL")
+      throw audienceRefusal("Token resource claim must be an absolute URL")
     }
     let url: URL
     try {
       url = new URL(claimed)
     } catch {
-      throw invalidToken("Token resource claim must be an absolute URL")
+      throw audienceRefusal("Token resource claim must be an absolute URL")
     }
     if (!isAllowedHttpUrl(url) || trimPath(url).href !== resource.href) {
-      throw invalidToken("Token resource claim does not match protected resource")
+      throw audienceRefusal("Token resource claim does not match protected resource")
     }
     return resource
   }
@@ -58,10 +60,10 @@ function boundResource(claims: Claims, resource: URL): URL {
   // Every element a string: an array that mixes in another type is a malformed claim, so it is
   // refused whole rather than matched on its one string.
   if (!isAudienceList(audiences)) {
-    throw invalidToken("Token audience claim must be a string or string array")
+    throw audienceRefusal("Token audience claim must be a string or string array")
   }
   if (!audiences.includes(resource.href)) {
-    throw invalidToken("Token audience does not include the protected resource")
+    throw audienceRefusal("Token audience does not include the protected resource")
   }
   return resource
 }

@@ -14,6 +14,10 @@ describe("returnTarget", () => {
     "/app/cockpit",
     "/app/boards/a%20b",
     "/app/boards/ops.v2",
+    // Pages whose names only begin like the sign-in's or the API's routes.
+    "/app/authors",
+    "/app/apis/x",
+    "/app/boards/auth",
     // Encodings no URL parser resolves: one segment each, under /app as the router reads it.
     "/app/x%2f..%2fmcp",
     "/app/..%5cmcp",
@@ -38,6 +42,14 @@ describe("returnTarget", () => {
     "/app/%2e%2e/mcp",
     "/app/%2E%2e/mcp",
     "/app/.%2e/mcp",
+    // The sign-in's and the API's own routes: no page to return to (a GET of the logout is refused).
+    "/app/auth",
+    "/app/auth/login",
+    "/app/auth/logout",
+    "/app/auth/callback?code=x&state=y",
+    "/app/api",
+    "/app/api/session",
+    "/app/api/call",
     // Not the normal form the listener lets through.
     "/app/",
     "/app//boards",

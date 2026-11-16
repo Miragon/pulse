@@ -37,6 +37,31 @@ export const WEB_CODES = {
 
 export type WebCode = (typeof WEB_CODES)[keyof typeof WEB_CODES]
 
+/** A refusal of the routes in JSON: the API's code where a page acts on it, and what happened. */
+export interface WebRefusal {
+  readonly code?: WebCode
+  readonly message: string
+}
+
+/**
+ * The session route's answer: the name of who is signed in, the CSRF token a page's request that
+ * changes something carries in {@link WEB_CSRF_HEADER}, and when the session ends (milliseconds
+ * since epoch), however often its tokens renew.
+ */
+export interface WebSessionInfo {
+  readonly name: string
+  readonly csrf: string
+  readonly expiresAt: number
+}
+
+/**
+ * The sign-out's answer: where the browser goes next, the identity provider's end of its session
+ * (which returns to the signed-out page) or the signed-out page itself.
+ */
+export interface WebSignOut {
+  readonly location: string
+}
+
 /**
  * Why the signed-out page shows: the identity provider refused the sign-in, the session ran out,
  * the sign-in failed, the token lacks this server's audience, the user signed out, or the identity

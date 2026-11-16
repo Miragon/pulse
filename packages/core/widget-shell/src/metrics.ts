@@ -39,7 +39,14 @@ export interface MetricsOptions {
   token?: string
 }
 
-const DEFAULT_ROUTES: readonly string[] = ["/mcp", "/health", "/metrics", "/.well-known", "/fonts"]
+const DEFAULT_ROUTES: readonly string[] = [
+  "/mcp",
+  "/health",
+  "/metrics",
+  "/.well-known",
+  "/fonts",
+  "/app",
+]
 const OTHER_ROUTE = "other"
 const DURATION_BUCKETS = [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30]
 

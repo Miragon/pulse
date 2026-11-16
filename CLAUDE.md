@@ -54,7 +54,7 @@ command line interface (`apps/cli`), a VS Code extension (`apps/vscode`) and an 
 | `packages/connectors/c7/c7-adapter/`           | The C7 adapter of the runtime view (`@miragon/pulse-c7-adapter`, private): its wire, its writes and the words of its failures; its reads (`C7Runtime` and what its commands check) are c7-core's, over the wire; bundled by the editor hosts                                                                                                                                                                                                                                                                               |
 | `packages/connectors/c8/c8-adapter/`           | The C8 adapter of the runtime view (`@miragon/pulse-c8-adapter`, private): Camunda 8 through the Orchestration Cluster REST API, read-only, its wire on the transport with client credentials (`@miragon/pulse-http/oauth`), its REST client with checked views, its reads onto engine-core's read models and its plug `C8Adapter` (the contract's answers, links into Operate); for the editor hosts                                                                                                                      |
 | `packages/core/ui/`                            | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the formatters and the tones without React under `/format` and `/tones`, the brand gates under `/testing`                                                                                                                                                                                 |
-| `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, `mountPage`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), a module's test server (`/testing`)                                                                                                                                                                                                                                                |
+| `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, `mountPage`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`) with the web app's sign-in (`src/web`), a module's test server (`/testing`)                                                                                                                                                                                                         |
 | `packages/core/runtime-view/`                  | The runtime view both editor hosts compose (`@miragon/pulse-runtime-view`, private) over the contract of `engine-core`: the ports a host and an engine family plug in, the core, the protocol, the webview (React on `@miragon/pulse-ui`), the local model reader and the host kit (targets from `.pulse.json` and the CLI's user config, policies, the write audit)                                                                                                                                                       |
 | `packages/core/profile/`                       | The one profile format of the CLI, the editor hosts and the MCP server (npm `@miragon/pulse-profile`): a parser from a file's text to a verdict per profile as data (a code and a key, never a value), the credential policy by where the file comes from, `refusalsOn` for what a reader cannot serve, the JSON Schema (`schema/pulse.schema.json`) and the shared fixtures (`/testing`); no runtime dependency                                                                                                           |
 | `packages/core/board/`                         | The board file format and builder (npm `@miragon/pulse-board`): `BoardParser` (a board with its notes and refused widgets, or a file's problems as codes), `BoardProblems`, `BoardTiles`, `BoardVocabulary`, `StarterBoard`, the JSON Schema, `/testing` fixtures, `/builder` (numbers over seven reads of engine-core, an optional peer; no text), the JSON form of a built board (`BoardData`; `BoardJson.of` in `/builder`); read by the editors and the engine connector; no runtime dependency; VS Code's house rules |
@@ -853,7 +853,11 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      per-caller caches key on `callerCacheKey`, passthrough auth forwards the caller's bearer
      token (under OAuth the one the gate verified; a header with a second credential gets 401).
      Without OAuth there is no caller: a request still caches apart by its bearer token,
-     and one without a token shares the empty cache partition.
+     and one without a token shares the empty cache partition. The web app's session (`/app`,
+     widget-shell's `src/web`) is no second source: it holds a token the server's own sign-in
+     obtained through the same provider, checked by the gate before it is kept, and `/mcp`
+     verifies it like any bearer token; the session cookie is no credential at `/mcp` (401), and
+     `/app` refuses an Authorization header (400).
 
 8. **Modules are self-contained peers; an MCP server app is a thin composition root.** The
    package rules hold for every workspace package, the composition-root rules for MCP server
@@ -952,11 +956,13 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      requests is it imported: the CLI's `src/http`, `src/auth` and `src/operation`, the src of a
      family's adapter of the runtime view, a connector's `src/lib/engine` (where the engine
      connector sends through it, behind `resolveEngine`/`withEngine`; never its tools, data
-     builders or widgets), and tests anywhere, never the MCP server app's shipped code
-     (`http-consumers`, `HTTP_USERS`; in the C7 adapter only its wire, `src/engine-rest/http`, by
-     its closed world's `http-only-in-the-wire`, and only by the main entry; in the C8 adapter
-     only its wire, `src/wire`, by the main entry and `./oauth`, whose client credentials grant
-     gives it its tokens); the
+     builders or widgets), widget-shell's `src/web` (the web app's sign-in through the server's
+     own provider, by `./oauth` at runtime and the main entry by type alone:
+     `widget-shell-web-by-the-oauth-entry`), and tests anywhere, never the MCP server app's
+     shipped code (`http-consumers`, `HTTP_USERS`; in the C7 adapter only its wire,
+     `src/engine-rest/http`, by its closed world's `http-only-in-the-wire`, and only by the main
+     entry; in the C8 adapter only its wire, `src/wire`, by the main entry and `./oauth`, whose
+     client credentials grant gives it its tokens); the
      engine family's core (`@miragon/pulse-engine-core`,
      `packages/connectors/engine/engine-core`) is a family core like any other, importing only its
      own modules (`family-core-is-a-leaf`), and is imported only where a dialect is implemented,
@@ -1022,7 +1028,10 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      wiring and nothing about auth. The boot installs OAuth, a resource server that verifies
      bearer tokens with `jose`, from one provider's `MCP_OAUTH_*` variables (the table and the
      failure rules: `docs/mcp/operations.md`) and is authenticated exactly when it installed a
-     provider, never inferred from an env var.
+     provider, never inferred from an env var. Only beside a provider does `MCP_WEB_CLIENT_ID`
+     (with the other `MCP_WEB_*`) install the web app's sign-in under `/app` (widget-shell's
+     `src/web`: login, callback, logout, the session route), behind the HTTP edge guard; without
+     one the variable fails the boot, and no route under `/app` exists without it.
    - **The app composes, nothing more.** `setup.ts` holds `MODULES` and `sharedResources`, the
      `SharedResources` wiring: `shared` is the port for what the modules of a composition share
      (how a module gets another's capability, the engine module's engine access say, without

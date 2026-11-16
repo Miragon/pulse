@@ -27,7 +27,7 @@ export interface SealKey {
 }
 
 /** A value that opened: its content and the expiry it was sealed with (milliseconds since epoch). */
-interface Opened {
+export interface Opened {
   readonly ok: true
   readonly value: unknown
   readonly expiresAt: number

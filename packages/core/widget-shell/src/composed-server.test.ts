@@ -10,6 +10,7 @@ import {
 } from "./composed-server.js"
 import { HTTP_EDGE_ENV_VARS } from "./http-edge.js"
 import { OAUTH_ENV_VARS } from "./oauth-env.js"
+import { WEB_ENV_VARS } from "./web/settings.js"
 import { createToolsetVocabulary } from "./toolsets.js"
 
 const alpha: ComposableModule<object> = {
@@ -187,6 +188,7 @@ describe("createComposedServer: boot", () => {
         ...HTTP_EDGE_ENV_VARS,
         ...OAUTH_ENV_VARS,
         "MCP_OAUTH_DEBUG",
+        ...WEB_ENV_VARS,
         "MCP_ACTIVE_MODULES",
         "MCP_LOG_LEVEL",
         "ALPHA_URL",

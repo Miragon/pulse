@@ -71,7 +71,7 @@ const WORKSPACE = {
   [PROFILE]: { name: "@miragon/pulse-profile" },
   [BOARD]: { name: "@miragon/pulse-board" },
   [BLOCKS]: { name: "@miragon/pulse-blocks" },
-  [HTTP]: { name: "@miragon/pulse-http" },
+  [HTTP]: { name: "@miragon/pulse-http", main: "dist/index.js" },
   [ENGINE_CORE]: { name: "@miragon/pulse-engine-core", main: "dist/index.js" },
   [C7]: { name: "@miragon/pulse-c7-core" },
   [C7_CLIENT]: { name: "@miragon/pulse-c7-client" },
@@ -148,6 +148,7 @@ const VIEW_MODELS_BOARD = "connector-view-models-board-types-only"
 const HTTP_LEAF = "http-is-a-leaf"
 const HTTP_USERS = "http-consumers"
 const HTTP_LOOPBACK = "http-loopback-only-its-sockets"
+const SHELL_WEB_HTTP = "widget-shell-web-by-the-oauth-entry"
 const ENGINE_CORE_USERS = "engine-core-consumers"
 const CONNECTOR_CONTRACT = "engine-connector-contract-by-its-main-entry"
 const CORE_USERS = "family-core-consumers"
@@ -276,6 +277,9 @@ const LEAVES = [
   `${BLOCKS}/src/lib.ts`,
   `${HTTP}/src/target.ts`,
   `${HTTP}/src/lib.ts`,
+  `${HTTP}/dist/index.js`,
+  `${HTTP}/dist/oauth/index.js`,
+  `${HTTP}/dist/oauth/token.js`,
   `${ENGINE_CORE}/src/target.ts`,
   `${ENGINE_CORE}/src/lib.ts`,
   `${ENGINE_CORE}/dist/index.js`,
@@ -896,9 +900,42 @@ const SUITES = [
       [`${ENGINE_CONNECTOR}/src/tools/http.test.ts`, HTTP_NAME, []],
       [`${ENGINE_CONNECTOR}/src/http.test.ts`, `${HTTP_NAME}/testing`, []],
       [`${SHELL}/src/http.test.ts`, HTTP_NAME, []],
+      // widget-shell's web sign-in (widget-shell-web-by-the-oauth-entry narrows it to ./oauth).
+      [`${SHELL}/src/web/oauth-client.ts`, `${HTTP_NAME}/oauth`, []],
       [`${CLI}/test/support/http.ts`, `${HTTP_NAME}/testing`, []],
       [`${C7_ADAPTER}/src/http.test.ts`, `${HTTP_NAME}/testing`, []],
       [`${SERVER}/src/http.test.ts`, HTTP_NAME, []],
+    ],
+  },
+  {
+    rule: SHELL_WEB_HTTP,
+    title:
+      "widget-shell's web sign-in reaches the transport by ./oauth, and its main entry by type",
+    cases: [
+      // ./oauth bare (shape 3, as the repo's cruise leaves the subpath) and resolved to the build.
+      [`${SHELL}/src/web/login.ts`, `${HTTP_NAME}/oauth`, []],
+      [`${SHELL}/src/web/built.ts`, `${HTTP_NAME}/dist/oauth/index.js`, []],
+      [`${SHELL}/src/web/oauth-types.ts`, `${HTTP_NAME}/oauth`, [], "type"],
+      // The main entry by type alone: the sign-in sends nothing through the engine transport.
+      [`${SHELL}/src/web/context.ts`, HTTP_NAME, [], "type"],
+      [`${SHELL}/src/web/send.ts`, HTTP_NAME, [SHELL_WEB_HTTP]],
+      [`${SHELL}/src/web/send-built.ts`, `${HTTP_NAME}/dist/index.js`, [SHELL_WEB_HTTP]],
+      // Never ./testing, never a file of the package, by type neither.
+      [`${SHELL}/src/web/testing.ts`, `${HTTP_NAME}/testing`, [SHELL_WEB_HTTP, NO_TESTING]],
+      [`${SHELL}/src/web/deep.ts`, `${HTTP_NAME}/dist/oauth/token.js`, [SHELL_WEB_HTTP]],
+      [
+        `${SHELL}/src/web/deep-type.ts`,
+        `${HTTP_NAME}/dist/oauth/token.js`,
+        [SHELL_WEB_HTTP],
+        "type",
+      ],
+      [`${SHELL}/src/web/escape.ts`, "../../../http/src/target.ts", [SHELL_WEB_HTTP, DEEP]],
+      // Its tests import what they need.
+      [`${SHELL}/src/web/login.test.ts`, HTTP_NAME, []],
+      [`${SHELL}/src/web/fake.test.ts`, `${HTTP_NAME}/testing`, []],
+      // The rest of widget-shell imports none of it, its gate included (http-consumers).
+      [`${SHELL}/src/oauth-gate.ts`, `${HTTP_NAME}/oauth`, [HTTP_USERS]],
+      [`${SHELL}/src/oauth-types.ts`, HTTP_NAME, [HTTP_USERS], "type"],
     ],
   },
   {

@@ -112,7 +112,19 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
 - **Test server** (`./testing`): `recordingModuleServer`, the `ModuleServer` a module's tests
   register on, and `testServerContext`. The brand gates and the product glossary every widget
   package checks its catalogs against are `@miragon/pulse-ui/testing`. Node only.
-- **The web sign-in's rules** (`src/web`, wired into no route yet): `readWebSettings` reads the
+- **The web sign-in** (`src/web`): the boot installs it with `installWebSignIn` behind the edge
+  guard, only beside an OAuth provider. Its routes take a `Request` and answer a `Response` over
+  one `WebContext` (`context.ts`): `login.ts` (PKCE S256, the state and the return target in the
+  login cookie, the gate's resource as RFC 8707 `resource`), `callback.ts` (the login cookie and
+  the state before any request to the provider, then `iss`, the code exchanged as a confidential
+  client, the access token through the gate's own check, `gateTokenCheck`, a new session id and
+  CSRF secret), `logout.ts` (CSRF, revocation, the end-session URL), `session-route.ts` (name, CSRF
+  token, expiry). `discovery.ts` reads the provider's metadata on the first sign-in and holds it
+  for an hour; `separation.ts` keeps the session cookie off `/mcp` (the gate's 401 and challenge,
+  `gateChallenge`) and a bearer off `/app` (400), and `installWebSignIn` answers the sign-in's and
+  the API's routes `no-store` (`isNoPage`, the return path's list of them). It sends through
+  `@miragon/pulse-http/oauth` and imports the transport's main entry by type alone
+  (`widget-shell-web-by-the-oauth-entry`). Its rules: `readWebSettings` reads the
   `MCP_WEB_*` variables (`MCP_WEB_CLIENT_ID` turns the web app on; it needs the server's OAuth
   provider, a client secret, session keys of at least 32 bytes and an https `MCP_URL`, plain http
   only on localhost) and logs one line without a secret; `createSealer` seals a cookie's value as a
@@ -121,8 +133,8 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   absolute expiry that `reseal` keeps; `cookies.ts` writes the `__Host-` session cookie in at most
   three chunks of 3,800 bytes (a larger session is a failure of its own, stale chunks are cleared)
   and the login cookie for ten minutes, both HttpOnly, Secure, SameSite=Lax on `/`;
-  `returnTarget` keeps a sign-in's return on the app (a path under `/app` in its normal form, the
-  query written again, at most 1,024 characters); `csrfRefusal` checks `Sec-Fetch-Site`, the
+  `returnTarget` keeps a sign-in's return on the app's pages (a path under `/app` in its normal
+  form, never under `/app/auth` or `/app/api`, the query written again, at most 1,024 characters); `csrfRefusal` checks `Sec-Fetch-Site`, the
   `Origin` and the CSRF header against the session's secret in constant time. The paths, the CSRF
   header and the codes both halves read are `src/protocol/web.ts`, exported from `./widgets`. The
   seal, the cookies, the return path and the CSRF check are mutated nightly (StrykerJS, break 90,

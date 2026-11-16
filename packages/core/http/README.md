@@ -5,12 +5,12 @@
 [![Docs](https://img.shields.io/badge/docs-miragon.github.io%2Fpulse-335DE5?style=flat-square)](https://miragon.github.io/pulse/)
 
 One HTTP transport for the engines Pulse reaches: the Pulse MCP server's engine connector, the
-[Pulse CLI](https://www.npmjs.com/package/@miragon/pulse-cli) and the C7 adapter of Pulse for VS
-Code and Pulse for Orca, and the OAuth client protocol they share (`./oauth`). It holds the rules
-of the wire once, so every client keeps them alike: a deadline to the last byte of the answer,
-never a redirect, a size cap, one credential seam with exactly one second attempt after a 401
-when the credential renewed, failure reasons as data, lossless JSON and the request's secrets
-masked in each error answer, failure and trace.
+[Pulse CLI](https://www.npmjs.com/package/@miragon/pulse-cli) and the C7 and C8 adapters of Pulse
+for VS Code and Pulse for Orca, and the OAuth client protocol they share with the MCP server's web
+sign-in (`./oauth`). It holds the rules of the wire once, so every client keeps them alike: a
+deadline to the last byte of the answer, never a redirect, a size cap, one credential seam with
+exactly one second attempt after a 401 when the credential renewed, failure reasons as data,
+lossless JSON and the request's secrets masked in each error answer, failure and trace.
 
 ## What it is not
 
@@ -80,9 +80,10 @@ wire: the deadline to the last byte, never a redirect, a 1 MiB cap on an answer 
 secret of a request (the client's, by `basic` or `post`, and the grant's) masked in a trace and in
 an error answer, and a URL with a user or a password refused before sending (a `RangeError`).
 Three kinds of client use it: the CLI's login (a public or confidential client with PKCE on a
-loopback redirect, its refresh and revocation), the C8 adapter's client credentials, and a web
-sign-in run by a server, a confidential client that names the resource its tokens are for (RFC 8707)
-and ends the session at the authorization server (OpenID Connect RP-Initiated Logout 1.0).
+loopback redirect, its refresh and revocation), the C8 adapter's client credentials, and the MCP
+server's web sign-in under `/app` (`@miragon/pulse-widget-shell`, a confidential client that names
+the resource its tokens are for, RFC 8707, revokes its refresh token and ends the session at the
+authorization server, OpenID Connect RP-Initiated Logout 1.0).
 
 | Part           | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

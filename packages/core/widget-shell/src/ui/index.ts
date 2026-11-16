@@ -120,4 +120,7 @@ export {
   WEB_QUERY,
   type SignedOutReason,
   type WebCode,
+  type WebRefusal,
+  type WebSessionInfo,
+  type WebSignOut,
 } from "../protocol/web.js"

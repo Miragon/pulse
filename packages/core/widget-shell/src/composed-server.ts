@@ -5,7 +5,8 @@
  * modules, each recorded once through the module registry, the views primed once after the last
  * one; the request log first of all routes, metrics before the others (hono only counts later
  * routes), then the Host/Origin guard, then health (reachable by IP-addressed probes), fonts
- * behind the guard, `/mcp` (the OAuth gate, then the MCP handler) last. `listen()` serves it all
+ * behind the guard, the web app's sign-in under `/app` (only with `MCP_WEB_CLIENT_ID` beside an
+ * OAuth provider), `/mcp` (the OAuth gate, then the MCP handler) last. `listen()` serves it all
  * through the listener, so a target that is not its own normal form gets 404, a TRACE 405 and a
  * body over the cap 413 before any of them.
  */
@@ -41,6 +42,8 @@ import { REQUEST_LOG_LEVEL_ENV_VAR, requestLogLevelWarning } from "./request-log
 import { createModuleRegistry, type ModuleRegistrations } from "./tool-registration.js"
 import { viewPrelude } from "./protocol/view-name.js"
 import { labelBootError } from "./boot-error.js"
+import { installWebSignIn } from "./web/install.js"
+import { describeWebSettings, readWebSettings, WEB_ENV_VARS } from "./web/settings.js"
 
 /** What the server reports as `serverInfo` (plus the `instructions` it advertises). */
 export interface ComposedServerInfo {
@@ -109,8 +112,8 @@ export const DEFAULT_REQUEST_TIMEOUT_MS = 30_000
 
 /**
  * What the boot itself reads: the listener's port and bind address, the HTTP edge, the OAuth
- * provider variables, the module selection, the switch that logs why a bearer token was refused
- * and the request-log level (the boot warns at debug/trace).
+ * provider variables, the web app's sign-in, the module selection, the switch that logs why a
+ * bearer token was refused and the request-log level (the boot warns at debug/trace).
  */
 const BOOT_ENV_VARS: readonly string[] = [
   "PORT",
@@ -118,6 +121,7 @@ const BOOT_ENV_VARS: readonly string[] = [
   ...HTTP_EDGE_ENV_VARS,
   ...OAUTH_ENV_VARS,
   OAUTH_DEBUG_ENV_VAR,
+  ...WEB_ENV_VARS,
   "MCP_ACTIVE_MODULES",
   REQUEST_LOG_LEVEL_ENV_VAR,
 ]
@@ -248,6 +252,9 @@ function resolveSelection<TShared extends object>(
   const edge = resolveHttpEdgePolicy(env)
   const oauth = options.oauth ?? oauthFromEnv(env, label)
   const resource = oauthResource(oauth, env, label)
+  const webSettings = readWebSettings(env, { provider: oauth, mcpUrl: env.MCP_URL })
+  // readWebSettings refuses a web app without a provider, so `oauth` is set beside its settings.
+  const web = webSettings && oauth && { settings: webSettings, provider: oauth }
   // The same test `createServer` installs OAuth on: a boot is authenticated only with the bearer gate.
   const boot = composition.resolveBoot(env, { authenticated: Boolean(oauth) })
   composition.emitBootWarnings(env)
@@ -255,7 +262,8 @@ function resolveSelection<TShared extends object>(
   if (logLevel) console.warn(`[${label}] ${logLevel}`)
   composition.logEffectiveToolsets(boot)
   console.info(`[${label}] ${describeHttpEdgePolicy(edge)}`)
-  return { edge, oauth, resource, boot }
+  if (webSettings) console.info(`[${label}] ${describeWebSettings(webSettings)}`)
+  return { edge, oauth, resource, web, boot }
 }
 
 async function buildServer<TShared extends object>(
@@ -426,6 +434,9 @@ async function boot<TShared extends object>(
   installHealthEndpoints(app, { path: HEALTH_PATH, label, draining: () => state.draining })
   // Behind the guard: a font GET passes the Origin half, a foreign Host does not.
   installFontAssets(app, { label })
+  // Behind the guard as well, and only beside a provider: its tokens are the gate's to verify.
+  const resource = app.oauthResource
+  if (selection.web && resource) installWebSignIn(app, { ...selection.web, resource, label })
 
   return {
     app,

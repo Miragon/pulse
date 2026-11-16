@@ -73,6 +73,38 @@ describe("the provider table", () => {
     expect(build).toThrow(message)
   })
 
+  // What the web app's sign-in asks each IdP for: Keycloak no offline token, Auth0 a refresh token
+  // and the API by `audience`, the others what their metadata lists.
+  it.each<[string, () => OAuthProvider, OAuthProvider["web"]]>([
+    [
+      "Keycloak",
+      () => oauthKeycloakProvider({ serverUrl: "https://kc", realm: "r" }),
+      { scopes: ["openid", "profile"] },
+    ],
+    [
+      "Auth0",
+      () => oauthAuth0Provider({ domain: "t.auth0.com" }),
+      { scopes: ["openid", "profile", "offline_access"], audience: "resource" },
+    ],
+    [
+      "WorkOS",
+      () => oauthWorkOSProvider({ subdomain: "a.authkit.app" }),
+      { scopes: ["openid", "profile", "email", "offline_access"] },
+    ],
+    [
+      "Better Auth",
+      () => oauthBetterAuthProvider({ authURL: "https://a.example/api/auth" }),
+      { scopes: ["openid", "profile", "email", "offline_access"] },
+    ],
+    [
+      "Convex",
+      () => oauthConvexProvider({ authURL: "https://c.example" }),
+      { scopes: ["openid", "profile", "email", "offline_access"] },
+    ],
+  ])("gives %s the web sign-in's scopes", (_name, build, web) => {
+    expect(build().web).toEqual(web)
+  })
+
   it("maps no payload or no subject to an invalid token", () => {
     const provider = oauthAuth0Provider({ domain: "t.auth0.com" })
     const info = { token: "t", clientId: "c", scopes: [] }

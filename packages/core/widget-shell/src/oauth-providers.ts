@@ -15,11 +15,27 @@ import {
   type Claims,
 } from "./oauth-shared.js"
 
+/**
+ * What the web app's sign-in asks the provider for (`MCP_WEB_*`): the scopes, and for a provider
+ * that names a token's API by `audience` (Auth0) rather than by RFC 8707's `resource` alone,
+ * `audience: "resource"`, which sends the gate's resource as the audience too. The token must
+ * carry that resource either way, or the gate refuses it.
+ */
+export interface OAuthWebClient {
+  readonly scopes: readonly string[]
+  readonly audience?: "resource"
+}
+
 export interface OAuthProvider {
   /** The full public MCP endpoint; else `MCP_URL`'s origin plus the base path. */
   resource?: URL | string
   oauthMetadata: OAuthMetadata
   requiredScopes?: readonly string[]
+  /**
+   * The web app's sign-in; a provider without it signs in with the scope `openid`. Either way the
+   * sign-in also asks for the `requiredScopes`, which the gate checks a session's token for.
+   */
+  web?: OAuthWebClient
   createTokenVerifier(resource: URL): OAuthTokenVerifier
   /** Goes under `AuthInfo.extra`; `callerUserId` reads `user.id` and `payload.sub`. */
   mapAuthInfo(authInfo: AuthInfo): {
@@ -85,6 +101,7 @@ function mapSubject(provider: string) {
 interface IdpTable {
   name: string
   jwks: string
+  web: OAuthWebClient
   metadata: Omit<OAuthMetadata, "issuer" | "authorization_endpoint" | "token_endpoint"> & {
     authorization: string
     token: string
@@ -98,11 +115,12 @@ interface IdpTable {
 
 function idpProvider(
   issuer: string,
-  { name, jwks, metadata }: IdpTable,
+  { name, jwks, web, metadata }: IdpTable,
   { debug }: ProviderOptions,
 ): OAuthProvider {
   const { authorization, token, registration, jwksInMetadata, userinfo, grants, scopes } = metadata
   return {
+    web,
     createTokenVerifier: (resource) =>
       createJwtVerifier({ issuer, jwksUrl: new URL(endpoint(issuer, jwks)), resource, debug }),
     oauthMetadata: {
@@ -124,6 +142,18 @@ function idpProvider(
 const withoutSlash = (url: URL) => url.href.replace(/\/$/, "")
 const OIDC_SCOPES = ["openid", "profile", "email", "offline_access"]
 
+/**
+ * The web sign-in's scopes per IdP. Keycloak renews a session's token without `offline_access`,
+ * which would mint a long-lived offline token; Auth0 issues a refresh token only with it, and names
+ * the API by `audience`; the other three ask for what their metadata lists.
+ */
+const KEYCLOAK_WEB: OAuthWebClient = { scopes: ["openid", "profile"] }
+const AUTH0_WEB: OAuthWebClient = {
+  scopes: ["openid", "profile", "offline_access"],
+  audience: "resource",
+}
+const OIDC_WEB: OAuthWebClient = { scopes: OIDC_SCOPES }
+
 export function oauthKeycloakProvider({
   serverUrl,
   realm,
@@ -141,6 +171,7 @@ export function oauthKeycloakProvider({
     {
       name: "Keycloak",
       jwks: "protocol/openid-connect/certs",
+      web: KEYCLOAK_WEB,
       metadata: {
         authorization: "protocol/openid-connect/auth",
         token: "protocol/openid-connect/token",
@@ -157,6 +188,7 @@ export function oauthAuth0Provider({ domain, ...options }: { domain: string } & 
     {
       name: "Auth0",
       jwks: ".well-known/jwks.json",
+      web: AUTH0_WEB,
       metadata: { authorization: "authorize", token: "oauth/token", registration: "oidc/register" },
     },
     options,
@@ -176,6 +208,7 @@ export function oauthWorkOSProvider({
     {
       name: "WorkOS",
       jwks: "oauth2/jwks",
+      web: OIDC_WEB,
       metadata: {
         authorization: "oauth2/authorize",
         token: "oauth2/token",
@@ -195,6 +228,7 @@ export function oauthBetterAuthProvider({
     {
       name: "Better Auth",
       jwks: "jwks",
+      web: OIDC_WEB,
       metadata: {
         authorization: "oauth2/authorize",
         token: "oauth2/token",
@@ -217,6 +251,7 @@ export function oauthConvexProvider({
     {
       name: "Convex",
       jwks: ".well-known/jwks.json",
+      web: OIDC_WEB,
       metadata: {
         authorization: "authorize",
         token: "token",

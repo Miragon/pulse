@@ -173,3 +173,40 @@ describe("McpHttpApp", () => {
     await expect(appOf().close()).resolves.toBeUndefined()
   })
 })
+
+// The listener's 405 names what a path takes: it reads the router's own patterns, so a route
+// with a parameter or a wildcard is named like a literal one, and a POST route like a GET route.
+describe("McpHttpApp.allowedMethods", () => {
+  const ok = () => new Response("ok")
+
+  it("names the methods of every get and post route whose pattern takes the path", () => {
+    const app = appOf()
+    app.get("/a", ok).post("/a", ok).post("/b", ok).get("/c/:id", ok).get("/d/*", ok)
+    expect(app.allowedMethods("/a")).toBe("GET, HEAD, POST")
+    expect(app.allowedMethods("/b")).toBe("POST")
+    expect(app.allowedMethods("/c/42")).toBe("GET, HEAD")
+    expect(app.allowedMethods("/c/42/x")).toBe("")
+    expect(app.allowedMethods("/c")).toBe("")
+    expect(app.allowedMethods("/d/x/y")).toBe("GET, HEAD")
+    expect(app.allowedMethods("/mcp")).toBe("POST")
+  })
+
+  it("reads a pattern's literal segments literally", () => {
+    const app = appOf()
+    app.get("/v1.0/x", ok)
+    expect(app.allowedMethods("/v1.0/x")).toBe("GET, HEAD")
+    expect(app.allowedMethods("/v1x0/x")).toBe("")
+  })
+
+  it("names nothing for a path only a middleware takes", () => {
+    const app = appOf()
+    app.use("*", async (_c, next) => {
+      await next()
+    })
+    expect(app.allowedMethods("/anything")).toBe("")
+  })
+
+  it("has no resource without OAuth", () => {
+    expect(appOf().oauthResource).toBeUndefined()
+  })
+})

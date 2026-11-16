@@ -80,6 +80,18 @@ describe("oauthFromEnv: the providers", () => {
     }
   })
 
+  // The web app signs in through the provider the variables name, with that provider's scopes.
+  it.each([
+    [KEYCLOAK, { scopes: ["openid", "profile"] }],
+    [AUTH0, { scopes: ["openid", "profile", "offline_access"], audience: "resource" }],
+    [
+      { MCP_OAUTH_WORKOS_SUBDOMAIN: "acme.authkit.app" },
+      { scopes: ["openid", "profile", "email", "offline_access"] },
+    ],
+  ])("builds the provider %j with the web sign-in's scopes", (env, web) => {
+    expect(fromEnv(env)?.web).toEqual(web)
+  })
+
   it.each([
     [KEYCLOAK, "https://kc.example.com/realms/platform"],
     [AUTH0, "https://tenant.auth0.com/"],
