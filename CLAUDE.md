@@ -697,13 +697,14 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      header names its version scope. On Camunda 7 "With incident" reads one way on every surface
      (owner decision 2026-11-14): an open incident the runtime holds now, on every history level,
      by c7-core's rule (`packages/connectors/c7/c7-core/src/with-incident.ts`; the cockpit's
-     instance list and its scope counts send the same runtime filter, `withIncident`, in their
-     search body), never by the history's incident filters, which find nothing below history
-     level FULL; a history query by incident refuses an empty answer the runtime contradicts
-     (`unrecordedIncidents`). A feature more than one surface shows (boards first) shows
-     the same numbers on every surface, from one builder over one read (owner decision D2 of
-     2026-11-12, amending E2); elsewhere a tool keeps its own numbers behind the same words until
-     its view moves onto shared numbers.
+     instance list and its scope counts send the same runtime filter in their search body, and
+     `engine_list_process_instances` in its query, both from its `withIncidentBody`), never by
+     the history's incident filters, which find nothing below history level FULL; a history
+     query by incident refuses an empty answer the runtime contradicts (`unrecordedIncidents`).
+     A feature more than one surface shows (boards first) shows the same numbers on every
+     surface, from one builder over one read (owner decision D2 of 2026-11-12, amending E2);
+     elsewhere a tool keeps its own numbers behind the same words until its view moves onto
+     shared numbers.
    - **Locale on the server.** Tool results for the model are English only (the engine module's
      cockpit facts are JSON keys); a
      verdict travels as data and the widget words it in the host's language. The server never

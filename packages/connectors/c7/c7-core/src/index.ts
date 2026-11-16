@@ -177,6 +177,7 @@ export {
   unrecordedIncidents,
   WITH_INCIDENT,
   withIncidentAmong,
+  withIncidentBody,
   withIncidentByVersion,
 } from "./with-incident.js"
 export {

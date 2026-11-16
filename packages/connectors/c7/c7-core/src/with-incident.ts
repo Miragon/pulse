@@ -19,6 +19,15 @@ import { listByIds, queryInput } from "./requests.js"
 /** The runtime's process-instance filter of "with incident" (`getProcessInstances`, its count). */
 export const WITH_INCIDENT = { withIncident: "true" } as const
 
+/**
+ * The same filter in its typed form, as a search body (`queryProcessInstances`, its count) or the
+ * SDK's typed query carries it: `{ withIncident: true }` for a true flag, else nothing, since the
+ * engine ignores a false one (HTTP 200, every instance).
+ */
+export function withIncidentBody(flag: boolean | undefined): { readonly withIncident?: true } {
+  return flag === true ? { withIncident: true } : {}
+}
+
 /** The order the instances of a scope are paged in, so no page repeats or skips one. */
 const BY_ID = { sortBy: "instanceId", sortOrder: "asc" } as const
 

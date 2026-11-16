@@ -3,8 +3,8 @@ import {
   complementaryFlags,
   engineInstanceSearch,
   engineLike,
-  trueOnly,
   withIncidentAmong,
+  withIncidentBody,
 } from "@miragon/pulse-c7-core"
 import {
   LIST_PAGE_SIZE,
@@ -87,16 +87,16 @@ export type ProcessInstancesArgs = ProcessInstancesFilters & InstanceSearchArgs 
 
 // The engine IGNORES `false` for active/suspended/withIncident (HTTP 200, no
 // filter), so a forwarded false would list every instance: active/suspended
-// send the complement, withIncident only goes out as true. businessKeyLike
-// needs `%`, or it matches exactly. "With incident" is c7-core's one reading
-// (`WITH_INCIDENT`, with-incident.ts): the runtime's open incidents, on every
-// history level; this list reads the runtime, so it goes out in the POST body.
+// send the complement. businessKeyLike needs `%`, or it matches exactly. "With
+// incident" is c7-core's one reading (with-incident.ts): the runtime's open
+// incidents, on every history level, in the search body's form
+// (`withIncidentBody`), which never sends a false flag.
 function toProcessInstanceFilter(args: ProcessInstancesArgs) {
   const { orQueries } = engineInstanceSearch(args.search)
   return {
     processDefinitionKey: args.processDefinitionKey,
     ...complementaryFlags(args, "active", "suspended"),
-    withIncident: trueOnly(args.withIncidents),
+    ...withIncidentBody(args.withIncidents),
     businessKeyLike: orQueries ? undefined : engineLike(args.businessKeyLike),
     orQueries,
   }
@@ -133,7 +133,7 @@ async function filteredTotals(client: Client, filter: ProcessInstanceFilter) {
     queryProcessInstancesCount({ client, body }).then(countOf)
   const scope = { ...filter, withIncident: undefined, suspended: undefined }
   const all = count(scope)
-  const withIncident = count({ ...scope, withIncident: true })
+  const withIncident = count({ ...scope, ...withIncidentBody(true) })
   const suspended = filter.active ? Promise.resolve(0) : count({ ...scope, suspended: true })
   const total = filter.withIncident
     ? filter.suspended

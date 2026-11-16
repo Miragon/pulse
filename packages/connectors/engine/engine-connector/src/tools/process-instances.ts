@@ -15,9 +15,9 @@ import {
   complementaryFlags,
   engineLike,
   engineSorting,
-  trueOnly,
   toEngineVariable,
   toEngineVariables,
+  withIncidentBody,
 } from "@miragon/pulse-c7-core"
 import {
   startProcessInstanceByKey,
@@ -68,7 +68,7 @@ export function registerProcessInstanceTools(register: ToolRegistrar<EngineRegis
         businessKey: args.businessKey,
         businessKeyLike: engineLike(args.businessKeyLike),
         ...complementaryFlags(args, "active", "suspended"),
-        withIncident: trueOnly(args.withIncidents),
+        ...withIncidentBody(args.withIncidents),
       }
       const [items, count] = await Promise.all([
         getProcessInstances({

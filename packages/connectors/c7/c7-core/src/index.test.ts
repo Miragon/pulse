@@ -111,6 +111,7 @@ describe("the @miragon/pulse-c7-core entries", () => {
       "unrecordedIncidents",
       "waitId",
       "withIncidentAmong",
+      "withIncidentBody",
       "withIncidentByVersion",
     ])
   })

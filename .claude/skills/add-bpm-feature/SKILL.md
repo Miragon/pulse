@@ -92,7 +92,8 @@ input schema that lets an unknown key through): an unknown key is a tool error l
 | Sorting                  | `sortBy` + `sortOrder`, sent as a pair by `engineSorting`                                                                                                                                                                                              |
 
 The engine's own query names may differ (`taskAssignee`, `processInstanceBusinessKey`,
-`withIncident`): the handler maps them, the schema keeps the guide's name. Every
+`withIncident`): the handler maps them, the schema keeps the guide's name. A runtime "with
+incident" filter takes c7-core's `withIncidentBody`, never a hand-written flag. Every
 filter a tool advertises is pinned on the wire in `src/tools/filters.wire.test.ts`
 (page query AND `/count`); a retired spelling (`key`, `id`, `limit`, `elementId`, …) on
 any module tool fails `apps/mcp-server/test/strict-input.e2e.test.ts`, so a parameter that

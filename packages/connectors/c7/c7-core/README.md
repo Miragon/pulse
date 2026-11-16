@@ -79,14 +79,15 @@ missing.
   incidents alike everywhere.
 - **With incident:** one reading of "an instance with an incident" for every caller: an open
   incident the runtime holds now, which every history level answers alike (`WITH_INCIDENT`, the
-  runtime's process-instance filter). `instancesWithIncident(port, scope)` lists the instances of
-  a version, a process or a business key with one, `countWithIncident` counts them,
-  `withIncidentAmong(port, ids)` flags listed instances and `withIncidentByVersion` counts per
-  version; the runtime's `InstanceSearch` pages the history's rows of those instances and counts
-  them in one runtime count where the runtime knows the whole filter. The history's incident
-  filters find nothing below history level FULL, which writes no incident to the history:
-  `unrecordedIncidents(port)` tells that from a true "none" before a history query by incident
-  answers.
+  runtime's process-instance filter, and `withIncidentBody(flag)`, its typed form for a search
+  body or the SDK's typed query, which never sends a false flag the engine would ignore).
+  `instancesWithIncident(port, scope)` lists the instances of a version, a process or a business
+  key with one, `countWithIncident` counts them, `withIncidentAmong(port, ids)` flags listed
+  instances and `withIncidentByVersion` counts per version; the runtime's `InstanceSearch` pages
+  the history's rows of those instances and counts them in one runtime count where the runtime
+  knows the whole filter. The history's incident filters find nothing below history level FULL,
+  which writes no incident to the history: `unrecordedIncidents(port)` tells that from a true
+  "none" before a history query by incident answers.
 - **Plans:** the pure parts of retry (`planRetry`, `retriesWrite`), advance (`chooseWait`,
   `advanceSteps`) and wait (`parseCondition`, `decide`, `poll`).
 - **Routes:** the route of each operation of the REST API: method, path template, effect (`read`,
@@ -201,12 +202,14 @@ package.
 - [`@miragon/pulse-engine-connector`](https://www.npmjs.com/package/@miragon/pulse-engine-connector),
   the engine module that serves every dialect, runs it as the MCP tools
   `engine_inspect_process_instance` and `engine_status`, builds its cockpit's failure clusters
-  and health verdict from the same rules, flags its instance rows with `withIncidentAmong` and
-  checks a history query by incident with `unrecordedIncidents`. Its engine suite runs `C7Runtime`
-  over the server's own wire, the generated SDK through its engine port, against the conformance
-  kit's read laws on real engines; no tool runs the runtime. On that wire an integer beyond 2^53
-  arrives as a string of its exact digits, so `InstanceDetailReader` writes such a variable's
-  value as a JSON string there, where the adapter's wire keeps it a number; no read law reads one.
+  and health verdict from the same rules, flags its instance rows with `withIncidentAmong`, takes
+  the filter of its instance list, its scope counts and `engine_list_process_instances` from
+  `withIncidentBody` and checks a history query by incident with `unrecordedIncidents`. Its
+  engine suite runs `C7Runtime` over the server's own wire, the generated SDK through its engine
+  port, against the conformance kit's read laws on real engines; no tool runs the runtime. On that
+  wire an integer beyond 2^53 arrives as a string of its exact digits, so `InstanceDetailReader`
+  writes such a variable's value as a JSON string there, where the adapter's wire keeps it a
+  number; no read law reads one.
 - Pulse for VS Code and Pulse for Orca bundle it in their C7 adapter: its `C7Runtime` answers
   every read of the engine contract over the adapter's wire, whose failures the adapter words (an
   instance's panel through `loadInstance`), its commands read what they check before a write

@@ -6,6 +6,7 @@ import {
   unrecordedIncidents,
   WITH_INCIDENT,
   withIncidentAmong,
+  withIncidentBody,
   withIncidentByVersion,
 } from "./with-incident.js"
 
@@ -18,6 +19,16 @@ function instance(id: string, definitionId = "order:1:a") {
 describe("WITH_INCIDENT", () => {
   it("is the runtime's process-instance filter, never a history filter", () => {
     expect(WITH_INCIDENT).toEqual({ withIncident: "true" })
+  })
+})
+
+describe("withIncidentBody", () => {
+  it("is the same filter in its typed form for a true flag", () => {
+    expect(withIncidentBody(true)).toStrictEqual({ withIncident: true })
+  })
+
+  it.each([false, undefined])("sends nothing for %s, which the engine would ignore", (flag) => {
+    expect(withIncidentBody(flag)).toStrictEqual({})
   })
 })
 
