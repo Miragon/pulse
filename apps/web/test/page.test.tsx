@@ -92,7 +92,14 @@ afterEach(async () => {
   document.body.innerHTML = ""
   document.documentElement.lang = ""
   document.documentElement.removeAttribute("class")
+  document.title = ""
 })
+
+/** The arguments of the page's call of the view tool. */
+function viewArgs(fetch: ReturnType<typeof fakeFetch>): unknown {
+  const [, call] = fetch.mock.calls.find(([path]) => path === "/app/api/call") ?? []
+  return (JSON.parse(bodyOf(call)) as { arguments?: unknown }).arguments
+}
 
 describe("a page with a session", () => {
   it("shows the bar, who is signed in and the view the query names, called with the CSRF token", async () => {
@@ -110,6 +117,19 @@ describe("a page with a session", () => {
       arguments: { view: "jobs", engine: "prod" },
     })
     expect(new Headers(call?.headers).get("x-pulse-csrf")).toBe("csrf-1")
+  })
+
+  it("opens the cockpit's landing on /app, the document titled Pulse", async () => {
+    const env = await start("/app")
+    expect(viewArgs(env.fetch)).toEqual({ view: "landing" })
+    expect(document.title).toBe("Pulse")
+  })
+
+  it("opens a board's page on the cockpit's board view, the document titled by the board", async () => {
+    const env = await start("/app/boards/invoices")
+    expect(screen.getByTestId("view").textContent).toBe("Hi")
+    expect(viewArgs(env.fetch)).toEqual({ view: "board", board: "invoices" })
+    expect(document.title).toBe("Board invoices · Pulse")
   })
 
   it("says the session ended when a call finds it gone, and signs in back to the page", async () => {

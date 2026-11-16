@@ -12,10 +12,18 @@ import {
   ENGINE_INCIDENTS_DATA,
   ENGINE_INSTANCE_DETAIL_DATA,
   ENGINE_JOBS_DATA,
+  ENGINE_LIST_ENGINES,
   ENGINE_PROCESS_INCIDENTS_DATA,
   ENGINE_PROCESS_INSTANCES_DATA,
 } from "../tool-names.js"
-import { registryFor, startFakeEngine, type FakeEngine } from "../tools/test-support/fake-engine.js"
+import { registerEngineTools } from "../tools/engines.js"
+import {
+  callTool,
+  captureTools,
+  registryFor,
+  startFakeEngine,
+  type FakeEngine,
+} from "../tools/test-support/fake-engine.js"
 import { WORLD, worldReply } from "../tools/test-support/engine-world.js"
 import { feedPayload } from "../tools/test-support/feed-payload.js"
 import {
@@ -50,8 +58,9 @@ afterEach(async () => {
 })
 
 /**
- * The fake engine world, its feeds as the widgets call them, and the start view on it: an engine
- * route on the world's one engine, an app route over the world's board, which names that engine.
+ * The fake engine world, its feeds as the widgets call them (the engine list too, which the
+ * landing's widgets read), and the start view on it: an engine route on the world's one engine, an
+ * app route over the world's board, which names that engine.
  */
 async function world(healthThresholds: VerdictThresholds = DEFAULT_VERDICT_THRESHOLDS) {
   const engine = await startFakeEngine({}, worldReply)
@@ -67,9 +76,14 @@ async function world(healthThresholds: VerdictThresholds = DEFAULT_VERDICT_THRES
     engineParam: engineParamShape,
     boards,
   })
+  const list = captureTools((register) =>
+    registerEngineTools(register, healthThresholds, boards),
+  ).get(ENGINE_LIST_ENGINES)!
   return {
     feed: async (name: string, args: Record<string, unknown>) =>
-      feedPayload(await recording.tool(name).call(args)),
+      name === ENGINE_LIST_ENGINES
+        ? callTool(list, registry, args)
+        : feedPayload(await recording.tool(name).call(args)),
     start: (view: CockpitView) =>
       isAppView(view)
         ? buildCockpitStart(view, namedReads({ registry, boards }))
@@ -141,9 +155,21 @@ const SEEDS: Record<CockpitSection, { view: CockpitView; read: (feed: Feed) => P
       view: { section: "board", board: "orders" },
       read: (feed) => feed(ENGINE_BOARD_DATA, { board: "orders" }),
     },
+    // An app route without a feed of its own: the boards the engine list names, which its
+    // widgets read.
+    landing: {
+      view: { section: "landing" },
+      read: async (feed) => {
+        const { boards, refusedBoards } = (await feed(ENGINE_LIST_ENGINES, {})) as Record<
+          string,
+          unknown
+        >
+        return { boards, refusedBoards }
+      },
+    },
   }
 
-describe("buildCockpitStart: the seed is the feed", () => {
+describe("buildCockpitStart: the seed is the feed, the landing's the engine list", () => {
   it.each(Object.entries(SEEDS))(
     "%s: the start data is the route feed's first page",
     async (section, { view, read }) => {

@@ -6,6 +6,7 @@ export const en = {
   "frame.signedInAs": "Signed in as {name}",
   "frame.signOut": "Sign out",
   "frame.signingOut": "Signing out…",
+  "title.board": "Board {board} · Pulse",
 
   "notice.ended.title": "Your session has ended",
   "notice.ended.detail": "Sign in again to go on where you left off.",

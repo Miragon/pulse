@@ -26,12 +26,16 @@ server image builds the page beside the server and serves it from `/app/web`.
 ## What it is
 
 - One page, `index.html`, for every route of the server that serves it: `/app` (the cockpit's
-  default start), `/app/cockpit?view=…&engine=…&<ids>` (the start the query names, one argument of
-  `engine_open_cockpit` per parameter, so the tool refuses one it does not take and the page shows
-  why) and the server's own `/app/signed-out?reason=…`. `src/pages.ts` lists the page routes; the
-  build writes them into `dist/pages.json`, which the server reads at boot, and
-  `test/pages-manifest.test.ts` boots a server over the build to hold both to each other.
-  Navigation inside the cockpit stays in the page: a URL names where it starts.
+  landing, `view: "landing"`: the engines and the server's boards, with one engine and no board
+  that engine), `/app/boards/<id>` (a board, `view: "board"`, the tool refusing an id the server
+  shows no board for), `/app/cockpit?view=…&engine=…&<ids>` (the start the query names, one
+  argument of `engine_open_cockpit` per parameter, so the tool refuses one it does not take and
+  the page shows why) and the server's own `/app/signed-out?reason=…`. `src/routes.ts` reads the
+  route and its document title (a board's page names the board's id, any other Pulse), which the
+  frame sets in the page's language. `src/pages.ts` lists the page routes; the build writes them
+  into `dist/pages.json`, which the server reads at boot, and `test/pages-manifest.test.ts` boots a
+  server over the build to hold both to each other. Navigation inside the cockpit stays in the
+  page: a URL names where it starts.
 - `src/start.ts` starts a page: the signed-out page needs no session; any other reads the session
   (`readWebSession`) and mounts the view with widget-shell's `mountPage`, its caller
   `webToolCaller` (every call a POST to `/app/api/call` with the session's CSRF token; no token

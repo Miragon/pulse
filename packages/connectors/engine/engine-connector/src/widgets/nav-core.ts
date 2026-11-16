@@ -103,6 +103,11 @@ export function popTo(stack: CockpitView[], to?: number): CockpitView[] {
 
 type Tr = (key: string, params?: Record<string, unknown>) => string
 
+/** An instance by the drill's label (its business key, say); else by its short id. */
+function instanceCrumb(view: Extract<CockpitView, { section: "instance-detail" }>, tr: Tr) {
+  return view.label ?? tr("cockpit.crumb.instance", { id: truncate(view.processInstanceId, 8) })
+}
+
 /** An incident by the element it occurred at, the drill's label; else by its short id. */
 function incidentCrumb(view: Extract<CockpitView, { section: "incident-detail" }>, tr: Tr) {
   return view.label
@@ -123,7 +128,7 @@ export function crumbLabel(view: CockpitView, locale: string): string {
     case "process-instances":
       return tr("cockpit.crumb.instances")
     case "instance-detail":
-      return view.label ?? tr("cockpit.crumb.instance", { id: truncate(view.processInstanceId, 8) })
+      return instanceCrumb(view, tr)
     case "incident-detail":
       return incidentCrumb(view, tr)
     case "cluster-detail":
@@ -135,6 +140,9 @@ export function crumbLabel(view: CockpitView, locale: string): string {
     // The board's title, once its data named it; else its id.
     case "board":
       return view.label ?? view.board
+    // The chooser, as the crumb that leads there names it.
+    case "landing":
+      return tr("cockpit.crumb.allEngines")
   }
 }
 
@@ -157,8 +165,8 @@ export function selectedEntity(view: CockpitView): SelectedEntity {
 /** A board's view: the app-level route that reads the engines its board names. */
 export type BoardView = Extract<CockpitView, { section: "board" }>
 
-// `landing` is the chooser when several engines are listed and none resolved; `board` a board,
-// which reads the engines it names, so no engine of the cockpit is open.
+// `landing` is the chooser: several engines are listed and none resolved, or the landing route
+// opened it; `board` a board, which reads the engines it names, so no engine of the cockpit is open.
 export type CockpitScope =
   | { kind: "landing" }
   | { kind: "fleet" }

@@ -7,10 +7,13 @@ const at = (url: string) => {
   return routeOf({ pathname, search })
 }
 
+const PRODUCT = { kind: "product" } as const
+
 describe("routeOf", () => {
-  it("opens the cockpit at its default start on /app", () => {
-    expect(at("/app")).toEqual({ kind: "view", view: COCKPIT_VIEW, args: {} })
-    expect(at("/app?view=jobs")).toEqual({ kind: "view", view: COCKPIT_VIEW, args: {} })
+  it("opens the cockpit's landing on /app, the engines and the boards, titled Pulse", () => {
+    const landing = { kind: "view", view: COCKPIT_VIEW, args: { view: "landing" }, title: PRODUCT }
+    expect(at("/app")).toEqual(landing)
+    expect(at("/app?view=jobs")).toEqual(landing)
   })
 
   it("opens the cockpit at the start the query of /app/cockpit names, one argument per parameter", () => {
@@ -19,9 +22,39 @@ describe("routeOf", () => {
         kind: "view",
         view: COCKPIT_VIEW,
         args: { view: "process-detail", engine: "prod", processDefinitionKey: "invoice" },
+        title: PRODUCT,
       },
     )
-    expect(at("/app/cockpit")).toEqual({ kind: "view", view: COCKPIT_VIEW, args: {} })
+    expect(at("/app/cockpit")).toEqual({
+      kind: "view",
+      view: COCKPIT_VIEW,
+      args: {},
+      title: PRODUCT,
+    })
+  })
+
+  it("opens a board's page on the cockpit's board view by its id, titled by it, the query unread", () => {
+    expect(at("/app/boards/invoices?view=jobs")).toEqual({
+      kind: "view",
+      view: COCKPIT_VIEW,
+      args: { view: "board", board: "invoices" },
+      title: { kind: "board", board: "invoices" },
+    })
+    expect(at("/app/boards/Orders.v2")).toMatchObject({ args: { board: "Orders.v2" } })
+  })
+
+  it("reads a board's id as its text, a broken escape as sent, for the tool to refuse it", () => {
+    expect(at("/app/boards/a%20b")).toMatchObject({ args: { view: "board", board: "a b" } })
+    const broken = { pathname: "/app/boards/%E0%A4%A", search: "" }
+    expect(routeOf(broken)).toMatchObject({ args: { view: "board", board: "%E0%A4%A" } })
+  })
+
+  it("opens the landing on a path below /app/boards that names no one board", () => {
+    for (const pathname of ["/app/boards/", "/app/boards/a/b", "/app/boards"]) {
+      expect(routeOf({ pathname, search: "" }), pathname).toMatchObject({
+        args: { view: "landing" },
+      })
+    }
   })
 
   it("passes a parameter the cockpit does not take on, for the tool to refuse it", () => {

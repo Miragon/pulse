@@ -207,7 +207,7 @@ test.describe("the cockpit as a page in German, on a dark system", () => {
     await expectNoAxeFinding(page)
   })
 
-  test("pinned: the engine picker scrolls sideways at 320 px, its cross-engine button too wide", async ({
+  test("pinned: the landing scrolls sideways at 320 px, its cross-engine button too wide", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 320, height: 640 })
@@ -223,12 +223,13 @@ test.describe("the cockpit as a page in German, on a dark system", () => {
   })
 })
 
-test("the engine picker fits 320 px in English", async ({ page }) => {
+test("the landing fits 320 px in English, its engines and its boards", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 640 })
   await signIn(page)
   await expect(page.getByRole("button", { name: "Cross-engine overview" })).toBeVisible({
     timeout: 15_000,
   })
+  await expect(page.getByRole("region", { name: "Boards" }).getByRole("button")).toHaveCount(1)
   await rendered(page)
   expect(await scrollsSideways(page)).toBe(false)
   await expectNoAxeFinding(page)

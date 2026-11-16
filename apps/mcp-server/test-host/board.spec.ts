@@ -8,6 +8,8 @@ import {
   HEALTHY_ENGINE,
   INVOICES_BOARD,
   ONE_ENGINE_BOARD_HOST_ENV,
+  REALISTIC_ENGINE,
+  REALISTIC_HOST_ENV,
 } from "./engines.js"
 
 /**
@@ -20,7 +22,8 @@ import {
  * board keeps the house rules: within the host's budget inline, every row in fullscreen, no
  * sideways scroll at 400 and 320 px, forced colours and dark, axe, and the stripped-result
  * re-run. The landing lists the boards beside the engines, a refused file with its problem count,
- * and shows with one engine too when the server has boards.
+ * and shows with one engine too when the server has boards; `engine_open_cockpit` view `landing`
+ * opens it as a start view of its own, an app route without a feed.
  */
 
 const BOARD_ARGS = { view: "board", board: INVOICES_BOARD }
@@ -443,6 +446,55 @@ test.describe("the landing lists the boards", () => {
     ])
     // The board's trail leads back to the landing: it shows with one engine beside a board.
     await expect(trail.getByRole("button", { name: "All engines" })).toBeVisible()
+  })
+
+  test("opens as a start view: one engine beside a board, the landing at once, its ids as facts", async ({
+    page,
+  }) => {
+    const app = await openBoard(page, {
+      hostEnv: ONE_ENGINE_BOARD_HOST_ENV,
+      args: { view: "landing" },
+    })
+    await expect(landing(app)).toBeVisible({ timeout: 15_000 })
+    await expect(app.getByRole("region", { name: "Engines" }).getByRole("button")).toHaveCount(1)
+    const approvals = boards(app).getByRole("button", {
+      name: new RegExp(`^Approvals\\s*,\\s*1 engine: ${HEALTHY_ENGINE}$`),
+    })
+    await expect(approvals).toBeVisible()
+    // No engine's head and no trail: the landing is where the cockpit starts.
+    await expect(app.getByRole("navigation", { name: "Cockpit sections" })).toHaveCount(0)
+    await expect(app.getByRole("navigation", { name: "Breadcrumb" })).toHaveCount(0)
+    const log = await hostLog(page)
+    expect(JSON.parse(log.originalResult?.content?.[0]?.text ?? "{}")).toEqual({
+      view: "landing",
+      engines: [HEALTHY_ENGINE],
+      boards: [APPROVALS_BOARD],
+    })
+    // The landing has no feed of its own: a board's feed runs once one opens.
+    expect(log.toolCalls.filter((c) => c.name === "engine_board_data")).toEqual([])
+    await approvals.click()
+    await expect(heading(app, "Approvals")).toBeVisible({ timeout: 15_000 })
+    const trail = app.getByRole("navigation", { name: "Breadcrumb" })
+    await trail.getByRole("button", { name: "All engines" }).click()
+    await expect(landing(app)).toBeVisible()
+  })
+
+  test("opens as a start view on one engine without boards: that engine's overview", async ({
+    page,
+  }) => {
+    const app = await openBoard(page, { hostEnv: REALISTIC_HOST_ENV, args: { view: "landing" } })
+    const sections = app.getByRole("navigation", { name: "Cockpit sections" })
+    await expect(sections.getByRole("button", { name: "Overview" })).toHaveAttribute(
+      "aria-current",
+      "page",
+      { timeout: 15_000 },
+    )
+    await expect(landing(app)).toHaveCount(0)
+    await expect(app.locator("[data-slot=engine-context]")).toHaveText(REALISTIC_ENGINE)
+    expect(JSON.parse((await hostLog(page)).originalResult?.content?.[0]?.text ?? "{}")).toEqual({
+      view: "landing",
+      engines: [REALISTIC_ENGINE],
+    })
   })
 
   test("axe: the landing with its boards (WCAG 2.2 A/AA)", async ({ page }) => {

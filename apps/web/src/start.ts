@@ -82,6 +82,7 @@ export async function startPage(env: PageEnv): Promise<() => void> {
   const frame = sessionFrame({
     session,
     notices,
+    title: route.title,
     returnTo,
     assign: env.assign,
     signOut: () => signOut(session.csrf, { ...env, origin: env.location.origin }),

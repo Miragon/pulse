@@ -16,3 +16,31 @@ export interface BoardStartData extends BoardData {
    */
   readonly asOf: string
 }
+
+/** A board of ENGINE_BOARDS_DIR as the engine list names it: its id, its title, its engines. */
+export interface ListedBoard {
+  readonly id: string
+  readonly title: string
+  readonly engines: readonly string[]
+}
+
+/**
+ * A board file that gives no board, as the engine list names it: its id and how many problems it
+ * has, never their text (the server's log has them at startup).
+ */
+export interface ListedRefusedBoard {
+  readonly id: string
+  readonly problems: number
+}
+
+/**
+ * The landing's start data (`engine_open_cockpit` view `landing`): the server's boards as
+ * `engine_list_engines` lists them, from one builder (`data/landing-data.ts`) and without an
+ * engine read. `boards` only with ENGINE_BOARDS_DIR, `refusedBoards` only where a file gives no
+ * board. The landing has no feed of its own: its widgets read the engine list, which these seed
+ * until it answers.
+ */
+export interface LandingStartData {
+  readonly boards?: readonly ListedBoard[]
+  readonly refusedBoards?: readonly ListedRefusedBoard[]
+}

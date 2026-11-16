@@ -33,7 +33,7 @@ test.describe("signing in", () => {
     await chooseUser(page)
     await page.waitForURL(`${originOf()}/app`)
 
-    // With two engines and no default, the cockpit starts on the engine picker.
+    // /app is the cockpit's landing: the engines and the server's boards to pick from.
     await expect(page.getByRole("heading", { level: 1, name: "Operations Cockpit" })).toBeVisible({
       timeout: 15_000,
     })
@@ -47,7 +47,7 @@ test.describe("signing in", () => {
     await expect(page.getByText(`Signed in as ${ALICE.name}`)).toBeAttached()
     await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible()
     expect(calls.filter((call) => call.name === "engine_open_cockpit")).toEqual([
-      { name: "engine_open_cockpit", arguments: {} },
+      { name: "engine_open_cockpit", arguments: { view: "landing" } },
     ])
   })
 

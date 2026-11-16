@@ -502,9 +502,11 @@ UI is a **cockpit route**, never a second view tool. On the server a route is fi
 5. `src/data/routes.ts`: the route's entry in `COCKPIT_ROUTES`: the ids it `needs` and also
    `takes` (fields of its own `CockpitView` section, checked at compile time), its `start` (its
    feed's read with the first page's args) and its `facts`. Its `scope` is `"engine"`, the
-   engine the call resolved; an app route (an `AppSection`, the board's) has `scope: "app"`,
-   reads the engines it names, starts over `NamedReadContext` and has a `namingFeed` (below), so
-   it takes no `engine` argument. `src/widget-tools/cockpit.ts`
+   engine the call resolved; an app route (an `AppSection` of `src/view-models.ts`, the board's
+   and the landing's) has `scope: "app"`, starts over `NamedReadContext` and takes no `engine`
+   argument: the board reads the engines it names and has a `namingFeed` (below), the landing
+   has no feed of its own (its start is the boards the engine list names, its widgets read the
+   list). `src/widget-tools/cockpit.ts`
    builds the `view` enum and checks the ids from it, and `src/data/cockpit-start.ts`
    dispatches the start view and its facts. A start param new to the cockpit also gets its
    described field in `startViewShape` (`src/widget-tools/cockpit.ts`; `StartParam` is read

@@ -9,6 +9,7 @@ import {
   WidgetShell,
 } from "@miragon/pulse-widget-shell/widgets"
 import type { CockpitAppData } from "../../view-models.js"
+import type { LandingStartData } from "../../view-models.board.js"
 import { groupEnginesByEnvironment } from "../../lib/shared/environments.js"
 import { environmentIn } from "../lib/engine-context.js"
 import { NavProvider, type OnNavigate } from "../navigation.js"
@@ -67,10 +68,19 @@ function listedEngines(result: EnginesResult, order: readonly ListedEngine[]): L
  * only with the directory set), or null while there is none: a server without boards keeps the
  * chooser to two engines and more.
  */
-function serverBoards(result: EnginesResult | undefined): ServerBoards | null {
+function serverBoards(result: Partial<ServerBoards> | undefined): ServerBoards | null {
   const boards = result?.boards ?? []
   const refusedBoards = result?.refusedBoards ?? []
   return boards.length + refusedBoards.length > 0 ? { boards, refusedBoards } : null
+}
+
+/**
+ * The landing's start data (`engine_open_cockpit` view `landing`): the boards the engine list
+ * names, as the tool read them, until the list answers. The landing has no feed of its own.
+ */
+function landingSeed(data: CockpitAppData | null): LandingStartData | undefined {
+  const start = data?.start
+  return start?.view.section === "landing" ? (start.data as LandingStartData) : undefined
 }
 
 /**
@@ -218,7 +228,7 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
   const { context } = useHandOff()
   const inline = useHostDisplayMode() === "inline"
 
-  const boards = serverBoards(listed)
+  const boards = serverBoards(listed ?? landingSeed(data))
   // Two engines need it to pick one; a single engine only when the server has boards to show.
   const chooser = engines.length > 1 || boards !== null
   const [state, dispatch] = useCockpitState(data, engines, boards !== null)

@@ -33,9 +33,17 @@ afterEach(async () => {
 
 type Override = (request: RecordedRequest) => FakeReply | undefined
 
+/** A board file that gives no board. */
+const BROKEN_FILE = {
+  id: "broken",
+  file: "broken.board.json",
+  problems: [{ path: "$.rows", code: "missing" }],
+} as const
+
 /**
  * The start's facts, as the tool puts them after `engine` and `view`; an app route's after `view`,
- * over the world's board, which names the world's one engine.
+ * over the world's board, which names the world's one engine, beside a file that gives no board.
+ * The call lists the world's engine and a second one.
  */
 async function factsOf(view: CockpitView, override: Override = () => undefined) {
   const engine = await startFakeEngine({}, (request) => override(request) ?? worldReply(request))
@@ -43,14 +51,14 @@ async function factsOf(view: CockpitView, override: Override = () => undefined) 
   const start = isAppView(view)
     ? await buildCockpitStart(view, {
         resolve: worldResolver(engine.baseUrl),
-        boards: { boards: [worldBoard()], refused: [] },
+        boards: { boards: [worldBoard()], refused: [BROKEN_FILE] },
       })
     : await buildCockpitStart(
         view,
         resolveEngine(undefined, registryFor(engine)),
         DEFAULT_VERDICT_THRESHOLDS,
       )
-  return cockpitFacts(start)
+  return cockpitFacts(start, { engines: ["fake", "other"] })
 }
 
 const ok = (body: unknown): FakeReply => ({ body })
@@ -367,6 +375,14 @@ describe("cockpitFacts: the model's view of each route", () => {
         { kind: "processDiagram", process: WORLD.key, engine: "fake", version: 2 },
         { kind: "incidentList", groups: [{ engine: "fake", shown: 1 }] },
       ],
+    })
+  })
+
+  it("landing: the engine ids the call lists and the board ids the engine list names", async () => {
+    expect(asJson(await factsOf({ section: "landing" }))).toEqual({
+      engines: ["fake", "other"],
+      boards: ["orders"],
+      refusedBoards: ["broken"],
     })
   })
 

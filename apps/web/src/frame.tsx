@@ -1,16 +1,18 @@
-import { useState, useSyncExternalStore } from "react"
+import { useEffect, useState, useSyncExternalStore } from "react"
 import { Button, Icon, StatusStrip } from "@miragon/pulse-ui"
 import type { PageFrame, WebSessionInfo } from "@miragon/pulse-widget-shell/widgets"
 import { LogIn, LogOut } from "lucide-react"
 import { PageBar, PageLayout } from "./bar.js"
 import { useT } from "./messages/index.js"
 import type { PageNotice, PageNotices } from "./notices.js"
-import { signInUrl } from "./routes.js"
+import { signInUrl, type PageTitle } from "./routes.js"
 
 /** What a page with a session puts into its frame. */
 export interface SessionPage {
   readonly session: WebSessionInfo
   readonly notices: PageNotices
+  /** What the document's title names, in the page's language. */
+  readonly title: PageTitle
   /** The page and its query, where a sign-in from the notice comes back to. */
   readonly returnTo: string
   /** Signs out; false where it did not go through. */
@@ -80,13 +82,25 @@ function Notice({ notice, page }: { notice: PageNotice; page: SessionPage }) {
   )
 }
 
+/** The document's title in the page's language: a board's page names the board, any other Pulse. */
+function useDocumentTitle(title: PageTitle): void {
+  const t = useT()
+  const text =
+    title.kind === "board" ? t("title.board", { board: title.board }) : t("frame.product")
+  useEffect(() => {
+    document.title = text
+  }, [text])
+}
+
 /**
  * The frame of a page with a session: the bar with who is signed in and the sign-out, the notice
- * of the session under it, and the view. A call that finds the session gone shows the notice, and
- * no silent redirect takes the page away: the sign-in it offers comes back to the page.
+ * of the session under it, and the view, the document titled for the page. A call that finds the
+ * session gone shows the notice, and no silent redirect takes the page away: the sign-in it offers
+ * comes back to the page.
  */
 export function sessionFrame(page: SessionPage): PageFrame {
   return function SessionFrame({ children }) {
+    useDocumentTitle(page.title)
     const notice = useSyncExternalStore(page.notices.subscribe, page.notices.current)
     const banner = (
       <>

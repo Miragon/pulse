@@ -22,6 +22,12 @@ import {
 /** The web app's build, which `test:web` builds first: `MCP_WEB_DIR`, never the package's web/. */
 const WEB_BUILD = path.resolve(import.meta.dirname, "..", "..", "..", "web", "dist")
 
+/**
+ * test:host's board files (`ENGINE_BOARDS_DIR`): a board over the stub and the broken engine, and
+ * a file that gives no board.
+ */
+const BOARDS_DIR = path.resolve(import.meta.dirname, "..", "fixtures", "boards")
+
 interface WebDeployment {
   readonly origin: string
   readonly idp: FakeOidc
@@ -41,12 +47,12 @@ async function freePort(): Promise<number> {
  * One composition root (`createApp`, what `src/index.ts` runs) under OAuth at
  * `http://localhost:<port>`, its own fake identity provider (Keycloak's paths, the boot's real
  * provider table) with the web client's callback and post-logout URIs exactly, the web app on with
- * the build of apps/web and the engines `profiles`. OAuth gives the operations toolset, so the
- * server registers the writes a page never offers.
+ * the build of apps/web, the engines `profiles` and the variables of `env` besides. OAuth gives
+ * the operations toolset, so the server registers the writes a page never offers.
  */
 async function deploy(
   profiles: Record<string, { url: string }>,
-  idpOptions: FakeOidcOptions = {},
+  { idp: idpOptions = {}, env = {} }: { idp?: FakeOidcOptions; env?: Record<string, string> } = {},
 ): Promise<WebDeployment> {
   const port = await freePort()
   const origin = `http://localhost:${port}`
@@ -70,6 +76,7 @@ async function deploy(
     MCP_WEB_SESSION_KEYS: randomBytes(32).toString("base64url"),
     MCP_WEB_DIR: WEB_BUILD,
     ENGINES_JSON: JSON.stringify({ profiles }),
+    ...env,
   })
   const running = await composed.listen({ port, host: "127.0.0.1", drainTimeoutMs: 1000 })
   return {
@@ -135,16 +142,20 @@ async function startControl(idps: Record<Deployment, FakeOidc>) {
  */
 export default async function globalSetup(): Promise<() => Promise<void>> {
   const engine = await startStubEngine()
-  const main = await deploy({
-    [HEALTHY_ENGINE]: { url: engine.baseUrl },
-    [BROKEN_ENGINE]: { url: engine.brokenBaseUrl },
-  })
+  // Two engines and the board files: /app lists both engines and the boards (boards.spec.ts).
+  const main = await deploy(
+    {
+      [HEALTHY_ENGINE]: { url: engine.baseUrl },
+      [BROKEN_ENGINE]: { url: engine.brokenBaseUrl },
+    },
+    { env: { ENGINE_BOARDS_DIR: BOARDS_DIR } },
+  )
   // Access tokens of 5 s are due at once by the shared expiry policy: the server renews the token
   // before each call it forwards, and a refusal of the renewal (the session ended at the provider)
-  // ends the session.
+  // ends the session. One engine and no board: /app opens that engine.
   const short = await deploy(
     { [HEALTHY_ENGINE]: { url: engine.baseUrl } },
-    { accessTokenSeconds: 5 },
+    { idp: { accessTokenSeconds: 5 } },
   )
   const control = await startControl({ main: main.idp, short: short.idp })
   process.env[DEPLOYMENTS.main] = main.origin

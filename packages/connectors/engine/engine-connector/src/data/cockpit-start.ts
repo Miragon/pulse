@@ -1,13 +1,13 @@
 import type { ResolvedEngine } from "../lib/engine/resolve-engine.js"
-import type { CockpitStart, CockpitView } from "../view-models.js"
+import type { AppSection, CockpitStart, CockpitView } from "../view-models.js"
 import { DEFAULT_VERDICT_THRESHOLDS, type VerdictThresholds } from "@miragon/pulse-c7-core"
 import type { NamedReadContext, ReadContext } from "./feeds.js"
-import { type AppSection, COCKPIT_ROUTES, type EngineSection, type Facts } from "./routes.js"
+import { type CallFacts, COCKPIT_ROUTES, type EngineSection, type Facts } from "./routes.js"
 
 /** A start view of one engine's routes. */
 export type EngineView = Extract<CockpitView, { section: EngineSection }>
 
-/** A start view of an app route: it names its engines itself (a board). */
+/** A start view of an app route: a board, which names its engines itself, or the landing. */
 export type AppView = Extract<CockpitView, { section: AppSection }>
 
 /** Whether `view` is an app route's (`CockpitRoute.scope`): its start resolves no engine. */
@@ -47,11 +47,12 @@ export async function buildCockpitStart(
   return { view, data } as CockpitStart
 }
 
-/** The start view's facts for the model (`CockpitRoute.facts`). */
-export function cockpitFacts({ view, data }: CockpitStart): Facts {
+/** The start view's facts for the model (`CockpitRoute.facts`), with what the call names. */
+export function cockpitFacts({ view, data }: CockpitStart, call: CallFacts): Facts {
   const facts = COCKPIT_ROUTES[view.section].facts as (
     view: CockpitView,
     data: CockpitStart["data"],
+    call: CallFacts,
   ) => Facts
-  return facts(view, data)
+  return facts(view, data, call)
 }

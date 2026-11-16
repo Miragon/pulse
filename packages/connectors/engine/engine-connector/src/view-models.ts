@@ -1,7 +1,7 @@
 /** What the widgets render, not engine API types (those live in `@miragon/pulse-c7-client/types`). */
 import type { IncidentRecovery } from "@miragon/pulse-c7-core"
 import type { IncidentsDashboardFilters, JobsFilters } from "./feed-contracts.js"
-import type { BoardStartData } from "./view-models.board.js"
+import type { BoardStartData, LandingStartData } from "./view-models.board.js"
 import type { ClusterDetailData, EngineHealthData } from "./view-models.health.js"
 
 /**
@@ -142,7 +142,9 @@ export interface CockpitEngineInfo {
 
 /**
  * Where the cockpit is: one route per section, with the ids that route reads. A board (`board`)
- * is an app-level route: it reads the engines its file names, never one engine of the cockpit.
+ * and the landing (`landing`) are app-level routes (`AppSection`): a board reads the engines its
+ * file names, the landing lists the engines and the server's boards, never one engine of the
+ * cockpit.
  */
 export type CockpitView =
   | { section: "overview" }
@@ -166,8 +168,15 @@ export type CockpitView =
   | { section: "jobs"; processDefinitionKey?: string; failedOnly?: boolean }
   | { section: "history"; processInstanceId: string }
   | { section: "board"; board: string; label?: string }
+  | { section: "landing" }
 
 export type CockpitSection = CockpitView["section"]
+
+/**
+ * The sections of the app's own routes, which open no engine of the cockpit: a board reads the
+ * engines its file names, the landing lists the engines and the server's boards.
+ */
+export type AppSection = "board" | "landing"
 
 /** The overview's two widgets: the health verdict and the definitions table. */
 interface CockpitOverviewData {
@@ -175,7 +184,10 @@ interface CockpitOverviewData {
   definitions: CockpitDashboardData
 }
 
-/** Each route's data: exactly the payload its `*_data` feed returns for the route's first page. */
+/**
+ * Each route's data: exactly the payload its `*_data` feed returns for the route's first page; the
+ * landing's, which has no feed of its own, the boards the engine list names.
+ */
 export interface CockpitStartData {
   overview: CockpitOverviewData
   incidents: IncidentsDashboardData
@@ -187,6 +199,7 @@ export interface CockpitStartData {
   jobs: JobPanelData
   history: HistoryTimelineData
   board: BoardStartData
+  landing: LandingStartData
 }
 
 /**
@@ -201,11 +214,14 @@ export type CockpitStart = {
 export interface CockpitAppData {
   /**
    * Resolved engine id, or null when the user must pick (multiple engines, none selected) and on
-   * a board, which reads the engines it names.
+   * an app route: a board, which reads the engines it names, and the landing.
    */
   engineId: string | null
   engines: CockpitEngineInfo[]
-  /** Where the cockpit opens, with that view's data; null exactly on the engine picker. */
+  /**
+   * Where the cockpit opens, with that view's data; null exactly on the engine picker of a call
+   * that named no view and resolved no engine.
+   */
   start: CockpitStart | null
 }
 

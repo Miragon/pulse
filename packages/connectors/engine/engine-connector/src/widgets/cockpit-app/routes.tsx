@@ -1,5 +1,6 @@
 import { ViewStack } from "@miragon/pulse-widget-shell/widgets"
 import type {
+  AppSection,
   CockpitSection,
   CockpitStart,
   CockpitStartData,
@@ -25,13 +26,13 @@ function seedOf<S extends CockpitSection>(
   return seed?.view.section === section ? (seed.data as CockpitStartData[S]) : null
 }
 
-/** A view of one engine's routes: every section but the board's. */
-type EngineView = Exclude<CockpitView, { section: "board" }>
+/** A view of one engine's routes: every section but the app's. */
+type EngineView = Exclude<CockpitView, { section: AppSection }>
 
 /**
- * One cockpit view: an app route (a board, which reads the engines it names) or a route of
- * `engine`, seeded with the start view's data (`engine_open_cockpit`) while it is the view on
- * screen. A new route adds its section to `CockpitView` and a case here or in `EngineRoute`; the
+ * One cockpit view: an app route (a board, which reads the engines it names; the landing) or a
+ * route of `engine`, seeded with the start view's data (`engine_open_cockpit`) while it is the view
+ * on screen. A new route adds its section to `CockpitView` and a case here or in `EngineRoute`; the
  * exhaustive switches fail to compile until it does.
  */
 export function CockpitRoute({
@@ -40,15 +41,21 @@ export function CockpitRoute({
   seed = null,
 }: {
   view: CockpitView
-  /** The engine an engine route reads; none on a board. */
+  /** The engine an engine route reads; none on an app route. */
   engine: string | null
   seed?: CockpitStart | null
 }) {
-  if (view.section === "board") {
-    return <BoardView board={view.board} data={seedOf(seed, "board")} />
+  switch (view.section) {
+    case "board":
+      return <BoardView board={view.board} data={seedOf(seed, "board")} />
+    // The landing is the cockpit's chooser over the engine list (`LandingChooser`), which the
+    // cockpit shows on its landing scope, its start data seeding the boards: no widget here.
+    case "landing":
+      return null
+    default:
+      // The cockpit opens an engine's routes only with its engine.
+      return engine === null ? null : <EngineRoute view={view} engine={engine} seed={seed} />
   }
-  // The cockpit opens an engine's routes only with its engine.
-  return engine === null ? null : <EngineRoute view={view} engine={engine} seed={seed} />
 }
 
 /** One engine's view: self-fetching widgets scoped to `engine`. */

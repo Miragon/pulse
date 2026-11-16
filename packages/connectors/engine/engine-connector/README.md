@@ -50,9 +50,10 @@ in `ENGINES_JSON` / `ENGINES_FILE`; every variable is in the
   `truncated`.
 - **The cockpit view.** `engine_open_cockpit` opens the operations cockpit on any of its views
   (overview, incidents, failure cluster, process, instances, instance, incident, jobs, history,
-  board), with two engines or more on the cross-engine overview (each engine's health, job backlog
-  and processes, counts only), and returns that view's facts as compact JSON; app-only `*_data`
-  feeds refresh and navigate inside it.
+  board, and the landing: the engines and the server's boards to pick from), with two engines or
+  more on the cross-engine overview (each engine's health, job backlog and processes, counts
+  only), and returns that view's facts as compact JSON; app-only `*_data` feeds refresh and
+  navigate inside it.
 - **Boards.** With `ENGINE_BOARDS_DIR`, the module reads the board files of
   [`@miragon/pulse-board`](https://www.npmjs.com/package/@miragon/pulse-board), the format of Pulse
   for VS Code and Pulse for Orca, at boot: `engine_list_engines` names the boards, the cockpit's

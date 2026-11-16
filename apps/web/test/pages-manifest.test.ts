@@ -71,7 +71,10 @@ describe("the build's pages.json", () => {
   })
 
   it("is what the server serves the page at, behind the sign-in, the query kept", async () => {
-    for (const page of [...PAGE_PATTERNS, `${PAGES.cockpit}?view=jobs&engine=prod`]) {
+    // A pattern's param takes one segment: a board's id.
+    const paths = PAGE_PATTERNS.map((pattern) => pattern.replace(/:[a-z]+/g, "invoices"))
+    expect(paths).toContain("/app/boards/invoices")
+    for (const page of [...paths, `${PAGES.cockpit}?view=jobs&engine=prod`]) {
       const response = await get(page)
       expect(response.status, page).toBe(302)
       const location = new URL(String(response.headers.get("location")), ORIGIN)

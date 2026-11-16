@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it } from "vitest"
 import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { createTestQueryClient } from "@miragon/pulse-widget-shell/widgets"
+import { ENGINE_BOARD_DATA } from "../../tool-names.js"
 import type { CockpitAppData } from "../../view-models.js"
 import {
   activeEngine,
@@ -108,5 +109,72 @@ describe("CockpitApp with the server's boards", () => {
     expect(screen.queryByRole("heading", { level: 1, name: "Cross-engine overview" })).toBeNull()
     expect(activeEngine()).toBeNull()
     expect(screen.getByRole("region", { name: "Boards" })).toBeTruthy()
+  })
+})
+
+/**
+ * The landing as a start view (`engine_open_cockpit` view `landing`, an app route without a feed
+ * of its own): the chooser at once, its boards seeded by the start data until the engine list
+ * answers; with one engine and no boards the widgets' own rule opens that engine.
+ */
+describe("CockpitApp opened on the landing", () => {
+  const LANDING = { section: "landing" } as const
+
+  it("one engine with a board: the chooser at once, the boards from the start data before the list answers", async () => {
+    const { modelContexts, reads } = renderCockpit(
+      boot(null, SOLO, LANDING, { boards: [INVOICES] }),
+      { engines: SOLO, boards: [INVOICES] },
+    )
+    // The first render, before the engine list answers: the start data names the board.
+    expect(onLanding()).toBe(true)
+    const boards = screen.getByRole("region", { name: "Boards" })
+    expect(within(boards).getByRole("button", { name: /^Invoices\b/ })).toBeTruthy()
+    await waitFor(() => expect(modelContexts.at(-1)).toContain('view="landing"'))
+    expect(modelContexts.at(-1)).toContain('boards=["invoices"]')
+    // The landing reads no feed of its own: the engine list, and each engine's live state.
+    expect(reads(ENGINE_BOARD_DATA)).toEqual([])
+    fireEvent.click(within(boards).getByRole("button", { name: /^Invoices\b/ }))
+    expect(await screen.findByRole("heading", { level: 1, name: "Invoices" })).toBeTruthy()
+    expect(trailLabels()).toEqual(["All engines", "Invoices"])
+  })
+
+  it("the engine list's boards replace the start data's once it answers", async () => {
+    const SHIPPING = { id: "shipping", title: "Shipping", engines: ["solo"] }
+    renderCockpit(boot(null, SOLO, LANDING, { boards: [INVOICES] }), {
+      engines: SOLO,
+      boards: [SHIPPING],
+    })
+    const boards = screen.getByRole("region", { name: "Boards" })
+    await waitFor(() =>
+      expect(within(boards).getByRole("button", { name: /^Shipping\b/ })).toBeTruthy(),
+    )
+    expect(within(boards).queryByRole("button", { name: /^Invoices\b/ })).toBeNull()
+  })
+
+  it("one engine without boards: the chooser gives way to that engine", async () => {
+    renderCockpit(boot(null, SOLO, LANDING, {}), { engines: SOLO })
+    expect(await screen.findByRole("heading", { name: "solo · Overview" })).toBeTruthy()
+    expect(onLanding()).toBe(false)
+    expect(screen.queryByRole("navigation", { name: "Breadcrumb" })).toBeNull()
+  })
+
+  it("several engines: the chooser with the engines and a refused board file", async () => {
+    renderCockpit(
+      boot(null, ENGINES, LANDING, { refusedBoards: [{ id: "broken", problems: 1 }] }),
+      {
+        engines: ENGINES,
+        refusedBoards: [{ id: "broken", problems: 1 }],
+      },
+    )
+    expect(onLanding()).toBe(true)
+    const boards = screen.getByRole("region", { name: "Boards" })
+    expect(within(boards).getByText("file refused: 1 problem")).toBeTruthy()
+    expect(
+      within(screen.getByRole("region", { name: "Engines" })).getAllByRole("button"),
+    ).toHaveLength(2)
+    fireEvent.click(await screen.findByRole("button", { name: /^prod-a\b/ }))
+    await waitFor(() => expect(activeEngine()).toBe("prod-a"))
+    fireEvent.click(within(trail()).getByRole("button", { name: "All engines" }))
+    expect(onLanding()).toBe(true)
   })
 })

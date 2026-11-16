@@ -72,8 +72,8 @@ const acceptedBy = (view: CockpitSection) => [
 
 /**
  * Zod reports an unknown key and still runs this, so it reads only the keys it knows. An invalid
- * `view` stops the parse before it gets here. An app route reads the engines it names, so it
- * takes no `engine`.
+ * `view` stops the parse before it gets here. An app route opens no single engine (a board reads
+ * the engines it names, the landing lists them), so it takes no `engine`.
  */
 function checkStartView(
   input: StartIds & { view?: CockpitSection; engine?: string },
@@ -85,7 +85,7 @@ function checkStartView(
     ctx.addIssue({
       code: "custom",
       path: ["engine"],
-      message: `view "${view}" reads the engines it names: it takes no engine.`,
+      message: `view "${view}" opens no single engine: it takes no engine.`,
     })
   }
   for (const param of COCKPIT_ROUTES[view].needs) {
@@ -133,7 +133,7 @@ export function registerCockpitWidgetTools(context: WidgetToolsContext) {
     {
       title: "Open Cockpit",
       description:
-        "Show the user the operations cockpit on one engine; they navigate it without further tool calls. `view` picks where it opens, by default the overview: the health verdict from the open incidents, the top failure clusters and every process. instance-detail needs a running instance; history shows ended ones too; board shows a board across the engines it names, without `engine`. You get that view's facts as compact JSON.",
+        "Show the user the operations cockpit on one engine; they navigate it without further tool calls. `view` picks where it opens, by default the overview: the health verdict from the open incidents, the top failure clusters and every process. instance-detail needs a running instance; history shows ended ones too; board shows a board across the engines it names, landing the engines and boards to pick from, both without `engine`. You get that view's facts as compact JSON.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
       inputSchema: strictToolInput({ ...startViewShape, ...engineParam }).superRefine(
         checkStartView,
@@ -143,14 +143,16 @@ export function registerCockpitWidgetTools(context: WidgetToolsContext) {
     withToolErrors(async (args, ctx) => {
       const { engine, view, ...ids } = args
       const engines = cockpitEngines(registry)
+      const call = { engines: engines.map((e) => e.id) }
       const startView = toStartView(view ?? "overview", ids)
       if (isAppView(startView)) {
-        // An app route reads the engines it names: no engine resolves, none is the cockpit's.
+        // An app route reads the engines it names, or lists them: no engine resolves, none is
+        // the cockpit's.
         const start = await buildCockpitStart(startView, namedReads(context, ctx))
-        const board: CockpitAppData = { engineId: null, engines, start }
+        const app: CockpitAppData = { engineId: null, engines, start }
         return buildViewResult(
-          board,
-          JSON.stringify({ view: start.view.section, ...cockpitFacts(start) }),
+          app,
+          JSON.stringify({ view: start.view.section, ...cockpitFacts(start, call) }),
         )
       }
       // A named view needs an engine (ENGINE_NOT_SELECTED names them); without one the picker
@@ -162,10 +164,7 @@ export function registerCockpitWidgetTools(context: WidgetToolsContext) {
           : resolveEngine(engine, registry).engineId
       if (engineId === null) {
         const picker: CockpitAppData = { engineId: null, engines, start: null }
-        return buildViewResult(
-          picker,
-          JSON.stringify({ engine: null, engines: engines.map((e) => e.id) }),
-        )
+        return buildViewResult(picker, JSON.stringify({ engine: null, ...call }))
       }
       const start = await buildCockpitStart(
         startView,
@@ -176,7 +175,11 @@ export function registerCockpitWidgetTools(context: WidgetToolsContext) {
       const data: CockpitAppData = { engineId, engines, start }
       return buildViewResult(
         data,
-        JSON.stringify({ engine: engineId, view: start.view.section, ...cockpitFacts(start) }),
+        JSON.stringify({
+          engine: engineId,
+          view: start.view.section,
+          ...cockpitFacts(start, call),
+        }),
       )
     }),
   )

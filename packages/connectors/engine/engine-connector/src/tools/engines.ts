@@ -1,6 +1,7 @@
 import { engineStatusInput } from "../schemas/index.js"
 import type { BoardFiles } from "../board-files.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
+import { landingDataOf } from "../data/landing-data.js"
 import { engineStatusForModel } from "../lib/core-adapter/composites.js"
 import type { VerdictThresholds } from "@miragon/pulse-c7-core"
 import type { EngineRegistry, RefusedProfile } from "../lib/engine/resolve-engine.js"
@@ -12,20 +13,6 @@ import { ENGINE_LIST_ENGINES } from "../tool-names.js"
 /** A refused profile as the model reads it: its id, its environment and why, never a value. */
 function refusedEntry({ id, environment, reason }: RefusedProfile) {
   return { id, ...(environment === undefined ? {} : { environment }), reason }
-}
-
-/**
- * The boards of ENGINE_BOARDS_DIR as the model reads them: each board's id (what
- * engine_open_cockpit's `board` takes), its title and the engines it names; a file that gives no
- * board with how many problems it has, never their text.
- */
-function boardList({ boards, refused }: BoardFiles) {
-  return {
-    boards: boards.map(({ id, board }) => ({ id, title: board.title, engines: board.engines })),
-    ...(refused.length > 0
-      ? { refusedBoards: refused.map(({ id, problems }) => ({ id, problems: problems.length })) }
-      : {}),
-  }
 }
 
 /**
@@ -69,8 +56,9 @@ export function registerEngineTools(
         defaultEngineId: reg.defaultEngineId ?? null,
         // Only when there is one: a call to it fails with ENGINE_PROFILE_REFUSED and this reason.
         ...(reg.refused.size > 0 ? { refused: [...reg.refused.values()].map(refusedEntry) } : {}),
-        // Only with ENGINE_BOARDS_DIR: engine_open_cockpit with view board opens one.
-        ...(boards ? boardList(boards) : {}),
+        // Only with ENGINE_BOARDS_DIR: engine_open_cockpit with view board opens one, and its
+        // landing lists the same (one builder).
+        ...landingDataOf(boards),
       }),
   })
 

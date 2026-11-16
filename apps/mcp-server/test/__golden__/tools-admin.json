@@ -2197,7 +2197,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Show the user the operations cockpit on one engine; they navigate it without further tool calls. `view` picks where it opens, by default the overview: the health verdict from the open incidents, the top failure clusters and every process. instance-detail needs a running instance; history shows ended ones too; board shows a board across the engines it names, without `engine`. You get that view's facts as compact JSON.",
+    "description": "Show the user the operations cockpit on one engine; they navigate it without further tool calls. `view` picks where it opens, by default the overview: the health verdict from the open incidents, the top failure clusters and every process. instance-detail needs a running instance; history shows ended ones too; board shows a board across the engines it names, landing the engines and boards to pick from, both without `engine`. You get that view's facts as compact JSON.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -2258,7 +2258,8 @@
             "incident-detail",
             "jobs",
             "history",
-            "board"
+            "board",
+            "landing"
           ],
           "type": "string"
         }

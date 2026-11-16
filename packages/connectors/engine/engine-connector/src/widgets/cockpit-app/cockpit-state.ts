@@ -74,9 +74,14 @@ function boardState(view: BoardView, seededKey: string | null): CockpitState {
   }
 }
 
-/** Opens on the bootstrap's resolved engine and start view (`engine_open_cockpit`), else the chooser. */
+/**
+ * Opens on the bootstrap's resolved engine and start view (`engine_open_cockpit`), else the
+ * chooser, which the landing's start view opens too: it is the cockpit's scope, never an entry of
+ * the stack. With one engine and no boards the chooser gives way to that engine (`reconcileScope`).
+ */
 function initialState({ engineId, view = null }: Boot): CockpitState {
   if (view?.section === "board") return boardState(view, viewKey(view))
+  if (view?.section === "landing") return initialState({ engineId: null })
   return {
     scope: engineId ? { kind: "engine", engineId } : { kind: "landing" },
     stack: startStack(view),

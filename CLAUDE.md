@@ -460,8 +460,11 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
    from them; `COCKPIT_ROUTES` and the widgets' route switch are total over the sections, so
    they fail to compile until each has the route. A route that nothing emits and
    `engine_open_cockpit` cannot open is dead. A route reads one engine (`scope: "engine"`) or, at
-   app level, the engines it names (`scope: "app"`, a board: its start resolves no engine, the
-   tool refuses an `engine` with it, and the cockpit shows it without an engine's head).
+   app level (`scope: "app"`, an `AppSection`), the engines it names (a board) or the engine list
+   (the landing): its start resolves no engine, the tool refuses an `engine` with it, and the
+   cockpit shows it without an engine's head. The landing is the one route without a feed of its
+   own: its start data are the boards `engine_list_engines` lists, from one builder
+   (`src/data/landing-data.ts`), and its widgets read the engine list.
 
    A view is picked by its NAME, the view tool's name (`showToolBinding` binds the tool to
    `ui://views/<name>.html` in its `_meta.ui.resourceUri`, the boot serves the one bundle there

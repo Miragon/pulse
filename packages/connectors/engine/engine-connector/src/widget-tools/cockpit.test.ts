@@ -1,79 +1,21 @@
 import { afterEach, describe, expect, it } from "vitest"
 import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
-import type { z } from "zod"
-import { DEFAULT_VERDICT_THRESHOLDS, type VerdictThresholds } from "@miragon/pulse-c7-core"
-import type { EngineEntry } from "../engine-provider.js"
-import { createEngineRegistry } from "../lib/engine/resolve-engine.js"
-import { providerForEntry } from "../providers/index.js"
+import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-c7-core"
 import { createPlugin } from "../plugin.js"
-import { ENGINE_LIST_ENGINES, ENGINE_OPEN_COCKPIT } from "../tool-names.js"
-import { engineParamShape } from "../lib/engine/with-engine.js"
-import { startFakeEngine, type FakeEngine } from "../tools/test-support/fake-engine.js"
-import { worldReply } from "../tools/test-support/engine-world.js"
-import type { BoardFiles } from "../board-files.js"
-import { worldBoard } from "../data/honest-numbers.test-support.js"
-import { registerCockpitWidgetTools } from "./cockpit.js"
+import { ENGINE_LIST_ENGINES } from "../tool-names.js"
+import {
+  ALL,
+  closeFakeEngines,
+  cockpitDown,
+  cockpitOf,
+  cockpitOn,
+  dataOf,
+  factsOf,
+  textOf,
+  THREE,
+} from "./cockpit.test-support.js"
 
-interface CockpitResult {
-  isError?: boolean
-  structuredContent?: Record<string, unknown>
-  content: Array<{ type: string; text: string }>
-}
-
-type Handler = (args: Record<string, unknown>) => Promise<CockpitResult>
-
-interface Definition {
-  name: string
-  inputSchema: z.ZodType
-}
-
-/** The cockpit tool as `registerCockpitWidgetTools` registered it on `recording`. */
-function cockpitOf(recording: ReturnType<typeof recordingModuleServer>) {
-  const tool = recording.tool(ENGINE_OPEN_COCKPIT)
-  const definition = { name: tool.name, ...tool.config } as Definition
-  const handler: Handler = (args) => tool.call(args)
-  return { definition, handler }
-}
-
-const engines: FakeEngine[] = []
-afterEach(async () => {
-  await Promise.all(engines.splice(0).map((engine) => engine.close()))
-})
-
-/** Each engine without a `baseUrl` answers from the fake engine world; `requests` records the reads. */
-async function cockpitOn(
-  ids: Array<Pick<EngineEntry, "id" | "environment"> & { baseUrl?: string }>,
-  options: {
-    defaultEngineId?: string
-    healthThresholds?: VerdictThresholds
-    boards?: BoardFiles
-  } = {},
-) {
-  const engine = await startFakeEngine({}, worldReply)
-  engines.push(engine)
-  const entries = ids.map((e) => ({ ...e, baseUrl: e.baseUrl ?? engine.baseUrl }))
-  const recording = recordingModuleServer()
-  registerCockpitWidgetTools({
-    server: recording.server,
-    registry: createEngineRegistry(
-      entries,
-      (e) => providerForEntry(e).createClient(e, { type: "none" }),
-      { defaultEngineId: options.defaultEngineId },
-    ),
-    healthThresholds: options.healthThresholds ?? DEFAULT_VERDICT_THRESHOLDS,
-    toolset: "read-only",
-    engineParam: engineParamShape,
-    ...(options.boards ? { boards: options.boards } : {}),
-  })
-  return { ...cockpitOf(recording), requests: engine.requests, baseUrl: engine.baseUrl }
-}
-
-const dataOf = (result: CockpitResult) => result.structuredContent!
-const textOf = (result: CockpitResult) => result.content.map((c) => c.text).join("\n")
-const factsOf = (result: CockpitResult) => JSON.parse(textOf(result)) as Record<string, unknown>
-
-const THREE = [{ id: "alpha" }, { id: "beta" }, { id: "gamma" }]
-const ALL = THREE.map((e) => ({ id: e.id, environment: "default" }))
+afterEach(closeFakeEngines)
 
 describe("engine_open_cockpit: the cockpit bootstrap", () => {
   it("hands the app each engine's id and environment, never its internal REST baseUrl", async () => {
@@ -223,23 +165,6 @@ describe("engine_open_cockpit: the start view", () => {
   })
 })
 
-/** One engine whose every read fails. */
-async function cockpitDown(): Promise<Handler> {
-  const engine = await startFakeEngine({}, { status: 503, body: { message: "unavailable" } })
-  engines.push(engine)
-  const recording = recordingModuleServer()
-  registerCockpitWidgetTools({
-    server: recording.server,
-    registry: createEngineRegistry([{ id: "solo", baseUrl: engine.baseUrl }], (e) =>
-      providerForEntry(e).createClient(e, { type: "none" }),
-    ),
-    healthThresholds: DEFAULT_VERDICT_THRESHOLDS,
-    toolset: "read-only",
-    engineParam: engineParamShape,
-  })
-  return cockpitOf(recording).handler
-}
-
 describe("engine_open_cockpit: the input rules", () => {
   const parse = async (args: Record<string, unknown>) => {
     const { definition } = await cockpitOn([{ id: "solo" }])
@@ -258,6 +183,7 @@ describe("engine_open_cockpit: the input rules", () => {
     ],
     [{ view: "history", processInstanceId: "pi-1", engine: "solo" }, []],
     [{ view: "board", board: "orders" }, []],
+    [{ view: "landing" }, []],
   ])("accepts %j", async (args, issues) => {
     expect(await parse(args)).toEqual(issues)
   })
@@ -322,13 +248,17 @@ describe("engine_open_cockpit: the input rules", () => {
       ],
     ],
     [{ board: "orders" }, [["board", 'view "overview" takes no board.']]],
+    [{ view: "landing", board: "orders" }, [["board", 'view "landing" takes no board.']]],
   ])("refuses an id the view does not take: %j", async (args, issues) => {
     expect(await parse(args)).toEqual(issues)
   })
 
-  it("refuses an engine on a board, which reads the engines it names", async () => {
+  it("refuses an engine on an app route: a board reads the engines it names, the landing lists them", async () => {
     expect(await parse({ view: "board", board: "orders", engine: "solo" })).toEqual([
-      ["engine", 'view "board" reads the engines it names: it takes no engine.'],
+      ["engine", 'view "board" opens no single engine: it takes no engine.'],
+    ])
+    expect(await parse({ view: "landing", engine: "solo" })).toEqual([
+      ["engine", 'view "landing" opens no single engine: it takes no engine.'],
     ])
   })
 
@@ -348,57 +278,5 @@ describe("engine_open_cockpit: the input rules", () => {
   it("refuses an unknown view", async () => {
     const issues = await parse({ view: "process-list" })
     expect(issues.map(([path]) => path)).toEqual(["view"])
-  })
-})
-
-describe("engine_open_cockpit: a board, an app route", () => {
-  const ORDERS: BoardFiles = { boards: [worldBoard()], refused: [] }
-
-  it("opens without an engine, reads the engines the board names, and hands the model its facts", async () => {
-    const { handler, requests } = await cockpitOn([{ id: "fake" }, { id: "other" }], {
-      boards: { boards: [worldBoard()], refused: [] },
-    })
-    const result = await handler({ view: "board", board: "orders" })
-    expect(result.isError).toBeUndefined()
-    expect(dataOf(result)).toMatchObject({
-      engineId: null,
-      engines: [
-        { id: "fake", environment: "default" },
-        { id: "other", environment: "default" },
-      ],
-      start: {
-        view: { section: "board", board: "orders" },
-        data: { title: "Orders", engines: [{ name: "fake", state: "ready" }] },
-      },
-    })
-    const facts = factsOf(result)
-    expect(facts).toMatchObject({ view: "board", board: "orders", title: "Orders" })
-    expect(facts).not.toHaveProperty("engine")
-    expect(requests.length).toBeGreaterThan(0)
-    // No payload carries BPMN XML or an engine's REST address.
-    const serialized = JSON.stringify(result)
-    expect(serialized).not.toContain("<?xml")
-    expect(serialized).not.toContain("127.0.0.1")
-  })
-
-  it("opens with several engines and no default, where an engine view would need one", async () => {
-    const { handler } = await cockpitOn([{ id: "fake" }, { id: "other" }], { boards: ORDERS })
-    expect((await handler({ view: "board", board: "orders" })).isError).toBeUndefined()
-  })
-
-  it("an unknown board is a tool error that lists the boards", async () => {
-    const { handler } = await cockpitOn([{ id: "fake" }], { boards: ORDERS })
-    const result = await handler({ view: "board", board: "shipping" })
-    expect(result.isError).toBe(true)
-    expect(textOf(result)).toBe('[UNKNOWN_BOARD] Unknown board id "shipping". Boards: orders.')
-  })
-
-  it("on a server without boards, a board is a tool error that says so", async () => {
-    const { handler } = await cockpitOn([{ id: "fake" }])
-    const result = await handler({ view: "board", board: "orders" })
-    expect(result.isError).toBe(true)
-    expect(textOf(result)).toBe(
-      '[UNKNOWN_BOARD] Unknown board id "orders": this server shows no board.',
-    )
   })
 })

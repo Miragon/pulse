@@ -42,7 +42,7 @@ export function refusedEngineContext(engineId: string): ViewContext {
 /**
  * No engine is open: the engine ids are facts, not an `engine` to pin. The boards the picker
  * lists (ENGINE_BOARDS_DIR) are facts too, by their ids; their titles are the operator's text and
- * stay out.
+ * stay out. The view is the landing's, as `engine_open_cockpit` names it.
  */
 export function landingContext(
   engineGroups: Array<{ id: string; engines: Array<{ id: string }> }>,
@@ -50,10 +50,11 @@ export function landingContext(
 ): ViewContext {
   return {
     summary:
-      "The operator is on the engine cockpit's engine picker: no engine is open yet, so nothing " +
-      "on screen is scoped to one engine. Before an engine-specific answer, ask which engine they " +
-      "mean, or pass `engine` explicitly.",
+      "The operator is on the engine cockpit's landing, its engine picker: no engine is open " +
+      "yet, so nothing on screen is scoped to one engine. Before an engine-specific answer, ask " +
+      "which engine they mean, or pass `engine` explicitly.",
     facts: {
+      view: "landing",
       engines: engineGroups.flatMap((g) => g.engines.map((e) => e.id)),
       environments: enginesByEnvironment(engineGroups),
       ...(boards && {

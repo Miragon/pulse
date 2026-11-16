@@ -27,6 +27,7 @@ import {
 } from "lucide-react"
 import { DEFAULT_ENVIRONMENT_ID, groupEnginesByEnvironment } from "../../lib/shared/environments.js"
 import { translator } from "../../messages/use-t.js"
+import type { ListedBoard, ListedRefusedBoard } from "../../view-models.board.js"
 import {
   HEALTH_FAILURE_TONE,
   healthFailureOf,
@@ -144,17 +145,10 @@ function EngineRow({
   )
 }
 
-/** A board of ENGINE_BOARDS_DIR as the engine list names it: its id, its title, its engines. */
-interface ServerBoard {
-  id: string
-  title: string
-  engines: string[]
-}
-
 /** The server's boards, and its board files that give no board, by their problem count. */
 export interface ServerBoards {
-  boards: ServerBoard[]
-  refusedBoards: Array<{ id: string; problems: number }>
+  boards: readonly ListedBoard[]
+  refusedBoards: readonly ListedRefusedBoard[]
 }
 
 /**
@@ -162,7 +156,7 @@ export interface ServerBoards {
  * inside the button, in its name. They take only the room the title leaves, so a narrow row cuts
  * them before the title that names the board.
  */
-function BoardRow({ board, onOpen }: { board: ServerBoard; onOpen: () => void }) {
+function BoardRow({ board, onOpen }: { board: ListedBoard; onOpen: () => void }) {
   const locale = useLocale()
   const engines = translator(locale, "board.engines", {
     count: formatNumber(board.engines.length),

@@ -1,5 +1,6 @@
 import {
   LIST_PAGE_SIZE,
+  type AppSection,
   type CockpitSection,
   type CockpitStartData,
   type CockpitView,
@@ -21,6 +22,7 @@ import {
   type NamedReadContext,
   type ReadContext,
 } from "./feeds.js"
+import { landingDataOf, landingFacts } from "./landing-data.js"
 
 /**
  * The cockpit's routes, described once: the ids each needs and takes, its start data (its feed's
@@ -29,8 +31,10 @@ import {
  * `cockpit-start.ts` dispatches the start view to its route. `COCKPIT_ROUTES` is total over the
  * sections and `needs`/`takes` name fields of the route's own view, so a route missing here, or
  * an id its view lacks, fails to compile. A route's `scope` says what it reads: one engine the
- * call resolved (`engine`), or the engines it names itself (`app`: a board), so its start
- * resolves no engine and takes no `engine` argument.
+ * call resolved (`engine`), or at app level (`app`) the engines it names itself (a board) or the
+ * engine list (the landing), so its start resolves no engine and takes no `engine` argument. The
+ * landing is the one route without a feed of its own: its start is the boards the engine list
+ * names, which its widgets read.
  */
 
 type ViewOf<S extends CockpitSection> = Extract<CockpitView, { section: S }>
@@ -46,8 +50,11 @@ export type StartParam = { [S in CockpitSection]: ParamOf<S> }[CockpitSection]
 
 export type Facts = Record<string, unknown>
 
-/** The sections whose route reads the engines it names (a board's), never one of the cockpit. */
-export type AppSection = "board"
+/** What a route's facts may name besides its view and data: the call's own. */
+export interface CallFacts {
+  /** Every configured engine's id in the order of the profiles, a refused one too. */
+  readonly engines: readonly string[]
+}
 
 /** The routes of one engine: every section but the app's. */
 export type EngineSection = Exclude<CockpitSection, AppSection>
@@ -62,7 +69,7 @@ interface RouteParts<S extends CockpitSection> {
    * engine text clipped, never XML. A null fact is unknown, never 0; an `undefined` one is left
    * out of the JSON.
    */
-  facts: (view: ViewOf<S>, data: CockpitStartData[S]) => Facts
+  facts: (view: ViewOf<S>, data: CockpitStartData[S], call: CallFacts) => Facts
 }
 
 /** A route of one engine, as `engine_open_cockpit` opens it on the engine the call resolved. */
@@ -72,10 +79,13 @@ interface EngineRoute<S extends CockpitSection> extends RouteParts<S> {
   start: (view: ViewOf<S>, engine: ResolvedEngine, ctx: ReadContext) => Promise<CockpitStartData[S]>
 }
 
-/** An app route: it reads the engines it names, each by its name under the call. */
+/**
+ * An app route: it reads the engines it names, each by its name under the call, or the server's
+ * boards alone (the landing).
+ */
 interface AppRoute<S extends CockpitSection> extends RouteParts<S> {
   scope: "app"
-  /** The start data: the route's feed read with the args its view sends. */
+  /** The start data: the route's feed read with the args its view sends; the landing's boards. */
   start: (view: ViewOf<S>, ctx: NamedReadContext) => Promise<CockpitStartData[S]>
 }
 
@@ -287,5 +297,13 @@ export const COCKPIT_ROUTES: { readonly [S in CockpitSection]: CockpitRoute<S> }
     takes: [],
     start: (view, ctx) => boardFeed.read({ board: view.board }, ctx),
     facts: (view, data) => boardFacts(view.board, data),
+  },
+  // No feed of its own: the start is the boards the engine list names, which its widgets read.
+  landing: {
+    scope: "app",
+    needs: [],
+    takes: [],
+    start: (_, { boards }) => Promise.resolve(landingDataOf(boards)),
+    facts: (_, data, { engines }) => landingFacts(data, engines),
   },
 }

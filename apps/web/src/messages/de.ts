@@ -6,6 +6,7 @@ export const de = {
   "frame.signedInAs": "Angemeldet als {name}",
   "frame.signOut": "Abmelden",
   "frame.signingOut": "Wird abgemeldet…",
+  "title.board": "Board {board} · Pulse",
 
   "notice.ended.title": "Deine Sitzung ist abgelaufen",
   "notice.ended.detail": "Melde dich erneut an, um dort weiterzumachen, wo du warst.",

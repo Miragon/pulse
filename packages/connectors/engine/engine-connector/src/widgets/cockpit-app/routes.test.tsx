@@ -162,6 +162,18 @@ describe("CockpitRoute", () => {
     expect(actions.filter((a) => a.type === "callTool" && a.name === ENGINE_BOARD_DATA)).toEqual([])
   })
 
+  it("the landing renders no widget of its own and reads no feed: the cockpit shows its chooser", async () => {
+    const actions: HostAction[] = []
+    const { container } = render(
+      <TestViewHost onHostAction={(action) => actions.push(action)}>
+        <CockpitRoute view={{ section: "landing" }} engine={null} />
+      </TestViewHost>,
+    )
+    await act(() => Promise.resolve())
+    expect(container.textContent).toBe("")
+    expect(actions.filter((a) => a.type === "callTool")).toEqual([])
+  })
+
   it("an engine's route without an engine renders nothing", () => {
     const { container } = render(
       <TestViewHost>

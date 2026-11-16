@@ -10,8 +10,9 @@ import { expect, type Page } from "@playwright/test"
 
 /**
  * The deployments, by the env var that carries each one's origin: `main` over the stub engine and
- * the broken one with access tokens of 300 s; `short` over the stub engine alone with access
- * tokens of 5 s, which the server renews before every call.
+ * the broken one with test:host's board files (`fixtures/boards`) and access tokens of 300 s;
+ * `short` over the stub engine alone, without boards, with access tokens of 5 s, which the server
+ * renews before every call.
  */
 export const DEPLOYMENTS = { main: "WEB_SIM_URL", short: "WEB_SIM_SHORT_URL" } as const
 export type Deployment = keyof typeof DEPLOYMENTS
