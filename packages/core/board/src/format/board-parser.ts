@@ -35,6 +35,7 @@ export class BoardParser {
       return undefined
     }
     this.noteUnknownKeys(record)
+    this.noteSchemaLink(record.$schema)
     this.checkVersion(record.schemaVersion)
     this.checkRequired(record)
     const title = this.problems.text(record, "title", "")
@@ -55,6 +56,12 @@ export class BoardParser {
       if (!BoardVocabulary.DOCUMENT_KEYS.includes(key)) {
         this.notes.plain(key, "ignoredKey")
       }
+    }
+  }
+
+  private noteSchemaLink(link: unknown): void {
+    if (link !== undefined && typeof link !== "string") {
+      this.notes.plain("$schema", "schemaNotText")
     }
   }
 

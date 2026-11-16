@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Pulse board",
-  "description": "A board of the Pulse VS Code extension: read-only widgets over one or more engines.",
+  "description": "A Pulse board: read-only widgets over one or more engines, read by Pulse for VS Code, Pulse for Orca and the npm package @miragon/pulse-board.",
   "type": "object",
   "additionalProperties": false,
   "required": ["title", "engines", "rows"],

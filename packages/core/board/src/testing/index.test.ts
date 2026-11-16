@@ -64,7 +64,7 @@ describe("the shared board fixtures", () => {
     const notes = BOARD_FIXTURES.flatMap((fixture) => FixtureVerdicts.notesOf(fixture))
 
     expect(BOARD_FIXTURES.filter((fixture) => "board" in fixture.verdict).length).toBeGreaterThan(4)
-    expect(notes.map((note) => note.code)).toStrictEqual(["ignoredKey"])
+    expect(notes.map((note) => note.code)).toStrictEqual(["ignoredKey", "schemaNotText"])
     expect(paths).toStrictEqual(
       expect.arrayContaining([
         "(file)",

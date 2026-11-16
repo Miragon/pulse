@@ -10,6 +10,10 @@ const SENTENCES: readonly (readonly [BoardProblem, string])[] = [
     { path: "layout", code: "ignoredKey" },
     "is not a key this version of Pulse knows; Pulse shows the board without it",
   ],
+  [
+    { path: "$schema", code: "schemaNotText" },
+    "must be a text, the path or URL of the board schema; Pulse shows the board without it",
+  ],
   [{ path: "title", code: "blankText" }, "must be a text that is not empty"],
   [
     { path: "engines", code: "engineNames" },
@@ -78,7 +82,7 @@ const SENTENCES: readonly (readonly [BoardProblem, string])[] = [
       code: "engineOutsideBoard",
       values: { engines: ["prod-eu", "prod-us"] },
     },
-    "may only name engines of the board; prod-eu, prod-us is not in its engines",
+    "may only name engines of the board; prod-eu, prod-us are not in its engines",
   ],
   [
     { path: "rows[2].row[0]", code: "tooManyWidgets", values: { position: 14, max: 12 } },
@@ -92,6 +96,7 @@ const EVERY_CODE: Readonly<Record<BoardProblemCode, true>> = {
   notAList: true,
   missing: true,
   ignoredKey: true,
+  schemaNotText: true,
   blankText: true,
   engineNames: true,
   tenantIds: true,
@@ -118,6 +123,21 @@ describe("the words of a board's problems", () => {
       expect(BoardProblems.describe(problem)).toBe(sentence)
     },
   )
+
+  test("say is for one engine outside the board and are for several", () => {
+    const outside = (engines: readonly string[]): BoardProblem => ({
+      path: "rows[0].row[0].props.engines",
+      code: "engineOutsideBoard",
+      values: { engines },
+    })
+
+    expect(BoardProblems.describe(outside(["prod-eu"]))).toBe(
+      "may only name engines of the board; prod-eu is not in its engines",
+    )
+    expect(BoardProblems.describe(outside(["prod-eu", "prod-us", "prod-ap"]))).toBe(
+      "may only name engines of the board; prod-eu, prod-us, prod-ap are not in its engines",
+    )
+  })
 
   test("cover every code once, each a sentence to follow its path, without a full stop", () => {
     const codes = SENTENCES.map(([problem]) => problem.code)

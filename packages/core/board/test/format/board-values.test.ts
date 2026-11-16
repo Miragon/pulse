@@ -49,6 +49,21 @@ describe("a board file with a value of another type than the key takes", () => {
     }
   })
 
+  test("notes a $schema that is no text and shows the board, and takes any text, an empty one too", () => {
+    for (const link of [1, null, true, {}, ["./board.schema.json"]]) {
+      expect(parseBoard({ ...SHOP, $schema: link, rows: [] })).toStrictEqual({
+        board: { ...SHOP, rows: [] },
+        notes: [{ path: "$schema", code: "schemaNotText" }],
+      })
+    }
+    for (const link of ["", " ", "./board.schema.json"]) {
+      expect(parseBoard({ ...SHOP, $schema: link, rows: [] })).toStrictEqual({
+        board: { ...SHOP, rows: [] },
+        notes: [],
+      })
+    }
+  })
+
   test("refuses a widget that is null or names its type with no text, and keeps neither as its type or title", () => {
     expect(rowOf([null, { widget: 5, props: { title: 7 } }])).toStrictEqual([
       { refused: [{ path: "rows[0].row[0]", code: "notAnObject" }] },

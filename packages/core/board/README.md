@@ -57,10 +57,10 @@ when it gives no board: it is not JSON or no object, its `schemaVersion` is othe
 `title`, `engines` or `rows` is missing, or one of them, a row or `tenants` is of the wrong shape.
 Everything inside a widget (a bad or unknown prop, an unknown widget, a widget after the 12th that
 reads) refuses that widget in its place, as `{ widget, title, refused }`, and the others read. A
-root key the format does not know is a note, and the board shows without it. A board has its
-defaults filled in (running instances, the board's engines, the default columns). A problem and a
-note are data, `{ path, code, values }`: the JSON path it is about
-(`rows[0].row[1].props.filter.state`, or `(file)` for the document), a code from
+root key the format does not know is a note, and so is a `$schema` that is no text; the board
+shows without them. A board has its defaults filled in (running instances, the board's engines,
+the default columns). A problem and a note are data, `{ path, code, values }`: the JSON path it
+is about (`rows[0].row[1].props.filter.state`, or `(file)` for the document), a code from
 `BoardProblemCode` and the values its words need; `BoardProblems.describe` words it in English,
 the sentence after the path, so a reader may word the codes in its own language.
 

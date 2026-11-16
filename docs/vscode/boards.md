@@ -10,11 +10,11 @@ reads; it never writes to an engine.
 ## A board file
 
 Pulse reads every `.pulse/boards/*.board.json` in the workspace and lists it in the **Boards** view
-with its count of problems, or of notes (keys it does not know). **Pulse: New Board…** writes a
-starter board with your engines. Editing the file gives completion and checks from the board schema;
-Pulse reloads an open board when you save. Your own tools read a board as Pulse does with the npm
-package [`@miragon/pulse-board`](https://www.npmjs.com/package/@miragon/pulse-board): the format,
-its schema and the builder of a board's numbers.
+with its count of problems, or of notes (keys it does not know, a `$schema` that is no text).
+**Pulse: New Board…** writes a starter board with your engines. Editing the file gives completion
+and checks from the board schema; Pulse reloads an open board when you save. Your own tools read a
+board as Pulse does: [`@miragon/pulse-board`](https://www.npmjs.com/package/@miragon/pulse-board) on
+npm holds the format, its schema and the builder of a board's numbers.
 
 ```json
 {

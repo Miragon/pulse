@@ -109,6 +109,10 @@ describe("the board schema", () => {
     expect(propOf("instanceList", "columns")?.minItems).toBe(1)
   })
 
+  test("takes a $schema of any text, as the parser reads one without a note", () => {
+    expect(schema.properties?.$schema).toStrictEqual({ type: "string" })
+  })
+
   test("takes tenants as a list of different ids, as it takes the engines", () => {
     const tenants = schema.properties?.tenants
     expect(tenants?.uniqueItems).toBe(true)

@@ -80,8 +80,8 @@ A few layering rules keep modules independently usable and a second engine diale
   text, returns a verdict per profile as data, reads no file or environment, imports nothing, and
   lets an interface state what it serves (`refusalsOn`), so a key is applied or refuses a profile.
 - One transport. `@miragon/pulse-http` (`packages/core/http`) is the one HTTP client of the engine
-  connector (its SDK client's `fetch`), of the CLI and of the C7 adapter of Pulse for VS Code and
-  Pulse for Orca: a deadline to the last byte, no redirect, a 64 MiB cap (none in the CLI), one
+  connector, the CLI and the editors' C7 and C8 adapters (the C8 one's wire and its OAuth client for
+  client credentials): a deadline to the last byte, no redirect, a 64 MiB cap (none in the CLI), one
   retry after a 401, failure reasons as data, masked secrets; every wiring passes `TRANSPORT_CASES`.
 - One engine contract: `@miragon/pulse-engine-core` holds the ports, read models, laws and shared
   rules (`RootCauses`) of every dialect; the runtime view and its two editor hosts, c7-core, the C7

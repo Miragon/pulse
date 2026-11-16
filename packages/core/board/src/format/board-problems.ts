@@ -4,6 +4,7 @@ export type PlainProblemCode =
   | "notAList"
   | "missing"
   | "ignoredKey"
+  | "schemaNotText"
   | "blankText"
   | "engineNames"
   | "tenantIds"
@@ -59,6 +60,8 @@ export class BoardProblems {
     notAList: "must be a list",
     missing: "is missing",
     ignoredKey: "is not a key this version of Pulse knows; Pulse shows the board without it",
+    schemaNotText:
+      "must be a text, the path or URL of the board schema; Pulse shows the board without it",
     blankText: "must be a text that is not empty",
     engineNames: "must be a list of different engine names that is not empty",
     tenantIds: "must be a list of different tenant ids that is not empty",
@@ -86,11 +89,16 @@ export class BoardProblems {
       case "unknownVersion":
         return `is ${problem.values.found}; this version of Pulse reads version ${String(problem.values.reads)}`
       case "engineOutsideBoard":
-        return `may only name engines of the board; ${problem.values.engines.join(", ")} is not in its engines`
+        return BoardProblems.outside(problem.values.engines)
       case "tooManyWidgets":
         return `is widget ${String(problem.values.position)}; a board shows at most ${String(problem.values.max)}, so it stays cheap for the engines`
       default:
         return BoardProblems.PLAIN[problem.code]
     }
+  }
+
+  private static outside(engines: readonly string[]): string {
+    const verb = engines.length === 1 ? "is" : "are"
+    return `may only name engines of the board; ${engines.join(", ")} ${verb} not in its engines`
   }
 }

@@ -854,6 +854,49 @@
     }
   },
   {
+    "name": "schema-link-not-text",
+    "about": "A $schema that is no text is a note, and the board shows without it; the schema marks it.",
+    "file": {
+      "$schema": 1,
+      "title": "Shop",
+      "engines": ["shop-dev"],
+      "rows": []
+    },
+    "schema": false,
+    "verdict": {
+      "board": {
+        "title": "Shop",
+        "engines": ["shop-dev"],
+        "rows": []
+      },
+      "notes": [
+        {
+          "path": "$schema",
+          "code": "schemaNotText"
+        }
+      ]
+    }
+  },
+  {
+    "name": "schema-link-empty",
+    "about": "A $schema of any text, an empty one too, reads without a note, as the schema takes it.",
+    "file": {
+      "$schema": "",
+      "title": "Shop",
+      "engines": ["shop-dev"],
+      "rows": []
+    },
+    "schema": true,
+    "verdict": {
+      "board": {
+        "title": "Shop",
+        "engines": ["shop-dev"],
+        "rows": []
+      },
+      "notes": []
+    }
+  },
+  {
     "name": "missing-root-keys",
     "about": "A file without title, engines and rows gives no board, and names each key it misses.",
     "file": {
