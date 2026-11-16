@@ -600,6 +600,15 @@
     "name": "engine_get_task"
   },
   {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "model",
+          "app"
+        ]
+      }
+    },
     "annotations": {
       "idempotentHint": true,
       "openWorldHint": true,
@@ -1039,6 +1048,15 @@
     }
   },
   {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "model",
+          "app"
+        ]
+      }
+    },
     "annotations": {
       "idempotentHint": true,
       "openWorldHint": false,
@@ -1865,6 +1883,15 @@
     "title": "Process instances data (internal)"
   },
   {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "model",
+          "app"
+        ]
+      }
+    },
     "annotations": {
       "idempotentHint": true,
       "openWorldHint": true,

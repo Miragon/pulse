@@ -15,14 +15,13 @@ import {
   requestToken,
   type ExpectedCallback,
   type ServerMetadata,
-  type TokenFailure,
   type TokenRecord,
 } from "@miragon/pulse-http/oauth"
 import { OAuthErrorCode, type AuthInfo, type OAuthError } from "@modelcontextprotocol/server"
 import { decodeJwt } from "jose"
 import { isAudienceRefusal, nonBlank, type Claims } from "../oauth-shared.js"
 import type { SignedOutReason } from "../protocol/web.js"
-import { callbackUri, redirect, signedOutPage, type WebContext } from "./context.js"
+import { callbackUri, passesBy, redirect, signedOutPage, type WebContext } from "./context.js"
 import {
   clearedLogin,
   openLogin,
@@ -36,14 +35,6 @@ import { newCsrfSecret } from "./csrf.js"
 import { newSessionId, sessionTokensOf, type WebSession } from "./session.js"
 
 const HOUR_MS = 3_600_000
-
-/** Token failures that pass by themselves: the provider cannot answer now. */
-const PASSING: ReadonlySet<string> = new Set([
-  "unavailable",
-  "unreachable",
-  "timeout",
-  "rate-limited",
-])
 
 /** The claims a name is read from, in this order; the subject when none holds one. */
 const NAME_CLAIMS = ["name", "preferred_username", "email"] as const
@@ -122,9 +113,7 @@ async function tokensOf(
       ctx.platform,
     )
   } catch (error) {
-    const reason = PASSING.has(String((error as Partial<TokenFailure>).kind))
-      ? "unavailable"
-      : "failed"
+    const reason = passesBy(error) ? "unavailable" : "failed"
     return new SignInFailure(
       reason,
       `the token endpoint gave no token (${(error as Error).message})`,

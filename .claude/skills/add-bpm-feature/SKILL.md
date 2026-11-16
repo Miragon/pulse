@@ -600,12 +600,18 @@ call's abort signal at `ctx.mcpReq.signal`):
   `apps/mcp-server/test/widget-contract.e2e.test.ts` enforces the widget `_meta` on
   every `*_show_*` tool and on `engine_open_cockpit`, and app-only visibility on every
   `*_data` feed **by name**.
+- A widget reads only the view tool, a `*_data` feed, or a registrar read marked
+  `forViews: true` (the engine list, an instance's history, a task's form: the model keeps it,
+  and a view may call it on an Apps SDK host and through the web app's forward, which admits
+  nothing else). Mark a registrar read the moment a widget reads it; `src/widget-reads.test.ts`
+  fails on a read without the mark.
 - A widget-path tool never writes. A write is a registrar tool, so the toolset filter
   (`withToolsetFilter`/`isToolInToolset`) drops it outside its toolset, and an in-widget
   write calls it through `useEngineAction`, gated by `engine_widget_actions_data`.
 - Every in-widget write runs through `useEngineAction({ tool, target, resetOn, available })`
   (`src/widgets/lib/engine-action.ts`), never a raw `useToolMutation`/`callTool`. Its
-  `allowed` is the gate, the host (`useHostWrites`: a page outside a chat writes nothing), the
+  `allowed` is the gate, the host (`useHostWrites`: a page outside a chat writes nothing and
+  never asks the gate feed), the
   toolset AND the subject's current state (`available`:
   false for an ended, cancelled or unconfirmed instance, a suspended one where the
   engine refuses the write): render the control only when true (hide it and a table

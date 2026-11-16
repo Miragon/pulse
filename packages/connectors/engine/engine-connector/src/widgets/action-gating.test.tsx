@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeAll, describe, expect, it } from "vitest"
-import { createElement, type ComponentType } from "react"
+import { act, createElement, type ComponentType } from "react"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { ENGINE_WIDGET_ACTIONS, ENGINE_WIDGET_ACTIONS_DATA } from "../tool-names.js"
 import type { JobPanelData } from "../view-models.js"
@@ -70,16 +70,61 @@ describe("every in-widget write hides its control on an engine whose profile is 
   )
 })
 
+/** The gate feed's query where the host writes nothing: there, and never asked. */
+async function gateNeverAsked() {
+  await act(async () => await Promise.resolve())
+  const gate = queryClient
+    .getQueryCache()
+    .find({ queryKey: ["engine-widget-actions"], exact: false })
+  expect(gate?.state).toMatchObject({ status: "pending", fetchStatus: "idle", dataUpdatedAt: 0 })
+}
+
+/**
+ * The gate's answer already in the view's cache, where `useToolQuery` keeps it: every write
+ * offered, no engine read-only. A disabled query still returns cached data, so only the host's
+ * `writes` keeps a page's controls hidden then.
+ */
+function gateAnswerCached() {
+  queryClient.setQueryData(["engine-widget-actions", {}], {
+    allowedActions: EVERY_WRITE,
+    readOnlyEngines: [],
+  })
+}
+
 /**
  * A page outside a chat writes nothing (`ViewHost.writes` false, `useHostWrites`): the deployment
- * offers every write and no engine is read-only, and still no write control shows.
+ * offers every write and no engine is read-only, and still no write control shows, nor does the
+ * page ask the gate feed, even when the gate's answer is already in the cache.
  */
 describe("every in-widget write hides its control on a host that writes nothing", () => {
-  it.each(GATING_SITES)("$site: hidden on a page", async ({ site, control }) => {
-    render(GATING_RENDERERS[site](EVERY_WRITE, queryClient, [], false))
-    await feedSettled()
-    expect(screen.queryByRole("button", { name: control })).toBeNull()
-  })
+  it.each(GATING_SITES)(
+    "$site: hidden on a page, which asks no gate",
+    async ({ site, control }) => {
+      render(GATING_RENDERERS[site](EVERY_WRITE, queryClient, [], false))
+      await gateNeverAsked()
+      expect(screen.queryByRole("button", { name: control })).toBeNull()
+    },
+  )
+
+  it.each(GATING_SITES)(
+    "$site: hidden on a page though the gate's answer is cached",
+    async ({ site, control }) => {
+      gateAnswerCached()
+      render(GATING_RENDERERS[site](EVERY_WRITE, queryClient, [], false))
+      await act(async () => await Promise.resolve())
+      expect(screen.queryByRole("button", { name: control })).toBeNull()
+    },
+  )
+
+  it.each(GATING_SITES)(
+    "$site: shown at once where the host writes and the gate's answer is cached",
+    async ({ site, control }) => {
+      gateAnswerCached()
+      render(GATING_RENDERERS[site](EVERY_WRITE, queryClient, [], true))
+      await act(async () => await Promise.resolve())
+      expect(screen.getByRole("button", { name: control })).toBeTruthy()
+    },
+  )
 
   it.each(GATING_SITES)("$site: shown where the same host writes", async ({ site, control }) => {
     render(GATING_RENDERERS[site](EVERY_WRITE, queryClient, [], true))

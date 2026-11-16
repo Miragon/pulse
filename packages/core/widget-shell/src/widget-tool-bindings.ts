@@ -82,3 +82,14 @@ function unknownKeysMessage(unknown: readonly string[], valid: readonly string[]
 export const appOnly = {
   _meta: { ui: { visibility: ["app"] }, "openai/widgetAccessible": true },
 } as const satisfies { _meta: Record<string, unknown> }
+
+/**
+ * The config part of a model tool a view calls as well (the engine list, say), spread into
+ * `registerTool`'s config, or `forViews: true` on the registrar: the model keeps it
+ * (`ui.visibility: ["model", "app"]`), and `openai/widgetAccessible` lets a view call it, which
+ * Apps SDK hosts and the web app's forward (`/app/api/call`) ask for. No view: its result returns
+ * to the view's call.
+ */
+export const forViews = {
+  _meta: { ui: { visibility: ["model", "app"] }, "openai/widgetAccessible": true },
+} as const satisfies { _meta: Record<string, unknown> }

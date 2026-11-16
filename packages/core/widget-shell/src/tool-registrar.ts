@@ -2,7 +2,7 @@ import type { ServerContext, ToolAnnotations } from "@modelcontextprotocol/serve
 import type { z } from "zod"
 import type { ModuleServer } from "./module-server.js"
 import { withToolErrors } from "./tool-errors.js"
-import { strictToolInput } from "./widget-tool-bindings.js"
+import { forViews, strictToolInput } from "./widget-tool-bindings.js"
 
 type ZodRawShape = Record<string, z.ZodType>
 
@@ -18,6 +18,11 @@ export interface ToolConfig<TClient, TShape extends ZodRawShape = ZodRawShape> {
   /** An object schema: MCP's `structuredContent` is an object. */
   outputSchema?: z.ZodObject
   annotations?: ToolAnnotations
+  /**
+   * A model tool a view calls as well (the engine list, say): stamps `forViews`, so a view may
+   * call it on an Apps SDK host and through the web app's forward. A read only.
+   */
+  forViews?: boolean
   /**
    * `ctx` is the SDK's per-call context (`ctx.mcpReq.signal` aborts with the request); optional
    * so a test calls the handler as `(client, args)`. The caller comes from the ambient request
@@ -77,6 +82,7 @@ export function createToolRegistrar<TClient>(
         inputSchema: strictToolInput(config.inputSchema ?? {}),
         ...(config.outputSchema !== undefined && { outputSchema: config.outputSchema }),
         ...(config.annotations !== undefined && { annotations: config.annotations }),
+        ...(config.forViews === true && forViews),
       },
       // The SDK validates the args against the schema above before the callback runs; the
       // callback sees the erased `ToolArgs`, the handler its own shape.

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import { z } from "zod"
 import { recordingModuleServer, testServerContext } from "./testing/module-server.js"
 import { createToolRegistrar } from "./tool-registrar.js"
+import { forViews } from "./widget-tool-bindings.js"
 
 interface Result {
   isError?: boolean
@@ -17,6 +18,7 @@ interface Registered {
     inputSchema?: unknown
     outputSchema?: unknown
     annotations?: Record<string, unknown>
+    _meta?: Record<string, unknown>
   }
   call: (
     args: Record<string, unknown>,
@@ -138,6 +140,22 @@ describe("createToolRegistrar registration", () => {
     expect(config.annotations).toBe(annotations)
     // `category` is registrar bookkeeping, never part of the wire definition.
     expect(config).not.toHaveProperty("category")
+    // A model tool no view calls carries no `_meta` at all.
+    expect(config).not.toHaveProperty("_meta")
+  })
+
+  it("stamps forViews on a model tool a view calls, and nothing else", () => {
+    const { register, only } = harness({})
+    register({
+      name: "probe",
+      description: "",
+      annotations: { readOnlyHint: true },
+      forViews: true,
+      handler: () => Promise.resolve(null),
+    })
+    const { config } = only()
+    expect(config._meta).toEqual(forViews._meta)
+    expect(config).not.toHaveProperty("forViews")
   })
 
   it("hands the handler the client, the args and the ctx", async () => {

@@ -117,12 +117,12 @@ function invalidateAfter(client: QueryClient, tool: EngineWidgetAction): void {
 /**
  * The gate of one write on `engine`, for a surface that only words an offer (fix or diagnose)
  * without running the write itself: the host lets a view write (a page outside a chat writes
- * nothing) AND the deployment offers it. Fail-closed until the gate feed answered; the gate stays
- * in this primitive (`src/widget-actions.test.ts`).
+ * nothing, so it never asks the gate feed) AND the deployment offers it. Fail-closed until the
+ * gate feed answered; the gate stays in this primitive (`src/widget-actions.test.ts`).
  */
 export function useActionAllowed(tool: EngineWidgetAction, engine: string | undefined): boolean {
   const writes = useHostWrites()
-  const canRun = useCanRun()
+  const canRun = useCanRun(writes)
   return writes && canRun(tool, engine)
 }
 

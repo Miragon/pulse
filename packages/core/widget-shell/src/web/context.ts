@@ -4,7 +4,7 @@
  * they give. Every answer carries `Cache-Control: no-store`, so no cache keeps a session's answer.
  */
 import type { Platform } from "@miragon/pulse-http"
-import type { ServerMetadata } from "@miragon/pulse-http/oauth"
+import type { ServerMetadata, TokenFailure } from "@miragon/pulse-http/oauth"
 import type { GateTokenCheck } from "../oauth-gate.js"
 import type { OAuthWebClient } from "../oauth-providers.js"
 import {
@@ -35,6 +35,18 @@ export interface WebContext {
   /** One line of the server's log, which never holds a token, a code, a state or a secret. */
   log(line: string): void
 }
+
+/** Token failures that pass by themselves: the provider cannot answer now. */
+const PASSING: ReadonlySet<string> = new Set([
+  "unavailable",
+  "unreachable",
+  "timeout",
+  "rate-limited",
+])
+
+/** Whether the provider gave no token for a reason that passes by itself (no answer, a 5xx, a limit). */
+export const passesBy = (error: unknown): boolean =>
+  PASSING.has(String((error as Partial<TokenFailure>).kind))
 
 const NO_STORE = { "cache-control": "no-store" }
 

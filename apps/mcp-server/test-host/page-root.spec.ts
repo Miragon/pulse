@@ -12,7 +12,8 @@ import { HEALTHY_ENGINE, PAGE_SCRIPT_ENV } from "./engines.js"
  * sources: the view tool's data, every feed, the page's language and theme, and the hand-offs,
  * which a page that posts to no chat hides or offers to copy. A page writes nothing: on the
  * deployment that offers the widget writes, the chat's view of an instance offers them and the
- * page's view of the same instance offers none. Its frame's words send the reader to no chat.
+ * page's view of the same instance offers none, nor asks the gate feed. Its frame's words send
+ * the reader to no chat.
  */
 
 const APP = path.resolve(import.meta.dirname, "..")
@@ -95,20 +96,6 @@ async function openChat(
   })
   await page.goto(`${hostBase(hostEnv)}/?${query.toString()}`)
   return page.frameLocator("#app")
-}
-
-/** The answer of the gate feed the page's widgets read (`engine_widget_actions_data`), as text. */
-function gateAnswer(page: Page): Promise<{ allowedActions?: string[] }> {
-  return page
-    .waitForResponse((response) => {
-      const request = response.request()
-      if (new URL(request.url()).pathname !== "/host/call") return false
-      return (request.postDataJSON() as ToolCall).name === "engine_widget_actions_data"
-    })
-    .then(async (response) => {
-      const outcome = (await response.json()) as { result?: { content?: { text?: string }[] } }
-      return JSON.parse(outcome.result?.content?.[0]?.text ?? "{}") as { allowedActions?: string[] }
-    })
 }
 
 /** Two frames after an answer: React has rendered what it changes. */
@@ -218,8 +205,9 @@ test.describe("a page outside a chat (mountPage)", () => {
     await expect(page.getByText("the AI runs these analyses in the chat")).toHaveCount(0)
   })
 
-  test("offers no write, where the chat's view of the same instance on the same deployment does", async ({
+  test("offers no write and asks no gate, where the chat's view of the same instance on the same deployment does", async ({
     page,
+    context,
   }) => {
     // The chat, on the deployment that offers the widget writes: Retry on an incident, Edit on a
     // variable.
@@ -237,24 +225,26 @@ test.describe("a page outside a chat (mountPage)", () => {
       timeout: 15_000,
     })
 
-    // The page, on the same deployment: the gate offers it the writes too, and it shows none.
-    const gate = gateAnswer(page)
-    await openPage(page, { args: INSTANCE_ARGS, hostEnv: OPERATIONS_ENV })
-    expect((await gate).allowedActions).toEqual(
-      expect.arrayContaining(["engine_set_job_retries", "engine_set_process_instance_variable"]),
-    )
-    const incidents = page.getByRole("region", { name: "Incidents of this instance" })
+    // The page, on the same deployment and in a tab of its own: it shows no write and never asks
+    // the gate feed, so the web app's forward never sees that call.
+    const pageTab = await context.newPage()
+    const calls = recordCalls(pageTab)
+    await openPage(pageTab, { args: INSTANCE_ARGS, hostEnv: OPERATIONS_ENV })
+    const incidents = pageTab.getByRole("region", { name: "Incidents of this instance" })
     await expect(incidents.locator("tbody tr")).toHaveCount(2, { timeout: 15_000 })
-    await rendered(page)
+    await rendered(pageTab)
     await expect(incidents.getByRole("button", { name: "Retry" })).toHaveCount(0)
-    await page
+    await pageTab
       .getByRole("tab", { name: /^Variables/ })
       .first()
       .click()
-    const variables = page.getByRole("region", { name: "Process instance variables" })
+    const variables = pageTab.getByRole("region", { name: "Process instance variables" })
     await expect(variables.getByText("amount")).toBeVisible()
     await expect(variables.getByRole("button", { name: "Edit" })).toHaveCount(0)
     await expect(variables.getByRole("columnheader", { name: "Actions" })).toHaveCount(0)
+    await rendered(pageTab)
+    expect(calls.map((call) => call.name)).toContain("engine_open_cockpit")
+    expect(calls.map((call) => call.name)).not.toContain("engine_widget_actions_data")
   })
 
   test("words its states for a page: a view it cannot show, analyses to copy", async ({ page }) => {

@@ -40,6 +40,7 @@ describe("the /widgets entry", () => {
       "WEB_CSRF_HEADER",
       "WEB_PATHS",
       "WEB_QUERY",
+      "WebApiError",
       "WidgetShell",
       "askAiPrompt",
       "cdVar",
@@ -59,6 +60,7 @@ describe("the /widgets entry", () => {
       "mountViews",
       "parseBpmnNames",
       "readBpmnNames",
+      "readWebSession",
       "servedFontBaseUrl",
       "useActionFeedback",
       "useBpmnViewer",
@@ -75,6 +77,7 @@ describe("the /widgets entry", () => {
       "useViewData",
       "useViewHost",
       "viewRefreshState",
+      "webToolCaller",
     ])
   })
 })

@@ -110,7 +110,8 @@ export { BpmnZoomControls, type BpmnZoomControlsProps } from "./bpmn-zoom-contro
 // Also on `/server` (src/protocol/): the one rule every module names a model's process and elements
 // by, on the server and in a view.
 export { parseBpmnNames, readBpmnNames } from "../protocol/bpmn-names.js"
-// The web app's wire contract (src/protocol/), which a page's client and the server's routes read.
+// The web app's wire contract (src/protocol/), which a page's client and the server's routes read,
+// and that client: the session and the caller a page hands `mountPage`.
 export {
   isSignedOutReason,
   SIGNED_OUT_REASONS,
@@ -119,8 +120,17 @@ export {
   WEB_PATHS,
   WEB_QUERY,
   type SignedOutReason,
+  type WebCall,
+  type WebCallAnswer,
   type WebCode,
   type WebRefusal,
   type WebSessionInfo,
   type WebSignOut,
 } from "../protocol/web.js"
+export {
+  readWebSession,
+  WebApiError,
+  webToolCaller,
+  type WebClientOptions,
+  type WebToolCallerOptions,
+} from "./web-caller.js"

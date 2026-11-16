@@ -6,8 +6,10 @@
  */
 import { randomBytes } from "node:crypto"
 import type { TokenRecord } from "@miragon/pulse-http/oauth"
+import type { WebRefusal } from "../protocol/web.js"
 import { json, SIGNED_OUT, type WebContext } from "./context.js"
 import { clearedSession, parseCookies, SESSION_COOKIE, sessionValue } from "./cookies.js"
+import { csrfRefusal } from "./csrf.js"
 import type { Opened } from "./seal.js"
 
 /** The tokens a session keeps: what renewing them takes, never the ID token or the scope. */
@@ -55,4 +57,25 @@ export async function requestSession(
   if (!opened.ok) return json(401, SIGNED_OUT, clearedSession())
   // Only the callback seals a value for the session cookie's name, so an opened one is a session.
   return { ...opened, session: opened.value as WebSession }
+}
+
+const CROSS_SITE: WebRefusal = { message: "Refused: the request did not come from the app's page." }
+
+/**
+ * The session of a request that changes something, which only the app's own page may send: the
+ * session opens (else 401, as {@link requestSession}), and the request passes the CSRF check
+ * (csrf.ts), else 403 and a log line that names the `action` and why, never the token.
+ */
+export async function pageSession(
+  ctx: WebContext,
+  request: Request,
+  action: string,
+): Promise<OpenedSession | Response> {
+  const opened = await requestSession(ctx, request)
+  if (opened instanceof Response) return opened
+  const secret = opened.session.csrf
+  const refusal = csrfRefusal(request.headers, { secret, origin: ctx.settings.origin })
+  if (refusal === undefined) return opened
+  ctx.log(`${action} refused: ${refusal}.`)
+  return json(403, CROSS_SITE)
 }

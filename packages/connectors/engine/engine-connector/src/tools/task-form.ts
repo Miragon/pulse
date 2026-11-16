@@ -14,6 +14,8 @@ export function registerTaskFormTools(register: ToolRegistrar<EngineRegistry>) {
       "(type, required, readonly) pre-filled with current values. Never submit readonly fields. Without form fields, " +
       "fields is empty and formKey (or formRef, a linked Camunda Form) names the task's own form, if any.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    // The task's completion form reads it too, where a view has no schema yet.
+    forViews: true,
     inputSchema: { ...getTaskFormInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args): Promise<TaskFormSchema> => {
       const { taskId } = args as { taskId: string }

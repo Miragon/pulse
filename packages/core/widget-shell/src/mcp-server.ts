@@ -172,6 +172,14 @@ export class McpHttpApp {
     return this.#oauth?.resource
   }
 
+  /**
+   * The config the boot recorded for the tool `name` (its annotations and `_meta`), `undefined`
+   * for a tool this boot does not serve: what the web app's forward admits a page's call by.
+   */
+  toolConfig(name: string): RecordedTool["config"] | undefined {
+    return this.#config.registrations.tools.find((tool) => tool.name === name)?.config
+  }
+
   get(path: string, handler: HttpHandler): this {
     this.#http.get(path, handler)
     return this

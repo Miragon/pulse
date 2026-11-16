@@ -183,7 +183,7 @@ describe("the cockpit on a page (mountPage)", () => {
     expect(screen.queryByRole("button", { name: "Assess in chat" })).toBeNull()
   })
 
-  it("offers no write on a page, though the deployment offers every one", async () => {
+  it("offers no write on a page and never asks the gate feed, though the deployment offers every one", async () => {
     const view = serverFor({ view: { section: "jobs" }, data: JOBS })
     const callTool = vi.fn<ToolCaller>((name, args) =>
       name === ENGINE_WIDGET_ACTIONS_DATA
@@ -195,10 +195,9 @@ describe("the cockpit on a page (mountPage)", () => {
     )
     await openCockpit(callTool, "copy", "jobs")
     await screen.findByText("Card declined")
-    await vi.waitFor(() =>
-      expect(callTool.mock.calls.map(([name]) => name)).toContain(ENGINE_WIDGET_ACTIONS_DATA),
-    )
     await act(async () => await Promise.resolve())
+    // A page writes nothing, so it asks nothing of the gate: the web app's forward never sees it.
+    expect(callTool.mock.calls.map(([name]) => name)).not.toContain(ENGINE_WIDGET_ACTIONS_DATA)
     expect(screen.queryByRole("button", { name: "Retry job" })).toBeNull()
     // The row keeps its menu of hand-offs to copy, so the actions column stays.
     expect(

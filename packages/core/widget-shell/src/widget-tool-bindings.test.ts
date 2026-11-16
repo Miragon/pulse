@@ -3,6 +3,7 @@ import { z } from "zod"
 import {
   VIEW_RESOURCE_URI_PREFIX,
   appOnly,
+  forViews,
   showToolBinding,
   strictToolInput,
   viewNameOf,
@@ -98,6 +99,16 @@ describe("appOnly", () => {
     // A feed result must never be rendered by the host (invariant 5).
     expect(appOnly._meta.ui).not.toHaveProperty("resourceUri")
     expect(appOnly._meta).not.toHaveProperty("openai/outputTemplate")
+  })
+})
+
+describe("forViews", () => {
+  it("keeps the tool the model's and lets a view call it, without any rendering keys", () => {
+    expect(forViews).toEqual({
+      _meta: { ui: { visibility: ["model", "app"] }, "openai/widgetAccessible": true },
+    })
+    expect(forViews._meta.ui).not.toHaveProperty("resourceUri")
+    expect(forViews._meta).not.toHaveProperty("openai/outputTemplate")
   })
 })
 

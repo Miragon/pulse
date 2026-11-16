@@ -2,6 +2,7 @@ import { Hono } from "hono"
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest"
 import {
   installRequestLog,
+  markForwarded,
   requestLogLevel,
   requestLogLevelWarning,
   type RequestLogLevel,
@@ -84,6 +85,24 @@ describe("the request log: one line per request", () => {
     const app = appWith(() => ok())
     await post(app, rpc("initialize", { clientInfo: { name: "claude-code", version: "2.1" } }))
     expect(await lastLine()).toBe("initialize claude-code/2.1 /mcp 200 client=claude-code/2.1 Nms")
+  })
+
+  it("says which call the web app's forward sent for a page, by the request, never a header", async () => {
+    const app = appWith(() => ok())
+    const call = rpc("tools/call", { name: "engine_jobs_data", arguments: {} })
+    const request = () =>
+      new Request("http://localhost/mcp", {
+        method: "POST",
+        headers: { "content-type": "application/json", via: "/app/api/call" },
+        body: JSON.stringify(call),
+      })
+    await app.fetch(markForwarded(request()))
+    expect(await lastLine()).toBe(
+      "tools/call engine_jobs_data /mcp 200 client=unknown via=/app/api/call Nms",
+    )
+    // The same request unmarked, whatever it says of itself.
+    await app.fetch(request())
+    expect(await lastLine()).toBe("tools/call engine_jobs_data /mcp 200 client=unknown Nms")
   })
 
   it.each<[string, Record<string, unknown>, string]>([

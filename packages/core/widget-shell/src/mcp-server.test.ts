@@ -210,3 +210,16 @@ describe("McpHttpApp.allowedMethods", () => {
     expect(appOf().oauthResource).toBeUndefined()
   })
 })
+
+describe("McpHttpApp.toolConfig", () => {
+  it("gives what the boot recorded of a tool it serves: its annotations and its _meta", () => {
+    const config = appOf().toolConfig("demo_show_x")
+    expect(config?.annotations).toEqual({ readOnlyHint: true })
+    expect(config?._meta?.["openai/widgetAccessible"]).toBe(true)
+    expect(appOf().toolConfig("demo_fail")?._meta).toBeUndefined()
+  })
+
+  it("knows no tool this boot does not serve", () => {
+    expect(appOf().toolConfig("demo_unknown")).toBeUndefined()
+  })
+})

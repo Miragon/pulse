@@ -4,6 +4,7 @@
  * app lives under `/app`, without a trailing slash, like `/mcp`: the listener answers a path that
  * ends in one with 404.
  */
+import type { ToolResult } from "./tool-result.js"
 
 /** The routes of the web app: its sign-in, the page's API and the page a signed-out user sees. */
 export const WEB_PATHS = {
@@ -52,6 +53,21 @@ export interface WebSessionInfo {
   readonly name: string
   readonly csrf: string
   readonly expiresAt: number
+}
+
+/**
+ * A page's call of a server tool (`POST` {@link WEB_PATHS}`.call`): the tool's name and its
+ * arguments, the body of the call route as JSON with nothing else in it. The server forwards it to
+ * `/mcp` with the session's bearer token, only for a tool a view calls that only reads.
+ */
+export interface WebCall {
+  readonly name: string
+  readonly arguments?: Record<string, unknown>
+}
+
+/** The call route's answer: the tool's result as `/mcp` gave it, an `isError` one included. */
+export interface WebCallAnswer {
+  readonly result: ToolResult
 }
 
 /**

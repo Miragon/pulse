@@ -46,6 +46,8 @@ export function registerEngineTools(
       "to its engine ids), plus the default engine (`defaultEngineId`, null when none) and the " +
       "server's boards, if it has any (`boards`).",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+    // The cockpit reads it too (the engines it offers).
+    forViews: true,
     inputSchema: {},
     handler: (reg: EngineRegistry) =>
       Promise.resolve({

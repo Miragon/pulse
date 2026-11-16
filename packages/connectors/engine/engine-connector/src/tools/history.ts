@@ -93,6 +93,8 @@ export function registerHistoryTools(register: ToolRegistrar<EngineRegistry>) {
     description:
       "Query historic activity instances, i.e. which BPMN activities were executed in a process instance.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    // An instance's history pages through it too.
+    forViews: true,
     inputSchema: { ...queryHistoricActivityInstancesInput.shape, ...engineParamShape },
     outputSchema: paginatedListOutput,
     handler: withEngine(async (client, args) => {

@@ -62,7 +62,7 @@ variables only; the widgets follow the host's theme, then the OS.
 | -------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Server boot    | `./server`       | `createComposedServer` and `runComposedServer`: module selection (`MCP_ACTIVE_MODULES`, `module:toolset`), OAuth from `MCP_OAUTH_*`, the web sign-in (`MCP_WEB_*`), the Host/Origin guard, `/mcp`, `/health/*`, `/metrics`, the served fonts               |
 | Module port    | `./server`       | `ComposableModule`, `ModulePlugin`, `ModuleEntry`, `ModuleServer` (the official SDK's `registerTool`/`registerPrompt`/`registerResource`), `createToolsetVocabulary` for toolsets that fail closed                                                         |
-| Tool authoring | `./server`       | The registrar (`createToolRegistrar`, `withToolErrors`), `showToolBinding`, `OwnViewBinding`, `AppResourceCsp`, `appOnly`, `strictToolInput`, `buildViewResult`, `buildDataFeedResult`, `decodeToolResult`, `createTranslator`                             |
+| Tool authoring | `./server`       | The registrar (`createToolRegistrar`, `withToolErrors`), `showToolBinding`, `OwnViewBinding`, `AppResourceCsp`, `appOnly`, `forViews`, `strictToolInput`, `buildViewResult`, `buildDataFeedResult`, `decodeToolResult`, `createTranslator`                 |
 | Server helpers | `./server`       | The BPMN-name readers (`readBpmnNames`, `parseBpmnNames`), the per-caller request info (`callerCacheKey`, `getMcpRequestInfo`, `runWithMcpRequestInfo`), `composedEnvVars`, `viewResourceUri`, `viewPrelude`                                               |
 | Bundle build   | `./server`       | `VIEW_BUNDLE_DEDUPE`, `viewBundleWatchPlugin`, and the served fonts (`installFontAssets`, `fontAssetsCsp`)                                                                                                                                                 |
 | View runtime   | `./widgets`      | `mountViews`, `mountPage` for a page outside a chat, the view host (`useViewHost`, `HostModelContext`), the query hooks (`useToolQuery`, `useToolQueries`, `useToolMutation`, `useViewData`), `TestViewHost` for tests                                     |
@@ -134,6 +134,7 @@ at most three chunks), never on the server, so every replica built with the same
 | `GET /app/auth/callback` | Checks the callback, exchanges the code, starts a new session (a new id and CSRF secret), returns to the page; a failure goes to `/app/signed-out?reason=<reason>` |
 | `POST /app/auth/logout`  | Takes the page's CSRF token, revokes the refresh token, clears the cookies and names where to go: the provider's end of the session, else `/app/signed-out`        |
 | `GET /app/api/session`   | The signed-in name, the CSRF token and the session's end; `401` with `signed_out` without one                                                                      |
+| `POST /app/api/call`     | A page's call of a server tool (`{ name, arguments }`, JSON, at most 64 KiB, with the CSRF token), forwarded to `/mcp` with the session's token; `{ result }`      |
 
 A provider, `MCP_URL` (https, or http on localhost), `MCP_WEB_CLIENT_SECRET` and
 `MCP_WEB_SESSION_KEYS` (comma-separated base64url keys of at least 32 bytes; the first seals,
@@ -147,6 +148,18 @@ provider of a root's own `openid` unless its `web` names others; it asks for a p
 request that carries the session cookie with the gate's 401 and its Bearer challenge, and every
 route under `/app` answers 400 to one that carries an Authorization header. `@miragon/pulse-widget-shell/testing/oidc` is the identity provider a
 server's own sign-in tests run against.
+
+A page's call goes in-process to `/mcp` as one `tools/call` with the session's bearer token and
+exactly the headers an MCP client sends, so the edge guard, the OAuth gate, the caller's identity,
+the per-caller caches, passthrough, toolsets and read-only engines decide as for any client. It
+takes only a tool a view calls (the view tool, an app-only feed, or a model tool marked `forViews`:
+`openai/widgetAccessible` in the boot's record) that only reads (`readOnlyHint`); anything else
+gets 403 `WEB_NOT_FOR_PAGES` or `WEB_READ_ONLY` before it runs. A due access token is renewed first
+with the refresh token, one refresh per refresh token and replica at a time, and sealed back into
+the cookie; a refused refresh ends the session (401 `signed_out`), and no answer ever holds a
+token. A page reads its session with `readWebSession()` and hands `mountPage` the caller
+`webToolCaller(session)` from `./widgets`, which posts each call with the CSRF token and tells
+`onSignedOut` when the session is gone.
 
 ## Peers and the SDK
 

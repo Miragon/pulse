@@ -501,6 +501,12 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      navigation, returned as `buildDataFeedResult(data)`. SEP-1865 hosts hide them from the LLM, and
      a widget-tool result would be rendered by the host instead of returned to the in-widget
      `callTool()`.
+   - A registrar tool a view reads too (the engine list, an instance's history, a task's form)
+     stays the model's and is marked `forViews: true` (widget-shell's `forViews`:
+     `ui.visibility: ["model", "app"]` and `openai/widgetAccessible`), the mark an Apps SDK host
+     allows an in-widget call by and the web app's forward admits a page's call by; the
+     connector's `src/widget-reads.test.ts` holds every read the widgets make to a view tool, an
+     app-only feed or a `forViews` tool.
 
    Every tool takes STRICT input (the registrar always, a raw registration through
    `strictToolInput(…)`; the boot refuses a schema that lets an unknown key through), with no
@@ -857,7 +863,11 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      widget-shell's `src/web`) is no second source: it holds a token the server's own sign-in
      obtained through the same provider, checked by the gate before it is kept, and `/mcp`
      verifies it like any bearer token; the session cookie is no credential at `/mcp` (401), and
-     `/app` refuses an Authorization header (400).
+     `/app` refuses an Authorization header (400). A page's call (`POST /app/api/call`) reaches
+     `/mcp` in-process as a `tools/call` with the session's bearer token and an MCP client's
+     headers alone (`src/web/forward.ts`), so the caller, the per-caller caches and passthrough
+     key on that forwarded token like any other; it takes only a read a view calls
+     (`openai/widgetAccessible` and `readOnlyHint` in the boot's record), never a write.
 
 8. **Modules are self-contained peers; an MCP server app is a thin composition root.** The
    package rules hold for every workspace package, the composition-root rules for MCP server
@@ -1030,8 +1040,8 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      failure rules: `docs/mcp/operations.md`) and is authenticated exactly when it installed a
      provider, never inferred from an env var. Only beside a provider does `MCP_WEB_CLIENT_ID`
      (with the other `MCP_WEB_*`) install the web app's sign-in under `/app` (widget-shell's
-     `src/web`: login, callback, logout, the session route), behind the HTTP edge guard; without
-     one the variable fails the boot, and no route under `/app` exists without it.
+     `src/web`: login, callback, logout, the session route, a page's calls), behind the HTTP edge
+     guard; without one the variable fails the boot, and no route under `/app` exists without it.
    - **The app composes, nothing more.** `setup.ts` holds `MODULES` and `sharedResources`, the
      `SharedResources` wiring: `shared` is the port for what the modules of a composition share
      (how a module gets another's capability, the engine module's engine access say, without
@@ -1142,7 +1152,8 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
 - **The widget `_meta` carries two halves; never hand-write either.** `showToolBinding`
   stamps both on a view tool: MCP Apps' `ui.resourceUri` (with the flat `ui/resourceUri`, as
   ext-apps' `registerAppTool` writes it) and the OpenAI Apps SDK's `openai/*` keys; `appOnly`
-  stamps a feed's `ui.visibility: ["app"]` and `openai/widgetAccessible`. For a bundle view the
+  stamps a feed's `ui.visibility: ["app"]` and `openai/widgetAccessible`, `forViews` a model
+  tool's `ui.visibility: ["model", "app"]` and `openai/widgetAccessible`. For a bundle view the
   boot adds the rest: the view CSP defaults (`openai/widgetCSP`, the resource's `ui.csp`), the
   view resource's metadata; `_meta.ui` on the tool's result it stamps for every bound view. A
   view a module registers states its own `_meta.ui` on its resource, ext-apps' API, and the

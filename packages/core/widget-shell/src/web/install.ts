@@ -1,9 +1,10 @@
 /**
- * The web app's sign-in on the boot's HTTP app: login, callback, logout and the session route
- * under `/app`, behind the HTTP edge guard, through the server's own OAuth provider as a
- * confidential client (`MCP_WEB_*`). The boot installs it only beside a provider, so the identity
+ * The web app's sign-in on the boot's HTTP app: login, callback, logout, the session route and the
+ * page's calls under `/app`, behind the HTTP edge guard, through the server's own OAuth provider as
+ * a confidential client (`MCP_WEB_*`). The boot installs it only beside a provider, so the identity
  * of a web session comes from where every caller's does: a token the gate in front of `/mcp`
- * verifies. In front of the routes stands the separation of the two credentials (separation.ts).
+ * verifies, which a page's call reaches `/mcp` with in-process (forward.ts). In front of the routes
+ * stands the separation of the two credentials (separation.ts).
  */
 import type { Platform } from "@miragon/pulse-http"
 import type { McpHttpApp } from "../mcp-server.js"
@@ -13,6 +14,7 @@ import { WEB_PATHS } from "../protocol/web.js"
 import { callbackRoute } from "./callback.js"
 import type { WebContext } from "./context.js"
 import { metadataSource } from "./discovery.js"
+import { callRoute, type McpTarget } from "./forward.js"
 import { loginRoute } from "./login.js"
 import { logoutRoute } from "./logout.js"
 import { isNoPage } from "./return-path.js"
@@ -75,8 +77,19 @@ export function installWebSignIn(app: McpHttpApp, options: WebSignInOptions): vo
   const callback = callbackRoute(ctx)
   const logout = logoutRoute(ctx)
   const session = sessionRoute(ctx)
+  const call = callRoute(ctx, mcpTarget(app, settings))
   app.get(WEB_PATHS.login, (c) => login(c.req.raw))
   app.get(WEB_PATHS.callback, (c) => callback(c.req.raw))
   app.post(WEB_PATHS.logout, (c) => logout(c.req.raw))
   app.get(WEB_PATHS.session, (c) => session(c.req.raw))
+  app.post(WEB_PATHS.call, (c) => call(c.req.raw))
+}
+
+/** `/mcp` of this app as a page's call reaches it: in-process, at `MCP_URL`'s host. */
+function mcpTarget(app: McpHttpApp, settings: WebSettings): McpTarget {
+  return {
+    url: `${settings.origin}${app.basePath}`,
+    fetch: (request) => app.fetch(request),
+    toolConfig: (name) => app.toolConfig(name),
+  }
 }

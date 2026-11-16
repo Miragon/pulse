@@ -8,13 +8,10 @@
  * session keeps no ID token, so the provider may ask the user to confirm.
  */
 import { endSessionUrl, revokeToken, type ServerMetadata } from "@miragon/pulse-http/oauth"
-import { WEB_PATHS, type WebRefusal, type WebSignOut } from "../protocol/web.js"
+import { WEB_PATHS, type WebSignOut } from "../protocol/web.js"
 import { json, type WebContext } from "./context.js"
 import { clearedLogin, clearedSession } from "./cookies.js"
-import { csrfRefusal } from "./csrf.js"
-import { requestSession } from "./session.js"
-
-const CROSS_SITE: WebRefusal = { message: "Refused: the request did not come from the app's page." }
+import { pageSession } from "./session.js"
 
 async function revoke(
   ctx: WebContext,
@@ -48,16 +45,10 @@ function nextOf(ctx: WebContext, metadata: ServerMetadata | undefined): string {
 
 export function logoutRoute(ctx: WebContext): (request: Request) => Promise<Response> {
   return async (request) => {
-    const opened = await requestSession(ctx, request)
+    const opened = await pageSession(ctx, request, "Web sign-out")
     if (opened instanceof Response) return opened
-    const { csrf, tokens } = opened.session
-    const refusal = csrfRefusal(request.headers, { secret: csrf, origin: ctx.settings.origin })
-    if (refusal !== undefined) {
-      ctx.log(`Web sign-out refused: ${refusal}.`)
-      return json(403, CROSS_SITE)
-    }
     const metadata = await ctx.metadata()
-    await revoke(ctx, metadata, tokens.refreshToken)
+    await revoke(ctx, metadata, opened.session.tokens.refreshToken)
     const answer: WebSignOut = { location: nextOf(ctx, metadata) }
     return json(200, answer, [...clearedSession(), clearedLogin()])
   }

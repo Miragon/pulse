@@ -40,7 +40,9 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   (fake tools, a log of host actions and model contexts) in a plain test. No module renders
   another's widget, and the view root keeps no map for one.
 - **The page root** (`./widgets`): `mountPage(views, options)` is the second adapter, for a
-  page outside a chat (the web app). `BrowserViewHost` (`src/ui/browser-view-host.tsx`) fills the
+  page outside a chat (the web app); `readWebSession()` and `webToolCaller(session)`
+  (`src/ui/web-caller.ts`) are a page's client of the web app's API under `/app`, the caller a page
+  served by the server hands in. `BrowserViewHost` (`src/ui/browser-view-host.tsx`) fills the
   same contexts from the page: tools through the caller it hands in, the theme from a
   `data-cd-theme` on `<html>` else the OS, the locale from the option, the document's `lang` or
   the browser, fullscreen as its one mode (so no switch and no inline budget), a model context
@@ -119,7 +121,13 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   the state before any request to the provider, then `iss`, the code exchanged as a confidential
   client, the access token through the gate's own check, `gateTokenCheck`, a new session id and
   CSRF secret), `logout.ts` (CSRF, revocation, the end-session URL), `session-route.ts` (name, CSRF
-  token, expiry). `discovery.ts` reads the provider's metadata on the first sign-in and holds it
+  token, expiry), `forward.ts` (a page's call: CSRF, JSON of at most 64 KiB, only a read a view
+  calls by the boot's record, then one `tools/call` in-process to `<MCP_URL>/mcp` with exactly an
+  MCP client's headers and the session's bearer token, marked for the request log by
+  `markForwarded`; after the gate's 401 one renewal where a new token may help) and `refresh.ts`
+  (the renewal by `@miragon/pulse-http/oauth`'s policy over the tokens as the replica's clock reads
+  them, one refresh per refresh token at a time, its outcome kept 30 s; a refused refresh ends the
+  session). `discovery.ts` reads the provider's metadata on the first sign-in and holds it
   for an hour; `separation.ts` keeps the session cookie off `/mcp` (the gate's 401 and challenge,
   `gateChallenge`) and a bearer off `/app` (400), and `installWebSignIn` answers the sign-in's and
   the API's routes `no-store` (`isNoPage`, the return path's list of them). It sends through
