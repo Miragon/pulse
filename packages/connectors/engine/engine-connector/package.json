@@ -57,6 +57,7 @@
   "dependencies": {
     "@miragon/pulse-c7-client": "workspace:*",
     "@miragon/pulse-c7-core": "workspace:*",
+    "@miragon/pulse-engine-core": "workspace:*",
     "@miragon/pulse-http": "workspace:*",
     "@miragon/pulse-profile": "workspace:*"
   },
@@ -84,7 +85,6 @@
     }
   },
   "devDependencies": {
-    "@miragon/pulse-engine-core": "workspace:*",
     "@miragon/pulse-ui": "workspace:*",
     "@miragon/pulse-widget-shell": "workspace:*",
     "@testing-library/react": "16.3.3",

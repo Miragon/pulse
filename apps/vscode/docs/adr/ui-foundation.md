@@ -1,7 +1,7 @@
 # UI foundation and shared building blocks
 
 - Status: accepted
-- Last reviewed: 2026-11-15 (executed for boards, D8: the board file format moved into the published package `@miragon/pulse-board` with its dependency rules, and the board builder followed into its `./builder` entry, whose model the runtime view renders, D2 for boards); 2026-11-14 (executed: the switch of D9 landed, the webview renders with React 19 on `@miragon/pulse-ui`; every precondition of D7 is in place; its follow-up landed too: the webview and its tests follow `react-hooks`' `recommended-latest`, the React Compiler rules included, every rule of it an error; decided: "with incident" reads one way on every C7 surface, an open incident the runtime holds now, so the board's two readings are one); 2026-11-12, later the same day (decided, D9: the webview moves from Preact to React 19 on `@miragon/pulse-ui` in one switch, without a `preact/compat` bridge; one compact look for every surface, on density roles over the guide's `--cd-shell-*` tokens and pulse-ui's colour roles on the guide's `--cd-ui-*` roles, numbers neutral; replaces D4 and turns D7 into the switch's preconditions); 2026-11-12 (decided: the surfaces share a core up to building blocks, not everything: formats, the engine reads and their rules, the numbers and view models of a feature more than one surface shows, and building blocks on React's API; a feature more than one surface shows, boards first, shows the same numbers on every surface; replaces the two UI families of 2026-11-08)
+- Last reviewed: 2026-11-16 (decided: the engine connector imports engine-core before it serves a second dialect, its server layers `src/lib/engine`, `src/lib/core-adapter` and `src/data` by the main entry, `engine-connector-contract-by-its-main-entry`; `runtimeOf` runs c7-core's `C7Runtime` as the connector's runtime, its failures read by `runtimeErrorOf`); 2026-11-15 (executed for boards, D8: the board file format moved into the published package `@miragon/pulse-board` with its dependency rules, and the board builder followed into its `./builder` entry, whose model the runtime view renders, D2 for boards); 2026-11-14 (executed: the switch of D9 landed, the webview renders with React 19 on `@miragon/pulse-ui`; every precondition of D7 is in place; its follow-up landed too: the webview and its tests follow `react-hooks`' `recommended-latest`, the React Compiler rules included, every rule of it an error; decided: "with incident" reads one way on every C7 surface, an open incident the runtime holds now, so the board's two readings are one); 2026-11-12, later the same day (decided, D9: the webview moves from Preact to React 19 on `@miragon/pulse-ui` in one switch, without a `preact/compat` bridge; one compact look for every surface, on density roles over the guide's `--cd-shell-*` tokens and pulse-ui's colour roles on the guide's `--cd-ui-*` roles, numbers neutral; replaces D4 and turns D7 into the switch's preconditions); 2026-11-12 (decided: the surfaces share a core up to building blocks, not everything: formats, the engine reads and their rules, the numbers and view models of a feature more than one surface shows, and building blocks on React's API; a feature more than one surface shows, boards first, shows the same numbers on every surface; replaces the two UI families of 2026-11-08)
 
 ## Context
 
@@ -279,11 +279,13 @@ missing value ([user-interface.md](user-interface.md)).
 - Boards move first. Before they move onto one builder over one read, the board's two readings of
   "with incident" (the counter's history count and the incident summary's runtime scan) settle to
   one: the owner chose the runtime's on 2026-11-14 (an open incident now, on every history level,
-  on every C7 surface). Two owner decisions fall due then too: the board package's home, settled
+  on every C7 surface). Two owner decisions fell due then too: the board package's home, settled
   on 2026-11-15 under `packages/core` with an exception like the runtime view's (its builder alone
   reads engine-core, `board-builder-builds-on-the-engine-contract`), and whether the engine
-  connector may import engine-core's read models before it serves a second dialect, which falls
-  due when the MCP server shows boards.
+  connector may import engine-core before it serves a second dialect, settled on 2026-11-16 with
+  boards in the MCP server: its server layers `src/lib/engine`, `src/lib/core-adapter` and
+  `src/data` import its main entry (`engine-connector-contract-by-its-main-entry`), and
+  `runtimeOf` runs c7-core's `C7Runtime` over the connector's port.
 - Outside boards and the views that move onto shared numbers, users of both tools still see
   different numbers for the same process, under the same words.
 
@@ -311,3 +313,6 @@ commit after the switch, the webview and its tests took `react-hooks`' `recommen
 the React Compiler rules, every rule of it an error, every finding fixed and none suppressed. Later
 on 2026-11-14 the owner chose bpmn-js's Arial for the labels on the canvas of both surfaces, a
 deviation D9 names, since the label boxes of diagrams drawn in the modelers are sized for it.
+2026-11-16: with boards in the MCP server the owner admitted engine-core's main entry to the engine
+connector's server layers (the case #488 names), and the connector runs `C7Runtime` as its
+runtime.

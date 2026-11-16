@@ -28,6 +28,11 @@ as `engine` via `engineModule` (`src/module.ts`), which conforms structurally to
   `@miragon/pulse-profile`; `readOnly` on a profile is `withReadOnlyEngines`
   (`src/lib/engine/read-only.ts`).
 - **Multi-engine routing** (`src/lib/engine/`): `withEngine` / `resolveEngine`.
+- **The engine contract** (`src/lib/engine/engine-runtime.ts`): `runtimeOf(engine)` gives the
+  `ProcessRuntime` of `@miragon/pulse-engine-core` for the engine a call resolved, one per dialect
+  the server serves (c7-core's `C7Runtime` over the engine port), its failures `RuntimeError`s
+  (`runtimeErrorOf`, `src/lib/engine/runtime-errors.ts`). Only `src/lib/engine`,
+  `src/lib/core-adapter` and `src/data` import engine-core, by its main entry.
 - **Engine providers** (`src/engine-provider.ts`, `src/providers/`).
 - **Toolsets** (`src/lib/mcp/toolsets.ts`): `read-only` / `operations` / `admin`, the module's
   `toolsets` vocabulary.
@@ -44,22 +49,22 @@ start view), never a second view tool: see the add-bpm-feature skill.
 
 ## Layout
 
-| Path                     | Contents                                                                                                                                                                                                      |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/tools/`             | Registrar operations tools, one file per domain (`index.ts` wires them)                                                                                                                                       |
-| `src/schemas/`           | The tools' Zod input schemas and the one paging definition                                                                                                                                                    |
-| `src/widget-tools.ts`    | `engine_open_cockpit` and the `*_data` feeds (`src/widget-tools/`)                                                                                                                                            |
-| `src/data/`              | One builder per cockpit route; `feeds.ts` (the `*_data` feeds), `routes.ts` (the routes)                                                                                                                      |
-| `src/widgets/`           | The cockpit app, its routes and widgets + `views.tsx`                                                                                                                                                         |
-| `src/tool-names.ts`      | Tool-name constants for rename-safe in-widget feed calls                                                                                                                                                      |
-| `src/lib/engine/`        | Engine routing (`with-engine.ts`, `resolve-engine.ts`), each engine's credential and transport (`engine-connection.ts`), the model's words for a failure (`engine-error.ts`), cockpit links, passthrough auth |
-| `src/lib/core-adapter/`  | c7-core's port over the client (its routes, `CORE_ROUTES`, and c7-core's 404 rule applied to the client's errors, `noneIfMissing`), the read composites, `workflow-errors.ts`                                 |
-| `src/lib/bpmn/`          | The definition XML read, BPMN and task-form reading, completing a user task by its form                                                                                                                       |
-| `src/lib/mcp/`           | The tool surface: `toolsets.ts`, the paging envelope, variable and failure-text bounds                                                                                                                        |
-| `src/lib/shared/`        | Pure code the widgets run too (environments, `TaskCompletion`, the landscape fold); the one lib widgets use                                                                                                   |
-| `src/module.ts`          | `engineModule` (config schema, env mapping, boot warnings, instructions, plugin factory)                                                                                                                      |
-| `src/engine-provider.ts` | The vendor provider port (`EngineProvider`, `CockpitRef`)                                                                                                                                                     |
-| `src/providers/`         | `cibseven` / `operaton` / `camunda7` providers (cockpit routes, branding)                                                                                                                                     |
+| Path                     | Contents                                                                                                                                                                                                                                                                                |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/tools/`             | Registrar operations tools, one file per domain (`index.ts` wires them)                                                                                                                                                                                                                 |
+| `src/schemas/`           | The tools' Zod input schemas and the one paging definition                                                                                                                                                                                                                              |
+| `src/widget-tools.ts`    | `engine_open_cockpit` and the `*_data` feeds (`src/widget-tools/`)                                                                                                                                                                                                                      |
+| `src/data/`              | One builder per cockpit route; `feeds.ts` (the `*_data` feeds), `routes.ts` (the routes)                                                                                                                                                                                                |
+| `src/widgets/`           | The cockpit app, its routes and widgets + `views.tsx`                                                                                                                                                                                                                                   |
+| `src/tool-names.ts`      | Tool-name constants for rename-safe in-widget feed calls                                                                                                                                                                                                                                |
+| `src/lib/engine/`        | Engine routing (`with-engine.ts`, `resolve-engine.ts`), each engine's credential and transport (`engine-connection.ts`), the model's words for a failure (`engine-error.ts`), the engine contract's runtime (`engine-runtime.ts`, `runtime-errors.ts`), cockpit links, passthrough auth |
+| `src/lib/core-adapter/`  | c7-core's port over the client (its routes, `CORE_ROUTES`, and c7-core's 404 rule applied to the client's errors, `noneIfMissing`), the read composites, `workflow-errors.ts`                                                                                                           |
+| `src/lib/bpmn/`          | The definition XML read, BPMN and task-form reading, completing a user task by its form                                                                                                                                                                                                 |
+| `src/lib/mcp/`           | The tool surface: `toolsets.ts`, the paging envelope, variable and failure-text bounds                                                                                                                                                                                                  |
+| `src/lib/shared/`        | Pure code the widgets run too (environments, `TaskCompletion`, the landscape fold); the one lib widgets use                                                                                                                                                                             |
+| `src/module.ts`          | `engineModule` (config schema, env mapping, boot warnings, instructions, plugin factory)                                                                                                                                                                                                |
+| `src/engine-provider.ts` | The vendor provider port (`EngineProvider`, `CockpitRef`)                                                                                                                                                                                                                               |
+| `src/providers/`         | `cibseven` / `operaton` / `camunda7` providers (cockpit routes, branding)                                                                                                                                                                                                               |
 
 ## Verify
 
@@ -69,6 +74,6 @@ start view), never a second view tool: see the add-bpm-feature skill.
 `pnpm --fail-if-no-match --filter @miragon/pulse-engine-connector test:engines` needs Docker, and
 `pnpm test` leaves it out: it starts a real engine (`PULSE_ENGINE_IMAGE`, Operaton 2.1.5 without
 one), seeds the conformance world of `@miragon/pulse-engine-core/testing` through
-`@miragon/pulse-c7-core/testing` and runs the kit's read laws on c7-core's `C7Runtime` over this
-module's engine port (`src/lib/core-adapter/c7-runtime.engine.test.ts`). CI runs it on Operaton
+`@miragon/pulse-c7-core/testing` and runs the kit's read laws on this module's runtime,
+`runtimeOf` (`src/lib/core-adapter/c7-runtime.engine.test.ts`). CI runs it on Operaton
 and CIB seven when a file it runs changes.

@@ -126,7 +126,11 @@ triage, verdicts and which recovery to offer.
   over Camunda 8's REST API.
 - [`@miragon/pulse-c7-core`](https://www.npmjs.com/package/@miragon/pulse-c7-core), the core of
   that dialect, applies its root-cause rule for the Pulse CLI and the MCP server, and its
-  `C7Runtime` (`./runtime`) answers every read of `ProcessRuntime` for the C7 adapter.
+  `C7Runtime` (`./runtime`) answers every read of `ProcessRuntime` for the C7 adapter and the
+  engine connector.
+- [`@miragon/pulse-engine-connector`](https://www.npmjs.com/package/@miragon/pulse-engine-connector),
+  the MCP server's engine module, runs `ProcessRuntime` over its own wire (`runtimeOf`), with its
+  failures as `RuntimeError`.
 - [`@miragon/pulse-board`](https://www.npmjs.com/package/@miragon/pulse-board), the board file
   format, reads a board's numbers in its builder (`./builder`) over seven reads of
   `ProcessRuntime`, by the laws a board reads lists by.
@@ -140,10 +144,11 @@ MCP server. It is imported where a dialect is implemented (the `src` of a dialec
 entry alone and never from the core's `./testing`: c7-core applies `RootCauses` and its `./runtime`
 answers `ProcessRuntime`; the C7 and C8 adapters of the editor hosts), where the runtime view of
 Pulse for VS Code and Pulse for Orca reads the answers, which keeps no contract of its own, and in
-the board builder of `@miragon/pulse-board`, its main entry alone. A surface reaches it through
-them; the engine connector (although this is its own family's core) or the CLI importing it
-directly waits until it serves a second dialect, an admission decision in review, the case #488
-reopens on: a second interface needing the same use case with the same rules.
+the board builder of `@miragon/pulse-board`, its main entry alone. The engine connector, the MCP
+server's module, runs it in its server layers, its main entry alone, admitted for the server's
+boards (the owner's decision of 2026-11-16, the case #488 names: a second interface needs the same
+use case with the same rules). The Pulse CLI reaches it through c7-core; importing it directly waits
+until the CLI serves a second dialect, an admission decision in review.
 
 Two admissions came ahead of their second dialect, by the owner's decision, on the evidence of the
 Camunda 8 adapter's branch (#543):

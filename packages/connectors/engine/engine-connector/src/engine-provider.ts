@@ -14,6 +14,17 @@ export function isEngineFlavor(flavor: Flavor): flavor is EngineFlavor {
   return FLAVORS[flavor] === "c7"
 }
 
+/** A dialect this server serves: the one each of its flavors speaks. */
+export type EngineDialect = (typeof FLAVORS)[EngineFlavor]
+
+/**
+ * The dialect an engine of `flavor` speaks, from the profile format's one table of vendors (the
+ * table `dialectOf` reads a profile's dialect from), typed to the dialects the server serves.
+ */
+export function dialectOfFlavor(flavor: EngineFlavor): EngineDialect {
+  return FLAVORS[flavor]
+}
+
 /**
  * How the server signs in to an engine: not at all, Basic, a fixed bearer token, or the MCP
  * caller's own bearer token passed through (`src/lib/engine/credentials.ts`).

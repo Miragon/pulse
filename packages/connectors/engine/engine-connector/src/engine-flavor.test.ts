@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { FLAVORS, type Flavor } from "@miragon/pulse-profile"
-import { type EngineFlavor, isEngineFlavor } from "./engine-provider.js"
+import { dialectOf, FLAVORS, type Flavor } from "@miragon/pulse-profile"
+import { dialectOfFlavor, type EngineFlavor, isEngineFlavor } from "./engine-provider.js"
 import { engineConfigSchema, engineModule } from "./module.js"
 import {
   DEFAULT_ENGINE_FLAVOR,
@@ -36,6 +36,13 @@ describe("providerForEntry", () => {
     const flavors = Object.keys(FLAVORS) as Flavor[]
     expect(flavors.filter(isEngineFlavor).sort()).toEqual(Object.keys(ENGINE_PROVIDERS).sort())
     expect(isEngineFlavor("camunda8")).toBe(false)
+  })
+
+  it("reads each served flavor's dialect from the profile format's table, as dialectOf does", () => {
+    for (const flavor of Object.keys(ENGINE_PROVIDERS) as EngineFlavor[]) {
+      expect(dialectOfFlavor(flavor), flavor).toBe(dialectOf({ flavor }))
+      expect(dialectOfFlavor(flavor), flavor).toBe("c7")
+    }
   })
 
   it("fails on a flavor an untyped caller made up, naming the engine and the known ones", () => {

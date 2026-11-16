@@ -1,15 +1,13 @@
 /**
- * The engine contract's failure of an engine call over the MCP server's SDK wire, for the engine
- * suite that runs c7-core's `C7Runtime` over it (`c7-runtime.engine.test.ts`): the connector's
+ * The engine contract's failure of an engine call over the MCP server's SDK wire, for the runtime
+ * a dialect's reads run through (`runtimeOf`, engine-runtime.ts): the connector's
  * `EngineRequestError` (engine-error.ts) onto engine-core's `RuntimeError`, the message as the
  * model reads it. An HTTP status reads as the C7 adapter's `ErrorTranslation` reads its wire's.
- * Test support until the connector's src runs the runtime (phase 4's decision 3), which then moves
- * it beside engine-error.ts.
  */
 
 import { RuntimeError, type RuntimeFailure } from "@miragon/pulse-engine-core"
 import { HttpFailure } from "@miragon/pulse-http"
-import { EngineRequestError, type EngineFailureKind } from "../engine/engine-error.js"
+import { EngineRequestError, type EngineFailureKind } from "./engine-error.js"
 
 /** The failure of an engine's error answer, as the C7 adapter reads a status. */
 function failureOfStatus(status: number): RuntimeFailure {
@@ -19,10 +17,10 @@ function failureOfStatus(status: number): RuntimeFailure {
 }
 
 /**
- * A call of the kind "connection". The kind is ambiguous on this wire, which phase 6 decides: the
- * transport's broken connection and a success that is no valid JSON (the transport's
- * `invalid-answer`, worded "connection" by engine-error.ts) share it, and only the cause tells
- * them apart. The first never reached an answer, the second got one it cannot read.
+ * A call of the kind "connection": the transport's broken connection and a success that is no
+ * valid JSON (its `invalid-answer`, which engine-error.ts words "connection" too) share it, so the
+ * cause tells them apart. An answer the server cannot read is an unexpected response; every other
+ * broken connection never reached an answer and is unreachable.
  */
 function failureOfConnection(error: EngineRequestError): RuntimeFailure {
   return error.cause instanceof HttpFailure && error.cause.reason === "invalid-answer"

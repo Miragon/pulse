@@ -85,8 +85,8 @@ A few layering rules keep modules independently usable and a second engine diale
   retry after a 401, failure reasons as data, masked secrets; every wiring passes `TRANSPORT_CASES`.
 - One engine contract: `@miragon/pulse-engine-core` holds the ports, read models, laws and shared
   rules (`RootCauses`) of every dialect; the runtime view and its two editor hosts, c7-core, the C7
-  and C8 adapters and the board builder (`@miragon/pulse-board/builder`) use it, the engine
-  connector and the CLI through c7-core.
+  and C8 adapters, the board builder and the engine connector's server layers (`runtimeOf`, its
+  runtime per dialect) use it, the CLI through c7-core.
 - Extract on the second consumer, never speculatively. A composed-views package appears with
   the first cross-module view. A second dialect joins the engine module (`ENGINE_DIALECTS`),
   never with a widget package or an MCP server app of its own.

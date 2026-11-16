@@ -1,22 +1,13 @@
-import { afterEach, describe, expect, it } from "vitest"
-import { C7Runtime } from "@miragon/pulse-c7-core/runtime"
-import { DefinitionId, RuntimeError, type RuntimeFailure } from "@miragon/pulse-engine-core"
+import { describe, expect, it } from "vitest"
+import { RuntimeError, type RuntimeFailure } from "@miragon/pulse-engine-core"
 import { FAILURE_REASONS, HttpFailure, type FailureReason } from "@miragon/pulse-http"
-import {
-  clientFor,
-  type FakeEngine,
-  startFakeEngine,
-} from "../../tools/test-support/fake-engine.js"
-import { createEngineConnection } from "../engine/engine-connection.js"
 import {
   EngineRequestError,
   type EngineFailureKind,
   failureError,
   toEngineToolError,
-} from "../engine/engine-error.js"
-import { closedPortUrl } from "../engine/test-support/raw-engine.js"
-import { enginePortFor } from "./engine-port.js"
-import { runtimeErrorOf } from "./runtime-errors.test-support.js"
+} from "./engine-error.js"
+import { runtimeErrorOf } from "./runtime-errors.js"
 
 const CTX = { engineId: "e", unauthorizedHint: () => "Sign in." }
 
@@ -151,54 +142,6 @@ describe("runtimeErrorOf: the connector's engine errors as the engine contract's
       failure: "unexpectedResponse",
       message: "gone",
       cause: "gone",
-    })
-  })
-})
-
-describe("C7Runtime over the connector's port, its failures read by runtimeErrorOf", () => {
-  const engines: FakeEngine[] = []
-  afterEach(async () => {
-    await Promise.all(engines.splice(0).map((engine) => engine.close()))
-  })
-
-  async function runtimeWith(...args: Parameters<typeof startFakeEngine>) {
-    const engine = await startFakeEngine(...args)
-    engines.push(engine)
-    return C7Runtime.over(enginePortFor(clientFor(engine)), { failureOf: runtimeErrorOf })
-  }
-
-  it("fails a refused read as forbidden, in the words the model reads", async () => {
-    const runtime = await runtimeWith({
-      "GET /process-definition/order:1:d/xml": {
-        status: 403,
-        body: { type: "AuthorizationException", message: "no READ permission" },
-      },
-    })
-    await expect(runtime.getDiagramXml(DefinitionId("order:1:d"))).rejects.toMatchObject({
-      failure: "forbidden",
-      message: "[403 AuthorizationException] no READ permission (engine fake)",
-    })
-  })
-
-  it("reads a version the engine does not know as none", async () => {
-    const runtime = await runtimeWith({
-      "GET /process-definition/order:9:d/xml": {
-        status: 404,
-        body: { type: "InvalidRequestException", message: "No definition order:9:d" },
-      },
-    })
-    expect(await runtime.getDiagramXml(DefinitionId("order:9:d"))).toBeUndefined()
-  })
-
-  it("fails a read of an engine that does not listen as unreachable", async () => {
-    const client = createEngineConnection(
-      { id: "down", baseUrl: await closedPortUrl() },
-      { type: "none" },
-    )
-    const runtime = C7Runtime.over(enginePortFor(client), { failureOf: runtimeErrorOf })
-    await expect(runtime.getDiagramXml(DefinitionId("order:1:d"))).rejects.toMatchObject({
-      failure: "unreachable",
-      message: "engine down unreachable (ECONNREFUSED)",
     })
   })
 })

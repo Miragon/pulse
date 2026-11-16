@@ -34,8 +34,10 @@
  * that brings no connector of its own). Its core
  * (`packages/connectors/engine/engine-core`, `@miragon/pulse-engine-core`, ENGINE_CORE) is the
  * contract every dialect implements, imported only where a dialect is implemented (a dialect
- * core's src, a family's adapter) and where the runtime view of the editor hosts reads its
- * answers (engine-core-consumers).
+ * core's src, a family's adapter), where the runtime view of the editor hosts reads its answers
+ * and where the engine module runs it, its server layers src/lib/engine, src/lib/core-adapter
+ * and src/data, by its main entry (engine-core-consumers,
+ * engine-connector-contract-by-its-main-entry).
  * The foundation packages every family builds on live under `packages/core/` (npm names
  * without a role suffix, e.g. `@miragon/pulse-widget-shell`), never one family's code; three of
  * them are leaves only their consumers import: the profile format (`@miragon/pulse-profile`,
@@ -125,10 +127,11 @@ const FAMILY_CLIENT_TREE = "^packages/connectors/[^/]+/[^/]+-client/"
  * `@miragon/pulse-engine-connector`): one MCP server and one module, engine, for every dialect
  * (owner decisions 2026-11-07 and 2026-11-08). It imports the clients and cores of the dialect
  * families ENGINE_DIALECTS names, and the rule lets it import those of its own family, which has
- * no client and whose core, engine-core, engine-core-consumers keeps out until the module serves
- * a second dialect (engine-connector-spans-the-dialects); every other connector keeps to its own
- * family (connectors-own-their-family). A dialect joins ENGINE_DIALECTS in the commit that first
- * imports it from the engine module.
+ * no client and whose core, engine-core, it runs in its server layers alone, by the main entry
+ * (ENGINE_CONNECTOR_CONTRACT_READERS; engine-connector-spans-the-dialects,
+ * engine-core-consumers); every other connector keeps to its own family
+ * (connectors-own-their-family). A dialect joins ENGINE_DIALECTS in the commit that first imports
+ * it from the engine module.
  */
 const ENGINE_CONNECTOR_TREE = "^packages/connectors/engine/engine-connector/"
 const ENGINE_DIALECTS = ["c7"]
@@ -325,15 +328,28 @@ const ENGINE_CORE_IMPLEMENTERS = [
  * name ids. Their closed worlds hold each to engine-core's main entry. The board builder
  * (`@miragon/pulse-board/builder`, BOARD_BUILDER_TREE) reads the seven board reads through it too,
  * held to the main entry by board-builder-builds-on-the-engine-contract. The engine connector
- * (although engine-core is its own family's core, which engine-connector-spans-the-dialects
- * admits) and the CLI do not, until they serve a second dialect (owner decision 2026-11-09): they
- * reach it through c7-core's causeOf. Test files and test-support import it anywhere, the
- * test trees of the runtime view, the adapters and the board package too (ENGINE_CORE_TESTS).
+ * reads it in its server layers (ENGINE_CONNECTOR_CONTRACT_READERS, below). The CLI does not
+ * until it serves a second dialect (owner decision 2026-11-09): it reaches the contract's rules
+ * through c7-core's causeOf. Test files and test-support import it anywhere, the test trees of the
+ * runtime view, the adapters and the board package too (ENGINE_CORE_TESTS).
  */
 const ENGINE_CORE_READERS = [
   `${RUNTIME_VIEW_TREE}src/(?:ports|core|model|host-kit)/`,
   ...EDITOR_HOST_SOURCES,
   BOARD_BUILDER_TREE,
+]
+
+/**
+ * Where the engine module runs the engine contract, the connector's shipped importers of
+ * ENGINE_CORE (owner decision 2026-11-16 with boards in the MCP server, the case #488 names: a
+ * second interface needs the same use case with the same rules): src/lib/engine (the runtime of
+ * each dialect it serves, runtimeOf, and the mapping of its engine errors onto RuntimeError),
+ * src/lib/core-adapter (a dialect's port the runtime reads over) and src/data (the builders of
+ * the views). engine-connector-contract-by-its-main-entry holds them to the main entry. Its view
+ * models, widgets, src/lib/shared and tools stay out, as the CLI does.
+ */
+const ENGINE_CONNECTOR_CONTRACT_READERS = [
+  `${ENGINE_CONNECTOR_TREE}src/(?:lib/(?:engine|core-adapter)|data)/`,
 ]
 
 /**
@@ -505,7 +521,9 @@ module.exports = {
         "It imports the clients and cores of the dialect families ENGINE_DIALECTS names (today " +
         "c7: @miragon/pulse-c7-client and @miragon/pulse-c7-core), never another family's. Its " +
         "own family engine has no client, and its core, engine-core, the contract every dialect " +
-        "implements, stays out until the module serves a second dialect (engine-core-consumers). " +
+        "implements, it runs in its server layers src/lib/engine, src/lib/core-adapter and " +
+        "src/data alone, by the main entry (engine-core-consumers, " +
+        "engine-connector-contract-by-its-main-entry; admitted with boards, the case #488 names). " +
         "A dialect joins ENGINE_DIALECTS in the commit that first imports it from the engine " +
         "module (CLAUDE.md invariant 8).",
       from: { path: ENGINE_CONNECTOR_TREE },
@@ -1032,17 +1050,22 @@ module.exports = {
         "view's layers src/ports, src/core, src/model and src/host-kit (never its webview, which " +
         "renders protocol view models), the src of the editor hosts, apps/vscode and apps/orca, " +
         "and the board builder (packages/core/board/src/builder, held to the main entry by " +
-        "board-builder-builds-on-the-engine-contract); by test files and test-support anywhere " +
-        "and in the test trees of the runtime view, the adapters and the board package " +
-        "(ENGINE_CORE_TESTS). Not another family's core, not " +
-        "the engine connector (although engine-core is its own family's core) and not the CLI, " +
-        "until they serve a second dialect (owner decision 2026-11-09: they reach it through " +
-        "c7-core's causeOf), not the MCP server app and no other package. A relative escape into " +
+        "board-builder-builds-on-the-engine-contract); where the engine module runs the contract " +
+        "(ENGINE_CONNECTOR_CONTRACT_READERS, owner decision 2026-11-16 with boards in the MCP " +
+        "server, the case #488 names): the connector's src/lib/engine, src/lib/core-adapter and " +
+        "src/data, held to the main entry by engine-connector-contract-by-its-main-entry; by test " +
+        "files and test-support anywhere and in the test trees of the runtime view, the adapters " +
+        "and the board package (ENGINE_CORE_TESTS). Not another family's core, not the rest of " +
+        "the engine connector (its view models, widgets, src/lib/shared, tools and widget tools: " +
+        "they read what src/data builds), not the CLI until it serves a second dialect (owner " +
+        "decision 2026-11-09: it reaches the contract's rules through c7-core's causeOf), not the " +
+        "MCP server app and no other package. A relative escape into " +
         "packages/connectors/engine/engine-core is a violation too.",
       from: {
         pathNot: [
           ...ENGINE_CORE_IMPLEMENTERS,
           ...ENGINE_CORE_READERS,
+          ...ENGINE_CONNECTOR_CONTRACT_READERS,
           `^${escapeRegExp(ENGINE_CORE.tree)}/(?:src|test)/`,
           "[.]test[.]tsx?$",
           ...TEST_SUPPORT,
@@ -1050,6 +1073,23 @@ module.exports = {
         ],
       },
       to: { path: [`^${escapeRegExp(ENGINE_CORE.tree)}/`, ...npm(escapeRegExp(ENGINE_CORE.name))] },
+    },
+    {
+      name: "engine-connector-contract-by-its-main-entry",
+      severity: "error",
+      comment:
+        "The engine module's server layers that run the engine contract " +
+        "(ENGINE_CONNECTOR_CONTRACT_READERS: src/lib/engine, src/lib/core-adapter and src/data of " +
+        "packages/connectors/engine/engine-connector) import @miragon/pulse-engine-core by its " +
+        "main entry alone: the ports, read models, failures and rules a dialect answers in. Never " +
+        "./testing (the kit, the world and the fake ship for tests; shipped-code-not-to-testing " +
+        "holds it too), never another subpath or a file of its build, never a relative escape " +
+        "into its tree. Their tests and test-support import the kit.",
+      from: { path: ENGINE_CONNECTOR_CONTRACT_READERS, pathNot: SRC_TEST_CODE },
+      to: {
+        path: [`^${escapeRegExp(ENGINE_CORE.tree)}/`, ...npm(escapeRegExp(ENGINE_CORE.name))],
+        pathNot: ENGINE_CORE_ENTRY,
+      },
     },
     {
       name: "family-core-is-a-leaf",

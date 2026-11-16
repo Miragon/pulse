@@ -144,6 +144,7 @@ const HTTP_LEAF = "http-is-a-leaf"
 const HTTP_USERS = "http-consumers"
 const HTTP_LOOPBACK = "http-loopback-only-its-sockets"
 const ENGINE_CORE_USERS = "engine-core-consumers"
+const CONNECTOR_CONTRACT = "engine-connector-contract-by-its-main-entry"
 const CORE_USERS = "family-core-consumers"
 const ADAPTER_FAMILY = "adapters-own-their-family"
 const VIEW_USERS = "runtime-view-consumers"
@@ -771,16 +772,40 @@ const SUITES = [
       [PROFILE_SRC, ENGINE_CORE_NAME, [PROFILE_LEAF, CORE, ENGINE_CORE_USERS]],
       [HTTP_SRC, ENGINE_CORE_NAME, [HTTP_LEAF, CORE, ENGINE_CORE_USERS]],
       [C7_CLIENT_SRC, ENGINE_CORE_NAME, [CLIENT_LEAF, ENGINE_CORE_USERS]],
-      // The engine connector: engine-core is its own family's core, which
-      // engine-connector-spans-the-dialects lets through, but it reaches the contract through a
-      // dialect's core (c7-core's causeOf) until it serves a second dialect (owner decision
-      // 2026-11-09). In all three shapes: resolved, bare (a subpath) and a relative escape.
+      // The engine connector runs the contract in its server layers alone (src/lib/engine,
+      // src/lib/core-adapter, src/data: the CONNECTOR_CONTRACT suite). Its root, view models,
+      // widgets, src/lib/shared, other lib folders, tools and widget tools stay out, a type import
+      // too. In all three shapes: resolved, bare (a subpath) and a relative escape.
       [ENGINE_CONNECTOR_SRC, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
       [
-        `${ENGINE_CONNECTOR}/src/lib/core-adapter/contract.ts`,
+        `${ENGINE_CONNECTOR}/src/view-models.board.ts`,
         ENGINE_CORE_NAME,
         [ENGINE_CORE_USERS],
+        "type",
       ],
+      [
+        `${ENGINE_CONNECTOR}/src/widgets/board.ts`,
+        ENGINE_CORE_NAME,
+        [WIDGETS_BROWSER, ENGINE_CORE_USERS],
+      ],
+      [
+        `${ENGINE_CONNECTOR}/src/widgets/board-types.ts`,
+        ENGINE_CORE_NAME,
+        [ENGINE_CORE_USERS],
+        "type",
+      ],
+      [
+        `${ENGINE_CONNECTOR}/src/lib/shared/board.ts`,
+        ENGINE_CORE_NAME,
+        [WIDGETS_BROWSER, ENGINE_CORE_USERS],
+      ],
+      [`${ENGINE_CONNECTOR}/src/lib/mcp/contract.ts`, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
+      [`${ENGINE_CONNECTOR}/src/lib/bpmn/contract.ts`, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
+      [`${ENGINE_CONNECTOR}/src/tools/contract.ts`, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
+      [`${ENGINE_CONNECTOR}/src/widget-tools/contract.ts`, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
+      // Anchored on the folder: a look-alike of src/data or src/lib/engine is none.
+      [`${ENGINE_CONNECTOR}/src/data-x/contract.ts`, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
+      [`${ENGINE_CONNECTOR}/src/lib/engines/contract.ts`, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
       [`${ENGINE_CONNECTOR}/src/core-model.ts`, `${ENGINE_CORE_NAME}/model`, [ENGINE_CORE_USERS]],
       [
         `${ENGINE_CONNECTOR}/src/escape-engine-core.ts`,
@@ -870,6 +895,56 @@ const SUITES = [
       [`${BOARD}/src/builder/contract.ts`, ENGINE_CORE_NAME, []],
       [`${BOARD}/test/builder/world.ts`, `${ENGINE_CORE_NAME}/testing`, []],
       [`${BOARD}/src/format/contract.ts`, ENGINE_CORE_NAME, [BOARD_LEAF, CORE, ENGINE_CORE_USERS]],
+    ],
+  },
+  {
+    rule: CONNECTOR_CONTRACT,
+    title: "the engine module's server layers read engine-core by its main entry alone",
+    cases: [
+      // Its data builders, its routing and runtime, its dialect port: the main entry, resolved
+      // to the build (shape 2), at runtime and as a type, in a nested folder too.
+      [`${ENGINE_CONNECTOR}/src/data/board.ts`, ENGINE_CORE_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/data/nested/reads.ts`, ENGINE_CORE_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/lib/engine/runtime.ts`, ENGINE_CORE_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/lib/core-adapter/contract.ts`, ENGINE_CORE_NAME, [], "type"],
+      // Never its kit, another subpath, a file of its build or a relative escape into its tree.
+      [
+        `${ENGINE_CONNECTOR}/src/data/kit.ts`,
+        `${ENGINE_CORE_NAME}/testing`,
+        [CONNECTOR_CONTRACT, NO_TESTING],
+      ],
+      [
+        `${ENGINE_CONNECTOR}/src/lib/engine/model.ts`,
+        `${ENGINE_CORE_NAME}/model`,
+        [CONNECTOR_CONTRACT],
+      ],
+      [
+        `${ENGINE_CONNECTOR}/src/lib/core-adapter/deep-model.ts`,
+        `${ENGINE_CORE_NAME}/dist/model/root-causes.js`,
+        [CONNECTOR_CONTRACT],
+      ],
+      [
+        `${ENGINE_CONNECTOR}/src/data/deep-kit.ts`,
+        `${ENGINE_CORE_NAME}/dist/testing/index.js`,
+        [CONNECTOR_CONTRACT],
+      ],
+      [
+        `${ENGINE_CONNECTOR}/src/data/escape-contract.ts`,
+        "../../../engine-core/src/target.ts",
+        [CONNECTOR_CONTRACT, DEEP],
+      ],
+      [
+        `${ENGINE_CONNECTOR}/src/lib/engine/escape-build.ts`,
+        "../../../../engine-core/dist/index.js",
+        [CONNECTOR_CONTRACT, DEEP],
+      ],
+      // Their tests and test-support read the kit.
+      [`${ENGINE_CONNECTOR}/src/data/board.test.ts`, `${ENGINE_CORE_NAME}/testing`, []],
+      [
+        `${ENGINE_CONNECTOR}/src/lib/engine/world.test-support.ts`,
+        `${ENGINE_CORE_NAME}/testing`,
+        [],
+      ],
     ],
   },
   {

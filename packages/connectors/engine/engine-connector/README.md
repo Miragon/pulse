@@ -63,7 +63,10 @@ in `ENGINES_JSON` / `ENGINES_FILE`; every variable is in the
   fails), else the only profile, else `ENGINE_NOT_SELECTED` lists the engines; a refused target is
   never rerouted. Each engine carries a `flavor` (`cibseven` | `operaton` | `camunda7`, default
   `camunda7`; `ENGINE_FLAVOR` for the `ENGINE_BASE_URL` shorthand) that picks its cockpit links and
-  branding.
+  branding. A `camunda8` profile is refused, since the module speaks the Camunda 7 REST API.
+- **The engine contract.** It depends on `@miragon/pulse-engine-core`, the contract Pulse for VS
+  Code and Pulse for Orca read engines through, and builds a runtime of it on each call, over the
+  client that call resolves: c7-core's `C7Runtime` over the module's own client.
 - **Toolsets that fail closed.** `read-only`, `operations` and `admin`: without an `engine:<toolset>`
   suffix the module runs `read-only` on an unauthenticated server and `operations` under OAuth, an
   empty or unknown suffix falls back to `read-only`, and widget action buttons render only for

@@ -159,10 +159,14 @@ and the board builder (`@miragon/pulse-board/builder`, `packages/core/board/src/
 named exception written like it: it reads seven reads of `ProcessRuntime` through engine-core's
 main entry alone (`board-builder-builds-on-the-engine-contract`), the format stays a leaf.
 The ports only the editor hosts need (`EngineAdapter`, the engine's web UI, the local model and
-its code) stay in the runtime view's `src/ports`, never in engine-core. The engine connector
-(although engine-core is its own family's core) or the CLI importing it directly waits until it
-serves a second dialect, an admission decision in review, the case #488 reopens on: a second
-interface needing the same use case with the same rules.
+its code) stay in the runtime view's `src/ports`, never in engine-core. The engine connector runs
+the contract, admitted for the boards of the MCP server (owner decision 2026-11-16, the case #488
+names: a second interface needs the same use case with the same rules): its `src/lib/engine`
+(`runtimeOf`, the runtime of each dialect it serves, today c7-core's `C7Runtime` over its engine
+port, and `runtimeErrorOf`, its engine errors as `RuntimeError`), `src/lib/core-adapter` and
+`src/data` import engine-core's main entry alone (`engine-connector-contract-by-its-main-entry`),
+its view models, widgets, `src/lib/shared` and tools never. The CLI importing it directly waits
+until it serves a second dialect, an admission decision in review.
 
 The architecture invariants below are written for the MCP server, its modules and its widgets.
 The package rules of invariant 8 (layout, naming, dependency edges) hold for every workspace
@@ -808,12 +812,12 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      for the CLI (wait states, incidents, timeline, variables, definitions, topics) and names each
      cut in `truncated`; c7-core still loads them whole. The reads of the engine contract are
      c7-core's too (`@miragon/pulse-c7-core/runtime`, `C7Runtime`): the C7 adapter answers the
-     editor hosts with them over its wire, and the connector's engine suite holds them to
-     engine-core's read laws over the server's SDK wire, `enginePortFor` on
-     `createEngineConnection` against real engines
-     (`packages/connectors/engine/engine-connector/src/lib/core-adapter/c7-runtime.engine.test.ts`,
-     its failures read by a test-support mapping until the connector's src runs the runtime); no
-     tool or feed runs it. An integer beyond 2^53 reaches it there as a string of its digits.
+     editor hosts with them over its wire, and the connector runs them over the server's SDK
+     wire as its runtime (`runtimeOf` in `src/lib/engine/engine-runtime.ts`: `C7Runtime` over
+     `enginePortFor` on the call's client, its failures read by `runtimeErrorOf`), which its engine
+     suite holds to engine-core's read laws against real engines
+     (`packages/connectors/engine/engine-connector/src/lib/core-adapter/c7-runtime.engine.test.ts`);
+     no tool or feed runs it. An integer beyond 2^53 reaches it there as a string of its digits.
    - **Caller identity** is read once per request by the MCP middleware
      (`installMcpRequestContext` → `callerUserId` in `packages/core/widget-shell/src/caller.ts`),
      from the server's own OAuth only: nothing a client chooses (a session id, a header)
@@ -926,11 +930,13 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      `board-builder-builds-on-the-engine-contract` hold them to the main entry, the closed worlds
      their tests and dev harnesses to the package's entries), and by test files and test-support
      anywhere and the test trees of the runtime view, the adapters and the board package
-     (`ENGINE_CORE_TESTS`);
-     never the engine connector (although it is its own family's core) or the CLI until they
-     serve a second dialect, another family's core or a `./testing`
-     entry, which ships (`engine-core-consumers`), and it keeps the extension's ESLint house
-     rules, its config files included, with the connector resource gate in their union; and no
+     (`ENGINE_CORE_TESTS`), and where the engine connector runs the contract, its `src/lib/engine`,
+     `src/lib/core-adapter` and `src/data` (`ENGINE_CONNECTOR_CONTRACT_READERS`, held to the main
+     entry by `engine-connector-contract-by-its-main-entry`);
+     never the rest of the engine connector (its view models, widgets, `src/lib/shared`, tools
+     and widget tools), the CLI until it serves a second dialect, another family's core or a
+     `./testing` entry, which ships (`engine-core-consumers`), and it keeps the extension's ESLint
+     house rules, its config files included, with the connector resource gate in their union; and no
      shipped code imports a `./testing` entry (`shipped-code-not-to-testing`).
      The family rules key on the roles, so a
      new family inherits them. The seams keep browser code apart from the server: widget-shell's

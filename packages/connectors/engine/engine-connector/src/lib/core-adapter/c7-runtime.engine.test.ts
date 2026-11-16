@@ -1,7 +1,8 @@
 /**
- * The engine contract's conformance kit over the MCP server's SDK wire: c7-core's `C7Runtime` on
- * the connector's engine port (`enginePortFor` over `createEngineConnection`, the client every
- * tool sends through), its failures read by `runtimeErrorOf`, against a real engine of the
+ * The engine contract's conformance kit over the MCP server's SDK wire: the runtime the server
+ * runs (`runtimeOf`, c7-core's `C7Runtime` on the connector's engine port over
+ * `createEngineConnection`, the client every tool sends through, its failures read by
+ * `runtimeErrorOf`), against a real engine of the
  * Camunda 7 REST family in a container (`PULSE_ENGINE_IMAGE`, Operaton 2.1.5 without one; CI runs
  * Operaton and CIB seven), seeded with the kit's world through c7-core's `seedC7World`. The read
  * laws hold here as on the C7 adapter's wire, the unreachable engine at 127.0.0.1:9 included. No
@@ -16,7 +17,6 @@ import { readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { GenericContainer, Wait } from "testcontainers"
 import { afterAll, beforeAll, describe, expect, test } from "vitest"
-import { C7Runtime } from "@miragon/pulse-c7-core/runtime"
 import { type C7SeedEngine, type C7UnknownIds, seedC7World } from "@miragon/pulse-c7-core/testing"
 import {
   BulkOperationId,
@@ -33,9 +33,10 @@ import {
   WORLD_INSTANCES,
   WORLD_LOCAL_VARIABLE,
 } from "@miragon/pulse-engine-core/testing"
+import type { EngineFlavor } from "../../engine-provider.js"
+import { providerForEntry } from "../../providers/index.js"
 import { createEngineConnection } from "../engine/engine-connection.js"
-import { enginePortFor } from "./engine-port.js"
-import { runtimeErrorOf } from "./runtime-errors.test-support.js"
+import { runtimeOf } from "../engine/engine-runtime.js"
 
 const ENGINE_IMAGE = process.env.PULSE_ENGINE_IMAGE ?? "operaton/operaton:2.1.5"
 const ENGINE_PORT = 8080
@@ -143,10 +144,16 @@ async function seedWorld(url: string): Promise<SeededWorld> {
   }
 }
 
-/** The runtime of the MCP server's SDK wire on the engine at `baseUrl`. */
+/** The vendor of the engine image, as a profile names it: CIB seven's or Operaton's. */
+const ENGINE_FLAVOR: EngineFlavor = ENGINE_IMAGE.startsWith("cibseven/") ? "cibseven" : "operaton"
+
+/** The runtime the MCP server runs on the engine at `baseUrl`, over its SDK wire. */
 function runtimeAt(id: string, baseUrl: string): ProcessRuntime {
-  const client = createEngineConnection({ id, baseUrl }, { type: "none" })
-  return C7Runtime.over(enginePortFor(client), { failureOf: runtimeErrorOf })
+  const entry = { id, baseUrl, flavor: ENGINE_FLAVOR }
+  return runtimeOf({
+    client: createEngineConnection(entry, { type: "none" }),
+    provider: providerForEntry(entry),
+  })
 }
 
 /**

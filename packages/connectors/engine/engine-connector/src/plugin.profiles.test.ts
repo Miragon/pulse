@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest"
 import { z } from "zod"
 import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
 import { queryProcessInstances } from "@miragon/pulse-c7-client/sdk"
+import { engineModule } from "./module.js"
 import { createConfiguredEngineRegistry, createPlugin, type EnginePluginConfig } from "./plugin.js"
 import { resolveEngine } from "./lib/engine/resolve-engine.js"
 import { ENGINE_LIST_ENGINES, ENGINE_OPEN_COCKPIT } from "./tool-names.js"
@@ -199,5 +200,37 @@ describe("a refused profile: listed, named in the enum, never routed to", () => 
       view: "incidents",
     })
     expect(answer).toMatch(/^\[ENGINE_PROFILE_REFUSED\] Engine "locked"/)
+  })
+})
+
+describe("a camunda8 profile: refused at configuration, before any read (dialect-not-served)", () => {
+  it("lists it under refused and answers a call to it without a request to its engine", async () => {
+    const [c7, c8] = [await fakeEngine(), await fakeEngine()]
+    const config = engineModule.configFromEnv({
+      ENGINES_JSON: JSON.stringify({
+        defaultProfile: "c8",
+        profiles: { c7: { url: c7.baseUrl }, c8: { url: c8.baseUrl, flavor: "camunda8" } },
+      }),
+    })
+    const recording = recordingModuleServer()
+    engineModule.createPlugin({ ...config, toolset: "operations" }).register(recording.server)
+    const text: Text = async (name, args = {}) => {
+      const result = await recording.tool(name).call(args)
+      return result.content.map((part) => ("text" in part ? part.text : "")).join("")
+    }
+    const refusal =
+      '[ENGINE_PROFILE_REFUSED] Engine "c8" is configured, but its profile cannot be used: ' +
+      "This server does not speak the API of this flavor: it reads camunda7, cibseven " +
+      "and operaton. Ask whoever runs this server to fix it."
+    const list = JSON.parse(await text(ENGINE_LIST_ENGINES)) as {
+      engines: Array<{ id: string }>
+      refused: Array<{ id: string; reason: string }>
+    }
+    expect(list.engines.map(({ id }) => id)).toEqual(["c7"])
+    expect(list.refused.map(({ id }) => id)).toEqual(["c8"])
+    expect(await text("engine_status", { engine: "c8" })).toBe(refusal)
+    expect(await text("engine_status")).toBe(refusal)
+    expect(await text("engine_list_process_instances", { engine: "c8" })).toBe(refusal)
+    expect(c8.requests).toEqual([])
   })
 })
