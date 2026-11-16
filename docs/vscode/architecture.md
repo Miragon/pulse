@@ -25,13 +25,14 @@ flowchart LR
   c8 -- "@miragon/pulse-http and its OAuth client" --> cluster["Camunda 8: /v2"]
 ```
 
-The layers live in two packages the extension shares with [Pulse for Orca](../orca/architecture.md),
+The layers live in packages the extension shares with [Pulse for Orca](../orca/architecture.md),
 each layer with its own globals and dependency rules; `apps/vscode/src/host` is the VS Code
 wiring and the composition root:
 
 | Package                                  | Layer      | Holds                                                         |
 | ---------------------------------------- | ---------- | ------------------------------------------------------------- |
 | `packages/connectors/engine/engine-core` |            | the engine contract: ports, read models, conformance laws     |
+| `packages/core/board`                    |            | the board file format and builder (`@miragon/pulse-board`)    |
 | `packages/core/runtime-view`             | `ports`    | the ports of the editor hosts: engine plug, local model       |
 |                                          | `core`     | grouping, view models, panel behaviour                        |
 |                                          | `protocol` | the messages between host and webview                         |

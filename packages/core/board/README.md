@@ -7,9 +7,12 @@
 The board file format of Pulse. A board keeps the operational questions a team asks again and
 again in one view: how many orders wait at a step, which incidents are open across "our"
 processes, which instances of a process run. It is a JSON file in the repository
-(`.pulse/boards/<name>.board.json`), versioned and shared like the code. Pulse for VS Code and
-Pulse for Orca read it today; this package holds the format and the builder of a board's numbers,
-so every surface that shows a board reads the same file the same way and shows the same numbers.
+(`.pulse/boards/<name>.board.json`), versioned and shared like the code
+([Boards](https://miragon.github.io/pulse/vscode/boards) in the docs).
+[Pulse for VS Code](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse-cockpit)
+and [Pulse for Orca](https://miragon.github.io/pulse/orca/) read it today; this package holds the
+format and the builder of a board's numbers, so every surface that shows a board reads the same
+file the same way and shows the same numbers.
 Below 1.0: pin the exact version and update all `@miragon/pulse-*` packages together.
 
 ## What it is not
@@ -18,8 +21,9 @@ No runtime dependency, no file system, no engine of its own: the format imports 
 modules and parses the text it is handed. Finding and reading the file and saying what follows from
 a problem stay with the reader. The builder (`@miragon/pulse-board/builder`) reads a board's
 numbers through the engines the reader hands it, over the engine contract of
-`@miragon/pulse-engine-core` (an optional peer: install it next to this package to use the
-builder), and returns them as data: no text, no formatting, no diagram, no navigation.
+[`@miragon/pulse-engine-core`](https://www.npmjs.com/package/@miragon/pulse-engine-core) (an
+optional peer: install it next to this package to use the builder), and returns them as data: no
+text, no formatting, no diagram, no navigation.
 
 ## Install
 
@@ -52,13 +56,13 @@ if ("board" in parsed) {
 when it gives no board: it is not JSON or no object, its `schemaVersion` is other than 1,
 `title`, `engines` or `rows` is missing, or one of them, a row or `tenants` is of the wrong shape.
 Everything inside a widget (a bad or unknown prop, an unknown widget, a widget after the 12th that
-reads) refuses that widget in its place, as `{ widget, title, refused }`, and the others read. A root key the format
-does not know is a note, and the board shows without it. A board has its defaults filled in
-(running instances, the board's engines, the default columns). A problem and a note are data,
-`{ path, code, values }`: the JSON path it is about (`rows[0].row[1].props.filter.state`, or
-`(file)` for the document), a code from `BoardProblemCode` and the values its words need;
-`BoardProblems.describe` words it in English, the sentence after the path, so a reader may word
-the codes in its own language.
+reads) refuses that widget in its place, as `{ widget, title, refused }`, and the others read. A
+root key the format does not know is a note, and the board shows without it. A board has its
+defaults filled in (running instances, the board's engines, the default columns). A problem and a
+note are data, `{ path, code, values }`: the JSON path it is about
+(`rows[0].row[1].props.filter.state`, or `(file)` for the document), a code from
+`BoardProblemCode` and the values its words need; `BoardProblems.describe` words it in English,
+the sentence after the path, so a reader may word the codes in its own language.
 
 ## The format
 
@@ -139,7 +143,11 @@ engine without reads is one the reader has not configured. It returns a `BoardMo
 
 Honest numbers: a read that fails leaves its number out (a surface shows "not read", never 0), a
 total says how many engines it counts (`known`), totals come from counts and the definitions, never
-from the length of a page, and each distinct question is read once per engine and build.
+from the length of a page, and each distinct question is read once per engine and build. Its lists
+rest on read laws of the engine contract, which the contract's conformance kit holds every dialect
+to: instances and incidents newest first, incidents in pages without gaps, every page but the last
+full.
+
 `DiagramBadges.of(xml, statistics)` is the roll-up (the incidents inside a collapsed sub-process
 counted on its shape too) and `CollapsedShapes.of(xml)` the reader of the collapsed sub-processes
 around an element, so a surface draws its process views by the same rule as a board.
@@ -159,14 +167,15 @@ complete and check a board file. It knows exactly the keys, widgets, props and v
 reads, marks a root key the parser only notes and a filter of ended instances with incident, and
 takes every board of the fixtures below that the parser reads without a note or a refused widget;
 what only the parser sees (more than 12 widgets, a widget naming an engine outside the board, an
-element without its process) it leaves to the parser. Pulse for VS Code ships a copy of it, held equal by a test.
+element without its process) it leaves to the parser. Pulse for VS Code ships a copy of it, held
+equal by a test.
 
 ## Fixtures
 
 `@miragon/pulse-board/testing` exports `BOARD_FIXTURES`: each case a board file's text, whether
 the JSON Schema takes it and the parser's verdict as data, a board with its defaults filled in,
-its refused widgets and its notes, or every problem of a file that gives no board. The package's tests run them through the parser and the schema; a
-reader of its own runs them through its path.
+its refused widgets and its notes, or every problem of a file that gives no board. The package's
+tests run them through the parser and the schema; a reader of its own runs them through its path.
 
 ## Entries
 
@@ -185,7 +194,27 @@ entry (the version rule above). The same holds for the builder's
 `BoardModel`, the input of every surface that renders a board, and for its peer: the builder takes
 the `@miragon/pulse-engine-core` of the same release.
 
-## Mutation testing
+## Who uses it
+
+- Pulse for VS Code and Pulse for Orca: the runtime view they share reads an open board with the
+  format, builds its numbers with the builder over the engines of their profiles and draws its
+  process views by the builder's roll-up; a new board is `StarterBoard`'s text, and the Boards view
+  of VS Code counts each file's problems and notes with `BoardTiles`.
+
+## Help and feedback
+
+- **Documentation:** boards in Pulse for VS Code and Pulse for Orca are explained at
+  [miragon.github.io/pulse](https://miragon.github.io/pulse/vscode/boards).
+- **Bugs and ideas:** found a bug or missing something?
+  [Open an issue](https://github.com/Miragon/pulse/issues).
+
+## Contributing
+
+How to build, test and change Pulse is in
+[CONTRIBUTING.md](https://github.com/Miragon/pulse/blob/main/CONTRIBUTING.md). Two rules hold this
+package on top of the repository's.
+
+### Mutation testing
 
 The format and the builder are mutation-tested every night in the repository (StrykerJS over
 `src/format` and `src/builder` without the tests and the builder's barrel, against the package's
@@ -193,6 +222,13 @@ own tests; owner decision 2026-11-15). They decide which board files and widgets
 reads or refuses and the numbers each widget shows, so a surviving mutant is a wrong refusal or a
 wrong number on every board. Locally:
 `pnpm --fail-if-no-match --filter @miragon/pulse-board exec stryker run`.
+
+### Style
+
+The house rules of Pulse for VS Code, which the format came from, as in
+`@miragon/pulse-engine-core`: classes, not module functions, no comments, complexity 10, 300 lines
+per file (400 for a test file), 60 per function, no engine word such as a vendor's name anywhere in
+it. The repository's ESLint config holds the package to them.
 
 ## Licence
 

@@ -1,7 +1,7 @@
 # Architecture
 
 Pulse for Orca and Pulse for VS Code are two hosts of one runtime view. What both show and
-decide lives in two packages they bundle; each host only wires it into its editor:
+decide lives in packages they bundle; each host only wires it into its editor:
 
 ```mermaid
 flowchart LR

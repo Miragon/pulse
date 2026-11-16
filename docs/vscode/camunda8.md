@@ -80,23 +80,23 @@ token a cluster quotes in an error shows as `***`.
 The conformance kit of the engine contract proves the adapter on a local cluster in
 Testcontainers (`packages/connectors/c8/c8-adapter/test/c8-conformance.engine.test.ts`): its 51
 read laws, the message, timer and signal an instance waits for, and what each login reads. Every
-leg of the matrix passed on 2026-11-15, one at a time (the time includes starting the containers),
-two with the 51 laws, ten with the 48 the kit held before incident order and full pages:
+leg of the matrix passed with the 51 laws on 2026-11-16, one at a time (the time includes starting
+the containers):
 
-| Camunda | Secondary storage | Security | Laws | Passed   | Time |
-| ------- | ----------------- | -------- | ---- | -------- | ---- |
-| 8.9.28  | H2                | none     | 51   | 53 of 53 | 19 s |
-| 8.9.28  | H2                | Basic    | 48   | 52 of 52 | 27 s |
-| 8.9.28  | H2                | OIDC     | 48   | 55 of 55 | 48 s |
-| 8.9.28  | Elasticsearch     | none     | 48   | 50 of 50 | 48 s |
-| 8.9.28  | Elasticsearch     | Basic    | 48   | 52 of 52 | 62 s |
-| 8.9.28  | Elasticsearch     | OIDC     | 48   | 55 of 55 | 58 s |
-| 8.10.9  | H2                | none     | 48   | 50 of 50 | 17 s |
-| 8.10.9  | H2                | Basic    | 48   | 52 of 52 | 28 s |
-| 8.10.9  | H2                | OIDC     | 48   | 55 of 55 | 53 s |
-| 8.10.9  | Elasticsearch     | none     | 48   | 50 of 50 | 49 s |
-| 8.10.9  | Elasticsearch     | Basic    | 48   | 52 of 52 | 60 s |
-| 8.10.9  | Elasticsearch     | OIDC     | 51   | 58 of 58 | 70 s |
+| Camunda | Secondary storage | Security | Passed   | Time |
+| ------- | ----------------- | -------- | -------- | ---- |
+| 8.9.28  | H2                | none     | 53 of 53 | 19 s |
+| 8.9.28  | H2                | Basic    | 55 of 55 | 27 s |
+| 8.9.28  | H2                | OIDC     | 58 of 58 | 49 s |
+| 8.9.28  | Elasticsearch     | none     | 53 of 53 | 46 s |
+| 8.9.28  | Elasticsearch     | Basic    | 55 of 55 | 56 s |
+| 8.9.28  | Elasticsearch     | OIDC     | 58 of 58 | 56 s |
+| 8.10.9  | H2                | none     | 53 of 53 | 18 s |
+| 8.10.9  | H2                | Basic    | 55 of 55 | 27 s |
+| 8.10.9  | H2                | OIDC     | 58 of 58 | 45 s |
+| 8.10.9  | Elasticsearch     | none     | 53 of 53 | 45 s |
+| 8.10.9  | Elasticsearch     | Basic    | 55 of 55 | 57 s |
+| 8.10.9  | Elasticsearch     | OIDC     | 58 of 58 | 66 s |
 
 A leg runs the read laws and the wait states, plus one read without credentials on an unprotected
 API, three checks with Basic (no login, a wrong password, a login without permissions) or six

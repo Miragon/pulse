@@ -84,9 +84,9 @@ A few layering rules keep modules independently usable and a second engine diale
   Pulse for Orca: a deadline to the last byte, no redirect, a 64 MiB cap (none in the CLI), one
   retry after a 401, failure reasons as data, masked secrets; every wiring passes `TRANSPORT_CASES`.
 - One engine contract: `@miragon/pulse-engine-core` holds the ports, read models, laws and shared
-  rules (`RootCauses`) of every dialect; the runtime view and its two editor hosts, c7-core and the
-  C7 adapter (`packages/connectors/c7/c7-adapter`) use it, the engine connector and the CLI through
-  c7-core.
+  rules (`RootCauses`) of every dialect; the runtime view and its two editor hosts, c7-core, the C7
+  and C8 adapters and the board builder (`@miragon/pulse-board/builder`) use it, the engine
+  connector and the CLI through c7-core.
 - Extract on the second consumer, never speculatively. A composed-views package appears with
   the first cross-module view. A second dialect joins the engine module (`ENGINE_DIALECTS`),
   never with a widget package or an MCP server app of its own.
@@ -140,11 +140,11 @@ differs. The decisions are in `apps/vscode/docs/adr/ui-foundation.md`.
 
 ## Repository layout
 
-| Path                   | Description                                                                            |
-| ---------------------- | -------------------------------------------------------------------------------------- |
-| `apps/mcp-server/`     | The MCP server entry point and the widget bundle.                                      |
-| `packages/core/`       | What every family builds on: widget-shell, pulse-ui, profile, board format, transport. |
-| `packages/connectors/` | One folder per family: the neutral `engine` (module, core), one per dialect (`c7`).    |
-| `playground/`          | Demo env: showcases, Compose stack, Fly.io deployment.                                 |
+| Path                   | Description                                                                                        |
+| ---------------------- | -------------------------------------------------------------------------------------------------- |
+| `apps/mcp-server/`     | The MCP server entry point and the widget bundle.                                                  |
+| `packages/core/`       | What every family builds on: widget-shell, pulse-ui, profile, board format and builder, transport. |
+| `packages/connectors/` | One folder per family: the neutral `engine` (module, core), one per dialect (`c7`, `c8`).          |
+| `playground/`          | Demo env: showcases, Compose stack, Fly.io deployment.                                             |
 
 For deeper detail, [Reference](reference.md) lists every tool and toolset.
