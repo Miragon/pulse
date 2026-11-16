@@ -382,14 +382,16 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
     }
   })
 
-  it("the real map lists c7-core, the transport, engine-core's rules and the profile format, each with the owner's decision", () => {
+  it("the real map lists c7-core, the transport, engine-core's rules, the profile format and the board format with its builder, each with the owner's decision", () => {
     const engineCore = "packages/connectors/engine/engine-core"
     const profile = "packages/core/profile"
+    const board = "packages/core/board"
     assert.deepEqual(Object.keys(MUTATED_PACKAGES), [
       CORE,
       "packages/core/http",
       engineCore,
       profile,
+      board,
     ])
     assert.match(
       MUTATED_PACKAGES[CORE],
@@ -408,6 +410,25 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
         "every surface accepts, so a surviving mutant is a wrong rule in the CLI, Pulse for " +
         "VS Code and the MCP server",
     )
+    assert.equal(
+      MUTATED_PACKAGES[board],
+      "owner decision 2026-11-15: the board format decides which board files and widgets every " +
+        "surface reads or refuses, and its builder the numbers each widget shows over the engine " +
+        "contract, so a surviving mutant is a wrong refusal or a wrong number on every board; its " +
+        "format and builder are mutated, not its barrels or fixtures",
+    )
+  })
+
+  it("the board's config mutates its format and builder without the tests and the builder's barrel, as its reason says", () => {
+    const config = JSON.parse(
+      readFileSync(path.join(repoRoot, "packages/core/board/stryker.config.json"), "utf8"),
+    )
+    assert.deepEqual(config.mutate, [
+      "src/format/**/*.ts",
+      "src/builder/**/*.ts",
+      "!src/**/*.test.ts",
+      "!src/builder/index.ts",
+    ])
   })
 
   it("engine-core's config mutates exactly its three rule files, as its reason says", () => {

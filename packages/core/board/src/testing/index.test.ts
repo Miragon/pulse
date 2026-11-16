@@ -41,7 +41,7 @@ describe("the shared board fixtures", () => {
       expect(
         Object.keys(entry).filter((key) => !FIXTURE_KEYS.includes(key)),
         name,
-      ).toEqual([])
+      ).toStrictEqual([])
       expect("text" in entry !== "file" in entry, name).toBe(true)
       expect(typeof entry.schema, name).toBe("boolean")
       expect(["problems", "board,notes"], name).toContain(FixtureVerdicts.keysOf(entry.verdict))
@@ -64,8 +64,8 @@ describe("the shared board fixtures", () => {
     const notes = BOARD_FIXTURES.flatMap((fixture) => FixtureVerdicts.notesOf(fixture))
 
     expect(BOARD_FIXTURES.filter((fixture) => "board" in fixture.verdict).length).toBeGreaterThan(4)
-    expect(notes.map((note) => note.code)).toEqual(["ignoredKey"])
-    expect(paths).toEqual(
+    expect(notes.map((note) => note.code)).toStrictEqual(["ignoredKey"])
+    expect(paths).toStrictEqual(
       expect.arrayContaining([
         "(file)",
         "schemaVersion",
@@ -82,7 +82,7 @@ describe("the shared board fixtures", () => {
   it.each(BOARD_FIXTURES.map((fixture) => [fixture.name, fixture] as const))(
     "%s: the parser gives the verdict the fixture states",
     (_name, fixture) => {
-      expect(BoardParser.parse(fixture.text)).toEqual(fixture.verdict)
+      expect(BoardParser.parse(fixture.text)).toStrictEqual(fixture.verdict)
     },
   )
 })

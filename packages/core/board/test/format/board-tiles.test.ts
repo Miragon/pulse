@@ -27,7 +27,7 @@ describe("the tiles a reader reads", () => {
       rows: [{ row: [RUNNING, { widget: "incidentList" }] }, { row: [{ widget: "chart" }] }],
     })
 
-    expect(BoardTiles.of(board)).toEqual([
+    expect(BoardTiles.of(board)).toStrictEqual([
       [
         { widget: "counter", title: "Running", refused: TENANTS },
         { widget: "incidentList", refused: TENANTS },

@@ -100,6 +100,11 @@ export const MUTATED_PACKAGES = {
     "owner decision 2026-11-07: the profile rules decide which secrets, variables and URLs every " +
     "surface accepts, so a surviving mutant is a wrong rule in the CLI, Pulse for VS Code and " +
     "the MCP server",
+  "packages/core/board":
+    "owner decision 2026-11-15: the board format decides which board files and widgets every " +
+    "surface reads or refuses, and its builder the numbers each widget shows over the engine " +
+    "contract, so a surviving mutant is a wrong refusal or a wrong number on every board; its " +
+    "format and builder are mutated, not its barrels or fixtures",
 }
 
 /** The one path the CI mutation artifact and scripts/fitness-report.mjs read. */

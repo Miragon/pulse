@@ -25,7 +25,7 @@ describe("an incident summary", () => {
       { name: "prod" },
     ])
 
-    expect(only(model.rows)).toEqual({
+    expect(only(model.rows)).toStrictEqual({
       kind: "incidentSummary",
       widget: board.rows[0]?.[0],
       engines: 3,
@@ -48,10 +48,34 @@ describe("an incident summary", () => {
     expect(
       tile.kind === "incidentSummary" &&
         tile.rows.map((row) => [row.engine, row.process?.bpmnProcessId, row.withIncident]),
-    ).toEqual([
+    ).toStrictEqual([
       ["shop", "pulse-order", 1],
       ["shop", "pulse-label", 1],
       ["shop", "pulse-dispatch", 1],
+    ])
+  })
+
+  test("orders the processes by their instances with incident, most first, and leaves out those without", async () => {
+    const counted: Readonly<Record<string, number>> = { "pulse-order": 2, "pulse-dispatch": 5 }
+    const reads = BuilderWorld.world({
+      listDefinitions: async () =>
+        (await BuilderWorld.world().listDefinitions()).map((summary) => ({
+          ...summary,
+          withIncident: counted[summary.latest.bpmnProcessId] ?? 0,
+        })),
+    })
+    const board = BuilderWorld.board([{ widget: "incidentSummary" }], ["shop"])
+
+    const model = await BoardBuilder.build(board, [{ name: "shop", reads }])
+
+    const tile = only(model.rows)
+    expect(tile).toMatchObject({ kind: "incidentSummary", known: 1, total: 7 })
+    expect(
+      tile.kind === "incidentSummary" &&
+        tile.rows.map((row) => [row.process?.bpmnProcessId, row.withIncident]),
+    ).toStrictEqual([
+      ["pulse-dispatch", 5],
+      ["pulse-order", 2],
     ])
   })
 
@@ -60,7 +84,7 @@ describe("an incident summary", () => {
 
     const model = await BoardBuilder.build(board, [{ name: "prod" }])
 
-    expect(only(model.rows)).toEqual({
+    expect(only(model.rows)).toStrictEqual({
       kind: "incidentSummary",
       widget: board.rows[0]?.[0],
       engines: 1,
@@ -93,13 +117,13 @@ describe("an incident list", () => {
         ? tile.groups.map((group) => [group.engine, group.incidents?.length, group.more])
         : []
     }
-    expect(groups(0)).toEqual([
+    expect(groups(0)).toStrictEqual([
       ["shop", 1, undefined],
       ["more", 0, true],
       ["flaky", undefined, undefined],
       ["prod", undefined, undefined],
     ])
-    expect(groups(1)).toEqual([
+    expect(groups(1)).toStrictEqual([
       ["shop", 2, undefined],
       ["more", 0, true],
       ["flaky", undefined, undefined],
@@ -156,12 +180,19 @@ describe("a process diagram", () => {
         ? [tile.engine, tile.notDeployed, tile.latest?.version, tile.badges]
         : []
     })
-    expect(shown).toEqual([
+    expect(shown).toStrictEqual([
       ["shop", true, undefined, undefined],
       ["counts", undefined, 2, undefined],
       ["drawing", undefined, 2, undefined],
       ["flaky", undefined, undefined, undefined],
       ["prod", undefined, undefined, undefined],
+    ])
+    expect(model.rows.map((row) => Object.keys(row[0] ?? {}))).toStrictEqual([
+      ["kind", "widget", "engine", "notDeployed"],
+      ["kind", "widget", "engine", "latest"],
+      ["kind", "widget", "engine", "latest"],
+      ["kind", "widget", "engine"],
+      ["kind", "widget", "engine"],
     ])
   })
 
@@ -170,6 +201,6 @@ describe("a process diagram", () => {
 
     const model = await BoardBuilder.build({ title: "Orders", engines: [], rows: [[widget]] }, [])
 
-    expect(model.rows).toEqual([[{ kind: "processDiagram", widget, engine: "" }]])
+    expect(model.rows).toStrictEqual([[{ kind: "processDiagram", widget, engine: "" }]])
   })
 })

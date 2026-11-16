@@ -30,7 +30,7 @@ describe("the engines of a board", () => {
       { name: "prod" },
     ])
 
-    expect(model).toEqual({
+    expect(model).toStrictEqual({
       title: "Orders",
       engines: [
         {
@@ -51,7 +51,7 @@ describe("the engines of a board", () => {
       { name: "shop", reads: BuilderWorld.world({ listDefinitions: FAILED }) },
     ])
 
-    expect(model.engines).toEqual([
+    expect(model.engines).toStrictEqual([
       { name: "shop", state: "ready", info: { product: "Fake engine", version: "1.0.0" } },
     ])
   })
@@ -71,13 +71,13 @@ describe("the engines of a board", () => {
 
     await BoardBuilder.build(board, [shop.source, locked.source])
 
-    expect(shop.calls).toEqual([
+    expect(shop.calls).toStrictEqual([
       "describeEngine",
       "listDefinitions",
       "countInstances",
       "searchInstances",
     ])
-    expect(locked.calls).toEqual(["describeEngine"])
+    expect(locked.calls).toStrictEqual(["describeEngine"])
   })
 })
 
@@ -98,12 +98,12 @@ describe("a refused widget", () => {
 
     const model = await BoardBuilder.build(board, [shop.source])
 
-    expect(model.rows.map((row) => row.map((tile) => tile.kind))).toEqual([
+    expect(model.rows.map((row) => row.map((tile) => tile.kind))).toStrictEqual([
       ["refused"],
       ["refused"],
       ["incidentSummary"],
     ])
-    expect(model.rows[0]).toEqual([
+    expect(model.rows[0]).toStrictEqual([
       {
         kind: "refused",
         widget: "chart",
@@ -113,7 +113,7 @@ describe("a refused widget", () => {
         ],
       },
     ])
-    expect(model.rows[1]).toEqual([
+    expect(model.rows[1]).toStrictEqual([
       {
         kind: "refused",
         widget: "counter",
@@ -121,7 +121,7 @@ describe("a refused widget", () => {
         problems: [{ path: "rows[1].row[0].props.filter.withIncident", code: "endedWithIncident" }],
       },
     ])
-    expect(shop.calls).toEqual(["describeEngine", "listDefinitions"])
+    expect(shop.calls).toStrictEqual(["describeEngine", "listDefinitions"])
   })
 
   test("without a widget or a title of its own stays a refused widget without them", async () => {
@@ -129,7 +129,7 @@ describe("a refused widget", () => {
 
     const model = await BoardBuilder.build(board, [{ name: "shop", reads: BuilderWorld.world() }])
 
-    expect(model.rows).toEqual([
+    expect(model.rows).toStrictEqual([
       [{ kind: "refused", problems: [{ path: "rows[0].row[0]", code: "notAnObject" }] }],
     ])
   })
@@ -145,13 +145,13 @@ describe("a refused widget", () => {
     const model = await BoardBuilder.build(board, [shop.source])
 
     const tenants = [{ path: "tenants", code: "tenantsNotRead" }]
-    expect(model.rows).toEqual([
+    expect(model.rows).toStrictEqual([
       [{ kind: "refused", widget: "counter", title: "Running", problems: tenants }],
       [{ kind: "refused", widget: "incidentList", problems: tenants }],
       [{ kind: "refused", problems: [{ path: "rows[2].row[0]", code: "notAnObject" }] }],
     ])
-    expect(model.engines).toEqual([expect.objectContaining({ name: "shop", state: "ready" })])
-    expect(shop.calls).toEqual(["describeEngine", "listDefinitions"])
+    expect(model.engines).toStrictEqual([expect.objectContaining({ name: "shop", state: "ready" })])
+    expect(shop.calls).toStrictEqual(["describeEngine", "listDefinitions"])
   })
 })
 
@@ -167,7 +167,7 @@ describe("a counter", () => {
       { name: "prod" },
     ])
 
-    expect(tileOf(model.rows, "counter")).toEqual({
+    expect(tileOf(model.rows, "counter")).toStrictEqual({
       kind: "counter",
       widget: board.rows[0]?.[0],
       known: 1,
@@ -180,12 +180,15 @@ describe("a counter", () => {
     })
   })
 
-  test("carries a lower bound into its reading and its total, and leaves the threshold undecided at or below it", async () => {
+  test("carries a lower bound into its reading and its total, leaves the threshold undecided at or below it and decides nothing without one", async () => {
     const capped = BuilderWorld.world({
       countInstances: () => Promise.resolve({ count: 10, atLeast: true }),
     })
     const board = BuilderWorld.board(
-      [5, 10, 20].map((warnAbove) => ({ widget: "counter", props: { filter: ORDER, warnAbove } })),
+      [5, 10, 20, undefined].map((warnAbove) => ({
+        widget: "counter",
+        props: { filter: ORDER, warnAbove },
+      })),
       ["capped", "shop"],
     )
 
@@ -194,7 +197,7 @@ describe("a counter", () => {
       { name: "shop", reads: BuilderWorld.world() },
     ])
 
-    expect([0, 1, 2].map((row) => tileOf(model.rows, "counter", row).readings)).toEqual([
+    expect([0, 1, 2, 3].map((row) => tileOf(model.rows, "counter", row).readings)).toStrictEqual([
       [
         { engine: "capped", count: { count: 10, atLeast: true }, above: true },
         { engine: "shop", count: { count: 3 } },
@@ -207,8 +210,12 @@ describe("a counter", () => {
         { engine: "capped", count: { count: 10, atLeast: true }, undecided: true },
         { engine: "shop", count: { count: 3 } },
       ],
+      [
+        { engine: "capped", count: { count: 10, atLeast: true } },
+        { engine: "shop", count: { count: 3 } },
+      ],
     ])
-    expect(tileOf(model.rows, "counter").total).toEqual({ count: 13, atLeast: true })
+    expect(tileOf(model.rows, "counter").total).toStrictEqual({ count: 13, atLeast: true })
   })
 
   test("has no total when no engine answered", async () => {
@@ -216,7 +223,7 @@ describe("a counter", () => {
 
     const model = await BoardBuilder.build(board, [{ name: "prod" }])
 
-    expect(tileOf(model.rows, "counter")).toEqual({
+    expect(tileOf(model.rows, "counter")).toStrictEqual({
       kind: "counter",
       widget: board.rows[0]?.[0],
       known: 0,
@@ -239,13 +246,21 @@ describe("an instance list", () => {
     ])
 
     const groups = tileOf(model.rows, "instanceList").groups
-    expect(groups.map((group) => [group.engine, group.instances?.length, group.total])).toEqual([
+    expect(
+      groups.map((group) => [group.engine, group.instances?.length, group.total]),
+    ).toStrictEqual([
       ["shop", 3, { count: 3 }],
       ["flaky", undefined, undefined],
       ["uncounted", 3, undefined],
       ["prod", undefined, undefined],
     ])
-    expect(groups[0]?.instances?.map((instance) => instance.businessKey).sort()).toEqual([
+    expect(groups.map((group) => Object.keys(group))).toStrictEqual([
+      ["engine", "instances", "total"],
+      ["engine"],
+      ["engine", "instances"],
+      ["engine"],
+    ])
+    expect(groups[0]?.instances?.map((instance) => instance.businessKey).sort()).toStrictEqual([
       "ORD-1001",
       "ORD-1002",
       "ORD-2001",

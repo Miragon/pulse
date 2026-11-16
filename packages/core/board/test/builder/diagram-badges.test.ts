@@ -29,6 +29,26 @@ const RETURN = `<bpmn:definitions id="Definitions_Return">
   </bpmndi:BPMNDiagram>
 </bpmn:definitions>`
 
+const PLAIN = `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <process id="plain">
+    <task id="Start" />
+    <transaction id="Settle">
+      <serviceTask id="Book" />
+    </transaction>
+    <subProcess>
+      <task id="Orphan" />
+    </subProcess>
+    <subProcess id="Pack">
+      <task id="Wrap" />
+    </subProcess>
+  </process>
+  <bpmndi:BPMNDiagram id="Diagram_Plain">
+    <bpmndi:BPMNPlane id="Plane_Plain" bpmnElement="plain">
+      <bpmndi:BPMNShape id="Shape_Pack" bpmnElement="Pack" isExpanded="false" />
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>`
+
 function statistic(elementId: string, counts: Partial<ElementStatistics>): ElementStatistics {
   return {
     elementId: ElementId(elementId),
@@ -43,19 +63,33 @@ describe("the collapsed shapes of a diagram", () => {
   test("name the collapsed sub-processes around an element, innermost first", () => {
     const shapes = CollapsedShapes.of(RETURN)
 
-    expect(shapes.around("ReadScale")).toEqual(["Weigh", "Inspect"])
-    expect(shapes.around("Check")).toEqual(["Inspect"])
-    expect(shapes.around("Empty")).toEqual(["Inspect"])
-    expect(shapes.around("WriteNote")).toEqual(["Notes"])
+    expect(shapes.around("ReadScale")).toStrictEqual(["Weigh", "Inspect"])
+    expect(shapes.around("Check")).toStrictEqual(["Inspect"])
+    expect(shapes.around("Empty")).toStrictEqual(["Inspect"])
+    expect(shapes.around("WriteNote")).toStrictEqual(["Notes"])
   })
 
   test("leave out an expanded sub-process and what lies outside every sub-process", () => {
     const shapes = CollapsedShapes.of(RETURN)
 
-    expect(shapes.around("PayRefund")).toEqual([])
-    expect(shapes.around("Close")).toEqual([])
-    expect(shapes.around("Inspect")).toEqual([])
-    expect(shapes.around("Unknown")).toEqual([])
+    expect(shapes.around("PayRefund")).toStrictEqual([])
+    expect(shapes.around("Close")).toStrictEqual([])
+    expect(shapes.around("Inspect")).toStrictEqual([])
+    expect(shapes.around("Unknown")).toStrictEqual([])
+  })
+
+  test("read the tags of a diagram without prefixes, a collapsed transaction among them", () => {
+    const shapes = CollapsedShapes.of(PLAIN)
+
+    expect(shapes.around("Book")).toStrictEqual(["Settle"])
+    expect(shapes.around("Wrap")).toStrictEqual(["Pack"])
+  })
+
+  test("name no sub-process without an id, and none around an element outside every sub-process", () => {
+    const shapes = CollapsedShapes.of(PLAIN)
+
+    expect(shapes.around("Orphan")).toStrictEqual([])
+    expect(shapes.around("Start")).toStrictEqual([])
   })
 })
 
@@ -68,7 +102,7 @@ describe("the badges of a diagram", () => {
       statistic("PayRefund", { incidents: 4 }),
     ])
 
-    expect(badges).toEqual([
+    expect(badges).toStrictEqual([
       statistic("Inspect", { active: 3, incidents: 1, incidentsInCalledInstances: 2 }),
       statistic("Weigh", { active: 1, incidents: 1, incidentsInCalledInstances: 2 }),
       statistic("ReadScale", { incidents: 1, incidentsInCalledInstances: 2 }),
@@ -82,7 +116,7 @@ describe("the badges of a diagram", () => {
       statistic("Close", {}),
     ])
 
-    expect(badges).toEqual([
+    expect(badges).toStrictEqual([
       statistic("Check", { incidents: 1 }),
       statistic("Inspect", { incidents: 1 }),
     ])

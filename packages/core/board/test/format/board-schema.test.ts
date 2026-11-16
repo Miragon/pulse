@@ -48,12 +48,12 @@ function widgetNamed(name: string): Node {
 function expectWidgetLikeTheParser(widget: (typeof BoardVocabulary.WIDGETS)[number]): void {
   const node = widgetNamed(widget)
   const props = node.properties?.props
-  expect(keysOf(node)).toEqual(BoardVocabulary.WIDGET_KEYS)
+  expect(keysOf(node)).toStrictEqual(BoardVocabulary.WIDGET_KEYS)
   expect(node.additionalProperties).toBe(false)
   const required = BoardVocabulary.REQUIRED_PROPS[widget]
-  expect(node.required).toEqual(required.length === 0 ? ["widget"] : ["widget", "props"])
-  expect(props?.required ?? []).toEqual(required)
-  expect(keysOf(props)).toEqual(BoardVocabulary.PROPS[widget])
+  expect(node.required).toStrictEqual(required.length === 0 ? ["widget"] : ["widget", "props"])
+  expect(props?.required ?? []).toStrictEqual(required)
+  expect(keysOf(props)).toStrictEqual(BoardVocabulary.PROPS[widget])
   expect(props?.additionalProperties).toBe(false)
   expect(props?.properties?.engines?.uniqueItems).toBe(true)
 }
@@ -80,20 +80,20 @@ function schemaTakes(text: string): boolean {
 
 describe("the board schema", () => {
   test("allows exactly the keys and versions the parser reads", () => {
-    expect(keysOf(schema)).toEqual(BoardVocabulary.DOCUMENT_KEYS)
-    expect(schema.required).toEqual(BoardVocabulary.REQUIRED)
-    expect(schema.properties?.rows?.items?.required).toEqual(BoardVocabulary.ROW_KEYS)
+    expect(keysOf(schema)).toStrictEqual(BoardVocabulary.DOCUMENT_KEYS)
+    expect(schema.required).toStrictEqual(BoardVocabulary.REQUIRED)
+    expect(schema.properties?.rows?.items?.required).toStrictEqual(BoardVocabulary.ROW_KEYS)
     expect(schema.properties?.engines?.uniqueItems).toBe(true)
     expect(schema.additionalProperties).toBe(false)
     expect(schema.properties?.schemaVersion?.const).toBe(BoardVocabulary.SCHEMA_VERSION)
-    expect(keysOf(schema.properties?.rows?.items)).toEqual(BoardVocabulary.ROW_KEYS)
+    expect(keysOf(schema.properties?.rows?.items)).toStrictEqual(BoardVocabulary.ROW_KEYS)
   })
 
   test("knows every widget with exactly its props", () => {
     const named = schema.definitions.widget?.oneOf?.map(
       (widget) => widget.properties?.widget?.const,
     )
-    expect(named).toEqual(BoardVocabulary.WIDGETS)
+    expect(named).toStrictEqual(BoardVocabulary.WIDGETS)
     for (const widget of BoardVocabulary.WIDGETS) {
       expectWidgetLikeTheParser(widget)
     }
@@ -101,11 +101,11 @@ describe("the board schema", () => {
 
   test("offers the filter keys, states, groupings and columns the parser accepts", () => {
     const filter = schema.definitions.filter
-    expect(keysOf(filter)).toEqual(BoardVocabulary.FILTER_KEYS)
+    expect(keysOf(filter)).toStrictEqual(BoardVocabulary.FILTER_KEYS)
     expect(filter?.additionalProperties).toBe(false)
-    expect(filter?.properties?.state?.enum).toEqual(BoardVocabulary.STATES)
-    expect(propOf("incidentSummary", "groupBy")?.enum).toEqual(BoardVocabulary.GROUPINGS)
-    expect(propOf("instanceList", "columns")?.items?.enum).toEqual(BoardVocabulary.COLUMNS)
+    expect(filter?.properties?.state?.enum).toStrictEqual(BoardVocabulary.STATES)
+    expect(propOf("incidentSummary", "groupBy")?.enum).toStrictEqual(BoardVocabulary.GROUPINGS)
+    expect(propOf("instanceList", "columns")?.items?.enum).toStrictEqual(BoardVocabulary.COLUMNS)
     expect(propOf("instanceList", "columns")?.minItems).toBe(1)
   })
 
@@ -136,14 +136,14 @@ describe("the board schema", () => {
   test("refuses some fixtures and is blind to what only the parser sees in others", () => {
     const blind = BOARD_FIXTURES.filter((fixture) => fixture.schema && !readsInFull(fixture))
     expect(BOARD_FIXTURES.filter((fixture) => !fixture.schema).length).toBeGreaterThan(10)
-    expect(blind.map((fixture) => fixture.name)).toEqual(
+    expect(blind.map((fixture) => fixture.name)).toStrictEqual(
       expect.arrayContaining(["thirteen-widgets", "blank-title", "engine-outside-the-board"]),
     )
   })
 
   test("is published at one export, listed literally, and in the files", () => {
     expect(manifest.exports[SCHEMA_PATH]).toBe(SCHEMA_PATH)
-    expect(Object.keys(manifest.exports).filter((key) => key.includes("*"))).toEqual([])
+    expect(Object.keys(manifest.exports).filter((key) => key.includes("*"))).toStrictEqual([])
     expect(manifest.files).toContain("schema")
   })
 })

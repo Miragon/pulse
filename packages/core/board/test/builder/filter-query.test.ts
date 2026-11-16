@@ -11,13 +11,13 @@ describe("a board filter", () => {
         withIncident: false,
         businessKey: "B-1",
       }),
-    ).toEqual({
+    ).toStrictEqual({
       lifecycle: "running",
       bpmnProcessId: "order",
       activeElementId: "Task_Pay",
       withIncident: false,
       businessKey: "B-1",
     })
-    expect(FilterQuery.of({ state: "ended" })).toEqual({ lifecycle: "ended" })
+    expect(FilterQuery.of({ state: "ended" })).toStrictEqual({ lifecycle: "ended" })
   })
 })

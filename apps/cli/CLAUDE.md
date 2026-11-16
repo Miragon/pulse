@@ -218,8 +218,9 @@ upload glob, each link with a planted break.
   only `@miragon/pulse-c7-core`, which holds the workflow rules the CLI bundles,
   `@miragon/pulse-http`, the transport it bundles (owner decision 2026-11-08), the
   root-cause, value-kind and move-reason rules of `@miragon/pulse-engine-core`, whose root-cause
-  rule the CLI bundles through c7-core (owner decision 2026-11-09), and `@miragon/pulse-profile`,
-  the profile format it bundles (owner decision 2026-11-07).
+  rule the CLI bundles through c7-core (owner decision 2026-11-09), `@miragon/pulse-profile`,
+  the profile format it bundles (owner decision 2026-11-07), and `@miragon/pulse-board`, which it
+  does not bundle (owner decision 2026-11-15).
 - Coverage floors in `apps/cli/vitest.config.ts` only rise.
 
 ## The command and its second name

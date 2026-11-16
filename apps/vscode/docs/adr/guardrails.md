@@ -134,9 +134,11 @@ repository's CI (`.github/workflows/ci.yml`) next to the server's.
   the rules of `@miragon/pulse-engine-core`, the contract the runtime view speaks, `RootCauses`,
   `ValueKinds` and `MoveReasons`
   (`packages/connectors/engine/engine-core/src/model/root-causes.ts`, `value-kinds.ts` and
-  `move-reasons.ts`, its only mutated files; owner decision 2026-11-09), and
+  `move-reasons.ts`, its only mutated files; owner decision 2026-11-09),
   `@miragon/pulse-profile`, the profile format the host kit's connections read (owner decision
-  2026-11-07).
+  2026-11-07), and `@miragon/pulse-board`, the board format the Boards view reads and the builder
+  whose model the runtime view renders (its `src/format` and `src/builder`; owner decision
+  2026-11-15).
 - Thresholds sit below the measured baseline: coverage lines/statements/functions/branches globally
   in the runtime view 96/96/95/90 (the measured values rounded down since 2026-11-12, when the
   connection builder got its test and its CLI) and its host kit 75/76/75/78 (the measured values

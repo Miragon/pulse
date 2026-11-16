@@ -8,8 +8,8 @@ name: Mutation (nightly)
 # @miragon/pulse-c7-core (engine-core until 0.27; owner decision, 2026-11-04), the transport,
 # @miragon/pulse-http (owner decision 2026-11-08), the rules of the engine family's neutral core,
 # @miragon/pulse-engine-core (its root-cause, value-kind and move-reason rules alone; owner
-# decision 2026-11-09), and the profile format, @miragon/pulse-profile (owner decision
-# 2026-11-07).
+# decision 2026-11-09), the profile format, @miragon/pulse-profile (owner decision 2026-11-07),
+# and the board format with its builder, @miragon/pulse-board (owner decision 2026-11-15).
 #
 # Each leg keeps its package's Stryker incremental file in the Actions cache (every
 # stryker.config.json sets incremental: true and incrementalFile reports/stryker-incremental.json,
@@ -22,9 +22,9 @@ name: Mutation (nightly)
 #
 # Nightly at 02:00 UTC, and by dispatch. Mutation testing resumed on 2026-11-04 after the MCP
 # server rebuild, for engine-core (now c7-core) alone; the transport joined with its package, the
-# neutral core's rules and the profile format on 2026-11-09. A pause flips
-# scripts/mutation-pause.mjs to true and removes the schedule here (a workflow cannot read that
-# switch); resuming flips it back and restores the schedule.
+# neutral core's rules and the profile format on 2026-11-09, the board package on 2026-11-16. A
+# pause flips scripts/mutation-pause.mjs to true and removes the schedule here (a workflow cannot
+# read that switch); resuming flips it back and restores the schedule.
 on:
   schedule:
     - cron: "0 2 * * *"
@@ -80,8 +80,9 @@ jobs:
     # cases on loopback sockets included) in about 2 min on 17, the neutral core's three rule
     # files (packages/connectors/engine/engine-core, 115 mutants) in about 10 s on 17 and 15 s
     # on 4, the profile format (packages/core/profile, 1,168 mutants) in about 3 min on 4 local
-    # workers, so 30 min leaves room for a hosted runner's 4 and the build before it. A package
-    # that joins MUTATED_PACKAGES brings its own measured time here.
+    # workers, the board format and builder (packages/core/board, 1,083 mutants) in about 40 s on
+    # 11 and 70 s on 4, so 30 min leaves room for a hosted runner's 4 and the build before it. A
+    # package that joins MUTATED_PACKAGES brings its own measured time here.
     timeout-minutes: 30
     strategy:
       fail-fast: false

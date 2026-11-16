@@ -122,7 +122,7 @@ describe("the words of a board's problems", () => {
   test("cover every code once, each a sentence to follow its path, without a full stop", () => {
     const codes = SENTENCES.map(([problem]) => problem.code)
 
-    expect([...codes].sort()).toEqual(Object.keys(EVERY_CODE).sort())
+    expect([...codes].sort()).toStrictEqual(Object.keys(EVERY_CODE).sort())
     for (const [problem, sentence] of SENTENCES) {
       expect(sentence, problem.code).toMatch(/^[a-z].*[^.]$/)
     }

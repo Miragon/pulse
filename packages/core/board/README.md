@@ -185,6 +185,15 @@ entry (the version rule above). The same holds for the builder's
 `BoardModel`, the input of every surface that renders a board, and for its peer: the builder takes
 the `@miragon/pulse-engine-core` of the same release.
 
+## Mutation testing
+
+The format and the builder are mutation-tested every night in the repository (StrykerJS over
+`src/format` and `src/builder` without the tests and the builder's barrel, against the package's
+own tests; owner decision 2026-11-15). They decide which board files and widgets every surface
+reads or refuses and the numbers each widget shows, so a surviving mutant is a wrong refusal or a
+wrong number on every board. Locally:
+`pnpm --fail-if-no-match --filter @miragon/pulse-board exec stryker run`.
+
 ## Licence
 
 [MIT](LICENSE)

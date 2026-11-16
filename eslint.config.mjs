@@ -36,6 +36,7 @@ export const DEFAULT_PROJECT_FILES = [
   "packages/connectors/engine/engine-core/vitest.config.ts",
   "packages/connectors/engine/engine-core/vitest.stryker.config.ts",
   "packages/core/board/vitest.config.ts",
+  "packages/core/board/vitest.stryker.config.ts",
   "packages/core/http/vitest.config.ts",
   "packages/core/http/vitest.stryker.config.ts",
   "packages/core/profile/vitest.config.ts",

@@ -39,7 +39,7 @@ describe("the process widgets of a board file", () => {
       }),
     )
 
-    expect(parsed).toEqual({
+    expect(parsed).toStrictEqual({
       board: {
         title: "Orders",
         engines: ["shop"],
@@ -56,17 +56,19 @@ describe("the process widgets of a board file", () => {
   })
 
   test("refuse a diagram without a process or over several engines", () => {
-    expect(refusalsOf({ widget: "processDiagram" })).toEqual([
+    expect(refusalsOf({ widget: "processDiagram" })).toStrictEqual([
       { path: "rows[0].row[0].props.process", reason: "is missing" },
       {
         path: "rows[0].row[0].props.engines",
         reason: "must name one engine, because a diagram shows the deployment of one engine",
       },
     ])
-    expect(refusalsOf({ widget: "processDiagram", props: { process: " " } }, ["shop"])).toEqual([
+    expect(
+      refusalsOf({ widget: "processDiagram", props: { process: " " } }, ["shop"]),
+    ).toStrictEqual([
       { path: "rows[0].row[0].props.process", reason: "must be a text that is not empty" },
     ])
-    expect(refusalsOf({ widget: "incidentList", props: { filter: {} } })).toEqual([
+    expect(refusalsOf({ widget: "incidentList", props: { filter: {} } })).toStrictEqual([
       {
         path: "rows[0].row[0].props.filter",
         reason: "is not a known key; use title, engines, process",
