@@ -266,6 +266,7 @@ export const engineModule = {
       profileCount: parsed.profileCount,
       defaultEngine: parsed.defaultEngine,
       toolset: engineToolsets.resolve(parsed.toolset),
+      hasBoards: (parsed.boards?.boards.length ?? 0) > 0,
     })
   },
 

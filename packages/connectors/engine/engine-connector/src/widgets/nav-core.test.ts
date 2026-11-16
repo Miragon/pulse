@@ -39,6 +39,11 @@ describe("intentToView", () => {
         { section: "jobs", processDefinitionKey: "invoice", failedOnly: true },
       ],
       [{ type: "jobs" }, { section: "jobs" }],
+      // A board's tile names the view on its engine; the cockpit moves there.
+      [
+        { type: "board-target", engine: "prod-a", view: { section: "incidents" } },
+        { section: "incidents" },
+      ],
     ]
     for (const [intent, view] of cases) {
       expect(intentToView(intent)).toEqual(view)
@@ -108,6 +113,12 @@ describe("viewKey", () => {
     expect(viewKey({ section: "history", processInstanceId: "pi-1" })).toBe("history:pi-1")
   })
 
+  it("keys a board by its id, never its title", () => {
+    expect(viewKey({ section: "board", board: "invoices", label: "Invoices" })).toBe(
+      "board:invoices",
+    )
+  })
+
   it("stacks the engine's jobs and one process's failed jobs as two entries", () => {
     const engineJobs: CockpitView = { section: "jobs" }
     const processJobs: CockpitView = {
@@ -127,6 +138,13 @@ describe("crumbLabel", () => {
       `History ${truncate("0123456789abcdef", 8)}`,
     )
     expect(crumbLabel({ section: "history", processInstanceId: "pi-1" }, "de")).toBe("Verlauf pi-1")
+  })
+
+  it("names a board by its title, else its id", () => {
+    expect(crumbLabel({ section: "board", board: "invoices", label: "Invoices" }, "en")).toBe(
+      "Invoices",
+    )
+    expect(crumbLabel({ section: "board", board: "invoices" }, "de")).toBe("invoices")
   })
 })
 

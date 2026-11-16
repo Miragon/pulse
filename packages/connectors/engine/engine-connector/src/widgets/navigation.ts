@@ -1,4 +1,5 @@
 import { createContext, useContext } from "react"
+import type { CockpitView } from "../view-models.js"
 
 // The cockpit binds this to its client-side router, so a drill navigates without an LLM round-trip.
 export type NavIntent =
@@ -16,6 +17,8 @@ export type NavIntent =
   | ({ type: "instance-detail"; processInstanceId: string } & Labelled)
   | ({ type: "incident-detail"; incidentId: string } & Labelled)
   | { type: "jobs"; processDefinitionKey?: string; failedOnly?: boolean }
+  // A board's tile: a route of one of the board's engines, which the cockpit then shows.
+  | { type: "board-target"; engine: string; view: CockpitView }
 
 // #322 U13: the breadcrumb name; without one the drill shows the id.
 interface Labelled {

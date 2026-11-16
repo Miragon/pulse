@@ -149,6 +149,7 @@ describe("THIRD_PARTY_LICENSES.txt", { timeout: 120_000 }, () => {
     // Tailwind's preflight and tw-animate-css reach mcp-app.css through @import only
     expect(names).toEqual(expect.arrayContaining(["tailwindcss", "tw-animate-css", "shadcn/ui"]))
     expect(inventory.own).toEqual([
+      "@miragon/pulse-blocks",
       "@miragon/pulse-engine-connector",
       "@miragon/pulse-ui",
       "@miragon/pulse-widget-shell",

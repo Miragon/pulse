@@ -5,6 +5,7 @@ import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
 import { listJobsInput } from "./schemas/index.js"
 import { runWithMcpRequestInfo } from "@miragon/pulse-widget-shell/server"
 import { engineModule } from "./module.js"
+import { worldBoard } from "./data/honest-numbers.test-support.js"
 
 describe("engineModule.instructions", () => {
   const TWO = [
@@ -37,6 +38,29 @@ describe("engineModule.instructions", () => {
     expect(text).toContain(
       "- History (engine_query_historic_*) covers finished instances, activities, tasks, variables and resolved incidents (incidents need history level FULL).\n",
     )
+  })
+
+  // Only a server with boards says how one opens: elsewhere the line would cost every deployment.
+  // It names no board: engine_list_engines does, so the line keeps its size with every file.
+  it("says where the boards are listed and how one opens, only on a server with boards", () => {
+    const rule =
+      "- Boards: engine_list_engines lists them; engine_open_cockpit with view board and a " +
+      "board's id shows one to the user, read from the engines the board names; its facts are " +
+      "that board's numbers.\n"
+    const withBoards = engineModule.instructions({
+      engines: TWO,
+      toolset: "read-only",
+      boards: { boards: [worldBoard()], refused: [] },
+    })
+    expect(withBoards).toContain(rule)
+    expect(withBoards).not.toMatch(/\borders\b/)
+    expect(snippet(TWO, "read-only")).not.toContain("- Boards")
+    const empty = engineModule.instructions({
+      engines: TWO,
+      toolset: "read-only",
+      boards: { boards: [], refused: [] },
+    })
+    expect(empty).not.toContain("- Boards")
   })
 
   it("several engines with a default: names the ids and the default engine", () => {

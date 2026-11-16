@@ -81,7 +81,7 @@ const dataFeed = <TShape extends z.ZodRawShape, TData extends object>(
 ) => feed
 
 /** What a feed that names its own engines reads with. */
-interface NamedReadContext {
+export interface NamedReadContext {
   /** The engine a name resolves to under the call: by that name alone, never the default. */
   resolve: BoardEngineResolver
   /** The boards of ENGINE_BOARDS_DIR; none without it. */
@@ -262,7 +262,7 @@ export const incidentDetailFeed = dataFeed({
   }),
 })
 
-const boardFeed = namingFeed({
+export const boardFeed = namingFeed({
   name: ENGINE_BOARD_DATA,
   title: "Board data (internal)",
   description:

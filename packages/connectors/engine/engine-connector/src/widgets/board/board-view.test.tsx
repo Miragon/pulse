@@ -1,0 +1,205 @@
+// @vitest-environment happy-dom
+import { afterEach, describe, expect, it } from "vitest"
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import {
+  TestViewHost,
+  createTestQueryClient,
+  type HostAction,
+} from "@miragon/pulse-widget-shell/widgets"
+import { ENGINE_BOARD_DATA, ENGINE_BPMN_XML_DATA } from "../../tool-names.js"
+import type { BoardStartData } from "../../view-models.board.js"
+import { NavProvider, type NavIntent } from "../navigation.js"
+import { BOARD, RUNNING_INSTANCE } from "./board.test-support.js"
+import { BoardView } from "./board-view.js"
+
+afterEach(cleanup)
+
+/** The view on `data` as the board feed gives it, in `locale`, with its navigation and host calls. */
+function renderBoard({
+  locale = "en",
+  data = BOARD,
+  seed = data,
+  feed = () => data,
+}: {
+  locale?: string
+  data?: BoardStartData
+  seed?: BoardStartData | null
+  feed?: (args: Record<string, unknown>) => unknown
+} = {}) {
+  const intents: NavIntent[] = []
+  const actions: HostAction[] = []
+  const contexts: string[] = []
+  render(
+    <TestViewHost
+      locale={locale}
+      host={{ timeZone: "UTC" }}
+      client={createTestQueryClient()}
+      onHostAction={(action) => actions.push(action)}
+      onModelContext={(text) => contexts.push(text)}
+      tools={{
+        [ENGINE_BOARD_DATA]: feed,
+        // No diagram here: bpmn-js draws in a browser (test:host), the tile still says its facts.
+        [ENGINE_BPMN_XML_DATA]: (args: Record<string, unknown>) => ({
+          processDefinitionId: args.processDefinitionId,
+          bpmnXml: null,
+        }),
+      }}
+    >
+      <NavProvider value={(intent) => intents.push(intent)}>
+        <BoardView board="invoices" data={seed} />
+      </NavProvider>
+    </TestViewHost>,
+  )
+  return { intents, actions, contexts }
+}
+
+const feedCalls = (actions: HostAction[]) =>
+  actions.filter((action) => action.type === "callTool" && action.name === ENGINE_BOARD_DATA)
+
+describe("the cockpit's board view", () => {
+  it("names the board in its bar, its engines, and the time its numbers were read", () => {
+    renderBoard()
+    expect(screen.getByRole("heading", { level: 1, name: "Invoices" })).toBeTruthy()
+    expect(screen.getByText("3 engines: prod-a, down, nowhere")).toBeTruthy()
+    // Another day's reading names its day.
+    expect(screen.getByText("As of Oct 26, 08:00 AM")).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Refresh" })).toBeTruthy()
+  })
+
+  it("renders every tile of the board, a widget the file breaks in its place", () => {
+    renderBoard()
+    const kinds = [...document.querySelectorAll("[data-part=board-card]")].map((card) =>
+      card.getAttribute("data-kind"),
+    )
+    expect(kinds).toEqual([
+      "counter",
+      "incidentSummary",
+      "instanceList",
+      "incidentList",
+      "processDiagram",
+      "refused",
+    ])
+    expect(screen.getByRole("region", { name: "Waiting for approval" })).toBeTruthy()
+  })
+
+  it("keeps the numbers neutral: an alarming count shows its tone by an icon and words", () => {
+    renderBoard()
+    for (const figure of document.querySelectorAll("[data-part=counter-value]")) {
+      expect(figure.className).not.toMatch(/text-(danger|warning|success|info)/)
+    }
+  })
+
+  it("says each engine that was not read in its place: failed by describeError, not configured", () => {
+    renderBoard()
+    expect(screen.getByText("Engine down is unreachable (HTTP 503)")).toBeTruthy()
+    // A board has no other engine to pick: it reads those its file names.
+    expect(
+      screen.getByText(
+        "Check that the engine is running. Until then, the tiles show what the other engines answered.",
+      ),
+    ).toBeTruthy()
+    expect(screen.queryByText(/pick another engine/)).toBeNull()
+    expect(screen.getByText("nowhere is not among the engines of this server.")).toBeTruthy()
+    expect(screen.getByText("1 note on this board's file.")).toBeTruthy()
+  })
+
+  it("words a refused profile as such, and a failure that names no engine's state as not read", () => {
+    const refused =
+      '[ENGINE_PROFILE_REFUSED] Engine "c8" is configured, but its profile cannot be used: ' +
+      "This server does not speak the API of this flavor. Ask whoever runs this server to fix it."
+    renderBoard({
+      data: {
+        ...BOARD,
+        engines: [
+          {
+            name: "c8",
+            state: "failed",
+            failure: { code: "ENGINE_PROFILE_REFUSED", message: refused },
+          },
+          {
+            name: "odd",
+            state: "failed",
+            failure: {
+              code: "misconfigured",
+              message: "[404 InvalidRequestException] no such path",
+            },
+          },
+        ],
+      },
+    })
+    expect(screen.getByText("Engine c8 cannot be used: its profile is refused")).toBeTruthy()
+    expect(
+      screen.getByText(/can fix the profile\. Until then, the tiles show what the other engines/),
+    ).toBeTruthy()
+    expect(screen.queryByText(/pick another engine/)).toBeNull()
+    expect(screen.getByText("Can't read odd")).toBeTruthy()
+    expect(screen.queryByText(/no longer exists/)).toBeNull()
+  })
+
+  it("opens a row's instance or incident on the cockpit's own routes, by an xs drill", () => {
+    const { intents } = renderBoard()
+    const instances = screen.getByRole("region", { name: "Instances" })
+    const drills = within(instances).getAllByRole("button", { name: /^Open instance/ })
+    expect(drills[0].getAttribute("data-size") ?? drills[0].className).toMatch(/xs|h-control-xs/)
+    fireEvent.click(drills[0])
+    expect(intents).toEqual([
+      {
+        type: "board-target",
+        engine: "prod-a",
+        view: {
+          section: "instance-detail",
+          processInstanceId: RUNNING_INSTANCE,
+          label: "INV-0042",
+        },
+      },
+    ])
+  })
+
+  it("opens a ready engine's overview from its chip", () => {
+    const { intents } = renderBoard()
+    const engines = screen.getByRole("group", { name: "Engines of this board" })
+    const chip = within(engines).getByRole("button", { name: /prod-a/ })
+    // The product with its version, as the webview's chip names it.
+    expect(chip.textContent).toContain("CIB seven 2.1.0 · 12 running · 2 with incident")
+    fireEvent.click(chip)
+    expect(intents).toEqual([
+      { type: "board-target", engine: "prod-a", view: { section: "overview" } },
+    ])
+  })
+
+  it("reads the board again on Refresh", async () => {
+    const { actions } = renderBoard()
+    const before = feedCalls(actions).length
+    fireEvent.click(screen.getByRole("button", { name: "Refresh" }))
+    await waitFor(() => expect(feedCalls(actions).length).toBeGreaterThan(before))
+  })
+
+  it("reads the board feed by its id when it has no seed", async () => {
+    const { actions } = renderBoard({ seed: null })
+    await screen.findByRole("heading", { level: 1, name: "Invoices" })
+    expect(feedCalls(actions)[0]).toMatchObject({ args: { board: "invoices" } })
+  })
+
+  it("tells the model the board's ids and facts, its title fenced as the operator's text", () => {
+    const { contexts } = renderBoard()
+    const text = contexts.at(-1) ?? ""
+    expect(text).toContain("invoices")
+    expect(text).toContain("prod-a")
+    expect(text).toContain("Invoices")
+  })
+
+  it("words its chrome and the tiles in German under a German host", () => {
+    renderBoard({ locale: "de" })
+    expect(screen.getByText(/^Stand 26\. Okt\.?,? 08:00$/)).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Aktualisieren" })).toBeTruthy()
+    expect(screen.getByText("3 Engines: prod-a, down, nowhere")).toBeTruthy()
+    expect(screen.getByText("nowhere gehört nicht zu den Engines dieses Servers.")).toBeTruthy()
+    expect(
+      screen.getByText(
+        "Prüf, ob die Engine läuft. Bis dahin zeigen die Kacheln, was die anderen Engines geantwortet haben.",
+      ),
+    ).toBeTruthy()
+    expect(screen.getByRole("region", { name: "Instanzen mit Incident" })).toBeTruthy()
+    expect(screen.getAllByRole("button", { name: /^Instanz .* öffnen$/ }).length).toBeGreaterThan(0)
+  })
+})

@@ -63,6 +63,7 @@
     "@miragon/pulse-profile": "workspace:*"
   },
   "peerDependencies": {
+    "@miragon/pulse-blocks": "workspace:^",
     "@miragon/pulse-ui": "workspace:^",
     "@miragon/pulse-widget-shell": "workspace:^",
     "bpmn-js": "^18.31.1",
@@ -72,6 +73,9 @@
     "zod": "^4.4.0"
   },
   "peerDependenciesMeta": {
+    "@miragon/pulse-blocks": {
+      "optional": true
+    },
     "@miragon/pulse-ui": {
       "optional": true
     },
@@ -86,6 +90,7 @@
     }
   },
   "devDependencies": {
+    "@miragon/pulse-blocks": "workspace:*",
     "@miragon/pulse-ui": "workspace:*",
     "@miragon/pulse-widget-shell": "workspace:*",
     "@testing-library/react": "16.3.3",

@@ -20,7 +20,9 @@ import {
   startFakeEngine,
 } from "../tools/test-support/fake-engine.js"
 import type { BoardStartData } from "../view-models.board.js"
+import type { CockpitStart } from "../view-models.js"
 import { type BoardEngineResolver, buildBoardData } from "./board-data.js"
+import { buildCockpitStart } from "./cockpit-start.js"
 
 /** A builder run against the world, with its overrides of the world's answers. */
 export interface BuildCase {
@@ -111,40 +113,60 @@ const engineOf = (data: BoardStartData) => {
 }
 const listGroup = (data: BoardStartData) => tileOf(data, "instanceList")?.groups[0]
 
+/** Every read of WORLD_BOARD's healthy build, and where its figure shows in the board's data. */
+const BOARD_PLACES: Record<string, (data: BoardStartData) => unknown> = {
+  // What the engine is: when it fails to say, the engine is failed and asked nothing else.
+  "GET /telemetry/data": (data: BoardStartData) => engineOf(data)?.product,
+  // The definitions and their flags: the engine's totals (and the summary, the diagram's version).
+  "GET /process-definition/statistics": (data: BoardStartData) => engineOf(data)?.totals,
+  "GET /process-instance?firstResult&maxResults&sortBy&sortOrder&withIncident": (
+    data: BoardStartData,
+  ) => engineOf(data)?.totals,
+  "POST /history/process-instance/count {activityIdIn,processDefinitionKey,unfinished}": (
+    data: BoardStartData,
+  ) => tileOf(data, "counter")?.total,
+  // The list's page, the runtime's incident flags of its rows, and its total.
+  "POST /history/process-instance?firstResult&maxResults {processDefinitionKey,sorting,unfinished}":
+    (data: BoardStartData) => listGroup(data)?.instances,
+  "GET /process-instance?firstResult&maxResults&processInstanceIds&withIncident": (
+    data: BoardStartData,
+  ) => listGroup(data)?.instances,
+  "POST /history/process-instance/count {processDefinitionKey,unfinished}": (
+    data: BoardStartData,
+  ) => listGroup(data)?.total,
+  // The diagram's badges: its counts per element, the incidents behind them, its XML.
+  [`GET /process-definition/${WORLD.latestDefinitionId}/statistics`]: (data: BoardStartData) =>
+    tileOf(data, "processDiagram")?.badges,
+  "GET /incident?firstResult&maxResults&processDefinitionId&sortBy&sortOrder": (
+    data: BoardStartData,
+  ) => tileOf(data, "processDiagram")?.badges,
+  [`GET /process-definition/${WORLD.latestDefinitionId}/xml`]: (data: BoardStartData) =>
+    tileOf(data, "processDiagram")?.badges,
+  "GET /incident?firstResult&maxResults&sortBy&sortOrder": (data: BoardStartData) =>
+    tileOf(data, "incidentList")?.groups[0]?.incidents,
+}
+
+/** The board's places in the start data of `engine_open_cockpit` view `board`. */
+const START_PLACES = Object.fromEntries(
+  Object.entries(BOARD_PLACES).map(([read, place]) => [
+    read,
+    (start: CockpitStart) => place(start.data as BoardStartData),
+  ]),
+)
+
 export const DEGRADE: Record<string, DegradeCase> = {
   buildBoardData: {
     run: (_client, baseUrl) => buildBoardData(worldBoard(), worldResolver(baseUrl)),
-    places: {
-      // What the engine is: when it fails to say, the engine is failed and asked nothing else.
-      "GET /telemetry/data": (data: BoardStartData) => engineOf(data)?.product,
-      // The definitions and their flags: the engine's totals (and the summary, the diagram's version).
-      "GET /process-definition/statistics": (data: BoardStartData) => engineOf(data)?.totals,
-      "GET /process-instance?firstResult&maxResults&sortBy&sortOrder&withIncident": (
-        data: BoardStartData,
-      ) => engineOf(data)?.totals,
-      "POST /history/process-instance/count {activityIdIn,processDefinitionKey,unfinished}": (
-        data: BoardStartData,
-      ) => tileOf(data, "counter")?.total,
-      // The list's page, the runtime's incident flags of its rows, and its total.
-      "POST /history/process-instance?firstResult&maxResults {processDefinitionKey,sorting,unfinished}":
-        (data: BoardStartData) => listGroup(data)?.instances,
-      "GET /process-instance?firstResult&maxResults&processInstanceIds&withIncident": (
-        data: BoardStartData,
-      ) => listGroup(data)?.instances,
-      "POST /history/process-instance/count {processDefinitionKey,unfinished}": (
-        data: BoardStartData,
-      ) => listGroup(data)?.total,
-      // The diagram's badges: its counts per element, the incidents behind them, its XML.
-      [`GET /process-definition/${WORLD.latestDefinitionId}/statistics`]: (data: BoardStartData) =>
-        tileOf(data, "processDiagram")?.badges,
-      "GET /incident?firstResult&maxResults&processDefinitionId&sortBy&sortOrder": (
-        data: BoardStartData,
-      ) => tileOf(data, "processDiagram")?.badges,
-      [`GET /process-definition/${WORLD.latestDefinitionId}/xml`]: (data: BoardStartData) =>
-        tileOf(data, "processDiagram")?.badges,
-      "GET /incident?firstResult&maxResults&sortBy&sortOrder": (data: BoardStartData) =>
-        tileOf(data, "incidentList")?.groups[0]?.incidents,
-    },
+    places: BOARD_PLACES,
+  },
+  // The cockpit's board route starts from the board feed: its start shows each failure in place.
+  "buildCockpitStart (board)": {
+    run: (_client, baseUrl) =>
+      buildCockpitStart(
+        { section: "board", board: "orders" },
+        { resolve: worldResolver(baseUrl), boards: { boards: [worldBoard()], refused: [] } },
+      ),
+    places: START_PLACES,
   },
 }
 

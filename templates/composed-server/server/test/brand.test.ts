@@ -110,6 +110,8 @@ describe("the view stylesheets (#339)", () => {
     // The tarball's dist carries no tests (pulse-ui's package.json `files`), so the
     // template scans it whole: no fixture class reaches your stylesheet.
     expect(globals).toMatch(/@source "[^"]*node_modules\/@miragon\/pulse-ui\/dist"/)
+    // The board's tiles the engine module's cockpit renders, with the classes of their build.
+    expect(globals).toMatch(/@source "[^"]*node_modules\/@miragon\/pulse-blocks\/dist"/)
     expect(globals).not.toMatch(/@source not/)
   })
 })

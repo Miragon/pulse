@@ -56,3 +56,13 @@ describe("every paged list reaches the inline fit", () => {
     },
   )
 })
+
+// A board's tiles take the cockpit's table as a slot (@miragon/pulse-blocks): it is widget-shell's
+// ListTable, which hands its body to the fit itself, so a tile's rows fit the host's budget too.
+describe("a board's tables reach the inline fit", () => {
+  it("the table slot renders ListTable, never a table of its own", () => {
+    const source = readFileSync(join(WIDGETS, "board", "board-table.tsx"), "utf8")
+    expect(source).toMatch(/<ListTable\b/)
+    expect(source).not.toMatch(/<(table|DataTable)\b/)
+  })
+})

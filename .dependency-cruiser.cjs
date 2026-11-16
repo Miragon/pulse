@@ -257,9 +257,13 @@ const BLOCKS_IMPORTS = [
 /**
  * Where a surface renders the blocks, their only shipped importers: the runtime view's webview
  * (a board's tiles in Pulse for VS Code and Pulse for Orca; its closed world holds it to the main
- * entry). Tests import them anywhere.
+ * entry) and the engine connector's widgets (the cockpit's board route, which brings its own table,
+ * id and diagram as the slots). Tests import them anywhere.
  */
-const BLOCKS_RENDERERS = [`${RUNTIME_VIEW_TREE}src/webview/`]
+const BLOCKS_RENDERERS = [
+  `${RUNTIME_VIEW_TREE}src/webview/`,
+  `${ENGINE_CONNECTOR_TREE}src/widgets/`,
+]
 
 /**
  * Where a surface reads its board files, the only shipped importers of BOARD's main entry: the
@@ -793,7 +797,8 @@ module.exports = {
         "they share with the server (src/lib/shared) import at runtime only browser code: the " +
         "widgets' own src/widgets, src/lib/shared, the shared words (src/messages), the tool " +
         "names (src/tool-names.ts), the view models (src/view-models*.ts), the BPMN-name reader " +
-        "(src/bpmn-names.ts), widget-shell's `/widgets` and the view stack (VIEW_STACK). Nothing " +
+        "(src/bpmn-names.ts), widget-shell's `/widgets`, the view stack (VIEW_STACK) and the " +
+        "building blocks (@miragon/pulse-blocks, which blocks-consumers holds to the widgets). Nothing " +
         "else of the connector (tools, widget tools, data builders, the other lib folders, " +
         "providers, instructions, feed contracts, plugin, module, the package root), no client " +
         "SDK, no server package (the MCP SDK's server, zod), no Node built-in. Type-only imports stay allowed: " +
@@ -809,7 +814,7 @@ module.exports = {
         pathNot: [
           "^packages/connectors/[^/]+/$1-connector/src/(?:widgets|messages|lib/shared)/",
           "^packages/connectors/[^/]+/$1-connector/src/(?:tool-names|view-models[.\\w-]*|bpmn-names)[.]tsx?$",
-          ...npm(`${VIEW_STACK}|@miragon/pulse-widget-shell/widgets`),
+          ...npm(`${VIEW_STACK}|@miragon/pulse-widget-shell/widgets|${escapeRegExp(BLOCKS.name)}`),
         ],
       },
     },
@@ -1067,10 +1072,11 @@ module.exports = {
       comment:
         "The building blocks (@miragon/pulse-blocks) may be imported only where a surface renders " +
         "them (BLOCKS_RENDERERS): the runtime view's webview (packages/core/runtime-view/src/" +
-        "webview, a board's tiles in Pulse for VS Code and Pulse for Orca), and by tests anywhere. " +
-        "Not the runtime view's other layers, no other package and no app until it renders them " +
-        "itself, through a rule change of its own (the engine connector's widgets with the " +
-        "cockpit's board route). A relative escape into packages/core/blocks is a violation too.",
+        "webview, a board's tiles in Pulse for VS Code and Pulse for Orca) and the engine " +
+        "connector's widgets (src/widgets, the cockpit's board route), and by tests anywhere. " +
+        "Not the runtime view's other layers, not the rest of the connector (its data builders, " +
+        "tools, lib folders), no other package and no app until it renders them itself, through a " +
+        "rule change of its own. A relative escape into packages/core/blocks is a violation too.",
       from: {
         pathNot: [
           ...BLOCKS_RENDERERS,

@@ -688,9 +688,12 @@ const SUITES = [
       [CLI_SRC, BLOCKS_NAME, [HEADLESS, BLOCKS_USERS]],
       [EXT_SRC, BLOCKS_NAME, [BLOCKS_USERS]],
       [ORCA_SRC, BLOCKS_NAME, [BLOCKS_USERS]],
-      // The engine connector's widgets render them once the cockpit's board route does.
-      [`${ENGINE_CONNECTOR}/src/widgets/board.ts`, BLOCKS_NAME, [WIDGETS_BROWSER, BLOCKS_USERS]],
+      // Of the engine connector only its widgets render them (the cockpit's board route): not its
+      // data builders, tools or the lib folder the widgets share with the server.
       [`${ENGINE_CONNECTOR}/src/data/board.ts`, BLOCKS_NAME, [BLOCKS_USERS]],
+      [`${ENGINE_CONNECTOR}/src/tools/board.ts`, BLOCKS_NAME, [BLOCKS_USERS]],
+      [`${ENGINE_CONNECTOR}/src/lib/shared/board.ts`, BLOCKS_NAME, [BLOCKS_USERS]],
+      [`${ENGINE_CONNECTOR}/src/widget-tools/board.ts`, BLOCKS_NAME, [BLOCKS_USERS]],
       // Of the runtime view only its webview renders them.
       [`${RUNTIME_VIEW}/src/core/board.ts`, BLOCKS_NAME, [BLOCKS_USERS]],
       [`${RUNTIME_VIEW}/src/host-kit/board.ts`, BLOCKS_NAME, [BLOCKS_USERS]],
@@ -702,8 +705,11 @@ const SUITES = [
       ],
       // An unresolved subpath (shape 3: dependency-cruiser reads no exports map).
       [`${SHELL}/src/blocks-sub.ts`, `${BLOCKS_NAME}/board`, [BLOCKS_USERS]],
-      // Allowed: the runtime view's webview, and tests anywhere.
+      // Allowed: the runtime view's webview, the engine connector's widgets (shape 2 too), and
+      // tests anywhere.
       [`${RUNTIME_VIEW}/src/webview/screens/board.ts`, BLOCKS_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/widgets/board/board-view.tsx`, BLOCKS_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/widgets/board/built.tsx`, `${BLOCKS_NAME}/dist/index.js`, []],
       [`${RUNTIME_VIEW}/test/webview/board.test.ts`, BLOCKS_NAME, []],
       [`${ENGINE_CONNECTOR}/src/data/board.test.ts`, BLOCKS_NAME, []],
       [`${SHELL}/test/support/blocks.ts`, BLOCKS_NAME, []],

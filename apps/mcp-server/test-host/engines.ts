@@ -36,3 +36,12 @@ export const OWN_VIEW_FEED = "board_cards_data"
  * deployment serves that page at `/page` (page-root.spec.ts).
  */
 export const PAGE_SCRIPT_ENV = "HOST_SIM_PAGE_SCRIPT"
+/**
+ * Env var carrying the host page of the deployment with board files (`fixtures/boards`, through
+ * ENGINE_BOARDS_DIR) over the healthy and the broken engine (set by global-setup.ts).
+ */
+export const BOARD_HOST_ENV = "HOST_SIM_BOARD_URL"
+/** Its board over both engines, every kind of tile and one the file breaks. */
+export const INVOICES_BOARD = "invoices"
+/** Its board file that gives no board (its title is missing). */
+export const BROKEN_BOARD = "broken"

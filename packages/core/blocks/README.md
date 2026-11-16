@@ -103,6 +103,8 @@ is a breaking change and says so in its changelog entry. They read the `BoardDat
 
 - Pulse for VS Code and Pulse for Orca: the runtime view's webview renders a board's tiles with
   its table (row activation, the copy keys, its hooks), its short id and its diagram canvas.
+- The Pulse MCP server: the cockpit's board route (`@miragon/pulse-engine-connector`) renders them
+  with widget-shell's table (a drill per row, the inline fit), its copyable id and its BPMN canvas.
 
 ## Help and feedback
 

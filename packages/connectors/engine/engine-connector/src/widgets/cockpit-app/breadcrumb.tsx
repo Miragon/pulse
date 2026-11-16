@@ -2,7 +2,7 @@ import { FOCUS_RING, cn, Icon } from "@miragon/pulse-ui"
 import { ChevronRight } from "lucide-react"
 import { translator } from "../../messages/use-t.js"
 import type { CockpitView } from "../../view-models.js"
-import { crumbLabel, type CockpitScope } from "../nav-core.js"
+import { type BoardView, crumbLabel, type CockpitScope, viewKey } from "../nav-core.js"
 
 /** A crumb that leads back: the control's height (28 px, 36 px on touch) around its words. */
 const CRUMB = cn("hover:text-foreground min-h-control inline-flex items-center rounded", FOCUS_RING)
@@ -55,8 +55,16 @@ export function NavBreadcrumb({
   )
 }
 
-/** Offered only with more than one engine, so the chooser is always there to go back to. */
-export function FleetCrumbs({ locale, onLanding }: { locale: string; onLanding: () => void }) {
+/** "All engines", then the app-level view the cockpit shows; only where the chooser exists. */
+function LandingCrumbs({
+  current,
+  locale,
+  onLanding,
+}: {
+  current: string
+  locale: string
+  onLanding: () => void
+}) {
   return (
     <nav
       aria-label={translator(locale, "cockpit.aria.breadcrumb")}
@@ -67,10 +75,34 @@ export function FleetCrumbs({ locale, onLanding }: { locale: string; onLanding: 
       </button>
       <Icon icon={ChevronRight} dense />
       <span aria-current="page" className="text-foreground font-semibold">
-        {translator(locale, "cockpit.crumb.fleet")}
+        {current}
       </span>
     </nav>
   )
+}
+
+/** Offered only with more than one engine, so the chooser is always there to go back to. */
+export function FleetCrumbs({ locale, onLanding }: { locale: string; onLanding: () => void }) {
+  return (
+    <LandingCrumbs
+      current={translator(locale, "cockpit.crumb.fleet")}
+      locale={locale}
+      onLanding={onLanding}
+    />
+  )
+}
+
+/** A board's trail, with more than one engine: the chooser, then the board by its title. */
+export function BoardCrumbs({
+  view,
+  locale,
+  onLanding,
+}: {
+  view: BoardView
+  locale: string
+  onLanding: () => void
+}) {
+  return <LandingCrumbs current={crumbLabel(view, locale)} locale={locale} onLanding={onLanding} />
 }
 
 /** A key change is a navigation. */
@@ -84,6 +116,9 @@ export function navigationOf(
   }
   if (scope.kind === "fleet") {
     return { key: "fleet", label: translator(locale, "cockpit.crumb.fleet") }
+  }
+  if (scope.kind === "board") {
+    return { key: viewKey(scope.view), label: crumbLabel(scope.view, locale) }
   }
   const view = stack[stack.length - 1]
   return {

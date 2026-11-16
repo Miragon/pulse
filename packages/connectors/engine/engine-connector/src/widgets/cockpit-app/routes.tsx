@@ -5,6 +5,7 @@ import type {
   CockpitStartData,
   CockpitView,
 } from "../../view-models.js"
+import { BoardView } from "../board/board-view.js"
 import { ClusterDetailWidget } from "../cluster-detail.js"
 import { ProcessDefinitionsTable } from "../cockpit-dashboard/definitions-table.js"
 import { EngineHealthVerdict } from "../engine-health.js"
@@ -24,10 +25,14 @@ function seedOf<S extends CockpitSection>(
   return seed?.view.section === section ? (seed.data as CockpitStartData[S]) : null
 }
 
+/** A view of one engine's routes: every section but the board's. */
+type EngineView = Exclude<CockpitView, { section: "board" }>
+
 /**
- * One cockpit view: self-fetching widgets scoped to `engine`, seeded with the start view's data
- * (`engine_open_cockpit`) while it is the view on screen. A new route adds its section to
- * `CockpitView` and a case here; the exhaustive switch fails to compile until it does.
+ * One cockpit view: an app route (a board, which reads the engines it names) or a route of
+ * `engine`, seeded with the start view's data (`engine_open_cockpit`) while it is the view on
+ * screen. A new route adds its section to `CockpitView` and a case here or in `EngineRoute`; the
+ * exhaustive switches fail to compile until it does.
  */
 export function CockpitRoute({
   view,
@@ -35,8 +40,26 @@ export function CockpitRoute({
   seed = null,
 }: {
   view: CockpitView
-  engine: string
+  /** The engine an engine route reads; none on a board. */
+  engine: string | null
   seed?: CockpitStart | null
+}) {
+  if (view.section === "board") {
+    return <BoardView board={view.board} data={seedOf(seed, "board")} />
+  }
+  // The cockpit opens an engine's routes only with its engine.
+  return engine === null ? null : <EngineRoute view={view} engine={engine} seed={seed} />
+}
+
+/** One engine's view: self-fetching widgets scoped to `engine`. */
+function EngineRoute({
+  view,
+  engine,
+  seed,
+}: {
+  view: EngineView
+  engine: string
+  seed: CockpitStart | null
 }) {
   switch (view.section) {
     // The definitions table carries per-definition health; a second KPI grid would duplicate it.

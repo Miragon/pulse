@@ -1,6 +1,7 @@
 /** What the widgets render, not engine API types (those live in `@miragon/pulse-c7-client/types`). */
 import type { IncidentRecovery } from "@miragon/pulse-c7-core"
 import type { IncidentsDashboardFilters, JobsFilters } from "./feed-contracts.js"
+import type { BoardStartData } from "./view-models.board.js"
 import type { ClusterDetailData, EngineHealthData } from "./view-models.health.js"
 
 /**
@@ -139,7 +140,10 @@ export interface CockpitEngineInfo {
   environment: string
 }
 
-/** Where the cockpit is: one route per section, with the ids that route reads. */
+/**
+ * Where the cockpit is: one route per section, with the ids that route reads. A board (`board`)
+ * is an app-level route: it reads the engines its file names, never one engine of the cockpit.
+ */
 export type CockpitView =
   | { section: "overview" }
   | { section: "incidents" }
@@ -161,6 +165,7 @@ export type CockpitView =
   | { section: "incident-detail"; incidentId: string; label?: string }
   | { section: "jobs"; processDefinitionKey?: string; failedOnly?: boolean }
   | { section: "history"; processInstanceId: string }
+  | { section: "board"; board: string; label?: string }
 
 export type CockpitSection = CockpitView["section"]
 
@@ -181,6 +186,7 @@ export interface CockpitStartData {
   "incident-detail": IncidentDetailData
   jobs: JobPanelData
   history: HistoryTimelineData
+  board: BoardStartData
 }
 
 /**
@@ -193,7 +199,10 @@ export type CockpitStart = {
 
 /** The app threads the chosen `engineId` into every nested call, so navigation ignores the default engine. */
 export interface CockpitAppData {
-  /** Resolved engine id, or null when the user must pick (multiple engines, none selected). */
+  /**
+   * Resolved engine id, or null when the user must pick (multiple engines, none selected) and on
+   * a board, which reads the engines it names.
+   */
   engineId: string | null
   engines: CockpitEngineInfo[]
   /** Where the cockpit opens, with that view's data; null exactly on the engine picker. */

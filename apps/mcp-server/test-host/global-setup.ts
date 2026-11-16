@@ -8,6 +8,7 @@ import { MODULES } from "../src/setup.js"
 import viteConfig from "../vite.config.js"
 import {
   ACCESS_DENIED_ENGINE,
+  BOARD_HOST_ENV,
   BROKEN_ENGINE,
   ENGINE_CONTROL_ENV,
   HEALTHY_ENGINE,
@@ -92,7 +93,8 @@ async function deploy(
  * `HOST_SIM_REALISTIC_URL`, the one with a refused profile and refused logins via
  * `HOST_SIM_REFUSED_URL`, the
  * one with a module's own view via
- * `HOST_SIM_OWN_VIEW_URL` and the stub engine's scenario control via
+ * `HOST_SIM_OWN_VIEW_URL`, the one with board files via `HOST_SIM_BOARD_URL` and the stub engine's
+ * scenario control via
  * `HOST_SIM_ENGINE_URL` (all inherited from this process). The default deployment also serves a
  * plain page outside a chat at `/page` (`mountPage`, its script built here from `page/main.ts`,
  * its path in `HOST_SIM_PAGE_SCRIPT`).
@@ -156,6 +158,12 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     ENGINE_SECRET_HOST_SIM_WRONG_PASSWORD: "not-the-password",
     ENGINE_SECRET_HOST_SIM_VIEWER_PASSWORD: "viewer-password",
   })
+  // The board files of fixtures/boards over both engines (board.spec.ts): the board feed and the
+  // cockpit's board route, a failed engine in its place, a file that gives no board.
+  const boards = await deploy({
+    ...engines,
+    ENGINE_BOARDS_DIR: path.join(import.meta.dirname, "fixtures", "boards"),
+  })
   // A module with a finished HTML view of its own next to the bundle's (own-view.spec.ts).
   const ownView = await deploy(
     { ...engines, MCP_ACTIVE_MODULES: "engine,board" },
@@ -167,6 +175,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   process.env[REALISTIC_HOST_ENV] = realistic.host.url
   process.env[REFUSED_HOST_ENV] = refused.host.url
   process.env[OWN_VIEW_HOST_ENV] = ownView.host.url
+  process.env[BOARD_HOST_ENV] = boards.host.url
   process.env[ENGINE_CONTROL_ENV] = engine.controlUrl
 
   return async () => {
@@ -175,6 +184,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     await realistic.close()
     await refused.close()
     await ownView.close()
+    await boards.close()
     await engine.close()
     await rm(pageDir, { recursive: true, force: true })
   }

@@ -7,6 +7,7 @@ import {
   type HostAction,
 } from "@miragon/pulse-widget-shell/widgets"
 import {
+  ENGINE_BOARD_DATA,
   ENGINE_CLUSTER_DETAIL_DATA,
   ENGINE_COCKPIT_OVERVIEW_DATA,
   ENGINE_HEALTH_DATA,
@@ -19,6 +20,7 @@ import {
   ENGINE_PROCESS_INSTANCES_DATA,
 } from "../../tool-names.js"
 import type { CockpitStart, CockpitView } from "../../view-models.js"
+import { BOARD } from "../board/board.test-support.js"
 import { CockpitRoute } from "./routes.js"
 
 afterEach(() => {
@@ -131,6 +133,44 @@ const SEEDED: Array<[string, CockpitView, CockpitStart, string, string, string]>
 ]
 
 describe("CockpitRoute", () => {
+  // An app route reads the engines it names: the board feed takes its id, never an engine.
+  it("a board reads the board feed by its id, without an engine", async () => {
+    const actions: HostAction[] = []
+    render(
+      <TestViewHost onHostAction={(action) => actions.push(action)}>
+        <CockpitRoute view={{ section: "board", board: "invoices" }} engine={null} />
+      </TestViewHost>,
+    )
+    await waitFor(() =>
+      expect(actions).toContainEqual({
+        type: "callTool",
+        name: ENGINE_BOARD_DATA,
+        args: { board: "invoices" },
+      }),
+    )
+  })
+
+  it("a board opens on its seed without a feed call", async () => {
+    const actions: HostAction[] = []
+    const view: CockpitView = { section: "board", board: "invoices" }
+    render(
+      <TestViewHost onHostAction={(action) => actions.push(action)}>
+        <CockpitRoute view={view} engine={null} seed={{ view, data: BOARD }} />
+      </TestViewHost>,
+    )
+    expect(await screen.findByRole("heading", { level: 1, name: "Invoices" })).toBeTruthy()
+    expect(actions.filter((a) => a.type === "callTool" && a.name === ENGINE_BOARD_DATA)).toEqual([])
+  })
+
+  it("an engine's route without an engine renders nothing", () => {
+    const { container } = render(
+      <TestViewHost>
+        <CockpitRoute view={{ section: "overview" }} engine={null} />
+      </TestViewHost>,
+    )
+    expect(container.textContent).toBe("")
+  })
+
   it.each(ROUTES)("%o reads %s on the cockpit's engine", async (view, feed, args) => {
     const actions: HostAction[] = []
     // No fakes: every read fails, so only the calls the route makes count.

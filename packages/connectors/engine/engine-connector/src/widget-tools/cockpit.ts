@@ -11,7 +11,8 @@ import type {
   CockpitSection,
   CockpitView,
 } from "../view-models.js"
-import { buildCockpitStart, cockpitFacts } from "../data/cockpit-start.js"
+import { BOARD_ID } from "../board-files.js"
+import { buildCockpitStart, cockpitFacts, isAppView } from "../data/cockpit-start.js"
 import { COCKPIT_ROUTES, type StartParam } from "../data/routes.js"
 import { ENGINE_OPEN_COCKPIT } from "../tool-names.js"
 import {
@@ -20,7 +21,7 @@ import {
   resolveEngine,
 } from "../lib/engine/resolve-engine.js"
 import { environmentOf } from "../lib/shared/environments.js"
-import type { WidgetToolsContext } from "./shared.js"
+import { namedReads, type WidgetToolsContext } from "./shared.js"
 
 /** The `view` enum: the routes in their descriptor's order (`data/routes.ts`). */
 const START_VIEWS = Object.keys(COCKPIT_ROUTES) as [CockpitSection, ...CockpitSection[]]
@@ -51,6 +52,11 @@ const startViewShape = {
   processInstanceId: z.string().optional().describe("instance-detail, history (required)."),
   incidentId: z.string().optional().describe("incident-detail (required)."),
   failedOnly: z.boolean().optional().describe("jobs: only jobs without retries."),
+  board: z
+    .string()
+    .regex(BOARD_ID)
+    .optional()
+    .describe("board (required): its id, as engine_list_engines lists the boards."),
 } satisfies Record<StartParam | "view", z.ZodType>
 
 type StartIds = Partial<z.output<z.ZodObject<typeof startViewShape>>>
@@ -66,11 +72,22 @@ const acceptedBy = (view: CockpitSection) => [
 
 /**
  * Zod reports an unknown key and still runs this, so it reads only the keys it knows. An invalid
- * `view` stops the parse before it gets here.
+ * `view` stops the parse before it gets here. An app route reads the engines it names, so it
+ * takes no `engine`.
  */
-function checkStartView(input: StartIds & { view?: CockpitSection }, ctx: z.RefinementCtx) {
+function checkStartView(
+  input: StartIds & { view?: CockpitSection; engine?: string },
+  ctx: z.RefinementCtx,
+) {
   const view = input.view ?? "overview"
   const accepted = acceptedBy(view)
+  if (COCKPIT_ROUTES[view].scope === "app" && given(input.engine)) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["engine"],
+      message: `view "${view}" reads the engines it names: it takes no engine.`,
+    })
+  }
   for (const param of COCKPIT_ROUTES[view].needs) {
     if (!given(input[param])) {
       ctx.addIssue({ code: "custom", path: [param], message: `view "${view}" needs ${param}.` })
@@ -109,18 +126,14 @@ function cockpitEngines(registry: EngineRegistry): CockpitEngineInfo[] {
   }))
 }
 
-export function registerCockpitWidgetTools({
-  server,
-  registry,
-  healthThresholds,
-  engineParam,
-}: WidgetToolsContext) {
+export function registerCockpitWidgetTools(context: WidgetToolsContext) {
+  const { server, registry, healthThresholds, engineParam } = context
   server.registerTool(
     ENGINE_OPEN_COCKPIT,
     {
       title: "Open Cockpit",
       description:
-        "Show the user the operations cockpit on one engine; they navigate it without further tool calls. `view` picks where it opens, by default the overview: the health verdict from the open incidents, the top failure clusters and every process. instance-detail needs a running instance; history shows ended ones too. You get that view's facts as compact JSON.",
+        "Show the user the operations cockpit on one engine; they navigate it without further tool calls. `view` picks where it opens, by default the overview: the health verdict from the open incidents, the top failure clusters and every process. instance-detail needs a running instance; history shows ended ones too; board shows a board across the engines it names, without `engine`. You get that view's facts as compact JSON.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
       inputSchema: strictToolInput({ ...startViewShape, ...engineParam }).superRefine(
         checkStartView,
@@ -130,6 +143,16 @@ export function registerCockpitWidgetTools({
     withToolErrors(async (args, ctx) => {
       const { engine, view, ...ids } = args
       const engines = cockpitEngines(registry)
+      const startView = toStartView(view ?? "overview", ids)
+      if (isAppView(startView)) {
+        // An app route reads the engines it names: no engine resolves, none is the cockpit's.
+        const start = await buildCockpitStart(startView, namedReads(context, ctx))
+        const board: CockpitAppData = { engineId: null, engines, start }
+        return buildViewResult(
+          board,
+          JSON.stringify({ view: start.view.section, ...cockpitFacts(start) }),
+        )
+      }
       // A named view needs an engine (ENGINE_NOT_SELECTED names them); without one the picker
       // stays, also for a refused engine, which the picker shows. A bad `engine` is a tool
       // error, never a silent picker.
@@ -145,7 +168,7 @@ export function registerCockpitWidgetTools({
         )
       }
       const start = await buildCockpitStart(
-        toStartView(view ?? "overview", ids),
+        startView,
         resolveEngine(engineId, registry, ctx),
         healthThresholds,
       )

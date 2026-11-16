@@ -5,7 +5,9 @@ import {
   type CockpitView,
 } from "../view-models.js"
 import type { ResolvedEngine } from "../lib/engine/resolve-engine.js"
+import { boardFacts } from "./board-facts.js"
 import {
+  boardFeed,
   clusterDetailFeed,
   healthFeed,
   historyTimelineFeed,
@@ -16,6 +18,7 @@ import {
   overviewFeed,
   processIncidentsFeed,
   processInstancesFeed,
+  type NamedReadContext,
   type ReadContext,
 } from "./feeds.js"
 
@@ -25,7 +28,9 @@ import {
  * `widget-tools/cockpit.ts` derives the `view` enum and the id checks from `COCKPIT_ROUTES`, and
  * `cockpit-start.ts` dispatches the start view to its route. `COCKPIT_ROUTES` is total over the
  * sections and `needs`/`takes` name fields of the route's own view, so a route missing here, or
- * an id its view lacks, fails to compile.
+ * an id its view lacks, fails to compile. A route's `scope` says what it reads: one engine the
+ * call resolved (`engine`), or the engines it names itself (`app`: a board), so its start
+ * resolves no engine and takes no `engine` argument.
  */
 
 type ViewOf<S extends CockpitSection> = Extract<CockpitView, { section: S }>
@@ -41,13 +46,17 @@ export type StartParam = { [S in CockpitSection]: ParamOf<S> }[CockpitSection]
 
 export type Facts = Record<string, unknown>
 
-/** One cockpit route, as `engine_open_cockpit` opens it. */
-interface CockpitRoute<S extends CockpitSection> {
+/** The sections whose route reads the engines it names (a board's), never one of the cockpit. */
+export type AppSection = "board"
+
+/** The routes of one engine: every section but the app's. */
+export type EngineSection = Exclude<CockpitSection, AppSection>
+
+/** What one cockpit route says, whichever its scope. */
+interface RouteParts<S extends CockpitSection> {
   /** The ids the view requires, and the ones it takes besides. */
   needs: readonly ParamOf<S>[]
   takes: readonly ParamOf<S>[]
-  /** The start data: the route's feed read with the args its widget's first page sends. */
-  start: (view: ViewOf<S>, engine: ResolvedEngine, ctx: ReadContext) => Promise<CockpitStartData[S]>
   /**
    * The model's view of the route: ids, verdicts and counts as compact JSON with English keys,
    * engine text clipped, never XML. A null fact is unknown, never 0; an `undefined` one is left
@@ -55,6 +64,23 @@ interface CockpitRoute<S extends CockpitSection> {
    */
   facts: (view: ViewOf<S>, data: CockpitStartData[S]) => Facts
 }
+
+/** A route of one engine, as `engine_open_cockpit` opens it on the engine the call resolved. */
+interface EngineRoute<S extends CockpitSection> extends RouteParts<S> {
+  scope: "engine"
+  /** The start data: the route's feed read with the args its widget's first page sends. */
+  start: (view: ViewOf<S>, engine: ResolvedEngine, ctx: ReadContext) => Promise<CockpitStartData[S]>
+}
+
+/** An app route: it reads the engines it names, each by its name under the call. */
+interface AppRoute<S extends CockpitSection> extends RouteParts<S> {
+  scope: "app"
+  /** The start data: the route's feed read with the args its view sends. */
+  start: (view: ViewOf<S>, ctx: NamedReadContext) => Promise<CockpitStartData[S]>
+}
+
+/** One cockpit route, its scope fixed by its section. */
+type CockpitRoute<S extends CockpitSection> = S extends AppSection ? AppRoute<S> : EngineRoute<S>
 
 const PAGE_0 = { firstResult: 0, maxResults: LIST_PAGE_SIZE }
 
@@ -76,6 +102,7 @@ function instanceState(instance: { ended: boolean; suspended: boolean }): string
  */
 export const COCKPIT_ROUTES: { readonly [S in CockpitSection]: CockpitRoute<S> } = {
   overview: {
+    scope: "engine",
     needs: [],
     takes: [],
     start: async (_, engine, ctx) => {
@@ -115,6 +142,7 @@ export const COCKPIT_ROUTES: { readonly [S in CockpitSection]: CockpitRoute<S> }
     },
   },
   incidents: {
+    scope: "engine",
     needs: [],
     takes: [],
     start: (_, engine, ctx) => incidentsFeed.read({}, engine, ctx),
@@ -127,6 +155,7 @@ export const COCKPIT_ROUTES: { readonly [S in CockpitSection]: CockpitRoute<S> }
     }),
   },
   "cluster-detail": {
+    scope: "engine",
     needs: ["activityId", "incidentType"],
     takes: ["messageSignature"],
     start: (view, engine, ctx) =>
@@ -153,6 +182,7 @@ export const COCKPIT_ROUTES: { readonly [S in CockpitSection]: CockpitRoute<S> }
     }),
   },
   "process-detail": {
+    scope: "engine",
     needs: ["processDefinitionKey"],
     takes: ["focus"],
     start: (view, engine, ctx) =>
@@ -169,6 +199,7 @@ export const COCKPIT_ROUTES: { readonly [S in CockpitSection]: CockpitRoute<S> }
     }),
   },
   "process-instances": {
+    scope: "engine",
     needs: [],
     takes: ["processDefinitionKey"],
     start: (view, engine, ctx) =>
@@ -186,6 +217,7 @@ export const COCKPIT_ROUTES: { readonly [S in CockpitSection]: CockpitRoute<S> }
     }),
   },
   "instance-detail": {
+    scope: "engine",
     needs: ["processInstanceId"],
     takes: [],
     start: (view, engine, ctx) =>
@@ -201,6 +233,7 @@ export const COCKPIT_ROUTES: { readonly [S in CockpitSection]: CockpitRoute<S> }
     }),
   },
   "incident-detail": {
+    scope: "engine",
     needs: ["incidentId"],
     takes: [],
     start: (view, engine, ctx) =>
@@ -216,6 +249,7 @@ export const COCKPIT_ROUTES: { readonly [S in CockpitSection]: CockpitRoute<S> }
     }),
   },
   jobs: {
+    scope: "engine",
     needs: [],
     takes: ["processDefinitionKey", "failedOnly"],
     start: (view, engine, ctx) =>
@@ -232,6 +266,7 @@ export const COCKPIT_ROUTES: { readonly [S in CockpitSection]: CockpitRoute<S> }
     }),
   },
   history: {
+    scope: "engine",
     needs: ["processInstanceId"],
     takes: [],
     start: (view, engine, ctx) =>
@@ -245,5 +280,12 @@ export const COCKPIT_ROUTES: { readonly [S in CockpitSection]: CockpitRoute<S> }
       endTime: processInstance?.endTime ?? null,
       totalActivities,
     }),
+  },
+  board: {
+    scope: "app",
+    needs: ["board"],
+    takes: [],
+    start: (view, ctx) => boardFeed.read({ board: view.board }, ctx),
+    facts: (view, data) => boardFacts(view.board, data),
   },
 }

@@ -6,7 +6,7 @@ import {
 } from "@miragon/pulse-widget-shell/server"
 import { DATA_FEEDS, type DataFeed, type NamingFeed } from "../data/feeds.js"
 import { resolveEngine } from "../lib/engine/resolve-engine.js"
-import type { WidgetToolsContext } from "./shared.js"
+import { namedReads, type WidgetToolsContext } from "./shared.js"
 
 const FEED_ANNOTATIONS = { readOnlyHint: true, idempotentHint: true, openWorldHint: true }
 
@@ -16,7 +16,7 @@ const FEED_ANNOTATIONS = { readOnlyHint: true, idempotentHint: true, openWorldHi
  * resolved by its name under the call.
  */
 export function registerWidgetDataFeeds(ctx: WidgetToolsContext) {
-  const { server, registry, healthThresholds, engineParam, boards } = ctx
+  const { server, registry, healthThresholds, engineParam } = ctx
 
   function registerDataFeed(feed: DataFeed) {
     server.registerTool(
@@ -47,9 +47,8 @@ export function registerWidgetDataFeeds(ctx: WidgetToolsContext) {
         inputSchema: strictToolInput(feed.shape),
         ...appOnly,
       },
-      withToolErrors(async (args, ctx) => {
-        const resolve = (name: string) => resolveEngine(name, registry, ctx)
-        const data = await feed.read(args, { resolve, ...(boards ? { boards } : {}) })
+      withToolErrors(async (args, call) => {
+        const data = await feed.read(args, namedReads(ctx, call))
         return buildDataFeedResult({ ...data })
       }),
     )

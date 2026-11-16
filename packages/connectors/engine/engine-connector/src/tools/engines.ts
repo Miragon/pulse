@@ -1,4 +1,5 @@
 import { engineStatusInput } from "../schemas/index.js"
+import type { BoardFiles } from "../board-files.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { engineStatusForModel } from "../lib/core-adapter/composites.js"
 import type { VerdictThresholds } from "@miragon/pulse-c7-core"
@@ -14,19 +15,36 @@ function refusedEntry({ id, environment, reason }: RefusedProfile) {
 }
 
 /**
- * Reads: the engine list (so even a read-only multi-engine deployment can route) and the triage,
- * judged by the thresholds the cockpit's overview uses.
+ * The boards of ENGINE_BOARDS_DIR as the model reads them: each board's id (what
+ * engine_open_cockpit's `board` takes), its title and the engines it names; a file that gives no
+ * board with how many problems it has, never their text.
+ */
+function boardList({ boards, refused }: BoardFiles) {
+  return {
+    boards: boards.map(({ id, board }) => ({ id, title: board.title, engines: board.engines })),
+    ...(refused.length > 0
+      ? { refusedBoards: refused.map(({ id, problems }) => ({ id, problems: problems.length })) }
+      : {}),
+  }
+}
+
+/**
+ * Reads: the engine list (so even a read-only multi-engine deployment can route, and with
+ * ENGINE_BOARDS_DIR the boards) and the triage, judged by the thresholds the cockpit's overview
+ * uses.
  */
 export function registerEngineTools(
   register: ToolRegistrar<EngineRegistry>,
   thresholds: VerdictThresholds,
+  boards?: BoardFiles,
 ): void {
   register({
     name: ENGINE_LIST_ENGINES,
     category: "engines",
     description:
       "List the configured engines, grouped by environment (`environments` maps each " +
-      "to its engine ids), plus the default engine (`defaultEngineId`, null when none).",
+      "to its engine ids), plus the default engine (`defaultEngineId`, null when none) and the " +
+      "server's boards, if it has any (`boards`).",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
     inputSchema: {},
     handler: (reg: EngineRegistry) =>
@@ -49,6 +67,8 @@ export function registerEngineTools(
         defaultEngineId: reg.defaultEngineId ?? null,
         // Only when there is one: a call to it fails with ENGINE_PROFILE_REFUSED and this reason.
         ...(reg.refused.size > 0 ? { refused: [...reg.refused.values()].map(refusedEntry) } : {}),
+        // Only with ENGINE_BOARDS_DIR: engine_open_cockpit with view board opens one.
+        ...(boards ? boardList(boards) : {}),
       }),
   })
 

@@ -13,7 +13,7 @@ together.
 
 ```sh
 npm install @miragon/pulse-engine-connector @miragon/pulse-widget-shell zod bpmn-js@18.31.1
-npm install react react-dom @miragon/pulse-ui lucide-react@1.70.0
+npm install react react-dom @miragon/pulse-ui @miragon/pulse-blocks lucide-react@1.70.0
 ```
 
 `zod`, `bpmn-js` and `@miragon/pulse-widget-shell` are required peers, the second line is for the
@@ -34,7 +34,8 @@ mountViews({ views: { ...engineViews } })
 ```
 
 Your stylesheet scans the module's widget sources, since it ships them as TypeScript:
-`@source "../node_modules/@miragon/pulse-engine-connector/src";`. Point it at an engine with
+`@source "../node_modules/@miragon/pulse-engine-connector/src";`, and the build of the board's
+tiles its cockpit renders: `@source "../node_modules/@miragon/pulse-blocks/dist";`. Point it at an engine with
 `ENGINE_BASE_URL` (default `http://localhost:8410/engine-rest`), or at several with a profile file
 in `ENGINES_JSON` / `ENGINES_FILE`; every variable is in the
 [configuration reference](https://miragon.github.io/pulse/mcp/reference#configuration).

@@ -12,9 +12,8 @@ React on `@miragon/pulse-ui`; the extension's webview moved from Preact to React
 one switch (2026-11-14) and shares one compact look with the cockpit. The product owner decided so on
 2026-11-12 (`apps/vscode/docs/adr/ui-foundation.md`, D1 to D9).
 
-Six cockpit views have a counterpart here: the engine overview, a process, its instances, an
-instance, an incident and the history. This page lists every difference between them, so that each
-one is a choice and not an accident.
+Six cockpit views and a board have a counterpart here: the engine overview, a process, its
+instances, an instance, an incident, the history. Every difference is listed, none an accident.
 
 ## How to read it
 
@@ -168,15 +167,16 @@ one is a choice and not an accident.
 
 ## Engines and fleet, and what only one tool has
 
-| Difference                                                                                             | Side    | Origin                        | Status |
-| ------------------------------------------------------------------------------------------------------ | ------- | ----------------------------- | ------ |
-| Choosing an engine: the cockpit's landing against the Engines tree, a native view                      | both    | host                          | wanted |
-| The fleet's landscape (each engine's load and backlog, what runs where) against a board's engine chips | both    | decided: boards               | wanted |
-| Incidents across processes, a cluster of incidents                                                     | MCP     | history                       | wanted |
-| Jobs                                                                                                   | MCP     | decided: UI (no overdue jobs) | wanted |
-| Migrating instances, boards                                                                            | VS Code | decided: writes, boards       | wanted |
-| Moving a token, variable conditions                                                                    | VS Code | history                       | wanted |
-| The status bar, the commands                                                                           | VS Code | host                          | wanted |
+| Difference                                                                                                                                                                                                                                                                                                                                                    | Side    | Origin                        | Status |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ----------------------------- | ------ |
+| Choosing an engine: the cockpit's landing against the Engines tree, a native view                                                                                                                                                                                                                                                                             | both    | host                          | wanted |
+| A board, the same tiles and numbers (`@miragon/pulse-blocks` over `BoardJson.of`): the cockpit gives a row a drill and fits the rows inline, a tile opens one of its routes (the board's list filter stays behind), its diagram opens the process by its button, an engine's chip names no environment (the extension names a profile's and marks production) | both    | decided: boards               | wanted |
+| The fleet's landscape (each engine's load and backlog, what runs where) against a board's engine chips                                                                                                                                                                                                                                                        | both    | decided: boards               | wanted |
+| Incidents across processes, a cluster of incidents                                                                                                                                                                                                                                                                                                            | MCP     | history                       | wanted |
+| Jobs                                                                                                                                                                                                                                                                                                                                                          | MCP     | decided: UI (no overdue jobs) | wanted |
+| Migrating instances                                                                                                                                                                                                                                                                                                                                           | VS Code | decided: writes               | wanted |
+| Moving a token, variable conditions                                                                                                                                                                                                                                                                                                                           | VS Code | history                       | wanted |
+| The status bar, the commands                                                                                                                                                                                                                                                                                                                                  | VS Code | host                          | wanted |
 
 ## A new pair feature
 

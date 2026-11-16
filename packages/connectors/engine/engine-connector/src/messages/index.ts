@@ -7,12 +7,14 @@ import { enAskAi } from "./en.ask-ai.js"
 import { deAskAi } from "./de.ask-ai.js"
 import { enFeedback } from "./en.feedback.js"
 import { deFeedback } from "./de.feedback.js"
+import { enBoard } from "./en.board.js"
+import { deBoard } from "./de.board.js"
 
 /**
  * The widget catalogs (`use-t.ts` builds the translator). On a key clash the sweep catalogs win
  * (last spread).
  */
 export const catalogs: Catalogs = {
-  en: { ...en, ...enSweep, ...enAskAi, ...enFeedback },
-  de: { ...de, ...deSweep, ...deAskAi, ...deFeedback },
+  en: { ...en, ...enSweep, ...enAskAi, ...enFeedback, ...enBoard },
+  de: { ...de, ...deSweep, ...deAskAi, ...deFeedback, ...deBoard },
 }

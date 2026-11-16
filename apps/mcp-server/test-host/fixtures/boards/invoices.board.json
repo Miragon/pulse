@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "title": "Invoice operations",
+  "engines": ["stub", "down"],
+  "rows": [
+    {
+      "row": [
+        {
+          "widget": "counter",
+          "props": {
+            "title": "Waiting for approval",
+            "filter": { "process": "invoice", "activeElement": "approveInvoice" }
+          }
+        },
+        { "widget": "incidentSummary", "props": { "groupBy": "process" } }
+      ]
+    },
+    {
+      "row": [
+        {
+          "widget": "instanceList",
+          "props": {
+            "engines": ["stub"],
+            "filter": { "process": "invoice" },
+            "columns": ["businessKey", "state", "incident"]
+          }
+        },
+        { "widget": "incidentList", "props": { "engines": ["stub"] } }
+      ]
+    },
+    {
+      "row": [
+        { "widget": "processDiagram", "props": { "engines": ["stub"], "process": "invoice" } },
+        { "widget": "chart" }
+      ]
+    }
+  ]
+}

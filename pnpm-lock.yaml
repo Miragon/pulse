@@ -456,6 +456,9 @@ importers:
         specifier: workspace:*
         version: link:../../../core/profile
     devDependencies:
+      '@miragon/pulse-blocks':
+        specifier: workspace:*
+        version: link:../../../core/blocks
       '@miragon/pulse-ui':
         specifier: workspace:*
         version: link:../../../core/ui

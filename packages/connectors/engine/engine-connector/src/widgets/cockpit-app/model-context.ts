@@ -1,6 +1,7 @@
 import { enginesByEnvironment } from "../../lib/shared/environments.js"
 import type { ViewContext } from "../lib/hand-off.js"
 import type { CockpitView } from "../../view-models.js"
+import type { BoardStartData } from "../../view-models.board.js"
 import { selectedEntity } from "../nav-core.js"
 
 /** The view was navigated client-side: no chat turn tells the model. */
@@ -64,5 +65,30 @@ export function fleetContext(
       "its single-engine cockpit.",
     ids: { engine: engineGroups.flatMap((g) => g.engines.map((e) => e.id)) },
     facts: { environments: enginesByEnvironment(engineGroups) },
+  }
+}
+
+/**
+ * A board: the engines it names, a list of `engine`s, each in its state; the board's title is the
+ * operator's text from its file, fenced. The tiles' numbers were the tool's facts when it opened.
+ */
+export function boardContext(board: string, data: BoardStartData): ViewContext {
+  const failed = data.engines.filter((engine) => engine.state !== "ready")
+  return {
+    summary:
+      "The operator is viewing a board in the engine cockpit: tiles of counts, instances, " +
+      "incidents and a diagram, read from the engines the board names, each engine in its own " +
+      "state; a number that was not read shows as missing, never 0. Navigation is client-side: " +
+      "a tile opens the engine's own view.",
+    ids: { board, engine: data.engines.map((engine) => engine.name) },
+    facts: {
+      view: "board",
+      asOf: data.asOf,
+      engines: data.engines.length,
+      enginesNotRead: failed.length,
+      tiles: data.rows.flat().length,
+      refusedTiles: data.rows.flat().filter((tile) => tile.kind === "refused").length,
+    },
+    untrusted: [{ label: "Board title", text: data.title }],
   }
 }

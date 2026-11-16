@@ -116,6 +116,9 @@ function definitionStatistics() {
  */
 function overviewResource(pathname: string): { status: number; body: unknown } | null {
   switch (pathname) {
+    // What the engine is: a board's engine strip names its product.
+    case "/engine-rest/telemetry/data":
+      return { status: 200, body: { product: { name: "CIB seven", version: "2.2.0" } } }
     case "/engine-rest/process-definition/statistics":
       return { status: 200, body: definitionStatistics() }
     case "/engine-rest/incident":
@@ -240,6 +243,51 @@ function instanceResource(url: URL): { status: number; body: unknown } | null {
     default:
       return null
   }
+}
+
+/** The two invoice instances a board's list shows: the one the instance view serves, and one more. */
+function historicInvoice(id: string, businessKey: string, startTime: string) {
+  return {
+    id,
+    processDefinitionId: INVOICE_V3,
+    processDefinitionKey: "invoice",
+    processDefinitionName: "Invoice Receipt",
+    processDefinitionVersion: 3,
+    businessKey,
+    startTime,
+    state: "ACTIVE",
+  }
+}
+
+const RUNNING_INVOICES = [
+  historicInvoice(INVOICE_INSTANCE, "INV-2026-0042", "2026-10-10T07:30:00.000+0000"),
+  historicInvoice("pi-invoice-43", "INV-2026-0043", "2026-10-10T07:45:00.000+0000"),
+]
+
+/**
+ * A board's reads beyond the overview's (fixtures/boards): the history's running invoices (POST,
+ * the filter in the body) and their count, both waiting at `approveInvoice` as the process
+ * statistics say, and the runtime's instances with an incident, none engine-wide as the stub's
+ * other engine-wide reads say. Null for every other request, so no other view reads them.
+ */
+function boardRoute(
+  method: string,
+  url: URL,
+  body: unknown,
+): { status: number; body: unknown } | null {
+  const filter = (body ?? {}) as { processDefinitionKey?: unknown; activityIdIn?: unknown }
+  const invoices = filter.processDefinitionKey === "invoice"
+  if (method === "POST" && url.pathname === "/engine-rest/history/process-instance/count") {
+    return { status: 200, body: { count: invoices ? RUNNING_INVOICES.length : 0 } }
+  }
+  if (method === "POST" && url.pathname === "/engine-rest/history/process-instance") {
+    return { status: 200, body: invoices ? RUNNING_INVOICES : [] }
+  }
+  const withIncident = url.searchParams.get("withIncident") === "true"
+  if (method === "GET" && url.pathname === "/engine-rest/process-instance" && withIncident) {
+    return { status: 200, body: [] }
+  }
+  return null
 }
 
 function filterDefinitions(query: URLSearchParams): ProcessDefinition[] {
@@ -452,7 +500,7 @@ function createSearchHolds() {
  * no open incident, the `invoice` diagram `fixtures/invoice.bpmn` with two instances at
  * `approveInvoice`, twelve started in the last 30 days in its history, sixteen failed jobs, and
  * one invoice instance with two open incidents that only its own reads and a read by an
- * incident's id see).
+ * incident's id see, and the reads of a board over it, `boardRoute`).
  * The broken base URL turns any tool into a genuine `isError` result: an
  * engine 503 through the server's own error mapping.
  *
@@ -485,6 +533,7 @@ export async function startStubEngine(): Promise<StubEngine> {
         const { status, body } =
           realisticRoute(method, url, requestBody) ??
           jobRoute(method, url, requestBody, jobs) ??
+          boardRoute(method, url, requestBody) ??
           route(url)
         holds.answer(term, () => send(status, body))
       }

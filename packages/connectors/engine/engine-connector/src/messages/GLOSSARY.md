@@ -79,6 +79,8 @@ pulse-ui (`COUNT_TERMS` in `@miragon/pulse-ui/testing`).
 | Herstellerprodukt                               | CIB seven, Camunda 7, Operaton (aus `provider.branding.displayName`) | CIB Seven                 | CIB seven                                     | CIB Seven             |
 | Künstliche Intelligenz                          | AI                                                                   | KI                        | AI                                            | –                     |
 | Engine lehnt die Anmeldung des Servers ab (⁴)   | Zugangsdaten abgelehnt (HTTP 401), Zugriff verweigert (HTTP 403)     | nicht erreichbar          | credentials rejected, access denied           | unreachable           |
+| Zeitpunkt, zu dem ein Board gelesen wurde (⁵)   | Stand („Stand 08:00“)                                                | Zuletzt aktualisiert      | As of („As of 08:00“)                         | Last updated          |
+| Name eines Boards, den kein Profil trägt        | gehört nicht zu den Engines dieses Servers                           | nicht konfiguriert        | is not among the engines of this server       | not configured        |
 
 (⁴) Die Kurzform der Titel, die `describeError` für 401 und 403 zeigt, auf der Landing und in der
 Engine-übergreifenden Übersicht, dort auch gezählt („1 mit abgelehnten Zugangsdaten“). Die Engine hat
@@ -87,6 +89,12 @@ eines Ausfalls. Die Übersicht sagt deshalb zu einer Engine, die sie nicht lesen
 geantwortet“, sondern verweist auf ihre Zeile, und „Ursache finden“ auf der Übersicht der Engine fragt
 nach der abgelehnten Anmeldung. `glossary.test.ts` hält die Wörter fest; eine Regel gegen „nicht
 erreichbar“ gibt es nicht, weil das Wort für eine Engine ohne Antwort richtig ist.
+
+(⁵) Die Ansicht eines Boards (`src/widgets/board/`) textet nur ihre Leiste, ihre Streifen und die
+Zeilenaktion („Öffnen“, „Open“) in `en.board.ts` und `de.board.ts`; die Kacheln texten sich selbst,
+mit dem Glossar von `@miragon/pulse-blocks` (`packages/core/blocks/src/messages/GLOSSARY.md`). Der
+Server liest ein Board für einen Aufrufer höchstens alle 30 Sekunden, darum nennt die Leiste den
+Stand des Lesens, nicht den des Klicks.
 
 ## Übergaben an den Chat
 

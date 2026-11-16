@@ -87,7 +87,7 @@ export function createPlugin(config: EnginePluginConfig): ModulePlugin {
         withReadOnlyEngines(withToolsetFilter(createToolRegistrar(server, registry), toolset)),
         registry.engineIds,
       )
-      registerEngineTools(register, healthThresholds)
+      registerEngineTools(register, healthThresholds, config.boards)
       // Deployments are opt-in on top of `admin` (code execution in the JVM).
       registerTools(register, { allowDeployments: config.allowDeployments })
       registerIncidentIssueTools(register, incidentIssueConfig)

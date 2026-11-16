@@ -58,7 +58,7 @@ command line interface (`apps/cli`), a VS Code extension (`apps/vscode`) and an 
 | `packages/core/runtime-view/`                  | The runtime view both editor hosts compose (`@miragon/pulse-runtime-view`, private) over the contract of `engine-core`: the ports a host and an engine family plug in, the core, the protocol, the webview (React on `@miragon/pulse-ui`), the local model reader and the host kit (targets from `.pulse.json` and the CLI's user config, policies, the write audit)                                                                                                                                                       |
 | `packages/core/profile/`                       | The one profile format of the CLI, the editor hosts and the MCP server (npm `@miragon/pulse-profile`): a parser from a file's text to a verdict per profile as data (a code and a key, never a value), the credential policy by where the file comes from, `refusalsOn` for what a reader cannot serve, the JSON Schema (`schema/pulse.schema.json`) and the shared fixtures (`/testing`); no runtime dependency                                                                                                           |
 | `packages/core/board/`                         | The board file format and builder (npm `@miragon/pulse-board`): its types, `BoardParser` (the board with its notes and refused widgets, or a broken file's problems, as codes `BoardProblems` words), `BoardTiles`, `BoardVocabulary`, `StarterBoard`, the JSON Schema, the fixtures (`/testing`), `/builder` (a board's numbers over seven reads of engine-core, an optional peer; no text); read by the runtime view's core and the editor hosts; the format has no runtime dependency; Pulse for VS Code's house rules  |
-| `packages/core/blocks/`                        | Pulse's building blocks (npm `@miragon/pulse-blocks`), React on `@miragon/pulse-ui` with props, callbacks and the slots a surface brings (`Table`, `Id`, `Diagram`, `onOpen`): the tiles of a board over a built board's JSON form (`BoardGrid`, `BoardTile`), worded in en and de (`useProblemWords`, `ProblemList`); rendered by the runtime view's webview; no React context of its own                                                                                                                                 |
+| `packages/core/blocks/`                        | Pulse's building blocks (npm `@miragon/pulse-blocks`), React on `@miragon/pulse-ui` with props, callbacks and the slots a surface brings (`Table`, `Id`, `Diagram`, `onOpen`): the tiles of a board over a built board's JSON form (`BoardGrid`, `BoardTile`), worded in en and de (`useProblemWords`, `ProblemList`); rendered by the runtime view's webview and the cockpit's board route; no React context of its own                                                                                                   |
 | `packages/core/http/`                          | The one engine transport of the MCP server, the CLI and the editor hosts' adapters (npm `@miragon/pulse-http`) over the `fetch` each hands in: a deadline to the last byte, no redirects, a 64 MiB cap, one retry after a 401, reasons as data, lossless JSON, masking, the path value rule; the OAuth client (`/oauth`); conformance cases, fake fetch (`/testing`), loopback engine (`/testing/loopback`); no dependency                                                                                                 |
 | `playground/`                                  | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `docs/`                                        | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                                                                                                                                                                                                                                                                                                                 |
@@ -118,9 +118,9 @@ Three axes decide where code goes, and they stay apart:
   builder in `@miragon/pulse-board/builder`, whose model the runtime view renders); a shared building block
   goes into pulse-ui (a primitive) or into a shared package created with the first engine block
   two surfaces render, executed for boards on 2026-11-16: `@miragon/pulse-blocks`
-  (`packages/core/blocks`) holds a board's tiles, which the webview renders with its own table, id
-  and canvas as slots. `docs/vscode/parity.md` lists what still differs between the views both
-  show.
+  (`packages/core/blocks`) holds a board's tiles, which the webview and the cockpit's board route
+  render, each with its own table, id and canvas as slots. `docs/vscode/parity.md` lists what still
+  differs between the views both show.
 
 A family is one source the MCP server reads, a dialect or another source (a metrics store,
 say), or `engine`, the neutral family above the dialects. Its packages are
@@ -453,7 +453,9 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
    (`src/widget-tools/cockpit.ts`) and the start dispatch (`src/data/cockpit-start.ts`) derive
    from them; `COCKPIT_ROUTES` and the widgets' route switch are total over the sections, so
    they fail to compile until each has the route. A route that nothing emits and
-   `engine_open_cockpit` cannot open is dead.
+   `engine_open_cockpit` cannot open is dead. A route reads one engine (`scope: "engine"`) or, at
+   app level, the engines it names (`scope: "app"`, a board: its start resolves no engine, the
+   tool refuses an `engine` with it, and the cockpit shows it without an engine's head).
 
    A view is picked by its NAME, the view tool's name (`showToolBinding` binds the tool to
    `ui://views/<name>.html` in its `_meta.ui.resourceUri`, the boot serves the one bundle there
@@ -515,12 +517,13 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
    stylesheet. By the owner's decision D9 of 2026-11-12 (`apps/vscode/docs/adr/ui-foundation.md`)
    the webview moved from Preact to React on pulse-ui in one switch and composes the kit
    without widget-shell, in the one compact look of the design section.
-   - **Pairs.** Six cockpit views have a counterpart in the VS Code webview (the overview, a
-     process, its instances, an instance, an incident, the history). A field, a count or an action
-     added to or changed in one is a pair feature: where both show it, a shared building block is
-     the default (React, props and callbacks only, no host context inside: no `useToolQuery`,
-     `ConfirmDialog`, `HandOffButton` or `HostBridge`), which both render in React, and each side
-     keeps its own screen and host wiring around it. Its pull request updates
+   - **Pairs.** Six cockpit views and a board have a counterpart in the VS Code webview (the
+     overview, a process, its instances, an instance, an incident, the history; a board through
+     `@miragon/pulse-blocks`). A field, a count or an action added to or changed in one is a pair
+     feature: where both show it, a shared building block is the default (React, props and
+     callbacks only, no host context inside: no `useToolQuery`, `ConfirmDialog`, `HandOffButton`
+     or `HostBridge`), which both render in React, and each side keeps its own screen and host
+     wiring around it. Its pull request updates
      `docs/vscode/parity.md` by its review rule. Which blocks two surfaces share is the owner's
      decision in normal review. A primitive goes into pulse-ui, an engine block into a shared
      package created with the first one two surfaces render: `@miragon/pulse-blocks`
@@ -921,8 +924,9 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      Lucide, pulse-ui's root, `/format` and `/tones` and the board format's main entry, never
      widget-shell, ext-apps, a family, engine-core, the builder or a Node built-in
      (`blocks-are-building-blocks`), and only a surface that renders them imports them: the runtime
-     view's webview, by the main entry (its closed world's `webview-blocks-by-its-entry`), and tests
-     (`blocks-consumers`, `BLOCKS_RENDERERS`); the
+     view's webview, by the main entry (its closed world's `webview-blocks-by-its-entry`), the
+     engine connector's widgets (the cockpit's board route) and tests (`blocks-consumers`,
+     `BLOCKS_RENDERERS`); the
      transport (`@miragon/pulse-http`, `packages/core/http`) is a leaf too, which
      runs over an injected `fetch` on the web platform's globals, no npm package and no Node
      built-in (`http-is-a-leaf`; ESLint's `no-restricted-globals` keeps out what only a browser
@@ -968,8 +972,8 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      `tsconfig.json` (Node, no DOM) split the types the same way. A connector's `src/widgets`
      and `src/lib/shared` import at runtime only an allowlist
      (`connector-widgets-are-browser-code`): its own widgets, `src/lib/shared`, `src/messages`,
-     `src/tool-names.ts`, the view models, `src/bpmn-names.ts`, widget-shell's `/widgets` and the
-     view stack; anything else of the connector, its client, a server package or a Node built-in
+     `src/tool-names.ts`, the view models, `src/bpmn-names.ts`, widget-shell's `/widgets`, the
+     view stack and the building blocks; anything else of the connector, its client, a server package or a Node built-in
      only as a type, and the other lib folders not even as a type
      (`connector-widgets-only-shared-lib`). Inside a connector the edges point one way: `src/data`
      and the lib folders (`src/lib/engine` routing, `src/lib/core-adapter` the c7-core port,

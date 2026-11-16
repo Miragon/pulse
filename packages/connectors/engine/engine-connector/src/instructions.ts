@@ -15,6 +15,11 @@ export interface EngineInstructionsInput {
   defaultEngine?: string
   /** The playbooks name only the writes the toolset registers (checked by the app's instructions test). */
   toolset: EngineToolset
+  /**
+   * Whether ENGINE_BOARDS_DIR holds a board the server shows: then the rules say how one opens.
+   * engine_list_engines names them, so the rules stay the same size however many there are.
+   */
+  hasBoards?: boolean
 }
 
 function routingRule({ engineIds, profileCount, defaultEngine }: EngineInstructionsInput): string {
@@ -109,6 +114,12 @@ function remediationRule(toolset: EngineToolset): string {
   )
 }
 
+/** Only on a server with boards: where they are listed, and how one opens. */
+const BOARD_RULE =
+  "- Boards: engine_list_engines lists them; engine_open_cockpit with view board and a board's " +
+  "id shows one to the user, read from the engines the board names; its facts are that board's " +
+  "numbers."
+
 export function engineInstructions(input: EngineInstructionsInput): string {
   return [
     "engine (the Camunda 7 REST API of Camunda 7, CIB seven and Operaton):",
@@ -131,6 +142,7 @@ export function engineInstructions(input: EngineInstructionsInput): string {
       "version, diagramVersion names only the drawn diagram.",
     // Which tool answers "how is the engine": the triage for the model, the cockpit for the user.
     "- Engine state: engine_status triages, engine_open_cockpit shows the user.",
+    ...(input.hasBoards === true ? [BOARD_RULE] : []),
     HAND_OFF_RULE,
     remediationRule(input.toolset),
   ].join("\n")

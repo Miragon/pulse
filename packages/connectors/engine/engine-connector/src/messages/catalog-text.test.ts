@@ -8,6 +8,8 @@ import { enAskAi } from "./en.ask-ai.js"
 import { deAskAi } from "./de.ask-ai.js"
 import { enFeedback } from "./en.feedback.js"
 import { deFeedback } from "./de.feedback.js"
+import { enBoard } from "./en.board.js"
+import { deBoard } from "./de.board.js"
 import { catalogs } from "./index.js"
 import { countOf, isOne } from "./plural.js"
 
@@ -25,6 +27,8 @@ describe("engine copy follows the voice rules", () => {
     ["chat hand-offs (de)", deAskAi, "de"],
     ["write toasts (en)", enFeedback, "en"],
     ["write toasts (de)", deFeedback, "de"],
+    ["board view (en)", enBoard, "en"],
+    ["board view (de)", deBoard, "de"],
   ] as const)("%s", (_, catalog, language) => {
     expect(catalogTextFindings(catalog, { language })).toEqual([])
   })

@@ -10,6 +10,8 @@ import { ENGINE_LIST_ENGINES, ENGINE_OPEN_COCKPIT } from "../tool-names.js"
 import { engineParamShape } from "../lib/engine/with-engine.js"
 import { startFakeEngine, type FakeEngine } from "../tools/test-support/fake-engine.js"
 import { worldReply } from "../tools/test-support/engine-world.js"
+import type { BoardFiles } from "../board-files.js"
+import { worldBoard } from "../data/honest-numbers.test-support.js"
 import { registerCockpitWidgetTools } from "./cockpit.js"
 
 interface CockpitResult {
@@ -41,7 +43,11 @@ afterEach(async () => {
 /** Each engine without a `baseUrl` answers from the fake engine world; `requests` records the reads. */
 async function cockpitOn(
   ids: Array<Pick<EngineEntry, "id" | "environment"> & { baseUrl?: string }>,
-  options: { defaultEngineId?: string; healthThresholds?: VerdictThresholds } = {},
+  options: {
+    defaultEngineId?: string
+    healthThresholds?: VerdictThresholds
+    boards?: BoardFiles
+  } = {},
 ) {
   const engine = await startFakeEngine({}, worldReply)
   engines.push(engine)
@@ -57,6 +63,7 @@ async function cockpitOn(
     healthThresholds: options.healthThresholds ?? DEFAULT_VERDICT_THRESHOLDS,
     toolset: "read-only",
     engineParam: engineParamShape,
+    ...(options.boards ? { boards: options.boards } : {}),
   })
   return { ...cockpitOf(recording), requests: engine.requests, baseUrl: engine.baseUrl }
 }
@@ -250,6 +257,7 @@ describe("engine_open_cockpit: the input rules", () => {
       [],
     ],
     [{ view: "history", processInstanceId: "pi-1", engine: "solo" }, []],
+    [{ view: "board", board: "orders" }, []],
   ])("accepts %j", async (args, issues) => {
     expect(await parse(args)).toEqual(issues)
   })
@@ -277,6 +285,7 @@ describe("engine_open_cockpit: the input rules", () => {
       { view: "history", processInstanceId: "" },
       [["processInstanceId", 'view "history" needs processInstanceId.']],
     ],
+    [{ view: "board" }, [["board", 'view "board" needs board.']]],
   ])("refuses a missing id: %j", async (args, issues) => {
     expect(await parse(args)).toEqual(issues)
   })
@@ -312,20 +321,84 @@ describe("engine_open_cockpit: the input rules", () => {
         ],
       ],
     ],
+    [{ board: "orders" }, [["board", 'view "overview" takes no board.']]],
   ])("refuses an id the view does not take: %j", async (args, issues) => {
     expect(await parse(args)).toEqual(issues)
+  })
+
+  it("refuses an engine on a board, which reads the engines it names", async () => {
+    expect(await parse({ view: "board", board: "orders", engine: "solo" })).toEqual([
+      ["engine", 'view "board" reads the engines it names: it takes no engine.'],
+    ])
+  })
+
+  it("refuses a board id the id rule refuses", async () => {
+    const issues = await parse({ view: "board", board: "../orders" })
+    expect(issues.map(([path]) => path)).toEqual(["board"])
   })
 
   it("still names every valid key for an unknown one", async () => {
     const issues = await parse({ processDefinitionId: "order:1:x" })
     expect(issues).toHaveLength(1)
     expect(issues[0][1]).toBe(
-      'Unknown key "processDefinitionId". Valid keys: "view", "processDefinitionKey", "focus", "activityId", "incidentType", "messageSignature", "processInstanceId", "incidentId", "failedOnly", "engine".',
+      'Unknown key "processDefinitionId". Valid keys: "view", "processDefinitionKey", "focus", "activityId", "incidentType", "messageSignature", "processInstanceId", "incidentId", "failedOnly", "board", "engine".',
     )
   })
 
   it("refuses an unknown view", async () => {
     const issues = await parse({ view: "process-list" })
     expect(issues.map(([path]) => path)).toEqual(["view"])
+  })
+})
+
+describe("engine_open_cockpit: a board, an app route", () => {
+  const ORDERS: BoardFiles = { boards: [worldBoard()], refused: [] }
+
+  it("opens without an engine, reads the engines the board names, and hands the model its facts", async () => {
+    const { handler, requests } = await cockpitOn([{ id: "fake" }, { id: "other" }], {
+      boards: { boards: [worldBoard()], refused: [] },
+    })
+    const result = await handler({ view: "board", board: "orders" })
+    expect(result.isError).toBeUndefined()
+    expect(dataOf(result)).toMatchObject({
+      engineId: null,
+      engines: [
+        { id: "fake", environment: "default" },
+        { id: "other", environment: "default" },
+      ],
+      start: {
+        view: { section: "board", board: "orders" },
+        data: { title: "Orders", engines: [{ name: "fake", state: "ready" }] },
+      },
+    })
+    const facts = factsOf(result)
+    expect(facts).toMatchObject({ view: "board", board: "orders", title: "Orders" })
+    expect(facts).not.toHaveProperty("engine")
+    expect(requests.length).toBeGreaterThan(0)
+    // No payload carries BPMN XML or an engine's REST address.
+    const serialized = JSON.stringify(result)
+    expect(serialized).not.toContain("<?xml")
+    expect(serialized).not.toContain("127.0.0.1")
+  })
+
+  it("opens with several engines and no default, where an engine view would need one", async () => {
+    const { handler } = await cockpitOn([{ id: "fake" }, { id: "other" }], { boards: ORDERS })
+    expect((await handler({ view: "board", board: "orders" })).isError).toBeUndefined()
+  })
+
+  it("an unknown board is a tool error that lists the boards", async () => {
+    const { handler } = await cockpitOn([{ id: "fake" }], { boards: ORDERS })
+    const result = await handler({ view: "board", board: "shipping" })
+    expect(result.isError).toBe(true)
+    expect(textOf(result)).toBe('[UNKNOWN_BOARD] Unknown board id "shipping". Boards: orders.')
+  })
+
+  it("on a server without boards, a board is a tool error that says so", async () => {
+    const { handler } = await cockpitOn([{ id: "fake" }])
+    const result = await handler({ view: "board", board: "orders" })
+    expect(result.isError).toBe(true)
+    expect(textOf(result)).toBe(
+      '[UNKNOWN_BOARD] Unknown board id "orders": this server shows no board.',
+    )
   })
 })
