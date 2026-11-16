@@ -1,21 +1,18 @@
 import { ClipboardListIcon, FileCodeIcon, RotateCcwIcon } from "lucide-react"
-import { Card, Icon, SectionHeading, ViewBar } from "@miragon/pulse-ui"
-import type { BoardTile, BoardView } from "../../../core/protocol/index.js"
+import { BoardGrid, ProblemList, useProblemWords } from "@miragon/pulse-blocks"
+import { Card, Icon, LocaleProvider, SectionHeading, ViewBar } from "@miragon/pulse-ui"
+import { useMemo } from "react"
+import type { BoardView } from "../../../core/protocol/index.js"
 import { BackTarget } from "../../components/back-target.js"
 import { HeaderButton } from "../../components/header-button.js"
 import { FreshnessStamp, type Freshness } from "../../components/live-stamp.js"
 import { StatusStrip } from "../../components/status-strip.js"
 import { CountLabels } from "../../format/count-labels.js"
 import { useHost } from "../../host/host-context.js"
-import type { BoardCallbacks, BoardOpen } from "./board-card.js"
+import { BoardDiagrams, DiagramXmls } from "./board-diagram.js"
 import { BoardEngines } from "./board-engines.js"
 import { BoardLabels } from "./board-labels.js"
-import { CounterCard } from "./counter-card.js"
-import { IncidentListCard } from "./incident-list-card.js"
-import { IncidentSummaryCard } from "./incident-summary-card.js"
-import { InstanceListCard } from "./instance-list-card.js"
-import { ProcessDiagramCard } from "./process-diagram-card.js"
-import { ProblemList, RefusedCard } from "./refused-card.js"
+import { useBoardSlots } from "./board-slots.js"
 
 export interface BoardScreenProps {
   readonly view: BoardView
@@ -84,6 +81,7 @@ function ProblemsStrip({ view }: { readonly view: BoardView }) {
 
 function NotesStrip({ view }: { readonly view: BoardView }) {
   const host = useHost()
+  const say = useProblemWords()
   if (view.notes.length === 0) {
     return null
   }
@@ -92,7 +90,7 @@ function NotesStrip({ view }: { readonly view: BoardView }) {
       <StatusStrip
         tone="info"
         title={`${CountLabels.plural(view.notes.length, "note")} in ${view.fileName}.`}
-        details={BoardLabels.notes(view)}
+        details={BoardLabels.notes(view, say)}
         actions={[
           {
             label: "Open file",
@@ -108,9 +106,14 @@ function NotesStrip({ view }: { readonly view: BoardView }) {
 }
 
 function FileProblems({ view }: { readonly view: BoardView }) {
+  const say = useProblemWords()
   if (view.problems.length === 0) {
     return null
   }
+  const problems = view.problems.map((problem) => ({
+    path: problem.path,
+    text: BoardLabels.fileProblem(problem, say),
+  }))
   return (
     <Card role="region" aria-labelledby="board-problems-title" className="border-danger gap-2">
       <SectionHeading
@@ -120,89 +123,47 @@ function FileProblems({ view }: { readonly view: BoardView }) {
         className="mb-0 px-3"
       />
       <div className="px-3">
-        <ProblemList problems={view.problems} label={`Problems in ${view.fileName}`} />
+        <ProblemList problems={problems} label={`Problems in ${view.fileName}`} />
       </div>
     </Card>
   )
 }
 
-function useBoardCallbacks(): BoardCallbacks {
-  const host = useHost()
-  const open = (target: BoardOpen, toSide: boolean): void => {
-    if ("instanceId" in target) {
-      host.post({ type: "openBoardInstance", ...target, toSide })
-    } else if (target.bpmnProcessId === undefined) {
-      host.post({ type: "openBoardEngine", engine: target.engine, toSide })
-    } else {
-      host.post({
-        type: "openBoardProcess",
-        engine: target.engine,
-        bpmnProcessId: target.bpmnProcessId,
-        filter: target.filter,
-        toSide,
-      })
-    }
+function TileGrid({ view }: { readonly view: BoardView }) {
+  const slots = useBoardSlots()
+  const xmls = useMemo(() => BoardDiagrams.xmlsOf(view.rows), [view.rows])
+  const rows = useMemo(
+    () => view.rows.map((row) => row.map((tile) => BoardDiagrams.drawable(tile))),
+    [view.rows],
+  )
+  if (rows.length === 0) {
+    return null
   }
-  return {
-    onOpen: open,
-    onCopy: (text, label) => {
-      host.post({ type: "copy", text, label })
-    },
-    onOpenFile: () => {
-      host.post({ type: "openBoardFile" })
-    },
-  }
-}
-
-function Tile({
-  tile,
-  callbacks,
-}: {
-  readonly tile: BoardTile
-  readonly callbacks: BoardCallbacks
-}) {
-  switch (tile.kind) {
-    case "counter":
-      return <CounterCard tile={tile} onOpen={callbacks.onOpen} />
-    case "instanceList":
-      return <InstanceListCard tile={tile} onOpen={callbacks.onOpen} onCopy={callbacks.onCopy} />
-    case "incidentSummary":
-      return <IncidentSummaryCard tile={tile} onOpen={callbacks.onOpen} />
-    case "processDiagram":
-      return <ProcessDiagramCard tile={tile} onOpen={callbacks.onOpen} />
-    case "incidentList":
-      return <IncidentListCard tile={tile} onOpen={callbacks.onOpen} onCopy={callbacks.onCopy} />
-    case "refused":
-      return <RefusedCard tile={tile} onOpenFile={callbacks.onOpenFile} />
-  }
+  return (
+    <DiagramXmls value={xmls}>
+      <BoardGrid rows={rows} slots={slots} />
+    </DiagramXmls>
+  )
 }
 
 export function BoardScreen({ view, freshness }: BoardScreenProps) {
-  const callbacks = useBoardCallbacks()
   return (
-    <div className="grid h-full min-w-0 grid-rows-[auto_auto_minmax(0,1fr)]">
-      <BoardHeader view={view} freshness={freshness} />
-      <div className="flex min-w-0 flex-col" data-part="strips">
-        <ProblemsStrip view={view} />
-        <NotesStrip view={view} />
-        <BoardEngines engines={view.engines} />
+    <LocaleProvider locale="en">
+      <div className="grid h-full min-w-0 grid-rows-[auto_auto_minmax(0,1fr)]">
+        <BoardHeader view={view} freshness={freshness} />
+        <div className="flex min-w-0 flex-col" data-part="strips">
+          <ProblemsStrip view={view} />
+          <NotesStrip view={view} />
+          <BoardEngines engines={view.engines} />
+        </div>
+        <main
+          className="bg-background flex min-h-0 flex-col gap-3 overflow-auto p-3"
+          aria-label={view.title}
+        >
+          <FileProblems view={view} />
+          <TileGrid view={view} />
+        </main>
       </div>
-      <main
-        className="bg-background @container/board flex min-h-0 flex-col gap-3 overflow-auto p-3"
-        aria-label={view.title}
-      >
-        <FileProblems view={view} />
-        {view.rows.map((row, index) => (
-          <div
-            className="grid min-w-0 auto-cols-[minmax(0,1fr)] grid-flow-col gap-3 @max-[760px]/board:grid-flow-row"
-            key={index}
-          >
-            {row.map((tile, column) => (
-              <Tile key={column} tile={tile} callbacks={callbacks} />
-            ))}
-          </div>
-        ))}
-      </main>
-    </div>
+    </LocaleProvider>
   )
 }

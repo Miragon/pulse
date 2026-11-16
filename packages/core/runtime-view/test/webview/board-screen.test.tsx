@@ -636,6 +636,14 @@ describe("a board", () => {
     expect(harness.posted).toEqual([{ type: "openBoardFile" }])
   })
 
+  it("says of a file it could not read that it could not be read", async () => {
+    harness = mountApp()
+    harness.publish(ready({ ...BOARD_VIEW, problems: [{ path: "(file)", code: "unreadable" }] }))
+    const problems = await findRole(harness.root, "region", { name: /^Problems in / })
+
+    expect(itemTexts(problems)).toEqual(["(file) could not be read"])
+  })
+
   it("shows a broken widget's problems in its place and reads the widgets beside it", async () => {
     harness = mountApp()
     harness.publish(ready(REFUSED_BOARD_VIEW))
@@ -731,7 +739,7 @@ describe("a board", () => {
     expect(figure?.textContent).toBe("7with incident")
     expect(figure?.querySelector("svg")).not.toBeNull()
     expect(getComputedStyle(value).color).toBe(getComputedStyle(counter).color)
-    expect(counter.querySelector("button")).toBeNull()
+    expect(value.closest("button")).toBeNull()
   })
 
   it("names a widget without a title by its filter, its process or its kind", async () => {

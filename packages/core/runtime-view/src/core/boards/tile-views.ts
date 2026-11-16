@@ -2,7 +2,6 @@ import type {
   CounterData,
   IncidentSummaryData,
   ProcessDiagramData,
-  RefusedData,
   TileData,
 } from "@miragon/pulse-board"
 import { DefinitionId } from "@miragon/pulse-engine-core"
@@ -11,11 +10,9 @@ import type {
   CounterTile,
   IncidentSummaryTile,
   ProcessDiagramTile,
-  RefusedTile,
 } from "../protocol/index.js"
 import { BoardFilters } from "./board-filters.js"
 import type { BoardRuntime } from "./board-runtime.js"
-import { ProblemTexts } from "./problem-texts.js"
 
 const WITH_INCIDENT = { scope: "withIncident" } as const
 
@@ -30,8 +27,6 @@ export class TileViews {
         return Promise.resolve(TileViews.incidentSummary(tile))
       case "processDiagram":
         return this.processDiagram(tile)
-      case "refused":
-        return Promise.resolve(TileViews.refused(tile))
       default:
         return Promise.resolve(tile)
     }
@@ -59,10 +54,6 @@ export class TileViews {
         filter: WITH_INCIDENT,
       })),
     }
-  }
-
-  private static refused(tile: RefusedData): RefusedTile {
-    return { ...tile, problems: ProblemTexts.of(tile.problems) }
   }
 
   private async processDiagram(tile: ProcessDiagramData): Promise<ProcessDiagramTile> {

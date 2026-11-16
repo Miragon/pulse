@@ -1,18 +1,23 @@
-import { Button, Icon, TONE_ICON } from "@miragon/pulse-ui"
+import { Button, Icon, TONE_ICON, formatCount } from "@miragon/pulse-ui"
 import { TriangleAlertIcon } from "lucide-react"
-import type { BoardTarget, CounterReadingData, CounterTile } from "../../../core/protocol/index.js"
-import { CountLabels } from "../../format/count-labels.js"
+import type { CounterData, CounterReadingData } from "@miragon/pulse-board"
+import { useWords } from "../messages/translate.js"
+import { BOARD_LINE, BOARD_LINE_BUTTON, BoardCard, BoardFigure } from "./board-card.js"
+import type { BoardInstancesTarget, BoardSlots } from "./slots.js"
+import { counterTarget } from "./targets.js"
 import {
-  BOARD_LINE,
-  BOARD_LINE_BUTTON,
-  BoardCard,
-  BoardFigure,
-  type BoardCallbacks,
-} from "./board-card.js"
-import { BoardLabels } from "./board-labels.js"
+  above,
+  entryCount,
+  openTitle,
+  partial,
+  tileTitle,
+  totalCount,
+  warning,
+} from "./tile-words.js"
 
-export interface CounterCardProps extends Pick<BoardCallbacks, "onOpen"> {
-  readonly tile: CounterTile
+export interface CounterTileProps {
+  readonly tile: CounterData
+  readonly slots: Pick<BoardSlots, "onOpen" | "opensToSide">
 }
 
 interface EntryProps {
@@ -20,17 +25,19 @@ interface EntryProps {
   readonly incident: boolean
 }
 
-interface OpenableEntryProps extends EntryProps, Pick<BoardCallbacks, "onOpen"> {
-  readonly target: BoardTarget | undefined
+interface OpenableEntryProps extends EntryProps {
+  readonly target: BoardInstancesTarget | undefined
+  readonly slots: CounterTileProps["slots"]
 }
 
 function EntryText({ reading, incident }: EntryProps) {
+  const t = useWords()
   const count = reading.count
   return (
     <>
       <span className="min-w-0 flex-1 truncate">{reading.engine}</span>
       <BoardFigure
-        text={BoardLabels.entryCount(count)}
+        text={entryCount(t, count)}
         part="counter-count"
         alarm={incident && count !== undefined && count.count > 0}
         quiet={count === undefined}
@@ -44,17 +51,21 @@ function EntryButton({
   reading,
   incident,
   target,
-  onOpen,
-}: EntryProps & Pick<BoardCallbacks, "onOpen"> & { readonly target: BoardTarget }) {
+  slots,
+}: EntryProps & {
+  readonly target: BoardInstancesTarget
+  readonly slots: OpenableEntryProps["slots"]
+}) {
+  const t = useWords()
   return (
     <Button
       type="button"
       variant="ghost"
       size="sm"
       className={BOARD_LINE_BUTTON}
-      title={BoardLabels.openTitle(target)}
+      title={openTitle(t, target, slots.opensToSide === true)}
       onClick={(event) => {
-        onOpen(target, event.ctrlKey || event.metaKey)
+        slots.onOpen(target, { toSide: event.ctrlKey || event.metaKey })
       }}
     >
       <EntryText reading={reading} incident={incident} />
@@ -62,7 +73,7 @@ function EntryButton({
   )
 }
 
-function Entry({ reading, incident, target, onOpen }: OpenableEntryProps) {
+function Entry({ reading, incident, target, slots }: OpenableEntryProps) {
   return (
     <li data-part="counter-entry" data-state={reading.above === true ? "above" : undefined}>
       {reading.count === undefined || target === undefined ? (
@@ -70,66 +81,68 @@ function Entry({ reading, incident, target, onOpen }: OpenableEntryProps) {
           <EntryText reading={reading} incident={incident} />
         </span>
       ) : (
-        <EntryButton reading={reading} incident={incident} target={target} onOpen={onOpen} />
+        <EntryButton reading={reading} incident={incident} target={target} slots={slots} />
       )}
     </li>
   )
 }
 
-function Threshold({ tile }: { readonly tile: CounterTile }) {
+function Threshold({ tile }: { readonly tile: CounterData }) {
+  const t = useWords()
   const warnAbove = tile.widget.warnAbove
   if (warnAbove === undefined) {
     return null
   }
-  const warning = BoardLabels.warning(tile)
-  if (warning === undefined) {
+  const warned = warning(t, tile)
+  if (warned === undefined) {
     return (
-      <span
-        className="text-muted-foreground"
-        data-part="counter-threshold"
-      >{`warns above ${CountLabels.exact(warnAbove)}`}</span>
+      <span className="text-muted-foreground" data-part="counter-threshold">
+        {t("counter.warnsAbove", { limit: formatCount(warnAbove) })}
+      </span>
     )
   }
   return (
     <span
       className="inline-flex items-center gap-1.5"
       data-part="counter-threshold"
-      data-state={BoardLabels.above(tile) === undefined ? "undecided" : "above"}
+      data-state={above(t, tile) === undefined ? "undecided" : "above"}
     >
       <Icon icon={TriangleAlertIcon} className={TONE_ICON.warning} />
-      {warning}
+      {warned}
     </span>
   )
 }
 
-export function CounterCard({ tile, onOpen }: CounterCardProps) {
-  const partial = BoardLabels.partial(tile)
+/** A counter: its total, how many engines it comes from, its threshold and each engine's count. */
+export function CounterTile({ tile, slots }: CounterTileProps) {
+  const t = useWords()
+  const shown = partial(t, tile)
   const incident = tile.widget.filter.withIncident === true
   const total = tile.total
   return (
-    <BoardCard title={BoardLabels.title(tile)} kind="counter">
+    <BoardCard title={tileTitle(t, tile)} kind="counter">
       <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <BoardFigure
-          text={BoardLabels.count(total)}
+          text={totalCount(total)}
           part="counter-value"
           alarm={incident && total !== undefined && total.count > 0}
           className="text-title"
         />
-        {partial !== undefined && (
+        {shown !== undefined && (
           <span className="text-muted-foreground" data-part="counter-partial">
-            {partial}
+            {shown}
           </span>
         )}
         <Threshold tile={tile} />
       </p>
-      <ul className="flex flex-col" aria-label="Per engine">
+      <ul className="flex flex-col" aria-label={t("perEngine")}>
         {tile.readings.map((reading) => (
           <Entry
             key={reading.engine}
             reading={reading}
             incident={incident}
-            target={tile.targets.find((target) => target.engine === reading.engine)}
-            onOpen={onOpen}
+            target={counterTarget(reading.engine, tile.widget.filter)}
+            slots={slots}
           />
         ))}
       </ul>

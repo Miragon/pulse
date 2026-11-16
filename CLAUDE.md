@@ -58,6 +58,7 @@ command line interface (`apps/cli`), a VS Code extension (`apps/vscode`) and an 
 | `packages/core/runtime-view/`                  | The runtime view both editor hosts compose (`@miragon/pulse-runtime-view`, private) over the contract of `engine-core`: the ports a host and an engine family plug in, the core, the protocol, the webview (React on `@miragon/pulse-ui`), the local model reader and the host kit (targets from `.pulse.json` and the CLI's user config, policies, the write audit)                                                                                                                                                       |
 | `packages/core/profile/`                       | The one profile format of the CLI, the editor hosts and the MCP server (npm `@miragon/pulse-profile`): a parser from a file's text to a verdict per profile as data (a code and a key, never a value), the credential policy by where the file comes from, `refusalsOn` for what a reader cannot serve, the JSON Schema (`schema/pulse.schema.json`) and the shared fixtures (`/testing`); no runtime dependency                                                                                                           |
 | `packages/core/board/`                         | The board file format and builder (npm `@miragon/pulse-board`): its types, `BoardParser` (the board with its notes and refused widgets, or a broken file's problems, as codes `BoardProblems` words), `BoardTiles`, `BoardVocabulary`, `StarterBoard`, the JSON Schema, the fixtures (`/testing`), `/builder` (a board's numbers over seven reads of engine-core, an optional peer; no text); read by the runtime view's core and the editor hosts; the format has no runtime dependency; Pulse for VS Code's house rules  |
+| `packages/core/blocks/`                        | Pulse's building blocks (npm `@miragon/pulse-blocks`), React on `@miragon/pulse-ui` with props, callbacks and the slots a surface brings (`Table`, `Id`, `Diagram`, `onOpen`): the tiles of a board over a built board's JSON form (`BoardGrid`, `BoardTile`), worded in en and de (`useProblemWords`, `ProblemList`); rendered by the runtime view's webview; no React context of its own                                                                                                                                 |
 | `packages/core/http/`                          | The one engine transport of the MCP server, the CLI and the editor hosts' adapters (npm `@miragon/pulse-http`) over the `fetch` each hands in: a deadline to the last byte, no redirects, a 64 MiB cap, one retry after a 401, reasons as data, lossless JSON, masking, the path value rule; the OAuth client (`/oauth`); conformance cases, fake fetch (`/testing`), loopback engine (`/testing/loopback`); no dependency                                                                                                 |
 | `playground/`                                  | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `docs/`                                        | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                                                                                                                                                                                                                                                                                                                 |
@@ -116,7 +117,9 @@ Three axes decide where code goes, and they stay apart:
   (`packages/core/board`), which holds both with their dependency rules since 2026-11-15 (the
   builder in `@miragon/pulse-board/builder`, whose model the runtime view renders); a shared building block
   goes into pulse-ui (a primitive) or into a shared package created with the first engine block
-  two surfaces render. `docs/vscode/parity.md` lists what still differs between the views both
+  two surfaces render, executed for boards on 2026-11-16: `@miragon/pulse-blocks`
+  (`packages/core/blocks`) holds a board's tiles, which the webview renders with its own table, id
+  and canvas as slots. `docs/vscode/parity.md` lists what still differs between the views both
   show.
 
 A family is one source the MCP server reads, a dialect or another source (a metrics store,
@@ -520,9 +523,12 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      keeps its own screen and host wiring around it. Its pull request updates
      `docs/vscode/parity.md` by its review rule. Which blocks two surfaces share is the owner's
      decision in normal review. A primitive goes into pulse-ui, an engine block into a shared
-     package created with the first one two surfaces render; until then the cockpit side keeps its
-     props-only content in the connector (`process-definitions-table-view.tsx` with `renderActions`,
-     `history-steps.tsx`).
+     package created with the first one two surfaces render: `@miragon/pulse-blocks`
+     (`packages/core/blocks`), created with a board's tiles, which own their columns, cells, words
+     and notes and take the surface's table, id and diagram as slots, so each surface keeps its
+     row convention (`docs/vscode/parity.md`). Until a block moves there the cockpit side keeps its
+     props-only content in the connector (`process-definitions-table-view.tsx` with
+     `renderActions`, `history-steps.tsx`).
    - **One kit.** Primitives, components, the tone model (`TONE_*`, `resolveTone`), `cn`, the
      formatters and the kit pieces (`Icon`, `Th`/`Td`, `TableEmptyState`, `NativeSelect` …) come
      from `@miragon/pulse-ui`, a leaf (`ui-is-a-leaf`, invariant 8); widget-shell exports only
@@ -607,7 +613,8 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      `@miragon/pulse-ui/format`, which the VS Code extension's core and webview read too; a lower
      bound is `formatCount({ atLeast })`, `≥ 2,000`; ESLint's date and number gates over
      `WIDGET_TREES`, every widget tree: the host bundle's `src/ui`, widget-shell's and the
-     connector's widgets, and the extension's core and webview; `scripts/eslint-gates.test.mjs`).
+     connector's widgets, Pulse's building blocks (`packages/core/blocks`), and the extension's
+     core and webview; `scripts/eslint-gates.test.mjs`).
      A count reaches a catalog entry already formatted, and the entry puts the noun in the right
      number (`countOf`, `plural(…)`), never a `…One`/`…Other` key pair.
    - **BPMN** renders through `useBpmnViewer` + `BpmnZoomControls` on a forced-light canvas
@@ -909,7 +916,13 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      runtime view's core, the engine connector's `src/data` and tests import it
      (`board-builder-consumers`, `BOARD_BUILDERS`); the
      package's tests that read the contract import of the families engine-core alone, by its
-     entries (`board-tests-build-on-the-engine-contract`); the
+     entries (`board-tests-build-on-the-engine-contract`); the building blocks
+     (`@miragon/pulse-blocks`, `packages/core/blocks`) import in their shipped code only React,
+     Lucide, pulse-ui's root, `/format` and `/tones` and the board format's main entry, never
+     widget-shell, ext-apps, a family, engine-core, the builder or a Node built-in
+     (`blocks-are-building-blocks`), and only a surface that renders them imports them: the runtime
+     view's webview, by the main entry (its closed world's `webview-blocks-by-its-entry`), and tests
+     (`blocks-consumers`, `BLOCKS_RENDERERS`); the
      transport (`@miragon/pulse-http`, `packages/core/http`) is a leaf too, which
      runs over an injected `fetch` on the web platform's globals, no npm package and no Node
      built-in (`http-is-a-leaf`; ESLint's `no-restricted-globals` keeps out what only a browser
@@ -1186,12 +1199,12 @@ The release workflows hold the publish credentials and no pull request runs them
 workspace (its header lists each check).
 
 - **One release-please train.** Conventional commits on `main` drive `release-please.yml`: one
-  Release PR (tag `v<version>`) bumps the root, every app, the nine packages, the three private
+  Release PR (tag `v<version>`) bumps the root, every app, the ten packages, the three private
   packages of the editor hosts, the Orca plugin's manifest, the template's pins and the
   c7-client User-Agent in lockstep (`extra-files` in `release-please-config.json`).
   Merging it creates the release; every publish job then waits for manual approval of the
   `release` environment gate.
-- **npm:** the nine packages and `@miragon/pulse-cli` publish through
+- **npm:** the ten packages and `@miragon/pulse-cli` publish through
   `publish-npm-package.yml` with OIDC trusted publishing (no NPM_TOKEN, provenance attached).
   Each names this repository in its `repository` field, since npm refuses a provenance publish
   from another repository. The pack job runs `pnpm pack`, which rewrites `workspace:*` (npm's

@@ -32,7 +32,7 @@ export type {
 } from "./board-data.js"
 export type {
   BoardEngineStatus,
-  BoardProblem,
+  BoardFileProblem,
   BoardTarget,
   BoardTile,
   BoardView,
@@ -42,7 +42,7 @@ export type {
   InstanceListTile,
   ProcessDiagramTile,
   RefusedTile,
-  WordedProblem,
+  UnreadableFile,
 } from "./board-views.js"
 export type {
   BulkKind,

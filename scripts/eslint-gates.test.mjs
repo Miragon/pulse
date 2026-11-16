@@ -67,13 +67,14 @@ const WS = "packages/core/widget-shell/src/ui"
 const UI = "packages/core/ui/src"
 const APP_UI = "apps/mcp-server/src/ui"
 /**
- * WIDGET_TREES of eslint.config.mjs: the host bundle's src/ui, widget-shell's view half and the
- * connector's widgets, a .ts and a .tsx probe each. The date and number gates hold all of them.
+ * WIDGET_TREES of eslint.config.mjs: the host bundle's src/ui, widget-shell's view half, the
+ * connector's widgets and Pulse's building blocks, a .ts and a .tsx probe each. The date and number
+ * gates hold all of them.
  */
-const WIDGET_TREE_PATHS = [APP_UI, WS, `${ENGINE_CONNECTOR_SRC_DIR}/widgets`].flatMap((dir) => [
-  `${dir}/__probe__.ts`,
-  `${dir}/__probe__.tsx`,
-])
+const BLOCKS = "packages/core/blocks/src/board"
+const WIDGET_TREE_PATHS = [APP_UI, WS, `${ENGINE_CONNECTOR_SRC_DIR}/widgets`, BLOCKS].flatMap(
+  (dir) => [`${dir}/__probe__.ts`, `${dir}/__probe__.tsx`],
+)
 /**
  * The runtime view's core and webview, which Pulse for VS Code and Pulse for Orca host: they
  * format through pulse-ui's foundation (`@miragon/pulse-ui/format`), so the date and number

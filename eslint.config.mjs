@@ -4,16 +4,20 @@ import reactHooks from "eslint-plugin-react-hooks"
 import globals from "globals"
 
 // The widget trees: every tree of React views an MCP host renders (the host bundle's src/ui,
-// widget-shell's view half, the connector's widgets). They are excluded from their package's
-// tsconfig.json and typed by the browser-only tsconfig.widgets.json / tsconfig.ui.json projects
-// instead, and the date and number gates (invariant 6) hold all of them, and the runtime view's
-// core and webview too (their blocks below carry them in their unions).
+// widget-shell's view half, the connector's widgets, Pulse's building blocks). The first three are
+// excluded from their package's tsconfig.json and typed by the browser-only
+// tsconfig.widgets.json / tsconfig.ui.json projects instead (PROJECT_TYPED_WIDGET_TREES); the
+// building blocks (packages/core/blocks), which the VS Code webview renders too, are typed by their
+// package's own tsconfig.json. The date and number gates (invariant 6) hold all of them, and the
+// runtime view's core and webview too (their blocks below carry them in their unions).
 const CONNECTOR_WIDGETS = ["packages/connectors/engine/engine-connector/src/widgets/**/*.{ts,tsx}"]
-const WIDGET_TREES = [
+const PROJECT_TYPED_WIDGET_TREES = [
   "apps/mcp-server/src/ui/**/*.{ts,tsx}",
   "packages/core/widget-shell/src/ui/**/*.{ts,tsx}",
   ...CONNECTOR_WIDGETS,
 ]
+const BLOCKS_SRC = "packages/core/blocks/src/**/*.{ts,tsx}"
+const WIDGET_TREES = [...PROJECT_TYPED_WIDGET_TREES, BLOCKS_SRC]
 
 // Server tests (and the Playwright host simulation) live outside src/ (not
 // part of the build tsconfig) and get their type information from the
@@ -35,6 +39,7 @@ export const DEFAULT_PROJECT_FILES = [
   "packages/connectors/engine/engine-connector/vitest.engines.config.ts",
   "packages/connectors/engine/engine-core/vitest.config.ts",
   "packages/connectors/engine/engine-core/vitest.stryker.config.ts",
+  "packages/core/blocks/vitest.config.ts",
   "packages/core/board/vitest.config.ts",
   "packages/core/board/vitest.stryker.config.ts",
   "packages/core/http/vitest.config.ts",
@@ -444,7 +449,7 @@ export default tseslint.config(
 
   // Typed linting via the project service for everything the package tsconfigs cover
   {
-    ignores: [...WIDGET_TREES, ...serverTestFiles, ...editorBoundaryProbes],
+    ignores: [...PROJECT_TYPED_WIDGET_TREES, ...serverTestFiles, ...editorBoundaryProbes],
     languageOptions: {
       parserOptions: {
         projectService: {
@@ -461,7 +466,7 @@ export default tseslint.config(
 
   // The widget trees: typed via their dedicated tsconfig projects
   {
-    files: WIDGET_TREES,
+    files: PROJECT_TYPED_WIDGET_TREES,
     languageOptions: {
       parserOptions: {
         project: [
@@ -646,6 +651,21 @@ export default tseslint.config(
   {
     files: ["packages/connectors/*/*/src/messages/*.sweep.ts"],
     rules: { "max-lines": "off" },
+  },
+  // Pulse's building blocks (packages/core/blocks) keep pulse-ui's house rules (function
+  // components, JSDoc) with the editor budgets, complexity 10 and 300 lines, since their code
+  // came from the VS Code webview, and react-hooks' recommended-latest with every rule an error,
+  // as the webview has it (pnpm lint fails on errors only).
+  {
+    files: [BLOCKS_SRC],
+    plugins: { "react-hooks": reactHooks },
+    rules: {
+      complexity: ["error", 10],
+      "max-lines": ["error", { max: 300, skipBlankLines: true, skipComments: true }],
+      ...Object.fromEntries(
+        Object.keys(reactHooks.configs["recommended-latest"].rules).map((rule) => [rule, "error"]),
+      ),
+    },
   },
   // ── The CLI (apps/cli) ───────────────────────────────────────────────────
   // Brought along from the operate repository, where the CLI grew up: typescript-eslint's

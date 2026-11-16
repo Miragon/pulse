@@ -63,6 +63,7 @@ Works of others in the bundles:
 
 Pulse's own packages in the bundles, under the MIT licence in LICENSE:
 
+  @miragon/pulse-blocks
   @miragon/pulse-board
   @miragon/pulse-c7-adapter
   @miragon/pulse-c7-core

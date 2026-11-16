@@ -164,6 +164,7 @@ describe("a process diagram on a board", () => {
     await open({ scope: "running", elementId: "Task_Unknown" })
     await open({ scope: "ended", elementId: "Task_Ship" })
     await open({ scope: "running", businessKey: "ORD-1" })
+    await open({ scope: "running", variables: [] })
     await open({ scope: "running" }, "invoice")
     await open({ scope: "running" }, "order", "billing")
 

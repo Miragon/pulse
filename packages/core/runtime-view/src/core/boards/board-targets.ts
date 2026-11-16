@@ -36,12 +36,14 @@ export class BoardTargets {
   }
 
   showsProcess(engine: string, bpmnProcessId: string, filter: InstanceListFilter): boolean {
-    const asked = JSON.stringify(filter)
+    if (filter.variables !== undefined) {
+      return false
+    }
     const listed = this.targets().some(
       (target) =>
         target.engine === engine &&
         target.bpmnProcessId === bpmnProcessId &&
-        JSON.stringify(target.filter) === asked,
+        BoardTargets.sameFilter(target.filter, filter),
     )
     return listed || this.diagrams(engine, bpmnProcessId).some((tile) => this.draws(tile, filter))
   }
@@ -55,6 +57,14 @@ export class BoardTargets {
   configures(engine: string): boolean {
     return this.view.engines.some(
       (status) => status.name === engine && status.problem?.needsCredentials === true,
+    )
+  }
+
+  private static sameFilter(offered: InstanceListFilter, asked: InstanceListFilter): boolean {
+    return (
+      offered.scope === asked.scope &&
+      offered.elementId === asked.elementId &&
+      offered.businessKey === asked.businessKey
     )
   }
 

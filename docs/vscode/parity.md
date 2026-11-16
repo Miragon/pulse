@@ -188,13 +188,13 @@ is a pair feature. Its pull request:
 2. Takes the foundation: the words of `COUNT_TERMS` and `PRODUCT_GLOSSARY`, the tone from
    `SITUATION_TONES`, every date, duration, count and id from `@miragon/pulse-ui/format`.
 3. Builds its content with props and callbacks only, no host context (no `useToolQuery`,
-   `ConfirmDialog`, `HandOffButton` or `HostBridge`), as
-   `packages/connectors/engine/engine-connector/src/widgets/process-definitions-table-view.tsx`
-   (`renderActions`) and `history-steps.tsx` beside it do. Where both tools show it, a shared
-   building block is the default, on React, which both tools render (D9). A feature that moves
-   onto shared numbers (boards first) takes them from one builder over one read. A primitive goes
-   into `@miragon/pulse-ui`, an engine block into a shared package, created with the first one both
-   tools render; until then the cockpit keeps its content in the connector.
+   `ConfirmDialog`, `HandOffButton` or `HostBridge`), as `process-definitions-table-view.tsx`
+   (`renderActions`) and `history-steps.tsx` of the cockpit's widgets do. Where both tools show
+   it, a shared building block on React is the default (D9), shared numbers come from one builder
+   over one read (boards first). A primitive goes into `@miragon/pulse-ui`, an engine block into
+   `@miragon/pulse-blocks`, which holds a board's tiles and takes each tool's table, id and
+   diagram: each keeps its row convention (the extension opens a row on a click or Enter and
+   copies it with Ctrl or Cmd+C, the cockpit's tables give a row a drill).
 4. Changes a decided row only together with its record.
 
 No gate tells a wanted difference from a forgotten one: the reviewer holds the diff to this page.

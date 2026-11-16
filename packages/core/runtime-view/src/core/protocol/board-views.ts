@@ -21,12 +21,12 @@ export interface BoardEngineStatus {
   readonly problem?: Problem
 }
 
-export interface BoardProblem {
-  readonly path: string
-  readonly reason: string
+export interface UnreadableFile {
+  readonly path: "(file)"
+  readonly code: "unreadable"
 }
 
-export type WordedProblem = ProblemData & { readonly reason: string }
+export type BoardFileProblem = ProblemData | UnreadableFile
 
 export interface BoardTarget {
   readonly engine: string
@@ -50,9 +50,7 @@ export interface ProcessDiagramTile extends ProcessDiagramData {
 
 export type IncidentListTile = IncidentListData
 
-export interface RefusedTile extends RefusedData {
-  readonly problems: readonly WordedProblem[]
-}
+export type RefusedTile = RefusedData
 
 export type BoardTile =
   | CounterTile
@@ -69,6 +67,6 @@ export interface BoardView {
   readonly fileName: string
   readonly engines: readonly BoardEngineStatus[]
   readonly rows: readonly (readonly BoardTile[])[]
-  readonly problems: readonly BoardProblem[]
-  readonly notes: readonly WordedProblem[]
+  readonly problems: readonly BoardFileProblem[]
+  readonly notes: readonly ProblemData[]
 }

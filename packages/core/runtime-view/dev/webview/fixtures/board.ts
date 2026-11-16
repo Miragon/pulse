@@ -139,7 +139,7 @@ export const BOARD_VIEW: BoardView = {
 
 export const BROKEN_BOARD_VIEW: BoardView = {
   ...BOARD_VIEW,
-  problems: [{ path: "title", reason: "must be a text that is not empty" }],
+  problems: [{ path: "title", code: "blankText" }],
 }
 
 export const REFUSED_BOARD_VIEW: BoardView = {
@@ -155,8 +155,6 @@ export const REFUSED_BOARD_VIEW: BoardView = {
           {
             path: "rows[0].row[1].props.filter.withIncident",
             code: "endedWithIncident",
-            reason:
-              'only matches running instances, since an ended instance has no open incident; remove it or use state "running"',
           },
         ],
       },
@@ -179,8 +177,6 @@ export const REFUSED_BOARD_VIEW: BoardView = {
                 "incidentList",
               ],
             },
-            reason:
-              "must be one of counter, instanceList, incidentSummary, processDiagram, incidentList",
           },
         ],
       },
@@ -190,7 +186,6 @@ export const REFUSED_BOARD_VIEW: BoardView = {
     {
       path: "layout",
       code: "ignoredKey",
-      reason: "is not a key this version of Pulse knows; Pulse shows the board without it",
     },
   ],
 }

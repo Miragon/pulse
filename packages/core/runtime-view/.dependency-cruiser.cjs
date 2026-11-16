@@ -9,6 +9,9 @@ const ENGINE_CORE_TREE = "^packages/connectors/engine/engine-core/"
 const PROFILE_ENTRY = "(^|/)node_modules/@miragon/pulse-profile/dist/index[.]d[.]ts$"
 const BOARD_ENTRY = "(^|/)node_modules/@miragon/pulse-board/dist/index[.]d[.]ts$"
 const BOARD_BUILDER_ENTRY = "(^|/)node_modules/@miragon/pulse-board/dist/builder/index[.]d[.]ts$"
+const BLOCKS_ENTRY = "(^|/)node_modules/@miragon/pulse-blocks/dist/index[.]d[.]ts$"
+const BLOCKS =
+  "(^|/)node_modules/@miragon/pulse-blocks/|^@miragon/pulse-blocks(/|$)|^packages/core/blocks/"
 const PULSE_UI = "(^|/)node_modules/@miragon/pulse-ui/|^@miragon/pulse-ui(/|$)|^packages/core/ui/"
 const UI_FOUNDATION =
   "(^|/)node_modules/@miragon/pulse-ui/dist/(format|tones)/|^@miragon/pulse-ui/(format|tones)$"
@@ -90,6 +93,12 @@ module.exports = {
     },
     {
       comment:
+        "The webview renders a board's tiles with Pulse's building blocks (@miragon/pulse-blocks, its main entry: React on @miragon/pulse-ui, props, callbacks and the slots the webview brings, its table, its id and its diagram), which the editor hosts bundle with esbuild. The cockpit of the MCP server renders the same tiles (owner decision D8, apps/vscode/docs/adr/ui-foundation.md).",
+      from: { path: `${PACKAGE}src/webview/` },
+      to: { path: BLOCKS_ENTRY },
+    },
+    {
+      comment:
         "The webview may use its rendering libraries: React (react, react-dom), lucide-react for the icons, the diagram stack (bpmn-js, diagram-js, @miragon/modeler-shell) and the Geist fonts. Radix and the rest of the kit's own dependencies come in through @miragon/pulse-ui only.",
       from: { path: `${PACKAGE}src/webview/` },
       to: { path: WEBVIEW_LIBRARIES },
@@ -123,7 +132,7 @@ module.exports = {
       name: "not-in-allowed",
       severity: "error",
       comment:
-        "No entry of `allowed` in packages/core/runtime-view/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md). A layer uses its own modules and another layer only through its index.ts: the ports, the core, the model adapter and the host kit speak the main entry of @miragon/pulse-engine-core, the engine family's neutral core (never ./testing), the core and the model adapter reach the ports, the model adapter also bpmn-moddle (never a vendor's descriptor, which its family's adapter brings), core and webview @miragon/pulse-ui/tones and their label helpers (core/views/labels.ts, webview/format/) @miragon/pulse-ui/format, the webview protocol types, its rendering libraries and, for shared building blocks, @miragon/pulse-ui's root and @miragon/pulse-ui/theme.css, the host kit core, protocol, ports and Node built-ins, its connections also @miragon/pulse-profile's main entry, and the core @miragon/pulse-board's main entry and ./builder. The runtime view knows no editor host and no dialect.",
+        "No entry of `allowed` in packages/core/runtime-view/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md). A layer uses its own modules and another layer only through its index.ts: the ports, the core, the model adapter and the host kit speak the main entry of @miragon/pulse-engine-core, the engine family's neutral core (never ./testing), the core and the model adapter reach the ports, the model adapter also bpmn-moddle (never a vendor's descriptor, which its family's adapter brings), core and webview @miragon/pulse-ui/tones and their label helpers (core/views/labels.ts, webview/format/) @miragon/pulse-ui/format, the webview protocol types, its rendering libraries, for shared building blocks @miragon/pulse-ui's root and @miragon/pulse-ui/theme.css and the board's tiles of @miragon/pulse-blocks' main entry, the host kit core, protocol, ports and Node built-ins, its connections also @miragon/pulse-profile's main entry, and the core @miragon/pulse-board's main entry and ./builder. The runtime view knows no editor host and no dialect.",
       from: {},
       to: { path: "^$" },
     },
@@ -182,6 +191,14 @@ module.exports = {
         "The webview imports @miragon/pulse-ui by its package entries only (owner decision 2026-11-12, apps/vscode/docs/adr/ui-foundation.md): its root, the React kit, and its stylesheet @miragon/pulse-ui/theme.css for the shared building blocks it renders, @miragon/pulse-ui/tones and, in its label helpers (webview/format/), @miragon/pulse-ui/format. Never ./testing (the brand gates read files with node:fs; tests may import it), never globals.css (the stylesheet of an app without a Tailwind entry of its own; the webview has its own, src/webview/styles/webview.css, preflight on, D9) or fonts.css (the webview loads Geist itself), never another subpath, and never a file of packages/core/ui by path, its source or its build: the entries load the package's build, so a module reached by path is a second copy of the kit.",
       from: { path: `${PACKAGE}src/webview/`, pathNot: TEST_CODE },
       to: { path: PULSE_UI, pathNot: UI_WEBVIEW_ENTRIES },
+    },
+    {
+      name: "webview-blocks-by-its-entry",
+      severity: "error",
+      comment:
+        "Import @miragon/pulse-blocks, Pulse's building blocks, by its main entry only, and only in the webview: never another subpath and never a file of packages/core/blocks by path, its source or its build. The entry loads the package's build, so a module reached by path is a second copy of the tiles. The core, the ports, the model reader and the host kit render nothing (not-in-allowed).",
+      from: { pathNot: "(^|/)node_modules/" },
+      to: { path: BLOCKS, pathNot: BLOCKS_ENTRY },
     },
     {
       name: "webview-never-widget-shell",

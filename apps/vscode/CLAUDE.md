@@ -99,7 +99,8 @@ This app holds only the VS Code wiring.
 | Interpret runtime data (grouping, view models, panel behaviour)                         | `packages/core/runtime-view/src/core`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | `vscode`, DOM, Node, engine words          |
 | Change what the webview shows                                                           | `packages/core/runtime-view/src/core/protocol` (types) and `packages/core/runtime-view/src/webview`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | logic in the webview, `--vscode-*` colours |
 | Change the board file format (widgets, filters, columns, limits, the parser's problems) | `packages/core/board/src/format` (`BoardParser`, `BoardProblems` with the words of its problems, `BoardTiles`, `BoardVocabulary`, `StarterBoard`), which the runtime view's core and the hosts read through `@miragon/pulse-board`'s main entry; its JSON Schema `packages/core/board/schema/board.schema.json` with it, copied to `apps/vscode/schemas/board.schema.json`                                                                                                                                                                                                                                                      | a copy in the runtime view or a host       |
-| Change what a board reads or counts (tiles, totals, the sub-process roll-up)            | `packages/core/board/src/builder` (`BoardBuilder` over the seven `BoardReads` into a `BoardModel` of no text, `DiagramBadges`, `CollapsedShapes`), which the runtime view's core reads through `@miragon/pulse-board/builder` and serializes in `packages/core/runtime-view/src/core/boards` with the board's JSON form (`BoardJson.of` in `BoardViews`, which adds what only the editors show: an engine's problem, the targets a click opens, the diagram's XML, the problems' words); the webview words titles, short ids and states (`BoardLabels`)                                                                         | text in the builder; a copy in a surface   |
+| Change what a board reads or counts (tiles, totals, the sub-process roll-up)            | `packages/core/board/src/builder` (`BoardBuilder` over the seven `BoardReads` into a `BoardModel` of no text, `DiagramBadges`, `CollapsedShapes`), which the runtime view's core reads through `@miragon/pulse-board/builder` and serializes in `packages/core/runtime-view/src/core/boards` with the board's JSON form (`BoardJson.of` in `BoardViews`, which adds what only the editors show: an engine's problem, the targets the core checks a click against, the diagram's XML)                                                                                                                                            | text in the builder; a copy in a surface   |
+| Change how a board's tiles look or read (titles, columns, notes, a problem's words)     | `packages/core/blocks/src/board` (`BoardGrid` and the tiles over `BoardData`, the targets a click opens, the slots `Table`, `Id`, `Diagram`) and `packages/core/blocks/src/messages` (en and de), which the webview renders through `@miragon/pulse-blocks`' main entry with its table, short id and canvas (`packages/core/runtime-view/src/webview/screens/board/board-slots.tsx`, `board-diagram.tsx`)                                                                                                                                                                                                                       | a tile in the webview; a copy in a surface |
 | Talk to Operaton / CIB seven / Camunda 7                                                | `packages/connectors/c7/c7-adapter/src` (`C7Adapter`, the commands, `C7BpmnDialect`) and `packages/connectors/c7/c7-adapter/src/engine-rest` (the wire, the port c7-core reads over, the writes); every read of the contract (`C7Runtime`: the engine, its processes, a diagram and its counts, called processes, instances, incidents, an instance's detail, bulk operations, migrations) and the reads the commands check before a write in `@miragon/pulse-c7-core/runtime`; inspect, wait states, an incident's retry target and cause request, variable typing in `@miragon/pulse-c7-core`, the root cause in `RootCauses` | imports from core, webview or host; a copy |
 | Talk to Camunda 8 (the Orchestration Cluster REST API)                                  | `packages/connectors/c8/c8-adapter/src`: `C8Adapter`, `C8ProcessRuntime`, its readers (`src/reading`) and mappings (`src/mapping`) over the REST client (`src/rest`, checked views) and the wire (`src/wire`, `CamundaWire`, `ClientCredentialsSources`); the words of its failures in `src/errors`; `C8BpmnDialect`                                                                                                                                                                                                                                                                                                            | a client library, a copy of the transport  |
 | Add an engine family                                                                    | `packages/connectors/<family>/<family>-adapter` with a class implementing `EngineAdapter` and bringing its `BpmnDialect` (`src/<family>-bpmn-dialect.ts`, the one file that imports its moddle descriptor) + an `*.engine.test.ts` running the `ConformanceKit` (`@miragon/pulse-engine-core/testing`) + one entry in each composition root's record for the host kit's `EngineRoot` (`apps/vscode/src/host/composition-root.ts`, `apps/orca/src/worker/composition-root.ts`)                                                                                                                                                   | branching on engines anywhere else         |
@@ -164,8 +165,12 @@ runtime view's closed world; the repository's `board-builder-builds-on-the-engin
 views draw too; the core hands the webview a board's tiles in the board's JSON form
 (`BoardJson.of`), of which the protocol keeps a copy that
 `packages/core/runtime-view/test/core/board-format.test.ts` holds equal to the format's, with what
-only the editors add (the targets a click opens, the diagram's XML and each problem's words in
-`BoardProblems`' terms), and the webview's board cards take their tile and callbacks only. The
+only the editors add (the targets the core checks a click against and the diagram's XML; a problem
+stays a code), and the webview renders the tiles with Pulse's building blocks,
+`@miragon/pulse-blocks` (`packages/core/blocks`), through their main entry (the runtime view's
+closed world, `webview-blocks-by-its-entry`; the repository's `blocks-are-building-blocks` and
+`blocks-consumers`), under an English `LocaleProvider`, with its own table, short id and diagram
+canvas as their slots. The
 runtime view's core and webview import Pulse's UI foundation as `@miragon/pulse-ui/tones` and `@miragon/pulse-ui/format`:
 the tone vocabulary and `SITUATION_TONES`, the one tone per situation the MCP widgets show
 too, and the formatters, framework-free (the repository's
@@ -207,12 +212,15 @@ it stores, which stay the editor's; where it shows the same thing as the MCP wid
 apps of #573, a shared building block is the default, and no screen of it is replaced by force. A
 shared building block is a component on React that takes props and callbacks only, with no host
 context inside (no `useToolQuery`, `ConfirmDialog`, `HandOffButton` or `HostBridge`); it lives in
-pulse-ui or in a shared package created with the first engine block two surfaces render. The
+pulse-ui or in a shared package created with the first engine block two surfaces render, which
+exists since 2026-11-16: `@miragon/pulse-blocks` (`packages/core/blocks`), created from the
+webview's board cards, which the webview renders, the cockpit of the MCP server next. The
 webview's esbuild options (`packages/core/runtime-view/scripts/webview-build-options.mjs`, which
 every host, dev and test build takes) run its one Tailwind entry,
 `packages/core/runtime-view/src/webview/styles/webview.css`, through a Tailwind step
 (`packages/core/runtime-view/scripts/tailwind-entries.mjs`: Tailwind's `compile` over the entry,
-its `@source` globs scanned, the webview and pulse-ui's dist, `optimize` in a build that ships),
+its `@source` globs scanned, the webview and the dist of pulse-ui and of the building blocks,
+`optimize` in a build that ships),
 with preflight on, pulse-ui's `theme.css`, the diagram's vendor CSS (diagram-js, bpmn-js,
 `cd-canvas.css`) and `diagram.css` unlayered, so the diagram's high-contrast and forced-colours
 rules keep winning, modeler-shell's `shell.css` in a layer of its own, `shell`, below the kit's
@@ -378,8 +386,8 @@ engine at history level AUDIT too
   `.miragon/brand-assets.sha256`: re-copy, never edit (the repository's token drift test reads
   those checksums and holds every token a copy shares with pulse-ui's and the docs kit's to one
   value per scope). pulse-ui's brand gates scan the webview and the texts of the runtime view,
-  the host and the board format (`apps/vscode/test/architecture/brand-gates.test.ts`,
-  `product-words.test.ts`): Lucide icons, never a glyph, at 16 px or at 12 px beside dense text
+  the host and the board format, and the product's words those of the building blocks too
+  (`apps/vscode/test/architecture/brand-gates.test.ts`, `product-words.test.ts`): Lucide icons, never a glyph, at 16 px or at 12 px beside dense text
   and on the diagram's overlays (the named deviation of the root `CLAUDE.md`'s density section,
   each file listed there with its reason), text on pulse-ui's type scale (13 px at least, weights
   400, 600 and 700 only, `scanTypeScale`), and no raw colour outside the renderer's paint
@@ -390,7 +398,8 @@ engine at history level AUDIT too
   name ends none), "follows" as a promise, "later", "soon", "future", "planned" or "coming", a
   next or named release, "for now", "currently" and "will support" in the texts of the runtime
   view, the host, the packages whose texts both editors show (engine-core, the C7 adapter,
-  the C8 adapter, c7-core, `@miragon/pulse-http`, `@miragon/pulse-profile`, `@miragon/pulse-board`) and the manifest and board schema;
+  the C8 adapter, c7-core, `@miragon/pulse-http`, `@miragon/pulse-profile`, `@miragon/pulse-board`,
+  `@miragon/pulse-blocks`) and the manifest and board schema;
   it reads a sentence that a value, an inline tag or a `+` splits as one (its rules in
   `apps/vscode/test/architecture/support/promise-words.ts`, which Pulse for Orca's gate holds
   word for word); a state text such as "Not called yet" keeps its word only as an allowance

@@ -37,7 +37,7 @@ Only UI state (open tab, split, column widths, zoom) stays in the webview's own 
 
 - `packages/core/runtime-view/src/webview/host`: the bridge to the host and the stored UI state (`HostBridge`, `UiStateStore`)
 - `packages/core/runtime-view/src/webview/screens`: the three screens, filter bars, instance tabs and the variable editor
-- `packages/core/runtime-view/src/webview/screens/board`: the board screen, which holds the host calls, and its cards, which take a tile in the board's JSON form and callbacks only and word its titles, short ids and states (`BoardLabels`)
+- `packages/core/runtime-view/src/webview/screens/board`: the board screen, which holds the host calls and renders the tiles of `@miragon/pulse-blocks` with the webview's slots (`board-slots.tsx`: its table, its short id, the target a tile opens as an intent; `board-diagram.tsx`: its canvas), its engine strip and the words of what is its own (`BoardLabels`)
 - `packages/core/runtime-view/src/webview/diagram`: the bpmn-js viewer with its badges and call buttons (`RuntimeCanvas`)
 - `packages/core/runtime-view/src/webview/components`: the webview's parts over pulse-ui's kit: the table with resizable columns, the header bar, tabs, scope segments, the diagram
 - `packages/core/runtime-view/src/webview/styles`: the one Tailwind entry (`webview.css`: pulse-ui's `theme.css`, the fonts, the diagram's vendor CSS) and `diagram.css`, the overlays' own classes
@@ -47,6 +47,7 @@ Only UI state (open tab, split, column widths, zoom) stays in the webview's own 
 ## Rules
 
 - Takes the core's protocol types, pulse-ui's `/tones` and `/format` (the latter from `format/`),
+  the main entry of `@miragon/pulse-blocks` (a board's tiles),
   pulse-ui's React kit and `theme.css`, and `react`, `react-dom` and `lucide-react`; nothing else
   of ours (dependency-cruiser). It moved from Preact to React on pulse-ui in one switch (D9 in
   `apps/vscode/docs/adr/ui-foundation.md`)

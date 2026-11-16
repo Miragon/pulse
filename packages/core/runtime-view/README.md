@@ -21,15 +21,17 @@ Each layer has its own `tsconfig.<layer>.json` with its runtime's globals only, 
 closed-world dependency rules (`.dependency-cruiser.cjs`, `pnpm lint:architecture:runtime-view`):
 the ports, the core, the model reader and the host kit import engine-core's main entry, the core
 and the webview Pulse's UI foundation (`@miragon/pulse-ui/tones`, `@miragon/pulse-ui/format`), the
-webview also pulse-ui's React kit and its `theme.css`, the host kit's
+webview also pulse-ui's React kit and its `theme.css` and Pulse's building blocks
+(`@miragon/pulse-blocks`, its main entry: a board's tiles), the host kit's
 connections the profile format (`@miragon/pulse-profile`), the core the board format
 (`@miragon/pulse-board`, its main entry; the protocol keeps a copy of the tiles of a board's JSON
 form, `BoardData`, which `test/core/board-format.test.ts` holds equal to the format's) and its
 builder (`@miragon/pulse-board/builder`: a board's numbers, which `BoardViews` serializes with
-`BoardJson.of` and hands the webview with what only the editors add, the targets a click opens,
-the diagram's XML and each problem's words, and the roll-up onto collapsed sub-processes the
-definition and instance views draw too), and no layer a dialect's core. The webview words a
-board's titles, short ids and states, and its board cards take their tile and callbacks only.
+`BoardJson.of` and hands the webview with what only the editors add, the targets the core checks
+a click against and the diagram's XML, a problem staying a code, and the roll-up onto collapsed
+sub-processes the definition and instance views draw too), and no layer a dialect's core. The
+webview renders a board's tiles with the building blocks under an English `LocaleProvider`, which
+word them, and brings their slots: its table, its short id and its diagram canvas.
 That edge of `packages/core` into the engine family is the one the owner accepted
 (`runtime-view-builds-on-the-engine-contract` in the repository's `.dependency-cruiser.cjs`).
 The hosts read the types from the build (`dist`, declarations only) and bundle the sources.
@@ -45,7 +47,7 @@ and e2e builds) and the dev page while it serves. The Tailwind step, `TailwindEn
 (`packages/core/runtime-view/scripts/tailwind-entries.mjs`), compiles the stylesheets the options
 name as Tailwind entries and nothing else, today the webview's one,
 `packages/core/runtime-view/src/webview/styles/webview.css` (preflight on, `@source` the webview
-and pulse-ui's dist, pulse-ui's `theme.css`, the diagram's vendor CSS and `diagram.css` unlayered):
+and the dist of pulse-ui and of the building blocks, pulse-ui's `theme.css`, the diagram's vendor CSS and `diagram.css` unlayered):
 Tailwind's `compile`, the `@source` globs of the entry scanned (without `source(…)` the entry's
 folder), `optimize` in a build that ships, esbuild watching what it read and scanned. It records
 what each entry read, its `@import`s, which the build's metafile never names, so the licence lists
@@ -85,7 +87,9 @@ harness's. The hooks:
 | migration         | `migration-diagram`, `migration-summary`, `migration-refusal`, `mapping-note`                                                                                                                                                 |
 | boards            | `board-card` (`data-kind`: the tile's kind, `refused` for a widget the file breaks), `refused-reason`, `board-notes`, `counter-value`, `counter-partial`, `counter-threshold`, `counter-entry`, `counter-count`, `group-note` |
 
-The kit's slots a part resolves to as well: `context-bar` `view-bar`, `context-subject`
+The board's parts are the building blocks' own (`@miragon/pulse-blocks` carries the boards row's
+hooks but `board-notes`, and `incident-flag` and `empty-hint` in its tiles). The kit's slots a part
+resolves to as well: `context-bar` `view-bar`, `context-subject`
 `view-bar-subject`, `access` `view-bar-access`, `freshness` `view-bar-freshness`, `status-strip`
 `status-strip`, `strip-title` the strip's first text, `state-label` `state-label`,
 `segment-count` the last text of a `segmented-option`, `tab-bar` `tabs-list`, `filter-chip`

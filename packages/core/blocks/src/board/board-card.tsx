@@ -1,35 +1,27 @@
 import { CircleXIcon } from "lucide-react"
 import { Card, CountFigure, Icon, SectionHeading, TONE_ICON, cn } from "@miragon/pulse-ui"
+import type { TileData } from "@miragon/pulse-board"
 import { useId, type ReactNode } from "react"
-import type { BoardTarget, BoardTile } from "../../../core/protocol/index.js"
-
-interface InstanceOpen {
-  readonly engine: string
-  readonly instanceId: string
-}
-
-export type BoardOpen = BoardTarget | InstanceOpen
-
-export interface BoardCallbacks {
-  readonly onOpen: (target: BoardOpen, toSide: boolean) => void
-  readonly onCopy: (text: string, label: string) => void
-  readonly onOpenFile: () => void
-}
+import { useWords } from "../messages/translate.js"
 
 export interface BoardCardProps {
   readonly title: string
-  readonly kind: BoardTile["kind"]
+  readonly kind: TileData["kind"]
   readonly children: ReactNode
 }
 
+/** A line of a tile's list: an engine or a process with its count. */
 export const BOARD_LINE = "flex min-h-control w-full items-center gap-2 px-2 text-left"
 
+/** Such a line as a button that opens what it counts. */
 export const BOARD_LINE_BUTTON = cn(BOARD_LINE, "justify-start font-normal has-[>svg]:px-2")
 
+/** The notes under a table: each engine's share. */
 export const GROUP_NOTES = "text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 px-1.5 py-0.5"
 
-const FLUSH: ReadonlySet<BoardTile["kind"]> = new Set(["instanceList", "incidentList"])
+const FLUSH: ReadonlySet<TileData["kind"]> = new Set(["instanceList", "incidentList"])
 
+/** A tile's card: a region named by its title; a table runs to its edges. */
 export function BoardCard({ title, kind, children }: BoardCardProps) {
   const heading = useId()
   const flush = FLUSH.has(kind)
@@ -55,7 +47,9 @@ export interface BoardFigureProps {
   readonly className?: string
 }
 
+/** A count as a neutral figure; a count of instances with incident alarms by an icon and words. */
 export function BoardFigure({ text, part, alarm, quiet = false, className }: BoardFigureProps) {
+  const t = useWords()
   const figure = (
     <span data-part={part} data-tone={alarm ? "danger" : undefined}>
       {text}
@@ -63,7 +57,7 @@ export function BoardFigure({ text, part, alarm, quiet = false, className }: Boa
   )
   const classes = cn(quiet && "text-muted-foreground", className)
   return alarm ? (
-    <CountFigure situation="openIncident" label="with incident" className={classes}>
+    <CountFigure situation="openIncident" label={t("withIncident")} className={classes}>
       {figure}
     </CountFigure>
   ) : (
@@ -71,11 +65,25 @@ export function BoardFigure({ text, part, alarm, quiet = false, className }: Boa
   )
 }
 
+/** The note of an engine that was not read, in a list of engines. */
 export function MissingNote({ engine }: { readonly engine: string }) {
+  const t = useWords()
   return (
     <li className="text-foreground inline-flex items-center gap-1.5" data-part="group-note">
       <Icon icon={CircleXIcon} className={TONE_ICON.danger} />
-      {`${engine}: not read`}
+      {t("group.notRead", { engine })}
     </li>
+  )
+}
+
+/** What a tile says when it has nothing to show. */
+export function EmptyNote({ text }: { readonly text: string }) {
+  return (
+    <div
+      className="text-dense text-muted-foreground flex flex-col items-center justify-center gap-3 px-3 py-6 text-center"
+      data-part="empty-hint"
+    >
+      <p className="max-w-prose text-balance">{text}</p>
+    </div>
   )
 }

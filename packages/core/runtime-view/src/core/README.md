@@ -43,7 +43,7 @@ sequenceDiagram
 - `packages/core/runtime-view/src/core/protocol`: intents, states and view models shared with the webview (`MessageGuards`)
 - `packages/core/runtime-view/src/core/panels`: the three panel sessions and their loading (`ViewSession`, `InstanceWrites`)
 - `packages/core/runtime-view/src/core/views`: view builders: read models in, one view model out
-- `packages/core/runtime-view/src/core/boards`: the board panel, which reads a board file with `@miragon/pulse-board`, builds its numbers with `@miragon/pulse-board/builder` and hands the webview the model's JSON form (`BoardJson.of` in `BoardViews`) with the targets a click opens, the diagram's XML and each problem's words (`TileViews`); the webview words titles, short ids and states
+- `packages/core/runtime-view/src/core/boards`: the board panel, which reads a board file with `@miragon/pulse-board`, builds its numbers with `@miragon/pulse-board/builder` and hands the webview the model's JSON form (`BoardJson.of` in `BoardViews`) with the targets a click opens and the diagram's XML (`TileViews`), a problem staying a code; the tiles of `@miragon/pulse-blocks` word it in the webview
 - `packages/core/runtime-view/src/core/explorer`: what the Engines tree lists
 - `packages/core/runtime-view/src/core/drift`: does a local `.bpmn` file match a deployed version? (`ModelDrift`)
 - `packages/core/runtime-view/src/core/bpmn`, `packages/core/runtime-view/src/core/diagrams`: text rules for BPMN XML, diagram cache (the root cause of an incident comes with its details from the adapter)

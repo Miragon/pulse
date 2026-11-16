@@ -69,7 +69,7 @@ function EngineChip({ engine }: { readonly engine: BoardEngineStatus }) {
       variant="ghost"
       size="sm"
       className="max-w-full min-w-0 gap-1.5 px-1.5 font-normal has-[>svg]:px-1.5"
-      title={BoardLabels.openTitle({ engine: engine.name, filter: { scope: "all" } })}
+      title={BoardLabels.openEngineTitle(engine.name)}
       onClick={(event) => {
         host.post({
           type: "openBoardEngine",

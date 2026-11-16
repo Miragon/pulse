@@ -20,6 +20,8 @@ export const ENGINE_CORE_SOURCES = "packages/connectors/engine/engine-core/src"
 
 export const BOARD_SOURCES = "packages/core/board/src"
 
+export const BLOCKS_SOURCES = "packages/core/blocks/src"
+
 export const SHOWN_PACKAGES: readonly (readonly [string, string])[] = [
   ["engine-core", ENGINE_CORE_SOURCES],
   ["the C7 adapter", "packages/connectors/c7/c7-adapter/src"],
@@ -28,4 +30,5 @@ export const SHOWN_PACKAGES: readonly (readonly [string, string])[] = [
   ["the transport", "packages/core/http/src"],
   ["the profile format", "packages/core/profile/src"],
   ["the board format", BOARD_SOURCES],
+  ["the building blocks", BLOCKS_SOURCES],
 ]

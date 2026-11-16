@@ -1,4 +1,4 @@
-import { BoardParser, BoardProblems, type BoardProblem } from "@miragon/pulse-board"
+import { BoardParser } from "@miragon/pulse-board"
 import { BoardBuilder, BoardJson, type BoardModel } from "@miragon/pulse-board/builder"
 import { BpmnProcessId, DefinitionId, ElementId, RuntimeError } from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
@@ -119,7 +119,7 @@ describe("the board a webview gets", () => {
     ],
   }
   const LOCKED = { describeEngine: () => Promise.reject(new RuntimeError("unauthorized", "401")) }
-  const EDITORS_ADD: ReadonlySet<string> = new Set(["targets", "diagramXml", "reason"])
+  const EDITORS_ADD: ReadonlySet<string> = new Set(["targets", "diagramXml"])
 
   function dataOf(value: unknown): unknown {
     return JSON.parse(
@@ -166,13 +166,11 @@ describe("the board a webview gets", () => {
     ])
   })
 
-  test("adds the targets a click opens, the drawing and the words of each problem", async () => {
+  test("adds the targets a click opens and the drawing, and leaves each problem a code", async () => {
     const view = await shown()
     const tiles = view.rows.flat()
     const tile = <Kind extends BoardTile["kind"]>(kind: Kind) =>
       tiles.find((found): found is Extract<BoardTile, { kind: Kind }> => found.kind === kind)
-    const words = (problems: readonly BoardProblem[]) =>
-      problems.map((problem) => BoardProblems.describe(problem))
     const refused = tile("refused")?.problems ?? []
 
     expect(tile("counter")?.targets).toEqual(
@@ -186,9 +184,8 @@ describe("the board a webview gets", () => {
       tile("incidentSummary")?.rows.length ?? -1,
     )
     expect(tile("processDiagram")?.diagramXml).toContain("pulse-order")
-    expect(refused.map(({ reason }) => reason)).toEqual(words(refused))
-    expect(refused).not.toHaveLength(0)
-    expect(view.notes.map(({ reason }) => reason)).toEqual(words(view.notes))
+    expect(refused.map(({ code }) => code)).toEqual(["notOneOf"])
+    expect(view.notes.map(({ code }) => code)).toEqual(["ignoredKey"])
   })
 
   test("words a failed engine from the error its probe threw, any error, since no editor reads the JSON form's engines", async () => {

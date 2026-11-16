@@ -407,7 +407,7 @@ describe("an open board", () => {
     fire(fake.watcher.remove.all, uri(file))
     await vi.waitFor(() => {
       expect(lastState(panels[0]!)).toMatchObject({
-        view: { title: "Again", problems: [{ path: "(file)", reason: "could not be read" }] },
+        view: { title: "Again", problems: [{ path: "(file)", code: "unreadable" }] },
       })
     })
 

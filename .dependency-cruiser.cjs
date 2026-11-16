@@ -43,7 +43,9 @@
  * them are leaves only their consumers import: the profile format (`@miragon/pulse-profile`,
  * PROFILE), read where a surface reads its profiles, the board format (`@miragon/pulse-board`,
  * BOARD), read where a surface reads its board files, and the transport (`@miragon/pulse-http`,
- * HTTP), used where a surface sends its engine requests. The apps under `apps/` sit ON TOP of
+ * HTTP), used where a surface sends its engine requests; the building blocks
+ * (`@miragon/pulse-blocks`, BLOCKS) are React on pulse-ui that only the surfaces rendering them
+ * import. The apps under `apps/` sit ON TOP of
  * the packages: the MCP server (`@miragon/pulse-mcp-server`) composes the
  * connectors; of the interface apps, the CLI (apps/cli, `@miragon/pulse-cli`) imports no
  * workspace package but the ones CLI_BUNDLES names, which tsdown inlines (its family core, with
@@ -227,16 +229,51 @@ const ENGINE_CONNECTOR_BOARD_READERS = [
 ]
 
 /**
+ * Pulse's building blocks (packages/core/blocks, npm `@miragon/pulse-blocks`): the React pieces
+ * more than one surface renders over the same data (owner decision D8 of 2026-11-12, executed for
+ * a board's tiles on 2026-11-16), props, callbacks and the slots a surface brings, no host and no
+ * React context. A foundation package with its own rules: blocks-are-building-blocks and
+ * blocks-consumers.
+ */
+const BLOCKS = { name: "@miragon/pulse-blocks", tree: "packages/core/blocks" }
+const BLOCKS_SRC = `^${escapeRegExp(BLOCKS.tree)}/src/`
+
+/**
+ * What the blocks' shipped code imports: its own modules, React, Lucide, pulse-ui's root and its
+ * framework-free ./format and ./tones, and the board format's main entry, for the types of a built
+ * board's JSON form. As an import reaches pulse-ui and the board format: resolved through the
+ * importer's node_modules (to the build in the repository, to the src of a package without one)
+ * or bare.
+ */
+const BLOCKS_IMPORTS = [
+  BLOCKS_SRC,
+  ...npm("react|react-dom|lucide-react"),
+  "(?:^|/)node_modules/@miragon/pulse-ui/(?:dist|src)/(?:(?:format|tones)/)?index[.](?:js|d[.]ts|tsx?)$",
+  "^@miragon/pulse-ui(?:/(?:format|tones))?$",
+  `(?:^|/)node_modules/${escapeRegExp(BOARD.name)}/(?:dist|src)/index[.](?:js|d[.]ts|ts)$`,
+  `^${escapeRegExp(BOARD.name)}$`,
+]
+
+/**
+ * Where a surface renders the blocks, their only shipped importers: the runtime view's webview
+ * (a board's tiles in Pulse for VS Code and Pulse for Orca; its closed world holds it to the main
+ * entry). Tests import them anywhere.
+ */
+const BLOCKS_RENDERERS = [`${RUNTIME_VIEW_TREE}src/webview/`]
+
+/**
  * Where a surface reads its board files, the only shipped importers of BOARD's main entry: the
  * runtime view's core (the board panel both editor hosts open; its closed world admits the edge on
  * its own and keeps the protocol free of it), the src of the editor hosts (Pulse for VS Code's
- * Boards view) and the engine connector's board layers (ENGINE_CONNECTOR_BOARD_READERS). Tests
- * import it anywhere.
+ * Boards view), the engine connector's board layers (ENGINE_CONNECTOR_BOARD_READERS) and the
+ * building blocks, which render a built board's JSON form (BLOCKS_IMPORTS: its main entry alone).
+ * Tests import it anywhere.
  */
 const BOARD_READERS = [
   `${RUNTIME_VIEW_TREE}src/core/`,
   ...EDITOR_HOST_SOURCES,
   ...ENGINE_CONNECTOR_BOARD_READERS,
+  BLOCKS_SRC,
 ]
 
 /**
@@ -966,7 +1003,8 @@ module.exports = {
         "src of the editor hosts (apps/vscode, apps/orca: the Boards view) and the engine " +
         "connector's board layers (src/engine-boards.ts and src/board-files.ts, which read " +
         "ENGINE_BOARDS_DIR, src/data, the board feed, and its view models by type, " +
-        "connector-view-models-board-types-only), and by tests anywhere. Not the runtime view's " +
+        "connector-view-models-board-types-only) and the building blocks (packages/core/blocks/" +
+        "src, the types of a built board's JSON form), and by tests anywhere. Not the runtime view's " +
         "other layers, not the connector's widgets, tools or widget tools, no other package and " +
         "no other app until it shows a board itself, through a rule change of its own. A " +
         "relative escape into packages/core/board is a violation too. Its builder answers to " +
@@ -1006,6 +1044,42 @@ module.exports = {
         ],
       },
       to: { path: BOARD_BUILDER },
+    },
+    {
+      name: "blocks-are-building-blocks",
+      severity: "error",
+      comment:
+        "Pulse's building blocks (packages/core/blocks, @miragon/pulse-blocks) are React on " +
+        "@miragon/pulse-ui with props, callbacks and the slots a surface brings (its table, its " +
+        "id, its diagram): their shipped code imports only its own modules, react, react-dom, " +
+        "lucide-react, pulse-ui's root, @miragon/pulse-ui/format and @miragon/pulse-ui/tones, and " +
+        "the board format's main entry (@miragon/pulse-board, the types of a built board's JSON " +
+        "form). Never widget-shell or ext-apps (a host's view runtime: the surface wires its host " +
+        "through the slots), a family's package or engine-core, the board builder, another " +
+        "subpath, an npm package of the MCP stack or a Node built-in, and no relative escape. " +
+        "Its tests may import vitest, Testing Library and the board's fixtures.",
+      from: { path: BLOCKS_SRC, pathNot: SRC_TEST_CODE },
+      to: { pathNot: BLOCKS_IMPORTS },
+    },
+    {
+      name: "blocks-consumers",
+      severity: "error",
+      comment:
+        "The building blocks (@miragon/pulse-blocks) may be imported only where a surface renders " +
+        "them (BLOCKS_RENDERERS): the runtime view's webview (packages/core/runtime-view/src/" +
+        "webview, a board's tiles in Pulse for VS Code and Pulse for Orca), and by tests anywhere. " +
+        "Not the runtime view's other layers, no other package and no app until it renders them " +
+        "itself, through a rule change of its own (the engine connector's widgets with the " +
+        "cockpit's board route). A relative escape into packages/core/blocks is a violation too.",
+      from: {
+        pathNot: [
+          ...BLOCKS_RENDERERS,
+          `^${escapeRegExp(BLOCKS.tree)}/(?:src|test)/`,
+          ...SRC_TEST_CODE,
+          `^${PACKAGE_ROOT}/(?:test|test-host)/`,
+        ],
+      },
+      to: { path: [`^${escapeRegExp(BLOCKS.tree)}/`, ...npm(escapeRegExp(BLOCKS.name))] },
     },
     {
       name: "connector-view-models-board-types-only",

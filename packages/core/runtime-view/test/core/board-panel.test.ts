@@ -404,8 +404,6 @@ describe("a board with a widget it refuses", () => {
           {
             path: "rows[0].row[0].props.filter.withIncident",
             code: "endedWithIncident",
-            reason:
-              'only matches running instances, since an ended instance has no open incident; remove it or use state "running"',
           },
         ],
       },
@@ -425,14 +423,12 @@ describe("a board with a widget it refuses", () => {
                 "incidentList",
               ],
             },
-            reason:
-              "must be one of counter, instanceList, incidentSummary, processDiagram, incidentList",
           },
         ],
       },
       {
         kind: "refused",
-        problems: [{ path: "rows[0].row[2]", code: "notAnObject", reason: "must be an object" }],
+        problems: [{ path: "rows[0].row[2]", code: "notAnObject" }],
       },
     ])
     expect(fixture.view().rows[0]?.[3]).toMatchObject({
@@ -480,7 +476,6 @@ describe("a board with a widget it refuses", () => {
         {
           path: "layout",
           code: "ignoredKey",
-          reason: "is not a key this version of Pulse knows; Pulse shows the board without it",
         },
       ],
       rows: [[{ kind: "counter", total: { count: 12 } }]],
@@ -504,8 +499,6 @@ describe("a board with a widget it refuses", () => {
             {
               path: "tenants",
               code: "tenantsNotRead",
-              reason:
-                "is set, but Pulse has no tenant filter and would read every tenant here; remove tenants to show this widget",
             },
           ],
         },
@@ -530,7 +523,7 @@ describe("a board file that changes", () => {
       fileName: "shop.board.json",
       engines: [],
       rows: [],
-      problems: [{ path: "(file)", code: "notJson", reason: "is not valid JSON" }],
+      problems: [{ path: "(file)", code: "notJson" }],
       notes: [],
     })
   })
@@ -546,7 +539,7 @@ describe("a board file that changes", () => {
     expect(fixture.view()).toMatchObject({
       title: "Payments",
       rows: [[{ kind: "counter", total: { count: 12 } }]],
-      problems: [{ path: "title", reason: "must be a text that is not empty" }],
+      problems: [{ path: "title", code: "blankText" }],
     })
   })
 
@@ -556,7 +549,7 @@ describe("a board file that changes", () => {
 
     await new BoardPanel(fixture.context).handle({ type: "ready" })
 
-    expect(fixture.view().problems).toEqual([{ path: "(file)", reason: "could not be read" }])
+    expect(fixture.view().problems).toEqual([{ path: "(file)", code: "unreadable" }])
   })
 
   test("marks a refresh while it reads and shows the old board until then", async () => {
@@ -705,6 +698,40 @@ describe("navigating from a board", () => {
 
     expect(fixture.navigation.openDefinition.mock.calls).toEqual([
       ["shop", BpmnProcessId("order"), filter, { toSide: false }],
+    ])
+  })
+
+  test("opens a counted process whatever the order of the filter's keys, and only that filter", async () => {
+    const counter = {
+      widget: "counter",
+      props: { filter: { process: "order", activeElement: "Task_Pay", businessKey: "B-1" } },
+    }
+    const fixture = boardFixture(board([counter], ["shop"]), [{ name: "shop", runtime: SHOP }])
+    const panel = new BoardPanel(fixture.context)
+    await panel.handle({ type: "ready" })
+    const open = (filter: object) =>
+      panel.handle({
+        type: "openBoardProcess",
+        engine: "shop",
+        bpmnProcessId: "order",
+        filter: filter as never,
+        toSide: false,
+      })
+
+    await open({ businessKey: "B-1", elementId: "Task_Pay", scope: "running" })
+    await open({ scope: "running", elementId: "Task_Pay", businessKey: "B-2" })
+    await open({ scope: "running", elementId: "Task_Ship", businessKey: "B-1" })
+    await open({ scope: "running", businessKey: "B-1" })
+    await open({ scope: "withIncident", elementId: "Task_Pay", businessKey: "B-1" })
+    await open({ scope: "running", elementId: "Task_Pay", businessKey: "B-1", variables: [] })
+
+    expect(fixture.navigation.openDefinition.mock.calls).toEqual([
+      [
+        "shop",
+        BpmnProcessId("order"),
+        { businessKey: "B-1", elementId: "Task_Pay", scope: "running" },
+        { toSide: false },
+      ],
     ])
   })
 

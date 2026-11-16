@@ -44,6 +44,7 @@ const SHELL = "packages/core/widget-shell"
 const UI = "packages/core/ui"
 const PROFILE = "packages/core/profile"
 const BOARD = "packages/core/board"
+const BLOCKS = "packages/core/blocks"
 const HTTP = "packages/core/http"
 const ENGINE_CORE = "packages/connectors/engine/engine-core"
 const C7 = "packages/connectors/c7/c7-core"
@@ -69,6 +70,7 @@ const WORKSPACE = {
   [UI]: { name: "@miragon/pulse-ui" },
   [PROFILE]: { name: "@miragon/pulse-profile" },
   [BOARD]: { name: "@miragon/pulse-board" },
+  [BLOCKS]: { name: "@miragon/pulse-blocks" },
   [HTTP]: { name: "@miragon/pulse-http" },
   [ENGINE_CORE]: { name: "@miragon/pulse-engine-core", main: "dist/index.js" },
   [C7]: { name: "@miragon/pulse-c7-core" },
@@ -140,6 +142,8 @@ const BOARD_USERS = "board-consumers"
 const BOARD_BUILDER = "board-builder-builds-on-the-engine-contract"
 const BOARD_BUILDER_USERS = "board-builder-consumers"
 const BOARD_TESTS = "board-tests-build-on-the-engine-contract"
+const BLOCKS_LEAF = "blocks-are-building-blocks"
+const BLOCKS_USERS = "blocks-consumers"
 const VIEW_MODELS_BOARD = "connector-view-models-board-types-only"
 const HTTP_LEAF = "http-is-a-leaf"
 const HTTP_USERS = "http-consumers"
@@ -205,6 +209,8 @@ const PROFILE_SRC = `${PROFILE}/src/index.ts`
 const BOARD_NAME = "@miragon/pulse-board"
 const BOARD_SRC = `${BOARD}/src/index.ts`
 const BOARD_BUILDER_SRC = `${BOARD}/src/builder/index.ts`
+const BLOCKS_NAME = "@miragon/pulse-blocks"
+const BLOCKS_SRC = `${BLOCKS}/src/index.ts`
 const HTTP_NAME = "@miragon/pulse-http"
 const HTTP_SRC = `${HTTP}/src/index.ts`
 const ENGINE_CORE_NAME = "@miragon/pulse-engine-core"
@@ -265,6 +271,8 @@ const LEAVES = [
   `${BOARD}/src/format/lib.ts`,
   `${BOARD}/src/builder/lib.ts`,
   `${BOARD}/dist/builder/index.js`,
+  `${BLOCKS}/src/target.ts`,
+  `${BLOCKS}/src/lib.ts`,
   `${HTTP}/src/target.ts`,
   `${HTTP}/src/lib.ts`,
   `${ENGINE_CORE}/src/target.ts`,
@@ -627,6 +635,78 @@ const SUITES = [
       [`${RUNTIME_VIEW}/test/core/support/board.ts`, BOARD_NAME, []],
       [`${SHELL}/test/support/board.ts`, BOARD_NAME, []],
       [`${SHELL}/src/board.test.ts`, BOARD_NAME, []],
+    ],
+  },
+  {
+    rule: BLOCKS_LEAF,
+    title:
+      "the building blocks import React, Lucide, pulse-ui's root, /format and /tones and the board format's main entry",
+    cases: [
+      // A host's view runtime, a family, the engine contract, the builder, another subpath.
+      [BLOCKS_SRC, "@miragon/pulse-widget-shell/widgets", [BLOCKS_LEAF]],
+      [BLOCKS_SRC, "@modelcontextprotocol/ext-apps", [BLOCKS_LEAF, EXT_APPS]],
+      [BLOCKS_SRC, ENGINE_CORE_NAME, [BLOCKS_LEAF, CORE, ENGINE_CORE_USERS]],
+      [BLOCKS_SRC, C7_CORE, [CORE, BLOCKS_LEAF]],
+      [BLOCKS_SRC, `${BOARD_NAME}/builder`, [BLOCKS_LEAF, BOARD_BUILDER_USERS]],
+      [BLOCKS_SRC, `${BOARD_NAME}/testing`, [BLOCKS_LEAF, NO_TESTING]],
+      [BLOCKS_SRC, "@miragon/pulse-ui/testing", [BLOCKS_LEAF, NO_TESTING]],
+      [BLOCKS_SRC, "@miragon/pulse-ui/kit", [BLOCKS_LEAF]],
+      [BLOCKS_SRC, PROFILE_NAME, [BLOCKS_LEAF, PROFILE_USERS]],
+      [BLOCKS_SRC, "@miragon/pulse-cli", [NO_APP, BLOCKS_LEAF]],
+      ...["zod", "@tanstack/react-query", "bpmn-js", "reactive", "node:fs"].map((spec) => [
+        BLOCKS_SRC,
+        spec,
+        [BLOCKS_LEAF],
+      ]),
+      [`${BLOCKS}/src/escape.ts`, "../../ui/src/target.ts", [BLOCKS_LEAF, DEEP]],
+      [`${BLOCKS}/src/board/escape.ts`, "../../../board/src/target.ts", [BLOCKS_LEAF, DEEP]],
+      // Allowed: React, Lucide, the kit's root and its two framework-free entries, the board
+      // format's main entry, its own modules; its tests import what they need.
+      ...["react", "react-dom", "lucide-react", "@miragon/pulse-ui"].map((spec) => [
+        `${BLOCKS}/src/board/tile.ts`,
+        spec,
+        [],
+      ]),
+      [`${BLOCKS}/src/board/words.ts`, "@miragon/pulse-ui/format", []],
+      [`${BLOCKS}/src/board/tones.ts`, "@miragon/pulse-ui/tones", []],
+      [`${BLOCKS}/src/board/tile.ts`, BOARD_NAME, [], "type"],
+      [`${BLOCKS}/src/board/grid.ts`, "../lib.ts", []],
+      [`${BLOCKS}/src/board/tile.test.ts`, "vitest", []],
+      [`${BLOCKS}/src/board/words.test.ts`, `${BOARD_NAME}/testing`, []],
+      [`${BLOCKS}/src/brand-gates.test.ts`, "@miragon/pulse-ui/testing", []],
+    ],
+  },
+  {
+    rule: BLOCKS_USERS,
+    title: "the building blocks are rendered where a surface shows them, and in tests",
+    cases: [
+      [SERVER_SRC, BLOCKS_NAME, [BLOCKS_USERS]],
+      [SHELL_SRC, BLOCKS_NAME, [BLOCKS_USERS]],
+      [`${SHELL}/src/ui/board.ts`, BLOCKS_NAME, [SHELL_VIEWS, BLOCKS_USERS]],
+      [UI_SRC, BLOCKS_NAME, [UI_LEAF, BLOCKS_USERS]],
+      [BOARD_SRC, BLOCKS_NAME, [BOARD_LEAF, BLOCKS_USERS]],
+      [CLI_SRC, BLOCKS_NAME, [HEADLESS, BLOCKS_USERS]],
+      [EXT_SRC, BLOCKS_NAME, [BLOCKS_USERS]],
+      [ORCA_SRC, BLOCKS_NAME, [BLOCKS_USERS]],
+      // The engine connector's widgets render them once the cockpit's board route does.
+      [`${ENGINE_CONNECTOR}/src/widgets/board.ts`, BLOCKS_NAME, [WIDGETS_BROWSER, BLOCKS_USERS]],
+      [`${ENGINE_CONNECTOR}/src/data/board.ts`, BLOCKS_NAME, [BLOCKS_USERS]],
+      // Of the runtime view only its webview renders them.
+      [`${RUNTIME_VIEW}/src/core/board.ts`, BLOCKS_NAME, [BLOCKS_USERS]],
+      [`${RUNTIME_VIEW}/src/host-kit/board.ts`, BLOCKS_NAME, [BLOCKS_USERS]],
+      [`${RUNTIME_VIEW}/src/webviewx/board.ts`, BLOCKS_NAME, [BLOCKS_USERS]],
+      [
+        `${SERVER}/src/escape-blocks.ts`,
+        "../../../packages/core/blocks/src/target.ts",
+        [BLOCKS_USERS, DEEP],
+      ],
+      // An unresolved subpath (shape 3: dependency-cruiser reads no exports map).
+      [`${SHELL}/src/blocks-sub.ts`, `${BLOCKS_NAME}/board`, [BLOCKS_USERS]],
+      // Allowed: the runtime view's webview, and tests anywhere.
+      [`${RUNTIME_VIEW}/src/webview/screens/board.ts`, BLOCKS_NAME, []],
+      [`${RUNTIME_VIEW}/test/webview/board.test.ts`, BLOCKS_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/data/board.test.ts`, BLOCKS_NAME, []],
+      [`${SHELL}/test/support/blocks.ts`, BLOCKS_NAME, []],
     ],
   },
   {

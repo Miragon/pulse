@@ -6,7 +6,6 @@ import type { BoardView, WebviewIntent } from "../protocol/index.js"
 import type { BoardContext } from "./board-engine.js"
 import { BoardTargets } from "./board-targets.js"
 import { BoardViews, type BoardSource } from "./board-views.js"
-import { ProblemTexts } from "./problem-texts.js"
 
 export class BoardPanel implements Panel {
   private board: BoardDefinition | undefined
@@ -73,17 +72,12 @@ export class BoardPanel implements Panel {
     try {
       content = await this.context.read()
     } catch {
-      const problems = [{ path: "(file)", reason: "could not be read" }]
+      const problems = [{ path: "(file)", code: "unreadable" }] as const
       return this.fallback({ fileName, asOf, problems, notes: [] })
     }
     const parsed = BoardParser.parse(content)
     if ("problems" in parsed) {
-      return this.fallback({
-        fileName,
-        asOf,
-        problems: ProblemTexts.of(parsed.problems),
-        notes: [],
-      })
+      return this.fallback({ fileName, asOf, problems: parsed.problems, notes: [] })
     }
     if (ticket === this.latest) {
       this.board = parsed.board

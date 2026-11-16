@@ -6,10 +6,14 @@ import {
   type EngineSource,
 } from "@miragon/pulse-board/builder"
 import { Problems } from "../panels/problems.js"
-import type { BoardEngineStatus, BoardProblem, BoardView, EngineBadge } from "../protocol/index.js"
+import type {
+  BoardEngineStatus,
+  BoardFileProblem,
+  BoardView,
+  EngineBadge,
+} from "../protocol/index.js"
 import type { BoardEngine } from "./board-engine.js"
 import { BoardRuntime } from "./board-runtime.js"
-import { ProblemTexts } from "./problem-texts.js"
 import { TileViews } from "./tile-views.js"
 
 const FAILURE_THE_STATUS_WORDS: FailureData = { code: "unknown" }
@@ -17,7 +21,7 @@ const FAILURE_THE_STATUS_WORDS: FailureData = { code: "unknown" }
 export interface BoardSource {
   readonly fileName: string
   readonly asOf: Date
-  readonly problems: readonly BoardProblem[]
+  readonly problems: readonly BoardFileProblem[]
   readonly notes: readonly FormatProblem[]
 }
 
@@ -43,7 +47,7 @@ export class BoardViews {
       engines: [],
       rows: [],
       problems: source.problems,
-      notes: ProblemTexts.of(source.notes),
+      notes: source.notes,
     }
   }
 
@@ -68,7 +72,7 @@ export class BoardViews {
       engines: model.engines.map((engine) => this.status(engine)),
       rows: await Promise.all(rows.map((row) => Promise.all(row.map((tile) => tiles.of(tile))))),
       problems: source.problems,
-      notes: ProblemTexts.of(notes),
+      notes,
     }
   }
 

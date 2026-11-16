@@ -11,6 +11,7 @@ import {
 import { afterAll, describe, expect, test } from "vitest"
 import { APP_ROOT, PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, REPO_ROOT } from "./support/files.js"
 import {
+  BLOCKS_SOURCES,
   BOARD_SOURCES,
   ENGINE_CORE_SOURCES,
   HOST_LAYERS,
@@ -90,6 +91,14 @@ describe("the extension's texts", PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, () => {
       expect.arrayContaining([expect.stringMatching(/^format\/board-problems\.ts:/)]),
     )
     expect(wordFindings(format)).toEqual([])
+  })
+
+  test("in the building blocks, whose board tiles both editors show, use the product's words too", () => {
+    const blocks = join(REPO_ROOT, BLOCKS_SOURCES)
+    expect(Object.keys(sourceTexts(blocks))).toEqual(
+      expect.arrayContaining([expect.stringMatching(/^messages\/en\.ts:/)]),
+    )
+    expect(wordFindings(blocks)).toEqual([])
   })
 
   test("in the board format, read by the promise scan, say what a board with tenants does today", () => {
