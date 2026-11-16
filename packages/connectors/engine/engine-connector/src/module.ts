@@ -6,6 +6,8 @@ import { DEFAULT_ENGINE_FLAVOR } from "./providers/index.js"
 import { engineToolsets } from "./lib/mcp/toolsets.js"
 import { engineInstructions } from "./instructions.js"
 import { engineConfigErrorText } from "./engine-config-error.js"
+import type { BoardFiles } from "./board-files.js"
+import { loadEngineBoards } from "./engine-boards.js"
 import type { EngineEntry } from "./engine-provider.js"
 import {
   type EngineProfiles,
@@ -32,6 +34,12 @@ const engineEntry = z.custom<EngineEntry>(
 const refusedEngine = z.custom<RefusedProfile>(
   (value) => isObject(value) && typeof value.id === "string" && typeof value.reason === "string",
   "Expected a refused engine: its id and the reason",
+)
+
+/** The boards as `loadEngineBoards` read them: checked there, so only their shape here. */
+const boardFiles = z.custom<BoardFiles>(
+  (value) => isObject(value) && Array.isArray(value.boards) && Array.isArray(value.refused),
+  "Expected the board files: the boards and the refused files",
 )
 
 /**
@@ -92,6 +100,8 @@ export const engineConfigSchema = z
         criticalClusterSize: z.coerce.number().int().positive().optional(),
       })
       .optional(),
+    /** The board files of ENGINE_BOARDS_DIR: the board feed builds them. */
+    boards: boardFiles.optional(),
   })
   // No quotes around the ids: ZodError.message is the issues JSON, which would escape them.
   .superRefine((c, issues) => {
@@ -125,6 +135,15 @@ function profilesQuietly(env: NodeJS.ProcessEnv): EngineProfiles | undefined {
     return loadEngineProfiles(env)
   } catch {
     return undefined
+  }
+}
+
+/** What the board files tell the operator; none when they do not load: the boot fails on them. */
+function boardWarnings(env: NodeJS.ProcessEnv): readonly string[] {
+  try {
+    return loadEngineBoards(env, profilesQuietly(env)?.engineIds ?? [])?.warnings ?? []
+  } catch {
+    return []
   }
 }
 
@@ -166,6 +185,7 @@ export const engineModule = {
   /** Env → raw config, checked against the schema here; `createPlugin` parses it again. */
   configFromEnv(env: NodeJS.ProcessEnv): Record<string, unknown> {
     const profiles = loadEngineProfiles(env)
+    const boards = loadEngineBoards(env, profiles.engineIds)
     const config = {
       engines: profiles.engines,
       refused: profiles.refused,
@@ -183,6 +203,9 @@ export const engineModule = {
             },
           }
         : {}),
+      ...(boards === undefined
+        ? {}
+        : { boards: { boards: boards.boards, refused: boards.refused } }),
     }
     return checkedConfig(config)
   },
@@ -204,6 +227,7 @@ export const engineModule = {
     "ENGINE_HEALTH_CRITICAL_CLUSTER_SIZE",
     "ENGINE_ALLOW_DEPLOYMENTS",
     "ENGINE_REQUEST_TIMEOUT_MS",
+    "ENGINE_BOARDS_DIR",
   ] as const,
 
   /** The ENGINE_SECRET_ variables the profiles name: the server reads them, so they are no typo. */
@@ -222,7 +246,11 @@ export const engineModule = {
         `No engine is configured (ENGINES_FILE / ENGINES_JSON / ENGINE_BASE_URL): defaulting to ${LOCAL_ENGINE_URL} with engine id "${id}", where the Pulse starter's compose.yaml (Miragon/pulse-starter) and the Pulse playground (Miragon/pulse) serve their engine. Its cockpit links and name follow flavor "${flavor}"; both of those engines are CIB seven (ENGINE_FLAVOR=cibseven), and the starter's asks for a login (ENGINE_AUTH_TYPE=basic, demo/demo).`,
       )
     }
-    warnings.push(...ignoredSingleEngineWarning(env), ...profileWarnings(env))
+    warnings.push(
+      ...ignoredSingleEngineWarning(env),
+      ...profileWarnings(env),
+      ...boardWarnings(env),
+    )
     if (allowDeploymentsFromEnv(env) === "true") {
       warnings.push(
         "ENGINE_ALLOW_DEPLOYMENTS=true: engine_create_deployment is registered under engine:admin. Deploying a process runs code inside the engine JVM (expressions, scripts and listener/delegate references execute with the engine's privileges): grant engine:admin only to callers you would trust with that.",

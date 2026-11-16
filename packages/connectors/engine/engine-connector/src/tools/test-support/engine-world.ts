@@ -45,6 +45,8 @@ const delegated = {
 }
 
 const ROUTES: Record<string, unknown> = {
+  // What the engine is (a board's engine strip): its telemetry's product.
+  "/telemetry/data": { product: { name: "CIB seven", version: "2.1.0" } },
   "/process-definition": [definition(2)],
   "/process-definition/statistics": [1, 2].map((v) => ({
     id: definition(v as 1 | 2).id,
@@ -100,7 +102,18 @@ const ROUTES: Record<string, unknown> = {
       priority: 0,
     },
   ],
-  "/history/process-instance": [{ id: WORLD.instanceId, processDefinitionKey: WORLD.key }],
+  "/history/process-instance": [
+    {
+      id: WORLD.instanceId,
+      processDefinitionId: WORLD.instanceDefinitionId,
+      processDefinitionKey: WORLD.key,
+      processDefinitionName: "Order",
+      processDefinitionVersion: 1,
+      businessKey: "B-1",
+      startTime: "2026-10-10T07:55:00.000+0200",
+      state: "ACTIVE",
+    },
+  ],
   "/history/activity-instance": [{ id: "h-1", activityId: "start", activityType: "startEvent" }],
 }
 

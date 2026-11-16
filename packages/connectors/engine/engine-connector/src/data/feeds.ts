@@ -9,10 +9,12 @@ import {
   processInstancesFilterShape,
 } from "../feed-contracts.js"
 import type { ResolvedEngine } from "../lib/engine/resolve-engine.js"
+import { BOARD_ID, type BoardFiles } from "../board-files.js"
 import { pagingShape } from "../schemas/index.js"
 import {
   ENGINE_ACTIVITY_INCIDENTS_DATA,
   ENGINE_ACTIVITY_STATISTICS_DATA,
+  ENGINE_BOARD_DATA,
   ENGINE_BPMN_XML_DATA,
   ENGINE_CLUSTER_DETAIL_DATA,
   ENGINE_COCKPIT_OVERVIEW_DATA,
@@ -31,6 +33,7 @@ import {
   buildActivityStatisticsData,
   type ActivityStatisticsFeedData,
 } from "./activity-statistics-data.js"
+import { boardOf, type BoardEngineResolver, cachedBoardData } from "./board-data.js"
 import { buildClusterDetailData } from "./cluster-detail-data.js"
 import {
   buildCockpitDashboardData,
@@ -51,7 +54,9 @@ import { buildActivityIncidentsData, buildProcessIncidentsData } from "./process
  * The cockpit's `*_data` feeds, described once: name, title, the description the model reads,
  * input shape and read. Every engine read of a route lives in its feed here;
  * `widget-tools/data-feeds.ts` registers `DATA_FEEDS`, and a route of `routes.ts` starts from
- * its feed's read, so the start view's data is the feed's payload by construction.
+ * its feed's read, so the start view's data is the feed's payload by construction. A feed reads
+ * the one engine its `engine` parameter resolves to (`DataFeed`), or names its own engines and
+ * takes no `engine` (`NamingFeed`: a board's).
  */
 
 type FeedInput<TShape extends z.ZodRawShape> = z.output<z.ZodObject<TShape>>
@@ -73,6 +78,29 @@ export interface DataFeed<TShape extends z.ZodRawShape = z.ZodRawShape, TData = 
 
 const dataFeed = <TShape extends z.ZodRawShape, TData extends object>(
   feed: DataFeed<TShape, TData>,
+) => feed
+
+/** What a feed that names its own engines reads with. */
+interface NamedReadContext {
+  /** The engine a name resolves to under the call: by that name alone, never the default. */
+  resolve: BoardEngineResolver
+  /** The boards of ENGINE_BOARDS_DIR; none without it. */
+  boards?: BoardFiles
+}
+
+/** An app-only JSON feed that names its own engines, so it takes no `engine` parameter. */
+export interface NamingFeed<TShape extends z.ZodRawShape = z.ZodRawShape, TData = object> {
+  name: string
+  title: string
+  description: string
+  shape: TShape
+  engines: "named"
+  // A method, so a feed of any shape fits the list of every feed.
+  read(input: FeedInput<TShape>, ctx: NamedReadContext): Promise<TData>
+}
+
+const namingFeed = <TShape extends z.ZodRawShape, TData extends object>(
+  feed: NamingFeed<TShape, TData>,
 ) => feed
 
 export const overviewFeed = dataFeed({
@@ -234,8 +262,23 @@ export const incidentDetailFeed = dataFeed({
   }),
 })
 
+const boardFeed = namingFeed({
+  name: ENGINE_BOARD_DATA,
+  title: "Board data (internal)",
+  description:
+    "Internal JSON feed (no UI) for one board of the server's board files (ENGINE_BOARDS_DIR), by its id: each engine's state and each tile's numbers, read from the engines the board names, kept for 30 seconds per caller.",
+  shape: {
+    board: z
+      .string()
+      .regex(BOARD_ID)
+      .describe("The board's id: its file's name without .board.json."),
+  },
+  engines: "named",
+  read: ({ board }, { resolve, boards }) => cachedBoardData(boardOf(boards, board), resolve),
+})
+
 /** Every `*_data` feed of the cockpit in registration order; a route's feed must be listed. */
-export const DATA_FEEDS: readonly DataFeed[] = [
+export const DATA_FEEDS: readonly (DataFeed | NamingFeed)[] = [
   overviewFeed,
   healthFeed,
   clusterDetailFeed,
@@ -250,4 +293,5 @@ export const DATA_FEEDS: readonly DataFeed[] = [
   activityIncidentsFeed,
   activityStatisticsFeed,
   incidentDetailFeed,
+  boardFeed,
 ]

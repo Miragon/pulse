@@ -437,6 +437,9 @@ importers:
 
   packages/connectors/engine/engine-connector:
     dependencies:
+      '@miragon/pulse-board':
+        specifier: workspace:*
+        version: link:../../../core/board
       '@miragon/pulse-c7-client':
         specifier: workspace:*
         version: link:../../c7/c7-client

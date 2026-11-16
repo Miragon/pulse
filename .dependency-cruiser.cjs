@@ -208,12 +208,36 @@ const PROFILE_READERS = [
 const BOARD = { name: "@miragon/pulse-board", tree: "packages/core/board" }
 
 /**
+ * The engine connector's view models (src/view-models.ts and its siblings src/view-models.*.ts):
+ * the shapes its data builders hand its widgets, which the widgets read by type.
+ */
+const ENGINE_CONNECTOR_VIEW_MODELS = `${ENGINE_CONNECTOR_TREE}src/view-models[.\\w-]*[.]ts$`
+
+/**
+ * Where the engine connector reads its board files and builds them (with boards in the MCP
+ * server, owner decision 2026-11-16): the files of ENGINE_BOARDS_DIR at configuration
+ * (src/engine-boards.ts, and src/board-files.ts, the files as its parts hand them on) and the
+ * board feed's builder (src/data). Its view models name a built board's JSON form by type only
+ * (connector-view-models-board-types-only); its widgets, tools and widget tools never import it.
+ */
+const ENGINE_CONNECTOR_BOARD_READERS = [
+  `${ENGINE_CONNECTOR_TREE}src/(?:engine-boards|board-files)[.]ts$`,
+  `${ENGINE_CONNECTOR_TREE}src/data/`,
+  ENGINE_CONNECTOR_VIEW_MODELS,
+]
+
+/**
  * Where a surface reads its board files, the only shipped importers of BOARD's main entry: the
  * runtime view's core (the board panel both editor hosts open; its closed world admits the edge on
- * its own and keeps the protocol free of it) and the src of the editor hosts (Pulse for VS Code's
- * Boards view). Tests import it anywhere.
+ * its own and keeps the protocol free of it), the src of the editor hosts (Pulse for VS Code's
+ * Boards view) and the engine connector's board layers (ENGINE_CONNECTOR_BOARD_READERS). Tests
+ * import it anywhere.
  */
-const BOARD_READERS = [`${RUNTIME_VIEW_TREE}src/core/`, ...EDITOR_HOST_SOURCES]
+const BOARD_READERS = [
+  `${RUNTIME_VIEW_TREE}src/core/`,
+  ...EDITOR_HOST_SOURCES,
+  ...ENGINE_CONNECTOR_BOARD_READERS,
+]
 
 /**
  * The board builder (`@miragon/pulse-board/builder`, the package's src/builder/): a board's
@@ -232,11 +256,11 @@ const BOARD_BUILDER = [
 
 /**
  * Where a surface builds a board's numbers, the only shipped importers of the builder: the runtime
- * view's core (the board panel and the definition and instance views, which draw the same roll-up).
- * The engine connector joins when it shows a board, by a rule change of its own. Tests import it
- * anywhere.
+ * view's core (the board panel and the definition and instance views, which draw the same roll-up)
+ * and the engine connector's data builders (src/data: the board feed, with boards in the MCP
+ * server). Tests import it anywhere.
  */
-const BOARD_BUILDERS = [`${RUNTIME_VIEW_TREE}src/core/`]
+const BOARD_BUILDERS = [`${RUNTIME_VIEW_TREE}src/core/`, `${ENGINE_CONNECTOR_TREE}src/data/`]
 
 /**
  * The board package's tests that read the engine contract its builder builds on: its test tree and
@@ -938,11 +962,14 @@ module.exports = {
       comment:
         "The board format (@miragon/pulse-board) may be imported only where a surface reads its " +
         "board files (BOARD_READERS): the runtime view's core " +
-        "(packages/core/runtime-view/src/core, the board panel both editor hosts open) and the " +
-        "src of the editor hosts (apps/vscode, apps/orca: the Boards view), and by tests " +
-        "anywhere. Not the runtime view's other layers, no other package and no other app " +
-        "until it shows a board itself, through a rule change of its own. A relative escape " +
-        "into packages/core/board is a violation too. Its builder answers to " +
+        "(packages/core/runtime-view/src/core, the board panel both editor hosts open), the " +
+        "src of the editor hosts (apps/vscode, apps/orca: the Boards view) and the engine " +
+        "connector's board layers (src/engine-boards.ts and src/board-files.ts, which read " +
+        "ENGINE_BOARDS_DIR, src/data, the board feed, and its view models by type, " +
+        "connector-view-models-board-types-only), and by tests anywhere. Not the runtime view's " +
+        "other layers, not the connector's widgets, tools or widget tools, no other package and " +
+        "no other app until it shows a board itself, through a rule change of its own. A " +
+        "relative escape into packages/core/board is a violation too. Its builder answers to " +
         "board-builder-consumers.",
       from: {
         pathNot: [
@@ -964,11 +991,12 @@ module.exports = {
         "The board builder (@miragon/pulse-board/builder) may be imported only where a surface " +
         "builds a board's numbers (BOARD_BUILDERS): the runtime view's core " +
         "(packages/core/runtime-view/src/core: the board panel, and the definition and instance " +
-        "views, which draw the same roll-up onto collapsed sub-processes), and by tests anywhere. " +
-        "Not the editor hosts' src (they read board files, the runtime view builds their numbers), " +
-        "not the runtime view's other layers, no other package and no other app until it shows a " +
-        "board itself, through a rule change of its own. A relative escape into " +
-        "packages/core/board/src/builder is a violation too.",
+        "views, which draw the same roll-up onto collapsed sub-processes) and the engine " +
+        "connector's data builders (src/data: the board feed), and by tests anywhere. Not the " +
+        "editor hosts' src (they read board files, the runtime view builds their numbers), not " +
+        "the runtime view's other layers, not the rest of the connector, no other package and no " +
+        "other app until it shows a board itself, through a rule change of its own. A relative " +
+        "escape into packages/core/board/src/builder is a violation too.",
       from: {
         pathNot: [
           ...BOARD_BUILDERS,
@@ -978,6 +1006,21 @@ module.exports = {
         ],
       },
       to: { path: BOARD_BUILDER },
+    },
+    {
+      name: "connector-view-models-board-types-only",
+      severity: "error",
+      comment:
+        "The engine connector's view models (src/view-models.ts, src/view-models.*.ts) are the " +
+        "shapes its widgets read, compiled into every view bundle: they name a built board's " +
+        "JSON form (BoardData of @miragon/pulse-board) by type only, never a value of the board " +
+        "package, so no parser, builder or vocabulary reaches the widgets through them. A value " +
+        "the widgets need of a board goes through the board feed's data.",
+      from: { path: ENGINE_CONNECTOR_VIEW_MODELS },
+      to: {
+        path: [`^${escapeRegExp(BOARD.tree)}/`, ...npm(escapeRegExp(BOARD.name))],
+        dependencyTypesNot: ["type-only"],
+      },
     },
     {
       name: "http-is-a-leaf",

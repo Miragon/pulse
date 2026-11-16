@@ -1,6 +1,7 @@
 import http from "node:http"
 import type { AddressInfo } from "node:net"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
+import { BoardParser } from "@miragon/pulse-board"
 import { recordingModuleServer, testServerContext } from "@miragon/pulse-widget-shell/testing"
 import { createEngineRegistry } from "../lib/engine/resolve-engine.js"
 import { providerForEntry } from "../providers/index.js"
@@ -38,6 +39,23 @@ const ARGS = {
   processInstanceId: "pi-1",
   incidentId: "inc-1",
   activityId: "task-1",
+  board: "orders",
+}
+
+/** A board over the engine, so the board feed reads it too. */
+function boardFiles() {
+  const parsed = BoardParser.parse(
+    JSON.stringify({
+      title: "Orders",
+      engines: ["prod-a"],
+      rows: [{ row: [{ widget: "incidentSummary" }] }],
+    }),
+  )
+  if (!("board" in parsed)) throw new Error(JSON.stringify(parsed.problems))
+  return {
+    boards: [{ id: "orders", file: "orders.board.json", board: parsed.board, notes: [] }],
+    refused: [],
+  }
 }
 
 describe("widget tools and feeds honor ctx.mcpReq.signal", () => {
@@ -49,6 +67,7 @@ describe("widget tools and feeds honor ctx.mcpReq.signal", () => {
     registerWidgetTools(server, registry, {
       healthThresholds: DEFAULT_VERDICT_THRESHOLDS,
       toolset: "read-only",
+      boards: boardFiles(),
     })
 
     const readsOf = async (name: string, signal?: AbortSignal) => {

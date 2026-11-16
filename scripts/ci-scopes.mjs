@@ -101,10 +101,11 @@ export const ALSO_READ_BY = [
   },
   // What the MCP server's engine suite runs (the connector's test:engines in the Engines legs):
   // c7-core's src (its runtime, the port and routes it reads by, its seed) and the world's
-  // diagrams, the SDK, engine-core's conformance kit, the transport, the profile format, and the
-  // connector's engine port and connection, its runtime per dialect with the providers and the
-  // flavor table it picks one by, its manifest and its vitest configs. Any other change of these
-  // packages leaves the suite off.
+  // diagrams, the SDK, engine-core's conformance kit, the transport, the profile format, the
+  // board package (its format and builder), and the connector's engine port and connection, its
+  // runtime per dialect with the providers and the flavor table it picks one by, the board feed's
+  // build (its board files, src/data/board-*.ts and the one XML read it draws a diagram by), its
+  // manifest and its vitest configs. Any other change of these packages leaves the suite off.
   {
     pattern: new RegExp(
       "^packages/(?:" +
@@ -114,7 +115,9 @@ export const ALSO_READ_BY = [
           "connectors/engine/engine-core/src/",
           "core/http/src/",
           "core/profile/src/",
+          "core/board/src/",
           "connectors/engine/engine-connector/(?:src/lib/(?:core-adapter|engine)/|src/providers/|src/engine-provider\\.ts$|package\\.json$|vitest\\.(?:engines\\.)?config\\.ts$)",
+          "connectors/engine/engine-connector/src/(?:board-files\\.ts|data/board-[\\w.-]+\\.ts|lib/bpmn/definition-xml\\.ts)$",
         ].join("|") +
         ")",
     ),

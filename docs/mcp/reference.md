@@ -48,6 +48,8 @@ BPM operations across these domains (`category`): `engines`, `process-definition
   each element now, every deployed version summed onto the latest diagram; as **Throughput ·
   30 days**, what the instances started in the last 30 days passed per element, from the
   engine's history (the app-only `engine_activity_statistics_data`, `source` `history`)
+- **Boards:** with `ENGINE_BOARDS_DIR` ([Operations](operations.md#environment-variables)), the
+  app-only `engine_board_data` builds a board by its id, read from the engines it names (a failure in its place, never 0)
 
 ### Toolsets
 

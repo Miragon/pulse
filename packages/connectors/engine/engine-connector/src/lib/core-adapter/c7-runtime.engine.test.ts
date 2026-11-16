@@ -7,7 +7,8 @@
  * Operaton and CIB seven), seeded with the kit's world through c7-core's `seedC7World`. The read
  * laws hold here as on the C7 adapter's wire, the unreachable engine at 127.0.0.1:9 included. No
  * law reads a bulk operation, so two cases of this suite do: a batch it starts itself, and an id
- * the engine does not know.
+ * the engine does not know. A board built by the board feed's builder over the seeded world shows
+ * every tile read, with the numbers the kit's fake world gives.
  *
  * `pnpm --fail-if-no-match --filter @miragon/pulse-engine-connector test:engines` (Docker); its
  * own container start, since no package shares a Node test helper with another.
@@ -17,6 +18,8 @@ import { readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { GenericContainer, Wait } from "testcontainers"
 import { afterAll, beforeAll, describe, expect, test } from "vitest"
+import { type BoardData, BoardParser, type TileData } from "@miragon/pulse-board"
+import { BoardBuilder, BoardJson } from "@miragon/pulse-board/builder"
 import { type C7SeedEngine, type C7UnknownIds, seedC7World } from "@miragon/pulse-c7-core/testing"
 import {
   BulkOperationId,
@@ -28,15 +31,19 @@ import {
 import {
   type ConformanceHarness,
   ConformanceKit,
+  FakeEngine,
+  FakeWorld,
   type SeededWorld,
   WORLD_DEPLOYMENTS,
   WORLD_INSTANCES,
   WORLD_LOCAL_VARIABLE,
 } from "@miragon/pulse-engine-core/testing"
+import { buildBoardData } from "../../data/board-data.js"
 import type { EngineFlavor } from "../../engine-provider.js"
 import { providerForEntry } from "../../providers/index.js"
 import { createEngineConnection } from "../engine/engine-connection.js"
 import { runtimeOf } from "../engine/engine-runtime.js"
+import { createEngineRegistry, resolveEngine } from "../engine/resolve-engine.js"
 
 const ENGINE_IMAGE = process.env.PULSE_ENGINE_IMAGE ?? "operaton/operaton:2.1.5"
 const ENGINE_PORT = 8080
@@ -175,6 +182,83 @@ async function startCancellation(url: string, world: SeededWorld): Promise<BulkO
   return BulkOperationId(batch.id)
 }
 
+/** A board over the world's engine and one the server does not configure, a tile of each kind. */
+const WORLD_BOARD = (() => {
+  const order = { process: "pulse-order" }
+  const parsed = BoardParser.parse(
+    JSON.stringify({
+      title: "Orders",
+      engines: ["conformance", "nowhere"],
+      rows: [
+        {
+          widget: "counter",
+          props: { filter: { ...order, activeElement: "Activity_ReviewOrder" } },
+        },
+        { widget: "counter", props: { filter: { ...order, withIncident: true } } },
+        { widget: "instanceList", props: { filter: order } },
+        { widget: "incidentSummary", props: { groupBy: "process" } },
+        { widget: "processDiagram", props: { engines: ["conformance"], ...order } },
+        { widget: "incidentList" },
+      ].map((widget) => ({ row: [widget] })),
+    }),
+  )
+  if (!("board" in parsed)) throw new Error(JSON.stringify(parsed.problems))
+  return parsed.board
+})()
+
+/** Rows in one order: the engines order instances and incidents by times each sets on its own. */
+const unordered = (rows: readonly unknown[] | undefined) =>
+  rows?.map((row) => JSON.stringify(row)).sort()
+
+/**
+ * A tile's figures, without the ids, the dates and the order of rows each engine makes on its
+ * own, nor an incident's type, which each dialect names in its words.
+ */
+function tileFigures(tile: TileData): unknown {
+  switch (tile.kind) {
+    case "counter":
+      return { readings: tile.readings.map(({ count }) => count ?? null), total: tile.total }
+    case "instanceList":
+      return tile.groups.map(({ instances, total }) => ({
+        total,
+        rows: unordered(
+          instances?.map(({ businessKey, state, hasIncident, definition }) => [
+            businessKey,
+            state,
+            hasIncident,
+            definition.version,
+          ]),
+        ),
+      }))
+    case "incidentSummary":
+      return {
+        total: tile.total,
+        rows: unordered(
+          tile.rows.map(({ engine, process, withIncident }) => [
+            engine,
+            process?.bpmnProcessId,
+            withIncident,
+          ]),
+        ),
+      }
+    case "processDiagram":
+      return { version: tile.latest?.version, badges: unordered(tile.badges) }
+    case "incidentList":
+      return tile.groups.map(({ incidents, more }) => ({
+        more,
+        rows: unordered(incidents?.map(({ elementId }) => elementId)),
+      }))
+    case "refused":
+      return tile.problems
+  }
+}
+
+/** A board's figures: each engine's state and totals, each tile's numbers. */
+const figuresOf = (data: BoardData) => ({
+  engines: data.engines.map((engine) => (engine.state === "ready" ? engine.totals : engine.state)),
+  tiles: data.rows.flat().map(tileFigures),
+})
+
 /** The seeded engine and the kit's harness over it. */
 interface Suite {
   readonly url: string
@@ -207,6 +291,23 @@ describe(`c7-core's runtime over the MCP server's SDK wire against ${ENGINE_IMAG
   new ConformanceKit(test).registerRuntimeLaws(() =>
     Promise.resolve().then(() => prepared().harness),
   )
+
+  test("board: the board feed's build reads every tile, with the numbers of the kit's world", async () => {
+    const { url } = prepared()
+    const registry = createEngineRegistry(
+      [{ id: "conformance", baseUrl: url, flavor: ENGINE_FLAVOR }],
+      (entry) => providerForEntry(entry).createClient(entry, { type: "none" }),
+    )
+    const board = { id: "orders", file: "orders.board.json", board: WORLD_BOARD, notes: [] }
+    const data = await buildBoardData(board, (name) => resolveEngine(name, registry))
+    const fake = await BoardBuilder.build(WORLD_BOARD, [
+      { name: "conformance", reads: new FakeEngine(FakeWorld.seed().state) },
+      { name: "nowhere" },
+    ])
+    const expected = BoardJson.of(fake, { failureOf: () => ({ code: "unexpected" }), notes: [] })
+    expect(data.engines.map(({ state }) => state)).toEqual(["ready", "notConfigured"])
+    expect(figuresOf(data)).toEqual(figuresOf(expected))
+  })
 
   test("bulk: a batch that cancels one instance reads as such, from the runtime, then the history", async () => {
     const { url, harness } = prepared()

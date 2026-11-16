@@ -20,6 +20,8 @@ export const ENGINE_HEALTH_DATA = "engine_health_data"
 // One engine's job backlog: the cross-engine overview's landscape reads it per engine.
 export const ENGINE_JOB_BACKLOG_DATA = "engine_job_backlog_data"
 export const ENGINE_CLUSTER_DETAIL_DATA = "engine_cluster_detail_data"
+// One board of ENGINE_BOARDS_DIR, by its id: it names its own engines, so it takes no `engine`.
+export const ENGINE_BOARD_DATA = "engine_board_data"
 export const ENGINE_LIST_ENGINES = "engine_list_engines"
 // The toolset may not register these, so widgets ask `*_widget_actions_data` which exist.
 // `src/widget-actions.test.ts` fails on an in-widget write missing here.

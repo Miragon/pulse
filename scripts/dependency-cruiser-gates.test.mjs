@@ -140,6 +140,7 @@ const BOARD_USERS = "board-consumers"
 const BOARD_BUILDER = "board-builder-builds-on-the-engine-contract"
 const BOARD_BUILDER_USERS = "board-builder-consumers"
 const BOARD_TESTS = "board-tests-build-on-the-engine-contract"
+const VIEW_MODELS_BOARD = "connector-view-models-board-types-only"
 const HTTP_LEAF = "http-is-a-leaf"
 const HTTP_USERS = "http-consumers"
 const HTTP_LOOPBACK = "http-loopback-only-its-sockets"
@@ -589,8 +590,16 @@ const SUITES = [
       [PROFILE_SRC, BOARD_NAME, [PROFILE_LEAF, BOARD_USERS]],
       [C7_SRC, BOARD_NAME, [CORE_LEAF, BOARD_USERS]],
       [CLI_SRC, BOARD_NAME, [HEADLESS, BOARD_USERS]],
-      // The engine connector shows no board yet: it joins by a rule change of its own.
+      // The engine connector reads board files in its board layers alone: not its root, widgets,
+      // shared lib, tools or widget tools, nor a look-alike of a board layer.
       [ENGINE_CONNECTOR_SRC, BOARD_NAME, [BOARD_USERS]],
+      [`${ENGINE_CONNECTOR}/src/widgets/board.ts`, BOARD_NAME, [WIDGETS_BROWSER, BOARD_USERS]],
+      [`${ENGINE_CONNECTOR}/src/lib/shared/board.ts`, BOARD_NAME, [WIDGETS_BROWSER, BOARD_USERS]],
+      [`${ENGINE_CONNECTOR}/src/tools/board.ts`, BOARD_NAME, [BOARD_USERS]],
+      [`${ENGINE_CONNECTOR}/src/widget-tools/board.ts`, BOARD_NAME, [BOARD_USERS]],
+      [`${ENGINE_CONNECTOR}/src/engine-boards-x.ts`, BOARD_NAME, [BOARD_USERS]],
+      [`${ENGINE_CONNECTOR}/src/data-x/board.ts`, BOARD_NAME, [BOARD_USERS]],
+      [`${BILLING_CONNECTOR}/src/data/board.ts`, BOARD_NAME, [BOARD_USERS]],
       [ADAPTER_SRC, BOARD_NAME, [ADAPTER_FAMILY, BOARD_USERS]],
       // Of the runtime view only its core reads board files.
       [`${RUNTIME_VIEW}/src/host-kit/board.ts`, BOARD_NAME, [BOARD_USERS]],
@@ -604,10 +613,16 @@ const SUITES = [
       ],
       // An unresolved subpath (shape 3: dependency-cruiser reads no exports map).
       [`${SHELL}/src/board-sub.ts`, `${BOARD_NAME}/sub`, [BOARD_USERS]],
-      // Allowed: the runtime view's core, the editor hosts' src, and tests anywhere.
+      // Allowed: the runtime view's core, the editor hosts' src, the engine connector's board
+      // layers (its view models by type, connector-view-models-board-types-only), and tests
+      // anywhere.
       [`${RUNTIME_VIEW}/src/core/boards/board-panel.ts`, BOARD_NAME, []],
       [EXT_SRC, BOARD_NAME, []],
       [ORCA_SRC, BOARD_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/engine-boards.ts`, BOARD_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/board-files.ts`, BOARD_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/data/board-data.ts`, BOARD_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/view-models.types.ts`, BOARD_NAME, [], "type"],
       [`${RUNTIME_VIEW}/test/core/board.test.ts`, BOARD_NAME, []],
       [`${RUNTIME_VIEW}/test/core/support/board.ts`, BOARD_NAME, []],
       [`${SHELL}/test/support/board.ts`, BOARD_NAME, []],
@@ -628,8 +643,23 @@ const SUITES = [
         "../../../../packages/core/board/src/builder/lib.ts",
         [BOARD_BUILDER_USERS, DEEP],
       ],
-      // The engine connector shows no board yet: it joins by a rule change of its own.
+      // The engine connector builds a board's numbers in its data builders alone: not its root,
+      // its board files' reader, its view models (not even by type) or its widgets.
       [ENGINE_CONNECTOR_SRC, `${BOARD_NAME}/builder`, [BOARD_BUILDER_USERS]],
+      [`${ENGINE_CONNECTOR}/src/engine-boards.ts`, `${BOARD_NAME}/builder`, [BOARD_BUILDER_USERS]],
+      // Shape 2, resolved to the build, so the type import reads as one.
+      [
+        `${ENGINE_CONNECTOR}/src/view-models.board.ts`,
+        `${BOARD_NAME}/dist/builder/index.js`,
+        [BOARD_BUILDER_USERS],
+        "type",
+      ],
+      [
+        `${ENGINE_CONNECTOR}/src/widgets/builder.ts`,
+        `${BOARD_NAME}/builder`,
+        [WIDGETS_BROWSER, BOARD_BUILDER_USERS],
+      ],
+      [`${ENGINE_CONNECTOR}/src/tools/builder.ts`, `${BOARD_NAME}/builder`, [BOARD_BUILDER_USERS]],
       [SERVER_SRC, `${BOARD_NAME}/builder`, [BOARD_BUILDER_USERS]],
       [SHELL_SRC, `${BOARD_NAME}/builder`, [BOARD_BUILDER_USERS]],
       [
@@ -644,9 +674,32 @@ const SUITES = [
       // tests anywhere.
       [`${RUNTIME_VIEW}/src/core/boards/board-panel.ts`, `${BOARD_NAME}/builder`, []],
       [`${RUNTIME_VIEW}/src/core/views/element-badges.ts`, `${BOARD_NAME}/builder`, [], "type"],
+      [`${ENGINE_CONNECTOR}/src/data/board-data.ts`, `${BOARD_NAME}/builder`, []],
       [`${RUNTIME_VIEW}/test/core/board-views.test.ts`, `${BOARD_NAME}/builder`, []],
       [`${RUNTIME_VIEW}/test/core/support/builder.ts`, `${BOARD_NAME}/builder`, []],
       [`${EXT}/src/host/builder.test.ts`, `${BOARD_NAME}/builder`, []],
+    ],
+  },
+  {
+    rule: VIEW_MODELS_BOARD,
+    title: "the engine connector's view models name a built board's JSON form by type only",
+    cases: [
+      [`${ENGINE_CONNECTOR}/src/view-models.board.ts`, BOARD_NAME, [VIEW_MODELS_BOARD]],
+      [
+        `${ENGINE_CONNECTOR}/src/view-models.cockpit.ts`,
+        BOARD_NAME,
+        [VIEW_MODELS_BOARD],
+        "dynamic",
+      ],
+      [
+        `${ENGINE_CONNECTOR}/src/view-models.board.ts`,
+        "../../../../core/board/src/target.ts",
+        [VIEW_MODELS_BOARD, DEEP],
+      ],
+      // Allowed: the board format's types, from any of the view models.
+      [`${ENGINE_CONNECTOR}/src/view-models.flow.ts`, BOARD_NAME, [], "type"],
+      // Another module of the connector answers to board-consumers.
+      [`${ENGINE_CONNECTOR}/src/view-models-board/x.ts`, BOARD_NAME, [BOARD_USERS], "type"],
     ],
   },
   {

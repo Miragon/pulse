@@ -4,13 +4,19 @@ import {
   withToolErrors,
   strictToolInput,
 } from "@miragon/pulse-widget-shell/server"
-import { DATA_FEEDS, type DataFeed } from "../data/feeds.js"
+import { DATA_FEEDS, type DataFeed, type NamingFeed } from "../data/feeds.js"
 import { resolveEngine } from "../lib/engine/resolve-engine.js"
 import type { WidgetToolsContext } from "./shared.js"
 
-/** Registers every `*_data` feed `data/feeds.ts` describes, app-only and read-only. */
+const FEED_ANNOTATIONS = { readOnlyHint: true, idempotentHint: true, openWorldHint: true }
+
+/**
+ * Registers every `*_data` feed `data/feeds.ts` describes, app-only and read-only: a feed of one
+ * engine with the `engine` parameter, a feed that names its own engines without it, each of them
+ * resolved by its name under the call.
+ */
 export function registerWidgetDataFeeds(ctx: WidgetToolsContext) {
-  const { server, registry, healthThresholds, engineParam } = ctx
+  const { server, registry, healthThresholds, engineParam, boards } = ctx
 
   function registerDataFeed(feed: DataFeed) {
     server.registerTool(
@@ -18,7 +24,7 @@ export function registerWidgetDataFeeds(ctx: WidgetToolsContext) {
       {
         title: feed.title,
         description: feed.description,
-        annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+        annotations: FEED_ANNOTATIONS,
         inputSchema: strictToolInput({ ...feed.shape, ...engineParam }),
         ...appOnly,
       },
@@ -31,5 +37,26 @@ export function registerWidgetDataFeeds(ctx: WidgetToolsContext) {
     )
   }
 
-  for (const feed of DATA_FEEDS) registerDataFeed(feed)
+  function registerNamingFeed(feed: NamingFeed) {
+    server.registerTool(
+      feed.name,
+      {
+        title: feed.title,
+        description: feed.description,
+        annotations: FEED_ANNOTATIONS,
+        inputSchema: strictToolInput(feed.shape),
+        ...appOnly,
+      },
+      withToolErrors(async (args, ctx) => {
+        const resolve = (name: string) => resolveEngine(name, registry, ctx)
+        const data = await feed.read(args, { resolve, ...(boards ? { boards } : {}) })
+        return buildDataFeedResult({ ...data })
+      }),
+    )
+  }
+
+  for (const feed of DATA_FEEDS) {
+    if ("engines" in feed) registerNamingFeed(feed)
+    else registerDataFeed(feed)
+  }
 }

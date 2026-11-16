@@ -5,6 +5,7 @@ import { registerTools } from "./tools/index.js"
 import { registerIncidentIssuePrompt, registerIncidentIssueTools } from "./tools/incident-issue.js"
 import { registerEngineTools } from "./tools/engines.js"
 import { registerWidgetTools } from "./widget-tools.js"
+import type { BoardFiles } from "./board-files.js"
 import type { EngineEntry } from "./engine-provider.js"
 import {
   createEngineRegistry,
@@ -43,6 +44,8 @@ export interface EnginePluginConfig {
     criticalIncidents?: number
     criticalClusterSize?: number
   }
+  /** The boards of ENGINE_BOARDS_DIR, read at configuration: the board feed builds them. */
+  boards?: BoardFiles
 }
 
 /** The routing every tool resolves its engine through: each engine on its own profile. */
@@ -89,7 +92,11 @@ export function createPlugin(config: EnginePluginConfig): ModulePlugin {
       registerTools(register, { allowDeployments: config.allowDeployments })
       registerIncidentIssueTools(register, incidentIssueConfig)
       registerIncidentIssuePrompt(server, incidentIssueConfig)
-      registerWidgetTools(server, registry, { healthThresholds, toolset })
+      registerWidgetTools(server, registry, {
+        healthThresholds,
+        toolset,
+        ...(config.boards ? { boards: config.boards } : {}),
+      })
     },
   }
 }

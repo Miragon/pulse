@@ -727,7 +727,10 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
    - Honest numbers (`data/engine-reads.ts`): **primary rows/counts propagate errors;
      enrichment degrades to `null` (rendered "—"), never 0**; totals come from `/count` or
      statistics, never a capped page or scan; a definition view spans every version of its key
-     (`data/honest-numbers.test.ts`).
+     (`data/honest-numbers.test.ts`). A board's numbers (the board feed `engine_board_data`,
+     `data/board-data.ts` over the builder of `@miragon/pulse-board`) degrade per engine and tile
+     instead of failing the call: a failed engine or a read left out shows in its place, never 0
+     (the degrade table, `data/honest-numbers.degrade.test.ts`, breaks each read in turn).
    - No view payload carries BPMN XML (a view tool's `structuredContent` reaches the model on
      some hosts): a view names the version it draws (`diagramDefinitionId`) and `BpmnDiagram`
      reads the XML from the app-only `engine_bpmn_xml_data`. The ONE XML read is `lib/bpmn/definition-xml.ts`, cached per
@@ -896,12 +899,15 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      with its JSON path, reading no file and no engine, and never reaches its builder
      (`board-format-is-a-leaf`), and only where a surface reads its board files is it imported: the
      runtime view's core (its closed world keeps the protocol, which holds its own board types, free
-     of it) and the editor hosts' src, and tests (`board-consumers`, `BOARD_READERS`; the engine
-     connector joins when it shows a board); its builder (`@miragon/pulse-board/builder`,
+     of it), the editor hosts' src, the engine connector's board layers (`src/engine-boards.ts` and
+     `src/board-files.ts`, which read `ENGINE_BOARDS_DIR`, `src/data`, the board feed, and its view
+     models by type only, `connector-view-models-board-types-only`), and tests (`board-consumers`,
+     `BOARD_READERS`); its builder (`@miragon/pulse-board/builder`,
      `src/builder`) is the package's named exception, which imports only its own modules, the
      format and engine-core's main entry, no npm package and no Node built-in
      (`board-builder-builds-on-the-engine-contract`; engine-core an optional peer), and only the
-     runtime view's core and tests import it (`board-builder-consumers`, `BOARD_BUILDERS`); the
+     runtime view's core, the engine connector's `src/data` and tests import it
+     (`board-builder-consumers`, `BOARD_BUILDERS`); the
      package's tests that read the contract import of the families engine-core alone, by its
      entries (`board-tests-build-on-the-engine-contract`); the
      transport (`@miragon/pulse-http`, `packages/core/http`) is a leaf too, which

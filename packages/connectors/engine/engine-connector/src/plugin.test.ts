@@ -8,6 +8,7 @@ import { EngineNotSelectedError, resolveEngine } from "./lib/engine/resolve-engi
 import { camunda7Provider } from "./providers/index.js"
 import { ENGINE_ADMIN_ONLY_TOOLS } from "./lib/mcp/toolsets.js"
 import {
+  ENGINE_BOARD_DATA,
   ENGINE_LIST_ENGINES,
   ENGINE_OPEN_COCKPIT,
   ENGINE_WIDGET_ACTIONS_DATA,
@@ -23,6 +24,7 @@ interface Definition {
   name: string
   annotations?: Record<string, unknown>
   inputSchema?: z.ZodObject
+  _meta?: Record<string, unknown>
 }
 
 async function bootSurface(config: Partial<EnginePluginConfig>) {
@@ -124,6 +126,23 @@ describe("createPlugin annotates every tool it registers", () => {
       expect(typeof definition.annotations?.destructiveHint, definition.name).toBe("boolean")
     }
   })
+})
+
+describe("createPlugin registers the board feed on every toolset", () => {
+  it.each([undefined, "operations", "admin"])(
+    "toolset %s: app-only and read-only, by a board id alone, without `engine`",
+    async (toolset) => {
+      const { byName } = await bootSurface(toolset === undefined ? {} : { toolset })
+      const feed = byName.get(ENGINE_BOARD_DATA)?.definition
+      expect(feed?.annotations).toEqual({
+        readOnlyHint: true,
+        idempotentHint: true,
+        openWorldHint: true,
+      })
+      expect(feed?._meta).toMatchObject({ ui: { visibility: ["app"] } })
+      expect(Object.keys(feed?.inputSchema?.shape ?? {})).toEqual(["board"])
+    },
+  )
 })
 
 // Structural, not a list: every tool that takes a page size caps it, the registrar reads and the

@@ -1,5 +1,6 @@
 import type { ModuleServer } from "@miragon/pulse-widget-shell/server"
 import type { VerdictThresholds } from "@miragon/pulse-c7-core"
+import type { BoardFiles } from "./board-files.js"
 import type { EngineRegistry } from "./lib/engine/resolve-engine.js"
 import { engineParamShapeFor } from "./lib/engine/with-engine.js"
 import type { EngineToolset } from "./lib/mcp/toolsets.js"
@@ -13,6 +14,8 @@ export interface EngineWidgetToolsOptions {
   healthThresholds: VerdictThresholds
   /** Decides which in-widget write buttons render; always concrete, never "omitted = everything". */
   toolset: EngineToolset
+  /** The boards of ENGINE_BOARDS_DIR, which the board feed builds; none without it. */
+  boards?: BoardFiles
 }
 
 export function registerWidgetTools(
@@ -26,6 +29,7 @@ export function registerWidgetTools(
     healthThresholds: options.healthThresholds,
     toolset: options.toolset,
     engineParam: engineParamShapeFor(registry.engineIds),
+    ...(options.boards ? { boards: options.boards } : {}),
   }
   registerCockpitWidgetTools(ctx)
   registerWidgetDataFeeds(ctx)
