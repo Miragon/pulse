@@ -69,6 +69,7 @@ describe("ratchetKind", () => {
     assert.equal(ratchetKind("apps/mcp-server/test/__golden__/bundle-budget.json"), "bundle-budget")
     assert.equal(ratchetKind("apps/vscode/test/__golden__/bundle-budget.json"), "bundle-budget")
     assert.equal(ratchetKind("apps/cli/test/__golden__/bundle-budget.json"), "bundle-budget")
+    assert.equal(ratchetKind("apps/web/test/__golden__/bundle-budget.json"), "bundle-budget")
     assert.equal(ratchetKind("package.json"), "root-scripts")
     assert.equal(ratchetKind("packages/core/widget-shell/package.json"), "package-scripts")
     assert.equal(ratchetKind("apps/mcp-server/package.json"), "package-scripts")

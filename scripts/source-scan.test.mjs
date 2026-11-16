@@ -132,6 +132,7 @@ describe("the repo's apps", () => {
     const files = scanSources((file) => [file])
     for (const file of [
       "apps/mcp-server/src/index.ts",
+      "apps/web/src/routes.ts",
       "packages/core/widget-shell/src/caller.ts",
       "packages/connectors/engine/engine-connector/src/module.ts",
     ]) {
@@ -146,5 +147,6 @@ describe("the repo's apps", () => {
       false,
     )
     assert.equal(APP_SCAN["mcp-server"], "mcp-host")
+    assert.equal(APP_SCAN.web, "mcp-host")
   })
 })

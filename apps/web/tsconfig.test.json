@@ -1,0 +1,10 @@
+{
+  // The tests: the page's code with the browser's types, and the Node helpers that build the page
+  // and boot a server over its build.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node", "vite/client"],
+    "rootDir": "."
+  },
+  "include": ["src", "test"]
+}

@@ -11,9 +11,10 @@ import path from "node:path"
 export const REPO_ROOT = path.resolve(import.meta.dirname, "..")
 
 /**
- * The apps under apps/ (keyed by directory) and how the source guards read each: an MCP server
- * app ("mcp-host") by every guard, an interface app ("interface") by none. A new app adds its
- * entry here (`unclassifiedApps` fails until it does).
+ * The apps under apps/ (keyed by directory) and how the source guards read each: an app that hosts
+ * MCP views ("mcp-host": the MCP server, and the web app, which shows them on pages of the server)
+ * by every guard, an interface app ("interface") by none. A new app adds its entry here
+ * (`unclassifiedApps` fails until it does).
  * @type {Readonly<Record<string, "mcp-host" | "interface">>}
  */
 export const APP_SCAN = {
@@ -21,6 +22,7 @@ export const APP_SCAN = {
   "mcp-server": "mcp-host",
   orca: "interface",
   vscode: "interface",
+  web: "mcp-host",
 }
 
 /**

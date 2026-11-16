@@ -68,11 +68,12 @@ const UI = "packages/core/ui/src"
 const APP_UI = "apps/mcp-server/src/ui"
 /**
  * WIDGET_TREES of eslint.config.mjs: the host bundle's src/ui, widget-shell's view half, the
- * connector's widgets and Pulse's building blocks, a .ts and a .tsx probe each. The date and number
- * gates hold all of them.
+ * connector's widgets, Pulse's building blocks and the web app's page, a .ts and a .tsx probe each.
+ * The date and number gates hold all of them.
  */
 const BLOCKS = "packages/core/blocks/src/board"
-const WIDGET_TREE_PATHS = [APP_UI, WS, `${ENGINE_CONNECTOR_SRC_DIR}/widgets`, BLOCKS].flatMap(
+const WEB = "apps/web/src"
+const WIDGET_TREE_PATHS = [APP_UI, WS, `${ENGINE_CONNECTOR_SRC_DIR}/widgets`, BLOCKS, WEB].flatMap(
   (dir) => [`${dir}/__probe__.ts`, `${dir}/__probe__.tsx`],
 )
 /**
@@ -214,6 +215,8 @@ describe("MCP Apps runtime gate (invariant 6): only widget-shell's host adapter 
     "apps/mcp-server/src/ui/__probe__.tsx",
     "apps/mcp-server/test/__probe__.test.ts",
     "apps/mcp-server/test-host/__probe__.spec.ts",
+    "apps/web/src/__probe__.tsx",
+    "apps/web/test/__probe__.test.ts",
   ]
 
   // Every way a static import or re-export reaches the runtime: its root, each browser subpath

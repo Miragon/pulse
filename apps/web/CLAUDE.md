@@ -1,0 +1,66 @@
+# CLAUDE.md (apps/web)
+
+Guidance for agents working on Pulse's web app (`@miragon/pulse-web`, private): the page a Pulse
+server serves under `/app`, which shows the MCP server's views to a browser signed in through the
+server's OAuth provider. It is an interface app of the Pulse monorepo; the root `CLAUDE.md` holds
+(the package rules of invariant 8, the design section, invariant 6 for everything the page renders,
+the ratchets, Verification), and this file adds what is the web app's own.
+
+## Commands
+
+Run them from the repository root.
+
+```sh
+pnpm --fail-if-no-match --filter @miragon/pulse-web build                 # the page into apps/web/dist
+pnpm --fail-if-no-match --filter @miragon/pulse-web test                  # unit tests, build tests, coverage floors
+pnpm --fail-if-no-match --filter @miragon/pulse-web third-party-licenses  # write THIRD_PARTY_LICENSES.txt again
+```
+
+The page imports widget-shell, pulse-ui and the engine connector's widgets: after `pnpm install`,
+build them once (`pnpm exec turbo run build --filter=@miragon/pulse-web^...`, or `pnpm build`).
+
+## What it is
+
+- One page, `index.html`, for every route of the server that serves it: `/app` (the cockpit's
+  default start), `/app/cockpit?view=…&engine=…&<ids>` (the start the query names, one argument of
+  `engine_open_cockpit` per parameter, so the tool refuses one it does not take and the page shows
+  why) and the server's own `/app/signed-out?reason=…`. `src/pages.ts` lists the page routes; the
+  build writes them into `dist/pages.json`, which the server reads at boot, and
+  `test/pages-manifest.test.ts` boots a server over the build to hold both to each other.
+  Navigation inside the cockpit stays in the page: a URL names where it starts.
+- `src/start.ts` starts a page: the signed-out page needs no session; any other reads the session
+  (`readWebSession`) and mounts the view with widget-shell's `mountPage`, its caller
+  `webToolCaller` (every call a POST to `/app/api/call` with the session's CSRF token; no token
+  ever reaches the page), its `frame` the app's own (`src/frame.tsx`: the 40 px bar with the
+  product, who is signed in and the sign-out, and the session's notices under it). A page writes
+  to no engine and posts to no chat (`followUp: "none"`), so no write control and no hand-off show.
+- No silent redirect: a call that finds the session gone shows a notice whose sign-in comes back
+  to the page; a page whose session ended before it read one, or whose session could not be read,
+  says so (`src/page-states.tsx`). The sign-out is a fetch to the logout route, then the place its
+  answer names (`src/sign-out.ts`, never a script URL). The signed-out page says per reason what
+  happened and what to do (`src/signed-out.tsx`).
+- Geist comes from the server's own font route (`publicBase`), the theme follows the OS or a
+  `data-cd-theme` on `<html>`, the language the browser (German or English), the density is
+  compact, comfortable on touch: all of it the view runtime's, which the frame shares.
+
+## Rules
+
+- What `src` imports is `web-is-a-page` in `.dependency-cruiser.cjs`: its own modules, `react`,
+  `react-dom`, `lucide-react`, pulse-ui's root and `theme.css`, `@miragon/pulse-widget-shell/widgets`
+  and `@miragon/pulse-engine-connector/widgets`. Never a server half, the transport, the MCP Apps
+  runtime (ESLint's gate too) or a `./testing` entry; tests and `vite.config.ts` may import more.
+- The page's words live in `src/messages` (`en.ts`, `de.ts`, the same keys, brand tone in both;
+  `test/messages.test.ts`), its UI on the kit with the brand gates of `@miragon/pulse-ui/testing`
+  (`test/brand-gates.test.ts`), dates and numbers through the kit's formatters (the date and number
+  gates hold `src`).
+- Only files under the build's `assets/` are served: anything the page loads is imported, so Vite
+  emits it there under a hashed name; nothing is inlined (`assetsInlineLimit: 0`), no script runs
+  inline (the server's Content Security Policy allows the page's own scripts only), and `public/`
+  stays empty.
+- `vite.config.ts` spreads widget-shell's `VIEW_BUNDLE_DEDUPE` whole (invariant 4);
+  `test/bundle-graph.test.ts` holds the page to one copy of each, to the page root without the
+  chat's, and to no MCP Apps runtime, no server half of widget-shell and no transport.
+- The page's gzip ceilings are `test/__golden__/bundle-budget.json` (`test/bundle-budget.test.ts`,
+  shrink-only; growth needs a `Ratchet-Exception:` trailer), its licence list
+  `THIRD_PARTY_LICENSES.txt` (`test/third-party-licenses.test.ts`, written by the
+  `third-party-licenses` script), its coverage floors `vitest.config.ts`.

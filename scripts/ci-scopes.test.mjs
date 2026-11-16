@@ -31,6 +31,14 @@ const PACKAGES = [
   pkg("apps/mcp-server", "@miragon/pulse-mcp-server", {
     "@miragon/pulse-engine-connector": "workspace:*",
   }),
+  // The web app bundles the views of the engine module: a devDependency reaches it too.
+  {
+    dir: "apps/web",
+    manifest: {
+      name: "@miragon/pulse-web",
+      devDependencies: { "@miragon/pulse-engine-connector": "workspace:*" },
+    },
+  },
   // The CLI bundles c7-core: a devDependency reaches it too.
   {
     dir: "apps/cli",
@@ -184,6 +192,11 @@ describe("scopesFor: a package's code reaches its dependents", () => {
       "template",
       "typescript",
     ])
+  })
+
+  it("runs the MCP server's checks for the web app, whose page shows the MCP views", () => {
+    assert.deepEqual(scopes("apps/web/src/frame.tsx"), ["mcp", "typescript"])
+    assert.deepEqual(scopes("apps/web/README.md"), [])
   })
 
   it("runs the MCP server's checks for the server app itself, not only through a package", () => {
@@ -372,6 +385,7 @@ describe("withDependents", () => {
   it("adds every package that depends on a changed one, transitively", () => {
     assert.deepEqual([...withDependents(["packages/core/widget-shell"], PACKAGES)].sort(), [
       "apps/mcp-server",
+      "apps/web",
       "packages/connectors/engine/engine-connector",
       "packages/core/widget-shell",
     ])

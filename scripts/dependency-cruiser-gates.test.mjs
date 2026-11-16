@@ -37,6 +37,7 @@ const SERVER = "apps/mcp-server"
 const CLI = "apps/cli"
 const EXT = "apps/vscode"
 const ORCA = "apps/orca"
+const WEB = "apps/web"
 const RUNTIME_VIEW = "packages/core/runtime-view"
 const C7_ADAPTER = "packages/connectors/c7/c7-adapter"
 const C8_ADAPTER = "packages/connectors/c8/c8-adapter"
@@ -63,6 +64,7 @@ const WORKSPACE = {
   [CLI]: { name: "@miragon/pulse-cli" },
   [EXT]: { name: "pulse-cockpit", engines: { vscode: "^1.101.0" } },
   [ORCA]: { name: "@miragon/pulse-orca", private: true },
+  [WEB]: { name: "@miragon/pulse-web", private: true },
   [RUNTIME_VIEW]: { name: "@miragon/pulse-runtime-view", private: true },
   [C7_ADAPTER]: { name: "@miragon/pulse-c7-adapter", private: true },
   [C8_ADAPTER]: { name: "@miragon/pulse-c8-adapter", private: true },
@@ -134,6 +136,7 @@ const POINT_DOWN = "connector-data-and-lib-point-down"
 const NO_APP = "packages-never-import-the-app"
 const APP_APP = "apps-never-import-apps"
 const HEADLESS = "cli-is-headless"
+const WEB_PAGE = "web-is-a-page"
 const CORE_LEAF = "family-core-is-a-leaf"
 const PROFILE_LEAF = "profile-is-a-leaf"
 const PROFILE_USERS = "profile-consumers"
@@ -194,6 +197,7 @@ const CLI_SRC = `${CLI}/src/index.ts`
 const SERVER_SRC = `${SERVER}/src/index.ts`
 const EXT_SRC = `${EXT}/src/extension.ts`
 const ORCA_SRC = `${ORCA}/src/worker/main.ts`
+const WEB_SRC = `${WEB}/src/main.tsx`
 const VIEW_SRC = `${RUNTIME_VIEW}/src/index.ts`
 const ADAPTER_SRC = `${C7_ADAPTER}/src/index.ts`
 const BILLING_ADAPTER_SRC = `${BILLING_ADAPTER}/src/index.ts`
@@ -228,6 +232,7 @@ const BILLING_CONNECTOR_SRC = `${BILLING_CONNECTOR}/src/index.ts`
 // Leaf modules the relative escapes point at. They import nothing, so no probe forms a cycle
 // unless a case plants one on purpose.
 const LEAVES = [
+  `${WEB}/src/lib.ts`,
   `${SERVER}/src/target.ts`,
   `${SERVER}/src/lib.ts`,
   `${CLI}/src/target.ts`,
@@ -420,6 +425,51 @@ const SUITES = [
         "../../../../packages/core/http/src/target.ts",
         [HEADLESS, DEEP],
       ],
+    ],
+  },
+  {
+    rule: WEB_PAGE,
+    title: "the web app's page imports the kit, the view half of the view runtime and the views",
+    cases: [
+      // What a page is made of, each by its entry.
+      ...[
+        "react",
+        "react-dom/client",
+        "lucide-react",
+        "@miragon/pulse-ui",
+        "@miragon/pulse-ui/theme.css",
+        "@miragon/pulse-widget-shell/widgets",
+        "@miragon/pulse-engine-connector/widgets",
+        "./lib.ts",
+      ].map((spec) => [WEB_SRC, spec, []]),
+      // Nothing of a server, no other entry and no other library.
+      ...[
+        "@miragon/pulse-widget-shell",
+        "@miragon/pulse-widget-shell/server",
+        "@miragon/pulse-engine-connector",
+        "@miragon/pulse-ui/format",
+        "@miragon/pulse-ui/globals.css",
+        "@miragon/pulse-ui-x",
+        "@tanstack/react-query",
+        "@modelcontextprotocol/server",
+        "hono",
+        "zod",
+        "bpmn-js",
+        "node:fs",
+      ].map((spec) => [WEB_SRC, spec, [WEB_PAGE]]),
+      // The rules of what the page would reach fire beside it.
+      [WEB_SRC, "@miragon/pulse-ui/testing", [NO_TESTING, WEB_PAGE]],
+      [WEB_SRC, "@miragon/pulse-widget-shell/testing", [NO_TESTING, WEB_PAGE]],
+      [WEB_SRC, "@modelcontextprotocol/ext-apps", [EXT_APPS, WEB_PAGE]],
+      [WEB_SRC, HTTP_NAME, [HTTP_USERS, WEB_PAGE]],
+      [WEB_SRC, BLOCKS_NAME, [BLOCKS_USERS, WEB_PAGE]],
+      [WEB_SRC, "@miragon/pulse-c7-client", [CLIENT_USERS, WEB_PAGE]],
+      [WEB_SRC, "@miragon/pulse-mcp-server", [APP_APP, WEB_PAGE]],
+      [`${WEB}/src/escape.ts`, "../../../packages/core/ui/src/target.ts", [DEEP, WEB_PAGE]],
+      [`${WEB}/src/escape-app.ts`, "../../mcp-server/src/target.ts", [APP_APP, DEEP, WEB_PAGE]],
+      // Its tests import what they test with.
+      [`${WEB}/src/page.test.tsx`, "@miragon/pulse-ui/testing", []],
+      [`${WEB}/src/page.test.tsx`, "@miragon/pulse-widget-shell/server", []],
     ],
   },
   {

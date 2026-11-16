@@ -131,7 +131,8 @@ export function packageScopes(dir) {
   const scopes = ["typescript"]
   const interfacePackage = INTERFACE_PACKAGES.some((name) => dir === `packages/${name}`)
   if (dir.startsWith("packages/") && !interfacePackage) scopes.push("mcp", "template")
-  if (dir === "apps/mcp-server") scopes.push("mcp")
+  // The web app shows the MCP views on pages of the server: the MCP jobs run its suites.
+  if (dir === "apps/mcp-server" || dir === "apps/web") scopes.push("mcp")
   if (dir === "apps/cli") scopes.push("cli")
   if (dir === "apps/vscode") scopes.push("vscode", "vscode-package")
   if (dir === "apps/orca") scopes.push("orca")

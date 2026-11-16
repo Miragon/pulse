@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act } from "react"
+import { act, type ReactNode } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { useLocale } from "@miragon/pulse-ui"
 import { askAiPrompt } from "./ask-ai-prompt.js"
@@ -167,6 +167,52 @@ describe("mountPage", () => {
   it("names an unknown view, an inherited key included, and calls no tool for it", async () => {
     const callTool = stubCaller(ROWS_TOOLS)
     const container = await mount({ callTool, view: "toString", locale: "en" })
+    await settled()
+    expect(container.textContent).toContain("can't show this view")
+    expect(callTool).not.toHaveBeenCalled()
+  })
+
+  it("renders the page's frame around the view under the view's providers", async () => {
+    const Frame = ({ children }: { children?: ReactNode }) => (
+      <div data-testid="frame">
+        <p data-testid="frame-locale">{useLocale()}</p>
+        {children}
+      </div>
+    )
+    const callTool = stubCaller(ROWS_TOOLS)
+    const container = await mount({ callTool, frame: Frame, locale: "de" })
+    await settled()
+    expect(container.querySelector('[data-testid="frame-locale"]')?.textContent).toBe("de")
+    const main = container.querySelector('[data-testid="frame"] main')
+    expect(main?.querySelector("output")?.textContent).toBe("de|fullscreen|a,b|2")
+    // The frame lays out the page: the view takes its content's height, not the viewport's.
+    const frameMain = container.querySelector<HTMLElement>('[data-testid="frame"] > div > main')
+    expect(frameMain?.style.minHeight).toBe("")
+    expect(frameMain?.style.overflowY).toBe("")
+  })
+
+  it("shows a frame alone where the page names no view, and calls no tool", async () => {
+    const Frame = ({ children }: { children?: ReactNode }) => {
+      const locale = useLocale()
+      return <p data-testid="frame">{children ?? `alone|${locale}`}</p>
+    }
+    const callTool = stubCaller(ROWS_TOOLS)
+    const container = await mount({ callTool, frame: Frame, view: undefined, locale: "en" })
+    await settled()
+    expect(container.querySelector('[data-testid="frame"]')?.textContent).toBe("alone|en")
+    expect(callTool).not.toHaveBeenCalled()
+  })
+
+  it("fills the viewport without a frame, as a chat's fullscreen view does", async () => {
+    const container = await mount({ callTool: stubCaller(ROWS_TOOLS), locale: "en" })
+    await settled()
+    const main = container.querySelector<HTMLElement>('[data-slot="view-frame"] > main')
+    expect(main?.style.minHeight).toBe("100vh")
+  })
+
+  it("names the missing view without a frame and without a view name", async () => {
+    const callTool = stubCaller(ROWS_TOOLS)
+    const container = await mount({ callTool, view: undefined, locale: "en" })
     await settled()
     expect(container.textContent).toContain("can't show this view")
     expect(callTool).not.toHaveBeenCalled()

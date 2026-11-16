@@ -38,8 +38,9 @@ Pulse (part of the Miragon AI tool family) is a pnpm + Turbo monorepo that ships
 (built on the official MCP TypeScript SDK, `@modelcontextprotocol/server` with the MCP Apps
 extension `@modelcontextprotocol/ext-apps`, its UI on `@miragon/pulse-ui`) for Camunda 7 / CIB seven BPM operations,
 including interactive React widgets (MCP Apps), plus a
-command line interface (`apps/cli`), a VS Code extension (`apps/vscode`) and an Orca plugin
-(`apps/orca`) for the same engines.
+web app that shows those views as pages of the server (`apps/web`), a command line interface
+(`apps/cli`), a VS Code extension (`apps/vscode`) and an Orca plugin (`apps/orca`) for the same
+engines.
 
 | Path                                           | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -47,6 +48,7 @@ command line interface (`apps/cli`), a VS Code extension (`apps/vscode`) and an 
 | `apps/cli/`                                    | The CLI (npm `@miragon/pulse-cli`): every REST operation of the engine as a command, generated from its OpenAPI spec, plus the workflow commands; its rules in `apps/cli/CLAUDE.md`                                                                                                                                                                                                                                                                                                                                        |
 | `apps/vscode/`                                 | Pulse for VS Code (`pulse-cockpit`, a .vsix): the VS Code host of the runtime view; its rules in `apps/vscode/CLAUDE.md`                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `apps/orca/`                                   | Pulse for Orca (`@miragon/pulse-orca`, an Orca plugin): the Orca host of the runtime view (worker, components panel, custom editors); its rules in `apps/orca/CLAUDE.md`                                                                                                                                                                                                                                                                                                                                                   |
+| `apps/web/`                                    | The web app (`@miragon/pulse-web`, private): the MCP server's views as pages of the server under `/app` (the cockpit at `/app` and `/app/cockpit?view=…`), over widget-shell's `mountPage` with its own frame (bar, sign-out, the session's notices, the signed-out page per reason); Vite builds it with its `pages.json`, which the server reads at boot; its rules in `apps/web/CLAUDE.md`                                                                                                                              |
 | `packages/connectors/engine/engine-connector/` | engine module, the one MCP module of every dialect: operations tools, widget tools, widgets                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `packages/connectors/engine/engine-core/`      | The neutral core of the engine family (npm `@miragon/pulse-engine-core`), the contract every dialect implements: the ports a process engine answers (`ProcessRuntime`, `ProcessCommands`), ids, read models, queries, `RuntimeError`, `RootCauses`; the conformance kit with its laws, its fixed world and the in-memory `FakeEngine` (`/testing`); no runtime dependency, Pulse for VS Code's house rules                                                                                                                 |
 | `packages/connectors/c7/c7-client/`            | The SDK of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-client`): the REST SDK generated from c7-core's one spec (`src/generated/`), `createEngineClient` over the `fetch` it is handed and the SDK-bound reads (`src/sdk-reads/`); a leaf                                                                                                                                                                                                                                                                 |
@@ -88,9 +90,13 @@ Three axes decide where code goes, and they stay apart:
   implements. A new dialect is a family, never an MCP server app or a module of its own, and
   inherits its gates from the layout.
 - Interface (how a person or an agent reaches an engine): an app under `apps/`, today the
-  MCP server, the CLI (`apps/cli`, rules in `apps/cli/CLAUDE.md`) and the two editor hosts,
-  the VS Code extension (`apps/vscode`, rules in `apps/vscode/CLAUDE.md`) and the Orca plugin
-  (`apps/orca`, rules in `apps/orca/CLAUDE.md`). Another interface (a third editor, say) is an
+  MCP server, the web app (`apps/web`, rules in `apps/web/CLAUDE.md`), the CLI (`apps/cli`, rules
+  in `apps/cli/CLAUDE.md`) and the two editor hosts, the VS Code extension (`apps/vscode`, rules
+  in `apps/vscode/CLAUDE.md`) and the Orca plugin (`apps/orca`, rules in `apps/orca/CLAUDE.md`).
+  The server serves two of them: `/mcp` to an MCP client and, beside it, the web app's pages under
+  `/app` to a browser signed in through the server's OAuth provider; the web app is the page host
+  of the MCP views, which it shows with widget-shell's `mountPage` and calls through the server's
+  `/app/api/call`. Another interface (a third editor, say) is an
   app of its own. Apps never import each other, and no package imports an app: what the editor
   hosts share is the runtime view (`packages/core/runtime-view`) and a dialect's adapter of the
   engine contract (`packages/connectors/<family>/<family>-adapter`), private packages only they
@@ -560,7 +566,12 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      page's locale, fullscreen without a switch, no model context, no ext-apps import) and the
      same providers as `ViewRoot` (`src/ui/view-providers.tsx`), calls the view tool itself and
      tree-shakes out of the MCP bundle (`apps/mcp-server/test/view-bundle.test.ts`; test:host's
-     `page-root.spec.ts` renders the cockpit on such a page). What a hand-off does is the view
+     `page-root.spec.ts` renders the cockpit on such a page). A page may bring its own `frame`
+     around the view (the web app's bar, its notices), which renders under the same providers
+     and lays out the page, so the view takes its content's height; with a frame and no view the
+     frame renders alone (the web app's signed-out page). The web app (`apps/web`) is that page:
+     the engine module's views under `mountPage`, its caller `webToolCaller`, its frame and words
+     its own, and its bundle holds the page root without the chat's (`apps/web/test/bundle-graph.test.ts`). What a hand-off does is the view
      host's `followUp`: `chat` posts it, a page that posts to no chat says `copy` (its prompt to
      copy) or `none` (hidden), and `AskAiButton` reads it, as does a widget whose menu,
      column or section holds hand-offs alone (`useHostFollowUp`, no tool caller), so `none`
@@ -628,8 +639,8 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      `@miragon/pulse-ui/format`, which the VS Code extension's core and webview read too; a lower
      bound is `formatCount({ atLeast })`, `≥ 2,000`; ESLint's date and number gates over
      `WIDGET_TREES`, every widget tree: the host bundle's `src/ui`, widget-shell's and the
-     connector's widgets, Pulse's building blocks (`packages/core/blocks`), and the extension's
-     core and webview; `scripts/eslint-gates.test.mjs`).
+     connector's widgets, Pulse's building blocks (`packages/core/blocks`), the web app's `src`
+     and the extension's core and webview; `scripts/eslint-gates.test.mjs`).
      A count reaches a catalog entry already formatted, and the entry puts the noun in the right
      number (`countOf`, `plural(…)`), never a `…One`/`…Other` key pair.
    - **BPMN** renders through `useBpmnViewer` + `BpmnZoomControls` on a forced-light canvas
@@ -699,8 +710,10 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      `@miragon/pulse-ui/testing` (`catalogTextFindings`, `scanGlyphs`, `scanIconSizes`,
      `scanColors`, `scanOutlines`: Tailwind's `outline-hidden` only under a focus state, since
      forced colours paint it as a 2 px frame at rest anywhere else) in its own
-     `brand-gates.test.ts` (the host bundle's `src/ui` runs `scanGlyphs` and `scanOutlines`;
-     widget-shell checks its words next to its catalogs, in
+     `brand-gates.test.ts` (the host bundle's `src/ui` runs `scanGlyphs` and `scanOutlines`; the
+     web app runs every scan and `scanTypeScale` over its `src` in `apps/web/test/brand-gates.test.ts`
+     and `catalogTextFindings` in `apps/web/test/messages.test.ts`; widget-shell checks its words
+     next to its catalogs, in
      `packages/core/widget-shell/src/ui/kit-words.test.ts`), and its en/de catalogs hold the same
      keys; the VS Code extension runs `scanGlyphs`, `scanIconSizes`, `scanColors`,
      `scanOutlines` and `scanTypeScale` over its webview (`apps/vscode/test/architecture/brand-gates.test.ts`, its
@@ -896,7 +909,11 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      core and the transport), an app (the MCP server composes connectors, not their wire) or another
      package (`client-consumers`), core is the foundation and pulse-ui its leaf, no package or app
      imports an app, no cross-package deep imports. The interface apps import nothing of the
-     MCP/UI/server stack, zod included. The CLI imports no workspace package except a family core it
+     MCP/UI/server stack, zod included, but the web app, the page host of the MCP views: its src
+     imports only its own modules, `react`, `react-dom`, `lucide-react`, pulse-ui's root and
+     `theme.css`, widget-shell's `/widgets` and the engine connector's `/widgets`, never a
+     server half, the transport, the MCP Apps runtime or a `./testing` entry (`web-is-a-page`,
+     `WEB_IMPORTS`). The CLI imports no workspace package except a family core it
      bundles (`@miragon/pulse-c7-core`, never its `./runtime`: `cli-without-the-c7-runtime`), the
      profile format where it reads its profiles (what `profile-consumers` admits; it may bundle it
      with its core, `CLI_BUNDLES`) and the transport where it sends its engine requests (what
@@ -1199,7 +1216,11 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
 - **The widget bundle has a budget.** Every view resource inlines the whole bundle, so its
   size is the cost of every render: `test/__golden__/bundle-budget.json` holds shrink-only gzip
   ceilings that `test-host/bundle-budget.spec.ts` checks; growth needs a `Ratchet-Exception:`
-  trailer that says why. Two more shipped bundles have a shrink-only ceiling: the VS Code
+  trailer that says why. Three more shipped bundles have a shrink-only ceiling: the web app's
+  page (`apps/web/test/__golden__/bundle-budget.json`, gzip, its script and its stylesheet, built
+  from its `vite.config.ts` by `apps/web/test/bundle-budget.test.ts`, each failing too once it
+  shrinks more than 10 % below its ceiling; `apps/web/test/bundle-graph.test.ts` holds it to one
+  copy each of `VIEW_BUNDLE_DEDUPE`), the VS Code
   webview's (`apps/vscode/test/__golden__/bundle-budget.json`, gzip, its script and its
   stylesheet, each failing too once it shrinks more than 10 % below its ceiling; the same test
   holds the bundle to one copy each of React, react-dom, lucide-react and pulse-ui, the esbuild
@@ -1218,8 +1239,9 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
   2026-11-12): a generated, checked-in `THIRD_PARTY_LICENSES.txt` beside its `LICENSE`, today
   the CLI's (`apps/cli/CLAUDE.md`, "Licences"), `@miragon/pulse-c7-client`'s (its generated SDK),
   the server image's (`/usr/share/doc/pulse-server`: the view bundle's works, which the bundle
-  itself never carries, for its gzip budget), the .vsix's (`apps/vscode/CLAUDE.md`) and the Orca
-  plugin folder's (`apps/orca/CLAUDE.md`). The shared licence list
+  itself never carries, for its gzip budget), the web app's (`apps/web/THIRD_PARTY_LICENSES.txt`,
+  the works its page holds, which the browser never gets either), the .vsix's
+  (`apps/vscode/CLAUDE.md`) and the Orca plugin folder's (`apps/orca/CLAUDE.md`). The shared licence list
   `scripts/third-party-licenses.mjs` (Node built-ins only, typed by its `.d.mts`, in `scripts/`
   because apps never import each other) reads what the artifact really holds: its bundler's
   module graph (`renderedModules` for rolldown, rollup and Vite, `cssDependencies` for the
@@ -1305,7 +1327,7 @@ workspace (its header lists each check).
 
 | Check             | Coverage                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `pnpm build`      | turbo `build` everywhere: tsc emit of the packages and server code, the server app's Vite widget bundle (`build:ui`), the CLI's tsdown bundle (`apps/cli/dist`), the declarations of the runtime view and the C7 and C8 adapters, and the esbuild bundles of the VS Code extension and the Orca plugin (`apps/orca/dist`, the plugin folder); excludes widget `.tsx` type errors in packages                                                                                                                                                                                                                                                                                                                       |
+| `pnpm build`      | turbo `build` everywhere: tsc emit of the packages and server code, the server app's Vite widget bundle (`build:ui`), the CLI's tsdown bundle (`apps/cli/dist`), the web app's Vite build with its `pages.json` (`apps/web/dist`), the declarations of the runtime view and the C7 and C8 adapters, and the esbuild bundles of the VS Code extension and the Orca plugin (`apps/orca/dist`, the plugin folder); excludes widget `.tsx` type errors in packages                                                                                                                                                                                                                                                     |
 | `pnpm typecheck`  | **The only check that type-checks widget code**: `tsc -p tsconfig.widgets.json` in the engine connector and widget-shell (its view half), `tsc -p tsconfig.ui.json` (and `tsconfig.test.json`) in the server app; the runtime view per layer (`packages/core/runtime-view/tsconfig.<layer>.json`), the editor hosts per part, each with that part's runtime globals only                                                                                                                                                                                                                                                                                                                                           |
 | `pnpm test`       | Vitest unit tests, the server app's wire-contract tests and tools/list goldens (in-process boot, loopback HTTP), the engine output goldens (the CLI, the MCP server) and the error-path goldens (those two, the C7 and C8 adapters of the editors), the architecture tests of the editor hosts and the packages they share, the per-package coverage floors, then `node --test` over `scripts/*.test.mjs` (repo guards and gate self-tests, below the table); docs-refs, old-names and `lint:package-scripts` also run in Lint + Format; **no widget rendering** (the runtime view's webview tests render in Chromium; locally once: `pnpm --filter @miragon/pulse-runtime-view exec playwright install chromium`) |
 | `pnpm lint`       | The build-free gates first (`lint:naming`, `lint:package-scripts`, `lint:github`, `lint:ratchets`, which needs `git fetch origin`), then ESLint per package incl. the pattern gates, dependency-cruiser (`lint:architecture`, `:cli`, `:vscode`, `:runtime-view`, `:c7-adapter`, `:c8-adapter`, `:orca`) and knip (`lint:deadcode`: everything but exports and types; `:exports`: exports and types in every workspace but the vendored docs kit), and last `lint:configs` (the config files no tsconfig holds and no package lints: `DEFAULT_PROJECT_FILES` in `eslint.config.mjs`)                                                                                                                               |

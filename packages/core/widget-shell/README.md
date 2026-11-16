@@ -101,7 +101,12 @@ copied (`followUp: "copy"`); a widget asks the host's `followUp` with `useHostFo
 menu, a column or a section that holds hand-offs alone shows not at all where they are hidden, and
 the view's frame says to reload the page where a chat's would say to ask in the chat. A page writes
 to no engine: `useHostWrites()` answers false there (true in a chat and in `TestViewHost`), so a
-widget that asks it before it shows a write control offers none.
+widget that asks it before it shows a write control offers none. A page that brings its own chrome
+hands it in as `frame`, a component that gets the view as its `children` and renders under the same
+providers (the view's locale, theme, icon stroke and toasts); the frame then lays out the page and
+the view takes its content's height. With a frame and no `view`, the frame renders alone and nothing
+is called (a page that needs no tool, such as a signed-out page). Pulse's web app (`apps/web`) is
+such a page.
 
 ```ts
 import { mountPage } from "@miragon/pulse-widget-shell/widgets"

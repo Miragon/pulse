@@ -27,8 +27,17 @@ function frameLabels(labels: KitLabels, followUp: FollowUp): KitLabels {
  * under Details, Try again), cancelled, a missing view, then the view itself under a toolbar that
  * carries the "Reloaded at" stamp and the fullscreen switch. No title: views carry their heading.
  * Host-agnostic, so it renders under `TestViewHost` too, its words for a chat or for a page.
+ * Fullscreen the view fills the viewport, unless `fill` is false: a page's frame lays it out then.
  */
-export function ViewFrame({ call, view }: { call: ViewCall; view: ViewComponent | undefined }) {
+export function ViewFrame({
+  call,
+  view,
+  fill = true,
+}: {
+  call: ViewCall
+  view: ViewComponent | undefined
+  fill?: boolean
+}) {
   const frameRef = useRef<HTMLDivElement>(null)
   const labels = frameLabels(kitLabels(useLocale()), useHostFollowUp())
   const { phase } = call
@@ -41,7 +50,7 @@ export function ViewFrame({ call, view }: { call: ViewCall; view: ViewComponent 
   return (
     <div ref={frameRef} tabIndex={-1} data-slot="view-frame" className="outline-none">
       {spec && <HostModelContext content={modelContextText(spec)} />}
-      <FrameBody call={call} view={view} labels={labels} onRetry={retry} />
+      <FrameBody call={call} view={view} labels={labels} onRetry={retry} fill={fill} />
     </div>
   )
 }
@@ -51,11 +60,13 @@ function FrameBody({
   view: View,
   labels,
   onRetry,
+  fill,
 }: {
   call: ViewCall
   view: ViewComponent | undefined
   labels: KitLabels
   onRetry: () => void
+  fill: boolean
 }) {
   // Every phase before the view sits on the gutter, as the view's own content does.
   if (!View) {
@@ -90,7 +101,7 @@ function FrameBody({
       )
     case "ready":
       return (
-        <ViewMain reloadedAt={phase.reloadedAt} labels={labels}>
+        <ViewMain reloadedAt={phase.reloadedAt} labels={labels} fill={fill}>
           <ViewErrorBoundary>
             <View data={phase.data as never} />
           </ViewErrorBoundary>
@@ -119,22 +130,25 @@ function ViewWaiting({ labels }: { labels: KitLabels }) {
 }
 
 /**
- * Fullscreen, the view owns the viewport and scrolls itself; inline the host sizes the frame from
- * its height. Safe-area insets pad it on mobile hosts.
+ * Fullscreen, the view owns the viewport and scrolls itself, unless a page's frame lays it out
+ * (`fill` false: it takes its content's height under the frame's bar); inline the host sizes the
+ * frame from its height. Safe-area insets pad it on mobile hosts.
  */
 function ViewMain({
   reloadedAt,
   labels,
+  fill,
   children,
 }: {
   reloadedAt: number | null
   labels: KitLabels
+  fill: boolean
   children: ReactNode
 }) {
   const { safeArea } = useShellHost()
   const { displayMode, canFullscreen } = useDisplayModeControl()
   const style: CSSProperties = {
-    ...(displayMode === "fullscreen" ? { minHeight: "100vh", overflowY: "auto" } : null),
+    ...(fill && displayMode === "fullscreen" ? { minHeight: "100vh", overflowY: "auto" } : null),
     paddingTop: safeArea?.top,
     paddingRight: safeArea?.right,
     paddingBottom: safeArea?.bottom,

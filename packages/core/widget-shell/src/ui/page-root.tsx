@@ -1,9 +1,19 @@
 /**
  * The page root: one view on a plain page outside a chat (the web app), without ext-apps' `App`.
  * The page calls the view tool itself through the caller it hands in, and the view runs under the
- * same providers as in a chat, so every widget runs unchanged.
+ * same providers as in a chat, so every widget runs unchanged. A page may bring its own frame
+ * around the view (its bar, its notices), which renders under those providers too.
  */
-import { StrictMode, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import {
+  StrictMode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+  type ReactNode,
+} from "react"
 import { createRoot } from "react-dom/client"
 import { decodeToolResult } from "../protocol/tool-result.js"
 import { BrowserViewHost, type BrowserHostOptions } from "./browser-view-host.js"
@@ -14,13 +24,25 @@ import { useViewHost, type ViewHost } from "./view-host.js"
 import { rootElement, ViewProviders } from "./view-providers.js"
 import type { ViewComponent, ViewMap } from "./views.js"
 
+/** A page's own frame around its view: the view, if the page shows one, is its `children`. */
+export type PageFrame = ComponentType<{ children?: ReactNode }>
+
 export interface MountPageOptions extends BrowserHostOptions {
-  /** The view to show: its view tool's name, a key of the view map. */
-  view: string
+  /**
+   * The view to show: its view tool's name, a key of the view map. A page with a `frame` may show
+   * none: the frame then renders alone and nothing is called.
+   */
+  view?: string
   /** The view tool's arguments, as a chat's call would pass them. */
   args?: Record<string, unknown>
   /** Where the page mounts it; default: the document's `#root`, created where it has none. */
   container?: HTMLElement
+  /**
+   * The page's own chrome around the view (a bar above it, a notice under that), under the view's
+   * providers, so it reads the view's locale, theme, icon stroke and toasts. The frame lays out
+   * the page: the view takes its content's height instead of filling the viewport.
+   */
+  frame?: PageFrame
 }
 
 const NO_ARGS: Record<string, unknown> = {}
@@ -60,24 +82,45 @@ function usePageCall(name: string, args: Record<string, unknown>, enabled: boole
   return useMemo(() => ({ phase, retry }), [phase, retry])
 }
 
-interface PageRootProps {
+interface PageViewProps {
   name: string
   view: ViewComponent | undefined
   args: Record<string, unknown>
+  fill: boolean
+}
+
+function PageViewFrame({ name, view, args, fill }: PageViewProps) {
+  return <ViewFrame call={usePageCall(name, args, view !== undefined)} view={view} fill={fill} />
+}
+
+interface PageRootProps {
+  name: string | undefined
+  view: ViewComponent | undefined
+  args: Record<string, unknown>
+  frame: PageFrame | undefined
   host: BrowserHostOptions
 }
 
-function PageViewFrame({ name, view, args }: Omit<PageRootProps, "host">) {
-  return <ViewFrame call={usePageCall(name, args, view !== undefined)} view={view} />
+/** The view in the page's frame, or the frame alone; without a frame the view fills the page. */
+function PageBody({ name, view, args, frame: Frame }: Omit<PageRootProps, "host">) {
+  if (Frame === undefined) {
+    return <PageViewFrame name={name ?? ""} view={view} args={args} fill />
+  }
+  if (name === undefined) return <Frame />
+  return (
+    <Frame>
+      <PageViewFrame name={name} view={view} args={args} fill={false} />
+    </Frame>
+  )
 }
 
 /** The provider order is `ViewRoot`'s: the host first, then the providers every root shares. */
-function PageRoot({ name, view, args, host }: PageRootProps) {
+function PageRoot({ host, ...body }: PageRootProps) {
   return (
     <StrictMode>
       <BrowserViewHost options={host}>
         <ViewProviders>
-          <PageViewFrame name={name} view={view} args={args} />
+          <PageBody {...body} />
         </ViewProviders>
       </BrowserViewHost>
     </StrictMode>
@@ -85,16 +128,16 @@ function PageRoot({ name, view, args, host }: PageRootProps) {
 }
 
 /**
- * Mounts the view `options.view` names from `views` on a page outside a chat; an unknown name
- * renders the "can't show" state. Returns the unmount.
+ * Mounts the view `options.view` names from `views` on a page outside a chat, in the page's frame
+ * where it brings one; an unknown name renders the "can't show" state. Returns the unmount.
  */
 export function mountPage(views: ViewMap, options: MountPageOptions): () => void {
-  const { view: name, args = NO_ARGS, container, ...host } = options
-  const view = Object.hasOwn(views, name) ? views[name] : undefined
+  const { view: name, args = NO_ARGS, container, frame, ...host } = options
+  const view = name !== undefined && Object.hasOwn(views, name) ? views[name] : undefined
   const root = createRoot(container ?? rootElement())
   root.render(
     <ViewErrorBoundary>
-      <PageRoot name={name} view={view} args={args} host={host} />
+      <PageRoot name={name} view={view} args={args} frame={frame} host={host} />
     </ViewErrorBoundary>,
   )
   return () => root.unmount()

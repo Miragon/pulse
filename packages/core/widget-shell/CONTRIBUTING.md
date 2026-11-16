@@ -47,7 +47,9 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   `data-cd-theme` on `<html>` else the OS, the locale from the option, the document's `lang` or
   the browser, fullscreen as its one mode (so no switch and no inline budget), a model context
   that reaches nothing. It imports nothing of ext-apps, the page root calls the view tool itself
-  (`usePageCall`: once, again on Try again), and both roots share `ViewProviders`
+  (`usePageCall`: once, again on Try again) and renders a page's `frame` around the view under the
+  same providers (the view then fills no viewport: `ViewFrame`'s `fill`), and both roots share
+  `ViewProviders`
   (`src/ui/view-providers.tsx`), so the provider order is one. The view host's `followUp` says
   what a hand-off does: `chat` posts it (the ext-apps adapter; `TestViewHost` by default), and a
   page that posts to no chat says `copy`, where `AskAiButton` copies the prompt with a toast, or

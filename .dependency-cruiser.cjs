@@ -47,7 +47,8 @@
  * (`@miragon/pulse-blocks`, BLOCKS) are React on pulse-ui that only the surfaces rendering them
  * import. The apps under `apps/` sit ON TOP of
  * the packages: the MCP server (`@miragon/pulse-mcp-server`) composes the
- * connectors; of the interface apps, the CLI (apps/cli, `@miragon/pulse-cli`) imports no
+ * connectors, and the web app (apps/web, `@miragon/pulse-web`) shows their views on pages of the
+ * server (web-is-a-page); of the interface apps, the CLI (apps/cli, `@miragon/pulse-cli`) imports no
  * workspace package but the ones CLI_BUNDLES names, which tsdown inlines (its family core, with
  * the main entry of engine-core that core imports, the profile format for its config layer and
  * the transport for its http layer), and the two editor hosts, the VS Code extension
@@ -102,8 +103,25 @@ const SERVER_PACKAGE = "@miragon/pulse-mcp-server"
 const CLI_PACKAGE = "@miragon/pulse-cli"
 const EXTENSION_PACKAGE = "pulse-cockpit"
 const ORCA_PACKAGE = "@miragon/pulse-orca"
-const APP_PACKAGES = [SERVER_PACKAGE, CLI_PACKAGE, EXTENSION_PACKAGE, ORCA_PACKAGE]
+const WEB_PACKAGE = "@miragon/pulse-web"
+const APP_PACKAGES = [SERVER_PACKAGE, CLI_PACKAGE, EXTENSION_PACKAGE, ORCA_PACKAGE, WEB_PACKAGE]
 const APP_NAMES = APP_PACKAGES.map(escapeRegExp).join("|")
+
+/**
+ * The web app (apps/web, `@miragon/pulse-web`): the page a Pulse server serves under /app, the MCP
+ * views on a page of their own. What its src may import (web-is-a-page): its own modules, the
+ * rendering libraries, pulse-ui by its root and its stylesheet, the view runtime's view half and
+ * the engine module's views, each by its entry.
+ */
+const WEB_SRC = "^apps/web/src/"
+const WEB_IMPORTS = [
+  WEB_SRC,
+  ...npm("react|react-dom|lucide-react"),
+  "(?:^|/)node_modules/@miragon/pulse-ui/",
+  "^@miragon/pulse-ui(?:/theme[.]css)?$",
+  "^@miragon/pulse-widget-shell/widgets$",
+  "^@miragon/pulse-engine-connector/widgets$",
+]
 
 /** The root of a workspace package: an app, a foundation package or a family's package. */
 const PACKAGE_ROOT = "(?:apps/[^/]+|packages/core/[^/]+|packages/connectors/[^/]+/[^/]+)"
@@ -1407,6 +1425,23 @@ module.exports = {
         path: [FAMILY_CORE_TREE, ...npm(FAMILY_CORE)],
         pathNot: npm(escapeRegExp(ENGINE_CORE.name)),
       },
+    },
+    {
+      name: "web-is-a-page",
+      severity: "error",
+      comment:
+        "The web app (apps/web) is the page of the MCP views a Pulse server serves under /app: " +
+        "its src imports only its own modules, react, react-dom and lucide-react, " +
+        "@miragon/pulse-ui by its root and its stylesheet @miragon/pulse-ui/theme.css, the view " +
+        "runtime's view half @miragon/pulse-widget-shell/widgets (mountPage, the page's client of " +
+        "the web app's API) and the engine module's views @miragon/pulse-engine-connector/widgets. " +
+        "Nothing of a server (widget-shell's /server, a connector's root, the transport, zod, the " +
+        "MCP SDK), no MCP Apps runtime (the page is no chat), no ./testing entry, no Node " +
+        "built-in and no file of another package by path: the page reaches the engines through " +
+        "its server's call route alone. Its tests and the build's config (vite.config.ts) may " +
+        "import more.",
+      from: { path: WEB_SRC, pathNot: SRC_TEST_CODE },
+      to: { pathNot: WEB_IMPORTS },
     },
     {
       name: "cli-family-core-only-in-named-layers",

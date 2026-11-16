@@ -4,12 +4,13 @@ import reactHooks from "eslint-plugin-react-hooks"
 import globals from "globals"
 
 // The widget trees: every tree of React views an MCP host renders (the host bundle's src/ui,
-// widget-shell's view half, the connector's widgets, Pulse's building blocks). The first three are
-// excluded from their package's tsconfig.json and typed by the browser-only
-// tsconfig.widgets.json / tsconfig.ui.json projects instead (PROJECT_TYPED_WIDGET_TREES); the
-// building blocks (packages/core/blocks), which the VS Code webview renders too, are typed by their
-// package's own tsconfig.json. The date and number gates (invariant 6) hold all of them, and the
-// runtime view's core and webview too (their blocks below carry them in their unions).
+// widget-shell's view half, the connector's widgets, Pulse's building blocks) and the web app's
+// page, which renders them outside a chat (apps/web). The first three are excluded from their
+// package's tsconfig.json and typed by the browser-only tsconfig.widgets.json / tsconfig.ui.json
+// projects instead (PROJECT_TYPED_WIDGET_TREES); the building blocks (packages/core/blocks), which
+// the VS Code webview renders too, and the web app are typed by their package's own tsconfig.json.
+// The date and number gates (invariant 6) hold all of them, and the runtime view's core and
+// webview too (their blocks below carry them in their unions).
 const CONNECTOR_WIDGETS = ["packages/connectors/engine/engine-connector/src/widgets/**/*.{ts,tsx}"]
 const PROJECT_TYPED_WIDGET_TREES = [
   "apps/mcp-server/src/ui/**/*.{ts,tsx}",
@@ -17,7 +18,8 @@ const PROJECT_TYPED_WIDGET_TREES = [
   ...CONNECTOR_WIDGETS,
 ]
 const BLOCKS_SRC = "packages/core/blocks/src/**/*.{ts,tsx}"
-const WIDGET_TREES = [...PROJECT_TYPED_WIDGET_TREES, BLOCKS_SRC]
+const WEB_SRC = "apps/web/src/**/*.{ts,tsx}"
+const WIDGET_TREES = [...PROJECT_TYPED_WIDGET_TREES, BLOCKS_SRC, WEB_SRC]
 
 // Server tests (and the Playwright host simulation) live outside src/ (not
 // part of the build tsconfig) and get their type information from the
@@ -31,6 +33,8 @@ export const DEFAULT_PROJECT_FILES = [
   "vitest.shared.ts",
   "apps/mcp-server/vite.config.ts",
   "apps/mcp-server/vitest.config.ts",
+  "apps/web/vite.config.ts",
+  "apps/web/vitest.config.ts",
   "packages/connectors/c7/c7-client/vitest.config.ts",
   "packages/connectors/c7/c7-client/openapi-ts.config.ts",
   "packages/connectors/c7/c7-core/vitest.config.ts",
@@ -543,7 +547,11 @@ export default tseslint.config(
 
   // React hooks for all UI/widget code
   {
-    files: ["apps/mcp-server/src/**/*.{ts,tsx}", "packages/**/src/**/*.{ts,tsx}"],
+    files: [
+      "apps/mcp-server/src/**/*.{ts,tsx}",
+      "apps/web/{src,test}/**/*.{ts,tsx}",
+      "packages/**/src/**/*.{ts,tsx}",
+    ],
     plugins: { "react-hooks": reactHooks },
     rules: reactHooks.configs["recommended-latest"].rules,
   },
@@ -618,12 +626,14 @@ export default tseslint.config(
     rules: { "no-restricted-syntax": ["error", ...widgetNumberGateForFormatters] },
   },
   // Invariant 6, imports: no MCP Apps runtime (`@modelcontextprotocol/ext-apps` but its
-  // `/server`) in any MCP source or test but widget-shell's host adapter. Its own rule
-  // (`no-restricted-imports` is ONE rule too: a glob two import gates share gets their union), so
-  // it never collides with the no-restricted-syntax unions above.
+  // `/server`) in any MCP source or test but widget-shell's host adapter, nor in the web app's
+  // page, which is no chat. Its own rule (`no-restricted-imports` is ONE rule too: a glob two
+  // import gates share gets their union), so it never collides with the no-restricted-syntax
+  // unions above.
   {
     files: [
       "apps/mcp-server/{src,test,test-host}/**/*.{ts,tsx}",
+      "apps/web/{src,test}/**/*.{ts,tsx}",
       "packages/core/ui/src/**/*.{ts,tsx}",
       "packages/core/widget-shell/src/**/*.{ts,tsx}",
       "packages/connectors/*/*/src/**/*.{ts,tsx}",
