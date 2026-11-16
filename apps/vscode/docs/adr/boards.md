@@ -1,7 +1,7 @@
 # Boards
 
 - Status: accepted
-- Last reviewed: 2026-11-15 (a broken widget is refused in its place instead of the whole board, an unknown root key is a note, problems and notes are data with codes, the version rule, `tenants`, and a widget of ended instances with incident is refused; before that the same day, the format moved out of the runtime view into the published package `@miragon/pulse-board`, with its JSON Schema, shared fixtures and one starter board for both editors; the builder followed into its `./builder` entry, and the runtime view renders its model); 2026-11-14 (the counter and the incident summary read "with incident" one way, c7-core's runtime rule); 2026-11-12 (boards are the first feature of D2; the format and the builder move to a new published package); 2026-11-09 (the project file is read with `@miragon/pulse-profile`; before that 2026-11-04, the CLI's rules)
+- Last reviewed: 2026-11-16 (the webview gets a board in its JSON form, `BoardJson.of`, plus the targets, the diagram's XML and the problems' words; it words titles, short ids and states, and its cards take props and callbacks only); 2026-11-15 (a broken widget is refused in its place instead of the whole board, an unknown root key is a note, problems and notes are data with codes, the version rule, `tenants`, and a widget of ended instances with incident is refused; before that the same day, the format moved out of the runtime view into the published package `@miragon/pulse-board`, with its JSON Schema, shared fixtures and one starter board for both editors; the builder followed into its `./builder` entry, and the runtime view renders its model); 2026-11-14 (the counter and the incident summary read "with incident" one way, c7-core's runtime rule); 2026-11-12 (boards are the first feature of D2; the format and the builder move to a new published package); 2026-11-09 (the project file is read with `@miragon/pulse-profile`; before that 2026-11-04, the CLI's rules)
 
 ## Context
 
@@ -92,11 +92,14 @@ The numbers come from one builder over one read (D2): `BoardBuilder` of
 contract (`BoardReads`: `describeEngine`, `listDefinitions`, `countInstances`, `searchInstances`,
 `getDiagramXml`, `getElementStatistics`, `searchIncidents`) and returns a `BoardModel` of no text,
 formatting, diagram or navigation: per engine ready, failed with its error or not configured, per
-tile the widget and its numbers from the contract's read models. The runtime view renders it
-(`BoardViews` in `packages/core/runtime-view/src/core/boards`: titles, short ids, state words, an
-engine's problem, the targets a click opens and the diagram to draw), over a `BoardRuntime` per
-engine and load that reads the definitions through the panel's `SharedDefinitions` and the
-diagram once for the builder and the drawing.
+tile the widget and its numbers from the contract's read models. The runtime view hands it to the
+webview in the board's JSON form, `BoardData` of `@miragon/pulse-board`, which `BoardJson.of`
+serializes for every surface (`BoardViews` in `packages/core/runtime-view/src/core/boards`; the
+protocol keeps a copy of its tiles, held equal to the format's), with what only the editors add:
+an engine's problem, the targets a click opens, the diagram's XML and each problem's words. The
+webview words a tile's title (the widget's, else one from its filter or kind), short ids and state
+words. It reads over a `BoardRuntime` per engine and load that reads the definitions through the
+panel's `SharedDefinitions` and the diagram once for the builder and the drawing.
 `BoardPanel` publishes only `ready` states, so `PanelState` and `ViewSession` stay
 single-engine. Per engine the builder probes `describeEngine` first and reads nothing else from an
 engine that fails it; it reads each distinct question once per engine and load. Honest
@@ -120,9 +123,11 @@ The intents `openBoardInstance`, `openBoardProcess`, `openBoardEngine`, `setBoar
 and `openBoardFile` carry engine names and ids; `BoardTargets` opens only what the shown view
 lists, on the engine it came from, through the host's `BoardNavigation`
 (`apps/vscode/src/host/boards/board-panels.ts`), which reuses the panel manager's existing
-panels. The **Boards** view lists the files (shown only when there are any), a watcher reloads
-an open board on save, and **Pulse: New Board…** writes the format's starter board
-(`StarterBoard.of(title, engines)`), the one Pulse for Orca writes too.
+panels. The webview's board cards take their tile and callbacks only, with no host context, and
+the board screen turns a callback into its intent. The **Boards** view lists the files (shown
+only when there are any), a watcher reloads an open board on save, and **Pulse: New Board…**
+writes the format's starter board (`StarterBoard.of(title, engines)`), the one Pulse for Orca
+writes too.
 
 ## Consequences
 
@@ -157,6 +162,7 @@ an open board on save, and **Pulse: New Board…** writes the format's starter b
 | Diagram scope    | One engine, latest version                                 | Deployments and versions differ between engines  |
 | Schema home      | The format's package, a copy held equal in the extension   | A build copy is missing after a turbo cache hit  |
 | Builder home     | `@miragon/pulse-board/builder`, a model of no text         | D2: every surface, one builder over one read     |
+| Tile data        | The JSON form `BoardJson.of` gives, copied in the protocol | One form for every surface, words in the webview |
 | A broken widget  | Refused in its place; an unknown root key is a note        | One typo no longer hides every number            |
 | Version rule     | A root key that changes what a widget reads is a version   | An older reader never reads a newer file wrong   |
 | Ended, incident  | Refused in its place                                       | It could only ever read 0                        |

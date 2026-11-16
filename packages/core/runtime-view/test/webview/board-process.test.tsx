@@ -65,6 +65,23 @@ describe("the process widgets of a board", () => {
     ])
   })
 
+  it("counts the running instances and the incidents of each element on the diagram", async () => {
+    harness = mountApp()
+    harness.publish(ready(PROCESS_BOARD_VIEW))
+    const cluster = (elementId: string) =>
+      waitForElement<HTMLElement>(
+        harness.root,
+        `${part("board-card", { kind: "processDiagram" })} [data-badge-for="${elementId}"]`,
+      )
+    const counts = (badges: HTMLElement) =>
+      allParts(badges, "count-badge").map(
+        (badge) => `${badge.dataset.variant ?? ""} ${badge.textContent.trim()}`,
+      )
+
+    expect(counts(await cluster("Activity_CheckCredit"))).toEqual(["running 4"])
+    expect(counts(await cluster("Activity_ShipOrder"))).toEqual(["incident 3", "running 6"])
+  })
+
   it("opens the process at a clicked element only where the diagram counts something", async () => {
     harness = mountApp()
     harness.publish(ready(PROCESS_BOARD_VIEW))
@@ -102,9 +119,13 @@ describe("the process widgets of a board", () => {
         [
           {
             kind: "processDiagram",
-            title: "Unread",
+            widget: {
+              widget: "processDiagram",
+              title: "Unread",
+              engines: ["prod-eu"],
+              process: "order-fulfillment",
+            },
             engine: "prod-eu",
-            bpmnProcessId: "order-fulfillment",
           },
         ],
         ...PROCESS_BOARD_VIEW.rows,
@@ -159,8 +180,8 @@ describe("the process widgets of a board", () => {
         [
           {
             kind: "incidentList",
-            title: "Calm",
-            groups: [{ engine: "local", rows: [] }],
+            widget: { widget: "incidentList", title: "Calm", engines: ["local"] },
+            groups: [{ engine: "local", incidents: [] }],
           },
         ],
       ],
@@ -181,8 +202,8 @@ describe("the process widgets of a board", () => {
         [
           {
             kind: "incidentList",
-            title: "Unread",
-            groups: [{ engine: "local", rows: [], unavailable: true }],
+            widget: { widget: "incidentList", title: "Unread", engines: ["local"] },
+            groups: [{ engine: "local" }],
           },
         ],
       ],

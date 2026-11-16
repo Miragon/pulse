@@ -11,8 +11,8 @@ fake (`./testing`), which its layers and the hosts import directly (owner decisi
 | Layer    | Path                | Entry                                               | Holds                                                                                                                                                                                                 |
 | -------- | ------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | ports    | `src/ports`         | `@miragon/pulse-runtime-view/ports`                 | the ports only the editor hosts need: `EngineAdapter` with the `BpmnDialect` an adapter brings, the local model and its code                                                                          |
-| core     | `src/core`          | `@miragon/pulse-runtime-view/core`                  | panels, boards (the board format and builder of `@miragon/pulse-board`, rendered by `BoardViews`), refresh loops, view models                                                                         |
-| protocol | `src/core/protocol` | `@miragon/pulse-runtime-view/protocol`              | the JSON messages and view models between a host and the webview                                                                                                                                      |
+| core     | `src/core`          | `@miragon/pulse-runtime-view/core`                  | panels, boards (the board format and builder of `@miragon/pulse-board`, serialized by `BoardViews` with `BoardJson.of`), refresh loops, view models                                                   |
+| protocol | `src/core/protocol` | `@miragon/pulse-runtime-view/protocol`              | the JSON messages and view models between a host and the webview, a board's tiles in the board's JSON form                                                                                            |
 | model    | `src/model`         | `@miragon/pulse-runtime-view/model`                 | the local `.bpmn` reader and the code locator, behind the local ports                                                                                                                                 |
 | webview  | `src/webview`       | `@miragon/pulse-runtime-view/webview-build-options` | the webview, React on pulse-ui, each host bundles into its frames                                                                                                                                     |
 | host kit | `src/host-kit`      | `@miragon/pulse-runtime-view/host-kit`              | the rules every editor host shares: `EngineRoot` (the adapters per dialect, the local target, the dialects), targets from `.pulse.json` and the CLI's user config, write and live policies, the audit |
@@ -23,9 +23,13 @@ the ports, the core, the model reader and the host kit import engine-core's main
 and the webview Pulse's UI foundation (`@miragon/pulse-ui/tones`, `@miragon/pulse-ui/format`), the
 webview also pulse-ui's React kit and its `theme.css`, the host kit's
 connections the profile format (`@miragon/pulse-profile`), the core the board format
-(`@miragon/pulse-board`, its main entry; the protocol keeps its own board types) and its builder
-(`@miragon/pulse-board/builder`: a board's numbers, which `BoardViews` renders, and the roll-up onto
-collapsed sub-processes the definition and instance views draw too), and no layer a dialect's core.
+(`@miragon/pulse-board`, its main entry; the protocol keeps a copy of the tiles of a board's JSON
+form, `BoardData`, which `test/core/board-format.test.ts` holds equal to the format's) and its
+builder (`@miragon/pulse-board/builder`: a board's numbers, which `BoardViews` serializes with
+`BoardJson.of` and hands the webview with what only the editors add, the targets a click opens,
+the diagram's XML and each problem's words, and the roll-up onto collapsed sub-processes the
+definition and instance views draw too), and no layer a dialect's core. The webview words a
+board's titles, short ids and states, and its board cards take their tile and callbacks only.
 That edge of `packages/core` into the engine family is the one the owner accepted
 (`runtime-view-builds-on-the-engine-contract` in the repository's `.dependency-cruiser.cjs`).
 The hosts read the types from the build (`dist`, declarations only) and bundle the sources.

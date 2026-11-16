@@ -1,8 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import type {
+  BoardTarget,
   BoardView,
-  CounterEntry,
+  CounterReadingData,
   CounterTile,
+  IncidentSummaryRowData,
+  IncidentSummaryTile,
+  InstanceData,
+  InstanceListTile,
   PanelState,
 } from "../../src/core/protocol/index.js"
 import {
@@ -28,6 +33,49 @@ import {
 
 function ready(view: BoardView, refreshing = false): PanelState {
   return { status: "ready", view, refreshing }
+}
+
+const ORDER = {
+  id: "order-fulfillment:3",
+  bpmnProcessId: "order-fulfillment",
+  version: 3,
+  name: "Order fulfillment",
+} as const
+
+function counterTile(
+  title: string,
+  tile: Pick<CounterTile, "readings" | "known" | "total">,
+  { warnAbove, withIncident }: { readonly warnAbove: number; readonly withIncident?: true },
+): CounterTile {
+  const filter = {
+    state: "running" as const,
+    ...(withIncident === undefined ? {} : { withIncident }),
+  }
+  return {
+    kind: "counter",
+    widget: { widget: "counter", title, engines: ["local"], filter, warnAbove },
+    targets: [],
+    ...tile,
+  }
+}
+
+const SHIPMENT = { id: "shipment:2", bpmnProcessId: "shipment", version: 2 } as const
+
+function summaryTile(
+  title: string,
+  groupBy: IncidentSummaryTile["widget"]["groupBy"],
+  rows: readonly IncidentSummaryRowData[],
+  targets: readonly BoardTarget[],
+): IncidentSummaryTile {
+  return {
+    kind: "incidentSummary",
+    widget: { widget: "incidentSummary", title, engines: ["local", "shop-test"], groupBy },
+    engines: 2,
+    known: 2,
+    total: rows.reduce((sum, row) => sum + (row.withIncident ?? 0), 0),
+    rows,
+    targets,
+  }
 }
 
 function card(root: HTMLElement, title: string): HTMLElement {
@@ -178,7 +226,9 @@ describe("a board", () => {
   it("names the threshold without a warning while every engine stays below it", async () => {
     const calm = {
       ...BOARD_VIEW,
-      rows: [[{ kind: "counter", title: "Calm", total: 3, known: 1, warnAbove: 5, entries: [] }]],
+      rows: [
+        [counterTile("Calm", { readings: [], known: 1, total: { count: 3 } }, { warnAbove: 5 })],
+      ],
     } satisfies BoardView
     harness = mountApp()
     harness.publish(ready(calm))
@@ -189,18 +239,18 @@ describe("a board", () => {
   })
 
   it("warns in the warning style when an engine stopped counting at or below the threshold", async () => {
-    const tile = {
-      kind: "counter",
-      title: "Running",
-      total: 10002,
-      totalAtLeast: true,
-      known: 2,
-      warnAbove: 20000,
-      entries: [
-        { engine: "capped", count: 10000, atLeast: true, undecided: true },
-        { engine: "local", count: 2 },
-      ],
-    } as const
+    const tile = counterTile(
+      "Running",
+      {
+        readings: [
+          { engine: "capped", count: { count: 10000, atLeast: true }, undecided: true },
+          { engine: "local", count: { count: 2 } },
+        ],
+        known: 2,
+        total: { count: 10002, atLeast: true },
+      },
+      { warnAbove: 20000 },
+    )
     harness = mountApp()
     harness.publish(ready({ ...BOARD_VIEW, rows: [[tile]] }))
     const counter = await findPart(harness.root, "board-card", { kind: "counter" })
@@ -215,19 +265,27 @@ describe("a board", () => {
   })
 
   it("names the engines that stopped counting next to the engines above the threshold", async () => {
-    const capped = { engine: "capped", count: 10000, atLeast: true, undecided: true } as const
+    const capped = {
+      engine: "capped",
+      count: { count: 10000, atLeast: true },
+      undecided: true,
+    } as const
     const search = { ...capped, engine: "search" } as const
-    const local = { engine: "local", count: 25000, above: true } as const
+    const local = { engine: "local", count: { count: 25000 }, above: true } as const
     const shop = { ...local, engine: "shop-test" } as const
-    const counter = (entries: readonly CounterEntry[]): CounterTile => ({
-      kind: "counter",
-      title: "Running",
-      total: entries.reduce((sum, entry) => sum + (entry.count ?? 0), 0),
-      totalAtLeast: true,
-      known: entries.length,
-      warnAbove: 20000,
-      entries,
-    })
+    const running = (readings: readonly CounterReadingData[]): CounterTile =>
+      counterTile(
+        "Running",
+        {
+          readings,
+          known: readings.length,
+          total: {
+            count: readings.reduce((sum, reading) => sum + (reading.count?.count ?? 0), 0),
+            atLeast: true,
+          },
+        },
+        { warnAbove: 20000 },
+      )
     const tiles = [
       [capped, search],
       [capped, local],
@@ -235,7 +293,7 @@ describe("a board", () => {
       [capped, local, shop],
     ]
     harness = mountApp()
-    harness.publish(ready({ ...BOARD_VIEW, rows: [tiles.map(counter)] }))
+    harness.publish(ready({ ...BOARD_VIEW, rows: [tiles.map(running)] }))
     await findPart(harness.root, "board-card", { kind: "counter" })
 
     const lines = [
@@ -276,6 +334,145 @@ describe("a board", () => {
     ])
   })
 
+  it("opens the process of the summary row clicked when processes share an engine", async () => {
+    const withIncident = { scope: "withIncident" } as const
+    const shared = {
+      ...BOARD_VIEW,
+      rows: [
+        [
+          summaryTile(
+            "Shared engine",
+            "process",
+            [
+              { engine: "local", process: ORDER, withIncident: 5 },
+              { engine: "local", process: SHIPMENT, withIncident: 2 },
+            ],
+            [
+              { engine: "local", bpmnProcessId: "order-fulfillment", filter: withIncident },
+              { engine: "local", bpmnProcessId: "shipment", filter: withIncident },
+            ],
+          ),
+        ],
+      ],
+    } satisfies BoardView
+    harness = mountApp()
+    harness.publish(ready(shared))
+    await findPart(harness.root, "board-card", { kind: "incidentSummary" })
+    const list = getRole(card(harness.root, "Shared engine"), "list", { name: "Per process" })
+
+    allRoles(list, "button")[1]?.click()
+
+    expect(harness.posted).toEqual([
+      {
+        type: "openBoardProcess",
+        engine: "local",
+        bpmnProcessId: "shipment",
+        filter: withIncident,
+        toSide: false,
+      },
+    ])
+  })
+
+  it("names each engine of a summary per engine and opens the engine of the row clicked", async () => {
+    const perEngine = {
+      ...BOARD_VIEW,
+      rows: [
+        [
+          summaryTile(
+            "Incidents per engine",
+            "engine",
+            [
+              { engine: "local", withIncident: 7 },
+              { engine: "shop-test", withIncident: 1 },
+            ],
+            ["local", "shop-test"].map((engine) => ({ engine, filter: { scope: "withIncident" } })),
+          ),
+        ],
+      ],
+    } satisfies BoardView
+    harness = mountApp()
+    harness.publish(ready(perEngine))
+    await findPart(harness.root, "board-card", { kind: "incidentSummary" })
+    const list = getRole(card(harness.root, "Incidents per engine"), "list", { name: "Per engine" })
+
+    expect(itemTexts(list)).toEqual(["local7with incident", "shop-test1with incident"])
+    allRoles(list, "button")[1]?.click()
+    expect(harness.posted).toEqual([
+      { type: "openBoardEngine", engine: "shop-test", toSide: false },
+    ])
+  })
+
+  it("names a process without a name by its BPMN id in a list, an incident list and a summary", async () => {
+    const local = ["local"]
+    const unnamed = {
+      ...BOARD_VIEW,
+      rows: [
+        [
+          {
+            kind: "instanceList",
+            widget: {
+              widget: "instanceList",
+              title: "Shipments",
+              engines: local,
+              filter: { state: "running" },
+              columns: ["process"],
+            },
+            groups: [
+              {
+                engine: "local",
+                instances: [
+                  { id: "s-1", definition: SHIPMENT, state: "running", hasIncident: true },
+                ],
+              },
+            ],
+          },
+          {
+            kind: "incidentList",
+            widget: { widget: "incidentList", title: "Shipment incidents", engines: local },
+            groups: [
+              {
+                engine: "local",
+                incidents: [
+                  {
+                    id: "i-1",
+                    instanceId: "s-1",
+                    definition: SHIPMENT,
+                    elementId: "Task_Ship",
+                    type: "failedJob",
+                    message: "Carrier API answered 503",
+                    createdAt: "2026-10-26T08:00:00.000Z",
+                  },
+                ],
+              },
+            ],
+          },
+          summaryTile(
+            "Shipments with incident",
+            "process",
+            [
+              { engine: "local", process: ORDER, withIncident: 5 },
+              { engine: "local", process: SHIPMENT, withIncident: 1 },
+            ],
+            [],
+          ),
+        ],
+      ],
+    } satisfies BoardView
+    harness = mountApp()
+    harness.publish(ready(unnamed))
+    await waitForElement(harness.root, `${part("board-card", { kind: "incidentList" })} tbody tr`)
+
+    expect(texts(card(harness.root, "Shipments"), "tbody td")).toEqual(["shipment"])
+    expect(texts(card(harness.root, "Shipment incidents"), "tbody tr td:first-child")).toEqual([
+      "shipment",
+    ])
+    expect(
+      itemTexts(
+        getRole(card(harness.root, "Shipments with incident"), "list", { name: "Per process" }),
+      ),
+    ).toEqual(["Order fulfillmentlocal5with incident", "shipmentlocal1with incident"])
+  })
+
   it("says why an incident summary is empty", async () => {
     const empty = {
       ...BOARD_VIEW,
@@ -283,20 +480,30 @@ describe("a board", () => {
         [
           {
             kind: "incidentSummary",
-            title: "None",
-            groupBy: "engine",
-            known: 0,
+            widget: {
+              widget: "incidentSummary",
+              title: "None",
+              engines: ["local"],
+              groupBy: "engine",
+            },
             engines: 1,
+            known: 0,
             rows: [],
+            targets: [],
           },
           {
             kind: "incidentSummary",
-            title: "Calm",
-            groupBy: "engine",
-            total: 0,
-            known: 1,
+            widget: {
+              widget: "incidentSummary",
+              title: "Calm",
+              engines: ["local"],
+              groupBy: "engine",
+            },
             engines: 1,
+            known: 1,
+            total: 0,
             rows: [],
+            targets: [],
           },
         ],
       ],
@@ -337,13 +544,9 @@ describe("a board", () => {
 
   it("renders every column a board file may name", async () => {
     const row = {
-      engine: "local",
       id: "81a2e0b4-3c1d-11ef-9a3e-0242ac120002",
-      shortId: "81a2e0b4…",
-      processName: "Order fulfillment",
-      bpmnProcessId: "order-fulfillment",
-      version: 3,
-      state: "Completed",
+      definition: ORDER,
+      state: "completed",
       hasIncident: false,
       endedAt: "2026-10-26T08:00:00.000Z",
     } as const
@@ -353,9 +556,14 @@ describe("a board", () => {
         [
           {
             kind: "instanceList",
-            title: "Ended orders",
-            columns: ["process", "state", "endedAt", "businessKey"],
-            groups: [{ engine: "local", rows: [row] }],
+            widget: {
+              widget: "instanceList",
+              title: "Ended orders",
+              engines: ["local"],
+              filter: { state: "ended" },
+              columns: ["process", "state", "endedAt", "businessKey"],
+            },
+            groups: [{ engine: "local", instances: [row] }],
           },
         ],
       ],
@@ -374,27 +582,28 @@ describe("a board", () => {
   })
 
   it("says of a list's total that an engine stopped counting there", async () => {
-    const row = {
-      engine: "capped",
+    const row: InstanceData = {
       id: "81a2e0b4-3c1d-11ef-9a3e-0242ac120002",
-      shortId: "81a2e0b4…",
-      processName: "Order fulfillment",
-      bpmnProcessId: "order-fulfillment",
-      version: 3,
-      state: "Running",
+      definition: ORDER,
+      state: "running",
       hasIncident: false,
-    } as const
+    }
     const capped = {
       ...BOARD_VIEW,
       rows: [
         [
           {
             kind: "instanceList",
-            title: "Running orders",
-            columns: ["engine", "process"],
+            widget: {
+              widget: "instanceList",
+              title: "Running orders",
+              engines: ["capped", "local"],
+              filter: { state: "running" },
+              columns: ["engine", "process"],
+            },
             groups: [
-              { engine: "capped", total: 10000, totalAtLeast: true, rows: [row] },
-              { engine: "local", total: 1, rows: [{ ...row, engine: "local" }] },
+              { engine: "capped", total: { count: 10000, atLeast: true }, instances: [row] },
+              { engine: "local", total: { count: 1 }, instances: [row] },
             ],
           },
         ],
@@ -496,18 +705,18 @@ describe("a board", () => {
   })
 
   it("names several engines above the threshold and marks a count of incidents in words", async () => {
-    const tile = {
-      kind: "counter",
-      title: "Orders with incident",
-      total: 7,
-      known: 2,
-      warnAbove: 1,
-      incident: true,
-      entries: [
-        { engine: "local", count: 4, above: true },
-        { engine: "shop-test", count: 3, above: true },
-      ],
-    } as const
+    const tile = counterTile(
+      "Orders with incident",
+      {
+        readings: [
+          { engine: "local", count: { count: 4 }, above: true },
+          { engine: "shop-test", count: { count: 3 }, above: true },
+        ],
+        known: 2,
+        total: { count: 7 },
+      },
+      { warnAbove: 1, withIncident: true },
+    )
     harness = mountApp()
     harness.publish(ready({ ...BOARD_VIEW, rows: [[tile]] }))
     const counter = await findPart(harness.root, "board-card", { kind: "counter" })
@@ -523,6 +732,122 @@ describe("a board", () => {
     expect(figure?.querySelector("svg")).not.toBeNull()
     expect(getComputedStyle(value).color).toBe(getComputedStyle(counter).color)
     expect(counter.querySelector("button")).toBeNull()
+  })
+
+  it("names a widget without a title by its filter, its process or its kind", async () => {
+    const local = ["local"]
+    const untitled = {
+      ...BOARD_VIEW,
+      rows: [
+        [
+          {
+            kind: "counter",
+            widget: {
+              widget: "counter",
+              engines: local,
+              filter: {
+                state: "running",
+                process: "order",
+                activeElement: "Task_Pay",
+                withIncident: true,
+                businessKey: "B-1",
+              },
+            },
+            readings: [],
+            known: 0,
+            targets: [],
+          },
+          {
+            kind: "instanceList",
+            widget: {
+              widget: "instanceList",
+              engines: local,
+              filter: { state: "ended", withIncident: false },
+              columns: ["state"],
+            },
+            groups: [],
+          },
+          {
+            kind: "incidentSummary",
+            widget: { widget: "incidentSummary", engines: local, groupBy: "engine" },
+            engines: 1,
+            known: 0,
+            rows: [],
+            targets: [],
+          },
+        ],
+        [
+          {
+            kind: "processDiagram",
+            widget: { widget: "processDiagram", engines: local, process: "order" },
+            engine: "local",
+            latest: ORDER,
+          },
+          {
+            kind: "processDiagram",
+            widget: { widget: "processDiagram", engines: local, process: "invoice" },
+            engine: "local",
+            notDeployed: true,
+          },
+          {
+            kind: "incidentList",
+            widget: { widget: "incidentList", engines: local, process: "order" },
+            groups: [],
+          },
+          { kind: "incidentList", widget: { widget: "incidentList", engines: local }, groups: [] },
+          { kind: "refused", widget: "chart", problems: [] },
+          { kind: "refused", problems: [] },
+        ],
+      ],
+    } satisfies BoardView
+    harness = mountApp()
+    harness.publish(ready(untitled))
+    await findPart(harness.root, "board-card", { kind: "refused" })
+
+    expect(
+      allParts(harness.root, "board-card").map(
+        (board) => getRole(board, "heading", { level: 2 }).textContent,
+      ),
+    ).toEqual([
+      "Running instances with incident of order at Task_Pay with key B-1",
+      "Ended instances without incident",
+      "Instances with incident",
+      "Order fulfillment",
+      "invoice",
+      "Open incidents of order",
+      "Open incidents",
+      'Widget "chart"',
+      "Widget",
+    ])
+  })
+
+  it("adds the engine column to a list over several engines unless the file names it", async () => {
+    const list = (engines: readonly string[], columns: InstanceListTile["widget"]["columns"]) =>
+      ({
+        kind: "instanceList",
+        widget: {
+          widget: "instanceList",
+          title: `${engines.join(", ")}: ${columns.join(", ")}`,
+          engines,
+          filter: { state: "running" },
+          columns,
+        },
+        groups: engines.map((engine) => ({ engine, instances: [] })),
+      }) satisfies InstanceListTile
+    const lists = [
+      list(["local", "shop-test"], ["process"]),
+      list(["local", "shop-test"], ["process", "engine"]),
+      list(["local"], ["process"]),
+    ]
+    harness = mountApp()
+    harness.publish(ready({ ...BOARD_VIEW, rows: [lists] }))
+    await findPart(harness.root, "board-card", { kind: "instanceList" })
+
+    expect(lists.map((tile) => texts(card(harness.root, tile.widget.title), "th"))).toEqual([
+      ["Engine", "Process"],
+      ["Process", "Engine"],
+      ["Process"],
+    ])
   })
 
   it("keeps the board on screen while it reads again", async () => {

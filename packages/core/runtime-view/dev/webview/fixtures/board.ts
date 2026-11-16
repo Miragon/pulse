@@ -1,22 +1,34 @@
-import type { BoardView } from "../../../src/core/protocol/index.js"
+import type { BoardTarget, BoardView, InstanceData } from "../../../src/core/protocol/index.js"
 import { AS_OF, LOCAL_ENGINE, minutesBefore, PROD_ENGINE } from "./engines.js"
 
 const TEST_ENGINE = { name: "shop-test", environment: "test", host: "localhost:18091" } as const
+const ENGINES = ["local", "shop-test", "prod-eu"]
+const WAITING_FOR_PAYMENT = {
+  process: "order-fulfillment",
+  activeElement: "Activity_AwaitPayment",
+  state: "running",
+} as const
 const RUNNING_ORDERS = { scope: "running", elementId: "Activity_AwaitPayment" } as const
+const ORDER_FULFILLMENT = {
+  id: "order-fulfillment:3",
+  bpmnProcessId: "order-fulfillment",
+  version: 3,
+  name: "Order fulfillment",
+} as const
 
-function order(engine: string, id: string, businessKey: string, minutes: number) {
+function target(engine: string, filter: BoardTarget["filter"]): BoardTarget {
+  return { engine, bpmnProcessId: "order-fulfillment", filter }
+}
+
+function order(id: string, businessKey: string, minutes: number): InstanceData {
   return {
-    engine,
     id,
-    shortId: `${id.slice(0, 8)}…`,
-    processName: "Order fulfillment",
-    bpmnProcessId: "order-fulfillment",
-    version: 3,
-    state: "Running",
+    definition: ORDER_FULFILLMENT,
+    state: "running",
     hasIncident: businessKey === "ORD-10007",
     businessKey,
     startedAt: minutesBefore(minutes),
-  } as const
+  }
 }
 
 export const BOARD_VIEW: BoardView = {
@@ -58,87 +70,65 @@ export const BOARD_VIEW: BoardView = {
     [
       {
         kind: "counter",
-        title: "Waiting for payment",
-        total: 12,
-        known: 2,
-        warnAbove: 5,
-        entries: [
-          {
-            engine: "local",
-            count: 10,
-            above: true,
-            target: { engine: "local", bpmnProcessId: "order-fulfillment", filter: RUNNING_ORDERS },
-          },
-          {
-            engine: "shop-test",
-            count: 2,
-            target: {
-              engine: "shop-test",
-              bpmnProcessId: "order-fulfillment",
-              filter: RUNNING_ORDERS,
-            },
-          },
-          {
-            engine: "prod-eu",
-            target: {
-              engine: "prod-eu",
-              bpmnProcessId: "order-fulfillment",
-              filter: RUNNING_ORDERS,
-            },
-          },
+        widget: {
+          widget: "counter",
+          title: "Waiting for payment",
+          engines: ENGINES,
+          filter: WAITING_FOR_PAYMENT,
+          warnAbove: 5,
+        },
+        readings: [
+          { engine: "local", count: { count: 10 }, above: true },
+          { engine: "shop-test", count: { count: 2 } },
+          { engine: "prod-eu" },
         ],
+        known: 2,
+        total: { count: 12 },
+        targets: ENGINES.map((engine) => target(engine, RUNNING_ORDERS)),
       },
       {
         kind: "incidentSummary",
-        title: "With incident per process",
-        groupBy: "process",
-        total: 14,
-        known: 2,
+        widget: {
+          widget: "incidentSummary",
+          title: "With incident per process",
+          engines: ENGINES,
+          groupBy: "process",
+        },
         engines: 3,
+        known: 2,
+        total: 14,
         rows: [
-          {
-            engine: "local",
-            label: "Order fulfillment",
-            withIncident: 10,
-            target: {
-              engine: "local",
-              bpmnProcessId: "order-fulfillment",
-              filter: { scope: "withIncident" },
-            },
-          },
-          {
-            engine: "shop-test",
-            label: "Order fulfillment",
-            withIncident: 1,
-            target: {
-              engine: "shop-test",
-              bpmnProcessId: "order-fulfillment",
-              filter: { scope: "withIncident" },
-            },
-          },
+          { engine: "local", process: ORDER_FULFILLMENT, withIncident: 10 },
+          { engine: "shop-test", process: ORDER_FULFILLMENT, withIncident: 1 },
         ],
+        targets: ["local", "shop-test"].map((engine) => target(engine, { scope: "withIncident" })),
       },
     ],
     [
       {
         kind: "instanceList",
-        title: "Orders waiting for payment",
-        columns: ["engine", "businessKey", "version", "startedAt", "incident"],
+        widget: {
+          widget: "instanceList",
+          title: "Orders waiting for payment",
+          engines: ENGINES,
+          filter: WAITING_FOR_PAYMENT,
+          columns: ["engine", "businessKey", "version", "startedAt", "incident"],
+        },
         groups: [
           {
             engine: "local",
-            total: 10,
-            rows: [
-              order("local", "67f0c97a-3c1d-11ef-9a3e-0242ac120002", "ORD-10164", 14),
-              order("local", "81a2e0b4-3c1d-11ef-9a3e-0242ac120002", "ORD-10163", 18),
+            total: { count: 10 },
+            instances: [
+              order("67f0c97a-3c1d-11ef-9a3e-0242ac120002", "ORD-10164", 14),
+              order("81a2e0b4-3c1d-11ef-9a3e-0242ac120002", "ORD-10163", 18),
             ],
           },
           {
             engine: "shop-test",
-            total: 2,
-            rows: [order("shop-test", "9b1c4d22-3c1d-11ef-9a3e-0242ac120002", "ORD-10007", 30)],
+            total: { count: 2 },
+            instances: [order("9b1c4d22-3c1d-11ef-9a3e-0242ac120002", "ORD-10007", 30)],
           },
-          { engine: "prod-eu", rows: [], unavailable: true },
+          { engine: "prod-eu" },
         ],
       },
     ],
@@ -164,6 +154,7 @@ export const REFUSED_BOARD_VIEW: BoardView = {
         problems: [
           {
             path: "rows[0].row[1].props.filter.withIncident",
+            code: "endedWithIncident",
             reason:
               'only matches running instances, since an ended instance has no open incident; remove it or use state "running"',
           },
@@ -174,11 +165,20 @@ export const REFUSED_BOARD_VIEW: BoardView = {
     [
       {
         kind: "refused",
-        title: 'Widget "chart"',
         widget: "chart",
         problems: [
           {
             path: "rows[2].row[0].widget",
+            code: "notOneOf",
+            values: {
+              choices: [
+                "counter",
+                "instanceList",
+                "incidentSummary",
+                "processDiagram",
+                "incidentList",
+              ],
+            },
             reason:
               "must be one of counter, instanceList, incidentSummary, processDiagram, incidentList",
           },
@@ -189,6 +189,7 @@ export const REFUSED_BOARD_VIEW: BoardView = {
   notes: [
     {
       path: "layout",
+      code: "ignoredKey",
       reason: "is not a key this version of Pulse knows; Pulse shows the board without it",
     },
   ],

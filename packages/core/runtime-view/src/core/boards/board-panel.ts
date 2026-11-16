@@ -88,8 +88,7 @@ export class BoardPanel implements Panel {
     if (ticket === this.latest) {
       this.board = parsed.board
     }
-    const notes = ProblemTexts.of(parsed.notes)
-    return this.build(parsed.board, { fileName, asOf, problems: [], notes })
+    return this.build(parsed.board, { fileName, asOf, problems: [], notes: parsed.notes })
   }
 
   private async fallback(source: BoardSource): Promise<BoardView> {

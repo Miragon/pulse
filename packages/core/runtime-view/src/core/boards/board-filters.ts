@@ -13,16 +13,4 @@ export class BoardFilters {
       ...(filter.businessKey === undefined ? {} : { businessKey: filter.businessKey }),
     }
   }
-
-  static title(filter: BoardFilter): string {
-    const parts = [
-      filter.state === "running" ? "Running instances" : "Ended instances",
-      filter.withIncident === true ? "with incident" : undefined,
-      filter.withIncident === false ? "without incident" : undefined,
-      filter.process === undefined ? undefined : `of ${filter.process}`,
-      filter.activeElement === undefined ? undefined : `at ${filter.activeElement}`,
-      filter.businessKey === undefined ? undefined : `with key ${filter.businessKey}`,
-    ]
-    return parts.filter((part) => part !== undefined).join(" ")
-  }
 }

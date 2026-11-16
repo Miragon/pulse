@@ -7,6 +7,7 @@ import { FreshnessStamp, type Freshness } from "../../components/live-stamp.js"
 import { StatusStrip } from "../../components/status-strip.js"
 import { CountLabels } from "../../format/count-labels.js"
 import { useHost } from "../../host/host-context.js"
+import type { BoardCallbacks, BoardOpen } from "./board-card.js"
 import { BoardEngines } from "./board-engines.js"
 import { BoardLabels } from "./board-labels.js"
 import { CounterCard } from "./counter-card.js"
@@ -125,24 +126,59 @@ function FileProblems({ view }: { readonly view: BoardView }) {
   )
 }
 
-function Tile({ tile }: { readonly tile: BoardTile }) {
+function useBoardCallbacks(): BoardCallbacks {
+  const host = useHost()
+  const open = (target: BoardOpen, toSide: boolean): void => {
+    if ("instanceId" in target) {
+      host.post({ type: "openBoardInstance", ...target, toSide })
+    } else if (target.bpmnProcessId === undefined) {
+      host.post({ type: "openBoardEngine", engine: target.engine, toSide })
+    } else {
+      host.post({
+        type: "openBoardProcess",
+        engine: target.engine,
+        bpmnProcessId: target.bpmnProcessId,
+        filter: target.filter,
+        toSide,
+      })
+    }
+  }
+  return {
+    onOpen: open,
+    onCopy: (text, label) => {
+      host.post({ type: "copy", text, label })
+    },
+    onOpenFile: () => {
+      host.post({ type: "openBoardFile" })
+    },
+  }
+}
+
+function Tile({
+  tile,
+  callbacks,
+}: {
+  readonly tile: BoardTile
+  readonly callbacks: BoardCallbacks
+}) {
   switch (tile.kind) {
     case "counter":
-      return <CounterCard tile={tile} />
+      return <CounterCard tile={tile} onOpen={callbacks.onOpen} />
     case "instanceList":
-      return <InstanceListCard tile={tile} />
+      return <InstanceListCard tile={tile} onOpen={callbacks.onOpen} onCopy={callbacks.onCopy} />
     case "incidentSummary":
-      return <IncidentSummaryCard tile={tile} />
+      return <IncidentSummaryCard tile={tile} onOpen={callbacks.onOpen} />
     case "processDiagram":
-      return <ProcessDiagramCard tile={tile} />
+      return <ProcessDiagramCard tile={tile} onOpen={callbacks.onOpen} />
     case "incidentList":
-      return <IncidentListCard tile={tile} />
+      return <IncidentListCard tile={tile} onOpen={callbacks.onOpen} onCopy={callbacks.onCopy} />
     case "refused":
-      return <RefusedCard tile={tile} />
+      return <RefusedCard tile={tile} onOpenFile={callbacks.onOpenFile} />
   }
 }
 
 export function BoardScreen({ view, freshness }: BoardScreenProps) {
+  const callbacks = useBoardCallbacks()
   return (
     <div className="grid h-full min-w-0 grid-rows-[auto_auto_minmax(0,1fr)]">
       <BoardHeader view={view} freshness={freshness} />
@@ -162,7 +198,7 @@ export function BoardScreen({ view, freshness }: BoardScreenProps) {
             key={index}
           >
             {row.map((tile, column) => (
-              <Tile key={column} tile={tile} />
+              <Tile key={column} tile={tile} callbacks={callbacks} />
             ))}
           </div>
         ))}

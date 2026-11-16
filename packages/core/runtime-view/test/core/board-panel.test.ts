@@ -76,14 +76,23 @@ describe("a board across engines", () => {
     const target = { filter: { scope: "running" }, bpmnProcessId: "order" }
     expect(tileOf(fixture, "counter")).toEqual({
       kind: "counter",
-      title: "Running instances of order",
-      total: 14,
+      widget: {
+        widget: "counter",
+        engines: ["shop", "billing", "prod"],
+        filter: { process: "order", state: "running" },
+        warnAbove: 10,
+      },
+      readings: [
+        { engine: "shop", count: { count: 12 }, above: true },
+        { engine: "billing", count: { count: 2 } },
+        { engine: "prod" },
+      ],
       known: 2,
-      warnAbove: 10,
-      entries: [
-        { engine: "shop", count: 12, above: true, target: { engine: "shop", ...target } },
-        { engine: "billing", count: 2, target: { engine: "billing", ...target } },
-        { engine: "prod", target: { engine: "prod", ...target } },
+      total: { count: 14 },
+      targets: [
+        { engine: "shop", ...target },
+        { engine: "billing", ...target },
+        { engine: "prod", ...target },
       ],
     })
     expect(fixture.view().engines).toEqual([
@@ -124,17 +133,16 @@ describe("a board across engines", () => {
     await new BoardPanel(fixture.context).handle({ type: "ready" })
 
     expect(tileOf(fixture, "counter")).toMatchObject({
-      total: 10002,
-      totalAtLeast: true,
-      entries: [
-        { engine: "capped", count: 10000, atLeast: true },
-        { engine: "billing", count: 2 },
+      total: { count: 10002, atLeast: true },
+      readings: [
+        { engine: "capped", count: { count: 10000, atLeast: true } },
+        { engine: "billing", count: { count: 2 } },
       ],
     })
     expect(tileOf(fixture, "instanceList", 1)).toMatchObject({
       groups: [
-        { engine: "capped", total: 10000, totalAtLeast: true },
-        { engine: "billing", total: 2 },
+        { engine: "capped", total: { count: 10000, atLeast: true } },
+        { engine: "billing", total: { count: 2 } },
       ],
     })
   })
@@ -157,7 +165,7 @@ describe("a board across engines", () => {
     await new BoardPanel(fixture.context).handle({ type: "ready" })
 
     const verdicts = [0, 1, 2].map((row) =>
-      tileOf(fixture, "counter", row).entries.map(({ engine, above, undecided }) => ({
+      tileOf(fixture, "counter", row).readings.map(({ engine, above, undecided }) => ({
         engine,
         above,
         undecided,
@@ -179,8 +187,15 @@ describe("a board across engines", () => {
 
     await new BoardPanel(fixture.context).handle({ type: "ready" })
 
-    expect(tileOf(fixture, "counter").entries).toEqual([{ engine: "shop", count: 12 }])
-    expect(tileOf(fixture, "counter", 1)).toMatchObject({ incident: true, total: 3 })
+    expect(tileOf(fixture, "counter")).toMatchObject({
+      readings: [{ engine: "shop", count: { count: 12 } }],
+      targets: [],
+    })
+    expect(tileOf(fixture, "counter", 1)).toMatchObject({
+      widget: { filter: { withIncident: true } },
+      total: { count: 3 },
+      targets: [{ engine: "shop", bpmnProcessId: "order", filter: { scope: "withIncident" } }],
+    })
   })
 
   test("reads nothing else from an engine whose probe failed and says why once", async () => {
@@ -205,7 +220,7 @@ describe("a board across engines", () => {
         loginRefused: "unauthorized",
       },
     })
-    expect(tileOf(fixture, "counter")).toMatchObject({ total: 12, known: 1 })
+    expect(tileOf(fixture, "counter")).toMatchObject({ total: { count: 12 }, known: 1 })
   })
 
   test("shows a dash, never a zero, when a read fails after the probe", async () => {
@@ -216,9 +231,10 @@ describe("a board across engines", () => {
 
     expect(tileOf(fixture, "counter")).toEqual({
       kind: "counter",
-      title: "Stuck",
+      widget: expect.objectContaining({ title: "Stuck" }) as unknown,
+      readings: [{ engine: "flaky" }],
       known: 0,
-      entries: [{ engine: "flaky", target: expect.anything() as unknown }],
+      targets: [expect.objectContaining({ engine: "flaky" }) as unknown],
     })
     expect(fixture.view().engines[0]).toEqual({
       name: "flaky",
@@ -256,27 +272,28 @@ describe("a board across engines", () => {
     await new BoardPanel(fixture.context).handle({ type: "ready" })
 
     const shown = tileOf(fixture, "instanceList")
-    expect(shown.columns).toEqual(["engine", "businessKey"])
-    expect(shown.groups.map((group) => [group.engine, group.total, group.unavailable])).toEqual([
-      ["shop", 12, undefined],
-      ["billing", 2, undefined],
-      ["prod", undefined, true],
+    expect(shown.widget).toMatchObject({
+      engines: ["shop", "billing", "prod"],
+      columns: ["businessKey"],
+    })
+    expect(
+      shown.groups.map((group) => [group.engine, group.total, group.instances?.length]),
+    ).toEqual([
+      ["shop", { count: 12 }, 2],
+      ["billing", { count: 2 }, 1],
+      ["prod", undefined, undefined],
     ])
-    expect(shown.groups[0]?.rows[0]).toEqual({
-      engine: "shop",
+    expect(shown.groups[0]?.instances?.[0]).toEqual({
       id: "i-1",
-      shortId: "i-1",
-      processName: "Order fulfillment",
-      bpmnProcessId: "order",
-      version: 2,
-      state: "Running",
+      definition: { id: "order:2", bpmnProcessId: "order", version: 2, name: "Order fulfillment" },
+      state: "running",
       hasIncident: false,
       businessKey: "ORD-1",
       startedAt: "2026-10-26T08:00:00.000Z",
     })
   })
 
-  test("keeps the columns as written when the widget reads one engine", async () => {
+  test("keeps the columns as written and says which engine it could not read", async () => {
     const list = {
       widget: "instanceList",
       props: { engines: ["shop"], filter: ORDER, columns: ["state"] },
@@ -289,12 +306,11 @@ describe("a board across engines", () => {
 
     await new BoardPanel(fixture.context).handle({ type: "ready" })
 
-    expect(tileOf(fixture, "instanceList").columns).toEqual(["state"])
-    expect(tileOf(fixture, "instanceList", 1).groups[1]).toEqual({
-      engine: "flaky",
-      rows: [],
-      unavailable: true,
+    expect(tileOf(fixture, "instanceList").widget).toMatchObject({
+      engines: ["shop"],
+      columns: ["state"],
     })
+    expect(tileOf(fixture, "instanceList", 1).groups[1]).toEqual({ engine: "flaky" })
   })
 
   test("sums instances with incident per engine or lists them per process, most first", async () => {
@@ -307,37 +323,37 @@ describe("a board across engines", () => {
     const withIncident = { scope: "withIncident" }
     expect(tileOf(fixture, "incidentSummary")).toEqual({
       kind: "incidentSummary",
-      title: "Instances with incident",
-      groupBy: "engine",
-      total: 9,
-      known: 2,
+      widget: {
+        widget: "incidentSummary",
+        engines: ["shop", "billing", "prod"],
+        groupBy: "engine",
+      },
       engines: 3,
+      known: 2,
+      total: 9,
       rows: [
-        {
-          engine: "shop",
-          label: "shop",
-          withIncident: 8,
-          target: { engine: "shop", filter: withIncident },
-        },
-        {
-          engine: "billing",
-          label: "billing",
-          withIncident: 1,
-          target: { engine: "billing", filter: withIncident },
-        },
-        { engine: "prod", label: "prod", target: { engine: "prod", filter: withIncident } },
+        { engine: "shop", withIncident: 8 },
+        { engine: "billing", withIncident: 1 },
+        { engine: "prod" },
+      ],
+      targets: [
+        { engine: "shop", filter: withIncident },
+        { engine: "billing", filter: withIncident },
+        { engine: "prod", filter: withIncident },
       ],
     })
-    expect(
-      tileOf(fixture, "incidentSummary", 1).rows.map((row) => [
-        row.engine,
-        row.label,
-        row.withIncident,
-      ]),
-    ).toEqual([
-      ["shop", "shipment", 5],
-      ["shop", "Order fulfillment", 3],
-      ["billing", "order", 1],
+    const perProcess = tileOf(fixture, "incidentSummary", 1)
+    expect(perProcess.rows.map((row) => [row.engine, row.process?.name, row.withIncident])).toEqual(
+      [
+        ["shop", undefined, 5],
+        ["shop", "Order fulfillment", 3],
+        ["billing", undefined, 1],
+      ],
+    )
+    expect(perProcess.targets).toEqual([
+      { engine: "shop", bpmnProcessId: "shipment", filter: withIncident },
+      { engine: "shop", bpmnProcessId: "order", filter: withIncident },
+      { engine: "billing", bpmnProcessId: "order", filter: withIncident },
     ])
   })
 
@@ -350,11 +366,11 @@ describe("a board across engines", () => {
 
     expect(tileOf(fixture, "incidentSummary")).toEqual({
       kind: "incidentSummary",
-      title: "Instances with incident",
-      groupBy: "process",
-      known: 0,
+      widget: { widget: "incidentSummary", engines: ["prod"], groupBy: "process" },
       engines: 1,
+      known: 0,
       rows: [],
+      targets: [],
     })
   })
 })
@@ -382,11 +398,12 @@ describe("a board with a widget it refuses", () => {
     expect(fixture.view().rows[0]?.slice(0, 3)).toEqual([
       {
         kind: "refused",
-        title: "Ended with incident",
         widget: "instanceList",
+        title: "Ended with incident",
         problems: [
           {
             path: "rows[0].row[0].props.filter.withIncident",
+            code: "endedWithIncident",
             reason:
               'only matches running instances, since an ended instance has no open incident; remove it or use state "running"',
           },
@@ -394,11 +411,20 @@ describe("a board with a widget it refuses", () => {
       },
       {
         kind: "refused",
-        title: 'Widget "chart"',
         widget: "chart",
         problems: [
           {
             path: "rows[0].row[1].widget",
+            code: "notOneOf",
+            values: {
+              choices: [
+                "counter",
+                "instanceList",
+                "incidentSummary",
+                "processDiagram",
+                "incidentList",
+              ],
+            },
             reason:
               "must be one of counter, instanceList, incidentSummary, processDiagram, incidentList",
           },
@@ -406,14 +432,13 @@ describe("a board with a widget it refuses", () => {
       },
       {
         kind: "refused",
-        title: "Widget",
-        problems: [{ path: "rows[0].row[2]", reason: "must be an object" }],
+        problems: [{ path: "rows[0].row[2]", code: "notAnObject", reason: "must be an object" }],
       },
     ])
     expect(fixture.view().rows[0]?.[3]).toMatchObject({
       kind: "counter",
-      title: "Running",
-      total: 12,
+      widget: { title: "Running" },
+      total: { count: 12 },
     })
     expect(fixture.calls.get("shop")).toEqual([
       "describeEngine",
@@ -454,10 +479,11 @@ describe("a board with a widget it refuses", () => {
       notes: [
         {
           path: "layout",
+          code: "ignoredKey",
           reason: "is not a key this version of Pulse knows; Pulse shows the board without it",
         },
       ],
-      rows: [[{ kind: "counter", total: 12 }]],
+      rows: [[{ kind: "counter", total: { count: 12 } }]],
     })
   })
 
@@ -472,11 +498,12 @@ describe("a board with a widget it refuses", () => {
       [
         {
           kind: "refused",
-          title: "Running",
           widget: "counter",
+          title: "Running",
           problems: [
             {
               path: "tenants",
+              code: "tenantsNotRead",
               reason:
                 "is set, but Pulse has no tenant filter and would read every tenant here; remove tenants to show this widget",
             },
@@ -503,7 +530,7 @@ describe("a board file that changes", () => {
       fileName: "shop.board.json",
       engines: [],
       rows: [],
-      problems: [{ path: "(file)", reason: "is not valid JSON" }],
+      problems: [{ path: "(file)", code: "notJson", reason: "is not valid JSON" }],
       notes: [],
     })
   })
@@ -518,7 +545,7 @@ describe("a board file that changes", () => {
 
     expect(fixture.view()).toMatchObject({
       title: "Payments",
-      rows: [[{ kind: "counter", total: 12 }]],
+      rows: [[{ kind: "counter", total: { count: 12 } }]],
       problems: [{ path: "title", reason: "must be a text that is not empty" }],
     })
   })

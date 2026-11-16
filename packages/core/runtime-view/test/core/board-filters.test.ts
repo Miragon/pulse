@@ -19,22 +19,6 @@ describe("a board filter", () => {
     expect(BoardFilters.listFilter({ state: "running", withIncident: false })).toBeUndefined()
     expect(BoardFilters.listFilter({ state: "ended", withIncident: false })).toBeUndefined()
   })
-
-  test("names itself when the widget has no title", () => {
-    expect(BoardFilters.title({ state: "running" })).toBe("Running instances")
-    expect(
-      BoardFilters.title({
-        state: "running",
-        process: "order",
-        activeElement: "Task_Pay",
-        withIncident: true,
-        businessKey: "B-1",
-      }),
-    ).toBe("Running instances with incident of order at Task_Pay with key B-1")
-    expect(BoardFilters.title({ state: "ended", withIncident: false })).toBe(
-      "Ended instances without incident",
-    )
-  })
 })
 
 describe("the board intents from the webview", () => {

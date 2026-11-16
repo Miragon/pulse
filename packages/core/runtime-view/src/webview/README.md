@@ -37,6 +37,7 @@ Only UI state (open tab, split, column widths, zoom) stays in the webview's own 
 
 - `packages/core/runtime-view/src/webview/host`: the bridge to the host and the stored UI state (`HostBridge`, `UiStateStore`)
 - `packages/core/runtime-view/src/webview/screens`: the three screens, filter bars, instance tabs and the variable editor
+- `packages/core/runtime-view/src/webview/screens/board`: the board screen, which holds the host calls, and its cards, which take a tile in the board's JSON form and callbacks only and word its titles, short ids and states (`BoardLabels`)
 - `packages/core/runtime-view/src/webview/diagram`: the bpmn-js viewer with its badges and call buttons (`RuntimeCanvas`)
 - `packages/core/runtime-view/src/webview/components`: the webview's parts over pulse-ui's kit: the table with resizable columns, the header bar, tabs, scope segments, the diagram
 - `packages/core/runtime-view/src/webview/styles`: the one Tailwind entry (`webview.css`: pulse-ui's `theme.css`, the fonts, the diagram's vendor CSS) and `diagram.css`, the overlays' own classes

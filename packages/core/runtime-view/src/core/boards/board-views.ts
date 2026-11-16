@@ -1,15 +1,24 @@
-import type { BoardModel, EngineModel, EngineSource } from "@miragon/pulse-board/builder"
+import type { BoardProblem as FormatProblem, FailureData } from "@miragon/pulse-board"
+import {
+  BoardJson,
+  type BoardModel,
+  type EngineModel,
+  type EngineSource,
+} from "@miragon/pulse-board/builder"
 import { Problems } from "../panels/problems.js"
 import type { BoardEngineStatus, BoardProblem, BoardView, EngineBadge } from "../protocol/index.js"
 import type { BoardEngine } from "./board-engine.js"
 import { BoardRuntime } from "./board-runtime.js"
+import { ProblemTexts } from "./problem-texts.js"
 import { TileViews } from "./tile-views.js"
+
+const FAILURE_THE_STATUS_WORDS: FailureData = { code: "unknown" }
 
 export interface BoardSource {
   readonly fileName: string
   readonly asOf: Date
   readonly problems: readonly BoardProblem[]
-  readonly notes: readonly BoardProblem[]
+  readonly notes: readonly FormatProblem[]
 }
 
 export class BoardViews {
@@ -34,7 +43,7 @@ export class BoardViews {
       engines: [],
       rows: [],
       problems: source.problems,
-      notes: source.notes,
+      notes: ProblemTexts.of(source.notes),
     }
   }
 
@@ -46,19 +55,20 @@ export class BoardViews {
   }
 
   async of(model: BoardModel, source: BoardSource): Promise<BoardView> {
+    const { title, rows, notes } = BoardJson.of(model, {
+      failureOf: () => FAILURE_THE_STATUS_WORDS,
+      notes: source.notes,
+    })
     const tiles = new TileViews(this.runtimes)
-    const rows = await Promise.all(
-      model.rows.map((row) => Promise.all(row.map((tile) => tiles.of(tile)))),
-    )
     return {
       kind: "board",
       asOf: source.asOf.toISOString(),
-      title: model.title,
+      title,
       fileName: source.fileName,
       engines: model.engines.map((engine) => this.status(engine)),
-      rows,
+      rows: await Promise.all(rows.map((row) => Promise.all(row.map((tile) => tiles.of(tile))))),
       problems: source.problems,
-      notes: source.notes,
+      notes: ProblemTexts.of(notes),
     }
   }
 

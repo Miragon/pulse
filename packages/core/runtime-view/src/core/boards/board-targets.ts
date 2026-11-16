@@ -19,14 +19,17 @@ export class BoardTargets {
     return this.tiles.some((tile) => {
       if (tile.kind === "instanceList") {
         return tile.groups.some(
-          (group) => group.engine === engine && group.rows.some((row) => row.id === instanceId),
+          (group) =>
+            group.engine === engine &&
+            (group.instances ?? []).some((instance) => instance.id === instanceId),
         )
       }
       return (
         tile.kind === "incidentList" &&
         tile.groups.some(
           (group) =>
-            group.engine === engine && group.rows.some((row) => row.instanceId === instanceId),
+            group.engine === engine &&
+            (group.incidents ?? []).some((incident) => incident.instanceId === instanceId),
         )
       )
     })
@@ -60,8 +63,8 @@ export class BoardTargets {
       (tile): tile is ProcessDiagramTile =>
         tile.kind === "processDiagram" &&
         tile.engine === engine &&
-        tile.bpmnProcessId === bpmnProcessId &&
-        tile.diagram !== undefined,
+        tile.widget.process === bpmnProcessId &&
+        tile.diagramXml !== undefined,
     )
   }
 
@@ -72,16 +75,13 @@ export class BoardTargets {
     const elementId = filter.elementId
     return (
       elementId === undefined ||
-      (tile.diagram?.badges.some((badge) => badge.elementId === elementId) ?? false)
+      (tile.badges?.some((badge) => badge.elementId === elementId) ?? false)
     )
   }
 
   private targets(): readonly BoardTarget[] {
-    return this.tiles.flatMap((tile) => {
-      if (tile.kind === "counter") {
-        return tile.entries.flatMap((entry) => (entry.target === undefined ? [] : [entry.target]))
-      }
-      return tile.kind === "incidentSummary" ? tile.rows.map((row) => row.target) : []
-    })
+    return this.tiles.flatMap((tile) =>
+      tile.kind === "counter" || tile.kind === "incidentSummary" ? tile.targets : [],
+    )
   }
 }

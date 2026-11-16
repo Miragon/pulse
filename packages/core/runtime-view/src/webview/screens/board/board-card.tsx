@@ -1,7 +1,20 @@
 import { CircleXIcon } from "lucide-react"
 import { Card, CountFigure, Icon, SectionHeading, TONE_ICON, cn } from "@miragon/pulse-ui"
 import { useId, type ReactNode } from "react"
-import type { BoardTile } from "../../../core/protocol/index.js"
+import type { BoardTarget, BoardTile } from "../../../core/protocol/index.js"
+
+interface InstanceOpen {
+  readonly engine: string
+  readonly instanceId: string
+}
+
+export type BoardOpen = BoardTarget | InstanceOpen
+
+export interface BoardCallbacks {
+  readonly onOpen: (target: BoardOpen, toSide: boolean) => void
+  readonly onCopy: (text: string, label: string) => void
+  readonly onOpenFile: () => void
+}
 
 export interface BoardCardProps {
   readonly title: string

@@ -79,7 +79,8 @@ describe("boards in editor tabs", () => {
   test("open an instance the board lists", async () => {
     const harness = await Harness.ready()
     const list = harness.tiles().find((tile) => tile.kind === "instanceList")
-    const instanceId = list?.kind === "instanceList" ? list.groups[0]?.rows[0]?.id : undefined
+    const instanceId =
+      list?.kind === "instanceList" ? list.groups[0]?.instances?.[0]?.id : undefined
     const intent = { type: "openBoardInstance", engine: "shop", instanceId, toSide: false }
 
     await harness.boards.intent("frame", intent)
@@ -90,7 +91,7 @@ describe("boards in editor tabs", () => {
   test("open a process the board lists", async () => {
     const harness = await Harness.ready()
     const summary = harness.tiles().find((tile) => tile.kind === "incidentSummary")
-    const target = summary?.kind === "incidentSummary" ? summary.rows[0]?.target : undefined
+    const target = summary?.kind === "incidentSummary" ? summary.targets[0] : undefined
     const intent = { type: "openBoardProcess", toSide: false, ...target }
 
     await harness.boards.intent("frame", intent)

@@ -1,11 +1,13 @@
-import type { BoardModel } from "@miragon/pulse-board/builder"
-import { BpmnProcessId, DefinitionId, ElementId } from "@miragon/pulse-engine-core"
+import { BoardParser, BoardProblems, type BoardProblem } from "@miragon/pulse-board"
+import { BoardBuilder, BoardJson, type BoardModel } from "@miragon/pulse-board/builder"
+import { BpmnProcessId, DefinitionId, ElementId, RuntimeError } from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
 import type { BoardEngine } from "../../src/core/boards/board-engine.js"
 import { BoardPanel } from "../../src/core/boards/board-panel.js"
 import { BoardViews } from "../../src/core/boards/board-views.js"
 import { EngineLane } from "../../src/core/refresh/engine-lane.js"
 import { SharedDefinitions } from "../../src/core/refresh/shared-definitions.js"
+import type { BoardTile } from "../../src/core/protocol/index.js"
 import { badgeOf, boardFixture, stubbed, summary } from "./support/board-fixture.js"
 
 const SOURCE = {
@@ -69,9 +71,8 @@ describe("the view of a board's model", () => {
     const view = await views.of(model, SOURCE)
 
     expect(view.engines).toEqual([{ name: "gone", state: "notConfigured" }])
-    expect(view.rows).toEqual([
-      [{ kind: "processDiagram", title: "order", engine: "shop", bpmnProcessId: "order" }],
-    ])
+    expect(view.rows[0]?.[0]).toMatchObject({ kind: "processDiagram", engine: "shop", latest })
+    expect(view.rows[0]?.[0]).not.toHaveProperty("diagramXml")
   })
 
   test("reads the diagram once for the numbers and the drawing", async () => {
@@ -98,6 +99,114 @@ describe("the view of a board's model", () => {
     await new BoardPanel(fixture.context).handle({ type: "ready" })
 
     expect(fixture.calls.get("shop")?.filter((call) => call === "getDiagramXml")).toHaveLength(1)
-    expect(fixture.view().rows[0]?.[0]).toMatchObject({ diagram: { diagramXml: xml } })
+    expect(fixture.view().rows[0]?.[0]).toMatchObject({ diagramXml: xml })
+  })
+})
+
+describe("the board a webview gets", () => {
+  const ORDER = { process: "pulse-order" }
+  const WORLD = {
+    title: "Orders",
+    engines: ["shop", "locked", "prod"],
+    layout: "wide",
+    rows: [
+      { row: [{ widget: "counter", props: { filter: ORDER, warnAbove: 2 } }] },
+      { row: [{ widget: "instanceList", props: { filter: ORDER, engines: ["shop"] } }] },
+      { row: [{ widget: "incidentSummary" }] },
+      { row: [{ widget: "processDiagram", props: { engines: ["shop"], process: "pulse-order" } }] },
+      { row: [{ widget: "incidentList", props: { engines: ["shop"] } }] },
+      { row: [{ widget: "chart", props: { title: "Throughput" } }] },
+    ],
+  }
+  const LOCKED = { describeEngine: () => Promise.reject(new RuntimeError("unauthorized", "401")) }
+  const EDITORS_ADD: ReadonlySet<string> = new Set(["targets", "diagramXml", "reason"])
+
+  function dataOf(value: unknown): unknown {
+    return JSON.parse(
+      JSON.stringify(value, (key, field: unknown) => (EDITORS_ADD.has(key) ? undefined : field)),
+    )
+  }
+
+  async function built() {
+    const parsed = BoardParser.parse(JSON.stringify(WORLD))
+    if ("problems" in parsed) {
+      throw new Error("the world's board must parse")
+    }
+    const model = await BoardBuilder.build(parsed.board, [
+      { name: "shop", reads: stubbed({}) },
+      { name: "locked", reads: stubbed(LOCKED) },
+      { name: "prod" },
+    ])
+    return BoardJson.of(model, { failureOf: () => ({ code: "failed" }), notes: parsed.notes })
+  }
+
+  async function shown() {
+    const fixture = boardFixture(WORLD, [
+      { name: "shop", runtime: stubbed({}) },
+      { name: "locked", runtime: stubbed(LOCKED) },
+      { name: "prod" },
+    ])
+    await new BoardPanel(fixture.context).handle({ type: "ready" })
+    return fixture.view()
+  }
+
+  test("holds the tiles and notes of the board's JSON form over the kit's world", async () => {
+    const [data, view] = await Promise.all([built(), shown()])
+
+    expect(view.title).toBe(data.title)
+    expect(dataOf(view.rows)).toEqual(data.rows)
+    expect(dataOf(view.notes)).toEqual(data.notes)
+    expect(view.rows.flat().map((tile) => tile.kind)).toEqual([
+      "counter",
+      "instanceList",
+      "incidentSummary",
+      "processDiagram",
+      "incidentList",
+      "refused",
+    ])
+  })
+
+  test("adds the targets a click opens, the drawing and the words of each problem", async () => {
+    const view = await shown()
+    const tiles = view.rows.flat()
+    const tile = <Kind extends BoardTile["kind"]>(kind: Kind) =>
+      tiles.find((found): found is Extract<BoardTile, { kind: Kind }> => found.kind === kind)
+    const words = (problems: readonly BoardProblem[]) =>
+      problems.map((problem) => BoardProblems.describe(problem))
+    const refused = tile("refused")?.problems ?? []
+
+    expect(tile("counter")?.targets).toEqual(
+      ["shop", "locked", "prod"].map((engine) => ({
+        engine,
+        bpmnProcessId: "pulse-order",
+        filter: { scope: "running" },
+      })),
+    )
+    expect(tile("incidentSummary")?.targets).toHaveLength(
+      tile("incidentSummary")?.rows.length ?? -1,
+    )
+    expect(tile("processDiagram")?.diagramXml).toContain("pulse-order")
+    expect(refused.map(({ reason }) => reason)).toEqual(words(refused))
+    expect(refused).not.toHaveLength(0)
+    expect(view.notes.map(({ reason }) => reason)).toEqual(words(view.notes))
+  })
+
+  test("words a failed engine from the error its probe threw, any error, since no editor reads the JSON form's engines", async () => {
+    const odd = stubbed({ describeEngine: () => Promise.reject(new Error("boom")) })
+    const fixture = boardFixture(
+      { title: "Odd", engines: ["odd"], rows: [{ row: [{ widget: "incidentSummary" }] }] },
+      [{ name: "odd", runtime: odd }],
+    )
+
+    await new BoardPanel(fixture.context).handle({ type: "ready" })
+
+    expect(fixture.view().engines).toEqual([
+      {
+        name: "odd",
+        state: "failed",
+        badge: badgeOf("odd"),
+        problem: { title: "Loading from odd failed.", detail: "boom", canEditConnection: false },
+      },
+    ])
   })
 })
