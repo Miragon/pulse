@@ -27,14 +27,25 @@ export type Grant =
       readonly audience?: string
       readonly scopes?: readonly string[]
     }
-  /** Without a scope, so the original grant is kept. */
-  | { readonly type: "refresh_token"; readonly refreshToken: string }
-  /** The code of a login, with the redirect URI and the PKCE verifier as sent. */
+  /**
+   * Without a scope, so the original grant is kept; with the resources (RFC 8707) the new access
+   * token is for, each sent as it is.
+   */
+  | {
+      readonly type: "refresh_token"
+      readonly refreshToken: string
+      readonly resources?: readonly string[]
+    }
+  /**
+   * The code of a login, with the redirect URI and the PKCE verifier as sent, and the resources
+   * (RFC 8707) its access token is for, each sent as it is.
+   */
   | {
       readonly type: "authorization_code"
       readonly code: string
       readonly redirectUri: string
       readonly verifier: string
+      readonly resources?: readonly string[]
     }
 
 /** A refresh token the authorization server refused: recorded, so no request asks again. */

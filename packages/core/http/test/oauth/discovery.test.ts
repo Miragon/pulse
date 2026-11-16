@@ -17,6 +17,7 @@ const DOCUMENT = {
   authorization_endpoint: `${ISSUER}/auth`,
   token_endpoint: `${ISSUER}/token`,
   revocation_endpoint: `${ISSUER}/revoke`,
+  end_session_endpoint: `${ISSUER}/logout`,
   code_challenge_methods_supported: ["plain", "S256"],
   authorization_response_iss_parameter_supported: true,
   token_endpoint_auth_methods_supported: ["client_secret_basic", "client_secret_post"],
@@ -93,12 +94,13 @@ describe("oauthUrlProblem", () => {
 })
 
 describe("serverMetadata", () => {
-  it("takes the endpoints, the revocation, the iss parameter and Basic", () => {
+  it("takes the endpoints, the revocation, the end session, the iss parameter and Basic", () => {
     expect(serverMetadata(DOCUMENT, ISSUER, PUBLIC)).toEqual({
       issuer: ISSUER,
       authorizationEndpoint: `${ISSUER}/auth`,
       tokenEndpoint: `${ISSUER}/token`,
       revocationEndpoint: `${ISSUER}/revoke`,
+      endSessionEndpoint: `${ISSUER}/logout`,
       issParameterRequired: true,
       clientAuth: "basic",
     })
@@ -121,6 +123,29 @@ describe("serverMetadata", () => {
     expect(serverMetadata(document, ISSUER, PUBLIC)).not.toHaveProperty("revocationEndpoint")
     const without = omit(DOCUMENT, "revocation_endpoint")
     expect(serverMetadata(without, ISSUER, PUBLIC)).not.toHaveProperty("revocationEndpoint")
+  })
+
+  it("checks the end session endpoint like the others and leaves it out when unusable", () => {
+    const endSession = (value: unknown) =>
+      serverMetadata({ ...DOCUMENT, end_session_endpoint: value }, ISSUER, PUBLIC)
+    expect(endSession(` ${ISSUER}/logout?x=1 `)).toMatchObject({
+      endSessionEndpoint: `${ISSUER}/logout?x=1`,
+    })
+    expect(endSession("http://localhost:8080/logout")).toMatchObject({
+      endSessionEndpoint: "http://localhost:8080/logout",
+    })
+    for (const unusable of [
+      "http://as.example.com/logout",
+      "https://user@as/logout",
+      "https://as/logout#x",
+      "not a url",
+      7,
+      undefined,
+    ]) {
+      const metadata = endSession(unusable)
+      expect(metadata).not.toHaveProperty("endSessionEndpoint")
+      expect(metadata).toMatchObject({ revocationEndpoint: `${ISSUER}/revoke` })
+    }
   })
 
   it.each([

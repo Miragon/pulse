@@ -3,7 +3,8 @@
  * fallback, and the document's check. It must name exactly the expected issuer (RFC 8414 §3.3),
  * offer PKCE with S256 when it lists methods, and a client authentication the client can do; its
  * endpoints must be https, or http on a loopback host (the caller's rule, so every surface keeps
- * one definition of loopback).
+ * one definition of loopback). An endpoint a client can do without (revocation, end session) is
+ * dropped when it fails that rule.
  */
 import type { Platform } from "../types.js"
 import { withoutTrailingSlashes } from "../url.js"
@@ -82,6 +83,11 @@ export interface ServerMetadata {
   readonly tokenEndpoint: string
   /** RFC 7009; none when the document names none or one that cannot be used. */
   readonly revocationEndpoint?: string
+  /**
+   * OpenID Connect RP-Initiated Logout 1.0 (`endSessionUrl`); none when the document names none
+   * or one that cannot be used.
+   */
+  readonly endSessionEndpoint?: string
   /** RFC 9207: every callback carries `iss`. */
   readonly issParameterRequired: boolean
   /** How a confidential client authenticates: `basic` unless the server only offers `post`. */
@@ -125,10 +131,31 @@ function endpointOf(document: Document, key: EndpointKey, needs: MetadataNeeds) 
   return { problem: "endpoint-url", key, url: value, urlProblem } as const
 }
 
-function revocationOf(document: Document, needs: MetadataNeeds): string | undefined {
-  const value = document.revocation_endpoint
+/**
+ * An endpoint a client can do without: none when the document names none or one that cannot be
+ * used.
+ */
+function optionalEndpointOf(
+  document: Document,
+  key: "revocation_endpoint" | "end_session_endpoint",
+  needs: MetadataNeeds,
+): string | undefined {
+  const value = document[key]
   if (typeof value !== "string") return undefined
   return oauthUrlProblem(value, needs.isLoopback) === undefined ? value.trim() : undefined
+}
+
+/** The endpoints a client can do without that the document names usable ones for. */
+function optionalEndpoints(
+  document: Document,
+  needs: MetadataNeeds,
+): Pick<ServerMetadata, "revocationEndpoint" | "endSessionEndpoint"> {
+  const revocationEndpoint = optionalEndpointOf(document, "revocation_endpoint", needs)
+  const endSessionEndpoint = optionalEndpointOf(document, "end_session_endpoint", needs)
+  return {
+    ...(revocationEndpoint === undefined ? {} : { revocationEndpoint }),
+    ...(endSessionEndpoint === undefined ? {} : { endSessionEndpoint }),
+  }
 }
 
 function clientAuthOf(document: Document, needs: MetadataNeeds): "basic" | "post" | undefined {
@@ -160,12 +187,11 @@ export function serverMetadata(
   if (!offersS256(document)) return { problem: "no-pkce" }
   const clientAuth = clientAuthOf(document, needs)
   if (clientAuth === undefined) return { problem: "client-auth" }
-  const revocationEndpoint = revocationOf(document, needs)
   return {
     issuer,
     authorizationEndpoint,
     tokenEndpoint,
-    ...(revocationEndpoint === undefined ? {} : { revocationEndpoint }),
+    ...optionalEndpoints(document, needs),
     issParameterRequired: document.authorization_response_iss_parameter_supported === true,
     clientAuth,
   }

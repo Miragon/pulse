@@ -263,6 +263,7 @@ describe("the entries", () => {
       "createPkce",
       "decodeBase64Url",
       "discover",
+      "endSessionUrl",
       "isAccessToken",
       "isDue",
       "isExpired",

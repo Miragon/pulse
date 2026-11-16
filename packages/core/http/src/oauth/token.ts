@@ -63,17 +63,32 @@ function authenticated(form: URLSearchParams, endpoint: TokenEndpoint): Authoriz
   return { header: `Basic ${value}`, secrets: [clientSecret, formEncode(clientSecret), value] }
 }
 
+/** `form` with one `resource` parameter (RFC 8707) for each of `resources`, as given. */
+function withResources(form: URLSearchParams, resources: readonly string[] | undefined) {
+  resources?.forEach((resource) => {
+    form.append("resource", resource)
+  })
+  return form
+}
+
 function grantForm(grant: Grant): URLSearchParams {
   switch (grant.type) {
-    case "authorization_code":
-      return new URLSearchParams({
+    case "authorization_code": {
+      const form = new URLSearchParams({
         grant_type: "authorization_code",
         code: grant.code,
         redirect_uri: grant.redirectUri,
         code_verifier: grant.verifier,
       })
-    case "refresh_token":
-      return new URLSearchParams({ grant_type: "refresh_token", refresh_token: grant.refreshToken })
+      return withResources(form, grant.resources)
+    }
+    case "refresh_token": {
+      const form = new URLSearchParams({
+        grant_type: "refresh_token",
+        refresh_token: grant.refreshToken,
+      })
+      return withResources(form, grant.resources)
+    }
     case "client_credentials": {
       const form = new URLSearchParams({ grant_type: "client_credentials" })
       if (grant.audience !== undefined) form.set("audience", grant.audience)

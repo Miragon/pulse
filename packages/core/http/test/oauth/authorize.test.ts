@@ -39,6 +39,21 @@ describe("authorizationUrl", () => {
       expect(new URL(url).searchParams.has("audience")).toBe(false)
     }
   })
+
+  it("names each resource (RFC 8707) as given, in its order, after the audience", () => {
+    const resources = [
+      "https://pulse.example.com/mcp",
+      " urn:engine ",
+      "https://pulse.example.com/mcp",
+    ]
+    const plain = authorizationUrl(`${ISSUER}/auth`, REQUEST)
+    const url = authorizationUrl(`${ISSUER}/auth`, { ...REQUEST, resources })
+    expect(url).toBe(
+      `${plain}&resource=https%3A%2F%2Fpulse.example.com%2Fmcp&resource=+urn%3Aengine+&resource=https%3A%2F%2Fpulse.example.com%2Fmcp`,
+    )
+    expect(new URL(url).searchParams.getAll("resource")).toEqual(resources)
+    expect(authorizationUrl(`${ISSUER}/auth`, { ...REQUEST, resources: [] })).toBe(plain)
+  })
 })
 
 describe("safeEqual", () => {

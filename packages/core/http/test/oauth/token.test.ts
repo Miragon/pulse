@@ -51,6 +51,26 @@ describe("a token request", () => {
     ])
   })
 
+  it("names each resource (RFC 8707) as given with a code and with a refresh token", async () => {
+    const { platform, calls } = oauthPlatform([OK()])
+    const resources = ["https://pulse.example.com/mcp", " urn:engine "]
+    const code = {
+      type: "authorization_code",
+      code: "c-1",
+      redirectUri: "https://r/cb",
+      verifier: "v",
+    } as const
+    await requestToken(PUBLIC, { ...code, resources }, platform)
+    await requestToken(PUBLIC, { ...REFRESH, resources }, platform)
+    await requestToken(PUBLIC, { ...REFRESH, resources: [] }, platform)
+    const named = "resource=https%3A%2F%2Fpulse.example.com%2Fmcp&resource=+urn%3Aengine+"
+    expect(calls.map((call) => call.body)).toEqual([
+      `grant_type=authorization_code&code=c-1&redirect_uri=https%3A%2F%2Fr%2Fcb&code_verifier=v&${named}&client_id=pulse-cli`,
+      `grant_type=refresh_token&refresh_token=r-1&${named}&client_id=pulse-cli`,
+      "grant_type=refresh_token&refresh_token=r-1&client_id=pulse-cli",
+    ])
+  })
+
   it("authenticates a confidential client with Basic, id and secret form-encoded first", async () => {
     const { platform, calls, events } = oauthPlatform([OK()])
     const endpoint = {
