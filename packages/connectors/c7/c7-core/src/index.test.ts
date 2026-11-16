@@ -132,12 +132,13 @@ describe("the @miragon/pulse-c7-core entries", () => {
     ])
   })
 
-  it("export exactly the fixtures, the fake port, the world's seed and the test seams from ./testing", () => {
+  it("export exactly the fixtures, the fake port, the world's seed, the recorded board engine and the test seams from ./testing", () => {
     expect(Object.keys(testing).sort()).toEqual([
       "APPROVE_INCIDENT",
       "ASYNC",
       "BOOK_ERROR",
       "C",
+      "C7_BOARD_ENGINE",
       "CHILD_DEF",
       "CHILD_NODE",
       "CONDITIONAL",

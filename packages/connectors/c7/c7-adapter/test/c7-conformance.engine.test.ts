@@ -1,6 +1,14 @@
-import { ConformanceKit, type ConformanceHarness } from "@miragon/pulse-engine-core/testing"
-import { afterAll, beforeAll, describe, test } from "vitest"
+import { C7_BOARD_ENGINE } from "@miragon/pulse-c7-core/testing"
+import {
+  ConformanceKit,
+  FakeEngine,
+  FakeWorld,
+  type ConformanceHarness,
+} from "@miragon/pulse-engine-core/testing"
+import type { BoardData } from "@miragon/pulse-board"
+import { afterAll, beforeAll, describe, expect, test } from "vitest"
 import { C7Adapter } from "../src/index.js"
+import { BoardFigures } from "./support/board-figures.js"
 import { ENGINE_IMAGE, startEngine, type RunningEngine } from "./support/engine-container.js"
 import { seedCommandWorld, seedWorld } from "./support/world.js"
 
@@ -39,6 +47,18 @@ describe(`the C7 adapter against ${ENGINE_IMAGE}`, () => {
       return Promise.reject(new Error("the engine did not start"))
     }
     return Promise.resolve(harness)
+  })
+
+  test("board: c7-core's recorded board over the seeded world has the numbers of the kit's world", async () => {
+    if (harness === undefined) {
+      throw new Error("the engine did not start")
+    }
+    const board = await BoardFigures.build(harness.runtime)
+    const fake = await BoardFigures.build(new FakeEngine(FakeWorld.seed().state))
+
+    expect(board.engines.map(({ state }) => state)).toEqual(["ready"])
+    expect(BoardFigures.of(board)).toEqual(BoardFigures.of(fake))
+    expect(BoardFigures.of(board)).toEqual(BoardFigures.of(C7_BOARD_ENGINE.expected as BoardData))
   })
 
   kit.registerCommandLaws(async () => {

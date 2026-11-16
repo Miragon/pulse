@@ -26,7 +26,7 @@
  *     it implements the engine contract of engine-core for the editor hosts, which bundle it
  *     (c7-adapter, the C7 adapter, which runs c7-core); it sends through its family's core and
  *     the transport, never through a client (client-consumers; another family's client trips
- *     adapters-own-their-family too, in the adapter's tests as well).
+ *     adapters-own-their-family too, adapter-tests-own-their-family in the adapter's tests).
  * The engine family is the neutral layer. Its module
  * (`packages/connectors/engine/engine-connector`) is the one MCP module of every dialect and
  * imports the clients and cores of the dialect families ENGINE_DIALECTS names
@@ -453,6 +453,43 @@ const ADAPTER_IMPORTS = [
   ...npm(escapeRegExp(HTTP.name)),
 ]
 
+/**
+ * What a family's adapter's tests import beside ADAPTER_IMPORTS: the board format and its builder,
+ * which build a board over the adapter's runtime, so a test holds the adapter to the numbers the
+ * other surfaces show (c7-core's recorded board engine). Only adapter-tests-own-their-family
+ * admits it: adapters-own-their-family, board-consumers, board-builder-consumers and the
+ * adapter's closed world keep both out of its src.
+ */
+const ADAPTER_TEST_IMPORTS = npm(escapeRegExp(BOARD.name))
+
+/**
+ * A family's adapter with its family as $1, the `from` of adapters-own-their-family, and its test
+ * code (its test tree, its test files and their test-support), the `from` of
+ * adapter-tests-own-their-family, which the first rule leaves out. Its src, its scripts and a
+ * ./testing entry it ships are no test code.
+ */
+const FAMILY_ADAPTER_OWN = "^packages/connectors/[^/]+/([^/]+)-adapter/"
+const FAMILY_ADAPTER_TEST_CODE = `${FAMILY_ADAPTER_OWN}(?:test/|test-support/|.*/test-support/|.*[.]test(?:-support)?[.]tsx?$)`
+
+/**
+ * The `to` of both adapter rules: any workspace package but the adapter's own modules, its
+ * family's core, ADAPTER_IMPORTS and what the rule admits beside them. Its own family's client,
+ * in each shape, is client-consumers', so that edge trips that rule alone; another family's
+ * client stays the adapter rules' too, in the adapter's tests as well, where client-consumers
+ * admits every client.
+ */
+const adapterFamilyTargets = (admitted) => ({
+  path: ["^packages/(core|connectors)/", "@miragon/pulse-"],
+  pathNot: [
+    "^packages/connectors/[^/]+/$1-adapter/(?!node_modules/@miragon/pulse-)",
+    "@miragon/pulse-$1-core(/|$)",
+    ...ADAPTER_IMPORTS,
+    ...admitted,
+    "^packages/connectors/[^/]+/$1-client/",
+    ...npm("@miragon/pulse-$1-client"),
+  ],
+})
+
 /** Test-support modules: helpers of the tests, never shipped. */
 const TEST_SUPPORT = ["[.]test-support[.]tsx?$", "/test-support/"]
 
@@ -644,8 +681,9 @@ module.exports = {
         pathNot: [
           // A connector and a client answer to their own rules for a client:
           // connectors-own-their-family or engine-connector-spans-the-dialects, clients-are-leaves.
-          // An adapter answers to this rule: adapters-own-their-family leaves its own family's
-          // client to it and refuses another family's client as well.
+          // An adapter answers to this rule: adapters-own-their-family and, in its tests,
+          // adapter-tests-own-their-family leave its own family's client to it and refuse another
+          // family's client as well.
           "^packages/connectors/[^/]+/[^/]+-(?:connector|client)/",
           "[.]test[.]tsx?$",
           ...TEST_SUPPORT,
@@ -1241,25 +1279,28 @@ module.exports = {
         "./runtime, the engine contract's reads and what they build on) and " +
         "ADAPTER_IMPORTS (engine-core, the runtime view @miragon/pulse-runtime-view, whose " +
         "./ports name the plug it provides, and the transport @miragon/pulse-http, HTTP_USERS), " +
-        "no other workspace package: no connector, another family's core or client, or the UI. " +
+        "no other workspace package: no connector, another family's core or client, the board " +
+        "format or the UI. " +
         "It sends through its family's core and the transport, never through a client, its own " +
         "family's included (owner decision 2026-11-11): client-consumers refuses its own " +
         "family's client, this rule leaves that edge to it. What two families' adapters share " +
-        "belongs in engine-core, the contract, or in the runtime view.",
-      from: { path: "^packages/connectors/[^/]+/([^/]+)-adapter/" },
-      to: {
-        path: ["^packages/(core|connectors)/", "@miragon/pulse-"],
-        pathNot: [
-          "^packages/connectors/[^/]+/$1-adapter/(?!node_modules/@miragon/pulse-)",
-          "@miragon/pulse-$1-core(/|$)",
-          ...ADAPTER_IMPORTS,
-          // Its own family's client, in each shape, is client-consumers', so that edge trips that
-          // rule alone; another family's client stays this rule's too, in the adapter's tests as
-          // well, where client-consumers admits every client.
-          "^packages/connectors/[^/]+/$1-client/",
-          ...npm("@miragon/pulse-$1-client"),
-        ],
-      },
+        "belongs in engine-core, the contract, or in the runtime view. Its tests answer to " +
+        "adapter-tests-own-their-family.",
+      from: { path: FAMILY_ADAPTER_OWN, pathNot: FAMILY_ADAPTER_TEST_CODE },
+      to: adapterFamilyTargets([]),
+    },
+    {
+      name: "adapter-tests-own-their-family",
+      severity: "error",
+      comment:
+        "A family's adapter's tests (its test tree, its test files and their test-support) " +
+        "import what adapters-own-their-family admits its src and ADAPTER_TEST_IMPORTS, the " +
+        "board format and its builder, which build a board over the adapter's runtime, so a test " +
+        "holds the adapter to the numbers the other surfaces show. No other workspace package: " +
+        "no connector, another family's core or client, or the UI; its own family's client is " +
+        "client-consumers', which admits it in a test.",
+      from: { path: FAMILY_ADAPTER_TEST_CODE },
+      to: adapterFamilyTargets(ADAPTER_TEST_IMPORTS),
     },
     {
       name: "runtime-view-consumers",

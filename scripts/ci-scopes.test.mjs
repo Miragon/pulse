@@ -214,6 +214,7 @@ describe("scopesFor: the MCP server's engine suite runs for what it runs", () =>
     for (const file of [
       "packages/connectors/c7/c7-core/src/runtime/c7-runtime.ts",
       "packages/connectors/c7/c7-core/src/testing/seed-world.ts",
+      "packages/connectors/c7/c7-core/src/testing/board-engine.json",
       "packages/connectors/c7/c7-core/src/port.ts",
       "packages/connectors/c7/c7-core/world/order.bpmn",
       "packages/connectors/c7/c7-core/spec/patches.json",
@@ -234,6 +235,10 @@ describe("scopesFor: the MCP server's engine suite runs for what it runs", () =>
       `${CONNECTOR}/src/data/board-data.ts`,
       `${CONNECTOR}/src/data/board-reads.ts`,
       `${CONNECTOR}/src/lib/bpmn/definition-xml.ts`,
+      // The instance list's build, whose "With incident" chip the suite holds to a board's counter.
+      `${CONNECTOR}/src/data/cockpit-data.ts`,
+      `${CONNECTOR}/src/data/definition-info.ts`,
+      `${CONNECTOR}/src/data/engine-reads.ts`,
       "packages/core/board/src/builder/board-builder.ts",
       "packages/core/board/src/format/board-parser.ts",
       `${CONNECTOR}/package.json`,
@@ -250,6 +255,7 @@ describe("scopesFor: the MCP server's engine suite runs for what it runs", () =>
       `${CONNECTOR}/src/widgets/views.tsx`,
       `${CONNECTOR}/src/data/feeds.ts`,
       `${CONNECTOR}/src/data/boards.ts`,
+      `${CONNECTOR}/src/data/cockpit-start.ts`,
       `${CONNECTOR}/src/lib/bpmn/bpmn-parse.ts`,
       `${CONNECTOR}/src/engine-profiles.ts`,
       `${CONNECTOR}/src/engine-boards.ts`,

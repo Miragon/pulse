@@ -25,6 +25,7 @@ import {
   getRole,
   mountApp,
   part,
+  press,
   queryPart,
   queryRole,
   waitForElement,
@@ -539,6 +540,32 @@ describe("a board", () => {
         instanceId: "9b1c4d22-3c1d-11ef-9a3e-0242ac120002",
         toSide: false,
       },
+    ])
+  })
+
+  it("opens an instance row to the side with Ctrl or Cmd, and copies its ID with Ctrl+C", async () => {
+    harness = mountApp()
+    harness.publish(ready(BOARD_VIEW))
+    await waitForElement(harness.root, `${part("board-card", { kind: "instanceList" })} tbody tr`)
+    const list = card(harness.root, "Orders waiting for payment")
+    const row = list.querySelector<HTMLTableRowElement>("tbody tr:last-child")
+    const instance = {
+      type: "openBoardInstance",
+      engine: "shop-test",
+      instanceId: "9b1c4d22-3c1d-11ef-9a3e-0242ac120002",
+      toSide: true,
+    }
+
+    row?.dispatchEvent(new MouseEvent("click", { bubbles: true, ctrlKey: true }))
+    row?.focus()
+    press(document.activeElement!, "Enter", { metaKey: true })
+    press(document.activeElement!, "c", { ctrlKey: true })
+
+    expect(document.activeElement).toBe(row)
+    expect(harness.posted).toEqual([
+      instance,
+      instance,
+      { type: "copy", text: "9b1c4d22-3c1d-11ef-9a3e-0242ac120002", label: "Instance ID" },
     ])
   })
 

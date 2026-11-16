@@ -892,7 +892,8 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      widget-shell). A family's adapter imports only its
      own family's core, engine-core, the runtime view and the transport
      (`adapters-own-their-family`; the C7 adapter, `packages/connectors/c7/c7-adapter`, runs
-     c7-core), never a client, its own family's included (`client-consumers`, owner decision
+     c7-core), its tests also the board format, to build a board over its runtime
+     (`adapter-tests-own-their-family`), never a client, its own family's included (`client-consumers`, owner decision
      2026-11-11). A family core
      (`family-core-is-a-leaf`) is imported only by its family's connector (a dialect's core by the
      engine module) and adapter and by the apps that bundle it (`family-core-consumers`,

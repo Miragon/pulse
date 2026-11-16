@@ -34,6 +34,7 @@
     "camunda-bpmn-moddle": "8.0.2"
   },
   "devDependencies": {
+    "@miragon/pulse-board": "workspace:*",
     "@types/node": "22.20.5",
     "@vitest/coverage-v8": "5.1.0",
     "testcontainers": "12.2.1",

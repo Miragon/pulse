@@ -279,7 +279,7 @@ describe("the entries", () => {
     ])
   })
 
-  it("export exactly the recording engine of a case from ./testing/loopback", () => {
-    expect(Object.keys(loopback)).toEqual(["startCaseEngine"])
+  it("export exactly the recording engine of a case and the recorded engine from ./testing/loopback", () => {
+    expect(Object.keys(loopback).sort()).toEqual(["startCaseEngine", "startRecordedEngine"])
   })
 })

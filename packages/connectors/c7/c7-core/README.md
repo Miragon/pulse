@@ -241,6 +241,17 @@ engine-core's `SeededWorld` and `CommandWorld`; its unknown ids are fixed. The w
 files of the repository, not of the package:
 [`packages/connectors/c7/c7-core/world/`](https://github.com/Miragon/pulse/tree/main/packages/connectors/c7/c7-core/world).
 
+`C7_BOARD_ENGINE` is a board and a model: the text of a board file over one engine with every
+widget and a refused one, that engine's answers to the board's reads (`C7RecordedAnswer`: method,
+decoded path, query and JSON body, and the JSON answered), recorded once from the seeded world on
+Operaton 2.1.5, and the board they give in the JSON form of
+[`@miragon/pulse-board`](https://www.npmjs.com/package/@miragon/pulse-board) (`BoardData`). It
+ships here because this package makes the requests: the MCP server's engine connector and the
+editors' C7 adapter each serve the answers to their own wire on the transport's recorded engine
+(`startRecordedEngine` of `@miragon/pulse-http/testing/loopback`) and must build exactly that board,
+so a board shows the same numbers on every surface without an engine. A request the runtime
+changes misses its answer and is named; the answers are then recorded again from the seeded world.
+
 ## Help and feedback
 
 - **Documentation:** the Pulse servers, CLI and modules built on these rules are explained at [miragon.github.io/pulse](https://miragon.github.io/pulse/).
