@@ -5,8 +5,9 @@
  * modules, each recorded once through the module registry, the views primed once after the last
  * one; the request log first of all routes, metrics before the others (hono only counts later
  * routes), then the Host/Origin guard, then health (reachable by IP-addressed probes), fonts
- * behind the guard, the web app's sign-in under `/app` (only with `MCP_WEB_CLIENT_ID` beside an
- * OAuth provider), `/mcp` (the OAuth gate, then the MCP handler) last. `listen()` serves it all
+ * behind the guard, the web app under `/app`, its sign-in and the web build read once at boot (only
+ * with `MCP_WEB_CLIENT_ID` beside an OAuth provider), `/mcp` (the OAuth gate, then the MCP handler)
+ * last. `listen()` serves it all
  * through the listener, so a target that is not its own normal form gets 404, a TRACE 405 and a
  * body over the cap 413 before any of them.
  */
@@ -44,6 +45,7 @@ import { viewPrelude } from "./protocol/view-name.js"
 import { labelBootError } from "./boot-error.js"
 import { installWebSignIn } from "./web/install.js"
 import { describeWebSettings, readWebSettings, WEB_ENV_VARS } from "./web/settings.js"
+import { readWebBuild } from "./web/static.js"
 
 /** What the server reports as `serverInfo` (plus the `instructions` it advertises). */
 export interface ComposedServerInfo {
@@ -71,6 +73,11 @@ export interface ComposedServerOptions<TShared extends object = object> {
   envVarHint?: string
   /** Installed INSTEAD of the provider the env names (a test's stub IdP). Production omits it. */
   oauth?: OAuthProvider
+  /**
+   * The web app's build, served under `/app` once `MCP_WEB_CLIENT_ID` turns the web app on:
+   * `index.html`, `pages.json` (its page routes) and `assets/`. `MCP_WEB_DIR` overrides `dir`.
+   */
+  web?: { dir: string }
 }
 
 export interface ListenOptions {
@@ -252,9 +259,17 @@ function resolveSelection<TShared extends object>(
   const edge = resolveHttpEdgePolicy(env)
   const oauth = options.oauth ?? oauthFromEnv(env, label)
   const resource = oauthResource(oauth, env, label)
-  const webSettings = readWebSettings(env, { provider: oauth, mcpUrl: env.MCP_URL })
-  // readWebSettings refuses a web app without a provider, so `oauth` is set beside its settings.
-  const web = webSettings && oauth && { settings: webSettings, provider: oauth }
+  const webSettings = readWebSettings(env, {
+    provider: oauth,
+    mcpUrl: env.MCP_URL,
+    dir: options.web?.dir,
+  })
+  // readWebSettings refuses a web app without a provider, so `oauth` is set beside its settings;
+  // the build is read now, so a missing one fails the boot before a line reads like a healthy one.
+  const web =
+    webSettings && oauth
+      ? { settings: webSettings, provider: oauth, build: readWebBuild(webSettings.dir) }
+      : undefined
   // The same test `createServer` installs OAuth on: a boot is authenticated only with the bearer gate.
   const boot = composition.resolveBoot(env, { authenticated: Boolean(oauth) })
   composition.emitBootWarnings(env)

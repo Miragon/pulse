@@ -1,10 +1,12 @@
 /**
- * The web app's sign-in on the boot's HTTP app: login, callback, logout, the session route and the
- * page's calls under `/app`, behind the HTTP edge guard, through the server's own OAuth provider as
- * a confidential client (`MCP_WEB_*`). The boot installs it only beside a provider, so the identity
- * of a web session comes from where every caller's does: a token the gate in front of `/mcp`
- * verifies, which a page's call reaches `/mcp` with in-process (forward.ts). In front of the routes
- * stands the separation of the two credentials (separation.ts).
+ * The web app on the boot's HTTP app: its sign-in (login, callback, logout, the session route), the
+ * page's calls and the web build's pages and assets (static.ts) under `/app`, behind the HTTP edge
+ * guard, through the server's own OAuth provider as a confidential client (`MCP_WEB_*`). The boot
+ * installs it only beside a provider, so the identity of a web session comes from where every
+ * caller's does: a token the gate in front of `/mcp` verifies, which a page's call reaches `/mcp`
+ * with in-process (forward.ts). In front of the routes stands the separation of the two credentials
+ * (separation.ts); every answer under `/app` carries the security headers (security-headers.ts) and
+ * is `no-store` unless it names a cache policy of its own (an asset).
  */
 import type { Platform } from "@miragon/pulse-http"
 import type { McpHttpApp } from "../mcp-server.js"
@@ -17,11 +19,13 @@ import { metadataSource } from "./discovery.js"
 import { callRoute, type McpTarget } from "./forward.js"
 import { loginRoute } from "./login.js"
 import { logoutRoute } from "./logout.js"
-import { isNoPage } from "./return-path.js"
+import { isUnder } from "./return-path.js"
 import { createSealer } from "./seal.js"
+import { webSecurityHeaders } from "./security-headers.js"
 import { separationRefusal, type McpEndpoint } from "./separation.js"
 import { sessionRoute } from "./session-route.js"
 import type { WebSettings } from "./settings.js"
+import { installWebBuild, type WebBuild } from "./static.js"
 
 /** What a provider that names no web client of its own signs in with. */
 const OPENID_ONLY: OAuthWebClient = { scopes: ["openid"] }
@@ -42,6 +46,8 @@ export interface WebSignInOptions {
   readonly resource: URL
   /** Prefixes the lines the sign-in logs. */
   readonly label: string
+  /** The web build the boot read from `settings.dir`. */
+  readonly build: WebBuild
 }
 
 const PLATFORM: Platform = {
@@ -50,7 +56,7 @@ const PLATFORM: Platform = {
 }
 
 export function installWebSignIn(app: McpHttpApp, options: WebSignInOptions): void {
-  const { settings, provider, resource, label } = options
+  const { settings, provider, resource, label, build } = options
   const { issuer } = provider.oauthMetadata
   const log = (line: string): void => console.warn(`[${label}] ${line}`)
   const ctx: WebContext = {
@@ -65,13 +71,16 @@ export function installWebSignIn(app: McpHttpApp, options: WebSignInOptions): vo
     log,
   }
   const mcp: McpEndpoint = { path: app.basePath, challenge: gateChallenge(provider, resource) }
-  // Every answer of a route that is no page (the sign-in's, the API's) is no-store, a 404 too.
+  const secured = Object.entries(webSecurityHeaders(settings.origin))
   app.use("*", async (c, next) => {
     const { path } = c.req
     const refused = separationRefusal(path, c.req.raw.headers, mcp)
-    if (refused !== undefined) return refused
-    await next()
-    if (isNoPage(path)) c.header("cache-control", "no-store")
+    if (refused === undefined) await next()
+    else c.res = refused
+    if (!isUnder(path, WEB_PATHS.app)) return
+    for (const [name, value] of secured) c.header(name, value)
+    // A 404 too: only an asset, whose name carries its hash, may be kept.
+    if (!c.res.headers.has("cache-control")) c.header("cache-control", "no-store")
   })
   const login = loginRoute(ctx)
   const callback = callbackRoute(ctx)
@@ -83,6 +92,7 @@ export function installWebSignIn(app: McpHttpApp, options: WebSignInOptions): vo
   app.post(WEB_PATHS.logout, (c) => logout(c.req.raw))
   app.get(WEB_PATHS.session, (c) => session(c.req.raw))
   app.post(WEB_PATHS.call, (c) => call(c.req.raw))
+  installWebBuild(app, build, ctx)
 }
 
 /** `/mcp` of this app as a page's call reaches it: in-process, at `MCP_URL`'s host. */

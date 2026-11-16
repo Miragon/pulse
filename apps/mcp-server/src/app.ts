@@ -31,6 +31,11 @@ export interface AppDeps {
   bundle?: { jsPath: string; cssPath?: string }
   /** The composition; default: `MODULES`. The host simulation adds a module's own view to it. */
   modules?: readonly ModuleDefinition[]
+  /**
+   * The web app's build, served under `/app` once `MCP_WEB_CLIENT_ID` is set (`MCP_WEB_DIR`
+   * overrides it); default: the package's `web/`, which the server image fills.
+   */
+  webDir?: string
 }
 
 /** The one boot `src/index.ts` (production and `pnpm dev`) and the e2e suites share. */
@@ -55,5 +60,6 @@ export async function createApp(
       jsPath: path.join(PACKAGE_ROOT, "dist", "mcp-app.js"),
       cssPath: path.join(PACKAGE_ROOT, "dist", "mcp-app.css"),
     },
+    web: { dir: deps.webDir ?? path.join(PACKAGE_ROOT, "web") },
   })
 }

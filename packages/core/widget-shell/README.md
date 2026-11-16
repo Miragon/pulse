@@ -60,7 +60,7 @@ variables only; the widgets follow the host's theme, then the OS.
 
 | Part           | Entry            | What you get                                                                                                                                                                                                                                               |
 | -------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Server boot    | `./server`       | `createComposedServer` and `runComposedServer`: module selection (`MCP_ACTIVE_MODULES`, `module:toolset`), OAuth from `MCP_OAUTH_*`, the web sign-in (`MCP_WEB_*`), the Host/Origin guard, `/mcp`, `/health/*`, `/metrics`, the served fonts               |
+| Server boot    | `./server`       | `createComposedServer` and `runComposedServer`: module selection (`MCP_ACTIVE_MODULES`, `module:toolset`), OAuth from `MCP_OAUTH_*`, the web app under `/app` (`MCP_WEB_*`), the Host/Origin guard, `/mcp`, `/health/*`, `/metrics`, the served fonts      |
 | Module port    | `./server`       | `ComposableModule`, `ModulePlugin`, `ModuleEntry`, `ModuleServer` (the official SDK's `registerTool`/`registerPrompt`/`registerResource`), `createToolsetVocabulary` for toolsets that fail closed                                                         |
 | Tool authoring | `./server`       | The registrar (`createToolRegistrar`, `withToolErrors`), `showToolBinding`, `OwnViewBinding`, `AppResourceCsp`, `appOnly`, `forViews`, `strictToolInput`, `buildViewResult`, `buildDataFeedResult`, `decodeToolResult`, `createTranslator`                 |
 | Server helpers | `./server`       | The BPMN-name readers (`readBpmnNames`, `parseBpmnNames`), the per-caller request info (`callerCacheKey`, `getMcpRequestInfo`, `runWithMcpRequestInfo`), `composedEnvVars`, `viewResourceUri`, `viewPrelude`                                               |
@@ -119,28 +119,32 @@ mountPage(engineViews, {
 The MCP bundle never carries it: tree-shaking leaves `mountPage` out of a bundle that mounts
 with `mountViews`.
 
-## The web app's sign-in
+## The web app
 
-Beside an OAuth provider, `MCP_WEB_CLIENT_ID` turns on a web app's sign-in under `/app`, behind
-the Host/Origin guard: people sign in through the server's own provider as a confidential client
-(the code flow with PKCE S256, the state and RFC 9207's `iss` checked before the provider is asked
-anything), and the access token must pass the gate in front of `/mcp` before the session keeps
-it. The session lives in a sealed `__Host-pulse-session` cookie (HttpOnly, Secure, SameSite=Lax,
+Beside an OAuth provider, `MCP_WEB_CLIENT_ID` turns on a web app under `/app` with its sign-in,
+behind the Host/Origin guard: people sign in through the server's own provider as a confidential
+client (the code flow with PKCE S256, the state and RFC 9207's `iss` checked before the provider is
+asked anything), and the access token must pass the gate in front of `/mcp` before the session
+keeps it. The session lives in a sealed `__Host-pulse-session` cookie (HttpOnly, Secure, SameSite=Lax,
 at most three chunks), never on the server, so every replica built with the same keys serves it.
 
-| Route                    | What it does                                                                                                                                                       |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `GET /app/auth/login`    | Starts a sign-in (`?return=` a page under `/app` to come back to) with the provider's web scopes and the gate's resource (RFC 8707)                                |
-| `GET /app/auth/callback` | Checks the callback, exchanges the code, starts a new session (a new id and CSRF secret), returns to the page; a failure goes to `/app/signed-out?reason=<reason>` |
-| `POST /app/auth/logout`  | Takes the page's CSRF token, revokes the refresh token, clears the cookies and names where to go: the provider's end of the session, else `/app/signed-out`        |
-| `GET /app/api/session`   | The signed-in name, the CSRF token and the session's end; `401` with `signed_out` without one                                                                      |
-| `POST /app/api/call`     | A page's call of a server tool (`{ name, arguments }`, JSON, at most 64 KiB, with the CSRF token), forwarded to `/mcp` with the session's token; `{ result }`      |
+| Route                                    | What it does                                                                                                                                                       |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /app/auth/login`                    | Starts a sign-in (`?return=` a page under `/app` to come back to) with the provider's web scopes and the gate's resource (RFC 8707)                                |
+| `GET /app/auth/callback`                 | Checks the callback, exchanges the code, starts a new session (a new id and CSRF secret), returns to the page; a failure goes to `/app/signed-out?reason=<reason>` |
+| `POST /app/auth/logout`                  | Takes the page's CSRF token, revokes the refresh token, clears the cookies and names where to go: the provider's end of the session, else `/app/signed-out`        |
+| `GET /app/api/session`                   | The signed-in name, the CSRF token and the session's end; `401` with `signed_out` without one                                                                      |
+| `POST /app/api/call`                     | A page's call of a server tool (`{ name, arguments }`, JSON, at most 64 KiB, with the CSRF token), forwarded to `/mcp` with the session's token; `{ result }`      |
+| `GET /app` and each page of `pages.json` | The build's page (below), `no-store`; without a session a 302 to `/app/auth/login` with the page and its query to return to                                        |
+| `GET /app/signed-out`                    | The build's page without a session, `no-store`                                                                                                                     |
+| `GET /app/assets/*`                      | The build's assets at the path a browser requests for each name, immutable for a year                                                                              |
 
-A provider, `MCP_URL` (https, or http on localhost), `MCP_WEB_CLIENT_SECRET` and
+A provider, `MCP_URL` (https, or http on localhost), `MCP_WEB_CLIENT_SECRET`,
 `MCP_WEB_SESSION_KEYS` (comma-separated base64url keys of at least 32 bytes; the first seals,
-every one opens) are required beside the client id; `MCP_WEB_SESSION_HOURS` is optional (8 by
-default, at most 24). The secret, the keys or the hours without the client id fail the boot too, so
-the web app is never off unseen; `MCP_WEB_DIR` may stand alone. The sign-in asks each provider for its
+every one opens) and a web build (below) are required beside the client id;
+`MCP_WEB_SESSION_HOURS` is optional (8 by default, at most 24). The secret, the keys or the hours
+without the client id fail the boot too, so the web app is never off unseen; `MCP_WEB_DIR` may
+stand alone. The sign-in asks each provider for its
 own scopes: Keycloak `openid profile` (no offline token), Auth0 also `offline_access` and the
 resource as `audience`, WorkOS, Better Auth and Convex `openid profile email offline_access`, and a
 provider of a root's own `openid` unless its `web` names others; it asks for a provider's
@@ -148,6 +152,21 @@ provider of a root's own `openid` unless its `web` names others; it asks for a p
 request that carries the session cookie with the gate's 401 and its Bearer challenge, and every
 route under `/app` answers 400 to one that carries an Authorization header. `@miragon/pulse-widget-shell/testing/oidc` is the identity provider a
 server's own sign-in tests run against.
+
+The web app's pages come from its build, which the root names with `createComposedServer`'s
+`web: { dir }` (`MCP_WEB_DIR` overrides it) and the boot reads once, so no request touches the file
+system: `index.html`, the page; `pages.json`, `{ "pages": [...] }`, the routes that show it as
+router patterns (`/app` itself, then lowercase words and `:params`, never under a route of the
+server's own in `WEB_PATHS`: `/app/auth`, `/app/api`, `/app/assets`, `/app/signed-out`), so
+widget-shell knows no app's routes; and `assets/`, served under `/app/assets/` at the path a
+browser requests for each name. A link out of the folder, a build without `index.html`,
+`pages.json` or a page `/app` fails the boot. The table above names what each route of the build
+answers; anything else under `/app` is 404. Every answer under `/app` carries the page's Content
+Security Policy (`default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src
+'self' data:; font-src 'self'; connect-src 'self'; form-action 'none'; frame-ancestors 'none';
+base-uri 'none'`), `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, the
+same-origin `Cross-Origin-Opener-Policy` and `Cross-Origin-Resource-Policy`, and on an https
+`MCP_URL` `Strict-Transport-Security` for a year, without `includeSubDomains`.
 
 A page's call goes in-process to `/mcp` as one `tools/call` with the session's bearer token and
 exactly the headers an MCP client sends, so the edge guard, the OAuth gate, the caller's identity,

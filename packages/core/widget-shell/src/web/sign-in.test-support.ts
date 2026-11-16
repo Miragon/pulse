@@ -10,6 +10,7 @@ import type { McpHttpApp } from "../mcp-server.js"
 import { gateTokenCheck } from "../oauth-gate.js"
 import { oauthKeycloakProvider } from "../oauth-providers.js"
 import { FAKE_OIDC_CLIENT, type FakeOidc } from "../testing/oidc/index.js"
+import { FIXTURE_BUILD } from "./build.test-support.js"
 import type { WebContext } from "./context.js"
 import { metadataSource } from "./discovery.js"
 import { createSealer } from "./seal.js"
@@ -26,7 +27,10 @@ const PLATFORM: Platform = {
   now: () => Date.now(),
 }
 
-/** The variables of a server whose web app signs in at `fake` as its confidential client. */
+/**
+ * The variables of a server whose web app signs in at `fake` as its confidential client and serves
+ * the fixture build.
+ */
 export const webEnv = (fake: FakeOidc, extra: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv => ({
   MCP_URL: ORIGIN,
   MCP_OAUTH_KEYCLOAK_SERVER_URL: fake.serverUrl,
@@ -34,6 +38,7 @@ export const webEnv = (fake: FakeOidc, extra: NodeJS.ProcessEnv = {}): NodeJS.Pr
   MCP_WEB_CLIENT_ID: FAKE_OIDC_CLIENT.id,
   MCP_WEB_CLIENT_SECRET: FAKE_OIDC_CLIENT.secret,
   MCP_WEB_SESSION_KEYS: SESSION_KEYS,
+  MCP_WEB_DIR: FIXTURE_BUILD,
   ...extra,
 })
 
@@ -130,6 +135,7 @@ export function webContext(fake: FakeOidc, overrides: Partial<WebContext> = {}) 
       clientSecret: String(FAKE_OIDC_CLIENT.secret),
       sessionKeys: [KEY],
       sessionHours: 8,
+      dir: FIXTURE_BUILD,
       origin: ORIGIN,
     },
     sealer: createSealer([KEY]),

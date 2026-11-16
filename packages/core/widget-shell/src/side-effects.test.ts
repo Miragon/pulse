@@ -76,8 +76,10 @@ describe("the /widgets barrel tree-shakes", () => {
   }, 30_000)
 
   it("ships no stylesheet and no bare import, which false would let a bundler drop", () => {
-    // Either needs an entry in "sideEffects" first.
-    const files = readdirSync(here, { recursive: true, encoding: "utf8" })
+    // Either needs an entry in "sideEffects" first. A test-support folder ships not ("files").
+    const files = readdirSync(here, { recursive: true, encoding: "utf8" }).filter(
+      (file) => !file.split(/[\\/]/).includes("test-support"),
+    )
     expect(files.filter((file) => file.endsWith(".css"))).toEqual([])
     const bare = files.filter(
       (file) =>

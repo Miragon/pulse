@@ -30,6 +30,7 @@ describe("the web app's paths", () => {
     ])
     expect([WEB_PATHS.session, WEB_PATHS.call]).toEqual(["/app/api/session", "/app/api/call"])
     expect(WEB_PATHS.signedOut).toBe("/app/signed-out")
+    expect(WEB_PATHS.assets).toBe("/app/assets")
   })
 })
 

@@ -75,6 +75,10 @@ export function json(status: number, body: unknown, setCookies: readonly string[
 export const signedOutPage = (reason: SignedOutReason): string =>
   `${WEB_PATHS.signedOut}?${WEB_QUERY.reason}=${reason}`
 
+/** The login route, which returns to `returnTo` (a target the return path's rule let through). */
+export const loginPage = (returnTo: string): string =>
+  `${WEB_PATHS.login}?${new URLSearchParams({ [WEB_QUERY.returnTo]: returnTo }).toString()}`
+
 /** The answer to a request without a session. */
 export const SIGNED_OUT: WebRefusal = {
   code: WEB_CODES.signedOut,

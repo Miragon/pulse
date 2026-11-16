@@ -122,14 +122,13 @@ describe("the separation of the session cookie and the bearer token", () => {
     expect(response.status).toBe(404)
   })
 
-  it("answers every route of the sign-in and the API no-store, a 404 included", async () => {
+  it("answers every route under /app that names no cache policy no-store, a 404 included", async () => {
     const browser = new Browser(await bootWeb(webEnv(fake)))
-    for (const path of ["/app/api/nothing", "/app/auth/nothing", "/app/auth"]) {
+    for (const path of ["/app/api/nothing", "/app/auth/nothing", "/app/auth", "/app/nothing"]) {
       const response = await browser.fetch(path)
       expect(response.status, path).toBe(404)
       expect(response.headers.get("cache-control"), path).toBe("no-store")
     }
-    expect((await browser.fetch("/app/nothing")).headers.get("cache-control")).toBeNull()
   })
 
   it("installs nothing without MCP_WEB_CLIENT_ID: no /app, and /mcp as before", async () => {

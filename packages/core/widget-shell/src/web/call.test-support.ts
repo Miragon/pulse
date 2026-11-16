@@ -7,6 +7,7 @@ import type { Platform } from "@miragon/pulse-http"
 import type { ServerMetadata } from "@miragon/pulse-http/oauth"
 import { stubOAuth } from "../composed-server.test-support.js"
 import { gateTokenCheck } from "../oauth-gate.js"
+import { FIXTURE_BUILD } from "./build.test-support.js"
 import type { WebContext } from "./context.js"
 import { SESSION_COOKIE } from "./cookies.js"
 import { callRoute, type McpTarget, type RecordedToolConfig } from "./forward.js"
@@ -67,6 +68,7 @@ export function callContext(
       clientSecret: "pulse-web-secret",
       sessionKeys: [KEY],
       sessionHours: 8,
+      dir: FIXTURE_BUILD,
       origin: ORIGIN,
     },
     sealer: createSealer([KEY]),

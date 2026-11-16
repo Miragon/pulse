@@ -129,17 +129,23 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   them, one refresh per refresh token at a time, its outcome kept 30 s; a refused refresh ends the
   session). `discovery.ts` reads the provider's metadata on the first sign-in and holds it
   for an hour; `separation.ts` keeps the session cookie off `/mcp` (the gate's 401 and challenge,
-  `gateChallenge`) and a bearer off `/app` (400), and `installWebSignIn` answers the sign-in's and
-  the API's routes `no-store` (`isNoPage`, the return path's list of them). It sends through
-  `@miragon/pulse-http/oauth` and imports the transport's main entry by type alone
+  `gateChallenge`) and a bearer off `/app` (400), and `installWebSignIn` answers every route under
+  `/app` with the headers of `security-headers.ts` (the page's CSP, nosniff, no referrer, COOP and
+  CORP same-origin, HSTS on an https `MCP_URL`), `no-store` unless the answer names a cache policy
+  of its own. `static.ts` reads the web build once at boot (`readWebBuild`: regular files inside
+  the folder, a link out fails the boot, `pages.json`'s page routes checked, each asset keyed by the
+  path a browser requests for its name) and serves it (`installWebBuild`: the assets immutable, the
+  signed-out page, each page behind the sign-in, which returns to it with its query). The sign-in
+  sends through `@miragon/pulse-http/oauth` and imports the transport's main entry by type alone
   (`widget-shell-web-by-the-oauth-entry`). Its rules: `readWebSettings` reads the
   `MCP_WEB_*` variables (`MCP_WEB_CLIENT_ID` turns the web app on; it needs the server's OAuth
-  provider, a client secret, session keys of at least 32 bytes and an https `MCP_URL`, plain http
-  only on localhost) and logs one line without a secret; `createSealer` seals a cookie's value as a
-  compact JWE (`dir`, `A256GCM` on jose), each key derived by HKDF-SHA256 with its own key id, the
-  first key sealing and every key opening, the cookie's name in the authenticated header and an
-  absolute expiry that `reseal` keeps; `cookies.ts` writes the `__Host-` session cookie in at most
-  three chunks of 3,800 bytes (a larger session is a failure of its own, stale chunks are cleared)
+  provider, a client secret, session keys of at least 32 bytes, an https `MCP_URL`, plain http
+  only on localhost, and a web build's folder, the root's `web.dir` or `MCP_WEB_DIR`) and logs
+  one line without a secret; `createSealer` seals a cookie's value as a compact JWE (`dir`,
+  `A256GCM` on jose), each key derived by HKDF-SHA256 with its own key id, the first key sealing
+  and every key opening, the cookie's name in the authenticated header and an absolute expiry
+  that `reseal` keeps; `cookies.ts` writes the `__Host-` session cookie in at most three chunks of
+  3,800 bytes (a larger session is a failure of its own, stale chunks are cleared)
   and the login cookie for ten minutes, both HttpOnly, Secure, SameSite=Lax on `/`;
   `returnTarget` keeps a sign-in's return on the app's pages (a path under `/app` in its normal
   form, never under `/app/auth` or `/app/api`, the query written again, at most 1,024 characters); `csrfRefusal` checks `Sec-Fetch-Site`, the

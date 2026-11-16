@@ -13,14 +13,30 @@ const ON = {
   MCP_WEB_SESSION_KEYS: KEY,
 }
 const MCP_URL = "https://pulse.example.test"
+/** The folder of the web build the root names. */
+const ROOT_DIR = "/srv/pulse/web"
 
-/** `mcpUrl` null: MCP_URL unset. */
-const read = (env: NodeJS.ProcessEnv, mcpUrl: string | null = MCP_URL, oauth = true) =>
-  readWebSettings(env, { provider: oauth ? provider : undefined, mcpUrl: mcpUrl ?? undefined })
+/** `mcpUrl` null: MCP_URL unset; `dir` null: the root names no web build. */
+const read = (
+  env: NodeJS.ProcessEnv,
+  mcpUrl: string | null = MCP_URL,
+  oauth = true,
+  dir: string | null = ROOT_DIR,
+) =>
+  readWebSettings(env, {
+    provider: oauth ? provider : undefined,
+    mcpUrl: mcpUrl ?? undefined,
+    dir: dir ?? undefined,
+  })
 
-const refusal = (env: NodeJS.ProcessEnv, mcpUrl: string | null = MCP_URL, oauth = true): string => {
+const refusal = (
+  env: NodeJS.ProcessEnv,
+  mcpUrl: string | null = MCP_URL,
+  oauth = true,
+  dir: string | null = ROOT_DIR,
+): string => {
   try {
-    read(env, mcpUrl, oauth)
+    read(env, mcpUrl, oauth, dir)
   } catch (error) {
     return (error as Error).message
   }
@@ -56,14 +72,26 @@ describe("readWebSettings", () => {
       clientSecret: SECRET,
       sessionKeys: [new Uint8Array(32).fill(7), new Uint8Array(48).fill(9)],
       sessionHours: 8,
+      dir: ROOT_DIR,
       origin: "https://pulse.example.test:8443",
     })
   })
 
-  it("takes whole session hours from 1 to 24 and the web build's folder", () => {
+  it("takes whole session hours from 1 to 24", () => {
     expect(read({ ...ON, MCP_WEB_SESSION_HOURS: "1" })?.sessionHours).toBe(1)
     expect(read({ ...ON, MCP_WEB_SESSION_HOURS: " 24 " })?.sessionHours).toBe(24)
+  })
+
+  it("serves the web build the root names, unless MCP_WEB_DIR names another", () => {
+    expect(read(ON)?.dir).toBe(ROOT_DIR)
     expect(read({ ...ON, MCP_WEB_DIR: " /srv/web " })?.dir).toBe("/srv/web")
+    expect(read({ ...ON, MCP_WEB_DIR: "/srv/web" }, MCP_URL, true, null)?.dir).toBe("/srv/web")
+  })
+
+  it("refuses a client id without a web build, when neither the root nor MCP_WEB_DIR names one", () => {
+    expect(refusal({ ...ON, MCP_WEB_DIR: " " }, MCP_URL, true, null)).toBe(
+      "MCP_WEB_CLIENT_ID is set, but no web build is named: set MCP_WEB_DIR to the folder the web app was built into.",
+    )
   })
 
   it("serves plain http on the machine itself only", () => {
@@ -156,7 +184,7 @@ describe("describeWebSettings", () => {
     const two = read({ ...ON, MCP_WEB_SESSION_KEYS: `${KEY},${OLD_KEY}`, MCP_WEB_DIR: "/srv/web" })
     if (one === undefined || two === undefined) throw new Error("expected settings")
     expect(describeWebSettings(one)).toBe(
-      "Web app: on at https://pulse.example.test/app for client pulse-web; sessions last 8 h; 1 session key.",
+      "Web app: on at https://pulse.example.test/app for client pulse-web; sessions last 8 h; 1 session key; web build from /srv/pulse/web.",
     )
     expect(describeWebSettings(two)).toBe(
       "Web app: on at https://pulse.example.test/app for client pulse-web; sessions last 8 h; 2 session keys (the first seals); web build from /srv/web.",

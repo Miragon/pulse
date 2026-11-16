@@ -1,9 +1,9 @@
 /**
  * The web app's settings (`MCP_WEB_*`), read once at boot. `MCP_WEB_CLIENT_ID` turns the web app
  * on: it signs people in through the server's own OAuth provider as a confidential client, keeps
- * the session in a cookie sealed with `MCP_WEB_SESSION_KEYS` and returns them to `MCP_URL`. A
- * setting that cannot work fails the boot with what to do, and no message ever quotes a secret or
- * a key.
+ * the session in a cookie sealed with `MCP_WEB_SESSION_KEYS`, returns them to `MCP_URL` and serves
+ * the web build in `MCP_WEB_DIR`, else in the folder the root names. A setting that cannot work
+ * fails the boot with what to do, and no message ever quotes a secret or a key.
  */
 import type { OAuthProvider } from "../oauth-providers.js"
 import { isLocalhost } from "../oauth-shared.js"
@@ -30,8 +30,8 @@ export interface WebSettings {
   readonly sessionKeys: readonly Uint8Array[]
   /** The absolute lifetime of a session, from its sign-in. */
   readonly sessionHours: number
-  /** Where the web build lies, when `MCP_WEB_DIR` names it. */
-  readonly dir?: string
+  /** The folder of the web build the app serves: `MCP_WEB_DIR`, else the one the root names. */
+  readonly dir: string
   /** `MCP_URL`'s origin: where the browser reaches the app, its sign-in returns and CSRF checks. */
   readonly origin: string
 }
@@ -122,15 +122,23 @@ function originOf(mcpUrl: string | undefined): string {
   return url.origin
 }
 
+/** What the boot hands the settings besides the env. */
+export interface WebSettingsSources {
+  readonly provider: OAuthProvider | undefined
+  readonly mcpUrl: string | undefined
+  /** The folder of the web build the root names, which `MCP_WEB_DIR` overrides. */
+  readonly dir?: string
+}
+
 /**
  * The web app's settings, or `undefined` when `MCP_WEB_CLIENT_ID` leaves it off. Fails when the
- * client id comes without an OAuth provider, a client secret, session keys or `MCP_URL`, when a
- * key is short, when the session hours lie outside 1 to 24, and when `MCP_URL` is plain http off
- * the machine itself.
+ * client id comes without an OAuth provider, a client secret, session keys, a web build's folder
+ * or `MCP_URL`, when a key is short, when the session hours lie outside 1 to 24, and when
+ * `MCP_URL` is plain http off the machine itself.
  */
 export function readWebSettings(
   env: NodeJS.ProcessEnv,
-  { provider, mcpUrl }: { provider: OAuthProvider | undefined; mcpUrl: string | undefined },
+  { provider, mcpUrl, dir: rootDir }: WebSettingsSources,
 ): WebSettings | undefined {
   const clientId = valueOf(env, "MCP_WEB_CLIENT_ID")
   if (clientId === undefined) {
@@ -155,13 +163,19 @@ export function readWebSettings(
       `the session cookie is sealed with them. Set ${KEY_HINT}.`,
     ),
   )
-  const dir = valueOf(env, "MCP_WEB_DIR")
+  const dir = valueOf(env, "MCP_WEB_DIR") ?? rootDir
+  if (dir === undefined) {
+    throw new Error(
+      "MCP_WEB_CLIENT_ID is set, but no web build is named: set MCP_WEB_DIR to the folder the " +
+        "web app was built into.",
+    )
+  }
   return {
     clientId,
     clientSecret,
     sessionKeys,
     sessionHours: sessionHoursOf(valueOf(env, "MCP_WEB_SESSION_HOURS")),
-    ...(dir === undefined ? {} : { dir }),
+    dir,
     origin: originOf(mcpUrl),
   }
 }
@@ -171,7 +185,7 @@ export function describeWebSettings(settings: WebSettings): string {
   const keys = settings.sessionKeys.length
   return (
     `Web app: on at ${settings.origin}/app for client ${settings.clientId}; sessions last ` +
-    `${settings.sessionHours} h; ${keys} session ${keys === 1 ? "key" : "keys (the first seals)"}` +
-    `${settings.dir === undefined ? "" : `; web build from ${settings.dir}`}.`
+    `${settings.sessionHours} h; ${keys} session ${keys === 1 ? "key" : "keys (the first seals)"}; ` +
+    `web build from ${settings.dir}.`
   )
 }

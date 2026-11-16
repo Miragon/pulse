@@ -20,11 +20,8 @@ const NO_PAGE = [`${WEB_PATHS.app}/auth`, `${WEB_PATHS.app}/api`]
 export const isUnder = (path: string, root: string): boolean =>
   path === root || path.startsWith(`${root}/`)
 
-/**
- * Whether `path` lies under a route of `/app` that is no page, the sign-in's or the API's: no
- * sign-in returns there, and none of their answers is stored.
- */
-export const isNoPage = (path: string): boolean => NO_PAGE.some((root) => isUnder(path, root))
+/** Whether `path` lies under a route of `/app` that is no page, the sign-in's or the API's. */
+const isNoPage = (path: string): boolean => NO_PAGE.some((root) => isUnder(path, root))
 
 const isUnderApp = (path: string): boolean => isUnder(path, WEB_PATHS.app) && !isNoPage(path)
 

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest"
 import { oauthKeycloakProvider } from "../oauth-providers.js"
 import { startFakeOidc, type FakeOidc } from "../testing/oidc/index.js"
+import { FIXTURE_BUILD } from "./build.test-support.js"
 import { bootWeb, Browser, RESOURCE, SESSION_KEYS, signIn, webEnv } from "./sign-in.test-support.js"
 
 let fake: FakeOidc
@@ -32,7 +33,7 @@ describe("the boot and the web app", () => {
     await bootWeb(webEnv(fake))
     const lines = info.mock.calls.map(([line]) => String(line))
     expect(lines).toContain(
-      "[web-test] Web app: on at http://localhost/app for client pulse-web; sessions last 8 h; 1 session key.",
+      `[web-test] Web app: on at http://localhost/app for client pulse-web; sessions last 8 h; 1 session key; web build from ${FIXTURE_BUILD}.`,
     )
     expect(lines.join("\n")).not.toContain(SESSION_KEYS)
     expect(lines.join("\n")).not.toContain("pulse-web-secret")

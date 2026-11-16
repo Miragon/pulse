@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises"
 import http from "node:http"
 import type { AddressInfo } from "node:net"
 import path from "node:path"
@@ -21,6 +22,7 @@ import { postToolCall } from "./realm.js"
  */
 
 const FIXTURE_JS = path.join(import.meta.dirname, "fixtures", "mcp-app.js")
+const FIXTURE_WEB = path.join(import.meta.dirname, "fixtures", "web")
 const ORIGIN = "http://localhost"
 const XML = '<?xml version="1.0"?><definitions id="d"/>'
 
@@ -76,7 +78,7 @@ function boot(): Promise<ComposedServer> {
       profiles: { prod: profile, ro: { ...profile, readOnly: true } },
     }),
   })
-  return createApp(process.env, { bundle: { jsPath: FIXTURE_JS } })
+  return createApp(process.env, { bundle: { jsPath: FIXTURE_JS }, webDir: FIXTURE_WEB })
 }
 
 /** A browser of the app's page: its cookies, its CSRF token, its calls. */
@@ -244,5 +246,22 @@ describe("a page's calls through the real server", () => {
       }),
     )
     expect(withBearer.status).toBe(400)
+  })
+})
+
+describe("the web build the root names", () => {
+  it("shows its page behind the sign-in, with the security headers of /app", async () => {
+    const page = new Page(await boot())
+    const signedOut = await page.fetch("/app/cockpit?view=jobs")
+    expect(signedOut.status).toBe(302)
+    expect(signedOut.headers.get("location")).toBe(
+      "/app/auth/login?return=%2Fapp%2Fcockpit%3Fview%3Djobs",
+    )
+    await page.signIn()
+    const shown = await page.fetch("/app/cockpit?view=jobs")
+    expect(shown.status).toBe(200)
+    expect(await shown.text()).toBe(await readFile(path.join(FIXTURE_WEB, "index.html"), "utf8"))
+    expect(shown.headers.get("cache-control")).toBe("no-store")
+    expect(shown.headers.get("content-security-policy")).toMatch(/^default-src 'none'; /)
   })
 })

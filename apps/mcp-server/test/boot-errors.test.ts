@@ -67,6 +67,25 @@ describe("the boot refuses a setting it cannot use, before it logs the toolsets"
     expect(info).not.toHaveBeenCalled()
   })
 
+  /** The image fills `web/` beside `dist/`; a checkout holds none. */
+  it("refuses the web app without its build, at the package's web folder by default", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {})
+    vi.spyOn(console, "warn").mockImplementation(() => {})
+    stubNeutralEnv({
+      MCP_URL: "http://localhost:8400",
+      MCP_OAUTH_KEYCLOAK_SERVER_URL: "http://localhost:8480",
+      MCP_OAUTH_KEYCLOAK_REALM: "miragon",
+      MCP_WEB_CLIENT_ID: "pulse-web",
+      MCP_WEB_CLIENT_SECRET: "change-me",
+      MCP_WEB_SESSION_KEYS: Buffer.alloc(32, 7).toString("base64url"),
+    })
+    const web = path.join(import.meta.dirname, "..", "web")
+    await expect(boot()).rejects.toThrow(
+      `MCP_WEB_CLIENT_ID is set, but ${web} holds no web build (no index.html and no pages.json): build the web app into it, or set MCP_WEB_DIR to the folder it was built into.`,
+    )
+    expect(info).not.toHaveBeenCalled()
+  })
+
   /** `bootWarnings` names the ids of a passthrough engine: only a profile the server took. */
   it("logs no secret of an engine setting in front of its error", async () => {
     const SECRET = "pl4nted-S3cret"

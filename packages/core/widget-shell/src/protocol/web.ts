@@ -6,7 +6,10 @@
  */
 import type { ToolResult } from "./tool-result.js"
 
-/** The routes of the web app: its sign-in, the page's API and the page a signed-out user sees. */
+/**
+ * The routes of the web app: its sign-in, the page's API, the page a signed-out user sees and the
+ * build's assets (its `assets` folder).
+ */
 export const WEB_PATHS = {
   app: "/app",
   login: "/app/auth/login",
@@ -15,6 +18,7 @@ export const WEB_PATHS = {
   session: "/app/api/session",
   call: "/app/api/call",
   signedOut: "/app/signed-out",
+  assets: "/app/assets",
 } as const
 
 /**

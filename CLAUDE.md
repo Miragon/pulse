@@ -1042,6 +1042,14 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      (with the other `MCP_WEB_*`) install the web app's sign-in under `/app` (widget-shell's
      `src/web`: login, callback, logout, the session route, a page's calls), behind the HTTP edge
      guard; without one the variable fails the boot, and no route under `/app` exists without it.
+     The boot then serves `/app` from the root's web build (`createComposedServer`'s `web: { dir }`,
+     `MCP_WEB_DIR` over it; `createApp` names the package's `web/`, which the image fills), read once
+     at boot (`src/web/static.ts`: regular files inside the folder, a link out or a build without
+     `index.html` or `pages.json` fails the boot), whose `pages.json` names its page routes, so
+     widget-shell knows no app's routes: a page needs a session (else 302 to the sign-in, which
+     returns to it with its query), `/app/signed-out` none, `assets/` is immutable, the page
+     `no-store`, anything else under `/app` 404, and every answer under `/app` carries the page's
+     CSP and security headers (`src/web/security-headers.ts`).
    - **The app composes, nothing more.** `setup.ts` holds `MODULES` and `sharedResources`, the
      `SharedResources` wiring: `shared` is the port for what the modules of a composition share
      (how a module gets another's capability, the engine module's engine access say, without
