@@ -39,10 +39,12 @@ import {
   checkReleaseExtraFiles,
   checkReleaseGate,
   checkRepo,
+  checkTemplatePinBumps,
   checkVscodePublish,
   expectedRepository,
   packageManagerRun,
   pluginManifests,
+  templatePackageFiles,
 } from "./check-github-config.mjs"
 import { isNpmPublished, readWorkspace } from "./workspace-packages.mjs"
 
@@ -1575,5 +1577,71 @@ describe("checkPluginVersions", () => {
       checkPluginVersions({ packages: { ".": { "extra-files": [] } } }, manifests)[0],
       /plugin\.json is missing from extra-files/,
     )
+  })
+})
+
+describe("checkTemplatePinBumps", () => {
+  const SERVER = "templates/composed-server/server/package.json"
+  const BLOCKS = "$.devDependencies['@miragon/pulse-blocks']"
+  const bump = (path, jsonpath) => ({ type: "json", path, jsonpath })
+  const config = (...entries) => ({ packages: { ".": { "extra-files": entries } } })
+  const server = {
+    file: SERVER,
+    manifest: {
+      dependencies: { "@miragon/pulse-widget-shell": "0.27.1", react: "19.3.1" },
+      devDependencies: { "@miragon/pulse-blocks": "0.27.1" },
+    },
+  }
+  const shellBump = bump(SERVER, "$.dependencies['@miragon/pulse-widget-shell']")
+
+  it("accepts the real config and reads every package.json under templates/", () => {
+    const realConfig = JSON.parse(
+      readFileSync(path.join(ROOT, "release-please-config.json"), "utf8"),
+    )
+    const manifests = templatePackageFiles(ROOT)
+    assert.ok(manifests.some(({ file }) => file === SERVER))
+    assert.deepEqual(checkTemplatePinBumps(realConfig, manifests), [])
+  })
+
+  it("accepts a pin whose exact jsonpath is in extra-files", () => {
+    assert.deepEqual(checkTemplatePinBumps(config(shellBump, bump(SERVER, BLOCKS)), [server]), [])
+  })
+
+  it("refuses a pin without its entry, naming the file and the jsonpath", () => {
+    const errors = checkTemplatePinBumps(config(shellBump), [server])
+    assert.equal(errors.length, 1)
+    assert.ok(errors[0].includes(`${SERVER} ${BLOCKS} is missing from extra-files`))
+  })
+
+  it("takes only the exact jsonpath of that file, as a json entry", () => {
+    const peer = {
+      file: "templates/composed-server/modules/mcp-notes/package.json",
+      manifest: { peerDependencies: { "@miragon/pulse-blocks": "^0.27.1" } },
+    }
+    const near = [
+      shellBump,
+      bump(peer.file, BLOCKS),
+      bump(SERVER, "$.devDependencies['@miragon/pulse-ui']"),
+      bump(SERVER, '$.devDependencies["@miragon/pulse-blocks"]'),
+      { type: "generic", path: SERVER, jsonpath: BLOCKS },
+    ]
+    const errors = checkTemplatePinBumps(config(...near), [server, peer])
+    assert.deepEqual(
+      errors.map((error) => /: (\S+ \S+) is missing/.exec(error)?.[1]),
+      [`${SERVER} ${BLOCKS}`, `${peer.file} $.peerDependencies['@miragon/pulse-blocks']`],
+    )
+  })
+
+  it("finds the template manifests on disk outside node_modules and dist", () => {
+    const root = tempDir("template-pins-")
+    writeFile(root, "templates/starter/server/package.json", '{"name":"server"}\n')
+    writeFile(root, "templates/fixtures/module/package.json", '{"name":"module"}\n')
+    writeFile(root, "templates/starter/node_modules/x/package.json", '{"name":"x"}\n')
+    writeFile(root, "templates/starter/dist/package.json", '{"name":"dist"}\n')
+    assert.deepEqual(
+      templatePackageFiles(root).map(({ file }) => file),
+      ["templates/fixtures/module/package.json", "templates/starter/server/package.json"],
+    )
+    assert.deepEqual(templatePackageFiles(tempDir("no-templates-")), [])
   })
 })

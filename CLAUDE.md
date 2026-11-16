@@ -1206,7 +1206,8 @@ workspace (its header lists each check).
 - **One release-please train.** Conventional commits on `main` drive `release-please.yml`: one
   Release PR (tag `v<version>`) bumps the root, every app, the ten packages, the three private
   packages of the editor hosts, the Orca plugin's manifest, the template's pins and the
-  c7-client User-Agent in lockstep (`extra-files` in `release-please-config.json`).
+  c7-client User-Agent in lockstep (`extra-files` in `release-please-config.json`, where
+  `pnpm lint:github` refuses a `@miragon/pulse-*` pin under `templates/` without its jsonpath).
   Merging it creates the release; every publish job then waits for manual approval of the
   `release` environment gate.
 - **npm:** the ten packages and `@miragon/pulse-cli` publish through

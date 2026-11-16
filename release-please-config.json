@@ -103,6 +103,11 @@
         {
           "type": "json",
           "path": "templates/composed-server/server/package.json",
+          "jsonpath": "$.devDependencies['@miragon/pulse-blocks']"
+        },
+        {
+          "type": "json",
+          "path": "templates/composed-server/server/package.json",
           "jsonpath": "$.devDependencies['@miragon/pulse-ui']"
         },
         {
