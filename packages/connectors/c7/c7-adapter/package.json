@@ -1,7 +1,7 @@
 {
   "name": "@miragon/pulse-c7-adapter",
   "private": true,
-  "version": "0.27.1",
+  "version": "0.28.0",
   "description": "The Camunda 7 REST API family's adapter of Pulse's runtime view (Operaton, CIB seven, Camunda 7): its REST client and the mapping onto the engine contract of @miragon/pulse-engine-core, over the c7 dialect's workflow domain in @miragon/pulse-c7-core. Bundled by the editor hosts.",
   "license": "MIT",
   "repository": {

@@ -8,7 +8,7 @@ import { mergeHeaders } from "./generated/client/index.js"
  * `extra-files`), in step with `package.json`; `client.test.ts` holds the two
  * equal. Exported for a transport to send on a request that carries none.
  */
-export const USER_AGENT = "@miragon/pulse-c7-client/0.27.1" // x-release-please-version
+export const USER_AGENT = "@miragon/pulse-c7-client/0.28.0" // x-release-please-version
 
 /**
  * Runtime client defaults, referenced by the generator config
