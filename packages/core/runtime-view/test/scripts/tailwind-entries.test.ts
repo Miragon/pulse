@@ -138,7 +138,7 @@ describe("the Tailwind step of the webview build", { timeout: 30_000 }, () => {
   })
 })
 
-describe("the webview build options", () => {
+describe("the webview build options", { timeout: 30_000 }, () => {
   test("define React's production build for a build that ships, its development build else", async () => {
     const script = (await import(
       new URL("webview-build-options.mjs", SCRIPTS).href
