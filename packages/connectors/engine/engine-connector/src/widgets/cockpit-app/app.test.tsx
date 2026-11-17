@@ -88,6 +88,8 @@ describe("CockpitApp opens on the bootstrap's engine", () => {
     await waitFor(() => expect(activeEngine()).toBe("prod-a"))
     expect(onLanding()).toBe(false)
     await waitFor(() => expect(modelContexts.at(-1)).toContain('Ids: engine="prod-a"'))
+    // The view frame's main holds the cockpit: an engine's route renders none of its own.
+    expect(screen.queryByRole("main")).toBeNull()
   })
 
   it("a single engine: lands on it", async () => {

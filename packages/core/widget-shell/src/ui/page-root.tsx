@@ -16,7 +16,7 @@ import {
 } from "react"
 import { createRoot } from "react-dom/client"
 import { decodeToolResult } from "../protocol/tool-result.js"
-import { BrowserViewHost, type BrowserHostOptions } from "./browser-view-host.js"
+import { BrowserViewHost, type BrowserHostOptions, type ToolCaller } from "./browser-view-host.js"
 import { isViewData, type ViewCall, type ViewPhase } from "./view-call.js"
 import { ViewErrorBoundary } from "./view-error-boundary.js"
 import { ViewFrame } from "./view-frame.js"
@@ -45,7 +45,24 @@ export interface MountPageOptions extends BrowserHostOptions {
   frame?: PageFrame
 }
 
+/**
+ * A page whose frame renders alone (a signed-out page, say): no view, so no caller. Its frame runs
+ * under the same providers and host as a view's would; a tool it asks for anyway is refused.
+ */
+export interface FramePageOptions extends Omit<BrowserHostOptions, "callTool"> {
+  view?: undefined
+  args?: undefined
+  container?: HTMLElement
+  /** The page's chrome, alone: see {@link MountPageOptions.frame}. */
+  frame: PageFrame
+  callTool?: undefined
+}
+
 const NO_ARGS: Record<string, unknown> = {}
+
+/** The caller of a page that shows no view: it calls no tool, and says so to a frame that asks. */
+const NO_VIEW_CALLS: ToolCaller = () =>
+  Promise.reject(new Error("This page shows no view, so it calls no tool."))
 
 /** The view tool's result as the frame shows it: the view's data, or why it is missing. */
 async function loadView(
@@ -129,10 +146,15 @@ function PageRoot({ host, ...body }: PageRootProps) {
 
 /**
  * Mounts the view `options.view` names from `views` on a page outside a chat, in the page's frame
- * where it brings one; an unknown name renders the "can't show" state. Returns the unmount.
+ * where it brings one; an unknown name renders the "can't show" state. A page whose frame renders
+ * alone hands no caller (`FramePageOptions`). Returns the unmount.
  */
-export function mountPage(views: ViewMap, options: MountPageOptions): () => void {
-  const { view: name, args = NO_ARGS, container, frame, ...host } = options
+export function mountPage(
+  views: ViewMap,
+  options: MountPageOptions | FramePageOptions,
+): () => void {
+  const { view: name, args = NO_ARGS, container, frame, callTool, ...rest } = options
+  const host: BrowserHostOptions = { ...rest, callTool: callTool ?? NO_VIEW_CALLS }
   const view = name !== undefined && Object.hasOwn(views, name) ? views[name] : undefined
   const root = createRoot(container ?? rootElement())
   root.render(

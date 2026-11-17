@@ -37,6 +37,7 @@ export const en: MessageCatalog = {
   "cockpit.landing.envLabel": ({ env }) => `Environment ${String(env).toUpperCase()}`,
   "cockpit.landing.default": "default",
   "cockpit.landing.status.loading": "loading…",
+  "cockpit.landing.status.notLoaded": "not loaded",
   "cockpit.landing.status.refused": "profile refused",
   "cockpit.landing.status.unreachable": "unreachable",
   // describeError's 401 and 403 in short: the engine answered, so it is not unreachable.

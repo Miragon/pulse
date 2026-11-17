@@ -412,6 +412,27 @@ test.describe("the landing lists the boards", () => {
     expect(scrollWidth, "the document never scrolls sideways").toBeLessThanOrEqual(clientWidth)
   })
 
+  for (const [locale, fleet] of [
+    ["de-DE", "Engine-übergreifende Übersicht"],
+    ["en-US", "Cross-engine overview"],
+  ] as const) {
+    test(`at 320 px (${locale}) the hero's cross-engine action wraps under it, inside the gutter`, async ({
+      page,
+    }) => {
+      const app = await openBoard(page, { args: {}, locale, width: 320 })
+      await expect(landing(app)).toBeVisible({ timeout: 15_000 })
+      const action = app.getByRole("button", { name: fleet })
+      await expect(action).toBeVisible()
+      // The frame hides what overflows it: the action's box, never the document, shows where it
+      // ends. It ends where the landing's lists end, its label whole.
+      const [box, list] = await Promise.all([action.boundingBox(), boards(app).boundingBox()])
+      expect((box?.x ?? 0) + (box?.width ?? Infinity)).toBeLessThanOrEqual(
+        (list?.x ?? 0) + (list?.width ?? 0) + 0.5,
+      )
+      expect(await action.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true)
+    })
+  }
+
   test("one engine with a board: the trail's first crumb leads to the landing, which opens the board", async ({
     page,
   }) => {

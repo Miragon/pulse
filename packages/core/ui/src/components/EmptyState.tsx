@@ -3,8 +3,11 @@ import { TONE_ICON } from "../lib/tone-utils.js"
 import { resolveTone } from "../tones/index.js"
 import { cn } from "../lib/utils.js"
 
-/** Heading element for an empty/error state title (the surface decides the outline level). */
-export type StateHeadingLevel = "h2" | "h3" | "h4" | "p"
+/**
+ * Heading element for an empty/error state title (the surface decides the outline level): `h1`
+ * where the state is the page itself (a page that shows nothing else, its one heading).
+ */
+export type StateHeadingLevel = "h1" | "h2" | "h3" | "h4" | "p"
 
 export interface EmptyStateProps {
   /**

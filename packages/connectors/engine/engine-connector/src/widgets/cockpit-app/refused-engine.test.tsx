@@ -5,6 +5,7 @@ import {
   createTestQueryClient,
   createViewQueryClient,
   TestViewHost,
+  WebApiError,
   type HostAction,
   type QueryClient,
 } from "@miragon/pulse-widget-shell/widgets"
@@ -91,7 +92,7 @@ function renderCockpit({
 }: {
   boot?: CockpitAppData
   fixed?: boolean
-  failure?: string
+  failure?: string | Error
   list?: "answers" | "late" | "fails"
 } = {}) {
   const server = { fixed }
@@ -102,7 +103,9 @@ function renderCockpit({
   const answer =
     <T,>(of: (engine: unknown) => T) =>
     (args: Record<string, unknown>): T => {
-      if (args.engine === "locked" && !server.fixed) throw new Error(failure)
+      if (args.engine === "locked" && !server.fixed) {
+        throw failure instanceof Error ? failure : new Error(failure)
+      }
       return of(args.engine)
     }
   const tools = {
@@ -214,6 +217,21 @@ describe("the cockpit on an engine whose profile the server refused", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Try again" }))
     await waitFor(() => expect(reads(ENGINE_HEALTH_DATA)).toBe(2))
     expect(screen.queryByText(TITLE)).toBeNull()
+  })
+
+  it("is never the gate of a page whose session ended: that refusal is the page's, not the engine's", async () => {
+    client = createViewQueryClient()
+    const ended = new WebApiError(401, { code: "signed_out", message: "No session." })
+    const { reads, modelContexts } = renderCockpit({ failure: ended })
+    await openLocked()
+    // A refusal no retry changes all the same: each read once, no Try again. The page's frame
+    // says the session ended, so the overview's sections only say they are not loaded.
+    await screen.findAllByText("This content couldn't be loaded", undefined, SOON)
+    expect(screen.queryByText("You're signed out")).toBeNull()
+    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull()
+    expect(screen.queryByText(TITLE)).toBeNull()
+    expect(modelContexts.at(-1)).not.toContain("profileRefused=true")
+    expect(reads(ENGINE_HEALTH_DATA)).toBe(1)
   })
 
   it("gives an engine that answers its view back, though the list still names it refused", async () => {

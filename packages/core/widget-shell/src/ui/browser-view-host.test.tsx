@@ -7,7 +7,7 @@ import { BrowserViewHost, type BrowserHostOptions } from "./browser-view-host.js
 import { useDisplayModeControl } from "./display-mode-toggle.js"
 import { NO_INLINE_BUDGET, useInlineBudget } from "./inline-budget.js"
 import { useShellHost } from "./shell-host.js"
-import { HostModelContext, useHostWrites, useViewHost } from "./view-host.js"
+import { HostModelContext, useHostWrites, useStartPage, useViewHost } from "./view-host.js"
 import { useHostDisplayMode } from "./widget-shell.js"
 
 /**
@@ -156,6 +156,17 @@ describe("BrowserViewHost: what a widget asks the page", () => {
     await act(async () => reactRoot?.unmount())
     await render({ followUp: "copy" })
     expect(seen.host?.followUp).toBe("copy")
+  })
+
+  it("names the page's start page where the page has one, none otherwise", async () => {
+    function StartPageProbe() {
+      return <output>{useStartPage() ?? "none"}</output>
+    }
+    const without = await render({}, <StartPageProbe />)
+    expect(without.textContent).toBe("none")
+    await act(async () => reactRoot?.unmount())
+    const container = await render({ startPage: "/app" }, <StartPageProbe />)
+    expect(container.textContent).toBe("/app")
   })
 
   it("offers no write: a page writes to no engine", async () => {

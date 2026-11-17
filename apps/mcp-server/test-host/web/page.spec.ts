@@ -19,7 +19,8 @@ import {
  * session's token. The views are the chat's, built from the same sources: the view tool's data,
  * every feed, the browser's language and theme, and no hand-off, since the page posts to no chat.
  * A page writes nothing: the deployment's toolset registers the widget writes, and the page offers
- * none, nor asks the gate feed.
+ * none, nor asks the gate feed. Every page has one main landmark and one h1, which titles it, and
+ * says what to do on the page, never in a chat.
  */
 
 const SERVER = path.resolve(import.meta.dirname, "..", "..")
@@ -76,6 +77,9 @@ test.describe("the cockpit as a page", () => {
 
     const table = page.getByRole("table", { name: DEFINITIONS_TABLE })
     await expect(table).toBeVisible({ timeout: 15_000 })
+    // One main landmark, the view frame's: the cockpit's route renders none of its own.
+    await expect(page.getByRole("main")).toHaveCount(1)
+    await expect(page).toHaveTitle(`${HEALTHY_ENGINE} · Overview · Pulse`)
     // A page owns its viewport: every row, no inline fit and its footer, no switch to fullscreen.
     for (const name of STUB_DEFINITIONS) await expect(table.getByText(name)).toBeVisible()
     await expect(page.getByText(/of 3 shown/)).toHaveCount(0)
@@ -101,6 +105,8 @@ test.describe("the cockpit as a page", () => {
     expect(
       calls.filter((call) => call.name === "engine_jobs_data").at(-1)?.arguments,
     ).toMatchObject({ engine: HEALTHY_ENGINE })
+    // The document's title follows the view the page moved on to.
+    await expect(page).toHaveTitle("Jobs · Pulse")
   })
 
   test("hides the chat's hand-offs, and every menu, column or section that holds them alone", async ({
@@ -155,19 +161,31 @@ test.describe("the cockpit as a page", () => {
     expect(calls.map((call) => call.name)).not.toContain("engine_widget_actions_data")
   })
 
-  test("pinned: a start the tool refuses says why, and to ask in a chat the page has none of", async ({
+  test("a start the tool refuses says why and what to do on the page, with no Try again", async ({
     page,
   }) => {
+    const calls = recordCalls(page)
     await signIn(page, `/app/cockpit?view=no-such-view&engine=${HEALTHY_ENGINE}`)
     const alert = page.getByRole("alert")
-    await expect(alert.getByRole("heading", { name: "This view couldn't be loaded" })).toBeVisible({
+    const refused = "The server refused this request"
+    await expect(alert.getByRole("heading", { level: 1, name: refused })).toBeVisible({
       timeout: 15_000,
     })
-    await expect(alert.getByRole("button", { name: "Try again" })).toBeVisible()
     await expect(
-      alert.getByText("Try again. If it fails again, ask in the chat."),
-      "pinned: describeError's hints ask in the chat on a page too; flip to a page's words once they say what to do there",
+      alert.getByText(
+        "You'll find the reason under Details. Open the view from Pulse's start page instead.",
+      ),
     ).toBeVisible()
+    await expect(alert.getByText(/^Input validation error: /)).toBeAttached()
+    await expect(alert.getByRole("button", { name: "Try again" })).toHaveCount(0)
+    await expect(alert.getByRole("link", { name: "Go to the start page" })).toHaveAttribute(
+      "href",
+      "/app",
+    )
+    await expect(page.getByText(/\bchat\b/i)).toHaveCount(0)
+    await expect(page).toHaveTitle(`${refused} · Pulse`)
+    expect(calls.filter((call) => call.name === "engine_open_cockpit")).toHaveLength(1)
+    await expectNoAxeFinding(page)
   })
 
   test("loads its script compressed with brotli, decoded byte for byte the build's file", async ({
@@ -226,30 +244,80 @@ test.describe("the cockpit as a page in German, on a dark system", () => {
     await expectNoAxeFinding(page)
   })
 
-  test("pinned: the landing scrolls sideways at 320 px, its cross-engine button too wide", async ({
+  test("the landing fits 320 px, its cross-engine action wrapped under the hero", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 320, height: 640 })
     await signIn(page)
-    const fleet = page.getByRole("button", { name: "Engine-übergreifende Übersicht" })
-    await expect(fleet).toBeVisible({ timeout: 15_000 })
-    await rendered(page)
-    expect(
-      await scrollsSideways(page),
-      "pinned: the hero's button is wider than the column beside the Komet; flip once it fits",
-    ).toBe(true)
-    expect((await fleet.boundingBox())?.width).toBeGreaterThan(240)
+    await expectLandingFits(page, "Engine-übergreifende Übersicht")
   })
 })
+
+/** At 320 px the landing scrolls not sideways, its hero's action whole within the gutter. */
+async function expectLandingFits(page: Page, fleet: string): Promise<void> {
+  const action = page.getByRole("button", { name: fleet })
+  await expect(action).toBeVisible({ timeout: 15_000 })
+  const boards = page.getByRole("region", { name: "Boards" })
+  await expect(boards.getByRole("button")).toHaveCount(1)
+  await rendered(page)
+  expect(await scrollsSideways(page)).toBe(false)
+  // The action ends where the landing's lists end, inside the gutter, its label whole.
+  const [box, list] = await Promise.all([action.boundingBox(), boards.boundingBox()])
+  expect((box?.x ?? 0) + (box?.width ?? Infinity)).toBeLessThanOrEqual(
+    (list?.x ?? 0) + (list?.width ?? 0) + 0.5,
+  )
+  expect(await action.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true)
+  await expectNoAxeFinding(page)
+}
 
 test("the landing fits 320 px in English, its engines and its boards", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 640 })
   await signIn(page)
-  await expect(page.getByRole("button", { name: "Cross-engine overview" })).toBeVisible({
-    timeout: 15_000,
+  await expectLandingFits(page, "Cross-engine overview")
+})
+
+/**
+ * The pages that show no view, each with its one heading as its title, in the page's words: the
+ * signed-out page per reason (the server's, no session needed), and the pages whose session
+ * ended before their first read or could not be read (the session route's answer stubbed).
+ */
+test.describe("the pages without a view", () => {
+  const REASONS = {
+    denied: "Sign-in was refused",
+    expired: "Your sign-in took too long",
+    failed: "Sign-in didn't work",
+    audience: "Your sign-in isn't valid for this server",
+    signed_out: "You signed out",
+    unavailable: "The sign-in service doesn't answer",
+  }
+
+  test("the signed-out page names each reason in its h1 and its title", async ({ page }) => {
+    for (const [reason, heading] of Object.entries(REASONS)) {
+      await page.goto(`${originOf()}/app/signed-out?reason=${reason}`)
+      await expect(page.getByRole("heading", { level: 1, name: heading })).toBeVisible()
+      await expect(page).toHaveTitle(`${heading} · Pulse`)
+      await expectNoAxeFinding(page)
+    }
   })
-  await expect(page.getByRole("region", { name: "Boards" }).getByRole("button")).toHaveCount(1)
-  await rendered(page)
-  expect(await scrollsSideways(page)).toBe(false)
-  await expectNoAxeFinding(page)
+
+  for (const [state, answer, heading] of [
+    [
+      "ended before its first read",
+      { status: 401, body: '{"code":"signed_out","message":"No session."}' },
+      "Your session has ended",
+    ],
+    ["whose session could not be read", { status: 502, body: "busy" }, "Pulse doesn't answer"],
+  ] as const) {
+    test(`a page ${state}: its h1, its title, one main`, async ({ page }) => {
+      await signIn(page, JOBS_PAGE)
+      await page.route("**/app/api/session", (route) =>
+        route.fulfill({ ...answer, contentType: "application/json" }),
+      )
+      await page.reload()
+      await expect(page.getByRole("heading", { level: 1, name: heading })).toBeVisible()
+      await expect(page).toHaveTitle(`${heading} · Pulse`)
+      await expect(page.getByRole("main")).toHaveCount(1)
+      await expectNoAxeFinding(page)
+    })
+  }
 })

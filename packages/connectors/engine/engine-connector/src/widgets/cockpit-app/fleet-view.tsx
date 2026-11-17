@@ -75,9 +75,9 @@ function FleetEngineCard({
   environment: string | null
   onEnter: () => void
 }) {
-  const { query: q, summary: s, incidents, failed, tone } = useEngineHealth(engineId)
+  const { failure, summary: s, incidents, failed, tone } = useEngineHealth(engineId)
   const t = useT()
-  const kind = engineStatusKind({ isError: q.isError, error: q.error, summary: s })
+  const kind = engineStatusKind({ failure, summary: s })
 
   return (
     <button

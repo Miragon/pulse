@@ -3,7 +3,9 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { LocaleProvider } from "@miragon/pulse-ui"
 import { QueryFallback, TableSkeleton } from "./query-fallback.js"
+import { TestViewHost } from "./test-view-host.js"
 import { SKELETON_DELAY_MS } from "./view-data-state.js"
+import { WebApiError } from "./web-caller.js"
 
 afterEach(() => {
   cleanup()
@@ -97,6 +99,41 @@ describe("QueryFallback: never an eternal skeleton, never a dead end (U1, U22)",
     expect(screen.getByRole("heading", { name: "Something went wrong" })).toBeTruthy()
     expect(screen.getByRole("alert").querySelector("details")).toBeNull()
     expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy()
+  })
+})
+
+describe("QueryFallback on a page that posts to no chat", () => {
+  it("says what to do on the page, and still retries", () => {
+    const onRetry = vi.fn()
+    render(
+      <TestViewHost followUp="none" locale="de">
+        <QueryFallback isError error={new Error("odd")} onRetry={onRetry} skeleton={SKELETON} />
+      </TestViewHost>,
+    )
+    expect(
+      screen.getByText("Versuch es noch mal. Klappt es wieder nicht, lade die Seite neu."),
+    ).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Erneut versuchen" }))
+    expect(onRetry).toHaveBeenCalledOnce()
+  })
+})
+
+describe("QueryFallback on a page whose session ended", () => {
+  it("leaves it to the page's frame: a quiet line in the caller's title, no box, no retry", () => {
+    render(
+      <TestViewHost followUp="none">
+        <QueryFallback
+          isError
+          error={new WebApiError(401, { code: "signed_out", message: "No session." })}
+          errorTitle="Couldn't load the process instances"
+          onRetry={vi.fn()}
+          skeleton={SKELETON}
+        />
+      </TestViewHost>,
+    )
+    expect(screen.queryByRole("alert")).toBeNull()
+    expect(screen.queryByRole("button")).toBeNull()
+    expect(document.body.textContent).toBe("Couldn't load the process instances")
   })
 })
 

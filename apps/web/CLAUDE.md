@@ -31,10 +31,15 @@ server image builds the page beside the server and serves it from `/app/web`.
   shows no board for), `/app/cockpit?view=…&engine=…&<ids>` (the start the query names, one
   argument of `engine_open_cockpit` per parameter, so the tool refuses one it does not take and
   the page shows why) and the server's own `/app/signed-out?reason=…`. `src/routes.ts` reads the
-  route and its document title (a board's page names the board's id, any other Pulse), which the
-  frame sets in the page's language. `src/pages.ts` lists the page routes; the build writes them
-  into `dist/pages.json`, which the server reads at boot, and `test/pages-manifest.test.ts` boots a
-  server over the build to hold both to each other. Navigation inside the cockpit stays in the
+  route. Every page has one main landmark and one `h1` (a view's, the view frame's failure in its
+  place, a state page's reason), which titles the document, `<h1> · Pulse` in the page's language,
+  and the title follows it as the user moves on inside the page (`src/bar.tsx`, WCAG 2.4.2);
+  before a view shows its heading the route's title stands (a board's page names the board's id
+  from the URL, its title arriving with the view's heading; any other Pulse). The product's name
+  in the bar of a page with a session leads to `/app`, the start page the words of a refused start
+  name and its state links to (`mountPage`'s `startPage`). `src/pages.ts` lists the page routes;
+  the build writes them into `dist/pages.json`, which the server reads at boot, and
+  `test/pages-manifest.test.ts` boots a server over the build to hold both to each other. Navigation inside the cockpit stays in the
   page: a URL names where it starts.
 - `src/start.ts` starts a page: the signed-out page needs no session; any other reads the session
   (`readWebSession`) and mounts the view with widget-shell's `mountPage`, its caller
@@ -44,9 +49,15 @@ server image builds the page beside the server and serves it from `/app/web`.
   to no engine and posts to no chat (`followUp: "none"`), so no write control and no hand-off show.
 - No silent redirect: a call that finds the session gone shows a notice whose sign-in comes back
   to the page; a page whose session ended before it read one, or whose session could not be read,
-  says so (`src/page-states.tsx`). The sign-out is a fetch to the logout route, then the place its
-  answer names (`src/sign-out.ts`, never a script URL). The signed-out page says per reason what
-  happened and what to do (`src/signed-out.tsx`).
+  says so (`src/page-states.tsx`), neither handing `mountPage` a caller. The sign-out is a fetch to
+  the logout route, then the place its answer names (`src/sign-out.ts`, never a script URL). The
+  signed-out page says per reason what happened and what to do (`src/signed-out.tsx`). The notice
+  is the one place that says the session ended: a view's read that meets it is a refusal no retry
+  changes (widget-shell's `isPermanentError`), asked once, with no Try again and no "Updating…";
+  a view's state shows a quiet line that its content is missing, a list keeps its rows with no
+  footer alert, and an engine's row on the landing keeps what it last read (`isSessionEnded`).
+- `src/routes.ts`'s `COCKPIT_FLAGS` copies the cockpit tool's boolean arguments, which
+  `test/cockpit-flags.test.ts` holds to the tool's input schema as the engine module registers it.
 - Geist comes from the server's own font route (`publicBase`), the theme follows the OS or a
   `data-cd-theme` on `<html>`, the language the browser (German or English), the density is
   compact, comfortable on touch: all of it the view runtime's, which the frame shares.

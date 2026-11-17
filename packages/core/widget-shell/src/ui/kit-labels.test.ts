@@ -57,6 +57,7 @@ describe("kitLabels: the kit's own strings follow the active locale", () => {
         enterFullscreen: "Vollbild",
         exitFullscreen: "Vollbild verlassen",
         reloadedAt: "Neu geladen um 14:32 Uhr",
+        toStartPage: "Zur Startseite",
       })
     }
   })
@@ -99,6 +100,7 @@ describe("kitLabels: the kit's own strings follow the active locale", () => {
         enterFullscreen: "Fullscreen",
         exitFullscreen: "Exit fullscreen",
         reloadedAt: "Reloaded at 14:32",
+        toStartPage: "Go to the start page",
       })
     }
   })

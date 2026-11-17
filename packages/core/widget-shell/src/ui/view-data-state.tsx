@@ -1,7 +1,23 @@
 import { useEffect, useState, type ReactNode } from "react"
-import { cn, EmptyState, ErrorState, Skeleton, useLocale } from "@miragon/pulse-ui"
-import { describeError, isPermanentError } from "./describe-error.js"
+import {
+  buttonVariants,
+  cn,
+  EmptyState,
+  ErrorState,
+  Skeleton,
+  useLocale,
+  useUiMessages,
+  type StateHeadingLevel,
+} from "@miragon/pulse-ui"
+import { House } from "lucide-react"
+import {
+  describeError,
+  isPermanentError,
+  isSessionEnded,
+  leadsToStartPage,
+} from "./describe-error.js"
 import { kitLabels } from "./kit-labels.js"
+import { useStartPage, useWordsFollowUp } from "./view-host.js"
 
 /**
  * How long a load runs before its skeleton shows (the webview's rule): a quick answer replaces
@@ -87,9 +103,71 @@ export function RefreshRegion({
   )
 }
 
+/** The way from a page's refused start to its start page, beside the words that lead there. */
+function StartPageLink({ href }: { href: string }) {
+  return (
+    <a href={href} className={buttonVariants({ variant: "outline", size: "sm" })}>
+      <House aria-hidden="true" />
+      {kitLabels(useLocale()).toStartPage}
+    </a>
+  )
+}
+
+/**
+ * A load's failure in the kit's words: the status box, the raw text under Details, Try again
+ * unless no retry changes it (`isPermanentError`), and on a page with a start page the link there
+ * where its words lead (`leadsToStartPage`). A page's ended session is its frame's to say, once
+ * (`isSessionEnded`): here a quiet line that the content is missing, no box and no session words.
+ */
+export function FailureState({
+  error,
+  onRetry,
+  title,
+  titleAs,
+  retryLabel,
+  className,
+}: {
+  error: unknown
+  onRetry: () => void
+  /** Heads a failure the kit cannot classify, and the quiet line of an ended session. */
+  title?: string
+  titleAs?: StateHeadingLevel
+  retryLabel?: string
+  className?: string
+}) {
+  const locale = useLocale()
+  const followUp = useWordsFollowUp()
+  const startPage = useStartPage()
+  const { common } = useUiMessages()
+  if (isSessionEnded(error)) {
+    return (
+      <EmptyState
+        className={className}
+        title={title ?? common.loadFailed}
+        titleAs={titleAs ?? "p"}
+      />
+    )
+  }
+  const described = describeError(error, locale, { fallbackTitle: title, followUp })
+  const home = startPage !== undefined && leadsToStartPage(described.kind)
+  return (
+    <ErrorState
+      className={className}
+      title={described.title}
+      titleAs={titleAs}
+      description={described.hint}
+      details={described.details ?? undefined}
+      onRetry={isPermanentError(error) ? undefined : onRetry}
+      retryLabel={retryLabel}
+      actions={home ? <StartPageLink href={startPage} /> : undefined}
+    />
+  )
+}
+
 /**
  * Loading, error and no-data boundary; the retry is mandatory, a failed load is never a dead end.
- * A permanent refusal (`isPermanentError`) shows no Try again: its hint names the way out. A
+ * A permanent refusal (`isPermanentError`) shows no Try again: its hint names the way out, and a
+ * page's ended session only a quiet line (`FailureState`). A
  * first load shows its skeleton only after 400 ms. Handed the loaded content (`children`), it
  * renders it once the load is done, refreshed in place while `refreshing` (aria-busy).
  */
@@ -102,6 +180,7 @@ export function ViewDataState({
   skeleton,
   errorTitle,
   retryLabel,
+  errorTitleAs,
   refreshing = false,
   className,
   children,
@@ -117,24 +196,24 @@ export function ViewDataState({
   /** Title for an error the kit cannot classify (default: the locale's "Something went wrong"). */
   errorTitle?: string
   retryLabel?: string
+  /** The error's heading element (default the status box's `h2`): `h1` where it is the page's one state. */
+  errorTitleAs?: StateHeadingLevel
   /** A new read over the content on screen: its region turns busy, the content stays. */
   refreshing?: boolean
   className?: string
   /** The loaded content; without it (or `null`, `false`) a finished load says `emptyText`. */
   children?: ReactNode
 }) {
-  const locale = useLocale()
-  const defaults = kitLabels(locale)
+  const defaults = kitLabels(useLocale())
   if (error) {
-    const described = describeError(error, locale, { fallbackTitle: errorTitle })
     return (
-      <ErrorState
-        className={className}
-        title={described.title}
-        description={described.hint}
-        details={described.details ?? undefined}
-        onRetry={isPermanentError(error) ? undefined : onRetry}
+      <FailureState
+        error={error}
+        onRetry={onRetry}
+        title={errorTitle}
+        titleAs={errorTitleAs}
         retryLabel={retryLabel}
+        className={className}
       />
     )
   }

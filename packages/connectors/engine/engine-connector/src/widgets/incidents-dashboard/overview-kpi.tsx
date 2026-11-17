@@ -60,9 +60,10 @@ function IncidentOverviewKpiView({
   const { ask } = useHandOff()
   const handOffs = useHandOffsShown()
 
+  // Loading or failed, the route keeps its title, the page's one heading.
   if (!data) {
     return (
-      <WidgetShell>
+      <WidgetShell header={<WidgetHeader title={t("incidentsKpi.titleFor", { engine })} />}>
         <ViewDataState
           loading={loading}
           error={error}

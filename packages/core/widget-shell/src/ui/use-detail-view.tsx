@@ -1,7 +1,7 @@
 import type { ReactElement, ReactNode } from "react"
 import { StatusStrip, useLocale } from "@miragon/pulse-ui"
 import { RefreshCw } from "lucide-react"
-import { describeError, isPermanentError } from "./describe-error.js"
+import { describeError, isPermanentError, isSessionEnded } from "./describe-error.js"
 import { kitLabels } from "./kit-labels.js"
 import { useViewData } from "./tool-query.js"
 import { viewRefreshState } from "./view-refresh-state.js"
@@ -12,6 +12,7 @@ import { WidgetShell } from "./widget-shell.js"
  * `notice` reports a failed REFETCH over shown data, which may be stale: a `StatusStrip` for the
  * view's header, docked under its bar, with Try again unless the failure is a refusal no retry
  * changes. It says what happened in the kit's words; the raw engine text waits under its Details.
+ * A page's ended session gets none (`isSessionEnded`): the page's frame says it.
  * `loadError` lets a section on a composed page hide itself when the feed's tool is not on this
  * server.
  */
@@ -57,7 +58,8 @@ export function useDetailView<TData>(opts: {
     </WidgetShell>
   )
   let notice: ReactElement | null = null
-  if (refreshError) {
+  // A page's ended session is its frame's to say, once: the view keeps what it showed, silently.
+  if (refreshError && !isSessionEnded(refreshError)) {
     const described = describeError(refreshError, locale)
     notice = (
       <StatusStrip

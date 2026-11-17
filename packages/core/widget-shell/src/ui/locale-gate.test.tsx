@@ -1,10 +1,11 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react"
-import { useLocale, formatTimestamp, setFormatLocale } from "@miragon/pulse-ui"
+import { useLocale, useUiMessages, formatTimestamp, setFormatLocale } from "@miragon/pulse-ui"
 import { LocaleGate } from "./locale-gate.js"
 import type { ShellHost } from "./shell-host.js"
 import { TestViewHost } from "./test-view-host.js"
+import type { FollowUp } from "./view-host.js"
 
 const ISO = "2026-07-22T22:15:30.000Z"
 
@@ -107,6 +108,25 @@ describe("LocaleGate", () => {
     await waitFor(() => expect(probe()).toBe(probeFor("en")))
     expect(document.documentElement.lang).toBe("en")
   })
+
+  it.each([
+    ["chat", "en-US", "Try again. If it fails again, ask in the chat."],
+    ["none", "en-US", "Try again. If it fails again, reload the page."],
+    ["copy", "de-DE", "Versuch es noch mal. Klappt es wieder nicht, lade die Seite neu."],
+  ] as const)(
+    "%s (%s): the kit's load failure says what to do where the view sits",
+    async (followUp: FollowUp, locale, words) => {
+      const Hint = () => <p data-testid="hint">{useUiMessages().common.loadFailedHint}</p>
+      render(
+        <TestViewHost host={{ locale }} followUp={followUp}>
+          <LocaleGate>
+            <Hint />
+          </LocaleGate>
+        </TestViewHost>,
+      )
+      await waitFor(() => expect(screen.getByTestId("hint").textContent).toBe(words))
+    },
+  )
 
   it("ignores a time zone the runtime does not know instead of breaking every date", async () => {
     renderGate({ timeZone: "Mars/Olympus_Mons" })

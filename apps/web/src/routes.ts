@@ -9,10 +9,16 @@ import { PAGES } from "./pages.js"
 /** The engine module's view, the cockpit: every page of the app opens it at a start of its own. */
 export const COCKPIT_VIEW = "engine_open_cockpit"
 
-/** The cockpit's arguments that take no text: a query's `true` or `false` is their value. */
+/**
+ * The cockpit's arguments that take no text: a query's `true` or `false` is their value. The tool's
+ * input schema decides which (test/cockpit-flags.test.ts holds this list to it).
+ */
 const COCKPIT_FLAGS: ReadonlySet<string> = new Set(["failedOnly"])
 
-/** What a page's document title names: the product, or a board by its id. */
+/**
+ * What a page's document title names before its view shows its heading, which then names it: the
+ * product, or a board by its id (its title comes with the view).
+ */
 export type PageTitle =
   { readonly kind: "product" } | { readonly kind: "board"; readonly board: string }
 

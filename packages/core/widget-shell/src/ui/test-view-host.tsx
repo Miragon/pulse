@@ -53,6 +53,8 @@ export interface TestViewHostProps {
    * renders a widget as a page outside a chat shows it, with no write control.
    */
   writes?: boolean
+  /** The page's start page (`ViewHost.startPage`); default none, as in a chat host. */
+  startPage?: string
   /**
    * Merged over `{ connected: true, displayMode: "inline", availableDisplayModes: [] }`. Its
    * `timeZone` is the formatters' zone, as a host's is (unknown or none: the runtime's own).
@@ -111,11 +113,12 @@ interface FakeHostOptions {
   record?: (action: HostAction) => void
   followUp?: FollowUp
   writes?: boolean
+  startPage?: string
 }
 
 function createFakeHost(
   tools: Readonly<Record<string, unknown>> = {},
-  { record = () => undefined, followUp = "chat", writes = true }: FakeHostOptions,
+  { record = () => undefined, followUp = "chat", writes = true, startPage }: FakeHostOptions,
 ): ViewHost {
   return {
     callTool: async (name, args = {}) => {
@@ -130,6 +133,7 @@ function createFakeHost(
     sendFollowUp: (prompt) => record({ type: "sendFollowUp", prompt }),
     followUp,
     writes,
+    startPage,
     openExternal: (url) => record({ type: "openExternal", url }),
     ModelContext: FakeModelContext,
   }
@@ -141,14 +145,15 @@ export function TestViewHost({
   onModelContext,
   followUp,
   writes,
+  startPage,
   host,
   client,
   locale,
   children,
 }: TestViewHostProps) {
   const fake = useMemo(
-    () => createFakeHost(tools, { record: onHostAction, followUp, writes }),
-    [tools, onHostAction, followUp, writes],
+    () => createFakeHost(tools, { record: onHostAction, followUp, writes, startPage }),
+    [tools, onHostAction, followUp, writes, startPage],
   )
   const [ownClient] = useState(createTestQueryClient)
   const shell = useMemo<ShellHost>(() => ({ ...NO_HOST, ...host }), [host])

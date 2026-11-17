@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from "react"
+import { useState, useSyncExternalStore } from "react"
 import { Button, Icon, StatusStrip } from "@miragon/pulse-ui"
 import type { PageFrame, WebSessionInfo } from "@miragon/pulse-widget-shell/widgets"
 import { LogIn, LogOut } from "lucide-react"
@@ -11,7 +11,7 @@ import { signInUrl, type PageTitle } from "./routes.js"
 export interface SessionPage {
   readonly session: WebSessionInfo
   readonly notices: PageNotices
-  /** What the document's title names, in the page's language. */
+  /** What the document's title names, in the page's language, until the view shows its heading. */
   readonly title: PageTitle
   /** The page and its query, where a sign-in from the notice comes back to. */
   readonly returnTo: string
@@ -82,36 +82,34 @@ function Notice({ notice, page }: { notice: PageNotice; page: SessionPage }) {
   )
 }
 
-/** The document's title in the page's language: a board's page names the board, any other Pulse. */
-function useDocumentTitle(title: PageTitle): void {
-  const t = useT()
-  const text =
-    title.kind === "board" ? t("title.board", { board: title.board }) : t("frame.product")
-  useEffect(() => {
-    document.title = text
-  }, [text])
+/**
+ * The route's document title in the page's language, before its view shows its heading: a board's
+ * page names the board's id from the URL (the board's title arrives with the view), any other Pulse.
+ */
+function routeTitle(t: ReturnType<typeof useT>, title: PageTitle): string {
+  return title.kind === "board" ? t("title.board", { board: title.board }) : t("frame.product")
 }
 
 /**
- * The frame of a page with a session: the bar with who is signed in and the sign-out, the notice
- * of the session under it, and the view, the document titled for the page. A call that finds the
- * session gone shows the notice, and no silent redirect takes the page away: the sign-in it offers
- * comes back to the page.
+ * The frame of a page with a session: the bar with the way to the start page, who is signed in and
+ * the sign-out, the notice of the session under it, and the view, whose heading titles the
+ * document. A call that finds the session gone shows the notice, and no silent redirect takes the
+ * page away: the sign-in it offers comes back to the page.
  */
 export function sessionFrame(page: SessionPage): PageFrame {
   return function SessionFrame({ children }) {
-    useDocumentTitle(page.title)
+    const t = useT()
     const notice = useSyncExternalStore(page.notices.subscribe, page.notices.current)
     const banner = (
       <>
-        <PageBar>
+        <PageBar home>
           <Account page={page} />
         </PageBar>
         {notice !== undefined && <Notice notice={notice} page={page} />}
       </>
     )
     return (
-      <PageLayout banner={banner}>
+      <PageLayout banner={banner} fallbackTitle={routeTitle(t, page.title)}>
         <div data-slot="page-view" className="flex-1">
           {children}
         </div>

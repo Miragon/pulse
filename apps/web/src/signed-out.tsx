@@ -29,21 +29,22 @@ const REASONS: Readonly<
 
 /**
  * The page a browser without a session sees (`/app/signed-out`), the server's answer for each way
- * a sign-in ends: what happened and what to do, and the one step that starts a sign-in, which comes
- * back to `/app`. It needs no session, so it shows no one and calls nothing.
+ * a sign-in ends: what happened (its one heading, which titles the document per reason) and what to
+ * do, and the one step that starts a sign-in, which comes back to `/app`. It needs no session, so
+ * it shows no one and calls nothing.
  */
 export function signedOutFrame(reason: SignedOutReason): PageFrame {
   const { icon: Glyph, action } = REASONS[reason]
   return function SignedOutFrame() {
     const t = useT()
     return (
-      <PageLayout banner={<PageBar />}>
+      <PageLayout banner={<PageBar />} fallbackTitle={t("frame.product")}>
         <main className="p-gutter flex-1">
           <EmptyState
             icon={<Glyph />}
             title={t(`signedOut.${reason}.title`)}
             description={t(`signedOut.${reason}.description`)}
-            titleAs="h2"
+            titleAs="h1"
             size="page"
             action={
               <Button asChild>

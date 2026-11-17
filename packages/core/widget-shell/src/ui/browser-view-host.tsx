@@ -24,6 +24,11 @@ export interface BrowserHostOptions {
    * into a chat of the user's own, `none` (the default) shows none.
    */
   followUp?: Exclude<FollowUp, "chat">
+  /**
+   * The page's start page, its URL: the state of a start the server refuses for good (a board it
+   * does not show, arguments no tool takes, data it does not offer) links to it, as its words say.
+   */
+  startPage?: string
   /** The page's locale; default: the document's `lang`, else the browser's language. */
   locale?: string
   /**
@@ -70,12 +75,17 @@ function openInNewTab(url: string): void {
 }
 
 /** A page writes to no engine: it offers only what a view reads. */
-function browserViewHost(callTool: ToolCaller, followUp: FollowUp): ViewHost {
+function browserViewHost(
+  callTool: ToolCaller,
+  followUp: FollowUp,
+  startPage: string | undefined,
+): ViewHost {
   return {
     callTool: async (name, args = {}) => await callTool(name, args as Record<string, unknown>),
     sendFollowUp: () => undefined,
     followUp,
     writes: false,
+    startPage,
     openExternal: openInNewTab,
     ModelContext: NoModelContext,
   }
@@ -88,7 +98,7 @@ export function BrowserViewHost({
   options: BrowserHostOptions
   children: ReactNode
 }) {
-  const { callTool, followUp = "none", publicBase } = options
+  const { callTool, followUp = "none", startPage, publicBase } = options
   const theme = useSyncExternalStore(subscribePageTheme, pageTheme, () => undefined)
   const [locale] = useState(() => options.locale ?? pageLocale())
   const shell = useMemo<ShellHost>(
@@ -102,7 +112,10 @@ export function BrowserViewHost({
     }),
     [theme, locale, publicBase],
   )
-  const host = useMemo(() => browserViewHost(callTool, followUp), [callTool, followUp])
+  const host = useMemo(
+    () => browserViewHost(callTool, followUp, startPage),
+    [callTool, followUp, startPage],
+  )
   return (
     <HostContexts shell={shell} host={host} requestDisplayMode={NO_SWITCH}>
       {children}

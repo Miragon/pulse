@@ -25,9 +25,11 @@ function frameLabels(labels: KitLabels, followUp: FollowUp): KitLabels {
 /**
  * The view's lifecycle around ONE view component: waiting, error (the kit's words, the raw text
  * under Details, Try again), cancelled, a missing view, then the view itself under a toolbar that
- * carries the "Reloaded at" stamp and the fullscreen switch. No title: views carry their heading.
- * Host-agnostic, so it renders under `TestViewHost` too, its words for a chat or for a page.
- * Fullscreen the view fills the viewport, unless `fill` is false: a page's frame lays it out then.
+ * carries the "Reloaded at" stamp and the fullscreen switch. No title: views carry their heading,
+ * and an error or a missing view in its place is the document's one heading (`h1`). Every phase is
+ * the document's one main landmark, so a view renders none of its own. Host-agnostic, so it renders
+ * under `TestViewHost` too, its words for a chat or for a page. Fullscreen the view fills the
+ * viewport, unless `fill` is false: a page's frame lays it out then.
  */
 export function ViewFrame({
   call,
@@ -71,9 +73,9 @@ function FrameBody({
   // Every phase before the view sits on the gutter, as the view's own content does.
   if (!View) {
     return (
-      <div className="p-gutter">
-        <ErrorState title={labels.viewMissing} />
-      </div>
+      <main className="p-gutter">
+        <ErrorState title={labels.viewMissing} titleAs="h1" />
+      </main>
     )
   }
   switch (phase.phase) {
@@ -81,23 +83,24 @@ function FrameBody({
       return <ViewWaiting labels={labels} />
     case "cancelled":
       return (
-        <div className="p-gutter">
+        <main className="p-gutter">
           <p role="status" className="text-muted-foreground text-small">
             {labels.cancelled}
           </p>
-        </div>
+        </main>
       )
     case "error":
       return (
-        <div className="p-gutter">
+        <main className="p-gutter">
           <ViewDataState
             loading={false}
             error={phase.error}
             onRetry={onRetry}
             emptyText=""
             errorTitle={labels.viewErrorTitle}
+            errorTitleAs="h1"
           />
-        </div>
+        </main>
       )
     case "ready":
       return (
@@ -118,14 +121,14 @@ function ViewWaiting({ labels }: { labels: KitLabels }) {
     return () => clearTimeout(id)
   }, [])
   return (
-    <div className="gap-section p-gutter flex flex-col">
+    <main className="gap-section p-gutter flex flex-col">
       <Skeleton aria-hidden="true" className="h-control w-48" />
       <Skeleton aria-hidden="true" className="h-32 w-full" />
       <div role="status" className="text-muted-foreground text-small flex flex-col gap-1">
         <p>{labels.loadingView}</p>
         {slow && <p data-slot="slow-hint">{labels.slowHint}</p>}
       </div>
-    </div>
+    </main>
   )
 }
 

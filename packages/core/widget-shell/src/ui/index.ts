@@ -7,6 +7,7 @@ export { ViewDataState } from "./view-data-state.js"
 export {
   describeError,
   isPermanentError,
+  isSessionEnded,
   type DescribeErrorOptions,
   type DescribedError,
 } from "./describe-error.js"
@@ -24,7 +25,12 @@ export {
   type MountViewsOptions,
 } from "./view-root.js"
 // The page root: a view on a page outside a chat, under the browser adapter instead of ext-apps.
-export { mountPage, type MountPageOptions, type PageFrame } from "./page-root.js"
+export {
+  mountPage,
+  type FramePageOptions,
+  type MountPageOptions,
+  type PageFrame,
+} from "./page-root.js"
 export type { BrowserHostOptions, ToolCaller } from "./browser-view-host.js"
 export { ViewStack, type ViewComponent, type ViewMap, type ViewProps } from "./views.js"
 export { ViewErrorBoundary } from "./view-error-boundary.js"

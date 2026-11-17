@@ -1,105 +1,16 @@
 // @vitest-environment happy-dom
 import { act, fireEvent, screen, within } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import type { ViewComponent, ViewMap } from "@miragon/pulse-widget-shell/widgets"
 import { PageNotices } from "../src/notices.js"
-import { startPage, type PageEnv } from "../src/start.js"
+import { bodyOf, callsOf, settled, start, stopPage } from "./page.test-support.js"
 
-/**
- * The page as a browser starts it: its route, its session, its frame and the view in it, over a
- * fake of the server's routes under /app.
- */
+/** The page as a browser starts it: its route, its session, its frame and the view in it. */
 
-;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+afterEach(stopPage)
 
-const SESSION = { name: "Alice Adams", csrf: "csrf-1", expiresAt: 0 }
-
-/** The view the page shows: the start its tool answered with. */
-const Greeting: ViewComponent<{ greeting: string }> = ({ data }) => (
-  <p data-testid="view">{data.greeting}</p>
-)
-const VIEWS: ViewMap = { engine_open_cockpit: Greeting as ViewComponent }
-
-const viewResult = {
-  content: [{ type: "text", text: "{}" }],
-  structuredContent: { greeting: "Hi" },
-}
-
-interface Server {
-  session?: () => Response
-  call?: (body: { name: string; arguments?: Record<string, unknown> }) => Response
-  logout?: () => Response | Promise<Response>
-}
-
-/** The path a request names. */
-const pathOf = (input: RequestInfo | URL): string =>
-  typeof input === "string" ? input : input instanceof URL ? input.pathname : input.url
-
-/** The text of a request's body. */
-const bodyOf = (init: RequestInit | undefined): string =>
-  typeof init?.body === "string" ? init.body : ""
-
-/** The server's routes the page reaches, each answered as `server` says. */
-function fakeFetch(server: Server) {
-  return vi.fn<typeof fetch>((input, init) => {
-    const path = pathOf(input)
-    if (path === "/app/api/session")
-      return Promise.resolve(server.session?.() ?? Response.json(SESSION))
-    if (path === "/app/api/call") {
-      const body = JSON.parse(bodyOf(init)) as { name: string }
-      return Promise.resolve(server.call?.(body) ?? Response.json({ result: viewResult }))
-    }
-    if (path === "/app/auth/logout") {
-      return Promise.resolve(server.logout?.() ?? Response.json({ location: "/app/signed-out" }))
-    }
-    return Promise.reject(new Error(`No route ${path}`))
-  })
-}
-
-let unmount: (() => void) | undefined
-
-/** Starts the page at `url` over `server`, in a container unless `inRoot`; its hands recorded. */
-async function start(url: string, server: Server = {}, { inRoot = false } = {}) {
-  const { pathname, search, origin } = new URL(url, "http://localhost")
-  const fetch = fakeFetch(server)
-  const assign = vi.fn<(url: string) => void>()
-  const reload = vi.fn<() => void>()
-  const env: PageEnv = {
-    views: VIEWS,
-    location: { pathname, search, origin },
-    fetch,
-    assign,
-    reload,
-  }
-  const container = document.createElement("div")
-  document.body.appendChild(container)
-  await act(async () => {
-    unmount = await startPage(inRoot ? env : { ...env, container })
-  })
-  await settled()
-  return { fetch, assign, reload }
-}
-
-async function settled(): Promise<void> {
-  await act(async () => {
-    await new Promise((resolve) => setTimeout(resolve, 0))
-  })
-}
-
-afterEach(async () => {
-  await act(async () => unmount?.())
-  unmount = undefined
-  document.body.innerHTML = ""
-  document.documentElement.lang = ""
-  document.documentElement.removeAttribute("class")
-  document.title = ""
-})
-
-/** The arguments of the page's call of the view tool. */
-function viewArgs(fetch: ReturnType<typeof fakeFetch>): unknown {
-  const [, call] = fetch.mock.calls.find(([path]) => path === "/app/api/call") ?? []
-  return (JSON.parse(bodyOf(call)) as { arguments?: unknown }).arguments
-}
+/** The arguments of the page's first call of the view tool. */
+const viewArgs = (fetch: Parameters<typeof callsOf>[0]): unknown =>
+  callsOf(fetch, "engine_open_cockpit")[0]
 
 describe("a page with a session", () => {
   it("shows the bar, who is signed in and the view the query names, called with the CSRF token", async () => {
@@ -214,7 +125,7 @@ describe("the signed-out page", () => {
     await start("/app/signed-out")
     expect(screen.getByRole("heading", { name: "You signed out" })).toBeTruthy()
     expect(screen.getByRole("link", { name: "Sign in" })).toBeTruthy()
-    await act(async () => unmount?.())
+    await stopPage()
     await start("/app/signed-out?reason=unavailable")
     expect(screen.getByRole("link", { name: "Try again" }).getAttribute("href")).toBe(
       "/app/auth/login",

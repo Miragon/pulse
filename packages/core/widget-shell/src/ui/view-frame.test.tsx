@@ -152,6 +152,25 @@ describe("ViewFrame: on a page outside a chat", () => {
     expect(screen.queryByText(/Chat/)).toBeNull()
   })
 
+  it("words a failed view for the page: what to do there, never in a chat", () => {
+    renderFrame({ phase: "error", error: new Error("odd") }, { followUp: "none" })
+    expect(screen.getByText("Try again. If it fails again, reload the page.")).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy()
+    expect(screen.queryByText(/chat/i)).toBeNull()
+  })
+
+  it.each([
+    ['[UNKNOWN_BOARD] Unknown board id "shipping". Boards: invoices.', "isn't on this server"],
+    ['[BOARD_REFUSED] Board "broken" cannot be shown.', "its file gives no board"],
+    ["Input validation error: Invalid arguments for tool x: view: Invalid option", "refused"],
+  ])("offers no Try again for a start the server refuses for good: %s", (raw, words) => {
+    const { lines } = renderFrame({ phase: "error", error: new Error(raw) }, { followUp: "none" })
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toContain(words)
+    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull()
+    expect(screen.queryByText(/chat/i)).toBeNull()
+    expect(lines.at(-1)).toContain("without a retry button")
+  })
+
   it("keeps the chat's words in a chat", () => {
     vi.useFakeTimers()
     renderFrame({ phase: "waiting" }, { followUp: "chat" })
@@ -161,6 +180,25 @@ describe("ViewFrame: on a page outside a chat", () => {
     expect(document.querySelector("[data-slot=slow-hint]")?.textContent).toBe(
       "This is taking longer than usual. If nothing happens, ask in the chat again.",
     )
+  })
+})
+
+describe("ViewFrame: the document's landmarks and heading", () => {
+  it.each([
+    ["waiting", { phase: "waiting" }, undefined],
+    ["cancelled", { phase: "cancelled" }, undefined],
+    ["error", { phase: "error", error: new Error("odd") }, "This view couldn't be loaded"],
+    ["ready", { phase: "ready", data: { rows: ["a"] }, reloadedAt: null }, undefined],
+  ] as const)("%s: the one main landmark", (_, phase, heading) => {
+    renderFrame(phase)
+    expect(screen.getAllByRole("main")).toHaveLength(1)
+    if (heading) expect(screen.getByRole("heading", { level: 1, name: heading })).toBeTruthy()
+  })
+
+  it("a view it has no component for: the one main, its words the one heading", () => {
+    renderFrame({ phase: "ready", data: {}, reloadedAt: null }, { view: null })
+    expect(screen.getAllByRole("main")).toHaveLength(1)
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toContain("can't show this view")
   })
 })
 

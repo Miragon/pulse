@@ -13,8 +13,10 @@ import {
  * The board list and the board pages of the web app on the real server: `/app` opens the cockpit's
  * landing (`engine_open_cockpit` view `landing`), the engines and the server's boards, with one
  * engine too where the server has boards; `/app/boards/<id>` opens a board (view `board`), titled
- * by its id. Both are read-only and show what the chat shows: the same board feed, the same tiles
- * of @miragon/pulse-blocks. The main deployment reads test:host's board files over the stub
+ * by the board's title once the view shows it (by its id before). Both are read-only and show what
+ * the chat shows: the same board feed, the same tiles of @miragon/pulse-blocks. A board the server
+ * shows not, or whose file gives none, is a refusal no retry changes: what happened and what to do
+ * on the page, no Try again. The main deployment reads test:host's board files over the stub
  * engine and the broken one (`fixtures/boards`); the short one has one engine and no board.
  */
 
@@ -50,18 +52,21 @@ test.describe("the board list", () => {
     const refused = boards(page).locator("[data-status=refused]")
     await expect(refused).toContainText(BROKEN_BOARD)
     await expect(refused).toContainText(/file refused: 1 problem$/)
-    await expect(page).toHaveTitle("Pulse")
+    await expect(page).toHaveTitle("Operations Cockpit · Pulse")
     expect(viewCalls(calls)).toEqual([
       { name: "engine_open_cockpit", arguments: { view: "landing" } },
     ])
     expect(errors).toEqual([])
     await expectNoAxeFinding(page)
 
-    // A board opens in the page; its trail leads back to the list, the address stays.
+    // A board opens in the page, the title following it; its trail leads back to the list, the
+    // address stays.
     await board.click()
     await drawn(page)
+    await expect(page).toHaveTitle(`${TITLE} · Pulse`)
     await trail(page).getByRole("button", { name: "All engines" }).click()
     await expect(landing(page)).toBeVisible()
+    await expect(page).toHaveTitle("Operations Cockpit · Pulse")
     expect(new URL(page.url()).pathname).toBe("/app")
   })
 
@@ -78,14 +83,14 @@ test.describe("the board list", () => {
 })
 
 test.describe("a board's page", () => {
-  test("shows the board with its tiles over two engines, the broken one in its place, titled by its id", async ({
+  test("shows the board with its tiles over two engines, the broken one in its place, titled by its title", async ({
     page,
   }) => {
     const errors = collectErrors(page)
     const calls = recordCalls(page)
     await signIn(page, BOARD_PAGE)
     await drawn(page)
-    await expect(page).toHaveTitle(`Board ${INVOICES_BOARD} · Pulse`)
+    await expect(page).toHaveTitle(`${TITLE} · Pulse`)
     expect(viewCalls(calls)).toEqual([
       { name: "engine_open_cockpit", arguments: { view: "board", board: INVOICES_BOARD } },
     ])
@@ -128,43 +133,67 @@ test.describe("a board's page", () => {
     expect(new URL(page.url()).pathname).toBe(BOARD_PAGE)
   })
 
-  test("a board file that gives no board: the page shows the tool's refusal, naming its problem", async ({
+  test("a board file that gives no board: says so in the box, its problems in the log, no Try again", async ({
     page,
   }) => {
+    const calls = recordCalls(page)
     await signIn(page, `/app/boards/${BROKEN_BOARD}`)
     const alert = page.getByRole("alert")
-    await expect(alert.getByRole("heading", { name: "This view couldn't be loaded" })).toBeVisible({
+    const refused = "This board can't be shown: its file gives no board"
+    await expect(alert.getByRole("heading", { level: 1, name: refused })).toBeVisible({
       timeout: 15_000,
     })
     await expect(
+      alert.getByText(
+        "Its problems are under Details and in the server's log at startup. Ask whoever runs this server to fix the file.",
+      ),
+    ).toBeVisible()
+    await expect(
       alert.getByText(/^\[BOARD_REFUSED\] Board "broken" cannot be shown/),
     ).toBeAttached()
-    await expect(page).toHaveTitle(`Board ${BROKEN_BOARD} · Pulse`)
+    await expect(alert.getByRole("button", { name: "Try again" })).toHaveCount(0)
+    await expect(page).toHaveTitle(`${refused} · Pulse`)
+    expect(viewCalls(calls)).toHaveLength(1)
+    await expectNoAxeFinding(page)
   })
 
-  test("an unknown id: the page shows UNKNOWN_BOARD's refusal, which names the boards", async ({
+  test("an unknown id: says the board is not on this server and where the boards are, no Try again", async ({
     page,
   }) => {
     await signIn(page, "/app/boards/shipping")
     const alert = page.getByRole("alert")
-    await expect(alert.getByRole("heading", { name: "This view couldn't be loaded" })).toBeVisible({
-      timeout: 15_000,
-    })
+    await expect(
+      alert.getByRole("heading", { level: 1, name: "This board isn't on this server" }),
+    ).toBeVisible({ timeout: 15_000 })
+    await expect(
+      alert.getByText("Go to Pulse's start page, which shows this server's boards and engines."),
+    ).toBeVisible()
     await expect(
       alert.getByText(`[UNKNOWN_BOARD] Unknown board id "shipping". Boards: ${INVOICES_BOARD}.`),
     ).toBeAttached()
+    await expect(alert.getByRole("button", { name: "Try again" })).toHaveCount(0)
+    await expect(page.getByText(/\bchat\b/i)).toHaveCount(0)
     await expectNoAxeFinding(page)
+
+    // The box holds the way there, beside its words; the bar's product name leads there too.
+    await expect(page.getByRole("link", { name: "Pulse, start page" })).toHaveAttribute(
+      "href",
+      "/app",
+    )
+    await alert.getByRole("link", { name: "Go to the start page" }).click()
+    await expect(landing(page)).toBeVisible({ timeout: 15_000 })
+    expect(new URL(page.url()).pathname).toBe("/app")
   })
 })
 
 test.describe("a board's page in German, on a dark system", () => {
   test.use({ locale: "de-DE", colorScheme: "dark" })
 
-  test("words the board in German and titles the page by its id", async ({ page }) => {
+  test("words the board in German and titles the page by the board's title", async ({ page }) => {
     await signIn(page, BOARD_PAGE)
     await expect(boardHeading(page)).toBeVisible({ timeout: 15_000 })
     await expect(page.getByRole("button", { name: "Aktualisieren" })).toBeVisible()
-    await expect(page).toHaveTitle(`Board ${INVOICES_BOARD} · Pulse`)
+    await expect(page).toHaveTitle(`${TITLE} · Pulse`)
     await expect(tile(page, "Laufende Instanzen von invoice")).toBeVisible()
     await expect(page.locator("html")).toHaveAttribute("lang", "de")
     await expectNoAxeFinding(page)

@@ -2,7 +2,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { LocaleProvider } from "@miragon/pulse-ui"
+import { TestViewHost } from "./test-view-host.js"
 import { SKELETON_DELAY_MS, ViewDataState } from "./view-data-state.js"
+import { WebApiError } from "./web-caller.js"
 
 afterEach(() => {
   cleanup()
@@ -84,6 +86,82 @@ describe("ViewDataState: the error (U1)", () => {
       />,
     )
     expect(screen.getByRole("heading", { name: "Incidents could not be loaded" })).toBeTruthy()
+  })
+})
+
+describe("ViewDataState on a page", () => {
+  const UNKNOWN_BOARD = '[UNKNOWN_BOARD] Unknown board id "shipping". Boards: invoices.'
+  const ENDED = new WebApiError(401, { code: "signed_out", message: "No session." })
+
+  it.each([
+    ["en", "Go to the start page"],
+    ["de", "Zur Startseite"],
+  ] as const)("links a refused start to the page's start page (%s)", (locale, name) => {
+    render(
+      <TestViewHost followUp="none" startPage="/app" locale={locale}>
+        <ViewDataState
+          loading={false}
+          error={new Error(UNKNOWN_BOARD)}
+          onRetry={vi.fn()}
+          emptyText="e"
+        />
+      </TestViewHost>,
+    )
+    const link = screen.getByRole("link", { name })
+    expect(link.getAttribute("href")).toBe("/app")
+    // A refusal no retry changes: the link is its one way on.
+    expect(screen.queryByRole("button")).toBeNull()
+  })
+
+  it("links nowhere without a start page, or where its words do not lead there", () => {
+    const { rerender } = render(
+      <TestViewHost followUp="none">
+        <ViewDataState
+          loading={false}
+          error={new Error(UNKNOWN_BOARD)}
+          onRetry={vi.fn()}
+          emptyText="e"
+        />
+      </TestViewHost>,
+    )
+    expect(screen.queryByRole("link")).toBeNull()
+    rerender(
+      <TestViewHost followUp="none" startPage="/app">
+        <ViewDataState loading={false} error={ENGINE_DOWN} onRetry={vi.fn()} emptyText="e" />
+      </TestViewHost>,
+    )
+    expect(screen.queryByRole("link")).toBeNull()
+    expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy()
+  })
+
+  it("leaves an ended session to the page's frame: a quiet line, no box, no session words", () => {
+    const { rerender } = render(
+      <TestViewHost followUp="none" startPage="/app">
+        <ViewDataState loading={false} error={ENDED} onRetry={vi.fn()} emptyText="e" />
+      </TestViewHost>,
+    )
+    expect(screen.queryByRole("alert")).toBeNull()
+    expect(screen.queryByRole("button")).toBeNull()
+    expect(screen.queryByRole("link")).toBeNull()
+    expect(document.body.textContent).toBe("This content couldn't be loaded")
+    expect(document.querySelector('[data-slot="empty-state"]')).toBeTruthy()
+    // In the view's place, the caller's title is the page's one heading.
+    rerender(
+      <TestViewHost followUp="none" locale="de">
+        <ViewDataState
+          loading={false}
+          error={ENDED}
+          onRetry={vi.fn()}
+          emptyText="e"
+          errorTitle="Diese Ansicht konnte nicht geladen werden"
+          errorTitleAs="h1"
+        />
+      </TestViewHost>,
+    )
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Diese Ansicht konnte nicht geladen werden" }),
+    ).toBeTruthy()
+    expect(document.body.textContent).not.toMatch(/abgemeldet|Melde dich/)
   })
 })
 

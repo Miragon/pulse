@@ -72,6 +72,8 @@ describe("CockpitApp opens a board", () => {
   it("from its seed, without a feed call, the chooser one crumb away", async () => {
     const { reads, contexts } = renderBoardCockpit()
     expect(boardHeading()).toBeTruthy()
+    // The view frame's main holds the cockpit: the board's route renders none of its own.
+    expect(screen.queryByRole("main")).toBeNull()
     expect(reads(ENGINE_BOARD_DATA)).toEqual([])
     expect(activeEngine()).toBeNull()
     expect(within(trail()).getByRole("button", { name: "All engines" })).toBeTruthy()

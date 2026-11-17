@@ -15,6 +15,7 @@ import { spyHost } from "./tool-host.test-support.js"
 import { useViewData } from "./tool-query.js"
 import { useDetailView } from "./use-detail-view.js"
 import { viewRefreshState } from "./view-refresh-state.js"
+import { WebApiError } from "./web-caller.js"
 
 interface Detail {
   name: string
@@ -218,6 +219,18 @@ describe("useDetailView", () => {
     const notice = await findStrip()
     expect(notice.textContent).toContain("Engine prod cannot be used: its profile is refused.")
     expect(screen.queryByRole("button", { name: "Retry now" })).toBeNull()
+    expect(screen.getByText("seed")).toBeTruthy()
+  })
+
+  it("says nothing of a page's ended session, which the page's frame says: the data stays, unconfirmed", async () => {
+    callTool.mockRejectedValueOnce(
+      new WebApiError(401, { code: "signed_out", message: "No session." }),
+    )
+    render(<Detail seed={{ name: "seed" }} />, { wrapper })
+    await invalidate()
+    // The refetch failed: the view no longer counts its data as current, and offers no write.
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Act" })).toBeNull())
+    expect(strip()).toBeNull()
     expect(screen.getByText("seed")).toBeTruthy()
   })
 

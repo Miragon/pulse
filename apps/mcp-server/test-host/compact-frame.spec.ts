@@ -1494,20 +1494,39 @@ test.describe("facts", () => {
   })
 })
 
-/** The whole view, the BPMN diagram included: its canvas alone is the image, its controls beside it. */
+/** axe's best-practice rules for the landmarks of a view's document. */
+const LANDMARK_RULES = [
+  "landmark-no-duplicate-main",
+  "landmark-main-is-top-level",
+  "landmark-unique",
+  "landmark-one-main",
+]
+
+/**
+ * The whole view, the BPMN diagram included: its canvas alone is the image, its controls beside it.
+ * Besides WCAG, axe's landmark rules: the view frame's one main, at the top, no landmark twice.
+ */
 async function expectAxeClean(page: Page, label: string) {
-  const results = await new AxeBuilder({ page })
-    .include("#app")
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22a", "wcag22aa"])
-    .analyze()
-  const violations = results.violations.map((v) => ({
-    id: v.id,
-    nodes: v.nodes.map((n) => n.target.join(" ")).slice(0, 5),
-  }))
-  expect(violations, label).toEqual([])
+  const findings = async (builder: AxeBuilder) =>
+    (await builder.include("#app").analyze()).violations.map((v) => ({
+      id: v.id,
+      nodes: v.nodes.map((n) => n.target.join(" ")).slice(0, 5),
+    }))
+  const wcag = await findings(
+    new AxeBuilder({ page }).withTags([
+      "wcag2a",
+      "wcag2aa",
+      "wcag21a",
+      "wcag21aa",
+      "wcag22a",
+      "wcag22aa",
+    ]),
+  )
+  const landmarks = await findings(new AxeBuilder({ page }).withRules(LANDMARK_RULES))
+  expect([...wcag, ...landmarks], label).toEqual([])
 }
 
-test.describe("axe on the detail views (WCAG 2.2 A/AA)", () => {
+test.describe("axe on the detail views (WCAG 2.2 A/AA, one main landmark)", () => {
   for (const theme of ["light", "dark"] as const) {
     test(`the process, the incident and the instance with a failed refresh, its Details open (${theme})`, async ({
       page,

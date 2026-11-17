@@ -99,14 +99,18 @@ browser's. It owns its viewport, so it shows fullscreen with no switch, and noth
 model. A page posts into no chat, so a hand-off shows only where the page asks for it to be
 copied (`followUp: "copy"`); a widget asks the host's `followUp` with `useHostFollowUp()`, so a
 menu, a column or a section that holds hand-offs alone shows not at all where they are hidden, and
-the view's frame says to reload the page where a chat's would say to ask in the chat. A page writes
+the view's frame and the kit's failure words say what to do on the page where a chat's would say
+to ask in the chat. A page's `startPage` (its start page's URL) is where the state of a start the
+server refuses for good links to (a board it does not show, arguments no tool takes, data it does
+not offer), and a call that finds the page's session gone (`isSessionEnded`) is the page frame's to
+say: a view's state then shows a quiet line, no error box, notice or footer alert. A page writes
 to no engine: `useHostWrites()` answers false there (true in a chat and in `TestViewHost`), so a
 widget that asks it before it shows a write control offers none. A page that brings its own chrome
 hands it in as `frame`, a component that gets the view as its `children` and renders under the same
 providers (the view's locale, theme, icon stroke and toasts); the frame then lays out the page and
-the view takes its content's height. With a frame and no `view`, the frame renders alone and nothing
-is called (a page that needs no tool, such as a signed-out page). Pulse's web app (`apps/web`) is
-such a page.
+the view takes its content's height. With a frame and no `view`, the frame renders alone, needs no
+`callTool` and calls nothing (a page that needs no tool, such as a signed-out page). Pulse's web
+app (`apps/web`) is such a page.
 
 ```ts
 import { mountPage } from "@miragon/pulse-widget-shell/widgets"
@@ -118,6 +122,7 @@ mountPage(engineViews, {
   // Your page's call of a server tool, resolving with its raw result (an `isError` one too).
   callTool: (name, args) => callServerTool(name, args),
   followUp: "copy",
+  startPage: "/",
 })
 ```
 

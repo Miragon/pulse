@@ -281,6 +281,14 @@ describe("ErrorState", () => {
     },
   )
 
+  it("titles a page with h1 where it is the page's one state", () => {
+    const html = renderToStaticMarkup(<ErrorState title="Pulse doesn't answer" titleAs="h1" />)
+    expect(html).toMatch(/<h1[^>]*>Pulse doesn&#x27;t answer<\/h1>/)
+    expect(renderToStaticMarkup(<EmptyState title="Signed out" titleAs="h1" />)).toMatch(
+      /<h1[^>]*>Signed out<\/h1>/,
+    )
+  })
+
   it("has no retry without onRetry, and takes custom labels", () => {
     expect(renderToStaticMarkup(<ErrorState title="x" />)).not.toContain("<button")
     const html = renderToStaticMarkup(

@@ -1,12 +1,11 @@
 import type { ReactNode } from "react"
-import { ErrorState, Skeleton, useLocale } from "@miragon/pulse-ui"
-import { describeError, isPermanentError } from "./describe-error.js"
+import { Skeleton, useLocale } from "@miragon/pulse-ui"
 import { kitLabels } from "./kit-labels.js"
-import { hasContent, LoadingStatus, RefreshRegion } from "./view-data-state.js"
+import { FailureState, hasContent, LoadingStatus, RefreshRegion } from "./view-data-state.js"
 
 /**
- * The error branch several widgets forgot, leaving them on an eternal skeleton; no Try again on a
- * permanent refusal. A first load shows its skeleton only after 400 ms. Handed the loaded
+ * The error branch several widgets forgot, leaving them on an eternal skeleton, in
+ * `FailureState`'s words: no Try again on a permanent refusal. A first load shows its skeleton only after 400 ms. Handed the loaded
  * content (`children`) with `isLoading` false, it renders it, refreshed in place while
  * `refreshing` (aria-busy).
  */
@@ -39,17 +38,7 @@ export function QueryFallback({
   children?: ReactNode
 }) {
   const locale = useLocale()
-  if (isError) {
-    const described = describeError(error, locale, { fallbackTitle: errorTitle })
-    return (
-      <ErrorState
-        title={described.title}
-        description={described.hint}
-        details={described.details ?? undefined}
-        onRetry={isPermanentError(error) ? undefined : onRetry}
-      />
-    )
-  }
+  if (isError) return <FailureState error={error} onRetry={onRetry} title={errorTitle} />
   if (!isLoading && hasContent(children)) {
     return <RefreshRegion refreshing={refreshing}>{children}</RefreshRegion>
   }

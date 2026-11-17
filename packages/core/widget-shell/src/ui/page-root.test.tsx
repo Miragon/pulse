@@ -7,6 +7,7 @@ import type { ToolResult } from "../protocol/tool-result.js"
 import type { ToolCaller } from "./browser-view-host.js"
 import { HandOffButton } from "./hand-off-button.js"
 import { useToolQuery } from "./tool-query.js"
+import { useViewHost } from "./view-host.js"
 import { mountPage, type MountPageOptions } from "./page-root.js"
 import type { ViewComponent, ViewMap } from "./views.js"
 import { useHostDisplayMode } from "./widget-shell.js"
@@ -201,6 +202,24 @@ describe("mountPage", () => {
     await settled()
     expect(container.querySelector('[data-testid="frame"]')?.textContent).toBe("alone|en")
     expect(callTool).not.toHaveBeenCalled()
+  })
+
+  it("shows a frame alone without a caller, and refuses a tool its frame asks for", async () => {
+    let asked: Promise<unknown> | undefined
+    const Frame = () => {
+      const { callTool } = useViewHost()
+      asked ??= callTool("demo_rows_data").catch((error: unknown) => error)
+      return <p data-testid="frame">{useLocale()}</p>
+    }
+    const container = document.createElement("div")
+    document.body.appendChild(container)
+    await act(async () => {
+      unmount = mountPage(VIEWS, { container, frame: Frame, locale: "de" })
+    })
+    await settled()
+    expect(container.querySelector('[data-testid="frame"]')?.textContent).toBe("de")
+    expect(container.querySelector("main")).toBeNull()
+    expect(String(await asked)).toBe("Error: This page shows no view, so it calls no tool.")
   })
 
   it("fills the viewport without a frame, as a chat's fullscreen view does", async () => {

@@ -30,7 +30,11 @@ function renderedErrorWords(labels: ErrorLabels): Record<string, string> {
     words[`source.${key}`] = subject
     for (const kind of ERROR_KINDS) {
       words[`${kind}.title.${key}`] = labels[kind].title({ source: subject, status })
-      words[`${kind}.hint.${source.type}`] = labels[kind].hint({ source: source.type })
+      words[`${kind}.hint.${source.type}`] = labels[kind].hint({ source: source.type, page: false })
+      words[`${kind}.pageHint.${source.type}`] = labels[kind].hint({
+        source: source.type,
+        page: true,
+      })
     }
   }
   const title = labels.failed.title({
@@ -83,6 +87,22 @@ describe("the frame's words for a page", () => {
     for (const words of [pageSlowHint, pageViewMissing]) expect(words).not.toMatch(chat)
     for (const words of [slowHint, viewMissing]) expect(words).toMatch(chat)
   })
+
+  it.each([
+    ["de", /Chat/],
+    ["en", /chat/i],
+  ] as const)(
+    "%s: the error words for a page never send the reader to a chat",
+    (language, chat) => {
+      const words = Object.entries(ERROR_WORDS[language])
+      const page = words.filter(([key]) => key.includes(".pageHint."))
+      expect(page).toHaveLength(ERROR_KINDS.length * 2)
+      for (const [key, text] of page) expect(text, key).not.toMatch(chat)
+      // The chat's own words do, where a chat is the way out: the page's differ there.
+      const asksChat = words.filter(([key, text]) => key.includes(".hint.") && chat.test(text))
+      expect(asksChat.length).toBeGreaterThan(0)
+    },
+  )
 })
 
 describe("kit copy uses the product glossary", () => {

@@ -32,8 +32,11 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   root's call hook (`useViewCall` over `resolveViewCall`) owns the stripped-result recovery: a host that
   drops `structuredContent` (claude.ai) gets the view re-running its own show tool ONCE (every
   view-bound tool is a read), stamped "Reloaded at"; the view frame renders the phases (waiting,
-  error with a retry, none for a refusal no retry changes (`isPermanentError`), cancelled, ready)
-  and keeps a crashing view, and each `ViewStack` row,
+  error with a retry, none for a refusal no retry changes (`isPermanentError`: a refused profile,
+  a read-only engine, a page's ended session, an unknown or refused board, arguments the tool does
+  not take), cancelled, ready), each phase the document's one `<main>` (an error or a missing view
+  its one `h1`, so a view renders no main of its own), and keeps a crashing view, and each
+  `ViewStack` row,
   inside its own error boundary. Widgets reach the host only through the view
   host seam (`useViewHost`: `callTool`, `sendFollowUp`, `followUp`, `writes`, `openExternal`; `HostModelContext`) and the query
   hooks (`useToolQuery`, `useToolQueries` (one read per entry of a list, under `useToolQuery`'s
@@ -58,7 +61,15 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   `none` (its default), where it renders nothing, and so does a widget's menu, column or section
   that holds hand-offs alone (it asks `useHostFollowUp`, which hands it no tool caller). The view
   frame words its states by it: a chat's say to ask in the chat, a page's to reload the page
-  (`pageSlowHint`, `pageViewMissing`; a page cancels no call, so `cancelled` stays a chat's). The
+  (`pageSlowHint`, `pageViewMissing`; a page cancels no call, so `cancelled` stays a chat's), and
+  so do `describeError`'s hints through its `followUp` option (`ViewDataState`, `QueryFallback`
+  and a paged list's refusal read the host's) and the kit's `loadFailedHint`, which `LocaleGate`
+  replaces on a page with `describeError`'s page words for a failure it cannot name. A page's
+  `startPage` (`ViewHost.startPage`) is where a refused start's state links (`FailureState`:
+  an unknown board, arguments no tool takes, data the server does not offer), and a page's ended
+  session (`isSessionEnded`) is the page frame's to say, once: `FailureState` shows a quiet line,
+  and neither `useDetailView`'s notice nor a paged list's footer says it. A page whose frame
+  renders alone hands `mountPage` no caller (`FramePageOptions`). The
   view host's `writes` says whether a view may write to an engine: the ext-apps adapter and
   `TestViewHost` (unless a test passes `writes={false}`) write, a page writes nothing, and a
   widget's write primitive asks `useHostWrites` before it shows a write control. The MCP

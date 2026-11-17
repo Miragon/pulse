@@ -586,8 +586,9 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      The root's call hook (`useViewCall` over `resolveViewCall`) owns the stripped-result
      recovery: a host that drops `structuredContent` gets ONE re-run of the view's own view
      tool, so every view-bound tool is a read (`apps/mcp-server/test/view-registry.test.ts`).
-     `ViewFrame` renders the phases (waiting, error, cancelled, ready); every `ViewStack` row
-     has its own error boundary, so one crashing widget never takes its view down. Widgets
+     `ViewFrame` renders the phases (waiting, error, cancelled, ready), each the document's one
+     `<main>` (a failed or missing view its one `h1`), so a view renders no main of its own; every
+     `ViewStack` row has its own error boundary, so one crashing widget never takes its view down. Widgets
      reach the host only through `useViewHost`/`HostModelContext` and the query hooks
      (`useToolQuery`, `useToolQueries`, `useToolMutation`, `useViewData`), test under
      `TestViewHost`, and never import the MCP Apps runtime of
@@ -596,15 +597,21 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
    - **States and feedback** (#322). Loading, error and no data go through `ViewDataState`, or
      `QueryFallback` + `TableSkeleton` in a self-fetching widget (without an `isError` branch
      the skeleton never ends); both take a required `onRetry` and word a failure with
-     `describeError`, the raw engine text only under "Details". A refusal no retry changes
-     (`isPermanentError`: a refused profile, a write to a read-only engine) is not retried by the
+     `describeError`, the raw engine text only under "Details", its hint for the host the view
+     sits in (`followUp`: a page's words never send the reader to a chat). A refusal no retry
+     changes (`isPermanentError`: a refused profile, a write to a read-only engine, a page's ended
+     session, an unknown or refused board, arguments a tool does not take) is not retried by the
      view's query client and offers no Try again, in an error state or a failed refresh's notice
      (a paged list's footer through `canRetry`, which then says why through `describeRefusal`,
      never "try again"; a view's failed refresh over the data it shows is a `StatusStrip` docked
      under its bar, `useDetailView`'s `notice`, the raw engine text under the strip's Details); a
      write words it once, at its control or in its confirmation's dialog, and the cockpit shows a
      refused engine once, as its view's one state (`RefusedEngineGate`), also before the engine
-     list answers. A write reports through
+     list answers. A page's ended session (`isSessionEnded`) is said once, by the page's frame: a
+     view's state shows a quiet line that its content is missing, and no notice, footer alert or
+     engine row speaks of it. A page's refused start (an unknown board, arguments a tool does not
+     take, data the server does not offer) links to the page's start page (`mountPage`'s
+     `startPage`). A write reports through
      `useActionFeedback()` toasts that name the object and confirms through `ConfirmDialog`;
      nothing to show is `TableEmptyState`. A first load shows its skeleton only after 400 ms
      (`SKELETON_DELAY_MS`), a refresh keeps the content on screen with its region `aria-busy`
@@ -694,7 +701,8 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      devDependency (today `1.70.0`): pnpm installs a package once per peer set, so two versions
      resolve a second pulse-ui and widget-shell instance and split the React contexts.
    - **Actions and hand-offs.** A view's actions are ONE group in `WidgetHeader` `actions` (the
-     view's `ViewBar`, the hero only at app level with `size="app"`), all the kit's toolbar
+     view's `ViewBar`, the hero only at app level with `size="app"`; the landing's one action sits
+     beside its hero and wraps under it where both do not fit, WCAG 1.4.10), all the kit's toolbar
      buttons of one size (`variant="toolbar"`, `size="sm"`: an icon and its label at 400, the
      label hidden visually in a bar under 36rem and kept as the name; `OpenInCockpitLink` and
      `HandOffButton` take `variant="toolbar"` there), ordered: deterministic steps, the engine's

@@ -1,11 +1,16 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
 import type { ComponentType } from "react"
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { TONE_ICON } from "@miragon/pulse-ui"
-import { ENGINE_COCKPIT_OVERVIEW_DATA } from "../../tool-names.js"
+import { ENGINE_COCKPIT_OVERVIEW_DATA, ENGINE_HEALTH_DATA } from "../../tool-names.js"
 import { LandingChooser, type ServerBoards } from "./landing.js"
-import { TestViewHost, createTestQueryClient } from "@miragon/pulse-widget-shell/widgets"
+import {
+  TestViewHost,
+  WebApiError,
+  createTestQueryClient,
+  createViewQueryClient,
+} from "@miragon/pulse-widget-shell/widgets"
 
 // One retry-free client per test; the test reads and pokes its cache.
 let queryClient = createTestQueryClient()
@@ -170,6 +175,134 @@ describe("LandingChooser", () => {
       expect(await row(/^no-access\s*,\s*Zugriff verweigert$/)).toBeTruthy()
       expect(await row(/^down\s*,\s*nicht erreichbar$/)).toBeTruthy()
       expect(await row(/^locked\s*,\s*Profil abgelehnt$/)).toBeTruthy()
+    })
+  })
+
+  /**
+   * An engine that does not answer says so from the first failed read, as a board's strip on the
+   * same page does, while the view's query client retries quietly behind it (1, 2, 4 s): never
+   * "loading…" for the 7 s the retries take.
+   */
+  it("says an engine is unreachable from its first failed read, its retries quiet", async () => {
+    const client = createViewQueryClient()
+    let reads = 0
+    render(
+      <TestViewHost
+        tools={{
+          [ENGINE_COCKPIT_OVERVIEW_DATA]: () => {
+            reads += 1
+            throw new Error("[503 ProcessEngineException] Engine is shutting down (engine down)")
+          },
+        }}
+        client={client}
+      >
+        <LandingChooser engines={[{ id: "down" }]} onEnterEngine={() => {}} />
+      </TestViewHost>,
+    )
+    const down = await screen.findByRole("button", { name: /^down\s*,\s*unreachable$/ })
+    expect(down.dataset.status).toBe("unreachable")
+    // The policy's retries still run behind it: the read is not over yet.
+    expect(reads).toBe(1)
+    expect(client.isFetching()).toBeGreaterThan(0)
+    client.clear()
+  })
+
+  /**
+   * A counts read that a retry mends never flickers a row that shows counts: over counts on screen
+   * the row says a failure only once every retry failed.
+   */
+  it("keeps an engine's counts through a refetch's failed first attempt", async () => {
+    const client = createViewQueryClient()
+    let reads = 0
+    render(
+      <TestViewHost
+        tools={{
+          [ENGINE_COCKPIT_OVERVIEW_DATA]: (args: Record<string, unknown>) => {
+            reads += 1
+            if (reads > 1) throw new Error("[503 ProcessEngineException] Busy (engine prod-b)")
+            return overviewFeed(args)
+          },
+          [ENGINE_HEALTH_DATA]: { status: "ok" },
+        }}
+        client={client}
+      >
+        <LandingChooser engines={[{ id: "prod-b" }]} onEnterEngine={() => {}} />
+      </TestViewHost>,
+    )
+    await screen.findByRole("button", { name: /^prod-b\s*,\s*no incidents$/ })
+    // Not awaited: the refetch settles only once its retries ran out.
+    act(() => {
+      void client.invalidateQueries({ queryKey: ["engine:cockpit-overview"] })
+    })
+    const key = ["engine:cockpit-overview", "prod-b", { engine: "prod-b" }]
+    await waitFor(() => expect(client.getQueryState(key)?.fetchFailureCount).toBe(1))
+    // The first attempt failed and its retry waits: the row still shows what it read.
+    expect(reads).toBe(2)
+    expect(client.isFetching({ queryKey: key })).toBe(1)
+    expect(screen.getByRole("button", { name: /^prod-b\s*,\s*no incidents$/ }).dataset.status).toBe(
+      "healthy",
+    )
+    client.clear()
+  })
+
+  /**
+   * A page whose session ended asked no engine: its rows say nothing of the engine, never
+   * "credentials rejected" (the page's frame says the session ended), and keep what they read.
+   */
+  describe("a page whose session ended", () => {
+    const ENDED = () => new WebApiError(401, { code: "signed_out", message: "No session." })
+
+    it("says it read nothing where it read nothing yet, without a tone", async () => {
+      render(
+        <TestViewHost
+          tools={{
+            [ENGINE_COCKPIT_OVERVIEW_DATA]: () => {
+              throw ENDED()
+            },
+          }}
+          client={createViewQueryClient()}
+          followUp="none"
+        >
+          <LandingChooser engines={[{ id: "prod-a" }]} onEnterEngine={() => {}} />
+        </TestViewHost>,
+      )
+      const row = await screen.findByRole("button", { name: /^prod-a\s*,\s*not loaded$/ })
+      expect(row.dataset.status).toBe("notLoaded")
+      const mark = row.querySelector("svg")?.getAttribute("class") ?? ""
+      expect(mark).toContain("lucide-minus")
+      expect(mark).not.toContain(TONE_ICON.warning)
+      expect(mark).not.toContain(TONE_ICON.danger)
+    })
+
+    it("keeps the counts it read before the session ended", async () => {
+      const client = createViewQueryClient()
+      let reads = 0
+      render(
+        <TestViewHost
+          tools={{
+            [ENGINE_COCKPIT_OVERVIEW_DATA]: (args: Record<string, unknown>) => {
+              reads += 1
+              if (reads > 1) throw ENDED()
+              return overviewFeed(args)
+            },
+            [ENGINE_HEALTH_DATA]: { status: "ok" },
+          }}
+          client={client}
+          followUp="none"
+          locale="de"
+        >
+          <LandingChooser engines={[{ id: "prod-a" }]} onEnterEngine={() => {}} />
+        </TestViewHost>,
+      )
+      await screen.findByRole("button", { name: /^prod-a\s*,\s*18 Incidents$/ })
+      await act(() => client.invalidateQueries({ queryKey: ["engine:cockpit-overview"] }))
+      const key = ["engine:cockpit-overview", "prod-a", { engine: "prod-a" }]
+      await waitFor(() => expect(client.getQueryState(key)?.status).toBe("error"))
+      expect(reads).toBe(2)
+      const row = screen.getByRole("button", { name: /^prod-a\s*,\s*18 Incidents$/ })
+      expect(row.dataset.status).toBe("incidents")
+      expect(screen.queryByText("Zugangsdaten abgelehnt")).toBeNull()
+      client.clear()
     })
   })
 

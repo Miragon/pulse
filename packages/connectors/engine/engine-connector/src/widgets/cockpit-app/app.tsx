@@ -310,13 +310,14 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
             )
           }
         >
-          <main className="min-w-0">
+          {/* The view frame's main holds the cockpit: the route's region renders none of its own. */}
+          <div className="min-w-0">
             <NavProvider value={navigate}>
               <ViewErrorBoundary resetKey={viewKey(scope.view)}>
                 <CockpitRoute view={scope.view} engine={null} seed={startSeed(data, state)} />
               </ViewErrorBoundary>
             </NavProvider>
-          </main>
+          </div>
         </WidgetShell>
       </NavigationFocus>
     )
@@ -351,12 +352,13 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
         >
           {null}
         </HostModelContext>
-        <main className="min-w-0">
+        <div className="min-w-0">
           {/* Every view is a route of self-fetching widgets. The NavProvider is
             the client-side navigation seam: widgets call `useNav()`, which
             resolves to this in-app router instead of a chat follow-up. The head
             names the engine, so the views leave it out of their own meta line.
-            A crashing view never takes the cockpit down, a refused engine shows once. */}
+            A crashing view never takes the cockpit down, a refused engine shows once. The view
+            frame's main holds the cockpit, so the route renders no main of its own. */}
           <NavProvider value={navigate}>
             <ViewErrorBoundary resetKey={viewKey(current)}>
               <RefusedEngineGate
@@ -367,7 +369,7 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
               </RefusedEngineGate>
             </ViewErrorBoundary>
           </NavProvider>
-        </main>
+        </div>
       </WidgetShell>
     </NavigationFocus>
   )

@@ -22,6 +22,7 @@ import {
   KeyRound,
   Layers,
   LoaderCircle,
+  Minus,
   Unplug,
   type LucideIcon,
 } from "lucide-react"
@@ -38,16 +39,25 @@ import { useEngineHealth } from "./engine-health.js"
 
 /** In words, so colour is never the only signal. */
 export type EngineStatusKind =
-  "loading" | HealthFailure | "empty" | "incidents" | "failedJobs" | "idle" | "healthy"
+  | "loading"
+  | "notLoaded"
+  | HealthFailure
+  | "empty"
+  | "incidents"
+  | "failedJobs"
+  | "idle"
+  | "healthy"
 
 /**
  * #322 U15, from the same live health as the engine's overview. A profile the server refused and
  * an engine that refused the server's login are states of their own (`healthFailureOf`): the
- * server never asks the one, and the other answered, so neither is unreachable.
+ * server never asks the one, and the other answered, so neither is unreachable. A page whose
+ * session ended asked no engine: the row keeps what it last read, and says it read nothing where
+ * it read nothing yet (`notLoaded`, no tone); the page's frame says the session ended.
  */
 export function engineStatusKind(health: {
-  isError: boolean
-  error: unknown
+  /** The read's failure, from its first failed attempt (`useEngineHealth`); null without one. */
+  failure: Error | null
   summary:
     | {
         totalDefinitions: number
@@ -57,9 +67,10 @@ export function engineStatusKind(health: {
       }
     | undefined
 }): EngineStatusKind {
-  if (health.isError) return healthFailureOf(health.error)
+  const failure = health.failure && healthFailureOf(health.failure)
+  if (failure) return failure
   const s = health.summary
-  if (!s) return "loading"
+  if (!s) return health.failure ? "notLoaded" : "loading"
   if (s.totalDefinitions === 0) return "empty"
   if (s.totalIncidents > 0) return "incidents"
   if (s.totalFailedJobs > 0) return "failedJobs"
@@ -84,6 +95,7 @@ function StatusMark({ kind, tone }: { kind: EngineStatusKind; tone: ToneVariant 
     return <Icon icon={FAILURE_ICON[kind]} className={TONE_ICON[HEALTH_FAILURE_TONE[kind]]} />
   }
   if (kind === "empty") return <Icon icon={CircleDashed} className="text-muted-foreground" />
+  if (kind === "notLoaded") return <Icon icon={Minus} className="text-muted-foreground" />
   return (
     <span className="inline-flex size-4 items-center justify-center" aria-hidden="true">
       <span className={cn("size-2 rounded-full", TONE_DOT[tone])} />
@@ -111,8 +123,8 @@ function EngineRow({
 }) {
   const locale = useLocale()
   const tr = (key: string, params?: Record<string, unknown>) => translator(locale, key, params)
-  const { query, summary, tone } = useEngineHealth(engineId)
-  const kind = engineStatusKind({ isError: query.isError, error: query.error, summary })
+  const { failure, summary, tone } = useEngineHealth(engineId)
+  const kind = engineStatusKind({ failure, summary })
   const status =
     kind === "incidents"
       ? tr("cockpit.landing.status.incidents", {
@@ -233,28 +245,36 @@ function BoardList({
 
 /**
  * #322 U15: hangs on the theme slot a customer brand empties (`--brand-mark-display: none`). The
- * title is the app-level one (`WidgetHeader` `size="app"`), the signature above it.
+ * title is the app-level one (`WidgetHeader` `size="app"`), the signature above it. The action
+ * sits beside the hero where both fit and wraps under it where they do not, on the whole width,
+ * never past the gutter (WCAG 1.4.10: the German one is wider than the Komet's column at 320 px).
  */
 export function LandingHeader({ subtitle, action }: { subtitle?: string; action?: ReactNode }) {
   const locale = useLocale()
   return (
-    <div className="flex min-w-0 items-center gap-4">
-      <KometMark />
-      <div className="min-w-0 flex-1">
-        <p
-          data-brand-signature=""
-          className="text-muted-foreground text-small font-semibold"
-          style={{ display: "var(--brand-mark-display, block)" }}
-        >
-          {translator(locale, "cockpit.signature")}
-        </p>
-        <WidgetHeader
-          size="app"
-          title={translator(locale, "cockpit.landing.title")}
-          sub={subtitle}
-          actions={action}
-        />
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+      <div className="flex min-w-0 items-center gap-4">
+        <KometMark />
+        <div className="min-w-0 flex-1">
+          <p
+            data-brand-signature=""
+            className="text-muted-foreground text-small font-semibold"
+            style={{ display: "var(--brand-mark-display, block)" }}
+          >
+            {translator(locale, "cockpit.signature")}
+          </p>
+          <WidgetHeader
+            size="app"
+            title={translator(locale, "cockpit.landing.title")}
+            sub={subtitle}
+          />
+        </div>
       </div>
+      {action && (
+        <div data-slot="landing-action" className="flex min-w-0 flex-wrap items-center gap-2">
+          {action}
+        </div>
+      )}
     </div>
   )
 }

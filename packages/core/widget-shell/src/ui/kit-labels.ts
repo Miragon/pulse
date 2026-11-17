@@ -44,6 +44,8 @@ export interface KitLabels {
   enterFullscreen: string
   exitFullscreen: string
   reloadedAt: (time: string) => string
+  /** The link of a page's refused start to its start page (`ViewHost.startPage`). */
+  toStartPage: string
 }
 
 const LABELS: Record<Locale, KitLabels> = {
@@ -96,6 +98,7 @@ const LABELS: Record<Locale, KitLabels> = {
     enterFullscreen: "Fullscreen",
     exitFullscreen: "Exit fullscreen",
     reloadedAt: (time) => `Reloaded at ${time}`,
+    toStartPage: "Go to the start page",
   },
   de: {
     loadingView: "Ansicht wird geladen…",
@@ -147,6 +150,7 @@ const LABELS: Record<Locale, KitLabels> = {
     enterFullscreen: "Vollbild",
     exitFullscreen: "Vollbild verlassen",
     reloadedAt: (time) => `Neu geladen um ${time} Uhr`,
+    toStartPage: "Zur Startseite",
   },
 }
 

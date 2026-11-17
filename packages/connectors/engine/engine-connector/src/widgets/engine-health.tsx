@@ -16,6 +16,7 @@ import {
 import {
   HandOffButton,
   isPermanentError,
+  isSessionEnded,
   ViewDataState,
   ViewMeta,
   WidgetShell,
@@ -394,8 +395,8 @@ export function EngineHealthView({
           />
           {/* A failed re-pull keeps the last verdict and says it is not current, docked under
               the bar, the engine's own text under its Details; a refusal no retry changes offers
-              no retry. */}
-          {refreshError && !refreshing && (
+              no retry. A page's ended session is the page frame's to say, once. */}
+          {refreshError && !refreshing && !isSessionEnded(refreshError) && (
             <StatusStrip
               tone="warning"
               title={t("engineHealth.refreshFailedTitle")}

@@ -7,19 +7,20 @@ import { signInUrl } from "./routes.js"
 
 /**
  * A page that found no session when it asked for one (it ended between the page and its first
- * read): what happened, and the sign-in that comes back to the page.
+ * read): what happened, its one heading, which titles the document, and the sign-in that comes
+ * back to the page.
  */
 export function endedFrame(returnTo: string): PageFrame {
   return function EndedFrame() {
     const t = useT()
     return (
-      <PageLayout banner={<PageBar />}>
+      <PageLayout banner={<PageBar />} fallbackTitle={t("frame.product")}>
         <main className="p-gutter flex-1">
           <EmptyState
             icon={<LogOut />}
             title={t("page.ended.title")}
             description={t("page.ended.description")}
-            titleAs="h2"
+            titleAs="h1"
             size="page"
             action={
               <Button asChild>
@@ -36,15 +37,19 @@ export function endedFrame(returnTo: string): PageFrame {
   }
 }
 
-/** A page whose session could not be read (the server answered no session, nor its absence). */
+/**
+ * A page whose session could not be read (the server answered no session, nor its absence): its
+ * one heading, which titles the document, and the reload.
+ */
 export function unreachableFrame(reload: () => void): PageFrame {
   return function UnreachableFrame() {
     const t = useT()
     return (
-      <PageLayout banner={<PageBar />}>
+      <PageLayout banner={<PageBar />} fallbackTitle={t("frame.product")}>
         <main className="p-gutter flex-1">
           <ErrorState
             title={t("page.unreachable.title")}
+            titleAs="h1"
             description={t("page.unreachable.description")}
             onRetry={reload}
             retryLabel={t("action.tryAgain")}

@@ -267,8 +267,11 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
 
 - `ViewDataState` is the loading/error/no-data guard (no inline Alert/loading ternary):
   `onRetry` is required (`paged.retry`, a query's `refetch`), though a refusal no retry
-  changes (`isPermanentError`: a refused profile, a read-only engine) shows no Try again, and
-  the view's query client never retries one; loading is a `skeleton`
+  changes (`isPermanentError`: a refused profile, a write to a read-only engine, a page's ended
+  session, an unknown or refused board, arguments a tool does not take) shows no Try again, and
+  the view's query client never retries one; a page's ended session (`isSessionEnded`) is the
+  page frame's to say, so the guard shows only a quiet line, and a widget's own notice or row
+  says nothing of it; loading is a `skeleton`
   slot under a polite sr-only status ("Ansicht wird geladen…" unless `loadingText`),
   no data pulse-ui's `EmptyState`
 - Self-fetching widgets: skeleton + error via `QueryFallback` (+ `TableSkeleton`). A
@@ -281,8 +284,11 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   `ViewDataState`, `QueryFallback`, `useDetailView` (its stale notice: an inline warning
   `ErrorState`), `ConfirmDialog`, `useActionFeedback` and the view's own failed call
   (`ViewFrame`) all use it; a widget's own error line does too
-  (`ErrorState` with `describeError(...)`), and `errorTitle` heads only a failure
-  `describeError` cannot classify
+  (`ErrorState` with `describeError(error, locale, { followUp })`, `followUp` from
+  `useHostFollowUp()`, so a page's words never send the reader to a chat), and `errorTitle`
+  heads only a failure `describeError` cannot classify
+- The view frame (`ViewFrame`) is the document's one `<main>` in every phase: a view renders
+  no `<main>` of its own, and its title is the page's one `h1`
 - A view that reads its feed directly calls widget-shell's `useViewData` (from
   `@miragon/pulse-widget-shell/widgets`): the handed-in tool result always seeds a live
   query, so Refresh and a write's invalidation re-read it (#341). Widgets import every

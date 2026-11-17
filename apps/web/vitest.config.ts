@@ -13,9 +13,9 @@ export default mergeConfig(
         include: ["src/**/*.{ts,tsx}"],
         // The entry hands the browser's own window to startPage (start.ts), which the tests run.
         exclude: ["src/main.tsx"],
-        // Ratchet: the measured coverage of 2026-11-16 (99.21 / 100 / 97.36 / 100); what stays
-        // out is the caller of a page that shows no view, which nothing calls. Raise, never lower.
-        thresholds: { statements: 99, branches: 100, functions: 97, lines: 100 },
+        // Ratchet: the measured coverage of 2026-11-16, all of it (a page that shows no view
+        // hands mountPage no caller, so no function stays uncalled). Never lower.
+        thresholds: { statements: 100, branches: 100, functions: 100, lines: 100 },
       },
     },
   }),

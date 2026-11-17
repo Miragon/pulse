@@ -53,6 +53,7 @@ describe("the /widgets entry", () => {
       "formatLookback",
       "injectBpmnOverlayCss",
       "isPermanentError",
+      "isSessionEnded",
       "isSignedOutReason",
       "modelContextText",
       "mountPage",

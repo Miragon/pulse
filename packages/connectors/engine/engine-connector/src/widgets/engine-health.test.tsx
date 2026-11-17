@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { LocaleProvider, formatNumber } from "@miragon/pulse-ui"
 import {
   TestViewHost,
+  WebApiError,
   type HostAction,
   createTestQueryClient,
 } from "@miragon/pulse-widget-shell/widgets"
@@ -437,5 +438,19 @@ describe("an engine whose health cannot be read", () => {
     expect(reason.hidden).toBe(true)
     fireEvent.click(within(strip).getByRole("button", { name: "Details" }))
     expect(reason.hidden).toBe(false)
+  })
+
+  it("leaves a page's ended session to the page's frame: the verdict stays, no strip", async () => {
+    const ended = () => Promise.reject(new WebApiError(401, { code: "signed_out", message: "x" }))
+    render(
+      <TestViewHost tools={{ ...tools, [ENGINE_HEALTH_DATA]: ended }} client={queryClient}>
+        <EngineHealthView data={DEGRADED} engine="default" />
+      </TestViewHost>,
+    )
+    await act(() => queryClient.invalidateQueries({ queryKey: ["engine:health"] }))
+    const key = ["engine:health", "default", { engine: "default" }]
+    await waitFor(() => expect(queryClient.getQueryState(key)?.status).toBe("error"))
+    expect(document.querySelector('[data-slot="status-strip"]')).toBeNull()
+    expect(document.querySelector('[data-slot="view-bar"]')).toBeTruthy()
   })
 })

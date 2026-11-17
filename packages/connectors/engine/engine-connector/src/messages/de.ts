@@ -36,6 +36,7 @@ export const de: MessageCatalog = {
   "cockpit.landing.envLabel": ({ env }) => `Umgebung ${String(env).toUpperCase()}`,
   "cockpit.landing.default": "Standard",
   "cockpit.landing.status.loading": "lädt …",
+  "cockpit.landing.status.notLoaded": "nicht geladen",
   "cockpit.landing.status.refused": "Profil abgelehnt",
   "cockpit.landing.status.unreachable": "nicht erreichbar",
   "cockpit.landing.status.unauthorized": "Zugangsdaten abgelehnt",

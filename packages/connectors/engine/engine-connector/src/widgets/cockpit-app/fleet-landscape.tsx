@@ -45,7 +45,8 @@ function stateOf(
 ): EngineState {
   if (overview?.data) return "read"
   if (!overview?.isError) return "loading"
-  return healthFailureOf(overview.error)
+  // A page whose session ended read no engine: not read, never a failure of the engine's.
+  return healthFailureOf(overview.error) ?? "loading"
 }
 
 /** Each failure counted under its own word, in the order of {@link HEALTH_FAILURES}. */

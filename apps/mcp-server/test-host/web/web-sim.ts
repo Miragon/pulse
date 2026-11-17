@@ -147,10 +147,17 @@ export async function rendered(page: Page): Promise<void> {
   )
 }
 
-/** No finding of axe at WCAG 2.2 A and AA on what the page shows. */
+/**
+ * No finding of axe on what the page shows: WCAG 2.2 A and AA, and axe's best practices, its
+ * landmark and heading rules among them (one main landmark, at the top, an h1 per page).
+ */
 export async function expectNoAxeFinding(page: Page): Promise<void> {
   const results = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22a", "wcag22aa"])
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22a", "wcag22aa", "best-practice"])
     .analyze()
-  expect(results.violations.map((violation) => violation.id)).toEqual([])
+  const violations = results.violations.map((violation) => ({
+    id: violation.id,
+    nodes: violation.nodes.map((node) => node.target.join(" ")).slice(0, 3),
+  }))
+  expect(violations).toEqual([])
 }

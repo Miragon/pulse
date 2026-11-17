@@ -31,6 +31,11 @@ export interface ViewHost {
    * shows there (`useHostWrites`).
    */
   writes?: boolean
+  /**
+   * The page's start page, where a page's words of a refused start lead (`mountPage`'s
+   * `startPage`): the failure's state then links to it. A chat has none.
+   */
+  startPage?: string
   /** Opens a URL outside the frame. Fail-soft. */
   openExternal: (url: string) => void
   /** One node of the view's model-context tree; nested nodes join into one context. */
@@ -57,6 +62,23 @@ export function useViewHost(): ViewHost {
  */
 export function useHostFollowUp(): FollowUp {
   return useViewHost().followUp
+}
+
+/**
+ * Where the kit's words of a failure say what to do: a chat's (`chat`) may send the reader there,
+ * a page's (`copy`, `none`) say what to do on the page (`describeError`'s `followUp`). Outside a
+ * view host (a kit piece rendered on its own) a chat's, as before the host told.
+ */
+export function useWordsFollowUp(): FollowUp {
+  return useContext(ViewHostContext)?.followUp ?? "chat"
+}
+
+/**
+ * The page's start page (`ViewHost.startPage`), without the host's tool caller; outside a view
+ * host (a kit piece rendered on its own) none.
+ */
+export function useStartPage(): string | undefined {
+  return useContext(ViewHostContext)?.startPage
 }
 
 /**

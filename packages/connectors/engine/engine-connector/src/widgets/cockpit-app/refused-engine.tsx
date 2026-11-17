@@ -1,6 +1,6 @@
 import { useCallback, useSyncExternalStore, type ReactNode } from "react"
 import {
-  isPermanentError,
+  describeError,
   useQueryClient,
   useToolQuery,
   ViewDataState,
@@ -14,9 +14,14 @@ import { useT } from "../../messages/use-t.js"
 const HEALTH = "engine:health"
 const healthKey = (engine: string) => [HEALTH, engine] as const
 
-/** Its last read failed with the server's refusal: it holds until the operator fixes the profile. */
+/**
+ * Its last read failed with the server's refusal of its profile, which holds until the operator
+ * fixes it: never another refusal no retry changes, a page's ended session say.
+ */
 function isRefusal(state: { status: string; error: unknown } | undefined): boolean {
-  return state?.status === "error" && isPermanentError(state.error)
+  return (
+    state?.status === "error" && describeError(state.error, undefined).kind === "profileRefused"
+  )
 }
 
 /**
