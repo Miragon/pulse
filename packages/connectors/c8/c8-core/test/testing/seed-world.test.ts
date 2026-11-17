@@ -49,6 +49,14 @@ const SETTLED = Object.values(WORLD_PROCESS).map((process) => {
   }
 })
 
+function aliasOf(body: string): string | undefined {
+  const open = "<!-- "
+  const start = body.indexOf(open)
+  if (start < 0) return undefined
+  const end = body.indexOf(" -->", start + open.length)
+  return end < 0 ? undefined : body.slice(start + open.length, end)
+}
+
 function answer(status: number, body?: unknown): C8SeedAnswer {
   const text = body === undefined ? "" : typeof body === "string" ? body : JSON.stringify(body)
   return { ok: status < 300, status, text: () => Promise.resolve(text) }
@@ -103,7 +111,7 @@ class SeedCluster implements C8SeedEngine {
   private answer(line: string, body: string): C8SeedAnswer {
     if (line === "POST /deployments") {
       const process = /filename="(\w+)\.bpmn"/.exec(body)?.[1]
-      const marker = /<!-- (\S+) -->/.exec(body)?.[1] ?? `${process}@1`
+      const marker = aliasOf(body) ?? `${process}@1`
       return answer(200, {
         deployments: [{ processDefinition: { processDefinitionKey: `key-${marker}` } }],
       })
