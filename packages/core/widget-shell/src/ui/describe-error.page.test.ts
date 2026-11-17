@@ -20,6 +20,9 @@ const BOARD_REFUSED =
 const INVALID_VIEW =
   'Input validation error: Invalid arguments for tool engine_open_cockpit: view: Invalid option: expected one of "overview"|"jobs"'
 const signedOut = () => new WebApiError(401, { code: "signed_out", message: "No session." })
+/** What the engine module answers for a call that does not read its engine's dialect. */
+const NOT_SERVED =
+  '[ENGINE_DIALECT_NOT_SERVED] Engine "orders-c8" is a Camunda 8 engine, and this tool or view reads the Camunda 7 REST API (Camunda 7, CIB seven, Operaton), so nothing was sent. This server reads a Camunda 8 engine on boards only, and no board names "orders-c8" yet; the server\'s operator adds one.'
 
 const CHAT = { en: /\bchat\b/i, de: /\bChat\b/ } as const
 
@@ -30,6 +33,7 @@ describe("describeError on a page", () => {
     ["Tool engine_jobs_data not found", "notOnServer"],
     [INVALID_VIEW, "invalidArguments"],
     [UNKNOWN_BOARD, "unknownBoard"],
+    [NOT_SERVED, "notServed"],
   ] as const)("%s: a chat's words ask in the chat, a page's never do", (raw, kind) => {
     for (const locale of ["en", "de"] as const) {
       const chat = describeError(new Error(raw), locale)
@@ -95,6 +99,27 @@ describe("the refusals no retry changes", () => {
     })
   })
 
+  it("an engine the call's dialect does not read: neutral words, the server's text under Details", () => {
+    expect(describeError(new Error(NOT_SERVED), "en", { followUp: "none" })).toEqual({
+      kind: "notServed",
+      title: "This view doesn't read this engine",
+      hint: "This server shows it on boards only. Pulse's start page lists the boards.",
+      details: NOT_SERVED,
+    })
+    expect(describeError(NOT_SERVED, "de")).toMatchObject({
+      title: "Diese Ansicht liest diese Engine nicht",
+      hint: "Dieser Server zeigt sie nur auf Boards. Frag im Chat, welche Boards sie zeigen.",
+    })
+    expect(classifyError(NOT_SERVED).source).toEqual({ type: "engine", id: "orders-c8" })
+    // The words name no dialect: the server's text does, under Details.
+    for (const locale of ["en", "de"] as const) {
+      for (const followUp of ["chat", "none"] as const) {
+        const { title, hint } = describeError(NOT_SERVED, locale, { followUp })
+        expect(`${title} ${hint}`).not.toMatch(/Camunda|CIB|Operaton|c8\b|dialect|Dialekt/i)
+      }
+    }
+  })
+
   it("a page's call that found its session gone, by the web app's code, never its status", () => {
     expect(classifyError(signedOut())).toMatchObject({ kind: "signedOut", status: 401 })
     expect(describeError(signedOut(), "en", { followUp: "none" })).toMatchObject({
@@ -110,10 +135,15 @@ describe("the refusals no retry changes", () => {
   })
 
   it("is each permanent, a code an engine's message quotes none of them", () => {
-    for (const error of [UNKNOWN_BOARD, BOARD_REFUSED, INVALID_VIEW, signedOut()]) {
+    for (const error of [UNKNOWN_BOARD, BOARD_REFUSED, INVALID_VIEW, NOT_SERVED, signedOut()]) {
       expect(isPermanentError(error)).toBe(true)
     }
-    for (const code of ["[UNKNOWN_BOARD]", "[BOARD_REFUSED]", "Input validation error: "]) {
+    for (const code of [
+      "[UNKNOWN_BOARD]",
+      "[BOARD_REFUSED]",
+      "[ENGINE_DIALECT_NOT_SERVED]",
+      "Input validation error: ",
+    ]) {
       const quoted = `[500 ProcessEngineException] Script failed on "${code}x" (engine prod)`
       expect(classifyError(quoted).kind).toBe("failed")
       expect(isPermanentError(quoted)).toBe(false)
@@ -136,7 +166,12 @@ describe("what a page does with a refusal", () => {
 
   it("links to its start page where the words lead there, and nowhere else", () => {
     const kinds = (errors: unknown[]) => errors.map((error) => classifyError(error).kind)
-    for (const kind of kinds([UNKNOWN_BOARD, INVALID_VIEW, "Tool engine_jobs_data not found"])) {
+    for (const kind of kinds([
+      UNKNOWN_BOARD,
+      INVALID_VIEW,
+      NOT_SERVED,
+      "Tool engine_jobs_data not found",
+    ])) {
       expect(leadsToStartPage(kind)).toBe(true)
     }
     for (const kind of kinds([BOARD_REFUSED, signedOut(), "Something odd happened"])) {

@@ -61,4 +61,17 @@ export const en: MessageCatalog = {
   "cockpit.crumb.fleet": "Cross-engine overview",
   "cockpit.engineGone": ({ engineId }) =>
     `Engine ${String(engineId)} is no longer configured on this server.`,
+  // An engine of another dialect, which the server reads on boards only: its landing row, the one
+  // state of its routes (BoardsOnlyEngineGate) and the cross-engine view's line.
+  "cockpit.landing.status.onBoards": ({ product }) => `${String(product)}, on boards`,
+  "cockpit.landing.status.onNoBoard": ({ product }) => `${String(product)}, on no board yet`,
+  "cockpit.boardsOnly.title": ({ engine, product }) =>
+    `${String(engine)} is a ${String(product)} engine`,
+  "cockpit.boardsOnly.onBoards": "Pulse shows it here on boards: open one that names it.",
+  "cockpit.boardsOnly.noBoard":
+    "Pulse shows it here on boards only, and no board names it yet. Ask whoever runs this Pulse server to add one.",
+  "cockpit.boardsOnly.boards": ({ engine }) => `Boards that name ${String(engine)}`,
+  "cockpit.boardsOnly.webApp": ({ webApp }) => `You can also open it in ${String(webApp)}.`,
+  // The engines' ids follow, each kept whole on its line.
+  "fleet.boardsOnly": ({ product }) => `${String(product)} on boards only, not in this overview:`,
 }

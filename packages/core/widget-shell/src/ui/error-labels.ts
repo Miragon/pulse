@@ -19,6 +19,7 @@ export interface ErrorLabels {
   status: (p: { status: number }) => string
   profileRefused: ErrorKindLabels
   readOnly: ErrorKindLabels
+  notServed: ErrorKindLabels
   signedOut: ErrorKindLabels
   unknownBoard: ErrorKindLabels
   boardRefused: ErrorKindLabels
@@ -60,6 +61,14 @@ const EN: ErrorLabels = {
     title: ({ source }) => `${source} is read-only on this server`,
     hint: () =>
       "Its profile allows reads only, so nothing was changed. Ask whoever runs this server if you need to change something there.",
+  },
+  // Neutral: the words name no dialect, the server's text under Details does.
+  notServed: {
+    title: () => "This view doesn't read this engine",
+    hint: ({ page }) =>
+      page
+        ? "This server shows it on boards only. Pulse's start page lists the boards."
+        : "This server shows it on boards only. Ask in the chat which boards show it.",
   },
   signedOut: {
     title: () => "You're signed out",
@@ -157,6 +166,13 @@ const DE: ErrorLabels = {
     title: ({ source }) => `${source} ist auf diesem Server nur lesbar`,
     hint: () =>
       "Das Profil dieser Engine erlaubt nur Lesezugriffe, darum hat sich nichts geändert. Bitte die Person, die den Server betreibt, wenn du dort etwas ändern musst.",
+  },
+  notServed: {
+    title: () => "Diese Ansicht liest diese Engine nicht",
+    hint: ({ page }) =>
+      page
+        ? "Dieser Server zeigt sie nur auf Boards. Die Startseite von Pulse listet die Boards."
+        : "Dieser Server zeigt sie nur auf Boards. Frag im Chat, welche Boards sie zeigen.",
   },
   signedOut: {
     title: () => "Du bist abgemeldet",

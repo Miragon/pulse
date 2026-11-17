@@ -134,10 +134,29 @@ export interface ProcessInstanceRow {
   hasIncident: boolean
 }
 
+/**
+ * The API family an engine speaks: `c7` the Camunda 7 REST API every route of the cockpit reads,
+ * `c8` Camunda 8's Orchestration Cluster REST API, which the server reads on boards only.
+ */
+export type EngineDialect = "c7" | "c8"
+
 export interface CockpitEngineInfo {
   id: string
   /** Environment grouping for the two-stage picker (default environment when unconfigured). */
   environment: string
+  /**
+   * The dialect it speaks; absent on a refused profile, which no call reaches. Every route reads a
+   * `c7` engine. Another dialect's engine the cockpit shows on boards only: each of its routes is
+   * one state that reads nothing (`BoardsOnlyEngineGate`), its landing row reads nothing either.
+   */
+  dialect?: EngineDialect
+  /**
+   * Another dialect's: its web app (Operate on Camunda 8) from the profile's `cockpitUrl` as
+   * written, http(s) only, never derived from the engine's `url`; absent without one.
+   */
+  webAppUrl?: string
+  /** Another dialect's: the ids of the configured boards that name it, in the board files' order. */
+  boards?: readonly string[]
 }
 
 /**

@@ -59,4 +59,18 @@ export const de: MessageCatalog = {
   "cockpit.crumb.fleet": "Engine-übergreifende Übersicht",
   "cockpit.engineGone": ({ engineId }) =>
     `Die Engine ${String(engineId)} ist auf diesem Server nicht mehr konfiguriert.`,
+  // Eine Engine eines anderen Dialekts, die der Server nur auf Boards liest: ihre Zeile auf der
+  // Landing, der eine Zustand ihrer Routen (BoardsOnlyEngineGate) und die Zeile der Übersicht.
+  "cockpit.landing.status.onBoards": ({ product }) => `${String(product)}, auf Boards`,
+  "cockpit.landing.status.onNoBoard": ({ product }) => `${String(product)}, noch auf keinem Board`,
+  "cockpit.boardsOnly.title": ({ engine, product }) =>
+    `${String(engine)} läuft auf ${String(product)}`,
+  "cockpit.boardsOnly.onBoards": "Pulse zeigt sie hier auf Boards: Öffne eines, das sie nennt.",
+  "cockpit.boardsOnly.noBoard":
+    "Pulse zeigt sie hier nur auf Boards, und noch kein Board nennt sie. Bitte die Person, die diesen Pulse-Server betreibt, eines anzulegen.",
+  "cockpit.boardsOnly.boards": ({ engine }) => `Boards, die ${String(engine)} nennen`,
+  "cockpit.boardsOnly.webApp": ({ webApp }) => `Du kannst sie auch in ${String(webApp)} öffnen.`,
+  // Die IDs der Engines folgen, jede ganz in ihrer Zeile.
+  "fleet.boardsOnly": ({ product }) =>
+    `${String(product)} nur auf Boards, nicht in dieser Übersicht:`,
 }

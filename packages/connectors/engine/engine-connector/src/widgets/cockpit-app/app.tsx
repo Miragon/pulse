@@ -8,14 +8,15 @@ import {
   ViewErrorBoundary,
   WidgetShell,
 } from "@miragon/pulse-widget-shell/widgets"
-import type { CockpitAppData } from "../../view-models.js"
+import type { CockpitAppData, CockpitView } from "../../view-models.js"
 import type { LandingStartData } from "../../view-models.board.js"
 import { groupEnginesByEnvironment } from "../../lib/shared/environments.js"
 import { environmentIn } from "../lib/engine-context.js"
 import { NavProvider, type OnNavigate } from "../navigation.js"
 import { type BoardView, crumbLabel, viewKey } from "../nav-core.js"
-import { useHandOff } from "../lib/hand-off.js"
+import { useHandOff, type ViewContext } from "../lib/hand-off.js"
 import {
+  boardsOnlyEngineContext,
   cockpitContext,
   fleetContext,
   landingContext,
@@ -36,6 +37,14 @@ import { CockpitRoute } from "./routes.js"
 import { FleetView } from "./fleet-view.js"
 import { LandingChooser, LandingHeader, type ServerBoards } from "./landing.js"
 import { RefusedEngineGate, useProfileRefusal } from "./refused-engine.js"
+import { BoardsOnlyEngineGate } from "./boards-only-engine.js"
+import {
+  type BoardsOnlyEngine,
+  boardsOnlyOf,
+  type CockpitEngine,
+  dialectFactsOf,
+  readsWhole,
+} from "./boards-only.js"
 
 export type { CockpitAppData }
 
@@ -46,17 +55,19 @@ interface EnginesResult extends Partial<ServerBoards> {
   refused?: Array<{ id: string; environment?: string }>
 }
 
-type ListedEngine = { id: string; environment?: string }
+type ListedEngine = CockpitEngine
 
 /**
  * Every configured engine the list names, the refused ones too, in the order the start data gave
  * them (the profiles'), so no row moves when the list answers; one the start data does not name
- * comes last.
+ * comes last. Each keeps what the start data says of its dialect, which the list does not.
  */
 function listedEngines(result: EnginesResult, order: readonly ListedEngine[]): ListedEngine[] {
+  const started = new Map(order.map((engine) => [engine.id, engine]))
   const named = [...result.engines, ...(result.refused ?? [])].map(({ id, environment }) => ({
     id,
     ...(environment === undefined ? {} : { environment }),
+    ...dialectFactsOf(started.get(id)),
   }))
   const rank = new Map(order.map(({ id }, index) => [id, index]))
   const place = (id: string) => rank.get(id) ?? rank.size
@@ -89,6 +100,21 @@ function landingSeed(data: CockpitAppData | null): LandingStartData | undefined 
  */
 function isRefused(result: EnginesResult | undefined, engineId: string): boolean {
   return result?.refused?.some(({ id }) => id === engineId) ?? false
+}
+
+/**
+ * What the model hears of an open engine: its refused profile, its dialect the server reads on
+ * boards only, or the view on screen.
+ */
+function engineContextOf(
+  engineId: string,
+  current: CockpitView,
+  refused: boolean,
+  boardsOnly: BoardsOnlyEngine | null,
+): ViewContext {
+  if (refused) return refusedEngineContext(engineId)
+  if (boardsOnly) return boardsOnlyEngineContext(engineId, boardsOnly)
+  return cockpitContext(engineId, current)
 }
 
 /** Docked under the head: the engine the view showed went away, and the view fell back. */
@@ -236,8 +262,10 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
   // Also before the engine list answers, or when it fails: a read already met the refusal.
   const metRefusal = useProfileRefusal(scope.kind === "engine" ? scope.engineId : null)
 
-  // The cross-engine view reads every engine itself, so two engines are all it needs.
-  const offerFleet = engines.length > 1
+  // The cross-engine view reads every engine itself, so two it reads whole are all it needs; one
+  // the server shows on boards only it names and leaves out.
+  const fleetEngines = engines.filter(readsWhole)
+  const offerFleet = fleetEngines.length > 1
   const openFleet = offerFleet ? () => dispatch({ type: "to-fleet" }) : undefined
 
   const enterEngine = (id: string) => dispatch({ type: "enter-engine", id })
@@ -258,7 +286,15 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
     return (
       <NavigationFocus viewKey={nav.key} label={nav.label}>
         {/* The model hears the picker as the picker: no engine is in scope. */}
-        <HostModelContext content={context(landingContext(engineGroups, boards))}>
+        <HostModelContext
+          content={context(
+            landingContext(
+              engineGroups,
+              boards,
+              engines.filter((engine) => !readsWhole(engine)).map((engine) => engine.id),
+            ),
+          )}
+        >
           {null}
         </HostModelContext>
         <LandingChooser
@@ -284,7 +320,11 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
             </CockpitTrailBar>
           }
         >
-          <HostModelContext content={context(fleetContext(engineGroups))}>{null}</HostModelContext>
+          <HostModelContext
+            content={context(fleetContext(groupEnginesByEnvironment(fleetEngines)))}
+          >
+            {null}
+          </HostModelContext>
           <FleetView engines={engines} onEnterEngine={enterEngine} />
         </WidgetShell>
       </NavigationFocus>
@@ -325,6 +365,7 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
 
   const engineId = scope.engineId
   const current = stack[stack.length - 1]
+  const boardsOnly = boardsOnlyOf(engines.find((engine) => engine.id === engineId))
 
   return (
     <NavigationFocus viewKey={nav.key} label={nav.label}>
@@ -346,9 +387,7 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
         }
       >
         <HostModelContext
-          content={context(
-            metRefusal ? refusedEngineContext(engineId) : cockpitContext(engineId, current),
-          )}
+          content={context(engineContextOf(engineId, current, metRefusal, boardsOnly))}
         >
           {null}
         </HostModelContext>
@@ -357,15 +396,24 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
             the client-side navigation seam: widgets call `useNav()`, which
             resolves to this in-app router instead of a chat follow-up. The head
             names the engine, so the views leave it out of their own meta line.
-            A crashing view never takes the cockpit down, a refused engine shows once. The view
-            frame's main holds the cockpit, so the route renders no main of its own. */}
+            A crashing view never takes the cockpit down, a refused engine shows once, and so
+            does one the server shows on boards only. The view frame's main holds the cockpit,
+            so the route renders no main of its own. */}
           <NavProvider value={navigate}>
             <ViewErrorBoundary resetKey={viewKey(current)}>
               <RefusedEngineGate
                 engine={engineId}
                 refused={metRefusal || isRefused(listed, engineId)}
               >
-                <CockpitRoute view={current} engine={engineId} seed={startSeed(data, state)} />
+                <BoardsOnlyEngineGate
+                  engineId={engineId}
+                  boardsOnly={boardsOnly}
+                  boards={boards}
+                  onOpenBoard={openBoard}
+                  onLanding={chooser ? () => dispatch({ type: "to-landing" }) : undefined}
+                >
+                  <CockpitRoute view={current} engine={engineId} seed={startSeed(data, state)} />
+                </BoardsOnlyEngineGate>
               </RefusedEngineGate>
             </ViewErrorBoundary>
           </NavProvider>

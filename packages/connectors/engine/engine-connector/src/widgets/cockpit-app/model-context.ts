@@ -3,6 +3,7 @@ import type { ViewContext } from "../lib/hand-off.js"
 import type { CockpitView } from "../../view-models.js"
 import type { BoardStartData } from "../../view-models.board.js"
 import { selectedEntity } from "../nav-core.js"
+import type { BoardsOnlyEngine } from "./boards-only.js"
 import type { ServerBoards } from "./landing.js"
 
 /** The view was navigated client-side: no chat turn tells the model. */
@@ -40,6 +41,29 @@ export function refusedEngineContext(engineId: string): ViewContext {
 }
 
 /**
+ * The open engine speaks another dialect, which the server reads on boards only
+ * (`BoardsOnlyEngineGate`): the view reads nothing of it and names the boards that show it, by
+ * their ids, so the model offers no work on it here, since every other read of it is refused.
+ */
+export function boardsOnlyEngineContext(engineId: string, engine: BoardsOnlyEngine): ViewContext {
+  return {
+    summary:
+      "The operator opened an engine in the engine cockpit that the server reads on boards " +
+      "only (it speaks another engine API than the cockpit's views read): the view reads " +
+      "nothing of it and lists the boards that name it, if any. Offer no analysis or change on " +
+      "this engine; a board that names it shows its numbers, and another engine can still be " +
+      "opened.",
+    ids: { engine: engineId },
+    facts: {
+      boardsOnly: true,
+      dialect: engine.dialect,
+      boardCount: engine.boards.length,
+      ...(engine.boards.length > 0 ? { boards: [...engine.boards] } : {}),
+    },
+  }
+}
+
+/**
  * No engine is open: the engine ids are facts, not an `engine` to pin. The boards the picker
  * lists (ENGINE_BOARDS_DIR) are facts too, by their ids; their titles are the operator's text and
  * stay out. The view is the landing's, as `engine_open_cockpit` names it.
@@ -47,6 +71,7 @@ export function refusedEngineContext(engineId: string): ViewContext {
 export function landingContext(
   engineGroups: Array<{ id: string; engines: Array<{ id: string }> }>,
   boards: ServerBoards | null = null,
+  boardsOnly: readonly string[] = [],
 ): ViewContext {
   return {
     summary:
@@ -61,6 +86,8 @@ export function landingContext(
         boards: boards.boards.map((board) => board.id),
         refusedBoards: boards.refusedBoards.map((board) => board.id),
       }),
+      // The engines the server shows on boards only: a call of another view to one is refused.
+      ...(boardsOnly.length > 0 ? { boardsOnlyEngines: [...boardsOnly] } : {}),
     },
   }
 }

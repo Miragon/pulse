@@ -15,8 +15,10 @@ import { BOARD_ID } from "../board-files.js"
 import { buildCockpitStart, cockpitFacts, isAppView } from "../data/cockpit-start.js"
 import { COCKPIT_ROUTES, type StartParam } from "../data/routes.js"
 import { ENGINE_OPEN_COCKPIT } from "../tool-names.js"
+import { webAppUrlOf } from "../lib/engine/cockpit-url.js"
 import {
   cockpitEngineId,
+  type EngineBackend,
   type EngineRegistry,
   resolveEngine,
 } from "../lib/engine/resolve-engine.js"
@@ -113,16 +115,35 @@ function toStartView(section: CockpitSection, ids: StartIds): CockpitView {
 }
 
 /**
+ * What the widgets need of an engine's dialect: a Camunda 7 engine its dialect alone; another
+ * dialect's, which the cockpit shows on boards only, its web app's address as the profile writes
+ * it (http(s) only, never derived) and the boards that name it. A refused profile's none.
+ */
+function dialectOf(
+  backend: EngineBackend | undefined,
+): Pick<CockpitEngineInfo, "dialect" | "webAppUrl" | "boards"> {
+  if (backend === undefined) return {}
+  if (backend.dialect === "c7") return { dialect: "c7" }
+  const webAppUrl = webAppUrlOf(backend.cockpitUrl)
+  return {
+    dialect: backend.dialect,
+    ...(webAppUrl === null ? {} : { webAppUrl }),
+    boards: [...backend.boards],
+  }
+}
+
+/**
  * Every configured engine in the order of the profiles, a refused one too (its row says its
- * profile is refused, and opening it shows why). No REST baseUrl (internal topology). The
- * explicit return type turns an extra field into an excess-property error, which a contextually
- * typed callback would accept silently.
+ * profile is refused, and opening it shows why), each with its dialect. No REST baseUrl (internal
+ * topology). The explicit return type turns an extra field into an excess-property error, which a
+ * contextually typed callback would accept silently.
  */
 function cockpitEngines(registry: EngineRegistry): CockpitEngineInfo[] {
   const usable = new Map(registry.engines.map((e) => [e.id, e]))
   return registry.engineIds.map((id): CockpitEngineInfo => ({
     id,
     environment: environmentOf(usable.get(id) ?? registry.refused.get(id) ?? {}),
+    ...dialectOf(registry.backends.get(id)),
   }))
 }
 

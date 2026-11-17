@@ -42,15 +42,23 @@ describe("createPlugin on an engine of another dialect", () => {
     return { id: "orders", file: "orders.board.json", board: parsed.board, notes: [] }
   })()
 
-  /** The admin surface over a Camunda 7 engine `a` and the Camunda 8 engine `c8`. */
-  async function bootOverBoth() {
+  /**
+   * The admin surface over a Camunda 7 engine `a` and the Camunda 8 engine `c8`, which the board
+   * `orders` names; `cockpitUrl` its profile's.
+   */
+  async function bootOverBoth(cockpitUrl?: string) {
     const shop = await startFakeEngine({}, worldReply)
     started.push(shop)
     const runtime = vi.fn<ContractRuntime>(() => new ContractFake(FakeWorld.seed().state))
     const config: EnginePluginConfig = {
       engines: [
         { id: "a", baseUrl: shop.baseUrl },
-        { id: "c8", baseUrl: "https://c8.example/v2", flavor: "camunda8" },
+        {
+          id: "c8",
+          baseUrl: "https://c8.example/v2",
+          flavor: "camunda8",
+          ...(cockpitUrl === undefined ? {} : { cockpitUrl }),
+        },
       ],
       toolset: "admin",
       allowDeployments: true,
@@ -142,6 +150,32 @@ describe("createPlugin on an engine of another dialect", () => {
       ["c8", "ready"],
     ])
     expect(runtime).toHaveBeenCalled()
+  })
+
+  it("hands the cockpit each engine's dialect, and for this one the boards that name it", async () => {
+    const { recording, runtime } = await bootOverBoth()
+    const picker = await recording.tool(ENGINE_OPEN_COCKPIT).call({})
+    expect(picker.structuredContent).toEqual({
+      engineId: null,
+      engines: [
+        { id: "a", environment: "default", dialect: "c7" },
+        { id: "c8", environment: "default", dialect: "c8", boards: ["orders"] },
+      ],
+      start: null,
+    })
+    expect(runtime).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ["https://operate.example/operate", "https://operate.example/operate"],
+    [" http://localhost:8088/operate/ ", "http://localhost:8088/operate/"],
+    ["javascript:alert(1)", undefined],
+    ["operate.example/operate", undefined],
+  ])("hands the cockpit its web app from cockpitUrl %j, http(s) only", async (url, webAppUrl) => {
+    const { recording } = await bootOverBoth(url)
+    const picker = await recording.tool(ENGINE_OPEN_COCKPIT).call({})
+    const [, c8] = (picker.structuredContent as { engines: Array<Record<string, unknown>> }).engines
+    expect(c8.webAppUrl).toBe(webAppUrl)
   })
 
   it("serves the cockpit's board and landing", async () => {

@@ -18,7 +18,7 @@ import {
 afterEach(closeFakeEngines)
 
 describe("engine_open_cockpit: the cockpit bootstrap", () => {
-  it("hands the app each engine's id and environment, never its internal REST baseUrl", async () => {
+  it("hands the app each engine's id, environment and dialect, never its internal REST baseUrl", async () => {
     const { handler, requests } = await cockpitOn([
       { id: "alpha", baseUrl: "http://alpha.internal:8410/engine-rest", environment: "prod" },
       { id: "beta", baseUrl: "http://beta.internal:8410/engine-rest" },
@@ -27,8 +27,8 @@ describe("engine_open_cockpit: the cockpit bootstrap", () => {
     expect(dataOf(result)).toEqual({
       engineId: null,
       engines: [
-        { id: "alpha", environment: "prod" },
-        { id: "beta", environment: "default" },
+        { id: "alpha", environment: "prod", dialect: "c7" },
+        { id: "beta", environment: "default", dialect: "c7" },
       ],
       start: null,
     })

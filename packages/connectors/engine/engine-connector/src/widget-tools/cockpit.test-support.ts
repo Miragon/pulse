@@ -92,4 +92,4 @@ export const factsOf = (result: CockpitResult) =>
   JSON.parse(textOf(result)) as Record<string, unknown>
 
 export const THREE = [{ id: "alpha" }, { id: "beta" }, { id: "gamma" }]
-export const ALL = THREE.map((e) => ({ id: e.id, environment: "default" }))
+export const ALL = THREE.map((e) => ({ id: e.id, environment: "default", dialect: "c7" }))

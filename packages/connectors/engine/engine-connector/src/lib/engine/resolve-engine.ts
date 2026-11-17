@@ -40,7 +40,7 @@ export interface ContractBackend {
 }
 
 /** A configured engine, by the dialect it speaks. */
-type EngineBackend = C7Backend | ContractBackend
+export type EngineBackend = C7Backend | ContractBackend
 
 /** The engine a call runs on: its client (bound to the caller's signal), id, URLs and provider. */
 export interface ResolvedEngine extends EngineLink {

@@ -23,6 +23,7 @@ import {
   Layers,
   LoaderCircle,
   Minus,
+  Server,
   Unplug,
   type LucideIcon,
 } from "lucide-react"
@@ -35,6 +36,7 @@ import {
   isHealthFailure,
   type HealthFailure,
 } from "../lib/health-verdict.js"
+import { boardsOnlyOf, type BoardsOnlyEngine, type CockpitEngine } from "./boards-only.js"
 import { useEngineHealth } from "./engine-health.js"
 
 /** In words, so colour is never the only signal. */
@@ -98,7 +100,7 @@ function StatusMark({ kind, tone }: { kind: EngineStatusKind; tone: ToneVariant 
   if (kind === "notLoaded") return <Icon icon={Minus} className="text-muted-foreground" />
   return (
     <span className="inline-flex size-4 items-center justify-center" aria-hidden="true">
-      <span className={cn("size-2 rounded-full", TONE_DOT[tone])} />
+      <span data-part="verdict" className={cn("size-2 rounded-full", TONE_DOT[tone])} />
     </span>
   )
 }
@@ -111,19 +113,48 @@ function RowArrow() {
   return <Icon icon={ArrowRight} dense className="text-muted-foreground" />
 }
 
-/** The state sits inside the button, so it is part of its accessible name. */
-function EngineRow({
-  engineId,
-  isDefault,
-  onEnter,
-}: {
+interface EngineRowProps {
   engineId: string
   isDefault: boolean
   onEnter: () => void
-}) {
+}
+
+/** The state sits inside the button, so it is part of its accessible name. */
+function EngineRowFrame({
+  engineId,
+  isDefault,
+  onEnter,
+  kind,
+  mark,
+  status,
+}: EngineRowProps & { kind: string; mark: ReactNode; status: string }) {
+  const locale = useLocale()
+  return (
+    <button
+      type="button"
+      onClick={onEnter}
+      data-status={kind}
+      className={cn("hover:bg-accent transition-colors", ROW, FOCUS_RING_INSET)}
+    >
+      {mark}
+      <span className="text-foreground min-w-0 truncate font-semibold">{engineId}</span>
+      {isDefault && (
+        <span className="border-input text-muted-foreground text-small shrink-0 rounded-sm border px-1.5">
+          {translator(locale, "cockpit.landing.default")}
+        </span>
+      )}
+      {/* A comma for the accessible name ("prod-a, 18 Incidents"); the eye reads the gap. */}
+      <span className="sr-only">, </span>
+      <span className="text-muted-foreground ms-auto shrink-0 text-right">{status}</span>
+      <RowArrow />
+    </button>
+  )
+}
+
+function EngineRow(props: EngineRowProps) {
   const locale = useLocale()
   const tr = (key: string, params?: Record<string, unknown>) => translator(locale, key, params)
-  const { failure, summary, tone } = useEngineHealth(engineId)
+  const { failure, summary, tone } = useEngineHealth(props.engineId)
   const kind = engineStatusKind({ failure, summary })
   const status =
     kind === "incidents"
@@ -136,24 +167,33 @@ function EngineRow({
           })
         : tr(`cockpit.landing.status.${kind}`)
   return (
-    <button
-      type="button"
-      onClick={onEnter}
-      data-status={kind}
-      className={cn("hover:bg-accent transition-colors", ROW, FOCUS_RING_INSET)}
-    >
-      <StatusMark kind={kind} tone={tone} />
-      <span className="text-foreground min-w-0 truncate font-semibold">{engineId}</span>
-      {isDefault && (
-        <span className="border-input text-muted-foreground text-small shrink-0 rounded-sm border px-1.5">
-          {tr("cockpit.landing.default")}
-        </span>
-      )}
-      {/* A comma for the accessible name ("prod-a, 18 Incidents"); the eye reads the gap. */}
-      <span className="sr-only">, </span>
-      <span className="text-muted-foreground ms-auto shrink-0 text-right">{status}</span>
-      <RowArrow />
-    </button>
+    <EngineRowFrame
+      {...props}
+      kind={kind}
+      mark={<StatusMark kind={kind} tone={tone} />}
+      status={status}
+    />
+  )
+}
+
+/**
+ * An engine the server reads on boards only: the row reads nothing and has no verdict, so no dot;
+ * its mark is an engine's, never a board's, and it says what the engine runs and whether a board
+ * shows it, neutral.
+ */
+function BoardsOnlyEngineRow({ engine, ...props }: EngineRowProps & { engine: BoardsOnlyEngine }) {
+  const locale = useLocale()
+  const key =
+    engine.boards.length > 0
+      ? "cockpit.landing.status.onBoards"
+      : "cockpit.landing.status.onNoBoard"
+  return (
+    <EngineRowFrame
+      {...props}
+      kind="boardsOnly"
+      mark={<Icon icon={Server} className="text-muted-foreground" />}
+      status={translator(locale, key, { product: engine.product })}
+    />
   )
 }
 
@@ -174,9 +214,10 @@ const BOARD_NAME = "text-foreground min-w-0 font-semibold [overflow-wrap:anywher
 /**
  * A board opens as the cockpit's board view, marked as its view bar marks it; its engines sit
  * inside the button, in its name. The board's name stays whole; its engines go under it where the
- * row is narrow, cut there with their whole list in their title.
+ * row is narrow, cut there with their whole list in their title. A board the engine list has not
+ * named yet shows by its id alone (the gate of an engine shown on boards only).
  */
-function BoardRow({ board, onOpen }: { board: ListedBoard; onOpen: () => void }) {
+export function BoardRow({ board, onOpen }: { board: ListedBoard; onOpen: () => void }) {
   const locale = useLocale()
   const engines = translator(locale, "board.engines", {
     count: formatNumber(board.engines.length),
@@ -191,10 +232,14 @@ function BoardRow({ board, onOpen }: { board: ListedBoard; onOpen: () => void })
       <Icon icon={ClipboardList} className="text-muted-foreground" />
       <span className={BOARD_WORDS}>
         <span className={BOARD_NAME}>{board.title}</span>
-        <span className="sr-only">, </span>
-        <span title={engines} className="text-muted-foreground min-w-0 truncate">
-          {engines}
-        </span>
+        {board.engines.length > 0 && (
+          <>
+            <span className="sr-only">, </span>
+            <span title={engines} className="text-muted-foreground min-w-0 truncate">
+              {engines}
+            </span>
+          </>
+        )}
       </span>
       <RowArrow />
     </button>
@@ -313,7 +358,7 @@ export function LandingChooser({
   onOpenBoard = () => {},
   notice,
 }: {
-  engines: Array<{ id: string; environment?: string }>
+  engines: CockpitEngine[]
   defaultEngineId?: string | null
   onEnterEngine: (id: string) => void
   /** Omitted with a single engine. */
@@ -359,15 +404,23 @@ export function LandingChooser({
           >
             {headed && <SectionHeading as="h2" title={groupTitle(g.id)} className="mb-0" />}
             <ul className="border-border bg-card divide-border divide-y overflow-hidden rounded-md border">
-              {g.engines.map((e) => (
-                <li key={e.id}>
-                  <EngineRow
-                    engineId={e.id}
-                    isDefault={e.id === defaultEngineId}
-                    onEnter={() => onEnterEngine(e.id)}
-                  />
-                </li>
-              ))}
+              {g.engines.map((e) => {
+                const row = {
+                  engineId: e.id,
+                  isDefault: e.id === defaultEngineId,
+                  onEnter: () => onEnterEngine(e.id),
+                }
+                const boardsOnly = boardsOnlyOf(e)
+                return (
+                  <li key={e.id}>
+                    {boardsOnly ? (
+                      <BoardsOnlyEngineRow engine={boardsOnly} {...row} />
+                    ) : (
+                      <EngineRow {...row} />
+                    )}
+                  </li>
+                )
+              })}
             </ul>
           </section>
         ))}

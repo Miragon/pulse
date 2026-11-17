@@ -6,14 +6,17 @@ import type { FollowUp } from "./view-host.js"
 /**
  * `unreachable` covers 502/503, `timeout` 408/504, `notOnServer` an inactive module,
  * `profileRefused` an engine whose profile the server refused (ENGINE_PROFILE_REFUSED),
- * `readOnly` a write to an engine whose profile is read-only (ENGINE_READ_ONLY), `signedOut` a
- * page's call that found its session gone (the web app's `signed_out`), `unknownBoard` and
+ * `readOnly` a write to an engine whose profile is read-only (ENGINE_READ_ONLY), `notServed` a
+ * call that does not read its engine's dialect (ENGINE_DIALECT_NOT_SERVED: the server shows such
+ * an engine on boards only), `signedOut` a page's call that found its session gone (the web app's
+ * `signed_out`), `unknownBoard` and
  * `boardRefused` a board the server does not show (UNKNOWN_BOARD) or whose file gives none
  * (BOARD_REFUSED), and `invalidArguments` a call whose arguments the tool's input schema refuses.
  */
 export const ERROR_KINDS = [
   "profileRefused",
   "readOnly",
+  "notServed",
   "signedOut",
   "unknownBoard",
   "boardRefused",
@@ -60,6 +63,8 @@ const ENGINE = /\bengine\b|ProcessEngineException|\bCamunda\b|\bCIB seven\b/i
  */
 const PROFILE_REFUSED = /^\[ENGINE_PROFILE_REFUSED\]/
 const READ_ONLY = /^\[ENGINE_READ_ONLY\]/
+/** The engine module's code for a call its engine's dialect does not take, anchored alike. */
+const NOT_SERVED = /^\[ENGINE_DIALECT_NOT_SERVED\]/
 /** The engine module's codes for a board it does not show, and for one whose file gives none. */
 const UNKNOWN_BOARD = /^\[UNKNOWN_BOARD\]/
 const BOARD_REFUSED = /^\[BOARD_REFUSED\]/
@@ -141,6 +146,7 @@ function kindOfStatus(status: number): ErrorKind {
 const NAMED_KINDS: ReadonlyArray<readonly [RegExp, ErrorKind]> = [
   [PROFILE_REFUSED, "profileRefused"],
   [READ_ONLY, "readOnly"],
+  [NOT_SERVED, "notServed"],
   [UNKNOWN_BOARD, "unknownBoard"],
   [BOARD_REFUSED, "boardRefused"],
   [INVALID_ARGUMENTS, "invalidArguments"],
@@ -182,13 +188,15 @@ export function classifyError(error: unknown): ErrorFacts {
  * The server's refusals no retry changes: it refuses at once and keeps refusing until its operator
  * changes the profile or the board file, the user signs in again, or the call asks otherwise. A
  * refused profile fails every read and write to its engine; a read-only one fails only writes,
- * which the view's data layer never retries anyway; a page whose session ended fails every call
+ * which the view's data layer never retries anyway; a call that does not read its engine's
+ * dialect fails alike on every try; a page whose session ended fails every call
  * until its user signs in again; a board the server does not show, and arguments the tool does
  * not take, fail the same call alike every time.
  */
 const PERMANENT_KINDS: ReadonlySet<ErrorKind> = new Set([
   "profileRefused",
   "readOnly",
+  "notServed",
   "signedOut",
   "unknownBoard",
   "boardRefused",
@@ -211,9 +219,11 @@ export function isSessionEnded(error: unknown): boolean {
 
 /**
  * The refusals whose words on a page lead to its start page: what the page asked for is not
- * there (a board, an argument, a module), so its state links there where the host has one.
+ * there (a board, an argument, a module, a view of an engine the server shows on boards only),
+ * so its state links there where the host has one.
  */
 const START_PAGE_KINDS: ReadonlySet<ErrorKind> = new Set([
+  "notServed",
   "unknownBoard",
   "invalidArguments",
   "notOnServer",

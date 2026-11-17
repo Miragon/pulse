@@ -85,7 +85,7 @@ const engines = Object.keys(ENGINES).map((id) => ({ id }))
 
 const TONES = Object.keys(TONE_DOT) as ToneVariant[]
 function dotTone(container: HTMLElement): ToneVariant | undefined {
-  const dot = container.querySelector(".size-2.rounded-full")
+  const dot = container.querySelector("[data-part='verdict']")
   return TONES.find((tone) => dot?.classList.contains(TONE_DOT[tone]))
 }
 

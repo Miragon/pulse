@@ -611,7 +611,8 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      the skeleton never ends); both take a required `onRetry` and word a failure with
      `describeError`, the raw engine text only under "Details", its hint for the host the view
      sits in (`followUp`: a page's words never send the reader to a chat). A refusal no retry
-     changes (`isPermanentError`: a refused profile, a write to a read-only engine, a page's ended
+     changes (`isPermanentError`: a refused profile, a write to a read-only engine, a call on an
+     engine whose dialect it does not read (`notServed`, worded without the dialect), a page's ended
      session, an unknown or refused board, arguments a tool does not take) is not retried by the
      view's query client and offers no Try again, in an error state or a failed refresh's notice
      (a paged list's footer through `canRetry`, which then says why through `describeRefusal`,
@@ -619,11 +620,15 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      under its bar, `useDetailView`'s `notice`, the raw engine text under the strip's Details); a
      write words it once, at its control or in its confirmation's dialog, and the cockpit shows a
      refused engine once, as its view's one state (`RefusedEngineGate`), also before the engine
-     list answers. A page's ended session (`isSessionEnded`) is said once, by the page's frame: a
-     view's state shows a quiet line that its content is missing, and no notice, footer alert or
-     engine row speaks of it. A page's refused start (an unknown board, arguments a tool does not
-     take, data the server does not offer) links to the page's start page (`mountPage`'s
-     `startPage`). A write reports through
+     list answers; beside it, an engine the server reads on boards only (Camunda 8, its dialect
+     from the start data's `CockpitEngineInfo`) is every route's one state too
+     (`BoardsOnlyEngineGate`), which reads nothing and names the boards that show it, its landing
+     row reads nothing and has no verdict, and the cross-engine view leaves it out and names it. A
+     page's ended session (`isSessionEnded`) is said once, by the page's frame: a view's state
+     shows a quiet line that its content is missing, and no notice, footer alert or engine row
+     speaks of it. A page's refused start (an unknown board, arguments a tool does not take, data
+     the server does not offer, a view of an engine shown on boards only) links to the page's
+     start page (`mountPage`'s `startPage`). A write reports through
      `useActionFeedback()` toasts that name the object and confirms through `ConfirmDialog`;
      nothing to show is `TableEmptyState`. A first load shows its skeleton only after 400 ms
      (`SKELETON_DELAY_MS`), a refresh keeps the content on screen with its region `aria-busy`

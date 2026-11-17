@@ -1,3 +1,4 @@
+import { Fragment } from "react"
 import {
   formatNumber,
   Icon,
@@ -19,6 +20,7 @@ import { useT } from "../../messages/use-t.js"
 import { AlarmCount } from "../lib/alarm-count.js"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
 import { isHealthFailure } from "../lib/health-verdict.js"
+import { boardsOnlyOf, type CockpitEngine, readsWhole } from "./boards-only.js"
 import { useEngineHealth } from "./engine-health.js"
 import { FleetLandscape } from "./fleet-landscape.js"
 import { engineStatusKind } from "./landing.js"
@@ -91,7 +93,11 @@ function FleetEngineCard({
     >
       <div className="flex items-center justify-between gap-2">
         <span className="text-foreground inline-flex min-w-0 items-center gap-2 font-semibold">
-          <span className={cn("size-2 shrink-0 rounded-full", TONE_DOT[tone])} aria-hidden />
+          <span
+            data-part="verdict"
+            className={cn("size-2 shrink-0 rounded-full", TONE_DOT[tone])}
+            aria-hidden
+          />
           {environment && <EnvironmentChip environment={environment} />}
           <span className="truncate">{engineId}</span>
         </span>
@@ -142,19 +148,58 @@ function fleetFailuresHandOff({ engineIds, environments }: Fleet): HandOff {
 }
 
 /**
+ * The engines the server shows on boards only, one line per product, which the view leaves out
+ * of its reads and sums: none of its reads would be served.
+ */
+function BoardsOnlyLine({ engines }: { engines: readonly CockpitEngine[] }) {
+  const t = useT()
+  const byProduct = new Map<string, string[]>()
+  for (const engine of engines) {
+    const product = boardsOnlyOf(engine)?.product
+    if (product === undefined) continue
+    byProduct.set(product, [...(byProduct.get(product) ?? []), engine.id])
+  }
+  return [...byProduct].map(([product, ids]) => (
+    <p key={product} data-slot="fleet-boards-only" className="text-muted-foreground text-small">
+      {t("fleet.boardsOnly", { product })}
+      {ids.map((id, index) => (
+        <Fragment key={id}>
+          {" "}
+          <EngineIdInLine id={id} last={index === ids.length - 1} />
+        </Fragment>
+      ))}
+    </p>
+  ))
+}
+
+/**
+ * An id in a line of ids, with its comma: the line wraps between ids, never at an id's own
+ * hyphen ("prod-eu"), and only an id wider than the whole line wraps inside itself.
+ */
+function EngineIdInLine({ id, last }: { id: string; last: boolean }) {
+  return (
+    <span data-part="engine-id" className="inline-block max-w-full [overflow-wrap:anywhere]">
+      {last ? id : `${id},`}
+    </span>
+  )
+}
+
+/**
  * An overview, not a scoreboard: engines host different processes, so ranking them by
- * rate or duration would rank their process mixes.
+ * rate or duration would rank their process mixes. It reads and sums only the engines every route
+ * reads; one the server shows on boards only it names in a line.
  */
 export function FleetView({
-  engines,
+  engines: all,
   onEnterEngine,
 }: {
-  engines: Array<{ id: string; environment?: string }>
+  engines: readonly CockpitEngine[]
   onEnterEngine: (id: string) => void
 }) {
   const t = useT()
   const { ask } = useHandOff()
   const followUp = useHostFollowUp()
+  const engines = all.filter(readsWhole)
   const ids = engines.map((e) => e.id)
   // The fleet itself stays all engines, across environments.
   const engineGroups = groupEnginesByEnvironment(engines)
@@ -173,6 +218,7 @@ export function FleetView({
           )
         }
       />
+      <BoardsOnlyLine engines={all} />
 
       <section className="gap-section flex flex-col">
         <SectionHeading title={t("fleet.engineHealth.title")} hint={t("fleet.engineHealth.hint")} />

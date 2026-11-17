@@ -28,6 +28,15 @@ function resolveCockpitBase(engine: EngineLink): string | null {
   return base.replace(/[/#]+$/, "")
 }
 
+/**
+ * A web app's address as the profile writes it (`cockpitUrl`), trimmed, when it is http(s);
+ * never derived from the engine's `url`. Null otherwise: a link is never guessed.
+ */
+export function webAppUrlOf(cockpitUrl: string | undefined): string | null {
+  const url = cockpitUrl?.trim()
+  return url && /^https?:\/\/\S/i.test(url) ? url : null
+}
+
 export function buildProcessCockpitUrl(
   engine: EngineLink,
   ref: CockpitRef,

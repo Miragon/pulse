@@ -6,7 +6,14 @@ import {
   createTestQueryClient,
   type HostAction,
 } from "@miragon/pulse-widget-shell/widgets"
-import { ENGINE_BOARD_DATA, ENGINE_BPMN_XML_DATA, ENGINE_LIST_ENGINES } from "../../tool-names.js"
+import {
+  ENGINE_BOARD_DATA,
+  ENGINE_BPMN_XML_DATA,
+  ENGINE_COCKPIT_OVERVIEW_DATA,
+  ENGINE_HEALTH_DATA,
+  ENGINE_INSTANCE_DETAIL_DATA,
+  ENGINE_LIST_ENGINES,
+} from "../../tool-names.js"
 import type { CockpitAppData, CockpitView } from "../../view-models.js"
 import { BOARD, RUNNING_INSTANCE } from "../board/board.test-support.js"
 import { CockpitApp } from "./app.js"
@@ -115,6 +122,35 @@ describe("CockpitApp opens a board", () => {
     fireEvent.click(within(boards).getByRole("button", { name: /^Invoices\b/ }))
     expect(boardHeading()).toBeTruthy()
     expect(within(trail()).getByText("Invoices").getAttribute("aria-current")).toBe("page")
+  })
+
+  it("a tile or the chip of an engine the server reads on boards only leads to its one state", async () => {
+    const c8 = {
+      id: "prod-a",
+      environment: "default",
+      dialect: "c8" as const,
+      boards: ["invoices"],
+    }
+    const { reads } = renderBoardCockpit([c8, { id: "prod-b", environment: "default" }])
+    const instances = screen.getByRole("region", { name: "Instances" })
+    fireEvent.click(within(instances).getAllByRole("button", { name: /^Open instance/ })[0])
+    await waitFor(() => expect(activeEngine()).toBe("prod-a"))
+    const gate = () => document.querySelector("[data-slot='boards-only-engine']")
+    expect(gate()).toBeTruthy()
+    expect(within(trail()).getByText("INV-0042").getAttribute("aria-current")).toBe("page")
+    fireEvent.click(within(trail()).getByRole("button", { name: "Invoices" }))
+    const engines = screen.getByRole("group", { name: "Engines of this board" })
+    fireEvent.click(within(engines).getByRole("button", { name: /prod-a/ }))
+    await waitFor(() => expect(activeEngine()).toBe("prod-a"))
+    expect(gate()).toBeTruthy()
+    // Its one state reads nothing of it: neither the instance's detail nor the overview.
+    for (const feed of [
+      ENGINE_INSTANCE_DETAIL_DATA,
+      ENGINE_COCKPIT_OVERVIEW_DATA,
+      ENGINE_HEALTH_DATA,
+    ]) {
+      expect(reads(feed), feed).toEqual([])
+    }
   })
 
   it("'All engines' leaves the board for the chooser", () => {

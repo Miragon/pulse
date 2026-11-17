@@ -71,15 +71,15 @@ instances, an instance, an incident, the history. Every difference is listed, no
 
 ## Across the views
 
-| Difference                                                                                                                                                      | Side    | Origin                                        | Status |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------------------------------------------- | ------ |
-| Hand-offs to the chat (assess, find the cause, plan a fix, explain an error, a timeline or a duration, draft a ticket, check variables) against "Copy handover" | both    | host                                          | wanted |
-| Your workspace: drift against the local `.bpmn`, open model, open code, code buttons on the diagram, what the model configures on an incident's element         | VS Code | host                                          | wanted |
-| Open to the side, a stack trace as an editor document with links into your code                                                                                 | VS Code | host                                          | wanted |
-| Call activities and subprocesses: links, jumps into the called process or instance and back to the caller, a drill-down into a subprocess, a marker legend      | VS Code | history                                       | wanted |
-| Copy an id in lists and incident cards (the cockpit copies the ids in its headers and an incident's facts)                                                      | VS Code | history                                       | wanted |
-| Jobs without retries, the activity instance tree, mark an incident as resolved                                                                                  | MCP     | engine                                        | wanted |
-| Camunda 8 clusters, read-only (no retry, variable change, token move, cancellation or migration); the cockpit refuses a `camunda8` profile                      | VS Code | decided: `apps/vscode/docs/adr/c8-adapter.md` | wanted |
+| Difference                                                                                                                                                                          | Side    | Origin                                        | Status |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------------------------------------------- | ------ |
+| Hand-offs to the chat (assess, find the cause, plan a fix, explain an error, a timeline or a duration, draft a ticket, check variables) against "Copy handover"                     | both    | host                                          | wanted |
+| Your workspace: drift against the local `.bpmn`, open model, open code, code buttons on the diagram, what the model configures on an incident's element                             | VS Code | host                                          | wanted |
+| Open to the side, a stack trace as an editor document with links into your code                                                                                                     | VS Code | host                                          | wanted |
+| Call activities and subprocesses: links, jumps into the called process or instance and back to the caller, a drill-down into a subprocess, a marker legend                          | VS Code | history                                       | wanted |
+| Copy an id in lists and incident cards (the cockpit copies the ids in its headers and an incident's facts)                                                                          | VS Code | history                                       | wanted |
+| Jobs without retries, the activity instance tree, mark an incident as resolved                                                                                                      | MCP     | engine                                        | wanted |
+| Camunda 8 clusters, read-only (no retry, variable change, token move, cancellation or migration); the cockpit shows a Camunda 8 engine on boards only, the extension reads it whole | VS Code | decided: `apps/vscode/docs/adr/c8-adapter.md` | wanted |
 
 ## Engine overview
 
