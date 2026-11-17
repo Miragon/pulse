@@ -6,6 +6,11 @@ import {
   ACCESS_DENIED_ENGINE,
   BOARD_HOST_ENV,
   BROKEN_ENGINE,
+  C8_CONTROL_ENV,
+  C8_ENGINE,
+  C8_OPERATE,
+  C8_UNBOARDED_ENGINE,
+  CAMUNDA8_HOST_ENV,
   ENGINE_CONTROL_ENV,
   HEALTHY_ENGINE,
   LOGIN_REFUSED_ENGINE,
@@ -16,6 +21,7 @@ import {
   REFUSED_ENGINE,
   REFUSED_HOST_ENV,
 } from "./engines.js"
+import { startC8HostEngine } from "./c8-engine.js"
 import { startHostBackend, type HostBackend } from "./host-backend.js"
 import { ownViewModule } from "./own-view-module.js"
 import { startStubEngine } from "./stub-engine.js"
@@ -62,11 +68,13 @@ async function deploy(env: Record<string, string>, deps?: AppDeps): Promise<Depl
  * `HOST_SIM_OWN_VIEW_URL`, the one with board files via `HOST_SIM_BOARD_URL`, the one with one
  * engine and a board via `HOST_SIM_ONE_ENGINE_BOARD_URL` and the stub engine's
  * scenario control via
- * `HOST_SIM_ENGINE_URL` (all inherited from this process). The web app's page on this server runs
- * in a suite of its own (`web/`, test:web).
+ * `HOST_SIM_ENGINE_URL`, and the Camunda 8 deployment via `HOST_SIM_CAMUNDA8_URL` and its
+ * cluster's control via `HOST_SIM_C8_ENGINE_URL` (all inherited from this process). The web app's
+ * page on this server runs in a suite of its own (`web/`, test:web).
  */
 export default async function globalSetup(): Promise<() => Promise<void>> {
   const engine = await startStubEngine()
+  const c8 = await startC8HostEngine()
   const engines = {
     ENGINES_JSON: JSON.stringify({
       profiles: {
@@ -139,6 +147,20 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     { ...engines, MCP_ACTIVE_MODULES: "engine,board" },
     { modules: [...MODULES, ownViewModule] },
   )
+  // Camunda 8 beside the stub (camunda8.spec.ts): a cluster under two profiles of the client
+  // credentials grant, one a board names with its Operate, one no board names; the server reads
+  // both on boards only, the landing and the gate read nothing of them.
+  const camunda8 = await deploy({
+    ENGINES_JSON: JSON.stringify({
+      profiles: {
+        [HEALTHY_ENGINE]: { url: engine.baseUrl },
+        [C8_ENGINE]: c8.profile("ENGINE_SECRET_HOST_SIM_C8", { cockpitUrl: C8_OPERATE }),
+        [C8_UNBOARDED_ENGINE]: c8.profile("ENGINE_SECRET_HOST_SIM_C8"),
+      },
+    }),
+    ENGINE_SECRET_HOST_SIM_C8: "host-sim-client-secret",
+    ENGINE_BOARDS_DIR: path.join(import.meta.dirname, "fixtures", "camunda8-boards"),
+  })
   process.env.HOST_SIM_URL = readOnly.host.url
   process.env.HOST_SIM_OPERATIONS_URL = operations.host.url
   process.env[REALISTIC_HOST_ENV] = realistic.host.url
@@ -147,6 +169,8 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   process.env[BOARD_HOST_ENV] = boards.host.url
   process.env[ONE_ENGINE_BOARD_HOST_ENV] = oneEngineBoards.host.url
   process.env[ENGINE_CONTROL_ENV] = engine.controlUrl
+  process.env[CAMUNDA8_HOST_ENV] = camunda8.host.url
+  process.env[C8_CONTROL_ENV] = c8.origin
 
   return async () => {
     await readOnly.close()
@@ -156,6 +180,8 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     await ownView.close()
     await boards.close()
     await oneEngineBoards.close()
+    await camunda8.close()
     await engine.close()
+    await c8.close()
   }
 }

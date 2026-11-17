@@ -29,7 +29,8 @@ commits the diff. The CLI (`apps/cli/test/__golden__/error-paths`) and the C7 ad
 VS Code and Pulse for Orca (`packages/connectors/c7/c7-adapter/test/__golden__/error-paths`)
 pin the same cases under the same names. The C8 adapter
 (`packages/connectors/c8/c8-adapter/test/__golden__/error-paths`) pins them under the same names
-with the answers of a Camunda 8 cluster.
+with the answers of a Camunda 8 cluster, and so does this server for a Camunda 8 engine
+(`apps/mcp-server/test/__golden__/error-paths-c8`).
 
 Some texts come from the runtime, not from Pulse: the network codes (ECONNREFUSED, ENOTFOUND,
 DEPTH_ZERO_SELF_SIGNED_CERT). They are checked with Node 22.23.4 (CI runs the newest Node 22) and

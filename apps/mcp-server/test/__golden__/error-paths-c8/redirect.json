@@ -1,0 +1,69 @@
+{
+  "case": "redirect",
+  "probes": [
+    {
+      "arguments": {
+        "board": "cluster",
+        "view": "board"
+      },
+      "board": {
+        "asOf": "2026-11-15T09:00:00.000Z",
+        "engines": [
+          {
+            "failure": {
+              "code": "misconfigured",
+              "message": "[302] redirect to https://sso.example.com/realms/ops/protocol/openid-connect/auth (engine c8) Redirects are never followed: the profile's url must be the REST root of the cluster itself, which ends in /v2 (https:// when the cluster redirects from http://). A redirect to a login page means the credentials are missing or expired."
+            },
+            "name": "c8",
+            "state": "failed"
+          }
+        ],
+        "notes": [],
+        "rows": [
+          [
+            {
+              "groups": [
+                {
+                  "engine": "c8"
+                }
+              ],
+              "kind": "instanceList",
+              "widget": {
+                "columns": [
+                  "businessKey",
+                  "process",
+                  "state",
+                  "startedAt"
+                ],
+                "engines": [
+                  "c8"
+                ],
+                "filter": {
+                  "process": "pulse-order",
+                  "state": "running"
+                },
+                "title": "Orders",
+                "widget": "instanceList"
+              }
+            }
+          ]
+        ],
+        "title": "Cluster"
+      },
+      "facts": [
+        "{\"view\":\"board\",\"board\":\"cluster\",\"title\":\"Cluster\",\"asOf\":\"2026-11-15T09:00:00.000Z\",\"engines\":[{\"name\":\"c8\",\"state\":\"failed\",\"failure\":\"misconfigured\"}],\"tiles\":[{\"kind\":\"instanceList\",\"title\":\"Orders\",\"process\":\"pulse-order\",\"shown\":0,\"groups\":[{\"engine\":\"c8\",\"total\":null}]}]}"
+      ],
+      "failure": "misconfigured",
+      "matches": "describeEngine",
+      "sent": [
+        "GET /v2/topology"
+      ],
+      "tool": "engine_open_cockpit"
+    }
+  ],
+  "profile": {
+    "flavor": "camunda8",
+    "url": "http://127.0.0.1:<port>/v2"
+  },
+  "secrets": {}
+}

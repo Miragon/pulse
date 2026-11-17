@@ -1,0 +1,89 @@
+{
+  "case": "integer-beyond-2-53",
+  "probes": [
+    {
+      "arguments": {
+        "board": "cluster",
+        "view": "board"
+      },
+      "board": {
+        "asOf": "2026-11-15T09:00:00.000Z",
+        "engines": [
+          {
+            "name": "c8",
+            "product": "Camunda 8",
+            "state": "ready",
+            "version": "8.9.28"
+          }
+        ],
+        "notes": [],
+        "rows": [
+          [
+            {
+              "groups": [
+                {
+                  "engine": "c8",
+                  "instances": [
+                    {
+                      "businessKey": "ORD-1001",
+                      "definition": {
+                        "bpmnProcessId": "pulse-order",
+                        "id": "2251799813685326",
+                        "name": "Order fulfillment",
+                        "version": 2
+                      },
+                      "hasIncident": false,
+                      "id": "9007199254740993",
+                      "startedAt": "2026-11-15T08:41:12.345Z",
+                      "state": "running"
+                    }
+                  ],
+                  "total": {
+                    "count": 1
+                  }
+                }
+              ],
+              "kind": "instanceList",
+              "widget": {
+                "columns": [
+                  "businessKey",
+                  "process",
+                  "state",
+                  "startedAt"
+                ],
+                "engines": [
+                  "c8"
+                ],
+                "filter": {
+                  "process": "pulse-order",
+                  "state": "running"
+                },
+                "title": "Orders",
+                "widget": "instanceList"
+              }
+            }
+          ]
+        ],
+        "title": "Cluster"
+      },
+      "facts": [
+        "{\"view\":\"board\",\"board\":\"cluster\",\"title\":\"Cluster\",\"asOf\":\"2026-11-15T09:00:00.000Z\",\"engines\":[{\"name\":\"c8\",\"state\":\"ready\",\"product\":\"Camunda 8\",\"running\":null,\"withIncident\":null}],\"tiles\":[{\"kind\":\"instanceList\",\"title\":\"Orders\",\"process\":\"pulse-order\",\"shown\":1,\"groups\":[{\"engine\":\"c8\",\"total\":1}]}]}"
+      ],
+      "failure": null,
+      "matches": "getInstanceDetail 9007199254740993",
+      "sent": [
+        "GET /v2/topology",
+        "POST /v2/process-definitions/search",
+        "POST /v2/process-definitions/statistics/process-instances",
+        "POST /v2/process-instances/search",
+        "POST /v2/process-instances/search"
+      ],
+      "tool": "engine_open_cockpit"
+    }
+  ],
+  "profile": {
+    "flavor": "camunda8",
+    "url": "http://127.0.0.1:<port>/v2"
+  },
+  "secrets": {}
+}

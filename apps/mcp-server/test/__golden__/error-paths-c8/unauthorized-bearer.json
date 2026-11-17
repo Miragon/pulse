@@ -1,0 +1,79 @@
+{
+  "case": "unauthorized-bearer",
+  "probes": [
+    {
+      "arguments": {
+        "board": "cluster",
+        "view": "board"
+      },
+      "board": {
+        "asOf": "2026-11-15T09:00:00.000Z",
+        "engines": [
+          {
+            "failure": {
+              "code": "unauthorized",
+              "message": "[401] empty response body (engine c8) The cluster refused the client's token. Check that the client may read the cluster and that auth.audience in the engine's profile names the audience the cluster expects. A changed client ID or secret goes into auth.clientId or the ENGINE_SECRET_* variable auth.clientSecretEnv names; the server reads both at its start."
+            },
+            "name": "c8",
+            "state": "failed"
+          }
+        ],
+        "notes": [],
+        "rows": [
+          [
+            {
+              "groups": [
+                {
+                  "engine": "c8"
+                }
+              ],
+              "kind": "instanceList",
+              "widget": {
+                "columns": [
+                  "businessKey",
+                  "process",
+                  "state",
+                  "startedAt"
+                ],
+                "engines": [
+                  "c8"
+                ],
+                "filter": {
+                  "process": "pulse-order",
+                  "state": "running"
+                },
+                "title": "Orders",
+                "widget": "instanceList"
+              }
+            }
+          ]
+        ],
+        "title": "Cluster"
+      },
+      "facts": [
+        "{\"view\":\"board\",\"board\":\"cluster\",\"title\":\"Cluster\",\"asOf\":\"2026-11-15T09:00:00.000Z\",\"engines\":[{\"name\":\"c8\",\"state\":\"failed\",\"failure\":\"unauthorized\"}],\"tiles\":[{\"kind\":\"instanceList\",\"title\":\"Orders\",\"process\":\"pulse-order\",\"shown\":0,\"groups\":[{\"engine\":\"c8\",\"total\":null}]}]}"
+      ],
+      "failure": "unauthorized",
+      "matches": "describeEngine",
+      "sent": [
+        "POST /realms/pulse/protocol/openid-connect/token grant_type=client_credentials&audience=camunda&client_id=pulse-reader&client_secret=reader-secret",
+        "GET /v2/topology [Bearer tok-demo-123]"
+      ],
+      "tool": "engine_open_cockpit"
+    }
+  ],
+  "profile": {
+    "auth": {
+      "audience": "camunda",
+      "clientId": "pulse-reader",
+      "clientSecretEnv": "ENGINE_SECRET_C8_CLIENT",
+      "tokenEndpoint": "http://127.0.0.1:<port>/realms/pulse/protocol/openid-connect/token",
+      "type": "clientCredentials"
+    },
+    "flavor": "camunda8",
+    "url": "http://127.0.0.1:<port>/v2"
+  },
+  "secrets": {
+    "ENGINE_SECRET_C8_CLIENT": "reader-secret"
+  }
+}

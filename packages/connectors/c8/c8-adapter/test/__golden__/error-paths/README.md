@@ -15,9 +15,12 @@ the CLI (`apps/cli/test/__golden__/error-paths`) and the C7 adapter
 (`packages/connectors/c7/c7-adapter/test/__golden__/error-paths`) pin, under the same names and
 in the same order (`scripts/error-path-goldens.test.mjs`). The answers that make them are the C8
 adapter's own, since a Camunda 8 cluster answers in problem details on `/v2`, and the second
-table holds the cases of Camunda 8 alone. The answers a local cluster can give follow what
-`camunda/camunda` 8.9.28 (H2 or no secondary storage; no security, Basic or OIDC) and Keycloak
-26.8.2 sent on 2026-11-15; the 302, the 500, the 429 and the cluster on 8.8 take the same shapes.
+table holds the cases of Camunda 8 alone. The MCP server pins both tables over a copy of these
+answers and of their world (`apps/mcp-server/test/__golden__/error-paths-c8`), and each of its
+probes fails as the adapter's call it names fails here, case by case (the same guard). The
+answers a local cluster can give follow what `camunda/camunda` 8.9.28 (H2 or no secondary
+storage; no security, Basic or OIDC) and Keycloak 26.8.2 sent on 2026-11-15; the 302, the 500,
+the 429 and the cluster on 8.8 take the same shapes.
 The answers are
 `packages/connectors/c8/c8-adapter/test/goldens/error-cases.ts` and the world they build on
 `packages/connectors/c8/c8-adapter/test/goldens/cluster-world.ts`; those files may carry no

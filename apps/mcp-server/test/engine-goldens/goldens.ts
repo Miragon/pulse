@@ -2,12 +2,13 @@ import fs from "node:fs"
 import path from "node:path"
 import { expect } from "vitest"
 import { GOLDEN_DIR } from "../golden.js"
-import { ERROR_PATH_CASES, type ErrorPathCase } from "./error-cases.js"
+import { ERROR_PATH_CASES } from "./error-cases.js"
 import type { SentRequest } from "./fake-engines.js"
 
 /**
- * Where the output goldens (W0) and the error-path goldens (T0) live; the error-path cases are
- * error-cases.ts's. The goldens pin TODAY's behaviour byte for byte, so each later swap of the
+ * Where the output goldens (W0) and the error-path goldens (T0) live, the Camunda 8 cluster's
+ * beside the Camunda 7 engine's; the error-path cases are error-cases.ts's and
+ * error-cases-c8.ts's. The goldens pin TODAY's behaviour byte for byte, so each later swap of the
  * transport (the plan's steps 7 to 16) shows exactly what it changes; they update only through
  * the app's `golden:update` (golden.ts, refused in CI), like the tools/list goldens. The golden
  * file sorts every object's keys (golden.ts), so a result's structuredContent is pinned by its
@@ -16,6 +17,7 @@ import type { SentRequest } from "./fake-engines.js"
 
 export const OUTPUT_DIR = path.join(GOLDEN_DIR, "outputs")
 export const ERROR_PATH_DIR = path.join(GOLDEN_DIR, "error-paths")
+export const ERROR_PATH_C8_DIR = path.join(GOLDEN_DIR, "error-paths-c8")
 
 /** The clock the output goldens read: `engine_status` derives its overdue cut-off from it. */
 export const NOW = Date.parse("2026-10-09T14:00:00.000Z")
@@ -43,7 +45,7 @@ export function sentLines(requests: readonly SentRequest[]): string[] {
     .sort()
 }
 
-/** The README's table: one row per case, `| \`case\` | status | … |`, in the list's order. */
+/** The README's tables: one row per case, `| \`case\` | status | … |`, in the lists' order. */
 function readmeRows(dir: string): Array<{ name: string; status: string }> {
   const text = fs.readFileSync(path.join(dir, "README.md"), "utf8")
   return [...text.matchAll(/^\| `([a-z0-9-]+)` \| ([a-z ]+?) \|/gm)].map((match) => ({
@@ -53,12 +55,16 @@ function readmeRows(dir: string): Array<{ name: string; status: string }> {
 }
 
 /**
- * The README names every case once, in order; a pinned case has its golden and nothing else
- * does, so a table row cannot claim a pin the directory lacks, nor a golden outlive its case.
+ * The README names every case of `cases` once, in order; a pinned case has its golden and nothing
+ * else does, so a table row cannot claim a pin the directory lacks, nor a golden outlive its case.
  */
-export function expectReadmeMatches(dir: string, pinned: readonly ErrorPathCase[]): void {
+export function expectReadmeMatches(
+  dir: string,
+  pinned: readonly string[],
+  cases: readonly string[] = ERROR_PATH_CASES,
+): void {
   const rows = readmeRows(dir)
-  expect(rows.map((row) => row.name)).toEqual([...ERROR_PATH_CASES])
+  expect(rows.map((row) => row.name)).toEqual([...cases])
   const claimed = rows.filter((row) => row.status === "pinned").map((row) => row.name)
   expect(claimed.sort()).toEqual([...pinned].sort())
   const files = fs

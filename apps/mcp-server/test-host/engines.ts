@@ -48,3 +48,19 @@ export const BROKEN_BOARD = "broken"
 export const ONE_ENGINE_BOARD_HOST_ENV = "HOST_SIM_ONE_ENGINE_BOARD_URL"
 /** Its board over the healthy engine. */
 export const APPROVALS_BOARD = "approvals"
+/**
+ * Env var carrying the host page of the Camunda 8 deployment (global-setup.ts): the healthy stub
+ * engine beside a loopback Camunda 8 cluster (c8-engine.ts) under two profiles, and a board over
+ * the stub and one of them (`fixtures/camunda8-boards`).
+ */
+export const CAMUNDA8_HOST_ENV = "HOST_SIM_CAMUNDA8_URL"
+/** Env var carrying that cluster's origin, whose control counts what it was asked. */
+export const C8_CONTROL_ENV = "HOST_SIM_C8_ENGINE_URL"
+/** The Camunda 8 engine a board names: client credentials, its Operate at C8_OPERATE. */
+export const C8_ENGINE = "c8-orders"
+/** A Camunda 8 engine no board names, on the same cluster. */
+export const C8_UNBOARDED_ENGINE = "c8-billing"
+/** The C8 engine's web app, as its profile's cockpitUrl names it. */
+export const C8_OPERATE = "https://operate.example.com/operate"
+/** The board over the stub and the C8 engine. */
+export const ORDERS_BOARD = "orders"

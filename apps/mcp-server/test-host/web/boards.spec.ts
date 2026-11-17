@@ -1,5 +1,12 @@
 import { expect, test, type Page } from "@playwright/test"
-import { BROKEN_BOARD, BROKEN_ENGINE, HEALTHY_ENGINE, INVOICES_BOARD } from "../engines.js"
+import {
+  BROKEN_BOARD,
+  BROKEN_ENGINE,
+  C8_ENGINE,
+  HEALTHY_ENGINE,
+  INVOICES_BOARD,
+  ORDERS_BOARD,
+} from "../engines.js"
 import {
   collectErrors,
   expectNoAxeFinding,
@@ -17,7 +24,9 @@ import {
  * the chat shows: the same board feed, the same tiles of @miragon/pulse-blocks. A board the server
  * shows not, or whose file gives none, is a refusal no retry changes: what happened and what to do
  * on the page, no Try again. The main deployment reads test:host's board files over the stub
- * engine and the broken one (`fixtures/boards`); the short one has one engine and no board.
+ * engine and the broken one (`fixtures/boards`); the short one has one engine and no board; the
+ * camunda8 one reads a board over the stub engine and a Camunda 8 cluster
+ * (`fixtures/camunda8-boards`), which the server reads on boards only.
  */
 
 const TITLE = "Invoice operations"
@@ -213,5 +222,61 @@ test.describe("a board's page in German, on a dark system", () => {
     await expect(tile(page, "Laufende Instanzen von invoice")).toBeVisible()
     await expect(page.locator("html")).toHaveAttribute("lang", "de")
     await expectNoAxeFinding(page)
+  })
+})
+
+test.describe("a board's page over a Camunda 7 engine and a Camunda 8 one", () => {
+  const ORDERS_TITLE = "Order operations"
+  const ordersHeading = (page: Page) => page.getByRole("heading", { level: 1, name: ORDERS_TITLE })
+
+  test("shows both engines' numbers and the Zeebe diagram; a Camunda 8 drill leads to the gate and back", async ({
+    page,
+  }) => {
+    const errors = collectErrors(page)
+    const calls = recordCalls(page)
+    await signIn(page, `/app/boards/${ORDERS_BOARD}`, { deployment: "camunda8" })
+    await expect(ordersHeading(page)).toBeVisible({ timeout: 15_000 })
+    await expect(page.locator(".djs-container svg").first()).toBeVisible({ timeout: 15_000 })
+    await expect(page).toHaveTitle(`${ORDERS_TITLE} · Pulse`)
+    expect(viewCalls(calls)).toEqual([
+      { name: "engine_open_cockpit", arguments: { view: "board", board: ORDERS_BOARD } },
+    ])
+    const engines = page.getByRole("group", { name: "Engines of this board" })
+    await expect(
+      engines.getByRole("button", { name: new RegExp(`^${HEALTHY_ENGINE} CIB seven `) }),
+    ).toBeVisible()
+    await expect(
+      engines.getByRole("button", {
+        name: `${C8_ENGINE} Camunda 8 8.9.28 · 3 running · 1 with incident`,
+      }),
+    ).toBeVisible()
+    await expect(tile(page, "Orders in flight").locator("[data-part=counter-value]")).toHaveText(
+      "3",
+    )
+    await expect(
+      tile(page, "Order fulfillment").getByRole("img", { name: "BPMN process diagram" }),
+    ).toContainText("Charge payment")
+    await rendered(page)
+    expect(errors).toEqual([])
+    await expectNoAxeFinding(page)
+
+    // The cockpit reads a Camunda 8 engine on boards only: its instance opens the gate, which reads
+    // nothing and names the board, and the trail leads back to the board's page.
+    await tile(page, "Running instances of pulse-order")
+      .getByRole("button", { name: "Open instance …27388111" })
+      .click()
+    await expect(
+      page.getByRole("heading", { level: 1, name: `${C8_ENGINE} is a Camunda 8 engine` }),
+    ).toBeVisible({ timeout: 15_000 })
+    await expect(
+      page.getByRole("list", { name: `Boards that name ${C8_ENGINE}` }).getByRole("button"),
+    ).toHaveCount(1)
+    expect(calls.filter((call) => call.arguments?.engine === C8_ENGINE).map((c) => c.name)).toEqual(
+      ["engine_bpmn_xml_data"],
+    )
+    await expectNoAxeFinding(page)
+    await trail(page).getByRole("button", { name: ORDERS_TITLE }).click()
+    await expect(ordersHeading(page)).toBeVisible()
+    expect(new URL(page.url()).pathname).toBe(`/app/boards/${ORDERS_BOARD}`)
   })
 })

@@ -9,7 +9,15 @@ import {
   type FakeOidcOptions,
 } from "@miragon/pulse-widget-shell/testing/oidc"
 import { createApp } from "../../src/app.js"
-import { BROKEN_ENGINE, ENGINE_CONTROL_ENV, HEALTHY_ENGINE } from "../engines.js"
+import { startC8HostEngine } from "../c8-engine.js"
+import {
+  BROKEN_ENGINE,
+  C8_ENGINE,
+  C8_OPERATE,
+  C8_UNBOARDED_ENGINE,
+  ENGINE_CONTROL_ENV,
+  HEALTHY_ENGINE,
+} from "../engines.js"
 import { startStubEngine } from "../stub-engine.js"
 import {
   CONTROL_ENV,
@@ -28,6 +36,9 @@ const WEB_BUILD = path.resolve(import.meta.dirname, "..", "..", "..", "web", "di
  * a file that gives no board.
  */
 const BOARDS_DIR = path.resolve(import.meta.dirname, "..", "fixtures", "boards")
+
+/** test:host's Camunda 8 board files: a board over the stub engine and a Camunda 8 one. */
+const CAMUNDA8_BOARDS_DIR = path.resolve(import.meta.dirname, "..", "fixtures", "camunda8-boards")
 
 interface WebDeployment {
   readonly origin: string
@@ -52,7 +63,7 @@ async function freePort(): Promise<number> {
  * the operations toolset, so the server registers the writes a page never offers.
  */
 async function deploy(
-  profiles: Record<string, { url: string }>,
+  profiles: Record<string, Readonly<Record<string, unknown>>>,
   { idp: idpOptions = {}, env = {} }: { idp?: FakeOidcOptions; env?: Record<string, string> } = {},
 ): Promise<WebDeployment> {
   const port = await freePort()
@@ -140,7 +151,9 @@ async function startControl(idps: Record<Deployment, FakeOidc>) {
  * `http://localhost:<port>`, its `MCP_URL`, where Chromium keeps the `__Host-` cookies of plain
  * http. The workers find the deployments in `WEB_SIM_URL` and `WEB_SIM_SHORT_URL`, the control
  * of their identity providers in `WEB_SIM_CONTROL_URL` and the stub engine's in
- * `HOST_SIM_ENGINE_URL` (all inherited from this process).
+ * `HOST_SIM_ENGINE_URL` (all inherited from this process). The `camunda8` deployment, in
+ * `WEB_SIM_CAMUNDA8_URL`, reads test:host's loopback Camunda 8 cluster (c8-engine.ts) beside the
+ * stub engine: one profile a board names, one no board names.
  */
 export default async function globalSetup(): Promise<() => Promise<void>> {
   const engine = await startStubEngine()
@@ -159,9 +172,30 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     { [HEALTHY_ENGINE]: { url: engine.baseUrl } },
     { idp: { accessTokenSeconds: SHORT_TOKEN_SECONDS } },
   )
-  const control = await startControl({ main: main.idp, short: short.idp })
+  // Camunda 8 beside the stub: a board page over both, and the cockpit's pages on a Camunda 8
+  // engine, which the server reads on boards only.
+  const c8 = await startC8HostEngine()
+  const camunda8 = await deploy(
+    {
+      [HEALTHY_ENGINE]: { url: engine.baseUrl },
+      [C8_ENGINE]: c8.profile("ENGINE_SECRET_WEB_SIM_C8", { cockpitUrl: C8_OPERATE }),
+      [C8_UNBOARDED_ENGINE]: c8.profile("ENGINE_SECRET_WEB_SIM_C8"),
+    },
+    {
+      env: {
+        ENGINE_BOARDS_DIR: CAMUNDA8_BOARDS_DIR,
+        ENGINE_SECRET_WEB_SIM_C8: "web-sim-client-secret",
+      },
+    },
+  )
+  const control = await startControl({
+    main: main.idp,
+    short: short.idp,
+    camunda8: camunda8.idp,
+  })
   process.env[DEPLOYMENTS.main] = main.origin
   process.env[DEPLOYMENTS.short] = short.origin
+  process.env[DEPLOYMENTS.camunda8] = camunda8.origin
   process.env[CONTROL_ENV] = control.url
   process.env[ENGINE_CONTROL_ENV] = engine.controlUrl
 
@@ -169,6 +203,8 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     await control.close()
     await main.close()
     await short.close()
+    await camunda8.close()
     await engine.close()
+    await c8.close()
   }
 }

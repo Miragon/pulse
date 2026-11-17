@@ -13,9 +13,15 @@ import { ENGINE_CONTROL_ENV } from "../engines.js"
  * The deployments, by the env var that carries each one's origin: `main` over the stub engine and
  * the broken one with test:host's board files (`fixtures/boards`) and access tokens of 300 s;
  * `short` over the stub engine alone, without boards, with access tokens of
- * {@link SHORT_TOKEN_SECONDS}, which the server renews before every call.
+ * {@link SHORT_TOKEN_SECONDS}, which the server renews before every call; `camunda8` over the stub
+ * engine and two profiles of test:host's Camunda 8 cluster with its board files
+ * (`fixtures/camunda8-boards`).
  */
-export const DEPLOYMENTS = { main: "WEB_SIM_URL", short: "WEB_SIM_SHORT_URL" } as const
+export const DEPLOYMENTS = {
+  main: "WEB_SIM_URL",
+  short: "WEB_SIM_SHORT_URL",
+  camunda8: "WEB_SIM_CAMUNDA8_URL",
+} as const
 export type Deployment = keyof typeof DEPLOYMENTS
 
 /** The lifetime of the `short` deployment's access tokens: due at once, so every call renews. */
