@@ -77,7 +77,7 @@ const WORKSPACE = {
   [HTTP]: { name: "@miragon/pulse-http", main: "dist/index.js" },
   [ENGINE_CORE]: { name: "@miragon/pulse-engine-core", main: "dist/index.js" },
   [C7]: { name: "@miragon/pulse-c7-core" },
-  [C8]: { name: "@miragon/pulse-c8-core", private: true },
+  [C8]: { name: "@miragon/pulse-c8-core", main: "dist/index.js" },
   [C7_CLIENT]: { name: "@miragon/pulse-c7-client" },
   [ENGINE_CONNECTOR]: { name: "@miragon/pulse-engine-connector" },
   [BILLING_CLIENT]: { name: "@miragon/pulse-billing-client" },
@@ -156,6 +156,7 @@ const HTTP_LOOPBACK = "http-loopback-only-its-sockets"
 const SHELL_WEB_HTTP = "widget-shell-web-by-the-oauth-entry"
 const ENGINE_CORE_USERS = "engine-core-consumers"
 const CONNECTOR_CONTRACT = "engine-connector-contract-by-its-main-entry"
+const C8_LAYER = "engine-connector-c8-core-in-its-engine-layer"
 const CORE_USERS = "family-core-consumers"
 const ADAPTER_FAMILY = "adapters-own-their-family"
 const ADAPTER_TESTS = "adapter-tests-own-their-family"
@@ -277,6 +278,8 @@ const LEAVES = [
   `${C7}/src/runtime/json-view.ts`,
   `${C7}/dist/runtime/index.js`,
   `${C8}/src/target.ts`,
+  `${C8}/dist/index.js`,
+  `${C8}/dist/testing/index.js`,
   `${PROFILE}/src/target.ts`,
   `${PROFILE}/src/lib.ts`,
   `${BOARD}/src/target.ts`,
@@ -1181,6 +1184,53 @@ const SUITES = [
     ],
   },
   {
+    rule: C8_LAYER,
+    title: "of the engine module's shipped code, only src/lib/engine imports c8-core, by its entry",
+    cases: [
+      // The server's Camunda 8 wire, its words and its runtime: the main entry, resolved to the
+      // build (shape 2), at runtime and as a type, in a nested folder too.
+      [`${ENGINE_CONNECTOR}/src/lib/engine/c8-runtime.ts`, C8_CORE, []],
+      [`${ENGINE_CONNECTOR}/src/lib/engine/c8-port.ts`, C8_CORE, [], "type"],
+      [`${ENGINE_CONNECTOR}/src/lib/engine/nested/c8-words.ts`, C8_CORE, []],
+      // Never its ./testing, a file of its build or a relative escape into its tree.
+      [
+        `${ENGINE_CONNECTOR}/src/lib/engine/c8-board.ts`,
+        `${C8_CORE}/testing`,
+        [C8_LAYER, NO_TESTING],
+      ],
+      // The entry's own file resolves to the entry (TypeScript refuses the specifier through the
+      // exports map); any other file of the build trips.
+      [`${ENGINE_CONNECTOR}/src/lib/engine/c8-build.ts`, `${C8_CORE}/dist/index.js`, []],
+      [
+        `${ENGINE_CONNECTOR}/src/lib/engine/c8-deep-kit.ts`,
+        `${C8_CORE}/dist/testing/index.js`,
+        [C8_LAYER],
+      ],
+      [
+        `${ENGINE_CONNECTOR}/src/lib/engine/c8-escape.ts`,
+        "../../../../../c8/c8-core/src/target.ts",
+        [C8_LAYER, DEEP],
+      ],
+      // Any other shipped layer of the module, as a type too: it reads the contract's answers.
+      [`${ENGINE_CONNECTOR}/src/data/c8-board.ts`, C8_CORE, [C8_LAYER]],
+      [`${ENGINE_CONNECTOR}/src/data/c8-types.ts`, C8_CORE, [C8_LAYER], "type"],
+      [`${ENGINE_CONNECTOR}/src/tools/c8.ts`, C8_CORE, [C8_LAYER]],
+      [`${ENGINE_CONNECTOR}/src/providers/c8.ts`, C8_CORE, [C8_LAYER]],
+      [`${ENGINE_CONNECTOR}/src/widget-tools/c8.ts`, C8_CORE, [C8_LAYER]],
+      [`${ENGINE_CONNECTOR}/src/lib/core-adapter/c8.ts`, C8_CORE, [C8_LAYER]],
+      [`${ENGINE_CONNECTOR}/src/plugin-c8.ts`, C8_CORE, [C8_LAYER]],
+      [`${ENGINE_CONNECTOR}/src/widgets/c8.tsx`, C8_CORE, [C8_LAYER, WIDGETS_BROWSER]],
+      [`${ENGINE_CONNECTOR}/src/lib/shared/c8.ts`, C8_CORE, [C8_LAYER, WIDGETS_BROWSER]],
+      // The module reaches no adapter of the editor hosts, and the server app no dialect core.
+      [`${ENGINE_CONNECTOR}/src/lib/engine/c8-adapter.ts`, C8_ADAPTER_NAME, [ADAPTER_USERS]],
+      [`${SERVER}/src/c8.ts`, C8_CORE, [CORE_USERS]],
+      // Its tests and test-support import it anywhere, its kit included.
+      [`${ENGINE_CONNECTOR}/src/data/board.c8.test.ts`, C8_CORE, []],
+      [`${ENGINE_CONNECTOR}/src/data/board.c8.test.ts`, `${C8_CORE}/testing`, []],
+      [`${ENGINE_CONNECTOR}/src/lib/engine/test-support/c8-world.ts`, `${C8_CORE}/testing`, []],
+    ],
+  },
+  {
     rule: CORE_LEAF,
     title:
       "a family core imports only its own modules and engine-core's main entry: no other " +
@@ -1311,11 +1361,11 @@ const SUITES = [
       [`${C7_ADAPTER}/src/testing.ts`, `${C7_CORE}/testing`, [NO_TESTING]],
       [`${C7_ADAPTER}/src/escape-core.ts`, "../../c7-core/src/target.ts", [ADAPTER_FAMILY, DEEP]],
       // c8-core: no app imports it, the editor hosts reach it through the C8 adapter, the engine
-      // module until ENGINE_DIALECTS names c8.
+      // module in its src/lib/engine alone (the C8_LAYER suite).
       [SERVER_SRC, C8_CORE, [CORE_USERS]],
       [`${CLI}/src/workflow/c8.ts`, C8_CORE, [HEADLESS]],
       [`${EXT}/src/host/c8.ts`, C8_CORE, [HOSTS]],
-      [`${ENGINE_CONNECTOR}/src/data/c8.ts`, C8_CORE, [SPANS]],
+      [`${ENGINE_CONNECTOR}/src/data/c8.ts`, C8_CORE, [C8_LAYER]],
       [`${C8_ADAPTER}/src/escape-core.ts`, "../../c8-core/src/target.ts", [ADAPTER_FAMILY, DEEP]],
       [`${C8_ADAPTER}/src/reads.ts`, C8_CORE, []],
       [`${C8_ADAPTER}/test/support/reads.ts`, C8_CORE, []],
@@ -2255,7 +2305,7 @@ const SUITES = [
         [SPANS, DEEP],
       ],
       // A dialect joins ENGINE_DIALECTS with its first import: until then it is another family.
-      [`${ENGINE_CONNECTOR}/src/lib/engine/c8.ts`, "@miragon/pulse-c8-core", [SPANS]],
+      [`${ENGINE_CONNECTOR}/src/lib/engine/c9.ts`, "@miragon/pulse-c9-core", [SPANS]],
       // Anchored: a family whose name starts like a dialect's is no dialect.
       [`${ENGINE_CONNECTOR}/src/lib/engine/c70.ts`, "@miragon/pulse-c70-core", [SPANS]],
       // Allowed: the dialect family c7 (its core and its client, a subpath too) and tests. The
@@ -2266,6 +2316,9 @@ const SUITES = [
       [`${ENGINE_CONNECTOR}/src/lib/core-adapter/types.ts`, C7_CORE, [], "type"],
       [`${ENGINE_CONNECTOR}/src/lib/engine/c7.ts`, "@miragon/pulse-c7-client", []],
       [`${ENGINE_CONNECTOR}/src/lib/engine/sdk.ts`, "@miragon/pulse-c7-client/sdk", []],
+      // The dialect family c8, which joined with the server's Camunda 8 wire: its core, in the
+      // engine layer (the C8_LAYER suite holds where).
+      [`${ENGINE_CONNECTOR}/src/lib/engine/c8.ts`, C8_CORE, []],
       [`${ENGINE_CONNECTOR}/src/tools/core.test.ts`, `${C7_CORE}/testing`, []],
     ],
   },

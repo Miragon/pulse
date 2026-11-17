@@ -57,11 +57,12 @@ hosts) is the c8 family's adapter of the runtime view, a plug: it holds the wire
 failures, its BPMN dialect and the plug of the ports. The runtime that answers the contract with
 the kind of each failure, the REST client, the version floor and the readers with their mappings
 onto the contract's read models are the family's core, `@miragon/pulse-c8-core`
-(`packages/connectors/c8/c8-core`, private, built to `dist`), which the adapter runs over a
-transport port its wire implements, so that another surface can run the same reads over a wire and
-words of its own. `C8Adapter`, the package's one export, holds one `CamundaTransports`, which
-builds the transport of a connection and holds the one `ClientCredentialsSources` of the adapter.
-The composition root of each editor host builds the adapter once per process.
+(`packages/connectors/c8/c8-core`, published, built to `dist`), which the adapter runs over a
+transport port its wire implements, so that another surface runs the same reads over a wire and
+words of its own, as the MCP server's engine module does. `C8Adapter`, the package's one export,
+holds one `CamundaTransports`, which builds the transport of a connection and holds the one
+`ClientCredentialsSources` of the adapter. The composition root of each editor host builds the
+adapter once per process.
 
 - **No client library, no CLI.** `@camunda8/orchestration-cluster-api` brings 1.5 MB of
   JavaScript and zod, which the closed world forbids, reads its settings from the environment,

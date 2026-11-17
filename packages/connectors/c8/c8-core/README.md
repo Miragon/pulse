@@ -3,10 +3,11 @@
 The core of Pulse's Camunda 8 dialect family: the reads of a Camunda 8 cluster (8.9 and newer,
 SaaS and Self-Managed) through the Orchestration Cluster REST API (`/v2`), mapped onto the read
 models of `@miragon/pulse-engine-core`, the engine contract every dialect implements. It reads and
-never writes. Private for now: the C8 adapter of the editor hosts
-(`packages/connectors/c8/c8-adapter`) runs it, and the MCP server's engine module is its second
-consumer to come. Below 1.0, pin the exact version and update all `@miragon/pulse-*` packages
-together.
+never writes. Two surfaces run it, each over its own wire on `@miragon/pulse-http` and in its own
+words: the C8 adapter of the editor hosts (`packages/connectors/c8/c8-adapter`) and the MCP
+server's engine module (`@miragon/pulse-engine-connector`, whose `src/lib/engine` alone imports
+it), which is why it is published. Below 1.0, pin the exact version and update all
+`@miragon/pulse-*` packages together.
 
 Thomas Heinrichs wrote these readers, the REST client and its query rules, the runtime and the
 translation of its failures for Pulse for VS Code in
@@ -45,7 +46,9 @@ reads and gives one failure the same kind.
   (`token`: the trouble, a structural copy of the OAuth client's `TokenFailureKind`, its status,
   code, problem, hold and cap; the token endpoint stays out). Each surface brings its own wire on
   `@miragon/pulse-http`, copies those fields and words its own failures; this package imports no
-  transport.
+  transport. The C8 adapter's wire is `CamundaHttp` over its `CamundaWire`; the server's is
+  `createC8Connection` of the engine module (`src/lib/engine/c8-connection.ts`), its words
+  `src/lib/engine/c8-errors.ts`.
 - **The REST client (`src/rest`).** `RestCamundaClient` has one method per call of `/v2` the reads
   need, and `CamundaViews` checks each field of an answer, so an answer of another shape fails as
   an `UnexpectedAnswerError`. A search pages by its cursor up to 10,000 rows, a statistics read by

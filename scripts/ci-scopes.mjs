@@ -101,7 +101,8 @@ export const ALSO_READ_BY = [
   },
   // What the MCP server's engine suite runs (the connector's test:engines in the Engines legs):
   // c7-core's src (its runtime, the port and routes it reads by, its seed, its recorded board) and
-  // the world's diagrams, the SDK, engine-core's conformance kit, the transport, the profile
+  // the world's diagrams, the SDK, c8-core's src (the runtime the connector builds per call for a
+  // Camunda 8 engine), engine-core's conformance kit, the transport, the profile
   // format, the board package (its format and builder), and the connector's engine port and
   // connection, its runtime per dialect with the providers and the flavor table it picks one by,
   // the board feed's build (its board files, src/data/board-*.ts and the one XML read it draws a
@@ -114,6 +115,7 @@ export const ALSO_READ_BY = [
         [
           "connectors/c7/c7-core/(?:src|world)/",
           "connectors/c7/c7-client/src/",
+          "connectors/c8/c8-core/src/",
           "connectors/engine/engine-core/src/",
           "core/http/src/",
           "core/profile/src/",

@@ -193,29 +193,110 @@ function caveatOf(failure: HttpFailure): string {
 
 const codeOf = (failure: HttpFailure): string => failure.code ?? "network error"
 
-type Worded = (failure: HttpFailure, ctx: EngineErrorContext) => EngineRequestError
+/**
+ * The transport's reasons that say nothing of an engine's dialect: no answer, a broken or slow
+ * one, the caller, the size cap, a request the transport refused. Every wire of the server words
+ * them alike (`transportSentence`), the Camunda 7 SDK's here and the Camunda 8 cluster's in
+ * c8-errors.ts.
+ */
+type NeutralReason = Exclude<FailureReason, "redirect" | "unauthorized" | "status" | "credential">
+
+/** A failure in the model's words: its kind, its engine message and its sentence. */
+interface Wording {
+  readonly kind: EngineFailureKind
+  /** The engine message of the failure, undecorated. */
+  readonly engineMessage: (failure: HttpFailure) => string
+  /** The sentence the model reads, the engine named as `engine` ("engine prod-a"). */
+  readonly sentence: (failure: HttpFailure, engine: string) => string
+}
 
 /** A failure whose engine message is its system code. */
-const network =
-  (kind: EngineFailureKind, words: (engine: string, code: string) => string): Worded =>
+const network = (
+  kind: EngineFailureKind,
+  words: (engine: string, code: string) => string,
+): Wording => ({
+  kind,
+  engineMessage: codeOf,
+  sentence: (failure, engine) => words(engine, codeOf(failure)) + caveatOf(failure),
+})
+
+/** A request the transport refused before sending: nothing reached the engine. */
+const refusedWith = (what: (failure: HttpFailure) => string): Wording => ({
+  kind: "refused",
+  engineMessage: what,
+  sentence: (failure, engine) => `${what(failure)}; nothing was sent (${engine})`,
+})
+
+/** Each neutral reason in the model's words, total over `NeutralReason`. */
+const NEUTRAL: Readonly<Record<NeutralReason, Wording>> = {
+  deadline: {
+    kind: "timeout",
+    engineMessage: (failure) => `no response within ${String(failure.limit)} ms`,
+    sentence: (failure, engine) =>
+      `${engine} did not respond within ${String(failure.limit)} ms (timeout)` + caveatOf(failure),
+  },
+  cancelled: {
+    kind: "cancelled",
+    engineMessage: () => "cancelled by the caller",
+    sentence: (_, engine) => `request to ${engine} was cancelled by the caller`,
+  },
+  unreachable: network("unreachable", (engine, code) => `${engine} unreachable (${code})`),
+  dns: network("unreachable", (engine, code) => `${engine} unreachable (${code})`),
+  // The handshake failed before any request left: no write caveat, and the model may say so.
+  tls: network(
+    "tls",
+    (engine, code) =>
+      `connection to ${engine} failed (${code}): the TLS handshake failed, so nothing was sent`,
+  ),
+  connection: network("connection", (engine, code) => `connection to ${engine} failed (${code})`),
+  "too-large": {
+    kind: "too-large",
+    engineMessage: (failure) => `answer above ${String(failure.limit)} bytes`,
+    sentence: (failure, engine) =>
+      `the answer exceeds ${String(failure.limit)} bytes, the size cap, and was not read ` +
+      `(${engine})${caveatOf(failure)}`,
+  },
+  "invalid-answer": {
+    kind: "connection",
+    engineMessage: () => "no valid JSON",
+    sentence: (failure, engine) => `the answer of ${engine} is no valid JSON${caveatOf(failure)}`,
+  },
+  "invalid-request": refusedWith((failure) => `the request cannot be sent (${codeOf(failure)})`),
+  "refused-write": refusedWith(() => "the profile of this engine is read-only on this server"),
+}
+
+/** Whether `reason` says nothing of an engine's dialect (`NeutralReason`). */
+function isNeutralReason(reason: FailureReason): reason is NeutralReason {
+  return Object.hasOwn(NEUTRAL, reason)
+}
+
+/**
+ * The model's sentence for a failure of a neutral reason, the engine by its id: the same on every
+ * dialect the server reads. Undefined for a reason each dialect words itself (an answer, a
+ * redirect, a credential that cannot be sent).
+ */
+export function transportSentence(failure: HttpFailure, engineId: string): string | undefined {
+  const { reason } = failure
+  return isNeutralReason(reason)
+    ? NEUTRAL[reason].sentence(failure, `engine ${engineId}`)
+    : undefined
+}
+
+type Worded = (failure: HttpFailure, ctx: EngineErrorContext) => EngineRequestError
+
+/** A wording as the SDK's error: its kind, its engine message and its sentence. */
+const worded =
+  ({ kind, engineMessage, sentence }: Wording): Worded =>
   (failure, ctx) =>
-    new EngineRequestError(words(`engine ${ctx.engineId}`, codeOf(failure)) + caveatOf(failure), {
+    new EngineRequestError(sentence(failure, `engine ${ctx.engineId}`), {
       kind,
-      engineMessage: codeOf(failure),
+      engineMessage: engineMessage(failure),
       engineId: ctx.engineId,
       cause: failure,
     })
 
-/** A request the transport refused before sending: nothing reached the engine. */
-const refused =
-  (what: (failure: HttpFailure) => string): Worded =>
-  (failure, ctx) =>
-    new EngineRequestError(`${what(failure)}; nothing was sent (engine ${ctx.engineId})`, {
-      kind: "refused",
-      engineMessage: what(failure),
-      engineId: ctx.engineId,
-      cause: failure,
-    })
+/** A neutral reason as the SDK's error. */
+const neutral = (reason: NeutralReason): Worded => worded(NEUTRAL[reason])
 
 /** A 3xx: never followed (a followed 302/303 turns a write into a GET), so nothing applied. */
 const redirect: Worded = (failure, ctx) => {
@@ -248,57 +329,19 @@ const WORDING: Readonly<Record<FailureReason, Worded>> = {
   redirect,
   unauthorized: answered,
   status: answered,
-  deadline: (failure, ctx) =>
-    new EngineRequestError(
-      `engine ${ctx.engineId} did not respond within ${String(failure.limit)} ms (timeout)` +
-        caveatOf(failure),
-      {
-        kind: "timeout",
-        engineMessage: `no response within ${String(failure.limit)} ms`,
-        engineId: ctx.engineId,
-        cause: failure,
-      },
-    ),
-  cancelled: (failure, ctx) =>
-    new EngineRequestError(`request to engine ${ctx.engineId} was cancelled by the caller`, {
-      kind: "cancelled",
-      engineMessage: "cancelled by the caller",
-      engineId: ctx.engineId,
-      cause: failure,
-    }),
-  unreachable: network("unreachable", (engine, code) => `${engine} unreachable (${code})`),
-  dns: network("unreachable", (engine, code) => `${engine} unreachable (${code})`),
-  // The handshake failed before any request left: no write caveat, and the model may say so.
-  tls: network(
-    "tls",
-    (engine, code) =>
-      `connection to ${engine} failed (${code}): the TLS handshake failed, so nothing was sent`,
+  deadline: neutral("deadline"),
+  cancelled: neutral("cancelled"),
+  unreachable: neutral("unreachable"),
+  dns: neutral("dns"),
+  tls: neutral("tls"),
+  connection: neutral("connection"),
+  "too-large": neutral("too-large"),
+  "invalid-answer": neutral("invalid-answer"),
+  "invalid-request": neutral("invalid-request"),
+  "refused-write": neutral("refused-write"),
+  credential: worded(
+    refusedWith((failure) => `the bearer token cannot be sent (${codeOf(failure)})`),
   ),
-  connection: network("connection", (engine, code) => `connection to ${engine} failed (${code})`),
-  "too-large": (failure, ctx) =>
-    new EngineRequestError(
-      `the answer exceeds ${String(failure.limit)} bytes, the size cap, and was not read ` +
-        `(engine ${ctx.engineId})${caveatOf(failure)}`,
-      {
-        kind: "too-large",
-        engineMessage: `answer above ${String(failure.limit)} bytes`,
-        engineId: ctx.engineId,
-        cause: failure,
-      },
-    ),
-  "invalid-answer": (failure, ctx) =>
-    new EngineRequestError(
-      `the answer of engine ${ctx.engineId} is no valid JSON${caveatOf(failure)}`,
-      {
-        kind: "connection",
-        engineMessage: "no valid JSON",
-        engineId: ctx.engineId,
-        cause: failure,
-      },
-    ),
-  "invalid-request": refused((failure) => `the request cannot be sent (${codeOf(failure)})`),
-  "refused-write": refused(() => "the profile of this engine is read-only on this server"),
-  credential: refused((failure) => `the bearer token cannot be sent (${codeOf(failure)})`),
 }
 
 /** A transport failure in the model's words. */

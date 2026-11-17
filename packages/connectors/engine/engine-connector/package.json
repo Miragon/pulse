@@ -58,6 +58,7 @@
     "@miragon/pulse-board": "workspace:*",
     "@miragon/pulse-c7-client": "workspace:*",
     "@miragon/pulse-c7-core": "workspace:*",
+    "@miragon/pulse-c8-core": "workspace:*",
     "@miragon/pulse-engine-core": "workspace:*",
     "@miragon/pulse-http": "workspace:*",
     "@miragon/pulse-profile": "workspace:*"

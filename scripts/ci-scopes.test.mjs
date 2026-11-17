@@ -18,6 +18,7 @@ const PACKAGES = [
     "@miragon/pulse-ui": "workspace:*",
   }),
   pkg("packages/connectors/c7/c7-client", "@miragon/pulse-c7-client"),
+  pkg("packages/connectors/c8/c8-core", "@miragon/pulse-c8-core"),
   pkg("packages/connectors/engine/engine-core", "@miragon/pulse-engine-core"),
   pkg("packages/core/http", "@miragon/pulse-http"),
   pkg("packages/core/profile", "@miragon/pulse-profile"),
@@ -26,6 +27,7 @@ const PACKAGES = [
     "@miragon/pulse-board": "workspace:*",
     "@miragon/pulse-c7-client": "workspace:*",
     "@miragon/pulse-c7-core": "workspace:*",
+    "@miragon/pulse-c8-core": "workspace:*",
     "@miragon/pulse-widget-shell": "workspace:*",
   }),
   pkg("apps/mcp-server", "@miragon/pulse-mcp-server", {
@@ -233,6 +235,9 @@ describe("scopesFor: the MCP server's engine suite runs for what it runs", () =>
       "packages/connectors/c7/c7-core/spec/patches.json",
       "packages/connectors/c7/c7-core/src/generated/routes.json",
       "packages/connectors/c7/c7-client/src/generated/sdk.gen.ts",
+      // c8-core's runtime, which the connector builds per call for a Camunda 8 engine.
+      "packages/connectors/c8/c8-core/src/c8-runtime.ts",
+      "packages/connectors/c8/c8-core/src/testing/board-engine.json",
       "packages/connectors/engine/engine-core/src/testing/conformance/laws/engine-laws.ts",
       "packages/core/http/src/http.ts",
       "packages/core/profile/src/index.ts",
@@ -277,6 +282,7 @@ describe("scopesFor: the MCP server's engine suite runs for what it runs", () =>
       `${CONNECTOR}/src/messages/GLOSSARY.md`,
       "packages/connectors/c7/c7-core/package.json",
       "packages/connectors/c7/c7-core/scripts/patches.ts",
+      "packages/connectors/c8/c8-core/test/c8-runtime.test.ts",
       "packages/connectors/engine/engine-core/test/kit.test.ts",
       "packages/connectors/c7/c7-adapter/src/index.ts",
       "packages/core/runtime-view/src/core/index.ts",

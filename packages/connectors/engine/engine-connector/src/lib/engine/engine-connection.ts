@@ -19,7 +19,7 @@ import { credentialFor, unauthorizedHint } from "./credentials.js"
 import { type EngineErrorContext, EngineRequestError, toEngineToolError } from "./engine-error.js"
 
 /** The deadline of one engine request without `ENGINE_REQUEST_TIMEOUT_MS`: 30 s to the last byte. */
-const DEFAULT_ENGINE_TIMEOUT_MS = 30_000
+export const DEFAULT_ENGINE_TIMEOUT_MS = 30_000
 
 /** The path of `url` below `root` (`/process-instance/{id}`), or undefined outside it. */
 export function pathUnder(root: string, url: string): string | undefined {

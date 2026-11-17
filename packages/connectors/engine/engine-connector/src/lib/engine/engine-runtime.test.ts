@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { C7Runtime } from "@miragon/pulse-c7-core/runtime"
+import { C8Runtime } from "@miragon/pulse-c8-core"
 import { DefinitionId } from "@miragon/pulse-engine-core"
 import { FakeEngine as ContractFake, FakeWorld } from "@miragon/pulse-engine-core/testing"
 import { flavorsOf } from "@miragon/pulse-profile"
@@ -12,13 +13,15 @@ import {
   type FakeRoutes,
   startFakeEngine,
 } from "../../tools/test-support/fake-engine.js"
+import { createC8Connection } from "./c8-connection.js"
 import { createEngineConnection } from "./engine-connection.js"
-import { runtimeOf } from "./engine-runtime.js"
+import { c8RuntimeOf, runtimeOf } from "./engine-runtime.js"
 import {
   type ContractRuntime,
   createEngineRegistry,
   resolveRuntimeEngine,
 } from "./resolve-engine.js"
+import { c8Platform, CLUSTER, hang, json, problem } from "./test-support/c8-platform.js"
 import { closedPortUrl } from "./test-support/raw-engine.js"
 
 const engines: FakeEngine[] = []
@@ -172,5 +175,50 @@ describe("describeEngine over the SDK wire: the telemetry, else the REST API's v
       message: "[500 ProcessEngineException] telemetry broke (engine fake)",
     })
     expect(sent(engine)).toEqual(["GET /telemetry/data"])
+  })
+})
+
+describe("c8RuntimeOf: the runtime of a Camunda 8 engine, per call", () => {
+  const TOPOLOGY = { gatewayVersion: "8.10.9", brokers: [] }
+
+  function c8(answers: Parameters<typeof c8Platform>[0]) {
+    const platform = c8Platform(answers)
+    const connection = createC8Connection(
+      { id: "c8", baseUrl: CLUSTER },
+      { type: "none" },
+      {},
+      platform,
+    )
+    return { platform, runtime: c8RuntimeOf(connection) }
+  }
+
+  it("is C8Runtime over the connection's transport, a new one per call", async () => {
+    const { platform, runtime } = c8({ "GET /v2/topology": () => json(TOPOLOGY) })
+    const first = runtime()
+    expect(first).toBeInstanceOf(C8Runtime)
+    expect(runtime()).not.toBe(first)
+    expect(await first.describeEngine()).toEqual({ product: "Camunda 8", version: "8.10.9" })
+    expect(platform.sent.map(({ method, path }) => `${method} ${path}`)).toEqual([
+      "GET /v2/topology",
+    ])
+  })
+
+  it("fails in the server's Camunda 8 words", async () => {
+    const { runtime } = c8({ "GET /v2/topology": () => problem(500, "INTERNAL", "boom") })
+    await expect(runtime().describeEngine()).rejects.toMatchObject({
+      failure: "engineFailure",
+      message: "[500 INTERNAL] boom (engine c8)",
+    })
+  })
+
+  it("aborts the reads of a call with that call's signal", async () => {
+    const { runtime } = c8({ "GET /v2/topology": hang })
+    const leaving = new AbortController()
+    const read = runtime(leaving.signal).describeEngine()
+    leaving.abort()
+    await expect(read).rejects.toMatchObject({
+      failure: "unreachable",
+      message: "request to engine c8 was cancelled by the caller",
+    })
   })
 })

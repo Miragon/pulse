@@ -9,24 +9,18 @@
  */
 
 import type { BoardReads } from "@miragon/pulse-board/builder"
-import { RuntimeError } from "@miragon/pulse-engine-core"
 import { diagramXmlOf } from "../lib/engine/diagram-xml.js"
-import { EngineRequestError } from "../lib/engine/engine-error.js"
 import { runtimeOf } from "../lib/engine/engine-runtime.js"
 import type { RuntimeEngine } from "../lib/engine/resolve-engine.js"
+import { cancellationOf } from "../lib/engine/runtime-errors.js"
 
-/** What the reads of one build met: whether one failed, and the caller's cancellation if it came. */
+/**
+ * What the reads of one build met: whether one failed, and the caller's cancellation if it came,
+ * on either wire (`cancellationOf`).
+ */
 export interface ReadLog {
   failed: boolean
-  cancelled?: EngineRequestError
-}
-
-/** The engine call behind a failure: the error itself, or the cause the runtime wrapped. */
-function requestErrorOf(error: unknown): EngineRequestError | undefined {
-  if (error instanceof EngineRequestError) return error
-  return RuntimeError.is(error) && error.cause instanceof EngineRequestError
-    ? error.cause
-    : undefined
+  cancelled?: Error
 }
 
 /** `read`, its failure noted in `log` and passed on to the builder. */
@@ -35,8 +29,7 @@ async function logged<T>(log: ReadLog, read: () => Promise<T>): Promise<T> {
     return await read()
   } catch (error) {
     log.failed = true
-    const request = requestErrorOf(error)
-    if (request?.kind === "cancelled") log.cancelled ??= request
+    log.cancelled ??= cancellationOf(error)
     throw error
   }
 }

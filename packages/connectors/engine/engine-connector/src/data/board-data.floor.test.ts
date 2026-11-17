@@ -1,7 +1,8 @@
 /**
  * The board feed's floor: a build is kept per caller and board for 30 seconds, never one that
  * missed a read (each read of the degrade table broken in turn) or holds an undecided reading,
- * and a build its caller cancelled is read again for a call that shared it. A Camunda 7 count is
+ * and a build its caller cancelled is read again for a call that shared it, on the Camunda 7 SDK
+ * wire and on the server's Camunda 8 wire. A Camunda 7 count is
  * exact, so the runtime here can be switched to answer every count as a lower bound, as a dialect
  * with capped counts would.
  */
@@ -10,7 +11,14 @@ import { BoardParser } from "@miragon/pulse-board"
 import { runWithMcpRequestInfo } from "@miragon/pulse-widget-shell/server"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import type { EngineBoard } from "../board-files.js"
-import { createEngineRegistry, resolveEngine } from "../lib/engine/resolve-engine.js"
+import { createC8Connection } from "../lib/engine/c8-connection.js"
+import { c8RuntimeOf } from "../lib/engine/engine-runtime.js"
+import {
+  createEngineRegistry,
+  resolveEngine,
+  resolveRuntimeEngine,
+} from "../lib/engine/resolve-engine.js"
+import { c8Platform, CLUSTER, hang, json } from "../lib/engine/test-support/c8-platform.js"
 import { providerForEntry } from "../providers/index.js"
 import { ENGINE_FAILURE, readOf, worldReply } from "../tools/test-support/engine-world.js"
 import {
@@ -213,5 +221,43 @@ describe("cachedBoardData and a caller that goes away", () => {
     const data = await joined
     expect(data.engines[0]?.state).toBe("ready")
     release()
+  })
+
+  it("fails a build its caller cancelled on Camunda 8's wire too, and reads again for a call that shared it", async () => {
+    let holding = true
+    const platform = c8Platform({
+      "GET /v2/topology": (request) => {
+        if (!holding) return json({ gatewayVersion: "8.10.9", brokers: [] })
+        holding = false
+        return hang(request)
+      },
+    })
+    const connection = createC8Connection(
+      { id: "cluster", baseUrl: CLUSTER },
+      { type: "none" },
+      {},
+      platform,
+    )
+    const registry = createEngineRegistry(
+      [{ id: "cluster", baseUrl: CLUSTER, flavor: "camunda8" }],
+      () => {
+        throw new Error("a Camunda 8 engine has no client")
+      },
+      { contractRuntime: () => c8RuntimeOf(connection) },
+    )
+    const resolveWith = (signal: AbortSignal) => (name: string) =>
+      resolveRuntimeEngine(name, registry, { mcpReq: { signal } })
+    const board = boardOver(["cluster"])
+    const leaving = new AbortController()
+    const first = cachedBoardData(board, resolveWith(leaving.signal))
+    const joined = cachedBoardData(board, resolveWith(new AbortController().signal))
+    await vi.waitFor(() => expect(platform.sent.map(({ path }) => path)).toContain("/v2/topology"))
+    leaving.abort()
+    await expect(first).rejects.toMatchObject({
+      failure: "unreachable",
+      message: "request to engine cluster was cancelled by the caller",
+    })
+    const data = await joined
+    expect(data.engines[0]?.state).toBe("ready")
   })
 })

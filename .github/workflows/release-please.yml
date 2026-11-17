@@ -88,6 +88,7 @@ jobs:
           - packages/connectors/engine/engine-core
           - packages/connectors/c7/c7-core
           - packages/connectors/c7/c7-client
+          - packages/connectors/c8/c8-core
           - packages/core/widget-shell
           - packages/connectors/engine/engine-connector
           - apps/cli

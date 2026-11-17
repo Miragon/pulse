@@ -2,15 +2,20 @@
  * The engine contract's runtime of the engine a call resolved: a Camunda 7 engine's
  * (`resolveEngine`/`withEngine`, or `resolveRuntimeEngine`) is c7-core's `C7Runtime` over the
  * connector's engine port, its failures read by `runtimeErrorOf`; an engine of another dialect
- * (`resolveRuntimeEngine` alone) brings its own, bound to the call's signal. Built per call on what
- * the call resolved, like the port (invariant 2): never cached.
+ * (`resolveRuntimeEngine` alone) brings its own, bound to the call's signal: a Camunda 8 engine's
+ * is c8-core's `C8Runtime` over the transport of its connection (`c8RuntimeOf`), its failures in
+ * the server's Camunda 8 words (c8-errors.ts). Built per call on what the call resolved, like the
+ * port (invariant 2): never cached.
  */
 
 import type { Client } from "@miragon/pulse-c7-client"
 import { C7Runtime } from "@miragon/pulse-c7-core/runtime"
+import { C8Runtime } from "@miragon/pulse-c8-core"
 import type { ProcessRuntime } from "@miragon/pulse-engine-core"
 import { enginePortFor } from "../core-adapter/engine-port.js"
-import type { ResolvedContractEngine, ResolvedEngine } from "./resolve-engine.js"
+import type { C8Connection } from "./c8-connection.js"
+import { c8WordsOf } from "./c8-errors.js"
+import type { ContractRuntime, ResolvedContractEngine, ResolvedEngine } from "./resolve-engine.js"
 import { runtimeErrorOf } from "./runtime-errors.js"
 
 /** The runtime of the Camunda 7 REST API, over the client of one call. */
@@ -25,4 +30,13 @@ export function runtimeOf(
 ): ProcessRuntime {
   if ("client" in engine) return RUNTIMES.c7(engine.client)
   return engine.backend.runtime(engine.signal)
+}
+
+/**
+ * The runtime of a Camunda 8 engine for one call: c8-core's `C8Runtime` over the transport of its
+ * connection (built once at boot), each request aborting with the call's signal.
+ */
+export function c8RuntimeOf(connection: C8Connection): ContractRuntime {
+  const wordsOf = c8WordsOf(connection)
+  return (signal) => C8Runtime.over(connection.transport(signal), { wordsOf })
 }

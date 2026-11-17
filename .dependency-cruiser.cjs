@@ -9,7 +9,8 @@
  * Layout + naming carry the layer semantics. A family under `packages/connectors/<family>/` is one
  * source the MCP server reads, an engine API family (a dialect; today `c7`, the Camunda 7 REST API,
  * and `c8`, Camunda 8's Orchestration Cluster REST API, which the editor hosts read and the MCP
- * server does not serve yet) or another source (a metrics store, say), or `engine`, the neutral
+ * server reads through its own wire in the engine module's src/lib/engine) or another source (a
+ * metrics store, say), or `engine`, the neutral
  * family above the dialects: the one module that serves every dialect and the core every dialect
  * implements. Its packages are named `<family>-<role>` (npm `@miragon/pulse-<family>-<role>`; the
  * naming gate holds the family name), keyed by the role suffix:
@@ -20,8 +21,9 @@
  *     (client-consumers), never the family's adapter or an app;
  *   - `<family>-core`, when the family's interfaces share a pure domain: a leaf that the family's
  *     connector (for a dialect's core the engine module) and adapter and the interface apps that
- *     bundle it import (c7-core; c8-core, which only the C8 adapter imports until the engine module
- *     serves c8); a dialect's core (a family DIALECT_FAMILIES names) has one edge out of its own
+ *     bundle it import (c7-core; c8-core, which the C8 adapter runs and the engine module in its
+ *     src/lib/engine alone, engine-connector-c8-core-in-its-engine-layer); a dialect's core (a
+ *     family DIALECT_FAMILIES names) has one edge out of its own
  *     tree, the main entry of the engine family's core (family-core-is-a-leaf,
  *     engine-core-consumers);
  *   - `<family>-adapter`: the family's adapter of the runtime view (packages/core/runtime-view): it
@@ -157,8 +159,24 @@ const FAMILY_CLIENT_TREE = "^packages/connectors/[^/]+/[^/]+-client/"
  * it from the engine module.
  */
 const ENGINE_CONNECTOR_TREE = "^packages/connectors/engine/engine-connector/"
-const ENGINE_DIALECTS = ["c7"]
+const ENGINE_DIALECTS = ["c7", "c8"]
 const ENGINE_MODULE_FAMILIES = ["engine", ...ENGINE_DIALECTS]
+
+/**
+ * The c8 family's core (packages/connectors/c8/c8-core, npm `@miragon/pulse-c8-core`): C8Runtime,
+ * the contract's reads of a Camunda 8 cluster over a transport port, and C8Failures, the kind of
+ * each failure. Of the engine module's shipped code only src/lib/engine imports it, where the
+ * server's own Camunda 8 wire and its words live (c8-connection.ts, c8-errors.ts) and the runtime
+ * of each call is built (engine-runtime.ts), by its main entry alone
+ * (engine-connector-c8-core-in-its-engine-layer); its tests import it anywhere.
+ */
+const C8_CORE = { name: "@miragon/pulse-c8-core", tree: "packages/connectors/c8/c8-core" }
+const C8_CORE_ANY = [`^${escapeRegExp(C8_CORE.tree)}/`, ...npm(escapeRegExp(C8_CORE.name))]
+const C8_CORE_ENTRY = [
+  `(^|/)node_modules/${escapeRegExp(C8_CORE.name)}/dist/index[.](js|d[.]ts)$`,
+  `^${escapeRegExp(C8_CORE.name)}$`,
+]
+const ENGINE_CONNECTOR_ENGINE_LAYER = `${ENGINE_CONNECTOR_TREE}src/lib/engine/`
 
 /**
  * The dialect families: the engine API families below the engine family, each of which implements
@@ -417,8 +435,8 @@ const CLI_BUNDLE_TREES = CLI_BUNDLES.map(({ tree }) => escapeRegExp(tree)).join(
  * `@miragon/pulse-engine-core`): the contract every dialect implements, the ports, read models,
  * queries and failure kinds a process engine answers in, whatever its dialect, the rules every
  * dialect shares (RootCauses), and in ./testing the conformance kit and the fake (owner
- * decisions 2026-11-08 and 2026-11-09: the engine family is the neutral layer, c7 and later c8
- * the dialect families below it). A family core, so family-core-is-a-leaf holds it as it holds
+ * decisions 2026-11-08 and 2026-11-09: the engine family is the neutral layer, c7 and c8 the
+ * dialect families below it). A family core, so family-core-is-a-leaf holds it as it holds
  * every core; engine-core-consumers holds who imports it.
  */
 const ENGINE_CORE = {
@@ -675,7 +693,9 @@ module.exports = {
         "@miragon/pulse-engine-connector) is the one MCP module of every dialect: one MCP server " +
         "and one module, engine, for all dialects (owner decisions 2026-11-07 and 2026-11-08). " +
         "It imports the clients and cores of the dialect families ENGINE_DIALECTS names (today " +
-        "c7: @miragon/pulse-c7-client and @miragon/pulse-c7-core), never another family's. Its " +
+        "c7: @miragon/pulse-c7-client and @miragon/pulse-c7-core; c8: @miragon/pulse-c8-core, " +
+        "in its src/lib/engine alone, engine-connector-c8-core-in-its-engine-layer), never " +
+        "another family's. Its " +
         "own family engine has no client, and its core, engine-core, the contract every dialect " +
         "implements, it runs in its server layers src/lib/engine, src/lib/core-adapter and " +
         "src/data alone, by the main entry (engine-core-consumers, " +
@@ -1337,6 +1357,35 @@ module.exports = {
         path: [`^${escapeRegExp(ENGINE_CORE.tree)}/`, ...npm(escapeRegExp(ENGINE_CORE.name))],
         pathNot: ENGINE_CORE_ENTRY,
       },
+    },
+    {
+      name: "engine-connector-c8-core-in-its-engine-layer",
+      severity: "error",
+      comment:
+        "Of the engine module's shipped code only src/lib/engine imports the c8 family's core " +
+        "(@miragon/pulse-c8-core): there the server builds its own Camunda 8 wire on " +
+        "@miragon/pulse-http (c8-connection.ts), words its failures (c8-errors.ts) and runs " +
+        "C8Runtime per call (engine-runtime.ts), behind resolveRuntimeEngine (CLAUDE.md " +
+        "invariants 2 and 7). Its data builders, tools, providers, widget tools, widgets and " +
+        "src/lib/shared read the engine contract's answers (engine-core's main entry, where " +
+        "admitted), never the dialect's core. Read what you need through runtimeOf. Its tests " +
+        "import it anywhere.",
+      from: {
+        path: `${ENGINE_CONNECTOR_TREE}src/`,
+        pathNot: [ENGINE_CONNECTOR_ENGINE_LAYER, ...SRC_TEST_CODE],
+      },
+      to: { path: C8_CORE_ANY },
+    },
+    {
+      name: "engine-connector-c8-core-in-its-engine-layer",
+      severity: "error",
+      comment:
+        "The engine module's src/lib/engine imports @miragon/pulse-c8-core by its main entry " +
+        "alone: C8Runtime, C8Failures and the port's types. Never ./testing (the recorded board " +
+        "ships for tests; shipped-code-not-to-testing holds it too), never a file of its build, " +
+        "never a relative escape into its tree.",
+      from: { path: ENGINE_CONNECTOR_ENGINE_LAYER, pathNot: SRC_TEST_CODE },
+      to: { path: C8_CORE_ANY, pathNot: C8_CORE_ENTRY },
     },
     {
       name: "family-core-is-a-leaf",

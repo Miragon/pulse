@@ -21,10 +21,11 @@ export function isC7Flavor(flavor: Flavor): flavor is C7Flavor {
 }
 
 /**
- * How the server signs in to an engine: not at all, Basic, a fixed bearer token, or the MCP
- * caller's own bearer token passed through (`src/lib/engine/credentials.ts`).
+ * How the server signs in to an engine: not at all, Basic, a fixed bearer token, the MCP
+ * caller's own bearer token passed through, or a token of the client credentials grant, which a
+ * Camunda 8 cluster reads (`src/lib/engine/credentials.ts`).
  */
-export type EngineAuthType = "basic" | "bearer" | "passthrough" | "none"
+export type EngineAuthType = "basic" | "bearer" | "passthrough" | "none" | "clientCredentials"
 
 /** How one engine signs in, resolved from its profile at boot (the secret read from its variable). */
 export interface EngineAuth {
@@ -32,6 +33,13 @@ export interface EngineAuth {
   username?: string
   password?: string
   token?: string
+  /** clientCredentials: the URL that issues the tokens, the client and its secret. */
+  tokenEndpoint?: string
+  clientId?: string
+  clientSecret?: string
+  /** clientCredentials: what the client asks a token for, sent as written. */
+  audience?: string
+  scopes?: readonly string[]
 }
 
 /** The client settings of one engine, handed to its provider's client factory. */

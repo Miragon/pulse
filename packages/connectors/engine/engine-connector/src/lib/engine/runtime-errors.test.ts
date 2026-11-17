@@ -7,7 +7,7 @@ import {
   failureError,
   toEngineToolError,
 } from "./engine-error.js"
-import { runtimeErrorOf } from "./runtime-errors.js"
+import { cancellationOf, runtimeErrorOf } from "./runtime-errors.js"
 
 const CTX = { engineId: "e", unauthorizedHint: () => "Sign in." }
 
@@ -143,5 +143,46 @@ describe("runtimeErrorOf: the connector's engine errors as the engine contract's
       message: "gone",
       cause: "gone",
     })
+  })
+})
+
+describe("cancellationOf: the caller's cancellation behind a failed read, on either wire", () => {
+  const cancelled = new HttpFailure("cancelled", {
+    method: "GET",
+    target: "",
+    mayHaveApplied: false,
+  })
+
+  it("finds the SDK's cancelled call of Camunda 7, as it is or inside the runtime's failure", () => {
+    const sdk = failureError(cancelled, CTX)
+    expect(cancellationOf(sdk)).toBe(sdk)
+    expect(cancellationOf(runtimeErrorOf(sdk))).toBe(sdk)
+  })
+
+  it("finds the runtime's failure over the transport's cancelled read of Camunda 8", () => {
+    const runtime = new RuntimeError(
+      "unreachable",
+      "request to engine e was cancelled by the caller",
+      {
+        cause: cancelled,
+      },
+    )
+    expect(cancellationOf(runtime)).toBe(runtime)
+    expect(cancellationOf(cancelled)).toBe(cancelled)
+  })
+
+  it("finds none behind any other failure", () => {
+    const deadline = new HttpFailure("deadline", {
+      method: "GET",
+      target: "",
+      mayHaveApplied: false,
+    })
+    expect(cancellationOf(worded("unreachable", { code: "ECONNREFUSED" }))).toBeUndefined()
+    expect(cancellationOf(runtimeErrorOf(worded("deadline", { limit: 1 })))).toBeUndefined()
+    expect(
+      cancellationOf(new RuntimeError("unreachable", "late", { cause: deadline })),
+    ).toBeUndefined()
+    expect(cancellationOf(new RuntimeError("unexpectedResponse", "odd"))).toBeUndefined()
+    expect(cancellationOf(new Error("boom"))).toBeUndefined()
   })
 })

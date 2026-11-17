@@ -1,6 +1,6 @@
 import type { Client } from "@miragon/pulse-c7-client"
 import { callerCacheKey } from "@miragon/pulse-widget-shell/server"
-import { EngineRequestError } from "./engine-error.js"
+import { cancellationOf } from "./runtime-errors.js"
 
 /**
  * The engine client behind `client`: every call reaches its engine through a per-call view
@@ -13,9 +13,12 @@ export function engineClientKey(client: Client): object {
   return interceptors ?? client
 }
 
-/** A read the caller that started it cancelled (its MCP request's signal), not the engine. */
+/**
+ * A read the caller that started it cancelled (its MCP request's signal), not the engine, on
+ * either wire the server reads (`cancellationOf`).
+ */
 function isCancelled(error: unknown): boolean {
-  return error instanceof EngineRequestError && error.kind === "cancelled"
+  return cancellationOf(error) !== undefined
 }
 
 export interface CallerCacheOptions {

@@ -128,6 +128,9 @@ triage, verdicts and which recovery to offer.
   that dialect, applies its root-cause rule for the Pulse CLI and the MCP server, and its
   `C7Runtime` (`./runtime`) answers every read of `ProcessRuntime` for the C7 adapter and the
   engine connector.
+- [`@miragon/pulse-c8-core`](https://www.npmjs.com/package/@miragon/pulse-c8-core), the core of
+  the Camunda 8 dialect, answers the reads of `ProcessRuntime` in `C8Runtime` and decides the kind
+  of each failure, for the C8 adapter and the engine connector, each over its own wire.
 - [`@miragon/pulse-engine-connector`](https://www.npmjs.com/package/@miragon/pulse-engine-connector),
   the MCP server's engine module, runs `ProcessRuntime` over its own wire (`runtimeOf`), with its
   failures as `RuntimeError`, and builds the server's boards over it with the board builder.
@@ -142,7 +145,8 @@ same meaning, proven by the conformance laws on both. It stays narrow: a further
 the message signature, durations) moves here only when a second dialect needs it in the CLI or the
 MCP server. It is imported where a dialect is implemented (the `src` of a dialect's core, its main
 entry alone and never from the core's `./testing`: c7-core applies `RootCauses` and its `./runtime`
-answers `ProcessRuntime`; the C7 and C8 adapters of the editor hosts), where the runtime view of
+answers `ProcessRuntime`, c8-core's `C8Runtime` answers it too; the C7 and C8 adapters of the
+editor hosts), where the runtime view of
 Pulse for VS Code and Pulse for Orca reads the answers, which keeps no contract of its own, and in
 the board builder of `@miragon/pulse-board`, its main entry alone. The engine connector, the MCP
 server's module, runs it in its server layers, its main entry alone, admitted for the server's

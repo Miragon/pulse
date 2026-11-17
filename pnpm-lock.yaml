@@ -531,6 +531,9 @@ importers:
       '@miragon/pulse-c7-core':
         specifier: workspace:*
         version: link:../../c7/c7-core
+      '@miragon/pulse-c8-core':
+        specifier: workspace:*
+        version: link:../../c8/c8-core
       '@miragon/pulse-engine-core':
         specifier: workspace:*
         version: link:../engine-core

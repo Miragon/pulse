@@ -76,7 +76,11 @@ in `ENGINES_JSON` / `ENGINES_FILE`; every variable is in the
 - **The engine contract.** It depends on `@miragon/pulse-engine-core`, the contract Pulse for VS
   Code and Pulse for Orca read engines through, and builds a runtime of it on each call, over the
   client that call resolves: c7-core's `C7Runtime` over the module's own client, which a board
-  reads through.
+  reads through. For Camunda 8 it brings c8-core's `C8Runtime`
+  ([`@miragon/pulse-c8-core`](https://www.npmjs.com/package/@miragon/pulse-c8-core)) over a wire
+  of its own on `@miragon/pulse-http`: read-only, signed in with none, Basic or the client
+  credentials grant, its failures in its own words, which name the profile's keys and never a
+  secret's variable, the token endpoint's URL or the cluster's url.
 - **Toolsets that fail closed.** `read-only`, `operations` and `admin`: without an `engine:<toolset>`
   suffix the module runs `read-only` on an unauthenticated server and `operations` under OAuth, an
   empty or unknown suffix falls back to `read-only`, and widget action buttons render only for

@@ -3,6 +3,7 @@
  * a dialect's reads run through (`runtimeOf`, engine-runtime.ts): the connector's
  * `EngineRequestError` (engine-error.ts) onto engine-core's `RuntimeError`, the message as the
  * model reads it. An HTTP status reads as the C7 adapter's `ErrorTranslation` reads its wire's.
+ * And the caller's cancellation behind a failed read, on the SDK wire and on Camunda 8's.
  */
 
 import { RuntimeError, type RuntimeFailure } from "@miragon/pulse-engine-core"
@@ -59,4 +60,18 @@ export function runtimeErrorOf(error: unknown): RuntimeError {
   }
   const message = error instanceof Error ? error.message : String(error)
   return new RuntimeError("unexpectedResponse", message, { cause: error })
+}
+
+/**
+ * The caller's cancellation behind a failed read, on either wire the server reads: the SDK's
+ * `EngineRequestError` of kind "cancelled" (Camunda 7, also inside the `RuntimeError` C7Runtime
+ * wraps it in), or a `RuntimeError` whose cause is the transport's `HttpFailure` of reason
+ * "cancelled" (Camunda 8's wire rejects with the transport's failure as it is). Undefined for any
+ * other failure.
+ */
+export function cancellationOf(error: unknown): Error | undefined {
+  const cause = RuntimeError.is(error) ? error.cause : error
+  if (cause instanceof EngineRequestError) return cause.kind === "cancelled" ? cause : undefined
+  if (!(cause instanceof HttpFailure) || cause.reason !== "cancelled") return undefined
+  return RuntimeError.is(error) ? error : cause
 }
