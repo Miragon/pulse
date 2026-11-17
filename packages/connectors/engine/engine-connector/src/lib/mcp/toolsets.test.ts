@@ -4,7 +4,7 @@ import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-c7-core"
 import { registerTools } from "../../tools/index.js"
 import { registerIncidentIssueTools } from "../../tools/incident-issue.js"
 import type { EngineRegistry } from "../engine/resolve-engine.js"
-import type { ToolConfig } from "@miragon/pulse-widget-shell/server"
+import type { ToolConfig, ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import {
   allowedWidgetActions,
   ENGINE_ADMIN_ONLY_TOOLS,
@@ -16,7 +16,7 @@ import {
 } from "./toolsets.js"
 import { ENGINE_WIDGET_ACTIONS } from "../../tool-names.js"
 
-type Register = Parameters<typeof registerTools>[0]
+type Register = ToolRegistrar<EngineRegistry>
 type Config = ToolConfig<EngineRegistry>
 
 afterEach(() => {

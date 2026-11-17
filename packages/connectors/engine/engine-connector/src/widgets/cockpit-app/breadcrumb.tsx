@@ -9,25 +9,29 @@ const CRUMB = cn("hover:text-foreground min-h-control inline-flex items-center r
 
 /**
  * Every crumb pops back to the view it names, so back never re-drills from the top.
- * `rootLabel` adds a leading crumb that leaves the trail via `onPop(-1)`.
+ * `rootLabel` adds a leading crumb that leaves the trail via `onPop(-1)`. `current` names the one
+ * view of an engine shown on boards only in place of the stack's: its one state, no route's.
  */
 export function NavBreadcrumb({
   stack,
   locale,
   onPop,
   rootLabel,
+  current,
   className,
 }: {
   stack: CockpitView[]
   locale: string
   onPop: (to: number) => void
   rootLabel?: string
+  current?: string
   className?: string
 }) {
-  const entries = [
-    ...(rootLabel !== undefined ? [{ label: rootLabel, index: -1 }] : []),
-    ...stack.map((view, index) => ({ label: crumbLabel(view, locale), index })),
-  ]
+  const views =
+    current === undefined
+      ? stack.map((view, index) => ({ label: crumbLabel(view, locale), index }))
+      : [{ label: current, index: 0 }]
+  const entries = [...(rootLabel !== undefined ? [{ label: rootLabel, index: -1 }] : []), ...views]
   if (entries.length <= 1) return null
   return (
     <nav
@@ -108,11 +112,15 @@ export function BoardCrumbs({
   return <LandingCrumbs current={crumbLabel(view, locale)} locale={locale} onLanding={onLanding} />
 }
 
-/** A key change is a navigation. */
+/**
+ * A key change is a navigation. An engine shown on boards only is named by `current`, its one
+ * state's, never by the view its stack holds.
+ */
 export function navigationOf(
   scope: CockpitScope,
   stack: readonly CockpitView[],
   locale: string,
+  current?: string,
 ): { key: string; label: string } {
   if (scope.kind === "landing") {
     return { key: "landing", label: translator(locale, "cockpit.landing.title") }
@@ -126,6 +134,6 @@ export function navigationOf(
   const view = stack[stack.length - 1]
   return {
     key: `${scope.engineId}|${stack.length}|${JSON.stringify(view)}`,
-    label: view ? crumbLabel(view, locale) : "",
+    label: current ?? (view ? crumbLabel(view, locale) : ""),
   }
 }

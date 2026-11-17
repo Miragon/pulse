@@ -10,8 +10,9 @@
  * c8-core's `C8WorldSeed` and the Zeebe diagrams of c8-core's world/. The read laws hold here as on
  * the C8 adapter's wire, the unreachable cluster at 127.0.0.1:9 included; c8-core's recorded board
  * (`C8_BOARD_ENGINE`), read through the board feed over the seeded world, shows every tile with
- * the numbers the kit's fake world gives and its recording holds; and a tool of the Camunda 7 REST
- * API refuses the cluster with nothing sent.
+ * the numbers the kit's fake world gives and its recording holds; and no tool of the Camunda 7
+ * REST API reaches the cluster: alone it registers none, beside a Camunda 7 engine the call-time
+ * net refuses it as the default, with nothing sent.
  *
  * It skips on a Camunda 7 image and fails on an image of neither (engine-image.test-support.ts), so
  * CI's Engines legs, which start Camunda 7 engines, skip it: CI starts no Camunda 8 image until
@@ -97,9 +98,10 @@ function profileOf(url: string, reader: C8Login) {
 /**
  * The module's configuration over the cluster: the reader's profile under the name the recorded
  * board gives the engine, an unreachable cluster beside it, and the recorded board's file in
- * ENGINE_BOARDS_DIR.
+ * ENGINE_BOARDS_DIR; `withCamunda7` adds a Camunda 7 engine nothing listens on and makes the
+ * cluster the default.
  */
-function configurationOf(cluster: RunningC8Cluster, boardsDir: string) {
+function configurationOf(cluster: RunningC8Cluster, boardsDir: string, withCamunda7 = false) {
   const { profile, secrets } = profileOf(cluster.url, cluster.reader)
   fs.writeFileSync(path.join(boardsDir, "orders.board.json"), C8_BOARD_ENGINE.text)
   return engineModule.configFromEnv({
@@ -107,7 +109,9 @@ function configurationOf(cluster: RunningC8Cluster, boardsDir: string) {
       profiles: {
         [ENGINE]: profile,
         unreachable: { url: UNREACHABLE_URL, flavor: "camunda8" },
+        ...(withCamunda7 ? { shop: { url: "http://127.0.0.1:9/engine-rest" } } : {}),
       },
+      ...(withCamunda7 ? { defaultProfile: ENGINE } : {}),
     }),
     ENGINE_BOARDS_DIR: boardsDir,
     ...secrets,
@@ -156,6 +160,7 @@ function serverOf(config: Record<string, unknown>) {
   const recording = recordingModuleServer()
   engineModule.createPlugin(config).register(recording.server)
   return {
+    names: () => [...recording.tools.keys()],
     call: (name: string, args: Record<string, unknown>) => {
       const tool = recording.tool(name)
       return tool.call((tool.config.inputSchema as z.ZodObject).parse(args))
@@ -166,9 +171,10 @@ function serverOf(config: Record<string, unknown>) {
 const textOf = (result: { content: readonly unknown[] }) =>
   result.content.map((part) => (part as { text?: string }).text ?? "").join("")
 
-/** The started cluster, the server over it and the kit's harness. */
+/** The started cluster, the server over it (alone, and beside a Camunda 7 engine) and the kit's harness. */
 interface Suite {
   readonly server: ReturnType<typeof serverOf>
+  readonly besideCamunda7: ReturnType<typeof serverOf>
   readonly harness: ConformanceHarness
 }
 
@@ -190,7 +196,11 @@ describe.skipIf(ENGINE_IMAGE.dialect !== "c8")(
         unreachableRuntime: runtimeOf(resolveRuntimeEngine("unreachable", registry)),
         world: await seedWorld(cluster),
       }
-      suite = { server: serverOf(config), harness }
+      suite = {
+        server: serverOf(config),
+        besideCamunda7: serverOf(configurationOf(cluster, boardsDir, true)),
+        harness,
+      }
     })
 
     afterAll(async () => {
@@ -217,12 +227,14 @@ describe.skipIf(ENGINE_IMAGE.dialect !== "c8")(
       expect(BoardFigures.of(data)).toEqual(BoardFigures.of(C8_BOARD_ENGINE.expected as BoardData))
     })
 
-    test("a tool or cockpit view of the Camunda 7 REST API refuses the cluster with nothing sent", async () => {
-      const { server } = prepared()
+    test("no tool or cockpit view of the Camunda 7 REST API reaches the cluster: alone none registers, beside one the default refuses, nothing sent", async () => {
+      const { server, besideCamunda7 } = prepared()
+      expect(server.names()).not.toContain("engine_list_process_instances")
+      expect(besideCamunda7.names()).toContain("engine_list_process_instances")
       const sent = vi.spyOn(globalThis, "fetch")
       try {
-        const tool = await server.call("engine_list_process_instances", { engine: ENGINE })
-        const view = await server.call(ENGINE_OPEN_COCKPIT, { engine: ENGINE, view: "incidents" })
+        const tool = await besideCamunda7.call("engine_list_process_instances", {})
+        const view = await besideCamunda7.call(ENGINE_OPEN_COCKPIT, { view: "incidents" })
         for (const refusal of [tool, view]) {
           expect(textOf(refusal)).toMatch(
             new RegExp(`^\\[ENGINE_DIALECT_NOT_SERVED\\] Engine "${ENGINE}" is a Camunda 8 engine`),

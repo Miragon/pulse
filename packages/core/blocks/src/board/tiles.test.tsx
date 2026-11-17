@@ -5,6 +5,7 @@ import type { TileData } from "@miragon/pulse-board"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { translate } from "../messages/translate.js"
 import { BoardTile } from "./board-grid.js"
+import type { BoardSlots } from "./slots.js"
 import { testSlots } from "./slots.test-support.js"
 import { COUNTER, DIAGRAM, INCIDENTS, INSTANCES, ORDER, SUMMARY } from "./tiles.test-support.js"
 
@@ -152,5 +153,72 @@ describe("the translator", () => {
   it("leaves a placeholder without a value as it is and words a German locale in German", () => {
     expect(translate("en", "group.notRead")).toBe("{engine}: not read")
     expect(translate("de-AT", "notRead")).toBe("nicht gelesen")
+  })
+})
+
+// A surface's `opens` (the cockpit leaves out what no view of its reads, a Camunda 8 engine's): a
+// target it does not open is offered nowhere, and the tiles ask it to open none.
+describe("a target the surface does not open", () => {
+  const notLocal = (target: { readonly engine: string }) => target.engine !== "local"
+
+  function rendered(tile: TileData) {
+    const { slots, asked } = testSlots({ opens: notLocal })
+    const { container } = render(<BoardTile tile={tile} slots={slots} />)
+    const region = within(container).getByRole("region")
+    for (const button of within(region).queryAllByRole("button")) button.click()
+    return { region, asked }
+  }
+
+  it("keeps a counter's and a summary's line of its engine as text, the others still open", () => {
+    const counter = rendered(COUNTER)
+    expect(
+      within(counter.region)
+        .getAllByRole("button")
+        .map((b) => b.textContent),
+    ).toEqual(["test2"])
+    expect(counter.asked.opened.map(({ target }) => target.engine)).toEqual(["test"])
+    cleanup()
+    const summary = rendered(SUMMARY)
+    expect(within(summary.region).queryAllByRole("button")).toEqual([])
+    expect(summary.asked.opened).toEqual([])
+  })
+
+  it("gives a list's row of its engine no drill", () => {
+    const instances = rendered(INSTANCES)
+    expect(within(instances.region).queryAllByRole("button", { name: /^Open/ })).toEqual([])
+    expect(instances.asked.opened).toEqual([])
+    cleanup()
+    const incidents = rendered(INCIDENTS)
+    expect(within(incidents.region).queryAllByRole("button", { name: /^Open/ })).toEqual([])
+    expect(incidents.asked.opened).toEqual([])
+  })
+
+  // A surface's table that offers every row anyway (it reads no `opens`): the tile opens none of
+  // what the surface opens not.
+  it("opens no row of its engine through a table that offers every row", () => {
+    for (const tile of [INSTANCES, INCIDENTS]) {
+      const { slots, asked } = testSlots({ opens: notLocal })
+      const OpensAll: BoardSlots["Table"] = ({ rows, onOpen }) => (
+        <button
+          type="button"
+          onClick={() => {
+            for (const row of rows) onOpen(row, { toSide: false })
+          }}
+        >
+          every row
+        </button>
+      )
+      const { container } = render(<BoardTile tile={tile} slots={{ ...slots, Table: OpensAll }} />)
+      within(container).getByRole("button", { name: "every row" }).click()
+      expect(asked.opened).toEqual([])
+      cleanup()
+    }
+  })
+
+  it("draws a diagram of its engine without a way into the process, its badges open nothing", () => {
+    const { region, asked } = rendered(DIAGRAM)
+    expect(within(region).queryByRole("button", { name: /Open process/ })).toBeNull()
+    expect(within(region).getByRole("figure")).toBeTruthy()
+    expect(asked.opened).toEqual([])
   })
 })

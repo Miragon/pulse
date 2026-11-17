@@ -5,7 +5,7 @@ import {
   queryHistoricVariableInstancesInput,
   queryHistoricIncidentsInput,
 } from "../schemas/index.js"
-import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
+import type { EngineToolRegistrar } from "../lib/engine/served-engines.js"
 import {
   RAW_VARIABLES,
   complementaryFlags,
@@ -28,7 +28,6 @@ import {
 } from "@miragon/pulse-c7-client/sdk"
 import { checkedIncidentHistory } from "../lib/core-adapter/incident-history.js"
 import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
-import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { truncateVariableRows } from "../lib/mcp/variable-truncation.js"
 import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 
@@ -48,12 +47,13 @@ function engineTimeWindow(args: TimeWindow) {
   }
 }
 
-export function registerHistoryTools(register: ToolRegistrar<EngineRegistry>) {
+export function registerHistoryTools(register: EngineToolRegistrar) {
   register({
     name: "engine_query_historic_process_instances",
     category: "history",
     description: "Query historic process instances (completed and running).",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...queryHistoricProcessInstancesInput.shape, ...engineParamShape },
     outputSchema: paginatedListOutput,
     handler: withEngine(async (client, args) => {
@@ -93,6 +93,7 @@ export function registerHistoryTools(register: ToolRegistrar<EngineRegistry>) {
     description:
       "Query historic activity instances, i.e. which BPMN activities were executed in a process instance.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     // An instance's history pages through it too.
     forViews: true,
     inputSchema: { ...queryHistoricActivityInstancesInput.shape, ...engineParamShape },
@@ -128,6 +129,7 @@ export function registerHistoryTools(register: ToolRegistrar<EngineRegistry>) {
     category: "history",
     description: "Query historic task instances (completed and open user tasks).",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...queryHistoricTaskInstancesInput.shape, ...engineParamShape },
     outputSchema: paginatedListOutput,
     handler: withEngine(async (client, args) => {
@@ -159,6 +161,7 @@ export function registerHistoryTools(register: ToolRegistrar<EngineRegistry>) {
     description:
       "Query historic variable instances, i.e. variable values from process history (serialized, with valueInfo).",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...queryHistoricVariableInstancesInput.shape, ...engineParamShape },
     outputSchema: paginatedListOutput,
     handler: withEngine(async (client, args) => {
@@ -192,6 +195,7 @@ export function registerHistoryTools(register: ToolRegistrar<EngineRegistry>) {
       "failure (the same activity failing across instances, since when) from a one-off; the runtime " +
       "incident list forgets resolved ones.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...queryHistoricIncidentsInput.shape, ...engineParamShape },
     outputSchema: paginatedListOutput,
     handler: withEngine(async (client, args) => {

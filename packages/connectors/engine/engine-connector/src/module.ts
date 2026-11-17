@@ -162,13 +162,15 @@ function ignoredSingleEngineWarning(env: NodeJS.ProcessEnv): string[] {
 const readOnBoardsOnly = (engine: EngineEntry): boolean => providerForEntry(engine).dialect !== "c7"
 
 /**
- * A default engine that only boards read (Camunda 8): every tool called without `engine` goes to
- * it and refuses, never to another engine (allowed, the operator's choice, and said once here).
+ * A default engine that only boards read (Camunda 8) beside a Camunda 7 one: every tool of the
+ * latter called without `engine` goes to it and refuses, never to another engine (allowed, the
+ * operator's choice, and said once here). Without a Camunda 7 engine no such tool registers.
  */
 function boardsOnlyDefaultWarning(
   profiles: EngineProfiles,
   explicit: string | undefined,
 ): string[] {
+  if (profiles.engines.every(readOnBoardsOnly)) return []
   const named = explicit || profiles.defaultProfile
   const only = profiles.profileCount === 1 ? profiles.engineIds[0] : undefined
   const id = named ?? only
@@ -293,7 +295,7 @@ export const engineModule = {
       defaultEngine: parsed.defaultEngine,
       toolset: engineToolsets.resolve(parsed.toolset),
       hasBoards: (parsed.boards?.boards.length ?? 0) > 0,
-      hasBoardsOnlyEngines: parsed.engines.some(readOnBoardsOnly),
+      dialects: [...new Set(parsed.engines.map((engine) => providerForEntry(engine).dialect))],
     })
   },
 

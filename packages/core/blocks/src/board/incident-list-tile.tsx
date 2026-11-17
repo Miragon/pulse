@@ -2,12 +2,13 @@ import { formatClock, formatCount, formatInstant, shortId } from "@miragon/pulse
 import type { IncidentData, IncidentGroupData, IncidentListData } from "@miragon/pulse-board"
 import { useWords, type Words } from "../messages/translate.js"
 import { BoardCard, EmptyNote, GROUP_NOTES, MissingNote } from "./board-card.js"
-import type { BoardSlots, BoardTableColumn } from "./slots.js"
+import type { BoardInstanceTarget, BoardSlots, BoardTableColumn } from "./slots.js"
+import { openable } from "./targets.js"
 import { processName, tileTitle } from "./tile-words.js"
 
 export interface IncidentListTileProps {
   readonly tile: IncidentListData
-  readonly slots: Pick<BoardSlots, "Table" | "onOpen">
+  readonly slots: Pick<BoardSlots, "Table" | "onOpen" | "opens">
 }
 
 interface IncidentRow {
@@ -73,6 +74,12 @@ function GroupNote({ group }: { readonly group: IncidentGroupData }) {
 export function IncidentListTile({ tile, slots }: IncidentListTileProps) {
   const t = useWords()
   const { Table, onOpen } = slots
+  const targetOf = ({ engine, incident }: IncidentRow): BoardInstanceTarget => ({
+    kind: "instance",
+    engine,
+    instanceId: incident.instanceId,
+    incidentId: incident.id,
+  })
   const rows = tile.groups.flatMap(({ engine, incidents = [] }) =>
     incidents.map((incident) => ({ engine, incident })),
   )
@@ -84,12 +91,11 @@ export function IncidentListTile({ tile, slots }: IncidentListTileProps) {
         columns={columnsOf(t, tile.groups.length)}
         rows={rows}
         rowKey={(row) => `${row.engine}|${row.incident.id}`}
-        onOpen={({ engine, incident }, how) => {
-          onOpen(
-            { kind: "instance", engine, instanceId: incident.instanceId, incidentId: incident.id },
-            how,
-          )
+        onOpen={(row, how) => {
+          const target = openable(slots, targetOf(row))
+          if (target !== undefined) onOpen(target, how)
         }}
+        opens={(row) => openable(slots, targetOf(row)) !== undefined}
         openLabel={({ incident }) => t("open.instance", { id: shortId(incident.instanceId) })}
         copyOf={({ incident }) => ({ text: incident.message, label: t("incidents.copy") })}
         empty={<EmptyNote text={t(unread ? "noEngineRead" : "incidents.empty")} />}

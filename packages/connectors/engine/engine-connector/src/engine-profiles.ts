@@ -366,6 +366,8 @@ function refusedOf(judged: readonly Judged[]): RefusedProfile[] {
             ...(one.profile?.environment === undefined
               ? {}
               : { environment: one.profile.environment }),
+            // Read where the parser took the profile: the tools of its dialect name it.
+            ...(one.profile === undefined ? {} : { dialect: dialectOf(one.profile) }),
             reason: reasonsOf(one, false),
           },
         ],

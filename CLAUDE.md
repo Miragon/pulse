@@ -398,8 +398,9 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
    input schema in `packages/connectors/engine/engine-connector/src/schemas/`, then register
    the tool in `packages/connectors/engine/engine-connector/src/tools/<domain>.ts` via the
    `register` callback of `createToolRegistrar` (`@miragon/pulse-widget-shell/server`, wired in
-   `src/tools/index.ts`): a `category` matching its domain file, `...engineParamShape` in the
-   input schema, the handler wrapped in `withEngine(...)`
+   `src/tools/index.ts`): a `category` matching its domain file, beside its annotations its mark
+   `dialects` (the dialects whose engines it serves, `["c7"]` for a tool over the Camunda 7
+   client), `...engineParamShape` in the input schema, the handler wrapped in `withEngine(...)`
    (both from `src/lib/engine/with-engine.ts`). Canonical shape: `engine_list_process_instances` in
    `packages/connectors/engine/engine-connector/src/tools/process-instances.ts`. ESLint
    (`no-restricted-syntax` in `eslint.config.mjs`) blocks a raw `registerTool` and ext-apps'
@@ -432,6 +433,18 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
    - `engine_create_deployment` registers only with `ENGINE_ALLOW_DEPLOYMENTS=true`:
      deploying BPMN/DMN is code execution inside the engine JVM (JUEL, scripts). Never relax
      that gate or fold it into a toolset.
+   - The mark decides what is offered, before a call (owner direction 2026-11-17): a dialect is
+     what Pulse can do (code), a profile which dialects a server has and what its operator allows
+     (`readOnly`), never a feature list. Each tool (`dialects` beside its annotations), each feed
+     of `src/data/feeds.ts` (its `dialects`) and each cockpit route (`ROUTE_DIALECTS` in
+     `src/view-models.dialects.ts`, which the widgets read too) names the dialects it
+     serves. The boot registers one only where a configured engine serves it, a write (no
+     `readOnlyHint`) only where such an engine's profile is not read-only; its `engine` enum
+     offers those engines and each refused profile of its dialects or of none read, so a call to
+     it says why (`withServedEngines` and `offeredEngineIds` in
+     `src/lib/engine/served-engines.ts`; `engine_open_cockpit`'s `view`, ids and `engine` follow
+     its served routes). A server of Camunda 8 engines alone lists four tools and feeds; the
+     tools/list goldens pin each configuration (Contracts).
 
 2. **Never talk to an engine directly.** All engine access goes through
    `resolveEngine`/`withEngine` (`packages/connectors/engine/engine-connector/src/lib/engine/`),
@@ -446,13 +459,19 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
    `auth.clientSecretEnv` names; its token endpoint by the format's `tokenEndpointUrlProblem`); a
    fixed bearer token on it, and a credential it would send over plain http beyond loopback (its
    `url` or its token endpoint), refuse the profile; the single engine's variables stay Camunda
-   7's (`ENGINE_FLAVOR=camunda8` fails the boot). `resolveEngine` serves the Camunda 7 REST API alone:
-   an engine of another dialect (a backend of the registry by dialect) fails with
-   `ENGINE_DIALECT_NOT_SERVED` after the refused-profile check and before `ENGINE_READ_ONLY`, so
-   before anything is sent, never rerouted (`apps/mcp-server/test/dialect-refusal.e2e.test.ts`
-   calls every tool and feed of the admin golden on a Camunda 8 engine with valid arguments and
-   counts no request at the cluster or its token endpoint; a new tool fails there until it is
-   classified); `resolveRuntimeEngine`, by the same precedence, serves
+   7's (`ENGINE_FLAVOR=camunda8` fails the boot). The call-time net derives from the same mark
+   as the enum (invariant 1), above all for a call without `engine`, whose default no enum
+   narrows: `engineServing` (`src/lib/engine/served-engines.ts`) runs before every registrar
+   tool's handler, every feed's read and every engine view of the cockpit, and an engine of a
+   dialect the mark does not serve fails with `ENGINE_DIALECT_NOT_SERVED` after the
+   refused-profile check and before `ENGINE_READ_ONLY`, so before anything is sent, never
+   rerouted; `resolveEngine` serves the Camunda 7 REST API alone and keeps that refusal as the
+   type's guard (`apps/mcp-server/test/dialect-refusal.e2e.test.ts` boots a Camunda 8 engine
+   alone, which lists only what serves it, and beside a Camunda 7 one as the default, where every
+   other tool and feed of the admin golden offers the Camunda 7 engine alone and, called without
+   `engine` with valid arguments, refuses while the cluster and its token endpoint count no
+   request; a new tool fails there until it is classified); `resolveRuntimeEngine`, by the same
+   precedence, serves
    what reads through the engine contract in either dialect (a board's engines,
    `engine_bpmn_xml_data`, a contract feed of `src/data/feeds.ts`). There is deliberately NO
    per-user or in-memory selection (replica-unsafe; the server is stateless, one `McpServer`
@@ -629,8 +648,11 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      refused engine once, as its view's one state (`RefusedEngineGate`), also before the engine
      list answers; beside it, an engine the server reads on boards only (Camunda 8, its dialect
      from the start data's `CockpitEngineInfo`) is every route's one state too
-     (`BoardsOnlyEngineGate`), which reads nothing and names the boards that show it, its landing
-     row reads nothing and has no verdict, and the cross-engine view leaves it out and names it. A
+     (`BoardsOnlyEngineGate`), which reads nothing and names the boards that show it, under a head
+     with only the sections its dialect is served by (`ROUTE_DIALECTS`: none) and a trail that
+     names the engine; its landing row reads nothing and has no verdict, a board offers no way
+     into it (its tiles' drills and its chip open nothing: `BoardSlots.opens` of
+     `@miragon/pulse-blocks`), and the cross-engine view leaves it out and names it. A
      page's ended session (`isSessionEnded`) is said once, by the page's frame: a view's state
      shows a quiet line that its content is missing, and no notice, footer alert or engine row
      speaks of it. A page's refused start (an unknown board, arguments a tool does not take, data
@@ -1178,10 +1200,12 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      off; the app composes one module, so review holds that.
    - **A write registers only through the registrar**, whose toolset filter decides it
      (`withToolsetFilter`/`isToolInToolset` in the engine module), never an ad-hoc `toolset === …`
-     compare; an in-widget write asks `engine_widget_actions_data` whether it exists. The
-     registrar is also where a profile's `readOnly` holds: `withReadOnlyEngines`
-     (`src/lib/engine/read-only.ts`) fails every tool without `readOnlyHint` on such an engine
-     with `ENGINE_READ_ONLY` before its handler runs, and its transport refuses a write too.
+     compare; an in-widget write asks `engine_widget_actions_data` whether it exists (it names
+     the writes the registrar registered). The registrar is also where a profile's `readOnly`
+     holds: `withServedEngines` (`src/lib/engine/served-engines.ts`) registers a write only where
+     an engine it serves is writable, offers no read-only engine in its enum and fails every tool
+     without `readOnlyHint` on such an engine with `ENGINE_READ_ONLY` before its handler runs,
+     and its transport refuses a write too.
    - **In-widget engine writes** run through ONE primitive, `useEngineAction`
      (`engine-connector/src/widgets/lib/engine-action.ts`): the gate (the host's `writes`,
      `useHostWrites`, so a page outside a chat offers no write, AND `allowed` from
@@ -1248,14 +1272,17 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
   `apps/mcp-server/test/widget-contract.e2e.test.ts` checks the wire **by name**
   (every `*_show_*` tool and `engine_open_cockpit` carry the widget `_meta`, every `*_data`
   feed is app-only), so the naming convention is load-bearing.
-- **The tools/list wire payload is a golden, per toolset**
-  (`apps/mcp-server/test/tools-list.golden.test.ts`). The ONLY update path is
+- **The tools/list wire payload is a golden, per toolset and configuration**
+  (`apps/mcp-server/test/tools-list.golden.test.ts`): one Camunda 7 engine (`tools-<toolset>`),
+  it beside a Camunda 8 one (`tools-mixed-<toolset>`) and a Camunda 8 engine alone
+  (`tools-c8-<toolset>`), since what registers follows the configured dialects (invariant 1).
+  The ONLY update path is
   `pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server golden:update` (refused in CI);
-  never hand-edit a golden. `__golden__/char-budgets.json` pins each toolset's model-visible
+  never hand-edit a golden. `__golden__/char-budgets.json` pins each golden's model-visible
   size, the tools/list text plus the server instructions sent at initialize (text moved into
   the instructions still counts), and as `instructions-camunda8` the sentence the instructions
-  add only where a Camunda 8 engine is configured (measured on a second boot), shrink-only: a
-  change that makes the model read MORE text needs a `Ratchet-Exception:` trailer.
+  add where a Camunda 8 engine is configured beside a Camunda 7 one (measured on a second boot),
+  shrink-only: a change that makes the model read MORE text needs a `Ratchet-Exception:` trailer.
 - **What an engine read gives and how it fails is a golden on every interface.** Against
   loopback engines (real sockets, the real `fetch`), the MCP server's
   `apps/mcp-server/test/engine-goldens/` pins `engine_list_engines`, `engine_status` and

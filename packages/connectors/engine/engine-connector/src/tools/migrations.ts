@@ -1,9 +1,8 @@
 import { createMigrationPlanInput, migrateProcessInstancesAsyncInput } from "../schemas/index.js"
-import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
+import type { EngineToolRegistrar } from "../lib/engine/served-engines.js"
 import { queuedBatch, type Client } from "@miragon/pulse-c7-client"
 import { generateMigrationPlan, executeMigrationPlanAsync } from "@miragon/pulse-c7-client/sdk"
 import type { MigrationInstructionDto } from "@miragon/pulse-c7-client/types"
-import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 
 /**
@@ -29,13 +28,14 @@ async function migrationInstructions(
   return plan.instructions ?? []
 }
 
-export function registerMigrationTools(register: ToolRegistrar<EngineRegistry>) {
+export function registerMigrationTools(register: EngineToolRegistrar) {
   register({
     name: "engine_create_migration_plan",
     category: "migrations",
     description:
       "Generate a migration plan from a source process definition to a target process definition. The plan contains activity-id mappings for activities that exist in both versions; pass it verbatim to engine_migrate_process_instances_async.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...createMigrationPlanInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) =>
       generateMigrationPlan({
@@ -57,6 +57,7 @@ export function registerMigrationTools(register: ToolRegistrar<EngineRegistry>) 
       'activity ids unless instructions are given). Returns { batchId, status: "queued" }, not the outcome: ' +
       "follow it with engine_get_batch.",
     annotations: { destructiveHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...migrateProcessInstancesAsyncInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) => {
       const batch = await executeMigrationPlanAsync({

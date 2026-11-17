@@ -65,26 +65,6 @@
         "POST /v2/process-instances/search"
       ],
       "tool": "engine_open_cockpit"
-    },
-    {
-      "arguments": {
-        "engine": "c8",
-        "processInstanceId": "9007199254740993"
-      },
-      "failure": "ENGINE_DIALECT_NOT_SERVED",
-      "result": {
-        "content": [
-          {
-            "textLines": [
-              "[ENGINE_DIALECT_NOT_SERVED] Engine \"c8\" is a Camunda 8 engine, and this tool or view reads the Camunda 7 REST API (Camunda 7, CIB seven, Operaton), so nothing was sent. This server reads a Camunda 8 engine on boards only: engine_list_engines lists the boards that name it, and engine_open_cockpit with view board shows one."
-            ],
-            "type": "text"
-          }
-        ],
-        "isError": true
-      },
-      "sent": [],
-      "tool": "engine_inspect_process_instance"
     }
   ],
   "profile": {

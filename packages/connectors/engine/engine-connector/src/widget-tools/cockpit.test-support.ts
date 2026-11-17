@@ -5,7 +5,6 @@ import type { EngineEntry } from "../engine-provider.js"
 import { createEngineRegistry } from "../lib/engine/resolve-engine.js"
 import { providerForEntry } from "../providers/index.js"
 import { ENGINE_OPEN_COCKPIT } from "../tool-names.js"
-import { engineParamShape } from "../lib/engine/with-engine.js"
 import { startFakeEngine, type FakeEngine } from "../tools/test-support/fake-engine.js"
 import { worldReply } from "../tools/test-support/engine-world.js"
 import type { BoardFiles } from "../board-files.js"
@@ -63,7 +62,7 @@ export async function cockpitOn(
     ),
     healthThresholds: options.healthThresholds ?? DEFAULT_VERDICT_THRESHOLDS,
     toolset: "read-only",
-    engineParam: engineParamShape,
+    registered: new Set(),
     ...(options.boards ? { boards: options.boards } : {}),
   })
   return { ...cockpitOf(recording), requests: engine.requests, baseUrl: engine.baseUrl }
@@ -81,7 +80,7 @@ export async function cockpitDown(): Promise<Handler> {
     ),
     healthThresholds: DEFAULT_VERDICT_THRESHOLDS,
     toolset: "read-only",
-    engineParam: engineParamShape,
+    registered: new Set(),
   })
   return cockpitOf(recording).handler
 }

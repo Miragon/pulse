@@ -1,7 +1,6 @@
 import { getBatchInput } from "../schemas/index.js"
-import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
+import type { EngineToolRegistrar } from "../lib/engine/served-engines.js"
 import { readBatch, type Client } from "@miragon/pulse-c7-client"
-import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 import { isMissingResource } from "../lib/core-adapter/engine-port.js"
 
@@ -22,7 +21,7 @@ async function batchReport(client: Client, batchId: string) {
 }
 
 /** Batch writes only report a QUEUED batch; this read says what became of it. */
-export function registerBatchTools(register: ToolRegistrar<EngineRegistry>) {
+export function registerBatchTools(register: EngineToolRegistrar) {
   register({
     name: "engine_get_batch",
     category: "batches",
@@ -30,6 +29,7 @@ export function registerBatchTools(register: ToolRegistrar<EngineRegistry>) {
       "Status of a batch from a batch tool: running, failing (batch jobs out of retries; it cannot finish until they " +
       "are retried), suspended or completed, with job counts while it runs.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...getBatchInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) => batchReport(client, args.batchId)),
   })

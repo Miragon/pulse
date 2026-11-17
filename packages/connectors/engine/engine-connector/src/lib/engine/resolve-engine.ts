@@ -8,6 +8,7 @@ import type {
   EngineEntry,
 } from "../../engine-provider.js"
 import { providerForEntry } from "../../providers/index.js"
+import type { EngineDialect } from "../../view-models.js"
 import type { EngineLink } from "./cockpit-url.js"
 
 /** A configured engine of the Camunda 7 REST API: its address and provider, its client and its write gate. */
@@ -27,7 +28,7 @@ export type ContractRuntime = (signal?: AbortSignal) => ProcessRuntime
  * (`resolveRuntimeEngine`: boards and diagrams), and every Camunda 7 path refuses it
  * (`resolveEngine`, ENGINE_DIALECT_NOT_SERVED).
  */
-export interface ContractBackend {
+interface ContractBackend {
   dialect: ContractDialect
   provider: ContractEngineProvider
   /** The profile's `cockpitUrl` as written. */
@@ -68,6 +69,8 @@ export interface RefusedProfile {
   id: string
   /** Its environment, when its profile states one the parser took. */
   environment?: string
+  /** The dialect its profile names, when the parser read one: the tools of it name the profile. */
+  dialect?: EngineDialect
   reason: string
 }
 
@@ -196,26 +199,35 @@ export class EngineProfileRefusedError extends Error {
   }
 }
 
+/** What a tool, feed or route of each dialect reads, as a refusal names it. */
+const DIALECT_APIS: Readonly<Record<EngineDialect, string>> = {
+  c7: "the Camunda 7 REST API (Camunda 7, CIB seven, Operaton)",
+  c8: "Camunda 8's Orchestration Cluster REST API",
+}
+
+/** Where the server reads an engine of another dialect: on the boards that name it. */
+function boardsOnlyWhere(engineId: string, product: string, boards: readonly string[]): string {
+  return boards.length > 0
+    ? `This server reads a ${product} engine on boards only: engine_list_engines lists the boards that name it, and engine_open_cockpit with view board shows one.`
+    : `This server reads a ${product} engine on boards only, and no board names "${engineId}" yet; the server's operator adds one.`
+}
+
 /**
- * A Camunda 7 path (a tool, an engine's feed, an engine view of the cockpit, a write) on an engine
- * of another dialect: refused before anything is sent, never rerouted. The server reads such an
- * engine on boards alone (`resolveRuntimeEngine`), so the text names where: the boards that name
- * it, or that none does yet.
+ * A call of a tool, a feed, an engine view of the cockpit or a write on an engine whose dialect it
+ * does not serve (its mark, `dialects`): refused before anything is sent, never rerouted. The
+ * server reads an engine of another dialect on boards alone (`resolveRuntimeEngine`), so the text
+ * names where: the boards that name it, or that none does yet.
  */
 export class EngineDialectNotServedError extends Error {
   readonly code = "ENGINE_DIALECT_NOT_SERVED" as const
   readonly engineId: string
-  constructor(
-    engineId: string,
-    { provider, boards }: Pick<ContractBackend, "provider" | "boards">,
-  ) {
-    const product = provider.branding.displayName
+  constructor(engineId: string, backend: EngineBackend, dialects: readonly EngineDialect[]) {
+    const product = backend.provider.branding.displayName
+    const reads = dialects.map((dialect) => DIALECT_APIS[dialect]).join(" or ")
     const where =
-      boards.length > 0
-        ? `This server reads a ${product} engine on boards only: engine_list_engines lists the boards that name it, and engine_open_cockpit with view board shows one.`
-        : `This server reads a ${product} engine on boards only, and no board names "${engineId}" yet; the server's operator adds one.`
+      backend.dialect === "c7" ? "" : ` ${boardsOnlyWhere(engineId, product, backend.boards)}`
     super(
-      `Engine "${engineId}" is a ${product} engine, and this tool or view reads the Camunda 7 REST API (Camunda 7, CIB seven, Operaton), so nothing was sent. ${where}`,
+      `Engine "${engineId}" is a ${product} engine, and this tool or view reads ${reads}, so nothing was sent.${where}`,
     )
     this.name = "EngineDialectNotServedError"
     this.engineId = engineId
@@ -254,7 +266,7 @@ function pickEngineId(override: string | undefined, registry: EngineRegistry): s
  * The engine a call goes to, of any dialect, never a refused one: precedence `override` > the
  * default > the only one.
  */
-function backendFor(
+export function backendFor(
   override: string | undefined,
   registry: EngineRegistry,
 ): { engineId: string; backend: EngineBackend } {
@@ -272,7 +284,7 @@ function c7BackendFor(
   registry: EngineRegistry,
 ): { engineId: string; backend: C7Backend } {
   const { engineId, backend } = backendFor(override, registry)
-  if (backend.dialect !== "c7") throw new EngineDialectNotServedError(engineId, backend)
+  if (backend.dialect !== "c7") throw new EngineDialectNotServedError(engineId, backend, ["c7"])
   return { engineId, backend }
 }
 
@@ -328,38 +340,5 @@ export function resolveRuntimeEngine(
     ...(cockpitUrl === undefined ? {} : { cockpitUrl }),
     backend,
     ...(signal === undefined ? {} : { signal }),
-  }
-}
-
-/**
- * Throws ENGINE_READ_ONLY when the engine a write would go to has a read-only profile, and
- * ENGINE_DIALECT_NOT_SERVED before it when that engine speaks another dialect.
- */
-export function assertWritable(override: string | undefined, registry: EngineRegistry): void {
-  const { engineId, backend } = c7BackendFor(override, registry)
-  if (backend.readOnly) throw new EngineReadOnlyError(engineId)
-}
-
-/** The failures the cockpit's picker shows instead of an engine's view. */
-const PICKER_FAILURES = [
-  EngineNotSelectedError,
-  EngineProfileRefusedError,
-  EngineDialectNotServedError,
-] as const
-
-/**
- * Where the cockpit opens: the engine every call would route to, or `null` for the picker (no
- * engine selected, a refused one or one of another dialect, which the picker shows). Any other
- * error propagates.
- */
-export function cockpitEngineId(
-  override: string | undefined,
-  registry: EngineRegistry,
-): string | null {
-  try {
-    return resolveEngine(override, registry).engineId
-  } catch (e) {
-    if (PICKER_FAILURES.some((failure) => e instanceof failure)) return null
-    throw e
   }
 }

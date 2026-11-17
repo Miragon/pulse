@@ -4,7 +4,7 @@ import type { CounterData, CounterReadingData } from "@miragon/pulse-board"
 import { useWords } from "../messages/translate.js"
 import { BOARD_LINE, BOARD_LINE_BUTTON, BoardCard, BoardFigure } from "./board-card.js"
 import type { BoardInstancesTarget, BoardSlots } from "./slots.js"
-import { counterTarget } from "./targets.js"
+import { counterTarget, openable } from "./targets.js"
 import {
   above,
   entryCount,
@@ -17,7 +17,7 @@ import {
 
 export interface CounterTileProps {
   readonly tile: CounterData
-  readonly slots: Pick<BoardSlots, "onOpen" | "opensToSide">
+  readonly slots: Pick<BoardSlots, "onOpen" | "opens" | "opensToSide">
 }
 
 interface EntryProps {
@@ -141,7 +141,7 @@ export function CounterTile({ tile, slots }: CounterTileProps) {
             key={reading.engine}
             reading={reading}
             incident={incident}
-            target={counterTarget(reading.engine, tile.widget.filter)}
+            target={openable(slots, counterTarget(reading.engine, tile.widget.filter))}
             slots={slots}
           />
         ))}

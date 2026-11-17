@@ -6,9 +6,12 @@ export interface Asked {
   files: number
 }
 
-/** A surface's table for the tests: a caption per column, a row with its drill and its copy. */
+/**
+ * A surface's table for the tests: a caption per column, a row with its drill (none where it
+ * opens nothing) and its copy.
+ */
 function TestTable<Row>(props: BoardTableProps<Row>) {
-  const { label, columns, rows, rowKey, onOpen, openLabel, copyOf, empty, footer } = props
+  const { label, columns, rows, rowKey, onOpen, opens, openLabel, copyOf, empty, footer } = props
   return (
     <div data-testid="table">
       <table aria-label={label}>
@@ -26,13 +29,15 @@ function TestTable<Row>(props: BoardTableProps<Row>) {
                 <td key={column.key}>{column.cell(row)}</td>
               ))}
               <td>
-                <button
-                  type="button"
-                  aria-label={openLabel(row)}
-                  onClick={(event) => {
-                    onOpen(row, { toSide: event.ctrlKey })
-                  }}
-                />
+                {opens?.(row) !== false && (
+                  <button
+                    type="button"
+                    aria-label={openLabel(row)}
+                    onClick={(event) => {
+                      onOpen(row, { toSide: event.ctrlKey })
+                    }}
+                  />
+                )}
                 <button
                   type="button"
                   aria-label={`Copy ${copyOf(row).label}`}
@@ -51,7 +56,11 @@ function TestTable<Row>(props: BoardTableProps<Row>) {
 
 /** Slots that record what the tiles ask, with a table, an id and a diagram of the tests. */
 export function testSlots(
-  options: { readonly opensToSide?: boolean; readonly withFile?: boolean } = {},
+  options: {
+    readonly opensToSide?: boolean
+    readonly withFile?: boolean
+    readonly opens?: (target: BoardTarget) => boolean
+  } = {},
 ): { readonly slots: BoardSlots; readonly asked: Asked } {
   const asked: Asked = { opened: [], files: 0 }
   const slots: BoardSlots = {
@@ -92,6 +101,7 @@ export function testSlots(
           },
         }),
     ...(options.opensToSide === undefined ? {} : { opensToSide: options.opensToSide }),
+    ...(options.opens === undefined ? {} : { opens: options.opens }),
   }
   return { slots, asked }
 }

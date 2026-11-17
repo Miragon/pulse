@@ -9,7 +9,7 @@ import {
   setProcessInstanceVariableInput,
   setProcessInstanceSuspensionInput,
 } from "../schemas/index.js"
-import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
+import type { EngineToolRegistrar } from "../lib/engine/served-engines.js"
 import { readProcessInstanceVariables } from "@miragon/pulse-c7-client"
 import {
   complementaryFlags,
@@ -31,17 +31,17 @@ import {
 } from "@miragon/pulse-c7-client/sdk"
 import { inspectForModel } from "../lib/core-adapter/composites.js"
 import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
-import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { CUT_VALUE_WRITE_RULE, variableRead } from "../lib/mcp/variable-truncation.js"
 import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 
-export function registerProcessInstanceTools(register: ToolRegistrar<EngineRegistry>) {
+export function registerProcessInstanceTools(register: EngineToolRegistrar) {
   register({
     name: "engine_start_process_instance",
     category: "process-instances",
     description:
       "Start a new process instance by process definition key. Optionally set a business key and initial variables.",
     annotations: { destructiveHint: false, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...startProcessInstanceInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) =>
       startProcessInstanceByKey({
@@ -60,6 +60,7 @@ export function registerProcessInstanceTools(register: ToolRegistrar<EngineRegis
     category: "process-instances",
     description: "List running process instances.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...listProcessInstancesInput.shape, ...engineParamShape },
     outputSchema: paginatedListOutput,
     handler: withEngine(async (client, args) => {
@@ -93,6 +94,7 @@ export function registerProcessInstanceTools(register: ToolRegistrar<EngineRegis
       "Where one process instance waits and why, running or ended: root-cause incidents, called " +
       "instances. Select by processInstanceId, businessKey or processDefinitionKey.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...inspectProcessInstanceInput.shape, ...engineParamShape },
     handler: withEngine((client, args, { engineId }) => inspectForModel(client, args, engineId)),
   })
@@ -103,6 +105,7 @@ export function registerProcessInstanceTools(register: ToolRegistrar<EngineRegis
     description:
       "Get the activity instance tree of a running process instance. Shows which activities are currently active.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...getActivityInstanceTreeInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) =>
       getActivityInstanceTree({ client, path: { id: args.processInstanceId } }),
@@ -116,6 +119,7 @@ export function registerProcessInstanceTools(register: ToolRegistrar<EngineRegis
       "Delete (cancel) a running process instance by ID. Irreversible; cascades to the instances its call activities " +
       "started (unless skipSubprocesses) and cancels the calling activity if it was itself called.",
     annotations: { destructiveHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...deleteProcessInstanceInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) => {
       await deleteProcessInstance({
@@ -137,6 +141,7 @@ export function registerProcessInstanceTools(register: ToolRegistrar<EngineRegis
     description:
       "Modify a running process instance by moving tokens. Supports cancel, startBeforeActivity, startAfterActivity, and startTransition instructions.",
     annotations: { destructiveHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...modifyProcessInstanceInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) => {
       await modifyProcessInstance({
@@ -158,6 +163,7 @@ export function registerProcessInstanceTools(register: ToolRegistrar<EngineRegis
     description:
       "Get all variables of a process instance (Json/Xml/Object: serialized string + valueInfo).",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...getProcessInstanceVariablesInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) =>
       variableRead(
@@ -174,6 +180,7 @@ export function registerProcessInstanceTools(register: ToolRegistrar<EngineRegis
     // `toEngineVariable` names it when it is missing.
     description: `Set a single variable on a process instance; pass back the valueInfo read. ${CUT_VALUE_WRITE_RULE}`,
     annotations: { destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...setProcessInstanceVariableInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) => {
       await setProcessInstanceVariable({
@@ -199,6 +206,7 @@ export function registerProcessInstanceTools(register: ToolRegistrar<EngineRegis
     description:
       "Set the suspension state of a process instance. suspended=true suspends it (jobs, timers, and message correlations are frozen); suspended=false activates (unsuspends) it again.",
     annotations: { destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...setProcessInstanceSuspensionInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) => {
       await updateSuspensionStateById({

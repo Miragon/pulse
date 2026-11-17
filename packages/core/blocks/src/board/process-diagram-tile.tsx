@@ -4,12 +4,12 @@ import type { BadgeData, DefinitionData, ProcessDiagramData } from "@miragon/pul
 import { useWords } from "../messages/translate.js"
 import { BoardCard, EmptyNote } from "./board-card.js"
 import type { BoardSlots } from "./slots.js"
-import { diagramTarget } from "./targets.js"
+import { diagramTarget, openable } from "./targets.js"
 import { diagramMissing, processName, tileTitle, toSideTitle } from "./tile-words.js"
 
 export interface ProcessDiagramTileProps {
   readonly tile: ProcessDiagramData
-  readonly slots: Pick<BoardSlots, "Diagram" | "onOpen" | "opensToSide">
+  readonly slots: Pick<BoardSlots, "Diagram" | "onOpen" | "opens" | "opensToSide">
 }
 
 interface DrawnProps extends ProcessDiagramTileProps {
@@ -21,25 +21,26 @@ function DiagramFacts({ tile, slots, latest }: DrawnProps) {
   const t = useWords()
   const process = processName(latest)
   const title = t("diagram.openTitle", { process, engine: tile.engine })
+  const target = openable(slots, diagramTarget(tile, "running", undefined))
   return (
     <p className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
       <span className="text-muted-foreground">
         {t("diagram.facts", { engine: tile.engine, version: latest.version })}
       </span>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        title={toSideTitle(t, title, slots.opensToSide === true)}
-        onClick={(event) => {
-          slots.onOpen(diagramTarget(tile, "running", undefined), {
-            toSide: event.ctrlKey || event.metaKey,
-          })
-        }}
-      >
-        <Icon icon={WorkflowIcon} />
-        {t("diagram.open")}
-      </Button>
+      {target !== undefined && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          title={toSideTitle(t, title, slots.opensToSide === true)}
+          onClick={(event) => {
+            slots.onOpen(target, { toSide: event.ctrlKey || event.metaKey })
+          }}
+        >
+          <Icon icon={WorkflowIcon} />
+          {t("diagram.open")}
+        </Button>
+      )}
     </p>
   )
 }
@@ -59,8 +60,9 @@ function Drawn(props: DrawnProps) {
           label={t("diagram.label", { process: processName(latest), engine: tile.engine })}
           onSelect={(elementId, scope) => {
             const counted = badges.some((badge) => badge.elementId === elementId)
-            if (scope !== undefined || counted) {
-              slots.onOpen(diagramTarget(tile, scope ?? "running", elementId), { toSide: false })
+            const target = openable(slots, diagramTarget(tile, scope ?? "running", elementId))
+            if ((scope !== undefined || counted) && target !== undefined) {
+              slots.onOpen(target, { toSide: false })
             }
           }}
         />

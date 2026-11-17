@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs"
 import path from "node:path"
 import { expect, test, type Locator, type Page } from "@playwright/test"
-import { C8_ENGINE, C8_OPERATE, HEALTHY_ENGINE } from "../engines.js"
+import { C8_ENGINE, C8_OPERATE, C8_UNBOARDED_ENGINE, HEALTHY_ENGINE } from "../engines.js"
 import {
   collectErrors,
   expectNoAxeFinding,
@@ -389,12 +389,20 @@ test.describe("the pages without a view", () => {
 })
 
 test.describe("the cockpit's pages on a Camunda 8 engine", () => {
-  test("/app/cockpit?engine=<a Camunda 8 engine> gives the picker, whose Camunda 8 entry leads to the gate", async ({
+  // The cockpit's `engine` offers the engines its routes of one engine read (their mark): a
+  // Camunda 8 engine is none of them, so the tool's input refuses it, and its start page has it.
+  test("/app/cockpit?engine=<a Camunda 8 engine> is refused by the cockpit's input; the start page's Camunda 8 entry leads to the gate", async ({
     page,
   }) => {
-    const errors = collectErrors(page)
     const calls = recordCalls(page)
     await signIn(page, `/app/cockpit?engine=${C8_ENGINE}`, { deployment: "camunda8" })
+    const alert = page.getByRole("alert")
+    await expect(
+      alert.getByRole("heading", { level: 1, name: "The server refused this request" }),
+    ).toBeVisible({ timeout: 15_000 })
+    await expect(alert.getByText(/^Input validation error: .*engine/)).toBeAttached()
+    const errors = collectErrors(page)
+    await alert.getByRole("link", { name: "Go to the start page" }).click()
     await expect(page.getByRole("heading", { level: 1, name: "Operations Cockpit" })).toBeVisible({
       timeout: 15_000,
     })
@@ -404,6 +412,7 @@ test.describe("the cockpit's pages on a Camunda 8 engine", () => {
       page.getByRole("heading", { level: 1, name: `${C8_ENGINE} is a Camunda 8 engine` }),
     ).toBeVisible()
     await expect(page).toHaveTitle(`${C8_ENGINE} is a Camunda 8 engine · Pulse`)
+    await expect(page.getByRole("navigation", { name: "Cockpit sections" })).toHaveCount(0)
     await expect(
       page.getByRole("link", { name: "Open in Operate (opens in a new tab)" }),
     ).toHaveAttribute("href", C8_OPERATE)
@@ -415,11 +424,13 @@ test.describe("the cockpit's pages on a Camunda 8 engine", () => {
     await expectNoAxeFinding(page)
   })
 
-  test("/app/cockpit?view=jobs&engine=<a Camunda 8 engine> says the view does not read it, with the way to the start page", async ({
+  // The call-time net: a page without `engine` goes to the default, here a Camunda 8 engine,
+  // which no route of one engine serves.
+  test("/app/cockpit?view=jobs on a Camunda 8 default says the view does not read it, with the way to the start page", async ({
     page,
   }) => {
     const calls = recordCalls(page)
-    await signIn(page, `/app/cockpit?view=jobs&engine=${C8_ENGINE}`, { deployment: "camunda8" })
+    await signIn(page, "/app/cockpit?view=jobs", { deployment: "camunda8" })
     const alert = page.getByRole("alert")
     const refused = "This view doesn't read this engine"
     await expect(alert.getByRole("heading", { level: 1, name: refused })).toBeVisible({
@@ -429,7 +440,11 @@ test.describe("the cockpit's pages on a Camunda 8 engine", () => {
       alert.getByText("This server shows it on boards only. Pulse's start page lists the boards."),
     ).toBeVisible()
     await expect(
-      alert.getByText(/^\[ENGINE_DIALECT_NOT_SERVED\] Engine "c8-orders" is a Camunda 8 engine/),
+      alert.getByText(
+        new RegExp(
+          `^\\[ENGINE_DIALECT_NOT_SERVED\\] Engine "${C8_UNBOARDED_ENGINE}" is a Camunda 8 engine`,
+        ),
+      ),
     ).toBeAttached()
     await expect(alert.getByRole("button", { name: "Try again" })).toHaveCount(0)
     await expect(page.getByText(/\bchat\b/i)).toHaveCount(0)

@@ -19,6 +19,8 @@ import { ClipboardList, Clock, RefreshCw } from "lucide-react"
 import { useT } from "../../messages/use-t.js"
 import { ENGINE_BOARD_DATA } from "../../tool-names.js"
 import type { BoardStartData } from "../../view-models.board.js"
+import type { EngineDialect } from "../../view-models.js"
+import { routeServes } from "../../view-models.dialects.js"
 import { boardContext } from "../cockpit-app/model-context.js"
 import { useHandOff } from "../lib/hand-off.js"
 import { useNav } from "../navigation.js"
@@ -85,19 +87,29 @@ function BoardBar({ board, data }: { readonly board: string; readonly data: Boar
   )
 }
 
-/** The cockpit's slots for the tiles: its table, its id, its diagram, a target onto its routes. */
-function useBoardSlots(data: BoardStartData | null): BoardSlots {
+/** An engine's dialect as the cockpit lists it; unknown where the list names it not. */
+export type DialectOf = (engine: string) => EngineDialect | undefined
+
+/**
+ * The cockpit's slots for the tiles: its table, its id, its diagram, a target onto its routes,
+ * offered only where the route serves the target engine's dialect (`ROUTE_DIALECTS`): a Camunda 8
+ * engine's rows, counts and diagram open nothing here, since no view of the cockpit reads it.
+ */
+function useBoardSlots(data: BoardStartData | null, dialectOf: DialectOf): BoardSlots {
   const go = useNav()
   return useMemo(
     () => ({
       Table: BoardTable,
       Id: BoardId,
       Diagram: BoardDiagram,
+      opens: (target) =>
+        data !== null &&
+        routeServes(engineTargetOf(target, data).view.section, dialectOf(target.engine)),
       onOpen: (target) => {
         if (data) go({ type: "board-target", ...engineTargetOf(target, data) })
       },
     }),
-    [data, go],
+    [data, go, dialectOf],
   )
 }
 
@@ -111,11 +123,14 @@ export function BoardView({
   board,
   data: initialData = null,
   title,
+  dialectOf = () => undefined,
 }: {
   readonly board: string
   readonly data?: BoardStartData | null
   /** The route's title before the board's own: its id, or the title the board had where it opened. */
   readonly title?: string
+  /** The dialect of each engine the cockpit lists: what a drill on it may open here. */
+  readonly dialectOf?: DialectOf
 }) {
   const t = useT()
   const { context } = useHandOff()
@@ -131,7 +146,7 @@ export function BoardView({
     refreshErrorTitle: t("board.refreshFailed"),
     title,
   })
-  const slots = useBoardSlots(data)
+  const slots = useBoardSlots(data, dialectOf)
   if (!data) return guard
   return (
     <WidgetShell
@@ -142,6 +157,7 @@ export function BoardView({
           <BoardStrips data={data} />
           <BoardEngines
             data={data}
+            opens={(engine) => routeServes("overview", dialectOf(engine))}
             onOpen={(engine) => go({ type: "board-target", engine, view: { section: "overview" } })}
           />
         </>

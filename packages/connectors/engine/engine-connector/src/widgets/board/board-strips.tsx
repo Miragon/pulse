@@ -125,12 +125,31 @@ function engineFacts(t: T, engine: ReadyEngine): string {
     .join(" · ")
 }
 
-/** The board's engines that answered, each a way into its overview in this cockpit. */
+/** A ready engine's mark, name and facts, the words of its chip. */
+function EngineChipText({ engine }: { readonly engine: ReadyEngine }) {
+  const t = useT()
+  return (
+    <>
+      <Icon icon={Server} />
+      <span className="font-semibold">{engine.name}</span>
+      <span className="text-muted-foreground min-w-0 truncate">{engineFacts(t, engine)}</span>
+    </>
+  )
+}
+
+/**
+ * The board's engines that answered, each a way into its overview in this cockpit where a view of
+ * the cockpit reads it (`opens`); one it shows on boards only (Camunda 8) has no overview here, so
+ * its chip states its facts and opens nothing, on one line as a button's: its name whole, its
+ * facts cut.
+ */
 export function BoardEngines({
   data,
+  opens,
   onOpen,
 }: {
   readonly data: BoardStartData
+  readonly opens: (engine: string) => boolean
   readonly onOpen: (engine: string) => void
 }) {
   const t = useT()
@@ -142,21 +161,29 @@ export function BoardEngines({
       role="group"
       aria-label={t("board.enginesLabel")}
     >
-      {ready.map((engine) => (
-        <Button
-          key={engine.name}
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="max-w-full min-w-0 gap-1.5 px-1.5 font-normal has-[>svg]:px-1.5"
-          title={t("board.openEngineTitle", { engine: engine.name })}
-          onClick={() => onOpen(engine.name)}
-        >
-          <Icon icon={Server} />
-          <span className="font-semibold">{engine.name}</span>
-          <span className="text-muted-foreground min-w-0 truncate">{engineFacts(t, engine)}</span>
-        </Button>
-      ))}
+      {ready.map((engine) =>
+        opens(engine.name) ? (
+          <Button
+            key={engine.name}
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="max-w-full min-w-0 gap-1.5 px-1.5 font-normal has-[>svg]:px-1.5"
+            title={t("board.openEngineTitle", { engine: engine.name })}
+            onClick={() => onOpen(engine.name)}
+          >
+            <EngineChipText engine={engine} />
+          </Button>
+        ) : (
+          <span
+            key={engine.name}
+            data-part="board-engine"
+            className="text-dense min-h-control inline-flex max-w-full min-w-0 items-center gap-1.5 px-1.5 whitespace-nowrap"
+          >
+            <EngineChipText engine={engine} />
+          </span>
+        ),
+      )}
     </div>
   )
 }

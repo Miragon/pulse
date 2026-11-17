@@ -11,7 +11,9 @@ through the registrar (`createToolRegistrar` from `@miragon/pulse-widget-shell/s
 engine access goes through `withEngine`/`resolveEngine` (per-call `engine` override >
 `ENGINE_DEFAULT` > the profile file's `defaultProfile` > the only profile, refused ones counted;
 a refused target fails with `ENGINE_PROFILE_REFUSED`, an engine of another dialect than the
-Camunda 7 REST API's with `ENGINE_DIALECT_NOT_SERVED`, CLAUDE.md invariant 2). A view is
+Camunda 7 REST API's with `ENGINE_DIALECT_NOT_SERVED`, CLAUDE.md invariant 2). Each tool, feed
+and cockpit route carries its mark, the dialects it serves: the boot registers it only where a
+configured engine serves it and offers those engines alone in its `engine` enum (invariant 1). A view is
 registered in three places (CLAUDE.md invariant 3). Follow the steps for the path you need.
 
 ## Step 0: pick the render path
@@ -111,19 +113,19 @@ Add the tool in `packages/connectors/engine/engine-connector/src/tools/<domain>.
 
 ```ts
 import { listProcessInstancesInput } from "../schemas/index.js"
-import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
+import type { EngineToolRegistrar } from "../lib/engine/served-engines.js"
 import { complementaryFlags, engineLike, engineSorting } from "@miragon/pulse-c7-core"
 import { getProcessInstances, getProcessInstancesCount } from "@miragon/pulse-c7-client/sdk"
 import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
-import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 
-export function registerProcessInstanceTools(register: ToolRegistrar<EngineRegistry>) {
+export function registerProcessInstanceTools(register: EngineToolRegistrar) {
   register({
     name: "engine_list_process_instances",
     category: "process-instances",
     description: "List running process instances.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...listProcessInstancesInput.shape, ...engineParamShape },
     outputSchema: paginatedListOutput,
     handler: withEngine(async (client, args) => {
@@ -160,6 +162,12 @@ Non-negotiables:
 - Every tool carries a `category` matching its domain file name (e.g.
   `"process-instances"`, `"tasks"`; `task-form.ts` uses `"tasks"`,
   `incident-issue.ts` uses `"incidents"`).
+- Beside its annotations a tool names its mark, `dialects`: the dialects whose engines it
+  serves, `["c7"]` for a tool over the Camunda 7 client. `withServedEngines`
+  (`src/lib/engine/served-engines.ts`) registers it only where a configured engine serves it (a
+  write only where one is writable), narrows its `engine` enum to those (and the refused
+  profiles of its dialects) and refuses any other engine before the handler runs, the default
+  above all (`engineServing`).
 - `inputSchema` spreads `...engineParamShape` so every tool accepts the per-call
   `engine` override.
 - `handler` is wrapped in `withEngine(...)`. Never construct, cache, or import a client
@@ -507,12 +515,16 @@ UI is a **cockpit route**, never a second view tool. On the server a route is fi
 `COCKPIT_ROUTES` and the widgets' route switch fail to compile without it, and
 `src/data/cockpit-start.test.ts` fails on a route whose feed is missing from `DATA_FEEDS`:
 
-1. `src/view-models.ts`: a section in `CockpitView` with the ids the route reads, and its
-   data type in `CockpitStartData`.
+1. `src/view-models.ts`: a section in `CockpitView` with the ids the route reads, its data
+   type in `CockpitStartData`, and its mark in `ROUTE_DIALECTS` of
+   `src/view-models.dialects.ts` (the dialects it serves: the boot
+   offers it in `view` only where a configured engine speaks one, the call refuses another, the
+   cockpit's head shows a section only to an engine its dialect is served by).
 2. `src/data/`: ONE builder for the route's data (`<route>-data.ts`).
 3. `src/data/feeds.ts`: the route's `*_data` feed,
-   `dataFeed({ name, title, description, shape, read })`, in `DATA_FEEDS`; `read` calls the
-   builder. `src/widget-tools/data-feeds.ts` registers every feed of `DATA_FEEDS`.
+   `dataFeed({ name, title, description, dialects: ["c7"], shape, read })`, in `DATA_FEEDS`;
+   `read` calls the builder. `src/widget-tools/data-feeds.ts` registers every feed of
+   `DATA_FEEDS` where a configured engine speaks a dialect of its mark.
 4. `src/tool-names.ts`: the feed's name as an `ENGINE_*_DATA` constant.
 5. `src/data/routes.ts`: the route's entry in `COCKPIT_ROUTES`: the ids it `needs` and also
    `takes` (fields of its own `CockpitView` section, checked at compile time), its `start` (its

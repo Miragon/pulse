@@ -13,6 +13,8 @@ import { Cog, Layers, LayoutDashboard, TriangleAlert } from "lucide-react"
 import { EnvironmentChip } from "../lib/engine-context.js"
 import type { NavIntent } from "../navigation.js"
 import { translator } from "../../messages/use-t.js"
+import type { EngineDialect } from "../../view-models.js"
+import { routeServes } from "../../view-models.dialects.js"
 import { CockpitRefreshButton } from "./refresh-button.js"
 
 export type TopSection = "overview" | "incidents" | "jobs"
@@ -78,16 +80,20 @@ export function EngineSwitch({
  * context above them, so the open section's bar still lands on the rule (`flex-wrap-reverse`;
  * the reading order stays the sections, then the context). A `trail` takes the sections' place:
  * its first crumb leads back to them. Its container is `bar`, so the cross-engine button keeps
- * only its icon in a bar under 36rem.
+ * only its icon in a bar under 36rem. Only the sections whose route the engine's `dialect` is
+ * served by show (`ROUTE_DIALECTS`): a Camunda 8 engine has none.
  */
 export function CockpitHead({
   activeSection,
+  dialect,
   onSection,
   engineSwitch,
   onOpenFleet,
   trail,
 }: {
   activeSection: TopSection
+  /** The open engine's dialect; a refused profile's is unread. */
+  dialect: EngineDialect | undefined
   onSection: (intent: NavIntent) => void
   engineSwitch: ReactNode
   onOpenFleet?: () => void
@@ -95,6 +101,7 @@ export function CockpitHead({
 }) {
   const locale = useLocale()
   const crossEngine = translator(locale, "cockpit.nav.crossEngine")
+  const sections = SECTIONS.filter((section) => routeServes(section.id, dialect))
   return (
     <div
       data-slot="cockpit-head"
@@ -108,18 +115,20 @@ export function CockpitHead({
       {trail ? (
         <div className="flex min-w-0 items-center ps-[calc(var(--gutter)-0.5rem)]">{trail}</div>
       ) : (
-        <NavTabs ariaLabel={translator(locale, "cockpit.aria.sections")}>
-          {SECTIONS.map((s) => (
-            <NavTab
-              key={s.id}
-              current={activeSection === s.id}
-              icon={<Icon icon={s.icon} />}
-              onClick={() => onSection(s.intent)}
-            >
-              {translator(locale, `cockpit.section.${s.id}`)}
-            </NavTab>
-          ))}
-        </NavTabs>
+        sections.length > 0 && (
+          <NavTabs ariaLabel={translator(locale, "cockpit.aria.sections")}>
+            {sections.map((s) => (
+              <NavTab
+                key={s.id}
+                current={activeSection === s.id}
+                icon={<Icon icon={s.icon} />}
+                onClick={() => onSection(s.intent)}
+              >
+                {translator(locale, `cockpit.section.${s.id}`)}
+              </NavTab>
+            ))}
+          </NavTabs>
+        )
       )}
       <div className="ms-auto flex min-w-0 flex-wrap items-center gap-2 py-1">
         {onOpenFleet && (

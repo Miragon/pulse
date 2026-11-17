@@ -11,7 +11,6 @@ import { providerForEntry } from "../providers/index.js"
 import { ENGINE_PROCESS_INSTANCES_DATA } from "../tool-names.js"
 import { registerWidgetDataFeeds } from "../widget-tools/data-feeds.js"
 import { registerProcessInstanceTools } from "./process-instances.js"
-import { engineParamShape } from "../lib/engine/with-engine.js"
 
 /** #325, end to end with nothing mocked: before the fix these read "[object Object]". */
 
@@ -207,7 +206,7 @@ describe("widget-path feeds honor the MCP request's ctx.mcpReq.signal", () => {
       registry: registryFor([{ id: "prod-a", baseUrl }], 10_000),
       healthThresholds: DEFAULT_VERDICT_THRESHOLDS,
       toolset: "read-only",
-      engineParam: engineParamShape,
+      registered: new Set(),
     })
     const controller = new AbortController()
     setTimeout(() => controller.abort(), 30)

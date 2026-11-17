@@ -1,5 +1,5 @@
 import { formatIncidentIssueInput } from "../schemas/index.js"
-import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
+import type { EngineToolRegistrar } from "../lib/engine/served-engines.js"
 import {
   fetchExternalTaskErrorDetails,
   fetchJobStacktrace,
@@ -14,7 +14,6 @@ import type {
 } from "@miragon/pulse-c7-client/types"
 import type { ModuleServer } from "@miragon/pulse-widget-shell/server"
 import { z } from "zod"
-import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { buildInstanceCockpitUrl, type EngineLink } from "../lib/engine/cockpit-url.js"
 import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 import { boundFailureText, condenseStacktrace } from "../lib/mcp/failure-text.js"
@@ -277,18 +276,22 @@ async function fetchFailureText(
   }
 }
 
+/** The tool the prompt `draft_incident_ticket` drafts through. */
+export const ENGINE_FORMAT_INCIDENT_ISSUE = "engine_format_incident_issue"
+
 export function registerIncidentIssueTools(
-  register: ToolRegistrar<EngineRegistry>,
+  register: EngineToolRegistrar,
   config: IncidentIssueConfig,
 ) {
   register({
-    name: "engine_format_incident_issue",
+    name: ENGINE_FORMAT_INCIDENT_ISSUE,
     category: "incidents",
     description:
       "Build a structured, tracker-agnostic ticket draft (title, markdown body, labels) from a Camunda 7 / CIB seven incident. " +
       "Does NOT file anything: present the draft in the chat for review and reuse; the user decides where it goes " +
       "(their issue tracker via whatever integration is available, the prefilled GitHub URL of the configured repository, or copy-paste).",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...formatIncidentIssueInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args, { baseUrl, cockpitUrl, provider }) => {
       // The client uses `responseStyle: "data"`, so the SDK's `{data, error}` type is wrong at runtime.

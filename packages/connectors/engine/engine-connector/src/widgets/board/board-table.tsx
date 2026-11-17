@@ -6,8 +6,10 @@ import { useT } from "../../messages/use-t.js"
 /**
  * The cockpit's table of a tile: widget-shell's `ListTable` (its scroll region, the inline fit,
  * which shows the rows the card has room for and offers the rest, the pinned row actions) with an
- * xs `DrillButton` per row, so the row keeps the row height (invariant 6). The tile owns the
- * columns, the cells, the words and the notes under the rows; a row's copy is its id's.
+ * xs `DrillButton` per row that opens a view here, so the row keeps the row height (invariant 6);
+ * a row that opens none (an engine no view of the cockpit reads) has no drill, and a table whose
+ * rows open none has no column of actions. The tile owns the columns, the cells, the words and the
+ * notes under the rows; a row's copy is its id's.
  */
 export function BoardTable<Row>({
   label,
@@ -15,11 +17,14 @@ export function BoardTable<Row>({
   rows,
   rowKey,
   onOpen,
+  opens,
   openLabel,
   empty,
   footer,
 }: BoardTableProps<Row>) {
   const t = useT()
+  const drills = rows.map((row) => opens?.(row) !== false)
+  const actions = drills.includes(true)
   return (
     <div className="flex min-w-0 flex-col">
       {rows.length === 0 ? (
@@ -30,10 +35,12 @@ export function BoardTable<Row>({
           columns={[
             ...columns.map((column) => ({ label: column.label })),
             // Pinned from 40rem up only: a narrower card scrolls the actions with the row.
-            { label: t("board.colActions"), align: "right" as const, sticky: "sm" as const },
+            ...(actions
+              ? [{ label: t("board.colActions"), align: "right" as const, sticky: "sm" as const }]
+              : []),
           ]}
         >
-          {rows.map((row) => (
+          {rows.map((row, index) => (
             <tr key={rowKey(row)}>
               {/* One line per cell, as DataTable draws a row: the row keeps the row height and the
                   table scrolls in its region where the card is short of room. */}
@@ -42,15 +49,19 @@ export function BoardTable<Row>({
                   {column.cell(row)}
                 </Td>
               ))}
-              <Td align="right">
-                <DrillButton
-                  size="xs"
-                  onDrill={() => onOpen(row, { toSide: false })}
-                  ariaLabel={openLabel(row)}
-                >
-                  {t("board.open")}
-                </DrillButton>
-              </Td>
+              {actions && (
+                <Td align="right">
+                  {drills[index] && (
+                    <DrillButton
+                      size="xs"
+                      onDrill={() => onOpen(row, { toSide: false })}
+                      ariaLabel={openLabel(row)}
+                    >
+                      {t("board.open")}
+                    </DrillButton>
+                  )}
+                </Td>
+              )}
             </tr>
           ))}
         </ListTable>

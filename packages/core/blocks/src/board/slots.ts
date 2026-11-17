@@ -57,6 +57,11 @@ export interface BoardTableProps<Row> {
   readonly rowKey: (row: Row) => string
   /** Opens a row: a click on it or on its drill, Ctrl or Cmd held beside the view. */
   readonly onOpen: (row: Row, how: BoardOpenHow) => void
+  /**
+   * Whether a row opens anything here (`BoardSlots.opens`): one that does not has no drill and
+   * does not open on a click. Without it, every row opens.
+   */
+  readonly opens?: (row: Row) => boolean
   /** The accessible name of a row's drill ("Open instance 81a2e0b4…"). */
   readonly openLabel: (row: Row) => string
   /** What a row's copy puts on the clipboard. */
@@ -97,6 +102,12 @@ export interface BoardSlots {
   readonly Id: ComponentType<BoardIdProps>
   readonly Diagram: ComponentType<BoardDiagramProps>
   readonly onOpen: (target: BoardTarget, how: BoardOpenHow) => void
+  /**
+   * Whether a target opens anything on this surface (a view that reads its engine there); without
+   * it, every target does. A target that opens nothing is offered nowhere: its count, summary row
+   * and diagram stay text, its list row has no drill.
+   */
+  readonly opens?: (target: BoardTarget) => boolean
   /** Opens the board file; without it a refused tile offers no way to it. */
   readonly onOpenFile?: () => void
   /** True where Ctrl or Cmd with a click opens beside the view: the tiles' titles say so. */

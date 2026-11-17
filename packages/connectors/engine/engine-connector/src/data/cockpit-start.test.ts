@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
 import { resolveEngine } from "../lib/engine/resolve-engine.js"
-import { engineParamShape } from "../lib/engine/with-engine.js"
 import {
   ENGINE_BOARD_DATA,
   ENGINE_CLUSTER_DETAIL_DATA,
@@ -32,6 +31,7 @@ import {
   type CockpitSection,
   type CockpitView,
 } from "../view-models.js"
+import { EVERY_DIALECT } from "../view-models.dialects.js"
 import { registerWidgetDataFeeds } from "../widget-tools/data-feeds.js"
 import { namedReads } from "../widget-tools/shared.js"
 import {
@@ -73,7 +73,7 @@ async function world(healthThresholds: VerdictThresholds = DEFAULT_VERDICT_THRES
     registry,
     healthThresholds,
     toolset: "read-only",
-    engineParam: engineParamShape,
+    registered: new Set(),
     boards,
   })
   const list = captureTools((register) =>
@@ -86,7 +86,7 @@ async function world(healthThresholds: VerdictThresholds = DEFAULT_VERDICT_THRES
         : feedPayload(await recording.tool(name).call(args)),
     start: (view: CockpitView) =>
       isAppView(view)
-        ? buildCockpitStart(view, namedReads({ registry, boards }))
+        ? buildCockpitStart(view, namedReads({ registry, boards }, { dialects: EVERY_DIALECT }))
         : buildCockpitStart(view, resolveEngine(undefined, registry), healthThresholds),
   }
 }

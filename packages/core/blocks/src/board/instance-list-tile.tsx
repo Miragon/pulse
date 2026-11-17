@@ -21,12 +21,13 @@ import type {
 import type { ComponentType } from "react"
 import { useWords, type Words } from "../messages/translate.js"
 import { BoardCard, EmptyNote, GROUP_NOTES, MissingNote } from "./board-card.js"
-import type { BoardIdProps, BoardSlots, BoardTableColumn } from "./slots.js"
+import type { BoardIdProps, BoardInstanceTarget, BoardSlots, BoardTableColumn } from "./slots.js"
+import { openable } from "./targets.js"
 import { countText, listColumns, processName, tileTitle } from "./tile-words.js"
 
 export interface InstanceListTileProps {
   readonly tile: InstanceListData
-  readonly slots: Pick<BoardSlots, "Table" | "Id" | "onOpen">
+  readonly slots: Pick<BoardSlots, "Table" | "Id" | "onOpen" | "opens">
 }
 
 interface InstanceRow {
@@ -134,6 +135,11 @@ function GroupNote({ group }: { readonly group: InstanceGroupData }) {
 export function InstanceListTile({ tile, slots }: InstanceListTileProps) {
   const t = useWords()
   const { Table, Id, onOpen } = slots
+  const targetOf = (row: InstanceRow): BoardInstanceTarget => ({
+    kind: "instance",
+    engine: row.engine,
+    instanceId: row.instance.id,
+  })
   const rows = tile.groups.flatMap(({ engine, instances = [] }) =>
     instances.map((instance) => ({ engine, instance })),
   )
@@ -146,8 +152,10 @@ export function InstanceListTile({ tile, slots }: InstanceListTileProps) {
         rows={rows}
         rowKey={(row) => `${row.engine}|${row.instance.id}`}
         onOpen={(row, how) => {
-          onOpen({ kind: "instance", engine: row.engine, instanceId: row.instance.id }, how)
+          const target = openable(slots, targetOf(row))
+          if (target !== undefined) onOpen(target, how)
         }}
+        opens={(row) => openable(slots, targetOf(row)) !== undefined}
         openLabel={(row) => t("open.instance", { id: shortId(row.instance.id) })}
         copyOf={(row) => ({ text: row.instance.id, label: t("instances.copy") })}
         empty={<EmptyNote text={t("instances.empty")} />}

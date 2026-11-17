@@ -25,8 +25,8 @@ as `engine` via `engineModule` (`src/module.ts`), which conforms structurally to
   cross-engine overview; `src/widgets/views.tsx` maps the tool to the cockpit.
 - **Engine profiles** (`src/engine-profiles.ts`): the profile file of `ENGINES_FILE` or
   `ENGINES_JSON`, or the single engine of `ENGINE_BASE_URL` and its siblings, read through
-  `@miragon/pulse-profile`; `readOnly` on a profile is `withReadOnlyEngines`
-  (`src/lib/engine/read-only.ts`).
+  `@miragon/pulse-profile`; `readOnly` on a profile holds in `withServedEngines`
+  (`src/lib/engine/served-engines.ts`), with each tool's mark, the dialects it serves.
 - **Multi-engine routing** (`src/lib/engine/`): `withEngine` / `resolveEngine`.
 - **The engine contract** (`src/lib/engine/engine-runtime.ts`): `runtimeOf(engine)` gives the
   `ProcessRuntime` of `@miragon/pulse-engine-core` for the engine a call resolved, one per dialect

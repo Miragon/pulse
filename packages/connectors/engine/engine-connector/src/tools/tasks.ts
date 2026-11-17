@@ -7,7 +7,7 @@ import {
   setTaskAssigneeInput,
   getTaskVariablesInput,
 } from "../schemas/index.js"
-import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
+import type { EngineToolRegistrar } from "../lib/engine/served-engines.js"
 import { readTaskVariables } from "@miragon/pulse-c7-client"
 import { complementaryFlags, engineSorting, trueOnly } from "@miragon/pulse-c7-core"
 import {
@@ -19,18 +19,18 @@ import {
   setAssignee,
 } from "@miragon/pulse-c7-client/sdk"
 import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
-import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { CUT_VALUE_WRITE_RULE, variableRead } from "../lib/mcp/variable-truncation.js"
 import { completeUserTask } from "../lib/bpmn/complete-user-task.js"
 import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 
-export function registerTaskTools(register: ToolRegistrar<EngineRegistry>) {
+export function registerTaskTools(register: EngineToolRegistrar) {
   register({
     name: "engine_list_tasks",
     category: "tasks",
     description:
       "List user tasks. Each task carries ID, name, assignee, process info, and timestamps.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...listTasksInput.shape, ...engineParamShape },
     outputSchema: paginatedListOutput,
     handler: withEngine(async (client, args) => {
@@ -64,6 +64,7 @@ export function registerTaskTools(register: ToolRegistrar<EngineRegistry>) {
     category: "tasks",
     description: "Get details of a single user task by ID.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...getTaskInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) => getTask({ client, path: { id: args.taskId } })),
   })
@@ -73,6 +74,7 @@ export function registerTaskTools(register: ToolRegistrar<EngineRegistry>) {
     category: "tasks",
     description: "Claim a user task for a specific user.",
     annotations: { destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...claimTaskInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) => {
       await claim({
@@ -89,6 +91,7 @@ export function registerTaskTools(register: ToolRegistrar<EngineRegistry>) {
     category: "tasks",
     description: "Unclaim (release) a user task, removing the current assignee.",
     annotations: { destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...unclaimTaskInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) => {
       await unclaim({ client, path: { id: args.taskId } })
@@ -105,6 +108,7 @@ export function registerTaskTools(register: ToolRegistrar<EngineRegistry>) {
       '(delegationState PENDING) is resolved back to its owner instead and stays open (outcome "resolved"). ' +
       CUT_VALUE_WRITE_RULE,
     annotations: { destructiveHint: false, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...completeTaskInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) =>
       completeUserTask(client, args.taskId, args.variables),
@@ -116,6 +120,7 @@ export function registerTaskTools(register: ToolRegistrar<EngineRegistry>) {
     category: "tasks",
     description: "Set the assignee of a user task.",
     annotations: { destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...setTaskAssigneeInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) => {
       await setAssignee({
@@ -133,6 +138,7 @@ export function registerTaskTools(register: ToolRegistrar<EngineRegistry>) {
     description:
       "Get all variables of a user task (Json/Xml/Object: serialized string + valueInfo).",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...getTaskVariablesInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) =>
       variableRead(await readTaskVariables(client, args.taskId), args.variableName),

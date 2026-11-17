@@ -4,8 +4,6 @@ import { FakeEngine, FakeWorld } from "@miragon/pulse-engine-core/testing"
 import type { EngineEntry } from "../../engine-provider.js"
 import { runtimeOf } from "./engine-runtime.js"
 import {
-  assertWritable,
-  cockpitEngineId,
   createEngineRegistry,
   resolveEngine,
   resolveRuntimeEngine,
@@ -13,7 +11,6 @@ import {
   EngineDialectNotServedError,
   EngineNotSelectedError,
   EngineProfileRefusedError,
-  EngineReadOnlyError,
   UnknownEngineError,
 } from "./resolve-engine.js"
 
@@ -90,31 +87,6 @@ describe("resolveEngine", () => {
   })
 })
 
-// Tool-level cases live in `widget-tools/cockpit.test.ts`; these pin the error contract (#341).
-describe("cockpitEngineId", () => {
-  it("opens on the override", () => {
-    expect(cockpitEngineId("beta", harness(MULTI))).toBe("beta")
-  })
-
-  it("opens on the default engine without an override", () => {
-    expect(cockpitEngineId(undefined, harness(MULTI, "beta"))).toBe("beta")
-  })
-
-  it("answers null (the picker) when several engines and no default leave nothing selected", () => {
-    expect(cockpitEngineId(undefined, harness(MULTI))).toBeNull()
-  })
-
-  it("rejects an unknown engine instead of opening the picker", () => {
-    expect(() => cockpitEngineId("gamma", harness(MULTI))).toThrow(UnknownEngineError)
-  })
-
-  it("only 'no engine selected' falls back to the picker: any other failure propagates", () => {
-    // The config schema refuses such a default; a registry built around it still never opens the picker.
-    const broken = harness(MULTI, "gone")
-    expect(() => cockpitEngineId(undefined, broken)).toThrow(UnknownEngineError)
-  })
-})
-
 describe("createEngineRegistry", () => {
   const clientFor = (e: { id: string }) => ({ __engine: e.id }) as unknown as Client
 
@@ -165,21 +137,6 @@ describe("a refused profile in the registry", () => {
   it("one usable and one refused profile: no default, so a call without engine is not selected", () => {
     const pair = createEngineRegistry([MULTI[0]], client, { refused: [REFUSED] })
     expect(() => resolveEngine(undefined, pair)).toThrow(EngineNotSelectedError)
-    expect(cockpitEngineId(undefined, pair)).toBeNull()
-  })
-
-  it("the cockpit opens the picker on it instead of failing", () => {
-    expect(cockpitEngineId("locked", registry())).toBeNull()
-    expect(cockpitEngineId(undefined, registry("locked"))).toBeNull()
-  })
-
-  it("assertWritable refuses a write to a read-only engine and lets the others through", () => {
-    expect(() => assertWritable("beta", registry())).toThrow(EngineReadOnlyError)
-    expect(() => assertWritable("beta", registry())).toThrow(
-      'Engine "beta" is read-only on this server: its profile sets readOnly, so no tool writes to it. Nothing was sent.',
-    )
-    expect(() => assertWritable("alpha", registry())).not.toThrow()
-    expect(() => assertWritable("locked", registry())).toThrow(EngineProfileRefusedError)
   })
 })
 
@@ -238,8 +195,6 @@ describe("an engine of another dialect in the registry", () => {
     const refusals = [
       () => resolveEngine("c8", registry),
       () => resolveEngine(undefined, contractRegistry({ boards, defaultEngineId: "c8" }).registry),
-      // Before ENGINE_READ_ONLY, although no tool writes to it.
-      () => assertWritable("c8", registry),
     ]
     for (const refusal of refusals) {
       expect(refusal).toThrow(EngineDialectNotServedError)
@@ -257,15 +212,6 @@ describe("an engine of another dialect in the registry", () => {
     expect(() => resolveEngine("locked", registry)).toThrow(EngineProfileRefusedError)
     expect(() => resolveRuntimeEngine("locked", registry)).toThrow(EngineProfileRefusedError)
     expect(() => resolveRuntimeEngine("gamma", registry)).toThrow(UnknownEngineError)
-  })
-
-  it("the cockpit opens the picker on it", () => {
-    const { registry, runtime } = contractRegistry()
-    expect(cockpitEngineId("c8", registry)).toBeNull()
-    expect(cockpitEngineId(undefined, contractRegistry({ defaultEngineId: "c8" }).registry)).toBe(
-      null,
-    )
-    expect(runtime).not.toHaveBeenCalled()
   })
 
   it("resolveRuntimeEngine gives its runtime, bound to the caller's signal", async () => {
@@ -297,6 +243,5 @@ describe("an engine of another dialect in the registry", () => {
     const { registry } = contractRegistry({ only: true })
     expect(resolveRuntimeEngine(undefined, registry)).toMatchObject({ engineId: "c8" })
     expect(() => resolveEngine(undefined, registry)).toThrow(ON_NO_BOARD)
-    expect(cockpitEngineId(undefined, registry)).toBeNull()
   })
 })

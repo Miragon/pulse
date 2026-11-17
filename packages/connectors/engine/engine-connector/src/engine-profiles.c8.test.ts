@@ -204,6 +204,8 @@ describe("a Camunda 8 profile the server refuses on its own", () => {
   })
 
   it("a client secret's variable that is not set: the model reads the key, the operator the variable", () => {
+    // Its dialect as the parser read it: only the tools of Camunda 8 offer it, so a call says why.
+    expect(loaded({ auth: GRANT }, {}).refused.map(({ dialect }) => dialect)).toEqual(["c8"])
     const { reason, warning } = refusalOf({ auth: GRANT }, {})
     expect(reason).toBe("auth.clientSecretEnv names a variable that is not set.")
     expect(warning).toBe(

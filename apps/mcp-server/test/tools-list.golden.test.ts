@@ -5,6 +5,7 @@ import { SERVER_INSTRUCTIONS } from "../src/app.js"
 import { bootServer, type BootOptions } from "./boot-server.js"
 import {
   EXPECTED_TOOLS_ADMIN,
+  EXPECTED_TOOLS_CAMUNDA_8,
   EXPECTED_TOOLS_OPERATIONS,
   EXPECTED_TOOLS_READ_ONLY,
 } from "./expected-tools.js"
@@ -35,44 +36,90 @@ import {
  * description to at most two model-visible tools (`repeatedParamDescriptions`).
  * The server instructions, which no toolset filters, may name only tools the
  * same boot gives the model; that check runs first, so a planted name fails
- * there and not in the budget.
+ * there and not in the budget. Per configuration too: the golden boot's one
+ * Camunda 7 engine (`tools-<toolset>`), that engine beside a Camunda 8 one
+ * (`tools-mixed-<toolset>`) and a Camunda 8 engine alone (`tools-c8-<toolset>`),
+ * since the boot registers what a configured engine's dialect is served by.
  *
  * Intended change: `pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server golden:update`,
  * then commit the JSON diff (refused in CI).
  */
 
-const TOOLSETS: ReadonlyArray<{
+interface Surface {
   golden: string
   label: string
   options: BootOptions
   names: readonly string[]
-}> = [
+  /** How many tool names the instructions name at least: the scanner is not blind. */
+  floor: number
+}
+
+/** Each toolset's suffix: the surface depends on the toolset only (OAuth's default is the boot's). */
+const SUFFIXES = [
+  { toolset: "read-only", label: "read-only (the unauthenticated default)", env: {} },
   {
-    golden: "tools-read-only",
-    label: "read-only (the unauthenticated default)",
-    options: {},
-    names: EXPECTED_TOOLS_READ_ONLY,
-  },
-  // The surface depends on the toolset only: an explicit suffix gives the same one OAuth's
-  // default would (that default is the engine module's and the boot's to test, not the app's).
-  {
-    golden: "tools-operations",
+    toolset: "operations",
     label: "operations (the default under OAuth)",
-    options: { env: { MCP_ACTIVE_MODULES: "engine:operations" } },
-    names: EXPECTED_TOOLS_OPERATIONS,
+    env: { MCP_ACTIVE_MODULES: "engine:operations" },
   },
   {
-    golden: "tools-admin",
+    toolset: "admin",
     label: "admin + deployments (the full surface)",
-    options: {
-      env: {
-        MCP_ACTIVE_MODULES: "engine:admin",
-        ENGINE_ALLOW_DEPLOYMENTS: "true",
-      },
-    },
-    names: EXPECTED_TOOLS_ADMIN,
+    env: { MCP_ACTIVE_MODULES: "engine:admin", ENGINE_ALLOW_DEPLOYMENTS: "true" },
   },
-]
+] as const
+
+/** The tool names of each toolset on a Camunda 7 engine. */
+const NAMES: Readonly<Record<(typeof SUFFIXES)[number]["toolset"], readonly string[]>> = {
+  "read-only": EXPECTED_TOOLS_READ_ONLY,
+  operations: EXPECTED_TOOLS_OPERATIONS,
+  admin: EXPECTED_TOOLS_ADMIN,
+}
+
+/**
+ * The engines of each configuration: the golden boot's single Camunda 7 engine, that engine beside
+ * a Camunda 8 one (`mixed`: every tool, its `engine` enum the engines it serves) and a Camunda 8
+ * engine alone (`c8`: the four that serve it, in every toolset). Each pins its own goldens and
+ * char budgets; the dead loopback port is never asked.
+ */
+const CONFIGURATIONS = [
+  { prefix: "tools", env: {}, names: (toolset: keyof typeof NAMES) => NAMES[toolset], floor: 5 },
+  {
+    prefix: "tools-mixed",
+    env: {
+      ENGINE_BASE_URL: undefined,
+      ENGINES_JSON: JSON.stringify({
+        profiles: {
+          default: { url: "http://localhost:1" },
+          c8: { url: "http://localhost:1/v2", flavor: "camunda8" },
+        },
+      }),
+    },
+    names: (toolset: keyof typeof NAMES) => NAMES[toolset],
+    floor: 5,
+  },
+  {
+    prefix: "tools-c8",
+    env: {
+      ENGINE_BASE_URL: undefined,
+      ENGINES_JSON: JSON.stringify({
+        profiles: { c8: { url: "http://localhost:1/v2", flavor: "camunda8" } },
+      }),
+    },
+    names: () => EXPECTED_TOOLS_CAMUNDA_8,
+    floor: 2,
+  },
+] as const
+
+const TOOLSETS: readonly Surface[] = CONFIGURATIONS.flatMap((configuration) =>
+  SUFFIXES.map(({ toolset, label, env }) => ({
+    golden: `${configuration.prefix}-${toolset}`,
+    label: configuration.prefix === "tools" ? label : `${label}, ${configuration.prefix}`,
+    options: { env: { ...configuration.env, ...env } },
+    names: configuration.names(toolset),
+    floor: configuration.floor,
+  })),
+)
 
 /** The engine tool names a text mentions; a family wildcard (`engine_query_historic_*`) none. */
 function toolNamesIn(text: string): string[] {
@@ -96,13 +143,13 @@ function namedButNotVisible(instructions: string, tools: readonly WireTool[], fl
 }
 
 describe("tools/list golden contract per toolset", () => {
-  it.each(TOOLSETS)("$label matches $golden", async ({ golden, label, options, names }) => {
+  it.each(TOOLSETS)("$label matches $golden", async ({ golden, label, options, names, floor }) => {
     const server = await bootServer(options)
     try {
       const { tools } = await server.client.listTools()
       const instructions = server.client.getInstructions() ?? ""
       // The playbooks live in the instructions: each names only what this boot registers.
-      expect(namedButNotVisible(instructions, tools, 5)).toEqual([])
+      expect(namedButNotVisible(instructions, tools, floor)).toEqual([])
       // Code-unit order (not localeCompare): byte-stable across machines' ICU locales.
       const sorted = [...tools].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
       // The name list is the reviewable summary; the golden the full payload. It runs first, so
@@ -124,15 +171,18 @@ describe("tools/list golden contract per toolset", () => {
     }
   })
 
-  // A Camunda 8 engine adds one sentence to the instructions: what reads it, what refuses it. The
-  // golden boots configure none, so a second boot measures what the sentence adds, held by its own
-  // shrink-only budget as the toolsets' are: the same engine id, once of each dialect.
+  // A Camunda 8 engine beside a Camunda 7 one adds one sentence to the instructions: what reads
+  // it, that the rest neither offer it nor take it as the default. A second boot measures what the
+  // sentence adds, held by its own shrink-only budget as the toolsets' are: the same engine ids,
+  // the second once of each dialect. (The mixed goldens' budgets hold it too, with their enums.)
   it("pins the characters a Camunda 8 engine adds to the instructions (instructions-camunda8)", async () => {
     const instructionsOf = async (flavor: string, url: string) => {
       const server = await bootServer({
         env: {
           ENGINE_BASE_URL: undefined,
-          ENGINES_JSON: JSON.stringify({ profiles: { default: { url, flavor } } }),
+          ENGINES_JSON: JSON.stringify({
+            profiles: { default: { url: "http://localhost:1" }, second: { url, flavor } },
+          }),
         },
       })
       try {

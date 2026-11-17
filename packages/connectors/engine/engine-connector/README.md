@@ -75,8 +75,11 @@ in `ENGINES_JSON` / `ENGINES_FILE`; every variable is in the
   branding. A `camunda8` profile (a profile of the file, never the shorthand) signs in with none,
   Basic or `clientCredentials`, its client secret in the `ENGINE_SECRET_*` variable
   `auth.clientSecretEnv` names, never over plain http beyond loopback. Boards read it (the board
-  feed, the diagram XML feed), `engine_list_engines` lists it with `dialect` `c8`, and every other
-  tool, feed and cockpit view refuses it with `ENGINE_DIALECT_NOT_SERVED` before anything is sent.
+  feed, the diagram XML feed), `engine_list_engines` lists it with `dialect` `c8`, and no other
+  tool, feed or cockpit view offers it: each names the dialects it serves, registers only where a
+  configured engine serves it and refuses another engine, a default without `engine` above all,
+  with `ENGINE_DIALECT_NOT_SERVED` before anything is sent. A server of Camunda 8 engines alone
+  lists the engine list, the cockpit (its board and landing) and the board and XML feeds.
 - **The engine contract.** It depends on `@miragon/pulse-engine-core`, the contract Pulse for VS
   Code and Pulse for Orca read engines through, and builds a runtime of it on each call, over the
   client that call resolves: c7-core's `C7Runtime` over the module's own client, which a board

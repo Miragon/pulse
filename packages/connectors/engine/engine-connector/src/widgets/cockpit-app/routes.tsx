@@ -7,7 +7,7 @@ import type {
   CockpitStartData,
   CockpitView,
 } from "../../view-models.js"
-import { BoardView } from "../board/board-view.js"
+import { BoardView, type DialectOf } from "../board/board-view.js"
 import { ClusterDetailWidget } from "../cluster-detail.js"
 import { ProcessDefinitionsTable } from "../cockpit-dashboard/definitions-table.js"
 import { EngineHealthVerdict } from "../engine-health.js"
@@ -42,16 +42,26 @@ export function CockpitRoute({
   view,
   engine,
   seed = null,
+  dialectOf,
 }: {
   view: CockpitView
   /** The engine an engine route reads; none on an app route. */
   engine: string | null
   seed?: CockpitStart | null
+  /** The dialect of each engine the cockpit lists: what a board's drill on it may open. */
+  dialectOf?: DialectOf
 }) {
   const title = crumbLabel(view, useLocale())
   switch (view.section) {
     case "board":
-      return <BoardView board={view.board} data={seedOf(seed, "board")} title={title} />
+      return (
+        <BoardView
+          board={view.board}
+          data={seedOf(seed, "board")}
+          title={title}
+          {...(dialectOf === undefined ? {} : { dialectOf })}
+        />
+      )
     // The landing is the cockpit's chooser over the engine list (`LandingChooser`), which the
     // cockpit shows on its landing scope, its start data seeding the boards: no widget here.
     case "landing":

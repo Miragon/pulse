@@ -2,7 +2,11 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
+import { z } from "zod"
+import {
+  type RecordingModuleServer,
+  recordingModuleServer,
+} from "@miragon/pulse-widget-shell/testing"
 import { BoardParser } from "@miragon/pulse-board"
 import { FakeEngine as ContractFake, FakeWorld } from "@miragon/pulse-engine-core/testing"
 import type { EngineBoard } from "./board-files.js"
@@ -23,10 +27,10 @@ import { type FakeEngine, startFakeEngine } from "./tools/test-support/fake-engi
 import { feedPayload } from "./tools/test-support/feed-payload.js"
 
 /**
- * An engine of another dialect, hand-built (no profile yields one yet): its runtime factory is a
- * spy. Every tool and feed of the admin surface called on it is refused before its runtime is
- * built, or it is served through the engine contract (the engine list, the board feed, the XML
- * feed, the cockpit's board and landing).
+ * An engine of another dialect beside a Camunda 7 one, hand-built: its runtime factory is a spy.
+ * Every tool and feed of the admin surface offers it only where its mark serves its dialect (the
+ * engine list, the board feed, the XML feed, the cockpit's board and landing), and the call-time
+ * net refuses it elsewhere before its runtime is built, the default engine above all.
  */
 describe("createPlugin on an engine of another dialect", () => {
   const started: FakeEngine[] = []
@@ -48,9 +52,9 @@ describe("createPlugin on an engine of another dialect", () => {
 
   /**
    * The admin surface over a Camunda 7 engine `a` and the Camunda 8 engine `c8`, which the board
-   * `orders` names; `cockpitUrl` its profile's.
+   * `orders` names; `cockpitUrl` its profile's, `defaultEngine` where a call without one goes.
    */
-  async function bootOverBoth(cockpitUrl?: string) {
+  async function bootOverBoth(cockpitUrl?: string, defaultEngine?: string) {
     const shop = await startFakeEngine({}, worldReply)
     started.push(shop)
     const runtime = vi.fn<ContractRuntime>(() => new ContractFake(FakeWorld.seed().state))
@@ -67,11 +71,16 @@ describe("createPlugin on an engine of another dialect", () => {
       toolset: "admin",
       allowDeployments: true,
       boards: { boards: [ORDERS], refused: [] },
+      ...(defaultEngine === undefined ? {} : { defaultEngine }),
     }
     const registry = createEngineRegistry(
       config.engines,
       (e) => providerForEntry(e).createClient(e, { type: "none" }),
-      { contractRuntime: () => runtime, boardsNaming: (id) => (id === "c8" ? ["orders"] : []) },
+      {
+        contractRuntime: () => runtime,
+        boardsNaming: (id) => (id === "c8" ? ["orders"] : []),
+        defaultEngineId: defaultEngine,
+      },
     )
     const recording = recordingModuleServer()
     createPlugin(config, registry).register(recording.server)
@@ -92,11 +101,30 @@ describe("createPlugin on an engine of another dialect", () => {
   ]
   const REFUSAL = '[ENGINE_DIALECT_NOT_SERVED] Engine "c8" is a Camunda 8 engine'
 
-  it("refuses every other tool and feed on it before building its runtime or sending anything", async () => {
-    const { recording, runtime, shop, text } = await bootOverBoth()
+  /** The `engine` values a registered tool offers; none without the parameter. */
+  function offered(recording: RecordingModuleServer, name: string): string[] | undefined {
+    const input = recording.tool(name).config.inputSchema as z.ZodObject | undefined
+    const engine = input?.shape.engine as z.ZodType | undefined
+    return engine === undefined ? undefined : (z.toJSONSchema(engine) as { enum: string[] }).enum
+  }
+
+  it("offers it to no tool, feed or engine view that does not serve its dialect", async () => {
+    const { recording } = await bootOverBoth()
+    const others = [...recording.tools.keys()].filter((name) => !SERVING.includes(name))
+    expect(others.length).toBeGreaterThan(50)
+    for (const name of others) expect(offered(recording, name), name).toEqual(["a"])
+    expect(offered(recording, ENGINE_BPMN_XML_DATA)).toEqual(["a", "c8"])
+    // The cockpit's `engine` names where its routes of one engine read: the board takes none.
+    expect(offered(recording, ENGINE_OPEN_COCKPIT)).toEqual(["a"])
+    expect(offered(recording, ENGINE_LIST_ENGINES)).toBeUndefined()
+  })
+
+  it("its call-time net refuses it as the default before building its runtime or sending anything", async () => {
+    const { recording, runtime, shop, text } = await bootOverBoth(undefined, "c8")
     const refused = [...recording.tools.keys()].filter((name) => !SERVING.includes(name))
-    expect(refused.length).toBeGreaterThan(50)
     for (const name of refused) {
+      expect(await text(name, {}), name).toMatch(new RegExp(`^${escape(REFUSAL)}`))
+      // Named, as no enum lets a model: the same net.
       expect(await text(name, { engine: "c8" }), name).toMatch(new RegExp(`^${escape(REFUSAL)}`))
     }
     expect(runtime).not.toHaveBeenCalled()
@@ -104,17 +132,17 @@ describe("createPlugin on an engine of another dialect", () => {
   })
 
   it("refuses every engine view of the cockpit on it, and opens the picker without a view", async () => {
-    const { runtime, text, recording } = await bootOverBoth()
+    const { runtime, text, recording } = await bootOverBoth(undefined, "c8")
     const engineViews = Object.entries(COCKPIT_ROUTES)
       .filter(([, route]) => route.scope === "engine")
       .map(([view]) => view)
     expect(engineViews.length).toBe(9)
     for (const view of engineViews) {
-      expect(await text(ENGINE_OPEN_COCKPIT, { engine: "c8", view }), view).toMatch(
+      expect(await text(ENGINE_OPEN_COCKPIT, { view }), view).toMatch(
         new RegExp(`^${escape(REFUSAL)}`),
       )
     }
-    const picker = await recording.tool(ENGINE_OPEN_COCKPIT).call({ engine: "c8" })
+    const picker = await recording.tool(ENGINE_OPEN_COCKPIT).call({})
     expect(picker.structuredContent).toMatchObject({ engineId: null, start: null })
     expect(runtime).not.toHaveBeenCalled()
   })
@@ -202,9 +230,9 @@ describe("createPlugin on an engine of another dialect", () => {
 })
 
 /**
- * The same seam from the module's own configuration: Camunda 8 profiles of ENGINES_JSON and a
- * board of ENGINE_BOARDS_DIR that names one of them. Nothing is sent: every call here refuses or
- * reads no engine.
+ * The same seam from the module's own configuration: Camunda 8 profiles of ENGINES_JSON, alone or
+ * beside a Camunda 7 one, and a board of ENGINE_BOARDS_DIR that names one of them. Nothing is
+ * sent: every call here refuses or reads no engine.
  */
 describe("createPlugin over Camunda 8 profiles and the boards that name them", () => {
   const dirs: string[] = []
@@ -213,7 +241,7 @@ describe("createPlugin over Camunda 8 profiles and the boards that name them", (
   })
 
   /** The plugin `configFromEnv` configures: `c8` on the board `orders`, `lone` on none. */
-  function bootFromEnv() {
+  function bootFromEnv(beside: Record<string, unknown> = {}) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pulse-c8-boards-"))
     dirs.push(dir)
     fs.writeFileSync(
@@ -226,17 +254,40 @@ describe("createPlugin over Camunda 8 profiles and the boards that name them", (
         profiles: {
           c8: { url: "https://c8.example/v2", flavor: "camunda8" },
           lone: { url: "https://lone.example/v2", flavor: "camunda8" },
+          ...beside,
         },
       }),
       ENGINE_BOARDS_DIR: dir,
     })
     const recording = recordingModuleServer()
-    engineModule.createPlugin(config).register(recording.server)
+    engineModule.createPlugin({ ...config, toolset: "admin" }).register(recording.server)
     return recording
   }
 
-  it("names the boards of each engine in its refusal and in the cockpit's engines", async () => {
+  it("a server of Camunda 8 engines alone registers what serves them, and nothing else", async () => {
     const recording = bootFromEnv()
+    expect([...recording.tools.keys()].sort()).toEqual(
+      [ENGINE_LIST_ENGINES, ENGINE_OPEN_COCKPIT, ENGINE_BPMN_XML_DATA, ENGINE_BOARD_DATA].sort(),
+    )
+    // The prompt drafts through a Camunda 7 tool, which is not there.
+    expect([...recording.prompts.keys()]).toEqual([])
+    const cockpit = recording.tool(ENGINE_OPEN_COCKPIT).config.inputSchema as z.ZodObject
+    expect(Object.keys(cockpit.shape)).toEqual(["view", "board"])
+    expect((z.toJSONSchema(cockpit.shape.view as z.ZodType) as { enum: string[] }).enum).toEqual([
+      "board",
+      "landing",
+    ])
+    // Without a view it opens where its engines and boards are: the landing, reading nothing.
+    const opened = await recording.tool(ENGINE_OPEN_COCKPIT).call({})
+    expect(opened.structuredContent).toMatchObject({
+      engineId: null,
+      start: { view: { section: "landing" }, data: { boards: [{ id: "orders" }] } },
+    })
+    expect(JSON.parse(opened.content[0].text)).toMatchObject({ view: "landing" })
+  })
+
+  it("names the boards of each engine in its refusal and in the cockpit's engines", async () => {
+    const recording = bootFromEnv({ a: { url: "https://a.example/engine-rest" } })
     const status = async (engine: string) =>
       (await recording.tool("engine_status").call({ engine })).content
         .map((part) => ("text" in part ? part.text : ""))
@@ -253,6 +304,7 @@ describe("createPlugin over Camunda 8 profiles and the boards that name them", (
       engines: [
         { id: "c8", environment: "default", dialect: "c8", boards: ["orders"] },
         { id: "lone", environment: "default", dialect: "c8", boards: [] },
+        { id: "a", environment: "default", dialect: "c7" },
       ],
       start: null,
     })

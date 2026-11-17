@@ -102,6 +102,18 @@ async function expectAxeClean(page: Page, label: string) {
   expect(violations, label).toEqual([])
 }
 
+/** Relative luminance (0 = black, 1 = white) of an element's computed background. */
+async function backgroundLuminance(locator: Locator): Promise<number> {
+  return await locator.evaluate((el) => {
+    // A canvas normalizes any CSS colour syntax (color(srgb …), oklch …) to sRGB bytes.
+    const ctx = document.createElement("canvas").getContext("2d")!
+    ctx.fillStyle = getComputedStyle(el).backgroundColor
+    ctx.fillRect(0, 0, 1, 1)
+    const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data
+    return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
+  })
+}
+
 /** The colour a system colour keyword computes to in the view's frame. */
 async function systemColour(locator: Locator, name: string): Promise<string> {
   return await locator.evaluate((_el, keyword) => {
@@ -324,21 +336,14 @@ test.describe("a board, the cockpit's app-level route", () => {
   test("dark: the tiles on the dark card, the diagram's paper stays light", async ({ page }) => {
     const app = await openBoard(page, { theme: "dark" })
     await drawn(app)
-    const seen = await tile(app, "Invoice Receipt").evaluate((el) => {
-      const luminance = (colour: string) => {
-        const [r, g, b] = (colour.match(/\d+(\.\d+)?/g) ?? []).map(Number)
-        return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
-      }
-      const paper = el.querySelector("[data-theme-mode=light]")
-      return {
-        dark: document.documentElement.classList.contains("dark"),
-        card: luminance(getComputedStyle(el).backgroundColor),
-        paper: paper?.getAttribute("data-theme-mode"),
-      }
-    })
-    expect(seen.dark).toBe(true)
-    expect(seen.card).toBeLessThan(0.3)
-    expect(seen.paper).toBe("light")
+    const card = tile(app, "Invoice Receipt")
+    const dark = await app.locator("html").evaluate((html) => html.classList.contains("dark"))
+    expect(dark).toBe(true)
+    expect(await backgroundLuminance(card)).toBeLessThan(0.3)
+    // The paper the canvas is drawn on, its nearest light island, is light on the dark card.
+    const canvas = card.getByRole("img", { name: "BPMN process diagram" })
+    const paper = canvas.locator("xpath=ancestor::*[@data-theme-mode='light'][1]")
+    expect(await backgroundLuminance(paper)).toBeGreaterThan(0.95)
   })
 
   test("a stripping host: one re-run of the view's own tool, with the invocation's arguments", async ({

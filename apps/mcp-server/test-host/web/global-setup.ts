@@ -173,7 +173,8 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     { idp: { accessTokenSeconds: SHORT_TOKEN_SECONDS } },
   )
   // Camunda 8 beside the stub: a board page over both, and the cockpit's pages on a Camunda 8
-  // engine, which the server reads on boards only.
+  // engine, which the server reads on boards only; the one no board names is the default, which a
+  // page without `engine` goes to.
   const c8 = await startC8HostEngine()
   const camunda8 = await deploy(
     {
@@ -185,6 +186,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
       env: {
         ENGINE_BOARDS_DIR: CAMUNDA8_BOARDS_DIR,
         ENGINE_SECRET_WEB_SIM_C8: "web-sim-client-secret",
+        ENGINE_DEFAULT: C8_UNBOARDED_ENGINE,
       },
     },
   )

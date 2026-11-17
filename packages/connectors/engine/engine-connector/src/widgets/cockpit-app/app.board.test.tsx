@@ -91,6 +91,7 @@ describe("CockpitApp opens a board", () => {
   it("a tile opens its engine's route, and the trail's first crumb leads back to the board", async () => {
     renderBoardCockpit()
     const instances = screen.getByRole("region", { name: "Instances" })
+    expect(within(instances).getByRole("columnheader", { name: "Actions" })).toBeTruthy()
     fireEvent.click(within(instances).getAllByRole("button", { name: /^Open instance/ })[0])
     await waitFor(() => expect(activeEngine()).toBe("prod-a"))
     expect(boardHeading()).toBeNull()
@@ -124,7 +125,9 @@ describe("CockpitApp opens a board", () => {
     expect(within(trail()).getByText("Invoices").getAttribute("aria-current")).toBe("page")
   })
 
-  it("a tile or the chip of an engine the server reads on boards only leads to its one state", async () => {
+  // No view of the cockpit reads an engine of another dialect (ROUTE_DIALECTS), so a board offers
+  // no way into one: its tiles' rows, counts, summary rows and diagram and its chip open nothing.
+  it("an engine the server reads on boards only: its tiles and its chip open nothing here", async () => {
     const c8 = {
       id: "prod-a",
       environment: "default",
@@ -132,18 +135,17 @@ describe("CockpitApp opens a board", () => {
       boards: ["invoices"],
     }
     const { reads } = renderBoardCockpit([c8, { id: "prod-b", environment: "default" }])
+    // Every button left: the board's own (Refresh, the trail), a copy; none opens a view.
+    const names = screen.getAllByRole("button").map((button) => button.textContent ?? "")
+    expect(names.filter((name) => /prod-a|^Open/.test(name))).toEqual([])
+    expect(names).toContain("Refresh")
+    // A table whose rows open nothing has no column for their actions.
     const instances = screen.getByRole("region", { name: "Instances" })
-    fireEvent.click(within(instances).getAllByRole("button", { name: /^Open instance/ })[0])
-    await waitFor(() => expect(activeEngine()).toBe("prod-a"))
-    const gate = () => document.querySelector("[data-slot='boards-only-engine']")
-    expect(gate()).toBeTruthy()
-    expect(within(trail()).getByText("INV-0042").getAttribute("aria-current")).toBe("page")
-    fireEvent.click(within(trail()).getByRole("button", { name: "Invoices" }))
+    expect(within(instances).queryByRole("columnheader", { name: "Actions" })).toBeNull()
     const engines = screen.getByRole("group", { name: "Engines of this board" })
-    fireEvent.click(within(engines).getByRole("button", { name: /prod-a/ }))
-    await waitFor(() => expect(activeEngine()).toBe("prod-a"))
-    expect(gate()).toBeTruthy()
-    // Its one state reads nothing of it: neither the instance's detail nor the overview.
+    expect(within(engines).queryByRole("button")).toBeNull()
+    expect(within(engines).getByText("prod-a")).toBeTruthy()
+    expect(activeEngine()).toBeNull()
     for (const feed of [
       ENGINE_INSTANCE_DETAIL_DATA,
       ENGINE_COCKPIT_OVERVIEW_DATA,

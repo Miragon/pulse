@@ -1,4 +1,4 @@
-import { useMemo, type Dispatch } from "react"
+import { useCallback, useMemo, type Dispatch } from "react"
 import { EmptyState, NavigationFocus, StatusStrip, useLocale } from "@miragon/pulse-ui"
 import {
   HostModelContext,
@@ -122,6 +122,19 @@ function engineContextOf(
   return cockpitContext(engineId, current)
 }
 
+/**
+ * The engine the cockpit shows where it shows it on boards only: its one state names it, never the
+ * view its stack holds.
+ */
+function boardsOnlyEngineIn(
+  scope: CockpitState["scope"],
+  engines: readonly ListedEngine[],
+): string | undefined {
+  if (scope.kind !== "engine") return undefined
+  const engine = engines.find(({ id }) => id === scope.engineId)
+  return boardsOnlyOf(engine) === null ? undefined : scope.engineId
+}
+
 /** Docked under the head: the engine the view showed went away, and the view fell back. */
 function EngineGoneNotice({ engineId }: { engineId: string | null }) {
   const locale = useLocale()
@@ -183,9 +196,11 @@ function rootCrumb(
 }
 
 /**
- * An engine's bars, from edge to edge above its route: the head (its sections, inline a drilled
- * view's trail in their place), the trail on a row of its own where fullscreen has room for both
- * and it has two crumbs, and the notice of an engine that went away.
+ * An engine's bars, from edge to edge above its route: the head (the sections its dialect is
+ * served by, inline a drilled view's trail in their place), the trail on a row of its own where
+ * fullscreen has room for both and it has two crumbs, and the notice of an engine that went away.
+ * An engine shown on boards only has no section: its trail, the way back and its name, takes
+ * their place in the head, never a crumb of a route it has not.
  */
 function EngineBars({
   engineId,
@@ -209,6 +224,8 @@ function EngineBars({
 }) {
   const locale = useLocale()
   const { stack, goneEngineId, fromBoard } = state
+  const engine = engines.find(({ id }) => id === engineId)
+  const boardsOnly = boardsOnlyOf(engine) !== null
   const rootLabel = rootCrumb(fromBoard, chooser, locale)
   const leave = fromBoard ? ({ type: "to-board" } as const) : ({ type: "to-landing" } as const)
   const trail = (
@@ -216,19 +233,22 @@ function EngineBars({
       stack={stack}
       locale={locale}
       rootLabel={rootLabel}
+      current={boardsOnly ? engineId : undefined}
       onPop={(to) => dispatch(to < 0 ? leave : { type: "pop", to })}
     />
   )
-  // Inline is a card (#396): a drilled view's trail takes the sections' row, a head section shows none.
-  const drilled = stack.length > 1
-  const crumbs = stack.length + (rootLabel === undefined ? 0 : 1)
+  // Inline is a card (#396): a drilled view's trail takes the sections' row, a head section shows
+  // none; an engine shown on boards only has no sections, so its trail is the head's in both.
+  const crumbs = (boardsOnly ? 1 : stack.length) + (rootLabel === undefined ? 0 : 1)
+  const inHead = boardsOnly ? crumbs > 1 : inline && stack.length > 1
   return (
     <>
       <CockpitHead
         activeSection={activeSectionOf(stack)}
+        dialect={engine?.dialect}
         onSection={(intent) => dispatch(intent)}
         onOpenFleet={onOpenFleet}
-        trail={inline && drilled ? trail : undefined}
+        trail={inHead ? trail : undefined}
         engineSwitch={
           <EngineSwitch
             engineId={engineId}
@@ -238,7 +258,7 @@ function EngineBars({
           />
         }
       />
-      {!inline && crumbs > 1 && <CockpitTrailBar>{trail}</CockpitTrailBar>}
+      {!inline && !boardsOnly && crumbs > 1 && <CockpitTrailBar>{trail}</CockpitTrailBar>}
       <EngineGoneNotice engineId={goneEngineId} />
     </>
   )
@@ -274,6 +294,11 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
   const openFleet = offerFleet ? () => dispatch({ type: "to-fleet" }) : undefined
 
   const enterEngine = (id: string) => dispatch({ type: "enter-engine", id })
+  // A board's drill opens a view of the cockpit only where its route reads the engine's dialect.
+  const dialectOf = useCallback(
+    (id: string) => engines.find((engine) => engine.id === id)?.dialect,
+    [engines],
+  )
   const openBoard = (board: string, title: string) =>
     dispatch({ type: "open-board", view: { section: "board", board, label: title } })
 
@@ -285,7 +310,7 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
   }
 
   // #344 N107: one frame, so navigation moves focus to the new view.
-  const nav = navigationOf(scope, stack, locale)
+  const nav = navigationOf(scope, stack, locale, boardsOnlyEngineIn(scope, engines))
 
   if (scope.kind === "landing") {
     return (
@@ -359,7 +384,12 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
           <div className="min-w-0">
             <NavProvider value={navigate}>
               <ViewErrorBoundary resetKey={viewKey(scope.view)}>
-                <CockpitRoute view={scope.view} engine={null} seed={startSeed(data, state)} />
+                <CockpitRoute
+                  view={scope.view}
+                  engine={null}
+                  seed={startSeed(data, state)}
+                  dialectOf={dialectOf}
+                />
               </ViewErrorBoundary>
             </NavProvider>
           </div>

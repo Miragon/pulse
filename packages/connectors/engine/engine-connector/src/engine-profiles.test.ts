@@ -184,8 +184,14 @@ describe("a profile the server cannot use is refused on its own", () => {
       environment: "prod",
       auth: { type: "bearer", tokenEnv: "ENGINE_SECRET_PROD_B_TOKEN" },
     })
+    // Its dialect as the parser read it: the tools of that dialect name it, so a call says why.
     expect(refused).toEqual([
-      { id: "x", environment: "prod", reason: "auth.tokenEnv names a variable that is not set." },
+      {
+        id: "x",
+        environment: "prod",
+        dialect: "c7",
+        reason: "auth.tokenEnv names a variable that is not set.",
+      },
     ])
     expect(warnings).toEqual([
       'Profile "x" (ENGINES_JSON) is refused: auth.tokenEnv names ENGINE_SECRET_PROD_B_TOKEN, which is not set. A call to this engine fails with that reason; the other engines run.',

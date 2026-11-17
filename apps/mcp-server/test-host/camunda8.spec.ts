@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright"
 import { expect, test, type FrameLocator, type Locator, type Page } from "@playwright/test"
-import { c8Requests, FAILED_ORDER_KEY, LONG_ORDER_KEY } from "./c8-engine.js"
+import { c8Requests, LONG_ORDER_KEY } from "./c8-engine.js"
 import {
   C8_CONTROL_ENV,
   C8_ENGINE,
@@ -18,9 +18,10 @@ import {
  * `orders` names and whose profile names its Operate, and `c8-billing`, which no board names. The
  * landing lists both and asks neither cluster anything, counted at the cluster; each opens the
  * cockpit's one state for such an engine, the gate, in its variant (the boards that name it and
- * its Operate, or that none does yet), which reads nothing either. The board shows the cluster's
- * numbers, its instances by keys of 16 to 19 digits and its Zeebe diagram; a tile's drill on a
- * Camunda 8 instance leads to the gate, its trail back to the board. Dark, forced colours, axe.
+ * its Operate, or that none does yet), which reads nothing either and shows none of the sections
+ * of an engine above it. The board shows the cluster's numbers, its instances by keys of 16 to 19
+ * digits and its Zeebe diagram; no view of the cockpit reads a Camunda 8 engine, so its tiles'
+ * rows, counts and diagram and its chip open nothing. Dark, forced colours, axe.
  * The scenarios run one after another, since the landing's and the gate's count the cluster's
  * requests, which the board's would add to.
  */
@@ -31,6 +32,7 @@ interface Scenario {
   args?: Record<string, unknown>
   theme?: "light" | "dark"
   locale?: string
+  width?: number
 }
 
 interface HostLog {
@@ -55,7 +57,7 @@ async function openCockpit(page: Page, scenario: Scenario = {}): Promise<FrameLo
     resultDelayMs: "0",
     theme: scenario.theme ?? "light",
     locale: scenario.locale ?? "en-US",
-    width: "960",
+    width: String(scenario.width ?? 960),
     maxHeight: "2000",
   })
   await page.goto(`${envOf(CAMUNDA8_HOST_ENV)}/?${query.toString()}`)
@@ -165,6 +167,13 @@ test.describe("Camunda 8 on the landing and in the gate", () => {
     await asked(true)
     await engineRow(app, new RegExp(`^${C8_ENGINE} , `)).click()
     await expect(gate(app, C8_ENGINE)).toBeVisible()
+    // No section of an engine serves its dialect: no tab above it, its trail names the engine.
+    await expect(app.getByRole("navigation", { name: "Cockpit sections" })).toHaveCount(0)
+    await expect(trail(app).getByRole("button")).toHaveText(["All engines"])
+    await expect(trail(app).getByText(C8_ENGINE, { exact: true })).toHaveAttribute(
+      "aria-current",
+      "page",
+    )
     await expect(
       app.getByText("Pulse shows it here on boards: open one that names it."),
     ).toBeVisible()
@@ -194,7 +203,10 @@ test.describe("Camunda 8 on the landing and in the gate", () => {
     await expect(app.getByRole("list", { name: /^Boards that name/ })).toHaveCount(0)
     await expect(app.getByRole("link", { name: /Operate/ })).toHaveCount(0)
     expect(await asked()).toEqual([])
-    await app.getByRole("button", { name: "All engines" }).click()
+    await app
+      .locator("[data-slot=boards-only-engine]")
+      .getByRole("button", { name: "All engines" })
+      .click()
     await expect(landing(app)).toBeVisible()
   })
 
@@ -257,24 +269,20 @@ test.describe("Camunda 8 on a board", () => {
   }) => {
     const app = await openCockpit(page, { args: BOARD_ARGS })
     await drawn(app)
-    await expect(
-      app.getByRole("group", { name: "Engines of this board" }).getByRole("button", {
-        name: `${C8_ENGINE} Camunda 8 8.9.28 · 3 running · 1 with incident`,
-      }),
-    ).toBeVisible()
+    const chips = app.getByRole("group", { name: "Engines of this board" })
+    await expect(chips.locator("[data-part=board-engine]")).toHaveText(
+      `${C8_ENGINE}Camunda 8 8.9.28 · 3 running · 1 with incident`,
+    )
     const counter = tile(app, "Orders in flight")
     await expect(counter.locator("[data-part=counter-value]")).toHaveText("3")
-    await expect(counter.getByRole("button", { name: `${C8_ENGINE} 3` })).toBeVisible()
+    await expect(counter.locator("[data-part=counter-entry]")).toHaveText(`${C8_ENGINE}3`)
 
     // A key beyond 2^53 and one of 19 digits keep their digits: whole in a cell where the instance
-    // has no business key, by their tail on the drill, which every key of a partition shares not.
+    // has no business key, by their tail on its copy, which every key of a partition shares not.
     const instances = tile(app, "Running instances of pulse-order")
     await expect(instances.getByRole("row")).toHaveCount(4)
     await expect(instances.getByText(LONG_ORDER_KEY, { exact: true })).toBeVisible()
     await expect(instances.getByRole("button", { name: "Copy …27388111" })).toBeVisible()
-    await expect(
-      instances.getByRole("button", { name: `Open instance …${FAILED_ORDER_KEY.slice(-8)}` }),
-    ).toBeVisible()
 
     // The Zeebe diagram, its zeebe: extensions read past: every element, its count badges.
     const diagram = tile(app, "Order fulfillment")
@@ -296,36 +304,54 @@ test.describe("Camunda 8 on a board", () => {
     ])
   })
 
-  test("a tile's drill on a Camunda 8 instance leads to the gate; the trail goes back to the board", async ({
+  // No view of the cockpit reads a Camunda 8 engine (ROUTE_DIALECTS), so the board offers no way
+  // into one: no drill, no count, summary row or diagram that opens, and a chip that opens nothing.
+  // The stub's chip still opens its overview.
+  test("a Camunda 8 engine's tiles and chip open nothing, and nothing reads it but the board", async ({
     page,
   }) => {
     const app = await openCockpit(page, { args: BOARD_ARGS })
     await drawn(app)
-    await tile(app, "Running instances of pulse-order")
-      .getByRole("button", { name: "Open instance …27388111" })
-      .click()
-    await expect(gate(app, C8_ENGINE)).toBeVisible()
-    await expect(app.getByRole("list", { name: `Boards that name ${C8_ENGINE}` })).toBeVisible()
-    await trail(app).getByRole("button", { name: TITLE }).click()
-    await drawn(app)
+    for (const name of [
+      "Orders in flight",
+      "Running instances of pulse-order",
+      "Payment incidents",
+    ]) {
+      await expect(tile(app, name).getByRole("button", { name: /^Open\b|c8-orders/ })).toHaveCount(
+        0,
+      )
+    }
+    await expect(
+      tile(app, "Order fulfillment").getByRole("button", { name: "Open process" }),
+    ).toHaveCount(0)
+    const chips = app.getByRole("group", { name: "Engines of this board" })
+    await expect(chips.getByRole("button")).toHaveCount(1)
+    await chips.getByRole("button", { name: new RegExp(`^${HEALTHY_ENGINE} `) }).click()
+    await expect(app.getByRole("navigation", { name: "Cockpit sections" })).toBeVisible()
+    expect((await callsForCamunda8(page)).map((call) => call.name)).toEqual([
+      "engine_bpmn_xml_data",
+    ])
   })
 
-  test("pinned: the trail names a Camunda 8 instance by the head of its key, not by its tail as the tile does", async ({
+  // The chip that opens nothing keeps a button's one line: its name whole, its facts cut.
+  test("at 320 px a Camunda 8 engine's chip stays on one line, as tall as the stub's button", async ({
     page,
   }) => {
-    const app = await openCockpit(page, { args: BOARD_ARGS })
+    await page.setViewportSize({ width: 360, height: 900 })
+    const app = await openCockpit(page, { args: BOARD_ARGS, width: 320 })
     await drawn(app)
-    await tile(app, "Running instances of pulse-order")
-      .getByRole("button", { name: "Open instance …27388111" })
-      .click()
-    await expect(gate(app, C8_ENGINE)).toBeVisible()
-    // nav-core.ts truncates an instance's id to its first 8 characters, and every key of a
-    // cluster's partition shares them; flip to `Instance …27388111` (shortId) once it reads the
-    // tail as the tiles do.
-    await expect(
-      trail(app).getByText(`Instance ${LONG_ORDER_KEY.slice(0, 8)}…`, { exact: true }),
-      "expected: Instance …27388111",
-    ).toBeVisible()
+    const chips = app.getByRole("group", { name: "Engines of this board" })
+    const text = chips.locator("[data-part=board-engine]")
+    const button = chips.getByRole("button", { name: new RegExp(`^${HEALTHY_ENGINE} `) })
+    const [textBox, buttonBox] = [await text.boundingBox(), await button.boundingBox()]
+    expect(textBox?.height).toBe(buttonBox?.height)
+    // The name's text sits on one line: a break at its hyphen would give it two line boxes.
+    const nameLines = await text.getByText(C8_ENGINE, { exact: true }).evaluate((name) => {
+      const range = document.createRange()
+      range.selectNodeContents(name)
+      return range.getClientRects().length
+    })
+    expect(nameLines).toBe(1)
   })
 
   test("dark: the tiles on the dark card, the Zeebe diagram's paper stays light", async ({

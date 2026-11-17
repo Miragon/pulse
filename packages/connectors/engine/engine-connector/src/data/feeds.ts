@@ -29,7 +29,8 @@ import {
   ENGINE_PROCESS_INCIDENTS_DATA,
   ENGINE_PROCESS_INSTANCES_DATA,
 } from "../tool-names.js"
-import { HISTORY_PAGE_SIZE } from "../view-models.js"
+import { type EngineDialect, HISTORY_PAGE_SIZE } from "../view-models.js"
+import { EVERY_DIALECT } from "../view-models.dialects.js"
 import {
   buildActivityStatisticsData,
   type ActivityStatisticsFeedData,
@@ -72,6 +73,8 @@ export interface DataFeed<TShape extends z.ZodRawShape = z.ZodRawShape, TData = 
   name: string
   title: string
   description: string
+  /** Its mark: it reads the Camunda 7 REST API through the engine's client. */
+  dialects: readonly ["c7"]
   shape: TShape
   // A method, so a feed of any shape fits the list of every feed.
   read(input: FeedInput<TShape>, engine: ResolvedEngine, ctx: ReadContext): Promise<TData>
@@ -94,6 +97,8 @@ export interface NamingFeed<TShape extends z.ZodRawShape = z.ZodRawShape, TData 
   name: string
   title: string
   description: string
+  /** Its mark: the dialects of the engines it reads. */
+  dialects: readonly EngineDialect[]
   shape: TShape
   engines: "named"
   // A method, so a feed of any shape fits the list of every feed.
@@ -112,6 +117,8 @@ export interface ContractFeed<TShape extends z.ZodRawShape = z.ZodRawShape, TDat
   name: string
   title: string
   description: string
+  /** Its mark: the dialects whose engines it reads through the contract. */
+  dialects: readonly EngineDialect[]
   shape: TShape
   engines: "contract"
   // A method, so a feed of any shape fits the list of every feed.
@@ -127,6 +134,7 @@ export const overviewFeed = dataFeed({
   title: "Cockpit overview data (internal)",
   description:
     "Internal JSON feed (no UI) for the cockpit overview: per-definition stats. Prefer engine_open_cockpit.",
+  dialects: ["c7"],
   shape: {},
   read: (_, { client, engineId }) => buildCockpitDashboardData(client, engineId),
 })
@@ -136,6 +144,7 @@ export const healthFeed = dataFeed({
   title: "Engine health data (internal)",
   description:
     "Internal JSON feed (no UI) for the engine health verdict + incident clusters. Prefer engine_open_cockpit.",
+  dialects: ["c7"],
   shape: {},
   read: (_, { client, engineId }, { healthThresholds }) =>
     buildEngineHealthData(client, engineId, healthThresholds),
@@ -146,6 +155,7 @@ export const clusterDetailFeed = dataFeed({
   title: "Cluster detail data (internal)",
   description:
     "Internal JSON feed (no UI) for one failure cluster's detail. Prefer engine_open_cockpit.",
+  dialects: ["c7"],
   shape: { ...clusterDetailFilterShape, ...pagingShape },
   read: (args, { client, engineId }) => buildClusterDetailData(client, engineId, args),
 })
@@ -155,6 +165,7 @@ export const processInstancesFeed = dataFeed({
   title: "Process instances data (internal)",
   description:
     "Internal JSON feed (no UI) for a definition's running instances. Prefer engine_open_cockpit.",
+  dialects: ["c7"],
   shape: { ...processInstancesFilterShape, ...instanceSearchShape, ...pagingShape },
   read: (args, { client, engineId }) => buildProcessInstancesData(client, engineId, args),
 })
@@ -164,6 +175,7 @@ const bpmnXmlFeed = contractFeed({
   title: "BPMN XML data (internal)",
   description:
     "Internal JSON feed (no UI): one deployed process definition's BPMN 2.0 XML, by id, which every diagram in the views draws. Use engine_get_process_definition_xml for the XML itself.",
+  dialects: EVERY_DIALECT,
   shape: {
     processDefinitionId: z.string().min(1).describe("The deployed version's id."),
   },
@@ -179,6 +191,7 @@ export const instanceDetailFeed = dataFeed({
   title: "Instance detail data (internal)",
   description:
     "Internal JSON feed (no UI) for a single process instance. Prefer engine_open_cockpit.",
+  dialects: ["c7"],
   shape: { processInstanceId: z.string().describe("The process instance ID") },
   read: (target, { client, engineId, ...urls }) =>
     buildInstanceDetailData(client, engineId, target, urls),
@@ -189,6 +202,7 @@ export const historyTimelineFeed = dataFeed({
   title: "History timeline data (internal)",
   description:
     "Internal JSON feed (no UI) for one process instance's activity history, ended instances included. Prefer engine_open_cockpit.",
+  dialects: ["c7"],
   shape: { processInstanceId: z.string().describe("The process instance ID") },
   read: ({ processInstanceId }, { client, engineId }) =>
     buildHistoryTimelineData(client, engineId, {
@@ -201,6 +215,7 @@ export const jobsFeed = dataFeed({
   name: ENGINE_JOBS_DATA,
   title: "Jobs data (internal)",
   description: "Internal JSON feed (no UI) for jobs. Prefer engine_open_cockpit.",
+  dialects: ["c7"],
   shape: { ...jobsFilterShape, ...pagingShape },
   read: (args, { client, engineId }) => buildJobPanelData(client, engineId, args),
 })
@@ -212,6 +227,7 @@ const jobBacklogFeed = dataFeed({
   title: "Job backlog data (internal)",
   description:
     "Internal JSON feed (no UI) for the cross-engine overview: one engine's executable, suspended and later-due jobs and its external tasks. Prefer engine_open_cockpit.",
+  dialects: ["c7"],
   shape: {},
   read: async (_, { client, engineId }) => ({
     ...(await buildJobBacklogData(client)),
@@ -224,6 +240,7 @@ export const incidentsFeed = dataFeed({
   title: "Incidents dashboard data (internal)",
   description:
     "Internal JSON feed (no UI) for the incidents dashboard: open incidents grouped by process. Prefer engine_open_cockpit.",
+  dialects: ["c7"],
   shape: incidentsDashboardFilterShape,
   read: async (filters, { client, engineId, ...urls }) => ({
     ...(await buildIncidentsDashboardData(client, { ...urls, ...filters })),
@@ -236,6 +253,7 @@ export const processIncidentsFeed = dataFeed({
   title: "Process incidents data (internal)",
   description:
     "Internal JSON feed (no UI) for the unified definition view: header, KPIs (incl. failed jobs), BPMN overlays, activity-grouped incidents. Prefer engine_open_cockpit.",
+  dialects: ["c7"],
   shape: { processDefinitionKey: z.string().describe("Process definition key to drill into") },
   read: async (target, { client, engineId, ...urls }) => ({
     ...(await buildProcessIncidentsData(client, { ...urls, ...target })),
@@ -248,6 +266,7 @@ const activityIncidentsFeed = dataFeed({
   title: "Activity incidents data (internal)",
   description:
     "Internal JSON feed (no UI) for one activity's incident rows, offset-paged. Prefer engine_open_cockpit.",
+  dialects: ["c7"],
   shape: { ...activityIncidentsFilterShape, ...pagingShape },
   read: async (filters, { client, engineId, ...urls }) => ({
     ...(await buildActivityIncidentsData(client, { ...urls, ...filters })),
@@ -260,6 +279,7 @@ const activityStatisticsFeed = dataFeed({
   title: "Activity statistics data (internal)",
   description:
     "Internal JSON feed (no UI) for the process flow: what runs at each element of a process now, or what the instances started in the last 30 days passed there, over every deployed version. Prefer engine_open_cockpit.",
+  dialects: ["c7"],
   shape: activityStatisticsShape,
   read: async (args, { client, engineId }): Promise<ActivityStatisticsFeedData> => ({
     ...(await buildActivityStatisticsData(client, args)),
@@ -272,6 +292,7 @@ export const incidentDetailFeed = dataFeed({
   title: "Incident detail data (internal)",
   description:
     "Internal JSON feed (no UI) for a single incident: stacktrace, BPMN with the failing activity, variables, activity tree, history. Prefer engine_open_cockpit.",
+  dialects: ["c7"],
   shape: { incidentId: z.string().describe("The incident ID to inspect") },
   read: async (target, { client, engineId, ...urls }) => ({
     ...(await buildIncidentDetailData(client, { ...urls, ...target })),
@@ -284,6 +305,7 @@ export const boardFeed = namingFeed({
   title: "Board data (internal)",
   description:
     "Internal JSON feed (no UI) for one board of the server's board files (ENGINE_BOARDS_DIR), by its id: each engine's state and each tile's numbers, read from the engines the board names, kept for 30 seconds per caller.",
+  dialects: EVERY_DIALECT,
   shape: {
     board: z
       .string()

@@ -111,12 +111,6 @@ const board = (atSecond?: number, matches: AdapterCall = "describeEngine"): Prob
 const BOARD_PROBE = board()
 const DETAIL: AdapterCall = `getInstanceDetail ${INSTANCE_KEY}`
 
-/** A tool of the Camunda 7 REST API on the cluster: refused before a request, never matched. */
-const INSPECT: Probe = {
-  tool: "engine_inspect_process_instance",
-  arguments: { engine: ENGINE, processInstanceId: INSTANCE_KEY },
-}
-
 /** The diagram's XML feed, the one read of a key the server takes: no key, no request. */
 const xmlOf = (id: string): Probe => ({
   tool: "engine_bpmn_xml_data",
@@ -186,7 +180,8 @@ const SHARED: readonly PinnedCase[] = [
   {
     name: "missing-resource",
     engine: restRoot(always(missingInstance)),
-    probes: [board(undefined, DETAIL), INSPECT],
+    // No tool reads an instance by key on a server of Camunda 8 engines alone (tools-c8-*.json).
+    probes: [board(undefined, DETAIL)],
   },
   {
     name: "engine-text-echoes-secret-basic",

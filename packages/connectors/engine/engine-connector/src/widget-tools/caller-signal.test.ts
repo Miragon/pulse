@@ -67,6 +67,7 @@ describe("widget tools and feeds honor ctx.mcpReq.signal", () => {
     registerWidgetTools(server, registry, {
       healthThresholds: DEFAULT_VERDICT_THRESHOLDS,
       toolset: "read-only",
+      registered: new Set(),
       boards: boardFiles(),
     })
 

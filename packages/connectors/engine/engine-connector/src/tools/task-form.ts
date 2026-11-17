@@ -1,11 +1,10 @@
 import type { TaskFormSchema } from "../view-models.js"
 import { getTaskFormInput } from "../schemas/index.js"
-import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
+import type { EngineToolRegistrar } from "../lib/engine/served-engines.js"
 import { buildTaskFormSchema } from "../lib/bpmn/task-form-schema.js"
-import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 
-export function registerTaskFormTools(register: ToolRegistrar<EngineRegistry>) {
+export function registerTaskFormTools(register: EngineToolRegistrar) {
   register({
     name: "engine_get_task_form",
     category: "tasks",
@@ -14,6 +13,7 @@ export function registerTaskFormTools(register: ToolRegistrar<EngineRegistry>) {
       "(type, required, readonly) pre-filled with current values. Never submit readonly fields. Without form fields, " +
       "fields is empty and formKey (or formRef, a linked Camunda Form) names the task's own form, if any.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     // The task's completion form reads it too, where a view has no schema yet.
     forViews: true,
     inputSchema: { ...getTaskFormInput.shape, ...engineParamShape },

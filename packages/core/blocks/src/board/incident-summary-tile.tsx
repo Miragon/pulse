@@ -3,7 +3,7 @@ import type { IncidentSummaryData, IncidentSummaryRowData } from "@miragon/pulse
 import { useWords } from "../messages/translate.js"
 import { BOARD_LINE, BOARD_LINE_BUTTON, BoardCard, BoardFigure, EmptyNote } from "./board-card.js"
 import type { BoardSlots } from "./slots.js"
-import { summaryTarget } from "./targets.js"
+import { openable, summaryTarget } from "./targets.js"
 import {
   entryCount,
   openTitle,
@@ -15,7 +15,7 @@ import {
 
 export interface IncidentSummaryTileProps {
   readonly tile: IncidentSummaryData
-  readonly slots: Pick<BoardSlots, "onOpen" | "opensToSide">
+  readonly slots: Pick<BoardSlots, "onOpen" | "opens" | "opensToSide">
 }
 
 interface RowProps {
@@ -47,7 +47,8 @@ function RowText({ row, byProcess }: RowProps) {
 
 function SummaryRow({ row, byProcess, slots }: SummaryRowProps) {
   const t = useWords()
-  if (row.withIncident === undefined) {
+  const target = row.withIncident === undefined ? undefined : openable(slots, summaryTarget(row))
+  if (target === undefined) {
     return (
       <li>
         <span className={BOARD_LINE}>
@@ -56,7 +57,6 @@ function SummaryRow({ row, byProcess, slots }: SummaryRowProps) {
       </li>
     )
   }
-  const target = summaryTarget(row)
   return (
     <li>
       <Button

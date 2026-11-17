@@ -1,0 +1,140 @@
+[
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI) for one board of the server's board files (ENGINE_BOARDS_DIR), by its id: each engine's state and each tile's numbers, read from the engines the board names, kept for 30 seconds per caller.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "board": {
+          "description": "The board's id: its file's name without .board.json.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "board"
+      ],
+      "type": "object"
+    },
+    "name": "engine_board_data",
+    "title": "Board data (internal)"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI): one deployed process definition's BPMN 2.0 XML, by id, which every diagram in the views draws. Use engine_get_process_definition_xml for the XML itself.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "c8"
+          ],
+          "type": "string"
+        },
+        "processDefinitionId": {
+          "description": "The deployed version's id.",
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "processDefinitionId"
+      ],
+      "type": "object"
+    },
+    "name": "engine_bpmn_xml_data",
+    "title": "BPMN XML data (internal)"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "model",
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "description": "List the configured engines, grouped by environment (`environments` maps each to its engine ids), plus the default engine (`defaultEngineId`, null when none) and the server's boards, if it has any (`boards`).",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {},
+      "type": "object"
+    },
+    "name": "engine_list_engines"
+  },
+  {
+    "_meta": {
+      "openai/outputTemplate": "ui://views/engine_open_cockpit.html",
+      "openai/resultCanProduceWidget": true,
+      "openai/toolInvocation/invoked": "Open Cockpit ready",
+      "openai/toolInvocation/invoking": "Loading Open Cockpit…",
+      "openai/widgetAccessible": true,
+      "ui": {
+        "resourceUri": "ui://views/engine_open_cockpit.html"
+      },
+      "ui/resourceUri": "ui://views/engine_open_cockpit.html"
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Show the user the operations cockpit; they navigate it without further tool calls. `view` picks where it opens: board shows a board across the engines it names, landing (the default) the engines and boards to pick from. You get that view's facts as compact JSON.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "board": {
+          "description": "board (required): its id, as engine_list_engines lists the boards.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$",
+          "type": "string"
+        },
+        "view": {
+          "enum": [
+            "board",
+            "landing"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "engine_open_cockpit",
+    "outputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": {},
+      "properties": {},
+      "type": "object"
+    },
+    "title": "Open Cockpit"
+  }
+]

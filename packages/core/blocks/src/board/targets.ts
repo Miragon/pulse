@@ -1,5 +1,13 @@
 import type { BoardFilter, IncidentSummaryRowData, ProcessDiagramData } from "@miragon/pulse-board"
-import type { BoardInstancesTarget, BoardScope } from "./slots.js"
+import type { BoardInstancesTarget, BoardScope, BoardSlots, BoardTarget } from "./slots.js"
+
+/** `target` where the surface opens it (`BoardSlots.opens`), else nothing to offer. */
+export function openable<T extends BoardTarget>(
+  slots: Pick<BoardSlots, "opens">,
+  target: T | undefined,
+): T | undefined {
+  return target === undefined || slots.opens?.(target) === false ? undefined : target
+}
 
 /**
  * What an engine's count opens: the instances of its process, or of the engine without one. A

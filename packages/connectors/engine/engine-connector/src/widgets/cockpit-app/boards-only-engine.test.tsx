@@ -62,6 +62,7 @@ const listedOf = ({ id, environment, dialect, webAppUrl }: CockpitEngineInfo) =>
 
 /** Stable: the test host memoizes on it. Fullscreen shows the head and the trail apart. */
 const FULLSCREEN = { displayMode: "fullscreen" } as const
+const INLINE = { displayMode: "inline" } as const
 
 const overviewOf = (args: Record<string, unknown>) => ({
   summary: { totalDefinitions: 1, totalRunningInstances: 3, totalFailedJobs: 0, totalIncidents: 0 },
@@ -80,12 +81,14 @@ function renderCockpit({
   engineId = null,
   boards = [invoicesOver(engines)],
   locale,
+  host = FULLSCREEN,
 }: {
   engines: CockpitEngineInfo[]
   started?: CockpitEngineInfo[]
   engineId?: string | null
   boards?: Board[]
   locale?: string
+  host?: typeof FULLSCREEN | typeof INLINE
 }) {
   const actions: HostAction[] = []
   const contexts: string[] = []
@@ -93,7 +96,7 @@ function renderCockpit({
   render(
     <TestViewHost
       client={createTestQueryClient()}
-      host={FULLSCREEN}
+      host={host}
       locale={locale}
       onHostAction={(action) => actions.push(action)}
       onModelContext={(text) => contexts.push(text)}
@@ -159,20 +162,41 @@ describe("an engine the server reads on boards only: its routes' one state", () 
     expect(await screen.findByRole("heading", { level: 1, name: "Invoices" })).toBeTruthy()
   })
 
-  it("shows on every section of the engine, and 'All engines' leads back to the chooser", async () => {
+  // No route of one engine serves its dialect (ROUTE_DIALECTS): the head offers none of its
+  // sections, and its trail names the engine, never a view it has not.
+  it("shows once, with no section of an engine above it, and 'All engines' leads back to the chooser", async () => {
     const { readsOf } = renderCockpit({ engines: [C7, ON_BOARDS], engineId: "orders-c8" })
     expect(gate()).toBeTruthy()
-    for (const section of ["Incidents", "Jobs", "Overview"]) {
-      fireEvent.click(
-        within(screen.getByRole("navigation", { name: "Cockpit sections" })).getByRole("button", {
-          name: section,
-        }),
-      )
-      expect(gate(), section).toBeTruthy()
+    expect(screen.queryByRole("navigation", { name: "Cockpit sections" })).toBeNull()
+    for (const section of ["Overview", "Incidents", "Jobs"]) {
+      expect(screen.queryByRole("button", { name: section }), section).toBeNull()
     }
+    const trail = screen.getByRole("navigation", { name: "Breadcrumb" })
+    expect(
+      within(trail)
+        .getAllByRole("button")
+        .map((b) => b.textContent),
+    ).toEqual(["All engines"])
+    expect(within(trail).getByText("orders-c8").getAttribute("aria-current")).toBe("page")
+    expect(readsOf("orders-c8")).toEqual([])
+    // The switcher to a Camunda 7 engine brings its sections back, and to this one the gate.
+    fireEvent.change(screen.getByLabelText("Selected engine"), { target: { value: "prod-a" } })
+    expect(screen.getByRole("navigation", { name: "Cockpit sections" })).toBeTruthy()
+    fireEvent.change(screen.getByLabelText("Selected engine"), { target: { value: "orders-c8" } })
+    expect(gate()).toBeTruthy()
+    expect(screen.queryByRole("navigation", { name: "Cockpit sections" })).toBeNull()
     expect(readsOf("orders-c8")).toEqual([])
     fireEvent.click(within(gate()!).getByRole("button", { name: "All engines" }))
     expect(screen.getByRole("heading", { level: 1, name: "Operations Cockpit" })).toBeTruthy()
+  })
+
+  it("inline too: its trail takes the head's row, with no section beside it", () => {
+    renderCockpit({ engines: [C7, ON_BOARDS], engineId: "orders-c8", host: INLINE })
+    expect(gate()).toBeTruthy()
+    const head = document.querySelector<HTMLElement>("[data-slot='cockpit-head']")!
+    expect(within(head).getByRole("navigation", { name: "Breadcrumb" })).toBeTruthy()
+    expect(document.querySelector("[data-slot='cockpit-trail']")).toBeNull()
+    expect(screen.queryByRole("navigation", { name: "Cockpit sections" })).toBeNull()
   })
 
   it("no board names it, no web app: it says so and that whoever runs the server adds one", async () => {
@@ -200,11 +224,24 @@ describe("an engine the server reads on boards only: its routes' one state", () 
     expect(readsOf("orders-c8")).toEqual([])
   })
 
-  it("alone on a server without boards, it opens at once and offers no way back", () => {
-    renderCockpit({ engines: [ON_NO_BOARD], boards: [] })
-    expect(gate()).toBeTruthy()
-    expect(within(gate()!).queryByRole("button")).toBeNull()
-  })
+  // No chooser, so no trail takes the sections' place: the head's sections are the ones its
+  // dialect is served by alone (ROUTE_DIALECTS), and a Camunda 8 engine has none.
+  it.each([
+    ["fullscreen", FULLSCREEN],
+    ["inline", INLINE],
+  ])(
+    "alone on a server without boards, it opens at once with no section and no way back (%s)",
+    (_mode, host) => {
+      renderCockpit({ engines: [ON_NO_BOARD], boards: [], host })
+      expect(gate()).toBeTruthy()
+      const head = document.querySelector<HTMLElement>("[data-slot='cockpit-head']")!
+      expect(within(head).queryByRole("navigation")).toBeNull()
+      for (const section of ["Overview", "Incidents", "Jobs"]) {
+        expect(within(head).queryByRole("button", { name: section }), section).toBeNull()
+      }
+      expect(within(gate()!).queryByRole("button")).toBeNull()
+    },
+  )
 
   it.each([
     [

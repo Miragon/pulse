@@ -57,10 +57,11 @@ The tiles own their columns, cells, words, group notes, problems and the card; t
 the parts that follow its own conventions:
 
 - `Table`: a table over the tile's rows (`BoardTableProps`: a label, the columns with each cell,
-  the rows and their keys, `onOpen` for a row, `openLabel` for a row's drill, `copyOf` for a
-  row's copy, what it says without rows and the notes under them). Pulse for VS Code and Pulse for
-  Orca open a row on a click or Enter and copy it with Ctrl or Cmd+C; the cockpit gives a row a
-  drill and fits the rows its card has room for.
+  the rows and their keys, `onOpen` for a row, `opens` for whether it opens anything, `openLabel`
+  for a row's drill, `copyOf` for a row's copy, what it says without rows and the notes under
+  them). Pulse for VS Code and Pulse for Orca open a row on a click or Enter and copy it with Ctrl
+  or Cmd+C; the cockpit gives a row a drill, none where it opens nothing, and fits the rows its
+  card has room for.
 - `Id`: an id a cell shows short (`BoardIdProps`: the id and what it names).
 - `Diagram`: the latest deployed version of a process with the counts on its elements
   (`BoardDiagramProps`: the engine, the definition, the badges, the canvas's name and `onSelect`
@@ -69,6 +70,10 @@ the parts that follow its own conventions:
   or of an engine, with the filter a count names (`kind: "instances"`), or one instance, through
   its incident from a list of incidents (`kind: "instance"`). A count of instances without an
   incident opens nothing, since no list shows only those.
+- `opens(target)`, optional: whether a target opens anything on the surface; without it every
+  target does. One that opens nothing is offered nowhere: its count, summary row and diagram stay
+  text, its list row has no drill. The cockpit opens no view of an engine it shows on boards only
+  (Camunda 8); Pulse for VS Code and Pulse for Orca open every target.
 - `onOpenFile`, optional: opens the board file; without it a refused tile offers no way to it.
 - `opensToSide`, optional: the titles say that Ctrl or Cmd with a click opens beside the view.
 

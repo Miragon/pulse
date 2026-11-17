@@ -1,18 +1,18 @@
 import { listProcessDefinitionsInput, getProcessDefinitionXmlInput } from "../schemas/index.js"
-import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
+import type { EngineToolRegistrar } from "../lib/engine/served-engines.js"
 import { engineLike, engineSorting, trueOnly } from "@miragon/pulse-c7-core"
 import { getProcessDefinitions, getProcessDefinitionsCount } from "@miragon/pulse-c7-client/sdk"
 import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
-import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 import { fetchDefinitionXml } from "../lib/bpmn/definition-xml.js"
 
-export function registerProcessDefinitionTools(register: ToolRegistrar<EngineRegistry>) {
+export function registerProcessDefinitionTools(register: EngineToolRegistrar) {
   register({
     name: "engine_list_process_definitions",
     category: "process-definitions",
     description: "List deployed process definitions (key, name, version, deployment).",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...listProcessDefinitionsInput.shape, ...engineParamShape },
     outputSchema: paginatedListOutput,
     handler: withEngine(async (client, args) => {
@@ -43,6 +43,7 @@ export function registerProcessDefinitionTools(register: ToolRegistrar<EngineReg
     description:
       "Get the BPMN 2.0 XML of a process definition by ID. Returns the raw BPMN XML string.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...getProcessDefinitionXmlInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) => ({
       id: args.processDefinitionId,

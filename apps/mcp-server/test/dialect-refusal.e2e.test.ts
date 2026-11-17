@@ -7,13 +7,15 @@ import { type FakeC8Cluster, startC8Cluster } from "./engine-goldens/fake-c8-clu
 import { GOLDEN_DIR, isModelVisible } from "./golden.js"
 
 /**
- * The server serves a Camunda 8 engine on boards only, and every other path refuses it before a
- * single request (invariant 2, ENGINE_DIALECT_NOT_SERVED): the real boot over a camunda8 profile
- * of the client credentials grant, the full surface (admin, deployments allowed), a loopback
- * cluster and token endpoint that count every request. Every tool and feed of the admin golden is
- * classified here, so a new tool fails until it is: the ones that serve such an engine, the one
- * that reads no engine, and the rest, each called with arguments valid by its own input schema,
- * answers with the refusal while the cluster and its token endpoint see nothing.
+ * The server serves a Camunda 8 engine on boards only, and offers it nowhere else (each tool's,
+ * feed's and route's mark, invariants 1 and 2): the real boot over a camunda8 profile of the client
+ * credentials grant, the full surface (admin, deployments allowed), a loopback cluster and token
+ * endpoint that count every request. Every tool and feed of the admin golden is classified here, so
+ * a new tool fails until it is: the ones that serve such an engine, the one that reads no engine,
+ * and the rest. Alone, the engine leaves the rest unregistered. Beside a Camunda 7 engine, the rest
+ * offer that engine alone in their `engine` enum, and the call-time net refuses the Camunda 8
+ * default each of them goes to without `engine`, with arguments valid by its own input schema,
+ * while the cluster and its token endpoint see nothing.
  */
 
 /** Read such an engine: the engine list, the cockpit's board and landing, the board and XML feeds. */
@@ -45,6 +47,9 @@ const ENGINE_VIEWS: Readonly<Record<string, Record<string, unknown>>> = {
   history: { processInstanceId: INSTANCE_KEY },
 }
 
+/** The Camunda 7 engine beside it, on a loopback port nothing listens on: never asked. */
+const SHOP = "shop"
+
 const REFUSAL =
   '[ENGINE_DIALECT_NOT_SERVED] Engine "c8" is a Camunda 8 engine, and this tool or view reads ' +
   "the Camunda 7 REST API (Camunda 7, CIB seven, Operaton), so nothing was sent. This server " +
@@ -64,7 +69,7 @@ interface JsonSchema {
 
 interface WireTool {
   name: string
-  inputSchema: JsonSchema
+  inputSchema: JsonSchema & { properties?: { engine?: JsonSchema } }
   _meta?: { ui?: { visibility?: unknown } } & Record<string, unknown>
 }
 
@@ -105,23 +110,42 @@ const goldenNames = (): string[] =>
     JSON.parse(fs.readFileSync(path.join(GOLDEN_DIR, "tools-admin.json"), "utf8")) as WireTool[]
   ).map(({ name }) => name)
 
-describe("a Camunda 8 engine on the full surface: boards read it, every other path refuses it", () => {
+/** Every tool of the golden that does not serve such an engine and reads one. */
+const isRefusing = ({ name }: WireTool) =>
+  !([...SERVE, ...NOT_APPLICABLE] as readonly string[]).includes(name)
+
+/** The `engine` values a listed tool offers; none without the parameter. */
+const offered = (tool: WireTool) => tool.inputSchema.properties?.engine?.enum
+
+/** The server over the cluster's camunda8 profile `c8`, with `beside` and `env`. */
+async function bootOver(
+  c8: FakeC8Cluster,
+  beside: Record<string, unknown> = {},
+  env: Record<string, string> = {},
+) {
+  const server = await bootServer({
+    env: {
+      MCP_ACTIVE_MODULES: "engine:admin",
+      ENGINE_ALLOW_DEPLOYMENTS: "true",
+      ENGINE_BASE_URL: undefined,
+      ENGINES_JSON: JSON.stringify({
+        profiles: { c8: c8.profile("ENGINE_SECRET_C8_CLIENT"), ...beside },
+      }),
+      ENGINE_SECRET_C8_CLIENT: "s3cret-of-the-client",
+      ...env,
+    },
+  })
+  return { server, tools: (await server.client.listTools()).tools as WireTool[] }
+}
+
+describe("a Camunda 8 engine alone on the full surface: what serves it, and nothing else", () => {
   let c8: FakeC8Cluster
   let server: BootedServer
   let tools: WireTool[]
 
   beforeAll(async () => {
     c8 = await startC8Cluster(clusterWorld)
-    server = await bootServer({
-      env: {
-        MCP_ACTIVE_MODULES: "engine:admin",
-        ENGINE_ALLOW_DEPLOYMENTS: "true",
-        ENGINE_BASE_URL: undefined,
-        ENGINES_JSON: JSON.stringify({ profiles: { c8: c8.profile("ENGINE_SECRET_C8_CLIENT") } }),
-        ENGINE_SECRET_C8_CLIENT: "s3cret-of-the-client",
-      },
-    })
-    tools = (await server.client.listTools()).tools as WireTool[]
+    ;({ server, tools } = await bootOver(c8))
   })
 
   afterAll(async () => {
@@ -129,51 +153,20 @@ describe("a Camunda 8 engine on the full surface: boards read it, every other pa
     await c8?.close()
   })
 
-  /** Every tool of the golden that refuses such an engine. */
-  const refusing = () => {
-    const kept: readonly string[] = [...SERVE, ...NOT_APPLICABLE]
-    return tools.filter(({ name }) => !kept.includes(name))
-  }
-
-  it("classifies every tool and feed of the admin golden: 4 serve, 1 reads no engine, 58 refuse", () => {
-    expect(tools.map(({ name }) => name).sort()).toEqual(goldenNames().sort())
-    const named = new Set(tools.map(({ name }) => name))
-    for (const name of [...SERVE, ...NOT_APPLICABLE]) expect(named.has(name), name).toBe(true)
-    const refused = refusing()
-    expect(refused).toHaveLength(58)
-    expect(refused.filter(isModelVisible)).toHaveLength(45)
-    expect(refused.filter((tool) => !isModelVisible(tool))).toHaveLength(13)
-  })
-
-  it("refuses each with arguments valid by its schema, and nothing reaches the cluster", async () => {
-    const answers: string[] = []
-    for (const tool of refusing()) {
-      const args = { ...requiredOf(tool.inputSchema), ...OVERRIDES[tool.name], engine: "c8" }
-      const result = await server.client.callTool({ name: tool.name, arguments: args })
-      const text = textOf(result)
-      answers.push(
-        result.isError === true && text === REFUSAL ? "refused" : `${tool.name}: ${text}`,
-      )
-    }
-    expect(answers.filter((answer) => answer !== "refused")).toEqual([])
+  it("classifies every tool and feed of the admin golden: 4 serve and are listed, 59 are not", () => {
+    const golden = goldenNames()
+    expect(tools.map(({ name }) => name).sort()).toEqual([...SERVE].sort())
+    const absent = golden.filter((name) => !(SERVE as readonly string[]).includes(name))
+    expect(absent).toHaveLength(59)
+    expect(absent).toEqual(expect.arrayContaining([...NOT_APPLICABLE]))
+    expect(golden.filter((name) => !isRefusing({ name } as WireTool))).toHaveLength(5)
     expect(c8.sent()).toEqual([])
   })
 
-  it("refuses each engine view of the cockpit, and opens the picker without a view", async () => {
-    for (const [view, ids] of Object.entries(ENGINE_VIEWS)) {
-      const result = await server.client.callTool({
-        name: "engine_open_cockpit",
-        arguments: { engine: "c8", view, ...ids },
-      })
-      expect([view, result.isError, textOf(result)]).toEqual([view, true, REFUSAL])
-    }
-    const picker = await server.client.callTool({
-      name: "engine_open_cockpit",
-      arguments: { engine: "c8" },
-    })
-    expect(picker.isError).not.toBe(true)
-    expect(picker.structuredContent).toMatchObject({ engineId: null, start: null })
-    expect(c8.sent()).toEqual([])
+  it("its cockpit offers only the routes that serve it, and no engine of one", () => {
+    const cockpit = tools.find(({ name }) => name === "engine_open_cockpit")!
+    expect(Object.keys(cockpit.inputSchema.properties ?? {}).sort()).toEqual(["board", "view"])
+    expect(cockpit.inputSchema.properties?.view?.enum).toEqual(["board", "landing"])
   })
 
   it("reads it through the XML feed, its token from the token endpoint: the counts are real", async () => {
@@ -192,5 +185,80 @@ describe("a Camunda 8 engine on the full surface: boards read it, every other pa
     expect(
       c8.cluster.requests.every(({ authorization }) => authorization === "Bearer c8-access-token"),
     ).toBe(true)
+  })
+})
+
+describe("a Camunda 8 default beside a Camunda 7 engine: offered nowhere else, refused where a call goes to it", () => {
+  let c8: FakeC8Cluster
+  let server: BootedServer
+  let tools: WireTool[]
+
+  beforeAll(async () => {
+    c8 = await startC8Cluster(clusterWorld)
+    ;({ server, tools } = await bootOver(
+      c8,
+      { [SHOP]: { url: "http://127.0.0.1:1/engine-rest" } },
+      { ENGINE_DEFAULT: "c8" },
+    ))
+  })
+
+  afterAll(async () => {
+    await server?.close()
+    await c8?.close()
+  })
+
+  it("classifies every tool and feed of the admin golden: 4 serve, 1 reads no engine, 58 offer only the Camunda 7 engine", () => {
+    expect(tools.map(({ name }) => name).sort()).toEqual(goldenNames().sort())
+    const refusing = tools.filter(isRefusing)
+    expect(refusing).toHaveLength(58)
+    expect(refusing.filter(isModelVisible)).toHaveLength(45)
+    expect(refusing.filter((tool) => !isModelVisible(tool))).toHaveLength(13)
+    expect(refusing.map((tool) => [tool.name, offered(tool)])).toEqual(
+      refusing.map(({ name }) => [name, [SHOP]]),
+    )
+    const served = (name: string) => offered(tools.find((tool) => tool.name === name)!)
+    expect(served("engine_bpmn_xml_data")).toEqual(["c8", SHOP])
+    // The cockpit's `engine` names where its routes of one engine read; the board takes none.
+    expect(served("engine_open_cockpit")).toEqual([SHOP])
+  })
+
+  it("refuses each without `engine`, on the default, with arguments valid by its schema, and nothing reaches the cluster", async () => {
+    const answers: string[] = []
+    for (const tool of tools.filter(isRefusing)) {
+      const args = { ...requiredOf(tool.inputSchema), ...OVERRIDES[tool.name] }
+      const result = await server.client.callTool({ name: tool.name, arguments: args })
+      const text = textOf(result)
+      answers.push(
+        result.isError === true && text === REFUSAL ? "refused" : `${tool.name}: ${text}`,
+      )
+    }
+    expect(answers.filter((answer) => answer !== "refused")).toEqual([])
+    expect(c8.sent()).toEqual([])
+  })
+
+  it("refuses each engine view of the cockpit on the default, and opens the picker without a view", async () => {
+    for (const [view, ids] of Object.entries(ENGINE_VIEWS)) {
+      const result = await server.client.callTool({
+        name: "engine_open_cockpit",
+        arguments: { view, ...ids },
+      })
+      expect([view, result.isError, textOf(result)]).toEqual([view, true, REFUSAL])
+    }
+    const picker = await server.client.callTool({ name: "engine_open_cockpit", arguments: {} })
+    expect(picker.isError).not.toBe(true)
+    expect(picker.structuredContent).toMatchObject({ engineId: null, start: null })
+    expect(c8.sent()).toEqual([])
+  })
+
+  it("a call that names it anyway fails its input schema, before the net", async () => {
+    const result = await server.client.callTool({
+      name: "engine_list_process_instances",
+      arguments: { engine: "c8" },
+    })
+    expect(result.isError).toBe(true)
+    expect(textOf(result)).toContain(
+      `Invalid arguments for tool engine_list_process_instances: engine: Invalid input: expected "${SHOP}"`,
+    )
+    expect(c8.sent()).toEqual([])
   })
 })

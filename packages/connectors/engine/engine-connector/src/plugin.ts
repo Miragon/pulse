@@ -1,8 +1,16 @@
-import { createToolRegistrar, type ModulePlugin } from "@miragon/pulse-widget-shell/server"
+import {
+  createToolRegistrar,
+  type ModulePlugin,
+  type ToolRegistrar,
+} from "@miragon/pulse-widget-shell/server"
 import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-c7-core"
 import { providerForEntry } from "./providers/index.js"
 import { registerTools } from "./tools/index.js"
-import { registerIncidentIssuePrompt, registerIncidentIssueTools } from "./tools/incident-issue.js"
+import {
+  ENGINE_FORMAT_INCIDENT_ISSUE,
+  registerIncidentIssuePrompt,
+  registerIncidentIssueTools,
+} from "./tools/incident-issue.js"
 import { registerEngineTools } from "./tools/engines.js"
 import { registerWidgetTools } from "./widget-tools.js"
 import type { BoardFiles } from "./board-files.js"
@@ -13,8 +21,7 @@ import {
   type RefusedProfile,
 } from "./lib/engine/resolve-engine.js"
 import { resolveEngineToolset, withToolsetFilter } from "./lib/mcp/toolsets.js"
-import { withEngineParam } from "./lib/engine/with-engine.js"
-import { withReadOnlyEngines } from "./lib/engine/read-only.js"
+import { withServedEngines } from "./lib/engine/served-engines.js"
 import { contractRuntimeOf } from "./lib/engine/engine-runtime.js"
 
 export interface EnginePluginConfig {
@@ -99,19 +106,29 @@ export function createPlugin(
   return {
     name: "engine",
     register(server) {
-      // A write that its toolset registers still fails on an engine whose profile is readOnly.
-      const register = withEngineParam(
-        withReadOnlyEngines(withToolsetFilter(createToolRegistrar(server, registry), toolset)),
-        registry.engineIds,
-      )
+      // Every tool the registrar registers, so a widget's write button names only those.
+      const registered = new Set<string>()
+      const registrar = createToolRegistrar(server, registry)
+      const recorded: ToolRegistrar<EngineRegistry> = (tool) => {
+        registered.add(tool.name)
+        registrar(tool)
+      }
+      // A tool registers where its toolset holds it and a configured engine serves it (a write
+      // only where one is writable), its `engine` enum offers those, and a call to another fails
+      // before its handler runs.
+      const register = withServedEngines(withToolsetFilter(recorded, toolset), registry)
       registerEngineTools(register, healthThresholds, config.boards)
       // Deployments are opt-in on top of `admin` (code execution in the JVM).
       registerTools(register, { allowDeployments: config.allowDeployments })
       registerIncidentIssueTools(register, incidentIssueConfig)
-      registerIncidentIssuePrompt(server, incidentIssueConfig)
+      // The prompt drafts through engine_format_incident_issue: where that tool is, it is.
+      if (registered.has(ENGINE_FORMAT_INCIDENT_ISSUE)) {
+        registerIncidentIssuePrompt(server, incidentIssueConfig)
+      }
       registerWidgetTools(server, registry, {
         healthThresholds,
         toolset,
+        registered,
         ...(config.boards ? { boards: config.boards } : {}),
       })
     },
