@@ -75,10 +75,18 @@ reads and gives one failure the same kind.
   would), and the world's seed to a fake of its port (`test/testing/seed-world.test.ts`); the
   adapter's `test/rest/camunda-http.test.ts` holds its wire to the same port and the copied
   reasons and troubles equal to the transport's.
+- Its rules are mutation-tested every night in the repository (StrykerJS over `src/mapping`,
+  `src/reading/instance-filters.ts`, `src/reading/version-floor.ts` and `src/c8-failures.ts`
+  against the package's own tests; owner decision 2026-11-17): how the cluster's answers map onto
+  the contract's read models, the contract's instance filters as the cluster's, the version floor
+  and the kind of every failure, which the C8 adapter and the MCP server both run, so a surviving
+  mutant is a wrong answer on every surface. The REST client, the readers and `src/testing` (the
+  recorded board, the world and its seed) are not mutated.
 
 ```sh
 pnpm --filter @miragon/pulse-c8-core test   # the runtime, its failures, the readers, the mappings and the views, coverage floors
 pnpm --filter @miragon/pulse-c8-core build  # dist, which the C8 adapter's tests and bundles read
+pnpm --fail-if-no-match --filter @miragon/pulse-c8-core exec stryker run  # the mutation run (--mutate <file> narrows it)
 ```
 
 ## Testing helpers

@@ -40,6 +40,7 @@ export const DEFAULT_PROJECT_FILES = [
   "packages/connectors/c7/c7-core/vitest.config.ts",
   "packages/connectors/c7/c7-core/vitest.stryker.config.ts",
   "packages/connectors/c8/c8-core/vitest.config.ts",
+  "packages/connectors/c8/c8-core/vitest.stryker.config.ts",
   "packages/connectors/engine/engine-connector/vitest.config.ts",
   "packages/connectors/engine/engine-connector/vitest.engines.config.ts",
   "packages/connectors/engine/engine-core/vitest.config.ts",

@@ -136,9 +136,12 @@ repository's CI (`.github/workflows/ci.yml`) next to the server's.
   (`packages/connectors/engine/engine-core/src/model/root-causes.ts`, `value-kinds.ts` and
   `move-reasons.ts`, its only mutated files; owner decision 2026-11-09),
   `@miragon/pulse-profile`, the profile format the host kit's connections read (owner decision
-  2026-11-07), and `@miragon/pulse-board`, the board format the Boards view reads and the builder
+  2026-11-07), `@miragon/pulse-board`, the board format the Boards view reads and the builder
   whose model the runtime view renders (its `src/format` and `src/builder`; owner decision
-  2026-11-15).
+  2026-11-15), the web app's server rules of `@miragon/pulse-widget-shell`, which the extension
+  does not bundle (owner decisions 2026-11-16 and 2026-11-17), and the rules of
+  `@miragon/pulse-c8-core`, whose mappings, instance filters, version floor and failure kinds the
+  C8 adapter runs (owner decision 2026-11-17).
 - Thresholds sit below the measured baseline: coverage lines/statements/functions/branches globally
   in the runtime view 96/96/95/90 (the measured values rounded down since 2026-11-12, when the
   connection builder got its test and its CLI) and its host kit 75/76/75/78 (the measured values

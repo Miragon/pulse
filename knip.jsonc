@@ -105,6 +105,12 @@
       },
     },
 
+    "packages/connectors/c8/c8-core": {
+      "vitest": {
+        "config": ["vitest.config.ts", "vitest.stryker.config.ts"],
+      },
+    },
+
     "packages/connectors/engine/engine-core": {
       "vitest": {
         "config": ["vitest.config.ts", "vitest.stryker.config.ts"],

@@ -112,6 +112,13 @@ export const MUTATED_PACKAGES = {
     "session's opening and refusal, the sign-out, the session route) guard every session and " +
     "every call of the web app, so a surviving mutant there is a security hole; only those " +
     "twelve files are mutated, not the boot, the view runtime or the other routes",
+  "packages/connectors/c8/c8-core":
+    "owner decision 2026-11-17: c8-core's rules decide the kind of every Camunda 8 failure, the " +
+    "version floor, the instance filters and how the cluster's answers map onto the contract's " +
+    "read models, which the editor hosts and the MCP server read Camunda 8 through, so a " +
+    "surviving mutant is a wrong answer on every surface; only src/mapping, the instance " +
+    "filters, the version floor and the failure kinds are mutated, not the REST client, the " +
+    "readers or src/testing",
 }
 
 /** The one path the CI mutation artifact and scripts/fitness-report.mjs read. */

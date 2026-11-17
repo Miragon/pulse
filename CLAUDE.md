@@ -1436,7 +1436,7 @@ workspace (its header lists each check).
 | `pnpm typecheck`  | **The only check that type-checks widget code**: `tsc -p tsconfig.widgets.json` in the engine connector and widget-shell (its view half), `tsc -p tsconfig.ui.json` (and `tsconfig.test.json`) in the server app; the runtime view per layer (`packages/core/runtime-view/tsconfig.<layer>.json`), the editor hosts per part, each with that part's runtime globals only                                                                                                                                                                                                                                                                                                                                                                                       |
 | `pnpm test`       | Vitest unit tests, the server app's wire-contract tests and tools/list goldens (in-process boot, loopback HTTP), the engine output goldens (the CLI, the MCP server) and the error-path goldens (those two, the MCP server's on a Camunda 8 engine too, the C7 and C8 adapters of the editors), the architecture tests of the editor hosts and the packages they share, the per-package coverage floors, then `node --test` over `scripts/*.test.mjs` (repo guards and gate self-tests, below the table); docs-refs, old-names and `lint:package-scripts` also run in Lint + Format; **no widget rendering** (the runtime view's webview tests render in Chromium; locally once: `pnpm --filter @miragon/pulse-runtime-view exec playwright install chromium`) |
 | `pnpm lint`       | The build-free gates first (`lint:naming`, `lint:package-scripts`, `lint:github`, `lint:ratchets`, which needs `git fetch origin`), then ESLint per package incl. the pattern gates, dependency-cruiser (`lint:architecture`, `:cli`, `:vscode`, `:runtime-view`, `:c7-adapter`, `:c8-adapter`, `:orca`) and knip (`lint:deadcode`: everything but exports and types; `:exports`: exports and types in every workspace but the vendored docs kit), and last `lint:configs` (the config files no tsconfig holds and no package lints: `DEFAULT_PROJECT_FILES` in `eslint.config.mjs`)                                                                                                                                                                           |
-| `pnpm fitness`    | Report: architecture graph, per-package coverage and the mutation scores of c7-core, the transport, engine-core's rules, the profile format, the board package and widget-shell's web app rules; locally after `pnpm test` (no CI job on a pull request), else the "Mutation summary" job of `.github/workflows/mutation-nightly.yml`                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `pnpm fitness`    | Report: architecture graph, per-package coverage and the mutation scores of c7-core, the transport, engine-core's rules, the profile format, the board package, widget-shell's web app rules and c8-core's rules; locally after `pnpm test` (no CI job on a pull request), else the "Mutation summary" job of `.github/workflows/mutation-nightly.yml`                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `./gradlew build` | The playground engine (`playground/cibseven-example/`): Kotlin compile + unit tests of its processes; CI "CIB Seven Example (Build + Test)", in `pnpm check:all`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | `test:host`       | `pnpm --filter @miragon/pulse-mcp-server test:host`: Playwright host simulation of the **built** widget bundle behind a SEP-1865 host shim, the real `engine_open_cockpit` against a stub engine and, in a composition of its own, a loopback Camunda 8 cluster beside it (`test-host/camunda8.spec.ts`: the landing and the gate read nothing of it, its board's tiles and Zeebe diagram) (`pinned …` scenarios are known defects, flipped when fixed); CI "Widget host simulation (test:host)"; run it for changes to widget-shell, pulse-ui, `src/ui/` or the `@modelcontextprotocol/ext-apps` pin                                                                                                                                                          |
 | `test:web`        | `pnpm --filter @miragon/pulse-mcp-server test:web`: Playwright in Chromium against the **built** web app (`apps/web/dist` through `MCP_WEB_DIR`) on the real `createApp` under OAuth with fake identity providers and test:host's stub engine and Camunda 8 cluster (a board over both, the gate): the sign-in, the sign-out, the token's renewal and its refusal, the session's cookies, no token in the browser, CSRF, open redirect, session fixation, the cockpit on the page, its script compressed, German, dark, 320 px, axe (`apps/mcp-server/test-host/web`); CI "Web app (test:web)", in `pnpm check:all`; run it for changes to the web app, widget-shell's `src/web` or the page root                                                              |
@@ -1474,8 +1474,9 @@ host simulation renders one real view, not every widget's data path).
 each against the merge base with `origin/main`, and its header lists them: coverage floors in
 each `vitest.config.ts` rise (raise one when you better a file); a `stryker.config.json`'s
 `mutate` allowlist (the tested surface; today c7-core's, the transport's, engine-core's three
-rule files, the profile format's, the board package's format and builder and widget-shell's eight
-web app rule files) grows and its `thresholds.break` rises; the ESLint budgets
+rule files, the profile format's, the board package's format and builder, widget-shell's twelve
+web app rule files and c8-core's mappings, instance filters, version floor and failure kinds)
+grows and its `thresholds.break` rises; the ESLint budgets
 (complexity 15 and 400 lines; the CLI, the editor hosts and their packages 10 and 300), knip ignores (each
 with its reason), the char and bundle budgets (Contracts) and inline suppressions only shrink;
 gate commands stay as they are; a second config that would shadow a ratcheted one fails. The one
@@ -1497,12 +1498,13 @@ emitted JavaScript as a side-effect import, so ESLint refuses it
 which reports a namespace import that only types use (`scripts/eslint-gates.test.mjs`).
 
 **Mutation testing covers `@miragon/pulse-c7-core`, `@miragon/pulse-http`, the rules of
-`@miragon/pulse-engine-core`, `@miragon/pulse-profile`, `@miragon/pulse-board` and the web
-app's server rules of `@miragon/pulse-widget-shell`** (owner decisions: c7-core, engine-core until
-0.27, 2026-11-04; the profile format 2026-11-07; the transport 2026-11-08; engine-core's rules
-2026-11-09; the board format and its builder 2026-11-15; the web sign-in's rules 2026-11-16, the
-forward, the renewal, the build's files and the security headers with them later that day, the
-sessions signed out, the session's refusal, the sign-out and the session route 2026-11-17).
+`@miragon/pulse-engine-core`, `@miragon/pulse-profile`, `@miragon/pulse-board`, the web
+app's server rules of `@miragon/pulse-widget-shell` and the rules of `@miragon/pulse-c8-core`**
+(owner decisions: c7-core, engine-core until 0.27, 2026-11-04; the profile format 2026-11-07; the
+transport 2026-11-08; engine-core's rules 2026-11-09; the board format and its builder 2026-11-15;
+the web sign-in's rules 2026-11-16, the forward, the renewal, the build's files and the security
+headers with them later that day, the sessions signed out, the session's refusal, the sign-out and
+the session route 2026-11-17; c8-core's rules 2026-11-17).
 c7-core holds the pure engine rules of the Camunda 7 REST family and, under
 `./runtime`, the reads of the engine contract, the transport the wire rules the CLI, the MCP server
 and the editor hosts share and the OAuth client protocol of every surface (`/oauth`), and the
@@ -1524,14 +1526,19 @@ mutated files, run by `src/web`'s suites alone) seal the web app's session and l
 its return path on the app, check a page's request for CSRF, admit a page's call only to a read a
 view calls, renew the session's token, serve the build's files in their encodings, set the headers
 of every answer under `/app`, refuse a signed-out session and revoke its refresh token, end a
-session at the sign-out and answer a page what its session holds. A surviving mutant there is a
-wrong rule everywhere it runs; in every other package a full run costs more than it finds. A
-package joins only by an owner decision, as an entry in `MUTATED_PACKAGES`
+session at the sign-out and answer a page what its session holds; c8-core's rules
+(`packages/connectors/c8/c8-core/src/mapping`, `src/reading/instance-filters.ts`,
+`src/reading/version-floor.ts` and `src/c8-failures.ts`, never its REST client, its readers or
+`src/testing`) map a Camunda 8 cluster's answers onto the contract's read models, turn the
+contract's instance filters into the cluster's, refuse a cluster below 8.9 and decide the kind of
+every failure, for the C8 adapter of the editor hosts and the MCP server alike. A surviving mutant
+there is a wrong rule everywhere it runs; in every other package a full run costs more than it
+finds. A package joins only by an owner decision, as an entry in `MUTATED_PACKAGES`
 (`scripts/check-package-scripts.mjs`). It runs nightly
 (`.github/workflows/mutation-nightly.yml`), never on a pull request (owner decision); a pause flips
 `scripts/mutation-pause.mjs` and drops the schedule. Locally:
 `pnpm --fail-if-no-match --filter @miragon/pulse-c7-core exec stryker run`, the same with
 `@miragon/pulse-http`, `@miragon/pulse-engine-core`, `@miragon/pulse-profile`,
-`@miragon/pulse-board` and `@miragon/pulse-widget-shell` (`--mutate <file>` narrows it), with
-each package's `vitest.stryker.config.ts`: coverage off, since a threshold failure would read
-as a killed mutant.
+`@miragon/pulse-board`, `@miragon/pulse-widget-shell` and `@miragon/pulse-c8-core`
+(`--mutate <file>` narrows it), with each package's `vitest.stryker.config.ts`: coverage off, since
+a threshold failure would read as a killed mutant.

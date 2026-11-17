@@ -31,9 +31,20 @@ describe("the version floor", () => {
     expect(await floorOf(version).floor.checked()).toBe(version)
   })
 
-  test("leaves a version it cannot read to the cluster", async () => {
-    expect(await floorOf("main-SNAPSHOT").floor.checked()).toBe("main-SNAPSHOT")
+  test("reads every digit of the major and the minor as one number", async () => {
+    await expect(floorOf("08.8.1").floor.checked()).rejects.toMatchObject({
+      failure: "misconfigured",
+      message: "Pulse reads Camunda 8.9 or newer. This cluster runs 08.8.1.",
+    })
+    expect(await floorOf("8.09.0").floor.checked()).toBe("8.09.0")
   })
+
+  test.each(["main-SNAPSHOT", "v8.8.0"])(
+    "leaves a version it cannot read from its start, %s, to the cluster",
+    async (version) => {
+      expect(await floorOf(version).floor.checked()).toBe(version)
+    },
+  )
 
   test("asks again after a failure, so a fixed URL works without a reload", async () => {
     const { camunda, client } = clientWith([])

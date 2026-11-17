@@ -65,8 +65,8 @@ describe("the instance search", () => {
     ])
   })
 
-  test("maps an instance and every state", async () => {
-    const { instances } = readerWith([
+  test("maps an instance and every state, and asks for ended ones by their end date", async () => {
+    const { camunda, instances } = readerWith([
       {
         route: "POST /process-instances/search",
         answer: page([
@@ -87,6 +87,9 @@ describe("the instance search", () => {
 
     const { items } = await instances.search({ lifecycle: "ended" }, { limit: 50 })
 
+    expect(camunda.bodiesOf("POST /process-instances/search")[0]).toMatchObject({
+      filter: { endDate: { $exists: true } },
+    })
     expect(items[0]).toEqual({
       id: "1",
       definition: { id: "100", bpmnProcessId: "order", version: 1, name: "Order" },
@@ -198,6 +201,8 @@ describe("the instance search", () => {
 
     await expect(instances.search({ variables }, { limit: 1 })).rejects.toMatchObject({
       failure: "unsupported",
+      message:
+        "Camunda 8 compares variables as text, so it cannot filter by greater than, less than or a date.",
     })
     await expect(instances.count({ variables })).rejects.toMatchObject({
       failure: "unsupported",
@@ -205,13 +210,15 @@ describe("the instance search", () => {
     expect(camunda.requests).toEqual([])
   })
 
-  test("sends no variable filter for an empty list of conditions", async () => {
+  test("sends no variable filter for an empty list of conditions and no field it was not given", async () => {
     const { camunda, instances } = readerWith([
       { route: "POST /process-instances/search", answer: page([]) },
     ])
 
     await instances.count({ variables: [] })
 
-    expect(camunda.bodiesOf("POST /process-instances/search")[0]).toMatchObject({ filter: {} })
+    expect(camunda.bodiesOf("POST /process-instances/search")).toStrictEqual([
+      expect.objectContaining({ filter: {} }),
+    ])
   })
 })

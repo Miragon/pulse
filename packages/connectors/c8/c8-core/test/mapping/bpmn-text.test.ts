@@ -68,10 +68,10 @@ describe("the BPMN text reader", () => {
     </bpmn:callActivity>
     <bpmn:intermediateCatchEvent id='Wait'><bpmn:timerEventDefinition /></bpmn:intermediateCatchEvent>`)
 
-    expect(BpmnText.callActivities(xml)).toEqual([
+    expect(BpmnText.callActivities(xml)).toStrictEqual([
       { elementId: "Call", processId: "label", binding: "versionTag", versionTag: "v1" },
     ])
-    expect(BpmnText.containers(xml)).toEqual([{ elementId: "Call", callsProcess: true }])
+    expect(BpmnText.containers(xml)).toStrictEqual([{ elementId: "Call", callsProcess: true }])
     expect(BpmnText.catchKind(xml, "Wait")).toBe("timer")
   })
 
@@ -87,6 +87,7 @@ describe("the BPMN text reader", () => {
   test.each([
     ["&lt;&gt;&quot;&apos;&amp;", `<>"'&`],
     ["&#x10400;", String.fromCodePoint(0x10400)],
+    ["&#x10FFFF;", String.fromCodePoint(0x10ffff)],
     ["&amp;#38;", "&#38;"],
     ["&nbsp; &#x110000; &#X41; &#;", "&nbsp; &#x110000; &#X41; &#;"],
     ["a\r\n\tb&#10;c", "a  b\nc"],
@@ -143,7 +144,7 @@ describe("the BPMN text reader", () => {
     </bpmn:callActivity>`)
 
     expect(BpmnText.catchKind(xml, "Wait")).toBe("signal")
-    expect(BpmnText.callActivities(xml)).toEqual([
+    expect(BpmnText.callActivities(xml)).toStrictEqual([
       { elementId: "Call", processId: "label", binding: "latest" },
     ])
   })
@@ -170,11 +171,32 @@ describe("the BPMN text reader", () => {
         <zeebe:calledElement processId = 'label' />
       </bpmn:extensionElements>
     </bpmn:callActivity >
+    <bpmn:intermediateCatchEvent id="Wait">
+      <bpmn:timerEventDefinition />
+    </bpmn:intermediateCatchEvent
+    >
     <bpmn:receiveTask id="After" />`)
 
-    expect(BpmnText.callActivities(xml)).toEqual([
+    expect(BpmnText.callActivities(xml)).toStrictEqual([
       { elementId: "Spaced", processId: "label", binding: "latest" },
     ])
+    expect(BpmnText.catchKind(xml, "Wait")).toBe("timer")
+  })
+
+  test("reads elements without a prefix, in a default namespace, like prefixed ones", () => {
+    const xml = definitions(`<callActivity id="Call">
+      <extensionElements>
+        <calledElement xmlns="http://camunda.org/schema/zeebe/1.0" processId="label" />
+      </extensionElements>
+    </callActivity>
+    <intermediateCatchEvent id="Timer"><timerEventDefinition /></intermediateCatchEvent>
+    <boundaryEvent id="Signal" attachedToRef="Call"><signalEventDefinition /></boundaryEvent>`)
+
+    expect(BpmnText.callActivities(xml)).toStrictEqual([
+      { elementId: "Call", processId: "label", binding: "latest" },
+    ])
+    expect(BpmnText.catchKind(xml, "Timer")).toBe("timer")
+    expect(BpmnText.catchKind(xml, "Signal")).toBe("signal")
   })
 
   test("names every container of the diagram with an id, and which of them calls a process", () => {
@@ -195,7 +217,7 @@ describe("the BPMN text reader", () => {
       `<bpmndi:BPMNShape id="Shape_PackOrder" bpmnElement="Activity_PackOrder" isExpanded="true" />`,
     )
 
-    expect(BpmnText.containers(xml)).toEqual([
+    expect(BpmnText.containers(xml)).toStrictEqual([
       { elementId: "Activity_ShipOrder", callsProcess: false },
       { elementId: "Activity_PackOrder", callsProcess: false },
       { elementId: "Activity_OnCancel", callsProcess: false },
@@ -203,7 +225,7 @@ describe("the BPMN text reader", () => {
       { elementId: "Activity_Payment", callsProcess: false },
       { elementId: "Activity_Label", callsProcess: true },
     ])
-    expect(BpmnText.callActivities(xml)).toEqual([
+    expect(BpmnText.callActivities(xml)).toStrictEqual([
       { elementId: "Activity_Label", binding: "latest" },
     ])
   })

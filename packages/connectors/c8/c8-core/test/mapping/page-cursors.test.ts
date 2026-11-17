@@ -8,17 +8,20 @@ describe("the page cursors", () => {
 
     expect(cursor).toBe("50:WzE3MzA4MDAwMDAwMDAsIjIyNTE3OTk4MTM2ODU2MDAiXQ==:x")
     expect(PageCursors.seenBefore(cursor)).toBe(50)
-    expect(PageCursors.windowOf(25, cursor)).toEqual({
+    expect(PageCursors.windowOf(25, cursor)).toStrictEqual({
       limit: 25,
       after: "WzE3MzA4MDAwMDAwMDAsIjIyNTE3OTk4MTM2ODU2MDAiXQ==:x",
     })
   })
 
-  test.each([[undefined], [PageCursor("ORD-1")], [PageCursor("12:")]])(
-    "start at the first page for %j",
-    (cursor) => {
-      expect(PageCursors.seenBefore(cursor)).toBe(0)
-      expect(PageCursors.windowOf(25, cursor)).toEqual({ limit: 25 })
-    },
-  )
+  test.each([
+    [undefined],
+    [PageCursor("ORD-1")],
+    [PageCursor("12:")],
+    [PageCursor("x12:a")],
+    [PageCursor("12:a\nb")],
+  ])("start at the first page for %j", (cursor) => {
+    expect(PageCursors.seenBefore(cursor)).toBe(0)
+    expect(PageCursors.windowOf(25, cursor)).toStrictEqual({ limit: 25 })
+  })
 })
