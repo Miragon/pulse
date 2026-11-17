@@ -482,6 +482,9 @@ importers:
         specifier: 2.0.0
         version: 2.0.0(moddle@8.2.1)
     devDependencies:
+      '@miragon/pulse-board':
+        specifier: workspace:*
+        version: link:../../../core/board
       '@types/node':
         specifier: 22.20.5
         version: 22.20.5

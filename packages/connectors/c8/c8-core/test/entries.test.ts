@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import * as core from "../src/index.js"
+import * as testing from "../src/testing/index.js"
 
 describe("the @miragon/pulse-c8-core entry", () => {
   it("exports exactly the runtime, the rule of its failures and the REST client it is built on", () => {
@@ -9,5 +10,11 @@ describe("the @miragon/pulse-c8-core entry", () => {
       "RestCamundaClient",
       "UnexpectedAnswerError",
     ])
+  })
+})
+
+describe("the @miragon/pulse-c8-core/testing entry", () => {
+  it("exports exactly the recorded board engine", () => {
+    expect(Object.keys(testing).sort()).toStrictEqual(["C8_BOARD_ENGINE"])
   })
 })

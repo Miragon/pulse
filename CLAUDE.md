@@ -767,7 +767,11 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      (`packages/connectors/engine/engine-connector/src/widgets/board/board-view.numbers.test.tsx`),
      and the board cases of both engine suites on a live engine
      (`packages/connectors/engine/engine-connector/src/lib/core-adapter/c7-runtime.engine.test.ts`,
-     `packages/connectors/c7/c7-adapter/test/c7-conformance.engine.test.ts`).
+     `packages/connectors/c7/c7-adapter/test/c7-conformance.engine.test.ts`). Camunda 8 has its
+     own: c8-core's recorded answers with the board they give (`C8_BOARD_ENGINE`, the diagram's
+     XML a recorded text), which the C8 adapter over its wire must build exactly and whose numbers
+     are the conformance kit's fake world's, as the C7 board's are
+     (`packages/connectors/c8/c8-adapter/test/c8-board-numbers.test.ts`).
    - **Locale on the server.** Tool results for the model are English only (the engine module's
      cockpit facts are JSON keys); a
      verdict travels as data and the widget words it in the host's language. The server never

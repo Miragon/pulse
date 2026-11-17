@@ -181,8 +181,8 @@ export async function startCaseEngine(kase: TransportCase): Promise<CaseEngine> 
   return listening(http.createServer(handler), "http", seen, timers)
 }
 
-/** An answer of an engine as recorded: the request it answered and the JSON it answered with. */
-export interface RecordedAnswer {
+/** A request as recorded: what it asks, which the recorded engine matches a request by. */
+interface RecordedRequest {
   readonly method: string
   /** The request's path, decoded: `/engine-rest/process-definition/a:1/xml`. */
   readonly path: string
@@ -190,9 +190,26 @@ export interface RecordedAnswer {
   readonly query?: Readonly<Record<string, string>>
   /** The request's JSON body; a request matches with the keys of its objects in any order. */
   readonly body?: unknown
-  /** The JSON the engine answered with, which the recorded engine sends with status 200. */
-  readonly answer: unknown
 }
+
+/**
+ * An answer of an engine as recorded: the request it answered and the JSON it answered with, or
+ * the text it answered with and that text's content type, for an answer that is no JSON (a
+ * diagram's XML, as Camunda 8 serves it). The recorded engine sends either with status 200.
+ */
+export type RecordedAnswer = RecordedRequest &
+  (
+    | {
+        /** The JSON the engine answered with. */
+        readonly answer: unknown
+      }
+    | {
+        /** The text the engine answered with, sent as it is. */
+        readonly text: string
+        /** The content type the engine answered the text with: `text/xml`. */
+        readonly contentType: string
+      }
+  )
 
 export interface RecordedEngine extends CaseEngine {
   /** The requests no recorded answer matched, each answered with a 500 that names it. */
@@ -241,7 +258,7 @@ function canonicalBody(body: string): string | undefined {
   }
 }
 
-function recordedKey({ method, path, query = {}, body }: RecordedAnswer): string {
+function recordedKey({ method, path, query = {}, body }: RecordedRequest): string {
   const recordedBody = body === undefined ? undefined : canonical(body)
   return requestKey(method, path, Object.entries(query), recordedBody)
 }
@@ -249,6 +266,15 @@ function recordedKey({ method, path, query = {}, body }: RecordedAnswer): string
 function seenKey({ method, target, body }: Seen): string {
   const url = new URL(target, "http://loopback")
   return requestKey(method, decodedPath(url.pathname), [...url.searchParams], canonicalBody(body))
+}
+
+/** The 200 of a recorded answer: its text with its content type, else its JSON. */
+function replyOf(recorded: RecordedAnswer): CaseAnswer {
+  if ("text" in recorded) {
+    return { status: 200, headers: { "Content-Type": recorded.contentType }, body: recorded.text }
+  }
+  const json = { "Content-Type": "application/json" }
+  return { status: 200, headers: json, body: JSON.stringify(recorded.answer) }
 }
 
 /** The 500 of a request no recorded answer matched, naming it. */
@@ -263,24 +289,24 @@ function unrecorded({ method, target, body }: Seen): CaseAnswer {
 /**
  * An engine that replays `answers`: each request gets the answer recorded for its method, its
  * decoded path, its query as a set of parameters and its JSON body, so a client may send its
- * requests in any order and encode them its own way. A request no answer matches gets a 500 that
- * names it and is listed in `unanswered`.
+ * requests in any order and encode them its own way: the recorded JSON, or the recorded text with
+ * its content type. A request no answer matches gets a 500 that names it and is listed in
+ * `unanswered`.
  */
 export async function startRecordedEngine(
   answers: readonly RecordedAnswer[],
 ): Promise<RecordedEngine> {
-  const replies = new Map(answers.map((recorded) => [recordedKey(recorded), recorded.answer]))
+  const replies = new Map(answers.map((recorded) => [recordedKey(recorded), replyOf(recorded)]))
   const seen: Seen[] = []
   const unanswered: Seen[] = []
   const timers = new Set<NodeJS.Timeout>()
   const reply = (request: Seen): CaseAnswer => {
-    const key = seenKey(request)
-    if (!replies.has(key)) {
+    const recorded = replies.get(seenKey(request))
+    if (recorded === undefined) {
       unanswered.push(request)
       return unrecorded(request)
     }
-    const json = { "Content-Type": "application/json" }
-    return { status: 200, headers: json, body: JSON.stringify(replies.get(key)) }
+    return recorded
   }
   const engine = await listening(
     http.createServer(recording(seen, timers, reply)),

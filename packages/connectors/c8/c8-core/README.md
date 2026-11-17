@@ -77,3 +77,30 @@ reads and gives one failure the same kind.
 pnpm --filter @miragon/pulse-c8-core test   # the runtime, its failures, the readers, the mappings and the views, coverage floors
 pnpm --filter @miragon/pulse-c8-core build  # dist, which the C8 adapter's tests and bundles read
 ```
+
+## Testing helpers
+
+`@miragon/pulse-c8-core/testing` exports `C8_BOARD_ENGINE`, a board and a model: the text of a
+board file over one cluster with every widget and a refused one (its diagram over the process that
+calls another, so its badge counts the incident in the called instance), that cluster's answers to
+the board's reads under `/v2` (`C8RecordedAnswer`: method, decoded path, query and JSON body, and
+the JSON answered, or for the diagram's XML the text with its content type), recorded once from the
+conformance world of `@miragon/pulse-engine-core/testing` on `camunda/camunda:8.10.9` with H2 and
+no security, and the board they give in the JSON form of `@miragon/pulse-board` (`BoardData`). It
+ships here because this package makes the requests: each surface serves the answers to its own wire
+on the transport's recorded engine (`startRecordedEngine` of
+`@miragon/pulse-http/testing/loopback`) and must build exactly that board, so a board shows the same
+numbers on every surface without a cluster; the C8 adapter does
+(`packages/connectors/c8/c8-adapter/test/c8-board-numbers.test.ts`), which also holds the board's
+numbers to those of the kit's fake world, as the recorded Camunda 7 board's are. A request the
+runtime changes misses its answer and is named. No script of the repository records the answers,
+so they are recorded by hand, as they were the first time: start that cluster with the C8
+adapter's `startCluster` (`packages/connectors/c8/c8-adapter/test/support/engine-container.ts`,
+under `PULSE_ENGINE_IMAGE=camunda/camunda:8.10.9`, `PULSE_C8_STORAGE=h2` and
+`PULSE_C8_SECURITY=none`), seed the world with its `seedWorld`
+(`packages/connectors/c8/c8-adapter/test/support/seed-world.ts`), let the C8 adapter build the board
+twice through a proxy in front of the cluster that keeps each request (method, decoded path, query
+and JSON body) with the JSON the cluster answers, or its text and content type for an answer that
+is no JSON, check that both builds give the same board and that a build over the kept answers on
+`startRecordedEngine` gives it too with no request unanswered, and write the board file, the
+answers and that board into `packages/connectors/c8/c8-core/src/testing/board-engine.json`.

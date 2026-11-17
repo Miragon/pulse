@@ -1,7 +1,8 @@
 /**
  * The recorded engine of ./testing/loopback: each request gets the answer recorded for what it
- * asks, over real sockets, whatever the order of its query and of its body's keys, and a request
- * nothing was recorded for gets a 500 that names it.
+ * asks, over real sockets, whatever the order of its query and of its body's keys, as JSON or as
+ * the recorded text with its content type, and a request nothing was recorded for gets a 500 that
+ * names it.
  */
 import { afterEach, describe, expect, it } from "vitest"
 import {
@@ -27,6 +28,12 @@ const ANSWERS: readonly RecordedAnswer[] = [
     path: "/engine-rest/history/process-instance/count",
     body: { processDefinitionKey: "order", sorting: [{ sortBy: "startTime" }], unfinished: true },
     answer: { count: 3 },
+  },
+  {
+    method: "GET",
+    path: "/v2/process-definitions/2251799813685249/xml",
+    text: '<?xml version="1.0" encoding="UTF-8"?>\n<definitions id="order"/>\n',
+    contentType: "text/xml;charset=UTF-8",
   },
 ]
 
@@ -73,6 +80,18 @@ describe("startRecordedEngine", () => {
     )
 
     expect(await answer.json()).toEqual({ count: 3 })
+    expect(engine.unanswered).toEqual([])
+  })
+
+  it("answers a request recorded with a text by that text as it is, its content type and 200", async () => {
+    const engine = await recorded()
+    const xml = await fetch(`${engine.origin}/v2/process-definitions/2251799813685249/xml`)
+
+    expect(xml.status).toBe(200)
+    expect(xml.headers.get("content-type")).toBe("text/xml;charset=UTF-8")
+    expect(await xml.text()).toBe(
+      '<?xml version="1.0" encoding="UTF-8"?>\n<definitions id="order"/>\n',
+    )
     expect(engine.unanswered).toEqual([])
   })
 

@@ -36,6 +36,7 @@
     "zeebe-bpmn-moddle": "2.0.0"
   },
   "devDependencies": {
+    "@miragon/pulse-board": "workspace:*",
     "@types/node": "22.20.5",
     "@vitest/coverage-v8": "5.1.0",
     "testcontainers": "12.2.1",

@@ -41,6 +41,9 @@ at least one engine test, and an engines config that runs every one and switches
 `c8:up` starts the same stack by hand on fixed ports, seeds a small world and prints the engine as
 a profile of `.pulse.json` with its login; `c8:down` removes it.
 
+A board's numbers hold without a cluster too: over c8-core's recorded answers (`C8_BOARD_ENGINE`,
+served by the transport's `startRecordedEngine`) it builds exactly the board the recording
+expects, whose numbers are those of the kit's own world (`test/c8-board-numbers.test.ts`).
 Its wire passes the transport's conformance cases it can express
 (`test/wire/transport-cases.test.ts`), and its error-path goldens (`test/goldens/`) pin what it
 reports for the failures the MCP server, the CLI and the C7 adapter pin, made with a Camunda 8
