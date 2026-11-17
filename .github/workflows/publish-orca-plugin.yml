@@ -156,7 +156,7 @@ jobs:
           owner: Miragon
           repositories: orca-plugins
 
-      - uses: Miragon/orca-plugin-kit/actions/publish-plugin@245eb67fd57c4aeb5c163fce5553be0a27b1311c # v2.0.0
+      - uses: Miragon/orca-plugin-kit/actions/publish-plugin@342bd3cace64773b2502531cd8e12c08baac61a2 # v2.1.0
         with:
           token: ${{ steps.app-token.outputs.token }}
           plugins-dir: orca-plugins
