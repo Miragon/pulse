@@ -54,7 +54,8 @@ engines.
 | `packages/connectors/c7/c7-client/`            | The SDK of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-client`): the REST SDK generated from c7-core's one spec (`src/generated/`), `createEngineClient` over the `fetch` it is handed and the SDK-bound reads (`src/sdk-reads/`); a leaf                                                                                                                                                                                                                                                                 |
 | `packages/connectors/c7/c7-core/`              | The core of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-core`), its workflow domain and pure engine REST rules: port, selection, inspect, status triage, the root cause of an incident (`causeOf`), retry/advance plans, dates, filters, variable writes, the one spec and its routes (`routeOf`, `intentOf`, `./routes`), and in `./runtime` the contract's reads (`C7Runtime`) and their basis (`JsonView`, the id rule `isEngineId`; not in the CLI); one runtime dependency, engine-core's main entry |
 | `packages/connectors/c7/c7-adapter/`           | The C7 adapter of the runtime view (`@miragon/pulse-c7-adapter`, private): its wire, its writes and the words of its failures; its reads (`C7Runtime` and what its commands check) are c7-core's, over the wire; bundled by the editor hosts                                                                                                                                                                                                                                                                               |
-| `packages/connectors/c8/c8-adapter/`           | The C8 adapter of the runtime view (`@miragon/pulse-c8-adapter`, private): Camunda 8 through the Orchestration Cluster REST API, read-only, its wire on the transport with client credentials (`@miragon/pulse-http/oauth`), its REST client with checked views, its reads onto engine-core's read models and its plug `C8Adapter` (the contract's answers, links into Operate); for the editor hosts                                                                                                                      |
+| `packages/connectors/c8/c8-core/`              | The core of the Camunda 8 dialect family c8 (`@miragon/pulse-c8-core`, private until the engine module serves c8): the REST client with its checked views over a transport port that carries fields only (`CamundaTransport`, `CamundaFailure`), the readers of the contract's questions and the mappings onto engine-core's read models; each surface brings its own wire and words; one runtime dependency, engine-core's main entry                                                                                     |
+| `packages/connectors/c8/c8-adapter/`           | The C8 adapter of the runtime view (`@miragon/pulse-c8-adapter`, private): Camunda 8 through the Orchestration Cluster REST API, read-only, its wire on the transport with client credentials (`@miragon/pulse-http/oauth`) behind c8-core's transport port, the words of its failures and its plug `C8Adapter` (the contract's answers over c8-core's readers, links into Operate); for the editor hosts                                                                                                                  |
 | `packages/core/ui/`                            | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the formatters and the tones without React under `/format` and `/tones`, the brand gates under `/testing`                                                                                                                                                                                 |
 | `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, `mountPage`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`) with the web app's sign-in (`src/web`), a module's test server (`/testing`)                                                                                                                                                                                                         |
 | `packages/core/runtime-view/`                  | The runtime view both editor hosts compose (`@miragon/pulse-runtime-view`, private) over the contract of `engine-core`: the ports a host and an engine family plug in, the core, the protocol, the webview (React on `@miragon/pulse-ui`), the local model reader and the host kit (targets from `.pulse.json` and the CLI's user config, policies, the write audit)                                                                                                                                                       |
@@ -78,10 +79,12 @@ Three axes decide where code goes, and they stay apart:
   Camunda 8's Orchestration Cluster REST API): one package family under
   `packages/connectors/<dialect>/`, named for the API family it speaks (`c7`, with its client
   `@miragon/pulse-c7-client`, its core `@miragon/pulse-c7-core` and the runtime view's C7 adapter
-  `@miragon/pulse-c7-adapter`, private; `c8`, with the runtime view's C8 adapter
-  `@miragon/pulse-c8-adapter` alone, private, which the editor hosts read Camunda 8 through and
-  which `ENGINE_DIALECTS` leaves out, since the MCP server serves no second dialect), whose core,
-  where the family has one, implements the contract of the engine family's core. The engine family
+  `@miragon/pulse-c7-adapter`, private; `c8`, with its core `@miragon/pulse-c8-core` and the
+  runtime view's C8 adapter `@miragon/pulse-c8-adapter`, both private, which the editor hosts read
+  Camunda 8 through and which `ENGINE_DIALECTS` leaves out, since the MCP server serves no second
+  dialect yet), whose core implements the contract of the engine family's core (the dialect
+  families `DIALECT_FAMILIES` names in `.dependency-cruiser.cjs`, of which `ENGINE_DIALECTS` is a
+  subset). The engine family
   (`packages/connectors/engine/`) is the neutral layer above the dialects (owner decisions
   2026-11-07, 2026-11-08 and 2026-11-09): ONE MCP server app (`apps/mcp-server`) and ONE module,
   `engine` (`engine-connector`), serve every dialect, the module importing the clients and cores
@@ -136,13 +139,14 @@ engine module of the family `engine` serves it), `<family>-client` (the wire:
 SDK, client, the SDK-bound reads), when the family's interfaces share a pure domain,
 `<family>-core` (no runtime dependency, but a dialect's core imports engine-core's main entry;
 one port per family, the home of the family's pure rules; extracted on its second consumer, like
-`c7-core`, which the CLI bundles and the C7 adapter and the engine connector run) and, when the
+`c7-core`, which the CLI bundles and the C7 adapter and the engine connector run, or ahead of it,
+like `c8-core`, which the C8 adapter runs and the engine module will) and, when the
 editor hosts read a dialect's engines, `<family>-adapter` (the dialect's implementation of the
 engine contract for the runtime view, proven by engine-core's conformance kit on a real engine,
 the C8 adapter's on a local Camunda 8 cluster only, since CI starts no Camunda 8 image until the
 licence question of #531 has an answer; today `c7-adapter`, the C7 adapter, which runs c7-core,
-and `c8-adapter`, the C8 adapter, whose family has no client or core of its own: it sends through
-the transport and its OAuth client).
+and `c8-adapter`, the C8 adapter, which runs c8-core over its own wire on the transport and its
+OAuth client; its family has no client).
 A family's tool input
 schemas live in its connector, next to the tools
 (`packages/connectors/engine/engine-connector/src/schemas/`), so a client carries no zod:
@@ -157,9 +161,10 @@ moves there only when a second dialect needs it in the CLI or the MCP server. It
 a port, read model or rule enters `@miragon/pulse-engine-core` when two dialects answer it with
 the same meaning, proven by the conformance laws on both (what the owner admitted ahead of a
 second dialect, its README lists). It is imported where a dialect is implemented (the `src` of a
-dialect's core, never its `./testing`: c7-core applies the root-cause rule `RootCauses`, and its
-`./runtime` answers the contract's reads in its ids, read models and `RuntimeError`; the src
-of a family's adapter) and where the runtime view reads the contract's answers (owner decision
+dialect's core, a family `DIALECT_FAMILIES` names, never its `./testing`: c7-core applies the
+root-cause rule `RootCauses`, and its `./runtime` answers the contract's reads in its ids, read
+models and `RuntimeError`; c8-core's readers map onto its read models; the src of a family's
+adapter) and where the runtime view reads the contract's answers (owner decision
 2026-11-09 on #585: the runtime view's contract layer became engine-core, the one home of the
 contract): the runtime view's layers that speak it (`src/ports`, `src/core`, `src/model`,
 `src/host-kit`, never its webview) and the editor hosts' src, which name its ids
@@ -1008,7 +1013,7 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      engine family's core (`@miragon/pulse-engine-core`,
      `packages/connectors/engine/engine-core`) is a family core like any other, importing only its
      own modules (`family-core-is-a-leaf`), and is imported only where a dialect is implemented,
-     the `src` of a dialect's core (`ENGINE_DIALECTS`, never its `./testing` entry), its main
+     the `src` of a dialect's core (`DIALECT_FAMILIES`, never its `./testing` entry), its main
      entry alone (`family-core-is-a-leaf`; c7-core takes `RootCauses` from it, so the CLI
      bundles it with c7-core and never imports it), and the src of a family's adapter
      (`ENGINE_CORE_IMPLEMENTERS`), where the runtime view reads the contract's answers, its
@@ -1016,8 +1021,8 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      editor hosts' src and the board builder (`ENGINE_CORE_READERS`; the closed worlds and
      `board-builder-builds-on-the-engine-contract` hold them to the main entry, the closed worlds
      their tests and dev harnesses to the package's entries), and by test files and test-support
-     anywhere and the test trees of the runtime view, the adapters and the board package
-     (`ENGINE_CORE_TESTS`), and where the engine connector runs the contract, its `src/lib/engine`,
+     anywhere and the test trees of the runtime view, the adapters, the dialect cores and the
+     board package (`ENGINE_CORE_TESTS`), and where the engine connector runs the contract, its `src/lib/engine`,
      `src/lib/core-adapter` and `src/data` (`ENGINE_CONNECTOR_CONTRACT_READERS`, held to the main
      entry by `engine-connector-contract-by-its-main-entry`);
      never the rest of the engine connector (its view models, widgets, `src/lib/shared`, tools
@@ -1285,8 +1290,8 @@ The release workflows hold the publish credentials and no pull request runs them
 workspace (its header lists each check).
 
 - **One release-please train.** Conventional commits on `main` drive `release-please.yml`: one
-  Release PR (tag `v<version>`) bumps the root, every app, the ten packages, the three private
-  packages of the editor hosts, the Orca plugin's manifest, the template's pins and the
+  Release PR (tag `v<version>`) bumps the root, every app, the ten packages, the four private
+  packages the editor hosts bundle, the Orca plugin's manifest, the template's pins and the
   c7-client User-Agent in lockstep (`extra-files` in `release-please-config.json`, where
   `pnpm lint:github` refuses a `@miragon/pulse-*` pin under `templates/` without its jsonpath).
   Merging it creates the release; every publish job then waits for manual approval of the
@@ -1297,7 +1302,7 @@ workspace (its header lists each check).
   from another repository. The pack job runs `pnpm pack`, which rewrites `workspace:*` (npm's
   own pack would ship it verbatim); the one job that holds `id-token: write` runs no package
   manager. The server app, the two editor hosts and the packages only they bundle (the runtime
-  view, the C7 and C8 adapters) stay private. The `miragon-ai` names
+  view, the C7 and C8 adapters, c8-core until the engine module serves c8) stay private. The `miragon-ai` names
   used up to 0.20.0 are retired, and so is the npm name of engine-client, the c7 family's client
   up to 0.27 (now `@miragon/pulse-c7-client`); never reuse them. `@miragon/pulse-engine-core`
   held the c7 family's rules up to 0.27 (now `@miragon/pulse-c7-core`) and from 0.28 on is the

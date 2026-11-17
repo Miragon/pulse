@@ -6,7 +6,9 @@ contract of `@miragon/pulse-engine-core`. It reads and never writes. Private: th
 (`apps/vscode`, `apps/orca`) bundle it through their composition roots. It is the adapter of the
 c8 family (`adapters-own-their-family` in the repository's `.dependency-cruiser.cjs`) and shares
 no code with the C7 adapter: what both need lives in engine-core, the runtime view's ports and the
-transport.
+transport. The reads themselves are its family's core, `@miragon/pulse-c8-core`
+(`packages/connectors/c8/c8-core`): the REST client with its checked views, the readers and the
+mappings, over a transport port this adapter's wire implements.
 
 Its one export is `C8Adapter`, the plug of the runtime view's ports: `runtime(connection)` gives a
 `C8ProcessRuntime`, which answers the engine contract read-only (no writes, no migration planning,
@@ -16,11 +18,11 @@ into Operate, `bpmn` the vocabulary of Camunda 8's BPMN files (`C8BpmnDialect`, 
 holds the wire (`src/wire`: `CamundaWire` over `@miragon/pulse-http`, 60 s and 64 MiB on a
 read-only connection, none, Basic or a bearer token from `clientCredentialsTokens` of
 `@miragon/pulse-http/oauth`, one token source per cluster and client kept by
-`ClientCredentialsSources`), the REST client with its checked views (`src/rest`), the wording of
-failures (`src/errors`), the readers and the version floor (`src/reading`) and the mappings onto
-the read models of engine-core (`src/mapping`). `CamundaClients` builds a client per connection
-over the adapter's one set of token sources, so a composition root builds the adapter once per
-process. Thomas Heinrichs built the adapter in #543; this package re-lands it on the shared
+`ClientCredentialsSources`), the transport c8-core's REST client sends through (`src/rest`:
+`CamundaHttp`, which implements c8-core's `CamundaTransport` and copies the fields of each
+failure, and `CamundaRequestError`, the wire's error with its words) and the wording of failures
+(`src/errors`). `CamundaClients` builds c8-core's `RestCamundaClient` per connection over the
+adapter's one set of token sources, so a composition root builds the adapter once per process. Thomas Heinrichs built the adapter in #543; this package re-lands it on the shared
 transport.
 
 The conformance kit of the contract (`@miragon/pulse-engine-core/testing`) proves it on a local
@@ -48,7 +50,7 @@ transport, by its main entry and `./oauth`); the decisions behind it are
 `apps/vscode/docs/adr/c8-adapter.md`.
 
 ```sh
-pnpm --filter @miragon/pulse-c8-adapter test   # against a fake REST API and the transport's loopback engine, the goldens, coverage floors
+pnpm --filter @miragon/pulse-c8-adapter test   # the wire against a fake REST API and the transport's loopback engine, the goldens, coverage floors
 pnpm --fail-if-no-match --filter @miragon/pulse-c8-adapter golden:update   # rewrite the error-path goldens (refused in CI)
 pnpm exec turbo run build --filter=@miragon/pulse-c8-adapter...   # once, before the engine suite
 PULSE_ENGINE_IMAGE=camunda/camunda:8.9.28 PULSE_C8_STORAGE=h2 PULSE_C8_SECURITY=oidc \

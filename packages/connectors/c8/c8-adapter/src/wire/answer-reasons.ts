@@ -22,6 +22,8 @@ export class AnswerReasons {
       status: answer.status,
       message: problem === "" ? status : `${status}: ${problem}`,
       title: AnswerReasons.titleOf(answer),
+      detail: problem === "" ? undefined : problem,
+      redirect: false,
       hint: undefined,
       cause,
     }

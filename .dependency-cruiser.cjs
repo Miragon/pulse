@@ -6,27 +6,30 @@
  * Rule comments are written for the (human or AI) contributor who trips them:
  * each says what is forbidden and names the house path to use instead.
  *
- * Layout + naming carry the layer semantics. A family under `packages/connectors/<family>/` is
- * one source the MCP server reads, an engine API family (a dialect; today `c7`, the Camunda 7
- * REST API) or another source (a metrics store, say), or `engine`, the neutral family above the
- * dialects: the one module that serves every dialect and the core every dialect implements. Its
- * packages are named `<family>-<role>` (npm
- * `@miragon/pulse-<family>-<role>`; the naming gate holds the family name), keyed by the role
- * suffix:
+ * Layout + naming carry the layer semantics. A family under `packages/connectors/<family>/` is one
+ * source the MCP server reads, an engine API family (a dialect; today `c7`, the Camunda 7 REST API,
+ * and `c8`, Camunda 8's Orchestration Cluster REST API, which the editor hosts read and the MCP
+ * server does not serve yet) or another source (a metrics store, say), or `engine`, the neutral
+ * family above the dialects: the one module that serves every dialect and the core every dialect
+ * implements. Its packages are named `<family>-<role>` (npm `@miragon/pulse-<family>-<role>`; the
+ * naming gate holds the family name), keyed by the role suffix:
  *   - `<family>-connector`: the MCP module (tools and their input schemas, widget tools,
  *     widgets); a dialect brings none;
  *   - `<family>-client`: its SDK leaf (the generated REST SDK, say; c7-client), which only the
  *     family's connector (for a dialect's client the engine module) and tests import
  *     (client-consumers), never the family's adapter or an app;
- *   - `<family>-core`, when the family's interfaces share a pure domain: a leaf that the
- *     family's connector (for a dialect's core the engine module) and adapter and the interface
- *     apps that bundle it import (c7-core); a dialect's core has one edge out of its own tree,
- *     the main entry of the engine family's core (family-core-is-a-leaf, engine-core-consumers);
- *   - `<family>-adapter`: the family's adapter of the runtime view (packages/core/runtime-view):
- *     it implements the engine contract of engine-core for the editor hosts, which bundle it
- *     (c7-adapter, the C7 adapter, which runs c7-core); it sends through its family's core and
- *     the transport, never through a client (client-consumers; another family's client trips
- *     adapters-own-their-family too, adapter-tests-own-their-family in the adapter's tests).
+ *   - `<family>-core`, when the family's interfaces share a pure domain: a leaf that the family's
+ *     connector (for a dialect's core the engine module) and adapter and the interface apps that
+ *     bundle it import (c7-core; c8-core, which only the C8 adapter imports until the engine module
+ *     serves c8); a dialect's core (a family DIALECT_FAMILIES names) has one edge out of its own
+ *     tree, the main entry of the engine family's core (family-core-is-a-leaf,
+ *     engine-core-consumers);
+ *   - `<family>-adapter`: the family's adapter of the runtime view (packages/core/runtime-view): it
+ *     implements the engine contract of engine-core for the editor hosts, which bundle it
+ *     (c7-adapter, the C7 adapter, which runs c7-core; c8-adapter, the C8 adapter, which runs
+ *     c8-core); it sends through its family's core and the transport, never through a client
+ *     (client-consumers; another family's client trips adapters-own-their-family too,
+ *     adapter-tests-own-their-family in the adapter's tests).
  * The engine family is the neutral layer. Its module
  * (`packages/connectors/engine/engine-connector`) is the one MCP module of every dialect and
  * imports the clients and cores of the dialect families ENGINE_DIALECTS names
@@ -156,6 +159,18 @@ const FAMILY_CLIENT_TREE = "^packages/connectors/[^/]+/[^/]+-client/"
 const ENGINE_CONNECTOR_TREE = "^packages/connectors/engine/engine-connector/"
 const ENGINE_DIALECTS = ["c7"]
 const ENGINE_MODULE_FAMILIES = ["engine", ...ENGINE_DIALECTS]
+
+/**
+ * The dialect families: the engine API families below the engine family, each of which implements
+ * the engine contract in its core or its adapter (c7, Camunda 7's REST API; c8, Camunda 8's
+ * Orchestration Cluster REST API). They key who implements engine-core (ENGINE_CORE_IMPLEMENTERS,
+ * a dialect core's src) and whose core's test tree reads it (ENGINE_CORE_TESTS), so a family
+ * core of another source (a metrics store, say) never imports the contract. A dialect joins here
+ * with its core, before the engine module serves it; ENGINE_DIALECTS, the dialects the engine
+ * module serves, names a subset (the self-test holds that).
+ */
+const DIALECT_FAMILIES = ["c7", "c8"]
+const DIALECT_CORE_TREE = `^packages/connectors/(?:${DIALECT_FAMILIES.join("|")})/[^/]+-core/`
 
 /**
  * The interface apps (or the part of an app) that bundle a family core (tsdown or esbuild inlines
@@ -413,12 +428,12 @@ const ENGINE_CORE = {
 
 /**
  * Where a dialect is implemented, shipped importers of ENGINE_CORE: the src of a dialect's core
- * (a family ENGINE_DIALECTS names), never its ./testing entry (src/testing/, the dialect's
+ * (a family DIALECT_FAMILIES names), never its ./testing entry (src/testing/, the dialect's
  * fixtures, which ship on npm), and the src of a family's adapter of the runtime view, which
  * implements the contract for the editor hosts.
  */
 const ENGINE_CORE_IMPLEMENTERS = [
-  `^packages/connectors/(?:${ENGINE_DIALECTS.join("|")})/[^/]+-core/src/(?!testing/)`,
+  `${DIALECT_CORE_TREE}src/(?!testing/)`,
   `${FAMILY_ADAPTER_TREE}src/`,
 ]
 
@@ -434,7 +449,7 @@ const ENGINE_CORE_IMPLEMENTERS = [
  * reads it in its server layers (ENGINE_CONNECTOR_CONTRACT_READERS, below). The CLI does not
  * until it serves a second dialect (owner decision 2026-11-09): it reaches the contract's rules
  * through c7-core's causeOf. Test files and test-support import it anywhere, the test trees of the
- * runtime view, the adapters and the board package too (ENGINE_CORE_TESTS).
+ * runtime view, the adapters, the dialect cores and the board package too (ENGINE_CORE_TESTS).
  */
 const ENGINE_CORE_READERS = [
   `${RUNTIME_VIEW_TREE}src/(?:ports|core|model|host-kit)/`,
@@ -456,15 +471,16 @@ const ENGINE_CONNECTOR_CONTRACT_READERS = [
 ]
 
 /**
- * The test trees of the packages that run the contract, the runtime view's, the family
- * adapters' and the board package's, whose builder reads it (their support modules, fakes and
- * worlds, which are no *.test.ts): they import engine-core and its ./testing entry. Another
- * package's test tree imports it only from a test file or test-support, as its src does. The
- * editor hosts' test trees answer to their closed worlds; the CLI's are cli-is-headless's.
+ * The test trees of the packages that run the contract, the runtime view's, the family adapters',
+ * the dialect cores' and the board package's, whose builder reads it (their support modules, fakes
+ * and worlds, which are no *.test.ts): they import engine-core and its ./testing entry. Another
+ * package's test tree imports it only from a test file or test-support, as its src does. The editor
+ * hosts' test trees answer to their closed worlds; the CLI's are cli-is-headless's.
  */
 const ENGINE_CORE_TESTS = [
   `${RUNTIME_VIEW_TREE}test/`,
   `${FAMILY_ADAPTER_TREE}test/`,
+  `${DIALECT_CORE_TREE}test/`,
   BOARD_TEST_TREE,
 ]
 
@@ -1273,23 +1289,25 @@ module.exports = {
       comment:
         "The engine family's core (@miragon/pulse-engine-core, the contract every dialect " +
         "implements) is imported only where a dialect is implemented (ENGINE_CORE_IMPLEMENTERS): " +
-        "the src of a dialect's core (a family ENGINE_DIALECTS names), never its ./testing entry " +
-        "(src/testing/, which ships on npm), and the src of a family's adapter of the runtime " +
-        "view; and where the contract's answers are read (ENGINE_CORE_READERS): the runtime " +
-        "view's layers src/ports, src/core, src/model and src/host-kit (never its webview, which " +
-        "renders protocol view models), the src of the editor hosts, apps/vscode and apps/orca, " +
-        "and the board builder (packages/core/board/src/builder, held to the main entry by " +
-        "board-builder-builds-on-the-engine-contract); where the engine module runs the contract " +
-        "(ENGINE_CONNECTOR_CONTRACT_READERS, owner decision 2026-11-16 with boards in the MCP " +
-        "server, the case #488 names): the connector's src/lib/engine, src/lib/core-adapter and " +
-        "src/data, held to the main entry by engine-connector-contract-by-its-main-entry; by test " +
-        "files and test-support anywhere and in the test trees of the runtime view, the adapters " +
-        "and the board package (ENGINE_CORE_TESTS). Not another family's core, not the rest of " +
-        "the engine connector (its view models, widgets, src/lib/shared, tools and widget tools: " +
-        "they read what src/data builds), not the CLI until it serves a second dialect (owner " +
-        "decision 2026-11-09: it reaches the contract's rules through c7-core's causeOf), not the " +
-        "MCP server app and no other package. A relative escape into " +
-        "packages/connectors/engine/engine-core is a violation too.",
+        "the src of a dialect's core (a family DIALECT_FAMILIES names: c7, c8), never its " +
+        "./testing entry (src/testing/, which ships on npm), and the src of a family's adapter " +
+        "of the runtime view; and where the contract's answers are read (ENGINE_CORE_READERS): " +
+        "the runtime view's layers src/ports, src/core, src/model and src/host-kit (never its " +
+        "webview, which renders protocol view models), the src of the editor hosts, apps/vscode " +
+        "and apps/orca, and the board builder (packages/core/board/src/builder, held to the main " +
+        "entry by board-builder-builds-on-the-engine-contract); where the engine module runs the " +
+        "contract (ENGINE_CONNECTOR_CONTRACT_READERS, owner decision 2026-11-16 with boards in " +
+        "the MCP server, the case #488 names): the connector's src/lib/engine, " +
+        "src/lib/core-adapter and src/data, held to the main entry by " +
+        "engine-connector-contract-by-its-main-entry; by test files and test-support anywhere " +
+        "and in the test trees of the runtime view, the adapters, the dialect cores and the " +
+        "board package (ENGINE_CORE_TESTS). Not another family's core (a family core of another " +
+        "source than a dialect included), not the rest of the engine connector (its view models, " +
+        "widgets, src/lib/shared, tools and widget tools: they read what src/data builds), not " +
+        "the CLI until it serves a second dialect (owner decision 2026-11-09: it reaches the " +
+        "contract's rules through c7-core's causeOf), not the MCP server app and no other " +
+        "package. A relative escape into packages/connectors/engine/engine-core is a violation " +
+        "too.",
       from: {
         pathNot: [
           ...ENGINE_CORE_IMPLEMENTERS,

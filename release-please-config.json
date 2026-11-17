@@ -39,6 +39,11 @@
         },
         {
           "type": "json",
+          "path": "packages/connectors/c8/c8-core/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
           "path": "packages/connectors/c7/c7-client/package.json",
           "jsonpath": "$.version"
         },

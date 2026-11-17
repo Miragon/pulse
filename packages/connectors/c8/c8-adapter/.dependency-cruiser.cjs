@@ -7,6 +7,7 @@ const DESCRIPTOR = "(^|/)node_modules/zeebe-bpmn-moddle/resources/zeebe[.]json$"
 const MODDLE_DESCRIPTORS = "(^|/)node_modules/[^/]+-bpmn-moddle/|^[^/]+-bpmn-moddle(/|$)"
 const PORTS_ENTRY = "(^|/)node_modules/@miragon/pulse-runtime-view/dist/ports/index[.]d[.]ts$"
 const ENGINE_CORE_ENTRY = "(^|/)node_modules/@miragon/pulse-engine-core/dist/index[.]d[.]ts$"
+const C8_CORE_ENTRY = "(^|/)node_modules/@miragon/pulse-c8-core/dist/index[.]d[.]ts$"
 const CONFORMANCE_KIT = "(^|/)node_modules/@miragon/pulse-engine-core/dist/testing/index[.]d[.]ts$"
 const WIRE = `${PACKAGE}src/wire/`
 const HTTP_ENTRIES = "(^|/)node_modules/@miragon/pulse-http/dist/(oauth/)?index[.]d[.]ts$"
@@ -34,6 +35,12 @@ module.exports = {
     },
     {
       comment:
+        "The adapter reads a Camunda 8 cluster with @miragon/pulse-c8-core, the core of its family (its main entry): the REST client, the readers and the mappings over the transport port (CamundaTransport) its wire implements in src/rest/camunda-http.ts, which the editor hosts bundle.",
+      from: { path: `${PACKAGE}src/` },
+      to: { path: C8_CORE_ENTRY },
+    },
+    {
+      comment:
         "The adapter provides the plug of the runtime view's ports (EngineConnection, EngineCredentials), through their entry.",
       from: { path: `${PACKAGE}src/` },
       to: { path: PORTS_ENTRY },
@@ -56,7 +63,7 @@ module.exports = {
       name: "not-in-allowed",
       severity: "error",
       comment:
-        "No entry of `allowed` in packages/connectors/c8/c8-adapter/.dependency-cruiser.cjs permits this import. The adapter uses its own modules, the main entry of @miragon/pulse-engine-core (the contract), never a subpath, the runtime view's ports (@miragon/pulse-runtime-view/ports), in its BPMN dialect (src/c8-bpmn-dialect.ts) the descriptor of zeebe-bpmn-moddle, in its wire (src/wire) the main entry and ./oauth of the transport @miragon/pulse-http, and no Node built-in: the REST client runs on the global fetch of its host's runtime.",
+        "No entry of `allowed` in packages/connectors/c8/c8-adapter/.dependency-cruiser.cjs permits this import. The adapter uses its own modules, the main entry of @miragon/pulse-engine-core (the contract) and of @miragon/pulse-c8-core (the reads of its family), never a subpath, the runtime view's ports (@miragon/pulse-runtime-view/ports), in its BPMN dialect (src/c8-bpmn-dialect.ts) the descriptor of zeebe-bpmn-moddle, in its wire (src/wire) the main entry and ./oauth of the transport @miragon/pulse-http, and no Node built-in: the REST client runs on the global fetch of its host's runtime.",
       from: {},
       to: { path: "^$" },
     },

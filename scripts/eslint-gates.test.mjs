@@ -513,10 +513,11 @@ describe("connector resource gate (invariant 3): a connector's views belong in t
     `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.ts`,
     "packages/connectors/c7/c7-client/src/__probe__.ts",
     "packages/connectors/newfamily/newfamily-connector/src/__probe__.ts",
-    // engine-core's src and the family adapters', where the blocks of Pulse for VS Code's house
-    // rules carry the gate in their union, the id constructors' block too.
+    // engine-core's src, c8-core's and the family adapters', where the blocks of Pulse for VS
+    // Code's house rules carry the gate in their union, the id constructors' block too.
     "packages/connectors/c7/c7-adapter/src/__probe__.ts",
     "packages/connectors/c8/c8-adapter/src/wire/__probe__.ts",
+    "packages/connectors/c8/c8-core/src/rest/__probe__.ts",
     "packages/connectors/engine/engine-core/src/__probe__.ts",
     "packages/connectors/engine/engine-core/src/testing/fake/__probe__.ts",
     "packages/connectors/engine/engine-core/src/model/ids.ts",

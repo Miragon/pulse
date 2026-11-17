@@ -18,7 +18,7 @@ import {
   type RestRoute,
   TOPOLOGY,
 } from "./support/fake-camunda-rest.js"
-import { definition, incident, instance, variable } from "./support/rows.js"
+import { definition, incident, instance, variable } from "./support/runtime-rows.js"
 
 const MISSING = problem(404, "NOT_FOUND", "Nothing has this key.")
 const STACK_TRACE = [

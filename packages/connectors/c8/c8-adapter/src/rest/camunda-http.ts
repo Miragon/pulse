@@ -1,12 +1,16 @@
+import {
+  type CamundaFailure,
+  type CamundaTransport,
+  UnexpectedAnswerError,
+} from "@miragon/pulse-c8-core"
 import type { CamundaWire, WireRequest } from "../wire/camunda-wire.js"
 import { WireJson } from "../wire/wire-json.js"
 import { CamundaRequestError } from "./camunda-request-error.js"
-import { UnexpectedAnswerError } from "./unexpected-answer-error.js"
 
 const JSON_TYPE = "application/json"
 const XML_TYPES = "text/xml, application/json"
 
-export class CamundaHttp {
+export class CamundaHttp implements CamundaTransport {
   constructor(private readonly wire: CamundaWire) {}
 
   async get(path: string): Promise<unknown> {
@@ -31,8 +35,8 @@ export class CamundaHttp {
     return this.answer({ method: "GET", path, accept: XML_TYPES, intent: "read" })
   }
 
-  static segment(value: string): string {
-    return encodeURIComponent(value)
+  failure(error: unknown): CamundaFailure | undefined {
+    return error instanceof CamundaRequestError ? error.fields : undefined
   }
 
   private async answer(request: WireRequest): Promise<string> {

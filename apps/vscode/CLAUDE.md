@@ -23,7 +23,8 @@ pnpm lint:deadcode:exports                      # knip over every workspace but 
 pnpm --filter pulse-cockpit test                 # the host's unit and architecture tests, coverage floors, the brand and word scans
 pnpm --filter @miragon/pulse-runtime-view test   # core, model, host kit and webview (Chromium) tests, coverage floors per layer
 pnpm --filter @miragon/pulse-c7-adapter test     # the C7 adapter against a recorded REST API and its error-path goldens
-pnpm --filter @miragon/pulse-c8-adapter test     # the C8 adapter against a fake REST API, the transport's loopback engine and its error-path goldens
+pnpm --filter @miragon/pulse-c8-core test        # the Camunda 8 reads (c8-core) against a fake of its transport port
+pnpm --filter @miragon/pulse-c8-adapter test     # the C8 adapter's wire against a fake REST API, the transport's loopback engine and its error-path goldens
 pnpm --filter @miragon/pulse-engine-core test   # the kit's self-tests: the fake passes every law, 79 saboteurs fail theirs
 pnpm --filter @miragon/pulse-c7-adapter run test:engines # adapter conformance on a real engine; needs podman/docker
 pnpm --filter @miragon/pulse-c8-adapter run test:engines # on a local Camunda 8 cluster; needs PULSE_ENGINE_IMAGE=camunda/camunda:<version>
@@ -39,8 +40,8 @@ pnpm --filter pulse-cockpit run package          # the .vsix
 ```
 
 The extension bundles the runtime view and the adapters from their sources and reads their
-types from their builds, and they bundle engine-core (the contract), the C7 adapter c7-core too,
-from their builds: after `pnpm install`, build them once
+types from their builds, and they bundle engine-core (the contract), the C7 adapter c7-core and
+the C8 adapter c8-core too, from their builds: after `pnpm install`, build them once
 (`pnpm exec turbo run build --filter='pulse-cockpit^...'`, or `pnpm build`) before these
 commands, and again after a change to one of them.
 
@@ -102,7 +103,7 @@ This app holds only the VS Code wiring.
 | Change what a board reads or counts (tiles, totals, the sub-process roll-up)            | `packages/core/board/src/builder` (`BoardBuilder` over the seven `BoardReads` into a `BoardModel` of no text, `DiagramBadges`, `CollapsedShapes`), which the runtime view's core reads through `@miragon/pulse-board/builder` and serializes in `packages/core/runtime-view/src/core/boards` with the board's JSON form (`BoardJson.of` in `BoardViews`, which adds what only the editors show: an engine's problem, the targets the core checks a click against, the diagram's XML), as the MCP server's board feed does (`packages/connectors/engine/engine-connector/src/data/board-data.ts`)                                | text in the builder; a copy in a surface   |
 | Change how a board's tiles look or read (titles, columns, notes, a problem's words)     | `packages/core/blocks/src/board` (`BoardGrid` and the tiles over `BoardData`, the targets a click opens, the slots `Table`, `Id`, `Diagram`) and `packages/core/blocks/src/messages` (en and de), which the webview renders through `@miragon/pulse-blocks`' main entry with its table, short id and canvas (`packages/core/runtime-view/src/webview/screens/board/board-slots.tsx`, `board-diagram.tsx`), and the MCP cockpit's board route with its own (`packages/connectors/engine/engine-connector/src/widgets/board`)                                                                                                     | a tile in the webview; a copy in a surface |
 | Talk to Operaton / CIB seven / Camunda 7                                                | `packages/connectors/c7/c7-adapter/src` (`C7Adapter`, the commands, `C7BpmnDialect`) and `packages/connectors/c7/c7-adapter/src/engine-rest` (the wire, the port c7-core reads over, the writes); every read of the contract (`C7Runtime`: the engine, its processes, a diagram and its counts, called processes, instances, incidents, an instance's detail, bulk operations, migrations) and the reads the commands check before a write in `@miragon/pulse-c7-core/runtime`; inspect, wait states, an incident's retry target and cause request, variable typing in `@miragon/pulse-c7-core`, the root cause in `RootCauses` | imports from core, webview or host; a copy |
-| Talk to Camunda 8 (the Orchestration Cluster REST API)                                  | `packages/connectors/c8/c8-adapter/src`: `C8Adapter`, `C8ProcessRuntime`, its readers (`src/reading`) and mappings (`src/mapping`) over the REST client (`src/rest`, checked views) and the wire (`src/wire`, `CamundaWire`, `ClientCredentialsSources`); the words of its failures in `src/errors`; `C8BpmnDialect`                                                                                                                                                                                                                                                                                                            | a client library, a copy of the transport  |
+| Talk to Camunda 8 (the Orchestration Cluster REST API)                                  | `packages/connectors/c8/c8-adapter/src`: `C8Adapter`, `C8ProcessRuntime` over the readers of `@miragon/pulse-c8-core` (`packages/connectors/c8/c8-core/src`: the REST client with its checked views in `src/rest`, the readers in `src/reading`, the mappings in `src/mapping`, over its transport port `CamundaTransport`), the wire behind that port (`CamundaHttp` in `src/rest` over `src/wire`, `CamundaWire`, `ClientCredentialsSources`); the words of its failures in `src/errors`; `C8BpmnDialect`                                                                                                                     | a client library, a copy of the transport  |
 | Add an engine family                                                                    | `packages/connectors/<family>/<family>-adapter` with a class implementing `EngineAdapter` and bringing its `BpmnDialect` (`src/<family>-bpmn-dialect.ts`, the one file that imports its moddle descriptor) + an `*.engine.test.ts` running the `ConformanceKit` (`@miragon/pulse-engine-core/testing`) + one entry in each composition root's record for the host kit's `EngineRoot` (`apps/vscode/src/host/composition-root.ts`, `apps/orca/src/worker/composition-root.ts`)                                                                                                                                                   | branching on engines anywhere else         |
 | Read the local `.bpmn` model or find the implementing code                              | `packages/core/runtime-view/src/model` (behind `ModelSource` / `CodeLocator`, in the vocabulary of the adapters' `BpmnDialect`s), per `apps/vscode/docs/adr/local-sources.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                   | moddle or bpmn-modeler libs anywhere else  |
 | Add a port only the editor hosts need                                                   | `packages/core/runtime-view/src/ports` (`EngineAdapter`, `EngineWebUi`, `EngineCli`, `BpmnDialect`, `ModelSource`, `CodeLocator`, `WorkspaceFiles`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | an IDE port in engine-core                 |
@@ -147,6 +148,11 @@ never imports (the repository's
 through, by its main entry and nowhere else in the adapter (`http-only-in-the-wire`,
 `http-by-its-main-entry`); the runtime view and the hosts never import it (the repository's
 `http-consumers`); the adapter sends over the global `fetch` of the host's runtime. The C8
+adapter (`packages/connectors/c8/c8-adapter`) imports `@miragon/pulse-c8-core`, the core of the
+Camunda 8 family, through its main entry alone (its closed world): the REST client, the readers and
+the mappings over a transport port (`CamundaTransport`) that carries a failure's fields only, which
+the adapter's `CamundaHttp` implements over its wire; no other part of the editor hosts imports it
+(the repository's `editor-hosts-reach-dialects-through-adapters`). The C8
 adapter's wire (`packages/connectors/c8/c8-adapter/src/wire`, `CamundaWire`) sends through the
 same transport, a read-only connection, and gets its tokens from the transport's client
 credentials grant (`@miragon/pulse-http/oauth`), by those two entries and nowhere else in the
@@ -403,8 +409,8 @@ at history level AUDIT too
   name ends none), "follows" as a promise, "later", "soon", "future", "planned" or "coming", a
   next or named release, "for now", "currently" and "will support" in the texts of the runtime
   view, the host, the packages whose texts both editors show (engine-core, the C7 adapter,
-  the C8 adapter, c7-core, `@miragon/pulse-http`, `@miragon/pulse-profile`, `@miragon/pulse-board`,
-  `@miragon/pulse-blocks`) and the manifest and board schema;
+  the C8 adapter, c7-core, c8-core, `@miragon/pulse-http`, `@miragon/pulse-profile`,
+  `@miragon/pulse-board`, `@miragon/pulse-blocks`) and the manifest and board schema;
   it reads a sentence that a value, an inline tag or a `+` splits as one (its rules in
   `apps/vscode/test/architecture/support/promise-words.ts`, which Pulse for Orca's gate holds
   word for word); a state text such as "Not called yet" keeps its word only as an allowance

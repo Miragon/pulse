@@ -1,3 +1,18 @@
+import {
+  CalledProcessReader,
+  type CamundaClient,
+  DefinitionReader,
+  DefinitionRefsCache,
+  Diagrams,
+  ElementStatisticsReader,
+  IncidentSearch,
+  IncidentTexts,
+  InstanceDetailReader,
+  InstanceSearch,
+  Keys,
+  VariableNameReader,
+  VersionFloor,
+} from "@miragon/pulse-c8-core"
 import type {
   BpmnProcessId,
   BulkFailure,
@@ -23,19 +38,6 @@ import type {
   VersionSummary,
 } from "@miragon/pulse-engine-core"
 import { ErrorTranslation } from "./errors/error-translation.js"
-import { IncidentTexts } from "./mapping/incident-texts.js"
-import { Keys } from "./mapping/keys.js"
-import { CalledProcessReader } from "./reading/called-process-reader.js"
-import { DefinitionReader } from "./reading/definition-reader.js"
-import { DefinitionRefsCache } from "./reading/definition-refs-cache.js"
-import { Diagrams } from "./reading/diagrams.js"
-import { ElementStatisticsReader } from "./reading/element-statistics-reader.js"
-import { IncidentSearch } from "./reading/incident-search.js"
-import { InstanceDetailReader } from "./reading/instance-detail-reader.js"
-import { InstanceSearch } from "./reading/instance-search.js"
-import { VariableNameReader } from "./reading/variable-name-reader.js"
-import { VersionFloor } from "./reading/version-floor.js"
-import type { CamundaClient } from "./rest/index.js"
 
 const PRODUCT = "Camunda 8"
 const REFUSED_CONDITIONS: readonly VariableConditionKind[] = ["ordering", "date"]

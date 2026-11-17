@@ -10,7 +10,8 @@
   the client secret masked in the cluster's texts, the Operate of a SaaS cluster; the hint for a
   token the cluster refuses and the wait of the token endpoint's hold; the hint for a 401 to a
   connection without a login; incidents newest first and full pages by the read laws, but for an
-  incident whose version is gone)
+  incident whose version is gone; 2026-11-17: the REST client, the version floor, the readers and
+  the mappings in `@miragon/pulse-c8-core`, behind a transport port the adapter's wire implements)
 
 ## Context
 
@@ -50,9 +51,12 @@ on Elasticsearch, each without security, with basic authentication and with OIDC
 ## Decision
 
 `packages/connectors/c8/c8-adapter` (`@miragon/pulse-c8-adapter`, private, bundled by the editor
-hosts) is the c8 family's adapter of the runtime view. It holds the wire, the REST client, the
-wording of failures, the version floor, the readers with their mappings onto the contract's read
-models, the runtime that answers the contract with them and the plug of the ports: `C8Adapter`,
+hosts) is the c8 family's adapter of the runtime view. It holds the wire, the wording of failures,
+the runtime that answers the contract and the plug of the ports. The REST client, the version
+floor and the readers with their mappings onto the contract's read models are the family's core,
+`@miragon/pulse-c8-core` (`packages/connectors/c8/c8-core`, private, built to `dist`), which the
+adapter runs over a transport port its wire implements, so that another surface can run the same
+reads over a wire and words of its own. `C8Adapter`,
 the package's one export, holds one `CamundaClients`, which builds a client per connection and
 holds the one `ClientCredentialsSources` of the adapter. The composition root of each editor host
 builds the adapter once per process.
@@ -89,16 +93,25 @@ builds the adapter once per process.
   like the issued token, in its message and title and in a token endpoint's error code
   (`SecretMask`), though the secret goes to the token endpoint alone (owner's delegate,
   2026-11-15).
-- **The REST client (`src/rest`).** `RestCamundaClient` has one method per call of `/v2` the reads
-  need; `CamundaViews` turns each answer into a checked view, field by field, so an answer of
+- **The transport port (c8-core's `src/port`).** The REST client sends through
+  `CamundaTransport`, which the adapter's `CamundaHttp` implements over the wire: `get` and `post`
+  resolve the JSON of an answer, read losslessly, `text` its text, every request a read, and
+  `failure(error)` copies a failure's fields and no words (`CamundaFailure`: an answer's status,
+  title and what it states and whether it redirects; the transport's reason and code for a
+  request that got no answer or was never sent; a token failure's trouble, status, code, problem,
+  hold and cap, never the token endpoint). The reasons and troubles are structural copies of the
+  transport's, which the adapter's tests hold equal, so c8-core imports no transport.
+- **The REST client (c8-core's `src/rest`).** `RestCamundaClient` has one method per call of `/v2`
+  the reads need; `CamundaViews` turns each answer into a checked view, field by field, so an answer of
   another shape fails as `unexpectedResponse`. A search pages by its cursor up to 10,000 rows, a
   statistics read by offset up to 10,000 rows, and a search over keys asks for at most 1,000 at a
   time. An instance's rows say when they cut (its detail's `truncated`); the definitions, their
   versions and their statistics stop at 10,000 rows without saying so, since the contract's lists
   of them carry no cut and no cluster the spike saw comes near. A lookup by key reads a 404 with
   the title `NOT_FOUND` as none (an 8.10 endpoint on 8.9 answers `Not Found`, which fails), and a
-  key the transport refuses before sending (`.`, `..`) as none too. `CamundaRequestError` is
-  built from the wire's reasons; only the wire imports the transport.
+  key the transport refuses before sending (`.`, `..`) as none too, both read from the port's
+  fields. `CamundaRequestError` is built from the wire's reasons and carries those fields; only the
+  wire imports the transport.
 - **Failures (`src/errors`).** `ErrorTranslation` maps a request error onto the contract's
   failures: 401 `unauthorized`, 403 `forbidden`, a redirect and a 404 `misconfigured`, any other
   status `engineFailure`, no answer `unreachable`. A 404 that names no missing resource gets the
@@ -117,11 +130,11 @@ builds the adapter once per process.
   with Set credentials (owner's delegate, 2026-11-15); a 401 to no login says the status alone,
   without the cluster's internal detail, and to add a login with Set credentials, as on every
   surface; a 401 to Basic keeps the cluster's words alone.
-- **Version floor (`src/reading/version-floor.ts`).** The cluster's `gatewayVersion` is read once
+- **Version floor (c8-core's `src/reading/version-floor.ts`).** The cluster's `gatewayVersion` is read once
   per client; below 8.9 a read fails as `misconfigured` with the version it found. 8.8 has no
   `businessId` and no statistics endpoints. A version that does not parse is left to the cluster,
   and a failed read is tried again.
-- **The reads (`src/reading`, `src/mapping`).** One reader per question of the contract, each a
+- **The reads (c8-core's `src/reading`, `src/mapping`).** One reader per question of the contract, each a
   class over the REST client, and the mappings from the checked views onto engine-core's read
   models (#543, with bba04dea and 557a4ce7). What the laws forced:
   - A key is a decimal Java long: an optional minus and 1 to 19 digits within its range, since the
@@ -179,8 +192,8 @@ builds the adapter once per process.
   is read-only by absence (#543): `proposeMigration` and `checkMigration` do not exist, so the
   runtime view offers no migration, `getBulkOperation` answers `undefined` and `getBulkFailures`
   none, since no bulk operation starts.
-- **The plug (`C8Adapter`).** `runtime(connection)` builds a `C8ProcessRuntime` over a client of
-  its `CamundaClients`, so every runtime of the adapter shares its token sources. `commands` and
+- **The plug (`C8Adapter`).** `runtime(connection)` builds a `C8ProcessRuntime` over c8-core's
+  readers and a client of its `CamundaClients`, so every runtime of the adapter shares its token sources. `commands` and
   `cli` answer `undefined`: the adapter writes nothing, and the `pulse` CLI reads no Camunda 8
   cluster. `webUi(webUiUrl)` gives `OperateWebUi`, the links into Operate, for a URL whose path
   ends in `/operate` (Self-Managed) or that names a SaaS cluster's Operate
@@ -190,11 +203,15 @@ builds the adapter once per process.
   and parameters of Operate 8.9 and 8.10 (read from their bundles). Any other URL gets no web UI,
   the cluster's root included.
 - **Closed world.** `packages/connectors/c8/c8-adapter/.dependency-cruiser.cjs`
-  (`pnpm lint:architecture:c8-adapter`): its own modules, engine-core's main entry, the runtime
-  view's ports, and in `src/wire` alone the transport's main entry and `./oauth`
+  (`pnpm lint:architecture:c8-adapter`): its own modules, the main entries of engine-core and
+  c8-core, the runtime view's ports, and in `src/wire` alone the transport's main entry and
+  `./oauth`
   (`http-only-in-the-wire`, `http-by-its-entries`); no Node built-in, no c7 package (the
   repository's `adapters-own-their-family`). The house rules of the editor trees hold here too,
-  keyed on the role of the package (`packages/connectors/*/*-adapter` in `eslint.config.mjs`).
+  keyed on the role of the package (`packages/connectors/*/*-adapter` in `eslint.config.mjs`), and
+  in c8-core, which keeps them as engine-core does. c8-core is a family core: engine-core's main
+  entry is its one edge out (`family-core-is-a-leaf`), and only a dialect family's core implements
+  the contract (`DIALECT_FAMILIES`, `engine-core-consumers`).
 - **The C7 wire refuses client credentials.** `EngineCredentials` of the runtime view's ports gains
   `clientCredentials` (token endpoint, client ID, secret, audience, scopes). The C7 adapter's wire
   (`engine-wire.ts`) handles every kind by name and refuses this one as `misconfigured` before
@@ -218,10 +235,14 @@ builds the adapter once per process.
   the fake REST API (the floor before every question, the failures, the refused conditions, what
   it does not answer, one question per reader), and
   `packages/connectors/c8/c8-adapter/test/c8-web-ui.test.ts` the links into Operate.
-- The reads are proven on the fake REST API: each reader in
-  `packages/connectors/c8/c8-adapter/test/reading`, the instance detail by topic in
-  `packages/connectors/c8/c8-adapter/test/reading/instance-detail`, the mappings in
-  `packages/connectors/c8/c8-adapter/test/mapping`.
+- The reads are proven on a fake of the transport port
+  (`packages/connectors/c8/c8-core/test/support/fake-transport.ts`): each reader in
+  `packages/connectors/c8/c8-core/test/reading`, the instance detail by topic in
+  `packages/connectors/c8/c8-core/test/reading/instance-detail`, the mappings in
+  `packages/connectors/c8/c8-core/test/mapping`, the REST client and its views in
+  `packages/connectors/c8/c8-core/test/rest`. `packages/connectors/c8/c8-adapter/test/rest/camunda-http.test.ts`
+  holds the wire to the port: the headers it sends, the fields it copies for each failure, and the
+  port's reasons and troubles equal to the transport's.
 - A container with more than 10,000 incidents of its own on Elasticsearch keeps the cluster's
   unsplit counts, so its row can count incidents inside it as its own. The conformance world never
   reaches that many.
@@ -281,3 +302,7 @@ builds the adapter once per process.
   credentials, without the cluster's internal detail (#617).
 - 2026-11-15: all twelve legs of the matrix pass (8.9.28 and 8.10.9, H2 and Elasticsearch, none,
   Basic and OIDC), recorded in the user docs, which claim no more than they prove (#617).
+- 2026-11-17: the REST client, the version floor, the readers and the mappings of #543 (Thomas
+  Heinrichs) move into `@miragon/pulse-c8-core`, a family core with a transport port that carries
+  fields only; the adapter keeps its wire and its words, and the MCP server's engine module is the
+  core's second consumer to come (#617).

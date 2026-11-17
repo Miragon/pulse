@@ -84,6 +84,8 @@ export class HttpReasons {
       status,
       message: `${AnswerReasons.statusLine(status)}${where}`,
       title: undefined,
+      detail: undefined,
+      redirect: true,
       hint: REDIRECT_HINT,
       cause: failure,
     }
@@ -99,6 +101,8 @@ export class HttpReasons {
       status,
       message: AnswerReasons.statusLine(status),
       title: undefined,
+      detail: undefined,
+      redirect: false,
       hint: undefined,
       cause: failure,
     }

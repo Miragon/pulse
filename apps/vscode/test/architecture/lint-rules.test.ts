@@ -278,7 +278,7 @@ describe("the lint gates", { timeout: 120_000 }, () => {
     "packages/connectors/c7/c7-adapter/src/writing/cancel-body.ts",
     "packages/connectors/c7/c7-adapter/src/engine-rest/present.ts",
     "packages/connectors/c8/c8-adapter/src/wire/wire-credentials.ts",
-    "packages/connectors/c8/c8-adapter/src/rest/present.ts",
+    "packages/connectors/c8/c8-core/src/rest/present.ts",
     "packages/core/runtime-view/src/host-kit/notification-text.ts",
     "packages/core/runtime-view/src/host-kit/connections/target-hosts.ts",
     `${BOARD_FORMAT}/filter-parser.ts`,

@@ -88,6 +88,30 @@ describe("the reasons of a failed request", () => {
     ],
     ["status", {}, { kind: "answered", status: 0, message: "HTTP 0" }],
     [
+      "status",
+      {
+        status: 503,
+        answer: {
+          status: 503,
+          statusText: "Service Unavailable",
+          contentType: "application/problem+json",
+          headers: {},
+          body: new TextEncoder().encode(
+            JSON.stringify({ title: "Service Unavailable", detail: "The broker is down" }),
+          ),
+        },
+      },
+      {
+        kind: "answered",
+        status: 503,
+        message: "HTTP 503 Service Unavailable: The broker is down",
+        title: "Service Unavailable",
+        detail: "The broker is down",
+        redirect: false,
+      },
+    ],
+    ["redirect", {}, { kind: "answered", status: 0, message: "HTTP 0", redirect: true }],
+    [
       "redirect",
       { status: 307 },
       {

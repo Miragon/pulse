@@ -1,3 +1,4 @@
+import { UnexpectedAnswerError } from "@miragon/pulse-c8-core"
 import { CredentialError, HttpFailure } from "@miragon/pulse-http"
 import {
   type CaseCapability,
@@ -12,7 +13,8 @@ import {
 import { startCaseEngine } from "@miragon/pulse-http/testing/loopback"
 import type { EngineCredentials } from "@miragon/pulse-runtime-view/ports"
 import { describe, expect, test, vi } from "vitest"
-import { CamundaHttp, CamundaRequestError, UnexpectedAnswerError } from "../../src/rest/index.js"
+import { CamundaHttp } from "../../src/rest/camunda-http.js"
+import { CamundaRequestError } from "../../src/rest/camunda-request-error.js"
 import { CamundaWire } from "../../src/wire/camunda-wire.js"
 import { ClientCredentialsSources } from "../../src/wire/client-credentials-sources.js"
 import type { WirePlatform } from "../../src/wire/wire-platform.js"
@@ -87,7 +89,7 @@ async function withCaseDeadline<T>(kase: TransportCase, attempt: () => Promise<T
 
 function called(kase: TransportCase, http: CamundaHttp): Promise<unknown> {
   const { request } = kase
-  const path = pathOfCase(request, (value) => CamundaHttp.segment(value))
+  const path = pathOfCase(request, (value) => encodeURIComponent(value))
   if (request.body !== undefined) {
     return http.post(path, JSON.parse(request.body) as unknown)
   }

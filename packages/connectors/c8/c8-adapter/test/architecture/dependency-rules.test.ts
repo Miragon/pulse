@@ -3,7 +3,7 @@ import { PlantedTree } from "./support/planted-tree.js"
 
 const PACKAGE = "packages/connectors/c8/c8-adapter"
 const MANIFEST =
-  '{ "name": "@miragon/pulse-c8-adapter", "private": true, "dependencies": { "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-http": "workspace:*", "@miragon/pulse-runtime-view": "workspace:*", "zeebe-bpmn-moddle": "2.0.0" } }\n'
+  '{ "name": "@miragon/pulse-c8-adapter", "private": true, "dependencies": { "@miragon/pulse-c8-core": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-http": "workspace:*", "@miragon/pulse-runtime-view": "workspace:*", "zeebe-bpmn-moddle": "2.0.0" } }\n'
 
 const DESCRIPTOR_IMPORT =
   "import zeebe from 'zeebe-bpmn-moddle/resources/zeebe.json' with { type: 'json' };\n"
@@ -19,6 +19,10 @@ const ADAPTER: Readonly<Record<string, string>> = {
     "import { FakeEngine } from '@miragon/pulse-engine-core/testing';\nexport const fake = FakeEngine;\n",
   "src/reads-the-core.ts":
     "import { BoardPanel } from '@miragon/pulse-runtime-view/core';\nexport const panel = BoardPanel;\n",
+  "src/reads-its-family-core.ts":
+    "import { RestCamundaClient } from '@miragon/pulse-c8-core';\nexport const client = RestCamundaClient;\n",
+  "src/reads-a-file-of-its-family-core.ts":
+    "import { Keys } from '@miragon/pulse-c8-core/mapping';\nexport const keys = Keys;\n",
   "src/reads-the-c7-core.ts":
     "import { causeOf } from '@miragon/pulse-c7-core';\nexport const cause = causeOf;\n",
   "src/wire/sends.ts":
@@ -73,6 +77,7 @@ describe("the dependency rules", () => {
     const oauth = at("node_modules/@miragon/pulse-http/dist/oauth/index.d.ts")
     const loopback = at("node_modules/@miragon/pulse-http/dist/testing/loopback/index.d.ts")
     const httpSubpath = "@miragon/pulse-http/attempt"
+    const coreSubpath = "@miragon/pulse-c8-core/mapping"
     const descriptor = at("node_modules/zeebe-bpmn-moddle/resources/zeebe.json")
     const httpSource = "packages/core/http/src/http.ts"
     expect(adapter.violations()).toEqual([
@@ -86,6 +91,7 @@ describe("the dependency rules", () => {
       `not-in-allowed: ${at("src/errors/asks-for-tokens.ts")} -> ${oauth}`,
       `not-in-allowed: ${at("src/mapping/reads-a-descriptor.ts")} -> ${descriptor}`,
       `not-in-allowed: ${at("src/reading/uses-node.ts")} -> fs/promises`,
+      `not-in-allowed: ${at("src/reads-a-file-of-its-family-core.ts")} -> ${coreSubpath}`,
       `not-in-allowed: ${at("src/reads-the-c7-core.ts")} -> @miragon/pulse-c7-core`,
       `not-in-allowed: ${at("src/reads-the-core.ts")} -> ${view}`,
       `not-in-allowed: ${at("src/rest/sends-itself.ts")} -> ${http}`,
@@ -93,6 +99,7 @@ describe("the dependency rules", () => {
       `not-in-allowed: ${at("src/wire/escapes-into-http.ts")} -> ${httpSource}`,
       `not-in-allowed: ${at("src/wire/reads-an-unexported-file.ts")} -> ${httpSubpath}`,
       `not-in-allowed: ${at("src/wire/sends-a-test-engine.ts")} -> ${loopback}`,
+      `not-to-unresolvable: ${at("src/reads-a-file-of-its-family-core.ts")} -> ${coreSubpath}`,
       `not-to-unresolvable: ${at("src/reads-the-c7-core.ts")} -> @miragon/pulse-c7-core`,
       `not-to-unresolvable: ${at("src/wire/reads-an-unexported-file.ts")} -> ${httpSubpath}`,
     ])

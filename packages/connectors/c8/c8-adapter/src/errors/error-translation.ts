@@ -1,5 +1,5 @@
 import { RuntimeError, type RuntimeFailure } from "@miragon/pulse-engine-core"
-import { CamundaRequestError, type CamundaRequestFailure } from "../rest/index.js"
+import { CamundaRequestError, type CamundaRequestFailure } from "../rest/camunda-request-error.js"
 import { TokenTexts } from "./token-texts.js"
 
 const NO_SECONDARY_STORAGE =

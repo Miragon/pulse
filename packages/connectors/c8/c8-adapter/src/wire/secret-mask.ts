@@ -25,10 +25,15 @@ export class SecretMask {
         return {
           ...reason,
           message: this.text(reason.message),
-          title: reason.title === undefined ? undefined : this.text(reason.title),
+          title: this.optional(reason.title),
+          detail: this.optional(reason.detail),
         }
       default:
         return { ...reason, message: this.text(reason.message) }
     }
+  }
+
+  private optional(text: string | undefined): string | undefined {
+    return text === undefined ? undefined : this.text(text)
   }
 }

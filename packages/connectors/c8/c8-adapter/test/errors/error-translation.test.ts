@@ -1,8 +1,8 @@
+import type { CamundaClient } from "@miragon/pulse-c8-core"
 import { RuntimeError } from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
 import { CamundaClients } from "../../src/camunda-clients.js"
 import { ErrorTranslation } from "../../src/errors/error-translation.js"
-import type { CamundaClient } from "../../src/rest/index.js"
 import { clientWith, page, problem, REST_URL } from "../support/fake-camunda-rest.js"
 
 const ROOT_HINT = "The profile's url must be the REST root of the cluster and end in /v2."

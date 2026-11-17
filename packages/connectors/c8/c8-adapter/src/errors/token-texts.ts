@@ -1,5 +1,6 @@
+import type { CamundaTokenProblem, CamundaTokenTrouble } from "@miragon/pulse-c8-core"
 import { RuntimeError, type RuntimeFailure } from "@miragon/pulse-engine-core"
-import type { TokenAnswerProblem, TokenReason, TokenTrouble } from "../wire/wire-reason.js"
+import type { TokenReason } from "../wire/wire-reason.js"
 
 interface Worded {
   readonly failure: RuntimeFailure
@@ -18,7 +19,7 @@ const GRANT_HINT =
   "Check that the login service lets this client get a token for the audience and the scopes in the profile."
 const CLIENT_HINT = "Check the client ID and the secret you entered for this engine."
 
-const ANSWER_PROBLEMS: Readonly<Record<TokenAnswerProblem, string>> = {
+const ANSWER_PROBLEMS: Readonly<Record<CamundaTokenProblem, string>> = {
   "not-json": "The token endpoint answered without a token.",
   "no-token": "The token endpoint answered without a token.",
   "token-syntax":
@@ -27,7 +28,7 @@ const ANSWER_PROBLEMS: Readonly<Record<TokenAnswerProblem, string>> = {
 }
 
 export class TokenTexts {
-  private static readonly WORDING: Readonly<Record<TokenTrouble, Wording>> = {
+  private static readonly WORDING: Readonly<Record<CamundaTokenTrouble, Wording>> = {
     client: (reason) => TokenTexts.refusedClient(reason),
     scope: (reason) => TokenTexts.refusedRequest(reason),
     grant: (reason) => TokenTexts.refusedRequest(reason),

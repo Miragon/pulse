@@ -39,6 +39,7 @@ export const DEFAULT_PROJECT_FILES = [
   "packages/connectors/c7/c7-client/openapi-ts.config.ts",
   "packages/connectors/c7/c7-core/vitest.config.ts",
   "packages/connectors/c7/c7-core/vitest.stryker.config.ts",
+  "packages/connectors/c8/c8-core/vitest.config.ts",
   "packages/connectors/engine/engine-connector/vitest.config.ts",
   "packages/connectors/engine/engine-connector/vitest.engines.config.ts",
   "packages/connectors/engine/engine-core/vitest.config.ts",
@@ -350,6 +351,15 @@ const ENGINE_CORE_PROBE = "packages/connectors/engine/engine-core/test/runtime.b
 const BOARD_SRC = "packages/core/board/src/**/*.{ts,mts,cts,tsx}"
 const BOARD_TESTS = "packages/core/board/test/**/*.ts"
 const BOARD_CONFIGS = "packages/core/board/*.ts"
+// The core of the Camunda 8 dialect family (packages/connectors/c8/c8-core), whose reads left the
+// C8 adapter for a package of their own, keeps every one of these rules as engine-core does: each
+// block that holds engine-core names the package's paths beside it (C8_CORE_SRC, C8_CORE_TESTS,
+// C8_CORE_CONFIGS). As a dialect's implementation it speaks its engine's words, so no engine-word
+// gate holds it, and as a package of a family its src carries the connector resource gate in its
+// union, as the family adapters' does.
+const C8_CORE_SRC = "packages/connectors/c8/c8-core/src/**/*.{ts,mts,cts,tsx}"
+const C8_CORE_TESTS = "packages/connectors/c8/c8-core/test/**/*.ts"
+const C8_CORE_CONFIGS = "packages/connectors/c8/c8-core/*.ts"
 const vscodeNoComments = {
   meta: {
     type: "suggestion",
@@ -769,6 +779,9 @@ export default tseslint.config(
       BOARD_SRC,
       BOARD_TESTS,
       BOARD_CONFIGS,
+      C8_CORE_SRC,
+      C8_CORE_TESTS,
+      C8_CORE_CONFIGS,
     ],
     extends: [tseslint.configs.strictTypeChecked, tseslint.configs.stylisticTypeChecked],
   },
@@ -791,6 +804,9 @@ export default tseslint.config(
       BOARD_SRC,
       BOARD_TESTS,
       BOARD_CONFIGS,
+      C8_CORE_SRC,
+      C8_CORE_TESTS,
+      C8_CORE_CONFIGS,
     ],
     plugins: { "pulse-vscode": { rules: { "no-comments": vscodeNoComments } } },
     linterOptions: { noInlineConfig: true, reportUnusedDisableDirectives: "error" },
@@ -816,6 +832,7 @@ export default tseslint.config(
       "apps/vscode/test/smoke/*.cjs",
       ENGINE_CORE_SRC,
       BOARD_SRC,
+      C8_CORE_SRC,
     ],
     rules: {
       "max-lines": ["error", { max: 300, skipBlankLines: true }],
@@ -830,6 +847,7 @@ export default tseslint.config(
       `${EDITOR_TREES}/test/**/*.test.tsx`,
       ENGINE_CORE_TESTS,
       BOARD_TESTS,
+      C8_CORE_TESTS,
     ],
     rules: { "@typescript-eslint/no-non-null-assertion": "off" },
   },
@@ -852,6 +870,16 @@ export default tseslint.config(
   },
   {
     files: ["packages/core/board/test/**/*.test.ts"],
+    rules: { "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }] },
+  },
+  // c8-core's tests and config files keep the same budgets as engine-core's: 300 effective lines
+  // for a config file and a test support module, 400 for a test file.
+  {
+    files: [C8_CORE_TESTS, C8_CORE_CONFIGS],
+    rules: { "max-lines": ["error", { max: 300, skipBlankLines: true, skipComments: true }] },
+  },
+  {
+    files: ["packages/connectors/c8/c8-core/test/**/*.test.ts"],
     rules: { "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }] },
   },
   {
@@ -920,9 +948,10 @@ export default tseslint.config(
       "no-restricted-syntax": ["error", ...engineCoreNeutralCode, ...connectorResourceGate],
     },
   },
-  // A family's adapter is a package of a family: the connector resource gate stays in its union.
+  // A family's adapter and the c8 family's core are packages of a family: the connector resource
+  // gate stays in their union.
   {
-    files: [`${FAMILY_ADAPTERS}/src/**/*.ts`],
+    files: [`${FAMILY_ADAPTERS}/src/**/*.ts`, C8_CORE_SRC],
     rules: {
       "no-restricted-syntax": ["error", ...vscodeModuleFunctionGate, ...connectorResourceGate],
     },
@@ -993,7 +1022,7 @@ export default tseslint.config(
     },
   },
   {
-    files: [`${EDITOR_TREES}/src/**/*.{ts,tsx}`, ENGINE_CORE_SRC, BOARD_SRC],
+    files: [`${EDITOR_TREES}/src/**/*.{ts,tsx}`, ENGINE_CORE_SRC, BOARD_SRC, C8_CORE_SRC],
     rules: {
       "max-classes-per-file": ["error", 1],
       "@typescript-eslint/member-ordering": [

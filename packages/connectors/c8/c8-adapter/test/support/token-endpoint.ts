@@ -1,8 +1,8 @@
+import type { CamundaClient } from "@miragon/pulse-c8-core"
 import type { EngineCredentials } from "@miragon/pulse-runtime-view/ports"
 import { CamundaClients } from "../../src/camunda-clients.js"
 import { C8Adapter } from "../../src/index.js"
 import { ErrorTranslation } from "../../src/errors/error-translation.js"
-import type { CamundaClient } from "../../src/rest/index.js"
 import type { ClientCredentials } from "../../src/wire/client-credentials-sources.js"
 import { jsonAnswer, REST_URL } from "./fake-camunda-rest.js"
 

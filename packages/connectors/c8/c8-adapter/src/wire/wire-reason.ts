@@ -1,26 +1,12 @@
-export type TokenTrouble =
-  | "client"
-  | "scope"
-  | "grant"
-  | "forbidden"
-  | "rate-limited"
-  | "unavailable"
-  | "redirect"
-  | "too-large"
-  | "unexpected"
-  | "unreachable"
-  | "timeout"
-  | "expired"
-
-export type TokenAnswerProblem = "not-json" | "no-token" | "token-syntax" | "token-type"
+import type { CamundaTokenProblem, CamundaTokenTrouble } from "@miragon/pulse-c8-core"
 
 export interface TokenReason {
   readonly kind: "token"
-  readonly trouble: TokenTrouble
+  readonly trouble: CamundaTokenTrouble
   readonly endpoint: string
   readonly status: number | undefined
   readonly code: string | undefined
-  readonly problem: TokenAnswerProblem | undefined
+  readonly problem: CamundaTokenProblem | undefined
   readonly holdMs: number
   readonly capBytes: number | undefined
   readonly cause: unknown
@@ -50,6 +36,8 @@ export interface AnsweredReason {
   readonly status: number
   readonly message: string
   readonly title: string | undefined
+  readonly detail: string | undefined
+  readonly redirect: boolean
   readonly hint: string | undefined
   readonly cause: unknown
 }

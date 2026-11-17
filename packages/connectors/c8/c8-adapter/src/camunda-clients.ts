@@ -1,5 +1,6 @@
+import { type CamundaClient, RestCamundaClient } from "@miragon/pulse-c8-core"
 import type { EngineConnection } from "@miragon/pulse-runtime-view/ports"
-import { type CamundaClient, CamundaHttp, RestCamundaClient } from "./rest/index.js"
+import { CamundaHttp } from "./rest/camunda-http.js"
 import { CamundaWire } from "./wire/camunda-wire.js"
 import { ClientCredentialsSources } from "./wire/client-credentials-sources.js"
 import type { WirePlatform } from "./wire/wire-platform.js"

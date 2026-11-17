@@ -22,17 +22,23 @@ const TOKEN: WireReason = {
 }
 
 describe("the mask of a client secret", () => {
-  test("covers the cluster's message and title in every form of the secret", () => {
+  test("covers the cluster's message, title and detail in every form of the secret", () => {
     expect(
       CLIENT.reason({
         kind: "answered",
         status: 500,
         message: "client_secret=reader%20secret and reader  secret",
         title: "reader secret",
+        detail: "reader secret quoted",
+        redirect: false,
         hint: undefined,
         cause: undefined,
       }),
-    ).toMatchObject({ message: "client_secret=*** and ***", title: "***" })
+    ).toMatchObject({
+      message: "client_secret=*** and ***",
+      title: "***",
+      detail: "*** quoted",
+    })
   })
 
   test("covers the code a token endpoint answers with, and every other message", () => {

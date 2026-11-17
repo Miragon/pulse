@@ -1,7 +1,7 @@
+import type { CamundaClient } from "@miragon/pulse-c8-core"
 import type { EngineCredentials } from "@miragon/pulse-runtime-view/ports"
 import { onTestFinished } from "vitest"
 import { CamundaClients } from "../../src/camunda-clients.js"
-import type { CamundaClient } from "../../src/rest/index.js"
 
 export const REST_URL = "http://camunda.test/v2"
 export const TOPOLOGY = { route: "GET /topology", answer: { gatewayVersion: "8.10.8" } }
@@ -52,52 +52,6 @@ export function page(items: readonly unknown[], extra: Record<string, unknown> =
       endCursor: null,
       ...extra,
     },
-  }
-}
-
-export interface SearchBody {
-  readonly filter: Readonly<Record<string, unknown>>
-  readonly sort?: readonly unknown[]
-  readonly page: { readonly limit: number; readonly after?: string; readonly from?: number }
-}
-
-export function searchOf(body: string): SearchBody {
-  return JSON.parse(body) as SearchBody
-}
-
-export function matchingIn(
-  rows: readonly Readonly<Record<string, unknown>>[],
-): (body: string) => unknown {
-  return (body) => {
-    const conditions = Object.entries(searchOf(body).filter)
-    return page(
-      rows.filter((row) =>
-        conditions.every(([field, condition]) => {
-          const among = (condition as { readonly $in?: readonly unknown[] }).$in
-          return among === undefined || among.includes(row[field])
-        }),
-      ),
-    )
-  }
-}
-
-export function pagedByCursor(rows: readonly unknown[]): (body: string) => unknown {
-  return (body) => {
-    const { limit, after } = searchOf(body).page
-    const from = after === undefined ? 0 : Number(after)
-    const items = rows.slice(from, from + limit)
-    return page(items, {
-      totalItems: Math.min(rows.length, 10_000),
-      hasMoreTotalItems: rows.length > 10_000,
-      endCursor: items.length === 0 ? null : String(from + items.length),
-    })
-  }
-}
-
-export function pagedByOffset(rows: readonly unknown[]): (body: string) => unknown {
-  return (body) => {
-    const { limit, from = 0 } = searchOf(body).page
-    return { items: rows.slice(from, from + limit) }
   }
 }
 

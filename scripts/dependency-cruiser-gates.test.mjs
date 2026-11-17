@@ -49,6 +49,7 @@ const BLOCKS = "packages/core/blocks"
 const HTTP = "packages/core/http"
 const ENGINE_CORE = "packages/connectors/engine/engine-core"
 const C7 = "packages/connectors/c7/c7-core"
+const C8 = "packages/connectors/c8/c8-core"
 const C7_CLIENT = "packages/connectors/c7/c7-client"
 const ENGINE_CONNECTOR = "packages/connectors/engine/engine-connector"
 // No such family exists: a second family's client, connector and core prove the family rules
@@ -76,6 +77,7 @@ const WORKSPACE = {
   [HTTP]: { name: "@miragon/pulse-http", main: "dist/index.js" },
   [ENGINE_CORE]: { name: "@miragon/pulse-engine-core", main: "dist/index.js" },
   [C7]: { name: "@miragon/pulse-c7-core" },
+  [C8]: { name: "@miragon/pulse-c8-core", private: true },
   [C7_CLIENT]: { name: "@miragon/pulse-c7-client" },
   [ENGINE_CONNECTOR]: { name: "@miragon/pulse-engine-connector" },
   [BILLING_CLIENT]: { name: "@miragon/pulse-billing-client" },
@@ -209,6 +211,8 @@ const SHELL_SRC = `${SHELL}/src/index.ts`
 const UI_SRC = `${UI}/src/index.ts`
 const C7_SRC = `${C7}/src/index.ts`
 const C7_CORE = "@miragon/pulse-c7-core"
+const C8_SRC = `${C8}/src/index.ts`
+const C8_CORE = "@miragon/pulse-c8-core"
 const BILLING_CORE_NAME = "@miragon/pulse-billing-core"
 const PROFILE_NAME = "@miragon/pulse-profile"
 const PROFILE_SRC = `${PROFILE}/src/index.ts`
@@ -272,6 +276,7 @@ const LEAVES = [
   `${C7}/src/testing/fixture.ts`,
   `${C7}/src/runtime/json-view.ts`,
   `${C7}/dist/runtime/index.js`,
+  `${C8}/src/target.ts`,
   `${PROFILE}/src/target.ts`,
   `${PROFILE}/src/lib.ts`,
   `${BOARD}/src/target.ts`,
@@ -1236,9 +1241,23 @@ const SUITES = [
       ],
       [C7_SRC, "./lib.ts", []],
       [`${C7}/src/a.test.ts`, "vitest", []],
+      // The c8 family's core is a dialect's core too (DIALECT_FAMILIES): engine-core's main
+      // entry is its one edge out. Not engine-core's ./testing, not the transport (each surface
+      // brings its own wire and words its failures), not the runtime view's ports, not the c7
+      // family's core and no Node built-in.
+      [C8_SRC, ENGINE_CORE_NAME, []],
+      [`${C8}/src/kit.ts`, `${ENGINE_CORE_NAME}/testing`, [CORE_LEAF, NO_TESTING]],
+      [`${C8}/src/wire.ts`, HTTP_NAME, [CORE_LEAF, HTTP_USERS]],
+      [`${C8}/src/ports.ts`, `${VIEW}/ports`, [CORE_LEAF, VIEW_USERS]],
+      [`${C8}/src/c7.ts`, C7_CORE, [CORE_LEAF]],
+      [`${C8}/src/files.ts`, "node:fs", [CORE_LEAF]],
+      [`${C8}/src/testing/contract.ts`, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
+      [`${C8}/test/support/fake.ts`, ENGINE_CORE_NAME, []],
+      [`${C8}/test/support/world.ts`, `${ENGINE_CORE_NAME}/testing`, []],
       // Keyed on the role: any family's core is a leaf, by the layout alone. The main entry of
       // engine-core passes the leaf rule here too (bare, shape 3), but only a dialect's core may
-      // import it (engine-core-consumers).
+      // import it (engine-core-consumers): the billing core stands for a family core of another
+      // source than a dialect (a metrics store, say), which DIALECT_FAMILIES leaves out.
       [BILLING_CORE_SRC, "@miragon/pulse-billing-client", [CORE_LEAF, CLIENT_USERS]],
       [BILLING_CORE_SRC, "zod", [CORE_LEAF]],
       [BILLING_CORE_SRC, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
@@ -1291,6 +1310,15 @@ const SUITES = [
       // reaches no ./testing entry.
       [`${C7_ADAPTER}/src/testing.ts`, `${C7_CORE}/testing`, [NO_TESTING]],
       [`${C7_ADAPTER}/src/escape-core.ts`, "../../c7-core/src/target.ts", [ADAPTER_FAMILY, DEEP]],
+      // c8-core: no app imports it, the editor hosts reach it through the C8 adapter, the engine
+      // module until ENGINE_DIALECTS names c8.
+      [SERVER_SRC, C8_CORE, [CORE_USERS]],
+      [`${CLI}/src/workflow/c8.ts`, C8_CORE, [HEADLESS]],
+      [`${EXT}/src/host/c8.ts`, C8_CORE, [HOSTS]],
+      [`${ENGINE_CONNECTOR}/src/data/c8.ts`, C8_CORE, [SPANS]],
+      [`${C8_ADAPTER}/src/escape-core.ts`, "../../c8-core/src/target.ts", [ADAPTER_FAMILY, DEEP]],
+      [`${C8_ADAPTER}/src/reads.ts`, C8_CORE, []],
+      [`${C8_ADAPTER}/test/support/reads.ts`, C8_CORE, []],
       // Allowed: the engine module, which spans the dialect families, the CLI, which bundles
       // c7-core, and the C7 adapter.
       [`${C7_ADAPTER}/src/inspect.ts`, C7_CORE, []],
@@ -2999,6 +3027,56 @@ function dialectFindings(dialects, connectorsDir) {
       )
   })
 }
+
+/**
+ * The dialect families engine-core-consumers lets implement the contract, read from the pattern of
+ * a dialect core's src that ENGINE_CORE_IMPLEMENTERS builds from DIALECT_FAMILIES.
+ */
+function implementingFamilies(config) {
+  const { from } = config.forbidden.find((rule) => rule.name === ENGINE_CORE_USERS)
+  const families = from.pathNot
+    .map((pattern) =>
+      /^\^packages\/connectors\/\(\?:([^)]+)\)\/\[\^\/\]\+-core\/src\//.exec(pattern),
+    )
+    .find(Boolean)
+  return families ? families[1].split("|") : []
+}
+
+/** The dialects the engine module serves that are no dialect family (DIALECT_FAMILIES). */
+function servedOutsideFindings(dialects, families) {
+  return dialects
+    .filter((dialect) => !families.includes(dialect))
+    .map(
+      (dialect) =>
+        `ENGINE_DIALECTS names ${dialect}, which DIALECT_FAMILIES does not: a dialect the engine ` +
+        "module serves is a dialect family first",
+    )
+}
+
+describe("DIALECT_FAMILIES names the dialect families of the tree, ENGINE_DIALECTS a subset", () => {
+  const config = createRequire(import.meta.url)(CONFIG)
+  const families = implementingFamilies(config)
+  const dialects = spannedFamilies(config).filter((family) => family !== "engine")
+
+  it("reads the dialect families from engine-core-consumers", () => {
+    assert.deepEqual([...families].sort(), ["c7", "c8"])
+  })
+
+  it("holds the real tree: each a family with a client or a core and without a connector", () => {
+    assert.deepEqual(dialectFindings(families, path.join(repoRoot, "packages/connectors")), [])
+  })
+
+  it("names every dialect the engine module serves", () => {
+    assert.deepEqual(servedOutsideFindings(dialects, families), [])
+  })
+
+  it("fails on a dialect the engine module serves that is no dialect family", () => {
+    assert.deepEqual(servedOutsideFindings(["c7", "c9"], ["c7", "c8"]), [
+      "ENGINE_DIALECTS names c9, which DIALECT_FAMILIES does not: a dialect the engine module " +
+        "serves is a dialect family first",
+    ])
+  })
+})
 
 describe("ENGINE_DIALECTS names dialect families of the tree, none with a connector", () => {
   const config = createRequire(import.meta.url)(CONFIG)

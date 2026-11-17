@@ -1,8 +1,9 @@
+import type { CamundaTokenProblem, CamundaTokenTrouble } from "@miragon/pulse-c8-core"
 import { HttpFailure } from "@miragon/pulse-http"
 import type { AnswerProblem, TokenFailure, TokenFailureKind } from "@miragon/pulse-http/oauth"
-import type { TokenAnswerProblem, TokenReason, TokenTrouble } from "./wire-reason.js"
+import type { TokenReason } from "./wire-reason.js"
 
-const TROUBLES: Readonly<Record<TokenFailureKind, TokenTrouble>> = {
+const TROUBLES: Readonly<Record<TokenFailureKind, CamundaTokenTrouble>> = {
   client: "client",
   scope: "scope",
   grant: "grant",
@@ -17,7 +18,7 @@ const TROUBLES: Readonly<Record<TokenFailureKind, TokenTrouble>> = {
   expired: "expired",
 }
 
-const PROBLEMS: Readonly<Record<AnswerProblem, TokenAnswerProblem>> = {
+const PROBLEMS: Readonly<Record<AnswerProblem, CamundaTokenProblem>> = {
   "not-json": "not-json",
   "no-token": "no-token",
   "token-syntax": "token-syntax",

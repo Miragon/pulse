@@ -27,6 +27,7 @@ export const SHOWN_PACKAGES: readonly (readonly [string, string])[] = [
   ["the C7 adapter", "packages/connectors/c7/c7-adapter/src"],
   ["the C8 adapter", "packages/connectors/c8/c8-adapter/src"],
   ["c7-core", "packages/connectors/c7/c7-core/src"],
+  ["c8-core", "packages/connectors/c8/c8-core/src"],
   ["the transport", "packages/core/http/src"],
   ["the profile format", "packages/core/profile/src"],
   ["the board format", BOARD_SOURCES],
