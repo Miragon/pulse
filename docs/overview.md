@@ -21,7 +21,8 @@ yet: until then you [load it from the source](./orca/installation.md#from-the-so
 
 - **The engines.** Operaton, CIB seven and Camunda 7 over their REST API (`/engine-rest`); the
   extension and the Orca plugin also read [Camunda 8](./vscode/camunda8.md) from 8.9 on, without
-  writing. The CLI, the extension and the Orca plugin read the same project file, `.pulse.json`.
+  writing, and the MCP server and the web app show it [on boards](./mcp/camunda8.md). The CLI, the
+  extension and the Orca plugin read the same project file, `.pulse.json`.
 - **Read first.** The server boots read-only, the web app only reads, the CLI previews and asks
   before a write, the extension and the Orca plugin write only on local engines unless you allow
   more.

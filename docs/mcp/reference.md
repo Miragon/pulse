@@ -14,8 +14,8 @@ BPM operations across these domains (`category`): `engines`, `process-definition
 `process-instances`, `tasks`, `external-tasks`, `messages-signals`, `deployments`, `incidents`,
 `jobs`, `history`, `migrations`, `batches`. Highlights:
 
-- **Engines:** `list_engines`, `engine_status` (the triage of one engine: findings by severity,
-  counts and the live verdict: the overview's incident thresholds `ENGINE_HEALTH_*` plus findings)
+- **Engines:** `list_engines` (each with its `dialect`), `engine_status` (one engine's triage:
+  findings by severity, counts, the live verdict from the thresholds `ENGINE_HEALTH_*` and findings)
 - **Process definitions:** `list_process_definitions`, `get_process_definition_xml`
 - **Process instances:** `start`, `list`, `inspect_process_instance` (where one instance waits and
   why, running or ended, by id, business key or definition key), `delete`, `modify`,
@@ -49,8 +49,8 @@ BPM operations across these domains (`category`): `engines`, `process-definition
   **Running**, what runs at each element now, every deployed version summed onto the latest diagram;
   as **Throughput · 30 days**, what the instances started in the last 30 days passed per element,
   from the engine's history (the app-only `engine_activity_statistics_data`, `source` `history`)
-- **Boards:** with `ENGINE_BOARDS_DIR`, `list_engines` names the boards, `open_cockpit` (`view`
-  `board` and its id) shows one, built by the app-only `engine_board_data` ([Boards](boards.md))
+- **Boards:** with `ENGINE_BOARDS_DIR`, `list_engines` names them, `open_cockpit` (`view` `board`,
+  its id) shows one, built by `engine_board_data` ([Boards](boards.md), [Camunda 8](camunda8.md))
 
 ### Toolsets
 
@@ -100,10 +100,10 @@ The most common variables. See [Operations](operations.md#environment-variables)
 
 ### Multi-engine
 
-The server can route to several engines: CIB seven, Operaton and Camunda 7 mixed in one fleet.
-Describe them in one profile file, the format of the CLI and of Pulse for VS Code
-(`@miragon/pulse-profile`), inline in `ENGINES_JSON` or as a path in `ENGINES_FILE` (which wins).
-It replaces the single-engine variables, which the boot then names as ignored:
+The server can route to several engines: CIB seven, Operaton and Camunda 7 mixed in one fleet,
+Camunda 8 clusters on boards beside them. Describe them in one profile file, the format of the CLI
+and the editors (`@miragon/pulse-profile`), inline in `ENGINES_JSON` or as a path in `ENGINES_FILE`
+(which wins). It replaces the single-engine variables, which the boot then names as ignored:
 
 ```json
 {
@@ -124,24 +124,24 @@ It replaces the single-engine variables, which the boot then names as ignored:
 }
 ```
 
-A profile's name is its engine id: the per-call `engine` selector, advertised as an enum of every
-configured id, and the name the cockpit shows. `url` is the REST root; `flavor` (`cibseven` |
-`operaton` | `camunda7`, default `camunda7`; a `camunda8` profile, which Pulse for VS Code and Pulse
-for Orca read, is refused here) selects the cockpit-link routes and display name;
-`cockpitUrl`, `timeout` (it beats `ENGINE_REQUEST_TIMEOUT_MS`) and `readOnly` (no tool writes to that
-engine, whatever the toolset) are optional. Each profile signs in on its own (`none`, `basic`,
-`bearer`, `passthrough`), and a secret never sits in the file: `auth.passwordEnv` or
-`auth.tokenEnv` names the variable that holds it, and the server reads only names that start with
+A profile's name is its engine id: the per-call `engine` selector, an enum of the engines a tool
+serves, and the name the cockpit shows. `url` is the REST root; `flavor` (`cibseven` | `operaton` |
+`camunda7`, default `camunda7`) selects the cockpit-link routes and display name, and `camunda8`
+names a cluster the server reads on boards ([Camunda 8](camunda8.md)). `cockpitUrl`, `timeout` (it
+beats `ENGINE_REQUEST_TIMEOUT_MS`) and `readOnly` (no tool writes to that engine) are optional. Each
+profile signs in on its own (`none`, `basic`, `bearer`, `passthrough`; a cluster `none`, `basic` or
+`clientCredentials`), and a secret never sits in the file: `auth.passwordEnv`, `tokenEnv` or
+`clientSecretEnv` names the variable that holds it, and the server reads only names that start with
 `ENGINE_SECRET_`. Whoever may change the file reaches those variables and the URLs.
 
 A call routes to its `engine` argument, else to `ENGINE_DEFAULT`, else to `defaultProfile`, else to
 the only profile, else fails with `ENGINE_NOT_SELECTED`; a default that names no profile fails the
-boot. The server `instructions` state the routing rule once for every tool. A profile the server
-cannot use (an unknown key, an unset variable, a literal secret, `headers`, a process engine name,
-OAuth, a URL with credentials) is refused on its own: the boot warns, `engine_list_engines` lists it
-under `refused` with the reason, and a call to it fails with `ENGINE_PROFILE_REFUSED`, also as the
-default, never rerouted. The boot fails only when the file gives no profile, none is usable or a
-default names no profile.
+boot, and a tool refuses a default of a dialect it does not read (`ENGINE_DIALECT_NOT_SERVED`). The
+server `instructions` state it once. A profile the server cannot use (an unknown key, an unset
+variable, a literal secret, `headers`, a process engine name, OAuth, a URL with credentials) is
+refused on its own: the boot warns, `engine_list_engines` lists it under `refused` with the reason,
+and a call to it fails with `ENGINE_PROFILE_REFUSED`, also as the default, never rerouted. The boot
+fails only when the file gives no profile, none is usable or a default names no profile.
 
 With several engines, the cockpit landing lists every engine with its live health in words (open
 incidents, empty, unreachable, loading), read from the engine itself; a refused one reads "profile

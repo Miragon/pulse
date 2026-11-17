@@ -336,4 +336,5 @@ deviation D9 names, since the label boxes of diagrams drawn in the modelers are 
 connector's server layers (the case #488 names), and the connector runs `C7Runtime` as its
 runtime. The same day `@miragon/pulse-blocks` was created from the webview's board cards and the
 cockpit's board route became their second renderer, and c7-core's recorded answers hold both wires
-to one board.
+to one board. 2026-11-17: the MCP server shows Camunda 8 clusters on boards, and c8-core's recorded
+answers (`C8_BOARD_ENGINE`) hold the C8 adapter's wire and the server's to one board the same way.

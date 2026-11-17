@@ -45,6 +45,7 @@ export default miragonDocs({
         { text: "Getting started", link: "/mcp/getting-started" },
         { text: "Usage", link: "/mcp/usage" },
         { text: "Boards", link: "/mcp/boards" },
+        { text: "Camunda 8", link: "/mcp/camunda8" },
         { text: "Tools and settings", link: "/mcp/reference" },
         { text: "Operations", link: "/mcp/operations" },
         { text: "Architecture", link: "/mcp/architecture" },

@@ -291,7 +291,11 @@ adapter once per process.
   limit's wait, the one renewal of a refused token, the version floor, the `/v2` hint for
   Operate's address and a cluster without secondary storage
   (`packages/connectors/c8/c8-adapter/test/__golden__/error-paths/README.md`).
-  `scripts/error-path-goldens.test.mjs` holds its case list and first table to the other surfaces'.
+  `scripts/error-path-goldens.test.mjs` holds its case list and first table to the other surfaces',
+  and to the MCP server's Camunda 8 goldens its second table, its case file and cluster world below
+  their headers (`apps/mcp-server/test/engine-goldens/error-cases-c8.ts`,
+  `apps/mcp-server/test/engine-goldens/c8-cluster-world.ts`) and each case's failure, so a change to
+  one changes the other in the same commit.
 - Two profiles that name the same client of the same cluster with different secrets, audiences or
   scopes replace each other's token source, so each of their reads asks for a token.
 

@@ -62,7 +62,7 @@ the engines of this server", and its tiles stay empty.
 
 ## Camunda 8
 
-The server serves Camunda 7, CIB seven and Operaton. It refuses a `camunda8` profile at startup,
-so a board that names one shows that engine as not read, its profile refused, beside the numbers
-of the other engines. Pulse for VS Code and Pulse for Orca read boards over Camunda 8 clusters
-([Camunda 8](../vscode/camunda8.md)).
+A board reads a Camunda 8 cluster from 8.9 on beside the other engines, with the tiles and numbers
+the editors show; its `camunda8` profile names the cluster and the server's own client
+([Camunda 8](camunda8.md)). A cluster's tiles show their counts, rows and diagram and open nothing,
+since no other view of the server reads Camunda 8, and a cluster that fails shows in its place.

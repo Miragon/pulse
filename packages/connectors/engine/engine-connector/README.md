@@ -65,8 +65,9 @@ in `ENGINES_JSON` / `ENGINES_FILE`; every variable is in the
   `@miragon/pulse-profile`, the format of the CLI and Pulse for VS Code; without one,
   `ENGINE_BASE_URL` and its siblings yield the profile of a single engine. A profile's name is the
   engine id, a secret only the name of an `ENGINE_SECRET_*` variable, and `readOnly` blocks every
-  write to that engine. A profile the server cannot use is refused on its own: the boot warns,
-  `engine_list_engines` lists it under `refused`, a call to it fails with `ENGINE_PROFILE_REFUSED`.
+  write to that engine: no write offers it, and one registers only beside an engine that takes it. A
+  profile the server cannot use is refused on its own: the boot warns, `engine_list_engines` lists
+  it under `refused`, a call to it fails with `ENGINE_PROFILE_REFUSED`.
 - **Several engines, several vendors.** Every tool takes an optional `engine`, else routes to
   `ENGINE_DEFAULT`, else to the file's `defaultProfile` (each must name a profile, else the boot
   fails), else the only profile, else `ENGINE_NOT_SELECTED` lists the engines; a refused target is
@@ -79,7 +80,8 @@ in `ENGINES_JSON` / `ENGINES_FILE`; every variable is in the
   tool, feed or cockpit view offers it: each names the dialects it serves, registers only where a
   configured engine serves it and refuses another engine, a default without `engine` above all,
   with `ENGINE_DIALECT_NOT_SERVED` before anything is sent. A server of Camunda 8 engines alone
-  lists the engine list, the cockpit (its board and landing) and the board and XML feeds.
+  lists the engine list, the cockpit (its board and landing) and the board and XML feeds
+  ([Camunda 8](https://miragon.github.io/pulse/mcp/camunda8): the profile, the client, the tests).
 - **The engine contract.** It depends on `@miragon/pulse-engine-core`, the contract Pulse for VS
   Code and Pulse for Orca read engines through, and builds a runtime of it on each call, over the
   client that call resolves: c7-core's `C7Runtime` over the module's own client, which a board

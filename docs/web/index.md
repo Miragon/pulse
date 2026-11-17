@@ -3,20 +3,20 @@
 The web app shows the MCP server's views as pages of the same server, under `/app`: the cockpit and
 the boards in a browser, for people who have no AI chat at hand, a support team or the business
 users of a process, say. They sign in through the identity provider that already protects the
-server, and every page reads the engines with their own token, under the same toolset, engine
-routing and numbers as a chat.
+server, and every page calls it with their own token, under the same toolset, engine routing and
+numbers as a chat.
 
 The web app only reads. A page writes to no engine and shows no write control, and since it posts
 to no chat, it shows no hand-off either.
 
 ## Pages
 
-| URL                                  | What it shows                                                                                                              |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
-| `/app`                               | The engines and the server's [boards](../mcp/boards.md) to pick from; with one engine and no board, that engine's overview |
-| `/app/boards/<id>`                   | A board, with the tiles and numbers the chat shows                                                                         |
-| `/app/cockpit?view=jobs&engine=prod` | The start the query names: each parameter is one argument of `engine_open_cockpit`, which refuses one it does not take     |
-| `/app/signed-out`                    | Why a sign-in ended, and a new one                                                                                         |
+| URL                                  | What it shows                                                                                                                     |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| `/app`                               | The engines and the server's [boards](../mcp/boards.md) to pick from; with one engine and no board, that engine's overview        |
+| `/app/boards/<id>`                   | A board, with the tiles and numbers the chat shows; a [Camunda 8](../mcp/camunda8.md) cluster's as the server's client reads them |
+| `/app/cockpit?view=jobs&engine=prod` | The start the query names: each parameter is one argument of `engine_open_cockpit`, which refuses one it does not take            |
+| `/app/signed-out`                    | Why a sign-in ended, and a new one                                                                                                |
 
 A URL names where a page starts. Inside the page you move as in the cockpit (a drill, the trail,
 **All engines**) and the address stays; the browser's Back leaves the page. `/app` has no trailing

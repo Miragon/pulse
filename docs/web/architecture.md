@@ -47,10 +47,12 @@ the session's secret, which only a page of this origin reads from `/app/api/sess
 
 ## Where the identity comes from
 
-The session is no second source of identity. It holds a token the server's own sign-in got from
-the same provider, which the gate checked before the session kept it, and `/mcp` verifies it again
-on every forwarded call like any bearer token: the caller is its subject, and nothing the browser
-chooses names one. Under passthrough an engine gets the user's own token, as from a chat. The
+The session is no second source of identity. It holds a token the server's own sign-in got from the
+same provider, which the gate checked before the session kept it, and `/mcp` verifies it again on
+every forwarded call like any bearer token: the caller is its subject, and nothing the browser
+chooses names one. Under passthrough an engine gets the user's own token, as from a chat; a
+Camunda 8 cluster never does: the server reads it with its own client, so everyone signed in sees
+on a board what that client may read ([Camunda 8](../mcp/camunda8.md#one-client-per-server)). The
 per-caller caches key on the token, so a renewed token starts afresh.
 
 ## What a page may call

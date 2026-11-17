@@ -1,7 +1,7 @@
 # Pulse architecture
 
-Pulse is a single Node.js MCP server that exposes Camunda 7 / CIB seven operations to any MCP host
-(Claude, ChatGPT, …) and, as pages, to a browser; all it shows it reads from the engine's REST API.
+Pulse is a single Node.js MCP server that exposes Camunda 7 / CIB seven operations and Camunda 8
+boards to any MCP host (Claude, ChatGPT, …) and to a browser, read from each engine's own API.
 
 ## At a glance
 
@@ -15,7 +15,7 @@ flowchart LR
 
   Server --> EngineModule
 
-  EngineModule -->|REST| Engine[(Camunda 7 / CIB seven)]
+  EngineModule -->|REST| Engine[(Camunda 7 / CIB seven<br/>Camunda 8 on boards)]
 
   Server -. serves .-> Widgets[Widget bundle<br/>React + Tailwind]
 ```
@@ -29,25 +29,25 @@ flowchart LR
 | **Pulse for VS Code** (`apps/vscode/`)                      | Shows what an engine runs next to the BPMN models in VS Code: the runtime view (`packages/core/runtime-view`, a React webview on pulse-ui over the engine contract) and the C7 adapter. A .vsix; rules in `apps/vscode/CLAUDE.md`. |
 | **Pulse for Orca** (`apps/orca/`)                           | The same runtime view and C7 adapter in Orca's editor tabs and a Pulse panel; an Orca plugin, rules in `apps/orca/CLAUDE.md`.                                                                                                      |
 | **Web app** (`apps/web/`)                                   | The server's views as pages under `/app` for a browser signed in through the server's OAuth provider, read-only; how it signs in and calls `/mcp`: [How the web app works](../web/architecture.md).                                |
-| **engine** (`packages/connectors/engine/engine-connector/`) | Wraps the Camunda 7 / CIB seven REST API via an OpenAPI-generated client. Exposes process, task, incident, deployment, and history tools plus widgets, and the [boards](boards.md) of `ENGINE_BOARDS_DIR`.                         |
+| **engine** (`packages/connectors/engine/engine-connector/`) | Wraps the Camunda 7 REST API via an OpenAPI-generated client. Exposes process, task, incident, deployment, and history tools plus widgets, and the [boards](boards.md) of `ENGINE_BOARDS_DIR`, over [Camunda 8](camunda8.md) too.  |
 | **widgets** (`apps/mcp-server/dist/mcp-app.js` + `.css`)    | One Vite-built ES module + stylesheet containing React, Tailwind, and every widget. The server serves it behind one `ui://views/<tool>.html` resource per widget tool, which declares that view on itself (`showToolBinding`).     |
 
 ## Composition rules
 
 - Three axes keep a second engine dialect and a second interface cheap. Engine _vendors_ (CIB seven,
   Operaton, Camunda 7) are per-engine runtime configuration (`flavor` on the engine entry, resolved
-  to an `EngineProvider` carrying only the real differences: cockpit routes, branding, client hook),
-  never packages or apps. A _dialect_ (an engine API family: Camunda 7, and Camunda 8 in the
-  editors) is one package family under `packages/connectors/<dialect>/` (`c7`, `c8`). A family is
-  one source the server reads, a dialect or another source (a metrics store, say): its client, its
-  core when its interfaces share a pure domain and, for a source that is no dialect, its connector
-  (the MCP module). A package two interfaces share is extracted on its second consumer into the
-  family's core, like `@miragon/pulse-c7-core`, the core of the Camunda 7 REST dialect family that
-  the CLI bundles, the C7 adapter runs and the engine connector runs over its client (one port per
-  API family; it names no command, flag or tool). `packages/core/` holds what every family builds
-  on, never one family's code. The family `engine` is the neutral layer: one MCP server app, the
-  thin composition root `apps/mcp-server`, and one module
-  (`packages/connectors/engine/engine-connector`) serve every dialect, and its core
+  to an `EngineProvider` carrying only the real differences: its dialect, cockpit routes, branding,
+  client hook), never packages or apps. A _dialect_ (an engine API family: Camunda 7, and Camunda 8
+  on the server's boards and in the editors) is one package family under
+  `packages/connectors/<dialect>/` (`c7`, `c8`). A family is one source the server reads, a dialect
+  or another source (a metrics store, say): its client, its core when its interfaces share a pure
+  domain and, for a source that is no dialect, its connector (the MCP module). A package two
+  interfaces share is extracted on its second consumer into the family's core, like
+  `@miragon/pulse-c7-core`, the core of the Camunda 7 REST dialect family that the CLI bundles, the
+  C7 adapter and the engine connector run (one port per API family; it names no command, flag or
+  tool). `packages/core/` holds what every family builds on, never one family's code. The family
+  `engine` is the neutral layer: one MCP server app, the thin composition root `apps/mcp-server`,
+  and one module (`packages/connectors/engine/engine-connector`) serve every dialect, and its core
   (`packages/connectors/engine/engine-core`) is the contract each dialect implements. An _interface_
   is an app: the MCP server, the web app it serves, the CLI, Pulse for VS Code and Pulse for Orca.
 - Modules are peers: connector packages (`*-connector`) never import each other, and what one module
@@ -76,13 +76,13 @@ flowchart LR
   text, returns a verdict per profile as data, reads no file or environment, imports nothing, and
   lets an interface state what it serves (`refusalsOn`), so a key is applied or refuses a profile.
 - One transport. `@miragon/pulse-http` (`packages/core/http`) is the one HTTP client of the engine
-  connector, the CLI and the editors' C7 and C8 adapters (the C8 one's wire and its OAuth client for
-  client credentials): a deadline to the last byte, no redirect, a 64 MiB cap (none in the CLI), one
-  retry after a 401, failure reasons as data, masked secrets; every wiring passes `TRANSPORT_CASES`.
+  connector, the CLI and the editors' C7 and C8 adapters (each Camunda 8 wire with its OAuth
+  client): a deadline to the last byte, no redirect, a 64 MiB cap (none in the CLI), one retry after
+  a 401, failure reasons as data, masked secrets; every wiring passes `TRANSPORT_CASES`.
 - One engine contract: `@miragon/pulse-engine-core` holds the ports, read models, laws and shared
-  rules (`RootCauses`) of every dialect; the runtime view and its two editor hosts, c7-core, the C7
-  and C8 adapters, the board builder and the engine connector's server layers (`runtimeOf`, its
-  runtime per dialect, for the boards) use it, the CLI through c7-core.
+  rules (`RootCauses`) of every dialect; the runtime view and its two editor hosts, c7-core and
+  c8-core, the C7 and C8 adapters, the board builder and the engine connector's server layers
+  (`runtimeOf`, a runtime per dialect for the boards) use it, the CLI through c7-core.
 - Extract on the second consumer, never speculatively: a second dialect joins the engine module
   (`ENGINE_DIALECTS`), never with a widget package or an MCP server app of its own.
 
@@ -99,7 +99,7 @@ The MCP Apps host is one host among several: the web app shows the same componen
 `mountPage` (a caller for the server's tools from the page; a hand-off hidden or offering its prompt
 to copy, since a page posts into no chat; no write control and no call of the write gate, since a
 page writes to no engine). The widgets read the Camunda 7 REST family's data, a board's tiles its
-JSON form, which the board builder makes over engine-core.
+JSON form, which the board builder makes over engine-core from either dialect.
 
 ## What the UIs share
 
@@ -119,9 +119,10 @@ differs. The decisions are in `apps/vscode/docs/adr/ui-foundation.md`.
 
 ## External systems
 
-| System                | Purpose                                                                  | Default endpoint                    |
-| --------------------- | ------------------------------------------------------------------------ | ----------------------------------- |
-| Camunda 7 / CIB seven | The BPM engine itself: process definitions, instances, tasks, incidents. | `http://localhost:8410/engine-rest` |
+| System                | Purpose                                                                  | Default endpoint                     |
+| --------------------- | ------------------------------------------------------------------------ | ------------------------------------ |
+| Camunda 7 / CIB seven | The BPM engine itself: process definitions, instances, tasks, incidents. | `http://localhost:8410/engine-rest`  |
+| Camunda 8             | A cluster's REST API and its token endpoint, read for boards.            | the profile's `url`, ending in `/v2` |
 
 ## Data flow
 
@@ -134,8 +135,8 @@ differs. The decisions are in `apps/vscode/docs/adr/ui-foundation.md`.
    where a host drops `structuredContent`). Inside the view, app-only `*_data` feeds refresh and
    page it without a model turn.
 5. A board (`view` `board`): the app-only `engine_board_data` builds a file of `ENGINE_BOARDS_DIR`
-   with `@miragon/pulse-board`'s builder over each engine it names (`runtimeOf`, c7-core's
-   `C7Runtime`), kept 30 s per caller; the cockpit draws its JSON with `@miragon/pulse-blocks`.
+   with `@miragon/pulse-board`'s builder over each engine it names (`runtimeOf`: `C7Runtime` or
+   `C8Runtime`), kept 30 s per caller; the cockpit draws its JSON with `@miragon/pulse-blocks`.
 
 ## Repository layout
 

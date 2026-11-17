@@ -23,6 +23,7 @@ flowchart LR
   c7 -- bundled --> c7core["c7-core: the contract's reads, inspect, incident recovery, variable typing"]
   c8["C8 adapter, read-only"] -. implements .-> engineCore
   c8 -- "@miragon/pulse-http and its OAuth client" --> cluster["Camunda 8: /v2"]
+  c8 -- bundled --> c8core["c8-core: the contract's reads of a cluster, shared with the MCP server"]
 ```
 
 The layers live in packages the extension shares with [Pulse for Orca](../orca/architecture.md),

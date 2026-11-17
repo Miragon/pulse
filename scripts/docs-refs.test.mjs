@@ -508,6 +508,9 @@ const DOCS_BUDGETS = {
   "mcp/usage.md": 150,
   // A board in the chat and the cockpit, the server's board files, a board shared with the editors.
   "mcp/boards.md": 70,
+  // What the server reads of a Camunda 8 cluster and offers per engine, its profile and client,
+  // its failures and the server's legs of the conformance matrix.
+  "mcp/camunda8.md": 115,
   "mcp/reference.md": 160,
   // The web app's pages (docs/web/): what it shows and for whom, the sign-in an operator sets up
   // (variables, the provider's side, sessions, a proxy, local), how it is built.

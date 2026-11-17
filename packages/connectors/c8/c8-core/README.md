@@ -6,8 +6,9 @@ models of `@miragon/pulse-engine-core`, the engine contract every dialect implem
 never writes. Two surfaces run it, each over its own wire on `@miragon/pulse-http` and in its own
 words: the C8 adapter of the editor hosts (`packages/connectors/c8/c8-adapter`) and the MCP
 server's engine module (`@miragon/pulse-engine-connector`, whose `src/lib/engine` alone imports
-it), which is why it is published. Below 1.0, pin the exact version and update all
-`@miragon/pulse-*` packages together.
+it, for the engine list and the boards:
+[Camunda 8 on the server](https://miragon.github.io/pulse/mcp/camunda8)), which is why it is
+published. Below 1.0, pin the exact version and update all `@miragon/pulse-*` packages together.
 
 Thomas Heinrichs wrote these readers, the REST client and its query rules, the runtime and the
 translation of its failures for Pulse for VS Code in

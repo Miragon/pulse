@@ -329,7 +329,11 @@ at history level AUDIT too
   pin what it reports for the same cases, made with the answers of a Camunda 8 cluster, and for
   the cases of Camunda 8 alone in the second table. An intended change runs
   `pnpm --fail-if-no-match --filter @miragon/pulse-c8-adapter golden:update` (refused in CI)
-  and commits the diff; never edit a golden by hand.
+  and commits the diff; never edit a golden by hand. The MCP server keeps copies of its case file
+  and cluster world (`apps/mcp-server/test/engine-goldens/error-cases-c8.ts`,
+  `apps/mcp-server/test/engine-goldens/c8-cluster-world.ts`), and
+  `scripts/error-path-goldens.test.mjs` holds them and each case's failure equal: a change to one
+  changes the other in the same commit.
 - A new gate is a rule in a standard tool (ESLint, dependency-cruiser, knip, tsc, Vitest) or
   a test. A rule you write proves it bites with a case in the `test/architecture` of the package
   whose rule it is;

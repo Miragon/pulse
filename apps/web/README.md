@@ -2,8 +2,8 @@
 
 The page a Pulse server serves under `/app`: the MCP server's views, the operations cockpit first,
 on a page of the server, for people who sign in through the server's OAuth provider instead of
-asking a chat. It reads the engines through the server's tools with the user's own token and writes
-to none.
+asking a chat. It calls the server's tools with the user's own token and writes to none; the server
+reads a Camunda 8 cluster with its own client.
 
 - `/app` opens the cockpit's landing: the engines and the server's boards to pick from (with one
   engine and no board, that engine); `/app/boards/<id>` a board, as the chat shows it;
