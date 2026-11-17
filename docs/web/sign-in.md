@@ -55,12 +55,17 @@ same `MCP_WEB_SESSION_KEYS` serves it and the replicas share nothing. It lasts
 `MCP_WEB_SESSION_HOURS` from the sign-in; within them the server renews a due access token with the
 refresh token and seals the new one back into the cookie.
 
-**Sign out** revokes the refresh token where the provider offers revocation, ends the session at
-the provider (the server keeps no ID token, so a provider may ask to confirm; Keycloak does not,
-since the revocation ended its session) and marks the session ended at the replica that takes the
-sign-out and in the browser (`__Host-pulse-ended`). A replica
-that did not take it, or one restarted since, knows nothing of it: there a copy of the cookie holds
-until its access token runs out, which is why the web client's access tokens should be short.
+**Sign out** revokes the refresh token where the provider offers revocation, ends the session at the
+provider (the server keeps no ID token, so a provider may ask to confirm; Keycloak does not, since
+the revocation ended its session) and marks the session ended at the replica that takes the sign-out
+and in the browser (`__Host-pulse-ended`). A replica that did not take it, or one restarted since,
+knows nothing of it: there a copy of the cookie holds until its access token runs out, which is why
+the web client's access tokens should be short. A call under way on another replica may renew the
+tokens after the sign-out and set the cookie again; the browser's next request, on any replica, is
+refused and revokes that refresh token too (once per token and replica, behind its answer). Until
+then, or if that browser never comes back, a copy of that cookie renews on the replicas that did not
+take the sign-out, unless the provider ended its session; where the provider rotates refresh tokens,
+a copy that renewed before then keeps its newer token, unrevoked, for the session's hours.
 
 ## Behind a proxy
 

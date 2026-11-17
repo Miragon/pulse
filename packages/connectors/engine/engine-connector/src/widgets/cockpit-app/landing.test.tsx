@@ -352,13 +352,16 @@ describe("LandingChooser with the server's boards", () => {
     )
     expect(opened).toEqual([["invoices", "Invoice operations"]])
     expect(screen.getByText("2 engines and 1 board. Pick one to work with.")).toBeTruthy()
+    // Where a narrow row cuts the engines under the name, their title holds the whole list.
+    const engines = within(boards).getByText("2 engines: prod-a, prod-b")
+    expect(engines.getAttribute("title")).toBe("2 engines: prod-a, prod-b")
   })
 
   it("names a refused file by its id and problem count, opens nothing, and says where its problems are", () => {
     renderBoards()
     const boards = screen.getByRole("region", { name: "Boards" })
     expect(within(boards).getAllByRole("button")).toHaveLength(1)
-    const refused = within(boards).getByText("broken").parentElement!
+    const refused = within(boards).getByText("broken").closest<HTMLElement>("[data-status]")!
     expect(refused.dataset.status).toBe("refused")
     expect(refused.textContent).toContain("file refused: 1 problem")
     expect(refused.querySelector("svg")?.getAttribute("class")).toContain(TONE_ICON.warning)

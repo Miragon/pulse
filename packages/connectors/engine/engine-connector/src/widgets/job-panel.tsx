@@ -295,9 +295,12 @@ export function JobPanelWidget({
     resetOn: data,
   })
 
+  // The engine in the title, as the overview and the incidents name it.
+  const title = t("jobPanel.titleFor", { engine })
   if (!data) {
+    // Loading or failed, the route keeps its title, the page's one heading.
     return (
-      <WidgetShell>
+      <WidgetShell header={<WidgetHeader title={title} />}>
         <ViewDataState
           loading={paged.loading}
           error={paged.error}
@@ -332,7 +335,7 @@ export function JobPanelWidget({
     <WidgetShell
       header={
         <WidgetHeader
-          title={t("jobPanel.title")}
+          title={title}
           sub={
             <>
               <span>{t("jobPanel.badgeTotal", { count: formatNumber(totalCount) })}</span>

@@ -288,7 +288,9 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   `useHostFollowUp()`, so a page's words never send the reader to a chat), and `errorTitle`
   heads only a failure `describeError` cannot classify
 - The view frame (`ViewFrame`) is the document's one `<main>` in every phase: a view renders
-  no `<main>` of its own, and its title is the page's one `h1`
+  no `<main>` of its own, and its title is the page's one `h1`, also while it loads or fails:
+  its guard keeps the bar with the title it knows before its data (`WidgetShell`'s `header`,
+  `useDetailView`'s `title`; the cockpit's routes hand in their crumb)
 - A view that reads its feed directly calls widget-shell's `useViewData` (from
   `@miragon/pulse-widget-shell/widgets`): the handed-in tool result always seeds a live
   query, so Refresh and a write's invalidation re-read it (#341). Widgets import every

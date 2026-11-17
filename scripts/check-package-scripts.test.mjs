@@ -421,11 +421,12 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
     )
     assert.equal(
       MUTATED_PACKAGES[widgetShell],
-      "owner decisions 2026-11-16: the web app's server rules (src/web: the seal of its " +
-        "cookies, the cookies, the return path, the CSRF check, the forward of a page's call, the " +
-        "token's renewal, the served build, the security headers) guard every session and every " +
-        "call of the web app, so a surviving mutant there is a security hole; only those eight " +
-        "files are mutated, not the boot, the view runtime or the other routes",
+      "owner decisions 2026-11-16 and 2026-11-17: the web app's server rules (src/web: the seal " +
+        "of its cookies, the cookies, the return path, the CSRF check, the forward of a page's " +
+        "call, the token's renewal, the served build, the security headers, the sessions signed " +
+        "out, the session's opening and refusal, the sign-out, the session route) guard every " +
+        "session and every call of the web app, so a surviving mutant there is a security hole; " +
+        "only those twelve files are mutated, not the boot, the view runtime or the other routes",
     )
   })
 
@@ -441,7 +442,7 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
     ])
   })
 
-  it("widget-shell's config mutates exactly the web app's eight rule files, as its reason says", () => {
+  it("widget-shell's config mutates exactly the web app's twelve rule files, as its reason says", () => {
     const config = JSON.parse(
       readFileSync(path.join(repoRoot, "packages/core/widget-shell/stryker.config.json"), "utf8"),
     )
@@ -454,6 +455,10 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
       "src/web/refresh.ts",
       "src/web/static.ts",
       "src/web/security-headers.ts",
+      "src/web/ended.ts",
+      "src/web/session.ts",
+      "src/web/logout.ts",
+      "src/web/session-route.ts",
     ])
   })
 

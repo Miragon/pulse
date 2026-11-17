@@ -140,10 +140,11 @@ at most three chunks), never on the server, so every replica built with the same
 A sign-out ends it on the server all the same: the replica that takes it keeps the session's id
 until its seal expires (in memory, at most 100,000), so no copy of the cookie opens the session
 there again, and the browser gets a sealed `__Host-pulse-ended` cookie naming it until then, so
-no replica opens the session cookie a call under way sets again in that browser. Another replica
-learns nothing of a copy: there it holds until its access token runs out, since the sign-out
-revoked the refresh token where the provider offers revocation, which is why a short access-token
-lifetime suits the web client.
+no replica opens the session cookie a call under way sets again in that browser; the replica that
+refuses such a cookie revokes its refresh token behind its answer, once per token, since a call on
+another replica may have renewed it after the sign-out. Another replica learns nothing of a copy:
+there it holds until its access token runs out, since the sign-out revoked the refresh token where
+the provider offers revocation, which is why a short access-token lifetime suits the web client.
 
 | Route                                    | What it does                                                                                                                                                                                                   |
 | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

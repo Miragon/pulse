@@ -90,10 +90,13 @@ export function IncidentDetailWidget({
   data: initialData = null,
   incidentId,
   engine,
+  title,
 }: {
   data?: IncidentDetailData | null
   incidentId: string
   engine: string
+  /** The route's title, which its bar keeps while the incident loads or fails to. */
+  title?: string
 }) {
   const t = useT()
   // The route's engine: a refetch never reads the default engine.
@@ -106,6 +109,7 @@ export function IncidentDetailWidget({
     loadingText: t("incidentDetail.loading"),
     emptyText: t("incidentDetail.noData"),
     retryText: t("viewState.retry"),
+    title,
   })
   // A cleared incident's view is not refetched (404), so the marks are what it shows. A failed
   // refetch leaves it unconfirmed (cleared elsewhere?): no remedy then.

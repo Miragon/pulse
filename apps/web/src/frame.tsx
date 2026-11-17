@@ -1,7 +1,7 @@
 import { useState, useSyncExternalStore } from "react"
 import { Button, Icon, StatusStrip } from "@miragon/pulse-ui"
 import type { PageFrame, WebSessionInfo } from "@miragon/pulse-widget-shell/widgets"
-import { LogIn, LogOut } from "lucide-react"
+import { LogOut } from "lucide-react"
 import { PageBar, PageLayout } from "./bar.js"
 import { useT } from "./messages/index.js"
 import type { PageNotice, PageNotices } from "./notices.js"
@@ -54,7 +54,11 @@ function Account({ page }: { page: SessionPage }) {
   )
 }
 
-/** The notice under the bar: the session ended (sign in again, back here), or a sign-out failed. */
+/**
+ * The notice under the bar: the session ended (sign in again, back here), or a sign-out failed.
+ * Its sign-in, the page's one way out, has no icon, so its label shows at every width: a strip's
+ * action with an icon collapses to it in a narrow strip.
+ */
 function Notice({ notice, page }: { notice: PageNotice; page: SessionPage }) {
   const t = useT()
   if (notice === "sign-out-failed") {
@@ -72,11 +76,7 @@ function Notice({ notice, page }: { notice: PageNotice; page: SessionPage }) {
       title={t("notice.ended.title")}
       detail={t("notice.ended.detail")}
       actions={[
-        {
-          label: t("notice.signInAgain"),
-          icon: LogIn,
-          onClick: () => page.assign(signInUrl(page.returnTo)),
-        },
+        { label: t("notice.signInAgain"), onClick: () => page.assign(signInUrl(page.returnTo)) },
       ]}
     />
   )

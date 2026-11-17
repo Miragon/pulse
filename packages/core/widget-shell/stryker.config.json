@@ -13,7 +13,11 @@
     "src/web/forward.ts",
     "src/web/refresh.ts",
     "src/web/static.ts",
-    "src/web/security-headers.ts"
+    "src/web/security-headers.ts",
+    "src/web/ended.ts",
+    "src/web/session.ts",
+    "src/web/logout.ts",
+    "src/web/session-route.ts"
   ],
   "inPlace": true,
   "incremental": true,

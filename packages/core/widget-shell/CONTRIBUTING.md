@@ -150,7 +150,9 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   expired still goes out, and the session's end after that clears no cookie, which a call beside
   it may just have renewed). `session.ts` opens a request's session and refuses one signed out,
   by `ended.ts` (the ids of the sessions signed out at this replica until their seal expires, in
-  memory, at most 100,000) or by the browser's ended cookie. `discovery.ts` reads the provider's
+  memory, at most 100,000) or by the browser's ended cookie, and revokes the refused session's
+  refresh token behind its answer, once per token at a replica (`ended.ts` keeps their digests),
+  a failure only logged. `discovery.ts` reads the provider's
   metadata on the first sign-in and holds it
   for an hour; `separation.ts` keeps the session cookie off `/mcp` (the gate's 401 and challenge,
   `gateChallenge`) and a bearer off `/app` (400), and `installWebSignIn` answers every route under
@@ -179,9 +181,10 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   form, never under `/app/auth` or `/app/api`, the query written again, at most 1,024 characters); `csrfRefusal` checks `Sec-Fetch-Site`, the
   `Origin` and the CSRF header against the session's secret in constant time. The paths, the CSRF
   header and the codes both halves read are `src/protocol/web.ts`, exported from `./widgets`. The
-  seal, the cookies, the return path, the CSRF check, the forward, the renewal, the served build
-  and the security headers are mutated nightly (StrykerJS, break 90, `src/web`'s suites alone);
-  `src/web` keeps a coverage floor of 100.
+  seal, the cookies, the return path, the CSRF check, the forward, the renewal, the served build,
+  the security headers, the signed-out sessions (`ended.ts`), the session (`session.ts`), the
+  sign-out and the session route are mutated nightly (StrykerJS, break 90, `src/web`'s suites
+  alone); `src/web` keeps a coverage floor of 100.
 - **Fake identity provider** (`./testing/oidc`): `startFakeOidc(options)` starts an OpenID
   Connect provider on a loopback port with Keycloak's paths, so the boot's Keycloak provider
   (`MCP_OAUTH_KEYCLOAK_SERVER_URL` its `serverUrl`, `MCP_OAUTH_KEYCLOAK_REALM` its `realm`)

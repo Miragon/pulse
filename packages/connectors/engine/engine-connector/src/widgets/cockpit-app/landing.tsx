@@ -164,9 +164,17 @@ export interface ServerBoards {
 }
 
 /**
+ * A board row's words: the name, whole and wrapping where it is longer than the row, and what it
+ * says of the board at the row's end, or on a line of its own under the name where both do not
+ * fit beside each other (WCAG 1.4.10 at 320 px, the German words and a touch row's padding).
+ */
+const BOARD_WORDS = "flex min-w-0 flex-1 flex-wrap items-baseline justify-between gap-x-3"
+const BOARD_NAME = "text-foreground min-w-0 font-semibold [overflow-wrap:anywhere]"
+
+/**
  * A board opens as the cockpit's board view, marked as its view bar marks it; its engines sit
- * inside the button, in its name. They take only the room the title leaves, so a narrow row cuts
- * them before the title that names the board.
+ * inside the button, in its name. The board's name stays whole; its engines go under it where the
+ * row is narrow, cut there with their whole list in their title.
  */
 function BoardRow({ board, onOpen }: { board: ListedBoard; onOpen: () => void }) {
   const locale = useLocale()
@@ -181,16 +189,20 @@ function BoardRow({ board, onOpen }: { board: ListedBoard; onOpen: () => void })
       className={cn("hover:bg-accent transition-colors", ROW, FOCUS_RING_INSET)}
     >
       <Icon icon={ClipboardList} className="text-muted-foreground" />
-      <span className="text-foreground min-w-0 truncate font-semibold">{board.title}</span>
-      <span className="sr-only">, </span>
-      <span className="text-muted-foreground min-w-0 flex-1 truncate text-right">{engines}</span>
+      <span className={BOARD_WORDS}>
+        <span className={BOARD_NAME}>{board.title}</span>
+        <span className="sr-only">, </span>
+        <span title={engines} className="text-muted-foreground min-w-0 truncate">
+          {engines}
+        </span>
+      </span>
       <RowArrow />
     </button>
   )
 }
 
 /**
- * A board file that gives no board opens nothing: its id, refused in the tone of a refused
+ * A board file that gives no board opens nothing: its id, whole, refused in the tone of a refused
  * profile, and how many problems it has. Their words are in the server's log at startup.
  */
 function RefusedBoardRow({ id, problems }: { id: string; problems: number }) {
@@ -198,10 +210,12 @@ function RefusedBoardRow({ id, problems }: { id: string; problems: number }) {
   return (
     <div className={ROW} data-status="refused">
       <Icon icon={Ban} className={TONE_ICON.warning} />
-      <span className="text-foreground min-w-0 truncate font-semibold">{id}</span>
-      <span className="sr-only">, </span>
-      <span className="text-muted-foreground ms-auto shrink-0 text-right">
-        {translator(locale, "cockpit.landing.boardRefused", { count: formatNumber(problems) })}
+      <span className={BOARD_WORDS}>
+        <span className={BOARD_NAME}>{id}</span>
+        <span className="sr-only">, </span>
+        <span className="text-muted-foreground">
+          {translator(locale, "cockpit.landing.boardRefused", { count: formatNumber(problems) })}
+        </span>
       </span>
       {/* Where the other rows have their way in: the words end where theirs do. */}
       <span className="size-3 shrink-0" aria-hidden="true" />

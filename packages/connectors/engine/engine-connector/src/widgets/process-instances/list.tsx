@@ -4,6 +4,7 @@ import {
   SearchField,
   SegmentedControl,
   Toolbar,
+  WidgetHeader,
   type SegmentedControlOption,
 } from "@miragon/pulse-ui"
 import {
@@ -93,8 +94,11 @@ export function ProcessInstancesView({
   const data = paged.firstPage
 
   if (!data) {
+    // Loading or failed, the route keeps a title, the page's one heading: its process by key.
     return (
-      <WidgetShell>
+      <WidgetShell
+        header={<WidgetHeader title={processDefinitionKey ?? t("processInstances.allTitle")} />}
+      >
         <QueryFallback
           isError={!!paged.error}
           error={paged.error}

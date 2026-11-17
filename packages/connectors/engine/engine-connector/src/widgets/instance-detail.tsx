@@ -21,10 +21,13 @@ export function InstanceDetailWidget({
   data: initialData = null,
   processInstanceId,
   engine,
+  title,
 }: {
   data?: InstanceDetailData | null
   processInstanceId: string
   engine: string
+  /** The route's title, which its bar keeps while the instance loads or fails to. */
+  title?: string
 }) {
   const t = useT()
   const go = useNav()
@@ -38,6 +41,7 @@ export function InstanceDetailWidget({
     loadingText: t("instanceDetail.loading"),
     emptyText: t("instanceDetail.noData"),
     retryText: t("viewState.retry"),
+    title,
   })
   const actions = useInstanceActions({ engine, data, unconfirmed: refreshError !== null })
   const { complete, visibleTasks, activeTaskId, onToggleTask, onTaskCompleted } = useOpenTasks(

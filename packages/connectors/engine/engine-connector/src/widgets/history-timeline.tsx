@@ -296,10 +296,13 @@ export function HistoryTimelineWidget({
   data: initialData = null,
   processInstanceId,
   engine,
+  title,
 }: {
   data?: HistoryTimelineData | null
   processInstanceId: string
   engine: string
+  /** The route's title while no instance names it: loading, failed or not found. */
+  title?: string
 }) {
   const t = useT()
   // The route's engine, never the default engine.
@@ -316,9 +319,10 @@ export function HistoryTimelineWidget({
     () => (data ? { items: data.activities, totalCount: data.totalActivities } : null),
     [data],
   )
+  const routeBar = title && <WidgetHeader title={title} />
   if (!data) {
     return (
-      <WidgetShell>
+      <WidgetShell header={routeBar}>
         <ViewDataState
           loading={view.loading}
           error={view.error}
@@ -334,8 +338,10 @@ export function HistoryTimelineWidget({
   return (
     <WidgetShell
       header={
-        instance && (
+        instance ? (
           <HistoryHeader instance={instance} engineId={engine} total={data.totalActivities} />
+        ) : (
+          routeBar
         )
       }
     >

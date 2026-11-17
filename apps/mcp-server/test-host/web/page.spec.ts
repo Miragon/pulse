@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs"
 import path from "node:path"
-import { expect, test, type Page } from "@playwright/test"
+import { expect, test, type Locator, type Page } from "@playwright/test"
 import { HEALTHY_ENGINE } from "../engines.js"
 import {
   collectErrors,
@@ -106,7 +106,11 @@ test.describe("the cockpit as a page", () => {
       calls.filter((call) => call.name === "engine_jobs_data").at(-1)?.arguments,
     ).toMatchObject({ engine: HEALTHY_ENGINE })
     // The document's title follows the view the page moved on to.
-    await expect(page).toHaveTitle("Jobs · Pulse")
+    await expect(page).toHaveTitle(`${HEALTHY_ENGINE} · Jobs · Pulse`)
+  })
+
+  test("names the engine in each engine section's heading and title", async ({ page }) => {
+    await expectEngineSections(page, ["Overview", "Incidents", "Jobs"])
   })
 
   test("hides the chat's hand-offs, and every menu, column or section that holds them alone", async ({
@@ -233,6 +237,12 @@ test.describe("the cockpit as a page in German, on a dark system", () => {
     await expect(html).not.toHaveClass(/\bdark\b/)
   })
 
+  test("names the engine in each engine section's heading and title, in German", async ({
+    page,
+  }) => {
+    await expectEngineSections(page, ["Übersicht", "Incidents", "Jobs"])
+  })
+
   test("fits 320 px without scrolling sideways", async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 640 })
     await signIn(page, OVERVIEW_PAGE)
@@ -252,6 +262,29 @@ test.describe("the cockpit as a page in German, on a dark system", () => {
     await expectLandingFits(page, "Engine-übergreifende Übersicht")
   })
 })
+
+/**
+ * The engine sections (overview, incidents, jobs) each head their page `<engine> · <section>`, in
+ * the page's language (`sections`, in that order), which titles the document.
+ */
+async function expectEngineSections(page: Page, sections: readonly string[]): Promise<void> {
+  await signIn(page, OVERVIEW_PAGE)
+  for (const [view, section] of ["", "&view=incidents", "&view=jobs"].map(
+    (query, index) => [query, sections[index]] as const,
+  )) {
+    await page.goto(`${originOf()}/app/cockpit?engine=${HEALTHY_ENGINE}${view}`)
+    const heading = `${HEALTHY_ENGINE} · ${section}`
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText([heading], { timeout: 15_000 })
+    await expect(page).toHaveTitle(`${heading} · Pulse`)
+  }
+}
+
+/** Every word of `text` in `scope` shows: nothing of it cut, nothing overflowing its box. */
+async function expectWhole(scope: Locator, text: string): Promise<void> {
+  const words = scope.getByText(text, { exact: true })
+  await expect(words).toBeVisible()
+  expect(await words.evaluate((el) => el.scrollWidth <= el.clientWidth), text).toBe(true)
+}
 
 /** At 320 px the landing scrolls not sideways, its hero's action whole within the gutter. */
 async function expectLandingFits(page: Page, fleet: string): Promise<void> {
@@ -274,6 +307,39 @@ test("the landing fits 320 px in English, its engines and its boards", async ({ 
   await page.setViewportSize({ width: 320, height: 640 })
   await signIn(page)
   await expectLandingFits(page, "Cross-engine overview")
+})
+
+/**
+ * On a touch screen at 320 px (40 px rows, their wider padding) a board row names its board
+ * whole and puts what it says of it under the name where both do not fit beside each other.
+ */
+test.describe("the landing's boards at 320 px on a touch screen", () => {
+  for (const [locale, engines, refused] of [
+    ["en-US", "2 engines: stub, down", "file refused: 1 problem"],
+    ["de-DE", "2 Engines: stub, down", "Datei abgelehnt: 1 Problem"],
+  ] as const) {
+    test(`names each board whole, what it says under it (${locale})`, async ({ browser }) => {
+      const context = await browser.newContext({
+        locale,
+        hasTouch: true,
+        viewport: { width: 320, height: 640 },
+      })
+      try {
+        const page = await context.newPage()
+        await signIn(page)
+        const boards = page.getByRole("region", { name: "Boards" })
+        await expect(boards.getByRole("button")).toHaveCount(1, { timeout: 15_000 })
+        await rendered(page)
+        for (const text of ["Invoice operations", engines, "broken", refused]) {
+          await expectWhole(boards, text)
+        }
+        expect(await scrollsSideways(page)).toBe(false)
+        await expectNoAxeFinding(page)
+      } finally {
+        await context.close()
+      }
+    })
+  }
 })
 
 /**

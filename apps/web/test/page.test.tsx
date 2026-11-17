@@ -48,7 +48,10 @@ describe("a page with a session", () => {
       call: () => Response.json({ code: "signed_out", message: "No session." }, { status: 401 }),
     })
     expect(screen.getByRole("status").textContent).toContain("Your session has ended")
-    fireEvent.click(screen.getByRole("button", { name: "Sign in again" }))
+    // The page's one way out keeps its words at every width: no icon it could collapse to.
+    const signIn = screen.getByRole("button", { name: "Sign in again" })
+    expect(signIn.querySelector("svg")).toBeNull()
+    fireEvent.click(signIn)
     expect(env.assign).toHaveBeenCalledWith("/app/auth/login?return=%2Fapp%2Fcockpit%3Fview%3Djobs")
   })
 

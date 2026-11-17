@@ -85,8 +85,14 @@ function HeaderSub({ data }: { data: ProcessIncidentsData }) {
   )
 }
 
-/** The view's single action home: deterministic first, then the web app, then the chat. */
-export function ProcessDetailHeader(scope: DefinitionScope) {
+/**
+ * The view's single action home: deterministic first, then the web app, then the chat. Loading or
+ * failed, it keeps the route's `title` (the process's name where the route had it, else its key).
+ */
+export function ProcessDetailHeader({
+  title: routeTitle,
+  ...scope
+}: DefinitionScope & { title?: string }) {
   const t = useT()
   const go = useNav()
   const { ask } = useHandOff()
@@ -94,7 +100,7 @@ export function ProcessDetailHeader(scope: DefinitionScope) {
 
   if (!data) {
     return (
-      <WidgetShell>
+      <WidgetShell header={<WidgetHeader title={routeTitle ?? scope.processDefinitionKey} />}>
         <ViewDataState
           loading={loading}
           error={error}

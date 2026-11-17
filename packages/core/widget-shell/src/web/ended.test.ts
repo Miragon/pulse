@@ -45,3 +45,38 @@ describe("endedSessions: the sessions signed out at this replica", () => {
     expect(ended.has(`s${MAX_ENDED_SESSIONS}`, NOW)).toBe(true)
   })
 })
+
+describe("endedSessions: the refresh tokens this replica revoked", () => {
+  it("answers true once per token until its session's seal expires, then again", () => {
+    const ended = endedSessions()
+    expect(ended.revokes("d1", NOW + HOUR, NOW)).toBe(true)
+    expect(ended.revokes("d1", NOW + HOUR, NOW + HOUR - 1)).toBe(false)
+    expect(ended.revokes("d2", NOW + HOUR, NOW)).toBe(true)
+    expect(ended.revokes("d1", NOW + 2 * HOUR, NOW + HOUR)).toBe(true)
+    expect(ended.revokes("d1", NOW + 2 * HOUR, NOW + HOUR)).toBe(false)
+  })
+
+  it("keeps its tokens apart from the sessions, each at most the limit", () => {
+    const ended = endedSessions(2)
+    ended.end("s1", NOW + HOUR, NOW)
+    for (const digest of ["d1", "d2", "d3"]) ended.revokes(digest, NOW + HOUR, NOW)
+    expect(ended.has("s1", NOW)).toBe(true)
+    expect(ended.has("d2", NOW)).toBe(false)
+    // The oldest went: the two kept stay revoked, the first is this replica's to revoke again.
+    expect(["d2", "d3", "d1"].map((digest) => ended.revokes(digest, NOW + HOUR, NOW))).toEqual([
+      false,
+      false,
+      true,
+    ])
+  })
+
+  it("keeps a hundred thousand by default", () => {
+    const ended = endedSessions()
+    for (let index = 0; index <= MAX_ENDED_SESSIONS; index += 1) {
+      ended.revokes(`d${index}`, NOW + HOUR, NOW)
+    }
+    expect(ended.revokes(`d${MAX_ENDED_SESSIONS}`, NOW + HOUR, NOW)).toBe(false)
+    expect(ended.revokes("d1", NOW + HOUR, NOW)).toBe(false)
+    expect(ended.revokes("d0", NOW + HOUR, NOW)).toBe(true)
+  })
+})

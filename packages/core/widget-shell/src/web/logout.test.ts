@@ -121,6 +121,9 @@ describe("POST /app/auth/logout", () => {
     expect(call.headers.getSetCookie()).toEqual(CLEARED.slice(0, 3))
     expect(warned).toHaveBeenCalledWith("[web-test] Web session refused: it was signed out.")
     expect((await sessionOf(copyOf(browser, app, SESSION_CHUNKS))).status).toBe(401)
+    // The replica revoked its refresh token at the sign-out, and revokes it no second time.
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(fake.revoked).toEqual([fake.issued.refresh[0]])
   })
 
   it("leaves the browser the ended cookie, so no replica opens the session for it again", async () => {
@@ -142,6 +145,10 @@ describe("POST /app/auth/logout", () => {
     expect([...restored.cookies.keys()]).toEqual([ENDED_COOKIE])
     // A copy elsewhere, without it, reaches the other replica until its access token runs out.
     expect((await sessionOf(before)).status).toBe(200)
+    // The other replica revokes the refresh token of the cookie it refused: it knows nothing of
+    // the sign-out's revocation, which the provider takes again.
+    const [refresh] = fake.issued.refresh
+    await vi.waitFor(() => expect(fake.revoked).toEqual([refresh, refresh]))
   })
 
   it("keeps the ended cookie through the next sign-in, whose session it leaves alone", async () => {
@@ -153,9 +160,13 @@ describe("POST /app/auth/logout", () => {
     await signIn(browser, fake, { username: "bob" })
     expect(browser.cookies.has(ENDED_COOKIE)).toBe(true)
     expect((await sessionOf(copyOf(browser, other))).body).toMatchObject({ name: "Bob Brown" })
-    // The old session's cookie, set again by a late answer, opens nothing of Alice's anywhere.
+    // The old session's cookie, set again by a late answer, opens nothing of Alice's anywhere,
+    // and the replica that refuses it revokes its refresh token; Bob's stays.
     for (const [name, value] of old.cookies) browser.cookies.set(name, value)
     expect((await sessionOf(copyOf(browser, other))).status).toBe(401)
+    const [alice, bob] = fake.issued.refresh
+    await vi.waitFor(() => expect(fake.revoked).toEqual([alice, alice]))
+    expect(fake.revoked).not.toContain(bob)
   })
 
   it("leaves the provider's session to end where the answer sends the browser", async () => {

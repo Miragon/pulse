@@ -133,6 +133,22 @@ test.describe("a board's page", () => {
     expect(new URL(page.url()).pathname).toBe(BOARD_PAGE)
   })
 
+  test("a tile's drill into an instance whose read fails: its name stays the page's one heading and its title", async ({
+    page,
+  }) => {
+    await signIn(page, BOARD_PAGE)
+    await drawn(page)
+    const row = tile(page, "Running instances of invoice")
+      .getByRole("row")
+      .filter({ hasText: "INV-2026-0043" })
+    await row.getByRole("button", { name: /^Open instance/ }).click()
+    // The stub engine serves this instance nothing: its read fails, once the view's retries did.
+    await expect(page.getByRole("main").getByRole("alert")).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(["INV-2026-0043"])
+    await expect(page).toHaveTitle("INV-2026-0043 · Pulse")
+    await expectNoAxeFinding(page)
+  })
+
   test("a board file that gives no board: says so in the box, its problems in the log, no Try again", async ({
     page,
   }) => {

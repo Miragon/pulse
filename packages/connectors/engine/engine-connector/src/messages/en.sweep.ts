@@ -299,7 +299,7 @@ export const enSweep: MessageCatalog = {
   "jobPanel.stuck": "No retries left",
   "jobPanel.summaryLabel": "Job summary",
   "jobPanel.tableLabel": "Jobs",
-  "jobPanel.title": "Jobs",
+  "jobPanel.titleFor": ({ engine }) => `${String(engine)} · Jobs`,
   "jobPanel.totalJobs": "Total jobs",
   "procIncTable.footerNoun": ({ count }) => (isOne(count) ? "incident" : "incidents"),
   "procIncTable.loading": "Loading incidents…",

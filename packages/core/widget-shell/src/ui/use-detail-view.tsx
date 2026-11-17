@@ -1,5 +1,5 @@
 import type { ReactElement, ReactNode } from "react"
-import { StatusStrip, useLocale } from "@miragon/pulse-ui"
+import { StatusStrip, useLocale, WidgetHeader } from "@miragon/pulse-ui"
 import { RefreshCw } from "lucide-react"
 import { describeError, isPermanentError, isSessionEnded } from "./describe-error.js"
 import { kitLabels } from "./kit-labels.js"
@@ -14,7 +14,8 @@ import { WidgetShell } from "./widget-shell.js"
  * changes. It says what happened in the kit's words; the raw engine text waits under its Details.
  * A page's ended session gets none (`isSessionEnded`): the page's frame says it.
  * `loadError` lets a section on a composed page hide itself when the feed's tool is not on this
- * server.
+ * server. `guard` keeps the view's `title` in its bar while the view loads, fails or finds
+ * nothing, so the page keeps its one heading (and the document its title) through every state.
  */
 export function useDetailView<TData>(opts: {
   initialData: TData | null | undefined
@@ -29,6 +30,8 @@ export function useDetailView<TData>(opts: {
   retryText?: string
   /** Title of the stale-data notice (default: the active locale's "Couldn't refresh this view"). */
   refreshErrorTitle?: string
+  /** The view's title in the guard's bar, what is known before its data: none without it. */
+  title?: string
 }): {
   data: TData | null
   guard: ReactElement | null
@@ -45,7 +48,7 @@ export function useDetailView<TData>(opts: {
   const retry = () => void refetch()
   const { refreshError } = viewRefreshState(view)
   const guard = data ? null : (
-    <WidgetShell>
+    <WidgetShell header={opts.title && <WidgetHeader title={opts.title} />}>
       <ViewDataState
         loading={loading}
         error={error}

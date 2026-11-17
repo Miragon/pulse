@@ -155,6 +155,36 @@ describe("useDetailView", () => {
     expect(String(result.current.loadError)).toContain("not found")
   })
 
+  it("keeps the view's title as its one heading while it loads and once its load failed", async () => {
+    function Titled() {
+      const { data, guard } = useDetailView<Detail>({
+        initialData: null,
+        key: ["test:detail", "titled"],
+        tool: "test_detail_data",
+        args: {},
+        ready: true,
+        emptyText: "Nothing",
+        title: "Instance 1a2b3c4d",
+      })
+      return data ? <p>{data.name}</p> : guard
+    }
+    let fail: (error: Error) => void = () => {}
+    callTool.mockReturnValueOnce(new Promise((_resolve, reject) => (fail = reject)))
+    render(<Titled />, { wrapper })
+    const title = () => screen.getAllByRole("heading", { level: 1 }).map((h) => h.textContent)
+    expect(title()).toEqual(["Instance 1a2b3c4d"])
+    fail(new Error("[503 ProcessEngineException] down (engine prod)"))
+    expect(await screen.findByRole("heading", { level: 2 })).toBeTruthy()
+    expect(title()).toEqual(["Instance 1a2b3c4d"])
+  })
+
+  it("puts no bar in its guard without a title", async () => {
+    callTool.mockRejectedValueOnce(new Error("[503 ProcessEngineException] down (engine prod)"))
+    render(<Detail seed={null} />, { wrapper })
+    expect(await screen.findByRole("heading", { level: 2 })).toBeTruthy()
+    expect(screen.queryByRole("heading", { level: 1 })).toBeNull()
+  })
+
   it("offers a Retry on a failed load, never a dead end", async () => {
     callTool.mockRejectedValueOnce(new Error("[503 ProcessEngineException] down (engine prod)"))
     render(<Detail seed={null} />, { wrapper })

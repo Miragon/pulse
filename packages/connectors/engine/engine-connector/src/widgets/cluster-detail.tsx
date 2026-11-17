@@ -246,8 +246,9 @@ function IncidentRow({
 /** Drill-in for ONE failure cluster, between the engine overview's cluster list and the single-incident detail. */
 function ClusterDetailView({
   data: initialData = null,
+  title,
   ...route
-}: ClusterRoute & { data?: ClusterDetailData | null }) {
+}: ClusterRoute & { data?: ClusterDetailData | null; title?: string }) {
   const t = useT()
   const { engine, activityId, incidentType, messageSignature } = route
   // SERVER-side, so the search covers the whole cluster, not just the loaded page.
@@ -268,8 +269,9 @@ function ClusterDetailView({
   const data = paged.firstPage
 
   if (!data) {
+    // Loading or failed, the route keeps its title, the page's one heading.
     return (
-      <WidgetShell>
+      <WidgetShell header={title && <WidgetHeader title={title} />}>
         <ViewDataState
           loading={paged.loading}
           error={paged.error}
@@ -369,6 +371,8 @@ function ClusterModelContext({ data }: { data: ClusterDetailData }) {
   return <HostModelContext content={context(describeCluster(data))}>{null}</HostModelContext>
 }
 
-export function ClusterDetailWidget(props: ClusterRoute & { data: ClusterDetailData | null }) {
+export function ClusterDetailWidget(
+  props: ClusterRoute & { data: ClusterDetailData | null; title?: string },
+) {
   return <ClusterDetailView {...props} />
 }

@@ -302,7 +302,7 @@ export const deSweep: MessageCatalog = {
   "jobPanel.stuck": "Keine Versuche mehr",
   "jobPanel.summaryLabel": "Job-Übersicht",
   "jobPanel.tableLabel": "Jobs",
-  "jobPanel.title": "Jobs",
+  "jobPanel.titleFor": ({ engine }) => `${String(engine)} · Jobs`,
   "jobPanel.totalJobs": "Jobs gesamt",
   "procIncTable.footerNoun": ({ count }) => (isOne(count) ? "Incident" : "Incidents"),
   "procIncTable.loading": "Incidents werden geladen…",

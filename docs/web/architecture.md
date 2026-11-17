@@ -39,7 +39,7 @@ CSRF secret, never the ID token. It is a JWE (`dir`, `A256GCM`) under a key deri
 `MCP_WEB_SESSION_KEYS`: only the server reads it, and nobody alters it unseen. During a sign-in
 `__Host-pulse-login` holds the state, the PKCE verifier and the page to return to, for ten minutes;
 after a sign-out `__Host-pulse-ended` names the ended session until it would have expired, so the
-cookie a call still under way sets opens no session.
+cookie a call still under way sets opens no session, and its refresh token is revoked.
 
 A page's call and the sign-out pass a CSRF check besides SameSite: a `Sec-Fetch-Site` other than
 same-origin is refused, the `Origin` must be `MCP_URL`'s, and the `x-pulse-csrf` header must hold

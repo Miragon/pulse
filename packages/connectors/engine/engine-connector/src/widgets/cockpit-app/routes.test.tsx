@@ -78,7 +78,7 @@ const SEEDED: Array<[string, CockpitView, CockpitStart, string, string, string]>
     },
     ENGINE_JOBS_DATA,
     "engine:jobs",
-    "Jobs",
+    "prod-a · Jobs",
   ],
   [
     "process-instances",
@@ -198,6 +198,41 @@ describe("CockpitRoute", () => {
         args: expect.objectContaining({ ...args, engine: "prod-a" }) as unknown,
       }),
     )
+  })
+})
+
+/** Each route whose read fails, and the title its bar keeps: the page's one heading. */
+const TITLED: Array<[CockpitView, string]> = [
+  [{ section: "overview" }, "prod-a · Overview"],
+  [{ section: "incidents" }, "prod-a · Incidents"],
+  [{ section: "jobs" }, "prod-a · Jobs"],
+  [
+    { section: "cluster-detail", activityId: "charge", incidentType: "failedJob" },
+    "Cluster: charge",
+  ],
+  [{ section: "process-detail", processDefinitionKey: "invoice", label: "Invoice" }, "Invoice"],
+  [{ section: "process-detail", processDefinitionKey: "invoice" }, "invoice"],
+  [{ section: "process-instances", processDefinitionKey: "invoice" }, "invoice"],
+  [{ section: "process-instances" }, "Running instances"],
+  [{ section: "instance-detail", processInstanceId: "pi-12345678", label: "INV-42" }, "INV-42"],
+  [{ section: "instance-detail", processInstanceId: "pi-12345678" }, "Instance pi-12345…"],
+  [{ section: "incident-detail", incidentId: "inc-1" }, "Incident inc-1"],
+  [{ section: "history", processInstanceId: "pi-1" }, "History pi-1"],
+  [{ section: "board", board: "invoices" }, "invoices"],
+]
+
+describe("a route whose read fails", () => {
+  it.each(TITLED)("%o keeps its title as the page's one heading", async (view, title) => {
+    // No fakes: every read fails.
+    render(
+      <TestViewHost>
+        <CockpitRoute view={view} engine={view.section === "board" ? null : "prod-a"} />
+      </TestViewHost>,
+    )
+    const headings = () => screen.getAllByRole("heading", { level: 1 }).map((h) => h.textContent)
+    expect(headings()).toEqual([title])
+    expect((await screen.findAllByRole("alert")).length).toBeGreaterThan(0)
+    expect(headings()).toEqual([title])
   })
 })
 

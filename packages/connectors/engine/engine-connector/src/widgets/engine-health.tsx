@@ -340,9 +340,11 @@ export function EngineHealthView({
   const { data, loading, error, refetch } = view
   const { refreshError, refreshing } = viewRefreshState(view)
 
+  const title = t("engineHealth.titleFor", { engine })
   if (!data) {
+    // Loading or failed, the route keeps its title, the page's one heading.
     return (
-      <WidgetShell>
+      <WidgetShell header={<WidgetHeader title={title} />}>
         <HealthUnavailable engine={engine} loading={loading} error={error} onRetry={refetch} />
       </WidgetShell>
     )
@@ -360,7 +362,7 @@ export function EngineHealthView({
             badge={<StatusBadge tone={badge.tone}>{t(badge.labelKey)}</StatusBadge>}
             // The engine in the title (#322 U4): prod-leasing and test-leasing
             // never share a heading.
-            title={t("engineHealth.titleFor", { engine })}
+            title={title}
             sub={
               <>
                 <ViewMeta asOf={data.fetchedAt} />

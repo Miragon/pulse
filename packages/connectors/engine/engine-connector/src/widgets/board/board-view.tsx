@@ -110,9 +110,12 @@ function useBoardSlots(data: BoardStartData | null): BoardSlots {
 export function BoardView({
   board,
   data: initialData = null,
+  title,
 }: {
   readonly board: string
   readonly data?: BoardStartData | null
+  /** The route's title before the board's own: its id, or the title the board had where it opened. */
+  readonly title?: string
 }) {
   const t = useT()
   const { context } = useHandOff()
@@ -126,6 +129,7 @@ export function BoardView({
     loadingText: t("board.loading"),
     emptyText: t("board.empty"),
     refreshErrorTitle: t("board.refreshFailed"),
+    title,
   })
   const slots = useBoardSlots(data)
   if (!data) return guard

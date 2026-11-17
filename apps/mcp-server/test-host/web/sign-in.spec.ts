@@ -221,6 +221,33 @@ test.describe("a session's token", () => {
 
 // The main deployment, its engines and boards; the session ends by its cookie, gone from the browser.
 test.describe("a session that ends while the cockpit is open", () => {
+  for (const [locale, signInAgain] of [
+    ["en-US", "Sign in again"],
+    ["de-DE", "Erneut anmelden"],
+  ] as const) {
+    test(`at 400 px the notice's sign-in, the page's one way out, keeps its words (${locale})`, async ({
+      browser,
+    }) => {
+      const context = await browser.newContext({ locale, viewport: { width: 400, height: 700 } })
+      try {
+        const page = await context.newPage()
+        await signIn(page, JOBS_PAGE)
+        await expect(page.getByText("Card declined").first()).toBeVisible({ timeout: 15_000 })
+        await context.clearCookies({ name: SESSION_COOKIE })
+        await page.getByRole("button", { name: /^(Refresh|Aktualisieren)$/ }).click()
+        const button = page.getByRole("button", { name: signInAgain })
+        await expect(button).toBeVisible({ timeout: 15_000 })
+        // Its words laid out whole, never an icon alone whose label only a screen reader hears.
+        const label = button.getByText(signInAgain, { exact: true })
+        expect((await label.boundingBox())?.width ?? 0).toBeGreaterThan(40)
+        expect(await label.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true)
+        await expectNoAxeFinding(page)
+      } finally {
+        await context.close()
+      }
+    })
+  }
+
   test("leaves the engines' rows to say nothing of the engines, and the notice to say it once", async ({
     page,
     context,

@@ -1,3 +1,4 @@
+import { useLocale } from "@miragon/pulse-ui"
 import { ViewStack } from "@miragon/pulse-widget-shell/widgets"
 import type {
   AppSection,
@@ -15,6 +16,7 @@ import { IncidentDetailWidget } from "../incident-detail.js"
 import { IncidentsDashboard } from "../incidents-dashboard/view.js"
 import { InstanceDetailWidget } from "../instance-detail.js"
 import { JobPanelWidget } from "../job-panel.js"
+import { crumbLabel } from "../nav-core.js"
 import { ProcessDefinitionView } from "../process-incidents/view.js"
 import { ProcessInstancesWidget } from "../process-instances/list.js"
 
@@ -33,7 +35,8 @@ type EngineView = Exclude<CockpitView, { section: AppSection }>
  * One cockpit view: an app route (a board, which reads the engines it names; the landing) or a
  * route of `engine`, seeded with the start view's data (`engine_open_cockpit`) while it is the view
  * on screen. A new route adds its section to `CockpitView` and a case here or in `EngineRoute`; the
- * exhaustive switches fail to compile until it does.
+ * exhaustive switches fail to compile until it does. A route whose title its data names keeps the
+ * one its crumb shows while it loads or fails (`title`), so the page keeps its heading.
  */
 export function CockpitRoute({
   view,
@@ -45,16 +48,19 @@ export function CockpitRoute({
   engine: string | null
   seed?: CockpitStart | null
 }) {
+  const title = crumbLabel(view, useLocale())
   switch (view.section) {
     case "board":
-      return <BoardView board={view.board} data={seedOf(seed, "board")} />
+      return <BoardView board={view.board} data={seedOf(seed, "board")} title={title} />
     // The landing is the cockpit's chooser over the engine list (`LandingChooser`), which the
     // cockpit shows on its landing scope, its start data seeding the boards: no widget here.
     case "landing":
       return null
     default:
       // The cockpit opens an engine's routes only with its engine.
-      return engine === null ? null : <EngineRoute view={view} engine={engine} seed={seed} />
+      return engine === null ? null : (
+        <EngineRoute view={view} engine={engine} seed={seed} title={title} />
+      )
   }
 }
 
@@ -63,10 +69,12 @@ function EngineRoute({
   view,
   engine,
   seed,
+  title,
 }: {
   view: EngineView
   engine: string
   seed: CockpitStart | null
+  title: string
 }) {
   switch (view.section) {
     // The definitions table carries per-definition health; a second KPI grid would duplicate it.
@@ -89,6 +97,7 @@ function EngineRoute({
           activityId={view.activityId}
           incidentType={view.incidentType}
           messageSignature={view.messageSignature}
+          title={title}
         />
       )
     case "process-detail":
@@ -98,6 +107,7 @@ function EngineRoute({
           processDefinitionKey={view.processDefinitionKey}
           engine={engine}
           focus={view.focus}
+          title={title}
         />
       )
     case "process-instances":
@@ -114,6 +124,7 @@ function EngineRoute({
           data={seedOf(seed, "instance-detail")}
           processInstanceId={view.processInstanceId}
           engine={engine}
+          title={title}
         />
       )
     case "incident-detail":
@@ -122,6 +133,7 @@ function EngineRoute({
           data={seedOf(seed, "incident-detail")}
           incidentId={view.incidentId}
           engine={engine}
+          title={title}
         />
       )
     case "jobs":
@@ -139,6 +151,7 @@ function EngineRoute({
           data={seedOf(seed, "history")}
           processInstanceId={view.processInstanceId}
           engine={engine}
+          title={title}
         />
       )
   }

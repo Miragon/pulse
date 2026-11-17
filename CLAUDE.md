@@ -618,7 +618,9 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      nothing to show is `TableEmptyState`. A first load shows its skeleton only after 400 ms
      (`SKELETON_DELAY_MS`), a refresh keeps the content on screen with its region `aria-busy`
      (both components' `children` and `refreshing`), and an error is the guide's status box
-     (`ErrorState`).
+     (`ErrorState`). A view's guard keeps its bar with the title it knows before its data
+     (`useDetailView`'s `title`, a cockpit route's crumb), so the page keeps its one `h1` while it
+     loads or fails.
    - **Inline is a card, not a page** (#396). A list under a host shows the rows that FIT the
      host's height budget, measured on the rendered view (`InlineFitBox`), never estimated
      with px constants. A paged list registers ONE list (`PagedRows` + `paged.fit`, its footer
@@ -1413,7 +1415,8 @@ which reports a namespace import that only types use (`scripts/eslint-gates.test
 app's server rules of `@miragon/pulse-widget-shell`** (owner decisions: c7-core, engine-core until
 0.27, 2026-11-04; the profile format 2026-11-07; the transport 2026-11-08; engine-core's rules
 2026-11-09; the board format and its builder 2026-11-15; the web sign-in's rules 2026-11-16, the
-forward, the renewal, the build's files and the security headers with them later that day).
+forward, the renewal, the build's files and the security headers with them later that day, the
+sessions signed out, the session's refusal, the sign-out and the session route 2026-11-17).
 c7-core holds the pure engine rules of the Camunda 7 REST family and, under
 `./runtime`, the reads of the engine contract, the transport the wire rules the CLI, the MCP server
 and the editor hosts share and the OAuth client protocol of every surface (`/oauth`), and the
@@ -1429,11 +1432,13 @@ alone (the runtime view's core and the C7 adapter); the board format and its bui
 (`packages/core/board/src/format` and `packages/core/board/src/builder` without the builder's
 barrel) decide which board files and widgets every surface reads or refuses and the numbers each
 widget shows; widget-shell's web app rules (`packages/core/widget-shell/src/web/seal.ts`,
-`cookies.ts`, `return-path.ts`, `csrf.ts`, `forward.ts`, `refresh.ts`, `static.ts` and
-`security-headers.ts`, its only mutated files, run by `src/web`'s suites alone) seal the web app's
-session and login cookies, keep its return path on the app, check a page's request for CSRF, admit
-a page's call only to a read a view calls, renew the session's token, serve the build's files in
-their encodings and set the headers of every answer under `/app`. A surviving mutant there is a
+`cookies.ts`, `return-path.ts`, `csrf.ts`, `forward.ts`, `refresh.ts`, `static.ts`,
+`security-headers.ts`, `ended.ts`, `session.ts`, `logout.ts` and `session-route.ts`, its only
+mutated files, run by `src/web`'s suites alone) seal the web app's session and login cookies, keep
+its return path on the app, check a page's request for CSRF, admit a page's call only to a read a
+view calls, renew the session's token, serve the build's files in their encodings, set the headers
+of every answer under `/app`, refuse a signed-out session and revoke its refresh token, end a
+session at the sign-out and answer a page what its session holds. A surviving mutant there is a
 wrong rule everywhere it runs; in every other package a full run costs more than it finds. A
 package joins only by an owner decision, as an entry in `MUTATED_PACKAGES`
 (`scripts/check-package-scripts.mjs`). It runs nightly

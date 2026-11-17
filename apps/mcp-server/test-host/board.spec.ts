@@ -412,6 +412,32 @@ test.describe("the landing lists the boards", () => {
     expect(scrollWidth, "the document never scrolls sideways").toBeLessThanOrEqual(clientWidth)
   })
 
+  for (const [locale, engines, refused] of [
+    ["en-US", "2 engines: stub, down", "file refused: 1 problem"],
+    ["de-DE", "2 Engines: stub, down", "Datei abgelehnt: 1 Problem"],
+  ] as const) {
+    test(`at 320 px on a touch screen (${locale}) a board row names its board whole, what it says under it`, async ({
+      browser,
+    }) => {
+      // 40 px rows and their wider padding: the name keeps every letter, the rest takes a line.
+      const context = await browser.newContext({ hasTouch: true })
+      try {
+        const page = await context.newPage()
+        const app = await openBoard(page, { args: {}, locale, width: 320 })
+        await expect(landing(app)).toBeVisible({ timeout: 15_000 })
+        for (const text of [TITLE, engines, BROKEN_BOARD, refused]) {
+          const words = boards(app).getByText(text, { exact: true })
+          await expect(words).toBeVisible()
+          expect(await words.evaluate((el) => el.scrollWidth <= el.clientWidth), text).toBe(true)
+        }
+        const { scrollWidth, clientWidth } = await documentOverflow(app)
+        expect(scrollWidth, "the document never scrolls sideways").toBeLessThanOrEqual(clientWidth)
+      } finally {
+        await context.close()
+      }
+    })
+  }
+
   for (const [locale, fleet] of [
     ["de-DE", "Engine-übergreifende Übersicht"],
     ["en-US", "Cross-engine overview"],

@@ -730,6 +730,25 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
     expect(await app.locator("html").getAttribute("lang")).toBe("de")
   })
 
+  for (const [locale, sections] of [
+    ["en-US", ["Overview", "Incidents", "Jobs"]],
+    ["de-DE", ["Übersicht", "Incidents", "Jobs"]],
+  ] as const) {
+    test(`each engine section heads its view with the engine first (${locale})`, async ({
+      page,
+    }) => {
+      for (const [view, section] of [undefined, "incidents", "jobs"].map(
+        (name, index) => [name, sections[index]] as const,
+      )) {
+        const app = await openView(page, { locale, args: { engine: HEALTHY_ENGINE, view } })
+        await expect(app.getByRole("heading", { level: 1 })).toHaveText(
+          [`${HEALTHY_ENGINE} · ${section}`],
+          { timeout: 15_000 },
+        )
+      }
+    })
+  }
+
   test("a slow handshake: nothing paints before the host context arrives, no English or OS-theme flash (#339)", async ({
     page,
   }) => {
