@@ -5,11 +5,13 @@
  * source per engine) and a read-only transport (@miragon/pulse-http) under c8-core's transport
  * port. Every request reads (a search is a POST that reads), JSON stays lossless (an integer
  * beyond 2^53 keeps its digits as a string), and each request of a call aborts with the caller's
- * signal. A failed request rejects with the transport's `HttpFailure` or the token source's
- * `TokenFailure` as they are; `failure` only copies their fields for c8-core, which decides each
- * failure's kind, a cluster's title and detail masked with the client's secret too (the issued
- * token the transport masks as the request's own secret, the client's secret in the token
- * endpoint's answer the token source). c8-errors.ts words them for the model.
+ * signal; a token request waits as long as a request does, at most 30 s. A failed request rejects
+ * with the transport's `HttpFailure` or the token source's `TokenFailure` as they are; `failure`
+ * only copies their fields for c8-core, which decides each failure's kind, a cluster's title and
+ * detail masked with the client's secret and the profile's URLs too (the issued token the
+ * transport masks as the request's own secret, the client's secret in the token endpoint's answer
+ * the token source), and `redirectTarget` says where a redirect points by the profile's URLs, never
+ * by its own. c8-errors.ts words them for the model, which never reads a URL of the profile.
  */
 
 import type {
@@ -33,7 +35,7 @@ import {
   type Platform,
   secretForms,
 } from "@miragon/pulse-http"
-import { TokenFailure } from "@miragon/pulse-http/oauth"
+import { TokenFailure, type TokenLimits } from "@miragon/pulse-http/oauth"
 import type {
   EngineAuth,
   EngineAuthType,
@@ -66,6 +68,16 @@ export class UnusableTokenEndpointError extends Error {
   }
 }
 
+/**
+ * Where a redirect of the cluster points: the cluster's host (with the scheme it switches to, when
+ * it does) and the token endpoint's by the profile's keys, never by their URLs; another host by its
+ * target as the transport keeps it (origin and path), masked like the cluster's text.
+ */
+export type RedirectTarget =
+  | { readonly host: "cluster"; readonly scheme?: string }
+  | { readonly host: "tokenEndpoint" }
+  | { readonly host: "other"; readonly location: string }
+
 /** One configured Camunda 8 engine as the server reaches it. */
 export interface C8Connection {
   readonly engineId: string
@@ -74,6 +86,8 @@ export interface C8Connection {
   transport(signal?: AbortSignal): CamundaTransport
   /** What a failed request rejected with, as c8-core reads it; undefined for any other error. */
   failure(error: unknown): CamundaFailure | undefined
+  /** Where a redirect `error` points; undefined for any other error, or one without a target. */
+  redirectTarget(error: unknown): RedirectTarget | undefined
 }
 
 /** A JSON value, else undefined. */
@@ -160,6 +174,56 @@ function fieldsOf(error: unknown, forms: readonly string[]): CamundaFailure | un
   return undefined
 }
 
+/** The URLs of a profile, parsed. */
+interface Places {
+  readonly cluster: URL | undefined
+  readonly tokenEndpoint: URL | undefined
+}
+
+/** `url` parsed, else undefined. */
+const urlOf = (url: string | undefined): URL | undefined =>
+  url !== undefined && URL.canParse(url) ? new URL(url) : undefined
+
+/**
+ * The forms of a profile's URL a cluster's text may quote, each masked like a secret: the URL as
+ * written, and its origin and every path prefix of it in either scheme, with its port and without
+ * (a detail that names the token endpoint's issuer, a gateway that names the cluster over https on
+ * its default port). Its host[:port] and its hostname alone too, each unless it is a single name
+ * without a port, which a text names as a word of its own (the host `camunda` of a Compose stack
+ * in `io.camunda`); a name with a dot or a colon (a domain, an IP address, IPv6 in brackets) is
+ * none.
+ */
+function urlForms(url: string | undefined): string[] {
+  const parsed = urlOf(url)
+  if (url === undefined || parsed === undefined) return []
+  const { host, hostname, pathname } = parsed
+  const segments = pathname.split("/").filter((segment) => segment !== "")
+  const paths = ["", ...segments.map((_, index) => `/${segments.slice(0, index + 1).join("/")}`)]
+  const origins = ["http", "https"].flatMap((scheme) =>
+    [host, hostname].flatMap((name) => paths.map((path) => `${scheme}://${name}${path}`)),
+  )
+  return [url, ...origins, ...[host, hostname].filter((name) => /[.:]/.test(name))]
+}
+
+/**
+ * Where `location` points: the token endpoint's host and port, the cluster's host (in any scheme
+ * and on any port, as a redirect from http to https goes), the token endpoint's host, or another,
+ * whose target `forms` mask.
+ */
+function targetOf(location: string, places: Places, forms: readonly string[]): RedirectTarget {
+  const target = urlOf(location)
+  const { cluster, tokenEndpoint } = places
+  const other = { host: "other", location: maskSecrets(location, forms) } as const
+  if (target === undefined) return other
+  if (target.host === tokenEndpoint?.host) return { host: "tokenEndpoint" }
+  if (target.hostname === cluster?.hostname) {
+    return target.protocol === cluster.protocol
+      ? { host: "cluster" }
+      : { host: "cluster", scheme: target.protocol.slice(0, -1) }
+  }
+  return target.hostname === tokenEndpoint?.hostname ? { host: "tokenEndpoint" } : other
+}
+
 /** The token source's RangeError (an unusable token endpoint URL) as this wire's own error. */
 function unusable(error: unknown): never {
   throw error instanceof RangeError ? new UnusableTokenEndpointError(error) : error
@@ -193,8 +257,9 @@ function transportOver(
 
 /**
  * The connection of `entry`: its credential (one that cannot be sent fails here, at boot), the
- * deadline of `settings`, the 64 MiB cap, every request a read, the server's User-Agent. The
- * token source sends over `platform` as the transport does, so a test's clock reaches both.
+ * deadline of `settings` (a token request's too, at most the 30 s of the server's default), the
+ * 64 MiB cap, every request a read, the server's User-Agent. The token source sends over
+ * `platform` as the transport does, so a test's clock reaches both.
  */
 export function createC8Connection(
   entry: Pick<EngineEntry, "id" | "baseUrl">,
@@ -205,23 +270,32 @@ export function createC8Connection(
   } = {},
   platform: Platform = SERVER_PLATFORM,
 ): C8Connection {
+  const timeoutMs = settings.timeoutMs ?? DEFAULT_ENGINE_TIMEOUT_MS
+  const tokenLimits: TokenLimits = { timeoutMs: Math.min(timeoutMs, DEFAULT_ENGINE_TIMEOUT_MS) }
   const http = createHttp(
     {
       url: entry.baseUrl,
-      credential: credentialFor(entry.id, auth, platform),
-      timeoutMs: settings.timeoutMs ?? DEFAULT_ENGINE_TIMEOUT_MS,
+      credential: credentialFor(entry.id, auth, platform, tokenLimits),
+      timeoutMs,
       maxAnswerBytes: settings.maxAnswerBytes ?? MAX_ANSWER_BYTES,
       readOnly: true,
       userAgent: USER_AGENT,
     },
     platform,
   )
-  const forms = auth.type === "clientCredentials" ? secretForms([auth.clientSecret]) : []
+  const tokenEndpoint = auth.type === "clientCredentials" ? auth.tokenEndpoint : undefined
+  const clientSecret = auth.type === "clientCredentials" ? auth.clientSecret : undefined
+  const forms = secretForms([clientSecret, ...urlForms(entry.baseUrl), ...urlForms(tokenEndpoint)])
   const failure = (error: unknown) => fieldsOf(error, forms)
+  const places: Places = { cluster: urlOf(entry.baseUrl), tokenEndpoint: urlOf(tokenEndpoint) }
   return {
     engineId: entry.id,
     authType: auth.type,
     transport: (signal) => transportOver(http, signal, failure),
     failure,
+    redirectTarget: (error) =>
+      error instanceof HttpFailure && error.location !== undefined
+        ? targetOf(error.location, places, forms)
+        : undefined,
   }
 }

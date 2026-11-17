@@ -1457,8 +1457,10 @@ workspace (its header lists each check).
 
 The repo guards `pnpm test` runs over the real tree: docs-refs, old-names, published imports,
 tool-name and hand-off references, server env names, the source scan's `APP_SCAN`, the
-template's pins and shipped module list, that a test vitest runs in its package holds the
-sorted runtime names of every published entry, since knip reports no entry's exports
+template's pins and shipped module list, the two copies of the XML tag reader in two leaves,
+the board builder's and c8-core's (`scripts/xml-tag-readers.test.mjs`), that a test vitest runs
+in its package holds the sorted runtime names of every published entry, since knip reports no
+entry's exports
 (`scripts/entry-lists.test.mjs`, owner decision 2026-11-11; its header names the form it reads),
 and that only the CLI's sources set
 `@miragon/pulse-http`'s `revealSecrets` (`scripts/trace-secrets.test.mjs`: a trace shows a

@@ -56,7 +56,7 @@ describe("the BPMN text reader", () => {
     ["Deadline", "timer"],
     ["Link", undefined],
     ["Unknown", undefined],
-  ])("reads %s as %s, a self-closing receive task ending at its own tag", (elementId, kind) => {
+  ])("reads %s as %s, a receive task as no event", (elementId, kind) => {
     expect(BpmnText.catchKind(WAITS, elementId)).toBe(kind)
   })
 
@@ -125,14 +125,16 @@ describe("the BPMN text reader", () => {
     expect(BpmnText.catchKind(xml, "Wait")).toBe("timer")
   })
 
-  test("leaves no comment behind that the removal of another one put together", () => {
-    const xml = definitions(`<!<!-- one -->-- <bpmn:intermediateCatchEvent id="Hidden">
-      <bpmn:timerEventDefinition />
-    </bpmn:intermediateCatchEvent> -->
-    <bpmn:intermediateCatchEvent id="Wait"><bpmn:signalEventDefinition /></bpmn:intermediateCatchEvent>`)
+  test("reads a comment, a CDATA section and a processing instruction each to its own end", () => {
+    const xml = definitions(`<?pulse <!-- ?>
+    <bpmn:callActivity id="AfterInstruction" />
+    <!-- <?pulse --> <![CDATA[ --> ]]>
+    <bpmn:intermediateCatchEvent id="Wait"><bpmn:signalEventDefinition /></bpmn:intermediateCatchEvent>
+    <?pulse <bpmn:intermediateCatchEvent id="Hidden"><bpmn:timerEventDefinition /> ?>`)
 
-    expect(BpmnText.catchKind(xml, "Hidden")).toBeUndefined()
+    expect(BpmnText.callActivities(xml).map((call) => call.elementId)).toEqual(["AfterInstruction"])
     expect(BpmnText.catchKind(xml, "Wait")).toBe("signal")
+    expect(BpmnText.catchKind(xml, "Hidden")).toBeUndefined()
   })
 
   test("reads a quoted > or /> as part of the value, never as the end of the tag", () => {
@@ -228,5 +230,79 @@ describe("the BPMN text reader", () => {
     expect(BpmnText.callActivities(xml)).toStrictEqual([
       { elementId: "Activity_Label", binding: "latest" },
     ])
+  })
+
+  describe("a diagram whose element names run long", () => {
+    const LONG = "p".repeat(48_000)
+
+    function waits(call: string, called: string, caught: string): string {
+      return definitions(`<${call}:callActivity id="Call">
+      <bpmn:extensionElements><${called}:calledElement processId="ship" /></bpmn:extensionElements>
+    </${call}:callActivity>
+    <${caught}:intermediateCatchEvent id="Wait"><bpmn:timerEventDefinition /></${caught}:intermediateCatchEvent>`)
+    }
+
+    test("reads thousands of containers whose prefix runs to 980 characters at once", () => {
+      const prefix = "p".repeat(980)
+      const foreign = Array.from(
+        { length: 3500 },
+        (_, index) => `<${prefix}:subProcess id="Foreign_${index}" />`,
+      ).join("")
+      const xml = definitions(
+        `<bpmn:startEvent id="Start"><bpmn:extensionElements>${foreign}</bpmn:extensionElements></bpmn:startEvent>`,
+      )
+      const started = Date.now()
+
+      const containers = BpmnText.containers(xml)
+
+      expect(Date.now() - started).toBeLessThan(1000)
+      expect(containers).toHaveLength(3500)
+      expect(containers.at(-1)).toStrictEqual({ elementId: "Foreign_3499", callsProcess: false })
+    })
+
+    test.each([
+      ["a call activity", waits(LONG, "zeebe", "bpmn")],
+      ["a called element", waits("bpmn", LONG, "bpmn")],
+      ["a catch event", waits("bpmn", "zeebe", LONG)],
+    ])("reads %s whose name runs to 48,000 characters at once", (_, xml) => {
+      const started = Date.now()
+
+      expect(BpmnText.containers(xml)).toStrictEqual([{ elementId: "Call", callsProcess: true }])
+      expect(BpmnText.callActivities(xml)).toStrictEqual([
+        { elementId: "Call", processId: "ship", binding: "latest" },
+      ])
+      expect(BpmnText.catchKind(xml, "Wait")).toBe("timer")
+      expect(Date.now() - started).toBeLessThan(1000)
+    })
+  })
+
+  describe("a diagram that hides unended markup in a processing instruction", () => {
+    const READ = definitions(`<bpmn:subProcess id="Pack">
+      <bpmn:callActivity id="Ship">
+        <bpmn:extensionElements><zeebe:calledElement processId="ship" /></bpmn:extensionElements>
+      </bpmn:callActivity>
+    </bpmn:subProcess>
+    <bpmn:intermediateCatchEvent id="Wait"><bpmn:timerEventDefinition /></bpmn:intermediateCatchEvent>`)
+
+    test.each([
+      ["comment openers", "<!--".repeat(100_000)],
+      ["sub-process tags with an unpaired quote", `${"<subProcess ".repeat(32_000)}"`],
+      ["call activities that never close", '<callActivity id="Hidden">'.repeat(64_000)],
+      ["catch events that never close", '<receiveTask id="Hidden">'.repeat(64_000)],
+    ])("reads one that hides %s at once, in under a second", (_, hidden) => {
+      const xml = `${READ}\n<?pulse ${hidden} ?>`
+      const started = Date.now()
+
+      expect(BpmnText.containers(xml)).toStrictEqual([
+        { elementId: "Pack", callsProcess: false },
+        { elementId: "Ship", callsProcess: true },
+      ])
+      expect(BpmnText.callActivities(xml)).toStrictEqual([
+        { elementId: "Ship", processId: "ship", binding: "latest" },
+      ])
+      expect(BpmnText.catchKind(xml, "Wait")).toBe("timer")
+      expect(BpmnText.catchKind(xml, "Hidden")).toBeUndefined()
+      expect(Date.now() - started).toBeLessThan(1000)
+    })
   })
 })

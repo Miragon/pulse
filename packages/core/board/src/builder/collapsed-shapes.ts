@@ -1,6 +1,6 @@
 import { ElementId } from "@miragon/pulse-engine-core"
+import { type XmlTag, XmlTags } from "./xml-tags.js"
 
-const TAG = /<(\/?)(?:[\w-]+:)?(\w+)\b((?:[^>"]|"[^"]*")*)>/g
 const ID = /\sid="([^"]+)"/
 const BPMN_ELEMENT = /\sbpmnElement="([^"]+)"/
 const EXPANDED = /\sisExpanded="true"/
@@ -10,12 +10,6 @@ const SUB_PROCESS_KINDS: ReadonlySet<string> = new Set([
   "adHocSubProcess",
 ])
 
-interface Tag {
-  readonly closing: boolean
-  readonly kind: string
-  readonly attributes: string
-}
-
 export class CollapsedShapes {
   private readonly parents = new Map<string, string>()
   private readonly expanded = new Set<string>()
@@ -23,8 +17,8 @@ export class CollapsedShapes {
 
   static of(xml: string): CollapsedShapes {
     const shapes = new CollapsedShapes()
-    for (const [, closing, kind = "", attributes = ""] of xml.matchAll(TAG)) {
-      shapes.read({ closing: closing === "/", kind, attributes })
+    for (const tag of XmlTags.of(xml)) {
+      shapes.read(tag)
     }
     return shapes
   }
@@ -40,8 +34,8 @@ export class CollapsedShapes {
     return around
   }
 
-  private read(tag: Tag): void {
-    const subProcess = SUB_PROCESS_KINDS.has(tag.kind)
+  private read(tag: XmlTag): void {
+    const subProcess = SUB_PROCESS_KINDS.has(tag.name)
     if (tag.closing) {
       if (subProcess) {
         this.open.pop()
@@ -49,16 +43,16 @@ export class CollapsedShapes {
       return
     }
     this.note(tag)
-    const id = ID.exec(tag.attributes)?.[1] ?? ""
+    const id = ID.exec(tag.text)?.[1] ?? ""
     this.nest(id)
-    if (subProcess && !tag.attributes.trimEnd().endsWith("/")) {
+    if (subProcess && !tag.empty) {
       this.open.push(id)
     }
   }
 
-  private note(tag: Tag): void {
-    if (tag.kind === "BPMNShape" && EXPANDED.test(tag.attributes)) {
-      this.expanded.add(BPMN_ELEMENT.exec(tag.attributes)?.[1] ?? "")
+  private note(tag: XmlTag): void {
+    if (tag.name === "BPMNShape" && EXPANDED.test(tag.text)) {
+      this.expanded.add(BPMN_ELEMENT.exec(tag.text)?.[1] ?? "")
     }
   }
 

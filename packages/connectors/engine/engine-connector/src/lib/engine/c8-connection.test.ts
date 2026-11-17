@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import type { CamundaFailure } from "@miragon/pulse-c8-core"
 import { HttpFailure } from "@miragon/pulse-http"
 import { TokenFailure } from "@miragon/pulse-http/oauth"
@@ -187,6 +187,35 @@ describe("the requests of the server's Camunda 8 wire", () => {
     )
     const error = await rejection(connection.transport().get("/topology"))
     expect(error).toMatchObject({ reason: "deadline", limit: 30 })
+  })
+
+  it("ends a token request at the profile's deadline, at most at the server's default of 30 s", async () => {
+    const silent = { "POST /realms/pulse/token": hang }
+    const short = createC8Connection(
+      { id: "c8", baseUrl: CLUSTER },
+      CLIENT,
+      { timeoutMs: 30 },
+      c8Platform(silent),
+    )
+    expect(await rejection(short.transport().get("/topology"))).toMatchObject({ kind: "timeout" })
+
+    vi.useFakeTimers()
+    try {
+      const long = createC8Connection(
+        { id: "c8", baseUrl: CLUSTER },
+        CLIENT,
+        { timeoutMs: 120_000 },
+        c8Platform(silent),
+      )
+      let settled = false
+      const read = rejection(long.transport().get("/topology")).finally(() => (settled = true))
+      await vi.advanceTimersByTimeAsync(29_999)
+      expect(settled).toBe(false)
+      await vi.advanceTimersByTimeAsync(1)
+      expect(await read).toMatchObject({ kind: "timeout" })
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it("rejects with the transport's failure and the token source's as they are", async () => {

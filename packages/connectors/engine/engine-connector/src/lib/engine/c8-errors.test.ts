@@ -94,6 +94,54 @@ describe("a cluster's error answer, as the model reads it", () => {
     })
   })
 
+  it("names a redirect to the cluster's or the token endpoint's host by whose it is, never by its URL", async () => {
+    const to = (location: string) => () =>
+      new Response("", { status: 301, headers: { Location: location } })
+    const REDIRECT_HINT =
+      "Redirects are never followed: the profile's url must be the REST root of the cluster " +
+      "itself, which ends in /v2 (https:// when the cluster redirects from http://). A " +
+      "redirect to a login page means the credentials are missing or expired."
+    expect(
+      await describeEngine(
+        { "GET /v2/topology": to("https://cluster.c8.test/v2/topology?token=4711") },
+        { type: "none" },
+        "http://cluster.c8.test/v2",
+      ),
+    ).toEqual({
+      failure: "misconfigured",
+      message: "[301] redirect to the cluster's host over https (engine c8)",
+      hint: REDIRECT_HINT,
+    })
+    expect(await describeEngine({ "GET /v2/topology": to("/v2/") })).toMatchObject({
+      message: "[301] redirect to the cluster's own host (engine c8)",
+    })
+    const login = to("https://login.c8.test/realms/pulse/protocol/openid-connect/auth?client_id=x")
+    expect(
+      await describeEngine(
+        { "POST /realms/pulse/token": () => token("tok-1"), "GET /v2/topology": login },
+        CLIENT,
+      ),
+    ).toMatchObject({ message: "[301] redirect to the token endpoint's host (engine c8)" })
+  })
+
+  it("masks the profile's URLs a cluster's text quotes", async () => {
+    const quoting = () =>
+      problem(
+        500,
+        "Failed at https://cluster.c8.test",
+        "upstream http://cluster.c8.test/v2 issuer https://login.c8.test/realms/pulse",
+      )
+    expect(
+      await describeEngine(
+        { "POST /realms/pulse/token": () => token("tok-1"), "GET /v2/topology": quoting },
+        CLIENT,
+      ),
+    ).toEqual({
+      failure: "engineFailure",
+      message: "[500 Failed at ***] upstream *** issuer *** (engine c8)",
+    })
+  })
+
   it("says that a cluster without secondary storage has nothing to read", async () => {
     const forbidden = () => problem(403, "FORBIDDEN", "This endpoint needs secondary storage")
     expect(await describeEngine({ "GET /v2/topology": forbidden })).toMatchObject({

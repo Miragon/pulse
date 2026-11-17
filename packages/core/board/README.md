@@ -153,7 +153,11 @@ full.
 
 `DiagramBadges.of(xml, statistics)` is the roll-up (the incidents inside a collapsed sub-process
 counted on its shape too) and `CollapsedShapes.of(xml)` the reader of the collapsed sub-processes
-around an element, so a surface draws its process views by the same rule as a board.
+around an element, so a surface draws its process views by the same rule as a board. It reads the
+tags in one pass, in time that grows with the text: a comment, a CDATA section and a processing
+instruction to their own ends, a quoted `>` as part of its tag, and no tag of markup that never
+ends or of a text over 4 Mi characters, which rolls up nothing. c8-core's BPMN text reads over a
+copy of this tag reader, which `scripts/xml-tag-readers.test.mjs` holds equal to it.
 
 ## The JSON form
 

@@ -7,9 +7,11 @@
  * hint of the Camunda 7 REST API (no /engine-rest root, none of the variables ENGINE_AUTH_TYPE,
  * ENGINE_USERNAME or ENGINE_PASSWORD, which a camunda8 profile does not read), and the token
  * endpoint's failures name the profile's keys and the ENGINE_SECRET_* family, never the
- * variable itself, the token endpoint's URL or the cluster's url. A failure that says nothing of
- * the dialect (no answer, the deadline, the caller, the size cap) reads as on Camunda 7: the
- * sentence engine-error.ts gives it (`transportSentence`).
+ * variable itself, the token endpoint's URL or the cluster's url: a redirect to the cluster's or
+ * the token endpoint's host says whose host it is, never where, and a cluster's text reaches them
+ * with the profile's URLs masked (c8-connection.ts). A failure that says nothing of the dialect
+ * (no answer, the deadline, the caller, the size cap) reads as on Camunda 7: the sentence
+ * engine-error.ts gives it (`transportSentence`).
  */
 
 import {
@@ -23,11 +25,19 @@ import {
   UnexpectedAnswerError,
 } from "@miragon/pulse-c8-core"
 import { HttpFailure } from "@miragon/pulse-http"
-import { type C8AuthType, type C8Connection, UnusableTokenEndpointError } from "./c8-connection.js"
+import {
+  type C8AuthType,
+  type C8Connection,
+  type RedirectTarget,
+  UnusableTokenEndpointError,
+} from "./c8-connection.js"
 import { transportSentence } from "./engine-error.js"
 
-/** What c8-errors.ts reads of a connection: its engine, its sign-in and the fields of a failure. */
-export type C8Wording = Pick<C8Connection, "engineId" | "authType" | "failure">
+/**
+ * What c8-errors.ts reads of a connection: its engine, its sign-in, the fields of a failure and
+ * where a redirect points.
+ */
+export type C8Wording = Pick<C8Connection, "engineId" | "authType" | "failure" | "redirectTarget">
 
 const MIB = 1024 * 1024
 
@@ -145,10 +155,33 @@ function tokenWords(failure: CamundaTokenFailure, engine: string): C8Words {
   return { message, hint: hint === undefined ? again : `${hint} ${again}` }
 }
 
-/** A redirect: where it pointed (origin and path, as the transport keeps it) and the /v2 root. */
-function redirectWords(error: unknown, failure: CamundaAnsweredFailure, engine: string): C8Words {
-  const location = error instanceof HttpFailure ? error.location : undefined
-  const where = location === undefined ? "redirect" : `redirect to ${location}`
+/**
+ * Where a redirect pointed: the cluster's and the token endpoint's host by name, never by their
+ * URLs; another host's target (origin and path) as the connection masked it.
+ */
+function whereTo(target: RedirectTarget | undefined): string {
+  switch (target?.host) {
+    case undefined:
+      return "redirect"
+    case "cluster":
+      return target.scheme === undefined
+        ? "redirect to the cluster's own host"
+        : `redirect to the cluster's host over ${target.scheme}`
+    case "tokenEndpoint":
+      return "redirect to the token endpoint's host"
+    case "other":
+      return `redirect to ${target.location}`
+  }
+}
+
+/** A redirect: where it pointed, said by the profile's URLs, and the /v2 root. */
+function redirectWords(
+  error: unknown,
+  failure: CamundaAnsweredFailure,
+  { redirectTarget }: C8Wording,
+  engine: string,
+): C8Words {
+  const where = whereTo(redirectTarget(error))
   return { message: `[${String(failure.status)}] ${where} (${engine})`, hint: REDIRECT_HINT }
 }
 
@@ -156,16 +189,18 @@ function redirectWords(error: unknown, failure: CamundaAnsweredFailure, engine: 
 function answeredWords(
   error: unknown,
   failure: CamundaAnsweredFailure,
-  { authType }: C8Wording,
+  wording: C8Wording,
   engine: string,
 ): C8Words {
-  if (failure.redirect) return redirectWords(error, failure, engine)
+  if (failure.redirect) return redirectWords(error, failure, wording, engine)
   const head =
     failure.title === undefined
       ? String(failure.status)
       : `${String(failure.status)} ${failure.title}`
   const message = `[${head}] ${failure.detail ?? "empty response body"} (${engine})`
-  return failure.status === 401 ? { message, hint: UNAUTHORIZED_HINTS[authType] } : { message }
+  return failure.status === 401
+    ? { message, hint: UNAUTHORIZED_HINTS[wording.authType] }
+    : { message }
 }
 
 /** A request that got no answer or was refused before sending. */

@@ -36,10 +36,11 @@ export interface Said {
 export function runtimeOver(
   answers: Readonly<Record<string, Answer>>,
   auth: C8Auth = { type: "none" },
+  baseUrl = CLUSTER,
 ) {
   const platform = c8Platform(answers)
   const connection = createC8Connection(
-    { id: "c8", baseUrl: CLUSTER },
+    { id: "c8", baseUrl },
     auth,
     {
       timeoutMs: 40,
@@ -62,8 +63,11 @@ export async function said(read: Promise<unknown>): Promise<Said> {
   throw new Error("the read did not fail")
 }
 
-export const describeEngine = (answers: Readonly<Record<string, Answer>>, auth?: C8Auth) =>
-  said(runtimeOver(answers, auth).runtime.describeEngine())
+export const describeEngine = (
+  answers: Readonly<Record<string, Answer>>,
+  auth?: C8Auth,
+  baseUrl?: string,
+) => said(runtimeOver(answers, auth, baseUrl).runtime.describeEngine())
 
 export const ROOT_HINT = "The profile's url must be the REST root of the cluster and end in /v2."
 export const AGAIN_IN_A_MINUTE =

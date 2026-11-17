@@ -122,3 +122,34 @@ describe("the badges of a diagram", () => {
     ])
   })
 })
+
+describe("a diagram that hides markup where XML allows it", () => {
+  test.each([
+    ["a comment", `<!--${" <a".repeat(60_000)} " -->`],
+    ["a CDATA section", `<![CDATA[${" <a".repeat(60_000)} " ]]>`],
+    ["a processing instruction", `<?pulse ${" <a".repeat(60_000)} " ?>`],
+  ])("reads one with tag openers and an unpaired quote in %s at once", (_, hidden) => {
+    const started = Date.now()
+    const shapes = CollapsedShapes.of(`${RETURN}\n${hidden}`)
+
+    expect(shapes.around("ReadScale")).toStrictEqual(["Weigh", "Inspect"])
+    expect(shapes.around("WriteNote")).toStrictEqual(["Notes"])
+    expect(Date.now() - started).toBeLessThan(1000)
+  })
+
+  test("reads no tag inside a comment, a CDATA section, a processing instruction or a value", () => {
+    const shapes = CollapsedShapes.of(
+      RETURN.replace(
+        '<bpmn:task id="Close" />',
+        '<!-- <bpmn:subProcess id="Old"> --><![CDATA[<bpmn:subProcess id="Doc">]]>' +
+          `<bpmn:subProcess id="Named" name='a > b' /><bpmn:task id="Close" />`,
+      ).replace(
+        '<bpmn:task id="WriteNote" />',
+        '<bpmn:task id="WriteNote" /><?pulse </bpmn:adHocSubProcess> ?><bpmn:task id="Later" />',
+      ),
+    )
+
+    expect(shapes.around("Close")).toStrictEqual([])
+    expect(shapes.around("Later")).toStrictEqual(["Notes"])
+  })
+})

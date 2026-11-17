@@ -21,7 +21,7 @@ import {
   type TransportCase,
 } from "@miragon/pulse-http/testing"
 import { startCaseEngine } from "@miragon/pulse-http/testing/loopback"
-import { type C8Auth, createC8Connection } from "./c8-connection.js"
+import { type C8Auth, type C8Connection, createC8Connection } from "./c8-connection.js"
 import { c8WordsOf } from "./c8-errors.js"
 
 /**
@@ -92,13 +92,8 @@ function called(kase: TransportCase, transport: CamundaTransport): Promise<unkno
 }
 
 /** A failure as the case reads it: the transport's reason, and what the model would read. */
-function failed(error: unknown, transport: CamundaTransport, engineId: string): Observed {
+function failed(error: unknown, transport: CamundaTransport, connection: C8Connection): Observed {
   if (!(error instanceof HttpFailure)) throw error
-  const connection = {
-    engineId,
-    authType: "none" as const,
-    failure: (failed: unknown) => transport.failure(failed),
-  }
   const { message, hint } = new C8Failures(transport, c8WordsOf(connection)).errorOf(error)
   const { reason, status, mayHaveApplied } = error
   return {
@@ -132,7 +127,7 @@ async function observe(kase: TransportCase, origin: string): Promise<Observed> {
     const text = typeof value === "string" ? value : JSON.stringify(value ?? null)
     return { outcome: "answered", ...exchange, text }
   } catch (error) {
-    return failed(error, transport, c8.engineId)
+    return failed(error, transport, c8)
   }
 }
 

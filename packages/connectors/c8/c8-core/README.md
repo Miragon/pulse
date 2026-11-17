@@ -60,8 +60,10 @@ reads and gives one failure the same kind.
   contract (definitions and versions, diagrams, element statistics, called processes, instances and
   their counts, an instance's detail and wait states, incidents, variable names) and the version
   floor (8.9), each a class over the REST client, and the mappings from the checked views onto
-  engine-core's read models: keys that are Java longs, page cursors, the BPMN text a reader needs,
-  and the root cause by engine-core's `RootCauses`.
+  engine-core's read models: keys that are Java longs, page cursors, the BPMN text a reader needs
+  (read in one pass over the tags and their attributes, in time that grows with the text, no tag
+  of a text over 4 Mi characters; the tag reader is a copy of the board builder's, held equal by
+  `scripts/xml-tag-readers.test.mjs`), and the root cause by engine-core's `RootCauses`.
 
 ## Rules
 

@@ -55,7 +55,7 @@ these goldens. A later step that changes one names itself in its row's last colu
 
 | Case | Status | What the golden shows, or why there is none | Changes in step |
 | ---- | ------ | ------------------------------------------- | --------------- |
-| `redirect` | pinned | a 302 to a login page: the board's engine fails `misconfigured`, its target without the query and the hint that the url must be the REST root ending in `/v2`, nothing followed | none planned |
+| `redirect` | pinned | a 302 to a login page on a host of its own: the board's engine fails `misconfigured`, its target without the query and the hint that the url must be the REST root ending in `/v2`, nothing followed; a target on the cluster's or the token endpoint's host is named by whose host it is, never by its URL (`apps/mcp-server/test/c8-profile-urls.e2e.test.ts`) | none planned |
 | `unauthorized-none` | pinned | a cluster with Basic security asked without credentials: `unauthorized` with the cluster's detail and the hint to set auth in the engine's profile, its secret in an `ENGINE_SECRET_*` variable | none planned |
 | `unauthorized-basic` | pinned | the same to Basic `demo`/`demo-secret` (`passwordEnv`), the header as sent: the configured credentials were rejected | none planned |
 | `unauthorized-bearer` | pinned | client credentials: the token endpoint issues a token, the cluster refuses it with a 401 without a body: `unauthorized` with the hint to check the client's rights and `auth.audience`, a changed client ID or secret in the profile or its variable; the token is younger than 30 s, so one request goes out | none planned |

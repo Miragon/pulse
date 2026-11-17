@@ -1,3 +1,5 @@
+import { type XmlTag, XmlTags } from "./xml-tags.js"
+
 export interface CallActivityText {
   readonly elementId: string
   readonly processId?: string
@@ -12,17 +14,16 @@ export interface ContainerText {
 
 export type CatchKind = "timer" | "signal"
 
-const NO_MARKUP = /<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>/g
-const CALL_ACTIVITY =
-  /<(?:[\w.-]+:)?callActivity(?=[\s/>])((?:[^>"']|"[^"]*"|'[^']*')*?)(?:\/>|>([\s\S]*?)<\/(?:[\w.-]+:)?callActivity\s*>)/g
-const CALLED_ELEMENT = /<(?:[\w.-]+:)?calledElement(?=[\s/>])((?:[^>"']|"[^"]*"|'[^']*')*)>/
-const CATCHING =
-  /<(?:[\w.-]+:)?(intermediateCatchEvent|boundaryEvent|receiveTask)(?=[\s/>])((?:[^>"']|"[^"]*"|'[^']*')*?)(?:\/>|>([\s\S]*?)<\/(?:[\w.-]+:)?\1\s*>)/g
-const CONTAINER =
-  /<(?:[\w.-]+:)?(callActivity|subProcess|adHocSubProcess|transaction)(?=[\s/>])((?:[^>"']|"[^"]*"|'[^']*')*)>/g
-const TIMER = /<(?:[\w.-]+:)?timerEventDefinition(?=[\s/>])/
-const SIGNAL = /<(?:[\w.-]+:)?signalEventDefinition(?=[\s/>])/
-const ATTRIBUTE = /([\w.:-]+)\s*=\s*("[^"]*"|'[^']*')/g
+const CONTAINERS: ReadonlySet<string> = new Set([
+  "callActivity",
+  "subProcess",
+  "adHocSubProcess",
+  "transaction",
+])
+const CATCHING: ReadonlySet<string> = new Set(["intermediateCatchEvent", "boundaryEvent"])
+const CALLING_CONTAINER = "callActivity"
+const CALLING: ReadonlySet<string> = new Set([CALLING_CONTAINER])
+const ATTRIBUTE = /(?<![\w.:-])([\w.:-]+)\s*=\s*("[^"]*"|'[^']*')/g
 const REFERENCE = /&(#x[\da-fA-F]+|#\d+|amp|lt|gt|quot|apos);/g
 const LITERAL_WHITE_SPACE = /\r\n|[\t\n\r]/g
 const PREDEFINED: ReadonlyMap<string, string> = new Map([
@@ -33,57 +34,48 @@ const PREDEFINED: ReadonlyMap<string, string> = new Map([
   ["apos", "'"],
 ])
 const LAST_CODE_POINT = 0x10ffff
-const CALLING_CONTAINER = "callActivity"
 
 export class BpmnText {
   static callActivities(xml: string): readonly CallActivityText[] {
-    return [...BpmnText.markupOf(xml).matchAll(CALL_ACTIVITY)].flatMap((match) => {
-      const elementId = BpmnText.attribute(BpmnText.textOf(match[1]), "id")
-      return elementId === undefined ? [] : [BpmnText.callOf(elementId, BpmnText.textOf(match[2]))]
+    return XmlTags.elements(xml, CALLING).flatMap(({ tag, body }) => {
+      const elementId = BpmnText.attribute(tag.text, "id")
+      return elementId === undefined ? [] : [BpmnText.callOf(elementId, body)]
     })
   }
 
   static containers(xml: string): readonly ContainerText[] {
-    return [...BpmnText.markupOf(xml).matchAll(CONTAINER)].flatMap((match) => {
-      const elementId = BpmnText.attribute(BpmnText.textOf(match[2]), "id")
+    return XmlTags.of(xml).flatMap((tag) => {
+      const elementId = BpmnText.containerId(tag)
       return elementId === undefined
         ? []
-        : [{ elementId, callsProcess: match[1] === CALLING_CONTAINER }]
+        : [{ elementId, callsProcess: tag.name === CALLING_CONTAINER }]
     })
   }
 
   static catchKind(xml: string, elementId: string): CatchKind | undefined {
-    for (const match of BpmnText.markupOf(xml).matchAll(CATCHING)) {
-      if (BpmnText.attribute(BpmnText.textOf(match[2]), "id") === elementId) {
-        return BpmnText.kindOf(BpmnText.textOf(match[3]))
-      }
-    }
-    return undefined
+    const caught = XmlTags.elements(xml, CATCHING).find(
+      ({ tag }) => BpmnText.attribute(tag.text, "id") === elementId,
+    )
+    return caught === undefined ? undefined : BpmnText.kindOf(caught.body)
   }
 
-  private static markupOf(xml: string): string {
-    let markup = xml
-    let before: string
-    do {
-      before = markup
-      markup = markup.replaceAll(NO_MARKUP, "")
-    } while (markup !== before)
-    return markup
+  private static containerId(tag: XmlTag): string | undefined {
+    return CONTAINERS.has(tag.name) ? BpmnText.attribute(tag.text, "id") : undefined
   }
 
-  private static textOf(group: string | undefined): string {
-    return group ?? ""
-  }
-
-  private static kindOf(body: string): CatchKind | undefined {
-    if (TIMER.test(body)) {
+  private static kindOf(body: readonly XmlTag[]): CatchKind | undefined {
+    if (BpmnText.holds(body, "timerEventDefinition")) {
       return "timer"
     }
-    return SIGNAL.test(body) ? "signal" : undefined
+    return BpmnText.holds(body, "signalEventDefinition") ? "signal" : undefined
   }
 
-  private static callOf(elementId: string, body: string): CallActivityText {
-    const tag = CALLED_ELEMENT.exec(body)?.[1] ?? ""
+  private static holds(body: readonly XmlTag[], name: string): boolean {
+    return body.some((tag) => tag.name === name)
+  }
+
+  private static callOf(elementId: string, body: readonly XmlTag[]): CallActivityText {
+    const tag = body.find((inner) => inner.name === "calledElement")?.text ?? ""
     const processId = BpmnText.attribute(tag, "processId")
     const versionTag = BpmnText.attribute(tag, "versionTag")
     return {
@@ -101,6 +93,10 @@ export class BpmnText {
       }
     }
     return undefined
+  }
+
+  private static textOf(group: string | undefined): string {
+    return group ?? ""
   }
 
   private static decoded(value: string): string {
