@@ -135,15 +135,23 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   login cookie, the gate's resource as RFC 8707 `resource`), `callback.ts` (the login cookie and
   the state before any request to the provider, then `iss`, the code exchanged as a confidential
   client, the access token through the gate's own check, `gateTokenCheck`, a new session id and
-  CSRF secret), `logout.ts` (CSRF, revocation, the end-session URL), `session-route.ts` (name, CSRF
-  token, expiry), `forward.ts` (a page's call: CSRF, JSON of at most 64 KiB, only a read a view
-  calls by the boot's record, then one `tools/call` in-process to `<MCP_URL>/mcp` with exactly an
+  CSRF secret), `logout.ts` (CSRF, the session ended on the server first, then revocation and the
+  end-session URL), `session-route.ts` (name, CSRF token, expiry; 401 for a session whose token
+  expired with nothing to renew it), `forward.ts` (a page's call: CSRF, JSON of at most 64 KiB,
+  only a read a view calls by the boot's record, then one `tools/call` in-process to
+  `<MCP_URL>/mcp` with exactly an
   MCP client's headers, the session's bearer token and the page's signal (a page that leaves
   cancels the tool's call and gets 499, never a failing `/mcp`'s 502), marked for the request log
-  by `markForwarded`; after the gate's 401 one renewal where a new token may help) and `refresh.ts`
-  (the renewal by `@miragon/pulse-http/oauth`'s policy over the tokens as the replica's clock reads
-  them, one refresh per refresh token at a time, its outcome kept 30 s; a refused refresh ends the
-  session). `discovery.ts` reads the provider's metadata on the first sign-in and holds it
+  by `markForwarded`; after the gate's 401 one renewal where a new token may help; no result and no
+  cookie for a session signed out while the call ran) and `refresh.ts` (the renewal by
+  `@miragon/pulse-http/oauth`'s policy over the tokens as the replica's clock reads them, one
+  refresh per pair of refresh and access token at a time, its outcome kept 30 s, new tokens no
+  longer than they hold; where the provider refuses the refresh token, a token that has not
+  expired still goes out, and the session's end after that clears no cookie, which a call beside
+  it may just have renewed). `session.ts` opens a request's session and refuses one signed out,
+  by `ended.ts` (the ids of the sessions signed out at this replica until their seal expires, in
+  memory, at most 100,000) or by the browser's ended cookie. `discovery.ts` reads the provider's
+  metadata on the first sign-in and holds it
   for an hour; `separation.ts` keeps the session cookie off `/mcp` (the gate's 401 and challenge,
   `gateChallenge`) and a bearer off `/app` (400), and `installWebSignIn` answers every route under
   `/app` with the headers of `security-headers.ts` (the page's CSP, nosniff, no referrer, COOP and
@@ -164,8 +172,9 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   `A256GCM` on jose), each key derived by HKDF-SHA256 with its own key id, the first key sealing
   and every key opening, the cookie's name in the authenticated header and an absolute expiry
   that `reseal` keeps; `cookies.ts` writes the `__Host-` session cookie in at most three chunks of
-  3,800 bytes (a larger session is a failure of its own, stale chunks are cleared)
-  and the login cookie for ten minutes, both HttpOnly, Secure, SameSite=Lax on `/`;
+  3,800 bytes (a larger session is a failure of its own, stale chunks are cleared),
+  the login cookie for ten minutes and the ended cookie, which names the session a browser signed
+  out until that session's own expiry, all HttpOnly, Secure, SameSite=Lax on `/`;
   `returnTarget` keeps a sign-in's return on the app's pages (a path under `/app` in its normal
   form, never under `/app/auth` or `/app/api`, the query written again, at most 1,024 characters); `csrfRefusal` checks `Sec-Fetch-Site`, the
   `Origin` and the CSRF header against the session's secret in constant time. The paths, the CSRF

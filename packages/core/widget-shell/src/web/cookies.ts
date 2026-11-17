@@ -1,16 +1,19 @@
 /**
- * The web app's two cookies, both sealed (seal.ts), both `__Host-`: HttpOnly, Secure,
+ * The web app's three cookies, all sealed (seal.ts), all `__Host-`: HttpOnly, Secure,
  * SameSite=Lax, Path=/ and no Domain, so no script reads them, no other host sets them and the
  * identity provider's redirect back still carries them. The session cookie holds the session in at
  * most three chunks of 3,800 bytes, under the header limits of browsers and proxies; a session that
  * needs more is a failure of its own, and chunks a shorter session no longer needs are cleared. The
  * login cookie holds a sign-in under way for ten minutes: its state, its PKCE verifier and where it
- * returns to.
+ * returns to. The ended cookie names the session the browser signed out, until that session's own
+ * expiry, so a session cookie that comes back for it (a call under way at the sign-out, on any
+ * replica, sets it again) opens no session; a new sign-in leaves it, since it names only the old.
  */
 import type { Refused, Sealer } from "./seal.js"
 
 export const SESSION_COOKIE = "__Host-pulse-session"
 export const LOGIN_COOKIE = "__Host-pulse-login"
+export const ENDED_COOKIE = "__Host-pulse-ended"
 
 /** The bytes of one chunk's value; with the name and the attributes a cookie stays under 4 KiB. */
 export const SESSION_CHUNK_BYTES = 3800
@@ -47,6 +50,10 @@ const setCookie = (name: string, value: string, maxAgeSeconds: number): string =
   `${name}=${value}; Max-Age=${maxAgeSeconds}; ${ATTRIBUTES}`
 
 const cleared = (name: string): string => setCookie(name, "", 0)
+
+/** The seconds from `now` until `expiresAt` (milliseconds since epoch), none once it passed. */
+const secondsUntil = (expiresAt: number, now: number): number =>
+  Math.max(0, Math.ceil((expiresAt - now) / 1000))
 
 /** The one value of a cookie, or `undefined` when the request sends it not at all or twice. */
 function onlyValue(jar: CookieJar, name: string): string | undefined {
@@ -89,7 +96,7 @@ export function sessionCookies(
   if (sealed.length > SESSION_CHUNK_BYTES * SESSION_CHUNKS.length) {
     return { fits: false, bytes: sealed.length }
   }
-  const maxAge = Math.max(0, Math.ceil((expiresAt - now) / 1000))
+  const maxAge = secondsUntil(expiresAt, now)
   const count = Math.ceil(sealed.length / SESSION_CHUNK_BYTES)
   const chunks = SESSION_CHUNKS.slice(0, count).map((name, index) =>
     setCookie(
@@ -156,4 +163,40 @@ export async function openLogin(
 /** Clears the login cookie once its callback has run, whatever came of it. */
 export function clearedLogin(): string {
   return cleared(LOGIN_COOKIE)
+}
+
+/** What the ended cookie holds: the id of the session the browser signed out. */
+interface EndedValue {
+  readonly id: string
+}
+
+/**
+ * The ended cookie's `Set-Cookie` value: the session `id` sealed for this cookie until the
+ * session's own expiry `expiresAt`, which it lasts as long as.
+ */
+export async function endedCookie(
+  sealer: Sealer,
+  id: string,
+  expiresAt: number,
+  now = Date.now(),
+): Promise<string> {
+  const value: EndedValue = { id }
+  const sealed = await sealer.seal(ENDED_COOKIE, value, expiresAt)
+  return setCookie(ENDED_COOKIE, sealed, secondsUntil(expiresAt, now))
+}
+
+/**
+ * The id of the session the request's ended cookie names; `undefined` without one that opens (none,
+ * two, expired or not sealed for it).
+ */
+export async function endedId(
+  sealer: Sealer,
+  jar: CookieJar,
+  now = Date.now(),
+): Promise<string | undefined> {
+  const sealed = onlyValue(jar, ENDED_COOKIE)
+  if (sealed === undefined) return undefined
+  const opened = await sealer.open(ENDED_COOKIE, sealed, now)
+  // Only endedCookie seals a value for this cookie's name, so an opened one is an EndedValue.
+  return opened.ok ? (opened.value as EndedValue).id : undefined
 }

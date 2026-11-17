@@ -9,11 +9,12 @@ import {
   type FakeOidcOptions,
 } from "@miragon/pulse-widget-shell/testing/oidc"
 import { createApp } from "../../src/app.js"
-import { BROKEN_ENGINE, HEALTHY_ENGINE } from "../engines.js"
+import { BROKEN_ENGINE, ENGINE_CONTROL_ENV, HEALTHY_ENGINE } from "../engines.js"
 import { startStubEngine } from "../stub-engine.js"
 import {
   CONTROL_ENV,
   DEPLOYMENTS,
+  SHORT_TOKEN_SECONDS,
   WEB_CLIENT_ID,
   type Deployment,
   type IdpRecord,
@@ -137,8 +138,9 @@ async function startControl(idps: Record<Deployment, FakeOidc>) {
  * bundle, against test-host's stub engine, each deployment beside a fake identity provider of its
  * own, everything on ephemeral loopback ports. The browser reaches a deployment at
  * `http://localhost:<port>`, its `MCP_URL`, where Chromium keeps the `__Host-` cookies of plain
- * http. The workers find the deployments in `WEB_SIM_URL` and `WEB_SIM_SHORT_URL` and the control
- * of their identity providers in `WEB_SIM_CONTROL_URL` (all inherited from this process).
+ * http. The workers find the deployments in `WEB_SIM_URL` and `WEB_SIM_SHORT_URL`, the control
+ * of their identity providers in `WEB_SIM_CONTROL_URL` and the stub engine's in
+ * `HOST_SIM_ENGINE_URL` (all inherited from this process).
  */
 export default async function globalSetup(): Promise<() => Promise<void>> {
   const engine = await startStubEngine()
@@ -152,15 +154,16 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   )
   // Access tokens of 5 s are due at once by the shared expiry policy: the server renews the token
   // before each call it forwards, and a refusal of the renewal (the session ended at the provider)
-  // ends the session. One engine and no board: /app opens that engine.
+  // ends the session once the token expired. One engine and no board: /app opens that engine.
   const short = await deploy(
     { [HEALTHY_ENGINE]: { url: engine.baseUrl } },
-    { idp: { accessTokenSeconds: 5 } },
+    { idp: { accessTokenSeconds: SHORT_TOKEN_SECONDS } },
   )
   const control = await startControl({ main: main.idp, short: short.idp })
   process.env[DEPLOYMENTS.main] = main.origin
   process.env[DEPLOYMENTS.short] = short.origin
   process.env[CONTROL_ENV] = control.url
+  process.env[ENGINE_CONTROL_ENV] = engine.controlUrl
 
   return async () => {
     await control.close()

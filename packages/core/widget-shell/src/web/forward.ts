@@ -12,12 +12,16 @@
  * the caller's identity, the per-caller caches, passthrough, toolsets, routing and read-only
  * engines treat it as any client's call. After the gate's 401 the token is renewed once where a
  * new one may help. The page gets the tool's result (`{ result }`), never a token: renewed tokens
- * go back sealed into the session's cookie, with the expiry the sign-in gave it. The forwarded
- * request carries the page's signal, so a page that leaves or aborts its call cancels the tool's
- * (`ctx.mcpReq.signal`); a renewal under way runs on, since other calls may share it. A call whose
- * page left before `/mcp` answered it a result gets 499 (nginx's "client closed request"), never
- * the 502 of a failing `/mcp`, so a page that leaves counts as no server error in the request log
- * or the metrics.
+ * go back sealed into the session's cookie, with the expiry the sign-in gave it, unless the session
+ * was signed out at this replica while the call ran (401, and no cookie set: the browser's cookies
+ * are the sign-out's, or a new sign-in's). Where the provider refuses the refresh token, a token
+ * that has not expired still goes out; once none goes through, the session ends with a 401 that
+ * clears no cookie, since a call beside it may just have renewed them (a provider that rotates its
+ * refresh tokens, a page's calls on two replicas). The forwarded request carries the page's
+ * signal, so a page that leaves or aborts its call cancels the tool's (`ctx.mcpReq.signal`); a
+ * renewal under way runs on, since other calls may share it. A call whose page left before `/mcp`
+ * answered it a result gets 499 (nginx's "client closed request"), never the 502 of a failing
+ * `/mcp`, so a page that leaves counts as no server error in the request log or the metrics.
  */
 import { LATEST_PROTOCOL_VERSION, type ToolAnnotations } from "@modelcontextprotocol/server"
 import { isExpired } from "@miragon/pulse-http/oauth"
@@ -25,7 +29,7 @@ import { WEB_CODES, type WebCallAnswer, type WebRefusal } from "../protocol/web.
 import type { ToolResult } from "../protocol/tool-result.js"
 import { markForwarded } from "../request-log.js"
 import { json, SIGNED_OUT, type WebContext } from "./context.js"
-import { clearedSession, parseCookies, SESSION_COOKIE, sessionCookies } from "./cookies.js"
+import { parseCookies, SESSION_COOKIE, sessionCookies } from "./cookies.js"
 import {
   renewableAfterRefusal,
   renewalSource,
@@ -33,7 +37,7 @@ import {
   type Renewal,
   type RenewalSource,
 } from "./refresh.js"
-import { pageSession, type OpenedSession, type SessionTokens } from "./session.js"
+import { pageSession, sessionEnded, type OpenedSession, type SessionTokens } from "./session.js"
 
 /** The largest body of a page's call. */
 export const WEB_CALL_MAX_BYTES = 64 * 1024
@@ -98,15 +102,29 @@ type ToolAnswer =
 /** What `/mcp` answered: past the gate, or the gate's refusal of the token. */
 type McpAnswer = ToolAnswer | { readonly kind: "refused" }
 
-/** What became of a call: `/mcp`'s answer with the tokens it went out with, or why it did not go. */
+/**
+ * What became of a call: `/mcp`'s answer with the tokens it went out with, or why it did not go:
+ * the session ended (its cookies cleared where nothing else may have renewed them), or the
+ * provider does not answer.
+ */
 type Outcome =
   | { readonly kind: "answered"; readonly answer: ToolAnswer; readonly tokens: SessionTokens }
-  | { readonly kind: "ended"; readonly why: string }
+  | { readonly kind: "ended"; readonly why: string; readonly clears: boolean }
   | { readonly kind: "unavailable" }
 
-const UNAVAILABLE: Outcome = { kind: "unavailable" }
+/** Why no token went out: the session ended, or the provider does not answer. */
+type Unsent = Exclude<Outcome, { kind: "answered" }>
 
-const ended = (why: string): Outcome => ({ kind: "ended", why })
+const UNAVAILABLE: Unsent = { kind: "unavailable" }
+
+const ended = (why: string): Unsent => ({ kind: "ended", why, clears: true })
+
+/** The provider refused the refresh token: a call beside this one may have renewed the cookies. */
+const REFRESH_REFUSED: Unsent = {
+  kind: "ended",
+  why: "the identity provider refused the refresh token",
+  clears: false,
+}
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)
@@ -214,20 +232,22 @@ async function sent(route: CallRoute, accessToken: string, call: Call): Promise<
   return answerOf(await target.fetch(markForwarded(request)))
 }
 
-/** The tokens after a refresh, or why there are none to send. */
-function afterRenewal(renewal: Renewal, kept: SessionTokens, now: number): SessionTokens | Outcome {
+/**
+ * The tokens after a refresh, or why there are none to send: without new ones, a token that still
+ * holds goes out, whether the provider refused the refresh token or did not answer.
+ */
+function afterRenewal(renewal: Renewal, kept: SessionTokens, now: number): SessionTokens | Unsent {
   if (renewal.kind === "renewed") return renewal.tokens
-  if (renewal.kind === "refused") return ended("the identity provider refused the refresh token")
-  // The provider does not answer: a token that still holds goes out.
-  return isExpired(kept, now) ? UNAVAILABLE : kept
+  if (!isExpired(kept, now)) return kept
+  return renewal.kind === "refused" ? REFRESH_REFUSED : UNAVAILABLE
 }
 
-/** The tokens to send: the session's, renewed first where they are due. */
-async function tokensToSend(
+/** The tokens to send: the session's, renewed first where they are due, or why none go out. */
+export async function tokensToSend(
   ctx: WebContext,
   renew: RenewalSource,
   tokens: SessionTokens,
-): Promise<SessionTokens | Outcome> {
+): Promise<SessionTokens | Unsent> {
   const step = tokenStep(tokens, ctx.platform.now())
   if (step.kind === "send") return tokens
   if (step.kind === "end") return ended("the session's token expired and nothing renews it")
@@ -245,7 +265,7 @@ async function afterRefusal(
   if (renewable === undefined) return ended("the gate refused the session's token")
   const renewal = await route.renew(renewable)
   if (renewal.kind === "unavailable") return UNAVAILABLE
-  if (renewal.kind === "refused") return ended("the identity provider refused the refresh token")
+  if (renewal.kind === "refused") return REFRESH_REFUSED
   const answer = await sent(route, renewal.tokens.accessToken, call)
   if (answer.kind === "refused") return ended("the gate refused the renewed token")
   return { kind: "answered", answer, tokens: renewal.tokens }
@@ -284,21 +304,57 @@ async function resealed(
   return cookies.fits ? cookies.setCookies : undefined
 }
 
-function signedOut(ctx: WebContext, why: string): Response {
-  ctx.log(`Web session ended: ${why}.`)
-  return json(401, SIGNED_OUT, clearedSession())
+/**
+ * The cookies an answer of the session sets with the `tokens` its request went out with: none for
+ * the session's own, renewed ones sealed in with its expiry kept; the session's end where those no
+ * longer fit its cookies.
+ */
+export async function cookiesWith(
+  ctx: WebContext,
+  opened: OpenedSession,
+  tokens: SessionTokens,
+  request: Request,
+): Promise<readonly string[] | Response> {
+  if (tokens === opened.session.tokens) return []
+  const setCookies = await resealed(ctx, opened, tokens, request)
+  return setCookies ?? sessionEnded(ctx, "the renewed session does not fit its cookies")
 }
 
-/** The page's answer: the result, or why there is none; renewed tokens sealed into its cookie. */
+/**
+ * The 401 of a request whose session was signed out at this replica while it ran (the `action` in
+ * the log line): no result and no cookie, so the browser's cookies stay the sign-out's, or a new
+ * sign-in's; `undefined` for a session that holds.
+ */
+export function signedOutMeanwhile(
+  ctx: WebContext,
+  opened: OpenedSession,
+  action: string,
+): Response | undefined {
+  if (!ctx.ended.has(opened.session.id, ctx.platform.now())) return undefined
+  ctx.log(`${action} answered after its session was signed out: no result, no cookie.`)
+  return json(401, SIGNED_OUT)
+}
+
+/** The answer where no token went out: the session's end, or 503 while the provider is silent. */
+export function unsentAnswer(ctx: WebContext, unsent: Unsent): Response {
+  if (unsent.kind === "ended") return sessionEnded(ctx, unsent.why, unsent.clears)
+  return json(503, PROVIDER_SILENT)
+}
+
+/**
+ * The page's answer: the result, or why there is none; renewed tokens sealed into its cookie. A
+ * session signed out at this replica while the call ran gets no result and sets no cookie.
+ */
 async function answered(
   ctx: WebContext,
   opened: OpenedSession,
   request: Request,
   outcome: Outcome,
 ): Promise<Response> {
+  const signedOut = signedOutMeanwhile(ctx, opened, "Web call")
+  if (signedOut !== undefined) return signedOut
   if (outcome.kind === "answered") return answerWith(ctx, opened, request, outcome)
-  if (outcome.kind === "ended") return signedOut(ctx, outcome.why)
-  return json(503, PROVIDER_SILENT)
+  return unsentAnswer(ctx, outcome)
 }
 
 /**
@@ -311,11 +367,8 @@ async function answerWith(
   request: Request,
   { answer, tokens }: Extract<Outcome, { kind: "answered" }>,
 ): Promise<Response> {
-  const renewed = tokens !== opened.session.tokens
-  const setCookies = renewed ? await resealed(ctx, opened, tokens, request) : []
-  if (setCookies === undefined) {
-    return signedOut(ctx, "the renewed session does not fit its cookies")
-  }
+  const setCookies = await cookiesWith(ctx, opened, tokens, request)
+  if (setCookies instanceof Response) return setCookies
   if (answer.kind === "result") {
     const body: WebCallAnswer = { result: answer.result }
     return json(200, body, setCookies)
@@ -324,11 +377,16 @@ async function answerWith(
   return json(502, { message: answer.message }, setCookies)
 }
 
+/**
+ * The call route over `target`, its tokens renewed through `renew`: the replica's renewals, which
+ * the session route shares (install.ts), so a page's read of its session and its calls renew a
+ * pair of tokens once.
+ */
 export function callRoute(
   ctx: WebContext,
   target: McpTarget,
+  renew: RenewalSource = renewalSource(ctx),
 ): (request: Request) => Promise<Response> {
-  const renew = renewalSource(ctx)
   return async (request) => {
     const opened = await pageSession(ctx, request, "Web call")
     if (opened instanceof Response) return opened

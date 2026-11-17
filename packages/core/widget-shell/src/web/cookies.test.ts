@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest"
 import {
   clearedLogin,
   clearedSession,
+  ENDED_COOKIE,
+  endedCookie,
+  endedId,
   LOGIN_COOKIE,
   LOGIN_SECONDS,
   loginCookie,
@@ -42,6 +45,7 @@ describe("the cookie names", () => {
   it("carry the __Host- prefix, so no other host can set them", () => {
     expect(SESSION_COOKIE).toBe("__Host-pulse-session")
     expect(LOGIN_COOKIE).toBe("__Host-pulse-login")
+    expect(ENDED_COOKIE).toBe("__Host-pulse-ended")
   })
 })
 
@@ -261,5 +265,41 @@ describe("the login cookie", () => {
 
   it("is cleared with the cookie's own attributes", () => {
     expect(clearedLogin()).toBe(`__Host-pulse-login=; Max-Age=0; ${FLAGS}`)
+  })
+})
+
+describe("the ended cookie", () => {
+  const jarOf = (cookie: string) => parseCookies(`other=1; ${cookie.split(";")[0]}`)
+
+  it("names the signed-out session, sealed until that session would have ended", async () => {
+    const cookie = await endedCookie(sealer, "session-1", NOW + 8 * HOUR, NOW)
+    expect(cookie).toMatch(
+      new RegExp(`^__Host-pulse-ended=[A-Za-z0-9._-]+; Max-Age=28800; ${FLAGS}$`),
+    )
+    expect(pairOf(cookie)[1]).not.toContain("session-1")
+    expect(await endedId(sealer, jarOf(cookie), NOW + 8 * HOUR - 1)).toBe("session-1")
+    expect(await endedId(sealer, jarOf(cookie), NOW + 8 * HOUR)).toBeUndefined()
+  })
+
+  it("lasts the session's seconds left, rounded up, and none once it passed", async () => {
+    expect(await endedCookie(sealer, "s", NOW + 1500, NOW)).toContain("; Max-Age=2; ")
+    expect(await endedCookie(sealer, "s", NOW - 1500, NOW)).toContain("; Max-Age=0; ")
+  })
+
+  it("reads the clock when no time is given", async () => {
+    const cookie = await endedCookie(sealer, "session-1", Date.now() + HOUR)
+    expect(cookie).toMatch(/; Max-Age=3600; /)
+    expect(await endedId(sealer, jarOf(cookie))).toBe("session-1")
+  })
+
+  it("names nothing without one, with two, or with a value sealed for another cookie", async () => {
+    const [, ended] = pairOf(await endedCookie(sealer, "session-1", NOW + HOUR, NOW))
+    expect(await endedId(sealer, parseCookies("other=1"), NOW)).toBeUndefined()
+    const twice = parseCookies(`__Host-pulse-ended=${ended}; __Host-pulse-ended=${ended}`)
+    expect(await endedId(sealer, twice, NOW)).toBeUndefined()
+    const session = await sealer.seal(SESSION_COOKIE, { id: "session-1" }, NOW + HOUR)
+    expect(
+      await endedId(sealer, parseCookies(`__Host-pulse-ended=${session}`), NOW),
+    ).toBeUndefined()
   })
 })

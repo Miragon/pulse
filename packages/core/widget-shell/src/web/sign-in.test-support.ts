@@ -13,6 +13,7 @@ import { FAKE_OIDC_CLIENT, type FakeOidc } from "../testing/oidc/index.js"
 import { FIXTURE_BUILD } from "./build.test-support.js"
 import type { WebContext } from "./context.js"
 import { metadataSource } from "./discovery.js"
+import { endedSessions } from "./ended.js"
 import { createSealer } from "./seal.js"
 
 export const ORIGIN = "http://localhost"
@@ -139,6 +140,7 @@ export function webContext(fake: FakeOidc, overrides: Partial<WebContext> = {}) 
       origin: ORIGIN,
     },
     sealer: createSealer([KEY]),
+    ended: endedSessions(),
     client: { scopes: ["openid", "profile"] },
     resource: RESOURCE,
     issuer: fake.issuer,

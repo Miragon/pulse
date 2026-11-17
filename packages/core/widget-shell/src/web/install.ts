@@ -16,9 +16,11 @@ import { WEB_PATHS } from "../protocol/web.js"
 import { callbackRoute } from "./callback.js"
 import type { WebContext } from "./context.js"
 import { metadataSource } from "./discovery.js"
+import { endedSessions } from "./ended.js"
 import { callRoute, type McpTarget } from "./forward.js"
 import { loginRoute } from "./login.js"
 import { logoutRoute } from "./logout.js"
+import { renewalSource } from "./refresh.js"
 import { isUnder } from "./return-path.js"
 import { createSealer } from "./seal.js"
 import { webSecurityHeaders } from "./security-headers.js"
@@ -62,6 +64,7 @@ export function installWebSignIn(app: McpHttpApp, options: WebSignInOptions): vo
   const ctx: WebContext = {
     settings,
     sealer: createSealer(settings.sessionKeys),
+    ended: endedSessions(),
     client: webClientOf(provider),
     resource: resource.href,
     issuer,
@@ -85,8 +88,10 @@ export function installWebSignIn(app: McpHttpApp, options: WebSignInOptions): vo
   const login = loginRoute(ctx)
   const callback = callbackRoute(ctx)
   const logout = logoutRoute(ctx)
-  const session = sessionRoute(ctx)
-  const call = callRoute(ctx, mcpTarget(app, settings))
+  // One renewal per pair of tokens on this replica, whether a call or the session's read renews it.
+  const renew = renewalSource(ctx)
+  const session = sessionRoute(ctx, renew)
+  const call = callRoute(ctx, mcpTarget(app, settings), renew)
   app.get(WEB_PATHS.login, (c) => login(c.req.raw))
   app.get(WEB_PATHS.callback, (c) => callback(c.req.raw))
   app.post(WEB_PATHS.logout, (c) => logout(c.req.raw))

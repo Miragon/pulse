@@ -140,12 +140,60 @@ describe("renewalSource: the replica's refreshes", () => {
     expect(provider.forms).toHaveLength(2)
   })
 
+  it("runs a refresh per pair of tokens: the same refresh token with a renewed access token renews again", async () => {
+    // A provider that keeps its refresh token (RFC 6749 §6): the renewed cookie brings it again.
+    const provider = scriptedProvider(tokens("access-2"), tokens("access-3"), tokens("access-4"))
+    const { ctx } = callContext(provider.platform)
+    const renew = renewalSource(ctx)
+    expect(await renew(RECEIVED)).toMatchObject({ tokens: { accessToken: "access-2" } })
+    const renewed = { ...RECEIVED, accessToken: "access-2" }
+    expect(await renew(renewed)).toMatchObject({ tokens: { accessToken: "access-3" } })
+    // Two pairs whose tokens join to the same text are two pairs all the same.
+    const joined = { ...RECEIVED, refreshToken: "refresh-1access", accessToken: "-2" }
+    expect(await renew(joined)).toMatchObject({ tokens: { accessToken: "access-4" } })
+    expect(provider.forms.map((form) => form.get("refresh_token"))).toEqual([
+      "refresh-1",
+      "refresh-1",
+      "refresh-1access",
+    ])
+  })
+
+  it("keeps new tokens no longer than they hold, so a cookie that still brings the old pair renews again", async () => {
+    // Tokens of 5 s: kept until they expire, short of the 30 s.
+    const provider = scriptedProvider(
+      tokens("access-2", { expires_in: 5 }),
+      tokens("access-3", { expires_in: 5 }),
+    )
+    provider.clock.now = DUE_AT
+    const { ctx } = callContext(provider.platform)
+    const renew = renewalSource(ctx)
+    const first = await renew(RECEIVED)
+    provider.clock.now = DUE_AT + 5 * SECOND - 1
+    expect(await renew(RECEIVED)).toBe(first)
+    provider.clock.now = DUE_AT + 5 * SECOND
+    expect(await renew(RECEIVED)).toMatchObject({ tokens: { accessToken: "access-3" } })
+    expect(provider.forms).toHaveLength(2)
+  })
+
+  it("keeps new tokens of unknown lifetime 30 s", async () => {
+    const unknown = { status: 200, body: { access_token: "access-2", token_type: "Bearer" } }
+    const provider = scriptedProvider(unknown, tokens("access-3"))
+    const { ctx } = callContext(provider.platform)
+    const renew = renewalSource(ctx)
+    const first = await renew(RECEIVED)
+    provider.clock.now = T0 + RENEWAL_KEPT_MS - 1
+    expect(await renew(RECEIVED)).toBe(first)
+    provider.clock.now = T0 + RENEWAL_KEPT_MS
+    expect(await renew(RECEIVED)).toMatchObject({ tokens: { accessToken: "access-3" } })
+  })
+
   it("keeps the provider's refusal of a refresh token 30 s too, and logs it without a token", async () => {
     const refusal = { status: 400, body: { error: "invalid_grant" } }
     const provider = scriptedProvider(refusal)
     const { ctx, logged } = callContext(provider.platform)
     const renew = renewalSource(ctx)
     expect(await renew(RECEIVED)).toEqual({ kind: "refused" })
+    provider.clock.now = T0 + RENEWAL_KEPT_MS - 1
     expect(await renew(RECEIVED)).toEqual({ kind: "refused" })
     expect(provider.forms).toHaveLength(1)
     expect(logged).toHaveLength(1)

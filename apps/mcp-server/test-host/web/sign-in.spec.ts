@@ -8,6 +8,7 @@ import {
   originOf,
   type IdpRecord,
   recordCalls,
+  SHORT_TOKEN_SECONDS,
   signIn,
   WEB_CLIENT_ID,
 } from "./web-sim.js"
@@ -16,7 +17,8 @@ import {
  * The web app's sign-in on the real server: a page needs a session, so a browser without one goes
  * to the identity provider and comes back to the page it asked for, its query kept; the sign-out
  * ends the session at the provider too; the server renews a session's token before it expires, and
- * a renewal the provider refuses ends the session with a notice whose sign-in comes back to the page.
+ * a renewal the provider refuses ends the session once the token expired, with a notice whose
+ * sign-in comes back to the page, and a reload then shows that the session ended.
  */
 
 const JOBS_PAGE = `/app/cockpit?view=jobs&engine=${HEALTHY_ENGINE}`
@@ -157,6 +159,9 @@ test.describe("a session's token", () => {
     const { issuer } = await idpRecord("short")
     const ended = await context.request.get(`${issuer}/protocol/openid-connect/logout`)
     expect(ended.status()).toBe(200)
+    // The token the session holds still goes out until it expires (a refusal may be another
+    // replica's rotation), so the session ends with it.
+    await page.waitForTimeout(SHORT_TOKEN_SECONDS * 1000 + 500)
     const refused = refusedCalls(page)
 
     // A refresh of the list on screen: the frame's notice says it once, with the one way out;
@@ -191,6 +196,18 @@ test.describe("a session's token", () => {
     await expect(page.getByText("Your session has ended")).toHaveCount(1)
     await expect(page.getByRole("button", { name: "Try again" })).toHaveCount(0)
     await expectNoAxeFinding(page)
+
+    // A reload, here of the start page in a tab beside it, shows no session: the page that says
+    // the session ended and offers the sign-in, never the cockpit with a name and a sign-out.
+    const reloaded = await context.newPage()
+    await reloaded.goto(`${originOf("short")}/app`)
+    await expect(
+      reloaded.getByRole("heading", { level: 1, name: "Your session has ended" }),
+    ).toBeVisible({ timeout: 15_000 })
+    await expect(reloaded.getByRole("link", { name: "Sign in again" })).toBeVisible()
+    await expect(reloaded.getByRole("button", { name: "Sign out" })).toHaveCount(0)
+    await expect(reloaded.getByRole("heading", { name: "Operations Cockpit" })).toHaveCount(0)
+    await reloaded.close()
 
     // No silent redirect: the page stays until the user signs in again, and comes back to it.
     expect(page.url()).toBe(`${originOf("short")}${JOBS_PAGE}`)

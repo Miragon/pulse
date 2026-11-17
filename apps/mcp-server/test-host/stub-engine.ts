@@ -483,6 +483,10 @@ function createSearchHolds() {
       for (const answer of entry.waiting) answer()
       return entry.waiting.length
     },
+    /** How many requests for `term` wait for its release. */
+    waiting(term: string): number {
+      return held.get(term)?.waiting.length ?? 0
+    },
     /** Answers now or, while `term` is held, once it is released. */
     answer(term: string, send: () => void): void {
       const entry = term === "" ? undefined : held.get(term)
@@ -509,8 +513,8 @@ function createSearchHolds() {
  * searches for `<term>` (its business-key search without the `%` wildcards,
  * case insensitive) wait; `POST /__control/release?term=<term>` drops that
  * hold, and the last release answers the waiting ones and lets later ones
- * through. Holds are per term, so scenarios searching for other terms never
- * wait on each other.
+ * through; `GET /__control/waiting?term=<term>` says how many wait. Holds are
+ * per term, so scenarios searching for other terms never wait on each other.
  */
 export async function startStubEngine(): Promise<StubEngine> {
   const jobs = stubJobs()
@@ -528,6 +532,8 @@ export async function startStubEngine(): Promise<StubEngine> {
         send(200, { held: term })
       } else if (req.method === "POST" && url.pathname === "/__control/release") {
         send(200, { released: holds.release(term) })
+      } else if (req.method === "GET" && url.pathname === "/__control/waiting") {
+        send(200, { waiting: holds.waiting(term) })
       } else {
         const method = req.method ?? "GET"
         const { status, body } =

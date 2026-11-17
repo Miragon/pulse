@@ -1,7 +1,8 @@
 /**
- * What the web app's sign-in routes share: their settings, the seal, the identity provider's
- * metadata, the gate's token check, the platform they send through and the log, and the answers
- * they give. Every answer carries `Cache-Control: no-store`, so no cache keeps a session's answer.
+ * What the web app's sign-in routes share: their settings, the seal, the sessions signed out at
+ * this replica, the identity provider's metadata, the gate's token check, the platform they send
+ * through and the log, and the answers they give. Every answer carries `Cache-Control: no-store`,
+ * so no cache keeps a session's answer.
  */
 import type { Platform } from "@miragon/pulse-http"
 import type { ServerMetadata, TokenFailure } from "@miragon/pulse-http/oauth"
@@ -14,12 +15,15 @@ import {
   type SignedOutReason,
   type WebRefusal,
 } from "../protocol/web.js"
+import type { EndedSessions } from "./ended.js"
 import type { Sealer } from "./seal.js"
 import type { WebSettings } from "./settings.js"
 
 export interface WebContext {
   readonly settings: WebSettings
   readonly sealer: Sealer
+  /** The sessions signed out at this replica (ended.ts). */
+  readonly ended: EndedSessions
   /** What the sign-in asks the provider for: its scopes, and the audience where it names one. */
   readonly client: OAuthWebClient
   /** The gate's resource (RFC 8707) as the protected resource names itself. */

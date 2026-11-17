@@ -3,11 +3,13 @@
  * (`@miragon/pulse-http/oauth`: `isDue`, `canRefresh`, `renewsAfterRefusal`). The session lives in
  * the browser's cookie, so each replica reads its tokens by its own clock: a receipt after `now`
  * (a token another replica received by a clock that runs ahead) counts as received now, never as a
- * token from the future, which the policy would renew on every call. One refresh per refresh token
- * runs at a time on a replica, and its outcome is kept 30 s for the calls that bring the same
- * cookie meanwhile, so with rotation a page's parallel calls take the new tokens instead of sending
- * the spent refresh token again. The provider's refusal of the refresh token ends the session; a
- * provider that does not answer keeps a token that has not expired.
+ * token from the future, which the policy would renew on every call. One refresh per pair of
+ * tokens runs at a time on a replica, and its outcome is kept 30 s for the calls that bring the
+ * same cookie meanwhile, so with rotation a page's parallel calls take the new tokens instead of
+ * sending the spent refresh token again; new tokens are kept no longer than they hold, and a cookie
+ * that holds them renews them again, the same refresh token too (a provider that keeps it). The
+ * forward (forward.ts) sends a token that has not expired when the provider refuses the refresh
+ * token or does not answer, and ends the session once it has.
  */
 import { createHash } from "node:crypto"
 import {
@@ -21,7 +23,7 @@ import {
 import { passesBy, type WebContext } from "./context.js"
 import type { SessionTokens } from "./session.js"
 
-/** How long a refresh's outcome is kept for the calls that bring the same refresh token. */
+/** How long a refresh's outcome is kept for the calls that bring the same tokens. */
 export const RENEWAL_KEPT_MS = 30_000
 
 /** Tokens that carry a refresh token. */
@@ -33,7 +35,7 @@ export type Renewal =
   | { readonly kind: "refused" }
   | { readonly kind: "unavailable" }
 
-/** Renews the tokens with their refresh token, one refresh per refresh token at a time. */
+/** Renews the tokens with their refresh token, one refresh per pair of tokens at a time. */
 export type RenewalSource = (tokens: RenewableTokens) => Promise<Renewal>
 
 /** What a call does with the session's tokens before it is forwarded. */
@@ -121,18 +123,32 @@ interface Run {
   readonly keptUntil: number
 }
 
-/** The key a refresh token's run is kept under: its SHA-256, so no map holds it in clear. */
-const keyOf = (refreshToken: string): string =>
-  createHash("sha256").update(refreshToken).digest("base64url")
+/**
+ * The key a refresh's run is kept under: the SHA-256 of the refresh token and the access token it
+ * renews, so no map holds either in clear, and a cookie with the renewed pair renews again even
+ * where the provider kept the refresh token.
+ */
+const keyOf = ({ refreshToken, accessToken }: RenewableTokens): string =>
+  createHash("sha256")
+    .update(JSON.stringify([refreshToken, accessToken]))
+    .digest("base64url")
+
+/** Until when a refresh's outcome is kept: 30 s, new tokens no longer than they hold. */
+function keptUntilOf(renewal: Renewal, now: number): number {
+  const kept = now + RENEWAL_KEPT_MS
+  if (renewal.kind !== "renewed") return kept
+  return Math.min(kept, renewal.tokens.expiresAt ?? kept)
+}
 
 /**
- * This replica's refreshes: one per refresh token at a time, its outcome kept 30 s, except a
- * provider that did not answer, which the next call asks again.
+ * This replica's refreshes: one per pair of tokens at a time, its outcome kept 30 s (new tokens
+ * until they expire, if that comes first), except a provider that did not answer, which the next
+ * call asks again.
  */
 export function renewalSource(ctx: WebContext): RenewalSource {
   const runs = new Map<string, Run>()
   const settle = (key: string, renewal: Renewal): Renewal => {
-    const keptUntil = ctx.platform.now() + RENEWAL_KEPT_MS
+    const keptUntil = keptUntilOf(renewal, ctx.platform.now())
     if (renewal.kind === "unavailable") runs.delete(key)
     else runs.set(key, { renewal: Promise.resolve(renewal), keptUntil })
     return renewal
@@ -140,7 +156,7 @@ export function renewalSource(ctx: WebContext): RenewalSource {
   return (tokens) => {
     const now = ctx.platform.now()
     for (const [key, run] of runs) if (run.keptUntil <= now) runs.delete(key)
-    const key = keyOf(tokens.refreshToken)
+    const key = keyOf(tokens)
     const running = runs.get(key)
     if (running !== undefined) return running.renewal
     const renewal = renewed(ctx, tokens).then((outcome) => settle(key, outcome))

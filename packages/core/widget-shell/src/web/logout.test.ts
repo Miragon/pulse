@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest"
 import type { ServerMetadata } from "@miragon/pulse-http/oauth"
 import { FAKE_OIDC_CLIENT, startFakeOidc, type FakeOidc } from "../testing/oidc/index.js"
-import { LOGIN_COOKIE, SESSION_COOKIE } from "./cookies.js"
+import { ENDED_COOKIE, LOGIN_COOKIE, SESSION_COOKIE } from "./cookies.js"
 import { logoutRoute } from "./logout.js"
 import { createSealer } from "./seal.js"
 import type { WebSession } from "./session.js"
+import type { McpHttpApp } from "../mcp-server.js"
 import {
   bootWeb,
   Browser,
@@ -44,12 +45,43 @@ const CLEARED = [
   `${LOGIN_COOKIE}=; Max-Age=0; ${FLAGS}`,
 ]
 
-/** A browser signed in at a fresh server, and the CSRF token its page reads. */
-async function signedIn() {
-  const browser = new Browser(await bootWeb(webEnv(fake)))
+/** A browser signed in at `app` (a fresh server by default), and the CSRF token its page reads. */
+async function signedIn(app?: McpHttpApp) {
+  const browser = new Browser(app ?? (await bootWeb(webEnv(fake))))
   await signIn(browser, fake)
   const csrf = String((await sessionOf(browser)).body.csrf)
   return { browser, csrf }
+}
+
+/** A browser at `app` that holds a copy of `browser`'s cookies, or of those `names` names. */
+function copyOf(browser: Browser, app: McpHttpApp, names?: readonly string[]): Browser {
+  const copy = new Browser(app)
+  for (const [name, value] of browser.cookies) {
+    if (names === undefined || names.includes(name)) copy.cookies.set(name, value)
+  }
+  return copy
+}
+
+/** A page's call as the browser sends it, with the CSRF token. */
+const callOf = (browser: Browser, csrf: string) =>
+  browser.fetch("/app/api/call", {
+    method: "POST",
+    headers: {
+      origin: ORIGIN,
+      "sec-fetch-site": "same-origin",
+      "x-pulse-csrf": csrf,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ name: "probe_tool", arguments: {} }),
+  })
+
+const SESSION_CHUNKS = [SESSION_COOKIE, `${SESSION_COOKIE}.1`, `${SESSION_COOKIE}.2`]
+
+/** The id of the session the logout's ended cookie names, opened with the server's own seal. */
+async function endedOf(setCookie: string | undefined): Promise<unknown> {
+  const [pair] = String(setCookie).split(";")
+  const opened = await sealer.open(ENDED_COOKIE, pair.slice(`${ENDED_COOKIE}=`.length))
+  return opened.ok ? opened.value : opened
 }
 
 describe("POST /app/auth/logout", () => {
@@ -58,7 +90,13 @@ describe("POST /app/auth/logout", () => {
     const response = await browser.logout(csrf)
     expect(response.status).toBe(200)
     expect(response.headers.get("cache-control")).toBe("no-store")
-    expect(response.headers.getSetCookie()).toEqual(CLEARED)
+    const setCookies = response.headers.getSetCookie()
+    expect(setCookies.slice(0, 4)).toEqual(CLEARED)
+    // The ended cookie names the session for as long as the session would have lasted.
+    expect(setCookies[4]).toMatch(
+      new RegExp(`^${ENDED_COOKIE}=[A-Za-z0-9._-]+; Max-Age=(28800|28799); ${FLAGS}$`),
+    )
+    expect(setCookies).toHaveLength(5)
     const end = new URL(String(((await response.json()) as { location: string }).location))
     expect(`${end.origin}${end.pathname}`).toBe(`${fake.issuer}/protocol/openid-connect/logout`)
     expect([...end.searchParams]).toEqual([
@@ -66,8 +104,58 @@ describe("POST /app/auth/logout", () => {
       ["post_logout_redirect_uri", `${ORIGIN}/app/signed-out`],
     ])
     expect(fake.revoked).toEqual([fake.issued.refresh[0]])
-    expect(browser.cookies.size).toBe(0)
+    expect([...browser.cookies.keys()]).toEqual([ENDED_COOKIE])
     expect((await sessionOf(browser)).status).toBe(401)
+  })
+
+  it("ends the session on the server: a copy of its cookie opens it no more", async () => {
+    const app = await bootWeb(webEnv(fake))
+    const { browser, csrf } = await signedIn(app)
+    // Someone holds a copy of the session cookie, taken before the sign-out, and its CSRF token.
+    const copy = copyOf(browser, app, SESSION_CHUNKS)
+    expect(await sessionOf(copy)).toMatchObject({ status: 200, body: { csrf } })
+    expect((await browser.logout(csrf)).status).toBe(200)
+    const call = await callOf(copy, csrf)
+    expect(call.status).toBe(401)
+    expect(await call.json()).toEqual({ code: "signed_out", message: "No session: sign in again." })
+    expect(call.headers.getSetCookie()).toEqual(CLEARED.slice(0, 3))
+    expect(warned).toHaveBeenCalledWith("[web-test] Web session refused: it was signed out.")
+    expect((await sessionOf(copyOf(browser, app, SESSION_CHUNKS))).status).toBe(401)
+  })
+
+  it("leaves the browser the ended cookie, so no replica opens the session for it again", async () => {
+    // Two replicas built with the same keys: the sign-out reaches one, a call under way the other.
+    const one = await bootWeb(webEnv(fake))
+    const other = await bootWeb(webEnv(fake))
+    const { browser, csrf } = await signedIn(one)
+    const before = copyOf(browser, other, SESSION_CHUNKS)
+    const response = await browser.logout(csrf)
+    const ended = (await endedOf(response.headers.getSetCookie()[4])) as { id: string }
+    expect(Object.keys(ended)).toEqual(["id"])
+    expect(ended.id).toMatch(/^[A-Za-z0-9_-]{22}$/)
+    // The browser holds its ended cookie and the session cookie the call under way set again.
+    const restored = copyOf(browser, other)
+    for (const [name, value] of before.cookies) restored.cookies.set(name, value)
+    const read = await restored.fetch("/app/api/session")
+    expect(read.status).toBe(401)
+    expect(read.headers.getSetCookie()).toEqual(CLEARED.slice(0, 3))
+    expect([...restored.cookies.keys()]).toEqual([ENDED_COOKIE])
+    // A copy elsewhere, without it, reaches the other replica until its access token runs out.
+    expect((await sessionOf(before)).status).toBe(200)
+  })
+
+  it("keeps the ended cookie through the next sign-in, whose session it leaves alone", async () => {
+    const one = await bootWeb(webEnv(fake))
+    const other = await bootWeb(webEnv(fake))
+    const { browser, csrf } = await signedIn(one)
+    const old = copyOf(browser, one, SESSION_CHUNKS)
+    await browser.logout(csrf)
+    await signIn(browser, fake, { username: "bob" })
+    expect(browser.cookies.has(ENDED_COOKIE)).toBe(true)
+    expect((await sessionOf(copyOf(browser, other))).body).toMatchObject({ name: "Bob Brown" })
+    // The old session's cookie, set again by a late answer, opens nothing of Alice's anywhere.
+    for (const [name, value] of old.cookies) browser.cookies.set(name, value)
+    expect((await sessionOf(copyOf(browser, other))).status).toBe(401)
   })
 
   it("leaves the provider's session to end where the answer sends the browser", async () => {
@@ -182,7 +270,9 @@ describe("POST /app/auth/logout: what the provider offers", () => {
     const metadata = { ...(await metadataOf()), revocationEndpoint: `${closed.serverUrl}/revoke` }
     const { response, logged } = await logoutWith(metadata)
     expect(response.status).toBe(200)
-    expect(response.headers.getSetCookie()).toEqual(CLEARED)
+    expect(response.headers.getSetCookie().slice(0, 4)).toEqual(CLEARED)
+    expect(response.headers.getSetCookie()[4]).toMatch(/; Max-Age=(3600|3599); /)
+    expect(await endedOf(response.headers.getSetCookie()[4])).toEqual({ id: "s" })
     expect(logged).toEqual([
       "Web sign-out: the refresh token was not revoked (no token: unreachable).",
     ])

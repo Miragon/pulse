@@ -22,8 +22,9 @@ import {
   T0,
   tokens,
   type McpReply,
+  type TokenAnswer,
 } from "./call.test-support.js"
-import { SESSION_COOKIE } from "./cookies.js"
+import { endedCookie, SESSION_COOKIE } from "./cookies.js"
 import { callRoute, type McpTarget } from "./forward.js"
 import type { WebSession } from "./session.js"
 import { FLAGS } from "./sign-in.test-support.js"
@@ -32,6 +33,14 @@ import { FLAGS } from "./sign-in.test-support.js"
  * The session's token on a page's call: renewed where it is due, after the gate's 401 where a new
  * one may help, sealed back into the cookie with the session's own expiry, or the session ended.
  */
+
+const REFRESH_REFUSAL = { status: 400, body: { error: "invalid_grant" } }
+
+/** The `Cookie` header a browser sends back for the session cookie an answer set. */
+function cookieOf(response: Response): string {
+  const [first] = response.headers.getSetCookie()
+  return first.split(";")[0]
+}
 
 /** The session the answer's cookies hold, opened with the route's own seal. */
 async function cookieSession(ctx: Awaited<ReturnType<typeof setup>>["ctx"], response: Response) {
@@ -69,14 +78,25 @@ describe("POST /app/api/call: the session's token", () => {
     })
   })
 
-  it("ends the session when the provider refuses the refresh token, and forwards nothing", async () => {
-    const { call, requests, logged } = await setup({
+  it("sends a token that still holds while the provider refuses the refresh token", async () => {
+    // A call beside it on another replica may have spent the refresh token: the session goes on.
+    const { call, requests } = await setup({
       at: DUE,
-      provider: [{ status: 400, body: { error: "invalid_grant" } }],
+      provider: [REFRESH_REFUSAL],
+      mcp: [result(RESULT)],
     })
     const response = await call()
+    expect(await jsonOf(response)).toEqual({ status: 200, body: { result: RESULT } })
+    expect(bearersOf(requests)).toEqual(["Bearer access-1"])
+    expect(response.headers.getSetCookie()).toEqual([])
+  })
+
+  it("ends the session once the token expired and the provider refuses the refresh token, leaving the cookies", async () => {
+    // A call beside it may just have renewed them: a cookie whose session is gone fails again.
+    const { call, requests, logged } = await setup({ at: EXPIRED, provider: [REFRESH_REFUSAL] })
+    const response = await call()
     expect(await jsonOf(response)).toEqual({ status: 401, body: SIGNED_OUT })
-    expect(response.headers.getSetCookie()).toEqual(CLEARED)
+    expect(response.headers.getSetCookie()).toEqual([])
     expect(requests).toEqual([])
     expect(logged.at(-1)).toBe(
       "Web session ended: the identity provider refused the refresh token.",
@@ -138,6 +158,25 @@ describe("POST /app/api/call: the session's token", () => {
     expect(response.headers.getSetCookie()[0]).toMatch(new RegExp(`^${SESSION_COOKIE}=`))
   })
 
+  it("renews a renewed token again once it is due, where the provider kept the refresh token", async () => {
+    // Tokens of 5 s are due at once; the provider's answers carry no refresh token (RFC 6749 §6),
+    // so the session keeps its own, and the renewed cookie brings it again 6 s later.
+    const idp = scriptedProvider(
+      tokens("access-2", { expires_in: 5 }),
+      tokens("access-3", { expires_in: 5 }),
+    )
+    const { ctx } = callContext(idp.platform)
+    const { target, requests } = mcpTarget()
+    const route = callRoute(ctx, target)
+    idp.clock.now = DUE
+    const first = await route(pageCall(await sessionCookie(ctx, sessionTokens(T0)), ROWS))
+    idp.clock.now = DUE + 6 * SECOND
+    const second = await route(pageCall(cookieOf(first), ROWS))
+    expect([first.status, second.status]).toEqual([200, 200])
+    expect(bearersOf(requests)).toEqual(["Bearer access-2", "Bearer access-3"])
+    expect(idp.forms.map((form) => form.get("refresh_token"))).toEqual(["refresh-1", "refresh-1"])
+  })
+
   it("ends the session when the renewed one no longer fits its cookies", async () => {
     const { call, logged } = await setup({
       at: DUE,
@@ -187,13 +226,15 @@ describe("POST /app/api/call: after the gate refused the token", () => {
     expect(logged).toEqual(["Web session ended: the gate refused the renewed token."])
   })
 
-  it("ends the session when the provider refuses the refresh token then", async () => {
+  it("ends the session when the provider refuses the refresh token then, leaving the cookies", async () => {
     const { call, requests, logged } = await setup({
       at: T0 + 30 * SECOND,
-      provider: [{ status: 400, body: { error: "invalid_grant" } }],
+      provider: [REFRESH_REFUSAL],
       mcp: [GATE_REFUSAL],
     })
-    expect(await jsonOf(await call())).toEqual({ status: 401, body: SIGNED_OUT })
+    const response = await call()
+    expect(await jsonOf(response)).toEqual({ status: 401, body: SIGNED_OUT })
+    expect(response.headers.getSetCookie()).toEqual([])
     expect(requests).toHaveLength(1)
     expect(logged.at(-1)).toBe(
       "Web session ended: the identity provider refused the refresh token.",
@@ -255,5 +296,70 @@ describe("POST /app/api/call: a page that leaves", () => {
   it("answers a result /mcp gave before the page left, as any other", async () => {
     const response = await leftDuring(result(RESULT))
     expect(await jsonOf(response)).toEqual({ status: 200, body: { result: RESULT } })
+  })
+})
+
+describe("POST /app/api/call: a session signed out", () => {
+  const SESSION_END = T0 + 8 * 3_600_000
+
+  /** A call whose session this replica records as signed out while `/mcp` runs it. */
+  async function signedOutDuring(at: number, provider: TokenAnswer[] = []) {
+    const idp = scriptedProvider(...provider)
+    const { ctx, logged } = callContext(idp.platform)
+    const cookie = await sessionCookie(ctx, sessionTokens(T0))
+    idp.clock.now = at
+    const { target, requests } = mcpTarget(result(RESULT))
+    const signingOut: McpTarget = {
+      ...target,
+      fetch: (request) => {
+        ctx.ended.end("session-1", SESSION_END, idp.clock.now)
+        return target.fetch(request)
+      },
+    }
+    const response = await callRoute(ctx, signingOut)(pageCall(cookie, ROWS))
+    return { response, logged, requests }
+  }
+
+  it("while its call ran gets no result and sets no renewed cookie, so the sign-out's cookies stay", async () => {
+    const { response, logged, requests } = await signedOutDuring(DUE, [
+      tokens("access-2", { refresh_token: "refresh-2" }),
+    ])
+    expect(await jsonOf(response)).toEqual({ status: 401, body: SIGNED_OUT })
+    expect(response.headers.getSetCookie()).toEqual([])
+    expect(bearersOf(requests)).toEqual(["Bearer access-2"])
+    expect(logged).toEqual([
+      "Web call answered after its session was signed out: no result, no cookie.",
+    ])
+  })
+
+  it("while its call ran gets no result where nothing was renewed either", async () => {
+    const { response } = await signedOutDuring(T0)
+    expect(await jsonOf(response)).toEqual({ status: 401, body: SIGNED_OUT })
+    expect(response.headers.getSetCookie()).toEqual([])
+  })
+
+  it("before its call is refused before anything is forwarded, its cookies cleared", async () => {
+    const { call, requests, ctx, logged, idp } = await setup({ at: DUE })
+    ctx.ended.end("session-1", SESSION_END, T0)
+    const response = await call()
+    expect(await jsonOf(response)).toEqual({ status: 401, body: SIGNED_OUT })
+    expect(response.headers.getSetCookie()).toEqual(CLEARED)
+    expect([requests.length, idp.forms.length]).toEqual([0, 0])
+    expect(logged).toEqual(["Web session refused: it was signed out."])
+  })
+
+  it("is refused by the ended cookie the browser holds for it, on a replica that never knew it", async () => {
+    const { ctx } = await setup()
+    const { target, requests } = mcpTarget()
+    const route = callRoute(ctx, target)
+    const session = await sessionCookie(ctx, sessionTokens(T0))
+    const ended = (await endedCookie(ctx.sealer, "session-1", SESSION_END, T0)).split(";")[0]
+    const other = (await endedCookie(ctx.sealer, "session-0", SESSION_END, T0)).split(";")[0]
+    // The ended cookie of another session, which the browser signed out before, refuses nothing.
+    expect((await route(pageCall(`${session}; ${other}`, ROWS))).status).toBe(200)
+    const response = await route(pageCall(`${session}; ${ended}`, ROWS))
+    expect(await jsonOf(response)).toEqual({ status: 401, body: SIGNED_OUT })
+    expect(response.headers.getSetCookie()).toEqual(CLEARED)
+    expect(requests).toHaveLength(1)
   })
 })

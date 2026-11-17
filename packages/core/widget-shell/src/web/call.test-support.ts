@@ -10,6 +10,7 @@ import { gateTokenCheck } from "../oauth-gate.js"
 import { FIXTURE_BUILD } from "./build.test-support.js"
 import type { WebContext } from "./context.js"
 import { SESSION_COOKIE } from "./cookies.js"
+import { endedSessions } from "./ended.js"
 import { callRoute, type McpTarget, type RecordedToolConfig } from "./forward.js"
 import { createSealer } from "./seal.js"
 import type { SessionTokens, WebSession } from "./session.js"
@@ -72,6 +73,7 @@ export function callContext(
       origin: ORIGIN,
     },
     sealer: createSealer([KEY]),
+    ended: endedSessions(),
     client: { scopes: ["openid"] },
     resource: RESOURCE,
     issuer: METADATA.issuer,

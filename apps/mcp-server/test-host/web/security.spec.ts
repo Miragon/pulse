@@ -1,17 +1,20 @@
+import { randomUUID } from "node:crypto"
 import { expect, test, type Page, type Response } from "@playwright/test"
 import { HEALTHY_ENGINE } from "../engines.js"
-import { ALICE, BOB, chooseUser, issuedTokens, originOf, signIn } from "./web-sim.js"
+import { ALICE, BOB, chooseUser, engineControl, issuedTokens, originOf, signIn } from "./web-sim.js"
 
 /**
  * What the web app keeps from the browser and what it refuses of it, in Chromium against the real
  * server: the session lives in sealed `__Host-` cookies no script reads, no token of the identity
  * provider ever reaches the browser, a request that changes something needs the page's own origin
  * and its CSRF token, a sign-in returns only to a page of the app, a code or a session of someone
- * else gives the browser nothing of theirs, and `/app/` is no alias of `/app`.
+ * else gives the browser nothing of theirs, a sign-out ends the session for every copy of its
+ * cookie and every answer still under way, and `/app/` is no alias of `/app`.
  */
 
 const SESSION_COOKIE = "__Host-pulse-session"
 const LOGIN_COOKIE = "__Host-pulse-login"
+const ENDED_COOKIE = "__Host-pulse-ended"
 const CSRF_HEADER = "x-pulse-csrf"
 const CALL = { name: "engine_list_engines", arguments: {} }
 
@@ -50,8 +53,8 @@ const storageOf = (page: Page): Promise<string> =>
     }),
   )
 
-/** A call of the API from the page itself, with the headers `headers` names. */
-const callFromPage = (page: Page, headers: Record<string, string>) =>
+/** A call of the API from the page itself, `call` by default, with the headers `headers` names. */
+const callFromPage = (page: Page, headers: Record<string, string>, call: object = CALL) =>
   page.evaluate(
     async ({ body, headers }) => {
       const response = await fetch("/app/api/call", {
@@ -61,8 +64,14 @@ const callFromPage = (page: Page, headers: Record<string, string>) =>
       })
       return response.status
     },
-    { body: JSON.stringify(CALL), headers },
+    { body: JSON.stringify(call), headers },
   )
+
+/** The page's sign-out by its own button, up to the signed-out page the provider sends it back to. */
+async function signOut(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "Sign out" }).click()
+  await page.waitForURL((url) => url.pathname === "/app/signed-out")
+}
 
 /** The session as the page reads it: its holder's name and its CSRF token, or the status. */
 const sessionOf = (page: Page) =>
@@ -225,6 +234,95 @@ test.describe("the sign-in", () => {
     } finally {
       await attacker.close()
     }
+  })
+})
+
+test.describe("the sign-out", () => {
+  test("ends the session on the server: a copy of its cookie in another browser opens it no more", async ({
+    page,
+    browser,
+  }) => {
+    const origin = originOf()
+    await signIn(page)
+    await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible({ timeout: 15_000 })
+    // Someone copies the session cookie into a browser of their own (on a shared machine, through
+    // the developer tools, at a proxy that ends TLS) while the user is signed in.
+    const copied = (await page.context().cookies(origin)).filter((cookie) =>
+      cookie.name.startsWith(SESSION_COOKIE),
+    )
+    const other = await browser.newContext()
+    try {
+      await other.addCookies(copied)
+      const thief = await other.newPage()
+      await thief.goto(`${origin}/app/signed-out`)
+      const before = await sessionOf(thief)
+      if (!("csrf" in before)) throw new Error(`the copy opened no session (${before.status})`)
+      expect(await callFromPage(thief, { [CSRF_HEADER]: before.csrf })).toBe(200)
+
+      await signOut(page)
+
+      // The browser that signed out holds the ended cookie, a sealed host cookie no script reads,
+      // which refuses the session on every replica until the session would have ended.
+      const ended = (await page.context().cookies(origin)).find(
+        (cookie) => cookie.name === ENDED_COOKIE,
+      )
+      expect(ended).toMatchObject({
+        domain: "localhost",
+        path: "/",
+        httpOnly: true,
+        secure: true,
+        sameSite: "Lax",
+      })
+      expect(ended?.expires).toBeGreaterThan(Date.now() / 1000)
+      expect(ended?.expires).toBeLessThanOrEqual(Date.now() / 1000 + 8 * 3600)
+      expect(await page.evaluate(() => document.cookie)).toBe("")
+
+      // The access token in the copy has minutes left: the server refuses it all the same.
+      expect(await callFromPage(thief, { [CSRF_HEADER]: before.csrf })).toBe(401)
+      await other.addCookies(copied)
+      expect(await sessionOf(thief)).toEqual({ status: 401 })
+    } finally {
+      await other.close()
+    }
+  })
+
+  test("restores no session from a call that renewed the token and answers after it", async ({
+    page,
+    context,
+  }) => {
+    // The short deployment renews the session's token before each call it forwards. A read of a
+    // second tab, held at the engine, has renewed it when the user signs out in the first.
+    const origin = originOf("short")
+    await signIn(page, "/app", { deployment: "short" })
+    await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible({ timeout: 15_000 })
+    const term = `sign-out-race-${randomUUID()}`
+    const search = {
+      name: "engine_process_instances_data",
+      arguments: { engine: HEALTHY_ENGINE, search: term },
+    }
+    let answered: Promise<number> | undefined
+    await engineControl("hold", term)
+    try {
+      const tab = await context.newPage()
+      await tab.goto(`${origin}/app/signed-out`)
+      const session = await sessionOf(tab)
+      if (!("csrf" in session)) throw new Error(`no session (${session.status})`)
+      answered = callFromPage(tab, { [CSRF_HEADER]: session.csrf }, search)
+      // At the engine, so past its renewal.
+      await expect
+        .poll(async () => (await engineControl("waiting", term)).waiting, { timeout: 15_000 })
+        .toBeGreaterThan(0)
+      await signOut(page)
+    } finally {
+      await engineControl("release", term)
+    }
+    // The read answers after the sign-out: no result, and no session cookie set again.
+    expect(await answered).toBe(401)
+    const names = (await context.cookies(origin)).map((cookie) => cookie.name)
+    expect(names).not.toContain(SESSION_COOKIE)
+    const next = await context.newPage()
+    await next.goto(`${origin}/app`)
+    await expect(next.getByRole("heading", { level: 1, name: "Sign in" })).toBeVisible()
   })
 })
 

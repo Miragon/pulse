@@ -20,8 +20,9 @@
  *
  * `MCP_LOG_LEVEL`: `info` (default) logs no payload; `debug` adds a tool's or prompt's arguments
  * and a tool's result, each cut at 80 characters; `trace` adds the whole request and response,
- * credential headers redacted. Both put process variables and business keys into the log, so the
- * boot warns (`requestLogLevelWarning`).
+ * credential headers (the web app's CSRF token too) redacted and a redirect's target without its
+ * query. Both put process variables and business keys into the log, so the boot warns
+ * (`requestLogLevelWarning`).
  */
 import {
   CLIENT_INFO_META_KEY,
@@ -30,7 +31,7 @@ import {
 } from "@modelcontextprotocol/server"
 import type { Hono } from "hono"
 import type { RefusedRequest } from "./http-edge.js"
-import { WEB_PATHS } from "./protocol/web.js"
+import { WEB_CSRF_HEADER, WEB_PATHS } from "./protocol/web.js"
 
 export const REQUEST_LOG_LEVEL_ENV_VAR = "MCP_LOG_LEVEL"
 const LEVELS = ["info", "debug", "trace"] as const
@@ -236,18 +237,32 @@ function inline(value: unknown): string {
   return sanitize(cut(rendered, INLINE_MAX))
 }
 
+/** The headers whose value is a credential, the web app's CSRF token among them. */
 const REDACTED = new Set([
   "authorization",
   "proxy-authorization",
   "cookie",
   "set-cookie",
   "x-api-key",
+  WEB_CSRF_HEADER,
 ])
 
+/**
+ * A redirect's target without its query or fragment, which can carry a sign-in's state and PKCE
+ * challenge (the web app's login) or a code: whoever reads the log could finish that sign-in.
+ */
+const withoutQuery = (location: string): string => {
+  const at = location.search(/[?#]/)
+  return at < 0 ? location : `${location.slice(0, at)}?[REDACTED]`
+}
+
+const shownValue = (name: string, value: string): string => {
+  if (REDACTED.has(name)) return "[REDACTED]"
+  return name === "location" ? withoutQuery(value) : value
+}
+
 const headerDump = (headers: Headers): Json =>
-  Object.fromEntries(
-    [...headers].map(([name, value]) => [name, REDACTED.has(name) ? "[REDACTED]" : value]),
-  )
+  Object.fromEntries([...headers].map(([name, value]) => [name, shownValue(name, value)]))
 
 function dumpBody(body: unknown): string {
   if (body === undefined) return "(none)"

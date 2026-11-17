@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright"
 import { expect, type Page } from "@playwright/test"
+import { ENGINE_CONTROL_ENV } from "../engines.js"
 
 /**
  * What the web suite's scenarios share: the deployments global-setup.ts boots (each the real
@@ -11,11 +12,14 @@ import { expect, type Page } from "@playwright/test"
 /**
  * The deployments, by the env var that carries each one's origin: `main` over the stub engine and
  * the broken one with test:host's board files (`fixtures/boards`) and access tokens of 300 s;
- * `short` over the stub engine alone, without boards, with access tokens of 5 s, which the server
- * renews before every call.
+ * `short` over the stub engine alone, without boards, with access tokens of
+ * {@link SHORT_TOKEN_SECONDS}, which the server renews before every call.
  */
 export const DEPLOYMENTS = { main: "WEB_SIM_URL", short: "WEB_SIM_SHORT_URL" } as const
 export type Deployment = keyof typeof DEPLOYMENTS
+
+/** The lifetime of the `short` deployment's access tokens: due at once, so every call renews. */
+export const SHORT_TOKEN_SECONDS = 5
 
 /** The env var of the control of the deployments' identity providers (global-setup.ts). */
 export const CONTROL_ENV = "WEB_SIM_CONTROL_URL"
@@ -64,6 +68,20 @@ function envOf(name: string): string {
 
 /** The origin of a deployment: `MCP_URL`, `http://localhost:<port>`. */
 export const originOf = (deployment: Deployment = "main"): string => envOf(DEPLOYMENTS[deployment])
+
+/**
+ * The stub engine's control (stub-engine.ts), at the origin global-setup.ts puts into
+ * `ENGINE_CONTROL_ENV`: `hold` makes its answers to the search `term` wait, `release` sends them,
+ * `waiting` says how many wait.
+ */
+export async function engineControl(action: "hold" | "release" | "waiting", term: string) {
+  const query = new URLSearchParams({ term })
+  const method = action === "waiting" ? "GET" : "POST"
+  const url = `${envOf(ENGINE_CONTROL_ENV)}/__control/${action}?${query.toString()}`
+  const response = await fetch(url, { method })
+  expect(response.ok, `stub engine ${action} "${term}"`).toBe(true)
+  return (await response.json()) as { waiting?: number }
+}
 
 /** What the deployment's identity provider recorded so far. */
 export async function idpRecord(deployment: Deployment = "main"): Promise<IdpRecord> {

@@ -7,9 +7,12 @@ import { startFakeOidc, FAKE_OIDC_USERS, type FakeOidc } from "../testing/oidc/i
 import { createToolsetVocabulary } from "../toolsets.js"
 import { appOnly, forViews, showToolBinding } from "../widget-tool-bindings.js"
 import { SESSION_COOKIE } from "./cookies.js"
+import { createSealer } from "./seal.js"
 import {
   bootWeb,
   Browser,
+  HOUR,
+  KEY,
   ORIGIN,
   RESOURCE,
   sessionOf,
@@ -140,6 +143,29 @@ function post(browser: Browser, csrf: string, name: string) {
 
 const call = async (browser: Browser, name: string) => post(browser, await csrfOf(browser), name)
 
+/** The CSRF secret of the session {@link holdingExpired} seals. */
+const EXPIRED_CSRF = "csrf-of-the-expired-session"
+
+/**
+ * A browser at `app` that holds a session of a sign-in at the fake, sealed by hand: its access
+ * token expired an hour ago, its refresh token the sign-in's, so its next request renews it.
+ */
+async function holdingExpired(app: Awaited<ReturnType<typeof boot>>): Promise<Browser> {
+  await signIn(new Browser(app), fake)
+  const now = Date.now()
+  const tokens = {
+    accessToken: fake.issued.access[0],
+    receivedAt: now - HOUR,
+    expiresAt: now - 1,
+    refreshToken: fake.issued.refresh[0],
+  }
+  const session = { id: "expired", csrf: EXPIRED_CSRF, name: "Alice Adams", tokens }
+  const browser = new Browser(app)
+  const sealed = await createSealer([KEY]).seal(SESSION_COOKIE, session, now + HOUR)
+  browser.cookies.set(SESSION_COOKIE, sealed)
+  return browser
+}
+
 const refreshes = () =>
   fake.requests.filter(
     (r) => r.endpoint === "token" && r.form.get("grant_type") === "refresh_token",
@@ -244,20 +270,66 @@ describe("a page's session renewed through the provider", () => {
     ])
   })
 
-  it("signs the user out when the provider refuses the refresh token", async () => {
-    fake = await startFakeOidc({ audience: RESOURCE, accessTokenSeconds: 5 })
+  it("goes on when a page's parallel calls renew on two replicas and the provider rotates", async () => {
+    // The second refresh brings the refresh token the first one spent, which the provider refuses:
+    // the token the session holds has not expired, so that call sends it and ends nothing.
+    fake = await startFakeOidc({
+      audience: RESOURCE,
+      accessTokenSeconds: 5,
+      rotateRefreshTokens: true,
+    })
     const browser = new Browser(await boot(webEnv(fake)))
     await signIn(browser, fake)
+    const csrf = await csrfOf(browser)
+    const elsewhere = new Browser(await boot(webEnv(fake)))
+    for (const [name, value] of browser.cookies) elsewhere.cookies.set(name, value)
+    const answers = await Promise.all([
+      post(browser, csrf, "page_rows_data"),
+      post(elsewhere, csrf, "page_rows_data"),
+    ])
+    expect(answers.map(({ status }) => status)).toEqual([200, 200])
+    expect(refreshes()).toHaveLength(2)
+    // One sets the renewed cookie, the other sets none and clears none.
+    const setCookies = answers.map((answer) => answer.headers.getSetCookie())
+    expect(setCookies.filter((cookies) => cookies.length > 0)).toHaveLength(1)
+    expect(setCookies.flat().filter((cookie) => cookie.includes("Max-Age=0"))).toEqual([])
+  })
+
+  it("signs the user out once the token expired and the provider refuses the refresh token", async () => {
+    fake = await startFakeOidc({ audience: RESOURCE })
+    const browser = await holdingExpired(await boot(webEnv(fake)))
     fake.refuseRefresh()
-    const response = await call(browser, "page_rows_data")
+    const response = await post(browser, EXPIRED_CSRF, "page_rows_data")
     expect(response.status).toBe(401)
     expect(await response.json()).toEqual({
       code: "signed_out",
       message: "No session: sign in again.",
     })
-    expect(browser.cookies.size).toBe(0)
-    expect((await sessionOf(browser)).status).toBe(401)
+    // A call beside it may have renewed the cookies: they stay, and fail again on their own.
+    expect(response.headers.getSetCookie()).toEqual([])
+    expect((await post(browser, EXPIRED_CSRF, "page_rows_data")).status).toBe(401)
+    // A reload reads no session either, so the page shows that it ended.
+    expect(await sessionOf(browser)).toEqual({
+      status: 401,
+      body: { code: "signed_out", message: "No session: sign in again." },
+    })
+    // The provider was asked once: the replica keeps its refusal for the requests after it.
+    expect(refreshes()).toHaveLength(1)
     expect(ran).toEqual([])
+  })
+
+  it("renews an expired token once for a page's read of its session and a call beside it", async () => {
+    // With rotation a second refresh of the same refresh token is refused, and the token expired:
+    // only the replica's one renewal, which the session route and the calls share, keeps both.
+    fake = await startFakeOidc({ audience: RESOURCE, rotateRefreshTokens: true })
+    const browser = await holdingExpired(await boot(webEnv(fake)))
+    const [session, answer] = await Promise.all([
+      sessionOf(browser),
+      post(browser, EXPIRED_CSRF, "page_rows_data"),
+    ])
+    expect([session.status, answer.status]).toEqual([200, 200])
+    expect(refreshes()).toHaveLength(1)
+    expect(ran.map(({ info }) => info?.authorization)).toEqual([`Bearer ${fake.issued.access[1]}`])
   })
 })
 

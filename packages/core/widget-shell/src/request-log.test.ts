@@ -390,6 +390,34 @@ describe("the request log: MCP_LOG_LEVEL", () => {
     expect(health).toContain("[trace] response body (not read)")
   })
 
+  it("dumps a redirect's target at trace without its query or fragment, which a sign-in's state rides in", async () => {
+    const app = new Hono()
+    installRequestLog(app, "/mcp", "trace")
+    const authorization =
+      "https://idp.example/realms/pulse/protocol/openid-connect/auth?client_id=pulse-web&state=s3cret-state&code_challenge=ch4llenge"
+    app.get("/app/auth/login", (c) => c.redirect(authorization, 302))
+    app.get("/back", (c) => c.redirect("/app/boards/ops#code=c0de", 303))
+    app.get("/plain", (c) => c.redirect("/app", 303))
+    await app.fetch(new Request("http://localhost/app/auth/login"))
+    const login = await lastLine()
+    expect(login).toContain(
+      '"location": "https://idp.example/realms/pulse/protocol/openid-connect/auth?[REDACTED]"',
+    )
+    expect(login).not.toMatch(/s3cret-state|ch4llenge|client_id/)
+    await app.fetch(new Request("http://localhost/back"))
+    expect(await lastLine()).toContain('"location": "/app/boards/ops?[REDACTED]"')
+    await app.fetch(new Request("http://localhost/plain"))
+    expect(await lastLine()).toContain('"location": "/app"')
+  })
+
+  it("redacts the web app's CSRF token at trace, as it does a credential", async () => {
+    const app = appWith(() => ok({ tools: [] }), "trace")
+    await post(app, rpc("tools/list"), { "x-pulse-csrf": "csrf-s3cret" })
+    const trace = await lastLine()
+    expect(trace).toContain('"x-pulse-csrf": "[REDACTED]"')
+    expect(trace).not.toContain("csrf-s3cret")
+  })
+
   it("reads the level from MCP_LOG_LEVEL in any case, else info", () => {
     expect(requestLogLevel({})).toBe("info")
     expect(requestLogLevel({ MCP_LOG_LEVEL: " DEBUG " })).toBe("debug")

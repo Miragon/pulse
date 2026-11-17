@@ -137,17 +137,24 @@ client (the code flow with PKCE S256, the state and RFC 9207's `iss` checked bef
 asked anything), and the access token must pass the gate in front of `/mcp` before the session
 keeps it. The session lives in a sealed `__Host-pulse-session` cookie (HttpOnly, Secure, SameSite=Lax,
 at most three chunks), never on the server, so every replica built with the same keys serves it.
+A sign-out ends it on the server all the same: the replica that takes it keeps the session's id
+until its seal expires (in memory, at most 100,000), so no copy of the cookie opens the session
+there again, and the browser gets a sealed `__Host-pulse-ended` cookie naming it until then, so
+no replica opens the session cookie a call under way sets again in that browser. Another replica
+learns nothing of a copy: there it holds until its access token runs out, since the sign-out
+revoked the refresh token where the provider offers revocation, which is why a short access-token
+lifetime suits the web client.
 
-| Route                                    | What it does                                                                                                                                                                                       |
-| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /app/auth/login`                    | Starts a sign-in (`?return=` a page under `/app` to come back to) with the provider's web scopes and the gate's resource (RFC 8707)                                                                |
-| `GET /app/auth/callback`                 | Checks the callback, exchanges the code, starts a new session (a new id and CSRF secret), returns to the page; a failure goes to `/app/signed-out?reason=<reason>`                                 |
-| `POST /app/auth/logout`                  | Takes the page's CSRF token, revokes the refresh token, clears the cookies and names where to go: the provider's end of the session, else `/app/signed-out`                                        |
-| `GET /app/api/session`                   | The signed-in name, the CSRF token and the session's end; `401` with `signed_out` without one                                                                                                      |
-| `POST /app/api/call`                     | A page's call of a server tool (`{ name, arguments }`, JSON, at most 64 KiB, with the CSRF token), forwarded to `/mcp` with the session's token; `{ result }`; a page that leaves cancels it (499) |
-| `GET /app` and each page of `pages.json` | The build's page (below), `no-store`; without a session a 302 to `/app/auth/login` with the page and its query to return to                                                                        |
-| `GET /app/signed-out`                    | The build's page without a session, `no-store`                                                                                                                                                     |
-| `GET /app/assets/*`                      | The build's assets at the path a browser requests for each name, immutable for a year; a text asset over 1 KiB in brotli or gzip where `Accept-Encoding` takes it                                  |
+| Route                                    | What it does                                                                                                                                                                                                   |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /app/auth/login`                    | Starts a sign-in (`?return=` a page under `/app` to come back to) with the provider's web scopes and the gate's resource (RFC 8707)                                                                            |
+| `GET /app/auth/callback`                 | Checks the callback, exchanges the code, starts a new session (a new id and CSRF secret), returns to the page; a failure goes to `/app/signed-out?reason=<reason>`                                             |
+| `POST /app/auth/logout`                  | Takes the page's CSRF token, ends the session (this replica, the ended cookie), revokes the refresh token, clears the cookies and names where to go: the provider's end of the session, else `/app/signed-out` |
+| `GET /app/api/session`                   | The signed-in name, the CSRF token and the session's end, an expired token renewed first as a call's; `401` with `signed_out` without one, for a signed-out one and for one whose expired token nothing renews |
+| `POST /app/api/call`                     | A page's call of a server tool (`{ name, arguments }`, JSON, at most 64 KiB, with the CSRF token), forwarded to `/mcp` with the session's token; `{ result }`; a page that leaves cancels it (499)             |
+| `GET /app` and each page of `pages.json` | The build's page (below), `no-store`; without a session a 302 to `/app/auth/login` with the page and its query to return to                                                                                    |
+| `GET /app/signed-out`                    | The build's page without a session, `no-store`                                                                                                                                                                 |
+| `GET /app/assets/*`                      | The build's assets at the path a browser requests for each name, immutable for a year; a text asset over 1 KiB in brotli or gzip where `Accept-Encoding` takes it                                              |
 
 A provider, `MCP_URL` (https, or http on localhost), `MCP_WEB_CLIENT_SECRET`,
 `MCP_WEB_SESSION_KEYS` (comma-separated base64url keys of at least 32 bytes; the first seals,
@@ -184,9 +191,14 @@ the per-caller caches, passthrough, toolsets and read-only engines decide as for
 takes only a tool a view calls (the view tool, an app-only feed, or a model tool marked `forViews`:
 `openai/widgetAccessible` in the boot's record) that only reads (`readOnlyHint`); anything else
 gets 403 `WEB_NOT_FOR_PAGES` or `WEB_READ_ONLY` before it runs. A due access token is renewed first
-with the refresh token, one refresh per refresh token and replica at a time, and sealed back into
-the cookie; a refused refresh ends the session (401 `signed_out`), and no answer ever holds a
-token. A page reads its session with `readWebSession()` and hands `mountPage` the caller
+with the refresh token, one refresh per pair of tokens and replica at a time (the session route
+renews an expired one through the same), and sealed back into the cookie, unless the session was
+signed out at this replica while the call ran (401, no cookie set). Where the provider refuses the refresh token, a token that has not expired still goes out;
+once none goes through the session ends (401 `signed_out`, its cookies left to a call beside it
+that may have renewed them). A provider that rotates refresh tokens and refuses a second use
+needs sticky routing to one replica or a reuse allowance (Keycloak's "Refresh Token Max Reuse"):
+parallel calls on two replicas both spend the same refresh token. No answer ever holds a token.
+A page reads its session with `readWebSession()` and hands `mountPage` the caller
 `webToolCaller(session)` from `./widgets`, which posts each call with the CSRF token and tells
 `onSignedOut` when the session is gone.
 
