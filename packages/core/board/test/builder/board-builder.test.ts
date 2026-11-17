@@ -56,6 +56,23 @@ describe("the engines of a board", () => {
     ])
   })
 
+  test("fail with the definitions read's failure when it says the engine is misconfigured, reading nothing else", async () => {
+    const unreadable = new RuntimeError("misconfigured", "No secondary storage.", {
+      hint: "Add secondary storage.",
+    })
+    const cluster = BuilderWorld.counted(
+      "cluster",
+      BuilderWorld.world({ listDefinitions: () => Promise.reject(unreadable) }),
+    )
+    const board = BuilderWorld.board([{ widget: "counter", props: { filter: ORDER } }], ["cluster"])
+
+    const model = await BoardBuilder.build(board, [cluster.source])
+
+    expect(model.engines).toStrictEqual([{ name: "cluster", state: "failed", error: unreadable }])
+    expect(tileOf(model.rows, "counter").readings).toStrictEqual([{ engine: "cluster" }])
+    expect(cluster.calls).toStrictEqual(["describeEngine", "listDefinitions"])
+  })
+
   test("read nothing else from an engine whose probe failed, and each question once", async () => {
     const shop = BuilderWorld.counted("shop", BuilderWorld.world())
     const locked = BuilderWorld.counted(

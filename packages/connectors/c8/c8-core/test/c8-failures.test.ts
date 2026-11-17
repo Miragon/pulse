@@ -7,6 +7,7 @@ import type {
   CamundaTokenTrouble,
   CamundaTransportReason,
 } from "../src/port/camunda-failure.js"
+import { BelowTheFloorError } from "../src/reading/below-the-floor-error.js"
 import { FailedRequest, FakeCamundaRest } from "./support/fake-transport.js"
 
 const ROOT_HINT = "The profile's url must be the REST root of the cluster and end in /v2."
@@ -151,6 +152,21 @@ describe("the runtime error of a failure", () => {
       hint: undefined,
     })
     expect(asked).toEqual([[broken, "unexpectedResponse"]])
+  })
+
+  test("reads a cluster below the version Pulse reads as misconfigured, in the surface's words", () => {
+    const { asked, failures } = failuresWith({ message: "below the floor (engine c8)" })
+    const below = new BelowTheFloorError(
+      "Pulse reads Camunda 8.9 or newer. This cluster runs 8.8.1.",
+    )
+
+    expect(failures.errorOf(below)).toMatchObject({
+      failure: "misconfigured",
+      message: "below the floor (engine c8)",
+      hint: undefined,
+      cause: below,
+    })
+    expect(asked).toEqual([[below, "misconfigured"]])
   })
 
   test("names the REST root for a 404 that names no missing resource, unless the surface has a hint", () => {

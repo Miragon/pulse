@@ -81,12 +81,14 @@ export interface KpiCell {
 /**
  * Columns per cell count. 4+ cells fall back to 2 columns in narrow frames
  * (inline chat views are often under 500 px, where five cells side by side
- * leave ~40 px each); 6 steps through 3.
+ * leave ~40 px each); 6 steps through 3. Three cells keep their row from 25rem,
+ * where a caption's longest word fits its third ("verbleibenden", 93 px at 13 px
+ * and 600), and fall back to 2 columns below it, never cutting such a word.
  */
 const COL_CLASS: Record<number, string> = {
   1: "grid-cols-1",
   2: "grid-cols-2",
-  3: "grid-cols-3",
+  3: "grid-cols-2 min-[25rem]:grid-cols-3",
   4: "grid-cols-2 sm:grid-cols-4",
   5: "grid-cols-2 sm:grid-cols-5",
   6: "grid-cols-2 sm:grid-cols-3 lg:grid-cols-6",

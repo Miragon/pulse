@@ -7,11 +7,16 @@ import {
   DrillButton,
   SectionHeading,
 } from "@miragon/pulse-ui"
-import { ViewDataState, WidgetShell, useViewData } from "@miragon/pulse-widget-shell/widgets"
-import type { CockpitDashboardData } from "../../view-models.js"
+import {
+  ViewDataState,
+  WidgetShell,
+  useViewData,
+  type ViewDataResult,
+} from "@miragon/pulse-widget-shell/widgets"
+import type { CockpitDashboardData, EngineHealthData } from "../../view-models.js"
 import { buildRows } from "./lib.js"
 import { useNav } from "../navigation.js"
-import { ENGINE_COCKPIT_OVERVIEW_DATA } from "../../tool-names.js"
+import { ENGINE_COCKPIT_OVERVIEW_DATA, ENGINE_HEALTH_DATA } from "../../tool-names.js"
 import { useT } from "../../messages/use-t.js"
 import {
   ProcessDefinitionsTableView,
@@ -24,13 +29,7 @@ const PAGE_SIZE = 50
  * Client-side search and paging on purpose: `/process-definition/statistics` is uncapped, has
  * no filter/offset params, and engine-side paging would lose the issue-first sort.
  */
-function ProcessDefinitionsSection({
-  data: initialData = null,
-  engine,
-}: {
-  data?: CockpitDashboardData | null
-  engine: string
-}) {
+function ProcessDefinitionsSection({ view }: { view: ViewDataResult<CockpitDashboardData> }) {
   const t = useT()
   const go = useNav()
   const headingId = useId()
@@ -42,14 +41,7 @@ function ProcessDefinitionsSection({
     setPrevSearch(debouncedSearch)
     setLimit(PAGE_SIZE)
   }
-  // Shares the health KPI's query key, so one fetch.
-  const { data, loading, error, refetch } = useViewData<CockpitDashboardData>(
-    initialData,
-    ["engine:cockpit-overview", engine],
-    ENGINE_COCKPIT_OVERVIEW_DATA,
-    { engine },
-    true,
-  )
+  const { data, loading, error, refetch } = view
 
   if (!data) {
     return (
@@ -144,6 +136,11 @@ function ProcessDefinitionsSection({
   )
 }
 
+/**
+ * The overview's definitions under its verdict, which reads the same engine through a feed of its
+ * own (one query, shared): when both fail, the verdict's state stands for the overview, so an
+ * engine that does not answer shows one status box, whose Try again reads both again.
+ */
 export function ProcessDefinitionsTable({
   data,
   engine,
@@ -151,9 +148,24 @@ export function ProcessDefinitionsTable({
   data: CockpitDashboardData | null
   engine: string
 }) {
+  const view = useViewData<CockpitDashboardData>(
+    data,
+    ["engine:cockpit-overview", engine],
+    ENGINE_COCKPIT_OVERVIEW_DATA,
+    { engine },
+    true,
+  )
+  const verdict = useViewData<EngineHealthData>(
+    null,
+    ["engine:health", engine],
+    ENGINE_HEALTH_DATA,
+    { engine },
+    true,
+  )
+  if (!view.data && view.error && !verdict.data && verdict.error) return null
   return (
     <WidgetShell>
-      <ProcessDefinitionsSection data={data} engine={engine} />
+      <ProcessDefinitionsSection view={view} />
     </WidgetShell>
   )
 }

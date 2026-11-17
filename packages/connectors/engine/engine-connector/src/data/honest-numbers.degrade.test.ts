@@ -5,9 +5,11 @@ import { ENGINE_FAILURE } from "../tools/test-support/engine-world.js"
 import type { BoardStartData } from "../view-models.board.js"
 import { build, closeBuildEngines, DEGRADE, zerosOf } from "./honest-numbers.test-support.js"
 import {
+  bootBoardOver,
   bootRecordedBoard,
   closeRecordedBoards,
   RECORDED_C8,
+  startWithoutSecondaryStorage,
 } from "./recorded-board.test-support.js"
 
 afterEach(closeBuildEngines)
@@ -111,4 +113,32 @@ describe("buildBoardData over the server's Camunda 8 wire (degrades in place)", 
       expect(zerosOf(board).filter((path) => !zeros.has(path))).toEqual([])
     },
   )
+})
+
+describe("buildBoardData over a Camunda 8 cluster without secondary storage", () => {
+  // It says its version, yet answers no search: never a ready engine with empty tiles.
+  it("shows the engine failed with the hint the C8 adapter gives, every place empty, never 0", async () => {
+    const { engine, read } = await bootBoardOver(RECORDED_C8, await startWithoutSecondaryStorage())
+    const board = await read()
+    expect(board.engines).toEqual([
+      {
+        name: C8_BOARD_ENGINE.engine,
+        state: "failed",
+        failure: {
+          code: "misconfigured",
+          message:
+            "This cluster runs without secondary storage, so Pulse has nothing to read. Pulse " +
+            "reads the cluster's search API, which needs secondary storage such as " +
+            "Elasticsearch, OpenSearch or a relational database.",
+        },
+      },
+    ])
+    // Its definitions read failed, so no tile asked it anything.
+    expect(engine.unanswered).toContain("POST /v2/process-definitions/search")
+    for (const route of engine.unanswered) {
+      expect(route).toMatch(/^POST \/v2\/process-definitions\/(search|statistics\/)/)
+    }
+    for (const [answer, place] of C8_PLACES) expect(place(board), answer).toBeUndefined()
+    expect(zerosOf(board)).toEqual([])
+  })
 })

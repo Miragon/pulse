@@ -178,7 +178,7 @@ describe("the board's tiles in English", () => {
   it("list open incidents and open the instance of a row through its incident", () => {
     const { slots, asked } = testSlots()
     const list = card(renderBoard(slots).container, "Open incidents of order")
-    const table = within(list).getByRole("table", { name: "Open incidents" })
+    const table = within(list).getByRole("table", { name: "Incidents" })
 
     expect(
       within(table)

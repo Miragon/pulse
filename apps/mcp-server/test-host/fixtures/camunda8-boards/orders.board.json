@@ -28,7 +28,7 @@
         },
         {
           "widget": "incidentList",
-          "props": { "title": "Payment incidents", "engines": ["c8-orders"] }
+          "props": { "engines": ["c8-orders"] }
         }
       ]
     },

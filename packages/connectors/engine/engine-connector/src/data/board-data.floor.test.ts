@@ -225,12 +225,15 @@ describe("cachedBoardData and a caller that goes away", () => {
 
   it("fails a build its caller cancelled on Camunda 8's wire too, and reads again for a call that shared it", async () => {
     let holding = true
+    const none = () => json({ items: [], page: { totalItems: 0, hasMoreTotalItems: false } })
     const platform = c8Platform({
       "GET /v2/topology": (request) => {
         if (!holding) return json({ gatewayVersion: "8.10.9", brokers: [] })
         holding = false
         return hang(request)
       },
+      "POST /v2/process-definitions/search": none,
+      "POST /v2/process-definitions/statistics/process-instances": none,
     })
     const connection = createC8Connection(
       { id: "cluster", baseUrl: CLUSTER },

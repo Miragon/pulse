@@ -8,7 +8,9 @@
  * A board's numbers degrade per engine and tile instead of failing the call: an engine whose
  * profile the server refused shows failed with ENGINE_PROFILE_REFUSED and is asked nothing, a name
  * no profile carries shows not configured, an engine that fails to say what it is shows failed
- * with the failure of that read, and any other failed read leaves its number out, never 0.
+ * with the failure of that read, as does one whose definitions read fails as misconfigured (a
+ * Camunda 8 cluster without secondary storage: the board builder's rule), and any other failed
+ * read leaves its number out, never 0.
  *
  * A build is kept per caller and board for BOARD_FLOOR_MS (`createOwnerCache`), its `asOf` the
  * start of its reads, but never one that missed a read or holds an undecided reading. A build the

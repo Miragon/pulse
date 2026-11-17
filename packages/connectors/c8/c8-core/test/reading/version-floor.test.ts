@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest"
+import { BelowTheFloorError } from "../../src/reading/below-the-floor-error.js"
 import { VersionFloor } from "../../src/reading/version-floor.js"
 import { clientWith, TOPOLOGY } from "../support/fake-transport.js"
 
@@ -20,11 +21,10 @@ describe("the version floor", () => {
   test.each(["8.8.45", "7.24.0", "8.0.0"])("refuses a cluster on %s, by name", async (version) => {
     const { floor } = floorOf(version)
 
-    await expect(floor.checked()).rejects.toMatchObject({
-      name: "RuntimeError",
-      failure: "misconfigured",
-      message: `Pulse reads Camunda 8.9 or newer. This cluster runs ${version}.`,
-    })
+    await expect(floor.checked()).rejects.toThrow(
+      new BelowTheFloorError(`Pulse reads Camunda 8.9 or newer. This cluster runs ${version}.`),
+    )
+    await expect(floor.checked()).rejects.toBeInstanceOf(BelowTheFloorError)
   })
 
   test.each(["8.9.0", "8.10.8", "9.0.1"])("reads a cluster on %s", async (version) => {
@@ -33,7 +33,7 @@ describe("the version floor", () => {
 
   test("reads every digit of the major and the minor as one number", async () => {
     await expect(floorOf("08.8.1").floor.checked()).rejects.toMatchObject({
-      failure: "misconfigured",
+      name: "BelowTheFloorError",
       message: "Pulse reads Camunda 8.9 or newer. This cluster runs 08.8.1.",
     })
     expect(await floorOf("8.09.0").floor.checked()).toBe("8.09.0")

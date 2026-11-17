@@ -59,6 +59,29 @@
         "GET /topology"
       ],
       "tool": "engine_open_cockpit"
+    },
+    {
+      "arguments": {
+        "engine": "c8",
+        "processDefinitionId": "2251799813685326"
+      },
+      "failure": "misconfigured",
+      "matches": "describeEngine",
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "[misconfigured] [404 Not Found] No message available (engine c8) The profile's url must be the REST root of the cluster and end in /v2."
+            ],
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "sent": [
+        "GET /topology"
+      ],
+      "tool": "engine_bpmn_xml_data"
     }
   ],
   "profile": {

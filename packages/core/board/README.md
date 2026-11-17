@@ -131,8 +131,10 @@ and its reads (`BoardReads`, seven reads of `ProcessRuntime`: `describeEngine`, 
 engine without reads is one the reader has not configured. It returns a `BoardModel`:
 
 - per engine `ready` with its `EngineInfo` and its totals (running, with incident) from the
-  definitions, `failed` with the error as thrown by `describeEngine`, or `notConfigured`. A failed
-  engine is asked nothing else.
+  definitions, `failed` with the error as thrown by `describeEngine`, or by `listDefinitions` when
+  it is a `RuntimeError` of the failure `misconfigured` (an engine that says what it is but answers
+  no read, a Camunda 8 cluster without secondary storage say), or `notConfigured`. A failed engine
+  is asked nothing else.
 - per tile the parsed widget and its numbers, or `refused` with its problems, which reads
   nothing: a widget the parser refused, and each widget `BoardTiles` refuses on a board with
   `tenants` (`tenantsNotRead`). A counter's count per engine with a lower bound

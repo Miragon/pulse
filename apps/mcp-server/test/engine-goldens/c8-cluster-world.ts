@@ -137,6 +137,8 @@ function pageOf(items: readonly unknown[]): EngineReply {
 }
 
 const SEARCHES: Readonly<Partial<Record<string, readonly unknown[]>>> = {
+  "/v2/process-definitions/search": [],
+  "/v2/process-definitions/statistics/process-instances": [],
   "/v2/process-instances/search": [],
   "/v2/user-tasks/search": [],
   "/v2/message-subscriptions/search": [],

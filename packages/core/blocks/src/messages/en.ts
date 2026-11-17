@@ -54,6 +54,7 @@ export const en = {
   "instances.showing": "{engine}: showing {shown} of {total}",
   "instances.copy": "Instance ID",
   "instances.version": "v{version}",
+  "incidents.label": "Incidents",
   "incidents.empty": "No open incident on the engines that answered.",
   "incidents.firstMore": "{engine}: first {shown}, more open",
   "incidents.open": "{engine}: {shown} open",

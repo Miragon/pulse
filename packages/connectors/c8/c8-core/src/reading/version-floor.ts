@@ -1,5 +1,5 @@
-import { RuntimeError } from "@miragon/pulse-engine-core"
 import type { CamundaClient } from "../rest/index.js"
+import { BelowTheFloorError } from "./below-the-floor-error.js"
 
 const VERSION = /^(\d+)\.(\d+)/
 const FLOOR_MAJOR = 8
@@ -21,8 +21,7 @@ export class VersionFloor {
   private async read(): Promise<string> {
     const { gatewayVersion } = await this.client.topology()
     if (VersionFloor.below(gatewayVersion)) {
-      throw new RuntimeError(
-        "misconfigured",
+      throw new BelowTheFloorError(
         `Pulse reads Camunda ${String(FLOOR_MAJOR)}.${String(FLOOR_MINOR)} or newer. This cluster runs ${gatewayVersion}.`,
       )
     }

@@ -35,6 +35,7 @@ import {
   ViewDataState,
   WidgetShell,
   useViewData,
+  type ViewDataResult,
 } from "@miragon/pulse-widget-shell/widgets"
 
 const SCOPE_ALL = "all"
@@ -246,23 +247,15 @@ function filterProcesses(
 
 /** One widget so the search and the scope stay with the list. */
 function IncidentProcessListView({
-  data: initialData = null,
+  view,
   engine,
 }: {
-  data?: IncidentsDashboardData | null
+  view: ViewDataResult<IncidentsDashboardData>
   engine: string
 }) {
   const go = useNav()
   const t = useT()
-  // Shares the overview-kpi feed, so both panels dedupe to one fetch.
-  const feed = incidentsFeed(engine)
-  const { data, loading, error, refetch } = useViewData<IncidentsDashboardData>(
-    initialData,
-    feed.key,
-    ENGINE_INCIDENTS_DATA,
-    feed.args,
-    true,
-  )
+  const { data, loading, error, refetch } = view
 
   const [search, setSearch] = useState("")
   const [scope, setScope] = useState<IncidentScope>(SCOPE_ALL)
@@ -367,6 +360,10 @@ function IncidentProcessListView({
   )
 }
 
+/**
+ * The list under the KPIs, over the same feed (one query, shared): a failed read is the KPIs' to
+ * say, once, with their Try again, which reads it for both.
+ */
 export function IncidentProcessList({
   data,
   engine,
@@ -374,9 +371,18 @@ export function IncidentProcessList({
   data: IncidentsDashboardData | null
   engine: string
 }) {
+  const feed = incidentsFeed(engine)
+  const view = useViewData<IncidentsDashboardData>(
+    data,
+    feed.key,
+    ENGINE_INCIDENTS_DATA,
+    feed.args,
+    true,
+  )
+  if (!view.data && view.error) return null
   return (
     <WidgetShell>
-      <IncidentProcessListView data={data} engine={engine} />
+      <IncidentProcessListView view={view} engine={engine} />
     </WidgetShell>
   )
 }

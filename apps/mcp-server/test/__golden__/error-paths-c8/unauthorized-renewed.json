@@ -74,6 +74,10 @@
             "name": "c8",
             "product": "Camunda 8",
             "state": "ready",
+            "totals": {
+              "running": 0,
+              "withIncident": 0
+            },
             "version": "8.9.28"
           }
         ],
@@ -114,7 +118,7 @@
         "title": "Cluster"
       },
       "facts": [
-        "{\"view\":\"board\",\"board\":\"cluster\",\"title\":\"Cluster\",\"asOf\":\"2026-11-15T09:00:31.000Z\",\"engines\":[{\"name\":\"c8\",\"state\":\"ready\",\"product\":\"Camunda 8\",\"running\":null,\"withIncident\":null}],\"tiles\":[{\"kind\":\"instanceList\",\"title\":\"Orders\",\"process\":\"pulse-order\",\"shown\":0,\"groups\":[{\"engine\":\"c8\",\"total\":0}]}]}"
+        "{\"view\":\"board\",\"board\":\"cluster\",\"title\":\"Cluster\",\"asOf\":\"2026-11-15T09:00:31.000Z\",\"engines\":[{\"name\":\"c8\",\"state\":\"ready\",\"product\":\"Camunda 8\",\"running\":0,\"withIncident\":0}],\"tiles\":[{\"kind\":\"instanceList\",\"title\":\"Orders\",\"process\":\"pulse-order\",\"shown\":0,\"groups\":[{\"engine\":\"c8\",\"total\":0}]}]}"
       ],
       "failure": null,
       "matches": "describeEngine",

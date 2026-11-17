@@ -174,9 +174,11 @@ describe("a Camunda 8 engine alone on the full surface: what serves it, and noth
       name: "engine_bpmn_xml_data",
       arguments: { engine: "c8", processDefinitionId: "2251799813685326" },
     })
-    // The world serves no diagram: the feed says the cluster's own answer, so it asked the cluster.
+    // The world serves no diagram: the feed says the cluster's own answer, so it asked the cluster,
+    // with the contract's failure before it and the hint its failure carries after it.
     expect(textOf(result)).toBe(
-      "[404 Not Found] No endpoint GET /v2/process-definitions/2251799813685326/xml. (engine c8)",
+      "[misconfigured] [404 Not Found] No endpoint GET /v2/process-definitions/2251799813685326/xml. " +
+        "(engine c8) The profile's url must be the REST root of the cluster and end in /v2.",
     )
     expect(c8.tokenEndpoint.requests.map(({ method }) => method)).toEqual(["POST"])
     expect(c8.cluster.requests.map(({ method, target }) => `${method} ${target}`)).toContain(

@@ -22,6 +22,7 @@ import {
   WidgetShell,
   viewRefreshState,
   HostModelContext,
+  useQueryClient,
   useViewData,
 } from "@miragon/pulse-widget-shell/widgets"
 import { RefreshCw, TriangleAlert } from "lucide-react"
@@ -34,6 +35,7 @@ import { useActionAllowed } from "./lib/engine-action.js"
 import { useHandOff, useHandOffsShown, type HandOff, type ViewContext } from "./lib/hand-off.js"
 import { healthFailureOf, healthVerdictLine, VERDICT_TONE } from "./lib/health-verdict.js"
 import { useT } from "../messages/use-t.js"
+import { refreshCockpitData } from "./refresh.js"
 
 const STATUS_LABEL: Record<EngineHealthStatus, string> = {
   ok: "engineHealth.statusStable",
@@ -186,25 +188,28 @@ function ClusterRow({
   )
 }
 
+/**
+ * The verdict loading or failed. Its state stands for the overview when the definitions under it
+ * failed too, so its Try again reads the overview again.
+ */
 function HealthUnavailable({
   engine,
   loading,
   error,
-  onRetry,
 }: {
   engine: string
   loading: boolean
   error: Error | null
-  onRetry: () => void
 }) {
   const t = useT()
   const { ask } = useHandOff()
+  const client = useQueryClient()
   return (
     <div className="flex flex-col items-start gap-3">
       <ViewDataState
         loading={loading}
         error={error}
-        onRetry={onRetry}
+        onRetry={() => void refreshCockpitData(client)}
         loadingText={t("engineHealth.loading")}
         emptyText={t("engineHealth.noData")}
         className="w-full"
@@ -345,7 +350,7 @@ export function EngineHealthView({
     // Loading or failed, the route keeps its title, the page's one heading.
     return (
       <WidgetShell header={<WidgetHeader title={title} />}>
-        <HealthUnavailable engine={engine} loading={loading} error={error} onRetry={refetch} />
+        <HealthUnavailable engine={engine} loading={loading} error={error} />
       </WidgetShell>
     )
   }

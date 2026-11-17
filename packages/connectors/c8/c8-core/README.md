@@ -21,11 +21,12 @@ reads and gives one failure the same kind.
   contract's `ProcessRuntime` read-only over a surface's transport: the version floor (8.9) before
   every question, then the question's reader; `refusedVariableConditions()` names `ordering` and
   `date`, no migration planning, no bulk operation. A failure becomes a `RuntimeError`: one of
-  c8-core's own (the floor, a refused condition) passes as it is, any other gets its kind from
-  `C8Failures` and its message and hint from the surface's `wordsOf(error, kind)`. That option
-  differs from the `failureOf` of c7-core's `C7Runtime`, which builds the `RuntimeError` itself:
-  here c8-core decides the kind and builds the error, and `wordsOf` only words it, so one failure
-  has one kind on every surface.
+  c8-core's own (a refused condition) passes as it is, any other gets its kind from
+  `C8Failures` (a cluster below the floor `misconfigured`) and its message and hint from the
+  surface's `wordsOf(error, kind)`, so each surface names its engine in it as it does elsewhere.
+  That option differs from the `failureOf` of c7-core's `C7Runtime`, which builds the
+  `RuntimeError` itself: here c8-core decides the kind and builds the error, and `wordsOf` only
+  words it, so one failure has one kind on every surface.
 - **The kind of a failure (`C8Failures`).** `C8Failures.kindOf` is the one rule from a
   `CamundaFailure` to the contract's failure, total over the statuses, the transport's reasons and
   the token's troubles: 401 `unauthorized`, 403 `forbidden`, a redirect and a 404 `misconfigured`,

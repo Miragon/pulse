@@ -8,7 +8,12 @@ import {
   recordingModuleServer,
 } from "@miragon/pulse-widget-shell/testing"
 import { BoardParser } from "@miragon/pulse-board"
-import { FakeEngine as ContractFake, FakeWorld } from "@miragon/pulse-engine-core/testing"
+import { RuntimeError } from "@miragon/pulse-engine-core"
+import {
+  FakeEngine as ContractFake,
+  FakeWorld,
+  PatchedRuntime,
+} from "@miragon/pulse-engine-core/testing"
 import type { EngineBoard } from "./board-files.js"
 import { COCKPIT_ROUTES } from "./data/routes.js"
 import { type ContractRuntime, createEngineRegistry } from "./lib/engine/resolve-engine.js"
@@ -186,6 +191,25 @@ describe("createPlugin on an engine of another dialect", () => {
       ["c8", "ready"],
     ])
     expect(runtime).toHaveBeenCalled()
+  })
+
+  it("says a failed XML read with the contract's failure and the hint it carries", async () => {
+    const { runtime, text } = await bootOverBoth()
+    const refusal = (hint?: string) =>
+      new RuntimeError("misconfigured", "[404 NOT_FOUND] No such path (engine c8)", { hint })
+    const failing = (error: RuntimeError) => () =>
+      new PatchedRuntime(new ContractFake(FakeWorld.seed().state), {
+        getDiagramXml: () => Promise.reject(error),
+      })
+    const xml = { engine: "c8", processDefinitionId: "2251799813685249" }
+    runtime.mockImplementation(failing(refusal("The url must end in /v2.")))
+    expect(await text(ENGINE_BPMN_XML_DATA, xml)).toBe(
+      "[misconfigured] [404 NOT_FOUND] No such path (engine c8) The url must end in /v2.",
+    )
+    runtime.mockImplementation(failing(refusal()))
+    expect(await text(ENGINE_BPMN_XML_DATA, xml)).toBe(
+      "[misconfigured] [404 NOT_FOUND] No such path (engine c8)",
+    )
   })
 
   it("hands the cockpit each engine's dialect, and for this one the boards that name it", async () => {

@@ -42,7 +42,8 @@ async function openView(
     width = 760,
     hostEnv = "HOST_SIM_URL",
     theme = "light",
-  }: { width?: number; hostEnv?: string; theme?: "light" | "dark" } = {},
+    locale = "en-US",
+  }: { width?: number; hostEnv?: string; theme?: "light" | "dark"; locale?: string } = {},
 ): Promise<FrameLocator> {
   const base = process.env[hostEnv]
   if (!base) throw new Error(`${hostEnv} is unset. Run via \`playwright test -c test-host\``)
@@ -53,6 +54,7 @@ async function openView(
     resultDelayMs: "0",
     theme,
     width: String(width),
+    locale,
   })
   await page.goto(`${base}/?${query.toString()}`)
   return page.frameLocator("#app")
@@ -1014,6 +1016,36 @@ test.describe("a narrow card's details", () => {
       expect(seen.outside, "every element on the canvas").toEqual([])
       // The room left of the bar and above the link still holds it across most of the width.
       expect(seen.share, "the drawing's share of the canvas's width").toBeGreaterThanOrEqual(0.7)
+    })
+
+    // Three tiles keep their row from 25rem, where "verbleibenden" fits its third; below it two.
+    test(`at ${width} px in German the jobs' KPI captions break between words, never inside one`, async ({
+      page,
+    }) => {
+      const app = await openView(
+        page,
+        { engine: HEALTHY_ENGINE, view: "jobs" },
+        { width, locale: "de-DE" },
+      )
+      const strip = app
+        .getByRole("group", { name: "Job-Übersicht" })
+        .locator("[data-slot=kpi-strip]")
+      await expect(strip).toContainText("Mit verbleibenden Versuchen", { timeout: 15_000 })
+      const seen = await strip.evaluate((el) => {
+        const captions = [...el.querySelectorAll(":scope > div > * > div:first-child > span")]
+        const columns = getComputedStyle(el.firstElementChild!).gridTemplateColumns.split(" ")
+        const split = captions.flatMap((caption) => {
+          const text = caption.firstChild!
+          return [...(text.textContent ?? "").matchAll(/\S+/g)].flatMap((word) => {
+            const range = document.createRange()
+            range.setStart(text, word.index)
+            range.setEnd(text, word.index + word[0].length)
+            return range.getClientRects().length > 1 ? [word[0]] : []
+          })
+        })
+        return { captions: captions.length, columns: columns.length, split }
+      })
+      expect(seen).toEqual({ captions: 3, columns: width < 400 ? 2 : 3, split: [] })
     })
 
     test(`at ${width} px each job's row is one 28 px line: its error cut with an ellipsis, whole in its title, a cut one a disclosure`, async ({

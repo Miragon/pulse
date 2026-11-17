@@ -59,7 +59,8 @@ describe("the C8 runtime", () => {
     await expect(runtime.listDefinitions()).rejects.toMatchObject({
       name: "RuntimeError",
       failure: "misconfigured",
-      message: "Pulse reads Camunda 8.9 or newer. This cluster runs 8.8.45.",
+      message:
+        "misconfigured: BelowTheFloorError: Pulse reads Camunda 8.9 or newer. This cluster runs 8.8.45.",
     })
     expect(routesOf(camunda)).toEqual(["GET /topology"])
   })

@@ -128,6 +128,23 @@ describe("the lists and the diagram", () => {
     ).toEqual(["Process"])
   })
 
+  // An untitled list over every process is named "Open incidents": its table never shares it.
+  it("names an incident list's table apart from its tile, as an instance list's", () => {
+    const names = (tile: TileData) => {
+      const region = tileOf(tile)
+      const name = (element: HTMLElement) =>
+        element.getAttribute("aria-label") ??
+        document.getElementById(element.getAttribute("aria-labelledby") ?? "")?.textContent
+      const names = [name(region), name(within(region).getByRole("table"))]
+      cleanup()
+      return names
+    }
+    const untitled = { widget: "incidentList", engines: ["local", "test"] } as const
+    expect(names({ ...INCIDENTS, widget: untitled })).toEqual(["Open incidents", "Incidents"])
+    expect(names(INCIDENTS)).toEqual(["Open incidents of order", "Incidents"])
+    expect(names(INSTANCES)).toEqual(["Orders", "Instances"])
+  })
+
   it("leaves out the engine column of an incident list over one engine", () => {
     const one = tileOf({ ...INCIDENTS, groups: [INCIDENTS.groups[0]!] })
     expect(

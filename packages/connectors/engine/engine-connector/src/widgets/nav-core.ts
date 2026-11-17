@@ -1,4 +1,4 @@
-import { truncate } from "@miragon/pulse-ui"
+import { shortId } from "@miragon/pulse-ui"
 import { translator } from "../messages/use-t.js"
 import type { CockpitView } from "../view-models.js"
 import type { NavIntent } from "./navigation.js"
@@ -103,16 +103,20 @@ export function popTo(stack: CockpitView[], to?: number): CockpitView[] {
 
 type Tr = (key: string, params?: Record<string, unknown>) => string
 
-/** An instance by the drill's label (its business key, say); else by its short id. */
+/**
+ * An instance by the drill's label (its business key, say); else by its short id, the kit's
+ * `shortId`: a UUID (Camunda 7's) by its head, a number (a Camunda 8 key, whose head every key on
+ * its partition shares) by its tail.
+ */
 function instanceCrumb(view: Extract<CockpitView, { section: "instance-detail" }>, tr: Tr) {
-  return view.label ?? tr("cockpit.crumb.instance", { id: truncate(view.processInstanceId, 8) })
+  return view.label ?? tr("cockpit.crumb.instance", { id: shortId(view.processInstanceId) })
 }
 
 /** An incident by the element it occurred at, the drill's label; else by its short id. */
 function incidentCrumb(view: Extract<CockpitView, { section: "incident-detail" }>, tr: Tr) {
   return view.label
     ? tr("cockpit.crumb.incidentAt", { activity: view.label })
-    : tr("cockpit.crumb.incident", { id: truncate(view.incidentId, 8) })
+    : tr("cockpit.crumb.incident", { id: shortId(view.incidentId) })
 }
 
 export function crumbLabel(view: CockpitView, locale: string): string {
@@ -136,7 +140,7 @@ export function crumbLabel(view: CockpitView, locale: string): string {
     case "jobs":
       return tr("cockpit.crumb.jobs")
     case "history":
-      return tr("cockpit.crumb.history", { id: truncate(view.processInstanceId, 8) })
+      return tr("cockpit.crumb.history", { id: shortId(view.processInstanceId) })
     // The board's title, once its data named it; else its id.
     case "board":
       return view.label ?? view.board

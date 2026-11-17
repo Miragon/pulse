@@ -39,6 +39,7 @@ export const de: Readonly<Record<WordKey, Message>> = {
   "instances.showing": "{engine}: {shown} von {total} angezeigt",
   "instances.copy": "Instanz-ID",
   "instances.version": "v{version}",
+  "incidents.label": "Incidents",
   "incidents.empty": "Kein offener Incident auf den Engines, die geantwortet haben.",
   "incidents.firstMore": "{engine}: die ersten {shown}, weitere offen",
   "incidents.open": "{engine}: {shown} offen",

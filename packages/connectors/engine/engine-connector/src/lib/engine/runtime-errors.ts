@@ -3,7 +3,8 @@
  * a dialect's reads run through (`runtimeOf`, engine-runtime.ts): the connector's
  * `EngineRequestError` (engine-error.ts) onto engine-core's `RuntimeError`, the message as the
  * model reads it. An HTTP status reads as the C7 adapter's `ErrorTranslation` reads its wire's.
- * And the caller's cancellation behind a failed read, on the SDK wire and on Camunda 8's.
+ * And the caller's cancellation behind a failed read, on the SDK wire and on Camunda 8's, and a
+ * failed read of the contract as a feed's tool error.
  */
 
 import { RuntimeError, type RuntimeFailure } from "@miragon/pulse-engine-core"
@@ -74,4 +75,27 @@ export function cancellationOf(error: unknown): Error | undefined {
   if (cause instanceof EngineRequestError) return cause.kind === "cancelled" ? cause : undefined
   if (!(cause instanceof HttpFailure) || cause.reason !== "cancelled") return undefined
   return RuntimeError.is(error) ? error : cause
+}
+
+/** A failed read of the engine contract as a tool error: its failure as its code. */
+class ContractReadError extends Error {
+  readonly code: RuntimeFailure
+
+  constructor(error: RuntimeError) {
+    const { failure, message, hint } = error
+    super(hint === undefined ? message : `${message} ${hint}`, { cause: error })
+    this.name = "ContractReadError"
+    this.code = failure
+  }
+}
+
+/**
+ * A failed read through the engine contract as the tool error of a feed (widget-shell's
+ * `withToolErrors` prints a `code` before the message): a `RuntimeError`'s failure as the code,
+ * its hint after its message (what to do about a Camunda 8 cluster's refusal, the REST root that
+ * ends in /v2 say), as a board's failed engine states both (board-data.ts); any other error as it
+ * is.
+ */
+export function contractToolError(error: unknown): unknown {
+  return RuntimeError.is(error) ? new ContractReadError(error) : error
 }

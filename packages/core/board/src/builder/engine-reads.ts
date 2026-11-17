@@ -12,7 +12,8 @@ import type {
 import { BoardVocabulary } from "../format/board-vocabulary.js"
 import type { BoardReads } from "./board-reads.js"
 
-export type Read<Value> = { readonly value: Value } | { readonly failed: true }
+export type Read<Value> =
+  { readonly value: Value; readonly error?: undefined } | { readonly error: unknown }
 
 export class EngineReads {
   private readonly started = new Map<string, Promise<Read<unknown>>>()
@@ -63,7 +64,7 @@ export class EngineReads {
     }
     const reading = read().then(
       (value): Read<Value> => ({ value }),
-      (): Read<Value> => ({ failed: true }),
+      (error: unknown): Read<Value> => ({ error }),
     )
     this.started.set(key, reading)
     return reading

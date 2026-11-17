@@ -139,7 +139,8 @@ adapter once per process.
   without the cluster's internal detail, and to add a login with Set credentials, as on every
   surface; a 401 to Basic keeps the cluster's words alone.
 - **Version floor (c8-core's `src/reading/version-floor.ts`).** The cluster's `gatewayVersion` is read once
-  per client; below 8.9 a read fails as `misconfigured` with the version it found. 8.8 has no
+  per client; below 8.9 a read fails as `misconfigured` with the version it found, in the
+  surface's words (`wordsOf`, which the server ends with the engine's name). 8.8 has no
   `businessId` and no statistics endpoints. A version that does not parse is left to the cluster,
   and a failed read is tried again.
 - **The reads (c8-core's `src/reading`, `src/mapping`).** One reader per question of the contract, each a

@@ -1,7 +1,7 @@
-import type { EngineInfo } from "@miragon/pulse-engine-core"
+import { type EngineInfo, RuntimeError } from "@miragon/pulse-engine-core"
 import type { EngineModel } from "./board-model.js"
 import type { EngineSource } from "./board-reads.js"
-import { EngineReads } from "./engine-reads.js"
+import { EngineReads, type Read } from "./engine-reads.js"
 
 export interface ProbedEngine {
   readonly model: EngineModel
@@ -27,7 +27,12 @@ export class EngineProbe {
     info: EngineInfo,
     reads: EngineReads,
   ): Promise<ProbedEngine> {
-    const summaries = EngineReads.valueOf(await reads.summaries())
+    const read = await reads.summaries()
+    const misconfigured = EngineProbe.misconfigured(read)
+    if (misconfigured !== undefined) {
+      return { model: { name, state: "failed", error: misconfigured } }
+    }
+    const summaries = EngineReads.valueOf(read)
     const totals =
       summaries === undefined
         ? {}
@@ -38,5 +43,9 @@ export class EngineProbe {
             },
           }
     return { model: { name, state: "ready", info, ...totals }, reads }
+  }
+
+  private static misconfigured({ error }: Read<unknown>): RuntimeError | undefined {
+    return RuntimeError.is(error) && error.failure === "misconfigured" ? error : undefined
   }
 }

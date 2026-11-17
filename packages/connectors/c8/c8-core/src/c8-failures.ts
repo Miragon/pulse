@@ -7,6 +7,7 @@ import type {
   CamundaTransportReason,
 } from "./port/camunda-failure.js"
 import type { CamundaTransport } from "./port/camunda-transport.js"
+import { BelowTheFloorError } from "./reading/below-the-floor-error.js"
 import { MissingResources } from "./rest/missing-resources.js"
 
 export interface C8Words {
@@ -83,12 +84,19 @@ export class C8Failures {
       return error
     }
     const failure = this.transport.failure(error)
-    const kind = failure === undefined ? "unexpectedResponse" : C8Failures.kindOf(failure)
+    const kind = C8Failures.kindOfError(error, failure)
     const { message, hint } = C8Failures.stated(failure, this.wordsOf(error, kind))
     return new RuntimeError(kind, message, {
       cause: error,
       ...(hint === undefined ? {} : { hint }),
     })
+  }
+
+  private static kindOfError(error: unknown, failure: CamundaFailure | undefined): RuntimeFailure {
+    if (error instanceof BelowTheFloorError) {
+      return "misconfigured"
+    }
+    return failure === undefined ? "unexpectedResponse" : C8Failures.kindOf(failure)
   }
 
   private static stated(failure: CamundaFailure | undefined, words: C8Words): C8Words {

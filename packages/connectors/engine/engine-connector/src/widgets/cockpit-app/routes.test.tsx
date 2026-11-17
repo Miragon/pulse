@@ -201,6 +201,61 @@ describe("CockpitRoute", () => {
   })
 })
 
+describe("a route of an engine that does not answer", () => {
+  it("the overview says so once, and its Try again reads both of its feeds again", async () => {
+    const actions: HostAction[] = []
+    const unreachable = () => Promise.reject(new Error("engine prod-a unreachable (ECONNREFUSED)"))
+    render(
+      <TestViewHost
+        tools={{ [ENGINE_HEALTH_DATA]: unreachable, [ENGINE_COCKPIT_OVERVIEW_DATA]: unreachable }}
+        onHostAction={(action) => actions.push(action)}
+        client={createTestQueryClient()}
+      >
+        <CockpitRoute view={{ section: "overview" }} engine="prod-a" />
+      </TestViewHost>,
+    )
+    const reads = (feed: string) =>
+      actions.filter((a) => a.type === "callTool" && a.name === feed).length
+    await waitFor(() => expect(screen.getAllByRole("alert")).toHaveLength(1))
+    await act(() => Promise.resolve())
+    expect([reads(ENGINE_HEALTH_DATA), reads(ENGINE_COCKPIT_OVERVIEW_DATA)]).toEqual([1, 1])
+    expect(screen.getAllByRole("alert")).toHaveLength(1)
+    expect(screen.getAllByRole("button", { name: "Try again" })).toHaveLength(1)
+
+    act(() => screen.getByRole("button", { name: "Try again" }).click())
+    await waitFor(() =>
+      expect([reads(ENGINE_HEALTH_DATA), reads(ENGINE_COCKPIT_OVERVIEW_DATA)]).toEqual([2, 2]),
+    )
+    await waitFor(() => expect(screen.getAllByRole("alert")).toHaveLength(1))
+  })
+
+  it("the incidents say so once, under their KPIs' title, the list under them reading the same", async () => {
+    const actions: HostAction[] = []
+    const unreachable = () => Promise.reject(new Error("engine prod-a unreachable (ECONNREFUSED)"))
+    render(
+      <TestViewHost
+        tools={{ [ENGINE_INCIDENTS_DATA]: unreachable }}
+        onHostAction={(action) => actions.push(action)}
+        client={createTestQueryClient()}
+      >
+        <CockpitRoute view={{ section: "incidents" }} engine="prod-a" />
+      </TestViewHost>,
+    )
+    await waitFor(() => expect(screen.getAllByRole("alert")).toHaveLength(1))
+    await act(() => Promise.resolve())
+    expect(screen.getAllByRole("alert")).toHaveLength(1)
+    expect(screen.getAllByRole("heading", { level: 1 }).map((h) => h.textContent)).toEqual([
+      "prod-a · Incidents",
+    ])
+    act(() => screen.getByRole("button", { name: "Try again" }).click())
+    await waitFor(() =>
+      expect(
+        actions.filter((a) => a.type === "callTool" && a.name === ENGINE_INCIDENTS_DATA),
+      ).toHaveLength(2),
+    )
+  })
+})
+
 /** Each route whose read fails, and the title its bar keeps: the page's one heading. */
 const TITLED: Array<[CockpitView, string]> = [
   [{ section: "overview" }, "prod-a · Overview"],
@@ -215,7 +270,8 @@ const TITLED: Array<[CockpitView, string]> = [
   [{ section: "process-instances", processDefinitionKey: "invoice" }, "invoice"],
   [{ section: "process-instances" }, "Running instances"],
   [{ section: "instance-detail", processInstanceId: "pi-12345678", label: "INV-42" }, "INV-42"],
-  [{ section: "instance-detail", processInstanceId: "pi-12345678" }, "Instance pi-12345…"],
+  [{ section: "instance-detail", processInstanceId: "pi-12345678" }, "Instance pi-12345678"],
+  [{ section: "instance-detail", processInstanceId: "2251799813685249" }, "Instance …13685249"],
   [{ section: "incident-detail", incidentId: "inc-1" }, "Incident inc-1"],
   [{ section: "history", processInstanceId: "pi-1" }, "History pi-1"],
   [{ section: "board", board: "invoices" }, "invoices"],

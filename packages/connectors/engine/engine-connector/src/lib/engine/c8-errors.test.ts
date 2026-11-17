@@ -102,6 +102,14 @@ describe("a cluster's error answer, as the model reads it", () => {
     })
   })
 
+  it("names the engine of a cluster below the version Pulse reads, like every other failure", async () => {
+    const below = () => json({ gatewayVersion: "8.8.12" })
+    expect(await describeEngine({ "GET /v2/topology": below })).toEqual({
+      failure: "misconfigured",
+      message: "Pulse reads Camunda 8.9 or newer. This cluster runs 8.8.12. (engine c8)",
+    })
+  })
+
   it("says what of an answer the server cannot read", async () => {
     expect(await describeEngine({ "GET /v2/topology": () => json([]) })).toEqual({
       failure: "unexpectedResponse",

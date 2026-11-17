@@ -108,7 +108,9 @@ strip). It reads over a `BoardRuntime` per engine and load that reads the defini
 panel's `SharedDefinitions` and the diagram once for the builder and the drawing.
 `BoardPanel` publishes only `ready` states, so `PanelState` and `ViewSession` stay
 single-engine. Per engine the builder probes `describeEngine` first and reads nothing else from an
-engine that fails it; it reads each distinct question once per engine and load. Honest
+engine that fails it; an engine whose `listDefinitions` fails as `misconfigured` (a Camunda 8
+cluster without secondary storage) fails with that error and is asked nothing else either, never
+ready with empty tiles. It reads each distinct question once per engine and load. Honest
 numbers: totals come from counts and the shared definitions, never from page lengths; a failed
 read shows "not read", never 0; a total says how many engines it counts ("from 2 of 3 engines"); a
 threshold warns per engine, and a count that is only a lower bound at or below it reads

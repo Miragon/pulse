@@ -87,7 +87,7 @@ export function IncidentListTile({ tile, slots }: IncidentListTileProps) {
   return (
     <BoardCard title={tileTitle(t, tile)} kind="incidentList">
       <Table<IncidentRow>
-        label={t("title.openIncidents")}
+        label={t("incidents.label")}
         columns={columnsOf(t, tile.groups.length)}
         rows={rows}
         rowKey={(row) => `${row.engine}|${row.incident.id}`}

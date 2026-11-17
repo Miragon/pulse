@@ -31,10 +31,10 @@ const kpis = (count: number) =>
   Array.from({ length: count }, (_, idx) => ({ label: `KPI ${idx + 1}`, value: idx }))
 
 describe("kpiColumns: responsive columns, clamped to 1–6", () => {
-  it("falls back to 2 columns in narrow frames from 4 cells on", () => {
+  it("falls back to 2 columns in narrow frames: 4 cells and more, 3 under 25rem", () => {
     expect(kpiColumns(1)).toBe("grid-cols-1")
     expect(kpiColumns(2)).toBe("grid-cols-2")
-    expect(kpiColumns(3)).toBe("grid-cols-3")
+    expect(kpiColumns(3)).toBe("grid-cols-2 min-[25rem]:grid-cols-3")
     expect(kpiColumns(4)).toBe("grid-cols-2 sm:grid-cols-4")
     expect(kpiColumns(5)).toBe("grid-cols-2 sm:grid-cols-5")
     expect(kpiColumns(6)).toBe("grid-cols-2 sm:grid-cols-3 lg:grid-cols-6")

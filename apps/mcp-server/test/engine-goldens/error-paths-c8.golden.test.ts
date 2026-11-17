@@ -112,11 +112,17 @@ const BOARD_PROBE = board()
 const DETAIL: AdapterCall = `getInstanceDetail ${INSTANCE_KEY}`
 
 /** The diagram's XML feed, the one read of a key the server takes: no key, no request. */
-const xmlOf = (id: string): Probe => ({
+const xmlOf = (id: string, matches: AdapterCall = `getInstanceDetail ${id}`): Probe => ({
   tool: "engine_bpmn_xml_data",
   arguments: { engine: ENGINE, processDefinitionId: id },
-  matches: `getInstanceDetail ${id}`,
+  matches,
 })
+
+/**
+ * The XML of the world's process version, whose first read is the cluster's version as
+ * describeEngine's: its tool error states the failure and the hint, as the board's engine does.
+ */
+const XML_PROBE = xmlOf("2251799813685326", "describeEngine")
 
 const restRoot =
   (answer: () => EngineAnswer, suffix = "/v2") =>
@@ -176,7 +182,11 @@ const SHARED: readonly PinnedCase[] = [
     engine: restRoot(() => issuing(["tok-demo-123"], refusingEveryToken)),
     signIn: clientCredentials,
   },
-  { name: "wrong-rest-root", engine: restRoot(always(outsideV2), "") },
+  {
+    name: "wrong-rest-root",
+    engine: restRoot(always(outsideV2), ""),
+    probes: [BOARD_PROBE, XML_PROBE],
+  },
   {
     name: "missing-resource",
     engine: restRoot(always(missingInstance)),
@@ -279,7 +289,13 @@ const CAMUNDA_8: readonly PinnedCase[] = [
   },
   { name: "version-below-the-floor", engine: restRoot(always(belowTheFloor)) },
   { name: "url-of-operate", engine: restRoot(always(operateInsteadOfV2), "/operate") },
-  { name: "no-secondary-storage", engine: restRoot(always(withoutSecondaryStorage)) },
+  {
+    name: "no-secondary-storage",
+    engine: restRoot(always(withoutSecondaryStorage)),
+    // The version read passes, the board's engine fails at its definitions, as an instance read
+    // of the adapter's does.
+    probes: [board(undefined, DETAIL)],
+  },
 ]
 
 const PINNED: readonly PinnedCase[] = [...SHARED, ...CAMUNDA_8]

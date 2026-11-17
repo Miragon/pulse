@@ -10,10 +10,12 @@
         "asOf": "2026-11-15T09:00:00.000Z",
         "engines": [
           {
+            "failure": {
+              "code": "misconfigured",
+              "message": "This cluster runs without secondary storage, so Pulse has nothing to read. Pulse reads the cluster's search API, which needs secondary storage such as Elasticsearch, OpenSearch or a relational database."
+            },
             "name": "c8",
-            "product": "Camunda 8",
-            "state": "ready",
-            "version": "8.9.28"
+            "state": "failed"
           }
         ],
         "notes": [],
@@ -49,16 +51,14 @@
         "title": "Cluster"
       },
       "facts": [
-        "{\"view\":\"board\",\"board\":\"cluster\",\"title\":\"Cluster\",\"asOf\":\"2026-11-15T09:00:00.000Z\",\"engines\":[{\"name\":\"c8\",\"state\":\"ready\",\"product\":\"Camunda 8\",\"running\":null,\"withIncident\":null}],\"tiles\":[{\"kind\":\"instanceList\",\"title\":\"Orders\",\"process\":\"pulse-order\",\"shown\":0,\"groups\":[{\"engine\":\"c8\",\"total\":null}]}]}"
+        "{\"view\":\"board\",\"board\":\"cluster\",\"title\":\"Cluster\",\"asOf\":\"2026-11-15T09:00:00.000Z\",\"engines\":[{\"name\":\"c8\",\"state\":\"failed\",\"failure\":\"misconfigured\"}],\"tiles\":[{\"kind\":\"instanceList\",\"title\":\"Orders\",\"process\":\"pulse-order\",\"shown\":0,\"groups\":[{\"engine\":\"c8\",\"total\":null}]}]}"
       ],
-      "failure": null,
-      "matches": "describeEngine",
+      "failure": "misconfigured",
+      "matches": "getInstanceDetail 9007199254740993",
       "sent": [
         "GET /v2/topology",
         "POST /v2/process-definitions/search",
-        "POST /v2/process-definitions/statistics/process-instances",
-        "POST /v2/process-instances/search",
-        "POST /v2/process-instances/search"
+        "POST /v2/process-definitions/statistics/process-instances"
       ],
       "tool": "engine_open_cockpit"
     }

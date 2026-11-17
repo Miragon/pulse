@@ -652,8 +652,10 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      with only the sections its dialect is served by (`ROUTE_DIALECTS`: none) and a trail that
      names the engine; its landing row reads nothing and has no verdict, a board offers no way
      into it (its tiles' drills and its chip open nothing: `BoardSlots.opens` of
-     `@miragon/pulse-blocks`), and the cross-engine view leaves it out and names it. A
-     page's ended session (`isSessionEnded`) is said once, by the page's frame: a view's state
+     `@miragon/pulse-blocks`), and the cross-engine view leaves it out and names it. A route
+     whose panels fail alike says it once, its first panel's state with a Try again that reads
+     them all (the overview's verdict over its definitions, the incidents' KPIs over their list).
+     A page's ended session (`isSessionEnded`) is said once, by the page's frame: a view's state
      shows a quiet line that its content is missing, and no notice, footer alert or engine row
      speaks of it. A page's refused start (an unknown board, arguments a tool does not take, data
      the server does not offer, a view of an engine shown on boards only) links to the page's
@@ -841,7 +843,9 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      (`data/honest-numbers.test.ts`). A board's numbers (the board feed `engine_board_data`,
      `data/board-data.ts` over the builder of `@miragon/pulse-board`) degrade per engine and tile
      instead of failing the call: a failed engine or a read left out shows in its place, never 0
-     (the degrade table, `data/honest-numbers.degrade.test.ts`, breaks each read in turn).
+     (the degrade table, `data/honest-numbers.degrade.test.ts`, breaks each read in turn); an
+     engine whose definitions read fails as `misconfigured` (a Camunda 8 cluster without secondary
+     storage) shows failed with that failure and its hint, never ready with empty tiles.
    - No view payload carries BPMN XML (a view tool's `structuredContent` reaches the model on
      some hosts): a view names the version it draws (`diagramDefinitionId`) and `BpmnDiagram`
      reads the XML from the app-only `engine_bpmn_xml_data`. The ONE XML cache is

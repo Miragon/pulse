@@ -312,11 +312,7 @@ test.describe("Camunda 8 on a board", () => {
   }) => {
     const app = await openCockpit(page, { args: BOARD_ARGS })
     await drawn(app)
-    for (const name of [
-      "Orders in flight",
-      "Running instances of pulse-order",
-      "Payment incidents",
-    ]) {
+    for (const name of ["Orders in flight", "Running instances of pulse-order", "Open incidents"]) {
       await expect(tile(app, name).getByRole("button", { name: /^Open\b|c8-orders/ })).toHaveCount(
         0,
       )
