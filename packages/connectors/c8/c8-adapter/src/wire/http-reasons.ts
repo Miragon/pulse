@@ -1,7 +1,7 @@
 import type { FailureReason, HttpFailure } from "@miragon/pulse-http"
 import { AnswerReasons } from "./answer-reasons.js"
 import { SecretMask } from "./secret-mask.js"
-import type { UnansweredReason, WireReason } from "./wire-reason.js"
+import type { UnreadReason, WireReason } from "./wire-reason.js"
 
 type Worded = (failure: HttpFailure, mask: SecretMask) => WireReason
 
@@ -12,7 +12,6 @@ const TLS_HINT =
 const DNS_HINT = "Check the host name in the cluster URL."
 const CONNECTION_HINT =
   "Check the network path to the cluster, such as a proxy, a VPN or a firewall."
-const PATH_VALUE_CODES: ReadonlySet<string> = new Set(["dot-segment", "empty-segment"])
 
 export class HttpReasons {
   private static readonly WORDING: Readonly<Record<FailureReason, Worded>> = {
@@ -20,35 +19,39 @@ export class HttpReasons {
     dns: (failure) => HttpReasons.unreached(failure, ": the host name does not resolve", DNS_HINT),
     tls: (failure) => HttpReasons.unreached(failure, ": the TLS handshake failed", TLS_HINT),
     deadline: (failure) =>
-      HttpReasons.unanswered(
+      HttpReasons.unread(
         `${failure.target} did not answer within ${String(failure.limit)} ms`,
         failure,
       ),
     cancelled: (failure) =>
-      HttpReasons.unanswered(`The call to ${failure.target} was cancelled`, failure),
+      HttpReasons.unread(`The call to ${failure.target} was cancelled`, failure),
     connection: (failure) =>
-      HttpReasons.unanswered(
+      HttpReasons.unread(
         `The connection to ${failure.target} failed${HttpReasons.codeNote(failure)}`,
         failure,
         CONNECTION_HINT,
       ),
     "too-large": (failure) =>
-      HttpReasons.unexpected(
+      HttpReasons.unread(
         `the cluster answered with more than ${String(failure.limit)} bytes`,
         failure,
       ),
     redirect: (failure) => HttpReasons.redirected(failure),
     unauthorized: (failure, mask) => HttpReasons.answered(failure, mask),
     status: (failure, mask) => HttpReasons.answered(failure, mask),
-    "invalid-answer": (failure) => HttpReasons.unexpected("the cluster answered no JSON", failure),
-    "invalid-request": (failure) => HttpReasons.unsendable(failure),
+    "invalid-answer": (failure) => HttpReasons.unread("the cluster answered no JSON", failure),
+    "invalid-request": (failure) =>
+      HttpReasons.unread(
+        `${failure.method} ${failure.target} cannot be sent${HttpReasons.codeNote(failure)}`,
+        failure,
+      ),
     "refused-write": (failure) =>
-      HttpReasons.unusable(
+      HttpReasons.unread(
         `Read-only. This connection only reads, so Pulse did not send ${failure.method} ${failure.target}.`,
         failure,
       ),
     credential: (failure) =>
-      HttpReasons.unusable(`The credentials for ${failure.target} cannot be sent`, failure),
+      HttpReasons.unread(`The credentials for ${failure.target} cannot be sent`, failure),
   }
 
   static of(failure: HttpFailure, mask = SecretMask.NONE): WireReason {
@@ -57,23 +60,11 @@ export class HttpReasons {
 
   private static unreached(failure: HttpFailure, reason: string, hint?: string): WireReason {
     const message = `Cannot reach ${failure.target}${reason}${HttpReasons.codeNote(failure)}`
-    return HttpReasons.unanswered(message, failure, hint)
+    return HttpReasons.unread(message, failure, hint)
   }
 
-  private static unanswered(
-    message: string,
-    failure: HttpFailure,
-    hint?: string,
-  ): UnansweredReason {
-    return { kind: "unanswered", message, hint, cause: failure }
-  }
-
-  private static unexpected(message: string, failure: HttpFailure): WireReason {
-    return { kind: "unexpected", message, cause: failure }
-  }
-
-  private static unusable(message: string, failure: HttpFailure): WireReason {
-    return { kind: "unusable", message, cause: failure }
+  private static unread(message: string, failure: HttpFailure, hint?: string): UnreadReason {
+    return { kind: "unread", message, hint, cause: failure }
   }
 
   private static redirected(failure: HttpFailure): WireReason {
@@ -106,14 +97,6 @@ export class HttpReasons {
       hint: undefined,
       cause: failure,
     }
-  }
-
-  private static unsendable(failure: HttpFailure): WireReason {
-    const message = `${failure.method} ${failure.target} cannot be sent${HttpReasons.codeNote(failure)}`
-    if (failure.code !== undefined && PATH_VALUE_CODES.has(failure.code)) {
-      return { kind: "refused", message, cause: failure }
-    }
-    return HttpReasons.unusable(message, failure)
   }
 
   private static codeNote(failure: HttpFailure): string {

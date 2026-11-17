@@ -7,18 +7,17 @@ import {
   type ProcessRuntime,
 } from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
-import { C8Adapter } from "../src/index.js"
+import { C8Runtime } from "../src/c8-runtime.js"
+import type { C8WordsOf } from "../src/c8-failures.js"
 import {
-  type FakeCamundaRest,
-  fakeCamundaRest,
-  NONE,
+  failed,
+  FakeCamundaRest,
   page,
   problem,
-  REST_URL,
   type RestRoute,
   TOPOLOGY,
-} from "./support/fake-camunda-rest.js"
-import { definition, incident, instance, variable } from "./support/runtime-rows.js"
+} from "./support/fake-transport.js"
+import { definition, incident, instance, variable } from "./support/rows.js"
 
 const MISSING = problem(404, "NOT_FOUND", "Nothing has this key.")
 const STACK_TRACE = [
@@ -26,12 +25,11 @@ const STACK_TRACE = [
   "Caused by: java.net.SocketTimeoutException: Read timed out",
 ].join("\n")
 
-function runtimeWith(routes: readonly RestRoute[]) {
-  const camunda = fakeCamundaRest(routes)
-  const runtime: ProcessRuntime = new C8Adapter(camunda.send).runtime({
-    endpoint: REST_URL,
-    credentials: NONE,
-  })
+const IN_ITS_OWN_WORDS: C8WordsOf = (error, kind) => ({ message: `${kind}: ${String(error)}` })
+
+function runtimeWith(routes: readonly RestRoute[], wordsOf = IN_ITS_OWN_WORDS) {
+  const camunda = new FakeCamundaRest(routes)
+  const runtime: ProcessRuntime = C8Runtime.over(camunda, { wordsOf })
   return { camunda, runtime }
 }
 
@@ -79,44 +77,43 @@ describe("the C8 runtime", () => {
   })
 
   test.each([
-    [401, "unauthorized"],
-    [403, "forbidden"],
-    [302, "misconfigured"],
-    [400, "engineFailure"],
-    [503, "engineFailure"],
-  ])("words HTTP %i of a question as %s", async (status, failure) => {
+    { status: 401, redirect: false, failure: "unauthorized" },
+    { status: 403, redirect: false, failure: "forbidden" },
+    { status: 302, redirect: true, failure: "misconfigured" },
+    { status: 400, redirect: false, failure: "engineFailure" },
+    { status: 503, redirect: false, failure: "engineFailure" },
+  ])("words HTTP $status of a question as $failure", async ({ status, redirect, failure }) => {
     const { runtime } = runtimeWith([
       TOPOLOGY,
       {
         route: "POST /process-instances/search",
-        answer: new Response("", { status, headers: { Location: "http://elsewhere.test" } }),
+        answer: failed({ kind: "answered", status, title: undefined, detail: undefined, redirect }),
       },
     ])
 
     await expect(runtime.countInstances({})).rejects.toMatchObject({
       name: "RuntimeError",
       failure,
+      message: `${failure}: FailedRequest: the transport failed: answered`,
     })
   })
 
-  test("words a cluster that does not answer as unreachable", async () => {
-    const runtime = new C8Adapter(() => Promise.reject(new TypeError("fetch failed"))).runtime({
-      endpoint: REST_URL,
-      credentials: NONE,
-    })
+  test("words a cluster that does not answer as unreachable, in the surface's words", async () => {
+    const { runtime } = runtimeWith([
+      {
+        route: "GET /topology",
+        answer: failed({ kind: "transport", reason: "unreachable", code: "ECONNREFUSED" }),
+      },
+    ])
 
-    await expect(runtime.describeEngine()).rejects.toMatchObject({ failure: "unreachable" })
+    await expect(runtime.describeEngine()).rejects.toMatchObject({
+      failure: "unreachable",
+      message: "unreachable: FailedRequest: the transport failed: transport",
+    })
   })
 })
 
 describe("what the C8 runtime refuses", () => {
-  test("offers no writes and no command line for a cluster", () => {
-    const adapter = new C8Adapter()
-
-    expect(adapter.commands()).toBeUndefined()
-    expect(adapter.cli()).toBeUndefined()
-  })
-
   test("declares ordering and date conditions refused and fails them before searching", async () => {
     const { camunda, runtime } = runtimeWith([TOPOLOGY])
     const after = IsoTimestamp("2026-11-05T10:00:00.000Z")
@@ -197,7 +194,7 @@ describe("the questions of the C8 runtime", () => {
     const xml = `<bpmn:definitions><bpmn:serviceTask id="Charge" /></bpmn:definitions>`
     const { camunda, runtime } = runtimeWith([
       TOPOLOGY,
-      { route: "GET /process-definitions/100/xml", answer: new Response(xml) },
+      { route: "GET /process-definitions/100/xml", answer: xml },
       {
         route: "POST /process-definitions/100/statistics/element-instances",
         answer: { items: [{ elementId: "Charge", active: 2, incidents: 0 }] },

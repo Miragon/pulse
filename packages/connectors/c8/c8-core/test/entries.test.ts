@@ -2,22 +2,12 @@ import { describe, expect, it } from "vitest"
 import * as core from "../src/index.js"
 
 describe("the @miragon/pulse-c8-core entry", () => {
-  it("exports exactly the REST client, the readers and the mappings the C8 runtime is built of", () => {
+  it("exports exactly the runtime, the rule of its failures and the REST client it is built on", () => {
     expect(Object.keys(core).sort()).toStrictEqual([
-      "CalledProcessReader",
-      "DefinitionReader",
-      "DefinitionRefsCache",
-      "Diagrams",
-      "ElementStatisticsReader",
-      "IncidentSearch",
-      "IncidentTexts",
-      "InstanceDetailReader",
-      "InstanceSearch",
-      "Keys",
+      "C8Failures",
+      "C8Runtime",
       "RestCamundaClient",
       "UnexpectedAnswerError",
-      "VariableNameReader",
-      "VersionFloor",
     ])
   })
 })

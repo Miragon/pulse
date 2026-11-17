@@ -45,8 +45,8 @@ describe("the mask of a client secret", () => {
     expect(CLIENT.reason(TOKEN)).toMatchObject({ code: "invalid_client:***" })
     expect(CLIENT.reason({ ...TOKEN, code: undefined })).toMatchObject({ code: undefined })
     expect(
-      CLIENT.reason({ kind: "unanswered", message: "reader secret", hint: undefined, cause: 1 }),
-    ).toEqual({ kind: "unanswered", message: "***", hint: undefined, cause: 1 })
+      CLIENT.reason({ kind: "unread", message: "reader secret", hint: undefined, cause: 1 }),
+    ).toEqual({ kind: "unread", message: "***", hint: undefined, cause: 1 })
   })
 
   test("leaves every text of a connection without client credentials as it is", () => {

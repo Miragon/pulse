@@ -8,13 +8,33 @@ never writes. Private for now: the C8 adapter of the editor hosts
 consumer to come. Below 1.0, pin the exact version and update all `@miragon/pulse-*` packages
 together.
 
-Thomas Heinrichs wrote these readers, the REST client and its query rules for Pulse for VS Code in
+Thomas Heinrichs wrote these readers, the REST client and its query rules, the runtime and the
+translation of its failures for Pulse for VS Code in
 [#543 feat(vscode): read Camunda 8 on SaaS and Self-Managed](https://github.com/Miragon/pulse/pull/543);
 they left the C8 adapter for this package so that every surface that reads Camunda 8 runs the same
-reads.
+reads and gives one failure the same kind.
 
 ## What it holds
 
+- **The runtime (`C8Runtime`).** `C8Runtime.over(transport, { wordsOf })` answers the engine
+  contract's `ProcessRuntime` read-only over a surface's transport: the version floor (8.9) before
+  every question, then the question's reader; `refusedVariableConditions()` names `ordering` and
+  `date`, no migration planning, no bulk operation. A failure becomes a `RuntimeError`: one of
+  c8-core's own (the floor, a refused condition) passes as it is, any other gets its kind from
+  `C8Failures` and its message and hint from the surface's `wordsOf(error, kind)`. That option
+  differs from the `failureOf` of c7-core's `C7Runtime`, which builds the `RuntimeError` itself:
+  here c8-core decides the kind and builds the error, and `wordsOf` only words it, so one failure
+  has one kind on every surface.
+- **The kind of a failure (`C8Failures`).** `C8Failures.kindOf` is the one rule from a
+  `CamundaFailure` to the contract's failure, total over the statuses, the transport's reasons and
+  the token's troubles: 401 `unauthorized`, 403 `forbidden`, a redirect and a 404 `misconfigured`,
+  any other status `engineFailure`; no answer `unreachable`, an answer above the cap or no JSON
+  `unexpectedResponse`, a request the transport refuses or a login it cannot send
+  `misconfigured`; a token by its trouble. An error the transport copies no fields of is
+  `unexpectedResponse`. c8-core words what holds on every surface itself, the surface's hint
+  first: a 403 that names missing secondary storage says that the cluster has nothing to read, and
+  a 404 that names no missing resource gets the hint that the profile's url must be the cluster's
+  REST root and end in `/v2`.
 - **The transport port (`src/port`).** `CamundaTransport` is what a surface hands the REST client:
   `get` and `post` resolve the JSON of an answer (read losslessly), `text` the text of one (a
   diagram's XML), and every request is a read. `failure(error)` reads a rejection of the transport
@@ -47,12 +67,13 @@ reads.
   no DOM and no Node types.
 - The house rules of Pulse for VS Code, as for engine-core: classes, no comments, complexity 10,
   300 lines per file (`eslint.config.mjs`).
-- `test/` holds every reader, mapping and view to a fake of the transport port
-  (`test/support/fake-transport.ts`, which answers by route, as a cluster would); the adapter's
+- `test/` holds the runtime, the kind of every failure, every reader, mapping and view to a fake of
+  the transport port (`test/support/fake-transport.ts`, which answers by route, as a cluster
+  would); the adapter's
   `test/rest/camunda-http.test.ts` holds its wire to the same port and the copied reasons and
   troubles equal to the transport's.
 
 ```sh
-pnpm --filter @miragon/pulse-c8-core test   # the readers, the mappings and the views, coverage floors
+pnpm --filter @miragon/pulse-c8-core test   # the runtime, its failures, the readers, the mappings and the views, coverage floors
 pnpm --filter @miragon/pulse-c8-core build  # dist, which the C8 adapter's tests and bundles read
 ```

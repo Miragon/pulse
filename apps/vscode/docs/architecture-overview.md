@@ -103,7 +103,7 @@ flowchart LR
     fake[engine-core testing: FakeEngine]
     c7Runtime[c7-core: C7Runtime, in the C7 adapter]
     c8Adapter[c8-adapter: C8Adapter]
-    c8Runtime[c8-adapter: C8ProcessRuntime, read-only]
+    c8Runtime[c8-core: C8Runtime, in the C8 adapter, read-only]
   end
 
   ui --> extension
@@ -126,7 +126,8 @@ flowchart LR
   (`packages/core/runtime-view`) imports them directly; its `src/ports` holds `EngineAdapter` and
   the local ports. No engine word appears in them.
 - **Adapters:** a class per role (`C7ProcessCommands implements ProcessCommands`, …; the C7
-  adapter's runtime is c7-core's `C7Runtime implements ProcessRuntime`), and each
+  adapter's runtime is c7-core's `C7Runtime implements ProcessRuntime`, the C8 adapter's c8-core's
+  `C8Runtime`), and each
   brings the BPMN vocabulary of its vendor (`BpmnDialect`) for the local model reader. The host
   kit's `EngineRoot`, which each composition root builds over one adapter per dialect, picks the
   adapter by the target's `engine` and is the only place that does.

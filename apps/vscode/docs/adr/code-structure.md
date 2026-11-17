@@ -50,7 +50,7 @@ visible responsibility per file.
    runtime, an engine port, a writer, the panel's effects); per-session parts may be built
    inside, as the core's panels build their `ViewSession`, `CallJumps` and
    `InstanceWrites` from the context they receive. Wiring happens in a static factory
-   of an adapter's entry classes (`C8ProcessRuntime.create`, c7-core's `C7Runtime.over`) or in
+   of a dialect core's entry classes (c8-core's `C8Runtime.over`, c7-core's `C7Runtime.over`) or in
    the composition root.
    Tests pass fakes the same way.
 6. **The budgets stay** (complexity 10, 300 lines per file, 60 per function, 4

@@ -73,7 +73,7 @@ describe("the wire of a cluster", () => {
 
     expect(outcome).toMatchObject({
       reason: {
-        kind: "unusable",
+        kind: "unread",
         message: `Read-only. This connection only reads, so Pulse did not send POST ${REST_URL}${CANCELLATION}.`,
       },
     })

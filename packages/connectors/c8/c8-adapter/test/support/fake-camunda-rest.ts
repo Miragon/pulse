@@ -1,7 +1,9 @@
-import type { CamundaClient } from "@miragon/pulse-c8-core"
+import { type CamundaClient, RestCamundaClient } from "@miragon/pulse-c8-core"
+import type { ProcessRuntime } from "@miragon/pulse-engine-core"
 import type { EngineCredentials } from "@miragon/pulse-runtime-view/ports"
 import { onTestFinished } from "vitest"
-import { CamundaClients } from "../../src/camunda-clients.js"
+import { CamundaTransports } from "../../src/camunda-transports.js"
+import { C8Adapter } from "../../src/index.js"
 
 export const REST_URL = "http://camunda.test/v2"
 export const TOPOLOGY = { route: "GET /topology", answer: { gatewayVersion: "8.10.8" } }
@@ -109,9 +111,22 @@ export function clientWith(
   credentials: EngineCredentials = NONE,
 ): { readonly camunda: FakeCamundaRest; readonly client: CamundaClient } {
   const camunda = fakeCamundaRest(routes)
-  const client = new CamundaClients(camunda.send, () => Date.now()).of({
+  const transport = new CamundaTransports(camunda.send, () => Date.now()).of({
     endpoint: REST_URL,
     credentials,
   })
-  return { camunda, client }
+  return { camunda, client: new RestCamundaClient(transport) }
+}
+
+export function runtimeWith(
+  routes: readonly RestRoute[],
+  credentials: EngineCredentials = NONE,
+): { readonly camunda: FakeCamundaRest; readonly runtime: ProcessRuntime } {
+  const camunda = fakeCamundaRest(routes)
+  const runtime = new C8Adapter(camunda.send).runtime({ endpoint: REST_URL, credentials })
+  return { camunda, runtime }
+}
+
+export function runtimeOn(send: typeof fetch, endpoint = REST_URL): ProcessRuntime {
+  return new C8Adapter(send).runtime({ endpoint, credentials: NONE })
 }

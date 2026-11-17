@@ -1,5 +1,7 @@
+import { C8Failures } from "@miragon/pulse-c8-core"
 import { describe, expect, test } from "vitest"
 import { TokenTexts } from "../../src/errors/token-texts.js"
+import { WireFailures } from "../../src/wire/wire-failures.js"
 import type { TokenReason } from "../../src/wire/wire-reason.js"
 import { jsonAnswer } from "../support/fake-camunda-rest.js"
 import { CREDENTIALS, LoginService, SECRET, TOKEN_URL } from "../support/token-endpoint.js"
@@ -36,6 +38,10 @@ function reasonOf(trouble: TokenReason["trouble"], capBytes?: number, holdMs = 5
     capBytes,
     cause: undefined,
   }
+}
+
+function worded(reason: TokenReason) {
+  return { failure: C8Failures.kindOf(WireFailures.of(reason)), ...TokenTexts.wordsOf(reason) }
 }
 
 describe("a token endpoint's refusal", () => {
@@ -234,7 +240,7 @@ describe("a token endpoint's refusal", () => {
       },
     ],
   ])("words a %s that names neither status nor code", (trouble, expected) => {
-    const error = TokenTexts.errorOf(reasonOf(trouble))
+    const error = worded(reasonOf(trouble))
 
     expect(error).toMatchObject(expected)
     expect(error.hint).toBe(expected.hint)
@@ -254,7 +260,7 @@ describe("a token endpoint's refusal", () => {
     [3_601_000, "about 60 minutes"],
     [3_660_000, "61 minutes"],
   ])("says that a hold of %i ms lets Pulse ask again after %s", (holdMs, wait) => {
-    expect(TokenTexts.errorOf(reasonOf("rate-limited", undefined, holdMs)).message).toBe(
+    expect(TokenTexts.wordsOf(reasonOf("rate-limited", undefined, holdMs)).message).toBe(
       `The token endpoint limits requests from this address. Pulse asks the token endpoint again ${wait} after its last answer.`,
     )
   })
@@ -264,7 +270,7 @@ describe("a token endpoint's refusal", () => {
     [3 * 1024 * 1024, "3 MiB"],
     [1500, "1500 bytes"],
   ])("words an answer above a cap of %i bytes as more than %s", (capBytes, size) => {
-    expect(TokenTexts.errorOf(reasonOf("too-large", capBytes)).message).toBe(
+    expect(TokenTexts.wordsOf(reasonOf("too-large", capBytes)).message).toBe(
       `The token endpoint answered with more than ${size}.`,
     )
   })

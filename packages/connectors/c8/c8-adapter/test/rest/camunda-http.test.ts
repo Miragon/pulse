@@ -26,6 +26,8 @@ import { CREDENTIALS, TOKEN_URL } from "../support/token-endpoint.js"
 
 const XML = '<?xml version="1.0"?><bpmn:definitions id="d"/>'
 
+const ABOVE_THE_CAP = String(64 * 1024 * 1024 + 1)
+
 const NOTHING: typeof fetch = () => Promise.reject(new Error("the wire sent a request"))
 
 const REFUSED = Object.assign(new TypeError("fetch failed"), {
@@ -103,7 +105,9 @@ describe("the wire as the transport of the REST client", () => {
     const read = client.definition("1")
 
     await expect(read).rejects.toBeInstanceOf(CamundaRequestError)
-    await expect(read).rejects.toMatchObject({ status: 404, title: "Not Found" })
+    await expect(read).rejects.toMatchObject({
+      fields: { kind: "answered", status: 404, title: "Not Found" },
+    })
   })
 
   test("reads an answer that is no JSON as unexpected", async () => {
@@ -168,6 +172,12 @@ describe("the fields the wire copies for the REST client", () => {
       { send: answering(new Response("", { status: 302, headers: { Location: "/login" } })) },
       "/topology",
       { kind: "answered", status: 302, title: undefined, detail: undefined, redirect: true },
+    ],
+    [
+      "an answer above its cap",
+      { send: answering(new Response("{}", { headers: { "Content-Length": ABOVE_THE_CAP } })) },
+      "/topology",
+      { kind: "transport", reason: "too-large", code: undefined },
     ],
     [
       "a path value it refuses",

@@ -111,7 +111,7 @@ export class CamundaWire {
     }
     if (error instanceof RangeError) {
       const message = `The token endpoint URL cannot be used: ${error.message}`
-      return { kind: "unusable", message, cause: error }
+      return { kind: "unread", message, hint: undefined, cause: error }
     }
     throw error
   }
@@ -139,10 +139,12 @@ export class CamundaWire {
 
   private static unusable(error: unknown): WireReason {
     if (error instanceof CredentialError) {
-      return { kind: "unusable", message: CREDENTIAL_PROBLEMS[error.problem], cause: error }
+      const message = CREDENTIAL_PROBLEMS[error.problem]
+      return { kind: "unread", message, hint: undefined, cause: error }
     }
     const reason = error instanceof Error ? error.message : String(error)
-    return { kind: "unusable", message: `The cluster URL cannot be used: ${reason}`, cause: error }
+    const message = `The cluster URL cannot be used: ${reason}`
+    return { kind: "unread", message, hint: undefined, cause: error }
   }
 
   private static headersOf(request: WireRequest): Record<string, string> {

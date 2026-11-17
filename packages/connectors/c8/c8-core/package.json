@@ -2,7 +2,7 @@
   "name": "@miragon/pulse-c8-core",
   "private": true,
   "version": "0.27.1",
-  "description": "The core of the Camunda 8 dialect family (the Orchestration Cluster REST API, from 8.9 on, read-only): the REST client with its checked views over a transport port that carries fields only (CamundaTransport, CamundaFailure), the readers of the engine contract's questions and the mappings onto the read models of @miragon/pulse-engine-core. Each surface brings its own wire and words its own failures. Its one runtime dependency is @miragon/pulse-engine-core.",
+  "description": "The core of the Camunda 8 dialect family (the Orchestration Cluster REST API, from 8.9 on, read-only): C8Runtime, which answers the engine contract of @miragon/pulse-engine-core and decides each failure's kind (C8Failures), over the REST client with its checked views and a transport port that carries fields only (CamundaTransport, CamundaFailure), with the readers and the mappings onto the contract's read models. Each surface brings its own wire and words its own failures. Its one runtime dependency is @miragon/pulse-engine-core.",
   "license": "MIT",
   "keywords": [
     "camunda",

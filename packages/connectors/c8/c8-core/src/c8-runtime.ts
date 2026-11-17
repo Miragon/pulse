@@ -1,18 +1,3 @@
-import {
-  CalledProcessReader,
-  type CamundaClient,
-  DefinitionReader,
-  DefinitionRefsCache,
-  Diagrams,
-  ElementStatisticsReader,
-  IncidentSearch,
-  IncidentTexts,
-  InstanceDetailReader,
-  InstanceSearch,
-  Keys,
-  VariableNameReader,
-  VersionFloor,
-} from "@miragon/pulse-c8-core"
 import type {
   BpmnProcessId,
   BulkFailure,
@@ -37,10 +22,28 @@ import type {
   VariableConditionKind,
   VersionSummary,
 } from "@miragon/pulse-engine-core"
-import { ErrorTranslation } from "./errors/error-translation.js"
+import { C8Failures, type C8WordsOf } from "./c8-failures.js"
+import { IncidentTexts } from "./mapping/incident-texts.js"
+import { Keys } from "./mapping/keys.js"
+import type { CamundaTransport } from "./port/camunda-transport.js"
+import { CalledProcessReader } from "./reading/called-process-reader.js"
+import { DefinitionReader } from "./reading/definition-reader.js"
+import { DefinitionRefsCache } from "./reading/definition-refs-cache.js"
+import { Diagrams } from "./reading/diagrams.js"
+import { ElementStatisticsReader } from "./reading/element-statistics-reader.js"
+import { IncidentSearch } from "./reading/incident-search.js"
+import { InstanceDetailReader } from "./reading/instance-detail-reader.js"
+import { InstanceSearch } from "./reading/instance-search.js"
+import { VariableNameReader } from "./reading/variable-name-reader.js"
+import { VersionFloor } from "./reading/version-floor.js"
+import { type CamundaClient, RestCamundaClient } from "./rest/index.js"
 
 const PRODUCT = "Camunda 8"
 const REFUSED_CONDITIONS: readonly VariableConditionKind[] = ["ordering", "date"]
+
+export interface C8RuntimeOptions {
+  readonly wordsOf: C8WordsOf
+}
 
 interface C8Readers {
   readonly floor: VersionFloor
@@ -54,15 +57,17 @@ interface C8Readers {
   readonly incidents: IncidentSearch
 }
 
-export class C8ProcessRuntime implements ProcessRuntime {
+export class C8Runtime implements ProcessRuntime {
   private constructor(
     private readonly client: CamundaClient,
     private readonly readers: C8Readers,
+    private readonly failures: C8Failures,
   ) {}
 
-  static create(client: CamundaClient): C8ProcessRuntime {
+  static over(transport: CamundaTransport, options: C8RuntimeOptions): C8Runtime {
+    const client = new RestCamundaClient(transport)
     const diagrams = new Diagrams(client)
-    return new C8ProcessRuntime(client, {
+    const readers: C8Readers = {
       floor: new VersionFloor(client),
       diagrams,
       definitions: new DefinitionReader(client),
@@ -72,7 +77,8 @@ export class C8ProcessRuntime implements ProcessRuntime {
       variableNames: new VariableNameReader(client),
       details: new InstanceDetailReader(client, diagrams),
       incidents: new IncidentSearch(client, new DefinitionRefsCache(client)),
-    })
+    }
+    return new C8Runtime(client, readers, new C8Failures(transport, options.wordsOf))
   }
 
   refusedVariableConditions(): readonly VariableConditionKind[] {
@@ -141,10 +147,12 @@ export class C8ProcessRuntime implements ProcessRuntime {
     return Promise.resolve([])
   }
 
-  private read<Result>(work: () => Promise<Result>): Promise<Result> {
-    return ErrorTranslation.translated(async () => {
+  private async read<Result>(work: () => Promise<Result>): Promise<Result> {
+    try {
       await this.readers.floor.checked()
-      return work()
-    })
+      return await work()
+    } catch (error: unknown) {
+      throw this.failures.errorOf(error)
+    }
   }
 }

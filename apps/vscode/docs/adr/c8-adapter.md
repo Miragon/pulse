@@ -11,7 +11,9 @@
   token the cluster refuses and the wait of the token endpoint's hold; the hint for a 401 to a
   connection without a login; incidents newest first and full pages by the read laws, but for an
   incident whose version is gone; 2026-11-17: the REST client, the version floor, the readers and
-  the mappings in `@miragon/pulse-c8-core`, behind a transport port the adapter's wire implements)
+  the mappings in `@miragon/pulse-c8-core`, behind a transport port the adapter's wire implements;
+  later that day the runtime `C8Runtime` and the kind of each failure, `C8Failures`, in c8-core,
+  the adapter a plug of its wire, its words and its BPMN dialect)
 
 ## Context
 
@@ -51,15 +53,15 @@ on Elasticsearch, each without security, with basic authentication and with OIDC
 ## Decision
 
 `packages/connectors/c8/c8-adapter` (`@miragon/pulse-c8-adapter`, private, bundled by the editor
-hosts) is the c8 family's adapter of the runtime view. It holds the wire, the wording of failures,
-the runtime that answers the contract and the plug of the ports. The REST client, the version
-floor and the readers with their mappings onto the contract's read models are the family's core,
-`@miragon/pulse-c8-core` (`packages/connectors/c8/c8-core`, private, built to `dist`), which the
-adapter runs over a transport port its wire implements, so that another surface can run the same
-reads over a wire and words of its own. `C8Adapter`,
-the package's one export, holds one `CamundaClients`, which builds a client per connection and
-holds the one `ClientCredentialsSources` of the adapter. The composition root of each editor host
-builds the adapter once per process.
+hosts) is the c8 family's adapter of the runtime view, a plug: it holds the wire, the wording of
+failures, its BPMN dialect and the plug of the ports. The runtime that answers the contract with
+the kind of each failure, the REST client, the version floor and the readers with their mappings
+onto the contract's read models are the family's core, `@miragon/pulse-c8-core`
+(`packages/connectors/c8/c8-core`, private, built to `dist`), which the adapter runs over a
+transport port its wire implements, so that another surface can run the same reads over a wire and
+words of its own. `C8Adapter`, the package's one export, holds one `CamundaTransports`, which
+builds the transport of a connection and holds the one `ClientCredentialsSources` of the adapter.
+The composition root of each editor host builds the adapter once per process.
 
 - **No client library, no CLI.** `@camunda8/orchestration-cluster-api` brings 1.5 MB of
   JavaScript and zod, which the closed world forbids, reads its settings from the environment,
@@ -112,13 +114,18 @@ builds the adapter once per process.
   key the transport refuses before sending (`.`, `..`) as none too, both read from the port's
   fields. `CamundaRequestError` is built from the wire's reasons and carries those fields; only the
   wire imports the transport.
-- **Failures (`src/errors`).** `ErrorTranslation` maps a request error onto the contract's
-  failures: 401 `unauthorized`, 403 `forbidden`, a redirect and a 404 `misconfigured`, any other
-  status `engineFailure`, no answer `unreachable`. A 404 that names no missing resource gets the
-  hint that the profile's url must be the cluster's REST root and end in `/v2`, and a 403 that names
-  missing secondary storage says that the cluster has nothing to read. `TokenTexts` words a token
-  failure with its way out (031dc1f4 of #543): a refused client by its code, a refused audience or
-  scope with the profile's settings to check, a 403 with what the client may get a token for, a
+- **Failures (c8-core's `C8Failures`, the adapter's `src/errors`).** c8-core alone decides which
+  of the contract's failures a `CamundaFailure` is (`C8Failures.kindOf`): 401 `unauthorized`, 403
+  `forbidden`, a redirect and a 404 `misconfigured`, any other status `engineFailure`, no answer
+  `unreachable`, an answer above the cap `unexpectedResponse`, a request the transport refuses or a
+  login it cannot send `misconfigured`, and a token failure by its trouble. It says in its own words
+  what holds on every surface, the surface's hint first: a 404 that names no missing resource gets
+  the hint that the profile's url must be the cluster's REST root and end in `/v2`, and a 403 that
+  names missing secondary storage says that the cluster has nothing to read. The adapter words the
+  rest (`ErrorTranslation.wordsOf`, the runtime's `wordsOf`): the wire's message and hint, or
+  `TokenTexts`, which words a token failure with its way out (031dc1f4 of #543): a refused client
+  by its code, a refused audience or scope with the profile's settings to check, a 403 with what
+  the client may get a token for, a
   redirect or another status with the `tokenEndpoint` to check, and a token answer above the cap
   with the cap the transport's OAuth client applied, which the wire takes from that failure alone
   (`packages/connectors/c8/c8-adapter/test/wire/token-reasons.test.ts`: a timeout's deadline is no
@@ -182,9 +189,12 @@ builds the adapter once per process.
     so a boundary event's message is not its host's wait (bba04dea). The path keeps the newest
     10,000 runs, and a cut sets `truncated`; a local variable of a run past the cut keeps its
     element through one `GET /element-instances/{key}`, looked up once per reader.
-- **The runtime (`C8ProcessRuntime`).** It answers each question of `ProcessRuntime` with its
-  reader, after the version floor, and turns every failure into a `RuntimeError` through
-  `ErrorTranslation`. `describeEngine` names the product `Camunda 8` and the cluster's
+- **The runtime (c8-core's `C8Runtime`).** `C8Runtime.over(transport, { wordsOf })` answers each
+  question of `ProcessRuntime` with its reader, after the version floor, and turns every failure
+  into a `RuntimeError`: one of its own passes as it is, any other gets its kind from
+  `C8Failures` and its message and hint from the surface's `wordsOf(error, kind)`, which, unlike
+  the `failureOf` of c7-core's `C7Runtime`, decides no kind. `describeEngine` names the product
+  `Camunda 8` and the cluster's
   `gatewayVersion`. A count is a lower bound (`atLeast`) where the cluster stops counting and no
   statistics give the exact number. `refusedVariableConditions()` names `ordering` and `date`,
   which fail as `unsupported` before anything is sent. An incident's details are its whole error
@@ -192,8 +202,9 @@ builds the adapter once per process.
   is read-only by absence (#543): `proposeMigration` and `checkMigration` do not exist, so the
   runtime view offers no migration, `getBulkOperation` answers `undefined` and `getBulkFailures`
   none, since no bulk operation starts.
-- **The plug (`C8Adapter`).** `runtime(connection)` builds a `C8ProcessRuntime` over c8-core's
-  readers and a client of its `CamundaClients`, so every runtime of the adapter shares its token sources. `commands` and
+- **The plug (`C8Adapter`).** `runtime(connection)` builds c8-core's `C8Runtime` over the
+  connection's transport, which its `CamundaTransports` builds, and the adapter's words, so every
+  runtime of the adapter shares its token sources. `commands` and
   `cli` answer `undefined`: the adapter writes nothing, and the `pulse` CLI reads no Camunda 8
   cluster. `webUi(webUiUrl)` gives `OperateWebUi`, the links into Operate, for a URL whose path
   ends in `/operate` (Self-Managed) or that names a SaaS cluster's Operate
@@ -231,10 +242,13 @@ builds the adapter once per process.
   asks at once. `packages/connectors/c8/c8-adapter/test/c8-adapter-tokens.test.ts` holds it for
   the runtimes of one adapter: a reload keeps the token and the hold, a corrected secret, audience
   or scopes replaces the source of that cluster's client, and two clusters keep a token each.
-- `packages/connectors/c8/c8-adapter/test/c8-runtime.test.ts` holds the runtime to the contract on
-  the fake REST API (the floor before every question, the failures, the refused conditions, what
-  it does not answer, one question per reader), and
-  `packages/connectors/c8/c8-adapter/test/c8-web-ui.test.ts` the links into Operate.
+- `packages/connectors/c8/c8-core/test/c8-runtime.test.ts` holds the runtime to the contract on
+  the fake of the transport port (the floor before every question, the failures, the refused
+  conditions, what it does not answer, one question per reader),
+  `packages/connectors/c8/c8-core/test/c8-failures.test.ts` the kind of every status, transport
+  reason and token trouble and the words c8-core adds,
+  `packages/connectors/c8/c8-adapter/test/c8-plug.test.ts` the plug over the adapter's wire and
+  words, and `packages/connectors/c8/c8-adapter/test/c8-web-ui.test.ts` the links into Operate.
 - The reads are proven on a fake of the transport port
   (`packages/connectors/c8/c8-core/test/support/fake-transport.ts`): each reader in
   `packages/connectors/c8/c8-core/test/reading`, the instance detail by topic in
@@ -306,3 +320,6 @@ builds the adapter once per process.
   Heinrichs) move into `@miragon/pulse-c8-core`, a family core with a transport port that carries
   fields only; the adapter keeps its wire and its words, and the MCP server's engine module is the
   core's second consumer to come (#617).
+- 2026-11-17: the runtime of #543 (Thomas Heinrichs) moves into c8-core as `C8Runtime`, and c8-core
+  decides the kind of each failure (`C8Failures`), so one failure is one kind on every surface; the
+  adapter is a plug that brings its wire, its words and its BPMN dialect (#617).

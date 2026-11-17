@@ -7,12 +7,14 @@ contract of `@miragon/pulse-engine-core`. It reads and never writes. Private: th
 c8 family (`adapters-own-their-family` in the repository's `.dependency-cruiser.cjs`) and shares
 no code with the C7 adapter: what both need lives in engine-core, the runtime view's ports and the
 transport. The reads themselves are its family's core, `@miragon/pulse-c8-core`
-(`packages/connectors/c8/c8-core`): the REST client with its checked views, the readers and the
-mappings, over a transport port this adapter's wire implements.
+(`packages/connectors/c8/c8-core`): the runtime with the kind of each failure, the REST client
+with its checked views, the readers and the mappings, over a transport port this adapter's wire
+implements. The adapter is a plug: its wire, its words and its BPMN dialect.
 
-Its one export is `C8Adapter`, the plug of the runtime view's ports: `runtime(connection)` gives a
-`C8ProcessRuntime`, which answers the engine contract read-only (no writes, no migration planning,
-ordering and date conditions refused, counts that may be a lower bound), `webUi(url)` the links
+Its one export is `C8Adapter`, the plug of the runtime view's ports: `runtime(connection)` gives
+c8-core's `C8Runtime` over the connection's transport and the adapter's words, which answers the
+engine contract read-only (no writes, no migration planning, ordering and date conditions
+refused, counts that may be a lower bound), `webUi(url)` the links
 into Operate, `bpmn` the vocabulary of Camunda 8's BPMN files (`C8BpmnDialect`, over
 `zeebe-bpmn-moddle`) for the runtime view's model reader, and `commands` and `cli` nothing. It
 holds the wire (`src/wire`: `CamundaWire` over `@miragon/pulse-http`, 60 s and 64 MiB on a
@@ -20,10 +22,11 @@ read-only connection, none, Basic or a bearer token from `clientCredentialsToken
 `@miragon/pulse-http/oauth`, one token source per cluster and client kept by
 `ClientCredentialsSources`), the transport c8-core's REST client sends through (`src/rest`:
 `CamundaHttp`, which implements c8-core's `CamundaTransport` and copies the fields of each
-failure, and `CamundaRequestError`, the wire's error with its words) and the wording of failures
-(`src/errors`). `CamundaClients` builds c8-core's `RestCamundaClient` per connection over the
-adapter's one set of token sources, so a composition root builds the adapter once per process. Thomas Heinrichs built the adapter in #543; this package re-lands it on the shared
-transport.
+failure, and `CamundaRequestError`, the wire's error with its words) and the words of failures
+whose kind c8-core decides (`src/errors`: `ErrorTranslation.wordsOf`, the runtime's `wordsOf`, and
+`TokenTexts`). `CamundaTransports` builds the transport of a connection over the adapter's one set
+of token sources, so a composition root builds the adapter once per process. Thomas Heinrichs
+built the adapter in #543; this package re-lands it on the shared transport.
 
 The conformance kit of the contract (`@miragon/pulse-engine-core/testing`) proves it on a local
 Camunda 8 cluster in Testcontainers (`test/c8-conformance.engine.test.ts`, `test:engines`): the

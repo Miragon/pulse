@@ -1,7 +1,6 @@
 import { type FailureDetails, type FailureReason, HttpFailure } from "@miragon/pulse-http"
 import { describe, expect, test } from "vitest"
-import { CamundaClients } from "../../src/camunda-clients.js"
-import { ErrorTranslation } from "../../src/errors/error-translation.js"
+import { C8Adapter } from "../../src/index.js"
 import { HttpReasons } from "../../src/wire/http-reasons.js"
 import { REST_URL } from "../support/fake-camunda-rest.js"
 
@@ -21,13 +20,13 @@ describe("the reasons of a failed request", () => {
     [
       "unreachable",
       { code: "ECONNREFUSED" },
-      { kind: "unanswered", message: `Cannot reach ${TARGET} (ECONNREFUSED)` },
+      { kind: "unread", message: `Cannot reach ${TARGET} (ECONNREFUSED)` },
     ],
     [
       "dns",
       { code: "ENOTFOUND" },
       {
-        kind: "unanswered",
+        kind: "unread",
         message: `Cannot reach ${TARGET}: the host name does not resolve (ENOTFOUND)`,
         hint: "Check the host name in the cluster URL.",
       },
@@ -36,7 +35,7 @@ describe("the reasons of a failed request", () => {
       "tls",
       {},
       {
-        kind: "unanswered",
+        kind: "unread",
         message: `Cannot reach ${TARGET}: the TLS handshake failed`,
         hint: expect.stringContaining("trusts the cluster's certificate") as unknown,
       },
@@ -44,14 +43,14 @@ describe("the reasons of a failed request", () => {
     [
       "deadline",
       { limit: 60_000 },
-      { kind: "unanswered", message: `${TARGET} did not answer within 60000 ms` },
+      { kind: "unread", message: `${TARGET} did not answer within 60000 ms` },
     ],
-    ["cancelled", {}, { kind: "unanswered", message: `The call to ${TARGET} was cancelled` }],
+    ["cancelled", {}, { kind: "unread", message: `The call to ${TARGET} was cancelled` }],
     [
       "connection",
       { code: "ECONNRESET" },
       {
-        kind: "unanswered",
+        kind: "unread",
         message: `The connection to ${TARGET} failed (ECONNRESET)`,
         hint: expect.stringContaining("proxy, a VPN or a firewall") as unknown,
       },
@@ -59,28 +58,24 @@ describe("the reasons of a failed request", () => {
     [
       "too-large",
       { limit: 67_108_864 },
-      { kind: "unexpected", message: "the cluster answered with more than 67108864 bytes" },
+      { kind: "unread", message: "the cluster answered with more than 67108864 bytes" },
     ],
-    ["invalid-answer", {}, { kind: "unexpected", message: "the cluster answered no JSON" }],
+    ["invalid-answer", {}, { kind: "unread", message: "the cluster answered no JSON" }],
     [
       "invalid-request",
       { code: "dot-segment" },
-      { kind: "refused", message: `GET ${TARGET} cannot be sent (dot-segment)` },
+      { kind: "unread", message: `GET ${TARGET} cannot be sent (dot-segment)` },
     ],
-    ["invalid-request", {}, { kind: "unusable", message: `GET ${TARGET} cannot be sent` }],
+    ["invalid-request", {}, { kind: "unread", message: `GET ${TARGET} cannot be sent` }],
     [
       "refused-write",
       {},
       {
-        kind: "unusable",
+        kind: "unread",
         message: `Read-only. This connection only reads, so Pulse did not send GET ${TARGET}.`,
       },
     ],
-    [
-      "credential",
-      {},
-      { kind: "unusable", message: `The credentials for ${TARGET} cannot be sent` },
-    ],
+    ["credential", {}, { kind: "unread", message: `The credentials for ${TARGET} cannot be sent` }],
     [
       "unauthorized",
       { status: 401 },
@@ -138,15 +133,12 @@ describe("the reasons of a failed request", () => {
     ],
   ] as const)("refuse every call with %s, sending nothing", async (_name, credentials, message) => {
     const sent: unknown[] = []
-    const client = new CamundaClients(
-      (input) => {
-        sent.push(input)
-        return Promise.resolve(Response.json({ gatewayVersion: "8.10.8" }))
-      },
-      () => Date.now(),
-    ).of({ endpoint: REST_URL, credentials })
+    const runtime = new C8Adapter((input) => {
+      sent.push(input)
+      return Promise.resolve(Response.json({ gatewayVersion: "8.10.8" }))
+    }).runtime({ endpoint: REST_URL, credentials })
 
-    await expect(ErrorTranslation.translated(() => client.topology())).rejects.toMatchObject({
+    await expect(runtime.describeEngine()).rejects.toMatchObject({
       failure: "misconfigured",
       message,
     })

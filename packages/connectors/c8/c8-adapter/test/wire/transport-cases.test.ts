@@ -52,10 +52,11 @@ function ownOutcome(error: Error): Pick<Observed, "outcome" | "status"> {
   if (error.cause instanceof CredentialError) {
     return { outcome: "credential" }
   }
-  if (!(error instanceof CamundaRequestError) || error.status === undefined) {
+  if (!(error instanceof CamundaRequestError) || error.fields.kind !== "answered") {
     throw error
   }
-  return { outcome: error.status === 401 ? "unauthorized" : "status", status: error.status }
+  const { status } = error.fields
+  return { outcome: status === 401 ? "unauthorized" : "status", status }
 }
 
 function outcomeOf(error: Error): Pick<Observed, "outcome" | "status"> {

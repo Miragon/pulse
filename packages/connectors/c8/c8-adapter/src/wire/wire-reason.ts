@@ -12,20 +12,8 @@ export interface TokenReason {
   readonly cause: unknown
 }
 
-interface UnusableReason {
-  readonly kind: "unusable"
-  readonly message: string
-  readonly cause: unknown
-}
-
-interface RefusedReason {
-  readonly kind: "refused"
-  readonly message: string
-  readonly cause: unknown
-}
-
-export interface UnansweredReason {
-  readonly kind: "unanswered"
+export interface UnreadReason {
+  readonly kind: "unread"
   readonly message: string
   readonly hint: string | undefined
   readonly cause: unknown
@@ -42,16 +30,4 @@ export interface AnsweredReason {
   readonly cause: unknown
 }
 
-interface UnexpectedReason {
-  readonly kind: "unexpected"
-  readonly message: string
-  readonly cause: unknown
-}
-
-export type WireReason =
-  | UnusableReason
-  | RefusedReason
-  | UnansweredReason
-  | AnsweredReason
-  | UnexpectedReason
-  | TokenReason
+export type WireReason = UnreadReason | AnsweredReason | TokenReason

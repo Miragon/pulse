@@ -1,14 +1,7 @@
-import type { CamundaTokenProblem, CamundaTokenTrouble } from "@miragon/pulse-c8-core"
-import { RuntimeError, type RuntimeFailure } from "@miragon/pulse-engine-core"
+import type { C8Words, CamundaTokenProblem, CamundaTokenTrouble } from "@miragon/pulse-c8-core"
 import type { TokenReason } from "../wire/wire-reason.js"
 
-interface Worded {
-  readonly failure: RuntimeFailure
-  readonly message: string
-  readonly hint?: string
-}
-
-type Wording = (reason: TokenReason) => Worded
+type Wording = (reason: TokenReason) => C8Words
 
 const MIB = 1024 * 1024
 
@@ -33,48 +26,37 @@ export class TokenTexts {
     scope: (reason) => TokenTexts.refusedRequest(reason),
     grant: (reason) => TokenTexts.refusedRequest(reason),
     forbidden: () => ({
-      failure: "forbidden",
       message: "The token endpoint refused to issue a token for this client (HTTP 403).",
       hint: GRANT_HINT,
     }),
     "rate-limited": (reason) => ({
-      failure: "engineFailure",
       message: `The token endpoint limits requests from this address. ${TokenTexts.again(reason)}`,
     }),
     unavailable: (reason) => ({
-      failure: "unreachable",
       message: `The token endpoint failed with HTTP ${String(reason.status ?? 0)}.`,
     }),
     redirect: () => ({
-      failure: "misconfigured",
       message: "The token endpoint answered with a redirect.",
       hint: ENDPOINT_HINT,
     }),
     "too-large": (reason) => ({
-      failure: "unexpectedResponse",
       message: TokenTexts.tooLarge(reason.capBytes),
     }),
     unexpected: (reason) => TokenTexts.unexpected(reason),
     unreachable: (reason) => ({
-      failure: "unreachable",
       message: `Cannot reach the token endpoint ${reason.endpoint}.`,
     }),
     timeout: (reason) => ({
-      failure: "unreachable",
       message: `The token endpoint ${reason.endpoint} did not answer in time.`,
     }),
     expired: () => ({
-      failure: "unauthorized",
       message: "The token expired, and the token endpoint gave no new one.",
     }),
   }
 
-  static errorOf(reason: TokenReason): RuntimeError {
-    const { failure, message, hint } = TokenTexts.WORDING[reason.trouble](reason)
-    return new RuntimeError(failure, message, {
-      cause: reason.cause,
-      ...(hint === undefined ? {} : { hint: `${hint} ${TokenTexts.again(reason)}` }),
-    })
+  static wordsOf(reason: TokenReason): C8Words {
+    const { message, hint } = TokenTexts.WORDING[reason.trouble](reason)
+    return { message, hint: hint === undefined ? undefined : `${hint} ${TokenTexts.again(reason)}` }
   }
 
   private static again(reason: TokenReason): string {
@@ -104,30 +86,27 @@ export class TokenTexts {
     return `The token endpoint answered with more than ${size}.`
   }
 
-  private static refusedClient(reason: TokenReason): Worded {
+  private static refusedClient(reason: TokenReason): C8Words {
     const why = reason.code ?? `HTTP ${String(reason.status ?? 401)}`
     return {
-      failure: "unauthorized",
       message: `The token endpoint refused the client ID or secret (${why}).`,
       hint: CLIENT_HINT,
     }
   }
 
-  private static refusedRequest(reason: TokenReason): Worded {
+  private static refusedRequest(reason: TokenReason): C8Words {
     const why = reason.code ?? `HTTP ${String(reason.status ?? 400)}`
     return {
-      failure: "misconfigured",
       message: `The token endpoint refused the request (${why}).`,
       hint: REQUEST_HINT,
     }
   }
 
-  private static unexpected(reason: TokenReason): Worded {
+  private static unexpected(reason: TokenReason): C8Words {
     if (reason.problem !== undefined) {
-      return { failure: "unexpectedResponse", message: ANSWER_PROBLEMS[reason.problem] }
+      return { message: ANSWER_PROBLEMS[reason.problem] }
     }
     return {
-      failure: "misconfigured",
       message: `The token endpoint ${reason.endpoint} answered with HTTP ${String(reason.status ?? 0)}.`,
       hint: ENDPOINT_HINT,
     }
