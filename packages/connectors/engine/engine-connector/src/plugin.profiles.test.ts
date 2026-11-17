@@ -204,8 +204,8 @@ describe("a refused profile: listed, named in the enum, never routed to", () => 
   })
 })
 
-describe("a camunda8 profile: refused at configuration, before any read (dialect-not-served)", () => {
-  it("lists it under refused and answers a call to it without a request to its engine", async () => {
+describe("a camunda8 profile: served, and every Camunda 7 path refuses it before any request", () => {
+  it("lists it with its dialect and answers a call to it without a request to its engine", async () => {
     const [c7, c8] = [await fakeEngine(), await fakeEngine()]
     const config = engineModule.configFromEnv({
       ENGINES_JSON: JSON.stringify({
@@ -220,18 +220,25 @@ describe("a camunda8 profile: refused at configuration, before any read (dialect
       return result.content.map((part) => ("text" in part ? part.text : "")).join("")
     }
     const refusal =
-      '[ENGINE_PROFILE_REFUSED] Engine "c8" is configured, but its profile cannot be used: ' +
-      "This server does not speak the API of this flavor: it reads camunda7, cibseven " +
-      "and operaton. Ask whoever runs this server to fix it."
+      '[ENGINE_DIALECT_NOT_SERVED] Engine "c8" is a Camunda 8 engine, and this tool or view ' +
+      "reads the Camunda 7 REST API (Camunda 7, CIB seven, Operaton), so nothing was sent. This " +
+      'server reads a Camunda 8 engine on boards only, and no board names "c8" yet; the ' +
+      "server's operator adds one."
     const list = JSON.parse(await text(ENGINE_LIST_ENGINES)) as {
-      engines: Array<{ id: string }>
-      refused: Array<{ id: string; reason: string }>
+      engines: Array<{ id: string; dialect: string }>
+      refused?: unknown
     }
-    expect(list.engines.map(({ id }) => id)).toEqual(["c7"])
-    expect(list.refused.map(({ id }) => id)).toEqual(["c8"])
+    expect(list.engines.map(({ id, dialect }) => [id, dialect])).toEqual([
+      ["c7", "c7"],
+      ["c8", "c8"],
+    ])
+    expect(list.refused).toBeUndefined()
     expect(await text("engine_status", { engine: "c8" })).toBe(refusal)
     expect(await text("engine_status")).toBe(refusal)
     expect(await text("engine_list_process_instances", { engine: "c8" })).toBe(refusal)
+    expect(await text("engine_set_job_retries", { engine: "c8", jobId: "j", retries: 1 })).toBe(
+      refusal,
+    )
     expect(c8.requests).toEqual([])
   })
 })

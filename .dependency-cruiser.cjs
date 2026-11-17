@@ -249,7 +249,7 @@ const PROFILE = { name: "@miragon/pulse-profile", tree: "packages/core/profile" 
 const PROFILE_READERS = [
   "^apps/cli/src/config/",
   "^packages/core/runtime-view/src/host-kit/connections/",
-  "^packages/connectors/engine/engine-connector/src/(?:module|engine-profiles|engine-provider)[.]ts$",
+  "^packages/connectors/engine/engine-connector/src/(?:module|engine-profiles|engine-profile-auth|engine-profile-words|engine-provider)[.]ts$",
 ]
 
 /**
@@ -1038,8 +1038,9 @@ module.exports = {
         "connections of the runtime view's host kit " +
         "(packages/core/runtime-view/src/host-kit/connections, where Pulse for VS Code and " +
         "Pulse for Orca parse their project files) and the engine " +
-        "connector's configuration (src/module.ts, src/engine-profiles.ts, " +
-        "src/engine-provider.ts), and by tests anywhere. No widget, no other module, no other " +
+        "connector's configuration (src/module.ts, src/engine-profiles.ts with its " +
+        "src/engine-profile-auth.ts and src/engine-profile-words.ts, src/engine-provider.ts), and " +
+        "by tests anywhere. No widget, no other module, no other " +
         "foundation package and not the MCP server app: they get the engines the connector built " +
         "from the profiles, never the format. A relative escape into packages/core/profile is a " +
         "violation too.",

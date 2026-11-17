@@ -2,9 +2,10 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { afterAll, describe, expect, it } from "vitest"
-import { PROBLEM_CODES } from "@miragon/pulse-profile"
+import { type Dialect, DIALECT_AUTH_TYPES, PROBLEM_CODES } from "@miragon/pulse-profile"
 import { NOT_SERVED } from "./engine-profile-words.js"
-import { loadEngineProfiles, referencedVariables, SERVER_SURFACE } from "./engine-profiles.js"
+import { surfaceOf } from "./engine-profile-auth.js"
+import { loadEngineProfiles, referencedVariables } from "./engine-profiles.js"
 
 const A = "http://a.example/engine-rest"
 const B = "http://b.example/engine-rest"
@@ -69,14 +70,17 @@ describe("a profile maps onto the engine the transport connects to", () => {
     expect([refused, engineIds, profileCount]).toEqual([[], ["prod-a", "b", "c"], 3])
   })
 
-  it("serves the C7 dialect, four auth types, a url, the default process engine, no headers", () => {
-    expect(SERVER_SURFACE).toEqual({
-      dialects: ["c7"],
-      authTypes: ["none", "basic", "bearer", "passthrough"],
+  it("serves each dialect with its own auth types, a url, the default process engine, no headers", () => {
+    // How each profile is judged on them: here for Camunda 7, engine-profiles.c8.test.ts for Camunda 8.
+    const surface = (dialect: Dialect, authTypes: readonly string[]) => ({
+      dialects: [dialect],
+      authTypes,
       urlRequired: true,
       defaultEngineOnly: true,
       refusedKeys: ["headers"],
     })
+    expect(surfaceOf("c7")).toEqual(surface("c7", ["none", "basic", "bearer", "passthrough"]))
+    expect(surfaceOf("c8")).toEqual(surface("c8", ["none", "basic", "clientCredentials"]))
   })
 
   it("keeps cockpitUrl as written, blanks around it trimmed, where the format drops its tail", () => {
@@ -158,15 +162,6 @@ describe("a profile the server cannot use is refused on its own", () => {
     ],
     ["an unknown flavor", { url: B, flavor: "flowable" }, "flavor must be one of"],
     [
-      "a Camunda 8 profile",
-      {
-        url: "https://c8.example.com/v2",
-        flavor: "camunda8",
-        auth: { type: "clientCredentials", tokenEndpoint: "https://login.example.com/token" },
-      },
-      "This server does not speak the API of this flavor: it reads camunda7, cibseven and operaton.",
-    ],
-    [
       "client credentials on a Camunda 7 profile",
       { url: B, auth: { type: "clientCredentials", tokenEndpoint: "https://login.example.com/t" } },
       "auth.type does not fit the API of the flavor",
@@ -243,17 +238,19 @@ describe("a profile the server cannot use is refused on its own", () => {
     })
     for (const reason of reasons) expect(reason).not.toMatch(/client/i)
     expect(reasons.every((reason) => /\bthis server\b/i.test(reason))).toBe(true)
-    // The auth types it names are the ones it serves.
-    const [last, ...rest] = [...SERVER_SURFACE.authTypes].reverse()
-    expect(reasons[2]).toContain(`with ${rest.reverse().join(", ")} or ${last},`)
+    // The auth types it names are the ones it serves on the Camunda 7 REST API.
+    expect(reasons[2]).toContain("with none, basic, bearer or passthrough,")
   })
 
-  it("has its own words for every code a reader refuses a profile with", () => {
-    const readerCodes = PROBLEM_CODES.slice(PROBLEM_CODES.indexOf("dialect-not-served"))
+  it("has its own words for every code a reader refuses a profile with, in each dialect", () => {
+    // The server reads every dialect of the format, so no profile is refused for its dialect.
+    const readerCodes = PROBLEM_CODES.slice(PROBLEM_CODES.indexOf("dialect-not-served") + 1)
     expect(Object.keys(NOT_SERVED).sort()).toEqual([...readerCodes].sort())
     for (const words of Object.values(NOT_SERVED)) {
-      expect(words("headers", ["camunda7"])).toMatch(/\b[Tt]his server\b/)
-      expect(words(undefined, ["camunda7"])).not.toMatch(/client|undefined/)
+      for (const dialect of Object.keys(DIALECT_AUTH_TYPES) as Dialect[]) {
+        expect(words("headers", dialect)).toMatch(/\b[Tt]his server\b/)
+        expect(words(undefined, dialect)).not.toMatch(/client\b|undefined/)
+      }
     }
   })
 

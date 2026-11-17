@@ -12,8 +12,9 @@ import type { Client } from "@miragon/pulse-c7-client"
 import { C7Runtime } from "@miragon/pulse-c7-core/runtime"
 import { C8Runtime } from "@miragon/pulse-c8-core"
 import type { ProcessRuntime } from "@miragon/pulse-engine-core"
+import type { EngineAuth, EngineClientSettings, EngineEntry } from "../../engine-provider.js"
 import { enginePortFor } from "../core-adapter/engine-port.js"
-import type { C8Connection } from "./c8-connection.js"
+import { type C8Auth, type C8Connection, createC8Connection } from "./c8-connection.js"
 import { c8WordsOf } from "./c8-errors.js"
 import type { ContractRuntime, ResolvedContractEngine, ResolvedEngine } from "./resolve-engine.js"
 import { runtimeErrorOf } from "./runtime-errors.js"
@@ -39,4 +40,28 @@ export function runtimeOf(
 export function c8RuntimeOf(connection: C8Connection): ContractRuntime {
   const wordsOf = c8WordsOf(connection)
   return (signal) => C8Runtime.over(connection.transport(signal), { wordsOf })
+}
+
+/** The sign-in of a Camunda 8 engine: the profiles refuse every other auth type at configuration. */
+function c8AuthOf(engineId: string, auth: EngineAuth = { type: "none" }): C8Auth {
+  const { type } = auth
+  if (type === "none" || type === "basic" || type === "clientCredentials") return { ...auth, type }
+  throw new Error(
+    `Engine "${engineId}" is a Camunda 8 engine, which the server never signs in to with ${type}`,
+  )
+}
+
+/**
+ * The runtime of a configured engine of another dialect than the Camunda 7 REST API's, built once
+ * at boot (`createEngineRegistry`'s `contractRuntime`): today Camunda 8's, over a connection of
+ * its own with the profile's sign-in and deadline, else `settings`'.
+ */
+export function contractRuntimeOf(
+  entry: EngineEntry,
+  settings: Pick<EngineClientSettings, "timeoutMs"> = {},
+): ContractRuntime {
+  const auth = c8AuthOf(entry.id, entry.auth)
+  return c8RuntimeOf(
+    createC8Connection(entry, auth, { timeoutMs: entry.timeoutMs ?? settings.timeoutMs }),
+  )
 }

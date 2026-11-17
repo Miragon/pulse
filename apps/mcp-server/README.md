@@ -90,7 +90,7 @@ OAuth, write toolsets and deployment: [Operations](https://miragon.github.io/pul
 
 - claude.ai and ChatGPT reach only a public HTTPS URL, not `localhost`; Claude Desktop needs a
   bridge, as [Usage](https://miragon.github.io/pulse/mcp/usage#connect-your-assistant) shows.
-- Works with Operaton, CIB seven and Camunda 7, not with Camunda 8.
+- Works with Operaton, CIB seven and Camunda 7; a Camunda 8 cluster it shows on boards only.
 - Modules for your own systems next to Pulse's: [Build your own server](https://miragon.github.io/pulse/mcp/build-your-own).
 - Pulse also runs in your terminal and in VS Code: [Pulse](../../README.md).
 

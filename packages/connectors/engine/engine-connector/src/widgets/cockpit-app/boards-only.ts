@@ -1,8 +1,9 @@
 import type { CockpitEngineInfo, EngineDialect } from "../../view-models.js"
+import type { ListedBoard } from "../../view-models.board.js"
 
 /**
  * An engine as the cockpit lists it: its id and environment, and what the start data of
- * `engine_open_cockpit` says of its dialect, which the engine list does not.
+ * `engine_open_cockpit` or the engine list says of its dialect.
  */
 export type CockpitEngine = Pick<CockpitEngineInfo, "id" | "dialect" | "webAppUrl" | "boards"> & {
   environment?: string
@@ -45,15 +46,26 @@ export function readsWhole(engine: CockpitEngine): boolean {
   return boardsOnlyOf(engine) === null
 }
 
-/** The dialect facts of the start data, by id: the engine list names an engine without them. */
+/** An engine as `engine_list_engines` names it: its dialect, and its web app as written. */
+export interface ListedEngineFacts {
+  id: string
+  dialect?: EngineDialect
+  cockpitUrl?: string
+}
+
+/**
+ * What the engine list says of an engine's dialect, as the start data says it: another dialect's
+ * web app (the profile's `cockpitUrl`, which the profile format holds to http(s)) and the ids of
+ * the listed boards that name it. Nothing for a refused profile, whose dialect is unread.
+ */
 export function dialectFactsOf(
-  engine: CockpitEngine | undefined,
+  { id, dialect, cockpitUrl }: ListedEngineFacts,
+  boards: readonly ListedBoard[],
 ): Pick<CockpitEngine, "dialect" | "webAppUrl" | "boards"> {
-  if (engine?.dialect === undefined) return {}
-  const { dialect, webAppUrl, boards } = engine
+  if (dialect === undefined || dialect === "c7") return dialect === undefined ? {} : { dialect }
   return {
     dialect,
-    ...(webAppUrl === undefined ? {} : { webAppUrl }),
-    ...(boards === undefined ? {} : { boards }),
+    ...(cockpitUrl === undefined ? {} : { webAppUrl: cockpitUrl }),
+    boards: boards.filter(({ engines }) => engines.includes(id)).map((board) => board.id),
   }
 }

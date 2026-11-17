@@ -44,6 +44,7 @@ export function registerEngineTools(
           return {
             id: e.id,
             environment: environmentOf(e),
+            dialect: provider.dialect,
             flavor: provider.flavor,
             engineName: provider.branding.displayName,
             ...(e.cockpitUrl ? { cockpitUrl: e.cockpitUrl } : {}),

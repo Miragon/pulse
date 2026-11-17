@@ -21,9 +21,9 @@ afterEach(cleanup)
 
 /**
  * An engine of another dialect (Camunda 8), which the server reads on boards only: the start data
- * names its dialect, its web app and the boards that name it. Each of its routes is ONE state that
- * reads nothing, its landing row reads nothing and shows no verdict, and the cross-engine view
- * leaves it out and names it.
+ * and the engine list name its dialect, its web app and the boards that name it. Each of its
+ * routes is ONE state that reads nothing, its landing row reads nothing and shows no verdict, and
+ * the cross-engine view leaves it out and names it.
  */
 
 const C7 = { id: "prod-a", environment: "default", dialect: "c7" } as const
@@ -36,7 +36,29 @@ const ON_BOARDS: CockpitEngineInfo = {
 }
 const ON_NO_BOARD: CockpitEngineInfo = { id: "orders-c8", environment: "default", dialect: "c8" }
 
-const INVOICES = { id: "invoices", title: "Invoices", engines: ["prod-a", "orders-c8"] }
+interface Board {
+  id: string
+  title: string
+  engines: string[]
+}
+
+/** The server's one board: it names prod-a and every engine whose start data says it does. */
+const invoicesOver = (engines: readonly CockpitEngineInfo[]): Board => ({
+  id: "invoices",
+  title: "Invoices",
+  engines: [
+    "prod-a",
+    ...engines.filter(({ boards }) => boards?.includes("invoices")).map(({ id }) => id),
+  ],
+})
+
+/** An engine as engine_list_engines names it: its dialect, and its web app as written. */
+const listedOf = ({ id, environment, dialect, webAppUrl }: CockpitEngineInfo) => ({
+  id,
+  environment,
+  ...(dialect === undefined ? {} : { dialect }),
+  ...(webAppUrl === undefined ? {} : { cockpitUrl: webAppUrl }),
+})
 
 /** Stable: the test host memoizes on it. Fullscreen shows the head and the trail apart. */
 const FULLSCREEN = { displayMode: "fullscreen" } as const
@@ -48,23 +70,26 @@ const overviewOf = (args: Record<string, unknown>) => ({
 })
 
 /**
- * The cockpit over `engines` as `engine_open_cockpit` hands them over, its engine list naming
- * neither their dialect nor more than id and environment, as today's does.
+ * The cockpit over `engines` as `engine_open_cockpit` hands them over (`started`: the start data
+ * names only those), its engine list naming each with its dialect and web app, as the server's
+ * does.
  */
 function renderCockpit({
   engines,
+  started = engines,
   engineId = null,
-  boards = [INVOICES],
+  boards = [invoicesOver(engines)],
   locale,
 }: {
   engines: CockpitEngineInfo[]
+  started?: CockpitEngineInfo[]
   engineId?: string | null
-  boards?: Array<typeof INVOICES>
+  boards?: Board[]
   locale?: string
 }) {
   const actions: HostAction[] = []
   const contexts: string[] = []
-  const data: CockpitAppData = { engineId, engines, start: null }
+  const data: CockpitAppData = { engineId, engines: started, start: null }
   render(
     <TestViewHost
       client={createTestQueryClient()}
@@ -74,7 +99,7 @@ function renderCockpit({
       onModelContext={(text) => contexts.push(text)}
       tools={{
         [ENGINE_LIST_ENGINES]: () => ({
-          engines: engines.map(({ id, environment }) => ({ id, environment })),
+          engines: engines.map(listedOf),
           environments: [],
           defaultEngineId: null,
           ...(boards.length > 0 ? { boards } : {}),
@@ -161,6 +186,18 @@ describe("an engine the server reads on boards only: its routes' one state", () 
     expect(screen.queryByRole("list", { name: /^Boards that name/ })).toBeNull()
     expect(screen.queryByRole("link", { name: /Operate/ })).toBeNull()
     await waitFor(() => expect(contexts.at(-1)).toContain("boardCount=0"))
+  })
+
+  it("is known from the engine list alone, in a cockpit without start data", async () => {
+    const { readsOf } = renderCockpit({ engines: [C7, ON_BOARDS], started: [] })
+    const row = await landingRow(/^orders-c8\s*,\s*Camunda 8, on boards$/)
+    fireEvent.click(row)
+    expect(gate()).toBeTruthy()
+    expect(screen.getByRole("link", { name: /^Open in Operate/ }).getAttribute("href")).toBe(
+      "https://operate.example/operate",
+    )
+    expect(screen.getByRole("list", { name: "Boards that name orders-c8" })).toBeTruthy()
+    expect(readsOf("orders-c8")).toEqual([])
   })
 
   it("alone on a server without boards, it opens at once and offers no way back", () => {

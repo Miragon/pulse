@@ -50,8 +50,9 @@ describe("the shared profile fixtures", () => {
         ])
       }),
     )
+    // The codes of a reader's own rules: what it cannot serve, and its token endpoint's fragment.
     const readers = PROBLEM_CODES.filter(
-      (code) => code.endsWith("-served") || code === "url-missing",
+      (code) => code.endsWith("-served") || code === "url-missing" || code === "url-fragment",
     )
     expect(PROBLEM_CODES.filter((code) => !earned.has(code) && !readers.includes(code))).toEqual([])
   })

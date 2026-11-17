@@ -1,3 +1,6 @@
+import fs from "node:fs"
+import os from "node:os"
+import path from "node:path"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
 import { BoardParser } from "@miragon/pulse-board"
@@ -5,6 +8,7 @@ import { FakeEngine as ContractFake, FakeWorld } from "@miragon/pulse-engine-cor
 import type { EngineBoard } from "./board-files.js"
 import { COCKPIT_ROUTES } from "./data/routes.js"
 import { type ContractRuntime, createEngineRegistry } from "./lib/engine/resolve-engine.js"
+import { engineModule } from "./module.js"
 import { createPlugin, type EnginePluginConfig } from "./plugin.js"
 import { providerForEntry } from "./providers/index.js"
 import {
@@ -120,12 +124,16 @@ describe("createPlugin on an engine of another dialect", () => {
     const list = JSON.parse(
       (await recording.tool(ENGINE_LIST_ENGINES).call({})).content[0].text,
     ) as { engines: unknown[] }
-    expect(list.engines).toContainEqual({
-      id: "c8",
-      environment: "default",
-      flavor: "camunda8",
-      engineName: "Camunda 8",
-    })
+    expect(list.engines).toEqual([
+      expect.objectContaining({ id: "a", dialect: "c7" }),
+      {
+        id: "c8",
+        environment: "default",
+        dialect: "c8",
+        flavor: "camunda8",
+        engineName: "Camunda 8",
+      },
+    ])
     const actions = feedPayload<{ readOnlyEngines: string[] }>(
       await recording.tool(ENGINE_WIDGET_ACTIONS_DATA).call({}),
     )
@@ -189,6 +197,64 @@ describe("createPlugin on an engine of another dialect", () => {
     const landing = await recording.tool(ENGINE_OPEN_COCKPIT).call({ view: "landing" })
     expect(landing.structuredContent).toMatchObject({
       start: { view: { section: "landing" }, data: { boards: [{ id: "orders" }] } },
+    })
+  })
+})
+
+/**
+ * The same seam from the module's own configuration: Camunda 8 profiles of ENGINES_JSON and a
+ * board of ENGINE_BOARDS_DIR that names one of them. Nothing is sent: every call here refuses or
+ * reads no engine.
+ */
+describe("createPlugin over Camunda 8 profiles and the boards that name them", () => {
+  const dirs: string[] = []
+  afterEach(() => {
+    for (const dir of dirs.splice(0)) fs.rmSync(dir, { recursive: true, force: true })
+  })
+
+  /** The plugin `configFromEnv` configures: `c8` on the board `orders`, `lone` on none. */
+  function bootFromEnv() {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pulse-c8-boards-"))
+    dirs.push(dir)
+    fs.writeFileSync(
+      path.join(dir, "orders.board.json"),
+      JSON.stringify({ title: "Orders", engines: ["c8"], rows: [{ row: [{ widget: "chart" }] }] }),
+    )
+    const config = engineModule.configFromEnv({
+      ENGINES_JSON: JSON.stringify({
+        defaultProfile: "c8",
+        profiles: {
+          c8: { url: "https://c8.example/v2", flavor: "camunda8" },
+          lone: { url: "https://lone.example/v2", flavor: "camunda8" },
+        },
+      }),
+      ENGINE_BOARDS_DIR: dir,
+    })
+    const recording = recordingModuleServer()
+    engineModule.createPlugin(config).register(recording.server)
+    return recording
+  }
+
+  it("names the boards of each engine in its refusal and in the cockpit's engines", async () => {
+    const recording = bootFromEnv()
+    const status = async (engine: string) =>
+      (await recording.tool("engine_status").call({ engine })).content
+        .map((part) => ("text" in part ? part.text : ""))
+        .join("")
+    expect(await status("c8")).toContain(
+      "This server reads a Camunda 8 engine on boards only: engine_list_engines lists the boards that name it, and engine_open_cockpit with view board shows one.",
+    )
+    expect(await status("lone")).toContain(
+      'This server reads a Camunda 8 engine on boards only, and no board names "lone" yet;',
+    )
+    const picker = await recording.tool(ENGINE_OPEN_COCKPIT).call({})
+    expect(picker.structuredContent).toEqual({
+      engineId: null,
+      engines: [
+        { id: "c8", environment: "default", dialect: "c8", boards: ["orders"] },
+        { id: "lone", environment: "default", dialect: "c8", boards: [] },
+      ],
+      start: null,
     })
   })
 })

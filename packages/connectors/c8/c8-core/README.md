@@ -95,7 +95,10 @@ on the transport's recorded engine (`startRecordedEngine` of
 `@miragon/pulse-http/testing/loopback`) and must build exactly that board, so a board shows the same
 numbers on every surface without a cluster; the C8 adapter does
 (`packages/connectors/c8/c8-adapter/test/c8-board-numbers.test.ts`), which also holds the board's
-numbers to those of the kit's fake world, as the recorded Camunda 7 board's are. A request the
+numbers to those of the kit's fake world, as the recorded Camunda 7 board's are, and so does the
+MCP server's board feed over its own Camunda 8 wire
+(`packages/connectors/engine/engine-connector/src/data/board-data.numbers.test.ts`), which leaves
+each answer out in turn too, so the board shows that read's failure in its place and never a 0. A request the
 runtime changes misses its answer and is named. No script of the repository records the answers,
 so they are recorded by hand, as they were the first time: start that cluster with the C8
 adapter's `startCluster` (`packages/connectors/c8/c8-adapter/test/support/engine-container.ts`,

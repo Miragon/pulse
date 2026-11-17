@@ -148,7 +148,8 @@ same builder over each engine's `C7Runtime` and serializes it with `BoardJson.of
 per caller and board, and the cockpit's `board` route renders the tiles of `@miragon/pulse-blocks`
 with its own table, id and diagram; a tile opens one of the cockpit's routes. c7-core's recorded
 answers (`C7_BOARD_ENGINE`) hold both wires to one board, and the board cases of both engine suites
-read it on a live engine.
+read it on a live engine; c8-core's (`C8_BOARD_ENGINE`) hold the C8 adapter and the server's
+Camunda 8 wire to one board too.
 
 ## Consequences
 

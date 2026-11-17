@@ -49,7 +49,7 @@ import {
 } from "@miragon/pulse-engine-core/testing"
 import { buildBoardData } from "../../data/board-data.js"
 import { buildProcessInstancesData } from "../../data/cockpit-data.js"
-import type { EngineFlavor } from "../../engine-provider.js"
+import type { C7Flavor } from "../../engine-provider.js"
 import { providerForEntry } from "../../providers/index.js"
 import { createEngineConnection } from "../engine/engine-connection.js"
 import { runtimeOf } from "../engine/engine-runtime.js"
@@ -166,7 +166,7 @@ async function seedWorld(url: string): Promise<SeededWorld> {
 }
 
 /** The vendor of the engine image, as a profile names it: CIB seven's or Operaton's. */
-const ENGINE_FLAVOR: EngineFlavor = ENGINE_IMAGE.startsWith("cibseven/") ? "cibseven" : "operaton"
+const ENGINE_FLAVOR: C7Flavor = ENGINE_IMAGE.startsWith("cibseven/") ? "cibseven" : "operaton"
 
 /** The runtime the MCP server runs on the engine at `baseUrl`, over its SDK wire. */
 function runtimeAt(id: string, baseUrl: string): ProcessRuntime {

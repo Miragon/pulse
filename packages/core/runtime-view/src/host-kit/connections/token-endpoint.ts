@@ -1,31 +1,23 @@
-const WEB_PROTOCOLS: ReadonlySet<string> = new Set(["http:", "https:"])
+import { tokenEndpointUrlProblem, type TokenEndpointUrlProblemCode } from "@miragon/pulse-profile"
 
 type TokenEndpointRead = { readonly url: string } | { readonly refused: string }
 
 export class TokenEndpoint {
-  static readonly EXAMPLE = "https://login.example.com/oauth/token"
+  private static readonly EXAMPLE = "https://login.example.com/oauth/token"
+
+  private static readonly RULES: Readonly<Record<TokenEndpointUrlProblemCode, string>> = {
+    "url-invalid": `is no URL: use a URL such as ${TokenEndpoint.EXAMPLE}`,
+    "url-credentials":
+      "must not contain credentials (they are not shown): Pulse sends the client ID and secret itself",
+    "url-not-http": "must start with http:// or https://",
+    "url-fragment": "must not contain a fragment",
+  }
 
   static read(written: string): TokenEndpointRead {
     const url = written.trim()
-    if (!URL.canParse(url)) {
-      return TokenEndpoint.refused(`is no URL: use a URL such as ${TokenEndpoint.EXAMPLE}`)
-    }
-    const parsed = new URL(url)
-    if (parsed.username !== "" || parsed.password !== "") {
-      return TokenEndpoint.refused(
-        "must not contain credentials (they are not shown): Pulse sends the client ID and secret itself",
-      )
-    }
-    if (!WEB_PROTOCOLS.has(parsed.protocol)) {
-      return TokenEndpoint.refused("must start with http:// or https://")
-    }
-    if (parsed.hash !== "" || url.endsWith("#")) {
-      return TokenEndpoint.refused("must not contain a fragment")
-    }
-    return { url }
-  }
-
-  private static refused(rule: string): TokenEndpointRead {
-    return { refused: `auth.tokenEndpoint ${rule}.` }
+    const problem = tokenEndpointUrlProblem(url)
+    return problem === undefined
+      ? { url }
+      : { refused: `auth.tokenEndpoint ${TokenEndpoint.RULES[problem]}.` }
   }
 }

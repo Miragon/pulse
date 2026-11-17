@@ -263,7 +263,9 @@ view moves onto shared numbers. For boards c7-core's recorded answers (`C7_BOARD
 wires to one board: the C7 adapter builds it
 (`packages/connectors/c7/c7-adapter/test/c7-board-numbers.test.ts`) as the MCP server's board feed
 does (`packages/connectors/engine/engine-connector/src/data/board-data.numbers.test.ts`), and the
-board cases of both engine suites read it on a live engine. The board format and the board builder
+board cases of both engine suites read it on a live engine; c8-core's (`C8_BOARD_ENGINE`) hold the C8
+adapter and the MCP server's Camunda 8 wire to one board the same way, without a live case yet. The
+board format and the board builder
 go into a published package, `@miragon/pulse-board` (`packages/core/board`), which holds both since
 2026-11-15: the builder (`@miragon/pulse-board/builder`) reads seven reads of the contract into a
 model of no text, and the runtime view renders it. "With incident" reads one way in the C7 adapter's

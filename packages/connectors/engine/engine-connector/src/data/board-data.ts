@@ -85,14 +85,21 @@ export function boardOf(files: BoardFiles | undefined, id: string): EngineBoard 
 
 /**
  * A failed engine's failure: a refused profile's code with the text a tool call to it gives, else
- * the engine contract's failure kind of the read with its message.
+ * the engine contract's failure kind of the read with its message and the hint it carries (what
+ * to do about a Camunda 8 cluster's refusal, say).
  */
 function failureOf(error: unknown): FailureData {
   if (error instanceof EngineProfileRefusedError) {
     return { code: error.code, message: `[${error.code}] ${error.message}` }
   }
-  const message = error instanceof Error ? error.message : String(error)
-  return { code: RuntimeError.is(error) ? error.failure : "unexpectedResponse", message }
+  if (RuntimeError.is(error)) {
+    const { failure, message, hint } = error
+    return { code: failure, message: hint === undefined ? message : `${message} ${hint}` }
+  }
+  return {
+    code: "unexpectedResponse",
+    message: error instanceof Error ? error.message : String(error),
+  }
 }
 
 /** What the board builder reads of the engine `name`: its reads, a refusal, or nothing. */

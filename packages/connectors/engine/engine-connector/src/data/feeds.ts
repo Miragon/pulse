@@ -165,10 +165,7 @@ const bpmnXmlFeed = contractFeed({
   description:
     "Internal JSON feed (no UI): one deployed process definition's BPMN 2.0 XML, by id, which every diagram in the views draws. Use engine_get_process_definition_xml for the XML itself.",
   shape: {
-    processDefinitionId: z
-      .string()
-      .min(1)
-      .describe("The deployed version's id (key:version:deployment)."),
+    processDefinitionId: z.string().min(1).describe("The deployed version's id."),
   },
   engines: "contract",
   read: async ({ processDefinitionId }, engine) => ({

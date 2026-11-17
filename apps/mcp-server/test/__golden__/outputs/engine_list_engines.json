@@ -12,6 +12,7 @@
           "    {",
           "      \"id\": \"prod-eu\",",
           "      \"environment\": \"prod\",",
+          "      \"dialect\": \"c7\",",
           "      \"flavor\": \"cibseven\",",
           "      \"engineName\": \"CIB seven\",",
           "      \"cockpitUrl\": \"https://ops.example.com/camunda/app/cockpit/default/\"",
@@ -19,6 +20,7 @@
           "    {",
           "      \"id\": \"test\",",
           "      \"environment\": \"test\",",
+          "      \"dialect\": \"c7\",",
           "      \"flavor\": \"operaton\",",
           "      \"engineName\": \"Operaton\"",
           "    }",
@@ -48,12 +50,14 @@
       "engines": [
         {
           "cockpitUrl": "https://ops.example.com/camunda/app/cockpit/default/",
+          "dialect": "c7",
           "engineName": "CIB seven",
           "environment": "prod",
           "flavor": "cibseven",
           "id": "prod-eu"
         },
         {
+          "dialect": "c7",
           "engineName": "Operaton",
           "environment": "test",
           "flavor": "operaton",

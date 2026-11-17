@@ -12,7 +12,6 @@
  * endpoint's answer the token source). c8-errors.ts words them for the model.
  */
 
-import { USER_AGENT } from "@miragon/pulse-c7-client"
 import type {
   CamundaAnsweredFailure,
   CamundaFailure,
@@ -43,6 +42,7 @@ import type {
 } from "../../engine-provider.js"
 import { credentialFor, SERVER_PLATFORM } from "./credentials.js"
 import { DEFAULT_ENGINE_TIMEOUT_MS } from "./engine-connection.js"
+import { USER_AGENT } from "./user-agent.js"
 
 /** How the server signs in to a Camunda 8 cluster: not at all, Basic, or client credentials. */
 export type C8AuthType = Extract<EngineAuthType, "none" | "basic" | "clientCredentials">

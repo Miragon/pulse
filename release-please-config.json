@@ -52,6 +52,10 @@
           "path": "packages/connectors/c7/c7-client/src/hey-api.ts"
         },
         {
+          "type": "generic",
+          "path": "packages/connectors/engine/engine-connector/src/lib/engine/user-agent.ts"
+        },
+        {
           "type": "json",
           "path": "packages/connectors/c7/c7-core/package.json",
           "jsonpath": "$.version"

@@ -124,6 +124,35 @@ describe("tools/list golden contract per toolset", () => {
     }
   })
 
+  // A Camunda 8 engine adds one sentence to the instructions: what reads it, what refuses it. The
+  // golden boots configure none, so a second boot measures what the sentence adds, held by its own
+  // shrink-only budget as the toolsets' are: the same engine id, once of each dialect.
+  it("pins the characters a Camunda 8 engine adds to the instructions (instructions-camunda8)", async () => {
+    const instructionsOf = async (flavor: string, url: string) => {
+      const server = await bootServer({
+        env: {
+          ENGINE_BASE_URL: undefined,
+          ENGINES_JSON: JSON.stringify({ profiles: { default: { url, flavor } } }),
+        },
+      })
+      try {
+        const instructions = server.client.getInstructions() ?? ""
+        const { tools } = await server.client.listTools()
+        expect(namedButNotVisible(instructions, tools, 5)).toEqual([])
+        return instructions
+      } finally {
+        await server.close()
+      }
+    }
+    const c7 = await instructionsOf("camunda7", "http://localhost:1/engine-rest")
+    const c8 = await instructionsOf("camunda8", "http://localhost:1/v2")
+    const added = c8.split("\n").filter((line) => !c7.split("\n").includes(line))
+    expect(added).toHaveLength(1)
+    expect(added[0]).toMatch(/^- Camunda 8 engines .*ENGINE_DIALECT_NOT_SERVED/)
+    expect(c8.replace(`${added[0]}\n`, "")).toBe(c7)
+    assertCharBudget("instructions-camunda8", c8.length - c7.length)
+  })
+
   it("reports the package.json version, a title and the instructions in module order", async () => {
     const server = await bootServer()
     try {

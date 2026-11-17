@@ -20,6 +20,11 @@ export interface EngineInstructionsInput {
    * engine_list_engines names them, so the rules stay the same size however many there are.
    */
   hasBoards?: boolean
+  /**
+   * Whether an engine of another dialect is configured (Camunda 8), which only boards read: then
+   * the rules say where it shows and that every other tool refuses it.
+   */
+  hasBoardsOnlyEngines?: boolean
 }
 
 function routingRule({ engineIds, profileCount, defaultEngine }: EngineInstructionsInput): string {
@@ -120,6 +125,11 @@ const BOARD_RULE =
   "id shows one to the user, read from the engines the board names; its facts are that board's " +
   "numbers."
 
+/** Only on a server with a Camunda 8 engine: what reads it, what refuses it. */
+const BOARDS_ONLY_RULE =
+  "- Camunda 8 engines (dialect c8 in engine_list_engines) show on boards only (engine_open_cockpit " +
+  "with view board); every other tool refuses them with ENGINE_DIALECT_NOT_SERVED and sends nothing."
+
 export function engineInstructions(input: EngineInstructionsInput): string {
   return [
     "engine (the Camunda 7 REST API of Camunda 7, CIB seven and Operaton):",
@@ -143,6 +153,7 @@ export function engineInstructions(input: EngineInstructionsInput): string {
     // Which tool answers "how is the engine": the triage for the model, the cockpit for the user.
     "- Engine state: engine_status triages, engine_open_cockpit shows the user.",
     ...(input.hasBoards === true ? [BOARD_RULE] : []),
+    ...(input.hasBoardsOnlyEngines === true ? [BOARDS_ONLY_RULE] : []),
     HAND_OFF_RULE,
     remediationRule(input.toolset),
   ].join("\n")

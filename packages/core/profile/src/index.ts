@@ -47,6 +47,8 @@ export {
   isLoopbackHost,
   normalizeCockpitUrl,
   normalizeUrl,
+  tokenEndpointUrlProblem,
+  type TokenEndpointUrlProblemCode,
   urlProblem,
   type UrlProblemCode,
 } from "./url.js"

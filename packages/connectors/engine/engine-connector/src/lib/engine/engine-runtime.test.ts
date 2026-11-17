@@ -3,9 +3,7 @@ import { C7Runtime } from "@miragon/pulse-c7-core/runtime"
 import { C8Runtime } from "@miragon/pulse-c8-core"
 import { DefinitionId } from "@miragon/pulse-engine-core"
 import { FakeEngine as ContractFake, FakeWorld } from "@miragon/pulse-engine-core/testing"
-import { flavorsOf } from "@miragon/pulse-profile"
-import { isC7Flavor } from "../../engine-provider.js"
-import { SERVER_SURFACE } from "../../engine-profiles.js"
+import { type Flavor, FLAVORS } from "@miragon/pulse-profile"
 import { providerForEntry } from "../../providers/index.js"
 import {
   clientFor,
@@ -15,14 +13,14 @@ import {
 } from "../../tools/test-support/fake-engine.js"
 import { createC8Connection } from "./c8-connection.js"
 import { createEngineConnection } from "./engine-connection.js"
-import { c8RuntimeOf, runtimeOf } from "./engine-runtime.js"
+import { c8RuntimeOf, contractRuntimeOf, runtimeOf } from "./engine-runtime.js"
 import {
   type ContractRuntime,
   createEngineRegistry,
   resolveRuntimeEngine,
 } from "./resolve-engine.js"
 import { c8Platform, CLUSTER, hang, json, problem } from "./test-support/c8-platform.js"
-import { closedPortUrl } from "./test-support/raw-engine.js"
+import { closedPortUrl, startRawEngine } from "./test-support/raw-engine.js"
 
 const engines: FakeEngine[] = []
 afterEach(async () => {
@@ -43,23 +41,18 @@ async function runtimeWith(routes: FakeRoutes) {
 const sent = (engine: FakeEngine) => engine.requests.map(({ method, path }) => `${method} ${path}`)
 
 describe("runtimeOf: the engine contract's runtime of an engine the server resolved", () => {
-  it("serves every flavor of every dialect the server reads, the Camunda 7 REST API's by C7Runtime", () => {
-    expect(SERVER_SURFACE.dialects).toEqual(["c7"])
+  it("serves every flavor of the format, of either dialect: C7Runtime, else C8Runtime", () => {
     const client = createEngineConnection(
       { id: "e", baseUrl: "http://e/engine-rest" },
       { type: "none" },
     )
-    for (const dialect of SERVER_SURFACE.dialects) {
-      const flavors = flavorsOf(dialect)
-      expect(flavors.length, dialect).toBeGreaterThan(0)
-      for (const flavor of flavors.filter(isC7Flavor)) {
-        const provider = providerForEntry({ id: "e", flavor })
-        expect(runtimeOf({ client, provider }), flavor).toBeInstanceOf(C7Runtime)
-      }
-      expect(
-        flavors.filter((flavor) => !isC7Flavor(flavor)),
-        dialect,
-      ).toEqual([])
+    for (const flavor of Object.keys(FLAVORS) as Flavor[]) {
+      const entry = { id: "e", baseUrl: "https://e.example/v2", flavor }
+      const runtime =
+        FLAVORS[flavor] === "c7"
+          ? runtimeOf({ client, provider: providerForEntry(entry) })
+          : contractRuntimeOf(entry)()
+      expect(runtime, flavor).toBeInstanceOf(FLAVORS[flavor] === "c7" ? C7Runtime : C8Runtime)
     }
   })
 
@@ -221,4 +214,55 @@ describe("c8RuntimeOf: the runtime of a Camunda 8 engine, per call", () => {
       message: "request to engine c8 was cancelled by the caller",
     })
   })
+})
+
+describe("contractRuntimeOf: a configured Camunda 8 engine's runtime, built at boot", () => {
+  const entry = { id: "c8", baseUrl: CLUSTER, flavor: "camunda8" as const }
+
+  it("signs in as its profile says, with nothing when it says nothing, and sends nothing yet", () => {
+    for (const auth of [
+      undefined,
+      { type: "basic" as const, username: "demo", password: "demo" },
+      {
+        type: "clientCredentials" as const,
+        tokenEndpoint: "https://login.example.com/token",
+        clientId: "pulse",
+        clientSecret: "s3cret",
+      },
+    ]) {
+      expect(contractRuntimeOf({ ...entry, auth }, { timeoutMs: 5_000 })()).toBeInstanceOf(
+        C8Runtime,
+      )
+    }
+  })
+
+  it("ends a read at the profile's deadline, else at the server's", async () => {
+    // A cluster that takes each request and never answers; any other path it answers at once.
+    const cluster = await startRawEngine({ "GET /topology": () => undefined })
+    try {
+      const own = contractRuntimeOf(
+        { ...entry, baseUrl: cluster.baseUrl, timeoutMs: 40 },
+        { timeoutMs: 2_000 },
+      )
+      await expect(own().describeEngine()).rejects.toMatchObject({
+        failure: "unreachable",
+        message: "engine c8 did not respond within 40 ms (timeout)",
+      })
+      const servers = contractRuntimeOf({ ...entry, baseUrl: cluster.baseUrl }, { timeoutMs: 30 })
+      await expect(servers().describeEngine()).rejects.toMatchObject({
+        message: "engine c8 did not respond within 30 ms (timeout)",
+      })
+    } finally {
+      await cluster.close()
+    }
+  })
+
+  it.each(["bearer", "passthrough"] as const)(
+    "refuses %s, which the profiles never let through to a Camunda 8 engine",
+    (type) => {
+      expect(() => contractRuntimeOf({ ...entry, auth: { type, token: "t" } })).toThrow(
+        `Engine "c8" is a Camunda 8 engine, which the server never signs in to with ${type}`,
+      )
+    },
+  )
 })

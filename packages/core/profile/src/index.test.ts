@@ -51,6 +51,7 @@ describe("the @miragon/pulse-profile entries", () => {
         "normalizeUrl",
         "parseProfileFile",
         "refusalsOn",
+        "tokenEndpointUrlProblem",
         "urlProblem",
       ].sort(),
     )

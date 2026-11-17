@@ -441,10 +441,18 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
    engines. The engines are profiles of `@miragon/pulse-profile` (`src/engine-profiles.ts`): a
    profile the server cannot use is refused on its own (the boot warns, `engine_list_engines`
    lists it under `refused`), and a call to it, a default on it included, fails with
-   `ENGINE_PROFILE_REFUSED`, never rerouted. `resolveEngine` serves the Camunda 7 REST API alone:
+   `ENGINE_PROFILE_REFUSED`, never rerouted. A `camunda8` profile is served with none, Basic or
+   `clientCredentials` (its secret only from the `ENGINE_SECRET_*` variable
+   `auth.clientSecretEnv` names; its token endpoint by the format's `tokenEndpointUrlProblem`); a
+   fixed bearer token on it, and a credential it would send over plain http beyond loopback (its
+   `url` or its token endpoint), refuse the profile; the single engine's variables stay Camunda
+   7's (`ENGINE_FLAVOR=camunda8` fails the boot). `resolveEngine` serves the Camunda 7 REST API alone:
    an engine of another dialect (a backend of the registry by dialect) fails with
    `ENGINE_DIALECT_NOT_SERVED` after the refused-profile check and before `ENGINE_READ_ONLY`, so
-   before anything is sent, never rerouted; `resolveRuntimeEngine`, by the same precedence, serves
+   before anything is sent, never rerouted (`apps/mcp-server/test/dialect-refusal.e2e.test.ts`
+   calls every tool and feed of the admin golden on a Camunda 8 engine with valid arguments and
+   counts no request at the cluster or its token endpoint; a new tool fails there until it is
+   classified); `resolveRuntimeEngine`, by the same precedence, serves
    what reads through the engine contract in either dialect (a board's engines,
    `engine_bpmn_xml_data`, a contract feed of `src/data/feeds.ts`). There is deliberately NO
    per-user or in-memory selection (replica-unsafe; the server is stateless, one `McpServer`
@@ -778,9 +786,11 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      (`packages/connectors/engine/engine-connector/src/lib/core-adapter/c7-runtime.engine.test.ts`,
      `packages/connectors/c7/c7-adapter/test/c7-conformance.engine.test.ts`). Camunda 8 has its
      own: c8-core's recorded answers with the board they give (`C8_BOARD_ENGINE`, the diagram's
-     XML a recorded text), which the C8 adapter over its wire must build exactly and whose numbers
-     are the conformance kit's fake world's, as the C7 board's are
-     (`packages/connectors/c8/c8-adapter/test/c8-board-numbers.test.ts`).
+     XML a recorded text), which the board feed over the server's Camunda 8 wire (the same
+     board-data.numbers.test.ts, rendered in en and de by the same board-view.numbers.test.tsx,
+     each answer left out in turn by `src/data/honest-numbers.degrade.test.ts`) and the C8 adapter
+     over its wire must build exactly and whose numbers are the conformance kit's fake world's, as
+     the C7 board's are (`packages/connectors/c8/c8-adapter/test/c8-board-numbers.test.ts`).
    - **Locale on the server.** Tool results for the model are English only (the engine module's
      cockpit facts are JSON keys); a
      verdict travels as data and the widget words it in the host's language. The server never
@@ -1240,8 +1250,9 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
   `pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server golden:update` (refused in CI);
   never hand-edit a golden. `__golden__/char-budgets.json` pins each toolset's model-visible
   size, the tools/list text plus the server instructions sent at initialize (text moved into
-  the instructions still counts), shrink-only: a change that makes the model read MORE text
-  needs a `Ratchet-Exception:` trailer.
+  the instructions still counts), and as `instructions-camunda8` the sentence the instructions
+  add only where a Camunda 8 engine is configured (measured on a second boot), shrink-only: a
+  change that makes the model read MORE text needs a `Ratchet-Exception:` trailer.
 - **What an engine read gives and how it fails is a golden on every interface.** Against
   loopback engines (real sockets, the real `fetch`), the MCP server's
   `apps/mcp-server/test/engine-goldens/` pins `engine_list_engines`, `engine_status` and
@@ -1320,9 +1331,11 @@ workspace (its header lists each check).
 
 - **One release-please train.** Conventional commits on `main` drive `release-please.yml`: one
   Release PR (tag `v<version>`) bumps the root, every app, the eleven packages, the three private
-  packages the editor hosts bundle, the Orca plugin's manifest, the template's pins and the
-  c7-client User-Agent in lockstep (`extra-files` in `release-please-config.json`, where
-  `pnpm lint:github` refuses a `@miragon/pulse-*` pin under `templates/` without its jsonpath).
+  packages the editor hosts bundle, the Orca plugin's manifest, the template's pins, the
+  c7-client User-Agent and the engine connector's own, which its Camunda 8 wire sends
+  (`packages/connectors/engine/engine-connector/src/lib/engine/user-agent.ts`), in lockstep
+  (`extra-files` in `release-please-config.json`, where `pnpm lint:github` refuses a
+  `@miragon/pulse-*` pin under `templates/` without its jsonpath).
   Merging it creates the release; every publish job then waits for manual approval of the
   `release` environment gate.
 - **npm:** the eleven packages and `@miragon/pulse-cli` publish through

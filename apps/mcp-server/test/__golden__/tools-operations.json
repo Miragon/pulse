@@ -155,7 +155,7 @@
           "type": "string"
         },
         "processDefinitionId": {
-          "description": "The deployed version's id (key:version:deployment).",
+          "description": "The deployed version's id.",
           "minLength": 1,
           "type": "string"
         }

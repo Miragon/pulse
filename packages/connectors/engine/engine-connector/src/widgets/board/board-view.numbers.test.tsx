@@ -1,14 +1,16 @@
 // @vitest-environment happy-dom
 /**
- * The same numbers on both surfaces, rendered: the board c7-core's recorded board engine expects,
- * the one the board feed gives over the server's wire (data/board-data.numbers.test.ts) and the
- * editors' C7 adapter builds over its own, through the blocks with the cockpit's slots, in English
- * and in German. Times are left out: they say the day only once it has passed.
+ * The same numbers on both surfaces, rendered: the board each dialect's recorded board engine
+ * expects (c7-core's and c8-core's), the one the board feed gives over the server's wire
+ * (data/board-data.numbers.test.ts) and the editors' adapter of that dialect builds over its own,
+ * through the blocks with the cockpit's slots, in English and in German. Times are left out: they
+ * say the day only once it has passed.
  */
 import { afterEach, describe, expect, it } from "vitest"
 import { cleanup, render, screen, within } from "@testing-library/react"
 import type { BoardData } from "@miragon/pulse-board"
 import { C7_BOARD_ENGINE } from "@miragon/pulse-c7-core/testing"
+import { C8_BOARD_ENGINE } from "@miragon/pulse-c8-core/testing"
 import { TestViewHost, createTestQueryClient } from "@miragon/pulse-widget-shell/widgets"
 import { ENGINE_BOARD_DATA, ENGINE_BPMN_XML_DATA } from "../../tool-names.js"
 import type { BoardStartData } from "../../view-models.board.js"
@@ -17,13 +19,14 @@ import { BoardView } from "./board-view.js"
 
 afterEach(cleanup)
 
-const BOARD: BoardStartData = {
-  ...(C7_BOARD_ENGINE.expected as BoardData),
+/** A recorded board as the feed hands it on, read at a fixed time. */
+const boardOf = (expected: unknown): BoardStartData => ({
+  ...(expected as BoardData),
   asOf: "2026-11-16T11:02:00.000Z",
-}
+})
 
-/** The board's numbers and the words around them, in each locale of the host. */
-const WORDS = {
+/** The C7 board's numbers and the words around them, in each locale of the host. */
+const C7_WORDS = {
   en: {
     engine: "Operaton BPM Runtime 2.1.5 · 5 running · 3 with incident",
     above: "conformance above 1",
@@ -56,7 +59,70 @@ const WORDS = {
   },
 } as const
 
-function renderBoard(locale: keyof typeof WORDS) {
+/** What a board's tiles say: its engine, a counter's threshold, its lists and its diagram. */
+interface Words {
+  readonly engine: string
+  readonly above: string
+  readonly summary: readonly string[]
+  readonly instances: readonly string[]
+  readonly shown: string
+  readonly open: string
+  readonly latest: string
+  readonly refused: string
+}
+
+/**
+ * The C8 board's: the same world on a Camunda 8 cluster, so the same figures, its engine named as
+ * the cluster says, its diagram the dispatch process.
+ */
+const C8_WORDS: Readonly<Record<keyof typeof C7_WORDS, Words>> = {
+  en: {
+    ...C7_WORDS.en,
+    engine: "Camunda 8 8.10.9 · 5 running · 3 with incident",
+    above: "c8-conformance above 1",
+    summary: [
+      "Print labelc8-conformance1with incident",
+      "Order fulfillmentc8-conformance1with incident",
+      "Dispatch orderc8-conformance1with incident",
+    ],
+    shown: "c8-conformance: showing 3 of 3",
+    open: "c8-conformance: 2 open",
+    latest: "c8-conformance · v1, the latest version",
+  },
+  de: {
+    ...C7_WORDS.de,
+    engine: "Camunda 8 8.10.9 · 5 laufend · 3 mit Incident",
+    above: "c8-conformance über 1",
+    summary: [
+      "Print labelc8-conformance1mit Incident",
+      "Order fulfillmentc8-conformance1mit Incident",
+      "Dispatch orderc8-conformance1mit Incident",
+    ],
+    shown: "c8-conformance: 3 von 3 angezeigt",
+    open: "c8-conformance: 2 offen",
+    latest: "c8-conformance · v1, die neueste Version",
+  },
+}
+
+/** Each dialect's recorded board, its engine's name, its diagram tile and its words. */
+const RECORDINGS = [
+  {
+    dialect: "c7",
+    board: boardOf(C7_BOARD_ENGINE.expected),
+    engine: /conformance/,
+    diagram: "Order fulfillment",
+    words: C7_WORDS,
+  },
+  {
+    dialect: "c8",
+    board: boardOf(C8_BOARD_ENGINE.expected),
+    engine: /c8-conformance/,
+    diagram: "Dispatch order",
+    words: C8_WORDS,
+  },
+] as const
+
+function renderBoardOf(BOARD: BoardStartData, locale: keyof typeof C7_WORDS) {
   render(
     <TestViewHost
       locale={locale}
@@ -104,15 +170,20 @@ const rowTexts = (table: HTMLElement) =>
         .join(" "),
     )
 
-describe.each(["en", "de"] as const)(
-  "the recorded board's numbers in the cockpit (%s)",
-  (locale) => {
-    const words = WORDS[locale]
+describe.each(
+  RECORDINGS.flatMap((recording) =>
+    (["en", "de"] as const).map((locale) => ({ ...recording, locale })),
+  ),
+)(
+  "the $dialect recorded board's numbers in the cockpit ($locale)",
+  ({ board, engine, diagram, words: byLocale, locale }) => {
+    const words = byLocale[locale]
+    const renderBoard = (at: typeof locale) => renderBoardOf(board, at)
 
     it("shows the engine's totals and each counter's figure, a threshold passed in words", () => {
       renderBoard(locale)
       const engines = screen.getByRole("group", { name: /Engines/ })
-      expect(within(engines).getByRole("button", { name: /conformance/ }).textContent).toContain(
+      expect(within(engines).getByRole("button", { name: engine }).textContent).toContain(
         words.engine,
       )
       expect(parts(tile("Waiting for review"), "counter-value")).toEqual(["2"])
@@ -149,7 +220,7 @@ describe.each(["en", "de"] as const)(
 
     it("says which version the diagram draws and why the file's chart shows nothing", () => {
       renderBoard(locale)
-      expect(tile("Order fulfillment").textContent).toContain(words.latest)
+      expect(tile(diagram).textContent).toContain(words.latest)
       expect(tile("Throughput").textContent).toContain(words.refused)
     })
   },

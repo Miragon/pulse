@@ -197,6 +197,8 @@ export const PROBLEM_CODES = [
   "literal-secret",
   "variable-prefix",
   "secret-header",
+  // A reader refuses a token endpoint it cannot send a grant to (`tokenEndpointUrlProblem`).
+  "url-fragment",
   // A reader refuses a profile it cannot serve (`refusalsOn`).
   "dialect-not-served",
   "auth-type-not-served",

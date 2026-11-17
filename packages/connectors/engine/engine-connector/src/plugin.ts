@@ -15,6 +15,7 @@ import {
 import { resolveEngineToolset, withToolsetFilter } from "./lib/mcp/toolsets.js"
 import { withEngineParam } from "./lib/engine/with-engine.js"
 import { withReadOnlyEngines } from "./lib/engine/read-only.js"
+import { contractRuntimeOf } from "./lib/engine/engine-runtime.js"
 
 export interface EnginePluginConfig {
   /**
@@ -48,9 +49,17 @@ export interface EnginePluginConfig {
   boards?: BoardFiles
 }
 
+/** The ids of the configured boards that name `engineId`, in the order of the board files. */
+function boardsNaming(boards: BoardFiles | undefined, engineId: string): string[] {
+  return (boards?.boards ?? [])
+    .filter(({ board }) => board.engines.includes(engineId))
+    .map(({ id }) => id)
+}
+
 /**
- * The routing every tool resolves its engine through: each engine on its own profile, today each
- * of the Camunda 7 REST dialect with its client (the boot refuses another dialect's profile).
+ * The routing every tool resolves its engine through: each engine on its own profile, one of the
+ * Camunda 7 REST dialect with its client, one of Camunda 8 with its runtime over a connection of
+ * its own (each built once, here) and the boards that name it.
  */
 export function createConfiguredEngineRegistry(config: EnginePluginConfig): EngineRegistry {
   return createEngineRegistry(
@@ -66,6 +75,8 @@ export function createConfiguredEngineRegistry(config: EnginePluginConfig): Engi
       refused: config.refused,
       engineIds: config.engineIds,
       profileCount: config.profileCount,
+      contractRuntime: (e) => contractRuntimeOf(e, { timeoutMs: config.requestTimeoutMs }),
+      boardsNaming: (engineId) => boardsNaming(config.boards, engineId),
     },
   )
 }

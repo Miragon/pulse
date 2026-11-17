@@ -1,9 +1,10 @@
+import { readFileSync } from "node:fs"
 import { describe, expect, it } from "vitest"
-import { USER_AGENT } from "@miragon/pulse-c7-client"
 import type { CamundaFailure } from "@miragon/pulse-c8-core"
 import { HttpFailure } from "@miragon/pulse-http"
 import { TokenFailure } from "@miragon/pulse-http/oauth"
 import { type C8Auth, createC8Connection, UnusableTokenEndpointError } from "./c8-connection.js"
+import { USER_AGENT } from "./user-agent.js"
 import {
   type Answer,
   type C8Platform,
@@ -16,6 +17,11 @@ import {
   token,
   TOKEN_ENDPOINT,
 } from "./test-support/c8-platform.js"
+
+/** The engine module's own manifest: the User-Agent names it. */
+const { name, version } = JSON.parse(
+  readFileSync(new URL("../../../package.json", import.meta.url), "utf8"),
+) as { name: string; version: string }
 
 /**
  * The server's wire to a Camunda 8 cluster (c8-connection.ts) over a `fetch` of its own: what
@@ -75,6 +81,9 @@ describe("the requests of the server's Camunda 8 wire", () => {
       'POST /v2/process-instances/search {"filter":{}}',
       "GET /v2/process-definitions/2251799813685249/xml",
     ])
+    // The engine module's own name and version, which release-please keeps in lockstep: a
+    // cluster never reads the name of the Camunda 7 SDK's client.
+    expect(USER_AGENT).toBe(`${name}/${version}`)
     const headers = platform.sent.map((request) => [
       request.headers.get("accept"),
       request.headers.get("content-type"),

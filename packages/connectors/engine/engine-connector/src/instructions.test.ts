@@ -63,6 +63,28 @@ describe("engineModule.instructions", () => {
     expect(empty).not.toContain("- Boards")
   })
 
+  // Only a server with a Camunda 8 engine says what reads it: elsewhere the line would cost every
+  // deployment. Its characters are the char budget instructions-camunda8 of the server app.
+  it("says where a Camunda 8 engine shows and that the rest refuses it, only with one", () => {
+    const rule =
+      "- Camunda 8 engines (dialect c8 in engine_list_engines) show on boards only " +
+      "(engine_open_cockpit with view board); every other tool refuses them with " +
+      "ENGINE_DIALECT_NOT_SERVED and sends nothing.\n"
+    const c8 = { id: "c8", baseUrl: "https://c8.example/v2", flavor: "camunda8" }
+    const withC8 = engineModule.instructions({ engines: [TWO[0], c8], toolset: "read-only" })
+    expect(withC8).toContain(rule)
+    expect(withC8.replace(rule, "")).toBe(
+      snippet([TWO[0], { ...c8, flavor: "camunda7" }], "read-only"),
+    )
+    expect(snippet(TWO, "read-only")).not.toContain("Camunda 8 engines")
+    const refused = engineModule.instructions({
+      engines: TWO,
+      refused: [{ id: "c8", reason: "auth.clientSecretEnv names a variable that is not set." }],
+      toolset: "read-only",
+    })
+    expect(refused).not.toContain("Camunda 8 engines")
+  })
+
   it("several engines with a default: names the ids and the default engine", () => {
     const text = snippet(TWO, "operations", "prod-b")
     expect(text).toContain(

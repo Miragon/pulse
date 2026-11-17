@@ -15,11 +15,19 @@ import { BoardParser, BoardProblems } from "@miragon/pulse-board"
 import { BoardBuilder, BoardJson, type BoardReads } from "@miragon/pulse-board/builder"
 import { FakeEngine, FakeWorld } from "@miragon/pulse-engine-core/testing"
 import type { EngineBoard } from "../board-files.js"
+import { createC8Connection } from "../lib/engine/c8-connection.js"
+import { c8RuntimeOf } from "../lib/engine/engine-runtime.js"
 import {
   type ContractRuntime,
   createEngineRegistry,
   resolveEngine,
 } from "../lib/engine/resolve-engine.js"
+import {
+  type Answer,
+  c8Platform,
+  CLUSTER,
+  problem,
+} from "../lib/engine/test-support/c8-platform.js"
 import { engineModule } from "../module.js"
 import { createPlugin, type EnginePluginConfig } from "../plugin.js"
 import { providerForEntry } from "../providers/index.js"
@@ -68,11 +76,15 @@ const ORDERS = {
   ],
 }
 
-/** The refusal a call to the camunda8 profile gets, as engine_status gives it. */
+/**
+ * The refusal a call to the camunda8 profile gets, as engine_status gives it: the server signs in
+ * to a Camunda 8 engine with no fixed bearer token.
+ */
 const C8_REFUSAL =
   '[ENGINE_PROFILE_REFUSED] Engine "c8" is configured, but its profile cannot be used: ' +
-  "This server does not speak the API of this flavor: it reads camunda7, cibseven and " +
-  "operaton. Ask whoever runs this server to fix it."
+  "This server cannot sign in to a Camunda 8 engine with this auth.type: it signs in with " +
+  "none, basic or clientCredentials, whose tokens it gets itself. Ask whoever runs this server " +
+  "to fix it."
 
 /**
  * The server of a profile file with `shop` on the fake engine (its world, but `routes`) and a
@@ -90,7 +102,11 @@ async function boot(files: Record<string, unknown>, routes: FakeRoutes = {}) {
       defaultProfile: "shop",
       profiles: {
         shop: { url: shop.baseUrl, flavor: "cibseven" },
-        c8: { url: c8.baseUrl, flavor: "camunda8" },
+        c8: {
+          url: c8.baseUrl,
+          flavor: "camunda8",
+          auth: { type: "bearer", tokenEnv: "ENGINE_SECRET_C8" },
+        },
         locked: {
           url: "http://locked.invalid/engine-rest",
           auth: { type: "bearer", tokenEnv: "ENGINE_SECRET_LOCKED" },
@@ -372,5 +388,58 @@ describe("engine_board_data over both dialects", () => {
     expect(perEngine(incidents)).toEqual([...perEngine(c7.rows[2][0]), ...perEngine(c8.rows[2][0])])
     // The engine of another dialect is read through its runtime, on the call's signal.
     expect(runtime).toHaveBeenCalled()
+  })
+
+  /** The board of the one Camunda 8 engine `c8`, over the server's wire answering `topology`. */
+  async function c8BoardOver(topology: Answer) {
+    const platform = c8Platform({ "GET /v2/topology": topology })
+    const connection = createC8Connection(
+      { id: "c8", baseUrl: CLUSTER },
+      { type: "none" },
+      {},
+      platform,
+    )
+    const config: EnginePluginConfig = {
+      engines: [{ id: "c8", baseUrl: CLUSTER, flavor: "camunda8" }],
+      boards: { boards: [boardOver(["c8"])], refused: [] },
+    }
+    const registry = createEngineRegistry(
+      config.engines,
+      () => {
+        throw new Error("no client for a Camunda 8 engine")
+      },
+      { contractRuntime: () => c8RuntimeOf(connection) },
+    )
+    const recording = recordingModuleServer()
+    createPlugin(config, registry).register(recording.server)
+    return feedPayload<BoardStartData>(
+      await recording.tool(ENGINE_BOARD_DATA).call({ board: "both" }),
+    )
+  }
+
+  it("shows a Camunda 8 engine that fails to say what it is failed, with the hint its failure carries", async () => {
+    const refused = await c8BoardOver(() => problem(401, "Unauthorized", "no token"))
+    expect(refused.engines).toEqual([
+      {
+        name: "c8",
+        state: "failed",
+        failure: {
+          code: "unauthorized",
+          message:
+            "[401 Unauthorized] no token (engine c8) The cluster requires authentication, but " +
+            "none is configured: set auth in the engine's profile, its secret in an " +
+            "ENGINE_SECRET_* variable.",
+        },
+      },
+    ])
+    // A failure without a hint keeps its message as it is.
+    const broken = await c8BoardOver(() => problem(500, "INTERNAL", "boom"))
+    expect(broken.engines).toEqual([
+      {
+        name: "c8",
+        state: "failed",
+        failure: { code: "engineFailure", message: "[500 INTERNAL] boom (engine c8)" },
+      },
+    ])
   })
 })

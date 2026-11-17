@@ -2,7 +2,7 @@ import { z } from "zod"
 import { MAX_TIMEOUT_MS, PROFILE_NAME } from "@miragon/pulse-profile"
 import type { ModulePlugin } from "@miragon/pulse-widget-shell/server"
 import { createPlugin } from "./plugin.js"
-import { DEFAULT_ENGINE_FLAVOR } from "./providers/index.js"
+import { DEFAULT_ENGINE_FLAVOR, providerForEntry } from "./providers/index.js"
 import { engineToolsets } from "./lib/mcp/toolsets.js"
 import { engineInstructions } from "./instructions.js"
 import { engineConfigErrorText } from "./engine-config-error.js"
@@ -158,6 +158,31 @@ function ignoredSingleEngineWarning(env: NodeJS.ProcessEnv): string[] {
   ]
 }
 
+/** True for an engine of another dialect than the Camunda 7 REST API's, which only boards read. */
+const readOnBoardsOnly = (engine: EngineEntry): boolean => providerForEntry(engine).dialect !== "c7"
+
+/**
+ * A default engine that only boards read (Camunda 8): every tool called without `engine` goes to
+ * it and refuses, never to another engine (allowed, the operator's choice, and said once here).
+ */
+function boardsOnlyDefaultWarning(
+  profiles: EngineProfiles,
+  explicit: string | undefined,
+): string[] {
+  const named = explicit || profiles.defaultProfile
+  const only = profiles.profileCount === 1 ? profiles.engineIds[0] : undefined
+  const id = named ?? only
+  const engine = profiles.engines.find((entry) => entry.id === id)
+  if (engine === undefined || !readOnBoardsOnly(engine)) return []
+  const which =
+    named === undefined
+      ? "The only profile is"
+      : `${explicit ? "ENGINE_DEFAULT" : "defaultProfile"} names`
+  return [
+    `${which} "${engine.id}", a ${providerForEntry(engine).branding.displayName} engine, which this server reads on boards only: a tool called without engine goes to it and refuses with ENGINE_DIALECT_NOT_SERVED, never to another engine.`,
+  ]
+}
+
 /** What the profiles tell the operator: refusals, a default that leads to one, passthrough. */
 function profileWarnings(env: NodeJS.ProcessEnv): string[] {
   const profiles = profilesQuietly(env)
@@ -170,6 +195,7 @@ function profileWarnings(env: NodeJS.ProcessEnv): string[] {
       `${explicit ? "ENGINE_DEFAULT" : "defaultProfile"} names "${String(fallback)}", whose profile is refused: a call without engine fails with ENGINE_PROFILE_REFUSED until the profile is fixed, and never goes to another engine.`,
     )
   }
+  warnings.push(...boardsOnlyDefaultWarning(profiles, explicit))
   const passthrough = profiles.engines.filter((e) => e.auth?.type === "passthrough")
   if (passthrough.length > 0) {
     warnings.push(
@@ -267,6 +293,7 @@ export const engineModule = {
       defaultEngine: parsed.defaultEngine,
       toolset: engineToolsets.resolve(parsed.toolset),
       hasBoards: (parsed.boards?.boards.length ?? 0) > 0,
+      hasBoardsOnlyEngines: parsed.engines.some(readOnBoardsOnly),
     })
   },
 

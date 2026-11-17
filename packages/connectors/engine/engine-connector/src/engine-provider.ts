@@ -1,5 +1,5 @@
 import type { Client } from "@miragon/pulse-c7-client"
-import { type Dialect, type Flavor, FLAVORS } from "@miragon/pulse-profile"
+import type { Dialect, Flavor, FLAVORS } from "@miragon/pulse-profile"
 
 /** One per vendor: ONLY the real differences, never a mirror of the SDK. */
 
@@ -14,11 +14,6 @@ export type C7Flavor = { [F in Flavor]: (typeof FLAVORS)[F] extends "c7" ? F : n
  * and diagrams read it, every Camunda 7 path refuses it (ENGINE_DIALECT_NOT_SERVED).
  */
 export type ContractDialect = Exclude<Dialect, "c7">
-
-/** True when `flavor` speaks the Camunda 7 REST dialect, by the profile format's table. */
-export function isC7Flavor(flavor: Flavor): flavor is C7Flavor {
-  return FLAVORS[flavor] === "c7"
-}
 
 /**
  * How the server signs in to an engine: not at all, Basic, a fixed bearer token, the MCP

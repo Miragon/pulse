@@ -100,8 +100,9 @@ for (const verdict of file.profiles) {
   `headers`), so a key is applied or refuses the profile, never ignored. `dialectOf` and
   `authTypeOf` give what a profile uses, `flavorsOf` the flavors of a dialect.
 - **Rules a reader applies elsewhere too:** `urlProblem`, `normalizeUrl` and
-  `normalizeCockpitUrl` for a URL from a flag or a variable, `isLoopbackHost` and
-  `credentialsInClearText` (a credential over plain http beyond the local machine),
+  `normalizeCockpitUrl` for a URL from a flag or a variable, `tokenEndpointUrlProblem` for the
+  token endpoint of the client credentials grant (a query, but no credentials and no fragment),
+  `isLoopbackHost` and `credentialsInClearText` (a credential over plain http beyond the local machine),
   `isHeaderName`, `isHeaderValue`, `isSecretHeader`, the value rules `isUsername`, `isEngineName`,
   `isTimeout`, `isScopeList` and `isRedirectPort` (for a value a flag or a variable sets instead),
   `isConventionalVariable` (a variable name a message may show), `jsonErrorPosition`.

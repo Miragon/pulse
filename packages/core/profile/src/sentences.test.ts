@@ -102,6 +102,10 @@ const SENTENCES: readonly (readonly [Problem, string])[] = [
     "cockpitUrl must not contain a query string or a fragment.",
   ],
   [
+    { code: "url-fragment", key: "auth.tokenEndpoint" },
+    "auth.tokenEndpoint must not contain a fragment.",
+  ],
+  [
     { code: "credential-in-shared-file", key: "auth.passwordEnv" },
     "auth.passwordEnv is set, but a file others share names no credential, neither a secret nor the variable that holds one.",
   ],

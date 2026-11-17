@@ -6,22 +6,26 @@
  * Without either, ENGINE_BASE_URL and its siblings (or nothing: the local default) yield the one
  * profile of a single engine, through the same parser. A profile's name is the engine id.
  *
- * Each profile is judged on its own: one the parser refuses, one this server cannot serve
- * (SERVER_SURFACE: no headers, no named process engine, no OAuth login, Basic auth only with a
- * user name) or one whose secret is not set is refused, and the other engines run. The boot
- * fails only when the text gives no profiles, when none is usable or when defaultProfile names
- * no profile. No message repeats a value; a variable is named to the operator only, and only in
- * its conventional form (`isConventionalVariable`), never to the model, which reads only the
- * format's own keys (`problemSentence`).
+ * Each profile is judged on its own, on what the server serves of its dialect (`surfaceOf`): one
+ * the parser refuses, one this server cannot serve (no headers, no named process engine, no OAuth
+ * login, Basic auth only with a user name; on Camunda 8 no fixed bearer token, no credential in
+ * clear text beyond loopback and a usable token endpoint), or one whose secret is not set is
+ * refused, and the other engines run. The boot fails only when the text gives no profiles, when
+ * none is usable or when defaultProfile names no profile. No message repeats a value; a variable
+ * is named to the operator only, and only in its conventional form (`isConventionalVariable`),
+ * never to the model, which reads only the format's own keys (`problemSentence`). The single
+ * engine's variables describe a Camunda 7 engine: a Camunda 8 one is a profile.
  */
 
 import fs from "node:fs"
 import path from "node:path"
 import {
   AUTH_KEYS,
-  authTypeOf,
   describeProblem,
-  flavorsOf,
+  type Dialect,
+  dialectOf,
+  type Flavor,
+  FLAVORS,
   isConventionalVariable,
   parseProfileFile,
   type Problem,
@@ -30,12 +34,22 @@ import {
   type ProfileFile,
   type ProfileVerdict,
   refusalsOn,
-  type Surface,
 } from "@miragon/pulse-profile"
-import { type C7Flavor, type EngineAuth, type EngineEntry, isC7Flavor } from "./engine-provider.js"
+import type { EngineAuth, EngineEntry } from "./engine-provider.js"
+import {
+  authOf,
+  endpointProblems,
+  FILE_SECRETS,
+  type SecretSources,
+  SINGLE_SECRETS,
+  surfaceOf,
+} from "./engine-profile-auth.js"
 import { credentialProblemOf } from "./lib/engine/credentials.js"
 import type { RefusedProfile } from "./lib/engine/resolve-engine.js"
 import {
+  CLEAR_TEXT,
+  type ClearTextProblem,
+  isClearTextProblem,
   isSecretProblem,
   NOT_SERVED,
   OLD_FORMS,
@@ -43,29 +57,14 @@ import {
   type SecretProblem,
   secretSentence,
   SINGLE_KEYS,
+  singleDialectSentence,
   singleSecretSentence,
+  tokenEndpointSentence,
   UNSENDABLE_KEYS,
   unnamedKeySentence,
 } from "./engine-profile-words.js"
 
-type Refusal = Problem | SecretProblem
-
-/**
- * What this server serves: the Camunda 7 REST dialect, signing in with nothing, Basic auth, a
- * bearer token or the caller's own token (no OAuth login: no person is there to sign in), a REST
- * root in every profile, the default process engine only (no `/engine/{name}`), and no headers
- * of its own.
- */
-export const SERVER_SURFACE: Surface = {
-  dialects: ["c7"],
-  authTypes: ["none", "basic", "bearer", "passthrough"],
-  urlRequired: true,
-  defaultEngineOnly: true,
-  refusedKeys: ["headers"],
-}
-
-/** The flavors of the dialects SERVER_SURFACE speaks, as the refusal of another one names them. */
-const SERVED_FLAVORS = SERVER_SURFACE.dialects.flatMap(flavorsOf)
+type Refusal = Problem | SecretProblem | ClearTextProblem
 
 /** Where the zero-config engine is: the starter's compose.yaml and the playground serve there. */
 export const LOCAL_ENGINE_URL = "http://localhost:8410/engine-rest"
@@ -101,65 +100,6 @@ export interface EngineProfiles {
   readonly warnings: string[]
 }
 
-/** The variable holding the password and the token of a profile: its own, or the single engine's. */
-interface SecretSources {
-  password(profile: Profile): string | undefined
-  token(profile: Profile): string | undefined
-}
-
-const FILE_SECRETS: SecretSources = {
-  password: (profile) => profile.auth?.passwordEnv,
-  token: (profile) => profile.auth?.tokenEnv,
-}
-
-const SINGLE_SECRETS: SecretSources = {
-  password: () => "ENGINE_PASSWORD",
-  token: () => "ENGINE_TOKEN",
-}
-
-/** The value of the variable `variable` names for `key`, or why there is none. */
-function secretOf(
-  key: SecretProblem["key"],
-  variable: string | undefined,
-  env: NodeJS.ProcessEnv,
-): { readonly value?: string; readonly problems: SecretProblem[] } {
-  if (variable === undefined) return { problems: [{ code: "secret-missing", key }] }
-  const value = env[variable]
-  return value === undefined || value === ""
-    ? { problems: [{ code: "variable-unset", key, variable }] }
-    : { value, problems: [] }
-}
-
-/** How the server signs in to the engine of `profile`, its secret read now; or why it cannot. */
-function authOf(
-  profile: Profile,
-  env: NodeJS.ProcessEnv,
-  secrets: SecretSources,
-): { readonly auth?: EngineAuth; readonly problems: readonly SecretProblem[] } {
-  // refusalsOn turned OAuth away before, so the type is one the server serves.
-  const type = authTypeOf(profile) as EngineAuth["type"]
-  if (type === "basic") {
-    const username = profile.auth?.username
-    const password = secretOf("auth.passwordEnv", secrets.password(profile), env)
-    const problems: SecretProblem[] = [
-      ...(username === undefined
-        ? [{ code: "username-missing", key: "auth.username" } as const]
-        : []),
-      ...password.problems,
-    ]
-    return problems.length > 0
-      ? { problems }
-      : { auth: { type, username, password: password.value }, problems }
-  }
-  if (type === "bearer") {
-    const token = secretOf("auth.tokenEnv", secrets.token(profile), env)
-    return token.value === undefined
-      ? { problems: token.problems }
-      : { auth: { type, token: token.value }, problems: [] }
-  }
-  return { auth: { type }, problems: [] }
-}
-
 /** The `cockpitUrl` the text of the profile `name` holds, blanks around it trimmed. */
 type WrittenCockpitUrl = (name: string) => string | undefined
 
@@ -190,18 +130,10 @@ function writtenCockpitUrls(text: string): WrittenCockpitUrl {
   }
 }
 
-/** A usable profile of the Camunda 7 REST dialect, the one dialect SERVER_SURFACE serves. */
-type EngineProfile = Profile & { readonly flavor?: C7Flavor }
-
-/** True when `profile` speaks the Camunda 7 REST dialect: it names none of the flavors, or one of its. */
-function hasEngineFlavor(profile: Profile): profile is EngineProfile {
-  return profile.flavor === undefined || isC7Flavor(profile.flavor)
-}
-
 /** The engine of a usable profile: its name is the id, its `url` the REST root. */
 function entryOf(
   id: string,
-  profile: EngineProfile,
+  profile: Profile,
   auth: EngineAuth,
   written: WrittenCockpitUrl,
 ): EngineEntry {
@@ -239,11 +171,12 @@ function judge(
   if (profile === undefined || name === undefined) {
     return { ...(name === undefined ? {} : { name }), index, problems: verdict.problems }
   }
-  const refused = refusalsOn(profile, SERVER_SURFACE)
+  const dialect = dialectOf(profile)
+  const refused = [
+    ...refusalsOn(profile, surfaceOf(dialect)),
+    ...endpointProblems(profile, dialect),
+  ]
   if (refused.length > 0) return { name, index, profile, problems: refused }
-  if (!hasEngineFlavor(profile)) {
-    return { name, index, profile, problems: [{ code: "dialect-not-served", key: "flavor" }] }
-  }
   const { auth, problems } = authOf(profile, env, secrets)
   if (auth === undefined) return { name, index, profile, problems }
   const credential = credentialProblemOf(auth)
@@ -274,15 +207,18 @@ function unnamedKeyProblem({ code, key = "" }: Problem): string {
 }
 
 /**
- * The sentence of a problem of a profile, in the server's words where it cannot serve one. The
- * operator's names every key the parser names; the model's only the format's own keys.
+ * The sentence of a problem of a profile, in the server's words where it cannot serve one (by the
+ * profile's `dialect`) and for its token endpoint. The operator's names every key the parser
+ * names; the model's only the format's own keys.
  */
-function problemSentence(problem: Problem, forModel: boolean): string {
+function problemSentence(problem: Problem, forModel: boolean, dialect: Dialect = "c7"): string {
   const { code, key } = problem
   if (forModel && key !== undefined && !FORMAT_KEYS.has(key)) return unnamedKeyProblem(problem)
-  return Object.hasOwn(NOT_SERVED, code)
-    ? NOT_SERVED[code](key, SERVED_FLAVORS)
-    : describeProblem(problem)
+  if (Object.hasOwn(NOT_SERVED, code)) return NOT_SERVED[code](key, dialect)
+  return (
+    (key === "auth.tokenEndpoint" ? tokenEndpointSentence(code) : undefined) ??
+    describeProblem(problem)
+  )
 }
 
 /**
@@ -290,8 +226,9 @@ function problemSentence(problem: Problem, forModel: boolean): string {
  * the operator's names a variable in its conventional form (a name in another form may be a
  * secret pasted into the wrong place).
  */
-function refusalSentence(problem: Refusal, forOperator: boolean): string {
-  if (!isSecretProblem(problem)) return problemSentence(problem, !forOperator)
+function refusalSentence(problem: Refusal, forOperator: boolean, dialect: Dialect): string {
+  if (isClearTextProblem(problem)) return CLEAR_TEXT[problem.key]
+  if (!isSecretProblem(problem)) return problemSentence(problem, !forOperator, dialect)
   const { variable } = problem
   const shown =
     forOperator && variable !== undefined && isConventionalVariable(variable) ? variable : undefined
@@ -299,8 +236,10 @@ function refusalSentence(problem: Refusal, forOperator: boolean): string {
 }
 
 /** Every reason of a refused profile in one line, each sentence once. */
-function reasonsOf(problems: readonly Refusal[], forOperator: boolean): string {
-  return [...new Set(problems.map((problem) => refusalSentence(problem, forOperator)))].join(" ")
+function reasonsOf({ problems, profile }: Judged, forOperator: boolean): string {
+  const dialect = profile === undefined ? "c7" : dialectOf(profile)
+  const sentences = problems.map((problem) => refusalSentence(problem, forOperator, dialect))
+  return [...new Set(sentences)].join(" ")
 }
 
 /** The profile a sentence speaks of: its name, or its place when its name is not valid. */
@@ -316,7 +255,7 @@ function refusalWarning(judged: Judged, label: string): string {
     judged.name === undefined
       ? "No call can name it; the other engines run."
       : "A call to this engine fails with that reason; the other engines run."
-  return `${profileLabel(judged, label)} is refused: ${reasonsOf(judged.problems, true)} ${consequence}`
+  return `${profileLabel(judged, label)} is refused: ${reasonsOf(judged, true)} ${consequence}`
 }
 
 // ── The file ───────────────────────────────────────────────────────────────
@@ -418,14 +357,16 @@ function noteWarnings(file: ProfileFile, label: string, names: readonly string[]
 }
 
 function refusedOf(judged: readonly Judged[]): RefusedProfile[] {
-  return judged.flatMap(({ name, profile, problems, entry }) =>
-    entry !== undefined || name === undefined
+  return judged.flatMap((one) =>
+    one.entry !== undefined || one.name === undefined
       ? []
       : [
           {
-            id: name,
-            ...(profile?.environment === undefined ? {} : { environment: profile.environment }),
-            reason: reasonsOf(problems, false),
+            id: one.name,
+            ...(one.profile?.environment === undefined
+              ? {}
+              : { environment: one.profile.environment }),
+            reason: reasonsOf(one, false),
           },
         ],
   )
@@ -447,7 +388,7 @@ function fromFile(source: FileText, env: NodeJS.ProcessEnv): EngineProfiles {
   const refusals = judged.filter(({ entry }) => entry === undefined)
   if (engines.length === 0) {
     const reasons = refusals.map(
-      (one) => `${profileLabel(one, source.label)} is refused: ${reasonsOf(one.problems, true)}`,
+      (one) => `${profileLabel(one, source.label)} is refused: ${reasonsOf(one, true)}`,
     )
     throw new Error(`${source.label}: no profile is usable. ${reasons.join(" ")}`)
   }
@@ -465,6 +406,7 @@ function fromFile(source: FileText, env: NodeJS.ProcessEnv): EngineProfiles {
 
 /** A refusal of the single engine's profile, naming the variable to fix. */
 function singleSentence(problem: Refusal): string {
+  if (isClearTextProblem(problem)) return CLEAR_TEXT[problem.key]
   if (isSecretProblem(problem)) return singleSecretSentence(problem)
   const variable =
     problem.key === undefined
@@ -494,7 +436,20 @@ function singleProfileText(env: NodeJS.ProcessEnv): { readonly id: string; reado
   return { id, text: JSON.stringify({ profiles: { [id]: profile } }) }
 }
 
+/** True for a flavor of the profile format: its dialect is in FLAVORS. */
+const isFlavor = (value: string): value is Flavor => Object.hasOwn(FLAVORS, value)
+
+/**
+ * The single engine's variables describe a Camunda 7 engine: ENGINE_FLAVOR of another dialect
+ * fails the boot, naming where such an engine goes, a profile file.
+ */
+function checkSingleDialect(env: NodeJS.ProcessEnv): void {
+  const flavor = env.ENGINE_FLAVOR?.trim() ?? ""
+  if (isFlavor(flavor) && FLAVORS[flavor] !== "c7") throw new Error(singleDialectSentence(flavor))
+}
+
 function single(env: NodeJS.ProcessEnv): EngineProfiles {
+  checkSingleDialect(env)
   const { id, text } = singleProfileText(env)
   const [verdict] = parseProfileFile(text, { credentials: "env" }).profiles
   const judged = judge(verdict, env, SINGLE_SECRETS, writtenCockpitUrls(text))
@@ -534,7 +489,7 @@ export function referencedVariables(env: NodeJS.ProcessEnv): string[] {
   if (source === undefined) return []
   const profiles = parseProfileFile(source.text, { credentials: "env" }).profiles
   return profiles.flatMap(({ profile }) =>
-    [profile?.auth?.passwordEnv, profile?.auth?.tokenEnv].filter(
+    [profile?.auth?.passwordEnv, profile?.auth?.tokenEnv, profile?.auth?.clientSecretEnv].filter(
       (name): name is string => name !== undefined,
     ),
   )

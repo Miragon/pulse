@@ -43,13 +43,14 @@ import {
   boardsOnlyOf,
   type CockpitEngine,
   dialectFactsOf,
+  type ListedEngineFacts,
   readsWhole,
 } from "./boards-only.js"
 
 export type { CockpitAppData }
 
 interface EnginesResult extends Partial<ServerBoards> {
-  engines: Array<{ id: string; environment?: string }>
+  engines: Array<ListedEngineFacts & { environment?: string }>
   defaultEngineId: string | null
   /** Profiles the server refused: the picker lists them too, and opening one says why. */
   refused?: Array<{ id: string; environment?: string }>
@@ -60,14 +61,18 @@ type ListedEngine = CockpitEngine
 /**
  * Every configured engine the list names, the refused ones too, in the order the start data gave
  * them (the profiles'), so no row moves when the list answers; one the start data does not name
- * comes last. Each keeps what the start data says of its dialect, which the list does not.
+ * comes last. Each with what the list says of its dialect, so a cockpit without start data shows
+ * an engine of another dialect on boards only too.
  */
 function listedEngines(result: EnginesResult, order: readonly ListedEngine[]): ListedEngine[] {
-  const started = new Map(order.map((engine) => [engine.id, engine]))
-  const named = [...result.engines, ...(result.refused ?? [])].map(({ id, environment }) => ({
+  const boards = result.boards ?? []
+  const named = [
+    ...result.engines.map((engine) => ({ engine, facts: dialectFactsOf(engine, boards) })),
+    ...(result.refused ?? []).map((engine) => ({ engine, facts: {} })),
+  ].map(({ engine: { id, environment }, facts }) => ({
     id,
     ...(environment === undefined ? {} : { environment }),
-    ...dialectFactsOf(started.get(id)),
+    ...facts,
   }))
   const rank = new Map(order.map(({ id }, index) => [id, index]))
   const place = (id: string) => rank.get(id) ?? rank.size

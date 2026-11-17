@@ -13,7 +13,8 @@ import { REPO_ROOT } from "./source-scan.mjs"
  * second table of its README. Apps share no code, so each surface keeps its own copy of the case
  * list and its answers (error-cases.ts), its test and its fixtures; each surface's own test holds
  * its README tables to its lists and its golden files, and this guard holds the four first tables
- * and the four case lists to one another, and the three C7 case files and the two world copies to
+ * and the four case lists to one another, and the three C7 case files, the two world copies of the
+ * Camunda 7 engine and the two of the Camunda 8 cluster (the C8 adapter's and the MCP server's) to
  * one another below their headers. Each shared case is a conformance case of the transport too
  * (@miragon/pulse-http/testing, TRANSPORT_CASES), under the same name, which every wiring of the
  * transport runs.
@@ -44,6 +45,12 @@ const TRANSPORT_CASE_FILES = ["wire-cases.ts", "credential-cases.ts", "request-c
 const WORLDS = [
   "apps/mcp-server/test/engine-goldens/world.ts",
   "apps/cli/test/support/golden-world.ts",
+]
+
+/** The Camunda 8 cluster the C8 adapter's goldens read, and the MCP server's copy of it. */
+const C8_WORLDS = [
+  "packages/connectors/c8/c8-adapter/test/goldens/cluster-world.ts",
+  "apps/mcp-server/test/engine-goldens/c8-cluster-world.ts",
 ]
 
 /** The names of a transport case file: each case's `name: "…",` line. */
@@ -176,6 +183,12 @@ describe("the shared files", () => {
     const [mcp, cli] = WORLDS.map((rel) => sharedBody(read(rel)))
     assert.ok(mcp.includes('"/process-instance/pi-1"'), "the scanner reads no world")
     assert.equal(cli, mcp, `${WORLDS[1]} drifted from ${WORLDS[0]}: change both together`)
+  })
+
+  it("are the same Camunda 8 cluster for the C8 adapter and the MCP server", () => {
+    const [adapter, mcp] = C8_WORLDS.map((rel) => sharedBody(read(rel)))
+    assert.ok(adapter.includes('"/v2/topology"'), "the scanner reads no world")
+    assert.equal(mcp, adapter, `${C8_WORLDS[1]} drifted from ${C8_WORLDS[0]}: change both together`)
   })
 })
 

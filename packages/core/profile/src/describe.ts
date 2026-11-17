@@ -126,6 +126,7 @@ const SENTENCES: Readonly<Record<ProblemCode, (problem: Problem) => string>> = {
     `${subject(problem)} must not contain credentials (they are not shown): put them into auth.`,
   "url-query-or-fragment": (problem) =>
     `${subject(problem)} must not contain a query string or a fragment.`,
+  "url-fragment": (problem) => `${subject(problem)} must not contain a fragment.`,
   "credential-in-shared-file": (problem) =>
     `${subject(problem)} is set, but a file others share names no credential, neither a secret nor the variable that holds one.`,
   "literal-secret": (problem) =>

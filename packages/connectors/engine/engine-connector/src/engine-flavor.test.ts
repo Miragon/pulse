@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { dialectOf, FLAVORS, type Flavor } from "@miragon/pulse-profile"
-import { type EngineFlavor, isC7Flavor } from "./engine-provider.js"
+import type { EngineFlavor } from "./engine-provider.js"
 import { engineConfigSchema, engineModule } from "./module.js"
 import {
   DEFAULT_ENGINE_FLAVOR,
@@ -43,11 +43,12 @@ describe("providerForEntry", () => {
     }
   })
 
-  it("narrows a flavor to the Camunda 7 REST dialect's, whose providers alone build a client", () => {
+  it("gives a client to the Camunda 7 REST dialect's providers alone", () => {
     const flavors = Object.keys(FLAVORS) as Flavor[]
-    expect(flavors.filter(isC7Flavor).sort()).toEqual(["camunda7", "cibseven", "operaton"])
+    const c7 = flavors.filter((flavor) => FLAVORS[flavor] === "c7")
+    expect(c7.sort()).toEqual(["camunda7", "cibseven", "operaton"])
     for (const flavor of flavors) {
-      expect("createClient" in ENGINE_PROVIDERS[flavor], flavor).toBe(isC7Flavor(flavor))
+      expect("createClient" in ENGINE_PROVIDERS[flavor], flavor).toBe(c7.includes(flavor))
     }
   })
 
@@ -129,9 +130,9 @@ describe("engineModule.configFromEnv engine flavor", () => {
     },
   )
 
-  it("fails the boot on camunda8, naming the flavors this server reads", () => {
+  it("fails the boot on camunda8, whose engine is a profile of ENGINES_JSON or ENGINES_FILE", () => {
     expect(() => engineModule.configFromEnv({ ENGINE_FLAVOR: "camunda8" })).toThrow(
-      "ENGINE_FLAVOR: This server does not speak the API of this flavor: it reads camunda7, cibseven and operaton.",
+      /^ENGINE_FLAVOR=camunda8: ENGINE_BASE_URL and its siblings describe a Camunda 7 engine\. A camunda8 engine is a profile in ENGINES_JSON or ENGINES_FILE/,
     )
   })
 

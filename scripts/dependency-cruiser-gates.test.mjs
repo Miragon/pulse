@@ -551,6 +551,8 @@ const SUITES = [
       [`${RUNTIME_VIEW}/src/host-kit/connections/profiles.ts`, PROFILE_NAME, []],
       [`${RUNTIME_VIEW}/test/host-kit/fixtures.test.ts`, `${PROFILE_NAME}/testing`, []],
       [`${ENGINE_CONNECTOR}/src/engine-profiles.ts`, PROFILE_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/engine-profile-auth.ts`, PROFILE_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/engine-profile-words.ts`, PROFILE_NAME, []],
       [`${ENGINE_CONNECTOR}/src/module.test.ts`, `${PROFILE_NAME}/testing`, []],
       [`${SHELL}/src/profile.test.ts`, PROFILE_NAME, []],
       [`${CLI}/test/support/profiles.ts`, `${PROFILE_NAME}/testing`, []],
