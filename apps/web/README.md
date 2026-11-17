@@ -16,5 +16,6 @@ to none.
 The server turns the web app on with `MCP_WEB_CLIENT_ID` beside its OAuth provider and reads this
 build (`pnpm --fail-if-no-match --filter @miragon/pulse-web build`, into `dist/`) from the folder
 `MCP_WEB_DIR` names; its routes, its session and its security headers are widget-shell's
-([README](../../packages/core/widget-shell/README.md#the-web-app)). How the app is built and
-checked: [CLAUDE.md](CLAUDE.md).
+([README](../../packages/core/widget-shell/README.md#the-web-app)). How to set up its sign-in and
+run it: the docs' [web app pages](../../docs/web/index.md). How the app is built and checked:
+[CLAUDE.md](CLAUDE.md).

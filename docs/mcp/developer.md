@@ -29,24 +29,24 @@ it on `:8400` against the playground, the engine module alone, next to the offic
 [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector) on `127.0.0.1`: open the URL it prints (no browser
 opens by itself) to call tools and render the widgets, or connect any MCP host to `http://localhost:8400/mcp`.
 It boots read-only; `--admin` adds the write tools, `--deploy` deployments, `--multi-engine` a
-second engine. A variable set in your shell wins over the playground's settings. Ctrl-C stops the
-server, the playground keeps running. Every port binds to `127.0.0.1`. Worktrees share the playground
-(`pnpm stack:down` stops it for all); `.mcp.json` reaches `${PORT:-8400}`, so run a second worktree's server as
-`PORT=<port> CLIENT_PORT=<port> MCP_SANDBOX_PORT=<port> MCP_APP_ORIGIN_PORT=<port> pnpm play` (the inspector's
-three ports, 6274, 6275 and 6278 by default) and its Claude Code session as `PORT=<port> claude`. The inspector
-prints its sign-in token, one from `MCP_INSPECTOR_API_TOKEN` too: keep the output of `pnpm play` and `pnpm dev` out of shared logs.
+second engine, `--web` the [web app](../web/sign-in.md#try-it-locally). Your shell's variables win.
+Ctrl-C stops only the server; worktrees share the playground (`pnpm stack:down` stops it for all).
+The inspector prints its sign-in token, one from `MCP_INSPECTOR_API_TOKEN` too: keep that output out
+of shared logs. `.mcp.json` reaches `${PORT:-8400}` and the inspector binds 6274, 6275 and 6278, so
+`PORT=<port> CLIENT_PORT=<port> MCP_SANDBOX_PORT=<port> MCP_APP_ORIGIN_PORT=<port> pnpm play` runs a
+second worktree's server and inspector, `PORT=<port> claude` its Claude Code session.
 
 ## Common tasks
 
-| Command                                         | What it does                                                                                          |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `pnpm play:cli -- <args>`                       | The CLI against the playground engine                                                                 |
-| `pnpm stack:up` / `stack:down` / `stack:status` | Start (`--multi-engine`, `--auth`), stop (`--wipe` drops the volumes) or show the playground          |
-| `pnpm dev`                                      | The server and the inspector with your own settings (`cp .env.example .env` first)                    |
-| `pnpm test:one <file...>`                       | Test files in their packages, the packages under them built first, coverage off (`--watch`)           |
-| `pnpm check`                                    | The bar for every change: install, build, typecheck, test, lint, format; a log per step in `reports/` |
-| `pnpm check:all`                                | `check` plus the host simulation, the template, the Gradle build, the docs build, the engine suites   |
-| `pnpm lint:fix` / `pnpm format`                 | ESLint and Prettier fixes                                                                             |
+| Command                                         | What it does                                                                                                                          |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm play:cli -- <args>`                       | The CLI against the playground engine                                                                                                 |
+| `pnpm stack:up` / `stack:down` / `stack:status` | Start (`--multi-engine`, `--auth`), stop (`--wipe` drops the volumes) or show the playground                                          |
+| `pnpm dev`                                      | The server and the inspector with your own settings (`cp .env.example .env` first)                                                    |
+| `pnpm test:one <file...>`                       | Test files in their packages, the packages under them built first, coverage off (`--watch`)                                           |
+| `pnpm check`                                    | The bar for every change: install, build, typecheck, test, lint, format; a log per step in `reports/`                                 |
+| `pnpm check:all`                                | `check` plus the host simulation, the web app's suite (`test:web`), the template, the Gradle build, the docs build, the engine suites |
+| `pnpm lint:fix` / `pnpm format`                 | ESLint and Prettier fixes                                                                                                             |
 
 The gates one by one: `pnpm build`, `pnpm typecheck`, `pnpm test`, `pnpm lint`, `pnpm format:check`.
 While you iterate: `pnpm test:one <file...>`, then the package and what depends on it with

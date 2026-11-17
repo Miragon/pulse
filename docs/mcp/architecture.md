@@ -1,8 +1,7 @@
 # Pulse architecture
 
-Pulse is a single Node.js MCP server that exposes Camunda 7 / CIB seven
-operations to any MCP host (Claude, ChatGPT, …). Everything it shows, the figures of its views
-included, it reads from the engine's REST API.
+Pulse is a single Node.js MCP server that exposes Camunda 7 / CIB seven operations to any MCP host
+(Claude, ChatGPT, …) and, as pages, to a browser; all it shows it reads from the engine's REST API.
 
 ## At a glance
 
@@ -29,32 +28,31 @@ flowchart LR
 | **CLI** (`apps/cli/`)                                       | Every engine REST operation as a command, generated from the OpenAPI spec, plus the workflow commands; on npm, Homebrew, GHCR and the GitHub release. See the [CLI docs](../cli/index.md); rules in `apps/cli/CLAUDE.md`.          |
 | **Pulse for VS Code** (`apps/vscode/`)                      | Shows what an engine runs next to the BPMN models in VS Code: the runtime view (`packages/core/runtime-view`, a React webview on pulse-ui over the engine contract) and the C7 adapter. A .vsix; rules in `apps/vscode/CLAUDE.md`. |
 | **Pulse for Orca** (`apps/orca/`)                           | The same runtime view and C7 adapter in Orca's editor tabs and a Pulse panel; an Orca plugin, rules in `apps/orca/CLAUDE.md`.                                                                                                      |
+| **Web app** (`apps/web/`)                                   | The server's views as pages under `/app` for a browser signed in through the server's OAuth provider, read-only; how it signs in and calls `/mcp`: [How the web app works](../web/architecture.md).                                |
 | **engine** (`packages/connectors/engine/engine-connector/`) | Wraps the Camunda 7 / CIB seven REST API via an OpenAPI-generated client. Exposes process, task, incident, deployment, and history tools plus widgets, and the [boards](boards.md) of `ENGINE_BOARDS_DIR`.                         |
 | **widgets** (`apps/mcp-server/dist/mcp-app.js` + `.css`)    | One Vite-built ES module + stylesheet containing React, Tailwind, and every widget. The server serves it behind one `ui://views/<tool>.html` resource per widget tool, which declares that view on itself (`showToolBinding`).     |
 
 ## Composition rules
 
-- Three axes keep a second engine dialect and a second interface cheap. Engine
-  _vendors_ (CIB seven, Operaton, Camunda 7) are per-engine runtime configuration
-  (`flavor` on the engine entry, resolved to an `EngineProvider` carrying only the
-  real differences: cockpit routes, branding, client hook), never packages or apps.
-  A _dialect_ (an engine API family: Camunda 7, and Camunda 8 in the editors) is one package
-  family under `packages/connectors/<dialect>/` (`c7`, `c8`). A family is one source the
-  server reads, a dialect or another source (a metrics store, say): its client, its core when
-  its interfaces share a pure domain and, for a source that is no dialect, its connector (the
-  MCP module). A package two interfaces share is extracted on its second consumer into the
-  family's core, like `@miragon/pulse-c7-core`, the core of the Camunda 7 REST dialect family
-  that the CLI bundles, the C7 adapter runs and the engine connector runs over
-  its client (one port per API family; it names no command, flag or tool). `packages/core/`
-  holds what every family builds on, never one family's code. The family `engine` is the neutral
-  layer: one MCP server app, the thin composition root `apps/mcp-server`, and one module
+- Three axes keep a second engine dialect and a second interface cheap. Engine _vendors_ (CIB seven,
+  Operaton, Camunda 7) are per-engine runtime configuration (`flavor` on the engine entry, resolved
+  to an `EngineProvider` carrying only the real differences: cockpit routes, branding, client hook),
+  never packages or apps. A _dialect_ (an engine API family: Camunda 7, and Camunda 8 in the
+  editors) is one package family under `packages/connectors/<dialect>/` (`c7`, `c8`). A family is
+  one source the server reads, a dialect or another source (a metrics store, say): its client, its
+  core when its interfaces share a pure domain and, for a source that is no dialect, its connector
+  (the MCP module). A package two interfaces share is extracted on its second consumer into the
+  family's core, like `@miragon/pulse-c7-core`, the core of the Camunda 7 REST dialect family that
+  the CLI bundles, the C7 adapter runs and the engine connector runs over its client (one port per
+  API family; it names no command, flag or tool). `packages/core/` holds what every family builds
+  on, never one family's code. The family `engine` is the neutral layer: one MCP server app, the
+  thin composition root `apps/mcp-server`, and one module
   (`packages/connectors/engine/engine-connector`) serve every dialect, and its core
-  (`packages/connectors/engine/engine-core`) is the contract each dialect implements. An
-  _interface_ is an app: the MCP server, the CLI, Pulse for VS Code and Pulse for Orca.
-- Modules are peers. Connector packages (`*-connector`) never import each other. What one
-  module needs of another the app injects through `shared` (`SharedResources` in
-  `apps/mcp-server/src/setup.ts`), the port for what the modules of a composition share; today
-  the app hands nothing through.
+  (`packages/connectors/engine/engine-core`) is the contract each dialect implements. An _interface_
+  is an app: the MCP server, the web app it serves, the CLI, Pulse for VS Code and Pulse for Orca.
+- Modules are peers: connector packages (`*-connector`) never import each other, and what one module
+  needs of another the app injects through `shared`, the port for what a composition's modules share
+  (`SharedResources` in `apps/mcp-server/src/setup.ts`; empty today).
 - Modules are self-contained. Each exports a module definition: config schema, env mapping,
   known env vars, toolset vocabulary, boot warnings, plugin factory
   (`packages/connectors/<family>/<family>-connector/src/module.ts`). A plugin is a name plus a
@@ -97,15 +95,16 @@ budget), and an adapter fills them: in a chat the MCP Apps adapter over the offi
 on a page the browser adapter of `mountPage`. `TestViewHost` fills them in tests and publishes the
 formatters' locale as the view root does, so a widget test reads the same on every machine.
 
-The MCP Apps host is one host among several: a web app shows the same components through
-`mountPage` (a caller for the server's tools from the page; a hand-off, posting into no chat there,
-hidden or offering its prompt to copy). The engine module's widgets read the Camunda 7 REST
-family's data, a board's tiles its JSON form, which the board builder makes over engine-core.
+The MCP Apps host is one host among several: the web app shows the same components through
+`mountPage` (a caller for the server's tools from the page; a hand-off hidden or offering its prompt
+to copy, since a page posts into no chat; no write control and no call of the write gate, since a
+page writes to no engine). The widgets read the Camunda 7 REST family's data, a board's tiles its
+JSON form, which the board builder makes over engine-core.
 
 ## What the UIs share
 
 By the owner's decision of 2026-11-12, Pulse's UIs become one family, React on `@miragon/pulse-ui`
-in one compact look: the MCP widgets, a starter's and the web apps of
+in one compact look: the MCP widgets, a starter's and the web app of
 [#573](https://github.com/Miragon/pulse/issues/573) with widget-shell, and the runtime view's
 webview (Pulse for VS Code and Pulse for Orca) without it, which has no host adapter, never renders
 a widget and moved from Preact to React on pulse-ui in one switch. They share a core up to

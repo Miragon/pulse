@@ -56,6 +56,8 @@ import {
   SERVER_READY_PATH,
   serverPreset,
   servicesFor,
+  WEB_BUILD,
+  webClientProbe,
   withPreset,
 } from "./local-env.mjs"
 import {
@@ -73,6 +75,7 @@ import { readWorkspace } from "./workspace-packages.mjs"
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const SERVER_PACKAGE = "@miragon/pulse-mcp-server"
+const WEB_PACKAGE = "@miragon/pulse-web"
 const CLI_PACKAGE = "@miragon/pulse-cli"
 const CLI_ENTRY = "apps/cli/dist/pulse-cli.js"
 const STACK_TIMEOUT_MS = 10 * 60_000
@@ -430,10 +433,39 @@ function sayOverrides({ overridden, outranking }) {
   }
 }
 
+/**
+ * `pnpm play --web` signs in through the playground's Keycloak, whose realm knows the web client's
+ * addresses and its tokens' audience on the default port only.
+ */
+function refuseWebOffDefaultPort(port) {
+  if (port === DEFAULT_PORT) return
+  throw new Failure(
+    `pnpm play --web runs on port ${DEFAULT_PORT} only: the playground's Keycloak knows the web ` +
+      "app's sign-in there. Unset PORT and try again.",
+  )
+}
+
+/** A Keycloak started before the realm had the web client knows none until it is recreated. */
+async function ensureWebClient(port) {
+  if (await answers(webClientProbe(port))) return
+  throw new Failure(
+    "The playground's Keycloak does not know the web app's client pulse-web (it started before " +
+      "the realm had it). Recreate it with `docker compose -f playground/docker/docker-compose.yml " +
+      "--profile auth up -d --force-recreate keycloak`, then run pnpm play --web again.",
+  )
+}
+
 async function play(options) {
   const portFromEnv = process.env.PORT !== undefined
   const port = Number(process.env.PORT ?? DEFAULT_PORT)
-  const preset = serverPreset({ ...options, port, boardsDir: path.join(ROOT, PLAYGROUND_BOARDS) })
+  const preset = serverPreset({
+    ...options,
+    port,
+    boardsDir: path.join(ROOT, PLAYGROUND_BOARDS),
+    webDir: path.join(ROOT, WEB_BUILD),
+    // Per run: a session outlives the server's restarts under watch, never a new pnpm play.
+    sessionKey: randomBytes(32).toString("base64url"),
+  })
   const { env: presetEnv, ...overrides } = withPreset(preset, process.env)
   // The inspector's sign-in token: the caller's own, else a fresh one, so the ready message can
   // link the signed-in web UI. The ready message never names a token from the caller's
@@ -444,11 +476,17 @@ async function play(options) {
     ? presetEnv
     : { ...presetEnv, MCP_INSPECTOR_API_TOKEN: randomBytes(32).toString("hex") }
   await ensureDocker()
+  if (options.web) refuseWebOffDefaultPort(port)
   await ensurePortsFree(port, portFromEnv, env)
   await install()
   await ensureStack(options)
-  say("Building the server's packages ...")
-  await turboBuild(`${SERVER_PACKAGE}^...`)
+  if (options.web) await ensureWebClient(port)
+  say(
+    options.web
+      ? "Building the server's packages and the web app ..."
+      : "Building the server's packages ...",
+  )
+  await turboBuild(`${SERVER_PACKAGE}^...`, ...(options.web ? [WEB_PACKAGE] : []))
   await ensurePortsFree(port, portFromEnv, env)
   sayOverrides(overrides)
   // Named from the preset, never echoed from the caller's environment (sayOverrides names it).
@@ -503,8 +541,9 @@ async function play(options) {
     const link = tokenFromEnv
       ? `http://127.0.0.1:${inspectorPort} (sign in with your MCP_INSPECTOR_API_TOKEN)`
       : inspectorLink(inspectorPort, env.MCP_INSPECTOR_API_TOKEN)
+    const web = options.web ? `  web app       ${base}/app (sign in as demo / demo)\n` : ""
     console.log(
-      `\nMCP server ready:\n  MCP endpoint  ${base}/mcp\n` +
+      `\nMCP server ready:\n  MCP endpoint  ${base}/mcp\n${web}` +
         `  inspector     ${inspector ? link : "did not start; its output is above"}\n` +
         `${claudeCodeHint(port)}Ctrl-C stops the server; the playground keeps running.`,
     )

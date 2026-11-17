@@ -42,7 +42,9 @@ Three clients work on the same engines; pick the one that fits where you work.
 | [VS Code](apps/vscode/README.md)        | VS Code 1.101+, and editors on Open VSX  | [Marketplace](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse-cockpit) · [Open VSX](https://open-vsx.org/extension/miragon-gmbh/pulse-cockpit)                     | Early   |
 
 The VS Code extension and [Pulse for Orca](apps/orca/README.md) also read Camunda 8 clusters from
-8.9 on, without writing ([Camunda 8](https://miragon.github.io/pulse/vscode/camunda8)).
+8.9 on, without writing ([Camunda 8](https://miragon.github.io/pulse/vscode/camunda8)). The server's
+image also holds a [web app](apps/web/README.md): the cockpit and the boards as pages under `/app`,
+read-only, for people who sign in through the server's identity provider instead of using a chat.
 
 ## Get started
 

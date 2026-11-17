@@ -36,6 +36,39 @@
           }
         }
       ]
+    },
+    {
+      "clientId": "pulse-web",
+      "name": "Pulse web app",
+      "description": "The web app's sign-in on http://localhost:8400/app (pnpm play --web): confidential, code flow with PKCE S256, exact redirect and post-logout URIs, the MCP endpoint in aud, access tokens for 5 minutes.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "pulse-web-secret",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["http://localhost:8400/app/auth/callback"],
+      "webOrigins": [],
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:8400/app/signed-out",
+        "pkce.code.challenge.method": "S256",
+        "access.token.lifespan": "300"
+      },
+      "protocolMappers": [
+        {
+          "name": "mcp-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "http://localhost:8400/mcp",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
     }
   ],
   "users": [

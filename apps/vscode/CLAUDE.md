@@ -209,7 +209,8 @@ protocol and live updates, the native confirmation, sign-in), its diagram runtim
 (portals that carry only the classes of `packages/core/runtime-view/src/webview/styles/diagram.css`),
 the condition dialog as a native `<dialog>` on the kit's roles, and the split pane with the widths
 it stores, which stay the editor's; where it shows the same thing as the MCP widgets or the web
-apps of #573, a shared building block is the default, and no screen of it is replaced by force. A
+app of #573 (`apps/web`, which renders the cockpit through widget-shell's `mountPage`), a shared
+building block is the default, and no screen of it is replaced by force. A
 shared building block is a component on React that takes props and callbacks only, with no host
 context inside (no `useToolQuery`, `ConfirmDialog`, `HandOffButton` or `HostBridge`); it lives in
 pulse-ui or in a shared package created with the first engine block two surfaces render, which

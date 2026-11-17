@@ -11,6 +11,7 @@ read-only; writes need a toolset you name. Commands and configs call the server 
 | [Getting started](./getting-started.md)      | Connect your Claude to the public playground, then run the server on your own engine       |
 | [Usage](./usage.md)                          | Connect an assistant, what to ask, language and theme                                      |
 | [Boards](./boards.md)                        | A board in the chat and the cockpit, the server's board files, one shared with the editors |
+| [Web app](../web/index.md)                   | The server's views as pages in a browser, signed in through its OAuth provider             |
 | [Reference](./reference.md)                  | Every tool, the toolsets and the common settings                                           |
 | [Operations](./operations.md)                | The Docker image, security, environment variables, toolsets, health routes                 |
 | [Architecture](./architecture.md)            | The server, its engine module and the systems it talks to                                  |

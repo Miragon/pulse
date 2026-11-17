@@ -19,6 +19,10 @@ With boards it shows with one engine too: in full screen, and from a drilled vie
 first crumb of its trail, **All engines**. A board file that gives no board is listed by its id
 with its count of problems; the server's log at startup says what they are.
 
+With the [web app](../web/index.md) on, `/app` lists the same boards, and `/app/boards/<id>`
+opens one in the browser with the same tiles and numbers, read with the token of whoever signed
+in; an id the server has no board for, or a file that gives none, shows why, with a link to `/app`.
+
 ## What a board shows
 
 - A tile opens the view of its engine: an instance (an ended one in its history), an incident, a

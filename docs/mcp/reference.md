@@ -41,13 +41,14 @@ BPM operations across these domains (`category`): `engines`, `process-definition
   JSON text; as a JSON number, also inside a Json or Object value given as parsed JSON, it arrives
   rounded, since the MCP SDK parses a call before the server sees it. The server instructions ask
   for the string and the JSON text
-- **View:** `open_cockpit`, the operations cockpit and the module's one view: `view` opens it on
-  the overview (default), the incidents, a failure cluster, a process, its instances, an
-  instance, an incident, the jobs or an instance's history; the result carries that view's facts
-  as compact JSON. A process's flow shows its open incidents or, as **Running**, what runs at
-  each element now, every deployed version summed onto the latest diagram; as **Throughput ·
-  30 days**, what the instances started in the last 30 days passed per element, from the
-  engine's history (the app-only `engine_activity_statistics_data`, `source` `history`)
+- **View:** `open_cockpit`, the operations cockpit and the module's one view: `view` opens it on the
+  overview (default), the landing (`landing`, without `engine`: the engines and the server's boards
+  to pick from, the [web app](../web/index.md)'s `/app`), the incidents, a failure cluster, a
+  process, its instances, an instance, an incident, the jobs or an instance's history; the result
+  carries that view's facts as compact JSON. A process's flow shows its open incidents or, as
+  **Running**, what runs at each element now, every deployed version summed onto the latest diagram;
+  as **Throughput · 30 days**, what the instances started in the last 30 days passed per element,
+  from the engine's history (the app-only `engine_activity_statistics_data`, `source` `history`)
 - **Boards:** with `ENGINE_BOARDS_DIR`, `list_engines` names the boards, `open_cockpit` (`view`
   `board` and its id) shows one, built by the app-only `engine_board_data` ([Boards](boards.md))
 

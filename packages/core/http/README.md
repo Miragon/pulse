@@ -4,12 +4,12 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/Miragon/pulse/ci.yml?style=flat-square&label=ci)](https://github.com/Miragon/pulse/actions/workflows/ci.yml)
 [![Docs](https://img.shields.io/badge/docs-miragon.github.io%2Fpulse-335DE5?style=flat-square)](https://miragon.github.io/pulse/)
 
-One HTTP transport for the engines Pulse reaches: the Pulse MCP server's engine connector, the
+One HTTP transport for the engines Pulse reaches: the MCP server's engine connector, the
 [Pulse CLI](https://www.npmjs.com/package/@miragon/pulse-cli) and the C7 and C8 adapters of Pulse
 for VS Code and Pulse for Orca, and the OAuth client protocol they share with the MCP server's web
-sign-in (`./oauth`). It holds the rules of the wire once, so every client keeps them alike: a
-deadline to the last byte of the answer, never a redirect, a size cap, one credential seam with
-exactly one second attempt after a 401 when the credential renewed, failure reasons as data,
+sign-in under `/app` in `@miragon/pulse-widget-shell` (`./oauth`). It holds the wire's rules once,
+so every client keeps them alike: a deadline to the last byte, never a redirect, a size cap, one
+credential seam with one retry after a 401 when the credential renewed, failure reasons as data,
 lossless JSON and the request's secrets masked in each error answer, failure and trace.
 
 ## What it is not

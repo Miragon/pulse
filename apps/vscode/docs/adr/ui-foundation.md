@@ -1,7 +1,7 @@
 # UI foundation and shared building blocks
 
 - Status: accepted
-- Last reviewed: 2026-11-16 (executed for boards in the MCP server: the cockpit's board route renders `@miragon/pulse-blocks` with its own table, id and diagram, over the board feed `engine_board_data`, which builds the board files of `ENGINE_BOARDS_DIR` with the board builder over `C7Runtime` and serializes them with `BoardJson.of`, so D8's blocks have their second renderer; D2 for boards is held by c7-core's recorded answers, `C7_BOARD_ENGINE`, from which the board feed and the C7 adapter build one board, and by the board cases of both engine suites; earlier that day, executed for building blocks, D8: the shared package exists, `@miragon/pulse-blocks` in `packages/core/blocks`, created from the webview's board cards, which the webview renders with its table, short id and canvas as slots, `blocks-are-building-blocks` and `blocks-consumers`; decided: the engine connector imports engine-core before it serves a second dialect, its server layers `src/lib/engine`, `src/lib/core-adapter` and `src/data` by the main entry, `engine-connector-contract-by-its-main-entry`; `runtimeOf` runs c7-core's `C7Runtime` as the connector's runtime, its failures read by `runtimeErrorOf`); 2026-11-15 (executed for boards, D8: the board file format moved into the published package `@miragon/pulse-board` with its dependency rules, and the board builder followed into its `./builder` entry, whose model the runtime view renders, D2 for boards); 2026-11-14 (executed: the switch of D9 landed, the webview renders with React 19 on `@miragon/pulse-ui`; every precondition of D7 is in place; its follow-up landed too: the webview and its tests follow `react-hooks`' `recommended-latest`, the React Compiler rules included, every rule of it an error; decided: "with incident" reads one way on every C7 surface, an open incident the runtime holds now, so the board's two readings are one); 2026-11-12, later the same day (decided, D9: the webview moves from Preact to React 19 on `@miragon/pulse-ui` in one switch, without a `preact/compat` bridge; one compact look for every surface, on density roles over the guide's `--cd-shell-*` tokens and pulse-ui's colour roles on the guide's `--cd-ui-*` roles, numbers neutral; replaces D4 and turns D7 into the switch's preconditions); 2026-11-12 (decided: the surfaces share a core up to building blocks, not everything: formats, the engine reads and their rules, the numbers and view models of a feature more than one surface shows, and building blocks on React's API; a feature more than one surface shows, boards first, shows the same numbers on every surface; replaces the two UI families of 2026-11-08)
+- Last reviewed: 2026-11-17 (executed for the web app of #573: `apps/web` renders the MCP server's views, the cockpit and its boards, as pages of the server through widget-shell's `mountPage`, a third surface on React, pulse-ui and widget-shell beside the chat's widgets, whose board route renders `@miragon/pulse-blocks` there too; a page writes to no engine); 2026-11-16 (executed for boards in the MCP server: the cockpit's board route renders `@miragon/pulse-blocks` with its own table, id and diagram, over the board feed `engine_board_data`, which builds the board files of `ENGINE_BOARDS_DIR` with the board builder over `C7Runtime` and serializes them with `BoardJson.of`, so D8's blocks have their second renderer; D2 for boards is held by c7-core's recorded answers, `C7_BOARD_ENGINE`, from which the board feed and the C7 adapter build one board, and by the board cases of both engine suites; earlier that day, executed for building blocks, D8: the shared package exists, `@miragon/pulse-blocks` in `packages/core/blocks`, created from the webview's board cards, which the webview renders with its table, short id and canvas as slots, `blocks-are-building-blocks` and `blocks-consumers`; decided: the engine connector imports engine-core before it serves a second dialect, its server layers `src/lib/engine`, `src/lib/core-adapter` and `src/data` by the main entry, `engine-connector-contract-by-its-main-entry`; `runtimeOf` runs c7-core's `C7Runtime` as the connector's runtime, its failures read by `runtimeErrorOf`); 2026-11-15 (executed for boards, D8: the board file format moved into the published package `@miragon/pulse-board` with its dependency rules, and the board builder followed into its `./builder` entry, whose model the runtime view renders, D2 for boards); 2026-11-14 (executed: the switch of D9 landed, the webview renders with React 19 on `@miragon/pulse-ui`; every precondition of D7 is in place; its follow-up landed too: the webview and its tests follow `react-hooks`' `recommended-latest`, the React Compiler rules included, every rule of it an error; decided: "with incident" reads one way on every C7 surface, an open incident the runtime holds now, so the board's two readings are one); 2026-11-12, later the same day (decided, D9: the webview moves from Preact to React 19 on `@miragon/pulse-ui` in one switch, without a `preact/compat` bridge; one compact look for every surface, on density roles over the guide's `--cd-shell-*` tokens and pulse-ui's colour roles on the guide's `--cd-ui-*` roles, numbers neutral; replaces D4 and turns D7 into the switch's preconditions); 2026-11-12 (decided: the surfaces share a core up to building blocks, not everything: formats, the engine reads and their rules, the numbers and view models of a feature more than one surface shows, and building blocks on React's API; a feature more than one surface shows, boards first, shows the same numbers on every surface; replaces the two UI families of 2026-11-08)
 
 ## Context
 
@@ -9,7 +9,8 @@ Pulse shows an engine on three surfaces. The MCP server's widgets are React on `
 and widget-shell, cards in an AI chat with a height budget, hand-offs to the chat and a view bundle
 every view resource inlines. This extension's webview, which Pulse for Orca shows too, was Preact
 with its own components and stylesheets until the switch of D9 (2026-11-14), tabs in the editor next to the models and the code. The
-web apps of #573 are planned on React, pulse-ui and widget-shell.
+web app of #573 (`apps/web`, since 2026-11-17) is React on pulse-ui and widget-shell and renders the
+cockpit through widget-shell's `mountPage`.
 
 On 2026-11-08 the product owner decided for two UI families: the webview and the MCP widgets share
 pulse-ui's framework-free foundation and never a component (E1), the words align and the numbers
@@ -35,7 +36,7 @@ A review on 2026-11-12 checked those facts and found:
 - A design review of four target architectures (2026-11-12) found that the same numbers on two
   surfaces need a shared builder and shared reads, not shared components alone.
 - Boards ([boards.md](boards.md)) were planned for the MCP server and the web apps; the MCP server
-  shows them since 2026-11-16. The VS Code
+  shows them since 2026-11-16, its web app since 2026-11-17. The VS Code
   board read "with incident" two ways until 2026-11-14: its counter counted the history with
   `incidentStatus=open` (then the C7 adapter's instance search, now
   `packages/connectors/c7/c7-core/src/runtime/instance-search.ts`), its
@@ -67,7 +68,7 @@ The product owner decided on 2026-11-12. D1 replaces E1, D2 amends E2, D3 keeps 
 day the owner decided D9, which replaces D4 and turns D7 into the switch's preconditions.
 
 - **D1, one core up to building blocks.** The surfaces (this extension and Pulse for Orca, which
-  show one webview; the MCP server's widgets; the web apps of #573) share a core up to building
+  show one webview; the MCP server's widgets; the web app of #573) share a core up to building
   blocks, not everything. It has four layers:
   1. Formats, the board file first.
   2. The engine reads and their rules: the Camunda 7 rules live in `@miragon/pulse-c7-core`, which
@@ -76,7 +77,7 @@ day the owner decided D9, which replaces D4 and turns D7 into the switch's preco
      framework-free over the read models of `@miragon/pulse-engine-core`.
   4. Building blocks: components on React that take props and callbacks only, with no host context
      inside (no `useToolQuery`, `ConfirmDialog`, `HandOffButton` or `HostBridge`), which every
-     surface renders in React: the MCP widgets and the web apps, and the webview from the switch of
+     surface renders in React: the MCP widgets and the web app, and the webview from the switch of
      D9 on (D1 first had the webview render them through `preact/compat`).
 
   Each surface keeps its own screens and its host wiring (hand-offs to the chat, live updates and

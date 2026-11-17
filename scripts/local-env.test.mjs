@@ -15,6 +15,7 @@ import {
   portConflict,
   PLAYGROUND_BOARDS,
   PLAYGROUND_PASSWORD_VARIABLE,
+  PLAYGROUND_WEB_CLIENT,
   portOwners,
   presetToolsets,
   profilesFor,
@@ -22,6 +23,8 @@ import {
   serverPreset,
   SERVER_READY_PATH,
   servicesFor,
+  WEB_BUILD,
+  webClientProbe,
   withPreset,
 } from "./local-env.mjs"
 
@@ -174,6 +177,62 @@ describe("the presets", () => {
     )) {
       assert.ok(example.includes(`# ${name}=${value}\n`), name)
     }
+  })
+
+  it("turns on the web app with --web, behind the same Keycloak, from the web app's own build", () => {
+    assert.equal(serverPreset({ auth: true }).MCP_WEB_CLIENT_ID, undefined)
+    const preset = serverPreset({
+      web: true,
+      webDir: "/repo/apps/web/dist",
+      sessionKey: "key",
+    })
+    assert.equal(preset.MCP_OAUTH_KEYCLOAK_REALM, "miragon")
+    assert.equal(preset.MCP_URL, `http://localhost:${DEFAULT_SERVER_PORT}`)
+    assert.equal(preset.MCP_WEB_CLIENT_ID, PLAYGROUND_WEB_CLIENT.id)
+    assert.equal(preset.MCP_WEB_CLIENT_SECRET, PLAYGROUND_WEB_CLIENT.secret)
+    assert.equal(preset.MCP_WEB_SESSION_KEYS, "key")
+    assert.equal(preset.MCP_WEB_DIR, "/repo/apps/web/dist")
+    // The web app's build, never the server package's web/, which only the image fills.
+    const manifest = JSON.parse(
+      readFileSync(new URL("../apps/web/package.json", import.meta.url), "utf8"),
+    )
+    assert.equal(manifest.scripts.build, "vite build")
+    assert.equal(WEB_BUILD, "apps/web/dist")
+    const ignored = readFileSync(new URL("../.gitignore", import.meta.url), "utf8")
+    assert.match(ignored, /^apps\/mcp-server\/web\/?$/m)
+  })
+
+  it("matches the realm's web client: confidential, its addresses on MCP_URL, the gate's audience", () => {
+    const realm = JSON.parse(
+      readFileSync(
+        new URL("../playground/docker/keycloak/realm-miragon.json", import.meta.url),
+        "utf8",
+      ),
+    )
+    // Keycloak stores a client's description in 255 characters and fails its import beyond.
+    for (const { clientId, description } of realm.clients) {
+      assert.ok(description.length <= 255, `${clientId}'s description: ${description.length}`)
+    }
+    const client = realm.clients.find(({ clientId }) => clientId === PLAYGROUND_WEB_CLIENT.id)
+    const { MCP_URL } = serverPreset({ web: true, webDir: "/d", sessionKey: "k" })
+    assert.equal(client.publicClient, false)
+    assert.equal(client.secret, PLAYGROUND_WEB_CLIENT.secret)
+    assert.equal(client.standardFlowEnabled, true)
+    assert.deepEqual(client.redirectUris, [`${MCP_URL}/app/auth/callback`])
+    assert.equal(client.attributes["post.logout.redirect.uris"], `${MCP_URL}/app/signed-out`)
+    assert.equal(client.attributes["pkce.code.challenge.method"], "S256")
+    const audiences = client.protocolMappers
+      .filter(({ protocolMapper }) => protocolMapper === "oidc-audience-mapper")
+      .map(({ config }) => config["included.custom.audience"])
+    assert.deepEqual(audiences, [`${MCP_URL}/mcp`])
+    // The probe asks that Keycloak for this client with this redirect URI, on its loopback port.
+    const probe = new URL(webClientProbe())
+    const keycloak = SERVICES.find(({ id }) => id === "keycloak")
+    assert.equal(probe.port, String(keycloak.ports[0]))
+    assert.match(probe.pathname, new RegExp(`^/realms/${realm.realm}/`))
+    assert.equal(probe.searchParams.get("client_id"), client.clientId)
+    assert.equal(probe.searchParams.get("redirect_uri"), client.redirectUris[0])
+    assert.equal(probe.searchParams.get("code_challenge_method"), "S256")
   })
 
   it("points the CLI at the same engine", () => {

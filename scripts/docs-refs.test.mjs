@@ -509,6 +509,11 @@ const DOCS_BUDGETS = {
   // A board in the chat and the cockpit, the server's board files, a board shared with the editors.
   "mcp/boards.md": 70,
   "mcp/reference.md": 160,
+  // The web app's pages (docs/web/): what it shows and for whom, the sign-in an operator sets up
+  // (variables, the provider's side, sessions, a proxy, local), how it is built.
+  "web/index.md": 50,
+  "web/sign-in.md": 110,
+  "web/architecture.md": 100,
   // The CLI's pages (docs/cli/).
   "cli/index.md": 40,
   "cli/getting-started.md": 140,
