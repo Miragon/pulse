@@ -1,15 +1,17 @@
 import { describe, expect, it } from "vitest"
 import { dialectOf, FLAVORS, type Flavor } from "@miragon/pulse-profile"
-import { dialectOfFlavor, type EngineFlavor, isEngineFlavor } from "./engine-provider.js"
+import { type EngineFlavor, isC7Flavor } from "./engine-provider.js"
 import { engineConfigSchema, engineModule } from "./module.js"
 import {
   DEFAULT_ENGINE_FLAVOR,
   ENGINE_PROVIDERS,
   camunda7Provider,
+  camunda8Provider,
   cibsevenProvider,
   operatonProvider,
   providerForEntry,
 } from "./providers/index.js"
+import { buildInstanceCockpitUrl, buildProcessCockpitUrl } from "./lib/engine/cockpit-url.js"
 
 /**
  * The vendor an engine entry resolves to. Without a `flavor` it is Camunda 7,
@@ -27,27 +29,44 @@ describe("providerForEntry", () => {
     expect(providerForEntry({ id: "a", flavor: "cibseven" })).toBe(cibsevenProvider)
     expect(providerForEntry({ id: "a", flavor: "operaton" })).toBe(operatonProvider)
     expect(providerForEntry({ id: "a", flavor: "camunda7" })).toBe(camunda7Provider)
+    expect(providerForEntry({ id: "a", flavor: "camunda8" })).toBe(camunda8Provider)
     for (const [flavor, provider] of Object.entries(ENGINE_PROVIDERS)) {
       expect(provider.flavor).toBe(flavor)
     }
   })
 
-  it("holds the flavors it narrows a profile to to the providers, never another dialect's", () => {
+  it("has a provider for every flavor of the profile format, each with the format's dialect", () => {
     const flavors = Object.keys(FLAVORS) as Flavor[]
-    expect(flavors.filter(isEngineFlavor).sort()).toEqual(Object.keys(ENGINE_PROVIDERS).sort())
-    expect(isEngineFlavor("camunda8")).toBe(false)
+    expect(Object.keys(ENGINE_PROVIDERS).sort()).toEqual([...flavors].sort())
+    for (const flavor of flavors) {
+      expect(ENGINE_PROVIDERS[flavor].dialect, flavor).toBe(dialectOf({ flavor }))
+    }
   })
 
-  it("reads each served flavor's dialect from the profile format's table, as dialectOf does", () => {
-    for (const flavor of Object.keys(ENGINE_PROVIDERS) as EngineFlavor[]) {
-      expect(dialectOfFlavor(flavor), flavor).toBe(dialectOf({ flavor }))
-      expect(dialectOfFlavor(flavor), flavor).toBe("c7")
+  it("narrows a flavor to the Camunda 7 REST dialect's, whose providers alone build a client", () => {
+    const flavors = Object.keys(FLAVORS) as Flavor[]
+    expect(flavors.filter(isC7Flavor).sort()).toEqual(["camunda7", "cibseven", "operaton"])
+    for (const flavor of flavors) {
+      expect("createClient" in ENGINE_PROVIDERS[flavor], flavor).toBe(isC7Flavor(flavor))
     }
+  })
+
+  it("names Camunda 8 and links nowhere into Operate: no base derived, no route", () => {
+    const engine = {
+      baseUrl: "https://cluster.example/v2",
+      cockpitUrl: "https://operate.example/operate",
+      provider: camunda8Provider,
+    }
+    expect(camunda8Provider.branding.displayName).toBe("Camunda 8")
+    expect(camunda8Provider.cockpit.deriveWebappBase("https://cluster.example/v2")).toBeNull()
+    const ref = { key: "order", version: 1, definitionId: "2251799813685249", instanceId: "1" }
+    expect(buildProcessCockpitUrl(engine, ref)).toBeNull()
+    expect(buildInstanceCockpitUrl(engine, ref, { tab: "incidents" })).toBeNull()
   })
 
   it("fails on a flavor an untyped caller made up, naming the engine and the known ones", () => {
     expect(() => providerForEntry({ id: "a", flavor: "flowable" as EngineFlavor })).toThrow(
-      'Unknown engine flavor "flowable" for engine "a". Expected one of: cibseven, operaton, camunda7',
+      'Unknown engine flavor "flowable" for engine "a". Expected one of: cibseven, operaton, camunda7, camunda8',
     )
   })
 })

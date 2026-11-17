@@ -8,7 +8,11 @@ import type { AddressInfo } from "node:net"
 import { z } from "zod"
 import type { ToolConfig } from "@miragon/pulse-widget-shell/server"
 import type { Client } from "@miragon/pulse-c7-client"
-import { createEngineRegistry, type EngineRegistry } from "../../lib/engine/resolve-engine.js"
+import {
+  createEngineRegistry,
+  type EngineRegistry,
+  resolveEngine,
+} from "../../lib/engine/resolve-engine.js"
 import { providerForEntry } from "../../providers/index.js"
 
 export interface RecordedRequest {
@@ -119,7 +123,7 @@ export function registryFor(engine: FakeEngine): EngineRegistry {
 }
 
 export function clientFor(engine: FakeEngine): Client {
-  return registryFor(engine).backends.get("fake")!.client
+  return resolveEngine("fake", registryFor(engine)).client
 }
 
 type Handler = (registry: EngineRegistry, args: Record<string, unknown>) => Promise<unknown>

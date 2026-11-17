@@ -8,7 +8,7 @@ import { EngineRequestError } from "./engine-error.js"
  * so what the module keeps per engine keys on them, not on the view, and the tools and the feeds
  * share it per configured engine. A stand-in client without interceptors keys on itself.
  */
-function engineClientKey(client: Client): object {
+export function engineClientKey(client: Client): object {
   const { interceptors } = client as Partial<Pick<Client, "interceptors">>
   return interceptors ?? client
 }

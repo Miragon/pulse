@@ -32,12 +32,7 @@ import {
   refusalsOn,
   type Surface,
 } from "@miragon/pulse-profile"
-import {
-  type EngineAuth,
-  type EngineEntry,
-  type EngineFlavor,
-  isEngineFlavor,
-} from "./engine-provider.js"
+import { type C7Flavor, type EngineAuth, type EngineEntry, isC7Flavor } from "./engine-provider.js"
 import { credentialProblemOf } from "./lib/engine/credentials.js"
 import type { RefusedProfile } from "./lib/engine/resolve-engine.js"
 import {
@@ -195,12 +190,12 @@ function writtenCockpitUrls(text: string): WrittenCockpitUrl {
   }
 }
 
-/** A usable profile whose flavor the server has a provider for. */
-type EngineProfile = Profile & { readonly flavor?: EngineFlavor }
+/** A usable profile of the Camunda 7 REST dialect, the one dialect SERVER_SURFACE serves. */
+type EngineProfile = Profile & { readonly flavor?: C7Flavor }
 
-/** True when the server has a provider for the flavor of `profile`, or it names none. */
+/** True when `profile` speaks the Camunda 7 REST dialect: it names none of the flavors, or one of its. */
 function hasEngineFlavor(profile: Profile): profile is EngineProfile {
-  return profile.flavor === undefined || isEngineFlavor(profile.flavor)
+  return profile.flavor === undefined || isC7Flavor(profile.flavor)
 }
 
 /** The engine of a usable profile: its name is the id, its `url` the REST root. */

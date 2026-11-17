@@ -8,29 +8,41 @@
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import type { z } from "zod"
 import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
-import { BoardProblems } from "@miragon/pulse-board"
+import { BoardParser, BoardProblems } from "@miragon/pulse-board"
+import { BoardBuilder, BoardJson, type BoardReads } from "@miragon/pulse-board/builder"
+import { FakeEngine, FakeWorld } from "@miragon/pulse-engine-core/testing"
+import type { EngineBoard } from "../board-files.js"
+import {
+  type ContractRuntime,
+  createEngineRegistry,
+  resolveEngine,
+} from "../lib/engine/resolve-engine.js"
 import { engineModule } from "../module.js"
+import { createPlugin, type EnginePluginConfig } from "../plugin.js"
+import { providerForEntry } from "../providers/index.js"
 import { ENGINE_BOARD_DATA } from "../tool-names.js"
 import { feedPayload } from "../tools/test-support/feed-payload.js"
 import { worldReply } from "../tools/test-support/engine-world.js"
 import {
-  type FakeEngine,
+  type FakeEngine as FakeC7Engine,
   type FakeRoutes,
   startFakeEngine,
 } from "../tools/test-support/fake-engine.js"
 import type { BoardStartData } from "../view-models.board.js"
+import type { TileData } from "@miragon/pulse-board"
+import { boardReadsOf } from "./board-reads.js"
 
-const engines: FakeEngine[] = []
+const engines: FakeC7Engine[] = []
 const dirs: string[] = []
 afterEach(async () => {
   await Promise.all(engines.splice(0).map((engine) => engine.close()))
   for (const dir of dirs.splice(0)) fs.rmSync(dir, { recursive: true, force: true })
 })
 
-async function fakeEngine(routes: FakeRoutes = {}): Promise<FakeEngine> {
+async function fakeEngine(routes: FakeRoutes = {}): Promise<FakeC7Engine> {
   const engine = await startFakeEngine(routes, worldReply)
   engines.push(engine)
   return engine
@@ -274,5 +286,91 @@ describe("engine_board_data: a board of ENGINE_BOARDS_DIR, built over the engine
     ]) {
       expect(schema.safeParse(args).success, JSON.stringify(args)).toBe(false)
     }
+  })
+})
+
+/**
+ * A board over both dialects: the Camunda 7 engine `shop` over its client, an engine of another
+ * dialect (hand-built, engine-core's fake world behind its runtime) through the engine contract,
+ * each with the numbers the board builder gives over its reads alone.
+ */
+describe("engine_board_data over both dialects", () => {
+  /** The process each engine's world deploys: the fake engine's, engine-core's fake world's. */
+  const PROCESS: Record<string, string> = { shop: "order", c8: "pulse-order" }
+
+  /** A board over `engines`: a counter, a diagram of each engine's process and the incidents. */
+  function boardOver(engines: readonly string[]): EngineBoard {
+    const parsed = BoardParser.parse(
+      JSON.stringify({
+        title: "Both",
+        engines,
+        rows: [
+          { row: [{ widget: "counter", props: { filter: {} } }] },
+          {
+            row: engines.map((engine) => ({
+              widget: "processDiagram",
+              props: { process: PROCESS[engine], engines: [engine] },
+            })),
+          },
+          { row: [{ widget: "incidentList" }] },
+        ],
+      }),
+    )
+    if (!("board" in parsed)) throw new Error(JSON.stringify(parsed.problems))
+    return { id: "both", file: "both.board.json", board: parsed.board, notes: [] }
+  }
+
+  /** The built board as the builder gives it over one engine's reads alone. */
+  async function alone(name: string, reads: BoardReads) {
+    const model = await BoardBuilder.build(boardOver([name]).board, [{ name, reads }])
+    return BoardJson.of(model, { failureOf: () => ({ code: "unexpected" }), notes: [] })
+  }
+
+  /** What a tile of `kind` shows per engine: its readings, its groups or the tile itself. */
+  const perEngine = (tile: TileData | undefined): readonly unknown[] => {
+    if (tile?.kind === "counter") return tile.readings
+    if (tile?.kind === "incidentList") return tile.groups
+    return [tile]
+  }
+
+  it("reads each engine in its dialect, with the numbers of its reads alone", async () => {
+    const shop = await fakeEngine()
+    const runtime = vi.fn<ContractRuntime>(() => new FakeEngine(FakeWorld.seed().state))
+    const config: EnginePluginConfig = {
+      engines: [
+        { id: "shop", baseUrl: shop.baseUrl, flavor: "cibseven" },
+        { id: "c8", baseUrl: "https://c8.example/v2", flavor: "camunda8" },
+      ],
+      boards: { boards: [boardOver(["shop", "c8"])], refused: [] },
+    }
+    const registry = createEngineRegistry(
+      config.engines,
+      (entry) => providerForEntry(entry).createClient(entry, { type: "none" }),
+      { contractRuntime: () => runtime },
+    )
+    const recording = recordingModuleServer()
+    createPlugin(config, registry).register(recording.server)
+    const data = feedPayload<BoardStartData>(
+      await recording.tool(ENGINE_BOARD_DATA).call({ board: "both" }),
+    )
+
+    const c7 = await alone("shop", boardReadsOf(resolveEngine("shop", registry), { failed: false }))
+    const c8 = await alone("c8", new FakeEngine(FakeWorld.seed().state))
+    expect(data.engines).toEqual([...c7.engines, ...c8.engines])
+    expect(data.engines.map(({ state }) => state)).toEqual(["ready", "ready"])
+    const [[counter], [shopDiagram, c8Diagram], [incidents]] = data.rows
+    expect(counter).toMatchObject({ kind: "counter", known: 2 })
+    // A diagram draws its badges only over the XML it read: through the one XML cache on both.
+    expect(shopDiagram).toMatchObject({ kind: "processDiagram", engine: "shop" })
+    expect(c8Diagram).toMatchObject({ kind: "processDiagram", engine: "c8" })
+    expect([shopDiagram, c8Diagram].map((tile) => tile !== undefined && "badges" in tile)).toEqual([
+      true,
+      true,
+    ])
+    expect(perEngine(counter)).toEqual([...perEngine(c7.rows[0][0]), ...perEngine(c8.rows[0][0])])
+    expect([shopDiagram, c8Diagram]).toEqual([c7.rows[1][0], c8.rows[1][0]])
+    expect(perEngine(incidents)).toEqual([...perEngine(c7.rows[2][0]), ...perEngine(c8.rows[2][0])])
+    // The engine of another dialect is read through its runtime, on the call's signal.
+    expect(runtime).toHaveBeenCalled()
   })
 })

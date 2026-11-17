@@ -1,28 +1,23 @@
 import type { Client } from "@miragon/pulse-c7-client"
-import { type Flavor, FLAVORS } from "@miragon/pulse-profile"
+import { type Dialect, type Flavor, FLAVORS } from "@miragon/pulse-profile"
 
-/** One per vendor of the C7 dialect: ONLY the real differences, never a mirror of the SDK. */
+/** One per vendor: ONLY the real differences, never a mirror of the SDK. */
+
+/** A profile's `flavor`: every vendor of the profile format's one table (`FLAVORS`) has a provider. */
+export type EngineFlavor = Flavor
+
+/** A flavor of the Camunda 7 REST dialect: every tool reaches its engines through their client. */
+export type C7Flavor = { [F in Flavor]: (typeof FLAVORS)[F] extends "c7" ? F : never }[Flavor]
 
 /**
- * A profile's `flavor` this server serves: the flavors of the Camunda 7 REST dialect in the profile
- * format's one table of vendors (`FLAVORS`). A profile of another dialect is refused before.
+ * A dialect the server reads through the engine contract alone (`resolveRuntimeEngine`): boards
+ * and diagrams read it, every Camunda 7 path refuses it (ENGINE_DIALECT_NOT_SERVED).
  */
-export type EngineFlavor = { [F in Flavor]: (typeof FLAVORS)[F] extends "c7" ? F : never }[Flavor]
+export type ContractDialect = Exclude<Dialect, "c7">
 
-/** True when the server has a provider for `flavor`: one of the Camunda 7 REST dialect. */
-export function isEngineFlavor(flavor: Flavor): flavor is EngineFlavor {
+/** True when `flavor` speaks the Camunda 7 REST dialect, by the profile format's table. */
+export function isC7Flavor(flavor: Flavor): flavor is C7Flavor {
   return FLAVORS[flavor] === "c7"
-}
-
-/** A dialect this server serves: the one each of its flavors speaks. */
-export type EngineDialect = (typeof FLAVORS)[EngineFlavor]
-
-/**
- * The dialect an engine of `flavor` speaks, from the profile format's one table of vendors (the
- * table `dialectOf` reads a profile's dialect from), typed to the dialects the server serves.
- */
-export function dialectOfFlavor(flavor: EngineFlavor): EngineDialect {
-  return FLAVORS[flavor]
 }
 
 /**
@@ -59,7 +54,7 @@ export interface EngineEntry {
   cockpitUrl?: string
   /** Grouping only: `id` stays the globally unique `engine` selector. */
   environment?: string
-  /** Engine vendor of the C7 dialect; selects the provider. Default: "camunda7". */
+  /** Engine vendor; selects the provider, and with it the dialect. Default: "camunda7". */
   flavor?: EngineFlavor
   /** Absent: no credentials. */
   auth?: EngineAuth
@@ -68,6 +63,9 @@ export interface EngineEntry {
   /** The profile's `timeout` in ms; it beats `ENGINE_REQUEST_TIMEOUT_MS`. */
   timeoutMs?: number
 }
+
+/** An engine of the Camunda 7 REST dialect: its flavor one of that dialect's, or none. */
+export type C7EngineEntry = EngineEntry & { flavor?: C7Flavor }
 
 /** CIB seven routes by key/version, Camunda/Operaton by id; a missing field yields no link. */
 export interface CockpitRef {
@@ -86,10 +84,26 @@ export interface EngineCockpitStrategy {
   instanceRoute(ref: CockpitRef, tab?: string): string | null
 }
 
-export interface EngineProvider {
+/** What every provider says: its vendor, the dialect it speaks, its web app's links and its name. */
+interface ProviderParts {
   flavor: EngineFlavor
-  /** REST-client factory, identical across vendors today; the hook exists for real divergence. */
-  createClient(entry: EngineEntry, auth: EngineAuth, settings?: EngineClientSettings): Client
+  dialect: Dialect
   cockpit: EngineCockpitStrategy
   branding: { displayName: string }
 }
+
+/** A vendor of the Camunda 7 REST dialect: it also builds an engine's client (the client hook). */
+export interface C7EngineProvider extends ProviderParts {
+  flavor: C7Flavor
+  dialect: "c7"
+  /** REST-client factory, identical across vendors today; the hook exists for real divergence. */
+  createClient(entry: EngineEntry, auth: EngineAuth, settings?: EngineClientSettings): Client
+}
+
+/** A vendor of a dialect the server reads through the engine contract: no client of its own. */
+export interface ContractEngineProvider extends ProviderParts {
+  flavor: Exclude<EngineFlavor, C7Flavor>
+  dialect: ContractDialect
+}
+
+export type EngineProvider = C7EngineProvider | ContractEngineProvider

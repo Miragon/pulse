@@ -442,7 +442,12 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
    engines. The engines are profiles of `@miragon/pulse-profile` (`src/engine-profiles.ts`): a
    profile the server cannot use is refused on its own (the boot warns, `engine_list_engines`
    lists it under `refused`), and a call to it, a default on it included, fails with
-   `ENGINE_PROFILE_REFUSED`, never rerouted. There is deliberately NO
+   `ENGINE_PROFILE_REFUSED`, never rerouted. `resolveEngine` serves the Camunda 7 REST API alone:
+   an engine of another dialect (a backend of the registry by dialect) fails with
+   `ENGINE_DIALECT_NOT_SERVED` after the refused-profile check and before `ENGINE_READ_ONLY`, so
+   before anything is sent, never rerouted; `resolveRuntimeEngine`, by the same precedence, serves
+   what reads through the engine contract in either dialect (a board's engines,
+   `engine_bpmn_xml_data`, a contract feed of `src/data/feeds.ts`). There is deliberately NO
    per-user or in-memory selection (replica-unsafe; the server is stateless, one `McpServer`
    per request, no session ids). A client
    you construct or cache yourself breaks multi-engine routing; `resolveEngine` already returns
@@ -800,8 +805,10 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      (the degrade table, `data/honest-numbers.degrade.test.ts`, breaks each read in turn).
    - No view payload carries BPMN XML (a view tool's `structuredContent` reaches the model on
      some hosts): a view names the version it draws (`diagramDefinitionId`) and `BpmnDiagram`
-     reads the XML from the app-only `engine_bpmn_xml_data`. The ONE XML read is `lib/bpmn/definition-xml.ts`, cached per
-     engine client and per caller.
+     reads the XML from the app-only `engine_bpmn_xml_data`. The ONE XML cache is
+     `lib/bpmn/definition-xml.ts`, per engine and per caller: it reads Camunda 7 through the
+     engine's client (`fetchDefinitionXml`) and another dialect through its runtime's
+     `getDiagramXml` (`diagramXmlOf`, `lib/engine/diagram-xml.ts`, the dialect switch).
    - The process flow's "Throughput" (`data/activity-throughput.ts`) reads the engine's history
      statistics, which load its database (measured 2026-11-08): a fixed 30-day window, cut to the
      shortest `historyTimeToLive` of a version that ran in it or could have, and said so (0 days:
@@ -1158,8 +1165,11 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      `widgets/action-gating.test.tsx`). The cockpit's start route refreshes after a write
      because the tool result seeds its live feed query (`useViewData` always seeds).
    - **Vendors** are per-engine runtime config (`flavor` → `EngineProvider` in
-     `packages/connectors/engine/engine-connector/src/providers/`); the port holds ONLY real
-     differences (cockpit routes, branding, client hook), never an SDK mirror.
+     `packages/connectors/engine/engine-connector/src/providers/`, one per flavor of the profile
+     format, each naming its dialect); the port holds ONLY real differences (cockpit routes,
+     branding, client hook), never an SDK mirror. The client hook is the Camunda 7 providers'
+     alone: the camunda8 provider has its branding, derives no web app base and gives `null`
+     routes, so the server links nowhere into Operate below the `cockpitUrl` a profile names.
 
 ## Contracts
 

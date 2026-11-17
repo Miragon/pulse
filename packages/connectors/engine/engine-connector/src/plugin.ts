@@ -48,7 +48,10 @@ export interface EnginePluginConfig {
   boards?: BoardFiles
 }
 
-/** The routing every tool resolves its engine through: each engine on its own profile. */
+/**
+ * The routing every tool resolves its engine through: each engine on its own profile, today each
+ * of the Camunda 7 REST dialect with its client (the boot refuses another dialect's profile).
+ */
 export function createConfiguredEngineRegistry(config: EnginePluginConfig): EngineRegistry {
   return createEngineRegistry(
     config.engines,
@@ -67,8 +70,11 @@ export function createConfiguredEngineRegistry(config: EnginePluginConfig): Engi
   )
 }
 
-export function createPlugin(config: EnginePluginConfig): ModulePlugin {
-  const registry = createConfiguredEngineRegistry(config)
+/** The engine module over `registry`, by default the one `config` configures. */
+export function createPlugin(
+  config: EnginePluginConfig,
+  registry: EngineRegistry = createConfiguredEngineRegistry(config),
+): ModulePlugin {
   // Resolved once so every gate below reads the same toolset and an unknown name warns once.
   const toolset = resolveEngineToolset(config.toolset)
   // The deployment's ENGINE_HEALTH_* over c7-core's defaults, one set for the cockpit's

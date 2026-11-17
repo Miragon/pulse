@@ -1,8 +1,9 @@
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { C7Runtime } from "@miragon/pulse-c7-core/runtime"
 import { DefinitionId } from "@miragon/pulse-engine-core"
+import { FakeEngine as ContractFake, FakeWorld } from "@miragon/pulse-engine-core/testing"
 import { flavorsOf } from "@miragon/pulse-profile"
-import { isEngineFlavor } from "../../engine-provider.js"
+import { isC7Flavor } from "../../engine-provider.js"
 import { SERVER_SURFACE } from "../../engine-profiles.js"
 import { providerForEntry } from "../../providers/index.js"
 import {
@@ -13,6 +14,11 @@ import {
 } from "../../tools/test-support/fake-engine.js"
 import { createEngineConnection } from "./engine-connection.js"
 import { runtimeOf } from "./engine-runtime.js"
+import {
+  type ContractRuntime,
+  createEngineRegistry,
+  resolveRuntimeEngine,
+} from "./resolve-engine.js"
 import { closedPortUrl } from "./test-support/raw-engine.js"
 
 const engines: FakeEngine[] = []
@@ -43,15 +49,34 @@ describe("runtimeOf: the engine contract's runtime of an engine the server resol
     for (const dialect of SERVER_SURFACE.dialects) {
       const flavors = flavorsOf(dialect)
       expect(flavors.length, dialect).toBeGreaterThan(0)
-      for (const flavor of flavors.filter(isEngineFlavor)) {
+      for (const flavor of flavors.filter(isC7Flavor)) {
         const provider = providerForEntry({ id: "e", flavor })
         expect(runtimeOf({ client, provider }), flavor).toBeInstanceOf(C7Runtime)
       }
       expect(
-        flavors.filter((flavor) => !isEngineFlavor(flavor)),
+        flavors.filter((flavor) => !isC7Flavor(flavor)),
         dialect,
       ).toEqual([])
     }
+  })
+
+  it("gives an engine of another dialect its backend's own runtime, per call, on the call's signal", async () => {
+    const runtime = vi.fn<ContractRuntime>(() => new ContractFake(FakeWorld.seed().state))
+    const registry = createEngineRegistry(
+      [{ id: "c8", baseUrl: "https://c8.example/v2", flavor: "camunda8" }],
+      () => {
+        throw new Error("no client for another dialect")
+      },
+      { contractRuntime: () => runtime },
+    )
+    const signal = new AbortController().signal
+    const engine = resolveRuntimeEngine("c8", registry, { mcpReq: { signal } })
+    const first = runtimeOf(engine)
+    expect(runtimeOf(engine)).not.toBe(first)
+    expect(runtime.mock.calls).toEqual([[signal], [signal]])
+    expect(await first.listDefinitions()).toEqual(
+      await new ContractFake(FakeWorld.seed().state).listDefinitions(),
+    )
   })
 
   it("builds a new runtime per call, over the client that call resolved", async () => {

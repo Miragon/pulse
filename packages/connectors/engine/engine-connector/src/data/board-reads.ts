@@ -1,18 +1,19 @@
 /**
  * The seven reads a board's numbers take (`BoardReads` of @miragon/pulse-board/builder), over the
- * engine contract's runtime of one engine a call resolved (`runtimeOf`, invariant 2): the board
- * builder reads them, the same builder the editors run, so a board shows the same numbers on every
- * surface. The diagram's XML goes through the one XML read (`lib/bpmn/definition-xml.ts`, kept for
- * good per engine and caller). The builder turns a failed read into a number left out; the log
- * notes it, so a build that missed a read is never kept (`board-data.ts`).
+ * engine contract's runtime of one engine a call resolved, of any dialect the server reads
+ * (`resolveRuntimeEngine`, `runtimeOf`, invariant 2): the board builder reads them, the same
+ * builder the editors run, so a board shows the same numbers on every surface. The diagram's XML
+ * goes through the one XML cache (`diagramXmlOf`, kept for good per engine and caller). The
+ * builder turns a failed read into a number left out; the log notes it, so a build that missed a
+ * read is never kept (`board-data.ts`).
  */
 
 import type { BoardReads } from "@miragon/pulse-board/builder"
 import { RuntimeError } from "@miragon/pulse-engine-core"
-import { fetchDefinitionXml } from "../lib/bpmn/definition-xml.js"
+import { diagramXmlOf } from "../lib/engine/diagram-xml.js"
 import { EngineRequestError } from "../lib/engine/engine-error.js"
 import { runtimeOf } from "../lib/engine/engine-runtime.js"
-import type { ResolvedEngine } from "../lib/engine/resolve-engine.js"
+import type { RuntimeEngine } from "../lib/engine/resolve-engine.js"
 
 /** What the reads of one build met: whether one failed, and the caller's cancellation if it came. */
 export interface ReadLog {
@@ -41,7 +42,7 @@ async function logged<T>(log: ReadLog, read: () => Promise<T>): Promise<T> {
 }
 
 /** The board reads of `engine`, each failure noted in `log`. */
-export function boardReadsOf(engine: ResolvedEngine, log: ReadLog): BoardReads {
+export function boardReadsOf(engine: RuntimeEngine, log: ReadLog): BoardReads {
   const runtime = runtimeOf(engine)
   return {
     describeEngine: () => logged(log, () => runtime.describeEngine()),
@@ -49,7 +50,7 @@ export function boardReadsOf(engine: ResolvedEngine, log: ReadLog): BoardReads {
     countInstances: (filter) => logged(log, () => runtime.countInstances(filter)),
     searchInstances: (filter, page) => logged(log, () => runtime.searchInstances(filter, page)),
     getDiagramXml: (definitionId) =>
-      logged(log, async () => (await fetchDefinitionXml(engine.client, definitionId)) ?? undefined),
+      logged(log, async () => (await diagramXmlOf(engine, definitionId)) ?? undefined),
     getElementStatistics: (definitionId) =>
       logged(log, () => runtime.getElementStatistics(definitionId)),
     searchIncidents: (filter, page) => logged(log, () => runtime.searchIncidents(filter, page)),

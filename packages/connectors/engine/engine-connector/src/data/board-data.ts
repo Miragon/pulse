@@ -32,7 +32,7 @@ import {
 import { createOwnerCache } from "../lib/engine/per-engine.js"
 import {
   EngineProfileRefusedError,
-  type ResolvedEngine,
+  type RuntimeEngine,
   UnknownEngineError,
 } from "../lib/engine/resolve-engine.js"
 import type { BoardStartData } from "../view-models.board.js"
@@ -44,8 +44,11 @@ export const BOARD_FLOOR_MS = 30_000
 /** Builds kept per board: one per caller; past it the least recently used goes. */
 const BOARD_CACHE_ENTRIES = 64
 
-/** The engine a board names, as the call resolves it by name (`resolveEngine`, never the default). */
-export type BoardEngineResolver = (name: string) => ResolvedEngine
+/**
+ * The engine a board names, as the call resolves it by name (`resolveRuntimeEngine`, never the
+ * default), of any dialect the server reads.
+ */
+export type BoardEngineResolver = (name: string) => RuntimeEngine
 
 /** A board id the server shows no board for: the call lists the ones it shows. */
 class UnknownBoardError extends Error {

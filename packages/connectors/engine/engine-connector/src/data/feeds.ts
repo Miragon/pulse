@@ -8,7 +8,8 @@ import {
   jobsFilterShape,
   processInstancesFilterShape,
 } from "../feed-contracts.js"
-import type { ResolvedEngine } from "../lib/engine/resolve-engine.js"
+import { diagramXmlOf } from "../lib/engine/diagram-xml.js"
+import type { ResolvedEngine, RuntimeEngine } from "../lib/engine/resolve-engine.js"
 import { BOARD_ID, type BoardFiles } from "../board-files.js"
 import { pagingShape } from "../schemas/index.js"
 import {
@@ -40,7 +41,6 @@ import {
   buildJobPanelData,
   buildProcessInstancesData,
 } from "./cockpit-data.js"
-import { fetchDefinitionXml } from "./definition-info.js"
 import type { VerdictThresholds } from "@miragon/pulse-c7-core"
 import { buildEngineHealthData } from "./health-data.js"
 import { buildHistoryTimelineData } from "./history-timeline-data.js"
@@ -55,8 +55,9 @@ import { buildActivityIncidentsData, buildProcessIncidentsData } from "./process
  * input shape and read. Every engine read of a route lives in its feed here;
  * `widget-tools/data-feeds.ts` registers `DATA_FEEDS`, and a route of `routes.ts` starts from
  * its feed's read, so the start view's data is the feed's payload by construction. A feed reads
- * the one engine its `engine` parameter resolves to (`DataFeed`), or names its own engines and
- * takes no `engine` (`NamingFeed`: a board's).
+ * the one Camunda 7 engine its `engine` parameter resolves to (`DataFeed`), the one engine of any
+ * dialect it resolves to through the engine contract (`ContractFeed`: a diagram's XML), or names
+ * its own engines and takes no `engine` (`NamingFeed`: a board's).
  */
 
 type FeedInput<TShape extends z.ZodRawShape> = z.output<z.ZodObject<TShape>>
@@ -103,6 +104,24 @@ const namingFeed = <TShape extends z.ZodRawShape, TData extends object>(
   feed: NamingFeed<TShape, TData>,
 ) => feed
 
+/**
+ * An app-only JSON feed of the one engine its `engine` parameter resolves to, of any dialect the
+ * server reads (`resolveRuntimeEngine`): it reads through the engine contract alone.
+ */
+export interface ContractFeed<TShape extends z.ZodRawShape = z.ZodRawShape, TData = object> {
+  name: string
+  title: string
+  description: string
+  shape: TShape
+  engines: "contract"
+  // A method, so a feed of any shape fits the list of every feed.
+  read(input: FeedInput<TShape>, engine: RuntimeEngine): Promise<TData>
+}
+
+const contractFeed = <TShape extends z.ZodRawShape, TData extends object>(
+  feed: ContractFeed<TShape, TData>,
+) => feed
+
 export const overviewFeed = dataFeed({
   name: ENGINE_COCKPIT_OVERVIEW_DATA,
   title: "Cockpit overview data (internal)",
@@ -140,7 +159,7 @@ export const processInstancesFeed = dataFeed({
   read: (args, { client, engineId }) => buildProcessInstancesData(client, engineId, args),
 })
 
-const bpmnXmlFeed = dataFeed({
+const bpmnXmlFeed = contractFeed({
   name: ENGINE_BPMN_XML_DATA,
   title: "BPMN XML data (internal)",
   description:
@@ -151,9 +170,10 @@ const bpmnXmlFeed = dataFeed({
       .min(1)
       .describe("The deployed version's id (key:version:deployment)."),
   },
-  read: async ({ processDefinitionId }, { client }) => ({
+  engines: "contract",
+  read: async ({ processDefinitionId }, engine) => ({
     processDefinitionId,
-    bpmnXml: await fetchDefinitionXml(client, processDefinitionId),
+    bpmnXml: await diagramXmlOf(engine, processDefinitionId),
   }),
 })
 
@@ -278,7 +298,7 @@ export const boardFeed = namingFeed({
 })
 
 /** Every `*_data` feed of the cockpit in registration order; a route's feed must be listed. */
-export const DATA_FEEDS: readonly (DataFeed | NamingFeed)[] = [
+export const DATA_FEEDS: readonly (DataFeed | ContractFeed | NamingFeed)[] = [
   overviewFeed,
   healthFeed,
   clusterDetailFeed,

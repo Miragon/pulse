@@ -10,7 +10,8 @@ The engine module never registers operations tools with a raw `server.registerTo
 through the registrar (`createToolRegistrar` from `@miragon/pulse-widget-shell/server`);
 engine access goes through `withEngine`/`resolveEngine` (per-call `engine` override >
 `ENGINE_DEFAULT` > the profile file's `defaultProfile` > the only profile, refused ones counted;
-a refused target fails with `ENGINE_PROFILE_REFUSED`, CLAUDE.md invariant 2). A view is
+a refused target fails with `ENGINE_PROFILE_REFUSED`, an engine of another dialect than the
+Camunda 7 REST API's with `ENGINE_DIALECT_NOT_SERVED`, CLAUDE.md invariant 2). A view is
 registered in three places (CLAUDE.md invariant 3). Follow the steps for the path you need.
 
 ## Step 0: pick the render path
@@ -163,6 +164,10 @@ Non-negotiables:
   `engine` override.
 - `handler` is wrapped in `withEngine(...)`. Never construct, cache, or import a client
   directly; `withEngine` resolves the engine from the registry per call.
+- A new tool speaks Camunda 7 through `withEngine`, which refuses an engine of another dialect.
+  A read that serves every dialect goes through the engine contract and `resolveRuntimeEngine`
+  (a `contractFeed` of `src/data/feeds.ts`, as `engine_bpmn_xml_data` is), and only by an owner
+  decision: it is the surface a Camunda 8 engine reaches.
 - Tool names are `engine_<verb>_<noun>` in snake_case.
 - Write tools that only flip state return a small `{ success: true, … }` object instead
   of the raw (often empty) REST response.
@@ -232,15 +237,17 @@ The pattern is `engine_inspect_process_instance` and `engine_status`
   defaults), as `engine_status` and the cockpit's health route (`src/data/health-data.ts`)
   do. Neither text names the other's verdict.
 
-`src/lib/` is split by job, and each helper goes into the folder of its job: `engine/`
-(routing: `resolveEngine`, `withEngine`, the cockpit links, passthrough auth), `core-adapter/`
-(the c7-core port, the composites, their error wording), `bpmn/` (the definition XML,
-BPMN and task-form reading, completing a user task by its form), `mcp/` (the tool surface:
-toolsets, the paging envelope, the bounds on variable values and failure text) and `shared/`
-(pure code the widgets run too). `src/data/` and `src/lib/` never import `src/tools/`,
+`src/lib/` is split by job, and each helper goes into the folder of its job: `engine/` (routing:
+`resolveEngine`, `withEngine`, `resolveRuntimeEngine` for a dialect-neutral read, the runtime of
+each dialect, the dialect switch of a diagram's XML in `diagram-xml.ts`, the cockpit links,
+passthrough auth), `core-adapter/` (the c7-core port, the composites, their error wording), `bpmn/`
+(BPMN and task-form reading, completing a user task by its form, and in `definition-xml.ts` the one
+XML cache with the Camunda 7 XML read, which imports no engine-core), `mcp/` (the tool surface:
+toolsets, the paging envelope, the bounds on variable values and failure text) and `shared/` (pure
+code the widgets run too). `src/data/` and `src/lib/` never import `src/tools/`,
 `src/widget-tools/`, `src/widgets/` or the connector's root (`index`, `plugin`, `module`)
-(`connector-data-and-lib-point-down`): a helper a builder needs from a tool moves down into the
-lib folder of its job (the task form's `buildTaskFormSchema` into `bpmn/`).
+(`connector-data-and-lib-point-down`): a helper a builder needs from a tool moves down into the lib
+folder of its job (the task form's `buildTaskFormSchema` into `bpmn/`).
 
 ## Step 3: wire a new domain file
 
@@ -566,11 +573,13 @@ call's abort signal at `ctx.mcpReq.signal`):
 - `*_data` feeds: describe one with `dataFeed({ name, title, description, shape, read })` in
   `DATA_FEEDS` (`src/data/feeds.ts`); a feed that names its own engines (the board feed,
   `engine_board_data`) is a `namingFeed({ …, engines: "named", read })`, which takes no `engine`
-  and reads through `NamedReadContext`. `registerDataFeed` in `data-feeds.ts` registers each feed
-  of one engine, `registerNamingFeed` each naming feed; both spread `...appOnly` (SEP-1865
-  `_meta.ui.visibility: ["app"]` plus `openai/widgetAccessible`; **no** view binding) and return
-  `buildDataFeedResult(data)` so the in-widget `callTool()` gets JSON back instead of the host
-  rendering a new widget.
+  and reads through `NamedReadContext`; a feed that reads one engine of any dialect through the
+  engine contract (`engine_bpmn_xml_data`) is a `contractFeed({ …, engines: "contract", read })`
+  over a `RuntimeEngine`. `registerDataFeed` in `data-feeds.ts` registers each feed of one engine
+  (a contract feed's through `resolveRuntimeEngine`), `registerNamingFeed` each naming feed; both
+  spread `...appOnly` (SEP-1865 `_meta.ui.visibility: ["app"]` plus `openai/widgetAccessible`;
+  **no** view binding) and return `buildDataFeedResult(data)` so the in-widget `callTool()` gets
+  JSON back instead of the host rendering a new widget.
   Wrap every raw handler in `withToolErrors` (from `@miragon/pulse-widget-shell/server`).
 - Shared data paths: every number a view shows comes from ONE builder in `src/data/`
   that its `*_data` feed AND the cockpit's start view (`COCKPIT_ROUTES`) call; never
