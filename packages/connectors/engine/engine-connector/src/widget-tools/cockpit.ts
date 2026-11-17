@@ -95,24 +95,34 @@ function servedViews(registry: EngineRegistry): CockpitSection[] {
   )
 }
 
-/** The union of the marks of the served routes of one engine: the dialects `engine` serves. */
+/** The union of the marks of `views`. */
+function dialectsOf(views: readonly CockpitSection[]): EngineDialect[] {
+  return [...new Set(views.flatMap((view) => ROUTE_DIALECTS[view]))]
+}
+
+/** The union of the marks of the served routes of one engine. */
 function engineRouteDialects(views: readonly CockpitSection[]): EngineDialect[] {
-  const engineViews = views.filter((view) => COCKPIT_ROUTES[view].scope === "engine")
-  return [...new Set(engineViews.flatMap((view) => ROUTE_DIALECTS[view]))]
+  return dialectsOf(views.filter((view) => COCKPIT_ROUTES[view].scope === "engine"))
 }
 
 /**
- * The input of the served routes: `view` names only those, an id only where one of them takes it,
- * `engine` only the engines a served route of one engine reads (none without such a route). Every
- * field is optional, so the handler's types are the whole shape's, `engine` included.
+ * The input of the served routes: `view` names only those, an id only where one of them takes it.
+ * Where a route of one engine is served, `engine` names every engine the cockpit shows, of the
+ * dialects its served routes read: a route of one engine refuses an engine its mark does not serve
+ * (ENGINE_DIALECT_NOT_SERVED), which a page and the chat show as a view of an engine shown on
+ * boards only, never as arguments the tool does not take; without a view the picker opens. Without
+ * such a route (Camunda 8 alone) it takes no `engine`. Every field is optional, so the handler's
+ * types are the whole shape's, `engine` included.
  */
 function cockpitInput(registry: EngineRegistry, views: readonly CockpitSection[]) {
   const [first = "landing", ...rest] = views
   const taken = new Set(views.flatMap(acceptedBy))
   const ids = Object.entries(startViewShape).filter(([key]) => taken.has(key as StartParam))
-  const dialects = engineRouteDialects(views)
+  const dialects = dialectsOf(views)
   const engine =
-    dialects.length === 0 ? {} : engineParamShapeFor(offeredEngineIds(registry, { dialects }))
+    engineRouteDialects(views).length === 0
+      ? {}
+      : engineParamShapeFor(offeredEngineIds(registry, { dialects }))
   // `view` first, as a strict input's refusal names the valid keys in this order.
   return {
     view: z.enum([first, ...rest]).optional(),

@@ -25,7 +25,7 @@ export class LoginService {
 
   readonly apiCalls: string[] = []
 
-  answerToken: () => Response = () =>
+  answerToken: () => Response | Promise<Response> = () =>
     jsonAnswer({ access_token: `token-${String(this.tokenForms.length)}`, expires_in: 3600 })
 
   answerApi: () => Response = () => jsonAnswer({ gatewayVersion: "8.10.8" })
@@ -39,9 +39,17 @@ export class LoginService {
     return this.readFrom(REST_URL, credentials)
   }
 
-  readFrom(endpoint: string, credentials: EngineCredentials = CREDENTIALS): Promise<unknown> {
+  readWithin(timeoutMs: number): Promise<unknown> {
+    return this.readFrom(REST_URL, CREDENTIALS, timeoutMs)
+  }
+
+  readFrom(
+    endpoint: string,
+    credentials: EngineCredentials = CREDENTIALS,
+    timeoutMs?: number,
+  ): Promise<unknown> {
     return this.adapter
-      .runtime({ endpoint, credentials })
+      .runtime({ endpoint, credentials, ...(timeoutMs === undefined ? {} : { timeoutMs }) })
       .describeEngine()
       .then(
         () => "answered",

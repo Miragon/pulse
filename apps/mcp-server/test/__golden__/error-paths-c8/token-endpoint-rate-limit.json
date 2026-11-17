@@ -12,7 +12,7 @@
           {
             "failure": {
               "code": "engineFailure",
-              "message": "the token endpoint limits the token requests of engine c8 (HTTP 429) The server asks the token endpoint again 30 seconds after its last answer."
+              "message": "the token endpoint limits the token requests: HTTP 429 (engine c8) The server asks the token endpoint again 30 seconds after its last answer."
             },
             "name": "c8",
             "state": "failed"
@@ -72,7 +72,7 @@
           {
             "failure": {
               "code": "engineFailure",
-              "message": "the token endpoint limits the token requests of engine c8 (HTTP 429) The server asks the token endpoint again 30 seconds after its last answer."
+              "message": "the token endpoint limits the token requests: HTTP 429 (engine c8) The server asks the token endpoint again 30 seconds after its last answer."
             },
             "name": "c8",
             "state": "failed"

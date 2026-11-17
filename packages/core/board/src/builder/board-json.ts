@@ -50,7 +50,7 @@ export class BoardJson {
       title: model.title,
       engines: model.engines.map((engine) => BoardJson.engine(engine, failureOf)),
       rows: model.rows.map((row) => row.map((tile) => BoardJson.tile(tile))),
-      notes,
+      notes: [...notes, ...(model.notes ?? [])],
     }
   }
 

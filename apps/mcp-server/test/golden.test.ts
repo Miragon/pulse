@@ -11,6 +11,8 @@ import {
   modelVisibleChars,
   repeatedParamDescriptions,
   stableSort,
+  toolNamesIn,
+  unlistedToolNames,
 } from "./golden.js"
 
 /**
@@ -200,5 +202,53 @@ describe("repeatedParamDescriptions", () => {
     expect(repeatedParamDescriptions(tools, 4)).toEqual([
       { description: "The value", params: ["value"], tools: ["a", "b", "c", "d", "e"] },
     ])
+  })
+})
+
+describe("unlistedToolNames", () => {
+  const listed = [
+    { name: "engine_list_engines", description: "Lists the engines." },
+    { name: "engine_open_cockpit", title: "Open Cockpit", description: "Shows the cockpit." },
+  ]
+
+  it("reads tool names, never a wildcard family or a name inside another word", () => {
+    expect(
+      toolNamesIn(
+        "Use engine_open_cockpit, then engine_query_historic_* or ENGINE_BOARDS_DIR; x_engine_y.",
+      ),
+    ).toEqual(["engine_open_cockpit"])
+  })
+
+  it("reports a planted name in a description, a title, a schema's text and the instructions", () => {
+    const planted = [
+      ...listed,
+      {
+        name: "engine_bpmn_xml_data",
+        title: "Like engine_get_diagram",
+        description: "Use engine_get_process_definition_xml for the XML itself.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            id: { type: "string", description: "As engine_list_process_definitions lists it." },
+            nested: { anyOf: [{ description: "Or engine_list_engines." }] },
+          },
+        },
+      },
+    ]
+    expect(unlistedToolNames(planted, "Start with engine_status.")).toEqual([
+      { in: "engine_bpmn_xml_data", name: "engine_get_diagram" },
+      { in: "engine_bpmn_xml_data", name: "engine_get_process_definition_xml" },
+      { in: "engine_bpmn_xml_data", name: "engine_list_process_definitions" },
+      { in: "instructions", name: "engine_status" },
+    ])
+  })
+
+  it("passes texts that name only listed tools, an app-only feed's too", () => {
+    const feed = {
+      name: "engine_board_data",
+      description: "As engine_list_engines lists the boards.",
+      _meta: { ui: { visibility: ["app"] } },
+    }
+    expect(unlistedToolNames([...listed, feed], "Call engine_open_cockpit.")).toEqual([])
   })
 })

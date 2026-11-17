@@ -142,11 +142,12 @@ describe("a cluster's error answer, as the model reads it", () => {
     })
   })
 
-  it("says that a cluster without secondary storage has nothing to read", async () => {
+  it("says that a cluster without secondary storage has nothing to read, naming the engine", async () => {
     const forbidden = () => problem(403, "FORBIDDEN", "This endpoint needs secondary storage")
     expect(await describeEngine({ "GET /v2/topology": forbidden })).toMatchObject({
       failure: "misconfigured",
-      message: "This cluster runs without secondary storage, so Pulse has nothing to read.",
+      message:
+        "This cluster runs without secondary storage, so Pulse has nothing to read. (engine c8)",
     })
   })
 
@@ -161,7 +162,7 @@ describe("a cluster's error answer, as the model reads it", () => {
   it("says what of an answer the server cannot read", async () => {
     expect(await describeEngine({ "GET /v2/topology": () => json([]) })).toEqual({
       failure: "unexpectedResponse",
-      message: "the answer of engine c8 is not what the server reads: topology is not an object",
+      message: "the answer is not what the server reads: topology is not an object (engine c8)",
     })
   })
 })

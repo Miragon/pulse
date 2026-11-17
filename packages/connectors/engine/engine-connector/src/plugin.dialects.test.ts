@@ -119,8 +119,8 @@ describe("createPlugin on an engine of another dialect", () => {
     expect(others.length).toBeGreaterThan(50)
     for (const name of others) expect(offered(recording, name), name).toEqual(["a"])
     expect(offered(recording, ENGINE_BPMN_XML_DATA)).toEqual(["a", "c8"])
-    // The cockpit's `engine` names where its routes of one engine read: the board takes none.
-    expect(offered(recording, ENGINE_OPEN_COCKPIT)).toEqual(["a"])
+    // The cockpit's `engine` names every engine it shows: a route of one engine refuses this one.
+    expect(offered(recording, ENGINE_OPEN_COCKPIT)).toEqual(["a", "c8"])
     expect(offered(recording, ENGINE_LIST_ENGINES)).toBeUndefined()
   })
 
@@ -148,6 +148,21 @@ describe("createPlugin on an engine of another dialect", () => {
       )
     }
     const picker = await recording.tool(ENGINE_OPEN_COCKPIT).call({})
+    expect(picker.structuredContent).toMatchObject({ engineId: null, start: null })
+    expect(runtime).not.toHaveBeenCalled()
+  })
+
+  // A page's link or the chat names it: the view of an engine shown on boards only, never
+  // arguments the tool does not take.
+  it("named, every engine view of the cockpit refuses it, and without a view the picker opens", async () => {
+    const { runtime, text, recording } = await bootOverBoth()
+    for (const view of ["overview", "jobs", "incidents"]) {
+      expect(await text(ENGINE_OPEN_COCKPIT, { view, engine: "c8" }), view).toMatch(
+        new RegExp(`^${escape(REFUSAL)}`),
+      )
+    }
+    const picker = await recording.tool(ENGINE_OPEN_COCKPIT).call({ engine: "c8" })
+    expect(picker.isError).not.toBe(true)
     expect(picker.structuredContent).toMatchObject({ engineId: null, start: null })
     expect(runtime).not.toHaveBeenCalled()
   })

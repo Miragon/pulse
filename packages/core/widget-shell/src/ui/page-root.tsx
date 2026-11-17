@@ -43,7 +43,16 @@ export interface MountPageOptions extends BrowserHostOptions {
    * the page: the view takes its content's height instead of filling the viewport.
    */
   frame?: PageFrame
+  /**
+   * The view's data for a start whose view tool failed, where the view shows that failure in its
+   * own place (the cockpit keeps its head over the route that failed to read its engine); null
+   * leaves the failure to the frame's error state, as without this option.
+   */
+  failedStart?: FailedStart
 }
+
+/** The view's data for a start that failed with `error`, or null for the frame's error state. */
+export type FailedStart = (error: Error) => object | null
 
 /**
  * A page whose frame renders alone (a signed-out page, say): no view, so no caller. Its frame runs
@@ -56,6 +65,7 @@ export interface FramePageOptions extends Omit<BrowserHostOptions, "callTool"> {
   /** The page's chrome, alone: see {@link MountPageOptions.frame}. */
   frame: PageFrame
   callTool?: undefined
+  failedStart?: undefined
 }
 
 const NO_ARGS: Record<string, unknown> = {}
@@ -81,21 +91,37 @@ async function loadView(
   }
 }
 
+/** A failed start's phase: the view's own data where `failedStart` gives some, else the error. */
+function afterFailure(phase: ViewPhase, failedStart: FailedStart | undefined): ViewPhase {
+  if (phase.phase !== "error" || failedStart === undefined) return phase
+  const data = failedStart(phase.error)
+  return data === null ? phase : { phase: "ready", data, reloadedAt: null }
+}
+
 /** The page's own call of the view tool: once on mount, again on the user's retry. */
-function usePageCall(name: string, args: Record<string, unknown>, enabled: boolean): ViewCall {
+function usePageCall(
+  name: string,
+  args: Record<string, unknown>,
+  enabled: boolean,
+  failedStart: FailedStart | undefined,
+): ViewCall {
   const { callTool } = useViewHost()
   const [phase, setPhase] = useState<ViewPhase>({ phase: "waiting" })
   const started = useRef(false)
+  const load = useCallback(
+    () => loadView(callTool, name, args).then((loaded) => afterFailure(loaded, failedStart)),
+    [callTool, name, args, failedStart],
+  )
   useEffect(() => {
     // Once per mount; the ref also stops StrictMode's second effect run.
     if (!enabled || started.current) return
     started.current = true
-    void loadView(callTool, name, args).then(setPhase)
-  }, [enabled, callTool, name, args])
+    void load().then(setPhase)
+  }, [enabled, load])
   const retry = useCallback(() => {
     setPhase({ phase: "waiting" })
-    void loadView(callTool, name, args).then(setPhase)
-  }, [callTool, name, args])
+    void load().then(setPhase)
+  }, [load])
   return useMemo(() => ({ phase, retry }), [phase, retry])
 }
 
@@ -104,10 +130,12 @@ interface PageViewProps {
   view: ViewComponent | undefined
   args: Record<string, unknown>
   fill: boolean
+  failedStart: FailedStart | undefined
 }
 
-function PageViewFrame({ name, view, args, fill }: PageViewProps) {
-  return <ViewFrame call={usePageCall(name, args, view !== undefined)} view={view} fill={fill} />
+function PageViewFrame({ name, view, args, fill, failedStart }: PageViewProps) {
+  const call = usePageCall(name, args, view !== undefined, failedStart)
+  return <ViewFrame call={call} view={view} fill={fill} />
 }
 
 interface PageRootProps {
@@ -115,18 +143,19 @@ interface PageRootProps {
   view: ViewComponent | undefined
   args: Record<string, unknown>
   frame: PageFrame | undefined
+  failedStart: FailedStart | undefined
   host: BrowserHostOptions
 }
 
 /** The view in the page's frame, or the frame alone; without a frame the view fills the page. */
-function PageBody({ name, view, args, frame: Frame }: Omit<PageRootProps, "host">) {
+function PageBody({ name, frame: Frame, ...view }: Omit<PageRootProps, "host">) {
   if (Frame === undefined) {
-    return <PageViewFrame name={name ?? ""} view={view} args={args} fill />
+    return <PageViewFrame name={name ?? ""} {...view} fill />
   }
   if (name === undefined) return <Frame />
   return (
     <Frame>
-      <PageViewFrame name={name} view={view} args={args} fill={false} />
+      <PageViewFrame name={name} {...view} fill={false} />
     </Frame>
   )
 }
@@ -153,13 +182,20 @@ export function mountPage(
   views: ViewMap,
   options: MountPageOptions | FramePageOptions,
 ): () => void {
-  const { view: name, args = NO_ARGS, container, frame, callTool, ...rest } = options
+  const { view: name, args = NO_ARGS, container, frame, callTool, failedStart, ...rest } = options
   const host: BrowserHostOptions = { ...rest, callTool: callTool ?? NO_VIEW_CALLS }
   const view = name !== undefined && Object.hasOwn(views, name) ? views[name] : undefined
   const root = createRoot(container ?? rootElement())
   root.render(
     <ViewErrorBoundary>
-      <PageRoot name={name} view={view} args={args} frame={frame} host={host} />
+      <PageRoot
+        name={name}
+        view={view}
+        args={args}
+        frame={frame}
+        failedStart={failedStart}
+        host={host}
+      />
     </ViewErrorBoundary>,
   )
   return () => root.unmount()

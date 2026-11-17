@@ -91,7 +91,8 @@ dialect it implements.
   over the global `fetch` of the host's runtime (`C7Adapter`'s default; the hosts pass none: in
   VS Code's extension host it carries the proxy and certificate settings, in Orca it is the
   worker's): no redirect followed (a redirect is an error, credentials never travel to another
-  host), a deadline of 60 s to the last byte, at most 64 MiB of an answer, Basic as UTF-8 from
+  host), a deadline to the last byte (the profile's `timeout`, else 60 s), at most 64 MiB of an
+  answer, Basic as UTF-8 from
   the selected target only, the request's password (of four characters or more) and Basic value
   masked in each error answer the engine sends back (an answer that succeeds comes as the engine
   sent it). A connection for reads is the transport's `readOnly` and refuses every write

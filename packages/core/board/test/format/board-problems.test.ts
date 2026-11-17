@@ -88,6 +88,14 @@ const SENTENCES: readonly (readonly [BoardProblem, string])[] = [
     { path: "rows[2].row[0]", code: "tooManyWidgets", values: { position: 14, max: 12 } },
     "is widget 14; a board shows at most 12, so it stays cheap for the engines",
   ],
+  [
+    {
+      path: "rows[0].row[1]",
+      code: "diagramTooLong",
+      values: { title: "Orders", engine: "prod" },
+    },
+    "may show no count on a collapsed subprocess for what runs inside it, because the diagram is longer than Pulse reads",
+  ],
 ]
 
 const EVERY_CODE: Readonly<Record<BoardProblemCode, true>> = {
@@ -108,6 +116,7 @@ const EVERY_CODE: Readonly<Record<BoardProblemCode, true>> = {
   elementOnEnded: true,
   endedWithIncident: true,
   tenantsNotRead: true,
+  diagramTooLong: true,
   unknownKey: true,
   notOneOf: true,
   variableColumn: true,

@@ -13,8 +13,8 @@ export function countOf(count: unknown, one: string, other: string): string {
 
 /**
  * The English words of the board's tiles. A problem's words equal `BoardProblems.describe` of
- * `@miragon/pulse-board`, the sentence after its JSON path. Every key has its German entry in
- * `de.ts`.
+ * `@miragon/pulse-board`, the sentence after its JSON path, or after its tile (`note.tile`) for the
+ * note on a diagram too long to roll up. Every key has its German entry in `de.ts`.
  */
 export const en = {
   "title.widget": "Widget",
@@ -106,6 +106,9 @@ export const en = {
     'only matches running instances, since an ended instance has no open incident; remove it or use state "running"',
   "problem.tenantsNotRead":
     "is set, but Pulse has no tenant filter and would read every tenant here; remove tenants to show this widget",
+  "problem.diagramTooLong":
+    "may show no count on a collapsed subprocess for what runs inside it, because the diagram is longer than Pulse reads",
+  "note.tile": '"{title}" on {engine}',
   "problem.unknownKey": "is not a known key; use {choices}",
   "problem.notOneOf": "must be one of {choices}",
   "problem.variableColumn": "cannot show a variable; must be one of {choices}",

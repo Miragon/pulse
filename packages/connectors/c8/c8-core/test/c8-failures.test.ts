@@ -201,6 +201,18 @@ describe("the runtime error of a failure", () => {
     })
   })
 
+  test("follows that sentence with the surface's tail, as the surface's own words end", () => {
+    const failure = answered(403, "Forbidden", "This endpoint requires secondary storage.")
+
+    expect(errorOf(failure, { message: "words (engine c8)", tail: "(engine c8)" })).toMatchObject({
+      message: `${NO_SECONDARY_STORAGE} (engine c8)`,
+      hint: SECONDARY_STORAGE_HINT,
+    })
+    expect(
+      errorOf(answered(404, "Not Found"), { message: "words", tail: "(engine c8)" }),
+    ).toMatchObject({ message: "words", hint: ROOT_HINT })
+  })
+
   test("keeps the surface's words for a 403 that names no secondary storage", () => {
     expect(errorOf(answered(403, "Forbidden", "Not yours"))).toMatchObject({
       failure: "forbidden",

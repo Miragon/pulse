@@ -195,7 +195,7 @@ describe("the cross-engine landscape, read from each engine", () => {
     await screen.findByRole("region", { name: "Process definitions by engine" })
     expect(screen.getByRole("heading", { name: "Cross-engine overview" })).toBeTruthy()
     expect(screen.queryByText("Analyses across all engines")).toBeNull()
-    expect(screen.queryByText("the AI runs these analyses in the chat")).toBeNull()
+    expect(screen.queryByText("The AI runs these analyses in the chat")).toBeNull()
     expect(screen.queryByRole("button", { name: /in chat$/ })).toBeNull()
   })
 
@@ -208,9 +208,9 @@ describe("the cross-engine landscape, read from each engine", () => {
     await screen.findByRole("region", { name: "Process definitions by engine" })
     expect(screen.getByText("Analyses across all engines")).toBeTruthy()
     expect(
-      screen.getByText("copy a prompt, then the AI runs the analysis in your chat"),
+      screen.getByText("Copy a prompt, then the AI runs the analysis in your chat"),
     ).toBeTruthy()
-    expect(screen.queryByText("the AI runs these analyses in the chat")).toBeNull()
+    expect(screen.queryByText("The AI runs these analyses in the chat")).toBeNull()
     expect(
       screen.getByRole("button", { name: "Copy prompt: Analyze failures in chat" }),
     ).toBeTruthy()

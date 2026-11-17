@@ -26,8 +26,8 @@ export class BoardLabels {
     return problem.code === "unreadable" ? "could not be read" : say(problem)
   }
 
-  static notes(view: BoardView, say: ProblemWords): string {
-    return view.notes.map((note) => `${note.path} ${say(note)}`).join("\n")
+  static notes(view: BoardView, lineOf: ProblemWords): string {
+    return view.notes.map((note) => lineOf(note)).join("\n")
   }
 
   static engineFacts(engine: BoardEngineStatus): string {

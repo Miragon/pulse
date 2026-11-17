@@ -70,7 +70,8 @@ adapter once per process.
   a process per call. The REST client and its views are written by hand: no client is generated
   from the cluster's spec, which is under the Camunda License 1.0.
 - **The wire (`src/wire`).** `CamundaWire` builds one `Http` of the transport per connection: the
-  connection's URL, 60 s to the last byte, 64 MiB and a read-only connection, which refuses a
+  connection's URL, its deadline to the last byte (the profile's `timeout`, else 60 s; a token
+  request's at most 30 s), 64 MiB and a read-only connection, which refuses a
   request its caller does not mark as a read before sending it. The REST client marks each of its
   requests, each `POST …/search` included, as a read. The credential is the transport's: none,
   Basic as UTF-8, or a bearer credential over the token source of the connection's client
@@ -87,11 +88,11 @@ adapter once per process.
   client ID), in memory. The editor hosts build their connections anew on every reload, so a
   connection built anew with the same secret, audience and scopes (in any order) takes the source
   that is there and keeps its token and its hold: a wrong secret costs one token request a minute,
-  not one per read. A changed secret, audience or scopes replaces the source of that cluster's
-  client and asks at once, so a corrected secret leaves no source behind that keeps the old one in
-  memory, and two clusters that share a client keep a token each. The client authenticates with
-  `client_secret_post`, as the Camunda login services expect, and the form names an audience and
-  scopes only when the connection does.
+  not one per read. A changed secret, audience, scopes or token deadline (the profile's `timeout`,
+  at most 30 s) replaces the source of that cluster's client and asks at once, so a corrected
+  secret leaves no source behind that keeps the old one in memory, and two clusters that share a
+  client keep a token each. The client authenticates with `client_secret_post`, as the Camunda
+  login services expect, and the form names an audience and scopes only when the connection does.
   A cluster that quotes the client secret back in an error text (a stack trace) gets it masked
   like the issued token, in its message and title and in a token endpoint's error code
   (`SecretMask`), though the secret goes to the token endpoint alone (owner's delegate,

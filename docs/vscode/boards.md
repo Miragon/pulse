@@ -47,13 +47,13 @@ npm holds the format, its schema and the builder of a board's numbers. The
 
 `engines` names profiles of `.pulse.json` or your CLI config, which a widget's `engines` narrows.
 
-| Widget            | Shows                                                                                            |
-| ----------------- | ------------------------------------------------------------------------------------------------ |
-| `counter`         | How many instances match, per engine and in total; `warnAbove` warns per engine                  |
-| `instanceList`    | The first 50 matching instances of each engine with the total of each, in one table              |
-| `incidentSummary` | Instances with an open incident, `groupBy` engine or process                                     |
-| `processDiagram`  | The deployed diagram of one engine (`process`, latest version) with its counts per element       |
-| `incidentList`    | The first 50 open incidents of each engine with element and message, optionally of one `process` |
+| Widget            | Shows                                                                                                                                                                                                         |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `counter`         | How many instances match, per engine and in total; `warnAbove` warns per engine                                                                                                                               |
+| `instanceList`    | The first 50 matching instances of each engine with the total of each, in one table                                                                                                                           |
+| `incidentSummary` | Instances with an open incident, `groupBy` engine or process                                                                                                                                                  |
+| `processDiagram`  | The deployed diagram of one engine (`process`, latest version) with its counts per element; one over 4 Mi characters gets a note, since a collapsed subprocess may then lack the count of what runs inside it |
+| `incidentList`    | The first 50 open incidents of each engine with element and message, optionally of one `process`                                                                                                              |
 
 The `filter` takes `process` (BPMN process ID, every version), `activeElement` (needs
 `process`), `state` (`running`, the default, or `ended`), `withIncident` (an open incident now,

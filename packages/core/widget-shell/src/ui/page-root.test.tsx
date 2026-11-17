@@ -149,6 +149,34 @@ describe("mountPage", () => {
     expect(container.querySelector("output")?.textContent).toBe("en|fullscreen|c|1")
   })
 
+  // The cockpit keeps its head over a route that fails to read its engine: the page hands the view
+  // data of its own for such a start, and the view says the failure in its place.
+  it("shows the view with the data the page gives for a failed start, the frame's state without", async () => {
+    const callTool = stubCaller({
+      [VIEW_TOOL]: () => ({ isError: true, content: [{ type: "text", text: "[503] down" }] }),
+      demo_rows_data: () => result({ total: 3 }),
+    })
+    const seen: string[] = []
+    const failedStart = (error: Error) => {
+      seen.push(error.message)
+      return error.message.includes("503") ? { rows: ["failed"] } : null
+    }
+    const container = await mount({ callTool, locale: "en", failedStart })
+    await settled()
+    expect(container.querySelector("output")?.textContent).toBe("en|fullscreen|failed|3")
+    expect(seen).toEqual(["[503] down"])
+    expect(container.textContent).not.toContain("Try again")
+    await act(async () => unmount?.())
+
+    const refused = stubCaller({
+      [VIEW_TOOL]: () => ({ isError: true, content: [{ type: "text", text: "refused" }] }),
+    })
+    const framed = await mount({ callTool: refused, locale: "en", failedStart })
+    await settled()
+    expect(framed.querySelector("output")).toBeNull()
+    expect(framed.textContent).toContain("Try again")
+  })
+
   it("shows a caller's rejection, a transport failure, in the frame's words", async () => {
     const callTool = vi.fn<ToolCaller>(() => Promise.reject(new Error("fetch failed")))
     const container = await mount({ callTool, locale: "en" })

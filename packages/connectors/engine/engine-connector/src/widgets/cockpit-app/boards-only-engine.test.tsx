@@ -164,7 +164,8 @@ describe("an engine the server reads on boards only: its routes' one state", () 
 
   // No route of one engine serves its dialect (ROUTE_DIALECTS): the head offers none of its
   // sections, and its trail names the engine, never a view it has not.
-  it("shows once, with no section of an engine above it, and 'All engines' leads back to the chooser", async () => {
+  // The trail's first crumb is the one way back: the state offers no "All engines" of its own.
+  it("shows once, with no section of an engine above it, and the trail's 'All engines' leads back to the chooser", async () => {
     const { readsOf } = renderCockpit({ engines: [C7, ON_BOARDS], engineId: "orders-c8" })
     expect(gate()).toBeTruthy()
     expect(screen.queryByRole("navigation", { name: "Cockpit sections" })).toBeNull()
@@ -186,7 +187,13 @@ describe("an engine the server reads on boards only: its routes' one state", () 
     expect(gate()).toBeTruthy()
     expect(screen.queryByRole("navigation", { name: "Cockpit sections" })).toBeNull()
     expect(readsOf("orders-c8")).toEqual([])
-    fireEvent.click(within(gate()!).getByRole("button", { name: "All engines" }))
+    expect(within(gate()!).queryByRole("button", { name: "All engines" })).toBeNull()
+    expect(screen.getAllByRole("button", { name: "All engines" })).toHaveLength(1)
+    fireEvent.click(
+      within(screen.getByRole("navigation", { name: "Breadcrumb" })).getByRole("button", {
+        name: "All engines",
+      }),
+    )
     expect(screen.getByRole("heading", { level: 1, name: "Operations Cockpit" })).toBeTruthy()
   })
 
@@ -194,7 +201,9 @@ describe("an engine the server reads on boards only: its routes' one state", () 
     renderCockpit({ engines: [C7, ON_BOARDS], engineId: "orders-c8", host: INLINE })
     expect(gate()).toBeTruthy()
     const head = document.querySelector<HTMLElement>("[data-slot='cockpit-head']")!
-    expect(within(head).getByRole("navigation", { name: "Breadcrumb" })).toBeTruthy()
+    const trail = within(head).getByRole("navigation", { name: "Breadcrumb" })
+    expect(within(trail).getByRole("button", { name: "All engines" })).toBeTruthy()
+    expect(within(gate()!).queryByRole("button", { name: "All engines" })).toBeNull()
     expect(document.querySelector("[data-slot='cockpit-trail']")).toBeNull()
     expect(screen.queryByRole("navigation", { name: "Cockpit sections" })).toBeNull()
   })
@@ -258,7 +267,9 @@ describe("an engine the server reads on boards only: its routes' one state", () 
     renderCockpit({ engines: [C7, engine], engineId: "orders-c8", locale: "de" })
     expect(screen.getByRole("heading", { level: 1, name: title })).toBeTruthy()
     expect(screen.getByText(description)).toBeTruthy()
-    expect(within(gate()!).getByRole("button", { name: "Alle Engines" })).toBeTruthy()
+    const trail = screen.getByRole("navigation", { name: "Navigationspfad" })
+    expect(within(trail).getByRole("button", { name: "Alle Engines" })).toBeTruthy()
+    expect(within(gate()!).queryByRole("button", { name: "Alle Engines" })).toBeNull()
     if (engine.webAppUrl) {
       expect(screen.getByText("Du kannst sie auch in Operate öffnen.")).toBeTruthy()
       expect(screen.getByRole("link", { name: /^In Operate öffnen/ })).toBeTruthy()

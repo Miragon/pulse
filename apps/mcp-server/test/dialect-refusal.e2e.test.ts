@@ -220,8 +220,8 @@ describe("a Camunda 8 default beside a Camunda 7 engine: offered nowhere else, r
     )
     const served = (name: string) => offered(tools.find((tool) => tool.name === name)!)
     expect(served("engine_bpmn_xml_data")).toEqual(["c8", SHOP])
-    // The cockpit's `engine` names where its routes of one engine read; the board takes none.
-    expect(served("engine_open_cockpit")).toEqual([SHOP])
+    // The cockpit's `engine` names every engine it shows; its routes of one engine refuse this one.
+    expect(served("engine_open_cockpit")).toEqual(["c8", SHOP])
   })
 
   it("refuses each without `engine`, on the default, with arguments valid by its schema, and nothing reaches the cluster", async () => {
@@ -247,6 +247,25 @@ describe("a Camunda 8 default beside a Camunda 7 engine: offered nowhere else, r
       expect([view, result.isError, textOf(result)]).toEqual([view, true, REFUSAL])
     }
     const picker = await server.client.callTool({ name: "engine_open_cockpit", arguments: {} })
+    expect(picker.isError).not.toBe(true)
+    expect(picker.structuredContent).toMatchObject({ engineId: null, start: null })
+    expect(c8.sent()).toEqual([])
+  })
+
+  // A page's link or the chat: the view of an engine shown on boards only, never arguments the
+  // tool does not take.
+  it("refuses each engine view of the cockpit that names it, and opens the picker without a view", async () => {
+    for (const [view, ids] of Object.entries(ENGINE_VIEWS)) {
+      const result = await server.client.callTool({
+        name: "engine_open_cockpit",
+        arguments: { view, engine: "c8", ...ids },
+      })
+      expect([view, result.isError, textOf(result)]).toEqual([view, true, REFUSAL])
+    }
+    const picker = await server.client.callTool({
+      name: "engine_open_cockpit",
+      arguments: { engine: "c8" },
+    })
     expect(picker.isError).not.toBe(true)
     expect(picker.structuredContent).toMatchObject({ engineId: null, start: null })
     expect(c8.sent()).toEqual([])

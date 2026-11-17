@@ -689,7 +689,7 @@ describe("a board", () => {
       "12",
     )
     expect(partTexts(harness.root, "strip-title")).toEqual([
-      "1 note in shop-operations.board.json.",
+      "1 note on this board.",
       "Can't reach prod-eu.",
       "billing-prod is not in .pulse.json or your CLI config.",
     ])
@@ -699,14 +699,12 @@ describe("a board", () => {
     expect(harness.posted).toEqual([{ type: "openBoardFile" }])
   })
 
-  it("names a note of the file in a quiet strip, the list behind Details", async () => {
+  it("names a note of the file in a quiet strip, the list behind Details after its path", async () => {
     harness = mountApp()
     harness.publish(ready(REFUSED_BOARD_VIEW))
     const notes = await findPart(harness.root, "board-notes")
     expect(queryPart(notes, "status-strip")?.dataset.tone).toBe("info")
-    expect(queryPart(notes, "strip-title")?.textContent).toBe(
-      "1 note in shop-operations.board.json.",
-    )
+    expect(queryPart(notes, "strip-title")?.textContent).toBe("1 note on this board.")
     const details = buttonNamed(notes, "Details")
     details.click()
     await vi.waitFor(() => {

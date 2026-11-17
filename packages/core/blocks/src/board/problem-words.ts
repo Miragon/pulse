@@ -31,8 +31,27 @@ export function problemText(t: Words, problem: BoardProblem): string {
   }
 }
 
+/**
+ * A note of a board in one line: a note of the file after its JSON path, which its author edits;
+ * the builder's note on a diagram after the tile's title and engine, which whoever reads the board
+ * sees on it.
+ */
+function noteLine(t: Words, note: BoardProblem): string {
+  const subject =
+    note.code === "diagramTooLong"
+      ? t("note.tile", { title: note.values.title, engine: note.values.engine })
+      : note.path
+  return `${subject} ${problemText(t, note)}`
+}
+
 /** The words of a board file's problems in the language of the nearest `LocaleProvider`. */
 export function useProblemWords(): (problem: BoardProblem) => string {
   const t = useWords()
   return (problem) => problemText(t, problem)
+}
+
+/** A board's notes, each in one line, in the language of the nearest `LocaleProvider`. */
+export function useNoteLines(): (note: BoardProblem) => string {
+  const t = useWords()
+  return (note) => noteLine(t, note)
 }

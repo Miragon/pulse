@@ -121,12 +121,13 @@ export class CamundaWire {
     sources: ClientCredentialsSources,
     platform: WirePlatform,
   ): Http | WireReason {
+    const timeoutMs = connection.timeoutMs ?? TIMEOUT_MS
     try {
       return createHttp(
         {
           url: connection.endpoint,
-          credential: WireCredentials.of(connection, sources),
-          timeoutMs: TIMEOUT_MS,
+          credential: WireCredentials.of(connection, sources, timeoutMs),
+          timeoutMs,
           maxAnswerBytes: MAX_ANSWER_BYTES,
           readOnly: true,
         },

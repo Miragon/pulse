@@ -220,3 +220,48 @@ export function repeatedParamDescriptions(
   }
   return [...seen.values()].filter((entry) => entry.tools.length > maxTools)
 }
+
+/** The engine tool names a text mentions; a family wildcard (`engine_query_historic_*`) none. */
+export function toolNamesIn(text: string): string[] {
+  const shape = /(?<![A-Za-z0-9_])engine_[a-z0-9_]*[a-z0-9](?![A-Za-z0-9_*])/g
+  return [...new Set(text.match(shape) ?? [])]
+}
+
+/** Every `description` at any depth of a schema: its own, its properties', its branches'. */
+function descriptionsIn(node: unknown): string[] {
+  if (Array.isArray(node)) return node.flatMap(descriptionsIn)
+  if (!isObject(node)) return []
+  const own = typeof node.description === "string" ? [node.description] : []
+  return [...own, ...Object.values(node).flatMap(descriptionsIn)]
+}
+
+/** One tool name a text names that the list does not hold, and where the text stands. */
+export interface UnlistedToolName {
+  /** The tool whose text names it, or `instructions`. */
+  in: string
+  name: string
+}
+
+/**
+ * The tool names a tool's texts (its title, its description, every description in its schemas)
+ * or the server instructions name that `tools` does not list: a text a configuration sends names
+ * no tool that configuration lacks.
+ */
+export function unlistedToolNames(
+  tools: readonly WireTool[],
+  instructions: string,
+): UnlistedToolName[] {
+  const listed = new Set(tools.map((tool) => tool.name))
+  const texts = [
+    ...tools.map((tool) => ({
+      in: tool.name,
+      text: [tool.title ?? "", ...descriptionsIn(tool)].join("\n"),
+    })),
+    { in: "instructions", text: instructions },
+  ]
+  return texts.flatMap((entry) =>
+    toolNamesIn(entry.text)
+      .filter((name) => !listed.has(name))
+      .map((name) => ({ in: entry.in, name })),
+  )
+}

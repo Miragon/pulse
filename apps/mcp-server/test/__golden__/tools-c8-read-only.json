@@ -45,7 +45,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI): one deployed process definition's BPMN 2.0 XML, by id, which every diagram in the views draws. Use engine_get_process_definition_xml for the XML itself.",
+    "description": "Internal JSON feed (no UI): one deployed process definition's BPMN 2.0 XML, by id, which every diagram in the views draws.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {

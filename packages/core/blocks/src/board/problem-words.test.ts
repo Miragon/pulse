@@ -22,13 +22,21 @@ function fixtureProblems(): readonly BoardProblem[] {
   )
 }
 
-/** The cases no fixture gives: a board with tenants, several engines outside the board. */
+/**
+ * The cases no fixture gives: a board with tenants, several engines outside the board, and the
+ * builder's note on a diagram longer than it reads.
+ */
 const MORE: readonly BoardProblem[] = [
   { path: "tenants", code: "tenantsNotRead" },
   {
     path: "rows[0].row[0].props.engines",
     code: "engineOutsideBoard",
     values: { engines: ["prod-eu", "prod-us"] },
+  },
+  {
+    path: "rows[0].row[1]",
+    code: "diagramTooLong",
+    values: { title: "Orders", engine: "prod-eu" },
   },
 ]
 

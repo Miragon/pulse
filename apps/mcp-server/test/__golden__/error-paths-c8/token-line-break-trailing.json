@@ -12,7 +12,7 @@
           {
             "failure": {
               "code": "unexpectedResponse",
-              "message": "the token endpoint of engine c8 answered with a token outside the Bearer token syntax (RFC 6750) The server asks the token endpoint again a minute after its last answer."
+              "message": "the token endpoint answered with a token outside the Bearer token syntax (RFC 6750) (engine c8) The server asks the token endpoint again a minute after its last answer."
             },
             "name": "c8",
             "state": "failed"

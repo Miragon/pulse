@@ -6,8 +6,7 @@ users of a process, say. They sign in through the identity provider that already
 server, and every page calls it with their own token, under the same toolset, engine routing and
 numbers as a chat.
 
-The web app only reads. A page writes to no engine and shows no write control, and since it posts
-to no chat, it shows no hand-off either.
+The web app only reads: a page shows no write control and, posting to no chat, no hand-off.
 
 ## Pages
 
@@ -31,7 +30,8 @@ touch.
 - **The session ends** while a page is open (its hours are up, or the identity provider refuses to
   renew it): one notice under the bar says so, and **Sign in again** comes back to the same page.
   The views keep what they show and retry nothing.
-- **The server doesn't answer** when a page opens: the page says so and offers **Try again**.
+- **The server doesn't answer** when a page opens: the page says so and offers **Try again** (an
+  engine that doesn't answer keeps the cockpit's tabs above the view that says so).
 - **A start the server refuses for good** (a board it does not have or cannot read, arguments
   `engine_open_cockpit` does not take): the page says why and links to the start page.
 - **A sign-in fails**: `/app/signed-out` says what happened (the identity provider refused it, it

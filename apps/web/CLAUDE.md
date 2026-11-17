@@ -47,6 +47,9 @@ server image builds the page beside the server and serves it from `/app/web`.
   ever reaches the page), its `frame` the app's own (`src/frame.tsx`: the 40 px bar with the
   product, who is signed in and the sign-out, and the session's notices under it). A page writes
   to no engine and posts to no chat (`followUp: "none"`), so no write control and no hand-off show.
+  A start that failed for its engine (an unreachable one, say) keeps the cockpit's head over the
+  route that says so: `mountPage`'s `failedStart` takes the engine connector's
+  `cockpitAfterFailedStart`, and a refusal no retry changes stays the frame's.
 - No silent redirect: a call that finds the session gone shows a notice whose sign-in comes back
   to the page; a page whose session ended before it read one, or whose session could not be read,
   says so (`src/page-states.tsx`), neither handing `mountPage` a caller. The sign-out is a fetch to

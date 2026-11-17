@@ -188,7 +188,7 @@ test.describe("Camunda 8 on the landing and in the gate", () => {
     await drawn(app)
   })
 
-  test("a Camunda 8 engine no board names: the gate says so, offers no Operate, and leads back", async ({
+  test("a Camunda 8 engine no board names: the gate says so, offers no Operate, and its trail leads back", async ({
     page,
   }) => {
     const app = await openCockpit(page)
@@ -203,10 +203,9 @@ test.describe("Camunda 8 on the landing and in the gate", () => {
     await expect(app.getByRole("list", { name: /^Boards that name/ })).toHaveCount(0)
     await expect(app.getByRole("link", { name: /Operate/ })).toHaveCount(0)
     expect(await asked()).toEqual([])
-    await app
-      .locator("[data-slot=boards-only-engine]")
-      .getByRole("button", { name: "All engines" })
-      .click()
+    // One way back, the trail's first crumb: the gate offers no "All engines" of its own.
+    await expect(app.getByRole("button", { name: "All engines" })).toHaveCount(1)
+    await trail(app).getByRole("button", { name: "All engines" }).click()
     await expect(landing(app)).toBeVisible()
   })
 

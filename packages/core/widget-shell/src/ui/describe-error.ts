@@ -79,6 +79,10 @@ const WRITE_CAVEAT = /the \w+ may still have been applied\b/i
 const STATUS_CODE = /\[\d{3}(?:\s[^\]\n]{0,120})?\]\s*/
 const LEADING_CODE = /^\[[^\]\n]{1,120}\]\s*/
 const ENGINE_SUFFIX = /\(engine [^\s)]+\)$/
+/** The engine id before a hint the server adds after it: "… (engine c8) The profile's url …". */
+const ENGINE_BEFORE_HINT = /\(engine [^\s)]+\) (?=\p{Lu})/u
+/** A sentence's end, after which the hint follows as it is. */
+const SENTENCE_END = /[.!?:]$/
 
 /** Whitespace is trimmed with trimEnd, not `\s*`: a leading `\s*` on an unanchored pattern backtracks polynomially (CodeQL js/polynomial-redos) on wire text. */
 
@@ -90,10 +94,21 @@ function withoutWriteCaveat(text: string): string {
   return /[—;-]$/.test(head) ? head.slice(0, -1).trimEnd() : head
 }
 
+/**
+ * The text without the engine id the server appends: at its end, or before the hint it adds,
+ * which then follows the message as a sentence of its own ("No message available. The profile's
+ * url must …"), never run together with it.
+ */
 function withoutEngineSuffix(text: string): string {
   const trimmed = text.trimEnd()
   const suffix = ENGINE_SUFFIX.exec(trimmed)
-  return suffix ? trimmed.slice(0, suffix.index).trimEnd() : text
+  if (suffix) return trimmed.slice(0, suffix.index).trimEnd()
+  const beforeHint = ENGINE_BEFORE_HINT.exec(trimmed)
+  if (!beforeHint) return text
+  const message = trimmed.slice(0, beforeHint.index).trimEnd()
+  const hint = trimmed.slice(beforeHint.index + beforeHint[0].length)
+  if (message === "") return hint
+  return `${SENTENCE_END.test(message) ? message : `${message}.`} ${hint}`
 }
 
 function reasonOf(text: string): string | null {

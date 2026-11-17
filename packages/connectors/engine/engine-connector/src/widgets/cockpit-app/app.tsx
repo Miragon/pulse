@@ -445,7 +445,6 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
                   boardsOnly={boardsOnly}
                   boards={boards}
                   onOpenBoard={openBoard}
-                  onLanding={chooser ? () => dispatch({ type: "to-landing" }) : undefined}
                 >
                   <CockpitRoute view={current} engine={engineId} seed={startSeed(data, state)} />
                 </BoardsOnlyEngineGate>

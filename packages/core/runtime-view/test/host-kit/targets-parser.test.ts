@@ -168,6 +168,26 @@ describe("a project file the extension reads", () => {
     expect(refusalOnConnecting({ type: "basic", ...OAUTH_KEYS })).toBe("no target")
   })
 
+  test("reads a profile's timeout as its target's deadline, of either dialect", () => {
+    const parsed = new TargetsParser(FILE).parse(
+      JSON.stringify({
+        profiles: {
+          shop: { url: "http://localhost:8080/engine-rest", timeout: 5000 },
+          cluster: { url: "http://localhost:8088/v2", flavor: "camunda8", timeout: 250 },
+          plain: { url: "http://localhost:8081/engine-rest" },
+        },
+      }),
+    )
+
+    expect(parsed.problems).toEqual([])
+    expect(parsed.targets.map((target) => [target.name, target.timeoutMs])).toEqual([
+      ["shop", 5000],
+      ["cluster", 250],
+      ["plain", undefined],
+    ])
+    expect(parsed.targets[2]).not.toHaveProperty("timeoutMs")
+  })
+
   test("reads a Camunda 8 profile as a target of its dialect, with its client credentials", () => {
     const parsed = new TargetsParser(FILE).parse(
       JSON.stringify({

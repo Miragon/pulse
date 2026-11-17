@@ -7,6 +7,7 @@ import {
   type ViewMap,
   type WebSessionInfo,
 } from "@miragon/pulse-widget-shell/widgets"
+import { cockpitAfterFailedStart } from "@miragon/pulse-engine-connector/widgets"
 import { sessionFrame } from "./frame.js"
 import { PageNotices } from "./notices.js"
 import { endedFrame, unreachableFrame } from "./page-states.js"
@@ -53,7 +54,9 @@ async function sessionOf(env: PageEnv): Promise<WebSessionInfo | undefined | nul
  * Starts the page at its location: the signed-out page needs no session; any other page reads the
  * session first and shows its view in the frame, its calls posted with the session's CSRF token. A
  * page that finds no session says so and offers the sign-in back to it, one that cannot read it
- * offers to try again; neither shows a view, so neither hands a caller. Returns the unmount.
+ * offers to try again; neither shows a view, so neither hands a caller. A start that failed for
+ * its engine keeps the cockpit's head over the route that says so (`cockpitAfterFailedStart`).
+ * Returns the unmount.
  */
 export async function startPage(env: PageEnv): Promise<() => void> {
   const route = routeOf(env.location)
@@ -82,5 +85,12 @@ export async function startPage(env: PageEnv): Promise<() => void> {
     assign: env.assign,
     signOut: () => signOut(session.csrf, { ...env, origin: env.location.origin }),
   })
-  return mountPage(env.views, { ...base, view: route.view, args: route.args, callTool, frame })
+  return mountPage(env.views, {
+    ...base,
+    view: route.view,
+    args: route.args,
+    callTool,
+    frame,
+    failedStart: (error) => cockpitAfterFailedStart(route.args, error),
+  })
 }

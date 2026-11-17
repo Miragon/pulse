@@ -15,6 +15,8 @@ import {
   isModelVisible,
   modelVisibleChars,
   repeatedParamDescriptions,
+  toolNamesIn,
+  unlistedToolNames,
   UPDATE_COMMAND,
   type WireTool,
 } from "./golden.js"
@@ -35,8 +37,9 @@ import {
  * instructions still counts. Each toolset also holds every parameter
  * description to at most two model-visible tools (`repeatedParamDescriptions`).
  * The server instructions, which no toolset filters, may name only tools the
- * same boot gives the model; that check runs first, so a planted name fails
- * there and not in the budget. Per configuration too: the golden boot's one
+ * same boot gives the model, and no tool's title, description or schema text
+ * names a tool the same boot does not list; those checks run first, so a
+ * planted name fails there and not in the budget. Per configuration too: the golden boot's one
  * Camunda 7 engine (`tools-<toolset>`), that engine beside a Camunda 8 one
  * (`tools-mixed-<toolset>`) and a Camunda 8 engine alone (`tools-c8-<toolset>`),
  * since the boot registers what a configured engine's dialect is served by.
@@ -121,12 +124,6 @@ const TOOLSETS: readonly Surface[] = CONFIGURATIONS.flatMap((configuration) =>
   })),
 )
 
-/** The engine tool names a text mentions; a family wildcard (`engine_query_historic_*`) none. */
-function toolNamesIn(text: string): string[] {
-  const shape = /(?<![A-Za-z0-9_])engine_[a-z0-9_]*[a-z0-9](?![A-Za-z0-9_*])/g
-  return [...new Set(text.match(shape) ?? [])]
-}
-
 /** What to do when a toolset's tool names differ from its list: the goldens cannot update first. */
 const nameListHint = (label: string) =>
   `The ${label} tool names differ from apps/mcp-server/test/expected-tools.ts. If the change is ` +
@@ -150,6 +147,8 @@ describe("tools/list golden contract per toolset", () => {
       const instructions = server.client.getInstructions() ?? ""
       // The playbooks live in the instructions: each names only what this boot registers.
       expect(namedButNotVisible(instructions, tools, floor)).toEqual([])
+      // No tool's text and no instruction names a tool this configuration does not list.
+      expect(unlistedToolNames(tools, instructions)).toEqual([])
       // Code-unit order (not localeCompare): byte-stable across machines' ICU locales.
       const sorted = [...tools].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
       // The name list is the reviewable summary; the golden the full payload. It runs first, so

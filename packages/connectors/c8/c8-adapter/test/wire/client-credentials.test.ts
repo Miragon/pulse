@@ -103,6 +103,33 @@ describe("client credentials", () => {
     expect(login.apiAuthorizations).toEqual(["Bearer fresh", "Bearer fresh"])
   })
 
+  test("give up on a silent token endpoint at the profile's deadline, at most the token's own 30 s", async () => {
+    const login = new LoginService()
+    login.answerToken = () => new Promise<Response>(() => undefined)
+    const started = performance.now()
+
+    expect(await login.readWithin(50)).toMatchObject({
+      name: "RuntimeError",
+      failure: "unreachable",
+    })
+
+    expect(performance.now() - started).toBeLessThan(2_000)
+    expect(login.tokenForms).toHaveLength(1)
+    expect(login.apiCalls).toEqual([])
+  })
+
+  test("ask for a token anew when the profile's deadline changes, as for another secret", async () => {
+    const login = new LoginService()
+    login.answerToken = refusing
+    await login.read()
+
+    login.answerToken = () => jsonAnswer({ access_token: "fresh", expires_in: 3600 })
+    expect(await login.readWithin(5_000)).toBe("answered")
+
+    expect(login.tokenForms).toHaveLength(2)
+    expect(login.apiAuthorizations).toEqual(["Bearer fresh"])
+  })
+
   test("never show the token the cluster echoes in an error", async () => {
     const login = new LoginService()
     login.answerApi = () => jsonAnswer({ message: "token-1 refused" }, 500)

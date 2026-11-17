@@ -24,7 +24,7 @@ export function registerExternalTaskTools(register: EngineToolRegistrar) {
     category: "external-tasks",
     description:
       "List external tasks (service-task work handed to external workers). Read-only: it never locks, completes or fails a task " +
-      "(noRetriesLeft finds the failed ones; where the toolset allows engine writes, engine_set_external_task_retries " +
+      "(noRetriesLeft finds the failed ones; where the toolset allows engine writes, setting their retries " +
       "hands them back to their workers).",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     dialects: ["c7"],

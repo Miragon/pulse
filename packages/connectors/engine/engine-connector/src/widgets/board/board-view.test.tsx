@@ -100,7 +100,7 @@ describe("the cockpit's board view", () => {
     ).toBeTruthy()
     expect(screen.queryByText(/pick another engine/)).toBeNull()
     expect(screen.getByText("nowhere is not among the engines of this server.")).toBeTruthy()
-    expect(screen.getByText("1 note on this board's file.")).toBeTruthy()
+    expect(screen.getByText("1 note on this board.")).toBeTruthy()
   })
 
   it("words a refused profile as such, and a failure that names no engine's state as not read", () => {
@@ -187,6 +187,38 @@ describe("the cockpit's board view", () => {
     expect(text).toContain("prod-a")
     expect(text).toContain("Invoices")
   })
+
+  // The builder notes a diagram longer than it reads: no badge goes missing without a word. The
+  // strip holds the file's notes and the board's, and names the tile as its card does.
+  it.each([
+    [
+      "en",
+      "2 notes on this board.",
+      '"Invoice receipt" on prod-a may show no count on a collapsed subprocess for what runs inside it, because the diagram is longer than Pulse reads',
+    ],
+    [
+      "de",
+      "2 Hinweise zu diesem Board.",
+      "„Invoice receipt“ auf prod-a zeigt an einem zugeklappten Teilprozess womöglich keine Zahl für das, was darin läuft, weil das Diagramm länger ist, als Pulse liest",
+    ],
+  ])(
+    "says in %s where a diagram was too long to roll up, among the notes, by the tile's title",
+    (locale, title, line) => {
+      const tooLong = {
+        path: "rows[2].row[0]",
+        code: "diagramTooLong",
+        values: { title: "Invoice receipt", engine: "prod-a" },
+      } as const
+      renderBoard({ locale, data: { ...BOARD, notes: [...BOARD.notes, tooLong] } })
+      const strip = screen.getByText(title).closest("[data-slot='status-strip']") ?? document.body
+      expect(strip.textContent).toContain(line)
+      expect(strip.textContent).not.toContain("rows[2].row[0]")
+      // The file's own note keeps its JSON path, which its author edits.
+      expect(strip.textContent).toContain("$schema ")
+      const diagram = document.querySelector("[data-part=board-card][data-kind=processDiagram]")
+      expect(diagram?.textContent).toContain("Invoice receipt")
+    },
+  )
 
   it("words its chrome and the tiles in German under a German host", () => {
     renderBoard({ locale: "de" })

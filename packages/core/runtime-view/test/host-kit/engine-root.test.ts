@@ -98,6 +98,18 @@ describe("the engine root both editor hosts build from their adapters", () => {
     expect(c8.connections).toEqual([{ endpoint: CLUSTER.endpoint, credentials: { kind: "none" } }])
   })
 
+  test("passes the profile's timeout as the connection's deadline, and none without one", () => {
+    const { c7, c8, root } = rootOver()
+
+    root.runtime({ ...SHOP, timeoutMs: 5_000 }, NO_LOGIN)
+    root.runtime({ ...CLUSTER, timeoutMs: 250 }, NO_LOGIN)
+    root.runtime(CLUSTER, NO_LOGIN)
+
+    expect(c7.connections.map((connection) => connection.timeoutMs)).toEqual([5_000])
+    expect(c8.connections.map((connection) => connection.timeoutMs)).toEqual([250, undefined])
+    expect(c8.connections[1]).not.toHaveProperty("timeoutMs")
+  })
+
   test("passes stored credentials only to a target configured for basic authentication", () => {
     const { c7, root } = rootOver()
 

@@ -35,8 +35,8 @@ in a project file, names a credential (a password, a token or the variable that 
 up as a problem in the Engines view instead of connecting, and the problem says what to change; the
 other profiles of the file still list engines. A profile with `oauth` lists its engine, but Pulse
 does not connect to it and says to set `auth.type` to `none`, or to `basic` without the OAuth keys,
-or to keep the profile for the CLI. Pulse does not apply `environment`, `timeout` and `output`, yet
-a value of theirs the format refuses is a problem too.
+or to keep the profile for the CLI. Pulse applies `timeout` to each call, not `environment` and
+`output`, yet a value of theirs the format refuses is a problem too.
 
 Your CLI config sits where the CLI looks for it (`$XDG_CONFIG_HOME/pulse-cli/` for an absolute
 `XDG_CONFIG_HOME`, `%APPDATA%\pulse-cli\` on Windows); a remote window (SSH, WSL, Dev Container)
@@ -89,6 +89,7 @@ never guesses this URL. It must be an `http` or `https` URL without credentials:
 Pulse calls the engine's REST API from the extension host with VS Code's network settings
 (`http.proxy`, `http.systemCertificates`, `http.proxyStrictSSL`), through `@miragon/pulse-http`,
 the transport the CLI and the MCP server send through too. It never follows a redirect, reads at
-most 64 MiB of an answer, gives up on a call after 60 s and shows a password, client secret or
-token the engine echoes in an error as `***` (four characters or more). A certificate VS Code does
-not trust and a host name that does not resolve each say so, with what to check.
+most 64 MiB of an answer, gives up on a call after the profile's `timeout` (60 s without one) and
+shows a password, client secret or token the engine echoes in an error as `***` (four characters or
+more). A certificate VS Code does not trust and a host name that does not resolve each say so, with
+what to check.

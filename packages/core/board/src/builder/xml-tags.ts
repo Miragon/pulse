@@ -14,9 +14,13 @@ const NAME_END = /[^\w.:-]|$/
 const LONGEST_TEXT = 4 * 1024 * 1024
 
 export class XmlTags {
+  static readable(xml: string): boolean {
+    return xml.length <= LONGEST_TEXT
+  }
+
   static of(xml: string): readonly XmlTag[] {
     const tags: XmlTag[] = []
-    if (xml.length > LONGEST_TEXT) {
+    if (!XmlTags.readable(xml)) {
       return tags
     }
     for (let start = xml.indexOf("<"); start !== -1;) {

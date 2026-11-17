@@ -89,6 +89,27 @@ describe("the engine's HTTP connection", () => {
     }
   })
 
+  test("gives up at the profile's timeout where the connection names one", async () => {
+    vi.useFakeTimers()
+    try {
+      const http = new EngineHttp({
+        url: REST_URL,
+        credentials: { kind: "none" },
+        writes: false,
+        send: () => new Promise<Response>(() => undefined),
+        timeoutMs: 250,
+      })
+      const read = expect(http.read("/version")).rejects.toMatchObject({
+        failure: "unanswered",
+        message: `${REST_URL}/version did not answer within 250 ms`,
+      })
+      await vi.advanceTimersByTimeAsync(250)
+      await read
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   test("names what failed when the engine cannot be reached", async () => {
     await expect(httpAnswering(failingWith("ECONNREFUSED")).read("/version")).rejects.toThrow(
       `Cannot reach ${REST_URL}/version (ECONNREFUSED)`,

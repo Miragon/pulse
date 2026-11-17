@@ -17,9 +17,10 @@ engine contract read-only (no writes, no migration planning, ordering and date c
 refused, counts that may be a lower bound), `webUi(url)` the links
 into Operate, `bpmn` the vocabulary of Camunda 8's BPMN files (`C8BpmnDialect`, over
 `zeebe-bpmn-moddle`) for the runtime view's model reader, and `commands` and `cli` nothing. It
-holds the wire (`src/wire`: `CamundaWire` over `@miragon/pulse-http`, 60 s and 64 MiB on a
-read-only connection, none, Basic or a bearer token from `clientCredentialsTokens` of
-`@miragon/pulse-http/oauth`, one token source per cluster and client kept by
+holds the wire (`src/wire`: `CamundaWire` over `@miragon/pulse-http`, the profile's `timeout`
+(else 60 s; a token request at most 30 s) and 64 MiB on a read-only connection, none, Basic or
+a bearer token from `clientCredentialsTokens` of `@miragon/pulse-http/oauth`, one token source
+per cluster and client kept by
 `ClientCredentialsSources`), the transport c8-core's REST client sends through (`src/rest`:
 `CamundaHttp`, which implements c8-core's `CamundaTransport` and copies the fields of each
 failure, and `CamundaRequestError`, the wire's error with its words) and the words of failures

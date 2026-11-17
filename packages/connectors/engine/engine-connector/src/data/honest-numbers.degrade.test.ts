@@ -127,9 +127,9 @@ describe("buildBoardData over a Camunda 8 cluster without secondary storage", ()
         failure: {
           code: "misconfigured",
           message:
-            "This cluster runs without secondary storage, so Pulse has nothing to read. Pulse " +
-            "reads the cluster's search API, which needs secondary storage such as " +
-            "Elasticsearch, OpenSearch or a relational database.",
+            "This cluster runs without secondary storage, so Pulse has nothing to read. " +
+            `(engine ${C8_BOARD_ENGINE.engine}) Pulse reads the cluster's search API, which ` +
+            "needs secondary storage such as Elasticsearch, OpenSearch or a relational database.",
         },
       },
     ])

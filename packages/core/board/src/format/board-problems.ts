@@ -48,8 +48,14 @@ interface LimitProblem {
   readonly values: { readonly position: number; readonly max: number }
 }
 
+interface DiagramProblem {
+  readonly path: string
+  readonly code: "diagramTooLong"
+  readonly values: { readonly title: string; readonly engine: string }
+}
+
 export type BoardProblem =
-  PlainProblem | ChoiceProblem | VersionProblem | OutsideProblem | LimitProblem
+  PlainProblem | ChoiceProblem | VersionProblem | OutsideProblem | LimitProblem | DiagramProblem
 
 export type BoardProblemCode = BoardProblem["code"]
 
@@ -92,6 +98,8 @@ export class BoardProblems {
         return BoardProblems.outside(problem.values.engines)
       case "tooManyWidgets":
         return `is widget ${String(problem.values.position)}; a board shows at most ${String(problem.values.max)}, so it stays cheap for the engines`
+      case "diagramTooLong":
+        return "may show no count on a collapsed subprocess for what runs inside it, because the diagram is longer than Pulse reads"
       default:
         return BoardProblems.PLAIN[problem.code]
     }

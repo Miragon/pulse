@@ -89,8 +89,14 @@ interface LimitProblem {
   readonly values: { readonly position: number; readonly max: number }
 }
 
+interface DiagramProblem {
+  readonly path: string
+  readonly code: "diagramTooLong"
+  readonly values: { readonly title: string; readonly engine: string }
+}
+
 export type ProblemData =
-  PlainProblem | ChoiceProblem | VersionProblem | OutsideProblem | LimitProblem
+  PlainProblem | ChoiceProblem | VersionProblem | OutsideProblem | LimitProblem | DiagramProblem
 
 export interface CountData {
   readonly count: number

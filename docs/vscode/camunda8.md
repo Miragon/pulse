@@ -58,10 +58,10 @@ error, so Pulse can't tell "nothing deployed" from "not allowed" and says both.
 
 Pulse keeps one token per cluster and client in memory and renews it shortly before it expires. A
 refused token request is not repeated for a minute unless the client, its secret, audience or
-scopes change; a login service that fails or times out (5xx, 408, 425) is asked again after 5
-seconds, a rate limit after its `Retry-After`. The problem says what to check (the client ID or
-secret, the token endpoint, audience or scopes) and when Pulse asks again. A client secret or
-token a cluster quotes in an error shows as `***`.
+scopes change; a login service that fails or times out (5xx, 408, 425) is asked again after 5 s, a
+rate limit after its `Retry-After`; a token request waits the profile's `timeout`, 30 s at most.
+The problem says what to check (the client ID or secret, the token endpoint, audience or scopes)
+and when Pulse asks again. A client secret or token a cluster quotes in an error shows as `***`.
 
 ## What differs from Camunda 7
 

@@ -27,6 +27,7 @@ export {
 // The page root: a view on a page outside a chat, under the browser adapter instead of ext-apps.
 export {
   mountPage,
+  type FailedStart,
   type FramePageOptions,
   type MountPageOptions,
   type PageFrame,

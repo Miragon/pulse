@@ -1,5 +1,7 @@
 import type { BoardDefinition, BoardTile, BoardWidget } from "../format/board-definition.js"
+import type { BoardProblem } from "../format/board-problems.js"
 import { BoardTiles } from "../format/board-tiles.js"
+import { ParseProblems } from "../format/parse-problems.js"
 import type { BoardModel, TileModel } from "./board-model.js"
 import type { EngineSource } from "./board-reads.js"
 import { CounterTiles } from "./counter-tiles.js"
@@ -21,7 +23,36 @@ export class BoardBuilder {
         Promise.all(row.map((tile) => BoardBuilder.tile(tile, probed))),
       ),
     )
-    return { title: board.title, engines: probed.map((engine) => engine.model), rows }
+    const notes = BoardBuilder.notesOf(rows)
+    return {
+      title: board.title,
+      engines: probed.map((engine) => engine.model),
+      rows,
+      ...(notes.length === 0 ? {} : { notes }),
+    }
+  }
+
+  private static notesOf(rows: readonly (readonly TileModel[])[]): BoardProblem[] {
+    return rows.flatMap((row, rowIndex) =>
+      row.flatMap((tile, index) =>
+        "diagramTooLong" in tile
+          ? [
+              {
+                path: BoardBuilder.pathOf(rowIndex, index),
+                code: "diagramTooLong" as const,
+                values: tile.diagramTooLong,
+              },
+            ]
+          : [],
+      ),
+    )
+  }
+
+  private static pathOf(rowIndex: number, index: number): string {
+    return ParseProblems.index(
+      ParseProblems.key(ParseProblems.index("rows", rowIndex), "row"),
+      index,
+    )
   }
 
   private static tile(tile: BoardTile, probed: readonly ProbedEngine[]): Promise<TileModel> {

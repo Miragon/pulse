@@ -30,6 +30,16 @@ describe("the C7 adapter", () => {
     ])
   })
 
+  test("gives up on a read at the connection's deadline, the profile's timeout", async () => {
+    const silent = () => new Promise<Response>(() => undefined)
+    const runtime = new C7Adapter(silent).runtime({ ...BASIC, timeoutMs: 50 })
+    const started = performance.now()
+
+    await expect(runtime.describeEngine()).rejects.toMatchObject({ failure: "unreachable" })
+
+    expect(performance.now() - started).toBeLessThan(2_000)
+  })
+
   test("writes to the same endpoint with the same credentials", async () => {
     const engine = fakeEngineRest([
       {

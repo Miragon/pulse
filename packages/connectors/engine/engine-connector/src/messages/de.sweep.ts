@@ -104,8 +104,8 @@ export const deSweep: MessageCatalog = {
   "fleet.engineHealth.title": "Zustand der Engines",
   "fleet.failedJobs": "Jobs ohne Versuche",
   "fleet.fleetAnalyses.copyHint":
-    "kopier einen Prompt, dann führt die AI die Analyse in deinem Chat aus",
-  "fleet.fleetAnalyses.hint": "die AI führt die Analysen im Chat aus",
+    "Kopier einen Prompt, dann führt die AI die Analyse in deinem Chat aus",
+  "fleet.fleetAnalyses.hint": "Die AI führt die Analysen im Chat aus",
   "fleet.fleetAnalyses.title": "Analysen über alle Engines",
   "fleet.heading": "Engine-übergreifende Übersicht",
   "fleet.incidents": "Incidents",
@@ -215,7 +215,7 @@ export const deSweep: MessageCatalog = {
   "incidentsList.activitiesLabel": "Aktivitäten",
   "incidentsList.breakdownPartial": ({ scanned, total }) =>
     `Die Aufschlüsselung zeigt die neuesten ${String(scanned)} von ${countOf(total, "Incident", "Incidents")}. Öffne den Prozess für die genauen Zahlen je Aktivität.`,
-  "incidentsList.clickToExpand": "klapp einen Prozess auf, um seine Aktivitäten zu sehen",
+  "incidentsList.clickToExpand": "Klapp einen Prozess auf, um seine Aktivitäten zu sehen",
   "incidentsList.firstSeen": "zuerst gesehen",
   "incidentsList.groupedByProcess": "Nach Prozess gruppiert",
   "incidentsList.instancesCount": ({ count }) =>

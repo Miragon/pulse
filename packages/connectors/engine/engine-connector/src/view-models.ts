@@ -239,9 +239,15 @@ export interface CockpitAppData {
   engines: CockpitEngineInfo[]
   /**
    * Where the cockpit opens, with that view's data; null exactly on the engine picker of a call
-   * that named no view and resolved no engine.
+   * that named no view and resolved no engine, and on a page's start that failed (`startView`).
    */
   start: CockpitStart | null
+  /**
+   * Where a page opens the cockpit after its start of one engine's view failed for that engine
+   * (`cockpitAfterFailedStart` of the widgets): the view without its data, which its route reads
+   * itself, so the cockpit keeps its head over the failure. The server sends none.
+   */
+  startView?: CockpitView
 }
 
 export interface ProcessInstancesData {

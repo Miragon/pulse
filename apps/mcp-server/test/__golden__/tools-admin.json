@@ -144,7 +144,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI): one deployed process definition's BPMN 2.0 XML, by id, which every diagram in the views draws. Use engine_get_process_definition_xml for the XML itself.",
+    "description": "Internal JSON feed (no UI): one deployed process definition's BPMN 2.0 XML, by id, which every diagram in the views draws.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -1426,7 +1426,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "List external tasks (service-task work handed to external workers). Read-only: it never locks, completes or fails a task (noRetriesLeft finds the failed ones; where the toolset allows engine writes, engine_set_external_task_retries hands them back to their workers).",
+    "description": "List external tasks (service-task work handed to external workers). Read-only: it never locks, completes or fails a task (noRetriesLeft finds the failed ones; where the toolset allows engine writes, setting their retries hands them back to their workers).",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {

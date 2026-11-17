@@ -13,6 +13,7 @@ import { MissingResources } from "./rest/missing-resources.js"
 export interface C8Words {
   readonly message: string
   readonly hint?: string | undefined
+  readonly tail?: string | undefined
 }
 
 export type C8WordsOf = (error: unknown, kind: RuntimeFailure) => C8Words
@@ -104,7 +105,9 @@ export class C8Failures {
       return words
     }
     if (C8Failures.lacksSecondaryStorage(failure)) {
-      return { message: NO_SECONDARY_STORAGE, hint: words.hint ?? SECONDARY_STORAGE_HINT }
+      const message =
+        words.tail === undefined ? NO_SECONDARY_STORAGE : `${NO_SECONDARY_STORAGE} ${words.tail}`
+      return { message, hint: words.hint ?? SECONDARY_STORAGE_HINT }
     }
     return { message: words.message, hint: words.hint ?? C8Failures.rootHintOf(failure) }
   }

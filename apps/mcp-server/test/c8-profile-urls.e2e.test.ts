@@ -224,7 +224,7 @@ describe("a token endpoint that never answers", () => {
   it("fails the call at the profile's deadline, and the cluster sees nothing", async () => {
     const { results, ms } = await probe(cluster, tokenEndpoint, 300)
     expect(results[1]).toContain(
-      "[unreachable] the token endpoint of engine c8 did not answer in time",
+      "[unreachable] the token endpoint did not answer in time (engine c8)",
     )
     expect(Math.max(...ms)).toBeLessThan(3000)
     expect(tokenEndpoint.requests.map(({ method, target }) => `${method} ${target}`)).toEqual([

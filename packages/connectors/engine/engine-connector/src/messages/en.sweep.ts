@@ -100,11 +100,11 @@ export const enSweep: MessageCatalog = {
     `${countOf(count, "open incident", "open incidents")} across ${countOf(activities, "activity", "activities")}`,
   "fleet.engineCount": ({ count, list }) =>
     `${countOf(count, "engine", "engines")} · ${String(list)}`,
-  "fleet.engineHealth.hint": "click an engine to work with it",
+  "fleet.engineHealth.hint": "Click an engine to work with it",
   "fleet.engineHealth.title": "Engine health",
   "fleet.failedJobs": "Jobs without retries",
-  "fleet.fleetAnalyses.copyHint": "copy a prompt, then the AI runs the analysis in your chat",
-  "fleet.fleetAnalyses.hint": "the AI runs these analyses in the chat",
+  "fleet.fleetAnalyses.copyHint": "Copy a prompt, then the AI runs the analysis in your chat",
+  "fleet.fleetAnalyses.hint": "The AI runs these analyses in the chat",
   "fleet.fleetAnalyses.title": "Analyses across all engines",
   "fleet.heading": "Cross-engine overview",
   "fleet.incidents": "Incidents",
@@ -214,7 +214,7 @@ export const enSweep: MessageCatalog = {
   "incidentsList.activitiesLabel": "activities",
   "incidentsList.breakdownPartial": ({ scanned, total }) =>
     `Breakdown of the newest ${String(scanned)} of ${countOf(total, "incident", "incidents")}. Open the process for exact counts per activity.`,
-  "incidentsList.clickToExpand": "expand a process to see its activities",
+  "incidentsList.clickToExpand": "Expand a process to see its activities",
   "incidentsList.firstSeen": "first seen",
   "incidentsList.groupedByProcess": "Grouped by process",
   "incidentsList.instancesCount": ({ count }) =>

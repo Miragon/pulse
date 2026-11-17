@@ -6,7 +6,7 @@ export {
   type BoardGridProps,
   type BoardTileProps,
 } from "./board/board-grid.js"
-export { useProblemWords } from "./board/problem-words.js"
+export { useNoteLines, useProblemWords } from "./board/problem-words.js"
 export { ProblemList, type ProblemLine, type ProblemListProps } from "./board/refused-tile.js"
 export type {
   BoardCopy,

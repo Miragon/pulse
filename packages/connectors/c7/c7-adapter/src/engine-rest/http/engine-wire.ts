@@ -16,6 +16,7 @@ export interface EngineWireOptions {
   readonly credentials: EngineCredentials
   readonly writes: boolean
   readonly send: typeof fetch
+  readonly timeoutMs?: number
 }
 
 const TIMEOUT_MS = 60_000
@@ -40,7 +41,7 @@ export class EngineWire {
         {
           url: options.url,
           credential,
-          timeoutMs: TIMEOUT_MS,
+          timeoutMs: options.timeoutMs ?? TIMEOUT_MS,
           maxAnswerBytes: MAX_ANSWER_BYTES,
           readOnly: !options.writes,
         },

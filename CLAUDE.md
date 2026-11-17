@@ -444,8 +444,10 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      `readOnlyHint`) only where such an engine's profile is not read-only; its `engine` enum
      offers those engines and each refused profile of its dialects or of none read, so a call to
      it says why (`withServedEngines` and `offeredEngineIds` in
-     `src/lib/engine/served-engines.ts`; `engine_open_cockpit`'s `view`, ids and `engine` follow
-     its served routes). A server of Camunda 8 engines alone lists four tools and feeds; the
+     `src/lib/engine/served-engines.ts`; `engine_open_cockpit`'s `view` and ids follow its served
+     routes, its `engine` every engine the cockpit shows where a route of one engine is served, so
+     such a view of a Camunda 8 engine refuses it as not served, never as an argument the tool
+     does not take). A server of Camunda 8 engines alone lists four tools and feeds; the
      tools/list goldens pin each configuration (Contracts).
 
 2. **Never talk to an engine directly.** All engine access goes through
@@ -661,7 +663,9 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      shows a quiet line that its content is missing, and no notice, footer alert or engine row
      speaks of it. A page's refused start (an unknown board, arguments a tool does not take, data
      the server does not offer, a view of an engine shown on boards only) links to the page's
-     start page (`mountPage`'s `startPage`). A write reports through
+     start page (`mountPage`'s `startPage`); a start that failed for its engine keeps the
+     cockpit's head over the route that says so (`mountPage`'s `failedStart`, the connector's
+     `cockpitAfterFailedStart`). A write reports through
      `useActionFeedback()` toasts that name the object and confirms through `ConfirmDialog`;
      nothing to show is `TableEmptyState`. A first load shows its skeleton only after 400 ms
      (`SKELETON_DELAY_MS`), a refresh keeps the content on screen with its region `aria-busy`
@@ -907,8 +911,9 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      every failure itself (`apps/cli/src/http/errors.ts`, the wrong-root hint by
      `isUnknownEndpoint` too), and so does the C7 adapter of the editor hosts from its wire
      (`packages/connectors/c7/c7-adapter/src/engine-rest/http`: `EngineHttp` over `Http.send`,
-     60 s and 64 MiB, a read-only connection the transport's `readOnly`), which words every failure
-     itself (the reason of each `HttpFailure`, the root hint by `isUnknownEndpoint`) before its
+     the profile's `timeout` (else 60 s) and 64 MiB, a read-only connection the transport's
+     `readOnly`), which words every failure itself (the reason of each `HttpFailure`, the root
+     hint by `isUnknownEndpoint`) before its
      `ErrorTranslation` maps it onto the contract's failures (TLS and DNS stay `unreachable`;
      its cases in `packages/connectors/c7/c7-adapter/test/engine-rest/transport-cases.test.ts`).
      Every write tool has a

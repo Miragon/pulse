@@ -5,6 +5,8 @@ import type { WirePlatform } from "./wire-platform.js"
 
 export type ClientCredentials = Extract<EngineCredentials, { readonly kind: "clientCredentials" }>
 
+const TOKEN_TIMEOUT_MS = 30_000
+
 interface KeptSource {
   readonly settings: string
   readonly source: TokenSource
@@ -15,19 +17,20 @@ export class ClientCredentialsSources {
 
   constructor(private readonly platform: WirePlatform) {}
 
-  of(endpoint: string, credentials: ClientCredentials): TokenSource {
+  of(endpoint: string, credentials: ClientCredentials, deadlineMs: number): TokenSource {
     const client = JSON.stringify([endpoint, credentials.tokenEndpoint, credentials.clientId])
-    const settings = ClientCredentialsSources.settingsOf(credentials)
+    const timeoutMs = Math.min(deadlineMs, TOKEN_TIMEOUT_MS)
+    const settings = ClientCredentialsSources.settingsOf(credentials, timeoutMs)
     const kept = this.sources.get(client)
     if (kept?.settings === settings) {
       return kept.source
     }
-    const source = this.created(credentials)
+    const source = this.created(credentials, timeoutMs)
     this.sources.set(client, { settings, source })
     return source
   }
 
-  private created(credentials: ClientCredentials): TokenSource {
+  private created(credentials: ClientCredentials, timeoutMs: number): TokenSource {
     const { tokenEndpoint, clientId, clientSecret, audience, scopes } = credentials
     const platform = this.platform
     return clientCredentialsTokens({
@@ -38,11 +41,12 @@ export class ClientCredentialsSources {
         ...(scopes === undefined ? {} : { scopes }),
       },
       platform: { fetch: (input, init) => platform.send(input, init), now: () => platform.now() },
+      limits: { timeoutMs },
     })
   }
 
-  private static settingsOf(credentials: ClientCredentials): string {
+  private static settingsOf(credentials: ClientCredentials, timeoutMs: number): string {
     const { clientSecret, audience, scopes } = credentials
-    return JSON.stringify([clientSecret, audience ?? null, [...(scopes ?? [])].sort()])
+    return JSON.stringify([clientSecret, audience ?? null, [...(scopes ?? [])].sort(), timeoutMs])
   }
 }

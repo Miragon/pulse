@@ -1,5 +1,5 @@
 import { ClipboardListIcon, FileCodeIcon, RotateCcwIcon } from "lucide-react"
-import { BoardGrid, ProblemList, useProblemWords } from "@miragon/pulse-blocks"
+import { BoardGrid, ProblemList, useNoteLines, useProblemWords } from "@miragon/pulse-blocks"
 import { Card, Icon, LocaleProvider, SectionHeading, ViewBar } from "@miragon/pulse-ui"
 import { useMemo } from "react"
 import type { BoardView } from "../../../core/protocol/index.js"
@@ -81,7 +81,7 @@ function ProblemsStrip({ view }: { readonly view: BoardView }) {
 
 function NotesStrip({ view }: { readonly view: BoardView }) {
   const host = useHost()
-  const say = useProblemWords()
+  const lineOf = useNoteLines()
   if (view.notes.length === 0) {
     return null
   }
@@ -89,8 +89,8 @@ function NotesStrip({ view }: { readonly view: BoardView }) {
     <div className="min-w-0" data-part="board-notes">
       <StatusStrip
         tone="info"
-        title={`${CountLabels.plural(view.notes.length, "note")} in ${view.fileName}.`}
-        details={BoardLabels.notes(view, say)}
+        title={`${CountLabels.plural(view.notes.length, "note")} on this board.`}
+        details={BoardLabels.notes(view, lineOf)}
         actions={[
           {
             label: "Open file",

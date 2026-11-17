@@ -7,7 +7,8 @@ import { REPO_ROOT } from "./source-scan.mjs"
 /**
  * The XML tag reader, one linear pass over a diagram's tags (comments, CDATA sections and
  * processing instructions skipped to their own ends, a quoted `>` part of its tag, nothing read
- * after markup that never ends or of a text over 4 Mi characters), has two copies: the board
+ * after markup that never ends or of a text over 4 Mi characters, which `readable` says), has two
+ * copies: the board
  * builder's (@miragon/pulse-board/builder), under the roll-up of collapsed sub-processes, and
  * c8-core's (@miragon/pulse-c8-core), under its BPMN text. Both packages are leaves that may share
  * it through no third package, so each keeps its own, and a fix of one has to reach the other in
@@ -90,6 +91,7 @@ describe("the two copies of the XML tag reader", () => {
         "NAME_END",
         "LONGEST_TEXT",
         "XmlTags",
+        "readable",
         "of",
         "skippedTo",
         "tagEnd",

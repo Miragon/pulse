@@ -53,6 +53,7 @@ export class C7Adapter implements EngineAdapter {
       credentials: connection.credentials,
       writes,
       send: this.send,
+      ...(connection.timeoutMs === undefined ? {} : { timeoutMs: connection.timeoutMs }),
     })
   }
 }

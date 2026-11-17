@@ -85,6 +85,7 @@ export class EngineRoot implements EngineFactories {
     return {
       endpoint: target.endpoint,
       credentials: this.engineCredentials(target, credentials),
+      ...(target.timeoutMs === undefined ? {} : { timeoutMs: target.timeoutMs }),
     }
   }
 

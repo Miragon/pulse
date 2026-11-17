@@ -143,6 +143,11 @@ engine without reads is one the reader has not configured. It returns a `BoardMo
   incident per engine or per process, most first; an incident list's first incidents per engine and
   whether more are open; a diagram's latest version (`DefinitionRef`) with its badges, the counts
   per element rolled up onto collapsed sub-processes, or `notDeployed`.
+- its notes (`notes`, none when it has none): a diagram longer than the builder reads (over 4 Mi
+  characters) keeps the badges of its elements, rolls nothing up, and gets the note
+  `diagramTooLong` at its tile's path (`rows[1].row[0]`), whose values name the tile as its card
+  does (the widget's title, else the process's name or id) and its engine, so no badge
+  goes missing without a word and a surface names the tile, not a path, to whoever reads the board.
 
 Honest numbers: a read that fails leaves its number out (a surface shows "not read", never 0), a
 total says how many engines it counts (`known`), totals come from counts and the definitions, never
@@ -156,7 +161,7 @@ counted on its shape too) and `CollapsedShapes.of(xml)` the reader of the collap
 around an element, so a surface draws its process views by the same rule as a board. It reads the
 tags in one pass, in time that grows with the text: a comment, a CDATA section and a processing
 instruction to their own ends, a quoted `>` as part of its tag, and no tag of markup that never
-ends or of a text over 4 Mi characters, which rolls up nothing. c8-core's BPMN text reads over a
+ends or of a text over 4 Mi characters (`XmlTags.readable`), which rolls up nothing. c8-core's BPMN text reads over a
 copy of this tag reader, which `scripts/xml-tag-readers.test.mjs` holds equal to it.
 
 ## The JSON form
@@ -175,7 +180,7 @@ so it does not travel. `BoardJson.of` turns it into `BoardData`, the one JSON fo
 board: a surface that hands a board on, to a webview or to an MCP view, sends this data and maps
 nothing by hand. It holds:
 
-- the board's title and the file's notes, as the parser gave them;
+- the board's title and its notes: the file's, as the parser gave them, then the builder's;
 - per engine `ready` with its product, version and totals, `notConfigured`, or `failed` with the
   `failure` the surface's `failureOf` makes of the error, a code and a message of its own (the
   contract's failure kinds, an engine error code);

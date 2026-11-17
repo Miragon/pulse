@@ -85,7 +85,9 @@ process or kind, counts and their engines, thresholds, columns, notes and every 
 file with its values. Numbers and times render through pulse-ui's formatters in the locale set
 with `setFormatLocale`, states through pulse-ui's `StateLabel`. The English words of a problem
 equal `BoardProblems.describe` of the board package. `useProblemWords()` words a problem of the
-file for a surface's own strips, and `ProblemList` lists problems with their paths.
+file for a surface's own strips, `useNoteLines()` a board's note in one line (a note of the file
+after its JSON path, the builder's note on a diagram too long to roll up after the tile's title and
+engine), and `ProblemList` lists problems with their paths.
 
 The parts carry `data-part` hooks a surface's tests may query: `board-card` (`data-kind`: the
 tile's kind), `counter-value`, `counter-partial`, `counter-threshold` (`data-state`: above,
@@ -94,9 +96,9 @@ undecided), `counter-entry`, `counter-count`, `group-note`, `incident-flag`, `re
 
 ## Entries
 
-| Entry                   | Holds                                                                                             |
-| ----------------------- | ------------------------------------------------------------------------------------------------- |
-| `@miragon/pulse-blocks` | `BoardGrid`, `BoardTile`, `ProblemList`, `useProblemWords` and the types of the slots and targets |
+| Entry                   | Holds                                                                                                             |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `@miragon/pulse-blocks` | `BoardGrid`, `BoardTile`, `ProblemList`, `useProblemWords`, `useNoteLines` and the types of the slots and targets |
 
 ## Stability
 

@@ -23,6 +23,7 @@ export type EngineCredentials =
 export interface EngineConnection {
   readonly endpoint: string
   readonly credentials: EngineCredentials
+  readonly timeoutMs?: number
 }
 
 export interface EngineWebUi {

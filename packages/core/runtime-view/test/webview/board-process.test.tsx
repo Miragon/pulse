@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import type { BoardView, PanelState } from "../../src/core/protocol/index.js"
 import { PROCESS_BOARD_VIEW } from "../../dev/webview/fixtures/process-board.js"
 import {
@@ -144,6 +144,36 @@ describe("the process widgets of a board", () => {
       "The diagram was not read from prod-eu.",
       "order-fulfillment is not deployed on shop-test, or you may not have permission to see it.",
     ])
+  })
+
+  it("says in the board's notes, by the tile's title, where a diagram was too long to roll up", async () => {
+    const tooLong = {
+      ...PROCESS_BOARD_VIEW,
+      notes: [
+        { path: "layout", code: "ignoredKey" },
+        {
+          path: "rows[0].row[0]",
+          code: "diagramTooLong",
+          values: { title: "Order fulfillment", engine: "local" },
+        },
+      ],
+    } satisfies BoardView
+    harness = mountApp()
+    harness.publish(ready(tooLong))
+    const notes = await findPart(harness.root, "board-notes")
+
+    expect(queryPart(notes, "strip-title")?.textContent).toBe("2 notes on this board.")
+    const details = buttonNamed(notes, "Details")
+    details.click()
+    await vi.waitFor(() => {
+      expect(details.getAttribute("aria-expanded")).toBe("true")
+    })
+    expect(document.getElementById(details.getAttribute("aria-controls") ?? "")?.textContent).toBe(
+      [
+        "layout is not a key this version of Pulse knows; Pulse shows the board without it",
+        '"Order fulfillment" on local may show no count on a collapsed subprocess for what runs inside it, because the diagram is longer than Pulse reads',
+      ].join("\n"),
+    )
   })
 
   it("lists open incidents with their messages and opens the instance on its engine", async () => {

@@ -75,6 +75,23 @@ describe("the view of a board's model", () => {
     expect(view.rows[0]?.[0]).not.toHaveProperty("diagramXml")
   })
 
+  test("names the file's notes, then the builder's", async () => {
+    const views = new BoardViews([configured("shop")])
+    const tooLong = {
+      path: "rows[0].row[1]",
+      code: "diagramTooLong",
+      values: { title: "Orders", engine: "shop" },
+    } as const
+    const model: BoardModel = { title: "Orders", engines: [], rows: [], notes: [tooLong] }
+
+    const view = await views.of(model, {
+      ...SOURCE,
+      notes: [{ path: "layout", code: "ignoredKey" }],
+    })
+
+    expect(view.notes).toEqual([{ path: "layout", code: "ignoredKey" }, tooLong])
+  })
+
   test("reads the diagram once for the numbers and the drawing", async () => {
     const xml = '<bpmn:process id="order"><bpmn:userTask id="Task_Pay"/></bpmn:process>'
     const runtime = stubbed({

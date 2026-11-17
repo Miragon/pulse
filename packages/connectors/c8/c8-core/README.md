@@ -35,9 +35,10 @@ reads and gives one failure the same kind.
   `unexpectedResponse`, a request the transport refuses or a login it cannot send
   `misconfigured`; a token by its trouble. An error the transport copies no fields of is
   `unexpectedResponse`. c8-core words what holds on every surface itself, the surface's hint
-  first: a 403 that names missing secondary storage says that the cluster has nothing to read, and
-  a 404 that names no missing resource gets the hint that the profile's url must be the cluster's
-  REST root and end in `/v2`.
+  first: a 403 that names missing secondary storage says that the cluster has nothing to read,
+  followed by the `tail` of the surface's words where it gives one (the server's `(engine c8)`),
+  and a 404 that names no missing resource gets the hint that the profile's url must be the
+  cluster's REST root and end in `/v2`.
 - **The transport port (`src/port`).** `CamundaTransport` is what a surface hands the REST client:
   `get` and `post` resolve the JSON of an answer (read losslessly), `text` the text of one (a
   diagram's XML), and every request is a read. `failure(error)` reads a rejection of the transport

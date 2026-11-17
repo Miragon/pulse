@@ -58,12 +58,14 @@ describe("the tags of an XML text", () => {
     expect(names(`<a/><!---->${unended}`)).toEqual(["a"])
   })
 
-  test("reads a text of up to 4 Mi characters, and no tag of a longer one", () => {
+  test("reads a text of up to 4 Mi characters, and no tag of a longer one, which it says", () => {
     const longest = 4 * 1024 * 1024
     const padded = (length: number) => `<a/>${" ".repeat(length - 4)}`
 
     expect(names(padded(longest))).toEqual(["a"])
     expect(names(padded(longest + 1))).toEqual([])
+    expect(XmlTags.readable(padded(longest))).toBe(true)
+    expect(XmlTags.readable(padded(longest + 1))).toBe(false)
   })
 
   test("finds no tag in a text without one", () => {

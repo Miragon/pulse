@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
-import { Button, EmptyState, Icon } from "@miragon/pulse-ui"
+import { EmptyState, Icon } from "@miragon/pulse-ui"
 import { OpenInCockpitLink, WidgetShell } from "@miragon/pulse-widget-shell/widgets"
-import { ArrowLeft, Server } from "lucide-react"
+import { Server } from "lucide-react"
 import { useT } from "../../messages/use-t.js"
 import type { ListedBoard } from "../../view-models.board.js"
 import type { BoardsOnlyEngine } from "./boards-only.js"
@@ -12,8 +12,6 @@ interface GateProps {
   /** The server's boards as the engine list names them, for their titles; null before it answers. */
   boards: ServerBoards | null
   onOpenBoard: (board: string, title: string) => void
-  /** Back to the chooser, where it shows: with more than one engine, or with boards. */
-  onLanding?: () => void
 }
 
 /**
@@ -21,8 +19,10 @@ interface GateProps {
  * is the view's ONE state on every route: no section mounts, since every read of it would be
  * refused alike. The state reads nothing either: it names the boards that show the engine, each a
  * way in, or says that none does yet, and leads to the engine's own web app where its profile
- * names one. Its title is the route's heading (h1), as a route's view bar's is; its mark is an
- * engine's, as on the landing. Another engine renders its route (`children`).
+ * names one. The way back to the chooser is the head's trail, whose first crumb is "All engines"
+ * wherever the chooser shows, so the state offers none of its own. Its title is the route's
+ * heading (h1), as a route's view bar's is; its mark is an engine's, as on the landing. Another
+ * engine renders its route (`children`).
  */
 export function BoardsOnlyEngineGate({
   boardsOnly,
@@ -42,7 +42,6 @@ function BoardsOnlyEngineState({
   engineId,
   boards,
   onOpenBoard,
-  onLanding,
 }: GateProps & { engine: BoardsOnlyEngine }) {
   const t = useT()
   const listed = engine.boards.map((id) => listedBoard(id, boards))
@@ -72,33 +71,23 @@ function BoardsOnlyEngineState({
             ))}
           </ul>
         )}
-        <WayOut engine={engine} onLanding={onLanding} />
+        <WebAppLink engine={engine} />
       </div>
     </WidgetShell>
   )
 }
 
-/** The engine's own web app where its profile names one, and the way back to the chooser. */
-function WayOut({ engine, onLanding }: { engine: BoardsOnlyEngine; onLanding?: () => void }) {
+/** The engine's own web app, where its profile names one. */
+function WebAppLink({ engine }: { engine: BoardsOnlyEngine }) {
   const t = useT()
   const { webApp, webAppUrl } = engine
-  if (webAppUrl === undefined && onLanding === undefined) return null
+  if (webAppUrl === undefined) return null
   return (
     <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
-      {webAppUrl !== undefined && (
-        <>
-          <p className="text-dense text-muted-foreground">
-            {t("cockpit.boardsOnly.webApp", { webApp })}
-          </p>
-          <OpenInCockpitLink url={webAppUrl} vendor={webApp} />
-        </>
-      )}
-      {onLanding && (
-        <Button type="button" variant="outline" onClick={onLanding}>
-          <Icon icon={ArrowLeft} />
-          {t("cockpit.crumb.allEngines")}
-        </Button>
-      )}
+      <p className="text-dense text-muted-foreground">
+        {t("cockpit.boardsOnly.webApp", { webApp })}
+      </p>
+      <OpenInCockpitLink url={webAppUrl} vendor={webApp} />
     </div>
   )
 }

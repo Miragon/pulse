@@ -109,8 +109,11 @@ widget that asks it before it shows a write control offers none. A page that bri
 hands it in as `frame`, a component that gets the view as its `children` and renders under the same
 providers (the view's locale, theme, icon stroke and toasts); the frame then lays out the page and
 the view takes its content's height. With a frame and no `view`, the frame renders alone, needs no
-`callTool` and calls nothing (a page that needs no tool, such as a signed-out page). Pulse's web
-app (`apps/web`) is such a page.
+`callTool` and calls nothing (a page that needs no tool, such as a signed-out page). A view that
+says a failed start in its own place takes `failedStart`, which gives its data for the error, or
+null to leave it to the frame: the web app keeps the cockpit's head over a route whose engine does
+not answer (`cockpitAfterFailedStart` of the engine connector's `/widgets`). Pulse's web app
+(`apps/web`) is such a page.
 
 ```ts
 import { mountPage } from "@miragon/pulse-widget-shell/widgets"

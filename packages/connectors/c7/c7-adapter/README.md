@@ -25,7 +25,7 @@ the incident list (`incidentRecovery`), which request holds an incident's cause
 what "with incident" is (an open incident the runtime holds now, `instancesWithIncident`,
 `countWithIncident`, `withIncidentAmong`), on every history level. It sends every request through
 `@miragon/pulse-http`, the transport the CLI and the MCP server send through, from its wire alone
-(`src/engine-rest/http`: `EngineHttp`, 60 s and 64 MiB, over the global `fetch` of its host's
+(`src/engine-rest/http`: `EngineHttp`, the profile's `timeout` or 60 s and 64 MiB, over the global `fetch` of its host's
 runtime), and c7-core's reads go out as routes of c7-core's `CORE_ROUTES`.
 
 The conformance kit of the contract (`@miragon/pulse-engine-core/testing`) proves it on a real

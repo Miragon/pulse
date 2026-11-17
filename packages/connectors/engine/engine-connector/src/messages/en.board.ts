@@ -29,7 +29,7 @@ export const enBoard: MessageCatalog = {
     `${String(engine)} is not among the engines of this server.`,
   "board.notConfiguredHint":
     "Its tiles stay empty until whoever runs the server adds a profile of that name.",
-  "board.notes": ({ count }) => `${countOf(count, "note", "notes")} on this board's file.`,
+  "board.notes": ({ count }) => `${countOf(count, "note", "notes")} on this board.`,
   "board.open": "Open",
   "board.colActions": "Actions",
 }

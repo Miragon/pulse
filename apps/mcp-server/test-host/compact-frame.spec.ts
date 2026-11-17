@@ -1019,34 +1019,37 @@ test.describe("a narrow card's details", () => {
     })
 
     // Three tiles keep their row from 25rem, where "verbleibenden" fits its third; below it two.
-    test(`at ${width} px in German the jobs' KPI captions break between words, never inside one`, async ({
-      page,
-    }) => {
-      const app = await openView(
+    for (const [locale, group, caption] of [
+      ["de-DE", "Job-Übersicht", "Mit verbleibenden Versuchen"],
+      ["en-US", "Job summary", "With retries left"],
+    ] as const) {
+      test(`at ${width} px in ${locale} the jobs' KPI captions break between words, never inside one`, async ({
         page,
-        { engine: HEALTHY_ENGINE, view: "jobs" },
-        { width, locale: "de-DE" },
-      )
-      const strip = app
-        .getByRole("group", { name: "Job-Übersicht" })
-        .locator("[data-slot=kpi-strip]")
-      await expect(strip).toContainText("Mit verbleibenden Versuchen", { timeout: 15_000 })
-      const seen = await strip.evaluate((el) => {
-        const captions = [...el.querySelectorAll(":scope > div > * > div:first-child > span")]
-        const columns = getComputedStyle(el.firstElementChild!).gridTemplateColumns.split(" ")
-        const split = captions.flatMap((caption) => {
-          const text = caption.firstChild!
-          return [...(text.textContent ?? "").matchAll(/\S+/g)].flatMap((word) => {
-            const range = document.createRange()
-            range.setStart(text, word.index)
-            range.setEnd(text, word.index + word[0].length)
-            return range.getClientRects().length > 1 ? [word[0]] : []
+      }) => {
+        const app = await openView(
+          page,
+          { engine: HEALTHY_ENGINE, view: "jobs" },
+          { width, locale },
+        )
+        const strip = app.getByRole("group", { name: group }).locator("[data-slot=kpi-strip]")
+        await expect(strip).toContainText(caption, { timeout: 15_000 })
+        const seen = await strip.evaluate((el) => {
+          const captions = [...el.querySelectorAll(":scope > div > * > div:first-child > span")]
+          const columns = getComputedStyle(el.firstElementChild!).gridTemplateColumns.split(" ")
+          const split = captions.flatMap((caption) => {
+            const text = caption.firstChild!
+            return [...(text.textContent ?? "").matchAll(/\S+/g)].flatMap((word) => {
+              const range = document.createRange()
+              range.setStart(text, word.index)
+              range.setEnd(text, word.index + word[0].length)
+              return range.getClientRects().length > 1 ? [word[0]] : []
+            })
           })
+          return { captions: captions.length, columns: columns.length, split }
         })
-        return { captions: captions.length, columns: columns.length, split }
+        expect(seen).toEqual({ captions: 3, columns: width < 400 ? 2 : 3, split: [] })
       })
-      expect(seen).toEqual({ captions: 3, columns: width < 400 ? 2 : 3, split: [] })
-    })
+    }
 
     test(`at ${width} px each job's row is one 28 px line: its error cut with an ellipsis, whole in its title, a cut one a disclosure`, async ({
       page,

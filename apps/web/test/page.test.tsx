@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { act, fireEvent, screen, within } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
+import type { ViewComponent } from "@miragon/pulse-widget-shell/widgets"
 import { PageNotices } from "../src/notices.js"
 import { bodyOf, callsOf, settled, start, stopPage } from "./page.test-support.js"
 
@@ -28,6 +29,35 @@ describe("a page with a session", () => {
       arguments: { view: "jobs", engine: "prod" },
     })
     expect(new Headers(call?.headers).get("x-pulse-csrf")).toBe("csrf-1")
+  })
+
+  // The cockpit keeps its head over a route that cannot read its engine; a refusal stays the frame's.
+  it("hands the view the cockpit's data for a start that failed for its engine", async () => {
+    const Data: ViewComponent<object> = ({ data }) => (
+      <p data-testid="data">{JSON.stringify(data)}</p>
+    )
+    const failing = (text: string) => () =>
+      Response.json({ result: { isError: true, content: [{ type: "text", text }] } })
+    const views = { views: { engine_open_cockpit: Data as ViewComponent } }
+    await start(
+      "/app/cockpit?view=jobs&engine=down",
+      { call: failing("[503 ProcessEngineException] Engine is shutting down (engine down)") },
+      views,
+    )
+    expect(JSON.parse(screen.getByTestId("data").textContent ?? "")).toEqual({
+      engineId: "down",
+      engines: [],
+      start: null,
+      startView: { section: "jobs" },
+    })
+    await stopPage()
+    await start(
+      "/app/cockpit?view=jobs&engine=c8",
+      { call: failing('[ENGINE_DIALECT_NOT_SERVED] Engine "c8" is a Camunda 8 engine') },
+      views,
+    )
+    expect(screen.queryByTestId("data")).toBeNull()
+    expect(screen.getByRole("link", { name: "Go to the start page" })).toBeTruthy()
   })
 
   it("opens the cockpit's landing on /app, the document titled Pulse", async () => {

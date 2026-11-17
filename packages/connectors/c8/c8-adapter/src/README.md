@@ -54,7 +54,7 @@ flowchart LR
 3. The reader (c8-core) asks the REST client for what it needs, e.g. "the open incidents of instance X".
 4. The REST client turns that into requests to the transport port, which `CamundaHttp` implements over the wire: a GET, a search as a reading POST, or a diagram's XML.
 5. With client credentials the wire gets a token from the connection's token source, one per cluster and client.
-6. It sends the request on a read-only connection, never follows a redirect, stops after 60 s or 64 MiB.
+6. It sends the request on a read-only connection, never follows a redirect, stops after the profile's `timeout` (60 s without one; a token request at most 30 s) or 64 MiB.
 7. It answers with the text or with a reason, data that names no type of the transport; `CamundaHttp` reads JSON losslessly or throws a `CamundaRequestError`, whose fields (`CamundaFailure`) the port hands c8-core, which reads a missing resource from them.
 8. The REST client checks each field it reads.
 9. The reader maps the views onto engine-core's read models. A failure becomes a `RuntimeError`, which the runtime throws: `C8Failures` decides its kind from the port's fields and adds what holds on every surface (the `/v2` hint, no secondary storage), and the adapter's `errors` give its message and its way out.

@@ -79,6 +79,7 @@ export interface ProcessDiagramModel {
   readonly latest?: DefinitionRef
   readonly notDeployed?: true
   readonly badges?: readonly ElementStatistics[]
+  readonly diagramTooLong?: Extract<BoardProblem, { code: "diagramTooLong" }>["values"]
 }
 
 export interface IncidentGroupModel {
@@ -112,4 +113,5 @@ export interface BoardModel {
   readonly title: string
   readonly engines: readonly EngineModel[]
   readonly rows: readonly (readonly TileModel[])[]
+  readonly notes?: readonly BoardProblem[]
 }

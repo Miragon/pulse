@@ -1,7 +1,13 @@
 import { readFileSync } from "node:fs"
 import path from "node:path"
 import { expect, test, type Locator, type Page } from "@playwright/test"
-import { C8_ENGINE, C8_OPERATE, C8_UNBOARDED_ENGINE, HEALTHY_ENGINE } from "../engines.js"
+import {
+  BROKEN_ENGINE,
+  C8_ENGINE,
+  C8_OPERATE,
+  C8_UNBOARDED_ENGINE,
+  HEALTHY_ENGINE,
+} from "../engines.js"
 import {
   collectErrors,
   expectNoAxeFinding,
@@ -310,6 +316,45 @@ test("the landing fits 320 px in English, its engines and its boards", async ({ 
 })
 
 /**
+ * The jobs' KPI captions at 320 px in either language: the strip drops to two columns under 25rem,
+ * so a caption breaks between its words, never inside one ("verbleibenden").
+ */
+test.describe("the jobs' KPI captions at 320 px", () => {
+  for (const [locale, group, caption] of [
+    ["en-US", "Job summary", "With retries left"],
+    ["de-DE", "Job-Übersicht", "Mit verbleibenden Versuchen"],
+  ] as const) {
+    test(`break between words, never inside one (${locale})`, async ({ browser }) => {
+      const context = await browser.newContext({ locale, viewport: { width: 320, height: 640 } })
+      try {
+        const page = await context.newPage()
+        await signIn(page, JOBS_PAGE)
+        const strip = page.getByRole("group", { name: group }).locator("[data-slot=kpi-strip]")
+        await expect(strip).toContainText(caption, { timeout: 15_000 })
+        await rendered(page)
+        const split = await strip.evaluate((el) =>
+          [...el.querySelectorAll(":scope > div > * > div:first-child > span")].flatMap(
+            (caption) => {
+              const text = caption.firstChild!
+              return [...(text.textContent ?? "").matchAll(/\S+/g)].flatMap((word) => {
+                const range = document.createRange()
+                range.setStart(text, word.index)
+                range.setEnd(text, word.index + word[0].length)
+                return range.getClientRects().length > 1 ? [word[0]] : []
+              })
+            },
+          ),
+        )
+        expect(split).toEqual([])
+        expect(await scrollsSideways(page)).toBe(false)
+      } finally {
+        await context.close()
+      }
+    })
+  }
+})
+
+/**
  * On a touch screen at 320 px (40 px rows, their wider padding) a board row names its board
  * whole and puts what it says of it under the name where both do not fit beside each other.
  */
@@ -388,24 +433,42 @@ test.describe("the pages without a view", () => {
   }
 })
 
-test.describe("the cockpit's pages on a Camunda 8 engine", () => {
-  // The cockpit's `engine` offers the engines its routes of one engine read (their mark): a
-  // Camunda 8 engine is none of them, so the tool's input refuses it, and its start page has it.
-  test("/app/cockpit?engine=<a Camunda 8 engine> is refused by the cockpit's input; the start page's Camunda 8 entry leads to the gate", async ({
+test.describe("a page whose engine doesn't answer", () => {
+  // Its start fails for the engine, not for the page: the cockpit keeps its head (its sections,
+  // the switcher, the way to the other engines) over the route, which says so in its place.
+  test("/app/cockpit?engine=<an unreachable engine> keeps the cockpit's head over its failure", async ({
     page,
   }) => {
     const calls = recordCalls(page)
-    await signIn(page, `/app/cockpit?engine=${C8_ENGINE}`, { deployment: "camunda8" })
-    const alert = page.getByRole("alert")
-    await expect(
-      alert.getByRole("heading", { level: 1, name: "The server refused this request" }),
-    ).toBeVisible({ timeout: 15_000 })
-    await expect(alert.getByText(/^Input validation error: .*engine/)).toBeAttached()
+    await signIn(page, `/app/cockpit?engine=${BROKEN_ENGINE}`)
+    await expect(page.getByRole("navigation", { name: "Cockpit sections" })).toBeVisible({
+      timeout: 15_000,
+    })
+    const failure = page.getByRole("heading", {
+      name: `Engine ${BROKEN_ENGINE} is unreachable (HTTP 503)`,
+    })
+    await expect(failure).toHaveCount(1, { timeout: 30_000 })
+    await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1)
+    await expect(page.getByRole("button", { name: "Try again" })).toHaveCount(1)
+    expect(calls.filter((call) => call.name === "engine_open_cockpit")).toHaveLength(1)
+    await rendered(page)
+    await expectNoAxeFinding(page)
+  })
+})
+
+test.describe("the cockpit's pages on a Camunda 8 engine", () => {
+  // The cockpit's `engine` names every engine it shows: without a view a Camunda 8 engine opens the
+  // picker, never a refusal of the input.
+  test("/app/cockpit?engine=<a Camunda 8 engine> gives the picker, whose Camunda 8 entry leads to the gate", async ({
+    page,
+  }) => {
     const errors = collectErrors(page)
-    await alert.getByRole("link", { name: "Go to the start page" }).click()
+    const calls = recordCalls(page)
+    await signIn(page, `/app/cockpit?engine=${C8_ENGINE}`, { deployment: "camunda8" })
     await expect(page.getByRole("heading", { level: 1, name: "Operations Cockpit" })).toBeVisible({
       timeout: 15_000,
     })
+    await expect(page.getByText(/Input validation error/)).toHaveCount(0)
     const engines = page.getByRole("region", { name: "Engines" })
     await engines.getByRole("button", { name: `${C8_ENGINE} , Camunda 8, on boards` }).click()
     await expect(
@@ -422,6 +485,32 @@ test.describe("the cockpit's pages on a Camunda 8 engine", () => {
     await rendered(page)
     expect(errors).toEqual([])
     await expectNoAxeFinding(page)
+  })
+
+  // A view of one engine names a Camunda 8 engine: the view does not read it, never arguments the
+  // tool does not take.
+  test("/app/cockpit?view=jobs&engine=<a Camunda 8 engine> says the view does not read it, with the way to the start page", async ({
+    page,
+  }) => {
+    const calls = recordCalls(page)
+    await signIn(page, `/app/cockpit?view=jobs&engine=${C8_ENGINE}`, { deployment: "camunda8" })
+    const alert = page.getByRole("alert")
+    const refused = "This view doesn't read this engine"
+    await expect(alert.getByRole("heading", { level: 1, name: refused })).toBeVisible({
+      timeout: 15_000,
+    })
+    await expect(
+      alert.getByText(new RegExp(`^\\[ENGINE_DIALECT_NOT_SERVED\\] Engine "${C8_ENGINE}"`)),
+    ).toBeAttached()
+    await expect(page.getByText(/Input validation error/)).toHaveCount(0)
+    await expect(alert.getByRole("button", { name: "Try again" })).toHaveCount(0)
+    expect(calls.filter((call) => call.name === "engine_open_cockpit")).toHaveLength(1)
+    await expectNoAxeFinding(page)
+    await alert.getByRole("link", { name: "Go to the start page" }).click()
+    await expect(page.getByRole("heading", { level: 1, name: "Operations Cockpit" })).toBeVisible({
+      timeout: 15_000,
+    })
+    expect(new URL(page.url()).pathname).toBe("/app")
   })
 
   // The call-time net: a page without `engine` goes to the default, here a Camunda 8 engine,

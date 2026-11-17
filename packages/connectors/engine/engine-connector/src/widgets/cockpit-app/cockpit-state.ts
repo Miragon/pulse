@@ -180,9 +180,13 @@ function bootKey({ engineId, view }: Boot): string {
   return `${engineId ?? ""}|${view ? JSON.stringify(view) : ""}`
 }
 
-/** The start view, a board's named by its title, so its crumb reads as the board. */
-function bootView(start: CockpitStart | null | undefined): CockpitView | null {
-  if (!start) return null
+/**
+ * The start view, a board's named by its title, so its crumb reads as the board; a page's start
+ * that failed opens its view without data.
+ */
+function bootView(data: CockpitAppData | null): CockpitView | null {
+  const start = data?.start
+  if (!start) return data?.startView ?? null
   if (start.view.section !== "board") return start.view
   return { ...start.view, label: (start.data as BoardStartData).title }
 }
@@ -197,7 +201,7 @@ export function useCockpitState(
   engines: ReadonlyArray<{ id: string }>,
   withBoards: boolean,
 ) {
-  const boot = { engineId: data?.engineId ?? null, view: bootView(data?.start) }
+  const boot = { engineId: data?.engineId ?? null, view: bootView(data) }
   const [state, dispatch] = useReducer(cockpitReducer, boot, initialState)
   // A re-delivered bootstrap (another engine, start view or focus) opens where it names.
   useResetOnChange(bootKey(boot), () => dispatch({ type: "boot", ...boot }))

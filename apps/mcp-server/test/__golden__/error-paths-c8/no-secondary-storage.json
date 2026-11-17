@@ -12,7 +12,7 @@
           {
             "failure": {
               "code": "misconfigured",
-              "message": "This cluster runs without secondary storage, so Pulse has nothing to read. Pulse reads the cluster's search API, which needs secondary storage such as Elasticsearch, OpenSearch or a relational database."
+              "message": "This cluster runs without secondary storage, so Pulse has nothing to read. (engine c8) Pulse reads the cluster's search API, which needs secondary storage such as Elasticsearch, OpenSearch or a relational database."
             },
             "name": "c8",
             "state": "failed"

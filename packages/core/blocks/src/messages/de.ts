@@ -92,6 +92,9 @@ export const de: Readonly<Record<WordKey, Message>> = {
     'passt nur auf laufende Instanzen, weil eine beendete Instanz keinen offenen Incident hat; entferne es oder nutze state "running"',
   "problem.tenantsNotRead":
     "ist gesetzt, aber Pulse hat keinen Tenant-Filter und würde hier jeden Tenant lesen; entferne tenants, um dieses Widget zu zeigen",
+  "problem.diagramTooLong":
+    "zeigt an einem zugeklappten Teilprozess womöglich keine Zahl für das, was darin läuft, weil das Diagramm länger ist, als Pulse liest",
+  "note.tile": "„{title}“ auf {engine}",
   "problem.unknownKey": "ist kein bekannter Schlüssel; nutze {choices}",
   "problem.notOneOf": "muss eins von {choices} sein",
   "problem.variableColumn": "kann keine Variable zeigen; muss eins von {choices} sein",

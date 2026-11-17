@@ -1,4 +1,4 @@
-import { useProblemWords } from "@miragon/pulse-blocks"
+import { useNoteLines } from "@miragon/pulse-blocks"
 import {
   Button,
   Icon,
@@ -83,21 +83,24 @@ function NotConfiguredStrip({ name }: { readonly name: string }) {
   )
 }
 
-/** The notes of the board's file: what Pulse shows without, each after its JSON path. */
+/**
+ * The board's notes: what Pulse shows without from its file, each after its JSON path, and what it
+ * could not roll up on a tile, after the tile's title.
+ */
 function NotesStrip({ data }: { readonly data: BoardStartData }) {
   const t = useT()
-  const say = useProblemWords()
+  const lineOf = useNoteLines()
   if (data.notes.length === 0) return null
   return (
     <StatusStrip
       tone="info"
       title={t("board.notes", { count: formatNumber(data.notes.length) })}
-      details={data.notes.map((note) => `${note.path} ${say(note)}`).join("\n")}
+      details={data.notes.map((note) => lineOf(note)).join("\n")}
     />
   )
 }
 
-/** The strips under the board's bar: each engine that was not read in its place, the file's notes. */
+/** The strips under the board's bar: each engine that was not read in its place, the board's notes. */
 export function BoardStrips({ data }: { readonly data: BoardStartData }) {
   return (
     <>

@@ -10,6 +10,7 @@ import {
 } from "@miragon/pulse-widget-shell/widgets"
 import {
   ENGINE_INCIDENTS_DATA,
+  ENGINE_LIST_ENGINES,
   ENGINE_OPEN_COCKPIT,
   ENGINE_WIDGET_ACTIONS,
   ENGINE_WIDGET_ACTIONS_DATA,
@@ -21,6 +22,7 @@ import type {
   IncidentsDashboardProcess,
   JobPanelData,
 } from "../view-models.js"
+import { cockpitAfterFailedStart } from "./cockpit-app/failed-start.js"
 import { engineViews } from "./views.js"
 
 /**
@@ -128,6 +130,61 @@ afterEach(async () => {
   unmount = undefined
   document.body.innerHTML = ""
   vi.restoreAllMocks()
+})
+
+describe("the cockpit on a page whose start failed for its engine", () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it("keeps its head over the route, which says the engine's failure in its place", async () => {
+    // The page's query client retries a read that may answer next time: the clock waits it out.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] })
+    const down = "[503 ProcessEngineException] Engine is shutting down (engine down)"
+    const callTool = vi.fn<ToolCaller>((name) => {
+      if (name === ENGINE_OPEN_COCKPIT) {
+        return Promise.resolve({ isError: true, content: [{ type: "text", text: down }] })
+      }
+      if (name === ENGINE_LIST_ENGINES) {
+        return Promise.resolve({
+          structuredContent: {
+            engines: [{ id: "prod-a" }, { id: "down" }],
+            environments: [],
+            defaultEngineId: "prod-a",
+          },
+          content: [{ type: "text", text: "{}" }],
+        })
+      }
+      return Promise.reject(new Error(down))
+    })
+    const args = { engine: "down", view: "incidents" }
+    const container = document.createElement("div")
+    document.body.appendChild(container)
+    await act(async () => {
+      unmount = mountPage(engineViews, {
+        view: ENGINE_OPEN_COCKPIT,
+        args,
+        callTool,
+        locale: "en",
+        container,
+        failedStart: (error) => cockpitAfterFailedStart(args, error),
+      })
+    })
+    for (let step = 0; step < 6; step++) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5_000)
+      })
+    }
+    expect(screen.getByRole("navigation", { name: "Cockpit sections" })).toBeTruthy()
+    expect(
+      screen.getByRole("heading", { name: "Engine down is unreachable (HTTP 503)" }),
+    ).toBeTruthy()
+    // The route read the engine itself, with the page's view.
+    expect(callTool.mock.calls.map(([name, called]) => [name, called.engine])).toContainEqual([
+      ENGINE_INCIDENTS_DATA,
+      "down",
+    ])
+  })
 })
 
 describe("the cockpit on a page (mountPage)", () => {

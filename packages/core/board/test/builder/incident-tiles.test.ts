@@ -1,6 +1,6 @@
 import { DefinitionId, RuntimeError } from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
-import { BoardBuilder, type TileModel } from "../../src/builder/index.js"
+import { BoardBuilder, BoardJson, type TileModel } from "../../src/builder/index.js"
 import { BuilderWorld } from "./support/engines.js"
 
 const FAILED = () => Promise.reject(new RuntimeError("engineFailure", "boom"))
@@ -194,6 +194,65 @@ describe("a process diagram", () => {
       ["kind", "widget", "engine"],
       ["kind", "widget", "engine"],
     ])
+  })
+
+  test("notes a diagram longer than the builder reads where its tile stands, named by its title, keeping the badges it read", async () => {
+    const longest = 4 * 1024 * 1024
+    const padded = (xml: string | undefined, length: number) =>
+      `${xml ?? ""}${" ".repeat(length - (xml ?? "").length)}`
+    const drawnAs = (length: number, named = true) => {
+      const world = BuilderWorld.world()
+      return BuilderWorld.world({
+        getDiagramXml: async (id) => padded(await world.getDiagramXml(id), length),
+        listDefinitions: async () =>
+          (await world.listDefinitions()).map((summary) => {
+            const { id, bpmnProcessId, version } = summary.latest
+            return named ? summary : { ...summary, latest: { id, bpmnProcessId, version } }
+          }),
+      })
+    }
+    const diagram = (engine: string, title?: string) => ({
+      widget: "processDiagram",
+      props: { engines: [engine], process: "pulse-order", ...(title ? { title } : {}) },
+    })
+    const board = BuilderWorld.board(
+      [diagram("whole"), diagram("cut"), diagram("cut", "Orders"), diagram("unnamed")],
+      ["whole", "cut", "unnamed"],
+    )
+
+    const model = await BoardBuilder.build(board, [
+      { name: "whole", reads: drawnAs(longest) },
+      { name: "cut", reads: drawnAs(longest + 1) },
+      { name: "unnamed", reads: drawnAs(longest + 1, false) },
+    ])
+
+    const note = (path: string, title: string, engine: string) =>
+      ({ path, code: "diagramTooLong", values: { title, engine } }) as const
+    const notes = [
+      note("rows[1].row[0]", "Order fulfillment", "cut"),
+      note("rows[2].row[0]", "Orders", "cut"),
+      note("rows[3].row[0]", "pulse-order", "unnamed"),
+    ]
+    expect(model.notes).toStrictEqual(notes)
+    const [whole, cut] = model.rows.map((row) => row[0])
+    expect(whole).not.toHaveProperty("diagramTooLong")
+    expect(cut).toMatchObject({ kind: "processDiagram", engine: "cut" })
+    expect(cut?.kind === "processDiagram" && cut.badges?.length).toBeGreaterThan(0)
+    const parsed = { path: "layout", code: "ignoredKey" } as const
+    const data = BoardJson.of(model, { failureOf: () => ({ code: "unread" }), notes: [parsed] })
+    expect(data.notes).toStrictEqual([parsed, ...notes])
+    expect(data.rows[1]?.[0]).not.toHaveProperty("diagramTooLong")
+  })
+
+  test("notes nothing on a board whose diagrams the builder reads whole", async () => {
+    const board = BuilderWorld.board(
+      [{ widget: "processDiagram", props: { engines: ["shop"], process: "pulse-order" } }],
+      ["shop"],
+    )
+
+    const model = await BoardBuilder.build(board, [{ name: "shop", reads: BuilderWorld.world() }])
+
+    expect(model).not.toHaveProperty("notes")
   })
 
   test("reads no engine when the widget names none", async () => {

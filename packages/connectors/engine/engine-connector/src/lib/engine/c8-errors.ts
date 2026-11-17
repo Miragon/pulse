@@ -3,7 +3,9 @@
  * `C8Runtime` over the server's Camunda 8 wire (c8-connection.ts), on a path of its own beside
  * engine-error.ts. c8-core decides each failure's kind and adds what holds for every surface (the
  * REST root that ends in /v2 to a 404 that names no missing resource, the words of a cluster
- * without secondary storage); these are the server's words, the engine by its id. They carry no
+ * without secondary storage); these are the server's words, each ending with the engine by its id
+ * (`(engine c8)`, after a sentence of c8-core's own too), but for the transport's sentences, which
+ * name it as on Camunda 7 (`engine c8 unreachable (ECONNREFUSED)`). They carry no
  * hint of the Camunda 7 REST API (no /engine-rest root, none of the variables ENGINE_AUTH_TYPE,
  * ENGINE_USERNAME or ENGINE_PASSWORD, which a camunda8 profile does not read), and the token
  * endpoint's failures name the profile's keys and the ENGINE_SECRET_* family, never the
@@ -70,7 +72,7 @@ const GRANT_HINT =
 const ENDPOINT_HINT =
   "auth.tokenEndpoint in the engine's profile must be the URL that issues tokens."
 
-/** What is wrong with a token endpoint's 200, after "the token endpoint of engine x". */
+/** What is wrong with a token endpoint's 200, after "the token endpoint". */
 const ANSWER_PROBLEMS: Readonly<Record<CamundaTokenProblem, string>> = {
   "not-json": "answered without a token",
   "no-token": "answered without a token",
@@ -102,49 +104,52 @@ const whyOf = (failure: CamundaTokenFailure, status: number): string =>
 type TokenWording = (failure: CamundaTokenFailure, engine: string) => C8Words
 
 const refusedRequest: TokenWording = (failure, engine) => ({
-  message: `the token endpoint refused the token request of ${engine} (${whyOf(failure, 400)})`,
+  message: `the token endpoint refused the token request: ${whyOf(failure, 400)} (${engine})`,
   hint: REQUEST_HINT,
 })
 
-/** Each trouble of the token endpoint in the model's words, total over its kinds. */
+/**
+ * Each trouble of the token endpoint in the model's words, total over its kinds, each ending with
+ * the engine as every failure the server words does.
+ */
 const TOKEN_WORDS: Readonly<Record<CamundaTokenTrouble, TokenWording>> = {
   client: (failure, engine) => ({
-    message: `the token endpoint refused the client of ${engine} (${whyOf(failure, 401)})`,
+    message: `the token endpoint refused the client: ${whyOf(failure, 401)} (${engine})`,
     hint: CLIENT_HINT,
   }),
   scope: refusedRequest,
   grant: refusedRequest,
   forbidden: (_, engine) => ({
-    message: `the token endpoint refused to issue a token to the client of ${engine} (HTTP 403)`,
+    message: `the token endpoint refused to issue a token to the client: HTTP 403 (${engine})`,
     hint: GRANT_HINT,
   }),
   "rate-limited": (_, engine) => ({
-    message: `the token endpoint limits the token requests of ${engine} (HTTP 429)`,
+    message: `the token endpoint limits the token requests: HTTP 429 (${engine})`,
   }),
   unavailable: (failure, engine) => ({
     message:
       failure.status === undefined
-        ? `the token endpoint of ${engine} cannot answer now`
-        : `the token endpoint of ${engine} failed with HTTP ${String(failure.status)}`,
+        ? `the token endpoint cannot answer now (${engine})`
+        : `the token endpoint failed with HTTP ${String(failure.status)} (${engine})`,
   }),
   redirect: (_, engine) => ({
-    message: `the token endpoint of ${engine} answered with a redirect`,
+    message: `the token endpoint answered with a redirect (${engine})`,
     hint: ENDPOINT_HINT,
   }),
   "too-large": (failure, engine) => ({
-    message: `the token endpoint of ${engine} answered with ${sizeOf(failure.capBytes)}`,
+    message: `the token endpoint answered with ${sizeOf(failure.capBytes)} (${engine})`,
   }),
   unexpected: (failure, engine) =>
     failure.problem === undefined
       ? {
-          message: `the token endpoint of ${engine} answered with HTTP ${String(failure.status ?? 0)}`,
+          message: `the token endpoint answered with HTTP ${String(failure.status ?? 0)} (${engine})`,
           hint: ENDPOINT_HINT,
         }
-      : { message: `the token endpoint of ${engine} ${ANSWER_PROBLEMS[failure.problem]}` },
-  unreachable: (_, engine) => ({ message: `the token endpoint of ${engine} cannot be reached` }),
-  timeout: (_, engine) => ({ message: `the token endpoint of ${engine} did not answer in time` }),
+      : { message: `the token endpoint ${ANSWER_PROBLEMS[failure.problem]} (${engine})` },
+  unreachable: (_, engine) => ({ message: `the token endpoint cannot be reached (${engine})` }),
+  timeout: (_, engine) => ({ message: `the token endpoint did not answer in time (${engine})` }),
   expired: (_, engine) => ({
-    message: `the token of ${engine} expired, and the token endpoint gave no new one`,
+    message: `the token expired, and the token endpoint gave no new one (${engine})`,
   }),
 }
 
@@ -213,7 +218,7 @@ function transportWords(
   if (sentence !== undefined) return { message: sentence }
   if (error instanceof UnusableTokenEndpointError) {
     return {
-      message: `the token endpoint of engine ${engineId} cannot be used (${error.message}); nothing was sent`,
+      message: `the token endpoint cannot be used (${error.message}); nothing was sent (engine ${engineId})`,
       hint: ENDPOINT_HINT,
     }
   }
@@ -224,7 +229,7 @@ function transportWords(
 /** An error this wire did not raise: an answer c8-core cannot read, or anything else. */
 function unreadWords(error: unknown, engine: string): C8Words {
   if (error instanceof UnexpectedAnswerError) {
-    return { message: `the answer of ${engine} is not what the server reads: ${error.message}` }
+    return { message: `the answer is not what the server reads: ${error.message} (${engine})` }
   }
   const message = error instanceof Error ? error.message : String(error)
   return { message: `${message} (${engine})` }
@@ -240,7 +245,9 @@ export function c8WordsOf(connection: C8Wording): C8WordsOf {
     const failure = connection.failure(error)
     switch (failure?.kind) {
       case "answered":
-        return answeredWords(error, failure, connection, engine)
+        // c8-core may state an answer in its own sentence (no secondary storage): the engine
+        // follows it as it follows the server's own.
+        return { ...answeredWords(error, failure, connection, engine), tail: `(${engine})` }
       case "token":
         return tokenWords(failure, engine)
       case "transport":

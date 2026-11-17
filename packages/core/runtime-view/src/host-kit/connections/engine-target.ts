@@ -26,4 +26,5 @@ export interface EngineTarget {
   readonly source: TargetSource
   readonly webUiUrl?: string
   readonly readOnly?: true
+  readonly timeoutMs?: number
 }
