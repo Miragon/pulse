@@ -1,10 +1,11 @@
 import type { BoardData } from "@miragon/pulse-board"
+import { BoardFigures } from "@miragon/pulse-board/testing"
 import { C7_BOARD_ENGINE } from "@miragon/pulse-c7-core/testing"
 import { FakeEngine, FakeWorld } from "@miragon/pulse-engine-core/testing"
 import { startRecordedEngine, type RecordedEngine } from "@miragon/pulse-http/testing/loopback"
 import { afterEach, describe, expect, test } from "vitest"
 import { C7Adapter } from "../src/index.js"
-import { BoardFigures } from "./support/board-figures.js"
+import { RecordedBoard } from "./support/recorded-board.js"
 
 const engines: RecordedEngine[] = []
 
@@ -26,14 +27,14 @@ describe("the C7 adapter over c7-core's recorded board engine", () => {
       credentials: { kind: "none" },
     })
 
-    const board = await BoardFigures.build(runtime)
+    const board = await RecordedBoard.build(runtime)
 
     expect(engine.unanswered).toEqual([])
     expect(board).toEqual(C7_BOARD_ENGINE.expected)
   })
 
   test("holds the numbers the conformance kit's fake world gives", async () => {
-    const fake = await BoardFigures.build(new FakeEngine(FakeWorld.seed().state))
+    const fake = await RecordedBoard.build(new FakeEngine(FakeWorld.seed().state))
 
     expect(BoardFigures.of(C7_BOARD_ENGINE.expected as BoardData)).toEqual(BoardFigures.of(fake))
   })

@@ -1,7 +1,12 @@
 import { ConformanceKit, type ConformanceHarness } from "@miragon/pulse-engine-core/testing"
 import { afterAll, beforeAll, describe, test } from "vitest"
 import { C7Adapter } from "../src/index.js"
-import { ENGINE_IMAGE, startEngine, type RunningEngine } from "./support/engine-container.js"
+import {
+  ENGINE_IMAGE,
+  RUNS_ON_CAMUNDA_7,
+  startEngine,
+  type RunningEngine,
+} from "./support/engine-container.js"
 import { seedWorld } from "./support/world.js"
 
 const UNREACHABLE_URL = "http://127.0.0.1:9/engine-rest"
@@ -30,30 +35,33 @@ async function ensureNoIncidentHistory(engineUrl: string): Promise<void> {
   }
 }
 
-describe(`the C7 adapter's reads against ${ENGINE_IMAGE} at history level AUDIT`, () => {
-  const adapter = new C7Adapter()
-  let engine: RunningEngine | undefined
-  let harness: ConformanceHarness | undefined
+describe.skipIf(!RUNS_ON_CAMUNDA_7)(
+  `the C7 adapter's reads against ${ENGINE_IMAGE} at history level AUDIT`,
+  () => {
+    const adapter = new C7Adapter()
+    let engine: RunningEngine | undefined
+    let harness: ConformanceHarness | undefined
 
-  beforeAll(async () => {
-    engine = await startEngine(ENGINE_IMAGE, "audit")
-    const world = await seedWorld(engine.url)
-    await ensureNoIncidentHistory(engine.url)
-    harness = {
-      runtime: adapter.runtime(connectionTo(engine.url)),
-      unreachableRuntime: adapter.runtime(connectionTo(UNREACHABLE_URL)),
-      world,
-    }
-  })
+    beforeAll(async () => {
+      engine = await startEngine(ENGINE_IMAGE, "audit")
+      const world = await seedWorld(engine.url)
+      await ensureNoIncidentHistory(engine.url)
+      harness = {
+        runtime: adapter.runtime(connectionTo(engine.url)),
+        unreachableRuntime: adapter.runtime(connectionTo(UNREACHABLE_URL)),
+        world,
+      }
+    })
 
-  afterAll(async () => {
-    await engine?.stop()
-  })
+    afterAll(async () => {
+      await engine?.stop()
+    })
 
-  new ConformanceKit(test).registerRuntimeLaws(() => {
-    if (harness === undefined) {
-      return Promise.reject(new Error("the engine did not start"))
-    }
-    return Promise.resolve(harness)
-  })
-})
+    new ConformanceKit(test).registerRuntimeLaws(() => {
+      if (harness === undefined) {
+        return Promise.reject(new Error("the engine did not start"))
+      }
+      return Promise.resolve(harness)
+    })
+  },
+)

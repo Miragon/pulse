@@ -407,7 +407,8 @@ routes and so run every class above.
 
 - The conformance kit passes all laws against `operaton/operaton:2.1.5` and
   `cibseven/cibseven:run-2.2.0` (and passed against Camunda 7.24.0 until its image left Docker Hub)
-  (`PULSE_ENGINE_IMAGE=… pnpm --filter @miragon/pulse-c7-adapter run test:engines`).
+  (`PULSE_ENGINE_IMAGE=… pnpm --filter @miragon/pulse-c7-adapter run test:engines`; its suites
+  skip on a `camunda/camunda` image, which the C8 suites run, and fail on an image of neither).
   Its harness seeds the kit's world with c7-core's `seedC7World` and `seedC7CommandWorld`
   (`@miragon/pulse-c7-core/testing`: the same requests over any fetch-shaped `send`, plain ids the
   test-support helper brands, fixed unknown ids), from the diagrams in

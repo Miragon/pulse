@@ -4,7 +4,9 @@
  * `createEngineConnection`, the client every tool sends through, its failures read by
  * `runtimeErrorOf`), against a real engine of the
  * Camunda 7 REST family in a container (`PULSE_ENGINE_IMAGE`, Operaton 2.1.5 without one; CI runs
- * Operaton and CIB seven), seeded with the kit's world through c7-core's `seedC7World`. The read
+ * Operaton and CIB seven; it skips on a Camunda 8 image, which c8-runtime.engine.test.ts runs, and
+ * fails on an image of neither: engine-image.test-support.ts), seeded with the kit's world through
+ * c7-core's `seedC7World`. The read
  * laws hold here as on the C7 adapter's wire, the unreachable engine at 127.0.0.1:9 included. No
  * law reads a bulk operation, so two cases of this suite do: a batch it starts itself, and an id
  * the engine does not know. c7-core's recorded board (`C7_BOARD_ENGINE`), built by the board
@@ -21,8 +23,8 @@ import { readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { GenericContainer, Wait } from "testcontainers"
 import { afterAll, beforeAll, describe, expect, test } from "vitest"
-import { type BoardData, BoardParser, type TileData } from "@miragon/pulse-board"
-import { BoardBuilder, BoardJson } from "@miragon/pulse-board/builder"
+import type { BoardData } from "@miragon/pulse-board"
+import { BoardFigures } from "@miragon/pulse-board/testing"
 import {
   C7_BOARD_ENGINE,
   type C7SeedEngine,
@@ -39,8 +41,6 @@ import {
 import {
   type ConformanceHarness,
   ConformanceKit,
-  FakeEngine,
-  FakeWorld,
   type SeededWorld,
   WORLD_DEPLOYMENTS,
   WORLD_INSTANCES,
@@ -49,7 +49,6 @@ import {
 } from "@miragon/pulse-engine-core/testing"
 import { buildBoardData } from "../../data/board-data.js"
 import { buildProcessInstancesData } from "../../data/cockpit-data.js"
-import type { C7Flavor } from "../../engine-provider.js"
 import { providerForEntry } from "../../providers/index.js"
 import { createEngineConnection } from "../engine/engine-connection.js"
 import { runtimeOf } from "../engine/engine-runtime.js"
@@ -58,8 +57,10 @@ import {
   type ResolvedEngine,
   resolveEngine,
 } from "../engine/resolve-engine.js"
+import { fakeWorldBoard, recordedBoard } from "./compared-boards.test-support.js"
+import { engineImageOf } from "./engine-image.test-support.js"
 
-const ENGINE_IMAGE = process.env.PULSE_ENGINE_IMAGE ?? "operaton/operaton:2.1.5"
+const ENGINE_IMAGE = engineImageOf(process.env.PULSE_ENGINE_IMAGE)
 const ENGINE_PORT = 8080
 const REST_ROOT = "/engine-rest"
 const STARTUP_TIMEOUT_MS = 180_000
@@ -106,7 +107,7 @@ async function rest(url: string, body?: unknown): Promise<unknown> {
 }
 
 async function startEngine(): Promise<RunningEngine> {
-  const container = await new GenericContainer(ENGINE_IMAGE)
+  const container = await new GenericContainer(ENGINE_IMAGE.name)
     .withEnvironment(ENGINE_ENVIRONMENT)
     .withExposedPorts(ENGINE_PORT)
     .withWaitStrategy(Wait.forHttp(`${REST_ROOT}/version`, ENGINE_PORT).forStatusCode(200))
@@ -117,7 +118,7 @@ async function startEngine(): Promise<RunningEngine> {
   if (example.count > 0) {
     await container.stop()
     throw new Error(
-      `${ENGINE_IMAGE} runs its example application: disable it in ENGINE_ENVIRONMENT`,
+      `${ENGINE_IMAGE.name} runs its example application: disable it in ENGINE_ENVIRONMENT`,
     )
   }
   return { url, stop: () => container.stop().then(() => undefined) }
@@ -166,7 +167,7 @@ async function seedWorld(url: string): Promise<SeededWorld> {
 }
 
 /** The vendor of the engine image, as a profile names it: CIB seven's or Operaton's. */
-const ENGINE_FLAVOR: C7Flavor = ENGINE_IMAGE.startsWith("cibseven/") ? "cibseven" : "operaton"
+const ENGINE_FLAVOR = ENGINE_IMAGE.dialect === "c7" ? ENGINE_IMAGE.flavor : "operaton"
 
 /** The runtime the MCP server runs on the engine at `baseUrl`, over its SDK wire. */
 function runtimeAt(id: string, baseUrl: string): ProcessRuntime {
@@ -200,11 +201,7 @@ async function startCancellation(url: string, world: SeededWorld): Promise<BulkO
  * c7-core's recorded board as the server's board files hand it on: every widget over the world's
  * engine, which the board names `conformance`, and a refused one.
  */
-const RECORDED_BOARD = (() => {
-  const parsed = BoardParser.parse(C7_BOARD_ENGINE.text)
-  if (!("board" in parsed)) throw new Error(JSON.stringify(parsed.problems))
-  return { id: "orders", file: "orders.board.json", board: parsed.board, notes: parsed.notes }
-})()
+const RECORDED_BOARD = recordedBoard(C7_BOARD_ENGINE)
 
 /** The engine the recorded board names, at `url`, as the server resolves an engine by name. */
 function boardEngineAt(url: string): (name: string) => ResolvedEngine {
@@ -215,146 +212,92 @@ function boardEngineAt(url: string): (name: string) => ResolvedEngine {
   return (name) => resolveEngine(name, registry)
 }
 
-/** Rows in one order: the engines order instances and incidents by times each sets on its own. */
-const unordered = (rows: readonly unknown[] | undefined) =>
-  rows?.map((row) => JSON.stringify(row)).sort()
-
-/**
- * A tile's figures, without the ids, the dates and the order of rows each engine makes on its
- * own, nor an incident's type, which each dialect names in its words.
- */
-function tileFigures(tile: TileData): unknown {
-  switch (tile.kind) {
-    case "counter":
-      return { readings: tile.readings.map(({ count }) => count ?? null), total: tile.total }
-    case "instanceList":
-      return tile.groups.map(({ instances, total }) => ({
-        total,
-        rows: unordered(
-          instances?.map(({ businessKey, state, hasIncident, definition }) => [
-            businessKey,
-            state,
-            hasIncident,
-            definition.version,
-          ]),
-        ),
-      }))
-    case "incidentSummary":
-      return {
-        total: tile.total,
-        rows: unordered(
-          tile.rows.map(({ engine, process, withIncident }) => [
-            engine,
-            process?.bpmnProcessId,
-            withIncident,
-          ]),
-        ),
-      }
-    case "processDiagram":
-      return { version: tile.latest?.version, badges: unordered(tile.badges) }
-    case "incidentList":
-      return tile.groups.map(({ incidents, more }) => ({
-        more,
-        rows: unordered(incidents?.map(({ elementId }) => elementId)),
-      }))
-    case "refused":
-      return tile.problems
-  }
-}
-
-/** A board's figures: each engine's state and totals, each tile's numbers. */
-const figuresOf = (data: BoardData) => ({
-  engines: data.engines.map((engine) => (engine.state === "ready" ? engine.totals : engine.state)),
-  tiles: data.rows.flat().map(tileFigures),
-})
-
 /** The seeded engine and the kit's harness over it. */
 interface Suite {
   readonly url: string
   readonly harness: ConformanceHarness
 }
 
-describe(`c7-core's runtime over the MCP server's SDK wire against ${ENGINE_IMAGE}`, () => {
-  let engine: RunningEngine | undefined
-  let suite: Suite | undefined
+describe.skipIf(ENGINE_IMAGE.dialect !== "c7")(
+  `c7-core's runtime over the MCP server's SDK wire against ${ENGINE_IMAGE.name}`,
+  () => {
+    let engine: RunningEngine | undefined
+    let suite: Suite | undefined
 
-  beforeAll(async () => {
-    engine = await startEngine()
-    const harness = {
-      runtime: runtimeAt("conformance", engine.url),
-      unreachableRuntime: runtimeAt("unreachable", UNREACHABLE_URL),
-      world: await seedWorld(engine.url),
+    beforeAll(async () => {
+      engine = await startEngine()
+      const harness = {
+        runtime: runtimeAt("conformance", engine.url),
+        unreachableRuntime: runtimeAt("unreachable", UNREACHABLE_URL),
+        world: await seedWorld(engine.url),
+      }
+      suite = { url: engine.url, harness }
+    })
+
+    afterAll(async () => {
+      await engine?.stop()
+    })
+
+    const prepared = (): Suite => {
+      if (suite === undefined) throw new Error("the engine did not start")
+      return suite
     }
-    suite = { url: engine.url, harness }
-  })
 
-  afterAll(async () => {
-    await engine?.stop()
-  })
-
-  const prepared = (): Suite => {
-    if (suite === undefined) throw new Error("the engine did not start")
-    return suite
-  }
-
-  new ConformanceKit(test).registerRuntimeLaws(() =>
-    Promise.resolve().then(() => prepared().harness),
-  )
-
-  test("board: the feed's build of c7-core's recorded board reads every tile, with the numbers of the kit's world", async () => {
-    const data = await buildBoardData(RECORDED_BOARD, boardEngineAt(prepared().url))
-    const fake = await BoardBuilder.build(RECORDED_BOARD.board, [
-      { name: C7_BOARD_ENGINE.engine, reads: new FakeEngine(FakeWorld.seed().state) },
-    ])
-    const expected = BoardJson.of(fake, { failureOf: () => ({ code: "unexpected" }), notes: [] })
-    expect(data.engines.map(({ state }) => state)).toEqual(["ready"])
-    expect(figuresOf(data)).toEqual(figuresOf(expected))
-    // The recording still holds what the engine answers; else record it again from this world.
-    expect(figuresOf(data)).toEqual(figuresOf(C7_BOARD_ENGINE.expected as BoardData))
-  })
-
-  test("board: the cockpit's With incident chip of a process counts what the board's counter counts", async () => {
-    const resolve = boardEngineAt(prepared().url)
-    const data = await buildBoardData(RECORDED_BOARD, resolve)
-    const counter = data.rows
-      .flat()
-      .find(
-        (tile) =>
-          tile.kind === "counter" &&
-          tile.widget.filter.process === WORLD_PROCESS.order &&
-          tile.widget.filter.withIncident === true,
-      )
-    const instances = await buildProcessInstancesData(
-      resolve(C7_BOARD_ENGINE.engine).client,
-      C7_BOARD_ENGINE.engine,
-      { processDefinitionKey: WORLD_PROCESS.order },
+    new ConformanceKit(test).registerRuntimeLaws(() =>
+      Promise.resolve().then(() => prepared().harness),
     )
-    expect(instances.withIncidentCount).toBeGreaterThan(0)
-    expect(counter).toMatchObject({ total: { count: instances.withIncidentCount } })
-  })
 
-  test("bulk: a batch that cancels one instance reads as such, from the runtime, then the history", async () => {
-    const { url, harness } = prepared()
-    const { runtime, world } = harness
-    const id = await startCancellation(url, world)
-    const first = await runtime.getBulkOperation(id)
-    expect(first).toMatchObject({ id, kind: "cancelInstances", total: 1 })
-    expect(["running", "ended"]).toContain(first?.state)
-    expect(await runtime.getBulkFailures(id)).toEqual([])
-    const deadline = Date.now() + BATCH_RUNS_WITHIN_MS
-    let ended = first
-    while (ended?.state !== "ended" && Date.now() < deadline) {
-      await wait(500)
-      ended = await runtime.getBulkOperation(id)
-    }
-    expect(ended).toMatchObject({ id, kind: "cancelInstances", state: "ended", total: 1 })
-    expect(ended?.endedAt).toEqual(expect.any(String))
-    expect(await runtime.getBulkFailures(id)).toEqual([])
-  })
+    test("board: the feed's build of c7-core's recorded board reads every tile, with the numbers of the kit's world", async () => {
+      const data = await buildBoardData(RECORDED_BOARD, boardEngineAt(prepared().url))
+      expect(data.engines.map(({ state }) => state)).toEqual(["ready"])
+      expect(BoardFigures.of(data)).toEqual(BoardFigures.of(await fakeWorldBoard(C7_BOARD_ENGINE)))
+      // The recording still holds what the engine answers; else record it again from this world.
+      expect(BoardFigures.of(data)).toEqual(BoardFigures.of(C7_BOARD_ENGINE.expected as BoardData))
+    })
 
-  test("bulk: an id the engine does not know reads as none, without failures", async () => {
-    const { runtime, world } = prepared().harness
-    expect(await runtime.getBulkOperation(world.unknown.bulkOperationId)).toBeUndefined()
-    expect(await runtime.getBulkFailures(world.unknown.bulkOperationId)).toEqual([])
-  })
-})
+    test("board: the cockpit's With incident chip of a process counts what the board's counter counts", async () => {
+      const resolve = boardEngineAt(prepared().url)
+      const data = await buildBoardData(RECORDED_BOARD, resolve)
+      const counter = data.rows
+        .flat()
+        .find(
+          (tile) =>
+            tile.kind === "counter" &&
+            tile.widget.filter.process === WORLD_PROCESS.order &&
+            tile.widget.filter.withIncident === true,
+        )
+      const instances = await buildProcessInstancesData(
+        resolve(C7_BOARD_ENGINE.engine).client,
+        C7_BOARD_ENGINE.engine,
+        { processDefinitionKey: WORLD_PROCESS.order },
+      )
+      expect(instances.withIncidentCount).toBeGreaterThan(0)
+      expect(counter).toMatchObject({ total: { count: instances.withIncidentCount } })
+    })
+
+    test("bulk: a batch that cancels one instance reads as such, from the runtime, then the history", async () => {
+      const { url, harness } = prepared()
+      const { runtime, world } = harness
+      const id = await startCancellation(url, world)
+      const first = await runtime.getBulkOperation(id)
+      expect(first).toMatchObject({ id, kind: "cancelInstances", total: 1 })
+      expect(["running", "ended"]).toContain(first?.state)
+      expect(await runtime.getBulkFailures(id)).toEqual([])
+      const deadline = Date.now() + BATCH_RUNS_WITHIN_MS
+      let ended = first
+      while (ended?.state !== "ended" && Date.now() < deadline) {
+        await wait(500)
+        ended = await runtime.getBulkOperation(id)
+      }
+      expect(ended).toMatchObject({ id, kind: "cancelInstances", state: "ended", total: 1 })
+      expect(ended?.endedAt).toEqual(expect.any(String))
+      expect(await runtime.getBulkFailures(id)).toEqual([])
+    })
+
+    test("bulk: an id the engine does not know reads as none, without failures", async () => {
+      const { runtime, world } = prepared().harness
+      expect(await runtime.getBulkOperation(world.unknown.bulkOperationId)).toBeUndefined()
+      expect(await runtime.getBulkFailures(world.unknown.bulkOperationId)).toEqual([])
+    })
+  },
+)

@@ -1,83 +1,70 @@
-import { readFile } from "node:fs/promises"
+import { readFileSync } from "node:fs"
+import {
+  C8WorldSeed,
+  type C8SeedAnswer,
+  type C8SeedEngine,
+  type C8SeedRequest,
+} from "@miragon/pulse-c8-core/testing"
 import { BulkOperationId, DefinitionId, IncidentId, InstanceId } from "@miragon/pulse-engine-core"
 import {
   WORLD_DEPLOYMENTS,
   WORLD_INSTANCES,
   WORLD_LOCAL_VARIABLE,
-  WORLD_PROCESS,
-  type DeploymentAlias,
-  type InstanceAlias,
   type SeededWorld,
-  type WorldDeployment,
-  type WorldValue,
 } from "@miragon/pulse-engine-core/testing"
 import type { EngineCredentials } from "@miragon/pulse-runtime-view/ports"
 import { authorizationOf } from "./engine-container.js"
 
-const DEPLOYMENT_ORDER: readonly DeploymentAlias[] = ["label@1", "order@1", "order@2", "dispatch@1"]
 const SETTLED_WITHIN_MS = 120_000
 const POLL_INTERVAL_MS = 250
-const FAILING_JOB_TYPES = ["charge-payment", "render-label"]
-const EXPECTED_INCIDENTS = 2
-const WORKER_ERROR = [
-  "java.lang.IllegalStateException: the worker failed",
-  "\tat io.miragon.shop.Worker.handle(Worker.java:42)",
-  "Caused by: java.net.ConnectException: the card gateway is unreachable",
-  "\tat io.miragon.shop.Gateway.connect(Gateway.java:7)",
-].join("\n")
-const EXPECTED_STATISTICS: Readonly<Record<string, readonly [number, number]>> = {
-  [WORLD_PROCESS.order]: [2, 1],
-  [WORLD_PROCESS.dispatch]: [0, 1],
-  [WORLD_PROCESS.label]: [0, 1],
-}
 
-interface Items<Item> {
-  readonly items: readonly Item[]
-}
-
-interface DefinitionStatistics {
-  readonly processDefinitionId: string
-  readonly activeInstancesWithoutIncidentCount: number
-  readonly activeInstancesWithIncidentCount: number
-}
-
-export class ClusterCalls {
+export class ClusterCalls implements C8SeedEngine {
   constructor(
-    private readonly url: string,
+    readonly url: string,
     private readonly credentials: EngineCredentials,
   ) {}
 
-  post<Body>(path: string, body: unknown): Promise<Body> {
-    return this.call<Body>("POST", path, JSON.stringify(body), {
-      "Content-Type": "application/json",
-    })
+  async send(target: string, request: C8SeedRequest): Promise<C8SeedAnswer> {
+    const headers = { ...request.headers, ...(await authorizationOf(this.credentials)) }
+    return fetch(target, { ...request, headers })
   }
 
-  put(path: string, body: unknown): Promise<unknown> {
-    return this.call("PUT", path, JSON.stringify(body), { "Content-Type": "application/json" })
+  wait(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms))
+  }
+
+  now(): number {
+    return Date.now()
+  }
+
+  post<Body>(path: string, body: unknown): Promise<Body> {
+    return this.call<Body>(path, JSON.stringify(body), { "Content-Type": "application/json" })
   }
 
   deploy<Body>(form: FormData): Promise<Body> {
-    return this.call<Body>("POST", "/deployments", form, {})
+    return this.call<Body>("/deployments", form, {})
   }
 
   private async call<Body>(
-    method: string,
     path: string,
     body: string | FormData,
     headers: Readonly<Record<string, string>>,
   ): Promise<Body> {
     const response = await fetch(`${this.url}${path}`, {
-      method,
+      method: "POST",
       body,
       headers: { ...headers, ...(await authorizationOf(this.credentials)) },
     })
     const text = await response.text()
     if (!response.ok) {
-      throw new Error(`${method} ${path}: HTTP ${response.status} ${text}`)
+      throw new Error(`POST ${path}: HTTP ${response.status} ${text}`)
     }
-    return (text === "" ? undefined : JSON.parse(text)) as Body
+    return JSON.parse(text) as Body
   }
+}
+
+function worldDiagram(process: string): string {
+  return readFileSync(new URL(`../../../c8-core/world/${process}.bpmn`, import.meta.url), "utf8")
 }
 
 export async function until<Result>(
@@ -97,18 +84,10 @@ export async function until<Result>(
   }
 }
 
-function modelOf(process: string): Promise<string> {
-  return readFile(new URL(`../world/${process}.bpmn`, import.meta.url), "utf8")
-}
-
-export async function deployModel(
-  calls: ClusterCalls,
-  process: string,
-  marker = "",
-): Promise<string> {
-  const xml = `${await modelOf(process)}${marker === "" ? "" : `\n<!-- ${marker} -->\n`}`
+export async function deployModel(calls: ClusterCalls, process: string): Promise<string> {
   const form = new FormData()
-  form.append("resources", new Blob([xml], { type: "application/xml" }), `${process}.bpmn`)
+  const diagram = new Blob([worldDiagram(process)], { type: "application/xml" })
+  form.append("resources", diagram, `${process}.bpmn`)
   const answer = await calls.deploy<{
     readonly deployments: readonly {
       readonly processDefinition: { readonly processDefinitionKey: string }
@@ -121,136 +100,32 @@ export async function deployModel(
   return deployed.processDefinition.processDefinitionKey
 }
 
-function deploymentOf(alias: DeploymentAlias): WorldDeployment {
-  const deployment = WORLD_DEPLOYMENTS.find((candidate) => candidate.alias === alias)
-  if (deployment === undefined) {
-    throw new Error(`the world has no deployment ${alias}`)
-  }
-  return deployment
-}
-
-async function deployWorld(calls: ClusterCalls): Promise<Record<DeploymentAlias, DefinitionId>> {
-  const definitionIds: Partial<Record<DeploymentAlias, DefinitionId>> = {}
-  for (const alias of DEPLOYMENT_ORDER) {
-    const { process, version } = deploymentOf(alias)
-    definitionIds[alias] = DefinitionId(await deployModel(calls, process, version > 1 ? alias : ""))
-  }
-  return definitionIds as Record<DeploymentAlias, DefinitionId>
-}
-
-function plainValue(value: WorldValue): string | number | null {
-  return typeof value === "object" && value !== null ? value.date : value
-}
-
-async function startWorld(
-  calls: ClusterCalls,
-  definitionIds: Readonly<Record<DeploymentAlias, DefinitionId>>,
-): Promise<Record<InstanceAlias, InstanceId>> {
-  const instanceIds: Partial<Record<InstanceAlias, InstanceId>> = {}
-  for (const instance of WORLD_INSTANCES) {
-    const started = await calls.post<{ readonly processInstanceKey: string }>(
-      "/process-instances",
-      {
-        processDefinitionKey: definitionIds[instance.deployment],
-        businessId: instance.businessKey,
-        variables: Object.fromEntries(
-          Object.entries(instance.variables).map(([name, value]) => [name, plainValue(value)]),
-        ),
-      },
-    )
-    instanceIds[instance.businessKey] = InstanceId(started.processInstanceKey)
-  }
-  return instanceIds as Record<InstanceAlias, InstanceId>
-}
-
-async function failJobsOf(calls: ClusterCalls, type: string): Promise<void> {
-  const jobs = await until(`a job of ${type}`, async () => {
-    const answer = await calls.post<{ readonly jobs: readonly { readonly jobKey: string }[] }>(
-      "/jobs/activation",
-      { type, worker: "pulse-seed", timeout: 60_000, maxJobsToActivate: 10 },
-    )
-    return answer.jobs.length > 0 ? answer.jobs : undefined
-  })
-  for (const job of jobs) {
-    await calls.post(`/jobs/${job.jobKey}/failure`, { retries: 0, errorMessage: WORKER_ERROR })
-  }
-}
-
-async function addLocalVariable(
-  calls: ClusterCalls,
-  instanceIds: Readonly<Record<InstanceAlias, InstanceId>>,
-): Promise<void> {
-  const element = await until("the element of the local variable", async () => {
-    const answer = await calls.post<Items<{ readonly elementInstanceKey: string }>>(
-      "/element-instances/search",
-      {
-        filter: {
-          processInstanceKey: instanceIds[WORLD_LOCAL_VARIABLE.instance],
-          elementId: WORLD_LOCAL_VARIABLE.elementId,
-        },
-      },
-    )
-    return answer.items[0]
-  })
-  await calls.put(`/element-instances/${element.elementInstanceKey}/variables`, {
-    variables: { [WORLD_LOCAL_VARIABLE.name]: WORLD_LOCAL_VARIABLE.value },
-    local: true,
-  })
-}
-
-function countsFit(statistics: Items<DefinitionStatistics>): boolean {
-  return Object.entries(EXPECTED_STATISTICS).every(([process, [without, withIt]]) => {
-    const row = statistics.items.find((item) => item.processDefinitionId === process)
-    return (
-      row?.activeInstancesWithoutIncidentCount === without &&
-      row.activeInstancesWithIncidentCount === withIt
-    )
-  })
-}
-
-async function untilExported(
-  calls: ClusterCalls,
-  instanceIds: Readonly<Record<InstanceAlias, InstanceId>>,
-): Promise<void> {
-  await until("the world in its secondary storage", async () => {
-    const [statistics, incidents, local] = await Promise.all([
-      calls.post<Items<DefinitionStatistics>>(
-        "/process-definitions/statistics/process-instances",
-        {},
-      ),
-      calls.post<Items<unknown>>("/incidents/search", { filter: { state: "ACTIVE" } }),
-      calls.post<Items<unknown>>("/variables/search", {
-        filter: {
-          processInstanceKey: instanceIds[WORLD_LOCAL_VARIABLE.instance],
-          name: WORLD_LOCAL_VARIABLE.name,
-        },
-      }),
-    ])
-    const exported =
-      countsFit(statistics) &&
-      incidents.items.length === EXPECTED_INCIDENTS &&
-      local.items.length === 1
-    return exported ? true : undefined
-  })
+function branded<Key extends string, Id>(
+  ids: Readonly<Record<Key, string>>,
+  brand: (id: string) => Id,
+): Record<Key, Id> {
+  const entries = Object.entries<string>(ids).map(([key, id]) => [key, brand(id)])
+  return Object.fromEntries(entries) as Record<Key, Id>
 }
 
 export async function seedWorld(url: string, credentials: EngineCredentials): Promise<SeededWorld> {
-  const calls = new ClusterCalls(url, credentials)
-  const definitionIds = await deployWorld(calls)
-  const instanceIds = await startWorld(calls, definitionIds)
-  for (const type of FAILING_JOB_TYPES) {
-    await failJobsOf(calls, type)
-  }
-  await addLocalVariable(calls, instanceIds)
-  await untilExported(calls, instanceIds)
+  const diagrams = Object.fromEntries(
+    WORLD_DEPLOYMENTS.map(({ process }) => [process, worldDiagram(process)]),
+  )
+  const world = await C8WorldSeed.seed(new ClusterCalls(url, credentials), {
+    deployments: WORLD_DEPLOYMENTS,
+    instances: WORLD_INSTANCES,
+    localVariable: WORLD_LOCAL_VARIABLE,
+    diagrams,
+  })
   return {
-    definitionIds,
-    instanceIds,
+    definitionIds: branded(world.definitionIds, DefinitionId),
+    instanceIds: branded(world.instanceIds, InstanceId),
     unknown: {
-      definitionId: DefinitionId("9007199254740991"),
-      instanceId: InstanceId("9007199254740990"),
-      incidentId: IncidentId("9007199254740989"),
-      bulkOperationId: BulkOperationId("9007199254740988"),
+      definitionId: DefinitionId(world.unknown.definitionId),
+      instanceId: InstanceId(world.unknown.instanceId),
+      incidentId: IncidentId(world.unknown.incidentId),
+      bulkOperationId: BulkOperationId(world.unknown.bulkOperationId),
     },
   }
 }

@@ -209,6 +209,12 @@ the JSON Schema takes it and the parser's verdict as data, a board with its defa
 its refused widgets and its notes, or every problem of a file that gives no board. The package's
 tests run them through the parser and the schema; a reader of its own runs them through its path.
 
+It also exports `BoardFigures`: `BoardFigures.of(data)` reads a built board's JSON form as its
+figures, each engine's totals or state and each tile's numbers by engine, without what an engine
+makes on its own (ids, dates, the order of rows). The engine suites of every surface compare a
+board built over a live engine with the board of the conformance kit's fake world and with a
+dialect's recorded board by it, so one rule decides what counts as the same numbers.
+
 ## Entries
 
 | Entry                                           | Holds                                                                                                                                                                             |
@@ -216,7 +222,7 @@ tests run them through the parser and the schema; a reader of its own runs them 
 | `@miragon/pulse-board`                          | `BoardParser`, `BoardProblems`, `BoardTiles`, `BoardVocabulary`, `StarterBoard` and the types of a board, its widgets and problems and of a built board's JSON form (`BoardData`) |
 | `@miragon/pulse-board/builder`                  | `BoardBuilder`, `BoardJson`, `DiagramBadges`, `CollapsedShapes` and the types of `BoardModel` and `BoardReads`                                                                    |
 | `@miragon/pulse-board/schema/board.schema.json` | The JSON Schema of a board file                                                                                                                                                   |
-| `@miragon/pulse-board/testing`                  | `BOARD_FIXTURES`, the shared fixtures                                                                                                                                             |
+| `@miragon/pulse-board/testing`                  | `BOARD_FIXTURES`, the shared fixtures, and `BoardFigures`, a built board's figures                                                                                                |
 
 ## Stability
 

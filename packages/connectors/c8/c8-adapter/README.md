@@ -30,20 +30,24 @@ built the adapter in #543; this package re-lands it on the shared transport.
 
 The conformance kit of the contract (`@miragon/pulse-engine-core/testing`) proves it on a local
 Camunda 8 cluster in Testcontainers (`test/c8-conformance.engine.test.ts`, `test:engines`): the
-read laws on the kit's world, deployed as the Zeebe diagrams of `test/world`, the wait states an
-instance names and what each login reads. `test/support/cluster-settings.json` holds the stack:
+read laws on the kit's world, seeded by c8-core's `C8WorldSeed` (`@miragon/pulse-c8-core/testing`)
+from the Zeebe diagrams of `packages/connectors/c8/c8-core/world` over this package's cluster
+calls (`test/support/seed-world.ts`), the recorded board's numbers over that world, the wait
+states an instance names and what each login reads. `test/support/cluster-settings.json` holds the stack:
 `camunda/camunda` 8.9 and 8.10, H2 or Elasticsearch as secondary storage, no security, Basic or
 OIDC with Keycloak (`test/support/keycloak-realm.json`). The suite skips unless
 `PULSE_ENGINE_IMAGE` names `camunda/camunda`, and no CI job runs it: Camunda's images fall under
 its Self-Managed non-production terms, and CI starts none until the licence question of #531 has
 an answer. `pnpm test` still holds the suite in place (`test/architecture/engine-config.test.ts`):
 at least one engine test, and an engines config that runs every one and switches none off.
-`c8:up` starts the same stack by hand on fixed ports, seeds a small world and prints the engine as
-a profile of `.pulse.json` with its login; `c8:down` removes it.
+`c8:up` starts the same stack by hand on fixed ports, seeds a small world of its own from the same
+diagrams and prints the engine as a profile of `.pulse.json` with its login; `c8:down` removes it.
 
 A board's numbers hold without a cluster too: over c8-core's recorded answers (`C8_BOARD_ENGINE`,
 served by the transport's `startRecordedEngine`) it builds exactly the board the recording
-expects, whose numbers are those of the kit's own world (`test/c8-board-numbers.test.ts`).
+expects, whose numbers are those of the kit's own world (`test/c8-board-numbers.test.ts`), compared
+by `BoardFigures` of `@miragon/pulse-board/testing`, the one rule every surface's board suites
+compare by.
 Its wire passes the transport's conformance cases it can express
 (`test/wire/transport-cases.test.ts`), and its error-path goldens (`test/goldens/`) pin what it
 reports for the failures the MCP server, the CLI and the C7 adapter pin, made with a Camunda 8

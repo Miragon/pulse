@@ -1,6 +1,8 @@
 import type { BoardParse } from "../format/board-parser.js"
 import fixtures from "./board-fixtures.json" with { type: "json" }
 
+export { BoardFigures, type BoardFiguresData } from "./board-figures.js"
+
 export interface BoardFixture {
   readonly name: string
   readonly about: string

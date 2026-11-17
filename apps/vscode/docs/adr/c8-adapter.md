@@ -264,8 +264,10 @@ adapter once per process.
 - The conformance kit proves the adapter on a local cluster in Testcontainers
   (`packages/connectors/c8/c8-adapter/test/c8-conformance.engine.test.ts`, `test:engines`): the
   read laws on the kit's world, deployed as Zeebe diagrams with the kit's element ids
-  (`packages/connectors/c8/c8-adapter/test/world`), the wait states an instance names (message,
-  timer, signal), and per login what it reads: nothing without credentials or with a wrong
+  (`packages/connectors/c8/c8-core/world`) by c8-core's seed (`C8WorldSeed` of
+  `@miragon/pulse-c8-core/testing`, which the MCP server's Camunda 8 suite seeds with too), the
+  recorded board's numbers over that world, the wait states an instance names (message, timer,
+  signal), and per login what it reads: nothing without credentials or with a wrong
   secret (`unauthorized`), empty lists without permissions, one token across rebuilt connections
   and parallel reads, one token request after a refused secret, a short-lived token renewed
   without a failure. Its stack

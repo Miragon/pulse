@@ -13,7 +13,7 @@ describe("the @miragon/pulse-board entries", () => {
     ])
   })
 
-  it("export exactly the shared fixtures from ./testing", () => {
-    expect(Object.keys(testing).sort()).toStrictEqual(["BOARD_FIXTURES"])
+  it("export exactly the shared fixtures and a built board's figures from ./testing", () => {
+    expect(Object.keys(testing).sort()).toStrictEqual(["BOARD_FIXTURES", "BoardFigures"])
   })
 })

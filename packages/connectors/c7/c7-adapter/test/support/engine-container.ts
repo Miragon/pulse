@@ -1,6 +1,8 @@
 import { GenericContainer, Wait } from "testcontainers"
+import { camunda7ImageOf, DEFAULT_ENGINE_IMAGE } from "./engine-image.js"
 
-export const ENGINE_IMAGE = process.env.PULSE_ENGINE_IMAGE ?? "operaton/operaton:2.1.5"
+export const ENGINE_IMAGE = process.env.PULSE_ENGINE_IMAGE ?? DEFAULT_ENGINE_IMAGE
+export const RUNS_ON_CAMUNDA_7 = camunda7ImageOf(ENGINE_IMAGE)
 
 const ENGINE_PORT = 8080
 const REST_ROOT = "/engine-rest"

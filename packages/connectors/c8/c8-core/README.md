@@ -72,9 +72,9 @@ reads and gives one failure the same kind.
   300 lines per file (`eslint.config.mjs`).
 - `test/` holds the runtime, the kind of every failure, every reader, mapping and view to a fake of
   the transport port (`test/support/fake-transport.ts`, which answers by route, as a cluster
-  would); the adapter's
-  `test/rest/camunda-http.test.ts` holds its wire to the same port and the copied reasons and
-  troubles equal to the transport's.
+  would), and the world's seed to a fake of its port (`test/testing/seed-world.test.ts`); the
+  adapter's `test/rest/camunda-http.test.ts` holds its wire to the same port and the copied
+  reasons and troubles equal to the transport's.
 
 ```sh
 pnpm --filter @miragon/pulse-c8-core test   # the runtime, its failures, the readers, the mappings and the views, coverage floors
@@ -83,30 +83,56 @@ pnpm --filter @miragon/pulse-c8-core build  # dist, which the C8 adapter's tests
 
 ## Testing helpers
 
-`@miragon/pulse-c8-core/testing` exports `C8_BOARD_ENGINE`, a board and a model: the text of a
-board file over one cluster with every widget and a refused one (its diagram over the process that
-calls another, so its badge counts the incident in the called instance), that cluster's answers to
-the board's reads under `/v2` (`C8RecordedAnswer`: method, decoded path, query and JSON body, and
-the JSON answered, or for the diagram's XML the text with its content type), recorded once from the
-conformance world of `@miragon/pulse-engine-core/testing` on `camunda/camunda:8.10.9` with H2 and
-no security, and the board they give in the JSON form of `@miragon/pulse-board` (`BoardData`). It
-ships here because this package makes the requests: each surface serves the answers to its own wire
-on the transport's recorded engine (`startRecordedEngine` of
-`@miragon/pulse-http/testing/loopback`) and must build exactly that board, so a board shows the same
-numbers on every surface without a cluster; the C8 adapter does
+`@miragon/pulse-c8-core/testing` exports the conformance world of `@miragon/pulse-engine-core/testing`
+as a Camunda 8 cluster holds it, and a board recorded from it.
+
+`C8WorldSeed.seed(engine, plan)` seeds that world into a cluster over a port the caller hands in
+(`C8SeedEngine`: the REST root, a `fetch`-shaped `send` that signs its requests in, the `wait`
+between two polls and the clock, `now`), so it needs no `fetch`, no file, no timer and no login of
+its own: it deploys the world's diagrams (`label@1`, `order@1`, `order@2` marked as a second
+version, `dispatch@1`), starts its instances with their business ids and variables, fails every
+job of `charge-payment` and `render-label` without retries, sets the local variable on its element
+instance and waits until the secondary storage shows the world (the active instances per process
+and the open incidents of the kit's fake world, to which this package's test holds the seed, and
+the local variable), at most two minutes per step by the port's clock. It answers the cluster's
+keys by alias as strings, which the caller brands into engine-core's `SeededWorld`. The plan is
+engine-core's `WORLD_DEPLOYMENTS`, `WORLD_INSTANCES` and `WORLD_LOCAL_VARIABLE` with the text of
+each diagram: the Zeebe diagrams of the world, with the kit's element ids, live in `world/` beside
+`src/` (not in the tarball), and each suite reads them from the repository. `world/waits.bpmn`,
+a process that waits for a message, a timer and a signal, is no part of the world: the C8
+adapter's suite deploys it for its wait states, and its `c8:up` reads every diagram there. Three
+suites seed it: the C8 adapter's conformance suite
+(`packages/connectors/c8/c8-adapter/test/c8-conformance.engine.test.ts`), the MCP server's
+(`packages/connectors/engine/engine-connector/src/lib/core-adapter/c8-runtime.engine.test.ts`),
+both on a local cluster only until #531, and this package's own test over a fake port
+(`test/testing/seed-world.test.ts`), which also holds the diagrams to the job types and elements
+the seed relies on.
+
+`C8_BOARD_ENGINE` is a board and a model: the text of a board file over one cluster with every
+widget and a refused one (its diagram over the process that calls another, so its badge counts the
+incident in the called instance), that cluster's answers to the board's reads under `/v2`
+(`C8RecordedAnswer`: method, decoded path, query and JSON body, and the JSON answered, or for the
+diagram's XML the text with its content type), recorded once from the world `C8WorldSeed` seeds on
+`camunda/camunda:8.10.9` with H2 and no security, and the board they give in the JSON form of
+`@miragon/pulse-board` (`BoardData`). It ships here because this package makes the requests: each
+surface serves the answers to its own wire on the transport's recorded engine
+(`startRecordedEngine` of `@miragon/pulse-http/testing/loopback`) and must build exactly that board,
+so a board shows the same numbers on every surface without a cluster; the C8 adapter does
 (`packages/connectors/c8/c8-adapter/test/c8-board-numbers.test.ts`), which also holds the board's
 numbers to those of the kit's fake world, as the recorded Camunda 7 board's are, and so does the
 MCP server's board feed over its own Camunda 8 wire
 (`packages/connectors/engine/engine-connector/src/data/board-data.numbers.test.ts`), which leaves
-each answer out in turn too, so the board shows that read's failure in its place and never a 0. A request the
-runtime changes misses its answer and is named. No script of the repository records the answers,
-so they are recorded by hand, as they were the first time: start that cluster with the C8
-adapter's `startCluster` (`packages/connectors/c8/c8-adapter/test/support/engine-container.ts`,
-under `PULSE_ENGINE_IMAGE=camunda/camunda:8.10.9`, `PULSE_C8_STORAGE=h2` and
-`PULSE_C8_SECURITY=none`), seed the world with its `seedWorld`
-(`packages/connectors/c8/c8-adapter/test/support/seed-world.ts`), let the C8 adapter build the board
-twice through a proxy in front of the cluster that keeps each request (method, decoded path, query
-and JSON body) with the JSON the cluster answers, or its text and content type for an answer that
-is no JSON, check that both builds give the same board and that a build over the kept answers on
-`startRecordedEngine` gives it too with no request unanswered, and write the board file, the
+each answer out in turn too, so the board shows that read's failure in its place and never a 0.
+Both conformance suites hold a live cluster's board to the recording's numbers, so a cluster that
+answers otherwise shows there. A request the runtime changes misses its answer and is named. No
+script of the repository records the answers, so they are recorded by hand, as they were the
+first time: start that cluster with the C8 adapter's `startCluster`
+(`packages/connectors/c8/c8-adapter/test/support/engine-container.ts`, under
+`PULSE_ENGINE_IMAGE=camunda/camunda:8.10.9`, `PULSE_C8_STORAGE=h2` and `PULSE_C8_SECURITY=none`),
+seed the world with `C8WorldSeed` (as the adapter's `seedWorld` in
+`packages/connectors/c8/c8-adapter/test/support/seed-world.ts` does), let the C8 adapter build the
+board twice through a proxy in front of the cluster that keeps each request (method, decoded path,
+query and JSON body) with the JSON the cluster answers, or its text and content type for an answer
+that is no JSON, check that both builds give the same board and that a build over the kept answers
+on `startRecordedEngine` gives it too with no request unanswered, and write the board file, the
 answers and that board into `packages/connectors/c8/c8-core/src/testing/board-engine.json`.

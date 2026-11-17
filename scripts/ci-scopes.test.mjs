@@ -235,13 +235,18 @@ describe("scopesFor: the MCP server's engine suite runs for what it runs", () =>
       "packages/connectors/c7/c7-core/spec/patches.json",
       "packages/connectors/c7/c7-core/src/generated/routes.json",
       "packages/connectors/c7/c7-client/src/generated/sdk.gen.ts",
-      // c8-core's runtime, which the connector builds per call for a Camunda 8 engine.
+      // c8-core's runtime, which the connector builds per call for a Camunda 8 engine, and the
+      // seed and diagrams of the connector's Camunda 8 suite.
       "packages/connectors/c8/c8-core/src/c8-runtime.ts",
       "packages/connectors/c8/c8-core/src/testing/board-engine.json",
+      "packages/connectors/c8/c8-core/src/testing/seed-world.ts",
+      "packages/connectors/c8/c8-core/world/order.bpmn",
       "packages/connectors/engine/engine-core/src/testing/conformance/laws/engine-laws.ts",
       "packages/core/http/src/http.ts",
       "packages/core/profile/src/index.ts",
       `${CONNECTOR}/src/lib/core-adapter/c7-runtime.engine.test.ts`,
+      `${CONNECTOR}/src/lib/core-adapter/c8-runtime.engine.test.ts`,
+      `${CONNECTOR}/src/lib/core-adapter/c8-cluster.test-support.ts`,
       `${CONNECTOR}/src/lib/core-adapter/engine-port.ts`,
       `${CONNECTOR}/src/lib/engine/engine-connection.ts`,
       `${CONNECTOR}/src/lib/engine/engine-runtime.ts`,

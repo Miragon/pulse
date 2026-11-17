@@ -31,7 +31,8 @@ runtime), and c7-core's reads go out as routes of c7-core's `CORE_ROUTES`.
 The conformance kit of the contract (`@miragon/pulse-engine-core/testing`) proves it on a real
 engine (`test/c7-conformance.engine.test.ts`, `test:engines`, in Testcontainers; the CI's
 `Engines (<flavor>)` legs), where a board over the seeded world shows the numbers of the kit's own
-world too. A board's numbers are the MCP server's: over c7-core's recorded answers
+world too, compared by `BoardFigures` of `@miragon/pulse-board/testing`, the one rule every
+surface's board suites compare by. A board's numbers are the MCP server's: over c7-core's recorded answers
 (`C7_BOARD_ENGINE`, served by the transport's `startRecordedEngine`) it builds exactly the board the
 engine connector builds over its own wire (`test/c7-board-numbers.test.ts`). Its error-path goldens
 (`test/__golden__/error-paths/`, the same cases the CLI and the MCP server pin) change only through

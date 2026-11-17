@@ -79,30 +79,32 @@ token a cluster quotes in an error shows as `***`.
 
 The conformance kit of the engine contract proves the adapter on a local cluster in
 Testcontainers (`packages/connectors/c8/c8-adapter/test/c8-conformance.engine.test.ts`): its 51
-read laws, the message, timer and signal an instance waits for, and what each login reads. Every
-leg of the matrix passed with the 51 laws on 2026-11-16, one at a time (the time includes starting
-the containers):
+read laws, the recorded board's numbers over the kit's world, the message, timer and signal an
+instance waits for, and what each login reads. Every leg passed on 2026-11-17, one at a time (the
+time includes starting the containers):
 
 | Camunda | Secondary storage | Security | Passed   | Time |
 | ------- | ----------------- | -------- | -------- | ---- |
-| 8.9.28  | H2                | none     | 53 of 53 | 19 s |
-| 8.9.28  | H2                | Basic    | 55 of 55 | 27 s |
-| 8.9.28  | H2                | OIDC     | 58 of 58 | 49 s |
-| 8.9.28  | Elasticsearch     | none     | 53 of 53 | 46 s |
-| 8.9.28  | Elasticsearch     | Basic    | 55 of 55 | 56 s |
-| 8.9.28  | Elasticsearch     | OIDC     | 58 of 58 | 56 s |
-| 8.10.9  | H2                | none     | 53 of 53 | 18 s |
-| 8.10.9  | H2                | Basic    | 55 of 55 | 27 s |
-| 8.10.9  | H2                | OIDC     | 58 of 58 | 45 s |
-| 8.10.9  | Elasticsearch     | none     | 53 of 53 | 45 s |
-| 8.10.9  | Elasticsearch     | Basic    | 55 of 55 | 57 s |
-| 8.10.9  | Elasticsearch     | OIDC     | 58 of 58 | 66 s |
+| 8.9.28  | H2                | none     | 54 of 54 | 16 s |
+| 8.9.28  | H2                | Basic    | 56 of 56 | 28 s |
+| 8.9.28  | H2                | OIDC     | 59 of 59 | 47 s |
+| 8.9.28  | Elasticsearch     | none     | 54 of 54 | 46 s |
+| 8.9.28  | Elasticsearch     | Basic    | 56 of 56 | 61 s |
+| 8.9.28  | Elasticsearch     | OIDC     | 59 of 59 | 58 s |
+| 8.10.9  | H2                | none     | 54 of 54 | 17 s |
+| 8.10.9  | H2                | Basic    | 56 of 56 | 28 s |
+| 8.10.9  | H2                | OIDC     | 59 of 59 | 47 s |
+| 8.10.9  | Elasticsearch     | none     | 54 of 54 | 48 s |
+| 8.10.9  | Elasticsearch     | Basic    | 56 of 56 | 60 s |
+| 8.10.9  | Elasticsearch     | OIDC     | 59 of 59 | 61 s |
 
-A leg runs the read laws and the wait states, plus one read without credentials on an unprotected
-API, three checks with Basic (no login, a wrong password, a login without permissions) or six
-with OIDC on Keycloak 26.8.2 (the same three with a client and its secret, one token across
+A leg runs the read laws, the board and the wait states, plus one read without credentials on an
+unprotected API, three checks with Basic (no login, a wrong password, a login without permissions)
+or six with OIDC on Keycloak 26.8.2 (the same three with a client and its secret, one token across
 rebuilt connections and parallel reads, no second token request after a refused secret, a
-short-lived token renewed). Elasticsearch is 9.5.5 on a single node, H2 runs in memory.
+short-lived token renewed). Elasticsearch is 9.5.5 on a single node, H2 runs in memory. The MCP
+server runs the laws and the board over its own Camunda 8 wire on four of these legs, 53 of 53
+each (8.9.28 H2 OIDC and Basic, 8.10.9 H2 none, 8.10.9 Elasticsearch OIDC).
 
 That is all the matrix covers: no OpenSearch, no other relational database and no SaaS cluster.
 A SaaS cluster takes the same profile with the token endpoint and audience of its API client, and

@@ -98,7 +98,9 @@ day the owner decided D9, which replaces D4 and turns D7 into the switch's preco
   `packages/connectors/c7/c7-adapter/test/c7-board-numbers.test.ts`), the cockpit renders in
   English and German, and the board cases of both engine suites read on a live engine. Camunda 8
   holds it since 2026-11-17 the same way: c8-core's recorded answers (`C8_BOARD_ENGINE`) give one
-  board, which the C8 adapter and the server's board feed over its Camunda 8 wire build exactly.
+  board, which the C8 adapter and the server's board feed over its Camunda 8 wire build exactly,
+  and the board cases of both Camunda 8 engine suites read on a live cluster, locally only until
+  #531.
 - **D3, the foundation stays pulse-ui's (keeps E4).** Two framework-free subpaths,
   `@miragon/pulse-ui/tones` (the tone vocabulary, `SITUATION_TONES`, `countTone`, `severityTone`)
   and `@miragon/pulse-ui/format` (dates and times to the millisecond, relative times, durations,

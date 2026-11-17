@@ -1,5 +1,5 @@
 {
-  "about": "A board over one Camunda 8 cluster with every widget and a refused one, that cluster's answers to the board's reads under /v2 (the diagram's XML as the text the cluster sent), recorded once from the conformance world of @miragon/pulse-engine-core/testing seeded by the C8 adapter's seedWorld into camunda/camunda:8.10.9 on H2 without security, and the board the C8 adapter builds from them, in its JSON form.",
+  "about": "A board over one Camunda 8 cluster with every widget and a refused one, that cluster's answers to the board's reads under /v2 (the diagram's XML as the text the cluster sent), recorded once from the conformance world of @miragon/pulse-engine-core/testing seeded by C8WorldSeed of @miragon/pulse-c8-core/testing (with the Zeebe diagrams of the package's world/) into camunda/camunda:8.10.9 on H2 without security, and the board the C8 adapter builds from them, in its JSON form.",
   "engine": "c8-conformance",
   "file": {
     "schemaVersion": 1,

@@ -149,7 +149,8 @@ per caller and board, and the cockpit's `board` route renders the tiles of `@mir
 with its own table, id and diagram; a tile opens one of the cockpit's routes. c7-core's recorded
 answers (`C7_BOARD_ENGINE`) hold both wires to one board, and the board cases of both engine suites
 read it on a live engine; c8-core's (`C8_BOARD_ENGINE`) hold the C8 adapter and the server's
-Camunda 8 wire to one board too.
+Camunda 8 wire to one board too, and the board cases of both Camunda 8 engine suites read it on a
+live cluster, locally only until #531.
 
 ## Consequences
 

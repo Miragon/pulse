@@ -264,7 +264,9 @@ wires to one board: the C7 adapter builds it
 (`packages/connectors/c7/c7-adapter/test/c7-board-numbers.test.ts`) as the MCP server's board feed
 does (`packages/connectors/engine/engine-connector/src/data/board-data.numbers.test.ts`), and the
 board cases of both engine suites read it on a live engine; c8-core's (`C8_BOARD_ENGINE`) hold the C8
-adapter and the MCP server's Camunda 8 wire to one board the same way, without a live case yet. The
+adapter and the MCP server's Camunda 8 wire to one board the same way, and the board cases of both
+Camunda 8 engine suites read it on a live cluster, locally only until #531, seeded from c8-core's
+world (`C8WorldSeed`, the diagrams in `packages/connectors/c8/c8-core/world`). The
 board format and the board builder
 go into a published package, `@miragon/pulse-board` (`packages/core/board`), which holds both since
 2026-11-15: the builder (`@miragon/pulse-board/builder`) reads seven reads of the contract into a

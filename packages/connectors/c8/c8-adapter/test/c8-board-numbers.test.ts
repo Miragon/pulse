@@ -1,10 +1,11 @@
 import type { BoardData } from "@miragon/pulse-board"
+import { BoardFigures } from "@miragon/pulse-board/testing"
 import { C8_BOARD_ENGINE } from "@miragon/pulse-c8-core/testing"
 import { FakeEngine, FakeWorld } from "@miragon/pulse-engine-core/testing"
 import { startRecordedEngine, type RecordedEngine } from "@miragon/pulse-http/testing/loopback"
 import { afterEach, describe, expect, test } from "vitest"
 import { C8Adapter } from "../src/index.js"
-import { BoardFigures } from "./support/board-figures.js"
+import { RecordedBoard } from "./support/recorded-board.js"
 
 const engines: RecordedEngine[] = []
 
@@ -26,14 +27,14 @@ describe("the C8 adapter over c8-core's recorded board engine", () => {
       credentials: { kind: "none" },
     })
 
-    const board = await BoardFigures.build(runtime)
+    const board = await RecordedBoard.build(runtime)
 
     expect(engine.unanswered).toEqual([])
     expect(board).toEqual(C8_BOARD_ENGINE.expected)
   })
 
   test("holds the numbers the conformance kit's fake world gives", async () => {
-    const fake = await BoardFigures.build(new FakeEngine(FakeWorld.seed().state))
+    const fake = await RecordedBoard.build(new FakeEngine(FakeWorld.seed().state))
 
     expect(BoardFigures.of(C8_BOARD_ENGINE.expected as BoardData)).toEqual(BoardFigures.of(fake))
   })

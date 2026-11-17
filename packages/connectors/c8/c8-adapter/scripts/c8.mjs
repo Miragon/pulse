@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url"
 import { parseArgs } from "node:util"
 
 const SUPPORT = new URL("../test/support/", import.meta.url)
-const WORLD = new URL("../test/world/", import.meta.url)
+const WORLD = new URL("../../c8-core/world/", import.meta.url)
 const SETTINGS = JSON.parse(readFileSync(new URL("cluster-settings.json", SUPPORT), "utf8"))
 const IMAGE = process.env.PULSE_ENGINE_IMAGE ?? SETTINGS.images.camunda.at(-1)
 const NETWORK = "pulse-c8"

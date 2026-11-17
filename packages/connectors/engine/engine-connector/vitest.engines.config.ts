@@ -2,10 +2,11 @@ import { configDefaults, defineConfig, mergeConfig, type ViteUserConfig } from "
 import base from "./vitest.config"
 
 /**
- * The connector's engine suite (`test:engines`, Docker): the conformance kit over the MCP
- * server's SDK wire against a real engine in a container (src/lib/core-adapter/
- * c7-runtime.engine.test.ts), which `pnpm test` leaves out. No coverage: the floors are the unit
- * run's.
+ * The connector's engine suites (`test:engines`, Docker), which `pnpm test` leaves out: the
+ * conformance kit against a real engine in a container, over the MCP server's SDK wire on a
+ * Camunda 7 image (src/lib/core-adapter/c7-runtime.engine.test.ts) or over its own Camunda 8 wire
+ * on a `camunda/camunda` image, locally only until #531 (c8-runtime.engine.test.ts); each skips on
+ * the other dialect's image (`PULSE_ENGINE_IMAGE`). No coverage: the floors are the unit run's.
  */
 const merged: ViteUserConfig = mergeConfig(
   base,
