@@ -30,7 +30,7 @@
     "@miragon/pulse-blocks": "0.27.1",
     "@miragon/pulse-ui": "0.27.1",
     "@modelcontextprotocol/client": "2.4.0",
-    "@modelcontextprotocol/inspector": "2.14.0",
+    "@modelcontextprotocol/inspector": "2.15.0",
     "@tailwindcss/vite": "4.3.5",
     "@tanstack/react-query": "5.107.1",
     "@types/node": "22.20.5",
