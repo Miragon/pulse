@@ -162,9 +162,10 @@ test.describe("touch (a coarse pointer)", () => {
     for (const control of controls) {
       expect(control.height, `${control.name}: a control on touch`).toBeGreaterThanOrEqual(36)
     }
-    // A row's actions are the xs buttons, a 32 px target on touch inside the 40 px row.
-    const actions = await heightsOf('tbody button[class*="min-h-control"]')
-    expect(actions.length).toBeGreaterThan(3)
+    // A row's actions are the xs buttons (its hand-off), a 32 px target on touch inside the 40 px
+    // row; the row itself opens its instance.
+    const actions = await heightsOf('tbody button[class*="control-xs"]')
+    expect(actions.length).toBeGreaterThan(0)
     for (const action of actions) {
       expect(action.height, `${action.name}: a row's action on touch`).toBeGreaterThanOrEqual(32)
     }
@@ -581,6 +582,142 @@ test.describe("a cluster's affected instances", () => {
   }
 })
 
+/** Two failure clusters on the overview: one named, one by its id alone, both with a message. */
+const TOP_FAILURES = [
+  {
+    id: "chargeCreditCard::failedJob::card declined",
+    activityId: "ServiceTask_ChargeCreditCard",
+    activityName: "Charge credit card",
+    incidentType: "failedJob",
+    messageSignature: "card declined",
+    processDefinitionKeys: ["invoice"],
+    processDefinitionName: "Invoice Receipt",
+    representativeMessage:
+      "Card declined by the payment provider: insufficient funds on the account of the customer",
+    representativeIncidentId: "inc-charge",
+    latestIncident: "2026-10-10T08:00:00.000+0000",
+    incidentCount: 12,
+    scannedIncidentCount: 12,
+    last24hCount: 3,
+  },
+  {
+    id: "sendReminder::failedExternalTask::timeout",
+    activityId: "Task_SendPaymentReminder",
+    activityName: null,
+    incidentType: "failedExternalTask",
+    messageSignature: "timeout",
+    processDefinitionKeys: ["invoice", "onboarding"],
+    processDefinitionName: null,
+    representativeMessage: "Connection timeout to the mail server after 30000ms",
+    representativeIncidentId: "inc-reminder",
+    latestIncident: "2026-10-10T08:00:00.000+0000",
+    incidentCount: 4,
+    scannedIncidentCount: 4,
+    last24hCount: 0,
+  },
+]
+
+/** The overview's verdict, at start and from its feed, with the top failures above. */
+async function topFailures(page: Page) {
+  await page.route("**/host/call", async (route) => {
+    const call = route.request().postDataJSON() as { name: string }
+    if (call.name !== "engine_open_cockpit" && call.name !== "engine_health_data") {
+      return route.continue()
+    }
+    const json = (await (await route.fetch()).json()) as Record<string, unknown>
+    const visit = (node: unknown) => {
+      if (!node || typeof node !== "object") return
+      const health = node as { clusters?: unknown; summary?: { totalIncidents: number } }
+      if (Array.isArray(health.clusters) && health.summary) {
+        health.clusters = TOP_FAILURES
+        health.summary.totalIncidents = 16
+      }
+      for (const value of Object.values(node)) visit(value)
+    }
+    visit(json)
+    return route.fulfill({ json })
+  })
+}
+
+test.describe("the overview's top failures in a narrow card", () => {
+  for (const width of [360, 400]) {
+    test(`at ${width} px each card's words keep its width: the id on one line, the message in lines, the actions under them`, async ({
+      page,
+    }) => {
+      await topFailures(page)
+      const app = await openView(page, { engine: HEALTHY_ENGINE }, { width })
+      const cards = app.locator("li:has([data-cluster-words])")
+      await expect(cards).toHaveCount(2, { timeout: 15_000 })
+      const seen = await cards.evaluateAll((all) =>
+        all.map((card) => {
+          const words = card.querySelector("[data-cluster-words]")!.getBoundingClientRect()
+          const id = card.querySelector("[data-named-id] .font-mono")!
+          const message = card.querySelector("[data-cluster-words] p")!
+          const actions = card.querySelector("[data-cluster-words] + div")!.getBoundingClientRect()
+          const inner = card.clientWidth - 2 * parseFloat(getComputedStyle(card).paddingLeft)
+          const lineHeight = parseFloat(getComputedStyle(id).lineHeight)
+          return {
+            id: id.textContent,
+            idLines: Math.round(id.getBoundingClientRect().height / lineHeight),
+            wordsShare: words.width / inner,
+            messageShare: message.getBoundingClientRect().width / inner,
+            actionsUnder: actions.top >= words.bottom,
+          }
+        }),
+      )
+      expect(seen.map((card) => card.id)).toEqual([
+        "ServiceTask_ChargeCreditCard",
+        "Task_SendPaymentReminder",
+      ])
+      for (const card of seen) {
+        expect(card, card.id ?? "").toMatchObject({ idLines: 1, actionsUnder: true })
+        expect(card.wordsShare, `${card.id}: the words take the card's width`).toBeGreaterThan(0.98)
+        expect(card.messageShare, `${card.id}: the message reads in lines`).toBeGreaterThan(0.9)
+      }
+    })
+  }
+
+  test("at 320 px in German the actions stay inside the card: the hand-off goes under Open", async ({
+    page,
+  }) => {
+    await topFailures(page)
+    const app = await openView(page, { engine: HEALTHY_ENGINE }, { width: 320, locale: "de-DE" })
+    const cards = app.locator("li:has([data-cluster-words])")
+    await expect(cards).toHaveCount(2, { timeout: 15_000 })
+    const seen = await cards.evaluateAll((all) =>
+      all.map((card) => {
+        const box = card.getBoundingClientRect()
+        const inner = box.right - parseFloat(getComputedStyle(card).paddingRight)
+        const buttons = [...card.querySelectorAll("[data-cluster-actions] > *")].map((button) =>
+          button.getBoundingClientRect(),
+        )
+        return {
+          inside: buttons.every((button) => button.right <= inner + 0.5),
+          stacked: buttons.length === 2 && buttons[1].top >= buttons[0].bottom,
+          documentScrolls:
+            document.documentElement.scrollWidth > document.documentElement.clientWidth,
+        }
+      }),
+    )
+    for (const card of seen) {
+      expect(card).toEqual({ inside: true, stacked: true, documentScrolls: false })
+    }
+  })
+
+  test("in a wide card the actions stay beside the words", async ({ page }) => {
+    await topFailures(page)
+    const app = await openView(page, { engine: HEALTHY_ENGINE }, { width: 760 })
+    const card = app.locator("li:has([data-cluster-words])").first()
+    await expect(card).toBeVisible({ timeout: 15_000 })
+    const beside = await card.evaluate((el) => {
+      const words = el.querySelector("[data-cluster-words]")!.getBoundingClientRect()
+      const actions = el.querySelector("[data-cluster-words] + div")!.getBoundingClientRect()
+      return actions.left >= words.right && actions.top < words.bottom
+    })
+    expect(beside).toBe(true)
+  })
+})
+
 /** A narrow table's rows: whether the actions are pinned, cover the first cell, or cut a text. */
 async function narrowRows(region: Locator) {
   return region.evaluate((el) => ({
@@ -692,7 +829,8 @@ test.describe("a 760 px card's action heads", () => {
     const app = await openView(page, CLUSTER_ARGS, { width: 760 })
     const region = app.getByRole("region", { name: "Affected instances" }).last()
     await expect(region.locator("tbody tr").first()).toBeVisible({ timeout: 15_000 })
-    const seen = await actionsHeadOverButtons(region)
+    // The row opens its instance; its incident's button is the one action at its end.
+    const seen = await actionsHeadOverButtons(region, "button")
     expect(seen).toMatchObject({ head: "Actions", align: "right" })
     expect(seen.buttons).toEqual([seen.word])
   })
@@ -703,7 +841,8 @@ test.describe("a 760 px card's action heads", () => {
     const app = await openView(page, INSTANCES_ARGS, { hostEnv: REALISTIC_HOST_ENV, width: 760 })
     const region = app.getByRole("region", { name: "Running instances", exact: true })
     await expect(region.locator("tbody tr").first()).toBeVisible({ timeout: 15_000 })
-    const seen = await actionsHeadOverButtons(region)
+    // The row opens its instance; an instance with an incident's hand-off is its one action.
+    const seen = await actionsHeadOverButtons(region, "button")
     expect(seen).toMatchObject({ head: "Actions", align: "right" })
     expect(seen.buttons).toEqual([seen.word])
   })

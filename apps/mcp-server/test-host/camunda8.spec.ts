@@ -304,7 +304,7 @@ test.describe("Camunda 8 on a board", () => {
   })
 
   // No view of the cockpit reads a Camunda 8 engine (ROUTE_DIALECTS), so the board offers no way
-  // into one: no drill, no count, summary row or diagram that opens, and a chip that opens nothing.
+  // into one: no row, count, summary row or diagram that opens, and a chip that opens nothing.
   // The stub's chip still opens its overview.
   test("a Camunda 8 engine's tiles and chip open nothing, and nothing reads it but the board", async ({
     page,
@@ -315,6 +315,9 @@ test.describe("Camunda 8 on a board", () => {
       await expect(tile(app, name).getByRole("button", { name: /^Open\b|c8-orders/ })).toHaveCount(
         0,
       )
+      // Its rows are plain rows: no name of what they would open, no tab stop.
+      await expect(tile(app, name).getByRole("row", { name: /^Instance / })).toHaveCount(0)
+      await expect(tile(app, name).locator("tbody tr[tabindex]")).toHaveCount(0)
     }
     await expect(
       tile(app, "Order fulfillment").getByRole("button", { name: "Open process" }),

@@ -118,16 +118,18 @@ test.describe("a board's page", () => {
     await expectNoAxeFinding(page)
   })
 
-  test("a tile drills into the cockpit on its engine, through the page's caller, and the trail leads back", async ({
+  test("a tile's row opens the cockpit on its engine on a click, through the page's caller, and the trail leads back", async ({
     page,
   }) => {
     const calls = recordCalls(page)
     await signIn(page, BOARD_PAGE)
     await drawn(page)
+    // One row convention on a page too: the row opens what it names, no drill in it.
     const row = tile(page, "Running instances of invoice")
-      .getByRole("row")
+      .getByRole("row", { name: /^Instance / })
       .filter({ hasText: "INV-2026-0042" })
-    await row.getByRole("button", { name: /^Open instance/ }).click()
+    await expect(row.getByRole("button", { name: /^Open/ })).toHaveCount(0)
+    await row.getByRole("cell").first().click()
     await expect(page.getByLabel("Selected engine")).toHaveValue(HEALTHY_ENGINE, {
       timeout: 15_000,
     })
@@ -142,15 +144,16 @@ test.describe("a board's page", () => {
     expect(new URL(page.url()).pathname).toBe(BOARD_PAGE)
   })
 
-  test("a tile's drill into an instance whose read fails: its name stays the page's one heading and its title", async ({
+  test("a tile's row opened by Enter on an instance whose read fails: its name stays the page's one heading and its title", async ({
     page,
   }) => {
     await signIn(page, BOARD_PAGE)
     await drawn(page)
     const row = tile(page, "Running instances of invoice")
-      .getByRole("row")
+      .getByRole("row", { name: /^Instance / })
       .filter({ hasText: "INV-2026-0043" })
-    await row.getByRole("button", { name: /^Open instance/ }).click()
+    await row.focus()
+    await page.keyboard.press("Enter")
     // The stub engine serves this instance nothing: its read fails, once the view's retries did.
     await expect(page.getByRole("main").getByRole("alert")).toBeVisible({ timeout: 20_000 })
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(["INV-2026-0043"])
@@ -259,9 +262,12 @@ test.describe("a board's page over a Camunda 7 engine and a Camunda 8 one", () =
     await expectNoAxeFinding(page)
 
     // No view of the cockpit reads a Camunda 8 engine: the board offers no way into one, so its
-    // instances have no drill and its chip opens nothing; it reads nothing of it but the board's.
+    // instances are plain rows and its chip opens nothing; it reads nothing of it but the board's.
     await expect(
-      tile(page, "Running instances of pulse-order").getByRole("button", { name: /^Open\b/ }),
+      tile(page, "Running instances of pulse-order").getByRole("row", { name: /^Instance / }),
+    ).toHaveCount(0)
+    await expect(
+      tile(page, "Running instances of pulse-order").locator("tbody tr[tabindex]"),
     ).toHaveCount(0)
     await expect(engines.getByRole("button")).toHaveCount(1)
     expect(calls.filter((call) => call.arguments?.engine === C8_ENGINE).map((c) => c.name)).toEqual(

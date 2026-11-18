@@ -329,9 +329,9 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   "3m 7s", "2d 3h" / German "3 Min. 7 s"; a lower bound "≥ 2,000", compact "10k+";
   "3,7 %", "+0,2 Pp.", "7 Tage")
 - Tables: widget-shell's `ListTable` is the frame, over pulse-ui's `DataTable` (a sticky head,
-  28 px rows): a named, keyboard-reachable scroll region (`role="region"`, `tabIndex=0`;
-  `ariaLabel` is required), so a wide table never widens the document at 760 px (the host
-  simulation pins it). A column a narrow view can do
+  28 px rows): a named, keyboard-reachable scroll region (`role="region"`, `tabIndex=0` while no
+  row takes the stop; `ariaLabel` is required), so a wide table never widens the document at
+  760 px (the host simulation pins it). A column a narrow view can do
   without takes `hideBelow: "sm" | "md" | "lg"` (the REGION's width: 640/768/1024 px;
   `md` hides inline, shows in fullscreen), the row actions are the LAST column with
   `sticky: true` (pinned at the region's right edge, Retry never scrolled away), or
@@ -340,7 +340,13 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   that fits its one line (an id, a time, the row actions beside a long text) takes `fit`. A caption
   keeps one line; a wide table of figures passes `wrapHeads` so its captions wrap instead. Rows
   stay hand-composed `<tr>` + `Td`, one cell per column (the rules address cell
-  positions). An id column is `IdCell` (`IdText` inline): Geist Mono, shortened
+  positions). A row that opens a view is widget-shell's `ListRow` (`label` names what it opens,
+  `onOpen`, `copy` the id Ctrl or Cmd+C copies; a copy that is no id names itself through
+  `copyLabel` and the table's `copyHint`), one row convention on every surface: a click or
+  Enter opens it, the table keeps one tab stop for its rows; it carries no drill
+  (`src/row-actions.test.ts`), and its further actions (a write, a hand-off, `MoreActions`) sit
+  at its end, `xs`, opening nothing. A table whose rows show no further action has no actions
+  column. An id column is `IdCell` (`IdText` inline): Geist Mono, shortened
   ("5f0ce78e…", whole for screen readers and in `title`), a copy button with a toast that
   shows on the row's hover and focus. A `NamedId` in a cell takes one line by itself (the
   name, then the id quiet in mono), so a row keeps its height: whole where the table has
@@ -498,7 +504,7 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
    `src/widgets/search-labels.test.tsx` pins every search box and scope by its name) →
    `PagedRows` (marks the rows while they
    are the previous result) around `ListTable` (frame + `Th` header row;
-   rows stay hand-composed `<tr>` + `Td`) or a `RowCard` stack → `TableEmptyState`
+   rows stay hand-composed `<tr>` + `Td`, a `ListRow` where a row opens a view) or a `RowCard` stack → `TableEmptyState`
    (distinguish "no match" when `interacted`) → pulse-ui's `PagedListFooter`
    (`paged` as is, `noun` from the catalog; it renders the stale page-0 error and the load-more
    error, each with its own retry and the raw reason under Details, + "Showing X of Y" in
@@ -552,7 +558,7 @@ widget seeds its feed with it and refreshes after a write without a fetch on mou
 (`src/data/cockpit-start.test.ts` pins the seed against the feed). The facts are the
 model-facing result: compact JSON, English keys, ids and counts (a `null` count is
 unknown, never 0), engine text clipped, never XML. A route needs an emitter in the cockpit
-too: a `DrillButton`, a KPI cell's `onClick`, or a head section in
+too: a `ListRow`'s `onOpen`, a card's `DrillButton`, a KPI cell's `onClick`, or a head section in
 `src/widgets/cockpit-app/app.tsx`, each through `useNav()` with a `NavIntent`
 (`src/widgets/navigation.ts`) that `intentToView` (`src/widgets/nav-core.ts`) maps onto the
 route. A route that nothing emits and `engine_open_cockpit` cannot open is dead.

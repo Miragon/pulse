@@ -199,13 +199,19 @@ test.describe("a board, the cockpit's app-level route", () => {
     await expect(tile(app, "Laufende Instanzen von invoice")).toBeVisible()
   })
 
-  test("a tile opens its engine's route, the trail leads back; an engine's chip opens its overview", async ({
+  test("a tile's row opens its engine's route on a click, the trail leads back; an engine's chip opens its overview", async ({
     page,
   }) => {
     const app = await openBoard(page)
     await drawn(app)
-    const row = instances(app).getByRole("row").filter({ hasText: "INV-2026-0042" })
-    await row.getByRole("button", { name: /^Open instance/ }).click()
+    // One row convention: the row itself opens what it names, no drill in it.
+    const row = instances(app)
+      .getByRole("row", { name: /^Instance / })
+      .filter({
+        hasText: "INV-2026-0042",
+      })
+    await expect(row.getByRole("button", { name: /^Open/ })).toHaveCount(0)
+    await row.getByRole("cell").first().click()
     // The stub serves that instance whole: its view on the stub engine, in the cockpit's head.
     await expect(app.getByLabel("Selected engine")).toHaveValue(HEALTHY_ENGINE, {
       timeout: 15_000,
@@ -259,11 +265,10 @@ test.describe("a board, the cockpit's app-level route", () => {
       rowFlow: "column",
       rowColumns: expect.stringMatching(/^minmax\(0px, 1fr\)/) as unknown,
     })
-    // A row of a tile's table keeps the row height, its drill at the row actions' 24 px.
+    // A row of a tile's table keeps the row height and opens itself: no column of drills.
     const row = instances(app).getByRole("row").filter({ hasText: "INV-2026-0042" })
     expect((await row.boundingBox())?.height).toBeLessThanOrEqual(29)
-    const drill = row.getByRole("button", { name: /^Open instance/ })
-    expect((await drill.boundingBox())?.height).toBe(24)
+    await expect(instances(app).getByRole("columnheader", { name: "Actions" })).toHaveCount(0)
     // The notes under a tile's rows, an empty table's too, sit as pulse-ui's DataTable sets a
     // footer in the webview: centred in the tile and clear of its bottom.
     for (const name of ["Running instances of invoice", "Open incidents"]) {

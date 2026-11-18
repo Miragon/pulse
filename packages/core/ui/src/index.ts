@@ -211,9 +211,11 @@ export {
   type EmptyVariant,
 } from "./kit/table.js"
 export { DataTable } from "./kit/data-table.js"
+export { DataTableRow } from "./kit/data-table-target.js"
 export type {
   DataTableColumn,
   DataTableProps,
+  DataTableRowProps,
   DataTableSelection,
   RowActivation,
   SelectionBoxProps,

@@ -1,5 +1,5 @@
-import { formatNumber, NamedId, StateLabel, Td, VersionChip, DrillButton } from "@miragon/pulse-ui"
-import { HandOffButton } from "@miragon/pulse-widget-shell/widgets"
+import { formatNumber, NamedId, StateLabel, Td, VersionChip } from "@miragon/pulse-ui"
+import { HandOffButton, ListRow } from "@miragon/pulse-widget-shell/widgets"
 import type { ProcessInstanceRow } from "../../view-models.js"
 import { useHandOff } from "../lib/hand-off.js"
 import { InstanceLabel } from "../lib/identity.js"
@@ -28,11 +28,17 @@ function InstanceState({ row }: { row: ProcessInstanceRow }) {
   )
 }
 
+/**
+ * One instance: the row opens it on a click or Enter and copies its id on Ctrl or Cmd with C (one
+ * row convention, as the webview's lists); its process opens by its own link, and an instance with
+ * an open incident offers the hand-off at the row's end, which opens nothing.
+ */
 export function InstanceRow({
   row,
   processDefinitionKey,
   engine,
   showProcessColumn,
+  actions,
   onOpen,
   onOpenProcess,
 }: {
@@ -40,13 +46,19 @@ export function InstanceRow({
   processDefinitionKey: string | null
   engine: string
   showProcessColumn: boolean
+  /** The table has a column of row actions (a hand-off shows on one of its rows). */
+  actions: boolean
   onOpen: (row: ProcessInstanceRow) => void
   onOpenProcess: (row: ProcessInstanceRow) => void
 }) {
   const t = useT()
   const { ask } = useHandOff()
   return (
-    <tr>
+    <ListRow
+      label={t("processInstances.rowLabel", { name: instanceName(row.id, row.businessKey) })}
+      onOpen={() => onOpen(row)}
+      copy={row.id}
+    >
       <Td>
         {/* One instance label (#322 U13): the business key, the UUID a
             copyable chip beside it, never a three-line UUID. */}
@@ -96,18 +108,9 @@ export function InstanceRow({
           )}
         </Td>
       )}
-      <Td align="right">
-        {/* A row's actions are xs, so the row keeps the row height (28 px). */}
-        <div className="inline-flex items-center justify-end gap-1">
-          <DrillButton
-            size="xs"
-            onDrill={() => onOpen(row)}
-            ariaLabel={t("processInstances.openInstanceAria", {
-              name: instanceName(row.id, row.businessKey),
-            })}
-          >
-            {t("processInstances.openButton")}
-          </DrillButton>
+      {actions && (
+        <Td align="right">
+          {/* A row's actions are xs, so the row keeps the row height (28 px). */}
           {row.hasIncident && (
             <HandOffButton
               action="findCause"
@@ -116,8 +119,8 @@ export function InstanceRow({
               prompt={ask(rootCauseHandOff(row, processDefinitionKey, engine))}
             />
           )}
-        </div>
-      </Td>
-    </tr>
+        </Td>
+      )}
+    </ListRow>
   )
 }

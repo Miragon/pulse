@@ -51,7 +51,8 @@ const SCANNED = [
 const DENSE_ICONS_ALLOWED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   components: {
     "CountBadge.tsx": "an alarming count's tone icon inside its 20 px pill beside 13 px figures",
-    "DrillButton.tsx": "the xs drill of a table row is the 24 px xs button, its arrow 12 px",
+    "DrillButton.tsx":
+      "the xs drill of a list card (a group of incidents) is the 24 px xs button, its arrow 12 px",
   },
   primitives: {
     "badge.tsx": "a badge is 20 px high beside 13 px text, so its icon is 12 px ([&>svg]:size-3!)",

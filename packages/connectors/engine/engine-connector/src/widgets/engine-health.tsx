@@ -158,9 +158,13 @@ function ClusterRow({
     scope,
   ].filter((part): part is string => part !== null)
 
+  // The words keep 16rem before the actions give way: in a narrow card (a chat's side panel, about
+  // 360 px) the actions go under them instead of squeezing them, so the element's id stays whole
+  // on its line and the message reads in lines, not word by word. Where the two actions do not fit
+  // side by side either (320 px, German), the hand-off goes under Open, inside the card.
   return (
     <li className="border-border p-gutter flex flex-wrap items-start justify-between gap-3 rounded-md border">
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
+      <div data-cluster-words="" className="flex min-w-0 grow basis-64 flex-col gap-1">
         <div className="flex min-w-0 flex-wrap items-start gap-2">
           <NamedId name={cluster.activityName} id={cluster.activityId} />
           <span className="border-input text-muted-foreground text-small rounded-sm border px-1.5 font-mono">
@@ -175,7 +179,10 @@ function ClusterRow({
         )}
         <p className="text-muted-foreground text-small">{facts.join(" · ")}</p>
       </div>
-      <div className="flex shrink-0 items-center gap-1.5">
+      <div
+        data-cluster-actions=""
+        className="flex max-w-full shrink-0 flex-wrap items-center gap-1.5"
+      >
         <DrillButton
           onDrill={drill}
           ariaLabel={t("engineHealth.clusterViewAria", { activity: name })}

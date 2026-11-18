@@ -27,6 +27,4 @@ export const deBoard: MessageCatalog = {
   "board.notConfiguredHint":
     "Die Kacheln dieser Engine bleiben leer, bis die Person, die den Server betreibt, ein Profil mit diesem Namen anlegt.",
   "board.notes": ({ count }) => `${countOf(count, "Hinweis", "Hinweise")} zu diesem Board.`,
-  "board.open": "Öffnen",
-  "board.colActions": "Aktionen",
 }

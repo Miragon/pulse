@@ -1,15 +1,15 @@
 import type { BoardTableProps } from "@miragon/pulse-blocks"
-import { DrillButton, Td } from "@miragon/pulse-ui"
-import { ListTable } from "@miragon/pulse-widget-shell/widgets"
-import { useT } from "../../messages/use-t.js"
+import { Td } from "@miragon/pulse-ui"
+import { ListRow, ListTable } from "@miragon/pulse-widget-shell/widgets"
 
 /**
  * The cockpit's table of a tile: widget-shell's `ListTable` (its scroll region, the inline fit,
- * which shows the rows the card has room for and offers the rest, the pinned row actions) with an
- * xs `DrillButton` per row that opens a view here, so the row keeps the row height (invariant 6);
- * a row that opens none (an engine no view of the cockpit reads) has no drill, and a table whose
- * rows open none has no column of actions. The tile owns the columns, the cells, the words and the
- * notes under the rows; a row's copy is its id's.
+ * which shows the rows the card has room for and offers the rest) whose rows open their view here
+ * on a click or Enter and copy their id on Ctrl or Cmd with C, one row convention with the
+ * webview's table slot; a row that opens none (an engine no view of the cockpit reads) is a plain
+ * row. The tile owns the columns, the cells, the words and the notes under the rows, and what a
+ * row's copy holds: its toast names it, and where it is no id (an incident's message) the rows tell
+ * a screen reader so (`copyHint`).
  */
 export function BoardTable<Row>({
   label,
@@ -18,13 +18,12 @@ export function BoardTable<Row>({
   rowKey,
   onOpen,
   opens,
-  openLabel,
+  rowLabel,
+  copyOf,
+  copyHint,
   empty,
   footer,
 }: BoardTableProps<Row>) {
-  const t = useT()
-  const drills = rows.map((row) => opens?.(row) !== false)
-  const actions = drills.includes(true)
   return (
     <div className="flex min-w-0 flex-col">
       {rows.length === 0 ? (
@@ -32,16 +31,17 @@ export function BoardTable<Row>({
       ) : (
         <ListTable
           ariaLabel={label}
-          columns={[
-            ...columns.map((column) => ({ label: column.label })),
-            // Pinned from 40rem up only: a narrower card scrolls the actions with the row.
-            ...(actions
-              ? [{ label: t("board.colActions"), align: "right" as const, sticky: "sm" as const }]
-              : []),
-          ]}
+          columns={columns.map((column) => ({ label: column.label }))}
+          copyHint={copyHint}
         >
-          {rows.map((row, index) => (
-            <tr key={rowKey(row)}>
+          {rows.map((row) => (
+            <ListRow
+              key={rowKey(row)}
+              label={rowLabel(row)}
+              onOpen={opens?.(row) === false ? undefined : () => onOpen(row, { toSide: false })}
+              copy={copyOf(row).text}
+              copyLabel={copyOf(row).label}
+            >
               {/* One line per cell, as DataTable draws a row: the row keeps the row height and the
                   table scrolls in its region where the card is short of room. */}
               {columns.map((column) => (
@@ -49,20 +49,7 @@ export function BoardTable<Row>({
                   {column.cell(row)}
                 </Td>
               ))}
-              {actions && (
-                <Td align="right">
-                  {drills[index] && (
-                    <DrillButton
-                      size="xs"
-                      onDrill={() => onOpen(row, { toSide: false })}
-                      ariaLabel={openLabel(row)}
-                    >
-                      {t("board.open")}
-                    </DrillButton>
-                  )}
-                </Td>
-              )}
-            </tr>
+            </ListRow>
           ))}
         </ListTable>
       )}

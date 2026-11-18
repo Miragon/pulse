@@ -55,24 +55,33 @@ export interface BoardTableProps<Row> {
   readonly columns: readonly BoardTableColumn<Row>[]
   readonly rows: readonly Row[]
   readonly rowKey: (row: Row) => string
-  /** Opens a row: a click on it or on its drill, Ctrl or Cmd held beside the view. */
+  /** Opens a row: a click on it or Enter, Ctrl or Cmd held beside the view. */
   readonly onOpen: (row: Row, how: BoardOpenHow) => void
   /**
-   * Whether a row opens anything here (`BoardSlots.opens`): one that does not has no drill and
-   * does not open on a click. Without it, every row opens.
+   * Whether a row opens anything here (`BoardSlots.opens`): one that does not opens on no click
+   * and no key. Without it, every row opens.
    */
   readonly opens?: (row: Row) => boolean
-  /** The accessible name of a row's drill ("Open instance 81a2e0b4…"). */
-  readonly openLabel: (row: Row) => string
+  /** The accessible name of a row that opens: what it opens ("Instance 81a2e0b4…"). */
+  readonly rowLabel: (row: Row) => string
   /** What a row's copy puts on the clipboard. */
   readonly copyOf: (row: Row) => BoardCopy
+  /**
+   * What a screen reader hears after a row's name where its copy is no id ("Enter opens the row,
+   * Ctrl or Cmd+C copies its incident message."); without it the surface's words for an id copy.
+   */
+  readonly copyHint?: string
   /** What the table says without a row. */
   readonly empty: ReactNode
   /** What it says under its rows: each engine's share. */
   readonly footer: ReactNode
 }
 
-/** The surface's table, in its own row convention (row activation, a drill, an inline fit). */
+/**
+ * The surface's table, in the one row convention of every surface (a click on a row or Enter opens
+ * it, Ctrl or Cmd with C copies it) and its own fit (the cockpit's inline fit, the editor's sized
+ * columns).
+ */
 export type BoardTableSlot = <Row>(props: BoardTableProps<Row>) => ReactNode
 
 /** The props of the surface's id: an id a cell shows short, and what it names. */
@@ -105,7 +114,7 @@ export interface BoardSlots {
   /**
    * Whether a target opens anything on this surface (a view that reads its engine there); without
    * it, every target does. A target that opens nothing is offered nowhere: its count, summary row
-   * and diagram stay text, its list row has no drill.
+   * and diagram stay text, its list row opens nothing.
    */
   readonly opens?: (target: BoardTarget) => boolean
   /** Opens the board file; without it a refused tile offers no way to it. */

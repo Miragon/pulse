@@ -104,6 +104,10 @@ export interface DataTableMessages {
   narrowerColumn: string
   /** Menu entry: every column of the table takes its content's width again. */
   resetColumns: string
+  /** What a row that opens tells a screen reader beside its name: Enter opens it. */
+  rowOpens: string
+  /** The same for a row that also copies its id on Ctrl or Cmd with C. */
+  rowOpensCopies: string
 }
 
 /** Strings of `ViewBar`: its back button and its access chip. */

@@ -9,16 +9,17 @@ import {
   type Ref,
 } from "react"
 import { cn } from "../lib/utils.js"
+import {
+  copiesRow,
+  INTERACTIVE_ROW,
+  MOVES,
+  opensOnClick,
+  TARGET_ATTRIBUTE,
+  useTargetRows,
+  wantsSide,
+} from "./data-table-target.js"
 import type { DataTableColumn, DataTableProps, DataTableSelection } from "./data-table-types.js"
 import { Td } from "./table.js"
-
-/**
- * A row a pointer or the keyboard opens: the hand, and the focus indicator as an outline drawn
- * inside the row (`--focus-width`, 3 px under high contrast), since a ring's shadow does not paint
- * on a table row and an outset one would be cut by the scroll region.
- */
-const INTERACTIVE_ROW =
-  "cursor-pointer outline-none focus-visible:outline-(length:--focus-width) focus-visible:outline-solid focus-visible:outline-focus focus-visible:-outline-offset-(--focus-width)"
 
 /** Every body row fills on hover from `--accent` (the guide's hover), drawn or composed by hand. */
 const ROW_HOVER = "[&>tr:hover]:bg-accent"
@@ -44,32 +45,17 @@ const COMPOSED_FIT =
 export const SELECTION_WIDTH = 32
 export const SELECTION_CELL = "w-8 pl-cell pr-0"
 
-/** Controls inside a row handle their own click and keys; the row does not act on them too. */
-const CONTROL = "a, button, input, select, textarea, label, [role=checkbox], [role=separator]"
-
-function fromControl(event: { target: EventTarget; currentTarget: Element }): boolean {
-  const control = (event.target as Element).closest?.(CONTROL)
-  return !!control && control !== event.currentTarget && event.currentTarget.contains(control)
-}
-
-const wantsSide = (event: { ctrlKey: boolean; metaKey: boolean }) => event.ctrlKey || event.metaKey
-
-const MOVES: Readonly<Record<string, (index: number, last: number) => number>> = {
-  ArrowDown: (index, last) => Math.min(index + 1, last),
-  ArrowUp: (index) => Math.max(index - 1, 0),
-  Home: () => 0,
-  End: (_index, last) => last,
-}
-
 type RowsProps<Row> = Pick<
   DataTableProps<Row>,
-  "onActivate" | "onCopy" | "selection" | "bodyRef"
+  "onActivate" | "rowLabel" | "onCopy" | "selection" | "bodyRef"
 > & {
   columns: ReadonlyArray<DataTableColumn<Row>>
   rows: ReadonlyArray<Row>
   rowKey: (row: Row) => string
   /** Whether a column fits its content (not the one that takes the rest, not a sized table). */
   fitted: (key: string) => boolean
+  /** The id of the words that tell a screen reader what a target row's keys do. */
+  hint?: string
 }
 
 /** One tab stop for the rows: the one focused last (by key, so a live update keeps it). */
@@ -94,7 +80,7 @@ function useRowKeys<Row>({ rows, rowKey, onActivate, onCopy, selection }: RowsPr
     } else if (event.key === " " && selection && (selection.isSelectable?.(row) ?? true)) {
       event.preventDefault()
       selection.onToggle(row)
-    } else if (onCopy && wantsSide(event) && event.key.toLowerCase() === "c") {
+    } else if (onCopy && copiesRow(event)) {
       event.preventDefault()
       onCopy(row)
     }
@@ -185,13 +171,12 @@ function SelectionCell<Row>({
 
 /** The table's `rows`, one line each, drawn by the columns' cells. */
 export function RowsBody<Row>(props: RowsProps<Row>) {
-  const { columns, rows, rowKey, onActivate, selection, bodyRef, fitted } = props
+  const { columns, rows, rowKey, onActivate, rowLabel, selection, bodyRef, fitted, hint } = props
   const keys = useRowKeys(props)
   const { attach, focused } = useFocusKeptInBody(rows, bodyRef)
   const interactive = onActivate !== undefined
   const activate = (event: MouseEvent<HTMLTableRowElement>, row: Row) => {
-    if (fromControl(event)) return
-    onActivate?.(row, { toSide: wantsSide(event) })
+    if (opensOnClick(event)) onActivate?.(row, { toSide: wantsSide(event) })
   }
   return (
     <tbody ref={attach} className={ROW_HOVER}>
@@ -199,6 +184,8 @@ export function RowsBody<Row>(props: RowsProps<Row>) {
         <tr
           key={rowKey(row)}
           data-selected={selection?.isSelected(row) || undefined}
+          aria-label={interactive ? rowLabel?.(row) : undefined}
+          aria-describedby={interactive ? hint : undefined}
           tabIndex={interactive ? (index === keys.active ? 0 : -1) : undefined}
           className={cn("data-selected:bg-accent", interactive && INTERACTIVE_ROW)}
           onFocus={(event) => {
@@ -251,25 +238,36 @@ function markFitted(body: HTMLTableSectionElement, fitted: ReadonlySet<number>) 
 export function ComposedBody({
   fitted,
   bodyRef,
+  onTargets,
   children,
 }: {
   fitted: ReadonlyArray<number>
   bodyRef: Ref<HTMLTableSectionElement> | undefined
+  /** Whether the body holds a row that opens (`DataTableRow`), again as rows come and go. */
+  onTargets: (some: boolean) => void
   children: ReactNode
 }) {
   const body = useRef<HTMLTableSectionElement | null>(null)
+  const targets = useTargetRows(onTargets)
+  const { sync } = targets
   const positions = fitted.join(" ")
   useLayoutEffect(() => {
     const element = body.current
     if (!element) return
     const columns = new Set(positions === "" ? [] : positions.split(" ").map(Number))
-    const mark = () => markFitted(element, columns)
+    const mark = () => {
+      markFitted(element, columns)
+      sync(element)
+    }
     mark()
-    if (columns.size === 0) return
     const observer = new MutationObserver(mark)
-    observer.observe(element, { childList: true, subtree: true })
+    observer.observe(element, {
+      childList: true,
+      subtree: true,
+      attributeFilter: [TARGET_ATTRIBUTE],
+    })
     return () => observer.disconnect()
-  }, [positions])
+  }, [positions, sync])
   const attach = useCallback(
     (element: HTMLTableSectionElement | null) => {
       body.current = element
@@ -278,7 +276,12 @@ export function ComposedBody({
     [bodyRef],
   )
   return (
-    <tbody ref={attach} className={cn(ROW_HOVER, COMPOSED_FIT)}>
+    <tbody
+      ref={attach}
+      className={cn(ROW_HOVER, COMPOSED_FIT)}
+      onFocus={targets.onFocus}
+      onKeyDown={targets.onKeyDown}
+    >
       {children}
     </tbody>
   )

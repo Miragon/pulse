@@ -143,6 +143,7 @@ export function EngineScreen({ view, freshness, problem }: EngineScreenProps) {
             onActivate: (row, toSide) => {
               host.post({ type: "openProcess", bpmnProcessId: row.bpmnProcessId, toSide })
             },
+            rowLabel: (row) => `Process ${row.name ?? row.bpmnProcessId}`,
             onCopy: (row) => {
               host.post({ type: "copy", text: row.bpmnProcessId, label: "BPMN process ID" })
             },

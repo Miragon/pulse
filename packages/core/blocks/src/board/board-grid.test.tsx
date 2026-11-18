@@ -164,7 +164,8 @@ describe("the board's tiles in English", () => {
       "test: showing 0 of ?",
       "prod: not read",
     ])
-    fireEvent.click(within(first!).getByRole("button", { name: "Open instance 81a2e0b4…" }))
+    expect(first).toBe(within(list).getByRole("row", { name: "Instance 81a2e0b4…" }))
+    fireEvent.click(first!)
     expect(asked.opened[0]?.target).toEqual({
       kind: "instance",
       engine: "local",
@@ -173,6 +174,8 @@ describe("the board's tiles in English", () => {
     expect(within(first!).getByRole("button", { name: "Copy Instance ID" }).dataset.copy).toBe(
       "81a2e0b4-3c1d-11ef-9a3e-0242ac120002",
     )
+    // An id's copy: the surface's own words say so.
+    expect(within(list).getByRole("table").dataset.copyHint).toBeUndefined()
   })
 
   it("list open incidents and open the instance of a row through its incident", () => {
@@ -186,7 +189,7 @@ describe("the board's tiles in English", () => {
         .map((head) => head.textContent),
     ).toEqual(["Engine", "Process", "Element", "Message", "Since"])
     expect(texts(list, "group-note")).toEqual(["local: first 1, more open", "test: 0 open"])
-    fireEvent.click(within(table).getByRole("button", { name: "Open instance 4c1f0a2e…" }))
+    fireEvent.click(within(table).getByRole("row", { name: "Instance 4c1f0a2e…" }))
     expect(asked.opened[0]?.target).toEqual({
       kind: "instance",
       engine: "local",
@@ -195,6 +198,10 @@ describe("the board's tiles in English", () => {
     })
     expect(within(table).getByRole("button", { name: "Copy Incident message" }).dataset.copy).toBe(
       "Carrier API answered 503",
+    )
+    // Its copy is no id, so its rows say what Ctrl or Cmd with C copies.
+    expect(table.dataset.copyHint).toBe(
+      "Enter opens the row, Ctrl or Cmd+C copies its incident message.",
     )
   })
 

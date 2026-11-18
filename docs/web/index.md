@@ -17,9 +17,9 @@ The web app only reads: a page shows no write control and, posting to no chat, n
 | `/app/cockpit?view=jobs&engine=prod` | The start the query names: each parameter is one argument of `engine_open_cockpit`, which refuses one it does not take            |
 | `/app/signed-out`                    | Why a sign-in ended, and a new one                                                                                                |
 
-A URL names where a page starts. Inside the page you move as in the cockpit (a drill, the trail,
-**All engines**) and the address stays; the browser's Back leaves the page. `/app` has no trailing
-slash, like `/mcp`: `/app/` answers 404.
+A URL names where a page starts. Inside the page you move as in the cockpit (a row opened by a
+click or Enter, the trail, **All engines**) and the address stays; the browser's Back leaves the
+page. `/app` has no trailing slash, like `/mcp`: `/app/` answers 404.
 
 The bar names who is signed in and holds **Sign out**. The page speaks German or English by the
 browser, follows the system's light or dark theme, and is compact on a desktop and comfortable on

@@ -156,7 +156,7 @@ export function InstanceListTile({ tile, slots }: InstanceListTileProps) {
           if (target !== undefined) onOpen(target, how)
         }}
         opens={(row) => openable(slots, targetOf(row)) !== undefined}
-        openLabel={(row) => t("open.instance", { id: shortId(row.instance.id) })}
+        rowLabel={(row) => t("row.instance", { id: shortId(row.instance.id) })}
         copyOf={(row) => ({ text: row.instance.id, label: t("instances.copy") })}
         empty={<EmptyNote text={t("instances.empty")} />}
         footer={

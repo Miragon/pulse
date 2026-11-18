@@ -30,6 +30,4 @@ export const enBoard: MessageCatalog = {
   "board.notConfiguredHint":
     "Its tiles stay empty until whoever runs the server adds a profile of that name.",
   "board.notes": ({ count }) => `${countOf(count, "note", "notes")} on this board.`,
-  "board.open": "Open",
-  "board.colActions": "Actions",
 }

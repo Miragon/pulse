@@ -63,8 +63,10 @@ clicking) renders inline. Its head switches between the overview, the
 incidents and the jobs, or leads back along the way you came; under it each
 view has one bar with what it shows, its facts and its actions, and a notice
 docks under that bar when a refresh fails, the engine's own words under its
-**Details**. Inline a view stays a compact card: a list shows its first rows and how many there are,
-and **Show all** opens it fullscreen where your chat app offers that.
+**Details**. A row of a table opens what it names on a click or Enter (Ctrl or Cmd+C copies its
+ID, a board's incident row its message), as in Pulse for VS Code; its other actions sit at its end. Inline a view stays a compact card:
+a list shows its first rows and how many there are, and **Show all** opens it fullscreen where your
+chat app offers that.
 
 What the assistant may _change_ depends on the deployment's toolset. A
 read-only deployment (the playground, or any server without login unless its

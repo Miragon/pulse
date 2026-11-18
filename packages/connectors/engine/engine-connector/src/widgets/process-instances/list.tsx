@@ -9,6 +9,7 @@ import {
 } from "@miragon/pulse-ui"
 import {
   ListTable,
+  type ListTableColumn,
   PagedRows,
   QueryFallback,
   TableSkeleton,
@@ -27,10 +28,10 @@ import { useNav } from "../navigation.js"
 import { ENGINE_PROCESS_INSTANCES_DATA } from "../../tool-names.js"
 import { InstancesHeader } from "./list-header.js"
 import { InstanceRow } from "./instance-row.js"
-import { useHandOff } from "../lib/hand-off.js"
+import { useHandOff, useHandOffsShown } from "../lib/hand-off.js"
 import { describeInstancesView, type InstanceChip } from "./hand-offs.js"
 import { instanceName } from "../lib/write-feedback.js"
-import { useT } from "../../messages/use-t.js"
+import { useT, type T } from "../../messages/use-t.js"
 
 export type { ProcessInstancesData }
 
@@ -62,6 +63,30 @@ function instancesFilterArgs(
   return args
 }
 
+/** The list's columns: the version where it lists one process, else the process. */
+function instanceColumns(t: T, scoped: boolean, actions: boolean): ListTableColumn[] {
+  return [
+    // The instance whole while there is room; the process gives way first.
+    { label: t("processInstances.colBusinessKey"), fit: true },
+    // The state and an open incident on one line in one column, right after the ids as the
+    // webview has it, so a narrow chat that scrolls the table sideways still shows it.
+    { label: t("processInstances.colState") },
+    { label: scoped ? t("processInstances.colVersion") : t("processInstances.colProcess") },
+    // Pinned from 40rem up only, as in the incident tables: in a narrower region the actions
+    // scroll with the row, so they never cover the instance or its state. Only while a row of the
+    // page has one: the row itself opens the instance.
+    ...(actions
+      ? [
+          {
+            label: t("processInstances.colActions"),
+            align: "right" as const,
+            sticky: "sm" as const,
+          },
+        ]
+      : []),
+  ]
+}
+
 export function ProcessInstancesView({
   data: initialData = null,
   processDefinitionKey,
@@ -74,6 +99,7 @@ export function ProcessInstancesView({
   const t = useT()
   const go = useNav()
   const { context } = useHandOff()
+  const handOffs = useHandOffsShown()
   const [activeChip, setActiveChip] = useState<InstanceChip>(CHIP_ALL)
 
   const { paged, search, setSearch, interacted } = usePagedListView<
@@ -112,6 +138,8 @@ export function ProcessInstancesView({
 
   const scopedKey = data.processDefinitionKey
   const title = data.processDefinitionName ?? scopedKey ?? t("processInstances.allTitle")
+  // A row's one further action is the hand-off of an instance with an open incident.
+  const actions = handOffs && paged.items.some((row) => row.hasIncident)
   // The echo of the page on screen, never the request: an in-flight or failed query still shows the previous result.
   const listFilters = data.filters
 
@@ -200,19 +228,7 @@ export function ProcessInstancesView({
                 ? title
                 : t("processInstances.tableAriaLabel", { name: title })
             }
-            columns={[
-              // The instance whole while there is room; the process gives way first.
-              { label: t("processInstances.colBusinessKey"), fit: true },
-              // The state and an open incident on one line in one column, right after the ids as
-              // the webview has it, so a narrow chat that scrolls the table sideways still shows it.
-              { label: t("processInstances.colState") },
-              scopedKey
-                ? { label: t("processInstances.colVersion") }
-                : { label: t("processInstances.colProcess") },
-              // Pinned from 40rem up only, as in the incident tables: in a narrower region the
-              // actions scroll with the row, so they never cover the instance or its state.
-              { label: t("processInstances.colActions"), align: "right", sticky: "sm" },
-            ]}
+            columns={instanceColumns(t, !!scopedKey, actions)}
           >
             {paged.items.map((row) => (
               <InstanceRow
@@ -221,6 +237,7 @@ export function ProcessInstancesView({
                 processDefinitionKey={scopedKey}
                 engine={engine}
                 showProcessColumn={!scopedKey}
+                actions={actions}
                 onOpen={(instance) =>
                   go({
                     type: "instance-detail",

@@ -122,6 +122,14 @@ describe("ListTable: the table never widens the document (U2, WCAG 1.4.10)", () 
     expect(css).toContain(
       `${at} tr > :nth-child(4) { position: sticky; right: 0; z-index: 1; background-color: inherit; }`,
     )
+    // A focused row's outline runs on over the pinned cell, which draws its part above its surface.
+    expect(css).toContain(
+      `${at} tr:focus-visible > :nth-child(4)::after { content: ""; position: absolute; inset: 0 0 -1px calc(var(--focus-width) * -1 - 1px); outline: var(--focus-width) solid var(--focus); outline-offset: calc(var(--focus-width) * -1); clip-path: inset(0 0 0 calc(var(--focus-width) + 1px)); pointer-events: none; }`,
+    )
+    // Under forced colours in the Highlight a focused row's own outline takes.
+    expect(css).toContain(
+      `@media (forced-colors: active) { ${at} tr:focus-visible > :nth-child(4)::after { outline-color: Highlight; forced-color-adjust: none; } }`,
+    )
     // The rows' surface in the components layer, under the utilities a row's hover fill comes
     // from: unlayered, it would beat them whatever their specificity.
     expect(css).toContain(
@@ -219,9 +227,12 @@ describe("listTableCss", () => {
   it("pins the row actions only from a breakpoint up when it names one", () => {
     const css = listTableCss("s", [{ label: "A" }, { plain: true, sticky: "sm" }])
     const at = `[data-list-table="s"]`
+    // The focus the pinned cell draws goes with it: below the breakpoint the cell is no box of its
+    // own to draw in, and the row's outline runs whole.
     expect(css).toContain(
-      `@container (min-width: 40rem) { ${at} tr > :nth-child(2) { position: sticky; right: 0; z-index: 1; background-color: inherit; } }`,
+      `@container (min-width: 40rem) { ${at} tr > :nth-child(2) { position: sticky; right: 0; z-index: 1; background-color: inherit; } ${at} tr:focus-visible > :nth-child(2)::after { content: ""; position: absolute;`,
     )
+    expect(css).not.toMatch(/^\[data-list-table="s"\] tr:focus-visible/m)
     expect(css).not.toMatch(/^\[data-list-table="s"\] tr > :nth-child\(2\) \{ position: sticky/m)
     // Below it the column scrolls with the row: its head's word is a screen reader's only.
     expect(css).toContain(
@@ -324,6 +335,11 @@ describe("ListTable: column groups (a head over adjacent columns)", () => {
     expect(css).toContain(
       `${at} tr[data-list-table-groups] > :nth-child(5) { position: sticky; right: 0; z-index: 1; background-color: inherit; }`,
     )
+    // Only a body row takes focus: the group row draws none.
+    expect(css).toContain(
+      `${at} tr:not([data-list-table-groups]):focus-visible > :nth-child(6)::after`,
+    )
+    expect(css).not.toContain("[data-list-table-groups]:focus-visible")
   })
 
   it("refuses groups that do not cover each column once, or a hidden column in a span", () => {

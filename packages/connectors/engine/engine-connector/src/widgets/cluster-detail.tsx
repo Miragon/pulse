@@ -1,4 +1,5 @@
 import {
+  Button,
   LogText,
   NamedId,
   SectionHeading,
@@ -12,11 +13,11 @@ import {
   StatusBadge,
   WidgetHeader,
   PagedListFooter,
-  DrillButton,
   SITUATION_TONES,
 } from "@miragon/pulse-ui"
 import {
   HandOffButton,
+  ListRow,
   ListTable,
   PagedRows,
   ViewDataState,
@@ -185,21 +186,34 @@ function spansProcesses(data: ClusterDetailData): boolean {
   return data.processDefinitionKeys.length > 1
 }
 
-/** One affected instance (#322 U2, U13). */
+/**
+ * One affected instance (#322 U2, U13): the row opens the instance on a click or Enter and copies
+ * its id on Ctrl or Cmd with C (one row convention); its incident opens by the button at the row's
+ * end, which does not open the row.
+ */
 function IncidentRow({
   row,
   activityName,
   showProcess,
+  actions,
 }: {
   row: ClusterIncidentRow
   activityName: string | null
   showProcess: boolean
+  /** The table has a column of row actions (a row of the page has an incident to open). */
+  actions: boolean
 }) {
   const go = useNav()
   const t = useT()
   const label = instanceName(row.processInstanceId, row.businessKey)
   return (
-    <tr>
+    <ListRow
+      label={t("clusterDetail.rowLabel", { ref: label })}
+      onOpen={() =>
+        go({ type: "instance-detail", processInstanceId: row.processInstanceId, label })
+      }
+      copy={row.processInstanceId}
+    >
       <Td>
         <InstanceLabel id={row.processInstanceId} businessKey={row.businessKey} />
       </Td>
@@ -211,35 +225,29 @@ function IncidentRow({
       <Td align="right" className="text-muted-foreground text-small whitespace-nowrap">
         {formatTimestamp(row.incidentTimestamp)}
       </Td>
-      <Td align="right">
-        <div className="inline-flex items-center justify-end gap-1">
-          <DrillButton
-            size="xs"
-            onDrill={() =>
-              go({ type: "instance-detail", processInstanceId: row.processInstanceId, label })
-            }
-            ariaLabel={t("clusterDetail.openInstanceAria", { ref: label })}
-          >
-            {t("clusterDetail.instance")}
-          </DrillButton>
+      {actions && (
+        <Td align="right">
+          {/* A row's actions are xs, so the row keeps the row height (28 px). */}
           {row.incidentId && (
-            <DrillButton
+            <Button
+              type="button"
+              variant="outline"
               size="xs"
-              onDrill={() =>
+              onClick={() =>
                 go({
                   type: "incident-detail",
                   incidentId: row.incidentId,
                   label: activityName ?? undefined,
                 })
               }
-              ariaLabel={t("clusterDetail.openIncidentAria", { ref: label })}
+              aria-label={t("clusterDetail.openIncidentAria", { ref: label })}
             >
               {t("clusterDetail.incident")}
-            </DrillButton>
+            </Button>
           )}
-        </div>
-      </Td>
-    </tr>
+        </Td>
+      )}
+    </ListRow>
   )
 }
 
@@ -267,6 +275,7 @@ function ClusterDetailView({
     selectTotal: (d) => d.totalMatching,
   })
   const data = paged.firstPage
+  const incidentActions = paged.items.some((row) => !!row.incidentId)
 
   if (!data) {
     // Loading or failed, the route keeps its title, the page's one heading.
@@ -330,8 +339,17 @@ function ClusterDetailView({
                     // table fits without scrolling under its pinned actions.
                     { label: t("clusterDetail.colOccurred"), align: "right", hideBelow: "md" },
                     // Pinned from 40rem up only, as in the incident tables: in a narrower region
-                    // the actions scroll with the row, so they never cover the instance.
-                    { label: t("clusterDetail.colActions"), align: "right", sticky: "sm" },
+                    // the actions scroll with the row, so they never cover the instance. Only
+                    // while a row has an incident to open: the row itself opens the instance.
+                    ...(incidentActions
+                      ? [
+                          {
+                            label: t("clusterDetail.colActions"),
+                            align: "right" as const,
+                            sticky: "sm" as const,
+                          },
+                        ]
+                      : []),
                   ]}
                 >
                   {paged.items.map((row) => (
@@ -342,6 +360,7 @@ function ClusterDetailView({
                       row={row}
                       activityName={data.activityName}
                       showProcess={spansProcesses(data)}
+                      actions={incidentActions}
                     />
                   ))}
                 </ListTable>

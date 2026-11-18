@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import {
   TestViewHost,
@@ -136,23 +136,20 @@ describe("the cockpit's board view", () => {
     expect(screen.queryByText(/no longer exists/)).toBeNull()
   })
 
-  it("opens a row's instance or incident on the cockpit's own routes, by an xs drill", () => {
+  it("opens a row's instance on the cockpit's own routes on a click or Enter, no drill in it", () => {
     const { intents } = renderBoard()
     const instances = screen.getByRole("region", { name: "Instances" })
-    const drills = within(instances).getAllByRole("button", { name: /^Open instance/ })
-    expect(drills[0].getAttribute("data-size") ?? drills[0].className).toMatch(/xs|h-control-xs/)
-    fireEvent.click(drills[0])
-    expect(intents).toEqual([
-      {
-        type: "board-target",
-        engine: "prod-a",
-        view: {
-          section: "instance-detail",
-          processInstanceId: RUNNING_INSTANCE,
-          label: "INV-0042",
-        },
-      },
-    ])
+    expect(within(instances).queryAllByRole("button", { name: /^Open/ })).toEqual([])
+    expect(within(instances).queryByRole("columnheader", { name: "Actions" })).toBeNull()
+    const row = within(instances).getAllByRole("row", { name: /^Instance / })[0]
+    fireEvent.click(row.querySelector("td")!)
+    fireEvent.keyDown(row, { key: "Enter" })
+    const opened = {
+      type: "board-target",
+      engine: "prod-a",
+      view: { section: "instance-detail", processInstanceId: RUNNING_INSTANCE, label: "INV-0042" },
+    }
+    expect(intents).toEqual([opened, opened])
   })
 
   it("opens a ready engine's overview from its chip", () => {
@@ -232,6 +229,38 @@ describe("the cockpit's board view", () => {
       ),
     ).toBeTruthy()
     expect(screen.getByRole("region", { name: "Instanzen mit Incident" })).toBeTruthy()
-    expect(screen.getAllByRole("button", { name: /^Instanz .* öffnen$/ }).length).toBeGreaterThan(0)
+    const row = screen.getAllByRole("row", { name: /^Instanz [^ ]+$/ })[0]
+    const hint = document.getElementById(row.getAttribute("aria-describedby") ?? "")
+    expect(hint?.textContent).toBe("Enter öffnet die Zeile, Strg oder Cmd+C kopiert ihre ID.")
   })
+
+  it.each([
+    [
+      "en",
+      "Incidents",
+      "Enter opens the row, Ctrl or Cmd+C copies its incident message.",
+      "Incident message copied",
+    ],
+    [
+      "de",
+      "Incidents",
+      "Enter öffnet die Zeile, Strg oder Cmd+C kopiert ihre Incident-Meldung.",
+      "Incident-Meldung kopiert",
+    ],
+  ])(
+    "says in %s that an incident row copies its message, and its toast names it",
+    async (locale, table, hintText, toast) => {
+      const writeText = vi.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined)
+      Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } })
+      renderBoard({ locale })
+      const [row] = within(screen.getByRole("table", { name: table })).getAllByRole("row", {
+        name: /^Instan/,
+      })
+      const hint = document.getElementById(row.getAttribute("aria-describedby") ?? "")
+      expect(hint?.textContent).toBe(hintText)
+      fireEvent.keyDown(row, { key: "c", ctrlKey: true })
+      expect(await screen.findByText(toast)).toBeTruthy()
+      expect(writeText).toHaveBeenCalledWith("Approver lookup failed")
+    },
+  )
 })

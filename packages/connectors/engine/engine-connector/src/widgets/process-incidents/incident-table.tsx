@@ -3,7 +3,6 @@ import {
   Button,
   cn,
   PagedListFooter,
-  DrillButton,
   formatTimestamp,
   LogText,
   NamedId,
@@ -13,6 +12,7 @@ import {
 import {
   FIT_CONTINUES_ROW,
   HandOffButton,
+  ListRow,
   ListTable,
   type ListTableColumn,
   OpenInCockpitLink,
@@ -24,13 +24,14 @@ import {
 import type { ActivityIncidentsData, IncidentInstance } from "../../view-models.js"
 import { ENGINE_ACTIVITY_INCIDENTS_DATA } from "../../tool-names.js"
 import { useHandOff, useHandOffsShown, type HandOff } from "../lib/hand-off.js"
-import { useT } from "../../messages/use-t.js"
+import { useT, type T } from "../../messages/use-t.js"
 import { EngineActionDialog } from "../lib/engine-action-dialog.js"
 import { useIncidentRecovery, type IncidentRecoveryState } from "./use-incident-recovery.js"
 import { InstanceLabel, NARROW_SUBJECT_FLOOR } from "../lib/identity.js"
 import { DoneMark } from "../lib/done-mark.js"
 import { MoreActions } from "../lib/more-actions.js"
 import { WriteError } from "../lib/write-error.js"
+import { instanceName } from "../lib/write-feedback.js"
 
 /** Mirrors the feed's server default. */
 const INCIDENT_PAGE_SIZE = 10
@@ -108,6 +109,27 @@ function IncidentMessage({ incident }: { incident: IncidentInstance }) {
   )
 }
 
+/**
+ * What a row opens, its accessible name: the incident, by its instance or by its element and its
+ * time, since an instance can hold several incidents at one element.
+ */
+function rowLabel(t: T, incident: IncidentInstance, byInstance: boolean) {
+  return byInstance
+    ? t("procIncTable.rowLabelInstance", {
+        name: instanceName(incident.processInstanceId, incident.businessKey),
+      })
+    : t("procIncTable.rowLabelElement", {
+        element: incident.activityName ?? incident.activityId ?? incident.id,
+        time: formatTimestamp(incident.incidentTimestamp),
+      })
+}
+
+/**
+ * The incidents of an activity (by instance) or of an instance (by element), one line each: a row
+ * opens its incident on a click or Enter and copies its id on Ctrl or Cmd with C (one row
+ * convention, as the webview's lists), its write and its menu at the row's end open nothing, and a
+ * row whose incident is done opens nothing either.
+ */
 export function IncidentTable({
   incidents,
   recovery,
@@ -128,6 +150,16 @@ export function IncidentTable({
   const { ask } = useHandOff()
   const handOffs = useHandOffsShown()
   const byInstance = subject === "instance"
+  // The row itself opens its incident: a column of actions only while a row shows one (a write,
+  // its result, the menu).
+  const actions =
+    handOffs ||
+    incidents.some(
+      (incident) =>
+        recovery.isDone(incident) ||
+        recovery.actionFor(incident) !== null ||
+        !!incident.cockpitInstanceUrl,
+    )
 
   // Each row is one line at the row height: the subject, the time and the actions fit their
   // content, the message takes the rest (#322 U2: the summary row above names first and latest).
@@ -146,12 +178,16 @@ export function IncidentTable({
     // Pinned from 40rem up only: in a narrower region a pinned column would cover the message, so
     // the actions scroll with the row and the message keeps its 10rem in view. Right-aligned, its
     // head over its buttons, as every table's row actions.
-    {
-      label: t("procIncTable.columnActions"),
-      align: "right" as const,
-      sticky: "sm" as const,
-      fit: true,
-    },
+    ...(actions
+      ? [
+          {
+            label: t("procIncTable.columnActions"),
+            align: "right" as const,
+            sticky: "sm" as const,
+            fit: true,
+          },
+        ]
+      : []),
   ]
 
   // The table on the surface it lies on, its head the kit's (`Th` paints `--table-surface`): the
@@ -170,7 +206,11 @@ export function IncidentTable({
         const instanceUrl = incident.cockpitInstanceUrl
         return (
           <Fragment key={incident.id}>
-            <tr>
+            <ListRow
+              label={rowLabel(t, incident, byInstance)}
+              onOpen={done ? undefined : () => onAnalyze(incident.id)}
+              copy={incident.id}
+            >
               <Td>
                 {byInstance ? (
                   // One instance label (#322 U13): its business key, the UUID a copyable chip.
@@ -188,40 +228,39 @@ export function IncidentTable({
               <Td align="right" className="text-muted-foreground text-small">
                 {formatTimestamp(incident.incidentTimestamp)}
               </Td>
-              <Td align="right">
-                {done ? (
-                  // Done in words, never a dimmed row that reads as disabled (#322 U11).
-                  <DoneMark>
-                    {retried ? t("procIncTable.retried") : t("procIncTable.resolved")}
-                  </DoneMark>
-                ) : (
-                  // A row's actions are xs, so the row keeps the row height (28 px).
-                  <div className="inline-flex items-center justify-end gap-1">
-                    <DrillButton
-                      size="xs"
-                      onDrill={() => onAnalyze(incident.id)}
-                      ariaLabel={t("procIncTable.openIncidentDetail")}
-                    >
-                      {t("procIncTable.open")}
-                    </DrillButton>
-                    <RecoveryButton incident={incident} recovery={recovery} />
-                    {/* A menu only while one of its entries shows. */}
-                    {(instanceUrl || handOffs) && (
-                      <MoreActions label={t("procIncTable.moreActions")}>
-                        {instanceUrl && (
-                          <OpenInCockpitLink url={instanceUrl} vendor={vendor} variant="menuitem" />
-                        )}
-                        <HandOffButton
-                          action="draftTicket"
-                          variant="menuitem"
-                          prompt={ask(draftIncidentTicketHandOff(incident, engine))}
-                        />
-                      </MoreActions>
-                    )}
-                  </div>
-                )}
-              </Td>
-            </tr>
+              {actions && (
+                <Td align="right">
+                  {done ? (
+                    // Done in words, never a dimmed row that reads as disabled (#322 U11).
+                    <DoneMark>
+                      {retried ? t("procIncTable.retried") : t("procIncTable.resolved")}
+                    </DoneMark>
+                  ) : (
+                    // A row's actions are xs, so the row keeps the row height (28 px).
+                    <div className="inline-flex items-center justify-end gap-1">
+                      <RecoveryButton incident={incident} recovery={recovery} />
+                      {/* A menu only while one of its entries shows. */}
+                      {(instanceUrl || handOffs) && (
+                        <MoreActions label={t("procIncTable.moreActions")}>
+                          {instanceUrl && (
+                            <OpenInCockpitLink
+                              url={instanceUrl}
+                              vendor={vendor}
+                              variant="menuitem"
+                            />
+                          )}
+                          <HandOffButton
+                            action="draftTicket"
+                            variant="menuitem"
+                            prompt={ask(draftIncidentTicketHandOff(incident, engine))}
+                          />
+                        </MoreActions>
+                      )}
+                    </div>
+                  )}
+                </Td>
+              )}
+            </ListRow>
             {/* The error line belongs to its incident: one item in the fit. */}
             {error && (
               <tr {...FIT_CONTINUES_ROW}>

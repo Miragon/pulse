@@ -119,6 +119,34 @@ test.describe("the cockpit as a page", () => {
     await expectEngineSections(page, ["Overview", "Incidents", "Jobs"])
   })
 
+  // One row convention on every surface (owner direction 2026-11-18): a page's rows open as the
+  // chat's and the webview's do, each named by what it opens, with no column of drills.
+  test("a row opens what it names on Enter or a click, as in the chat and the webview", async ({
+    page,
+  }) => {
+    await signIn(page, OVERVIEW_PAGE)
+    const process = page
+      .getByRole("table", { name: DEFINITIONS_TABLE })
+      .getByRole("row", { name: "Process Invoice Receipt" })
+    await expect(process).toBeVisible({ timeout: 15_000 })
+    await process.focus()
+    await page.keyboard.press("Enter")
+    await expect(page.getByRole("heading", { level: 1, name: "Invoice Receipt" })).toBeVisible({
+      timeout: 15_000,
+    })
+    // An instance's incidents: a click on a row opens its incident, no drill in it.
+    await page.goto(`${originOf()}${INSTANCE_PAGE}`)
+    const incidents = page.getByRole("region", { name: "Incidents of this instance" })
+    const incident = incidents.getByRole("row", { name: /^Incident at chargeCard, / })
+    await expect(incident).toBeVisible({ timeout: 15_000 })
+    await expect(incidents.getByRole("button", { name: /^Open\b/ })).toHaveCount(0)
+    await expectNoAxeFinding(page)
+    await incident.getByRole("cell").first().click()
+    await expect(page.getByRole("heading", { level: 1, name: "chargeCard" })).toBeVisible({
+      timeout: 15_000,
+    })
+  })
+
   test("hides the chat's hand-offs, and every menu, column or section that holds them alone", async ({
     page,
   }) => {

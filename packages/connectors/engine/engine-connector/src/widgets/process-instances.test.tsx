@@ -1,11 +1,12 @@
 // @vitest-environment happy-dom
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { complementaryFlags } from "@miragon/pulse-c7-core"
 import { ENGINE_PROCESS_INSTANCES_DATA } from "../tool-names.js"
 import type { ProcessInstancesData } from "../view-models.js"
 import { ProcessInstancesView } from "./process-instances/list.js"
-import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
+import { NavProvider, type NavIntent } from "./navigation.js"
+import { TestViewHost, type FollowUp } from "@miragon/pulse-widget-shell/widgets"
 
 // #329: the feed maps a `false` run-state flag onto its complement, so every refetch must carry the
 // SAME filter or later pages mix in rows page 0 excluded. The route's scope comes from its props.
@@ -115,11 +116,6 @@ describe("the engine-wide list's columns", () => {
     const process = screen.getAllByText("Invoice receipt")[0].closest("button")!
     // One line in the cell: the name, the key, the version.
     expect(process.textContent).toBe("Invoice receipt invoice · v7")
-    // A row's "Open" is the xs button (24 px, 13 px, 600), level with its icon buttons, so the row
-    // keeps the row height.
-    const open = screen.getAllByRole("button", { name: /^Open instance/ })[0]
-    expect(open.className).toMatch(/(^| )min-h-control-xs( |$)/)
-    expect(open.className).toMatch(/\bfont-semibold\b/)
     // The aria-label replaces the content for a screen reader, so it must state the version.
     expect(process.getAttribute("aria-label")).toBe("Open process Invoice receipt, version 7")
   })
@@ -274,5 +270,64 @@ describe("the scope segments' counts", () => {
     expect(count(scope(/^All/)).shown).toBe("13")
     expect(screen.getByRole("radiogroup").getAttribute("aria-busy")).toBe("false")
     expect(screen.getByText("4 running")).toBeTruthy()
+  })
+})
+
+// One row convention on every surface (owner direction 2026-11-18): a row opens its instance on a
+// click or Enter, as the webview's list; no drill, its hand-off the one control at its end.
+describe("the list's rows open their instance", () => {
+  function list(followUp: FollowUp = "chat", withIncident = true) {
+    const page = firstPage({})
+    const data: ProcessInstancesData = {
+      ...page,
+      processDefinitionKey: null,
+      instances: page.instances.map((row, index) => ({
+        ...row,
+        processDefinitionName: "Invoice receipt",
+        hasIncident: withIncident && index === 1,
+      })),
+    }
+    const go = vi.fn<(intent: NavIntent) => void>()
+    render(
+      <TestViewHost followUp={followUp}>
+        <NavProvider value={go}>
+          <ProcessInstancesView data={data} engine="prod" />
+        </NavProvider>
+      </TestViewHost>,
+    )
+    return go
+  }
+
+  it("opens on a click or Enter, named by what it opens, and its process by its own link", () => {
+    const go = list()
+    const row = screen.getByRole("row", { name: "Instance BK-pi-1" })
+    expect(row.getAttribute("tabindex")).toBe("0")
+    fireEvent.click(within(row).getAllByRole("cell")[1])
+    fireEvent.keyDown(row, { key: "Enter" })
+    fireEvent.click(within(row).getByRole("button", { name: /^Open process/ }))
+    expect(go.mock.calls.map(([intent]) => intent)).toEqual([
+      { type: "instance-detail", processInstanceId: "pi-1", label: "BK-pi-1" },
+      { type: "instance-detail", processInstanceId: "pi-1", label: "BK-pi-1" },
+      { type: "process-detail", processDefinitionKey: "invoice", label: "Invoice receipt" },
+    ])
+    expect(screen.queryAllByRole("button", { name: /^Open instance/ })).toEqual([])
+  })
+
+  it("keeps the hand-off at the row's end, which opens nothing", () => {
+    const go = list()
+    const row = screen.getByRole("row", { name: "Instance BK-pi-2" })
+    fireEvent.click(within(row).getByRole("button", { name: /chat/ }))
+    expect(go).not.toHaveBeenCalled()
+    expect(screen.getAllByRole("columnheader").map((th) => th.textContent)).toContain("Actions")
+  })
+
+  it("has no column of actions where no row shows one: no incident, or a page without a chat", () => {
+    list("chat", false)
+    expect(screen.getAllByRole("columnheader").map((th) => th.textContent)).not.toContain("Actions")
+    cleanup()
+    list("none")
+    expect(screen.getAllByRole("columnheader").map((th) => th.textContent)).not.toContain("Actions")
+    const row = screen.getByRole("row", { name: "Instance BK-pi-2" })
+    expect(within(row).queryAllByRole("button", { name: /chat/ })).toEqual([])
   })
 })

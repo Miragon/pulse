@@ -30,7 +30,7 @@ class BoardIntents {
 
 function BoardTable<Row>(props: BoardTableProps<Row>) {
   const host = useHost()
-  const { label, columns, rows, rowKey, onOpen, copyOf, empty, footer } = props
+  const { label, columns, rows, rowKey, onOpen, rowLabel, copyOf, copyHint, empty, footer } = props
   return (
     <DataTable
       label={label}
@@ -45,10 +45,12 @@ function BoardTable<Row>(props: BoardTableProps<Row>) {
         onActivate: (row, toSide) => {
           onOpen(row, { toSide })
         },
+        rowLabel,
         onCopy: (row) => {
           const copy = copyOf(row)
           host.post({ type: "copy", text: copy.text, label: copy.label })
         },
+        ...(copyHint === undefined ? {} : { copyHint }),
       }}
       empty={empty}
       footer={footer}

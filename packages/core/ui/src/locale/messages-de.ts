@@ -42,6 +42,8 @@ export const de: UiMessages = {
     widerColumn: "Breiter",
     narrowerColumn: "Schmaler",
     resetColumns: "Alle Breiten zurücksetzen",
+    rowOpens: "Enter öffnet die Zeile.",
+    rowOpensCopies: "Enter öffnet die Zeile, Strg oder Cmd+C kopiert ihre ID.",
   },
   viewBar: { back: "Zurück", readOnly: "Nur Lesezugriff", writable: "Schreibzugriff" },
   copyableId: {

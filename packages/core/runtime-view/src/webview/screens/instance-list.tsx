@@ -134,6 +134,7 @@ export function InstanceList({ view, elementName, onFilter, refreshing, busy }: 
           onActivate: (row, toSide) => {
             host.post({ type: "openInstance", instanceId: row.id, toSide })
           },
+          rowLabel: (row) => `Instance ${row.businessKey ?? row.shortId}`,
           onCopy: (row) => {
             host.post({ type: "copy", text: row.id, label: "instance ID" })
           },

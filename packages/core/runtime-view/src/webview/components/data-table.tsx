@@ -5,6 +5,7 @@ import {
   type DataTableSelection,
 } from "@miragon/pulse-ui"
 import { useColumnSizing } from "./column-sizing.js"
+import { RowTargets, type RowActions } from "./row-targets.js"
 import { TableKeys } from "./table-keys.js"
 
 export interface Column<Row> {
@@ -13,12 +14,6 @@ export interface Column<Row> {
   readonly render: (row: Row) => ReactNode
   readonly header?: ReactNode
   readonly width?: number
-}
-
-interface RowActions<Row> {
-  readonly onActivate: (row: Row, toSide: boolean) => void
-  readonly onCopy?: (row: Row) => void
-  readonly onToggle?: (row: Row) => void
 }
 
 export interface DataTableProps<Row> {
@@ -102,14 +97,7 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
         columns={columns.map((column) => TableColumns.kit(column))}
         rows={rows}
         rowKey={rowKey}
-        {...(actions === undefined
-          ? {}
-          : {
-              onActivate: (row: Row, how: { toSide: boolean }) => {
-                actions.onActivate(row, how.toSide)
-              },
-            })}
-        {...(actions?.onCopy === undefined ? {} : { onCopy: actions.onCopy })}
+        {...RowTargets.kit(actions)}
         {...(props.selection === undefined ? {} : { selection: props.selection })}
         {...(skeletonRows === undefined ? {} : { skeletonRows })}
         {...(resizeId === undefined ? {} : { sizing })}

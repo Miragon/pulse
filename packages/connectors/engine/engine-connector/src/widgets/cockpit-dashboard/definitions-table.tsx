@@ -1,10 +1,10 @@
 import { useId, useState } from "react"
 import {
+  Button,
   formatNumber,
   FilterBar,
   ListFooter,
   useDebouncedValue,
-  DrillButton,
   SectionHeading,
 } from "@miragon/pulse-ui"
 import {
@@ -100,29 +100,24 @@ function ProcessDefinitionsSection({ view }: { view: ViewDataResult<CockpitDashb
         rows={rows}
         ariaLabel={t("cockpitDefs.tableAria")}
         emptyText={debouncedSearch ? t("cockpitDefs.noMatch") : t("cockpitDefs.emptyState")}
+        // The row opens its process; its instances are the one further action at its end.
+        onOpen={(row) =>
+          go({
+            type: "process-detail",
+            processDefinitionKey: row.key,
+            label: row.name ?? undefined,
+          })
+        }
         renderActions={(row) => (
-          <>
-            <DrillButton
-              size="xs"
-              onDrill={() => go({ type: "process-instances", processDefinitionKey: row.key })}
-              ariaLabel={t("cockpitDefs.viewInstancesAria", { name: row.name ?? row.key })}
-            >
-              {t("cockpitDefs.instancesAction")}
-            </DrillButton>
-            <DrillButton
-              size="xs"
-              onDrill={() =>
-                go({
-                  type: "process-detail",
-                  processDefinitionKey: row.key,
-                  label: row.name ?? undefined,
-                })
-              }
-              ariaLabel={t("cockpitDefs.openDetailAria", { name: row.name ?? row.key })}
-            >
-              {t("cockpitDefs.openAction")}
-            </DrillButton>
-          </>
+          <Button
+            type="button"
+            variant="outline"
+            size="xs"
+            onClick={() => go({ type: "process-instances", processDefinitionKey: row.key })}
+            aria-label={t("cockpitDefs.viewInstancesAria", { name: row.name ?? row.key })}
+          >
+            {t("cockpitDefs.instancesAction")}
+          </Button>
         )}
       />
       <ListFooter

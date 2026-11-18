@@ -354,6 +354,35 @@ describe("DataTable: a row as a target (keyboard and pointer)", () => {
     expect(onActivate).not.toHaveBeenCalled()
   })
 
+  it("names a row by rowLabel and tells a screen reader that Enter opens it, or copies too", () => {
+    render(
+      <DataTable
+        label="Orders"
+        columns={COLUMNS}
+        rows={ORDERS}
+        rowKey={(row) => row.id}
+        rowLabel={(row) => `Order ${row.id}`}
+        onActivate={() => undefined}
+      />,
+    )
+    const row = screen.getByRole("row", { name: "Order o-2" })
+    const hint = document.getElementById(row.getAttribute("aria-describedby") ?? "")
+    expect(hint?.textContent).toBe("Enter opens the row.")
+    cleanup()
+    render(<Orders />)
+    // Named by its cells without rowLabel; the hint says what Ctrl or Cmd with C does too.
+    const [first] = bodyRows()
+    expect(first.hasAttribute("aria-label")).toBe(false)
+    expect(document.getElementById(first.getAttribute("aria-describedby") ?? "")?.textContent).toBe(
+      "Enter opens the row, Ctrl or Cmd+C copies its ID.",
+    )
+    cleanup()
+    // Rows that open nothing carry no name, no hint, and the table holds no hint words.
+    render(<DataTable label="Orders" columns={COLUMNS} rows={ORDERS} rowKey={(row) => row.id} />)
+    expect(bodyRows()[0].hasAttribute("aria-describedby")).toBe(false)
+    expect(document.querySelectorAll("[hidden]")).toHaveLength(0)
+  })
+
   it("copies what a focused row names on Ctrl or Cmd with C", () => {
     const onCopy = vi.fn()
     render(<Orders onCopy={onCopy} />)

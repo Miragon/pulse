@@ -57,11 +57,11 @@ The tiles own their columns, cells, words, group notes, problems and the card; t
 the parts that follow its own conventions:
 
 - `Table`: a table over the tile's rows (`BoardTableProps`: a label, the columns with each cell,
-  the rows and their keys, `onOpen` for a row, `opens` for whether it opens anything, `openLabel`
-  for a row's drill, `copyOf` for a row's copy, what it says without rows and the notes under
-  them). Pulse for VS Code and Pulse for Orca open a row on a click or Enter and copy it with Ctrl
-  or Cmd+C; the cockpit gives a row a drill, none where it opens nothing, and fits the rows its
-  card has room for.
+  the rows and their keys, `onOpen` for a row, `opens` for whether it opens anything, `rowLabel`
+  for a row's accessible name, `copyOf` for a row's copy and `copyHint` for what a screen reader
+  hears it copies where that is no id, what it says without rows and the notes under them). Every surface opens a row on a click or Enter and copies it with Ctrl or Cmd+C, a
+  row that opens nothing a plain row; the cockpit fits the rows its card has room for, the editors
+  size their columns.
 - `Id`: an id a cell shows short (`BoardIdProps`: the id and what it names).
 - `Diagram`: the latest deployed version of a process with the counts on its elements
   (`BoardDiagramProps`: the engine, the definition, the badges, the canvas's name and `onSelect`
@@ -72,7 +72,7 @@ the parts that follow its own conventions:
   incident opens nothing, since no list shows only those.
 - `opens(target)`, optional: whether a target opens anything on the surface; without it every
   target does. One that opens nothing is offered nowhere: its count, summary row and diagram stay
-  text, its list row has no drill. The cockpit opens no view of an engine it shows on boards only
+  text, its list row opens nothing. The cockpit opens no view of an engine it shows on boards only
   (Camunda 8); Pulse for VS Code and Pulse for Orca open every target.
 - `onOpenFile`, optional: opens the board file; without it a refused tile offers no way to it.
 - `opensToSide`, optional: the titles say that Ctrl or Cmd with a click opens beside the view.
@@ -111,7 +111,8 @@ is a breaking change and says so in its changelog entry. They read the `BoardDat
 - Pulse for VS Code and Pulse for Orca: the runtime view's webview renders a board's tiles with
   its table (row activation, the copy keys, its hooks), its short id and its diagram canvas.
 - The Pulse MCP server: the cockpit's board route (`@miragon/pulse-engine-connector`) renders them
-  with widget-shell's table (a drill per row, the inline fit), its copyable id and its BPMN canvas.
+  with widget-shell's table (row activation, the copy keys, the inline fit), its copyable id and its
+  BPMN canvas.
 
 ## Help and feedback
 

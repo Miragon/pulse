@@ -14,8 +14,8 @@ export interface DrillButtonProps {
    */
   icon?: ReactNode
   /**
-   * `xs` in a table row (24 px, so the row keeps its 28 px height), `sm` beside a view's other
-   * controls, `md` for surface headers. Default `"sm"`.
+   * `xs` in a dense list card (24 px, beside its other row-height actions), `sm` beside a view's
+   * other controls, `md` for surface headers. Default `"sm"`.
    */
   size?: "xs" | "sm" | "md"
   /** Accessible label when the visible text is terse; keep the visible text in it (WCAG 2.5.3). */
@@ -26,15 +26,16 @@ export interface DrillButtonProps {
 const BUTTON_SIZE = { xs: "xs", sm: "sm", md: "lg" } as const
 
 /**
- * The single, deterministic in-widget navigation control: a neutral outline
- * button with a trailing Lucide arrow that drills into a detail/sub-view. Use
- * it for every in-app drill (row "Open", header nav) so they read identically
- * and stay visually quieter than primary/agentic actions. Decoupled from any
- * host: pass an `onDrill` callback (e.g. wrapping `useHostActions().showWidget`).
+ * The single, deterministic in-widget navigation control outside a table: a neutral outline
+ * button with a trailing Lucide arrow that drills into a detail/sub-view. Use it for every in-app
+ * drill (a card's way into its view, a header's) so they read identically and stay visually
+ * quieter than primary/agentic actions; a table row opens itself on a click or Enter
+ * (`DataTableRow`, a `DataTable`'s `onActivate`) and carries no drill. Decoupled from any host:
+ * pass an `onDrill` callback.
  *
- * It IS the kit's outline `Button` (`buttonVariants`): `xs` is the 24 px button of a table row
- * (the named deviation: a row's actions are xs, so a row stays the row height, 28 px, 40 px on
- * touch), its arrow the xs button's 12 px icon; `sm` is the control of the density roles (28 px,
+ * It IS the kit's outline `Button` (`buttonVariants`): `xs` is the 24 px button (the named
+ * deviation: a dense row's actions are xs, so it stays the row height, 28 px, 40 px on touch),
+ * its arrow the xs button's 12 px icon; `sm` is the control of the density roles (28 px,
  * 36 px on touch), 13 px, weight 600, the size of a `Button size="sm"` beside it; `md` is the
  * `Button` `lg` (36 px). The design system gives every button weight 600 and one radius.
  */

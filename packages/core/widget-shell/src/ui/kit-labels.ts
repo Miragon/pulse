@@ -19,6 +19,14 @@ export interface KitLabels {
   idCopied: string
   copyFailed: string
   copyFailedHint: string
+  /** A row's copy (Ctrl or Cmd with C, `ListRow`) of what is no id, by its name ("Incident message"). */
+  copiedOf: (label: string) => string
+  copyFailedOf: (label: string) => string
+  /**
+   * A row's copy that failed: where to copy it by hand. A row shows its id short, so the hint sends
+   * the reader to the view the row opens, which shows it whole.
+   */
+  rowCopyFailedHint: string
   /** A hand-off where the host posts to no chat: its prompt, copied for a chat of the user's own. */
   copyPrompt: (handOff: string) => string
   promptCopied: string
@@ -78,6 +86,9 @@ const LABELS: Record<Locale, KitLabels> = {
     idCopied: "ID copied",
     copyFailed: "Couldn't copy the ID",
     copyFailedHint: "The full ID is now selected. Copy it yourself.",
+    copiedOf: (label) => `${label} copied`,
+    copyFailedOf: (label) => `${label} not copied`,
+    rowCopyFailedHint: "Open the row and copy it from its view.",
     copyPrompt: (handOff) => `Copy prompt: ${handOff}`,
     promptCopied: "Prompt copied. Paste it into your chat.",
     promptCopyFailed: "Couldn't copy the prompt",
@@ -129,6 +140,9 @@ const LABELS: Record<Locale, KitLabels> = {
     idCopied: "ID kopiert",
     copyFailed: "Die ID ließ sich nicht kopieren",
     copyFailedHint: "Die ganze ID ist jetzt markiert. Kopier sie selbst.",
+    copiedOf: (label) => `${label} kopiert`,
+    copyFailedOf: (label) => `${label} nicht kopiert`,
+    rowCopyFailedHint: "Öffne die Zeile und kopier sie aus ihrer Ansicht.",
     copyPrompt: (handOff) => `Prompt kopieren: ${handOff}`,
     promptCopied: "Prompt kopiert. Füg ihn in deinen Chat ein.",
     promptCopyFailed: "Der Prompt ließ sich nicht kopieren",

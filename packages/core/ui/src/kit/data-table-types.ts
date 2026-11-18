@@ -99,8 +99,21 @@ export interface DataTableProps<Row = unknown> {
    * them.
    */
   onActivate?: (row: Row, how: RowActivation) => void
+  /**
+   * The accessible name of a row that opens (with `onActivate`): what it opens ("Instance
+   * ORD-1001"). Without it a row is named by its cells. Either way a screen reader learns that
+   * Enter opens it (and copies it, with `onCopy`).
+   */
+  rowLabel?: (row: Row) => string
   /** Ctrl or Cmd with C on a focused row copies what it names (with `rows`). */
   onCopy?: (row: Row) => void
+  /**
+   * What a screen reader hears after the name of a row that copies, where its copy is not its id
+   * ("Enter opens the row, Ctrl or Cmd+C copies its incident message."); without it the kit's words
+   * say that it copies its ID. It holds for the drawn rows (`onCopy`) and the composed ones
+   * (`DataTableRow`'s `onCopy`) alike.
+   */
+  copyHint?: string
   /**
    * A selection column before the first one (with `rows`, from `rowSelection`); Space on a focused
    * row toggles it.
@@ -132,4 +145,23 @@ export interface DataTableProps<Row = unknown> {
   className?: string
   /** Classes of the `<table>`. */
   tableClassName?: string
+}
+
+/**
+ * A row composed by hand (a `DataTable`'s `children`, `ListTable`'s rows) as a target, the drawn
+ * rows' `onActivate` for a composed body: a click on it (not on a control in it, not one that ends
+ * a text selection) or Enter opens it, Ctrl or Cmd with C copies it. The body gives its target rows
+ * one tab stop, the one focused last, and the arrows, Home and End move between them, past rows
+ * that open nothing. Without `onActivate` it is a plain row.
+ */
+export interface DataTableRowProps {
+  /** The row's accessible name: what it opens ("Instance ORD-1001"). */
+  label: string
+  /** Opens the row, Ctrl or Cmd held beside the view; without it the row opens nothing. */
+  onActivate?: (how: RowActivation) => void
+  /** Ctrl or Cmd with C on the focused row copies what it names (its id). */
+  onCopy?: () => void
+  className?: string
+  /** The row's cells (`Td`), one per column. */
+  children: ReactNode
 }

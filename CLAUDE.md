@@ -655,7 +655,7 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      (`BoardsOnlyEngineGate`), which reads nothing and names the boards that show it, under a head
      with only the sections its dialect is served by (`ROUTE_DIALECTS`: none) and a trail that
      names the engine; its landing row reads nothing and has no verdict, a board offers no way
-     into it (its tiles' drills and its chip open nothing: `BoardSlots.opens` of
+     into it (its tiles' rows and its chip open nothing: `BoardSlots.opens` of
      `@miragon/pulse-blocks`), and the cross-engine view leaves it out and names it. A route
      whose panels fail alike says it once, its first panel's state with a Try again that reads
      them all (the overview's verdict over its definitions, the incidents' KPIs over their list).
@@ -766,10 +766,17 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      (`action-group.test.tsx`), and a state goes into the header's `badge`, not an icon tile.
      `WidgetShell` pads nothing: its `header` (the bar, the strips under it) runs from edge to
      edge, its content sits in the gutter, and a `flush` shell's children are views of their own
-     (the cockpit's routes). A row's drill is `DrillButton` (`row-actions.test.ts`), its
-     further actions sit in `MoreActions`; a table row's actions are `xs` (24 px: `DrillButton`
-     `size="xs"`, a hand-off's `size="xs"`, `MoreActions`), so the row keeps the row height. A
-     chat hand-off is widget-shell's `HandOffButton` (`action` from `HAND_OFF_ACTIONS`: one Lucide
+     (the cockpit's routes). A table row opens what it names on a click or Enter and copies its
+     id with Ctrl or Cmd+C, one row convention on every surface (owner direction 2026-11-18, as
+     the webview's rows): widget-shell's `ListRow` over pulse-ui's `DataTableRow`, named by what
+     it opens, its hint telling a screen reader that Enter opens it, the table's one tab stop and
+     the arrows between its rows, its focus drawn over a pinned column too; text selected in a row
+     copies as selected, and a copy that is no id (a board's incident row, its message) is named
+     in the row's hint (`copyHint`) and its toast (`copyLabel`); a row carries no drill
+     (`row-actions.test.ts`), a drill outside tables (a card's) is `DrillButton`, `xs` but where
+     the gate names a card's reason. A row's further actions (a write, a hand-off,
+     `MoreActions`) sit at its end and open nothing, `xs` (24 px: a button's `size="xs"`, a
+     hand-off's `size="xs"`, `MoreActions`), so the row keeps the row height. A chat hand-off is widget-shell's `HandOffButton` (`action` from `HAND_OFF_ACTIONS`: one Lucide
      icon and one verb naming the chat per function), a secondary outline after the action it
      accompanies (in a view's bar its toolbar button); `scanGlyphs` bans sparkle icons and an
      ESLint gate a raw `AskAiButton`, so a new function goes into widget-shell's table.

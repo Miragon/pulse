@@ -91,8 +91,11 @@ describe("CockpitApp opens a board", () => {
   it("a tile opens its engine's route, and the trail's first crumb leads back to the board", async () => {
     renderBoardCockpit()
     const instances = screen.getByRole("region", { name: "Instances" })
-    expect(within(instances).getByRole("columnheader", { name: "Actions" })).toBeTruthy()
-    fireEvent.click(within(instances).getAllByRole("button", { name: /^Open instance/ })[0])
+    // The row itself opens its instance (one row convention): no drill, no column of actions.
+    expect(within(instances).queryByRole("columnheader", { name: "Actions" })).toBeNull()
+    fireEvent.keyDown(within(instances).getAllByRole("row", { name: /^Instance / })[0], {
+      key: "Enter",
+    })
     await waitFor(() => expect(activeEngine()).toBe("prod-a"))
     expect(boardHeading()).toBeNull()
     expect(within(trail()).getByRole("button", { name: "Overview" })).toBeTruthy()

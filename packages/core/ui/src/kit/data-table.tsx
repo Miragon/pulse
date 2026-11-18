@@ -1,4 +1,4 @@
-import { useId, type PointerEvent } from "react"
+import { useId, useState, type PointerEvent } from "react"
 import { useUiMessages } from "../locale/locale-provider.js"
 import { cn } from "../lib/utils.js"
 import { COLUMN_KEY_ATTRIBUTE, type ColumnSizer } from "./column-measure.js"
@@ -11,6 +11,7 @@ import {
   SELECTION_WIDTH,
   SkeletonBody,
 } from "./data-table-body.js"
+import { RowHintsContext, type RowHints } from "./data-table-target.js"
 import type { DataTableColumn, DataTableProps, DataTableSelection } from "./data-table-types.js"
 import { NamedIdLayoutContext } from "./named-id.js"
 import { SortLabel, thClasses } from "./table.js"
@@ -176,8 +177,15 @@ function fixedWidth<Row>(columns: ReadonlyArray<DataTableColumn<Row>>, selection
   return columns.reduce((sum, column) => sum + (column.width ?? 0), selection ? SELECTION_WIDTH : 0)
 }
 
-function Body<Row>(props: DataTableProps<Row> & { fitted: (key: string) => boolean }) {
-  const { columns, rows, rowKey, skeletonRows, bodyRef, children } = props
+/** What the table's body takes beyond its props: the fitted columns, the target rows' words. */
+interface BodyParts {
+  fitted: (key: string) => boolean
+  hints: RowHints
+  onTargets: (some: boolean) => void
+}
+
+function Body<Row>(props: DataTableProps<Row> & BodyParts) {
+  const { columns, rows, rowKey, skeletonRows, bodyRef, children, hints } = props
   if (skeletonRows !== undefined) {
     const count = columns.length + (props.selection ? 1 : 0)
     return <SkeletonBody columns={count} count={skeletonRows} />
@@ -185,9 +193,11 @@ function Body<Row>(props: DataTableProps<Row> & { fitted: (key: string) => boole
   if (rows === undefined || rowKey === undefined) {
     const fitted = columns.flatMap((column, index) => (props.fitted(column.key) ? [index] : []))
     return (
-      <ComposedBody fitted={fitted} bodyRef={bodyRef}>
-        {children}
-      </ComposedBody>
+      <RowHintsContext.Provider value={hints}>
+        <ComposedBody fitted={fitted} bodyRef={bodyRef} onTargets={props.onTargets}>
+          {children}
+        </ComposedBody>
+      </RowHintsContext.Provider>
     )
   }
   return (
@@ -196,7 +206,9 @@ function Body<Row>(props: DataTableProps<Row> & { fitted: (key: string) => boole
       rows={rows}
       rowKey={rowKey}
       onActivate={props.onActivate}
+      rowLabel={props.rowLabel}
       onCopy={props.onCopy}
+      hint={hints(props.onCopy !== undefined)}
       selection={props.selection}
       bodyRef={bodyRef}
       fitted={props.fitted}
@@ -204,9 +216,29 @@ function Body<Row>(props: DataTableProps<Row> & { fitted: (key: string) => boole
   )
 }
 
+/**
+ * The words a screen reader hears after a target row's name, hidden and referenced by each such
+ * row (`aria-describedby`): Enter opens it, or opens it and Ctrl or Cmd with C copies its id, or
+ * what the table's `copyHint` names.
+ */
+function RowHintWords({ id, copyHint }: { id: string; copyHint: string | undefined }) {
+  const { dataTable } = useUiMessages()
+  return (
+    <>
+      <span hidden id={`${id}-opens`}>
+        {dataTable.rowOpens}
+      </span>
+      <span hidden id={`${id}-copies`}>
+        {copyHint ?? dataTable.rowOpensCopies}
+      </span>
+    </>
+  )
+}
+
 /** The part of the table that scrolls: the head, the body and what follows them. */
 function TableBody<Row>(
-  props: DataTableProps<Row> & { head: HeadSizing | undefined; sized: ReadonlyArray<string> },
+  props: DataTableProps<Row> &
+    Omit<BodyParts, "fitted"> & { head: HeadSizing | undefined; sized: ReadonlyArray<string> },
 ) {
   const { label, columns, rows, selection, skeletonRows, head, sized, headRows, foot } = props
   const widths = head?.sizer.widths
@@ -262,7 +294,9 @@ function TableBody<Row>(
  * one line each, the columns fitting their content and one taking the rest (`fill`, else the
  * last), with an optional row target (`onActivate`, one tab stop, the arrows between rows), copy
  * and selection column (`selection` from `rowSelection`); or `children`, rows composed by hand and
- * laid out by their content, where a column marked `fit` fits its one line as a drawn one does.
+ * laid out by their content, where a column marked `fit` fits its one line as a drawn one does and
+ * a `DataTableRow` is a target as a drawn row is. A target row is named (`rowLabel`, a
+ * `DataTableRow`'s `label`) and tells a screen reader that Enter opens it.
  * Either way the heads keep one line, a `NamedId` in the body takes one line that gives way first
  * where the region is short of room, the columns can be sized by mouse and keyboard (`sizing`
  * from `useColumnSizing`, with a grip and a menu per head, each head named by its caption), and
@@ -278,7 +312,10 @@ export function DataTable<Row = unknown>(props: DataTableProps<Row>) {
     sizing && keys.length > 0
       ? { sizer: sizing.parts.sizer(keys), Head: sizing.parts.Head }
       : undefined
-  const targets = rows !== undefined && rows.length > 0 && onActivate !== undefined
+  const hintId = useId()
+  const hints: RowHints = (copies) => `${hintId}-${copies ? "copies" : "opens"}`
+  const [composedTargets, setComposedTargets] = useState(false)
+  const targets = rows === undefined ? composedTargets : rows.length > 0 && onActivate !== undefined
   const showEmpty = rows !== undefined && rows.length === 0 && skeletonRows === undefined
   return (
     <div
@@ -298,9 +335,16 @@ export function DataTable<Row = unknown>(props: DataTableProps<Row>) {
         tabIndex={targets ? undefined : 0}
         className="peer scroll-pt-row @container relative min-h-0 w-full min-w-0 flex-1 overflow-auto rounded-sm focus-visible:outline-none"
       >
-        <TableBody {...props} head={head} sized={keys} />
+        <TableBody
+          {...props}
+          head={head}
+          sized={keys}
+          hints={hints}
+          onTargets={setComposedTargets}
+        />
         {showEmpty && empty}
         {footer !== undefined && <div className="px-cell flex justify-center py-2">{footer}</div>}
+        {targets && <RowHintWords id={hintId} copyHint={props.copyHint} />}
       </div>
       <span aria-hidden="true" data-slot="data-table-ring" className={REGION_RING} />
     </div>

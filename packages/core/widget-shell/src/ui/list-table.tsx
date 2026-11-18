@@ -135,9 +135,13 @@ export function listTableCss(
       // The pinned cell inherits its row's background (hover, selection). The rows' surface sits in
       // the `components` layer: unlayered it would beat every utility, a row's hover fill (in
       // `utilities`) included, whatever the specificity.
-      const pinned = cells.map(
-        (cell) => `${cell} { position: sticky; right: 0; z-index: 1; background-color: inherit; }`,
-      )
+      const pinned = [
+        ...cells.map(
+          (cell) =>
+            `${cell} { position: sticky; right: 0; z-index: 1; background-color: inherit; }`,
+        ),
+        ...pinnedFocus(rows, index),
+      ]
       rules.push(
         `@layer components { :where(${at} tbody tr), :where(${at} thead tr) { background-color: ${SURFACE}; } }`,
         ...(column.sticky === true ? pinned : pinnedFrom(at, column.sticky, pinned)),
@@ -146,6 +150,32 @@ export function listTableCss(
   })
   return rules.join("\n")
 }
+
+/**
+ * A focused row draws its focus as an outline inside its edge (pulse-ui's `DataTableRow`), which
+ * the pinned cell's opaque surface would cover at the row's end: the pinned cell draws that part
+ * itself, above its surface, as the same outline over its rule below, its left side clipped away
+ * (it starts one outline's width and a pixel before the cell, so no sliver of it shows where the
+ * cell starts between two pixels). Forced colours paint a focused element's outline in Highlight,
+ * the pinned part too.
+ */
+function pinnedFocus(rows: string, index: number): string[] {
+  const ring = `${rows}:focus-visible > :nth-child(${index + 1})::after`
+  return [
+    `${ring} { ${PINNED_FOCUS} }`,
+    `@media (forced-colors: active) { ${ring} { outline-color: Highlight; forced-color-adjust: none; } }`,
+  ]
+}
+
+const PINNED_FOCUS = [
+  'content: ""',
+  "position: absolute",
+  "inset: 0 0 -1px calc(var(--focus-width) * -1 - 1px)",
+  "outline: var(--focus-width) solid var(--focus)",
+  "outline-offset: calc(var(--focus-width) * -1)",
+  "clip-path: inset(0 0 0 calc(var(--focus-width) + 1px))",
+  "pointer-events: none;",
+].join("; ")
 
 /** Pinned from `from` up; below it the column scrolls and its head's word is for a screen reader. */
 function pinnedFrom(at: string, from: ColumnBreakpoint, pinned: string[]): string[] {
@@ -205,6 +235,7 @@ export function ListTable({
   groups,
   ariaLabel,
   wrapHeads,
+  copyHint,
   className,
   children,
 }: {
@@ -217,6 +248,11 @@ export function ListTable({
    * every column in view (pulse-ui's `DataTable` `wrapHeads`); by default a caption keeps one line.
    */
   wrapHeads?: boolean
+  /**
+   * What a screen reader hears after the name of a row that copies, where its copy (`ListRow`'s
+   * `copyLabel`) is no id: pulse-ui's `DataTable` `copyHint`.
+   */
+  copyHint?: string
   className?: string
   children: ReactNode
 }) {
@@ -246,6 +282,7 @@ export function ListTable({
         columns={heads}
         headRows={groups && <GroupRow groups={groups} />}
         wrapHeads={wrapHeads}
+        copyHint={copyHint}
         bodyRef={paged ? paged.attachRows : own.attachRows}
         tableClassName={className}
         foot={

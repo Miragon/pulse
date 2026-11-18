@@ -92,21 +92,47 @@ function RevealedId({
 const COPY_IN_ROW =
   "[@media(hover:hover)]:[tr_&]:opacity-0 [tr:hover_&]:opacity-100 [tr:focus-within_&]:opacity-100 focus-visible:opacity-100 [tr_&]:-my-(--cell-py)"
 
-export function IdText({ value, className }: { value: string; className?: string }) {
+/** What a copy's toasts say: by default an id's words, the full id selected on a failure. */
+interface CopyWords {
+  copied?: string | undefined
+  failed?: string | undefined
+  failedHint?: string | undefined
+}
+
+/**
+ * Copies a value, an id by default, and says so in a toast, or says that it failed and how to
+ * copy it by hand (`words`); resolves to whether it worked.
+ */
+export function useCopyId(words: CopyWords = {}): (value: string) => Promise<boolean> {
   const labels = kitLabels(useLocale())
   const toast = useToast()
+  return async (value) => {
+    if (await copyText(value)) {
+      toast.show({ tone: "success", title: words.copied ?? labels.idCopied })
+      return true
+    }
+    toast.show({
+      tone: "danger",
+      title: words.failed ?? labels.copyFailed,
+      description: words.failedHint ?? labels.copyFailedHint,
+    })
+    return false
+  }
+}
+
+export function IdText({ value, className }: { value: string; className?: string }) {
+  const labels = kitLabels(useLocale())
+  const copyId = useCopyId()
   const [copied, setCopied] = useState(false)
   const [revealed, setRevealed] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const short = shortId(value)
   const copy = async () => {
-    if (await copyText(value)) {
+    if (await copyId(value)) {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
-      toast.show({ tone: "success", title: labels.idCopied })
     } else {
       setRevealed(true)
-      toast.show({ tone: "danger", title: labels.copyFailed, description: labels.copyFailedHint })
     }
   }
   return (

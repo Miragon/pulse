@@ -96,8 +96,9 @@ export function IncidentListTile({ tile, slots }: IncidentListTileProps) {
           if (target !== undefined) onOpen(target, how)
         }}
         opens={(row) => openable(slots, targetOf(row)) !== undefined}
-        openLabel={({ incident }) => t("open.instance", { id: shortId(incident.instanceId) })}
+        rowLabel={({ incident }) => t("row.instance", { id: shortId(incident.instanceId) })}
         copyOf={({ incident }) => ({ text: incident.message, label: t("incidents.copy") })}
+        copyHint={t("incidents.copyHint")}
         empty={<EmptyNote text={t(unread ? "noEngineRead" : "incidents.empty")} />}
         footer={
           <ul className={GROUP_NOTES} aria-label={t("perEngine")}>

@@ -12,6 +12,7 @@ export {
   type DescribedError,
 } from "./describe-error.js"
 export { ListTable, type ListTableColumn, type ListTableGroup } from "./list-table.js"
+export { ListRow } from "./list-row.js"
 export { IdText, IdCell } from "./id-text.js"
 export { ConfirmDialog, type ConfirmDialogProps, type ConfirmTarget } from "./confirm-dialog.js"
 export { useActionFeedback, type ActionFeedback } from "./action-feedback.js"

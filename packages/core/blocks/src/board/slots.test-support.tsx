@@ -1,3 +1,4 @@
+import type { MouseEvent } from "react"
 import type { BoardOpenHow, BoardSlots, BoardTableProps, BoardTarget } from "./slots.js"
 
 /** What the tiles asked of the surface: the targets they opened and how often the file. */
@@ -7,14 +8,14 @@ export interface Asked {
 }
 
 /**
- * A surface's table for the tests: a caption per column, a row with its drill (none where it
- * opens nothing) and its copy.
+ * A surface's table for the tests: a caption per column, a row that opens on a click, named by
+ * what it opens (a plain row where it opens nothing), and its copy.
  */
 function TestTable<Row>(props: BoardTableProps<Row>) {
-  const { label, columns, rows, rowKey, onOpen, opens, openLabel, copyOf, empty, footer } = props
+  const { label, columns, rows, rowKey, onOpen, opens, rowLabel, copyOf, empty, footer } = props
   return (
     <div data-testid="table">
-      <table aria-label={label}>
+      <table aria-label={label} data-copy-hint={props.copyHint}>
         <thead>
           <tr>
             {columns.map((column) => (
@@ -24,20 +25,21 @@ function TestTable<Row>(props: BoardTableProps<Row>) {
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={rowKey(row)}>
+            <tr
+              key={rowKey(row)}
+              {...(opens?.(row) === false
+                ? {}
+                : {
+                    "aria-label": rowLabel(row),
+                    onClick: (event: MouseEvent) => {
+                      onOpen(row, { toSide: event.ctrlKey })
+                    },
+                  })}
+            >
               {columns.map((column) => (
                 <td key={column.key}>{column.cell(row)}</td>
               ))}
               <td>
-                {opens?.(row) !== false && (
-                  <button
-                    type="button"
-                    aria-label={openLabel(row)}
-                    onClick={(event) => {
-                      onOpen(row, { toSide: event.ctrlKey })
-                    }}
-                  />
-                )}
                 <button
                   type="button"
                   aria-label={`Copy ${copyOf(row).label}`}

@@ -752,7 +752,9 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
   test("a slow handshake: nothing paints before the host context arrives, no English or OS-theme flash (#339)", async ({
     page,
   }) => {
-    const app = await openView(page, { initDelayMs: 3_000, theme: "dark", locale: "de-DE" })
+    // The host answers five seconds late, so the sample two seconds in stays before its answer
+    // under the suite's parallel load too.
+    const app = await openView(page, { initDelayMs: 5_000, theme: "dark", locale: "de-DE" })
 
     await expect.poll(async () => (await hostLog(page)).initializeRequested).toBe(true)
     // Two seconds in, the host has not answered yet: the gate waits for the
@@ -764,6 +766,8 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
       text: root.textContent,
     }))
     expect(documentLayer).toEqual({ children: 0, text: "" })
+    // The sample came before the handshake ended: the view has not said `initialized` yet.
+    expect((await hostLog(page)).initialized).toBe(false)
     // Once the host answers: the German view on the host's dark theme, all three rows in the
     // unstated budget.
     await expectGermanOverview(app)
@@ -1617,7 +1621,9 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
     expect(scrollWidth, "the document never scrolls sideways").toBeLessThanOrEqual(clientWidth)
     const region = app.getByRole("region", { name: DEFINITIONS_TABLE })
     await expect(region).toBeVisible()
-    expect(await region.getAttribute("tabindex")).toBe("0")
+    // Its rows open their process, so they take the keyboard's one stop, the region none.
+    expect(await region.getAttribute("tabindex")).toBeNull()
+    expect(await region.locator("tbody > tr").first().getAttribute("tabindex")).toBe("0")
     // The shell pads nothing: the head's and the view's bars run from edge to edge, the gutter of
     // the density roles (12 px, --cd-shell-rand) inside the view's bar and around each route's
     // content. The list's filter bar under its heading reaches the card's edges too, its field
@@ -1847,10 +1853,10 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
   })
 
   test("keyboard focus on a table region shows inside its box (WCAG 2.4.7)", async ({ page }) => {
-    // The overview's definitions region spans its card; the jobs region overflows its
-    // narrow card and scrolls.
+    // A region whose rows open nothing takes the keyboard's stop itself: the jobs region spans
+    // its card at the inline width and overflows a narrow card, where it scrolls.
     const views = [
-      { scenario: { width: INLINE_WIDTH }, name: DEFINITIONS_TABLE },
+      { scenario: { args: JOBS_ARGS, width: INLINE_WIDTH }, name: "Jobs" },
       { scenario: { args: JOBS_ARGS, width: NARROW_WIDTH }, name: "Jobs" },
     ]
     for (const { scenario, name } of views) {
@@ -2096,5 +2102,161 @@ test.describe("an instance and the instance list (engine_open_cockpit)", () => {
       expect(incident.right).toBeLessThanOrEqual(placed.pinnedLeft)
       expect(incident).toMatchObject({ title: "Incident", word: "Incident", wordInSight: false })
     }
+  })
+})
+
+/**
+ * One row convention on every surface (owner direction 2026-11-18): in the chat as on a page and
+ * in the webview, a table row opens what it names on a click or Enter, its further actions at its
+ * end opening nothing. A row tells a screen reader what it opens and that Enter opens it, takes the
+ * table's one tab stop and shows its focus inside its box.
+ */
+test.describe("a row opens on a click or Enter (one row convention)", () => {
+  const INSTANCE = {
+    engine: HEALTHY_ENGINE,
+    view: "instance-detail",
+    processInstanceId: "pi-invoice-42",
+  }
+
+  /** The stub's instance with its two open incidents, its incidents' table one row each. */
+  async function incidentRow(app: FrameLocator) {
+    const table = app.getByRole("region", { name: "Incidents of this instance" })
+    const row = table.getByRole("row", { name: /^Incident at chargeCard, / })
+    await expect(row).toBeVisible({ timeout: 15_000 })
+    return row
+  }
+
+  test("a click on an incident's row opens it; the row holds no drill", async ({ page }) => {
+    const app = await openView(page, { args: INSTANCE })
+    const row = await incidentRow(app)
+    await expect(app.getByRole("button", { name: /^Open/ })).toHaveCount(0)
+    await row.getByRole("cell").first().click()
+    await expect(app.getByRole("heading", { level: 1, name: "chargeCard" })).toBeVisible({
+      timeout: 15_000,
+    })
+  })
+
+  test("Enter on the focused row opens it: one tab stop, its focus drawn, its name and hint read", async ({
+    page,
+  }) => {
+    const app = await openView(page, { args: INSTANCE })
+    const row = await incidentRow(app)
+    const rows = app
+      .getByRole("region", { name: "Incidents of this instance" })
+      .locator("tbody > tr[data-row-target]")
+    expect(await rows.evaluateAll((all) => all.map((el) => el.getAttribute("tabindex")))).toEqual([
+      "0",
+      "-1",
+    ])
+    const hint = await row.evaluate(
+      (el) => document.getElementById(el.getAttribute("aria-describedby") ?? "")?.textContent,
+    )
+    expect(hint).toBe("Enter opens the row, Ctrl or Cmd+C copies its ID.")
+    // From the first row the arrow moves to the next: the focus, drawn inside the row.
+    await rows.first().focus()
+    await page.keyboard.press("ArrowDown")
+    await expect(row).toBeFocused()
+    const outline = await row.evaluate((el) => {
+      const style = getComputedStyle(el)
+      return { style: style.outlineStyle, width: parseFloat(style.outlineWidth) }
+    })
+    expect(outline.style).toBe("solid")
+    expect(outline.width).toBeGreaterThanOrEqual(2)
+    await page.keyboard.press("Enter")
+    await expect(app.getByRole("heading", { level: 1, name: "chargeCard" })).toBeVisible({
+      timeout: 15_000,
+    })
+  })
+
+  test("a focused row's outline runs on over its pinned actions at 760 px", async ({ page }) => {
+    const app = await openView(page, { args: INSTANCE, width: INLINE_WIDTH })
+    const row = await incidentRow(app)
+    const rows = app
+      .getByRole("region", { name: "Incidents of this instance" })
+      .locator("tbody > tr[data-row-target]")
+    await rows.first().focus()
+    await page.keyboard.press("ArrowDown")
+    await expect(row).toBeFocused()
+    const end = await row.evaluate((el) => {
+      const cell = el.lastElementChild!
+      const ring = getComputedStyle(cell, "::after")
+      const outline = getComputedStyle(el)
+      return {
+        pinned: getComputedStyle(cell).position,
+        ring: ring.position,
+        style: ring.outlineStyle,
+        colour: ring.outlineColor === outline.outlineColor,
+        width: ring.outlineWidth === outline.outlineWidth,
+        offset: ring.outlineOffset === outline.outlineOffset,
+        // Its left side, one outline's width and a pixel before the cell, is clipped away.
+        left:
+          parseFloat(ring.left) === -parseFloat(outline.outlineWidth) - 1 &&
+          ring.clipPath === `inset(0px 0px 0px ${parseFloat(outline.outlineWidth) + 1}px)`,
+      }
+    })
+    // The pinned cell paints its surface over the row's outline, so it draws that part itself:
+    // the same outline, its top, right and bottom running on from the row's.
+    expect(end).toEqual({
+      pinned: "sticky",
+      ring: "absolute",
+      style: "solid",
+      colour: true,
+      width: true,
+      offset: true,
+      left: true,
+    })
+    // Forced colours paint both in one system colour.
+    await page.emulateMedia({ forcedColors: "active" })
+    const forced = await row.evaluate(
+      (el) =>
+        getComputedStyle(el.lastElementChild!, "::after").outlineColor ===
+        getComputedStyle(el).outlineColor,
+    )
+    expect(forced).toBe(true)
+    await page.emulateMedia({ forcedColors: "none" })
+    // Off focus it draws nothing.
+    await page.keyboard.press("ArrowUp")
+    const after = await row.evaluate(
+      (el) => getComputedStyle(el.lastElementChild!, "::after").content,
+    )
+    expect(after).toBe("none")
+  })
+
+  test("the overview's process row opens its process on Enter", async ({ page }) => {
+    const app = await openView(page, { args: { engine: HEALTHY_ENGINE }, width: INLINE_WIDTH })
+    const region = app.getByRole("region", { name: DEFINITIONS_TABLE, exact: true })
+    const row = region.getByRole("row", { name: "Process Invoice Receipt" })
+    await expect(row).toBeVisible({ timeout: 15_000 })
+    await row.focus()
+    await page.keyboard.press("Enter")
+    await expect(app.getByRole("heading", { level: 1, name: "Invoice Receipt" })).toBeVisible({
+      timeout: 15_000,
+    })
+  })
+
+  test("an instance list's row opens its instance on a click", async ({ page }) => {
+    const app = await openView(page, {
+      hostEnv: REALISTIC_HOST_ENV,
+      args: { engine: REALISTIC_ENGINE, view: "process-instances" },
+    })
+    const row = app
+      .getByRole("region", { name: "Running instances", exact: true })
+      .getByRole("row", { name: /^Instance / })
+      .first()
+    await expect(row).toBeVisible({ timeout: 15_000 })
+    const name = (await row.getAttribute("aria-label"))!.replace(/^Instance /, "")
+    await row.getByRole("cell").nth(1).click()
+    // The realistic engine serves lists alone: the instance's route keeps its name as its heading.
+    await expect(app.getByRole("heading", { level: 1, name })).toBeVisible({ timeout: 15_000 })
+  })
+
+  test("axe: an instance's incidents, rows that open, pass WCAG 2.2 A/AA", async ({ page }) => {
+    const app = await openView(page, { args: INSTANCE })
+    await incidentRow(app)
+    const results = await new AxeBuilder({ page })
+      .include("#app")
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22a", "wcag22aa"])
+      .analyze()
+    expect(results.violations.map((v) => v.id)).toEqual([])
   })
 })

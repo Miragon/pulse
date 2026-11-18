@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { NamedId, TableEmptyState, Td, VersionChip, formatNumber } from "@miragon/pulse-ui"
-import { ListTable, type ListTableColumn } from "@miragon/pulse-widget-shell/widgets"
+import { ListRow, ListTable, type ListTableColumn } from "@miragon/pulse-widget-shell/widgets"
 import { useT } from "../messages/use-t.js"
 import { AlarmCount } from "./lib/alarm-count.js"
 
@@ -13,16 +13,22 @@ export interface ProcessDefinitionsTableRow {
   counts: { instances: number; failedJobs: number; totalIncidents: number }
 }
 
-/** The overview's process definitions table; the actions column is there when a renderer is. */
+/**
+ * The overview's process definitions table: with `onOpen` a row opens its process on a click or
+ * Enter and copies its key on Ctrl or Cmd with C (one row convention, as the webview's process
+ * list); the actions column, at the row's end, is there when a renderer is.
+ */
 export function ProcessDefinitionsTableView({
   rows,
   ariaLabel,
   emptyText,
+  onOpen,
   renderActions,
 }: {
   rows: ProcessDefinitionsTableRow[]
   ariaLabel: string
   emptyText: string
+  onOpen?: (row: ProcessDefinitionsTableRow) => void
   renderActions?: (row: ProcessDefinitionsTableRow) => ReactNode
 }) {
   const t = useT()
@@ -49,7 +55,12 @@ export function ProcessDefinitionsTableView({
   return (
     <ListTable ariaLabel={ariaLabel} columns={columns}>
       {rows.map((row) => (
-        <tr key={row.id}>
+        <ListRow
+          key={row.id}
+          label={t("cockpitDefs.rowLabel", { name: row.name ?? row.key })}
+          onOpen={onOpen && (() => onOpen(row))}
+          copy={row.key}
+        >
           <Td>
             {/* Name first, the key quiet beside it (#322 U13). */}
             <NamedId name={row.name} id={row.key} />
@@ -74,10 +85,10 @@ export function ProcessDefinitionsTableView({
           </Td>
           {renderActions && (
             <Td>
-              <div className="flex items-center justify-end gap-1.5">{renderActions(row)}</div>
+              <div className="flex items-center justify-end gap-1">{renderActions(row)}</div>
             </Td>
           )}
-        </tr>
+        </ListRow>
       ))}
     </ListTable>
   )

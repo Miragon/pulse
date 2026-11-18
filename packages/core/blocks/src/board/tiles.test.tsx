@@ -200,14 +200,18 @@ describe("a target the surface does not open", () => {
     expect(summary.asked.opened).toEqual([])
   })
 
-  it("gives a list's row of its engine no drill", () => {
-    const instances = rendered(INSTANCES)
-    expect(within(instances.region).queryAllByRole("button", { name: /^Open/ })).toEqual([])
-    expect(instances.asked.opened).toEqual([])
-    cleanup()
-    const incidents = rendered(INCIDENTS)
-    expect(within(incidents.region).queryAllByRole("button", { name: /^Open/ })).toEqual([])
-    expect(incidents.asked.opened).toEqual([])
+  it("makes a list's row of its engine a plain row that opens nothing", () => {
+    for (const tile of [INSTANCES, INCIDENTS]) {
+      const { region, asked } = rendered(tile)
+      const rows = within(region).getAllByRole("row").slice(1)
+      expect(rows.length).toBeGreaterThan(0)
+      for (const row of rows) {
+        expect(row.hasAttribute("aria-label")).toBe(false)
+        row.click()
+      }
+      expect(asked.opened).toEqual([])
+      cleanup()
+    }
   })
 
   // A surface's table that offers every row anyway (it reads no `opens`): the tile opens none of

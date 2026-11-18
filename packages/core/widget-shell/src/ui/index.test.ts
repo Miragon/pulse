@@ -21,6 +21,7 @@ describe("the /widgets entry", () => {
       "HostModelContext",
       "IdCell",
       "IdText",
+      "ListRow",
       "ListTable",
       "OpenInCockpitLink",
       "PagedRows",
