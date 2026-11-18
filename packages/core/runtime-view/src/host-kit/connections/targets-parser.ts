@@ -83,11 +83,14 @@ export class TargetsParser {
     }
   }
 
-  private optionalsOf(profile: Profile): Pick<EngineTarget, "webUiUrl" | "readOnly" | "timeoutMs"> {
+  private optionalsOf(
+    profile: Profile,
+  ): Pick<EngineTarget, "webUiUrl" | "readOnly" | "timeoutMs" | "environment"> {
     return {
       ...(profile.cockpitUrl === undefined ? {} : { webUiUrl: profile.cockpitUrl }),
       ...(profile.readOnly === true ? { readOnly: true } : {}),
       ...(profile.timeout === undefined ? {} : { timeoutMs: profile.timeout }),
+      ...(profile.environment === undefined ? {} : { environment: profile.environment }),
     }
   }
 

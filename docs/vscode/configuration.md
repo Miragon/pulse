@@ -35,8 +35,8 @@ in a project file, names a credential (a password, a token or the variable that 
 up as a problem in the Engines view instead of connecting, and the problem says what to change; the
 other profiles of the file still list engines. A profile with `oauth` lists its engine, but Pulse
 does not connect to it and says to set `auth.type` to `none`, or to `basic` without the OAuth keys,
-or to keep the profile for the CLI. Pulse applies `timeout` to each call, not `environment` and
-`output`, yet a value of theirs the format refuses is a problem too.
+or to keep the profile for the CLI. Pulse applies `timeout` to each call and reads `environment`
+(below), not `output`, yet a value of `output` the format refuses is a problem too.
 
 Your CLI config sits where the CLI looks for it (`$XDG_CONFIG_HOME/pulse-cli/` for an absolute
 `XDG_CONFIG_HOME`, `%APPDATA%\pulse-cli\` on Windows); a remote window (SSH, WSL, Dev Container)
@@ -58,16 +58,18 @@ secret storage, per profile and file; Pulse reads none of the credentials your C
 
 ## Settings
 
-| Setting              | Values                                                                       | Default                    |
-| -------------------- | ---------------------------------------------------------------------------- | -------------------------- |
-| `pulse.environments` | per profile: `local`, `test`, `production`                                   | loopback hosts are `local` |
-| `pulse.writes`       | `localOnly`, `enabled`, `disabled`                                           | `localOnly`                |
-| `pulse.liveUpdates`  | per environment (`local`, `test`, `production`, `unclassified`): `on`, `off` | local and test on          |
+| Setting              | Values                                                                       | Default                                                                    |
+| -------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `pulse.environments` | per profile: `local`, `test`, `production`                                   | loopback hosts are `local`, unless the profile names another `environment` |
+| `pulse.writes`       | `localOnly`, `enabled`, `disabled`                                           | `localOnly`                                                                |
+| `pulse.liveUpdates`  | per environment (`local`, `test`, `production`, `unclassified`): `on`, `off` | local and test on                                                          |
 
 Production engines show in red, and only by configuration:
-`"pulse.environments": { "prod-eu": "production" }`. `pulse.writes` and `pulse.liveUpdates`
-count only in your user settings: a workspace or a dev container cannot turn them on. With
-`enabled`, production and unclassified engines ask you to type their host before a write.
+`"pulse.environments": { "prod-eu": "production" }`, or `environment` `production` in the profile,
+which only raises, like a workspace value: `test` makes an engine on this machine test, any other
+id but `local` (`prod-eu`) unclassified, never local. `pulse.writes` and `pulse.liveUpdates` count
+only in your user settings: a workspace or a dev container cannot turn them on. With `enabled`,
+production and unclassified engines ask you to type their host before a write.
 
 Open views read the engine again while they are visible and VS Code has focus: local engines
 every 5–30 s, test engines every 15–60 s, production and unclassified every 30–120 s once you

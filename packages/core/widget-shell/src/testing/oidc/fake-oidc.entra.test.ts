@@ -262,12 +262,21 @@ describe("a sign-in at the fake Entra ID", () => {
     expect(idp.issued.id).toEqual([tokens.idToken])
   })
 
-  it("gives Microsoft Graph's token to a sign-in whose scopes name no API", async () => {
-    const idp = await start()
-    const tokens = await signIn(idp, { scopes: ["openid", "profile", "email"] })
-    expect(decodeJwt(tokens.accessToken)).toMatchObject({ aud: GRAPH, scp: "openid profile email" })
-    expect(tokens.refreshToken).toBeUndefined()
-  })
+  it.each([2, 1] as const)(
+    "gives Microsoft Graph's token, a v1 token, to a sign-in whose scopes name no API (token version %i)",
+    async (tokenVersion) => {
+      const idp = await start({ tokenVersion })
+      const tokens = await signIn(idp, { scopes: ["openid", "profile", "email"] })
+      expect(decodeJwt(tokens.accessToken)).toMatchObject({
+        iss: `https://sts.windows.net/${ENTRA_TENANT}/`,
+        aud: GRAPH,
+        ver: "1.0",
+        appid: FAKE_OIDC_CLIENT.id,
+        scp: "openid profile email",
+      })
+      expect(tokens.refreshToken).toBeUndefined()
+    },
+  )
 
   it("reads .default as the API's scope", async () => {
     const idp = await start()

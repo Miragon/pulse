@@ -286,8 +286,8 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   `oauth21/2026-08` tokens each against its own key set with the keys tagged for it, takes the
   API's client id or an App ID URI it names as `aud` (the resource only where it names it), reads
   the short `scp` under the first App ID URI, names the caller by `oid`, else `sub`, and refuses a
-  v1 token (naming `requestedAccessTokenVersion` 2), a `tid` of another tenant and a token without
-  `scp`; its
+  v1 token for the API (naming `requestedAccessTokenVersion` 2) and one for another API (Microsoft
+  Graph's) by its `aud`, a `tid` of another tenant and a token without `scp`; its
   metadata names the oauth21 authority, and its web client signs in through the v2.0 one without a
   resource and with the scopes at every grant. A provider whose metadata names its issuer alone
   gets no copy at `/.well-known/oauth-authorization-server` (404), and the protected resource metadata names its

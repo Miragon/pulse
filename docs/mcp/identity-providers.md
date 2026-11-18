@@ -24,7 +24,7 @@ What every provider needs on its side:
 | Signature          | A JWT signed with an asymmetric key of the provider's key set: an opaque token, one signed with a shared secret (`HS*`) and an unsigned one get 401                                                                                                                                                                                                                                                                                                                                                                        |
 | Access tokens only | `/mcp` refuses a JWT shaped like an ID, logout or refresh token: an `at_hash`, `c_hash` or `events` claim, Keycloak's `typ` `ID`, `Refresh`, `Offline` or `Logout`, a `logout+jwt` header. So an audience mapper with **Add to ID token** lets no ID token through. The server reads no `nonce`, so an ID token without these marks passes this check: the audience keeps it out (where the audience is an id, a required scope does), so no client may have the id `<MCP_URL>/mcp` (Keycloak admits a URL as a client id) |
 | Who gets one       | A token that passes gets the standard toolset `engine:operations`, writes included ([Module activation](operations.md#module-activation)): let only the people who may operate the engines get one (Keycloak: who may sign in through a client with the audience, every user of the realm where it is a Default Client Scope; Entra ID: Assignment required on the API, consent by admins only)                                                                                                                            |
-| MCP clients        | Dynamic Client Registration where the provider offers it, else a client registered per MCP client ([MCP clients](#mcp-clients))                                                                                                                                                                                                                                                                                                                                                                                            |
+| MCP clients        | A client registered per MCP client where the provider allows it, else Dynamic Client Registration ([MCP clients](#mcp-clients)), which lets anyone register a client                                                                                                                                                                                                                                                                                                                                                       |
 | Reading a 401      | Its `WWW-Authenticate` header names the reason; with `MCP_OAUTH_DEBUG=1` the server logs why the signature, issuer, audience, caller claim or `exp` check failed and the claims it checked, never the token                                                                                                                                                                                                                                                                                                                |
 
 ## Keycloak
@@ -32,20 +32,25 @@ What every provider needs on its side:
 **`/mcp`.** Set `MCP_OAUTH_KEYCLOAK_SERVER_URL` to Keycloak's frontend URL, which its tokens carry in
 `iss`, never an internal address, and `MCP_OAUTH_KEYCLOAK_REALM`. Give every MCP client and the web
 client a client scope with an audience mapper (Included Custom Audience `<MCP_URL>/mcp`, added to
-the access token), and keep the built-in `basic` scope, whose mappers put `sub` and `auth_time` into
-the token; a realm import that defines its own client scopes brings them along. The server takes
-only a signed-in user's token: one without `sid` or `auth_time` gets 401, so a service account's
-token (client credentials, also where its client keeps a session for it) and a password grant's are
-refused. Lightweight access tokens carry no `sub`: turn them off for these clients. The server
-serves a copy of the realm's metadata, its registration endpoint included.
+the access token). The built-in `basic` scope must keep Keycloak's own mappers, `auth_time` (the
+time of the user's sign-in) and `sub`: a realm import that defines its own client scopes brings
+both along, else every user gets 401 `Token carries no auth_time claim`. The server takes only the
+token of a user's sign-in at Keycloak: one without `sid` or `auth_time` gets 401, so a service
+account's token (client credentials, also where its client keeps a session for it) and a password
+grant's (Direct Access Grants: a `sid`, no `auth_time`) are refused. Lightweight access tokens carry
+no `sub`: turn them off for these clients. The server serves a copy of the realm's metadata, its
+registration endpoint included.
 
-**MCP clients** register themselves under a Trusted Hosts policy for loopback redirects, which
-checks every URI a client names: admit `github.com` for the MCP Inspector and its `client_uri`
-`https://github.com/modelcontextprotocol/inspector`, and keep Keycloak's default registration
-policies beside it. A client that registers itself gets the realm's Default Client Scopes, so the
-audience scope must be one of them, and then every client of the realm gets tokens `/mcp` takes,
-writes included: let clients register themselves only in a realm whose users may all operate the
-engines, or in a realm of its own for Pulse. Or register a client per MCP client.
+**MCP clients.** Register a client per MCP client with the audience scope where you can. Clients
+that register themselves do so anonymously, under a Trusted Hosts policy for loopback redirects,
+which checks every URI a client names: admit `github.com` for the MCP Inspector and its
+`client_uri` `https://github.com/modelcontextprotocol/inspector`, and keep Keycloak's default
+registration policies beside it, Max Clients and Allowed Protocol Mapper Types above all (a
+client's own mapper could write `auth_time`). Such a client gets the realm's Default Client
+Scopes, so the audience scope must be one of them: then anyone may register clients, up to Max
+Clients (200 by default), whose tokens `/mcp` takes, writes included, though only through the
+sign-in of a user of the realm. Let clients register themselves only in a realm whose users may all
+operate the engines, or in a realm of its own for Pulse.
 `playground/docker/keycloak/realm-miragon.json` is a working realm with both, the token mappers and
 the web client `pulse-web`.
 
@@ -58,7 +63,10 @@ which ends the Keycloak session without a confirmation.
 ## Microsoft Entra ID
 
 One tenant: `MCP_OAUTH_ENTRA_TENANT_ID` is its id, a GUID; `common`, `organizations` and `consumers`
-stop the server at startup. Guests of other tenants sign in through this one. Two app registrations:
+stop the server at startup. Guests of other tenants sign in through this one. Two app registrations,
+never one: as the API's own registration the web client would ask a token for itself, which Entra
+ID grants only for a scope named by the client id (`AADSTS90009`), while
+`MCP_OAUTH_ENTRA_APP_ID_URI` takes `api:` and `https:` URIs alone:
 
 | Registration                             | What to set up                                                                                                                                                                                                                                                                                                                                                                                                                |
 | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -71,8 +79,9 @@ URI `MCP_OAUTH_ENTRA_APP_ID_URI` names (`<MCP_URL>/mcp` only where it names it, 
 the tenant may own that URI), `ver` is 2.0, a `tid` names the tenant, and `scp` holds the scope,
 read as `api://<API client id>/user_impersonation`. The caller is `oid`, else `sub` (Microsoft
 issues `oid` only where `profile` was asked, which MCP clients don't), and `roles` are the
-permissions. A v1 token gets 401 saying to set `requestedAccessTokenVersion` to 2, and a token for
-Microsoft Graph 401 for its `aud`. An app-only token and an ID token carry no `scp` and get 401 too,
+permissions. A v1 token for the API gets 401 saying to set `requestedAccessTokenVersion` to 2, and
+a token for Microsoft Graph, a v1 token too, 401 for its `aud`, never that hint. An app-only token
+and an ID token carry no `scp` and get 401 too,
 a token whose `scp` lacks the scope 403 `insufficient_scope`. `MCP_OAUTH_ENTRA_CLIENT_IDS` admits
 only the clients it names (`azp`), the web client among them.
 
@@ -127,8 +136,11 @@ The generic provider: `MCP_OAUTH_OIDC_ISSUER` exactly as the provider's discover
 | Zitadel   | The app's access token type JWT (its default is opaque); `aud` is the project id: name it with a scope only Pulse's clients get                                                                             | `openid profile offline_access`; it rotates refresh tokens at every renewal      |
 | PingOne   | A resource with the audience `<MCP_URL>/mcp`                                                                                                                                                                | What PingOne, and Okta, do with the `resource` the sign-in sends is not verified |
 
-Where the audience is an id, another app granted the same scope still passes:
-`MCP_OAUTH_OIDC_CLIENT_IDS` admits only the clients it names. Auth0 (`MCP_OAUTH_AUTH0_DOMAIN`) needs
+Where the audience is an id or one every app shares (`api://default` of Okta's default authorization
+server), the boot asks for a scope only Pulse's clients are granted (`MCP_OAUTH_OIDC_SCOPES`), and
+another app granted it still passes: name Pulse's clients in `MCP_OAUTH_OIDC_CLIENT_IDS` too, which
+admits only them, and on Okta grant the scope to them alone with an access policy rule, since the
+default policy grants a custom scope to any client that asks. Auth0 (`MCP_OAUTH_AUTH0_DOMAIN`) needs
 an API with the identifier `<MCP_URL>/mcp`, which the sign-in names as `audience`, and Allow Offline
 Access.
 
@@ -163,15 +175,16 @@ Zitadel, which always rotates, such a lost answer ends that session.
 The check costs a renewal per active session every interval (1,000 sessions at 5 minutes: 200 a
 minute, far below Entra ID's loop detection). The per-caller caches key on the caller and the token,
 so each renewal starts new entries: on providers with long tokens (Entra ID, Auth0, ADFS, Okta) the
-process flow's throughput, read once an hour per caller otherwise, is read up to every interval per
-web session, and the diagram cache refills likewise; one statistics read at a time per engine bounds
-the load ([Engine load](operations.md#engine-load)).
+process flow's throughput, read once an hour per caller and token otherwise, is read up to every
+interval per web session, and the diagram cache refills likewise; one statistics read at a time per
+engine bounds the load ([Engine load](operations.md#engine-load)).
 
 ## MCP clients
 
-Keycloak, Auth0, WorkOS, Better Auth and Convex let a client register itself. Entra ID, ADFS, Okta
-(whose registration needs an API token) and most others need a client registered per MCP client, as
-each client documents it:
+Keycloak, Auth0, WorkOS, Better Auth and Convex let a client register itself, anonymously, so
+anyone may register one. Entra ID, ADFS, Okta (whose registration needs an API token) and most
+others need a client registered per MCP client. Register one per MCP client wherever the provider
+allows it, as each client documents it:
 
 | Client                              | What to register                                                                                                                                                                                                                        |
 | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -234,7 +247,7 @@ the server logs `OAuth: tokens must carry iss …/<tenant>/v2.0 or …/<tenant>/
 | E6   | Sign out in the cockpit                                                                                                                         | Entra ID's sign-out page, then `/app/signed-out`; record whether it took `client_id` and the post-logout URI and showed an account picker                                                                                                                                                                                                                                                                                              | Not yet verified |
 | E7   | Connect VS Code, Claude, Claude Code and the Inspector as [registered above](#mcp-clients), list the tools, call `engine_list_engines`          | The request names `resource=<MCP_URL>/mcp` at the oauth21 authority; the call answers; `ver` is 2.0; record per client `iss`, `aud`, `oid` and `tid`; with `aud` `<MCP_URL>/mcp`, run once with and once without it in `MCP_OAUTH_ENTRA_APP_ID_URI`; `AADSTS9010010` means that App ID URI is missing or ends in a slash                                                                                                               | Not yet verified |
 | E8a  | Set `requestedAccessTokenVersion` back to 1 and connect a client                                                                                | 401 saying to set it to 2                                                                                                                                                                                                                                                                                                                                                                                                              | Not yet verified |
-| E8b  | Send a Microsoft Graph token (`openid profile User.Read`) to `/mcp`                                                                             | 401 with `aud` `00000003-0000-0000-c000-000000000000`; record its `ver`, `iss` and whether the answer gives the v1 hint                                                                                                                                                                                                                                                                                                                | Not yet verified |
+| E8b  | Send a Microsoft Graph token (`openid profile User.Read`) to `/mcp`                                                                             | 401 "Token audience does not include the protected resource", never the v1 hint; the token's `aud` is `00000003-0000-0000-c000-000000000000`; record its `ver` and `iss`                                                                                                                                                                                                                                                               | Not yet verified |
 | E8c  | An app-only token: client credentials with an app role, `scope=api://<API client id>/.default`                                                  | 401 "Token carries no scp"                                                                                                                                                                                                                                                                                                                                                                                                             | Not yet verified |
 | E8d  | Send the web client's ID token                                                                                                                  | 401                                                                                                                                                                                                                                                                                                                                                                                                                                    | Not yet verified |
 | E8e  | Sign in as the unassigned user                                                                                                                  | Entra ID refuses with `AADSTS50105`                                                                                                                                                                                                                                                                                                                                                                                                    | Not yet verified |

@@ -104,7 +104,7 @@
       {
         "key": "environments",
         "title": "Environments",
-        "description": "Environment of each engine by name, as JSON, e.g. {\"prod-eu\": \"production\"}. Loopback hosts are local without configuration.",
+        "description": "Environment of each engine by name, as JSON, e.g. {\"prod-eu\": \"production\"}. Loopback hosts are local unless their profile names another environment: test or production counts as that, any other as unclassified.",
         "type": "string",
         "multiline": true,
         "default": "{}"

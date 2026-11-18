@@ -29,6 +29,7 @@ import {
   isRecord,
   nonBlank,
   normalizedStrings,
+  OTHER_AUDIENCE,
   trimPath,
   type Claims,
 } from "./oauth-shared.js"
@@ -68,7 +69,7 @@ export interface JwtVerifierOptions {
   /**
    * Claims every token must carry with a value: Keycloak's `sid` and `auth_time`, a signed-in
    * user's session and sign-in, which a token a client obtained for itself (client credentials)
-   * lacks.
+   * or with a user's password (a password grant) lacks.
    */
   readonly requiredClaims?: readonly string[]
   /** Narrows the algorithms; unset, each asymmetric key's own (`none` and secrets never verify). */
@@ -85,6 +86,24 @@ export interface JwtVerifierOptions {
 
 const isAudienceList = (value: unknown): value is string[] =>
   Array.isArray(value) && value.length > 0 && value.every((item) => typeof item === "string")
+
+/**
+ * Why `aud` names none of the audiences `accepts` takes, as an audience refusal, or `undefined`
+ * where it names one. A string is one audience, whole; a list must hold one string or more and
+ * strings only: an array that mixes in another type is a malformed claim, so it is refused whole
+ * rather than matched on its one string. Entra ID's v1 pre-check reads `aud` by this rule too, so
+ * an unverified token gets the refusal the verifier would give it.
+ */
+export function audienceClaimRefusal(
+  aud: unknown,
+  accepts: (audience: string) => boolean,
+): OAuthError | undefined {
+  const named: unknown = typeof aud === "string" ? [aud] : aud
+  if (!isAudienceList(named)) {
+    return audienceRefusal("Token audience claim must be a string or string array")
+  }
+  return named.some(accepts) ? undefined : audienceRefusal(OTHER_AUDIENCE)
+}
 
 /** What `aud` may name: the resource unless the provider leaves it out, and its own audiences. */
 interface AudienceRule {
@@ -117,18 +136,10 @@ function boundResource(claims: Claims, rule: AudienceRule): URL {
     }
     return resource
   }
-  const { aud } = claims
-  const named: unknown = typeof aud === "string" ? [aud] : aud
-  // Every element a string: an array that mixes in another type is a malformed claim, so it is
-  // refused whole rather than matched on its one string.
-  if (!isAudienceList(named)) {
-    throw audienceRefusal("Token audience claim must be a string or string array")
-  }
   const accepts = (audience: string): boolean =>
     (resourceAudience && audience === resource.href) || audiences?.includes(audience) === true
-  if (!named.some(accepts)) {
-    throw audienceRefusal("Token audience does not include the protected resource")
-  }
+  const refused = audienceClaimRefusal(claims.aud, accepts)
+  if (refused !== undefined) throw refused
   return resource
 }
 
@@ -336,13 +347,17 @@ function requireCaller(claims: Claims, names: readonly string[]): void {
 const hasValue = (value: unknown): boolean =>
   value !== undefined && value !== null && (typeof value !== "string" || value.trim() !== "")
 
-/** The claims the provider requires, each with a value: a token without one names no user. */
+/**
+ * The claims the provider requires, each with a value: a token without one comes from no user's
+ * sign-in at the identity provider (a client's own token, a password grant's).
+ */
 function requireClaims(claims: Claims, names: readonly string[]): void {
   const missing = names.find((name) => !hasValue(claims[name]))
   if (missing === undefined) return
   throw invalidToken(
-    `Token carries no ${missing} claim, which the server requires: a token a client obtained ` +
-      "for itself (client credentials) names no signed-in user",
+    `Token carries no ${missing} claim, which the server requires: it takes only the tokens of ` +
+      "a user's sign-in at the identity provider, never a client's own token (client " +
+      "credentials) or a password grant's",
   )
 }
 

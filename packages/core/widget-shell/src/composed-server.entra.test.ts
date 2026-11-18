@@ -162,11 +162,17 @@ describe("Entra ID's gate at the fake tenant", () => {
     await start()
     const composed = await boot(fake.env(PULSE))
     const { accessToken } = await entraSignIn(fake, { scopes: ["openid", "profile"] })
-    expect(decodeJwt(accessToken).aud).toBe("00000003-0000-0000-c000-000000000000")
+    expect(decodeJwt(accessToken)).toMatchObject({
+      aud: "00000003-0000-0000-c000-000000000000",
+      ver: "1.0",
+    })
     await expectRefused(
       composed,
       accessToken,
-      "Token audience does not include the protected resource",
+      'error_description="Token audience does not include the protected resource"',
+    )
+    expect((await answerTo(composed, accessToken)).challenge).not.toContain(
+      "requestedAccessTokenVersion",
     )
   })
 

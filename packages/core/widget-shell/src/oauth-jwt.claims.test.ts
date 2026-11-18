@@ -110,7 +110,7 @@ describe("the claims a provider requires", () => {
     ] as const) {
       expect(await refusal(verifier, sign(good(claims))), missing).toEqual({
         code: "invalid_token",
-        description: `Token carries no ${missing} claim, which the server requires: a token a client obtained for itself (client credentials) names no signed-in user`,
+        description: `Token carries no ${missing} claim, which the server requires: it takes only the tokens of a user's sign-in at the identity provider, never a client's own token (client credentials) or a password grant's`,
         audience: false,
       })
     }

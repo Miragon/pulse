@@ -10,8 +10,10 @@
  * API's client id (a v2 token's) or an App ID URI the operator names for the API, the gate's
  * resource only where it is one of them (another app of the tenant may own that URI otherwise);
  * `ver` is 2.0, and a v1
- * token (`ver` 1.0, the issuer `https://sts.windows.net/<tenant>/`) is refused with the way out,
- * `requestedAccessTokenVersion` 2; a `tid`, where the token carries one, names the tenant. The
+ * token (`ver` 1.0, the issuer `https://sts.windows.net/<tenant>/`) for the API is refused with the
+ * way out, `requestedAccessTokenVersion` 2, while one for another API (Microsoft Graph's, a v1 token
+ * whatever the API's version) or with a malformed `aud` is refused by its audience, its `aud` read
+ * as the shared verifier reads it; a `tid`, where the token carries one, names the tenant. The
  * required scope is `<first App ID URI>/<scope>`, read from the short `scp` a v2 token carries, and a
  * token without `scp` (an app-only token, an ID token) names no signed-in user: 401. The caller is
  * `oid`, else `sub` (Microsoft issues `oid` and `tid` only where `profile` was asked, which MCP
@@ -31,9 +33,9 @@
  * off `api:` and `https:` and an authority that is no Entra ID cloud (http only on the machine
  * itself, for tests).
  */
-import type { AuthInfo, OAuthTokenVerifier } from "@modelcontextprotocol/server"
+import type { AuthInfo, OAuthError, OAuthTokenVerifier } from "@modelcontextprotocol/server"
 import { decodeJwt } from "jose"
-import { createJwtVerifier, type JwtKeySet } from "./oauth-jwt.js"
+import { audienceClaimRefusal, createJwtVerifier, type JwtKeySet } from "./oauth-jwt.js"
 import { listOf } from "./oauth-oidc.js"
 import { mapSubject, type OAuthProvider, type ProviderOptions } from "./oauth-providers.js"
 import { invalidToken, isLocalHostname, normalizedStrings, type Claims } from "./oauth-shared.js"
@@ -232,18 +234,30 @@ const scopeUriOf = ({ appIdUris }: EntraSettings): string => appIdUris[0]
 /** The required scope as a client asks for it and the gate reads it: `<App ID URI>/<scope>`. */
 const fullScope = (settings: EntraSettings): string => `${scopeUriOf(settings)}/${settings.scope}`
 
-/** A v1 token's `ver`, read before anything is verified, only to say how to get v2 tokens. */
-function isVersionOne(token: string): boolean {
+/** A v1 token's claims, read before anything is verified, only to word its refusal. */
+function versionOneClaims(token: string): Claims | undefined {
+  let claims: Claims
   try {
-    return decodeJwt(token).ver === "1.0"
+    claims = decodeJwt(token)
   } catch {
-    return false
+    return undefined
   }
+  return claims.ver === "1.0" ? claims : undefined
 }
 
 const VERSION_ONE =
   "Token is an Entra ID v1 access token (ver 1.0, issuer https://sts.windows.net/<tenant>/): " +
   "set requestedAccessTokenVersion to 2 in the API registration's manifest"
+
+/**
+ * A v1 token's refusal: the way to v2 tokens where its `aud` names the API, read as the shared
+ * verifier reads it, else the refusal the verifier gives that `aud`: a token for another API (a
+ * Microsoft Graph token's, whatever its version) or a malformed claim.
+ */
+function versionOneRefusal(claims: Claims, audiences: readonly string[]): OAuthError {
+  const refused = audienceClaimRefusal(claims.aud, (aud) => audiences.includes(aud))
+  return refused ?? invalidToken(VERSION_ONE)
+}
 
 /** Why Entra ID's rules refuse a token the shared verifier passed, or `undefined`. */
 function claimsRefusal(claims: Claims, tenant: string): string | undefined {
@@ -257,22 +271,27 @@ function claimsRefusal(claims: Claims, tenant: string): string | undefined {
   return undefined
 }
 
+/** What Entra ID's rules read around the shared verifier. */
+interface EntraRules {
+  readonly tenant: string
+  /** What a v1 token's `aud` names where it is a token for the API. */
+  readonly audiences: readonly string[]
+  readonly debug: boolean | undefined
+}
+
 /** Entra ID's rules around the shared verifier: a v1 token before it, the claims after it. */
-function entraVerifier(
-  verifier: OAuthTokenVerifier,
-  tenant: string,
-  debug: boolean | undefined,
-): OAuthTokenVerifier {
-  const refused = (why: string) => {
-    if (debug) console.error(`[oauth-debug] Entra ID refused the token: ${why}`)
-    return invalidToken(why)
+function entraVerifier(verifier: OAuthTokenVerifier, rules: EntraRules): OAuthTokenVerifier {
+  const refused = (error: OAuthError) => {
+    if (rules.debug) console.error(`[oauth-debug] Entra ID refused the token: ${error.message}`)
+    return error
   }
   return {
     async verifyAccessToken(token) {
-      if (isVersionOne(token)) throw refused(VERSION_ONE)
+      const versionOne = versionOneClaims(token)
+      if (versionOne !== undefined) throw refused(versionOneRefusal(versionOne, rules.audiences))
       const verified = await verifier.verifyAccessToken(token)
-      const why = claimsRefusal(verified.extra?.payload as Claims, tenant)
-      if (why !== undefined) throw refused(why)
+      const why = claimsRefusal(verified.extra?.payload as Claims, rules.tenant)
+      if (why !== undefined) throw refused(invalidToken(why))
       return verified
     },
   }
@@ -313,6 +332,7 @@ export function oauthEntraProvider(
   const { v2, oauth21 } = issuersOf(settings)
   const { apiClientId, appIdUris, clients, tenant } = settings
   const scope = fullScope(settings)
+  const audiences = [apiClientId, ...appIdUris]
   return {
     oauthMetadata: { issuer: oauth21 },
     requiredScopes: [scope],
@@ -324,15 +344,14 @@ export function oauthEntraProvider(
         createJwtVerifier({
           keySets: keySetsOf(settings),
           resource,
-          audiences: [apiClientId, ...appIdUris],
+          audiences,
           resourceAudience: false,
           callerClaims: CALLER_CLAIMS,
           scopePrefix: scopeUriOf(settings),
           ...(clients && { clients }),
           debug: options.debug,
         }),
-        tenant,
-        options.debug,
+        { tenant, audiences, debug: options.debug },
       ),
     mapAuthInfo: mapEntra,
   }

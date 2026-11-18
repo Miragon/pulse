@@ -115,8 +115,9 @@ The Entra ID provider takes the tenant's v2 access tokens of its v2.0 and its `o
 authority, each verified with the keys of its own key set tagged for it, whose `aud` names the
 API's client id or an App ID URI `_APP_ID_URI` names (the resource only where it names it) and whose
 short `scp` holds the scope, read as `<first App ID URI>/<scope>`; the caller is `oid`, else `sub`,
-and `roles` are the permissions. It refuses a v1 token (saying to set `requestedAccessTokenVersion`
-2), a `tid` of another tenant and a token without `scp` (an app-only token, an ID token), and at
+and `roles` are the permissions. It refuses a v1 token for the API (saying to set
+`requestedAccessTokenVersion` 2) and one for another API, Microsoft Graph's, by its `aud`, a `tid`
+of another tenant and a token without `scp` (an app-only token, an ID token), and at
 boot `common`, `organizations`, `consumers`, the personal accounts' tenant id, Microsoft's services'
 tenant id, a domain name in place of the tenant's id and a variable under `MCP_OAUTH_ENTRA_` it does
 not read. The protected resource metadata names the oauth21

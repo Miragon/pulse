@@ -871,9 +871,11 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      no window, nothing read); counts first, over the likely versions and six older ones at most
      (the rest named as not counted), so a version without an instance in the window is never
      read; one statistics read at a time per engine (`oneAtATime`); one read
-     per engine client, caller, key and window for the hour (`createCallerCache`, both in
-     `lib/engine/per-engine.ts`, the XML read's cache too). Its widget query sits outside the
-     cockpit's Refresh (`THROUGHPUT_QUERY_ROOT`) and never retries by itself.
+     per engine client, caller and bearer token (`callerCacheKey`), key and window for the hour,
+     so a renewed token reads anew and short tokens (Keycloak's 5 minutes) refill it at each
+     renewal (`oneAtATime` and `createCallerCache` in `lib/engine/per-engine.ts`, the XML read's
+     cache too). Its widget query sits outside the cockpit's Refresh (`THROUGHPUT_QUERY_ROOT`) and
+     never retries by itself.
    - Each engine REST rule the client defaults miss has one home, used by `tools/` AND `data/`
      (and by the CLI and the C7 adapter of the editor hosts): the pure rules (`toEngineDate`, `engineSorting`, the filters,
      `toEngineVariable(s)`, `autoTypedValue`, `incidentRecovery`, `RAW_VARIABLES`, the

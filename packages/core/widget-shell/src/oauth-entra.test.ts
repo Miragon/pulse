@@ -11,6 +11,7 @@ import {
   type Idp,
 } from "./oauth-jwt.test-support.js"
 import { describeOAuthTokens } from "./oauth-providers.js"
+import { isAudienceRefusal } from "./oauth-shared.js"
 
 /**
  * Microsoft Entra ID for one tenant: what its variables accept and refuse, what it serves, and its
@@ -25,6 +26,10 @@ const GRAPH = "00000003-0000-0000-c000-000000000000"
 const VSCODE = "aebc6443-996d-45c2-90f0-388ff96faa56"
 const WEB = "0f6e5d4c-3b2a-4190-8877-665544332211"
 const RESOURCE = new URL("https://pulse.example.test/mcp")
+const VERSION_HINT =
+  "Token is an Entra ID v1 access token (ver 1.0, issuer https://sts.windows.net/<tenant>/): set requestedAccessTokenVersion to 2 in the API registration's manifest"
+const OTHER_API = "Token audience does not include the protected resource"
+const MALFORMED = "Token audience claim must be a string or string array"
 
 /** The refusal of `run`, its message. */
 function refusal(run: () => unknown): string {
@@ -305,14 +310,34 @@ describe("oauthEntraProvider: the gate over the tenant's two key sets", () => {
     expect(idp.paths).toEqual([])
   })
 
-  it("refuses a v1 token before any key set loads, saying how to get v2 tokens", async () => {
-    const v1 = token({ iss: `https://sts.windows.net/${TENANT}/`, ver: "1.0", aud: `api://${API}` })
-    await expect(gate().verifyAccessToken(v1)).rejects.toThrow(
-      "Token is an Entra ID v1 access token (ver 1.0, issuer https://sts.windows.net/<tenant>/): set requestedAccessTokenVersion to 2 in the API registration's manifest",
-    )
-    await expect(gate().verifyAccessToken(token({ ver: "1.0" }))).rejects.toThrow(
-      "requestedAccessTokenVersion",
-    )
+  const NAMED = { appIdUri: "https://pulse.example.test/api" }
+
+  /** A v1 access token as Entra ID issues one, of sts.windows.net and with `appid`. */
+  const v1Token = (claims: Record<string, unknown>) =>
+    token({ iss: `https://sts.windows.net/${TENANT}/`, ver: "1.0", azp: undefined, ...claims })
+
+  it.each<[string, unknown, string, Record<string, string>?]>([
+    ["the API's App ID URI", `api://${API}`, VERSION_HINT],
+    ["the API's client id", API, VERSION_HINT],
+    ["the API among others", [GRAPH, `api://${API}`], VERSION_HINT],
+    ["Microsoft Graph's id", GRAPH, OTHER_API],
+    ["Microsoft Graph's URL", "https://graph.microsoft.com", OTHER_API],
+    ["Microsoft Graph twice", [GRAPH, "https://graph.microsoft.com"], OTHER_API],
+    ["the resource it does not name", RESOURCE.href, OTHER_API],
+    ["a scope", `api://${API}/user_impersonation`, OTHER_API],
+    ["the API and another word in one string", `api://${API} x`, OTHER_API],
+    ["no audience", undefined, MALFORMED],
+    ["a number", 7, MALFORMED],
+    ["an empty list", [], MALFORMED],
+    ["the API beside a number", [7, `api://${API}`], MALFORMED],
+    ["an App ID URI the operator names", "https://pulse.example.test/api", VERSION_HINT, NAMED],
+  ])("refuses a v1 token whose aud is %s before a key set loads", async (_c, aud, why, values) => {
+    const v1 = v1Token({ aud, appid: VSCODE, scp: "openid profile User.Read" })
+    const refused = (await gate(values)
+      .verifyAccessToken(v1)
+      .catch((error: unknown) => error)) as Error
+    expect(refused.message).toBe(why)
+    expect(isAudienceRefusal(refused)).toBe(why !== VERSION_HINT)
     expect(idp.paths).toEqual([])
   })
 
@@ -354,24 +379,20 @@ describe("oauthEntraProvider: the gate over the tenant's two key sets", () => {
       })
     }
     for (const aud of [GRAPH, "api://other", "https://graph.microsoft.com"]) {
-      await expect(gate().verifyAccessToken(token({ aud })), aud).rejects.toThrow(
-        "Token audience does not include the protected resource",
-      )
+      await expect(gate().verifyAccessToken(token({ aud })), aud).rejects.toThrow(OTHER_API)
     }
   })
 
   it("takes the resource as aud only where the operator names it an App ID URI of the API", async () => {
     // Another app of the tenant may own <MCP_URL>/mcp as its App ID URI and get tokens for it.
     const another = token({ aud: RESOURCE.href, azp: "another-app" })
-    await expect(gate().verifyAccessToken(another)).rejects.toThrow(
-      "Token audience does not include the protected resource",
-    )
+    await expect(gate().verifyAccessToken(another)).rejects.toThrow(OTHER_API)
     await expect(
       gate({ appIdUri: "https://pulse.example.test/api" }).verifyAccessToken(another),
-    ).rejects.toThrow("Token audience does not include the protected resource")
+    ).rejects.toThrow(OTHER_API)
     await expect(
       gate().verifyAccessToken(token({ aud: "api://other", resource: RESOURCE.href })),
-    ).rejects.toThrow("Token audience does not include the protected resource")
+    ).rejects.toThrow(OTHER_API)
     const named = gate({ appIdUri: `api://${API},${RESOURCE.href}` })
     expect(await named.verifyAccessToken(another)).toMatchObject({ resource: RESOURCE })
     expect((await named.verifyAccessToken(token())).scopes).toEqual([
@@ -416,9 +437,13 @@ describe("oauthEntraProvider: the gate over the tenant's two key sets", () => {
     await gate({}, true)
       .verifyAccessToken(token({ ver: "1.0" }))
       .catch(() => {})
+    await gate({}, true)
+      .verifyAccessToken(token({ ver: "1.0", aud: GRAPH }))
+      .catch(() => {})
     expect(lines()).toEqual([
       "[oauth-debug] Entra ID refused the token: Token was issued in another tenant (its tid)",
-      "[oauth-debug] Entra ID refused the token: Token is an Entra ID v1 access token (ver 1.0, issuer https://sts.windows.net/<tenant>/): set requestedAccessTokenVersion to 2 in the API registration's manifest",
+      `[oauth-debug] Entra ID refused the token: ${VERSION_HINT}`,
+      `[oauth-debug] Entra ID refused the token: ${OTHER_API}`,
     ])
     await gate({}, true)
       .verifyAccessToken(token({ sub: undefined, oid: undefined }))

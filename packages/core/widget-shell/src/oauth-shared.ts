@@ -16,6 +16,9 @@ export const invalidToken = (message: string, cause?: unknown): OAuthError => {
  */
 const audienceRefusals = new WeakSet<object>()
 
+/** The refusal of a token whose `aud` names none of the audiences this server takes. */
+export const OTHER_AUDIENCE = "Token audience does not include the protected resource"
+
 /** An `invalid_token` refusal of a token bound to another resource, or to none. */
 export const audienceRefusal = (message: string): OAuthError => {
   const error = invalidToken(message)

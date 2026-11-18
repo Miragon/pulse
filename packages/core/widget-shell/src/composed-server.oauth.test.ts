@@ -356,7 +356,7 @@ describe("the token audience, against the real JWT verifier", () => {
     const refused = await initialize(composed, { authorization: `Bearer ${serviceAccount}` })
     expect(refused.status).toBe(401)
     expect(refused.headers.get("www-authenticate")).toContain(
-      "Token carries no sid claim, which the server requires: a token a client obtained for itself (client credentials) names no signed-in user",
+      "Token carries no sid claim, which the server requires: it takes only the tokens of a user's sign-in at the identity provider, never a client's own token (client credentials) or a password grant's",
     )
   })
 
@@ -375,6 +375,25 @@ describe("the token audience, against the real JWT verifier", () => {
     )
     expect((await call({ auth_time: null })).status).toBe(401)
     expect((await call({})).status).toBe(200)
+  })
+
+  // Keycloak's password grant (Direct Access Grants) opens a session for the user it names, but
+  // nobody signed in at Keycloak: its token carries sid and no auth_time.
+  it("refuses a password grant's token, which names the user and carries sid but no auth_time", async () => {
+    const composed = await bootRealm()
+    const passwordGrant = realm.sign({
+      aud: "http://localhost/mcp",
+      sub: "alice-id",
+      azp: "anyone-registered",
+      preferred_username: "alice",
+      sid: "session-of-the-grant",
+      auth_time: undefined,
+    })
+    const refused = await initialize(composed, { authorization: `Bearer ${passwordGrant}` })
+    expect(refused.status).toBe(401)
+    expect(refused.headers.get("www-authenticate")).toContain(
+      "Token carries no auth_time claim, which the server requires: it takes only the tokens of a user's sign-in at the identity provider, never a client's own token (client credentials) or a password grant's",
+    )
   })
 
   // A malformed claim is refused whole, even when one of its strings names this server.

@@ -37,6 +37,7 @@ function expectLikeTheFormat(target: EngineTarget, profile: Profile): void {
   expect(target.endpoint).toBe(profile.url)
   expect(target.readOnly ?? false).toBe(profile.readOnly ?? false)
   expect(target.webUiUrl).toBe(profile.cockpitUrl)
+  expect(target.environment).toBe(profile.environment)
   expect(target.auth.kind).toBe(AUTH_KINDS[authTypeOf(profile)])
   expect(target.engine).toBe(dialectOf(profile))
   expect([undefined, "default"]).toContain(profile.engine)

@@ -362,7 +362,7 @@ describe("oauthOidcProvider: the gate over its discovery", () => {
     await expect(
       verifier.verifyAccessToken(token({ preferred_username: "service-account-x" })),
     ).rejects.toThrow(
-      "Token carries no sid claim, which the server requires: a token a client obtained for itself (client credentials) names no signed-in user",
+      "Token carries no sid claim, which the server requires: it takes only the tokens of a user's sign-in at the identity provider, never a client's own token (client credentials) or a password grant's",
     )
   })
 

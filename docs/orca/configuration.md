@@ -37,13 +37,14 @@ token endpoint; Pulse reads none of the credentials your CLI config holds for th
 
 The plugin's settings are in Orca's settings, under Pulse:
 
-| Setting                                              | Values                                                                      | Default                    |
-| ---------------------------------------------------- | --------------------------------------------------------------------------- | -------------------------- |
-| Project file                                         | the path of a `.pulse.json`                                                 | the focused workspace's    |
-| Writes                                               | on engines on this machine only, also on remote engines with a login, never | this machine only          |
-| Environments                                         | JSON, per profile: `local`, `test`, `production`                            | loopback hosts are `local` |
-| Live updates (local, test, production, unclassified) | default, on, off                                                            | local and test on          |
+| Setting                                              | Values                                                                      | Default                                                                    |
+| ---------------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Project file                                         | the path of a `.pulse.json`                                                 | the focused workspace's                                                    |
+| Writes                                               | on engines on this machine only, also on remote engines with a login, never | this machine only                                                          |
+| Environments                                         | JSON, per profile: `local`, `test`, `production`                            | loopback hosts are `local`, unless the profile names another `environment` |
+| Live updates (local, test, production, unclassified) | default, on, off                                                            | local and test on                                                          |
 
 A `.vscode/settings.json` next to the project file adds its `pulse.environments`, as it does for
 the extension. Production and unclassified engines ask you to type their host before a write;
-the [write rules](../vscode/configuration.md) are the extension's.
+the [write rules](../vscode/configuration.md#settings) and what a profile's `environment` marks
+are the extension's.

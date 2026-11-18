@@ -6,10 +6,11 @@
  * end-session endpoint) and `oauth21/2026-08` (with PKCE methods and the `iss`, also at the RFC
  * 8414 path), each with a key set whose keys name it as their issuer, the oauth21 one holding a key
  * the v2.0 one lacks, which signs that authority's tokens. Its v2 access tokens carry the issuer of
- * the authority asked, the API registration's client id as `aud` where the scopes name the API
- * (Microsoft Graph's otherwise), the API's scopes short in `scp`, `ver`, `azp`, a `sub` hashed per
- * client, `name` and `preferred_username`, and `oid` and `tid` only where `profile` was asked; with
- * `tokenVersion: 1` they are v1 tokens of `https://sts.windows.net/<tenant>/`. A `resource` that is
+ * the authority asked, the API registration's client id as `aud`, the API's scopes short in `scp`,
+ * `ver`, `azp`, a `sub` hashed per client, `name` and `preferred_username`, and `oid` and `tid`
+ * only where `profile` was asked; with `tokenVersion: 1` they are v1 tokens of
+ * `https://sts.windows.net/<tenant>/`. A sign-in whose scopes name no API gets Microsoft Graph's
+ * token, a v1 token whatever the API's version, as every decoded one is. A `resource` that is
  * no App ID URI of the API is refused (AADSTS9010010), and so is a code exchange without a scope
  * (AADSTS28003). A refresh token comes only with `offline_access`, every grant gives a new one and
  * the old one renews on; the end of a session leaves them alive (single sign-out), as Entra's do,
@@ -282,19 +283,18 @@ interface Grant {
   readonly resource: string | null
 }
 
-/** A v2 access token of the authority asked, for the API where the scopes name it. */
+/** A v2 access token of the authority asked, for the API the scopes name. */
 function v2AccessToken(grant: Grant): Promise<string> {
   const { realm, tenant, session, scopes, authority } = grant
   const { clientId, user, sid } = session
-  const api = apiScopesOf(tenant, scopes)
   const claims = {
-    aud: api.length === 0 ? GRAPH : tenant.apiClientId,
+    aud: tenant.apiClientId,
     ...opaqueClaims(),
     azp: clientId,
     azpacr: "1",
     ...nameClaims(user),
     ...profileIds(tenant, user, scopes),
-    scp: api.length === 0 ? scopes.join(" ") : api.join(" "),
+    scp: apiScopesOf(tenant, scopes).join(" "),
     sid,
     sub: pairwise(clientId, user),
     ver: "2.0",
@@ -306,19 +306,23 @@ function v2AccessToken(grant: Grant): Promise<string> {
   return sign(realm, claims, realm.accessTokenSeconds, issuer, key)
 }
 
-/** A v1 access token, as an API on `requestedAccessTokenVersion` 1 gets it. */
+/**
+ * A v1 access token, as an API on `requestedAccessTokenVersion` 1 gets it, or Microsoft Graph's
+ * where the scopes name no API.
+ */
 function v1AccessToken(grant: Grant): Promise<string> {
   const { realm, tenant, session, scopes, resource } = grant
   const { clientId, user } = session
+  const api = apiScopesOf(tenant, scopes)
   const claims = {
-    aud: resource ?? tenant.appIdUris[0],
+    aud: api.length === 0 ? GRAPH : (resource ?? tenant.appIdUris[0]),
     ...opaqueClaims(),
     appid: clientId,
     appidacr: "1",
     ...nameClaims(user),
     oid: user.sub,
     tid: tenant.tenant,
-    scp: apiScopesOf(tenant, scopes).join(" "),
+    scp: api.length === 0 ? scopes.join(" ") : api.join(" "),
     sub: pairwise(clientId, user),
     ...(user.email === undefined ? {} : { upn: user.email, unique_name: user.email }),
     ver: "1.0",
@@ -362,9 +366,8 @@ export async function issueEntraTokens(
   const tenant = tenantOf(realm)
   const authority = authorityOf(realm, pathname)
   const grant: Grant = { realm, tenant, session, scopes, authority, resource: form.get("resource") }
-  const accessToken = await (tenant.tokenVersion === 1
-    ? v1AccessToken(grant)
-    : v2AccessToken(grant))
+  const versionOne = tenant.tokenVersion === 1 || apiScopesOf(tenant, scopes).length === 0
+  const accessToken = await (versionOne ? v1AccessToken(grant) : v2AccessToken(grant))
   realm.issued.access.push(accessToken)
   const renewable = realm.refreshTokens && scopes.includes("offline_access")
   const refreshToken = renewable ? newRefreshToken(realm, { ...session, scope }) : undefined

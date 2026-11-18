@@ -507,7 +507,7 @@ const DOCS_BUDGETS = {
   "mcp/operations.md": 120,
   // Each identity provider's side for /mcp and the web app, what a renewal catches, the MCP clients'
   // registration, what the server cannot serve, what was checked and the real-tenant checklist.
-  "mcp/identity-providers.md": 257,
+  "mcp/identity-providers.md": 270,
   "mcp/usage.md": 150,
   // A board in the chat and the cockpit, the server's board files, a board shared with the editors.
   "mcp/boards.md": 70,
@@ -543,7 +543,7 @@ const DOCS_BUDGETS = {
   // The VS Code extension's pages (docs/vscode/).
   "vscode/index.md": 50,
   "vscode/installation.md": 50,
-  "vscode/configuration.md": 95,
+  "vscode/configuration.md": 97,
   // A cluster's profile and login, what differs and the conformance matrix, a row per leg.
   "vscode/camunda8.md": 125,
   "vscode/usage.md": 80,

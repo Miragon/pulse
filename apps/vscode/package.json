@@ -206,7 +206,7 @@
       "properties": {
         "pulse.environments": {
           "type": "object",
-          "markdownDescription": "Environment of each engine by target name, e.g. `{ \"prod-eu\": \"production\" }`. Production engines are shown in red. Loopback hosts (`localhost`, `127.0.0.1`, `[::1]`) are local without configuration.",
+          "markdownDescription": "Environment of each engine by target name, e.g. `{ \"prod-eu\": \"production\" }`. Production engines are shown in red. Loopback hosts (`localhost`, `127.0.0.1`, `[::1]`) are local unless their profile names another `environment`: `test` or `production` counts as that, any other as unclassified.",
           "additionalProperties": {
             "type": "string",
             "enum": [
