@@ -77,7 +77,9 @@ describe("ClusterDetailWidget (fixture render)", () => {
 
     // Cluster identity + the guarded remediation handoff.
     expect(screen.getByText("callWMS")).toBeTruthy()
-    expect(screen.getByText("failedExternalTask")).toBeTruthy()
+    // The engine's type in the catalog's words (the extension's), never its code.
+    expect(screen.getByText("Failed external task")).toBeTruthy()
+    expect(screen.queryByText("failedExternalTask")).toBeNull()
     expect(await screen.findByText("Plan a fix in chat")).toBeTruthy()
 
     // Full sample failure message.

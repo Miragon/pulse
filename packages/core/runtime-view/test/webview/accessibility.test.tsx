@@ -15,6 +15,13 @@ import {
 
 const WCAG_22_A_AA = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22a", "wcag22aa"]
 
+const LANDMARK_RULES = [
+  "landmark-one-main",
+  "landmark-no-duplicate-main",
+  "landmark-main-is-top-level",
+  "landmark-unique",
+]
+
 const THEMES: readonly (readonly [theme: string, contrast: string | undefined])[] = [
   ["light", undefined],
   ["dark", undefined],
@@ -60,12 +67,26 @@ function isScaledOverlayTarget(id: string, node: axe.NodeResult): boolean {
   return id === "target-size" && (node.element?.closest(".djs-overlays") ?? null) !== null
 }
 
+async function landmarkViolations(root: HTMLElement): Promise<axe.Result[]> {
+  const { position } = root.style
+  root.style.position = "relative"
+  try {
+    const result = await axe.run(document, {
+      runOnly: { type: "rule", values: LANDMARK_RULES },
+      elementRef: true,
+    })
+    return result.violations
+  } finally {
+    root.style.position = position
+  }
+}
+
 async function violations(root: HTMLElement): Promise<{ id: string; nodes: string[] }[]> {
   const result = await axe.run(root, {
     runOnly: { type: "tag", values: WCAG_22_A_AA },
     elementRef: true,
   })
-  return result.violations
+  return [...result.violations, ...(await landmarkViolations(root))]
     .map((violation) => ({
       id: violation.id,
       nodes: violation.nodes
@@ -104,14 +125,14 @@ describe.each(THEMES)("the fixture screens in the %s theme, contrast %s", (theme
     applyTheme("light", undefined)
   })
 
-  it.each(SCREENS)("%s has no WCAG 2.2 A or AA violation", async (name) => {
+  it.each(SCREENS)("%s has no WCAG 2.2 A or AA violation and one main", async (name) => {
     harness = await open(name, theme, contrast)
 
     expect(await violations(harness.root)).toEqual([])
   })
 })
 
-describe("one heading per screen", () => {
+describe("one heading and one main per screen", () => {
   let harness: Harness
 
   afterEach(() => {
@@ -119,13 +140,21 @@ describe("one heading per screen", () => {
   })
 
   it.each(SCREENS.filter((name) => FIXTURES[name].status !== "loading"))(
-    "%s has exactly one h1",
+    "%s has exactly one h1, in its main",
     async (name) => {
       harness = await open(name, "light", undefined)
 
       expect(harness.root.querySelectorAll("h1")).toHaveLength(1)
+      expect(harness.root.querySelectorAll("main h1")).toHaveLength(1)
     },
   )
+
+  it.each(SCREENS)("%s has exactly one main, around the whole screen", async (name) => {
+    harness = await open(name, "light", undefined)
+
+    expect(harness.root.querySelectorAll("main")).toHaveLength(1)
+    expect(harness.root.firstElementChild?.tagName).toBe("MAIN")
+  })
 })
 
 describe.each(THEMES)(

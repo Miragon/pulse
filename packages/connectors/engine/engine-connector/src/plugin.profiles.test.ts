@@ -183,13 +183,13 @@ describe("a refused profile: listed, named in the enum, never routed to", () => 
     const { recording } = boot(config)
     for (const args of [{ engine: "locked" }, {}]) {
       const result = await recording.tool(ENGINE_OPEN_COCKPIT).call(args)
-      // A refused profile names no dialect, and says it is refused: no call reaches it, so the
-      // widgets read nothing of it.
+      // A refused profile names no dialect, and says it is refused and why: no call reaches it,
+      // so the widgets read nothing of it and word the refusal themselves.
       expect(result.structuredContent).toEqual({
         engineId: null,
         engines: [
           { id: "a", environment: "default", dialect: "c7" },
-          { id: "locked", environment: "prod", refused: true },
+          { id: "locked", environment: "prod", refused: { reason: REFUSED.reason } },
         ],
         start: null,
       })

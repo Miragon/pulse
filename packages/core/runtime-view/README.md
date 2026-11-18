@@ -61,7 +61,9 @@ values through the native value setter with bubbling `input` and `change` events
 with React's `createRoot` under pulse-ui's `LocaleProvider` and `<html data-density="compact">`,
 as `main.tsx` does, and runs a mount, an update or an unmount inside `act()`. Their accessibility baseline runs axe-core over every fixture of
 the dev page in light, dark and both high-contrast themes and over the opened tabs, the variable
-editor, the condition dialog and the move panel, with no WCAG 2.2 A or AA violation, at the
+editor, the condition dialog and the move panel, with no WCAG 2.2 A or AA violation and no
+violation of axe's landmark rules (one main around each screen, as the app root renders it; run with the
+harness root out of fixed position, which axe would take for a modal that passes them), at the
 harness root's 1,200 pixels in a viewport as wide, so axe sees the whole screen; the target size
 of the diagram's overlays, which scale with its zoom down to 0.7 of the named 20 px deviation, is
 the geometry gate's exception there too (`test/webview/accessibility.test.tsx`); `test/webview/semantics.test.tsx` holds the roles and

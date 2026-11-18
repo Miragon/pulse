@@ -260,7 +260,10 @@ describe("the cross-engine landscape, read from each engine", () => {
     render(
       <TestViewHost tools={{ ...TOOLS, [ENGINE_COCKPIT_OVERVIEW_DATA]: feed }} client={queryClient}>
         <FleetView
-          engines={[{ id: "prod-a" }, { id: "c8bad", refused: true }]}
+          engines={[
+            { id: "prod-a" },
+            { id: "c8bad", refused: { reason: "auth.clientSecretEnv is not set." } },
+          ]}
           onEnterEngine={() => {}}
         />
       </TestViewHost>,

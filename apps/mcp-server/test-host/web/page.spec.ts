@@ -7,6 +7,7 @@ import {
   C8_OPERATE,
   C8_UNBOARDED_ENGINE,
   HEALTHY_ENGINE,
+  REFUSED_C8_ENGINE,
 } from "../engines.js"
 import {
   collectErrors,
@@ -614,5 +615,38 @@ test.describe("the cockpit's pages on a Camunda 8 engine", () => {
       timeout: 15_000,
     })
     expect(new URL(page.url()).pathname).toBe("/app")
+  })
+})
+
+/**
+ * A refused profile of the other dialect on a page: the server offers it no feed (its feeds' engine
+ * enums name the stub alone), so its page reads nothing of it and says the profile's own reason as
+ * its one heading and title, without Try again and without the head's sections.
+ */
+test.describe("the cockpit's page on a refused profile of the other dialect", () => {
+  test("its gate says the profile's own reason, reads nothing and titles the page", async ({
+    page,
+  }) => {
+    const errors = collectErrors(page)
+    const calls = recordCalls(page)
+    await signIn(page, "/app", { deployment: "refusedC8" })
+    const row = page.getByRole("button", { name: new RegExp(`^${REFUSED_C8_ENGINE}\\b`) })
+    await expect(row).toHaveAccessibleName(/\bprofile refused$/, { timeout: 15_000 })
+    await row.click()
+    const title = `Engine ${REFUSED_C8_ENGINE} cannot be used: its profile is refused`
+    await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible()
+    await expect(page).toHaveTitle(`${title} · Pulse`)
+    await expect(
+      page.getByText(
+        new RegExp(`^\\[ENGINE_PROFILE_REFUSED\\] Engine "${REFUSED_C8_ENGINE}" is configured`),
+      ),
+    ).toBeAttached()
+    await expect(page.getByText(/Input validation error/)).toHaveCount(0)
+    await expect(page.getByRole("button", { name: "Try again" })).toHaveCount(0)
+    await expect(page.getByRole("navigation", { name: "Cockpit sections" })).toHaveCount(0)
+    expect(calls.filter((call) => call.arguments?.engine === REFUSED_C8_ENGINE)).toEqual([])
+    await rendered(page)
+    expect(errors).toEqual([])
+    await expectNoAxeFinding(page)
   })
 })

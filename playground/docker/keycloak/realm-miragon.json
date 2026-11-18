@@ -23,6 +23,8 @@
       "attributes": {
         "post.logout.redirect.uris": "+"
       },
+      "defaultClientScopes": ["basic", "profile", "email", "mcp-resource"],
+      "optionalClientScopes": ["offline_access"],
       "protocolMappers": [
         {
           "name": "miragon-audience",
@@ -56,6 +58,8 @@
         "pkce.code.challenge.method": "S256",
         "access.token.lifespan": "300"
       },
+      "defaultClientScopes": ["basic", "profile", "email", "mcp-resource"],
+      "optionalClientScopes": ["offline_access"],
       "protocolMappers": [
         {
           "name": "mcp-audience",
@@ -79,6 +83,7 @@
       "emailVerified": true,
       "firstName": "Demo",
       "lastName": "User",
+      "realmRoles": ["default-roles-miragon"],
       "credentials": [
         {
           "type": "password",
@@ -307,6 +312,15 @@
       ]
     },
     {
+      "name": "offline_access",
+      "description": "Defined with its role (scopeMappings) as a Default Client Scope: Keycloak adds its own only after the import set the defaults, and a self-registered client (the MCP Inspector) gets no optional scope. It keeps its session past the 5-minute token.",
+      "protocol": "openid-connect",
+      "attributes": {
+        "consent.screen.text": "${offlineAccessScopeConsentText}",
+        "display.on.consent.screen": "true"
+      }
+    },
+    {
       "name": "mcp-resource",
       "description": "Stamps the MCP server's canonical resource URL into aud \u2014 the server rejects tokens without it (RFC 8707).",
       "protocol": "openid-connect",
@@ -329,5 +343,6 @@
       ]
     }
   ],
-  "defaultDefaultClientScopes": ["basic", "profile", "email", "mcp-resource"]
+  "scopeMappings": [{ "clientScope": "offline_access", "roles": ["offline_access"] }],
+  "defaultDefaultClientScopes": ["basic", "profile", "email", "mcp-resource", "offline_access"]
 }

@@ -143,6 +143,12 @@ function boundResource(claims: Claims, rule: AudienceRule): URL {
   return resource
 }
 
+/**
+ * The refusal of a token past its `exp`, in the SDK's own words: a client then knows to renew it
+ * (`jose` checks `exp` only once the signature and the issuer verified).
+ */
+const TOKEN_EXPIRED = "Token has expired"
+
 /** A token that fails on its own terms: 401, whatever the key set holds. */
 function isCredentialFailure(error: unknown): boolean {
   return (
@@ -458,7 +464,7 @@ export function createJwtVerifier(options: JwtVerifierOptions): OAuthTokenVerifi
         requireCaller(claims, callerClaims)
         // `jose` required `exp` as a number, with the leeway meant for `nbf`: here it is exact.
         const exp = Number(claims.exp)
-        if (!(exp > Date.now() / 1000)) throw invalidToken("Missing or expired exp claim")
+        if (!(exp > Date.now() / 1000)) throw invalidToken(TOKEN_EXPIRED)
         const bound = boundResource(claims, rule)
         requireClaims(claims, requiredClaims)
         const clientId = clientOf(claims)
@@ -475,6 +481,7 @@ export function createJwtVerifier(options: JwtVerifierOptions): OAuthTokenVerifi
         }
       } catch (error) {
         if (options.debug) logRefusal(token, error)
+        if (error instanceof errors.JWTExpired) throw invalidToken(TOKEN_EXPIRED, error)
         if (isCredentialFailure(error)) throw invalidToken("JWT verification failed", error)
         throw error
       }

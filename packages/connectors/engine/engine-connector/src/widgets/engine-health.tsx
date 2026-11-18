@@ -35,6 +35,7 @@ import { useActionAllowed } from "./lib/engine-action.js"
 import { useHandOff, useHandOffsShown, type HandOff, type ViewContext } from "./lib/hand-off.js"
 import { healthFailureOf, healthVerdictLine, VERDICT_TONE } from "./lib/health-verdict.js"
 import { useT } from "../messages/use-t.js"
+import { incidentTypeWords } from "./lib/incident-type.js"
 import { refreshCockpitData } from "./refresh.js"
 
 const STATUS_LABEL: Record<EngineHealthStatus, string> = {
@@ -167,8 +168,8 @@ function ClusterRow({
       <div data-cluster-words="" className="flex min-w-0 grow basis-64 flex-col gap-1">
         <div className="flex min-w-0 flex-wrap items-start gap-2">
           <NamedId name={cluster.activityName} id={cluster.activityId} />
-          <span className="border-input text-muted-foreground text-small rounded-sm border px-1.5 font-mono">
-            {cluster.incidentType}
+          <span className="border-input text-muted-foreground text-small rounded-sm border px-1.5">
+            {incidentTypeWords(cluster.incidentType, t)}
           </span>
         </div>
         {cluster.representativeMessage && (

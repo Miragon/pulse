@@ -52,8 +52,8 @@ export type { CockpitAppData }
 interface EnginesResult extends Partial<ServerBoards> {
   engines: Array<ListedEngineFacts & { environment?: string }>
   defaultEngineId: string | null
-  /** Profiles the server refused: the picker lists them too, and opening one says why. */
-  refused?: Array<{ id: string; environment?: string }>
+  /** Profiles the server refused, each with why: the picker lists them too, opening one says why. */
+  refused?: Array<{ id: string; environment?: string; reason: string }>
 }
 
 type ListedEngine = CockpitEngine
@@ -68,7 +68,10 @@ function listedEngines(result: EnginesResult, order: readonly ListedEngine[]): L
   const boards = result.boards ?? []
   const named = [
     ...result.engines.map((engine) => ({ engine, facts: dialectFactsOf(engine, boards) })),
-    ...(result.refused ?? []).map((engine) => ({ engine, facts: { refused: true } as const })),
+    ...(result.refused ?? []).map((engine) => ({
+      engine,
+      facts: { refused: { reason: engine.reason } },
+    })),
   ].map(({ engine: { id, environment }, facts }) => ({
     id,
     ...(environment === undefined ? {} : { environment }),
@@ -100,14 +103,6 @@ function landingSeed(data: CockpitAppData | null): LandingStartData | undefined 
 }
 
 /**
- * The start data or the engine list names the engine's profile refused: its view is one state
- * (`RefusedEngineGate`), as when a read of it already met the refusal (`useProfileRefusal`).
- */
-function isRefused(engines: readonly CockpitEngine[], engineId: string): boolean {
-  return engines.some(({ id, refused }) => id === engineId && refused === true)
-}
-
-/**
  * What the model hears of an open engine: its refused profile, its dialect the server reads on
  * boards only, or the view on screen.
  */
@@ -123,16 +118,17 @@ function engineContextOf(
 }
 
 /**
- * The engine the cockpit shows where it shows it on boards only: its one state names it, never the
- * view its stack holds.
+ * The engine the cockpit shows without a section, on boards only or as its refused profile: its one
+ * state names it, never the view its stack holds.
  */
-function boardsOnlyEngineIn(
+function sectionlessEngineIn(
   scope: CockpitState["scope"],
   engines: readonly ListedEngine[],
+  refused: boolean,
 ): string | undefined {
   if (scope.kind !== "engine") return undefined
   const engine = engines.find(({ id }) => id === scope.engineId)
-  return boardsOnlyOf(engine) === null ? undefined : scope.engineId
+  return refused || boardsOnlyOf(engine) !== null ? scope.engineId : undefined
 }
 
 /** Docked under the head: the engine the view showed went away, and the view fell back. */
@@ -199,14 +195,15 @@ function rootCrumb(
  * An engine's bars, from edge to edge above its route: the head (the sections its dialect is
  * served by, inline a drilled view's trail in their place), the trail on a row of its own where
  * fullscreen has room for both and it has two crumbs, and the notice of an engine that went away.
- * An engine shown on boards only has no section: its trail, the way back and its name, takes
- * their place in the head, never a crumb of a route it has not.
+ * An engine shown on boards only, or whose profile the server refused, has no section: its trail,
+ * the way back and its name, takes their place in the head, never a crumb of a route it has not.
  */
 function EngineBars({
   engineId,
   engines,
   engineGroups,
   chooser,
+  refused,
   state,
   inline,
   onOpenFleet,
@@ -217,6 +214,8 @@ function EngineBars({
   engineGroups: Array<{ id: string; engines: Array<{ id: string }> }>
   /** The chooser shows: the trail's first crumb leads back to it. */
   chooser: boolean
+  /** Its profile refused (`useProfileRefusal`). */
+  refused: boolean
   state: CockpitState
   inline: boolean
   onOpenFleet?: () => void
@@ -225,7 +224,7 @@ function EngineBars({
   const locale = useLocale()
   const { stack, goneEngineId, fromBoard } = state
   const engine = engines.find(({ id }) => id === engineId)
-  const boardsOnly = boardsOnlyOf(engine) !== null
+  const sectionless = refused || boardsOnlyOf(engine) !== null
   const rootLabel = rootCrumb(fromBoard, chooser, locale)
   const leave = fromBoard ? ({ type: "to-board" } as const) : ({ type: "to-landing" } as const)
   const trail = (
@@ -233,19 +232,20 @@ function EngineBars({
       stack={stack}
       locale={locale}
       rootLabel={rootLabel}
-      current={boardsOnly ? engineId : undefined}
+      current={sectionless ? engineId : undefined}
       onPop={(to) => dispatch(to < 0 ? leave : { type: "pop", to })}
     />
   )
   // Inline is a card (#396): a drilled view's trail takes the sections' row, a head section shows
-  // none; an engine shown on boards only has no sections, so its trail is the head's in both.
-  const crumbs = (boardsOnly ? 1 : stack.length) + (rootLabel === undefined ? 0 : 1)
-  const inHead = boardsOnly ? crumbs > 1 : inline && stack.length > 1
+  // none; an engine without sections has its trail in the head in both.
+  const crumbs = (sectionless ? 1 : stack.length) + (rootLabel === undefined ? 0 : 1)
+  const inHead = sectionless ? crumbs > 1 : inline && stack.length > 1
   return (
     <>
       <CockpitHead
         activeSection={activeSectionOf(stack)}
         dialect={engine?.dialect}
+        refused={refused}
         onSection={(intent) => dispatch(intent)}
         onOpenFleet={onOpenFleet}
         trail={inHead ? trail : undefined}
@@ -258,7 +258,7 @@ function EngineBars({
           />
         }
       />
-      {!inline && !boardsOnly && crumbs > 1 && <CockpitTrailBar>{trail}</CockpitTrailBar>}
+      {!inline && !sectionless && crumbs > 1 && <CockpitTrailBar>{trail}</CockpitTrailBar>}
       <EngineGoneNotice engineId={goneEngineId} />
     </>
   )
@@ -284,8 +284,13 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
   const chooser = engines.length > 1 || boards !== null
   const [state, dispatch] = useCockpitState(data, engines, boards !== null)
   const { scope, stack, goneEngineId } = state
-  // Also before the engine list answers, or when it fails: a read already met the refusal.
-  const metRefusal = useProfileRefusal(scope.kind === "engine" ? scope.engineId : null)
+  // A read that met it since the list last answered (also before it answers, or where it fails),
+  // else what the start data or the engine list names.
+  const refusal = useProfileRefusal(
+    scope.kind === "engine" ? scope.engineId : null,
+    engines,
+    enginesQuery.dataUpdatedAt,
+  )
 
   // The cross-engine view reads every engine itself, so two it reads whole are all it needs; one
   // the server shows on boards only it names and leaves out.
@@ -310,7 +315,12 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
   }
 
   // #344 N107: one frame, so navigation moves focus to the new view.
-  const nav = navigationOf(scope, stack, locale, boardsOnlyEngineIn(scope, engines))
+  const nav = navigationOf(
+    scope,
+    stack,
+    locale,
+    sectionlessEngineIn(scope, engines, refusal !== null),
+  )
 
   if (scope.kind === "landing") {
     return (
@@ -414,6 +424,7 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
             engines={engines}
             engineGroups={engineGroups}
             chooser={chooser}
+            refused={refusal !== null}
             state={state}
             inline={inline}
             onOpenFleet={openFleet}
@@ -422,7 +433,7 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
         }
       >
         <HostModelContext
-          content={context(engineContextOf(engineId, current, metRefusal, boardsOnly))}
+          content={context(engineContextOf(engineId, current, refusal !== null, boardsOnly))}
         >
           {null}
         </HostModelContext>
@@ -436,10 +447,7 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
             so the route renders no main of its own. */}
           <NavProvider value={navigate}>
             <ViewErrorBoundary resetKey={viewKey(current)}>
-              <RefusedEngineGate
-                engine={engineId}
-                refused={metRefusal || isRefused(engines, engineId)}
-              >
+              <RefusedEngineGate refusal={refusal}>
                 <BoardsOnlyEngineGate
                   engineId={engineId}
                   boardsOnly={boardsOnly}

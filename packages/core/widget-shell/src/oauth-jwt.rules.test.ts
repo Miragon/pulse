@@ -73,6 +73,7 @@ async function refusal(verifier: OAuthTokenVerifier, token: string) {
 }
 
 const FAILED = { code: "invalid_token", description: "JWT verification failed", audience: false }
+const EXPIRED = { code: "invalid_token", description: "Token has expired", audience: false }
 
 const served = (verifier: OAuthTokenVerifier, token: string): Promise<AuthInfo> =>
   verifier.verifyAccessToken(token)
@@ -361,24 +362,30 @@ describe("the token's own failures", () => {
     const exp = now()
     expect(await refusal(verifierOf(), sign(good({ exp })))).toEqual({
       code: "invalid_token",
-      description: "Missing or expired exp claim",
+      description: "Token has expired",
       audience: false,
     })
     expect((await served(verifierOf(), sign(good({ exp: exp + 1 })))).expiresAt).toBe(exp + 1)
   })
 
   it.each<[string, () => string]>([
-    ["an exp an hour past", () => sign(good({ exp: now() - 3600 }))],
     ["a header that is no JSON", () => `eA.${sign(good()).split(".").slice(1).join(".")}`],
+    ["an expired token's signature broken", () => `${sign(good({ exp: now() - 3600 }))}x`],
+    ["an expired token of another issuer", () => sign(good({ exp: now() - 3600, iss: "x" }))],
   ])("refuses %s as the token's failure", async (_case, token) => {
     expect(await refusal(verifierOf(), token())).toEqual(FAILED)
+  })
+
+  // `jose` reads `exp` only once the signature and the issuer verified.
+  it("says a token an hour past its exp expired", async () => {
+    expect(await refusal(verifierOf(), sign(good({ exp: now() - 3600 })))).toEqual(EXPIRED)
   })
 
   it("names the failure of the key that signed a token without kid", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {})
     idp.keys = [JWK_RSA, JWK_RSA2]
     const token = sign(good({ exp: now() - 3600 }), { key: rsa2.privateKey, kid: null })
-    expect(await refusal(verifierOf({ debug: true }), token)).toEqual(FAILED)
+    expect(await refusal(verifierOf({ debug: true }), token)).toEqual(EXPIRED)
     expect(String(error.mock.calls[0][0])).toMatch(
       /^\[oauth-debug\] JWT verify failed: JWTExpired: /,
     )

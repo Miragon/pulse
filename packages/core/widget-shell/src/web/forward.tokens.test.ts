@@ -228,6 +228,9 @@ describe("POST /app/api/call: the session's token", () => {
   })
 })
 
+/** The gate's 401 body for a token past its exp. */
+const EXPIRED_BODY = '{"error":"invalid_token","error_description":"Token has expired"}'
+
 describe("POST /app/api/call: after the gate refused the token", () => {
   it("ends the session without a refresh for a young token, which a new one would not mend", async () => {
     const { call, requests, idp, logged } = await setup({
@@ -239,6 +242,22 @@ describe("POST /app/api/call: after the gate refused the token", () => {
     expect(response.headers.getSetCookie()).toEqual(CLEARED)
     expect([requests.length, idp.forms.length]).toEqual([1, 0])
     expect(logged).toEqual(["Web session ended: the gate refused the session's token."])
+  })
+
+  // The gate's reason (its 401's error_description) goes into the line; a body without one, or
+  // that is no JSON object, names none.
+  it.each<[string, string, string]>([
+    ["its reason", EXPIRED_BODY, " (Token has expired)"],
+    ["no reason that is text", '{"error":"invalid_token","error_description":7}', ""],
+    ["a body that is no object", "null", ""],
+    ["a body that is no JSON", "Unauthorized", ""],
+  ])("names in its log line %s of the refusal", async (_case, body, reason) => {
+    const { call, logged } = await setup({
+      at: T0 + 29 * SECOND,
+      mcp: [{ ...GATE_REFUSAL, body }],
+    })
+    expect(await jsonOf(await call())).toEqual({ status: 401, body: SIGNED_OUT })
+    expect(logged).toEqual([`Web session ended: the gate refused the session's token${reason}.`])
   })
 
   it("renews an older token once and calls again with the new one", async () => {
@@ -263,6 +282,18 @@ describe("POST /app/api/call: after the gate refused the token", () => {
     expect(await jsonOf(response)).toEqual({ status: 401, body: SIGNED_OUT })
     expect(requests).toHaveLength(2)
     expect(logged).toEqual(["Web session ended: the gate refused the renewed token."])
+  })
+
+  it("names the gate's reason for refusing the renewed token", async () => {
+    const { call, logged } = await setup({
+      at: T0 + 30 * SECOND,
+      provider: [tokens("access-2")],
+      mcp: [GATE_REFUSAL, { ...GATE_REFUSAL, body: EXPIRED_BODY }],
+    })
+    expect(await jsonOf(await call())).toEqual({ status: 401, body: SIGNED_OUT })
+    expect(logged).toEqual([
+      "Web session ended: the gate refused the renewed token (Token has expired).",
+    ])
   })
 
   it("ends the session when the provider refuses the refresh token then, leaving the cookies", async () => {

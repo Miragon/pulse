@@ -277,7 +277,7 @@ export function LandingHeader({ subtitle, action }: { subtitle?: string; action?
 
 /** An engine's row: a refused profile's, one shown on boards only, or one every route reads. */
 function engineRowOf(engine: CockpitEngine, row: EngineRowProps): ReactNode {
-  if (engine.refused === true) return <RefusedEngineRow {...row} />
+  if (engine.refused !== undefined) return <RefusedEngineRow {...row} />
   const boardsOnly = boardsOnlyOf(engine)
   return boardsOnly ? <BoardsOnlyEngineRow engine={boardsOnly} {...row} /> : <EngineRow {...row} />
 }

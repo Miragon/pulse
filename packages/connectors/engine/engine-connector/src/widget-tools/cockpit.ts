@@ -201,12 +201,15 @@ function dialectOf(
  */
 function cockpitEngines(registry: EngineRegistry): CockpitEngineInfo[] {
   const usable = new Map(registry.engines.map((e) => [e.id, e]))
-  return registry.engineIds.map((id): CockpitEngineInfo => ({
-    id,
-    environment: environmentOf(usable.get(id) ?? registry.refused.get(id) ?? {}),
-    ...dialectOf(registry.backends.get(id)),
-    ...(registry.refused.has(id) ? { refused: true } : {}),
-  }))
+  return registry.engineIds.map((id): CockpitEngineInfo => {
+    const refused = registry.refused.get(id)
+    return {
+      id,
+      environment: environmentOf(usable.get(id) ?? refused ?? {}),
+      ...dialectOf(registry.backends.get(id)),
+      ...(refused === undefined ? {} : { refused: { reason: refused.reason } }),
+    }
+  })
 }
 
 export function registerCockpitWidgetTools(context: WidgetToolsContext) {

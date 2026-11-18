@@ -42,17 +42,19 @@ no `sub`: turn them off for these clients. The server serves a copy of the realm
 registration endpoint included.
 
 **MCP clients.** Register a client per MCP client with the audience scope where you can. Clients
-that register themselves do so anonymously, under a Trusted Hosts policy for loopback redirects,
-which checks every URI a client names: admit `github.com` for the MCP Inspector and its
-`client_uri` `https://github.com/modelcontextprotocol/inspector`, and keep Keycloak's default
-registration policies beside it, Max Clients and Allowed Protocol Mapper Types above all (a
-client's own mapper could write `auth_time`). Such a client gets the realm's Default Client
-Scopes, so the audience scope must be one of them: then anyone may register clients, up to Max
-Clients (200 by default), whose tokens `/mcp` takes, writes included, though only through the
-sign-in of a user of the realm. Let clients register themselves only in a realm whose users may all
-operate the engines, or in a realm of its own for Pulse.
-`playground/docker/keycloak/realm-miragon.json` is a working realm with both, the token mappers and
-the web client `pulse-web`.
+that register themselves do so anonymously, under a Trusted Hosts policy for loopback redirects that
+checks every URI a client names (admit `github.com` for the MCP Inspector's `client_uri`), beside
+Keycloak's default registration policies, Max Clients and Allowed Protocol Mapper Types above all (a
+client's own mapper could write `auth_time`). Such a client gets the realm's Default Client Scopes,
+so the audience scope must be one of them: then anyone may register clients, up to Max Clients (200
+by default), whose tokens `/mcp` takes, writes included, though only through the sign-in of a user
+of the realm. With `offline_access` among them, its role mapped and held by the users (by the
+default roles, which an import gives only where it names them), such a client keeps its session past
+the access token in an offline token, which outlives a logout; an optional scope misses the MCP
+Inspector, which registers with an empty scope. Let clients register themselves only in a realm
+whose users may all operate the engines, or in a realm of its own for Pulse.
+`playground/docker/keycloak/realm-miragon.json` is a working realm with all of it and the web client
+`pulse-web`.
 
 **`/app`.** A confidential client (client authentication on, standard flow) with the redirect URI
 `<MCP_URL>/app/auth/callback`, the post-logout URI `<MCP_URL>/app/signed-out` and the audience
@@ -202,8 +204,7 @@ allows it, as each client documents it:
   client's secret, a claims-mapping policy's own signing keys and Continuous Access Evaluation.
 - ADFS 2016, which has no PKCE; Keycloak's lightweight access tokens, which carry no `sub`.
 - A caller claim whose value can change: `email`, `upn`, `unique_name`, `preferred_username`, `name`.
-- A Pulse session that ends at a sign-out where the provider keeps renewing after one: the server
-  takes no back-channel logout.
+- A Pulse session that ends at a sign-out where the provider keeps renewing: no back-channel logout.
 - Passthrough (`ENGINE_AUTH_TYPE=passthrough`) of a token whose audience is Pulse (Entra ID, ADFS):
   MCP forbids passing it on, so keep passthrough to a trusted single-audience setup.
 
@@ -212,9 +213,8 @@ allows it, as each client documents it:
 - 2026-11-18, Keycloak 26.8.2 with the playground's realm and a realm set up as above: a service
   account's token, from either registration endpoint, with a session or without, and a password
   grant's get 401; a registered client's code flow, its renewal and an offline token's pass.
-- The server's tests and the web app's browser tests run against the test identity provider of
-  `@miragon/pulse-widget-shell/testing/oidc`, which plays Keycloak, an ADFS farm and an Entra ID
-  tenant as their documentation describes them.
+- The server's and the web app's tests run against `@miragon/pulse-widget-shell/testing/oidc`, which
+  plays Keycloak, an ADFS farm and an Entra ID tenant as their documentation describes them.
 - Not yet on a real Entra ID tenant, ADFS farm, Okta or PingOne tenant: every step below is marked
   until a run is recorded here.
 

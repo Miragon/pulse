@@ -153,8 +153,11 @@ export interface CockpitEngineInfo {
   webAppUrl?: string
   /** Another dialect's: the ids of the configured boards that name it, in the board files' order. */
   boards?: readonly string[]
-  /** Its profile refused: its row and card say so without a read, its view one state. */
-  refused?: true
+  /**
+   * Its profile refused, and why (the server's reason, which names keys only, never a value): its
+   * row and card say so without a read, its view is that one state, which reads nothing either.
+   */
+  refused?: { readonly reason: string }
 }
 
 /**

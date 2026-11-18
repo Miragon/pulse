@@ -18,6 +18,9 @@ import {
   OWN_VIEW_HOST_ENV,
   REALISTIC_ENGINE,
   REALISTIC_HOST_ENV,
+  C8_ALONE_REFUSED_HOST_ENV,
+  REFUSED_C8_ENGINE,
+  REFUSED_C8_HOST_ENV,
   REFUSED_ENGINE,
   REFUSED_HOST_ENV,
 } from "./engines.js"
@@ -63,7 +66,8 @@ async function deploy(env: Record<string, string>, deps?: AppDeps): Promise<Depl
  * host page via `HOST_SIM_URL`, the write-capable deployment via
  * `HOST_SIM_OPERATIONS_URL`, the realistic engine's deployment via
  * `HOST_SIM_REALISTIC_URL`, the one with a refused profile and refused logins via
- * `HOST_SIM_REFUSED_URL`, the
+ * `HOST_SIM_REFUSED_URL`, the two with a refused profile of the other dialect via
+ * `HOST_SIM_REFUSED_C8_URL` and `HOST_SIM_C8_ALONE_REFUSED_URL`, the
  * one with a module's own view via
  * `HOST_SIM_OWN_VIEW_URL`, the one with board files via `HOST_SIM_BOARD_URL`, the one with one
  * engine and a board via `HOST_SIM_ONE_ENGINE_BOARD_URL` and the stub engine's
@@ -130,6 +134,30 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     ENGINE_SECRET_HOST_SIM_WRONG_PASSWORD: "not-the-password",
     ENGINE_SECRET_HOST_SIM_VIEWER_PASSWORD: "viewer-password",
   })
+  // A refused profile of the other dialect (refused-profile.spec.ts): a Camunda 8 profile whose
+  // client secret's variable is not set beside the stub, and a Camunda 7 one whose token's is not
+  // set beside a Camunda 8 engine alone. The server offers neither a feed, so opening one reads
+  // nothing and says its own reason.
+  const refusedC8 = await deploy({
+    ENGINES_JSON: JSON.stringify({
+      profiles: {
+        [HEALTHY_ENGINE]: { url: engine.baseUrl },
+        [REFUSED_C8_ENGINE]: c8.profile("ENGINE_SECRET_HOST_SIM_NEVER_SET"),
+      },
+    }),
+  })
+  const c8AloneRefused = await deploy({
+    ENGINES_JSON: JSON.stringify({
+      profiles: {
+        [C8_ENGINE]: c8.profile("ENGINE_SECRET_HOST_SIM_C8"),
+        [REFUSED_ENGINE]: {
+          url: engine.baseUrl,
+          auth: { type: "bearer", tokenEnv: "ENGINE_SECRET_HOST_SIM_NEVER_SET" },
+        },
+      },
+    }),
+    ENGINE_SECRET_HOST_SIM_C8: "host-sim-client-secret",
+  })
   // The board files of fixtures/boards over both engines (board.spec.ts): the board feed and the
   // cockpit's board route, a failed engine in its place, a file that gives no board.
   const boards = await deploy({
@@ -165,6 +193,8 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   process.env.HOST_SIM_OPERATIONS_URL = operations.host.url
   process.env[REALISTIC_HOST_ENV] = realistic.host.url
   process.env[REFUSED_HOST_ENV] = refused.host.url
+  process.env[REFUSED_C8_HOST_ENV] = refusedC8.host.url
+  process.env[C8_ALONE_REFUSED_HOST_ENV] = c8AloneRefused.host.url
   process.env[OWN_VIEW_HOST_ENV] = ownView.host.url
   process.env[BOARD_HOST_ENV] = boards.host.url
   process.env[ONE_ENGINE_BOARD_HOST_ENV] = oneEngineBoards.host.url
@@ -177,6 +207,8 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     await operations.close()
     await realistic.close()
     await refused.close()
+    await refusedC8.close()
+    await c8AloneRefused.close()
     await ownView.close()
     await boards.close()
     await oneEngineBoards.close()

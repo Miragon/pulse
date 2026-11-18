@@ -11,6 +11,7 @@ import {
 } from "../lib/hand-off.js"
 import { InstanceLabel } from "../lib/identity.js"
 import { useT } from "../../messages/use-t.js"
+import { incidentTypeWords } from "../lib/incident-type.js"
 
 /** The cockpit's instance feed is app-only, so context comes from model-visible tools; engine text is quoted. */
 export function diagnoseIncidentHandOff(data: IncidentDetailData): HandOff {
@@ -56,7 +57,7 @@ export function IncidentDetailHeader({
     <WidgetHeader
       badge={
         <StatusBadge tone={resolved ? "neutral" : SITUATION_TONES.openIncident}>
-          {resolved ? t("incidentDetail.resolved") : data.incidentType}
+          {resolved ? t("incidentDetail.resolved") : incidentTypeWords(data.incidentType, t)}
         </StatusBadge>
       }
       // The activity by its name; its BPMN id only where it has none (#322 U13).

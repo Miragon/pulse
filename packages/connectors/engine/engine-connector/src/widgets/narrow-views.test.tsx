@@ -84,7 +84,7 @@ describe("an incident table: one line per row, the message taking the rest", () 
       )
       // The type beside it as its state label, its icon alone in a narrow region.
       const type = messages[0].closest("td")!.querySelector("[data-slot='state-label']")!
-      expect(type.getAttribute("title")).toBe("failedJob")
+      expect(type.getAttribute("title")).toBe("Failed job")
       expect(classes(type.lastElementChild)).toContain("@max-md:sr-only")
     },
   )

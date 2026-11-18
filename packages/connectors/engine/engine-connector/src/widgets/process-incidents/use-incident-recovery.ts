@@ -3,6 +3,7 @@ import { useT, type T } from "../../messages/use-t.js"
 import { useEngineAction, type ActionConfirmation, type TargetLine } from "../lib/engine-action.js"
 import { engineTargetLines, useEngineEnvironment } from "../lib/engine-context.js"
 import { instanceName, instanceTargetLines, writeFeedback } from "../lib/write-feedback.js"
+import { incidentTypeWords } from "../lib/incident-type.js"
 
 export type RowAction = "resolve" | "retry"
 
@@ -37,7 +38,7 @@ function resolveConfirmation(
   environment: string | null = null,
 ): ActionConfirmation {
   const lines: TargetLine[] = [
-    [t("confirmDialog.incidentType"), incident.incidentType],
+    [t("confirmDialog.incidentType"), incidentTypeWords(incident.incidentType, t)],
     ...instanceTargetLines(t, incident.processInstanceId, incident.businessKey),
     ...engineTargetLines(t, engineId, environment),
   ]

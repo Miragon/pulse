@@ -102,7 +102,9 @@ services:
   # admits clients whose redirect URIs point at loopback (foreign hosts stay
   # rejected), and the seeded `basic` scope restores the `sub` claim the
   # server's Keycloak provider requires (a realm import with clientScopes suppresses
-  # Keycloak's built-in scopes). Realm changes need a container recreate to
+  # Keycloak's built-in scopes); `offline_access`, a default scope with its role,
+  # which demo holds, keeps such a client's session past the 5-minute access
+  # token (the MCP Inspector included). Realm changes need a container recreate to
   # re-import (CI never boots Keycloak).
   # KC_HOSTNAME pins the issuer to the HOST url so tokens verify no
   # matter how the container is reached. Admin console: localhost:8480

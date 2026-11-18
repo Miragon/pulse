@@ -25,6 +25,7 @@ export const DEPLOYMENTS = {
   adfs: "WEB_SIM_ADFS_URL",
   entra: "WEB_SIM_ENTRA_URL",
   camunda8: "WEB_SIM_CAMUNDA8_URL",
+  refusedC8: "WEB_SIM_REFUSED_C8_URL",
 } as const
 export type Deployment = keyof typeof DEPLOYMENTS
 

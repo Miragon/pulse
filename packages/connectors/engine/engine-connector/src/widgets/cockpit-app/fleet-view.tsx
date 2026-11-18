@@ -218,7 +218,7 @@ export function FleetView({
   const followUp = useHostFollowUp()
   const engines = all.filter(readsWhole)
   const ids = engines.map((e) => e.id)
-  const refused = new Set(engines.filter((e) => e.refused === true).map((e) => e.id))
+  const refused = new Set(engines.filter((e) => e.refused !== undefined).map((e) => e.id))
   // The fleet itself stays all engines, across environments.
   const engineGroups = groupEnginesByEnvironment(engines)
   const idList = formatEnginesByEnvironment(engineGroups)
@@ -250,7 +250,7 @@ export function FleetView({
                   environment: engineGroups.length > 1 ? g.id : null,
                   onEnter: () => onEnterEngine(e.id),
                 }
-                return e.refused === true ? (
+                return e.refused !== undefined ? (
                   <RefusedFleetCard key={e.id} {...card} />
                 ) : (
                   <FleetEngineCard key={e.id} {...card} />

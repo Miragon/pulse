@@ -156,13 +156,10 @@ export function BoardScreen({ view, freshness }: BoardScreenProps) {
           <NotesStrip view={view} />
           <BoardEngines engines={view.engines} />
         </div>
-        <main
-          className="bg-background flex min-h-0 flex-col gap-3 overflow-auto p-3"
-          aria-label={view.title}
-        >
+        <div className="bg-background flex min-h-0 flex-col gap-3 overflow-auto p-3">
           <FileProblems view={view} />
           <TileGrid view={view} />
-        </main>
+        </div>
       </div>
     </LocaleProvider>
   )

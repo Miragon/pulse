@@ -28,6 +28,7 @@ import { useT, type T } from "../../messages/use-t.js"
 import { EngineActionDialog } from "../lib/engine-action-dialog.js"
 import { useIncidentRecovery, type IncidentRecoveryState } from "./use-incident-recovery.js"
 import { InstanceLabel, NARROW_SUBJECT_FLOOR } from "../lib/identity.js"
+import { incidentTypeWords } from "../lib/incident-type.js"
 import { DoneMark } from "../lib/done-mark.js"
 import { MoreActions } from "../lib/more-actions.js"
 import { WriteError } from "../lib/write-error.js"
@@ -96,11 +97,12 @@ function IncidentElement({ incident }: { incident: IncidentInstance }) {
  * Under 28rem the type shows its icon alone, its word read out and in its title.
  */
 function IncidentMessage({ incident }: { incident: IncidentInstance }) {
+  const t = useT()
   const message = incident.incidentMessage
   return (
     <div className="flex min-w-0 items-center gap-3 @max-md:gap-1.5">
       <StateLabel state="incident" iconOnlyBelow="md" className="shrink-0">
-        {incident.incidentType}
+        {incidentTypeWords(incident.incidentType, t)}
       </StateLabel>
       <div data-incident-message="" className="min-w-0">
         <LogText text={message} line />

@@ -198,7 +198,7 @@ describe("LandingChooser", () => {
         <LandingChooser
           engines={[
             { id: "shop", dialect: "c7" },
-            { id: "c8bad", refused: true },
+            { id: "c8bad", refused: { reason: "auth.clientSecretEnv is not set." } },
           ]}
           onEnterEngine={() => {}}
         />

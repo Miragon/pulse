@@ -1,6 +1,4 @@
-import crypto from "node:crypto"
 import http from "node:http"
-import type { AddressInfo } from "node:net"
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest"
 import { OAuthError, OAuthErrorCode } from "@modelcontextprotocol/server"
 import { oauthCustomProvider } from "./oauth-providers.js"
@@ -10,6 +8,7 @@ import {
   type ComposedServerOptions,
   type RunningServer,
 } from "./composed-server.js"
+import { startRealm, type Realm } from "./composed-server.realm.test-support.js"
 import { createToolsetVocabulary } from "./toolsets.js"
 
 const createPlugin = vi.fn(() => ({ name: "alpha", register: () => {} }))
@@ -54,54 +53,6 @@ const stubOAuth = (issuer = "https://idp.example.test") =>
 const KEYCLOAK_ENV = {
   MCP_OAUTH_KEYCLOAK_SERVER_URL: "https://kc.example.com",
   MCP_OAUTH_KEYCLOAK_REALM: "platform",
-}
-
-interface Realm {
-  serverUrl: string
-  /** Answer the key set with a 500 from now on. */
-  fail(): void
-  /**
-   * An RS256 access token from this realm: its issuer, an hour's `exp`, a signed-in user's session
-   * `sid` and sign-in `auth_time`, then `claims`.
-   */
-  sign(claims: Record<string, unknown>): string
-  close(): Promise<void>
-}
-
-/**
- * A loopback Keycloak realm that serves only its JWKS, so the Keycloak provider the env names runs
- * the real JWT verifier against tokens this test signs.
- */
-async function startRealm(): Promise<Realm> {
-  const { privateKey, publicKey } = crypto.generateKeyPairSync("rsa", { modulusLength: 2048 })
-  const jwk = { ...publicKey.export({ format: "jwk" }), kid: "k1", alg: "RS256", use: "sig" }
-  let failing = false
-  const server = http.createServer((_req, res) => {
-    if (failing) {
-      res.statusCode = 500
-      return res.end("down")
-    }
-    res.setHeader("content-type", "application/json")
-    res.end(JSON.stringify({ keys: [jwk] }))
-  })
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve))
-  const serverUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
-  const segment = (value: object) => Buffer.from(JSON.stringify(value)).toString("base64url")
-  return {
-    serverUrl,
-    fail: () => {
-      failing = true
-    },
-    sign(claims) {
-      const now = Math.floor(Date.now() / 1000)
-      const signedIn = { sid: "session-1", auth_time: now - 60 }
-      const body = { iss: `${serverUrl}/realms/platform`, exp: now + 3600, ...signedIn, ...claims }
-      const signed = `${segment({ alg: "RS256", kid: "k1", typ: "JWT" })}.${segment(body)}`
-      const signature = crypto.sign("RSA-SHA256", Buffer.from(signed), privateKey)
-      return `${signed}.${signature.toString("base64url")}`
-    },
-    close: () => new Promise((resolve) => server.close(() => resolve())),
-  }
 }
 
 const running: RunningServer[] = []
@@ -357,6 +308,33 @@ describe("the token audience, against the real JWT verifier", () => {
     expect(refused.status).toBe(401)
     expect(refused.headers.get("www-authenticate")).toContain(
       "Token carries no sid claim, which the server requires: it takes only the tokens of a user's sign-in at the identity provider, never a client's own token (client credentials) or a password grant's",
+    )
+  })
+
+  // A client that kept a token past Keycloak's 5 minutes learns it expired, so it renews it; the
+  // challenge keeps its shape (error, description, the resource's metadata).
+  it("says a token past its exp expired, in the challenge and the request log", async () => {
+    const composed = await bootRealm()
+    const now = Math.floor(Date.now() / 1000)
+    const call = (exp: number) =>
+      initialize(composed, {
+        authorization: `Bearer ${realm.sign({ aud: "http://localhost/mcp", sub: "u", exp })}`,
+      })
+    for (const expired of [await call(now - 3600), await call(now - 1)]) {
+      expect(expired.status).toBe(401)
+      expect(expired.headers.get("www-authenticate")).toBe(
+        'Bearer error="invalid_token", error_description="Token has expired", resource_metadata="http://localhost/.well-known/oauth-protected-resource/mcp"',
+      )
+      // The body the web app's forward reads the reason from.
+      expect(await expired.json()).toEqual({
+        error: "invalid_token",
+        error_description: "Token has expired",
+      })
+    }
+    await vi.waitFor(() =>
+      expect(log).toHaveBeenCalledWith(
+        expect.stringMatching(/ \/mcp 401 .* ERROR invalid_token: Token has expired$/),
+      ),
     )
   })
 

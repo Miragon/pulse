@@ -73,4 +73,7 @@ export const de: MessageCatalog = {
   // Die IDs der Engines folgen, jede ganz in ihrer Zeile.
   "fleet.boardsOnly": ({ product }) =>
     `${String(product)} nur auf Boards, nicht in dieser Übersicht:`,
+  // Die Typen von Incidents, die Camunda 7 selbst auslöst (incidentTypeWords).
+  "incident.type.failedJob": "Fehlgeschlagener Job",
+  "incident.type.failedExternalTask": "Fehlgeschlagener External Task",
 }

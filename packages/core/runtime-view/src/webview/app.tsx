@@ -127,7 +127,9 @@ export function App({ bridge }: { readonly bridge: HostBridge }) {
   )
   return (
     <HostContext.Provider value={host}>
-      <Panel state={state} />
+      <main className="h-full min-w-0">
+        <Panel state={state} />
+      </main>
     </HostContext.Provider>
   )
 }

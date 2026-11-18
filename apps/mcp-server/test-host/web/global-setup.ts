@@ -17,6 +17,7 @@ import {
   C8_UNBOARDED_ENGINE,
   ENGINE_CONTROL_ENV,
   HEALTHY_ENGINE,
+  REFUSED_C8_ENGINE,
 } from "../engines.js"
 import { startStubEngine } from "../stub-engine.js"
 import {
@@ -164,7 +165,8 @@ async function startControl(idps: Record<Deployment, FakeOidc>) {
  * of their identity providers in `WEB_SIM_CONTROL_URL` and the stub engine's in
  * `HOST_SIM_ENGINE_URL` (all inherited from this process). The `camunda8` deployment, in
  * `WEB_SIM_CAMUNDA8_URL`, reads test:host's loopback Camunda 8 cluster (c8-engine.ts) beside the
- * stub engine: one profile a board names, one no board names.
+ * stub engine: one profile a board names, one no board names. The `refusedC8` deployment, in
+ * `WEB_SIM_REFUSED_C8_URL`, refuses a Camunda 8 profile beside the stub.
  */
 export default async function globalSetup(): Promise<() => Promise<void>> {
   const engine = await startStubEngine()
@@ -213,18 +215,26 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
       },
     },
   )
+  // A refused Camunda 8 profile beside the stub (its client secret's variable is not set): the
+  // server offers it no feed, so its page reads nothing of it and says its own reason.
+  const refusedC8 = await deploy({
+    [HEALTHY_ENGINE]: { url: engine.baseUrl },
+    [REFUSED_C8_ENGINE]: c8.profile("ENGINE_SECRET_WEB_SIM_NEVER_SET"),
+  })
   const control = await startControl({
     main: main.idp,
     short: short.idp,
     adfs: adfs.idp,
     entra: entra.idp,
     camunda8: camunda8.idp,
+    refusedC8: refusedC8.idp,
   })
   process.env[DEPLOYMENTS.main] = main.origin
   process.env[DEPLOYMENTS.short] = short.origin
   process.env[DEPLOYMENTS.adfs] = adfs.origin
   process.env[DEPLOYMENTS.entra] = entra.origin
   process.env[DEPLOYMENTS.camunda8] = camunda8.origin
+  process.env[DEPLOYMENTS.refusedC8] = refusedC8.origin
   process.env[CONTROL_ENV] = control.url
   process.env[ENGINE_CONTROL_ENV] = engine.controlUrl
 
@@ -235,6 +245,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     await adfs.close()
     await entra.close()
     await camunda8.close()
+    await refusedC8.close()
     await engine.close()
     await c8.close()
   }

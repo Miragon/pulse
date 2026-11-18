@@ -650,7 +650,9 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      under its bar, `useDetailView`'s `notice`, the raw engine text under the strip's Details); a
      write words it once, at its control or in its confirmation's dialog, and the cockpit shows a
      refused engine once, as its view's one state (`RefusedEngineGate`), also before the engine
-     list answers; beside it, an engine the server reads on boards only (Camunda 8, its dialect
+     list answers, its title the route's h1 under a head without sections, and reads nothing where
+     the start data or the engine list names the profile refused, whose reason it words as the
+     server's refusal (another dialect's refused profile is offered no feed); beside it, an engine the server reads on boards only (Camunda 8, its dialect
      from the start data's `CockpitEngineInfo`) is every route's one state too
      (`BoardsOnlyEngineGate`), which reads nothing and names the boards that show it, under a head
      with only the sections its dialect is served by (`ROUTE_DIALECTS`: none) and a trail that

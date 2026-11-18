@@ -81,11 +81,12 @@ export function EngineSwitch({
  * the reading order stays the sections, then the context). A `trail` takes the sections' place:
  * its first crumb leads back to them. Its container is `bar`, so the cross-engine button keeps
  * only its icon in a bar under 36rem. Only the sections whose route the engine's `dialect` is
- * served by show (`ROUTE_DIALECTS`): a Camunda 8 engine has none.
+ * served by show (`ROUTE_DIALECTS`): a Camunda 8 engine has none, nor has a refused profile.
  */
 export function CockpitHead({
   activeSection,
   dialect,
+  refused = false,
   onSection,
   engineSwitch,
   onOpenFleet,
@@ -94,6 +95,8 @@ export function CockpitHead({
   activeSection: TopSection
   /** The open engine's dialect; a refused profile's is unread. */
   dialect: EngineDialect | undefined
+  /** Its profile refused: no section reads it, so none shows. */
+  refused?: boolean
   onSection: (intent: NavIntent) => void
   engineSwitch: ReactNode
   onOpenFleet?: () => void
@@ -101,7 +104,7 @@ export function CockpitHead({
 }) {
   const locale = useLocale()
   const crossEngine = translator(locale, "cockpit.nav.crossEngine")
-  const sections = SECTIONS.filter((section) => routeServes(section.id, dialect))
+  const sections = refused ? [] : SECTIONS.filter((section) => routeServes(section.id, dialect))
   return (
     <div
       data-slot="cockpit-head"

@@ -145,7 +145,7 @@ describe("EngineHealthVerdict (fixture render)", () => {
     // Clustered incidents (cross-process, by activity + type).
     expect(screen.getByText("Top failures, grouped by cause")).toBeTruthy()
     expect(screen.getByText("callWMS")).toBeTruthy()
-    expect(screen.getByText("failedExternalTask")).toBeTruthy()
+    expect(screen.getByText("Failed external task")).toBeTruthy()
     expect(screen.getByText("checkCustomer")).toBeTruthy()
 
     // A deterministic drill + the guarded remediation hand-off.
@@ -196,7 +196,7 @@ describe("EngineHealthVerdict (fixture render)", () => {
     expect(within(cluster).getByText("Connection timeout to WMS")).toBeTruthy()
     expect(within(cluster).getByText(/· Shipping$/)).toBeTruthy()
     // The type is a neutral chip, not a red badge on every row.
-    expect(within(cluster).getByText("failedExternalTask").closest("[data-tone]")).toBeNull()
+    expect(within(cluster).getByText("Failed external task").closest("[data-tone]")).toBeNull()
   })
 
   it("a stable engine's badge is the table's healthy: neutral, never green", () => {

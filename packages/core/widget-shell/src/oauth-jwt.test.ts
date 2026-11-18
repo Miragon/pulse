@@ -113,7 +113,8 @@ describe("the bearer gate: tokens", () => {
       () => ({ ...good(), exp: String(now() + 3600) }),
       "JWT verification failed",
     ],
-    ["an exp a second past", () => ({ ...good(), exp: now() - 1 }), "Missing or expired exp claim"],
+    ["an exp a second past", () => ({ ...good(), exp: now() - 1 }), "Token has expired"],
+    ["an exp an hour past", () => ({ ...good(), exp: now() - 3600 }), "Token has expired"],
     ["an nbf an hour ahead", () => ({ ...good(), nbf: now() + 3600 }), "JWT verification failed"],
   ])("refuses a token with %s: 401", async (_case, claims, description) => {
     const result = await refusal(await call(gateOf(), bearer(sign(claims()))))

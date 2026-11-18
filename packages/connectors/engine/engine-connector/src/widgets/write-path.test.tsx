@@ -193,7 +193,7 @@ describe("a confirmation names its target (N108)", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Mark as resolved" }))
     const dialog = await screen.findByRole("alertdialog")
     expect(within(dialog).getByText("inc-9")).toBeTruthy()
-    expect(within(dialog).getByText("invoiceMismatch")).toBeTruthy()
+    expect(within(dialog).getByText("Invoice mismatch")).toBeTruthy()
     expect(within(dialog).getByText("pi-1")).toBeTruthy()
     expect(within(dialog).getByRole("button", { name: "Keep open" })).toBeTruthy()
     fireEvent.click(within(dialog).getByRole("button", { name: "Mark as resolved" }))

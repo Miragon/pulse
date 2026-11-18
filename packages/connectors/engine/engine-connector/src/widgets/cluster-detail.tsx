@@ -42,6 +42,7 @@ import { useHandOff, useHandOffsShown, type ViewContext } from "./lib/hand-off.j
 import { InstanceLabel } from "./lib/identity.js"
 import { instanceName } from "./lib/write-feedback.js"
 import { useT } from "../messages/use-t.js"
+import { incidentTypeWords } from "./lib/incident-type.js"
 
 /** Grounding context; the sample message is engine text, quoted, never inlined. */
 export function describeCluster(data: ClusterDetailData): ViewContext {
@@ -117,7 +118,11 @@ function ClusterHeader({ data, engineId }: { data: ClusterDetailData; engineId: 
   )
   return (
     <WidgetHeader
-      badge={<StatusBadge tone={SITUATION_TONES.openIncident}>{data.incidentType}</StatusBadge>}
+      badge={
+        <StatusBadge tone={SITUATION_TONES.openIncident}>
+          {incidentTypeWords(data.incidentType, t)}
+        </StatusBadge>
+      }
       // The activity by its name; its BPMN id only where it has none (#322 U13).
       title={data.activityName ?? <span className="font-mono">{data.activityId}</span>}
       sub={

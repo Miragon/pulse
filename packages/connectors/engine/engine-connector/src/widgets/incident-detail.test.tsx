@@ -177,7 +177,8 @@ describe("the incident detail offers the remedy the engine accepts", () => {
     ])
     expect(lines).toEqual([
       ["Incident", "inc-1"],
-      ["Type", "invoiceMismatch"],
+      // A custom type in words from its code, as the extension reads it.
+      ["Type", "Invoice mismatch"],
       ["Business key", "LEA-7"],
       ["Process instance", "5f0ce78e…"],
       ["Engine", "prod"],
@@ -209,7 +210,7 @@ describe("the incident detail offers the remedy the engine accepts", () => {
       [ENGINE_WIDGET_ACTIONS_DATA]: { allowedActions: ["engine_resolve_incident"] },
     })
     await gateSettled()
-    expect(await screen.findAllByText("failedJob")).not.toHaveLength(0)
+    expect(await screen.findAllByText("Failed job")).not.toHaveLength(0)
     expect(screen.queryByText("Retry job")).toBeNull()
     expect(screen.queryByText("Mark as resolved")).toBeNull()
   })

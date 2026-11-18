@@ -74,4 +74,7 @@ export const en: MessageCatalog = {
   "cockpit.boardsOnly.webApp": ({ webApp }) => `You can also open it in ${String(webApp)}.`,
   // The engines' ids follow, each kept whole on its line.
   "fleet.boardsOnly": ({ product }) => `${String(product)} on boards only, not in this overview:`,
+  // The incident types Camunda 7 raises itself (incidentTypeWords), as the extension words them.
+  "incident.type.failedJob": "Failed job",
+  "incident.type.failedExternalTask": "Failed external task",
 }

@@ -11,7 +11,8 @@
  * `Content-Type`, `Authorization`) and no cookie or `Origin`, so the edge guard, the OAuth gate,
  * the caller's identity, the per-caller caches, passthrough, toolsets, routing and read-only
  * engines treat it as any client's call. After the gate's 401 the token is renewed once where a
- * new one may help. The page gets the tool's result (`{ result }`), never a token: renewed tokens
+ * new one may help; a session it ends names the gate's reason in its log line (a token that
+ * expired, say). The page gets the tool's result (`{ result }`), never a token: renewed tokens
  * go back sealed into the session's cookie, with the expiry the sign-in gave it, unless the session
  * was signed out at this replica while the call ran (401, and no cookie set: the browser's cookies
  * are the sign-out's, or a new sign-in's). A renewal is due by the token's expiry or by the
@@ -106,8 +107,14 @@ type ToolAnswer =
   | { readonly kind: "result"; readonly result: ToolResult }
   | { readonly kind: "failed"; readonly message: string }
 
+/** The gate's refusal of the token, and why where its answer says so (`error_description`). */
+interface GateRefusal {
+  readonly kind: "refused"
+  readonly reason: string | undefined
+}
+
 /** What `/mcp` answered: past the gate, or the gate's refusal of the token. */
-type McpAnswer = ToolAnswer | { readonly kind: "refused" }
+type McpAnswer = ToolAnswer | GateRefusal
 
 /**
  * What became of a call: `/mcp`'s answer with the tokens it went out with, or why it did not go:
@@ -125,6 +132,10 @@ type Unsent = Exclude<Outcome, { kind: "answered" }>
 const UNAVAILABLE: Unsent = { kind: "unavailable" }
 
 const ended = (why: string): Unsent => ({ kind: "ended", why, clears: true })
+
+/** The session's end after the gate refused `token`, in the gate's words where it gave them. */
+const gateRefused = (token: string, { reason }: GateRefusal): Unsent =>
+  ended(`the gate refused ${token}${reason === undefined ? "" : ` (${reason})`}`)
 
 /** The provider refused the refresh token: a call beside this one may have renewed the cookies. */
 const REFRESH_REFUSED: Unsent = {
@@ -159,14 +170,18 @@ async function cappedText(
   return Buffer.concat(chunks).toString("utf8")
 }
 
-/** The call a body holds: `name` and optional `arguments`, both of their type, nothing else. */
-function callIn(text: string): Call | undefined {
-  let value: unknown
+/** The JSON a text holds, `undefined` where it holds none. */
+function parsed(text: string): unknown {
   try {
-    value = JSON.parse(text)
+    return JSON.parse(text)
   } catch {
     return undefined
   }
+}
+
+/** The call a body holds: `name` and optional `arguments`, both of their type, nothing else. */
+function callIn(text: string): Call | undefined {
+  const value = parsed(text)
   if (!isRecord(value)) return undefined
   const { name, arguments: args = {}, ...rest } = value
   if (typeof name !== "string" || !isRecord(args) || Object.keys(rest).length > 0) return undefined
@@ -207,9 +222,16 @@ function responseIn(text: string, contentType: string | null): Record<string, un
   return undefined
 }
 
+/** Why the gate refused a token, as its 401's body names it (RFC 6750's `error_description`). */
+function refusalReason(text: string): string | undefined {
+  const body = parsed(text)
+  const reason = isRecord(body) ? body.error_description : undefined
+  return typeof reason === "string" ? reason : undefined
+}
+
 async function answerOf(response: Response): Promise<McpAnswer> {
   const text = await response.text()
-  if (response.status === 401) return { kind: "refused" }
+  if (response.status === 401) return { kind: "refused", reason: refusalReason(text) }
   const message = responseIn(text, response.headers.get("content-type"))
   if (isRecord(message?.result)) return { kind: "result", result: message.result }
   const error = isRecord(message?.error) ? message.error.message : undefined
@@ -273,20 +295,22 @@ export async function tokensToSend(
   return afterRenewal(await renew(step.tokens), tokens, ctx.platform.now(), checkMs)
 }
 
-/** After the gate refused `tokens`: one renewal where a new token may help, and the call again. */
+/**
+ * After the gate refused `tokens` (`refusal`): one renewal where a new token may help, and the
+ * call again.
+ */
 async function afterRefusal(
   ctx: WebContext,
   route: CallRoute,
-  tokens: SessionTokens,
-  call: Call,
+  { tokens, call, refusal }: { tokens: SessionTokens; call: Call; refusal: GateRefusal },
 ): Promise<Outcome> {
   const renewable = renewableAfterRefusal(tokens, ctx.platform.now())
-  if (renewable === undefined) return ended("the gate refused the session's token")
+  if (renewable === undefined) return gateRefused("the session's token", refusal)
   const renewal = await route.renew(renewable)
   if (renewal.kind === "unavailable") return UNAVAILABLE
   if (renewal.kind === "refused") return REFRESH_REFUSED
   const answer = await sent(route, renewal.tokens.accessToken, call)
-  if (answer.kind === "refused") return ended("the gate refused the renewed token")
+  if (answer.kind === "refused") return gateRefused("the renewed token", answer)
   return { kind: "answered", answer, tokens: renewal.tokens }
 }
 
@@ -306,7 +330,7 @@ async function called(
   const tokens = await tokensToSend(ctx, route.renew, session.session.tokens)
   if ("kind" in tokens) return tokens
   const answer = await sent(route, tokens.accessToken, call)
-  if (answer.kind === "refused") return afterRefusal(ctx, route, tokens, call)
+  if (answer.kind === "refused") return afterRefusal(ctx, route, { tokens, call, refusal: answer })
   return { kind: "answered", answer, tokens }
 }
 

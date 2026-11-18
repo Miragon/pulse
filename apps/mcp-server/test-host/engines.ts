@@ -26,6 +26,15 @@ export const ACCESS_DENIED_ENGINE = "no-access"
  * refuse the server's login (global-setup.ts).
  */
 export const REFUSED_HOST_ENV = "HOST_SIM_REFUSED_URL"
+/** A Camunda 8 profile the server refuses (its client secret's variable is not set). */
+export const REFUSED_C8_ENGINE = "c8-locked"
+/**
+ * Env vars carrying the host pages of the deployments with a refused profile of the other dialect
+ * (global-setup.ts): the stub beside REFUSED_C8_ENGINE, whose feeds' engine enums name the stub
+ * alone, and a Camunda 8 engine beside REFUSED_ENGINE, which registers no feed of one engine.
+ */
+export const REFUSED_C8_HOST_ENV = "HOST_SIM_REFUSED_C8_URL"
+export const C8_ALONE_REFUSED_HOST_ENV = "HOST_SIM_C8_ALONE_REFUSED_URL"
 /** Env var carrying the host page of the deployment with a module's own view (global-setup.ts). */
 export const OWN_VIEW_HOST_ENV = "HOST_SIM_OWN_VIEW_URL"
 /** That module's view tool and feed (own-view-module.ts). */

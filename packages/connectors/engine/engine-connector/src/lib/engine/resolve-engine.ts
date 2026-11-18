@@ -9,6 +9,7 @@ import type {
 } from "../../engine-provider.js"
 import { providerForEntry } from "../../providers/index.js"
 import type { EngineDialect } from "../../view-models.js"
+import { PROFILE_REFUSED, profileRefusalText } from "../shared/profile-refusal.js"
 import type { EngineLink } from "./cockpit-url.js"
 
 /** A configured engine of the Camunda 7 REST API: its address and provider, its client and its write gate. */
@@ -188,12 +189,10 @@ export class UnknownEngineError extends Error {
  * (the instructions and the widgets' model contexts call the person at the widget the operator).
  */
 export class EngineProfileRefusedError extends Error {
-  readonly code = "ENGINE_PROFILE_REFUSED" as const
+  readonly code: typeof PROFILE_REFUSED = PROFILE_REFUSED
   readonly engineId: string
   constructor({ id, reason }: RefusedProfile) {
-    super(
-      `Engine "${id}" is configured, but its profile cannot be used: ${reason} Ask whoever runs this server to fix it.`,
-    )
+    super(profileRefusalText(id, reason))
     this.name = "EngineProfileRefusedError"
     this.engineId = id
   }

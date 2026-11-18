@@ -30,6 +30,14 @@ import {
 
 const compose = parse(readFileSync(new URL(`../${COMPOSE_FILE}`, import.meta.url), "utf8"))
 
+/** The playground realm, which `--auth` and `--web` import into Keycloak. */
+const realm = JSON.parse(
+  readFileSync(
+    new URL("../playground/docker/keycloak/realm-miragon.json", import.meta.url),
+    "utf8",
+  ),
+)
+
 describe("the playground services", () => {
   it("match the Compose file: its project name, every published port, the profiles", () => {
     assert.equal(compose.name, COMPOSE_PROJECT)
@@ -203,12 +211,6 @@ describe("the presets", () => {
   })
 
   it("matches the realm's web client: confidential, its addresses on MCP_URL, the gate's audience", () => {
-    const realm = JSON.parse(
-      readFileSync(
-        new URL("../playground/docker/keycloak/realm-miragon.json", import.meta.url),
-        "utf8",
-      ),
-    )
     // Keycloak stores a client's description in 255 characters and fails its import beyond.
     for (const { clientId, description } of realm.clients) {
       assert.ok(description.length <= 255, `${clientId}'s description: ${description.length}`)
@@ -233,6 +235,67 @@ describe("the presets", () => {
     assert.equal(probe.searchParams.get("client_id"), client.clientId)
     assert.equal(probe.searchParams.get("redirect_uri"), client.redirectUris[0])
     assert.equal(probe.searchParams.get("code_challenge_method"), "S256")
+  })
+
+  // An MCP client that registered itself keeps its session past Keycloak's 5-minute access token:
+  // anonymous registration gives a client no optional scope its registration does not name (the
+  // MCP Inspector names none, an empty scope), so only a default client scope reaches its client,
+  // and it asks offline_access when it signs in again. The realm defines the scope: Keycloak adds
+  // its own only after the import set the realm's defaults, which then miss it.
+  it("gives a client that registers itself offline_access with its role, which the demo user holds", () => {
+    assert.ok(realm.defaultDefaultClientScopes.includes("offline_access"))
+    const offline = realm.clientScopes.find(({ name }) => name === "offline_access")
+    assert.equal(offline.protocol, "openid-connect")
+    assert.ok(offline.description.length <= 255)
+    // Registered clients get no full scope (the policies below): the scope maps the role.
+    assert.deepEqual(realm.scopeMappings, [
+      { clientScope: "offline_access", roles: ["offline_access"] },
+    ])
+    // An imported user gets none of the realm's default roles unless the import names them.
+    const demo = realm.users.find(({ username }) => username === "demo")
+    assert.deepEqual(demo.realmRoles, [`default-roles-${realm.realm}`])
+    // The realm's own clients keep it optional: the web sign-in never asks it.
+    for (const { clientId, defaultClientScopes, optionalClientScopes } of realm.clients) {
+      assert.deepEqual(defaultClientScopes, ["basic", "profile", "email", "mcp-resource"], clientId)
+      assert.deepEqual(optionalClientScopes, ["offline_access"], clientId)
+    }
+  })
+
+  it("keeps the registration policies of anonymous clients as strict as they are", () => {
+    const policies = realm.components[
+      "org.keycloak.services.clientregistration.policy.ClientRegistrationPolicy"
+    ].filter(({ subType }) => subType === "anonymous")
+    const byProvider = Object.fromEntries(policies.map((policy) => [policy.providerId, policy]))
+    assert.deepEqual(Object.keys(byProvider).sort(), [
+      "allowed-client-templates",
+      "allowed-protocol-mappers",
+      "consent-required",
+      "default-roles",
+      "max-clients",
+      "registration-web-origins",
+      "scope",
+      "trusted-hosts",
+    ])
+    assert.deepEqual(byProvider["trusted-hosts"].config, {
+      "trusted-hosts": ["localhost", "127.0.0.1", "github.com"],
+      "host-sending-registration-request-must-match": ["false"],
+      "client-uris-must-match": ["true"],
+    })
+    assert.deepEqual(byProvider["max-clients"].config, { "max-clients": ["200"] })
+    // The realm's default scopes only, no scope of its own choosing.
+    assert.deepEqual(byProvider["allowed-client-templates"].config, {
+      "allow-default-scopes": ["true"],
+    })
+    // No mapper that could write aud, a claim or a session note (auth_time).
+    const mappers = byProvider["allowed-protocol-mappers"].config["allowed-protocol-mapper-types"]
+    for (const forbidden of [
+      "oidc-audience-mapper",
+      "oidc-hardcoded-claim-mapper",
+      "oidc-usersessionmodel-note-mapper",
+      "oidc-hardcoded-role-mapper",
+    ]) {
+      assert.ok(!mappers.includes(forbidden), forbidden)
+    }
   })
 
   it("points the CLI at the same engine", () => {
