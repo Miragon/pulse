@@ -19,14 +19,32 @@ import {
 } from "./oauth-shared.js"
 
 /**
- * What the web app's sign-in asks the provider for (`MCP_WEB_*`): the scopes, and for a provider
- * that names a token's API by `audience` (Auth0) rather than by RFC 8707's `resource` alone,
- * `audience: "resource"`, which sends the gate's resource as the audience too. The token must
- * carry that resource either way, or the gate refuses it.
+ * What the web app's sign-in asks the provider for (`MCP_WEB_*`) and where: the scopes, and for a
+ * provider that names a token's API by `audience` (Auth0) rather than by RFC 8707's `resource`
+ * alone, `audience: "resource"`, which sends the gate's resource as the audience too. The token must
+ * pass the gate either way. Unset, the other options keep the sign-in as every table provider has
+ * it: the provider's issuer, the gate's resource at the authorization request, the code exchange
+ * and every refresh, and the scopes at the authorization request alone.
  */
 export interface OAuthWebClient {
   readonly scopes: readonly string[]
   readonly audience?: "resource"
+  /**
+   * The issuer the sign-in discovers and signs in through, where it is not the one the protected
+   * resource metadata names (Entra ID: its v2.0 authority, while MCP clients read its oauth21
+   * one); a callback's `iss` must name it.
+   */
+  readonly discoveryIssuer?: string
+  /**
+   * `false`: the sign-in names no resource (RFC 8707) anywhere, for a provider that names a token's
+   * API by its scope and refuses a resource it does not know (Entra ID, AADSTS9010010).
+   */
+  readonly resource?: false
+  /**
+   * `true`: the code exchange and every refresh name the scopes too, for a provider that refuses a
+   * code exchange without them (Entra ID, AADSTS28003) or would renew a token for another API.
+   */
+  readonly grantScopes?: true
 }
 
 /**

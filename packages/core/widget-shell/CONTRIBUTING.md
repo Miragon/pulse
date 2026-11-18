@@ -198,17 +198,28 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   with a link per user and one that cancels, the code grant with PKCE S256 and the client's
   authentication (basic or post), refresh with optional rotation and refusal, revocation and the
   end of a session (without Keycloak's confirmation). It sets the tokens' `aud` only as an audience
-  mapper would (`audience`), since Keycloak ignores RFC 8707's `resource`. `flavor: "adfs"` plays
+  mapper would (`audience`, with `audienceInIdToken` in its ID tokens too, which carry Keycloak's
+  `typ` ID and an `at_hash`), since Keycloak ignores RFC 8707's `resource`. `flavor: "adfs"` plays
   ADFS 2019 and later instead (`src/testing/oidc/adfs.ts`) for the generic provider
   (`MCP_OAUTH_OIDC_ISSUER` its `issuer`): paths under `/adfs`, `access_token_issuer` in its
   discovery and no PKCE methods, revocation endpoint or `iss`, access tokens of that issuer for the
   request's resource (`urn:microsoft:userinfo` without one) with `scp`, `appid` and no caller
   unless `callerClaim` names the claim its issuance rule emits, `refresh_token_expires_in`, refresh
-  tokens that never rotate and outlive an ended session. `env(origin)` names the boot's variables
-  for either flavor; `signIn` and `decline` play the browser for a test without one, `requests`,
-  `issued`, `revoked` and `endedSessions` record what happened, `sessionOf` names the session a
-  refresh token belongs to, so a test tells its own browser's renewals and revocations from those
-  of tests beside it, and `endGrant` takes back a session's refresh tokens. Node only.
+  tokens that never rotate and outlive an ended session. `flavor: "entra"` plays one Entra ID tenant
+  (`src/testing/oidc/entra.ts`; `entra` names its tenant, its oauth21 authority, the API
+  registration's client id, App ID URIs and scope): its v2.0 authority the issuer (no PKCE methods,
+  revocation endpoint or `iss`) and its `oauth21/2026-08` authority beside it (PKCE methods and the
+  `iss`, also at the RFC 8414 path), each with a key set whose keys name it, the oauth21 one holding
+  a key of its own; v2 access tokens of the authority asked with the API's client id as `aud`, a
+  short `scp`, `azp`, a `sub` hashed per client and `oid` and `tid` only where `profile` was asked
+  (`tokenVersion: 1` gives v1 tokens of `sts.windows.net`, `groups` 200 group ids); a resource that
+  is no App ID URI and a code exchange without scope refused; refresh tokens only with
+  `offline_access`, rotated with the old one renewing on, alive after the end of a session.
+  `env(origin)` names the boot's variables for Keycloak and ADFS; `signIn` and `decline` play the
+  browser for a test without one, `requests`, `issued`, `revoked` and `endedSessions` record what
+  happened, `sessionOf` names the session a refresh token belongs to, so a test tells its own
+  browser's renewals and revocations from those of tests beside it, and `endGrant` takes back a
+  session's refresh tokens. Node only.
 - **Theme:** none of its own. The widgets colour through the role variables of pulse-ui's
   Miragon theme (`@miragon/pulse-ui/theme.css`: the vendored `--cd-*` corporate-design
   tokens and the roles on top, light and dark). Your stylesheet imports it after `tailwindcss`,

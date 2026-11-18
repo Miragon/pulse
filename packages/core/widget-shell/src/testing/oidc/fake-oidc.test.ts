@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto"
 import { decodeJwt, decodeProtectedHeader } from "jose"
 import { afterEach, describe, expect, it } from "vitest"
 import { requestToken, TokenFailure } from "@miragon/pulse-http/oauth"
@@ -139,12 +140,31 @@ describe("a sign-in at the fake provider", () => {
     expect(tokens.expiresAt).toBe(tokens.receivedAt + 60_000)
     expect(tokens.refreshToken).toMatch(/^[A-Za-z0-9_-]{43}$/)
     expect(tokens.refreshExpiresAt).toBe(tokens.receivedAt + 1_800_000)
-    expect(decodeJwt(String(tokens.idToken))).toMatchObject({ aud: "pulse-web", sub: ALICE.sub })
+    const atHash = createHash("sha256").update(tokens.accessToken).digest().subarray(0, 16)
+    expect(decodeJwt(String(tokens.idToken))).toMatchObject({
+      aud: "pulse-web",
+      sub: ALICE.sub,
+      typ: "ID",
+      at_hash: atHash.toString("base64url"),
+    })
     expect(idp.issued).toEqual({
       access: [tokens.accessToken],
       refresh: [tokens.refreshToken],
       id: [tokens.idToken],
     })
+  })
+
+  it("adds the audience to its ID tokens as the mapper's Add to ID token does, and the gate refuses them", async () => {
+    const plain = await start({ audience: RESOURCE })
+    expect(decodeJwt(String((await signIn(plain)).idToken)).aud).toBe("pulse-web")
+    await plain.close()
+    const idp = await start({ audience: RESOURCE, audienceInIdToken: true })
+    const { idToken } = await signIn(idp)
+    expect(decodeJwt(String(idToken)).aud).toEqual(["pulse-web", RESOURCE])
+    const provider = oauthKeycloakProvider({ serverUrl: idp.serverUrl, realm: idp.realm })
+    await expect(
+      provider.createTokenVerifier(new URL(RESOURCE)).verifyAccessToken(String(idToken)),
+    ).rejects.toThrow("Token is an ID, logout or refresh token, not an access token")
   })
 
   it("issues no audience without one configured, as Keycloak without its mapper, and the gate refuses that token", async () => {

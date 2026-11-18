@@ -58,17 +58,17 @@ variables only; the widgets follow the host's theme, then the OS.
 
 ## What it provides
 
-| Part           | Entry            | What you get                                                                                                                                                                                                                                                                              |
-| -------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Server boot    | `./server`       | `createComposedServer` and `runComposedServer`: module selection (`MCP_ACTIVE_MODULES`, `module:toolset`), OAuth from `MCP_OAUTH_*`, the web app under `/app` (`MCP_WEB_*`), the Host/Origin guard, `/mcp`, `/health/*`, `/metrics`, the served fonts                                     |
-| Module port    | `./server`       | `ComposableModule`, `ModulePlugin`, `ModuleEntry`, `ModuleServer` (the official SDK's `registerTool`/`registerPrompt`/`registerResource`), `createToolsetVocabulary` for toolsets that fail closed                                                                                        |
-| Tool authoring | `./server`       | The registrar (`createToolRegistrar`, `withToolErrors`), `showToolBinding`, `OwnViewBinding`, `AppResourceCsp`, `appOnly`, `forViews`, `strictToolInput`, `buildViewResult`, `buildDataFeedResult`, `decodeToolResult`, `createTranslator`                                                |
-| Server helpers | `./server`       | The BPMN-name readers (`readBpmnNames`, `parseBpmnNames`), the per-caller request info (`callerCacheKey`, `getMcpRequestInfo`, `runWithMcpRequestInfo`), `composedEnvVars`, `viewResourceUri`, `viewPrelude`                                                                              |
-| Bundle build   | `./server`       | `VIEW_BUNDLE_DEDUPE`, `viewBundleWatchPlugin`, and the served fonts (`installFontAssets`, `fontAssetsCsp`)                                                                                                                                                                                |
-| View runtime   | `./widgets`      | `mountViews`, `mountPage` for a page outside a chat, the view host (`useViewHost`, `HostModelContext`), the query hooks (`useToolQuery`, `useToolQueries`, `useToolMutation`, `useViewData`), `TestViewHost` for tests                                                                    |
-| Host-bound UI  | `./widgets`      | `WidgetShell`, `ListTable` + `PagedRows`, `IdCell`/`IdText`, `describeError`, `useActionFeedback`, `ConfirmDialog`, the hand-offs (`HAND_OFF_ACTIONS`, `AskAiButton` for one it does not list) and the BPMN viewer                                                                        |
-| Module tests   | `./testing`      | `recordingModuleServer` and `testServerContext` for a module's tools, prompts and resources                                                                                                                                                                                               |
-| Sign-in tests  | `./testing/oidc` | `startFakeOidc`: a fake OpenID Connect provider with Keycloak's paths, or ADFS's (`flavor: "adfs"`), on a loopback port (discovery, its signing key, a login page per user, the code grant with PKCE, refresh, revocation, the end of a session), for a server's sign-in tests; Node only |
+| Part           | Entry            | What you get                                                                                                                                                                                                                                                                                                                       |
+| -------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Server boot    | `./server`       | `createComposedServer` and `runComposedServer`: module selection (`MCP_ACTIVE_MODULES`, `module:toolset`), OAuth from `MCP_OAUTH_*`, the web app under `/app` (`MCP_WEB_*`), the Host/Origin guard, `/mcp`, `/health/*`, `/metrics`, the served fonts                                                                              |
+| Module port    | `./server`       | `ComposableModule`, `ModulePlugin`, `ModuleEntry`, `ModuleServer` (the official SDK's `registerTool`/`registerPrompt`/`registerResource`), `createToolsetVocabulary` for toolsets that fail closed                                                                                                                                 |
+| Tool authoring | `./server`       | The registrar (`createToolRegistrar`, `withToolErrors`), `showToolBinding`, `OwnViewBinding`, `AppResourceCsp`, `appOnly`, `forViews`, `strictToolInput`, `buildViewResult`, `buildDataFeedResult`, `decodeToolResult`, `createTranslator`                                                                                         |
+| Server helpers | `./server`       | The BPMN-name readers (`readBpmnNames`, `parseBpmnNames`), the per-caller request info (`callerCacheKey`, `getMcpRequestInfo`, `runWithMcpRequestInfo`), `composedEnvVars`, `viewResourceUri`, `viewPrelude`                                                                                                                       |
+| Bundle build   | `./server`       | `VIEW_BUNDLE_DEDUPE`, `viewBundleWatchPlugin`, and the served fonts (`installFontAssets`, `fontAssetsCsp`)                                                                                                                                                                                                                         |
+| View runtime   | `./widgets`      | `mountViews`, `mountPage` for a page outside a chat, the view host (`useViewHost`, `HostModelContext`), the query hooks (`useToolQuery`, `useToolQueries`, `useToolMutation`, `useViewData`), `TestViewHost` for tests                                                                                                             |
+| Host-bound UI  | `./widgets`      | `WidgetShell`, `ListTable` + `PagedRows`, `IdCell`/`IdText`, `describeError`, `useActionFeedback`, `ConfirmDialog`, the hand-offs (`HAND_OFF_ACTIONS`, `AskAiButton` for one it does not list) and the BPMN viewer                                                                                                                 |
+| Module tests   | `./testing`      | `recordingModuleServer` and `testServerContext` for a module's tools, prompts and resources                                                                                                                                                                                                                                        |
+| Sign-in tests  | `./testing/oidc` | `startFakeOidc`: a fake OpenID Connect provider with Keycloak's paths, ADFS's (`flavor: "adfs"`) or an Entra ID tenant's (`flavor: "entra"`), on a loopback port (discovery, its signing key, a login page per user, the code grant with PKCE, refresh, revocation, the end of a session), for a server's sign-in tests; Node only |
 
 `WidgetShell` is a view's card and pads nothing itself: its `header` (the kit's `WidgetHeader`,
 the `StatusStrip`s under it and a list's filter `Toolbar` right under the bar) runs from edge to
@@ -165,7 +165,7 @@ the provider offers revocation, which is why a short access-token lifetime suits
 
 | Route                                    | What it does                                                                                                                                                                                                   |
 | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /app/auth/login`                    | Starts a sign-in (`?return=` a page under `/app` to come back to) with the provider's web scopes and the gate's resource (RFC 8707)                                                                            |
+| `GET /app/auth/login`                    | Starts a sign-in (`?return=` a page under `/app` to come back to) with the provider's web scopes and the gate's resource (RFC 8707) unless its web client names none                                           |
 | `GET /app/auth/callback`                 | Checks the callback, exchanges the code, starts a new session (a new id and CSRF secret), returns to the page; a failure goes to `/app/signed-out?reason=<reason>`                                             |
 | `POST /app/auth/logout`                  | Takes the page's CSRF token, ends the session (this replica, the ended cookie), revokes the refresh token, clears the cookies and names where to go: the provider's end of the session, else `/app/signed-out` |
 | `GET /app/api/session`                   | The signed-in name, the CSRF token and the session's end, an expired token renewed first as a call's; `401` with `signed_out` without one, for a signed-out one and for one whose expired token nothing renews |
@@ -188,10 +188,15 @@ generic OpenID Connect provider and a provider of a root's own `openid` unless i
 others; `MCP_WEB_SCOPES` (separated by spaces or commas, only beside the client id) replaces them
 (ADFS `openid`, Okta and authentik `openid profile offline_access`), and the sign-in asks for a
 provider's `requiredScopes` besides, since the gate checks the session's token for them. It reads
-the generic provider's metadata from the discovery its gate reads. `/mcp` answers a
-request that carries the session cookie with the gate's 401 and its Bearer challenge, and every
-route under `/app` answers 400 to one that carries an Authorization header. `@miragon/pulse-widget-shell/testing/oidc` is the identity provider a
-server's own sign-in tests run against.
+the generic provider's metadata from the discovery its gate reads. Every grant of the sign-in names
+the gate's resource and only the authorization request the scopes, unless the provider's web client
+says otherwise, as Entra ID needs: `discoveryIssuer` names the issuer the sign-in discovers itself
+and goes through (a callback's `iss` must name it), beside the one the protected resource metadata
+names, `resource: false` sends no resource anywhere and `grantScopes: true` names the scopes at the
+code exchange and every refresh too. `/mcp` answers a request that carries the session cookie with
+the gate's 401 and its Bearer challenge, and every route under `/app` answers 400 to one that
+carries an Authorization header. `@miragon/pulse-widget-shell/testing/oidc` is the identity
+provider a server's own sign-in tests run against.
 
 The web app's pages come from its build, which the root names with `createComposedServer`'s
 `web: { dir }` (`MCP_WEB_DIR` overrides it) and the boot reads once, so no request touches the file

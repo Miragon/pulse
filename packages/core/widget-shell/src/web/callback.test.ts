@@ -102,6 +102,14 @@ describe("GET /app/auth/callback: a sign-in", () => {
     expect(token?.form.get("code_verifier")).toMatch(/^[A-Za-z0-9_-]{43}$/)
     expect(token?.form.getAll("resource")).toEqual([RESOURCE])
     expect(token?.form.has("client_secret")).toBe(false)
+    // The scopes go with the authorization request alone, as before a web client could name them.
+    expect([...(token?.form.keys() ?? [])]).toEqual([
+      "grant_type",
+      "code",
+      "redirect_uri",
+      "code_verifier",
+      "resource",
+    ])
   })
 
   it("seals the tokens, never the ID token, and writes no token into the log", async () => {

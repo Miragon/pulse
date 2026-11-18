@@ -1,13 +1,24 @@
 /**
- * The fake identity provider's endpoints under its issuer, on Keycloak's paths or ADFS's
- * (adfs.ts): discovery, the key set, the authorization endpoint with a login page that offers each
- * user, the token endpoint (the code grant with PKCE, the refresh grant, the client's
- * authentication), revocation (Keycloak's alone) and the end of a session. Each answers a parsed
- * request with a plain answer, as the provider it plays would.
+ * The fake identity provider's endpoints under its issuer, on Keycloak's paths, ADFS's (adfs.ts) or
+ * those of an Entra ID tenant's two authorities (entra.ts): discovery, the key set, the
+ * authorization endpoint with a login page that offers each user, the token endpoint (the code
+ * grant with PKCE, the refresh grant, the client's authentication), revocation (Keycloak's alone)
+ * and the end of a session. Each answers a parsed request with a plain answer, as the provider it
+ * plays would.
  */
 import { randomUUID } from "node:crypto"
 import { decodeJwt } from "jose"
 import { ADFS_PATHS, adfsDiscovery, issueAdfsTokens } from "./adfs.js"
+import {
+  authorityOf,
+  entraDiscovery,
+  entraGrantRefusal,
+  entraKeys,
+  entraResourceRefusal,
+  entraResponseIss,
+  entraRouteOf,
+  issueEntraTokens,
+} from "./entra.js"
 import {
   issueTokens,
   opaqueToken,
@@ -50,10 +61,27 @@ const KEYCLOAK_PATHS: Readonly<Record<FakeOidcEndpoint, string>> = {
 }
 
 const isAdfs = (realm: Realm): boolean => realm.flavor === "adfs"
+const isEntra = (realm: Realm): boolean => realm.flavor === "entra"
 
 /** The paths below the realm's issuer: Keycloak's, or ADFS's, which has no revocation endpoint. */
-export const pathsOf = (realm: Realm): Readonly<Partial<Record<FakeOidcEndpoint, string>>> =>
+const pathsOf = (realm: Realm): Readonly<Partial<Record<FakeOidcEndpoint, string>>> =>
   isAdfs(realm) ? ADFS_PATHS : KEYCLOAK_PATHS
+
+/**
+ * The endpoint a request's path names: below the issuer on Keycloak's and ADFS's paths, an Entra
+ * ID tenant's endpoint of either authority (it has no revocation endpoint).
+ */
+export function endpointOf(realm: Realm, pathname: string): FakeOidcEndpoint | "unknown" {
+  if (isEntra(realm)) return entraRouteOf(realm, pathname)?.endpoint ?? "unknown"
+  const prefix = new URL(realm.issuer).pathname
+  const below = pathname.startsWith(`${prefix}/`) ? pathname.slice(prefix.length) : ""
+  const paths = Object.entries(pathsOf(realm)) as [FakeOidcEndpoint, string][]
+  return paths.find(([, path]) => path === below)?.[0] ?? "unknown"
+}
+
+/** Where the provider's session cookie goes: below the issuer, Entra ID's below its tenant. */
+const cookiePathOf = (realm: Realm): string =>
+  isEntra(realm) ? `/${String(realm.entra?.tenant)}/` : `${new URL(realm.issuer).pathname}/`
 
 /** The query parameters of the login page's choices, which no real provider reads. */
 export const CHOICE = { user: "fake_user", decline: "fake_decline" } as const
@@ -95,8 +123,9 @@ const isAllowed = (allowed: readonly string[] | undefined, uri: string): boolean
 const endpointUrl = (realm: Realm, endpoint: FakeOidcEndpoint): string =>
   `${realm.issuer}${KEYCLOAK_PATHS[endpoint]}`
 
-export function discovery(realm: Realm): Answer {
+export function discovery(realm: Realm, pathname: string): Answer {
   if (isAdfs(realm)) return json(200, adfsDiscovery(realm))
+  if (isEntra(realm)) return json(200, entraDiscovery(realm, authorityOf(realm, pathname)))
   return json(200, {
     issuer: realm.issuer,
     authorization_endpoint: endpointUrl(realm, "authorize"),
@@ -116,7 +145,14 @@ export function discovery(realm: Realm): Answer {
   })
 }
 
-export const jwks = (realm: Realm): Answer => json(200, { keys: [realm.jwk] })
+export const jwks = (realm: Realm, pathname: string): Answer =>
+  json(200, isEntra(realm) ? entraKeys(realm, authorityOf(realm, pathname)) : { keys: [realm.jwk] })
+
+/** The `iss` the authorization response carries (RFC 9207): none at ADFS or Entra ID's v2.0. */
+function responseIss(realm: Realm, pathname: string): string | null {
+  if (isEntra(realm)) return entraResponseIss(realm, pathname)
+  return isAdfs(realm) ? null : realm.issuer
+}
 
 /** The login page: a link per user and one that declines, each the request with its choice. */
 function loginPage(realm: Realm, query: URLSearchParams, notice = ""): Answer {
@@ -142,15 +178,14 @@ function loginPage(realm: Realm, query: URLSearchParams, notice = ""): Answer {
  * own, any other refusal goes back to the client; else the login page, or the code for the user
  * the page's link chose, with the provider's session cookie.
  */
-export function authorize(realm: Realm, query: URLSearchParams): Answer {
+export function authorize(realm: Realm, query: URLSearchParams, pathname: string): Answer {
   const client = realm.clients.get(query.get("client_id") ?? "")
   if (client === undefined) return page(400, "Client not found.")
   const redirectUri = query.get("redirect_uri") ?? ""
   if (!isAllowed(client.redirectUris, redirectUri)) {
     return page(400, "Invalid parameter: redirect_uri")
   }
-  // ADFS sends no iss (RFC 9207) back.
-  const iss = isAdfs(realm) ? null : realm.issuer
+  const iss = responseIss(realm, pathname)
   const back = (params: Record<string, string>, headers?: Record<string, string>): Answer => ({
     status: 302,
     headers: {
@@ -165,19 +200,21 @@ export function authorize(realm: Realm, query: URLSearchParams): Answer {
   const user = realm.users.find((candidate) => candidate.username === username)
   if (user === undefined) return loginPage(realm, query, "Invalid username or password.")
   const { code, sid } = newCode(realm, { clientId: client.id, redirectUri, query, user })
-  const cookie = `${SESSION_COOKIE}=${sid}; Path=${new URL(realm.issuer).pathname}/; HttpOnly; SameSite=Lax`
+  const cookie = `${SESSION_COOKIE}=${sid}; Path=${cookiePathOf(realm)}; HttpOnly; SameSite=Lax`
   return back({ session_state: sid, code }, { "set-cookie": cookie })
 }
 
 /**
  * Why the authorization request goes back refused, or `undefined`: its response type, ADFS's one
- * resource, PKCE S256, or the browser that cancelled.
+ * resource, a resource no App ID URI of Entra ID's API, PKCE S256, or the browser that cancelled.
  */
 function requestRefusal(realm: Realm, query: URLSearchParams): Record<string, string> | undefined {
   if (query.get("response_type") !== "code") return { error: "unsupported_response_type" }
   if (isAdfs(realm) && query.getAll("resource").length > 1) {
     return { error: "invalid_request", error_description: "MSIS9xxx: one resource only." }
   }
+  const resourceRefused = isEntra(realm) ? entraResourceRefusal(realm, query) : undefined
+  if (resourceRefused !== undefined) return resourceRefused
   if (query.get("code_challenge_method") !== "S256" || !query.get("code_challenge")) {
     return {
       error: "invalid_request",
@@ -246,20 +283,23 @@ const isAnswer = (value: FakeOidcClient | Answer): value is Answer => "status" i
 
 /**
  * A grant's tokens as the realm's provider answers them: ADFS's for the resource the request
- * names (else `fallback`, the code's), a refresh token at the sign-in alone; Keycloak's whatever
- * the request names.
+ * names (else `fallback`, the code's), a refresh token at the sign-in alone; Entra ID's of the
+ * authority asked for the scope the request names; Keycloak's whatever the request names.
  */
 function tokensOf(
   realm: Realm,
   session: IssuedSession,
-  form: URLSearchParams,
+  request: FakeOidcRequest,
   { renewal, fallback }: { renewal: boolean; fallback?: string },
 ): Promise<Record<string, unknown>> {
+  const { form } = request
+  if (isEntra(realm)) return issueEntraTokens(realm, session, form, request.path)
   if (!isAdfs(realm)) return issueTokens(realm, session)
   return issueAdfsTokens(realm, session, form.get("resource") ?? fallback, renewal)
 }
 
-async function codeGrant(realm: Realm, client: FakeOidcClient, form: URLSearchParams) {
+async function codeGrant(realm: Realm, client: FakeOidcClient, request: FakeOidcRequest) {
+  const { form } = request
   const presented = form.get("code") ?? ""
   const code = realm.codes.get(presented)
   realm.codes.delete(presented)
@@ -274,7 +314,8 @@ async function codeGrant(realm: Realm, client: FakeOidcClient, form: URLSearchPa
   if (s256(verifier) !== code.challenge) {
     return oauthError(400, "invalid_grant", "PKCE verification failed: Code mismatch")
   }
-  return json(200, await tokensOf(realm, code, form, { renewal: false, fallback: code.resource }))
+  const options = { renewal: false, fallback: code.resource }
+  return json(200, await tokensOf(realm, code, request, options))
 }
 
 const isLive = (realm: Realm, grant: Grant | undefined): grant is Grant =>
@@ -286,8 +327,8 @@ function revokeOnReuse(realm: Realm, grant: Grant | undefined): void {
   for (const other of realm.grants.values()) if (other.sid === grant.sid) other.active = false
 }
 
-async function refreshGrant(realm: Realm, client: FakeOidcClient, form: URLSearchParams) {
-  const grant = realm.grants.get(form.get("refresh_token") ?? "")
+async function refreshGrant(realm: Realm, client: FakeOidcClient, request: FakeOidcRequest) {
+  const grant = realm.grants.get(request.form.get("refresh_token") ?? "")
   revokeOnReuse(realm, grant)
   if (!isLive(realm, grant)) return oauthError(400, "invalid_grant", "Token is not active")
   if (grant.clientId !== client.id) {
@@ -297,18 +338,23 @@ async function refreshGrant(realm: Realm, client: FakeOidcClient, form: URLSearc
     grant.active = false
     grant.spent = true
   }
-  return json(200, await tokensOf(realm, grant, form, { renewal: true }))
+  return json(200, await tokensOf(realm, grant, request, { renewal: true }))
 }
 
-/** The token endpoint (RFC 6749 §3.2): the client authenticated, then its grant. */
+/**
+ * The token endpoint (RFC 6749 §3.2): the client authenticated, what Entra ID refuses of any grant,
+ * then its grant.
+ */
 export async function token(realm: Realm, request: FakeOidcRequest): Promise<Answer> {
   const client = clientOf(realm, request)
   if (isAnswer(client)) return client
+  const refused = isEntra(realm) ? entraGrantRefusal(realm, request.form) : undefined
+  if (refused !== undefined) return json(400, refused)
   switch (request.form.get("grant_type")) {
     case "authorization_code":
-      return codeGrant(realm, client, request.form)
+      return codeGrant(realm, client, request)
     case "refresh_token":
-      return refreshGrant(realm, client, request.form)
+      return refreshGrant(realm, client, request)
     default:
       return oauthError(400, "unsupported_grant_type", "Unsupported grant_type")
   }
@@ -346,18 +392,18 @@ function sessionOf(request: FakeOidcRequest, hint: string | null): string | unde
 
 /**
  * The end-session endpoint (OpenID Connect RP-Initiated Logout 1.0): the browser's session ends
- * (every refresh token of it at Keycloak; ADFS's renew on, as its FAQ says), and the browser
- * returns where the client asked, when the client may return there. Unlike Keycloak it asks no
- * confirmation without an ID token hint.
+ * (every refresh token of it at Keycloak; ADFS's renew on, as its FAQ says, and so do Entra ID's,
+ * whose single sign-out leaves them alive), and the browser returns where the client asked, when
+ * the client may return there. Unlike Keycloak it asks no confirmation without an ID token hint.
  */
 export function logout(realm: Realm, request: FakeOidcRequest): Answer {
   const params = request.method === "POST" ? request.form : request.query
   const clientId = params.get("client_id") ?? undefined
   const postLogoutRedirectUri = params.get("post_logout_redirect_uri") ?? undefined
   const sid = sessionOf(request, params.get("id_token_hint"))
-  if (!isAdfs(realm)) endGrant(realm, sid)
+  if (realm.flavor === "keycloak") endGrant(realm, sid)
   realm.endedSessions.push({ clientId, postLogoutRedirectUri, sid })
-  const cleared = `${SESSION_COOKIE}=; Path=${new URL(realm.issuer).pathname}/; Max-Age=0; HttpOnly; SameSite=Lax`
+  const cleared = `${SESSION_COOKIE}=; Path=${cookiePathOf(realm)}; Max-Age=0; HttpOnly; SameSite=Lax`
   if (postLogoutRedirectUri === undefined) {
     const signedOut = page(200, "You are signed out.")
     return { ...signedOut, headers: { ...signedOut.headers, "set-cookie": cleared } }

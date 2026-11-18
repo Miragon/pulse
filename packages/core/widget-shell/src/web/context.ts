@@ -24,11 +24,17 @@ export interface WebContext {
   readonly sealer: Sealer
   /** The sessions signed out at this replica (ended.ts). */
   readonly ended: EndedSessions
-  /** What the sign-in asks the provider for: its scopes, and the audience where it names one. */
+  /**
+   * What the sign-in asks the provider for and where: its scopes, the audience where it names one,
+   * whether the grants name the resource and the scopes.
+   */
   readonly client: OAuthWebClient
   /** The gate's resource (RFC 8707) as the protected resource names itself. */
   readonly resource: string
-  /** The issuer the provider names, which a callback's `iss` must name as well (RFC 9207). */
+  /**
+   * The issuer the sign-in goes through (the web client's, else the provider's), which a
+   * callback's `iss` must name as well (RFC 9207).
+   */
   readonly issuer: string
   /** The claims that name the caller (the provider's, else `sub`), the first a token carries. */
   readonly callerClaims: readonly string[]

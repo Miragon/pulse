@@ -25,6 +25,7 @@ import {
   tokenStep,
   type RenewableTokens,
 } from "./refresh.js"
+import type { OAuthWebClient } from "../oauth-providers.js"
 import { RESOURCE } from "./sign-in.test-support.js"
 
 /** Tokens of five minutes, renewed 30 s before they expire (a tenth of their lifetime). */
@@ -200,6 +201,37 @@ describe("renewalSource: the replica's refreshes", () => {
     })
     const basic = Buffer.from("pulse-web:pulse-web-secret").toString("base64")
     expect(provider.authorizations).toEqual([`Basic ${basic}`])
+  })
+
+  it.each<[string, Partial<OAuthWebClient>, Record<string, string>]>([
+    ["the resource and no scopes by default", {}, { resource: RESOURCE }],
+    ["no resource where the web client names none", { resource: false }, {}],
+    [
+      "the scopes besides where it names them at every grant",
+      { grantScopes: true },
+      {
+        resource: RESOURCE,
+        scope: "openid api://pulse/user_impersonation",
+      },
+    ],
+    [
+      "the scopes alone where it does both",
+      { resource: false, grantScopes: true },
+      {
+        scope: "openid api://pulse/user_impersonation",
+      },
+    ],
+  ])("names %s", async (_case, options, named) => {
+    const provider = scriptedProvider(tokens("access-2"))
+    const client = { scopes: ["openid", "api://pulse/user_impersonation"], ...options }
+    const { ctx } = callContext(provider.platform, { client })
+    await renewalSource(ctx)(RECEIVED)
+    expect(Object.fromEntries(provider.forms[0])).toEqual({
+      grant_type: "refresh_token",
+      refresh_token: "refresh-1",
+      ...named,
+    })
+    expect(provider.forms[0].getAll("resource")).toHaveLength(named.resource === undefined ? 0 : 1)
   })
 
   it("keeps the refresh token and its expiry, unless the provider rotated it", async () => {

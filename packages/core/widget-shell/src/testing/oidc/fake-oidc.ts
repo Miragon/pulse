@@ -1,13 +1,13 @@
 /**
  * A fake OpenID Connect provider on a loopback socket, for the web sign-in's tests: Keycloak's
- * paths and tokens by default, ADFS's with `flavor: "adfs"` (adfs.ts). Started with
- * `startFakeOidc()`, `env(origin)` names the variables of the boot's own provider for it (Keycloak's
- * `MCP_OAUTH_KEYCLOAK_SERVER_URL` and `MCP_OAUTH_KEYCLOAK_REALM`, ADFS's generic
- * `MCP_OAUTH_OIDC_ISSUER`), which verifies its access tokens with the real JWT verifier, and a
- * client of `@miragon/pulse-http/oauth` discovers it, signs in with PKCE as a confidential client,
- * refreshes, revokes (Keycloak) and ends the session against it. A browser sees its login page, a
- * link per user; a test without one plays the browser with `signIn` and `decline`. Node only,
- * never bundled.
+ * paths and tokens by default, ADFS's with `flavor: "adfs"` (adfs.ts), an Entra ID tenant's with
+ * `flavor: "entra"` (entra.ts). Started with `startFakeOidc()`, `env(origin)` names the variables
+ * of the boot's own provider for it (Keycloak's `MCP_OAUTH_KEYCLOAK_SERVER_URL` and
+ * `MCP_OAUTH_KEYCLOAK_REALM`, ADFS's generic `MCP_OAUTH_OIDC_ISSUER`), which verifies its access
+ * tokens with the real JWT verifier, and a client of `@miragon/pulse-http/oauth` discovers it,
+ * signs in with PKCE as a confidential client, refreshes, revokes (Keycloak) and ends the session
+ * against it. A browser sees its login page, a link per user; a test without one plays the browser
+ * with `signIn` and `decline`. Node only, never bundled.
  */
 import http from "node:http"
 import type { AddressInfo } from "node:net"
@@ -16,22 +16,41 @@ import {
   CHOICE,
   discovery,
   endGrant,
+  endpointOf,
   jwks,
   logout,
-  pathsOf,
   revoke,
   token,
   type Answer,
   type FakeOidcEndpoint,
   type FakeOidcRequest,
 } from "./endpoints.js"
+import { ENTRA_SCOPE } from "./entra.js"
 import {
   createRealm,
+  ENTRA_TENANT,
   type EndedSession,
   type FakeOidcOptions,
   type IssuedTokens,
   type Realm,
 } from "./realm.js"
+
+/** An Entra ID tenant as the fake plays it: what a test's own provider of it needs. */
+export interface FakeEntraTenant {
+  /** The tenant's id, the first segment of its authorities' paths. */
+  readonly tenant: string
+  /**
+   * `<serverUrl>/<tenant>/oauth21/2026-08`, the authority whose discovery names PKCE methods and
+   * whose key set holds a key of its own; its v2.0 authority is the fake's `issuer`.
+   */
+  readonly oauth21Issuer: string
+  /** The API registration's client id, the `aud` of its v2 access tokens. */
+  readonly apiClientId: string
+  /** The API's App ID URIs, which a `resource` must name exactly; the first prefixes its scopes. */
+  readonly appIdUris: readonly string[]
+  /** The scope the API exposes, as `scp` carries it: `user_impersonation`. */
+  readonly scope: string
+}
 
 export interface FakeOidc {
   /** `http://127.0.0.1:<port>`: Keycloak's `MCP_OAUTH_KEYCLOAK_SERVER_URL`. */
@@ -40,14 +59,22 @@ export interface FakeOidc {
   readonly realm: string
   /**
    * Its issuer, which its discovery and its ID tokens name: Keycloak's `<serverUrl>/realms/<realm>`,
-   * ADFS's `<serverUrl>/adfs` (`MCP_OAUTH_OIDC_ISSUER`).
+   * ADFS's `<serverUrl>/adfs` (`MCP_OAUTH_OIDC_ISSUER`), Entra ID's v2.0 authority
+   * `<serverUrl>/<tenant>/v2.0`.
    */
   readonly issuer: string
-  /** The `iss` of its access tokens: the issuer, ADFS's `<issuer>/services/trust`. */
+  /**
+   * The `iss` of its access tokens: the issuer, ADFS's `<issuer>/services/trust`; Entra ID's of the
+   * v2.0 authority (the oauth21 one's carry `entra.oauth21Issuer`).
+   */
   readonly accessTokenIssuer: string
+  /** Entra ID's tenant and API registration; undefined for the other flavors. */
+  readonly entra?: FakeEntraTenant
   /**
    * The variables of a server at `origin` (its `MCP_URL`) whose OAuth provider is this one: the
-   * flavor's `MCP_OAUTH_*` variables, ADFS's caller claim among them when it is no `sub`.
+   * flavor's `MCP_OAUTH_*` variables, ADFS's caller claim among them when it is no `sub`. Entra
+   * ID's flavor names none and throws: no provider of the boot reads its tokens, so a test brings
+   * a provider of its own over `entra`.
    */
   env(origin: string): Record<string, string>
   /** Every request it received, in order. */
@@ -73,7 +100,10 @@ export interface FakeOidc {
   signIn(authorizationUrl: string, username?: string): Promise<string>
   /** Plays the browser that cancels at the login page: the callback with `access_denied`. */
   decline(authorizationUrl: string): Promise<string>
-  /** Refuses every refresh grant while `refuse` holds, as after the session ended at the provider. */
+  /**
+   * Refuses every refresh grant while `refuse` holds, as after the session ended at the provider
+   * (Entra ID: an admin's "Revoke sessions").
+   */
   refuseRefresh(refuse?: boolean): void
   /**
    * Ends the grant of the session `session` (its `sid`), as when the provider takes back a user's
@@ -115,10 +145,7 @@ async function requestOf(
   realm: Realm,
 ): Promise<FakeOidcRequest> {
   const url = new URL(req.url ?? "/", base)
-  const prefix = new URL(realm.issuer).pathname
-  const below = url.pathname.startsWith(`${prefix}/`) ? url.pathname.slice(prefix.length) : ""
-  const paths = pathsOf(realm)
-  const endpoint = ROUTES.find(([name]) => paths[name] === below)?.[0] ?? "unknown"
+  const endpoint = endpointOf(realm, url.pathname)
   const body = await readBody(req)
   const isForm = (req.headers["content-type"] ?? "").startsWith("application/x-www-form-urlencoded")
   const headers: Record<string, string> = {}
@@ -149,11 +176,11 @@ async function answerOf(realm: Realm, request: FakeOidcRequest): Promise<Answer>
   }
   switch (route[0]) {
     case "discovery":
-      return discovery(realm)
+      return discovery(realm, request.path)
     case "jwks":
-      return jwks(realm)
+      return jwks(realm, request.path)
     case "authorize":
-      return authorize(realm, request.query)
+      return authorize(realm, request.query, request.path)
     case "token":
       return token(realm, request)
     case "revoke":
@@ -197,6 +224,12 @@ function envOf(
       MCP_OAUTH_KEYCLOAK_REALM: name,
     }
   }
+  if (realm.flavor === "entra") {
+    throw new TypeError(
+      "The fake Entra ID has no variables of the boot's providers: give the server a provider of " +
+        "the test's own over its entra tenant.",
+    )
+  }
   const claim = realm.callerClaim
   return {
     MCP_URL: origin,
@@ -205,17 +238,34 @@ function envOf(
   }
 }
 
+/** The issuer of the flavor at `serverUrl`: Keycloak's realm, ADFS's `/adfs`, Entra's v2.0 authority. */
+function issuerOf(serverUrl: string, realm: string, options: FakeOidcOptions): string {
+  switch (options.flavor) {
+    case "adfs":
+      return `${serverUrl}/adfs`
+    case "entra":
+      return `${serverUrl}/${options.tenant ?? ENTRA_TENANT}/v2.0`
+    default:
+      return `${serverUrl}/realms/${encodeURIComponent(realm)}`
+  }
+}
+
+/** What a test reads of the realm's Entra ID tenant, as the provider's `entra`; none elsewhere. */
+function entraOf(realm: Realm): { entra?: FakeEntraTenant } {
+  const { entra } = realm
+  if (entra === undefined) return {}
+  const { tenant, oauth21Issuer, apiClientId, appIdUris } = entra
+  return { entra: { tenant, oauth21Issuer, apiClientId, appIdUris, scope: ENTRA_SCOPE } }
+}
+
 /** Starts the provider on an ephemeral loopback port. */
 export async function startFakeOidc(options: FakeOidcOptions = {}): Promise<FakeOidc> {
   const realmName = options.realm ?? "pulse"
   const server = http.createServer()
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve))
   const serverUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
-  const issuer =
-    options.flavor === "adfs"
-      ? `${serverUrl}/adfs`
-      : `${serverUrl}/realms/${encodeURIComponent(realmName)}`
-  const realm = await createRealm(issuer, options)
+  const realm = await createRealm(issuerOf(serverUrl, realmName, options), options)
+  const { issuer } = realm
   const requests: FakeOidcRequest[] = []
   server.on("request", (req, res) => {
     requestOf(req, serverUrl, realm)
@@ -232,6 +282,7 @@ export async function startFakeOidc(options: FakeOidcOptions = {}): Promise<Fake
     realm: realmName,
     issuer,
     accessTokenIssuer: realm.accessTokenIssuer,
+    ...entraOf(realm),
     env: (origin) => envOf(realm, serverUrl, realmName, origin),
     requests,
     issued: realm.issued,

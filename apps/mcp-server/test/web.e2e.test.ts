@@ -275,6 +275,22 @@ describe("a page's calls through the real server", () => {
     )
     expect(withBearer.status).toBe(400)
   })
+
+  it("refuses the sign-in's ID token at /mcp, also where an audience mapper adds the resource to it", async () => {
+    await fake.close()
+    fake = await startFakeOidc({ audience: `${ORIGIN}/mcp`, audienceInIdToken: true })
+    const composed = await boot()
+    const page = await new Page(composed).signIn()
+    expect((await page.call("engine_list_engines")).status).toBe(200)
+    const [idToken] = fake.issued.id
+    expect(JSON.parse(Buffer.from(idToken.split(".")[1], "base64url").toString())).toMatchObject({
+      aud: [FAKE_OIDC_CLIENT.id, `${ORIGIN}/mcp`],
+      typ: "ID",
+    })
+    const refused = await postToolCall(composed, `Bearer ${idToken}`, "engine_list_engines", {})
+    expect(refused.status).toBe(401)
+    expect(refused.headers.get("www-authenticate")).toMatch(/error="invalid_token"/)
+  })
 })
 
 describe("the web build the root names", () => {

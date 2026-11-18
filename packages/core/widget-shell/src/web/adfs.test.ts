@@ -76,6 +76,13 @@ describe("the web sign-in at ADFS", () => {
     expect(callback.headers.get("location")).toBe("/app")
     const [exchange] = requestsTo("token", "authorization_code")
     expect(exchange.form.getAll("resource")).toEqual([RESOURCE])
+    expect([...exchange.form.keys()]).toEqual([
+      "grant_type",
+      "code",
+      "redirect_uri",
+      "code_verifier",
+      "resource",
+    ])
     expect(await sessionOf(browser)).toMatchObject({ status: 200, body: { name: ALICE.email } })
     // The gate's key set and the sign-in's metadata come from one discovery.
     expect(requestsTo("discovery")).toHaveLength(1)
@@ -99,7 +106,10 @@ describe("the web sign-in at ADFS", () => {
     expect((await sessionOf(browser)).status).toBe(200)
     const renewals = requestsTo("token", "refresh_token")
     expect(renewals).toHaveLength(2)
-    for (const renewal of renewals) expect(renewal.form.getAll("resource")).toEqual([RESOURCE])
+    for (const renewal of renewals) {
+      expect([...renewal.form.keys()]).toEqual(["grant_type", "refresh_token", "resource"])
+      expect(renewal.form.getAll("resource")).toEqual([RESOURCE])
+    }
     const [first, second] = renewals.map((renewal) => renewal.form.get("refresh_token"))
     expect(second).toBe(first)
     expect(decodeJwt(String(fake.issued.access.at(-1))).aud).toBe(RESOURCE)

@@ -9,7 +9,7 @@
  * is `no-store` unless it names a cache policy of its own (an asset).
  */
 import type { McpHttpApp } from "../mcp-server.js"
-import { metadataSource, NETWORK } from "../oauth-discovery.js"
+import { metadataSource, NETWORK, type MetadataSource } from "../oauth-discovery.js"
 import { gateChallenge, gateTokenCheck } from "../oauth-gate.js"
 import type { OAuthProvider, OAuthWebClient } from "../oauth-providers.js"
 import { DEFAULT_CALLER_CLAIMS } from "../oauth-shared.js"
@@ -43,6 +43,20 @@ function webClientOf(provider: OAuthProvider, settings: WebSettings): OAuthWebCl
   return { ...web, scopes: [...new Set([...asked, ...(provider.requiredScopes ?? [])])] }
 }
 
+/**
+ * Where the sign-in reads the provider's metadata: the issuer its web client names to sign in
+ * through, else the provider's own discovery where its gate reads one, else one of its own.
+ */
+function signInMetadata(
+  provider: OAuthProvider,
+  client: OAuthWebClient,
+  log: (line: string) => void,
+): MetadataSource {
+  const { discoveryIssuer } = client
+  if (discoveryIssuer !== undefined) return metadataSource(discoveryIssuer, NETWORK, log)
+  return provider.discovery?.server ?? metadataSource(provider.oauthMetadata.issuer, NETWORK, log)
+}
+
 export interface WebSignInOptions {
   readonly settings: WebSettings
   readonly provider: OAuthProvider
@@ -56,18 +70,17 @@ export interface WebSignInOptions {
 
 export function installWebSignIn(app: McpHttpApp, options: WebSignInOptions): void {
   const { settings, provider, resource, label, build } = options
-  const { issuer } = provider.oauthMetadata
   const log = (line: string): void => console.warn(`[${label}] ${line}`)
+  const client = webClientOf(provider, settings)
   const ctx: WebContext = {
     settings,
     sealer: createSealer(settings.sessionKeys),
     ended: endedSessions(),
-    client: webClientOf(provider, settings),
+    client,
     resource: resource.href,
-    issuer,
+    issuer: client.discoveryIssuer ?? provider.oauthMetadata.issuer,
     callerClaims: provider.callerClaims ?? DEFAULT_CALLER_CLAIMS,
-    // The provider's own discovery where its gate reads one, else one of the sign-in's own.
-    metadata: provider.discovery?.server ?? metadataSource(issuer, NETWORK, log),
+    metadata: signInMetadata(provider, client, log),
     verify: gateTokenCheck(provider, resource),
     platform: NETWORK,
     log,
