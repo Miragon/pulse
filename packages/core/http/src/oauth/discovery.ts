@@ -1,10 +1,13 @@
 /**
  * The authorization server's metadata: OpenID Connect discovery with the RFC 8414 location as
- * fallback, and the document's check. It must name exactly the expected issuer (RFC 8414 §3.3),
- * offer PKCE with S256 when it lists methods, and a client authentication the client can do; its
- * endpoints must be https, or http on a loopback host (the caller's rule, so every surface keeps
- * one definition of loopback). An endpoint a client can do without (revocation, end session) is
- * dropped when it fails that rule.
+ * fallback, and two checks of the document, each by its own needs, so what a sign-in needs never
+ * blocks what verifying a token needs. Both take only a document that names exactly the expected
+ * issuer (RFC 8414 §3.3). A client signs in by `serverMetadata`: PKCE with S256 when the document
+ * lists methods, a client authentication the client can do, endpoints on https or plain http on a
+ * loopback host (the caller's rule, so every surface keeps one definition of loopback); an
+ * endpoint a client can do without (revocation, end session) is dropped when it fails that rule.
+ * A resource server verifies tokens by `keyMetadata`: the key set's URL by the same rule, on a
+ * loopback host only when the issuer is on one, and the issuer its access tokens carry.
  */
 import type { Platform } from "../types.js"
 import { withoutTrailingSlashes } from "../url.js"
@@ -96,11 +99,15 @@ export interface ServerMetadata {
 
 type EndpointKey = "authorization_endpoint" | "token_endpoint"
 
-/** Why a discovery document cannot be used, in the order it is checked. */
-export type MetadataProblem =
+/** Why a discovery document is not the expected issuer's. */
+type IssuerProblem =
   | { readonly problem: "no-issuer" }
   /** `named` is the document's issuer as sent, unchecked. */
   | { readonly problem: "other-issuer"; readonly named: string }
+
+/** Why a discovery document cannot be used, in the order it is checked. */
+export type MetadataProblem =
+  | IssuerProblem
   | { readonly problem: "no-endpoint"; readonly key: EndpointKey }
   | {
       readonly problem: "endpoint-url"
@@ -120,6 +127,12 @@ export interface MetadataNeeds {
 }
 
 type Document = Readonly<Record<string, unknown>>
+
+function issuerProblem(document: Document, issuer: string): IssuerProblem | undefined {
+  const named = document.issuer
+  if (typeof named !== "string") return { problem: "no-issuer" }
+  return named === issuer ? undefined : { problem: "other-issuer", named }
+}
 
 function endpointOf(document: Document, key: EndpointKey, needs: MetadataNeeds) {
   const value = document[key]
@@ -177,9 +190,8 @@ export function serverMetadata(
   issuer: string,
   needs: MetadataNeeds,
 ): ServerMetadata | MetadataProblem {
-  const named = document.issuer
-  if (typeof named !== "string") return { problem: "no-issuer" }
-  if (named !== issuer) return { problem: "other-issuer", named }
+  const refused = issuerProblem(document, issuer)
+  if (refused !== undefined) return refused
   const authorizationEndpoint = endpointOf(document, "authorization_endpoint", needs)
   if (typeof authorizationEndpoint !== "string") return authorizationEndpoint
   const tokenEndpoint = endpointOf(document, "token_endpoint", needs)
@@ -195,4 +207,78 @@ export function serverMetadata(
     issParameterRequired: document.authorization_response_iss_parameter_supported === true,
     clientAuth,
   }
+}
+
+/** What a resource server needs of the authorization server to verify its access tokens. */
+export interface KeyMetadata {
+  readonly issuer: string
+  /** The URL of the key set the tokens are signed with (`jwks_uri`), trimmed. */
+  readonly jwksUri: string
+  /**
+   * The issuer the access tokens carry where it differs from the issuer (`access_token_issuer`,
+   * MS-OIDCE; ADFS), as named: it is only compared with a token's, never fetched, so plain http
+   * is kept. None when the document names none or one that is no absolute http or https URL.
+   */
+  readonly accessTokenIssuer?: string
+}
+
+/** Why a discovery document gives no key set, in the order it is checked. */
+export type KeyMetadataProblem =
+  | IssuerProblem
+  | { readonly problem: "no-jwks" }
+  /** `url` is the document's `jwks_uri` as sent, which `oauthUrlProblem` refuses. */
+  | {
+      readonly problem: "jwks-insecure"
+      readonly url: string
+      readonly urlProblem: OAuthUrlProblem
+    }
+  /**
+   * `url` is the document's `jwks_uri` as sent: on a loopback host while the issuer is on none,
+   * so a remote document would point the verifier at the server's own machine.
+   */
+  | { readonly problem: "jwks-loopback"; readonly url: string }
+
+type KeyNeeds = Pick<MetadataNeeds, "isLoopback">
+
+/** Whether `url` is a URL on a host `isLoopback` accepts. */
+function onLoopback(url: string, isLoopback: KeyNeeds["isLoopback"]): boolean {
+  return URL.canParse(url) && isLoopback(new URL(url).hostname)
+}
+
+function jwksOf(document: Document, issuer: string, needs: KeyNeeds) {
+  const value = document.jwks_uri
+  if (typeof value !== "string" || value.trim() === "") return { problem: "no-jwks" } as const
+  const urlProblem = oauthUrlProblem(value, needs.isLoopback)
+  if (urlProblem !== undefined) return { problem: "jwks-insecure", url: value, urlProblem } as const
+  const jwksUri = value.trim()
+  const remoteIssuer = !onLoopback(issuer, needs.isLoopback)
+  if (remoteIssuer && onLoopback(jwksUri, needs.isLoopback)) {
+    return { problem: "jwks-loopback", url: value } as const
+  }
+  return jwksUri
+}
+
+function accessTokenIssuerOf(document: Document): string | undefined {
+  const value = document.access_token_issuer
+  if (typeof value !== "string" || !URL.canParse(value)) return undefined
+  const { protocol } = new URL(value)
+  return protocol === "https:" || protocol === "http:" ? value : undefined
+}
+
+/**
+ * The key metadata of a discovery document for `issuer`, or the first reason it gives none. It
+ * asks nothing a sign-in needs (endpoints, PKCE, a client authentication), so a server whose
+ * clients sign in by a method this package does not offer still has its tokens verified.
+ */
+export function keyMetadata(
+  document: Document,
+  issuer: string,
+  needs: KeyNeeds,
+): KeyMetadata | KeyMetadataProblem {
+  const refused = issuerProblem(document, issuer)
+  if (refused !== undefined) return refused
+  const jwksUri = jwksOf(document, issuer, needs)
+  if (typeof jwksUri !== "string") return jwksUri
+  const accessTokenIssuer = accessTokenIssuerOf(document)
+  return { issuer, jwksUri, ...(accessTokenIssuer === undefined ? {} : { accessTokenIssuer }) }
 }

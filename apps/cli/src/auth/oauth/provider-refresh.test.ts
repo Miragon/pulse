@@ -66,6 +66,24 @@ describe("OAuth provider: proactive refresh", () => {
     })
   })
 
+  it("knows the end of a refresh token from ADFS's refresh_token_expires_in and asks for a new login then", async () => {
+    const idp = { refreshExpiresIn: 28_800, refreshExpiresKey: "refresh_token_expires_in" } as const
+    const test = setup(undefined, { idp })
+    test.clock = T0 + 280_000
+    await headersOf(test.provider())
+    expect(test.stored()).toMatchObject({
+      refreshToken: "refresh-1",
+      refreshExpiresAt: T0 + 280_000 + 28_800_000,
+    })
+    test.clock = T0 + 280_000 + 28_800_000
+    const error = await rejection(headersOf(test.provider()))
+    expect([error.code, error.message]).toEqual([
+      "LOGIN_REQUIRED",
+      'The OAuth login of profile "p" expired at 2023-11-15T06:18:00.000Z',
+    ])
+    expect(test.idp.tokenRequests()).toHaveLength(1)
+  })
+
   it("keeps the display values when the refresh has none", async () => {
     const test = setup(undefined, { idp: { idToken: null, scope: null } })
     test.clock = T0 + 280_000

@@ -71,6 +71,28 @@ describe("a token request", () => {
     ])
   })
 
+  it("names the scopes as one parameter with a code and with a refresh token, none without", async () => {
+    const { platform, calls } = oauthPlatform([OK()])
+    const code = {
+      type: "authorization_code",
+      code: "c-1",
+      redirectUri: "https://r/cb",
+      verifier: "v",
+      resources: ["https://pulse.example.com/mcp"],
+    } as const
+    const scopes = ["openid", "api://pulse/user_impersonation"]
+    await requestToken(PUBLIC, { ...code, scopes }, platform)
+    await requestToken(PUBLIC, { ...REFRESH, scopes: ["openid", "offline_access"] }, platform)
+    await requestToken(PUBLIC, { ...REFRESH, scopes: [] }, platform)
+    await requestToken(PUBLIC, { ...code, scopes: [""] }, platform)
+    expect(calls.map((call) => call.body)).toEqual([
+      "grant_type=authorization_code&code=c-1&redirect_uri=https%3A%2F%2Fr%2Fcb&code_verifier=v&scope=openid+api%3A%2F%2Fpulse%2Fuser_impersonation&resource=https%3A%2F%2Fpulse.example.com%2Fmcp&client_id=pulse-cli",
+      "grant_type=refresh_token&refresh_token=r-1&scope=openid+offline_access&client_id=pulse-cli",
+      "grant_type=refresh_token&refresh_token=r-1&client_id=pulse-cli",
+      "grant_type=authorization_code&code=c-1&redirect_uri=https%3A%2F%2Fr%2Fcb&code_verifier=v&resource=https%3A%2F%2Fpulse.example.com%2Fmcp&client_id=pulse-cli",
+    ])
+  })
+
   it("authenticates a confidential client with Basic, id and secret form-encoded first", async () => {
     const { platform, calls, events } = oauthPlatform([OK()])
     const endpoint = {
@@ -278,10 +300,25 @@ describe("a token answer", () => {
         access_token: "a",
         expires_in: value,
         refresh_expires_in: value,
+        refresh_token_expires_in: value,
       })
       expect(record).toEqual({ accessToken: "a", receivedAt: T0 })
     },
   )
+
+  it("reads the refresh token's lifetime from ADFS's refresh_token_expires_in where Keycloak's is missing", async () => {
+    const adfs = { access_token: "a", refresh_token: "r", refresh_token_expires_in: 28_800 }
+    await expect(recordOf(adfs)).resolves.toEqual({
+      accessToken: "a",
+      receivedAt: T0,
+      refreshToken: "r",
+      refreshExpiresAt: T0 + 28_800_000,
+    })
+    const both = { ...adfs, refresh_expires_in: 1800 }
+    expect((await recordOf(both)).refreshExpiresAt).toBe(T0 + 1_800_000)
+    const offline = { ...adfs, refresh_expires_in: 0, refresh_token_expires_in: "600" }
+    expect((await recordOf(offline)).refreshExpiresAt).toBe(T0 + 600_000)
+  })
 
   it.each([
     ["no JSON object", "<html>", "not-json"],

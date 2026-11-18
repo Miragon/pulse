@@ -59,7 +59,10 @@ export interface TokenResponse {
   /** null when unknown. */
   readonly expiresAt: number | null
   readonly refreshToken: string | null
-  /** Keycloak's `refresh_expires_in` from the receipt, or null when unknown. */
+  /**
+   * Keycloak's `refresh_expires_in` (else ADFS's `refresh_token_expires_in`) from the receipt, or
+   * null when unknown.
+   */
   readonly refreshExpiresAt: number | null
   readonly scope: string | null
   /** `sub` of the ID token (display only). */

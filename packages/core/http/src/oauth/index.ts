@@ -3,14 +3,15 @@
  * transport's wire. The token endpoint (every grant, revocation, the client's authentication and
  * the reading of a refusal), when a token is renewed (one policy for all), whether it has expired
  * and whether a refresh token can renew it, token sources that renew (client credentials, a
- * login's refresh token under a store's lock, a token command), the store port, discovery, PKCE,
- * the authorization request and its callback, the resources a token is for (RFC 8707), the end of
- * a session at the server (RP-Initiated Logout) and the claims of a JWT. Where a secret or a token
- * is kept, how a person logs in and every word a person reads stay with each surface: failures are
- * data (`TokenFailure`, the problems of discovery and callback). The rules behind these (the
- * default limits and holds, the reading of `Retry-After`, the renewal margin, the discovery URLs,
- * PKCE's encoding, the constant-time compare) stay in their modules, where the package's tests
- * reach them.
+ * login's refresh token under a store's lock, a token command), the store port, discovery (what a
+ * client signs in with, and what a resource server verifies tokens by), PKCE, the authorization
+ * request and its callback, the resources a token is for (RFC 8707), the end of a session at the
+ * server (RP-Initiated Logout) and the claims of a JWT. Where a secret or a token is kept, how a
+ * person logs in and every word a person reads stay with each surface: failures are data
+ * (`TokenFailure`, the problems of discovery and callback). The rules behind these (the default
+ * limits and holds, the reading of `Retry-After`, the renewal margin, the discovery URLs, PKCE's
+ * encoding, the constant-time compare) stay in their modules, where the package's tests reach
+ * them.
  */
 
 export type {
@@ -38,6 +39,9 @@ export { type CommandOptions, commandTokens } from "./command.js"
 export {
   type DiscoveryAnswer,
   discover,
+  type KeyMetadata,
+  keyMetadata,
+  type KeyMetadataProblem,
   type MetadataNeeds,
   type MetadataProblem,
   oauthUrlProblem,

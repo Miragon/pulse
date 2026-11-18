@@ -71,6 +71,13 @@ function withResources(form: URLSearchParams, resources: readonly string[] | und
   return form
 }
 
+/** `form` with the scopes as one `scope` parameter (RFC 6749 §3.3); none without a scope. */
+function withScopes(form: URLSearchParams, scopes: readonly string[] | undefined) {
+  const scope = scopes?.join(" ") ?? ""
+  if (scope !== "") form.set("scope", scope)
+  return form
+}
+
 function grantForm(grant: Grant): URLSearchParams {
   switch (grant.type) {
     case "authorization_code": {
@@ -80,21 +87,19 @@ function grantForm(grant: Grant): URLSearchParams {
         redirect_uri: grant.redirectUri,
         code_verifier: grant.verifier,
       })
-      return withResources(form, grant.resources)
+      return withResources(withScopes(form, grant.scopes), grant.resources)
     }
     case "refresh_token": {
       const form = new URLSearchParams({
         grant_type: "refresh_token",
         refresh_token: grant.refreshToken,
       })
-      return withResources(form, grant.resources)
+      return withResources(withScopes(form, grant.scopes), grant.resources)
     }
     case "client_credentials": {
       const form = new URLSearchParams({ grant_type: "client_credentials" })
       if (grant.audience !== undefined) form.set("audience", grant.audience)
-      const scope = grant.scopes?.join(" ") ?? ""
-      if (scope !== "") form.set("scope", scope)
-      return form
+      return withScopes(form, grant.scopes)
     }
   }
 }
@@ -143,7 +148,7 @@ function refusalOf(answer: ServerAnswer, now: number): TokenFailure {
 /** A positive, finite number of seconds (a number, or digits as text); else undefined. */
 function secondsOf(value: unknown): number | undefined {
   const number = typeof value === "string" && NUMERIC.test(value) ? Number(value) : value
-  return typeof number === "number" && Number.isFinite(number) && number > 0 ? number : undefined
+  return typeof number === "number" && number > 0 && number < Infinity ? number : undefined
 }
 
 /** A 200 answer without a usable token. */
@@ -165,12 +170,16 @@ function accessTokenOf(answer: ServerAnswer, json: Readonly<Record<string, unkno
   return accessToken
 }
 
-/** The token of a 200 answer received at `receivedAt`, its lifetimes counted from then. */
+/**
+ * The token of a 200 answer received at `receivedAt`, its lifetimes counted from then: the
+ * refresh token's by Keycloak's `refresh_expires_in`, else by ADFS's `refresh_token_expires_in`.
+ */
 function recordOf(answer: ServerAnswer, receivedAt: number): TokenRecord {
   const { json } = answer
   if (json === undefined) throw unusable(answer, "not-json")
   const expiresIn = secondsOf(json.expires_in)
-  const refreshExpiresIn = secondsOf(json.refresh_expires_in)
+  const refreshExpiresIn =
+    secondsOf(json.refresh_expires_in) ?? secondsOf(json.refresh_token_expires_in)
   const refreshToken = textOf(json, "refresh_token")
   return {
     accessToken: accessTokenOf(answer, json),

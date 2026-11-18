@@ -268,6 +268,7 @@ describe("the entries", () => {
       "isDue",
       "isExpired",
       "jwtClaims",
+      "keyMetadata",
       "memoryTokenStore",
       "oauthUrlProblem",
       "refreshAt",

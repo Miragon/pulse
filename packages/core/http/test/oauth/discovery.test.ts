@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import { discoveryUrls } from "../../src/oauth/discovery.js"
 import {
   discover,
+  keyMetadata,
   type MetadataNeeds,
   oauthUrlProblem,
   serverMetadata,
@@ -202,6 +203,112 @@ describe("serverMetadata", () => {
     })
     expect(serverMetadata(only(["private_key_jwt"]), ISSUER, PUBLIC)).toMatchObject({
       clientAuth: "basic",
+    })
+  })
+})
+
+describe("keyMetadata", () => {
+  const FS = "https://fs.example.com/adfs"
+  const ADFS = {
+    issuer: FS,
+    jwks_uri: ` ${FS}/discovery/keys `,
+    access_token_issuer: "http://fs.example.com/adfs/services/trust",
+    token_endpoint_auth_methods_supported: ["private_key_jwt"],
+  }
+
+  it("takes the key set and the access tokens' issuer as named, http kept, nothing of a sign-in", () => {
+    expect(keyMetadata(ADFS, FS, PUBLIC)).toEqual({
+      issuer: FS,
+      jwksUri: `${FS}/discovery/keys`,
+      accessTokenIssuer: "http://fs.example.com/adfs/services/trust",
+    })
+    expect(serverMetadata(ADFS, FS, { ...PUBLIC, confidential: true })).toEqual({
+      problem: "no-endpoint",
+      key: "authorization_endpoint",
+    })
+    expect(keyMetadata({ ...DOCUMENT, jwks_uri: `${ISSUER}/certs` }, ISSUER, PUBLIC)).toStrictEqual(
+      {
+        issuer: ISSUER,
+        jwksUri: `${ISSUER}/certs`,
+      },
+    )
+  })
+
+  it("keeps an access tokens' issuer on https as named", () => {
+    const entra = "https://sts.windows.net/9188040d-6c67-4c5b-b112-36a304b66dad/"
+    expect(keyMetadata({ ...ADFS, access_token_issuer: entra }, FS, PUBLIC)).toMatchObject({
+      accessTokenIssuer: entra,
+    })
+  })
+
+  it.each([
+    ["missing", undefined],
+    ["a number", 7],
+    ["empty", ""],
+    ["no URL", "not a url"],
+    ["a path", "/adfs/services/trust"],
+    ["a URN", "urn:adfs:trust"],
+    ["on ftp", "ftp://fs/t"],
+    ["a list", ["https://fs.example.com/adfs/services/trust"]],
+  ])("leaves out the access tokens' issuer when it is %s", (_case, value) => {
+    const metadata = keyMetadata({ ...ADFS, access_token_issuer: value }, FS, PUBLIC)
+    expect(metadata).toStrictEqual({ issuer: FS, jwksUri: `${FS}/discovery/keys` })
+  })
+
+  it.each([
+    ["no issuer", { issuer: undefined }, { problem: "no-issuer" }],
+    ["another issuer", { issuer: `${FS}/` }, { problem: "other-issuer", named: `${FS}/` }],
+    ["no key set", { jwks_uri: undefined }, { problem: "no-jwks" }],
+    ["a key set that is a number", { jwks_uri: 7 }, { problem: "no-jwks" }],
+    ["a blank key set", { jwks_uri: " " }, { problem: "no-jwks" }],
+    [
+      "a key set on plain http",
+      { jwks_uri: "http://fs.example.com/keys" },
+      { problem: "jwks-insecure", url: "http://fs.example.com/keys", urlProblem: "insecure" },
+    ],
+    [
+      "a key set with user info",
+      { jwks_uri: "https://user@fs/keys" },
+      { problem: "jwks-insecure", url: "https://user@fs/keys", urlProblem: "credentials" },
+    ],
+    [
+      "a key set with a fragment",
+      { jwks_uri: "https://fs/keys#x" },
+      { problem: "jwks-insecure", url: "https://fs/keys#x", urlProblem: "fragment" },
+    ],
+    [
+      "a key set that is no URL",
+      { jwks_uri: "keys" },
+      { problem: "jwks-insecure", url: "keys", urlProblem: "not-a-url" },
+    ],
+  ])("refuses a document with %s", (_case, change, problem) => {
+    expect(keyMetadata({ ...ADFS, ...change }, FS, PUBLIC)).toEqual(problem)
+  })
+
+  it.each(["http://127.0.0.1:8080/keys", " https://localhost/keys ", "http://[::1]/keys"])(
+    "refuses the key set %j on a loopback host named by a remote issuer",
+    (url) => {
+      expect(keyMetadata({ ...ADFS, jwks_uri: url }, FS, PUBLIC)).toEqual({
+        problem: "jwks-loopback",
+        url,
+      })
+    },
+  )
+
+  it("takes a key set on a loopback host from an issuer on one, and from no other", () => {
+    const local = "http://127.0.0.1:8080/realms/pulse"
+    const keys = "http://localhost:8080/realms/pulse/certs"
+    expect(keyMetadata({ issuer: local, jwks_uri: keys }, local, PUBLIC)).toEqual({
+      issuer: local,
+      jwksUri: keys,
+    })
+    expect(keyMetadata({ issuer: "pulse", jwks_uri: keys }, "pulse", PUBLIC)).toEqual({
+      problem: "jwks-loopback",
+      url: keys,
+    })
+    expect(keyMetadata({ issuer: "pulse", jwks_uri: `${FS}/keys` }, "pulse", PUBLIC)).toEqual({
+      issuer: "pulse",
+      jwksUri: `${FS}/keys`,
     })
   })
 })
