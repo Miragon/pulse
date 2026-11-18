@@ -1,5 +1,6 @@
 import { requestToken } from "@miragon/pulse-http/oauth"
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest"
+import { oauthFromEnv } from "../oauth-env.js"
 import { createJwtVerifier } from "../oauth-jwt.js"
 import { oauthOidcProvider } from "../oauth-oidc.js"
 import {
@@ -327,4 +328,45 @@ describe("the web client's discovery issuer", () => {
       `/${tenant}/v2.0/.well-known/openid-configuration`,
     )
   })
+})
+
+describe("the boot's Entra ID provider", () => {
+  /** A server whose provider comes from the fake tenant's variables, as a deployment's would. */
+  async function bootFromEnv() {
+    const provider = oauthFromEnv(fake.env(ORIGIN), "web-test")
+    if (provider === undefined) throw new Error("the fake tenant's variables name no provider")
+    return bootEntra(provider)
+  }
+
+  it("signs in through the tenant's v2.0 authority with the scope its gate requires", async () => {
+    await startEntra()
+    const browser = new Browser(await bootFromEnv())
+    const callback = await signIn(browser, fake)
+    expect(callback.headers.get("location")).toBe("/app")
+    expect(await sessionOf(browser)).toMatchObject({ status: 200, body: { name: ALICE.name } })
+    const [exchange] = requestsTo("token", "authorization_code")
+    expect(exchange.form.get("scope")).toBe(`openid profile offline_access ${apiScope()}`)
+    expect(exchange.form.has("resource")).toBe(false)
+  })
+
+  it.each([
+    [{ groups: true }, "a groups claim"],
+    [{ groups: true, directoryRoles: true }, "a groups and a wids claim"],
+  ])(
+    "fails a sign-in whose id claims (%o) overflow the session's cookies, naming the size alone",
+    async (claims, carried) => {
+      await startEntra(claims)
+      const browser = new Browser(await bootFromEnv())
+      const callback = await signIn(browser, fake)
+      expect(callback.headers.get("location")).toBe("/app/signed-out?reason=failed")
+      const [accessToken] = fake.issued.access
+      const line = String(warnings().at(-1))
+      expect(line).toMatch(
+        new RegExp(
+          `the session needs \\d+ bytes, more than its cookies hold \\(its access token holds ${accessToken.length} bytes and carries ${carried}\\)\\.$`,
+        ),
+      )
+      expect(line).not.toMatch(/[\da-f]{8}-[\da-f]{4}-/)
+    },
+  )
 })

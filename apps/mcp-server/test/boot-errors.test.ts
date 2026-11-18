@@ -68,6 +68,23 @@ describe("the boot refuses a setting it cannot use, before it logs the toolsets"
       'MCP_OAUTH_OIDC_AUDIENCE names "pulse-client", which is no https URL',
     ],
     [
+      "Entra ID without the API registration's client id",
+      {
+        MCP_URL: "http://localhost:8400",
+        MCP_OAUTH_ENTRA_TENANT_ID: "4f1b6d0e-2c3a-4e5f-8a9b-0c1d2e3f4a5b",
+      },
+      "Entra ID OAuth needs MCP_OAUTH_ENTRA_TENANT_ID and MCP_OAUTH_ENTRA_API_CLIENT_ID, but MCP_OAUTH_ENTRA_API_CLIENT_ID is unset.",
+    ],
+    [
+      "Entra ID over every tenant, which Pulse does not serve",
+      {
+        MCP_URL: "http://localhost:8400",
+        MCP_OAUTH_ENTRA_TENANT_ID: "common",
+        MCP_OAUTH_ENTRA_API_CLIENT_ID: "7d2e9c41-6b3f-4a8e-9f10-2b3c4d5e6f70",
+      },
+      'Entra ID OAuth (MCP_OAUTH_ENTRA_TENANT_ID, MCP_OAUTH_ENTRA_API_CLIENT_ID) is invalid: MCP_OAUTH_ENTRA_TENANT_ID "common" signs in the accounts of every tenant, and Pulse serves one tenant',
+    ],
+    [
       "the web sign-in's scopes without its client",
       { MCP_WEB_SCOPES: "openid" },
       "MCP_WEB_SCOPES is set, but MCP_WEB_CLIENT_ID is not, so the web app stays off.",

@@ -15,13 +15,15 @@ import { ENGINE_CONTROL_ENV } from "../engines.js"
  * `short` over the stub engine alone, without boards, with access tokens of
  * {@link SHORT_TOKEN_SECONDS}, which the server renews before every call; `adfs` like `short`, its
  * provider a fake ADFS behind the generic OpenID Connect provider (`MCP_OAUTH_OIDC_ISSUER`);
- * `camunda8` over the stub engine and two profiles of test:host's Camunda 8 cluster with its board
- * files (`fixtures/camunda8-boards`).
+ * `entra` like `short`, its provider a fake Entra ID tenant behind the boot's Entra ID provider
+ * (`MCP_OAUTH_ENTRA_*`); `camunda8` over the stub engine and two profiles of test:host's Camunda 8
+ * cluster with its board files (`fixtures/camunda8-boards`).
  */
 export const DEPLOYMENTS = {
   main: "WEB_SIM_URL",
   short: "WEB_SIM_SHORT_URL",
   adfs: "WEB_SIM_ADFS_URL",
+  entra: "WEB_SIM_ENTRA_URL",
   camunda8: "WEB_SIM_CAMUNDA8_URL",
 } as const
 export type Deployment = keyof typeof DEPLOYMENTS

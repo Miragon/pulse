@@ -58,8 +58,9 @@ async function freePort(): Promise<number> {
 /**
  * One composition root (`createApp`, what `src/index.ts` runs) under OAuth at
  * `http://localhost:<port>`, its own fake identity provider (Keycloak's paths and the boot's
- * Keycloak provider, or with `flavor: "adfs"` ADFS's and the generic OpenID Connect provider, as
- * the fake's `env` names them) with the web client's callback and post-logout URIs exactly, the
+ * Keycloak provider, with `flavor: "adfs"` ADFS's and the generic OpenID Connect provider, or with
+ * `flavor: "entra"` an Entra ID tenant's and the boot's Entra ID provider, as the fake's `env` names
+ * them) with the web client's callback and post-logout URIs exactly, the
  * web app on with the build of apps/web, the engines `profiles` and the variables of `env` besides.
  * OAuth gives the operations toolset, so the server registers the writes a page never offers.
  */
@@ -158,7 +159,8 @@ async function startControl(idps: Record<Deployment, FakeOidc>) {
  * own, everything on ephemeral loopback ports. The browser reaches a deployment at
  * `http://localhost:<port>`, its `MCP_URL`, where Chromium keeps the `__Host-` cookies of plain
  * http. The workers find the deployments in `WEB_SIM_URL`, `WEB_SIM_SHORT_URL` and
- * `WEB_SIM_ADFS_URL` (the generic OpenID Connect provider at a fake ADFS), the control
+ * `WEB_SIM_ADFS_URL` (the generic OpenID Connect provider at a fake ADFS) and `WEB_SIM_ENTRA_URL`
+ * (the Entra ID provider at a fake tenant), the control
  * of their identity providers in `WEB_SIM_CONTROL_URL` and the stub engine's in
  * `HOST_SIM_ENGINE_URL` (all inherited from this process). The `camunda8` deployment, in
  * `WEB_SIM_CAMUNDA8_URL`, reads test:host's loopback Camunda 8 cluster (c8-engine.ts) beside the
@@ -187,6 +189,12 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     { [HEALTHY_ENGINE]: { url: engine.baseUrl } },
     { idp: { flavor: "adfs", callerClaim: "sub", accessTokenSeconds: SHORT_TOKEN_SECONDS } },
   )
+  // Entra ID's tenant behind the boot's Entra ID provider: the sign-in and every renewal through its
+  // v2.0 authority, without a resource and with the API's scope, its access tokens of 5 s.
+  const entra = await deploy(
+    { [HEALTHY_ENGINE]: { url: engine.baseUrl } },
+    { idp: { flavor: "entra", accessTokenSeconds: SHORT_TOKEN_SECONDS } },
+  )
   // Camunda 8 beside the stub: a board page over both, and the cockpit's pages on a Camunda 8
   // engine, which the server reads on boards only; the one no board names is the default, which a
   // page without `engine` goes to.
@@ -209,11 +217,13 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     main: main.idp,
     short: short.idp,
     adfs: adfs.idp,
+    entra: entra.idp,
     camunda8: camunda8.idp,
   })
   process.env[DEPLOYMENTS.main] = main.origin
   process.env[DEPLOYMENTS.short] = short.origin
   process.env[DEPLOYMENTS.adfs] = adfs.origin
+  process.env[DEPLOYMENTS.entra] = entra.origin
   process.env[DEPLOYMENTS.camunda8] = camunda8.origin
   process.env[CONTROL_ENV] = control.url
   process.env[ENGINE_CONTROL_ENV] = engine.controlUrl
@@ -223,6 +233,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     await main.close()
     await short.close()
     await adfs.close()
+    await entra.close()
     await camunda8.close()
     await engine.close()
     await c8.close()

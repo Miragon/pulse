@@ -83,7 +83,7 @@ const ASYMMETRIC_ALGORITHMS: readonly string[] = [
 ]
 
 /** The entries of a list variable: separated by commas or spaces. */
-function listOf(name: string, raw: string): string[] {
+export function listOf(name: string, raw: string): string[] {
   const entries = raw.split(/[\s,]/).filter(Boolean)
   if (entries.length === 0) throw new Error(`${name} holds no value.`)
   return entries

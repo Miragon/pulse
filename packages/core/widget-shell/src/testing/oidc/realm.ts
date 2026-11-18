@@ -75,6 +75,11 @@ export interface FakeOidcOptions {
   readonly tokenVersion?: 1 | 2
   /** Entra ID: the access tokens carry a `groups` claim of 200 group ids, as group claims do. */
   readonly groups?: boolean
+  /**
+   * Entra ID: the access tokens carry a `wids` claim, the ids of the user's two directory roles, as
+   * `groupMembershipClaims` `DirectoryRole` or `All` gives it.
+   */
+  readonly directoryRoles?: boolean
   /** The access tokens' lifetime (default 300 s, Keycloak's). */
   readonly accessTokenSeconds?: number
   /** The refresh tokens' lifetime (default 1,800 s, Keycloak's session idle timeout). */
@@ -127,6 +132,7 @@ export interface EntraTenant {
   readonly appIdUris: readonly string[]
   readonly tokenVersion: 1 | 2
   readonly groups: boolean
+  readonly directoryRoles: boolean
   /** The key only the oauth21 authority's key set holds, which signs that authority's tokens. */
   readonly oauth21Key: SigningKey
 }
@@ -220,6 +226,7 @@ async function entraTenantOf(issuer: string, options: FakeOidcOptions): Promise<
     appIdUris: options.appIdUris ?? [`api://${apiClientId}`],
     tokenVersion: options.tokenVersion ?? 2,
     groups: options.groups ?? false,
+    directoryRoles: options.directoryRoles ?? false,
     oauth21Key: await signingKey("fake-oidc-oauth21"),
   }
 }

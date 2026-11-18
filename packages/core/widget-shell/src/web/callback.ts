@@ -10,8 +10,11 @@
  * and CSRF secret new over whatever the browser carried, so a planted session never survives it;
  * the login cookie is cleared and the browser returns to the page it started from (303). A token
  * answer without a refresh token signs in all the same, and the log says that such a session ends
- * with its access token, unchecked at the provider. A failure sends the browser to the signed-out
- * page with its reason, and the log says why, never with a code, a state or a token.
+ * with its access token, unchecked at the provider. A session larger than its cookies hold fails,
+ * and the log names the access token's size and whether it carries a `groups` or `wids` claim
+ * (Entra ID's ids of groups and directory roles), never their values. A failure sends the browser
+ * to the signed-out page with its reason, and the log says why, never with a code, a state or a
+ * token.
  */
 import {
   callbackResult,
@@ -171,6 +174,20 @@ function nameOf(ctx: WebContext, caller: AuthInfo, idToken: string | undefined):
   return name.replace(/\p{Cc}/gu, "").slice(0, MAX_NAME)
 }
 
+/** The claims that grow an access token with an id per group or directory role (Entra ID's). */
+const ID_LIST_CLAIMS = ["groups", "wids"]
+
+/**
+ * What the log may say of an access token too large for the session's cookies: its size, and which
+ * claims of ids it carries, never their values.
+ */
+function tokenSize(accessToken: string, caller: AuthInfo): string {
+  const claims = caller.extra?.payload as Claims
+  const lists = ID_LIST_CLAIMS.filter((name) => Object.hasOwn(claims, name))
+  const carried = lists.length === 0 ? "" : ` and carries a ${lists.join(" and a ")} claim`
+  return `its access token holds ${accessToken.length} bytes${carried}`
+}
+
 /** A new session for the caller, sealed into the session cookie's chunks. */
 async function sessionOf(
   ctx: WebContext,
@@ -189,9 +206,10 @@ async function sessionOf(
   const sealed = await ctx.sealer.seal(SESSION_COOKIE, session, expiresAt)
   const cookies = sessionCookies(sealed, expiresAt, jar, now)
   if (cookies.fits) return cookies.setCookies
+  const size = tokenSize(tokens.accessToken, caller)
   return new SignInFailure(
     "failed",
-    `the session needs ${cookies.bytes} bytes, more than its cookies hold`,
+    `the session needs ${cookies.bytes} bytes, more than its cookies hold (${size})`,
   )
 }
 

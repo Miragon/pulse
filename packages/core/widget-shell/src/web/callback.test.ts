@@ -369,6 +369,8 @@ describe("GET /app/auth/callback: what the provider answers", () => {
     })
     const browser = new Browser(await bootWeb(webEnv(fake)))
     expectFailed(await signIn(browser, fake), "failed")
-    expect(warnings().at(-1)).toMatch(/the session needs \d+ bytes, more than its cookies hold/)
+    expect(warnings().at(-1)).toMatch(
+      /the session needs \d+ bytes, more than its cookies hold \(its access token holds \d+ bytes\)\.$/,
+    )
   })
 })

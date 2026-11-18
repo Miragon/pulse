@@ -39,7 +39,8 @@ export default mergeConfig(
         // the sign-out) holds a floor of its own, measured 100 / 100 / 100 / 100 at each step:
         // a line no test runs there is a security rule nobody checks. The identity provider's
         // discovery kept that floor when it moved out of src/web on 2026-11-18 (measured 100), and
-        // the generic OpenID Connect provider landed with it the same day (measured 100).
+        // the generic OpenID Connect provider and Microsoft Entra ID landed with it the same day
+        // (measured 100 each).
         thresholds: {
           statements: 95,
           branches: 93,
@@ -48,6 +49,7 @@ export default mergeConfig(
           "src/web/**": { statements: 100, branches: 100, functions: 100, lines: 100 },
           "src/oauth-discovery.ts": { statements: 100, branches: 100, functions: 100, lines: 100 },
           "src/oauth-oidc.ts": { statements: 100, branches: 100, functions: 100, lines: 100 },
+          "src/oauth-entra.ts": { statements: 100, branches: 100, functions: 100, lines: 100 },
         },
       },
     },

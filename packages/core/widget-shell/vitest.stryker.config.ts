@@ -7,10 +7,10 @@ import base from "./vitest.config.js"
 // rules (the sign-in's seal, cookies, return path and CSRF check, the forward of a page's call, the
 // token's renewal, the build's files, the security headers, the sessions signed out, the session's
 // refusal, the sign-out and the session route), the gate's token rules (the JWT verifier), the
-// identity provider's discovery and the generic OpenID Connect provider are mutated, and src/web's
-// suites and the OAuth suites test them, so the rest of the package's suite (the view half under
-// happy-dom included) stays out: mergeConfig appends to a list, so the include is replaced after
-// the merge.
+// identity provider's discovery, the generic OpenID Connect provider and Microsoft Entra ID are
+// mutated, and src/web's suites and the OAuth suites test them, so the rest of the package's suite
+// (the view half under happy-dom included) stays out: mergeConfig appends to a list, so the
+// include is replaced after the merge.
 const merged: ViteUserConfig = mergeConfig(
   base,
   defineConfig({ test: { coverage: { enabled: false } } }),

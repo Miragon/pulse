@@ -14,7 +14,8 @@
  * (AADSTS28003). A refresh token comes only with `offline_access`, every grant gives a new one and
  * the old one renews on; the end of a session leaves them alive (single sign-out), as Entra's do,
  * while `refuseRefresh` plays an admin's "Revoke sessions". An access token comes to about 2.5 KB,
- * as a real one, and with `groups` it carries 200 group ids.
+ * as a real one, with `groups` it carries 200 group ids and with `directoryRoles` the `wids` of two
+ * directory roles.
  */
 import { createHash, randomBytes } from "node:crypto"
 import type { FakeOidcEndpoint } from "./endpoints.js"
@@ -67,6 +68,22 @@ function routesOf(realm: Realm): readonly (readonly [string, EntraRoute])[] {
     [`${tenant}/${OAUTH21}/token`, o21("token")],
     [`${tenant}/${OAUTH21}/logout`, o21("logout")],
   ]
+}
+
+/**
+ * The variables of the boot's Entra ID provider for the tenant (`MCP_OAUTH_ENTRA_*`): its id, the
+ * API registration's client id, the fake's origin as the cloud's, and the App ID URI where it is
+ * not the default `api://<client id>`.
+ */
+export function entraEnv(realm: Realm, serverUrl: string): Record<string, string> {
+  const { tenant, apiClientId, appIdUris } = tenantOf(realm)
+  const [appIdUri] = appIdUris
+  return {
+    MCP_OAUTH_ENTRA_TENANT_ID: tenant,
+    MCP_OAUTH_ENTRA_API_CLIENT_ID: apiClientId,
+    MCP_OAUTH_ENTRA_AUTHORITY: serverUrl,
+    ...(appIdUri === `api://${apiClientId}` ? {} : { MCP_OAUTH_ENTRA_APP_ID_URI: appIdUri }),
+  }
 }
 
 /** The tenant's endpoint at `pathname`, or none. */
@@ -228,6 +245,12 @@ function groupId(index: number): string {
 /** 200 group ids, as many as a token carries before Entra names an overage instead. */
 const groups = (): string[] => Array.from({ length: 200 }, (_, index) => groupId(index))
 
+/** The template ids of two directory roles: Global Reader and the role every member user holds. */
+const DIRECTORY_ROLES = [
+  "f2ef992c-3afb-46b9-b7cf-a126ee74c451",
+  "b79fbf4d-3ef9-4689-8143-76b194e85509",
+]
+
 const seconds = (ms: number): number => Math.floor(ms / 1000)
 
 /**
@@ -276,6 +299,7 @@ function v2AccessToken(grant: Grant): Promise<string> {
     sub: pairwise(clientId, user),
     ver: "2.0",
     ...(tenant.groups ? { groups: groups() } : {}),
+    ...(tenant.directoryRoles ? { wids: DIRECTORY_ROLES } : {}),
   }
   const issuer = entraIssuer(realm, authority)
   const key = authority === "oauth21" ? tenant.oauth21Key : realm

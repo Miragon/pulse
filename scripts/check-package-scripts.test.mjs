@@ -430,8 +430,9 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
         "session and every call of the web app, the gate's JWT verifier (src/oauth-jwt.ts) " +
         "decides which bearer token /mcp takes, the identity provider's discovery " +
         "(src/oauth-discovery.ts) where the sign-in sends its secrets and which key set the gate " +
-        "trusts, and the generic OpenID Connect provider (src/oauth-oidc.ts) which settings the " +
-        "gate refuses, so a surviving mutant there is a security hole; only those fifteen files " +
+        "trusts, the generic OpenID Connect provider (src/oauth-oidc.ts) which settings the gate " +
+        "refuses, and Microsoft Entra ID (src/oauth-entra.ts) which tenant, version and scope its " +
+        "tokens carry, so a surviving mutant there is a security hole; only those sixteen files " +
         "are mutated, not the boot, the view runtime or the other routes",
     )
     assert.equal(
@@ -472,7 +473,7 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
     ])
   })
 
-  it("widget-shell's config mutates exactly the web app's twelve rule files, the JWT verifier, the discovery and the generic provider, as its reason says", () => {
+  it("widget-shell's config mutates exactly the web app's twelve rule files, the JWT verifier, the discovery, the generic provider and Entra ID, as its reason says", () => {
     const config = JSON.parse(
       readFileSync(path.join(repoRoot, "packages/core/widget-shell/stryker.config.json"), "utf8"),
     )
@@ -492,6 +493,7 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
       "src/oauth-jwt.ts",
       "src/oauth-discovery.ts",
       "src/oauth-oidc.ts",
+      "src/oauth-entra.ts",
     ])
   })
 

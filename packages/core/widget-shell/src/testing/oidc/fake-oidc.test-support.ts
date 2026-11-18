@@ -22,12 +22,15 @@ export const platform = { fetch: globalThis.fetch, now: () => Date.now() }
 
 const isLoopback = (host: string) => host === "127.0.0.1"
 
-/** The provider's metadata as a confidential client reads it, or a failed test. */
-export async function metadataOf(fake: FakeOidc): Promise<ServerMetadata> {
-  const answers = await discover(fake.issuer, platform)
+/**
+ * The provider's metadata as a confidential client reads it (of `issuer`, an Entra ID tenant's
+ * other authority, where named), or a failed test.
+ */
+export async function metadataOf(fake: FakeOidc, issuer = fake.issuer): Promise<ServerMetadata> {
+  const answers = await discover(issuer, platform)
   const document = answers.at(-1)?.json
   if (document === undefined) throw new Error("no discovery document")
-  const metadata = serverMetadata(document, fake.issuer, { confidential: true, isLoopback })
+  const metadata = serverMetadata(document, issuer, { confidential: true, isLoopback })
   if (!("authorizationEndpoint" in metadata)) throw new Error(`unusable: ${metadata.problem}`)
   return metadata
 }
@@ -80,6 +83,47 @@ export async function signIn(
       redirectUri: REDIRECT_URI,
       verifier: pkce.verifier,
       resources: [RESOURCE],
+    },
+    platform,
+  )
+}
+
+/** What an Entra ID sign-in asks: its scopes, the authority it goes through and its client. */
+interface EntraSignIn {
+  readonly scopes: readonly string[]
+  /** Default: the tenant's v2.0 authority, the fake's issuer. */
+  readonly issuer?: string
+  /** Default: {@link FAKE_OIDC_CLIENT}. */
+  readonly client?: { readonly id: string; readonly secret?: string }
+}
+
+/**
+ * A whole sign-in at an Entra ID tenant as Entra ID asks it: no resource, the scopes at the
+ * authorization request and the code exchange alike.
+ */
+export async function entraSignIn(fake: FakeOidc, request: EntraSignIn): Promise<TokenRecord> {
+  const { scopes, issuer = fake.issuer, client = FAKE_OIDC_CLIENT } = request
+  const metadata = await metadataOf(fake, issuer)
+  const pkce = await createPkce()
+  const url = authorizationUrl(metadata.authorizationEndpoint, {
+    clientId: client.id,
+    redirectUri: REDIRECT_URI,
+    scopes,
+    challenge: pkce.challenge,
+    state: pkce.state,
+  })
+  const callback = new URL(await fake.signIn(url))
+  const expected = { state: pkce.state, issuer, issRequired: metadata.issParameterRequired }
+  const result = callbackResult(callback.searchParams, expected)
+  if (!("code" in result)) throw new Error(`no code: ${result.problem}`)
+  return requestToken(
+    tokenEndpointOf(metadata, client),
+    {
+      type: "authorization_code",
+      code: result.code,
+      redirectUri: REDIRECT_URI,
+      verifier: pkce.verifier,
+      scopes,
     },
     platform,
   )

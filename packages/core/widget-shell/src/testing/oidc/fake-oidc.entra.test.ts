@@ -206,6 +206,7 @@ describe("a sign-in at the fake Entra ID", () => {
     expect(claims.sub).not.toBe(ALICE.sub)
     expect(claims).not.toHaveProperty("scope")
     expect(claims).not.toHaveProperty("groups")
+    expect(claims).not.toHaveProperty("wids")
     expect(tokens.refreshToken).toBeDefined()
     expect(tokens.refreshExpiresAt).toBeUndefined()
   })
@@ -220,6 +221,16 @@ describe("a sign-in at the fake Entra ID", () => {
     expect(groups).toHaveLength(200)
     expect(new Set(groups).size).toBe(200)
     for (const id of groups) expect(id).toMatch(/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/)
+    expect(grouped).not.toHaveProperty("wids")
+  })
+
+  it("carries the ids of the user's two directory roles in wids with directoryRoles", async () => {
+    const claims = decodeJwt((await signIn(await start({ directoryRoles: true }))).accessToken)
+    expect(claims.wids).toEqual([
+      "f2ef992c-3afb-46b9-b7cf-a126ee74c451",
+      "b79fbf4d-3ef9-4689-8143-76b194e85509",
+    ])
+    expect(claims).not.toHaveProperty("groups")
   })
 
   it("names oid and tid only where profile was asked, as Microsoft documents", async () => {
@@ -389,10 +400,21 @@ describe("a refresh at the fake Entra ID", () => {
 })
 
 describe("what the fake Entra ID names for a server", () => {
-  it("names no variables of the boot, whose providers read none of its tokens", async () => {
+  it("names the boot's Entra ID variables: the tenant, the API, its origin as the cloud's", async () => {
     const idp = await start()
-    expect(() => idp.env("http://localhost:8400")).toThrow(
-      "The fake Entra ID has no variables of the boot's providers",
-    )
+    expect(idp.env("http://localhost:8400")).toEqual({
+      MCP_URL: "http://localhost:8400",
+      MCP_OAUTH_ENTRA_TENANT_ID: ENTRA_TENANT,
+      MCP_OAUTH_ENTRA_API_CLIENT_ID: ENTRA_API_CLIENT_ID,
+      MCP_OAUTH_ENTRA_AUTHORITY: idp.serverUrl,
+    })
+  })
+
+  it("names an App ID URI that is not the API's default, its first", async () => {
+    const appIdUris = ["https://pulse.example.test/mcp", `api://${ENTRA_API_CLIENT_ID}`]
+    const idp = await start({ appIdUris })
+    expect(idp.env("https://pulse.example.test")).toMatchObject({
+      MCP_OAUTH_ENTRA_APP_ID_URI: "https://pulse.example.test/mcp",
+    })
   })
 })

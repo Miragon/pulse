@@ -221,9 +221,9 @@ upload glob, each link with a planted break.
   rule the CLI bundles through c7-core (owner decision 2026-11-09), `@miragon/pulse-profile`,
   the profile format it bundles (owner decision 2026-11-07), and three packages it does not
   bundle: `@miragon/pulse-board` (owner decision 2026-11-15), the web app's server rules, the
-  gate's token rules, the provider's discovery and the generic OpenID Connect provider of
-  `@miragon/pulse-widget-shell` (owner decisions 2026-11-16 to 2026-11-18) and the rules of
-  `@miragon/pulse-c8-core` (owner decision 2026-11-17).
+  gate's token rules, the provider's discovery, the generic OpenID Connect provider and the Entra
+  ID provider of `@miragon/pulse-widget-shell` (owner decisions 2026-11-16 to 2026-11-18) and the
+  rules of `@miragon/pulse-c8-core` (owner decision 2026-11-17).
 - Coverage floors in `apps/cli/vitest.config.ts` only rise.
 
 ## The command and its second name

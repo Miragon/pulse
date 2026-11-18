@@ -92,6 +92,7 @@ with toolsets runs its read-only floor; the providers and what fails the boot ar
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | The table      | Keycloak (`MCP_OAUTH_KEYCLOAK_SERVER_URL`, `MCP_OAUTH_KEYCLOAK_REALM`), Auth0 (`MCP_OAUTH_AUTH0_DOMAIN`), WorkOS (`MCP_OAUTH_WORKOS_SUBDOMAIN`), Better Auth (`MCP_OAUTH_BETTER_AUTH_URL`), Convex (`MCP_OAUTH_CONVEX_AUTH_URL`)                                           |
 | OpenID Connect | Any other provider that issues JWT access tokens (ADFS, Okta, authentik, Zitadel, PingOne): `MCP_OAUTH_OIDC_ISSUER` exactly as its discovery names it, and optionally `_AUDIENCE`, `_SCOPES` (required), `_SUBJECT_CLAIM` (default `sub`), `_ALGORITHMS` and `_CLIENT_IDS` |
+| Entra ID       | Microsoft Entra ID, one tenant: `MCP_OAUTH_ENTRA_TENANT_ID` (a GUID) and `_API_CLIENT_ID` (the API registration's), and optionally `_SCOPE` (default `user_impersonation`), `_APP_ID_URI` (default `api://<API client id>`), `_AUTHORITY` (the cloud) and `_CLIENT_IDS`    |
 
 The generic provider reads its key set and its access tokens' issuer (ADFS's `access_token_issuer`)
 from the provider's discovery at the first token, so `/mcp` answers 503 until the discovery
@@ -101,6 +102,16 @@ algorithm, and an audience that is no https URL (a client's or a project's id) w
 scope, since an ID token or another app's token carries such an audience; `MCP_WEB_CLIENT_ID`
 joins a client allowlist. Its metadata names the issuer alone: the protected resource metadata
 names it, and `/.well-known/oauth-authorization-server` answers 404.
+
+The Entra ID provider takes the tenant's v2 access tokens of its v2.0 and its `oauth21/2026-08`
+authority, each verified with the keys of its own key set tagged for it, whose `aud` names the
+API's client id, its App ID URI or the resource and whose short `scp` holds the scope, read as
+`<App ID URI>/<scope>`; the caller is `oid`, else `sub`, and `roles` are the permissions. It refuses
+a v1 token (saying to set `requestedAccessTokenVersion` 2), a `tid` of another tenant and a token
+without `scp` (an app-only token, an ID token), and at boot `common`, `organizations`, `consumers`
+and a domain name in place of the tenant's id. The protected resource metadata names the oauth21
+authority and the full scope, and there is no copy of the server's metadata; the web sign-in goes
+through the v2.0 authority without a resource, its scopes at every grant.
 
 ## A view on a page outside a chat
 

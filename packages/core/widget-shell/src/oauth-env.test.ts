@@ -25,7 +25,7 @@ afterEach(() => {
 })
 
 describe("oauthFromEnv: the providers", () => {
-  it("reads exactly the variables of the provider table and the generic provider, and its debug switch", () => {
+  it("reads exactly the variables of the provider table, the generic provider and Entra ID, and its debug switch", () => {
     expect(OAUTH_ENV_VARS).toEqual([
       "MCP_OAUTH_KEYCLOAK_SERVER_URL",
       "MCP_OAUTH_KEYCLOAK_REALM",
@@ -39,6 +39,12 @@ describe("oauthFromEnv: the providers", () => {
       "MCP_OAUTH_OIDC_SUBJECT_CLAIM",
       "MCP_OAUTH_OIDC_ALGORITHMS",
       "MCP_OAUTH_OIDC_CLIENT_IDS",
+      "MCP_OAUTH_ENTRA_TENANT_ID",
+      "MCP_OAUTH_ENTRA_API_CLIENT_ID",
+      "MCP_OAUTH_ENTRA_SCOPE",
+      "MCP_OAUTH_ENTRA_APP_ID_URI",
+      "MCP_OAUTH_ENTRA_AUTHORITY",
+      "MCP_OAUTH_ENTRA_CLIENT_IDS",
     ])
     expect(OAUTH_DEBUG_ENV_VAR).toBe("MCP_OAUTH_DEBUG")
   })
@@ -183,6 +189,58 @@ describe("oauthFromEnv: the generic OpenID Connect provider", () => {
   it("refuses a value it cannot honor, naming the variables that are set", () => {
     expect(() => fromEnv({ ...OIDC, MCP_OAUTH_OIDC_SUBJECT_CLAIM: "email" })).toThrow(
       'OpenID Connect OAuth (MCP_OAUTH_OIDC_ISSUER, MCP_OAUTH_OIDC_SUBJECT_CLAIM) is invalid: MCP_OAUTH_OIDC_SUBJECT_CLAIM "email" names a claim whose value can change',
+    )
+  })
+})
+
+describe("oauthFromEnv: Microsoft Entra ID", () => {
+  const RESOURCE = new URL("https://pulse.example.com/mcp")
+  const TENANT = "4f1b6d0e-2c3a-4e5f-8a9b-0c1d2e3f4a5b"
+  const API = "7d2e9c41-6b3f-4a8e-9f10-2b3c4d5e6f70"
+  const ENTRA = { MCP_OAUTH_ENTRA_TENANT_ID: TENANT, MCP_OAUTH_ENTRA_API_CLIENT_ID: API }
+  const AUTHORITY = `https://login.microsoftonline.com/${TENANT}`
+
+  it("builds it from the tenant and the API, its metadata the tenant's oauth21 authority", () => {
+    const provider = fromEnv(ENTRA)
+    expect(provider?.oauthMetadata).toEqual({ issuer: `${AUTHORITY}/oauth21/2026-08` })
+    expect(provider?.requiredScopes).toEqual([`api://${API}/user_impersonation`])
+    expect(provider?.web?.discoveryIssuer).toBe(`${AUTHORITY}/v2.0`)
+    const extra = provider?.mapAuthInfo(verified({ oid: "o-1", sub: "s-1", roles: ["Admin"] }))
+    expect(extra).toMatchObject({ user: { id: "o-1" }, permissions: ["Admin"] })
+  })
+
+  it("reads its optional variables, a blank one as unset, and adds the web client to its allowlist", () => {
+    const env = {
+      ...ENTRA,
+      MCP_OAUTH_ENTRA_SCOPE: " access_as_user ",
+      MCP_OAUTH_ENTRA_APP_ID_URI: "https://pulse.example.com/mcp",
+      MCP_OAUTH_ENTRA_AUTHORITY: "https://login.microsoftonline.us",
+      MCP_OAUTH_ENTRA_CLIENT_IDS: "aebc6443-996d-45c2-90f0-388ff96faa56",
+      MCP_WEB_CLIENT_ID: "pulse-web",
+      MCP_OAUTH_OIDC_ISSUER: " ",
+    }
+    const provider = fromEnv(env)
+    expect(provider?.requiredScopes).toEqual(["https://pulse.example.com/mcp/access_as_user"])
+    expect(describeOAuthTokens(provider!, RESOURCE)).toBe(
+      `OAuth: tokens must carry iss https://login.microsoftonline.us/${TENANT}/v2.0 or https://login.microsoftonline.us/${TENANT}/oauth21/2026-08, aud ${API}, https://pulse.example.com/mcp or https://pulse.example.com/mcp (RFC 8707), ver 2.0, the scope https://pulse.example.com/mcp/access_as_user, a client id aebc6443-996d-45c2-90f0-388ff96faa56 or pulse-web and an oid or sub claim.`,
+    )
+  })
+
+  it("names what it misses: both required variables, or the one that is unset", () => {
+    expect(() => fromEnv({ MCP_OAUTH_ENTRA_SCOPE: "user_impersonation" })).toThrow(
+      "Entra ID OAuth needs MCP_OAUTH_ENTRA_TENANT_ID and MCP_OAUTH_ENTRA_API_CLIENT_ID, which are unset while MCP_OAUTH_ENTRA_SCOPE is set.",
+    )
+    expect(() => fromEnv({ MCP_OAUTH_ENTRA_TENANT_ID: TENANT })).toThrow(
+      "Entra ID OAuth needs MCP_OAUTH_ENTRA_TENANT_ID and MCP_OAUTH_ENTRA_API_CLIENT_ID, but MCP_OAUTH_ENTRA_API_CLIENT_ID is unset.",
+    )
+  })
+
+  it("refuses several tenants, and the generic provider beside it", () => {
+    expect(() => fromEnv({ ...ENTRA, MCP_OAUTH_ENTRA_TENANT_ID: "organizations" })).toThrow(
+      'Entra ID OAuth (MCP_OAUTH_ENTRA_TENANT_ID, MCP_OAUTH_ENTRA_API_CLIENT_ID) is invalid: MCP_OAUTH_ENTRA_TENANT_ID "organizations" signs in the accounts of every tenant',
+    )
+    expect(() => fromEnv({ ...ENTRA, ...OIDC })).toThrow(
+      "OAuth variables of more than one provider are set: OpenID Connect (MCP_OAUTH_OIDC_ISSUER), Entra ID (MCP_OAUTH_ENTRA_TENANT_ID, MCP_OAUTH_ENTRA_API_CLIENT_ID).",
     )
   })
 })

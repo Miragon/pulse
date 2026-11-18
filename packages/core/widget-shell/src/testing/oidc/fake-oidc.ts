@@ -3,7 +3,8 @@
  * paths and tokens by default, ADFS's with `flavor: "adfs"` (adfs.ts), an Entra ID tenant's with
  * `flavor: "entra"` (entra.ts). Started with `startFakeOidc()`, `env(origin)` names the variables
  * of the boot's own provider for it (Keycloak's `MCP_OAUTH_KEYCLOAK_SERVER_URL` and
- * `MCP_OAUTH_KEYCLOAK_REALM`, ADFS's generic `MCP_OAUTH_OIDC_ISSUER`), which verifies its access
+ * `MCP_OAUTH_KEYCLOAK_REALM`, ADFS's generic `MCP_OAUTH_OIDC_ISSUER`, Entra ID's
+ * `MCP_OAUTH_ENTRA_*`), which verifies its access
  * tokens with the real JWT verifier, and a client of `@miragon/pulse-http/oauth` discovers it,
  * signs in with PKCE as a confidential client, refreshes, revokes (Keycloak) and ends the session
  * against it. A browser sees its login page, a link per user; a test without one plays the browser
@@ -25,7 +26,7 @@ import {
   type FakeOidcEndpoint,
   type FakeOidcRequest,
 } from "./endpoints.js"
-import { ENTRA_SCOPE } from "./entra.js"
+import { ENTRA_SCOPE, entraEnv } from "./entra.js"
 import {
   createRealm,
   ENTRA_TENANT,
@@ -72,9 +73,9 @@ export interface FakeOidc {
   readonly entra?: FakeEntraTenant
   /**
    * The variables of a server at `origin` (its `MCP_URL`) whose OAuth provider is this one: the
-   * flavor's `MCP_OAUTH_*` variables, ADFS's caller claim among them when it is no `sub`. Entra
-   * ID's flavor names none and throws: no provider of the boot reads its tokens, so a test brings
-   * a provider of its own over `entra`.
+   * flavor's `MCP_OAUTH_*` variables, ADFS's caller claim among them when it is no `sub`, Entra
+   * ID's tenant, API client id, the fake's origin as the cloud's authority and an App ID URI that
+   * is not the default.
    */
   env(origin: string): Record<string, string>
   /** Every request it received, in order. */
@@ -224,12 +225,7 @@ function envOf(
       MCP_OAUTH_KEYCLOAK_REALM: name,
     }
   }
-  if (realm.flavor === "entra") {
-    throw new TypeError(
-      "The fake Entra ID has no variables of the boot's providers: give the server a provider of " +
-        "the test's own over its entra tenant.",
-    )
-  }
+  if (realm.flavor === "entra") return { MCP_URL: origin, ...entraEnv(realm, serverUrl) }
   const claim = realm.callerClaim
   return {
     MCP_URL: origin,

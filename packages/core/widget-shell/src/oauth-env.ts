@@ -7,11 +7,13 @@
  * only through this OAuth.
  *
  * There is no provider selector, so the boot picks the one provider whose variables are set: one of
- * the table's, or the generic OpenID Connect provider (`MCP_OAUTH_OIDC_*`, oauth-oidc.ts). Two
+ * the table's, the generic OpenID Connect provider (`MCP_OAUTH_OIDC_*`, oauth-oidc.ts) or Microsoft
+ * Entra ID for one tenant (`MCP_OAUTH_ENTRA_*`, oauth-entra.ts). Two
  * providers, a provider without a required variable or an invalid one fail the boot, naming the
  * variables. A variable it does not read (a misspelled prefix) is the typo warner's, so a
  * misspelled provider boots without OAuth, and the log says so.
  */
+import { ENTRA_ENV, oauthEntraProvider, readEntraSettings } from "./oauth-entra.js"
 import { OIDC_ENV, oauthOidcProvider, readOidcSettings } from "./oauth-oidc.js"
 import {
   oauthAuth0Provider,
@@ -46,12 +48,14 @@ interface ProviderSpec {
 }
 
 const { issuer: OIDC_ISSUER, ...OIDC_OPTIONAL } = OIDC_ENV
+const { tenantId: ENTRA_TENANT_ID, apiClientId: ENTRA_API_CLIENT_ID, ...ENTRA_OPTIONAL } = ENTRA_ENV
 
 /**
  * The providers: the table's, whose factory takes exactly their required variables, verifies a JWT
  * over issuer, JWKS and the RFC 8707 resource, and maps the token's `sub` to `user.id` (what
- * `callerUserId` reads), and the generic OpenID Connect provider, whose optional variables name
- * its audiences, scopes, caller claim, algorithms and clients.
+ * `callerUserId` reads), the generic OpenID Connect provider, whose optional variables name its
+ * audiences, scopes, caller claim, algorithms and clients, and Entra ID, whose tenant and API name
+ * its issuers, audiences and scope.
  */
 const PROVIDERS: readonly ProviderSpec[] = [
   {
@@ -86,6 +90,13 @@ const PROVIDERS: readonly ProviderSpec[] = [
     optional: OIDC_OPTIONAL,
     build: ([issuer], optional, { options, webClientId, log }) =>
       oauthOidcProvider(readOidcSettings(issuer, optional, webClientId), { ...options, log }),
+  },
+  {
+    name: "Entra ID",
+    required: [ENTRA_TENANT_ID, ENTRA_API_CLIENT_ID],
+    optional: ENTRA_OPTIONAL,
+    build: ([tenantId, apiClientId], optional, { options, webClientId }) =>
+      oauthEntraProvider(readEntraSettings(tenantId, apiClientId, optional, webClientId), options),
   },
 ]
 
@@ -171,7 +182,7 @@ function build(
 /**
  * No provider's variables → `undefined` plus ONE boot warning (prefixed with `label`). Two
  * providers, an incomplete or an invalid one throw. `MCP_OAUTH_DEBUG` is read from the same `env`,
- * and so is `MCP_WEB_CLIENT_ID`, which joins a generic provider's client allowlist.
+ * and so is `MCP_WEB_CLIENT_ID`, which joins the generic or the Entra ID provider's client allowlist.
  */
 export function oauthFromEnv(env: NodeJS.ProcessEnv, label: string): OAuthProvider | undefined {
   const requested = requestedProvider(env)

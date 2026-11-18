@@ -2,8 +2,8 @@
  * Pulse's OAuth providers: the official SDK has the bearer gate and the discovery documents but no
  * JWT verifier and no IdP table, so this holds the port, the table (Keycloak, Auth0, WorkOS, Better
  * Auth, Convex), each on the one verifier in `oauth-jwt.ts`, and the custom port a root fills
- * itself. The generic OpenID Connect provider is `oauth-oidc.ts`; the gate in front of `/mcp` is
- * `oauth-gate.ts`.
+ * itself. The generic OpenID Connect provider is `oauth-oidc.ts`, Microsoft Entra ID's
+ * `oauth-entra.ts`; the gate in front of `/mcp` is `oauth-gate.ts`.
  */
 import type { AuthInfo, OAuthMetadata, OAuthTokenVerifier } from "@modelcontextprotocol/server"
 import type { ProviderDiscovery } from "./oauth-discovery.js"

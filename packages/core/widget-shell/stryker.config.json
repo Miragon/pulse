@@ -20,7 +20,8 @@
     "src/web/session-route.ts",
     "src/oauth-jwt.ts",
     "src/oauth-discovery.ts",
-    "src/oauth-oidc.ts"
+    "src/oauth-oidc.ts",
+    "src/oauth-entra.ts"
   ],
   "inPlace": true,
   "incremental": true,

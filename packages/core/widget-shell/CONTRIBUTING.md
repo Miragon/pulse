@@ -188,9 +188,10 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   header and the codes both halves read are `src/protocol/web.ts`, exported from `./widgets`. The
   seal, the cookies, the return path, the CSRF check, the forward, the renewal, the served build,
   the security headers, the signed-out sessions (`ended.ts`), the session (`session.ts`), the
-  sign-out, the session route, the provider's discovery and the generic provider are mutated
-  nightly (StrykerJS, break 90, `src/web`'s and the OAuth suites alone); `src/web`, the discovery
-  and the generic provider keep a coverage floor of 100.
+  sign-out, the session route, the provider's discovery, the generic provider and the Entra ID
+  provider are mutated nightly (StrykerJS, break 90, `src/web`'s and the OAuth suites alone);
+  `src/web`, the discovery, the generic provider and the Entra ID provider keep a coverage floor
+  of 100.
 - **Fake identity provider** (`./testing/oidc`): `startFakeOidc(options)` starts an OpenID
   Connect provider on a loopback port with Keycloak's paths, so the boot's Keycloak provider
   (`MCP_OAUTH_KEYCLOAK_SERVER_URL` its `serverUrl`, `MCP_OAUTH_KEYCLOAK_REALM` its `realm`)
@@ -212,11 +213,12 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   `iss`, also at the RFC 8414 path), each with a key set whose keys name it, the oauth21 one holding
   a key of its own; v2 access tokens of the authority asked with the API's client id as `aud`, a
   short `scp`, `azp`, a `sub` hashed per client and `oid` and `tid` only where `profile` was asked
-  (`tokenVersion: 1` gives v1 tokens of `sts.windows.net`, `groups` 200 group ids); a resource that
-  is no App ID URI and a code exchange without scope refused; refresh tokens only with
-  `offline_access`, rotated with the old one renewing on, alive after the end of a session.
-  `env(origin)` names the boot's variables for Keycloak and ADFS; `signIn` and `decline` play the
-  browser for a test without one, `requests`, `issued`, `revoked` and `endedSessions` record what
+  (`tokenVersion: 1` gives v1 tokens of `sts.windows.net`, `groups` 200 group ids,
+  `directoryRoles` a `wids` claim of two directory roles); a resource that is no App ID URI and a
+  code exchange without scope refused; refresh tokens only with `offline_access`, rotated with the
+  old one renewing on, alive after the end of a session.
+  `env(origin)` names the boot's variables for Keycloak, ADFS and Entra ID; `signIn` and
+  `decline` play the browser for a test without one, `requests`, `issued`, `revoked` and `endedSessions` record what
   happened, `sessionOf` names the session a refresh token belongs to, so a test tells its own
   browser's renewals and revocations from those of tests beside it, and `endGrant` takes back a
   session's refresh tokens. Node only.
@@ -278,8 +280,16 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   joins) reads its key set and its access tokens' issuer from the provider's discovery at the first
   token (503 until it answers) and refuses at boot a caller claim whose value can change, an
   algorithm with a shared secret or none, and an audience that is no https URL without a required
-  scope. A provider whose metadata names its issuer alone gets no copy at
-  `/.well-known/oauth-authorization-server` (404), and the protected resource metadata names its
+  scope. Microsoft Entra ID for one tenant (`oauth-entra.ts`, `MCP_OAUTH_ENTRA_*`: the tenant's id
+  and the API registration's client id, required, then the scope, the App ID URI, the cloud's
+  authority and a client allowlist the web client joins) verifies the tenant's v2.0 and
+  `oauth21/2026-08` tokens each against its own key set with the keys tagged for it, takes the
+  API's client id, its App ID URI or the resource as `aud`, reads the short `scp` under the App ID
+  URI, names the caller by `oid`, else `sub`, and refuses a v1 token (naming
+  `requestedAccessTokenVersion` 2), a `tid` of another tenant and a token without `scp`; its
+  metadata names the oauth21 authority, and its web client signs in through the v2.0 one without a
+  resource and with the scopes at every grant. A provider whose metadata names its issuer alone
+  gets no copy at `/.well-known/oauth-authorization-server` (404), and the protected resource metadata names its
   required scopes in `scopes_supported`, never `offline_access`. The providers, what fails the boot and
   the identity provider's side are under
   [Security](https://miragon.github.io/pulse/mcp/operations#security). Without a provider the boot

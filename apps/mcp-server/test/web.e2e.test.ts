@@ -20,7 +20,9 @@ import { postToolCall } from "./realm.js"
  * identity provider, and each of its calls goes in-process to `/mcp` with the session's token, so
  * the OAuth gate, the toolset OAuth gives (operations), the engine profiles, passthrough and the
  * per-caller caches decide as for any client. `/mcp` refuses the session cookie, `/app` a bearer.
- * With `MCP_WEB_SESSION_CHECK_MINUTES` the session is checked at the provider on any replica.
+ * With `MCP_WEB_SESSION_CHECK_MINUTES` the session is checked at the provider on any replica, at
+ * Keycloak and at Microsoft Entra ID, whose single sign-out leaves the session's refresh token
+ * alive, while an admin's "Revoke sessions" ends it.
  */
 
 const FIXTURE_JS = path.join(import.meta.dirname, "fixtures", "mcp-app.js")
@@ -64,15 +66,14 @@ afterEach(async () => {
 })
 
 /**
- * The server under OAuth with the web app on, signing in at `idp`: `prod` forwards the caller's
- * token, `ro` too, read-only; `extra` sets further variables.
+ * The server under OAuth with the web app on, signing in at `idp` through the boot's provider of
+ * its flavor (Keycloak's, or Entra ID's): `prod` forwards the caller's token, `ro` too, read-only;
+ * `extra` sets further variables.
  */
 function boot(idp: FakeOidc = fake, extra: Record<string, string> = {}): Promise<ComposedServer> {
   const profile = { url: engine.url, auth: { type: "passthrough" } }
   stubNeutralEnv({
-    MCP_URL: ORIGIN,
-    MCP_OAUTH_KEYCLOAK_SERVER_URL: idp.serverUrl,
-    MCP_OAUTH_KEYCLOAK_REALM: idp.realm,
+    ...idp.env(ORIGIN),
     MCP_WEB_CLIENT_ID: FAKE_OIDC_CLIENT.id,
     MCP_WEB_CLIENT_SECRET: FAKE_OIDC_CLIENT.secret,
     MCP_WEB_SESSION_KEYS: Buffer.alloc(32, 7).toString("base64url"),
@@ -432,5 +433,98 @@ describe("a web session checked at the provider every five minutes, on two repli
       provider.issued.access.map((token) => `Bearer ${token}`),
     )
     expect(provider.issued.access).toHaveLength(2)
+  })
+})
+
+describe("a web session at Microsoft Entra ID, checked every five minutes on two replicas", () => {
+  const MINUTE = 60_000
+  const READ = "engine_list_engines"
+  const SIGNED_OUT = { code: "signed_out", message: "No session: sign in again." }
+  let idp: FakeOidc | undefined
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"], now: Date.now() })
+  })
+
+  afterEach(async () => {
+    vi.useRealTimers()
+    await idp?.close()
+    idp = undefined
+  })
+
+  const later = (minutes: number) => vi.setSystemTime(Date.now() + minutes * MINUTE)
+
+  /** The fake tenant with access tokens of an hour, as Entra ID's last 60 to 90 minutes. */
+  async function tenant(options: FakeOidcOptions = {}) {
+    const started = await startFakeOidc({ flavor: "entra", accessTokenSeconds: 3600, ...options })
+    idp = started
+    return started
+  }
+
+  /** Two replicas over one session key at the tenant, and a page signed in on the first. */
+  async function replicas() {
+    const provider = await tenant()
+    const check = { MCP_WEB_SESSION_CHECK_MINUTES: "5" }
+    const one = await boot(provider, check)
+    const two = await boot(provider, check)
+    const page = await new Page(one, provider).signIn()
+    return { one, two, page, provider }
+  }
+
+  const grants = (provider: FakeOidc, type: string) =>
+    provider.requests.filter((request) => request.form.get("grant_type") === type)
+
+  const apiScope = (provider: FakeOidc) =>
+    `${String(provider.entra?.appIdUris[0])}/${String(provider.entra?.scope)}`
+
+  it("signs in through the tenant's v2.0 authority, and /mcp takes the session's v2 token", async () => {
+    const { one, page, provider } = await replicas()
+    expect((await page.call(READ)).status).toBe(200)
+    const [exchange] = grants(provider, "authorization_code")
+    expect(exchange.path).toBe(`/${String(provider.entra?.tenant)}/oauth2/v2.0/token`)
+    expect(exchange.form.has("resource")).toBe(false)
+    expect(exchange.form.get("scope")).toBe(`openid profile offline_access ${apiScope(provider)}`)
+    const [access] = provider.issued.access
+    expect(JSON.parse(Buffer.from(access.split(".")[1], "base64url").toString())).toMatchObject({
+      iss: provider.issuer,
+      aud: provider.entra?.apiClientId,
+      ver: "2.0",
+      scp: "user_impersonation",
+    })
+    const direct = await postToolCall(one, `Bearer ${access}`, READ, {})
+    expect(direct.status).toBe(200)
+  })
+
+  it("keeps the session after a single sign-out at Entra ID, and ends it at the next check on a second replica once an admin revoked its sessions", async () => {
+    const { two, page, provider } = await replicas()
+    // The browser signs out of Entra ID elsewhere: its session there ends, its refresh tokens live.
+    const sid = String(provider.sessionOf(provider.issued.refresh[0]))
+    const logout = `${provider.serverUrl}/${String(provider.entra?.tenant)}/oauth2/v2.0/logout`
+    await fetch(logout, { headers: { cookie: `KEYCLOAK_SESSION=${sid}` } })
+    expect(provider.endedSessions).toEqual([expect.objectContaining({ sid })])
+    later(5)
+    expect((await page.call(READ)).status).toBe(200)
+    expect(grants(provider, "refresh_token")).toHaveLength(1)
+    // An admin's "Revoke sessions": every renewal is refused from now on.
+    provider.refuseRefresh()
+    later(5)
+    expect((await page.on(two).call(READ)).status).toBe(200)
+    later(0.5)
+    expect(await page.on(two).call(READ)).toMatchObject({ status: 401, body: SIGNED_OUT })
+    expect(grants(provider, "refresh_token")).toHaveLength(3)
+  })
+
+  it("fails a sign-in whose group claims overflow the session's cookies, naming the token's size", async () => {
+    const provider = await tenant({ groups: true })
+    const page = new Page(await boot(provider), provider)
+    const login = await page.fetch("/app/auth/login")
+    const back = await provider.signIn(String(login.headers.get("location")))
+    const callback = await page.fetch(back)
+    expect(callback.headers.get("location")).toBe("/app/signed-out?reason=failed")
+    const [access] = provider.issued.access
+    const lines = vi.mocked(console.warn).mock.calls.map(([line]) => String(line))
+    expect(lines.at(-1)).toContain(
+      `more than its cookies hold (its access token holds ${access.length} bytes and carries a groups claim).`,
+    )
   })
 })
