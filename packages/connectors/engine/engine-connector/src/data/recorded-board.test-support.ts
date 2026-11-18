@@ -83,7 +83,12 @@ export async function startWithoutSecondaryStorage(): Promise<BoardEngine> {
   return {
     origin: `http://127.0.0.1:${String(port)}`,
     unanswered,
-    close: () => new Promise<void>((resolve) => server.close(() => resolve())),
+    // A connection the read left open would hold `close` for 3 s.
+    close: () =>
+      new Promise<void>((resolve) => {
+        server.close(() => resolve())
+        server.closeAllConnections()
+      }),
   }
 }
 

@@ -16,6 +16,13 @@ import type { WebContext } from "./context.js"
 import { endedSessions } from "./ended.js"
 import { createSealer } from "./seal.js"
 
+/**
+ * The limit of a test that signs in through the fake provider: the provider makes its RS256 keys,
+ * the server boots and a browser walks the sign-in over real requests, 0.1 to 0.5 s alone and up
+ * to 3.3 s on the CI runner, where `pnpm test` runs every package's suite at once on four cores.
+ */
+export const SIGN_IN = { timeout: 15_000 }
+
 export const ORIGIN = "http://localhost"
 export const RESOURCE = `${ORIGIN}/mcp`
 export const KEY = new Uint8Array(32).fill(3)

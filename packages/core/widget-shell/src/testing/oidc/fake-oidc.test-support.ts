@@ -16,6 +16,13 @@ import {
 import { FAKE_OIDC_CLIENT } from "./realm.js"
 import type { FakeOidc } from "./fake-oidc.js"
 
+/**
+ * The limit of a test of the fake provider's flows: the provider makes its RS256 keys, signs its
+ * tokens and answers over real requests, a server booted beside it or not, 0.1 to 0.3 s alone and
+ * up to 3.4 s on the CI runner, where `pnpm test` runs every package's suite at once on four cores.
+ */
+export const FAKE_PROVIDER = { timeout: 15_000 }
+
 export const REDIRECT_URI = "https://pulse.example.test/app/auth/callback"
 export const RESOURCE = "https://pulse.example.test/mcp"
 export const platform = { fetch: globalThis.fetch, now: () => Date.now() }

@@ -9,7 +9,9 @@ import {
 import { ACTIVE_ONLY, detailWith, searchesOf } from "../../support/instance-tree.js"
 import { element, instance, variable } from "../../support/rows.js"
 
-describe("the long history of an instance", () => {
+const TEN_THOUSAND_RUNS_LIMIT = { timeout: 15_000 }
+
+describe("the long history of an instance", TEN_THOUSAND_RUNS_LIMIT, () => {
   const FIRST_START = Date.parse("2026-11-01T00:00:00.000Z")
   const TIMER_XML =
     '<bpmn:intermediateCatchEvent id="Tick"><bpmn:timerEventDefinition /></bpmn:intermediateCatchEvent>'

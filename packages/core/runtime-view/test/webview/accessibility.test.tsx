@@ -32,6 +32,7 @@ const THEMES: readonly (readonly [theme: string, contrast: string | undefined])[
 const SCREENS = Object.keys(FIXTURES) as FixtureName[]
 
 const HARNESS_WIDTH = 1200
+const AXE_RUN_LIMIT = { timeout: 30_000 }
 
 function applyTheme(theme: string, contrast: string | undefined): void {
   const { dataset } = document.documentElement
@@ -117,20 +118,24 @@ async function open(name: FixtureName, theme: string, contrast: string | undefin
   return harness
 }
 
-describe.each(THEMES)("the fixture screens in the %s theme, contrast %s", (theme, contrast) => {
-  let harness: Harness
+describe.each(THEMES)(
+  "the fixture screens in the %s theme, contrast %s",
+  AXE_RUN_LIMIT,
+  (theme, contrast) => {
+    let harness: Harness
 
-  afterEach(() => {
-    harness.unmount()
-    applyTheme("light", undefined)
-  })
+    afterEach(() => {
+      harness.unmount()
+      applyTheme("light", undefined)
+    })
 
-  it.each(SCREENS)("%s has no WCAG 2.2 A or AA violation and one main", async (name) => {
-    harness = await open(name, theme, contrast)
+    it.each(SCREENS)("%s has no WCAG 2.2 A or AA violation and one main", async (name) => {
+      harness = await open(name, theme, contrast)
 
-    expect(await violations(harness.root)).toEqual([])
-  })
-})
+      expect(await violations(harness.root)).toEqual([])
+    })
+  },
+)
 
 describe("one heading and one main per screen", () => {
   let harness: Harness
@@ -159,6 +164,7 @@ describe("one heading and one main per screen", () => {
 
 describe.each(THEMES)(
   "the opened parts of a screen in the %s theme, contrast %s",
+  AXE_RUN_LIMIT,
   (theme, contrast) => {
     let harness: Harness
 

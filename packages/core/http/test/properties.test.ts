@@ -122,7 +122,14 @@ async function shownFor(credential: Credential, secret: string, quote: Quote): P
   return shown.join("\n")
 }
 
-describe("no failure and no trace shows a secret", () => {
+/**
+ * The limit of a secret's property: 40 random secrets, each echoed back in every way a server
+ * quotes it through a whole transport, take 0.3 s alone and took up to 3.7 s on the CI runner,
+ * where `pnpm test` runs every package's suite at once on four cores.
+ */
+const SECRET_PROPERTY = { timeout: 30_000 }
+
+describe("no failure and no trace shows a secret", SECRET_PROPERTY, () => {
   it("of Basic: the password and the Basic value, however the server quotes them", async () => {
     await fc.assert(
       fc.asyncProperty(password, quoted, async (secret, quote) => {

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest"
+import { afterEach, describe, expect, test, vi } from "vitest"
 import { RuntimeError, type BulkOperationId } from "../src/index.js"
 import {
   COMMAND_CASE,
@@ -10,6 +10,10 @@ import {
 } from "../src/testing/index.js"
 import { CommandHarnesses } from "./support/command-harnesses.js"
 import { SabotagedRuntime } from "./support/sabotaged-runtime.js"
+
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 type HarnessSabotage = (harness: CommandHarness) => CommandHarness
 

@@ -19,6 +19,7 @@ import {
   signIn,
   webContext,
   webEnv,
+  SIGN_IN,
 } from "./sign-in.test-support.js"
 
 let fake: FakeOidc
@@ -84,7 +85,7 @@ async function endedOf(setCookie: string | undefined): Promise<unknown> {
   return opened.ok ? opened.value : opened
 }
 
-describe("POST /app/auth/logout", () => {
+describe("POST /app/auth/logout", SIGN_IN, () => {
   it("revokes the refresh token, clears every cookie and names the provider's end of the session", async () => {
     const { browser, csrf } = await signedIn()
     const response = await browser.logout(csrf)
@@ -229,7 +230,7 @@ describe("POST /app/auth/logout", () => {
   })
 })
 
-describe("POST /app/auth/logout: what the provider offers", () => {
+describe("POST /app/auth/logout: what the provider offers", SIGN_IN, () => {
   /** A session sealed by hand, with `tokens` in it. */
   async function logoutWith(
     metadata: ServerMetadata | undefined,

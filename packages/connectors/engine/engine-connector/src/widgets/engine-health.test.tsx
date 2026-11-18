@@ -104,7 +104,13 @@ const Widget = ({ data }: { data: EngineHealthData }) => (
   <EngineHealthVerdict data={data} engine="default" />
 )
 
-describe("EngineHealthVerdict (fixture render)", () => {
+/**
+ * A case renders widgets in happy-dom and waits for their queries: up to 0.2 s alone, up to 2.1 s
+ * on the CI runner, where `pnpm test` runs every package's suite at once on four cores.
+ */
+const RENDER = { timeout: 15_000 }
+
+describe("EngineHealthVerdict (fixture render)", RENDER, () => {
   it("labels each view's clusters section by its own heading, two views on one page included", () => {
     const Two = () => (
       <>
@@ -266,7 +272,7 @@ describe("EngineHealthVerdict (fixture render)", () => {
 })
 
 /** The verdict travels as data and the widget words it in the view's language (#322 U3). */
-describe("the verdict line and the hand-offs speak the view's language", () => {
+describe("the verdict line and the hand-offs speak the view's language", RENDER, () => {
   function renderIn(locale: string, data: EngineHealthData) {
     return render(
       <LocaleProvider locale={locale}>
@@ -352,7 +358,7 @@ describe("the verdict line and the hand-offs speak the view's language", () => {
  * The chat can look for why an engine does not answer, and a retry may reach it; a refused
  * profile's reason is on screen, and neither helps until the operator fixes the profile.
  */
-describe("an engine whose health cannot be read", () => {
+describe("an engine whose health cannot be read", RENDER, () => {
   const REFUSED =
     '[ENGINE_PROFILE_REFUSED] Engine "default" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask whoever runs this server to fix it.'
 

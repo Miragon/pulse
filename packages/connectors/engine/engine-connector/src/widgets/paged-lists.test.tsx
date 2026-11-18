@@ -104,8 +104,14 @@ function host(widget: ComponentType<Record<string, unknown>>, tools: Record<stri
   )
 }
 
+/**
+ * A case renders widgets in happy-dom and waits for their queries: up to 0.5 s alone, up to 3.7 s
+ * on the CI runner, where `pnpm test` runs every package's suite at once on four cores.
+ */
+const RENDER = { timeout: 15_000 }
+
 describe("a search keeps the list and its search box mounted while page 0 is in flight (N123)", () => {
-  it("process instances (search and scope)", async () => {
+  it("process instances (search and scope)", RENDER, async () => {
     const feed = deferredFeed<ProcessInstancesData>()
     const Widget = () => (
       <ProcessInstancesWidget
@@ -133,7 +139,7 @@ describe("a search keeps the list and its search box mounted while page 0 is in 
     expect(screen.getByText("BK-pi-2")).toBeTruthy()
   })
 
-  it("cluster detail", async () => {
+  it("cluster detail", RENDER, async () => {
     const feed = deferredFeed<ClusterDetailData>()
     const Widget = () => (
       <ClusterDetailWidget
@@ -159,7 +165,7 @@ describe("a search keeps the list and its search box mounted while page 0 is in 
   })
 })
 
-describe("a page-0 failure over rows on screen is not a load-more failure (N130)", () => {
+describe("a page-0 failure over rows on screen is not a load-more failure (N130)", RENDER, () => {
   function selfFetchingList() {
     const state = { failPage0: false, failMore: false }
     const calls: Array<Record<string, unknown>> = []
@@ -366,7 +372,7 @@ describe("the instance list states what is ON SCREEN while a filter is pending o
   })
 })
 
-describe("a failed first load says what happened, why, and what you can do", () => {
+describe("a failed first load says what happened, why, and what you can do", RENDER, () => {
   const engineDown = () => {
     throw new Error("engine prod-a unreachable (ECONNREFUSED)")
   }

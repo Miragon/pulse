@@ -53,7 +53,13 @@ const read = (rel: string) => readFileSync(new URL(rel, import.meta.url), "utf8"
 const uiTheme = read("../theme.css")
 const uiTokens = read("../tokens/cd-tokens.generated.css")
 
-describe("Miragon tokens: vendored copies listed by manifest", () => {
+/**
+ * The fork check reads every stylesheet and source under apps, packages, templates and docs: 0.2 s
+ * alone, up to 2.3 s while `pnpm test` runs every package's suite at once.
+ */
+const SCAN = { timeout: 30_000 }
+
+describe("Miragon tokens: vendored copies listed by manifest", SCAN, () => {
   it("the shipped theme imports pulse-ui's vendored token file", () => {
     expect(uiTheme).toContain('@import "./tokens/cd-tokens.generated.css";')
     // Every consumer's contrast check reads these two files: theme.css and the tokens it imports.

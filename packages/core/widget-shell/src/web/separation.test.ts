@@ -3,7 +3,7 @@ import { oauthKeycloakProvider } from "../oauth-providers.js"
 import { signIn as tokensOf } from "../testing/oidc/fake-oidc.test-support.js"
 import { startFakeOidc, type FakeOidc } from "../testing/oidc/index.js"
 import { SESSION_COOKIE } from "./cookies.js"
-import { bootWeb, Browser, RESOURCE, signIn, webEnv } from "./sign-in.test-support.js"
+import { bootWeb, Browser, RESOURCE, signIn, webEnv, SIGN_IN } from "./sign-in.test-support.js"
 
 let fake: FakeOidc
 let logged: MockInstance<(...data: unknown[]) => void>
@@ -42,7 +42,7 @@ const COOKIE_AT_MCP = "This endpoint takes a bearer token, never the web app's s
 /** The gate's challenge, so a client finds the authorization server as it does without a token. */
 const CHALLENGE = `Bearer error="invalid_token", error_description="${COOKIE_AT_MCP}", resource_metadata="http://localhost/.well-known/oauth-protected-resource/mcp"`
 
-describe("the separation of the session cookie and the bearer token", () => {
+describe("the separation of the session cookie and the bearer token", SIGN_IN, () => {
   it("answers a call at /mcp that carries the session cookie with 401, a valid bearer token too", async () => {
     const browser = new Browser(await bootWeb(webEnv(fake)))
     const { accessToken } = await tokensOf(fake)

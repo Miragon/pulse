@@ -57,11 +57,8 @@ function failed(error: unknown): Observed {
   }
 }
 
-/** The caller's abort of a case that has one, from the moment it sends. */
-const callerSignal = (kase: TransportCase) =>
-  kase.request.cancelAfterMs === undefined
-    ? {}
-    : { signal: AbortSignal.timeout(kase.request.cancelAfterMs) }
+/** The caller's abort of a case that has one: the engine's, once the request reached it. */
+const callerSignal = (signal: AbortSignal | undefined) => (signal === undefined ? {} : { signal })
 
 function httpOf(kase: TransportCase, origin: string): Http {
   const { connection } = kase
@@ -121,10 +118,10 @@ async function answered(kase: TransportCase, response: Response): Promise<Observ
 
 const WIRINGS = {
   /** `call`: a status from 400 on fails. */
-  call: async (kase: TransportCase, origin: string): Promise<Observed> => {
+  call: async (kase: TransportCase, origin: string, signal?: AbortSignal): Promise<Observed> => {
     try {
       const http = httpOf(kase, origin)
-      const request = { ...requestOf(kase, http), ...callerSignal(kase) }
+      const request = { ...requestOf(kase, http), ...callerSignal(signal) }
       if (kase.request.expects === "json") {
         const value = await http.json(request, "raw")
         return { outcome: "answered", status: 200, text: stringifyJson(value) ?? "" }
@@ -144,14 +141,14 @@ const WIRINGS = {
    * encodeURIComponent, the URL resolved by a Request, integers beyond 2^53 as strings (the
    * server's choice), the answer read as JSON.
    */
-  asFetch: async (kase: TransportCase, origin: string): Promise<Observed> => {
+  asFetch: async (kase: TransportCase, origin: string, signal?: AbortSignal): Promise<Observed> => {
     try {
       const http = httpOf(kase, origin)
       validatePathValues(kase)
       const url = joinUrl(http.root, pathOfCase(kase.request, encodeURIComponent))
       const fetch = http.asFetch({ intentOf: () => kase.request.intent, integers: "string" })
       const { headers = {}, ...body } = jsonBody(kase)
-      const init = { method: kase.request.method, headers, ...body, ...callerSignal(kase) }
+      const init = { method: kase.request.method, headers, ...body, ...callerSignal(signal) }
       const response = await fetch(new Request(url, init))
       if (response.status < 400) return await answered(kase, response)
       const outcome = response.status === 401 ? "unauthorized" : "status"
@@ -181,7 +178,7 @@ describe.each(Object.entries(WIRINGS))(
       async (_name, kase) => {
         const engine = await startCaseEngine(kase)
         try {
-          const observed = await observe(kase, engine.origin)
+          const observed = await observe(kase, engine.origin, engine.callerSignal)
           expect(caseFindings(kase, observed, engine.seen)).toEqual([])
         } finally {
           await engine.close()

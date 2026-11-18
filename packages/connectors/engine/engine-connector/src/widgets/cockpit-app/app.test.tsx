@@ -31,8 +31,14 @@ function renderCockpit(bootstrap?: CockpitAppData, list?: EngineList, displayMod
   return renderCockpitOn(queryClient, bootstrap, list, displayMode)
 }
 
+/**
+ * A case renders widgets in happy-dom and waits for their queries: up to 0.2 s alone, up to 2.6 s
+ * on the CI runner, where `pnpm test` runs every package's suite at once on four cores.
+ */
+const RENDER = { timeout: 15_000 }
+
 /** A profile the server refused: the picker lists it as not answering, and opening it says why. */
-describe("CockpitApp lists a refused engine with the others", () => {
+describe("CockpitApp lists a refused engine with the others", RENDER, () => {
   const REFUSED = [{ id: "locked", environment: "prod", reason: "auth.tokenEnv is missing." }]
 
   it("the picker shows it among the engines, its profile refused in words", async () => {
@@ -65,7 +71,7 @@ describe("CockpitApp lists a refused engine with the others", () => {
   })
 })
 
-describe("CockpitApp navigation is side-effect free", () => {
+describe("CockpitApp navigation is side-effect free", RENDER, () => {
   // Navigation never moves the default engine, so the model must learn the viewed engine.
   it("tells the model which engine the operator is viewing, and to pin it", async () => {
     const { modelContexts } = renderCockpit()
@@ -82,7 +88,7 @@ describe("CockpitApp navigation is side-effect free", () => {
 })
 
 /** #341 K43 / N105: opens where `engine_open_cockpit` resolved, and the context says what is shown. */
-describe("CockpitApp opens on the bootstrap's engine", () => {
+describe("CockpitApp opens on the bootstrap's engine", RENDER, () => {
   it("a resolved engine (per-call `engine` or default engine): lands on it, not on the picker", async () => {
     const { modelContexts } = renderCockpit(boot("prod-a", ENGINES))
     await waitFor(() => expect(activeEngine()).toBe("prod-a"))
@@ -110,7 +116,7 @@ describe("CockpitApp opens on the bootstrap's engine", () => {
 })
 
 /** #341 N106 */
-describe("CockpitApp reconciles its engine scope with the engine list", () => {
+describe("CockpitApp reconciles its engine scope with the engine list", RENDER, () => {
   const THREE = [...ENGINES, { id: "prod-c", environment: "default" }]
 
   async function reloadEngines(list: { engines: CockpitAppData["engines"] }, next: typeof THREE) {
@@ -149,7 +155,7 @@ describe("CockpitApp reconciles its engine scope with the engine list", () => {
 })
 
 /** The cross-engine overview reads the engines themselves: no other module gates it. */
-describe("CockpitApp offers the cross-engine overview with two engines or more", () => {
+describe("CockpitApp offers the cross-engine overview with two engines or more", RENDER, () => {
   it("from the picker, with nothing but the engine module's feeds", async () => {
     const { reads } = renderCockpit()
     fireEvent.click(await screen.findByRole("button", { name: "Cross-engine overview" }))
@@ -178,7 +184,7 @@ describe("CockpitApp offers the cross-engine overview with two engines or more",
 })
 
 /** #322 U4, U15, U20, U27 */
-describe("CockpitApp head", () => {
+describe("CockpitApp head", RENDER, () => {
   const ENVIRONMENTS = [
     { id: "prod-a", environment: "prod" },
     { id: "test-a", environment: "test" },
@@ -223,7 +229,7 @@ describe("CockpitApp head", () => {
 })
 
 /** The start view `engine_open_cockpit` names: where the cockpit opens, seeded with its data. */
-describe("CockpitApp opens on the start view", () => {
+describe("CockpitApp opens on the start view", RENDER, () => {
   it("a head section's start is current in the head, with no picker", async () => {
     renderCockpit(boot("prod-a", ENGINES, { section: "jobs" }, JOBS_DATA))
     await waitFor(() => expect(headSection("Jobs").getAttribute("aria-current")).toBe("page"))
@@ -305,7 +311,7 @@ describe("CockpitApp opens on the start view", () => {
 })
 
 /** #396: inline is a card, so the head and the trail share one row. */
-describe("CockpitApp inline", () => {
+describe("CockpitApp inline", RENDER, () => {
   const sections = () => screen.queryByRole("navigation", { name: "Cockpit sections" })
   const trail = () => screen.queryByRole("navigation", { name: "Breadcrumb" })
 

@@ -26,6 +26,7 @@ import {
   sessionOf,
   signIn,
   startSignIn,
+  SIGN_IN,
 } from "./sign-in.test-support.js"
 
 /**
@@ -160,7 +161,7 @@ const paramsOf = (params: URLSearchParams) =>
 
 const warnings = () => warned.mock.calls.map(([line]) => String(line))
 
-describe("the web sign-in at Entra ID", () => {
+describe("the web sign-in at Entra ID", SIGN_IN, () => {
   it("discovers the v2.0 authority while the protected resource metadata names the oauth21 one", async () => {
     await startEntra()
     const app = await bootEntra()
@@ -281,7 +282,7 @@ describe("the web sign-in at Entra ID", () => {
   })
 })
 
-describe("the web client's discovery issuer", () => {
+describe("the web client's discovery issuer", SIGN_IN, () => {
   it("is the issuer the sign-in goes through and the callback's iss must name", async () => {
     await startEntra()
     const { oauth21Issuer } = tenantOf()
@@ -331,7 +332,7 @@ describe("the web client's discovery issuer", () => {
   })
 })
 
-describe("the boot's Entra ID provider", () => {
+describe("the boot's Entra ID provider", SIGN_IN, () => {
   /** A server whose provider comes from the fake tenant's variables, as a deployment's would. */
   async function bootFromEnv() {
     const provider = oauthFromEnv(fake.env(ORIGIN), "web-test")

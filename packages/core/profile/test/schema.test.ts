@@ -254,6 +254,13 @@ const AUTH_VALUES: Readonly<Record<Exclude<AuthKey, "type">, unknown>> = {
   token: "t",
 }
 
+/**
+ * The limit of a property here: 1,000 or 2,000 random files, each read by the parser under up to
+ * three credential policies and by the schema, take 0.1 to 0.2 s alone and took up to 6.5 s on
+ * the CI runner, where `pnpm test` runs every package's suite at once on four cores.
+ */
+const PROPERTY = { timeout: 30_000 }
+
 /** Whether the parser takes `file` silently under a policy; if it does, the schema must take it. */
 function holdsSchemaToParser(file: unknown): boolean {
   const text = JSON.stringify(file)
@@ -262,7 +269,7 @@ function holdsSchemaToParser(file: unknown): boolean {
   return true
 }
 
-describe("the JSON Schema on random values", () => {
+describe("the JSON Schema on random values", PROPERTY, () => {
   it.each(PLACES)("%s: takes what the parser takes silently", (_place, fileWith) => {
     let silent = 0
     fc.assert(

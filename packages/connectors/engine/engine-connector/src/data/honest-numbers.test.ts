@@ -401,8 +401,14 @@ it.each(["", " (With incident chip)", " (Suspended chip)"])(
   },
 )
 
+/**
+ * The completeness check imports every module of src/data: 0.3 s alone, up to 2.5 s on the CI
+ * runner, where `pnpm test` runs every package's suite at once on four cores.
+ */
+const EVERY_MODULE = { timeout: 30_000 }
+
 describe("the rejection and degrade tables are complete", () => {
-  it("name every data builder exported from src/data", async () => {
+  it("name every data builder exported from src/data", EVERY_MODULE, async () => {
     const dir = dirname(fileURLToPath(import.meta.url))
     const modules = readdirSync(dir).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts"))
     const builders: string[] = []

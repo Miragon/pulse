@@ -17,7 +17,7 @@ import {
   TRANSPORT_CASES,
   type TransportCase,
 } from "@miragon/pulse-http/testing"
-import { startCaseEngine } from "@miragon/pulse-http/testing/loopback"
+import { type CaseEngine, startCaseEngine } from "@miragon/pulse-http/testing/loopback"
 import { runWithMcpRequestInfo } from "@miragon/pulse-widget-shell/server"
 import type { EngineAuth } from "../../engine-provider.js"
 import { createEngineConnection } from "./engine-connection.js"
@@ -65,16 +65,18 @@ function failed(error: unknown): Observed {
 }
 
 /** The SDK call of the case: its method, template, path values, JSON body and caller abort. */
-async function called(kase: TransportCase, client: Client): Promise<Observed> {
+async function called(
+  kase: TransportCase,
+  client: Client,
+  signal: AbortSignal | undefined,
+): Promise<Observed> {
   const { request } = kase
   const method = request.method.toLowerCase() as "get" | "post" | "put" | "delete"
   const result = (await client[method]({
     url: request.path,
     path: { ...request.values },
     ...(request.body === undefined ? {} : { body: JSON.parse(request.body) as unknown }),
-    ...(request.cancelAfterMs === undefined
-      ? {}
-      : { signal: AbortSignal.timeout(request.cancelAfterMs) }),
+    ...(signal === undefined ? {} : { signal }),
     parseAs: request.expects === "json" ? "json" : "text",
     responseStyle: "fields",
   })) as unknown as { data: unknown; response: Response }
@@ -82,12 +84,12 @@ async function called(kase: TransportCase, client: Client): Promise<Observed> {
   return { outcome: "answered", status: result.response.status, text }
 }
 
-async function observe(kase: TransportCase, origin: string): Promise<Observed> {
+async function observe(kase: TransportCase, engine: CaseEngine): Promise<Observed> {
   const { connection } = kase
   let client: Client
   try {
     client = createEngineConnection(
-      { id: "case", baseUrl: `${origin}${connection.root}` },
+      { id: "case", baseUrl: `${engine.origin}${connection.root}` },
       authOf(connection.credential),
       {
         timeoutMs: connection.timeoutMs,
@@ -100,7 +102,7 @@ async function observe(kase: TransportCase, origin: string): Promise<Observed> {
     // A credential no header can carry fails the boot.
     return { outcome: "credential", text: (error as Error).message }
   }
-  const call = () => called(kase, client).catch(failed)
+  const call = () => called(kase, client, engine.callerSignal).catch(failed)
   const { credential } = connection
   return credential.type === "caller"
     ? runWithMcpRequestInfo({ authorization: `Bearer ${credential.token}` }, call)
@@ -124,7 +126,7 @@ describe("the server's wiring of the transport", () => {
     async (_name, kase) => {
       const engine = await startCaseEngine(kase)
       try {
-        const observed = await observe(kase, engine.origin)
+        const observed = await observe(kase, engine)
         expect(caseFindings(kase, observed, engine.seen)).toEqual([])
       } finally {
         await engine.close()

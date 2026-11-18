@@ -13,6 +13,7 @@ import {
   signIn,
   startSignIn,
   tokenEndpointOf,
+  FAKE_PROVIDER,
 } from "./fake-oidc.test-support.js"
 
 let fake: FakeOidc | undefined
@@ -27,7 +28,7 @@ afterEach(async () => {
 
 const [ALICE, BOB] = FAKE_OIDC_USERS
 
-describe("the fake provider's discovery", () => {
+describe("the fake provider's discovery", FAKE_PROVIDER, () => {
   it("is Keycloak's realm on a loopback port, and a confidential client of pulse-http can use it", async () => {
     const idp = await start({ realm: "platform" })
     expect(idp.serverUrl).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/)
@@ -69,7 +70,7 @@ describe("the fake provider's discovery", () => {
   })
 })
 
-describe("a sign-in at the fake provider", () => {
+describe("a sign-in at the fake provider", FAKE_PROVIDER, () => {
   it("shows a login page that offers each user and a way to cancel", async () => {
     const idp = await start()
     const { url } = await startSignIn(await metadataOf(idp))
@@ -204,7 +205,7 @@ describe("a sign-in at the fake provider", () => {
   })
 })
 
-describe("the fake provider's authorization checks", () => {
+describe("the fake provider's authorization checks", FAKE_PROVIDER, () => {
   const authorizeWith = async (idp: FakeOidc, change: (query: URLSearchParams) => void) => {
     const { url } = await startSignIn(await metadataOf(idp))
     const changed = new URL(url)
@@ -242,7 +243,7 @@ describe("the fake provider's authorization checks", () => {
   })
 })
 
-describe("the fake provider's token endpoint", () => {
+describe("the fake provider's token endpoint", FAKE_PROVIDER, () => {
   const codeFor = async (idp: FakeOidc) => {
     const metadata = await metadataOf(idp)
     const { url, pkce } = await startSignIn(metadata)

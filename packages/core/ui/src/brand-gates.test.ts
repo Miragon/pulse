@@ -163,7 +163,13 @@ describe("the formatters' own words follow the voice rules", () => {
   })
 })
 
-describe.each(SCANNED)("src/%s", (dir) => {
+/**
+ * Each scan reads every source of its directory from disk: a few ms to 0.2 s alone, up to 3 s on
+ * the CI runner, where `pnpm test` runs every package's suite at once on four cores.
+ */
+const SCAN = { timeout: 30_000 }
+
+describe.each(SCANNED)("src/%s", SCAN, (dir) => {
   const path = join(SRC, dir)
 
   it("draws icons with Lucide, never glyphs or emoji", () => {

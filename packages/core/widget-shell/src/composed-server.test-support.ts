@@ -5,6 +5,13 @@ import type { ModuleServer } from "./module-server.js"
 import { oauthCustomProvider } from "./oauth-providers.js"
 import { SERVED_FONT_FILES, SERVED_FONT_PATH } from "./protocol/served-fonts.js"
 
+/**
+ * The limit of a test that boots the composed server and sends it dozens of requests over real
+ * sockets: 0.1 to 0.2 s alone, up to 2.5 s on the CI runner, where `pnpm test` runs every
+ * package's suite at once on four cores.
+ */
+export const OVER_SOCKETS = { timeout: 15_000 }
+
 export const answer = () => ({
   content: [{ type: "text" as const, text: "ok" }],
   structuredContent: {},

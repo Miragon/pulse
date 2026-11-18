@@ -8,6 +8,7 @@ import {
   sessionOf,
   startSignIn,
   webEnv,
+  SIGN_IN,
 } from "./sign-in.test-support.js"
 
 /**
@@ -32,7 +33,7 @@ afterEach(async () => {
   await fake.close()
 })
 
-describe("the request log at trace over the web app", () => {
+describe("the request log at trace over the web app", SIGN_IN, () => {
   it("shows no sign-in's state or challenge, no CSRF token, no code and no token", async () => {
     const browser = new Browser(await bootWeb(webEnv(fake, { MCP_LOG_LEVEL: "trace" })))
     const { authorization } = await startSignIn(browser, fake)

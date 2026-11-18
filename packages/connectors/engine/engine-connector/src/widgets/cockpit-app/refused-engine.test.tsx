@@ -183,7 +183,13 @@ const REFUSED_BOOT: CockpitAppData = {
   start: null,
 }
 
-describe("the cockpit on an engine whose profile the server refused", () => {
+/**
+ * A case renders widgets in happy-dom and waits for their queries: up to 0.2 s alone, up to 2.1 s
+ * on the CI runner, where `pnpm test` runs every package's suite at once on four cores.
+ */
+const RENDER = { timeout: 15_000 }
+
+describe("the cockpit on an engine whose profile the server refused", RENDER, () => {
   it("says why at once and once, without Try again or the chat, and retries no read", async () => {
     // The view's own client: TanStack's retries would hold the reason back for 7 s.
     client = createViewQueryClient()

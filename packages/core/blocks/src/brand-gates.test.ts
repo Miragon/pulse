@@ -11,8 +11,14 @@ import { describe, expect, it } from "vitest"
 
 const SRC = fileURLToPath(new URL(".", import.meta.url))
 
+/**
+ * Each scan reads every source of the package from disk: 0.15 s alone, up to 2.3 s on the CI
+ * runner, where `pnpm test` runs every package's suite at once on four cores.
+ */
+const SCAN = { timeout: 30_000 }
+
 /** The brand gates every Pulse UI runs over its own sources (CLAUDE.md invariant 6). */
-describe("the building blocks keep the brand", () => {
+describe("the building blocks keep the brand", SCAN, () => {
   it("draw function icons with Lucide, never a glyph, an emoji or a sparkle", () => {
     expect(scanGlyphs(SRC)).toEqual([])
   })

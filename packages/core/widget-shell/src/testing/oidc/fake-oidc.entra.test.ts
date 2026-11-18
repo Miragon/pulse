@@ -14,7 +14,13 @@ import {
 } from "@miragon/pulse-http/oauth"
 import { GRAPH } from "./entra.js"
 import { startFakeOidc, type FakeEntraTenant, type FakeOidc } from "./fake-oidc.js"
-import { platform, REDIRECT_URI, RESOURCE, tokenEndpointOf } from "./fake-oidc.test-support.js"
+import {
+  platform,
+  REDIRECT_URI,
+  RESOURCE,
+  tokenEndpointOf,
+  FAKE_PROVIDER,
+} from "./fake-oidc.test-support.js"
 import { ENTRA_API_CLIENT_ID, ENTRA_TENANT, FAKE_OIDC_CLIENT, FAKE_OIDC_USERS } from "./realm.js"
 
 /** The fake provider as Microsoft Entra ID plays one tenant, through a client of pulse-http. */
@@ -114,7 +120,7 @@ const failureOf = (promise: Promise<unknown>) =>
     (error: unknown) => error as TokenFailure,
   )
 
-describe("the fake Entra ID's authorities", () => {
+describe("the fake Entra ID's authorities", FAKE_PROVIDER, () => {
   it("names the tenant's v2.0 authority its issuer, and the oauth21 one beside it", async () => {
     const idp = await start()
     expect(idp.issuer).toBe(`${idp.serverUrl}/${ENTRA_TENANT}/v2.0`)
@@ -184,7 +190,7 @@ describe("the fake Entra ID's authorities", () => {
   })
 })
 
-describe("a sign-in at the fake Entra ID", () => {
+describe("a sign-in at the fake Entra ID", FAKE_PROVIDER, () => {
   it("issues a v2 access token for the API: its client id, the short scope, a hashed sub and no resource needed", async () => {
     const idp = await start()
     const tokens = await signIn(idp)
@@ -314,7 +320,7 @@ describe("a sign-in at the fake Entra ID", () => {
   })
 })
 
-describe("what the fake Entra ID refuses", () => {
+describe("what the fake Entra ID refuses", FAKE_PROVIDER, () => {
   it("refuses a resource that is no App ID URI of the API, at the authorization request (AADSTS9010010)", async () => {
     const idp = await start()
     const { query } = await authorize(idp, { resource: RESOURCE })
@@ -353,7 +359,7 @@ describe("what the fake Entra ID refuses", () => {
   })
 })
 
-describe("a refresh at the fake Entra ID", () => {
+describe("a refresh at the fake Entra ID", FAKE_PROVIDER, () => {
   it("rotates its refresh token, and the old one renews on", async () => {
     const idp = await start()
     const first = await signIn(idp)
@@ -408,7 +414,7 @@ describe("a refresh at the fake Entra ID", () => {
   })
 })
 
-describe("what the fake Entra ID names for a server", () => {
+describe("what the fake Entra ID names for a server", FAKE_PROVIDER, () => {
   it("names the boot's Entra ID variables: the tenant, the API, its origin as the cloud's", async () => {
     const idp = await start()
     expect(idp.env("http://localhost:8400")).toEqual({

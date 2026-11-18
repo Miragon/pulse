@@ -9,7 +9,7 @@ import {
   type FakeOidc,
   type FakeOidcOptions,
 } from "./testing/oidc/index.js"
-import { entraSignIn } from "./testing/oidc/fake-oidc.test-support.js"
+import { entraSignIn, FAKE_PROVIDER } from "./testing/oidc/fake-oidc.test-support.js"
 import { ENTRA_API_CLIENT_ID } from "./testing/oidc/realm.js"
 
 /**
@@ -108,7 +108,7 @@ afterEach(async () => {
   await fake.close()
 })
 
-describe("Entra ID on the boot: what it serves and says", () => {
+describe("Entra ID on the boot: what it serves and says", FAKE_PROVIDER, () => {
   it("names the oauth21 authority and the full scope in the protected resource metadata, and serves no copy of the server's", async () => {
     await start()
     const composed = await boot(fake.env(PULSE))
@@ -140,7 +140,7 @@ describe("Entra ID on the boot: what it serves and says", () => {
   })
 })
 
-describe("Entra ID's gate at the fake tenant", () => {
+describe("Entra ID's gate at the fake tenant", FAKE_PROVIDER, () => {
   it("serves the tenant's v2 token of either authority", async () => {
     await start()
     const composed = await boot(fake.env(PULSE))

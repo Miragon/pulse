@@ -21,6 +21,13 @@ export interface CaseEngine {
   /** Where the case's root is appended: `http(s)://127.0.0.1:<port>`, or an unresolvable host. */
   readonly origin: string
   readonly seen: readonly Seen[]
+  /**
+   * The caller's abort of a case whose request has `cancelAfterMs`: it fires that long after the
+   * request reached this engine, never before, so a machine under load cannot cut the request
+   * on its way, as a timer started at the send could; where no request arrives, it never fires.
+   * Undefined for a case without one.
+   */
+  readonly callerSignal?: AbortSignal
   close(): Promise<void>
 }
 
@@ -139,8 +146,24 @@ const CLOSED_PORT = 2
 /** The answer to a request the engine recorded, by the request and the count of requests so far. */
 type Reply = (request: Seen, count: number) => CaseAnswer
 
-/** Records each request as it reached the socket and answers it with `reply`. */
-function recording(seen: Seen[], timers: Set<NodeJS.Timeout>, reply: Reply) {
+/**
+ * The caller's abort `afterMs` after the first request reached the engine: `arrived`, which the
+ * engine calls with each request, starts a timer on the engine's timers, and the first one aborts.
+ */
+function callerAbort(afterMs: number, timers: Set<NodeJS.Timeout>) {
+  const controller = new AbortController()
+  const arrived = () => {
+    const timer = setTimeout(() => {
+      timers.delete(timer)
+      controller.abort()
+    }, afterMs)
+    timers.add(timer)
+  }
+  return { signal: controller.signal, arrived }
+}
+
+/** Records each request as it reached the socket, tells `arrived` and answers it with `reply`. */
+function recording(seen: Seen[], timers: Set<NodeJS.Timeout>, reply: Reply, arrived?: () => void) {
   return (req: IncomingMessage, res: ServerResponse) => {
     const chunks: Buffer[] = []
     req.on("data", (chunk: Buffer) => chunks.push(chunk))
@@ -154,6 +177,7 @@ function recording(seen: Seen[], timers: Set<NodeJS.Timeout>, reply: Reply) {
         ...(authorization ? { authorization } : {}),
       }
       seen.push(request)
+      arrived?.()
       answer(req, res, reply(request, seen.length), timers)
     })
   }
@@ -161,6 +185,19 @@ function recording(seen: Seen[], timers: Set<NodeJS.Timeout>, reply: Reply) {
 
 /** The engine of `kase`, recording every request and answering with the case's answers in order. */
 export async function startCaseEngine(kase: TransportCase): Promise<CaseEngine> {
+  const timers = new Set<NodeJS.Timeout>()
+  const { cancelAfterMs } = kase.request
+  const caller = cancelAfterMs === undefined ? undefined : callerAbort(cancelAfterMs, timers)
+  const engine = await caseEngineOf(kase, timers, caller?.arrived)
+  return caller === undefined ? engine : { ...engine, callerSignal: caller.signal }
+}
+
+/** The engine at the case's endpoint; where no request can arrive, nothing listens. */
+async function caseEngineOf(
+  kase: TransportCase,
+  timers: Set<NodeJS.Timeout>,
+  arrived: (() => void) | undefined,
+): Promise<CaseEngine> {
   const { endpoint } = kase.connection
   if (endpoint === "closed-port") {
     const origin = `http://127.0.0.1:${String(CLOSED_PORT)}`
@@ -170,11 +207,11 @@ export async function startCaseEngine(kase: TransportCase): Promise<CaseEngine> 
     return { origin: "http://transport-case.invalid", seen: [], close: () => Promise.resolve() }
   }
   const seen: Seen[] = []
-  const timers = new Set<NodeJS.Timeout>()
   // The last answer answers every request after it; a case without one answers 200.
-  const handler = recording(seen, timers, (_, count) => ({
+  const reply: Reply = (_, count) => ({
     ...kase.answers[Math.min(count, kase.answers.length) - 1],
-  }))
+  })
+  const handler = recording(seen, timers, reply, arrived)
   if (endpoint === "self-signed-tls") {
     return listening(https.createServer(selfSigned(), handler), "https", seen, timers)
   }

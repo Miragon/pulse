@@ -18,6 +18,7 @@ import {
   sessionOf,
   signIn,
   webEnv,
+  SIGN_IN,
 } from "./sign-in.test-support.js"
 
 /**
@@ -171,7 +172,7 @@ const refreshes = () =>
     (r) => r.endpoint === "token" && r.form.get("grant_type") === "refresh_token",
   )
 
-describe("a page's call through the whole server", () => {
+describe("a page's call through the whole server", SIGN_IN, () => {
   it("reaches a view's tools in /mcp as the signed-in user, and no token reaches the page", async () => {
     fake = await startFakeOidc({ audience: RESOURCE })
     const browser = new Browser(await boot(webEnv(fake)))
@@ -238,7 +239,7 @@ describe("a page's call through the whole server", () => {
   })
 })
 
-describe("a page's session renewed through the provider", () => {
+describe("a page's session renewed through the provider", SIGN_IN, () => {
   it("renews a due token, follows the rotation and shares one refresh among parallel calls", async () => {
     // A token of 5 s is due at once: every call renews it.
     fake = await startFakeOidc({
@@ -337,7 +338,7 @@ describe("a page's session renewed through the provider", () => {
   })
 })
 
-describe("a page that leaves while its call runs", () => {
+describe("a page that leaves while its call runs", SIGN_IN, () => {
   it("cancels the tool's call in /mcp when its connection goes away, and answers it 499", async () => {
     fake = await startFakeOidc({ audience: RESOURCE })
     slow.started = deferred<void>()

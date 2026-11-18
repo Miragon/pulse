@@ -13,6 +13,7 @@ const CI_WORKFLOW = fileURLToPath(
 
 const ENGINE_TESTS = "test/**/*.engine.test.ts"
 const SWITCHES = ["passWithNoTests", "allowOnly", "bail", "testNamePattern", "include", "exclude"]
+const CONFIG_IMPORT_LIMIT = { timeout: 15_000 }
 
 function filesOf(patterns: unknown): string[] {
   const globs = [patterns].flat().filter((pattern) => typeof pattern === "string")
@@ -36,7 +37,7 @@ async function configOf(file: string): Promise<Options> {
   return optionsOf(loaded.default)
 }
 
-describe("the config the engines CI job runs by name", () => {
+describe("the config the engines CI job runs by name", CONFIG_IMPORT_LIMIT, () => {
   test("are the ones the pinned test:engines script loads", () => {
     const manifest = JSON.parse(readFileSync(join(APP_ROOT, "package.json"), "utf8")) as {
       readonly scripts: Readonly<Record<string, string>>

@@ -20,7 +20,7 @@ import {
   TRANSPORT_CASES,
   type TransportCase,
 } from "@miragon/pulse-http/testing"
-import { startCaseEngine } from "@miragon/pulse-http/testing/loopback"
+import { type CaseEngine, startCaseEngine } from "@miragon/pulse-http/testing/loopback"
 import { type C8Auth, type C8Connection, createC8Connection } from "./c8-connection.js"
 import { c8WordsOf } from "./c8-errors.js"
 
@@ -104,11 +104,11 @@ function failed(error: unknown, transport: CamundaTransport, connection: C8Conne
   }
 }
 
-async function observe(kase: TransportCase, origin: string): Promise<Observed> {
+async function observe(kase: TransportCase, engine: CaseEngine): Promise<Observed> {
   const exchange: Exchange = {}
   const { connection } = kase
   const c8 = createC8Connection(
-    { id: "case", baseUrl: `${origin}${connection.root}` },
+    { id: "case", baseUrl: `${engine.origin}${connection.root}` },
     authOf(connection),
     {
       timeoutMs: connection.timeoutMs,
@@ -118,10 +118,7 @@ async function observe(kase: TransportCase, origin: string): Promise<Observed> {
     },
     platformOf(kase, exchange),
   )
-  const { cancelAfterMs } = kase.request
-  const transport = c8.transport(
-    cancelAfterMs === undefined ? undefined : AbortSignal.timeout(cancelAfterMs),
-  )
+  const transport = c8.transport(engine.callerSignal)
   try {
     const value = await called(kase, transport)
     const text = typeof value === "string" ? value : JSON.stringify(value ?? null)
@@ -149,7 +146,7 @@ describe("the server's Camunda 8 wiring of the transport", () => {
   it.each(expressed.map((kase) => [kase.name, kase] as const))("passes %s", async (_name, kase) => {
     const engine = await startCaseEngine(kase)
     try {
-      const observed = await observe(kase, engine.origin)
+      const observed = await observe(kase, engine)
       expect(caseFindings(kase, observed, engine.seen)).toEqual([])
     } finally {
       await engine.close()

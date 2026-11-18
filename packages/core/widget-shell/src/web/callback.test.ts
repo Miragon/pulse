@@ -20,6 +20,7 @@ import {
   signIn,
   startSignIn,
   webEnv,
+  SIGN_IN,
 } from "./sign-in.test-support.js"
 
 let fake: FakeOidc
@@ -70,7 +71,7 @@ function expectFailed(response: Response, reason: string) {
   expect(response.headers.getSetCookie()).toEqual([`${LOGIN_COOKIE}=; Max-Age=0; ${FLAGS}`])
 }
 
-describe("GET /app/auth/callback: a sign-in", () => {
+describe("GET /app/auth/callback: a sign-in", SIGN_IN, () => {
   it("starts a session in the session cookie, clears the login cookie and returns to the page", async () => {
     const browser = new Browser(await bootWeb(webEnv(fake)))
     const callback = await signIn(browser, fake, { returnTo: "/app/boards/ops" })
@@ -189,7 +190,7 @@ describe("GET /app/auth/callback: a sign-in", () => {
   })
 })
 
-describe("GET /app/auth/callback: what it refuses before it asks the provider", () => {
+describe("GET /app/auth/callback: what it refuses before it asks the provider", SIGN_IN, () => {
   /** Requests to the provider from now on: none may follow a refused callback. */
   const asked = (before: number) => fake.requests.slice(before).map(({ endpoint }) => endpoint)
 
@@ -271,7 +272,7 @@ describe("GET /app/auth/callback: what it refuses before it asks the provider", 
   })
 })
 
-describe("GET /app/auth/callback: what the provider answers", () => {
+describe("GET /app/auth/callback: what the provider answers", SIGN_IN, () => {
   it("says denied when the user cancels at the provider", async () => {
     const browser = new Browser(await bootWeb(webEnv(fake)))
     const { authorization } = await startSignIn(browser, fake)

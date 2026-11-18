@@ -9,6 +9,9 @@ const BOARD_FORMAT = "packages/core/board/src/format"
 const COMPONENT_PROBE = "packages/core/runtime-view/src/webview/app.tsx"
 const WEBVIEW_TEST_PROBE = "packages/core/runtime-view/test/webview/harness.tsx"
 const HOOKS_SET = "recommended-latest"
+const EXTENSION_PROGRAM_PROBE = "apps/vscode/src/host/connections/target-discovery.ts"
+const PLUGIN_PROGRAM_PROBE = "apps/orca/src/worker/engine-registry.ts"
+const TYPED_PROGRAM_PROBES = [PROBE_FILE, EXTENSION_PROGRAM_PROBE, PLUGIN_PROGRAM_PROBE]
 const TYPED_PROGRAM_WARMUP_MS = 600_000
 
 interface ResolvedConfig {
@@ -48,7 +51,9 @@ function withProbe(line: string): string {
 
 describe("the lint gates", { timeout: 120_000 }, () => {
   beforeAll(async () => {
-    await rulesFiredOn(readRepoFile(PROBE_FILE))
+    for (const filePath of TYPED_PROGRAM_PROBES) {
+      await rulesFiredOn(readRepoFile(filePath), filePath)
+    }
   }, TYPED_PROGRAM_WARMUP_MS)
 
   test("the probe file is clean as it is", async () => {
@@ -124,8 +129,8 @@ describe("the lint gates", { timeout: 120_000 }, () => {
   test.each([
     "packages/core/runtime-view/src/host-kit/connections/engine-root.ts",
     "packages/core/runtime-view/src/host-kit/connections/engine-target.ts",
-    "apps/vscode/src/host/connections/target-discovery.ts",
-    "apps/orca/src/worker/engine-registry.ts",
+    EXTENSION_PROGRAM_PROBE,
+    PLUGIN_PROGRAM_PROBE,
   ])("keep engine words out of the hosts outside their composition roots: %s", async (filePath) => {
     expect(await rulesFiredOn(readRepoFile(filePath), filePath)).toEqual([])
     const probe = `${readRepoFile(filePath)}\nexport type Flavor = 'camunda8';\n`

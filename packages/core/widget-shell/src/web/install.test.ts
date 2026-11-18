@@ -10,6 +10,7 @@ import {
   sessionOf,
   signIn,
   webEnv,
+  SIGN_IN,
 } from "./sign-in.test-support.js"
 
 let fake: FakeOidc
@@ -36,7 +37,7 @@ const refusalOf = async (env: NodeJS.ProcessEnv, overrides = {}) => {
   throw new Error("expected the boot to fail")
 }
 
-describe("the boot and the web app", () => {
+describe("the boot and the web app", SIGN_IN, () => {
   it("names the web app in its log, without the secret or a key", async () => {
     await bootWeb(webEnv(fake))
     const lines = info.mock.calls.map(([line]) => String(line))
@@ -84,7 +85,7 @@ describe("the boot and the web app", () => {
   })
 })
 
-describe("the boot hands the sign-in the provider's rules", () => {
+describe("the boot hands the sign-in the provider's rules", SIGN_IN, () => {
   // A provider whose access token names its caller by email and carries no name: the ID token's
   // name counts only where its caller claims pair the two tokens, which sub alone would not.
   it("pairs the ID token with the caller by the provider's caller claims", async () => {

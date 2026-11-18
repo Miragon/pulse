@@ -116,7 +116,13 @@ const cells = (row: HTMLElement) =>
     .getAllByRole("cell", { hidden: true })
     .map((c) => c.textContent)
 
-describe("the cross-engine landscape, read from each engine", () => {
+/**
+ * A case renders widgets in happy-dom and waits for their queries: up to 0.2 s alone, up to 3.1 s
+ * on the CI runner, where `pnpm test` runs every package's suite at once on four cores.
+ */
+const RENDER = { timeout: 15_000 }
+
+describe("the cross-engine landscape, read from each engine", RENDER, () => {
   it("totals the engines that answered as a lower bound, and counts the unreachable one", async () => {
     renderFleet()
     const landscape = screen.getByRole("region", { name: "Process landscape" })

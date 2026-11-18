@@ -9,6 +9,7 @@ import {
   signIn,
   startSignIn,
   tokenEndpointOf,
+  FAKE_PROVIDER,
 } from "./fake-oidc.test-support.js"
 
 let fake: FakeOidc | undefined
@@ -39,7 +40,7 @@ const refusalOf = async (promise: Promise<unknown>) => {
   throw new Error("expected a refusal")
 }
 
-describe("a refresh at the fake provider", () => {
+describe("a refresh at the fake provider", FAKE_PROVIDER, () => {
   it("renews the access token for the same user and session, and the old refresh token renews too", async () => {
     const idp = await start()
     const first = await signIn(idp)
@@ -182,7 +183,7 @@ describe("a refresh at the fake provider", () => {
   })
 })
 
-describe("the end of a session at the fake provider", () => {
+describe("the end of a session at the fake provider", FAKE_PROVIDER, () => {
   it("revokes a client's refresh token, which renews no more", async () => {
     const idp = await start()
     const tokens = await signIn(idp)
@@ -308,7 +309,7 @@ describe("the end of a session at the fake provider", () => {
   })
 })
 
-describe("the fake provider's edges", () => {
+describe("the fake provider's edges", FAKE_PROVIDER, () => {
   it("answers a wrong method with 405 and an unknown path with 404", async () => {
     const idp = await start()
     const token = await fetch(`${idp.issuer}/protocol/openid-connect/token`)

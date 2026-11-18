@@ -11,7 +11,7 @@ import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import { jwtWith, NOW_S, opaqueTokens, VALID_CLAIMS } from "../../test/support/bearer.js"
 import { connectionRefused, fakeServer, json } from "../../test/support/fake-fetch.js"
-import { CONFIG_PATH, execute, fakeRuntime } from "../../test/support/fake-runtime.js"
+import { CONFIG_PATH, execute, fakeRuntime, MANY_RUNS } from "../../test/support/fake-runtime.js"
 import { run } from "./run.js"
 
 interface Scenario {
@@ -187,7 +187,7 @@ describe("bearer token secrets", () => {
     ])
   })
 
-  it("never appear in any output without --show-secrets", async () => {
+  it("never appear in any output without --show-secrets", MANY_RUNS, async () => {
     await fc.assert(
       fc.asyncProperty(tokens, async ({ token, forms }) => {
         for (const scenario of scenarios(token)) {

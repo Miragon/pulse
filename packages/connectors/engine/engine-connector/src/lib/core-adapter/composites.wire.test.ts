@@ -26,6 +26,13 @@ import { MAX_VARIABLE_VALUE_CHARS } from "../mcp/variable-truncation.js"
 
 afterEach(stopFakeEngines)
 
+/**
+ * The cut tree's read walks 100 called instances in 314 requests over the real client and a
+ * loopback engine: 0.3 s alone, up to 4.3 s on the CI runner, where `pnpm test` runs every
+ * package's suite at once on four cores.
+ */
+const CUT_TREE = { timeout: 30_000 }
+
 describe("inspectForModel", () => {
   it("returns the inspect view of the verified fixture as data, without next steps", async () => {
     const engine = await engineWith({}, fixtureEngine(approveRoutes()))
@@ -140,7 +147,7 @@ describe("inspectForModel", () => {
     expect(read?.query.deserializeValues).toBe("false")
   })
 
-  it("names a cut instance tree in truncated instead of c7-core's flag", async () => {
+  it("names a cut instance tree in truncated instead of c7-core's flag", CUT_TREE, async () => {
     const children = Array.from({ length: 101 }, (_, index) => ({
       id: `c${index}`,
       definitionId: CHILD_DEF,

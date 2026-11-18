@@ -47,7 +47,10 @@ export interface CaseRequest {
   readonly body?: string
   /** The wiring reads the answer as JSON: a body that does not parse is an invalid answer. */
   readonly expects?: "json"
-  /** The caller aborts the request (its own AbortSignal) this many ms after sending it. */
+  /**
+   * The caller aborts the request (its own AbortSignal) this many ms after it reached the engine:
+   * the loopback engine's `callerSignal`, which a wiring hands its request.
+   */
   readonly cancelAfterMs?: number
 }
 
