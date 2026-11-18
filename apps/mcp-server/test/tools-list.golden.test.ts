@@ -202,6 +202,31 @@ describe("tools/list golden contract per toolset", () => {
     assertCharBudget("instructions-camunda8", c8.length - c7.length)
   })
 
+  // The root's preamble and description hold on every configuration: a server of Camunda 8
+  // engines alone serves no Camunda 7 operation, so neither names one; the module's own snippet
+  // says what its engines are.
+  it("names no dialect in the preamble or the description, which a Camunda 8 engine alone does not serve", async () => {
+    const server = await bootServer({
+      env: {
+        ENGINE_BASE_URL: undefined,
+        ENGINES_JSON: JSON.stringify({
+          profiles: { c8: { url: "http://localhost:1/v2", flavor: "camunda8" } },
+        }),
+      },
+    })
+    try {
+      const [preamble, engine] = (server.client.getInstructions() ?? "").split("\n\n")
+      expect(preamble).toBe(SERVER_INSTRUCTIONS)
+      expect(server.client.getServerVersion()?.description).toBe("Process engine operations")
+      for (const text of [preamble, server.client.getServerVersion()?.description ?? ""]) {
+        expect(text).not.toMatch(/Camunda|CIB seven|Operaton/)
+      }
+      expect(engine).toMatch(/^engine \(Camunda 8, which this server reads on boards\):/)
+    } finally {
+      await server.close()
+    }
+  })
+
   it("reports the package.json version, a title and the instructions in module order", async () => {
     const server = await bootServer()
     try {

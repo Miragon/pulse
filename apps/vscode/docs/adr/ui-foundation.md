@@ -197,8 +197,7 @@ day the owner decided D9, which replaces D4 and turns D7 into the switch's preco
      `data-cd-kontrast="hoch"` and `forced-colors`. VS Code sets the contrast already
      (modeler-shell's appearance wiring). Orca's theme event reports only light or dark
      (`apps/orca/types/orca/index.d.ts`), so in Orca high contrast reaches the webview through
-     `forced-colors`, and its bridge sets `data-cd-kontrast="hoch"` only where Orca reports high
-     contrast.
+     `forced-colors` alone: its bridge sets no `data-cd-kontrast`.
   4. **Numbers stay neutral** (invariant 6) on every surface: an alarming count gets a tone icon
      of its own shape and its meaning as screen-reader text, never a coloured number, a tinted
      tile or a dot alone (`CountFigure`, `CountBadge` as a pill; owner's delegate, 2026-11-13).

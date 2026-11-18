@@ -48,7 +48,7 @@ engines.
 | `apps/cli/`                                    | The CLI (npm `@miragon/pulse-cli`): every REST operation of the engine as a command, generated from its OpenAPI spec, plus the workflow commands; its rules in `apps/cli/CLAUDE.md`                                                                                                                                                                                                                                                                                                                                        |
 | `apps/vscode/`                                 | Pulse for VS Code (`pulse-cockpit`, a .vsix): the VS Code host of the runtime view; its rules in `apps/vscode/CLAUDE.md`                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `apps/orca/`                                   | Pulse for Orca (`@miragon/pulse-orca`, an Orca plugin): the Orca host of the runtime view (worker, components panel, custom editors); its rules in `apps/orca/CLAUDE.md`                                                                                                                                                                                                                                                                                                                                                   |
-| `apps/web/`                                    | The web app (`@miragon/pulse-web`, private): the MCP server's views as pages of the server under `/app` (the cockpit at `/app` and `/app/cockpit?view=…`), over widget-shell's `mountPage` with its own frame (bar, sign-out, the session's notices, the signed-out page per reason); Vite builds it with its `pages.json`, which the server reads at boot; its rules in `apps/web/CLAUDE.md`                                                                                                                              |
+| `apps/web/`                                    | The web app (`@miragon/pulse-web`, private): the MCP server's views as pages of the server under `/app` (the landing at `/app`, the engines and the server's boards; a board at `/app/boards/<id>`; a start view of the cockpit at `/app/cockpit?view=…`), over widget-shell's `mountPage` with its own frame (bar, sign-out, the session's notices, the signed-out page per reason); Vite builds it with its `pages.json`, which the server reads at boot; its rules in `apps/web/CLAUDE.md`                              |
 | `packages/connectors/engine/engine-connector/` | engine module, the one MCP module of every dialect: operations tools, widget tools, widgets                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `packages/connectors/engine/engine-core/`      | The neutral core of the engine family (npm `@miragon/pulse-engine-core`), the contract every dialect implements: the ports a process engine answers (`ProcessRuntime`, `ProcessCommands`), ids, read models, queries, `RuntimeError`, `RootCauses`; the conformance kit with its laws, its fixed world and the in-memory `FakeEngine` (`/testing`); no runtime dependency, Pulse for VS Code's house rules                                                                                                                 |
 | `packages/connectors/c7/c7-client/`            | The SDK of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-client`): the REST SDK generated from c7-core's one spec (`src/generated/`), `createEngineClient` over the `fetch` it is handed and the SDK-bound reads (`src/sdk-reads/`); a leaf                                                                                                                                                                                                                                                                 |
@@ -381,8 +381,8 @@ Marken-Gates) und die Bausteine, die D9 aus der Webview in pulse-ui hebt (`ViewB
 verstellbaren Trennung und den gespeicherten Breiten bleibt im Editor. Die Hosts setzen
 `data-cd-theme`; VS Code setzt für seine Hochkontrast-Themes schon heute `data-cd-kontrast="hoch"`.
 Das Theme-Ereignis von Orca meldet nur hell oder dunkel (`apps/orca/types/orca/index.d.ts`): In Orca
-erreicht hoher Kontrast die Webview über `forced-colors`, und die Brücke von Pulse for Orca setzt
-`data-cd-kontrast="hoch"` nur, wo Orca hohen Kontrast meldet. Was die Oberflächen noch unterscheidet
+erreicht hoher Kontrast die Webview allein über `forced-colors`, die Brücke von Pulse for Orca setzt
+kein `data-cd-kontrast`. Was die Oberflächen noch unterscheidet
 und ob es gewollt ist, steht in `docs/vscode/parity.md`. Für die Webview gilt zusätzlich diese
 bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
 `apps/vscode/docs/adr/user-interface.md`):
@@ -455,7 +455,7 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
    which routes by precedence: per-call `engine` > the operator default
    `ENGINE_DEFAULT` > the profile file's `defaultProfile` (each must name a profile, else the boot
    fails) > the only profile (counted with the refused ones) > `ENGINE_NOT_SELECTED` listing the
-   engines. The engines are profiles of `@miragon/pulse-profile` (`src/engine-profiles.ts`): a
+   engines the call's tool, feed or route serves (its enum's, never one its input refuses). The engines are profiles of `@miragon/pulse-profile` (`src/engine-profiles.ts`): a
    profile the server cannot use is refused on its own (the boot warns, `engine_list_engines`
    lists it under `refused`), and a call to it, a default on it included, fails with
    `ENGINE_PROFILE_REFUSED`, never rerouted. A `camunda8` profile is served with none, Basic or
@@ -587,8 +587,8 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      decision in normal review. A primitive goes into pulse-ui, an engine block into a shared
      package created with the first one two surfaces render: `@miragon/pulse-blocks`
      (`packages/core/blocks`), created with a board's tiles, which own their columns, cells, words
-     and notes and take the surface's table, id and diagram as slots, so each surface keeps its
-     row convention (`docs/vscode/parity.md`). Until a block moves there the cockpit side keeps its
+     and notes and take the surface's table, id and diagram as slots, every table in the one row
+     convention of D9's point 8 (Actions and hand-offs below; `docs/vscode/parity.md`). Until a block moves there the cockpit side keeps its
      props-only content in the connector (`process-definitions-table-view.tsx` with
      `renderActions`, `history-steps.tsx`).
    - **One kit.** Primitives, components, the tone model (`TONE_*`, `resolveTone`), `cn`, the
@@ -1413,9 +1413,12 @@ workspace (its header lists each check).
   Each names this repository in its `repository` field, since npm refuses a provenance publish
   from another repository. The pack job runs `pnpm pack`, which rewrites `workspace:*` (npm's
   own pack would ship it verbatim); the one job that holds `id-token: write` runs no package
-  manager. A package new to npm (`@miragon/pulse-c8-core`, published with the engine module's
-  Camunda 8 wire) is published once by hand and gets its trusted publisher before the release that
-  first publishes it, or the publish job fails and the engine connector names a version npm lacks.
+  manager. A package new to npm (`@miragon/pulse-board`, `@miragon/pulse-blocks` and
+  `@miragon/pulse-c8-core`, all three first published by the release after #617) is published once
+  by hand and gets its trusted publisher (`release-please.yml`, environment `npm`) before the
+  release that first publishes it, or its publish job fails and the engine connector, which
+  depends on the board package and c8-core and peers the blocks, or the starter, which pins the
+  blocks, names a version npm lacks.
   The server app, the two editor hosts and the packages only they bundle (the runtime view, the
   C7 and C8 adapters) stay private. The `miragon-ai` names
   used up to 0.20.0 are retired, and so is the npm name of engine-client, the c7 family's client

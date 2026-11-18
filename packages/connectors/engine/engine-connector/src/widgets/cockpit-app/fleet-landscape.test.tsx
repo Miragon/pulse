@@ -250,6 +250,32 @@ describe("the cross-engine landscape, read from each engine", () => {
     expect(within(table).getByText("unreachable")).toBeTruthy()
   })
 
+  it("never reads a profile the server refused, whatever dialect it names: refused, never unreachable", async () => {
+    const read: string[] = []
+    const feed = (args: Record<string, unknown>) => {
+      read.push(String(args.engine))
+      if (args.engine === "c8bad") throw new Error("Tool engine_cockpit_overview_data not found")
+      return overviewFeed(args)
+    }
+    render(
+      <TestViewHost tools={{ ...TOOLS, [ENGINE_COCKPIT_OVERVIEW_DATA]: feed }} client={queryClient}>
+        <FleetView
+          engines={[{ id: "prod-a" }, { id: "c8bad", refused: true }]}
+          onEnterEngine={() => {}}
+        />
+      </TestViewHost>,
+    )
+    const landscape = screen.getByRole("region", { name: "Process landscape" })
+    await waitFor(() => expect(within(landscape).getByText("1 with profile refused")).toBeTruthy())
+    expect(within(landscape).queryByText(/unreachable/)).toBeNull()
+    const card = screen.getByRole("button", { name: /^c8bad/ })
+    expect(card.textContent).toContain("profile refused")
+    expect(card.querySelector("svg")?.getAttribute("class")).toContain("lucide-ban")
+    const table = screen.getByRole("region", { name: "Load and job backlog per engine" })
+    expect(within(table).getByText("profile refused")).toBeTruthy()
+    expect(read.every((engine) => engine === "prod-a")).toBe(true)
+  })
+
   /** F2: an engine that refuses the server's login answered, so it is not counted unreachable. */
   describe("an engine that refuses the server's login", () => {
     const ENGINES = [{ id: "prod-a" }, { id: "locked-out" }, { id: "no-access" }, { id: "locked" }]

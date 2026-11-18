@@ -416,6 +416,46 @@ test.describe("the landing's boards at 320 px on a touch screen", () => {
 })
 
 /**
+ * The landing of the Camunda 8 deployment at 320 px, in either language: its default engine's row
+ * (the badge, the longest words) names its engine whole and puts what it says under the name where
+ * both do not fit beside each other, its arrow inside the row (WCAG 1.4.10).
+ */
+test.describe("the landing's engines of the Camunda 8 deployment at 320 px", () => {
+  for (const [locale, onBoards, onNoBoard] of [
+    ["en-US", "Camunda 8, on boards", "Camunda 8, on no board yet"],
+    ["de-DE", "Camunda 8, auf Boards", "Camunda 8, noch auf keinem Board"],
+  ] as const) {
+    test(`names each engine whole, its words and its arrow inside the row (${locale})`, async ({
+      browser,
+    }) => {
+      const context = await browser.newContext({ locale, viewport: { width: 320, height: 640 } })
+      try {
+        const page = await context.newPage()
+        await signIn(page, "/app", { deployment: "camunda8" })
+        const engines = page.getByRole("region", { name: "Engines" })
+        await expect(engines.getByRole("button")).toHaveCount(3, { timeout: 15_000 })
+        await rendered(page)
+        for (const text of [HEALTHY_ENGINE, C8_ENGINE, C8_UNBOARDED_ENGINE, onBoards, onNoBoard]) {
+          await expectWhole(engines, text)
+        }
+        const arrows = await engines.evaluate((el) =>
+          [...el.querySelectorAll("button")].map((button) => {
+            const row = button.getBoundingClientRect()
+            const arrow = button.querySelector(":scope > svg:last-of-type")!.getBoundingClientRect()
+            return arrow.right <= row.right + 0.5 && button.scrollWidth <= button.clientWidth
+          }),
+        )
+        expect(arrows).toEqual([true, true, true])
+        expect(await scrollsSideways(page)).toBe(false)
+        await expectNoAxeFinding(page)
+      } finally {
+        await context.close()
+      }
+    })
+  }
+})
+
+/**
  * The pages that show no view, each with its one heading as its title, in the page's words: the
  * signed-out page per reason (the server's, no session needed), and the pages whose session
  * ended before their first read or could not be read (the session route's answer stubbed).

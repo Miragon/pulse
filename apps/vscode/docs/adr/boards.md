@@ -191,7 +191,7 @@ live cluster, locally only until #531.
 | Schema home      | The format's package, a copy held equal in the extension   | A build copy is missing after a turbo cache hit  |
 | Builder home     | `@miragon/pulse-board/builder`, a model of no text         | D2: every surface, one builder over one read     |
 | Tile data        | The JSON form `BoardJson.of` gives, copied in the protocol | One form for every surface, words in the tiles   |
-| Tiles            | `@miragon/pulse-blocks`, the surface's table, id, diagram  | One look on every surface, its own row rules     |
+| Tiles            | `@miragon/pulse-blocks`, the surface's table, id, diagram  | One look and one row convention (D9 point 8)     |
 | MCP server       | The files of `ENGINE_BOARDS_DIR`, one builder, the blocks  | D2 and D8: one builder and one look everywhere   |
 | A broken widget  | Refused in its place; an unknown root key is a note        | One typo no longer hides every number            |
 | Version rule     | A root key that changes what a widget reads is a version   | An older reader never reads a newer file wrong   |

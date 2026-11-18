@@ -283,3 +283,51 @@ describe("a Camunda 8 default beside a Camunda 7 engine: offered nowhere else, r
     expect(c8.sent()).toEqual([])
   })
 })
+
+describe("no default beside a Camunda 7 engine and a read-only one: a call without `engine` names what its enum offers", () => {
+  let c8: FakeC8Cluster
+  let server: BootedServer
+  let tools: WireTool[]
+
+  beforeAll(async () => {
+    c8 = await startC8Cluster(clusterWorld)
+    ;({ server, tools } = await bootOver(c8, {
+      [SHOP]: { url: "http://127.0.0.1:1/engine-rest" },
+      ro: { url: "http://127.0.0.1:2/engine-rest", readOnly: true },
+    }))
+  })
+
+  afterAll(async () => {
+    await server?.close()
+    await c8?.close()
+  })
+
+  const notSelected = (ids: readonly unknown[]) =>
+    `[ENGINE_NOT_SELECTED] No engine specified and no default engine configured. Pass \`engine\`, one of: ${ids.join(", ")}.`
+
+  it("each tool and feed with an engine names exactly the engines its enum offers", async () => {
+    const answers: string[] = []
+    const withEngine = tools.filter((tool) => tool.name !== "engine_open_cockpit" && offered(tool))
+    for (const tool of withEngine) {
+      const args = { ...requiredOf(tool.inputSchema), ...OVERRIDES[tool.name] }
+      const result = await server.client.callTool({ name: tool.name, arguments: args })
+      const text = textOf(result)
+      answers.push(text === notSelected(offered(tool)!) ? "named" : `${tool.name}: ${text}`)
+    }
+    expect(answers.filter((answer) => answer !== "named")).toEqual([])
+    const offers = (name: string) => offered(tools.find((tool) => tool.name === name)!)
+    expect(offers("engine_list_process_instances")).toEqual([SHOP, "ro"])
+    expect(offers("engine_set_job_retries")).toEqual([SHOP])
+    expect(offers("engine_bpmn_xml_data")).toEqual(["c8", SHOP, "ro"])
+    expect(c8.sent()).toEqual([])
+  })
+
+  it("an engine view of the cockpit names the engines its route serves", async () => {
+    const result = await server.client.callTool({
+      name: "engine_open_cockpit",
+      arguments: { view: "overview" },
+    })
+    expect([result.isError, textOf(result)]).toEqual([true, notSelected([SHOP, "ro"])])
+    expect(c8.sent()).toEqual([])
+  })
+})

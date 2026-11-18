@@ -179,6 +179,41 @@ describe("LandingChooser", () => {
   })
 
   /**
+   * A profile the server refused says so without a read, whatever dialect its profile names: the
+   * server offers no feed a profile of another dialect, so a read answers an input its enum refuses
+   * (Camunda 8 beside Camunda 7) or no such feed (Camunda 7 beside Camunda 8 alone), which a row
+   * that read it would call unreachable.
+   */
+  it("says a refused profile is refused without reading it, whatever dialect it names", async () => {
+    const read: string[] = []
+    const feed = (args: Record<string, unknown>) => {
+      read.push(String(args.engine))
+      if (args.engine === "shop") return overviewFeed({ engine: "prod-b" })
+      throw new Error(
+        'Input validation error: Invalid arguments for tool engine_cockpit_overview_data: engine: Invalid input: expected "shop"',
+      )
+    }
+    render(
+      <TestViewHost tools={{ [ENGINE_COCKPIT_OVERVIEW_DATA]: feed }} client={queryClient}>
+        <LandingChooser
+          engines={[
+            { id: "shop", dialect: "c7" },
+            { id: "c8bad", refused: true },
+          ]}
+          onEnterEngine={() => {}}
+        />
+      </TestViewHost>,
+    )
+    const refused = await screen.findByRole("button", { name: /^c8bad\s*,\s*profile refused$/ })
+    expect(refused.dataset.status).toBe("refused")
+    const mark = refused.querySelector("svg")?.getAttribute("class") ?? ""
+    expect(mark).toContain("lucide-ban")
+    expect(mark).toContain(TONE_ICON.warning)
+    expect(await screen.findByRole("button", { name: /^shop\s*,\s*no incidents$/ })).toBeTruthy()
+    expect(read).toEqual(["shop"])
+  })
+
+  /**
    * An engine that does not answer says so from the first failed read, as a board's strip on the
    * same page does, while the view's query client retries quietly behind it (1, 2, 4 s): never
    * "loading…" for the 7 s the retries take.

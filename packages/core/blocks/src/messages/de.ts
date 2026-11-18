@@ -34,6 +34,8 @@ export const de: Readonly<Record<WordKey, Message>> = {
   "open.toSide": "{title} (Strg/Cmd+Klick: daneben)",
   "row.instance": "Instanz {id}",
   "summary.noIncident": "Keine Instanz hat einen offenen Incident.",
+  "summary.noIncidentAnswered":
+    "Keine Instanz hat einen offenen Incident auf den Engines, die geantwortet haben.",
   "instances.label": "Instanzen",
   "instances.empty": "Keine Instanz passt auf den Engines, die geantwortet haben.",
   "instances.showing": "{engine}: {shown} von {total} angezeigt",

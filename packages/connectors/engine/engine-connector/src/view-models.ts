@@ -11,11 +11,6 @@ import type { ClusterDetailData, EngineHealthData } from "./view-models.health.j
 export const LIST_PAGE_SIZE = 50
 export const HISTORY_PAGE_SIZE = 100
 
-interface IncidentStat {
-  incidentType: string
-  incidentCount: number
-}
-
 /** Counts span all versions: old versions keep running after a redeploy. */
 export interface DefinitionStat {
   /** Id of the latest version, the row's link target. */
@@ -25,7 +20,8 @@ export interface DefinitionStat {
   latestVersion: number
   instances: number
   failedJobs: number
-  incidents: IncidentStat[]
+  /** Open incidents by type. */
+  incidents: Array<{ incidentType: string; incidentCount: number }>
 }
 
 export interface CockpitDashboardData {
@@ -157,6 +153,8 @@ export interface CockpitEngineInfo {
   webAppUrl?: string
   /** Another dialect's: the ids of the configured boards that name it, in the board files' order. */
   boards?: readonly string[]
+  /** Its profile refused: its row and card say so without a read, its view one state. */
+  refused?: true
 }
 
 /**

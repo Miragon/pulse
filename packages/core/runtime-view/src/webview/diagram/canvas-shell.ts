@@ -5,7 +5,11 @@ import {
   mountVsCodeShell,
 } from "@miragon/modeler-shell/vscode/webview"
 
-const SHELL_OPTIONS = { themes: ["light", "dark"], lang: "en" } as const
+const SHELL_OPTIONS = {
+  themes: ["light", "dark"],
+  lang: "en",
+  messages: { zoomToActualNow: (percent: string, now: string) => `${now}, zoom to ${percent}` },
+} as const
 
 export interface MountedShell {
   readonly shell: ShellHandle

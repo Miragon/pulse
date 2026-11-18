@@ -74,8 +74,9 @@ export function InstanceRow({
               type="button"
               onClick={() => onOpenProcess(row)}
               className="text-link text-left hover:underline"
-              // The name replaces the button's content for a screen reader, so the version goes in it.
-              aria-label={
+              // Its visible words name it (WCAG 2.5.3, the label in the name): the name, the key
+              // and the version; what a click does is its description and its tooltip.
+              title={
                 row.version !== null
                   ? t("processInstances.openProcessVersionAria", {
                       key: row.processDefinitionName ?? row.processDefinitionKey,

@@ -116,8 +116,13 @@ describe("the engine-wide list's columns", () => {
     const process = screen.getAllByText("Invoice receipt")[0].closest("button")!
     // One line in the cell: the name, the key, the version.
     expect(process.textContent).toBe("Invoice receipt invoice · v7")
-    // The aria-label replaces the content for a screen reader, so it must state the version.
-    expect(process.getAttribute("aria-label")).toBe("Open process Invoice receipt, version 7")
+    // Its visible words name it, the version included (WCAG 2.5.3): no aria-label replaces them,
+    // and what a click does is its description.
+    expect(process.getAttribute("aria-label")).toBeNull()
+    expect(screen.getAllByRole("button", { name: "Invoice receipt invoice · v7" })).toContain(
+      process,
+    )
+    expect(process.title).toBe("Open process Invoice receipt, version 7")
   })
 
   it("keeps the state in its own column on one line, an open incident beside it", () => {
@@ -304,7 +309,7 @@ describe("the list's rows open their instance", () => {
     expect(row.getAttribute("tabindex")).toBe("0")
     fireEvent.click(within(row).getAllByRole("cell")[1])
     fireEvent.keyDown(row, { key: "Enter" })
-    fireEvent.click(within(row).getByRole("button", { name: /^Open process/ }))
+    fireEvent.click(within(row).getByRole("button", { description: /^Open process/ }))
     expect(go.mock.calls.map(([intent]) => intent)).toEqual([
       { type: "instance-detail", processInstanceId: "pi-1", label: "BK-pi-1" },
       { type: "instance-detail", processInstanceId: "pi-1", label: "BK-pi-1" },

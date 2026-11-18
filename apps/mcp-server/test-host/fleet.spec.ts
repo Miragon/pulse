@@ -21,6 +21,8 @@ interface Host {
   /** The host's height budget and display modes (absent: unstated, inline only). */
   maxHeight?: number
   displayModes?: string[]
+  /** The host's width; default the inline width. */
+  width?: number
 }
 
 const OPEN_FLEET: Record<string, string> = {
@@ -40,7 +42,7 @@ async function openFleet(page: Page, host: Host = {}): Promise<FrameLocator> {
     resultDelayMs: "0",
     theme: host.theme ?? "light",
     locale,
-    width: String(INLINE_WIDTH),
+    width: String(host.width ?? INLINE_WIDTH),
   })
   if (host.maxHeight !== undefined) query.set("maxHeight", String(host.maxHeight))
   if (host.displayModes) query.set("displayModes", host.displayModes.join(","))
@@ -214,5 +216,51 @@ test.describe("an inline card under the host's height budget (issue 396)", () =>
 
     await expect(bodyRows(region)).toHaveCount(3)
     await expect(region.getByRole("button", { name: "Show more" })).toHaveCount(0)
+  })
+})
+
+test.describe("the engine cards and the landscape's captions", () => {
+  test("the card of the engine that does not answer has the outage's icon in danger, never a quiet dot", async ({
+    page,
+  }) => {
+    const app = await openFleet(page)
+    await settled(app)
+    const card = (id: string) =>
+      app.getByRole("button").filter({ has: app.getByText(id, { exact: true }) })
+    const down = card(BROKEN_ENGINE)
+    await expect(down).toContainText("unreachable")
+    await expect(down.locator("[data-part=verdict]")).toHaveCount(0)
+    await expect(down.locator("svg.lucide-unplug")).toHaveClass(/text-danger/)
+    // The engine that answers keeps its verdict's dot.
+    await expect(card(HEALTHY_ENGINE).locator("[data-part=verdict]")).toHaveCount(1)
+  })
+
+  test("at 320 px in German a caption splits a word only where the language hyphenates it", async ({
+    page,
+  }) => {
+    const app = await openFleet(page, { locale: "de-DE", width: 320 })
+    await settled(app, "de-DE")
+    const strip = app
+      .getByRole("region", { name: "Prozesslandschaft" })
+      .locator("[data-slot=kpi-strip]")
+    await expect(strip).toContainText("Prozessdefinitionen")
+    const split = await strip.evaluate(async (el) => {
+      await document.fonts.ready
+      const captions = [...el.querySelectorAll(":scope > div > * > div:first-child > span")]
+      return captions.flatMap((caption) => {
+        const text = caption.firstChild!
+        return [...(text.textContent ?? "").matchAll(/\S+/g)].flatMap((word) => {
+          const range = document.createRange()
+          range.setStart(text, word.index)
+          range.setEnd(text, word.index + word[0].length)
+          if (range.getClientRects().length < 2) return []
+          const { hyphens } = getComputedStyle(caption)
+          return [{ word: word[0], hyphens, lang: caption.closest("[lang]")?.getAttribute("lang") }]
+        })
+      })
+    })
+    // Two columns of 320 px leave "Prozessdefinitionen" less than its width: it splits, hyphenated.
+    expect(split.map(({ word }) => word)).toContain("Prozessdefinitionen")
+    for (const word of split) expect(word).toMatchObject({ hyphens: "auto", lang: "de" })
   })
 })

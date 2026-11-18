@@ -1724,4 +1724,13 @@ test.describe("axe on the detail views (WCAG 2.2 A/AA, one main landmark)", () =
       await expectAxeClean(page, `instance with a failed refresh (${theme})`)
     })
   }
+
+  // Its process column shows from 760 px: each link is named by its visible words (WCAG 2.5.3).
+  test("the engine-wide instance list with its process column at 760 px", async ({ page }) => {
+    const list = await openView(page, INSTANCES_ARGS, { hostEnv: REALISTIC_HOST_ENV, width: 760 })
+    const region = list.getByRole("region", { name: "Running instances", exact: true })
+    await expect(region.locator("tbody tr").first()).toBeVisible({ timeout: 15_000 })
+    await expect(region.getByRole("columnheader", { name: "Process" })).toBeVisible()
+    await expectAxeClean(page, "the engine-wide instance list at 760 px")
+  })
 })

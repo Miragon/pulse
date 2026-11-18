@@ -1,13 +1,5 @@
-import { Fragment } from "react"
-import {
-  formatNumber,
-  Icon,
-  FOCUS_RING,
-  SectionHeading,
-  TONE_DOT,
-  cn,
-  WidgetHeader,
-} from "@miragon/pulse-ui"
+import { Fragment, type ReactNode } from "react"
+import { formatNumber, Icon, FOCUS_RING, SectionHeading, cn, WidgetHeader } from "@miragon/pulse-ui"
 import { HandOffButton, useHostFollowUp } from "@miragon/pulse-widget-shell/widgets"
 import { ArrowRight } from "lucide-react"
 import type { CockpitDashboardData } from "../../view-models.js"
@@ -22,8 +14,8 @@ import { useHandOff, type HandOff } from "../lib/hand-off.js"
 import { isHealthFailure } from "../lib/health-verdict.js"
 import { boardsOnlyOf, type CockpitEngine, readsWhole } from "./boards-only.js"
 import { useEngineHealth } from "./engine-health.js"
+import { engineStatusKind, StatusMark } from "./engine-status.js"
 import { FleetLandscape } from "./fleet-landscape.js"
-import { engineStatusKind } from "./landing.js"
 import { EnvironmentChip } from "../lib/engine-context.js"
 
 function FleetEngineKpis({
@@ -68,19 +60,21 @@ function FleetEngineKpis({
   )
 }
 
-function FleetEngineCard({
-  engineId,
-  environment,
-  onEnter,
-}: {
+interface FleetCardProps {
   engineId: string
   environment: string | null
   onEnter: () => void
-}) {
-  const { failure, summary: s, incidents, failed, tone } = useEngineHealth(engineId)
-  const t = useT()
-  const kind = engineStatusKind({ failure, summary: s })
+}
 
+/** A card's frame: its mark, the engine's environment and id, the way in, then what it says. */
+function FleetCardFrame({
+  engineId,
+  environment,
+  onEnter,
+  mark,
+  children,
+}: FleetCardProps & { mark: ReactNode; children: ReactNode }) {
+  const t = useT()
   return (
     <button
       type="button"
@@ -93,11 +87,7 @@ function FleetEngineCard({
     >
       <div className="flex items-center justify-between gap-2">
         <span className="text-foreground inline-flex min-w-0 items-center gap-2 font-semibold">
-          <span
-            data-part="verdict"
-            className={cn("size-2 shrink-0 rounded-full", TONE_DOT[tone])}
-            aria-hidden
-          />
+          {mark}
           {environment && <EnvironmentChip environment={environment} />}
           <span className="truncate">{engineId}</span>
         </span>
@@ -106,7 +96,22 @@ function FleetEngineCard({
           <Icon icon={ArrowRight} dense />
         </span>
       </div>
+      {children}
+    </button>
+  )
+}
 
+/**
+ * The landing's mark and words for the engine (#322 U15): its verdict's dot, or a failed read's
+ * icon in its tone (an unreachable engine danger), never a quiet dot beside an outage.
+ */
+function FleetEngineCard(props: FleetCardProps) {
+  const { failure, summary: s, incidents, failed, tone } = useEngineHealth(props.engineId)
+  const t = useT()
+  const kind = engineStatusKind({ failure, summary: s })
+
+  return (
+    <FleetCardFrame {...props} mark={<StatusMark kind={kind} tone={tone} />}>
       {/* The same words as the chooser: "nicht erreichbar", "lädt …" (#322 U15). A failed
           refresh keeps the last summary in the cache: the words win over it. */}
       {kind === "loading" || isHealthFailure(kind) || !s ? (
@@ -121,7 +126,19 @@ function FleetEngineCard({
           {t("fleet.processDefinitions", { count: formatNumber(s.totalDefinitions) })}
         </div>
       )}
-    </button>
+    </FleetCardFrame>
+  )
+}
+
+/** A profile the server refused: no call reaches it, so its card reads nothing and says so. */
+function RefusedFleetCard(props: FleetCardProps) {
+  const t = useT()
+  return (
+    <FleetCardFrame {...props} mark={<StatusMark kind="refused" tone="neutral" />}>
+      <span className="text-muted-foreground text-small">
+        {t("cockpit.landing.status.refused")}
+      </span>
+    </FleetCardFrame>
   )
 }
 
@@ -201,6 +218,7 @@ export function FleetView({
   const followUp = useHostFollowUp()
   const engines = all.filter(readsWhole)
   const ids = engines.map((e) => e.id)
+  const refused = new Set(engines.filter((e) => e.refused === true).map((e) => e.id))
   // The fleet itself stays all engines, across environments.
   const engineGroups = groupEnginesByEnvironment(engines)
   const idList = formatEnginesByEnvironment(engineGroups)
@@ -226,20 +244,24 @@ export function FleetView({
           <div key={g.id}>
             {engineGroups.length > 1 && <SectionHeading as="h3" title={g.id} className="mb-2" />}
             <div className="gap-section grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-              {g.engines.map((e) => (
-                <FleetEngineCard
-                  key={e.id}
-                  engineId={e.id}
-                  environment={engineGroups.length > 1 ? g.id : null}
-                  onEnter={() => onEnterEngine(e.id)}
-                />
-              ))}
+              {g.engines.map((e) => {
+                const card = {
+                  engineId: e.id,
+                  environment: engineGroups.length > 1 ? g.id : null,
+                  onEnter: () => onEnterEngine(e.id),
+                }
+                return e.refused === true ? (
+                  <RefusedFleetCard key={e.id} {...card} />
+                ) : (
+                  <FleetEngineCard key={e.id} {...card} />
+                )
+              })}
             </div>
           </div>
         ))}
       </section>
 
-      <FleetLandscape engineIds={ids} />
+      <FleetLandscape engineIds={ids} refused={refused} />
 
       {/* Its analyses are hand-offs only: a host that shows none gets no section, and a page
           that copies them says so. */}

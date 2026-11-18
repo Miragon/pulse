@@ -49,6 +49,7 @@ export const en = {
   "open.toSide": "{title} (Ctrl/Cmd+click: to the side)",
   "row.instance": "Instance {id}",
   "summary.noIncident": "No instance has an open incident.",
+  "summary.noIncidentAnswered": "No instance has an open incident on the engines that answered.",
   "instances.label": "Instances",
   "instances.empty": "No instance matches on the engines that answered.",
   "instances.showing": "{engine}: showing {shown} of {total}",

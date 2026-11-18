@@ -136,6 +136,59 @@ async function backgroundLuminance(locator: Locator): Promise<number> {
   })
 }
 
+/**
+ * Each engine row of the landing at its width: the engine's name whole, what the row says whole
+ * and inside the row, and its arrow inside the row (WCAG 1.4.10 at 320 px).
+ */
+async function engineRowsAt(engines: Locator) {
+  return await engines.evaluate(async (el) => {
+    await document.fonts.ready
+    const inside = (child: Element | null, row: DOMRect) => {
+      const box = child?.getBoundingClientRect()
+      return box !== undefined && box.left >= row.left - 0.5 && box.right <= row.right + 0.5
+    }
+    return [...el.querySelectorAll<HTMLElement>("button")].map((button) => {
+      const row = button.getBoundingClientRect()
+      const name = button.querySelector<HTMLElement>(".font-semibold")!
+      const status = button.querySelector<HTMLElement>("[data-part=engine-status]")!
+      return {
+        name: name.textContent,
+        nameWhole: name.clientWidth > 0 && name.scrollWidth <= name.clientWidth,
+        statusWhole: status.scrollWidth <= status.clientWidth && inside(status, row),
+        arrowInside: inside(button.querySelector("svg:last-of-type"), row),
+        rowFits: button.scrollWidth <= button.clientWidth,
+      }
+    })
+  })
+}
+
+test.describe("the landing's Camunda 8 rows at 320 px", () => {
+  for (const locale of ["en-US", "de-DE"]) {
+    test(`name each engine whole, its words and its arrow inside the row (${locale})`, async ({
+      page,
+    }) => {
+      const app = await openCockpit(page, { args: { view: "landing" }, locale, width: 320 })
+      const engines = app.getByRole("region", { name: "Engines" })
+      await expect(engines.getByRole("button")).toHaveCount(3, { timeout: 15_000 })
+      await expect(engineRow(app, new RegExp(`^${HEALTHY_ENGINE} , `))).not.toHaveAttribute(
+        "aria-busy",
+        "true",
+      )
+      const rows = await engineRowsAt(engines)
+      expect(rows.map(({ name }) => name)).toEqual([HEALTHY_ENGINE, C8_ENGINE, C8_UNBOARDED_ENGINE])
+      for (const row of rows) {
+        expect(row).toEqual({
+          name: row.name,
+          nameWhole: true,
+          statusWhole: true,
+          arrowInside: true,
+          rowFits: true,
+        })
+      }
+    })
+  }
+})
+
 test.describe("Camunda 8 on the landing and in the gate", () => {
   test("the landing lists both Camunda 8 engines beside the stub and asks neither anything", async ({
     page,

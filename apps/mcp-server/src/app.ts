@@ -7,13 +7,14 @@ import { MODULES, sharedResources, type ModuleDefinition } from "./setup.js"
 const PACKAGE_ROOT = path.join(import.meta.dirname, "..")
 
 /**
- * The preamble of the server `instructions`, deliberately short and factual.
- * Each active module appends its own snippet (engine routing, dates, tool
- * families, health routing; `ComposableModule.instructions`), and the tool
- * descriptions carry the per-tool details.
+ * The preamble of the server `instructions`, deliberately short and factual, and true on every
+ * configuration: what the engines of a deployment are (Camunda 7, CIB seven, Operaton, Camunda 8
+ * on boards) the engine module's own snippet says by the dialects configured. Each active module
+ * appends its own snippet (engine routing, dates, tool families, health routing;
+ * `ComposableModule.instructions`), and the tool descriptions carry the per-tool details.
  */
 export const SERVER_INSTRUCTIONS =
-  "Camunda 7 / CIB seven operations. " +
+  "Process engine operations. " +
   "Toolsets fail closed: a tool missing from tools/list is not enabled on this deployment. " +
   "On hosts that render MCP Apps, prefer the view tools (*_open_*) to present results to the user."
 
@@ -48,7 +49,7 @@ export async function createApp(
       name: "pulse",
       version: packageVersion(),
       title: "Pulse",
-      description: "Camunda 7 / CIB seven operations",
+      description: "Process engine operations",
       websiteUrl: "https://github.com/Miragon/pulse",
       instructions: SERVER_INSTRUCTIONS,
     },

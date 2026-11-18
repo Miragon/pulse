@@ -154,7 +154,12 @@ test.describe("a board, the cockpit's app-level route", () => {
     const counter = tile(app, "Waiting for approval")
     await expect(counter.locator("[data-part=counter-value]")).toHaveText("2")
     await expect(counter.getByText("from 1 of 2 engines")).toBeVisible()
-    await expect(tile(app, "Instances with incident").getByText("0", { exact: true })).toBeVisible()
+    const summary = tile(app, "Instances with incident")
+    await expect(summary.getByText("0", { exact: true })).toBeVisible()
+    // The engine that did not answer stays out of the note too: only those that answered.
+    await expect(
+      summary.getByText("No instance has an open incident on the engines that answered."),
+    ).toBeVisible()
     for (const key of ["INV-2026-0042", "INV-2026-0043"]) {
       await expect(instances(app).getByRole("row").filter({ hasText: key })).toBeVisible()
     }

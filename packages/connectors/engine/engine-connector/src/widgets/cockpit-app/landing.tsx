@@ -3,110 +3,33 @@ import {
   Button,
   cn,
   FOCUS_RING_INSET,
-  TONE_DOT,
   TONE_ICON,
   useLocale,
   Icon,
   KometMark,
   WidgetHeader,
   formatNumber,
-  type ToneVariant,
   SectionHeading,
 } from "@miragon/pulse-ui"
 import { WidgetShell } from "@miragon/pulse-widget-shell/widgets"
-import {
-  ArrowRight,
-  Ban,
-  CircleDashed,
-  ClipboardList,
-  KeyRound,
-  Layers,
-  LoaderCircle,
-  Minus,
-  Server,
-  Unplug,
-  type LucideIcon,
-} from "lucide-react"
+import { ArrowRight, Ban, ClipboardList, Layers, Server } from "lucide-react"
 import { DEFAULT_ENVIRONMENT_ID, groupEnginesByEnvironment } from "../../lib/shared/environments.js"
 import { translator } from "../../messages/use-t.js"
 import type { ListedBoard, ListedRefusedBoard } from "../../view-models.board.js"
-import {
-  HEALTH_FAILURE_TONE,
-  healthFailureOf,
-  isHealthFailure,
-  type HealthFailure,
-} from "../lib/health-verdict.js"
 import { boardsOnlyOf, type BoardsOnlyEngine, type CockpitEngine } from "./boards-only.js"
 import { useEngineHealth } from "./engine-health.js"
-
-/** In words, so colour is never the only signal. */
-export type EngineStatusKind =
-  | "loading"
-  | "notLoaded"
-  | HealthFailure
-  | "empty"
-  | "incidents"
-  | "failedJobs"
-  | "idle"
-  | "healthy"
-
-/**
- * #322 U15, from the same live health as the engine's overview. A profile the server refused and
- * an engine that refused the server's login are states of their own (`healthFailureOf`): the
- * server never asks the one, and the other answered, so neither is unreachable. A page whose
- * session ended asked no engine: the row keeps what it last read, and says it read nothing where
- * it read nothing yet (`notLoaded`, no tone); the page's frame says the session ended.
- */
-export function engineStatusKind(health: {
-  /** The read's failure, from its first failed attempt (`useEngineHealth`); null without one. */
-  failure: Error | null
-  summary:
-    | {
-        totalDefinitions: number
-        totalRunningInstances: number
-        totalFailedJobs: number
-        totalIncidents: number
-      }
-    | undefined
-}): EngineStatusKind {
-  const failure = health.failure && healthFailureOf(health.failure)
-  if (failure) return failure
-  const s = health.summary
-  if (!s) return health.failure ? "notLoaded" : "loading"
-  if (s.totalDefinitions === 0) return "empty"
-  if (s.totalIncidents > 0) return "incidents"
-  if (s.totalFailedJobs > 0) return "failedJobs"
-  if (s.totalRunningInstances === 0) return "idle"
-  return "healthy"
-}
-
-/** A refused login is the server's key, whether the engine rejected it (401) or its access (403). */
-const FAILURE_ICON: Readonly<Record<HealthFailure, LucideIcon>> = {
-  unreachable: Unplug,
-  refused: Ban,
-  unauthorized: KeyRound,
-  forbidden: KeyRound,
-}
-
-/** CI §3.7; the dot is the engine's one live verdict, the overview badge's tone. */
-function StatusMark({ kind, tone }: { kind: EngineStatusKind; tone: ToneVariant }) {
-  if (kind === "loading") {
-    return <Icon icon={LoaderCircle} className="text-muted-foreground motion-safe:animate-spin" />
-  }
-  if (isHealthFailure(kind)) {
-    return <Icon icon={FAILURE_ICON[kind]} className={TONE_ICON[HEALTH_FAILURE_TONE[kind]]} />
-  }
-  if (kind === "empty") return <Icon icon={CircleDashed} className="text-muted-foreground" />
-  if (kind === "notLoaded") return <Icon icon={Minus} className="text-muted-foreground" />
-  return (
-    <span className="inline-flex size-4 items-center justify-center" aria-hidden="true">
-      <span data-part="verdict" className={cn("size-2 rounded-full", TONE_DOT[tone])} />
-    </span>
-  )
-}
+import { engineStatusKind, StatusMark } from "./engine-status.js"
 
 /** A row of the chooser's lists: one 28 px line (40 px on touch) of 13 px text. */
 const ROW = "text-dense min-h-row px-cell py-cell flex w-full items-center gap-3 text-left"
+
+/**
+ * A row's words: the name, whole and wrapping where it is longer than the row, and what it says
+ * at the row's end, or on a line of its own under the name where both do not fit beside each
+ * other (WCAG 1.4.10 at 320 px, the German words and a touch row's padding).
+ */
+const ROW_WORDS = "flex min-w-0 flex-1 flex-wrap items-baseline justify-between gap-x-3"
+const ROW_NAME = "text-foreground min-w-0 font-semibold [overflow-wrap:anywhere]"
 
 /** The way into a row's view, after its words. */
 function RowArrow() {
@@ -137,15 +60,21 @@ function EngineRowFrame({
       className={cn("hover:bg-accent transition-colors", ROW, FOCUS_RING_INSET)}
     >
       {mark}
-      <span className="text-foreground min-w-0 truncate font-semibold">{engineId}</span>
-      {isDefault && (
-        <span className="border-input text-muted-foreground text-small shrink-0 rounded-sm border px-1.5">
-          {translator(locale, "cockpit.landing.default")}
+      <span className={ROW_WORDS}>
+        <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+          <span className={ROW_NAME}>{engineId}</span>
+          {isDefault && (
+            <span className="border-input text-muted-foreground text-small shrink-0 rounded-sm border px-1.5">
+              {translator(locale, "cockpit.landing.default")}
+            </span>
+          )}
         </span>
-      )}
-      {/* A comma for the accessible name ("prod-a, 18 Incidents"); the eye reads the gap. */}
-      <span className="sr-only">, </span>
-      <span className="text-muted-foreground ms-auto shrink-0 text-right">{status}</span>
+        {/* A comma for the accessible name ("prod-a, 18 Incidents"); the eye reads the gap. */}
+        <span className="sr-only">, </span>
+        <span data-part="engine-status" className="text-muted-foreground">
+          {status}
+        </span>
+      </span>
       <RowArrow />
     </button>
   )
@@ -197,19 +126,27 @@ function BoardsOnlyEngineRow({ engine, ...props }: EngineRowProps & { engine: Bo
   )
 }
 
+/**
+ * A profile the server refused: no call reaches it, so the row reads nothing and says so in the
+ * tone of a refused profile, whatever dialect its profile names; opening it shows why.
+ */
+function RefusedEngineRow(props: EngineRowProps) {
+  const locale = useLocale()
+  return (
+    <EngineRowFrame
+      {...props}
+      kind="refused"
+      mark={<StatusMark kind="refused" tone="neutral" />}
+      status={translator(locale, "cockpit.landing.status.refused")}
+    />
+  )
+}
+
 /** The server's boards, and its board files that give no board, by their problem count. */
 export interface ServerBoards {
   boards: readonly ListedBoard[]
   refusedBoards: readonly ListedRefusedBoard[]
 }
-
-/**
- * A board row's words: the name, whole and wrapping where it is longer than the row, and what it
- * says of the board at the row's end, or on a line of its own under the name where both do not
- * fit beside each other (WCAG 1.4.10 at 320 px, the German words and a touch row's padding).
- */
-const BOARD_WORDS = "flex min-w-0 flex-1 flex-wrap items-baseline justify-between gap-x-3"
-const BOARD_NAME = "text-foreground min-w-0 font-semibold [overflow-wrap:anywhere]"
 
 /**
  * A board opens as the cockpit's board view, marked as its view bar marks it; its engines sit
@@ -230,8 +167,8 @@ export function BoardRow({ board, onOpen }: { board: ListedBoard; onOpen: () => 
       className={cn("hover:bg-accent transition-colors", ROW, FOCUS_RING_INSET)}
     >
       <Icon icon={ClipboardList} className="text-muted-foreground" />
-      <span className={BOARD_WORDS}>
-        <span className={BOARD_NAME}>{board.title}</span>
+      <span className={ROW_WORDS}>
+        <span className={ROW_NAME}>{board.title}</span>
         {board.engines.length > 0 && (
           <>
             <span className="sr-only">, </span>
@@ -255,8 +192,8 @@ function RefusedBoardRow({ id, problems }: { id: string; problems: number }) {
   return (
     <div className={ROW} data-status="refused">
       <Icon icon={Ban} className={TONE_ICON.warning} />
-      <span className={BOARD_WORDS}>
-        <span className={BOARD_NAME}>{id}</span>
+      <span className={ROW_WORDS}>
+        <span className={ROW_NAME}>{id}</span>
         <span className="sr-only">, </span>
         <span className="text-muted-foreground">
           {translator(locale, "cockpit.landing.boardRefused", { count: formatNumber(problems) })}
@@ -338,6 +275,13 @@ export function LandingHeader({ subtitle, action }: { subtitle?: string; action?
   )
 }
 
+/** An engine's row: a refused profile's, one shown on boards only, or one every route reads. */
+function engineRowOf(engine: CockpitEngine, row: EngineRowProps): ReactNode {
+  if (engine.refused === true) return <RefusedEngineRow {...row} />
+  const boardsOnly = boardsOnlyOf(engine)
+  return boardsOnly ? <BoardsOnlyEngineRow engine={boardsOnly} {...row} /> : <EngineRow {...row} />
+}
+
 /** What the chooser offers: its engines, in environments where they are named, and its boards. */
 function subtitleKey(named: boolean, boards: ServerBoards | null): string {
   if (boards && boards.boards.length > 0) return "cockpit.landing.subtitle.boards"
@@ -410,16 +354,7 @@ export function LandingChooser({
                   isDefault: e.id === defaultEngineId,
                   onEnter: () => onEnterEngine(e.id),
                 }
-                const boardsOnly = boardsOnlyOf(e)
-                return (
-                  <li key={e.id}>
-                    {boardsOnly ? (
-                      <BoardsOnlyEngineRow engine={boardsOnly} {...row} />
-                    ) : (
-                      <EngineRow {...row} />
-                    )}
-                  </li>
-                )
+                return <li key={e.id}>{engineRowOf(e, row)}</li>
               })}
             </ul>
           </section>

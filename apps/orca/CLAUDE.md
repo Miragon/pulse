@@ -107,8 +107,7 @@ webview's esbuild options of a build that ships (`production: true`, which defin
 their minifying and source maps. The frames' bridge
 (`apps/orca/src/editor/bridge.ts`) sets `data-cd-theme`. Orca's theme event reports only light or
 dark (`apps/orca/types/orca/index.d.ts`), so in Orca high contrast reaches the webview through
-`forced-colors`, and the bridge sets `data-cd-kontrast="hoch"` only where Orca reports high
-contrast.
+`forced-colors` alone: the bridge sets no `data-cd-kontrast`.
 
 The project file is `.pulse.json`, read through the host kit (`TargetsParser` over
 `@miragon/pulse-profile`, the rules in `apps/vscode/CLAUDE.md`); `ProjectFile` of the host kit

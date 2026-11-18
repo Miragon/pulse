@@ -70,8 +70,8 @@ in `ENGINES_JSON` / `ENGINES_FILE`; every variable is in the
   it under `refused`, a call to it fails with `ENGINE_PROFILE_REFUSED`.
 - **Several engines, several vendors.** Every tool takes an optional `engine`, else routes to
   `ENGINE_DEFAULT`, else to the file's `defaultProfile` (each must name a profile, else the boot
-  fails), else the only profile, else `ENGINE_NOT_SELECTED` lists the engines; a refused target is
-  never rerouted. Each engine carries a `flavor` (`cibseven` | `operaton` | `camunda7`, default
+  fails), else the only profile, else `ENGINE_NOT_SELECTED` lists the engines the tool serves; a
+  refused target is never rerouted. Each engine carries a `flavor` (`cibseven` | `operaton` | `camunda7`, default
   `camunda7`; `ENGINE_FLAVOR` for the `ENGINE_BASE_URL` shorthand) that picks its cockpit links and
   branding. A `camunda8` profile (a profile of the file, never the shorthand) signs in with none,
   Basic or `clientCredentials`, its client secret in the `ENGINE_SECRET_*` variable

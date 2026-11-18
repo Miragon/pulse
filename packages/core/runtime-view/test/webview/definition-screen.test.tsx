@@ -116,6 +116,28 @@ describe("definition screen", () => {
     })
   })
 
+  it("names a badge count by the compact figure it shows before the whole count", async () => {
+    harness = mountApp()
+    harness.publish(FIXTURES["definition-camunda8"])
+    const cluster = await waitForElement<HTMLElement>(
+      harness.root,
+      '[data-badge-for="Activity_ApproveOrder"]',
+    )
+    const running = cluster.querySelector<HTMLButtonElement>('[data-scope="running"]')!
+    const exact = harness.root.querySelector<HTMLButtonElement>(
+      '[data-badge-for="Activity_ReserveStock"] [data-scope="running"]',
+    )!
+
+    expect(running.textContent).toBe("5.1k")
+    expect(running.getAttribute("aria-label")).toBe(
+      "5.1k, Approve order: 5,120 instances running. Show the running instances here.",
+    )
+    expect(running.title).toBe(
+      "Approve order: 5,120 instances running. Show the running instances here.",
+    )
+    expect(exact.getAttribute("aria-label")).toBe(exact.title)
+  })
+
   it("keeps the viewbox and the overlays when the theme switches", async () => {
     harness = mountApp()
     harness.publish(FIXTURES.definition)

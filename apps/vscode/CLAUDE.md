@@ -2,7 +2,7 @@
 
 Guidance for agents working on Pulse for VS Code: the extension `pulse` (Marketplace
 id `miragon-gmbh.pulse-cockpit`), an engine-neutral runtime view for process engines inside
-VS Code, and on the runtime view and the C7 adapter it shares with Pulse for Orca. It is an interface app of the Pulse monorepo. The repository's package rules hold
+VS Code, and on the runtime view and the C7 and C8 adapters it shares with Pulse for Orca. It is an interface app of the Pulse monorepo. The repository's package rules hold
 here (the root `CLAUDE.md`: layout and naming, the dependency edges of invariant 8, the
 ratchets, Verification); the MCP invariants are written for the MCP server, its modules and
 its widgets, and this file replaces them for the extension.

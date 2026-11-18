@@ -83,7 +83,11 @@ export interface KpiCell {
  * (inline chat views are often under 500 px, where five cells side by side
  * leave ~40 px each); 6 steps through 3. Three cells keep their row from 25rem,
  * where a caption's longest word fits its third ("verbleibenden", 93 px at 13 px
- * and 600), and fall back to 2 columns below it, never cutting such a word.
+ * and 600), and fall back to 2 columns below it, never cutting such a word. A
+ * caption word of 14 characters or more that does not fit ("Prozessdefinitionen"
+ * in a half at 320 px) is hyphenated by the document's language (`hyphens: auto`
+ * under the `lang` LocaleGate sets), never cut where no hyphen shows; a shorter
+ * one keeps a line of its own whole, as the columns leave it room.
  */
 const COL_CLASS: Record<number, string> = {
   1: "grid-cols-1",
@@ -160,7 +164,9 @@ function KpiCellBody({ cell }: { cell: KpiCell }) {
       <div
         className={cn("text-muted-foreground flex items-center justify-between gap-2", MICRO_LABEL)}
       >
-        <span className="min-w-0 break-words">{cell.label}</span>
+        <span className="min-w-0 break-words hyphens-auto [hyphenate-limit-chars:14]">
+          {cell.label}
+        </span>
         {cell.onClick && <ChevronRight aria-hidden="true" className="size-4 shrink-0" />}
       </div>
       <div className="text-section text-foreground mt-1 leading-none break-words tabular-nums">

@@ -1,5 +1,6 @@
 import { Button } from "@miragon/pulse-ui"
 import type { IncidentSummaryData, IncidentSummaryRowData } from "@miragon/pulse-board"
+import type { WordKey } from "../messages/en.js"
 import { useWords } from "../messages/translate.js"
 import { BOARD_LINE, BOARD_LINE_BUTTON, BoardCard, BoardFigure, EmptyNote } from "./board-card.js"
 import type { BoardSlots } from "./slots.js"
@@ -76,6 +77,15 @@ function SummaryRow({ row, byProcess, slots }: SummaryRowProps) {
 }
 
 /** The instances with incident per process or per engine, their total and each row's count. */
+/**
+ * Why no row shows: no engine was read, none of the engines read has an instance with an incident
+ * (only of those that answered, while another was not read), or none of the board's has.
+ */
+function emptyKeyOf(tile: IncidentSummaryData): WordKey {
+  if (tile.known === 0) return "noEngineRead"
+  return tile.known < tile.engines ? "summary.noIncidentAnswered" : "summary.noIncident"
+}
+
 export function IncidentSummaryTile({ tile, slots }: IncidentSummaryTileProps) {
   const t = useWords()
   const shown = partial(t, tile)
@@ -96,7 +106,7 @@ export function IncidentSummaryTile({ tile, slots }: IncidentSummaryTileProps) {
         )}
       </p>
       {tile.rows.length === 0 ? (
-        <EmptyNote text={t(tile.known === 0 ? "noEngineRead" : "summary.noIncident")} />
+        <EmptyNote text={t(emptyKeyOf(tile))} />
       ) : (
         <ul className="flex flex-col" aria-label={t(byProcess ? "perProcess" : "perEngine")}>
           {tile.rows.map((row) => (

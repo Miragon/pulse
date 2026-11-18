@@ -68,7 +68,7 @@ function listedEngines(result: EnginesResult, order: readonly ListedEngine[]): L
   const boards = result.boards ?? []
   const named = [
     ...result.engines.map((engine) => ({ engine, facts: dialectFactsOf(engine, boards) })),
-    ...(result.refused ?? []).map((engine) => ({ engine, facts: {} })),
+    ...(result.refused ?? []).map((engine) => ({ engine, facts: { refused: true } as const })),
   ].map(({ engine: { id, environment }, facts }) => ({
     id,
     ...(environment === undefined ? {} : { environment }),
@@ -100,11 +100,11 @@ function landingSeed(data: CockpitAppData | null): LandingStartData | undefined 
 }
 
 /**
- * The list names the engine's profile refused: its view is one state (`RefusedEngineGate`), as
- * when a read of it already met the refusal (`useProfileRefusal`).
+ * The start data or the engine list names the engine's profile refused: its view is one state
+ * (`RefusedEngineGate`), as when a read of it already met the refusal (`useProfileRefusal`).
  */
-function isRefused(result: EnginesResult | undefined, engineId: string): boolean {
-  return result?.refused?.some(({ id }) => id === engineId) ?? false
+function isRefused(engines: readonly CockpitEngine[], engineId: string): boolean {
+  return engines.some(({ id, refused }) => id === engineId && refused === true)
 }
 
 /**
@@ -438,7 +438,7 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
             <ViewErrorBoundary resetKey={viewKey(current)}>
               <RefusedEngineGate
                 engine={engineId}
-                refused={metRefusal || isRefused(listed, engineId)}
+                refused={metRefusal || isRefused(engines, engineId)}
               >
                 <BoardsOnlyEngineGate
                   engineId={engineId}

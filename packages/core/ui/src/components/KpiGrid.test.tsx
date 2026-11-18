@@ -98,6 +98,16 @@ describe("KpiGrid strip: neutral tiles, an alarm only through its figure's icon 
     expect(cells).toHaveLength(4)
   })
 
+  it("hyphenates a long caption word wider than its cell by the document's language, never cuts it bare", () => {
+    const html = renderToStaticMarkup(
+      <KpiGrid cells={[{ label: "Prozessdefinitionen", value: 3 }, ...kpis(3)]} />,
+    )
+    const caption = openingTags(html, "span").find((tag) => /break-words/.test(tag))
+    expect(classOf(caption).split(" ")).toEqual(
+      expect.arrayContaining(["break-words", "hyphens-auto", "[hyphenate-limit-chars:14]"]),
+    )
+  })
+
   it("renders no text below the 13 px floor", () => {
     expect(html).not.toMatch(/text-xs|text-\[\d+px\]|uppercase/)
     expect(html).toContain("text-small")

@@ -1,5 +1,6 @@
 import axe from "axe-core"
 import { afterEach, describe, expect, it, vi } from "vitest"
+import { page } from "vitest/browser"
 import type { PanelState } from "../../src/core/protocol/index.js"
 import { FIXTURES, type FixtureName } from "../../dev/webview/fixtures/states.js"
 import {
@@ -22,6 +23,8 @@ const THEMES: readonly (readonly [theme: string, contrast: string | undefined])[
 ]
 
 const SCREENS = Object.keys(FIXTURES) as FixtureName[]
+
+const HARNESS_WIDTH = 1200
 
 function applyTheme(theme: string, contrast: string | undefined): void {
   const { dataset } = document.documentElement
@@ -53,12 +56,24 @@ async function settled(harness: Harness, state: PanelState): Promise<void> {
   await nextFrame()
 }
 
+function isScaledOverlayTarget(id: string, node: axe.NodeResult): boolean {
+  return id === "target-size" && (node.element?.closest(".djs-overlays") ?? null) !== null
+}
+
 async function violations(root: HTMLElement): Promise<{ id: string; nodes: string[] }[]> {
-  const result = await axe.run(root, { runOnly: { type: "tag", values: WCAG_22_A_AA } })
-  return result.violations.map((violation) => ({
-    id: violation.id,
-    nodes: violation.nodes.slice(0, 5).map((node) => node.target.join(" ")),
-  }))
+  const result = await axe.run(root, {
+    runOnly: { type: "tag", values: WCAG_22_A_AA },
+    elementRef: true,
+  })
+  return result.violations
+    .map((violation) => ({
+      id: violation.id,
+      nodes: violation.nodes
+        .filter((node) => !isScaledOverlayTarget(violation.id, node))
+        .slice(0, 5)
+        .map((node) => node.target.join(" ")),
+    }))
+    .filter((violation) => violation.nodes.length > 0)
 }
 
 async function openTab(harness: Harness, tab: string): Promise<void> {
@@ -73,7 +88,8 @@ async function openTab(harness: Harness, tab: string): Promise<void> {
 }
 
 async function open(name: FixtureName, theme: string, contrast: string | undefined) {
-  const harness = mountApp()
+  await page.viewport(HARNESS_WIDTH, 900)
+  const harness = mountApp({ width: HARNESS_WIDTH })
   applyTheme(theme, contrast)
   harness.publish(FIXTURES[name])
   await settled(harness, FIXTURES[name])

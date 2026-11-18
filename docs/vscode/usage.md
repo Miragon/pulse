@@ -76,4 +76,4 @@ flags elements where instances would get stuck, before anything runs.
 
 ![A migration plan between two versions](../assets/vscode/10-migration-plan.png)
 
-All 39 screenshots, one per use case, are in `apps/vscode/docs/screenshots/`.
+All 45 screenshots, one per use case, are in `apps/vscode/docs/screenshots/`.

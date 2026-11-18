@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it } from "vitest"
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react"
 import { DEFAULT_VERDICT_THRESHOLDS, engineVerdict } from "@miragon/pulse-c7-core"
-import { SITUATION_TONES, TONE_DOT, type ToneVariant } from "@miragon/pulse-ui"
+import { SITUATION_TONES, TONE_DOT, TONE_ICON, type ToneVariant } from "@miragon/pulse-ui"
 import { TestViewHost, createTestQueryClient } from "@miragon/pulse-widget-shell/widgets"
 import { ENGINE_COCKPIT_OVERVIEW_DATA, ENGINE_HEALTH_DATA } from "../../tool-names.js"
 import type { CockpitDashboardData, EngineHealthData } from "../../view-models.js"
@@ -198,6 +198,26 @@ describe("the fleet view's engine dot follows the one verdict", () => {
     renderFleet()
     await waitFor(() => expect(healthQueryDone("idle")).toBe(true))
     expect(dotTone(fleetCard("idle"))).toBe("neutral")
+  })
+
+  it("an unreachable engine's card has no quiet dot: the outage's icon in danger, as on the landing", async () => {
+    const down = () => {
+      throw new Error("engine down unreachable (ECONNREFUSED)")
+    }
+    render(
+      <TestViewHost
+        tools={{ [ENGINE_COCKPIT_OVERVIEW_DATA]: down, [ENGINE_HEALTH_DATA]: down }}
+        client={queryClient}
+      >
+        <FleetView engines={[{ id: "down" }, { id: "also-down" }]} onEnterEngine={() => {}} />
+      </TestViewHost>,
+    )
+    await waitFor(() => expect(fleetCard("down").textContent).toContain("unreachable"))
+    const card = fleetCard("down")
+    expect(card.querySelector("[data-part='verdict']")).toBeNull()
+    const mark = card.querySelector("svg")?.getAttribute("class") ?? ""
+    expect(mark).toContain("lucide-unplug")
+    expect(mark).toContain(TONE_ICON.danger)
   })
 })
 

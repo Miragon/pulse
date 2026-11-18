@@ -65,30 +65,35 @@ interface Landscape {
 /**
  * Each engine's overview under the key the engine cards read it by (`useEngineHealth`), so the
  * landscape adds no read of its own there, plus its job backlog; both under the cockpit's Refresh.
+ * A profile the server refused it never reads: it counts as refused, as its card says.
  */
-function useLandscape(engineIds: readonly string[]): Landscape {
+function useLandscape(engineIds: readonly string[], refused: ReadonlySet<string>): Landscape {
+  const readIds = engineIds.filter((id) => !refused.has(id))
   const overviews = useToolQueries<CockpitDashboardData>(
-    engineIds.map((id) => ({
+    readIds.map((id) => ({
       key: ["engine:cockpit-overview", id],
       tool: ENGINE_COCKPIT_OVERVIEW_DATA,
       args: { engine: id },
     })),
   )
   const backlogs = useToolQueries<JobBacklogData>(
-    engineIds.map((id) => ({
+    readIds.map((id) => ({
       key: ["engine:job-backlog", id],
       tool: ENGINE_JOB_BACKLOG_DATA,
       args: { engine: id },
     })),
   )
+  const read = new Map(
+    readIds.map((id, i) => [id, { overview: overviews[i], backlog: backlogs[i] }]),
+  )
   const states: Record<string, EngineState> = {}
-  const reads = engineIds.map((engineId, i) => {
-    const overview = overviews[i]
-    states[engineId] = stateOf(overview)
+  const reads = engineIds.map((engineId) => {
+    const answers = read.get(engineId)
+    states[engineId] = answers === undefined ? "refused" : stateOf(answers.overview)
     return {
       engineId,
-      definitions: overview?.data?.definitions ?? null,
-      backlog: backlogs[i]?.data ?? null,
+      definitions: answers?.overview?.data?.definitions ?? null,
+      backlog: answers?.backlog?.data ?? null,
     }
   })
   return { figures: foldFleetLandscape(reads), states }
@@ -342,9 +347,16 @@ function ProcessMatrix({ figures, states, t }: Landscape & { t: T }) {
  * ranking (`lib/shared/fleet-landscape.ts`). An engine that does not answer is a row in words
  * and no column, never a row of zeros.
  */
-export function FleetLandscape({ engineIds }: { engineIds: readonly string[] }) {
+export function FleetLandscape({
+  engineIds,
+  refused = new Set(),
+}: {
+  engineIds: readonly string[]
+  /** The engines of `engineIds` whose profile the server refused: never read. */
+  refused?: ReadonlySet<string>
+}) {
   const t = useT()
-  const landscape = useLandscape(engineIds)
+  const landscape = useLandscape(engineIds, refused)
   return (
     <section aria-label={t("fleet.landscape.title")} className="gap-section flex flex-col">
       <div>

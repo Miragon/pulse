@@ -5,7 +5,10 @@ import type { ListedBoard } from "../../view-models.board.js"
  * An engine as the cockpit lists it: its id and environment, and what the start data of
  * `engine_open_cockpit` or the engine list says of its dialect.
  */
-export type CockpitEngine = Pick<CockpitEngineInfo, "id" | "dialect" | "webAppUrl" | "boards"> & {
+export type CockpitEngine = Pick<
+  CockpitEngineInfo,
+  "id" | "dialect" | "webAppUrl" | "boards" | "refused"
+> & {
   environment?: string
 }
 

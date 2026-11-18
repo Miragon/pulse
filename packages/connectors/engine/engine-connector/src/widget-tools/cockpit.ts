@@ -205,6 +205,7 @@ function cockpitEngines(registry: EngineRegistry): CockpitEngineInfo[] {
     id,
     environment: environmentOf(usable.get(id) ?? registry.refused.get(id) ?? {}),
     ...dialectOf(registry.backends.get(id)),
+    ...(registry.refused.has(id) ? { refused: true } : {}),
   }))
 }
 

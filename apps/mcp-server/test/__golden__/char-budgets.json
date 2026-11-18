@@ -1,12 +1,12 @@
 {
   "instructions-camunda8": 190,
-  "tools-admin": 34621,
-  "tools-c8-admin": 1802,
-  "tools-c8-operations": 1802,
-  "tools-c8-read-only": 1802,
-  "tools-mixed-admin": 34943,
-  "tools-mixed-operations": 25404,
-  "tools-mixed-read-only": 19335,
-  "tools-operations": 25082,
-  "tools-read-only": 19013
+  "tools-admin": 34614,
+  "tools-c8-admin": 1795,
+  "tools-c8-operations": 1795,
+  "tools-c8-read-only": 1795,
+  "tools-mixed-admin": 34936,
+  "tools-mixed-operations": 25397,
+  "tools-mixed-read-only": 19328,
+  "tools-operations": 25075,
+  "tools-read-only": 19006
 }

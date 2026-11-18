@@ -91,7 +91,12 @@ describe("an incident summary", () => {
     expect(parts(none, "empty-hint")).toEqual(["No engine was read."])
     expect(parts(none, "counter-value")).toEqual(["—"])
     cleanup()
-    expect(parts(tileOf({ ...SUMMARY, rows: [] }), "empty-hint")).toEqual([
+    // One engine of two answered: the note speaks of it alone, never of the one not read.
+    expect(parts(tileOf({ ...SUMMARY, total: 0, rows: [] }), "empty-hint")).toEqual([
+      "No instance has an open incident on the engines that answered.",
+    ])
+    cleanup()
+    expect(parts(tileOf({ ...SUMMARY, known: 2, total: 0, rows: [] }), "empty-hint")).toEqual([
       "No instance has an open incident.",
     ])
   })

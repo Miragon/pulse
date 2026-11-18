@@ -53,6 +53,25 @@ export function offeredEngineIds(registry: EngineRegistry, mark: EngineMark): st
 }
 
 /**
+ * The engine a call of `mark` goes to (`backendFor`). Without one selected, ENGINE_NOT_SELECTED
+ * names the engines `mark` serves, its enum's usable ones, never one its input refuses (another
+ * dialect's, or a read-only one under a write).
+ */
+function selectedBackend(
+  override: string | undefined,
+  registry: EngineRegistry,
+  mark: EngineMark,
+): { engineId: string; backend: EngineBackend } {
+  try {
+    return backendFor(override, registry)
+  } catch (e) {
+    if (!(e instanceof EngineNotSelectedError)) throw e
+    const served = new Set(servedEngineIds(registry, mark))
+    throw new EngineNotSelectedError(registry.engines.filter(({ id }) => served.has(id)))
+  }
+}
+
+/**
  * The call-time net of `mark`, before anything resolves a client or sends: the engine a call goes
  * to by invariant 2's precedence, never rerouted. A refused profile fails with
  * ENGINE_PROFILE_REFUSED, an engine of a dialect `mark` does not serve with
@@ -65,7 +84,7 @@ export function engineServing(
   registry: EngineRegistry,
   mark: EngineMark,
 ): string {
-  const { engineId, backend } = backendFor(override, registry)
+  const { engineId, backend } = selectedBackend(override, registry, mark)
   if (!mark.dialects.includes(backend.dialect)) {
     throw new EngineDialectNotServedError(engineId, backend, mark.dialects)
   }

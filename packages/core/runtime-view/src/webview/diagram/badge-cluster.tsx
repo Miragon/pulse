@@ -33,7 +33,7 @@ function CountButton({ badge, elementName, stale, onSelect, variant, count }: Co
       className="badge-cluster__count"
       data-part="badge-count"
       data-scope={SCOPES[variant]}
-      aria-label={description}
+      aria-label={BadgeDescription.nameOf(variant, count, elementName)}
       title={description}
       onClick={(event) => {
         event.stopPropagation()

@@ -140,6 +140,26 @@ describe("engineServing: the call-time net", () => {
     expect(() => engineServing("gamma", registry, C7)).toThrow(UnknownEngineError)
     expect(() => engineServing(undefined, registry, C7)).toThrow(EngineNotSelectedError)
   })
+
+  it.each([
+    ["a read of Camunda 7", C7, "alpha, beta"],
+    ["a write of Camunda 7", C7_WRITE, "alpha"],
+    ["a read of both dialects", EVERY, "alpha, beta, c8"],
+  ] as const)(
+    "names, with no engine selected, the engines %s serves, never one its enum refuses",
+    (_, mark, ids) => {
+      const call = () => engineServing(undefined, mixed().registry, mark)
+      expect(call).toThrow(EngineNotSelectedError)
+      expect(call).toThrow(
+        `No engine specified and no default engine configured. Pass \`engine\`, one of: ${ids}.`,
+      )
+      expect(call).toThrow(
+        expect.objectContaining({
+          availableEngines: ids.split(", ").map((id): unknown => expect.objectContaining({ id })),
+        }),
+      )
+    },
+  )
 })
 
 // Tool-level cases live in `widget-tools/cockpit.test.ts`; these pin the error contract (#341).
