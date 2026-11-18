@@ -2,8 +2,10 @@
  * The web app's settings (`MCP_WEB_*`), read once at boot. `MCP_WEB_CLIENT_ID` turns the web app
  * on: it signs people in through the server's own OAuth provider as a confidential client, keeps
  * the session in a cookie sealed with `MCP_WEB_SESSION_KEYS`, returns them to `MCP_URL` and serves
- * the web build in `MCP_WEB_DIR`, else in the folder the root names. A setting that cannot work
- * fails the boot with what to do, and no message ever quotes a secret or a key.
+ * the web build in `MCP_WEB_DIR`, else in the folder the root names. `MCP_WEB_SESSION_CHECK_MINUTES`
+ * has the session checked at the provider at least that often (refresh.ts); unset, its token is
+ * renewed only when it is due. A setting that cannot work fails the boot with what to do, and no
+ * message ever quotes a secret or a key.
  */
 import type { OAuthProvider } from "../oauth-providers.js"
 import { isLocalhost } from "../oauth-shared.js"
@@ -13,6 +15,7 @@ export const WEB_ENV_VARS = [
   "MCP_WEB_CLIENT_SECRET",
   "MCP_WEB_SESSION_KEYS",
   "MCP_WEB_SESSION_HOURS",
+  "MCP_WEB_SESSION_CHECK_MINUTES",
   "MCP_WEB_DIR",
 ] as const
 
@@ -23,6 +26,9 @@ const MIN_SESSION_KEY_BYTES = 32
 const DEFAULT_SESSION_HOURS = 8
 const MAX_SESSION_HOURS = 24
 
+/** The longest interval of the session's check at the provider. */
+const MAX_CHECK_MINUTES = 60
+
 export interface WebSettings {
   readonly clientId: string
   readonly clientSecret: string
@@ -30,6 +36,11 @@ export interface WebSettings {
   readonly sessionKeys: readonly Uint8Array[]
   /** The absolute lifetime of a session, from its sign-in. */
   readonly sessionHours: number
+  /**
+   * How often a session is checked at the provider at least, by a refresh before its token is due;
+   * `undefined` when `MCP_WEB_SESSION_CHECK_MINUTES` is unset and nothing is checked before then.
+   */
+  readonly sessionCheckMinutes: number | undefined
   /** The folder of the web build the app serves: `MCP_WEB_DIR`, else the one the root names. */
   readonly dir: string
   /** `MCP_URL`'s origin: where the browser reaches the app, its sign-in returns and CSRF checks. */
@@ -41,6 +52,7 @@ const ON_WITH_THE_CLIENT = [
   "MCP_WEB_CLIENT_SECRET",
   "MCP_WEB_SESSION_KEYS",
   "MCP_WEB_SESSION_HOURS",
+  "MCP_WEB_SESSION_CHECK_MINUTES",
 ]
 
 const BASE64URL = /^[A-Za-z0-9_-]+={0,2}$/
@@ -91,15 +103,33 @@ function sessionKeysOf(raw: string): Uint8Array[] {
   })
 }
 
+/** A whole number from 1 to `max`, or NaN. */
+const wholeUpTo = (raw: string, max: number): number => {
+  const value = /^\d+$/.test(raw) ? Number(raw) : Number.NaN
+  return value >= 1 && value <= max ? value : Number.NaN
+}
+
 function sessionHoursOf(raw: string | undefined): number {
   if (raw === undefined) return DEFAULT_SESSION_HOURS
-  const hours = /^\d+$/.test(raw) ? Number(raw) : Number.NaN
-  if (!(hours >= 1 && hours <= MAX_SESSION_HOURS)) {
+  const hours = wholeUpTo(raw, MAX_SESSION_HOURS)
+  if (Number.isNaN(hours)) {
     throw new Error(
       `MCP_WEB_SESSION_HOURS "${raw}" must be a whole number of hours from 1 to ${MAX_SESSION_HOURS}.`,
     )
   }
   return hours
+}
+
+function sessionCheckMinutesOf(raw: string | undefined): number | undefined {
+  if (raw === undefined) return undefined
+  const minutes = wholeUpTo(raw, MAX_CHECK_MINUTES)
+  if (Number.isNaN(minutes)) {
+    throw new Error(
+      `MCP_WEB_SESSION_CHECK_MINUTES "${raw}" must be a whole number of minutes from 1 to ${MAX_CHECK_MINUTES}, ` +
+        "or unset to renew the session's token only when it is due.",
+    )
+  }
+  return minutes
 }
 
 /** `MCP_URL`'s origin: https, or plain http on the machine itself, where browsers keep a secure cookie. */
@@ -133,8 +163,8 @@ export interface WebSettingsSources {
 /**
  * The web app's settings, or `undefined` when `MCP_WEB_CLIENT_ID` leaves it off. Fails when the
  * client id comes without an OAuth provider, a client secret, session keys, a web build's folder
- * or `MCP_URL`, when a key is short, when the session hours lie outside 1 to 24, and when
- * `MCP_URL` is plain http off the machine itself.
+ * or `MCP_URL`, when a key is short, when the session hours lie outside 1 to 24 or the check's
+ * minutes outside 1 to 60, and when `MCP_URL` is plain http off the machine itself.
  */
 export function readWebSettings(
   env: NodeJS.ProcessEnv,
@@ -175,6 +205,7 @@ export function readWebSettings(
     clientSecret,
     sessionKeys,
     sessionHours: sessionHoursOf(valueOf(env, "MCP_WEB_SESSION_HOURS")),
+    sessionCheckMinutes: sessionCheckMinutesOf(valueOf(env, "MCP_WEB_SESSION_CHECK_MINUTES")),
     dir,
     origin: originOf(mcpUrl),
   }
@@ -183,9 +214,12 @@ export function readWebSettings(
 /** One line for the boot log, without the secret or a key. */
 export function describeWebSettings(settings: WebSettings): string {
   const keys = settings.sessionKeys.length
+  const minutes = settings.sessionCheckMinutes
+  const checked =
+    minutes === undefined ? "" : `, checked at the identity provider every ${minutes} min`
   return (
     `Web app: on at ${settings.origin}/app for client ${settings.clientId}; sessions last ` +
-    `${settings.sessionHours} h; ${keys} session ${keys === 1 ? "key" : "keys (the first seals)"}; ` +
+    `${settings.sessionHours} h${checked}; ${keys} session ${keys === 1 ? "key" : "keys (the first seals)"}; ` +
     `web build from ${settings.dir}.`
   )
 }

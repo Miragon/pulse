@@ -7,13 +7,14 @@ below.
 
 ## Variables
 
-| Variable                | Default           | What it does                                                                                                                                       |
-| ----------------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MCP_WEB_CLIENT_ID`     | unset             | The client's id at the provider; turns the web app on under `<MCP_URL>/app`                                                                        |
-| `MCP_WEB_CLIENT_SECRET` | unset             | The client's secret; required with the id                                                                                                          |
-| `MCP_WEB_SESSION_KEYS`  | unset             | Comma-separated keys of at least 32 random bytes in base64url that seal the session cookie: the first seals, every one opens; required with the id |
-| `MCP_WEB_SESSION_HOURS` | `8`               | How long a session lasts from its sign-in, 1 to 24 hours, however often its tokens renew                                                           |
-| `MCP_WEB_DIR`           | the image's build | The folder of the web build (`index.html`, `pages.json`, `assets/`), read once at boot                                                             |
+| Variable                        | Default           | What it does                                                                                                                                       |
+| ------------------------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MCP_WEB_CLIENT_ID`             | unset             | The client's id at the provider; turns the web app on under `<MCP_URL>/app`                                                                        |
+| `MCP_WEB_CLIENT_SECRET`         | unset             | The client's secret; required with the id                                                                                                          |
+| `MCP_WEB_SESSION_KEYS`          | unset             | Comma-separated keys of at least 32 random bytes in base64url that seal the session cookie: the first seals, every one opens; required with the id |
+| `MCP_WEB_SESSION_HOURS`         | `8`               | How long a session lasts from its sign-in, 1 to 24 hours, however often its tokens renew                                                           |
+| `MCP_WEB_SESSION_CHECK_MINUTES` | unset             | Checks each session at the provider at least this often, 1 to 60 minutes ([The check](#the-check)); unset, a token renews only when it is due      |
+| `MCP_WEB_DIR`                   | the image's build | The folder of the web build (`index.html`, `pages.json`, `assets/`), read once at boot                                                             |
 
 `node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"` prints a key.
 To rotate, put a new key first and drop the old one once `MCP_WEB_SESSION_HOURS` have passed: a
@@ -22,10 +23,10 @@ session sealed with the old key opens until then. The boot fails, naming what to
 - `MCP_WEB_CLIENT_ID` comes without an OAuth provider, `MCP_WEB_CLIENT_SECRET`,
   `MCP_WEB_SESSION_KEYS`, a web build (`MCP_WEB_DIR`, else the image's) or `MCP_URL`;
 - `MCP_URL` is no absolute URL or plain `http://` off localhost: the session cookie needs HTTPS;
-- a key is no base64url or holds fewer than 32 bytes, or the hours lie outside 1 to 24;
-- `MCP_WEB_CLIENT_SECRET`, `MCP_WEB_SESSION_KEYS` or `MCP_WEB_SESSION_HOURS` is set without
-  `MCP_WEB_CLIENT_ID`, so the web app is never off without you seeing it (`MCP_WEB_DIR` may come
-  alone);
+- a key is no base64url or holds fewer than 32 bytes, the hours lie outside 1 to 24 or the check's
+  minutes outside 1 to 60;
+- an `MCP_WEB_*` variable other than `MCP_WEB_DIR` is set without `MCP_WEB_CLIENT_ID`, so the web
+  app is never off without you seeing it;
 - the server cannot serve the build as it is: no `index.html` or `pages.json`, a `pages.json`
   without a `pages` list naming `/app` or with a page outside `/app` or on one of the server's own
   routes (`/app/auth`, `/app/api`, `/app/assets`, `/app/signed-out`), or a file that links out of
@@ -35,15 +36,15 @@ Once it runs, the boot log says `Web app: on at <origin>/app for client <id>; â€
 
 ## The provider's side
 
-| Check           | What to set up                                                                                                                                                                                                                                                                                                                      |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Client          | A confidential client with the authorization code flow (Keycloak: client authentication on, standard flow); the server sends PKCE S256 and checks the issuer the provider names (RFC 9207); it signs people in to Pulse, while a Camunda 8 cluster is read with [the server's own client](../mcp/camunda8.md#one-client-per-server) |
-| Redirect URI    | `<MCP_URL>/app/auth/callback`, exactly                                                                                                                                                                                                                                                                                              |
-| Post-logout URI | `<MCP_URL>/app/signed-out`, where a sign-out comes back from the provider                                                                                                                                                                                                                                                           |
-| Audience        | `<MCP_URL>/mcp` in the access token's `aud`, which the gate in front of `/mcp` checks: Keycloak needs an audience mapper on the client (Included Custom Audience), Auth0 an API with that identifier, which the sign-in names as `audience`                                                                                         |
-| Scopes          | The server asks for them per provider: Keycloak `openid profile`, Auth0 `openid profile offline_access`, WorkOS, Better Auth and Convex `openid profile email offline_access`, plus the scopes the gate requires                                                                                                                    |
-| Token lifetime  | Short access tokens for this client, five minutes say: a copied session cookie holds on another replica until its access token runs out ([Sessions](#sessions))                                                                                                                                                                     |
-| Refresh tokens  | If the provider rotates refresh tokens (Keycloak: Revoke Refresh Token), give it a reuse allowance (Refresh Token Max Reuse), else route each browser to one replica: a page's calls on two replicas would spend one refresh token twice and end the session                                                                        |
+| Check           | What to set up                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Client          | A confidential client with the authorization code flow (Keycloak: client authentication on, standard flow); the server sends PKCE S256 and checks the issuer the provider names (RFC 9207); it signs people in to Pulse, while a Camunda 8 cluster is read with [the server's own client](../mcp/camunda8.md#one-client-per-server)                                                                                                             |
+| Redirect URI    | `<MCP_URL>/app/auth/callback`, exactly                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Post-logout URI | `<MCP_URL>/app/signed-out`, where a sign-out comes back from the provider                                                                                                                                                                                                                                                                                                                                                                       |
+| Audience        | `<MCP_URL>/mcp` in the access token's `aud`, which the gate in front of `/mcp` checks: Keycloak needs an audience mapper on the client (Included Custom Audience), Auth0 an API with that identifier, which the sign-in names as `audience`                                                                                                                                                                                                     |
+| Scopes          | The server asks for them per provider: Keycloak `openid profile`, Auth0 `openid profile offline_access`, WorkOS, Better Auth and Convex `openid profile email offline_access`, plus the scopes the gate requires                                                                                                                                                                                                                                |
+| Token lifetime  | Short access tokens for this client, five minutes say: a copied session cookie holds on another replica until its access token runs out, or until [the check](#the-check) where the provider ended the session ([Sessions](#sessions))                                                                                                                                                                                                          |
+| Refresh tokens  | The web client needs them (`offline_access` where the provider asks for it): without one a session ends with its access token, unchecked, and the log says so at each sign-in. If the provider rotates them and revokes every token of a reused one (Auth0's reuse detection without a reuse interval), give it a reuse allowance (Auth0's reuse interval, Okta's grace period), else route each browser to one replica ([Sessions](#sessions)) |
 
 A token the gate would refuse fails the sign-in. The playground's client `pulse-web` in
 `playground/docker/keycloak/realm-miragon.json` is a working Keycloak example.
@@ -53,19 +54,34 @@ A token the gate would refuse fails the sign-in. The playground's client `pulse-
 A session lives in a sealed cookie in the browser, never on the server, so every replica with the
 same `MCP_WEB_SESSION_KEYS` serves it and the replicas share nothing. It lasts
 `MCP_WEB_SESSION_HOURS` from the sign-in; within them the server renews a due access token with the
-refresh token and seals the new one back into the cookie.
+refresh token, seals the new one back into the cookie and ends the session when the provider
+refuses the renewal. A replica's first refusal of a token may be a race with another replica's
+renewal, so the token it holds still goes out; its second refusal, 30 s later, ends the session. A
+provider that rotates refresh tokens and revokes every token of a reused one (Auth0's reuse
+detection without a reuse interval) thus ends a session whose calls renew on two replicas at once:
+give it a reuse allowance or route each browser to one replica. A provider that doesn't answer
+within 10 s ends no session: the token goes out until it expires, then a page's call gets 503.
+
+### The check
+
+With `MCP_WEB_SESSION_CHECK_MINUTES` a token is due that long after it was received too, whatever
+its lifetime: the next call or reload renews it at the provider on any replica, so a session the
+provider ended, a user it disabled or access it revoked ends within that interval and 30 s, and one
+whose refresh token expired (Keycloak's SSO Session Idle) at the check. Keycloak refuses after an
+SSO logout, others renew after one. A silent provider holds a session one more interval at most.
 
 **Sign out** revokes the refresh token where the provider offers revocation, ends the session at the
 provider (the server keeps no ID token, so a provider may ask to confirm; Keycloak does not, since
 the revocation ended its session) and marks the session ended at the replica that takes the sign-out
 and in the browser (`__Host-pulse-ended`). A replica that did not take it, or one restarted since,
-knows nothing of it: there a copy of the cookie holds until its access token runs out, which is why
-the web client's access tokens should be short. A call under way on another replica may renew the
-tokens after the sign-out and set the cookie again; the browser's next request, on any replica, is
-refused and revokes that refresh token too (once per token and replica, behind its answer). Until
-then, or if that browser never comes back, a copy of that cookie renews on the replicas that did not
-take the sign-out, unless the provider ended its session; where the provider rotates refresh tokens,
-a copy that renewed before then keeps its newer token, unrevoked, for the session's hours.
+knows nothing of it: there a copy of the cookie holds until its access token runs out, or until
+[the check](#the-check) where the provider ended the session, which is why the web client's access
+tokens should be short. A call under way on another replica may renew the tokens after the sign-out
+and set the cookie again; the browser's next request, on any replica, is refused and revokes that
+refresh token too (once per token and replica, behind its answer). Until then, or if that browser
+never comes back, a copy of that cookie renews on the replicas that did not take the sign-out,
+unless the provider ended its session; where the provider rotates refresh tokens, a copy that
+renewed before then keeps its newer token, unrevoked, for the session's hours.
 
 ## Behind a proxy
 

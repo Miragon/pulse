@@ -249,30 +249,33 @@ describe("a page's session renewed through the provider", () => {
     const browser = new Browser(await boot(webEnv(fake)))
     await signIn(browser, fake)
     const csrf = await csrfOf(browser)
+    // The page's read of its session renewed the due token as a call would.
+    expect(refreshes()).toHaveLength(1)
     // Both leave with the same cookie, before either answer sets the renewed one.
     const [first, second] = await Promise.all([
       post(browser, csrf, "page_rows_data"),
       post(browser, csrf, "page_rows_data"),
     ])
     expect([first.status, second.status]).toEqual([200, 200])
-    expect(refreshes()).toHaveLength(1)
-    expect(refreshes()[0].form.get("resource")).toBe(RESOURCE)
+    expect(refreshes()).toHaveLength(2)
+    expect(refreshes()[1].form.get("resource")).toBe(RESOURCE)
     expect(first.headers.getSetCookie()[0]).toMatch(new RegExp(`^${SESSION_COOKIE}=`))
     // The next call brings the rotated refresh token, which renews once more.
-    expect((await call(browser, "page_rows_data")).status).toBe(200)
-    expect(refreshes()).toHaveLength(2)
-    expect(refreshes()[1].form.get("refresh_token")).toBe(fake.issued.refresh[1])
+    expect((await post(browser, csrf, "page_rows_data")).status).toBe(200)
+    expect(refreshes()).toHaveLength(3)
+    expect(refreshes()[2].form.get("refresh_token")).toBe(fake.issued.refresh[2])
     const bearers = ran.map(({ info }) => info?.authorization)
     expect(bearers).toEqual([
-      `Bearer ${fake.issued.access[1]}`,
-      `Bearer ${fake.issued.access[1]}`,
       `Bearer ${fake.issued.access[2]}`,
+      `Bearer ${fake.issued.access[2]}`,
+      `Bearer ${fake.issued.access[3]}`,
     ])
   })
 
   it("goes on when a page's parallel calls renew on two replicas and the provider rotates", async () => {
     // The second refresh brings the refresh token the first one spent, which the provider refuses:
-    // the token the session holds has not expired, so that call sends it and ends nothing.
+    // that replica's first refusal of it, and the token the session holds has not expired, so that
+    // call sends it and ends nothing.
     fake = await startFakeOidc({
       audience: RESOURCE,
       accessTokenSeconds: 5,
@@ -288,7 +291,8 @@ describe("a page's session renewed through the provider", () => {
       post(elsewhere, csrf, "page_rows_data"),
     ])
     expect(answers.map(({ status }) => status)).toEqual([200, 200])
-    expect(refreshes()).toHaveLength(2)
+    // The page's read of its session renewed once, then each replica once.
+    expect(refreshes()).toHaveLength(3)
     // One sets the renewed cookie, the other sets none and clears none.
     const setCookies = answers.map((answer) => answer.headers.getSetCookie())
     expect(setCookies.filter((cookies) => cookies.length > 0)).toHaveLength(1)

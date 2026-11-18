@@ -967,7 +967,10 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      widget-shell's `src/web`) is no second source: it holds a token the server's own sign-in
      obtained through the same provider, checked by the gate before it is kept, and `/mcp`
      verifies it like any bearer token; the session cookie is no credential at `/mcp` (401), and
-     `/app` refuses an Authorization header (400). A page's call (`POST /app/api/call`) reaches
+     `/app` refuses an Authorization header (400). The session renews its token when it is due,
+     with `MCP_WEB_SESSION_CHECK_MINUTES` at least that often at the provider (`src/web/refresh.ts`),
+     and ends at the provider's second refusal of a renewal at a replica (the first may be a race
+     between replicas). A page's call (`POST /app/api/call`) reaches
      `/mcp` in-process as a `tools/call` with the session's bearer token and an MCP client's
      headers alone (`src/web/forward.ts`), so the caller, the per-caller caches and passthrough
      key on that forwarded token like any other; it takes only a read a view calls

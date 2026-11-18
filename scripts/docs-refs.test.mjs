@@ -513,10 +513,11 @@ const DOCS_BUDGETS = {
   "mcp/camunda8.md": 115,
   "mcp/reference.md": 160,
   // The web app's pages (docs/web/): what it shows and for whom, the sign-in an operator sets up
-  // (variables, the provider's side, sessions, a proxy, local), how it is built.
+  // (variables, the provider's side, sessions and their check at the provider, a proxy, local),
+  // how it is built.
   "web/index.md": 50,
-  "web/sign-in.md": 110,
-  "web/architecture.md": 100,
+  "web/sign-in.md": 126,
+  "web/architecture.md": 102,
   // The CLI's pages (docs/cli/).
   "cli/index.md": 40,
   "cli/getting-started.md": 140,

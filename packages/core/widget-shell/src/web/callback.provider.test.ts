@@ -130,6 +130,21 @@ describe("GET /app/auth/callback: a provider that cannot answer now", () => {
     expect(lines[0]).toContain("the token endpoint gave no token (no token: unreachable)")
   })
 
+  it.each(["temporarily_unavailable", "server_error"])(
+    "says unavailable when the token endpoint answers the code with %s",
+    async (error) => {
+      const platform = {
+        fetch: () => Promise.resolve(Response.json({ error }, { status: 400 })),
+        now: () => Date.now(),
+      }
+      const { response, lines } = await callbackWith({ platform })
+      expectFailed(response, "unavailable")
+      expect(lines).toEqual([
+        `Web sign-in failed (unavailable): the token endpoint gave no token (no token: grant (HTTP 400) (${error})).`,
+      ])
+    },
+  )
+
   it("says unavailable while the gate cannot load the provider's keys", async () => {
     const unavailable = new OAuthError(OAuthErrorCode.TemporarilyUnavailable, "keys did not load")
     const { response } = await callbackWith({ verify: () => Promise.reject(unavailable) })

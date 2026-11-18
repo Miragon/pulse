@@ -42,6 +42,13 @@ export interface FakeOidcOptions {
   readonly refreshTokenSeconds?: number
   /** Keycloak's "Revoke Refresh Token": each refresh token renews once, and a reuse is refused. */
   readonly rotateRefreshTokens?: boolean
+  /**
+   * Auth0's reuse detection: refresh tokens rotate, and a spent one used again revokes every
+   * refresh token of its sign-in, the one its renewal gave too.
+   */
+  readonly revokeFamilyOnReuse?: boolean
+  /** Whether a token answer carries a refresh token (default true): false, as without offline_access. */
+  readonly refreshTokens?: boolean
 }
 
 /** The confidential client the fake registers unless told otherwise. */
@@ -75,7 +82,7 @@ interface PendingCode {
   readonly expiresAt: number
 }
 
-/** A refresh token's grant: its session, and whether it still renews. */
+/** A refresh token's grant: its session, whether it still renews, and whether it renewed once. */
 export interface Grant {
   readonly clientId: string
   readonly scope: string
@@ -83,6 +90,7 @@ export interface Grant {
   readonly sid: string
   readonly expiresAt: number
   active: boolean
+  spent?: boolean
 }
 
 /** A session ended at the end-session endpoint: the client that asked, where it returned, which. */
@@ -108,6 +116,8 @@ export interface Realm {
   readonly accessTokenSeconds: number
   readonly refreshTokenSeconds: number
   readonly rotateRefreshTokens: boolean
+  readonly revokeFamilyOnReuse: boolean
+  readonly refreshTokens: boolean
   readonly jwk: JWK
   readonly privateKey: CryptoKey
   readonly codes: Map<string, PendingCode>
@@ -125,6 +135,7 @@ const KID = "fake-oidc-rs256"
 export async function createRealm(issuer: string, options: FakeOidcOptions): Promise<Realm> {
   const { privateKey, publicKey } = await generateKeyPair("RS256")
   const clients = options.clients ?? [FAKE_OIDC_CLIENT]
+  const reuseRevokes = options.revokeFamilyOnReuse ?? false
   return {
     issuer,
     clients: new Map(clients.map((client) => [client.id, client])),
@@ -132,7 +143,9 @@ export async function createRealm(issuer: string, options: FakeOidcOptions): Pro
     ...(options.audience === undefined ? {} : { audience: options.audience }),
     accessTokenSeconds: options.accessTokenSeconds ?? 300,
     refreshTokenSeconds: options.refreshTokenSeconds ?? 1800,
-    rotateRefreshTokens: options.rotateRefreshTokens ?? false,
+    rotateRefreshTokens: (options.rotateRefreshTokens ?? false) || reuseRevokes,
+    revokeFamilyOnReuse: reuseRevokes,
+    refreshTokens: options.refreshTokens ?? true,
     jwk: { ...(await exportJWK(publicKey)), kid: KID, alg: "RS256", use: "sig" },
     privateKey,
     codes: new Map(),
@@ -171,6 +184,16 @@ function sign(realm: Realm, claims: Record<string, unknown>, lifetime: number): 
     .sign(realm.privateKey)
 }
 
+/** A new refresh token of the session's grant, as the token answer carries it. */
+function refreshAnswer(realm: Realm, session: Omit<Grant, "expiresAt" | "active">) {
+  const { clientId, scope, user, sid } = session
+  const refreshToken = opaqueToken()
+  const expiresAt = Date.now() + realm.refreshTokenSeconds * 1000
+  realm.grants.set(refreshToken, { clientId, scope, user, sid, expiresAt, active: true })
+  realm.issued.refresh.push(refreshToken)
+  return { refresh_expires_in: realm.refreshTokenSeconds, refresh_token: refreshToken }
+}
+
 /** A sign-in's or a refresh's tokens, as Keycloak's token endpoint answers them. */
 export async function issueTokens(
   realm: Realm,
@@ -190,17 +213,8 @@ export async function issueTokens(
     },
     realm.accessTokenSeconds,
   )
-  const refreshToken = opaqueToken()
-  realm.grants.set(refreshToken, {
-    clientId,
-    scope,
-    user,
-    sid,
-    expiresAt: Date.now() + realm.refreshTokenSeconds * 1000,
-    active: true,
-  })
   realm.issued.access.push(accessToken)
-  realm.issued.refresh.push(refreshToken)
+  const refresh = realm.refreshTokens ? refreshAnswer(realm, session) : {}
   const idToken = scope.split(" ").includes("openid")
     ? await sign(
         realm,
@@ -219,8 +233,7 @@ export async function issueTokens(
   return {
     access_token: accessToken,
     expires_in: realm.accessTokenSeconds,
-    refresh_expires_in: realm.refreshTokenSeconds,
-    refresh_token: refreshToken,
+    ...refresh,
     token_type: "Bearer",
     ...(idToken === undefined ? {} : { id_token: idToken }),
     "not-before-policy": 0,

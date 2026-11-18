@@ -48,9 +48,20 @@ const PASSING: ReadonlySet<string> = new Set([
   "rate-limited",
 ])
 
-/** Whether the provider gave no token for a reason that passes by itself (no answer, a 5xx, a limit). */
-export const passesBy = (error: unknown): boolean =>
-  PASSING.has(String((error as Partial<TokenFailure>).kind))
+/**
+ * The OAuth error codes of a provider that cannot answer now (RFC 6749 §4.1.2.1), which some send
+ * from the token endpoint with a 400: no refusal of the grant.
+ */
+const PASSING_CODES: ReadonlySet<string> = new Set(["temporarily_unavailable", "server_error"])
+
+/**
+ * Whether the provider gave no token for a reason that passes by itself: no answer, a 5xx, a limit,
+ * or an answer whose error code says it cannot answer now.
+ */
+export function passesBy(error: unknown): boolean {
+  const { kind, code } = error as Partial<TokenFailure>
+  return PASSING.has(String(kind)) || PASSING_CODES.has(String(code))
+}
 
 const NO_STORE = { "cache-control": "no-store" }
 

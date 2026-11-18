@@ -75,6 +75,39 @@ describe("a refresh at the fake provider", () => {
     await expect(refresh(idp, renewed.refreshToken)).resolves.toBeDefined()
   })
 
+  it("revokes every refresh token of a sign-in when a spent one comes again, when told to", async () => {
+    // Auth0's reuse detection: the token the first renewal gave renews no more either.
+    const idp = await start({ revokeFamilyOnReuse: true })
+    const first = await signIn(idp)
+    const other = await signIn(idp)
+    const renewed = await refresh(idp, first.refreshToken)
+    expect(await refusalOf(refresh(idp, first.refreshToken))).toBe(
+      "400 invalid_grant: Token is not active",
+    )
+    expect(await refusalOf(refresh(idp, renewed.refreshToken))).toBe(
+      "400 invalid_grant: Token is not active",
+    )
+    // Another sign-in's tokens are not of the family.
+    await expect(refresh(idp, other.refreshToken)).resolves.toBeDefined()
+  })
+
+  it("revokes no other token on a reuse unless told to", async () => {
+    const idp = await start({ rotateRefreshTokens: true })
+    const first = await signIn(idp)
+    const renewed = await refresh(idp, first.refreshToken)
+    await refusalOf(refresh(idp, first.refreshToken))
+    await expect(refresh(idp, renewed.refreshToken)).resolves.toBeDefined()
+  })
+
+  it("gives no refresh token when told to, as a client without offline_access gets none", async () => {
+    const idp = await start({ refreshTokens: false })
+    const tokens = await signIn(idp)
+    expect(tokens.refreshToken).toBeUndefined()
+    expect(tokens.refreshExpiresAt).toBeUndefined()
+    expect(idp.issued.refresh).toEqual([])
+    expect(idp.issued.access).toEqual([tokens.accessToken])
+  })
+
   it("refuses every refresh while told to, as after the session ended at the provider", async () => {
     const idp = await start()
     const tokens = await signIn(idp)

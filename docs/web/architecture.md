@@ -66,10 +66,13 @@ other tool gets 403 `WEB_NOT_FOR_PAGES`, a write 403 `WEB_READ_ONLY`, before it 
 The server then sends one `tools/call` in-process to `/mcp` with the session's bearer token and an
 MCP client's headers, so the edge guard, the OAuth gate, toolsets, engine routing, read-only
 engines and passthrough decide as for a chat: a tool the toolset drops does not run for a page
-either. A due access token is renewed first, once per pair of tokens and replica, and sealed back
-into the cookie. The page gets `{ result }`, never a token; a JSON-RPC error answers 502, a
-provider that doesn't answer while the token has expired 503, a session that is gone 401
-`signed_out`. A page that leaves cancels the tool's call (499). The request log names the forwarded
+either. A due access token, due by its expiry or by the session's check
+(`MCP_WEB_SESSION_CHECK_MINUTES`, which the cookie's receipt time lets every replica read), is
+renewed first, once per pair of tokens and replica within 10 s, and sealed back into the cookie.
+The page gets `{ result }`, never a token; a JSON-RPC error answers 502, a provider that doesn't
+answer once the token no longer goes out 503, a session that is gone 401 `signed_out`, the
+provider's second refusal of a renewal at a replica too (the first may be a race with another
+replica's). A page that leaves cancels the tool's call (499). The request log names the forwarded
 call too (`tools/call engine_jobs_data /mcp 200 client=unknown via=/app/api/call 9ms`).
 
 A page writes to no engine: its view host answers `useHostWrites()` with false, so no widget shows

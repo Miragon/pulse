@@ -1,17 +1,27 @@
-import { describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
+import { TokenFailure } from "@miragon/pulse-http/oauth"
 import {
   callContext,
+  checkedEvery,
   scriptedProvider,
   SECOND,
   sessionTokens,
+  SETTINGS,
   T0,
   tokens,
+  type TokenAnswer,
 } from "./call.test-support.js"
 import {
+  checkMsOf,
+  CLOCK_AHEAD_MS,
+  holdsWhileSilent,
+  isCheckDue,
+  REFRESH_TIMEOUT_MS,
   RENEWAL_KEPT_MS,
   renewableAfterRefusal,
   renewalSource,
   seenAt,
+  SILENT_KEPT_MS,
   tokenStep,
   type RenewableTokens,
 } from "./refresh.js"
@@ -21,6 +31,65 @@ import { RESOURCE } from "./sign-in.test-support.js"
 const RECEIVED = sessionTokens(T0) as RenewableTokens
 const DUE_AT = T0 + 270 * SECOND
 const EXPIRES_AT = T0 + 300 * SECOND
+
+const MINUTE = 60 * SECOND
+/** A check every five minutes, and tokens of an hour, renewed a minute before they expire. */
+const CHECK = 5 * MINUTE
+const HOUR_LONG = sessionTokens(T0, { expiresAt: T0 + 60 * MINUTE }) as RenewableTokens
+
+const REFUSAL: TokenAnswer = { status: 400, body: { error: "invalid_grant" } }
+const FIRST = { kind: "refused", final: false }
+const FINAL = { kind: "refused", final: true }
+const EXPIRED_END = { kind: "end", why: "the session's token expired and nothing renews it" }
+const UNCHECKED_END = {
+  kind: "end",
+  why: "the session's check is due and its refresh token expired",
+}
+
+afterEach(() => {
+  vi.useRealTimers()
+})
+
+describe("checkMsOf: the check's interval", () => {
+  it("is none without MCP_WEB_SESSION_CHECK_MINUTES, else its minutes", () => {
+    expect(checkMsOf(SETTINGS)).toBeUndefined()
+    expect(checkMsOf({ ...SETTINGS, sessionCheckMinutes: 5 })).toBe(CHECK)
+  })
+})
+
+describe("isCheckDue: the session's check at the provider", () => {
+  it("is never due without a check", () => {
+    expect(isCheckDue(HOUR_LONG, T0 + 59 * MINUTE, undefined)).toBe(false)
+    expect(isCheckDue(HOUR_LONG, T0 - 10 * MINUTE, undefined)).toBe(false)
+  })
+
+  it("is due once the tokens are its interval old", () => {
+    expect(isCheckDue(HOUR_LONG, T0 + CHECK - 1, CHECK)).toBe(false)
+    expect(isCheckDue(HOUR_LONG, T0 + CHECK, CHECK)).toBe(true)
+  })
+
+  it("is due at once for a receipt more than a minute after this replica's clock", () => {
+    // Another replica whose clock runs ahead received them: it must not postpone the check here.
+    expect(CLOCK_AHEAD_MS).toBe(MINUTE)
+    expect(isCheckDue(HOUR_LONG, T0 - 59 * SECOND, CHECK)).toBe(false)
+    expect(isCheckDue(HOUR_LONG, T0 - 60 * SECOND, CHECK)).toBe(false)
+    expect(isCheckDue(HOUR_LONG, T0 - 61 * SECOND, CHECK)).toBe(true)
+  })
+})
+
+describe("holdsWhileSilent: a token while the provider does not answer", () => {
+  it("goes out until it expires without a check", () => {
+    expect(holdsWhileSilent(HOUR_LONG, T0 + 60 * MINUTE - 1, undefined)).toBe(true)
+    expect(holdsWhileSilent(HOUR_LONG, T0 + 60 * MINUTE, undefined)).toBe(false)
+  })
+
+  it("goes out for two of the check's intervals after its receipt at most, never once expired", () => {
+    expect(holdsWhileSilent(HOUR_LONG, T0 + 2 * CHECK - 1, CHECK)).toBe(true)
+    expect(holdsWhileSilent(HOUR_LONG, T0 + 2 * CHECK, CHECK)).toBe(false)
+    expect(holdsWhileSilent(RECEIVED, EXPIRES_AT - 1, 60 * MINUTE)).toBe(true)
+    expect(holdsWhileSilent(RECEIVED, EXPIRES_AT, 60 * MINUTE)).toBe(false)
+  })
+})
 
 describe("seenAt: the tokens by this replica's clock", () => {
   it("counts a receipt after now as received now", () => {
@@ -48,15 +117,46 @@ describe("tokenStep: what a call does with the session's token", () => {
   it("sends a due token nothing renews until it expires, then ends the session", () => {
     const plain = sessionTokens(T0, { refreshToken: undefined })
     expect(tokenStep(plain, DUE_AT)).toEqual({ kind: "send" })
-    expect(tokenStep(plain, EXPIRES_AT)).toEqual({ kind: "end" })
-    const spent = sessionTokens(T0, { refreshExpiresAt: EXPIRES_AT })
-    expect(tokenStep(spent, EXPIRES_AT)).toEqual({ kind: "end" })
+    expect(tokenStep(plain, EXPIRES_AT)).toEqual(EXPIRED_END)
+    // Without a check, a refresh token that expired first ends nothing before the access token.
+    const spent = sessionTokens(T0, { refreshExpiresAt: DUE_AT })
+    expect(tokenStep(spent, DUE_AT)).toEqual({ kind: "send" })
+    expect(tokenStep(spent, EXPIRES_AT)).toEqual(EXPIRED_END)
   })
 
   it("never renews a token another replica received by a clock that runs ahead", () => {
     // Received at T0 by a clock five minutes ahead of this one: without the clamp the policy
     // would find it due on every call, a clock that stepped back.
     expect(tokenStep(RECEIVED, T0 - 300 * SECOND)).toEqual({ kind: "send" })
+  })
+
+  it("renews a token the check finds due long before it expires", () => {
+    expect(tokenStep(HOUR_LONG, T0 + CHECK - 1, CHECK)).toEqual({ kind: "send" })
+    expect(tokenStep(HOUR_LONG, T0 + CHECK, CHECK)).toEqual({ kind: "renew", tokens: HOUR_LONG })
+    // Due by its expiry, it renews before the check would.
+    expect(tokenStep(RECEIVED, DUE_AT, 60 * MINUTE)).toEqual({ kind: "renew", tokens: RECEIVED })
+  })
+
+  it("renews by the check a token received more than a minute ahead, as received now", () => {
+    expect(tokenStep(HOUR_LONG, T0 - 60 * SECOND, CHECK)).toEqual({ kind: "send" })
+    expect(tokenStep(HOUR_LONG, T0 - 61 * SECOND, CHECK)).toEqual({
+      kind: "renew",
+      tokens: { ...HOUR_LONG, receivedAt: T0 - 61 * SECOND },
+    })
+  })
+
+  it("sends a token of a sign-in without a refresh token until it expires, the check due or not", () => {
+    const plain = { ...HOUR_LONG, refreshToken: undefined }
+    expect(tokenStep(plain, T0 + CHECK, CHECK)).toEqual({ kind: "send" })
+    expect(tokenStep(plain, T0 + 60 * MINUTE, CHECK)).toEqual(EXPIRED_END)
+  })
+
+  it("ends the session at a due check once its refresh token expired, and not before", () => {
+    // The provider's session is over (Keycloak's SSO Session Idle): nothing can check it.
+    const spent = { ...HOUR_LONG, refreshExpiresAt: T0 + MINUTE }
+    expect(tokenStep(spent, T0 + CHECK - 1, CHECK)).toEqual({ kind: "send" })
+    expect(tokenStep(spent, T0 + CHECK, CHECK)).toEqual(UNCHECKED_END)
+    expect(tokenStep(spent, T0 + 60 * MINUTE, CHECK)).toEqual(EXPIRED_END)
   })
 })
 
@@ -188,29 +288,106 @@ describe("renewalSource: the replica's refreshes", () => {
   })
 
   it("keeps the provider's refusal of a refresh token 30 s too, and logs it without a token", async () => {
-    const refusal = { status: 400, body: { error: "invalid_grant" } }
-    const provider = scriptedProvider(refusal)
+    const provider = scriptedProvider(REFUSAL)
     const { ctx, logged } = callContext(provider.platform)
     const renew = renewalSource(ctx)
-    expect(await renew(RECEIVED)).toEqual({ kind: "refused" })
+    expect(await renew(RECEIVED)).toEqual(FIRST)
     provider.clock.now = T0 + RENEWAL_KEPT_MS - 1
-    expect(await renew(RECEIVED)).toEqual({ kind: "refused" })
+    expect(await renew(RECEIVED)).toEqual(FIRST)
     expect(provider.forms).toHaveLength(1)
     expect(logged).toHaveLength(1)
     expect(logged[0]).toMatch(/^Web session: the refresh gave no token \(.+\)\.$/)
     expect(logged[0]).not.toContain("refresh-1")
   })
 
+  it("strikes a refusal: the first of a pair, the next of the same pair final", async () => {
+    // The first may be a race with another replica's renewal; the second is the provider's word.
+    const provider = scriptedProvider(REFUSAL, REFUSAL, REFUSAL)
+    const { ctx } = callContext(provider.platform)
+    const renew = renewalSource(ctx)
+    expect(await renew(RECEIVED)).toEqual(FIRST)
+    provider.clock.now = T0 + RENEWAL_KEPT_MS
+    expect(await renew(RECEIVED)).toEqual(FINAL)
+    // Another pair's refusal is a first one of its own.
+    expect(await renew({ ...RECEIVED, accessToken: "access-0" })).toEqual(FIRST)
+    expect(provider.forms).toHaveLength(3)
+  })
+
+  it("remembers a refused pair while its access token holds, without a check", async () => {
+    const strikes = async (at: number) => {
+      const provider = scriptedProvider(REFUSAL, REFUSAL)
+      const renew = renewalSource(callContext(provider.platform).ctx)
+      await renew(RECEIVED)
+      provider.clock.now = at
+      return renew(RECEIVED)
+    }
+    expect(await strikes(EXPIRES_AT - 1)).toEqual(FINAL)
+    expect(await strikes(EXPIRES_AT)).toEqual(FIRST)
+  })
+
+  it("remembers a refused pair for one check's interval, also where its tokens' lifetime is unknown", async () => {
+    const unknown = { ...RECEIVED, expiresAt: undefined }
+    const strikes = async (at: number) => {
+      const provider = scriptedProvider(REFUSAL, REFUSAL)
+      const renew = renewalSource(callContext(provider.platform, checkedEvery(5)).ctx)
+      await renew(unknown)
+      provider.clock.now = at
+      return renew(unknown)
+    }
+    expect(await strikes(T0 + CHECK - 1)).toEqual(FINAL)
+    expect(await strikes(T0 + CHECK)).toEqual(FIRST)
+  })
+
+  it("remembers a refused pair while its token holds where that outlasts the check's interval", async () => {
+    const provider = scriptedProvider(REFUSAL, REFUSAL)
+    const renew = renewalSource(callContext(provider.platform, checkedEvery(5)).ctx)
+    expect(await renew(HOUR_LONG)).toEqual(FIRST)
+    provider.clock.now = T0 + 60 * MINUTE - 1
+    expect(await renew(HOUR_LONG)).toEqual(FINAL)
+  })
+
+  it("keeps it as long as the transport holds an endpoint that cannot answer now", () => {
+    expect(SILENT_KEPT_MS).toBe(new TokenFailure("unavailable").holdMs)
+  })
+
   it.each([
     ["answers 503", { status: 503, body: {} }],
     ["is unreachable", "unreachable" as const],
     ["limits the requests", { status: 429, body: {} }],
-  ])("asks again on the next call when the provider %s", async (_label, answer) => {
+    [
+      "answers temporarily_unavailable",
+      { status: 400, body: { error: "temporarily_unavailable" } },
+    ],
+    ["answers server_error", { status: 400, body: { error: "server_error" } }],
+  ])("keeps it 5 s, then asks again, when the provider %s", async (_label, answer) => {
     const provider = scriptedProvider(answer, tokens("access-2"))
     const { ctx } = callContext(provider.platform)
     const renew = renewalSource(ctx)
     expect(await renew(RECEIVED)).toEqual({ kind: "unavailable" })
+    provider.clock.now = T0 + SILENT_KEPT_MS - 1
+    expect(await renew(RECEIVED)).toEqual({ kind: "unavailable" })
+    expect(provider.forms).toHaveLength(1)
+    provider.clock.now = T0 + SILENT_KEPT_MS
     expect(await renew(RECEIVED)).toMatchObject({ kind: "renewed" })
+  })
+
+  it("gives up on a refresh after 10 s, and the calls within the next 5 s take that at once", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] })
+    const provider = scriptedProvider("hangs", tokens("access-2"))
+    const { ctx, logged } = callContext(provider.platform)
+    const renew = renewalSource(ctx)
+    let settled = false
+    const pending = renew(RECEIVED).finally(() => {
+      settled = true
+    })
+    await vi.advanceTimersByTimeAsync(REFRESH_TIMEOUT_MS - 1)
+    expect(settled).toBe(false)
+    await vi.advanceTimersByTimeAsync(1)
+    expect(await pending).toEqual({ kind: "unavailable" })
+    expect(logged).toEqual(["Web session: the refresh gave no token (no token: timeout)."])
+    provider.clock.now = T0 + SILENT_KEPT_MS - 1
+    expect(await renew(RECEIVED)).toEqual({ kind: "unavailable" })
+    expect(provider.forms).toHaveLength(1)
   })
 
   it("asks no token endpoint while the provider's metadata does not load", async () => {

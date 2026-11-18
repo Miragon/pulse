@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import {
   bearersOf,
   callContext,
@@ -26,6 +26,7 @@ import {
 } from "./call.test-support.js"
 import { endedCookie, SESSION_COOKIE } from "./cookies.js"
 import { callRoute, type McpTarget } from "./forward.js"
+import { REFRESH_TIMEOUT_MS, RENEWAL_KEPT_MS, SILENT_KEPT_MS } from "./refresh.js"
 import type { WebSession } from "./session.js"
 import { FLAGS } from "./sign-in.test-support.js"
 
@@ -35,6 +36,17 @@ import { FLAGS } from "./sign-in.test-support.js"
  */
 
 const REFRESH_REFUSAL = { status: 400, body: { error: "invalid_grant" } }
+const PROVIDER_SILENT = {
+  status: 503,
+  body: {
+    message:
+      "The identity provider does not answer, so the session's token was not renewed. Try again shortly.",
+  },
+}
+
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 /** The `Cookie` header a browser sends back for the session cookie an answer set. */
 function cookieOf(response: Response): string {
@@ -78,7 +90,7 @@ describe("POST /app/api/call: the session's token", () => {
     })
   })
 
-  it("sends a token that still holds while the provider refuses the refresh token", async () => {
+  it("sends a token that still holds at the provider's first refusal of the refresh token", async () => {
     // A call beside it on another replica may have spent the refresh token: the session goes on.
     const { call, requests } = await setup({
       at: DUE,
@@ -89,6 +101,25 @@ describe("POST /app/api/call: the session's token", () => {
     expect(await jsonOf(response)).toEqual({ status: 200, body: { result: RESULT } })
     expect(bearersOf(requests)).toEqual(["Bearer access-1"])
     expect(response.headers.getSetCookie()).toEqual([])
+  })
+
+  it("ends the session at the provider's second refusal of the same tokens, leaving the cookies", async () => {
+    const { call, requests, idp, logged } = await setup({
+      at: DUE,
+      provider: [REFRESH_REFUSAL, REFRESH_REFUSAL],
+    })
+    expect((await call()).status).toBe(200)
+    // The first refusal is kept 30 s: the calls meanwhile send the token, then the provider is asked again.
+    idp.clock.now = DUE + RENEWAL_KEPT_MS - 1
+    expect((await call()).status).toBe(200)
+    idp.clock.now = DUE + RENEWAL_KEPT_MS
+    const response = await call()
+    expect(await jsonOf(response)).toEqual({ status: 401, body: SIGNED_OUT })
+    expect(response.headers.getSetCookie()).toEqual([])
+    expect([requests.length, idp.forms.length]).toEqual([2, 2])
+    expect(logged.at(-1)).toBe(
+      "Web session ended: the identity provider refused the refresh token.",
+    )
   })
 
   it("ends the session once the token expired and the provider refuses the refresh token, leaving the cookies", async () => {
@@ -114,15 +145,23 @@ describe("POST /app/api/call: the session's token", () => {
   it("answers 503 for an expired token while the provider does not answer", async () => {
     const { call, requests } = await setup({ at: EXPIRED, provider: ["unreachable"] })
     const response = await call()
-    expect(await jsonOf(response)).toEqual({
-      status: 503,
-      body: {
-        message:
-          "The identity provider does not answer, so the session's token was not renewed. Try again shortly.",
-      },
-    })
+    expect(await jsonOf(response)).toEqual(PROVIDER_SILENT)
     expect(response.headers.getSetCookie()).toEqual([])
     expect(requests).toEqual([])
+  })
+
+  it("waits 10 s at most for a provider that hangs, and sends at once within the next 5 s", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] })
+    const { call, requests, idp } = await setup({ at: DUE, provider: ["hangs"] })
+    const first = call()
+    // The refresh is sent once the cookie opened, which takes real time.
+    while (idp.forms.length === 0) await new Promise((resolve) => setImmediate(resolve))
+    await vi.advanceTimersByTimeAsync(REFRESH_TIMEOUT_MS)
+    expect((await first).status).toBe(200)
+    idp.clock.now = DUE + SILENT_KEPT_MS - 1
+    expect((await call()).status).toBe(200)
+    expect(bearersOf(requests)).toEqual(["Bearer access-1", "Bearer access-1"])
+    expect(idp.forms).toHaveLength(1)
   })
 
   it("ends the session with an expired token nothing renews", async () => {

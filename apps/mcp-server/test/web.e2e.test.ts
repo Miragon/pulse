@@ -9,6 +9,7 @@ import {
   FAKE_OIDC_USERS,
   startFakeOidc,
   type FakeOidc,
+  type FakeOidcOptions,
 } from "@miragon/pulse-widget-shell/testing/oidc"
 import { createApp } from "../src/app.js"
 import { stubNeutralEnv } from "./boot-server.js"
@@ -19,6 +20,7 @@ import { postToolCall } from "./realm.js"
  * identity provider, and each of its calls goes in-process to `/mcp` with the session's token, so
  * the OAuth gate, the toolset OAuth gives (operations), the engine profiles, passthrough and the
  * per-caller caches decide as for any client. `/mcp` refuses the session cookie, `/app` a bearer.
+ * With `MCP_WEB_SESSION_CHECK_MINUTES` the session is checked at the provider on any replica.
  */
 
 const FIXTURE_JS = path.join(import.meta.dirname, "fixtures", "mcp-app.js")
@@ -61,13 +63,16 @@ afterEach(async () => {
   await Promise.all([fake.close(), engine.close()])
 })
 
-/** The server under OAuth with the web app on: `prod` forwards the caller's token, `ro` too, read-only. */
-function boot(): Promise<ComposedServer> {
+/**
+ * The server under OAuth with the web app on, signing in at `idp`: `prod` forwards the caller's
+ * token, `ro` too, read-only; `extra` sets further variables.
+ */
+function boot(idp: FakeOidc = fake, extra: Record<string, string> = {}): Promise<ComposedServer> {
   const profile = { url: engine.url, auth: { type: "passthrough" } }
   stubNeutralEnv({
     MCP_URL: ORIGIN,
-    MCP_OAUTH_KEYCLOAK_SERVER_URL: fake.serverUrl,
-    MCP_OAUTH_KEYCLOAK_REALM: fake.realm,
+    MCP_OAUTH_KEYCLOAK_SERVER_URL: idp.serverUrl,
+    MCP_OAUTH_KEYCLOAK_REALM: idp.realm,
     MCP_WEB_CLIENT_ID: FAKE_OIDC_CLIENT.id,
     MCP_WEB_CLIENT_SECRET: FAKE_OIDC_CLIENT.secret,
     MCP_WEB_SESSION_KEYS: Buffer.alloc(32, 7).toString("base64url"),
@@ -77,21 +82,38 @@ function boot(): Promise<ComposedServer> {
       defaultProfile: "prod",
       profiles: { prod: profile, ro: { ...profile, readOnly: true } },
     }),
+    ...extra,
   })
   return createApp(process.env, { bundle: { jsPath: FIXTURE_JS }, webDir: FIXTURE_WEB })
 }
 
-/** A browser of the app's page: its cookies, its CSRF token, its calls. */
-class Page {
-  private readonly cookies = new Map<string, string>()
-  private csrf = ""
+/** What a browser keeps: its cookies and the CSRF token its page read. */
+interface Jar {
+  readonly cookies: Map<string, string>
+  csrf: string
+}
 
-  constructor(private readonly composed: ComposedServer) {}
+/** A browser of the app's page on one replica: its cookies, its CSRF token, its calls. */
+class Page {
+  constructor(
+    private readonly composed: ComposedServer,
+    private readonly idp: FakeOidc = fake,
+    private readonly jar: Jar = { cookies: new Map(), csrf: "" },
+  ) {}
+
+  /** The same browser on another replica, its cookies and CSRF token with it. */
+  on(replica: ComposedServer): Page {
+    return new Page(replica, this.idp, this.jar)
+  }
+
+  get cookies(): ReadonlyMap<string, string> {
+    return this.jar.cookies
+  }
 
   async fetch(target: string, init: RequestInit = {}): Promise<Response> {
     const headers = new Headers(init.headers)
     headers.set("host", "localhost")
-    const cookie = [...this.cookies].map(([name, value]) => `${name}=${value}`).join("; ")
+    const cookie = this.cookieHeader
     if (cookie) headers.set("cookie", cookie)
     const response = await this.composed.app.fetch(
       new Request(new URL(target, ORIGIN), { ...init, headers }),
@@ -99,22 +121,22 @@ class Page {
     for (const set of response.headers.getSetCookie()) {
       const [pair] = set.split(";")
       const at = pair.indexOf("=")
-      if (/Max-Age=0(;|$)/.test(set)) this.cookies.delete(pair.slice(0, at))
-      else this.cookies.set(pair.slice(0, at), pair.slice(at + 1))
+      if (/Max-Age=0(;|$)/.test(set)) this.jar.cookies.delete(pair.slice(0, at))
+      else this.jar.cookies.set(pair.slice(0, at), pair.slice(at + 1))
     }
     return response
   }
 
   get cookieHeader(): string {
-    return [...this.cookies].map(([name, value]) => `${name}=${value}`).join("; ")
+    return [...this.jar.cookies].map(([name, value]) => `${name}=${value}`).join("; ")
   }
 
   /** The whole sign-in as `username`, then the session's CSRF token. */
   async signIn(username?: string): Promise<this> {
     const login = await this.fetch("/app/auth/login")
-    await this.fetch(await fake.signIn(String(login.headers.get("location")), username))
+    await this.fetch(await this.idp.signIn(String(login.headers.get("location")), username))
     const session = await this.fetch("/app/api/session")
-    this.csrf = ((await session.json()) as { csrf: string }).csrf
+    this.jar.csrf = ((await session.json()) as { csrf: string }).csrf
     return this
   }
 
@@ -125,13 +147,19 @@ class Page {
       headers: {
         origin: ORIGIN,
         "sec-fetch-site": "same-origin",
-        "x-pulse-csrf": this.csrf,
+        "x-pulse-csrf": this.jar.csrf,
         "content-type": "application/json",
       },
       body: JSON.stringify({ name, arguments: args }),
     })
     const text = await response.text()
-    return { status: response.status, text, body: JSON.parse(text) as Record<string, unknown> }
+    const setCookies = response.headers.getSetCookie()
+    return {
+      status: response.status,
+      text,
+      body: JSON.parse(text) as Record<string, unknown>,
+      setCookies,
+    }
   }
 }
 
@@ -263,5 +291,130 @@ describe("the web build the root names", () => {
     expect(await shown.text()).toBe(await readFile(path.join(FIXTURE_WEB, "index.html"), "utf8"))
     expect(shown.headers.get("cache-control")).toBe("no-store")
     expect(shown.headers.get("content-security-policy")).toMatch(/^default-src 'none'; /)
+  })
+})
+
+describe("a web session checked at the provider every five minutes, on two replicas", () => {
+  const MINUTE = 60_000
+  const READ = "engine_list_engines"
+  const SIGNED_OUT = { code: "signed_out", message: "No session: sign in again." }
+  let idp: FakeOidc | undefined
+
+  beforeEach(() => {
+    // Only the clock is faked: sockets and the deadlines of their requests run as ever.
+    vi.useFakeTimers({ toFake: ["Date"], now: Date.now() })
+  })
+
+  afterEach(async () => {
+    vi.useRealTimers()
+    await idp?.close()
+    idp = undefined
+  })
+
+  /** Two replicas over one session key and one provider of access tokens of an hour. */
+  async function replicas(options: FakeOidcOptions = {}) {
+    const started = await startFakeOidc({
+      audience: `${ORIGIN}/mcp`,
+      accessTokenSeconds: 3600,
+      ...options,
+    })
+    idp = started
+    const check = { MCP_WEB_SESSION_CHECK_MINUTES: "5" }
+    const one = await boot(started, check)
+    const two = await boot(started, check)
+    const page = await new Page(one, started).signIn()
+    return { one, two, page, provider: started }
+  }
+
+  const later = (minutes: number) => vi.setSystemTime(Date.now() + minutes * MINUTE)
+
+  const refreshes = (provider: FakeOidc) =>
+    provider.requests.filter((request) => request.form.get("grant_type") === "refresh_token")
+
+  it("ends the session on either replica within the check once the provider ended it, and a new sign-in works", async () => {
+    const { one, two, page, provider } = await replicas()
+    // The provider ends this browser's session (a sign-out elsewhere, a disabled user).
+    const hint = encodeURIComponent(provider.issued.id[0])
+    const logout = `${provider.issuer}/protocol/openid-connect/logout?id_token_hint=${hint}`
+    expect((await fetch(logout)).status).toBe(200)
+    later(4)
+    expect((await page.call(READ)).status).toBe(200)
+    expect(refreshes(provider)).toEqual([])
+    // The check's first refusal at each replica may be a race with the other's renewal.
+    later(1)
+    for (const replica of [one, two]) expect((await page.on(replica).call(READ)).status).toBe(200)
+    later(0.5)
+    for (const replica of [one, two]) {
+      const { status, body, setCookies } = await page.on(replica).call(READ)
+      expect({ status, body, setCookies }).toEqual({
+        status: 401,
+        body: SIGNED_OUT,
+        setCookies: [],
+      })
+    }
+    // 54 minutes before the access token expires. No replica recorded a sign-out: the cookies stay.
+    expect(refreshes(provider)).toHaveLength(4)
+    expect([...page.cookies.keys()]).toEqual(["__Host-pulse-session"])
+    await page.signIn()
+    for (const replica of [one, two]) expect((await page.on(replica).call(READ)).status).toBe(200)
+  })
+
+  it("keeps the session where the page's parallel calls renew on both replicas and the provider rotates", async () => {
+    const { two, page, provider } = await replicas({ rotateRefreshTokens: true })
+    for (const round of [1, 2]) {
+      later(5)
+      const answers = await Promise.all([page.call(READ), page.on(two).call(READ)])
+      expect(
+        answers.map(({ status }) => status),
+        `check ${round}`,
+      ).toEqual([200, 200])
+      // One replica renewed and set the cookie; the other's refusal was the race's, its first.
+      expect(answers.filter(({ setCookies }) => setCookies.length > 0)).toHaveLength(1)
+      later(0.5)
+      expect((await page.call(READ)).status).toBe(200)
+      expect((await page.on(two).call(READ)).status).toBe(200)
+    }
+    expect(refreshes(provider)).toHaveLength(4)
+  })
+
+  it("ends the session at the next check where the provider revokes every token of a reused one", async () => {
+    // Auth0's reuse detection without a reuse interval: such a provider needs one replica per
+    // browser, as the docs say.
+    const { two, page } = await replicas({ revokeFamilyOnReuse: true })
+    later(5)
+    const answers = await Promise.all([page.call(READ), page.on(two).call(READ)])
+    expect(answers.map(({ status }) => status)).toEqual([200, 200])
+    later(5)
+    expect((await page.call(READ)).status).toBe(200)
+    later(0.5)
+    expect(await page.call(READ)).toMatchObject({ status: 401, body: SIGNED_OUT })
+  })
+
+  it("signs in without a refresh token, and its session ends when its access token expires", async () => {
+    const warned = vi.mocked(console.warn)
+    const { page, provider } = await replicas({ refreshTokens: false })
+    const lines = warned.mock.calls.map(([line]) => String(line))
+    expect(lines.filter((line) => line.includes("offline_access"))).toHaveLength(1)
+    // Nothing renews it, so nothing checks it: the token goes out until it expires.
+    later(5)
+    expect((await page.call(READ)).status).toBe(200)
+    later(55)
+    expect(await page.call(READ)).toMatchObject({ status: 401, body: SIGNED_OUT })
+    expect(refreshes(provider)).toEqual([])
+  })
+
+  it("starts a caller's caches afresh with each renewed token, so the check refills them", async () => {
+    // The per-caller caches key on the token (D18): the XML cache reads the engine again.
+    const { page, provider } = await replicas()
+    const read = { processDefinitionId: "invoice:1", engine: "prod" }
+    for (const step of [0, 0, 5]) {
+      later(step)
+      expect((await page.call("engine_bpmn_xml_data", read)).status).toBe(200)
+    }
+    const xmlReads = engine.seen.filter((request) => request.path.endsWith("/xml"))
+    expect(xmlReads.map((request) => request.authorization)).toEqual(
+      provider.issued.access.map((token) => `Bearer ${token}`),
+    )
+    expect(provider.issued.access).toHaveLength(2)
   })
 })

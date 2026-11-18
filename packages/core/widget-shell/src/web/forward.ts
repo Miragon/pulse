@@ -14,14 +14,19 @@
  * new one may help. The page gets the tool's result (`{ result }`), never a token: renewed tokens
  * go back sealed into the session's cookie, with the expiry the sign-in gave it, unless the session
  * was signed out at this replica while the call ran (401, and no cookie set: the browser's cookies
- * are the sign-out's, or a new sign-in's). Where the provider refuses the refresh token, a token
- * that has not expired still goes out; once none goes through, the session ends with a 401 that
- * clears no cookie, since a call beside it may just have renewed them (a provider that rotates its
- * refresh tokens, a page's calls on two replicas). The forwarded request carries the page's
- * signal, so a page that leaves or aborts its call cancels the tool's (`ctx.mcpReq.signal`); a
- * renewal under way runs on, since other calls may share it. A call whose page left before `/mcp`
- * answered it a result gets 499 (nginx's "client closed request"), never the 502 of a failing
- * `/mcp`, so a page that leaves counts as no server error in the request log or the metrics.
+ * are the sign-out's, or a new sign-in's). A renewal is due by the token's expiry or by the
+ * session's check (refresh.ts), and one rule holds for both. Where the provider refuses the refresh
+ * token for the first time at this replica, a token that has not expired still goes out, since a
+ * call beside it on another replica may have spent that refresh token (a provider that rotates
+ * them); a second refusal of the same tokens, or a refusal once the token expired, ends the session
+ * with a 401 that clears no cookie, since that call may just have renewed them. Where the provider
+ * does not answer, a token that has not expired goes out (with a check, until two of its intervals
+ * after the token's receipt), then 503 until the provider answers; an outage ends no session. The
+ * forwarded request carries the page's signal, so a page that leaves or aborts its call cancels the
+ * tool's (`ctx.mcpReq.signal`); a renewal under way runs on, since other calls may share it. A call
+ * whose page left before `/mcp` answered it a result gets 499 (nginx's "client closed request"),
+ * never the 502 of a failing `/mcp`, so a page that leaves counts as no server error in the request
+ * log or the metrics.
  */
 import { LATEST_PROTOCOL_VERSION, type ToolAnnotations } from "@modelcontextprotocol/server"
 import { isExpired } from "@miragon/pulse-http/oauth"
@@ -31,6 +36,8 @@ import { markForwarded } from "../request-log.js"
 import { json, SIGNED_OUT, type WebContext } from "./context.js"
 import { parseCookies, SESSION_COOKIE, sessionCookies } from "./cookies.js"
 import {
+  checkMsOf,
+  holdsWhileSilent,
   renewableAfterRefusal,
   renewalSource,
   tokenStep,
@@ -233,25 +240,37 @@ async function sent(route: CallRoute, accessToken: string, call: Call): Promise<
 }
 
 /**
- * The tokens after a refresh, or why there are none to send: without new ones, a token that still
- * holds goes out, whether the provider refused the refresh token or did not answer.
+ * The tokens after a refresh, or why there are none to send. Without new ones, the `kept` token
+ * goes out while it has not expired after the provider's first refusal of it at this replica (a
+ * race with another replica's renewal), and while the provider is silent as `holdsWhileSilent` says.
  */
-function afterRenewal(renewal: Renewal, kept: SessionTokens, now: number): SessionTokens | Unsent {
+function afterRenewal(
+  renewal: Renewal,
+  kept: SessionTokens,
+  now: number,
+  checkMs: number | undefined,
+): SessionTokens | Unsent {
   if (renewal.kind === "renewed") return renewal.tokens
-  if (!isExpired(kept, now)) return kept
-  return renewal.kind === "refused" ? REFRESH_REFUSED : UNAVAILABLE
+  if (renewal.kind === "refused") {
+    return renewal.final || isExpired(kept, now) ? REFRESH_REFUSED : kept
+  }
+  return holdsWhileSilent(kept, now, checkMs) ? kept : UNAVAILABLE
 }
 
-/** The tokens to send: the session's, renewed first where they are due, or why none go out. */
+/**
+ * The tokens to send: the session's, renewed first where they are due by their expiry or the
+ * session's check, or why none go out.
+ */
 export async function tokensToSend(
   ctx: WebContext,
   renew: RenewalSource,
   tokens: SessionTokens,
 ): Promise<SessionTokens | Unsent> {
-  const step = tokenStep(tokens, ctx.platform.now())
+  const checkMs = checkMsOf(ctx.settings)
+  const step = tokenStep(tokens, ctx.platform.now(), checkMs)
   if (step.kind === "send") return tokens
-  if (step.kind === "end") return ended("the session's token expired and nothing renews it")
-  return afterRenewal(await renew(step.tokens), tokens, ctx.platform.now())
+  if (step.kind === "end") return ended(step.why)
+  return afterRenewal(await renew(step.tokens), tokens, ctx.platform.now(), checkMs)
 }
 
 /** After the gate refused `tokens`: one renewal where a new token may help, and the call again. */

@@ -50,6 +50,7 @@ describe("WEB_ENV_VARS", () => {
       "MCP_WEB_CLIENT_SECRET",
       "MCP_WEB_SESSION_KEYS",
       "MCP_WEB_SESSION_HOURS",
+      "MCP_WEB_SESSION_CHECK_MINUTES",
       "MCP_WEB_DIR",
     ])
   })
@@ -72,14 +73,32 @@ describe("readWebSettings", () => {
       clientSecret: SECRET,
       sessionKeys: [new Uint8Array(32).fill(7), new Uint8Array(48).fill(9)],
       sessionHours: 8,
+      sessionCheckMinutes: undefined,
       dir: ROOT_DIR,
       origin: "https://pulse.example.test:8443",
     })
+    expect(settings).toHaveProperty("sessionCheckMinutes", undefined)
   })
 
   it("takes whole session hours from 1 to 24", () => {
     expect(read({ ...ON, MCP_WEB_SESSION_HOURS: "1" })?.sessionHours).toBe(1)
     expect(read({ ...ON, MCP_WEB_SESSION_HOURS: " 24 " })?.sessionHours).toBe(24)
+  })
+
+  it("checks no session at the provider unless told to, then every 1 to 60 whole minutes", () => {
+    expect(read({ ...ON, MCP_WEB_SESSION_CHECK_MINUTES: " " })?.sessionCheckMinutes).toBeUndefined()
+    expect(read({ ...ON, MCP_WEB_SESSION_CHECK_MINUTES: "1" })?.sessionCheckMinutes).toBe(1)
+    expect(read({ ...ON, MCP_WEB_SESSION_CHECK_MINUTES: " 5 " })?.sessionCheckMinutes).toBe(5)
+    expect(read({ ...ON, MCP_WEB_SESSION_CHECK_MINUTES: "60" })?.sessionCheckMinutes).toBe(60)
+  })
+
+  it("refuses a check that is no whole number of minutes from 1 to 60", () => {
+    for (const minutes of ["0", "61", "2.5", "-5", "5m", "1e1"]) {
+      expect(refusal({ ...ON, MCP_WEB_SESSION_CHECK_MINUTES: minutes }), minutes).toBe(
+        `MCP_WEB_SESSION_CHECK_MINUTES "${minutes}" must be a whole number of minutes from 1 to 60, ` +
+          "or unset to renew the session's token only when it is due.",
+      )
+    }
   })
 
   it("serves the web build the root names, unless MCP_WEB_DIR names another", () => {
@@ -163,6 +182,9 @@ describe("readWebSettings", () => {
     expect(refusal({ MCP_WEB_SESSION_KEYS: KEY, MCP_WEB_SESSION_HOURS: "8" })).toBe(
       "MCP_WEB_SESSION_KEYS and MCP_WEB_SESSION_HOURS are set, but MCP_WEB_CLIENT_ID is not, so the web app stays off. Set MCP_WEB_CLIENT_ID to turn it on, or unset the others.",
     )
+    expect(refusal({ MCP_WEB_SESSION_CHECK_MINUTES: "5" })).toBe(
+      "MCP_WEB_SESSION_CHECK_MINUTES is set, but MCP_WEB_CLIENT_ID is not, so the web app stays off. Set MCP_WEB_CLIENT_ID to turn it on, or unset the others.",
+    )
   })
 
   it("never quotes the secret or a key in a refusal", () => {
@@ -193,5 +215,13 @@ describe("describeWebSettings", () => {
       expect(line).not.toContain(SECRET)
       expect(line).not.toContain(KEY)
     }
+  })
+
+  it("names the session's check at the provider where one runs", () => {
+    const checked = read({ ...ON, MCP_WEB_SESSION_CHECK_MINUTES: "5" })
+    if (checked === undefined) throw new Error("expected settings")
+    expect(describeWebSettings(checked)).toBe(
+      "Web app: on at https://pulse.example.test/app for client pulse-web; sessions last 8 h, checked at the identity provider every 5 min; 1 session key; web build from /srv/pulse/web.",
+    )
   })
 })

@@ -223,13 +223,23 @@ async function codeGrant(realm: Realm, client: FakeOidcClient, form: URLSearchPa
 const isLive = (realm: Realm, grant: Grant | undefined): grant is Grant =>
   grant !== undefined && grant.active && grant.expiresAt > Date.now() && !realm.refusingRefresh
 
+/** Auth0's reuse detection: a spent refresh token used again revokes every one of its sign-in. */
+function revokeOnReuse(realm: Realm, grant: Grant | undefined): void {
+  if (!realm.revokeFamilyOnReuse || grant?.spent !== true) return
+  for (const other of realm.grants.values()) if (other.sid === grant.sid) other.active = false
+}
+
 async function refreshGrant(realm: Realm, client: FakeOidcClient, form: URLSearchParams) {
   const grant = realm.grants.get(form.get("refresh_token") ?? "")
+  revokeOnReuse(realm, grant)
   if (!isLive(realm, grant)) return oauthError(400, "invalid_grant", "Token is not active")
   if (grant.clientId !== client.id) {
     return oauthError(400, "invalid_grant", "Token client and authorized client don't match")
   }
-  if (realm.rotateRefreshTokens) grant.active = false
+  if (realm.rotateRefreshTokens) {
+    grant.active = false
+    grant.spent = true
+  }
   return json(200, await issueTokens(realm, grant))
 }
 

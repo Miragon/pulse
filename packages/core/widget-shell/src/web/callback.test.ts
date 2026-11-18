@@ -341,6 +341,19 @@ describe("GET /app/auth/callback: what the provider answers", () => {
     expect(warnings().at(-1)).toContain("the gate refuses the access token")
   })
 
+  it("signs in without a refresh token, and logs that such a session ends with its access token", async () => {
+    await restart({ audience: RESOURCE, refreshTokens: false })
+    const browser = new Browser(await bootWeb(webEnv(fake)))
+    expect((await signIn(browser, fake)).headers.get("location")).toBe("/app")
+    expect((await sessionOf(browser)).status).toBe(200)
+    expect(fake.issued.refresh).toEqual([])
+    expect(warnings().filter((line) => line.includes("refresh token"))).toEqual([
+      "[web-test] Web sign-in: the identity provider gave no refresh token, so the session ends " +
+        "when its access token expires and is never checked at the provider. Allow refresh tokens " +
+        "(offline_access) for client pulse-web at the provider.",
+    ])
+  })
+
   it("fails a session larger than its three cookies hold", async () => {
     await restart({
       audience: RESOURCE,

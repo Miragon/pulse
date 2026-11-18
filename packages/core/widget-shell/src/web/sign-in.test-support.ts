@@ -136,6 +136,7 @@ export function webContext(fake: FakeOidc, overrides: Partial<WebContext> = {}) 
       clientSecret: String(FAKE_OIDC_CLIENT.secret),
       sessionKeys: [KEY],
       sessionHours: 8,
+      sessionCheckMinutes: undefined,
       dir: FIXTURE_BUILD,
       origin: ORIGIN,
     },

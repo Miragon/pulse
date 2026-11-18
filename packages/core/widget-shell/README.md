@@ -163,9 +163,11 @@ the provider offers revocation, which is why a short access-token lifetime suits
 A provider, `MCP_URL` (https, or http on localhost), `MCP_WEB_CLIENT_SECRET`,
 `MCP_WEB_SESSION_KEYS` (comma-separated base64url keys of at least 32 bytes; the first seals,
 every one opens) and a web build (below) are required beside the client id;
-`MCP_WEB_SESSION_HOURS` is optional (8 by default, at most 24). The secret, the keys or the hours
-without the client id fail the boot too, so the web app is never off unseen; `MCP_WEB_DIR` may
-stand alone. The sign-in asks each provider for its
+`MCP_WEB_SESSION_HOURS` is optional (8 by default, at most 24), and so is
+`MCP_WEB_SESSION_CHECK_MINUTES` (1 to 60, unset by default), which has each session's token renewed
+at the provider at least that often, whatever its lifetime. The secret, the keys, the hours or the
+check without the client id fail the boot too, so the web app is never off unseen; `MCP_WEB_DIR`
+may stand alone. The sign-in asks each provider for its
 own scopes: Keycloak `openid profile` (no offline token), Auth0 also `offline_access` and the
 resource as `audience`, WorkOS, Better Auth and Convex `openid profile email offline_access`, and a
 provider of a root's own `openid` unless its `web` names others; it asks for a provider's
@@ -194,14 +196,21 @@ exactly the headers an MCP client sends, so the edge guard, the OAuth gate, the 
 the per-caller caches, passthrough, toolsets and read-only engines decide as for any client. It
 takes only a tool a view calls (the view tool, an app-only feed, or a model tool marked `forViews`:
 `openai/widgetAccessible` in the boot's record) that only reads (`readOnlyHint`); anything else
-gets 403 `WEB_NOT_FOR_PAGES` or `WEB_READ_ONLY` before it runs. A due access token is renewed first
-with the refresh token, one refresh per pair of tokens and replica at a time (the session route
-renews an expired one through the same), and sealed back into the cookie, unless the session was
-signed out at this replica while the call ran (401, no cookie set). Where the provider refuses the refresh token, a token that has not expired still goes out;
-once none goes through the session ends (401 `signed_out`, its cookies left to a call beside it
-that may have renewed them). A provider that rotates refresh tokens and refuses a second use
-needs sticky routing to one replica or a reuse allowance (Keycloak's "Refresh Token Max Reuse"):
-parallel calls on two replicas both spend the same refresh token. No answer ever holds a token.
+gets 403 `WEB_NOT_FOR_PAGES` or `WEB_READ_ONLY` before it runs. A due access token (due by its
+expiry, or by the check, which the receipt sealed in the cookie lets every replica read) is renewed
+first with the refresh token, one refresh per pair of tokens and replica at a time within 10 s (the
+session route renews through the same), and sealed back into the cookie, unless the session was
+signed out at this replica while the call ran (401, no cookie set). The provider's first refusal of
+a pair at a replica may be a race with another replica's renewal, so a token that has not expired
+still goes out; its second refusal there, or a refusal once the token expired, ends the session
+(401 `signed_out`, its cookies left to a call beside it that may have renewed them). A provider
+that does not answer ends no session: the token goes out while it holds (with the check, for two
+intervals after its receipt at most), then 503. A provider that rotates refresh tokens and revokes
+every token of a reused one (Auth0's reuse detection) needs sticky routing to one replica or a
+reuse allowance (Auth0's reuse interval, Okta's grace period): parallel calls on two replicas both
+spend the same refresh token. A sign-in without a refresh token works, its session ending with its
+access token, and the log says so; with the check, a session whose refresh token expired ends at
+its check without asking the provider. No answer ever holds a token.
 A page reads its session with `readWebSession()` and hands `mountPage` the caller
 `webToolCaller(session)` from `./widgets`, which posts each call with the CSRF token and tells
 `onSignedOut` when the session is gone.

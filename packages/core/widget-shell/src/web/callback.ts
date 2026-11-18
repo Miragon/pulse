@@ -7,8 +7,10 @@
  * kept, so a session never holds a token `/mcp` would refuse: one bound to another resource, or to
  * none, fails the sign-in as `audience`. Each sign-in starts a new session, its id and CSRF secret
  * new over whatever the browser carried, so a planted session never survives it; the login cookie
- * is cleared and the browser returns to the page it started from (303). A failure sends it to the
- * signed-out page with its reason, and the log says why, never with a code, a state or a token.
+ * is cleared and the browser returns to the page it started from (303). A token answer without a
+ * refresh token signs in all the same, and the log says that such a session ends with its access
+ * token, unchecked at the provider. A failure sends the browser to the signed-out page with its
+ * reason, and the log says why, never with a code, a state or a token.
  */
 import {
   callbackResult,
@@ -203,8 +205,15 @@ async function signIn(
   if (caller instanceof SignInFailure) return caller
   const setCookies = await sessionOf(ctx, tokens, caller, jar)
   if (setCookies instanceof SignInFailure) return setCookies
+  if (tokens.refreshToken === undefined) ctx.log(noRefreshToken(ctx))
   return { returnTo: login.returnTo, setCookies }
 }
+
+/** The log line of a sign-in whose provider gave no refresh token: what it costs, and the way out. */
+const noRefreshToken = (ctx: WebContext): string =>
+  "Web sign-in: the identity provider gave no refresh token, so the session ends when its access " +
+  "token expires and is never checked at the provider. Allow refresh tokens (offline_access) for " +
+  `client ${ctx.settings.clientId} at the provider.`
 
 export function callbackRoute(ctx: WebContext): (request: Request) => Promise<Response> {
   return async (request) => {

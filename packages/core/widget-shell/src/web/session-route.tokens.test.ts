@@ -2,6 +2,7 @@ import type { Platform } from "@miragon/pulse-http"
 import { describe, expect, it } from "vitest"
 import {
   callContext,
+  checkedEvery,
   CLEARED,
   CSRF,
   DUE,
@@ -21,13 +22,13 @@ import {
 } from "./call.test-support.js"
 import { SESSION_COOKIE } from "./cookies.js"
 import { callRoute } from "./forward.js"
-import { renewalSource } from "./refresh.js"
+import { renewalSource, RENEWAL_KEPT_MS } from "./refresh.js"
 import type { WebSession } from "./session.js"
 import { sessionRoute } from "./session-route.js"
 import { FLAGS, ORIGIN } from "./sign-in.test-support.js"
 
 /**
- * The session route's answer to a session whose access token expired: what a page's call would go
+ * The session route's answer to a session whose access token is due: what a page's call would go
  * out with, so a page reloaded after the session ended shows no session (forward.ts's rules).
  */
 
@@ -49,13 +50,42 @@ async function read(at: number, provider: TokenAnswer[] = []) {
   return { response, logged, idp, ctx }
 }
 
+/** A check every five minutes over tokens of an hour, and the session route read at `at`. */
+async function checkedRead(at: number, provider: TokenAnswer[]) {
+  const idp = scriptedProvider(...provider)
+  const { ctx } = callContext(idp.platform, checkedEvery(5))
+  const cookie = await sessionCookie(ctx, sessionTokens(T0, { expiresAt: T0 + 3_600_000 }))
+  idp.clock.now = at
+  const route = sessionRoute(ctx)
+  return { idp, route, read: () => route(sessionRead(cookie)) }
+}
+
+const CHECK = 300 * SECOND
+
 describe("GET /app/api/session: the session's token", () => {
-  it("answers a due token that still holds as it is: no refresh, no cookie", async () => {
-    // The page's first call renews it; the session holds until then.
-    const { response, idp } = await read(DUE)
+  it("answers a token that is not due as it is: no refresh, no cookie", async () => {
+    const { response, idp } = await read(DUE - 1)
     expect(await jsonOf(response)).toEqual({ status: 200, body: INFO })
     expect(response.headers.getSetCookie()).toEqual([])
     expect(idp.forms).toEqual([])
+  })
+
+  it("renews a token the session's check finds due, as a call would", async () => {
+    const { read: again, idp } = await checkedRead(T0 + CHECK, [tokens("access-2")])
+    const response = await again()
+    expect(await jsonOf(response)).toEqual({ status: 200, body: INFO })
+    expect(response.headers.getSetCookie()[0]).toMatch(new RegExp(`^${SESSION_COOKIE}=`))
+    expect(idp.forms).toHaveLength(1)
+  })
+
+  it("answers 401 at the provider's second refusal of a due check, leaving the cookies", async () => {
+    const { read: again, idp } = await checkedRead(T0 + CHECK, [REFRESH_REFUSAL, REFRESH_REFUSAL])
+    // The first may be a race with another replica's renewal: the token still holds.
+    expect((await again()).status).toBe(200)
+    idp.clock.now = T0 + CHECK + RENEWAL_KEPT_MS
+    const response = await again()
+    expect(await jsonOf(response)).toEqual({ status: 401, body: SIGNED_OUT })
+    expect(response.headers.getSetCookie()).toEqual([])
   })
 
   it("renews an expired token first and seals the new one into the cookie, its expiry kept", async () => {

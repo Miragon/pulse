@@ -14,6 +14,7 @@ import { endedSessions } from "./ended.js"
 import { callRoute, type McpTarget, type RecordedToolConfig } from "./forward.js"
 import { createSealer } from "./seal.js"
 import type { SessionTokens, WebSession } from "./session.js"
+import type { WebSettings } from "./settings.js"
 import { FLAGS, KEY, ORIGIN, RESOURCE } from "./sign-in.test-support.js"
 
 export const T0 = Date.UTC(2026, 10, 16, 12)
@@ -28,8 +29,9 @@ const METADATA: ServerMetadata = {
   clientAuth: "basic",
 }
 
-/** A token endpoint's answer: its status and JSON, or no answer at all. */
-export type TokenAnswer = { readonly status: number; readonly body: unknown } | "unreachable"
+/** A token endpoint's answer: its status and JSON, no connection, or an answer that never comes. */
+export type TokenAnswer =
+  { readonly status: number; readonly body: unknown } | "unreachable" | "hangs"
 
 /** A token answer as Keycloak gives it for a refresh: `access`, valid for `seconds`, and more. */
 export const tokens = (access: string, extra: Record<string, unknown> = {}): TokenAnswer => ({
@@ -48,6 +50,7 @@ export function scriptedProvider(...script: TokenAnswer[]) {
       forms.push(new URLSearchParams(init?.body as string))
       authorizations.push(new Headers(init?.headers).get("authorization"))
       const answer = script.shift()
+      if (answer === "hangs") return new Promise<Response>(() => {})
       if (answer === undefined || answer === "unreachable") {
         return Promise.reject(new TypeError("fetch failed"))
       }
@@ -57,6 +60,22 @@ export function scriptedProvider(...script: TokenAnswer[]) {
   return { clock, forms, authorizations, platform }
 }
 
+/** The web app's settings of the tests' context, without a check at the provider. */
+export const SETTINGS: WebSettings = {
+  clientId: "pulse-web",
+  clientSecret: "pulse-web-secret",
+  sessionKeys: [KEY],
+  sessionHours: 8,
+  sessionCheckMinutes: undefined,
+  dir: FIXTURE_BUILD,
+  origin: ORIGIN,
+}
+
+/** The tests' settings with the session checked at the provider every `minutes`. */
+export const checkedEvery = (minutes: number): Partial<WebContext> => ({
+  settings: { ...SETTINGS, sessionCheckMinutes: minutes },
+})
+
 /** The routes' context over `platform`, as the boot builds it, with the provider's metadata. */
 export function callContext(
   platform: Platform,
@@ -64,14 +83,7 @@ export function callContext(
 ): { ctx: WebContext; logged: string[] } {
   const logged: string[] = []
   const ctx: WebContext = {
-    settings: {
-      clientId: "pulse-web",
-      clientSecret: "pulse-web-secret",
-      sessionKeys: [KEY],
-      sessionHours: 8,
-      dir: FIXTURE_BUILD,
-      origin: ORIGIN,
-    },
+    settings: SETTINGS,
     sealer: createSealer([KEY]),
     ended: endedSessions(),
     client: { scopes: ["openid"] },
@@ -202,6 +214,8 @@ export const EXPIRED = T0 + 300 * SECOND
 interface Setup {
   /** What the provider's token endpoint answers, in order. */
   provider?: TokenAnswer[]
+  /** Parts of the routes' context the test replaces (`checkedEvery`). */
+  context?: Partial<WebContext>
   /** What `/mcp` answers, in order (default: a result). */
   mcp?: McpReply[]
   /** The session's tokens (default: received at T0, five minutes, a refresh token). */
@@ -211,9 +225,9 @@ interface Setup {
 }
 
 /** A call route on a scripted provider and target, with a session sealed at T0. */
-export async function setup({ provider = [], mcp = [], session, at = T0 }: Setup = {}) {
+export async function setup({ provider = [], context, mcp = [], session, at = T0 }: Setup = {}) {
   const idp = scriptedProvider(...provider)
-  const { ctx, logged } = callContext(idp.platform)
+  const { ctx, logged } = callContext(idp.platform, context)
   const cookie = await sessionCookie(ctx, sessionTokens(T0, session))
   const mcpSide = mcpTarget(...mcp)
   idp.clock.now = at
