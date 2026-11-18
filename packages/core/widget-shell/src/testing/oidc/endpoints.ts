@@ -323,12 +323,19 @@ async function codeGrant(realm: Realm, client: FakeOidcClient, request: FakeOidc
 }
 
 const isLive = (realm: Realm, grant: Grant | undefined): grant is Grant =>
-  grant !== undefined && grant.active && grant.expiresAt > Date.now() && !realm.refusingRefresh
+  grant !== undefined &&
+  grant.active &&
+  !realm.endedGrants.has(grant.sid) &&
+  grant.expiresAt > Date.now() &&
+  !realm.refusingRefresh
 
-/** Auth0's reuse detection: a spent refresh token used again revokes every one of its sign-in. */
+/**
+ * Auth0's reuse detection: a spent refresh token used again revokes every one of its sign-in, also
+ * the one a renewal still being answered mints, since the renewal spent this token before it
+ * signs its answer.
+ */
 function revokeOnReuse(realm: Realm, grant: Grant | undefined): void {
-  if (!realm.revokeFamilyOnReuse || grant?.spent !== true) return
-  for (const other of realm.grants.values()) if (other.sid === grant.sid) other.active = false
+  if (realm.revokeFamilyOnReuse && grant?.spent === true) realm.endedGrants.add(grant.sid)
 }
 
 async function refreshGrant(realm: Realm, client: FakeOidcClient, request: FakeOidcRequest) {
@@ -389,9 +396,9 @@ export function revoke(realm: Realm, request: FakeOidcRequest): Answer {
   return { status: 200, headers: NO_STORE }
 }
 
-/** Every refresh token of the session `sid` renews no more. */
+/** Every refresh token of the session `sid` renews no more, also one a renewal under way mints. */
 export function endGrant(realm: Realm, sid: string | undefined): void {
-  for (const grant of realm.grants.values()) if (grant.sid === sid) grant.active = false
+  if (sid !== undefined) realm.endedGrants.add(sid)
 }
 
 function sessionOf(request: FakeOidcRequest, hint: string | null): string | undefined {

@@ -210,6 +210,11 @@ export interface Realm extends SigningKey {
   /** Every token sent to the revocation endpoint by a client it authenticated. */
   readonly revoked: string[]
   readonly endedSessions: EndedSession[]
+  /**
+   * The sign-ins (their `sid`) whose grant ended as a whole: no refresh token of one renews, also
+   * one a renewal under way mints after the end, as a provider checks a token's sign-in at its use.
+   */
+  readonly endedGrants: Set<string>
   /** Every refresh grant is refused while set, as after the session ended at the provider. */
   refusingRefresh: boolean
 }
@@ -277,6 +282,7 @@ export async function createRealm(issuer: string, options: FakeOidcOptions): Pro
     issued: { access: [], refresh: [], id: [] },
     revoked: [],
     endedSessions: [],
+    endedGrants: new Set(),
     refusingRefresh: false,
   }
 }
