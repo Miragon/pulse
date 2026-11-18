@@ -13,6 +13,7 @@ import {
   rsa,
   rsa2,
   sign,
+  signWithSecret,
   startIdp,
   type Idp,
 } from "./oauth-jwt.test-support.js"
@@ -250,7 +251,7 @@ describe("the algorithms", () => {
     const byEd = sign(good(), { key: ed.privateKey, alg: "Ed25519", kid: "d1" })
     expect(await served(verifier, byEd)).toBeDefined()
     const secret = rsa.publicKey.export({ type: "spki", format: "pem" }).toString()
-    expect(await refusal(verifier, sign(good(), { alg: "HS256", key: secret }))).toEqual(FAILED)
+    expect(await refusal(verifier, await signWithSecret(good(), secret))).toEqual(FAILED)
     expect(await refusal(verifier, sign(good(), { alg: "none" }))).toEqual(FAILED)
   })
 

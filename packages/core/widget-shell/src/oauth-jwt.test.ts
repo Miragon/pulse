@@ -12,6 +12,7 @@ import {
   rsa2,
   rsa3,
   sign,
+  signWithSecret,
   startIdp,
   type Idp,
   type Mode,
@@ -259,10 +260,6 @@ describe("the bearer gate: algorithms and keys", () => {
   it.each<[string, SignOptions]>([
     ["RS512 against an RS256 key", { alg: "RS512" }],
     ["PS256 against an RS256 key", { alg: "PS256" }],
-    [
-      "HS256 keyed with the public key",
-      { alg: "HS256", key: rsa.publicKey.export({ type: "spki", format: "pem" }).toString() },
-    ],
     ["alg none", { alg: "none" }],
     ["an unknown crit header", { header: { crit: ["x-unknown"], "x-unknown": 1 } }],
     ["a kid the key set lacks", { kid: "nope" }],
@@ -270,6 +267,16 @@ describe("the bearer gate: algorithms and keys", () => {
   ])("refuses %s: 401", async (_case, options) => {
     const result = await refusal(await call(gateOf(), bearer(sign(good(), options))))
     expect(result).toEqual({
+      status: 401,
+      error: "invalid_token",
+      description: "JWT verification failed",
+    })
+  })
+
+  it("refuses HS256 keyed with the public key: 401", async () => {
+    const publicPem = rsa.publicKey.export({ type: "spki", format: "pem" }).toString()
+    const forged = await signWithSecret(good(), publicPem)
+    expect(await refusal(await call(gateOf(), bearer(forged)))).toEqual({
       status: 401,
       error: "invalid_token",
       description: "JWT verification failed",

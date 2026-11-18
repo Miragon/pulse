@@ -349,9 +349,16 @@ function idTokenAudience(realm: Realm, clientId: string): string | string[] {
   return [clientId, ...(typeof audience === "string" ? [audience] : audience)]
 }
 
+const SERVICE_ACCOUNTS = new Map<string, string>()
+
 /** A service account's user id: one per client, stable, as Keycloak creates it with the client. */
-const serviceAccountOf = (clientId: string): string =>
-  createHash("sha256").update(`service-account:${clientId}`).digest("hex").slice(0, 32)
+function serviceAccountOf(clientId: string): string {
+  const known = SERVICE_ACCOUNTS.get(clientId)
+  if (known !== undefined) return known
+  const created = randomUUID()
+  SERVICE_ACCOUNTS.set(clientId, created)
+  return created
+}
 
 /** A service account as Keycloak creates it with its client: a user of the client's own name. */
 const serviceAccountUser = (clientId: string): FakeOidcUser => ({

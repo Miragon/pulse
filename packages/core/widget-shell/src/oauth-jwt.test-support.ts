@@ -1,6 +1,7 @@
 import crypto from "node:crypto"
 import http from "node:http"
 import type { AddressInfo } from "node:net"
+import { CompactSign } from "jose"
 
 /**
  * A loopback IdP for the JWT verifier's suites: it serves only key sets, which a test sets per path
@@ -120,7 +121,6 @@ function signature(input: string, alg: string, key: crypto.KeyObject | string): 
     return crypto.sign("sha256", data, { key: key as crypto.KeyObject, dsaEncoding: "ieee-p1363" })
   }
   if (alg === "Ed25519") return crypto.sign(null, data, key)
-  if (alg === "HS256") return crypto.createHmac("sha256", key).update(input).digest()
   return Buffer.alloc(0)
 }
 
@@ -134,6 +134,17 @@ export function sign(claims: Record<string, unknown>, options: SignOptions = {})
   }
   const input = `${segment(head)}.${segment(claims)}`
   return `${input}.${signature(input, alg, key).toString("base64url")}`
+}
+
+/** A token signed with a shared secret (HS256), the forgery a verifier must refuse whatever the secret. */
+export async function signWithSecret(
+  claims: Record<string, unknown>,
+  secret: string,
+  kid = "k1",
+): Promise<string> {
+  return new CompactSign(new TextEncoder().encode(JSON.stringify(claims)))
+    .setProtectedHeader({ alg: "HS256", typ: "JWT", kid })
+    .sign(new TextEncoder().encode(secret))
 }
 
 export const now = () => Math.floor(Date.now() / 1000)
