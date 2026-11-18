@@ -84,7 +84,9 @@ claude mcp add --transport http pulse http://localhost:8400/mcp
 A REST API with a login takes `ENGINE_AUTH_TYPE=basic` with `ENGINE_USERNAME` and
 `ENGINE_PASSWORD`. More on CIB seven and Operaton links and Docker networks:
 [Get started](https://miragon.github.io/pulse/mcp/getting-started#run-it-on-your-own-engine).
-OAuth, write toolsets and deployment: [Operations](https://miragon.github.io/pulse/mcp/operations).
+OAuth, write toolsets and deployment: [Operations](https://miragon.github.io/pulse/mcp/operations);
+Keycloak, Microsoft Entra ID, ADFS and other identity providers:
+[Identity providers](https://miragon.github.io/pulse/mcp/identity-providers).
 
 ## Good to know
 

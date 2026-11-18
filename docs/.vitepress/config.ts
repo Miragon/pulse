@@ -48,6 +48,7 @@ export default miragonDocs({
         { text: "Camunda 8", link: "/mcp/camunda8" },
         { text: "Tools and settings", link: "/mcp/reference" },
         { text: "Operations", link: "/mcp/operations" },
+        { text: "Identity providers", link: "/mcp/identity-providers" },
         { text: "Architecture", link: "/mcp/architecture" },
         { text: "Build your own server", link: "/mcp/build-your-own" },
         { text: "Developer guide", link: "/mcp/developer" },

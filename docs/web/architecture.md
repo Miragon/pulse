@@ -20,16 +20,16 @@ The server serves two interfaces from one app: `/mcp` to MCP clients with a bear
 carries the session cookie with the gate's 401, every route under `/app` answers 400 to one that
 carries an `Authorization` header, and without an OAuth provider there is no `/app`.
 
-| Route                                    | What it does                                                                                                                                              |
-| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /app/auth/login`                    | Starts a sign-in: the code flow with PKCE S256, the provider's scopes and the gate's resource (RFC 8707), back to a page under `/app`                     |
-| `GET /app/auth/callback`                 | Checks the state and the issuer (RFC 9207), exchanges the code, checks the access token as the gate does, starts a new session (a new id and CSRF secret) |
-| `POST /app/auth/logout`                  | Ends the session, revokes the refresh token and names where to go: the provider's end of the session, else `/app/signed-out`                              |
-| `GET /app/api/session`                   | The signed-in name, the CSRF token and the session's end; 401 `signed_out` without a session                                                              |
-| `POST /app/api/call`                     | A page's call of a tool, forwarded to `/mcp` ([below](#what-a-page-may-call))                                                                             |
-| `GET /app` and each page of `pages.json` | The page, `no-store`; without a session a 302 to the sign-in, which comes back to the page with its query                                                 |
-| `GET /app/signed-out`                    | The page without a session                                                                                                                                |
-| `GET /app/assets/*`                      | The build's assets, immutable, in brotli or gzip where the browser takes it                                                                               |
+| Route                                    | What it does                                                                                                                                                                    |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /app/auth/login`                    | Starts a sign-in: the code flow with PKCE S256, the provider's scopes and the gate's resource (RFC 8707) unless the provider names none (Entra ID), back to a page under `/app` |
+| `GET /app/auth/callback`                 | Checks the state and the issuer (RFC 9207), exchanges the code, checks the access token as the gate does, starts a new session (a new id and CSRF secret)                       |
+| `POST /app/auth/logout`                  | Ends the session, revokes the refresh token where the provider offers it and names where to go: the provider's end of the session, else `/app/signed-out`                       |
+| `GET /app/api/session`                   | The signed-in name, the CSRF token and the session's end; 401 `signed_out` without a session                                                                                    |
+| `POST /app/api/call`                     | A page's call of a tool, forwarded to `/mcp` ([below](#what-a-page-may-call))                                                                                                   |
+| `GET /app` and each page of `pages.json` | The page, `no-store`; without a session a 302 to the sign-in, which comes back to the page with its query                                                                       |
+| `GET /app/signed-out`                    | The page without a session                                                                                                                                                      |
+| `GET /app/assets/*`                      | The build's assets, immutable, in brotli or gzip where the browser takes it                                                                                                     |
 
 ## The cookie
 

@@ -284,16 +284,18 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   and the API registration's client id, required, then the scope, the App ID URI, the cloud's
   authority and a client allowlist the web client joins) verifies the tenant's v2.0 and
   `oauth21/2026-08` tokens each against its own key set with the keys tagged for it, takes the
-  API's client id, its App ID URI or the resource as `aud`, reads the short `scp` under the App ID
-  URI, names the caller by `oid`, else `sub`, and refuses a v1 token (naming
-  `requestedAccessTokenVersion` 2), a `tid` of another tenant and a token without `scp`; its
+  API's client id or an App ID URI it names as `aud` (the resource only where it names it), reads
+  the short `scp` under the first App ID URI, names the caller by `oid`, else `sub`, and refuses a
+  v1 token (naming `requestedAccessTokenVersion` 2), a `tid` of another tenant and a token without
+  `scp`; its
   metadata names the oauth21 authority, and its web client signs in through the v2.0 one without a
   resource and with the scopes at every grant. A provider whose metadata names its issuer alone
   gets no copy at `/.well-known/oauth-authorization-server` (404), and the protected resource metadata names its
-  required scopes in `scopes_supported`, never `offline_access`. The providers, what fails the boot and
-  the identity provider's side are under
-  [Security](https://miragon.github.io/pulse/mcp/operations#security). Without a provider the boot
-  runs unauthenticated with one warning. OAuth is the only caller identity, and `oauth` installs a
+  required scopes in `scopes_supported`, never `offline_access`. The providers and what fails the
+  boot are under [Security](https://miragon.github.io/pulse/mcp/operations#security), each identity
+  provider's side under
+  [Identity providers](https://miragon.github.io/pulse/mcp/identity-providers). Without a provider
+  the boot runs unauthenticated with one warning. OAuth is the only caller identity, and `oauth` installs a
   provider instead (a test's stub IdP). Every bundle view advertises `MCP_URL`'s origin in its
   view CSP `resourceDomains` and the Apps SDK `openai/widgetCSP` (`fontAssetsCsp`, merged into its
   tool as it registers); without `MCP_URL` the boot appends the origin the host read the

@@ -137,7 +137,11 @@ MCP_ACTIVE_MODULES=engine:operations,notes
 ### OAuth: sign-in and caller identity
 
 The boot reads one provider's `MCP_OAUTH_*` variables; set those of ONE provider. The OAuth block
-of `.env.example` lists the providers, their variables and what fails the boot. Keycloak, say:
+of `.env.example` lists the providers, their variables and what fails the boot: Keycloak, Auth0,
+WorkOS, Better Auth and Convex by name, any other OpenID Connect provider with JWT access tokens
+(ADFS, Okta, authentik, Zitadel, PingOne) through `MCP_OAUTH_OIDC_ISSUER`, and Microsoft Entra ID
+for one tenant through `MCP_OAUTH_ENTRA_TENANT_ID` and `MCP_OAUTH_ENTRA_API_CLIENT_ID`. Keycloak,
+say:
 
 ```bash
 MCP_URL=https://mcp.example.com     # the public origin, no path; required with OAuth
@@ -153,11 +157,13 @@ provider config the boot cannot honor fails the boot, naming the variables.
 The token audience is NOT `MCP_URL` itself: the server accepts a token whose
 `aud` (a string, or an array of strings only) holds `<MCP_URL>/mcp` (`https://mcp.example.com/mcp` above, the
 `resource` that `/.well-known/oauth-protected-resource/mcp` advertises) and
-that carries `sub`; the boot logs the value
+that carries `sub` (the generic provider: its caller claim; Entra ID: `oid`,
+else `sub`, with the API's client id as `aud`); the boot logs the value
 (`[acme-mcp] OAuth: tokens must carry aud https://mcp.example.com/mcp …`). The
-IdP side (audience mapper, `sub`, client registration with the claude.ai
-callback `https://claude.ai/api/mcp/auth_callback`, reading a 401) is the
-[identity provider checklist](https://miragon.github.io/pulse/mcp/operations#identity-provider-checklist).
+IdP side per provider (audience, caller claim, registering each MCP client,
+the claude.ai callback `https://claude.ai/api/mcp/auth_callback` among them,
+reading a 401) is on
+[Identity providers](https://miragon.github.io/pulse/mcp/identity-providers).
 A 401's `WWW-Authenticate` header names an audience mismatch;
 `MCP_OAUTH_DEBUG=1` logs why the signature, issuer, `sub` or `exp` check
 failed, never the token.

@@ -1,10 +1,10 @@
 # Pulse web app
 
 The web app shows the MCP server's views as pages of the same server, under `/app`: the cockpit and
-the boards in a browser, for people who have no AI chat at hand, a support team or the business
-users of a process, say. They sign in through the identity provider that already protects the
-server, and every page calls it with their own token, under the same toolset, engine routing and
-numbers as a chat.
+the boards in a browser, for people with no AI chat at hand, a support team or a process's business
+users, say. They sign in through the identity provider that already protects the server (Keycloak,
+Microsoft Entra ID, ADFS or another OpenID Connect provider), and every page calls it with their own
+token, under the same toolset, engine routing and numbers as a chat.
 
 The web app only reads: a page shows no write control and, posting to no chat, no hand-off.
 

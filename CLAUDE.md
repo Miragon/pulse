@@ -65,7 +65,7 @@ engines.
 | `packages/core/http/`                          | The one engine transport of the MCP server, the CLI and the editor hosts' adapters (npm `@miragon/pulse-http`) over the `fetch` each hands in: a deadline to the last byte, no redirects, a 64 MiB cap, one retry after a 401, reasons as data, lossless JSON, masking, the path value rule; the OAuth client (`/oauth`); conformance cases, fake fetch (`/testing`), loopback engine (`/testing/loopback`); no dependency                                                                                                 |
 | `playground/`                                  | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `docs/`                                        | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `docs/mcp/`                                    | The MCP server's pages of the docs site (getting started, usage, boards, Camunda 8, reference, operations, architecture, build your own, developer)                                                                                                                                                                                                                                                                                                                                                                        |
+| `docs/mcp/`                                    | The MCP server's pages of the docs site (getting started, usage, boards, Camunda 8, reference, operations, identity providers, architecture, build your own, developer)                                                                                                                                                                                                                                                                                                                                                    |
 | `docs/web/`                                    | The web app's pages of the docs site (what it shows and for whom, the sign-in an operator sets up, how it works)                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `docs/cli/`                                    | The CLI's pages of the docs site (install, commands, configuration, authentication, AI agents, development)                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `docs/vscode/`                                 | The VS Code extension's pages of the docs site (installation, configuration, Camunda 8, usage, architecture, parity with the MCP cockpit)                                                                                                                                                                                                                                                                                                                                                                                  |
@@ -959,9 +959,14 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
    - **Caller identity** is read once per request by the MCP middleware
      (`installMcpRequestContext` → `callerUserId` in `packages/core/widget-shell/src/caller.ts`),
      from the server's own OAuth only: nothing a client chooses (a session id, a header)
-     identifies a caller. Code reads it through the ambient request info (`getMcpRequestInfo`):
-     per-caller caches key on `callerCacheKey`, passthrough auth forwards the caller's bearer
-     token (under OAuth the one the gate verified; a header with a second credential gets 401).
+     identifies a caller. The caller is the claim the provider names: `sub` (Keycloak's with the
+     `sid` and `auth_time` of a signed-in user), the generic provider's `MCP_OAUTH_OIDC_SUBJECT_CLAIM`
+     (never a claim whose value can change), on Entra ID `oid`, else `sub`. Code reads it through
+     the ambient request info (`getMcpRequestInfo`): per-caller caches key on `callerCacheKey`, a
+     hash of the caller and the bearer token, so a web session's renewal starts new entries (the
+     cost the check has on providers with long tokens: `docs/mcp/identity-providers.md`), and
+     passthrough auth forwards the caller's bearer token (under OAuth the one the gate verified; a
+     header with a second credential gets 401).
      Without OAuth there is no caller: a request still caches apart by its bearer token,
      and one without a token shares the empty cache partition. The web app's session (`/app`,
      widget-shell's `src/web`) is no second source: it holds a token the server's own sign-in
@@ -1149,12 +1154,17 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      `MCP_ACTIVE_MODULES`, `resolveBoot`) lives inside the boot
      (`@miragon/pulse-widget-shell/server`); a root hands it its module list and its `shared`
      wiring and nothing about auth. The boot installs OAuth, a resource server that verifies
-     bearer tokens with `jose`, from one provider's `MCP_OAUTH_*` variables (the table and the
-     failure rules: `docs/mcp/operations.md`) and is authenticated exactly when it installed a
-     provider, never inferred from an env var. Only beside a provider does `MCP_WEB_CLIENT_ID`
-     (with the other `MCP_WEB_*`) install the web app's sign-in under `/app` (widget-shell's
-     `src/web`: login, callback, logout, the session route, a page's calls), behind the HTTP edge
-     guard; without one the variable fails the boot, and no route under `/app` exists without it.
+     bearer tokens with `jose`, from one provider's `MCP_OAUTH_*` variables: a table provider
+     (Keycloak, Auth0, WorkOS, Better Auth, Convex), the only ones that keep a copy of the
+     authorization server's metadata, the generic OpenID Connect provider (`MCP_OAUTH_OIDC_*`: ADFS,
+     Okta and any other with JWT access tokens, its key set from the provider's discovery) or
+     Microsoft Entra ID for one tenant (`MCP_OAUTH_ENTRA_*`), the table and the failure rules in
+     `docs/mcp/operations.md`, each identity provider's side in `docs/mcp/identity-providers.md`;
+     it is authenticated exactly when it installed a provider, never inferred from an env var.
+     Only beside a provider does `MCP_WEB_CLIENT_ID` (with the other `MCP_WEB_*`) install the web
+     app's sign-in under `/app` (widget-shell's `src/web`: login, callback, logout, the session
+     route, a page's calls), behind the HTTP edge guard; without one the variable fails the boot,
+     and no route under `/app` exists without it.
      The boot then serves `/app` from the root's web build (`createComposedServer`'s `web: { dir }`,
      `MCP_WEB_DIR` over it; `createApp` names the package's `web/`, which the image fills), read once
      at boot (`src/web/static.ts`: regular files inside the folder, a link out or a build without
@@ -1552,13 +1562,13 @@ token `/mcp` takes (the key set its issuer picks, the audiences, the caller clai
 an ID or logout token), and the discovery of its identity provider
 (`packages/core/widget-shell/src/oauth-discovery.ts`) decides where the sign-in sends its secrets
 (the issuer exactly, PKCE, endpoints on https) and which key set the gate trusts, and keeps the last
-good answer when a re-read fails, and its generic OpenID Connect provider
+good answer for a day when a re-read fails, and its generic OpenID Connect provider
 (`packages/core/widget-shell/src/oauth-oidc.ts`) refuses the settings that would let a token of
 another app or person through (a mutable caller claim, a shared-secret algorithm, an audience a
-client's id can be without a required scope), and its Entra ID provider
+client's id can be without a required scope beyond OpenID Connect's own), and its Entra ID provider
 (`packages/core/widget-shell/src/oauth-entra.ts`) refuses a tenant that is no tenant id and a token
-of another tenant, a v1 token, one without `scp` (an app-only or ID token) and one whose key is
-tagged for the other authority; these sixteen are its only mutated files, run by
+of another tenant, a v1 token, one without `scp` (an app-only or ID token), one whose key is
+tagged for the other authority and one whose `aud` is a URI the operator did not name; these sixteen are its only mutated files, run by
 `src/web`'s suites and the OAuth suites (`src/oauth-*.test.ts`) alone; c8-core's rules
 (`packages/connectors/c8/c8-core/src/mapping`, `src/reading/instance-filters.ts`,
 `src/reading/version-floor.ts` and `src/c8-failures.ts`, never its REST client, its readers or

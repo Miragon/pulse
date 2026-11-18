@@ -86,7 +86,9 @@ brand gates and the product glossary every widget package checks its catalogs ag
 (`@miragon/pulse-ui/testing`). No module renders another's widget, and the view root keeps no map
 for one. Without an OAuth provider the boot runs unauthenticated with one warning, and a module
 with toolsets runs its read-only floor; the providers and what fails the boot are under
-[Security](https://miragon.github.io/pulse/mcp/operations#security).
+[Security](https://miragon.github.io/pulse/mcp/operations#security), and what to set up at
+Keycloak, Microsoft Entra ID, ADFS, Okta and the other identity providers under
+[Identity providers](https://miragon.github.io/pulse/mcp/identity-providers).
 
 | OAuth provider | Variables                                                                                                                                                                                                                                                                                      |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -206,7 +208,8 @@ own scopes: Keycloak `openid profile` (no offline token), Auth0 also `offline_ac
 resource as `audience`, WorkOS, Better Auth and Convex `openid profile email offline_access`, the
 generic OpenID Connect provider and a provider of a root's own `openid` unless its `web` names
 others; `MCP_WEB_SCOPES` (separated by spaces or commas, only beside the client id) replaces them
-(ADFS `openid`, Okta and authentik `openid profile offline_access`), and the sign-in asks for a
+(Okta, authentik and Zitadel `openid profile offline_access`; ADFS needs the generic provider's
+`openid`), and the sign-in asks for a
 provider's `requiredScopes` besides, since the gate checks the session's token for them. It reads
 the generic provider's metadata from the discovery its gate reads. Every grant of the sign-in names
 the gate's resource and only the authorization request the scopes, unless the provider's web client

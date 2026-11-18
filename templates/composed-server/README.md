@@ -297,10 +297,11 @@ docker run --rm -p 8400:8400 \
 - With OAuth, tokens must carry `<MCP_URL>/mcp` in `aud`
   (`https://mcp.example.com/mcp` here; `MCP_URL` is then an origin without a
   path) and a `sub` claim, else every call gets 401; the boot logs the
-  audience it expects. The
-  [identity provider checklist](https://miragon.github.io/pulse/mcp/operations#identity-provider-checklist)
-  covers the audience, `sub`, client registration with the claude.ai callback
-  and how to read a 401.
+  audience it expects.
+  [Identity providers](https://miragon.github.io/pulse/mcp/identity-providers)
+  covers the audience, the caller claim, client registration with the claude.ai
+  callback and how to read a 401, per provider (Keycloak, Microsoft Entra ID,
+  ADFS, Okta and others).
 - `/health/live`, `/health/ready` and `/metrics` (Prometheus) are served next
   to `/mcp`, outside any OAuth gate and the `Host` check (`MCP_METRICS_TOKEN`
   protects the scrape); the image's `HEALTHCHECK` polls `/health/ready`;

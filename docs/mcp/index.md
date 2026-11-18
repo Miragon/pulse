@@ -7,15 +7,16 @@ the server `pulse`.
 
 ![An incident in the chat, explained with a widget](../assets/chat-incident.png)
 
-| Page                                         | What it covers                                                                             |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| [Getting started](./getting-started.md)      | Connect your Claude to the public playground, then run the server on your own engine       |
-| [Usage](./usage.md)                          | Connect an assistant, what to ask, language and theme                                      |
-| [Boards](./boards.md)                        | A board in the chat and the cockpit, the server's board files, one shared with the editors |
-| [Camunda 8](./camunda8.md)                   | A Camunda 8 cluster on boards: what the server offers, its profile, client and tests       |
-| [Web app](../web/index.md)                   | The server's views as pages in a browser, signed in through its OAuth provider             |
-| [Reference](./reference.md)                  | Every tool, the toolsets and the common settings                                           |
-| [Operations](./operations.md)                | The Docker image, security, environment variables, toolsets, health routes                 |
-| [Architecture](./architecture.md)            | The server, its engine module and the systems it talks to                                  |
-| [Build your own server](./build-your-own.md) | Start a server of your own from the starter, with modules for your own systems             |
-| [Developer guide](./developer.md)            | Run the stack from source and contribute to Pulse                                          |
+| Page                                          | What it covers                                                                              |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| [Getting started](./getting-started.md)       | Connect your Claude to the public playground, then run the server on your own engine        |
+| [Usage](./usage.md)                           | Connect an assistant, what to ask, language and theme                                       |
+| [Boards](./boards.md)                         | A board in the chat and the cockpit, the server's board files, one shared with the editors  |
+| [Camunda 8](./camunda8.md)                    | A Camunda 8 cluster on boards: what the server offers, its profile, client and tests        |
+| [Web app](../web/index.md)                    | The server's views as pages in a browser, signed in through its OAuth provider              |
+| [Reference](./reference.md)                   | Every tool, the toolsets and the common settings                                            |
+| [Operations](./operations.md)                 | The Docker image, security, environment variables, toolsets, health routes                  |
+| [Identity providers](./identity-providers.md) | Keycloak, Microsoft Entra ID, ADFS and other OpenID Connect providers for `/mcp` and `/app` |
+| [Architecture](./architecture.md)             | The server, its engine module and the systems it talks to                                   |
+| [Build your own server](./build-your-own.md)  | Start a server of your own from the starter, with modules for your own systems              |
+| [Developer guide](./developer.md)             | Run the stack from source and contribute to Pulse                                           |

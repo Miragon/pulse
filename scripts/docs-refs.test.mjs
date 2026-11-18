@@ -505,6 +505,9 @@ const DOCS_BUDGETS = {
   "mcp/build-your-own.md": 50,
   "mcp/developer.md": 80,
   "mcp/operations.md": 120,
+  // Each identity provider's side for /mcp and the web app, what a renewal catches, the MCP clients'
+  // registration, what the server cannot serve, what was checked and the real-tenant checklist.
+  "mcp/identity-providers.md": 257,
   "mcp/usage.md": 150,
   // A board in the chat and the cockpit, the server's board files, a board shared with the editors.
   "mcp/boards.md": 70,
@@ -516,7 +519,7 @@ const DOCS_BUDGETS = {
   // (variables, the provider's side, sessions and their check at the provider, a proxy, local),
   // how it is built.
   "web/index.md": 50,
-  "web/sign-in.md": 126,
+  "web/sign-in.md": 135,
   "web/architecture.md": 102,
   // The CLI's pages (docs/cli/).
   "cli/index.md": 40,
