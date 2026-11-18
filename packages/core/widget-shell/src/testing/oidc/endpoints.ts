@@ -2,7 +2,8 @@
  * The fake identity provider's endpoints under its issuer, on Keycloak's paths, ADFS's (adfs.ts) or
  * those of an Entra ID tenant's two authorities (entra.ts): discovery, the key set, the
  * authorization endpoint with a login page that offers each user, the token endpoint (the code
- * grant with PKCE, the refresh grant, the client's authentication), revocation (Keycloak's alone)
+ * grant with PKCE, the refresh grant, Keycloak's client credentials grant of a confidential
+ * client's service account, the client's authentication), revocation (Keycloak's alone)
  * and the end of a session. Each answers a parsed request with a plain answer, as the provider it
  * plays would.
  */
@@ -20,9 +21,11 @@ import {
   issueEntraTokens,
 } from "./entra.js"
 import {
+  issueServiceAccountToken,
   issueTokens,
   opaqueToken,
   s256,
+  seconds,
   type FakeOidcClient,
   type FakeOidcUser,
   type Grant,
@@ -133,7 +136,7 @@ export function discovery(realm: Realm, pathname: string): Answer {
     jwks_uri: endpointUrl(realm, "jwks"),
     revocation_endpoint: endpointUrl(realm, "revoke"),
     end_session_endpoint: endpointUrl(realm, "logout"),
-    grant_types_supported: ["authorization_code", "refresh_token"],
+    grant_types_supported: ["authorization_code", "refresh_token", "client_credentials"],
     response_types_supported: ["code"],
     subject_types_supported: ["public"],
     id_token_signing_alg_values_supported: ["RS256"],
@@ -248,6 +251,7 @@ function newCode(
     ...(resource === null ? {} : { resource }),
     user,
     sid,
+    authTime: seconds(Date.now()),
     expiresAt: Date.now() + CODE_LIFETIME_MS,
   })
   return { code, sid }
@@ -342,6 +346,18 @@ async function refreshGrant(realm: Realm, client: FakeOidcClient, request: FakeO
 }
 
 /**
+ * Keycloak's client credentials grant (RFC 6749 §4.4): a confidential client's own token, which
+ * names its service account and no signed-in user, with a session where the client keeps one.
+ */
+async function clientCredentialsGrant(realm: Realm, client: FakeOidcClient, form: URLSearchParams) {
+  if (realm.flavor !== "keycloak" || client.secret === undefined) {
+    return oauthError(400, "unauthorized_client", "Client not enabled to retrieve service account")
+  }
+  const scope = form.get("scope") ?? "profile email"
+  return json(200, await issueServiceAccountToken(realm, client, scope))
+}
+
+/**
  * The token endpoint (RFC 6749 §3.2): the client authenticated, what Entra ID refuses of any grant,
  * then its grant.
  */
@@ -355,6 +371,8 @@ export async function token(realm: Realm, request: FakeOidcRequest): Promise<Ans
       return codeGrant(realm, client, request)
     case "refresh_token":
       return refreshGrant(realm, client, request)
+    case "client_credentials":
+      return clientCredentialsGrant(realm, client, request.form)
     default:
       return oauthError(400, "unsupported_grant_type", "Unsupported grant_type")
   }

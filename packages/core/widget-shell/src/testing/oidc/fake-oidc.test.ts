@@ -298,6 +298,51 @@ describe("the fake provider's token endpoint", () => {
     expect(await refused({ id: "pulse-web" })).toMatchObject({ error: "unauthorized_client" })
   })
 
+  it("gives a confidential client its service account's token by client credentials: no sid, no user", async () => {
+    const idp = await start({ audience: RESOURCE })
+    const metadata = await metadataOf(idp)
+    const grant = { type: "client_credentials", scopes: ["profile"] } as const
+    const tokens = await requestToken(tokenEndpointOf(metadata), grant, platform)
+    expect(tokens.refreshToken).toBeUndefined()
+    expect(tokens.idToken).toBeUndefined()
+    const claims = decodeJwt(tokens.accessToken)
+    expect(claims).toMatchObject({
+      iss: idp.issuer,
+      aud: RESOURCE,
+      typ: "Bearer",
+      azp: "pulse-web",
+      scope: "profile",
+      preferred_username: "service-account-pulse-web",
+    })
+    expect(claims).not.toHaveProperty("sid")
+    const again = await requestToken(tokenEndpointOf(metadata), grant, platform)
+    expect(decodeJwt(again.accessToken).sub).toBe(claims.sub)
+    const provider = oauthKeycloakProvider({ serverUrl: idp.serverUrl, realm: idp.realm })
+    await expect(
+      provider.createTokenVerifier(new URL(RESOURCE)).verifyAccessToken(tokens.accessToken),
+    ).rejects.toThrow("Token carries no sid claim")
+    const user = await signIn(idp)
+    await expect(
+      provider.createTokenVerifier(new URL(RESOURCE)).verifyAccessToken(user.accessToken),
+    ).resolves.toMatchObject({ clientId: "pulse-web" })
+  })
+
+  it("gives no public client and no other flavor a token by client credentials", async () => {
+    const grant = { type: "client_credentials", scopes: [] } as const
+    const idp = await start({ clients: [{ id: "pulse-cli" }] })
+    const metadata = await metadataOf(idp)
+    expect(
+      await failureOf(
+        requestToken(tokenEndpointOf(metadata, { id: "pulse-cli" }), grant, platform),
+      ),
+    ).toMatchObject({ status: 400, error: "unauthorized_client" })
+    await idp.close()
+    const adfs = await start({ flavor: "adfs" })
+    expect(
+      await failureOf(requestToken(tokenEndpointOf(await metadataOf(adfs)), grant, platform)),
+    ).toMatchObject({ status: 400, error: "unauthorized_client" })
+  })
+
   it("takes a public client by its id alone", async () => {
     const idp = await start({ clients: [{ id: "pulse-cli" }] })
     const metadata = await metadataOf(idp)

@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import type { Platform } from "@miragon/pulse-http"
-import { DISCOVERY_HOLD_MS, metadataSource } from "./oauth-discovery.js"
+import { TokenFailure } from "@miragon/pulse-http/oauth"
+import {
+  DISCOVERY_HOLD_MS,
+  metadataSource,
+  NO_DOCUMENT_HOLD_MS,
+  UNUSABLE_HOLD_MS,
+} from "./oauth-discovery.js"
 import { startFakeOidc, type FakeOidc } from "./testing/oidc/index.js"
 
 const ISSUER = "https://idp.example.test/realms/pulse"
@@ -85,14 +91,80 @@ describe("metadataSource", () => {
     expect(io.asked).toEqual([OIDC_URL])
   })
 
-  it("holds no failure: the next request reads again", async () => {
+  it("holds a read that gave no document 5 s, as pulse-http holds a silent provider, then reads again", async () => {
+    expect(NO_DOCUMENT_HOLD_MS).toBe(new TokenFailure("unavailable").holdMs)
     let answer = jsonAnswer({}, 503)
     const io = stub({ [OIDC_URL]: () => answer() })
     const metadata = sourceOf(io)
     expect(await metadata()).toBeUndefined()
     answer = jsonAnswer(DOCUMENT)
+    io.advance(NO_DOCUMENT_HOLD_MS - 1)
+    expect(await metadata()).toBeUndefined()
+    expect(io.asked).toEqual([OIDC_URL])
+    io.advance(1)
     expect(await metadata()).toMatchObject({ issuer: ISSUER })
     expect(io.asked).toEqual([OIDC_URL, OIDC_URL])
+  })
+
+  it("holds a document it cannot use a minute, then reads again", async () => {
+    let answer = jsonAnswer({
+      ...DOCUMENT,
+      token_endpoint_auth_methods_supported: ["private_key_jwt"],
+    })
+    const io = stub({ [OIDC_URL]: () => answer() })
+    const metadata = sourceOf(io)
+    expect(await metadata()).toBeUndefined()
+    answer = jsonAnswer(DOCUMENT)
+    io.advance(UNUSABLE_HOLD_MS - 1)
+    expect(await metadata()).toBeUndefined()
+    expect(io.asked).toHaveLength(1)
+    io.advance(1)
+    expect(await metadata()).toMatchObject({ issuer: ISSUER })
+    expect(io.asked).toHaveLength(2)
+  })
+
+  it("reads once and logs once for many logins within the hold, whatever the provider answers", async () => {
+    const io = stub({ [OIDC_URL]: jsonAnswer({}, 503) })
+    const metadata = sourceOf(io)
+    for (let login = 0; login < 25; login += 1) {
+      expect(await metadata()).toBeUndefined()
+      io.advance(100)
+    }
+    expect(io.asked).toHaveLength(1)
+    expect(io.logged).toEqual([
+      `Web sign-in: the discovery of ${ISSUER} failed: ${OIDC_URL} answered 503. Until it answers, a sign-in ends on the signed-out page.`,
+    ])
+  })
+
+  it("logs a failure again only for another reason or an hour after it said it", async () => {
+    let answer = jsonAnswer({}, 503)
+    const io = stub({ [OIDC_URL]: () => answer() })
+    const metadata = sourceOf(io)
+    const line = (why: string) =>
+      `Web sign-in: the discovery of ${ISSUER} failed: ${why}. Until it answers, a sign-in ends on the signed-out page.`
+    await metadata()
+    io.advance(DISCOVERY_HOLD_MS - NO_DOCUMENT_HOLD_MS)
+    await metadata()
+    expect(io.asked).toHaveLength(2)
+    expect(io.logged).toEqual([line(`${OIDC_URL} answered 503`)])
+    answer = jsonAnswer({}, 502)
+    io.advance(NO_DOCUMENT_HOLD_MS)
+    await metadata()
+    answer = jsonAnswer({}, 503)
+    io.advance(NO_DOCUMENT_HOLD_MS)
+    await metadata()
+    expect(io.logged).toEqual([
+      line(`${OIDC_URL} answered 503`),
+      line(`${OIDC_URL} answered 502`),
+      line(`${OIDC_URL} answered 503`),
+    ])
+    io.advance(DISCOVERY_HOLD_MS - NO_DOCUMENT_HOLD_MS)
+    await metadata()
+    expect(io.logged).toHaveLength(3)
+    io.advance(NO_DOCUMENT_HOLD_MS)
+    await metadata()
+    expect(io.asked).toHaveLength(6)
+    expect(io.logged).toHaveLength(4)
   })
 
   it.each([

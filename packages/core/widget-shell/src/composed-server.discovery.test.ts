@@ -100,7 +100,7 @@ describe("createComposedServer: OAuth discovery", () => {
       "GET, HEAD, OPTIONS",
     )
     expect(infos()).toContain(
-      "[oauth-test] OAuth: tokens must carry aud http://localhost/mcp (RFC 8707) and a sub claim.",
+      "[oauth-test] OAuth: tokens must carry aud http://localhost/mcp (RFC 8707) and the sub, sid and auth_time claims of a signed-in user.",
     )
   })
 

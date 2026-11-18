@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import {
   clearedLogin,
   clearedSession,
@@ -290,6 +290,13 @@ describe("the ended cookie", () => {
     const cookie = await endedCookie(sealer, "session-1", Date.now() + HOUR)
     expect(cookie).toMatch(/; Max-Age=3600; /)
     expect(await endedId(sealer, jarOf(cookie))).toBe("session-1")
+  })
+
+  it("opens no seal for a request without one, as every request without a sign-out comes", async () => {
+    const watched = createSealer([new Uint8Array(32).fill(5)])
+    const open = vi.spyOn(watched, "open")
+    expect(await endedId(watched, parseCookies("other=1"), NOW)).toBeUndefined()
+    expect(open).not.toHaveBeenCalled()
   })
 
   it("names nothing without one, with two, or with a value sealed for another cookie", async () => {

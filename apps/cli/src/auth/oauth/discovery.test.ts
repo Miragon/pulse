@@ -133,8 +133,20 @@ describe("serverMetadata", () => {
     )
   })
 
+  it("refuses an endpoint on this machine that a remote issuer's document names", async () => {
+    const { deps } = setup({ metadata: { token_endpoint: " http://127.0.0.1:9/token " } })
+    const error = await rejection(serverMetadata(oauthConfig(), deps))
+    expect(error.code).toBe("CONFIG")
+    expect(error.message).toBe(
+      `The discovery document of ${ISSUER} names its token endpoint on this machine ("http://127.0.0.1:9/token"), and the issuer is not`,
+    )
+    expect(error.details.hint).toBe(
+      "pulse sends the client's secret, the code and tokens there, so a remote authorization server must name its endpoints on its own host. Check the issuer, or configure both endpoints (--oauth-authorization-endpoint, --oauth-token-endpoint).",
+    )
+  })
+
   it("ignores an unusable revocation endpoint", async () => {
-    for (const revocation of ["http://evil.example.com/revoke", 42]) {
+    for (const revocation of ["http://evil.example.com/revoke", "http://localhost:9/revoke", 42]) {
       const { deps } = setup({ metadata: { revocation_endpoint: revocation } })
       expect((await serverMetadata(oauthConfig(), deps)).revocationEndpoint).toBeNull()
     }

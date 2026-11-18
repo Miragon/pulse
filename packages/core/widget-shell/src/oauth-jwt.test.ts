@@ -44,7 +44,14 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-const good = () => ({ iss: idp.issuer, aud: AUD, sub: "u1", exp: now() + 3600 })
+const good = () => ({
+  iss: idp.issuer,
+  aud: AUD,
+  sub: "u1",
+  sid: "session-1",
+  auth_time: now() - 60,
+  exp: now() + 3600,
+})
 
 const keycloak = (debug = false) =>
   oauthKeycloakProvider({ serverUrl: idp.url, realm: "platform", debug })

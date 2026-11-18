@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest"
-import { DISCOVERY_HOLD_MS, providerDiscovery } from "./oauth-discovery.js"
+import {
+  DISCOVERY_HOLD_MS,
+  NO_DOCUMENT_HOLD_MS,
+  providerDiscovery,
+  STALE_LIMIT_MS,
+  UNUSABLE_HOLD_MS,
+} from "./oauth-discovery.js"
 
 /**
  * The provider's one discovery with both halves: the gate's key metadata beside the web sign-in's
@@ -128,17 +134,48 @@ describe("providerDiscovery: the gate's half", () => {
   it.each<[string, Answer, string]>([
     ["a refusal", json({}, 503), `${OIDC_URL} answered 503`],
     ["no JSON object", () => new Response("<html>"), `${OIDC_URL} answered no JSON object`],
-  ])("says so on %s, and reads again at the next token", async (_case, answer, why) => {
+  ])("says so on %s, and reads again at the first token 5 s later", async (_case, answer, why) => {
     const idp = new Provider()
     idp.answer = answer
     expect(await idp.discovery.keys()).toBeUndefined()
     expect(idp.logged).toEqual([gateLine(why)])
     idp.answer = json(DOCUMENT)
+    idp.advance(NO_DOCUMENT_HOLD_MS - 1)
+    expect(await idp.discovery.keys()).toBeUndefined()
+    expect(idp.asked).toHaveLength(1)
+    idp.advance(1)
     expect(await idp.discovery.keys()).toMatchObject({ issuer: ISSUER })
     expect(idp.asked).toHaveLength(2)
   })
 
-  it("keeps the key set it found when a re-read fails, and says so once", async () => {
+  it("reads once and logs once for the bearer tokens of strangers within the hold", async () => {
+    const idp = new Provider()
+    idp.answer = json({}, 503)
+    for (let token = 0; token < 50; token += 1) {
+      expect(await idp.discovery.keys()).toBeUndefined()
+      idp.advance(NO_DOCUMENT_HOLD_MS / 50)
+    }
+    expect(idp.asked).toEqual([OIDC_URL])
+    expect(idp.logged).toEqual([gateLine(`${OIDC_URL} answered 503`)])
+    expect(await idp.discovery.keys()).toBeUndefined()
+    expect(idp.asked).toHaveLength(2)
+    expect(idp.logged).toHaveLength(1)
+  })
+
+  it("holds a document whose key set it cannot use a minute, as a setting that will not heal soon", async () => {
+    const idp = new Provider()
+    idp.answer = json({ ...DOCUMENT, issuer: "https://evil.example.test" })
+    expect(await idp.discovery.keys()).toBeUndefined()
+    idp.answer = json(DOCUMENT)
+    idp.advance(UNUSABLE_HOLD_MS - 1)
+    expect(await idp.discovery.keys()).toBeUndefined()
+    expect(idp.asked).toHaveLength(1)
+    idp.advance(1)
+    expect(await idp.discovery.keys()).toMatchObject({ issuer: ISSUER })
+    expect(idp.logged).toEqual([gateLine("the document cannot be used (other-issuer)")])
+  })
+
+  it("keeps the key set it found when a re-read fails, and says so at each re-read", async () => {
     const idp = new Provider()
     const found = await idp.discovery.keys()
     idp.answer = json({}, 500)
@@ -146,9 +183,21 @@ describe("providerDiscovery: the gate's half", () => {
     expect(await idp.discovery.keys()).toBe(found)
     idp.advance(DISCOVERY_HOLD_MS)
     expect(await idp.discovery.keys()).toBe(found)
-    expect(idp.logged).toEqual([
-      `OAuth: the discovery of ${ISSUER} failed: ${OIDC_URL} answered 500. It keeps the key set it found last and reads again in an hour.`,
-    ])
+    const line = `OAuth: the discovery of ${ISSUER} failed: ${OIDC_URL} answered 500. It keeps the key set it found last and reads again in an hour.`
+    expect(idp.logged).toEqual([line, line])
+  })
+
+  it("drops the key set a day after its last good read, and /mcp answers 503 again", async () => {
+    const idp = new Provider()
+    await idp.discovery.keys()
+    idp.answer = json({ ...DOCUMENT, issuer: "https://evil.example.test" })
+    idp.advance(STALE_LIMIT_MS - DISCOVERY_HOLD_MS)
+    expect(await idp.discovery.keys()).toMatchObject({ issuer: ISSUER })
+    idp.advance(DISCOVERY_HOLD_MS)
+    expect(await idp.discovery.keys()).toBeUndefined()
+    expect(idp.logged.at(-1)).toBe(
+      `OAuth: the discovery of ${ISSUER} failed: the document cannot be used (other-issuer). Its last good read is a day old, so it drops the key set it kept: until it answers, /mcp answers 503 (temporarily_unavailable).`,
+    )
   })
 })
 
@@ -178,13 +227,14 @@ describe("providerDiscovery: one discovery for both halves", () => {
     expect(idp.asked).toHaveLength(2)
   })
 
-  it("reads anew for a half that could not use the document the other half read", async () => {
+  it("reads anew, a minute later, for a half that could not use the document the other half read", async () => {
     const idp = new Provider()
     idp.answer = json({ ...DOCUMENT, token_endpoint_auth_methods_supported: ["private_key_jwt"] })
     await idp.discovery.keys()
     expect(await idp.discovery.server()).toBeUndefined()
     expect(idp.asked).toHaveLength(1)
     idp.answer = json(DOCUMENT)
+    idp.advance(UNUSABLE_HOLD_MS)
     expect(await idp.discovery.server()).toMatchObject({ issuer: ISSUER })
     expect(idp.asked).toHaveLength(2)
     expect(await idp.discovery.keys()).toMatchObject({ issuer: ISSUER })
@@ -205,9 +255,11 @@ describe("providerDiscovery: one discovery for both halves", () => {
     await idp.discovery.keys()
     await idp.discovery.server()
     idp.answer = json({}, 503)
+    idp.advance(UNUSABLE_HOLD_MS)
     await idp.discovery.server()
     expect(idp.asked).toHaveLength(2)
     idp.answer = json(DOCUMENT)
+    idp.advance(NO_DOCUMENT_HOLD_MS)
     expect(await idp.discovery.server()).toMatchObject({ issuer: ISSUER })
     expect(idp.asked).toHaveLength(3)
   })

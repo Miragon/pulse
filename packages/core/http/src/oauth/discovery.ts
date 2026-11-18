@@ -4,10 +4,12 @@
  * blocks what verifying a token needs. Both take only a document that names exactly the expected
  * issuer (RFC 8414 §3.3). A client signs in by `serverMetadata`: PKCE with S256 when the document
  * lists methods, a client authentication the client can do, endpoints on https or plain http on a
- * loopback host (the caller's rule, so every surface keeps one definition of loopback); an
- * endpoint a client can do without (revocation, end session) is dropped when it fails that rule.
- * A resource server verifies tokens by `keyMetadata`: the key set's URL by the same rule, on a
- * loopback host only when the issuer is on one, and the issuer its access tokens carry.
+ * loopback host (the caller's rule, so every surface keeps one definition of loopback), on a
+ * loopback host only when the issuer is on one, so a remote document never sends the client's
+ * secret, a code or a refresh token to the client's own machine; an endpoint a client can do
+ * without (revocation, end session) is dropped when it fails those rules. A resource server
+ * verifies tokens by `keyMetadata`: the key set's URL by the same rules, and the issuer its access
+ * tokens carry.
  */
 import type { Platform } from "../types.js"
 import { withoutTrailingSlashes } from "../url.js"
@@ -115,6 +117,11 @@ export type MetadataProblem =
       readonly url: string
       readonly urlProblem: OAuthUrlProblem
     }
+  /**
+   * `url` is the endpoint as sent: on a loopback host while the issuer is on none, so a remote
+   * document would send the client's secret, a code or a token to the client's own machine.
+   */
+  | { readonly problem: "endpoint-loopback"; readonly key: EndpointKey; readonly url: string }
   | { readonly problem: "no-pkce" }
   /** A confidential client, and the server offers neither client_secret_basic nor _post. */
   | { readonly problem: "client-auth" }
@@ -134,14 +141,34 @@ function issuerProblem(document: Document, issuer: string): IssuerProblem | unde
   return named === issuer ? undefined : { problem: "other-issuer", named }
 }
 
-function endpointOf(document: Document, key: EndpointKey, needs: MetadataNeeds) {
+/** Whether `url` is a URL on a host `isLoopback` accepts. */
+function onLoopback(url: string, isLoopback: MetadataNeeds["isLoopback"]): boolean {
+  return URL.canParse(url) && isLoopback(new URL(url).hostname)
+}
+
+/** Whether `url` (trimmed, usable) lies on a loopback host while `issuer` does not. */
+function strayLoopback(
+  url: string,
+  issuer: string,
+  isLoopback: MetadataNeeds["isLoopback"],
+): boolean {
+  return onLoopback(url, isLoopback) && !onLoopback(issuer, isLoopback)
+}
+
+function endpointOf(document: Document, key: EndpointKey, issuer: string, needs: MetadataNeeds) {
   const value = document[key]
   if (typeof value !== "string" || value.trim() === "") {
     return { problem: "no-endpoint", key } as const
   }
   const urlProblem = oauthUrlProblem(value, needs.isLoopback)
-  if (urlProblem === undefined) return value.trim()
-  return { problem: "endpoint-url", key, url: value, urlProblem } as const
+  if (urlProblem !== undefined) {
+    return { problem: "endpoint-url", key, url: value, urlProblem } as const
+  }
+  const endpoint = value.trim()
+  if (strayLoopback(endpoint, issuer, needs.isLoopback)) {
+    return { problem: "endpoint-loopback", key, url: value } as const
+  }
+  return endpoint
 }
 
 /**
@@ -151,20 +178,25 @@ function endpointOf(document: Document, key: EndpointKey, needs: MetadataNeeds) 
 function optionalEndpointOf(
   document: Document,
   key: "revocation_endpoint" | "end_session_endpoint",
+  issuer: string,
   needs: MetadataNeeds,
 ): string | undefined {
   const value = document[key]
-  if (typeof value !== "string") return undefined
-  return oauthUrlProblem(value, needs.isLoopback) === undefined ? value.trim() : undefined
+  if (typeof value !== "string" || oauthUrlProblem(value, needs.isLoopback) !== undefined) {
+    return undefined
+  }
+  const endpoint = value.trim()
+  return strayLoopback(endpoint, issuer, needs.isLoopback) ? undefined : endpoint
 }
 
 /** The endpoints a client can do without that the document names usable ones for. */
 function optionalEndpoints(
   document: Document,
+  issuer: string,
   needs: MetadataNeeds,
 ): Pick<ServerMetadata, "revocationEndpoint" | "endSessionEndpoint"> {
-  const revocationEndpoint = optionalEndpointOf(document, "revocation_endpoint", needs)
-  const endSessionEndpoint = optionalEndpointOf(document, "end_session_endpoint", needs)
+  const revocationEndpoint = optionalEndpointOf(document, "revocation_endpoint", issuer, needs)
+  const endSessionEndpoint = optionalEndpointOf(document, "end_session_endpoint", issuer, needs)
   return {
     ...(revocationEndpoint === undefined ? {} : { revocationEndpoint }),
     ...(endSessionEndpoint === undefined ? {} : { endSessionEndpoint }),
@@ -192,9 +224,9 @@ export function serverMetadata(
 ): ServerMetadata | MetadataProblem {
   const refused = issuerProblem(document, issuer)
   if (refused !== undefined) return refused
-  const authorizationEndpoint = endpointOf(document, "authorization_endpoint", needs)
+  const authorizationEndpoint = endpointOf(document, "authorization_endpoint", issuer, needs)
   if (typeof authorizationEndpoint !== "string") return authorizationEndpoint
-  const tokenEndpoint = endpointOf(document, "token_endpoint", needs)
+  const tokenEndpoint = endpointOf(document, "token_endpoint", issuer, needs)
   if (typeof tokenEndpoint !== "string") return tokenEndpoint
   if (!offersS256(document)) return { problem: "no-pkce" }
   const clientAuth = clientAuthOf(document, needs)
@@ -203,7 +235,7 @@ export function serverMetadata(
     issuer,
     authorizationEndpoint,
     tokenEndpoint,
-    ...optionalEndpoints(document, needs),
+    ...optionalEndpoints(document, issuer, needs),
     issParameterRequired: document.authorization_response_iss_parameter_supported === true,
     clientAuth,
   }
@@ -240,19 +272,13 @@ export type KeyMetadataProblem =
 
 type KeyNeeds = Pick<MetadataNeeds, "isLoopback">
 
-/** Whether `url` is a URL on a host `isLoopback` accepts. */
-function onLoopback(url: string, isLoopback: KeyNeeds["isLoopback"]): boolean {
-  return URL.canParse(url) && isLoopback(new URL(url).hostname)
-}
-
 function jwksOf(document: Document, issuer: string, needs: KeyNeeds) {
   const value = document.jwks_uri
   if (typeof value !== "string" || value.trim() === "") return { problem: "no-jwks" } as const
   const urlProblem = oauthUrlProblem(value, needs.isLoopback)
   if (urlProblem !== undefined) return { problem: "jwks-insecure", url: value, urlProblem } as const
   const jwksUri = value.trim()
-  const remoteIssuer = !onLoopback(issuer, needs.isLoopback)
-  if (remoteIssuer && onLoopback(jwksUri, needs.isLoopback)) {
+  if (strayLoopback(jwksUri, issuer, needs.isLoopback)) {
     return { problem: "jwks-loopback", url: value } as const
   }
   return jwksUri

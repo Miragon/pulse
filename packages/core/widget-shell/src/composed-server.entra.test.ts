@@ -122,7 +122,7 @@ describe("Entra ID on the boot: what it serves and says", () => {
     expect(composed.boot.authenticated).toBe(true)
     const { tenant, apiClientId } = tenantOf()
     expect(infos()).toContain(
-      `[entra-test] OAuth: tokens must carry iss ${fake.issuer} or ${tenantOf().oauth21Issuer}, aud ${apiClientId}, api://${apiClientId} or ${PULSE}/mcp (RFC 8707), ver 2.0, the scope ${apiScope()} and an oid or sub claim.`,
+      `[entra-test] OAuth: tokens must carry iss ${fake.issuer} or ${tenantOf().oauth21Issuer}, aud ${apiClientId} or api://${apiClientId}, ver 2.0, the scope ${apiScope()} and an oid or sub claim.`,
     )
     expect(fake.issuer).toBe(`${fake.serverUrl}/${tenant}/v2.0`)
   })

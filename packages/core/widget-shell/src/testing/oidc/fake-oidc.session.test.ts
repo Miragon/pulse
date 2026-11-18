@@ -51,6 +51,44 @@ describe("a refresh at the fake provider", () => {
     await expect(refresh(idp, first.refreshToken)).resolves.toBeDefined()
   })
 
+  it("keeps the time of the sign-in in every token of the session, as Keycloak's basic scope", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] })
+    const idp = await start()
+    const first = await signIn(idp)
+    const signedInAt = Math.floor(Date.now() / 1000)
+    expect(decodeJwt(first.accessToken).auth_time).toBe(signedInAt)
+    expect(decodeJwt(String(first.idToken)).auth_time).toBe(signedInAt)
+    vi.setSystemTime(Date.now() + 120_000)
+    const renewed = await refresh(idp, first.refreshToken)
+    expect(decodeJwt(renewed.accessToken)).toMatchObject({ auth_time: signedInAt })
+    expect(Number(decodeJwt(renewed.accessToken).iat)).toBe(signedInAt + 120)
+  })
+
+  it("opens a session for the service account of a client that keeps one: sid, no auth_time", async () => {
+    const client = { id: "registered", secret: "s", serviceAccountSession: true }
+    const idp = await start({ clients: [client] })
+    const endpoint = tokenEndpointOf(await metadataOf(idp), client)
+    const grant = { type: "client_credentials", scopes: ["profile"] } as const
+    const own = await requestToken(endpoint, grant, platform)
+    expect(own.idToken).toBeUndefined()
+    const claims = decodeJwt(own.accessToken)
+    expect(claims).toMatchObject({
+      azp: "registered",
+      scope: "profile",
+      preferred_username: "service-account-registered",
+    })
+    expect(typeof claims.sid).toBe("string")
+    expect(claims).not.toHaveProperty("auth_time")
+    expect(idp.sessionOf(String(own.refreshToken))).toBe(claims.sid)
+    const renewed = await requestToken(
+      endpoint,
+      { type: "refresh_token", refreshToken: String(own.refreshToken) },
+      platform,
+    )
+    expect(decodeJwt(renewed.accessToken)).toMatchObject({ sid: claims.sid, sub: claims.sub })
+    expect(decodeJwt(renewed.accessToken)).not.toHaveProperty("auth_time")
+  })
+
   it("names the session a refresh token belongs to, a renewed one's too, and none for anything else", async () => {
     const idp = await start()
     const first = await signIn(idp)

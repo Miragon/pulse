@@ -10,10 +10,17 @@
  * server's metadata (MCP clients read the provider's own). The web sign-in reads the same
  * discovery and asks `openid` and the required scopes, unless `MCP_WEB_SCOPES` names others.
  *
+ * A token must carry the claims `MCP_OAUTH_OIDC_REQUIRED_CLAIMS` names, such as Keycloak's `sid`
+ * and `auth_time`, which only a signed-in user's token carries: where clients may register
+ * themselves, a token a client obtained for itself (client credentials) names no user and would
+ * pass otherwise.
+ *
  * What it refuses at boot: an issuer off https (http only on the machine itself), a caller claim
  * whose value can change (an address or a name another person may get later), an algorithm that
  * signs with a shared secret or not at all, and an audience that is no https URL without a
- * required scope, since a client's id (an ID token's audience) or another app's id can be one.
+ * required scope beyond OpenID Connect's own (`openid`, `profile` …, which every sign-in's token
+ * carries), since a client's id (an ID token's audience) or another app's id can be one, and an
+ * audience every app of a provider shares (Okta's `api://default`) is one.
  */
 import type { OAuthTokenVerifier } from "@modelcontextprotocol/server"
 import {
@@ -35,6 +42,7 @@ export const OIDC_ENV = {
   subjectClaim: "MCP_OAUTH_OIDC_SUBJECT_CLAIM",
   algorithms: "MCP_OAUTH_OIDC_ALGORITHMS",
   clientIds: "MCP_OAUTH_OIDC_CLIENT_IDS",
+  requiredClaims: "MCP_OAUTH_OIDC_REQUIRED_CLAIMS",
 } as const
 
 /** The values of the optional variables, each `undefined` when unset. */
@@ -53,6 +61,8 @@ interface OidcSettings {
   readonly algorithms?: readonly string[]
   /** The clients whose tokens pass, the web sign-in's among them; unset, every client's. */
   readonly clients?: readonly string[]
+  /** The claims every token must carry besides the caller's (Keycloak's `sid` and `auth_time`). */
+  readonly requiredClaims: readonly string[]
 }
 
 /** Claims whose value can change or pass to another person: never the caller. */
@@ -62,6 +72,19 @@ const MUTABLE_CLAIMS: ReadonlySet<string> = new Set([
   "unique_name",
   "preferred_username",
   "name",
+])
+
+/**
+ * OpenID Connect's own scopes (Core 1.0 §5.4, §11): every sign-in's token may carry them, whichever
+ * app it was issued to, so none of them tells Pulse's tokens from another app's.
+ */
+const OIDC_STANDARD_SCOPES: ReadonlySet<string> = new Set([
+  "openid",
+  "profile",
+  "email",
+  "address",
+  "phone",
+  "offline_access",
 ])
 
 /** The asymmetric signature algorithms the verifier knows (`jose`'s). */
@@ -108,11 +131,14 @@ function audiencesOf(raw: string | undefined, scopes: readonly string[]): string
   if (raw === undefined) return []
   const audiences = listOf(OIDC_ENV.audience, raw)
   const bare = audiences.find((audience) => !isUrlAudience(audience))
-  if (bare !== undefined && scopes.length === 0) {
+  const own = scopes.filter((scope) => !OIDC_STANDARD_SCOPES.has(scope))
+  if (bare !== undefined && own.length === 0) {
     throw new Error(
       `${OIDC_ENV.audience} names "${bare}", which is no https URL: a client's id (the audience ` +
-        "of its ID tokens) or another app's id can be such an audience, so its tokens need a " +
-        `scope only Pulse's clients get. Name that scope in ${OIDC_ENV.scopes}.`,
+        "of its ID tokens), another app's id or an audience every app shares (Okta's " +
+        "api://default) can be such an audience, so its tokens need a scope only Pulse's " +
+        `clients are granted. Name that scope in ${OIDC_ENV.scopes}: OpenID Connect's own ` +
+        `(${[...OIDC_STANDARD_SCOPES].join(", ")}) are in every sign-in's token.`,
     )
   }
   return audiences
@@ -159,6 +185,14 @@ function clientsOf(raw: string | undefined, webClientId: string | undefined): st
   return webClientId === undefined ? clients : [...new Set([...clients, webClientId])]
 }
 
+/** The claims every token must carry besides the caller claim, which it carries anyway. */
+function requiredClaimsOf(raw: string | undefined, subjectClaim: string): string[] {
+  if (raw === undefined) return []
+  return [...new Set(listOf(OIDC_ENV.requiredClaims, raw))].filter(
+    (claim) => claim !== subjectClaim,
+  )
+}
+
 /**
  * The provider's settings from its variables (trimmed, a blank one unset), or the first reason
  * they cannot work. `webClientId` is `MCP_WEB_CLIENT_ID`, which joins a client allowlist.
@@ -174,11 +208,13 @@ export function readOidcSettings(
   const subjectClaim = subjectClaimOf(values.subjectClaim)
   const algorithms = algorithmsOf(values.algorithms)
   const clients = clientsOf(values.clientIds, webClientId)
+  const requiredClaims = requiredClaimsOf(values.requiredClaims, subjectClaim)
   return {
     issuer: exact,
     audiences,
     scopes,
     subjectClaim,
+    requiredClaims,
     ...(algorithms && { algorithms }),
     ...(clients && { clients }),
   }
@@ -233,9 +269,16 @@ function describeTokens(settings: OidcSettings, resource: URL): string {
   return [aud, ...scope, ...client].join(", ")
 }
 
+/** The boot line's words for the caller claim and the claims required beside it. */
+function describeClaims({ subjectClaim, requiredClaims }: OidcSettings): string {
+  const claims = [subjectClaim, ...requiredClaims]
+  if (claims.length === 1) return `the ${subjectClaim} claim`
+  return `the ${claims.slice(0, -1).join(", ")} and ${claims.at(-1)} claims`
+}
+
 /** The generic OpenID Connect provider over its settings. */
 export function oauthOidcProvider(settings: OidcSettings, options: OidcOptions): OAuthProvider {
-  const { issuer, audiences, scopes, subjectClaim, algorithms, clients } = settings
+  const { issuer, audiences, scopes, subjectClaim, algorithms, clients, requiredClaims } = settings
   const discovery = providerDiscovery(issuer, options.platform ?? NETWORK, options.log)
   const callerClaims = [subjectClaim]
   return {
@@ -243,7 +286,7 @@ export function oauthOidcProvider(settings: OidcSettings, options: OidcOptions):
     requiredScopes: scopes,
     callerClaims,
     describeAudience: (resource) => describeTokens(settings, resource),
-    describeCaller: () => `the ${subjectClaim} claim`,
+    describeCaller: () => describeClaims(settings),
     discovery,
     createTokenVerifier: (resource) =>
       discoveredVerifier(discovery.keys, issuer, (found) =>
@@ -252,6 +295,7 @@ export function oauthOidcProvider(settings: OidcSettings, options: OidcOptions):
           resource,
           audiences,
           callerClaims,
+          requiredClaims,
           ...(algorithms && { algorithms }),
           ...(clients && { clients }),
           debug: options.debug,

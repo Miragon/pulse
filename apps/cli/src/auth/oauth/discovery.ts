@@ -125,6 +125,11 @@ function problemError(
         `${found.key} of the discovery document`,
         found.urlProblem,
       )
+    case "endpoint-loopback":
+      return configError(
+        `The discovery document of ${issuer} names its ${ENDPOINT_KINDS[found.key]} on this machine ("${sanitize(found.url.trim())}"), and the issuer is not`,
+        "pulse sends the client's secret, the code and tokens there, so a remote authorization server must name its endpoints on its own host. Check the issuer, or configure both endpoints (--oauth-authorization-endpoint, --oauth-token-endpoint).",
+      )
     case "no-pkce":
       return configError(
         `The authorization server ${issuer} does not support PKCE with S256`,

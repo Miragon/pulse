@@ -12,8 +12,10 @@ import {
   KEY,
   RESOURCE,
   requestTo,
+  SESSION_KEYS,
   sessionOf,
   signIn,
+  startSignIn,
   webContext,
   webEnv,
 } from "./sign-in.test-support.js"
@@ -22,7 +24,8 @@ import {
  * A session refused as signed out (the replica's record, or the browser's ended cookie) has its
  * refresh token revoked behind the answer, once per token at a replica: the token a call under way
  * on another replica renewed after the sign-out, which the sign-out never saw, renews nowhere once
- * the browser that signed out comes back, nor does a copy of its cookie.
+ * the browser that signed out comes back, nor does a copy of its cookie. And a rotation of the
+ * session keys, rolled out replica by replica, keeps a session on both replicas only in two steps.
  */
 
 let fake: FakeOidc
@@ -193,5 +196,53 @@ describe("two replicas built with the same keys", () => {
       body: { code: "signed_out", message: "No session: sign in again." },
     })
     expect(fake.issued.refresh).toHaveLength(2)
+  })
+})
+
+/** A second session key, which a rotation brings. */
+const NEXT_KEY = Buffer.alloc(32, 9).toString("base64url")
+
+/** A browser at `app` with every cookie of `browser`, as when the balancer sends it elsewhere. */
+function movedTo(browser: Browser, app: McpHttpApp): Browser {
+  const moved = new Browser(app)
+  for (const [name, value] of browser.cookies) moved.cookies.set(name, value)
+  return moved
+}
+
+describe("two replicas in a rotation of MCP_WEB_SESSION_KEYS", () => {
+  const replica = (keys: string) => bootWeb(webEnv(fake, { MCP_WEB_SESSION_KEYS: keys }))
+
+  /** The session read at `old` of a browser signed in there and renewed at `rolled` meanwhile. */
+  async function backAfterRenewal(old: McpHttpApp, rolled: McpHttpApp) {
+    const browser = new Browser(old)
+    await signIn(browser, fake)
+    const renewed = await expiredCopy(browser, rolled)
+    expect((await sessionOf(renewed)).status).toBe(200)
+    return (await sessionOf(movedTo(renewed, old))).status
+  }
+
+  /** Where the callback at `called` of a login at `started` sends the browser. */
+  async function crossLogin(started: McpHttpApp, called: McpHttpApp) {
+    const browser = new Browser(started)
+    const { authorization } = await startSignIn(browser, fake)
+    const callback = await movedTo(browser, called).fetch(await fake.signIn(authorization))
+    return callback.headers.get("location")
+  }
+
+  it("signs the browser out where one step puts the new key first on one replica alone", async () => {
+    const old = await replica(SESSION_KEYS)
+    const rolled = await replica(`${NEXT_KEY},${SESSION_KEYS}`)
+    expect(await backAfterRenewal(old, rolled)).toBe(401)
+    expect(await crossLogin(rolled, old)).toBe("/app/signed-out?reason=failed")
+  })
+
+  it("keeps the session on both replicas in two steps: the new key last everywhere, then first", async () => {
+    const old = await replica(SESSION_KEYS)
+    const added = await replica(`${SESSION_KEYS},${NEXT_KEY}`)
+    expect(await backAfterRenewal(old, added)).toBe(200)
+    expect(await crossLogin(added, old)).toBe("/app")
+    const first = await replica(`${NEXT_KEY},${SESSION_KEYS}`)
+    expect(await backAfterRenewal(added, first)).toBe(200)
+    expect(await crossLogin(first, added)).toBe("/app")
   })
 })

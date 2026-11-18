@@ -60,7 +60,10 @@ interface Realm {
   serverUrl: string
   /** Answer the key set with a 500 from now on. */
   fail(): void
-  /** An RS256 access token from this realm: its issuer, an hour's `exp`, then `claims`. */
+  /**
+   * An RS256 access token from this realm: its issuer, an hour's `exp`, a signed-in user's session
+   * `sid` and sign-in `auth_time`, then `claims`.
+   */
   sign(claims: Record<string, unknown>): string
   close(): Promise<void>
 }
@@ -90,8 +93,9 @@ async function startRealm(): Promise<Realm> {
       failing = true
     },
     sign(claims) {
-      const exp = Math.floor(Date.now() / 1000) + 3600
-      const body = { iss: `${serverUrl}/realms/platform`, exp, ...claims }
+      const now = Math.floor(Date.now() / 1000)
+      const signedIn = { sid: "session-1", auth_time: now - 60 }
+      const body = { iss: `${serverUrl}/realms/platform`, exp: now + 3600, ...signedIn, ...claims }
       const signed = `${segment({ alg: "RS256", kid: "k1", typ: "JWT" })}.${segment(body)}`
       const signature = crypto.sign("RSA-SHA256", Buffer.from(signed), privateKey)
       return `${signed}.${signature.toString("base64url")}`
@@ -319,7 +323,7 @@ describe("the token audience, against the real JWT verifier", () => {
     const composed = await bootRealm()
     const infos = vi.mocked(console.info).mock.calls.map(([line]) => String(line))
     expect(infos).toContain(
-      "[oauth-test] OAuth: tokens must carry aud http://localhost/mcp (RFC 8707) and a sub claim.",
+      "[oauth-test] OAuth: tokens must carry aud http://localhost/mcp (RFC 8707) and the sub, sid and auth_time claims of a signed-in user.",
     )
     const metadata = await fetchApp(composed, "/.well-known/oauth-protected-resource/mcp")
     expect(await metadata.json()).toMatchObject({ resource: "http://localhost/mcp" })
@@ -337,6 +341,40 @@ describe("the token audience, against the real JWT verifier", () => {
       "Token audience does not include the protected resource",
     )
     expect((await call({ aud: "http://localhost/mcp" })).status).toBe(401)
+  })
+
+  it("refuses a service account's token, which names no signed-in user (no sid)", async () => {
+    const composed = await bootRealm()
+    const serviceAccount = realm.sign({
+      aud: "http://localhost/mcp",
+      sub: "service-account-user",
+      azp: "anyone-registered",
+      preferred_username: "service-account-anyone-registered",
+      sid: undefined,
+      auth_time: undefined,
+    })
+    const refused = await initialize(composed, { authorization: `Bearer ${serviceAccount}` })
+    expect(refused.status).toBe(401)
+    expect(refused.headers.get("www-authenticate")).toContain(
+      "Token carries no sid claim, which the server requires: a token a client obtained for itself (client credentials) names no signed-in user",
+    )
+  })
+
+  // A client that registered itself through Keycloak's own endpoint may keep a session for its
+  // service account ("Use refresh tokens for client credentials grant"): a sid, no sign-in.
+  it("refuses a service account's token with a session, which carries sid and no auth_time", async () => {
+    const composed = await bootRealm()
+    const call = (claims: Record<string, unknown>) =>
+      initialize(composed, {
+        authorization: `Bearer ${realm.sign({ aud: "http://localhost/mcp", sub: "s", ...claims })}`,
+      })
+    const refused = await call({ auth_time: undefined })
+    expect(refused.status).toBe(401)
+    expect(refused.headers.get("www-authenticate")).toContain(
+      "Token carries no auth_time claim, which the server requires",
+    )
+    expect((await call({ auth_time: null })).status).toBe(401)
+    expect((await call({})).status).toBe(200)
   })
 
   // A malformed claim is refused whole, even when one of its strings names this server.

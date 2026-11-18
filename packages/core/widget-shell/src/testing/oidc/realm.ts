@@ -23,6 +23,12 @@ export interface FakeOidcClient {
   readonly redirectUris?: readonly string[]
   /** Where an ended session may return to, exactly; unset, any URI. */
   readonly postLogoutRedirectUris?: readonly string[]
+  /**
+   * Keycloak's "Use refresh tokens for client credentials grant", which a client that registered
+   * itself may turn on: its client credentials grant opens a session for its service account, so
+   * its token carries `sid` and comes with a refresh token, still with no sign-in (`auth_time`).
+   */
+  readonly serviceAccountSession?: boolean
 }
 
 /**
@@ -148,6 +154,7 @@ interface PendingCode {
   readonly nonce?: string
   readonly user: FakeOidcUser
   readonly sid: string
+  readonly authTime: number
   readonly expiresAt: number
 }
 
@@ -157,6 +164,8 @@ export interface Grant {
   readonly scope: string
   readonly user: FakeOidcUser
   readonly sid: string
+  /** When the user signed in (seconds), Keycloak's `auth_time`; none for a service account. */
+  readonly authTime?: number
   readonly expiresAt: number
   active: boolean
   spent?: boolean
@@ -278,7 +287,7 @@ export const opaqueToken = (): string => randomBytes(32).toString("base64url")
 export const s256 = (verifier: string): string =>
   createHash("sha256").update(verifier).digest("base64url")
 
-const seconds = (ms: number): number => Math.floor(ms / 1000)
+export const seconds = (ms: number): number => Math.floor(ms / 1000)
 
 function profileClaims(user: FakeOidcUser): Record<string, string> {
   return {
@@ -314,10 +323,11 @@ export type IssuedSession = Omit<Grant, "expiresAt" | "active"> & { readonly non
 
 /** A new refresh token of the session's grant. */
 export function newRefreshToken(realm: Realm, session: IssuedSession): string {
-  const { clientId, scope, user, sid } = session
+  const { clientId, scope, user, sid, authTime } = session
   const refreshToken = opaqueToken()
   const expiresAt = Date.now() + realm.refreshTokenSeconds * 1000
-  realm.grants.set(refreshToken, { clientId, scope, user, sid, expiresAt, active: true })
+  const grant = { clientId, scope, user, sid, expiresAt, active: true }
+  realm.grants.set(refreshToken, authTime === undefined ? grant : { ...grant, authTime })
   realm.issued.refresh.push(refreshToken)
   return refreshToken
 }
@@ -339,12 +349,62 @@ function idTokenAudience(realm: Realm, clientId: string): string | string[] {
   return [clientId, ...(typeof audience === "string" ? [audience] : audience)]
 }
 
+/** A service account's user id: one per client, stable, as Keycloak creates it with the client. */
+const serviceAccountOf = (clientId: string): string =>
+  createHash("sha256").update(`service-account:${clientId}`).digest("hex").slice(0, 32)
+
+/** A service account as Keycloak creates it with its client: a user of the client's own name. */
+const serviceAccountUser = (clientId: string): FakeOidcUser => ({
+  sub: serviceAccountOf(clientId),
+  username: `service-account-${clientId}`,
+})
+
+/**
+ * A client's own token (the client credentials grant), as Keycloak answers it to a client with a
+ * service account: its service account's `sub` and name, the realm's audience, and no `sid`, since
+ * no user signed in; no refresh token and no ID token. A client that keeps a session for it
+ * (`serviceAccountSession`) gets a session's tokens, with a `sid` and a refresh token, and still
+ * no `auth_time`.
+ */
+export async function issueServiceAccountToken(
+  realm: Realm,
+  client: FakeOidcClient,
+  scope: string,
+): Promise<Record<string, unknown>> {
+  const clientId = client.id
+  if (client.serviceAccountSession === true) {
+    const session = { clientId, scope, user: serviceAccountUser(clientId), sid: randomUUID() }
+    return issueTokens(realm, session)
+  }
+  const accessToken = await sign(
+    realm,
+    {
+      sub: serviceAccountOf(clientId),
+      typ: "Bearer",
+      azp: clientId,
+      scope,
+      ...(realm.audience === undefined ? {} : { aud: realm.audience }),
+      ...profileClaims(serviceAccountUser(clientId)),
+    },
+    realm.accessTokenSeconds,
+  )
+  realm.issued.access.push(accessToken)
+  return {
+    access_token: accessToken,
+    expires_in: realm.accessTokenSeconds,
+    token_type: "Bearer",
+    "not-before-policy": 0,
+    scope,
+  }
+}
+
 /** A sign-in's or a refresh's tokens, as Keycloak's token endpoint answers them. */
 export async function issueTokens(
   realm: Realm,
   session: IssuedSession,
 ): Promise<Record<string, unknown>> {
-  const { clientId, scope, user, sid, nonce } = session
+  const { clientId, scope, user, sid, nonce, authTime } = session
+  const signedIn = authTime === undefined ? {} : { auth_time: authTime }
   const accessToken = await sign(
     realm,
     {
@@ -352,6 +412,7 @@ export async function issueTokens(
       typ: "Bearer",
       azp: clientId,
       sid,
+      ...signedIn,
       scope,
       ...(realm.audience === undefined ? {} : { aud: realm.audience }),
       ...profileClaims(user),
@@ -370,6 +431,7 @@ export async function issueTokens(
           azp: clientId,
           at_hash: atHash(accessToken),
           sid,
+          ...signedIn,
           ...(nonce ? { nonce } : {}),
           ...profileClaims(user),
         },

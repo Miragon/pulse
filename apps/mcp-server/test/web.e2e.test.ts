@@ -111,6 +111,14 @@ class Page {
     return this.jar.cookies
   }
 
+  /** This browser as it is now, apart from here on: what this page receives, it never sees. */
+  apart(): Page {
+    return new Page(this.composed, this.idp, {
+      cookies: new Map(this.jar.cookies),
+      csrf: this.jar.csrf,
+    })
+  }
+
   async fetch(target: string, init: RequestInit = {}): Promise<Response> {
     const headers = new Headers(init.headers)
     headers.set("host", "localhost")
@@ -294,6 +302,73 @@ describe("a page's calls through the real server", () => {
   })
 })
 
+describe("a client's own token at /mcp", () => {
+  /** The token a client gets for itself by client credentials at the fake Keycloak. */
+  async function ownToken(client: { id: string; secret?: string }): Promise<string> {
+    const answer = await fetch(`${fake.issuer}/protocol/openid-connect/token`, {
+      method: "POST",
+      headers: {
+        authorization: `Basic ${Buffer.from(`${client.id}:${client.secret}`).toString("base64")}`,
+        "content-type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({ grant_type: "client_credentials" }),
+    })
+    return ((await answer.json()) as { access_token: string }).access_token
+  }
+
+  it("refuses a service account's token by client credentials, which names no signed-in user", async () => {
+    const composed = await boot()
+    const serviceAccount = await ownToken(FAKE_OIDC_CLIENT)
+    expect(
+      JSON.parse(Buffer.from(serviceAccount.split(".")[1], "base64url").toString()),
+    ).toMatchObject({
+      aud: `${ORIGIN}/mcp`,
+      preferred_username: `service-account-${FAKE_OIDC_CLIENT.id}`,
+    })
+    const refused = await postToolCall(
+      composed,
+      `Bearer ${serviceAccount}`,
+      "engine_list_engines",
+      {},
+    )
+    expect(refused.status).toBe(401)
+    expect(refused.headers.get("www-authenticate")).toContain("Token carries no sid claim")
+    expect(engine.seen).toEqual([])
+    const page = await new Page(composed).signIn()
+    expect((await page.call("engine_list_engines")).status).toBe(200)
+  })
+
+  // Keycloak's own registration endpoint lets an anonymous client turn on refresh tokens for
+  // client credentials: its service account then gets a session, and its token a sid.
+  it("refuses a service account's token with a session, which carries sid and no sign-in", async () => {
+    await fake.close()
+    const registered = { id: "anon-registered", secret: "s", serviceAccountSession: true }
+    fake = await startFakeOidc({
+      audience: `${ORIGIN}/mcp`,
+      clients: [FAKE_OIDC_CLIENT, registered],
+    })
+    const composed = await boot()
+    const withSession = await ownToken(registered)
+    const claims = JSON.parse(
+      Buffer.from(withSession.split(".")[1], "base64url").toString(),
+    ) as Record<string, unknown>
+    expect(claims.aud).toBe(`${ORIGIN}/mcp`)
+    expect(typeof claims.sid).toBe("string")
+    expect(claims).not.toHaveProperty("auth_time")
+    const refused = await postToolCall(
+      composed,
+      `Bearer ${withSession}`,
+      "engine_start_process_instance",
+      {
+        processDefinitionKey: "invoice",
+      },
+    )
+    expect(refused.status).toBe(401)
+    expect(refused.headers.get("www-authenticate")).toContain("Token carries no auth_time claim")
+    expect(engine.seen).toEqual([])
+  })
+})
+
 describe("the web build the root names", () => {
   it("shows its page behind the sign-in, with the security headers of /app", async () => {
     const page = new Page(await boot())
@@ -406,6 +481,24 @@ describe("a web session checked at the provider every five minutes, on two repli
     later(0.5)
     expect(await page.call(READ)).toMatchObject({ status: 401, body: SIGNED_OUT })
   })
+
+  it.each([
+    ["keeps the session", {}, 200],
+    ["ends the session at the spent token's second refusal", { rotateRefreshTokens: true }, 401],
+  ] as const)(
+    "%s where a renewal's answer never reaches the browser on one replica, the provider rotating: %j",
+    async (_case, options, last) => {
+      // The docs ask the web client's refresh tokens not to rotate, for this lost answer's sake.
+      const { page } = await replicas(options)
+      const browser = page.apart()
+      later(5)
+      expect((await page.call(READ)).setCookies).not.toEqual([])
+      later(1)
+      expect((await browser.call(READ)).status).toBe(200)
+      later(1)
+      expect((await browser.call(READ)).status).toBe(last)
+    },
+  )
 
   it("signs in without a refresh token, and its session ends when its access token expires", async () => {
     const warned = vi.mocked(console.warn)

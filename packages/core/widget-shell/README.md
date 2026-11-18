@@ -88,28 +88,36 @@ for one. Without an OAuth provider the boot runs unauthenticated with one warnin
 with toolsets runs its read-only floor; the providers and what fails the boot are under
 [Security](https://miragon.github.io/pulse/mcp/operations#security).
 
-| OAuth provider | Variables                                                                                                                                                                                                                                                                  |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| The table      | Keycloak (`MCP_OAUTH_KEYCLOAK_SERVER_URL`, `MCP_OAUTH_KEYCLOAK_REALM`), Auth0 (`MCP_OAUTH_AUTH0_DOMAIN`), WorkOS (`MCP_OAUTH_WORKOS_SUBDOMAIN`), Better Auth (`MCP_OAUTH_BETTER_AUTH_URL`), Convex (`MCP_OAUTH_CONVEX_AUTH_URL`)                                           |
-| OpenID Connect | Any other provider that issues JWT access tokens (ADFS, Okta, authentik, Zitadel, PingOne): `MCP_OAUTH_OIDC_ISSUER` exactly as its discovery names it, and optionally `_AUDIENCE`, `_SCOPES` (required), `_SUBJECT_CLAIM` (default `sub`), `_ALGORITHMS` and `_CLIENT_IDS` |
-| Entra ID       | Microsoft Entra ID, one tenant: `MCP_OAUTH_ENTRA_TENANT_ID` (a GUID) and `_API_CLIENT_ID` (the API registration's), and optionally `_SCOPE` (default `user_impersonation`), `_APP_ID_URI` (default `api://<API client id>`), `_AUTHORITY` (the cloud) and `_CLIENT_IDS`    |
+| OAuth provider | Variables                                                                                                                                                                                                                                                                                      |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The table      | Keycloak (`MCP_OAUTH_KEYCLOAK_SERVER_URL`, `MCP_OAUTH_KEYCLOAK_REALM`), Auth0 (`MCP_OAUTH_AUTH0_DOMAIN`), WorkOS (`MCP_OAUTH_WORKOS_SUBDOMAIN`), Better Auth (`MCP_OAUTH_BETTER_AUTH_URL`), Convex (`MCP_OAUTH_CONVEX_AUTH_URL`)                                                               |
+| OpenID Connect | Any other provider that issues JWT access tokens (ADFS, Okta, authentik, Zitadel, PingOne): `MCP_OAUTH_OIDC_ISSUER` exactly as its discovery names it, and optionally `_AUDIENCE`, `_SCOPES` (required), `_SUBJECT_CLAIM` (default `sub`), `_ALGORITHMS`, `_CLIENT_IDS` and `_REQUIRED_CLAIMS` |
+| Entra ID       | Microsoft Entra ID, one tenant: `MCP_OAUTH_ENTRA_TENANT_ID` (a GUID) and `_API_CLIENT_ID` (the API registration's), and optionally `_SCOPE` (default `user_impersonation`), `_APP_ID_URI` (App ID URIs, default `api://<API client id>`), `_AUTHORITY` (the cloud) and `_CLIENT_IDS`           |
 
+The Keycloak provider takes only a signed-in user's token: one without `sid` or `auth_time` (a
+service account's, by client credentials, which anyone may get where clients register themselves,
+with a `sid` where its client keeps a session for it; a password grant's) gets 401.
 The generic provider reads its key set and its access tokens' issuer (ADFS's `access_token_issuer`)
 from the provider's discovery at the first token, so `/mcp` answers 503 until the discovery
-answers, and keeps what it found when a later read fails. The boot refuses a caller claim whose
+answers (a failed read held 5 s, a document it cannot use a minute), and keeps what it found when a
+later read fails, for a day after its last good read. The boot refuses a caller claim whose
 value can change (`email`, `upn`, `unique_name`, `preferred_username`, `name`), an `HS*` or `none`
-algorithm, and an audience that is no https URL (a client's or a project's id) without a required
-scope, since an ID token or another app's token carries such an audience; `MCP_WEB_CLIENT_ID`
-joins a client allowlist. Its metadata names the issuer alone: the protected resource metadata
+algorithm, an audience that is no https URL (a client's or a project's id, Okta's `api://default`)
+without a required scope beyond OpenID Connect's own, since an ID token or another app's token
+carries such an audience, and a variable under `MCP_OAUTH_OIDC_` it does not read;
+`MCP_WEB_CLIENT_ID` joins a client allowlist, and `_REQUIRED_CLAIMS` names claims every token must
+carry (Keycloak's `sid` and `auth_time`). Its metadata names the issuer alone: the protected resource metadata
 names it, and `/.well-known/oauth-authorization-server` answers 404.
 
 The Entra ID provider takes the tenant's v2 access tokens of its v2.0 and its `oauth21/2026-08`
 authority, each verified with the keys of its own key set tagged for it, whose `aud` names the
-API's client id, its App ID URI or the resource and whose short `scp` holds the scope, read as
-`<App ID URI>/<scope>`; the caller is `oid`, else `sub`, and `roles` are the permissions. It refuses
-a v1 token (saying to set `requestedAccessTokenVersion` 2), a `tid` of another tenant and a token
-without `scp` (an app-only token, an ID token), and at boot `common`, `organizations`, `consumers`
-and a domain name in place of the tenant's id. The protected resource metadata names the oauth21
+API's client id or an App ID URI `_APP_ID_URI` names (the resource only where it names it) and whose
+short `scp` holds the scope, read as `<first App ID URI>/<scope>`; the caller is `oid`, else `sub`,
+and `roles` are the permissions. It refuses a v1 token (saying to set `requestedAccessTokenVersion`
+2), a `tid` of another tenant and a token without `scp` (an app-only token, an ID token), and at
+boot `common`, `organizations`, `consumers`, the personal accounts' tenant id, Microsoft's services'
+tenant id, a domain name in place of the tenant's id and a variable under `MCP_OAUTH_ENTRA_` it does
+not read. The protected resource metadata names the oauth21
 authority and the full scope, and there is no copy of the server's metadata; the web sign-in goes
 through the v2.0 authority without a resource, its scopes at every grant.
 
@@ -187,7 +195,8 @@ the provider offers revocation, which is why a short access-token lifetime suits
 
 A provider, `MCP_URL` (https, or http on localhost), `MCP_WEB_CLIENT_SECRET`,
 `MCP_WEB_SESSION_KEYS` (comma-separated base64url keys of at least 32 bytes; the first seals,
-every one opens) and a web build (below) are required beside the client id;
+every one opens, so a new key goes last on every replica before it goes first) and a web build
+(below) are required beside the client id;
 `MCP_WEB_SESSION_HOURS` is optional (8 by default, at most 24), and so is
 `MCP_WEB_SESSION_CHECK_MINUTES` (1 to 60, unset by default), which has each session's token renewed
 at the provider at least that often, whatever its lifetime. The secret, the keys, the hours or the
@@ -238,10 +247,10 @@ a pair at a replica may be a race with another replica's renewal, so a token tha
 still goes out; its second refusal there, or a refusal once the token expired, ends the session
 (401 `signed_out`, its cookies left to a call beside it that may have renewed them). A provider
 that does not answer ends no session: the token goes out while it holds (with the check, for two
-intervals after its receipt at most), then 503. A provider that rotates refresh tokens and revokes
-every token of a reused one (Auth0's reuse detection) needs sticky routing to one replica or a
-reuse allowance (Auth0's reuse interval, Okta's grace period): parallel calls on two replicas both
-spend the same refresh token. A sign-in without a refresh token works, its session ending with its
+intervals after its receipt at most), then 503. A provider should not rotate the web client's
+refresh tokens: where it does, a renewal whose answer never reaches the browser (or comes after the
+10 s) leaves it the spent token (the server keeps the new one 30 s), whose second refusal ends the
+session, on one replica too. A sign-in without a refresh token works, its session ending with its
 access token, and the log says so; with the check, a session whose refresh token expired ends at
 its check without asking the provider. No answer ever holds a token.
 A page reads its session with `readWebSession()` and hands `mountPage` the caller

@@ -316,6 +316,7 @@ describe("the web client's discovery issuer", () => {
       audiences: [apiClientId],
       scopes: [],
       subjectClaim: "sub",
+      requiredClaims: [],
     }
     const generic = oauthOidcProvider(settings, { log: () => {} })
     expect(generic.discovery).toBeDefined()

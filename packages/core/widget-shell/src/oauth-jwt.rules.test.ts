@@ -176,6 +176,23 @@ describe("a key set whose keys name their issuer", () => {
       `The identity provider's signing keys could not be loaded from ${idp.url}/a/keys (${reason}), so no token can be verified. Retry shortly.`,
     )
   })
+
+  it("names a fetch that fails with no Error by what it failed with", async () => {
+    const verifier = verifierOf({ keySets: [keysAt("/a/keys", { taggedKeys: true })] })
+    // A thenable that fails with a string, as a fetch a library wraps might.
+    vi.stubGlobal("fetch", () => ({
+      then: (_: unknown, fail: (why: string) => void) => fail("down"),
+    }))
+    try {
+      const { code, description } = await refusal(verifier, sign(good()))
+      expect(code).toBe("temporarily_unavailable")
+      expect(description).toBe(
+        `The identity provider's signing keys could not be loaded from ${idp.url}/a/keys (down), so no token can be verified. Retry shortly.`,
+      )
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
 })
 
 describe("a key set found lazily", () => {
@@ -220,25 +237,6 @@ describe("a key set found lazily", () => {
     expect(lines).toHaveLength(2)
     expect(lines[0]).toBe("[oauth-debug] JWT verify failed: string: down")
     expect(lines[1]).toMatch(/^\[oauth-debug\] token=\{/)
-  })
-})
-
-describe("the audience", () => {
-  it("accepts an aud of the provider's audiences beside the resource, bound to the resource", async () => {
-    const verifier = verifierOf({ audiences: ["api://pulse", "0000-guid"] })
-    const byGuid = await served(verifier, sign(good({ aud: "0000-guid" })))
-    expect(byGuid.resource?.href).toBe(AUD)
-    expect(await served(verifier, sign(good({ aud: ["x", "api://pulse"] })))).toBeDefined()
-    expect(await served(verifier, sign(good()))).toBeDefined()
-    expect(await refusal(verifier, sign(good({ aud: "other" })))).toEqual({
-      code: "invalid_token",
-      description: "Token audience does not include the protected resource",
-      audience: true,
-    })
-    expect(await refusal(verifier, sign(good({ resource: "api://pulse" })))).toMatchObject({
-      description: "Token resource claim does not match protected resource",
-      audience: true,
-    })
   })
 })
 

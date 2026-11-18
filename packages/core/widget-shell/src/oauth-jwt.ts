@@ -1,6 +1,7 @@
 /**
  * The JWT verifier every table provider runs, on `jose`: the token's `iss` picks the one key set
  * its signature is checked with (asymmetric keys only), then the issuer, `exp`, the caller claim,
+ * the claims the provider requires (Keycloak's `sid` and `auth_time`, a signed-in user's session),
  * the RFC 8707 binding of `aud`/`resource` to this server and, where the provider names them, the
  * client. A JWT shaped like an ID, logout or refresh token is no access token, whoever signed it.
  * A key set the IdP cannot deliver, or one not found yet, is `temporarily_unavailable` (503 at the
@@ -58,6 +59,18 @@ export interface JwtVerifierOptions {
   readonly resource: URL
   /** What `aud` may hold besides the resource (an API's client id, say). */
   readonly audiences?: readonly string[]
+  /**
+   * `false`: the resource passes on its own neither as `aud` nor as a `resource` claim, so `aud`
+   * must hold one of `audiences` (Entra ID, whose resource names Pulse's API only where the
+   * operator names it an App ID URI of the API).
+   */
+  readonly resourceAudience?: false
+  /**
+   * Claims every token must carry with a value: Keycloak's `sid` and `auth_time`, a signed-in
+   * user's session and sign-in, which a token a client obtained for itself (client credentials)
+   * lacks.
+   */
+  readonly requiredClaims?: readonly string[]
   /** Narrows the algorithms; unset, each asymmetric key's own (`none` and secrets never verify). */
   readonly algorithms?: readonly string[]
   /** The claims that name the caller, the first a token carries; default `sub`. */
@@ -73,13 +86,22 @@ export interface JwtVerifierOptions {
 const isAudienceList = (value: unknown): value is string[] =>
   Array.isArray(value) && value.length > 0 && value.every((item) => typeof item === "string")
 
+/** What `aud` may name: the resource unless the provider leaves it out, and its own audiences. */
+interface AudienceRule {
+  readonly resource: URL
+  readonly audiences?: readonly string[]
+  readonly resourceAudience: boolean
+}
+
 /**
- * The token's RFC 8707 binding: a `resource` claim must name this server exactly; without one,
- * `aud` (a string, or a non-empty array of strings only) must include it or another audience the
- * provider accepts. Each refusal is an audience refusal (`isAudienceRefusal`).
+ * The token's RFC 8707 binding: a `resource` claim must name this server exactly; without one, or
+ * where the provider leaves the resource out, `aud` (a string, or a non-empty array of strings
+ * only) must include an audience the provider accepts. Each refusal is an audience refusal
+ * (`isAudienceRefusal`).
  */
-function boundResource(claims: Claims, resource: URL, accepts: (audience: string) => boolean): URL {
-  const claimed = claims.resource
+function boundResource(claims: Claims, rule: AudienceRule): URL {
+  const { resource, audiences, resourceAudience } = rule
+  const claimed = resourceAudience ? claims.resource : undefined
   if (claimed !== undefined) {
     if (typeof claimed !== "string") {
       throw audienceRefusal("Token resource claim must be an absolute URL")
@@ -96,13 +118,15 @@ function boundResource(claims: Claims, resource: URL, accepts: (audience: string
     return resource
   }
   const { aud } = claims
-  const audiences: unknown = typeof aud === "string" ? [aud] : aud
+  const named: unknown = typeof aud === "string" ? [aud] : aud
   // Every element a string: an array that mixes in another type is a malformed claim, so it is
   // refused whole rather than matched on its one string.
-  if (!isAudienceList(audiences)) {
+  if (!isAudienceList(named)) {
     throw audienceRefusal("Token audience claim must be a string or string array")
   }
-  if (!audiences.some(accepts)) {
+  const accepts = (audience: string): boolean =>
+    (resourceAudience && audience === resource.href) || audiences?.includes(audience) === true
+  if (!named.some(accepts)) {
     throw audienceRefusal("Token audience does not include the protected resource")
   }
   return resource
@@ -308,6 +332,20 @@ function requireCaller(claims: Claims, names: readonly string[]): void {
   )
 }
 
+/** A claim's value that names something: not absent, `null` or a blank string. */
+const hasValue = (value: unknown): boolean =>
+  value !== undefined && value !== null && (typeof value !== "string" || value.trim() !== "")
+
+/** The claims the provider requires, each with a value: a token without one names no user. */
+function requireClaims(claims: Claims, names: readonly string[]): void {
+  const missing = names.find((name) => !hasValue(claims[name]))
+  if (missing === undefined) return
+  throw invalidToken(
+    `Token carries no ${missing} claim, which the server requires: a token a client obtained ` +
+      "for itself (client credentials) names no signed-in user",
+  )
+}
+
 /** The client a token was issued to, by the claims providers name it in, in this order. */
 const CLIENT_CLAIMS = ["client_id", "azp", "appid", "cid"]
 
@@ -376,11 +414,13 @@ function logRefusal(token: string, error: unknown): void {
 
 export function createJwtVerifier(options: JwtVerifierOptions): OAuthTokenVerifier {
   const sources = new Map(options.keySets.map((set) => [set.issuer, keySource(set)]))
-  const resource = trimPath(new URL(options.resource))
-  const { audiences } = options
-  const accepts = (audience: string): boolean =>
-    audience === resource.href || audiences?.includes(audience) === true
+  const rule: AudienceRule = {
+    resource: trimPath(new URL(options.resource)),
+    audiences: options.audiences,
+    resourceAudience: options.resourceAudience !== false,
+  }
   const callerClaims = options.callerClaims ?? DEFAULT_CALLER_CLAIMS
+  const requiredClaims = options.requiredClaims ?? []
   const { clients, scopePrefix, algorithms } = options
   // Without `algorithms` the key set admits only asymmetric keys (a secret `alg` such as HS256
   // never resolves a key), each used with the algorithm its JWK names, and `none` never verifies.
@@ -404,7 +444,8 @@ export function createJwtVerifier(options: JwtVerifierOptions): OAuthTokenVerifi
         // `jose` required `exp` as a number, with the leeway meant for `nbf`: here it is exact.
         const exp = Number(claims.exp)
         if (!(exp > Date.now() / 1000)) throw invalidToken("Missing or expired exp claim")
-        const bound = boundResource(claims, resource, accepts)
+        const bound = boundResource(claims, rule)
+        requireClaims(claims, requiredClaims)
         const clientId = clientOf(claims)
         if (clients !== undefined && !clients.includes(clientId)) {
           throw invalidToken("Token was issued to a client this server does not accept")

@@ -132,11 +132,9 @@ describe("serverMetadata", () => {
     expect(endSession(` ${ISSUER}/logout?x=1 `)).toMatchObject({
       endSessionEndpoint: `${ISSUER}/logout?x=1`,
     })
-    expect(endSession("http://localhost:8080/logout")).toMatchObject({
-      endSessionEndpoint: "http://localhost:8080/logout",
-    })
     for (const unusable of [
       "http://as.example.com/logout",
+      "http://localhost:8080/logout",
       "https://user@as/logout",
       "https://as/logout#x",
       "not a url",
@@ -150,12 +148,21 @@ describe("serverMetadata", () => {
   })
 
   it.each([
-    [{ issuer: undefined }, { problem: "no-issuer" }],
-    [{ issuer: 7 }, { problem: "no-issuer" }],
-    [{ issuer: `${ISSUER}/` }, { problem: "other-issuer", named: `${ISSUER}/` }],
-    [{ authorization_endpoint: " " }, { problem: "no-endpoint", key: "authorization_endpoint" }],
-    [{ token_endpoint: undefined }, { problem: "no-endpoint", key: "token_endpoint" }],
+    ["no issuer", { issuer: undefined }, { problem: "no-issuer" }],
+    ["an issuer that is a number", { issuer: 7 }, { problem: "no-issuer" }],
+    ["another issuer", { issuer: `${ISSUER}/` }, { problem: "other-issuer", named: `${ISSUER}/` }],
     [
+      "a blank authorization endpoint",
+      { authorization_endpoint: " " },
+      { problem: "no-endpoint", key: "authorization_endpoint" },
+    ],
+    [
+      "no token endpoint",
+      { token_endpoint: undefined },
+      { problem: "no-endpoint", key: "token_endpoint" },
+    ],
+    [
+      "an authorization endpoint on plain http",
       { authorization_endpoint: "http://as.example.com/a" },
       {
         problem: "endpoint-url",
@@ -165,6 +172,7 @@ describe("serverMetadata", () => {
       },
     ],
     [
+      "a token endpoint with a fragment",
       { token_endpoint: "https://as/t#x" },
       {
         problem: "endpoint-url",
@@ -173,9 +181,54 @@ describe("serverMetadata", () => {
         urlProblem: "fragment",
       },
     ],
-    [{ code_challenge_methods_supported: ["plain"] }, { problem: "no-pkce" }],
-  ])("refuses a document with %j", (change, problem) => {
+    ["no PKCE with S256", { code_challenge_methods_supported: ["plain"] }, { problem: "no-pkce" }],
+  ])("refuses a document with %s", (_case, change, problem) => {
     expect(serverMetadata({ ...DOCUMENT, ...change }, ISSUER, PUBLIC)).toEqual(problem)
+  })
+
+  it.each<[string, string]>([
+    ["authorization_endpoint", "http://127.0.0.1:8080/auth"],
+    ["token_endpoint", " https://localhost/token "],
+    ["token_endpoint", "http://[::1]/token"],
+  ])("refuses the %s %j on a loopback host named by a remote issuer", (key, url) => {
+    expect(serverMetadata({ ...DOCUMENT, [key]: url }, ISSUER, PUBLIC)).toEqual({
+      problem: "endpoint-loopback",
+      key,
+      url,
+    })
+  })
+
+  it("leaves out a revocation or end session endpoint on a loopback host of a remote issuer", () => {
+    const loopback = {
+      ...DOCUMENT,
+      revocation_endpoint: "http://127.0.0.1:9/revoke",
+      end_session_endpoint: " https://localhost/logout ",
+    }
+    const metadata = serverMetadata(loopback, ISSUER, PUBLIC)
+    expect(metadata).toMatchObject({ tokenEndpoint: `${ISSUER}/token` })
+    expect(metadata).not.toHaveProperty("revocationEndpoint")
+    expect(metadata).not.toHaveProperty("endSessionEndpoint")
+  })
+
+  it("takes every endpoint on a loopback host from an issuer on one", () => {
+    const local = "http://127.0.0.1:8080/realms/pulse"
+    const at = "http://localhost:8080/realms/pulse"
+    const document = {
+      issuer: local,
+      authorization_endpoint: `${at}/auth`,
+      token_endpoint: ` ${at}/token `,
+      revocation_endpoint: `${at}/revoke`,
+      end_session_endpoint: `${at}/logout`,
+    }
+    expect(serverMetadata(document, local, PUBLIC)).toEqual({
+      issuer: local,
+      authorizationEndpoint: `${at}/auth`,
+      tokenEndpoint: `${at}/token`,
+      revocationEndpoint: `${at}/revoke`,
+      endSessionEndpoint: `${at}/logout`,
+      issParameterRequired: false,
+      clientAuth: "basic",
+    })
   })
 
   it("takes S256 for granted and Basic too when the document lists no methods", () => {

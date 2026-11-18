@@ -7,10 +7,12 @@
  * (`<authority>/<tenant>/v2.0` over `<authority>/<tenant>/discovery/v2.0/keys`) and the
  * `oauth21/2026-08` authority's (over its own `/keys`, whose keys name that authority, the same keys
  * or others), so an oauth21 token verifies only with a key tagged for oauth21. `aud` names the
- * API's client id (a v2 token's), its App ID URI or the gate's resource; `ver` is 2.0, and a v1
+ * API's client id (a v2 token's) or an App ID URI the operator names for the API, the gate's
+ * resource only where it is one of them (another app of the tenant may own that URI otherwise);
+ * `ver` is 2.0, and a v1
  * token (`ver` 1.0, the issuer `https://sts.windows.net/<tenant>/`) is refused with the way out,
  * `requestedAccessTokenVersion` 2; a `tid`, where the token carries one, names the tenant. The
- * required scope is `<App ID URI>/<scope>`, read from the short `scp` a v2 token carries, and a
+ * required scope is `<first App ID URI>/<scope>`, read from the short `scp` a v2 token carries, and a
  * token without `scp` (an app-only token, an ID token) names no signed-in user: 401. The caller is
  * `oid`, else `sub` (Microsoft issues `oid` and `tid` only where `profile` was asked, which MCP
  * clients do not ask); `roles` are the permissions. The protected resource metadata names the
@@ -24,8 +26,9 @@
  * v2.0 authority's end of the session; Entra ID has no revocation endpoint, so nothing is revoked.
  *
  * The boot refuses a tenant that is no tenant id (`common`, `organizations`, `consumers` and a
- * domain name), an API client id that is no GUID, a scope that is no short scope name, an App ID
- * URI off `api:` and `https:` and an authority that is no Entra ID cloud (http only on the machine
+ * domain name) or no customer's (the ids of the personal accounts' tenant and of Microsoft's own
+ * services), an API client id that is no GUID, a scope that is no short scope name, an App ID URI
+ * off `api:` and `https:` and an authority that is no Entra ID cloud (http only on the machine
  * itself, for tests).
  */
 import type { AuthInfo, OAuthTokenVerifier } from "@modelcontextprotocol/server"
@@ -57,8 +60,8 @@ interface EntraSettings {
   readonly apiClientId: string
   /** The scope the API exposes, short as `scp` carries it. */
   readonly scope: string
-  /** The App ID URI the scope's full name begins with. */
-  readonly appIdUri: string
+  /** The API's App ID URIs the operator names, each an `aud` it takes; the first names the scope. */
+  readonly appIdUris: readonly string[]
   /** The cloud's origin. */
   readonly authority: string
   /**
@@ -72,6 +75,18 @@ const GUID = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i
 
 /** The tenants that are no tenant: every work account's, and personal Microsoft accounts. */
 const MULTI_TENANT: ReadonlySet<string> = new Set(["common", "organizations", "consumers"])
+
+/**
+ * Tenant ids no customer's API lives in: the tenant of every personal Microsoft account (what
+ * `consumers` signs in, its tokens' `tid`) and the tenant of Microsoft's own first-party services.
+ */
+const NO_CUSTOMER_TENANT: ReadonlyMap<string, string> = new Map([
+  [
+    "9188040d-6c67-4c5b-b112-36a304b66dad",
+    "the tenant of every personal Microsoft account (consumers)",
+  ],
+  ["f8cdef31-a31e-4b4a-93e4-5f571e91255a", "Microsoft's own tenant of its first-party services"],
+])
 
 /** Entra ID's clouds: the global one first, the default. */
 const CLOUDS = [
@@ -96,8 +111,16 @@ const APP_ID_SCHEMES: ReadonlySet<string> = new Set(["api:", "https:"])
 const SHORT_SCOPE = /^[\x21\x23-\x2e\x30-\x5b\x5d-\x7e]+$/
 
 function tenantOf(raw: string): string {
-  if (GUID.test(raw)) return raw.toLowerCase()
   const named = raw.toLowerCase()
+  const notCustomers = NO_CUSTOMER_TENANT.get(named)
+  if (notCustomers !== undefined) {
+    throw new Error(
+      `${ENTRA_ENV.tenantId} "${named}" is ${notCustomers}, and Pulse serves one ` +
+        "organization's tenant: name your tenant's id, a GUID (Microsoft Entra admin center, " +
+        "Overview).",
+    )
+  }
+  if (GUID.test(raw)) return named
   if (MULTI_TENANT.has(named)) {
     throw new Error(
       `${ENTRA_ENV.tenantId} "${named}" signs in the accounts of every tenant, and Pulse serves ` +
@@ -127,15 +150,20 @@ function scopeOf(raw: string | undefined): string {
   )
 }
 
-function appIdUriOf(raw: string | undefined, apiClientId: string): string {
-  if (raw === undefined) return `api://${apiClientId}`
+function appIdUriOf(raw: string): string {
   const scheme = URL.canParse(raw) && new URL(raw).protocol
   if (APP_ID_SCHEMES.has(String(scheme)) && !/[?#]|\/$/.test(raw)) return raw
   throw new Error(
-    `${ENTRA_ENV.appIdUri} must be an App ID URI of the API registration (api://... or ` +
+    `${ENTRA_ENV.appIdUri} must name App ID URIs of the API registration (api://... or ` +
       "https://...) without a query, a fragment or a trailing slash: the API's scopes are named " +
-      "<App ID URI>/<scope>.",
+      "<App ID URI>/<scope> by the first.",
   )
+}
+
+/** The App ID URIs, by default `api://<API client id>`, the one Entra ID suggests. */
+function appIdUrisOf(raw: string | undefined, apiClientId: string): string[] {
+  if (raw === undefined) return [`api://${apiClientId}`]
+  return [...new Set(listOf(ENTRA_ENV.appIdUri, raw).map(appIdUriOf))]
 }
 
 /** A cloud's origin, or the machine itself (a test's identity provider). */
@@ -177,10 +205,10 @@ export function readEntraSettings(
   const tenant = tenantOf(tenantId)
   const api = apiClientIdOf(apiClientId)
   const scope = scopeOf(values.scope)
-  const appIdUri = appIdUriOf(values.appIdUri, api)
+  const appIdUris = appIdUrisOf(values.appIdUri, api)
   const authority = authorityOf(values.authority)
   const clients = clientsOf(values.clientIds, webClientId)
-  return { tenant, apiClientId: api, scope, appIdUri, authority, ...(clients && { clients }) }
+  return { tenant, apiClientId: api, scope, appIdUris, authority, ...(clients && { clients }) }
 }
 
 /** The tenant's two issuers: its v2.0 authority's and its oauth21 one's. */
@@ -198,8 +226,11 @@ function keySetsOf(settings: EntraSettings): JwtKeySet[] {
   ]
 }
 
+/** The App ID URI the API's scopes are named by: the first the operator names. */
+const scopeUriOf = ({ appIdUris }: EntraSettings): string => appIdUris[0]
+
 /** The required scope as a client asks for it and the gate reads it: `<App ID URI>/<scope>`. */
-const fullScope = ({ appIdUri, scope }: EntraSettings): string => `${appIdUri}/${scope}`
+const fullScope = (settings: EntraSettings): string => `${scopeUriOf(settings)}/${settings.scope}`
 
 /** A v1 token's `ver`, read before anything is verified, only to say how to get v2 tokens. */
 function isVersionOne(token: string): boolean {
@@ -255,14 +286,19 @@ function mapEntra(authInfo: AuthInfo) {
   return { ...mapped, permissions: normalizedStrings(mapped.payload.roles) }
 }
 
+/** Two values or more as one: `a or b`, `a, b or c`. */
+const eitherOf = (values: readonly string[]): string =>
+  `${values.slice(0, -1).join(", ")} or ${values.at(-1)}`
+
 /** The boot line's words for what a token must carry besides its caller claim. */
 function describeTokens(settings: EntraSettings, resource: URL): string {
   const { v2, oauth21 } = issuersOf(settings)
-  const { apiClientId, appIdUri, clients } = settings
+  const { apiClientId, appIdUris, clients } = settings
   const client = clients === undefined ? [] : [`a client id ${clients.join(" or ")}`]
+  const named = appIdUris.map((uri) => (uri === resource.href ? `${uri} (RFC 8707)` : uri))
   return [
     `iss ${v2} or ${oauth21}`,
-    `aud ${apiClientId}, ${appIdUri} or ${resource.href} (RFC 8707)`,
+    `aud ${eitherOf([apiClientId, ...named])}`,
     "ver 2.0",
     `the scope ${fullScope(settings)}`,
     ...client,
@@ -275,7 +311,7 @@ export function oauthEntraProvider(
   options: ProviderOptions = {},
 ): OAuthProvider {
   const { v2, oauth21 } = issuersOf(settings)
-  const { apiClientId, appIdUri, clients, tenant } = settings
+  const { apiClientId, appIdUris, clients, tenant } = settings
   const scope = fullScope(settings)
   return {
     oauthMetadata: { issuer: oauth21 },
@@ -288,9 +324,10 @@ export function oauthEntraProvider(
         createJwtVerifier({
           keySets: keySetsOf(settings),
           resource,
-          audiences: [apiClientId, appIdUri],
+          audiences: [apiClientId, ...appIdUris],
+          resourceAudience: false,
           callerClaims: CALLER_CLAIMS,
-          scopePrefix: appIdUri,
+          scopePrefix: scopeUriOf(settings),
           ...(clients && { clients }),
           debug: options.debug,
         }),

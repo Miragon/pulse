@@ -111,6 +111,9 @@ describe("the provider table", () => {
     const resource = new URL("https://mcp.example.com/mcp")
     const keycloak = oauthKeycloakProvider({ serverUrl: "https://kc", realm: "r" })
     expect(describeOAuthTokens(keycloak, resource)).toBe(
+      "OAuth: tokens must carry aud https://mcp.example.com/mcp (RFC 8707) and the sub, sid and auth_time claims of a signed-in user.",
+    )
+    expect(describeOAuthTokens(oauthAuth0Provider({ domain: "t.auth0.com" }), resource)).toBe(
       "OAuth: tokens must carry aud https://mcp.example.com/mcp (RFC 8707) and a sub claim.",
     )
     const own: OAuthProvider = {
@@ -129,8 +132,8 @@ describe("the provider table", () => {
     [["email", "sub"], "an email or sub claim"],
     [["preferred_username"], "a preferred_username claim"],
   ])("names the caller claims %j as %s", (callerClaims, words) => {
-    const keycloak = oauthKeycloakProvider({ serverUrl: "https://kc", realm: "r" })
-    expect(describeOAuthTokens({ ...keycloak, callerClaims }, new URL("https://m/mcp"))).toBe(
+    const auth0 = oauthAuth0Provider({ domain: "t.auth0.com" })
+    expect(describeOAuthTokens({ ...auth0, callerClaims }, new URL("https://m/mcp"))).toBe(
       `OAuth: tokens must carry aud https://m/mcp (RFC 8707) and ${words}.`,
     )
   })

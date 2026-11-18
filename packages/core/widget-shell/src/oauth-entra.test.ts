@@ -39,37 +39,13 @@ function refusal(run: () => unknown): string {
 const read = (values: Record<string, string> = {}, tenant = TENANT, api = API) =>
   readEntraSettings(tenant, api, values)
 
-describe("readEntraSettings: the tenant", () => {
-  it("takes the tenant's id, in lower case as its tokens name it", () => {
-    expect(read({}, TENANT.toUpperCase()).tenant).toBe(TENANT)
-  })
-
-  it.each(["common", "organizations", "consumers", "Organizations"])(
-    "refuses %s, which signs in the accounts of every tenant",
-    (tenant) => {
-      expect(refusal(() => read({}, tenant))).toBe(
-        `MCP_OAUTH_ENTRA_TENANT_ID "${tenant.toLowerCase()}" signs in the accounts of every tenant, and Pulse serves one tenant: name your tenant's id, a GUID (Microsoft Entra admin center, Overview).`,
-      )
-    },
-  )
-
-  it.each(["contoso.onmicrosoft.com", "contoso.com", `${TENANT}x`, `x${TENANT}`, "4f1b6d0e"])(
-    "refuses %s, which is no tenant id, without quoting it",
-    (tenant) => {
-      expect(refusal(() => read({}, tenant))).toBe(
-        "MCP_OAUTH_ENTRA_TENANT_ID must be your tenant's id, a GUID (Microsoft Entra admin center, Overview): its tokens name the tenant by its id, never by a domain name.",
-      )
-    },
-  )
-})
-
 describe("readEntraSettings: the API", () => {
   it("defaults the scope, the App ID URI, the cloud and every client", () => {
     expect(read()).toEqual({
       tenant: TENANT,
       apiClientId: API,
       scope: "user_impersonation",
-      appIdUri: `api://${API}`,
+      appIdUris: [`api://${API}`],
       authority: "https://login.microsoftonline.com",
     })
   })
@@ -105,7 +81,16 @@ describe("readEntraSettings: the API", () => {
     "https://pulse.example.test/mcp",
     "https://contoso.onmicrosoft.com/pulse",
   ])("takes the App ID URI %s", (appIdUri) => {
-    expect(read({ appIdUri }).appIdUri).toBe(appIdUri)
+    expect(read({ appIdUri }).appIdUris).toEqual([appIdUri])
+  })
+
+  it("takes several App ID URIs separated by commas or spaces, each once, in their order", () => {
+    expect(
+      read({ appIdUri: `api://${API}, https://pulse.example.test/mcp api://${API}` }).appIdUris,
+    ).toEqual([`api://${API}`, "https://pulse.example.test/mcp"])
+    expect(refusal(() => read({ appIdUri: " , " }))).toBe(
+      "MCP_OAUTH_ENTRA_APP_ID_URI holds no value.",
+    )
   })
 
   it.each([
@@ -119,10 +104,11 @@ describe("readEntraSettings: the API", () => {
     "api://pulse#x",
     "xapi://pulse",
     "httpsx://pulse.example.test/mcp",
-  ])("refuses the App ID URI %s", (appIdUri) => {
-    expect(refusal(() => read({ appIdUri }))).toBe(
-      "MCP_OAUTH_ENTRA_APP_ID_URI must be an App ID URI of the API registration (api://... or https://...) without a query, a fragment or a trailing slash: the API's scopes are named <App ID URI>/<scope>.",
-    )
+  ])("refuses the App ID URI %s, also beside a good one", (appIdUri) => {
+    const message =
+      "MCP_OAUTH_ENTRA_APP_ID_URI must name App ID URIs of the API registration (api://... or https://...) without a query, a fragment or a trailing slash: the API's scopes are named <App ID URI>/<scope> by the first."
+    expect(refusal(() => read({ appIdUri }))).toBe(message)
+    expect(refusal(() => read({ appIdUri: `api://${API},${appIdUri}` }))).toBe(message)
   })
 })
 
@@ -195,15 +181,15 @@ describe("oauthEntraProvider: what it serves and says", () => {
 
   it("says in the boot line what a token must carry", () => {
     expect(describeOAuthTokens(oauthEntraProvider(read()), RESOURCE)).toBe(
-      `OAuth: tokens must carry iss ${AUTHORITY}/${TENANT}/v2.0 or ${AUTHORITY}/${TENANT}/oauth21/2026-08, aud ${API}, api://${API} or ${RESOURCE.href} (RFC 8707), ver 2.0, the scope ${SCOPE} and an oid or sub claim.`,
+      `OAuth: tokens must carry iss ${AUTHORITY}/${TENANT}/v2.0 or ${AUTHORITY}/${TENANT}/oauth21/2026-08, aud ${API} or api://${API}, ver 2.0, the scope ${SCOPE} and an oid or sub claim.`,
     )
     const narrowed = read({
-      appIdUri: "https://pulse.example.test/api",
+      appIdUri: `https://pulse.example.test/api ${RESOURCE.href} api://${API}`,
       scope: "mcp",
       clientIds: "a b",
     })
     expect(describeOAuthTokens(oauthEntraProvider(narrowed), RESOURCE)).toContain(
-      `aud ${API}, https://pulse.example.test/api or ${RESOURCE.href} (RFC 8707), ver 2.0, the scope https://pulse.example.test/api/mcp, a client id a or b and an oid or sub claim.`,
+      `aud ${API}, https://pulse.example.test/api, ${RESOURCE.href} (RFC 8707) or api://${API}, ver 2.0, the scope https://pulse.example.test/api/mcp, a client id a or b and an oid or sub claim.`,
     )
   })
 
@@ -361,8 +347,8 @@ describe("oauthEntraProvider: the gate over the tenant's two key sets", () => {
     )
   })
 
-  it("takes the API's client id, its App ID URI or the resource as aud, never Graph's", async () => {
-    for (const aud of [API, `api://${API}`, RESOURCE.href]) {
+  it("takes the API's client id or its App ID URI as aud, never Graph's", async () => {
+    for (const aud of [API, `api://${API}`]) {
       expect(await gate().verifyAccessToken(token({ aud })), aud).toMatchObject({
         resource: RESOURCE,
       })
@@ -372,6 +358,25 @@ describe("oauthEntraProvider: the gate over the tenant's two key sets", () => {
         "Token audience does not include the protected resource",
       )
     }
+  })
+
+  it("takes the resource as aud only where the operator names it an App ID URI of the API", async () => {
+    // Another app of the tenant may own <MCP_URL>/mcp as its App ID URI and get tokens for it.
+    const another = token({ aud: RESOURCE.href, azp: "another-app" })
+    await expect(gate().verifyAccessToken(another)).rejects.toThrow(
+      "Token audience does not include the protected resource",
+    )
+    await expect(
+      gate({ appIdUri: "https://pulse.example.test/api" }).verifyAccessToken(another),
+    ).rejects.toThrow("Token audience does not include the protected resource")
+    await expect(
+      gate().verifyAccessToken(token({ aud: "api://other", resource: RESOURCE.href })),
+    ).rejects.toThrow("Token audience does not include the protected resource")
+    const named = gate({ appIdUri: `api://${API},${RESOURCE.href}` })
+    expect(await named.verifyAccessToken(another)).toMatchObject({ resource: RESOURCE })
+    expect((await named.verifyAccessToken(token())).scopes).toEqual([
+      `api://${API}/user_impersonation`,
+    ])
   })
 
   it("reads scp under its own App ID URI, and takes only the clients it names", async () => {

@@ -2,8 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { createComposedServer } from "./composed-server.js"
 import { moduleOf } from "./composed-server.test-support.js"
 import { now, sign, startIdp, type Idp } from "./oauth-jwt.test-support.js"
-import { startFakeOidc, type FakeOidc } from "./testing/oidc/index.js"
-import { signIn } from "./testing/oidc/fake-oidc.test-support.js"
+import { FAKE_OIDC_CLIENT, startFakeOidc, type FakeOidc } from "./testing/oidc/index.js"
+import { requestToken } from "@miragon/pulse-http/oauth"
+import {
+  metadataOf,
+  platform,
+  signIn,
+  tokenEndpointOf,
+} from "./testing/oidc/fake-oidc.test-support.js"
 
 /**
  * The generic OpenID Connect provider (`MCP_OAUTH_OIDC_*`) on the boot: the documents it serves,
@@ -109,6 +115,64 @@ describe("the generic provider at ADFS", () => {
     const other = await boot(adfs.env("https://other.example.test"))
     expect((await initialize(other, "https://other.example.test", tokens.accessToken)).status).toBe(
       401,
+    )
+  })
+})
+
+describe("the generic provider at a Keycloak whose clients register themselves", () => {
+  /** A client that registered itself and turned on refresh tokens for client credentials. */
+  const REGISTERED = { id: "registered", secret: "registered-secret", serviceAccountSession: true }
+  let keycloak: FakeOidc
+  beforeEach(async () => {
+    keycloak = await startFakeOidc({
+      audience: `${PULSE}/mcp`,
+      clients: [FAKE_OIDC_CLIENT, REGISTERED],
+    })
+  })
+  afterEach(() => keycloak.close())
+
+  /** What anyone who registered a client gets: its service account's token, which names no user. */
+  async function serviceAccountToken(client = FAKE_OIDC_CLIENT): Promise<string> {
+    const metadata = await metadataOf(keycloak)
+    const grant = { type: "client_credentials", scopes: [] } as const
+    return (await requestToken(tokenEndpointOf(metadata, client), grant, platform)).accessToken
+  }
+
+  it("refuses a service account's token where MCP_OAUTH_OIDC_REQUIRED_CLAIMS names sid and auth_time, and serves a user's", async () => {
+    const env = { MCP_URL: PULSE, MCP_OAUTH_OIDC_ISSUER: keycloak.issuer }
+    const open = await boot(env)
+    expect((await initialize(open, PULSE, await serviceAccountToken())).status).toBe(200)
+    const composed = await boot({ ...env, MCP_OAUTH_OIDC_REQUIRED_CLAIMS: "sid,auth_time" })
+    expect(infos()).toContain(
+      `[oidc-test] OAuth: tokens must carry aud ${PULSE}/mcp (RFC 8707) and the sub, sid and auth_time claims.`,
+    )
+    const refused = await initialize(composed, PULSE, await serviceAccountToken())
+    expect(refused.status).toBe(401)
+    expect(refused.headers.get("www-authenticate")).toContain("Token carries no sid claim")
+    const user = await signIn(keycloak)
+    expect((await initialize(composed, PULSE, user.accessToken)).status).toBe(200)
+  })
+
+  it("serves a service account with a session where only sid is required, and refuses it by auth_time", async () => {
+    const env = { MCP_URL: PULSE, MCP_OAUTH_OIDC_ISSUER: keycloak.issuer }
+    const sidOnly = await boot({ ...env, MCP_OAUTH_OIDC_REQUIRED_CLAIMS: "sid" })
+    const withSession = await serviceAccountToken(REGISTERED)
+    expect((await initialize(sidOnly, PULSE, withSession)).status).toBe(200)
+    const composed = await boot({ ...env, MCP_OAUTH_OIDC_REQUIRED_CLAIMS: "sid,auth_time" })
+    const refused = await initialize(composed, PULSE, withSession)
+    expect(refused.status).toBe(401)
+    expect(refused.headers.get("www-authenticate")).toContain("Token carries no auth_time claim")
+  })
+
+  it("refuses to boot with a variable under its prefix that it does not read, naming the one meant", async () => {
+    await expect(
+      boot({
+        MCP_URL: PULSE,
+        MCP_OAUTH_OIDC_ISSUER: keycloak.issuer,
+        MCP_OAUTH_OIDC_REQUIRED_CLAIM: "sid",
+      }),
+    ).rejects.toThrow(
+      "MCP_OAUTH_OIDC_REQUIRED_CLAIM is no variable the server reads (did you mean MCP_OAUTH_OIDC_REQUIRED_CLAIMS?)",
     )
   })
 })

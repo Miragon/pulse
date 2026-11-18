@@ -106,6 +106,20 @@ describe("createSealer", () => {
     expect(await createSealer([OLD]).open(SESSION, after, NOW)).toMatchObject({ ok: false })
   })
 
+  // Replicas roll out a new MCP_WEB_SESSION_KEYS one by one, so two settings serve side by side.
+  it("rotates across replicas in two steps, the new key last first, each step's pair opening the other's seals", async () => {
+    const opensEachOther = async (one: Uint8Array[], other: Uint8Array[]) => {
+      const [a, b] = [createSealer(one), createSealer(other)]
+      const fromA = await a.seal(SESSION, VALUE, NOW + HOUR)
+      const fromB = await b.seal(SESSION, VALUE, NOW + HOUR)
+      return (await b.open(SESSION, fromA, NOW)).ok && (await a.open(SESSION, fromB, NOW)).ok
+    }
+    expect(await opensEachOther([OLD], [OLD, NEW])).toBe(true)
+    expect(await opensEachOther([OLD, NEW], [NEW, OLD])).toBe(true)
+    // In one step a replica still on the old key opens nothing the new key sealed: signed out.
+    expect(await opensEachOther([OLD], [NEW, OLD])).toBe(false)
+  })
+
   it("opens a value sealed for its cookie only: the cookie's name is authenticated with it", async () => {
     const sealer = createSealer([NEW])
     const login = await sealer.seal("__Host-pulse-login", VALUE, NOW + HOUR)

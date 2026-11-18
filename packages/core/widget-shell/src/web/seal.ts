@@ -2,8 +2,9 @@
  * The seal of the web app's cookies: a value becomes a JWE in compact serialization (`dir`,
  * `A256GCM`, on jose), which only this server reads and nobody alters unseen. Each configured key
  * (`MCP_WEB_SESSION_KEYS`) yields its content key and its key id by HKDF-SHA256; the first key
- * seals and every key opens, so a key is rotated by putting the new one first and dropping the old
- * one a session's lifetime later.
+ * seals and every key opens, so a key is rotated in two steps: the new one goes last on every
+ * replica, then first once every replica holds it (a replica without it opens nothing it sealed),
+ * and the old one goes a session's lifetime later.
  *
  * The cookie a value is sealed for is named in the protected header, which compact serialization
  * authenticates as the encryption's additional data (RFC 7516 §5.1), so a value sealed for one

@@ -165,12 +165,17 @@ export function mapSubject(provider: string, callerClaims: readonly string[]) {
 /**
  * The endpoints of one IdP, relative to its issuer; the JWT rules are the same for all five: one
  * key set at a fixed path, the resource the one audience, `sub` the caller, every algorithm the
- * set's keys name.
+ * set's keys name, and the claims only a signed-in user's token carries where the IdP has them.
  */
 interface IdpTable {
   name: string
   jwks: string
   web: OAuthWebClient
+  /**
+   * Claims every token must carry: Keycloak's `sid` and `auth_time`, the session and the sign-in of
+   * a user, of which a service account's token (client credentials) lacks the sign-in at least.
+   */
+  userClaims?: readonly string[]
   metadata: Omit<OAuthMetadata, "issuer" | "authorization_endpoint" | "token_endpoint"> & {
     authorization: string
     token: string
@@ -182,18 +187,26 @@ interface IdpTable {
   }
 }
 
+/** The boot line's words for the caller claim and the claims of a signed-in user beside it. */
+function userClaimsText(claims: readonly string[]): string {
+  const all = [...DEFAULT_CALLER_CLAIMS, ...claims]
+  return `the ${all.slice(0, -1).join(", ")} and ${all.at(-1)} claims of a signed-in user`
+}
+
 function idpProvider(
   issuer: string,
-  { name, jwks, web, metadata }: IdpTable,
+  { name, jwks, web, userClaims, metadata }: IdpTable,
   { debug }: ProviderOptions,
 ): OAuthProvider {
   const { authorization, token, registration, jwksInMetadata, userinfo, grants, scopes } = metadata
   return {
     web,
+    ...(userClaims && { describeCaller: () => userClaimsText(userClaims) }),
     createTokenVerifier: (resource) =>
       createJwtVerifier({
         keySets: [{ issuer, jwks: new URL(endpoint(issuer, jwks)) }],
         resource,
+        ...(userClaims && { requiredClaims: userClaims }),
         debug,
       }),
     oauthMetadata: {
@@ -221,6 +234,17 @@ const OIDC_SCOPES = ["openid", "profile", "email", "offline_access"]
  * the API by `audience`; the other three ask for what their metadata lists.
  */
 const KEYCLOAK_WEB: OAuthWebClient = { scopes: ["openid", "profile"] }
+
+/**
+ * Keycloak puts the session id `sid` and, by the built-in `basic` scope, the time of the user's
+ * sign-in `auth_time` into every token of a sign-in (code, device, its renewals, an offline token's
+ * too). A service account's token (client credentials), which anyone may get where the realm lets
+ * clients register themselves, carries no `auth_time`, and no `sid` unless its client keeps a
+ * session for it ("Use refresh tokens for client credentials grant", which a registrant may turn
+ * on through Keycloak's own registration endpoint): such a token names no user. A password grant's
+ * token carries no `auth_time` either, a grant no MCP client or the web sign-in uses.
+ */
+const KEYCLOAK_USER_CLAIMS = ["sid", "auth_time"]
 const AUTH0_WEB: OAuthWebClient = {
   scopes: ["openid", "profile", "offline_access"],
   audience: "resource",
@@ -245,6 +269,7 @@ export function oauthKeycloakProvider({
       name: "Keycloak",
       jwks: "protocol/openid-connect/certs",
       web: KEYCLOAK_WEB,
+      userClaims: KEYCLOAK_USER_CLAIMS,
       metadata: {
         authorization: "protocol/openid-connect/auth",
         token: "protocol/openid-connect/token",

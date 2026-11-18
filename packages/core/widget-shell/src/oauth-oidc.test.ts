@@ -1,6 +1,6 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 import { OAuthError } from "@modelcontextprotocol/server"
-import { DISCOVERY_HOLD_MS } from "./oauth-discovery.js"
+import { DISCOVERY_HOLD_MS, UNUSABLE_HOLD_MS } from "./oauth-discovery.js"
 import {
   JWK_EC,
   JWK_RSA,
@@ -72,6 +72,7 @@ describe("readOidcSettings: the other variables", () => {
       audiences: [],
       scopes: [],
       subjectClaim: "sub",
+      requiredClaims: [],
     })
   })
 
@@ -82,18 +83,26 @@ describe("readOidcSettings: the other variables", () => {
       subjectClaim: "uid",
       algorithms: "RS256,ES256 EdDSA",
       clientIds: "claude ,vscode",
+      requiredClaims: "sid, uid",
     })
     expect(settings).toEqual({
       issuer: ISSUER,
       audiences: ["https://pulse.example.test/mcp", "https://api.example.test"],
       scopes: ["pulse.read", "pulse.write", "openid"],
       subjectClaim: "uid",
+      requiredClaims: ["sid"],
       algorithms: ["RS256", "ES256", "EdDSA"],
       clients: ["claude", "vscode"],
     })
   })
 
-  it.each(["audience", "scopes", "algorithms", "clientIds"] as const)(
+  it("names each required claim once, the caller claim never, which every token carries anyway", () => {
+    expect(readOidcSettings(ISSUER, { requiredClaims: "sid sub sid" }).requiredClaims).toEqual([
+      "sid",
+    ])
+  })
+
+  it.each(["audience", "scopes", "algorithms", "clientIds", "requiredClaims"] as const)(
     "refuses a %s that holds only separators",
     (key) => {
       const name = {
@@ -101,6 +110,7 @@ describe("readOidcSettings: the other variables", () => {
         scopes: "MCP_OAUTH_OIDC_SCOPES",
         algorithms: "MCP_OAUTH_OIDC_ALGORITHMS",
         clientIds: "MCP_OAUTH_OIDC_CLIENT_IDS",
+        requiredClaims: "MCP_OAUTH_OIDC_REQUIRED_CLAIMS",
       }[key]
       expect(refusal(() => readOidcSettings(ISSUER, { [key]: " , " }))).toBe(
         `${name} holds no value.`,
@@ -117,37 +127,6 @@ describe("readOidcSettings: the other variables", () => {
       readOidcSettings(ISSUER, { clientIds: "pulse-web,claude" }, "pulse-web").clients,
     ).toEqual(["pulse-web", "claude"])
     expect(readOidcSettings(ISSUER, {}, "pulse-web")).not.toHaveProperty("clients")
-  })
-})
-
-describe("readOidcSettings: an audience no client's id can be, or a scope", () => {
-  it.each(["https://pulse.example.test/mcp", "http://localhost:8400/mcp", "http://127.0.0.1/mcp"])(
-    "takes the URL audience %s without a scope",
-    (audience) => {
-      expect(readOidcSettings(ISSUER, { audience }).audiences).toEqual([audience])
-    },
-  )
-
-  it.each([
-    ["a client id", "0oa1b2c3"],
-    ["plain http off the machine itself", "http://pulse.example.test/mcp"],
-    ["a URN", "urn:pulse:mcp"],
-    ["an App ID URI", "api://pulse"],
-    ["another scheme on the machine itself", "ftp://localhost/mcp"],
-  ])("refuses %s without a scope, naming the first such audience", (_case, audience) => {
-    expect(
-      refusal(() =>
-        readOidcSettings(ISSUER, { audience: `https://pulse.example.test/mcp,${audience},x` }),
-      ),
-    ).toBe(
-      `MCP_OAUTH_OIDC_AUDIENCE names "${audience}", which is no https URL: a client's id (the audience of its ID tokens) or another app's id can be such an audience, so its tokens need a scope only Pulse's clients get. Name that scope in MCP_OAUTH_OIDC_SCOPES.`,
-    )
-  })
-
-  it("takes such an audience beside a required scope", () => {
-    const settings = readOidcSettings(ISSUER, { audience: "0oa1b2c3", scopes: "pulse" })
-    expect(settings.audiences).toEqual(["0oa1b2c3"])
-    expect(settings.scopes).toEqual(["pulse"])
   })
 })
 
@@ -216,6 +195,11 @@ describe("oauthOidcProvider: what it serves and says", () => {
     [
       { scopes: "pulse.read pulse.write", clientIds: "claude,vscode", subjectClaim: "oid" },
       "aud http://localhost/mcp (RFC 8707), the scopes pulse.read and pulse.write, a client id claude or vscode and the oid claim",
+    ],
+    [{ requiredClaims: "sid" }, "aud http://localhost/mcp (RFC 8707) and the sub and sid claims"],
+    [
+      { requiredClaims: "sid,acr", subjectClaim: "uid" },
+      "aud http://localhost/mcp (RFC 8707) and the uid, sid and acr claims",
     ],
   ])("says in the boot line what a token must carry: %j", (values, carried) => {
     const provider = oauthOidcProvider(readOidcSettings(ISSUER, values), { log })
@@ -293,7 +277,11 @@ describe("oauthOidcProvider: the gate over its discovery", () => {
       `OAuth: the discovery of ${idp.issuer} failed: the document cannot be used (other-issuer). Until it answers, /mcp answers 503 (temporarily_unavailable).`,
     ])
     serve()
+    time += UNUSABLE_HOLD_MS - 1
+    await expect(verifier.verifyAccessToken(token())).rejects.toThrow("are not known yet")
+    time += 1
     expect(await verifier.verifyAccessToken(token())).toMatchObject({ resource: RESOURCE })
+    expect(logged).toHaveLength(1)
   })
 
   it("verifies tokens of the issuer with one read of the document and one of the key set", async () => {
@@ -362,6 +350,19 @@ describe("oauthOidcProvider: the gate over its discovery", () => {
     })
     await expect(clients.verifyAccessToken(token({ appid: "other" }))).rejects.toThrow(
       "Token was issued to a client this server does not accept",
+    )
+  })
+
+  it("refuses a token without a claim it requires, a service account's without sid", async () => {
+    serve()
+    const verifier = gate({ requiredClaims: "sid" })
+    expect(await verifier.verifyAccessToken(token({ sid: "s-1" }))).toMatchObject({
+      resource: RESOURCE,
+    })
+    await expect(
+      verifier.verifyAccessToken(token({ preferred_username: "service-account-x" })),
+    ).rejects.toThrow(
+      "Token carries no sid claim, which the server requires: a token a client obtained for itself (client credentials) names no signed-in user",
     )
   })
 

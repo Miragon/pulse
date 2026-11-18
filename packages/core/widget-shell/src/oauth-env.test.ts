@@ -39,6 +39,7 @@ describe("oauthFromEnv: the providers", () => {
       "MCP_OAUTH_OIDC_SUBJECT_CLAIM",
       "MCP_OAUTH_OIDC_ALGORITHMS",
       "MCP_OAUTH_OIDC_CLIENT_IDS",
+      "MCP_OAUTH_OIDC_REQUIRED_CLAIMS",
       "MCP_OAUTH_ENTRA_TENANT_ID",
       "MCP_OAUTH_ENTRA_API_CLIENT_ID",
       "MCP_OAUTH_ENTRA_SCOPE",
@@ -222,7 +223,7 @@ describe("oauthFromEnv: Microsoft Entra ID", () => {
     const provider = fromEnv(env)
     expect(provider?.requiredScopes).toEqual(["https://pulse.example.com/mcp/access_as_user"])
     expect(describeOAuthTokens(provider!, RESOURCE)).toBe(
-      `OAuth: tokens must carry iss https://login.microsoftonline.us/${TENANT}/v2.0 or https://login.microsoftonline.us/${TENANT}/oauth21/2026-08, aud ${API}, https://pulse.example.com/mcp or https://pulse.example.com/mcp (RFC 8707), ver 2.0, the scope https://pulse.example.com/mcp/access_as_user, a client id aebc6443-996d-45c2-90f0-388ff96faa56 or pulse-web and an oid or sub claim.`,
+      `OAuth: tokens must carry iss https://login.microsoftonline.us/${TENANT}/v2.0 or https://login.microsoftonline.us/${TENANT}/oauth21/2026-08, aud ${API} or https://pulse.example.com/mcp (RFC 8707), ver 2.0, the scope https://pulse.example.com/mcp/access_as_user, a client id aebc6443-996d-45c2-90f0-388ff96faa56 or pulse-web and an oid or sub claim.`,
     )
   })
 
@@ -267,6 +268,29 @@ describe("oauthFromEnv: what fails the boot", () => {
       )
     },
   )
+
+  it.each([
+    ["MCP_OAUTH_OIDC_SCOPE", "MCP_OAUTH_OIDC_SCOPES", "OpenID Connect", "MCP_OAUTH_OIDC_"],
+    ["MCP_OAUTH_OIDC_CLIENT_ID", "MCP_OAUTH_OIDC_CLIENT_IDS", "OpenID Connect", "MCP_OAUTH_OIDC_"],
+    ["MCP_OAUTH_OIDC_ISUER", "MCP_OAUTH_OIDC_ISSUER", "OpenID Connect", "MCP_OAUTH_OIDC_"],
+    // A tie goes to the first: ISSUER and SCOPES are both six edits away.
+    ["MCP_OAUTH_OIDC_", "MCP_OAUTH_OIDC_ISSUER", "OpenID Connect", "MCP_OAUTH_OIDC_"],
+    ["MCP_OAUTH_ENTRA_SCOPES", "MCP_OAUTH_ENTRA_SCOPE", "Entra ID", "MCP_OAUTH_ENTRA_"],
+    ["MCP_OAUTH_ENTRA_CLIENT_ID", "MCP_OAUTH_ENTRA_CLIENT_IDS", "Entra ID", "MCP_OAUTH_ENTRA_"],
+    ["MCP_OAUTH_ENTRA_TENANT", "MCP_OAUTH_ENTRA_TENANT_ID", "Entra ID", "MCP_OAUTH_ENTRA_"],
+  ])(
+    "refuses %s under its provider's prefix, with a provider or without, naming %s",
+    (name, meant, provider, prefix) => {
+      const refusal = `${name} is no variable the server reads (did you mean ${meant}?): under ${prefix} a misspelled variable would drop a restriction of the ${provider} provider or the provider itself, so the boot refuses it. Correct or unset it.`
+      expect(() => fromEnv({ [name]: "pulse" })).toThrow(refusal)
+      expect(() => fromEnv({ ...KEYCLOAK, [name]: "pulse" })).toThrow(refusal)
+    },
+  )
+
+  it("takes a blank variable under such a prefix for unset, as every provider variable", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {})
+    expect(fromEnv({ MCP_OAUTH_OIDC_SCOPE: " ", MCP_OAUTH_ENTRA_SCOPES: "" })).toBeUndefined()
+  })
 
   // The boot reads the env it was handed; a variable only process.env holds is not its setting.
   it("reads the env it is handed, not process.env", () => {

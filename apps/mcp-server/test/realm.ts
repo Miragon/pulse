@@ -7,7 +7,9 @@ import type { ComposedServer } from "@miragon/pulse-widget-shell/server"
  * A loopback Keycloak realm (`platform`) that serves only its key set, for the tests that boot
  * the app under OAuth with passthrough auth (passthrough.e2e.test.ts and the error-path goldens):
  * the boot verifies the caller's bearer token against it, and the engine module forwards that
- * token. `sign` issues its RS256 tokens, valid for an hour of the real clock.
+ * token. `sign` issues its RS256 tokens, valid for an hour of the real clock, each with the
+ * session id `sid` and the sign-in time `auth_time` of a signed-in user, as Keycloak's tokens of a
+ * sign-in carry them.
  */
 export async function startRealm() {
   const { privateKey, publicKey } = crypto.generateKeyPairSync("rsa", { modulusLength: 2048 })
@@ -22,8 +24,9 @@ export async function startRealm() {
   return {
     url,
     sign(claims: Record<string, unknown>) {
-      const exp = Math.floor(Date.now() / 1000) + 3600
-      const body = { iss: `${url}/realms/platform`, exp, ...claims }
+      const now = Math.floor(Date.now() / 1000)
+      const signedIn = { sid: "session-1", auth_time: now - 60 }
+      const body = { iss: `${url}/realms/platform`, exp: now + 3600, ...signedIn, ...claims }
       const signed = `${segment({ alg: "RS256", kid: "k1", typ: "JWT" })}.${segment(body)}`
       const signature = crypto.sign("RSA-SHA256", Buffer.from(signed), privateKey)
       return `${signed}.${signature.toString("base64url")}`

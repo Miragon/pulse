@@ -10,8 +10,10 @@
  * the table's, the generic OpenID Connect provider (`MCP_OAUTH_OIDC_*`, oauth-oidc.ts) or Microsoft
  * Entra ID for one tenant (`MCP_OAUTH_ENTRA_*`, oauth-entra.ts). Two
  * providers, a provider without a required variable or an invalid one fail the boot, naming the
- * variables. A variable it does not read (a misspelled prefix) is the typo warner's, so a
- * misspelled provider boots without OAuth, and the log says so.
+ * variables. So does a variable under the generic or the Entra ID provider's own prefix that the
+ * provider does not read, naming the one meant, since a misspelled one there would drop a
+ * restriction or the provider unseen. Any other variable it does not read (a misspelled prefix) is
+ * the typo warner's, so a misspelled provider boots without OAuth, and the log says so.
  */
 import { ENTRA_ENV, oauthEntraProvider, readEntraSettings } from "./oauth-entra.js"
 import { OIDC_ENV, oauthOidcProvider, readOidcSettings } from "./oauth-oidc.js"
@@ -36,6 +38,11 @@ interface ProviderContext {
 
 interface ProviderSpec {
   name: string
+  /**
+   * The prefix of the provider's variables where they restrict its tokens: a variable under it the
+   * provider does not read fails the boot, since a misspelled one would drop a restriction unseen.
+   */
+  prefix?: string
   /** Each is required once any variable of the provider is set; the factory gets them in order. */
   required: readonly string[]
   /** The variables it may take besides, by the factory's names; a blank one is unset. */
@@ -86,6 +93,7 @@ const PROVIDERS: readonly ProviderSpec[] = [
   },
   {
     name: "OpenID Connect",
+    prefix: "MCP_OAUTH_OIDC_",
     required: [OIDC_ISSUER],
     optional: OIDC_OPTIONAL,
     build: ([issuer], optional, { options, webClientId, log }) =>
@@ -93,6 +101,7 @@ const PROVIDERS: readonly ProviderSpec[] = [
   },
   {
     name: "Entra ID",
+    prefix: "MCP_OAUTH_ENTRA_",
     required: [ENTRA_TENANT_ID, ENTRA_API_CLIENT_ID],
     optional: ENTRA_OPTIONAL,
     build: ([tenantId, apiClientId], optional, { options, webClientId }) =>
@@ -126,6 +135,49 @@ interface Requested {
   provider: ProviderSpec
   /** The provider's variables the env sets, in the provider's order. */
   set: string[]
+}
+
+/** How many single-character edits turn `a` into `b` (Levenshtein). */
+function editDistance(a: string, b: string): number {
+  let previous = Array.from({ length: b.length + 1 }, (_, index) => index)
+  for (let i = 0; i < a.length; i += 1) {
+    const current = [i + 1]
+    for (let j = 0; j < b.length; j += 1) {
+      const swap = previous[j] + (a[i] === b[j] ? 0 : 1)
+      current.push(Math.min(previous[j + 1] + 1, current[j] + 1, swap))
+    }
+    previous = current
+  }
+  return previous[b.length]
+}
+
+/** The provider's variable `name` most likely means: the fewest edits away, the first on a tie. */
+function nearestOf(name: string, provider: ProviderSpec): string {
+  const [first, ...others] = variablesOf(provider)
+  return others.reduce(
+    (nearest, candidate) =>
+      editDistance(name, candidate) < editDistance(name, nearest) ? candidate : nearest,
+    first,
+  )
+}
+
+/** A set variable under a provider's own prefix that the provider does not read fails the boot. */
+function refuseStrayVariables(env: NodeJS.ProcessEnv): void {
+  for (const provider of PROVIDERS) {
+    const { prefix } = provider
+    if (prefix === undefined) continue
+    const known = variablesOf(provider)
+    const stray = Object.keys(env).find(
+      (name) =>
+        name.startsWith(prefix) && !known.includes(name) && valueOf(env, name) !== undefined,
+    )
+    if (stray === undefined) continue
+    throw new Error(
+      `${stray} is no variable the server reads (did you mean ${nearestOf(stray, provider)}?): ` +
+        `under ${prefix} a misspelled variable would drop a restriction of the ${provider.name} ` +
+        "provider or the provider itself, so the boot refuses it. Correct or unset it.",
+    )
+  }
 }
 
 const isOrAre = (names: readonly string[]): string => (names.length === 1 ? "is" : "are")
@@ -181,10 +233,12 @@ function build(
 
 /**
  * No provider's variables → `undefined` plus ONE boot warning (prefixed with `label`). Two
- * providers, an incomplete or an invalid one throw. `MCP_OAUTH_DEBUG` is read from the same `env`,
+ * providers, an incomplete or an invalid one, and a variable under the generic or the Entra ID
+ * provider's prefix that it does not read throw. `MCP_OAUTH_DEBUG` is read from the same `env`,
  * and so is `MCP_WEB_CLIENT_ID`, which joins the generic or the Entra ID provider's client allowlist.
  */
 export function oauthFromEnv(env: NodeJS.ProcessEnv, label: string): OAuthProvider | undefined {
+  refuseStrayVariables(env)
   const requested = requestedProvider(env)
   if (!requested) {
     console.warn(
