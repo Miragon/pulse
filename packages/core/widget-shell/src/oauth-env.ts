@@ -1,16 +1,18 @@
 /**
  * The provider variables (`MCP_OAUTH_*`) → the OAuth provider the boot installs. The server is a
- * resource server: it verifies the bearer token's signature, issuer, `exp`, `sub` and the RFC 8707
- * audience (`MCP_URL`'s origin plus `/mcp`) and serves discovery; it never mints tokens. It is the
- * ONLY caller-identity source, and it raises every module's no-suffix toolset to its standard set.
- * A gateway that terminates auth in front is invisible here: identity arrives only through this
- * OAuth.
+ * resource server: it verifies the bearer token's signature, issuer, `exp`, the caller claim and
+ * the RFC 8707 audience (`MCP_URL`'s origin plus `/mcp`) and serves discovery; it never mints
+ * tokens. It is the ONLY caller-identity source, and it raises every module's no-suffix toolset to
+ * its standard set. A gateway that terminates auth in front is invisible here: identity arrives
+ * only through this OAuth.
  *
- * There is no provider selector, so the boot picks the one provider whose variables are set. Two
- * providers or an incomplete one fail the boot, naming the variables. Any other variable it does
- * not read (an `…_AUDIENCE`, a misspelled prefix) is the typo warner's, so a misspelled provider
- * boots without OAuth, and the log says so.
+ * There is no provider selector, so the boot picks the one provider whose variables are set: one of
+ * the table's, or the generic OpenID Connect provider (`MCP_OAUTH_OIDC_*`, oauth-oidc.ts). Two
+ * providers, a provider without a required variable or an invalid one fail the boot, naming the
+ * variables. A variable it does not read (a misspelled prefix) is the typo warner's, so a
+ * misspelled provider boots without OAuth, and the log says so.
  */
+import { OIDC_ENV, oauthOidcProvider, readOidcSettings } from "./oauth-oidc.js"
 import {
   oauthAuth0Provider,
   oauthBetterAuthProvider,
@@ -21,47 +23,80 @@ import {
   type ProviderOptions,
 } from "./oauth-providers.js"
 
-interface ProviderSpec {
-  name: string
-  /** Every one is required; the factory gets them explicitly, in this order. */
-  variables: readonly string[]
-  build(values: readonly string[], options: ProviderOptions): OAuthProvider
+/** What a provider's factory gets besides its variables. */
+interface ProviderContext {
+  readonly options: ProviderOptions
+  /** `MCP_WEB_CLIENT_ID`, the web sign-in's client, when set. */
+  readonly webClientId: string | undefined
+  /** One line of the boot's log, under its name. */
+  readonly log: (line: string) => void
 }
 
+interface ProviderSpec {
+  name: string
+  /** Each is required once any variable of the provider is set; the factory gets them in order. */
+  required: readonly string[]
+  /** The variables it may take besides, by the factory's names; a blank one is unset. */
+  optional?: Readonly<Record<string, string>>
+  build(
+    required: readonly string[],
+    optional: Readonly<Record<string, string | undefined>>,
+    context: ProviderContext,
+  ): OAuthProvider
+}
+
+const { issuer: OIDC_ISSUER, ...OIDC_OPTIONAL } = OIDC_ENV
+
 /**
- * The providers whose factory takes exactly these variables, verifies a JWT over issuer, JWKS and
- * the RFC 8707 resource, and maps the token's `sub` to `user.id` (what `callerUserId` reads).
+ * The providers: the table's, whose factory takes exactly their required variables, verifies a JWT
+ * over issuer, JWKS and the RFC 8707 resource, and maps the token's `sub` to `user.id` (what
+ * `callerUserId` reads), and the generic OpenID Connect provider, whose optional variables name
+ * its audiences, scopes, caller claim, algorithms and clients.
  */
 const PROVIDERS: readonly ProviderSpec[] = [
   {
     name: "Keycloak",
-    variables: ["MCP_OAUTH_KEYCLOAK_SERVER_URL", "MCP_OAUTH_KEYCLOAK_REALM"],
-    build: ([serverUrl, realm], options) => oauthKeycloakProvider({ serverUrl, realm, ...options }),
+    required: ["MCP_OAUTH_KEYCLOAK_SERVER_URL", "MCP_OAUTH_KEYCLOAK_REALM"],
+    build: ([serverUrl, realm], _, { options }) =>
+      oauthKeycloakProvider({ serverUrl, realm, ...options }),
   },
   {
     name: "Auth0",
-    variables: ["MCP_OAUTH_AUTH0_DOMAIN"],
-    build: ([domain], options) => oauthAuth0Provider({ domain, ...options }),
+    required: ["MCP_OAUTH_AUTH0_DOMAIN"],
+    build: ([domain], _, { options }) => oauthAuth0Provider({ domain, ...options }),
   },
   {
     name: "WorkOS",
-    variables: ["MCP_OAUTH_WORKOS_SUBDOMAIN"],
-    build: ([subdomain], options) => oauthWorkOSProvider({ subdomain, ...options }),
+    required: ["MCP_OAUTH_WORKOS_SUBDOMAIN"],
+    build: ([subdomain], _, { options }) => oauthWorkOSProvider({ subdomain, ...options }),
   },
   {
     name: "Better Auth",
-    variables: ["MCP_OAUTH_BETTER_AUTH_URL"],
-    build: ([authURL], options) => oauthBetterAuthProvider({ authURL, ...options }),
+    required: ["MCP_OAUTH_BETTER_AUTH_URL"],
+    build: ([authURL], _, { options }) => oauthBetterAuthProvider({ authURL, ...options }),
   },
   {
     name: "Convex",
-    variables: ["MCP_OAUTH_CONVEX_AUTH_URL"],
-    build: ([authURL], options) => oauthConvexProvider({ authURL, ...options }),
+    required: ["MCP_OAUTH_CONVEX_AUTH_URL"],
+    build: ([authURL], _, { options }) => oauthConvexProvider({ authURL, ...options }),
+  },
+  {
+    name: "OpenID Connect",
+    required: [OIDC_ISSUER],
+    optional: OIDC_OPTIONAL,
+    build: ([issuer], optional, { options, webClientId, log }) =>
+      oauthOidcProvider(readOidcSettings(issuer, optional, webClientId), { ...options, log }),
   },
 ]
 
+/** Every variable of a provider: the required ones, then the optional ones. */
+const variablesOf = ({ required, optional = {} }: ProviderSpec): string[] => [
+  ...required,
+  ...Object.values<string>(optional),
+]
+
 /** The variables the boot reads for OAuth: every provider's, nothing else. */
-export const OAUTH_ENV_VARS: readonly string[] = PROVIDERS.flatMap(({ variables }) => variables)
+export const OAUTH_ENV_VARS: readonly string[] = PROVIDERS.flatMap(variablesOf)
 
 /** Logs why a bearer token was refused (never the token); it changes no verdict. */
 export const OAUTH_DEBUG_ENV_VAR = "MCP_OAUTH_DEBUG"
@@ -78,41 +113,56 @@ const switchedOn = (value: string | undefined): boolean => {
 
 interface Requested {
   provider: ProviderSpec
-  values: string[]
+  /** The provider's variables the env sets, in the provider's order. */
+  set: string[]
+}
+
+const isOrAre = (names: readonly string[]): string => (names.length === 1 ? "is" : "are")
+
+/** Why the provider cannot be built without a required variable, naming what is set instead. */
+function incomplete({ provider, set }: Requested, missing: readonly string[]): Error {
+  const needs = `${provider.name} OAuth needs ${provider.required.join(" and ")}`
+  if (missing.length < provider.required.length) {
+    return new Error(`${needs}, but ${missing.join(" and ")} ${isOrAre(missing)} unset.`)
+  }
+  return new Error(
+    `${needs}, which ${isOrAre(missing)} unset while ${set.join(" and ")} ${isOrAre(set)} set.`,
+  )
 }
 
 /** The one provider the env asks for, or `undefined` for none; two or an incomplete one throw. */
 function requestedProvider(env: NodeJS.ProcessEnv): Requested | undefined {
   const requested = PROVIDERS.map((provider) => ({
     provider,
-    values: provider.variables.map((name) => valueOf(env, name)),
-  })).filter(({ values }) => values.some(Boolean))
+    set: variablesOf(provider).filter((name) => valueOf(env, name) !== undefined),
+  })).filter(({ set }) => set.length > 0)
   if (requested.length > 1) {
-    const described = requested.map(
-      ({ provider, values }) =>
-        `${provider.name} (${provider.variables.filter((_, i) => values[i]).join(", ")})`,
-    )
+    const described = requested.map(({ provider, set }) => `${provider.name} (${set.join(", ")})`)
     throw new Error(
       `OAuth variables of more than one provider are set: ${described.join(", ")}. Keep the variables of one provider and unset the others.`,
     )
   }
   if (requested.length === 0) return undefined
-  const [{ provider, values }] = requested
-  const missing = provider.variables.filter((_, i) => !values[i])
-  if (missing.length > 0) {
-    throw new Error(
-      `${provider.name} OAuth needs ${provider.variables.join(" and ")}, but ${missing.join(" and ")} ${missing.length === 1 ? "is" : "are"} unset.`,
-    )
-  }
-  return { provider, values: values as string[] }
+  const [first] = requested
+  const missing = first.provider.required.filter((name) => !first.set.includes(name))
+  if (missing.length > 0) throw incomplete(first, missing)
+  return first
 }
 
-function build({ provider, values }: Requested, options: ProviderOptions): OAuthProvider {
+function build(
+  { provider, set }: Requested,
+  env: NodeJS.ProcessEnv,
+  context: ProviderContext,
+): OAuthProvider {
+  const required = provider.required.map((name) => String(valueOf(env, name)))
+  const optional = Object.fromEntries(
+    Object.entries<string>(provider.optional ?? {}).map(([key, name]) => [key, valueOf(env, name)]),
+  )
   try {
-    return provider.build(values, options)
+    return provider.build(required, optional, context)
   } catch (error) {
     throw new Error(
-      `${provider.name} OAuth (${provider.variables.join(", ")}) is invalid: ${(error as Error).message}`,
+      `${provider.name} OAuth (${set.join(", ")}) is invalid: ${(error as Error).message}`,
       { cause: error },
     )
   }
@@ -120,7 +170,8 @@ function build({ provider, values }: Requested, options: ProviderOptions): OAuth
 
 /**
  * No provider's variables → `undefined` plus ONE boot warning (prefixed with `label`). Two
- * providers, an incomplete or an invalid one throw. `MCP_OAUTH_DEBUG` is read from the same `env`.
+ * providers, an incomplete or an invalid one throw. `MCP_OAUTH_DEBUG` is read from the same `env`,
+ * and so is `MCP_WEB_CLIENT_ID`, which joins a generic provider's client allowlist.
  */
 export function oauthFromEnv(env: NodeJS.ProcessEnv, label: string): OAuthProvider | undefined {
   const requested = requestedProvider(env)
@@ -130,5 +181,9 @@ export function oauthFromEnv(env: NodeJS.ProcessEnv, label: string): OAuthProvid
     )
     return undefined
   }
-  return build(requested, { debug: switchedOn(env[OAUTH_DEBUG_ENV_VAR]) })
+  return build(requested, env, {
+    options: { debug: switchedOn(env[OAUTH_DEBUG_ENV_VAR]) },
+    webClientId: valueOf(env, "MCP_WEB_CLIENT_ID"),
+    log: (line) => console.warn(`[${label}] ${line}`),
+  })
 }

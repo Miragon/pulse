@@ -1,7 +1,7 @@
 /**
- * `@miragon/pulse-widget-shell/testing/oidc`: a fake OpenID Connect provider with Keycloak's paths
- * on a loopback socket, which the web sign-in's tests run against, here and in a server's own
- * suites. Node only, never bundled.
+ * `@miragon/pulse-widget-shell/testing/oidc`: a fake OpenID Connect provider on a loopback socket,
+ * with Keycloak's paths or ADFS's (`flavor`), which the web sign-in's tests run against, here and
+ * in a server's own suites. Node only, never bundled.
  */
 export { startFakeOidc, type FakeOidc } from "./fake-oidc.js"
 export type { FakeOidcEndpoint, FakeOidcRequest } from "./endpoints.js"
@@ -10,6 +10,7 @@ export {
   FAKE_OIDC_USERS,
   type EndedSession,
   type FakeOidcClient,
+  type FakeOidcFlavor,
   type FakeOidcOptions,
   type FakeOidcUser,
   type IssuedTokens,

@@ -19,7 +19,8 @@
     "src/web/logout.ts",
     "src/web/session-route.ts",
     "src/oauth-jwt.ts",
-    "src/oauth-discovery.ts"
+    "src/oauth-discovery.ts",
+    "src/oauth-oidc.ts"
   ],
   "inPlace": true,
   "incremental": true,

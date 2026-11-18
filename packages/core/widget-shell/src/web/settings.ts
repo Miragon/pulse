@@ -2,10 +2,11 @@
  * The web app's settings (`MCP_WEB_*`), read once at boot. `MCP_WEB_CLIENT_ID` turns the web app
  * on: it signs people in through the server's own OAuth provider as a confidential client, keeps
  * the session in a cookie sealed with `MCP_WEB_SESSION_KEYS`, returns them to `MCP_URL` and serves
- * the web build in `MCP_WEB_DIR`, else in the folder the root names. `MCP_WEB_SESSION_CHECK_MINUTES`
- * has the session checked at the provider at least that often (refresh.ts); unset, its token is
- * renewed only when it is due. A setting that cannot work fails the boot with what to do, and no
- * message ever quotes a secret or a key.
+ * the web build in `MCP_WEB_DIR`, else in the folder the root names. `MCP_WEB_SCOPES` replaces the
+ * scopes the provider's sign-in asks for (the gate's required scopes are asked for besides).
+ * `MCP_WEB_SESSION_CHECK_MINUTES` has the session checked at the provider at least that often
+ * (refresh.ts); unset, its token is renewed only when it is due. A setting that cannot work fails
+ * the boot with what to do, and no message ever quotes a secret or a key.
  */
 import type { OAuthProvider } from "../oauth-providers.js"
 import { isLocalhost } from "../oauth-shared.js"
@@ -13,6 +14,7 @@ import { isLocalhost } from "../oauth-shared.js"
 export const WEB_ENV_VARS = [
   "MCP_WEB_CLIENT_ID",
   "MCP_WEB_CLIENT_SECRET",
+  "MCP_WEB_SCOPES",
   "MCP_WEB_SESSION_KEYS",
   "MCP_WEB_SESSION_HOURS",
   "MCP_WEB_SESSION_CHECK_MINUTES",
@@ -32,6 +34,11 @@ const MAX_CHECK_MINUTES = 60
 export interface WebSettings {
   readonly clientId: string
   readonly clientSecret: string
+  /**
+   * The scopes the sign-in asks for in place of the provider's web scopes (`MCP_WEB_SCOPES`);
+   * `undefined` when unset, and the provider's own apply.
+   */
+  readonly scopes: readonly string[] | undefined
   /** The keys the session cookie is sealed with, decoded: the first seals, every one opens. */
   readonly sessionKeys: readonly Uint8Array[]
   /** The absolute lifetime of a session, from its sign-in. */
@@ -50,6 +57,7 @@ export interface WebSettings {
 /** The variables that only mean something beside a client id. */
 const ON_WITH_THE_CLIENT = [
   "MCP_WEB_CLIENT_SECRET",
+  "MCP_WEB_SCOPES",
   "MCP_WEB_SESSION_KEYS",
   "MCP_WEB_SESSION_HOURS",
   "MCP_WEB_SESSION_CHECK_MINUTES",
@@ -101,6 +109,25 @@ function sessionKeysOf(raw: string): Uint8Array[] {
     }
     return key
   })
+}
+
+/** A scope token as RFC 6749 §3.3 spells one: printable ASCII but space, `"` and `\`. */
+const SCOPE_TOKEN = /^[\x21\x23-\x5B\x5D-\x7E]+$/
+
+/** The scopes of `MCP_WEB_SCOPES`, separated by spaces or commas. */
+function scopesOf(raw: string | undefined): string[] | undefined {
+  if (raw === undefined) return undefined
+  const scopes = raw.split(/[\s,]/).filter(Boolean)
+  if (scopes.length === 0) {
+    throw new Error(
+      "MCP_WEB_SCOPES holds no scope. Name the scopes, separated by spaces or commas.",
+    )
+  }
+  const odd = scopes.find((scope) => !SCOPE_TOKEN.test(scope))
+  if (odd !== undefined) {
+    throw new Error(`MCP_WEB_SCOPES names "${odd}", which is no scope (RFC 6749 §3.3).`)
+  }
+  return [...new Set(scopes)]
 }
 
 /** A whole number from 1 to `max`, or NaN. */
@@ -203,6 +230,7 @@ export function readWebSettings(
   return {
     clientId,
     clientSecret,
+    scopes: scopesOf(valueOf(env, "MCP_WEB_SCOPES")),
     sessionKeys,
     sessionHours: sessionHoursOf(valueOf(env, "MCP_WEB_SESSION_HOURS")),
     sessionCheckMinutes: sessionCheckMinutesOf(valueOf(env, "MCP_WEB_SESSION_CHECK_MINUTES")),
@@ -217,8 +245,10 @@ export function describeWebSettings(settings: WebSettings): string {
   const minutes = settings.sessionCheckMinutes
   const checked =
     minutes === undefined ? "" : `, checked at the identity provider every ${minutes} min`
+  const scopes =
+    settings.scopes === undefined ? "" : ` with the scopes ${settings.scopes.join(" ")}`
   return (
-    `Web app: on at ${settings.origin}/app for client ${settings.clientId}; sessions last ` +
+    `Web app: on at ${settings.origin}/app for client ${settings.clientId}${scopes}; sessions last ` +
     `${settings.sessionHours} h${checked}; ${keys} session ${keys === 1 ? "key" : "keys (the first seals)"}; ` +
     `web build from ${settings.dir}.`
   )

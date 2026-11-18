@@ -58,17 +58,17 @@ variables only; the widgets follow the host's theme, then the OS.
 
 ## What it provides
 
-| Part           | Entry            | What you get                                                                                                                                                                                                                                               |
-| -------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Server boot    | `./server`       | `createComposedServer` and `runComposedServer`: module selection (`MCP_ACTIVE_MODULES`, `module:toolset`), OAuth from `MCP_OAUTH_*`, the web app under `/app` (`MCP_WEB_*`), the Host/Origin guard, `/mcp`, `/health/*`, `/metrics`, the served fonts      |
-| Module port    | `./server`       | `ComposableModule`, `ModulePlugin`, `ModuleEntry`, `ModuleServer` (the official SDK's `registerTool`/`registerPrompt`/`registerResource`), `createToolsetVocabulary` for toolsets that fail closed                                                         |
-| Tool authoring | `./server`       | The registrar (`createToolRegistrar`, `withToolErrors`), `showToolBinding`, `OwnViewBinding`, `AppResourceCsp`, `appOnly`, `forViews`, `strictToolInput`, `buildViewResult`, `buildDataFeedResult`, `decodeToolResult`, `createTranslator`                 |
-| Server helpers | `./server`       | The BPMN-name readers (`readBpmnNames`, `parseBpmnNames`), the per-caller request info (`callerCacheKey`, `getMcpRequestInfo`, `runWithMcpRequestInfo`), `composedEnvVars`, `viewResourceUri`, `viewPrelude`                                               |
-| Bundle build   | `./server`       | `VIEW_BUNDLE_DEDUPE`, `viewBundleWatchPlugin`, and the served fonts (`installFontAssets`, `fontAssetsCsp`)                                                                                                                                                 |
-| View runtime   | `./widgets`      | `mountViews`, `mountPage` for a page outside a chat, the view host (`useViewHost`, `HostModelContext`), the query hooks (`useToolQuery`, `useToolQueries`, `useToolMutation`, `useViewData`), `TestViewHost` for tests                                     |
-| Host-bound UI  | `./widgets`      | `WidgetShell`, `ListTable` + `PagedRows`, `IdCell`/`IdText`, `describeError`, `useActionFeedback`, `ConfirmDialog`, the hand-offs (`HAND_OFF_ACTIONS`, `AskAiButton` for one it does not list) and the BPMN viewer                                         |
-| Module tests   | `./testing`      | `recordingModuleServer` and `testServerContext` for a module's tools, prompts and resources                                                                                                                                                                |
-| Sign-in tests  | `./testing/oidc` | `startFakeOidc`: a fake OpenID Connect provider with Keycloak's paths on a loopback port (discovery, its signing key, a login page per user, the code grant with PKCE, refresh, revocation, the end of a session), for a server's sign-in tests; Node only |
+| Part           | Entry            | What you get                                                                                                                                                                                                                                                                              |
+| -------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Server boot    | `./server`       | `createComposedServer` and `runComposedServer`: module selection (`MCP_ACTIVE_MODULES`, `module:toolset`), OAuth from `MCP_OAUTH_*`, the web app under `/app` (`MCP_WEB_*`), the Host/Origin guard, `/mcp`, `/health/*`, `/metrics`, the served fonts                                     |
+| Module port    | `./server`       | `ComposableModule`, `ModulePlugin`, `ModuleEntry`, `ModuleServer` (the official SDK's `registerTool`/`registerPrompt`/`registerResource`), `createToolsetVocabulary` for toolsets that fail closed                                                                                        |
+| Tool authoring | `./server`       | The registrar (`createToolRegistrar`, `withToolErrors`), `showToolBinding`, `OwnViewBinding`, `AppResourceCsp`, `appOnly`, `forViews`, `strictToolInput`, `buildViewResult`, `buildDataFeedResult`, `decodeToolResult`, `createTranslator`                                                |
+| Server helpers | `./server`       | The BPMN-name readers (`readBpmnNames`, `parseBpmnNames`), the per-caller request info (`callerCacheKey`, `getMcpRequestInfo`, `runWithMcpRequestInfo`), `composedEnvVars`, `viewResourceUri`, `viewPrelude`                                                                              |
+| Bundle build   | `./server`       | `VIEW_BUNDLE_DEDUPE`, `viewBundleWatchPlugin`, and the served fonts (`installFontAssets`, `fontAssetsCsp`)                                                                                                                                                                                |
+| View runtime   | `./widgets`      | `mountViews`, `mountPage` for a page outside a chat, the view host (`useViewHost`, `HostModelContext`), the query hooks (`useToolQuery`, `useToolQueries`, `useToolMutation`, `useViewData`), `TestViewHost` for tests                                                                    |
+| Host-bound UI  | `./widgets`      | `WidgetShell`, `ListTable` + `PagedRows`, `IdCell`/`IdText`, `describeError`, `useActionFeedback`, `ConfirmDialog`, the hand-offs (`HAND_OFF_ACTIONS`, `AskAiButton` for one it does not list) and the BPMN viewer                                                                        |
+| Module tests   | `./testing`      | `recordingModuleServer` and `testServerContext` for a module's tools, prompts and resources                                                                                                                                                                                               |
+| Sign-in tests  | `./testing/oidc` | `startFakeOidc`: a fake OpenID Connect provider with Keycloak's paths, or ADFS's (`flavor: "adfs"`), on a loopback port (discovery, its signing key, a login page per user, the code grant with PKCE, refresh, revocation, the end of a session), for a server's sign-in tests; Node only |
 
 `WidgetShell` is a view's card and pads nothing itself: its `header` (the kit's `WidgetHeader`,
 the `StatusStrip`s under it and a list's filter `Toolbar` right under the bar) runs from edge to
@@ -87,6 +87,20 @@ brand gates and the product glossary every widget package checks its catalogs ag
 for one. Without an OAuth provider the boot runs unauthenticated with one warning, and a module
 with toolsets runs its read-only floor; the providers and what fails the boot are under
 [Security](https://miragon.github.io/pulse/mcp/operations#security).
+
+| OAuth provider | Variables                                                                                                                                                                                                                                                                  |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The table      | Keycloak (`MCP_OAUTH_KEYCLOAK_SERVER_URL`, `MCP_OAUTH_KEYCLOAK_REALM`), Auth0 (`MCP_OAUTH_AUTH0_DOMAIN`), WorkOS (`MCP_OAUTH_WORKOS_SUBDOMAIN`), Better Auth (`MCP_OAUTH_BETTER_AUTH_URL`), Convex (`MCP_OAUTH_CONVEX_AUTH_URL`)                                           |
+| OpenID Connect | Any other provider that issues JWT access tokens (ADFS, Okta, authentik, Zitadel, PingOne): `MCP_OAUTH_OIDC_ISSUER` exactly as its discovery names it, and optionally `_AUDIENCE`, `_SCOPES` (required), `_SUBJECT_CLAIM` (default `sub`), `_ALGORITHMS` and `_CLIENT_IDS` |
+
+The generic provider reads its key set and its access tokens' issuer (ADFS's `access_token_issuer`)
+from the provider's discovery at the first token, so `/mcp` answers 503 until the discovery
+answers, and keeps what it found when a later read fails. The boot refuses a caller claim whose
+value can change (`email`, `upn`, `unique_name`, `preferred_username`, `name`), an `HS*` or `none`
+algorithm, and an audience that is no https URL (a client's or a project's id) without a required
+scope, since an ID token or another app's token carries such an audience; `MCP_WEB_CLIENT_ID`
+joins a client allowlist. Its metadata names the issuer alone: the protected resource metadata
+names it, and `/.well-known/oauth-authorization-server` answers 404.
 
 ## A view on a page outside a chat
 
@@ -169,9 +183,12 @@ at the provider at least that often, whatever its lifetime. The secret, the keys
 check without the client id fail the boot too, so the web app is never off unseen; `MCP_WEB_DIR`
 may stand alone. The sign-in asks each provider for its
 own scopes: Keycloak `openid profile` (no offline token), Auth0 also `offline_access` and the
-resource as `audience`, WorkOS, Better Auth and Convex `openid profile email offline_access`, and a
-provider of a root's own `openid` unless its `web` names others; it asks for a provider's
-`requiredScopes` besides, since the gate checks the session's token for them. `/mcp` answers a
+resource as `audience`, WorkOS, Better Auth and Convex `openid profile email offline_access`, the
+generic OpenID Connect provider and a provider of a root's own `openid` unless its `web` names
+others; `MCP_WEB_SCOPES` (separated by spaces or commas, only beside the client id) replaces them
+(ADFS `openid`, Okta and authentik `openid profile offline_access`), and the sign-in asks for a
+provider's `requiredScopes` besides, since the gate checks the session's token for them. It reads
+the generic provider's metadata from the discovery its gate reads. `/mcp` answers a
 request that carries the session cookie with the gate's 401 and its Bearer challenge, and every
 route under `/app` answers 400 to one that carries an Authorization header. `@miragon/pulse-widget-shell/testing/oidc` is the identity provider a
 server's own sign-in tests run against.

@@ -1,10 +1,12 @@
 /**
  * Pulse's OAuth providers: the official SDK has the bearer gate and the discovery documents but no
- * JWT verifier and no IdP table, so this holds the table (Keycloak, Auth0, WorkOS, Better Auth,
- * Convex), each on the one verifier in `oauth-jwt.ts`, and the custom port a root fills itself.
- * The gate in front of `/mcp` is `oauth-gate.ts`.
+ * JWT verifier and no IdP table, so this holds the port, the table (Keycloak, Auth0, WorkOS, Better
+ * Auth, Convex), each on the one verifier in `oauth-jwt.ts`, and the custom port a root fills
+ * itself. The generic OpenID Connect provider is `oauth-oidc.ts`; the gate in front of `/mcp` is
+ * `oauth-gate.ts`.
  */
 import type { AuthInfo, OAuthMetadata, OAuthTokenVerifier } from "@modelcontextprotocol/server"
+import type { ProviderDiscovery } from "./oauth-discovery.js"
 import { createJwtVerifier } from "./oauth-jwt.js"
 import {
   callerOf,
@@ -60,6 +62,12 @@ export interface OAuthProvider {
    * sign-in also asks for the `requiredScopes`, which the gate checks a session's token for.
    */
   web?: OAuthWebClient
+  /**
+   * The provider's one discovery of its issuer at this replica, where its gate reads its key set
+   * from it: the web sign-in then reads the provider's metadata from the same discovery instead of
+   * one of its own.
+   */
+  discovery?: ProviderDiscovery
   createTokenVerifier(resource: URL): OAuthTokenVerifier
   /** Goes under `AuthInfo.extra`; `callerUserId` reads `user.id` and `payload.sub`. */
   mapAuthInfo(authInfo: AuthInfo): {
@@ -126,7 +134,7 @@ const endpoint = (issuer: string, path: string): string => {
 }
 
 /** The caller by the provider's rule: the value of the first caller claim the token carries. */
-function mapSubject(provider: string, callerClaims: readonly string[]) {
+export function mapSubject(provider: string, callerClaims: readonly string[]) {
   return (authInfo: AuthInfo) => {
     const payload = authInfo.extra?.payload
     if (!isRecord(payload)) throw invalidToken("Verified token payload is missing")

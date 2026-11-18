@@ -1,6 +1,7 @@
 /**
  * The fake identity provider's realm: its settings, its users and clients, the codes and sessions
- * a sign-in leaves, and the tokens it mints, signed with its own RS256 key as Keycloak signs them.
+ * a sign-in leaves, and the tokens it mints, signed with its own RS256 key as Keycloak signs them
+ * (ADFS's tokens: adfs.ts).
  */
 import { createHash, randomBytes, randomUUID } from "node:crypto"
 import { exportJWK, generateKeyPair, SignJWT, type CryptoKey, type JWK } from "jose"
@@ -24,15 +25,29 @@ export interface FakeOidcClient {
   readonly postLogoutRedirectUris?: readonly string[]
 }
 
+/** Whose provider the fake plays: Keycloak's paths and tokens, or ADFS's (adfs.ts). */
+export type FakeOidcFlavor = "keycloak" | "adfs"
+
 export interface FakeOidcOptions {
-  /** The realm, the last segment of the issuer (`<serverUrl>/realms/<realm>`); default `pulse`. */
+  /**
+   * Keycloak (the default) or ADFS 2019 and later: its issuer `<serverUrl>/adfs`, its paths and
+   * discovery, access tokens of the issuer its discovery names as `access_token_issuer` for the
+   * request's resource, refresh tokens that never rotate and outlive the end of a session.
+   */
+  readonly flavor?: FakeOidcFlavor
+  /**
+   * ADFS: the claim the Web API's issuance transform rule emits the user's id in (`sub`, say),
+   * with the user's `upn`; unset, its access tokens name no caller, as without the rule.
+   */
+  readonly callerClaim?: string
+  /** Keycloak: the realm, the last segment of the issuer (`<serverUrl>/realms/<realm>`); default `pulse`. */
   readonly realm?: string
   /** Default: {@link FAKE_OIDC_CLIENT}, a confidential client. */
   readonly clients?: readonly FakeOidcClient[]
   /** Who can sign in; default {@link FAKE_OIDC_USERS}. */
   readonly users?: readonly FakeOidcUser[]
   /**
-   * The `aud` of the access tokens, as Keycloak's audience mapper sets it: Keycloak ignores the
+   * Keycloak: the `aud` of the access tokens, as its audience mapper sets it: Keycloak ignores the
    * RFC 8707 `resource` of a request. Unset, the tokens carry none, as without the mapper.
    */
   readonly audience?: string | readonly string[]
@@ -40,7 +55,10 @@ export interface FakeOidcOptions {
   readonly accessTokenSeconds?: number
   /** The refresh tokens' lifetime (default 1,800 s, Keycloak's session idle timeout). */
   readonly refreshTokenSeconds?: number
-  /** Keycloak's "Revoke Refresh Token": each refresh token renews once, and a reuse is refused. */
+  /**
+   * Keycloak's "Revoke Refresh Token": each refresh token renews once, and a reuse is refused.
+   * ADFS never rotates its refresh tokens.
+   */
   readonly rotateRefreshTokens?: boolean
   /**
    * Auth0's reuse detection: refresh tokens rotate, and a spent one used again revokes every
@@ -76,6 +94,8 @@ interface PendingCode {
   readonly redirectUri: string
   readonly challenge: string
   readonly scope: string
+  /** The resource the request named (ADFS's audience of the code's access token). */
+  readonly resource?: string
   readonly nonce?: string
   readonly user: FakeOidcUser
   readonly sid: string
@@ -109,7 +129,12 @@ export interface IssuedTokens {
 }
 
 export interface Realm {
+  readonly flavor: FakeOidcFlavor
   readonly issuer: string
+  /** The `iss` of its access tokens: the issuer, ADFS's `<issuer>/services/trust`. */
+  readonly accessTokenIssuer: string
+  /** ADFS: the claim its issuance transform rule names the caller in. */
+  readonly callerClaim?: string
   readonly clients: ReadonlyMap<string, FakeOidcClient>
   readonly users: readonly FakeOidcUser[]
   readonly audience?: string | readonly string[]
@@ -135,15 +160,20 @@ const KID = "fake-oidc-rs256"
 export async function createRealm(issuer: string, options: FakeOidcOptions): Promise<Realm> {
   const { privateKey, publicKey } = await generateKeyPair("RS256")
   const clients = options.clients ?? [FAKE_OIDC_CLIENT]
-  const reuseRevokes = options.revokeFamilyOnReuse ?? false
+  const flavor = options.flavor ?? "keycloak"
+  const keycloak = flavor === "keycloak"
+  const reuseRevokes = keycloak && (options.revokeFamilyOnReuse ?? false)
   return {
+    flavor,
     issuer,
+    accessTokenIssuer: keycloak ? issuer : `${issuer}/services/trust`,
+    ...(options.callerClaim === undefined ? {} : { callerClaim: options.callerClaim }),
     clients: new Map(clients.map((client) => [client.id, client])),
     users: options.users ?? FAKE_OIDC_USERS,
     ...(options.audience === undefined ? {} : { audience: options.audience }),
     accessTokenSeconds: options.accessTokenSeconds ?? 300,
     refreshTokenSeconds: options.refreshTokenSeconds ?? 1800,
-    rotateRefreshTokens: (options.rotateRefreshTokens ?? false) || reuseRevokes,
+    rotateRefreshTokens: keycloak && ((options.rotateRefreshTokens ?? false) || reuseRevokes),
     revokeFamilyOnReuse: reuseRevokes,
     refreshTokens: options.refreshTokens ?? true,
     jwk: { ...(await exportJWK(publicKey)), kid: KID, alg: "RS256", use: "sig" },
@@ -173,31 +203,46 @@ function profileClaims(user: FakeOidcUser): Record<string, string> {
   }
 }
 
-function sign(realm: Realm, claims: Record<string, unknown>, lifetime: number): Promise<string> {
+/** A token of the realm's key: `claims`, its issuer (the realm's unless named), now and its end. */
+export function sign(
+  realm: Realm,
+  claims: Record<string, unknown>,
+  lifetime: number,
+  issuer = realm.issuer,
+): Promise<string> {
   const now = seconds(Date.now())
   return new SignJWT(claims)
     .setProtectedHeader({ alg: "RS256", typ: "JWT", kid: KID })
-    .setIssuer(realm.issuer)
+    .setIssuer(issuer)
     .setIssuedAt(now)
     .setExpirationTime(now + lifetime)
     .setJti(randomUUID())
     .sign(realm.privateKey)
 }
 
-/** A new refresh token of the session's grant, as the token answer carries it. */
-function refreshAnswer(realm: Realm, session: Omit<Grant, "expiresAt" | "active">) {
+/** The session of a token answer: its grant's client, scope, user and `sid`, and a nonce. */
+export type IssuedSession = Omit<Grant, "expiresAt" | "active"> & { readonly nonce?: string }
+
+/** A new refresh token of the session's grant. */
+export function newRefreshToken(realm: Realm, session: IssuedSession): string {
   const { clientId, scope, user, sid } = session
   const refreshToken = opaqueToken()
   const expiresAt = Date.now() + realm.refreshTokenSeconds * 1000
   realm.grants.set(refreshToken, { clientId, scope, user, sid, expiresAt, active: true })
   realm.issued.refresh.push(refreshToken)
+  return refreshToken
+}
+
+/** A new refresh token of the session's grant, as Keycloak's token answer carries it. */
+function refreshAnswer(realm: Realm, session: IssuedSession) {
+  const refreshToken = newRefreshToken(realm, session)
   return { refresh_expires_in: realm.refreshTokenSeconds, refresh_token: refreshToken }
 }
 
 /** A sign-in's or a refresh's tokens, as Keycloak's token endpoint answers them. */
 export async function issueTokens(
   realm: Realm,
-  session: Omit<Grant, "expiresAt" | "active"> & { readonly nonce?: string },
+  session: IssuedSession,
 ): Promise<Record<string, unknown>> {
   const { clientId, scope, user, sid, nonce } = session
   const accessToken = await sign(

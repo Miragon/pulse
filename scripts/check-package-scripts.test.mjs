@@ -423,15 +423,16 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
     )
     assert.equal(
       MUTATED_PACKAGES[widgetShell],
-      "owner decisions 2026-11-16 and 2026-11-17: the web app's server rules (src/web: the seal " +
+      "owner decisions 2026-11-16 to 2026-11-18: the web app's server rules (src/web: the seal " +
         "of its cookies, the cookies, the return path, the CSRF check, the forward of a page's " +
         "call, the token's renewal, the served build, the security headers, the sessions signed " +
         "out, the session's opening and refusal, the sign-out, the session route) guard every " +
         "session and every call of the web app, the gate's JWT verifier (src/oauth-jwt.ts) " +
-        "decides which bearer token /mcp takes and the identity provider's discovery " +
-        "(src/oauth-discovery.ts) where the sign-in sends its secrets, so a surviving mutant there " +
-        "is a security hole; only those fourteen files are mutated, not the boot, the view " +
-        "runtime or the other routes",
+        "decides which bearer token /mcp takes, the identity provider's discovery " +
+        "(src/oauth-discovery.ts) where the sign-in sends its secrets and which key set the gate " +
+        "trusts, and the generic OpenID Connect provider (src/oauth-oidc.ts) which settings the " +
+        "gate refuses, so a surviving mutant there is a security hole; only those fifteen files " +
+        "are mutated, not the boot, the view runtime or the other routes",
     )
     assert.equal(
       MUTATED_PACKAGES[c8Core],
@@ -471,7 +472,7 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
     ])
   })
 
-  it("widget-shell's config mutates exactly the web app's twelve rule files, the JWT verifier and the discovery, as its reason says", () => {
+  it("widget-shell's config mutates exactly the web app's twelve rule files, the JWT verifier, the discovery and the generic provider, as its reason says", () => {
     const config = JSON.parse(
       readFileSync(path.join(repoRoot, "packages/core/widget-shell/stryker.config.json"), "utf8"),
     )
@@ -490,6 +491,7 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
       "src/web/session-route.ts",
       "src/oauth-jwt.ts",
       "src/oauth-discovery.ts",
+      "src/oauth-oidc.ts",
     ])
   })
 

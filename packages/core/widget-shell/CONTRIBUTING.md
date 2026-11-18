@@ -153,9 +153,11 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   memory, at most 100,000) or by the browser's ended cookie, and revokes the refused session's
   refresh token behind its answer, once per token at a replica (`ended.ts` keeps their digests),
   a failure only logged. The provider's metadata comes from its one discovery at a replica
-  (`src/oauth-discovery.ts`, beside `src/web`): read on the first sign-in, held for an hour, and
-  another hour after a failed re-read, which the log says once (stale-if-error); a failure before
-  the first metadata holds for nothing, and the source never rejects. `separation.ts` keeps the
+  (`src/oauth-discovery.ts`, beside `src/web`), which the gate's key set reads too where the
+  provider discovers it (the generic provider's `discovery`): each half checks the document by its
+  own needs, a document one half read within the hour serves the other, what a half found holds
+  for an hour, and another hour after a failed re-read, which the log says once (stale-if-error);
+  a failure before a half's first answer holds for nothing, and no source ever rejects. `separation.ts` keeps the
   session cookie off `/mcp` (the gate's 401 and challenge, `gateChallenge`) and a bearer off
   `/app` (400), and `installWebSignIn` answers every route under `/app` with the headers of
   `security-headers.ts` (the page's CSP, nosniff, no referrer, COOP and CORP same-origin, HSTS on
@@ -171,8 +173,9 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   by type alone (`widget-shell-oauth-by-the-oauth-entry`). Its rules: `readWebSettings` reads the
   `MCP_WEB_*` variables (`MCP_WEB_CLIENT_ID` turns the web app on; it needs the server's OAuth
   provider, a client secret, session keys of at least 32 bytes, an https `MCP_URL`, plain http
-  only on localhost, and a web build's folder, the root's `web.dir` or `MCP_WEB_DIR`) and logs
-  one line without a secret; `createSealer` seals a cookie's value as a compact JWE (`dir`,
+  only on localhost, and a web build's folder, the root's `web.dir` or `MCP_WEB_DIR`;
+  `MCP_WEB_SCOPES` replaces the provider's web scopes, the gate's required scopes asked besides)
+  and logs one line without a secret; `createSealer` seals a cookie's value as a compact JWE (`dir`,
   `A256GCM` on jose), each key derived by HKDF-SHA256 with its own key id, the first key sealing
   and every key opening, the cookie's name in the authenticated header and an absolute expiry
   that `reseal` keeps; `cookies.ts` writes the `__Host-` session cookie in at most three chunks of
@@ -185,9 +188,9 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   header and the codes both halves read are `src/protocol/web.ts`, exported from `./widgets`. The
   seal, the cookies, the return path, the CSRF check, the forward, the renewal, the served build,
   the security headers, the signed-out sessions (`ended.ts`), the session (`session.ts`), the
-  sign-out, the session route and the provider's discovery are mutated nightly (StrykerJS, break
-  90, `src/web`'s and the OAuth suites alone); `src/web` and the discovery keep a coverage
-  floor of 100.
+  sign-out, the session route, the provider's discovery and the generic provider are mutated
+  nightly (StrykerJS, break 90, `src/web`'s and the OAuth suites alone); `src/web`, the discovery
+  and the generic provider keep a coverage floor of 100.
 - **Fake identity provider** (`./testing/oidc`): `startFakeOidc(options)` starts an OpenID
   Connect provider on a loopback port with Keycloak's paths, so the boot's Keycloak provider
   (`MCP_OAUTH_KEYCLOAK_SERVER_URL` its `serverUrl`, `MCP_OAUTH_KEYCLOAK_REALM` its `realm`)
@@ -195,11 +198,17 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   with a link per user and one that cancels, the code grant with PKCE S256 and the client's
   authentication (basic or post), refresh with optional rotation and refusal, revocation and the
   end of a session (without Keycloak's confirmation). It sets the tokens' `aud` only as an audience
-  mapper would (`audience`), since Keycloak ignores RFC 8707's `resource`; `signIn` and `decline`
-  play the browser for a test without one, `requests`, `issued`, `revoked` and
-  `endedSessions` record what happened, and `sessionOf` names the session a refresh token belongs
-  to, so a test tells its own browser's renewals and revocations from those of tests beside it.
-  Node only.
+  mapper would (`audience`), since Keycloak ignores RFC 8707's `resource`. `flavor: "adfs"` plays
+  ADFS 2019 and later instead (`src/testing/oidc/adfs.ts`) for the generic provider
+  (`MCP_OAUTH_OIDC_ISSUER` its `issuer`): paths under `/adfs`, `access_token_issuer` in its
+  discovery and no PKCE methods, revocation endpoint or `iss`, access tokens of that issuer for the
+  request's resource (`urn:microsoft:userinfo` without one) with `scp`, `appid` and no caller
+  unless `callerClaim` names the claim its issuance rule emits, `refresh_token_expires_in`, refresh
+  tokens that never rotate and outlive an ended session. `env(origin)` names the boot's variables
+  for either flavor; `signIn` and `decline` play the browser for a test without one, `requests`,
+  `issued`, `revoked` and `endedSessions` record what happened, `sessionOf` names the session a
+  refresh token belongs to, so a test tells its own browser's renewals and revocations from those
+  of tests beside it, and `endGrant` takes back a session's refresh tokens. Node only.
 - **Theme:** none of its own. The widgets colour through the role variables of pulse-ui's
   Miragon theme (`@miragon/pulse-ui/theme.css`: the vendored `--cd-*` corporate-design
   tokens and the roles on top, light and dark). Your stylesheet imports it after `tailwindcss`,
@@ -252,10 +261,15 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   (`oauth-jwt.ts`: the key set the token's `iss` picks, the audiences, the caller claim and the
   client the provider names, never an ID, logout or refresh token, mutated nightly with the web
   app's rules); a table provider's tokens must carry `<MCP_URL>/mcp` in `aud` (RFC 8707) and a
-  `sub`, and the boot logs what the provider's gate checks (`describeOAuthTokens`). A provider whose
-  metadata names its issuer alone gets no copy at `/.well-known/oauth-authorization-server` (404),
-  and the protected resource metadata names its required scopes in `scopes_supported`, never
-  `offline_access`. The providers, what fails the boot and
+  `sub`, and the boot logs what the provider's gate checks (`describeOAuthTokens`). The generic
+  OpenID Connect provider (`oauth-oidc.ts`, `MCP_OAUTH_OIDC_*`: the issuer, required, then
+  audiences, required scopes, the caller claim, algorithms and a client allowlist the web client
+  joins) reads its key set and its access tokens' issuer from the provider's discovery at the first
+  token (503 until it answers) and refuses at boot a caller claim whose value can change, an
+  algorithm with a shared secret or none, and an audience that is no https URL without a required
+  scope. A provider whose metadata names its issuer alone gets no copy at
+  `/.well-known/oauth-authorization-server` (404), and the protected resource metadata names its
+  required scopes in `scopes_supported`, never `offline_access`. The providers, what fails the boot and
   the identity provider's side are under
   [Security](https://miragon.github.io/pulse/mcp/operations#security). Without a provider the boot
   runs unauthenticated with one warning. OAuth is the only caller identity, and `oauth` installs a

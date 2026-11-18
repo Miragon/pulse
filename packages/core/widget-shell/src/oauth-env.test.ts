@@ -1,11 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { OAUTH_DEBUG_ENV_VAR, OAUTH_ENV_VARS, oauthFromEnv } from "./oauth-env.js"
+import { describeOAuthTokens } from "./oauth-providers.js"
 
 const KEYCLOAK = {
   MCP_OAUTH_KEYCLOAK_SERVER_URL: "https://kc.example.com",
   MCP_OAUTH_KEYCLOAK_REALM: "platform",
 }
 const AUTH0 = { MCP_OAUTH_AUTH0_DOMAIN: "tenant.auth0.com" }
+const OIDC = { MCP_OAUTH_OIDC_ISSUER: "https://fs.example.com/adfs" }
 
 const fromEnv = (env: NodeJS.ProcessEnv) => oauthFromEnv(env, "test-root")
 
@@ -23,7 +25,7 @@ afterEach(() => {
 })
 
 describe("oauthFromEnv: the providers", () => {
-  it("reads exactly the variables of the provider table, and its debug switch", () => {
+  it("reads exactly the variables of the provider table and the generic provider, and its debug switch", () => {
     expect(OAUTH_ENV_VARS).toEqual([
       "MCP_OAUTH_KEYCLOAK_SERVER_URL",
       "MCP_OAUTH_KEYCLOAK_REALM",
@@ -31,6 +33,12 @@ describe("oauthFromEnv: the providers", () => {
       "MCP_OAUTH_WORKOS_SUBDOMAIN",
       "MCP_OAUTH_BETTER_AUTH_URL",
       "MCP_OAUTH_CONVEX_AUTH_URL",
+      "MCP_OAUTH_OIDC_ISSUER",
+      "MCP_OAUTH_OIDC_AUDIENCE",
+      "MCP_OAUTH_OIDC_SCOPES",
+      "MCP_OAUTH_OIDC_SUBJECT_CLAIM",
+      "MCP_OAUTH_OIDC_ALGORITHMS",
+      "MCP_OAUTH_OIDC_CLIENT_IDS",
     ])
     expect(OAUTH_DEBUG_ENV_VAR).toBe("MCP_OAUTH_DEBUG")
   })
@@ -111,6 +119,72 @@ describe("oauthFromEnv: the providers", () => {
       expect(extra.user).not.toHaveProperty("userId")
     },
   )
+})
+
+describe("oauthFromEnv: the generic OpenID Connect provider", () => {
+  const RESOURCE = new URL("https://pulse.example.com/mcp")
+  const line = (env: NodeJS.ProcessEnv) => describeOAuthTokens(fromEnv(env)!, RESOURCE)
+
+  it("builds it from the issuer alone, its issuer exactly as named", () => {
+    const provider = fromEnv({
+      MCP_OAUTH_OIDC_ISSUER: " https://auth.example.com/application/o/pulse/ ",
+    })
+    expect(provider?.oauthMetadata).toEqual({
+      issuer: "https://auth.example.com/application/o/pulse/",
+    })
+    expect(provider?.callerClaims).toEqual(["sub"])
+    expect(line(OIDC)).toBe(
+      "OAuth: tokens must carry aud https://pulse.example.com/mcp (RFC 8707) and the sub claim.",
+    )
+  })
+
+  it("reads its optional variables, a blank one as unset, and adds the web client to its allowlist", () => {
+    const env = {
+      ...OIDC,
+      MCP_OAUTH_OIDC_AUDIENCE: "pulse-api",
+      MCP_OAUTH_OIDC_SCOPES: "pulse.mcp",
+      MCP_OAUTH_OIDC_SUBJECT_CLAIM: "uid",
+      MCP_OAUTH_OIDC_ALGORITHMS: " ",
+      MCP_OAUTH_OIDC_CLIENT_IDS: "claude",
+      MCP_WEB_CLIENT_ID: " pulse-web ",
+    }
+    expect(fromEnv(env)?.requiredScopes).toEqual(["pulse.mcp"])
+    expect(line(env)).toBe(
+      "OAuth: tokens must carry aud https://pulse.example.com/mcp (RFC 8707) or pulse-api, the scope pulse.mcp, a client id claude or pulse-web and the uid claim.",
+    )
+  })
+
+  it("logs what its discovery misses under the boot's name", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    const issuer = "http://127.0.0.1:1/adfs"
+    const provider = fromEnv({ MCP_OAUTH_OIDC_ISSUER: issuer })
+    expect(await provider?.discovery?.keys()).toBeUndefined()
+    expect(warn).toHaveBeenCalledWith(
+      `[test-root] OAuth: the discovery of ${issuer} failed: no answer (unreachable). Until it answers, /mcp answers 503 (temporarily_unavailable).`,
+    )
+  })
+
+  it("names its missing issuer when only optional variables are set", () => {
+    expect(() => fromEnv({ MCP_OAUTH_OIDC_AUDIENCE: "https://x.example.com" })).toThrow(
+      "OpenID Connect OAuth needs MCP_OAUTH_OIDC_ISSUER, which is unset while MCP_OAUTH_OIDC_AUDIENCE is set.",
+    )
+    const two = { MCP_OAUTH_OIDC_SCOPES: "a", MCP_OAUTH_OIDC_SUBJECT_CLAIM: "uid" }
+    expect(() => fromEnv(two)).toThrow(
+      "OpenID Connect OAuth needs MCP_OAUTH_OIDC_ISSUER, which is unset while MCP_OAUTH_OIDC_SCOPES and MCP_OAUTH_OIDC_SUBJECT_CLAIM are set.",
+    )
+  })
+
+  it("refuses it beside a table provider, naming the variables of each that are set", () => {
+    expect(() => fromEnv({ ...KEYCLOAK, ...OIDC, MCP_OAUTH_OIDC_SCOPES: "a" })).toThrow(
+      "OAuth variables of more than one provider are set: Keycloak (MCP_OAUTH_KEYCLOAK_SERVER_URL, MCP_OAUTH_KEYCLOAK_REALM), OpenID Connect (MCP_OAUTH_OIDC_ISSUER, MCP_OAUTH_OIDC_SCOPES). Keep the variables of one provider and unset the others.",
+    )
+  })
+
+  it("refuses a value it cannot honor, naming the variables that are set", () => {
+    expect(() => fromEnv({ ...OIDC, MCP_OAUTH_OIDC_SUBJECT_CLAIM: "email" })).toThrow(
+      'OpenID Connect OAuth (MCP_OAUTH_OIDC_ISSUER, MCP_OAUTH_OIDC_SUBJECT_CLAIM) is invalid: MCP_OAUTH_OIDC_SUBJECT_CLAIM "email" names a claim whose value can change',
+    )
+  })
 })
 
 describe("oauthFromEnv: what fails the boot", () => {

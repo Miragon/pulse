@@ -106,14 +106,16 @@ export const MUTATED_PACKAGES = {
     "contract, so a surviving mutant is a wrong refusal or a wrong number on every board; its " +
     "format and builder are mutated, not its barrels or fixtures",
   "packages/core/widget-shell":
-    "owner decisions 2026-11-16 and 2026-11-17: the web app's server rules (src/web: the seal of " +
+    "owner decisions 2026-11-16 to 2026-11-18: the web app's server rules (src/web: the seal of " +
     "its cookies, the cookies, the return path, the CSRF check, the forward of a page's call, " +
     "the token's renewal, the served build, the security headers, the sessions signed out, the " +
     "session's opening and refusal, the sign-out, the session route) guard every session and " +
     "every call of the web app, the gate's JWT verifier (src/oauth-jwt.ts) decides which " +
-    "bearer token /mcp takes and the identity provider's discovery (src/oauth-discovery.ts) " +
-    "where the sign-in sends its secrets, so a surviving mutant there is a security hole; only " +
-    "those fourteen files are mutated, not the boot, the view runtime or the other routes",
+    "bearer token /mcp takes, the identity provider's discovery (src/oauth-discovery.ts) " +
+    "where the sign-in sends its secrets and which key set the gate trusts, and the generic " +
+    "OpenID Connect provider (src/oauth-oidc.ts) which settings the gate refuses, so a " +
+    "surviving mutant there is a security hole; only those fifteen files are mutated, not the " +
+    "boot, the view runtime or the other routes",
   "packages/connectors/c8/c8-core":
     "owner decision 2026-11-17: c8-core's rules decide the kind of every Camunda 8 failure, the " +
     "version floor, the instance filters and how the cluster's answers map onto the contract's " +

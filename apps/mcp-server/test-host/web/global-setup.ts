@@ -57,10 +57,11 @@ async function freePort(): Promise<number> {
 
 /**
  * One composition root (`createApp`, what `src/index.ts` runs) under OAuth at
- * `http://localhost:<port>`, its own fake identity provider (Keycloak's paths, the boot's real
- * provider table) with the web client's callback and post-logout URIs exactly, the web app on with
- * the build of apps/web, the engines `profiles` and the variables of `env` besides. OAuth gives
- * the operations toolset, so the server registers the writes a page never offers.
+ * `http://localhost:<port>`, its own fake identity provider (Keycloak's paths and the boot's
+ * Keycloak provider, or with `flavor: "adfs"` ADFS's and the generic OpenID Connect provider, as
+ * the fake's `env` names them) with the web client's callback and post-logout URIs exactly, the
+ * web app on with the build of apps/web, the engines `profiles` and the variables of `env` besides.
+ * OAuth gives the operations toolset, so the server registers the writes a page never offers.
  */
 async function deploy(
   profiles: Record<string, Readonly<Record<string, unknown>>>,
@@ -80,9 +81,7 @@ async function deploy(
     ],
   })
   const composed = await createApp({
-    MCP_URL: origin,
-    MCP_OAUTH_KEYCLOAK_SERVER_URL: idp.serverUrl,
-    MCP_OAUTH_KEYCLOAK_REALM: idp.realm,
+    ...idp.env(origin),
     MCP_WEB_CLIENT_ID: WEB_CLIENT_ID,
     MCP_WEB_CLIENT_SECRET: FAKE_OIDC_CLIENT.secret,
     MCP_WEB_SESSION_KEYS: randomBytes(32).toString("base64url"),
@@ -117,19 +116,28 @@ function recordOf(idp: FakeOidc): IdpRecord {
       .map((request) => ({
         type: request.form.get("grant_type") ?? "",
         session: sessionOf(request.form.get("refresh_token")),
+        resources: request.form.getAll("resource"),
       })),
   }
 }
 
 /**
  * The control of the identity providers, for the workers: `GET /idp/<deployment>` answers what the
- * deployment's provider recorded, its issuer first.
+ * deployment's provider recorded, its issuer first; `POST /idp/<deployment>/end-grant?session=<sid>`
+ * ends that session's grant, as when the provider takes back a user's access.
  */
 async function startControl(idps: Record<Deployment, FakeOidc>) {
   const server = http.createServer((req, res) => {
-    const [, scope, name, rest] = new URL(req.url ?? "/", "http://control").pathname.split("/")
-    const idp = scope === "idp" && rest === undefined ? idps[name as Deployment] : undefined
-    if (idp === undefined || req.method !== "GET") {
+    const url = new URL(req.url ?? "/", "http://control")
+    const [, scope, name, action] = url.pathname.split("/")
+    const idp = scope === "idp" ? idps[name as Deployment] : undefined
+    const session = url.searchParams.get("session")
+    if (idp !== undefined && req.method === "POST" && action === "end-grant" && session) {
+      idp.endGrant(session)
+      res.writeHead(204).end()
+      return
+    }
+    if (idp === undefined || req.method !== "GET" || action !== undefined) {
       res.writeHead(404).end()
       return
     }
@@ -149,7 +157,8 @@ async function startControl(idps: Record<Deployment, FakeOidc>) {
  * bundle, against test-host's stub engine, each deployment beside a fake identity provider of its
  * own, everything on ephemeral loopback ports. The browser reaches a deployment at
  * `http://localhost:<port>`, its `MCP_URL`, where Chromium keeps the `__Host-` cookies of plain
- * http. The workers find the deployments in `WEB_SIM_URL` and `WEB_SIM_SHORT_URL`, the control
+ * http. The workers find the deployments in `WEB_SIM_URL`, `WEB_SIM_SHORT_URL` and
+ * `WEB_SIM_ADFS_URL` (the generic OpenID Connect provider at a fake ADFS), the control
  * of their identity providers in `WEB_SIM_CONTROL_URL` and the stub engine's in
  * `HOST_SIM_ENGINE_URL` (all inherited from this process). The `camunda8` deployment, in
  * `WEB_SIM_CAMUNDA8_URL`, reads test:host's loopback Camunda 8 cluster (c8-engine.ts) beside the
@@ -172,6 +181,12 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     { [HEALTHY_ENGINE]: { url: engine.baseUrl } },
     { idp: { accessTokenSeconds: SHORT_TOKEN_SECONDS } },
   )
+  // The generic OpenID Connect provider at a fake ADFS whose issuance rule names the caller in sub:
+  // its access tokens of 5 s renew before each call, with the resource, as the short ones do.
+  const adfs = await deploy(
+    { [HEALTHY_ENGINE]: { url: engine.baseUrl } },
+    { idp: { flavor: "adfs", callerClaim: "sub", accessTokenSeconds: SHORT_TOKEN_SECONDS } },
+  )
   // Camunda 8 beside the stub: a board page over both, and the cockpit's pages on a Camunda 8
   // engine, which the server reads on boards only; the one no board names is the default, which a
   // page without `engine` goes to.
@@ -193,10 +208,12 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   const control = await startControl({
     main: main.idp,
     short: short.idp,
+    adfs: adfs.idp,
     camunda8: camunda8.idp,
   })
   process.env[DEPLOYMENTS.main] = main.origin
   process.env[DEPLOYMENTS.short] = short.origin
+  process.env[DEPLOYMENTS.adfs] = adfs.origin
   process.env[DEPLOYMENTS.camunda8] = camunda8.origin
   process.env[CONTROL_ENV] = control.url
   process.env[ENGINE_CONTROL_ENV] = engine.controlUrl
@@ -205,6 +222,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     await control.close()
     await main.close()
     await short.close()
+    await adfs.close()
     await camunda8.close()
     await engine.close()
     await c8.close()

@@ -1,11 +1,13 @@
 /**
- * A fake OpenID Connect provider on a loopback socket, with Keycloak's paths, for the web
- * sign-in's tests: started with `startFakeOidc()`, its `serverUrl` and `realm` are what
- * `MCP_OAUTH_KEYCLOAK_SERVER_URL` and `MCP_OAUTH_KEYCLOAK_REALM` name, so the boot's own Keycloak
- * provider verifies its access tokens with the real JWT verifier, and a client of
- * `@miragon/pulse-http/oauth` discovers it, signs in with PKCE as a confidential client, refreshes,
- * revokes and ends the session against it. A browser sees its login page, a link per user; a test
- * without one plays the browser with `signIn` and `decline`. Node only, never bundled.
+ * A fake OpenID Connect provider on a loopback socket, for the web sign-in's tests: Keycloak's
+ * paths and tokens by default, ADFS's with `flavor: "adfs"` (adfs.ts). Started with
+ * `startFakeOidc()`, `env(origin)` names the variables of the boot's own provider for it (Keycloak's
+ * `MCP_OAUTH_KEYCLOAK_SERVER_URL` and `MCP_OAUTH_KEYCLOAK_REALM`, ADFS's generic
+ * `MCP_OAUTH_OIDC_ISSUER`), which verifies its access tokens with the real JWT verifier, and a
+ * client of `@miragon/pulse-http/oauth` discovers it, signs in with PKCE as a confidential client,
+ * refreshes, revokes (Keycloak) and ends the session against it. A browser sees its login page, a
+ * link per user; a test without one plays the browser with `signIn` and `decline`. Node only,
+ * never bundled.
  */
 import http from "node:http"
 import type { AddressInfo } from "node:net"
@@ -13,9 +15,10 @@ import {
   authorize,
   CHOICE,
   discovery,
-  ENDPOINT_PATHS,
+  endGrant,
   jwks,
   logout,
+  pathsOf,
   revoke,
   token,
   type Answer,
@@ -31,12 +34,22 @@ import {
 } from "./realm.js"
 
 export interface FakeOidc {
-  /** `MCP_OAUTH_KEYCLOAK_SERVER_URL`: `http://127.0.0.1:<port>`. */
+  /** `http://127.0.0.1:<port>`: Keycloak's `MCP_OAUTH_KEYCLOAK_SERVER_URL`. */
   readonly serverUrl: string
-  /** `MCP_OAUTH_KEYCLOAK_REALM`. */
+  /** Keycloak's `MCP_OAUTH_KEYCLOAK_REALM`. */
   readonly realm: string
-  /** `<serverUrl>/realms/<realm>`, the `iss` of its tokens. */
+  /**
+   * Its issuer, which its discovery and its ID tokens name: Keycloak's `<serverUrl>/realms/<realm>`,
+   * ADFS's `<serverUrl>/adfs` (`MCP_OAUTH_OIDC_ISSUER`).
+   */
   readonly issuer: string
+  /** The `iss` of its access tokens: the issuer, ADFS's `<issuer>/services/trust`. */
+  readonly accessTokenIssuer: string
+  /**
+   * The variables of a server at `origin` (its `MCP_URL`) whose OAuth provider is this one: the
+   * flavor's `MCP_OAUTH_*` variables, ADFS's caller claim among them when it is no `sub`.
+   */
+  env(origin: string): Record<string, string>
   /** Every request it received, in order. */
   readonly requests: readonly FakeOidcRequest[]
   /** Every token it minted, by kind. */
@@ -62,6 +75,11 @@ export interface FakeOidc {
   decline(authorizationUrl: string): Promise<string>
   /** Refuses every refresh grant while `refuse` holds, as after the session ended at the provider. */
   refuseRefresh(refuse?: boolean): void
+  /**
+   * Ends the grant of the session `session` (its `sid`), as when the provider takes back a user's
+   * access: its refresh tokens renew no more, at ADFS too.
+   */
+  endGrant(session: string): void
   close(): Promise<void>
 }
 
@@ -99,7 +117,8 @@ async function requestOf(
   const url = new URL(req.url ?? "/", base)
   const prefix = new URL(realm.issuer).pathname
   const below = url.pathname.startsWith(`${prefix}/`) ? url.pathname.slice(prefix.length) : ""
-  const endpoint = ROUTES.find(([name]) => ENDPOINT_PATHS[name] === below)?.[0] ?? "unknown"
+  const paths = pathsOf(realm)
+  const endpoint = ROUTES.find(([name]) => paths[name] === below)?.[0] ?? "unknown"
   const body = await readBody(req)
   const isForm = (req.headers["content-type"] ?? "").startsWith("application/x-www-form-urlencoded")
   const headers: Record<string, string> = {}
@@ -164,13 +183,38 @@ async function choose(authorizationUrl: string, name: string, value: string): Pr
   return location
 }
 
+/** The variables of the boot's provider for `realm`, at a server on `origin`. */
+function envOf(
+  realm: Realm,
+  serverUrl: string,
+  name: string,
+  origin: string,
+): Record<string, string> {
+  if (realm.flavor === "keycloak") {
+    return {
+      MCP_URL: origin,
+      MCP_OAUTH_KEYCLOAK_SERVER_URL: serverUrl,
+      MCP_OAUTH_KEYCLOAK_REALM: name,
+    }
+  }
+  const claim = realm.callerClaim
+  return {
+    MCP_URL: origin,
+    MCP_OAUTH_OIDC_ISSUER: realm.issuer,
+    ...(claim === undefined || claim === "sub" ? {} : { MCP_OAUTH_OIDC_SUBJECT_CLAIM: claim }),
+  }
+}
+
 /** Starts the provider on an ephemeral loopback port. */
 export async function startFakeOidc(options: FakeOidcOptions = {}): Promise<FakeOidc> {
   const realmName = options.realm ?? "pulse"
   const server = http.createServer()
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve))
   const serverUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
-  const issuer = `${serverUrl}/realms/${encodeURIComponent(realmName)}`
+  const issuer =
+    options.flavor === "adfs"
+      ? `${serverUrl}/adfs`
+      : `${serverUrl}/realms/${encodeURIComponent(realmName)}`
   const realm = await createRealm(issuer, options)
   const requests: FakeOidcRequest[] = []
   server.on("request", (req, res) => {
@@ -187,6 +231,8 @@ export async function startFakeOidc(options: FakeOidcOptions = {}): Promise<Fake
     serverUrl,
     realm: realmName,
     issuer,
+    accessTokenIssuer: realm.accessTokenIssuer,
+    env: (origin) => envOf(realm, serverUrl, realmName, origin),
     requests,
     issued: realm.issued,
     revoked: realm.revoked,
@@ -198,6 +244,7 @@ export async function startFakeOidc(options: FakeOidcOptions = {}): Promise<Fake
     refuseRefresh: (refuse = true) => {
       realm.refusingRefresh = refuse
     },
+    endGrant: (session) => endGrant(realm, session),
     close: () =>
       new Promise<void>((resolve, reject) => {
         server.closeAllConnections()

@@ -126,6 +126,31 @@ describe("GET /app/auth/login", () => {
     },
   )
 
+  it.each<[string, string[] | undefined, string]>([
+    ["a provider's web client", ["openid", "profile", "email"], "openid offline_access mcp:tools"],
+    ["a provider without a web client", undefined, "openid offline_access mcp:tools"],
+  ])(
+    "asks MCP_WEB_SCOPES in place of %s, and the scopes the gate requires besides",
+    async (_case, scopes, asked) => {
+      const provider = { ...keycloak(), requiredScopes: ["mcp:tools", "openid"] }
+      if (scopes === undefined) delete provider.web
+      else provider.web = { scopes }
+      const env = webEnv(fake, { MCP_WEB_SCOPES: "openid offline_access" })
+      const browser = new Browser(await bootWeb(env, { oauth: provider }))
+      const { authorization } = await startSignIn(browser, fake)
+      expect(paramsOf(authorization).scope).toEqual([asked])
+    },
+  )
+
+  it("keeps the provider's audience beside MCP_WEB_SCOPES", async () => {
+    const provider = { ...keycloak(), web: { scopes: ["openid"], audience: "resource" as const } }
+    const env = webEnv(fake, { MCP_WEB_SCOPES: "openid,offline_access" })
+    const browser = new Browser(await bootWeb(env, { oauth: provider }))
+    const params = paramsOf((await startSignIn(browser, fake)).authorization)
+    expect(params.scope).toEqual(["openid offline_access"])
+    expect(params.audience).toEqual([RESOURCE])
+  })
+
   it("names a provider's own resource, never one built from MCP_URL, and signs in with it", async () => {
     await fake.close()
     const own = "http://127.0.0.1/mcp"

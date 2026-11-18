@@ -194,6 +194,11 @@ describe("createComposedServer: boot", () => {
         "ALPHA_URL",
       ].sort(),
     )
+    // The generic provider's variables and the web sign-in's scopes are the boot's own.
+    const names = composedEnvVars([alpha])
+    for (const name of ["MCP_OAUTH_OIDC_ISSUER", "MCP_OAUTH_OIDC_CLIENT_IDS", "MCP_WEB_SCOPES"]) {
+      expect(names.has(name), name).toBe(true)
+    }
   })
 
   it("refuses an unknown module FIRST, before the edge or OAuth checks and any plugin", async () => {

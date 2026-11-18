@@ -1492,8 +1492,8 @@ each against the merge base with `origin/main`, and its header lists them: cover
 each `vitest.config.ts` rise (raise one when you better a file); a `stryker.config.json`'s
 `mutate` allowlist (the tested surface; today c7-core's, the transport's, engine-core's three
 rule files, the profile format's, the board package's format and builder, widget-shell's twelve
-web app rule files, its JWT verifier and its provider's discovery, and c8-core's mappings,
-instance filters, version floor and failure kinds)
+web app rule files, its JWT verifier, its provider's discovery and its generic OpenID Connect
+provider, and c8-core's mappings, instance filters, version floor and failure kinds)
 grows and its `thresholds.break` rises; the ESLint budgets
 (complexity 15 and 400 lines; the CLI, the editor hosts and their packages 10 and 300), knip ignores (each
 with its reason), the char and bundle budgets (Contracts) and inline suppressions only shrink;
@@ -1523,7 +1523,8 @@ profile format 2026-11-07; the transport 2026-11-08; engine-core's rules 2026-11
 format and its builder 2026-11-15; the web sign-in's rules 2026-11-16, the forward, the renewal,
 the build's files and the security headers with them later that day, the sessions signed out, the
 session's refusal, the sign-out and the session route 2026-11-17; c8-core's rules 2026-11-17; the
-gate's JWT verifier and the provider's discovery 2026-11-17).
+gate's JWT verifier and the provider's discovery 2026-11-17; the generic OpenID Connect provider
+2026-11-18).
 c7-core holds the pure engine rules of the Camunda 7 REST family and, under
 `./runtime`, the reads of the engine contract, the transport the wire rules the CLI, the MCP server
 and the editor hosts share and the OAuth client protocol of every surface (`/oauth`), and the
@@ -1549,9 +1550,12 @@ its gate's JWT verifier (`packages/core/widget-shell/src/oauth-jwt.ts`) decides 
 token `/mcp` takes (the key set its issuer picks, the audiences, the caller claim, the client, never
 an ID or logout token), and the discovery of its identity provider
 (`packages/core/widget-shell/src/oauth-discovery.ts`) decides where the sign-in sends its secrets
-(the issuer exactly, PKCE, endpoints on https) and keeps the last good answer when a re-read fails;
-these fourteen are its only mutated files, run by `src/web`'s suites and the OAuth suites
-(`src/oauth-*.test.ts`) alone; c8-core's rules
+(the issuer exactly, PKCE, endpoints on https) and which key set the gate trusts, and keeps the last
+good answer when a re-read fails, and its generic OpenID Connect provider
+(`packages/core/widget-shell/src/oauth-oidc.ts`) refuses the settings that would let a token of
+another app or person through (a mutable caller claim, a shared-secret algorithm, an audience a
+client's id can be without a required scope); these fifteen are its only mutated files, run by
+`src/web`'s suites and the OAuth suites (`src/oauth-*.test.ts`) alone; c8-core's rules
 (`packages/connectors/c8/c8-core/src/mapping`, `src/reading/instance-filters.ts`,
 `src/reading/version-floor.ts` and `src/c8-failures.ts`, never its REST client, its readers or
 `src/testing`) map a Camunda 8 cluster's answers onto the contract's read models, turn the

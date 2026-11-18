@@ -8,9 +8,8 @@
  * (separation.ts); every answer under `/app` carries the security headers (security-headers.ts) and
  * is `no-store` unless it names a cache policy of its own (an asset).
  */
-import type { Platform } from "@miragon/pulse-http"
 import type { McpHttpApp } from "../mcp-server.js"
-import { metadataSource } from "../oauth-discovery.js"
+import { metadataSource, NETWORK } from "../oauth-discovery.js"
 import { gateChallenge, gateTokenCheck } from "../oauth-gate.js"
 import type { OAuthProvider, OAuthWebClient } from "../oauth-providers.js"
 import { DEFAULT_CALLER_CLAIMS } from "../oauth-shared.js"
@@ -34,12 +33,14 @@ import { installWebBuild, type WebBuild } from "./static.js"
 const OPENID_ONLY: OAuthWebClient = { scopes: ["openid"] }
 
 /**
- * What the sign-in asks the provider for: its web client (`openid` alone without one), and the
- * scopes the gate requires of every token besides, or a session's token would never pass it.
+ * What the sign-in asks the provider for: its web client (`openid` alone without one), its scopes
+ * replaced by `MCP_WEB_SCOPES` where set, and the scopes the gate requires of every token besides,
+ * or a session's token would never pass it.
  */
-function webClientOf(provider: OAuthProvider): OAuthWebClient {
+function webClientOf(provider: OAuthProvider, settings: WebSettings): OAuthWebClient {
   const web = provider.web ?? OPENID_ONLY
-  return { ...web, scopes: [...new Set([...web.scopes, ...(provider.requiredScopes ?? [])])] }
+  const asked = settings.scopes ?? web.scopes
+  return { ...web, scopes: [...new Set([...asked, ...(provider.requiredScopes ?? [])])] }
 }
 
 export interface WebSignInOptions {
@@ -53,11 +54,6 @@ export interface WebSignInOptions {
   readonly build: WebBuild
 }
 
-const PLATFORM: Platform = {
-  fetch: (input, init) => fetch(input, init),
-  now: () => Date.now(),
-}
-
 export function installWebSignIn(app: McpHttpApp, options: WebSignInOptions): void {
   const { settings, provider, resource, label, build } = options
   const { issuer } = provider.oauthMetadata
@@ -66,13 +62,14 @@ export function installWebSignIn(app: McpHttpApp, options: WebSignInOptions): vo
     settings,
     sealer: createSealer(settings.sessionKeys),
     ended: endedSessions(),
-    client: webClientOf(provider),
+    client: webClientOf(provider, settings),
     resource: resource.href,
     issuer,
     callerClaims: provider.callerClaims ?? DEFAULT_CALLER_CLAIMS,
-    metadata: metadataSource(issuer, PLATFORM, log),
+    // The provider's own discovery where its gate reads one, else one of the sign-in's own.
+    metadata: provider.discovery?.server ?? metadataSource(issuer, NETWORK, log),
     verify: gateTokenCheck(provider, resource),
-    platform: PLATFORM,
+    platform: NETWORK,
     log,
   }
   const mcp: McpEndpoint = { path: app.basePath, challenge: gateChallenge(provider, resource) }

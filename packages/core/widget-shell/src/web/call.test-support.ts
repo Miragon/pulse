@@ -64,6 +64,7 @@ export function scriptedProvider(...script: TokenAnswer[]) {
 export const SETTINGS: WebSettings = {
   clientId: "pulse-web",
   clientSecret: "pulse-web-secret",
+  scopes: undefined,
   sessionKeys: [KEY],
   sessionHours: 8,
   sessionCheckMinutes: undefined,

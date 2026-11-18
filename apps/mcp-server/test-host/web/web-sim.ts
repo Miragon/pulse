@@ -13,13 +13,15 @@ import { ENGINE_CONTROL_ENV } from "../engines.js"
  * The deployments, by the env var that carries each one's origin: `main` over the stub engine and
  * the broken one with test:host's board files (`fixtures/boards`) and access tokens of 300 s;
  * `short` over the stub engine alone, without boards, with access tokens of
- * {@link SHORT_TOKEN_SECONDS}, which the server renews before every call; `camunda8` over the stub
- * engine and two profiles of test:host's Camunda 8 cluster with its board files
- * (`fixtures/camunda8-boards`).
+ * {@link SHORT_TOKEN_SECONDS}, which the server renews before every call; `adfs` like `short`, its
+ * provider a fake ADFS behind the generic OpenID Connect provider (`MCP_OAUTH_OIDC_ISSUER`);
+ * `camunda8` over the stub engine and two profiles of test:host's Camunda 8 cluster with its board
+ * files (`fixtures/camunda8-boards`).
  */
 export const DEPLOYMENTS = {
   main: "WEB_SIM_URL",
   short: "WEB_SIM_SHORT_URL",
+  adfs: "WEB_SIM_ADFS_URL",
   camunda8: "WEB_SIM_CAMUNDA8_URL",
 } as const
 export type Deployment = keyof typeof DEPLOYMENTS
@@ -34,7 +36,7 @@ export const CONTROL_ENV = "WEB_SIM_CONTROL_URL"
 export const WEB_CLIENT_ID = "pulse-web"
 
 /** The users of the fake identity provider: their login names and the names the page shows. */
-export const ALICE = { username: "alice", name: "Alice Adams" } as const
+export const ALICE = { username: "alice", name: "Alice Adams", upn: "alice@example.test" } as const
 export const BOB = { username: "bob", name: "Bob Brown" } as const
 
 /**
@@ -56,10 +58,14 @@ export interface IdpRecord {
     readonly sid?: string
   }[]
   /**
-   * Every request to its token endpoint, in order: its grant type and, for a refresh, the session
-   * of the refresh token it presented.
+   * Every request to its token endpoint, in order: its grant type, for a refresh the session of the
+   * refresh token it presented, and the resources it named.
    */
-  readonly grants: readonly { readonly type: string; readonly session?: string }[]
+  readonly grants: readonly {
+    readonly type: string
+    readonly session?: string
+    readonly resources: readonly string[]
+  }[]
 }
 
 function envOf(name: string): string {
@@ -93,6 +99,14 @@ export async function engineControl(action: "hold" | "release" | "waiting", term
 export async function idpRecord(deployment: Deployment = "main"): Promise<IdpRecord> {
   const response = await fetch(`${envOf(CONTROL_ENV)}/idp/${deployment}`)
   return (await response.json()) as IdpRecord
+}
+
+/** Ends the grant of the session `session` at the deployment's identity provider. */
+export async function endGrant(deployment: Deployment, session: string): Promise<void> {
+  const query = new URLSearchParams({ session })
+  const url = `${envOf(CONTROL_ENV)}/idp/${deployment}/end-grant?${query.toString()}`
+  const response = await fetch(url, { method: "POST" })
+  expect(response.status, `end the grant of ${session}`).toBe(204)
 }
 
 /** Every token the deployment's identity provider issued so far. */

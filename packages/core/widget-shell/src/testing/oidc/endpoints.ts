@@ -1,17 +1,21 @@
 /**
- * The fake identity provider's endpoints under its issuer, on Keycloak's paths: discovery, the key
- * set, the authorization endpoint with a login page that offers each user, the token endpoint
- * (the code grant with PKCE, the refresh grant, the client's authentication), revocation and the
- * end of a session. Each answers a parsed request with a plain answer, as Keycloak would.
+ * The fake identity provider's endpoints under its issuer, on Keycloak's paths or ADFS's
+ * (adfs.ts): discovery, the key set, the authorization endpoint with a login page that offers each
+ * user, the token endpoint (the code grant with PKCE, the refresh grant, the client's
+ * authentication), revocation (Keycloak's alone) and the end of a session. Each answers a parsed
+ * request with a plain answer, as the provider it plays would.
  */
 import { randomUUID } from "node:crypto"
 import { decodeJwt } from "jose"
+import { ADFS_PATHS, adfsDiscovery, issueAdfsTokens } from "./adfs.js"
 import {
   issueTokens,
   opaqueToken,
   s256,
   type FakeOidcClient,
+  type FakeOidcUser,
   type Grant,
+  type IssuedSession,
   type Realm,
 } from "./realm.js"
 
@@ -36,7 +40,7 @@ export interface Answer {
 }
 
 /** The paths below the issuer, Keycloak's. */
-export const ENDPOINT_PATHS: Readonly<Record<FakeOidcEndpoint, string>> = {
+const KEYCLOAK_PATHS: Readonly<Record<FakeOidcEndpoint, string>> = {
   discovery: "/.well-known/openid-configuration",
   jwks: "/protocol/openid-connect/certs",
   authorize: "/protocol/openid-connect/auth",
@@ -44,6 +48,12 @@ export const ENDPOINT_PATHS: Readonly<Record<FakeOidcEndpoint, string>> = {
   revoke: "/protocol/openid-connect/revoke",
   logout: "/protocol/openid-connect/logout",
 }
+
+const isAdfs = (realm: Realm): boolean => realm.flavor === "adfs"
+
+/** The paths below the realm's issuer: Keycloak's, or ADFS's, which has no revocation endpoint. */
+export const pathsOf = (realm: Realm): Readonly<Partial<Record<FakeOidcEndpoint, string>>> =>
+  isAdfs(realm) ? ADFS_PATHS : KEYCLOAK_PATHS
 
 /** The query parameters of the login page's choices, which no real provider reads. */
 export const CHOICE = { user: "fake_user", decline: "fake_decline" } as const
@@ -83,9 +93,10 @@ const isAllowed = (allowed: readonly string[] | undefined, uri: string): boolean
   URL.canParse(uri) && (allowed === undefined || allowed.includes(uri))
 
 const endpointUrl = (realm: Realm, endpoint: FakeOidcEndpoint): string =>
-  `${realm.issuer}${ENDPOINT_PATHS[endpoint]}`
+  `${realm.issuer}${KEYCLOAK_PATHS[endpoint]}`
 
 export function discovery(realm: Realm): Answer {
+  if (isAdfs(realm)) return json(200, adfsDiscovery(realm))
   return json(200, {
     issuer: realm.issuer,
     authorization_endpoint: endpointUrl(realm, "authorize"),
@@ -138,40 +149,71 @@ export function authorize(realm: Realm, query: URLSearchParams): Answer {
   if (!isAllowed(client.redirectUris, redirectUri)) {
     return page(400, "Invalid parameter: redirect_uri")
   }
+  // ADFS sends no iss (RFC 9207) back.
+  const iss = isAdfs(realm) ? null : realm.issuer
   const back = (params: Record<string, string>, headers?: Record<string, string>): Answer => ({
     status: 302,
     headers: {
-      location: withQuery(redirectUri, { ...params, state: query.get("state"), iss: realm.issuer }),
+      location: withQuery(redirectUri, { ...params, state: query.get("state"), iss }),
       ...headers,
     },
   })
-  if (query.get("response_type") !== "code") return back({ error: "unsupported_response_type" })
-  if (query.get("code_challenge_method") !== "S256" || !query.get("code_challenge")) {
-    return back({
-      error: "invalid_request",
-      error_description: "Missing parameter: code_challenge_method",
-    })
-  }
-  if (query.has(CHOICE.decline)) return back({ error: "access_denied" })
+  const refused = requestRefusal(realm, query)
+  if (refused !== undefined) return back(refused)
   const username = query.get(CHOICE.user)
   if (username === null) return loginPage(realm, query)
   const user = realm.users.find((candidate) => candidate.username === username)
   if (user === undefined) return loginPage(realm, query, "Invalid username or password.")
+  const { code, sid } = newCode(realm, { clientId: client.id, redirectUri, query, user })
+  const cookie = `${SESSION_COOKIE}=${sid}; Path=${new URL(realm.issuer).pathname}/; HttpOnly; SameSite=Lax`
+  return back({ session_state: sid, code }, { "set-cookie": cookie })
+}
+
+/**
+ * Why the authorization request goes back refused, or `undefined`: its response type, ADFS's one
+ * resource, PKCE S256, or the browser that cancelled.
+ */
+function requestRefusal(realm: Realm, query: URLSearchParams): Record<string, string> | undefined {
+  if (query.get("response_type") !== "code") return { error: "unsupported_response_type" }
+  if (isAdfs(realm) && query.getAll("resource").length > 1) {
+    return { error: "invalid_request", error_description: "MSIS9xxx: one resource only." }
+  }
+  if (query.get("code_challenge_method") !== "S256" || !query.get("code_challenge")) {
+    return {
+      error: "invalid_request",
+      error_description: "Missing parameter: code_challenge_method",
+    }
+  }
+  return query.has(CHOICE.decline) ? { error: "access_denied" } : undefined
+}
+
+/** A code for the user the login page chose, good once for a minute, in a new session. */
+function newCode(
+  realm: Realm,
+  request: {
+    clientId: string
+    redirectUri: string
+    query: URLSearchParams
+    user: FakeOidcUser
+  },
+): { code: string; sid: string } {
+  const { clientId, redirectUri, query, user } = request
   const code = opaqueToken()
   const sid = randomUUID()
   const nonce = query.get("nonce")
+  const resource = query.get("resource")
   realm.codes.set(code, {
-    clientId: client.id,
+    clientId,
     redirectUri,
     challenge: query.get("code_challenge") ?? "",
     scope: query.get("scope") ?? "openid",
     ...(nonce === null ? {} : { nonce }),
+    ...(resource === null ? {} : { resource }),
     user,
     sid,
     expiresAt: Date.now() + CODE_LIFETIME_MS,
   })
-  const cookie = `${SESSION_COOKIE}=${sid}; Path=${new URL(realm.issuer).pathname}/; HttpOnly; SameSite=Lax`
-  return back({ session_state: sid, code }, { "set-cookie": cookie })
+  return { code, sid }
 }
 
 /** `user:password` of a Basic header, each part form-decoded as RFC 6749 §2.3.1 encodes it. */
@@ -202,6 +244,21 @@ function clientOf(realm: Realm, request: FakeOidcRequest): FakeOidcClient | Answ
 
 const isAnswer = (value: FakeOidcClient | Answer): value is Answer => "status" in value
 
+/**
+ * A grant's tokens as the realm's provider answers them: ADFS's for the resource the request
+ * names (else `fallback`, the code's), a refresh token at the sign-in alone; Keycloak's whatever
+ * the request names.
+ */
+function tokensOf(
+  realm: Realm,
+  session: IssuedSession,
+  form: URLSearchParams,
+  { renewal, fallback }: { renewal: boolean; fallback?: string },
+): Promise<Record<string, unknown>> {
+  if (!isAdfs(realm)) return issueTokens(realm, session)
+  return issueAdfsTokens(realm, session, form.get("resource") ?? fallback, renewal)
+}
+
 async function codeGrant(realm: Realm, client: FakeOidcClient, form: URLSearchParams) {
   const presented = form.get("code") ?? ""
   const code = realm.codes.get(presented)
@@ -217,7 +274,7 @@ async function codeGrant(realm: Realm, client: FakeOidcClient, form: URLSearchPa
   if (s256(verifier) !== code.challenge) {
     return oauthError(400, "invalid_grant", "PKCE verification failed: Code mismatch")
   }
-  return json(200, await issueTokens(realm, code))
+  return json(200, await tokensOf(realm, code, form, { renewal: false, fallback: code.resource }))
 }
 
 const isLive = (realm: Realm, grant: Grant | undefined): grant is Grant =>
@@ -240,7 +297,7 @@ async function refreshGrant(realm: Realm, client: FakeOidcClient, form: URLSearc
     grant.active = false
     grant.spent = true
   }
-  return json(200, await issueTokens(realm, grant))
+  return json(200, await tokensOf(realm, grant, form, { renewal: true }))
 }
 
 /** The token endpoint (RFC 6749 §3.2): the client authenticated, then its grant. */
@@ -268,6 +325,11 @@ export function revoke(realm: Realm, request: FakeOidcRequest): Answer {
   return { status: 200, headers: NO_STORE }
 }
 
+/** Every refresh token of the session `sid` renews no more. */
+export function endGrant(realm: Realm, sid: string | undefined): void {
+  for (const grant of realm.grants.values()) if (grant.sid === sid) grant.active = false
+}
+
 function sessionOf(request: FakeOidcRequest, hint: string | null): string | undefined {
   const cookie = (request.headers.cookie ?? "")
     .split(";")
@@ -284,15 +346,16 @@ function sessionOf(request: FakeOidcRequest, hint: string | null): string | unde
 
 /**
  * The end-session endpoint (OpenID Connect RP-Initiated Logout 1.0): the browser's session ends
- * (every refresh token of it), and the browser returns where the client asked, when the client may
- * return there. Unlike Keycloak it asks no confirmation without an ID token hint.
+ * (every refresh token of it at Keycloak; ADFS's renew on, as its FAQ says), and the browser
+ * returns where the client asked, when the client may return there. Unlike Keycloak it asks no
+ * confirmation without an ID token hint.
  */
 export function logout(realm: Realm, request: FakeOidcRequest): Answer {
   const params = request.method === "POST" ? request.form : request.query
   const clientId = params.get("client_id") ?? undefined
   const postLogoutRedirectUri = params.get("post_logout_redirect_uri") ?? undefined
   const sid = sessionOf(request, params.get("id_token_hint"))
-  for (const grant of realm.grants.values()) if (grant.sid === sid) grant.active = false
+  if (!isAdfs(realm)) endGrant(realm, sid)
   realm.endedSessions.push({ clientId, postLogoutRedirectUri, sid })
   const cleared = `${SESSION_COOKIE}=; Path=${new URL(realm.issuer).pathname}/; Max-Age=0; HttpOnly; SameSite=Lax`
   if (postLogoutRedirectUri === undefined) {

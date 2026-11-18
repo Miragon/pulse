@@ -141,7 +141,7 @@ function keysUnavailable(jwksUrl: URL, cause: unknown): OAuthError {
 }
 
 /** 503 at the gate: the issuer's key set has not been found yet (its discovery did not answer). */
-const keysNotFound = (issuer: string): OAuthError =>
+export const keysNotFound = (issuer: string): OAuthError =>
   new OAuthError(
     OAuthErrorCode.TemporarilyUnavailable,
     `The signing keys of ${issuer} are not known yet, so no token can be verified. Retry shortly.`,

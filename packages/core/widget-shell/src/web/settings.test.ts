@@ -48,6 +48,7 @@ describe("WEB_ENV_VARS", () => {
     expect(WEB_ENV_VARS).toEqual([
       "MCP_WEB_CLIENT_ID",
       "MCP_WEB_CLIENT_SECRET",
+      "MCP_WEB_SCOPES",
       "MCP_WEB_SESSION_KEYS",
       "MCP_WEB_SESSION_HOURS",
       "MCP_WEB_SESSION_CHECK_MINUTES",
@@ -71,6 +72,7 @@ describe("readWebSettings", () => {
     expect(settings).toEqual({
       clientId: "pulse-web",
       clientSecret: SECRET,
+      scopes: undefined,
       sessionKeys: [new Uint8Array(32).fill(7), new Uint8Array(48).fill(9)],
       sessionHours: 8,
       sessionCheckMinutes: undefined,
@@ -78,6 +80,28 @@ describe("readWebSettings", () => {
       origin: "https://pulse.example.test:8443",
     })
     expect(settings).toHaveProperty("sessionCheckMinutes", undefined)
+    expect(settings).toHaveProperty("scopes", undefined)
+  })
+
+  it("reads the scopes the sign-in asks for, separated by spaces or commas, each once", () => {
+    expect(read({ ...ON, MCP_WEB_SCOPES: " " })?.scopes).toBeUndefined()
+    expect(read({ ...ON, MCP_WEB_SCOPES: "openid" })?.scopes).toEqual(["openid"])
+    expect(
+      read({ ...ON, MCP_WEB_SCOPES: " openid,profile  offline_access openid api://pulse/mcp " })
+        ?.scopes,
+    ).toEqual(["openid", "profile", "offline_access", "api://pulse/mcp"])
+  })
+
+  it("refuses scopes that hold no scope, or a character no scope holds", () => {
+    expect(refusal({ ...ON, MCP_WEB_SCOPES: " , ," })).toBe(
+      "MCP_WEB_SCOPES holds no scope. Name the scopes, separated by spaces or commas.",
+    )
+    for (const odd of ['say"hi', "back\\slash", "umlaut-ä"]) {
+      expect(refusal({ ...ON, MCP_WEB_SCOPES: `openid ${odd}` }), odd).toBe(
+        `MCP_WEB_SCOPES names "${odd}", which is no scope (RFC 6749 §3.3).`,
+      )
+    }
+    expect(read({ ...ON, MCP_WEB_SCOPES: "a!#[]~" })?.scopes).toEqual(["a!#[]~"])
   })
 
   it("takes whole session hours from 1 to 24", () => {
@@ -185,6 +209,9 @@ describe("readWebSettings", () => {
     expect(refusal({ MCP_WEB_SESSION_CHECK_MINUTES: "5" })).toBe(
       "MCP_WEB_SESSION_CHECK_MINUTES is set, but MCP_WEB_CLIENT_ID is not, so the web app stays off. Set MCP_WEB_CLIENT_ID to turn it on, or unset the others.",
     )
+    expect(refusal({ MCP_WEB_SCOPES: "openid" })).toBe(
+      "MCP_WEB_SCOPES is set, but MCP_WEB_CLIENT_ID is not, so the web app stays off. Set MCP_WEB_CLIENT_ID to turn it on, or unset the others.",
+    )
   })
 
   it("never quotes the secret or a key in a refusal", () => {
@@ -215,6 +242,14 @@ describe("describeWebSettings", () => {
       expect(line).not.toContain(SECRET)
       expect(line).not.toContain(KEY)
     }
+  })
+
+  it("names the scopes the sign-in asks for where MCP_WEB_SCOPES names them", () => {
+    const scoped = read({ ...ON, MCP_WEB_SCOPES: "openid,allatclaims" })
+    if (scoped === undefined) throw new Error("expected settings")
+    expect(describeWebSettings(scoped)).toBe(
+      "Web app: on at https://pulse.example.test/app for client pulse-web with the scopes openid allatclaims; sessions last 8 h; 1 session key; web build from /srv/pulse/web.",
+    )
   })
 
   it("names the session's check at the provider where one runs", () => {

@@ -134,6 +134,7 @@ export function webContext(fake: FakeOidc, overrides: Partial<WebContext> = {}) 
     settings: {
       clientId: FAKE_OIDC_CLIENT.id,
       clientSecret: String(FAKE_OIDC_CLIENT.secret),
+      scopes: undefined,
       sessionKeys: [KEY],
       sessionHours: 8,
       sessionCheckMinutes: undefined,

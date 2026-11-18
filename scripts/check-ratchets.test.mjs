@@ -632,6 +632,7 @@ describe("vitest coverage thresholds: glob keys, perFile, the 100 shorthand, cou
       "packages/core/widget-shell/vitest.config.ts": {
         "src/web/**": FULL,
         "src/oauth-discovery.ts": FULL,
+        "src/oauth-oidc.ts": FULL,
       },
     }
     for (const rel of ["vitest.shared.ts", ...REAL_VITEST_CONFIGS]) {
