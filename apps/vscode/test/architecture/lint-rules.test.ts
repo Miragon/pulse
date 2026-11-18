@@ -1,5 +1,5 @@
 import { ESLint } from "eslint"
-import { describe, expect, test } from "vitest"
+import { beforeAll, describe, expect, test } from "vitest"
 import { readRepoFile, REPO_ROOT } from "./support/files.js"
 
 const PROBE_FILE = "packages/core/runtime-view/src/core/views/labels.ts"
@@ -9,6 +9,7 @@ const BOARD_FORMAT = "packages/core/board/src/format"
 const COMPONENT_PROBE = "packages/core/runtime-view/src/webview/app.tsx"
 const WEBVIEW_TEST_PROBE = "packages/core/runtime-view/test/webview/harness.tsx"
 const HOOKS_SET = "recommended-latest"
+const TYPED_PROGRAM_WARMUP_MS = 600_000
 
 interface ResolvedConfig {
   readonly rules: Readonly<Record<string, readonly unknown[] | undefined>>
@@ -46,6 +47,10 @@ function withProbe(line: string): string {
 }
 
 describe("the lint gates", { timeout: 120_000 }, () => {
+  beforeAll(async () => {
+    await rulesFiredOn(readRepoFile(PROBE_FILE))
+  }, TYPED_PROGRAM_WARMUP_MS)
+
   test("the probe file is clean as it is", async () => {
     expect(await rulesFiredOn(readRepoFile(PROBE_FILE))).toEqual([])
   })
