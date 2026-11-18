@@ -110,8 +110,9 @@ export const MUTATED_PACKAGES = {
     "its cookies, the cookies, the return path, the CSRF check, the forward of a page's call, " +
     "the token's renewal, the served build, the security headers, the sessions signed out, the " +
     "session's opening and refusal, the sign-out, the session route) guard every session and " +
-    "every call of the web app, so a surviving mutant there is a security hole; only those " +
-    "twelve files are mutated, not the boot, the view runtime or the other routes",
+    "every call of the web app, and the gate's JWT verifier (src/oauth-jwt.ts) decides which " +
+    "bearer token /mcp takes, so a surviving mutant there is a security hole; only those " +
+    "thirteen files are mutated, not the boot, the view runtime or the other routes",
   "packages/connectors/c8/c8-core":
     "owner decision 2026-11-17: c8-core's rules decide the kind of every Camunda 8 failure, the " +
     "version floor, the instance filters and how the cluster's answers map onto the contract's " +

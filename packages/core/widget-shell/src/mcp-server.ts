@@ -7,7 +7,6 @@
 import {
   createMcpHandler,
   McpServer,
-  oauthMetadataResponse,
   type CallToolResult,
   type McpHttpHandler,
   type PromptCallback,
@@ -23,9 +22,11 @@ import {
 } from "./http-edge.js"
 import {
   oauthDiscovery,
+  oauthDiscoveryResponse,
   oauthGate,
   resolveOAuthResource,
   toolResultChallenge,
+  type OAuthDiscovery,
 } from "./oauth-gate.js"
 import type { OAuthProvider } from "./oauth-providers.js"
 import { installRequestLog, logRefusedRequest, requestLogLevel } from "./request-log.js"
@@ -113,7 +114,7 @@ export class McpHttpApp {
   readonly #requestHooks: RequestMiddleware[] = []
   readonly #toolCallHooks: ToolCallMiddleware[] = []
   readonly #refusalHooks: RefusalHook[] = []
-  readonly #oauth: { resource: URL; discovery: ReturnType<typeof oauthDiscovery> } | undefined
+  readonly #oauth: { resource: URL; discovery: OAuthDiscovery } | undefined
   #bundles: Record<string, ViewBundle> = {}
   #handler: McpHttpHandler | undefined
 
@@ -161,7 +162,7 @@ export class McpHttpApp {
   allowedMethods = (path: string): string => {
     if (path === BASE_PATH) return "POST"
     const discovery = this.#oauth?.discovery
-    if (discovery && oauthMetadataResponse(new Request(`http://h${path}`), discovery)) {
+    if (discovery && oauthDiscoveryResponse(new Request(`http://h${path}`), discovery)) {
       return "GET, HEAD, OPTIONS"
     }
     const taken = this.#http.routes.filter((route) => routeTakes(route.path, path))
@@ -245,7 +246,7 @@ export class McpHttpApp {
       // Every method: a preflight gets the SDK's CORS answer, a POST its 405.
       this.#http.all(
         "/.well-known/*",
-        (c) => oauthMetadataResponse(c.req.raw, discovery) ?? c.notFound(),
+        (c) => oauthDiscoveryResponse(c.req.raw, discovery) ?? c.notFound(),
       )
     }
     this.#http.all(BASE_PATH, async (c) => {

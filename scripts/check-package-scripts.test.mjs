@@ -382,7 +382,7 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
     }
   })
 
-  it("the real map lists c7-core, the transport, engine-core's rules, the profile format, the board format with its builder, the web app's server rules and c8-core's rules, each with the owner's decision", () => {
+  it("the real map lists c7-core, the transport, engine-core's rules, the profile format, the board format with its builder, the web app's server rules with the gate's JWT verifier and c8-core's rules, each with the owner's decision", () => {
     const engineCore = "packages/connectors/engine/engine-core"
     const profile = "packages/core/profile"
     const board = "packages/core/board"
@@ -427,8 +427,9 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
         "of its cookies, the cookies, the return path, the CSRF check, the forward of a page's " +
         "call, the token's renewal, the served build, the security headers, the sessions signed " +
         "out, the session's opening and refusal, the sign-out, the session route) guard every " +
-        "session and every call of the web app, so a surviving mutant there is a security hole; " +
-        "only those twelve files are mutated, not the boot, the view runtime or the other routes",
+        "session and every call of the web app, and the gate's JWT verifier (src/oauth-jwt.ts) " +
+        "decides which bearer token /mcp takes, so a surviving mutant there is a security hole; " +
+        "only those thirteen files are mutated, not the boot, the view runtime or the other routes",
     )
     assert.equal(
       MUTATED_PACKAGES[c8Core],
@@ -468,7 +469,7 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
     ])
   })
 
-  it("widget-shell's config mutates exactly the web app's twelve rule files, as its reason says", () => {
+  it("widget-shell's config mutates exactly the web app's twelve rule files and the JWT verifier, as its reason says", () => {
     const config = JSON.parse(
       readFileSync(path.join(repoRoot, "packages/core/widget-shell/stryker.config.json"), "utf8"),
     )
@@ -485,6 +486,7 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
       "src/web/session.ts",
       "src/web/logout.ts",
       "src/web/session-route.ts",
+      "src/oauth-jwt.ts",
     ])
   })
 

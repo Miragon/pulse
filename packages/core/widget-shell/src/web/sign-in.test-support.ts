@@ -145,6 +145,7 @@ export function webContext(fake: FakeOidc, overrides: Partial<WebContext> = {}) 
     client: { scopes: ["openid", "profile"] },
     resource: RESOURCE,
     issuer: fake.issuer,
+    callerClaims: ["sub"],
     metadata: metadataSource(fake.issuer, PLATFORM, log),
     verify: gateTokenCheck(provider, new URL(RESOURCE)),
     platform: PLATFORM,

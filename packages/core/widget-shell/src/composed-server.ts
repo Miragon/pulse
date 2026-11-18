@@ -36,6 +36,7 @@ import {
 } from "./http-edge.js"
 import { installMetrics } from "./metrics.js"
 import { OAUTH_DEBUG_ENV_VAR, OAUTH_ENV_VARS, oauthFromEnv } from "./oauth-env.js"
+import { describeOAuthTokens } from "./oauth-providers.js"
 import { createBodyLimitedListener, type BodyLimitedListener } from "./node-listener.js"
 import { fontAssetsCsp, installFontAssets } from "./font-assets.js"
 import { installMcpRequestContext } from "./request-context.js"
@@ -175,17 +176,6 @@ function oauthResource(
   }
   // `resolveHttpEdgePolicy` has validated it; one with a path fails in `resolveOAuthResource`.
   return new URL(mcpUrl).origin
-}
-
-/**
- * The `aud` the bearer gate accepts, the `resource` the protected-resource metadata advertises;
- * the JWT verifier also requires `sub`. An IdP set up for another value gets a 401 on every call,
- * so the boot names the value.
- */
-function describeOAuthAudience(resource: string, basePath: string): string {
-  const audience = new URL(resource)
-  audience.pathname = basePath
-  return `OAuth: tokens must carry aud ${audience.href} (RFC 8707) and a sub claim.`
 }
 
 function serverInstructions(info: ComposedServerInfo, modules?: string): string | undefined {
@@ -437,9 +427,11 @@ async function boot<TShared extends object>(
   const guard = edge
 
   const app = await buildServer(options, composition, selection, env)
-  // After the app accepted the resource and the issuer: it knows the base path.
-  if (selection.resource) {
-    console.info(`[${label}] ${describeOAuthAudience(selection.resource, app.basePath)}`)
+  // After the app accepted the resource and the issuer. An IdP set up for another audience or
+  // caller claim gets a 401 on every call, so the boot names what the provider's gate checks.
+  const resource = app.oauthResource
+  if (selection.oauth && resource) {
+    console.info(`[${label}] ${describeOAuthTokens(selection.oauth, resource)}`)
   }
   const state = { draining: false }
 
@@ -450,7 +442,6 @@ async function boot<TShared extends object>(
   // Behind the guard: a font GET passes the Origin half, a foreign Host does not.
   installFontAssets(app, { label })
   // Behind the guard as well, and only beside a provider: its tokens are the gate's to verify.
-  const resource = app.oauthResource
   if (selection.web && resource) installWebSignIn(app, { ...selection.web, resource, label })
 
   return {

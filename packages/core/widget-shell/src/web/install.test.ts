@@ -1,8 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest"
-import { oauthKeycloakProvider } from "../oauth-providers.js"
-import { startFakeOidc, type FakeOidc } from "../testing/oidc/index.js"
+import { oauthCustomProvider, oauthKeycloakProvider } from "../oauth-providers.js"
+import { FAKE_OIDC_USERS, startFakeOidc, type FakeOidc } from "../testing/oidc/index.js"
 import { FIXTURE_BUILD } from "./build.test-support.js"
-import { bootWeb, Browser, RESOURCE, SESSION_KEYS, signIn, webEnv } from "./sign-in.test-support.js"
+import {
+  bootWeb,
+  Browser,
+  RESOURCE,
+  SESSION_KEYS,
+  sessionOf,
+  signIn,
+  webEnv,
+} from "./sign-in.test-support.js"
 
 let fake: FakeOidc
 let info: MockInstance<(...data: unknown[]) => void>
@@ -73,5 +81,25 @@ describe("the boot and the web app", () => {
     const metrics = await (await browser.fetch("/metrics")).text()
     expect(metrics).toContain('mcp_http_requests_total{method="GET",route="/app",status="302"} 1')
     expect(metrics).toContain('mcp_http_requests_total{method="GET",route="/app",status="303"} 1')
+  })
+})
+
+describe("the boot hands the sign-in the provider's rules", () => {
+  // A provider whose access token names its caller by email and carries no name: the ID token's
+  // name counts only where its caller claims pair the two tokens, which sub alone would not.
+  it("pairs the ID token with the caller by the provider's caller claims", async () => {
+    const keycloak = oauthKeycloakProvider({ serverUrl: fake.serverUrl, realm: fake.realm })
+    const byEmail = oauthCustomProvider({
+      ...keycloak,
+      callerClaims: ["email", "sub"],
+      mapAuthInfo: ({ extra }) => {
+        const { email } = extra?.payload as { email: string }
+        return { user: { id: email }, payload: { email, sub: "pairwise" }, permissions: [] }
+      },
+    })
+    const browser = new Browser(await bootWeb(webEnv(fake), { oauth: byEmail }))
+    await signIn(browser, fake)
+    const [alice] = FAKE_OIDC_USERS
+    expect((await sessionOf(browser)).body.name).toBe(alice.name)
   })
 })

@@ -89,6 +89,7 @@ export function callContext(
     client: { scopes: ["openid"] },
     resource: RESOURCE,
     issuer: METADATA.issuer,
+    callerClaims: ["sub"],
     metadata: () => Promise.resolve(METADATA),
     // The call route verifies no token itself: `/mcp`'s gate does.
     verify: gateTokenCheck(stubOAuth(), new URL(RESOURCE)),

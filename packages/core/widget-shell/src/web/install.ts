@@ -12,6 +12,7 @@ import type { Platform } from "@miragon/pulse-http"
 import type { McpHttpApp } from "../mcp-server.js"
 import { gateChallenge, gateTokenCheck } from "../oauth-gate.js"
 import type { OAuthProvider, OAuthWebClient } from "../oauth-providers.js"
+import { DEFAULT_CALLER_CLAIMS } from "../oauth-shared.js"
 import { WEB_PATHS } from "../protocol/web.js"
 import { callbackRoute } from "./callback.js"
 import type { WebContext } from "./context.js"
@@ -68,6 +69,7 @@ export function installWebSignIn(app: McpHttpApp, options: WebSignInOptions): vo
     client: webClientOf(provider),
     resource: resource.href,
     issuer,
+    callerClaims: provider.callerClaims ?? DEFAULT_CALLER_CLAIMS,
     metadata: metadataSource(issuer, PLATFORM, log),
     verify: gateTokenCheck(provider, resource),
     platform: PLATFORM,

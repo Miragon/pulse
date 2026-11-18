@@ -7,10 +7,11 @@
 import type { AuthInfo, OAuthMetadata, OAuthTokenVerifier } from "@modelcontextprotocol/server"
 import { createJwtVerifier } from "./oauth-jwt.js"
 import {
+  callerOf,
+  DEFAULT_CALLER_CLAIMS,
   invalidToken,
   isAllowedHttpUrl,
   isRecord,
-  nonBlank,
   normalizedStrings,
   type Claims,
 } from "./oauth-shared.js"
@@ -26,11 +27,34 @@ export interface OAuthWebClient {
   readonly audience?: "resource"
 }
 
+/**
+ * The authorization server as the provider names it: its RFC 8414 metadata, which the server
+ * serves a copy of at `/.well-known/oauth-authorization-server`, or its issuer alone, which only
+ * the protected resource metadata names (that path then answers 404, and clients read the
+ * provider's own documents).
+ */
+export type OAuthServerMetadata = Partial<OAuthMetadata> & Pick<OAuthMetadata, "issuer">
+
 export interface OAuthProvider {
   /** The full public MCP endpoint; else `MCP_URL`'s origin plus the base path. */
   resource?: URL | string
-  oauthMetadata: OAuthMetadata
+  oauthMetadata: OAuthServerMetadata
+  /** The scopes the gate requires of every token, as the token carries them. */
   requiredScopes?: readonly string[]
+  /**
+   * The required scopes as a client asks for them, which the protected resource metadata names in
+   * `scopes_supported` (never `offline_access`); default the `requiredScopes`.
+   */
+  scopesSupported?: readonly string[]
+  /**
+   * The claims that name the caller, the first a token carries; default `sub`. The web sign-in
+   * takes an ID token's name only where it names the same caller by them.
+   */
+  callerClaims?: readonly string[]
+  /** The boot line's words for what `aud` must hold; default `aud <resource> (RFC 8707)`. */
+  describeAudience?(resource: URL): string
+  /** The boot line's words for the claims that name the caller; default by the `callerClaims`. */
+  describeCaller?(): string
   /**
    * The web app's sign-in; a provider without it signs in with the scope `openid`. Either way the
    * sign-in also asks for the `requiredScopes`, which the gate checks a session's token for.
@@ -49,6 +73,20 @@ export interface OAuthProvider {
 export interface ProviderOptions {
   /** `MCP_OAUTH_DEBUG`: log why a token was refused, never the token itself. */
   debug?: boolean
+}
+
+/** The caller claims as the boot line names them: `a sub claim`, `an oid or sub claim`. */
+function callerClaimsText(claims: readonly string[]): string {
+  const named = claims.join(" or ")
+  return `${/^[aeiou]/i.test(named) ? "an" : "a"} ${named} claim`
+}
+
+/** The boot's line on what a token must carry, in the provider's own words where it has them. */
+export function describeOAuthTokens(provider: OAuthProvider, resource: URL): string {
+  const audience = provider.describeAudience?.(resource) ?? `aud ${resource.href} (RFC 8707)`
+  const caller =
+    provider.describeCaller?.() ?? callerClaimsText(provider.callerClaims ?? DEFAULT_CALLER_CLAIMS)
+  return `OAuth: tokens must carry ${audience} and ${caller}.`
 }
 
 /** A root's own IdP (a test's stub, a customer's): the same port the table's five fill. */
@@ -87,17 +125,22 @@ const endpoint = (issuer: string, path: string): string => {
   return new URL(path, base).href
 }
 
-function mapSubject(provider: string) {
+/** The caller by the provider's rule: the value of the first caller claim the token carries. */
+function mapSubject(provider: string, callerClaims: readonly string[]) {
   return (authInfo: AuthInfo) => {
     const payload = authInfo.extra?.payload
     if (!isRecord(payload)) throw invalidToken("Verified token payload is missing")
-    const id = nonBlank(payload, "sub")
+    const id = callerOf(payload, callerClaims)
     if (id === undefined) throw invalidToken(`Missing ${provider} subject`)
     return { user: { id }, payload, permissions: normalizedStrings(payload.permissions) }
   }
 }
 
-/** The endpoints of one IdP, relative to its issuer; the JWT rules are the same for all five. */
+/**
+ * The endpoints of one IdP, relative to its issuer; the JWT rules are the same for all five: one
+ * key set at a fixed path, the resource the one audience, `sub` the caller, every algorithm the
+ * set's keys name.
+ */
 interface IdpTable {
   name: string
   jwks: string
@@ -122,7 +165,11 @@ function idpProvider(
   return {
     web,
     createTokenVerifier: (resource) =>
-      createJwtVerifier({ issuer, jwksUrl: new URL(endpoint(issuer, jwks)), resource, debug }),
+      createJwtVerifier({
+        keySets: [{ issuer, jwks: new URL(endpoint(issuer, jwks)) }],
+        resource,
+        debug,
+      }),
     oauthMetadata: {
       issuer,
       authorization_endpoint: endpoint(issuer, authorization),
@@ -135,7 +182,7 @@ function idpProvider(
       code_challenge_methods_supported: ["S256"],
       ...(scopes && { scopes_supported: scopes }),
     },
-    mapAuthInfo: mapSubject(name),
+    mapAuthInfo: mapSubject(name, DEFAULT_CALLER_CLAIMS),
   }
 }
 

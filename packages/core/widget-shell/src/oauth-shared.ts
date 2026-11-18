@@ -72,3 +72,16 @@ export const nonBlank = (claims: Claims, name: string): string | undefined => {
   const value = claims[name]
   return typeof value === "string" && value.trim().length > 0 ? value : undefined
 }
+
+/** The claim that names the caller unless a provider names others: the subject. */
+export const DEFAULT_CALLER_CLAIMS: readonly string[] = ["sub"]
+
+/** The caller claim a token holds: the first of `names` it carries, whatever its value. */
+export const callerClaimOf = (claims: Claims, names: readonly string[]): string | undefined =>
+  names.find((name) => Object.hasOwn(claims, name))
+
+/** The caller the claims name by the provider's rule: its caller claim's value, when not blank. */
+export function callerOf(claims: Claims, names: readonly string[]): string | undefined {
+  const claim = callerClaimOf(claims, names)
+  return claim === undefined ? undefined : nonBlank(claims, claim)
+}

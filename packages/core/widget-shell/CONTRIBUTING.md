@@ -245,9 +245,14 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   `MCP_METRICS_TOKEN`), the Host/Origin guard in front of the OAuth gate,
   `/health/*` and the font route (`installFontAssets`: Geist + Geist Mono as woff2 under
   `/fonts/geist-<version>/`, cached immutable, any origin, behind the guard). OAuth comes from one
-  provider's `MCP_OAUTH_*` variables: a resource server that verifies tokens with `jose`; tokens
-  must carry `<MCP_URL>/mcp` in `aud`
-  (RFC 8707) and a `sub`, and the boot logs that audience. The providers, what fails the boot and
+  provider's `MCP_OAUTH_*` variables: a resource server that verifies tokens with `jose`
+  (`oauth-jwt.ts`: the key set the token's `iss` picks, the audiences, the caller claim and the
+  client the provider names, never an ID, logout or refresh token, mutated nightly with the web
+  app's rules); a table provider's tokens must carry `<MCP_URL>/mcp` in `aud` (RFC 8707) and a
+  `sub`, and the boot logs what the provider's gate checks (`describeOAuthTokens`). A provider whose
+  metadata names its issuer alone gets no copy at `/.well-known/oauth-authorization-server` (404),
+  and the protected resource metadata names its required scopes in `scopes_supported`, never
+  `offline_access`. The providers, what fails the boot and
   the identity provider's side are under
   [Security](https://miragon.github.io/pulse/mcp/operations#security). Without a provider the boot
   runs unauthenticated with one warning. OAuth is the only caller identity, and `oauth` installs a

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  describeOAuthTokens,
   oauthAuth0Provider,
   oauthBetterAuthProvider,
   oauthConvexProvider,
@@ -103,6 +104,35 @@ describe("the provider table", () => {
     ],
   ])("gives %s the web sign-in's scopes", (_name, build, web) => {
     expect(build().web).toEqual(web)
+  })
+
+  // What the boot logs: an IdP set up for another audience or caller claim gets 401 on every call.
+  it("describes what a token must carry, in the provider's words where it has them", () => {
+    const resource = new URL("https://mcp.example.com/mcp")
+    const keycloak = oauthKeycloakProvider({ serverUrl: "https://kc", realm: "r" })
+    expect(describeOAuthTokens(keycloak, resource)).toBe(
+      "OAuth: tokens must carry aud https://mcp.example.com/mcp (RFC 8707) and a sub claim.",
+    )
+    const own: OAuthProvider = {
+      ...keycloak,
+      describeAudience: (bound) => `aud 0000 or ${bound.href}`,
+      describeCaller: () => "an oid or sub claim",
+    }
+    expect(describeOAuthTokens(own, resource)).toBe(
+      "OAuth: tokens must carry aud 0000 or https://mcp.example.com/mcp and an oid or sub claim.",
+    )
+  })
+
+  // A provider that names its caller claims and no words for them: the line names those claims.
+  it.each([
+    [["oid", "sub"], "an oid or sub claim"],
+    [["email", "sub"], "an email or sub claim"],
+    [["preferred_username"], "a preferred_username claim"],
+  ])("names the caller claims %j as %s", (callerClaims, words) => {
+    const keycloak = oauthKeycloakProvider({ serverUrl: "https://kc", realm: "r" })
+    expect(describeOAuthTokens({ ...keycloak, callerClaims }, new URL("https://m/mcp"))).toBe(
+      `OAuth: tokens must carry aud https://m/mcp (RFC 8707) and ${words}.`,
+    )
   })
 
   it("maps no payload or no subject to an invalid token", () => {

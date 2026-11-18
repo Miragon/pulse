@@ -296,43 +296,6 @@ describe("createComposedServer: OAuth behind the edge", () => {
   })
 })
 
-describe("createComposedServer: OAuth discovery", () => {
-  it("serves both documents, answers a preflight from any origin and refuses other methods", async () => {
-    const composed = await compose({ oauth: stubOAuth() })
-    const resource = await fetchApp(composed, "/.well-known/oauth-protected-resource/mcp")
-    expect(await resource.json()).toEqual({
-      resource: "http://localhost/mcp",
-      authorization_servers: ["https://idp.example.test"],
-    })
-    const server = await fetchApp(composed, "/.well-known/oauth-authorization-server")
-    expect(await server.json()).toMatchObject({ issuer: "https://idp.example.test" })
-    const preflight = await fetchApp(composed, "/.well-known/oauth-protected-resource/mcp", {
-      method: "OPTIONS",
-      headers: {
-        origin: "https://claude.ai",
-        "access-control-request-method": "GET",
-        "access-control-request-headers": "mcp-protocol-version",
-      },
-    })
-    expect(preflight.status).toBe(204)
-    expect(preflight.headers.get("access-control-allow-origin")).toBe("*")
-    expect(preflight.headers.get("access-control-allow-headers")).toBe("mcp-protocol-version")
-    const posted = await fetchApp(composed, "/.well-known/oauth-protected-resource/mcp", {
-      method: "POST",
-      body: "{}",
-    })
-    expect(posted.status).toBe(405)
-    expect(posted.headers.get("allow")).toBe("GET, HEAD, OPTIONS")
-    expect((await fetchApp(composed, "/.well-known/openid-configuration")).status).toBe(404)
-  })
-
-  it("serves no discovery without OAuth", async () => {
-    const composed = await compose()
-    const res = await fetchApp(composed, "/.well-known/oauth-protected-resource/mcp")
-    expect(res.status).toBe(404)
-  })
-})
-
 // What the docs tell an IdP admin (docs/mcp/operations.md, the identity provider checklist):
 // an IdP set up for MCP_URL itself gets 401 on every call.
 describe("the token audience, against the real JWT verifier", () => {

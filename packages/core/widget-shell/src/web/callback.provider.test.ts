@@ -62,9 +62,14 @@ async function callbackOn(ctx: WebContext, scopes?: string[]) {
 
 describe("GET /app/auth/callback: the name the page shows", () => {
   /** A whole sign-in through the route alone, its gate's answer `caller`. */
-  async function nameAfter(caller: (token: string) => AuthInfo, scopes = ["openid", "profile"]) {
+  async function nameAfter(
+    caller: (token: string) => AuthInfo,
+    scopes = ["openid", "profile"],
+    callerClaims = ["sub"],
+  ) {
     const { ctx } = webContext(fake, {
       client: { scopes },
+      callerClaims,
       verify: (token) => Promise.resolve(caller(token)),
     })
     const [session] = (await callbackOn(ctx, scopes)).headers.getSetCookie()
@@ -72,13 +77,17 @@ describe("GET /app/auth/callback: the name the page shows", () => {
     return ((opened.ok ? opened.value : {}) as WebSession).name
   }
 
-  const authInfo = (token: string, payload: Record<string, unknown>): AuthInfo => ({
+  const authInfo = (
+    token: string,
+    payload: Record<string, unknown>,
+    id: unknown = payload.sub,
+  ): AuthInfo => ({
     token,
     clientId: FAKE_OIDC_CLIENT.id,
     scopes: [],
     expiresAt: Date.now() / 1000 + 300,
     resource: new URL(RESOURCE),
-    extra: { payload, user: { id: payload.sub } },
+    extra: { payload, user: { id } },
   })
 
   it("takes the ID token's name when the access token carries none", async () => {
@@ -94,6 +103,32 @@ describe("GET /app/auth/callback: the name the page shows", () => {
   it("reads the access token's claims without an ID token", async () => {
     const caller = (token: string) => authInfo(token, { sub: "u-1", email: "u@example.test" })
     expect(await nameAfter(caller, ["profile"])).toBe("u@example.test")
+  })
+
+  // Entra's sub is pairwise per app, so the ID token's and the access token's differ; its oid is
+  // the caller on both.
+  it("pairs the ID token with the access token by the provider's caller claims", async () => {
+    const byOid = (token: string) => authInfo(token, { oid: ALICE.sub, sub: "pairwise" }, ALICE.sub)
+    expect(await nameAfter(byOid, undefined, ["oid", "sub"])).toBe(ALICE.name)
+    const bySub = (token: string) => authInfo(token, { sub: ALICE.sub })
+    expect(await nameAfter(bySub, undefined, ["oid"])).toBe(ALICE.sub)
+  })
+
+  it("falls back to the caller the gate mapped, which need not be a sub", async () => {
+    const caller = (token: string) => authInfo(token, { oid: "o-1" }, "o-1")
+    expect(await nameAfter(caller, ["profile"], ["oid", "sub"])).toBe("o-1")
+    const nobody = (token: string) => authInfo(token, {}, undefined)
+    expect(await nameAfter(nobody, ["profile"])).toBe("")
+  })
+
+  it.each([
+    ["upn", "u@corp.example"],
+    ["unique_name", "CORP\\u"],
+  ])("reads a name from %s after the other name claims", async (claim, value) => {
+    const caller = (token: string) => authInfo(token, { sub: "u-1", [claim]: value })
+    expect(await nameAfter(caller, ["profile"])).toBe(value)
+    const named = (token: string) => authInfo(token, { sub: "u-1", [claim]: value, email: "e@x" })
+    expect(await nameAfter(named, ["profile"])).toBe("e@x")
   })
 
   it("takes out control characters and keeps at most 100 characters", async () => {

@@ -17,7 +17,8 @@
     "src/web/ended.ts",
     "src/web/session.ts",
     "src/web/logout.ts",
-    "src/web/session-route.ts"
+    "src/web/session-route.ts",
+    "src/oauth-jwt.ts"
   ],
   "inPlace": true,
   "incremental": true,

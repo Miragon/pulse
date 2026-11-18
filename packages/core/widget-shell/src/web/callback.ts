@@ -21,7 +21,13 @@ import {
 } from "@miragon/pulse-http/oauth"
 import { OAuthErrorCode, type AuthInfo, type OAuthError } from "@modelcontextprotocol/server"
 import { decodeJwt } from "jose"
-import { isAudienceRefusal, nonBlank, type Claims } from "../oauth-shared.js"
+import { callerUserId } from "../caller.js"
+import {
+  callerOf as callerNamedBy,
+  isAudienceRefusal,
+  nonBlank,
+  type Claims,
+} from "../oauth-shared.js"
 import type { SignedOutReason } from "../protocol/web.js"
 import { callbackUri, passesBy, redirect, signedOutPage, type WebContext } from "./context.js"
 import {
@@ -38,8 +44,11 @@ import { newSessionId, sessionTokensOf, type WebSession } from "./session.js"
 
 const HOUR_MS = 3_600_000
 
-/** The claims a name is read from, in this order; the subject when none holds one. */
-const NAME_CLAIMS = ["name", "preferred_username", "email"] as const
+/**
+ * The claims a name is read from, in this order (Entra's and ADFS's `upn` and `unique_name` last);
+ * the caller's id when none holds one. A name is shown, never an identity.
+ */
+const NAME_CLAIMS = ["name", "preferred_username", "email", "upn", "unique_name"] as const
 const MAX_NAME = 100
 
 /** Why a sign-in ended without a session: the signed-out page's reason, and the log's words. */
@@ -145,16 +154,17 @@ function idClaimsOf(idToken: string | undefined): Claims {
 }
 
 /**
- * The name the page shows: the ID token's name (when it names the same subject) or the access
- * token's, else its preferred user name or email, else the subject; without control characters,
- * at most 100 characters.
+ * The name the page shows: the ID token's name (when it names the same caller by the provider's
+ * caller claims) or the access token's, else its preferred user name, email or user principal
+ * name, else the caller's id the gate mapped; without control characters, at most 100 characters.
  */
-function nameOf(caller: AuthInfo, idToken: string | undefined): string {
+function nameOf(ctx: WebContext, caller: AuthInfo, idToken: string | undefined): string {
   const access = caller.extra?.payload as Claims
+  const callerId = callerUserId({ auth: caller }) ?? ""
   const id = idClaimsOf(idToken)
-  const sources = id.sub === access.sub ? [id, access] : [access]
+  const sources = callerNamedBy(id, ctx.callerClaims) === callerId ? [id, access] : [access]
   const found = sources.flatMap((claims) => NAME_CLAIMS.map((name) => nonBlank(claims, name)))
-  const name = found.find((value) => value !== undefined) ?? String(access.sub)
+  const name = found.find((value) => value !== undefined) ?? callerId
   return name.replace(/\p{Cc}/gu, "").slice(0, MAX_NAME)
 }
 
@@ -170,7 +180,7 @@ async function sessionOf(
   const session: WebSession = {
     id: newSessionId(),
     csrf: newCsrfSecret(),
-    name: nameOf(caller, tokens.idToken),
+    name: nameOf(ctx, caller, tokens.idToken),
     tokens: sessionTokensOf(tokens),
   }
   const sealed = await ctx.sealer.seal(SESSION_COOKIE, session, expiresAt)

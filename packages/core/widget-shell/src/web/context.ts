@@ -30,6 +30,8 @@ export interface WebContext {
   readonly resource: string
   /** The issuer the provider names, which a callback's `iss` must name as well (RFC 9207). */
   readonly issuer: string
+  /** The claims that name the caller (the provider's, else `sub`), the first a token carries. */
+  readonly callerClaims: readonly string[]
   /** The provider's metadata by discovery, `undefined` while it does not answer. */
   metadata(): Promise<ServerMetadata | undefined>
   /** The gate's own check of an access token. */

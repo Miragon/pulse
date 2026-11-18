@@ -3,6 +3,7 @@ import { OAuthError, OAuthErrorCode, type AuthInfo } from "@modelcontextprotocol
 import {
   gateTokenCheck,
   oauthDiscovery,
+  oauthDiscoveryResponse,
   oauthGate,
   resolveOAuthResource,
   toolResultChallenge,
@@ -174,6 +175,50 @@ describe("discovery and the resource", () => {
     expect(() => oauthDiscovery(provider("kc"), RESOURCE)).toThrow(
       'OAuth issuer "kc" is not an absolute URL',
     )
+  })
+
+  /** What discovery answers at `path` for `provider`, as JSON; `undefined` for no document. */
+  const documentAt = (provider: OAuthProvider, path: string) =>
+    oauthDiscoveryResponse(
+      new Request(`http://localhost${path}`),
+      oauthDiscovery(provider, RESOURCE),
+    )?.json()
+
+  const RESOURCE_METADATA = "/.well-known/oauth-protected-resource/mcp"
+  const SERVER_METADATA = "/.well-known/oauth-authorization-server"
+
+  it("names the required scopes in the resource's metadata as a client asks them, never offline_access", async () => {
+    const base = keycloak()
+    const scopesOf = async (provider: Partial<OAuthProvider>) =>
+      ((await documentAt({ ...base, ...provider }, RESOURCE_METADATA)) as Record<string, unknown>)
+        .scopes_supported
+    expect(await documentAt(base, RESOURCE_METADATA)).toEqual({
+      resource: AUD,
+      authorization_servers: ["https://kc.example.com/realms/a"],
+    })
+    expect(await scopesOf({ requiredScopes: ["mcp", "offline_access"] })).toEqual(["mcp"])
+    expect(await scopesOf({ requiredScopes: ["offline_access"] })).toBeUndefined()
+    const asked = { requiredScopes: ["api://x/use"], scopesSupported: ["use", "offline_access"] }
+    expect(await scopesOf(asked)).toEqual(["use"])
+  })
+
+  it("serves the authorization server's copy only for metadata that names its endpoints", async () => {
+    const base = keycloak()
+    expect(await documentAt(base, SERVER_METADATA)).toEqual(base.oauthMetadata)
+    expect(await documentAt(base, `${SERVER_METADATA}/`)).toEqual(base.oauthMetadata)
+    const issuer = "https://idp.example"
+    const issuerOnly = { ...base, oauthMetadata: { issuer } }
+    expect(await documentAt(issuerOnly, RESOURCE_METADATA)).toEqual({
+      resource: AUD,
+      authorization_servers: [issuer],
+    })
+    expect(await documentAt(issuerOnly, SERVER_METADATA)).toBeUndefined()
+    expect(await documentAt(issuerOnly, `${SERVER_METADATA}/`)).toBeUndefined()
+    const noTokenEndpoint = { issuer, authorization_endpoint: `${issuer}/a` }
+    expect(
+      await documentAt({ ...base, oauthMetadata: noTokenEndpoint }, SERVER_METADATA),
+    ).toBeUndefined()
+    expect(await documentAt(issuerOnly, "/.well-known/openid-configuration")).toBeUndefined()
   })
 
   it("binds tokens to the explicit resource, else MCP_URL's origin plus the base path", () => {
