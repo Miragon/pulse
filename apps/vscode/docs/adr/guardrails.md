@@ -138,7 +138,7 @@ repository's CI (`.github/workflows/ci.yml`) next to the server's.
   `@miragon/pulse-profile`, the profile format the host kit's connections read (owner decision
   2026-11-07), `@miragon/pulse-board`, the board format the Boards view reads and the builder
   whose model the runtime view renders (its `src/format` and `src/builder`; owner decision
-  2026-11-15), the web app's server rules and the gate's token rules of
+  2026-11-15), the web app's server rules, the gate's token rules and the provider's discovery of
   `@miragon/pulse-widget-shell`, which the extension does not bundle (owner decisions 2026-11-16
   and 2026-11-17), and the rules of
   `@miragon/pulse-c8-core`, whose mappings, instance filters, version floor and failure kinds the

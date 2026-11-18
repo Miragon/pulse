@@ -5,6 +5,7 @@
  * It runs on the first sign-in rather than at boot, so a provider that does not answer leaves the
  * server up and sends a sign-in to the signed-out page (`unavailable`). What it found holds for an
  * hour; a failure holds for nothing, and the requests that wait meanwhile share one read.
+ * What it found outlives a failed re-read by another hour (stale-if-error), said once in the log.
  */
 import type { Platform } from "@miragon/pulse-http"
 import {
@@ -14,12 +15,15 @@ import {
   type ServerMetadata,
   type TokenFailure,
 } from "@miragon/pulse-http/oauth"
-import { isLocalHostname } from "../oauth-shared.js"
+import { isLocalHostname } from "./oauth-shared.js"
 
 /** How long the metadata a discovery found holds. */
 export const DISCOVERY_HOLD_MS = 3_600_000
 
-/** The provider's metadata, `undefined` while it cannot be read. */
+/** What a failed re-read keeps, said once per metadata kept. */
+const KEPT = "It keeps the metadata it found last and reads again in an hour."
+
+/** The provider's metadata, `undefined` while it cannot be read: it never rejects. */
 export type MetadataSource = () => Promise<ServerMetadata | undefined>
 
 /** A discovery's answers, or why there are none: the failure's kind, else the error's text. */
@@ -54,8 +58,17 @@ export function metadataSource(
 ): MetadataSource {
   let found: { readonly metadata: ServerMetadata; readonly at: number } | undefined
   let reading: Promise<ServerMetadata | undefined> | undefined
+  let kept: ServerMetadata | undefined
   const readOnce = async (): Promise<ServerMetadata | undefined> => {
     const result = await read(issuer, platform)
+    if (typeof result === "string" && found !== undefined) {
+      if (kept !== found.metadata) {
+        log(`Web sign-in: the discovery of ${issuer} failed: ${result}. ${KEPT}`)
+      }
+      kept = found.metadata
+      found = { ...found, at: platform.now() }
+      return found.metadata
+    }
     if (typeof result === "string") {
       log(
         `Web sign-in: the discovery of ${issuer} failed: ${result}. ` +

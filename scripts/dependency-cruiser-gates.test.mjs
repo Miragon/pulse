@@ -153,7 +153,7 @@ const VIEW_MODELS_BOARD = "connector-view-models-board-types-only"
 const HTTP_LEAF = "http-is-a-leaf"
 const HTTP_USERS = "http-consumers"
 const HTTP_LOOPBACK = "http-loopback-only-its-sockets"
-const SHELL_WEB_HTTP = "widget-shell-web-by-the-oauth-entry"
+const SHELL_OAUTH_HTTP = "widget-shell-oauth-by-the-oauth-entry"
 const ENGINE_CORE_USERS = "engine-core-consumers"
 const CONNECTOR_CONTRACT = "engine-connector-contract-by-its-main-entry"
 const C8_LAYER = "engine-connector-c8-core-in-its-engine-layer"
@@ -960,17 +960,21 @@ const SUITES = [
       [`${ENGINE_CONNECTOR}/src/tools/http.test.ts`, HTTP_NAME, []],
       [`${ENGINE_CONNECTOR}/src/http.test.ts`, `${HTTP_NAME}/testing`, []],
       [`${SHELL}/src/http.test.ts`, HTTP_NAME, []],
-      // widget-shell's web sign-in (widget-shell-web-by-the-oauth-entry narrows it to ./oauth).
+      // widget-shell's web sign-in and its provider's discovery
+      // (widget-shell-oauth-by-the-oauth-entry narrows them to ./oauth); no other file of it.
       [`${SHELL}/src/web/oauth-client.ts`, `${HTTP_NAME}/oauth`, []],
+      [`${SHELL}/src/oauth-discovery-keys.ts`, `${HTTP_NAME}/oauth`, [HTTP_USERS]],
+      [`${SHELL}/src/lib/oauth-discovery.ts`, `${HTTP_NAME}/oauth`, [HTTP_USERS]],
       [`${CLI}/test/support/http.ts`, `${HTTP_NAME}/testing`, []],
       [`${C7_ADAPTER}/src/http.test.ts`, `${HTTP_NAME}/testing`, []],
       [`${SERVER}/src/http.test.ts`, HTTP_NAME, []],
     ],
   },
   {
-    rule: SHELL_WEB_HTTP,
+    rule: SHELL_OAUTH_HTTP,
     title:
-      "widget-shell's web sign-in reaches the transport by ./oauth, and its main entry by type",
+      "widget-shell's web sign-in and its provider's discovery reach the transport by ./oauth, " +
+      "and its main entry by type",
     cases: [
       // ./oauth bare (shape 3, as the repo's cruise leaves the subpath) and resolved to the build.
       [`${SHELL}/src/web/login.ts`, `${HTTP_NAME}/oauth`, []],
@@ -978,21 +982,35 @@ const SUITES = [
       [`${SHELL}/src/web/oauth-types.ts`, `${HTTP_NAME}/oauth`, [], "type"],
       // The main entry by type alone: the sign-in sends nothing through the engine transport.
       [`${SHELL}/src/web/context.ts`, HTTP_NAME, [], "type"],
-      [`${SHELL}/src/web/send.ts`, HTTP_NAME, [SHELL_WEB_HTTP]],
-      [`${SHELL}/src/web/send-built.ts`, `${HTTP_NAME}/dist/index.js`, [SHELL_WEB_HTTP]],
+      [`${SHELL}/src/web/send.ts`, HTTP_NAME, [SHELL_OAUTH_HTTP]],
+      [`${SHELL}/src/web/send-built.ts`, `${HTTP_NAME}/dist/index.js`, [SHELL_OAUTH_HTTP]],
       // Never ./testing, never a file of the package, by type neither.
-      [`${SHELL}/src/web/testing.ts`, `${HTTP_NAME}/testing`, [SHELL_WEB_HTTP, NO_TESTING]],
-      [`${SHELL}/src/web/deep.ts`, `${HTTP_NAME}/dist/oauth/token.js`, [SHELL_WEB_HTTP]],
+      [`${SHELL}/src/web/testing.ts`, `${HTTP_NAME}/testing`, [SHELL_OAUTH_HTTP, NO_TESTING]],
+      [`${SHELL}/src/web/deep.ts`, `${HTTP_NAME}/dist/oauth/token.js`, [SHELL_OAUTH_HTTP]],
       [
         `${SHELL}/src/web/deep-type.ts`,
         `${HTTP_NAME}/dist/oauth/token.js`,
-        [SHELL_WEB_HTTP],
+        [SHELL_OAUTH_HTTP],
         "type",
       ],
-      [`${SHELL}/src/web/escape.ts`, "../../../http/src/target.ts", [SHELL_WEB_HTTP, DEEP]],
-      // Its tests import what they need.
+      [`${SHELL}/src/web/escape.ts`, "../../../http/src/target.ts", [SHELL_OAUTH_HTTP, DEEP]],
+      // The provider's discovery alike: ./oauth (bare and built), the main entry by type alone
+      // (here resolved to the build; one case per specifier and file).
+      [`${SHELL}/src/oauth-discovery.ts`, `${HTTP_NAME}/oauth`, []],
+      [`${SHELL}/src/oauth-discovery.ts`, `${HTTP_NAME}/dist/oauth/index.js`, []],
+      [`${SHELL}/src/oauth-discovery.ts`, `${HTTP_NAME}/dist/index.js`, [], "type"],
+      [`${SHELL}/src/oauth-discovery.ts`, HTTP_NAME, [SHELL_OAUTH_HTTP]],
+      [`${SHELL}/src/oauth-discovery.ts`, `${HTTP_NAME}/testing`, [SHELL_OAUTH_HTTP, NO_TESTING]],
+      [
+        `${SHELL}/src/oauth-discovery.ts`,
+        `${HTTP_NAME}/dist/oauth/token.js`,
+        [SHELL_OAUTH_HTTP],
+        "type",
+      ],
+      // Their tests import what they need.
       [`${SHELL}/src/web/login.test.ts`, HTTP_NAME, []],
       [`${SHELL}/src/web/fake.test.ts`, `${HTTP_NAME}/testing`, []],
+      [`${SHELL}/src/oauth-discovery.test.ts`, `${HTTP_NAME}/testing`, []],
       // The rest of widget-shell imports none of it, its gate included (http-consumers).
       [`${SHELL}/src/oauth-gate.ts`, `${HTTP_NAME}/oauth`, [HTTP_USERS]],
       [`${SHELL}/src/oauth-types.ts`, HTTP_NAME, [HTTP_USERS], "type"],

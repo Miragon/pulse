@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import type { Platform } from "@miragon/pulse-http"
-import { startFakeOidc, type FakeOidc } from "../testing/oidc/index.js"
-import { DISCOVERY_HOLD_MS, metadataSource } from "./discovery.js"
+import { DISCOVERY_HOLD_MS, metadataSource } from "./oauth-discovery.js"
+import { startFakeOidc, type FakeOidc } from "./testing/oidc/index.js"
 
 const ISSUER = "https://idp.example.test/realms/pulse"
 const OIDC_URL = `${ISSUER}/.well-known/openid-configuration`

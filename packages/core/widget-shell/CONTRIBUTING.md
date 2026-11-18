@@ -152,21 +152,23 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   by `ended.ts` (the ids of the sessions signed out at this replica until their seal expires, in
   memory, at most 100,000) or by the browser's ended cookie, and revokes the refused session's
   refresh token behind its answer, once per token at a replica (`ended.ts` keeps their digests),
-  a failure only logged. `discovery.ts` reads the provider's
-  metadata on the first sign-in and holds it
-  for an hour; `separation.ts` keeps the session cookie off `/mcp` (the gate's 401 and challenge,
-  `gateChallenge`) and a bearer off `/app` (400), and `installWebSignIn` answers every route under
-  `/app` with the headers of `security-headers.ts` (the page's CSP, nosniff, no referrer, COOP and
-  CORP same-origin, HSTS on an https `MCP_URL`), `no-store` unless the answer names a cache policy
-  of its own. `static.ts` reads the web build once at boot (`readWebBuild`: regular files inside
+  a failure only logged. The provider's metadata comes from its one discovery at a replica
+  (`src/oauth-discovery.ts`, beside `src/web`): read on the first sign-in, held for an hour, and
+  another hour after a failed re-read, which the log says once (stale-if-error); a failure before
+  the first metadata holds for nothing, and the source never rejects. `separation.ts` keeps the
+  session cookie off `/mcp` (the gate's 401 and challenge, `gateChallenge`) and a bearer off
+  `/app` (400), and `installWebSignIn` answers every route under `/app` with the headers of
+  `security-headers.ts` (the page's CSP, nosniff, no referrer, COOP and CORP same-origin, HSTS on
+  an https `MCP_URL`), `no-store` unless the answer names a cache policy of its own.
+  `static.ts` reads the web build once at boot (`readWebBuild`: regular files inside
   the folder, a link out fails the boot, `pages.json`'s page routes checked, each asset keyed by the
   path a browser requests for its name, each text asset over 1 KiB compressed once with brotli and
   gzip, an encoding kept only where it is smaller) and serves it (`installWebBuild`: the assets
   immutable, in the encoding `Accept-Encoding` takes first of br and gzip, else as the file is, with
   `Vary: Accept-Encoding`, an `ETag` per encoding and 304 on it, whole whatever a `Range` asks; the
   signed-out page, each page behind the sign-in, which returns to it with its query). The sign-in
-  sends through `@miragon/pulse-http/oauth` and imports the transport's main entry by type alone
-  (`widget-shell-web-by-the-oauth-entry`). Its rules: `readWebSettings` reads the
+  and the discovery send through `@miragon/pulse-http/oauth` and import the transport's main entry
+  by type alone (`widget-shell-oauth-by-the-oauth-entry`). Its rules: `readWebSettings` reads the
   `MCP_WEB_*` variables (`MCP_WEB_CLIENT_ID` turns the web app on; it needs the server's OAuth
   provider, a client secret, session keys of at least 32 bytes, an https `MCP_URL`, plain http
   only on localhost, and a web build's folder, the root's `web.dir` or `MCP_WEB_DIR`) and logs
@@ -183,8 +185,9 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   header and the codes both halves read are `src/protocol/web.ts`, exported from `./widgets`. The
   seal, the cookies, the return path, the CSRF check, the forward, the renewal, the served build,
   the security headers, the signed-out sessions (`ended.ts`), the session (`session.ts`), the
-  sign-out and the session route are mutated nightly (StrykerJS, break 90, `src/web`'s suites
-  alone); `src/web` keeps a coverage floor of 100.
+  sign-out, the session route and the provider's discovery are mutated nightly (StrykerJS, break
+  90, `src/web`'s and the OAuth suites alone); `src/web` and the discovery keep a coverage
+  floor of 100.
 - **Fake identity provider** (`./testing/oidc`): `startFakeOidc(options)` starts an OpenID
   Connect provider on a loopback port with Keycloak's paths, so the boot's Keycloak provider
   (`MCP_OAUTH_KEYCLOAK_SERVER_URL` its `serverUrl`, `MCP_OAUTH_KEYCLOAK_REALM` its `realm`)

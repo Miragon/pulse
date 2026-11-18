@@ -427,9 +427,11 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
         "of its cookies, the cookies, the return path, the CSRF check, the forward of a page's " +
         "call, the token's renewal, the served build, the security headers, the sessions signed " +
         "out, the session's opening and refusal, the sign-out, the session route) guard every " +
-        "session and every call of the web app, and the gate's JWT verifier (src/oauth-jwt.ts) " +
-        "decides which bearer token /mcp takes, so a surviving mutant there is a security hole; " +
-        "only those thirteen files are mutated, not the boot, the view runtime or the other routes",
+        "session and every call of the web app, the gate's JWT verifier (src/oauth-jwt.ts) " +
+        "decides which bearer token /mcp takes and the identity provider's discovery " +
+        "(src/oauth-discovery.ts) where the sign-in sends its secrets, so a surviving mutant there " +
+        "is a security hole; only those fourteen files are mutated, not the boot, the view " +
+        "runtime or the other routes",
     )
     assert.equal(
       MUTATED_PACKAGES[c8Core],
@@ -469,7 +471,7 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
     ])
   })
 
-  it("widget-shell's config mutates exactly the web app's twelve rule files and the JWT verifier, as its reason says", () => {
+  it("widget-shell's config mutates exactly the web app's twelve rule files, the JWT verifier and the discovery, as its reason says", () => {
     const config = JSON.parse(
       readFileSync(path.join(repoRoot, "packages/core/widget-shell/stryker.config.json"), "utf8"),
     )
@@ -487,6 +489,7 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
       "src/web/logout.ts",
       "src/web/session-route.ts",
       "src/oauth-jwt.ts",
+      "src/oauth-discovery.ts",
     ])
   })
 

@@ -388,25 +388,28 @@ const HTTP_LOOPBACK = `^${escapeRegExp(HTTP.tree)}/src/testing/loopback/`
  * its closed world narrows the edge: the C7 adapter's to its wire, src/engine-rest/http, and the
  * transport's main entry), a connector's src/lib/engine, where it builds each engine's transport
  * once at boot behind resolveEngine/withEngine (keyed by the role, so a new family's connector
- * inherits it), and widget-shell's src/web, the MCP server's web sign-in, which runs the OAuth
- * client protocol of ./oauth against the server's own identity provider
- * (widget-shell-web-by-the-oauth-entry narrows it to that entry). Not a connector's tools, data
- * builders or widgets: a transport built there would bypass the routing and the credential of
- * invariant 2. Never the MCP server app's shipped code: it composes connectors. Tests import it
- * anywhere, as they do the profile format.
+ * inherits it), and in widget-shell the MCP server's web sign-in (src/web) and the one discovery
+ * of the server's own identity provider (src/oauth-discovery.ts), which run the OAuth client
+ * protocol of ./oauth against that provider (widget-shell-oauth-by-the-oauth-entry narrows both to
+ * that entry). Not a connector's tools, data builders or widgets: a transport built there would
+ * bypass the routing and the credential of invariant 2. Never the MCP server app's shipped code: it
+ * composes connectors. Tests import it anywhere, as they do the profile format.
  */
-const SHELL_WEB = "^packages/core/widget-shell/src/web/"
+const SHELL_OAUTH = [
+  "^packages/core/widget-shell/src/web/",
+  "^packages/core/widget-shell/src/oauth-discovery[.]ts$",
+]
 const HTTP_USERS = [
   "^apps/cli/src/(?:http|auth|operation)/",
   "^packages/connectors/[^/]+/[^/]+-adapter/src/",
   "^packages/connectors/[^/]+/[^/]+-connector/src/lib/engine/",
-  SHELL_WEB,
+  ...SHELL_OAUTH,
 ]
 
 /**
  * The transport's two entries as an import reaches them: resolved through the importer's
  * node_modules to the build (shape 2) or bare and unresolved (shape 3). widget-shell's web
- * sign-in imports ./oauth and the main entry's types alone.
+ * sign-in and its provider's discovery import ./oauth and the main entry's types alone.
  */
 const HTTP_OAUTH_ENTRY = [
   `(^|/)node_modules/${escapeRegExp(HTTP.name)}/dist/oauth/index[.](js|d[.]ts)$`,
@@ -1259,12 +1262,14 @@ module.exports = {
         "layers (apps/cli/src/http, src/auth, src/operation), the src of a family's adapter of " +
         "the runtime view (packages/connectors/<family>/<family>-adapter, which the editor hosts " +
         "bundle), a connector's src/lib/engine, where it builds " +
-        "each engine's transport behind resolveEngine/withEngine, and widget-shell's src/web, " +
-        "the web app's sign-in through the server's own provider " +
-        "(widget-shell-web-by-the-oauth-entry), and by tests anywhere. Not a " +
+        "each engine's transport behind resolveEngine/withEngine, and in widget-shell src/web, " +
+        "the web app's sign-in through the server's own provider, and src/oauth-discovery.ts, " +
+        "that provider's one discovery (widget-shell-oauth-by-the-oauth-entry), and by tests " +
+        "anywhere. Not a " +
         "connector's tools, data builders or widgets (they would bypass that routing), not the " +
-        "MCP server app's shipped code (it composes connectors, which send), no other part of " +
-        "widget-shell (its gate verifies the server's own OAuth with jose) and no " +
+        "MCP server app's shipped code (it composes connectors, which send), no other file of " +
+        "widget-shell (its gate verifies tokens with jose, and what any of it needs of the " +
+        "provider's discovery it reads through src/oauth-discovery.ts) and no " +
         "other foundation package, no " +
         "client and no family core (leaves). A relative escape into packages/core/http is a " +
         "violation too.",
@@ -1279,25 +1284,27 @@ module.exports = {
       to: { path: [`^${escapeRegExp(HTTP.tree)}/`, ...npm(escapeRegExp(HTTP.name))] },
     },
     {
-      name: "widget-shell-web-by-the-oauth-entry",
+      name: "widget-shell-oauth-by-the-oauth-entry",
       severity: "error",
       comment:
-        "widget-shell's web sign-in (src/web) runs the OAuth client protocol of " +
+        "widget-shell's web sign-in (src/web) and the one discovery of the server's own " +
+        "identity provider (src/oauth-discovery.ts) run the OAuth client protocol of " +
         "@miragon/pulse-http/oauth (discovery, PKCE, the authorization request and its callback, " +
-        "the token endpoint, revocation, the end of a session) and imports the main entry by type " +
-        "alone (Platform): it sends nothing through the engine transport, so a server bundles no " +
+        "the token endpoint, revocation, the end of a session) and import the main entry by type " +
+        "alone (Platform): they send nothing through the engine transport, so a server bundles no " +
         "more of the package than its OAuth client. Never ./testing, never a file of the " +
-        "package by path. Its tests import anything.",
-      from: { path: SHELL_WEB, pathNot: SRC_TEST_CODE },
+        "package by path. Their tests import anything.",
+      from: { path: SHELL_OAUTH, pathNot: SRC_TEST_CODE },
       to: { path: HTTP_ANY, pathNot: HTTP_OAUTH_ENTRY, dependencyTypesNot: ["type-only"] },
     },
     {
-      name: "widget-shell-web-by-the-oauth-entry",
+      name: "widget-shell-oauth-by-the-oauth-entry",
       severity: "error",
       comment:
-        "widget-shell's web sign-in (src/web) reaches @miragon/pulse-http by its ./oauth entry " +
-        "and, by type, its main entry: not a type of another subpath or of a file of the package.",
-      from: { path: SHELL_WEB, pathNot: SRC_TEST_CODE },
+        "widget-shell's web sign-in (src/web) and its provider's discovery " +
+        "(src/oauth-discovery.ts) reach @miragon/pulse-http by its ./oauth entry and, by type, " +
+        "its main entry: not a type of another subpath or of a file of the package.",
+      from: { path: SHELL_OAUTH, pathNot: SRC_TEST_CODE },
       to: {
         path: HTTP_ANY,
         pathNot: [...HTTP_OAUTH_ENTRY, ...HTTP_MAIN_ENTRY],

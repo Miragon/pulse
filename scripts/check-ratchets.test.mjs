@@ -629,7 +629,10 @@ describe("vitest coverage thresholds: glob keys, perFile, the 100 shorthand, cou
   it("reads every real config without a project or an unreadable shape, and a glob floor only where one is named", () => {
     const FULL = { statements: 100, branches: 100, functions: 100, lines: 100 }
     const GLOB_FLOORS = {
-      "packages/core/widget-shell/vitest.config.ts": { "src/web/**": FULL },
+      "packages/core/widget-shell/vitest.config.ts": {
+        "src/web/**": FULL,
+        "src/oauth-discovery.ts": FULL,
+      },
     }
     for (const rel of ["vitest.shared.ts", ...REAL_VITEST_CONFIGS]) {
       const text = readFileSync(rel, "utf8")
