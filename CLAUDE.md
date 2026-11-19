@@ -1438,8 +1438,9 @@ workspace (its header lists each check).
   (`.github/workflows/publish-vscode-extension.yml`): packaged without credentials, published
   to the Visual Studio Marketplace and Open VSX from one job in the `vscode-marketplace`
   environment that builds nothing, by trusted publishing on both stores (`vsce publish --oidc`,
-  `ovsx publish --trusted-publishing`): no store token and no secret, bound to the calling file
-  `release-please.yml` and that environment (the registered values: the workflow's header).
+  `ovsx publish --trusted-publishing`): no store token and no secret, bound to that environment
+  and, on Open VSX, to the calling file `release-please.yml`, on the Marketplace to the called
+  file `publish-vscode-extension.yml` (the registered values: the called workflow's header).
 - **The Orca plugin ships into Miragon's Orca catalog, never through npm**
   (`.github/workflows/publish-orca-plugin.yml`): Orca installs a plugin from committed files,
   pinned to a commit and the hash of its files, so the built folder lives in

@@ -444,14 +444,16 @@ export function checkReleaseExtraFiles(config, packages, { fileExists = () => tr
  * spreads every array over lines. A file prettier formats otherwise (an array on one line) fails
  * `format:check` on the Release PR and blocks it, as it did on 0.28.0's. prettier keeps a file in
  * that form under its `json-stringify` parser, which it gives every `package.json` by itself and
- * any other file by an override in `.prettierrc.json`. `readText` returns a file's text, or
- * undefined for one that does not exist (checkReleaseExtraFiles names it).
+ * any other file by an override in `.prettierrc.json`. A plain string entry that ends in
+ * `.json` goes through the same updater, so it counts as a json entry. `readText` returns a
+ * file's text, or undefined for one that does not exist (checkReleaseExtraFiles names it).
  */
 export function checkJsonExtraFileForm(config, readText) {
   const files = new Set(
-    asList(config?.packages?.["."]?.["extra-files"])
-      .filter((entry) => entry?.type === "json" && typeof entry.path === "string")
-      .map((entry) => entry.path),
+    asList(config?.packages?.["."]?.["extra-files"]).flatMap((entry) => {
+      if (typeof entry === "string") return entry.endsWith(".json") ? [entry] : []
+      return entry?.type === "json" && typeof entry.path === "string" ? [entry.path] : []
+    }),
   )
   const errors = []
   for (const file of [...files].sort()) {
@@ -756,7 +758,8 @@ function checkOrcaPublishStep(at, job, step) {
 
 /**
  * The one environment whose job holds the trusted-publishing token (id-token). Both stores bind
- * their trusted publisher to it and to the caller's file name, release-please.yml.
+ * their trusted publisher to it, Open VSX also to the caller's file name, release-please.yml, and
+ * the Marketplace to the called file's, publish-vscode-extension.yml.
  */
 export const VSCODE_ENVIRONMENT = "vscode-marketplace"
 /** The directories the Resolve extension step of the workflow accepts. */

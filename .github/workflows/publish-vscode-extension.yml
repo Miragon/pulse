@@ -17,6 +17,18 @@ name: Publish VS Code extension
 # Every release publishes a plain release, never a pre-release. --skip-duplicate makes a re-run
 # after a partial failure publish only what is missing. scripts/check-github-config.mjs
 # (`pnpm lint:github`) pins its credential shape.
+#
+# The trusted publishers the two stores hold for this repository (a rename of either workflow
+# file or of the environment breaks them until the store is updated):
+#   Visual Studio Marketplace  publisher miragon-gmbh, a Trusted Publishing policy with owner
+#                              Miragon, repository pulse, workflow publish-vscode-extension.yml
+#                              (THIS file: the Marketplace matches the file the publish job runs
+#                              in, the token's job_workflow_ref) and environment
+#                              vscode-marketplace.
+#   Open VSX                   miragon-gmbh/pulse-cockpit, a trusted publisher with owner Miragon,
+#                              repository pulse, workflow release-please.yml (the caller: Open VSX
+#                              matches the token's workflow_ref) and environment
+#                              vscode-marketplace.
 on:
   workflow_call:
     inputs:
