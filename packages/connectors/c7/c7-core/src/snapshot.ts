@@ -6,6 +6,7 @@
 
 import { incidentRecovery } from "./incident-recovery.js"
 import { nextSteps } from "./next.js"
+import { isRootIncident } from "./root-incident.js"
 import {
   compareText,
   compareTime,
@@ -82,10 +83,6 @@ function header(data: InstanceData) {
   }
 }
 
-function isRoot(incident: Rec): boolean {
-  return str(incident, "id") === str(incident, "rootCauseIncidentId")
-}
-
 function incidentView(data: InstanceData, incident: Rec): IncidentView {
   const id = field(incident, "id")
   const type = field(incident, "incidentType")
@@ -117,7 +114,7 @@ function incidentView(data: InstanceData, incident: Rec): IncidentView {
 /** The open root cause incidents of the tree, by time and id. */
 export function rootIncidents(incidents: readonly Rec[]): Rec[] {
   return incidents
-    .filter(isRoot)
+    .filter(isRootIncident)
     .toSorted(
       (left, right) =>
         compareTime(str(left, "incidentTimestamp"), str(right, "incidentTimestamp")) ||
@@ -152,7 +149,7 @@ function children(data: InstanceData): ChildView[] {
 /** The instance view of the loaded data. */
 export function instanceView(data: InstanceData): InstanceView {
   const active = data.runtime !== undefined
-  const propagated = data.incidents.filter((incident) => !isRoot(incident)).length
+  const propagated = data.incidents.filter((incident) => !isRootIncident(incident)).length
   const view = {
     ...header(data),
     waitingAt: active ? waitStates(data) : [],

@@ -63,6 +63,47 @@ describe("retrying an incident", () => {
     expect(engine.requests[1]?.body).toBe('{"retries":1}')
   })
 
+  test("retries the root incident a copied incident stands for, by c7-core's root rule", async () => {
+    const root = "993d2802-cd91-11f1-9c88-32e5612dd01b"
+    const getRoot = `GET /incident/${root}`
+    const { commands, engine } = fakeCommands([
+      { route: GET_INCIDENT, answer: { id: INCIDENT, rootCauseIncidentId: root } },
+      {
+        route: getRoot,
+        answer: {
+          id: root,
+          rootCauseIncidentId: root,
+          incidentType: "failedJob",
+          configuration: JOB,
+        },
+      },
+      { route: RETRY_JOB, answer: NO_CONTENT },
+    ])
+
+    await commands.retryIncident(INCIDENT)
+
+    expect(engine.requests.map((request) => request.route)).toEqual([
+      GET_INCIDENT,
+      getRoot,
+      RETRY_JOB,
+    ])
+  })
+
+  test.each([
+    ["names no root incident", { id: INCIDENT }],
+    ["names an empty root incident", { id: INCIDENT, rootCauseIncidentId: "" }],
+    ["names no root incident and carries no id of its own", {}],
+  ])("retries an incident that %s as a root, its own job", async (_kind, ids) => {
+    const { commands, engine } = fakeCommands([
+      { route: GET_INCIDENT, answer: { ...ids, incidentType: "failedJob", configuration: JOB } },
+      { route: RETRY_JOB, answer: NO_CONTENT },
+    ])
+
+    await commands.retryIncident(INCIDENT)
+
+    expect(engine.requests.map((request) => request.route)).toEqual([GET_INCIDENT, RETRY_JOB])
+  })
+
   test("is rejected when the engine retried nothing", async () => {
     const { commands } = fakeCommands([incidentOf("failedStartEvent")])
 

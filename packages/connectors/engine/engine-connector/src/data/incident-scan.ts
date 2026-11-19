@@ -6,12 +6,12 @@ import {
   latestEngineDate,
   mapLimit,
   PARALLEL,
+  rootIdOfCopy,
 } from "@miragon/pulse-c7-core"
 import { getIncident, getIncidents, getProcessInstances } from "@miragon/pulse-c7-client/sdk"
 import type { IncidentInstance, IncidentRootCause } from "../view-models.js"
 import type { EngineProvider } from "../engine-provider.js"
 import { buildInstanceCockpitUrl } from "../lib/engine/cockpit-url.js"
-import { isRootIncident } from "./cluster-scan.js"
 import {
   definitionVersionFromId,
   elementNameIn,
@@ -156,14 +156,11 @@ export async function fetchRootCauses(
   client: Client,
   rows: ReadonlyArray<{ id?: string | null; rootCauseIncidentId?: string | null }>,
 ): Promise<Map<string, IncidentRootCause>> {
-  const copies = rows.filter(
-    (row): row is { id: string; rootCauseIncidentId: string } =>
-      !!row.id && !!row.rootCauseIncidentId && !isRootIncident(row),
-  )
-  const rootIds = [...new Set(copies.map((row) => row.rootCauseIncidentId))].slice(
-    0,
-    ROOT_CAUSE_READS,
-  )
+  const copies = rows.flatMap((row) => {
+    const rootId = rootIdOfCopy(row)
+    return row.id && rootId !== undefined ? [{ id: row.id, rootId }] : []
+  })
+  const rootIds = [...new Set(copies.map((copy) => copy.rootId))].slice(0, ROOT_CAUSE_READS)
   if (rootIds.length === 0) return new Map()
   const read = await mapLimit(rootIds, PARALLEL, (id) =>
     optional(getIncident({ client, path: { id } }) as Promise<RawRootIncident>),
@@ -190,7 +187,7 @@ export async function fetchRootCauses(
   )
   return new Map(
     copies.flatMap((copy) => {
-      const root = byRoot.get(copy.rootCauseIncidentId)
+      const root = byRoot.get(copy.rootId)
       return root ? [[copy.id, root] as const] : []
     }),
   )

@@ -1,5 +1,11 @@
 import type { Client } from "@miragon/pulse-c7-client"
-import { causeKeyOf, latestEngineDate, toEngineDate } from "@miragon/pulse-c7-core"
+import {
+  causeKeyOf,
+  isRootIncident,
+  latestEngineDate,
+  rootIdOfCopy,
+  toEngineDate,
+} from "@miragon/pulse-c7-core"
 import { getIncidentsCount } from "@miragon/pulse-c7-client/sdk"
 import type {
   IncidentCauseScope,
@@ -20,7 +26,6 @@ import {
   type KeyStats,
   type NamesByDefinition,
 } from "./definition-info.js"
-import { isRootIncident } from "./cluster-scan.js"
 import { countOf, DAY_MS } from "./engine-reads.js"
 import {
   groupBy,
@@ -132,8 +137,8 @@ function activityGroups(scanned: IncidentRow[]): IncidentRow[][] {
 function rootIncidentsIn(rows: IncidentRow[]): (row: IncidentRow) => IncidentRow | null {
   const byId = new Map(rows.map((r) => [r.id, r]))
   return (row) => {
-    const root = row.rootCauseIncidentId
-    return root && root !== row.id ? (byId.get(root) ?? null) : null
+    const rootId = rootIdOfCopy(row)
+    return rootId === undefined ? null : (byId.get(rootId) ?? null)
   }
 }
 

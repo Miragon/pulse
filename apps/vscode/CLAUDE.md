@@ -195,8 +195,9 @@ in a text goes in through them too (`Labels.count`, `CountLabels.exact`), and th
 date and number gates keep `Intl`, `toFixed` and a locale-less `toLocaleString()` out of core,
 webview and the board format, which writes its counts in plain digits. A change to how an
 instance is inspected, where it waits, which incident types the engine raises itself
-(`BUILT_IN_INCIDENT_TYPES`), what an incident's retry retries (`incidentRecovery`), which request
-holds its cause (`CAUSE_OPERATIONS`), how a written variable is typed (`autoTypedValue`,
+(`BUILT_IN_INCIDENT_TYPES`), which incident is a root incident (`isRootIncident`, `rootIdOfCopy`),
+what an incident's retry retries (`incidentRecovery`), which request holds its cause
+(`CAUSE_OPERATIONS`), how a written variable is typed (`autoTypedValue`,
 `toEngineVariable`) or when a 404 names a missing resource (`isMissing`) goes into c7-core, one to
 what its root cause is into engine-core's `RootCauses` (`RootCauses.of`, `RootCauses.lineOf`,
 which c7-core applies too), never into a copy; the instance detail reads c7-core's instance view,

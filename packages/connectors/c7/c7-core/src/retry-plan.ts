@@ -7,6 +7,7 @@ import { WorkflowError } from "./errors.js"
 import { type IncidentRecovery, incidentRecovery } from "./incident-recovery.js"
 import type { PlannedWrite } from "./port.js"
 import { compareText, compareTime, field, type Rec, str } from "./records.js"
+import { isRootIncident, rootIdOfCopy } from "./root-incident.js"
 import type { Selection } from "./types.js"
 import { compact } from "./util.js"
 
@@ -48,16 +49,10 @@ export interface PlanEntry {
   readonly action: "job" | "externalTask" | "skip"
 }
 
-function isRoot(incident: Rec): boolean {
-  return str(incident, "id") === str(incident, "rootCauseIncidentId")
-}
-
 /** Root cause ids of propagated incidents that were not loaded. */
 export function missingRoots(incidents: readonly Rec[]): string[] {
   const loaded = new Set(incidents.map((incident) => str(incident, "id")))
-  const roots = incidents.flatMap((incident) =>
-    isRoot(incident) ? [] : (str(incident, "rootCauseIncidentId") ?? []),
-  )
+  const roots = incidents.flatMap((incident) => rootIdOfCopy(incident) ?? [])
   return [...new Set(roots)].filter((id) => !loaded.has(id)).sort(compareText)
 }
 
@@ -104,9 +99,10 @@ export function planRetry(incidents: readonly Rec[], filter: RetryFilter): PlanE
   const byId = new Map(incidents.map((incident) => [str(incident, "id"), incident]))
   const roots = new Map<string, Rec>()
   for (const incident of incidents) {
-    const root = isRoot(incident) ? incident : byId.get(str(incident, "rootCauseIncidentId"))
+    const rootId = rootIdOfCopy(incident)
+    const root = rootId === undefined ? incident : byId.get(rootId)
     const id = str(root, "id")
-    if (root !== undefined && id !== undefined && isRoot(root)) roots.set(id, root)
+    if (root !== undefined && id !== undefined && isRootIncident(root)) roots.set(id, root)
   }
   return [...roots.values()]
     .filter(

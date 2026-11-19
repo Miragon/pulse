@@ -7,8 +7,9 @@
 
 import { ElementId, type DefinitionId, type ElementStatistics } from "@miragon/pulse-engine-core"
 import type { EnginePort } from "../port.js"
+import { isRootIncident } from "../root-incident.js"
 import { engineIdOf } from "./engine-ids.js"
-import { type IncidentRow, incidentRowsOf, isRootIncident } from "./incident-rows.js"
+import { type IncidentRow, incidentRowsOf } from "./incident-rows.js"
 import { JsonView } from "./json-view.js"
 import { readAll } from "./read-all.js"
 

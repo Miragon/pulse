@@ -1,7 +1,7 @@
 /**
  * The runtime's incidents as the engine answers them (`/incident`), read through `JsonView`, so an
- * unusable one fails as `RuntimeError("unexpectedResponse")`, which of them is a root incident and
- * which job or external task one names.
+ * unusable one fails as `RuntimeError("unexpectedResponse")`, and which job or external task one
+ * names (which of them is a root incident is `isRootIncident`'s, the family's one rule).
  */
 
 import { incidentRecovery } from "../incident-recovery.js"
@@ -45,14 +45,6 @@ export function incidentRowOf(answer: unknown): IncidentRow {
 /** The incidents of a list answer. */
 export function incidentRowsOf(answer: unknown): IncidentRow[] {
   return JsonView.listOf(answer, "incidents").map((record) => incidentOf(record))
-}
-
-/**
- * Whether `incident` was raised where it is, not copied up from a called instance: it names no
- * root cause, or itself.
- */
-export function isRootIncident(incident: Pick<IncidentRow, "id" | "rootCauseIncidentId">): boolean {
-  return incident.rootCauseIncidentId === undefined || incident.rootCauseIncidentId === incident.id
 }
 
 /**

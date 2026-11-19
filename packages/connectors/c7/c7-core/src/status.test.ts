@@ -53,6 +53,18 @@ describe("groupIncidents", () => {
     })
   })
 
+  it("groups an incident without a root incident as a root, by the family's root rule", () => {
+    const grouped = groupIncidents(
+      [
+        incident("1", { rootCauseIncidentId: undefined }),
+        incident("2", { rootCauseIncidentId: "" }),
+      ],
+      [statistics("order", 1, [2, 2, 2])],
+    )
+    expect(grouped.propagated).toBe(0)
+    expect(grouped.groups.map((group) => group.count)).toEqual([2])
+  })
+
   it("groups by the family's message signature, the one the cockpit's clusters use", () => {
     const message = (incidentMessage: string) => ({ incidentMessage })
     const grouped = groupIncidents(

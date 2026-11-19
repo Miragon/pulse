@@ -907,8 +907,9 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
    - Each engine REST rule the client defaults miss has one home, used by `tools/` AND `data/`
      (and by the CLI and the C7 adapter of the editor hosts): the pure rules (`toEngineDate`, `engineSorting`, the filters,
      `toEngineVariable(s)`, `autoTypedValue`, `incidentRecovery`, `RAW_VARIABLES`, the
-     missing-resource rule `isMissing`, "with incident" `with-incident.ts`) in
-     `@miragon/pulse-c7-core`; the root cause of a failure
+     missing-resource rule `isMissing`, "with incident" `with-incident.ts`, the root incident
+     `isRootIncident` and `rootIdOfCopy`, compared nowhere else:
+     `scripts/root-incident-rule.test.mjs`) in `@miragon/pulse-c7-core`; the root cause of a failure
      text, the one rule every dialect shares, in the engine family's core,
      `@miragon/pulse-engine-core` (`RootCauses.of`, `RootCauses.lineOf`), which c7-core applies
      as `causeOf` (the root cause,
@@ -1524,9 +1525,11 @@ the board builder's and c8-core's (`scripts/xml-tag-readers.test.mjs`), that a t
 in its package holds the sorted runtime names of every published entry, since knip reports no
 entry's exports
 (`scripts/entry-lists.test.mjs`, owner decision 2026-11-11; its header names the form it reads),
-and that only the CLI's sources set
+that only the CLI's sources set
 `@miragon/pulse-http`'s `revealSecrets` (`scripts/trace-secrets.test.mjs`: a trace shows a
-request's secrets only for its `--show-secrets`, owner decision 2026-11-10). Besides the dependency-cruiser and ESLint self-tests
+request's secrets only for its `--show-secrets`, owner decision 2026-11-10) and that no code
+compares an incident's id with its `rootCauseIncidentId` outside c7-core's root rule
+(`scripts/root-incident-rule.test.mjs`, its exemptions each with a reason). Besides the dependency-cruiser and ESLint self-tests
 (invariants 8 and 1), the naming, package-scripts, ratchet, GitHub-config, CI-scope, entry-list and pack-content checks each prove
 themselves on planted violations in fixtures; the gates of the editor hosts and of the packages
 they share live in the `test/architecture` of `apps/vscode`, `apps/orca`,

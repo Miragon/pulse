@@ -19,8 +19,9 @@ bulk operation and its failures and a migration's plan and check (`C7Runtime` of
 over its port), a move's activity tree, a migration's running instances and a Stop's batch for
 the commands (`findActivityTree`, `readHistoricInstances`, `readBatchStatistics`,
 `findHistoricBatch`), which incident types the engine raises itself
-(`BUILT_IN_INCIDENT_TYPES`), which job or external task an incident names, for its retry and in
-the incident list (`incidentRecovery`), which request holds an incident's cause
+(`BUILT_IN_INCIDENT_TYPES`), which incident a retry retries, the root incident a copy stands for
+(`rootIdOfCopy`), which job or external task an incident names, for its retry and in the
+incident list (`incidentRecovery`), which request holds an incident's cause
 (`CAUSE_OPERATIONS`), how a written variable is typed (`autoTypedValue`, `toEngineVariable`), and
 what "with incident" is (an open incident the runtime holds now, `instancesWithIncident`,
 `countWithIncident`, `withIncidentAmong`), on every history level. It sends every request through

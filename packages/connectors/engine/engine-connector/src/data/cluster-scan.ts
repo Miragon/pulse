@@ -18,21 +18,13 @@ export interface IncidentLike {
   activityId?: string | null
   incidentMessage?: string | null
   incidentTimestamp?: string | null
-  /** The incident it copies (a call activity's copy of a called instance's); its own id on a root. */
+  /**
+   * The incident it copies (a call activity's copy of a called instance's); its own id on a root,
+   * which c7-core's `isRootIncident` tells. A cause is formed from root incidents alone, as
+   * c7-core's `groupIncidents` forms `engine_status`'s groups, so a failure is one cause however
+   * deep it was called; the counts keep every incident.
+   */
   rootCauseIncidentId?: string | null
-}
-
-/**
- * Whether an incident is a root cause, not a copy: Camunda 7 copies an incident of a called
- * instance to every call activity above it, which names its root in `rootCauseIncidentId`. A cause
- * is formed from root incidents alone, as c7-core's `groupIncidents` forms `engine_status`'s
- * groups, so a failure is one cause however deep it was called; the counts keep every incident.
- */
-export function isRootIncident(
-  incident: Pick<IncidentLike, "id" | "rootCauseIncidentId">,
-): boolean {
-  const root = incident.rootCauseIncidentId
-  return !root || root === incident.id
 }
 
 export interface ScanCoverage {
