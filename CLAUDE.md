@@ -756,7 +756,7 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      stroke through lucide's own `strokeWidth`, never a CSS `stroke-width` rule, which would
      beat the `LucideProvider` widget-shell's view root sets with pulse-ui's `ICON_STROKE`.
      Every package that imports `lucide-react` and every host bundle pin the SAME exact 1.x
-     devDependency (today `1.70.0`): pnpm installs a package once per peer set, so two versions
+     devDependency (today `1.73.0`): pnpm installs a package once per peer set, so two versions
      resolve a second pulse-ui and widget-shell instance and split the React contexts.
    - **Actions and hand-offs.** A view's actions are ONE group in `WidgetHeader` `actions` (the
      view's `ViewBar`, the hero only at app level with `size="app"`; the landing's one action sits
@@ -1438,8 +1438,9 @@ workspace (its header lists each check).
   (`.github/workflows/publish-vscode-extension.yml`): packaged without credentials, published
   to the Visual Studio Marketplace and Open VSX from one job in the `vscode-marketplace`
   environment that builds nothing, by trusted publishing on both stores (`vsce publish --oidc`,
-  `ovsx publish --trusted-publishing`): no store token and no secret, bound to the calling file
-  `release-please.yml` and that environment (the registered values: the workflow's header).
+  `ovsx publish --trusted-publishing`): no store token and no secret, bound to that environment
+  and, on Open VSX, to the calling file `release-please.yml`, on the Marketplace to the called
+  file `publish-vscode-extension.yml` (the registered values: the called workflow's header).
 - **The Orca plugin ships into Miragon's Orca catalog, never through npm**
   (`.github/workflows/publish-orca-plugin.yml`): Orca installs a plugin from committed files,
   pinned to a commit and the hash of its files, so the built folder lives in

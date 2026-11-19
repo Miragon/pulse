@@ -434,7 +434,7 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   number, never a palette class or raw colour; text on a tint is black (`TONE_SOFT`), the
   `-ink` role is only for text in a tone directly on the card or page (an inline error)
 - Icons: Lucide via `Icon` (`import { FileSearch } from "lucide-react"`; the package pins
-  devDependency `lucide-react` `1.70.0`, see CLAUDE.md invariant 6), never a Unicode glyph
+  devDependency `lucide-react` `1.73.0`, see CLAUDE.md invariant 6), never a Unicode glyph
   or emoji, at 16 px (`scanIconSizes` allows 16 and 24; `dense` is 12 px, the named deviation
   of D9 beside dense text and on 20 px badges, only in the files the connector's
   `brand-gates.test.ts` lists with a reason); a chat
