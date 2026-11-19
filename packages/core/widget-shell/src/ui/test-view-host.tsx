@@ -26,7 +26,7 @@ import { formatLocaleOf, isFormatLocale, usePublishedFormatLocale } from "./form
 import { HostContexts, type RequestDisplayMode } from "./host-contexts.js"
 import type { ShellHost } from "./shell-host.js"
 import { createViewQueryClient } from "./tool-query.js"
-import type { ViewHost } from "./view-host.js"
+import type { FollowUp, ViewHost } from "./view-host.js"
 
 export type HostAction =
   | { type: "callTool"; name: string; args: Record<string, unknown> }
@@ -46,6 +46,15 @@ export interface TestViewHostProps {
   onHostAction?: (action: HostAction) => void
   /** Each mounted `HostModelContext` reports its content (last writer wins). */
   onModelContext?: (text: string) => void
+  /** What a hand-off does here (`ViewHost.followUp`); default `chat`, as in a chat host. */
+  followUp?: FollowUp
+  /**
+   * Whether a view may write here (`ViewHost.writes`); default true, as in a chat host. False
+   * renders a widget as a page outside a chat shows it, with no write control.
+   */
+  writes?: boolean
+  /** The page's start page (`ViewHost.startPage`); default none, as in a chat host. */
+  startPage?: string
   /**
    * Merged over `{ connected: true, displayMode: "inline", availableDisplayModes: [] }`. Its
    * `timeZone` is the formatters' zone, as a host's is (unknown or none: the runtime's own).
@@ -100,9 +109,16 @@ function FakeModelContext({ content, children }: { content: string; children?: R
   return children
 }
 
+interface FakeHostOptions {
+  record?: (action: HostAction) => void
+  followUp?: FollowUp
+  writes?: boolean
+  startPage?: string
+}
+
 function createFakeHost(
   tools: Readonly<Record<string, unknown>> = {},
-  record: (action: HostAction) => void = () => undefined,
+  { record = () => undefined, followUp = "chat", writes = true, startPage }: FakeHostOptions,
 ): ViewHost {
   return {
     callTool: async (name, args = {}) => {
@@ -115,6 +131,9 @@ function createFakeHost(
       return toResult(value)
     },
     sendFollowUp: (prompt) => record({ type: "sendFollowUp", prompt }),
+    followUp,
+    writes,
+    startPage,
     openExternal: (url) => record({ type: "openExternal", url }),
     ModelContext: FakeModelContext,
   }
@@ -124,12 +143,18 @@ export function TestViewHost({
   tools,
   onHostAction,
   onModelContext,
+  followUp,
+  writes,
+  startPage,
   host,
   client,
   locale,
   children,
 }: TestViewHostProps) {
-  const fake = useMemo(() => createFakeHost(tools, onHostAction), [tools, onHostAction])
+  const fake = useMemo(
+    () => createFakeHost(tools, { record: onHostAction, followUp, writes, startPage }),
+    [tools, onHostAction, followUp, writes, startPage],
+  )
   const [ownClient] = useState(createTestQueryClient)
   const shell = useMemo<ShellHost>(() => ({ ...NO_HOST, ...host }), [host])
   const request = useCallback<RequestDisplayMode>(

@@ -1,0 +1,172 @@
+/**
+ * Every read of the engine contract (`ProcessRuntime` of @miragon/pulse-engine-core) for an engine
+ * of the Camunda 7 REST family, over a surface's `EnginePort`: one reader per question. A failure
+ * c7-core words itself (an unusable answer, an id no engine assigns) is a `RuntimeError` and passes
+ * as it is; every other error, its wire's, goes through the surface's `failureOf`, so each surface
+ * keeps its own words for its wire's failures. It answers every variable condition, so it refuses
+ * none (no `refusedVariableConditions`).
+ */
+
+import {
+  RuntimeError,
+  type BpmnProcessId,
+  type BulkFailure,
+  type BulkOperation,
+  type BulkOperationId,
+  type CalledProcess,
+  type DefinitionId,
+  type DefinitionSummary,
+  type ElementStatistics,
+  type EngineInfo,
+  type Incident,
+  type IncidentDetails,
+  type IncidentFilter,
+  type IncidentId,
+  type InstanceCount,
+  type InstanceDetail,
+  type InstanceFilter,
+  type InstanceId,
+  type InstanceSummary,
+  type MigrationCheck,
+  type MigrationPlan,
+  type Page,
+  type PageRequest,
+  type ProcessRuntime,
+  type VersionSummary,
+} from "@miragon/pulse-engine-core"
+import type { EnginePort } from "../port.js"
+import { BulkOperationReader } from "./bulk-operation-reader.js"
+import { CalledProcessReader } from "./called-process-reader.js"
+import { DefinitionReader } from "./definition-reader.js"
+import { ElementStatisticsReader } from "./element-statistics-reader.js"
+import { EngineReader } from "./engine-reader.js"
+import { IncidentDetailsReader } from "./incident-details-reader.js"
+import { IncidentSearch } from "./incident-search.js"
+import { InstanceDetailReader } from "./instance-detail-reader.js"
+import { InstanceSearch } from "./instance-search.js"
+import { MigrationReader } from "./migration-reader.js"
+import { VariableNameReader } from "./variable-name-reader.js"
+
+/** How a surface takes part in the runtime's reads. */
+export interface C7RuntimeOptions {
+  /**
+   * The contract's failure of an error that is no `RuntimeError`, such as a failure of the
+   * surface's wire, in the surface's words.
+   */
+  readonly failureOf: (error: unknown) => RuntimeError
+}
+
+interface C7Readers {
+  readonly engine: EngineReader
+  readonly definitions: DefinitionReader
+  readonly statistics: ElementStatisticsReader
+  readonly calls: CalledProcessReader
+  readonly instances: InstanceSearch
+  readonly variableNames: VariableNameReader
+  readonly instanceDetails: InstanceDetailReader
+  readonly incidents: IncidentSearch
+  readonly incidentDetails: IncidentDetailsReader
+  readonly bulkOperations: BulkOperationReader
+  readonly migrations: MigrationReader
+}
+
+/** The reads of the engine contract over the port of an engine of the Camunda 7 REST family. */
+export class C7Runtime implements ProcessRuntime {
+  private constructor(
+    private readonly readers: C7Readers,
+    private readonly options: C7RuntimeOptions,
+  ) {}
+
+  /** The runtime over `port`, a surface's wire whose failures `options.failureOf` words. */
+  static over(port: EnginePort, options: C7RuntimeOptions): C7Runtime {
+    const definitions = new DefinitionReader(port)
+    return new C7Runtime(
+      {
+        engine: new EngineReader(port),
+        definitions,
+        statistics: new ElementStatisticsReader(port),
+        calls: new CalledProcessReader(port),
+        instances: new InstanceSearch(port),
+        variableNames: new VariableNameReader(port),
+        instanceDetails: new InstanceDetailReader(port),
+        incidents: new IncidentSearch(port, definitions),
+        incidentDetails: new IncidentDetailsReader(port),
+        bulkOperations: new BulkOperationReader(port),
+        migrations: new MigrationReader(port),
+      },
+      options,
+    )
+  }
+
+  describeEngine(): Promise<EngineInfo> {
+    return this.answered(() => this.readers.engine.describe())
+  }
+
+  listDefinitions(): Promise<readonly DefinitionSummary[]> {
+    return this.answered(() => this.readers.definitions.list())
+  }
+
+  listVersions(bpmnProcessId: BpmnProcessId): Promise<readonly VersionSummary[]> {
+    return this.answered(() => this.readers.definitions.versions(bpmnProcessId))
+  }
+
+  getDiagramXml(definitionId: DefinitionId): Promise<string | undefined> {
+    return this.answered(() => this.readers.definitions.diagramXml(definitionId))
+  }
+
+  getElementStatistics(definitionId: DefinitionId): Promise<readonly ElementStatistics[]> {
+    return this.answered(() => this.readers.statistics.of(definitionId))
+  }
+
+  getCalledProcesses(definitionId: DefinitionId): Promise<readonly CalledProcess[]> {
+    return this.answered(() => this.readers.calls.read(definitionId))
+  }
+
+  searchInstances(filter: InstanceFilter, page: PageRequest): Promise<Page<InstanceSummary>> {
+    return this.answered(() => this.readers.instances.search(filter, page))
+  }
+
+  countInstances(filter: InstanceFilter): Promise<InstanceCount> {
+    return this.answered(async () => ({ count: await this.readers.instances.count(filter) }))
+  }
+
+  listVariableNames(definitionId: DefinitionId): Promise<readonly string[]> {
+    return this.answered(() => this.readers.variableNames.names(definitionId))
+  }
+
+  getInstanceDetail(instanceId: InstanceId): Promise<InstanceDetail | undefined> {
+    return this.answered(() => this.readers.instanceDetails.read(instanceId))
+  }
+
+  searchIncidents(filter: IncidentFilter, page: PageRequest): Promise<Page<Incident>> {
+    return this.answered(() => this.readers.incidents.search(filter, page))
+  }
+
+  getIncidentDetails(incidentId: IncidentId): Promise<IncidentDetails | undefined> {
+    return this.answered(() => this.readers.incidentDetails.read(incidentId))
+  }
+
+  getBulkOperation(bulkOperationId: BulkOperationId): Promise<BulkOperation | undefined> {
+    return this.answered(() => this.readers.bulkOperations.read(bulkOperationId))
+  }
+
+  getBulkFailures(bulkOperationId: BulkOperationId): Promise<readonly BulkFailure[]> {
+    return this.answered(() => this.readers.bulkOperations.failures(bulkOperationId))
+  }
+
+  proposeMigration(source: DefinitionId, target: DefinitionId): Promise<MigrationPlan> {
+    return this.answered(() => this.readers.migrations.proposal(source, target))
+  }
+
+  checkMigration(plan: MigrationPlan): Promise<MigrationCheck> {
+    return this.answered(() => this.readers.migrations.check(plan))
+  }
+
+  private async answered<Result>(read: () => Promise<Result>): Promise<Result> {
+    try {
+      return await read()
+    } catch (error: unknown) {
+      throw RuntimeError.is(error) ? error : this.options.failureOf(error)
+    }
+  }
+}

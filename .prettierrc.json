@@ -6,7 +6,7 @@
   "plugins": ["prettier-plugin-tailwindcss"],
   "overrides": [
     {
-      "files": "**/.claude-plugin/*.json",
+      "files": ["**/.claude-plugin/*.json", "apps/orca/orca-plugin.json"],
       "options": { "parser": "json-stringify" }
     },
     {
@@ -14,10 +14,17 @@
         "apps/vscode/**",
         "apps/orca/**",
         "packages/core/runtime-view/**",
-        "packages/connectors/c7/c7-adapter/**"
+        "packages/connectors/*/*-adapter/**"
       ],
       "options": {
         "plugins": []
+      }
+    },
+    {
+      "files": "packages/core/runtime-view/src/webview/**",
+      "options": {
+        "plugins": ["prettier-plugin-tailwindcss"],
+        "tailwindPreserveWhitespace": true
       }
     }
   ]

@@ -17,17 +17,19 @@ import { TestViewHost, type QueryClient } from "@miragon/pulse-widget-shell/widg
 
 /**
  * `client` is the test's, so it can wait for the gate feed to settle; `readOnlyEngines` the
- * engines the feed names read-only (every site writes to "prod").
+ * engines the feed names read-only (every site writes to "prod"); `writes` false renders the site
+ * as a page outside a chat shows it, a host that writes nothing (`useHostWrites`).
  */
 type Renderer = (
   allowedActions: readonly string[],
   client: QueryClient,
   readOnlyEngines?: readonly string[],
+  writes?: boolean,
 ) => ReactElement
 
 function host(
   widget: ComponentType<Record<string, unknown>>,
-  [allowedActions, client, readOnlyEngines = []]: Parameters<Renderer>,
+  [allowedActions, client, readOnlyEngines = [], writes = true]: Parameters<Renderer>,
   data?: unknown,
 ): ReactElement {
   return (
@@ -39,6 +41,7 @@ function host(
         },
       }}
       client={client}
+      writes={writes}
     >
       {createElement(widget, data === undefined ? {} : { data })}
     </TestViewHost>

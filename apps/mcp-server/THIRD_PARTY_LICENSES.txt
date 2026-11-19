@@ -74,12 +74,14 @@ Works of others in the view bundle:
 
 Pulse's own packages in the view bundle, under the MIT licence in LICENSE:
 
+  @miragon/pulse-blocks
   @miragon/pulse-engine-connector
   @miragon/pulse-ui
   @miragon/pulse-widget-shell
 
 Node.js is not listed: the image runs the one of its base image, with its licence in
-/usr/local/LICENSE.
+/usr/local/LICENSE. The web app's page (/app/web), which the server serves under /app, lists
+the works it holds in /usr/share/doc/pulse-server/web/THIRD_PARTY_LICENSES.txt.
 
 ================================================================================
 @modelcontextprotocol/client 2.4.0

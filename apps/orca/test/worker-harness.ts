@@ -1,8 +1,9 @@
-import { mkdtemp, writeFile } from "node:fs/promises"
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import { vi } from "vitest"
 import type { PanelCaller } from "orca/worker"
+import { UserConfigLocation } from "@miragon/pulse-runtime-view/host-kit"
 import { CompositionRoot } from "../src/worker/composition-root.js"
 import { FakeAdapter } from "./fake-adapter.js"
 import { FakeOrca, PULSE_PANEL } from "./fake-orca.js"
@@ -22,7 +23,10 @@ export class WorkerHarness {
   readonly orca = new FakeOrca()
   readonly adapter = new FakeAdapter()
 
-  private constructor(readonly root: string) {
+  private constructor(
+    readonly root: string,
+    readonly configHome: string,
+  ) {
     this.orca.hostAnswers = {
       "workspace.list": {
         workspaces: [{ id: "shop", name: "shop", path: root, branch: "main", hostId: null }],
@@ -30,10 +34,14 @@ export class WorkerHarness {
       "secrets.protection": { status: "os-keyring" },
     }
     vi.spyOn(CompositionRoot, "create").mockReturnValue(this.adapter.root())
+    this.nameUserConfig(undefined)
   }
 
   static async empty(): Promise<WorkerHarness> {
-    return new WorkerHarness(await mkdtemp(join(tmpdir(), "pulse-orca-")))
+    return new WorkerHarness(
+      await mkdtemp(join(tmpdir(), "pulse-orca-")),
+      await mkdtemp(join(tmpdir(), "pulse-orca-home-")),
+    )
   }
 
   static async withProject(profiles: object = PROFILES): Promise<WorkerHarness> {
@@ -54,6 +62,26 @@ export class WorkerHarness {
 
   get formerProjectFile(): string {
     return join(this.root, ".pulse-cli.json")
+  }
+
+  get userConfigFile(): string {
+    return join(this.configHome, "pulse-cli", "config.json")
+  }
+
+  nameUserConfig(named: string | undefined): void {
+    const env = { XDG_CONFIG_HOME: this.configHome, APPDATA: this.configHome }
+    vi.spyOn(CompositionRoot, "userConfig").mockReturnValue(
+      new UserConfigLocation(
+        named === undefined ? env : { ...env, PULSE_CLI_CONFIG: named },
+        this.configHome,
+        process.platform,
+      ),
+    )
+  }
+
+  async writeUserConfig(profiles: object, file = this.userConfigFile): Promise<void> {
+    await mkdir(dirname(file), { recursive: true })
+    await writeFile(file, JSON.stringify({ profiles }))
   }
 
   request(name: string, input?: unknown, panel: PanelCaller = PULSE_PANEL): Promise<unknown> {

@@ -1,7 +1,7 @@
 import { HandOffButton } from "@miragon/pulse-widget-shell/widgets"
 import type { VariableValue } from "../../view-models.js"
 import { VariablesTable } from "../instance-sections.js"
-import { useHandOff, type HandOff } from "../lib/hand-off.js"
+import { useHandOff, useHandOffsShown, type HandOff } from "../lib/hand-off.js"
 
 /** The model reads values through the tool (hosts treat its output as data); a fix is only proposed. */
 function checkVariablesHandOff(
@@ -29,14 +29,17 @@ export function VariablesTab({
   readOnly: boolean
 }) {
   const { ask } = useHandOff()
+  const handOffs = useHandOffsShown()
   return (
     <>
-      <div className="mb-2">
-        <HandOffButton
-          action="checkVariables"
-          prompt={ask(checkVariablesHandOff(instanceId, definitionId, engineId))}
-        />
-      </div>
+      {handOffs && (
+        <div className="mb-2">
+          <HandOffButton
+            action="checkVariables"
+            prompt={ask(checkVariablesHandOff(instanceId, definitionId, engineId))}
+          />
+        </div>
+      )}
       <VariablesTable
         variables={variables}
         instanceId={instanceId}

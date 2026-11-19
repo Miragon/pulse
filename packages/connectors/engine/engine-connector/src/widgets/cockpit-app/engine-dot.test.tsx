@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it } from "vitest"
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react"
 import { DEFAULT_VERDICT_THRESHOLDS, engineVerdict } from "@miragon/pulse-c7-core"
-import { SITUATION_TONES, TONE_DOT, type ToneVariant } from "@miragon/pulse-ui"
+import { SITUATION_TONES, TONE_DOT, TONE_ICON, type ToneVariant } from "@miragon/pulse-ui"
 import { TestViewHost, createTestQueryClient } from "@miragon/pulse-widget-shell/widgets"
 import { ENGINE_COCKPIT_OVERVIEW_DATA, ENGINE_HEALTH_DATA } from "../../tool-names.js"
 import type { CockpitDashboardData, EngineHealthData } from "../../view-models.js"
@@ -85,7 +85,7 @@ const engines = Object.keys(ENGINES).map((id) => ({ id }))
 
 const TONES = Object.keys(TONE_DOT) as ToneVariant[]
 function dotTone(container: HTMLElement): ToneVariant | undefined {
-  const dot = container.querySelector(".size-2.rounded-full")
+  const dot = container.querySelector("[data-part='verdict']")
   return TONES.find((tone) => dot?.classList.contains(TONE_DOT[tone]))
 }
 
@@ -182,18 +182,42 @@ describe("the fleet view's engine dot follows the one verdict", () => {
     expect(within(fleetCard("at-threshold")).getByText("50")).toBeTruthy()
   })
 
-  it("jobs without retries keep their danger count but do not colour the dot", async () => {
+  it("jobs without retries keep their alarm on the count but do not colour the dot", async () => {
     renderFleet()
     await waitFor(() => expect(healthQueryDone("stuck-jobs")).toBe(true))
     expect(dotTone(fleetCard("stuck-jobs"))).toBe("neutral")
-    const pill = within(fleetCard("stuck-jobs")).getByText("4")
-    expect(pill.className).toContain("border-danger")
+    // A neutral number with the danger tone's icon and words (invariant 6).
+    const count = within(fleetCard("stuck-jobs"))
+      .getByText("4")
+      .closest('[data-slot="count-figure"]')!
+    expect(count.getAttribute("data-tone")).toBe("danger")
+    expect(count.textContent).toBe("4Has jobs without retries")
   })
 
   it("an idle engine stays neutral", async () => {
     renderFleet()
     await waitFor(() => expect(healthQueryDone("idle")).toBe(true))
     expect(dotTone(fleetCard("idle"))).toBe("neutral")
+  })
+
+  it("an unreachable engine's card has no quiet dot: the outage's icon in danger, as on the landing", async () => {
+    const down = () => {
+      throw new Error("engine down unreachable (ECONNREFUSED)")
+    }
+    render(
+      <TestViewHost
+        tools={{ [ENGINE_COCKPIT_OVERVIEW_DATA]: down, [ENGINE_HEALTH_DATA]: down }}
+        client={queryClient}
+      >
+        <FleetView engines={[{ id: "down" }, { id: "also-down" }]} onEnterEngine={() => {}} />
+      </TestViewHost>,
+    )
+    await waitFor(() => expect(fleetCard("down").textContent).toContain("unreachable"))
+    const card = fleetCard("down")
+    expect(card.querySelector("[data-part='verdict']")).toBeNull()
+    const mark = card.querySelector("svg")?.getAttribute("class") ?? ""
+    expect(mark).toContain("lucide-unplug")
+    expect(mark).toContain(TONE_ICON.danger)
   })
 })
 

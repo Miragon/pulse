@@ -1,5 +1,15 @@
 import { useEffect, useRef, useState } from "react"
-import { cn, FOCUS_RING, useLocale, useToast, Icon, Td, shortId } from "@miragon/pulse-ui"
+import {
+  cn,
+  FIELD_TEXT,
+  FOCUS_RING,
+  FOCUS_RING_INSET,
+  useLocale,
+  useToast,
+  Icon,
+  Td,
+  shortId,
+} from "@miragon/pulse-ui"
 import { Check, Copy } from "lucide-react"
 import { kitLabels } from "./kit-labels.js"
 
@@ -63,28 +73,66 @@ function RevealedId({
         if (event.key === "Escape") onDone(true)
       }}
       className={cn(
-        "text-dense border-input bg-background text-foreground min-w-0 rounded-sm border px-1 font-mono",
+        "border-input bg-background text-foreground min-w-0 rounded-sm border px-1 font-mono",
+        // A field's text: 16 px on a coarse pointer, so iOS never zooms in when it takes focus.
+        FIELD_TEXT,
         FOCUS_RING,
       )}
     />
   )
 }
 
-export function IdText({ value, className }: { value: string; className?: string }) {
+/**
+ * In a table row the copy button shows while the pointer is over the row or focus is in it, so
+ * a row stays one quiet line: transparent, never `visibility: hidden`, so it keeps its place in
+ * the tab order and shows when it takes focus. On a screen without hover it always shows, and
+ * outside a table (a header, facts) too. In a row it reaches into the cell's padding above and
+ * below (`--cell-py`), so the 24 px target (32 px on touch) keeps the row at its height.
+ */
+const COPY_IN_ROW =
+  "[@media(hover:hover)]:[tr_&]:opacity-0 [tr:hover_&]:opacity-100 [tr:focus-within_&]:opacity-100 focus-visible:opacity-100 [tr_&]:-my-(--cell-py)"
+
+/** What a copy's toasts say: by default an id's words, the full id selected on a failure. */
+interface CopyWords {
+  copied?: string | undefined
+  failed?: string | undefined
+  failedHint?: string | undefined
+}
+
+/**
+ * Copies a value, an id by default, and says so in a toast, or says that it failed and how to
+ * copy it by hand (`words`); resolves to whether it worked.
+ */
+export function useCopyId(words: CopyWords = {}): (value: string) => Promise<boolean> {
   const labels = kitLabels(useLocale())
   const toast = useToast()
+  return async (value) => {
+    if (await copyText(value)) {
+      toast.show({ tone: "success", title: words.copied ?? labels.idCopied })
+      return true
+    }
+    toast.show({
+      tone: "danger",
+      title: words.failed ?? labels.copyFailed,
+      description: words.failedHint ?? labels.copyFailedHint,
+    })
+    return false
+  }
+}
+
+export function IdText({ value, className }: { value: string; className?: string }) {
+  const labels = kitLabels(useLocale())
+  const copyId = useCopyId()
   const [copied, setCopied] = useState(false)
   const [revealed, setRevealed] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const short = shortId(value)
   const copy = async () => {
-    if (await copyText(value)) {
+    if (await copyId(value)) {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
-      toast.show({ tone: "success", title: labels.idCopied })
     } else {
       setRevealed(true)
-      toast.show({ tone: "danger", title: labels.copyFailed, description: labels.copyFailedHint })
     }
   }
   return (
@@ -117,8 +165,10 @@ export function IdText({ value, className }: { value: string; className?: string
         title={labels.copyId(short)}
         onClick={() => void copy()}
         className={cn(
-          "text-muted-foreground hover:text-foreground inline-flex size-6 shrink-0 items-center justify-center rounded-sm",
-          FOCUS_RING,
+          "text-muted-foreground hover:text-foreground size-control-xs inline-flex shrink-0 items-center justify-center rounded-sm transition-opacity motion-reduce:transition-none",
+          // Drawn inside the button: a cell at the region's edge would cut an outset ring.
+          FOCUS_RING_INSET,
+          COPY_IN_ROW,
         )}
       >
         <Icon icon={copied ? Check : Copy} dense />

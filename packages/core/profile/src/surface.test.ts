@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { parseProfileFile } from "./parse.js"
-import { authTypeOf, dialectOf, refusalsOn, type Surface } from "./surface.js"
+import { authTypeOf, dialectOf, flavorsOf, refusalsOn, type Surface } from "./surface.js"
 import { PROFILE_FIXTURES, problemLabel } from "./testing/index.js"
 import type { CredentialPolicy, Profile } from "./types.js"
 
@@ -77,12 +77,39 @@ describe("refusalsOn", () => {
       { code: "dialect-not-served", key: "flavor" },
     ])
   })
+
+  it("lets a Camunda 7 reader refuse the Camunda 8 profiles, and a Camunda 8 one take them", () => {
+    expect(refusals("camunda8-profiles", "env-or-literal", CLI)).toEqual({
+      "c8-local": ["dialect-not-served flavor"],
+      "c8-basic": ["dialect-not-served flavor"],
+      "c8-oidc": ["dialect-not-served flavor", "auth-type-not-served auth.type"],
+      saas: ["dialect-not-served flavor", "auth-type-not-served auth.type"],
+      c7: [],
+    })
+    const editors: Surface = {
+      ...VSCODE,
+      dialects: ["c7", "c8"],
+      authTypes: ["none", "basic", "clientCredentials"],
+    }
+    expect(refusals("camunda8-profiles", "none", editors)).toEqual({
+      "c8-local": [],
+      "c8-basic": [],
+      "c8-oidc": [],
+      c7: [],
+    })
+  })
 })
 
 describe("what a profile uses", () => {
   it("speaks its flavor's dialect, camunda7's without one", () => {
     expect(dialectOf({})).toBe("c7")
     expect(dialectOf({ flavor: "cibseven" })).toBe("c7")
+    expect(dialectOf({ flavor: "camunda8" })).toBe("c8")
+  })
+
+  it("names the flavors of each dialect in the order of FLAVORS", () => {
+    expect(flavorsOf("c7")).toEqual(["camunda7", "cibseven", "operaton"])
+    expect(flavorsOf("c8")).toEqual(["camunda8"])
   })
 
   it("authenticates with its type, else Basic auth with a username, else none", () => {
@@ -91,5 +118,6 @@ describe("what a profile uses", () => {
     expect(authTypeOf({ auth: { username: "demo" } })).toBe("basic")
     expect(authTypeOf({ auth: { type: "none", username: "demo" } })).toBe("none")
     expect(authTypeOf({ auth: { type: "passthrough" } })).toBe("passthrough")
+    expect(authTypeOf({ auth: { type: "clientCredentials" } })).toBe("clientCredentials")
   })
 })

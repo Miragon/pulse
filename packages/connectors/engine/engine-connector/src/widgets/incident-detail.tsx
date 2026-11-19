@@ -90,10 +90,13 @@ export function IncidentDetailWidget({
   data: initialData = null,
   incidentId,
   engine,
+  title,
 }: {
   data?: IncidentDetailData | null
   incidentId: string
   engine: string
+  /** The route's title, which its bar keeps while the incident loads or fails to. */
+  title?: string
 }) {
   const t = useT()
   // The route's engine: a refetch never reads the default engine.
@@ -106,6 +109,7 @@ export function IncidentDetailWidget({
     loadingText: t("incidentDetail.loading"),
     emptyText: t("incidentDetail.noData"),
     retryText: t("viewState.retry"),
+    title,
   })
   // A cleared incident's view is not refetched (404), so the marks are what it shows. A failed
   // refetch leaves it unconfirmed (cleared elsewhere?): no remedy then.
@@ -114,9 +118,11 @@ export function IncidentDetailWidget({
     available: refreshError === null,
   })
 
+  // New highlights reimport the diagram: one array per activity, so a refetch never redraws it.
+  const activityId = data?.activityId
   const highlights = useMemo<BpmnHighlight[]>(
-    () => [{ kind: "incident", activityIds: data ? [data.activityId] : [] }],
-    [data?.activityId],
+    () => [{ kind: "incident", activityIds: activityId === undefined ? [] : [activityId] }],
+    [activityId],
   )
 
   if (!data) return guard
@@ -127,13 +133,9 @@ export function IncidentDetailWidget({
   // #322 U12: the failure and its remedy first, then the diagram, then the depth.
   return (
     <DetailPage
-      header={
-        <>
-          {notice}
-          <IncidentDetailHeader data={data} resolved={resolved} />
-          <FailureSummary data={data} {...remedy} />
-        </>
-      }
+      header={<IncidentDetailHeader data={data} resolved={resolved} />}
+      notice={notice}
+      summary={<FailureSummary data={data} {...remedy} />}
       diagram={
         <section>
           <SectionHeading

@@ -1,0 +1,22 @@
+{
+  "case": "too-large-response",
+  "connection": {
+    "credentials": {
+      "kind": "none"
+    },
+    "endpoint": "http://127.0.0.1:<port>/v2"
+  },
+  "probes": [
+    {
+      "call": "describeEngine",
+      "outcome": {
+        "failure": "unexpectedResponse",
+        "hint": null,
+        "message": "the cluster answered with more than 67108864 bytes"
+      },
+      "sent": [
+        "GET /v2/topology"
+      ]
+    }
+  ]
+}

@@ -1,9 +1,11 @@
 import { describe, expect, test } from "vitest"
 import { EngineBadges } from "../../src/host-kit/connections/engine-badges.js"
-import { LOCAL_TARGET, type EngineTarget } from "../../src/host-kit/connections/engine-target.js"
+import type { EngineTarget } from "../../src/host-kit/connections/engine-target.js"
+import { LOCAL_TARGET } from "./support/local-target.js"
 import { EnvironmentClassifier } from "../../src/host-kit/connections/environment-classifier.js"
 import { TargetPolicy } from "../../src/host-kit/connections/target-policy.js"
 import { TargetsParser } from "../../src/host-kit/connections/targets-parser.js"
+import { TargetsProblem } from "../../src/host-kit/connections/targets-problem.js"
 
 const FILE = "/work/.pulse.json"
 const NONE = { user: undefined, workspace: [] }
@@ -33,6 +35,7 @@ describe("parsing the profiles of .pulse.json", () => {
     })
 
     expect(new TargetsParser(FILE).parse(content)).toEqual({
+      names: ["dev", "prod-eu"],
       targets: [
         {
           name: "dev",
@@ -87,7 +90,7 @@ describe("parsing the profiles of .pulse.json", () => {
     const content = JSON.stringify({
       profiles: {
         ok: { url: "http://localhost:8088/engine-rest", auth: { type: "oauth" } },
-        cluster: { url: "http://localhost:8088/v2", flavor: "camunda8" },
+        cluster: { url: "http://localhost:8088/v2", flavor: "camunda8", headers: { "X-A": "b" } },
         named: { url: "http://localhost:8080/engine-rest", engine: "orders" },
         "bad-url": { url: "not a url" },
         bearer: { url: "http://localhost:8080/engine-rest", auth: { type: "bearer" } },
@@ -100,7 +103,7 @@ describe("parsing the profiles of .pulse.json", () => {
     expect(parsed.targets.map((target) => target.name)).toEqual(["ok"])
     expect(parsed.targets[0]?.auth).toEqual({ kind: "oauth2" })
     expect(parsed.problems.map((problem) => problem.detail())).toEqual([
-      `${FILE}: profile "cluster": flavor must be one of camunda7, cibseven, operaton (the value is not shown).`,
+      `${FILE}: profile "cluster": This client does not apply headers, so it refuses the profile rather than ignore it. Remove headers from this profile, or use one without them.`,
       `${FILE}: profile "named": engine names a process engine this client does not reach: it reaches only "default".`,
       `${FILE}: profile "bad-url": url is no URL: use a URL such as http://localhost:8080/engine-rest.`,
       `${FILE}: profile "bearer": This client cannot authenticate with this auth.type. Set auth.type to none or basic, or keep this profile for the CLI.`,
@@ -134,29 +137,30 @@ describe("parsing the profiles of .pulse.json", () => {
     })
 
     expect(new TargetsParser(FILE).parse(content)).toEqual({
+      names: ["typo"],
       targets: [],
       problems: [
-        {
-          path: FILE,
-          message:
-            'profile "typo": flavor must be one of camunda7, cibseven, operaton (the value is not shown).',
-        },
+        new TargetsProblem(
+          FILE,
+          'profile "typo": flavor must be one of camunda7, camunda8, cibseven, operaton (the value is not shown).',
+        ),
       ],
     })
   })
 
   test("reports a malformed file instead of failing", () => {
     expect(new TargetsParser(FILE).parse("{")).toEqual({
+      names: [],
       targets: [],
-      problems: [{ path: FILE, message: "The text is not valid JSON (line 1, column 2)." }],
+      problems: [new TargetsProblem(FILE, "The text is not valid JSON (line 1, column 2).")],
     })
     expect(new TargetsParser(FILE).parse('{"profiles": []}').problems).toEqual([
-      {
-        path: FILE,
-        message: "profiles must be a JSON object that maps each profile name to a profile.",
-      },
+      new TargetsProblem(
+        FILE,
+        "profiles must be a JSON object that maps each profile name to a profile.",
+      ),
     ])
-    expect(new TargetsParser(FILE).parse("{}")).toEqual({ targets: [], problems: [] })
+    expect(new TargetsParser(FILE).parse("{}")).toEqual({ names: [], targets: [], problems: [] })
   })
 
   test("names the broken file and what is wrong, for the error item in the Engines tree", () => {
@@ -259,7 +263,9 @@ describe("the target policy", () => {
         kind: "savedForAnotherEndpoint",
         savedFor: "https://prod.example.com",
       }),
-    ).toContain("changed since its credentials were saved for https://prod.example.com")
+    ).toBe(
+      "The endpoint of prod-eu moved from https://prod.example.com to https://evil.example.com since you saved its credentials. Check the change, then set the credentials again.",
+    )
   })
 
   test("refuses basic authentication over plain HTTP to a remote host", () => {

@@ -2,16 +2,19 @@ import type { ReactNode } from "react"
 import {
   Button,
   cn,
-  FOCUS_RING,
   Icon,
   type LucideIcon,
   NativeSelect,
+  NavTab,
+  NavTabs,
   useLocale,
 } from "@miragon/pulse-ui"
 import { Cog, Layers, LayoutDashboard, TriangleAlert } from "lucide-react"
 import { EnvironmentChip } from "../lib/engine-context.js"
 import type { NavIntent } from "../navigation.js"
 import { translator } from "../../messages/use-t.js"
+import type { EngineDialect } from "../../view-models.js"
+import { routeServes } from "../../view-models.dialects.js"
 import { CockpitRefreshButton } from "./refresh-button.js"
 
 export type TopSection = "overview" | "incidents" | "jobs"
@@ -44,7 +47,7 @@ export function EngineSwitch({
           aria-label={translator(locale, "cockpit.aria.activeEngine")}
           value={engineId}
           onChange={(e) => onSwitch(e.target.value)}
-          className="h-8 max-w-56 font-semibold"
+          className="max-w-56 font-semibold"
         >
           {engineGroups.length > 1
             ? engineGroups.map((g) => (
@@ -70,17 +73,30 @@ export function EngineSwitch({
 }
 
 /**
- * #322 U20: one compact head row instead of a sidebar that cost ~200 px inline. A `trail` takes
- * the sections' place: its first crumb leads back to them.
+ * #322 U20: one compact head row instead of a sidebar that cost ~200 px inline: a 40 px bar from
+ * edge to edge (the webview's bar), its rule below, the sections as pulse-ui's `NavTabs` (line
+ * tabs whose open one's bar lands on that rule) and the engine's context at its end. Where the
+ * two do not fit on one line (a phone-width chat) the sections stay on the head's last line, the
+ * context above them, so the open section's bar still lands on the rule (`flex-wrap-reverse`;
+ * the reading order stays the sections, then the context). A `trail` takes the sections' place:
+ * its first crumb leads back to them. Its container is `bar`, so the cross-engine button keeps
+ * only its icon in a bar under 36rem. Only the sections whose route the engine's `dialect` is
+ * served by show (`ROUTE_DIALECTS`): a Camunda 8 engine has none, nor has a refused profile.
  */
 export function CockpitHead({
   activeSection,
+  dialect,
+  refused = false,
   onSection,
   engineSwitch,
   onOpenFleet,
   trail,
 }: {
   activeSection: TopSection
+  /** The open engine's dialect; a refused profile's is unread. */
+  dialect: EngineDialect | undefined
+  /** Its profile refused: no section reads it, so none shows. */
+  refused?: boolean
   onSection: (intent: NavIntent) => void
   engineSwitch: ReactNode
   onOpenFleet?: () => void
@@ -88,55 +104,63 @@ export function CockpitHead({
 }) {
   const locale = useLocale()
   const crossEngine = translator(locale, "cockpit.nav.crossEngine")
+  const sections = refused ? [] : SECTIONS.filter((section) => routeServes(section.id, dialect))
   return (
-    <div className="border-border @container mb-4 border-b pb-3">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        {trail ?? (
-          <nav
-            aria-label={translator(locale, "cockpit.aria.sections")}
-            className="flex flex-wrap items-center gap-1"
+    <div
+      data-slot="cockpit-head"
+      className={cn(
+        "bg-card border-border min-h-bar pr-gutter @container/bar flex min-w-0 items-stretch gap-x-3 border-b pl-2",
+        trail ? "flex-wrap" : "flex-wrap-reverse",
+      )}
+    >
+      {/* The tabs start 8 px in, as a view's tab bar does; the trail's words line up with the
+          view's title below, in the gutter. */}
+      {trail ? (
+        <div className="flex min-w-0 items-center ps-[calc(var(--gutter)-0.5rem)]">{trail}</div>
+      ) : (
+        sections.length > 0 && (
+          <NavTabs ariaLabel={translator(locale, "cockpit.aria.sections")}>
+            {sections.map((s) => (
+              <NavTab
+                key={s.id}
+                current={activeSection === s.id}
+                icon={<Icon icon={s.icon} />}
+                onClick={() => onSection(s.intent)}
+              >
+                {translator(locale, `cockpit.section.${s.id}`)}
+              </NavTab>
+            ))}
+          </NavTabs>
+        )
+      )}
+      <div className="ms-auto flex min-w-0 flex-wrap items-center gap-2 py-1">
+        {onOpenFleet && (
+          <Button
+            type="button"
+            variant="toolbar"
+            size="sm"
+            onClick={onOpenFleet}
+            title={crossEngine}
           >
-            {SECTIONS.map((s) => {
-              const isActive = activeSection === s.id
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  aria-current={isActive ? "page" : undefined}
-                  onClick={() => onSection(s.intent)}
-                  className={cn(
-                    "text-dense inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-medium transition-colors",
-                    FOCUS_RING,
-                    isActive
-                      ? "bg-accent text-accent-foreground font-semibold"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                  )}
-                >
-                  <Icon icon={s.icon} />
-                  {translator(locale, `cockpit.section.${s.id}`)}
-                </button>
-              )
-            })}
-          </nav>
+            <Icon icon={Layers} />
+            {crossEngine}
+          </Button>
         )}
-        <div className="ms-auto flex min-w-0 flex-wrap items-center gap-2">
-          {onOpenFleet && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={onOpenFleet}
-              aria-label={crossEngine}
-              title={crossEngine}
-            >
-              <Icon icon={Layers} />
-              <span className="hidden @4xl:inline">{crossEngine}</span>
-            </Button>
-          )}
-          {engineSwitch}
-          <CockpitRefreshButton />
-        </div>
+        {engineSwitch}
+        <CockpitRefreshButton />
       </div>
+    </div>
+  )
+}
+
+/** The trail under the head where there is room for both (fullscreen): a 36 px row on its rule. */
+export function CockpitTrailBar({ children }: { children: ReactNode }) {
+  return (
+    <div
+      data-slot="cockpit-trail"
+      className="border-border bg-card min-h-toolbar px-gutter flex min-w-0 items-center border-b py-1"
+    >
+      {children}
     </div>
   )
 }

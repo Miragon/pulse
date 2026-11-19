@@ -2,8 +2,8 @@
 
 ## Engines and processes
 
-The **Engines** view lists the profiles of `.pulse.json` with their deployed processes,
-running counts and incident markers. A click on an engine opens its overview: every process
+The **Engines** view lists the profiles of `.pulse.json` and your CLI config with their deployed
+processes, running counts and incident markers. A click on an engine opens its overview: every process
 with its latest version, running and with-incident counts, the ones in trouble first.
 
 ![The Engines view with processes, counts and incident markers](../assets/vscode/01-engines-at-a-glance.png)
@@ -14,7 +14,8 @@ with its latest version, running and with-incident counts, the ones in trouble f
 
 The **Definition** panel draws the deployed diagram of one version with badges per element, a
 version picker with counts per version, and the instances (running, with incident, ended),
-filtered by element or business key.
+filtered by element or business key. _With incident_ counts the instances with an open incident
+now, read from the engine's runtime on every history level, as the MCP cockpit does.
 
 The funnel button in the filter bar finds instances by their process variables: a name (the
 dialog suggests the names the newest instances of the version hold, any other name works
@@ -52,7 +53,8 @@ business key.
 ## Writes
 
 Retry incidents, change variables and move tokens: on local engines by default, elsewhere only
-when `pulse.writes` allows it ([Configuration](./configuration.md#settings)). Every write asks
+when `pulse.writes` allows it ([Configuration](./configuration.md#settings)), and never on a
+[Camunda 8](./camunda8.md) cluster, which Pulse only reads. Every write asks
 first, names its exact target and leaves an audit line in the output channel "Pulse". A changed
 variable keeps its type. One that holds null is written as what you pick under _Write as_ (text,
 whole number, number, true or false, JSON). The editor marks a value it cannot write and says why
@@ -74,4 +76,4 @@ flags elements where instances would get stuck, before anything runs.
 
 ![A migration plan between two versions](../assets/vscode/10-migration-plan.png)
 
-All 39 screenshots, one per use case, are in `apps/vscode/docs/screenshots/`.
+All 45 screenshots, one per use case, are in `apps/vscode/docs/screenshots/`.

@@ -37,14 +37,19 @@ const SERVER = "apps/mcp-server"
 const CLI = "apps/cli"
 const EXT = "apps/vscode"
 const ORCA = "apps/orca"
+const WEB = "apps/web"
 const RUNTIME_VIEW = "packages/core/runtime-view"
 const C7_ADAPTER = "packages/connectors/c7/c7-adapter"
+const C8_ADAPTER = "packages/connectors/c8/c8-adapter"
 const SHELL = "packages/core/widget-shell"
 const UI = "packages/core/ui"
 const PROFILE = "packages/core/profile"
+const BOARD = "packages/core/board"
+const BLOCKS = "packages/core/blocks"
 const HTTP = "packages/core/http"
 const ENGINE_CORE = "packages/connectors/engine/engine-core"
 const C7 = "packages/connectors/c7/c7-core"
+const C8 = "packages/connectors/c8/c8-core"
 const C7_CLIENT = "packages/connectors/c7/c7-client"
 const ENGINE_CONNECTOR = "packages/connectors/engine/engine-connector"
 // No such family exists: a second family's client, connector and core prove the family rules
@@ -60,14 +65,19 @@ const WORKSPACE = {
   [CLI]: { name: "@miragon/pulse-cli" },
   [EXT]: { name: "pulse-cockpit", engines: { vscode: "^1.101.0" } },
   [ORCA]: { name: "@miragon/pulse-orca", private: true },
+  [WEB]: { name: "@miragon/pulse-web", private: true },
   [RUNTIME_VIEW]: { name: "@miragon/pulse-runtime-view", private: true },
   [C7_ADAPTER]: { name: "@miragon/pulse-c7-adapter", private: true },
+  [C8_ADAPTER]: { name: "@miragon/pulse-c8-adapter", private: true },
   [SHELL]: { name: "@miragon/pulse-widget-shell" },
   [UI]: { name: "@miragon/pulse-ui" },
   [PROFILE]: { name: "@miragon/pulse-profile" },
-  [HTTP]: { name: "@miragon/pulse-http" },
+  [BOARD]: { name: "@miragon/pulse-board" },
+  [BLOCKS]: { name: "@miragon/pulse-blocks" },
+  [HTTP]: { name: "@miragon/pulse-http", main: "dist/index.js" },
   [ENGINE_CORE]: { name: "@miragon/pulse-engine-core", main: "dist/index.js" },
   [C7]: { name: "@miragon/pulse-c7-core" },
+  [C8]: { name: "@miragon/pulse-c8-core", main: "dist/index.js" },
   [C7_CLIENT]: { name: "@miragon/pulse-c7-client" },
   [ENGINE_CONNECTOR]: { name: "@miragon/pulse-engine-connector" },
   [BILLING_CLIENT]: { name: "@miragon/pulse-billing-client" },
@@ -128,20 +138,34 @@ const POINT_DOWN = "connector-data-and-lib-point-down"
 const NO_APP = "packages-never-import-the-app"
 const APP_APP = "apps-never-import-apps"
 const HEADLESS = "cli-is-headless"
+const WEB_PAGE = "web-is-a-page"
 const CORE_LEAF = "family-core-is-a-leaf"
 const PROFILE_LEAF = "profile-is-a-leaf"
 const PROFILE_USERS = "profile-consumers"
+const BOARD_LEAF = "board-format-is-a-leaf"
+const BOARD_USERS = "board-consumers"
+const BOARD_BUILDER = "board-builder-builds-on-the-engine-contract"
+const BOARD_BUILDER_USERS = "board-builder-consumers"
+const BOARD_TESTS = "board-tests-build-on-the-engine-contract"
+const BLOCKS_LEAF = "blocks-are-building-blocks"
+const BLOCKS_USERS = "blocks-consumers"
+const VIEW_MODELS_BOARD = "connector-view-models-board-types-only"
 const HTTP_LEAF = "http-is-a-leaf"
 const HTTP_USERS = "http-consumers"
 const HTTP_LOOPBACK = "http-loopback-only-its-sockets"
+const SHELL_OAUTH_HTTP = "widget-shell-oauth-by-the-oauth-entry"
 const ENGINE_CORE_USERS = "engine-core-consumers"
+const CONNECTOR_CONTRACT = "engine-connector-contract-by-its-main-entry"
+const C8_LAYER = "engine-connector-c8-core-in-its-engine-layer"
 const CORE_USERS = "family-core-consumers"
 const ADAPTER_FAMILY = "adapters-own-their-family"
+const ADAPTER_TESTS = "adapter-tests-own-their-family"
 const VIEW_USERS = "runtime-view-consumers"
 const VIEW_ENGINE = "runtime-view-builds-on-the-engine-contract"
 const ADAPTER_USERS = "adapter-consumers"
 const HOSTS = "editor-hosts-reach-dialects-through-adapters"
 const CLI_CORE_LAYERS = "cli-family-core-only-in-named-layers"
+const CLI_RUNTIME = "cli-without-the-c7-runtime"
 const NO_TESTING = "shipped-code-not-to-testing"
 const DEEP = "no-cross-package-deep-imports"
 const CIRCULAR = "no-circular"
@@ -176,18 +200,28 @@ const CLI_SRC = `${CLI}/src/index.ts`
 const SERVER_SRC = `${SERVER}/src/index.ts`
 const EXT_SRC = `${EXT}/src/extension.ts`
 const ORCA_SRC = `${ORCA}/src/worker/main.ts`
+const WEB_SRC = `${WEB}/src/main.tsx`
 const VIEW_SRC = `${RUNTIME_VIEW}/src/index.ts`
 const ADAPTER_SRC = `${C7_ADAPTER}/src/index.ts`
 const BILLING_ADAPTER_SRC = `${BILLING_ADAPTER}/src/index.ts`
 const VIEW = "@miragon/pulse-runtime-view"
 const ADAPTER = "@miragon/pulse-c7-adapter"
+const C8_ADAPTER_SRC = `${C8_ADAPTER}/src/index.ts`
+const C8_ADAPTER_NAME = "@miragon/pulse-c8-adapter"
 const SHELL_SRC = `${SHELL}/src/index.ts`
 const UI_SRC = `${UI}/src/index.ts`
 const C7_SRC = `${C7}/src/index.ts`
 const C7_CORE = "@miragon/pulse-c7-core"
+const C8_SRC = `${C8}/src/index.ts`
+const C8_CORE = "@miragon/pulse-c8-core"
 const BILLING_CORE_NAME = "@miragon/pulse-billing-core"
 const PROFILE_NAME = "@miragon/pulse-profile"
 const PROFILE_SRC = `${PROFILE}/src/index.ts`
+const BOARD_NAME = "@miragon/pulse-board"
+const BOARD_SRC = `${BOARD}/src/index.ts`
+const BOARD_BUILDER_SRC = `${BOARD}/src/builder/index.ts`
+const BLOCKS_NAME = "@miragon/pulse-blocks"
+const BLOCKS_SRC = `${BLOCKS}/src/index.ts`
 const HTTP_NAME = "@miragon/pulse-http"
 const HTTP_SRC = `${HTTP}/src/index.ts`
 const ENGINE_CORE_NAME = "@miragon/pulse-engine-core"
@@ -203,6 +237,7 @@ const BILLING_CONNECTOR_SRC = `${BILLING_CONNECTOR}/src/index.ts`
 // Leaf modules the relative escapes point at. They import nothing, so no probe forms a cycle
 // unless a case plants one on purpose.
 const LEAVES = [
+  `${WEB}/src/lib.ts`,
   `${SERVER}/src/target.ts`,
   `${SERVER}/src/lib.ts`,
   `${CLI}/src/target.ts`,
@@ -240,10 +275,24 @@ const LEAVES = [
   `${C7}/src/target.ts`,
   `${C7}/src/lib.ts`,
   `${C7}/src/testing/fixture.ts`,
+  `${C7}/src/runtime/json-view.ts`,
+  `${C7}/dist/runtime/index.js`,
+  `${C8}/src/target.ts`,
+  `${C8}/dist/index.js`,
+  `${C8}/dist/testing/index.js`,
   `${PROFILE}/src/target.ts`,
   `${PROFILE}/src/lib.ts`,
+  `${BOARD}/src/target.ts`,
+  `${BOARD}/src/format/lib.ts`,
+  `${BOARD}/src/builder/lib.ts`,
+  `${BOARD}/dist/builder/index.js`,
+  `${BLOCKS}/src/target.ts`,
+  `${BLOCKS}/src/lib.ts`,
   `${HTTP}/src/target.ts`,
   `${HTTP}/src/lib.ts`,
+  `${HTTP}/dist/index.js`,
+  `${HTTP}/dist/oauth/index.js`,
+  `${HTTP}/dist/oauth/token.js`,
   `${ENGINE_CORE}/src/target.ts`,
   `${ENGINE_CORE}/src/lib.ts`,
   `${ENGINE_CORE}/dist/index.js`,
@@ -387,6 +436,51 @@ const SUITES = [
     ],
   },
   {
+    rule: WEB_PAGE,
+    title: "the web app's page imports the kit, the view half of the view runtime and the views",
+    cases: [
+      // What a page is made of, each by its entry.
+      ...[
+        "react",
+        "react-dom/client",
+        "lucide-react",
+        "@miragon/pulse-ui",
+        "@miragon/pulse-ui/theme.css",
+        "@miragon/pulse-widget-shell/widgets",
+        "@miragon/pulse-engine-connector/widgets",
+        "./lib.ts",
+      ].map((spec) => [WEB_SRC, spec, []]),
+      // Nothing of a server, no other entry and no other library.
+      ...[
+        "@miragon/pulse-widget-shell",
+        "@miragon/pulse-widget-shell/server",
+        "@miragon/pulse-engine-connector",
+        "@miragon/pulse-ui/format",
+        "@miragon/pulse-ui/globals.css",
+        "@miragon/pulse-ui-x",
+        "@tanstack/react-query",
+        "@modelcontextprotocol/server",
+        "hono",
+        "zod",
+        "bpmn-js",
+        "node:fs",
+      ].map((spec) => [WEB_SRC, spec, [WEB_PAGE]]),
+      // The rules of what the page would reach fire beside it.
+      [WEB_SRC, "@miragon/pulse-ui/testing", [NO_TESTING, WEB_PAGE]],
+      [WEB_SRC, "@miragon/pulse-widget-shell/testing", [NO_TESTING, WEB_PAGE]],
+      [WEB_SRC, "@modelcontextprotocol/ext-apps", [EXT_APPS, WEB_PAGE]],
+      [WEB_SRC, HTTP_NAME, [HTTP_USERS, WEB_PAGE]],
+      [WEB_SRC, BLOCKS_NAME, [BLOCKS_USERS, WEB_PAGE]],
+      [WEB_SRC, "@miragon/pulse-c7-client", [CLIENT_USERS, WEB_PAGE]],
+      [WEB_SRC, "@miragon/pulse-mcp-server", [APP_APP, WEB_PAGE]],
+      [`${WEB}/src/escape.ts`, "../../../packages/core/ui/src/target.ts", [DEEP, WEB_PAGE]],
+      [`${WEB}/src/escape-app.ts`, "../../mcp-server/src/target.ts", [APP_APP, DEEP, WEB_PAGE]],
+      // Its tests import what they test with.
+      [`${WEB}/src/page.test.tsx`, "@miragon/pulse-ui/testing", []],
+      [`${WEB}/src/page.test.tsx`, "@miragon/pulse-widget-shell/server", []],
+    ],
+  },
+  {
     rule: PROFILE_LEAF,
     title:
       "the profile format imports only its own modules: no package, no npm module, no built-in",
@@ -457,9 +551,307 @@ const SUITES = [
       [`${RUNTIME_VIEW}/src/host-kit/connections/profiles.ts`, PROFILE_NAME, []],
       [`${RUNTIME_VIEW}/test/host-kit/fixtures.test.ts`, `${PROFILE_NAME}/testing`, []],
       [`${ENGINE_CONNECTOR}/src/engine-profiles.ts`, PROFILE_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/engine-profile-auth.ts`, PROFILE_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/engine-profile-words.ts`, PROFILE_NAME, []],
       [`${ENGINE_CONNECTOR}/src/module.test.ts`, `${PROFILE_NAME}/testing`, []],
       [`${SHELL}/src/profile.test.ts`, PROFILE_NAME, []],
       [`${CLI}/test/support/profiles.ts`, `${PROFILE_NAME}/testing`, []],
+    ],
+  },
+  {
+    rule: BOARD_LEAF,
+    title: "the board format imports only its own modules: no package, no npm module, no built-in",
+    cases: [
+      // Not even a sibling of packages/core: core-is-foundation lets the others import one.
+      [BOARD_SRC, "@miragon/pulse-ui", [BOARD_LEAF]],
+      [BOARD_SRC, PROFILE_NAME, [BOARD_LEAF, PROFILE_USERS]],
+      [BOARD_SRC, ENGINE_CORE_NAME, [BOARD_LEAF, CORE, ENGINE_CORE_USERS]],
+      [BOARD_SRC, C7_CORE, [CORE, BOARD_LEAF]],
+      [BOARD_SRC, "@miragon/pulse-cli", [NO_APP, BOARD_LEAF]],
+      ...["zod", "react", "reactive", "node:fs"].map((spec) => [BOARD_SRC, spec, [BOARD_LEAF]]),
+      [`${BOARD}/src/format/escape.ts`, "../../../ui/src/target.ts", [BOARD_LEAF, DEEP]],
+      // The format never reaches its builder: the main entry, the format and ./testing stay free
+      // of the engine contract the builder reads.
+      [`${BOARD}/src/format/builds.ts`, "../builder/lib.ts", [BOARD_LEAF]],
+      [`${BOARD}/src/builds.ts`, "./builder/lib.ts", [BOARD_LEAF]],
+      [`${BOARD}/src/testing/builds.ts`, "../builder/lib.ts", [BOARD_LEAF]],
+      [`${BOARD}/src/format/parser.ts`, "./lib.ts", []],
+      [`${BOARD}/src/entry.ts`, "./format/lib.ts", []],
+      [`${BOARD}/src/a.test.ts`, "vitest", []],
+    ],
+  },
+  {
+    rule: BOARD_BUILDER,
+    title:
+      "the board builder imports its own modules, the format and engine-core's main entry: no " +
+      "other package, no npm module, no built-in",
+    cases: [
+      [BOARD_BUILDER_SRC, `${ENGINE_CORE_NAME}/testing`, [BOARD_BUILDER, NO_TESTING]],
+      [`${BOARD}/src/builder/model.ts`, `${ENGINE_CORE_NAME}/model`, [BOARD_BUILDER]],
+      [
+        `${BOARD}/src/builder/escape.ts`,
+        "../../../../connectors/engine/engine-core/src/target.ts",
+        [BOARD_BUILDER, DEEP],
+      ],
+      [
+        `${BOARD}/src/builder/escape-build.ts`,
+        "../../../../connectors/engine/engine-core/dist/index.js",
+        [BOARD_BUILDER, DEEP],
+      ],
+      [BOARD_BUILDER_SRC, C7_CORE, [BOARD_BUILDER]],
+      [BOARD_BUILDER_SRC, "@miragon/pulse-c7-client", [BOARD_BUILDER, CLIENT_USERS]],
+      [BOARD_BUILDER_SRC, "@miragon/pulse-ui", [BOARD_BUILDER]],
+      [BOARD_BUILDER_SRC, PROFILE_NAME, [BOARD_BUILDER, PROFILE_USERS]],
+      ...["zod", "react", "reactive", "node:fs"].map((spec) => [
+        BOARD_BUILDER_SRC,
+        spec,
+        [BOARD_BUILDER],
+      ]),
+      [`${BOARD}/src/builder/escape-ui.ts`, "../../../ui/src/target.ts", [BOARD_BUILDER, DEEP]],
+      // Allowed: engine-core's main entry, the format, its own modules, and in its tests vitest
+      // and the kit (the package's test tree reads engine-core like the runtime view's).
+      [BOARD_BUILDER_SRC, ENGINE_CORE_NAME, []],
+      [`${BOARD}/src/builder/reads.ts`, ENGINE_CORE_NAME, [], "type"],
+      [`${BOARD}/src/builder/tiles.ts`, "../format/lib.ts", []],
+      [`${BOARD}/src/builder/builder.ts`, "./lib.ts", []],
+      [`${BOARD}/src/builder/a.test.ts`, "vitest", []],
+      [`${BOARD}/test/builder/support/world.ts`, `${ENGINE_CORE_NAME}/testing`, []],
+      [`${BOARD}/test/builder/tiles.test.ts`, ENGINE_CORE_NAME, []],
+    ],
+  },
+  {
+    rule: BOARD_TESTS,
+    title:
+      "the board package's tests read the engine contract: engine-core by its entries, no other " +
+      "family's package",
+    cases: [
+      // Its test tree, a test file or a support module, and the builder's own test files.
+      [`${BOARD}/test/builder/support/probe.ts`, C7_CORE, [BOARD_TESTS]],
+      [`${BOARD}/test/builder/probe.test.ts`, C7_CORE, [BOARD_TESTS]],
+      [`${BOARD}/test/format/routes.test.ts`, `${C7_CORE}/routes`, [BOARD_TESTS]],
+      [`${BOARD}/src/builder/probe.test.ts`, C7_CORE, [BOARD_TESTS]],
+      [`${BOARD}/test/builder/support/module.ts`, "@miragon/pulse-engine-connector", [BOARD_TESTS]],
+      [`${BOARD}/test/builder/client.test.ts`, "@miragon/pulse-c7-client", [BOARD_TESTS]],
+      [`${BOARD}/test/builder/adapter.test.ts`, ADAPTER, [ADAPTER_USERS, BOARD_TESTS]],
+      [`${BOARD}/test/builder/billing.test.ts`, BILLING_CORE_NAME, [BOARD_TESTS]],
+      [
+        `${BOARD}/test/builder/escape-c7.test.ts`,
+        "../../../../connectors/c7/c7-core/src/target.ts",
+        [BOARD_TESTS, DEEP],
+      ],
+      // Not engine-core by path either: its package entries only.
+      [
+        `${BOARD}/test/builder/support/escape.ts`,
+        "../../../../../connectors/engine/engine-core/src/target.ts",
+        [BOARD_TESTS, DEEP],
+      ],
+      // Allowed: engine-core's main entry and its kit, the package's own modules, the runner.
+      [`${BOARD}/test/builder/support/fake.ts`, `${ENGINE_CORE_NAME}/testing`, []],
+      [`${BOARD}/test/builder/reads.test.ts`, ENGINE_CORE_NAME, []],
+      [`${BOARD}/src/builder/kit.test.ts`, `${ENGINE_CORE_NAME}/testing`, []],
+      [`${BOARD}/test/builder/own.test.ts`, "../../src/builder/lib.ts", []],
+      [`${BOARD}/test/format/runner.test.ts`, "vitest", []],
+    ],
+  },
+  {
+    rule: BOARD_USERS,
+    title: "the board format is read where a surface reads its board files, and in tests",
+    cases: [
+      [SERVER_SRC, BOARD_NAME, [BOARD_USERS]],
+      [SHELL_SRC, BOARD_NAME, [BOARD_USERS]],
+      [UI_SRC, BOARD_NAME, [UI_LEAF, BOARD_USERS]],
+      [PROFILE_SRC, BOARD_NAME, [PROFILE_LEAF, BOARD_USERS]],
+      [C7_SRC, BOARD_NAME, [CORE_LEAF, BOARD_USERS]],
+      [CLI_SRC, BOARD_NAME, [HEADLESS, BOARD_USERS]],
+      // The engine connector reads board files in its board layers alone: not its root, widgets,
+      // shared lib, tools or widget tools, nor a look-alike of a board layer.
+      [ENGINE_CONNECTOR_SRC, BOARD_NAME, [BOARD_USERS]],
+      [`${ENGINE_CONNECTOR}/src/widgets/board.ts`, BOARD_NAME, [WIDGETS_BROWSER, BOARD_USERS]],
+      [`${ENGINE_CONNECTOR}/src/lib/shared/board.ts`, BOARD_NAME, [WIDGETS_BROWSER, BOARD_USERS]],
+      [`${ENGINE_CONNECTOR}/src/tools/board.ts`, BOARD_NAME, [BOARD_USERS]],
+      [`${ENGINE_CONNECTOR}/src/widget-tools/board.ts`, BOARD_NAME, [BOARD_USERS]],
+      [`${ENGINE_CONNECTOR}/src/engine-boards-x.ts`, BOARD_NAME, [BOARD_USERS]],
+      [`${ENGINE_CONNECTOR}/src/data-x/board.ts`, BOARD_NAME, [BOARD_USERS]],
+      [`${BILLING_CONNECTOR}/src/data/board.ts`, BOARD_NAME, [BOARD_USERS]],
+      // An adapter's src reads none (adapter-tests-own-their-family admits it in its tests).
+      [ADAPTER_SRC, BOARD_NAME, [ADAPTER_FAMILY, BOARD_USERS]],
+      // Of the runtime view only its core reads board files.
+      [`${RUNTIME_VIEW}/src/host-kit/board.ts`, BOARD_NAME, [BOARD_USERS]],
+      [`${RUNTIME_VIEW}/src/webview/board.ts`, BOARD_NAME, [BOARD_USERS]],
+      [`${RUNTIME_VIEW}/src/ports/board.ts`, BOARD_NAME, [BOARD_USERS]],
+      [`${RUNTIME_VIEW}/src/corex/board.ts`, BOARD_NAME, [BOARD_USERS]],
+      [
+        `${SERVER}/src/escape-board.ts`,
+        "../../../packages/core/board/src/target.ts",
+        [BOARD_USERS, DEEP],
+      ],
+      // An unresolved subpath (shape 3: dependency-cruiser reads no exports map).
+      [`${SHELL}/src/board-sub.ts`, `${BOARD_NAME}/sub`, [BOARD_USERS]],
+      // Allowed: the runtime view's core, the editor hosts' src, the engine connector's board
+      // layers (its view models by type, connector-view-models-board-types-only), and tests
+      // anywhere.
+      [`${RUNTIME_VIEW}/src/core/boards/board-panel.ts`, BOARD_NAME, []],
+      [EXT_SRC, BOARD_NAME, []],
+      [ORCA_SRC, BOARD_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/engine-boards.ts`, BOARD_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/board-files.ts`, BOARD_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/data/board-data.ts`, BOARD_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/view-models.types.ts`, BOARD_NAME, [], "type"],
+      [`${RUNTIME_VIEW}/test/core/board.test.ts`, BOARD_NAME, []],
+      [`${RUNTIME_VIEW}/test/core/support/board.ts`, BOARD_NAME, []],
+      [`${SHELL}/test/support/board.ts`, BOARD_NAME, []],
+      [`${SHELL}/src/board.test.ts`, BOARD_NAME, []],
+    ],
+  },
+  {
+    rule: BLOCKS_LEAF,
+    title:
+      "the building blocks import React, Lucide, pulse-ui's root, /format and /tones and the board format's main entry",
+    cases: [
+      // A host's view runtime, a family, the engine contract, the builder, another subpath.
+      [BLOCKS_SRC, "@miragon/pulse-widget-shell/widgets", [BLOCKS_LEAF]],
+      [BLOCKS_SRC, "@modelcontextprotocol/ext-apps", [BLOCKS_LEAF, EXT_APPS]],
+      [BLOCKS_SRC, ENGINE_CORE_NAME, [BLOCKS_LEAF, CORE, ENGINE_CORE_USERS]],
+      [BLOCKS_SRC, C7_CORE, [CORE, BLOCKS_LEAF]],
+      [BLOCKS_SRC, `${BOARD_NAME}/builder`, [BLOCKS_LEAF, BOARD_BUILDER_USERS]],
+      [BLOCKS_SRC, `${BOARD_NAME}/testing`, [BLOCKS_LEAF, NO_TESTING]],
+      [BLOCKS_SRC, "@miragon/pulse-ui/testing", [BLOCKS_LEAF, NO_TESTING]],
+      [BLOCKS_SRC, "@miragon/pulse-ui/kit", [BLOCKS_LEAF]],
+      [BLOCKS_SRC, PROFILE_NAME, [BLOCKS_LEAF, PROFILE_USERS]],
+      [BLOCKS_SRC, "@miragon/pulse-cli", [NO_APP, BLOCKS_LEAF]],
+      ...["zod", "@tanstack/react-query", "bpmn-js", "reactive", "node:fs"].map((spec) => [
+        BLOCKS_SRC,
+        spec,
+        [BLOCKS_LEAF],
+      ]),
+      [`${BLOCKS}/src/escape.ts`, "../../ui/src/target.ts", [BLOCKS_LEAF, DEEP]],
+      [`${BLOCKS}/src/board/escape.ts`, "../../../board/src/target.ts", [BLOCKS_LEAF, DEEP]],
+      // Allowed: React, Lucide, the kit's root and its two framework-free entries, the board
+      // format's main entry, its own modules; its tests import what they need.
+      ...["react", "react-dom", "lucide-react", "@miragon/pulse-ui"].map((spec) => [
+        `${BLOCKS}/src/board/tile.ts`,
+        spec,
+        [],
+      ]),
+      [`${BLOCKS}/src/board/words.ts`, "@miragon/pulse-ui/format", []],
+      [`${BLOCKS}/src/board/tones.ts`, "@miragon/pulse-ui/tones", []],
+      [`${BLOCKS}/src/board/tile.ts`, BOARD_NAME, [], "type"],
+      [`${BLOCKS}/src/board/grid.ts`, "../lib.ts", []],
+      [`${BLOCKS}/src/board/tile.test.ts`, "vitest", []],
+      [`${BLOCKS}/src/board/words.test.ts`, `${BOARD_NAME}/testing`, []],
+      [`${BLOCKS}/src/brand-gates.test.ts`, "@miragon/pulse-ui/testing", []],
+    ],
+  },
+  {
+    rule: BLOCKS_USERS,
+    title: "the building blocks are rendered where a surface shows them, and in tests",
+    cases: [
+      [SERVER_SRC, BLOCKS_NAME, [BLOCKS_USERS]],
+      [SHELL_SRC, BLOCKS_NAME, [BLOCKS_USERS]],
+      [`${SHELL}/src/ui/board.ts`, BLOCKS_NAME, [SHELL_VIEWS, BLOCKS_USERS]],
+      [UI_SRC, BLOCKS_NAME, [UI_LEAF, BLOCKS_USERS]],
+      [BOARD_SRC, BLOCKS_NAME, [BOARD_LEAF, BLOCKS_USERS]],
+      [CLI_SRC, BLOCKS_NAME, [HEADLESS, BLOCKS_USERS]],
+      [EXT_SRC, BLOCKS_NAME, [BLOCKS_USERS]],
+      [ORCA_SRC, BLOCKS_NAME, [BLOCKS_USERS]],
+      // Of the engine connector only its widgets render them (the cockpit's board route): not its
+      // data builders, tools or the lib folder the widgets share with the server.
+      [`${ENGINE_CONNECTOR}/src/data/board.ts`, BLOCKS_NAME, [BLOCKS_USERS]],
+      [`${ENGINE_CONNECTOR}/src/tools/board.ts`, BLOCKS_NAME, [BLOCKS_USERS]],
+      [`${ENGINE_CONNECTOR}/src/lib/shared/board.ts`, BLOCKS_NAME, [BLOCKS_USERS]],
+      [`${ENGINE_CONNECTOR}/src/widget-tools/board.ts`, BLOCKS_NAME, [BLOCKS_USERS]],
+      // Of the runtime view only its webview renders them.
+      [`${RUNTIME_VIEW}/src/core/board.ts`, BLOCKS_NAME, [BLOCKS_USERS]],
+      [`${RUNTIME_VIEW}/src/host-kit/board.ts`, BLOCKS_NAME, [BLOCKS_USERS]],
+      [`${RUNTIME_VIEW}/src/webviewx/board.ts`, BLOCKS_NAME, [BLOCKS_USERS]],
+      [
+        `${SERVER}/src/escape-blocks.ts`,
+        "../../../packages/core/blocks/src/target.ts",
+        [BLOCKS_USERS, DEEP],
+      ],
+      // An unresolved subpath (shape 3: dependency-cruiser reads no exports map).
+      [`${SHELL}/src/blocks-sub.ts`, `${BLOCKS_NAME}/board`, [BLOCKS_USERS]],
+      // Allowed: the runtime view's webview, the engine connector's widgets (shape 2 too), and
+      // tests anywhere.
+      [`${RUNTIME_VIEW}/src/webview/screens/board.ts`, BLOCKS_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/widgets/board/board-view.tsx`, BLOCKS_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/widgets/board/built.tsx`, `${BLOCKS_NAME}/dist/index.js`, []],
+      [`${RUNTIME_VIEW}/test/webview/board.test.ts`, BLOCKS_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/data/board.test.ts`, BLOCKS_NAME, []],
+      [`${SHELL}/test/support/blocks.ts`, BLOCKS_NAME, []],
+    ],
+  },
+  {
+    rule: BOARD_BUILDER_USERS,
+    title: "the board builder is imported where a surface builds a board's numbers, and in tests",
+    cases: [
+      // The editor hosts read board files; the runtime view builds their numbers.
+      [EXT_SRC, `${BOARD_NAME}/builder`, [BOARD_BUILDER_USERS]],
+      [ORCA_SRC, `${BOARD_NAME}/builder`, [BOARD_BUILDER_USERS]],
+      // Shape 2: resolved through the importer's node_modules to the build.
+      [`${EXT}/src/host/built.ts`, `${BOARD_NAME}/dist/builder/index.js`, [BOARD_BUILDER_USERS]],
+      [
+        `${EXT}/src/host/escape-builder.ts`,
+        "../../../../packages/core/board/src/builder/lib.ts",
+        [BOARD_BUILDER_USERS, DEEP],
+      ],
+      // The engine connector builds a board's numbers in its data builders alone: not its root,
+      // its board files' reader, its view models (not even by type) or its widgets.
+      [ENGINE_CONNECTOR_SRC, `${BOARD_NAME}/builder`, [BOARD_BUILDER_USERS]],
+      [`${ENGINE_CONNECTOR}/src/engine-boards.ts`, `${BOARD_NAME}/builder`, [BOARD_BUILDER_USERS]],
+      // Shape 2, resolved to the build, so the type import reads as one.
+      [
+        `${ENGINE_CONNECTOR}/src/view-models.board.ts`,
+        `${BOARD_NAME}/dist/builder/index.js`,
+        [BOARD_BUILDER_USERS],
+        "type",
+      ],
+      [
+        `${ENGINE_CONNECTOR}/src/widgets/builder.ts`,
+        `${BOARD_NAME}/builder`,
+        [WIDGETS_BROWSER, BOARD_BUILDER_USERS],
+      ],
+      [`${ENGINE_CONNECTOR}/src/tools/builder.ts`, `${BOARD_NAME}/builder`, [BOARD_BUILDER_USERS]],
+      [SERVER_SRC, `${BOARD_NAME}/builder`, [BOARD_BUILDER_USERS]],
+      [SHELL_SRC, `${BOARD_NAME}/builder`, [BOARD_BUILDER_USERS]],
+      [
+        `${SERVER}/src/escape-builder.ts`,
+        "../../../packages/core/board/src/builder/lib.ts",
+        [BOARD_BUILDER_USERS, DEEP],
+      ],
+      // Of the runtime view only its core builds a board's numbers.
+      [`${RUNTIME_VIEW}/src/host-kit/builder.ts`, `${BOARD_NAME}/builder`, [BOARD_BUILDER_USERS]],
+      [`${RUNTIME_VIEW}/src/webview/builder.ts`, `${BOARD_NAME}/builder`, [BOARD_BUILDER_USERS]],
+      // Allowed: the runtime view's core (the board panel, the views that draw the roll-up), and
+      // tests anywhere.
+      [`${RUNTIME_VIEW}/src/core/boards/board-panel.ts`, `${BOARD_NAME}/builder`, []],
+      [`${RUNTIME_VIEW}/src/core/views/element-badges.ts`, `${BOARD_NAME}/builder`, [], "type"],
+      [`${ENGINE_CONNECTOR}/src/data/board-data.ts`, `${BOARD_NAME}/builder`, []],
+      [`${RUNTIME_VIEW}/test/core/board-views.test.ts`, `${BOARD_NAME}/builder`, []],
+      [`${RUNTIME_VIEW}/test/core/support/builder.ts`, `${BOARD_NAME}/builder`, []],
+      [`${EXT}/src/host/builder.test.ts`, `${BOARD_NAME}/builder`, []],
+    ],
+  },
+  {
+    rule: VIEW_MODELS_BOARD,
+    title: "the engine connector's view models name a built board's JSON form by type only",
+    cases: [
+      [`${ENGINE_CONNECTOR}/src/view-models.board.ts`, BOARD_NAME, [VIEW_MODELS_BOARD]],
+      [
+        `${ENGINE_CONNECTOR}/src/view-models.cockpit.ts`,
+        BOARD_NAME,
+        [VIEW_MODELS_BOARD],
+        "dynamic",
+      ],
+      [
+        `${ENGINE_CONNECTOR}/src/view-models.board.ts`,
+        "../../../../core/board/src/target.ts",
+        [VIEW_MODELS_BOARD, DEEP],
+      ],
+      // Allowed: the board format's types, from any of the view models.
+      [`${ENGINE_CONNECTOR}/src/view-models.flow.ts`, BOARD_NAME, [], "type"],
+      // Another module of the connector answers to board-consumers.
+      [`${ENGINE_CONNECTOR}/src/view-models-board/x.ts`, BOARD_NAME, [BOARD_USERS], "type"],
     ],
   },
   {
@@ -568,9 +960,60 @@ const SUITES = [
       [`${ENGINE_CONNECTOR}/src/tools/http.test.ts`, HTTP_NAME, []],
       [`${ENGINE_CONNECTOR}/src/http.test.ts`, `${HTTP_NAME}/testing`, []],
       [`${SHELL}/src/http.test.ts`, HTTP_NAME, []],
+      // widget-shell's web sign-in and its provider's discovery
+      // (widget-shell-oauth-by-the-oauth-entry narrows them to ./oauth); no other file of it.
+      [`${SHELL}/src/web/oauth-client.ts`, `${HTTP_NAME}/oauth`, []],
+      [`${SHELL}/src/oauth-discovery-keys.ts`, `${HTTP_NAME}/oauth`, [HTTP_USERS]],
+      [`${SHELL}/src/lib/oauth-discovery.ts`, `${HTTP_NAME}/oauth`, [HTTP_USERS]],
       [`${CLI}/test/support/http.ts`, `${HTTP_NAME}/testing`, []],
       [`${C7_ADAPTER}/src/http.test.ts`, `${HTTP_NAME}/testing`, []],
       [`${SERVER}/src/http.test.ts`, HTTP_NAME, []],
+    ],
+  },
+  {
+    rule: SHELL_OAUTH_HTTP,
+    title:
+      "widget-shell's web sign-in and its provider's discovery reach the transport by ./oauth, " +
+      "and its main entry by type",
+    cases: [
+      // ./oauth bare (shape 3, as the repo's cruise leaves the subpath) and resolved to the build.
+      [`${SHELL}/src/web/login.ts`, `${HTTP_NAME}/oauth`, []],
+      [`${SHELL}/src/web/built.ts`, `${HTTP_NAME}/dist/oauth/index.js`, []],
+      [`${SHELL}/src/web/oauth-types.ts`, `${HTTP_NAME}/oauth`, [], "type"],
+      // The main entry by type alone: the sign-in sends nothing through the engine transport.
+      [`${SHELL}/src/web/context.ts`, HTTP_NAME, [], "type"],
+      [`${SHELL}/src/web/send.ts`, HTTP_NAME, [SHELL_OAUTH_HTTP]],
+      [`${SHELL}/src/web/send-built.ts`, `${HTTP_NAME}/dist/index.js`, [SHELL_OAUTH_HTTP]],
+      // Never ./testing, never a file of the package, by type neither.
+      [`${SHELL}/src/web/testing.ts`, `${HTTP_NAME}/testing`, [SHELL_OAUTH_HTTP, NO_TESTING]],
+      [`${SHELL}/src/web/deep.ts`, `${HTTP_NAME}/dist/oauth/token.js`, [SHELL_OAUTH_HTTP]],
+      [
+        `${SHELL}/src/web/deep-type.ts`,
+        `${HTTP_NAME}/dist/oauth/token.js`,
+        [SHELL_OAUTH_HTTP],
+        "type",
+      ],
+      [`${SHELL}/src/web/escape.ts`, "../../../http/src/target.ts", [SHELL_OAUTH_HTTP, DEEP]],
+      // The provider's discovery alike: ./oauth (bare and built), the main entry by type alone
+      // (here resolved to the build; one case per specifier and file).
+      [`${SHELL}/src/oauth-discovery.ts`, `${HTTP_NAME}/oauth`, []],
+      [`${SHELL}/src/oauth-discovery.ts`, `${HTTP_NAME}/dist/oauth/index.js`, []],
+      [`${SHELL}/src/oauth-discovery.ts`, `${HTTP_NAME}/dist/index.js`, [], "type"],
+      [`${SHELL}/src/oauth-discovery.ts`, HTTP_NAME, [SHELL_OAUTH_HTTP]],
+      [`${SHELL}/src/oauth-discovery.ts`, `${HTTP_NAME}/testing`, [SHELL_OAUTH_HTTP, NO_TESTING]],
+      [
+        `${SHELL}/src/oauth-discovery.ts`,
+        `${HTTP_NAME}/dist/oauth/token.js`,
+        [SHELL_OAUTH_HTTP],
+        "type",
+      ],
+      // Their tests import what they need.
+      [`${SHELL}/src/web/login.test.ts`, HTTP_NAME, []],
+      [`${SHELL}/src/web/fake.test.ts`, `${HTTP_NAME}/testing`, []],
+      [`${SHELL}/src/oauth-discovery.test.ts`, `${HTTP_NAME}/testing`, []],
+      // The rest of widget-shell imports none of it, its gate included (http-consumers).
+      [`${SHELL}/src/oauth-gate.ts`, `${HTTP_NAME}/oauth`, [HTTP_USERS]],
+      [`${SHELL}/src/oauth-types.ts`, HTTP_NAME, [HTTP_USERS], "type"],
     ],
   },
   {
@@ -585,16 +1028,40 @@ const SUITES = [
       [PROFILE_SRC, ENGINE_CORE_NAME, [PROFILE_LEAF, CORE, ENGINE_CORE_USERS]],
       [HTTP_SRC, ENGINE_CORE_NAME, [HTTP_LEAF, CORE, ENGINE_CORE_USERS]],
       [C7_CLIENT_SRC, ENGINE_CORE_NAME, [CLIENT_LEAF, ENGINE_CORE_USERS]],
-      // The engine connector: engine-core is its own family's core, which
-      // engine-connector-spans-the-dialects lets through, but it reaches the contract through a
-      // dialect's core (c7-core's causeOf) until it serves a second dialect (owner decision
-      // 2026-11-09). In all three shapes: resolved, bare (a subpath) and a relative escape.
+      // The engine connector runs the contract in its server layers alone (src/lib/engine,
+      // src/lib/core-adapter, src/data: the CONNECTOR_CONTRACT suite). Its root, view models,
+      // widgets, src/lib/shared, other lib folders, tools and widget tools stay out, a type import
+      // too. In all three shapes: resolved, bare (a subpath) and a relative escape.
       [ENGINE_CONNECTOR_SRC, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
       [
-        `${ENGINE_CONNECTOR}/src/lib/core-adapter/contract.ts`,
+        `${ENGINE_CONNECTOR}/src/view-models.board.ts`,
         ENGINE_CORE_NAME,
         [ENGINE_CORE_USERS],
+        "type",
       ],
+      [
+        `${ENGINE_CONNECTOR}/src/widgets/board.ts`,
+        ENGINE_CORE_NAME,
+        [WIDGETS_BROWSER, ENGINE_CORE_USERS],
+      ],
+      [
+        `${ENGINE_CONNECTOR}/src/widgets/board-types.ts`,
+        ENGINE_CORE_NAME,
+        [ENGINE_CORE_USERS],
+        "type",
+      ],
+      [
+        `${ENGINE_CONNECTOR}/src/lib/shared/board.ts`,
+        ENGINE_CORE_NAME,
+        [WIDGETS_BROWSER, ENGINE_CORE_USERS],
+      ],
+      [`${ENGINE_CONNECTOR}/src/lib/mcp/contract.ts`, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
+      [`${ENGINE_CONNECTOR}/src/lib/bpmn/contract.ts`, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
+      [`${ENGINE_CONNECTOR}/src/tools/contract.ts`, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
+      [`${ENGINE_CONNECTOR}/src/widget-tools/contract.ts`, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
+      // Anchored on the folder: a look-alike of src/data or src/lib/engine is none.
+      [`${ENGINE_CONNECTOR}/src/data-x/contract.ts`, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
+      [`${ENGINE_CONNECTOR}/src/lib/engines/contract.ts`, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
       [`${ENGINE_CONNECTOR}/src/core-model.ts`, `${ENGINE_CORE_NAME}/model`, [ENGINE_CORE_USERS]],
       [
         `${ENGINE_CONNECTOR}/src/escape-engine-core.ts`,
@@ -679,6 +1146,108 @@ const SUITES = [
       [`${C7}/src/cause.test.ts`, `${ENGINE_CORE_NAME}/testing`, []],
       [`${ENGINE_CONNECTOR}/src/contract.test-support.ts`, `${ENGINE_CORE_NAME}/testing`, []],
       [`${ENGINE_CORE}/src/testing/kit.ts`, "../ports.ts", []],
+      // The board builder reads the contract's main entry, the board package's tests its kit;
+      // the format never.
+      [`${BOARD}/src/builder/contract.ts`, ENGINE_CORE_NAME, []],
+      [`${BOARD}/test/builder/world.ts`, `${ENGINE_CORE_NAME}/testing`, []],
+      [`${BOARD}/src/format/contract.ts`, ENGINE_CORE_NAME, [BOARD_LEAF, CORE, ENGINE_CORE_USERS]],
+    ],
+  },
+  {
+    rule: CONNECTOR_CONTRACT,
+    title: "the engine module's server layers read engine-core by its main entry alone",
+    cases: [
+      // Its data builders, its routing and runtime, its dialect port: the main entry, resolved
+      // to the build (shape 2), at runtime and as a type, in a nested folder too.
+      [`${ENGINE_CONNECTOR}/src/data/board.ts`, ENGINE_CORE_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/data/nested/reads.ts`, ENGINE_CORE_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/lib/engine/runtime.ts`, ENGINE_CORE_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/lib/core-adapter/contract.ts`, ENGINE_CORE_NAME, [], "type"],
+      // Never its kit, another subpath, a file of its build or a relative escape into its tree.
+      [
+        `${ENGINE_CONNECTOR}/src/data/kit.ts`,
+        `${ENGINE_CORE_NAME}/testing`,
+        [CONNECTOR_CONTRACT, NO_TESTING],
+      ],
+      [
+        `${ENGINE_CONNECTOR}/src/lib/engine/model.ts`,
+        `${ENGINE_CORE_NAME}/model`,
+        [CONNECTOR_CONTRACT],
+      ],
+      [
+        `${ENGINE_CONNECTOR}/src/lib/core-adapter/deep-model.ts`,
+        `${ENGINE_CORE_NAME}/dist/model/root-causes.js`,
+        [CONNECTOR_CONTRACT],
+      ],
+      [
+        `${ENGINE_CONNECTOR}/src/data/deep-kit.ts`,
+        `${ENGINE_CORE_NAME}/dist/testing/index.js`,
+        [CONNECTOR_CONTRACT],
+      ],
+      [
+        `${ENGINE_CONNECTOR}/src/data/escape-contract.ts`,
+        "../../../engine-core/src/target.ts",
+        [CONNECTOR_CONTRACT, DEEP],
+      ],
+      [
+        `${ENGINE_CONNECTOR}/src/lib/engine/escape-build.ts`,
+        "../../../../engine-core/dist/index.js",
+        [CONNECTOR_CONTRACT, DEEP],
+      ],
+      // Their tests and test-support read the kit.
+      [`${ENGINE_CONNECTOR}/src/data/board.test.ts`, `${ENGINE_CORE_NAME}/testing`, []],
+      [
+        `${ENGINE_CONNECTOR}/src/lib/engine/world.test-support.ts`,
+        `${ENGINE_CORE_NAME}/testing`,
+        [],
+      ],
+    ],
+  },
+  {
+    rule: C8_LAYER,
+    title: "of the engine module's shipped code, only src/lib/engine imports c8-core, by its entry",
+    cases: [
+      // The server's Camunda 8 wire, its words and its runtime: the main entry, resolved to the
+      // build (shape 2), at runtime and as a type, in a nested folder too.
+      [`${ENGINE_CONNECTOR}/src/lib/engine/c8-runtime.ts`, C8_CORE, []],
+      [`${ENGINE_CONNECTOR}/src/lib/engine/c8-port.ts`, C8_CORE, [], "type"],
+      [`${ENGINE_CONNECTOR}/src/lib/engine/nested/c8-words.ts`, C8_CORE, []],
+      // Never its ./testing, a file of its build or a relative escape into its tree.
+      [
+        `${ENGINE_CONNECTOR}/src/lib/engine/c8-board.ts`,
+        `${C8_CORE}/testing`,
+        [C8_LAYER, NO_TESTING],
+      ],
+      // The entry's own file resolves to the entry (TypeScript refuses the specifier through the
+      // exports map); any other file of the build trips.
+      [`${ENGINE_CONNECTOR}/src/lib/engine/c8-build.ts`, `${C8_CORE}/dist/index.js`, []],
+      [
+        `${ENGINE_CONNECTOR}/src/lib/engine/c8-deep-kit.ts`,
+        `${C8_CORE}/dist/testing/index.js`,
+        [C8_LAYER],
+      ],
+      [
+        `${ENGINE_CONNECTOR}/src/lib/engine/c8-escape.ts`,
+        "../../../../../c8/c8-core/src/target.ts",
+        [C8_LAYER, DEEP],
+      ],
+      // Any other shipped layer of the module, as a type too: it reads the contract's answers.
+      [`${ENGINE_CONNECTOR}/src/data/c8-board.ts`, C8_CORE, [C8_LAYER]],
+      [`${ENGINE_CONNECTOR}/src/data/c8-types.ts`, C8_CORE, [C8_LAYER], "type"],
+      [`${ENGINE_CONNECTOR}/src/tools/c8.ts`, C8_CORE, [C8_LAYER]],
+      [`${ENGINE_CONNECTOR}/src/providers/c8.ts`, C8_CORE, [C8_LAYER]],
+      [`${ENGINE_CONNECTOR}/src/widget-tools/c8.ts`, C8_CORE, [C8_LAYER]],
+      [`${ENGINE_CONNECTOR}/src/lib/core-adapter/c8.ts`, C8_CORE, [C8_LAYER]],
+      [`${ENGINE_CONNECTOR}/src/plugin-c8.ts`, C8_CORE, [C8_LAYER]],
+      [`${ENGINE_CONNECTOR}/src/widgets/c8.tsx`, C8_CORE, [C8_LAYER, WIDGETS_BROWSER]],
+      [`${ENGINE_CONNECTOR}/src/lib/shared/c8.ts`, C8_CORE, [C8_LAYER, WIDGETS_BROWSER]],
+      // The module reaches no adapter of the editor hosts, and the server app no dialect core.
+      [`${ENGINE_CONNECTOR}/src/lib/engine/c8-adapter.ts`, C8_ADAPTER_NAME, [ADAPTER_USERS]],
+      [`${SERVER}/src/c8.ts`, C8_CORE, [CORE_USERS]],
+      // Its tests and test-support import it anywhere, its kit included.
+      [`${ENGINE_CONNECTOR}/src/data/board.c8.test.ts`, C8_CORE, []],
+      [`${ENGINE_CONNECTOR}/src/data/board.c8.test.ts`, `${C8_CORE}/testing`, []],
+      [`${ENGINE_CONNECTOR}/src/lib/engine/test-support/c8-world.ts`, `${C8_CORE}/testing`, []],
     ],
   },
   {
@@ -742,9 +1311,23 @@ const SUITES = [
       ],
       [C7_SRC, "./lib.ts", []],
       [`${C7}/src/a.test.ts`, "vitest", []],
+      // The c8 family's core is a dialect's core too (DIALECT_FAMILIES): engine-core's main
+      // entry is its one edge out. Not engine-core's ./testing, not the transport (each surface
+      // brings its own wire and words its failures), not the runtime view's ports, not the c7
+      // family's core and no Node built-in.
+      [C8_SRC, ENGINE_CORE_NAME, []],
+      [`${C8}/src/kit.ts`, `${ENGINE_CORE_NAME}/testing`, [CORE_LEAF, NO_TESTING]],
+      [`${C8}/src/wire.ts`, HTTP_NAME, [CORE_LEAF, HTTP_USERS]],
+      [`${C8}/src/ports.ts`, `${VIEW}/ports`, [CORE_LEAF, VIEW_USERS]],
+      [`${C8}/src/c7.ts`, C7_CORE, [CORE_LEAF]],
+      [`${C8}/src/files.ts`, "node:fs", [CORE_LEAF]],
+      [`${C8}/src/testing/contract.ts`, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
+      [`${C8}/test/support/fake.ts`, ENGINE_CORE_NAME, []],
+      [`${C8}/test/support/world.ts`, `${ENGINE_CORE_NAME}/testing`, []],
       // Keyed on the role: any family's core is a leaf, by the layout alone. The main entry of
       // engine-core passes the leaf rule here too (bare, shape 3), but only a dialect's core may
-      // import it (engine-core-consumers).
+      // import it (engine-core-consumers): the billing core stands for a family core of another
+      // source than a dialect (a metrics store, say), which DIALECT_FAMILIES leaves out.
       [BILLING_CORE_SRC, "@miragon/pulse-billing-client", [CORE_LEAF, CLIENT_USERS]],
       [BILLING_CORE_SRC, "zod", [CORE_LEAF]],
       [BILLING_CORE_SRC, ENGINE_CORE_NAME, [ENGINE_CORE_USERS]],
@@ -797,6 +1380,15 @@ const SUITES = [
       // reaches no ./testing entry.
       [`${C7_ADAPTER}/src/testing.ts`, `${C7_CORE}/testing`, [NO_TESTING]],
       [`${C7_ADAPTER}/src/escape-core.ts`, "../../c7-core/src/target.ts", [ADAPTER_FAMILY, DEEP]],
+      // c8-core: no app imports it, the editor hosts reach it through the C8 adapter, the engine
+      // module in its src/lib/engine alone (the C8_LAYER suite).
+      [SERVER_SRC, C8_CORE, [CORE_USERS]],
+      [`${CLI}/src/workflow/c8.ts`, C8_CORE, [HEADLESS]],
+      [`${EXT}/src/host/c8.ts`, C8_CORE, [HOSTS]],
+      [`${ENGINE_CONNECTOR}/src/data/c8.ts`, C8_CORE, [C8_LAYER]],
+      [`${C8_ADAPTER}/src/escape-core.ts`, "../../c8-core/src/target.ts", [ADAPTER_FAMILY, DEEP]],
+      [`${C8_ADAPTER}/src/reads.ts`, C8_CORE, []],
+      [`${C8_ADAPTER}/test/support/reads.ts`, C8_CORE, []],
       // Allowed: the engine module, which spans the dialect families, the CLI, which bundles
       // c7-core, and the C7 adapter.
       [`${C7_ADAPTER}/src/inspect.ts`, C7_CORE, []],
@@ -840,18 +1432,6 @@ const SUITES = [
         "../../../../core/runtime-view/src/index.ts",
         [ADAPTER_FAMILY, DEEP],
       ],
-      // An adapter's tests stay in its family too: client-consumers admits every client in a
-      // test, this rule refuses another family's.
-      [
-        `${BILLING_ADAPTER}/test/support/c7-client.ts`,
-        "@miragon/pulse-c7-client",
-        [ADAPTER_FAMILY],
-      ],
-      [
-        `${C7_ADAPTER}/src/billing-client.test.ts`,
-        "@miragon/pulse-billing-client",
-        [ADAPTER_FAMILY],
-      ],
       // Allowed: its own modules and family core, engine-core (the contract it implements), the
       // runtime view (whose ports name the plug it provides), the transport and third-party
       // libraries.
@@ -867,8 +1447,73 @@ const SUITES = [
       [`${C7_ADAPTER}/src/routes.ts`, `${C7_CORE}/routes`, []],
       [`${C7_ADAPTER}/test/support/inspect.ts`, `${C7_CORE}/testing`, []],
       [`${C7_ADAPTER}/src/ports.ts`, `${VIEW}/ports`, [], "type"],
+      // Its src, its shipped ./testing entry and its scripts import no board, the format or its
+      // builder, which only its tests do (adapter-tests-own-their-family).
+      [
+        `${C7_ADAPTER}/src/board.ts`,
+        `${BOARD_NAME}/builder`,
+        [ADAPTER_FAMILY, BOARD_BUILDER_USERS],
+      ],
+      [`${C7_ADAPTER}/src/testing/board.ts`, BOARD_NAME, [ADAPTER_FAMILY]],
+      [`${C7_ADAPTER}/scripts/board.ts`, BOARD_NAME, [ADAPTER_FAMILY, BOARD_USERS]],
+      [
+        `${C7_ADAPTER}/src/escape-board.ts`,
+        "../../../../core/board/src/index.ts",
+        [ADAPTER_FAMILY, BOARD_USERS, DEEP],
+      ],
       [ADAPTER_SRC, "./lib.ts", []],
       [ADAPTER_SRC, "reactive", []],
+      // The C8 adapter is the c8 family's: not the c7 family's core or adapter, in each shape,
+      // and the C7 adapter not the C8 adapter's.
+      [C8_ADAPTER_SRC, C7_CORE, [ADAPTER_FAMILY]],
+      [C8_ADAPTER_SRC, ADAPTER, [ADAPTER_FAMILY]],
+      [`${C8_ADAPTER}/src/c7-routes.ts`, `${C7_CORE}/routes`, [ADAPTER_FAMILY]],
+      [
+        `${C8_ADAPTER}/src/escape-c7.ts`,
+        "../../../c7/c7-adapter/src/index.ts",
+        [ADAPTER_FAMILY, DEEP],
+      ],
+      [ADAPTER_SRC, C8_ADAPTER_NAME, [ADAPTER_FAMILY]],
+      // Allowed: engine-core, the runtime view's ports, the transport and its OAuth client, which
+      // the C8 adapter's wire gets its tokens from (its closed world holds both to the wire).
+      [`${C8_ADAPTER}/src/a.ts`, ENGINE_CORE_NAME, []],
+      [`${C8_ADAPTER}/src/ports.ts`, `${VIEW}/ports`, [], "type"],
+      [`${C8_ADAPTER}/src/wire/http.ts`, HTTP_NAME, []],
+      [`${C8_ADAPTER}/src/wire/oauth.ts`, `${HTTP_NAME}/oauth`, []],
+    ],
+  },
+  {
+    rule: ADAPTER_TESTS,
+    title:
+      "a family's adapter's tests import what its src does and the board format and its builder",
+    cases: [
+      // Its tests stay in its family too: client-consumers admits every client in a test, this
+      // rule refuses another family's, and every other package adapters-own-their-family does.
+      [`${BILLING_ADAPTER}/test/support/c7-client.ts`, "@miragon/pulse-c7-client", [ADAPTER_TESTS]],
+      [
+        `${C7_ADAPTER}/src/billing-client.test.ts`,
+        "@miragon/pulse-billing-client",
+        [ADAPTER_TESTS],
+      ],
+      [`${C7_ADAPTER}/test/support/view.ts`, "@miragon/pulse-widget-shell", [ADAPTER_TESTS]],
+      [`${BILLING_ADAPTER}/test/c7.test.ts`, C7_CORE, [ADAPTER_TESTS]],
+      [`${C7_ADAPTER}/src/ui.test-support.ts`, "@miragon/pulse-ui", [ADAPTER_TESTS]],
+      [
+        `${C7_ADAPTER}/test/escape-board.ts`,
+        "../../../../core/board/src/index.ts",
+        [ADAPTER_TESTS, DEEP],
+      ],
+      // Allowed: what its src imports, and the board format and its builder, which build a
+      // board over its runtime (board-consumers and board-builder-consumers admit tests), from
+      // its test tree, a test file and test-support.
+      [`${C7_ADAPTER}/test/board.test.ts`, BOARD_NAME, []],
+      [`${C7_ADAPTER}/test/support/board.ts`, `${BOARD_NAME}/builder`, []],
+      [`${C7_ADAPTER}/src/board.test.ts`, BOARD_NAME, []],
+      [`${C7_ADAPTER}/src/board.test-support.ts`, `${BOARD_NAME}/builder`, []],
+      [`${BILLING_ADAPTER}/src/test-support/board.ts`, BOARD_NAME, []],
+      [`${C7_ADAPTER}/test/support/engine.ts`, ENGINE_CORE_NAME, []],
+      [`${C7_ADAPTER}/test/support/c7.ts`, C7_CORE, []],
+      [`${C7_ADAPTER}/test/wire.test.ts`, HTTP_NAME, []],
     ],
   },
   {
@@ -916,9 +1561,16 @@ const SUITES = [
         "../../../../packages/connectors/c7/c7-adapter/src/index.ts",
         [DEEP],
       ],
+      // The C8 adapter's consumers are the same: keyed on the role.
+      [SERVER_SRC, C8_ADAPTER_NAME, [ADAPTER_USERS]],
+      [`${CLI}/src/workflow/c8-adapter.ts`, C8_ADAPTER_NAME, [HEADLESS, ADAPTER_USERS]],
+      [ENGINE_CONNECTOR_SRC, C8_ADAPTER_NAME, [ADAPTER_USERS]],
+      [VIEW_SRC, C8_ADAPTER_NAME, [VIEW_ENGINE, ADAPTER_USERS]],
       // Allowed: the editor hosts' composition roots.
       [`${EXT}/src/host/composition-root.ts`, ADAPTER, []],
       [`${ORCA}/src/worker/composition-root.ts`, ADAPTER, []],
+      [`${EXT}/src/host/composition-root.ts`, C8_ADAPTER_NAME, []],
+      [`${ORCA}/src/worker/composition-root.ts`, C8_ADAPTER_NAME, []],
     ],
   },
   {
@@ -995,6 +1647,37 @@ const SUITES = [
       // Another family's core is cli-is-headless's alone.
       [`${CLI}/src/cli/other-core.ts`, BILLING_CORE_NAME, [HEADLESS]],
       [`${CLI}/src/f.test.ts`, C7_CORE, []],
+    ],
+  },
+  {
+    rule: CLI_RUNTIME,
+    title: "the CLI never imports c7-core's ./runtime entry, which only a family's adapter runs",
+    cases: [
+      // In every layer, the ones that may import the core included, and in its tests.
+      [`${CLI}/src/workflow/runtime.ts`, `${C7_CORE}/runtime`, [CLI_RUNTIME]],
+      [CLI_SRC, `${C7_CORE}/runtime`, [CLI_CORE_LAYERS, CLI_RUNTIME]],
+      [`${CLI}/src/workflow/runtime.test.ts`, `${C7_CORE}/runtime`, [CLI_RUNTIME]],
+      [`${CLI}/test/support/runtime.ts`, `${C7_CORE}/runtime`, [CLI_RUNTIME]],
+      [`${CLI}/scripts/runtime.ts`, `${C7_CORE}/runtime`, [CLI_CORE_LAYERS, CLI_RUNTIME]],
+      // Its build resolved through the CLI's own link (shape 2), by a type too, and a relative
+      // escape.
+      [`${CLI}/src/workflow/runtime-build.ts`, `${C7_CORE}/dist/runtime/index.js`, [CLI_RUNTIME]],
+      [
+        `${CLI}/src/engine-port/runtime.ts`,
+        `${C7_CORE}/dist/runtime/index.js`,
+        [CLI_RUNTIME],
+        "type",
+      ],
+      [
+        `${CLI}/src/workflow/escape-runtime.ts`,
+        "../../../../packages/connectors/c7/c7-core/src/runtime/json-view.ts",
+        [CLI_RUNTIME, DEEP, HEADLESS],
+      ],
+      // Anchored: a look-alike subpath and the other entries stay the CLI's to bundle.
+      [`${CLI}/src/workflow/runtimes.ts`, `${C7_CORE}/runtimes`, []],
+      [`${CLI}/src/workflow/routes.ts`, `${C7_CORE}/routes`, []],
+      // Allowed: the C7 adapter runs it.
+      [`${C7_ADAPTER}/src/engine-rest/runtime.ts`, `${C7_CORE}/runtime`, []],
     ],
   },
   {
@@ -1126,6 +1809,11 @@ const SUITES = [
       [SHELL_SRC, "hono", []],
       [`${SHELL}/src/ui/view.ts`, "@miragon/pulse-ui", []],
       [SHELL_SRC, "@miragon/pulse-mcp-server-kit", []],
+      // The board builder answers to its own rule, the board package's tests to
+      // board-tests-build-on-the-engine-contract; the rest of the board package to this one.
+      [`${BOARD}/src/builder/engine.ts`, ENGINE_CORE_NAME, []],
+      [`${BOARD}/test/builder/kit.ts`, `${ENGINE_CORE_NAME}/testing`, []],
+      [`${BOARD}/src/testing/connector.ts`, "@miragon/pulse-engine-connector", [CORE, BOARD_LEAF]],
     ],
   },
   {
@@ -1637,7 +2325,7 @@ const SUITES = [
         [SPANS, DEEP],
       ],
       // A dialect joins ENGINE_DIALECTS with its first import: until then it is another family.
-      [`${ENGINE_CONNECTOR}/src/lib/engine/c8.ts`, "@miragon/pulse-c8-core", [SPANS]],
+      [`${ENGINE_CONNECTOR}/src/lib/engine/c9.ts`, "@miragon/pulse-c9-core", [SPANS]],
       // Anchored: a family whose name starts like a dialect's is no dialect.
       [`${ENGINE_CONNECTOR}/src/lib/engine/c70.ts`, "@miragon/pulse-c70-core", [SPANS]],
       // Allowed: the dialect family c7 (its core and its client, a subpath too) and tests. The
@@ -1648,6 +2336,9 @@ const SUITES = [
       [`${ENGINE_CONNECTOR}/src/lib/core-adapter/types.ts`, C7_CORE, [], "type"],
       [`${ENGINE_CONNECTOR}/src/lib/engine/c7.ts`, "@miragon/pulse-c7-client", []],
       [`${ENGINE_CONNECTOR}/src/lib/engine/sdk.ts`, "@miragon/pulse-c7-client/sdk", []],
+      // The dialect family c8, which joined with the server's Camunda 8 wire: its core, in the
+      // engine layer (the C8_LAYER suite holds where).
+      [`${ENGINE_CONNECTOR}/src/lib/engine/c8.ts`, C8_CORE, []],
       [`${ENGINE_CONNECTOR}/src/tools/core.test.ts`, `${C7_CORE}/testing`, []],
     ],
   },
@@ -1715,7 +2406,7 @@ const SUITES = [
       // adapter, in every shape (resolved through its node_modules, ./sdk bare, a relative
       // escape into the client and into its generated SDK), as a type too, from its shipped
       // ./testing entry and its scripts/ as well. This rule alone refuses the edge to its own
-      // family's client: adapters-own-their-family leaves that one to it.
+      // family's client: the adapter rules leave that one to it.
       [BILLING_ADAPTER_SRC, "@miragon/pulse-billing-client", [CLIENT_USERS]],
       [`${BILLING_ADAPTER}/src/client.ts`, "@miragon/pulse-billing-client/sdk", [CLIENT_USERS]],
       [
@@ -1757,9 +2448,13 @@ const SUITES = [
         "../../../billing/billing-client/src/index.ts",
         [ADAPTER_FAMILY, CLIENT_USERS, DEEP],
       ],
+      // The C8 adapter takes no client either: its own family's is client-consumers' alone,
+      // another family's trips adapters-own-their-family as well.
+      [C8_ADAPTER_SRC, "@miragon/pulse-c8-client", [CLIENT_USERS]],
+      [C8_ADAPTER_SRC, "@miragon/pulse-c7-client", [ADAPTER_FAMILY, CLIENT_USERS]],
       // Allowed: the engine module (the dialects' clients), a connector of its own family, and
       // tests anywhere (the CLI's stay cli-is-headless's), an adapter's with its own family's
-      // client too (its tests with another family's client stay adapters-own-their-family's).
+      // client too (its tests with another family's client stay adapter-tests-own-their-family's).
       [`${ENGINE_CONNECTOR}/src/providers/create-client.ts`, "@miragon/pulse-c7-client", []],
       [`${BILLING_CONNECTOR}/src/lib/engine/client.ts`, "@miragon/pulse-billing-client/sdk", []],
       [`${BILLING_ADAPTER}/test/support/client.ts`, "@miragon/pulse-billing-client", []],
@@ -2406,6 +3101,56 @@ function dialectFindings(dialects, connectorsDir) {
   })
 }
 
+/**
+ * The dialect families engine-core-consumers lets implement the contract, read from the pattern of
+ * a dialect core's src that ENGINE_CORE_IMPLEMENTERS builds from DIALECT_FAMILIES.
+ */
+function implementingFamilies(config) {
+  const { from } = config.forbidden.find((rule) => rule.name === ENGINE_CORE_USERS)
+  const families = from.pathNot
+    .map((pattern) =>
+      /^\^packages\/connectors\/\(\?:([^)]+)\)\/\[\^\/\]\+-core\/src\//.exec(pattern),
+    )
+    .find(Boolean)
+  return families ? families[1].split("|") : []
+}
+
+/** The dialects the engine module serves that are no dialect family (DIALECT_FAMILIES). */
+function servedOutsideFindings(dialects, families) {
+  return dialects
+    .filter((dialect) => !families.includes(dialect))
+    .map(
+      (dialect) =>
+        `ENGINE_DIALECTS names ${dialect}, which DIALECT_FAMILIES does not: a dialect the engine ` +
+        "module serves is a dialect family first",
+    )
+}
+
+describe("DIALECT_FAMILIES names the dialect families of the tree, ENGINE_DIALECTS a subset", () => {
+  const config = createRequire(import.meta.url)(CONFIG)
+  const families = implementingFamilies(config)
+  const dialects = spannedFamilies(config).filter((family) => family !== "engine")
+
+  it("reads the dialect families from engine-core-consumers", () => {
+    assert.deepEqual([...families].sort(), ["c7", "c8"])
+  })
+
+  it("holds the real tree: each a family with a client or a core and without a connector", () => {
+    assert.deepEqual(dialectFindings(families, path.join(repoRoot, "packages/connectors")), [])
+  })
+
+  it("names every dialect the engine module serves", () => {
+    assert.deepEqual(servedOutsideFindings(dialects, families), [])
+  })
+
+  it("fails on a dialect the engine module serves that is no dialect family", () => {
+    assert.deepEqual(servedOutsideFindings(["c7", "c9"], ["c7", "c8"]), [
+      "ENGINE_DIALECTS names c9, which DIALECT_FAMILIES does not: a dialect the engine module " +
+        "serves is a dialect family first",
+    ])
+  })
+})
+
 describe("ENGINE_DIALECTS names dialect families of the tree, none with a connector", () => {
   const config = createRequire(import.meta.url)(CONFIG)
   const dialects = spannedFamilies(config).filter((family) => family !== "engine")
@@ -2468,13 +3213,14 @@ describe("a failing cruise says the fix", () => {
   const config = createRequire(import.meta.url)(CONFIG)
   const { scripts } = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"))
 
-  // The closed worlds of the editor hosts and of the two packages they share, each with its
+  // The closed worlds of the editor hosts and of the packages they share, each with its
   // own config and script.
   const CLOSED_WORLDS = {
     "lint:architecture:vscode": "apps/vscode/.dependency-cruiser.cjs",
     "lint:architecture:orca": "apps/orca/.dependency-cruiser.cjs",
     "lint:architecture:runtime-view": "packages/core/runtime-view/.dependency-cruiser.cjs",
     "lint:architecture:c7-adapter": "packages/connectors/c7/c7-adapter/.dependency-cruiser.cjs",
+    "lint:architecture:c8-adapter": "packages/connectors/c8/c8-adapter/.dependency-cruiser.cjs",
   }
 
   for (const script of [...ARCHITECTURE_SCRIPTS, ...Object.keys(CLOSED_WORLDS)]) {

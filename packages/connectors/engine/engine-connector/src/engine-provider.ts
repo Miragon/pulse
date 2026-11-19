@@ -1,16 +1,26 @@
 import type { Client } from "@miragon/pulse-c7-client"
-import type { Flavor } from "@miragon/pulse-profile"
+import type { Dialect, Flavor, FLAVORS } from "@miragon/pulse-profile"
 
-/** One per vendor of the C7 dialect: ONLY the real differences, never a mirror of the SDK. */
+/** One per vendor: ONLY the real differences, never a mirror of the SDK. */
 
-/** A profile's `flavor`: the one table of vendors is the profile format's (`FLAVORS`). */
+/** A profile's `flavor`: every vendor of the profile format's one table (`FLAVORS`) has a provider. */
 export type EngineFlavor = Flavor
 
+/** A flavor of the Camunda 7 REST dialect: every tool reaches its engines through their client. */
+export type C7Flavor = { [F in Flavor]: (typeof FLAVORS)[F] extends "c7" ? F : never }[Flavor]
+
 /**
- * How the server signs in to an engine: not at all, Basic, a fixed bearer token, or the MCP
- * caller's own bearer token passed through (`src/lib/engine/credentials.ts`).
+ * A dialect the server reads through the engine contract alone (`resolveRuntimeEngine`): boards
+ * and diagrams read it, every Camunda 7 path refuses it (ENGINE_DIALECT_NOT_SERVED).
  */
-export type EngineAuthType = "basic" | "bearer" | "passthrough" | "none"
+export type ContractDialect = Exclude<Dialect, "c7">
+
+/**
+ * How the server signs in to an engine: not at all, Basic, a fixed bearer token, the MCP
+ * caller's own bearer token passed through, or a token of the client credentials grant, which a
+ * Camunda 8 cluster reads (`src/lib/engine/credentials.ts`).
+ */
+export type EngineAuthType = "basic" | "bearer" | "passthrough" | "none" | "clientCredentials"
 
 /** How one engine signs in, resolved from its profile at boot (the secret read from its variable). */
 export interface EngineAuth {
@@ -18,6 +28,13 @@ export interface EngineAuth {
   username?: string
   password?: string
   token?: string
+  /** clientCredentials: the URL that issues the tokens, the client and its secret. */
+  tokenEndpoint?: string
+  clientId?: string
+  clientSecret?: string
+  /** clientCredentials: what the client asks a token for, sent as written. */
+  audience?: string
+  scopes?: readonly string[]
 }
 
 /** The client settings of one engine, handed to its provider's client factory. */
@@ -40,7 +57,7 @@ export interface EngineEntry {
   cockpitUrl?: string
   /** Grouping only: `id` stays the globally unique `engine` selector. */
   environment?: string
-  /** Engine vendor of the C7 dialect; selects the provider. Default: "camunda7". */
+  /** Engine vendor; selects the provider, and with it the dialect. Default: "camunda7". */
   flavor?: EngineFlavor
   /** Absent: no credentials. */
   auth?: EngineAuth
@@ -49,6 +66,9 @@ export interface EngineEntry {
   /** The profile's `timeout` in ms; it beats `ENGINE_REQUEST_TIMEOUT_MS`. */
   timeoutMs?: number
 }
+
+/** An engine of the Camunda 7 REST dialect: its flavor one of that dialect's, or none. */
+export type C7EngineEntry = EngineEntry & { flavor?: C7Flavor }
 
 /** CIB seven routes by key/version, Camunda/Operaton by id; a missing field yields no link. */
 export interface CockpitRef {
@@ -67,10 +87,26 @@ export interface EngineCockpitStrategy {
   instanceRoute(ref: CockpitRef, tab?: string): string | null
 }
 
-export interface EngineProvider {
+/** What every provider says: its vendor, the dialect it speaks, its web app's links and its name. */
+interface ProviderParts {
   flavor: EngineFlavor
-  /** REST-client factory, identical across vendors today; the hook exists for real divergence. */
-  createClient(entry: EngineEntry, auth: EngineAuth, settings?: EngineClientSettings): Client
+  dialect: Dialect
   cockpit: EngineCockpitStrategy
   branding: { displayName: string }
 }
+
+/** A vendor of the Camunda 7 REST dialect: it also builds an engine's client (the client hook). */
+export interface C7EngineProvider extends ProviderParts {
+  flavor: C7Flavor
+  dialect: "c7"
+  /** REST-client factory, identical across vendors today; the hook exists for real divergence. */
+  createClient(entry: EngineEntry, auth: EngineAuth, settings?: EngineClientSettings): Client
+}
+
+/** A vendor of a dialect the server reads through the engine contract: no client of its own. */
+export interface ContractEngineProvider extends ProviderParts {
+  flavor: Exclude<EngineFlavor, C7Flavor>
+  dialect: ContractDialect
+}
+
+export type EngineProvider = C7EngineProvider | ContractEngineProvider

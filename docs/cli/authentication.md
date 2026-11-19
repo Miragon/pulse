@@ -90,7 +90,7 @@ $ pulse process-instance list --profile sso
 - `UNAUTHORIZED` or `FORBIDDEN` after a successful login are gateway (issuer, audience, clock) or
   permission problems, not login problems: do not ask for a new login. The gateway must expect exactly the issuer URL the CLI
   logs in with (`localhost` and `127.0.0.1` differ).
-- URLs must use `https://` (`http://` only for loopback).
+- URLs must use `https://` (`http://` only for loopback); a remote issuer's discovery names none on loopback.
 
 ### Shared logins
 

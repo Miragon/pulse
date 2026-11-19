@@ -1,0 +1,54 @@
+{
+  "case": "path-value-dot",
+  "probes": [
+    {
+      "arguments": {
+        "engine": "c8",
+        "processDefinitionId": "."
+      },
+      "failure": null,
+      "matches": "getInstanceDetail .",
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "{\"processDefinitionId\":\".\",\"bpmnXml\":null}"
+            ],
+            "type": "text"
+          }
+        ]
+      },
+      "sent": [
+        "GET /v2/topology"
+      ],
+      "tool": "engine_bpmn_xml_data"
+    },
+    {
+      "arguments": {
+        "engine": "c8",
+        "processDefinitionId": ".."
+      },
+      "failure": null,
+      "matches": "getInstanceDetail ..",
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "{\"processDefinitionId\":\"..\",\"bpmnXml\":null}"
+            ],
+            "type": "text"
+          }
+        ]
+      },
+      "sent": [
+        "GET /v2/topology"
+      ],
+      "tool": "engine_bpmn_xml_data"
+    }
+  ],
+  "profile": {
+    "flavor": "camunda8",
+    "url": "http://127.0.0.1:<port>/v2"
+  },
+  "secrets": {}
+}

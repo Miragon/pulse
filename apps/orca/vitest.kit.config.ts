@@ -1,6 +1,6 @@
 import { join } from "node:path"
 import { defineConfig } from "vitest/config"
-import { bpmnAsText } from "./vitest.config"
+import { bpmnAsText, ISOLATED_CONFIG_HOME } from "./vitest.config"
 
 const MAC_RESOURCES = "/Applications/Orca.app/Contents/Resources"
 const resources = process.env.ORCA_RESOURCES ?? MAC_RESOURCES
@@ -20,6 +20,7 @@ export default defineConfig({
   test: {
     name: "orca-kit",
     environment: "node",
+    env: ISOLATED_CONFIG_HOME,
     include: ["test/kit/**/*.orca.test.{ts,tsx}"],
   },
 })

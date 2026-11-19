@@ -92,7 +92,12 @@ const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] =
         },
       }
     },
-    [CASE.incidentsRootOnly, CASE.detailCalledInstance],
+    [
+      CASE.incidentsRootOnly,
+      CASE.detailCalledInstance,
+      CASE.incidentsPaging,
+      CASE.incidentsNewestFirst,
+    ],
   ],
   [
     "a call activity names its process without the version it starts",
@@ -109,7 +114,7 @@ const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] =
     (runtime) => ({
       searchInstances: (filter, page) => runtime.searchInstances(filter, { limit: page.limit }),
     }),
-    [CASE.instancesPaging],
+    [CASE.instancesPaging, CASE.instancesPagesFull],
   ],
   [
     "timestamps keep the engine offset",

@@ -12,14 +12,24 @@ export interface AuthorizationRequest {
   /** Left out when there is none. */
   readonly scopes?: readonly string[]
   readonly audience?: string
+  /**
+   * The resources (RFC 8707) the access token is for, one `resource` parameter each, sent as
+   * given: the caller names each as the resource server identifies itself.
+   */
+  readonly resources?: readonly string[]
   /** The S256 challenge of the PKCE verifier (`createPkce`). */
   readonly challenge: string
   readonly state: string
 }
 
+/** `endpoint` with its own query kept and `params` after it. */
+export function withQuery(endpoint: string, params: URLSearchParams): string {
+  return `${endpoint}${endpoint.includes("?") ? "&" : "?"}${params.toString()}`
+}
+
 /**
  * The authorization URL: the endpoint with its own query kept, plus the code flow's parameters
- * with PKCE S256, the state, the scopes and the audience.
+ * with PKCE S256, the state, the scopes, the audience and the resources.
  */
 export function authorizationUrl(endpoint: string, request: AuthorizationRequest): string {
   const params = new URLSearchParams({
@@ -33,7 +43,10 @@ export function authorizationUrl(endpoint: string, request: AuthorizationRequest
   params.set("code_challenge", request.challenge)
   params.set("code_challenge_method", "S256")
   if (request.audience !== undefined) params.set("audience", request.audience)
-  return `${endpoint}${endpoint.includes("?") ? "&" : "?"}${params.toString()}`
+  request.resources?.forEach((resource) => {
+    params.append("resource", resource)
+  })
+  return withQuery(endpoint, params)
 }
 
 const encoder = new TextEncoder()

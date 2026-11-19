@@ -54,6 +54,28 @@ describe("ENGINE_DEFAULT and defaultProfile", () => {
     ).toBe(true)
   })
 
+  it("warns when the default is a Camunda 8 engine, which every Camunda 7 tool refuses, and never reroutes", () => {
+    const profiles = {
+      ...FILE.profiles,
+      c8: { url: "https://c8.example.com/v2", flavor: "camunda8" },
+    }
+    const said = (env: NodeJS.ProcessEnv) =>
+      engineModule.bootWarnings(env).filter((warning) => warning.includes("Camunda 8"))
+    const tail =
+      '"c8", a Camunda 8 engine, which this server reads on boards only: a tool called without engine goes to it and refuses with ENGINE_DIALECT_NOT_SERVED, never to another engine.'
+    expect(said({ ENGINES_JSON: JSON.stringify({ defaultProfile: "c8", profiles }) })).toEqual([
+      `defaultProfile names ${tail}`,
+    ])
+    expect(said({ ENGINES_JSON: JSON.stringify({ profiles }), ENGINE_DEFAULT: "c8" })).toEqual([
+      `ENGINE_DEFAULT names ${tail}`,
+    ])
+    // Alone, no tool it does not serve registers: no call without engine reaches one.
+    expect(said({ ENGINES_JSON: JSON.stringify({ profiles: { c8: profiles.c8 } }) })).toEqual([])
+    // A Camunda 7 default, or none among several engines, says nothing of it.
+    expect(said({ ENGINES_JSON: JSON.stringify({ profiles }) })).toEqual([])
+    expect(said({ ENGINES_JSON: JSON.stringify({ profiles }), ENGINE_DEFAULT: "c8x" })).toEqual([])
+  })
+
   it("is a known env var", () => {
     expect(engineModule.knownEnvVars).toContain("ENGINE_DEFAULT")
   })

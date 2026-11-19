@@ -2,24 +2,34 @@ import type { ReactElement } from "react"
 import { ExternalLink, Inbox } from "lucide-react"
 import {
   Button,
+  CountFigure,
   CountPill,
+  DataTable,
   DrillButton,
   EmptyState,
   ErrorState,
+  Field,
   FilterBar,
   GroupCard,
   KpiGrid,
   KpiGridSkeleton,
+  Input,
   ListFooter,
   LivePill,
   LocaleProvider,
   PagedListFooter,
+  rowSelection,
+  SearchField,
   SectionHeading,
+  SegmentedControl,
   StatusBadge,
   ToastProvider,
+  useColumnSizing,
   useLocale,
   WidgetHeader,
+  type DataTableColumn,
 } from "./index.js"
+import { BLOCK_RENDER_CASES } from "./render-cases-blocks.js"
 import { PRIMITIVE_RENDER_CASES, type RenderCase } from "./render-cases-primitives.js"
 
 export type { RenderCase } from "./render-cases-primitives.js"
@@ -43,8 +53,48 @@ function LocaleProbe(): ReactElement {
   return <span>RC:LocaleProvider {locale}</span>
 }
 
+interface CaseRow {
+  name: string
+  state: string
+  choose: string
+}
+
+/** A table with every kit word it has: the sizing grips and menus, the selection head. */
+function SizedTable({
+  label,
+  columns,
+  rows,
+  footer,
+}: {
+  label: string
+  columns: DataTableColumn<CaseRow>[]
+  rows: CaseRow[]
+  footer: ReactElement
+}) {
+  const sizing = useColumnSizing()
+  return (
+    <DataTable
+      label={label}
+      columns={columns}
+      rows={rows}
+      rowKey={(row) => row.name}
+      sizing={sizing}
+      selection={rowSelection<CaseRow>({
+        isSelected: () => false,
+        onToggle: noop,
+        all: "indeterminate",
+        onToggleAll: noop,
+        rowLabel: (row) => row.choose,
+      })}
+      onActivate={noop}
+      footer={footer}
+    />
+  )
+}
+
 export const RENDER_CASES: RenderCase[] = [
   ...PRIMITIVE_RENDER_CASES,
+  ...BLOCK_RENDER_CASES,
 
   // ── Composed components ──
   {
@@ -57,12 +107,15 @@ export const RENDER_CASES: RenderCase[] = [
         cells={[
           {
             label: "Open",
-            value: 7,
-            tone: "danger",
+            value: (
+              <CountFigure situation="openIncident" label="Has open incidents">
+                7
+              </CountFigure>
+            ),
             trend: "+2 vs yesterday",
             trendDirection: "up",
           },
-          { label: "Done", value: 12, fraction: "/19", tone: "success" },
+          { label: "Done", value: 12, fraction: "/19" },
           { label: "Total", value: 19, onClick: noop, actionHint: "Shows all orders" },
         ]}
       />
@@ -134,6 +187,62 @@ export const RENDER_CASES: RenderCase[] = [
           { id: "low", label: "low" },
         ]}
         onChipToggle={noop}
+      />
+    ),
+  },
+  {
+    // Text in it, so the clear button renders with its catalog name; the placeholder and the
+    // field's name come from the catalog too.
+    name: "SearchField",
+    marker: "RC:SearchField",
+    render: () => <SearchField value="RC:SearchField" onChange={noop} />,
+  },
+  {
+    // Counts exact, capped and unknown, their words from the catalog; a note as a title.
+    name: "SegmentedControl",
+    marker: "RC:SegmentedControl",
+    render: () => (
+      <SegmentedControl
+        ariaLabel="Order scope"
+        options={[
+          { value: "all", label: "RC:SegmentedControl", count: 12 },
+          {
+            value: "open",
+            label: "Open",
+            count: { atLeast: 500 },
+            note: "Counted up to 500 orders.",
+          },
+          { value: "late", label: "Late", count: null, tone: "warning", countLabel: "late orders" },
+          { value: "claims", label: "Claims", count: undefined },
+        ]}
+        value="all"
+        busy
+        onChange={noop}
+      />
+    ),
+  },
+  {
+    name: "Field",
+    marker: "RC:Field",
+    render: () => (
+      <Field label="RC:Field" hint="Names are case sensitive." error="Enter a name.">
+        <Input defaultValue="orderId" />
+      </Field>
+    ),
+  },
+  {
+    name: "DataTable",
+    marker: "RC:DataTable",
+    render: () => (
+      <SizedTable
+        label="RC:DataTable"
+        columns={[
+          { key: "name", label: "Order", cell: (row) => row.name },
+          { key: "state", label: "State", cell: (row) => row.state },
+          { key: "rest", label: "Note", cell: () => null },
+        ]}
+        rows={[{ name: "Order 1001", state: "Running", choose: "Choose order 1001" }]}
+        footer={<Button size="sm">Load more orders</Button>}
       />
     ),
   },

@@ -82,7 +82,7 @@ export class OrcaPanelEffects implements PanelEffects {
   }
 
   editConnection(): void {
-    this.host.services.editConnection()
+    this.host.services.editConnection(this.connection)
   }
 
   setCredentials(): void {

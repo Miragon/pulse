@@ -7,6 +7,12 @@ export class BadgeDescription {
     return `${elementName}: ${BadgeDescription.countOf(variant, count)}. ${BadgeDescription.actionOf(variant)}`
   }
 
+  static nameOf(variant: BadgeVariant, count: number, elementName: string): string {
+    const description = BadgeDescription.of(variant, count, elementName)
+    const shown = CountLabels.compact(count)
+    return description.includes(shown) ? description : `${shown}, ${description}`
+  }
+
   private static countOf(variant: BadgeVariant, count: number): string {
     if (variant === "running") {
       return `${CountLabels.plural(count, "instance")} running`

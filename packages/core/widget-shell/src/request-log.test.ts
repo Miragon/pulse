@@ -2,6 +2,7 @@ import { Hono } from "hono"
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest"
 import {
   installRequestLog,
+  markForwarded,
   requestLogLevel,
   requestLogLevelWarning,
   type RequestLogLevel,
@@ -84,6 +85,24 @@ describe("the request log: one line per request", () => {
     const app = appWith(() => ok())
     await post(app, rpc("initialize", { clientInfo: { name: "claude-code", version: "2.1" } }))
     expect(await lastLine()).toBe("initialize claude-code/2.1 /mcp 200 client=claude-code/2.1 Nms")
+  })
+
+  it("says which call the web app's forward sent for a page, by the request, never a header", async () => {
+    const app = appWith(() => ok())
+    const call = rpc("tools/call", { name: "engine_jobs_data", arguments: {} })
+    const request = () =>
+      new Request("http://localhost/mcp", {
+        method: "POST",
+        headers: { "content-type": "application/json", via: "/app/api/call" },
+        body: JSON.stringify(call),
+      })
+    await app.fetch(markForwarded(request()))
+    expect(await lastLine()).toBe(
+      "tools/call engine_jobs_data /mcp 200 client=unknown via=/app/api/call Nms",
+    )
+    // The same request unmarked, whatever it says of itself.
+    await app.fetch(request())
+    expect(await lastLine()).toBe("tools/call engine_jobs_data /mcp 200 client=unknown Nms")
   })
 
   it.each<[string, Record<string, unknown>, string]>([
@@ -369,6 +388,34 @@ describe("the request log: MCP_LOG_LEVEL", () => {
     expect(health).toMatch(/^GET \/health 200 Nms\n/)
     expect(health).toContain("[trace] request body (none)")
     expect(health).toContain("[trace] response body (not read)")
+  })
+
+  it("dumps a redirect's target at trace without its query or fragment, which a sign-in's state rides in", async () => {
+    const app = new Hono()
+    installRequestLog(app, "/mcp", "trace")
+    const authorization =
+      "https://idp.example/realms/pulse/protocol/openid-connect/auth?client_id=pulse-web&state=s3cret-state&code_challenge=ch4llenge"
+    app.get("/app/auth/login", (c) => c.redirect(authorization, 302))
+    app.get("/back", (c) => c.redirect("/app/boards/ops#code=c0de", 303))
+    app.get("/plain", (c) => c.redirect("/app", 303))
+    await app.fetch(new Request("http://localhost/app/auth/login"))
+    const login = await lastLine()
+    expect(login).toContain(
+      '"location": "https://idp.example/realms/pulse/protocol/openid-connect/auth?[REDACTED]"',
+    )
+    expect(login).not.toMatch(/s3cret-state|ch4llenge|client_id/)
+    await app.fetch(new Request("http://localhost/back"))
+    expect(await lastLine()).toContain('"location": "/app/boards/ops?[REDACTED]"')
+    await app.fetch(new Request("http://localhost/plain"))
+    expect(await lastLine()).toContain('"location": "/app"')
+  })
+
+  it("redacts the web app's CSRF token at trace, as it does a credential", async () => {
+    const app = appWith(() => ok({ tools: [] }), "trace")
+    await post(app, rpc("tools/list"), { "x-pulse-csrf": "csrf-s3cret" })
+    const trace = await lastLine()
+    expect(trace).toContain('"x-pulse-csrf": "[REDACTED]"')
+    expect(trace).not.toContain("csrf-s3cret")
   })
 
   it("reads the level from MCP_LOG_LEVEL in any case, else info", () => {

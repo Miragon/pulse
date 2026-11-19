@@ -11,7 +11,7 @@
       "call": "describeEngine",
       "outcome": {
         "failure": "unauthorized",
-        "hint": null,
+        "hint": "The engine asks for a login, and Pulse sent none. Add one with Set credentials.",
         "message": "HTTP 401 Unauthorized"
       },
       "sent": [
@@ -22,7 +22,7 @@
       "call": "getInstanceDetail pi-1",
       "outcome": {
         "failure": "unauthorized",
-        "hint": null,
+        "hint": "The engine asks for a login, and Pulse sent none. Add one with Set credentials.",
         "message": "HTTP 401 Unauthorized"
       },
       "sent": [

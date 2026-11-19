@@ -116,7 +116,13 @@ const cells = (row: HTMLElement) =>
     .getAllByRole("cell", { hidden: true })
     .map((c) => c.textContent)
 
-describe("the cross-engine landscape, read from each engine", () => {
+/**
+ * A case renders widgets in happy-dom and waits for their queries: up to 0.2 s alone, up to 3.1 s
+ * on the CI runner, where `pnpm test` runs every package's suite at once on four cores.
+ */
+const RENDER = { timeout: 15_000 }
+
+describe("the cross-engine landscape, read from each engine", RENDER, () => {
   it("totals the engines that answered as a lower bound, and counts the unreachable one", async () => {
     renderFleet()
     const landscape = screen.getByRole("region", { name: "Process landscape" })
@@ -135,7 +141,8 @@ describe("the cross-engine landscape, read from each engine", () => {
       expect(cells(rows[0])).toEqual([
         "prod-a",
         "4",
-        "2",
+        // Open incidents alarm by their icon and words; the number stays neutral.
+        "2Has open incidents",
         "0",
         "12",
         "3",
@@ -164,7 +171,7 @@ describe("the cross-engine landscape, read from each engine", () => {
     const rows = within(matrix).getAllByRole("row").slice(1)
     expect(within(rows[0]).getByText("Invoice Receipt")).toBeTruthy()
     expect(within(rows[0]).getByText("on 2 engines")).toBeTruthy()
-    expect(cells(rows[0]).slice(1)).toEqual(["3", "4", "2"])
+    expect(cells(rows[0]).slice(1)).toEqual(["3", "4", "2Has open incidents"])
     // Not deployed is an empty cell, said for screen readers; deployed with nothing running is 0.
     expect(cells(rows.find((r) => r.textContent?.includes("Onboarding"))!).slice(1)).toEqual([
       "not deployed on this engine",
@@ -180,8 +187,39 @@ describe("the cross-engine landscape, read from each engine", () => {
     expect(new Set(calls)).toEqual(
       new Set([ENGINE_COCKPIT_OVERVIEW_DATA, ENGINE_JOB_BACKLOG_DATA, ENGINE_HEALTH_DATA]),
     )
+    expect(screen.getByText("Analyses across all engines")).toBeTruthy()
     expect(screen.getByRole("button", { name: "Analyze failures in chat" })).toBeTruthy()
     expect(screen.queryByRole("button", { name: "Analyze performance in chat" })).toBeNull()
+  })
+
+  it("shows no analyses section, nor the header's hand-off, where the host shows no hand-off", async () => {
+    render(
+      <TestViewHost tools={TOOLS} client={queryClient} followUp="none">
+        <FleetView engines={[{ id: "prod-a" }, { id: "prod-b" }]} onEnterEngine={() => {}} />
+      </TestViewHost>,
+    )
+    await screen.findByRole("region", { name: "Process definitions by engine" })
+    expect(screen.getByRole("heading", { name: "Cross-engine overview" })).toBeTruthy()
+    expect(screen.queryByText("Analyses across all engines")).toBeNull()
+    expect(screen.queryByText("The AI runs these analyses in the chat")).toBeNull()
+    expect(screen.queryByRole("button", { name: /in chat$/ })).toBeNull()
+  })
+
+  it("words its analyses for a page that copies their prompts, never for a chat it posts to", async () => {
+    render(
+      <TestViewHost tools={TOOLS} client={queryClient} followUp="copy">
+        <FleetView engines={[{ id: "prod-a" }, { id: "prod-b" }]} onEnterEngine={() => {}} />
+      </TestViewHost>,
+    )
+    await screen.findByRole("region", { name: "Process definitions by engine" })
+    expect(screen.getByText("Analyses across all engines")).toBeTruthy()
+    expect(
+      screen.getByText("Copy a prompt, then the AI runs the analysis in your chat"),
+    ).toBeTruthy()
+    expect(screen.queryByText("The AI runs these analyses in the chat")).toBeNull()
+    expect(
+      screen.getByRole("button", { name: "Copy prompt: Analyze failures in chat" }),
+    ).toBeTruthy()
   })
 
   it("counts nothing while no engine has answered: unknown, never 0", async () => {
@@ -218,6 +256,35 @@ describe("the cross-engine landscape, read from each engine", () => {
     expect(within(table).getByText("unreachable")).toBeTruthy()
   })
 
+  it("never reads a profile the server refused, whatever dialect it names: refused, never unreachable", async () => {
+    const read: string[] = []
+    const feed = (args: Record<string, unknown>) => {
+      read.push(String(args.engine))
+      if (args.engine === "c8bad") throw new Error("Tool engine_cockpit_overview_data not found")
+      return overviewFeed(args)
+    }
+    render(
+      <TestViewHost tools={{ ...TOOLS, [ENGINE_COCKPIT_OVERVIEW_DATA]: feed }} client={queryClient}>
+        <FleetView
+          engines={[
+            { id: "prod-a" },
+            { id: "c8bad", refused: { reason: "auth.clientSecretEnv is not set." } },
+          ]}
+          onEnterEngine={() => {}}
+        />
+      </TestViewHost>,
+    )
+    const landscape = screen.getByRole("region", { name: "Process landscape" })
+    await waitFor(() => expect(within(landscape).getByText("1 with profile refused")).toBeTruthy())
+    expect(within(landscape).queryByText(/unreachable/)).toBeNull()
+    const card = screen.getByRole("button", { name: /^c8bad/ })
+    expect(card.textContent).toContain("profile refused")
+    expect(card.querySelector("svg")?.getAttribute("class")).toContain("lucide-ban")
+    const table = screen.getByRole("region", { name: "Load and job backlog per engine" })
+    expect(within(table).getByText("profile refused")).toBeTruthy()
+    expect(read.every((engine) => engine === "prod-a")).toBe(true)
+  })
+
   /** F2: an engine that refuses the server's login answered, so it is not counted unreachable. */
   describe("an engine that refuses the server's login", () => {
     const ENGINES = [{ id: "prod-a" }, { id: "locked-out" }, { id: "no-access" }, { id: "locked" }]
@@ -235,11 +302,11 @@ describe("the cross-engine landscape, read from each engine", () => {
 
     const trendOf = (landscape: HTMLElement, text: string) =>
       within(landscape).getByText(text, { exact: true })
-    /** The tone of the dot beside a KPI's trend line. */
+    /** The tone of the icon of its own shape beside a KPI's trend line (never a coloured dot). */
     const toneOf = (landscape: HTMLElement, text: string) =>
       trendOf(landscape, text)
         .closest("[data-slot='kpi-trend']")
-        ?.querySelector("[data-tone]")
+        ?.querySelector("svg[data-tone]")
         ?.getAttribute("data-tone")
 
     it("counts a 401 and a 403 apart, never as unreachable, with a refused profile's tone", async () => {

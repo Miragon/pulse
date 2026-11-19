@@ -10,6 +10,7 @@ import {
 } from "./composed-server.js"
 import { HTTP_EDGE_ENV_VARS } from "./http-edge.js"
 import { OAUTH_ENV_VARS } from "./oauth-env.js"
+import { WEB_ENV_VARS } from "./web/settings.js"
 import { createToolsetVocabulary } from "./toolsets.js"
 
 const alpha: ComposableModule<object> = {
@@ -187,11 +188,17 @@ describe("createComposedServer: boot", () => {
         ...HTTP_EDGE_ENV_VARS,
         ...OAUTH_ENV_VARS,
         "MCP_OAUTH_DEBUG",
+        ...WEB_ENV_VARS,
         "MCP_ACTIVE_MODULES",
         "MCP_LOG_LEVEL",
         "ALPHA_URL",
       ].sort(),
     )
+    // The generic provider's variables and the web sign-in's scopes are the boot's own.
+    const names = composedEnvVars([alpha])
+    for (const name of ["MCP_OAUTH_OIDC_ISSUER", "MCP_OAUTH_OIDC_CLIENT_IDS", "MCP_WEB_SCOPES"]) {
+      expect(names.has(name), name).toBe(true)
+    }
   })
 
   it("refuses an unknown module FIRST, before the edge or OAuth checks and any plugin", async () => {

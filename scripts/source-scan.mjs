@@ -11,9 +11,10 @@ import path from "node:path"
 export const REPO_ROOT = path.resolve(import.meta.dirname, "..")
 
 /**
- * The apps under apps/ (keyed by directory) and how the source guards read each: an MCP server
- * app ("mcp-host") by every guard, an interface app ("interface") by none. A new app adds its
- * entry here (`unclassifiedApps` fails until it does).
+ * The apps under apps/ (keyed by directory) and how the source guards read each: an app that hosts
+ * MCP views ("mcp-host": the MCP server, and the web app, which shows them on pages of the server)
+ * by every guard, an interface app ("interface") by none. A new app adds its entry here
+ * (`unclassifiedApps` fails until it does).
  * @type {Readonly<Record<string, "mcp-host" | "interface">>}
  */
 export const APP_SCAN = {
@@ -21,14 +22,19 @@ export const APP_SCAN = {
   "mcp-server": "mcp-host",
   orca: "interface",
   vscode: "interface",
+  web: "mcp-host",
 }
 
 /**
  * The packages only the interface apps bundle (keyed by their directory under packages/): the
- * runtime view the editor hosts share and the c7 family's adapter of its contract. Like an
- * interface app, they carry no tool name and post nothing to an MCP host.
+ * runtime view the editor hosts share and the family adapters of its contract (c7 and c8). Like
+ * an interface app, they carry no tool name and post nothing to an MCP host.
  */
-export const INTERFACE_PACKAGES = ["core/runtime-view", "connectors/c7/c7-adapter"]
+export const INTERFACE_PACKAGES = [
+  "core/runtime-view",
+  "connectors/c7/c7-adapter",
+  "connectors/c8/c8-adapter",
+]
 
 /** @param {string} dir */
 const childDirs = (dir) =>

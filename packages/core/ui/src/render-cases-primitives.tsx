@@ -12,7 +12,9 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
+  Checkbox,
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,
@@ -21,8 +23,11 @@ import {
   DialogTitle,
   DialogTrigger,
   Input,
+  Label,
+  Progress,
   Skeleton,
   Switch,
+  TabCount,
   Table,
   TableBody,
   TableCaption,
@@ -35,6 +40,7 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
+  Textarea,
 } from "./index.js"
 
 /**
@@ -93,6 +99,29 @@ export const PRIMITIVE_RENDER_CASES: RenderCase[] = [
     render: () => <Input type="text" placeholder="RC:Input" defaultValue="42" onChange={noop} />,
   },
   {
+    // The marker lands in the placeholder attribute of the markup.
+    name: "Textarea",
+    marker: "RC:Textarea",
+    render: () => <Textarea placeholder="RC:Textarea" defaultValue="{}" onChange={noop} />,
+  },
+  {
+    name: "Label",
+    marker: "RC:Label",
+    render: () => <Label htmlFor="rc-label">RC:Label</Label>,
+  },
+  {
+    // The marker lands in the aria-label attribute; the box is checked, so its mark renders.
+    name: "Checkbox",
+    marker: "RC:Checkbox",
+    render: () => <Checkbox defaultChecked aria-label="RC:Checkbox" onCheckedChange={noop} />,
+  },
+  {
+    // The markers land in the aria-label and aria-valuetext attributes.
+    name: "Progress",
+    marker: "RC:Progress",
+    render: () => <Progress aria-label="Archiving" value={3} max={12} valueText="RC:Progress" />,
+  },
+  {
     // The marker lands in the aria-label attribute of the markup.
     name: "Switch",
     marker: "RC:Switch",
@@ -140,6 +169,30 @@ export const PRIMITIVE_RENDER_CASES: RenderCase[] = [
     ),
   },
   {
+    // A view's tab bar: counts exact, capped and unknown (their words from the catalog), and an
+    // aside after the tab list.
+    name: "Tabs (line)",
+    marker: "RC:TabsAside",
+    render: () => (
+      <Tabs defaultValue="orders" onValueChange={noop}>
+        <TabsList variant="line" aside={<span>RC:TabsAside</span>}>
+          <TabsTrigger value="orders">
+            Orders
+            <TabCount count={12} />
+          </TabsTrigger>
+          <TabsTrigger value="returns">
+            Returns
+            <TabCount count={{ atLeast: 500 }} />
+          </TabsTrigger>
+          <TabsTrigger value="claims">
+            Claims
+            <TabCount count={null} />
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+    ),
+  },
+  {
     // SSR limitation: DialogContent renders through a Radix portal targeting
     // document.body, so the modal body cannot SSR even with `open`: the
     // trigger is the SSR surface. Portal content needs a browser host.
@@ -153,6 +206,7 @@ export const PRIMITIVE_RENDER_CASES: RenderCase[] = [
             <DialogTitle>Archive order?</DialogTitle>
             <DialogDescription>The order can be restored later.</DialogDescription>
           </DialogHeader>
+          <DialogBody>Order 4711 leaves the list.</DialogBody>
           <DialogFooter>
             <DialogClose>Cancel</DialogClose>
           </DialogFooter>

@@ -1,6 +1,7 @@
 /**
- * The routes of the operations c7-core sends (`CORE_OPERATIONS`: the composites' reads and the
- * wait's counts, every one a read), picked from the route table by scripts/generate-routes.ts.
+ * The routes of the operations c7-core sends (`CORE_OPERATIONS`: the composites' reads, the
+ * wait's counts and the reads of `./runtime`, every one a read), picked from the route table by
+ * scripts/generate-routes.ts.
  * Small enough for every bundle that runs c7-core; the whole table is
  * `@miragon/pulse-c7-core/routes`.
  */

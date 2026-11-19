@@ -5,7 +5,7 @@ import {
   completeExternalTaskInput,
   handleExternalTaskFailureInput,
 } from "../schemas/index.js"
-import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
+import type { EngineToolRegistrar } from "../lib/engine/served-engines.js"
 import { complementaryFlags, engineSorting, toEngineVariables } from "@miragon/pulse-c7-core"
 import {
   getExternalTasks,
@@ -16,18 +16,18 @@ import {
   handleFailure,
 } from "@miragon/pulse-c7-client/sdk"
 import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
-import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 
-export function registerExternalTaskTools(register: ToolRegistrar<EngineRegistry>) {
+export function registerExternalTaskTools(register: EngineToolRegistrar) {
   register({
     name: "engine_list_external_tasks",
     category: "external-tasks",
     description:
       "List external tasks (service-task work handed to external workers). Read-only: it never locks, completes or fails a task " +
-      "(noRetriesLeft finds the failed ones; where the toolset allows engine writes, engine_set_external_task_retries " +
+      "(noRetriesLeft finds the failed ones; where the toolset allows engine writes, setting their retries " +
       "hands them back to their workers).",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...listExternalTasksInput.shape, ...engineParamShape },
     outputSchema: paginatedListOutput,
     handler: withEngine(async (client, args) => {
@@ -65,6 +65,7 @@ export function registerExternalTaskTools(register: ToolRegistrar<EngineRegistry
       "failedExternalTask incident (engine_resolve_incident cannot resolve that incident type); 0 raises an incident. " +
       "Never locks, completes or fails the task itself.",
     annotations: { destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...setExternalTaskRetriesInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) => {
       await setExternalTaskResourceRetries({
@@ -86,6 +87,7 @@ export function registerExternalTaskTools(register: ToolRegistrar<EngineRegistry
       "from the production workers until the lock expires (default 5 minutes) or the task is completed or failed; " +
       "there is no unlock. To inspect external tasks without locking them, use engine_list_external_tasks.",
     annotations: { destructiveHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...fetchAndLockInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) =>
       fetchAndLock({
@@ -106,6 +108,7 @@ export function registerExternalTaskTools(register: ToolRegistrar<EngineRegistry
       "External-task WORKER protocol: complete an external task that was previously fetched and locked by the given " +
       "worker, optionally setting variables. The process continues as if the worker had done the work.",
     annotations: { destructiveHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...completeExternalTaskInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) => {
       await completeExternalTaskResource({
@@ -127,6 +130,7 @@ export function registerExternalTaskTools(register: ToolRegistrar<EngineRegistry
       "External-task WORKER protocol: report a failure for an external task locked by the given worker. Sets the error " +
       "message, the REQUIRED remaining retries and the retry timeout; retries = 0 raises an incident at once.",
     annotations: { destructiveHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...handleExternalTaskFailureInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) => {
       await handleFailure({

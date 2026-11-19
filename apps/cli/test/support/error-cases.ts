@@ -1,10 +1,12 @@
 /**
  * The error-path cases and the engine answers that make each one the same case on every
- * surface: the CLI's, the MCP server's (apps/mcp-server/test/engine-goldens/error-cases.ts) and
- * Pulse for VS Code's (apps/vscode/test/adapters/c7/goldens/error-cases.ts).
- * Apps share no code, so each keeps its copy; scripts/error-path-goldens.test.mjs holds the
- * three equal below their imports. The VS Code copy may carry no comment (its lint forbids
- * them), so the answers are explained here:
+ * surface of the Camunda 7 REST API: the CLI's, the MCP server's
+ * (apps/mcp-server/test/engine-goldens/error-cases.ts) and the C7 adapter's of the editor hosts
+ * (packages/connectors/c7/c7-adapter/test/goldens/error-cases.ts). Apps share no code, so each
+ * keeps its copy; scripts/error-path-goldens.test.mjs holds the three equal below their imports,
+ * and the C8 adapter's list (packages/connectors/c8/c8-adapter/test/goldens/error-cases.ts, its
+ * own answers) to theirs. The adapter's copy may carry no comment (its lint forbids them), so the
+ * answers are explained here:
  * - redirectToLogin: a gateway's 302 to a login page, whose query the message must drop;
  * - unauthorized: what CIB seven's REST auth filter answers without valid credentials, 401
  *   without a body;

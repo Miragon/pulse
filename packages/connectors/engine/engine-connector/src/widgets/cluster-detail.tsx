@@ -1,6 +1,8 @@
 import {
+  Button,
   LogText,
   NamedId,
+  SectionHeading,
   TableEmptyState,
   Td,
   formatCount,
@@ -11,11 +13,11 @@ import {
   StatusBadge,
   WidgetHeader,
   PagedListFooter,
-  DrillButton,
   SITUATION_TONES,
 } from "@miragon/pulse-ui"
 import {
   HandOffButton,
+  ListRow,
   ListTable,
   PagedRows,
   ViewDataState,
@@ -34,11 +36,13 @@ import {
   clusterScanComplete,
   remediationHandOff,
 } from "./remediation.js"
+import { AlarmCount } from "./lib/alarm-count.js"
 import { useActionAllowed } from "./lib/engine-action.js"
-import { useHandOff, type ViewContext } from "./lib/hand-off.js"
+import { useHandOff, useHandOffsShown, type ViewContext } from "./lib/hand-off.js"
 import { InstanceLabel } from "./lib/identity.js"
 import { instanceName } from "./lib/write-feedback.js"
 import { useT } from "../messages/use-t.js"
+import { incidentTypeWords } from "./lib/incident-type.js"
 
 /** Grounding context; the sample message is engine text, quoted, never inlined. */
 export function describeCluster(data: ClusterDetailData): ViewContext {
@@ -96,6 +100,8 @@ function clusterProcesses(data: ClusterDetailData, unknown: string): string {
 function ClusterHeader({ data, engineId }: { data: ClusterDetailData; engineId: string }) {
   const t = useT()
   const { ask } = useHandOff()
+  // Its one action is a hand-off: where the host hides it, the bar has no action group.
+  const handOffs = useHandOffsShown()
   const canFix = useActionAllowed("engine_set_job_retries", engineId)
   const handOff = remediationHandOff(
     {
@@ -112,7 +118,11 @@ function ClusterHeader({ data, engineId }: { data: ClusterDetailData; engineId: 
   )
   return (
     <WidgetHeader
-      badge={<StatusBadge tone={SITUATION_TONES.openIncident}>{data.incidentType}</StatusBadge>}
+      badge={
+        <StatusBadge tone={SITUATION_TONES.openIncident}>
+          {incidentTypeWords(data.incidentType, t)}
+        </StatusBadge>
+      }
       // The activity by its name; its BPMN id only where it has none (#322 U13).
       title={data.activityName ?? <span className="font-mono">{data.activityId}</span>}
       sub={
@@ -130,22 +140,38 @@ function ClusterHeader({ data, engineId }: { data: ClusterDetailData; engineId: 
           </span>
         </>
       }
-      actions={<HandOffButton action={canFix ? "planFix" : "explainError"} prompt={ask(handOff)} />}
+      actions={
+        handOffs && (
+          <HandOffButton
+            action={canFix ? "planFix" : "explainError"}
+            variant="toolbar"
+            prompt={ask(handOff)}
+          />
+        )
+      }
     />
   )
 }
 
-/** A count a capped scan cannot vouch for renders as a lower bound ("≥ 2,000") or "—". */
+/**
+ * A count a capped scan cannot vouch for renders as a lower bound ("≥ 2,000") or "—". The
+ * affected count alarms while there are any, as every open incident count does: a cluster whose
+ * incidents are all gone shows a plain 0.
+ */
 function ClusterKpis({ data }: { data: ClusterDetailData }) {
   const t = useT()
+  const affected = data.incidentCount ?? data.scannedIncidentCount
   return (
     <KpiGrid
       boxed
       cells={[
         {
           label: t("clusterDetail.kpiAffected"),
-          value: formatCount(data.incidentCount ?? { atLeast: data.scannedIncidentCount }),
-          tone: SITUATION_TONES.openIncident,
+          value: (
+            <AlarmCount alarm={affected > 0 && "openIncidents"}>
+              {formatCount(data.incidentCount ?? { atLeast: data.scannedIncidentCount })}
+            </AlarmCount>
+          ),
         },
         // How fast it grows is a count, not a second state (#322 U14).
         { label: t("clusterDetail.kpiNewLastHour"), value: formatCount(data.lastHourCount) },
@@ -165,21 +191,34 @@ function spansProcesses(data: ClusterDetailData): boolean {
   return data.processDefinitionKeys.length > 1
 }
 
-/** One affected instance (#322 U2, U13). */
+/**
+ * One affected instance (#322 U2, U13): the row opens the instance on a click or Enter and copies
+ * its id on Ctrl or Cmd with C (one row convention); its incident opens by the button at the row's
+ * end, which does not open the row.
+ */
 function IncidentRow({
   row,
   activityName,
   showProcess,
+  actions,
 }: {
   row: ClusterIncidentRow
   activityName: string | null
   showProcess: boolean
+  /** The table has a column of row actions (a row of the page has an incident to open). */
+  actions: boolean
 }) {
   const go = useNav()
   const t = useT()
   const label = instanceName(row.processInstanceId, row.businessKey)
   return (
-    <tr className="hover:bg-muted transition-colors">
+    <ListRow
+      label={t("clusterDetail.rowLabel", { ref: label })}
+      onOpen={() =>
+        go({ type: "instance-detail", processInstanceId: row.processInstanceId, label })
+      }
+      copy={row.processInstanceId}
+    >
       <Td>
         <InstanceLabel id={row.processInstanceId} businessKey={row.businessKey} />
       </Td>
@@ -191,41 +230,38 @@ function IncidentRow({
       <Td align="right" className="text-muted-foreground text-small whitespace-nowrap">
         {formatTimestamp(row.incidentTimestamp)}
       </Td>
-      <Td align="right">
-        <div className="inline-flex items-center justify-end gap-1">
-          <DrillButton
-            onDrill={() =>
-              go({ type: "instance-detail", processInstanceId: row.processInstanceId, label })
-            }
-            ariaLabel={t("clusterDetail.openInstanceAria", { ref: label })}
-          >
-            {t("clusterDetail.instance")}
-          </DrillButton>
+      {actions && (
+        <Td align="right">
+          {/* A row's actions are xs, so the row keeps the row height (28 px). */}
           {row.incidentId && (
-            <DrillButton
-              onDrill={() =>
+            <Button
+              type="button"
+              variant="outline"
+              size="xs"
+              onClick={() =>
                 go({
                   type: "incident-detail",
                   incidentId: row.incidentId,
                   label: activityName ?? undefined,
                 })
               }
-              ariaLabel={t("clusterDetail.openIncidentAria", { ref: label })}
+              aria-label={t("clusterDetail.openIncidentAria", { ref: label })}
             >
               {t("clusterDetail.incident")}
-            </DrillButton>
+            </Button>
           )}
-        </div>
-      </Td>
-    </tr>
+        </Td>
+      )}
+    </ListRow>
   )
 }
 
 /** Drill-in for ONE failure cluster, between the engine overview's cluster list and the single-incident detail. */
 function ClusterDetailView({
   data: initialData = null,
+  title,
   ...route
-}: ClusterRoute & { data?: ClusterDetailData | null }) {
+}: ClusterRoute & { data?: ClusterDetailData | null; title?: string }) {
   const t = useT()
   const { engine, activityId, incidentType, messageSignature } = route
   // SERVER-side, so the search covers the whole cluster, not just the loaded page.
@@ -244,10 +280,12 @@ function ClusterDetailView({
     selectTotal: (d) => d.totalMatching,
   })
   const data = paged.firstPage
+  const incidentActions = paged.items.some((row) => !!row.incidentId)
 
   if (!data) {
+    // Loading or failed, the route keeps its title, the page's one heading.
     return (
-      <WidgetShell>
+      <WidgetShell header={title && <WidgetHeader title={title} />}>
         <ViewDataState
           loading={paged.loading}
           error={paged.error}
@@ -262,16 +300,14 @@ function ClusterDetailView({
   return (
     <DetailPage
       header={<ClusterHeader data={data} engineId={engine} />}
-      kpi={<ClusterKpis data={data} />}
+      summary={<ClusterKpis data={data} />}
       /* A single content block, no tabs: the failure message stays beside its instances. */
       content={
         <>
           {data.representativeMessage && (
             <div>
-              <h2 className="text-foreground text-dense font-semibold">
-                {t("clusterDetail.failureMessage")}
-              </h2>
-              <LogText text={data.representativeMessage} className="mt-1" />
+              <SectionHeading as="h2" title={t("clusterDetail.failureMessage")} className="mb-1" />
+              <LogText text={data.representativeMessage} />
             </div>
           )}
 
@@ -279,9 +315,7 @@ function ClusterDetailView({
             aria-label={t("clusterDetail.affectedInstances")}
             className="flex flex-col gap-2"
           >
-            <h2 className="text-foreground text-dense font-semibold">
-              {t("clusterDetail.affectedInstances")}
-            </h2>
+            <SectionHeading as="h2" title={t("clusterDetail.affectedInstances")} className="mb-0" />
             <FilterBar
               search={search}
               onSearchChange={setSearch}
@@ -289,6 +323,8 @@ function ClusterDetailView({
               searchAriaLabel={t("clusterDetail.searchLabel")}
               chips={[]}
               onChipToggle={() => undefined}
+              // A bar inside the content reaches the card's edges, as a view's tab bar does.
+              className="-mx-gutter"
             />
             <PagedRows paged={paged}>
               {paged.items.length === 0 ? (
@@ -299,12 +335,26 @@ function ClusterDetailView({
                 <ListTable
                   ariaLabel={t("clusterDetail.affectedInstances")}
                   columns={[
-                    { label: t("clusterDetail.colInstance") },
+                    // The instance whole while there is room; the process gives way first.
+                    { label: t("clusterDetail.colInstance"), fit: true },
                     ...(spansProcesses(data)
                       ? [{ label: t("clusterDetail.colProcess"), hideBelow: "sm" as const }]
                       : []),
-                    { label: t("clusterDetail.colOccurred"), align: "right" },
-                    { plain: true, sticky: true },
+                    // In a 760 px card the time gives way, as in the incident tables, so the
+                    // table fits without scrolling under its pinned actions.
+                    { label: t("clusterDetail.colOccurred"), align: "right", hideBelow: "md" },
+                    // Pinned from 40rem up only, as in the incident tables: in a narrower region
+                    // the actions scroll with the row, so they never cover the instance. Only
+                    // while a row has an incident to open: the row itself opens the instance.
+                    ...(incidentActions
+                      ? [
+                          {
+                            label: t("clusterDetail.colActions"),
+                            align: "right" as const,
+                            sticky: "sm" as const,
+                          },
+                        ]
+                      : []),
                   ]}
                 >
                   {paged.items.map((row) => (
@@ -315,6 +365,7 @@ function ClusterDetailView({
                       row={row}
                       activityName={data.activityName}
                       showProcess={spansProcesses(data)}
+                      actions={incidentActions}
                     />
                   ))}
                 </ListTable>
@@ -322,7 +373,7 @@ function ClusterDetailView({
             </PagedRows>
             <PagedListFooter
               paged={paged}
-              noun={t("clusterDetail.footerNoun")}
+              noun={(total) => t("clusterDetail.footerNoun", { count: total })}
               labels={paged.footerLabels}
             />
             {listCapped(data) && (
@@ -344,6 +395,8 @@ function ClusterModelContext({ data }: { data: ClusterDetailData }) {
   return <HostModelContext content={context(describeCluster(data))}>{null}</HostModelContext>
 }
 
-export function ClusterDetailWidget(props: ClusterRoute & { data: ClusterDetailData | null }) {
+export function ClusterDetailWidget(
+  props: ClusterRoute & { data: ClusterDetailData | null; title?: string },
+) {
   return <ClusterDetailView {...props} />
 }

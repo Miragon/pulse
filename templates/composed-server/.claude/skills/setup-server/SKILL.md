@@ -92,6 +92,14 @@ For your own engine, edit `.env` (every field is documented inline in `.env.exam
 - `ENGINE_REQUEST_TIMEOUT_MS`: the per-request deadline (default 30000 ms); a
   hung engine then fails the tool call with a timeout error instead of
   holding it.
+- `ENGINE_BOARDS_DIR`: a directory of board files (`*.board.json`, the format
+  Pulse for VS Code and Pulse for Orca read), read at boot, so a restart
+  reloads them. `engine_list_engines` names the boards, and
+  `engine_open_cockpit` with `view` `board` and a board's id shows one across
+  the engines it names (profile names). A board's id is its file name without
+  `.board.json`. A directory or file that cannot be read fails the boot; a file
+  that gives no board warns. The tiles come from `@miragon/pulse-blocks`, which
+  `server/src/ui/globals.css` scans with `@source`.
 
 ## Step 3: select modules and toolsets
 
@@ -129,7 +137,11 @@ MCP_ACTIVE_MODULES=engine:operations,notes
 ### OAuth: sign-in and caller identity
 
 The boot reads one provider's `MCP_OAUTH_*` variables; set those of ONE provider. The OAuth block
-of `.env.example` lists the providers, their variables and what fails the boot. Keycloak, say:
+of `.env.example` lists the providers, their variables and what fails the boot: Keycloak, Auth0,
+WorkOS, Better Auth and Convex by name, any other OpenID Connect provider with JWT access tokens
+(ADFS, Okta, authentik, Zitadel, PingOne) through `MCP_OAUTH_OIDC_ISSUER`, and Microsoft Entra ID
+for one tenant through `MCP_OAUTH_ENTRA_TENANT_ID` and `MCP_OAUTH_ENTRA_API_CLIENT_ID`. Keycloak,
+say:
 
 ```bash
 MCP_URL=https://mcp.example.com     # the public origin, no path; required with OAuth
@@ -145,11 +157,13 @@ provider config the boot cannot honor fails the boot, naming the variables.
 The token audience is NOT `MCP_URL` itself: the server accepts a token whose
 `aud` (a string, or an array of strings only) holds `<MCP_URL>/mcp` (`https://mcp.example.com/mcp` above, the
 `resource` that `/.well-known/oauth-protected-resource/mcp` advertises) and
-that carries `sub`; the boot logs the value
+that carries `sub` (the generic provider: its caller claim; Entra ID: `oid`,
+else `sub`, with the API's client id as `aud`); the boot logs the value
 (`[acme-mcp] OAuth: tokens must carry aud https://mcp.example.com/mcp …`). The
-IdP side (audience mapper, `sub`, client registration with the claude.ai
-callback `https://claude.ai/api/mcp/auth_callback`, reading a 401) is the
-[identity provider checklist](https://miragon.github.io/pulse/mcp/operations#identity-provider-checklist).
+IdP side per provider (audience, caller claim, registering each MCP client,
+the claude.ai callback `https://claude.ai/api/mcp/auth_callback` among them,
+reading a 401) is on
+[Identity providers](https://miragon.github.io/pulse/mcp/identity-providers).
 A 401's `WWW-Authenticate` header names an audience mismatch;
 `MCP_OAUTH_DEBUG=1` logs why the signature, issuer, `sub` or `exp` check
 failed, never the token.
@@ -172,12 +186,13 @@ then reinstall so the lockfile matches:
 
 Branding: `server/src/ui/brand.css` imports pulse-ui's Miragon theme (the
 default) and has one override block for light and one for dark. Set ROLE
-variables there only (`--primary`, `--primary-hover`, `--link`, `--focus`,
-`--ring`, `--accent`/`--accent-foreground`, `--input`, `--<tone>`/`-soft`/
-`-ink`, radii, shadows, `--font-sans`) in BOTH blocks (the host's dark mode
-matches `:root` too). Miragon blue also sits in `--info`, `--chart-1/-3` and
-`--sidebar-*`; set those too for a single brand. The neutrals (surfaces, the
-text on them, `--border`) are the host's: a host that sends SEP-1865 style
+variables there only (`--primary`, `--primary-hover`, `--interaction`,
+`--link`, `--focus`, `--ring`, `--accent`/`--accent-foreground`, `--input`,
+`--<tone>`/`-soft`/`-surface`/`-ink`, radii, shadows, `--font-sans`) in BOTH
+blocks (the host's dark mode matches `:root` too). Miragon blue also sits in
+`--info`, `--chart-1/-3` and `--sidebar-*`; set those too for a single brand.
+The neutrals (surfaces, the text on them, `--border`) are the host's: a host
+that sends SEP-1865 style
 variables writes them inline on `<html>`, so a value set in brand.css shows
 only where the host sends none. Check your colours against a light and a
 dark host surface. Never set the `--cd-*` tokens, never colour a widget with

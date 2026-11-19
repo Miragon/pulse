@@ -243,7 +243,9 @@ describe("401 hints per auth type, the credential masked", () => {
 
   it("no auth configured", async () => {
     const e = await unauthorized({ type: "none" })
-    expect(e.message).toMatch(/The engine requires authentication, but none is configured\.$/)
+    expect(e.message).toMatch(
+      /The engine requires authentication, but none is configured\. Set it in the server's configuration: .+ ENGINE_TOKEN\.$/,
+    )
   })
 })
 

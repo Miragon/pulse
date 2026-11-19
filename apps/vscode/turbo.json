@@ -8,7 +8,8 @@
         "$TURBO_ROOT$/scripts/third-party-licenses.mjs",
         "$TURBO_ROOT$/scripts/third-party-licenses.d.mts",
         "$TURBO_ROOT$/.github/workflows/ci.yml",
-        "$TURBO_ROOT$/.github/workflows/publish-vscode-extension.yml"
+        "$TURBO_ROOT$/.github/workflows/publish-vscode-extension.yml",
+        "$TURBO_ROOT$/.miragon/shots/**"
       ]
     }
   }

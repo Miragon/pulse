@@ -7,7 +7,7 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import { connectionRefused, fakeServer, json } from "../../test/support/fake-fetch.js"
-import { CONFIG_PATH, execute, fakeRuntime } from "../../test/support/fake-runtime.js"
+import { CONFIG_PATH, execute, fakeRuntime, MANY_RUNS } from "../../test/support/fake-runtime.js"
 import { run } from "./run.js"
 
 interface Scenario {
@@ -125,7 +125,7 @@ describe("Basic auth secrets", () => {
     ])
   })
 
-  it("never appear in any output without --show-secrets", async () => {
+  it("never appear in any output without --show-secrets", MANY_RUNS, async () => {
     await fc.assert(
       fc.asyncProperty(users, passwords, async (user, password) => {
         for (const scenario of scenarios(user, password)) {

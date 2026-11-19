@@ -2,10 +2,14 @@ const PACKAGE = "^packages/connectors/c7/c7-adapter/"
 const TEST_CODE = `[.]test[.](tsx?|cjs)$|${PACKAGE}test/`
 const ENTRY = `${PACKAGE}src/index[.]ts$`
 const ENGINE_TEST = "[.]engine[.]test[.]ts$"
+const BPMN_DIALECT = `${PACKAGE}src/c7-bpmn-dialect[.]ts$`
+const DESCRIPTOR = "(^|/)node_modules/camunda-bpmn-moddle/resources/camunda[.]json$"
+const MODDLE_DESCRIPTORS = "(^|/)node_modules/[^/]+-bpmn-moddle/|^[^/]+-bpmn-moddle(/|$)"
 const PORTS_ENTRY = "(^|/)node_modules/@miragon/pulse-runtime-view/dist/ports/index[.]d[.]ts$"
 const ENGINE_CORE_ENTRY = "(^|/)node_modules/@miragon/pulse-engine-core/dist/index[.]d[.]ts$"
 const CONFORMANCE_KIT = "(^|/)node_modules/@miragon/pulse-engine-core/dist/testing/index[.]d[.]ts$"
 const C7_CORE_ENTRY = "(^|/)node_modules/@miragon/pulse-c7-core/dist/index[.]d[.]ts$"
+const C7_RUNTIME_ENTRY = "(^|/)node_modules/@miragon/pulse-c7-core/dist/runtime/index[.]d[.]ts$"
 const WIRE = `${PACKAGE}src/engine-rest/http/`
 const HTTP_ENTRY = "(^|/)node_modules/@miragon/pulse-http/dist/index[.]d[.]ts$"
 const HTTP_PACKAGE =
@@ -38,9 +42,21 @@ module.exports = {
     },
     {
       comment:
+        "The adapter's BPMN dialect (src/c7-bpmn-dialect.ts, the BpmnDialect of the ports) hands the model reader the vocabulary of Camunda 7's BPMN files: the descriptor of camunda-bpmn-moddle, which the editor hosts bundle.",
+      from: { path: BPMN_DIALECT },
+      to: { path: DESCRIPTOR },
+    },
+    {
+      comment:
         "The adapter runs the core of the Camunda 7 REST dialect family c7 (@miragon/pulse-c7-core, its main entry: the workflow domain), which the editor hosts bundle.",
       from: { path: `${PACKAGE}src/` },
       to: { path: C7_CORE_ENTRY },
+    },
+    {
+      comment:
+        "The adapter answers the engine contract's reads with c7-core's ./runtime entry (@miragon/pulse-c7-core/runtime: C7Runtime), its commands read what they check before a write with that entry's reads (a move's activity tree, a migration's running instances, a batch's state), and it reads a write's answer with JsonView and checks its ids with the one engine id rule from there, which the editor hosts bundle.",
+      from: { path: `${PACKAGE}src/` },
+      to: { path: C7_RUNTIME_ENTRY },
     },
     {
       comment:
@@ -54,15 +70,23 @@ module.exports = {
       name: "not-in-allowed",
       severity: "error",
       comment:
-        "No entry of `allowed` in packages/connectors/c7/c7-adapter/.dependency-cruiser.cjs permits this import. The adapter uses its own modules, the main entries of @miragon/pulse-engine-core (the contract) and @miragon/pulse-c7-core (the c7 dialect's workflow domain), never a subpath, the runtime view's ports (@miragon/pulse-runtime-view/ports), in its wire (src/engine-rest/http) the main entry of the transport @miragon/pulse-http, and no Node built-in: the REST client runs on the global fetch of its host's runtime.",
+        "No entry of `allowed` in packages/connectors/c7/c7-adapter/.dependency-cruiser.cjs permits this import. The adapter uses its own modules, the main entry of @miragon/pulse-engine-core (the contract), the main entry of @miragon/pulse-c7-core (the c7 dialect's workflow domain) and its ./runtime entry (the engine contract's reads, the reads of the commands, JsonView and the id rule), never another subpath, the runtime view's ports (@miragon/pulse-runtime-view/ports), in its BPMN dialect (src/c7-bpmn-dialect.ts) the descriptor of camunda-bpmn-moddle, in its wire (src/engine-rest/http) the main entry of the transport @miragon/pulse-http, and no Node built-in: its wire runs on the global fetch of its host's runtime.",
       from: {},
       to: { path: "^$" },
+    },
+    {
+      name: "moddle-descriptor-only-in-the-bpmn-dialect",
+      severity: "error",
+      comment:
+        "Only the adapter's BPMN dialect (src/c7-bpmn-dialect.ts) imports a moddle descriptor (the JSON of a *-bpmn-moddle package): it names the vocabulary of Camunda 7's BPMN files once, and the model reader of the runtime view reads them through it. Add a rule to the dialect instead of reading the descriptor elsewhere.",
+      from: { path: `${PACKAGE}src/`, pathNot: [BPMN_DIALECT, TEST_CODE] },
+      to: { path: MODDLE_DESCRIPTORS },
     },
     {
       name: "http-only-in-the-wire",
       severity: "error",
       comment:
-        "Only the adapter's wire (src/engine-rest/http) sends: EngineHttp is the one place that imports the transport @miragon/pulse-http, by its package entry or by path. Send through EngineHttp (read, find, readAll, text, write) and word a failure in its EngineRequestError.",
+        "Only the adapter's wire (src/engine-rest/http) sends: EngineHttp is the one place that imports the transport @miragon/pulse-http, by its package entry or by path. Send through EngineHttp (read, find, text, write) and word a failure in its EngineRequestError.",
       from: { path: `${PACKAGE}src/`, pathNot: [WIRE, TEST_CODE] },
       to: { path: HTTP_PACKAGE },
     },

@@ -33,16 +33,19 @@ import {
   checkCiScopes,
   checkChannelPublishWorkflows,
   checkDocsDeploy,
+  checkJsonExtraFileForm,
   checkPluginVersions,
   checkPublishMatrix,
   checkPublishWorkflow,
   checkReleaseExtraFiles,
   checkReleaseGate,
   checkRepo,
+  checkTemplatePinBumps,
   checkVscodePublish,
   expectedRepository,
   packageManagerRun,
   pluginManifests,
+  templatePackageFiles,
 } from "./check-github-config.mjs"
 import { isNpmPublished, readWorkspace } from "./workspace-packages.mjs"
 
@@ -1601,5 +1604,148 @@ describe("checkPluginVersions", () => {
       checkPluginVersions({ packages: { ".": { "extra-files": [] } } }, manifests)[0],
       /plugin\.json is missing from extra-files/,
     )
+  })
+})
+
+describe("checkJsonExtraFileForm", () => {
+  const config = (...entries) => ({ packages: { ".": { "extra-files": entries } } })
+  const json = (path) => ({ type: "json", path, jsonpath: "$.version" })
+  const written = (value) => `${JSON.stringify(value, null, 2)}\n`
+  const manifest = { version: "0.27.1", extensions: [".board.json"], enum: ["on", "off"] }
+
+  it("accepts the real config: every json extra-file is in release-please's form", () => {
+    const realConfig = JSON.parse(
+      readFileSync(path.join(ROOT, "release-please-config.json"), "utf8"),
+    )
+    const read = (rel) =>
+      existsSync(path.join(ROOT, rel)) ? readFileSync(path.join(ROOT, rel), "utf8") : undefined
+    assert.ok(
+      realConfig.packages["."]["extra-files"].some((e) => e.path === "apps/orca/orca-plugin.json"),
+    )
+    assert.deepEqual(checkJsonExtraFileForm(realConfig, read), [])
+  })
+
+  it("accepts a file as JSON.stringify writes it, its arrays spread over lines", () => {
+    const files = { "apps/orca/orca-plugin.json": written(manifest) }
+    assert.deepEqual(
+      checkJsonExtraFileForm(config(json("apps/orca/orca-plugin.json")), (f) => files[f]),
+      [],
+    )
+  })
+
+  it("refuses prettier's one-line arrays, the form 0.28.0's Release PR broke on", () => {
+    const oneLine =
+      '{\n  "version": "0.27.1",\n  "extensions": [".board.json"],\n  "enum": ["on", "off"]\n}\n'
+    const files = { "apps/orca/orca-plugin.json": oneLine }
+    const errors = checkJsonExtraFileForm(
+      config(json("apps/orca/orca-plugin.json")),
+      (f) => files[f],
+    )
+    assert.equal(errors.length, 1)
+    assert.match(errors[0], /^apps\/orca\/orca-plugin\.json is not in the form release-please/)
+    assert.match(errors[0], /json-stringify parser in \.prettierrc\.json/)
+  })
+
+  it("refuses a missing final newline, other indents and text that is no JSON", () => {
+    const files = {
+      "a.json": JSON.stringify(manifest, null, 2),
+      "b.json": `${JSON.stringify(manifest, null, 4)}\n`,
+      "c.json": "{ not json\n",
+    }
+    const errors = checkJsonExtraFileForm(
+      config(json("c.json"), json("b.json"), json("a.json")),
+      (f) => files[f],
+    )
+    assert.deepEqual(
+      errors.map((error) => error.split(" ")[0]),
+      ["a.json", "b.json", "release-please-config.json:"],
+    )
+    assert.match(errors[2], /c\.json is no JSON/)
+  })
+
+  it("reads a json entry once and leaves generic ones and missing files to the other checks", () => {
+    const reads = []
+    const files = { "a.json": written(manifest) }
+    const errors = checkJsonExtraFileForm(
+      config(
+        json("a.json"),
+        { type: "json", path: "a.json", jsonpath: "$.dependencies['x']" },
+        { type: "generic", path: "src/user-agent.ts" },
+        "CHANGELOG.md",
+        json("gone.json"),
+      ),
+      (f) => {
+        reads.push(f)
+        return files[f]
+      },
+    )
+    assert.deepEqual(errors, [])
+    assert.deepEqual(reads, ["a.json", "gone.json"])
+  })
+})
+
+describe("checkTemplatePinBumps", () => {
+  const SERVER = "templates/composed-server/server/package.json"
+  const BLOCKS = "$.devDependencies['@miragon/pulse-blocks']"
+  const bump = (path, jsonpath) => ({ type: "json", path, jsonpath })
+  const config = (...entries) => ({ packages: { ".": { "extra-files": entries } } })
+  const server = {
+    file: SERVER,
+    manifest: {
+      dependencies: { "@miragon/pulse-widget-shell": "0.27.1", react: "19.3.1" },
+      devDependencies: { "@miragon/pulse-blocks": "0.27.1" },
+    },
+  }
+  const shellBump = bump(SERVER, "$.dependencies['@miragon/pulse-widget-shell']")
+
+  it("accepts the real config and reads every package.json under templates/", () => {
+    const realConfig = JSON.parse(
+      readFileSync(path.join(ROOT, "release-please-config.json"), "utf8"),
+    )
+    const manifests = templatePackageFiles(ROOT)
+    assert.ok(manifests.some(({ file }) => file === SERVER))
+    assert.deepEqual(checkTemplatePinBumps(realConfig, manifests), [])
+  })
+
+  it("accepts a pin whose exact jsonpath is in extra-files", () => {
+    assert.deepEqual(checkTemplatePinBumps(config(shellBump, bump(SERVER, BLOCKS)), [server]), [])
+  })
+
+  it("refuses a pin without its entry, naming the file and the jsonpath", () => {
+    const errors = checkTemplatePinBumps(config(shellBump), [server])
+    assert.equal(errors.length, 1)
+    assert.ok(errors[0].includes(`${SERVER} ${BLOCKS} is missing from extra-files`))
+  })
+
+  it("takes only the exact jsonpath of that file, as a json entry", () => {
+    const peer = {
+      file: "templates/composed-server/modules/mcp-notes/package.json",
+      manifest: { peerDependencies: { "@miragon/pulse-blocks": "^0.27.1" } },
+    }
+    const near = [
+      shellBump,
+      bump(peer.file, BLOCKS),
+      bump(SERVER, "$.devDependencies['@miragon/pulse-ui']"),
+      bump(SERVER, '$.devDependencies["@miragon/pulse-blocks"]'),
+      { type: "generic", path: SERVER, jsonpath: BLOCKS },
+    ]
+    const errors = checkTemplatePinBumps(config(...near), [server, peer])
+    assert.deepEqual(
+      errors.map((error) => /: (\S+ \S+) is missing/.exec(error)?.[1]),
+      [`${SERVER} ${BLOCKS}`, `${peer.file} $.peerDependencies['@miragon/pulse-blocks']`],
+    )
+  })
+
+  it("finds the template manifests on disk outside node_modules and dist", () => {
+    const root = tempDir("template-pins-")
+    writeFile(root, "templates/starter/server/package.json", '{"name":"server"}\n')
+    writeFile(root, "templates/fixtures/module/package.json", '{"name":"module"}\n')
+    writeFile(root, "templates/starter/node_modules/x/package.json", '{"name":"x"}\n')
+    writeFile(root, "templates/starter/dist/package.json", '{"name":"dist"}\n')
+    assert.deepEqual(
+      templatePackageFiles(root).map(({ file }) => file),
+      ["templates/fixtures/module/package.json", "templates/starter/server/package.json"],
+    )
+    assert.deepEqual(templatePackageFiles(tempDir("no-templates-")), [])
   })
 })

@@ -1,0 +1,895 @@
+{
+  "about": "A board over one Camunda 8 cluster with every widget and a refused one, that cluster's answers to the board's reads under /v2 (the diagram's XML as the text the cluster sent), recorded once from the conformance world of @miragon/pulse-engine-core/testing seeded by C8WorldSeed of @miragon/pulse-c8-core/testing (with the Zeebe diagrams of the package's world/) into camunda/camunda:8.10.9 on H2 without security, and the board the C8 adapter builds from them, in its JSON form.",
+  "engine": "c8-conformance",
+  "file": {
+    "schemaVersion": 1,
+    "title": "Orders",
+    "engines": ["c8-conformance"],
+    "rows": [
+      {
+        "row": [
+          {
+            "widget": "counter",
+            "props": {
+              "title": "Waiting for review",
+              "filter": {
+                "process": "pulse-order",
+                "activeElement": "Activity_ReviewOrder"
+              },
+              "warnAbove": 1
+            }
+          },
+          {
+            "widget": "counter",
+            "props": {
+              "title": "With incident",
+              "filter": {
+                "process": "pulse-order",
+                "withIncident": true
+              }
+            }
+          },
+          {
+            "widget": "counter",
+            "props": {
+              "title": "Ended",
+              "filter": {
+                "process": "pulse-order",
+                "state": "ended"
+              }
+            }
+          },
+          {
+            "widget": "incidentSummary",
+            "props": {
+              "title": "With incident per process"
+            }
+          }
+        ]
+      },
+      {
+        "row": [
+          {
+            "widget": "instanceList",
+            "props": {
+              "title": "Running orders",
+              "filter": {
+                "process": "pulse-order"
+              },
+              "columns": ["businessKey", "version", "state", "incident", "startedAt"]
+            }
+          },
+          {
+            "widget": "incidentList",
+            "props": {
+              "title": "Open incidents"
+            }
+          }
+        ]
+      },
+      {
+        "row": [
+          {
+            "widget": "processDiagram",
+            "props": {
+              "process": "pulse-dispatch"
+            }
+          },
+          {
+            "widget": "chart",
+            "props": {
+              "title": "Throughput"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "answers": [
+    {
+      "method": "GET",
+      "path": "/v2/topology",
+      "answer": {
+        "brokers": [
+          {
+            "nodeId": 0,
+            "brokerId": "0",
+            "host": "172.18.0.2",
+            "port": 26501,
+            "partitions": [
+              {
+                "partitionId": 1,
+                "role": "leader",
+                "health": "healthy",
+                "state": "active"
+              }
+            ],
+            "version": "8.10.9"
+          }
+        ],
+        "clusterId": "333312ef-01c9-4031-adeb-4a8e3109b49a",
+        "clusterSize": 1,
+        "partitionsCount": 1,
+        "replicationFactor": 1,
+        "gatewayVersion": "8.10.9",
+        "lastCompletedChangeId": "-1"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v2/process-definitions/statistics/process-instances",
+      "body": {
+        "page": {
+          "from": 0,
+          "limit": 500
+        }
+      },
+      "answer": {
+        "items": [
+          {
+            "processDefinitionId": "pulse-dispatch",
+            "tenantId": "<default>",
+            "latestProcessDefinitionName": "Dispatch order",
+            "hasMultipleVersions": false,
+            "activeInstancesWithoutIncidentCount": 0,
+            "activeInstancesWithIncidentCount": 1
+          },
+          {
+            "processDefinitionId": "pulse-label",
+            "tenantId": "<default>",
+            "latestProcessDefinitionName": "Print label",
+            "hasMultipleVersions": false,
+            "activeInstancesWithoutIncidentCount": 0,
+            "activeInstancesWithIncidentCount": 1
+          },
+          {
+            "processDefinitionId": "pulse-order",
+            "tenantId": "<default>",
+            "latestProcessDefinitionName": "Order fulfillment",
+            "hasMultipleVersions": true,
+            "activeInstancesWithoutIncidentCount": 2,
+            "activeInstancesWithIncidentCount": 1
+          }
+        ],
+        "page": {
+          "totalItems": 3,
+          "hasMoreTotalItems": false,
+          "startCursor": "WyJwdWxzZS1kaXNwYXRjaCJd",
+          "endCursor": "WyJwdWxzZS1vcmRlciJd"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v2/process-definitions/search",
+      "body": {
+        "filter": {
+          "isLatestVersion": true
+        },
+        "page": {
+          "limit": 500
+        }
+      },
+      "answer": {
+        "items": [
+          {
+            "name": "Print label",
+            "resourceName": "label.bpmn",
+            "version": 1,
+            "versionTag": null,
+            "processDefinitionId": "pulse-label",
+            "tenantId": "<default>",
+            "processDefinitionKey": "2251799813685322",
+            "hasStartForm": false,
+            "state": "ACTIVE"
+          },
+          {
+            "name": "Order fulfillment",
+            "resourceName": "order.bpmn",
+            "version": 2,
+            "versionTag": null,
+            "processDefinitionId": "pulse-order",
+            "tenantId": "<default>",
+            "processDefinitionKey": "2251799813685326",
+            "hasStartForm": false,
+            "state": "ACTIVE"
+          },
+          {
+            "name": "Dispatch order",
+            "resourceName": "dispatch.bpmn",
+            "version": 1,
+            "versionTag": null,
+            "processDefinitionId": "pulse-dispatch",
+            "tenantId": "<default>",
+            "processDefinitionKey": "2251799813685328",
+            "hasStartForm": false,
+            "state": "ACTIVE"
+          }
+        ],
+        "page": {
+          "totalItems": 3,
+          "hasMoreTotalItems": false,
+          "startCursor": "WzIyNTE3OTk4MTM2ODUzMjJd",
+          "endCursor": "WzIyNTE3OTk4MTM2ODUzMjhd"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/v2/process-definitions/2251799813685328/xml",
+      "text": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<bpmn:definitions xmlns:bpmn=\"http://www.omg.org/spec/BPMN/20100524/MODEL\" xmlns:bpmndi=\"http://www.omg.org/spec/BPMN/20100524/DI\" xmlns:dc=\"http://www.omg.org/spec/DD/20100524/DC\" xmlns:di=\"http://www.omg.org/spec/DD/20100524/DI\" xmlns:zeebe=\"http://camunda.org/schema/zeebe/1.0\" xmlns:modeler=\"http://camunda.org/schema/modeler/1.0\" id=\"Definitions_DispatchOrder\" targetNamespace=\"http://bpmn.io/schema/bpmn\" modeler:executionPlatform=\"Camunda Cloud\" modeler:executionPlatformVersion=\"8.9.0\">\n  <bpmn:process id=\"pulse-dispatch\" name=\"Dispatch order\" isExecutable=\"true\">\n    <bpmn:startEvent id=\"Event_DispatchRequested\" name=\"Dispatch requested\">\n      <bpmn:outgoing>Flow_DispatchRequestedToPrintShippingLabel</bpmn:outgoing>\n    </bpmn:startEvent>\n    <bpmn:callActivity id=\"Activity_PrintShippingLabel\" name=\"Print shipping label\">\n      <bpmn:extensionElements>\n        <zeebe:calledElement processId=\"pulse-label\" propagateAllChildVariables=\"false\" />\n      </bpmn:extensionElements>\n      <bpmn:incoming>Flow_DispatchRequestedToPrintShippingLabel</bpmn:incoming>\n      <bpmn:outgoing>Flow_PrintShippingLabelToOrderDispatched</bpmn:outgoing>\n    </bpmn:callActivity>\n    <bpmn:endEvent id=\"Event_OrderDispatched\" name=\"Order dispatched\">\n      <bpmn:incoming>Flow_PrintShippingLabelToOrderDispatched</bpmn:incoming>\n    </bpmn:endEvent>\n    <bpmn:sequenceFlow id=\"Flow_PrintShippingLabelToOrderDispatched\" sourceRef=\"Activity_PrintShippingLabel\" targetRef=\"Event_OrderDispatched\" />\n    <bpmn:sequenceFlow id=\"Flow_DispatchRequestedToPrintShippingLabel\" sourceRef=\"Event_DispatchRequested\" targetRef=\"Activity_PrintShippingLabel\" />\n  </bpmn:process>\n  <bpmndi:BPMNDiagram id=\"BPMNDiagram_pulse-dispatch\">\n    <bpmndi:BPMNPlane id=\"BPMNPlane_pulse-dispatch\" bpmnElement=\"pulse-dispatch\">\n      <bpmndi:BPMNShape id=\"BPMNShape_Event_DispatchRequested\" bpmnElement=\"Event_DispatchRequested\">\n        <dc:Bounds x=\"80\" y=\"102\" width=\"36\" height=\"36\" />\n        <bpmndi:BPMNLabel>\n          <dc:Bounds x=\"61\" y=\"144\" width=\"75\" height=\"28\" />\n        </bpmndi:BPMNLabel>\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"BPMNShape_Activity_PrintShippingLabel\" bpmnElement=\"Activity_PrintShippingLabel\">\n        <dc:Bounds x=\"176\" y=\"80\" width=\"100\" height=\"80\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"BPMNShape_Event_OrderDispatched\" bpmnElement=\"Event_OrderDispatched\">\n        <dc:Bounds x=\"336\" y=\"102\" width=\"36\" height=\"36\" />\n        <bpmndi:BPMNLabel>\n          <dc:Bounds x=\"313\" y=\"144\" width=\"82\" height=\"28\" />\n        </bpmndi:BPMNLabel>\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNEdge id=\"BPMNEdge_Flow_PrintShippingLabelToOrderDispatched\" bpmnElement=\"Flow_PrintShippingLabelToOrderDispatched\">\n        <di:waypoint x=\"276\" y=\"120\" />\n        <di:waypoint x=\"336\" y=\"120\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"BPMNEdge_Flow_DispatchRequestedToPrintShippingLabel\" bpmnElement=\"Flow_DispatchRequestedToPrintShippingLabel\">\n        <di:waypoint x=\"116\" y=\"120\" />\n        <di:waypoint x=\"176\" y=\"120\" />\n      </bpmndi:BPMNEdge>\n    </bpmndi:BPMNPlane>\n  </bpmndi:BPMNDiagram>\n</bpmn:definitions>\n",
+      "contentType": "text/xml;charset=UTF-8"
+    },
+    {
+      "method": "POST",
+      "path": "/v2/incidents/search",
+      "body": {
+        "filter": {
+          "state": "ACTIVE"
+        },
+        "sort": [
+          {
+            "field": "creationTime",
+            "order": "DESC"
+          },
+          {
+            "field": "incidentKey",
+            "order": "ASC"
+          }
+        ],
+        "page": {
+          "limit": 50
+        }
+      },
+      "answer": {
+        "items": [
+          {
+            "processDefinitionId": "pulse-label",
+            "errorType": "JOB_NO_RETRIES",
+            "errorMessage": "java.lang.IllegalStateException: the worker failed\n\tat io.miragon.shop.Worker.handle(Worker.java:42)\nCaused by: java.net.ConnectException: the card gateway is unreachable\n\tat io.miragon.shop.Gateway.connect(Gateway.java:7)",
+            "elementId": "Activity_RenderLabel",
+            "creationTime": "2026-11-17T07:22:41.074Z",
+            "state": "ACTIVE",
+            "tenantId": "<default>",
+            "incidentKey": "2251799813685382",
+            "processDefinitionKey": "2251799813685322",
+            "processInstanceKey": "2251799813685373",
+            "rootProcessInstanceKey": "2251799813685367",
+            "elementInstanceKey": "2251799813685377",
+            "jobKey": "2251799813685378"
+          },
+          {
+            "processDefinitionId": "pulse-order",
+            "errorType": "JOB_NO_RETRIES",
+            "errorMessage": "java.lang.IllegalStateException: the worker failed\n\tat io.miragon.shop.Worker.handle(Worker.java:42)\nCaused by: java.net.ConnectException: the card gateway is unreachable\n\tat io.miragon.shop.Gateway.connect(Gateway.java:7)",
+            "elementId": "Activity_ChargePayment",
+            "creationTime": "2026-11-17T07:22:41.025Z",
+            "state": "ACTIVE",
+            "tenantId": "<default>",
+            "incidentKey": "2251799813685380",
+            "processDefinitionKey": "2251799813685324",
+            "processInstanceKey": "2251799813685338",
+            "rootProcessInstanceKey": "2251799813685338",
+            "elementInstanceKey": "2251799813685348",
+            "jobKey": "2251799813685349"
+          }
+        ],
+        "page": {
+          "totalItems": 2,
+          "hasMoreTotalItems": false,
+          "startCursor": "WyIyMDI2LTExLTE3VDA3OjIyOjQxLjA3NFoiLDIyNTE3OTk4MTM2ODUzODJd",
+          "endCursor": "WyIyMDI2LTExLTE3VDA3OjIyOjQxLjAyNVoiLDIyNTE3OTk4MTM2ODUzODBd"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/v2/process-definitions/2251799813685324",
+      "answer": {
+        "name": "Order fulfillment",
+        "resourceName": "order.bpmn",
+        "version": 1,
+        "versionTag": null,
+        "processDefinitionId": "pulse-order",
+        "tenantId": "<default>",
+        "processDefinitionKey": "2251799813685324",
+        "hasStartForm": false,
+        "state": "ACTIVE"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/v2/process-definitions/2251799813685322",
+      "answer": {
+        "name": "Print label",
+        "resourceName": "label.bpmn",
+        "version": 1,
+        "versionTag": null,
+        "processDefinitionId": "pulse-label",
+        "tenantId": "<default>",
+        "processDefinitionKey": "2251799813685322",
+        "hasStartForm": false,
+        "state": "ACTIVE"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v2/process-definitions/2251799813685328/statistics/element-instances",
+      "body": {},
+      "answer": {
+        "items": [
+          {
+            "elementId": "Activity_PrintShippingLabel",
+            "active": 0,
+            "canceled": 0,
+            "incidents": 1,
+            "completed": 0
+          },
+          {
+            "elementId": "Event_DispatchRequested",
+            "active": 0,
+            "canceled": 0,
+            "incidents": 0,
+            "completed": 1
+          }
+        ]
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v2/process-instances/search",
+      "body": {
+        "filter": {
+          "processDefinitionId": "pulse-order",
+          "endDate": {
+            "$exists": false
+          }
+        },
+        "sort": [
+          {
+            "field": "startDate",
+            "order": "DESC"
+          },
+          {
+            "field": "processInstanceKey",
+            "order": "ASC"
+          }
+        ],
+        "page": {
+          "limit": 0
+        }
+      },
+      "answer": {
+        "items": [],
+        "page": {
+          "totalItems": 3,
+          "hasMoreTotalItems": false,
+          "startCursor": null,
+          "endCursor": null
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v2/process-instances/search",
+      "body": {
+        "filter": {
+          "processDefinitionId": "pulse-order",
+          "endDate": {
+            "$exists": false
+          },
+          "hasIncident": true
+        },
+        "sort": [
+          {
+            "field": "startDate",
+            "order": "DESC"
+          },
+          {
+            "field": "processInstanceKey",
+            "order": "ASC"
+          }
+        ],
+        "page": {
+          "limit": 0
+        }
+      },
+      "answer": {
+        "items": [],
+        "page": {
+          "totalItems": 1,
+          "hasMoreTotalItems": false,
+          "startCursor": null,
+          "endCursor": null
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v2/process-instances/search",
+      "body": {
+        "filter": {
+          "processDefinitionId": "pulse-order",
+          "endDate": {
+            "$exists": true
+          }
+        },
+        "sort": [
+          {
+            "field": "startDate",
+            "order": "DESC"
+          },
+          {
+            "field": "processInstanceKey",
+            "order": "ASC"
+          }
+        ],
+        "page": {
+          "limit": 0
+        }
+      },
+      "answer": {
+        "items": [],
+        "page": {
+          "totalItems": 1,
+          "hasMoreTotalItems": false,
+          "startCursor": null,
+          "endCursor": null
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v2/process-instances/search",
+      "body": {
+        "filter": {
+          "processDefinitionId": "pulse-order",
+          "endDate": {
+            "$exists": false
+          },
+          "elementId": "Activity_ReviewOrder",
+          "elementInstanceState": "ACTIVE"
+        },
+        "sort": [
+          {
+            "field": "startDate",
+            "order": "DESC"
+          },
+          {
+            "field": "processInstanceKey",
+            "order": "ASC"
+          }
+        ],
+        "page": {
+          "limit": 0
+        }
+      },
+      "answer": {
+        "items": [],
+        "page": {
+          "totalItems": 2,
+          "hasMoreTotalItems": false,
+          "startCursor": null,
+          "endCursor": null
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v2/incidents/search",
+      "body": {
+        "filter": {
+          "processDefinitionKey": "2251799813685328",
+          "elementId": "Activity_PrintShippingLabel",
+          "state": "ACTIVE"
+        },
+        "sort": [
+          {
+            "field": "creationTime",
+            "order": "DESC"
+          },
+          {
+            "field": "incidentKey",
+            "order": "ASC"
+          }
+        ],
+        "page": {
+          "limit": 0
+        }
+      },
+      "answer": {
+        "items": [],
+        "page": {
+          "totalItems": 0,
+          "hasMoreTotalItems": false,
+          "startCursor": null,
+          "endCursor": null
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v2/process-instances/search",
+      "body": {
+        "filter": {
+          "processDefinitionId": "pulse-order",
+          "endDate": {
+            "$exists": false
+          }
+        },
+        "sort": [
+          {
+            "field": "startDate",
+            "order": "DESC"
+          },
+          {
+            "field": "processInstanceKey",
+            "order": "ASC"
+          }
+        ],
+        "page": {
+          "limit": 50
+        }
+      },
+      "answer": {
+        "items": [
+          {
+            "processDefinitionId": "pulse-order",
+            "processDefinitionName": "Order fulfillment",
+            "processDefinitionVersion": 2,
+            "processDefinitionVersionTag": null,
+            "startDate": "2026-11-17T07:22:40.873Z",
+            "endDate": null,
+            "state": "ACTIVE",
+            "suspendedDate": null,
+            "hasIncident": false,
+            "tenantId": "<default>",
+            "processInstanceKey": "2251799813685358",
+            "processDefinitionKey": "2251799813685326",
+            "parentProcessInstanceKey": null,
+            "parentElementInstanceKey": null,
+            "rootProcessInstanceKey": "2251799813685358",
+            "tags": [],
+            "businessId": "ORD-2001"
+          },
+          {
+            "processDefinitionId": "pulse-order",
+            "processDefinitionName": "Order fulfillment",
+            "processDefinitionVersion": 1,
+            "processDefinitionVersionTag": null,
+            "startDate": "2026-11-17T07:22:40.808Z",
+            "endDate": null,
+            "state": "ACTIVE",
+            "suspendedDate": null,
+            "hasIncident": true,
+            "tenantId": "<default>",
+            "processInstanceKey": "2251799813685338",
+            "processDefinitionKey": "2251799813685324",
+            "parentProcessInstanceKey": null,
+            "parentElementInstanceKey": null,
+            "rootProcessInstanceKey": "2251799813685338",
+            "tags": [],
+            "businessId": "ORD-1002"
+          },
+          {
+            "processDefinitionId": "pulse-order",
+            "processDefinitionName": "Order fulfillment",
+            "processDefinitionVersion": 1,
+            "processDefinitionVersionTag": null,
+            "startDate": "2026-11-17T07:22:40.753Z",
+            "endDate": null,
+            "state": "ACTIVE",
+            "suspendedDate": null,
+            "hasIncident": false,
+            "tenantId": "<default>",
+            "processInstanceKey": "2251799813685329",
+            "processDefinitionKey": "2251799813685324",
+            "parentProcessInstanceKey": null,
+            "parentElementInstanceKey": null,
+            "rootProcessInstanceKey": "2251799813685329",
+            "tags": [],
+            "businessId": "ORD-1001"
+          }
+        ],
+        "page": {
+          "totalItems": 3,
+          "hasMoreTotalItems": false,
+          "startCursor": "WyIyMDI2LTExLTE3VDA3OjIyOjQwLjg3M1oiLDIyNTE3OTk4MTM2ODUzNThd",
+          "endCursor": "WyIyMDI2LTExLTE3VDA3OjIyOjQwLjc1M1oiLDIyNTE3OTk4MTM2ODUzMjld"
+        }
+      }
+    }
+  ],
+  "expected": {
+    "title": "Orders",
+    "engines": [
+      {
+        "name": "c8-conformance",
+        "state": "ready",
+        "product": "Camunda 8",
+        "version": "8.10.9",
+        "totals": {
+          "running": 5,
+          "withIncident": 3
+        }
+      }
+    ],
+    "rows": [
+      [
+        {
+          "kind": "counter",
+          "widget": {
+            "widget": "counter",
+            "engines": ["c8-conformance"],
+            "title": "Waiting for review",
+            "filter": {
+              "state": "running",
+              "process": "pulse-order",
+              "activeElement": "Activity_ReviewOrder"
+            },
+            "warnAbove": 1
+          },
+          "readings": [
+            {
+              "engine": "c8-conformance",
+              "count": {
+                "count": 2
+              },
+              "above": true
+            }
+          ],
+          "known": 1,
+          "total": {
+            "count": 2
+          }
+        },
+        {
+          "kind": "counter",
+          "widget": {
+            "widget": "counter",
+            "engines": ["c8-conformance"],
+            "title": "With incident",
+            "filter": {
+              "state": "running",
+              "process": "pulse-order",
+              "withIncident": true
+            }
+          },
+          "readings": [
+            {
+              "engine": "c8-conformance",
+              "count": {
+                "count": 1
+              }
+            }
+          ],
+          "known": 1,
+          "total": {
+            "count": 1
+          }
+        },
+        {
+          "kind": "counter",
+          "widget": {
+            "widget": "counter",
+            "engines": ["c8-conformance"],
+            "title": "Ended",
+            "filter": {
+              "state": "ended",
+              "process": "pulse-order"
+            }
+          },
+          "readings": [
+            {
+              "engine": "c8-conformance",
+              "count": {
+                "count": 1
+              }
+            }
+          ],
+          "known": 1,
+          "total": {
+            "count": 1
+          }
+        },
+        {
+          "kind": "incidentSummary",
+          "widget": {
+            "widget": "incidentSummary",
+            "engines": ["c8-conformance"],
+            "title": "With incident per process",
+            "groupBy": "process"
+          },
+          "engines": 1,
+          "known": 1,
+          "total": 3,
+          "rows": [
+            {
+              "engine": "c8-conformance",
+              "process": {
+                "id": "2251799813685322",
+                "bpmnProcessId": "pulse-label",
+                "version": 1,
+                "name": "Print label"
+              },
+              "withIncident": 1
+            },
+            {
+              "engine": "c8-conformance",
+              "process": {
+                "id": "2251799813685326",
+                "bpmnProcessId": "pulse-order",
+                "version": 2,
+                "name": "Order fulfillment"
+              },
+              "withIncident": 1
+            },
+            {
+              "engine": "c8-conformance",
+              "process": {
+                "id": "2251799813685328",
+                "bpmnProcessId": "pulse-dispatch",
+                "version": 1,
+                "name": "Dispatch order"
+              },
+              "withIncident": 1
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "kind": "instanceList",
+          "widget": {
+            "widget": "instanceList",
+            "engines": ["c8-conformance"],
+            "title": "Running orders",
+            "filter": {
+              "state": "running",
+              "process": "pulse-order"
+            },
+            "columns": ["businessKey", "version", "state", "incident", "startedAt"]
+          },
+          "groups": [
+            {
+              "engine": "c8-conformance",
+              "instances": [
+                {
+                  "id": "2251799813685358",
+                  "definition": {
+                    "id": "2251799813685326",
+                    "bpmnProcessId": "pulse-order",
+                    "version": 2,
+                    "name": "Order fulfillment"
+                  },
+                  "state": "running",
+                  "hasIncident": false,
+                  "businessKey": "ORD-2001",
+                  "startedAt": "2026-11-17T07:22:40.873Z"
+                },
+                {
+                  "id": "2251799813685338",
+                  "definition": {
+                    "id": "2251799813685324",
+                    "bpmnProcessId": "pulse-order",
+                    "version": 1,
+                    "name": "Order fulfillment"
+                  },
+                  "state": "running",
+                  "hasIncident": true,
+                  "businessKey": "ORD-1002",
+                  "startedAt": "2026-11-17T07:22:40.808Z"
+                },
+                {
+                  "id": "2251799813685329",
+                  "definition": {
+                    "id": "2251799813685324",
+                    "bpmnProcessId": "pulse-order",
+                    "version": 1,
+                    "name": "Order fulfillment"
+                  },
+                  "state": "running",
+                  "hasIncident": false,
+                  "businessKey": "ORD-1001",
+                  "startedAt": "2026-11-17T07:22:40.753Z"
+                }
+              ],
+              "total": {
+                "count": 3
+              }
+            }
+          ]
+        },
+        {
+          "kind": "incidentList",
+          "widget": {
+            "widget": "incidentList",
+            "engines": ["c8-conformance"],
+            "title": "Open incidents"
+          },
+          "groups": [
+            {
+              "engine": "c8-conformance",
+              "incidents": [
+                {
+                  "id": "2251799813685382",
+                  "instanceId": "2251799813685373",
+                  "definition": {
+                    "id": "2251799813685322",
+                    "bpmnProcessId": "pulse-label",
+                    "version": 1,
+                    "name": "Print label"
+                  },
+                  "elementId": "Activity_RenderLabel",
+                  "type": "JOB_NO_RETRIES",
+                  "message": "java.lang.IllegalStateException: the worker failed\n\tat io.miragon.shop.Worker.handle(Worker.java:42)\nCaused by: java.net.ConnectException: the card gateway is unreachable\n\tat io.miragon.shop.Gateway.connect(Gateway.java:7)",
+                  "createdAt": "2026-11-17T07:22:41.074Z"
+                },
+                {
+                  "id": "2251799813685380",
+                  "instanceId": "2251799813685338",
+                  "definition": {
+                    "id": "2251799813685324",
+                    "bpmnProcessId": "pulse-order",
+                    "version": 1,
+                    "name": "Order fulfillment"
+                  },
+                  "elementId": "Activity_ChargePayment",
+                  "type": "JOB_NO_RETRIES",
+                  "message": "java.lang.IllegalStateException: the worker failed\n\tat io.miragon.shop.Worker.handle(Worker.java:42)\nCaused by: java.net.ConnectException: the card gateway is unreachable\n\tat io.miragon.shop.Gateway.connect(Gateway.java:7)",
+                  "createdAt": "2026-11-17T07:22:41.025Z"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "kind": "processDiagram",
+          "widget": {
+            "widget": "processDiagram",
+            "engines": ["c8-conformance"],
+            "process": "pulse-dispatch"
+          },
+          "engine": "c8-conformance",
+          "latest": {
+            "id": "2251799813685328",
+            "bpmnProcessId": "pulse-dispatch",
+            "version": 1,
+            "name": "Dispatch order"
+          },
+          "badges": [
+            {
+              "elementId": "Activity_PrintShippingLabel",
+              "active": 1,
+              "incidents": 0,
+              "incidentsInCalledInstances": 1
+            }
+          ]
+        },
+        {
+          "kind": "refused",
+          "widget": "chart",
+          "title": "Throughput",
+          "problems": [
+            {
+              "path": "rows[2].row[1].widget",
+              "code": "notOneOf",
+              "values": {
+                "choices": [
+                  "counter",
+                  "instanceList",
+                  "incidentSummary",
+                  "processDiagram",
+                  "incidentList"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    ],
+    "notes": []
+  }
+}

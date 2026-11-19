@@ -2,11 +2,11 @@ import { describe, expect, test } from "vitest"
 import type { BulkRequest, WriteRequest } from "@miragon/pulse-runtime-view/core"
 import {
   type Connection,
-  LOCAL_TARGET,
   type EngineTarget,
   WriteAudit,
   type EnvironmentSettings,
 } from "@miragon/pulse-runtime-view/host-kit"
+import { LOCAL_TARGET } from "./local-target.js"
 import type { Prompt, PromptAnswer } from "../src/protocol.js"
 import { Prompts } from "../src/worker/prompts.js"
 import { WriteConfirmation } from "../src/worker/write-confirmation.js"

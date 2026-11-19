@@ -11,7 +11,8 @@ import {
   type ConnectionSettings,
 } from "../../src/host-kit/connections/connection-builder.js"
 import type { Credentials, EngineFactories } from "../../src/host-kit/connections/connection.js"
-import { LOCAL_TARGET, type EngineTarget } from "../../src/host-kit/connections/engine-target.js"
+import type { EngineTarget } from "../../src/host-kit/connections/engine-target.js"
+import { LOCAL_TARGET } from "./support/local-target.js"
 import { TargetPolicy } from "../../src/host-kit/connections/target-policy.js"
 import { WriteAudit } from "../../src/host-kit/connections/write-audit.js"
 
@@ -38,6 +39,13 @@ const COCKPIT: EngineWebUi = {
 const LOCAL: EngineTarget = { ...LOCAL_TARGET, name: "shop-dev" }
 const LOCAL_BASIC: EngineTarget = { ...LOCAL, auth: { kind: "basic" } }
 const LOCAL_OAUTH: EngineTarget = { ...LOCAL, auth: { kind: "oauth2" } }
+const REMOTE_C8: EngineTarget = {
+  ...LOCAL,
+  name: "c8-saas",
+  engine: "c8",
+  endpoint: "https://bru-2.api.camunda.io/cluster/v2",
+  auth: { kind: "clientCredentials", tokenEndpoint: "https://login.cloud.camunda.io/oauth/token" },
+}
 const REMOTE_PLAIN_HTTP: EngineTarget = {
   ...LOCAL_BASIC,
   name: "shop-eu",
@@ -48,6 +56,7 @@ function factories(
   commands: ProcessCommands | undefined,
   webUi?: EngineWebUi,
   asked: EngineTarget[] = [],
+  canWrite = true,
 ): EngineFactories {
   return {
     runtime: () => ({}) as ProcessRuntime,
@@ -55,6 +64,7 @@ function factories(
       asked.push(target)
       return commands
     },
+    canWrite: () => canWrite,
     webUi: () => webUi,
     cli: () => undefined,
   }
@@ -117,7 +127,7 @@ describe("a connection the host kit builds", () => {
     expect(connection.badge).not.toHaveProperty("webUi")
   })
 
-  test("carries the engine's CLI, which names the profile of a project file's target with its URL and the URL of the default engine", () => {
+  test("carries the engine's CLI, which names the profile of a file's target with its URL and the URL of the default engine", () => {
     const named: CliTarget[] = []
     const cli: EngineCli = { triggerCommand: () => undefined }
     const engines: EngineFactories = {
@@ -140,23 +150,78 @@ describe("a connection the host kit builds", () => {
       settings("localOnly"),
     )
     builderOver(engines).build(LOCAL_TARGET, NO_LOGIN, "local", settings("localOnly"))
+    builderOver(engines).build(
+      {
+        ...fromFile,
+        source: { kind: "user-config", path: "/home/dev/.config/pulse-cli/config.json" },
+      },
+      NO_LOGIN,
+      "local",
+      settings("localOnly"),
+    )
 
     expect(connection.cli).toBe(cli)
     expect(named).toEqual([
       { kind: "profile", name: "shop-dev", endpoint: "http://localhost:8112/engine-rest" },
       { kind: "endpoint", endpoint: "http://localhost:8080/engine-rest" },
+      { kind: "profile", name: "shop-dev", endpoint: "http://localhost:8112/engine-rest" },
     ])
   })
 
-  test("says that Pulse does not change data when the engine brings no commands", () => {
-    const connection = builder(undefined).build(LOCAL, NO_LOGIN, "local", settings("localOnly"))
+  test.each([
+    ["on this machine", LOCAL, "enabled"],
+    ["on a remote host, where the write policy would ask to allow writes", REMOTE_C8, "localOnly"],
+    ["with writes turned off", REMOTE_C8, "disabled"],
+  ] as const)(
+    "says that Pulse only reads an engine whose adapter brings no commands, %s",
+    (_, target, writes) => {
+      const asked: EngineTarget[] = []
+      const connection = builderOver(factories(COMMANDS, undefined, asked, false)).build(
+        target,
+        NO_LOGIN,
+        "unclassified",
+        settings(writes),
+      )
 
-    expect(connection.commands).toBeUndefined()
-    expect(connection.badge.access).toEqual({
-      writable: false,
-      note: "Read-only. Pulse does not change data on this engine.",
-    })
-  })
+      expect(asked).toEqual([])
+      expect(connection.commands).toBeUndefined()
+      expect(connection.badge.access).toEqual({
+        writable: false,
+        note: "Read-only. Pulse reads this engine and changes no data on it.",
+      })
+    },
+  )
+
+  test.each([
+    [
+      "a client secret it would send over plain HTTP",
+      {
+        ...REMOTE_C8,
+        auth: { kind: "clientCredentials", tokenEndpoint: "http://login.example.com/oauth/token" },
+      },
+      NO_LOGIN,
+      "Read-only. c8-saas would send its client secret over plain HTTP. Use an https token endpoint.",
+    ],
+    [
+      "a client secret saved for another endpoint",
+      REMOTE_C8,
+      { kind: "savedForAnotherEndpoint", savedFor: "https://evil.example.com" },
+      "Read-only. The endpoint of c8-saas moved from https://evil.example.com to https://bru-2.api.camunda.io and https://login.cloud.camunda.io since you saved its credentials. Check the change, then set the credentials again.",
+    ],
+  ] as const)(
+    "names the refusal of an engine whose adapter brings no commands, for %s",
+    (_, target, credentials, note) => {
+      const connection = builderOver(factories(COMMANDS, undefined, [], false)).build(
+        target,
+        credentials,
+        "unclassified",
+        settings("enabled"),
+      )
+
+      expect(connection.commands).toBeUndefined()
+      expect(connection.badge.access).toEqual({ writable: false, note })
+    },
+  )
 
   test("names the refusal of its target, the way to write, when the target is refused", () => {
     const plainHttp = builder(undefined).build(

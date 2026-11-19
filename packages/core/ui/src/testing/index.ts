@@ -21,9 +21,11 @@ export { sourceTexts } from "./source-texts.js"
 export { FORBIDDEN_GLYPHS, glyphFindings, scanGlyphs, type GlyphFinding } from "./glyphs.js"
 export {
   CI_ICON_SIZES,
+  DENSE_ICON_SIZE,
   iconSizeFindings,
   scanIconSizes,
   type IconSizeFinding,
+  type ScanIconSizesOptions,
 } from "./icon-sizes.js"
 export {
   scanTypeScale,
@@ -39,6 +41,7 @@ export {
   type ColorFinding,
   type ScanColorsOptions,
 } from "./colors.js"
+export { outlineFindings, scanOutlines, type OutlineFinding } from "./outlines.js"
 export {
   composite,
   contrastFindings,

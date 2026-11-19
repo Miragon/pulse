@@ -27,6 +27,7 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@miragon/pulse-blocks": "0.28.0",
     "@miragon/pulse-ui": "0.28.0",
     "@modelcontextprotocol/client": "2.4.0",
     "@modelcontextprotocol/inspector": "2.15.0",

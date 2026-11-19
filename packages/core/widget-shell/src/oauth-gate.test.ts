@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { OAuthError, OAuthErrorCode, type AuthInfo } from "@modelcontextprotocol/server"
 import {
+  gateTokenCheck,
   oauthDiscovery,
+  oauthDiscoveryResponse,
   oauthGate,
   resolveOAuthResource,
   toolResultChallenge,
@@ -11,6 +13,7 @@ import {
   oauthKeycloakProvider,
   type OAuthProvider,
 } from "./oauth-providers.js"
+import { isAudienceRefusal } from "./oauth-shared.js"
 
 /** The gate in front of `/mcp` around a custom provider, discovery, the resource, the challenge. */
 
@@ -174,6 +177,50 @@ describe("discovery and the resource", () => {
     )
   })
 
+  /** What discovery answers at `path` for `provider`, as JSON; `undefined` for no document. */
+  const documentAt = (provider: OAuthProvider, path: string) =>
+    oauthDiscoveryResponse(
+      new Request(`http://localhost${path}`),
+      oauthDiscovery(provider, RESOURCE),
+    )?.json()
+
+  const RESOURCE_METADATA = "/.well-known/oauth-protected-resource/mcp"
+  const SERVER_METADATA = "/.well-known/oauth-authorization-server"
+
+  it("names the required scopes in the resource's metadata as a client asks them, never offline_access", async () => {
+    const base = keycloak()
+    const scopesOf = async (provider: Partial<OAuthProvider>) =>
+      ((await documentAt({ ...base, ...provider }, RESOURCE_METADATA)) as Record<string, unknown>)
+        .scopes_supported
+    expect(await documentAt(base, RESOURCE_METADATA)).toEqual({
+      resource: AUD,
+      authorization_servers: ["https://kc.example.com/realms/a"],
+    })
+    expect(await scopesOf({ requiredScopes: ["mcp", "offline_access"] })).toEqual(["mcp"])
+    expect(await scopesOf({ requiredScopes: ["offline_access"] })).toBeUndefined()
+    const asked = { requiredScopes: ["api://x/use"], scopesSupported: ["use", "offline_access"] }
+    expect(await scopesOf(asked)).toEqual(["use"])
+  })
+
+  it("serves the authorization server's copy only for metadata that names its endpoints", async () => {
+    const base = keycloak()
+    expect(await documentAt(base, SERVER_METADATA)).toEqual(base.oauthMetadata)
+    expect(await documentAt(base, `${SERVER_METADATA}/`)).toEqual(base.oauthMetadata)
+    const issuer = "https://idp.example"
+    const issuerOnly = { ...base, oauthMetadata: { issuer } }
+    expect(await documentAt(issuerOnly, RESOURCE_METADATA)).toEqual({
+      resource: AUD,
+      authorization_servers: [issuer],
+    })
+    expect(await documentAt(issuerOnly, SERVER_METADATA)).toBeUndefined()
+    expect(await documentAt(issuerOnly, `${SERVER_METADATA}/`)).toBeUndefined()
+    const noTokenEndpoint = { issuer, authorization_endpoint: `${issuer}/a` }
+    expect(
+      await documentAt({ ...base, oauthMetadata: noTokenEndpoint }, SERVER_METADATA),
+    ).toBeUndefined()
+    expect(await documentAt(issuerOnly, "/.well-known/openid-configuration")).toBeUndefined()
+  })
+
   it("binds tokens to the explicit resource, else MCP_URL's origin plus the base path", () => {
     const base = keycloak()
     expect(resolveOAuthResource(base, " https://mcp.example.com ", "/mcp").href).toBe(
@@ -264,5 +311,30 @@ describe("toolResultChallenge: ChatGPT reads a refused tools/call as a tool resu
     ["a body that is no JSON", requestOf("{nope")],
   ])("leaves %s to the 401", async (_case, request) => {
     expect(await toolResultChallenge(request, refusalOf("{}"))).toBeUndefined()
+  })
+})
+
+// The web sign-in tells a token bound to another resource from the gate's other refusals: a
+// provider's own verifier that binds another resource is refused as one, like the JWT verifier's.
+describe("gateTokenCheck: a provider's own verifier", () => {
+  it("refuses a token its verifier binds to another resource as an audience refusal", async () => {
+    const provider = oauthCustomProvider({
+      ...keycloak(),
+      createTokenVerifier: () => ({
+        verifyAccessToken: (token) =>
+          Promise.resolve({
+            token,
+            clientId: "c",
+            scopes: [],
+            expiresAt: now() + 60,
+            resource: new URL("https://other.example/mcp"),
+          }),
+      }),
+    })
+    const error = await gateTokenCheck(provider, RESOURCE)("t").catch((refused: unknown) => refused)
+    expect(error).toBeInstanceOf(OAuthError)
+    expect(isAudienceRefusal(error)).toBe(true)
+    expect(isAudienceRefusal(new OAuthError(OAuthErrorCode.InvalidToken, "x"))).toBe(false)
+    expect(isAudienceRefusal(undefined)).toBe(false)
   })
 })

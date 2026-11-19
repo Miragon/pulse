@@ -1,10 +1,11 @@
 import type { ReactNode } from "react"
-import { TONE_SOFT } from "../lib/tone-utils.js"
+import { TONE_ICON } from "../lib/tone-utils.js"
 import { resolveTone, type ToneName } from "../tones/index.js"
 import { cn } from "../lib/utils.js"
+import { ViewBar, type ViewBarHeadingLevel } from "./ViewBar.js"
 
 /** Heading element of a {@link WidgetHeader} title. */
-export type WidgetHeadingLevel = "h1" | "h2" | "h3" | "h4" | "h5" | "h6"
+export type WidgetHeadingLevel = ViewBarHeadingLevel
 
 export interface WidgetHeaderProps {
   /** The widget title. */
@@ -17,42 +18,40 @@ export interface WidgetHeaderProps {
    */
   as?: WidgetHeadingLevel
   /**
-   * `"default"`: the page title (28 px / 700, the CI h2 style). `"detail"`:
-   * the compact detail-page title (21 px / 600, the CI h3 style).
+   * `"default"` and `"detail"`: a view's header, its `ViewBar` (the title as the bar's 13 px
+   * heading at 600, the chrome title of the guide); the two draw the same bar. `"app"`: the
+   * app-level title (a landing, all engines), 28 px at 700 above its meta row.
    */
-  size?: "default" | "detail"
+  size?: "default" | "detail" | "app"
   /** Inline after the title inside the heading (e.g. a version chip). */
   titleSuffix?: ReactNode
-  /** Above the title: a `StatusBadge` that says the state in words. */
+  /** The state in words: a `StatusBadge` or a `StateLabel`, after the title in a view's bar. */
   badge?: ReactNode
-  /** Subtitle/meta row under the title (e.g. a live pill + counts), a 13 px caption row. */
+  /** Facts about the subject (a live pill, counts, an id): the bar's facts, in quiet 13 px text. */
   sub?: ReactNode
-  /** Right-aligned actions slot (buttons, drill controls). */
+  /** The view's actions (buttons, drill controls), one group. */
   actions?: ReactNode
   /**
-   * @deprecated A glyph in a tinted tile above every title is the icon-tile
-   * pattern the CI rules out (anti-slop U2). Say a state in words with a
-   * `StatusBadge` in {@link WidgetHeaderProps.badge}. Still rendered when set.
+   * @deprecated The tinted tile is gone (the icon-tile pattern the CI rules out, anti-slop U2): a
+   * view's bar draws the icon at 16 px before its title, the app-level title leaves it out. Say
+   * a state in words with a `StatusBadge` in {@link WidgetHeaderProps.badge}.
    */
   icon?: ReactNode
-  /** @deprecated Tone of the deprecated {@link WidgetHeaderProps.icon} tile. */
+  /** @deprecated The colour of the deprecated {@link WidgetHeaderProps.icon}, as an icon's tone. */
   iconTone?: ToneName
   className?: string
 }
 
-const TITLE_SIZE: Record<NonNullable<WidgetHeaderProps["size"]>, string> = {
-  default: "text-title",
-  detail: "text-section",
-}
-
 /**
- * Page-level header at the top of a widget: an optional state badge, the
- * title (heading level per `as`, size per `size`), a subtitle/meta row and a
- * right-aligned actions slot. Use once per widget surface to anchor it.
+ * The header at the top of a widget. A view's header is its `ViewBar` (the default): the title
+ * as the bar's heading in 13 px at 600, the state after it, the facts and the actions, wrapping
+ * where it gets narrow. At app level (`size="app"`, a landing, all engines) it is the hero: the
+ * state above a 28 px title at 700, the meta row under it and the actions on the right. Use once
+ * per widget surface.
  */
 export function WidgetHeader({
   title,
-  as: Heading = "h1",
+  as = "h1",
   size = "default",
   titleSuffix,
   badge,
@@ -62,27 +61,54 @@ export function WidgetHeader({
   iconTone = "neutral",
   className,
 }: WidgetHeaderProps) {
+  if (size !== "app") {
+    return (
+      <ViewBar
+        as={as}
+        title={title}
+        titleSuffix={titleSuffix}
+        icon={icon && <span className={TONE_ICON[resolveTone(iconTone)]}>{icon}</span>}
+        badge={badge}
+        facts={sub}
+        actions={actions}
+        className={className}
+      />
+    )
+  }
+  return (
+    <AppTitle
+      as={as}
+      title={title}
+      titleSuffix={titleSuffix}
+      badge={badge}
+      sub={sub}
+      actions={actions}
+      className={className}
+    />
+  )
+}
+
+/** The app-level hero: the state above a 28 px title at 700, the meta row under it, the actions beside it. */
+function AppTitle({
+  as: Heading = "h1",
+  title,
+  titleSuffix,
+  badge,
+  sub,
+  actions,
+  className,
+}: Pick<
+  WidgetHeaderProps,
+  "as" | "title" | "titleSuffix" | "badge" | "sub" | "actions" | "className"
+>) {
   return (
     <header
       data-slot="widget-header"
       className={cn("flex flex-wrap items-start justify-between gap-4", className)}
     >
       <div className="min-w-0">
-        {icon && (
-          <div
-            aria-hidden="true"
-            className={cn(
-              "text-section mb-3.5 grid size-11 place-items-center rounded-md",
-              TONE_SOFT[resolveTone(iconTone)],
-            )}
-          >
-            {icon}
-          </div>
-        )}
         {badge && <div className="mb-3">{badge}</div>}
-        <Heading
-          className={cn("text-foreground mb-1.5 tracking-tight break-words", TITLE_SIZE[size])}
-        >
+        <Heading className="text-title text-foreground mb-1.5 tracking-tight break-words">
           {title}
           {titleSuffix}
         </Heading>

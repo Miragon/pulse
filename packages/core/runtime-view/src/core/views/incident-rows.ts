@@ -1,5 +1,5 @@
 import type { Incident, IncidentDetails, IncidentJob } from "@miragon/pulse-engine-core"
-import type { IncidentRow, JobLink } from "../protocol/index.js"
+import type { CauseLabel, IncidentRow, JobLink } from "../protocol/index.js"
 import type { CalledInstanceLinks } from "./called-instance-links.js"
 import { ModelFactsView } from "./model-facts-view.js"
 import type { InstanceSnapshot } from "./instance-snapshot.js"
@@ -16,8 +16,6 @@ export class IncidentRows {
   }
 
   private rowOf(incident: Incident): IncidentRow {
-    const details = this.completeDetails(incident)
-    const cause = details?.rootCause
     const link = this.links.linkTo(incident.instanceId)
     const detailsKind = incident.details?.kind
     return {
@@ -28,7 +26,7 @@ export class IncidentRows {
       engineType: incident.type,
       message: incident.message,
       createdAt: incident.createdAt,
-      ...(cause === undefined ? {} : { rootCause: cause }),
+      ...this.causeOf(incident),
       ...(incident.retriesLeft === undefined ? {} : { retriesLeft: incident.retriesLeft }),
       ...(detailsKind === undefined
         ? {}
@@ -47,6 +45,27 @@ export class IncidentRows {
         ? {}
         : { model: ModelFactsView.of(modelLink, incident.job?.type) }),
     }
+  }
+
+  private causeOf(incident: Incident): Pick<IncidentRow, "rootCause" | "causeLabel"> {
+    const details = this.completeDetails(incident)
+    const rootCause = details?.rootCause
+    return details === undefined || rootCause === undefined
+      ? {}
+      : { rootCause, causeLabel: this.causeLabel(details, incident) }
+  }
+
+  private causeLabel(details: IncidentDetails, incident: Incident): CauseLabel {
+    if (details.kind === "stacktrace") {
+      return "Root cause"
+    }
+    return this.stopsAWorkerTask(incident) ? "Worker error" : "Cause"
+  }
+
+  private stopsAWorkerTask(incident: Incident): boolean {
+    return this.snapshot.detail.waitStates.some(
+      (wait) => wait.incidentId === incident.id && wait.kind === "workerTask",
+    )
   }
 
   private completeDetails(incident: Incident): IncidentDetails | undefined {

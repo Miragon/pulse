@@ -1,0 +1,113 @@
+{
+  "arguments": {},
+  "profiles": {
+    "c8": {
+      "auth": {
+        "audience": "camunda",
+        "clientId": "pulse-reader",
+        "clientSecretEnv": "ENGINE_SECRET_C8_CLIENT",
+        "tokenEndpoint": "http://127.0.0.1:<port>/realms/pulse/protocol/openid-connect/token",
+        "type": "clientCredentials"
+      },
+      "cockpitUrl": "https://operate.example.com/operate",
+      "environment": "prod",
+      "flavor": "camunda8",
+      "url": "http://127.0.0.1:<port>/v2"
+    },
+    "prod-eu": {
+      "environment": "prod",
+      "flavor": "cibseven",
+      "url": "http://localhost:1/engine-rest"
+    }
+  },
+  "result": {
+    "_meta": {
+      "mimeType": "application/json"
+    },
+    "content": [
+      {
+        "textLines": [
+          "{",
+          "  \"engines\": [",
+          "    {",
+          "      \"id\": \"prod-eu\",",
+          "      \"environment\": \"prod\",",
+          "      \"dialect\": \"c7\",",
+          "      \"flavor\": \"cibseven\",",
+          "      \"engineName\": \"CIB seven\"",
+          "    },",
+          "    {",
+          "      \"id\": \"c8\",",
+          "      \"environment\": \"prod\",",
+          "      \"dialect\": \"c8\",",
+          "      \"flavor\": \"camunda8\",",
+          "      \"engineName\": \"Camunda 8\",",
+          "      \"cockpitUrl\": \"https://operate.example.com/operate\"",
+          "    }",
+          "  ],",
+          "  \"environments\": [",
+          "    {",
+          "      \"id\": \"prod\",",
+          "      \"engineIds\": [",
+          "        \"prod-eu\",",
+          "        \"c8\"",
+          "      ]",
+          "    }",
+          "  ],",
+          "  \"defaultEngineId\": null,",
+          "  \"boards\": [",
+          "    {",
+          "      \"id\": \"cluster\",",
+          "      \"title\": \"Cluster\",",
+          "      \"engines\": [",
+          "        \"c8\"",
+          "      ]",
+          "    }",
+          "  ]",
+          "}"
+        ],
+        "type": "text"
+      }
+    ],
+    "structuredContent": {
+      "boards": [
+        {
+          "engines": [
+            "c8"
+          ],
+          "id": "cluster",
+          "title": "Cluster"
+        }
+      ],
+      "defaultEngineId": null,
+      "engines": [
+        {
+          "dialect": "c7",
+          "engineName": "CIB seven",
+          "environment": "prod",
+          "flavor": "cibseven",
+          "id": "prod-eu"
+        },
+        {
+          "cockpitUrl": "https://operate.example.com/operate",
+          "dialect": "c8",
+          "engineName": "Camunda 8",
+          "environment": "prod",
+          "flavor": "camunda8",
+          "id": "c8"
+        }
+      ],
+      "environments": [
+        {
+          "engineIds": [
+            "prod-eu",
+            "c8"
+          ],
+          "id": "prod"
+        }
+      ]
+    }
+  },
+  "sent": [],
+  "tool": "engine_list_engines"
+}

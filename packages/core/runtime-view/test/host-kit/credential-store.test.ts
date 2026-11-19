@@ -3,7 +3,8 @@ import {
   CredentialStore,
   type SecretStorage,
 } from "../../src/host-kit/connections/credential-store.js"
-import { LOCAL_TARGET, type EngineTarget } from "../../src/host-kit/connections/engine-target.js"
+import type { EngineTarget } from "../../src/host-kit/connections/engine-target.js"
+import { LOCAL_TARGET } from "./support/local-target.js"
 
 const FILE = "/work/.pulse.json"
 const PROD = "https://prod.example.com/engine-rest"
@@ -32,7 +33,7 @@ function inMemorySecrets() {
 
 async function savedFor(endpoint: string) {
   const secrets = inMemorySecrets()
-  await secrets.store.write(profile("prod-eu", endpoint), "demo", "s3cret")
+  await secrets.store.write(profile("prod-eu", endpoint), { identity: "demo", secret: "s3cret" })
   return secrets
 }
 
@@ -95,11 +96,29 @@ describe("reading a saved login", () => {
 describe("the secret scope", () => {
   test("follows the modeler scheme of file path and target name", async () => {
     const { stored, store } = inMemorySecrets()
-    await store.write(profile("dev", "http://x"), "demo", "demo")
-    await store.write(LOCAL_TARGET, "demo", "demo")
+    await store.write(profile("dev", "http://x"), { identity: "demo", secret: "demo" })
+    await store.write(
+      { ...LOCAL_TARGET, auth: { kind: "basic" } },
+      { identity: "demo", secret: "demo" },
+    )
     expect([...stored.keys()].filter((key) => key.endsWith(".username"))).toEqual([
       `pulse.connection.${FILE}::dev.username`,
       "pulse.connection.default::local.username",
     ])
+  })
+
+  test("keeps a profile of the CLI's user config apart from a project's of the same name", async () => {
+    const { stored, store } = inMemorySecrets()
+    const own = "/home/dev/.config/pulse-cli/config.json"
+    const mine: EngineTarget = {
+      ...profile("dev", "http://x"),
+      source: { kind: "user-config", path: own },
+    }
+    await store.write(profile("dev", "http://x"), { identity: "team", secret: "team-secret" })
+    await store.write(mine, { identity: "me", secret: "my-secret" })
+
+    expect(await store.read(mine)).toEqual({ kind: "basic", username: "me", password: "my-secret" })
+    expect(stored.get(`pulse.connection.${own}::dev.username`)).toBe("me")
+    expect(stored.get(`pulse.connection.${FILE}::dev.username`)).toBe("team")
   })
 })

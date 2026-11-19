@@ -47,6 +47,23 @@ export const BARE_PAUSE_RULE_EN: GlossaryRule = {
 }
 
 /**
+ * An instance or a step that ended without completing is cancelled, abgebrochen, in every Pulse
+ * UI and in `StateLabel` (the cockpit said "Canceled", the VS Code webview "Terminated"). Only a
+ * word a person reads counts: a label in capitals or a phrase; the engine's code values
+ * ("terminated", `canceled`) in a source stay free.
+ */
+const CANCELLED_EN =
+  /\b(?:Terminated|Canceled)\b|\b(?:was|were|been|is|are|got)\s+(?:terminated|canceled)\b/
+const CANCELLED_DE = /(?<![\p{L}])terminiert/iu
+
+/**
+ * An instance or a step that runs is running, läuft (the VS Code webview's history said
+ * "Active"): a state label alone, so a filter that is active ("3 active") stays free.
+ */
+const RUNNING_EN = /^\s*Active\s*$/
+const RUNNING_DE = /^\s*Aktiv\s*$/
+
+/**
  * An engine profile a surface does not use is refused, abgelehnt (the MCP server's
  * ENGINE_PROFILE_REFUSED, a profile Pulse for VS Code cannot serve); the engine rejecting
  * credentials keeps its own words.
@@ -90,6 +107,8 @@ export const PRODUCT_GLOSSARY: Readonly<Record<CatalogLanguage, readonly Glossar
       probe: "Mit Incidents",
     },
     { pattern: REFUSED_PROFILE_DE, use: "abgelehnt", probe: "Ihr Profil wurde verworfen" },
+    { pattern: CANCELLED_DE, use: "abgebrochen", probe: "Instanz terminiert" },
+    { pattern: RUNNING_DE, use: "läuft", probe: "Aktiv" },
   ],
   en: [
     {
@@ -109,6 +128,8 @@ export const PRODUCT_GLOSSARY: Readonly<Record<CatalogLanguage, readonly Glossar
       probe: "With incidents",
     },
     { pattern: REFUSED_PROFILE_EN, use: "refused", probe: "Its profile was rejected" },
+    { pattern: CANCELLED_EN, use: "cancelled", probe: "Terminated" },
+    { pattern: RUNNING_EN, use: "running", probe: "Active" },
   ],
 }
 

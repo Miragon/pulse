@@ -1,5 +1,5 @@
 import { formatNumber, SITUATION_TONES, type ToneVariant } from "@miragon/pulse-ui"
-import { describeError } from "@miragon/pulse-widget-shell/widgets"
+import { describeError, isSessionEnded } from "@miragon/pulse-widget-shell/widgets"
 import type { EngineHealthData, EngineHealthStatus } from "../../view-models.js"
 import type { T } from "../../messages/use-t.js"
 
@@ -38,13 +38,16 @@ export function healthVerdictLine(t: T, data: Pick<EngineHealthData, "summary">)
  * (ENGINE_PROFILE_REFUSED: it never asks that engine, so only the operator can fix it), an engine
  * that answered but refused the server's login (HTTP 401, its credentials, or 403, its access:
  * describeError's kinds and words), or one that did not answer as asked. Only the last is
- * unreachable; an engine that sends a 401 runs.
+ * unreachable; an engine that sends a 401 runs. A page whose session ended reached no engine
+ * (`isSessionEnded`): its failure says nothing about one, so it is none of these (null), and the
+ * page's frame says the session ended.
  */
 export const HEALTH_FAILURES = ["unreachable", "refused", "unauthorized", "forbidden"] as const
 
 export type HealthFailure = (typeof HEALTH_FAILURES)[number]
 
-export function healthFailureOf(error: unknown): HealthFailure {
+export function healthFailureOf(error: unknown): HealthFailure | null {
+  if (isSessionEnded(error)) return null
   const { kind } = describeError(error, undefined)
   if (kind === "profileRefused") return "refused"
   if (kind === "unauthorized" || kind === "forbidden") return kind

@@ -76,7 +76,6 @@ updates:
       # stay shared: they move in lockstep with the server and the test toolchain.
       vscode:
         patterns:
-          - "preact"
           - "@vscode/*"
           - "@types/vscode"
           - "bpmn-moddle"
@@ -101,7 +100,6 @@ updates:
           - "postject"
           - "testcontainers"
           - "fast-check"
-          - "preact"
           - "@vscode/*"
           - "@types/vscode"
           - "bpmn-moddle"

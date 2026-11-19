@@ -9,6 +9,7 @@ import {
   runCommand,
   showPulse,
 } from "./vscode-driver.mjs"
+import { part } from "../support/webview-parts.mjs"
 
 const BROKEN_BOARD = fileURLToPath(
   new URL("../../sandbox/.pulse/boards/broken.board.json", import.meta.url),
@@ -20,9 +21,11 @@ async function openBoard(window, title) {
     .getByRole("treeitem", { name: new RegExp(`^${title}, .*\\.board\\.json`) })
     .first()
     .click()
-  await panelFrame(window).locator(".context-bar--board", { hasText: "As of" }).waitFor({
-    timeout: 60_000,
-  })
+  await panelFrame(window)
+    .locator(part("context-bar", { kind: "board" }), { hasText: "As of" })
+    .waitFor({
+      timeout: 60_000,
+    })
   await window.waitForTimeout(1500)
 }
 
@@ -66,19 +69,24 @@ export const BOARD_USE_CASES = [
     shows: "A click on a row opens that instance in the instance panel of the engine it came from.",
     run: async (window) => {
       await openBoard(window, "Shop operations")
-      await panelFrame(window).locator(".board-card--instanceList tbody tr").first().click()
-      await panelFrame(window).locator(".context-bar--instance", { hasText: "As of" }).waitFor({
-        timeout: 30_000,
-      })
+      await panelFrame(window)
+        .locator('[data-part="board-card"][data-kind="instanceList"] tbody tr')
+        .first()
+        .click()
+      await panelFrame(window)
+        .locator(part("context-bar", { kind: "instance" }), { hasText: "As of" })
+        .waitFor({
+          timeout: 30_000,
+        })
       await restPointer(window)
       await window.waitForTimeout(900)
     },
   },
   {
     file: "board-problems",
-    title: "A broken board says where and why",
+    title: "A broken widget says where and why, in its place",
     shows:
-      "A board with a contradicting filter and an unknown widget: the tree marks it and the panel lists each problem with its path and reason.",
+      "A board with a contradicting filter, an unknown widget and a key Pulse does not know: the tree counts its problems, each broken widget lists its problems with path and reason where it would be, the counter beside them reads, and the unknown key is a note.",
     run: async (window) => {
       await closeEditors(window)
       await writeFile(
@@ -87,13 +95,24 @@ export const BOARD_USE_CASES = [
           {
             title: "Broken board",
             engines: ["shop-dev"],
+            layout: "wide",
             rows: [
               {
                 row: [
-                  { widget: "counter", props: { filter: { activeElement: "Activity_ShipOrder" } } },
-                  { widget: "chart" },
+                  {
+                    widget: "counter",
+                    props: {
+                      title: "Waiting for shipping",
+                      filter: { activeElement: "Activity_ShipOrder" },
+                    },
+                  },
+                  {
+                    widget: "counter",
+                    props: { title: "Running orders", filter: { process: "order-fulfillment" } },
+                  },
                 ],
               },
+              { row: [{ widget: "chart" }] },
             ],
           },
           undefined,
@@ -101,12 +120,18 @@ export const BOARD_USE_CASES = [
         )}\n`,
       )
       await showPulse(window)
-      const item = window.getByRole("treeitem", { name: /^broken\.board\.json/ }).first()
+      const item = window
+        .getByRole("treeitem", { name: /^Broken board, broken\.board\.json/ })
+        .first()
       await item.waitFor({ timeout: 30_000 })
       await item.click()
-      await panelFrame(window).locator(".status-strip", { hasText: "problems in" }).waitFor({
-        timeout: 30_000,
-      })
+      await panelFrame(window)
+        .locator(part("board-card", { kind: "refused" }))
+        .first()
+        .waitFor({ timeout: 30_000 })
+      await panelFrame(window)
+        .locator(part("context-bar", { kind: "board" }), { hasText: "As of" })
+        .waitFor({ timeout: 30_000 })
       await restPointer(window)
       await window.waitForTimeout(900)
     },
@@ -125,7 +150,7 @@ export const BOARD_USE_CASES = [
       await signInToTest(window)
       await openBoard(window, "Order fulfillment")
       await panelFrame(window)
-        .locator(".board-card--processDiagram .badge-cluster")
+        .locator('[data-part="board-card"][data-kind="processDiagram"] [data-badge-for]')
         .first()
         .waitFor({
           timeout: 30_000,
@@ -142,12 +167,14 @@ export const BOARD_USE_CASES = [
     run: async (window) => {
       await openBoard(window, "Order fulfillment")
       await panelFrame(window)
-        .locator('.board-card--processDiagram [data-scope="withIncident"]')
+        .locator('[data-part="board-card"][data-kind="processDiagram"] [data-scope="withIncident"]')
         .first()
         .click()
-      await panelFrame(window).locator(".context-bar--definition", { hasText: "As of" }).waitFor({
-        timeout: 30_000,
-      })
+      await panelFrame(window)
+        .locator(part("context-bar", { kind: "definition" }), { hasText: "As of" })
+        .waitFor({
+          timeout: 30_000,
+        })
       await restPointer(window)
       await window.waitForTimeout(900)
     },

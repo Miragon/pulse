@@ -314,7 +314,13 @@ function feedbackCopyLeaks(file: string, source: string): string[] {
   return found
 }
 
-describe("feedback copy comes from the catalog, never from a raw error", () => {
+/**
+ * Each gate parses every source of its surface with the TypeScript compiler: 0.2 s alone, up to
+ * 4.7 s on the CI runner, where `pnpm test` runs every package's suite at once on four cores.
+ */
+const SCAN = { timeout: 30_000 }
+
+describe("feedback copy comes from the catalog, never from a raw error", SCAN, () => {
   it("scans the feedback surfaces", () => {
     const tsx = Object.entries(SOURCES)
     const files = (pattern: RegExp) => tsx.filter(([, src]) => pattern.test(src)).map(([f]) => f)
@@ -381,7 +387,7 @@ describe("feedback copy comes from the catalog, never from a raw error", () => {
   })
 })
 
-describe("toast copy comes from the catalog, never from a raw error", () => {
+describe("toast copy comes from the catalog, never from a raw error", SCAN, () => {
   it("scans the toast sources", () => {
     // The kit renders toasts but calls `.show({` nowhere: the call sites are its consumers'
     // (widget-shell's action feedback, the connectors), which run the same gate there.
@@ -421,7 +427,7 @@ describe("toast copy comes from the catalog, never from a raw error", () => {
   })
 })
 
-describe("no hard-coded copy in kit components", () => {
+describe("no hard-coded copy in kit components", SCAN, () => {
   it("scans the component sources", () => {
     // A broken glob would make the gate vacuous: 10 primitives, 12 components, the provider.
     expect(Object.keys(SOURCES).length).toBeGreaterThanOrEqual(23)

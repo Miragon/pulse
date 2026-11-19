@@ -1,5 +1,4 @@
-import type { ComponentChildren } from "preact"
-import { useCallback, useMemo, useState } from "preact/hooks"
+import { useCallback, useMemo, useState, type KeyboardEvent, type ReactNode } from "react"
 import type {
   DefinitionView,
   InstanceListFilter,
@@ -16,6 +15,7 @@ import { BulkStrip } from "./bulk-strip.js"
 import { InstanceList } from "./instance-list.js"
 import { InstanceFilter } from "./instance-filter.js"
 import { NoticeStrips } from "./notices.js"
+import { ScreenFrame } from "./screen-frame.js"
 import { SplitLayout } from "./split-layout.js"
 import { VersionPicker } from "./version-picker.js"
 
@@ -24,7 +24,7 @@ export interface DefinitionScreenProps {
   readonly freshness: Freshness
   readonly stale: boolean
   readonly refreshing: boolean
-  readonly problem?: ComponentChildren
+  readonly problem?: ReactNode
 }
 
 function useElementNames() {
@@ -51,7 +51,7 @@ function useFilterActions(filter: InstanceListFilter, selecting: boolean) {
     const scoped = scope === undefined ? filter : InstanceFilter.withScope(filter, scope)
     filterInstances(InstanceFilter.withElement(scoped, elementId))
   }
-  const onKeyDown = (event: KeyboardEvent): void => {
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
     const inField =
       (event.target instanceof HTMLInputElement && event.target.type !== "checkbox") ||
       event.target instanceof HTMLSelectElement
@@ -87,6 +87,28 @@ function useDecorations(
   )
 }
 
+function BarActions({
+  view,
+  nameOf,
+}: {
+  readonly view: DefinitionView
+  readonly nameOf: (elementId: string) => string
+}) {
+  return (
+    <>
+      <VersionPicker versions={view.versions} selected={view.selectedDefinitionId} />
+      {view.model !== undefined && (
+        <OpenModelButton
+          model={view.model}
+          elementId={view.filter.elementId}
+          elementName={nameOf}
+        />
+      )}
+      <WebUiButton link={view.webUi} />
+    </>
+  )
+}
+
 export function DefinitionScreen({
   view,
   freshness,
@@ -101,24 +123,15 @@ export function DefinitionScreen({
   )
   const decorations = useDecorations(view, stale, focusElementId)
   return (
-    <div class="screen screen--with-strips" onKeyDown={onKeyDown}>
+    <div className={ScreenFrame.WITH_STRIPS} onKeyDown={onKeyDown}>
       <ContextBar
         subject="definition"
         title={view.processName}
         engine={view.engine}
         freshness={freshness}
-      >
-        <VersionPicker versions={view.versions} selected={view.selectedDefinitionId} />
-        {view.model !== undefined && (
-          <OpenModelButton
-            model={view.model}
-            elementId={view.filter.elementId}
-            elementName={nameOf}
-          />
-        )}
-        <WebUiButton link={view.webUi} />
-      </ContextBar>
-      <div class="strip-stack">
+        actions={<BarActions view={view} nameOf={nameOf} />}
+      />
+      <div className={ScreenFrame.STRIPS} data-part="strips">
         {problem}
         {view.bulk !== undefined && <BulkStrip bulk={view.bulk} />}
         <NoticeStrips notices={view.notices} />

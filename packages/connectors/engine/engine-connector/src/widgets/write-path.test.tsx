@@ -39,7 +39,13 @@ const AFTER_REVIEW = instance({
   variables: { amount: { value: 42, type: "Integer" }, reviewed: { value: true, type: "Boolean" } },
 })
 
-describe("completing a user task refreshes the instance (N99)", () => {
+/**
+ * A case renders widgets in happy-dom and waits for their queries: up to 0.3 s alone, up to 2.2 s
+ * on the CI runner, where `pnpm test` runs every package's suite at once on four cores.
+ */
+const RENDER = { timeout: 15_000 }
+
+describe("completing a user task refreshes the instance (N99)", RENDER, () => {
   it("seeded: the start data is a seed, and the view refetches and shows the next task", async () => {
     const calls: Calls = []
     renderInstance(Seeded, instance(), {
@@ -105,7 +111,13 @@ describe("completing a user task refreshes the instance (N99)", () => {
 
     await completeTheOpenTask()
 
-    expect(await screen.findByText(/pi-1 does not exist/)).toBeTruthy()
+    // The strip under the view's bar says the view could not be refreshed (the kit's words);
+    // the engine's own reason waits under its Details.
+    const reason = await screen.findByText(/pi-1 does not exist/)
+    const strip = reason.closest<HTMLElement>('[data-slot="status-strip"]')!
+    expect(within(strip).getByText("Couldn't refresh this view")).toBeTruthy()
+    fireEvent.click(within(strip).getByRole("button", { name: "Details" }))
+    expect(reason.hidden).toBe(false)
     // One attempt so far: the client is still retrying, the gate is closed already.
     expect(feedCalls(calls)).toHaveLength(1)
     // The model is not told the instance still runs.
@@ -117,7 +129,7 @@ describe("completing a user task refreshes the instance (N99)", () => {
   })
 })
 
-describe("a confirmation names its target (N108)", () => {
+describe("a confirmation names its target (N108)", RENDER, () => {
   it("cancel: names instance, business key and engine; Keep instance vs Cancel instance", async () => {
     const calls: Calls = []
     renderInstance(Seeded, instance(), {
@@ -187,7 +199,7 @@ describe("a confirmation names its target (N108)", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Mark as resolved" }))
     const dialog = await screen.findByRole("alertdialog")
     expect(within(dialog).getByText("inc-9")).toBeTruthy()
-    expect(within(dialog).getByText("invoiceMismatch")).toBeTruthy()
+    expect(within(dialog).getByText("Invoice mismatch")).toBeTruthy()
     expect(within(dialog).getByText("pi-1")).toBeTruthy()
     expect(within(dialog).getByRole("button", { name: "Keep open" })).toBeTruthy()
     fireEvent.click(within(dialog).getByRole("button", { name: "Mark as resolved" }))
@@ -196,7 +208,7 @@ describe("a confirmation names its target (N108)", () => {
   })
 })
 
-describe("the cockpit refreshes and retries instead of dead-ending (N103)", () => {
+describe("the cockpit refreshes and retries instead of dead-ending (N103)", RENDER, () => {
   it("an instance that failed to load offers a Retry", async () => {
     let fail = true
     renderInstance(InCockpit, null, {
@@ -280,7 +292,7 @@ const JOBS: JobPanelData = {
   engineId: "prod",
 }
 
-describe("the cockpit's seeded start view refreshes after a write (K46)", () => {
+describe("the cockpit's seeded start view refreshes after a write (K46)", RENDER, () => {
   it("job panel: Retry refetches the seeded page, so the retried job leaves the failed-only list", async () => {
     const calls: Calls = []
     const AFTER_RETRY: JobPanelData = { ...JOBS, totalCount: 0, failedCount: 0, jobs: [] }

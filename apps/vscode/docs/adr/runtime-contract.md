@@ -1,10 +1,17 @@
 # Runtime contract
 
 - Status: accepted
-- Last reviewed: 2026-11-11 (a number holds a double); 2026-11-10 (the plug every dialect
-  family provides; a whole number holds 64 bits); 2026-11-09 (the engine
-  contract is the engine family's core `@miragon/pulse-engine-core`, with the four changes
-  Camunda 8 needs)
+- Last reviewed: 2026-11-15 (three read laws for the lists a board reads: incidents newest
+  first, pages of root incidents without gaps, every page of instances but the last full; the
+  read laws hold for the C7 family's one implementation of the reads, c7-core's `C7Runtime`,
+  over two wires: the C7 adapter's and the MCP server's generated SDK;
+  an adapter brings its BPMN dialect and the local engine's endpoint,
+  the host kit's `EngineRoot` chooses between the adapters; what a Camunda 8 cluster answers, through the C8 adapter's runtime,
+  proven by the read laws on a local cluster); 2026-11-14 (on the C7 family "with incident" is an
+  open incident the runtime holds now, on every history level; the read laws run on a C7 engine at
+  history level AUDIT too); 2026-11-11 (a number holds a double); 2026-11-10 (the plug every dialect
+  family provides; a whole number holds 64 bits); 2026-11-09 (the engine contract is the engine
+  family's core `@miragon/pulse-engine-core`, with the four changes Camunda 8 needs)
 
 ## Context
 
@@ -12,7 +19,7 @@ C7 family engines and Camunda 8 expose similar runtime data with different
 vocabulary, identifiers and consistency. In C7 `processDefinitionKey` is the BPMN id;
 in C8 `processDefinitionId` is the BPMN id and `processDefinitionKey` an int64 per
 version. C7 copies an incident to every parent of a call chain; C8 keeps it in the
-child. C7 stores engine stack traces; C8 only has the worker's error message. C8
+child. C7 stores engine stack traces; C8 has the worker's or the engine's error message. C8
 search results are eventually consistent and page with cursors.
 
 ## Decision
@@ -74,15 +81,18 @@ connection without write access simply has none ([writes.md](writes.md)):
 `EngineAdapter` (`packages/core/runtime-view/src/ports/engine-adapter.ts`, in the runtime view, not
 in engine-core: connections, credentials and web UI links are the editor hosts' business) is the
 plug every dialect family provides:
-given an `EngineConnection` (endpoint and credentials) it returns a `ProcessRuntime` and,
+given an `EngineConnection` (endpoint, credentials and the profile's `timeout`, where it names one) it returns a `ProcessRuntime` and,
 when the family can write, `ProcessCommands`. `webUi(webUiUrl)` takes the configured URL
 of the engine's web UI and, when it fits the family's web UI, returns an `EngineWebUi`:
-its `name` ("Cockpit") and the routes into it: `overviewUrl()` (its start page,
+its `name` ("Cockpit", "Operate") and the routes into it: `overviewUrl()` (its start page,
 for the engine overview), `instanceUrl(InstanceSummary)` and
 `definitionUrl(DefinitionRef)`. A link needs neither endpoint nor credentials, so the URL
 is not part of the connection; a target without one gets no web UI. The adapter
 knows the routes; nobody guesses the web UI from the endpoint. The composition root holds
-one adapter per engine kind of a target and is the only place that chooses between them.
+one adapter per dialect of a target, and the host kit's `EngineRoot` it builds from them is the
+only place that chooses between them. An adapter also brings its `BpmnDialect`, the vocabulary
+of its vendor's BPMN files, which the model reader of the local sources reads them in, and, for
+the C7 adapter, the endpoint of the local engine a host falls back to.
 
 ### Local sources
 
@@ -119,7 +129,10 @@ for any workspace, and the conformance kit does not cover them
   not stop live updates.
   `new FailingRuntime(error)` is the one runtime that rejects every call with a given
   error (unreachable engine, unsupported target).
-- **Counts** mean instances, not incidents (`withIncident`), on both engines.
+- **Counts** mean instances, not incidents (`withIncident`), on both engines. An instance with
+  an incident is one with an open incident now; on the C7 family the runtime's, which every history
+  level answers alike (c7-core's `with-incident.ts`), so the C7 adapter's harness runs the read
+  laws on an engine at history level AUDIT as well as at FULL.
   `countInstances(filter)` counts what `searchInstances(filter, …)` pages through, as an
   `InstanceCount`: exact, or with `atLeast` when the engine stopped counting (Camunda 8 at
   10,000). The laws require an exact count over the world; a sum over a lower bound is one
@@ -131,11 +144,12 @@ for any workspace, and the conformance kit does not cover them
 - **Statistics are disjoint.** `active` counts element instances without an incident
   raised at that element, so `active + incidents` is what the element holds;
   `incidentsInCalledInstances` marks active tokens whose called instance failed. One known
-  exception, documented instead of typed for now: Camunda 8 splits a container's row with one
+  exception, documented instead of typed: Camunda 8 splits a container's row with one
   incident search per container, and when that search stops counting (above 10,000 on
   Elasticsearch) the row keeps the cluster's counts, every incident inside the container as
-  raised there. The rule does not hold for such a row; an optional field of
-  `ElementStatistics` for it comes with the Camunda 8 adapter.
+  raised there. The rule does not hold for such a row, and `ElementStatistics` gains no field for
+  it: the conformance world never reaches that many, and a field would weaken the law that holds
+  the counts apart ([c8-adapter.md](c8-adapter.md)).
 - **Neutral work vocabulary.** A `workerTask` wait names its `taskType` (C7 topic, C8
   job type); `Incident.job?` names the unit of work that failed (C7 job or external
   task with its topic, C8 job key and type).
@@ -226,18 +240,40 @@ for any workspace, and the conformance kit does not cover them
   adapter holds its reading of a variable without a type and of a Double variable to
   `isWholeNumber` and `isFiniteNumber`.
 
+### What a Camunda 8 cluster answers
+
+The C8 adapter (`packages/connectors/c8/c8-adapter`, [c8-adapter.md](c8-adapter.md)) answers the
+contract read-only, through the Orchestration Cluster REST API from 8.9 on:
+
+- **No writes.** `commands` and `cli` answer `undefined`, so the runtime view offers no write and
+  no `pulse` command for a Camunda 8 engine.
+- **No migration planning.** `proposeMigration?` and `checkMigration?` are absent, as a pair; no
+  bulk operation starts, so `getBulkOperation` answers `undefined` and `getBulkFailures` `[]`.
+- **Refused conditions.** `refusedVariableConditions?()` names `ordering` and `date`: the cluster
+  compares variable values as text.
+- **Counts that stop.** A search counts up to 10,000 on Elasticsearch; above that a count is
+  exact only where the cluster's statistics give it (running instances of the engine, a process
+  or a version) and `{ count: 10000, atLeast: true }` otherwise.
+- **Error messages.** `IncidentDetails` is the incident's error message as the worker or the
+  engine wrote it (`kind: "errorMessage"`), with its root cause by `RootCauses`.
+- **Undivided rows.** A container's statistics row keeps the cluster's counts when the search for
+  its own incidents stops counting (Statistics are disjoint, above).
+- **Late reads.** Its searches lag behind the cluster's state by up to a few seconds, which the
+  live updates already allow for ([live-updates.md](live-updates.md)).
+
 ### Conformance kit
 
 ```mermaid
 flowchart LR
-  kit[ConformanceKit: 48 read laws, 15 command laws]
+  kit[ConformanceKit: 51 read laws, 15 command laws]
   kit --> fake[FakeEngine in memory]
   kit --> c7[C7Adapter on Operaton and CIB seven in containers]
+  kit --> mcp[C7Runtime over the MCP server's SDK wire, same engines, read laws]
   saboteurs[Saboteurs: broken runtimes] -- each must fail its law --> kit
 ```
 
 `@miragon/pulse-engine-core/testing` (`packages/connectors/engine/engine-core/src/testing/conformance`)
-holds 48 read laws and 15 command laws as executable cases, modelled on
+holds 51 read laws and 15 command laws as executable cases, modelled on
 `@miragon/modeler-api/conformance`:
 `new ConformanceKit(test).registerRuntimeLaws(prepare)` and `.registerCommandLaws(prepare)`
 bind them to any `(name, fn)` runner and throw a `ConformanceViolation` when a law fails. Command laws run on
@@ -264,6 +300,10 @@ also finds an instance whose token waits before an asynchronous task. `instances
 come first, in the same order on every read` holds the order of a search;
 `instances: filter and flag instances with an incident` also finds a caller by an incident in
 its called instance; `instances: counts agree with the search` requires exact counts. The
+lists a board reads have three laws more: incidents come newest first, in the same order on
+every read and across pages of one; the root incidents in pages of one come once each, every
+page but the last full; and so do the instances of a process with an incident and without one,
+whose pages of one together give the search of 50. The
 variable laws read `?` in a `like` pattern as itself and hold a declared refusal to an
 `unsupported` failure of the search and the count. Two read laws cover migration plans, on a
 runtime that plans (and fail one that has only half the pair): the proposal from order v1 to
@@ -312,8 +352,11 @@ key, counts without an incident that include those with one, variable conditions
 ignored by the search or the count, one condition instead of all, numbers compared as
 text, `%`, `_` or `?` read as wildcards, not equals finding instances without the variable,
 task-local variables left out, ended instances left out, an empty list that finds
-nothing, the oldest instances first, another order on each read, a caller not flagged by the
-incident of its called instance, a count within the world that calls itself a lower bound,
+nothing, the oldest instances first, another order on each read, the oldest incidents first,
+another incident order on each read, pages of one that list the oldest incident first,
+instances with an incident or without one and incidents filtered after the page, an ignored
+incident cursor, a last page of incidents over its limit, a caller
+not flagged by the incident of its called instance, a count within the world that calls itself a lower bound,
 a declared refusal that answers anyway, in the search or in the count alone, a refusal without
 a declaration, a declared refusal that fails with another failure or with an error that is no
 `RuntimeError`; for commands: a retry that
@@ -338,17 +381,27 @@ business key fail the ids law too, as does a search that ignores the instance id
 ## Consequences
 
 - Every adapter is proven against the same laws on a real engine
-  (`*.engine.test.ts`); an architecture test fails when an adapter has none.
-- The contract is meant for engines beyond the C7 family. During the spike a Camunda 8 adapter
-  on the REST API v2 passed every law against an API mock with a read lag and was removed again
-  to keep the prototype small. On a real Camunda 8 the adapter of #543 needed four neutral
-  changes, which the contract carries since its first release: an instance count that may be a
-  lower bound, the failure `unsupported`, the variable conditions an engine declares it refuses,
-  and migration planning as an optional pair of methods. Its undivided element statistics above
-  the incident search's cap stay a documented exception until that adapter lands.
+  (`*.engine.test.ts`); an architecture test fails when an adapter has none. The C7 family's reads
+  are one implementation, c7-core's `C7Runtime`, which the read laws run over two wires on
+  Operaton and CIB seven: the C7 adapter's and the MCP server's generated SDK through the engine
+  connector's port
+  (`packages/connectors/engine/engine-connector/src/lib/core-adapter/c7-runtime.engine.test.ts`).
+  The laws prove the answers, not equal bytes: an integer beyond 2^53 reaches the runtime over
+  the SDK as a string of its digits, and no read law reads a bulk operation, which that suite
+  reads in two cases of its own. The C8 adapter's
+  engine test runs on a local Camunda 8 cluster only: CI starts no Camunda 8 image until the
+  licence question of #531 has an answer ([c8-adapter.md](c8-adapter.md)).
+- The contract holds beyond the C7 family. During the spike a Camunda 8 adapter on the REST API
+  v2 passed every law against an API mock with a read lag and was removed again to keep the
+  prototype small. On a real Camunda 8 the adapter of #543 needed four neutral changes, which the
+  contract carries since its first release: an instance count that may be a lower bound, the
+  failure `unsupported`, the variable conditions an engine declares it refuses, and migration
+  planning as an optional pair of methods. The C8 adapter answers the contract with them and
+  nothing more; its undivided element statistics above the incident search's cap stay a
+  documented exception.
 - Every change to the contract is a change to a published package: a new port, read model or
   law lands in `packages/connectors/engine/engine-core` with its saboteur, and the kit's
-  self-tests run there (`packages/connectors/engine/engine-core/test`, 71 saboteurs). Below 1.0 the package makes no
+  self-tests run there (`packages/connectors/engine/engine-core/test`, 79 saboteurs). Below 1.0 the package makes no
   stability promise; its laws and its fake follow the extension.
 - Panel loads have fixed engine-call budgets (definition ≤ 7, three of them the scope
   counts queried in parallel with the page; instance ≤ 2 plus lazy details; both + 1

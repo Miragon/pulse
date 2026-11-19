@@ -7,6 +7,7 @@ import {
   type HostAction,
 } from "@miragon/pulse-widget-shell/widgets"
 import {
+  ENGINE_BOARD_DATA,
   ENGINE_CLUSTER_DETAIL_DATA,
   ENGINE_COCKPIT_OVERVIEW_DATA,
   ENGINE_HEALTH_DATA,
@@ -19,6 +20,7 @@ import {
   ENGINE_PROCESS_INSTANCES_DATA,
 } from "../../tool-names.js"
 import type { CockpitStart, CockpitView } from "../../view-models.js"
+import { BOARD } from "../board/board.test-support.js"
 import { CockpitRoute } from "./routes.js"
 
 afterEach(() => {
@@ -76,7 +78,7 @@ const SEEDED: Array<[string, CockpitView, CockpitStart, string, string, string]>
     },
     ENGINE_JOBS_DATA,
     "engine:jobs",
-    "Jobs",
+    "prod-a · Jobs",
   ],
   [
     "process-instances",
@@ -131,6 +133,56 @@ const SEEDED: Array<[string, CockpitView, CockpitStart, string, string, string]>
 ]
 
 describe("CockpitRoute", () => {
+  // An app route reads the engines it names: the board feed takes its id, never an engine.
+  it("a board reads the board feed by its id, without an engine", async () => {
+    const actions: HostAction[] = []
+    render(
+      <TestViewHost onHostAction={(action) => actions.push(action)}>
+        <CockpitRoute view={{ section: "board", board: "invoices" }} engine={null} />
+      </TestViewHost>,
+    )
+    await waitFor(() =>
+      expect(actions).toContainEqual({
+        type: "callTool",
+        name: ENGINE_BOARD_DATA,
+        args: { board: "invoices" },
+      }),
+    )
+  })
+
+  it("a board opens on its seed without a feed call", async () => {
+    const actions: HostAction[] = []
+    const view: CockpitView = { section: "board", board: "invoices" }
+    render(
+      <TestViewHost onHostAction={(action) => actions.push(action)}>
+        <CockpitRoute view={view} engine={null} seed={{ view, data: BOARD }} />
+      </TestViewHost>,
+    )
+    expect(await screen.findByRole("heading", { level: 1, name: "Invoices" })).toBeTruthy()
+    expect(actions.filter((a) => a.type === "callTool" && a.name === ENGINE_BOARD_DATA)).toEqual([])
+  })
+
+  it("the landing renders no widget of its own and reads no feed: the cockpit shows its chooser", async () => {
+    const actions: HostAction[] = []
+    const { container } = render(
+      <TestViewHost onHostAction={(action) => actions.push(action)}>
+        <CockpitRoute view={{ section: "landing" }} engine={null} />
+      </TestViewHost>,
+    )
+    await act(() => Promise.resolve())
+    expect(container.textContent).toBe("")
+    expect(actions.filter((a) => a.type === "callTool")).toEqual([])
+  })
+
+  it("an engine's route without an engine renders nothing", () => {
+    const { container } = render(
+      <TestViewHost>
+        <CockpitRoute view={{ section: "overview" }} engine={null} />
+      </TestViewHost>,
+    )
+    expect(container.textContent).toBe("")
+  })
+
   it.each(ROUTES)("%o reads %s on the cockpit's engine", async (view, feed, args) => {
     const actions: HostAction[] = []
     // No fakes: every read fails, so only the calls the route makes count.
@@ -146,6 +198,97 @@ describe("CockpitRoute", () => {
         args: expect.objectContaining({ ...args, engine: "prod-a" }) as unknown,
       }),
     )
+  })
+})
+
+describe("a route of an engine that does not answer", () => {
+  it("the overview says so once, and its Try again reads both of its feeds again", async () => {
+    const actions: HostAction[] = []
+    const unreachable = () => Promise.reject(new Error("engine prod-a unreachable (ECONNREFUSED)"))
+    render(
+      <TestViewHost
+        tools={{ [ENGINE_HEALTH_DATA]: unreachable, [ENGINE_COCKPIT_OVERVIEW_DATA]: unreachable }}
+        onHostAction={(action) => actions.push(action)}
+        client={createTestQueryClient()}
+      >
+        <CockpitRoute view={{ section: "overview" }} engine="prod-a" />
+      </TestViewHost>,
+    )
+    const reads = (feed: string) =>
+      actions.filter((a) => a.type === "callTool" && a.name === feed).length
+    await waitFor(() => expect(screen.getAllByRole("alert")).toHaveLength(1))
+    await act(() => Promise.resolve())
+    expect([reads(ENGINE_HEALTH_DATA), reads(ENGINE_COCKPIT_OVERVIEW_DATA)]).toEqual([1, 1])
+    expect(screen.getAllByRole("alert")).toHaveLength(1)
+    expect(screen.getAllByRole("button", { name: "Try again" })).toHaveLength(1)
+
+    act(() => screen.getByRole("button", { name: "Try again" }).click())
+    await waitFor(() =>
+      expect([reads(ENGINE_HEALTH_DATA), reads(ENGINE_COCKPIT_OVERVIEW_DATA)]).toEqual([2, 2]),
+    )
+    await waitFor(() => expect(screen.getAllByRole("alert")).toHaveLength(1))
+  })
+
+  it("the incidents say so once, under their KPIs' title, the list under them reading the same", async () => {
+    const actions: HostAction[] = []
+    const unreachable = () => Promise.reject(new Error("engine prod-a unreachable (ECONNREFUSED)"))
+    render(
+      <TestViewHost
+        tools={{ [ENGINE_INCIDENTS_DATA]: unreachable }}
+        onHostAction={(action) => actions.push(action)}
+        client={createTestQueryClient()}
+      >
+        <CockpitRoute view={{ section: "incidents" }} engine="prod-a" />
+      </TestViewHost>,
+    )
+    await waitFor(() => expect(screen.getAllByRole("alert")).toHaveLength(1))
+    await act(() => Promise.resolve())
+    expect(screen.getAllByRole("alert")).toHaveLength(1)
+    expect(screen.getAllByRole("heading", { level: 1 }).map((h) => h.textContent)).toEqual([
+      "prod-a · Incidents",
+    ])
+    act(() => screen.getByRole("button", { name: "Try again" }).click())
+    await waitFor(() =>
+      expect(
+        actions.filter((a) => a.type === "callTool" && a.name === ENGINE_INCIDENTS_DATA),
+      ).toHaveLength(2),
+    )
+  })
+})
+
+/** Each route whose read fails, and the title its bar keeps: the page's one heading. */
+const TITLED: Array<[CockpitView, string]> = [
+  [{ section: "overview" }, "prod-a · Overview"],
+  [{ section: "incidents" }, "prod-a · Incidents"],
+  [{ section: "jobs" }, "prod-a · Jobs"],
+  [
+    { section: "cluster-detail", activityId: "charge", incidentType: "failedJob" },
+    "Cluster: charge",
+  ],
+  [{ section: "process-detail", processDefinitionKey: "invoice", label: "Invoice" }, "Invoice"],
+  [{ section: "process-detail", processDefinitionKey: "invoice" }, "invoice"],
+  [{ section: "process-instances", processDefinitionKey: "invoice" }, "invoice"],
+  [{ section: "process-instances" }, "Running instances"],
+  [{ section: "instance-detail", processInstanceId: "pi-12345678", label: "INV-42" }, "INV-42"],
+  [{ section: "instance-detail", processInstanceId: "pi-12345678" }, "Instance pi-12345678"],
+  [{ section: "instance-detail", processInstanceId: "2251799813685249" }, "Instance …13685249"],
+  [{ section: "incident-detail", incidentId: "inc-1" }, "Incident inc-1"],
+  [{ section: "history", processInstanceId: "pi-1" }, "History pi-1"],
+  [{ section: "board", board: "invoices" }, "invoices"],
+]
+
+describe("a route whose read fails", () => {
+  it.each(TITLED)("%o keeps its title as the page's one heading", async (view, title) => {
+    // No fakes: every read fails.
+    render(
+      <TestViewHost>
+        <CockpitRoute view={view} engine={view.section === "board" ? null : "prod-a"} />
+      </TestViewHost>,
+    )
+    const headings = () => screen.getAllByRole("heading", { level: 1 }).map((h) => h.textContent)
+    expect(headings()).toEqual([title])
+    expect((await screen.findAllByRole("alert")).length).toBeGreaterThan(0)
+    expect(headings()).toEqual([title])
   })
 })
 

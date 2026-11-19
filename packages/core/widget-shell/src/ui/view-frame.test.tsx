@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { useState } from "react"
 import type { ShellHost } from "./shell-host.js"
 import { TestViewHost, type HostAction } from "./test-view-host.js"
+import type { FollowUp } from "./view-host.js"
 import type { ViewCall, ViewPhase } from "./view-call.js"
 import { ViewErrorBoundary } from "./view-error-boundary.js"
 import { SLOW_HINT_MS, ViewFrame } from "./view-frame.js"
@@ -30,6 +31,7 @@ function renderFrame(
     retry?: () => void
     host?: Partial<ShellHost>
     locale?: string
+    followUp?: FollowUp
   } = {},
 ) {
   const actions: HostAction[] = []
@@ -39,6 +41,7 @@ function renderFrame(
   render(
     <TestViewHost
       host={options.host}
+      followUp={options.followUp}
       locale={options.locale ?? "en"}
       onHostAction={(action) => actions.push(action)}
       onModelContext={(line) => lines.push(line)}
@@ -78,7 +81,11 @@ describe("ViewFrame: before the view", () => {
     fireEvent.click(button)
     expect(retry).toHaveBeenCalledTimes(1)
     // The frame keeps the focus while the view re-loads.
-    expect(document.activeElement?.getAttribute("data-slot")).toBe("view-frame")
+    const frame = document.activeElement
+    expect(frame?.getAttribute("data-slot")).toBe("view-frame")
+    // A focus holder, no control: no outline, not even the one forced colours draw for
+    // `outline-hidden`, which would frame the whole view.
+    expect(frame?.getAttribute("class")?.split(/\s+/)).toEqual(["outline-none"])
     expect(lines.at(-1)).toContain("could not be shown")
   })
 
@@ -116,6 +123,85 @@ describe("ViewFrame: before the view", () => {
   })
 })
 
+/** A page posts to no chat (`followUp` copy or none): its frame says to reload the page. */
+describe("ViewFrame: on a page outside a chat", () => {
+  it.each(["none", "copy"] as const)(
+    "%s: says to reload the page once the wait grows long",
+    (followUp) => {
+      vi.useFakeTimers()
+      renderFrame({ phase: "waiting" }, { followUp })
+      act(() => {
+        vi.advanceTimersByTime(SLOW_HINT_MS)
+      })
+      expect(document.querySelector("[data-slot=slow-hint]")?.textContent).toBe(
+        "This is taking longer than usual. If nothing happens, reload the page.",
+      )
+    },
+  )
+
+  it("says the page can't show a view it has no component for, in the page's language", () => {
+    renderFrame(
+      { phase: "ready", data: {}, reloadedAt: null },
+      { view: null, followUp: "none", locale: "de" },
+    )
+    expect(
+      screen.getByText(
+        "Diese Seite kann die Ansicht nicht anzeigen. Lade die Seite neu, um sie noch mal zu öffnen.",
+      ),
+    ).toBeTruthy()
+    expect(screen.queryByText(/Chat/)).toBeNull()
+  })
+
+  it("words a failed view for the page: what to do there, never in a chat", () => {
+    renderFrame({ phase: "error", error: new Error("odd") }, { followUp: "none" })
+    expect(screen.getByText("Try again. If it fails again, reload the page.")).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy()
+    expect(screen.queryByText(/chat/i)).toBeNull()
+  })
+
+  it.each([
+    ['[UNKNOWN_BOARD] Unknown board id "shipping". Boards: invoices.', "isn't on this server"],
+    ['[BOARD_REFUSED] Board "broken" cannot be shown.', "its file gives no board"],
+    ["Input validation error: Invalid arguments for tool x: view: Invalid option", "refused"],
+  ])("offers no Try again for a start the server refuses for good: %s", (raw, words) => {
+    const { lines } = renderFrame({ phase: "error", error: new Error(raw) }, { followUp: "none" })
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toContain(words)
+    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull()
+    expect(screen.queryByText(/chat/i)).toBeNull()
+    expect(lines.at(-1)).toContain("without a retry button")
+  })
+
+  it("keeps the chat's words in a chat", () => {
+    vi.useFakeTimers()
+    renderFrame({ phase: "waiting" }, { followUp: "chat" })
+    act(() => {
+      vi.advanceTimersByTime(SLOW_HINT_MS)
+    })
+    expect(document.querySelector("[data-slot=slow-hint]")?.textContent).toBe(
+      "This is taking longer than usual. If nothing happens, ask in the chat again.",
+    )
+  })
+})
+
+describe("ViewFrame: the document's landmarks and heading", () => {
+  it.each([
+    ["waiting", { phase: "waiting" }, undefined],
+    ["cancelled", { phase: "cancelled" }, undefined],
+    ["error", { phase: "error", error: new Error("odd") }, "This view couldn't be loaded"],
+    ["ready", { phase: "ready", data: { rows: ["a"] }, reloadedAt: null }, undefined],
+  ] as const)("%s: the one main landmark", (_, phase, heading) => {
+    renderFrame(phase)
+    expect(screen.getAllByRole("main")).toHaveLength(1)
+    if (heading) expect(screen.getByRole("heading", { level: 1, name: heading })).toBeTruthy()
+  })
+
+  it("a view it has no component for: the one main, its words the one heading", () => {
+    renderFrame({ phase: "ready", data: {}, reloadedAt: null }, { view: null })
+    expect(screen.getAllByRole("main")).toHaveLength(1)
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toContain("can't show this view")
+  })
+})
+
 describe("ViewFrame: the view", () => {
   it("renders the data, with no toolbar where nothing belongs in it", () => {
     const { lines } = renderFrame({ phase: "ready", data: { rows: ["a", "b"] }, reloadedAt: null })
@@ -134,14 +220,18 @@ describe("ViewFrame: the view", () => {
     expect(lines.at(-1)).toContain("2026-10-31T14:32:00.000Z")
   })
 
-  it("offers fullscreen where the host does, with the kit's dense chrome button", () => {
+  it("offers fullscreen where the host does, with the kit's 28 px chrome button in the bar-high toolbar", () => {
     const { actions } = renderFrame(
       { phase: "ready", data: { rows: [] }, reloadedAt: null },
       { host: { availableDisplayModes: ["inline", "fullscreen"] } },
     )
     const button = screen.getByRole("button", { name: "Fullscreen" })
     expect(button.className).toContain("shadow-1")
-    expect(button.querySelector("svg")?.getAttribute("stroke-width")).toBe("2")
+    expect(button.className.split(" ")).toContain("size-control")
+    expect(button.querySelector("svg")?.getAttribute("width")).toBe("16")
+    expect(button.querySelector("svg")?.getAttribute("stroke-width")).toBe("2.5")
+    const toolbar = button.closest('[data-slot="view-toolbar"]')!
+    expect(toolbar.className.split(" ")).toEqual(expect.arrayContaining(["min-h-bar", "px-gutter"]))
     fireEvent.click(button)
     expect(actions).toEqual([{ type: "requestDisplayMode", mode: "fullscreen" }])
   })

@@ -1,8 +1,14 @@
-import type { BoardIncidentRow, BoardView } from "../../../src/core/protocol/index.js"
+import type { BoardView, IncidentData } from "../../../src/core/protocol/index.js"
 import orderXml from "./order-fulfillment.bpmn"
 import { AS_OF, LOCAL_ENGINE, minutesBefore } from "./engines.js"
 
 const TEST_ENGINE = { name: "shop-test", environment: "test", host: "localhost:18091" } as const
+const ORDER_FULFILLMENT = {
+  id: "order-fulfillment:3",
+  bpmnProcessId: "order-fulfillment",
+  version: 3,
+  name: "Order fulfillment",
+} as const
 
 interface IncidentSeed {
   readonly id: string
@@ -11,18 +17,25 @@ interface IncidentSeed {
   readonly minutes: number
 }
 
-function incident(engine: string, { id, elementId, message, minutes }: IncidentSeed) {
+function incident({ id, elementId, message, minutes }: IncidentSeed): IncidentData {
   return {
-    engine,
     id,
     instanceId: `${id}-instance`,
-    shortInstanceId: `${id.slice(0, 8)}…`,
-    processName: "Order fulfillment",
-    bpmnProcessId: "order-fulfillment",
+    definition: ORDER_FULFILLMENT,
     elementId,
+    type: "failedJob",
     message,
     createdAt: minutesBefore(minutes),
-  } satisfies BoardIncidentRow
+  }
+}
+
+function diagram(title: string, engine: string) {
+  return {
+    widget: "processDiagram",
+    title,
+    engines: [engine],
+    process: "order-fulfillment",
+  } as const
 }
 
 export const PROCESS_BOARD_VIEW: BoardView = {
@@ -52,52 +65,52 @@ export const PROCESS_BOARD_VIEW: BoardView = {
     [
       {
         kind: "processDiagram",
-        title: "Orders on local",
+        widget: diagram("Orders on local", "local"),
         engine: "local",
-        bpmnProcessId: "order-fulfillment",
-        diagram: {
-          processName: "Order fulfillment",
-          version: 3,
-          diagramXml: orderXml,
-          badges: [
-            {
-              elementId: "Activity_CheckCredit",
-              running: 4,
-              incidents: 0,
-              incidentsInCalledInstances: 0,
-            },
-            {
-              elementId: "Activity_ShipOrder",
-              running: 6,
-              incidents: 3,
-              incidentsInCalledInstances: 0,
-            },
-          ],
-        },
+        latest: ORDER_FULFILLMENT,
+        badges: [
+          {
+            elementId: "Activity_CheckCredit",
+            active: 4,
+            incidents: 0,
+            incidentsInCalledInstances: 0,
+          },
+          {
+            elementId: "Activity_ShipOrder",
+            active: 6,
+            incidents: 3,
+            incidentsInCalledInstances: 0,
+          },
+        ],
+        diagramXml: orderXml,
       },
       {
         kind: "processDiagram",
-        title: "Orders on shop-test",
+        widget: diagram("Orders on shop-test", "shop-test"),
         engine: "shop-test",
-        bpmnProcessId: "order-fulfillment",
         notDeployed: true,
       },
     ],
     [
       {
         kind: "incidentList",
-        title: "Open incidents of orders",
+        widget: {
+          widget: "incidentList",
+          title: "Open incidents of orders",
+          engines: ["local", "shop-test"],
+          process: "order-fulfillment",
+        },
         groups: [
           {
             engine: "local",
-            rows: [
-              incident("local", {
+            incidents: [
+              incident({
                 id: "4c1f0a2e-3c1d",
                 elementId: "Activity_ShipOrder",
                 message: "Carrier API answered 503",
                 minutes: 12,
               }),
-              incident("local", {
+              incident({
                 id: "5d2e1b3f-3c1d",
                 elementId: "Activity_ShipOrder",
                 message: "Carrier API answered 503",
@@ -106,10 +119,11 @@ export const PROCESS_BOARD_VIEW: BoardView = {
             ],
             more: true,
           },
-          { engine: "shop-test", rows: [], unavailable: true },
+          { engine: "shop-test" },
         ],
       },
     ],
   ],
   problems: [],
+  notes: [],
 }

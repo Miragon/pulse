@@ -30,7 +30,7 @@ describe("engineModule.configFromEnv names the variable a setting came from", ()
     ],
     [
       { ENGINE_AUTH_TYPE: "Basic" },
-      "ENGINE_AUTH_TYPE: auth.type must be one of none, basic, bearer, oauth, passthrough (the value is not shown).",
+      "ENGINE_AUTH_TYPE: auth.type must be one of none, basic, bearer, oauth, clientCredentials, passthrough (the value is not shown).",
     ],
     [{ ENGINE_INCIDENT_ISSUE_REPO: "acme" }, "ENGINE_INCIDENT_ISSUE_REPO: Expected `owner/repo`"],
     [

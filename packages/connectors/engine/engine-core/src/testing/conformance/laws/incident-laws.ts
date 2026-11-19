@@ -2,9 +2,11 @@ import { BpmnProcessId, ElementId, type DefinitionId } from "../../../model/ids.
 import type { Incident } from "../../../model/read-models.js"
 import { Ensure } from "../ensure.js"
 import { CASE, type ConformanceCase } from "../conformance-case.js"
+import { PageWalk } from "./page-walk.js"
 import { WORLD_ELEMENT, WORLD_PROCESS } from "../world/world.js"
 
 const PAGE = { limit: 50 } as const
+const ONE_PER_PAGE = 1
 
 const incidentsRootOnly: ConformanceCase = {
   name: CASE.incidentsRootOnly,
@@ -63,6 +65,15 @@ class IncidentChecks {
       `expected ${Ensure.describe(expected)}, got ${Ensure.describe(definition)}`,
     )
   }
+
+  static ensureNewestFirst(incidents: readonly Incident[], law: string, read: string): void {
+    const times = incidents.map((incident) => Date.parse(incident.createdAt))
+    Ensure.that(
+      times.every((at, index) => index === 0 || at <= (times[index - 1] ?? Number.NaN)),
+      law,
+      `${read} created ${Ensure.describe(incidents.map((incident) => incident.createdAt))}`,
+    )
+  }
 }
 
 const incidentsNameTheirVersion: ConformanceCase = {
@@ -88,6 +99,26 @@ const incidentsNameTheirVersion: ConformanceCase = {
     IncidentChecks.ensureNamesVersion(failed?.incidents[0], order, this.name)
     const caller = await harness.runtime.getInstanceDetail(instanceIds["DSP-3001"])
     IncidentChecks.ensureNamesVersion(caller?.incidents[0], label, this.name)
+  },
+}
+
+const incidentsNewestFirst: ConformanceCase = {
+  name: CASE.incidentsNewestFirst,
+  async run(harness) {
+    const first = (await harness.runtime.searchIncidents({}, PAGE)).items
+    const second = (await harness.runtime.searchIncidents({}, PAGE)).items
+    IncidentChecks.ensureNewestFirst(first, this.name, "a page of 50")
+    Ensure.that(
+      Ensure.describe(first.map((incident) => incident.id)) ===
+        Ensure.describe(second.map((incident) => incident.id)),
+      this.name,
+      "two reads returned another order",
+    )
+    const pages = await PageWalk.pages(
+      (page) => harness.runtime.searchIncidents({}, page),
+      ONE_PER_PAGE,
+    )
+    IncidentChecks.ensureNewestFirst(pages.flat(), this.name, "pages of one")
   },
 }
 
@@ -140,6 +171,7 @@ export const INCIDENT_LAWS: readonly ConformanceCase[] = [
   incidentsRootOnly,
   incidentsFiltered,
   incidentsNameTheirVersion,
+  incidentsNewestFirst,
   incidentDetailsComplete,
   incidentDetailsNameRootCause,
 ]

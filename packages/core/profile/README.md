@@ -45,9 +45,13 @@ npm install @miragon/pulse-profile
 
 A profile's name is how you select it, and on an MCP server the engine id. Its keys: `url` (the
 REST API root), `cockpitUrl` (the engine's web app, for links), `engine` (a named process engine),
-`flavor` (`camunda7`, `cibseven` or `operaton`, each mapped to the API dialect it speaks in
-`FLAVORS`), `environment`, `auth`, `output`, `timeout`, `headers` and `readOnly`. `auth.type` is
-`none`, `basic`, `bearer`, `oauth` or `passthrough` (an MCP server forwards its caller's token).
+`flavor` (`camunda7`, `cibseven` or `operaton` for the Camunda 7 REST API, `camunda8` for a Camunda 8
+cluster, each mapped to the API dialect it speaks in `FLAVORS`), `environment`, `auth`, `output`,
+`timeout`, `headers` and `readOnly`. `auth.type` is `none`, `basic`, `bearer`, `oauth` (a person's
+login), `clientCredentials` (the client's own token from `tokenEndpoint`, which it needs) or
+`passthrough` (an MCP server forwards its caller's token). Each dialect takes its own auth types
+(`DIALECT_AUTH_TYPES`): client credentials only on `camunda8`, an OAuth login and `passthrough`
+only on the Camunda 7 flavors. A reader still decides which dialects it serves (`refusalsOn`).
 
 Where a file comes from decides what it may hold of credentials, the `credentials` policy you
 parse it under:
@@ -94,10 +98,11 @@ for (const verdict of file.profiles) {
 - **Readers:** `Surface` states what a reader serves; `refusalsOn(profile, surface)` lists what it
   cannot (a dialect, an auth type, a missing `url`, a named process engine, a key such as
   `headers`), so a key is applied or refuses the profile, never ignored. `dialectOf` and
-  `authTypeOf` give what a profile uses.
+  `authTypeOf` give what a profile uses, `flavorsOf` the flavors of a dialect.
 - **Rules a reader applies elsewhere too:** `urlProblem`, `normalizeUrl` and
-  `normalizeCockpitUrl` for a URL from a flag or a variable, `isLoopbackHost` and
-  `credentialsInClearText` (a credential over plain http beyond the local machine),
+  `normalizeCockpitUrl` for a URL from a flag or a variable, `tokenEndpointUrlProblem` for the
+  token endpoint of the client credentials grant (a query, but no credentials and no fragment),
+  `isLoopbackHost` and `credentialsInClearText` (a credential over plain http beyond the local machine),
   `isHeaderName`, `isHeaderValue`, `isSecretHeader`, the value rules `isUsername`, `isEngineName`,
   `isTimeout`, `isScopeList` and `isRedirectPort` (for a value a flag or a variable sets instead),
   `isConventionalVariable` (a variable name a message may show), `jsonErrorPosition`.
@@ -117,6 +122,12 @@ that names no profile) only the parser refuses.
 case with its verdict under every policy and whether the schema takes it, and `outcomeOf`, the
 form a reader's test compares a `ProfileFile` in. A reader runs the fixtures through its own path
 and keeps what it makes of each verdict next to its tests.
+
+`CLI_CONFIG_LOCATIONS` holds where the CLI's user config lives: per case the environment
+(`PULSE_CLI_CONFIG`, `XDG_CONFIG_HOME`, `APPDATA`), the home folder and the platform in, the path
+and whether `PULSE_CLI_CONFIG` named it out. Finding the file needs `node:path`, which this package
+never imports, so the rule stays with each reader (the CLI's config layer, the editor hosts' host
+kit), and each runs the table in its tests.
 
 ## Mutation testing
 

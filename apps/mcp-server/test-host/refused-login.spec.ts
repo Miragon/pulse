@@ -14,8 +14,8 @@ import {
  * rejected" and "access denied" (describeError's 401 and 403 in short) with a key, never
  * "unreachable" with an unplugged cable, the cross-engine view counts them apart from the
  * unreachable ones in a refused profile's tone and never says they did not answer, and the
- * overview names the status. The view's client retries a 401 or 403 like any read (1 + 2 + 4 s),
- * so the rows word it after that.
+ * overview names the status once, its verdict's state standing for its definitions. The view's
+ * client retries a 401 or 403 like any read (1 + 2 + 4 s), so the rows word it after that.
  */
 
 /** A 401 or 403 is retried three times before the row has its words. */
@@ -35,6 +35,14 @@ async function openCockpit(page: Page, locale = "en-US"): Promise<FrameLocator> 
   })
   await page.goto(`${base}/?${query.toString()}`)
   return page.frameLocator("#app")
+}
+
+/** `title` shown as the view's one state, with one Try again, after both feeds settled. */
+async function saidOnce(page: Page, app: FrameLocator, title: string): Promise<void> {
+  await expect(app.getByText(title)).toBeVisible({ timeout: RETRIED_MS })
+  await page.waitForTimeout(1_000)
+  await expect(app.getByText(title)).toHaveCount(1)
+  await expect(app.getByRole("button", { name: "Try again" })).toHaveCount(1)
 }
 
 /** An engine's row on the landing: its name leads the button's accessible name. */
@@ -98,21 +106,20 @@ test.describe("landing with an engine that refuses the server's login", () => {
     await expect(landscape.getByText(/answer/)).toHaveCount(0)
   })
 
-  test("opening it names the status the row words", async ({ page }) => {
+  // The overview's verdict and its definitions both fail: its one state says it, once.
+  test("opening it names the status the row words, once", async ({ page }) => {
     const app = await openCockpit(page)
     await rowOf(app, LOGIN_REFUSED_ENGINE).click({ timeout: 15_000 })
-    await expect(
-      app
-        .getByText(`Engine ${LOGIN_REFUSED_ENGINE} rejected the server's credentials (HTTP 401)`)
-        .first(),
-    ).toBeVisible({ timeout: RETRIED_MS })
+    await saidOnce(
+      page,
+      app,
+      `Engine ${LOGIN_REFUSED_ENGINE} rejected the server's credentials (HTTP 401)`,
+    )
   })
 
-  test("opening the engine that answers 403 names the denied access", async ({ page }) => {
+  test("opening the engine that answers 403 names the denied access, once", async ({ page }) => {
     const app = await openCockpit(page)
     await rowOf(app, ACCESS_DENIED_ENGINE).click({ timeout: 15_000 })
-    await expect(
-      app.getByText(`Engine ${ACCESS_DENIED_ENGINE} denied access (HTTP 403)`).first(),
-    ).toBeVisible({ timeout: RETRIED_MS })
+    await saidOnce(page, app, `Engine ${ACCESS_DENIED_ENGINE} denied access (HTTP 403)`)
   })
 })

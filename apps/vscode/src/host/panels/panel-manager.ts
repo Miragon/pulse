@@ -1,4 +1,4 @@
-import type { BpmnProcessId, InstanceId } from "@miragon/pulse-engine-core"
+import type { InstanceId } from "@miragon/pulse-engine-core"
 import type { BackLink } from "@miragon/pulse-runtime-view/protocol"
 import {
   DefinitionPanel,
@@ -16,15 +16,11 @@ import * as vscode from "vscode"
 import { type Connection, PanelOrigins, PanelTitle } from "@miragon/pulse-runtime-view/host-kit"
 import { EngineBulkRuns } from "../connections/engine-bulk-runs.js"
 import type { LiveWiring } from "../live/live-wiring.js"
+import { ActivePanelFocus, type PanelFocus } from "./active-panel-focus.js"
 import { OpenPanel, THEMES, type SessionFactory } from "./open-panel.js"
 import { VsCodePanelEffects, type PanelHost, type PanelNavigator } from "./vscode-panel-effects.js"
 
 const VIEW_TYPE = "pulse.panel"
-
-export interface PanelFocus {
-  readonly engineName: string
-  readonly bpmnProcessId?: BpmnProcessId
-}
 
 interface Placement {
   readonly key: string
@@ -42,9 +38,9 @@ export class PanelManager implements vscode.Disposable {
   private readonly models: OpenPanels<DefinitionPanel> = new Map()
   private readonly migrations: OpenPanels<MigrationPanel> = new Map()
   private readonly origins = new PanelOrigins((key) => this.openPanel(key) !== undefined)
-  private readonly activated = new vscode.EventEmitter<PanelFocus>()
+  private readonly focus = new ActivePanelFocus()
   private readonly bulkRuns = new EngineBulkRuns()
-  readonly onDidActivate = this.activated.event
+  readonly onDidActivate = this.focus.onDidActivate
   private readonly subscription: vscode.Disposable
 
   constructor(
@@ -161,7 +157,7 @@ export class PanelManager implements vscode.Disposable {
 
   dispose(): void {
     this.subscription.dispose()
-    this.activated.dispose()
+    this.focus.dispose()
     for (const open of this.all()) {
       open.panel.dispose()
     }
@@ -239,7 +235,7 @@ export class PanelManager implements vscode.Disposable {
       live: this.live,
       bulkRunsFor: (connection) => this.bulkRuns.of(connection.target),
     })
-    const activation = this.reportActivation(panel, placement.focus)
+    const activation = this.focus.track(panel, placement.focus)
     panel.onDidDispose(() => {
       panels.delete(placement.key)
       this.origins.forget(placement.key)
@@ -247,21 +243,6 @@ export class PanelManager implements vscode.Disposable {
       open.dispose()
     })
     panels.set(placement.key, open)
-  }
-
-  private reportActivation(
-    panel: vscode.WebviewPanel,
-    focus: PanelFocus | undefined,
-  ): vscode.Disposable {
-    if (focus === undefined) {
-      return new vscode.Disposable(() => undefined)
-    }
-    this.activated.fire(focus)
-    return panel.onDidChangeViewState((event) => {
-      if (event.webviewPanel.active) {
-        this.activated.fire(focus)
-      }
-    })
   }
 
   private distUri(): vscode.Uri {

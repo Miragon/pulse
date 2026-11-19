@@ -16,6 +16,9 @@ import {
   stubOAuth,
 } from "./composed-server.test-support.js"
 import { METHOD_REFUSED } from "./http-edge.js"
+import { startFakeOidc } from "./testing/oidc/index.js"
+import { STYLESHEET } from "./web/build.test-support.js"
+import { webEnv } from "./web/sign-in.test-support.js"
 
 /**
  * A method the SDK's bridge cannot build a `Request` of: the real listener, on real sockets, since
@@ -104,6 +107,58 @@ describe("the listener: a method no Request can carry", () => {
       expect(own.status).toBe(405)
       const { head } = await rawRequest(port, { ...TRACE, target })
       expect(allowOf(head)).toBe(allowOf(own.head))
+    }
+  })
+
+  // The web app's routes are hono patterns of their own methods: a POST route names POST alone,
+  // a page its pattern of the build's pages.json, an asset the assets folder's.
+  it.each([
+    ["/app/auth/login", "GET, HEAD"],
+    ["/app/auth/callback", "GET, HEAD"],
+    ["/app/auth/logout", "POST"],
+    ["/app/api/session", "GET, HEAD"],
+    ["/app/auth", ""],
+    ["/app/x", ""],
+    ["/app", "GET, HEAD"],
+    ["/app/boards/x", "GET, HEAD"],
+    ["/app/boards", ""],
+    ["/app/signed-out", "GET, HEAD"],
+    [STYLESHEET, "GET, HEAD"],
+    ["/app/assets/missing.js", "GET, HEAD"],
+    ["/app/assets", "GET, HEAD"],
+  ])("refuses TRACE %s with 405 and the Allow of the web app's route", async (target, allow) => {
+    const fake = await startFakeOidc()
+    try {
+      const { port } = await boot({ env: webEnv(fake) })
+      const { status, head } = await rawRequest(port, { ...TRACE, target })
+      expect(status).toBe(405)
+      expect(allowOf(head)).toBe(allow)
+    } finally {
+      await fake.close()
+    }
+  })
+
+  it("answers on the web app's routes every method their Allow names", async () => {
+    const fake = await startFakeOidc()
+    try {
+      const { port } = await boot({ env: webEnv(fake) })
+      const origin = { Origin: "http://localhost" }
+      const gets = ["/app/auth/login", "/app/auth/callback", "/app/api/session"]
+      const pages = ["/app", "/app/boards/x", "/app/signed-out", STYLESHEET]
+      for (const target of [...gets, ...pages]) {
+        for (const method of ["GET", "HEAD"]) {
+          expect([404, 405], `${method} ${target}`).not.toContain(
+            (await rawRequest(port, { method, target })).status,
+          )
+        }
+      }
+      const logout = { method: "POST", target: "/app/auth/logout", headers: origin }
+      expect((await rawRequest(port, { ...logout, body: { length: 0, sent: "" } })).status).toBe(
+        401,
+      )
+      expect((await rawRequest(port, { target: "/app/auth/logout" })).status).toBe(404)
+    } finally {
+      await fake.close()
     }
   })
 

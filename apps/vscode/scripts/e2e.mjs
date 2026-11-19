@@ -4,6 +4,8 @@ import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { downloadAndUnzipVSCode } from "@vscode/test-electron"
 import { _electron as electron } from "playwright"
+import { isolatedConfigHome } from "./support/config-home.mjs"
+import { part } from "./support/webview-parts.mjs"
 
 const EXTENSION = resolve(".")
 const WORKSPACE = resolve("dev/host/workspace")
@@ -92,9 +94,9 @@ const STEPS = [
     async (window) => {
       await window.getByRole("treeitem", { name: /^Order fulfillment, / }).click()
       const frame = await panelFrame(window)
-      await frame.locator(".context-bar", { hasText: "As of" }).waitFor({ timeout: 30_000 })
+      await frame.locator(part("context-bar"), { hasText: "As of" }).waitFor({ timeout: 30_000 })
       await frame
-        .locator(".djs-overlay-pulse-badges .count-badge")
+        .locator('.djs-overlay-pulse-badges [data-part="count-badge"]')
         .first()
         .waitFor({ timeout: 30_000 })
       await shot(window, "02-definition-panel")
@@ -139,12 +141,21 @@ const STEPS = [
       await window.keyboard.type("Pulse: Go to Process Instance")
       await window.keyboard.press("Enter")
       const input = window.locator(".quick-input-widget input")
+      await window.waitForFunction(
+        () =>
+          !globalThis.document.querySelector(".quick-input-widget input")?.value.startsWith(">"),
+        undefined,
+        { timeout: 10_000 },
+      )
       await input.fill("DSP-3002")
+      await window.waitForTimeout(300)
       await input.press("Enter")
       await (
         await panelFrame(window)
       )
-        .locator(".incident-card dt", { hasText: "Located in" })
+        .locator('[data-part="incident-card"]')
+        .getByRole("term")
+        .filter({ hasText: "Located in" })
         .first()
         .waitFor({ timeout: 30_000 })
       await shot(window, "05-called-instance-incident")
@@ -206,7 +217,12 @@ const STEPS = [
   [
     "a click on an engine opens its overview, a row the process, selected in the tree",
     async (window) => {
+      await window.locator(".statusbar").click({ position: { x: 800, y: 8 } })
+      await runCommand(window, "View: Close All Editors")
       await window.locator('.activitybar [aria-label^="Pulse"]').first().click({ force: true })
+      await window
+        .getByRole("treeitem", { name: /^Order fulfillment, / })
+        .waitFor({ timeout: 30_000 })
       await window.getByRole("treeitem", { name: /^local-operaton, / }).click()
       await window
         .locator(".tab.active", { hasText: "local-operaton · Processes" })
@@ -222,7 +238,7 @@ const STEPS = [
         .waitFor({ timeout: 30_000 })
       await window
         .getByRole("treeitem", { name: /^Order fulfillment, /, selected: true })
-        .waitFor({ timeout: 10_000 })
+        .waitFor({ timeout: 30_000 })
     },
   ],
   [
@@ -235,7 +251,7 @@ const STEPS = [
         .locator(".tab.active", { hasText: "Order fulfillment · local-operaton" })
         .waitFor({ timeout: 30_000 })
       const definition = await panelFrame(window)
-      const picker = definition.locator("select.version-picker__select")
+      const picker = definition.getByRole("combobox", { name: "Version" })
       const v1 = await picker.locator("option", { hasText: /^v1 / }).getAttribute("value")
       await picker.selectOption(v1)
       await definition.getByRole("row", { name: /ORD-1001/ }).waitFor({ timeout: 30_000 })
@@ -257,6 +273,7 @@ const STEPS = [
 async function launch(userData) {
   return electron.launch({
     executablePath: await vscodeExecutable(),
+    env: { ...process.env, ...isolatedConfigHome() },
     args: [
       WORKSPACE,
       `--extensionDevelopmentPath=${EXTENSION}`,
@@ -267,6 +284,7 @@ async function launch(userData) {
       "--skip-release-notes",
       "--disable-telemetry",
       "--new-window",
+      "--force-disable-user-env",
       ...(process.env.PULSE_VSCODE_NO_SANDBOX === "1" ? ["--no-sandbox"] : []),
     ],
   })

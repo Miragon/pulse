@@ -127,6 +127,22 @@ function targetRefusal(req: IncomingMessage): Refusal | undefined {
   return isUsableHost(req.headers.host) ? undefined : BAD_HOST
 }
 
+/**
+ * The bridge writes a `Response`'s headers as one object, so of several `Set-Cookie` fields (the web
+ * sign-in's callback sets the session's chunks and clears its login cookie in one answer) only the
+ * last would reach the browser. Such an answer's cookies go onto the Node response as a list, each
+ * its own field, and the bridge writes the rest.
+ */
+function withCookieList(res: ServerResponse, response: Response): Response {
+  const cookies = response.headers.getSetCookie()
+  if (cookies.length < 2) return response
+  res.setHeader("set-cookie", cookies)
+  const headers = new Headers(response.headers)
+  headers.delete("set-cookie")
+  const { status, statusText } = response
+  return new Response(response.body, { status, statusText, headers })
+}
+
 function refuse(
   req: IncomingMessage,
   res: ServerResponse,
@@ -161,10 +177,16 @@ export function createBodyLimitedListener(
     onError,
   }: BodyLimitedListenerOptions,
 ): BodyLimitedListener {
-  const bridge = toNodeHandler(
-    { fetch: (request) => target.fetch(request) },
-    { maxRequestBodySize: maxBodyBytes, ...(onError ? { onerror: onError } : {}) },
-  )
+  const bridgeOptions = {
+    maxRequestBodySize: maxBodyBytes,
+    ...(onError ? { onerror: onError } : {}),
+  }
+  // One bridge per request, so its answer's cookies reach that request's Node response.
+  const bridge = (req: NodeIncomingMessageLike, res: ServerResponse): Promise<void> =>
+    toNodeHandler(
+      { fetch: async (request) => withCookieList(res, await target.fetch(request)) },
+      bridgeOptions,
+    )(req, res)
   const tooLarge: Refusal = {
     status: 413,
     message: `Payload too large: the request body exceeds ${maxBodyBytes} bytes (MCP_MAX_BODY_BYTES).`,

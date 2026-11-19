@@ -6,6 +6,8 @@ import { captureTools } from "./test-support/fake-engine.js"
 import type { EngineEntry } from "../engine-provider.js"
 import { createEngineRegistry, type EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { ENGINE_LIST_ENGINES } from "../tool-names.js"
+import type { BoardFiles } from "../board-files.js"
+import { worldBoard } from "../data/honest-numbers.test-support.js"
 
 const ENGINES = [
   { id: "alpha", baseUrl: "http://alpha/engine-rest", cockpitUrl: "http://alpha/cockpit" },
@@ -18,12 +20,12 @@ type Handler = (
 ) => Promise<Record<string, unknown>>
 
 /** Toolset mechanics are `lib/mcp/toolsets.test.ts`'s; this pins the handler contract. */
-function harness(engines: EngineEntry[] = ENGINES, defaultEngineId?: string) {
+function harness(engines: EngineEntry[] = ENGINES, defaultEngineId?: string, boards?: BoardFiles) {
   const registry = createEngineRegistry(engines, (e) => ({ __engine: e.id }) as unknown as Client, {
     defaultEngineId,
   })
   const configs = captureTools((register) =>
-    registerEngineTools(register, DEFAULT_VERDICT_THRESHOLDS),
+    registerEngineTools(register, DEFAULT_VERDICT_THRESHOLDS, boards),
   )
   const handlerOf = (name: string) => {
     const config = configs.get(name)
@@ -46,7 +48,8 @@ describe("the engine tool", () => {
     expect(config.inputSchema).toEqual({})
     expect(config.description).toBe(
       "List the configured engines, grouped by environment (`environments` maps each " +
-        "to its engine ids), plus the default engine (`defaultEngineId`, null when none).",
+        "to its engine ids), plus the default engine (`defaultEngineId`, null when none) and the " +
+        "server's boards, if it has any (`boards`).",
     )
   })
 })
@@ -108,5 +111,31 @@ describe("engine_list_engines", () => {
       { id: "prod-eu", engineIds: ["eu-a", "eu-b"] },
       { id: "prod-us", engineIds: ["us-a"] },
     ])
+  })
+})
+
+describe("engine_list_engines with ENGINE_BOARDS_DIR", () => {
+  const PROBLEM = { path: "$.rows", code: "missing" } as const
+
+  it("names each board by its id, title and engines, a refused file by its problem count", async () => {
+    const boards: BoardFiles = {
+      boards: [worldBoard()],
+      refused: [{ id: "broken", file: "broken.board.json", problems: [PROBLEM, PROBLEM] }],
+    }
+    const result = await harness(ENGINES, undefined, boards).list()
+    expect(result.boards).toEqual([{ id: "orders", title: "Orders", engines: ["fake"] }])
+    expect(result.refusedBoards).toEqual([{ id: "broken", problems: 2 }])
+  })
+
+  it("lists no refused board while every file gives one", async () => {
+    const result = await harness(ENGINES, undefined, { boards: [], refused: [] }).list()
+    expect(result.boards).toEqual([])
+    expect(result).not.toHaveProperty("refusedBoards")
+  })
+
+  it("without it, the result names no board", async () => {
+    const result = await harness().list()
+    expect(result).not.toHaveProperty("boards")
+    expect(result).not.toHaveProperty("refusedBoards")
   })
 })

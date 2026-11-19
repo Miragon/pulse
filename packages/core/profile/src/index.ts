@@ -14,10 +14,12 @@ export {
   type AuthType,
   BASIC_AUTH_KEYS,
   BEARER_AUTH_KEYS,
+  CLIENT_CREDENTIALS_AUTH_KEYS,
   CREDENTIAL_POLICIES,
   type CredentialPolicy,
   DEFAULT_FLAVOR,
   type Dialect,
+  DIALECT_AUTH_TYPES,
   type Flavor,
   FLAVORS,
   OAUTH_AUTH_KEYS,
@@ -38,13 +40,15 @@ export {
   VARIABLE_KEYS,
 } from "./types.js"
 export { defaultProfileOf, type ParseOptions, parseProfileFile } from "./parse.js"
-export { authTypeOf, dialectOf, refusalsOn, type Surface } from "./surface.js"
+export { authTypeOf, dialectOf, flavorsOf, refusalsOn, type Surface } from "./surface.js"
 export { describeProblem } from "./describe.js"
 export {
   credentialsInClearText,
   isLoopbackHost,
   normalizeCockpitUrl,
   normalizeUrl,
+  tokenEndpointUrlProblem,
+  type TokenEndpointUrlProblemCode,
   urlProblem,
   type UrlProblemCode,
 } from "./url.js"

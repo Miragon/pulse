@@ -19,20 +19,41 @@ export interface KitLabels {
   idCopied: string
   copyFailed: string
   copyFailedHint: string
+  /** A row's copy (Ctrl or Cmd with C, `ListRow`) of what is no id, by its name ("Incident message"). */
+  copiedOf: (label: string) => string
+  copyFailedOf: (label: string) => string
+  /**
+   * A row's copy that failed: where to copy it by hand. A row shows its id short, so the hint sends
+   * the reader to the view the row opens, which shows it whole.
+   */
+  rowCopyFailedHint: string
+  /** A hand-off where the host posts to no chat: its prompt, copied for a chat of the user's own. */
+  copyPrompt: (handOff: string) => string
+  promptCopied: string
+  promptCopyFailed: string
+  promptCopyFailedHint: string
   fullId: string
   working: string
   rowsShown: (p: { shown: string; total: string }) => string
   showAll: string
   showMore: string
-  /** The view frame (`ViewFrame`): its waiting, cancel, error and toolbar words. */
+  /**
+   * The view frame (`ViewFrame`): its waiting, cancel, error and toolbar words. `slowHint` and
+   * `viewMissing` say to ask in the chat; a page that posts to no chat shows `pageSlowHint` and
+   * `pageViewMissing`, which say to reload it. `cancelled` is a chat's alone: a page cancels no call.
+   */
   slowHint: string
+  pageSlowHint: string
   cancelled: string
   viewErrorTitle: string
   viewMissing: string
+  pageViewMissing: string
   viewCrashed: string
   enterFullscreen: string
   exitFullscreen: string
   reloadedAt: (time: string) => string
+  /** The link of a page's refused start to its start page (`ViewHost.startPage`). */
+  toStartPage: string
 }
 
 const LABELS: Record<Locale, KitLabels> = {
@@ -65,19 +86,30 @@ const LABELS: Record<Locale, KitLabels> = {
     idCopied: "ID copied",
     copyFailed: "Couldn't copy the ID",
     copyFailedHint: "The full ID is now selected. Copy it yourself.",
+    copiedOf: (label) => `${label} copied`,
+    copyFailedOf: (label) => `${label} not copied`,
+    rowCopyFailedHint: "Open the row and copy it from its view.",
+    copyPrompt: (handOff) => `Copy prompt: ${handOff}`,
+    promptCopied: "Prompt copied. Paste it into your chat.",
+    promptCopyFailed: "Couldn't copy the prompt",
+    promptCopyFailedHint:
+      "This page can't write to the clipboard. Allow it in your browser and try again.",
     fullId: "Full ID",
     working: "Working…",
     rowsShown: ({ shown, total }) => `${shown} of ${total} shown`,
     showAll: "Show all",
     showMore: "Show more",
     slowHint: "This is taking longer than usual. If nothing happens, ask in the chat again.",
+    pageSlowHint: "This is taking longer than usual. If nothing happens, reload the page.",
     cancelled: "Cancelled. Ask in the chat to open this view again.",
     viewErrorTitle: "This view couldn't be loaded",
     viewMissing: "This app can't show this view. Ask in the chat to open it again.",
+    pageViewMissing: "This page can't show this view. Reload the page to open it again.",
     viewCrashed: "This element couldn't be displayed.",
     enterFullscreen: "Fullscreen",
     exitFullscreen: "Exit fullscreen",
     reloadedAt: (time) => `Reloaded at ${time}`,
+    toStartPage: "Go to the start page",
   },
   de: {
     loadingView: "Ansicht wird geladen…",
@@ -108,19 +140,31 @@ const LABELS: Record<Locale, KitLabels> = {
     idCopied: "ID kopiert",
     copyFailed: "Die ID ließ sich nicht kopieren",
     copyFailedHint: "Die ganze ID ist jetzt markiert. Kopier sie selbst.",
+    copiedOf: (label) => `${label} kopiert`,
+    copyFailedOf: (label) => `${label} nicht kopiert`,
+    rowCopyFailedHint: "Öffne die Zeile und kopier sie aus ihrer Ansicht.",
+    copyPrompt: (handOff) => `Prompt kopieren: ${handOff}`,
+    promptCopied: "Prompt kopiert. Füg ihn in deinen Chat ein.",
+    promptCopyFailed: "Der Prompt ließ sich nicht kopieren",
+    promptCopyFailedHint:
+      "Die Seite darf nicht in die Zwischenablage schreiben. Erlaub es im Browser und versuch es noch mal.",
     fullId: "Ganze ID",
     working: "Wird ausgeführt…",
     rowsShown: ({ shown, total }) => `${shown} von ${total} angezeigt`,
     showAll: "Alle anzeigen",
     showMore: "Mehr anzeigen",
     slowHint: "Das dauert länger als üblich. Wenn nichts passiert, frag im Chat noch mal nach.",
+    pageSlowHint: "Das dauert länger als üblich. Wenn nichts passiert, lade die Seite neu.",
     cancelled: "Abgebrochen. Frag im Chat noch mal nach dieser Ansicht.",
     viewErrorTitle: "Die Ansicht konnte nicht geladen werden",
     viewMissing: "Diese App kann die Ansicht nicht anzeigen. Frag im Chat noch mal nach ihr.",
+    pageViewMissing:
+      "Diese Seite kann die Ansicht nicht anzeigen. Lade die Seite neu, um sie noch mal zu öffnen.",
     viewCrashed: "Dieses Element konnte nicht angezeigt werden.",
     enterFullscreen: "Vollbild",
     exitFullscreen: "Vollbild verlassen",
     reloadedAt: (time) => `Neu geladen um ${time} Uhr`,
+    toStartPage: "Zur Startseite",
   },
 }
 

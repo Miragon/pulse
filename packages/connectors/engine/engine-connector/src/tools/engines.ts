@@ -1,5 +1,7 @@
 import { engineStatusInput } from "../schemas/index.js"
-import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
+import type { BoardFiles } from "../board-files.js"
+import type { EngineToolRegistrar } from "../lib/engine/served-engines.js"
+import { landingDataOf } from "../data/landing-data.js"
 import { engineStatusForModel } from "../lib/core-adapter/composites.js"
 import type { VerdictThresholds } from "@miragon/pulse-c7-core"
 import type { EngineRegistry, RefusedProfile } from "../lib/engine/resolve-engine.js"
@@ -7,6 +9,7 @@ import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 import { environmentOf, groupEnginesByEnvironment } from "../lib/shared/environments.js"
 import { providerForEntry } from "../providers/index.js"
 import { ENGINE_LIST_ENGINES } from "../tool-names.js"
+import { EVERY_DIALECT } from "../view-models.dialects.js"
 
 /** A refused profile as the model reads it: its id, its environment and why, never a value. */
 function refusedEntry({ id, environment, reason }: RefusedProfile) {
@@ -14,20 +17,27 @@ function refusedEntry({ id, environment, reason }: RefusedProfile) {
 }
 
 /**
- * Reads: the engine list (so even a read-only multi-engine deployment can route) and the triage,
- * judged by the thresholds the cockpit's overview uses.
+ * Reads: the engine list (so even a read-only multi-engine deployment can route, and with
+ * ENGINE_BOARDS_DIR the boards) and the triage, judged by the thresholds the cockpit's overview
+ * uses.
  */
 export function registerEngineTools(
-  register: ToolRegistrar<EngineRegistry>,
+  register: EngineToolRegistrar,
   thresholds: VerdictThresholds,
+  boards?: BoardFiles,
 ): void {
   register({
     name: ENGINE_LIST_ENGINES,
     category: "engines",
     description:
       "List the configured engines, grouped by environment (`environments` maps each " +
-      "to its engine ids), plus the default engine (`defaultEngineId`, null when none).",
+      "to its engine ids), plus the default engine (`defaultEngineId`, null when none) and the " +
+      "server's boards, if it has any (`boards`).",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+    // It reads no engine and lists every one.
+    dialects: EVERY_DIALECT,
+    // The cockpit reads it too (the engines it offers).
+    forViews: true,
     inputSchema: {},
     handler: (reg: EngineRegistry) =>
       Promise.resolve({
@@ -37,6 +47,7 @@ export function registerEngineTools(
           return {
             id: e.id,
             environment: environmentOf(e),
+            dialect: provider.dialect,
             flavor: provider.flavor,
             engineName: provider.branding.displayName,
             ...(e.cockpitUrl ? { cockpitUrl: e.cockpitUrl } : {}),
@@ -49,6 +60,9 @@ export function registerEngineTools(
         defaultEngineId: reg.defaultEngineId ?? null,
         // Only when there is one: a call to it fails with ENGINE_PROFILE_REFUSED and this reason.
         ...(reg.refused.size > 0 ? { refused: [...reg.refused.values()].map(refusedEntry) } : {}),
+        // Only with ENGINE_BOARDS_DIR: engine_open_cockpit with view board opens one, and its
+        // landing lists the same (one builder).
+        ...landingDataOf(boards),
       }),
   })
 
@@ -57,6 +71,7 @@ export function registerEngineTools(
     category: "engines",
     description: "Triage of one engine: findings by severity, overall status and counts.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...engineStatusInput.shape, ...engineParamShape },
     handler: withEngine((client, args, { engineId }) =>
       engineStatusForModel(client, args, engineId, thresholds),

@@ -22,12 +22,12 @@ describe("the Pulse worker", () => {
 
     expect(list.projectFile).toBe(harness.projectFile)
     expect(list.problems).toEqual([])
-    expect(list.engines.map((row) => [row.name, row.active, row.writable, row.needsLogin])).toEqual(
-      [
-        ["shop-dev", true, true, false],
-        ["prod-eu", false, false, true],
-      ],
-    )
+    expect(
+      list.engines.map((row) => [row.name, row.active, row.writable, row.login?.secret]),
+    ).toEqual([
+      ["shop-dev", true, true, undefined],
+      ["prod-eu", false, false, "Password"],
+    ])
     expect(list.engines[0]?.definitions.length).toBeGreaterThan(0)
   })
 
@@ -74,7 +74,7 @@ describe("the Pulse worker", () => {
     expect(list.engines.map((row) => row.name)).toEqual(["local"])
   })
 
-  test("names a configured project file it cannot read", async () => {
+  test("names a configured project file that is missing", async () => {
     const harness = await WorkerHarness.empty()
     harness.orca.settings.set("projectFile", `${harness.root}/missing.json`)
     activate(harness.orca.api())
@@ -82,7 +82,7 @@ describe("the Pulse worker", () => {
     const list = (await harness.request("engines.list")) as EngineList
 
     expect(list.problems).toEqual([
-      { text: expect.stringContaining("Pulse can't read this file") as unknown, tone: "danger" },
+      { text: expect.stringContaining("which does not exist") as unknown, tone: "danger" },
     ])
   })
 
@@ -137,8 +137,8 @@ describe("the Pulse worker", () => {
 
     const answer = await harness.request("engines.setCredentials", {
       engine: "prod-eu",
-      username: "demo",
-      password: "secret",
+      identity: "demo",
+      secret: "secret",
     })
 
     expect(answer).toEqual({ ok: true })
@@ -153,8 +153,8 @@ describe("the Pulse worker", () => {
 
     const answer = await harness.request("engines.setCredentials", {
       engine: "gone",
-      username: "demo",
-      password: "secret",
+      identity: "demo",
+      secret: "secret",
     })
 
     expect(answer).toEqual({ ok: false })
@@ -170,8 +170,8 @@ describe("the Pulse worker", () => {
 
     const answer = await harness.request("engines.setCredentials", {
       engine: "prod-eu",
-      username: "demo",
-      password: "secret",
+      identity: "demo",
+      secret: "secret",
     })
 
     expect(answer).toEqual({ ok: false })

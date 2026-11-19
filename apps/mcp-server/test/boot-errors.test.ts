@@ -45,6 +45,51 @@ describe("the boot refuses a setting it cannot use, before it logs the toolsets"
       "ENGINE_BASE_URL: url must start with http:// or https://.",
     ],
     [
+      "the generic OpenID Connect provider without its issuer",
+      { MCP_URL: "http://localhost:8400", MCP_OAUTH_OIDC_AUDIENCE: "https://pulse.example/mcp" },
+      "OpenID Connect OAuth needs MCP_OAUTH_OIDC_ISSUER, which is unset while MCP_OAUTH_OIDC_AUDIENCE is set.",
+    ],
+    [
+      "the generic OpenID Connect provider with a caller claim another person may get later",
+      {
+        MCP_URL: "http://localhost:8400",
+        MCP_OAUTH_OIDC_ISSUER: "https://fs.example/adfs",
+        MCP_OAUTH_OIDC_SUBJECT_CLAIM: "upn",
+      },
+      'OpenID Connect OAuth (MCP_OAUTH_OIDC_ISSUER, MCP_OAUTH_OIDC_SUBJECT_CLAIM) is invalid: MCP_OAUTH_OIDC_SUBJECT_CLAIM "upn" names a claim whose value can change',
+    ],
+    [
+      "the generic OpenID Connect provider with an audience a client id can be, and no scope",
+      {
+        MCP_URL: "http://localhost:8400",
+        MCP_OAUTH_OIDC_ISSUER: "https://auth.example/application/o/pulse/",
+        MCP_OAUTH_OIDC_AUDIENCE: "pulse-client",
+      },
+      'MCP_OAUTH_OIDC_AUDIENCE names "pulse-client", which is no https URL',
+    ],
+    [
+      "Entra ID without the API registration's client id",
+      {
+        MCP_URL: "http://localhost:8400",
+        MCP_OAUTH_ENTRA_TENANT_ID: "4f1b6d0e-2c3a-4e5f-8a9b-0c1d2e3f4a5b",
+      },
+      "Entra ID OAuth needs MCP_OAUTH_ENTRA_TENANT_ID and MCP_OAUTH_ENTRA_API_CLIENT_ID, but MCP_OAUTH_ENTRA_API_CLIENT_ID is unset.",
+    ],
+    [
+      "Entra ID over every tenant, which Pulse does not serve",
+      {
+        MCP_URL: "http://localhost:8400",
+        MCP_OAUTH_ENTRA_TENANT_ID: "common",
+        MCP_OAUTH_ENTRA_API_CLIENT_ID: "7d2e9c41-6b3f-4a8e-9f10-2b3c4d5e6f70",
+      },
+      'Entra ID OAuth (MCP_OAUTH_ENTRA_TENANT_ID, MCP_OAUTH_ENTRA_API_CLIENT_ID) is invalid: MCP_OAUTH_ENTRA_TENANT_ID "common" signs in the accounts of every tenant, and Pulse serves one tenant',
+    ],
+    [
+      "the web sign-in's scopes without its client",
+      { MCP_WEB_SCOPES: "openid" },
+      "MCP_WEB_SCOPES is set, but MCP_WEB_CLIENT_ID is not, so the web app stays off.",
+    ],
+    [
       "an unknown module",
       { MCP_ACTIVE_MODULES: "engines:operations,analytic" },
       '[pulse] MCP_ACTIVE_MODULES names the unknown modules "engines", "analytic", so the server does not start without the modules it asks for. Known modules: engine.',
@@ -64,6 +109,25 @@ describe("the boot refuses a setting it cannot use, before it logs the toolsets"
     vi.spyOn(console, "warn").mockImplementation(() => {})
     stubNeutralEnv(env)
     await expect(boot()).rejects.toThrow(message)
+    expect(info).not.toHaveBeenCalled()
+  })
+
+  /** The image fills `web/` beside `dist/`; a checkout holds none. */
+  it("refuses the web app without its build, at the package's web folder by default", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {})
+    vi.spyOn(console, "warn").mockImplementation(() => {})
+    stubNeutralEnv({
+      MCP_URL: "http://localhost:8400",
+      MCP_OAUTH_KEYCLOAK_SERVER_URL: "http://localhost:8480",
+      MCP_OAUTH_KEYCLOAK_REALM: "miragon",
+      MCP_WEB_CLIENT_ID: "pulse-web",
+      MCP_WEB_CLIENT_SECRET: "change-me",
+      MCP_WEB_SESSION_KEYS: Buffer.alloc(32, 7).toString("base64url"),
+    })
+    const web = path.join(import.meta.dirname, "..", "web")
+    await expect(boot()).rejects.toThrow(
+      `MCP_WEB_CLIENT_ID is set, but ${web} holds no web build (no index.html and no pages.json): build the web app into it, or set MCP_WEB_DIR to the folder it was built into.`,
+    )
     expect(info).not.toHaveBeenCalled()
   })
 

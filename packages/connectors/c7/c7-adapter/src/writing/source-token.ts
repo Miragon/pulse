@@ -1,5 +1,5 @@
 import { RuntimeError } from "@miragon/pulse-engine-core"
-import type { ActivityInstanceView } from "../engine-rest/index.js"
+import type { ActivityInstanceRow } from "@miragon/pulse-c7-core/runtime"
 
 const MULTI_INSTANCE_BODY = "#multiInstanceBody"
 
@@ -9,7 +9,7 @@ export interface SourceTokenRef {
 }
 
 export class SourceToken {
-  static in(tree: ActivityInstanceView, elementId: string): SourceTokenRef {
+  static in(tree: ActivityInstanceRow, elementId: string): SourceTokenRef {
     const scopes = SourceToken.scopesOf(tree)
     if (scopes.some((scope) => scope.activityId === `${elementId}${MULTI_INSTANCE_BODY}`)) {
       throw new RuntimeError(
@@ -39,7 +39,7 @@ export class SourceToken {
     return token
   }
 
-  private static scopesOf(scope: ActivityInstanceView): ActivityInstanceView[] {
+  private static scopesOf(scope: ActivityInstanceRow): ActivityInstanceRow[] {
     return [scope, ...scope.childActivityInstances.flatMap((child) => SourceToken.scopesOf(child))]
   }
 }

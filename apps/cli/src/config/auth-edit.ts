@@ -8,7 +8,7 @@
  * (`settleAuthorization`).
  */
 
-import { compact } from "../util.js"
+import { compact, isRecord } from "../util.js"
 import { validateAuthType, validatePassword, validateUsername } from "./auth.js"
 import { hasBearerKeys } from "./bearer.js"
 import { type BearerChanges, changedBearerKeys, hasBearerOptions } from "./bearer-edit.js"
@@ -19,7 +19,11 @@ import { changedOAuthKeys, hasOAuthOptions, type OAuthChanges } from "./oauth-ed
 import {
   type AuthType,
   BASIC_AUTH_KEYS,
+  DEFAULT_FLAVOR,
+  DIALECT_AUTH_TYPES,
   PROFILE_AUTH_KEYS,
+  PROFILE_AUTH_TYPES,
+  PROFILE_FLAVORS,
   type Profile,
   type ProfileAuth,
 } from "./types.js"
@@ -70,8 +74,69 @@ function givenFamilies(changes: AuthChanges): Family[] {
 }
 
 /** True when any auth option (type, Basic auth, OAuth or bearer token) was given. */
-function hasAuthOptions(changes: AuthChanges): boolean {
+export function hasAuthOptions(changes: AuthChanges): boolean {
   return changes.auth !== undefined || givenFamilies(changes).length > 0
+}
+
+/** The auth type of Camunda 8's client credentials, which another Pulse client serves. */
+const CLIENT_CREDENTIALS = "clientCredentials" satisfies (typeof PROFILE_AUTH_TYPES)[number]
+
+/**
+ * Refuses to edit one auth setting of a profile that signs in with client credentials, which
+ * another Pulse client serves and the CLI does not: the CLI knows none of their rules and could
+ * not put a removed setting back. `config unset <profile> auth` still removes the whole object.
+ * The MCP server's passthrough holds no setting, so an auth option replaces it, and a type no
+ * client knows stays for an auth option to repair.
+ */
+export function checkAuthType(auth: unknown, name: string): void {
+  if (!isRecord(auth) || auth.type !== CLIENT_CREDENTIALS) return
+  throw configError(
+    `Profile "${name}" signs in with ${CLIENT_CREDENTIALS}, which the CLI does not edit`,
+    `Edit its auth in the file, or remove all its auth settings with \`pulse config unset ${name} auth\`.`,
+  )
+}
+
+type ProfileFlavor = keyof typeof PROFILE_FLAVORS
+type ProfileAuthType = (typeof PROFILE_AUTH_TYPES)[number]
+
+function isProfileFlavor(value: unknown): value is ProfileFlavor {
+  return typeof value === "string" && Object.hasOwn(PROFILE_FLAVORS, value)
+}
+
+function isProfileAuthType(value: unknown): value is ProfileAuthType {
+  return PROFILE_AUTH_TYPES.some((type) => type === value)
+}
+
+/** The flavor of a profile and the auth type it names, as the file holds them. */
+interface FlavorAuth {
+  readonly flavor: ProfileFlavor
+  readonly type: ProfileAuthType
+}
+
+/** The flavor and auth type of `profile` when the API of the flavor does not take the type. */
+function outsideDialect(profile: Profile | undefined): FlavorAuth | undefined {
+  const flavor: unknown = profile?.flavor ?? DEFAULT_FLAVOR
+  const auth: unknown = profile?.auth
+  const type = isRecord(auth) ? auth.type : undefined
+  if (!isProfileFlavor(flavor) || !isProfileAuthType(type)) return undefined
+  const taken: readonly ProfileAuthType[] = DIALECT_AUTH_TYPES[PROFILE_FLAVORS[flavor]]
+  return taken.includes(type) ? undefined : { flavor, type }
+}
+
+/**
+ * Refuses an edit that gives a profile an auth type the API of its flavor does not take (an OAuth
+ * login on camunda8, client credentials on a Camunda 7 flavor), which every Pulse client would
+ * refuse. A profile the file already holds that way stays editable, so an edit can repair it.
+ */
+export function checkDialect(before: Profile | undefined, after: Profile, name: string): void {
+  const outside = outsideDialect(after)
+  if (outside === undefined || outsideDialect(before) !== undefined) return
+  const { flavor, type } = outside
+  const taken = DIALECT_AUTH_TYPES[PROFILE_FLAVORS[flavor]]
+  throw configError(
+    `Profile "${name}" would sign in with ${type}, which its flavor ${flavor} does not take`,
+    `Flavor ${flavor} takes the auth types ${taken.join(", ")}: choose one of them with --auth, or remove all auth settings with \`pulse config unset ${name} auth\` first.`,
+  )
 }
 
 function secretOf(existing: ProfileAuth | undefined, changes: AuthChanges): Secret {

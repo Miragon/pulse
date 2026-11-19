@@ -1,7 +1,8 @@
 /**
  * The auth object of a profile: the shape of each key, what the credential policy lets a file
- * hold, and the rules between the keys (one kind of credentials, a type that fits them, one source
- * per secret, both OAuth endpoints or neither). Never reads a value into a problem.
+ * hold, and the rules between the keys (one kind of credentials, a type that fits them and the
+ * profile's dialect, one source per secret, both OAuth endpoints or neither, a token endpoint for
+ * client credentials). Never reads a value into a problem.
  */
 
 import { keyed } from "./keys.js"
@@ -14,7 +15,10 @@ import {
   type AuthType,
   BASIC_AUTH_KEYS,
   BEARER_AUTH_KEYS,
+  CLIENT_CREDENTIALS_AUTH_KEYS,
   type CredentialPolicy,
+  type Dialect,
+  DIALECT_AUTH_TYPES,
   OAUTH_AUTH_KEYS,
   type Problem,
   type ProblemCode,
@@ -105,14 +109,19 @@ function present(auth: Readonly<Record<string, unknown>>, keys: readonly string[
 /** The types each kind of keys allows; undefined stands for no type. */
 const KIND_TYPES: readonly (readonly [readonly string[], readonly (AuthType | undefined)[]])[] = [
   [BASIC_AUTH_KEYS, ["basic", "none", undefined]],
-  [OAUTH_AUTH_KEYS, ["oauth", "none"]],
+  [OAUTH_AUTH_KEYS, ["oauth", "clientCredentials", "none"]],
   [BEARER_AUTH_KEYS, ["bearer", "none"]],
 ]
 
+const GRANT_KEYS: ReadonlySet<string> = new Set(CLIENT_CREDENTIALS_AUTH_KEYS)
+/** The OAuth keys of a person's login, which the client credentials grant never takes. */
+const LOGIN_KEYS = OAUTH_AUTH_KEYS.filter((key) => !GRANT_KEYS.has(key))
+
 /**
  * One kind of credentials per profile, and a type that fits it: OAuth and a stored token are
- * never implied, a username implies Basic auth, `none` switches stored settings off, and
- * `passthrough` takes no other key. An unknown type has its own problem.
+ * never implied, a username implies Basic auth, client credentials take no key of a login, `none`
+ * switches stored settings off, and `passthrough` takes no other key. An unknown type has its own
+ * problem.
  */
 function kindProblem(auth: Readonly<Record<string, unknown>>): Problem | undefined {
   const kinds = KIND_TYPES.filter(([keys]) => present(auth, keys).length > 0)
@@ -120,7 +129,25 @@ function kindProblem(auth: Readonly<Record<string, unknown>>): Problem | undefin
   const [kind] = kinds
   const { type } = auth
   if (kind === undefined || (type !== undefined && !isAuthType(type))) return undefined
-  return kind[1].includes(type) ? undefined : { code: "auth-type-mismatch", key: "auth.type" }
+  const login = type === "clientCredentials" && present(auth, LOGIN_KEYS).length > 0
+  return kind[1].includes(type) && !login
+    ? undefined
+    : { code: "auth-type-mismatch", key: "auth.type" }
+}
+
+/**
+ * A type the profile's dialect does not take (DIALECT_AUTH_TYPES). Only a type the file names:
+ * the implied ones (Basic auth, none) fit every dialect. `dialect` is undefined for a flavor the
+ * format does not know, which has its own problem.
+ */
+function dialectProblem(
+  auth: Readonly<Record<string, unknown>>,
+  dialect: Dialect | undefined,
+): Problem | undefined {
+  const { type } = auth
+  if (dialect === undefined || !isAuthType(type)) return undefined
+  const types: readonly AuthType[] = DIALECT_AUTH_TYPES[dialect]
+  return types.includes(type) ? undefined : { code: "auth-type-not-in-dialect", key: "auth.type" }
 }
 
 /** A secret and the variable that holds it, both set. */
@@ -139,6 +166,13 @@ function endpointProblem(auth: Readonly<Record<string, unknown>>): Problem | und
     : undefined
 }
 
+/** The client credentials grant asks the token endpoint the file names: no issuer discovers one. */
+function tokenEndpointProblem(auth: Readonly<Record<string, unknown>>): Problem | undefined {
+  return auth.type === "clientCredentials" && !Object.hasOwn(auth, "tokenEndpoint")
+    ? { code: "token-endpoint-missing", key: "auth.tokenEndpoint" }
+    : undefined
+}
+
 function keyProblems(auth: Readonly<Record<string, unknown>>, policy: CredentialPolicy) {
   return AUTH_KEYS.filter((key) => Object.hasOwn(auth, key)).flatMap((key): Problem[] => {
     const code = keyCode(key, auth[key], policy)
@@ -147,13 +181,15 @@ function keyProblems(auth: Readonly<Record<string, unknown>>, policy: Credential
 }
 
 /**
- * Why the auth object `auth` refuses its profile under `policy`. `members` are the object's keys
- * as the text lists them: the keys it repeats, and the unknown ones in the text's order.
+ * Why the auth object `auth` refuses its profile under `policy` in `dialect` (undefined for a
+ * flavor the format does not know). `members` are the object's keys as the text lists them: the
+ * keys it repeats, and the unknown ones in the text's order.
  */
 export function authProblems(
   auth: Readonly<Record<string, unknown>>,
   members: Members,
   policy: CredentialPolicy,
+  dialect: Dialect | undefined,
 ): Problem[] {
   const known: readonly string[] = AUTH_KEYS
   return [
@@ -162,8 +198,12 @@ export function authProblems(
       .filter(({ key }) => !known.includes(key))
       .map(({ key }) => keyed("unknown-key", "auth", key)),
     ...keyProblems(auth, policy),
-    ...[kindProblem(auth), ...twiceProblems(auth), endpointProblem(auth)].filter(
-      (problem) => problem !== undefined,
-    ),
+    ...[
+      kindProblem(auth),
+      dialectProblem(auth, dialect),
+      ...twiceProblems(auth),
+      endpointProblem(auth),
+      tokenEndpointProblem(auth),
+    ].filter((problem) => problem !== undefined),
   ]
 }

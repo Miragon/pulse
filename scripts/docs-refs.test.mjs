@@ -505,8 +505,22 @@ const DOCS_BUDGETS = {
   "mcp/build-your-own.md": 50,
   "mcp/developer.md": 80,
   "mcp/operations.md": 120,
+  // Each identity provider's side for /mcp and the web app, what a renewal catches, the MCP clients'
+  // registration, what the server cannot serve, what was checked and the real-tenant checklist.
+  "mcp/identity-providers.md": 270,
   "mcp/usage.md": 150,
+  // A board in the chat and the cockpit, the server's board files, a board shared with the editors.
+  "mcp/boards.md": 70,
+  // What the server reads of a Camunda 8 cluster and offers per engine, its profile and client,
+  // its failures and the server's legs of the conformance matrix.
+  "mcp/camunda8.md": 115,
   "mcp/reference.md": 160,
+  // The web app's pages (docs/web/): what it shows and for whom, the sign-in an operator sets up
+  // (variables, the provider's side, sessions and their check at the provider, a proxy, local),
+  // how it is built.
+  "web/index.md": 50,
+  "web/sign-in.md": 135,
+  "web/architecture.md": 102,
   // The CLI's pages (docs/cli/).
   "cli/index.md": 40,
   "cli/getting-started.md": 140,
@@ -529,13 +543,15 @@ const DOCS_BUDGETS = {
   // The VS Code extension's pages (docs/vscode/).
   "vscode/index.md": 50,
   "vscode/installation.md": 50,
-  "vscode/configuration.md": 80,
+  "vscode/configuration.md": 97,
+  // A cluster's profile and login, what differs and the conformance matrix, a row per leg.
+  "vscode/camunda8.md": 125,
   "vscode/usage.md": 80,
   "vscode/boards.md": 70,
-  "vscode/architecture.md": 50,
+  "vscode/architecture.md": 60,
   // Every difference between the MCP cockpit and the webview, a row each: it grows with a
   // feature built on one side and shrinks with one that closes a row.
-  "vscode/parity.md": 210,
+  "vscode/parity.md": 214,
   // The Orca plugin's pages (docs/orca/).
   "orca/index.md": 40,
   "orca/installation.md": 50,

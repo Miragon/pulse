@@ -1,12 +1,15 @@
 import {
   TableEmptyState,
-  FilterBar,
   PagedListFooter,
-  formatNumber,
-  type FilterChip,
+  SearchField,
+  SegmentedControl,
+  Toolbar,
+  WidgetHeader,
+  type SegmentedControlOption,
 } from "@miragon/pulse-ui"
 import {
   ListTable,
+  type ListTableColumn,
   PagedRows,
   QueryFallback,
   TableSkeleton,
@@ -25,10 +28,10 @@ import { useNav } from "../navigation.js"
 import { ENGINE_PROCESS_INSTANCES_DATA } from "../../tool-names.js"
 import { InstancesHeader } from "./list-header.js"
 import { InstanceRow } from "./instance-row.js"
-import { useHandOff } from "../lib/hand-off.js"
+import { useHandOff, useHandOffsShown } from "../lib/hand-off.js"
 import { describeInstancesView, type InstanceChip } from "./hand-offs.js"
 import { instanceName } from "../lib/write-feedback.js"
-import { useT } from "../../messages/use-t.js"
+import { useT, type T } from "../../messages/use-t.js"
 
 export type { ProcessInstancesData }
 
@@ -43,9 +46,9 @@ type InstancesFilterArgs = Partial<ProcessInstancesFilters> & {
 }
 
 /**
- * Server-side filters, so chips and search cover the whole result set, not the loaded page. The
- * route's engine and process scope every page, never the default engine. The feed maps `false`
- * onto its complement, so the Suspended chip sends `suspended: true` alone.
+ * Server-side filters, so the scope and the search cover the whole result set, not the loaded
+ * page. The route's engine and process scope every page, never the default engine. The feed maps
+ * `false` onto its complement, so the Suspended scope sends `suspended: true` alone.
  */
 function instancesFilterArgs(
   engine: string,
@@ -60,6 +63,30 @@ function instancesFilterArgs(
   return args
 }
 
+/** The list's columns: the version where it lists one process, else the process. */
+function instanceColumns(t: T, scoped: boolean, actions: boolean): ListTableColumn[] {
+  return [
+    // The instance whole while there is room; the process gives way first.
+    { label: t("processInstances.colBusinessKey"), fit: true },
+    // The state and an open incident on one line in one column, right after the ids as the
+    // webview has it, so a narrow chat that scrolls the table sideways still shows it.
+    { label: t("processInstances.colState") },
+    { label: scoped ? t("processInstances.colVersion") : t("processInstances.colProcess") },
+    // Pinned from 40rem up only, as in the incident tables: in a narrower region the actions
+    // scroll with the row, so they never cover the instance or its state. Only while a row of the
+    // page has one: the row itself opens the instance.
+    ...(actions
+      ? [
+          {
+            label: t("processInstances.colActions"),
+            align: "right" as const,
+            sticky: "sm" as const,
+          },
+        ]
+      : []),
+  ]
+}
+
 export function ProcessInstancesView({
   data: initialData = null,
   processDefinitionKey,
@@ -72,6 +99,7 @@ export function ProcessInstancesView({
   const t = useT()
   const go = useNav()
   const { context } = useHandOff()
+  const handOffs = useHandOffsShown()
   const [activeChip, setActiveChip] = useState<InstanceChip>(CHIP_ALL)
 
   const { paged, search, setSearch, interacted } = usePagedListView<
@@ -92,47 +120,82 @@ export function ProcessInstancesView({
   const data = paged.firstPage
 
   if (!data) {
+    // Loading or failed, the route keeps a title, the page's one heading: its process by key.
     return (
-      <QueryFallback
-        isError={!!paged.error}
-        error={paged.error}
-        errorTitle={t("processInstances.loadError")}
-        onRetry={paged.retry}
-        skeleton={<TableSkeleton />}
-      />
+      <WidgetShell
+        header={<WidgetHeader title={processDefinitionKey ?? t("processInstances.allTitle")} />}
+      >
+        <QueryFallback
+          isError={!!paged.error}
+          error={paged.error}
+          errorTitle={t("processInstances.loadError")}
+          onRetry={paged.retry}
+          skeleton={<TableSkeleton />}
+        />
+      </WidgetShell>
     )
   }
 
   const scopedKey = data.processDefinitionKey
   const title = data.processDefinitionName ?? scopedKey ?? t("processInstances.allTitle")
+  // A row's one further action is the hand-off of an instance with an open incident.
+  const actions = handOffs && paged.items.some((row) => row.hasIncident)
   // The echo of the page on screen, never the request: an in-flight or failed query still shows the previous result.
   const listFilters = data.filters
 
-  // Each chip counts what it lists on the page's scope and search, whichever chip is on: the
-  // payload on screen, never the request.
-  const chips: FilterChip[] = [
+  // Each segment counts what it lists on the page's scope and search, whichever is checked: the
+  // payload on screen, never the request. The count with an incident alarms by its icon, never
+  // by a coloured number (invariant 6); its label already says why, so a screen reader hears the
+  // label and the exact count, as the webview's segment reads ("With incident 54").
+  const scopes: SegmentedControlOption<InstanceChip>[] = [
+    { value: CHIP_ALL, label: t("processInstances.chipAll"), count: data.allCount },
     {
-      id: CHIP_ALL,
-      label: t("processInstances.chipAll"),
-      count: formatNumber(data.allCount),
-      active: activeChip === CHIP_ALL,
-    },
-    {
-      id: CHIP_INCIDENTS,
+      value: CHIP_INCIDENTS,
       label: t("processInstances.chipWithIncidents"),
-      count: formatNumber(data.withIncidentCount),
-      active: activeChip === CHIP_INCIDENTS,
+      count: data.withIncidentCount,
+      tone: data.withIncidentCount > 0 ? "danger" : undefined,
     },
     {
-      id: CHIP_SUSPENDED,
+      value: CHIP_SUSPENDED,
       label: t("processInstances.chipSuspended"),
-      count: formatNumber(data.suspendedCount),
-      active: activeChip === CHIP_SUSPENDED,
+      count: data.suspendedCount,
     },
   ]
 
   return (
-    <>
+    <WidgetShell
+      header={
+        <>
+          <InstancesHeader
+            title={title}
+            processName={data.processDefinitionName ?? null}
+            scopedKey={scopedKey}
+            total={paged.total}
+            engine={engine}
+            filters={listFilters}
+          />
+          {/* The list's filters under the view's bar, from edge to edge: the scope segments
+              first, then the search (the webview's filter bar). Busy while a scope's page
+              loads. */}
+          <Toolbar>
+            <SegmentedControl
+              ariaLabel={t("processInstances.scopeLabel")}
+              options={scopes}
+              value={activeChip}
+              onChange={setActiveChip}
+              busy={paged.refreshing}
+            />
+            <SearchField
+              value={search}
+              onChange={setSearch}
+              delayMs={0}
+              placeholder={t("processInstances.searchPlaceholder")}
+              aria-label={t("processInstances.searchLabel")}
+            />
+          </Toolbar>
+        </>
+      }
+    >
       {/* Keep the agent aware of what the operator is looking at so it can offer
           the obvious next steps (drill into an instance, retry/suspend, etc.). */}
       <HostModelContext
@@ -150,24 +213,6 @@ export function ProcessInstancesView({
       >
         {null}
       </HostModelContext>
-      <InstancesHeader
-        title={title}
-        processName={data.processDefinitionName ?? null}
-        scopedKey={scopedKey}
-        total={paged.total}
-        engine={engine}
-        filters={listFilters}
-      />
-
-      <FilterBar
-        search={search}
-        onSearchChange={setSearch}
-        searchPlaceholder={t("processInstances.searchPlaceholder")}
-        searchAriaLabel={t("processInstances.searchLabel")}
-        chips={chips}
-        chipsAriaLabel={t("processInstances.chipsLabel")}
-        onChipToggle={(id) => setActiveChip(id === activeChip ? CHIP_ALL : (id as InstanceChip))}
-      />
 
       <PagedRows paged={paged}>
         {paged.items.length === 0 ? (
@@ -178,19 +223,12 @@ export function ProcessInstancesView({
           </TableEmptyState>
         ) : (
           <ListTable
-            ariaLabel={t("processInstances.tableAriaLabel", { name: title })}
-            columns={[
-              { label: t("processInstances.colBusinessKey") },
-              // Engine-wide, the state hides in a chat's narrow column; a scoped list has room for both.
-              scopedKey
-                ? { label: t("processInstances.colVersion") }
-                : { label: t("processInstances.colProcess") },
-              scopedKey
-                ? { label: t("processInstances.colState") }
-                : { label: t("processInstances.colState"), hideBelow: "md" as const },
-              { label: t("processInstances.colIncident"), align: "right" as const },
-              { plain: true, sticky: true },
-            ]}
+            ariaLabel={
+              title === t("processInstances.allTitle")
+                ? title
+                : t("processInstances.tableAriaLabel", { name: title })
+            }
+            columns={instanceColumns(t, !!scopedKey, actions)}
           >
             {paged.items.map((row) => (
               <InstanceRow
@@ -199,6 +237,7 @@ export function ProcessInstancesView({
                 processDefinitionKey={scopedKey}
                 engine={engine}
                 showProcessColumn={!scopedKey}
+                actions={actions}
                 onOpen={(instance) =>
                   go({
                     type: "instance-detail",
@@ -223,21 +262,18 @@ export function ProcessInstancesView({
           (empty) rows on screen, and its error + retry live in the footer. */}
       <PagedListFooter
         paged={paged}
-        noun={t("processInstances.footerNoun")}
+        noun={(total) => t("processInstances.footerNoun", { count: total })}
         labels={paged.footerLabels}
       />
-    </>
+    </WidgetShell>
   )
 }
 
+/** The instances route: a view of its own, its bar, the filters and the list. */
 export function ProcessInstancesWidget(props: {
   data: ProcessInstancesData | null
   processDefinitionKey?: string
   engine: string
 }) {
-  return (
-    <WidgetShell>
-      <ProcessInstancesView {...props} />
-    </WidgetShell>
-  )
+  return <ProcessInstancesView {...props} />
 }

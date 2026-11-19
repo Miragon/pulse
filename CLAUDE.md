@@ -38,43 +38,56 @@ Pulse (part of the Miragon AI tool family) is a pnpm + Turbo monorepo that ships
 (built on the official MCP TypeScript SDK, `@modelcontextprotocol/server` with the MCP Apps
 extension `@modelcontextprotocol/ext-apps`, its UI on `@miragon/pulse-ui`) for Camunda 7 / CIB seven BPM operations,
 including interactive React widgets (MCP Apps), plus a
-command line interface (`apps/cli`), a VS Code extension (`apps/vscode`) and an Orca plugin
-(`apps/orca`) for the same engines.
+web app that shows those views as pages of the server (`apps/web`), a command line interface
+(`apps/cli`), a VS Code extension (`apps/vscode`) and an Orca plugin (`apps/orca`) for the same
+engines.
 
-| Path                                           | Contents                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/mcp-server/`                             | The MCP host: composes plugins, bundles the widget UI, serves HTTP on `:8400`                                                                                                                                                                                                                                                                                                                                              |
-| `apps/cli/`                                    | The CLI (npm `@miragon/pulse-cli`): every REST operation of the engine as a command, generated from its OpenAPI spec, plus the workflow commands; its rules in `apps/cli/CLAUDE.md`                                                                                                                                                                                                                                        |
-| `apps/vscode/`                                 | Pulse for VS Code (`pulse-cockpit`, a .vsix): the VS Code host of the runtime view; its rules in `apps/vscode/CLAUDE.md`                                                                                                                                                                                                                                                                                                   |
-| `apps/orca/`                                   | Pulse for Orca (`@miragon/pulse-orca`, an Orca plugin): the Orca host of the runtime view (worker, components panel, custom editors); its rules in `apps/orca/CLAUDE.md`                                                                                                                                                                                                                                                   |
-| `packages/connectors/engine/engine-connector/` | engine module, the one MCP module of every dialect: operations tools, widget tools, widgets                                                                                                                                                                                                                                                                                                                                |
-| `packages/connectors/engine/engine-core/`      | The neutral core of the engine family (npm `@miragon/pulse-engine-core`), the contract every dialect implements: the ports a process engine answers (`ProcessRuntime`, `ProcessCommands`), ids, read models, queries, `RuntimeError`, `RootCauses`; the conformance kit with its laws, its fixed world and the in-memory `FakeEngine` (`/testing`); no runtime dependency, Pulse for VS Code's house rules                 |
-| `packages/connectors/c7/c7-client/`            | The SDK of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-client`): the REST SDK generated from c7-core's one spec (`src/generated/`), `createEngineClient` over the `fetch` it is handed and the SDK-bound reads (`src/sdk-reads/`); a leaf                                                                                                                                                                 |
-| `packages/connectors/c7/c7-core/`              | The core of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-core`), its workflow domain and pure engine REST rules: port, selection, inspect, status triage, the root cause of an incident (`causeOf`), retry/advance plans, dates, filters, variable writes, the one spec and its routes (`routeOf`, `intentOf`, `./routes`); one runtime dependency, engine-core's main entry                               |
-| `packages/connectors/c7/c7-adapter/`           | The C7 adapter of the runtime view (`@miragon/pulse-c7-adapter`, private): its REST client and the mapping onto the contract of `engine-core`, over c7-core; bundled by the editor hosts                                                                                                                                                                                                                                   |
-| `packages/core/ui/`                            | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the formatters and the tones without React under `/format` and `/tones`, the brand gates under `/testing`                                                                                 |
-| `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), a module's test server (`/testing`)                                                                                                                                                             |
-| `packages/core/runtime-view/`                  | The runtime view both editor hosts compose (`@miragon/pulse-runtime-view`, private) over the contract of `engine-core`: the ports a host and an engine family plug in, the core, the protocol, the Preact webview, the local model reader and the host kit (targets from `.pulse.json`, policies, the write audit)                                                                                                         |
-| `packages/core/profile/`                       | The one profile format of the CLI, the editor hosts and the MCP server (npm `@miragon/pulse-profile`): a parser from a file's text to a verdict per profile as data (a code and a key, never a value), the credential policy by where the file comes from, `refusalsOn` for what a reader cannot serve, the JSON Schema (`schema/pulse.schema.json`) and the shared fixtures (`/testing`); no runtime dependency           |
-| `packages/core/http/`                          | The one engine transport of the MCP server, the CLI and the editor hosts' adapters (npm `@miragon/pulse-http`) over the `fetch` each hands in: a deadline to the last byte, no redirects, a 64 MiB cap, one retry after a 401, reasons as data, lossless JSON, masking, the path value rule; the OAuth client (`/oauth`); conformance cases, fake fetch (`/testing`), loopback engine (`/testing/loopback`); no dependency |
-| `playground/`                                  | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                                                                                                                                                                          |
-| `docs/`                                        | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                                                                                                                                                                                                                 |
-| `docs/mcp/`                                    | The MCP server's pages of the docs site (getting started, usage, reference, operations, architecture, build your own, developer)                                                                                                                                                                                                                                                                                           |
-| `docs/cli/`                                    | The CLI's pages of the docs site (install, commands, configuration, authentication, AI agents, development)                                                                                                                                                                                                                                                                                                                |
-| `docs/vscode/`                                 | The VS Code extension's pages of the docs site (installation, configuration, usage, architecture, parity with the MCP cockpit)                                                                                                                                                                                                                                                                                             |
-| `docs/orca/`                                   | The Orca plugin's pages of the docs site (installation, configuration, usage, architecture)                                                                                                                                                                                                                                                                                                                                |
+| Path                                           | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/mcp-server/`                             | The MCP host: composes plugins, bundles the widget UI, serves HTTP on `:8400`                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `apps/cli/`                                    | The CLI (npm `@miragon/pulse-cli`): every REST operation of the engine as a command, generated from its OpenAPI spec, plus the workflow commands; its rules in `apps/cli/CLAUDE.md`                                                                                                                                                                                                                                                                                                                                        |
+| `apps/vscode/`                                 | Pulse for VS Code (`pulse-cockpit`, a .vsix): the VS Code host of the runtime view; its rules in `apps/vscode/CLAUDE.md`                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `apps/orca/`                                   | Pulse for Orca (`@miragon/pulse-orca`, an Orca plugin): the Orca host of the runtime view (worker, components panel, custom editors); its rules in `apps/orca/CLAUDE.md`                                                                                                                                                                                                                                                                                                                                                   |
+| `apps/web/`                                    | The web app (`@miragon/pulse-web`, private): the MCP server's views as pages of the server under `/app` (the landing at `/app`, the engines and the server's boards; a board at `/app/boards/<id>`; a start view of the cockpit at `/app/cockpit?view=…`), over widget-shell's `mountPage` with its own frame (bar, sign-out, the session's notices, the signed-out page per reason); Vite builds it with its `pages.json`, which the server reads at boot; its rules in `apps/web/CLAUDE.md`                              |
+| `packages/connectors/engine/engine-connector/` | engine module, the one MCP module of every dialect: operations tools, widget tools, widgets                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `packages/connectors/engine/engine-core/`      | The neutral core of the engine family (npm `@miragon/pulse-engine-core`), the contract every dialect implements: the ports a process engine answers (`ProcessRuntime`, `ProcessCommands`), ids, read models, queries, `RuntimeError`, `RootCauses`; the conformance kit with its laws, its fixed world and the in-memory `FakeEngine` (`/testing`); no runtime dependency, Pulse for VS Code's house rules                                                                                                                 |
+| `packages/connectors/c7/c7-client/`            | The SDK of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-client`): the REST SDK generated from c7-core's one spec (`src/generated/`), `createEngineClient` over the `fetch` it is handed and the SDK-bound reads (`src/sdk-reads/`); a leaf                                                                                                                                                                                                                                                                 |
+| `packages/connectors/c7/c7-core/`              | The core of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-core`), its workflow domain and pure engine REST rules: port, selection, inspect, status triage, the root cause of an incident (`causeOf`), retry/advance plans, dates, filters, variable writes, the one spec and its routes (`routeOf`, `intentOf`, `./routes`), and in `./runtime` the contract's reads (`C7Runtime`) and their basis (`JsonView`, the id rule `isEngineId`; not in the CLI); one runtime dependency, engine-core's main entry |
+| `packages/connectors/c7/c7-adapter/`           | The C7 adapter of the runtime view (`@miragon/pulse-c7-adapter`, private): its wire, its writes and the words of its failures; its reads (`C7Runtime` and what its commands check) are c7-core's, over the wire; bundled by the editor hosts                                                                                                                                                                                                                                                                               |
+| `packages/connectors/c8/c8-core/`              | The core of the Camunda 8 dialect family c8 (npm `@miragon/pulse-c8-core`), which the C8 adapter and the engine module run: `C8Runtime`, the contract's reads, and `C8Failures`, the kind of each failure, over the REST client with its checked views and a transport port that carries fields only (`CamundaTransport`, `CamundaFailure`), the readers and the mappings onto engine-core's read models; each surface brings its own wire and words (`wordsOf`); one runtime dependency, engine-core's main entry         |
+| `packages/connectors/c8/c8-adapter/`           | The C8 adapter of the runtime view (`@miragon/pulse-c8-adapter`, private): Camunda 8 through the Orchestration Cluster REST API, read-only, its wire on the transport with client credentials (`@miragon/pulse-http/oauth`) behind c8-core's transport port, the words of its failures and its plug `C8Adapter` (c8-core's `C8Runtime` over that wire and those words, links into Operate); for the editor hosts                                                                                                           |
+| `packages/core/ui/`                            | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the formatters and the tones without React under `/format` and `/tones`, the brand gates under `/testing`                                                                                                                                                                                 |
+| `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, `mountPage`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`) with the web app's sign-in (`src/web`), a module's test server (`/testing`)                                                                                                                                                                                                         |
+| `packages/core/runtime-view/`                  | The runtime view both editor hosts compose (`@miragon/pulse-runtime-view`, private) over the contract of `engine-core`: the ports a host and an engine family plug in, the core, the protocol, the webview (React on `@miragon/pulse-ui`), the local model reader and the host kit (targets from `.pulse.json` and the CLI's user config, policies, the write audit)                                                                                                                                                       |
+| `packages/core/profile/`                       | The one profile format of the CLI, the editor hosts and the MCP server (npm `@miragon/pulse-profile`): a parser from a file's text to a verdict per profile as data (a code and a key, never a value), the credential policy by where the file comes from, `refusalsOn` for what a reader cannot serve, the JSON Schema (`schema/pulse.schema.json`) and the shared fixtures (`/testing`); no runtime dependency                                                                                                           |
+| `packages/core/board/`                         | The board file format and builder (npm `@miragon/pulse-board`): `BoardParser` (a board with notes and refused widgets, or a file's problems as codes), `BoardProblems`, `BoardTiles`, `BoardVocabulary`, `StarterBoard`, the JSON Schema, `/testing` fixtures and figures, `/builder` (numbers over seven engine-core reads, an optional peer; no text), a built board's JSON form (`BoardData`; `BoardJson.of` in `/builder`); read by the editors and the engine module; no runtime dependency; VS Code's house rules    |
+| `packages/core/blocks/`                        | Pulse's building blocks (npm `@miragon/pulse-blocks`), React on `@miragon/pulse-ui` with props, callbacks and the slots a surface brings (`Table`, `Id`, `Diagram`, `onOpen`): the tiles of a board over a built board's JSON form (`BoardGrid`, `BoardTile`), worded in en and de (`useProblemWords`, `ProblemList`); rendered by the runtime view's webview and the cockpit's board route; no React context of its own                                                                                                   |
+| `packages/core/http/`                          | The one engine transport of the MCP server, the CLI and the editor hosts' adapters (npm `@miragon/pulse-http`) over the `fetch` each hands in: a deadline to the last byte, no redirects, a 64 MiB cap, one retry after a 401, reasons as data, lossless JSON, masking, the path value rule; the OAuth client (`/oauth`); conformance cases, fake fetch (`/testing`), loopback engine (`/testing/loopback`); no dependency                                                                                                 |
+| `playground/`                                  | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `docs/`                                        | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `docs/mcp/`                                    | The MCP server's pages of the docs site (getting started, usage, boards, Camunda 8, reference, operations, identity providers, architecture, build your own, developer)                                                                                                                                                                                                                                                                                                                                                    |
+| `docs/web/`                                    | The web app's pages of the docs site (what it shows and for whom, the sign-in an operator sets up, how it works)                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `docs/cli/`                                    | The CLI's pages of the docs site (install, commands, configuration, authentication, AI agents, development)                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `docs/vscode/`                                 | The VS Code extension's pages of the docs site (installation, configuration, Camunda 8, usage, architecture, parity with the MCP cockpit)                                                                                                                                                                                                                                                                                                                                                                                  |
+| `docs/orca/`                                   | The Orca plugin's pages of the docs site (installation, configuration, usage, architecture)                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
 Three axes decide where code goes, and they stay apart:
 
 - Vendor (CIB seven, Operaton, Camunda 7): runtime config per engine, `flavor` →
   `EngineProvider` (invariant 8), never a package or an app.
-- Dialect (an engine API family; one today, the Camunda 7 REST API all three vendors serve):
-  one package family under `packages/connectors/<dialect>/`, named for the API family it speaks
-  (`c7` today, with its client `@miragon/pulse-c7-client`, its core `@miragon/pulse-c7-core` and
-  the runtime view's C7 adapter `@miragon/pulse-c7-adapter`, private; `c8` later), whose core
-  implements the contract of the engine family's core. The engine family
-  (`packages/connectors/engine/`) is the neutral layer above the dialects (owner decisions
-  2026-11-07, 2026-11-08 and 2026-11-09): ONE MCP server app (`apps/mcp-server`) and ONE module,
+- Dialect (an engine API family; two today, the Camunda 7 REST API all three vendors serve and
+  Camunda 8's Orchestration Cluster REST API): one package family under
+  `packages/connectors/<dialect>/`, named for the API family it speaks (`c7`, with its client
+  `@miragon/pulse-c7-client`, its core `@miragon/pulse-c7-core` and the runtime view's C7 adapter
+  `@miragon/pulse-c7-adapter`, private; `c8`, with its core `@miragon/pulse-c8-core`, which the
+  engine module runs over the server's own Camunda 8 wire for the engine list and the boards, the
+  only reads of the server that offer a Camunda 8 engine (`docs/mcp/camunda8.md`), and the runtime
+  view's C8 adapter `@miragon/pulse-c8-adapter`, private, which the editor hosts read Camunda 8
+  through), whose core implements the contract of the engine family's core (the dialect families
+  `DIALECT_FAMILIES` names in `.dependency-cruiser.cjs`, of which `ENGINE_DIALECTS`, `c7` and `c8`,
+  is a subset).
+  The engine family (`packages/connectors/engine/`) is the neutral layer above the dialects
+  (owner decisions 2026-11-07, 2026-11-08 and 2026-11-09): ONE MCP server app (`apps/mcp-server`) and ONE module,
   `engine` (`engine-connector`), serve every dialect, the module importing the clients and cores
   of the families `ENGINE_DIALECTS` names (`engine-connector-spans-the-dialects` in
   `.dependency-cruiser.cjs`; a dialect joins that list in the commit that first imports it), and
@@ -82,19 +95,43 @@ Three axes decide where code goes, and they stay apart:
   implements. A new dialect is a family, never an MCP server app or a module of its own, and
   inherits its gates from the layout.
 - Interface (how a person or an agent reaches an engine): an app under `apps/`, today the
-  MCP server, the CLI (`apps/cli`, rules in `apps/cli/CLAUDE.md`) and the two editor hosts,
-  the VS Code extension (`apps/vscode`, rules in `apps/vscode/CLAUDE.md`) and the Orca plugin
-  (`apps/orca`, rules in `apps/orca/CLAUDE.md`). Another interface (a third editor, say) is an
+  MCP server, the web app (`apps/web`, rules in `apps/web/CLAUDE.md`), the CLI (`apps/cli`, rules
+  in `apps/cli/CLAUDE.md`) and the two editor hosts, the VS Code extension (`apps/vscode`, rules
+  in `apps/vscode/CLAUDE.md`) and the Orca plugin (`apps/orca`, rules in `apps/orca/CLAUDE.md`).
+  The server serves two of them: `/mcp` to an MCP client and, beside it, the web app's pages under
+  `/app` to a browser signed in through the server's OAuth provider; the web app is the page host
+  of the MCP views, which it shows with widget-shell's `mountPage` and calls through the server's
+  `/app/api/call`. Another interface (a third editor, say) is an
   app of its own. Apps never import each other, and no package imports an app: what the editor
   hosts share is the runtime view (`packages/core/runtime-view`) and a dialect's adapter of the
   engine contract (`packages/connectors/<family>/<family>-adapter`), private packages only they
-  bundle. An interface's UI belongs to one of two UI families (owner decision 2026-11-08,
-  `apps/vscode/docs/adr/ui-foundation.md`): React on `@miragon/pulse-ui` and widget-shell (the
-  MCP widgets, a starter's, the web apps of #573) or Preact with its own components (the runtime
-  view's webview, which both editor hosts show). They share pulse-ui's framework-free foundation
-  (`/format`, `/tones`, and in tests the glossary, the count words and the brand gates of
-  `/testing`), never a component; `docs/vscode/parity.md` lists what differs between the views
-  both show, and #586 holds when they share building blocks again.
+  bundle. The surfaces (the MCP widgets and a starter's; the runtime view's webview, which both
+  editor hosts show; the web apps of #573) share a core up to building blocks, not
+  everything (owner decision 2026-11-12, `apps/vscode/docs/adr/ui-foundation.md`), in four
+  layers: the formats, the board file first; the engine reads and their rules (the Camunda 7
+  rules in c7-core, which the MCP server and the C7 adapter run over their `EnginePort`); the
+  numbers and view models of a feature more than one surface shows, built once and
+  framework-free over engine-core's read models; and building blocks, components on React that
+  take props and callbacks only, with no host context inside (no `useToolQuery`,
+  `ConfirmDialog`, `HandOffButton` or `HostBridge`). Each surface keeps its own screens and host
+  wiring (hand-offs to the chat, live updates and the push protocol, native confirmations,
+  sign-in) and may build parts of its own; where two surfaces show the same thing, a shared
+  building block is the default, and no surface is forced to replace its own screen. Pulse's UIs are
+  one UI family by decision, React on `@miragon/pulse-ui` with one compact look (owner decision D9,
+  later on 2026-11-12, in the same record): the webview moved from Preact to React on pulse-ui in
+  one switch, a commit of the pull request that recorded D9, with no `preact/compat` bridge.
+  widget-shell stays the view runtime of the MCP widgets
+  and the web apps, never the editor hosts'. The foundation stays pulse-ui's framework-free
+  `/format` and `/tones` and, in tests, `/testing` (the glossary, the count words, the brand gates);
+  the runtime view's core, ports, model reader and host kit stay framework-free. The board format
+  and the board builder go into a published package, `@miragon/pulse-board`
+  (`packages/core/board`), which holds both with their dependency rules since 2026-11-15 (the
+  builder in `@miragon/pulse-board/builder`, whose model the runtime view renders); a shared building block
+  goes into pulse-ui (a primitive) or into a shared package created with the first engine block
+  two surfaces render, executed for boards on 2026-11-16: `@miragon/pulse-blocks`
+  (`packages/core/blocks`) holds a board's tiles, which the webview and the cockpit's board route
+  render, each with its own table, id and canvas as slots. `docs/vscode/parity.md` lists what still
+  differs between the views both show.
 
 A family is one source the MCP server reads, a dialect or another source (a metrics store,
 say), or `engine`, the neutral family above the dialects. Its packages are
@@ -103,10 +140,14 @@ engine module of the family `engine` serves it), `<family>-client` (the wire:
 SDK, client, the SDK-bound reads), when the family's interfaces share a pure domain,
 `<family>-core` (no runtime dependency, but a dialect's core imports engine-core's main entry;
 one port per family, the home of the family's pure rules; extracted on its second consumer, like
-`c7-core`, which the CLI bundles and the C7 adapter and the engine connector run) and, when the
-editor hosts read a dialect's engines, `<family>-adapter` (the dialect's implementation of the
-engine contract for the runtime view, proven by engine-core's conformance kit on a real engine;
-today `c7-adapter`, the C7 adapter, which runs c7-core).
+`c7-core`, which the CLI bundles and the C7 adapter and the engine connector run, or ahead of it,
+like `c8-core`, which the C8 adapter and the engine module run, each over its own wire) and, when
+the editor hosts read a dialect's engines, `<family>-adapter` (the dialect's implementation of the
+engine contract for the runtime view, proven by engine-core's conformance kit on a real engine,
+the C8 adapter's on a local Camunda 8 cluster only, since CI starts no Camunda 8 image until the
+licence question of #531 has an answer; today `c7-adapter`, the C7 adapter, which runs c7-core,
+and `c8-adapter`, the C8 adapter, which runs c8-core over its own wire on the transport and its
+OAuth client; its family has no client).
 A family's tool input
 schemas live in its connector, next to the tools
 (`packages/connectors/engine/engine-connector/src/schemas/`), so a client carries no zod:
@@ -115,24 +156,33 @@ Family code stays in its family: `packages/core/` holds what every family builds
 widget-shell, the profile format, the transport), never one family's code. The engine family's
 core, `@miragon/pulse-engine-core` (owner decisions 2026-11-08 and 2026-11-09), is the contract
 every dialect implements: the ports, read models, failure kinds and laws a dialect answers in,
-which the C7 adapter of the editor hosts speaks today, and the rules every dialect shares
+which the C7 and C8 adapters of the editor hosts speak, and the rules every dialect shares
 (`RootCauses`). It stays narrow: a further rule (the verdict, the message signature, durations)
 moves there only when a second dialect needs it in the CLI or the MCP server. Its admission rule:
 a port, read model or rule enters `@miragon/pulse-engine-core` when two dialects answer it with
 the same meaning, proven by the conformance laws on both (what the owner admitted ahead of a
 second dialect, its README lists). It is imported where a dialect is implemented (the `src` of a
-dialect's core, never its `./testing`: c7-core applies the root-cause rule `RootCauses`; the src
-of a family's adapter) and where the runtime view reads the contract's answers (owner decision
-2026-11-09 on #585: the runtime view's contract layer became engine-core, the one home of the
-contract): the runtime view's layers that speak it (`src/ports`, `src/core`, `src/model`,
-`src/host-kit`, never its webview) and the editor hosts' src, which name its ids
+dialect's core, a family `DIALECT_FAMILIES` names, never its `./testing`: c7-core applies the
+root-cause rule `RootCauses`, and its `./runtime` answers the contract's reads in its ids, read
+models and `RuntimeError`; c8-core's `C8Runtime` answers them in its read models and decides each
+failure's kind; the src of a family's adapter) and where the runtime view reads the contract's
+answers (owner decision 2026-11-09 on #585: the runtime view's contract layer became engine-core,
+the one home of the contract): the runtime view's layers that speak it (`src/ports`, `src/core`,
+`src/model`, `src/host-kit`, never its webview) and the editor hosts' src, which name its ids
 (`engine-core-consumers`); `packages/core/runtime-view` importing a family's core is the one edge
-of the foundation into a family, which the owner accepted (`runtime-view-builds-on-the-engine-contract`).
+of the foundation into a family, which the owner accepted (`runtime-view-builds-on-the-engine-contract`),
+and the board builder (`@miragon/pulse-board/builder`, `packages/core/board/src/builder`) the
+named exception written like it: it reads seven reads of `ProcessRuntime` through engine-core's
+main entry alone (`board-builder-builds-on-the-engine-contract`), the format stays a leaf.
 The ports only the editor hosts need (`EngineAdapter`, the engine's web UI, the local model and
-its code) stay in the runtime view's `src/ports`, never in engine-core. The engine connector
-(although engine-core is its own family's core) or the CLI importing it directly waits until it
-serves a second dialect, an admission decision in review, the case #488 reopens on: a second
-interface needing the same use case with the same rules.
+its code) stay in the runtime view's `src/ports`, never in engine-core. The engine connector runs
+the contract, admitted for the boards of the MCP server (owner decision 2026-11-16, the case #488
+names: a second interface needs the same use case with the same rules): its `src/lib/engine`
+(`runtimeOf`, the runtime of each dialect it serves, today c7-core's `C7Runtime` over its engine
+port, and `runtimeErrorOf`, its engine errors as `RuntimeError`), `src/lib/core-adapter` and
+`src/data` import engine-core's main entry alone (`engine-connector-contract-by-its-main-entry`),
+its view models, widgets, `src/lib/shared` and tools never. The CLI importing it directly waits
+until it serves a second dialect, an admission decision in review.
 
 The architecture invariants below are written for the MCP server, its modules and its widgets.
 The package rules of invariant 8 (layout, naming, dependency edges) hold for every workspace
@@ -143,10 +193,11 @@ package; another interface app keeps its own rules in its own CLAUDE.md.
 ```bash
 # From a fresh clone with Node, pnpm and Docker only (no JDK, no .env; scripts/local.mjs):
 pnpm play                            # install, playground up, build, MCP server on :8400 + MCP Inspector
+pnpm play --web                      # plus the web app on :8400/app, signed in through Keycloak
 pnpm play:cli -- ping                # the built CLI against the playground engine
 pnpm stack:up | stack:down | stack:status   # the playground in Docker (--multi-engine, --auth)
 pnpm check                           # the local bar, one log per step in reports/check/
-pnpm check:all                       # plus test:host, template, Gradle, docs build, engine suites
+pnpm check:all                       # plus test:host, test:web, template, Gradle, docs build, engine suites
 # The VS Code extension's own engines: pnpm --fail-if-no-match --filter pulse-cockpit sandbox:up
 
 pnpm install --frozen-lockfile       # all deps are public; no registry credential needed
@@ -206,13 +257,14 @@ nimmt das Doku-Kit der CI unverändert (`docs/.vitepress/miragon/`, `docs/public
 CI-Release neu vendoren, nie von Hand ändern).
 
 Ein `--cd-*` steht nur in vendorten Kopien, deren Manifest `SANCTIONED_TOKEN_MANIFESTS` freigibt:
-die Kopien aus `.miragon/brand-assets.yaml` (pulse-ui in `packages/core/ui/src/tokens/` und das
-Theme der Webview von VS Code und Orca in `packages/core/runtime-view/src/webview/theme/`,
+die Kopien aus `.miragon/brand-assets.yaml` (pulse-ui in `packages/core/ui/src/tokens/`, deren
+Tokens auch die Webview von VS Code und Orca über `theme.css` nimmt, und deren Diagramm-Leinwand mit
+`cd-canvas.css` und `cd-tokens.generated.json` in `packages/core/runtime-view/src/webview/theme/`,
 Prüfsummen in `.miragon/brand-assets.sha256`) und das Doku-Kit. Eine weitere Kopie kommt mit
 `brand-assets.mjs --add` aus dem Plugin miragon-brand, nie als Ausnahme im Scan. Ein Token, das
 mehrere Kopien im selben Geltungsbereich setzen (`:root`, Hell, Dunkel), hat in allen denselben
-Wert: Ändert ein CI-Release einen Wert, kommt er in alle Kopien zugleich. Der
-Drift-Test ist `packages/core/ui/src/theme/token-drift.test.ts` (mit
+Wert: Ändert ein CI-Release einen Wert, kommt er in alle Kopien zugleich. Der Drift-Test ist
+`packages/core/ui/src/theme/token-drift.test.ts` (mit
 `packages/core/ui/src/theme/vendored-tokens.test-support.ts`); `test:host` prüft das gebaute
 Stylesheet.
 
@@ -235,22 +287,37 @@ Die Widgets laufen als MCP Apps im Rahmen eines Chat-Hosts. Dafür gelten diese 
 Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 
 - Theme: Die Widgets folgen dem Host-Theme (#339), ohne Umschalter in der App; ohne Host das
-  OS. Dunkel entsteht streng aus den Dark-Ground-Regeln der
-  CI: Basis `--cd-schwarz`, Flächen als `color-mix`-Aufhellungen davon, Text Weiß, Links und
-  Akzenttext `--cd-gruen`, Buttons `--cd-blau` mit Weiß, Fokus `--cd-blau-hell`, Status in den
-  `-hell`-Werten ohne getönte Flächen, leiser Text `--cd-kontur`. Der Host setzt nur die
-  neutralen Rollen (`HOST_TOKEN_MAP`: Flächen, Text, `--border`), nie `--primary`, `--link`,
-  `--focus`, `--ring`, `--input`, `--accent` oder einen Status. BPMN-Papier und seine
-  Zoom-Leiste bleiben immer hell.
+  OS. Die neutralen Rollen nehmen in Hell und Dunkel die Werte der `--cd-ui-*`-Rollen des Guides
+  (Grund, Fläche, Fläche hoch, Hover, Linie, leiser Text, Backdrop) wie die Webview, keine
+  eigenen Aufhellungen von `--cd-schwarz` (entschieden in D9,
+  `apps/vscode/docs/adr/ui-foundation.md`); dazu `--raised`, `--interaction` und
+  `--<ton>-surface`. pulse-ui folgt auch `data-cd-theme`, `data-cd-kontrast="hoch"` und
+  `forced-colors`. Sonst folgt Dunkel den Dark-Ground-Regeln der CI: Text Weiß, Links und
+  Akzenttext `--cd-gruen`, Buttons `--cd-blau` mit Weiß, Fokus `--cd-blau-hell`, der
+  eingeschaltete Schalter und die Linie unter dem aktiven Tab `--interaction` (dunkel
+  `--cd-blau-hell`), Status in den `-hell`-Werten ohne getönte Flächen. Der Host setzt nur die
+  neutralen Rollen (`HOST_TOKEN_MAP`: Flächen, Text, `--border`), nie `--primary`, `--link`, `--focus`, `--ring`, `--input`, `--accent` oder einen
+  Status; unter seinem Theme fallen Grund und Fläche zusammen, Bereiche trennen dann die
+  1-px-Linien. BPMN-Papier und seine Zoom-Leiste bleiben immer hell.
 - Schrift: Geist zuerst, dann die Schrift des Hosts (`adoptHostFontVariables`), dann System.
   Der Server liefert Geist und Geist Mono selbst aus (`installFontAssets`, kein CDN), jede View
   erlaubt den Ursprung über ihre CSP `resourceDomains` (`declareServedFonts`). Blockt ein Host
   den Ursprung, rendert die Host-Schrift, ohne dass etwas wartet.
+- Diagrammbeschriftung, in den Widgets und in der Webview von VS Code und Orca
+  (Owner-Entscheidung vom 2026-11-14): Die Beschriftungen, die bpmn-js auf die Leinwand zeichnet,
+  stehen in bpmn-js' eigener Arial (`Arial, sans-serif`, 12 px in einer Form, 11 px daneben) statt
+  in Geist, das der Hinweis zum Canvas des Guides (§4) für SVG-Text verlangt. Pulse zeigt meist
+  Diagramme aus dem Camunda Modeler oder bpmn.io, deren Beschriftungsboxen für Arial bemessen
+  sind; Geist ist bis zu 8 % breiter und bräche dort Beschriftungen um, die im Modeler passen.
+  Beide Oberflächen geben bpmn-js dasselbe Objekt, `BPMN_LABEL_STYLE` aus `@miragon/pulse-ui`
+  (`useBpmnViewer` in widget-shell, die `RuntimeCanvas` der Webview). Chrome, Tooltips, die Popups
+  von diagram-js (`cd-canvas.css`), Zähl-Badges und Overlays bleiben in Geist.
 - Sprache: Deutsch und Englisch nach Host-Locale (Fallback Englisch) statt nur Deutsch.
 - Chrome: im Rahmen des Hosts (Kopf mit Titel und Aktionen) statt randlosem Canvas mit
   schwebendem Chrome in den Ecken.
-- Seitentitel: h2 mit 28 px statt h1 mit 40 px.
-- Dichte Tabellen: 14 px statt 16 px Fließtext.
+- Titel: Der Titel einer Ansicht ist Chrome, 13 px in 600 als Überschrift in der 40-px-Leiste
+  (der Chrome-Titel des Guides); 28 px in 700 als h2 nur auf App-Ebene (Landing, Flotte) statt
+  h1 mit 40 px.
 - Data-Viz: eine einfarbige Rampe von `--cd-info-soft` bis `--cd-blau`; Rot nur für
   Incidents.
 - Komet: nur auf App-Ebene (Landing, Erststart, „keine Engines“), nicht in jedem Widget
@@ -259,22 +326,73 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 - BPMN-Zoom-Leiste oben rechts statt unten rechts: unten rechts liegt das bpmn.io-Logo
   (Lizenzpflicht).
 
+### Abweichung Dichte, für alle Oberflächen
+
+Alle Oberflächen (die MCP-Widgets, die Web-Apps, die Webview von VS Code und Orca) haben einen
+kompakten Look aus `@miragon/pulse-ui`, nach dem Vorbild der Webview (Owner-Entscheidung D9 vom
+2026-11-12, `apps/vscode/docs/adr/ui-foundation.md`). Die Dichte-Rollen stehen in `rem` in pulse-uis
+`theme.css`; ein Test hält sie bei 16 px Wurzelgröße gleich zu den Shell-Tokens des Guides
+(`--cd-shell-zeile`, `--cd-shell-eintrag`, `--cd-shell-ziel`, `--cd-shell-rand`). Kompakt ist der
+Standard. Auf Touch (`any-pointer: coarse`) und unter `[data-density=comfortable]` gilt die
+komfortable Stufe: Bedienelemente 36 px, Zeilen und Toolbars 40 px, Radius md auf Knöpfen. Die
+Schrift bleibt in jeder Stufe gleich; nur Eingaben zeigen auf Touch 16 px Text, damit iOS beim Fokus
+nicht in die Seite zoomt, und `[data-density=comfortable]` allein lässt sie bei 13 px.
+`[data-density=compact]` hält die kompakte Stufe auch auf Touch fest, damit die Editoren auf einem
+Touch-Laptop kompakt bleiben wie VS Code selbst; die Webview setzt es auf ihr `<html>`. Die Eingaben
+behalten dort 13 px Text, denn ihre Schrift ist eine eigene Rolle (`--field-text`), die der kompakte
+Pin erreicht. Leiste 40 px, Toolbar 36 px und Rand 12 px sind Werte des Guides und keine Abweichung.
+Diese bewussten Abweichungen vom Guide gelten für alle Oberflächen (Owner-Entscheidung):
+
+- Bedienelemente (Knöpfe, Eingaben, Auswahlen) mit 28 px und klickbare Tabellenzeilen mit 28 px
+  statt 36 px.
+- Radius sm (6 px) statt md auf beschrifteten Knöpfen.
+- Knöpfe mit 24 px (xs: in Hinweisstreifen, zum Kopieren, in Tabellenzeilen), unter der kleinsten
+  Größe des Guides von 28 px; die Aktionen einer Tabellenzeile sind xs, damit jede Zeile 28 px
+  hoch bleibt (40 px komfortabel), wie in der Webview.
+- Gewicht 400 auf den Beschriftungen der Toolbar-Knöpfe.
+- Zähler als Pille.
+- Der angedockte Hinweisstreifen ohne die 4-px-Kante.
+- Icons: 12 px mit Strich 2,5 neben dichtem Text und auf den 20-px-Overlays des Diagramms (Zähl-
+  und Move-Badges, Code- und Move-Knöpfe, Links und Warnungen im Text), sonst 16 und 24 px.
+  `Icon` mit `dense` ist das 12-px-Icon. `scanIconSizes` liest `size={…}`, die `size-*`-Klassen
+  auf SVG-Selektoren (`[&>svg]:size-3`) und auf `Icon` und `dense` auf `Icon` und lässt 12 px nur
+  in den Dateien zu, die das Gate je mit Grund nennt (`allowDense`; im Kit
+  `packages/core/ui/src/brand-gates.test.ts`: Badge, die Knöpfe xs und icon-xs, der Pfeil des
+  `DrillButton` in xs, `Icon` selbst, der Sortierpfeil im Tabellenkopf, das Ton-Icon im Segment;
+  widget-shell und der Konnektor in ihrer `brand-gates.test.ts`); ein Eintrag ohne 12-px-Icon
+  schlägt fehl.
+
 ### Abweichung für die VS-Code-Webview
 
-Die Webview der VS-Code-Erweiterung, die Pulse for Orca ebenso zeigt (Preact, eigenes CSS, in
-`packages/core/runtime-view`), teilt mit den Widgets das Fundament aus
-pulse-ui, nicht die Komponenten: Töne (`@miragon/pulse-ui/tones`), Formatierer
-(`@miragon/pulse-ui/format`), Tokens mit gleichen Werten, Glossar, Zählbegriffe und Marken-Gates
-(Owner-Entscheidung, `apps/vscode/docs/adr/ui-foundation.md`). Was die beiden Oberflächen
-unterscheidet und ob es gewollt ist, steht in `docs/vscode/parity.md`. Für die Webview gilt diese
+Die Webview der VS-Code-Erweiterung, die Pulse for Orca ebenso zeigt (in
+`packages/core/runtime-view`), ist in einem Umstieg von Preact auf React 19 und `@miragon/pulse-ui`
+umgezogen, ohne Brücke über `preact/compat` (Owner-Entscheidung D9 vom 2026-11-12,
+`apps/vscode/docs/adr/ui-foundation.md`; der Umstieg ist ein Commit der PR, die D9 festhält). Ihr
+Stylesheet ist ein Tailwind-Eintrag (`packages/core/runtime-view/src/webview/styles/webview.css`:
+Preflight an, das Theme von pulse-ui und die Diagramm-CSS (diagram-js, bpmn-js, `cd-canvas.css`,
+`diagram.css`) ohne Schicht, `shell.css` von modeler-shell in einer eigenen Schicht `shell` unter
+dem Kit, die Schriftgröße der Wurzel auf 100 %, damit die Dichte-Rollen in `rem` bei 16 px bleiben),
+`<html>` trägt `data-density="compact"`. Sie baut ihre Ansichten aus dem Kit, ohne widget-shell: Sie
+rendert die View-Modelle, die der Kern schickt, und behält ihre Host-Anbindung (Push-Protokoll,
+Live-Updates, native Bestätigung). Mit den Widgets teilt sie das Fundament aus pulse-ui (Töne
+`@miragon/pulse-ui/tones`, Formatierer `@miragon/pulse-ui/format`, Glossar, Zählbegriffe,
+Marken-Gates) und die Bausteine, die D9 aus der Webview in pulse-ui hebt (`ViewBar`, `StatusStrip`,
+`Facts`, `StateLabel`, `CountBadge`, `DataTable` …); nur die geteilte Ansicht mit ihrer
+verstellbaren Trennung und den gespeicherten Breiten bleibt im Editor. Die Hosts setzen
+`data-cd-theme`; VS Code setzt für seine Hochkontrast-Themes schon heute `data-cd-kontrast="hoch"`.
+Das Theme-Ereignis von Orca meldet nur hell oder dunkel (`apps/orca/types/orca/index.d.ts`): In Orca
+erreicht hoher Kontrast die Webview allein über `forced-colors`, die Brücke von Pulse for Orca setzt
+kein `data-cd-kontrast`. Was die Oberflächen noch unterscheidet
+und ob es gewollt ist, steht in `docs/vscode/parity.md`. Für die Webview gilt zusätzlich diese
 bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
 `apps/vscode/docs/adr/user-interface.md`):
 
-- Icons: 12 px neben dichtem Text und auf den 20-px-Overlays des Diagramms (Zähl- und
-  Move-Badges, Code- und Move-Knöpfe, Links und Warnungen im Text), sonst 16 px. `scanIconSizes`
-  lässt dort neben 16 und 24 px nur 12 px zu, und nur in den Dateien, die
-  `apps/vscode/test/architecture/brand-gates.test.ts` je mit Grund nennt; ein Eintrag ohne
-  12-px-Icon schlägt fehl.
+- Diagramm: Die Zähl-Badges auf dem Diagramm bleiben gefüllte 20-px-Pillen.
+
+Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Abweichung
+„Diagrammbeschriftung“ bei den eingebetteten Chat-Widgets oben gilt für beide Oberflächen). Ihre
+12-px-Icons (Dichte, oben) lässt `scanIconSizes` in der Webview nur in den Dateien zu, die
+`apps/vscode/test/architecture/brand-gates.test.ts` je mit Grund nennt.
 
 ## Architecture invariants
 
@@ -282,8 +400,9 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
    input schema in `packages/connectors/engine/engine-connector/src/schemas/`, then register
    the tool in `packages/connectors/engine/engine-connector/src/tools/<domain>.ts` via the
    `register` callback of `createToolRegistrar` (`@miragon/pulse-widget-shell/server`, wired in
-   `src/tools/index.ts`): a `category` matching its domain file, `...engineParamShape` in the
-   input schema, the handler wrapped in `withEngine(...)`
+   `src/tools/index.ts`): a `category` matching its domain file, beside its annotations its mark
+   `dialects` (the dialects whose engines it serves, `["c7"]` for a tool over the Camunda 7
+   client), `...engineParamShape` in the input schema, the handler wrapped in `withEngine(...)`
    (both from `src/lib/engine/with-engine.ts`). Canonical shape: `engine_list_process_instances` in
    `packages/connectors/engine/engine-connector/src/tools/process-instances.ts`. ESLint
    (`no-restricted-syntax` in `eslint.config.mjs`) blocks a raw `registerTool` and ext-apps'
@@ -316,16 +435,49 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
    - `engine_create_deployment` registers only with `ENGINE_ALLOW_DEPLOYMENTS=true`:
      deploying BPMN/DMN is code execution inside the engine JVM (JUEL, scripts). Never relax
      that gate or fold it into a toolset.
+   - The mark decides what is offered, before a call (owner direction 2026-11-17): a dialect is
+     what Pulse can do (code), a profile which dialects a server has and what its operator allows
+     (`readOnly`), never a feature list. Each tool (`dialects` beside its annotations), each feed
+     of `src/data/feeds.ts` (its `dialects`) and each cockpit route (`ROUTE_DIALECTS` in
+     `src/view-models.dialects.ts`, which the widgets read too) names the dialects it
+     serves. The boot registers one only where a configured engine serves it, a write (no
+     `readOnlyHint`) only where such an engine's profile is not read-only; its `engine` enum
+     offers those engines and each refused profile of its dialects or of none read, so a call to
+     it says why (`withServedEngines` and `offeredEngineIds` in
+     `src/lib/engine/served-engines.ts`; `engine_open_cockpit`'s `view` and ids follow its served
+     routes, its `engine` every engine the cockpit shows where a route of one engine is served, so
+     such a view of a Camunda 8 engine refuses it as not served, never as an argument the tool
+     does not take). A server of Camunda 8 engines alone lists four tools and feeds; the
+     tools/list goldens pin each configuration (Contracts).
 
 2. **Never talk to an engine directly.** All engine access goes through
    `resolveEngine`/`withEngine` (`packages/connectors/engine/engine-connector/src/lib/engine/`),
    which routes by precedence: per-call `engine` > the operator default
    `ENGINE_DEFAULT` > the profile file's `defaultProfile` (each must name a profile, else the boot
    fails) > the only profile (counted with the refused ones) > `ENGINE_NOT_SELECTED` listing the
-   engines. The engines are profiles of `@miragon/pulse-profile` (`src/engine-profiles.ts`): a
+   engines the call's tool, feed or route serves (its enum's, never one its input refuses). The engines are profiles of `@miragon/pulse-profile` (`src/engine-profiles.ts`): a
    profile the server cannot use is refused on its own (the boot warns, `engine_list_engines`
    lists it under `refused`), and a call to it, a default on it included, fails with
-   `ENGINE_PROFILE_REFUSED`, never rerouted. There is deliberately NO
+   `ENGINE_PROFILE_REFUSED`, never rerouted. A `camunda8` profile is served with none, Basic or
+   `clientCredentials` (its secret only from the `ENGINE_SECRET_*` variable
+   `auth.clientSecretEnv` names; its token endpoint by the format's `tokenEndpointUrlProblem`); a
+   fixed bearer token on it, and a credential it would send over plain http beyond loopback (its
+   `url` or its token endpoint), refuse the profile; the single engine's variables stay Camunda
+   7's (`ENGINE_FLAVOR=camunda8` fails the boot). The call-time net derives from the same mark
+   as the enum (invariant 1), above all for a call without `engine`, whose default no enum
+   narrows: `engineServing` (`src/lib/engine/served-engines.ts`) runs before every registrar
+   tool's handler, every feed's read and every engine view of the cockpit, and an engine of a
+   dialect the mark does not serve fails with `ENGINE_DIALECT_NOT_SERVED` after the
+   refused-profile check and before `ENGINE_READ_ONLY`, so before anything is sent, never
+   rerouted; `resolveEngine` serves the Camunda 7 REST API alone and keeps that refusal as the
+   type's guard (`apps/mcp-server/test/dialect-refusal.e2e.test.ts` boots a Camunda 8 engine
+   alone, which lists only what serves it, and beside a Camunda 7 one as the default, where every
+   other tool and feed of the admin golden offers the Camunda 7 engine alone and, called without
+   `engine` with valid arguments, refuses while the cluster and its token endpoint count no
+   request; a new tool fails there until it is classified); `resolveRuntimeEngine`, by the same
+   precedence, serves
+   what reads through the engine contract in either dialect (a board's engines,
+   `engine_bpmn_xml_data`, a contract feed of `src/data/feeds.ts`). There is deliberately NO
    per-user or in-memory selection (replica-unsafe; the server is stateless, one `McpServer`
    per request, no session ids). A client
    you construct or cache yourself breaks multi-engine routing; `resolveEngine` already returns
@@ -349,7 +501,12 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
    (`src/widget-tools/cockpit.ts`) and the start dispatch (`src/data/cockpit-start.ts`) derive
    from them; `COCKPIT_ROUTES` and the widgets' route switch are total over the sections, so
    they fail to compile until each has the route. A route that nothing emits and
-   `engine_open_cockpit` cannot open is dead.
+   `engine_open_cockpit` cannot open is dead. A route reads one engine (`scope: "engine"`) or, at
+   app level (`scope: "app"`, an `AppSection`), the engines it names (a board) or the engine list
+   (the landing): its start resolves no engine, the tool refuses an `engine` with it, and the
+   cockpit shows it without an engine's head. The landing is the one route without a feed of its
+   own: its start data are the boards `engine_list_engines` lists, from one builder
+   (`src/data/landing-data.ts`), and its widgets read the engine list.
 
    A view is picked by its NAME, the view tool's name (`showToolBinding` binds the tool to
    `ui://views/<name>.html` in its `_meta.ui.resourceUri`, the boot serves the one bundle there
@@ -389,10 +546,18 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      feeds with it) and its `content` that route's facts. The view is picked by its name
      (= the tool's name); a composed view (a dashboard, the process detail) is ONE component
      that composes its widgets, never a layout the server sends.
-   - `*_data` feeds (spread `...appOnly`, **no** view binding; the engine module's `registerDataFeed`):
-     app-only JSON for in-widget refresh and navigation, returned as
-     `buildDataFeedResult(data)`. SEP-1865 hosts hide them from the LLM, and a widget-tool
-     result would be rendered by the host instead of returned to the in-widget `callTool()`.
+   - `*_data` feeds (spread `...appOnly`, **no** view binding; the engine module's
+     `registerDataFeed`, and for a feed that names its own engines, the board feed, a `namingFeed`
+     without `engine`, registered by `registerNamingFeed`): app-only JSON for in-widget refresh and
+     navigation, returned as `buildDataFeedResult(data)`. SEP-1865 hosts hide them from the LLM, and
+     a widget-tool result would be rendered by the host instead of returned to the in-widget
+     `callTool()`.
+   - A registrar tool a view reads too (the engine list, an instance's history, a task's form)
+     stays the model's and is marked `forViews: true` (widget-shell's `forViews`:
+     `ui.visibility: ["model", "app"]` and `openai/widgetAccessible`), the mark an Apps SDK host
+     allows an in-widget call by and the web app's forward admits a page's call by; the
+     connector's `src/widget-reads.test.ts` holds every read the widgets make to a view tool, an
+     app-only feed or a `forViews` tool.
 
    Every tool takes STRICT input (the registrar always, a raw registration through
    `strictToolInput(…)`; the boot refuses a schema that lets an unknown key through), with no
@@ -406,33 +571,66 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
    `@miragon/pulse-widget-shell/widgets`; never re-inline their primitives.** This covers
    the React views an MCP host renders (pulse-ui's and widget-shell's `src`, the connectors'
    `src/widgets`, the host bundle in `apps/mcp-server/src/ui/`); another interface
-   app's own UI follows the design system above, and the VS Code webview takes from pulse-ui
-   only its foundation (`/format`, `/tones`; `apps/vscode/docs/adr/ui-foundation.md`).
-   - **Pairs.** Six cockpit views have a counterpart in the VS Code webview (the overview, a
-     process, its instances, an instance, an incident, the history). A field, a count or an
-     action added to or changed in one is a pair feature: its pull request says whether the
-     other tool gets it and updates `docs/vscode/parity.md` by its review rule. Its content takes
-     props and callbacks only, no host context (`process-definitions-table-view.tsx` with
-     `renderActions`, `history-steps.tsx`), and stays in the connector until a second consumer
-     comes, so a shared building block (#586) costs little.
+   app's own UI follows the design system above, and the VS Code webview takes from pulse-ui its
+   foundation (`/format`, `/tones`) and, for shared building blocks, its React kit and
+   stylesheet. By the owner's decision D9 of 2026-11-12 (`apps/vscode/docs/adr/ui-foundation.md`)
+   the webview moved from Preact to React on pulse-ui in one switch and composes the kit
+   without widget-shell, in the one compact look of the design section.
+   - **Pairs.** Six cockpit views and a board have a counterpart in the VS Code webview (the
+     overview, a process, its instances, an instance, an incident, the history; a board through
+     `@miragon/pulse-blocks`). A field, a count or an action added to or changed in one is a pair
+     feature: where both show it, a shared building block is the default (React, props and
+     callbacks only, no host context inside: no `useToolQuery`, `ConfirmDialog`, `HandOffButton`
+     or `HostBridge`), which both render in React, and each side keeps its own screen and host
+     wiring around it. Its pull request updates
+     `docs/vscode/parity.md` by its review rule. Which blocks two surfaces share is the owner's
+     decision in normal review. A primitive goes into pulse-ui, an engine block into a shared
+     package created with the first one two surfaces render: `@miragon/pulse-blocks`
+     (`packages/core/blocks`), created with a board's tiles, which own their columns, cells, words
+     and notes and take the surface's table, id and diagram as slots, every table in the one row
+     convention of D9's point 8 (Actions and hand-offs below; `docs/vscode/parity.md`). Until a block moves there the cockpit side keeps its
+     props-only content in the connector (`process-definitions-table-view.tsx` with
+     `renderActions`, `history-steps.tsx`).
    - **One kit.** Primitives, components, the tone model (`TONE_*`, `resolveTone`), `cn`, the
      formatters and the kit pieces (`Icon`, `Th`/`Td`, `TableEmptyState`, `NativeSelect` …) come
      from `@miragon/pulse-ui`, a leaf (`ui-is-a-leaf`, invariant 8); widget-shell exports only
      what touches the host and never a pulse-ui name
      (`packages/core/widget-shell/src/pulse-ui-overlap.test.ts`). A form says an invalid
-     entry inline next to the control it marks `aria-invalid`, never clamps it silently.
-   - **The view runtime is widget-shell's.** Its host adapter (`ExtAppsViewHost` in
+     entry inline next to the control it marks `aria-invalid` (pulse-ui's `Field` wires both),
+     never clamps it silently.
+   - **The view runtime is widget-shell's.** Its host adapter in a chat (`ExtAppsViewHost` in
      `src/ui/ext-apps-host.tsx` over the official `App` of `@modelcontextprotocol/ext-apps` in
      `src/ui/view-runtime.ts`, mounted by `src/ui/view-root.tsx`) is the ONE place that speaks to
      the host: it mounts the
      host-agnostic contexts every widget reads (`HostContexts`, from one `ShellHost` and one
      `ViewHost`), as `TestViewHost` does in tests, so another host (a web app, a VS Code
-     webview) brings an adapter of its own and never touches a widget.
+     webview) brings an adapter of its own and never touches a widget. The second adapter is a
+     page's outside a chat (the web app's root): `mountPage(views, options)`
+     (`src/ui/page-root.tsx`) mounts a view under `BrowserViewHost` (`src/ui/browser-view-host.tsx`:
+     tools through the caller the page hands in, the theme from `data-cd-theme` else the OS, the
+     page's locale, fullscreen without a switch, no model context, no ext-apps import) and the
+     same providers as `ViewRoot` (`src/ui/view-providers.tsx`), calls the view tool itself and
+     tree-shakes out of the MCP bundle (`apps/mcp-server/test/view-bundle.test.ts`; test:web's
+     `page.spec.ts` renders the cockpit on the web app's page on the real server). A page may
+     bring its own `frame` around the view (the web app's bar, its notices), which renders under
+     the same providers and lays out the page, so the view takes its content's height; with a
+     frame and no view the frame renders alone (the web app's signed-out page). The web app (`apps/web`) is that page:
+     the engine module's views under `mountPage`, its caller `webToolCaller`, its frame and words
+     its own, and its bundle holds the page root without the chat's (`apps/web/test/bundle-graph.test.ts`). What a hand-off does is the view
+     host's `followUp`: `chat` posts it, a page that posts to no chat says `copy` (its prompt to
+     copy) or `none` (hidden), and `AskAiButton` reads it, as does a widget whose menu,
+     column or section holds hand-offs alone (`useHostFollowUp`, no tool caller), so `none`
+     leaves no empty menu, and a view's bar whose one action is a hidden hand-off passes no
+     action group; `ViewFrame` words its states by it too (a chat's say to ask in the chat, a
+     page's to reload the page). Whether a view writes is the view host's `writes`
+     (`useHostWrites`, beside `followUp`): a chat and `TestViewHost` write, a page writes
+     nothing, so no write control shows there (invariant 8's `useEngineAction`).
      The root's call hook (`useViewCall` over `resolveViewCall`) owns the stripped-result
      recovery: a host that drops `structuredContent` gets ONE re-run of the view's own view
      tool, so every view-bound tool is a read (`apps/mcp-server/test/view-registry.test.ts`).
-     `ViewFrame` renders the phases (waiting, error, cancelled, ready); every `ViewStack` row
-     has its own error boundary, so one crashing widget never takes its view down. Widgets
+     `ViewFrame` renders the phases (waiting, error, cancelled, ready), each the document's one
+     `<main>` (a failed or missing view its one `h1`), so a view renders no main of its own; every
+     `ViewStack` row has its own error boundary, so one crashing widget never takes its view down. Widgets
      reach the host only through `useViewHost`/`HostModelContext` and the query hooks
      (`useToolQuery`, `useToolQueries`, `useToolMutation`, `useViewData`), test under
      `TestViewHost`, and never import the MCP Apps runtime of
@@ -441,37 +639,85 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
    - **States and feedback** (#322). Loading, error and no data go through `ViewDataState`, or
      `QueryFallback` + `TableSkeleton` in a self-fetching widget (without an `isError` branch
      the skeleton never ends); both take a required `onRetry` and word a failure with
-     `describeError`, the raw engine text only under "Details". A refusal no retry changes
-     (`isPermanentError`: a refused profile, a write to a read-only engine) is not retried by the
+     `describeError`, the raw engine text only under "Details", its hint for the host the view
+     sits in (`followUp`: a page's words never send the reader to a chat). A refusal no retry
+     changes (`isPermanentError`: a refused profile, a write to a read-only engine, a call on an
+     engine whose dialect it does not read (`notServed`, worded without the dialect), a page's ended
+     session, an unknown or refused board, arguments a tool does not take) is not retried by the
      view's query client and offers no Try again, in an error state or a failed refresh's notice
      (a paged list's footer through `canRetry`, which then says why through `describeRefusal`,
-     never "try again"); a write words it once, at its control or in its
-     confirmation's dialog, and the cockpit shows a refused engine once, as its view's one state
-     (`RefusedEngineGate`), also before the engine list answers. A write reports through
+     never "try again"; a view's failed refresh over the data it shows is a `StatusStrip` docked
+     under its bar, `useDetailView`'s `notice`, the raw engine text under the strip's Details); a
+     write words it once, at its control or in its confirmation's dialog, and the cockpit shows a
+     refused engine once, as its view's one state (`RefusedEngineGate`), also before the engine
+     list answers, its title the route's h1 under a head without sections, and reads nothing where
+     the start data or the engine list names the profile refused, whose reason it words as the
+     server's refusal (another dialect's refused profile is offered no feed); beside it, an engine the server reads on boards only (Camunda 8, its dialect
+     from the start data's `CockpitEngineInfo`) is every route's one state too
+     (`BoardsOnlyEngineGate`), which reads nothing and names the boards that show it, under a head
+     with only the sections its dialect is served by (`ROUTE_DIALECTS`: none) and a trail that
+     names the engine; its landing row reads nothing and has no verdict, a board offers no way
+     into it (its tiles' rows and its chip open nothing: `BoardSlots.opens` of
+     `@miragon/pulse-blocks`), and the cross-engine view leaves it out and names it. A route
+     whose panels fail alike says it once, its first panel's state with a Try again that reads
+     them all (the overview's verdict over its definitions, the incidents' KPIs over their list).
+     A page's ended session (`isSessionEnded`) is said once, by the page's frame: a view's state
+     shows a quiet line that its content is missing, and no notice, footer alert or engine row
+     speaks of it. A page's refused start (an unknown board, arguments a tool does not take, data
+     the server does not offer, a view of an engine shown on boards only) links to the page's
+     start page (`mountPage`'s `startPage`); a start that failed for its engine keeps the
+     cockpit's head over the route that says so (`mountPage`'s `failedStart`, the connector's
+     `cockpitAfterFailedStart`). A write reports through
      `useActionFeedback()` toasts that name the object and confirms through `ConfirmDialog`;
-     nothing to show is `TableEmptyState`.
+     nothing to show is `TableEmptyState`. A first load shows its skeleton only after 400 ms
+     (`SKELETON_DELAY_MS`), a refresh keeps the content on screen with its region `aria-busy`
+     (both components' `children` and `refreshing`), and an error is the guide's status box
+     (`ErrorState`). A view's guard keeps its bar with the title it knows before its data
+     (`useDetailView`'s `title`, a cockpit route's crumb), so the page keeps its one `h1` while it
+     loads or fails.
    - **Inline is a card, not a page** (#396). A list under a host shows the rows that FIT the
      host's height budget, measured on the rendered view (`InlineFitBox`), never estimated
      with px constants. A paged list registers ONE list (`PagedRows` + `paged.fit`, its footer
      `labels={paged.footerLabels}`; `inline-fit-wiring.test.ts`); a row that continues the one
-     before carries `FIT_CONTINUES_ROW`; ids wrap between their parts (`BreakableId`). Roots
-     declare inline + fullscreen only (`SHELL_VIEW_CONFIG`).
-   - **Tables never widen the document** (WCAG 1.4.10): `ListTable` scrolls inside a named
-     region (`ariaLabel`) and drops columns on narrow regions (`hideBelow`). Ids show through
-     `IdCell`/`IdText`, processes and elements through `NamedId`, named by ONE reader
-     (`readBpmnNames`/`parseBpmnNames`), so every module shows them alike.
-   - **Type, dates and numbers.** Text sits on pulse-ui's `TYPE_SCALE` (13 px floor,
-     `scanTypeScale`). Dates, durations, numbers, counts and short ids go through the kit's
-     `format*` helpers and `shortId` in the locale `LocaleGate` publishes, one set for every
-     Pulse UI (pulse-ui's framework-free `@miragon/pulse-ui/format`, which the VS Code
-     extension's core and webview read too; a lower bound is `formatCount({ atLeast })`, `≥ 2,000`;
-     ESLint's date and number gates over `WIDGET_TREES`, every widget tree: the host bundle's
-     `src/ui`, widget-shell's and the connector's widgets, and the extension's core and webview;
-     `scripts/eslint-gates.test.mjs`). A count reaches a
-     catalog entry already formatted, and the entry puts the noun in the right number
-     (`countOf`, `plural(…)`), never a `…One`/`…Other` key pair.
+     before carries `FIT_CONTINUES_ROW`. An id in a table cell takes one line, so a row keeps the
+     row height: `NamedId` lays out inline in a `DataTable`'s body (the name, then the short id
+     quiet in mono, the whole in its title), whole where the table has room and cut with an
+     ellipsis first where it has none, and `IdText`'s copy button reaches into the cell's padding,
+     shows on the row's hover and focus, always on touch, never leaving the tab order. Only
+     outside tables (facts, a detail's header) does an id stack and wrap between its parts
+     (`BreakableId`). Roots declare inline + fullscreen only (`SHELL_VIEW_CONFIG`).
+   - **Tables never widen the document** (WCAG 1.4.10): `ListTable`, over pulse-ui's
+     `DataTable` (a sticky head of one-line captions, 28 px rows, a hover fill on `--accent`),
+     scrolls inside a named region (`ariaLabel`), drops columns on narrow regions
+     (`hideBelow`) and fits a column to its one line (`fit`: the identifying column, a time, the
+     row actions beside a long text, which takes the rest); a wide table of figures lets its
+     captions wrap (`wrapHeads`). It sizes no column: `DataTable`'s column sizing
+     (`useColumnSizing`, its persistence injected) is for a view that passes `sizing`; the grips,
+     the column menu and their measuring come with it, and a selection column's box with
+     `rowSelection`, so a bundle without them carries none. Ids
+     show through `IdCell`/`IdText`, processes and elements through `NamedId`, named by ONE
+     reader (`readBpmnNames`/`parseBpmnNames`), so every module shows them alike.
+   - **Type, dates and numbers.** Text sits on pulse-ui's `TYPE_SCALE` (13 px floor, weights
+     400, 600 and 700 only, `scanTypeScale`); a disabled control is opaque, never faded; a
+     section's title is pulse-ui's `SectionHeading` (13 px at 600 in the foreground, the
+     webview's; `as` for its level), never a heading composed by hand (the connector's
+     `src/brand-gates.test.ts`). Dates,
+     durations, numbers, counts and short ids go through the kit's `format*` helpers and `shortId`
+     in the locale `LocaleGate` publishes, one set for every Pulse UI (pulse-ui's framework-free
+     `@miragon/pulse-ui/format`, which the VS Code extension's core and webview read too; a lower
+     bound is `formatCount({ atLeast })`, `≥ 2,000`; ESLint's date and number gates over
+     `WIDGET_TREES`, every widget tree: the host bundle's `src/ui`, widget-shell's and the
+     connector's widgets, Pulse's building blocks (`packages/core/blocks`), the web app's `src`
+     and the extension's core and webview; `scripts/eslint-gates.test.mjs`).
+     A count reaches a catalog entry already formatted, and the entry puts the noun in the right
+     number (`countOf`, `plural(…)`), never a `…One`/`…Other` key pair.
    - **BPMN** renders through `useBpmnViewer` + `BpmnZoomControls` on a forced-light canvas
-     whose colours all come from `BPMN_TOKENS` (`packages/core/widget-shell/src/ui/bpmn-tokens.ts`).
+     whose colours all come from `BPMN_TOKENS` (`packages/core/widget-shell/src/ui/bpmn-tokens.ts`)
+     and whose labels are bpmn-js's Arial (`BPMN_LABEL_STYLE`, the design section's deviation);
+     a marker paints its shape's outline, never a label, and the canvas alone is the image (the
+     hook's `ariaLabel`), its controls beside it and its count badges `aria-hidden` drawings. The
+     hook's fit keeps the drawing clear of the zoom bar beside the canvas and of bpmn.io's link,
+     both measured as drawn, so a narrow card shows every element.
    - **Paged lists** compose `usePagedListView` (the feed takes `firstResult`/`maxResults` and
      returns an honest total; counts, filters and model contexts read the payload ON SCREEN,
      never the request) + `ListTable` + `PagedListFooter`. Optimistic local state resets with
@@ -489,36 +735,66 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      on the landing and the fleet view alike. A failed health read has no verdict: its tone is
      the engine module's `HEALTH_FAILURE_TONE`
      (`packages/connectors/engine/engine-connector/src/widgets/lib/health-verdict.ts`), an
-     unreachable engine `danger`, a refused profile or login `warning`. Each tone has three
-     roles: `--<tone>` (dot, edge, icon), `--<tone>-soft` (tint, black text) and `--<tone>-ink`
-     (text on card or page, never on a tint, never a number). Numbers stay neutral. Components use
+     unreachable engine `danger`, a refused profile or login `warning`. Each tone has four
+     roles: `--<tone>` (dot, edge, icon), `--<tone>-soft` (tint, black text), `--<tone>-surface`
+     (the guide's status surface for a status box or strip: the tint on light, neutral on dark)
+     and `--<tone>-ink` (text on card or page, never on a tint, never a number). Numbers stay
+     neutral: an alarming count shows its tone by an icon of the tone's own shape and says it in
+     words (`CountFigure` in a table cell, a fact or a KPI tile, `CountBadge` as a pill at a row's
+     end; filled in its tone only on a BPMN diagram, the named deviation), never by a coloured
+     number, a tinted pill or a tinted KPI tile (owner decision of 2026-11-12, D9), a state in a
+     cell is a `StateLabel` (an icon of the state's own shape, its one word from the kit's
+     catalog) on the row's one line, never a pill (those are a header's `badge`) and never stacked
+     under an id; a count in a view's header is a `StateLabel` too (its tone's icon, the number
+     in the foreground), never a tinted `StatusBadge` or `LivePill`. Components use
      role names only (`scanColors`); `packages/core/ui/src/theme/tone-contrast.test.ts` holds every
      role pair to WCAG AA (a role a brand may override belongs in `ROLE_CONTRAST_PAIRS`). A brand
      override goes under `:root` AND the dark scopes, or a light-only value shows in dark
      (`parseThemeVariables`).
-   - **Icons are Lucide**, never glyphs or emoji: `Icon`, 16 or 24 px (`scanIconSizes`), its
+   - **Icons are Lucide**, never glyphs or emoji: `Icon`, 16 or 24 px, 12 px only in the files
+     the gate names with a reason (`scanIconSizes`, the density section's deviation), its
      stroke through lucide's own `strokeWidth`, never a CSS `stroke-width` rule, which would
      beat the `LucideProvider` widget-shell's view root sets with pulse-ui's `ICON_STROKE`.
      Every package that imports `lucide-react` and every host bundle pin the SAME exact 1.x
      devDependency (today `1.70.0`): pnpm installs a package once per peer set, so two versions
      resolve a second pulse-ui and widget-shell instance and split the React contexts.
-   - **Actions and hand-offs.** A view's actions are ONE group in `WidgetHeader` `actions`, all
-     `size="sm"`, ordered: deterministic steps, the engine's own web app
-     (`OpenInCockpitLink`), then the chat; the meta line under the title holds facts only
-     (`action-group.test.tsx`), and a state goes into the header's `badge`, not an icon tile. A row's drill is `DrillButton` (`row-actions.test.ts`), its
-     further actions sit in `MoreActions`. A chat hand-off is widget-shell's `HandOffButton`
-     (`action` from `HAND_OFF_ACTIONS`: one Lucide icon and one verb naming the chat per
-     function), a secondary outline after the action it accompanies; `scanGlyphs` bans sparkle
-     icons and an ESLint gate a raw `AskAiButton`, so a new function goes into widget-shell's table.
+   - **Actions and hand-offs.** A view's actions are ONE group in `WidgetHeader` `actions` (the
+     view's `ViewBar`, the hero only at app level with `size="app"`; the landing's one action sits
+     beside its hero and wraps under it where both do not fit, WCAG 1.4.10), all the kit's toolbar
+     buttons of one size (`variant="toolbar"`, `size="sm"`: an icon and its label at 400, the
+     label hidden visually in a bar under 36rem and kept as the name; `OpenInCockpitLink` and
+     `HandOffButton` take `variant="toolbar"` there), ordered: deterministic steps, the engine's
+     own web app (`OpenInCockpitLink`), then the chat; the bar's facts hold facts only
+     (`action-group.test.tsx`), and a state goes into the header's `badge`, not an icon tile.
+     `WidgetShell` pads nothing: its `header` (the bar, the strips under it) runs from edge to
+     edge, its content sits in the gutter, and a `flush` shell's children are views of their own
+     (the cockpit's routes). A table row opens what it names on a click or Enter and copies its
+     id with Ctrl or Cmd+C, one row convention on every surface (owner direction 2026-11-18, as
+     the webview's rows): widget-shell's `ListRow` over pulse-ui's `DataTableRow`, named by what
+     it opens, its hint telling a screen reader that Enter opens it, the table's one tab stop and
+     the arrows between its rows, its focus drawn over a pinned column too; text selected in a row
+     copies as selected, and a copy that is no id (a board's incident row, its message) is named
+     in the row's hint (`copyHint`) and its toast (`copyLabel`); a row carries no drill
+     (`row-actions.test.ts`), a drill outside tables (a card's) is `DrillButton`, `xs` but where
+     the gate names a card's reason. A row's further actions (a write, a hand-off,
+     `MoreActions`) sit at its end and open nothing, `xs` (24 px: a button's `size="xs"`, a
+     hand-off's `size="xs"`, `MoreActions`), so the row keeps the row height. A chat hand-off is widget-shell's `HandOffButton` (`action` from `HAND_OFF_ACTIONS`: one Lucide
+     icon and one verb naming the chat per function), a secondary outline after the action it
+     accompanies (in a view's bar its toolbar button); `scanGlyphs` bans sparkle icons and an
+     ESLint gate a raw `AskAiButton`, so a new function goes into widget-shell's table.
    - **Brand gates and glossary.** Every widget package runs the gates of
      `@miragon/pulse-ui/testing` (`catalogTextFindings`, `scanGlyphs`, `scanIconSizes`,
-     `scanColors`) in its own `brand-gates.test.ts` (the host bundle's `src/ui` runs
-     `scanGlyphs`; widget-shell checks its words next to its catalogs, in
+     `scanColors`, `scanOutlines`: Tailwind's `outline-hidden` only under a focus state, since
+     forced colours paint it as a 2 px frame at rest anywhere else) in its own
+     `brand-gates.test.ts` (the host bundle's `src/ui` runs `scanGlyphs` and `scanOutlines`; the
+     web app runs every scan and `scanTypeScale` over its `src` in `apps/web/test/brand-gates.test.ts`
+     and `catalogTextFindings` in `apps/web/test/messages.test.ts`; widget-shell checks its words
+     next to its catalogs, in
      `packages/core/widget-shell/src/ui/kit-words.test.ts`), and its en/de catalogs hold the same
-     keys; the VS Code extension runs `scanGlyphs`, `scanIconSizes` and `scanColors` over its
-     webview (`apps/vscode/test/architecture/brand-gates.test.ts`, its 12 px icons the named
-     deviation of the design section). One term per thing across the product, the VS Code
-     extension included: `PRODUCT_GLOSSARY` (`@miragon/pulse-ui/testing`, with the brand gates; Incident,
+     keys; the VS Code extension runs `scanGlyphs`, `scanIconSizes`, `scanColors`,
+     `scanOutlines` and `scanTypeScale` over its webview (`apps/vscode/test/architecture/brand-gates.test.ts`, its
+     12 px icons the named deviation of the design section). One term per thing across the
+     product, the VS Code extension included: `PRODUCT_GLOSSARY` (`@miragon/pulse-ui/testing`, with the brand gates; Incident,
      "Jobs ohne Versuche" / "jobs without retries", "bereitstellen", Geschäftsschlüssel,
      aussetzen, Versuche, alle Engines, ein Profil "abgelehnt" / "refused"), checked with each
      connector's own terms by `src/messages/glossary.test.ts` and listed in
@@ -529,7 +805,34 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      holds a copy). The counts
      both tools show take the words of `COUNT_TERMS` (owner decision E2): "Incidents" are the open
      incidents of the thing shown, "With incident" the instances that have one, and a count's
-     header names its version scope; the numbers behind a word may differ per tool.
+     header names its version scope. On Camunda 7 "With incident" reads one way on every surface
+     (owner decision 2026-11-14): an open incident the runtime holds now, on every history level,
+     by c7-core's rule (`packages/connectors/c7/c7-core/src/with-incident.ts`; the cockpit's
+     instance list and its scope counts send the same runtime filter in their search body, and
+     `engine_list_process_instances` in its query, both from its `withIncidentBody`), never by
+     the history's incident filters, which find nothing below history level FULL; a history
+     query by incident refuses an empty answer the runtime contradicts (`unrecordedIncidents`).
+     A feature more than one surface shows (boards first) shows the same numbers on every
+     surface, from one builder over one read (owner decision D2 of 2026-11-12, amending E2);
+     elsewhere a tool keeps its own numbers behind the same words until its view moves onto
+     shared numbers. For boards the gates are c7-core's recorded answers with the one board they
+     give (`C7_BOARD_ENGINE`), which the board feed over the server's wire
+     (`packages/connectors/engine/engine-connector/src/data/board-data.numbers.test.ts`) and the
+     C7 adapter over its own (`packages/connectors/c7/c7-adapter/test/c7-board-numbers.test.ts`)
+     must build exactly, the cockpit's board view rendering that board in en and de
+     (`packages/connectors/engine/engine-connector/src/widgets/board/board-view.numbers.test.tsx`),
+     and the board cases of both engine suites on a live engine
+     (`packages/connectors/engine/engine-connector/src/lib/core-adapter/c7-runtime.engine.test.ts`,
+     `packages/connectors/c7/c7-adapter/test/c7-conformance.engine.test.ts`). Camunda 8 has its
+     own: c8-core's recorded answers with the board they give (`C8_BOARD_ENGINE`, the diagram's
+     XML a recorded text), which the board feed over the server's Camunda 8 wire (the same
+     board-data.numbers.test.ts, rendered in en and de by the same board-view.numbers.test.tsx,
+     each answer left out in turn by `src/data/honest-numbers.degrade.test.ts`) and the C8 adapter
+     over its wire must build exactly and whose numbers are the conformance kit's fake world's, as
+     the C7 board's are (`packages/connectors/c8/c8-adapter/test/c8-board-numbers.test.ts`), and
+     the board cases of both Camunda 8 engine suites on a live cluster, run locally only until #531
+     (`packages/connectors/engine/engine-connector/src/lib/core-adapter/c8-runtime.engine.test.ts`,
+     `packages/connectors/c8/c8-adapter/test/c8-conformance.engine.test.ts`).
    - **Locale on the server.** Tool results for the model are English only (the engine module's
      cockpit facts are JSON keys); a
      verdict travels as data and the widget words it in the host's language. The server never
@@ -552,24 +855,34 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
    - Honest numbers (`data/engine-reads.ts`): **primary rows/counts propagate errors;
      enrichment degrades to `null` (rendered "—"), never 0**; totals come from `/count` or
      statistics, never a capped page or scan; a definition view spans every version of its key
-     (`data/honest-numbers.test.ts`).
+     (`data/honest-numbers.test.ts`). A board's numbers (the board feed `engine_board_data`,
+     `data/board-data.ts` over the builder of `@miragon/pulse-board`) degrade per engine and tile
+     instead of failing the call: a failed engine or a read left out shows in its place, never 0
+     (the degrade table, `data/honest-numbers.degrade.test.ts`, breaks each read in turn); an
+     engine whose definitions read fails as `misconfigured` (a Camunda 8 cluster without secondary
+     storage) shows failed with that failure and its hint, never ready with empty tiles.
    - No view payload carries BPMN XML (a view tool's `structuredContent` reaches the model on
      some hosts): a view names the version it draws (`diagramDefinitionId`) and `BpmnDiagram`
-     reads the XML from the app-only `engine_bpmn_xml_data`. The ONE XML read is `lib/bpmn/definition-xml.ts`, cached per
-     engine client and per caller.
+     reads the XML from the app-only `engine_bpmn_xml_data`. The ONE XML cache is
+     `lib/bpmn/definition-xml.ts`, per engine and per caller: it reads Camunda 7 through the
+     engine's client (`fetchDefinitionXml`) and another dialect through its runtime's
+     `getDiagramXml` (`diagramXmlOf`, `lib/engine/diagram-xml.ts`, the dialect switch).
    - The process flow's "Throughput" (`data/activity-throughput.ts`) reads the engine's history
      statistics, which load its database (measured 2026-11-08): a fixed 30-day window, cut to the
      shortest `historyTimeToLive` of a version that ran in it or could have, and said so (0 days:
      no window, nothing read); counts first, over the likely versions and six older ones at most
      (the rest named as not counted), so a version without an instance in the window is never
      read; one statistics read at a time per engine (`oneAtATime`); one read
-     per engine client, caller, key and window for the hour (`createCallerCache`, both in
-     `lib/engine/per-engine.ts`, the XML read's cache too). Its widget query sits outside the
-     cockpit's Refresh (`THROUGHPUT_QUERY_ROOT`) and never retries by itself.
+     per engine client, caller and bearer token (`callerCacheKey`), key and window for the hour,
+     so a renewed token reads anew and short tokens (Keycloak's 5 minutes) refill it at each
+     renewal (`oneAtATime` and `createCallerCache` in `lib/engine/per-engine.ts`, the XML read's
+     cache too). Its widget query sits outside the cockpit's Refresh (`THROUGHPUT_QUERY_ROOT`) and
+     never retries by itself.
    - Each engine REST rule the client defaults miss has one home, used by `tools/` AND `data/`
      (and by the CLI and the C7 adapter of the editor hosts): the pure rules (`toEngineDate`, `engineSorting`, the filters,
      `toEngineVariable(s)`, `autoTypedValue`, `incidentRecovery`, `RAW_VARIABLES`, the
-     missing-resource rule `isMissing`) in `@miragon/pulse-c7-core`; the root cause of a failure
+     missing-resource rule `isMissing`, "with incident" `with-incident.ts`) in
+     `@miragon/pulse-c7-core`; the root cause of a failure
      text, the one rule every dialect shares, in the engine family's core,
      `@miragon/pulse-engine-core` (`RootCauses.of`, `RootCauses.lineOf`), which c7-core applies
      as `causeOf` (the root cause,
@@ -593,14 +906,25 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      through it: the engine connector builds each engine's credential and transport once at boot
      and hands the SDK client its `asFetch` and a `requestValidator` for the path values
      (`src/lib/engine/engine-connection.ts`), and words every failure for the model in one place
-     (`src/lib/engine/engine-error.ts`, the wrong-root hint by `isUnknownEndpoint` itself). The
+     (`src/lib/engine/engine-error.ts`, the wrong-root hint by `isUnknownEndpoint` itself). Its
+     Camunda 8 wire is its own too, as in the C7 family: once at boot per Camunda 8 engine a
+     credential (none, Basic or the client credentials grant, one token source per engine) and a
+     read-only transport under c8-core's transport port, lossless, each call's reads on its signal
+     (`src/lib/engine/c8-connection.ts`, which copies the transport's and the token source's
+     failure fields for c8-core, an answer always as answered), and its words on a path of their
+     own (`src/lib/engine/c8-errors.ts`: none of the Camunda 7 hints, the token endpoint's failures
+     by the profile's keys and the `ENGINE_SECRET_*` family, never a variable, the token
+     endpoint's URL or the cluster's url), which share only the neutral transport sentences with
+     engine-error.ts (`transportSentence`); its cases in
+     `src/lib/engine/transport-cases.c8.test.ts`. The
      CLI sends through it as well (`apps/cli/src/http/client.ts`, the connection mapped from its
      resolved configuration; its cases in `apps/cli/src/http/transport-cases.test.ts`) and words
      every failure itself (`apps/cli/src/http/errors.ts`, the wrong-root hint by
      `isUnknownEndpoint` too), and so does the C7 adapter of the editor hosts from its wire
      (`packages/connectors/c7/c7-adapter/src/engine-rest/http`: `EngineHttp` over `Http.send`,
-     60 s and 64 MiB, a read-only connection the transport's `readOnly`), which words every failure
-     itself (the reason of each `HttpFailure`, the root hint by `isUnknownEndpoint`) before its
+     the profile's `timeout` (else 60 s) and 64 MiB, a read-only connection the transport's
+     `readOnly`), which words every failure itself (the reason of each `HttpFailure`, the root
+     hint by `isUnknownEndpoint`) before its
      `ErrorTranslation` maps it onto the contract's failures (TLS and DNS stay `unreachable`;
      its cases in `packages/connectors/c7/c7-adapter/test/engine-rest/transport-cases.test.ts`).
      Every write tool has a
@@ -635,15 +959,38 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      `toEngineDate`), and count overdue jobs from a capped scan of 1,000 per key, named in
      `truncated` (not a `/count`). The MCP side caps the result lists c7-core leaves uncapped
      for the CLI (wait states, incidents, timeline, variables, definitions, topics) and names each
-     cut in `truncated`; c7-core still loads them whole.
+     cut in `truncated`; c7-core still loads them whole. The reads of the engine contract are
+     c7-core's too (`@miragon/pulse-c7-core/runtime`, `C7Runtime`): the C7 adapter answers the
+     editor hosts with them over its wire, and the connector runs them over the server's SDK
+     wire as its runtime (`runtimeOf` in `src/lib/engine/engine-runtime.ts`: `C7Runtime` over
+     `enginePortFor` on the call's client, its failures read by `runtimeErrorOf`), which its engine
+     suite holds to engine-core's read laws against real engines
+     (`packages/connectors/engine/engine-connector/src/lib/core-adapter/c7-runtime.engine.test.ts`);
+     no tool or feed runs it. An integer beyond 2^53 reaches it there as a string of its digits.
    - **Caller identity** is read once per request by the MCP middleware
      (`installMcpRequestContext` → `callerUserId` in `packages/core/widget-shell/src/caller.ts`),
      from the server's own OAuth only: nothing a client chooses (a session id, a header)
-     identifies a caller. Code reads it through the ambient request info (`getMcpRequestInfo`):
-     per-caller caches key on `callerCacheKey`, passthrough auth forwards the caller's bearer
-     token (under OAuth the one the gate verified; a header with a second credential gets 401).
+     identifies a caller. The caller is the claim the provider names: `sub` (Keycloak's with the
+     `sid` and `auth_time` of a signed-in user), the generic provider's `MCP_OAUTH_OIDC_SUBJECT_CLAIM`
+     (never a claim whose value can change), on Entra ID `oid`, else `sub`. Code reads it through
+     the ambient request info (`getMcpRequestInfo`): per-caller caches key on `callerCacheKey`, a
+     hash of the caller and the bearer token, so a web session's renewal starts new entries (the
+     cost the check has on providers with long tokens: `docs/mcp/identity-providers.md`), and
+     passthrough auth forwards the caller's bearer token (under OAuth the one the gate verified; a
+     header with a second credential gets 401).
      Without OAuth there is no caller: a request still caches apart by its bearer token,
-     and one without a token shares the empty cache partition.
+     and one without a token shares the empty cache partition. The web app's session (`/app`,
+     widget-shell's `src/web`) is no second source: it holds a token the server's own sign-in
+     obtained through the same provider, checked by the gate before it is kept, and `/mcp`
+     verifies it like any bearer token; the session cookie is no credential at `/mcp` (401), and
+     `/app` refuses an Authorization header (400). The session renews its token when it is due,
+     with `MCP_WEB_SESSION_CHECK_MINUTES` at least that often at the provider (`src/web/refresh.ts`),
+     and ends at the provider's second refusal of a renewal at a replica (the first may be a race
+     between replicas). A page's call (`POST /app/api/call`) reaches
+     `/mcp` in-process as a `tools/call` with the session's bearer token and an MCP client's
+     headers alone (`src/web/forward.ts`), so the caller, the per-caller caches and passthrough
+     key on that forwarded token like any other; it takes only a read a view calls
+     (`openai/widgetAccessible` and `readOnlyHint` in the boot's record), never a write.
 
 8. **Modules are self-contained peers; an MCP server app is a thin composition root.** The
    package rules hold for every workspace package, the composition-root rules for MCP server
@@ -666,40 +1013,77 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      import each other, a connector imports only its
      own family's client and core (`connectors-own-their-family`) and the engine module also
      those of the dialect families (`engine-connector-spans-the-dialects`, `ENGINE_DIALECTS`:
-     `c7`), clients and family cores are leaves (a dialect core's one foreign edge is engine-core's
-     main entry), a family's client is imported only by its family's connector (a dialect's client
+     `c7` and `c8`; of its shipped code only `src/lib/engine` imports c8-core, by its main entry,
+     `engine-connector-c8-core-in-its-engine-layer`), clients and family cores are leaves (a
+     dialect core's one foreign edge is engine-core's main entry), a family's client is imported only by its family's connector (a dialect's client
      by the engine module) and by tests, never by a family's adapter (it sends through its family's
      core and the transport), an app (the MCP server composes connectors, not their wire) or another
      package (`client-consumers`), core is the foundation and pulse-ui its leaf, no package or app
      imports an app, no cross-package deep imports. The interface apps import nothing of the
-     MCP/UI/server stack, zod included. The CLI imports no workspace package except a family core it
-     bundles (`@miragon/pulse-c7-core`), the profile format where it reads its profiles (what
-     `profile-consumers` admits; it may bundle it with its core, `CLI_BUNDLES`) and the transport
-     where it sends its engine requests (what `http-consumers` admits; it bundles it too). The
-     editor hosts import only the runtime view and a family's adapter (`runtime-view-consumers`,
+     MCP/UI/server stack, zod included, but the web app, the page host of the MCP views: its src
+     imports only its own modules, `react`, `react-dom`, `lucide-react`, pulse-ui's root and
+     `theme.css`, widget-shell's `/widgets` and the engine connector's `/widgets`, never a
+     server half, the transport, the MCP Apps runtime or a `./testing` entry (`web-is-a-page`,
+     `WEB_IMPORTS`). The CLI imports no workspace package except a family core it
+     bundles (`@miragon/pulse-c7-core`, never its `./runtime`: `cli-without-the-c7-runtime`), the
+     profile format where it reads its profiles (what `profile-consumers` admits; it may bundle it
+     with its core, `CLI_BUNDLES`) and the transport where it sends its engine requests (what
+     `http-consumers` admits; it bundles it too). The
+     editor hosts import only the runtime view, a family's adapter (`runtime-view-consumers`,
      `adapter-consumers`; their closed worlds let only the composition roots wire the adapter) and
-     of the family cores engine-core's main entry alone, for the contract's ids and read models
+     the board format's main entry where they read board files (`board-consumers`), and of the
+     family cores engine-core's main entry alone, for the contract's ids and read models
      (`editor-hosts-reach-dialects-through-adapters`). The runtime view
      (`packages/core/runtime-view`) is foundation code with one edge into a family, the owner's
      decision of 2026-11-09 on #585: engine-core by its entries
      (`runtime-view-builds-on-the-engine-contract`); its core and webview import pulse-ui's
      framework-free formatters and tones (`@miragon/pulse-ui/format`, `@miragon/pulse-ui/tones`,
-     which import nothing: `ui-foundation-entries-import-nothing`; its closed world's
-     `pulse-ui-only-its-foundation` keeps the React kit out; the decision:
-     `apps/vscode/docs/adr/ui-foundation.md`). A family's adapter imports only its own family's
-     core, engine-core, the runtime view and the transport (`adapters-own-their-family`; the C7
-     adapter, `packages/connectors/c7/c7-adapter`, runs c7-core), never a client, its own family's
-     included (`client-consumers`, owner decision 2026-11-11). A family core
+     which import nothing: `ui-foundation-entries-import-nothing`). Its core, ports, model reader
+     and host kit stay framework-free, with nothing else of pulse-ui (its closed world's
+     `pulse-ui-only-its-foundation`); the webview may import pulse-ui's React kit and stylesheet
+     for shared building blocks, by the package's root and `@miragon/pulse-ui/theme.css` only
+     (`webview-pulse-ui-by-its-entries`; the decisions of 2026-11-12:
+     `apps/vscode/docs/adr/ui-foundation.md`, whose D9 moved the webview to React on pulse-ui in
+     one switch, its rendering libraries `react`, `react-dom` and `lucide-react`, never
+     widget-shell). A family's adapter imports only its
+     own family's core, engine-core, the runtime view and the transport
+     (`adapters-own-their-family`; the C7 adapter, `packages/connectors/c7/c7-adapter`, runs
+     c7-core), its tests also the board format, to build a board over its runtime
+     (`adapter-tests-own-their-family`), never a client, its own family's included (`client-consumers`, owner decision
+     2026-11-11). A family core
      (`family-core-is-a-leaf`) is imported only by its family's connector (a dialect's core by the
      engine module) and adapter and by the apps that bundle it (`family-core-consumers`,
      `CORE_BUNDLERS`); the profile format (`@miragon/pulse-profile`, `packages/core/profile`) is a
      leaf as well, which takes the text of a profile file and returns a verdict per profile as data,
      reading no file and no environment (`profile-is-a-leaf`), and only the readers of profiles
      import it: the CLI's config layer, the connections of the runtime view's host kit (where Pulse
-     for VS Code and Pulse for Orca parse their project files), the engine connector's
-     configuration, and tests (`profile-consumers`, `PROFILE_READERS`; the CLI, the editor hosts and
-     the engine connector read their profiles with it, the connector its engines under the
-     credential policy `env`: a secret only by the name of an `ENGINE_SECRET_*` variable); the
+     for VS Code and Pulse for Orca parse their project files and the CLI's user config), the
+     engine connector's configuration, and tests (`profile-consumers`,
+     `PROFILE_READERS`; the CLI, the editor hosts and the engine connector read their profiles with
+     it, the connector its engines under the credential policy `env`: a secret only by the name of an
+     `ENGINE_SECRET_*` variable); the board format (`@miragon/pulse-board`, `packages/core/board`)
+     is a leaf too, which takes the text of a board file and returns the board or every problem
+     with its JSON path, reading no file and no engine, and never reaches its builder
+     (`board-format-is-a-leaf`), and only where a surface reads its board files is it imported: the
+     runtime view's core (its closed world keeps the protocol, which holds its own board types, free
+     of it), the editor hosts' src, the engine connector's board layers (`src/engine-boards.ts` and
+     `src/board-files.ts`, which read `ENGINE_BOARDS_DIR`, `src/data`, the board feed, and its view
+     models by type only, `connector-view-models-board-types-only`), and tests (`board-consumers`,
+     `BOARD_READERS`); its builder (`@miragon/pulse-board/builder`,
+     `src/builder`) is the package's named exception, which imports only its own modules, the
+     format and engine-core's main entry, no npm package and no Node built-in
+     (`board-builder-builds-on-the-engine-contract`; engine-core an optional peer), and only the
+     runtime view's core, the engine connector's `src/data` and tests import it
+     (`board-builder-consumers`, `BOARD_BUILDERS`); the
+     package's tests that read the contract import of the families engine-core alone, by its
+     entries (`board-tests-build-on-the-engine-contract`); the building blocks
+     (`@miragon/pulse-blocks`, `packages/core/blocks`) import in their shipped code only React,
+     Lucide, pulse-ui's root, `/format` and `/tones` and the board format's main entry, never
+     widget-shell, ext-apps, a family, engine-core, the builder or a Node built-in
+     (`blocks-are-building-blocks`), and only a surface that renders them imports them: the runtime
+     view's webview, by the main entry (its closed world's `webview-blocks-by-its-entry`), the
+     engine connector's widgets (the cockpit's board route) and tests (`blocks-consumers`,
+     `BLOCKS_RENDERERS`); the
      transport (`@miragon/pulse-http`, `packages/core/http`) is a leaf too, which
      runs over an injected `fetch` on the web platform's globals, no npm package and no Node
      built-in (`http-is-a-leaf`; ESLint's `no-restricted-globals` keeps out what only a browser
@@ -710,37 +1094,46 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      requests is it imported: the CLI's `src/http`, `src/auth` and `src/operation`, the src of a
      family's adapter of the runtime view, a connector's `src/lib/engine` (where the engine
      connector sends through it, behind `resolveEngine`/`withEngine`; never its tools, data
-     builders or widgets), and tests anywhere, never the MCP server app's shipped code
-     (`http-consumers`, `HTTP_USERS`; in the C7 adapter only its wire, `src/engine-rest/http`, by
-     its closed world's `http-only-in-the-wire`, and only by the main entry); the
+     builders or widgets), widget-shell's `src/web` and `src/oauth-discovery.ts` (the web app's
+     sign-in through the server's own provider and that provider's one discovery, by `./oauth` at
+     runtime and the main entry by type alone: `widget-shell-oauth-by-the-oauth-entry`), and
+     tests anywhere, never the MCP server app's
+     shipped code (`http-consumers`, `HTTP_USERS`; in the C7 adapter only its wire,
+     `src/engine-rest/http`, by its closed world's `http-only-in-the-wire`, and only by the main
+     entry; in the C8 adapter only its wire, `src/wire`, by the main entry and `./oauth`, whose
+     client credentials grant gives it its tokens); the
      engine family's core (`@miragon/pulse-engine-core`,
      `packages/connectors/engine/engine-core`) is a family core like any other, importing only its
      own modules (`family-core-is-a-leaf`), and is imported only where a dialect is implemented,
-     the `src` of a dialect's core (`ENGINE_DIALECTS`, never its `./testing` entry), its main
+     the `src` of a dialect's core (`DIALECT_FAMILIES`, never its `./testing` entry), its main
      entry alone (`family-core-is-a-leaf`; c7-core takes `RootCauses` from it, so the CLI
      bundles it with c7-core and never imports it), and the src of a family's adapter
      (`ENGINE_CORE_IMPLEMENTERS`), where the runtime view reads the contract's answers, its
-     layers `src/ports`, `src/core`, `src/model` and `src/host-kit` (never its webview) and the
-     editor hosts' src (`ENGINE_CORE_READERS`; the closed worlds hold them to the main entry and
+     layers `src/ports`, `src/core`, `src/model` and `src/host-kit` (never its webview), the
+     editor hosts' src and the board builder (`ENGINE_CORE_READERS`; the closed worlds and
+     `board-builder-builds-on-the-engine-contract` hold them to the main entry, the closed worlds
      their tests and dev harnesses to the package's entries), and by test files and test-support
-     anywhere and the test trees of the runtime view and the adapters (`ENGINE_CORE_TESTS`);
-     never the engine connector (although it is its own family's core) or the CLI until they
-     serve a second dialect, another family's core or a `./testing`
-     entry, which ships (`engine-core-consumers`), and it keeps the extension's ESLint house
-     rules, its config files included, with the connector resource gate in their union; and no
+     anywhere and the test trees of the runtime view, the adapters, the dialect cores and the
+     board package (`ENGINE_CORE_TESTS`), and where the engine connector runs the contract, its `src/lib/engine`,
+     `src/lib/core-adapter` and `src/data` (`ENGINE_CONNECTOR_CONTRACT_READERS`, held to the main
+     entry by `engine-connector-contract-by-its-main-entry`);
+     never the rest of the engine connector (its view models, widgets, `src/lib/shared`, tools
+     and widget tools), the CLI until it serves a second dialect, another family's core or a
+     `./testing` entry, which ships (`engine-core-consumers`), and it keeps the extension's ESLint
+     house rules, its config files included, with the connector resource gate in their union; and no
      shipped code imports a `./testing` entry (`shipped-code-not-to-testing`).
      The family rules key on the roles, so a
      new family inherits them. The seams keep browser code apart from the server: widget-shell's
      view half (`src/ui`) imports only itself, `src/protocol` (the wire both halves share: tool
-     results, the view name, the served fonts, the translator, the BPMN-name reader) and the
-     view stack (`widget-shell-views-browser-only`); its server half never imports `src/ui` or
-     React (`widget-shell-server-headless`); `src/protocol` imports nothing but itself
-     (`widget-shell-protocol-is-a-leaf`); its `tsconfig.widgets.json` (DOM, no Node types) and
-     `tsconfig.json` (Node, no DOM) split the types the same way. A connector's `src/widgets`
-     and `src/lib/shared` import at runtime only an allowlist
+     results, the view name, the served fonts, the translator, the BPMN-name reader, the web app's
+     paths, codes and CSRF header) and the view stack (`widget-shell-views-browser-only`); its
+     server half never imports `src/ui` or React (`widget-shell-server-headless`); `src/protocol`
+     imports nothing but itself (`widget-shell-protocol-is-a-leaf`); its `tsconfig.widgets.json`
+     (DOM, no Node types) and `tsconfig.json` (Node, no DOM) split the types the same way. A
+     connector's `src/widgets` and `src/lib/shared` import at runtime only an allowlist
      (`connector-widgets-are-browser-code`): its own widgets, `src/lib/shared`, `src/messages`,
-     `src/tool-names.ts`, the view models, `src/bpmn-names.ts`, widget-shell's `/widgets` and the
-     view stack; anything else of the connector, its client, a server package or a Node built-in
+     `src/tool-names.ts`, the view models, `src/bpmn-names.ts`, widget-shell's `/widgets`, the
+     view stack and the building blocks; anything else of the connector, its client, a server package or a Node built-in
      only as a type, and the other lib folders not even as a type
      (`connector-widgets-only-shared-lib`). Inside a connector the edges point one way: `src/data`
      and the lib folders (`src/lib/engine` routing, `src/lib/core-adapter` the c7-core port,
@@ -772,9 +1165,25 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      `MCP_ACTIVE_MODULES`, `resolveBoot`) lives inside the boot
      (`@miragon/pulse-widget-shell/server`); a root hands it its module list and its `shared`
      wiring and nothing about auth. The boot installs OAuth, a resource server that verifies
-     bearer tokens with `jose`, from one provider's `MCP_OAUTH_*` variables (the table and the
-     failure rules: `docs/mcp/operations.md`) and is authenticated exactly when it installed a
-     provider, never inferred from an env var.
+     bearer tokens with `jose`, from one provider's `MCP_OAUTH_*` variables: a table provider
+     (Keycloak, Auth0, WorkOS, Better Auth, Convex), the only ones that keep a copy of the
+     authorization server's metadata, the generic OpenID Connect provider (`MCP_OAUTH_OIDC_*`: ADFS,
+     Okta and any other with JWT access tokens, its key set from the provider's discovery) or
+     Microsoft Entra ID for one tenant (`MCP_OAUTH_ENTRA_*`), the table and the failure rules in
+     `docs/mcp/operations.md`, each identity provider's side in `docs/mcp/identity-providers.md`;
+     it is authenticated exactly when it installed a provider, never inferred from an env var.
+     Only beside a provider does `MCP_WEB_CLIENT_ID` (with the other `MCP_WEB_*`) install the web
+     app's sign-in under `/app` (widget-shell's `src/web`: login, callback, logout, the session
+     route, a page's calls), behind the HTTP edge guard; without one the variable fails the boot,
+     and no route under `/app` exists without it.
+     The boot then serves `/app` from the root's web build (`createComposedServer`'s `web: { dir }`,
+     `MCP_WEB_DIR` over it; `createApp` names the package's `web/`, which the image fills), read once
+     at boot (`src/web/static.ts`: regular files inside the folder, a link out or a build without
+     `index.html` or `pages.json` fails the boot), whose `pages.json` names its page routes, so
+     widget-shell knows no app's routes: a page needs a session (else 302 to the sign-in, which
+     returns to it with its query), `/app/signed-out` none, `assets/` is immutable, the page
+     `no-store`, anything else under `/app` 404, and every answer under `/app` carries the page's
+     CSP and security headers (`src/web/security-headers.ts`).
    - **The app composes, nothing more.** `setup.ts` holds `MODULES` and `sharedResources`, the
      `SharedResources` wiring: `shared` is the port for what the modules of a composition share
      (how a module gets another's capability, the engine module's engine access say, without
@@ -827,12 +1236,15 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      off; the app composes one module, so review holds that.
    - **A write registers only through the registrar**, whose toolset filter decides it
      (`withToolsetFilter`/`isToolInToolset` in the engine module), never an ad-hoc `toolset === …`
-     compare; an in-widget write asks `engine_widget_actions_data` whether it exists. The
-     registrar is also where a profile's `readOnly` holds: `withReadOnlyEngines`
-     (`src/lib/engine/read-only.ts`) fails every tool without `readOnlyHint` on such an engine
-     with `ENGINE_READ_ONLY` before its handler runs, and its transport refuses a write too.
+     compare; an in-widget write asks `engine_widget_actions_data` whether it exists (it names
+     the writes the registrar registered). The registrar is also where a profile's `readOnly`
+     holds: `withServedEngines` (`src/lib/engine/served-engines.ts`) registers a write only where
+     an engine it serves is writable, offers no read-only engine in its enum and fails every tool
+     without `readOnlyHint` on such an engine with `ENGINE_READ_ONLY` before its handler runs,
+     and its transport refuses a write too.
    - **In-widget engine writes** run through ONE primitive, `useEngineAction`
-     (`engine-connector/src/widgets/lib/engine-action.ts`): the gate (`allowed` from
+     (`engine-connector/src/widgets/lib/engine-action.ts`): the gate (the host's `writes`,
+     `useHostWrites`, so a page outside a chat offers no write, AND `allowed` from
      `engine_widget_actions_data` for the engine it writes to, its `readOnlyEngines` included,
      AND `available`: no write on an ended, cancelled or
      unconfirmed instance), the confirmation that names its target, the targeted invalidation
@@ -841,8 +1253,11 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
      `widgets/action-gating.test.tsx`). The cockpit's start route refreshes after a write
      because the tool result seeds its live feed query (`useViewData` always seeds).
    - **Vendors** are per-engine runtime config (`flavor` → `EngineProvider` in
-     `packages/connectors/engine/engine-connector/src/providers/`); the port holds ONLY real
-     differences (cockpit routes, branding, client hook), never an SDK mirror.
+     `packages/connectors/engine/engine-connector/src/providers/`, one per flavor of the profile
+     format, each naming its dialect); the port holds ONLY real differences (cockpit routes,
+     branding, client hook), never an SDK mirror. The client hook is the Camunda 7 providers'
+     alone: the camunda8 provider has its branding, derives no web app base and gives `null`
+     routes, so the server links nowhere into Operate below the `cockpitUrl` a profile names.
 
 ## Contracts
 
@@ -856,11 +1271,12 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
   (`save-exact=true` in `.npmrc`). Consumer-shared libraries are RANGED `peerDependencies`, so
   a downstream app dedupes them (`react`/`react-dom` `^19.2.0`, `zod` `^4.4.0`, `bpmn-js`
   `^18.31.1`, `@miragon/pulse-ui` and `@miragon/pulse-widget-shell` as `workspace:^`, packed to
-  `^<version>`), each also an EXACT devDependency. `bpmn-js` is a peer of widget-shell
-  (`./widgets` exports the BPMN viewer, so every view bundle imports it) and of the engine
-  connector, which draws diagrams. A published package imports only what its `dependencies` or
-  `peerDependencies` declare (`scripts/published-imports.test.mjs`), and its tarball ships no
-  test, every module its entries reach and every source its maps name
+  `^<version>`; `@miragon/pulse-engine-core` too, an optional peer of `@miragon/pulse-board`,
+  whose `./builder` alone reads it), each also an EXACT devDependency. `bpmn-js` is a peer of
+  widget-shell (`./widgets` exports the BPMN viewer, so every view bundle imports it) and of the
+  engine connector, which draws diagrams. A published package imports only what its
+  `dependencies` or `peerDependencies` declare (`scripts/published-imports.test.mjs`), and its
+  tarball ships no test, every module its entries reach and every source its maps name
   (`scripts/pack-contents.mjs`, run by `scripts/test-template.sh`): each library ships `dist`
   and its `src` (a connector's is the template's reference implementation). The official SDK
   (`@modelcontextprotocol/server`, `/node`, `/ext-apps`) follows the same split: a ranged peer
@@ -883,7 +1299,8 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
 - **The widget `_meta` carries two halves; never hand-write either.** `showToolBinding`
   stamps both on a view tool: MCP Apps' `ui.resourceUri` (with the flat `ui/resourceUri`, as
   ext-apps' `registerAppTool` writes it) and the OpenAI Apps SDK's `openai/*` keys; `appOnly`
-  stamps a feed's `ui.visibility: ["app"]` and `openai/widgetAccessible`. For a bundle view the
+  stamps a feed's `ui.visibility: ["app"]` and `openai/widgetAccessible`, `forViews` a model
+  tool's `ui.visibility: ["model", "app"]` and `openai/widgetAccessible`. For a bundle view the
   boot adds the rest: the view CSP defaults (`openai/widgetCSP`, the resource's `ui.csp`), the
   view resource's metadata; `_meta.ui` on the tool's result it stamps for every bound view. A
   view a module registers states its own `_meta.ui` on its resource, ext-apps' API, and the
@@ -891,13 +1308,17 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
   `apps/mcp-server/test/widget-contract.e2e.test.ts` checks the wire **by name**
   (every `*_show_*` tool and `engine_open_cockpit` carry the widget `_meta`, every `*_data`
   feed is app-only), so the naming convention is load-bearing.
-- **The tools/list wire payload is a golden, per toolset**
-  (`apps/mcp-server/test/tools-list.golden.test.ts`). The ONLY update path is
+- **The tools/list wire payload is a golden, per toolset and configuration**
+  (`apps/mcp-server/test/tools-list.golden.test.ts`): one Camunda 7 engine (`tools-<toolset>`),
+  it beside a Camunda 8 one (`tools-mixed-<toolset>`) and a Camunda 8 engine alone
+  (`tools-c8-<toolset>`), since what registers follows the configured dialects (invariant 1).
+  The ONLY update path is
   `pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server golden:update` (refused in CI);
-  never hand-edit a golden. `__golden__/char-budgets.json` pins each toolset's model-visible
+  never hand-edit a golden. `__golden__/char-budgets.json` pins each golden's model-visible
   size, the tools/list text plus the server instructions sent at initialize (text moved into
-  the instructions still counts), shrink-only: a change that makes the model read MORE text
-  needs a `Ratchet-Exception:` trailer.
+  the instructions still counts), and as `instructions-camunda8` the sentence the instructions
+  add where a Camunda 8 engine is configured beside a Camunda 7 one (measured on a second boot),
+  shrink-only: a change that makes the model read MORE text needs a `Ratchet-Exception:` trailer.
 - **What an engine read gives and how it fails is a golden on every interface.** Against
   loopback engines (real sockets, the real `fetch`), the MCP server's
   `apps/mcp-server/test/engine-goldens/` pins `engine_list_engines`, `engine_status` and
@@ -907,17 +1328,35 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
   `packages/connectors/c7/c7-adapter/test/goldens/`, also pin one list of
   failures: redirect, 401 per auth type, wrong root, missing resource, a secret in an engine
   text, deadline, refused, TLS, DNS, size, `€`, `.` and `..`, `//`, token line breaks, integers
-  beyond 2^53. Each `__golden__/error-paths/README.md` says per case what is pinned, not
-  reachable or deferred, and which later step changes a pinned bug. Each surface keeps its copy
-  of the cases and the engine answers that make them (`error-cases.ts`);
-  `scripts/error-path-goldens.test.mjs` holds the three copies and the case tables equal. The
-  update path is each package's `golden:update`, refused in CI, never a hand edit:
+  beyond 2^53. The C8 adapter of the editor hosts
+  (`packages/connectors/c8/c8-adapter/test/goldens/`) pins the same list with the answers of a
+  Camunda 8 cluster (problem details on `/v2`, tokens from a token endpoint), and in a second
+  table the cases of Camunda 8 alone: a token endpoint's refusal and hold, the renewal of a
+  refused token, the version floor, the `/v2` hint, a cluster without secondary storage. The MCP
+  server pins both tables on a Camunda 8 engine too
+  (`apps/mcp-server/test/__golden__/error-paths-c8`: a board over that engine, as the server
+  reads one, the facts the model reads and the board the view renders), over copies of the C8
+  adapter's answers and world, and each of its probes names the adapter's call whose failure it
+  must equal, case by case. Each `README.md` of the error-path goldens says per case what is
+  pinned, not reachable or deferred, and which later step changes a pinned bug. Each surface keeps its copy of the cases and the engine answers
+  that make them (`error-cases.ts`, the server's `error-cases-c8.ts`);
+  `scripts/error-path-goldens.test.mjs` holds the five case lists and first tables equal, the two
+  second tables of Camunda 8, the copies of the three surfaces of the Camunda 7 REST API and of
+  the two Camunda 8 surfaces below their headers, and the same failure per case on both Camunda 8
+  surfaces. The update path is each package's `golden:update`, refused in CI, never a hand edit:
   `pnpm --fail-if-no-match --filter <package> golden:update`.
 - **The widget bundle has a budget.** Every view resource inlines the whole bundle, so its
   size is the cost of every render: `test/__golden__/bundle-budget.json` holds shrink-only gzip
   ceilings that `test-host/bundle-budget.spec.ts` checks; growth needs a `Ratchet-Exception:`
-  trailer that says why. Two more shipped bundles have a shrink-only ceiling: the VS Code
-  webview's (`apps/vscode/test/__golden__/bundle-budget.json`, gzip) and the CLI's npm dist
+  trailer that says why. Three more shipped bundles have a shrink-only ceiling: the web app's
+  page (`apps/web/test/__golden__/bundle-budget.json`, gzip, its script and its stylesheet, built
+  from its `vite.config.ts` by `apps/web/test/bundle-budget.test.ts`, each failing too once it
+  shrinks more than 10 % below its ceiling; `apps/web/test/bundle-graph.test.ts` holds it to one
+  copy each of `VIEW_BUNDLE_DEDUPE`), the VS Code
+  webview's (`apps/vscode/test/__golden__/bundle-budget.json`, gzip, its script and its
+  stylesheet, each failing too once it shrinks more than 10 % below its ceiling; the same test
+  holds the bundle to one copy each of React, react-dom, lucide-react and pulse-ui, the esbuild
+  counterpart of invariant 4) and the CLI's npm dist
   (`apps/cli/test/__golden__/bundle-budget.json`, raw bytes, c7-core with engine-core's
   root-cause rule, http and profile bundled in, read by `scripts/published-imports.test.mjs`,
   which also makes it come down once the dist shrinks more than 10 % below it). The CLI's
@@ -932,13 +1371,17 @@ bewusste Abweichung vom Guide (Owner-Entscheidung, auch in
   2026-11-12): a generated, checked-in `THIRD_PARTY_LICENSES.txt` beside its `LICENSE`, today
   the CLI's (`apps/cli/CLAUDE.md`, "Licences"), `@miragon/pulse-c7-client`'s (its generated SDK),
   the server image's (`/usr/share/doc/pulse-server`: the view bundle's works, which the bundle
-  itself never carries, for its gzip budget), the .vsix's (`apps/vscode/CLAUDE.md`) and the Orca
-  plugin folder's (`apps/orca/CLAUDE.md`). The shared licence list
+  itself never carries, for its gzip budget), the web app's (`apps/web/THIRD_PARTY_LICENSES.txt`,
+  the works its page holds, which the browser never gets either; the image keeps it in
+  `/usr/share/doc/pulse-server/web`), the .vsix's
+  (`apps/vscode/CLAUDE.md`) and the Orca plugin folder's (`apps/orca/CLAUDE.md`). The shared licence list
   `scripts/third-party-licenses.mjs` (Node built-ins only, typed by its `.d.mts`, in `scripts/`
   because apps never import each other) reads what the artifact really holds: its bundler's
   module graph (`renderedModules` for rolldown, rollup and Vite, `cssDependencies` for the
   stylesheets Vite inlines, `esbuildModules` for an esbuild metafile and esbuild's runtime
-  helpers) or its generated files. A module under node_modules is its package's, a virtual module
+  helpers, `inlinedStylesheets` for what an esbuild plugin inlines into a stylesheet, a Tailwind
+  entry, which every plugin of a shipped esbuild build reports through `inlined()`, or the list
+  fails) or its generated files. A module under node_modules is its package's, a virtual module
   the bundler's (named in the artifact's layout), a file of the repository Miragon's, and one of
   Pulse's packages must share the artifact's MIT; a module that carries another work's text names
   that work (`embedded`). Anything else fails, and so does a work without a licence file unless
@@ -959,18 +1402,27 @@ The release workflows hold the publish credentials and no pull request runs them
 workspace (its header lists each check).
 
 - **One release-please train.** Conventional commits on `main` drive `release-please.yml`: one
-  Release PR (tag `v<version>`) bumps the root, every app, the eight packages, the two private
-  packages the editor hosts bundle, the Orca plugin's manifest, the template's pins and the
-  c7-client User-Agent in lockstep (`extra-files` in `release-please-config.json`).
+  Release PR (tag `v<version>`) bumps the root, every app, the eleven packages, the three private
+  packages the editor hosts bundle, the Orca plugin's manifest, the template's pins, the
+  c7-client User-Agent and the engine connector's own, which its Camunda 8 wire sends
+  (`packages/connectors/engine/engine-connector/src/lib/engine/user-agent.ts`), in lockstep
+  (`extra-files` in `release-please-config.json`, where `pnpm lint:github` refuses a
+  `@miragon/pulse-*` pin under `templates/` without its jsonpath).
   Merging it creates the release; every publish job then waits for manual approval of the
   `release` environment gate.
-- **npm:** the eight packages and `@miragon/pulse-cli` publish through
+- **npm:** the eleven packages and `@miragon/pulse-cli` publish through
   `publish-npm-package.yml` with OIDC trusted publishing (no NPM_TOKEN, provenance attached).
   Each names this repository in its `repository` field, since npm refuses a provenance publish
   from another repository. The pack job runs `pnpm pack`, which rewrites `workspace:*` (npm's
   own pack would ship it verbatim); the one job that holds `id-token: write` runs no package
-  manager. The server app, the two editor hosts and the packages only they bundle (the runtime
-  view, the C7 adapter) stay private. The `miragon-ai` names
+  manager. A package new to npm (`@miragon/pulse-board`, `@miragon/pulse-blocks` and
+  `@miragon/pulse-c8-core`, all three first published by the release after #617) is published once
+  by hand and gets its trusted publisher (`release-please.yml`, environment `npm`) before the
+  release that first publishes it, or its publish job fails and the engine connector, which
+  depends on the board package and c8-core and peers the blocks, or the starter, which pins the
+  blocks, names a version npm lacks.
+  The server app, the two editor hosts and the packages only they bundle (the runtime view, the
+  C7 and C8 adapters) stay private. The `miragon-ai` names
   used up to 0.20.0 are retired, and so is the npm name of engine-client, the c7 family's client
   up to 0.27 (now `@miragon/pulse-c7-client`); never reuse them. `@miragon/pulse-engine-core`
   held the c7 family's rules up to 0.27 (now `@miragon/pulse-c7-core`) and from 0.28 on is the
@@ -1004,7 +1456,10 @@ workspace (its header lists each check).
 - **The server image** publishes via `publish-to-docker.yml` to
   `ghcr.io/miragon/pulse-server` with the run's `GITHUB_TOKEN`; a reusable workflow gets no
   more than its caller grants, so the `publish-docker` job grants `packages: write` itself.
-  Nothing publishes to Docker Hub.
+  Nothing publishes to Docker Hub. The image builds the web app's page beside the server into the
+  server package's `web/` (`Dockerfile`), which it serves under `/app` once `MCP_WEB_CLIENT_ID` is
+  set, and keeps the page's licence list next to the server's, in
+  `/usr/share/doc/pulse-server/web/` (`docker-build.yml` checks both); no page ships through npm.
 - **The CLI's binaries, image and Homebrew formula** publish via `publish-cli.yml` and
   `publish-homebrew.yml`: five Node.js 24 single executables, `ghcr.io/miragon/pulse-cli` and,
   for a stable release, the formula `miragon/tap/pulse-cli` (the executable `pulse-cli` and the
@@ -1014,30 +1469,33 @@ workspace (its header lists each check).
 
 ## Verification: what each check actually covers
 
-| Check             | Coverage                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `pnpm build`      | turbo `build` everywhere: tsc emit of the packages and server code, the server app's Vite widget bundle (`build:ui`), the CLI's tsdown bundle (`apps/cli/dist`), the declarations of the runtime view and the C7 adapter, and the esbuild bundles of the VS Code extension and the Orca plugin (`apps/orca/dist`, the plugin folder); excludes widget `.tsx` type errors in packages                                                                                                                                                                                                                                                                                                                               |
-| `pnpm typecheck`  | **The only check that type-checks widget code**: `tsc -p tsconfig.widgets.json` in the engine connector and widget-shell (its view half), `tsc -p tsconfig.ui.json` (and `tsconfig.test.json`) in the server app; the runtime view per layer (`packages/core/runtime-view/tsconfig.<layer>.json`), the editor hosts per part, each with that part's runtime globals only                                                                                                                                                                                                                                                                                                                                           |
-| `pnpm test`       | Vitest unit tests, the server app's wire-contract tests and tools/list goldens (in-process boot, loopback HTTP), the engine output and error-path goldens of the three interfaces (the CLI, the MCP server and the C7 adapter of the editor hosts), the architecture tests of the editor hosts and the packages they share, the per-package coverage floors, then `node --test` over `scripts/*.test.mjs` (repo guards and gate self-tests, below the table); docs-refs, old-names and `lint:package-scripts` also run in Lint + Format; **no widget rendering** (the runtime view's webview tests render in Chromium; locally once: `pnpm --filter @miragon/pulse-runtime-view exec playwright install chromium`) |
-| `pnpm lint`       | The build-free gates first (`lint:naming`, `lint:package-scripts`, `lint:github`, `lint:ratchets`, which needs `git fetch origin`), then ESLint per package incl. the pattern gates, dependency-cruiser (`lint:architecture`, `:cli`, `:vscode`, `:runtime-view`, `:c7-adapter`, `:orca`) and knip (`lint:deadcode`: everything but exports and types; `:exports`: exports and types in every workspace but the vendored docs kit), and last `lint:configs` (the config files no tsconfig holds and no package lints: `DEFAULT_PROJECT_FILES` in `eslint.config.mjs`)                                                                                                                                              |
-| `pnpm fitness`    | Report: architecture graph, per-package coverage and the mutation scores of c7-core, the transport, engine-core's rules and the profile format; locally after `pnpm test` (no CI job on a pull request), else the "Mutation summary" job of `.github/workflows/mutation-nightly.yml`                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `./gradlew build` | The playground engine (`playground/cibseven-example/`): Kotlin compile + unit tests of its processes; CI "CIB Seven Example (Build + Test)", in `pnpm check:all`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `test:host`       | `pnpm --filter @miragon/pulse-mcp-server test:host`: Playwright host simulation of the **built** widget bundle behind a SEP-1865 host shim, the real `engine_open_cockpit` against a stub engine (`pinned …` scenarios are known defects, flipped when fixed); CI "Widget host simulation (test:host)"; run it for changes to widget-shell, pulse-ui, `src/ui/` or the `@modelcontextprotocol/ext-apps` pin                                                                                                                                                                                                                                                                                                        |
-| Template          | `scripts/test-template.sh` (in `pnpm check:all`; CI "Composed-server template (Build + Test)"): packs the published libraries (`scripts/workspace-packages.mjs`), checks their contents (`scripts/pack-contents.mjs`), points a copy of `templates/composed-server` at them and runs its build, typecheck, test and format check, its pins matched to the workspace first (`scripts/template-pins.mjs`), then build, typecheck and test again with the fixture module `templates/fixtures/prebuilt-module` installed (`scripts/prebuilt-module.mjs`). ESLint, knip and dependency-cruiser skip `templates/`: the template's composition-root rules (invariant 8) are review knowledge                              |
-| Starter engine    | "Starter try-out engine" in `.github/workflows/ci.yml` (scope `starter-engine`: `templates/composed-server/compose.yaml` and the job itself): starts that engine on Linux and checks what a Run tag bump can break (healthy within 240 s, 401 without a login, 200 for demo/demo, invoice and ReviewInvoice deployed), then reaches it from a container on `pulse-starter_default`, the network of the starter's container recipe                                                                                                                                                                                                                                                                                  |
-| Docker build      | `.github/workflows/docker-build.yml`: plain `docker build` of the root `Dockerfile` (no push) on every PR touching what the build stage copies, then a check that the image holds its licence files (`/usr/share/doc/pulse-server`, Node.js's `/usr/local/LICENSE`)                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| Engines           | `Engines (<flavor>)` in `.github/workflows/ci.yml`: CIB seven and Operaton in Testcontainers (Camunda 7's image left Docker Hub in November 2026), running the CLI's suites and the C7 adapter's conformance laws (`test:engines`; images pinned in `apps/cli/test/integration/support/engines.ts`); the `Engines` job aggregates the legs                                                                                                                                                                                                                                                                                                                                                                         |
-| VS Code smoke     | activation, every contributed command and the project file under both names in VS Code stable under Xvfb, `test:smoke` (`.github/workflows/ci.yml`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| VS Code package   | `vsce package` dry run of the production build (`.github/workflows/ci.yml`): bundles and `THIRD_PARTY_LICENSES.txt` in, no sources, maps or node_modules; the webview budget is `pnpm test`'s (`apps/vscode/test/architecture/bundle-budget.test.ts`)                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| Orca plugin       | "Orca plugin (validate, check, kit tests)" in `.github/workflows/ci.yml` (scope `orca`): the built plugin folder through the CLI of a pinned Orca release, its .deb checked against the release digest and run on plain Node (`test:orca`: `orca plugin validate` and `orca plugin check`, which renders the panel once with the worker on a mock host and loads each custom editor), then the panel and the worker on that release's `orca/testing` (`test:kit`); locally `test:smoke` drives the installed Orca against the sandbox engines                                                                                                                                                                      |
-| CLI jobs          | `ci.yml` in the `cli` scope: `CLI binary (<target>)` (single executable on Linux x64, macOS arm64, Windows x64), `CLI image (build + smoke)`, `CLI plugin (validate)`, aggregated by `CLI (all checks)`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| CI scopes         | The `changes` job runs `scripts/ci-scopes.mjs` over a PR's files and every other job runs only in its scope (a skipped job reports success); "Lint + Format" runs on every PR. A new job gets `needs: changes` and a scope; a test that starts reading a file outside its package adds that path to `PATH_RULES` or `ALSO_READ_BY`, unless that path already selects the job that runs the test (a package's code and data files select the TypeScript job)                                                                                                                                                                                                                                                        |
-| Manual            | `pnpm play` (or the playground + `pnpm dev` with a `.env`), then exercise tools/widgets in the MCP Inspector it starts. The default boot is read-only; write paths need an explicit suffix: `pnpm play --admin`, or `MCP_ACTIVE_MODULES=engine:admin` in `.env`                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Check             | Coverage                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm build`      | turbo `build` everywhere: tsc emit of the packages and server code, the server app's Vite widget bundle (`build:ui`), the CLI's tsdown bundle (`apps/cli/dist`), the web app's Vite build with its `pages.json` (`apps/web/dist`), the declarations of the runtime view and the C7 and C8 adapters, and the esbuild bundles of the VS Code extension and the Orca plugin (`apps/orca/dist`, the plugin folder); excludes widget `.tsx` type errors in packages                                                                                                                                                                                                                                                                                                 |
+| `pnpm typecheck`  | **The only check that type-checks widget code**: `tsc -p tsconfig.widgets.json` in the engine connector and widget-shell (its view half), `tsc -p tsconfig.ui.json` (and `tsconfig.test.json`) in the server app; the runtime view per layer (`packages/core/runtime-view/tsconfig.<layer>.json`), the editor hosts per part, each with that part's runtime globals only                                                                                                                                                                                                                                                                                                                                                                                       |
+| `pnpm test`       | Vitest unit tests, the server app's wire-contract tests and tools/list goldens (in-process boot, loopback HTTP), the engine output goldens (the CLI, the MCP server) and the error-path goldens (those two, the MCP server's on a Camunda 8 engine too, the C7 and C8 adapters of the editors), the architecture tests of the editor hosts and the packages they share, the per-package coverage floors, then `node --test` over `scripts/*.test.mjs` (repo guards and gate self-tests, below the table); docs-refs, old-names and `lint:package-scripts` also run in Lint + Format; **no widget rendering** (the runtime view's webview tests render in Chromium; locally once: `pnpm --filter @miragon/pulse-runtime-view exec playwright install chromium`) |
+| `pnpm lint`       | The build-free gates first (`lint:naming`, `lint:package-scripts`, `lint:github`, `lint:ratchets`, which needs `git fetch origin`), then ESLint per package incl. the pattern gates, dependency-cruiser (`lint:architecture`, `:cli`, `:vscode`, `:runtime-view`, `:c7-adapter`, `:c8-adapter`, `:orca`) and knip (`lint:deadcode`: everything but exports and types; `:exports`: exports and types in every workspace but the vendored docs kit), and last `lint:configs` (the config files no tsconfig holds and no package lints: `DEFAULT_PROJECT_FILES` in `eslint.config.mjs`)                                                                                                                                                                           |
+| `pnpm fitness`    | Report: architecture graph, per-package coverage and the mutation scores of c7-core, the transport, engine-core's rules, the profile format, the board package, widget-shell's web app, token and discovery rules and c8-core's rules; locally after `pnpm test` (no CI job on a pull request), else the "Mutation summary" job of `.github/workflows/mutation-nightly.yml`                                                                                                                                                                                                                                                                                                                                                                                    |
+| `./gradlew build` | The playground engine (`playground/cibseven-example/`): Kotlin compile + unit tests of its processes; CI "CIB Seven Example (Build + Test)", in `pnpm check:all`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `test:host`       | `pnpm --filter @miragon/pulse-mcp-server test:host`: Playwright host simulation of the **built** widget bundle behind a SEP-1865 host shim, the real `engine_open_cockpit` against a stub engine and, in a composition of its own, a loopback Camunda 8 cluster beside it (`test-host/camunda8.spec.ts`: the landing and the gate read nothing of it, its board's tiles and Zeebe diagram) (`pinned …` scenarios are known defects, flipped when fixed); CI "Widget host simulation (test:host)"; run it for changes to widget-shell, pulse-ui, `src/ui/` or the `@modelcontextprotocol/ext-apps` pin                                                                                                                                                          |
+| `test:web`        | `pnpm --filter @miragon/pulse-mcp-server test:web`: Playwright in Chromium against the **built** web app (`apps/web/dist` through `MCP_WEB_DIR`) on the real `createApp` under OAuth with fake identity providers and test:host's stub engine and Camunda 8 cluster (a board over both, the gate): the sign-in, the sign-out, the token's renewal and its refusal, the session's cookies, no token in the browser, CSRF, open redirect, session fixation, the cockpit on the page, its script compressed, German, dark, 320 px, axe (`apps/mcp-server/test-host/web`); CI "Web app (test:web)", in `pnpm check:all`; run it for changes to the web app, widget-shell's `src/web` or the page root                                                              |
+| Template          | `scripts/test-template.sh` (in `pnpm check:all`; CI "Composed-server template (Build + Test)"): packs the published libraries (`scripts/workspace-packages.mjs`), checks their contents (`scripts/pack-contents.mjs`), points a copy of `templates/composed-server` at them and runs its build, typecheck, test and format check, its pins matched to the workspace first (`scripts/template-pins.mjs`), then build, typecheck and test again with the fixture module `templates/fixtures/prebuilt-module` installed (`scripts/prebuilt-module.mjs`). ESLint, knip and dependency-cruiser skip `templates/`: the template's composition-root rules (invariant 8) are review knowledge                                                                          |
+| Starter engine    | "Starter try-out engine" in `.github/workflows/ci.yml` (scope `starter-engine`: `templates/composed-server/compose.yaml` and the job itself): starts that engine on Linux and checks what a Run tag bump can break (healthy within 240 s, 401 without a login, 200 for demo/demo, invoice and ReviewInvoice deployed), then reaches it from a container on `pulse-starter_default`, the network of the starter's container recipe                                                                                                                                                                                                                                                                                                                              |
+| Docker build      | `.github/workflows/docker-build.yml`: plain `docker build` of the root `Dockerfile` (no push) on every PR touching what the build stage copies, then a check that the image holds its licence files (`/usr/share/doc/pulse-server`, the web app's in its `web/`, Node.js's `/usr/local/LICENSE`) and the web app's build where `createApp` serves `/app` from (`/app/web`: `index.html`, `pages.json`, `assets/`)                                                                                                                                                                                                                                                                                                                                              |
+| Engines           | `Engines (<flavor>)` in `.github/workflows/ci.yml`: CIB seven and Operaton in Testcontainers (Camunda 7's image left Docker Hub in November 2026), running the CLI's suites, the C7 adapter's conformance laws and the engine connector's read laws over the MCP server's SDK wire (`test:engines`, each suite in its scope; images pinned in `apps/cli/test/integration/support/engines.ts`); the `Engines` job aggregates the legs. The C8 adapter's `test:engines` and the engine connector's Camunda 8 suite (the read laws over the server's C8 wire) run locally only until #531 (the matrix: `docs/vscode/camunda8.md`); a suite skips on the other dialect's image and fails on one of neither, the C8 adapter's skips on any but `camunda/camunda`    |
+| VS Code smoke     | activation, every contributed command and the project file under both names in VS Code stable under Xvfb, `test:smoke` (`.github/workflows/ci.yml`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| VS Code package   | `vsce package` dry run of the production build (`.github/workflows/ci.yml`): bundles and `THIRD_PARTY_LICENSES.txt` in, no sources, maps or node_modules; the webview budget is `pnpm test`'s (`apps/vscode/test/architecture/bundle-budget.test.ts`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Orca plugin       | "Orca plugin (validate, check, kit tests)" in `.github/workflows/ci.yml` (scope `orca`): the built plugin folder through the CLI of a pinned Orca release, its .deb checked against the release digest and run on plain Node (`test:orca`: `orca plugin validate` and `orca plugin check`, which renders the panel once with the worker on a mock host and loads each custom editor), then the panel and the worker on that release's `orca/testing` (`test:kit`); locally `test:smoke` drives the installed Orca against the sandbox engines                                                                                                                                                                                                                  |
+| CLI jobs          | `ci.yml` in the `cli` scope: `CLI binary (<target>)` (single executable on Linux x64, macOS arm64, Windows x64), `CLI image (build + smoke)`, `CLI plugin (validate)`, aggregated by `CLI (all checks)`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| CI scopes         | The `changes` job runs `scripts/ci-scopes.mjs` over a PR's files and every other job runs only in its scope (a skipped job reports success); "Lint + Format" runs on every PR. A new job gets `needs: changes` and a scope; a test that starts reading a file outside its package adds that path to `PATH_RULES` or `ALSO_READ_BY`, unless that path already selects the job that runs the test (a package's code and data files select the TypeScript job). `mcp-engines` (an `ALSO_READ_BY` rule over the paths the engine connector's engine suite runs) turns on its step in the `Engines` legs                                                                                                                                                            |
+| Manual            | `pnpm play` (or the playground + `pnpm dev` with a `.env`), then exercise tools/widgets in the MCP Inspector it starts. The default boot is read-only; write paths need an explicit suffix: `pnpm play --admin`, or `MCP_ACTIVE_MODULES=engine:admin` in `.env`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
 The repo guards `pnpm test` runs over the real tree: docs-refs, old-names, published imports,
 tool-name and hand-off references, server env names, the source scan's `APP_SCAN`, the
-template's pins and shipped module list, that a test vitest runs in its package holds the
-sorted runtime names of every published entry, since knip reports no entry's exports
+template's pins and shipped module list, the two copies of the XML tag reader in two leaves,
+the board builder's and c8-core's (`scripts/xml-tag-readers.test.mjs`), that a test vitest runs
+in its package holds the sorted runtime names of every published entry, since knip reports no
+entry's exports
 (`scripts/entry-lists.test.mjs`, owner decision 2026-11-11; its header names the form it reads),
 and that only the CLI's sources set
 `@miragon/pulse-http`'s `revealSecrets` (`scripts/trace-secrets.test.mjs`: a trace shows a
@@ -1045,7 +1503,8 @@ request's secrets only for its `--show-secrets`, owner decision 2026-11-10). Bes
 (invariants 8 and 1), the naming, package-scripts, ratchet, GitHub-config, CI-scope, entry-list and pack-content checks each prove
 themselves on planted violations in fixtures; the gates of the editor hosts and of the packages
 they share live in the `test/architecture` of `apps/vscode`, `apps/orca`,
-`packages/core/runtime-view` and `packages/connectors/c7/c7-adapter`.
+`packages/core/runtime-view`, `packages/connectors/c7/c7-adapter` and
+`packages/connectors/c8/c8-adapter`.
 
 A green `pnpm build && pnpm typecheck && pnpm test && pnpm lint` (`pnpm check` runs them) is the minimum bar for
 every change, in that order (`scripts/published-imports.test.mjs` reads the built CLI bundle);
@@ -1056,7 +1515,11 @@ host simulation renders one real view, not every widget's data path).
 each against the merge base with `origin/main`, and its header lists them: coverage floors in
 each `vitest.config.ts` rise (raise one when you better a file); a `stryker.config.json`'s
 `mutate` allowlist (the tested surface; today c7-core's, the transport's, engine-core's three
-rule files and the profile format's) grows and its `thresholds.break` rises; the ESLint budgets
+rule files, the profile format's, the board package's format and builder, widget-shell's twelve
+web app rule files, its JWT verifier, its provider's discovery, its generic OpenID Connect
+provider and its Entra ID provider, and c8-core's mappings, instance filters, version floor and
+failure kinds)
+grows and its `thresholds.break` rises; the ESLint budgets
 (complexity 15 and 400 lines; the CLI, the editor hosts and their packages 10 and 300), knip ignores (each
 with its reason), the char and bundle budgets (Contracts) and inline suppressions only shrink;
 gate commands stay as they are; a second config that would shadow a ratcheted one fails. The one
@@ -1078,24 +1541,61 @@ emitted JavaScript as a side-effect import, so ESLint refuses it
 which reports a namespace import that only types use (`scripts/eslint-gates.test.mjs`).
 
 **Mutation testing covers `@miragon/pulse-c7-core`, `@miragon/pulse-http`, the rules of
-`@miragon/pulse-engine-core` and `@miragon/pulse-profile`** (owner decisions: c7-core, engine-core
-until 0.27, 2026-11-04; the profile format 2026-11-07; the transport 2026-11-08; engine-core's
-rules 2026-11-09). c7-core holds the pure engine rules of the Camunda 7 REST family, the
-transport the wire rules the CLI, the MCP server and the editor hosts share and the OAuth client
-protocol of every surface (`/oauth`), and the profile format the rules that decide which secrets,
-variables and URLs all of them accept (its `src` without the tests, `index.ts` and `testing/`;
-StrykerJS mutates nothing under an `as`, so only the tests hold the `as const` tables of its
-`types.ts`); engine-core's root-cause, value-kind and move-reason rules
-(`packages/connectors/engine/engine-core/src/model/root-causes.ts`, `value-kinds.ts` and
-`move-reasons.ts`, its only mutated files; `RootCauses` was mutated with c7-core until it moved)
+`@miragon/pulse-engine-core`, `@miragon/pulse-profile`, `@miragon/pulse-board`, the web
+app's server rules and the gate's token rules of `@miragon/pulse-widget-shell` and the rules of
+`@miragon/pulse-c8-core`** (owner decisions: c7-core, engine-core until 0.27, 2026-11-04; the
+profile format 2026-11-07; the transport 2026-11-08; engine-core's rules 2026-11-09; the board
+format and its builder 2026-11-15; the web sign-in's rules 2026-11-16, the forward, the renewal,
+the build's files and the security headers with them later that day, the sessions signed out, the
+session's refusal, the sign-out and the session route 2026-11-17; c8-core's rules 2026-11-17; the
+gate's JWT verifier and the provider's discovery 2026-11-17; the generic OpenID Connect provider
+and Microsoft Entra ID 2026-11-18).
+c7-core holds the pure engine rules of the Camunda 7 REST family and, under
+`./runtime`, the reads of the engine contract, the transport the wire rules the CLI, the MCP server
+and the editor hosts share and the OAuth client protocol of every surface (`/oauth`), and the
+profile format the rules that decide which secrets, variables and URLs all of them accept (its `src`
+without the tests, `index.ts` and `testing/`; StrykerJS mutates nothing under an `as`, so only the
+tests hold the `as const` tables of its `types.ts`); engine-core's root-cause, value-kind and
+move-reason rules (`packages/connectors/engine/engine-core/src/model/root-causes.ts`,
+`value-kinds.ts` and `move-reasons.ts`, its only mutated files; `RootCauses` was mutated with
+c7-core until it moved)
 are the contract's rules a dialect applies: `RootCauses` in all three interfaces (the CLI and the
 MCP server reach it through c7-core), `ValueKinds` and `MoveReasons` today in the editor hosts
-alone (the runtime view's core and the C7 adapter). A surviving mutant there is a wrong rule
-everywhere it runs; in every other package a full run costs more than it finds. A package joins
-only by an owner decision, as an entry in `MUTATED_PACKAGES` (`scripts/check-package-scripts.mjs`).
-It runs nightly (`.github/workflows/mutation-nightly.yml`), never on a pull request (owner
-decision); a pause flips `scripts/mutation-pause.mjs` and drops the schedule. Locally:
+alone (the runtime view's core and the C7 adapter); the board format and its builder
+(`packages/core/board/src/format` and `packages/core/board/src/builder` without the builder's
+barrel) decide which board files and widgets every surface reads or refuses and the numbers each
+widget shows; widget-shell's web app rules (`packages/core/widget-shell/src/web/seal.ts`,
+`cookies.ts`, `return-path.ts`, `csrf.ts`, `forward.ts`, `refresh.ts`, `static.ts`,
+`security-headers.ts`, `ended.ts`, `session.ts`, `logout.ts` and `session-route.ts`) seal the web
+app's session and login cookies, keep its return path on the app, check a page's request for CSRF,
+admit a page's call only to a read a view calls, renew the session's token, serve the build's files
+in their encodings, set the headers of every answer under `/app`, refuse a signed-out session and
+revoke its refresh token, end a session at the sign-out and answer a page what its session holds,
+its gate's JWT verifier (`packages/core/widget-shell/src/oauth-jwt.ts`) decides which bearer
+token `/mcp` takes (the key set its issuer picks, the audiences, the caller claim, the client, never
+an ID or logout token), and the discovery of its identity provider
+(`packages/core/widget-shell/src/oauth-discovery.ts`) decides where the sign-in sends its secrets
+(the issuer exactly, PKCE, endpoints on https) and which key set the gate trusts, and keeps the last
+good answer for a day when a re-read fails, and its generic OpenID Connect provider
+(`packages/core/widget-shell/src/oauth-oidc.ts`) refuses the settings that would let a token of
+another app or person through (a mutable caller claim, a shared-secret algorithm, an audience a
+client's id can be without a required scope beyond OpenID Connect's own), and its Entra ID provider
+(`packages/core/widget-shell/src/oauth-entra.ts`) refuses a tenant that is no tenant id and a token
+of another tenant, a v1 token, one without `scp` (an app-only or ID token), one whose key is
+tagged for the other authority and one whose `aud` is a URI the operator did not name; these sixteen are its only mutated files, run by
+`src/web`'s suites and the OAuth suites (`src/oauth-*.test.ts`) alone; c8-core's rules
+(`packages/connectors/c8/c8-core/src/mapping`, `src/reading/instance-filters.ts`,
+`src/reading/version-floor.ts` and `src/c8-failures.ts`, never its REST client, its readers or
+`src/testing`) map a Camunda 8 cluster's answers onto the contract's read models, turn the
+contract's instance filters into the cluster's, refuse a cluster below 8.9 and decide the kind of
+every failure, for the C8 adapter of the editor hosts and the MCP server alike. A surviving mutant
+there is a wrong rule everywhere it runs; in every other package a full run costs more than it
+finds. A package joins only by an owner decision, as an entry in `MUTATED_PACKAGES`
+(`scripts/check-package-scripts.mjs`). It runs nightly
+(`.github/workflows/mutation-nightly.yml`), never on a pull request (owner decision); a pause flips
+`scripts/mutation-pause.mjs` and drops the schedule. Locally:
 `pnpm --fail-if-no-match --filter @miragon/pulse-c7-core exec stryker run`, the same with
-`@miragon/pulse-http`, `@miragon/pulse-engine-core` and `@miragon/pulse-profile` (`--mutate <file>`
-narrows it), with each package's `vitest.stryker.config.ts`: coverage off, since a threshold
-failure would read as a killed mutant.
+`@miragon/pulse-http`, `@miragon/pulse-engine-core`, `@miragon/pulse-profile`,
+`@miragon/pulse-board`, `@miragon/pulse-widget-shell` and `@miragon/pulse-c8-core`
+(`--mutate <file>` narrows it), with each package's `vitest.stryker.config.ts`: coverage off, since
+a threshold failure would read as a killed mutant.

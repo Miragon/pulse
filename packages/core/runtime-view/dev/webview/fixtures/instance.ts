@@ -71,6 +71,7 @@ export const INSTANCE_WITH_CALLED_INCIDENT: InstanceView = {
       engineType: "failedJob",
       message: 'I/O error on POST "https://scoring.internal/score": Connection refused',
       rootCause: "ConnectException: Connection refused",
+      causeLabel: "Root cause",
       createdAt: minutesBefore(148),
       retriesLeft: 0,
       detailsLabel: "Open stacktrace",

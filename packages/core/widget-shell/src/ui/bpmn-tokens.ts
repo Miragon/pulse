@@ -32,20 +32,29 @@ const OPEN_TASK_DASH = "8 4"
 
 const { incident, running, openTask, instanceBadge, incidentBadge } = BPMN_TOKENS
 
+/**
+ * What a marker paints: the marked shape's own outline, the first part of its own visual (a
+ * task's rectangle, an event's circle, a gateway's diamond). Child combinators only, so a marker
+ * on the process itself (an activity instance tree's root names the process, whose graphics are
+ * the layer of every element) or on an expanded subprocess paints nothing inside it, and never a
+ * text: a label keeps its ink, the task's name too.
+ */
+const outline = (marker: string) => `.djs-shape.${marker} > .djs-visual > :first-child:not(text)`
+
 /** Inject it once per document with {@link injectBpmnOverlayCss}. */
 export const BPMN_OVERLAY_CSS = `
-.highlight-running:not(.djs-connection) .djs-visual > :nth-child(1) {
+${outline("highlight-running")} {
   fill: ${cdVar(running.fill)} !important;
   stroke: ${cdVar(running.stroke)} !important;
   stroke-width: ${STATE_STROKE}px !important;
 }
-.highlight-open-user-task:not(.djs-connection) .djs-visual > :nth-child(1) {
+${outline("highlight-open-user-task")} {
   fill: ${cdVar(openTask.fill)} !important;
   stroke: ${cdVar(openTask.stroke)} !important;
   stroke-width: ${OPEN_TASK_STROKE}px !important;
   stroke-dasharray: ${OPEN_TASK_DASH} !important;
 }
-.highlight-incident:not(.djs-connection) .djs-visual > :nth-child(1) {
+${outline("highlight-incident")} {
   fill: ${cdVar(incident.fill)} !important;
   stroke: ${cdVar(incident.stroke)} !important;
   stroke-width: ${STATE_STROKE}px !important;

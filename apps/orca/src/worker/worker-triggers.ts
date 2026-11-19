@@ -3,6 +3,7 @@ import type { OrcaWorkerApi } from "orca/worker"
 import type { ViewRequest } from "../protocol.js"
 import type { EngineRegistry } from "./engine-registry.js"
 import type { OrcaWorkspaces } from "./orca-workspaces.js"
+import { UserConfigWatch } from "./user-config-watch.js"
 import type { WorkerServices } from "./worker-services.js"
 
 const RELOAD_DELAY_MS = 300
@@ -19,6 +20,9 @@ export interface TriggerParts {
 
 export class WorkerTriggers {
   private watchers: FSWatcher[] = []
+  private readonly userConfig = new UserConfigWatch(() => {
+    this.reloadSoon()
+  })
   private reloadTimer: ReturnType<typeof setTimeout> | undefined
   private lastNudge = Number.NEGATIVE_INFINITY
 
@@ -48,6 +52,7 @@ export class WorkerTriggers {
     })
     this.parts.registry.onDidChange(() => {
       this.watchProjectFiles()
+      this.userConfig.arm(this.parts.registry.userConfigLocation())
     })
   }
 
@@ -57,6 +62,7 @@ export class WorkerTriggers {
       watcher.close()
     }
     this.watchers = []
+    this.userConfig.close()
   }
 
   private commands(): void {

@@ -1,11 +1,12 @@
 // @vitest-environment happy-dom
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { complementaryFlags } from "@miragon/pulse-c7-core"
 import { ENGINE_PROCESS_INSTANCES_DATA } from "../tool-names.js"
 import type { ProcessInstancesData } from "../view-models.js"
 import { ProcessInstancesView } from "./process-instances/list.js"
-import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
+import { NavProvider, type NavIntent } from "./navigation.js"
+import { TestViewHost, type FollowUp } from "@miragon/pulse-widget-shell/widgets"
 
 // #329: the feed maps a `false` run-state flag onto its complement, so every refetch must carry the
 // SAME filter or later pages mix in rows page 0 excluded. The route's scope comes from its props.
@@ -62,7 +63,7 @@ describe("process-instances widget keeps page 0's run-state filter", () => {
     const calls = renderRoute((args) =>
       args.firstResult ? { ...suspended, instances: [], returnedCount: 0 } : suspended,
     )
-    fireEvent.click(await screen.findByText("Suspended"))
+    fireEvent.click(await screen.findByRole("radio", { name: /^Suspended/ }))
     await waitFor(() => expect(calls).toHaveLength(1))
     expect(runState(calls[0])).toEqual({ suspended: true })
     fireEvent.click(await screen.findByText("Load more"))
@@ -82,8 +83,8 @@ describe("process-instances widget keeps page 0's run-state filter", () => {
   })
 })
 
-// #396: inline the version moves to the quiet line and State hides below 48rem, so a suspended row
-// says so in its first cell, never by the dot's colour alone.
+// #396: inline the version moves to the quiet line; the state keeps its own column on one line, an
+// open incident beside it (the webview's state cell), never stacked under the business key.
 describe("the engine-wide list's columns", () => {
   function engineWide(): ProcessInstancesData {
     const page = firstPage({})
@@ -93,7 +94,12 @@ describe("the engine-wide list's columns", () => {
       processDefinitionName: null,
       instances: [
         { ...page.instances[0], processDefinitionName: "Invoice receipt", version: 7 },
-        { ...page.instances[1], processDefinitionName: "Invoice receipt", suspended: true },
+        {
+          ...page.instances[1],
+          processDefinitionName: "Invoice receipt",
+          suspended: true,
+          hasIncident: true,
+        },
       ],
     }
   }
@@ -108,30 +114,41 @@ describe("the engine-wide list's columns", () => {
     expect(headers()).not.toContain("Version")
     expect(headers()).toContain("Process")
     const process = screen.getAllByText("Invoice receipt")[0].closest("button")!
-    expect(process.textContent).toBe("Invoice receiptinvoice · v7")
-    // A row's "Open" has the one action size (32 px, 14 px, 600), level with its icon buttons.
-    const open = screen.getAllByRole("button", { name: /^Open instance/ })[0]
-    expect(open.className).toMatch(/\bh-8\b/)
-    expect(open.className).toMatch(/\btext-sm\b/)
-    expect(open.className).toMatch(/\bfont-semibold\b/)
-    // The aria-label replaces the content for a screen reader, so it must state the version.
-    expect(process.getAttribute("aria-label")).toBe("Open process Invoice receipt, version 7")
+    // One line in the cell: the name, the key, the version.
+    expect(process.textContent).toBe("Invoice receipt invoice · v7")
+    // Its visible words name it, the version included (WCAG 2.5.3): no aria-label replaces them,
+    // and what a click does is its description.
+    expect(process.getAttribute("aria-label")).toBeNull()
+    expect(screen.getAllByRole("button", { name: "Invoice receipt invoice · v7" })).toContain(
+      process,
+    )
+    expect(process.title).toBe("Open process Invoice receipt, version 7")
   })
 
-  it("hides the State column in a narrow region, and a suspended row says so in its first cell", () => {
+  it("keeps the state in its own column on one line, an open incident beside it", () => {
     const { container } = render(
       <TestViewHost>
         <ProcessInstancesView data={engineWide()} engine="prod" />
       </TestViewHost>,
     )
-    // The rule that hides the third column (State) below 48rem.
+    // No column hides: the state has its place in every width, right after the ids (the
+    // webview's order), so a narrow chat that scrolls the table sideways cuts the process first.
     const rules = container.querySelector("[data-list-table] style")?.textContent ?? ""
-    expect(rules).toMatch(/nth-child\(3\) \{ display: none; \}/)
+    expect(rules).not.toMatch(/display: none/)
+    expect(headers()).not.toContain("Incident")
+    expect(headers().slice(0, 3)).toEqual(["Business key / ID", "State", "Process"])
     const [running, suspended] = screen.getAllByRole("row").slice(1)
-    const firstCell = (row: HTMLElement) => row.querySelector("td")!
-    expect(firstCell(suspended).textContent).toContain("Suspended")
-    expect(firstCell(suspended).querySelector("[class*='@min-[48rem]:hidden']")).not.toBeNull()
-    expect(firstCell(running).textContent).not.toContain("Suspended")
+    const cells = (row: HTMLElement) => [...row.querySelectorAll("td")]
+    const stateOf = (row: HTMLElement) =>
+      [...cells(row)[1].querySelectorAll('[data-slot="state-label"]')].map((label) =>
+        label.getAttribute("data-state"),
+      )
+    expect(stateOf(running)).toEqual(["running"])
+    expect(stateOf(suspended)).toEqual(["suspended", "incident"])
+    expect(cells(suspended)[1].textContent).toBe("SuspendedIncident")
+    // Nothing stacks under the business key, and no pill says a state in a row.
+    expect(cells(suspended)[0].textContent).not.toContain("Suspended")
+    expect(container.querySelector("tbody [data-slot='status-badge']")).toBeNull()
   })
 
   it("keeps the Version and State columns in a list scoped to one process", () => {
@@ -140,15 +157,15 @@ describe("the engine-wide list's columns", () => {
         <ProcessInstancesView data={firstPage({})} processDefinitionKey="invoice" engine="prod" />
       </TestViewHost>,
     )
-    expect(headers()).toEqual(expect.arrayContaining(["Version", "State"]))
+    expect(headers().slice(0, 3)).toEqual(["Business key / ID", "State", "Version"])
     expect(headers()).not.toContain("Process")
   })
 })
 
-// The chips count what each of them lists: the payload ON SCREEN, never the request, so a
-// chip's count stays put while its own page is in flight.
-describe("the filter chips' counts", () => {
-  /** No chip on: the page's total is All's count. */
+// The scopes count what each of them lists: the payload ON SCREEN, never the request, so a
+// scope's count stays put while its own page is in flight. Compact on screen, exact in its name.
+describe("the scope segments' counts", () => {
+  /** No scope picked: the page's total is All's count. */
   const counted = (all: number, incidents: number, suspended: number): ProcessInstancesData => ({
     ...firstPage({}),
     totalCount: all,
@@ -156,13 +173,18 @@ describe("the filter chips' counts", () => {
     withIncidentCount: incidents,
     suspendedCount: suspended,
   })
-  const chip = (name: RegExp) =>
-    within(screen.getByRole("group", { name: /instance filters|instanzfilter/i })).getByRole(
-      "button",
+  const scope = (name: RegExp) =>
+    within(screen.getByRole("radiogroup", { name: /show instances|instanzen zeigen/i })).getByRole(
+      "radio",
       { name },
     )
+  /** The count on screen (compact) and the one a screen reader hears (exact, in words). */
+  const count = (radio: HTMLElement) => ({
+    shown: radio.querySelector('[aria-hidden="true"]:not(svg)')?.textContent,
+    heard: radio.querySelector(".sr-only")?.textContent,
+  })
 
-  it("shows every chip's count, formatted; with no chip on, All's is the header's total", () => {
+  it("shows every scope's count; with none picked, All's is the header's total", () => {
     render(
       <TestViewHost>
         <ProcessInstancesView
@@ -172,10 +194,41 @@ describe("the filter chips' counts", () => {
         />
       </TestViewHost>,
     )
-    expect(chip(/^All/).textContent).toBe("All2,480")
-    expect(chip(/^With incident/).textContent).toBe("With incident1,234")
-    expect(chip(/^Suspended/).textContent).toBe("Suspended7")
+    expect(count(scope(/^All/))).toEqual({ shown: "2.5k", heard: "2,480" })
+    // The label says why the count alarms: the name is the label and the exact count, once.
+    expect(count(scope(/^With incident/))).toEqual({ shown: "1.2k", heard: "1,234" })
+    expect(scope(/^With incident/).textContent).toBe("With incident1.2k1,234")
+    expect(count(scope(/^Suspended/))).toEqual({ shown: "7", heard: "7" })
+    expect(scope(/^All/).getAttribute("aria-checked")).toBe("true")
     expect(screen.getByText("2,480 running")).toBeTruthy()
+  })
+
+  it("marks the count with an incident by the danger icon, never by a coloured number", () => {
+    render(
+      <TestViewHost>
+        <ProcessInstancesView
+          data={counted(12, 3, 0)}
+          processDefinitionKey="invoice"
+          engine="prod"
+        />
+      </TestViewHost>,
+    )
+    const incident = scope(/^With incident/)
+    expect(incident.querySelector("svg")?.getAttribute("class")).toContain("lucide-circle-x")
+    expect(incident.querySelector("svg")?.getAttribute("class")).toContain("text-danger")
+    expect(incident.innerHTML.replace(/<svg[\s\S]*?<\/svg>/g, "")).not.toMatch(/text-danger/)
+    expect(scope(/^All/).querySelector("svg")).toBeNull()
+    cleanup()
+    render(
+      <TestViewHost>
+        <ProcessInstancesView
+          data={counted(12, 0, 0)}
+          processDefinitionKey="invoice"
+          engine="prod"
+        />
+      </TestViewHost>,
+    )
+    expect(scope(/^With incident/).querySelector("svg")).toBeNull()
   })
 
   it("formats them in the host's locale", () => {
@@ -188,13 +241,13 @@ describe("the filter chips' counts", () => {
         />
       </TestViewHost>,
     )
-    expect(chip(/^Alle/).textContent).toBe("Alle2.480")
-    expect(chip(/^Mit Incident/).textContent).toBe("Mit Incident1.234")
-    expect(chip(/^Ausgesetzt/).textContent).toBe("Ausgesetzt7")
+    expect(count(scope(/^Alle/))).toEqual({ shown: "2.480", heard: "2.480" })
+    expect(count(scope(/^Mit Incident/))).toEqual({ shown: "1.234", heard: "1.234" })
+    expect(count(scope(/^Ausgesetzt/))).toEqual({ shown: "7", heard: "7" })
     expect(screen.getByText("2.480 laufend")).toBeTruthy()
   })
 
-  it("reads the page on screen: the old counts while a chip's page loads, then its own", async () => {
+  it("reads the page on screen: the old counts while a scope's page loads, then its own", async () => {
     let answer: (data: ProcessInstancesData) => void = () => {}
     const pending = new Promise<ProcessInstancesData>((resolve) => {
       answer = resolve
@@ -208,16 +261,78 @@ describe("the filter chips' counts", () => {
         />
       </TestViewHost>,
     )
-    fireEvent.click(chip(/^With incident/))
-    await waitFor(() => expect(chip(/^With incident/).getAttribute("aria-pressed")).toBe("true"))
-    expect(chip(/^All/).textContent).toBe("All12")
-    expect(chip(/^Suspended/).textContent).toBe("Suspended1")
+    fireEvent.click(scope(/^With incident/))
+    await waitFor(() => expect(scope(/^With incident/).getAttribute("aria-checked")).toBe("true"))
+    // Busy while the scope's page loads.
+    expect(screen.getByRole("radiogroup").getAttribute("aria-busy")).toBe("true")
+    expect(count(scope(/^All/)).shown).toBe("12")
+    expect(count(scope(/^Suspended/)).shown).toBe("1")
 
-    // With incident on, the page's total is that chip's count; All still counts the whole list.
+    // With incident on, the page's total is that scope's count; All still counts the whole list.
     answer({ ...counted(13, 4, 2), totalCount: 4, filters: { withIncidents: true } })
-    await waitFor(() => expect(chip(/^Suspended/).textContent).toBe("Suspended2"))
-    expect(chip(/^With incident/).textContent).toBe("With incident4")
-    expect(chip(/^All/).textContent).toBe("All13")
+    await waitFor(() => expect(count(scope(/^Suspended/)).shown).toBe("2"))
+    expect(count(scope(/^With incident/)).shown).toBe("4")
+    expect(count(scope(/^All/)).shown).toBe("13")
+    expect(screen.getByRole("radiogroup").getAttribute("aria-busy")).toBe("false")
     expect(screen.getByText("4 running")).toBeTruthy()
+  })
+})
+
+// One row convention on every surface (owner direction 2026-11-18): a row opens its instance on a
+// click or Enter, as the webview's list; no drill, its hand-off the one control at its end.
+describe("the list's rows open their instance", () => {
+  function list(followUp: FollowUp = "chat", withIncident = true) {
+    const page = firstPage({})
+    const data: ProcessInstancesData = {
+      ...page,
+      processDefinitionKey: null,
+      instances: page.instances.map((row, index) => ({
+        ...row,
+        processDefinitionName: "Invoice receipt",
+        hasIncident: withIncident && index === 1,
+      })),
+    }
+    const go = vi.fn<(intent: NavIntent) => void>()
+    render(
+      <TestViewHost followUp={followUp}>
+        <NavProvider value={go}>
+          <ProcessInstancesView data={data} engine="prod" />
+        </NavProvider>
+      </TestViewHost>,
+    )
+    return go
+  }
+
+  it("opens on a click or Enter, named by what it opens, and its process by its own link", () => {
+    const go = list()
+    const row = screen.getByRole("row", { name: "Instance BK-pi-1" })
+    expect(row.getAttribute("tabindex")).toBe("0")
+    fireEvent.click(within(row).getAllByRole("cell")[1])
+    fireEvent.keyDown(row, { key: "Enter" })
+    fireEvent.click(within(row).getByRole("button", { description: /^Open process/ }))
+    expect(go.mock.calls.map(([intent]) => intent)).toEqual([
+      { type: "instance-detail", processInstanceId: "pi-1", label: "BK-pi-1" },
+      { type: "instance-detail", processInstanceId: "pi-1", label: "BK-pi-1" },
+      { type: "process-detail", processDefinitionKey: "invoice", label: "Invoice receipt" },
+    ])
+    expect(screen.queryAllByRole("button", { name: /^Open instance/ })).toEqual([])
+  })
+
+  it("keeps the hand-off at the row's end, which opens nothing", () => {
+    const go = list()
+    const row = screen.getByRole("row", { name: "Instance BK-pi-2" })
+    fireEvent.click(within(row).getByRole("button", { name: /chat/ }))
+    expect(go).not.toHaveBeenCalled()
+    expect(screen.getAllByRole("columnheader").map((th) => th.textContent)).toContain("Actions")
+  })
+
+  it("has no column of actions where no row shows one: no incident, or a page without a chat", () => {
+    list("chat", false)
+    expect(screen.getAllByRole("columnheader").map((th) => th.textContent)).not.toContain("Actions")
+    cleanup()
+    list("none")
+    expect(screen.getAllByRole("columnheader").map((th) => th.textContent)).not.toContain("Actions")
+    const row = screen.getByRole("row", { name: "Instance BK-pi-2" })
+    expect(within(row).queryAllByRole("button", { name: /chat/ })).toEqual([])
   })
 })

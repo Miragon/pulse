@@ -75,6 +75,9 @@ describe("the fit over time", () => {
     expect(shownRows()).toHaveLength(3)
   })
 
+  /** More rows than a list shows before its first measure. */
+  const MANY = Array.from({ length: 24 }, (_, i) => `row ${i + 1}`)
+
   it("fits a list the first time it shows, also after the user touched the view", () => {
     const { measure } = mutableLayout({ chrome: 300, row: 60 })
     function Tabbed() {
@@ -85,7 +88,7 @@ describe("the fit over time", () => {
             show
           </button>
           <div data-test-hidden={shown ? undefined : ""}>
-            <Table />
+            <Table rows={MANY} />
           </div>
         </>
       )
@@ -95,8 +98,8 @@ describe("the fit over time", () => {
         <Tabbed />
       </Host>,
     )
-    // Hidden: nothing to measure, nothing cut.
-    expect(shownRows()).toHaveLength(10)
+    // Hidden: nothing to measure, nothing cut: the 20 rows a list shows before its first measure.
+    expect(shownRows()).toHaveLength(20)
     fireEvent.pointerDown(window)
     fireEvent.click(screen.getByRole("button", { name: "show" }))
     resized()

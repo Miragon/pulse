@@ -6,29 +6,47 @@ import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-c7-core"
 import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { resolveEngineToolset, type EngineToolset } from "../lib/mcp/toolsets.js"
 import { ENGINE_WIDGET_ACTIONS, ENGINE_WIDGET_ACTIONS_DATA } from "../tool-names.js"
-import { engineParamShape } from "../lib/engine/with-engine.js"
 import { registerWidgetActionsFeed } from "./actions.js"
 
 afterEach(() => {
   vi.restoreAllMocks()
 })
 
-function registerFeed(toolset: EngineToolset) {
+/** A registry of one engine of `dialect`: only its backend's dialect and write gate are read. */
+const registryOf = (dialect: "c7" | "c8") =>
+  ({
+    engines: [],
+    backends: new Map([["a", { dialect, readOnly: dialect === "c8" }]]),
+  }) as unknown as EngineRegistry
+
+function recordFeed(
+  toolset: EngineToolset,
+  registered: ReadonlySet<string> = new Set(ENGINE_WIDGET_ACTIONS),
+  registry = registryOf("c7"),
+) {
   const recording = recordingModuleServer()
   registerWidgetActionsFeed({
     server: recording.server,
-    registry: { engines: [], backends: new Map() } as unknown as EngineRegistry,
+    registry,
     healthThresholds: DEFAULT_VERDICT_THRESHOLDS,
     toolset,
-    engineParam: engineParamShape,
+    registered,
   })
+  return recording
+}
+
+function registerFeed(toolset: EngineToolset, registered?: ReadonlySet<string>) {
+  const recording = recordFeed(toolset, registered)
   expect(recording.tools.size).toBe(1)
   const [feed] = recording.tools.values()
   return feed
 }
 
-async function allowedActionsFor(toolset: EngineToolset): Promise<unknown> {
-  const result = await registerFeed(toolset).call({})
+async function allowedActionsFor(
+  toolset: EngineToolset,
+  registered?: ReadonlySet<string>,
+): Promise<unknown> {
+  const result = await registerFeed(toolset, registered).call({})
   return feedPayload(result).allowedActions
 }
 
@@ -50,6 +68,19 @@ describe("engine_widget_actions_data", () => {
 
   it("allows none in read-only", async () => {
     expect(await allowedActionsFor("read-only")).toEqual([])
+  })
+
+  // A write the registrar left out (no writable engine it serves) offers no button.
+  it("names only the writes the registrar registered", async () => {
+    const registered = new Set(["engine_resolve_incident", "engine_delete_process_instance"])
+    expect(await allowedActionsFor("operations", registered)).toEqual(["engine_resolve_incident"])
+    expect(await allowedActionsFor("operations", new Set())).toEqual([])
+  })
+
+  // Its mark: its writes are the Camunda 7 REST API's, so a server of Camunda 8 engines alone,
+  // whose views offer no write, does not register it.
+  it("is not registered without a Camunda 7 engine", () => {
+    expect(recordFeed("admin", undefined, registryOf("c8")).tools.size).toBe(0)
   })
 
   it("keeps the admin-only suspend/cancel out of operations", async () => {

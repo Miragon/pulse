@@ -173,3 +173,76 @@ describe("McpHttpApp", () => {
     await expect(appOf().close()).resolves.toBeUndefined()
   })
 })
+
+// The listener's 405 names what a path takes: it reads the router's own patterns, so a route
+// with a parameter or a wildcard is named like a literal one, and a POST route like a GET route.
+describe("McpHttpApp.allowedMethods", () => {
+  const ok = () => new Response("ok")
+
+  it("names the methods of every get and post route whose pattern takes the path", () => {
+    const app = appOf()
+    app.get("/a", ok).post("/a", ok).post("/b", ok).get("/c/:id", ok).get("/d/*", ok)
+    expect(app.allowedMethods("/a")).toBe("GET, HEAD, POST")
+    expect(app.allowedMethods("/b")).toBe("POST")
+    expect(app.allowedMethods("/c/42")).toBe("GET, HEAD")
+    expect(app.allowedMethods("/c/42/x")).toBe("")
+    expect(app.allowedMethods("/c")).toBe("")
+    expect(app.allowedMethods("/d/x/y")).toBe("GET, HEAD")
+    expect(app.allowedMethods("/mcp")).toBe("POST")
+  })
+
+  // hono's router reads a trailing /* as optional: `/d/*` answers `/d` and `/d/` too.
+  it("reads a trailing /* as hono does: the path without it, with its slash, or below it", () => {
+    const app = appOf()
+    app.get("/d/*", ok).post("/e/f/*", ok)
+    for (const path of ["/d", "/d/", "/d/x", "/d/x/y"]) {
+      expect(app.allowedMethods(path), path).toBe("GET, HEAD")
+    }
+    for (const path of ["/e/f", "/e/f/", "/e/f/x"]) {
+      expect(app.allowedMethods(path), path).toBe("POST")
+    }
+    for (const path of ["/dx", "/e", "/e/fx", "/x"]) {
+      expect(app.allowedMethods(path), path).toBe("")
+    }
+  })
+
+  it("reads /* as every path", () => {
+    const app = appOf()
+    app.get("/*", ok)
+    for (const path of ["/", "/x", "/x/y"]) {
+      expect(app.allowedMethods(path), path).toBe("GET, HEAD")
+    }
+  })
+
+  it("reads a pattern's literal segments literally", () => {
+    const app = appOf()
+    app.get("/v1.0/x", ok)
+    expect(app.allowedMethods("/v1.0/x")).toBe("GET, HEAD")
+    expect(app.allowedMethods("/v1x0/x")).toBe("")
+  })
+
+  it("names nothing for a path only a middleware takes", () => {
+    const app = appOf()
+    app.use("*", async (_c, next) => {
+      await next()
+    })
+    expect(app.allowedMethods("/anything")).toBe("")
+  })
+
+  it("has no resource without OAuth", () => {
+    expect(appOf().oauthResource).toBeUndefined()
+  })
+})
+
+describe("McpHttpApp.toolConfig", () => {
+  it("gives what the boot recorded of a tool it serves: its annotations and its _meta", () => {
+    const config = appOf().toolConfig("demo_show_x")
+    expect(config?.annotations).toEqual({ readOnlyHint: true })
+    expect(config?._meta?.["openai/widgetAccessible"]).toBe(true)
+    expect(appOf().toolConfig("demo_fail")?._meta).toBeUndefined()
+  })
+
+  it("knows no tool this boot does not serve", () => {
+    expect(appOf().toolConfig("demo_unknown")).toBeUndefined()
+  })
+})

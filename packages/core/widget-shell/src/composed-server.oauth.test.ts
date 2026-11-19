@@ -1,6 +1,4 @@
-import crypto from "node:crypto"
 import http from "node:http"
-import type { AddressInfo } from "node:net"
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest"
 import { OAuthError, OAuthErrorCode } from "@modelcontextprotocol/server"
 import { oauthCustomProvider } from "./oauth-providers.js"
@@ -10,6 +8,7 @@ import {
   type ComposedServerOptions,
   type RunningServer,
 } from "./composed-server.js"
+import { startRealm, type Realm } from "./composed-server.realm.test-support.js"
 import { createToolsetVocabulary } from "./toolsets.js"
 
 const createPlugin = vi.fn(() => ({ name: "alpha", register: () => {} }))
@@ -54,50 +53,6 @@ const stubOAuth = (issuer = "https://idp.example.test") =>
 const KEYCLOAK_ENV = {
   MCP_OAUTH_KEYCLOAK_SERVER_URL: "https://kc.example.com",
   MCP_OAUTH_KEYCLOAK_REALM: "platform",
-}
-
-interface Realm {
-  serverUrl: string
-  /** Answer the key set with a 500 from now on. */
-  fail(): void
-  /** An RS256 access token from this realm: its issuer, an hour's `exp`, then `claims`. */
-  sign(claims: Record<string, unknown>): string
-  close(): Promise<void>
-}
-
-/**
- * A loopback Keycloak realm that serves only its JWKS, so the Keycloak provider the env names runs
- * the real JWT verifier against tokens this test signs.
- */
-async function startRealm(): Promise<Realm> {
-  const { privateKey, publicKey } = crypto.generateKeyPairSync("rsa", { modulusLength: 2048 })
-  const jwk = { ...publicKey.export({ format: "jwk" }), kid: "k1", alg: "RS256", use: "sig" }
-  let failing = false
-  const server = http.createServer((_req, res) => {
-    if (failing) {
-      res.statusCode = 500
-      return res.end("down")
-    }
-    res.setHeader("content-type", "application/json")
-    res.end(JSON.stringify({ keys: [jwk] }))
-  })
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve))
-  const serverUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
-  const segment = (value: object) => Buffer.from(JSON.stringify(value)).toString("base64url")
-  return {
-    serverUrl,
-    fail: () => {
-      failing = true
-    },
-    sign(claims) {
-      const exp = Math.floor(Date.now() / 1000) + 3600
-      const body = { iss: `${serverUrl}/realms/platform`, exp, ...claims }
-      const signed = `${segment({ alg: "RS256", kid: "k1", typ: "JWT" })}.${segment(body)}`
-      const signature = crypto.sign("RSA-SHA256", Buffer.from(signed), privateKey)
-      return `${signed}.${signature.toString("base64url")}`
-    },
-    close: () => new Promise((resolve) => server.close(() => resolve())),
-  }
 }
 
 const running: RunningServer[] = []
@@ -296,43 +251,6 @@ describe("createComposedServer: OAuth behind the edge", () => {
   })
 })
 
-describe("createComposedServer: OAuth discovery", () => {
-  it("serves both documents, answers a preflight from any origin and refuses other methods", async () => {
-    const composed = await compose({ oauth: stubOAuth() })
-    const resource = await fetchApp(composed, "/.well-known/oauth-protected-resource/mcp")
-    expect(await resource.json()).toEqual({
-      resource: "http://localhost/mcp",
-      authorization_servers: ["https://idp.example.test"],
-    })
-    const server = await fetchApp(composed, "/.well-known/oauth-authorization-server")
-    expect(await server.json()).toMatchObject({ issuer: "https://idp.example.test" })
-    const preflight = await fetchApp(composed, "/.well-known/oauth-protected-resource/mcp", {
-      method: "OPTIONS",
-      headers: {
-        origin: "https://claude.ai",
-        "access-control-request-method": "GET",
-        "access-control-request-headers": "mcp-protocol-version",
-      },
-    })
-    expect(preflight.status).toBe(204)
-    expect(preflight.headers.get("access-control-allow-origin")).toBe("*")
-    expect(preflight.headers.get("access-control-allow-headers")).toBe("mcp-protocol-version")
-    const posted = await fetchApp(composed, "/.well-known/oauth-protected-resource/mcp", {
-      method: "POST",
-      body: "{}",
-    })
-    expect(posted.status).toBe(405)
-    expect(posted.headers.get("allow")).toBe("GET, HEAD, OPTIONS")
-    expect((await fetchApp(composed, "/.well-known/openid-configuration")).status).toBe(404)
-  })
-
-  it("serves no discovery without OAuth", async () => {
-    const composed = await compose()
-    const res = await fetchApp(composed, "/.well-known/oauth-protected-resource/mcp")
-    expect(res.status).toBe(404)
-  })
-})
-
 // What the docs tell an IdP admin (docs/mcp/operations.md, the identity provider checklist):
 // an IdP set up for MCP_URL itself gets 401 on every call.
 describe("the token audience, against the real JWT verifier", () => {
@@ -356,7 +274,7 @@ describe("the token audience, against the real JWT verifier", () => {
     const composed = await bootRealm()
     const infos = vi.mocked(console.info).mock.calls.map(([line]) => String(line))
     expect(infos).toContain(
-      "[oauth-test] OAuth: tokens must carry aud http://localhost/mcp (RFC 8707) and a sub claim.",
+      "[oauth-test] OAuth: tokens must carry aud http://localhost/mcp (RFC 8707) and the sub, sid and auth_time claims of a signed-in user.",
     )
     const metadata = await fetchApp(composed, "/.well-known/oauth-protected-resource/mcp")
     expect(await metadata.json()).toMatchObject({ resource: "http://localhost/mcp" })
@@ -374,6 +292,86 @@ describe("the token audience, against the real JWT verifier", () => {
       "Token audience does not include the protected resource",
     )
     expect((await call({ aud: "http://localhost/mcp" })).status).toBe(401)
+  })
+
+  it("refuses a service account's token, which names no signed-in user (no sid)", async () => {
+    const composed = await bootRealm()
+    const serviceAccount = realm.sign({
+      aud: "http://localhost/mcp",
+      sub: "service-account-user",
+      azp: "anyone-registered",
+      preferred_username: "service-account-anyone-registered",
+      sid: undefined,
+      auth_time: undefined,
+    })
+    const refused = await initialize(composed, { authorization: `Bearer ${serviceAccount}` })
+    expect(refused.status).toBe(401)
+    expect(refused.headers.get("www-authenticate")).toContain(
+      "Token carries no sid claim, which the server requires: it takes only the tokens of a user's sign-in at the identity provider, never a client's own token (client credentials) or a password grant's",
+    )
+  })
+
+  // A client that kept a token past Keycloak's 5 minutes learns it expired, so it renews it; the
+  // challenge keeps its shape (error, description, the resource's metadata).
+  it("says a token past its exp expired, in the challenge and the request log", async () => {
+    const composed = await bootRealm()
+    const now = Math.floor(Date.now() / 1000)
+    const call = (exp: number) =>
+      initialize(composed, {
+        authorization: `Bearer ${realm.sign({ aud: "http://localhost/mcp", sub: "u", exp })}`,
+      })
+    for (const expired of [await call(now - 3600), await call(now - 1)]) {
+      expect(expired.status).toBe(401)
+      expect(expired.headers.get("www-authenticate")).toBe(
+        'Bearer error="invalid_token", error_description="Token has expired", resource_metadata="http://localhost/.well-known/oauth-protected-resource/mcp"',
+      )
+      // The body the web app's forward reads the reason from.
+      expect(await expired.json()).toEqual({
+        error: "invalid_token",
+        error_description: "Token has expired",
+      })
+    }
+    await vi.waitFor(() =>
+      expect(log).toHaveBeenCalledWith(
+        expect.stringMatching(/ \/mcp 401 .* ERROR invalid_token: Token has expired$/),
+      ),
+    )
+  })
+
+  // A client that registered itself through Keycloak's own endpoint may keep a session for its
+  // service account ("Use refresh tokens for client credentials grant"): a sid, no sign-in.
+  it("refuses a service account's token with a session, which carries sid and no auth_time", async () => {
+    const composed = await bootRealm()
+    const call = (claims: Record<string, unknown>) =>
+      initialize(composed, {
+        authorization: `Bearer ${realm.sign({ aud: "http://localhost/mcp", sub: "s", ...claims })}`,
+      })
+    const refused = await call({ auth_time: undefined })
+    expect(refused.status).toBe(401)
+    expect(refused.headers.get("www-authenticate")).toContain(
+      "Token carries no auth_time claim, which the server requires",
+    )
+    expect((await call({ auth_time: null })).status).toBe(401)
+    expect((await call({})).status).toBe(200)
+  })
+
+  // Keycloak's password grant (Direct Access Grants) opens a session for the user it names, but
+  // nobody signed in at Keycloak: its token carries sid and no auth_time.
+  it("refuses a password grant's token, which names the user and carries sid but no auth_time", async () => {
+    const composed = await bootRealm()
+    const passwordGrant = realm.sign({
+      aud: "http://localhost/mcp",
+      sub: "alice-id",
+      azp: "anyone-registered",
+      preferred_username: "alice",
+      sid: "session-of-the-grant",
+      auth_time: undefined,
+    })
+    const refused = await initialize(composed, { authorization: `Bearer ${passwordGrant}` })
+    expect(refused.status).toBe(401)
+    expect(refused.headers.get("www-authenticate")).toContain(
+      "Token carries no auth_time claim, which the server requires: it takes only the tokens of a user's sign-in at the identity provider, never a client's own token (client credentials) or a password grant's",
+    )
   })
 
   // A malformed claim is refused whole, even when one of its strings names this server.

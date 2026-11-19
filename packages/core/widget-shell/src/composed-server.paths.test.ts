@@ -14,6 +14,7 @@ import {
   scrape,
   statuses,
   stubOAuth,
+  OVER_SOCKETS,
 } from "./composed-server.test-support.js"
 
 /**
@@ -103,7 +104,7 @@ const noRoute = (route: string) => [
   `/%5c${route.slice(1)}`,
 ]
 
-describe("the listener: a route answers under its own path only", () => {
+describe("the listener: a route answers under its own path only", OVER_SOCKETS, () => {
   it.each(ROUTES)("$route answers under its name", async ({ route, reached, request }) => {
     const { port } = await boot({ oauth: stubOAuth() })
     expect((await rawRequest(port, { ...request, target: route })).status).toBe(reached)
@@ -139,7 +140,7 @@ describe("the listener: a route answers under its own path only", () => {
   })
 })
 
-describe("the listener: the refusal comes first", () => {
+describe("the listener: the refusal comes first", OVER_SOCKETS, () => {
   it("before the Host check: a foreign Host reads 404 here, 403 on the route", async () => {
     const { port } = await boot()
     const host = "attacker.example"
@@ -185,7 +186,7 @@ describe("the listener: the refusal comes first", () => {
   })
 })
 
-describe("the listener: what the metrics and the log make of it", () => {
+describe("the listener: what the metrics and the log make of it", OVER_SOCKETS, () => {
   it("counts a refusal under route=other, and no path becomes a label", async () => {
     const { port } = await boot({ oauth: stubOAuth() })
     const targets = ROUTES.flatMap(({ route }) => [...notNormal(route, port), ...inside(route)])
@@ -257,7 +258,7 @@ describe("the listener: what the metrics and the log make of it", () => {
 
 // The SDK's bridge builds the URL as `http://<Host><target>`: such a `Host` would route `/x` to
 // `/mcp`, past any rule on the path, and an empty one would turn the first segment into the host.
-describe("the listener: a Host cannot replace the path", () => {
+describe("the listener: a Host cannot replace the path", OVER_SOCKETS, () => {
   it.each(["/mcp?", "/mcp#", "\\mcp?", "/./mcp?"])(
     "refuses Host h%s on POST /x instead of serving /mcp",
     async (suffix) => {
@@ -328,7 +329,7 @@ describe("the listener: a Host cannot replace the path", () => {
 
 // `new Request` runs the URL parser, so a test through `app.fetch` never sends a dot segment: the
 // sockets above cover those. Everything the parser leaves ends the same way here.
-describe("app.fetch: what a Request lets through", () => {
+describe("app.fetch: what a Request lets through", OVER_SOCKETS, () => {
   const get = (composed: { app: { fetch(r: Request): Promise<Response> } }, path: string) =>
     composed.app.fetch(new Request(`http://localhost${path}`, { headers: { host: "localhost" } }))
 

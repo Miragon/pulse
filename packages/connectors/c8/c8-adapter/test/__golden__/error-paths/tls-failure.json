@@ -1,0 +1,20 @@
+{
+  "case": "tls-failure",
+  "connection": {
+    "credentials": {
+      "kind": "none"
+    },
+    "endpoint": "https://127.0.0.1:<port>/v2"
+  },
+  "probes": [
+    {
+      "call": "describeEngine",
+      "outcome": {
+        "failure": "unreachable",
+        "hint": "Check that this computer trusts the cluster's certificate and that the cluster serves https at this URL.",
+        "message": "Cannot reach https://127.0.0.1:<port>/v2/topology: the TLS handshake failed (DEPTH_ZERO_SELF_SIGNED_CERT)"
+      },
+      "sent": []
+    }
+  ]
+}

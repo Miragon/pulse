@@ -31,7 +31,7 @@
  * - No .mts/.cts/.js/.mjs/.cjs/.jsx source under a package's src/: the ESLint
  *   complexity/max-lines budgets and pattern gates (globbed *.{ts,tsx}) and
  *   pulse-ui's brand-gate scans (scanGlyphs, scanColors, scanIconSizes,
- *   scanTypeScale) read .ts and .tsx only.
+ *   scanTypeScale, scanOutlines) read .ts and .tsx only.
  * - No package.json declares an app (the npm name of an apps/<dir>) in dependencies, devDependencies, peerDependencies or
  *   optionalDependencies: not by its name, not as an npm: or workspace: alias,
  *   not as a file:/link:/portal: path into its directory. That holds for the

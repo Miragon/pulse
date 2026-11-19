@@ -9,7 +9,6 @@ import {
 } from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
 import { BoardPanel } from "../../src/core/boards/board-panel.js"
-import { BoardParser, type BoardParse } from "../../src/core/boards/board-parser.js"
 import type { BoardTile } from "../../src/core/protocol/index.js"
 import { boardFixture, stubbed, summary, type EngineSetup } from "./support/board-fixture.js"
 
@@ -66,6 +65,8 @@ const BROKEN_STATISTICS = stubbed({
 
 const DIAGRAM = { widget: "processDiagram", props: { engines: ["shop"], process: "order" } }
 
+const ORDER = { id: "order:1", bpmnProcessId: "order", version: 1, name: "Order fulfillment" }
+
 const ENGINES: readonly EngineSetup[] = [
   { name: "shop", runtime: SHOP },
   { name: "billing", runtime: BILLING },
@@ -73,10 +74,6 @@ const ENGINES: readonly EngineSetup[] = [
 
 function board(widgets: unknown[], engines = ["shop", "billing"]) {
   return { title: "Orders", engines, rows: widgets.map((widget) => ({ row: [widget] })) }
-}
-
-function parse(widget: unknown, engines = ["shop", "billing"]): BoardParse {
-  return BoardParser.parse(JSON.stringify(board([widget], engines)))
 }
 
 async function opened(widgets: unknown[], engines: readonly EngineSetup[] = ENGINES) {
@@ -104,83 +101,20 @@ function tileOf<Kind extends BoardTile["kind"]>(
   return found as Extract<BoardTile, { kind: Kind }>
 }
 
-describe("the process widgets of a board file", () => {
-  test("read a diagram of one engine and incidents of a process or of every process", () => {
-    const parsed = BoardParser.parse(
-      JSON.stringify({
-        title: "Orders",
-        engines: ["shop"],
-        rows: [
-          {
-            row: [
-              { widget: "processDiagram", props: { title: "Orders", process: "order" } },
-              { widget: "incidentList", props: { process: "order" } },
-              { widget: "incidentList" },
-            ],
-          },
-        ],
-      }),
-    )
-
-    expect(parsed).toEqual({
-      board: {
-        title: "Orders",
-        engines: ["shop"],
-        rows: [
-          [
-            { widget: "processDiagram", engines: ["shop"], title: "Orders", process: "order" },
-            { widget: "incidentList", engines: ["shop"], process: "order" },
-            { widget: "incidentList", engines: ["shop"] },
-          ],
-        ],
-      },
-    })
-  })
-
-  test("refuse a diagram without a process or over several engines", () => {
-    expect(parse({ widget: "processDiagram" })).toEqual({
-      problems: [
-        { path: "rows[0].row[0].props.process", reason: "is missing" },
-        {
-          path: "rows[0].row[0].props.engines",
-          reason: "must name one engine, because a diagram shows the deployment of one engine",
-        },
-      ],
-    })
-    expect(parse({ widget: "processDiagram", props: { process: " " } }, ["shop"])).toEqual({
-      problems: [
-        { path: "rows[0].row[0].props.process", reason: "must be a text that is not empty" },
-      ],
-    })
-    expect(parse({ widget: "incidentList", props: { filter: {} } })).toEqual({
-      problems: [
-        {
-          path: "rows[0].row[0].props.filter",
-          reason: "is not a known key; use title, engines, process",
-        },
-      ],
-    })
-  })
-})
-
 describe("a process diagram on a board", () => {
   test("draws the latest version with running instances and incidents per element", async () => {
     const { fixture } = await opened([DIAGRAM])
 
     expect(tileOf(fixture, "processDiagram")).toEqual({
       kind: "processDiagram",
-      title: "Order fulfillment",
+      widget: { widget: "processDiagram", engines: ["shop"], process: "order" },
       engine: "shop",
-      bpmnProcessId: "order",
-      diagram: {
-        processName: "Order fulfillment",
-        version: 1,
-        diagramXml: XML,
-        badges: [
-          { elementId: "Task_Pay", running: 9, incidents: 0, incidentsInCalledInstances: 0 },
-          { elementId: "Task_Ship", running: 3, incidents: 2, incidentsInCalledInstances: 0 },
-        ],
-      },
+      latest: ORDER,
+      badges: [
+        { elementId: "Task_Pay", active: 9, incidents: 0, incidentsInCalledInstances: 0 },
+        { elementId: "Task_Ship", active: 3, incidents: 2, incidentsInCalledInstances: 0 },
+      ],
+      diagramXml: XML,
     })
   })
 
@@ -196,23 +130,22 @@ describe("a process diagram on a board", () => {
 
     expect(tileOf(fixture, "processDiagram", 0)).toEqual({
       kind: "processDiagram",
-      title: "order",
+      widget: { widget: "processDiagram", engines: ["billing"], process: "order" },
       engine: "billing",
-      bpmnProcessId: "order",
       notDeployed: true,
     })
     expect(tileOf(fixture, "processDiagram", 1)).toEqual({
       kind: "processDiagram",
-      title: "order",
+      widget: { widget: "processDiagram", engines: ["shop"], process: "order" },
       engine: "shop",
-      bpmnProcessId: "order",
+      latest: { id: "order:1", bpmnProcessId: "order", version: 1 },
     })
   })
 
   test("draws nothing from an engine that is not configured", async () => {
     const { fixture } = await opened([DIAGRAM], [{ name: "shop" }])
 
-    expect(tileOf(fixture, "processDiagram")).not.toHaveProperty("diagram")
+    expect(tileOf(fixture, "processDiagram")).not.toHaveProperty("diagramXml")
   })
 
   test("opens the process at an element it counts, never with a filter the diagram cannot show", async () => {
@@ -231,6 +164,7 @@ describe("a process diagram on a board", () => {
     await open({ scope: "running", elementId: "Task_Unknown" })
     await open({ scope: "ended", elementId: "Task_Ship" })
     await open({ scope: "running", businessKey: "ORD-1" })
+    await open({ scope: "running", variables: [] })
     await open({ scope: "running" }, "invoice")
     await open({ scope: "running" }, "order", "billing")
 
@@ -254,43 +188,38 @@ describe("an incident list on a board", () => {
     ])
 
     const row = {
-      engine: "shop",
       id: "x-1",
       instanceId: "i-1",
-      shortInstanceId: "i-1",
-      processName: "Order fulfillment",
-      bpmnProcessId: "order",
+      definition: ORDER,
       elementId: "Task_Ship",
+      type: "failedJob",
       message: "Payment provider timed out",
       createdAt: "2026-10-26T08:30:00.000Z",
     }
     expect(tileOf(fixture, "incidentList", 0)).toEqual({
       kind: "incidentList",
-      title: "Open incidents of order",
-      groups: [
-        { engine: "shop", rows: [row], more: true },
-        { engine: "billing", rows: [], unavailable: true },
-      ],
+      widget: { widget: "incidentList", engines: ["shop", "billing"], process: "order" },
+      groups: [{ engine: "shop", incidents: [row], more: true }, { engine: "billing" }],
     })
     expect(tileOf(fixture, "incidentList", 1)).toEqual({
       kind: "incidentList",
-      title: "Everything",
+      widget: { widget: "incidentList", engines: ["shop"], title: "Everything" },
       groups: [
         {
           engine: "shop",
-          rows: [row, { ...row, id: "x-2", instanceId: "i-2", shortInstanceId: "i-2" }],
+          incidents: [row, { ...row, id: "x-2", instanceId: "i-2" }],
         },
       ],
     })
   })
 
-  test("titles a list over every process and reads nothing from an engine that is not configured", async () => {
+  test("reads nothing from an engine that is not configured", async () => {
     const { fixture } = await opened([{ widget: "incidentList" }], [{ name: "prod" }])
 
     expect(tileOf(fixture, "incidentList")).toEqual({
       kind: "incidentList",
-      title: "Open incidents",
-      groups: [{ engine: "prod", rows: [], unavailable: true }],
+      widget: { widget: "incidentList", engines: ["prod"] },
+      groups: [{ engine: "prod" }],
     })
   })
 

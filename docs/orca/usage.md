@@ -2,9 +2,10 @@
 
 ## The panel
 
-The Pulse panel in Orca's right sidebar lists the engines of the project file with their process
-definitions and incident counts. Enter on an engine opens its overview, on a process its
-definition, each in an editor tab. The panel also holds:
+The Pulse panel in Orca's right sidebar lists the engines of the project file and your CLI config
+with their process definitions and incident counts, and shows where your CLI config is. Enter on
+an engine opens its overview, on a process its definition, each in an editor tab. The panel also
+holds:
 
 - **Active engine**: the engine the status bar shows with its incidents.
 - **Go to instance**: an instance id or a business key opens the instance, a list when several
@@ -21,8 +22,8 @@ A tab shows the engine overview, a definition, an instance or a migration exactl
 VS Code does: badges on the diagram, the incident's root cause, variables, the history. Tabs
 refresh on their own while you see them and pause after 15 minutes without activity. A link
 leads back to the tab that opened one. A tab is a handle file in `.pulse/views/` next to the
-project file, which Git ignores. Incident details open as a `.log` file. _Open in web app_ opens
-the engine's cockpit, and a copy lands on your clipboard.
+project file, which Git ignores. Incident details open as a `.log` file. _Open in Cockpit_ (on
+Camunda 8 _Open in Operate_) opens the engine's web app.
 
 ![A local model against the deployed version, with its badges](../assets/orca/model-runtime.webp)
 
@@ -33,7 +34,8 @@ A board (`.board.json`) opens in its own editor, from the panel or from the file
 ## Writes
 
 Retrying incidents, changing variables, moving tokens, cancelling and migrating instances follow
-the rules of Pulse for VS Code ([Configuration](./configuration.md)). When a write needs your
+the rules of Pulse for VS Code ([Configuration](./configuration.md)); a Camunda 8 cluster takes
+none of them, since Pulse only reads it ([Camunda 8](../vscode/camunda8.md)). When a write needs your
 confirmation, it waits in the Pulse panel, with the engine, the instances and what changes, and
 the status bar says so. Only the panel can confirm it, never a tab; an unanswered confirmation
 lapses after ten minutes. Every write and every answer goes into the plugin's log

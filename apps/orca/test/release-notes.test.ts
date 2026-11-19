@@ -16,6 +16,7 @@ const CHANGELOG = `# Changelog
 
 * **cli:** a new command ([#1](https://github.com/Miragon/pulse/issues/1))
 * **orca:** the panel lists boards ([#2](https://github.com/Miragon/pulse/issues/2))
+* **c8-adapter:** a cluster's version is read once ([#7](https://github.com/Miragon/pulse/issues/7))
 
 
 ### Bug Fixes
@@ -23,6 +24,8 @@ const CHANGELOG = `# Changelog
 * **engine:** a server fix ([#3](https://github.com/Miragon/pulse/issues/3))
 * **runtime-view:** a tab keeps its scroll position ([#4](https://github.com/Miragon/pulse/issues/4))
 * **c7-adapter:** a variable keeps its type ([#6](https://github.com/Miragon/pulse/issues/6))
+* **c7-core:** a root cause keeps its line breaks ([#9](https://github.com/Miragon/pulse/issues/9))
+* **c8-core:** an incident keeps its element's name ([#8](https://github.com/Miragon/pulse/issues/8))
 
 ## [0.27.1](https://github.com/Miragon/pulse/compare/v0.27.0...v0.27.1) (2026-11-07)
 
@@ -56,11 +59,14 @@ describe("the catalog's release notes", () => {
         "### Features",
         "",
         "* **orca:** the panel lists boards ([#2](https://github.com/Miragon/pulse/issues/2))",
+        "* **c8-adapter:** a cluster's version is read once ([#7](https://github.com/Miragon/pulse/issues/7))",
         "",
         "### Bug Fixes",
         "",
         "* **runtime-view:** a tab keeps its scroll position ([#4](https://github.com/Miragon/pulse/issues/4))",
         "* **c7-adapter:** a variable keeps its type ([#6](https://github.com/Miragon/pulse/issues/6))",
+        "* **c7-core:** a root cause keeps its line breaks ([#9](https://github.com/Miragon/pulse/issues/9))",
+        "* **c8-core:** an incident keeps its element's name ([#8](https://github.com/Miragon/pulse/issues/8))",
         "",
         "[Every change of Pulse v0.28.0](https://github.com/Miragon/pulse/releases/tag/v0.28.0)",
       ].join("\n"),
@@ -78,7 +84,10 @@ describe("the catalog's release notes", () => {
     const notes = await notesFor(
       CHANGELOG.replaceAll("**orca:**", "**cli:**")
         .replaceAll("**runtime-view:**", "**cli:**")
-        .replaceAll("**c7-adapter:**", "**cli:**"),
+        .replaceAll("**c7-adapter:**", "**cli:**")
+        .replaceAll("**c7-core:**", "**cli:**")
+        .replaceAll("**c8-adapter:**", "**cli:**")
+        .replaceAll("**c8-core:**", "**cli:**"),
       "v0.28.0",
     )
 

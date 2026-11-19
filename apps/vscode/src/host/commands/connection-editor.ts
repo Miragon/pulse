@@ -1,6 +1,7 @@
 import * as vscode from "vscode"
 import type { Connection } from "@miragon/pulse-runtime-view/host-kit"
 import type { OpenTargetsFileCommand } from "./open-targets-file-command.js"
+import { ProfileFileAction } from "./profile-file-action.js"
 import type { SetCredentialsCommand } from "./set-credentials-command.js"
 
 export class ConnectionEditor {
@@ -14,17 +15,18 @@ export class ConnectionEditor {
   }
 
   async edit(connection: Connection): Promise<void> {
+    const { target } = connection
     const choice = await vscode.window.showQuickPick(
       [
-        { label: `Set credentials for ${connection.target.name}…`, action: "credentials" as const },
-        { label: "Open the project file", action: "file" as const },
+        { label: `Set credentials for ${target.name}…`, action: "credentials" as const },
+        { label: ProfileFileAction.labelOf(target), action: "file" as const },
       ],
-      { title: `Edit connection ${connection.target.name}` },
+      { title: `Edit connection ${target.name}` },
     )
     if (choice?.action === "credentials") {
       await this.setCredentialsOf(connection)
     } else if (choice?.action === "file") {
-      await this.openTargetsFile.run()
+      await this.openTargetsFile.run(ProfileFileAction.pathOf(target))
     }
   }
 }

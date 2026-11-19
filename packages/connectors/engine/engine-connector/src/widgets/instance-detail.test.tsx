@@ -65,8 +65,8 @@ describe("the instance's Incidents tab names each incident's element", () => {
       .getAllByRole("row")
       .slice(1)
       .map((row) => row.querySelector("td")!)
-    // The name leads, the BPMN id on the quiet line below it.
-    expect(firstCells[0].textContent).toBe("Charge cardchargeCard")
+    // The name leads, the BPMN id quiet after it on the same line.
+    expect(firstCells[0].textContent).toBe("Charge card chargeCard")
     // Without a name the id leads, in mono, never a blank cell.
     expect(firstCells[1].textContent).toBe("Gateway_1x9")
     expect(firstCells[1].querySelector(".font-mono")).not.toBeNull()
@@ -83,8 +83,9 @@ describe("the instance's Incidents tab names each incident's element", () => {
 describe("the instance's header leads to its process", () => {
   it("as its first action, a drill into the cockpit's process route; the meta line stays facts", () => {
     const { intents, container } = renderDetail(withIncidents())
-    const header = container.querySelector<HTMLElement>('[data-slot="widget-header"]')!
-    const [facts, group] = Array.from(header.children) as HTMLElement[]
+    const bar = container.querySelector<HTMLElement>('[data-slot="view-bar"]')!
+    const facts = bar.querySelector<HTMLElement>('[data-slot="view-bar-facts"]')!
+    const group = bar.querySelector<HTMLElement>('[data-slot="view-bar-actions"]')!
     // Facts only (invariant 6): the process is named there, the way to it is an action.
     expect(facts.textContent).toContain("Invoice Receipt")
     expect(facts.querySelectorAll("a")).toHaveLength(0)

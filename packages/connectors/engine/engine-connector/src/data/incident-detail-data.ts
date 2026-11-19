@@ -1,4 +1,5 @@
 import {
+  fetchExternalTaskErrorDetails,
   fetchJobStacktrace,
   readProcessInstanceVariables,
   type Client,
@@ -7,6 +8,7 @@ import { incidentRecovery } from "@miragon/pulse-c7-core"
 import type {
   ActivityTree,
   IncidentDetailData,
+  IncidentDetailExternalTask,
   IncidentDetailJob,
   IncidentRecovery,
   VariableValue,
@@ -153,6 +155,19 @@ async function fetchJob(client: Client, jobId: string): Promise<IncidentDetailJo
   }
 }
 
+/**
+ * The failed external task's error details, the text its worker reported with the failure: what
+ * the view shows as its stacktrace, as a job's. Enrichment: a task that is gone (retried
+ * meanwhile) or a read the engine rejects leaves the details null and the view without them.
+ */
+async function fetchExternalTask(
+  client: Client,
+  externalTaskId: string,
+): Promise<IncidentDetailExternalTask> {
+  const errorDetails = await fetchExternalTaskErrorDetails(client, externalTaskId).catch(() => null)
+  return { id: externalTaskId, errorDetails }
+}
+
 /** PRIMARY: it decides which job and message the view shows, so a failed read is a tool error. */
 async function fetchRootCauseIncident(
   client: Client,
@@ -172,11 +187,15 @@ type IncidentContext = [
   historyCount: { count?: number } | null,
   definitionMeta: RawDefinition | null,
   job: IncidentDetailJob | null,
+  externalTask: IncidentDetailExternalTask | null,
 ]
 
-/** Instance and job are PRIMARY (the tabs present them as facts); diagram, name and history total are enrichment. */
+/**
+ * Instance and job are PRIMARY (the tabs present them as facts); diagram, name, history total and
+ * an external task's error details are enrichment.
+ */
 function fetchIncidentContext(client: Client, incident: IncidentRecord): Promise<IncidentContext> {
-  const { processInstanceId, processDefinitionId, jobId } = incident
+  const { processInstanceId, processDefinitionId, jobId, recovery } = incident
   return Promise.all([
     processInstanceId
       ? (getProcessInstance({
@@ -205,6 +224,9 @@ function fetchIncidentContext(client: Client, incident: IncidentRecord): Promise
       : Promise.resolve(null),
     fetchDefinitionMeta(client, processDefinitionId),
     jobId ? fetchJob(client, jobId) : Promise.resolve(null),
+    recovery.action === "retry-external-task"
+      ? fetchExternalTask(client, recovery.externalTaskId)
+      : Promise.resolve(null),
   ])
 }
 
@@ -286,8 +308,16 @@ export async function buildIncidentDetailData(
   const incident = normalizeIncident(rawIncident, options.incidentId, rawRootCause ?? rawIncident)
   const { processInstanceId, processDefinitionId, activityId } = incident
 
-  const [rawInstance, activityTree, variables, xmlResponse, historyCount, definitionMeta, job] =
-    await fetchIncidentContext(client, incident)
+  const [
+    rawInstance,
+    activityTree,
+    variables,
+    xmlResponse,
+    historyCount,
+    definitionMeta,
+    job,
+    externalTask,
+  ] = await fetchIncidentContext(client, incident)
 
   const bpmnXml = xmlResponse?.bpmn20Xml ?? null
   const diagramNames = readBpmnNames(bpmnXml ?? "")
@@ -326,6 +356,7 @@ export async function buildIncidentDetailData(
     diagramDefinitionId: bpmnXml ? processDefinitionId : null,
 
     job,
+    externalTask,
     recovery: incident.recovery,
 
     instance: toInstanceSummary(rawInstance, incident),

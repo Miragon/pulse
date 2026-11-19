@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "title": "Order operations",
+  "engines": ["stub", "c8-orders"],
+  "rows": [
+    {
+      "row": [
+        {
+          "widget": "counter",
+          "props": {
+            "title": "Orders in flight",
+            "engines": ["c8-orders"],
+            "filter": { "process": "pulse-order" }
+          }
+        },
+        { "widget": "incidentSummary", "props": { "groupBy": "process" } }
+      ]
+    },
+    {
+      "row": [
+        {
+          "widget": "instanceList",
+          "props": {
+            "engines": ["c8-orders"],
+            "filter": { "process": "pulse-order" },
+            "columns": ["businessKey", "state", "incident"]
+          }
+        },
+        {
+          "widget": "incidentList",
+          "props": { "engines": ["c8-orders"] }
+        }
+      ]
+    },
+    {
+      "row": [
+        {
+          "widget": "processDiagram",
+          "props": { "engines": ["c8-orders"], "process": "pulse-order" }
+        }
+      ]
+    }
+  ]
+}

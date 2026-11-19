@@ -1,9 +1,10 @@
 import {
+  StateLabel,
   Td,
   formatDuration,
   formatTimestamp,
   SITUATION_TONES,
-  StatusBadge,
+  type StateLabelState,
   type ToneVariant,
 } from "@miragon/pulse-ui"
 import { ListTable } from "@miragon/pulse-widget-shell/widgets"
@@ -41,10 +42,18 @@ export const STEP_TONE: Record<HistoryStepState, ToneVariant> = {
   completed: SITUATION_TONES.ended,
 }
 
-/** The step's state in words, as a badge (for the states that need saying). */
-export function StepBadge({ state }: { state: HistoryStepState }) {
+/** The kit's state for each step's, whose icon a `StateLabel` draws. */
+const STEP_STATE: Record<HistoryStepState, StateLabelState> = {
+  incident: "incident",
+  running: "running",
+  canceled: "cancelled",
+  completed: "completed",
+}
+
+/** The step's state as the kit's state label: its tone's icon of its own shape and its word. */
+export function StepState({ state }: { state: HistoryStepState }) {
   const t = useT()
-  return <StatusBadge tone={STEP_TONE[state]}>{t(`historyTimeline.step.${state}`)}</StatusBadge>
+  return <StateLabel state={STEP_STATE[state]}>{t(`historyTimeline.step.${state}`)}</StateLabel>
 }
 
 /** A historic instance's engine state in words ("ACTIVE" → "läuft"); unknown ones verbatim. */
@@ -75,38 +84,40 @@ export function HistoryTable({
   const t = useT()
   return (
     <div className="border-border overflow-x-auto rounded-lg border">
-      {/* Compact variant: py-2 overrides Td/Th's default padding, the wrapper
-          border replaces the header's own top edge, and the activity cell takes
-          the remaining width (w-full max-w-0) so long names truncate instead of
-          widening the table into horizontal scroll. */}
+      {/* The cells keep the kit's padding (28 px rows, one line each: the activity's type
+          quiet beside its name), the wrapper border replaces the header's own top edge, and
+          the activity cell takes the remaining width (w-full max-w-0) so long names truncate
+          instead of widening the table into horizontal scroll. */}
       <ListTable
         className="[&_th]:border-t-0"
         ariaLabel={t("incidentHistory.tableAriaLabel")}
         columns={[
-          { label: t("incidentHistory.columnActivity"), className: "py-2" },
-          { label: t("incidentHistory.columnStarted"), align: "right", className: "py-2" },
-          { label: t("incidentHistory.columnDuration"), align: "right", className: "py-2" },
-          { label: t("incidentHistory.columnStatus"), align: "right", className: "py-2" },
+          { label: t("incidentHistory.columnActivity") },
+          { label: t("incidentHistory.columnStarted"), align: "right" },
+          { label: t("incidentHistory.columnDuration"), align: "right" },
+          { label: t("incidentHistory.columnStatus"), align: "right" },
         ]}
       >
         {entries.map((entry) => (
-          <tr key={entry.id} className="hover:bg-card [&:last-child>td]:border-b-0">
-            <Td className="w-full max-w-0 py-2">
-              <div className="text-foreground truncate font-medium">
-                {entry.activityName ?? entry.activityId}
-              </div>
-              <div className="text-muted-foreground text-small truncate font-mono">
-                {entry.activityType}
+          <tr key={entry.id} className="[&:last-child>td]:border-b-0">
+            <Td className="w-full max-w-0">
+              <div className="flex min-w-0 items-baseline gap-2">
+                <span className="text-foreground min-w-0 truncate font-semibold">
+                  {entry.activityName ?? entry.activityId}
+                </span>
+                <span className="text-muted-foreground text-small shrink-0 font-mono">
+                  {entry.activityType}
+                </span>
               </div>
             </Td>
-            <Td align="right" className="text-muted-foreground text-small py-2 font-mono">
+            <Td align="right" className="text-muted-foreground text-small font-mono">
               {formatTimestamp(entry.startTime)}
             </Td>
-            <Td align="right" className="text-muted-foreground text-small py-2 font-mono">
+            <Td align="right" className="text-muted-foreground text-small font-mono">
               {formatDuration(entry.durationInMillis)}
             </Td>
-            <Td align="right" className="py-2">
-              <StepBadge state={historyStepState(entry, incidentIds)} />
+            <Td align="right">
+              <StepState state={historyStepState(entry, incidentIds)} />
             </Td>
           </tr>
         ))}

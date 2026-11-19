@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
 import type { ComponentType } from "react"
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { LocaleProvider } from "@miragon/pulse-ui"
 import { ENGINE_WIDGET_ACTIONS_DATA } from "../tool-names.js"
 import type { TaskFormSchema } from "../view-models.js"
@@ -167,14 +167,17 @@ describe("a Boolean field speaks the view's language", () => {
         </TestViewHost>
       </LocaleProvider>,
     )
-    const yesButton = await screen.findByRole("button", { name: yes })
-    const noButton = screen.getByRole("button", { name: no })
+    // One of two: a radio group named by the field's label, nothing checked until you pick.
+    const group = await screen.findByRole("radiogroup", { name: "Genehmigt" })
+    const yesButton = within(group).getByRole("radio", { name: yes })
+    const noButton = within(group).getByRole("radio", { name: no })
     expect(screen.queryByText("true")).toBeNull()
     expect(screen.queryByText("false")).toBeNull()
-    expect(yesButton.getAttribute("aria-pressed")).toBe("false")
+    expect(yesButton.getAttribute("aria-checked")).toBe("false")
+    expect(noButton.getAttribute("aria-checked")).toBe("false")
     fireEvent.click(yesButton)
-    expect(yesButton.getAttribute("aria-pressed")).toBe("true")
-    expect(noButton.getAttribute("aria-pressed")).toBe("false")
+    expect(yesButton.getAttribute("aria-checked")).toBe("true")
+    expect(noButton.getAttribute("aria-checked")).toBe("false")
     fireEvent.click(await screen.findByText(complete))
     await waitFor(() => expect(submitted).toHaveLength(1))
     expect(submitted[0]).toMatchObject({

@@ -1,3 +1,4 @@
+import { CollapsedShapes } from "@miragon/pulse-board/builder"
 import {
   BpmnProcessId,
   DefinitionId,
@@ -87,15 +88,15 @@ function markersOf(detail: InstanceDetail) {
 
 describe("the structure of a diagram", () => {
   test("names the collapsed sub-processes around an element, innermost first", () => {
-    const structure = BpmnStructure.of(parcelReturnXml)
+    const shapes = CollapsedShapes.of(parcelReturnXml)
 
-    expect(structure.collapsedAround("Activity_ReadScale")).toEqual([
+    expect(shapes.around("Activity_ReadScale")).toEqual([
       "Activity_WeighParcel",
       "Activity_InspectParcel",
     ])
-    expect(structure.collapsedAround("Activity_CheckParcel")).toEqual(["Activity_InspectParcel"])
-    expect(structure.collapsedAround("Activity_PayRefund")).toEqual([])
-    expect(structure.collapsedAround("Activity_NotifyCustomer")).toEqual([])
+    expect(shapes.around("Activity_CheckParcel")).toEqual(["Activity_InspectParcel"])
+    expect(shapes.around("Activity_PayRefund")).toEqual([])
+    expect(shapes.around("Activity_NotifyCustomer")).toEqual([])
   })
 
   test("tells whether a diagram has call activities", () => {

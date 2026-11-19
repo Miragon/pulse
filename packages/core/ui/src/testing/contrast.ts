@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs"
 import { createRequire } from "node:module"
 import { pathToFileURL } from "node:url"
+import { POINTER_ROLES } from "../theme/role-tokens.js"
 
 /**
  * WCAG contrast over the THEME as written, resolved the way the browser would, so a brand
@@ -113,16 +114,30 @@ function ruleBlocks(css: string): RuleBlock[] {
 
 const ROOT_THEME = /:root|^html(?![\w-])|\.dark(?![\w-])|\[data-(?:theme|mode)|:host/
 
-/** useApplyTheme puts `.dark` AND `data-theme="dark"` on `<html>`; all share `.dark`'s specificity. */
+/**
+ * useApplyTheme puts `.dark` AND `data-theme="dark"` on `<html>`, an editor host the guide's
+ * `data-cd-theme="dark"`; all share `.dark`'s specificity.
+ */
 const DARK_ROOT_SCOPES: ReadonlySet<string> = new Set([
   ".dark",
   '[data-theme="dark"]',
   '[data-theme-mode="dark"]',
+  '[data-cd-theme="dark"]',
 ])
+
+const DENSITY: ReadonlySet<string> = new Set(POINTER_ROLES)
+
+/**
+ * The density roles and the field's text hold no colour: their comfortable step switches under a
+ * media query.
+ */
+const switchesDensityOnly = (block: RuleBlock) =>
+  block.declarations.every(([name]) => DENSITY.has(name))
 
 /**
  * Descendant scopes reach no root variable and are skipped; any other root-theme rule
- * (higher specificity, media query, layer) throws instead of measuring the wrong colour.
+ * (higher specificity, media query, layer) throws instead of measuring the wrong colour,
+ * unless it is nested and sets density roles only (`@media (any-pointer: coarse)`).
  */
 function rootScope(block: RuleBlock): { light: boolean; dark: boolean } {
   const selectors = selectorList(block.prelude)
@@ -132,7 +147,7 @@ function rootScope(block: RuleBlock): { light: boolean; dark: boolean } {
     )
   const reachesRoot = selectors.some((s) => ROOT_THEME.test(s) && !/[\s>+~]/.test(s))
   if (block.parents.length > 0) {
-    if (reachesRoot) throw unsupported()
+    if (reachesRoot && !switchesDensityOnly(block)) throw unsupported()
     return { light: false, dark: false }
   }
   let light = false

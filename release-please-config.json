@@ -21,6 +21,7 @@
         { "type": "json", "path": "apps/vscode/package.json", "jsonpath": "$.version" },
         { "type": "json", "path": "apps/orca/package.json", "jsonpath": "$.version" },
         { "type": "json", "path": "apps/orca/orca-plugin.json", "jsonpath": "$.version" },
+        { "type": "json", "path": "apps/web/package.json", "jsonpath": "$.version" },
         {
           "type": "json",
           "path": "packages/core/runtime-view/package.json",
@@ -33,12 +34,26 @@
         },
         {
           "type": "json",
+          "path": "packages/connectors/c8/c8-adapter/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "packages/connectors/c8/c8-core/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
           "path": "packages/connectors/c7/c7-client/package.json",
           "jsonpath": "$.version"
         },
         {
           "type": "generic",
           "path": "packages/connectors/c7/c7-client/src/hey-api.ts"
+        },
+        {
+          "type": "generic",
+          "path": "packages/connectors/engine/engine-connector/src/lib/engine/user-agent.ts"
         },
         {
           "type": "json",
@@ -48,6 +63,16 @@
         {
           "type": "json",
           "path": "packages/core/profile/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "packages/core/board/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "packages/core/blocks/package.json",
           "jsonpath": "$.version"
         },
         {
@@ -84,6 +109,11 @@
           "type": "json",
           "path": "templates/composed-server/server/package.json",
           "jsonpath": "$.dependencies['@miragon/pulse-widget-shell']"
+        },
+        {
+          "type": "json",
+          "path": "templates/composed-server/server/package.json",
+          "jsonpath": "$.devDependencies['@miragon/pulse-blocks']"
         },
         {
           "type": "json",

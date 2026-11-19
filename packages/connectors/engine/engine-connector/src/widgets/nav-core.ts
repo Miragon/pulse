@@ -1,4 +1,4 @@
-import { truncate } from "@miragon/pulse-ui"
+import { shortId } from "@miragon/pulse-ui"
 import { translator } from "../messages/use-t.js"
 import type { CockpitView } from "../view-models.js"
 import type { NavIntent } from "./navigation.js"
@@ -52,6 +52,9 @@ export function intentToView(intent: NavIntent): CockpitView {
         processDefinitionKey: intent.processDefinitionKey,
         failedOnly: intent.failedOnly,
       }
+    // The view on the board's engine; the cockpit moves to that engine (its reducer).
+    case "board-target":
+      return intent.view
   }
   return intent satisfies never
 }
@@ -72,6 +75,8 @@ export function viewKey(view: CockpitView): string {
       return `jobs:${view.processDefinitionKey ?? "*"}:${view.failedOnly ? "failed" : "all"}`
     case "history":
       return `history:${view.processInstanceId}`
+    case "board":
+      return `board:${view.board}`
     default:
       return view.section
   }
@@ -96,8 +101,26 @@ export function popTo(stack: CockpitView[], to?: number): CockpitView[] {
   return stack.slice(0, Math.max(index, 0) + 1)
 }
 
+type Tr = (key: string, params?: Record<string, unknown>) => string
+
+/**
+ * An instance by the drill's label (its business key, say); else by its short id, the kit's
+ * `shortId`: a UUID (Camunda 7's) by its head, a number (a Camunda 8 key, whose head every key on
+ * its partition shares) by its tail.
+ */
+function instanceCrumb(view: Extract<CockpitView, { section: "instance-detail" }>, tr: Tr) {
+  return view.label ?? tr("cockpit.crumb.instance", { id: shortId(view.processInstanceId) })
+}
+
+/** An incident by the element it occurred at, the drill's label; else by its short id. */
+function incidentCrumb(view: Extract<CockpitView, { section: "incident-detail" }>, tr: Tr) {
+  return view.label
+    ? tr("cockpit.crumb.incidentAt", { activity: view.label })
+    : tr("cockpit.crumb.incident", { id: shortId(view.incidentId) })
+}
+
 export function crumbLabel(view: CockpitView, locale: string): string {
-  const tr = (key: string, params?: Record<string, unknown>) => translator(locale, key, params)
+  const tr: Tr = (key, params) => translator(locale, key, params)
   switch (view.section) {
     case "overview":
       return tr("cockpit.crumb.overview")
@@ -109,17 +132,21 @@ export function crumbLabel(view: CockpitView, locale: string): string {
     case "process-instances":
       return tr("cockpit.crumb.instances")
     case "instance-detail":
-      return view.label ?? tr("cockpit.crumb.instance", { id: truncate(view.processInstanceId, 8) })
+      return instanceCrumb(view, tr)
     case "incident-detail":
-      return view.label
-        ? tr("cockpit.crumb.incidentAt", { activity: view.label })
-        : tr("cockpit.crumb.incident", { id: truncate(view.incidentId, 8) })
+      return incidentCrumb(view, tr)
     case "cluster-detail":
       return view.label ?? tr("cockpit.crumb.cluster", { activity: view.activityId })
     case "jobs":
       return tr("cockpit.crumb.jobs")
     case "history":
-      return tr("cockpit.crumb.history", { id: truncate(view.processInstanceId, 8) })
+      return tr("cockpit.crumb.history", { id: shortId(view.processInstanceId) })
+    // The board's title, once its data named it; else its id.
+    case "board":
+      return view.label ?? view.board
+    // The chooser, as the crumb that leads there names it.
+    case "landing":
+      return tr("cockpit.crumb.allEngines")
   }
 }
 
@@ -139,6 +166,13 @@ export function selectedEntity(view: CockpitView): SelectedEntity {
   return {}
 }
 
-// `landing` is the chooser when several engines are listed and none resolved.
+/** A board's view: the app-level route that reads the engines its board names. */
+export type BoardView = Extract<CockpitView, { section: "board" }>
+
+// `landing` is the chooser: several engines are listed and none resolved, or the landing route
+// opened it; `board` a board, which reads the engines it names, so no engine of the cockpit is open.
 export type CockpitScope =
-  { kind: "landing" } | { kind: "fleet" } | { kind: "engine"; engineId: string }
+  | { kind: "landing" }
+  | { kind: "fleet" }
+  | { kind: "board"; view: BoardView }
+  | { kind: "engine"; engineId: string }

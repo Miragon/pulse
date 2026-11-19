@@ -1,0 +1,130 @@
+[
+  {
+    "about": "Without any variable the file lives under ~/.config on Linux.",
+    "env": {},
+    "home": "/home/me",
+    "platform": "linux",
+    "path": "/home/me/.config/pulse-cli/config.json",
+    "explicit": false
+  },
+  {
+    "about": "Without any variable the file lives under ~/.config on macOS too.",
+    "env": {},
+    "home": "/Users/me",
+    "platform": "darwin",
+    "path": "/Users/me/.config/pulse-cli/config.json",
+    "explicit": false
+  },
+  {
+    "about": "An absolute XDG_CONFIG_HOME holds the file.",
+    "env": { "XDG_CONFIG_HOME": "/xdg" },
+    "home": "/home/me",
+    "platform": "linux",
+    "path": "/xdg/pulse-cli/config.json",
+    "explicit": false
+  },
+  {
+    "about": "An absolute XDG_CONFIG_HOME holds the file on macOS too.",
+    "env": { "XDG_CONFIG_HOME": "/xdg" },
+    "home": "/Users/me",
+    "platform": "darwin",
+    "path": "/xdg/pulse-cli/config.json",
+    "explicit": false
+  },
+  {
+    "about": "A blank XDG_CONFIG_HOME counts as unset.",
+    "env": { "XDG_CONFIG_HOME": "" },
+    "home": "/home/me",
+    "platform": "linux",
+    "path": "/home/me/.config/pulse-cli/config.json",
+    "explicit": false
+  },
+  {
+    "about": "A relative XDG_CONFIG_HOME is ignored, as the XDG Base Directory spec asks.",
+    "env": { "XDG_CONFIG_HOME": "relative/dir" },
+    "home": "/home/me",
+    "platform": "linux",
+    "path": "/home/me/.config/pulse-cli/config.json",
+    "explicit": false
+  },
+  {
+    "about": "An XDG_CONFIG_HOME that starts with a dot is relative and ignored.",
+    "env": { "XDG_CONFIG_HOME": "./xdg" },
+    "home": "/home/me",
+    "platform": "linux",
+    "path": "/home/me/.config/pulse-cli/config.json",
+    "explicit": false
+  },
+  {
+    "about": "PULSE_CLI_CONFIG names the file, whatever the config home.",
+    "env": { "PULSE_CLI_CONFIG": "/env/config.json", "XDG_CONFIG_HOME": "/xdg" },
+    "home": "/home/me",
+    "platform": "linux",
+    "path": "/env/config.json",
+    "explicit": true
+  },
+  {
+    "about": "A relative PULSE_CLI_CONFIG stays as written: the CLI resolves it against its working directory.",
+    "env": { "PULSE_CLI_CONFIG": "./pulse.json" },
+    "home": "/home/me",
+    "platform": "linux",
+    "path": "./pulse.json",
+    "explicit": true
+  },
+  {
+    "about": "An empty PULSE_CLI_CONFIG counts as unset.",
+    "env": { "PULSE_CLI_CONFIG": "" },
+    "home": "/home/me",
+    "platform": "linux",
+    "path": "/home/me/.config/pulse-cli/config.json",
+    "explicit": false
+  },
+  {
+    "about": "A PULSE_CLI_CONFIG of spaces counts as unset.",
+    "env": { "PULSE_CLI_CONFIG": "  ", "XDG_CONFIG_HOME": "/xdg" },
+    "home": "/home/me",
+    "platform": "linux",
+    "path": "/xdg/pulse-cli/config.json",
+    "explicit": false
+  },
+  {
+    "about": "On Windows the file lives under %APPDATA%, and XDG_CONFIG_HOME counts for nothing.",
+    "env": { "APPDATA": "D:\\Roaming", "XDG_CONFIG_HOME": "/xdg" },
+    "home": "C:\\Users\\me",
+    "platform": "win32",
+    "path": "D:\\Roaming\\pulse-cli\\config.json",
+    "explicit": false
+  },
+  {
+    "about": "Without %APPDATA% the file lives in the roaming folder of the user's profile.",
+    "env": {},
+    "home": "C:\\Users\\me",
+    "platform": "win32",
+    "path": "C:\\Users\\me\\AppData\\Roaming\\pulse-cli\\config.json",
+    "explicit": false
+  },
+  {
+    "about": "A blank %APPDATA% counts as unset.",
+    "env": { "APPDATA": "" },
+    "home": "C:\\Users\\me",
+    "platform": "win32",
+    "path": "C:\\Users\\me\\AppData\\Roaming\\pulse-cli\\config.json",
+    "explicit": false
+  },
+  {
+    "about": "A relative %APPDATA% is ignored.",
+    "env": { "APPDATA": "Roaming" },
+    "home": "C:\\Users\\me",
+    "platform": "win32",
+    "path": "C:\\Users\\me\\AppData\\Roaming\\pulse-cli\\config.json",
+    "explicit": false
+  },
+  {
+    "about": "PULSE_CLI_CONFIG names the file on Windows too.",
+    "env": { "APPDATA": "D:\\Roaming", "PULSE_CLI_CONFIG": "C:\\x.json" },
+    "home": "C:\\Users\\me",
+    "platform": "win32",
+    "path": "C:\\x.json",
+    "explicit": true
+  }
+]

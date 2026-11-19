@@ -1,9 +1,10 @@
 // @vitest-environment happy-dom
-import { afterEach, beforeAll, describe, expect, it } from "vitest"
-import { cleanup, render, screen } from "@testing-library/react"
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react"
 import { formatNumber, formatTimestamp } from "@miragon/pulse-ui"
 import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 import { ClusterDetailWidget, describeCluster } from "./cluster-detail.js"
+import { NavProvider, type NavIntent } from "./navigation.js"
 import type { ClusterDetailData } from "../view-models.js"
 import { ENGINE_WIDGET_ACTIONS_DATA } from "../tool-names.js"
 import { bindHandOff } from "./lib/hand-off.js"
@@ -76,7 +77,9 @@ describe("ClusterDetailWidget (fixture render)", () => {
 
     // Cluster identity + the guarded remediation handoff.
     expect(screen.getByText("callWMS")).toBeTruthy()
-    expect(screen.getByText("failedExternalTask")).toBeTruthy()
+    // The engine's type in the catalog's words (the extension's), never its code.
+    expect(screen.getByText("Failed external task")).toBeTruthy()
+    expect(screen.queryByText("failedExternalTask")).toBeNull()
     expect(await screen.findByText("Plan a fix in chat")).toBeTruthy()
 
     // Full sample failure message.
@@ -89,12 +92,49 @@ describe("ClusterDetailWidget (fixture render)", () => {
     expect(screen.getByText(/Showing 2 of 40 instances/)).toBeTruthy()
     expect(screen.getByText("Load more")).toBeTruthy()
 
-    // Each row drills deterministically to instance + incident detail.
-    expect(screen.getAllByRole("button", { name: /^Open instance / })).toHaveLength(2)
+    // Each row opens its instance itself (one row convention); its incident by the row's button.
+    expect(screen.getByRole("row", { name: "Instance ORDER-4711" })).toBeTruthy()
+    expect(screen.getByRole("row", { name: "Instance a1b2c3d4…" })).toBeTruthy()
     expect(screen.getAllByRole("button", { name: /^Open incident detail for / })).toHaveLength(2)
-    expect(screen.getByRole("button", { name: "Open instance a1b2c3d4…" })).toBeTruthy()
+    expect(screen.queryAllByRole("button", { name: /^Open instance / })).toEqual([])
     // The scan holds the whole cluster: no capped-list note.
     expect(screen.queryByText(/The list covers the newest/)).toBeNull()
+  })
+
+  it("opens a row's instance on a click or Enter, its incident by the button, which opens no row", () => {
+    const go = vi.fn<(intent: NavIntent) => void>()
+    render(
+      <TestViewHost tools={tools}>
+        <NavProvider value={go}>
+          <Widget data={CLUSTER as never} />
+        </NavProvider>
+      </TestViewHost>,
+    )
+    const row = screen.getByRole("row", { name: "Instance ORDER-4711" })
+    fireEvent.click(within(row).getByText("ORDER-4711"))
+    fireEvent.keyDown(row, { key: "Enter" })
+    fireEvent.click(within(row).getByRole("button", { name: /^Open incident detail for / }))
+    const [first] = CLUSTER.incidents
+    expect(go.mock.calls.map(([intent]) => intent)).toEqual([
+      { type: "instance-detail", processInstanceId: first.processInstanceId, label: "ORDER-4711" },
+      { type: "instance-detail", processInstanceId: first.processInstanceId, label: "ORDER-4711" },
+      { type: "incident-detail", incidentId: first.incidentId, label: undefined },
+    ])
+  })
+
+  it("has no column of actions where no row has an incident to open", () => {
+    const noIncidents: ClusterDetailData = {
+      ...CLUSTER,
+      incidents: CLUSTER.incidents.map((row) => ({ ...row, incidentId: "" })),
+    }
+    render(
+      <TestViewHost tools={tools}>
+        <Widget data={noIncidents as never} />
+      </TestViewHost>,
+    )
+    expect(screen.queryByText("Actions", { selector: "th" })).toBeNull()
+    expect(screen.getByRole("row", { name: "Instance ORDER-4711" })).toBeTruthy()
+    expect(screen.queryAllByRole("button", { name: /^Open incident detail for / })).toEqual([])
   })
 
   // #322 U12, U13: first seen is a point in time on the head's line, not a KPI tile.
@@ -163,6 +203,57 @@ describe("ClusterDetailWidget (fixture render)", () => {
         `The list covers the newest ${formatNumber(1000)} incidents of this cluster.`,
       ),
     ).toBeTruthy()
+  })
+
+  /** The KPI tile of a label: its figure, the tone of that figure and its words for a screen reader. */
+  const affectedTile = (container: HTMLElement) => {
+    const label = screen.getByText("Affected")
+    // The label's caption row, then its cell.
+    const tile = label.parentElement!.parentElement!
+    const figure = tile.querySelector<HTMLElement>("[data-slot='count-figure']")!
+    return {
+      tone: figure.getAttribute("data-tone"),
+      icon: figure.querySelector("svg") !== null,
+      words: figure.querySelector(".sr-only")?.textContent ?? null,
+      inside: container.contains(figure),
+    }
+  }
+
+  it("alarms on an affected count while there are any, by the danger icon and its words", () => {
+    const { container } = render(
+      <TestViewHost>
+        <Widget data={CLUSTER as never} />
+      </TestViewHost>,
+    )
+    expect(affectedTile(container)).toEqual({
+      tone: "danger",
+      icon: true,
+      words: "Has open incidents",
+      inside: true,
+    })
+  })
+
+  it("shows a cluster with nothing affected as a plain 0: no icon, no alarm words", () => {
+    const gone: ClusterDetailData = {
+      ...CLUSTER,
+      incidentCount: 0,
+      scannedIncidentCount: 0,
+      lastHourCount: 0,
+      last24hCount: 0,
+      incidents: [],
+      totalMatching: 0,
+    }
+    const { container } = render(
+      <TestViewHost>
+        <Widget data={gone as never} />
+      </TestViewHost>,
+    )
+    expect(affectedTile(container)).toEqual({
+      tone: "neutral",
+      icon: false,
+      words: null,
+      inside: true,
+    })
   })
 })
 

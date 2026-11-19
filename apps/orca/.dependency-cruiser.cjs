@@ -12,6 +12,7 @@ const ORCA_WORKER = "^orca/worker$"
 const ORCA_PANEL = "^orca$"
 const ENGINE_CORE_ENTRY = "(^|/)node_modules/@miragon/pulse-engine-core/dist/index[.]d[.]ts$"
 const ENGINE_CORE_TREE = "^packages/connectors/engine/engine-core/"
+const BOARD_ENTRY = "(^|/)node_modules/@miragon/pulse-board/dist/index[.]d[.]ts$"
 const DIALECT_PACKAGES =
   "(^|/)node_modules/@miragon/pulse-(?!engine-core/)[^/]+-(core|client|connector)/|^@miragon/pulse-(?!engine-core(/|$))[^/]+-(core|client|connector)(/|$)|^packages/connectors/(?!engine/engine-core/)[^/]+/[^/]+-(core|client|connector)/"
 const MODEL_LIBRARIES =
@@ -54,12 +55,19 @@ module.exports = {
       to: { path: ENGINE_CORE_ENTRY },
     },
     {
+      comment:
+        "The worker writes the starter board of a new board with Pulse's board format (@miragon/pulse-board, its main entry), which esbuild bundles into the plugin.",
+      from: { path: `${APP}src/worker/` },
+      to: { path: BOARD_ENTRY },
+    },
+    {
       comment: "The worker runs in Orca's trusted Node worker and may use Node built-ins.",
       from: { path: `${APP}src/worker/` },
       to: { dependencyTypes: ["core"] },
     },
     {
-      comment: "Only the composition root knows the engine adapters and the model adapter.",
+      comment:
+        "Only the composition root knows the engine adapters (the C7 adapter, the C8 adapter) and the model adapter.",
       from: { path: `${APP}src/worker/composition-root[.]ts$` },
       to: { path: [ADAPTER_ENTRY, MODEL_ENTRY] },
     },
@@ -79,7 +87,7 @@ module.exports = {
       name: "not-in-allowed",
       severity: "error",
       comment:
-        "No entry of `allowed` in apps/orca/.dependency-cruiser.cjs permits this import. Move the code to the part that may make it (table 'Where code goes' in apps/orca/CLAUDE.md): the worker uses the runtime view's ports, core, protocol and host kit, the main entry of @miragon/pulse-engine-core (never ./testing), orca/worker (never the panel runtime orca) and Node built-ins, and only its composition root the engine adapters and the model adapter; the panel uses orca (never orca/worker) and the protocol's types; the editor bridge the protocol's types; the plugin's protocol the runtime view's protocol types.",
+        "No entry of `allowed` in apps/orca/.dependency-cruiser.cjs permits this import. Move the code to the part that may make it (table 'Where code goes' in apps/orca/CLAUDE.md): the worker uses the runtime view's ports, core, protocol and host kit, the main entry of @miragon/pulse-engine-core (never ./testing), the main entry of @miragon/pulse-board, orca/worker (never the panel runtime orca) and Node built-ins, and only its composition root the engine adapters and the model adapter; the panel uses orca (never orca/worker) and the protocol's types; the editor bridge the protocol's types; the plugin's protocol the runtime view's protocol types.",
       from: {},
       to: { path: "^$" },
     },
@@ -95,7 +103,7 @@ module.exports = {
       name: "model-libraries-stay-in-the-model-adapter",
       severity: "error",
       comment:
-        "BPMN model libraries (bpmn-moddle, its vendor descriptors, bpmn-modeler libs) belong in packages/core/runtime-view/src/model only. Read what you need through the ModelSource or CodeLocator port instead.",
+        "BPMN model libraries (bpmn-moddle, bpmn-modeler libs) belong in packages/core/runtime-view/src/model only, a vendor's descriptor in the BPMN dialect of its family's adapter. Read what you need through the ModelSource or CodeLocator port instead.",
       from: { pathNot: "(^|/)node_modules/" },
       to: { path: MODEL_LIBRARIES },
     },

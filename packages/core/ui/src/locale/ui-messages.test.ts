@@ -18,6 +18,15 @@ import {
 /** Sample arguments for the function-valued messages. */
 const SAMPLES: Record<string, unknown[]> = {
   showing: [{ shown: "8", total: "42", noun: "tasks" }],
+  defaultNoun: ["42"],
+  resizeColumn: [{ column: "Process" }],
+  columnMenu: [{ column: "Process" }],
+  columnWidth: [{ width: "120" }],
+  copy: [{ label: "instance ID" }],
+  copied: [{ label: "instance ID" }],
+  edit: [{ label: "amount > 100" }],
+  remove: [{ label: "amount > 100" }],
+  atLeast: [{ count: "2,000" }],
 }
 
 /** Every message of a catalog as `[path, rendered text]`. */
@@ -107,7 +116,7 @@ describe("kit catalogs", () => {
     const identical = flatten(UI_MESSAGES.de)
       .filter(([path, text]) => en.get(path) === text)
       .map(([, text]) => text)
-    expect([...new Set(identical)].sort()).toEqual(["Details", "Live"])
+    expect([...new Set(identical)].sort()).toEqual(["Details", "Incident", "Live"])
   })
 
   it("renders counts and names into the parametrised messages", () => {
@@ -121,6 +130,21 @@ describe("kit catalogs", () => {
     // An empty noun leaves no trailing blank.
     expect(en.listFooter.showing({ shown: "1", total: "2", noun: "" })).toBe("Showing 1 of 2")
     expect(de.listFooter.showing({ shown: "1", total: "2", noun: "" })).toBe("Zeigt 1 von 2")
+    // A column's name and width go into its grip and its menu.
+    expect(en.dataTable.resizeColumn({ column: "Process" })).toBe("Resize column Process")
+    expect(de.dataTable.resizeColumn({ column: "Prozess" })).toBe(
+      "Breite der Spalte Prozess ändern",
+    )
+    expect(en.dataTable.columnMenu({ column: "Process" })).toBe("Width of column Process")
+    expect(de.dataTable.columnWidth({ width: "1.200" })).toBe("1.200 Pixel")
+    // What an id or a condition is goes into the names of the buttons beside it.
+    expect(en.copyableId.copy({ label: "instance ID" })).toBe("Copy instance ID")
+    expect(de.copyableId.copied({ label: "Instanz-ID" })).toBe("Instanz-ID kopiert")
+    expect(en.conditionChip.remove({ label: "amount > 100" })).toBe("Remove filter amount > 100")
+    expect(de.conditionChip.edit({ label: "Betrag > 100" })).toBe("Filter Betrag > 100 bearbeiten")
+    // A capped count in words, where the screen shows "≥ 2,000".
+    expect(en.count.atLeast({ count: "2,000" })).toBe("at least 2,000")
+    expect(de.count.atLeast({ count: "2.000" })).toBe("mindestens 2.000")
   })
 })
 
@@ -156,7 +180,16 @@ describe("resolveUiMessages", () => {
     expect(merged.listFooter.loadingMore).toBe(UI_MESSAGES.de.listFooter.loadingMore)
     expect(merged.filterBar.searchLabel).toBe("Suchen")
     expect(merged.filterBar.chipsLabel).toBe(UI_MESSAGES.de.filterBar.chipsLabel)
-    for (const section of ["common", "pills"] as const) {
+    for (const section of [
+      "common",
+      "searchField",
+      "dataTable",
+      "viewBar",
+      "copyableId",
+      "conditionChip",
+      "stateLabel",
+      "pills",
+    ] as const) {
       expect(merged[section]).toEqual(UI_MESSAGES.de[section])
     }
   })

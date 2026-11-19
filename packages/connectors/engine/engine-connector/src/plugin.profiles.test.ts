@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest"
 import { z } from "zod"
 import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
 import { queryProcessInstances } from "@miragon/pulse-c7-client/sdk"
+import { engineModule } from "./module.js"
 import { createConfiguredEngineRegistry, createPlugin, type EnginePluginConfig } from "./plugin.js"
 import { resolveEngine } from "./lib/engine/resolve-engine.js"
 import { ENGINE_LIST_ENGINES, ENGINE_OPEN_COCKPIT } from "./tool-names.js"
@@ -182,11 +183,13 @@ describe("a refused profile: listed, named in the enum, never routed to", () => 
     const { recording } = boot(config)
     for (const args of [{ engine: "locked" }, {}]) {
       const result = await recording.tool(ENGINE_OPEN_COCKPIT).call(args)
+      // A refused profile names no dialect, and says it is refused and why: no call reaches it,
+      // so the widgets read nothing of it and word the refusal themselves.
       expect(result.structuredContent).toEqual({
         engineId: null,
         engines: [
-          { id: "a", environment: "default" },
-          { id: "locked", environment: "prod" },
+          { id: "a", environment: "default", dialect: "c7" },
+          { id: "locked", environment: "prod", refused: { reason: REFUSED.reason } },
         ],
         start: null,
       })
@@ -199,5 +202,44 @@ describe("a refused profile: listed, named in the enum, never routed to", () => 
       view: "incidents",
     })
     expect(answer).toMatch(/^\[ENGINE_PROFILE_REFUSED\] Engine "locked"/)
+  })
+})
+
+describe("a camunda8 profile: served, and every Camunda 7 path refuses it before any request", () => {
+  it("lists it with its dialect and answers a call to it without a request to its engine", async () => {
+    const [c7, c8] = [await fakeEngine(), await fakeEngine()]
+    const config = engineModule.configFromEnv({
+      ENGINES_JSON: JSON.stringify({
+        defaultProfile: "c8",
+        profiles: { c7: { url: c7.baseUrl }, c8: { url: c8.baseUrl, flavor: "camunda8" } },
+      }),
+    })
+    const recording = recordingModuleServer()
+    engineModule.createPlugin({ ...config, toolset: "operations" }).register(recording.server)
+    const text: Text = async (name, args = {}) => {
+      const result = await recording.tool(name).call(args)
+      return result.content.map((part) => ("text" in part ? part.text : "")).join("")
+    }
+    const refusal =
+      '[ENGINE_DIALECT_NOT_SERVED] Engine "c8" is a Camunda 8 engine, and this tool or view ' +
+      "reads the Camunda 7 REST API (Camunda 7, CIB seven, Operaton), so nothing was sent. This " +
+      'server reads a Camunda 8 engine on boards only, and no board names "c8" yet; the ' +
+      "server's operator adds one."
+    const list = JSON.parse(await text(ENGINE_LIST_ENGINES)) as {
+      engines: Array<{ id: string; dialect: string }>
+      refused?: unknown
+    }
+    expect(list.engines.map(({ id, dialect }) => [id, dialect])).toEqual([
+      ["c7", "c7"],
+      ["c8", "c8"],
+    ])
+    expect(list.refused).toBeUndefined()
+    expect(await text("engine_status", { engine: "c8" })).toBe(refusal)
+    expect(await text("engine_status")).toBe(refusal)
+    expect(await text("engine_list_process_instances", { engine: "c8" })).toBe(refusal)
+    expect(await text("engine_set_job_retries", { engine: "c8", jobId: "j", retries: 1 })).toBe(
+      refusal,
+    )
+    expect(c8.requests).toEqual([])
   })
 })

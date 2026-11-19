@@ -81,6 +81,31 @@ describe("a table inline", () => {
     )
   })
 
+  it("never cuts a list where the footer the cut adds outweighs the rows it hides", () => {
+    // 571 px chrome, two 28 px rows, a 44 px footer: 627 px whole, 643 px with one row cut.
+    const { container } = render(
+      <Host measure={layout({ chrome: 571, row: 28, footer: 44 })}>
+        <Table rows={ROWS.slice(0, 2)} />
+      </Host>,
+    )
+    expect(shownRows()).toEqual(ROWS.slice(0, 2))
+    expect(screen.queryByText(/shown$/)).toBeNull()
+    expect(container.querySelector("[data-inline-fit]")?.getAttribute("data-inline-fit")).toBe(
+      "overflow",
+    )
+  })
+
+  it("cuts deep enough to pay for the footer where that fits", () => {
+    // 412 px chrome, three 28 px rows (496 px): two rows and the footer are 512 px, one 484 px.
+    render(
+      <Host budget={490} measure={layout({ chrome: 412, row: 28, footer: 44 })}>
+        <Table rows={ROWS.slice(0, 3)} />
+      </Host>,
+    )
+    expect(shownRows()).toEqual(ROWS.slice(0, 1))
+    expect(screen.getByText("1 of 3 shown")).toBeTruthy()
+  })
+
   it("starts over when the budget changes", () => {
     const measure = layout({ chrome: 300, row: 60 })
     const { rerender } = render(

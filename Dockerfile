@@ -24,9 +24,10 @@ COPY packages/ packages/
 
 RUN pnpm install --frozen-lockfile --offline
 
-# Turbo's cache is a pure accelerator: an empty one only means a slower build.
+# Turbo's cache is a pure accelerator: an empty one only means a slower build. The web app's page
+# (apps/web) builds beside the server, which serves it under /app once MCP_WEB_CLIENT_ID is set.
 RUN --mount=type=cache,id=turbo-server,target=/app/.turbo \
-    pnpm turbo build --filter=@miragon/pulse-mcp-server...
+    pnpm turbo build --filter=@miragon/pulse-mcp-server... --filter=@miragon/pulse-web...
 
 RUN pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server deploy --prod --legacy /app/deployed
 
@@ -34,10 +35,15 @@ FROM base AS runtime
 WORKDIR /app
 COPY --from=build /app/deployed .
 COPY --from=build /app/apps/mcp-server/dist ./dist
-# The server's licence and the licences of the works of others its view bundle holds
-# (apps/mcp-server/test/third-party-licenses.test.ts keeps the list complete); its dependencies
-# keep theirs in /app/node_modules, Node.js its own in /usr/local/LICENSE.
+# The web app's build (index.html, pages.json, assets/) in the server package's web/, the folder
+# createApp names (MCP_WEB_DIR overrides it); served under /app only with MCP_WEB_CLIENT_ID set.
+COPY --from=build /app/apps/web/dist ./web
+# The server's licence and the licences of the works of others its view bundle holds, and in web/
+# those of the web app's page (apps/mcp-server/test/third-party-licenses.test.ts keeps the copies
+# and the Docker build's checks of them); its dependencies keep theirs in /app/node_modules,
+# Node.js its own in /usr/local/LICENSE.
 COPY LICENSE apps/mcp-server/THIRD_PARTY_LICENSES.txt /usr/share/doc/pulse-server/
+COPY apps/web/THIRD_PARTY_LICENSES.txt /usr/share/doc/pulse-server/web/
 
 ENV NODE_ENV=production
 EXPOSE 8400

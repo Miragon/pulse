@@ -96,8 +96,9 @@ async function moveBy(offset: number) {
           <p class="engine"><span class="live" />playground · CIB seven · live</p>
           <h1>Pulse.</h1>
           <p class="lede">
-            Your engine's vital signs, in your AI chat, your terminal and your editor. For Camunda
-            7, CIB seven and Operaton, read-only until you allow more.
+            Your engine's vital signs, in your AI chat, the web app, your terminal and your editor.
+            For Camunda 7, CIB seven and Operaton, read-only until you allow more; for Camunda 8,
+            read-only in your editor and on the server's boards.
           </p>
           <p class="status">
             <span class="square" />Pre-1.0: pin the version, a minor release can rename a tool or a

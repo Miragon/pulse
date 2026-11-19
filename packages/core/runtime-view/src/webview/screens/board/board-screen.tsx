@@ -1,19 +1,18 @@
-import type { BoardTile, BoardView } from "../../../core/protocol/index.js"
-import { BackButton } from "../../components/back-button.js"
+import { ClipboardListIcon, FileCodeIcon, RotateCcwIcon } from "lucide-react"
+import { BoardGrid, ProblemList, useNoteLines, useProblemWords } from "@miragon/pulse-blocks"
+import { Card, Icon, LocaleProvider, SectionHeading, ViewBar } from "@miragon/pulse-ui"
+import { useMemo } from "react"
+import type { BoardView } from "../../../core/protocol/index.js"
+import { BackTarget } from "../../components/back-target.js"
 import { HeaderButton } from "../../components/header-button.js"
-import { Icon } from "../../components/icon.js"
 import { FreshnessStamp, type Freshness } from "../../components/live-stamp.js"
-import { glyphs } from "../../components/lucide-glyphs.json"
 import { StatusStrip } from "../../components/status-strip.js"
 import { CountLabels } from "../../format/count-labels.js"
 import { useHost } from "../../host/host-context.js"
+import { BoardDiagrams, DiagramXmls } from "./board-diagram.js"
 import { BoardEngines } from "./board-engines.js"
 import { BoardLabels } from "./board-labels.js"
-import { CounterCard } from "./counter-card.js"
-import { IncidentListCard } from "./incident-list-card.js"
-import { IncidentSummaryCard } from "./incident-summary-card.js"
-import { InstanceListCard } from "./instance-list-card.js"
-import { ProcessDiagramCard } from "./process-diagram-card.js"
+import { useBoardSlots } from "./board-slots.js"
 
 export interface BoardScreenProps {
   readonly view: BoardView
@@ -21,32 +20,39 @@ export interface BoardScreenProps {
 }
 
 function BoardHeader({ view, freshness }: BoardScreenProps) {
+  const host = useHost()
   return (
-    <header class="context-bar context-bar--board">
-      <div class="context-bar__subject">
-        <BackButton class="context-bar__back" />
-        <Icon of={glyphs.ClipboardList} />
-        <h1 class="context-bar__title">{view.title}</h1>
-        {view.engines.length > 0 && (
-          <span class="context-bar__key context-bar__shrink">{BoardLabels.scope(view)}</span>
-        )}
-        <HeaderButton
-          icon={glyphs.RotateCcw}
-          label="Refresh"
-          title="Read every engine of this board again"
-          intent={{ type: "refresh" }}
-        />
-        <HeaderButton
-          icon={glyphs.FileCode}
-          label="Open file"
-          title={`Open ${view.fileName}`}
-          intent={{ type: "openBoardFile" }}
-        />
-      </div>
-      <div class="context-bar__meta">
-        <FreshnessStamp freshness={freshness} />
-      </div>
-    </header>
+    <div data-part="context-bar" data-kind="board">
+      <ViewBar
+        title={view.title}
+        {...BackTarget.propsOf(host)}
+        icon={<Icon icon={ClipboardListIcon} />}
+        facts={
+          view.engines.length > 0 ? (
+            <span className="min-w-0 truncate" data-part="context-key">
+              {BoardLabels.scope(view)}
+            </span>
+          ) : undefined
+        }
+        actions={
+          <>
+            <HeaderButton
+              icon={RotateCcwIcon}
+              label="Refresh"
+              title="Read every engine of this board again"
+              intent={{ type: "refresh" }}
+            />
+            <HeaderButton
+              icon={FileCodeIcon}
+              label="Open file"
+              title={`Open ${view.fileName}`}
+              intent={{ type: "openBoardFile" }}
+            />
+          </>
+        }
+        freshness={<FreshnessStamp freshness={freshness} />}
+      />
+    </div>
   )
 }
 
@@ -63,7 +69,7 @@ function ProblemsStrip({ view }: { readonly view: BoardView }) {
       actions={[
         {
           label: "Open file",
-          icon: glyphs.FileCode,
+          icon: FileCodeIcon,
           onClick: () => {
             host.post({ type: "openBoardFile" })
           },
@@ -73,57 +79,88 @@ function ProblemsStrip({ view }: { readonly view: BoardView }) {
   )
 }
 
-function ProblemList({ view }: { readonly view: BoardView }) {
-  if (view.problems.length === 0) {
+function NotesStrip({ view }: { readonly view: BoardView }) {
+  const host = useHost()
+  const lineOf = useNoteLines()
+  if (view.notes.length === 0) {
     return null
   }
   return (
-    <section class="board-card board-problems" aria-labelledby="board-problems-title">
-      <h2 id="board-problems-title" class="board-card__title">{`Problems in ${view.fileName}`}</h2>
-      <ul class="board-problems__list">
-        {view.problems.map((problem) => (
-          <li key={`${problem.path} ${problem.reason}`} class="board-problems__item">
-            <code>{problem.path}</code> {problem.reason}
-          </li>
-        ))}
-      </ul>
-    </section>
+    <div className="min-w-0" data-part="board-notes">
+      <StatusStrip
+        tone="info"
+        title={`${CountLabels.plural(view.notes.length, "note")} on this board.`}
+        details={BoardLabels.notes(view, lineOf)}
+        actions={[
+          {
+            label: "Open file",
+            icon: FileCodeIcon,
+            onClick: () => {
+              host.post({ type: "openBoardFile" })
+            },
+          },
+        ]}
+      />
+    </div>
   )
 }
 
-function Tile({ tile }: { readonly tile: BoardTile }) {
-  switch (tile.kind) {
-    case "counter":
-      return <CounterCard tile={tile} />
-    case "instanceList":
-      return <InstanceListCard tile={tile} />
-    case "incidentSummary":
-      return <IncidentSummaryCard tile={tile} />
-    case "processDiagram":
-      return <ProcessDiagramCard tile={tile} />
-    case "incidentList":
-      return <IncidentListCard tile={tile} />
+function FileProblems({ view }: { readonly view: BoardView }) {
+  const say = useProblemWords()
+  if (view.problems.length === 0) {
+    return null
   }
+  const problems = view.problems.map((problem) => ({
+    path: problem.path,
+    text: BoardLabels.fileProblem(problem, say),
+  }))
+  return (
+    <Card role="region" aria-labelledby="board-problems-title" className="border-danger gap-2">
+      <SectionHeading
+        as="h2"
+        id="board-problems-title"
+        title={`Problems in ${view.fileName}`}
+        className="mb-0 px-3"
+      />
+      <div className="px-3">
+        <ProblemList problems={problems} label={`Problems in ${view.fileName}`} />
+      </div>
+    </Card>
+  )
+}
+
+function TileGrid({ view }: { readonly view: BoardView }) {
+  const slots = useBoardSlots()
+  const xmls = useMemo(() => BoardDiagrams.xmlsOf(view.rows), [view.rows])
+  const rows = useMemo(
+    () => view.rows.map((row) => row.map((tile) => BoardDiagrams.drawable(tile))),
+    [view.rows],
+  )
+  if (rows.length === 0) {
+    return null
+  }
+  return (
+    <DiagramXmls value={xmls}>
+      <BoardGrid rows={rows} slots={slots} />
+    </DiagramXmls>
+  )
 }
 
 export function BoardScreen({ view, freshness }: BoardScreenProps) {
   return (
-    <div class="screen screen--with-strips">
-      <BoardHeader view={view} freshness={freshness} />
-      <div class="strip-stack">
-        <ProblemsStrip view={view} />
-        <BoardEngines engines={view.engines} />
+    <LocaleProvider locale="en">
+      <div className="grid h-full min-w-0 grid-rows-[auto_auto_minmax(0,1fr)]">
+        <BoardHeader view={view} freshness={freshness} />
+        <div className="flex min-w-0 flex-col" data-part="strips">
+          <ProblemsStrip view={view} />
+          <NotesStrip view={view} />
+          <BoardEngines engines={view.engines} />
+        </div>
+        <div className="bg-background flex min-h-0 flex-col gap-3 overflow-auto p-3">
+          <FileProblems view={view} />
+          <TileGrid view={view} />
+        </div>
       </div>
-      <main class="board" aria-label={view.title}>
-        <ProblemList view={view} />
-        {view.rows.map((row, index) => (
-          <div class="board__row" key={index}>
-            {row.map((tile, column) => (
-              <Tile key={column} tile={tile} />
-            ))}
-          </div>
-        ))}
-      </main>
-    </div>
+    </LocaleProvider>
   )
 }

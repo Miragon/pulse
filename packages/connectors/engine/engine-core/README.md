@@ -14,8 +14,9 @@ implementation of its own, and the conformance kit proves that it means the same
 1.0: pin the exact version and update all `@miragon/pulse-*` packages together.
 
 The engine family is the neutral layer above the dialects: its module, the MCP server's engine
-module, serves every dialect, and this package is its core. A dialect (Camunda 7 REST today,
-Camunda 8 later) is a family of its own whose core implements this contract.
+module, serves every dialect, and this package is its core. A dialect (Camunda 7 REST, and
+Camunda 8's REST API, which the editor hosts read) is a family of its own whose core or adapter
+implements this contract.
 
 ## Install
 
@@ -50,7 +51,7 @@ The kit binds every law to any `(name, fn)` runner and throws an `Error` naming 
 it found when one fails. Your harness deploys diagrams with the world's element ids into your engine and seeds the
 world's instances; the fake seeds it in memory. An engine whose reads lag behind its writes
 declares `writeVisibility`, one whose bulk work runs in the background `asyncWork`. The kit
-proves itself: 71 saboteurs, each the fake with one flaw, fail exactly their laws (the package's
+proves itself: 79 saboteurs, each the fake with one flaw, fail exactly their laws (the package's
 `test/`).
 
 ## What it provides
@@ -71,10 +72,15 @@ proves itself: 71 saboteurs, each the fake with one flaw, fail exactly their law
   first non-blank line, a leading class name shortened to its simple name, in one line of at most
   300 characters; `lineOf` is the line a viewer opens the text at, none without a `Caused by:`
   line.
-- **`./testing`:** the conformance kit (`ConformanceKit` with 48 read laws and 15 command laws),
+- **`./testing`:** the conformance kit (`ConformanceKit` with 51 read laws and 15 command laws),
   its fixed world (`WORLD_*`, the three neutral diagrams `NEUTRAL_DIAGRAMS` with fixed element
   ids) and `FakeEngine`, an in-memory engine that passes every law, with `PatchedRuntime` and
   `PatchedCommands` to change one answer of it in a test.
+
+A board reads lists by these laws: instances and incidents come newest first, in the same order
+on every read, incidents also across pages of one, and every page but the last holds its limit,
+also where a dialect drops rows of the engine's answer (an instance with an incident from a list
+of those without one, the copy of an incident in a calling instance).
 
 ## Where dialects differ
 
@@ -103,7 +109,7 @@ never with a flag that can disagree with what the engine does:
   10,000 on Elasticsearch), the row keeps the cluster's counts: every incident inside the
   container reads as raised there and none as in a called instance. "Statistics are disjoint"
   (`active + incidents` is what the element holds) does not hold for such a row. The contract has
-  no field for it yet; `ElementStatistics` gains an optional one with the Camunda 8 adapter.
+  no field for it, and the conformance world never reaches that many.
 
 ## What it leaves to you
 
@@ -116,9 +122,21 @@ triage, verdicts and which recovery to offer.
 ## Who uses it
 
 - Pulse for VS Code and Pulse for Orca speak it today: the runtime view they share asks these
-  ports, and their C7 adapter answers them over the Camunda 7 REST API.
+  ports, their C7 adapter answers them over the Camunda 7 REST API and their C8 adapter the reads
+  over Camunda 8's REST API.
 - [`@miragon/pulse-c7-core`](https://www.npmjs.com/package/@miragon/pulse-c7-core), the core of
-  that dialect, applies its root-cause rule for the Pulse CLI and the MCP server.
+  that dialect, applies its root-cause rule for the Pulse CLI and the MCP server, and its
+  `C7Runtime` (`./runtime`) answers every read of `ProcessRuntime` for the C7 adapter and the
+  engine connector.
+- [`@miragon/pulse-c8-core`](https://www.npmjs.com/package/@miragon/pulse-c8-core), the core of
+  the Camunda 8 dialect, answers the reads of `ProcessRuntime` in `C8Runtime` and decides the kind
+  of each failure, for the C8 adapter and the engine connector, each over its own wire.
+- [`@miragon/pulse-engine-connector`](https://www.npmjs.com/package/@miragon/pulse-engine-connector),
+  the MCP server's engine module, runs `ProcessRuntime` over its own wire (`runtimeOf`), with its
+  failures as `RuntimeError`, and builds the server's boards over it with the board builder.
+- [`@miragon/pulse-board`](https://www.npmjs.com/package/@miragon/pulse-board), the board file
+  format, reads a board's numbers in its builder (`./builder`) over seven reads of
+  `ProcessRuntime`, by the laws a board reads lists by.
 
 ## The admission rule
 
@@ -126,12 +144,15 @@ A port, read model or rule enters `@miragon/pulse-engine-core` when two dialects
 same meaning, proven by the conformance laws on both. It stays narrow: a further rule (the verdict,
 the message signature, durations) moves here only when a second dialect needs it in the CLI or the
 MCP server. It is imported where a dialect is implemented (the `src` of a dialect's core, its main
-entry alone and never from the core's `./testing`: c7-core applies `RootCauses`; the C7 adapter of
-the editor hosts) and where the runtime view of Pulse for VS Code and Pulse for Orca reads the
-answers, which keeps no contract of its own. A surface reaches it through them; the engine connector
-(although this is its own family's core) or the CLI importing it directly waits until it serves a
-second dialect, an admission decision in review, the case #488 reopens on: a second interface
-needing the same use case with the same rules.
+entry alone and never from the core's `./testing`: c7-core applies `RootCauses` and its `./runtime`
+answers `ProcessRuntime`, c8-core's `C8Runtime` answers it too; the C7 and C8 adapters of the
+editor hosts), where the runtime view of
+Pulse for VS Code and Pulse for Orca reads the answers, which keeps no contract of its own, and in
+the board builder of `@miragon/pulse-board`, its main entry alone. The engine connector, the MCP
+server's module, runs it in its server layers, its main entry alone, admitted for the server's
+boards (the owner's decision of 2026-11-16, the case #488 names: a second interface needs the same
+use case with the same rules). The Pulse CLI reaches it through c7-core; importing it directly waits
+until the CLI serves a second dialect, an admission decision in review.
 
 Two admissions came ahead of their second dialect, by the owner's decision, on the evidence of the
 Camunda 8 adapter's branch (#543):

@@ -42,6 +42,19 @@ describe("ListFooter: an honest count in a polite live region", () => {
     expect(html).not.toContain("text-xs")
   })
 
+  it("puts the noun in the number the total asks for, the caller's and the kit's own", () => {
+    const noun = (total: string) => (total === "1" ? "incident" : "incidents")
+    expect(statusText(render({ shown: 1, total: 1, noun }))).toBe("Showing 1 of 1 incident")
+    expect(statusText(render({ shown: 1, total: 2, noun }))).toBe("Showing 1 of 2 incidents")
+    expect(statusText(render({ shown: 1, total: 1, noun: undefined }))).toBe("Showing 1 of 1 row")
+    expect(statusText(render({ shown: 1, total: 1, noun: undefined }, "de"))).toBe(
+      "Zeigt 1 von 1 Zeile",
+    )
+    expect(statusText(render({ total: 1000, noun: undefined }, "de"))).toBe(
+      "Zeigt 8 von 1.000 Zeilen",
+    )
+  })
+
   it("says Updating… next to the count while a same-filter refetch runs", () => {
     expect(statusText(render({ refreshing: true }))).toBe("Showing 8 of 42 tasks Updating…")
     expect(statusText(render({ refreshing: true }, "de"))).toBe(

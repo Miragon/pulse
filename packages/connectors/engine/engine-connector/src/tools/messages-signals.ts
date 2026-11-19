@@ -1,11 +1,10 @@
 import { correlateMessageInput, throwSignalInput } from "../schemas/index.js"
-import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
+import type { EngineToolRegistrar } from "../lib/engine/served-engines.js"
 import { toEngineVariables } from "@miragon/pulse-c7-core"
 import { deliverMessage, throwSignal } from "@miragon/pulse-c7-client/sdk"
-import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 
-export function registerMessageSignalTools(register: ToolRegistrar<EngineRegistry>) {
+export function registerMessageSignalTools(register: EngineToolRegistrar) {
   register({
     name: "engine_correlate_message",
     category: "messages-signals",
@@ -14,6 +13,7 @@ export function registerMessageSignalTools(register: ToolRegistrar<EngineRegistr
       "businessKey or correlationKeys. Unless all=true the engine needs EXACTLY one match: several fail, and so does " +
       "none without a message start event.",
     annotations: { destructiveHint: false, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...correlateMessageInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) =>
       deliverMessage({
@@ -40,6 +40,7 @@ export function registerMessageSignalTools(register: ToolRegistrar<EngineRegistr
       "Cannot be undone or scoped to one instance (use engine_correlate_message for targeted delivery).",
     // Engine-wide side effects (admin-only via ADMIN_ONLY_TOOLS).
     annotations: { destructiveHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...throwSignalInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) => {
       await throwSignal({

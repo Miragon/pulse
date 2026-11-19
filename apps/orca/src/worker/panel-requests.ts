@@ -1,7 +1,7 @@
 import type { OrcaWorkerApi, PanelCaller } from "orca/worker"
-import type { TargetsProblem } from "@miragon/pulse-runtime-view/host-kit"
+import { StarterBoard } from "@miragon/pulse-board"
+import type { Login, TargetsProblem } from "@miragon/pulse-runtime-view/host-kit"
 import type { ConfigurationProblem, EngineList, ViewRequest } from "../protocol.js"
-import { BoardTemplate } from "./board-template.js"
 import type { CockpitViews } from "./cockpit-views.js"
 import { EngineRows } from "./engine-rows.js"
 import type { EngineRegistry } from "./engine-registry.js"
@@ -15,6 +15,8 @@ import { SurfaceWatch } from "./surface-watch.js"
 import type { WorkerServices } from "./worker-services.js"
 
 const PULSE_PANEL = "engines"
+const SLUG_PARTS = /[^a-z0-9]+/g
+const SLUG_LIMIT = 64
 
 export interface PanelParts {
   readonly registry: EngineRegistry
@@ -62,10 +64,14 @@ export class PanelRequests {
       await registry.reload()
       return { ok: true }
     })
-    panels.handle("engines.setCredentials", ({ engine, username, password }) =>
-      this.saveLogin(engine, username, password),
+    panels.handle("engines.setCredentials", ({ engine, identity, secret }) =>
+      this.saveLogin(engine, { ...(identity === undefined ? {} : { identity }), secret }),
     )
     panels.handle("engines.configure", async () => ({ path: await services.configure() }))
+    panels.handle("engines.openUserConfig", async () => {
+      await this.parts.ready()
+      return { opened: await services.openUserConfig() }
+    })
     panels.handle("instances.find", ({ query }) => this.find(query))
     panels.handle("boards.list", () => this.boards())
     panels.handle("boards.open", async ({ path }) => {
@@ -98,6 +104,7 @@ export class PanelRequests {
     const active = registry.active()
     return {
       projectFile: registry.projectFiles()[0] ?? "",
+      userConfig: await this.parts.services.userConfigRow(),
       engines: await Promise.all(
         registry.all().map((connection) => EngineRows.of(connection, connection === active)),
       ),
@@ -128,32 +135,33 @@ export class PanelRequests {
   private async createBoard(title: string): Promise<{ path: string }> {
     await this.parts.ready()
     const engines = this.parts.registry.all().map((connection) => connection.target.name)
-    const slug =
-      title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "") || "board"
     const path = await this.parts.files.createBoard(
       await this.parts.services.root(),
-      slug,
-      BoardTemplate.of(title, engines),
+      this.slugOf(title),
+      StarterBoard.of(title, engines),
     )
     await this.parts.workspaces.openFile(path)
     return { path }
   }
 
-  private async saveLogin(
-    engine: string,
-    username: string,
-    password: string,
-  ): Promise<{ ok: boolean }> {
+  private slugOf(title: string): string {
+    const slug = title
+      .toLowerCase()
+      .replace(SLUG_PARTS, "-")
+      .replace(/^-/, "")
+      .slice(0, SLUG_LIMIT)
+      .replace(/-$/, "")
+    return slug === "" ? "board" : slug
+  }
+
+  private async saveLogin(engine: string, login: Login): Promise<{ ok: boolean }> {
     const protection = (await this.orca.host.call("secrets.protection")) as { status: string }
     if (protection.status !== "os-keyring") {
       this.orca.log("Logins are not saved: this machine offers no OS key store to Orca.")
       return { ok: false }
     }
     await this.parts.ready()
-    const ok = await this.parts.registry.saveLogin(engine, username, password)
+    const ok = await this.parts.registry.saveLogin(engine, login)
     this.orca.panels.post("engines.changed", { reason: "login" })
     return { ok }
   }

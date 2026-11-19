@@ -25,6 +25,7 @@ describe("the /server entry", () => {
       "createTranslator",
       "decodeToolResult",
       "fontAssetsCsp",
+      "forViews",
       "getMcpRequestInfo",
       "installFontAssets",
       "parseBpmnNames",

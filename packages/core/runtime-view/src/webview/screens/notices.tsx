@@ -1,4 +1,14 @@
-import { glyphs } from "../components/lucide-glyphs.json"
+import {
+  ArrowUpRightIcon,
+  BanIcon,
+  ClipboardListIcon,
+  FileTextIcon,
+  PencilIcon,
+  RotateCcwIcon,
+  SearchIcon,
+  XIcon,
+  type LucideIcon,
+} from "lucide-react"
 import type { Notice, NoticeAction, Problem, WebviewIntent } from "../../core/protocol/index.js"
 import { StatusBox, type StatusAction } from "../components/status-box.js"
 import { StatusStrip, type StripAction } from "../components/status-strip.js"
@@ -7,16 +17,16 @@ import { useWriteState } from "../host/write-context.js"
 import { WriteStates } from "../host/write-states.js"
 import { NoticeIntents } from "./notice-intents.js"
 
-const ICONS: Readonly<Record<NoticeAction["kind"], string>> = {
-  openInstance: glyphs.ArrowUpRight,
-  selectVersion: glyphs.ArrowUpRight,
-  openIncidentDetails: glyphs.FileText,
-  retryIncident: glyphs.RotateCcw,
-  stopBulk: glyphs.Ban,
-  selectRemaining: glyphs.ClipboardList,
-  dismissBulk: glyphs.X,
-  checkBulk: glyphs.Search,
-  showBulkFailures: glyphs.FileText,
+const ICONS: Readonly<Record<NoticeAction["kind"], LucideIcon>> = {
+  openInstance: ArrowUpRightIcon,
+  selectVersion: ArrowUpRightIcon,
+  openIncidentDetails: FileTextIcon,
+  retryIncident: RotateCcwIcon,
+  stopBulk: BanIcon,
+  selectRemaining: ClipboardListIcon,
+  dismissBulk: XIcon,
+  checkBulk: SearchIcon,
+  showBulkFailures: FileTextIcon,
 }
 
 export function useStripActions(actions: readonly NoticeAction[]): StripAction[] {
@@ -76,7 +86,7 @@ function useProblemActions(problem: Problem) {
 export function ProblemStrip({ problem }: { readonly problem: Problem }) {
   const actions = useProblemActions(problem).map((action) => ({
     ...action,
-    icon: action.label === "Reconnect" ? glyphs.RotateCcw : glyphs.Pencil,
+    icon: action.label === "Reconnect" ? RotateCcwIcon : PencilIcon,
   }))
   return (
     <StatusStrip tone="danger" title={problem.title} detail={problem.detail} actions={actions} />

@@ -76,7 +76,7 @@ export class HttpFailures {
 
   private static answered(failure: HttpFailure): Error {
     if (failure.answer !== undefined) {
-      return ErrorAnswers.errorOf(failure.answer, failure)
+      return ErrorAnswers.errorOf(failure.answer, { cause: failure })
     }
     const status = failure.status ?? 0
     return EngineRequestError.answered(status, ErrorAnswers.statusLine(status), { cause: failure })

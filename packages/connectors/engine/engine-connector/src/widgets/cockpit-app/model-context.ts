@@ -1,7 +1,10 @@
 import { enginesByEnvironment } from "../../lib/shared/environments.js"
 import type { ViewContext } from "../lib/hand-off.js"
 import type { CockpitView } from "../../view-models.js"
+import type { BoardStartData } from "../../view-models.board.js"
 import { selectedEntity } from "../nav-core.js"
+import type { BoardsOnlyEngine } from "./boards-only.js"
+import type { ServerBoards } from "./landing.js"
 
 /** The view was navigated client-side: no chat turn tells the model. */
 export function cockpitContext(engineId: string, current: CockpitView): ViewContext {
@@ -37,18 +40,54 @@ export function refusedEngineContext(engineId: string): ViewContext {
   }
 }
 
-/** No engine is open: the engine ids are facts, not an `engine` to pin. */
+/**
+ * The open engine speaks another dialect, which the server reads on boards only
+ * (`BoardsOnlyEngineGate`): the view reads nothing of it and names the boards that show it, by
+ * their ids, so the model offers no work on it here, since every other read of it is refused.
+ */
+export function boardsOnlyEngineContext(engineId: string, engine: BoardsOnlyEngine): ViewContext {
+  return {
+    summary:
+      "The operator opened an engine in the engine cockpit that the server reads on boards " +
+      "only (it speaks another engine API than the cockpit's views read): the view reads " +
+      "nothing of it and lists the boards that name it, if any. Offer no analysis or change on " +
+      "this engine; a board that names it shows its numbers, and another engine can still be " +
+      "opened.",
+    ids: { engine: engineId },
+    facts: {
+      boardsOnly: true,
+      dialect: engine.dialect,
+      boardCount: engine.boards.length,
+      ...(engine.boards.length > 0 ? { boards: [...engine.boards] } : {}),
+    },
+  }
+}
+
+/**
+ * No engine is open: the engine ids are facts, not an `engine` to pin. The boards the picker
+ * lists (ENGINE_BOARDS_DIR) are facts too, by their ids; their titles are the operator's text and
+ * stay out. The view is the landing's, as `engine_open_cockpit` names it.
+ */
 export function landingContext(
   engineGroups: Array<{ id: string; engines: Array<{ id: string }> }>,
+  boards: ServerBoards | null = null,
+  boardsOnly: readonly string[] = [],
 ): ViewContext {
   return {
     summary:
-      "The operator is on the engine cockpit's engine picker: no engine is open yet, so nothing " +
-      "on screen is scoped to one engine. Before an engine-specific answer, ask which engine they " +
-      "mean, or pass `engine` explicitly.",
+      "The operator is on the engine cockpit's landing, its engine picker: no engine is open " +
+      "yet, so nothing on screen is scoped to one engine. Before an engine-specific answer, ask " +
+      "which engine they mean, or pass `engine` explicitly.",
     facts: {
+      view: "landing",
       engines: engineGroups.flatMap((g) => g.engines.map((e) => e.id)),
       environments: enginesByEnvironment(engineGroups),
+      ...(boards && {
+        boards: boards.boards.map((board) => board.id),
+        refusedBoards: boards.refusedBoards.map((board) => board.id),
+      }),
+      // The engines the server shows on boards only: a call of another view to one is refused.
+      ...(boardsOnly.length > 0 ? { boardsOnlyEngines: [...boardsOnly] } : {}),
     },
   }
 }
@@ -64,5 +103,30 @@ export function fleetContext(
       "its single-engine cockpit.",
     ids: { engine: engineGroups.flatMap((g) => g.engines.map((e) => e.id)) },
     facts: { environments: enginesByEnvironment(engineGroups) },
+  }
+}
+
+/**
+ * A board: the engines it names, a list of `engine`s, each in its state; the board's title is the
+ * operator's text from its file, fenced. The tiles' numbers were the tool's facts when it opened.
+ */
+export function boardContext(board: string, data: BoardStartData): ViewContext {
+  const failed = data.engines.filter((engine) => engine.state !== "ready")
+  return {
+    summary:
+      "The operator is viewing a board in the engine cockpit: tiles of counts, instances, " +
+      "incidents and a diagram, read from the engines the board names, each engine in its own " +
+      "state; a number that was not read shows as missing, never 0. Navigation is client-side: " +
+      "a tile opens the engine's own view.",
+    ids: { board, engine: data.engines.map((engine) => engine.name) },
+    facts: {
+      view: "board",
+      asOf: data.asOf,
+      engines: data.engines.length,
+      enginesNotRead: failed.length,
+      tiles: data.rows.flat().length,
+      refusedTiles: data.rows.flat().filter((tile) => tile.kind === "refused").length,
+    },
+    untrusted: [{ label: "Board title", text: data.title }],
   }
 }

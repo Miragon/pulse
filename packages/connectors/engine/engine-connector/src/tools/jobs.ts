@@ -4,7 +4,7 @@ import {
   setJobRetriesInput,
   setJobRetriesBatchInput,
 } from "../schemas/index.js"
-import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
+import type { EngineToolRegistrar } from "../lib/engine/served-engines.js"
 import { fetchJobStacktrace, queuedBatch } from "@miragon/pulse-c7-client"
 import { complementaryFlags, engineSorting, toOptionalEngineDate } from "@miragon/pulse-c7-core"
 import {
@@ -14,17 +14,17 @@ import {
   setJobRetriesAsyncOperation,
 } from "@miragon/pulse-c7-client/sdk"
 import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
-import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 import { boundFailureText, condenseStacktrace } from "../lib/mcp/failure-text.js"
 import { noneIfMissing } from "../lib/core-adapter/engine-port.js"
 
-export function registerJobTools(register: ToolRegistrar<EngineRegistry>) {
+export function registerJobTools(register: EngineToolRegistrar) {
   register({
     name: "engine_list_jobs",
     category: "jobs",
     description: "List jobs (timers, async continuations).",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...listJobsInput.shape, ...engineParamShape },
     outputSchema: paginatedListOutput,
     handler: withEngine(async (client, args) => {
@@ -59,6 +59,7 @@ export function registerJobTools(register: ToolRegistrar<EngineRegistry>) {
       "chain and user-code frames (framework frames trimmed). stacktrace is null when the job has " +
       "none or no longer exists.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...getJobStacktraceInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) => {
       const raw = await noneIfMissing(fetchJobStacktrace(client, args.jobId))
@@ -75,6 +76,7 @@ export function registerJobTools(register: ToolRegistrar<EngineRegistry>) {
     description:
       "Set the number of retries for a failed job. Setting retries > 0 will re-execute the job.",
     annotations: { destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...setJobRetriesInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) => {
       await setJobRetries({
@@ -93,6 +95,7 @@ export function registerJobTools(register: ToolRegistrar<EngineRegistry>) {
       'Queue a batch that sets retries on multiple jobs. Returns { batchId, status: "queued" }, not the outcome: ' +
       "follow it with engine_get_batch.",
     annotations: { destructiveHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...setJobRetriesBatchInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) => {
       const batch = await setJobRetriesAsyncOperation({

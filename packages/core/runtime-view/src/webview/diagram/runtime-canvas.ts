@@ -11,7 +11,8 @@ import {
   type WebviewStateApi,
 } from "@miragon/modeler-shell/vscode/webview"
 import type { ShellHandle } from "@miragon/modeler-shell"
-import { CANVAS_TEXT_STYLE, CanvasRoles, RENDERER_COLORS } from "./canvas-roles.js"
+import { BPMN_LABEL_STYLE } from "@miragon/pulse-ui"
+import { CanvasRoles, RENDERER_COLORS } from "./canvas-roles.js"
 import { CanvasShell } from "./canvas-shell.js"
 import {
   DecorationLayer,
@@ -26,9 +27,11 @@ import {
   type DiagramElement,
   type ElementRegistryLike,
 } from "./diagram-elements.js"
+import type { OverlaySink } from "./overlay-slots.js"
 
 export interface RuntimeCanvasOptions {
   readonly host: HTMLElement
+  readonly overlays: OverlaySink
   readonly stateApi: WebviewStateApi
   readonly onSelectElement: BadgeFilter
   readonly onOpenCall: (elementId: string, toSide: boolean) => void
@@ -75,7 +78,7 @@ export class RuntimeCanvas {
       container: this.shell.canvas,
       additionalModules: [OutlineModule, shellModule],
       bpmnRenderer: RENDERER_COLORS,
-      textRenderer: CANVAS_TEXT_STYLE,
+      textRenderer: BPMN_LABEL_STYLE,
     })
     this.registry = this.viewer.get<ElementRegistryLike>("elementRegistry")
     this.elements = new DiagramElements(this.registry)
@@ -110,6 +113,7 @@ export class RuntimeCanvas {
     this.destroyed = true
     this.stopPersisting()
     this.layer?.clear()
+    this.options.overlays.render([], () => undefined)
     this.viewer.destroy()
     this.shell.destroy()
     this.disconnectShell()
@@ -144,7 +148,17 @@ export class RuntimeCanvas {
     if (wanted.xml !== this.importedXml && !(await this.importDiagram(wanted.xml))) {
       return
     }
-    this.layer?.apply(this.wanted?.decorations ?? wanted.decorations)
+    this.decorate(this.wanted?.decorations ?? wanted.decorations)
+  }
+
+  private decorate(decorations: Decorations): void {
+    const layer = this.layer
+    if (layer === undefined || this.destroyed) {
+      return
+    }
+    this.options.overlays.render(layer.apply(decorations), () => {
+      layer.restoreFocus()
+    })
   }
 
   private async importDiagram(xml: string): Promise<boolean> {
@@ -152,7 +166,12 @@ export class RuntimeCanvas {
       await this.viewer.importXML(xml)
     } catch (error) {
       this.importedXml = undefined
-      this.options.onImportFailed(error instanceof Error ? error.message : String(error))
+      if (!this.destroyed) {
+        this.options.onImportFailed(error instanceof Error ? error.message : String(error))
+      }
+      return false
+    }
+    if (this.destroyed) {
       return false
     }
     this.importedXml = xml

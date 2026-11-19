@@ -13,9 +13,17 @@ import { en } from "./messages-en.js"
 
 export type {
   CommonMessages,
+  ConditionChipMessages,
+  CopyableIdMessages,
+  CountNoun,
+  CountMessages,
+  DataTableMessages,
   FilterBarMessages,
   ListFooterMessages,
+  SearchFieldMessages,
+  StateLabelMessages,
   UiMessages,
+  ViewBarMessages,
 } from "./message-types.js"
 
 /** A partial override of a {@link UiMessages} catalog, per section. */
@@ -54,6 +62,13 @@ export function resolveUiMessages(
     common: { ...base.common, ...override.common },
     listFooter: { ...base.listFooter, ...override.listFooter },
     filterBar: { ...base.filterBar, ...override.filterBar },
+    searchField: { ...base.searchField, ...override.searchField },
+    dataTable: { ...base.dataTable, ...override.dataTable },
+    viewBar: { ...base.viewBar, ...override.viewBar },
+    copyableId: { ...base.copyableId, ...override.copyableId },
+    conditionChip: { ...base.conditionChip, ...override.conditionChip },
+    stateLabel: { ...base.stateLabel, ...override.stateLabel },
+    count: { ...base.count, ...override.count },
     pills: { ...base.pills, ...override.pills },
   }
 }

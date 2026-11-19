@@ -37,7 +37,38 @@ describe("ConfirmDialog (CI §8 dialogs, §9 destructive)", () => {
     expect(dialog.getAttribute("aria-describedby")).toBeTruthy()
     const overlay = document.querySelector('[data-slot="dialog-overlay"]')
     expect(overlay?.className).toContain("bg-scrim")
-    expect(overlay?.className).toContain("backdrop-blur-sm")
+    expect(overlay?.className).toContain("backdrop-blur-[3px]")
+    expect(overlay?.className).toContain("backdrop-grayscale")
+    // A confirmation is narrower than a dialog: 440 px at most, 16 px off each edge.
+    expect(dialog.className).toContain("max-w-[min(440px,calc(100%-2rem))]")
+  })
+
+  it("takes the kit's dialog geometry: the question in the header, the target in the body, the buttons under the footer's rule", () => {
+    renderDialog({ error: "[503 ProcessEngineException] down (engine prod)" })
+    const dialog = screen.getByRole("alertdialog")
+    const part = (name: string) => dialog.querySelector(`[data-slot="${name}"]`)
+    const classes = (el: Element | null) => (el?.getAttribute("class") ?? "").split(/\s+/)
+    expect(classes(part("dialog-header"))).toEqual(
+      expect.arrayContaining(["pt-4", "pr-14", "pb-2", "pl-6"]),
+    )
+    expect(part("dialog-header")?.textContent).toContain("Cancel this instance?")
+    expect(classes(part("dialog-body"))).toEqual(expect.arrayContaining(["px-6", "pb-6"]))
+    expect(part("dialog-body")?.querySelector("dl")).toBeTruthy()
+    expect(part("dialog-body")?.contains(screen.getByRole("alert"))).toBe(true)
+    expect(classes(part("dialog-footer"))).toEqual(
+      expect.arrayContaining(["border-t", "px-6", "py-4"]),
+    )
+    // The box itself carries no padding: its parts do.
+    expect(classes(dialog)).not.toContain("p-6")
+  })
+
+  it("keeps the close button's corner clear while the write runs, so the question never rewraps", () => {
+    renderDialog({ pending: true })
+    expect(screen.queryByRole("button", { name: "Close" })).toBeNull()
+    const header = screen.getByRole("alertdialog").querySelector('[data-slot="dialog-header"]')
+    const classes = (header?.getAttribute("class") ?? "").split(/\s+/)
+    expect(classes).toEqual(expect.arrayContaining(["pt-4", "pr-14", "pb-2", "pl-6"]))
+    expect(classes).not.toContain("pr-4")
   })
 
   it("names its target by label and value, ids in Geist Mono", () => {
@@ -48,10 +79,13 @@ describe("ConfirmDialog (CI §8 dialogs, §9 destructive)", () => {
     expect(screen.getByText("Instance").tagName).toBe("DT")
   })
 
-  it("labels both buttons verb + object; the destructive one in the danger role", () => {
+  it("labels both buttons verb + object; the destructive one in the danger role; both the dialog's 36 px control", () => {
     const props = renderDialog()
     const confirm = screen.getByRole("button", { name: "Cancel instance" })
     expect(confirm.getAttribute("data-variant") ?? confirm.className).toContain("destructive")
+    for (const name of ["Cancel instance", "Keep instance"]) {
+      expect(screen.getByRole("button", { name }).getAttribute("data-size"), name).toBe("lg")
+    }
     fireEvent.click(confirm)
     expect(props.onConfirm).toHaveBeenCalledTimes(1)
     fireEvent.click(screen.getByRole("button", { name: "Keep instance" }))

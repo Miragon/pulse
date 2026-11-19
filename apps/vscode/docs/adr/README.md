@@ -11,10 +11,11 @@ commit and replace superseded text; Git keeps the history.
 | [architecture.md](architecture.md)         | Packages, dependency rules, composition root, host ⇄ webview protocol              |
 | [runtime-contract.md](runtime-contract.md) | The engine-neutral ports, their laws and the conformance kit                       |
 | [c7-adapter.md](c7-adapter.md)             | The Camunda 7 family adapter over the engine REST API                              |
+| [c8-adapter.md](c8-adapter.md)             | The Camunda 8 adapter, read-only: its wire, client credentials, reads and runtime  |
 | [writes.md](writes.md)                     | Guarded writes: who may write, confirmation, intents, feedback, audit, bulk cancel |
 | [migrations.md](migrations.md)             | Migrating instances to another version: plan, checks, batch, failures              |
 | [user-interface.md](user-interface.md)     | Information architecture, design tokens, naming, scope of v0.1                     |
-| [ui-foundation.md](ui-foundation.md)       | What the webview shares with the MCP widgets: the foundation, never a component    |
+| [ui-foundation.md](ui-foundation.md)       | What the surfaces share: formats, reads, numbers, one compact look on React        |
 | [code-structure.md](code-structure.md)     | Classes implement the ports, one class per file, utility classes per topic         |
 | [local-sources.md](local-sources.md)       | Local model and code next to an incident: ports, model adapter, opening            |
 | [live-updates.md](live-updates.md)         | Views that read the engine again on their own: cadence, gating, safety             |

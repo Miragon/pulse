@@ -1,6 +1,7 @@
 /** What the widgets render, not engine API types (those live in `@miragon/pulse-c7-client/types`). */
 import type { IncidentRecovery } from "@miragon/pulse-c7-core"
 import type { IncidentsDashboardFilters, JobsFilters } from "./feed-contracts.js"
+import type { BoardStartData, LandingStartData } from "./view-models.board.js"
 import type { ClusterDetailData, EngineHealthData } from "./view-models.health.js"
 
 /**
@@ -9,11 +10,6 @@ import type { ClusterDetailData, EngineHealthData } from "./view-models.health.j
  */
 export const LIST_PAGE_SIZE = 50
 export const HISTORY_PAGE_SIZE = 100
-
-interface IncidentStat {
-  incidentType: string
-  incidentCount: number
-}
 
 /** Counts span all versions: old versions keep running after a redeploy. */
 export interface DefinitionStat {
@@ -24,7 +20,8 @@ export interface DefinitionStat {
   latestVersion: number
   instances: number
   failedJobs: number
-  incidents: IncidentStat[]
+  /** Open incidents by type. */
+  incidents: Array<{ incidentType: string; incidentCount: number }>
 }
 
 export interface CockpitDashboardData {
@@ -133,13 +130,42 @@ export interface ProcessInstanceRow {
   hasIncident: boolean
 }
 
+/**
+ * The API family an engine speaks: `c7` the Camunda 7 REST API every route of the cockpit reads,
+ * `c8` Camunda 8's Orchestration Cluster REST API, which the server reads on boards only.
+ */
+export type EngineDialect = "c7" | "c8"
+
 export interface CockpitEngineInfo {
   id: string
   /** Environment grouping for the two-stage picker (default environment when unconfigured). */
   environment: string
+  /**
+   * The dialect it speaks; absent on a refused profile, which no call reaches. Every route reads a
+   * `c7` engine. Another dialect's engine the cockpit shows on boards only: each of its routes is
+   * one state that reads nothing (`BoardsOnlyEngineGate`), its landing row reads nothing either.
+   */
+  dialect?: EngineDialect
+  /**
+   * Another dialect's: its web app (Operate on Camunda 8) from the profile's `cockpitUrl` as
+   * written, http(s) only, never derived from the engine's `url`; absent without one.
+   */
+  webAppUrl?: string
+  /** Another dialect's: the ids of the configured boards that name it, in the board files' order. */
+  boards?: readonly string[]
+  /**
+   * Its profile refused, and why (the server's reason, which names keys only, never a value): its
+   * row and card say so without a read, its view is that one state, which reads nothing either.
+   */
+  refused?: { readonly reason: string }
 }
 
-/** Where the cockpit is: one route per section, with the ids that route reads. */
+/**
+ * Where the cockpit is: one route per section, with the ids that route reads. A board (`board`)
+ * and the landing (`landing`) are app-level routes (`AppSection`): a board reads the engines its
+ * file names, the landing lists the engines and the server's boards, never one engine of the
+ * cockpit.
+ */
 export type CockpitView =
   | { section: "overview" }
   | { section: "incidents" }
@@ -161,8 +187,16 @@ export type CockpitView =
   | { section: "incident-detail"; incidentId: string; label?: string }
   | { section: "jobs"; processDefinitionKey?: string; failedOnly?: boolean }
   | { section: "history"; processInstanceId: string }
+  | { section: "board"; board: string; label?: string }
+  | { section: "landing" }
 
 export type CockpitSection = CockpitView["section"]
+
+/**
+ * The sections of the app's own routes, which open no engine of the cockpit: a board reads the
+ * engines its file names, the landing lists the engines and the server's boards.
+ */
+export type AppSection = "board" | "landing"
 
 /** The overview's two widgets: the health verdict and the definitions table. */
 interface CockpitOverviewData {
@@ -170,7 +204,10 @@ interface CockpitOverviewData {
   definitions: CockpitDashboardData
 }
 
-/** Each route's data: exactly the payload its `*_data` feed returns for the route's first page. */
+/**
+ * Each route's data: exactly the payload its `*_data` feed returns for the route's first page; the
+ * landing's, which has no feed of its own, the boards the engine list names.
+ */
 export interface CockpitStartData {
   overview: CockpitOverviewData
   incidents: IncidentsDashboardData
@@ -181,6 +218,8 @@ export interface CockpitStartData {
   "incident-detail": IncidentDetailData
   jobs: JobPanelData
   history: HistoryTimelineData
+  board: BoardStartData
+  landing: LandingStartData
 }
 
 /**
@@ -193,11 +232,23 @@ export type CockpitStart = {
 
 /** The app threads the chosen `engineId` into every nested call, so navigation ignores the default engine. */
 export interface CockpitAppData {
-  /** Resolved engine id, or null when the user must pick (multiple engines, none selected). */
+  /**
+   * Resolved engine id, or null when the user must pick (multiple engines, none selected) and on
+   * an app route: a board, which reads the engines it names, and the landing.
+   */
   engineId: string | null
   engines: CockpitEngineInfo[]
-  /** Where the cockpit opens, with that view's data; null exactly on the engine picker. */
+  /**
+   * Where the cockpit opens, with that view's data; null exactly on the engine picker of a call
+   * that named no view and resolved no engine, and on a page's start that failed (`startView`).
+   */
   start: CockpitStart | null
+  /**
+   * Where a page opens the cockpit after its start of one engine's view failed for that engine
+   * (`cockpitAfterFailedStart` of the widgets): the view without its data, which its route reads
+   * itself, so the cockpit keeps its head over the failure. The server sends none.
+   */
+  startView?: CockpitView
 }
 
 export interface ProcessInstancesData {
@@ -524,6 +575,13 @@ export interface IncidentDetailJob {
   dueDate: string | null
 }
 
+/** A failed external task an incident names: its worker's error details, as the engine gives them. */
+export interface IncidentDetailExternalTask {
+  id: string
+  /** Null when its worker sent none, the task is gone or the engine rejected the read. */
+  errorDetails: string | null
+}
+
 export interface IncidentDetailData extends EngineVendorInfo {
   incidentId: string
   incidentType: string
@@ -545,6 +603,8 @@ export interface IncidentDetailData extends EngineVendorInfo {
 
   // Null for external-task incidents
   job: IncidentDetailJob | null
+  /** The failed external task of a `failedExternalTask` incident, null for every other. */
+  externalTask: IncidentDetailExternalTask | null
   recovery: IncidentRecovery
 
   instance: {

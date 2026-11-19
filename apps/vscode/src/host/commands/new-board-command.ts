@@ -1,4 +1,5 @@
 import * as vscode from "vscode"
+import { StarterBoard } from "@miragon/pulse-board"
 import { BoardFiles } from "../boards/board-files.js"
 import type { BoardPanels } from "../boards/board-panels.js"
 import type { ConnectionRegistry } from "../connections/connection-registry.js"
@@ -6,6 +7,7 @@ import type { Command } from "./command.js"
 import { COMMAND } from "./command-ids.js"
 
 const SLUG_PARTS = /[^a-z0-9]+/g
+const SLUG_LIMIT = 64
 
 export class NewBoardCommand implements Command {
   readonly id = COMMAND.newBoard
@@ -33,7 +35,7 @@ export class NewBoardCommand implements Command {
     const engines = this.registry.all().map((connection) => connection.target.name)
     await vscode.workspace.fs.writeFile(
       file,
-      new TextEncoder().encode(BoardFiles.template(title.trim(), engines)),
+      new TextEncoder().encode(StarterBoard.of(title.trim(), engines)),
     )
     await vscode.window.showTextDocument(file)
     this.boards.open(file)
@@ -53,6 +55,11 @@ export class NewBoardCommand implements Command {
   }
 
   private slugOf(title: string): string {
-    return title.toLowerCase().replace(SLUG_PARTS, "-").replace(/^-|-$/g, "")
+    return title
+      .toLowerCase()
+      .replace(SLUG_PARTS, "-")
+      .replace(/^-/, "")
+      .slice(0, SLUG_LIMIT)
+      .replace(/-$/, "")
   }
 }

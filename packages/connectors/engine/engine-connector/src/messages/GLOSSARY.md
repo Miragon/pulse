@@ -24,6 +24,8 @@ die Erweiterung prüft ihre Texte im Code (`apps/vscode/test/architecture/produc
 | Retries eines Jobs                                    | Versuche („Noch 2 Versuche“, „Keine Versuche mehr“), neu versuchen | Wiederholungen, wiederholen, Retries | retries, retry                     | –                      |
 | Alle Engines zusammen                                 | alle Engines, Engine-übergreifend                                  | Flotte                               | all engines, cross-engine          | fleet                  |
 | Engine-Profil, das eine Oberfläche nicht nutzt (²)    | abgelehnt („ihr Profil ist abgelehnt“)                             | verworfen, zurückgewiesen, ungültig  | refused („its profile is refused“) | rejected, invalid      |
+| Instanz oder Schritt, der läuft (³)                   | läuft                                                              | Aktiv                                | running                            | Active                 |
+| Instanz oder Schritt, beendet ohne Abschluss (³)      | abgebrochen                                                        | terminiert                           | cancelled                          | Terminated, Canceled   |
 
 (¹) Englisch prüft die gemeinsame Regel „pause“ und „halt“ nur in drei Wörtern Abstand zu dem,
 was die Engine aussetzt (Instanz, Prozess, Definition, Version, Job): VS Code pausiert seine
@@ -38,13 +40,22 @@ for VS Code eines, das es nicht bedienen kann. Die Wörter stehen in `describeEr
 Engine-übergreifenden Übersicht, die solche Engines zählt („1 mit abgelehntem Profil“, nie nur „1
 abgelehnt“: neben „1 mit abgelehnten Zugangsdaten“ läse sich das wie die Anmeldung).
 
+(³) Ein Zustand heißt in jeder Oberfläche gleich, die Wörter stehen einmal in pulse-ui
+(`StateLabel` und sein Katalog): läuft, ausgesetzt, abgeschlossen, abgebrochen, beendet (wo eine
+Ansicht nicht weiß, ob abgeschlossen oder abgebrochen). Das Cockpit schrieb „Canceled“, VS Code
+„Terminated“ und im Verlauf „Active“ und „Canceled“. Die Regeln prüfen nur Wörter, die jemand
+liest; die Werte der Engine im Code („terminated“, „canceled“) und ein aktiver Filter („3 active“)
+bleiben frei.
+
 ## Zählbegriffe
 
-Owner-Entscheidung E2 (2026-11-08): Die MCP-Widgets und VS Code dürfen verschieden zählen (alle
-Incidents oder die Wurzeln, eine Version oder alle), darum sind die Wörter gleich, nicht die
-Zahlen. Ein Wort pro Zählung, kein Wort für zwei Zählungen; welche Zahl dahinter steht, bleibt
-die Regel jedes Werkzeugs. Die Tabelle steht einmal in pulse-ui (`COUNT_TERMS` in
-`@miragon/pulse-ui/testing`).
+Owner-Entscheidung E2 (2026-11-08), ergänzt durch D2 (2026-11-12): Die MCP-Widgets und VS Code
+dürfen verschieden zählen (alle Incidents oder die Wurzeln, eine Version oder alle), darum sind
+die Wörter gleich, nicht die Zahlen. Ein Wort pro Zählung, kein Wort für zwei Zählungen; welche
+Zahl dahinter steht, bleibt die Regel jedes Werkzeugs, bis eine Ansicht auf gemeinsame Zahlen
+umzieht. Eine Funktion, die mehr als eine Oberfläche zeigt (zuerst die Boards), zeigt dagegen
+überall dieselben Zahlen: ein Builder über einem Lesezugriff. Die Tabelle steht einmal in
+pulse-ui (`COUNT_TERMS` in `@miragon/pulse-ui/testing`).
 
 | Zählung                                                    | Deutsch                                              | Nicht         | Englisch                                         | Nicht          |
 | ---------------------------------------------------------- | ---------------------------------------------------- | ------------- | ------------------------------------------------ | -------------- |
@@ -54,28 +65,54 @@ die Regel jedes Werkzeugs. Die Tabelle steht einmal in pulse-ui (`COUNT_TERMS` i
 
 ## Begriffe des Engine-Moduls
 
-| Sache                                           | Deutsch                                                              | Nicht                     | Englisch                                      | Nicht                 |
-| ----------------------------------------------- | -------------------------------------------------------------------- | ------------------------- | --------------------------------------------- | --------------------- |
-| Ausgesetzte Instanz fortsetzen                  | aktivieren                                                           | fortsetzen                | activate                                      | resume                |
-| Zustand einer Instanz                           | läuft (Zustand), laufend (bei Zahlen)                                | aktiv                     | running                                       | active                |
-| Zustand einer Definition                        | aktiv, ausgesetzt                                                    | –                         | active, suspended                             | –                     |
-| Modus des Prozessablaufs: was jetzt läuft       | Laufend („jetzt laufend“)                                            | aktiv                     | Running („running now“)                       | active                |
-| Modus: was Instanzen der 30 Tage durchliefen    | Durchlauf („Durchlauf · 30 Tage“), je Element Durchläufe             | Häufigkeit, Ausführungen  | Throughput, per element passes                | frequency, executions |
-| Job neu ausführen lassen                        | neu versuchen, Ergebnis „Neu eingeplant“                             | wiederholen, „Wiederholt“ | retry, result „Retry scheduled“               | –                     |
-| Incident schließen, ohne die Ursache zu beheben | als gelöst markieren, Ergebnis „Als gelöst markiert“                 | auflösen, „Behoben“       | mark as resolved, result „Marked as resolved“ | resolve (as a label)  |
-| Bearbeiter einer Aufgabe                        | zugewiesen an                                                        | Bearbeiter                | assigned to                                   | assignee (as a label) |
-| Ladezustand                                     | Wird geladen…                                                        | Laden…                    | Loading…                                      | –                     |
-| Herstellerprodukt                               | CIB seven, Camunda 7, Operaton (aus `provider.branding.displayName`) | CIB Seven                 | CIB seven                                     | CIB Seven             |
-| Künstliche Intelligenz                          | AI                                                                   | KI                        | AI                                            | –                     |
-| Engine lehnt die Anmeldung des Servers ab (³)   | Zugangsdaten abgelehnt (HTTP 401), Zugriff verweigert (HTTP 403)     | nicht erreichbar          | credentials rejected, access denied           | unreachable           |
+| Sache                                           | Deutsch                                                                         | Nicht                     | Englisch                                              | Nicht                 |
+| ----------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------- | ----------------------------------------------------- | --------------------- |
+| Ausgesetzte Instanz fortsetzen                  | aktivieren                                                                      | fortsetzen                | activate                                              | resume                |
+| Zustand einer Instanz                           | läuft (Zustand), laufend (bei Zahlen)                                           | aktiv                     | running                                               | active                |
+| Zustand einer Definition                        | aktiv, ausgesetzt                                                               | –                         | active, suspended                                     | –                     |
+| Modus des Prozessablaufs: was jetzt läuft       | Laufend („jetzt laufend“)                                                       | aktiv                     | Running („running now“)                               | active                |
+| Modus: was Instanzen der 30 Tage durchliefen    | Durchlauf („Durchlauf · 30 Tage“), je Element Durchläufe                        | Häufigkeit, Ausführungen  | Throughput, per element passes                        | frequency, executions |
+| Job neu ausführen lassen                        | neu versuchen, Ergebnis „Neu eingeplant“                                        | wiederholen, „Wiederholt“ | retry, result „Retry scheduled“                       | –                     |
+| Incident schließen, ohne die Ursache zu beheben | als gelöst markieren, Ergebnis „Als gelöst markiert“                            | auflösen, „Behoben“       | mark as resolved, result „Marked as resolved“         | resolve (as a label)  |
+| Bearbeiter einer Aufgabe                        | zugewiesen an                                                                   | Bearbeiter                | assigned to                                           | assignee (as a label) |
+| Ladezustand                                     | Wird geladen…                                                                   | Laden…                    | Loading…                                              | –                     |
+| Herstellerprodukt                               | CIB seven, Camunda 7, Operaton (aus `provider.branding.displayName`), Camunda 8 | CIB Seven                 | CIB seven                                             | CIB Seven             |
+| Künstliche Intelligenz                          | AI                                                                              | KI                        | AI                                                    | –                     |
+| Engine lehnt die Anmeldung des Servers ab (⁴)   | Zugangsdaten abgelehnt (HTTP 401), Zugriff verweigert (HTTP 403)                | nicht erreichbar          | credentials rejected, access denied                   | unreachable           |
+| Zeitpunkt, zu dem ein Board gelesen wurde (⁵)   | Stand („Stand 08:00“)                                                           | Zuletzt aktualisiert      | As of („As of 08:00“)                                 | Last updated          |
+| Name eines Boards, den kein Profil trägt        | gehört nicht zu den Engines dieses Servers                                      | nicht konfiguriert        | is not among the engines of this server               | not configured        |
+| Board-Datei, die kein Board ergibt (⁶)          | Datei abgelehnt („Datei abgelehnt: 1 Problem“)                                  | ungültig, fehlerhaft      | file refused („file refused: 1 problem“)              | invalid, broken       |
+| Engine, die der Server nur auf Boards liest (⁷) | auf Boards („Camunda 8, auf Boards“, „noch auf keinem Board“)                   | –                         | on boards („Camunda 8, on boards“, „on no board yet“) | –                     |
+| Web-App einer Camunda-8-Engine (⁷)              | Operate („In Operate öffnen“)                                                   | Cockpit                   | Operate („Open in Operate“)                           | Cockpit               |
 
-(³) Die Kurzform der Titel, die `describeError` für 401 und 403 zeigt, auf der Landing und in der
+(⁴) Die Kurzform der Titel, die `describeError` für 401 und 403 zeigt, auf der Landing und in der
 Engine-übergreifenden Übersicht, dort auch gezählt („1 mit abgelehnten Zugangsdaten“). Die Engine hat
 geantwortet, also ist sie erreichbar; der Ton ist der eines abgelehnten Profils (warning), nicht der
 eines Ausfalls. Die Übersicht sagt deshalb zu einer Engine, die sie nicht lesen konnte, nie „hat nicht
 geantwortet“, sondern verweist auf ihre Zeile, und „Ursache finden“ auf der Übersicht der Engine fragt
 nach der abgelehnten Anmeldung. `glossary.test.ts` hält die Wörter fest; eine Regel gegen „nicht
 erreichbar“ gibt es nicht, weil das Wort für eine Engine ohne Antwort richtig ist.
+
+(⁵) Die Ansicht eines Boards (`src/widgets/board/`) textet nur ihre Leiste, ihre Streifen und die
+Zeilenaktion („Öffnen“, „Open“) in `en.board.ts` und `de.board.ts`; die Kacheln texten sich selbst,
+mit dem Glossar von `@miragon/pulse-blocks` (`packages/core/blocks/src/messages/GLOSSARY.md`). Der
+Server liest ein Board für einen Aufrufer höchstens alle 30 Sekunden, darum nennt die Leiste den
+Stand des Lesens, nicht den des Klicks.
+
+(⁶) Die Landing des Cockpits listet unter den Engines die Boards aus `ENGINE_BOARDS_DIR` und eine
+Datei, die kein Board ergibt, mit ihrer Zahl an Problemen; deren Wortlaut steht nur im Log beim
+Start des Servers, darum sagt die Landing, wo. „Abgelehnt“ ist dasselbe Wort wie für ein Profil,
+das der Server nicht nutzt, mit demselben Ton (warning) und demselben Icon. Eine Regel gegen
+„ungültig“ und „fehlerhaft“ gibt es nicht: ein ungültiger Wert und ein fehlerhaftes Modell sind
+andere Sachen.
+
+(⁷) Eine Engine eines anderen Dialekts (Camunda 8) liest der Server nur auf Boards. Jede Route des
+Cockpits zeigt für sie einen Zustand, der nichts liest (`BoardsOnlyEngineGate`): die Boards, die sie
+nennen, sonst dass noch keines sie nennt, und Operate, wo ihr Profil eine Adresse nennt. Ihre Zeile
+auf der Landing nennt das Produkt und ob ein Board sie zeigt, ohne Urteil und ohne Punkt; die
+Engine-übergreifende Übersicht lässt sie weg und nennt sie in einer Zeile. Produkt und Web-App
+stehen einmal in `src/widgets/cockpit-app/boards-only.ts`. Ein Aufruf, der sie trotzdem liest, sagt
+`describeError` von widget-shell neutral, ohne Dialekt (die Art `notServed`).
 
 ## Übergaben an den Chat
 

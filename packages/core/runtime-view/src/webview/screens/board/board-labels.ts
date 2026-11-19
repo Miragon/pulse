@@ -1,14 +1,14 @@
 import type {
   BoardEngineStatus,
-  BoardTarget,
+  BoardFileProblem,
   BoardView,
-  CounterTile,
-  IncidentSummaryTile,
-  ProcessDiagramTile,
+  ProblemData,
 } from "../../../core/protocol/index.js"
 import { CountLabels } from "../../format/count-labels.js"
 
 const ENVIRONMENTS = { local: "Local", test: "Test", production: "Production" } as const
+
+type ProblemWords = (problem: ProblemData) => string
 
 export class BoardLabels {
   static scope(view: BoardView): string {
@@ -20,6 +20,14 @@ export class BoardLabels {
     return view.rows.length > 0
       ? "Pulse shows the last valid version until you fix them."
       : "Pulse shows the board once you fix them."
+  }
+
+  static fileProblem(problem: BoardFileProblem, say: ProblemWords): string {
+    return problem.code === "unreadable" ? "could not be read" : say(problem)
+  }
+
+  static notes(view: BoardView, lineOf: ProblemWords): string {
+    return view.notes.map((note) => lineOf(note)).join("\n")
   }
 
   static engineFacts(engine: BoardEngineStatus): string {
@@ -38,67 +46,7 @@ export class BoardLabels {
       .join(" · ")
   }
 
-  static partial(tile: CounterTile | IncidentSummaryTile): string | undefined {
-    const engines = tile.kind === "counter" ? tile.entries.length : tile.engines
-    return tile.known < engines
-      ? `from ${tile.known} of ${CountLabels.plural(engines, "engine")}`
-      : undefined
-  }
-
-  static openTitle(target: BoardTarget): string {
-    const where =
-      target.bpmnProcessId === undefined
-        ? `Open the processes of ${target.engine}`
-        : `Open the process on ${target.engine}, latest version first`
-    return `${where} (Ctrl/Cmd+click: to the side)`
-  }
-
-  static above(tile: CounterTile): string | undefined {
-    const above = tile.entries.filter((entry) => entry.above === true)
-    if (tile.warnAbove === undefined || above.length === 0) {
-      return undefined
-    }
-    const limit = CountLabels.exact(tile.warnAbove)
-    return above.length === 1
-      ? `${above[0]?.engine ?? ""} above ${limit}`
-      : `${CountLabels.plural(above.length, "engine")} above ${limit}`
-  }
-
-  static warning(tile: CounterTile): string | undefined {
-    const parts = [BoardLabels.above(tile), BoardLabels.undecided(tile)].filter(
-      (part) => part !== undefined,
-    )
-    return parts.length === 0 ? undefined : parts.join(" · ")
-  }
-
-  static diagramFacts(engine: string, version: number): string {
-    return `${engine} · v${version}, the latest version`
-  }
-
-  static diagramMissing(tile: ProcessDiagramTile): string {
-    return tile.notDeployed === true
-      ? `${tile.bpmnProcessId} is not deployed on ${tile.engine}.`
-      : `The diagram was not read from ${tile.engine}.`
-  }
-
-  static entryCount(count: number | undefined, atLeast = false): string {
-    return count === undefined ? "not read" : CountLabels.exact(count, atLeast)
-  }
-
-  static count(count: number | undefined, atLeast = false): string {
-    return count === undefined ? "—" : CountLabels.exact(count, atLeast)
-  }
-
-  private static undecided(tile: CounterTile): string | undefined {
-    const undecided = tile.entries.filter((entry) => entry.undecided === true)
-    const [first] = undecided
-    if (tile.warnAbove === undefined || first === undefined) {
-      return undefined
-    }
-    const stopped =
-      undecided.length === 1
-        ? `${first.engine} stopped counting at ${CountLabels.exact(first.count ?? 0)}`
-        : `${CountLabels.plural(undecided.length, "engine")} stopped counting`
-    return `${stopped} · warns above ${CountLabels.exact(tile.warnAbove)}`
+  static openEngineTitle(engine: string): string {
+    return `Open the processes of ${engine} (Ctrl/Cmd+click: to the side)`
   }
 }

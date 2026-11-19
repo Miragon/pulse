@@ -52,6 +52,13 @@ described in one profile file in the format the CLI and VS Code read too, with a
 an override per question. With passthrough auth behind OAuth, each caller's own login reaches the
 engine.
 
+## Boards your team shares
+
+A board keeps the questions your team asks again and again in one view: how many orders wait at a
+step, which processes have incidents. Point `ENGINE_BOARDS_DIR` at the board files Pulse for VS Code
+and Pulse for Orca read, then ask _"show me the leasing board"_: the chat shows its tiles with the
+numbers the editors show. [Boards](https://miragon.github.io/pulse/mcp/boards) explains the files.
+
 ## Figures straight from the engine
 
 A process's flow shows its open incidents per element, how many instances are at each element right
@@ -77,13 +84,15 @@ claude mcp add --transport http pulse http://localhost:8400/mcp
 A REST API with a login takes `ENGINE_AUTH_TYPE=basic` with `ENGINE_USERNAME` and
 `ENGINE_PASSWORD`. More on CIB seven and Operaton links and Docker networks:
 [Get started](https://miragon.github.io/pulse/mcp/getting-started#run-it-on-your-own-engine).
-OAuth, write toolsets and deployment: [Operations](https://miragon.github.io/pulse/mcp/operations).
+OAuth, write toolsets and deployment: [Operations](https://miragon.github.io/pulse/mcp/operations);
+Keycloak, Microsoft Entra ID, ADFS and other identity providers:
+[Identity providers](https://miragon.github.io/pulse/mcp/identity-providers).
 
 ## Good to know
 
 - claude.ai and ChatGPT reach only a public HTTPS URL, not `localhost`; Claude Desktop needs a
   bridge, as [Usage](https://miragon.github.io/pulse/mcp/usage#connect-your-assistant) shows.
-- Works with Operaton, CIB seven and Camunda 7, not with Camunda 8.
+- Works with Operaton, CIB seven and Camunda 7; a Camunda 8 cluster it shows on boards only ([Camunda 8](https://miragon.github.io/pulse/mcp/camunda8)).
 - Modules for your own systems next to Pulse's: [Build your own server](https://miragon.github.io/pulse/mcp/build-your-own).
 - Pulse also runs in your terminal and in VS Code: [Pulse](../../README.md).
 

@@ -1,16 +1,11 @@
 import { Fragment } from "react"
 import {
   Button,
-  CountPill,
   KpiGrid,
   PagedListFooter,
-  SITUATION_TONES,
-  StatusBadge,
   WidgetHeader,
-  type ToneVariant,
   formatNumber,
   formatTimestamp,
-  Icon,
   LogText,
   NamedId,
   TableEmptyState,
@@ -30,13 +25,14 @@ import {
   WidgetShell,
   HostModelContext,
 } from "@miragon/pulse-widget-shell/widgets"
-import { Check } from "lucide-react"
 import { ENGINE_JOBS_DATA } from "../tool-names.js"
+import { AlarmCount, type CountAlarm } from "./lib/alarm-count.js"
+import { DoneMark } from "./lib/done-mark.js"
 import { useEngineAction, type EngineAction } from "./lib/engine-action.js"
 import { MoreActions } from "./lib/more-actions.js"
 import { WriteError } from "./lib/write-error.js"
 import { instanceName, writeFeedback } from "./lib/write-feedback.js"
-import { useHandOff, type HandOff, type ViewContext } from "./lib/hand-off.js"
+import { useHandOff, useHandOffsShown, type HandOff, type ViewContext } from "./lib/hand-off.js"
 import { useT } from "../messages/use-t.js"
 
 export type { JobPanelData }
@@ -132,10 +128,11 @@ function draftJobTicketHandOff(job: Job, engineId: string | undefined): HandOff 
   }
 }
 
-// #322 U14: no retries left holds an incident (danger), retries left means the engine tries again (warning).
-function retriesTone(job: Job): ToneVariant {
-  if (job.retries === 0) return SITUATION_TONES.jobWithoutRetries
-  return job.exceptionMessage ? SITUATION_TONES.jobWithRetriesLeft : "neutral"
+// #322 U14: no retries left holds an incident (danger), retries left means the engine tries again
+// (warning); the number stays neutral, the alarm is its icon and words.
+function retriesAlarm(job: Job): CountAlarm | null {
+  if (job.retries === 0) return "noRetriesLeft"
+  return job.exceptionMessage ? "retriesLeft" : null
 }
 
 // A panel scoped to one process names it in the head, not in every row.
@@ -160,24 +157,78 @@ function JobSubject({ job, showProcess }: { job: Job; showProcess: boolean }) {
   )
 }
 
+/** A failed job's actions: its retry, then the hand-offs about it in its menu. */
+function JobActions({
+  job,
+  retry,
+  engineId,
+  handOffs,
+}: {
+  job: Job
+  retry: EngineAction<RetryArgs, unknown>
+  engineId: string
+  handOffs: boolean
+}) {
+  const t = useT()
+  const { ask } = useHandOff()
+  const name = job.activityName ?? job.activityId ?? job.id
+  if (retry.done.has(job.id)) return <DoneMark>{t("jobPanel.retried")}</DoneMark>
+  if (job.retries !== 0) return null
+  return (
+    // A row's actions are xs, so the row keeps the row height (28 px).
+    <div className="inline-flex items-center justify-end gap-1">
+      {retry.allowed && (
+        <Button
+          variant="outline"
+          size="xs"
+          disabled={retry.pending(job.id)}
+          onClick={() =>
+            retry.run(
+              { jobId: job.id, retries: 1, engine: engineId },
+              { feedback: writeFeedback.jobRetry(t, instanceName(job.processInstanceId)) },
+            )
+          }
+        >
+          {t("jobPanel.retry")}
+        </Button>
+      )}
+      {/* Its entries are hand-offs only: a host that shows none gets no menu. */}
+      {handOffs && (
+        <MoreActions label={t("jobPanel.moreActions", { name })}>
+          <HandOffButton
+            action="explainError"
+            variant="menuitem"
+            prompt={ask(explainJobHandOff(job, engineId))}
+          />
+          <HandOffButton
+            action="draftTicket"
+            variant="menuitem"
+            prompt={ask(draftJobTicketHandOff(job, engineId))}
+          />
+        </MoreActions>
+      )}
+    </div>
+  )
+}
+
 // #322 U2, U11, U13. A done retry shows a check, never a dimmed row that reads as disabled.
 function JobRow({
   job,
   retry,
   engineId,
   showProcess,
+  handOffs,
 }: {
   job: Job
   retry: EngineAction<RetryArgs, unknown>
   engineId: string
   showProcess: boolean
+  /** Whether the host shows hand-offs; with no retry either, the row has no actions cell. */
+  handOffs: boolean
 }) {
-  const t = useT()
-  const { ask } = useHandOff()
   const retried = retry.done.has(job.id)
-  const name = job.activityName ?? job.activityId ?? job.id
   return (
-    <tr className="hover:bg-muted transition-colors">
+    <tr>
       <Td>
         <JobSubject job={job} showProcess={showProcess} />
       </Td>
@@ -185,58 +236,22 @@ function JobRow({
         <IdText value={job.processInstanceId} />
       </Td>
       <Td align="right">
-        <CountPill tone={retried ? "neutral" : retriesTone(job)}>
+        <AlarmCount alarm={!retried && retriesAlarm(job)}>
           {formatNumber(retried ? 1 : job.retries)}
-        </CountPill>
+        </AlarmCount>
       </Td>
       <Td>
-        <LogText text={job.exceptionMessage} />
+        {/* One line at the row height, whole in its title; a cut one opens on its whole text. */}
+        <LogText text={job.exceptionMessage} line />
       </Td>
       <Td align="right" className="text-muted-foreground text-small whitespace-nowrap">
         {formatTimestamp(job.createTime)}
       </Td>
-      <Td align="right">
-        {retried ? (
-          <StatusBadge tone="success" className="whitespace-nowrap">
-            <Icon icon={Check} dense />
-            {t("jobPanel.retried")}
-          </StatusBadge>
-        ) : (
-          job.retries === 0 && (
-            <div className="inline-flex items-center justify-end gap-1">
-              {retry.allowed && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={retry.pending(job.id)}
-                  onClick={() =>
-                    retry.run(
-                      { jobId: job.id, retries: 1, engine: engineId },
-                      {
-                        feedback: writeFeedback.jobRetry(t, instanceName(job.processInstanceId)),
-                      },
-                    )
-                  }
-                >
-                  {t("jobPanel.retry")}
-                </Button>
-              )}
-              <MoreActions label={t("jobPanel.moreActions", { name })}>
-                <HandOffButton
-                  action="explainError"
-                  variant="menuitem"
-                  prompt={ask(explainJobHandOff(job, engineId))}
-                />
-                <HandOffButton
-                  action="draftTicket"
-                  variant="menuitem"
-                  prompt={ask(draftJobTicketHandOff(job, engineId))}
-                />
-              </MoreActions>
-            </div>
-          )
-        )}
-      </Td>
+      {(retry.allowed || handOffs) && (
+        <Td align="right">
+          <JobActions job={job} retry={retry} engineId={engineId} handOffs={handOffs} />
+        </Td>
+      )}
     </tr>
   )
 }
@@ -246,7 +261,7 @@ function JobRetryError({ error, columns }: { error: string | null; columns: numb
   if (!error) return null
   return (
     <tr {...FIT_CONTINUES_ROW}>
-      <td colSpan={columns} className="border-border border-b px-4 py-1.5">
+      <td colSpan={columns} className="border-border px-cell py-cell border-b">
         <WriteError error={error} />
       </td>
     </tr>
@@ -258,6 +273,7 @@ export function JobPanelWidget({
   ...route
 }: JobsRoute & { data?: JobPanelData | null }) {
   const { ask, context } = useHandOff()
+  const handOffs = useHandOffsShown()
   const { engine, processDefinitionKey, failedOnly } = route
   const paged = usePagedViewData<JobPanelData["jobs"][number], JobPanelData>({
     initialData,
@@ -279,9 +295,12 @@ export function JobPanelWidget({
     resetOn: data,
   })
 
+  // The engine in the title, as the overview and the incidents name it.
+  const title = t("jobPanel.titleFor", { engine })
   if (!data) {
+    // Loading or failed, the route keeps its title, the page's one heading.
     return (
-      <WidgetShell>
+      <WidgetShell header={<WidgetHeader title={title} />}>
         <ViewDataState
           loading={paged.loading}
           error={paged.error}
@@ -306,42 +325,57 @@ export function JobPanelWidget({
     { label: t("jobPanel.colRetries"), align: "right" },
     { label: t("jobPanel.colError") },
     { label: t("jobPanel.colCreated"), align: "right", hideBelow: "md" },
-    { plain: true, sticky: true },
+    // No column that no row can fill: it would read as missing data.
+    ...(retry.allowed || handOffs
+      ? [{ label: t("jobPanel.colActions"), align: "right" as const, sticky: "sm" as const }]
+      : []),
   ]
 
   return (
-    <WidgetShell>
+    <WidgetShell
+      header={
+        <WidgetHeader
+          title={title}
+          sub={
+            <>
+              <span>{t("jobPanel.badgeTotal", { count: formatNumber(totalCount) })}</span>
+              {/* A panel scoped to one process names it here, once, not in every row. */}
+              {scopedProcess && <span>{t("jobPanel.inProcess", { process: scopedProcess })}</span>}
+            </>
+          }
+          actions={
+            // Its one action is a hand-off: where the host hides it, the bar has no group.
+            handOffs &&
+            failedJobs.length > 0 && (
+              <HandOffButton
+                action="assess"
+                variant="toolbar"
+                prompt={ask(triageJobsHandOff(data, engine))}
+              />
+            )
+          }
+        />
+      }
+    >
       {/* Described from what is on screen: in the cockpit the widget self-fetches,
           so only it knows the data. */}
       <HostModelContext content={context(describeJobPanel(data, engine, jobs.length))}>
         {null}
       </HostModelContext>
-      <WidgetHeader
-        title={t("jobPanel.title")}
-        sub={
-          <>
-            <span>{t("jobPanel.badgeTotal", { count: formatNumber(totalCount) })}</span>
-            {/* A panel scoped to one process names it here, once, not in every row. */}
-            {scopedProcess && <span>{t("jobPanel.inProcess", { process: scopedProcess })}</span>}
-          </>
-        }
-        actions={
-          failedJobs.length > 0 && (
-            <HandOffButton action="assess" prompt={ask(triageJobsHandOff(data, engine))} />
-          )
-        }
-      />
-      {/* Only the jobs without retries carry a state; the other two are counts. */}
+      {/* A neutral card of counts: only the jobs without retries alarm, by their icon and words,
+          never by a tinted tile or a coloured number (invariant 6). */}
       <KpiGrid
-        variant="soft"
-        className="grid-cols-2 gap-3 sm:grid-cols-3"
+        boxed
         ariaLabel={t("jobPanel.summaryLabel")}
         cells={[
           { label: t("jobPanel.totalJobs"), value: formatNumber(totalCount) },
           {
             label: t("jobPanel.stuck"),
-            value: formatNumber(failedCount),
-            tone: failedCount > 0 ? SITUATION_TONES.jobWithoutRetries : undefined,
+            value: (
+              <AlarmCount alarm={failedCount > 0 && "jobsWithoutRetries"}>
+                {formatNumber(failedCount)}
+              </AlarmCount>
+            ),
           },
           { label: t("jobPanel.healthy"), value: formatNumber(totalCount - failedCount) },
         ]}
@@ -362,6 +396,7 @@ export function JobPanelWidget({
                     retry={retry}
                     engineId={engine}
                     showProcess={!data.filters.processDefinitionKey}
+                    handOffs={handOffs}
                   />
                   <JobRetryError error={retry.error(job.id)} columns={columns.length} />
                 </Fragment>
@@ -370,7 +405,7 @@ export function JobPanelWidget({
           </PagedRows>
           <PagedListFooter
             paged={paged}
-            noun={t("jobPanel.footerNoun")}
+            noun={(total) => t("jobPanel.footerNoun", { count: total })}
             labels={paged.footerLabels}
           />
         </>

@@ -7,10 +7,12 @@ export { ViewDataState } from "./view-data-state.js"
 export {
   describeError,
   isPermanentError,
+  isSessionEnded,
   type DescribeErrorOptions,
   type DescribedError,
 } from "./describe-error.js"
 export { ListTable, type ListTableColumn, type ListTableGroup } from "./list-table.js"
+export { ListRow } from "./list-row.js"
 export { IdText, IdCell } from "./id-text.js"
 export { ConfirmDialog, type ConfirmDialogProps, type ConfirmTarget } from "./confirm-dialog.js"
 export { useActionFeedback, type ActionFeedback } from "./action-feedback.js"
@@ -23,9 +25,25 @@ export {
   type MountViewOptions,
   type MountViewsOptions,
 } from "./view-root.js"
+// The page root: a view on a page outside a chat, under the browser adapter instead of ext-apps.
+export {
+  mountPage,
+  type FailedStart,
+  type FramePageOptions,
+  type MountPageOptions,
+  type PageFrame,
+} from "./page-root.js"
+export type { BrowserHostOptions, ToolCaller } from "./browser-view-host.js"
 export { ViewStack, type ViewComponent, type ViewMap, type ViewProps } from "./views.js"
 export { ViewErrorBoundary } from "./view-error-boundary.js"
-export { HostModelContext, useViewHost, type ViewHost } from "./view-host.js"
+export {
+  HostModelContext,
+  useHostFollowUp,
+  useHostWrites,
+  useViewHost,
+  type FollowUp,
+  type ViewHost,
+} from "./view-host.js"
 export {
   createViewQueryClient,
   useQueryClient,
@@ -64,7 +82,12 @@ export { useDetailView } from "./use-detail-view.js"
 export { viewRefreshState, type ViewRefreshState } from "./view-refresh-state.js"
 // Public for a customer's own hand-off that HAND_OFF_ACTIONS does not list; Pulse's own
 // connectors are banned from it by ESLint and use HandOffButton.
-export { AskAiButton, type AskAiButtonProps, type AskAiVariant } from "./ask-ai-button.js"
+export {
+  AskAiButton,
+  type AskAiButtonProps,
+  type AskAiSize,
+  type AskAiVariant,
+} from "./ask-ai-button.js"
 export { HAND_OFF_ACTIONS, HandOffButton, type HandOffAction } from "./hand-off-button.js"
 export {
   askAiPrompt,
@@ -95,3 +118,27 @@ export { BpmnZoomControls, type BpmnZoomControlsProps } from "./bpmn-zoom-contro
 // Also on `/server` (src/protocol/): the one rule every module names a model's process and elements
 // by, on the server and in a view.
 export { parseBpmnNames, readBpmnNames } from "../protocol/bpmn-names.js"
+// The web app's wire contract (src/protocol/), which a page's client and the server's routes read,
+// and that client: the session and the caller a page hands `mountPage`.
+export {
+  isSignedOutReason,
+  SIGNED_OUT_REASONS,
+  WEB_CODES,
+  WEB_CSRF_HEADER,
+  WEB_PATHS,
+  WEB_QUERY,
+  type SignedOutReason,
+  type WebCall,
+  type WebCallAnswer,
+  type WebCode,
+  type WebRefusal,
+  type WebSessionInfo,
+  type WebSignOut,
+} from "../protocol/web.js"
+export {
+  readWebSession,
+  WebApiError,
+  webToolCaller,
+  type WebClientOptions,
+  type WebToolCallerOptions,
+} from "./web-caller.js"

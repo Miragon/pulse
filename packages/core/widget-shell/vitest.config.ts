@@ -33,7 +33,24 @@ export default mergeConfig(
         // (describeError's mapping table, ListTable's region and column rules,
         // the BPMN token module, the heat ramp and the type-scale gate, each
         // with its suite): measured 97.33 / 95.32 / 97.44 / 98.45.
-        thresholds: { statements: 95, branches: 93, functions: 95, lines: 96 },
+        // The web app's server half (src/web: the sign-in's settings, seal, cookies, return path
+        // and CSRF check as they landed on 2026-11-16, then its routes, the forward of a page's
+        // call, the renewal, the served build, the security headers, the sessions signed out and
+        // the sign-out) holds a floor of its own, measured 100 / 100 / 100 / 100 at each step:
+        // a line no test runs there is a security rule nobody checks. The identity provider's
+        // discovery kept that floor when it moved out of src/web on 2026-11-18 (measured 100), and
+        // the generic OpenID Connect provider and Microsoft Entra ID landed with it the same day
+        // (measured 100 each).
+        thresholds: {
+          statements: 95,
+          branches: 93,
+          functions: 95,
+          lines: 96,
+          "src/web/**": { statements: 100, branches: 100, functions: 100, lines: 100 },
+          "src/oauth-discovery.ts": { statements: 100, branches: 100, functions: 100, lines: 100 },
+          "src/oauth-oidc.ts": { statements: 100, branches: 100, functions: 100, lines: 100 },
+          "src/oauth-entra.ts": { statements: 100, branches: 100, functions: 100, lines: 100 },
+        },
       },
     },
   }),

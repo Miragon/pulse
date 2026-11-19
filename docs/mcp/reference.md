@@ -14,8 +14,8 @@ BPM operations across these domains (`category`): `engines`, `process-definition
 `process-instances`, `tasks`, `external-tasks`, `messages-signals`, `deployments`, `incidents`,
 `jobs`, `history`, `migrations`, `batches`. Highlights:
 
-- **Engines:** `list_engines`, `engine_status` (the triage of one engine: findings by severity,
-  counts and the live verdict: the overview's incident thresholds `ENGINE_HEALTH_*` plus findings)
+- **Engines:** `list_engines` (each with its `dialect`), `engine_status` (one engine's triage:
+  findings by severity, counts, the live verdict from the thresholds `ENGINE_HEALTH_*` and findings)
 - **Process definitions:** `list_process_definitions`, `get_process_definition_xml`
 - **Process instances:** `start`, `list`, `inspect_process_instance` (where one instance waits and
   why, running or ended, by id, business key or definition key), `delete`, `modify`,
@@ -26,7 +26,9 @@ BPM operations across these domains (`category`): `engines`, `process-definition
   `failedJob`/`failedExternalTask` clear by a retry), `format_incident_issue`, `list_jobs`,
   `get_job_stacktrace`, `set_job_retries`
 - **History, migrations & batches:** `query_historic_*` (ISO 8601 dates; incidents incl. resolved
-  ones), migration tools; batch tools return a queued `batchId` that `get_batch` follows
+  ones, which the engine records at history level FULL only: below it, a history query by incident
+  that finds nothing is refused while the engine holds open incidents its history lacks),
+  migration tools; batch tools return a queued `batchId` that `get_batch` follows
 - **Lists:** one page as `{ items, totalCount, hasMore, nextOffset? }`, `maxResults` ≤ 100;
   variable reads cut values over 2000 characters (`truncated: true`); the runtime reads'
   `variableName` returns one whole (history values stay cut); the server instructions state this
@@ -39,13 +41,16 @@ BPM operations across these domains (`category`): `engines`, `process-definition
   JSON text; as a JSON number, also inside a Json or Object value given as parsed JSON, it arrives
   rounded, since the MCP SDK parses a call before the server sees it. The server instructions ask
   for the string and the JSON text
-- **View:** `open_cockpit`, the operations cockpit and the module's one view: `view` opens it on
-  the overview (default), the incidents, a failure cluster, a process, its instances, an
-  instance, an incident, the jobs or an instance's history; the result carries that view's facts
-  as compact JSON. A process's flow shows its open incidents or, as **Running**, what runs at
-  each element now, every deployed version summed onto the latest diagram; as **Throughput ·
-  30 days**, what the instances started in the last 30 days passed per element, from the
-  engine's history (the app-only `engine_activity_statistics_data`, `source` `history`)
+- **View:** `open_cockpit`, the operations cockpit and the module's one view: `view` opens it on the
+  overview (default), the landing (`landing`, without `engine`: the engines and the server's boards
+  to pick from, the [web app](../web/index.md)'s `/app`), the incidents, a failure cluster, a
+  process, its instances, an instance, an incident, the jobs or an instance's history; the result
+  carries that view's facts as compact JSON. A process's flow shows its open incidents or, as
+  **Running**, what runs at each element now, every deployed version summed onto the latest diagram;
+  as **Throughput · 30 days**, what the instances started in the last 30 days passed per element,
+  from the engine's history (the app-only `engine_activity_statistics_data`, `source` `history`)
+- **Boards:** with `ENGINE_BOARDS_DIR`, `list_engines` names them, `open_cockpit` (`view` `board`,
+  its id) shows one, built by `engine_board_data` ([Boards](boards.md), [Camunda 8](camunda8.md))
 
 ### Toolsets
 
@@ -63,10 +68,9 @@ unknown suffix warns and falls back to read-only, even under OAuth.
 
 `engine_create_deployment` additionally needs `ENGINE_ALLOW_DEPLOYMENTS=true`: deploying a BPMN or
 DMN runs code inside the engine JVM (JUEL expressions, scripts). The full surface is
-`MCP_ACTIVE_MODULES=engine:admin` plus that flag, never on a server the network can
-reach without authentication.
-A gateway or reverse proxy that terminates auth in front of the server is invisible to it, so such
-a deployment runs read-only until it names its toolsets.
+`MCP_ACTIVE_MODULES=engine:admin` plus that flag, never on a server the network can reach without
+authentication. A gateway or reverse proxy that terminates auth in front of the server is invisible
+to it, so such a deployment runs read-only until it names its toolsets.
 
 The widgets follow the toolset: an action button whose tool the toolset drops (retry, resolve
 incident, complete task, edit variable, suspend, cancel) is hidden, not disabled: the default
@@ -92,13 +96,14 @@ The most common variables. See [Operations](operations.md#environment-variables)
 | `ENGINE_AUTH_TYPE`                                     | `none`                              | `basic`, `bearer`, `passthrough`, or `none` of the single engine; a profile states its own `auth`                                                                                    |
 | `ENGINE_USERNAME` / `ENGINE_PASSWORD` / `ENGINE_TOKEN` | —                                   | Credentials for `basic`/`bearer`; `passthrough` forwards each caller's bearer token (trusted single-audience setups only: the engine could replay it against this server)            |
 | `ENGINE_REQUEST_TIMEOUT_MS`                            | `30000`                             | Per-request deadline in ms for engine calls; a hung engine fails the tool call with a timeout error                                                                                  |
+| `ENGINE_BOARDS_DIR`                                    | —                                   | The directory of the server's board files (`*.board.json`), read at startup ([Boards](boards.md))                                                                                    |
 
 ### Multi-engine
 
-The server can route to several engines: CIB seven, Operaton and Camunda 7 mixed in one fleet.
-Describe them in one profile file, the format of the CLI and of Pulse for VS Code
-(`@miragon/pulse-profile`), inline in `ENGINES_JSON` or as a path in `ENGINES_FILE` (which wins).
-It replaces the single-engine variables, which the boot then names as ignored:
+The server can route to several engines: CIB seven, Operaton and Camunda 7 mixed in one fleet,
+Camunda 8 clusters on boards beside them. Describe them in one profile file, the format of the CLI
+and the editors (`@miragon/pulse-profile`), inline in `ENGINES_JSON` or as a path in `ENGINES_FILE`
+(which wins). It replaces the single-engine variables, which the boot then names as ignored:
 
 ```json
 {
@@ -119,37 +124,37 @@ It replaces the single-engine variables, which the boot then names as ignored:
 }
 ```
 
-A profile's name is its engine id: the per-call `engine` selector, advertised as an enum of every
-configured id, and the name the cockpit shows. `url` is the REST root; `flavor` (`cibseven` |
-`operaton` | `camunda7`, default `camunda7`) selects the cockpit-link routes and display name;
-`cockpitUrl`, `timeout` (it beats `ENGINE_REQUEST_TIMEOUT_MS`) and `readOnly` (no tool writes to that
-engine, whatever the toolset) are optional. Each profile signs in on its own (`none`, `basic`,
-`bearer`, `passthrough`), and a secret never sits in the file: `auth.passwordEnv` or
-`auth.tokenEnv` names the variable that holds it, and the server reads only names that start with
+A profile's name is its engine id: the per-call `engine` selector, an enum of the engines a tool
+serves, and the name the cockpit shows. `url` is the REST root; `flavor` (`cibseven` | `operaton` |
+`camunda7`, default `camunda7`) selects the cockpit-link routes and display name, and `camunda8`
+names a cluster the server reads on boards ([Camunda 8](camunda8.md)). `cockpitUrl`, `timeout` (it
+beats `ENGINE_REQUEST_TIMEOUT_MS`) and `readOnly` (no tool writes to that engine) are optional. Each
+profile signs in on its own (`none`, `basic`, `bearer`, `passthrough`; a cluster `none`, `basic` or
+`clientCredentials`), and a secret never sits in the file: `auth.passwordEnv`, `tokenEnv` or
+`clientSecretEnv` names the variable that holds it, and the server reads only names that start with
 `ENGINE_SECRET_`. Whoever may change the file reaches those variables and the URLs.
 
 A call routes to its `engine` argument, else to `ENGINE_DEFAULT`, else to `defaultProfile`, else to
 the only profile, else fails with `ENGINE_NOT_SELECTED`; a default that names no profile fails the
-boot. The server `instructions` state the routing rule once for every tool. A profile the server
-cannot use (an unknown key, an unset variable, a literal secret, `headers`, a process engine name,
-OAuth, a URL with credentials) is refused on its own: the boot warns, `engine_list_engines` lists it
-under `refused` with the reason, and a call to it fails with `ENGINE_PROFILE_REFUSED`, also as the
-default, never rerouted. The boot fails only when the file gives no profile, none is usable or a
-default names no profile.
+boot, and a tool refuses a default of a dialect it does not read (`ENGINE_DIALECT_NOT_SERVED`). The
+server `instructions` state it once. A profile the server cannot use (an unknown key, an unset
+variable, a literal secret, `headers`, a process engine name, OAuth, a URL with credentials) is
+refused on its own: the boot warns, `engine_list_engines` lists it under `refused` with the reason,
+and a call to it fails with `ENGINE_PROFILE_REFUSED`, also as the default, never rerouted. The boot
+fails only when the file gives no profile, none is usable or a default names no profile.
 
 With several engines, the cockpit landing lists every engine with its live health in words (open
 incidents, empty, unreachable, loading), read from the engine itself; a refused one reads "profile
 refused", counted apart from an unreachable one, and opening it says why at once, as its view's one
 state and without Try again, since only whoever runs the server can fix it. An engine that answers
 the server's login with HTTP 401 reads "credentials rejected", with 403 "access denied": it runs, so
-neither the landing nor the cross-engine view calls it unreachable; the latter counts it apart,
-both give it a refused profile's warning tone, and its overview names the status. An engine's
-dot, there and in the cross-engine view, has the tone of the engine overview's verdict (ok,
-warning, critical), so one open incident below the thresholds is a warning, not an alarm. With
-two engines or more the cockpit offers the cross-engine view: each engine's health, its job
-backlog and which processes run where, read from every engine itself, as counts, never a ranking
-of the engines.
-`environment` groups the engines: the landing lists them under their environment, the engine
-switcher and `engine_list_engines` group them, and every engine view names the environment as a
-chip ("PROD") next to the engine, write confirmations included.
-Full walkthrough in [Operations](operations.md).
+neither the landing nor the cross-engine view calls it unreachable; the latter counts it apart, both
+give it a refused profile's warning tone, and its overview names the status. An engine's dot, there
+and in the cross-engine view, has the tone of the engine overview's verdict (ok, warning, critical),
+so one open incident below the thresholds is a warning, not an alarm. With two engines or more the
+cockpit offers the cross-engine view: each engine's health, its job backlog and which processes run
+where, read from every engine itself, as counts, never a ranking of the engines. `environment`
+groups the engines: the landing lists them under their environment, the engine switcher and
+`engine_list_engines` group them, and every engine view names the environment as a chip ("PROD")
+next to the engine, write confirmations included. With [boards](boards.md) the landing lists them
+under the engines and shows with one engine too. Full walkthrough in [Operations](operations.md).

@@ -197,7 +197,7 @@ const COMMON_NAME = objectId(0x55, 0x04, 0x03)
  * A self-signed certificate for 127.0.0.1 (X.509 v3, P-256), made at test time so the repo holds
  * no key: a client that trusts only the system's CAs refuses it with DEPTH_ZERO_SELF_SIGNED_CERT.
  */
-function selfSigned() {
+export function selfSigned() {
   const { privateKey, publicKey } = generateKeyPairSync("ec", { namedCurve: "prime256v1" })
   const name = sequence(der(0x31, sequence(COMMON_NAME, der(0x0c, Buffer.from("127.0.0.1")))))
   const time = (value: string) => der(0x17, Buffer.from(value))

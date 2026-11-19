@@ -3,9 +3,15 @@ import { HandOffButton, OpenInCockpitLink } from "@miragon/pulse-widget-shell/wi
 
 import type { IncidentDetailData } from "../../view-models.js"
 
-import { scopingDefinitionKey, useHandOff, type HandOff } from "../lib/hand-off.js"
+import {
+  scopingDefinitionKey,
+  useHandOff,
+  useHandOffsShown,
+  type HandOff,
+} from "../lib/hand-off.js"
 import { InstanceLabel } from "../lib/identity.js"
 import { useT } from "../../messages/use-t.js"
+import { incidentTypeWords } from "../lib/incident-type.js"
 
 /** The cockpit's instance feed is app-only, so context comes from model-visible tools; engine text is quoted. */
 export function diagnoseIncidentHandOff(data: IncidentDetailData): HandOff {
@@ -44,12 +50,14 @@ export function IncidentDetailHeader({
   const t = useT()
   const { ask } = useHandOff()
   const cockpitInstanceUrl = data.cockpitInstanceUrl
+  // No link to the engine's web app and a hand-off the host hides: the bar has no action group.
+  const handOffs = useHandOffsShown()
+  const hasActions = Boolean(cockpitInstanceUrl) || handOffs
   return (
     <WidgetHeader
-      size="detail"
       badge={
         <StatusBadge tone={resolved ? "neutral" : SITUATION_TONES.openIncident}>
-          {resolved ? t("incidentDetail.resolved") : data.incidentType}
+          {resolved ? t("incidentDetail.resolved") : incidentTypeWords(data.incidentType, t)}
         </StatusBadge>
       }
       // The activity by its name; its BPMN id only where it has none (#322 U13).
@@ -64,20 +72,27 @@ export function IncidentDetailHeader({
           </span>
           <span aria-hidden="true">·</span>
           {/* One instance label: its business key, the UUID a copyable chip. */}
-          <InstanceLabel id={data.processInstanceId} businessKey={data.businessKey} />
+          <InstanceLabel id={data.processInstanceId} businessKey={data.businessKey} wrap />
         </>
       }
       actions={
-        <>
-          {cockpitInstanceUrl && (
-            <OpenInCockpitLink
-              url={cockpitInstanceUrl}
-              vendor={data.engineVendor}
-              label={t("incidentDetail.openInstanceIn", { vendor: data.engineVendor })}
+        hasActions && (
+          <>
+            {cockpitInstanceUrl && (
+              <OpenInCockpitLink
+                url={cockpitInstanceUrl}
+                vendor={data.engineVendor}
+                label={t("incidentDetail.openInstanceIn", { vendor: data.engineVendor })}
+                variant="toolbar"
+              />
+            )}
+            <HandOffButton
+              action="findCause"
+              variant="toolbar"
+              prompt={ask(diagnoseIncidentHandOff(data))}
             />
-          )}
-          <HandOffButton action="findCause" prompt={ask(diagnoseIncidentHandOff(data))} />
-        </>
+          </>
+        )
       }
     />
   )

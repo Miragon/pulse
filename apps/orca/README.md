@@ -7,7 +7,8 @@
 
 An [Orca](https://www.onorca.dev) plugin that shows what your Camunda 7, CIB seven or Operaton
 engine is running, right next to your BPMN models: definitions, instances, incidents and
-variables. It is an early version, and its features can still change. It is not in Orca's plugin
+variables. It reads [Camunda 8](https://miragon.github.io/pulse/vscode/camunda8) clusters too, from
+8.9 on, without writing. It is an early version, and its features can still change. It is not in Orca's plugin
 directory yet: until then you [load it from the source](#install). Pulse also runs in
 [VS Code, your AI chat and your terminal](https://github.com/Miragon/pulse#readme).
 
@@ -66,7 +67,8 @@ secrets for logins, and files in your workspace for its tabs.
    ```
 
 2. Open the Pulse panel in Orca's right sidebar: it lists your engines and their processes.
-   Without a project file, Pulse tries an engine on `localhost:8080`.
+   It reads the engines of your CLI config too, after those of the project file. Without any,
+   Pulse tries an engine on `localhost:8080`.
 3. Open a process from the panel to see its deployed diagram with its badges, or a `.bpmn` under
    **Local models** to compare it with the engine.
 

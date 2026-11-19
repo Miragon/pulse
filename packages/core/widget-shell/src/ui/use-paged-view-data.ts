@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from "react"
 import { useLocale } from "@miragon/pulse-ui"
 import { decodeToolResult } from "../protocol/tool-result.js"
-import { describeError, isPermanentError } from "./describe-error.js"
+import { describeError, isPermanentError, isSessionEnded } from "./describe-error.js"
 import { useInlineBudget } from "./inline-budget.js"
 import { useInlineRows, type InlineRows } from "./inline-fit.js"
 import { kitLabels } from "./kit-labels.js"
@@ -39,11 +39,13 @@ export interface PagedViewData<TItem, TData = unknown> {
   loadingMore: boolean
   /**
    * The page-0 failure. Over rows on screen it is set from the FIRST failed
-   * attempt, so the list never presents them as current through the backoff.
+   * attempt, so the list never presents them as current through the backoff;
+   * a page's ended session is the page frame's to say, so over rows it is none.
    */
   error: Error | null
   /** A new read at once, also during the client's retry backoff. */
   retry: () => void
+  /** The last load-more failure; none for a page's ended session, which the page's frame says. */
   loadMoreError: Error | null
   /**
    * False for a refusal no retry changes (`isPermanentError`): the footer offers no retry for it.
@@ -110,14 +112,14 @@ export function usePagedViewData<TItem, TData>(opts: {
   selectTotal: (data: TData) => number
 }): PagedViewData<TItem, TData> {
   const { initialData, key, tool, args, pageSize, ready, selectItems, selectTotal } = opts
-  const { callTool } = useViewHost()
+  const { callTool, followUp } = useViewHost()
   const locale = useLocale()
   const describeRefusal = useCallback(
     (error: Error) => {
-      const described = describeError(error, locale)
+      const described = describeError(error, locale, { followUp })
       return `${described.title}. ${described.hint}`
     },
-    [locale],
+    [locale, followUp],
   )
   const argsKey = JSON.stringify(args)
   const { scope, placeholderData } = useSameListPlaceholder<TData>(key)
@@ -202,12 +204,21 @@ export function usePagedViewData<TItem, TData>(opts: {
     refreshing: !!first && page0.isFetching,
     loadingMore,
     // Over rows on screen the first failed attempt unconfirms them; without rows the guard waits out retries.
-    error: page0.error ?? (first ? page0.failureReason : null),
+    error: footerFailure(page0.error ?? (first ? page0.failureReason : null), first !== null),
     retry: page0.refetch,
-    loadMoreError: pages.error,
+    loadMoreError: footerFailure(pages.error, true),
     canRetry,
     describeRefusal,
   }
+}
+
+/**
+ * A failure as the list says it: over rows on screen a page's ended session is its frame's to say,
+ * once (`isSessionEnded`), so the footer shows no alert for it and the rows stay; without rows the
+ * list's guard says it is missing.
+ */
+function footerFailure(error: Error | null, overRows: boolean): Error | null {
+  return error && overRows && isSessionEnded(error) ? null : error
 }
 
 /** A retry may change a failure, unless the server refuses for good (`isPermanentError`). */

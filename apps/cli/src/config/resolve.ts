@@ -16,7 +16,7 @@ import type { PulseCliError } from "../errors.js"
 import { compact, isRecord, withoutTrailingSlashes } from "../util.js"
 import { configError } from "./config-error.js"
 import { refusalOf } from "./profile-file.js"
-import { defaultProfileError, refusedProfileError } from "./profile-problems.js"
+import { defaultFileOf, defaultProfileError, refusedProfileError } from "./profile-problems.js"
 import { redactUrl } from "./redact.js"
 import { resolveHeaders } from "./headers.js"
 import { urlWithoutProfile, withoutProfile } from "./no-profile.js"
@@ -146,7 +146,11 @@ export function selectProfile(
   if (selected === undefined) return {}
   const problems = file === undefined ? undefined : refusalOf(file, selected.name)
   if (file !== undefined && problems !== undefined) {
-    const where = { project: projectOf(file, selected.name)?.path, configFile: file.configFile }
+    const where = {
+      project: projectOf(file, selected.name)?.path,
+      configFile: file.configFile,
+      defaultOf: selected.origin === "default" ? defaultFileOf(file) : undefined,
+    }
     throw refusedProfileError(selected.name, problems, where)
   }
   const profile = findProfile(file, selected.name)

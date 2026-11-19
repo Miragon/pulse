@@ -12,7 +12,7 @@
         "content": [
           {
             "textLines": [
-              "[401] empty response body (engine default). The engine requires authentication, but none is configured."
+              "[401] empty response body (engine default). The engine requires authentication, but none is configured. Set it in the server's configuration: auth in the engine's profile (its secret in an ENGINE_SECRET_* variable), or ENGINE_AUTH_TYPE with ENGINE_USERNAME and ENGINE_PASSWORD or ENGINE_TOKEN."
             ],
             "type": "text"
           }
@@ -31,7 +31,7 @@
         "content": [
           {
             "textLines": [
-              "[401] empty response body (engine default). The engine requires authentication, but none is configured."
+              "[401] empty response body (engine default). The engine requires authentication, but none is configured. Set it in the server's configuration: auth in the engine's profile (its secret in an ENGINE_SECRET_* variable), or ENGINE_AUTH_TYPE with ENGINE_USERNAME and ENGINE_PASSWORD or ENGINE_TOKEN."
             ],
             "type": "text"
           }

@@ -1,10 +1,23 @@
-import { render } from "preact"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import type { PanelState, WebviewIntent } from "../../src/core/protocol/index.js"
 import { DEFINITION_VIEW, FILTERED_DEFINITION_VIEW } from "../../dev/webview/fixtures/definition.js"
 import { FIXTURES } from "../../dev/webview/fixtures/states.js"
 import { ScopeSegments } from "../../src/webview/components/scope-segments.js"
-import { mountApp, nextFrame, press, radioNamed, waitForElement, type Harness } from "./harness.js"
+import {
+  mount,
+  mountApp,
+  nextFrame,
+  press,
+  allParts,
+  allRoles,
+  findPart,
+  findRole,
+  getRole,
+  queryPart,
+  radioNamed,
+  waitForElement,
+  type Harness,
+} from "./harness.js"
 
 function filtersPosted(harness: Harness): WebviewIntent[] {
   return harness.posted.filter((intent) => intent.type === "filterInstances")
@@ -90,7 +103,7 @@ describe("the filter bar of the definition panel", () => {
     await waitForElement(harness.root, '[role="radiogroup"]')
 
     expect(radioNamed(harness.root, "With incident").textContent).toBe("With incident 0")
-    expect(harness.root.querySelector(".segmented__count--danger")).toBeNull()
+    expect(queryPart(harness.root, "segment-count", { tone: "danger" })).toBeNull()
   })
 
   it("marks a count that is only a lower bound", async () => {
@@ -119,24 +132,47 @@ describe("the filter bar of the definition panel", () => {
   it("puts the element chip and the search on a second row when it is narrow", async () => {
     harness = mountApp({ width: 600 })
     harness.publish(FILTERED)
-    const chip = await waitForElement(harness.root, ".filter-bar .filter-chip")
-    const group = harness.root.querySelector('[role="radiogroup"]')!
-    const search = harness.root.querySelector(".filter-bar .search-field")!
-    const toggle = harness.root.querySelector(".filter-bar .legend__toggle")!
+    const bar = await findPart(harness.root, "filter-bar")
+    const chip = await findPart(bar, "filter-chip", { kind: "element" })
+    const group = getRole(bar, "radiogroup", { name: "Show instances" })
+    const search = getRole(bar, "searchbox").parentElement!
+    const toggle = getRole(bar, "button", { name: "Legend" })
 
     expect(chip.getBoundingClientRect().top).toBeGreaterThan(group.getBoundingClientRect().bottom)
     expect(search.getBoundingClientRect().top).toBe(chip.getBoundingClientRect().top)
     expect(toggle.getBoundingClientRect().top).toBeLessThan(group.getBoundingClientRect().bottom)
     await vi.waitFor(() => {
-      expect(chip.getAttribute("title")).toBe("At Check credit")
+      expect(chip.querySelector("[title]")?.getAttribute("title")).toBe("At Check credit")
     })
+  })
+
+  it("clears the element filter from the element's condition chip, which offers no edit", async () => {
+    harness = mountApp({ width: 900 })
+    harness.publish(FILTERED)
+    const chip = await findPart(harness.root, "filter-chip", { kind: "element" })
+
+    await vi.waitFor(() => {
+      expect(chip.textContent).toBe("At Check credit")
+    })
+    expect(allRoles(chip, "button").map((button) => button.getAttribute("aria-label"))).toEqual([
+      "Clear element filter",
+    ])
+    expect(allParts(harness.root, "filter-chip")).toEqual([chip])
+    const clear = getRole(chip, "button", { name: "Clear element filter" })
+    expect(clear.title).toBe("Clear element filter")
+
+    clear.click()
+
+    expect(filtersPosted(harness)).toEqual([
+      { type: "filterInstances", filter: { scope: "withIncident" } },
+    ])
   })
 
   it("keeps the legend behind a button whose popover opens over the diagram", async () => {
     harness = mountApp()
     harness.publish(FIXTURES.definition)
-    const toggle = await waitForElement<HTMLButtonElement>(harness.root, ".legend__toggle")
-    const popover = harness.root.querySelector<HTMLElement>(".legend__popover")!
+    const toggle = await findRole<HTMLButtonElement>(harness.root, "button", { name: "Legend" })
+    const popover = toggle.popoverTargetElement as HTMLElement
     expect(toggle.offsetParent).not.toBeNull()
     expect(popover.matches(":popover-open")).toBe(false)
 
@@ -153,13 +189,13 @@ describe("the filter bar of the definition panel", () => {
   it("closes the legend on Escape without clearing the element filter", async () => {
     harness = mountApp({ width: 900 })
     harness.publish(FILTERED)
-    const toggle = await waitForElement<HTMLButtonElement>(harness.root, ".legend__toggle")
+    const toggle = await findRole<HTMLButtonElement>(harness.root, "button", { name: "Legend" })
     toggle.click()
 
     press(toggle, "Escape")
     expect(filtersPosted(harness)).toEqual([])
 
-    harness.root.querySelector<HTMLElement>(".legend__popover")?.hidePopover()
+    ;(toggle.popoverTargetElement as HTMLElement).hidePopover()
     press(toggle, "Escape")
     expect(filtersPosted(harness)).toEqual([
       { type: "filterInstances", filter: { scope: "withIncident" } },
@@ -177,11 +213,12 @@ describe("the bar of the instance panel", () => {
   it("holds the tabs and the marker legend behind a button, without the version line", async () => {
     harness = mountApp()
     harness.publish(FIXTURES.instance)
-    const bar = await waitForElement(harness.root, ".tabs__bar")
-    const toggle = bar.querySelector<HTMLButtonElement>(".legend__toggle")!
-    const popover = bar.querySelector<HTMLElement>(".legend__popover")!
+    const bar = await findPart(harness.root, "tab-bar")
+    const toggle = getRole<HTMLButtonElement>(bar, "button", { name: "Legend" })
+    const popover = toggle.popoverTargetElement as HTMLElement
 
-    expect(bar.querySelector('[role="tablist"]')).not.toBeNull()
+    expect(bar.contains(popover)).toBe(true)
+    expect(getRole(bar, "tablist")).not.toBeNull()
     expect(popover.matches(":popover-open")).toBe(false)
     toggle.click()
     expect(popover.textContent).toBe(
@@ -193,22 +230,17 @@ describe("the bar of the instance panel", () => {
   it("shows only the legend button at 650 pixels", async () => {
     harness = mountApp({ width: 650 })
     harness.publish(FIXTURES.instance)
-    const toggle = await waitForElement<HTMLElement>(harness.root, ".tabs__bar .legend__toggle")
+    const toggle = await findRole(await findPart(harness.root, "tab-bar"), "button", {
+      name: "Legend",
+    })
 
     expect(toggle.offsetParent).not.toBeNull()
-    expect(harness.root.querySelector(".legend__inline")).toBeNull()
+    expect(allRoles(harness.root, "button", { name: "Legend" })).toEqual([toggle])
   })
 
   it("keeps a scope chosen right after the first render", async () => {
-    const root = document.body.appendChild(document.createElement("div"))
-    harness = {
-      unmount: () => {
-        render(null, root)
-        root.remove()
-      },
-    } as Harness
     const chosen: string[] = []
-    render(
+    const mounted = mount(
       <ScopeSegments
         label="Show instances"
         options={[
@@ -220,8 +252,9 @@ describe("the bar of the instance panel", () => {
         busy={false}
         onSelect={(scope) => chosen.push(scope)}
       />,
-      root,
     )
+    harness = { unmount: mounted.unmount } as Harness
+    const { root } = mounted
 
     radioNamed(root, "Ended").click()
     await nextFrame()

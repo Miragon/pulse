@@ -171,6 +171,7 @@ const FAILED_JOB_DETAIL: IncidentDetailData = {
     stacktrace: null,
     dueDate: null,
   },
+  externalTask: null,
   recovery: { action: "retry-job", jobId: "job-1" },
   instance: {
     id: "pi-1",

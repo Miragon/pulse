@@ -10,7 +10,8 @@ import { FakeEngine, FakeWorld, PatchedRuntime } from "@miragon/pulse-engine-cor
 import { DiagramCache } from "@miragon/pulse-runtime-view/core"
 import { ConnectionLive } from "./support/connection-live.js"
 import { describe, expect, test, vi } from "vitest"
-import { type Connection, LOCAL_TARGET, TargetsProblem } from "@miragon/pulse-runtime-view/host-kit"
+import { type Connection, TargetsProblem } from "@miragon/pulse-runtime-view/host-kit"
+import { LOCAL_TARGET } from "./support/local-target.js"
 import { EnginesTree, type EnginesTreeNode } from "../../src/host/explorer/engines-tree.js"
 import { FakeRegistry } from "./support/fake-registry.js"
 import {
@@ -167,6 +168,22 @@ describe("the Engines tree following the active panel", () => {
     expect(tree.getTreeItem(node).id).toBe("definition|local-operaton|pulse-order")
   })
 
+  test("selects the very node it shows below the engine, so VS Code fetches nothing to find it", async () => {
+    const { tree, view } = treeOf(
+      new FakeRegistry([connection(engineAnswering(() => Promise.resolve(ENGINE)))]),
+    )
+    const shown = await tree.getChildren(await firstEngine(tree))
+
+    await tree.reveal({ engineName: "local-operaton", bpmnProcessId: ORDER })
+
+    const order = shown.find(
+      (node) => node.kind === "definition" && node.node.bpmnProcessId === ORDER,
+    )
+    expect(order).toBeDefined()
+    expect(view.revealed.map(({ element }) => element)).toEqual([order])
+    expect(view.revealed[0]?.element).toBe(order)
+  })
+
   test("selects the engine of an active engine overview", async () => {
     const { tree, view } = treeOf(
       new FakeRegistry([connection(engineAnswering(() => Promise.resolve(ENGINE)))]),
@@ -187,6 +204,40 @@ describe("the Engines tree following the active panel", () => {
     await tree.reveal({ engineName: "local-operaton", bpmnProcessId: ORDER })
 
     expect(view.revealed).toEqual([])
+  })
+})
+
+describe("the message below an engine in the Engines tree", () => {
+  test("says nothing is deployed or the login may not see it, as the engine overview does", async () => {
+    const text = "No process definitions deployed, or you may not have permission to see them."
+    const runtime = new PatchedRuntime(new FakeEngine(FakeWorld.seed().state), {
+      describeEngine: () => Promise.resolve(ENGINE),
+      listDefinitions: () => Promise.resolve([]),
+    })
+    const { tree } = treeOf(new FakeRegistry([connection(runtime)]))
+
+    const children = await tree.getChildren(await firstEngine(tree))
+    const item = tree.getTreeItem(children[0]!)
+
+    expect(children).toEqual([{ kind: "message", text, detail: "", icon: "debug-disconnect" }])
+    expect(item.label).toBe(text)
+    expect(item.tooltip).toBe(text)
+    expect(item.accessibilityInformation?.label).toBe(text)
+  })
+
+  test("shows a failed read as its problem, the detail as description and tooltip", async () => {
+    const runtime = new PatchedRuntime(new FakeEngine(FakeWorld.seed().state), {
+      describeEngine: () => Promise.resolve(ENGINE),
+      listDefinitions: () => Promise.reject(new RuntimeError("unreachable", "Connection refused.")),
+    })
+    const { tree } = treeOf(new FakeRegistry([connection(runtime)]))
+
+    const [message] = await tree.getChildren(await firstEngine(tree))
+    const item = tree.getTreeItem(message!)
+
+    expect(item.label).toBe("Can't reach local-operaton.")
+    expect(item.description).toBe("Connection refused.")
+    expect(item.tooltip).toBe("Connection refused.")
   })
 })
 

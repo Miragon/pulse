@@ -1,0 +1,20 @@
+{
+  "case": "unreachable",
+  "connection": {
+    "credentials": {
+      "kind": "none"
+    },
+    "endpoint": "http://127.0.0.1:<port>/v2"
+  },
+  "probes": [
+    {
+      "call": "describeEngine",
+      "outcome": {
+        "failure": "unreachable",
+        "hint": null,
+        "message": "Cannot reach http://127.0.0.1:<port>/v2/topology (ECONNREFUSED)"
+      },
+      "sent": []
+    }
+  ]
+}

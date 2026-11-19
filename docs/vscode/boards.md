@@ -9,9 +9,13 @@ reads; it never writes to an engine.
 
 ## A board file
 
-Pulse reads every `.pulse/boards/*.board.json` in the workspace and lists it in the **Boards**
-view. **Pulse: New Board…** writes a starter board with your engines. Editing the file gives
-completion and checks from the board schema; Pulse reloads an open board when you save.
+Pulse reads every `.pulse/boards/*.board.json` in the workspace and lists it in the **Boards** view
+with its count of problems, or of notes (keys it does not know, a `$schema` that is no text).
+**Pulse: New Board…** writes a starter board with your engines. Editing the file gives completion
+and checks from the board schema; Pulse reloads an open board when you save. Your own tools read a
+board as Pulse does: [`@miragon/pulse-board`](https://www.npmjs.com/package/@miragon/pulse-board) on
+npm holds the format, its schema and the builder of a board's numbers. The
+[MCP server](../mcp/boards.md) shows board files from a directory of its own with the same tiles.
 
 ```json
 {
@@ -41,26 +45,26 @@ completion and checks from the board schema; Pulse reloads an open board when yo
 }
 ```
 
-`engines` names profiles of `.pulse.json`. A widget may narrow them with its own `engines`.
+`engines` names profiles of `.pulse.json` or your CLI config, which a widget's `engines` narrows.
 
-| Widget            | Shows                                                                                            |
-| ----------------- | ------------------------------------------------------------------------------------------------ |
-| `counter`         | How many instances match, per engine and in total; `warnAbove` warns per engine                  |
-| `instanceList`    | The first 50 matching instances of each engine with the total of each, in one table              |
-| `incidentSummary` | Instances with an open incident, `groupBy` engine or process                                     |
-| `processDiagram`  | The deployed diagram of one engine (`process`, latest version) with its counts per element       |
-| `incidentList`    | The first 50 open incidents of each engine with element and message, optionally of one `process` |
+| Widget            | Shows                                                                                                                                                                                                         |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `counter`         | How many instances match, per engine and in total; `warnAbove` warns per engine                                                                                                                               |
+| `instanceList`    | The first 50 matching instances of each engine with the total of each, in one table                                                                                                                           |
+| `incidentSummary` | Instances with an open incident, `groupBy` engine or process                                                                                                                                                  |
+| `processDiagram`  | The deployed diagram of one engine (`process`, latest version) with its counts per element; one over 4 Mi characters gets a note, since a collapsed subprocess may then lack the count of what runs inside it |
+| `incidentList`    | The first 50 open incidents of each engine with element and message, optionally of one `process`                                                                                                              |
 
 The `filter` takes `process` (BPMN process ID, every version), `activeElement` (needs
-`process`), `state` (`running`, the default, or `ended`), `withIncident` and `businessKey`.
-Columns are `engine`, `process`, `version`, `businessKey`, `state`, `startedAt`, `endedAt` and
-`incident`.
+`process`), `state` (`running`, the default, or `ended`), `withIncident` (an open incident now,
+so `true` never with `ended`) and `businessKey`. A board with `tenants` shows no numbers: Pulse
+has no tenant filter. Columns are `engine`, `process`, `version`, `businessKey`, `state`,
+`startedAt`, `endedAt` and `incident`.
 
 ## Several engines
 
-Every row and every number keeps the engine it came from, and a click opens the instance or
-the process on that engine. An engine that cannot be read, or that is not in your
-`.pulse.json`, gets one strip on top and "not read" in its cells; a total then says how
-many engines it counts. A click on a count in a diagram opens the process filtered to that
-element. A broken file lists each problem with its path and reason and keeps
-showing the last valid version.
+Every row and every number keeps the engine it came from, and a click opens the instance or the
+process on that engine. An engine that cannot be read, or that is not in your `.pulse.json` or CLI
+config, gets one strip on top and "not read" in its cells; a total then says how many engines it
+counts. A click on a count in a diagram opens the process filtered to that element. A broken widget
+lists its problems in its place, a broken file over its last valid version.

@@ -2,7 +2,22 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import type { PanelState, WebviewIntent, WriteState } from "../../src/core/protocol/index.js"
 import { FIXTURES } from "../../dev/webview/fixtures/states.js"
 import { MOVABLE_INSTANCE } from "../../dev/webview/fixtures/writable.js"
-import { buttonNamed, mountApp, nextFrame, press, waitForElement, type Harness } from "./harness.js"
+import {
+  allRoles,
+  buttonNamed,
+  enterValue,
+  findPart,
+  findRole,
+  getRole,
+  type Harness,
+  mountApp,
+  nextFrame,
+  part,
+  press,
+  queryPart,
+  queryRole,
+  waitForElement,
+} from "./harness.js"
 
 const APPROVE = "Activity_ApproveOrder"
 const TOKEN = { kind: "token", fromElementId: APPROVE } as const
@@ -30,26 +45,24 @@ describe("moving a token from the instance screen", () => {
 
   async function selectToken(elementId: string): Promise<HTMLElement> {
     clickShape(elementId)
-    return waitForElement<HTMLElement>(harness.root, ".move-entry")
+    return findPart(harness.root, "move-entry")
   }
 
   async function startMove(): Promise<HTMLElement> {
     await openMovable()
     ;(await selectToken(APPROVE)).click()
-    return waitForElement<HTMLElement>(harness.root, ".move-panel")
+    return findRole(harness.root, "group", { name: /^Move the token at / })
   }
 
   async function pick(panel: HTMLElement, elementId: string): Promise<void> {
     const select = panel.querySelector("select")!
-    select.value = elementId
-    select.dispatchEvent(new Event("change", { bubbles: true }))
+    enterValue(select, elementId)
     await nextFrame()
   }
 
   async function typeReason(panel: HTMLElement, reason: string): Promise<void> {
     const field = panel.querySelector<HTMLInputElement>('input[type="text"]')!
-    field.value = reason
-    field.dispatchEvent(new Event("input", { bubbles: true }))
+    enterValue(field, reason)
     await nextFrame()
   }
 
@@ -74,7 +87,7 @@ describe("moving a token from the instance screen", () => {
     const entry = await selectToken(APPROVE)
 
     expect(entry.getAttribute("aria-label")).toBe("Move this token…")
-    expect(entry.closest(".element-actions")).not.toBeNull()
+    expect(entry.closest(part("element-actions"))).not.toBeNull()
     expect(harness.root.querySelector("tbody [data-move-from]")).toBeNull()
     expect(harness.root.querySelector("tbody")?.textContent).not.toContain("Move")
   })
@@ -87,7 +100,7 @@ describe("moving a token from the instance screen", () => {
       expect(document.activeElement?.getAttribute("data-move-from")).toBe(APPROVE)
     })
     ;(document.activeElement as HTMLElement).click()
-    await waitForElement(harness.root, ".move-panel")
+    await findRole(harness.root, "group", { name: /^Move the token at / })
   })
 
   it("says on the shape why the selected token cannot move", async () => {
@@ -95,7 +108,8 @@ describe("moving a token from the instance screen", () => {
 
     const entry = await selectToken("Activity_CheckCredit")
 
-    expect(entry.classList).toContain("move-entry--refused")
+    expect(entry.dataset.state).toBe("refused")
+    expect(entry.getAttribute("role")).toBe("img")
     expect(entry.getAttribute("aria-label")).toBe(
       "Can't move: Open the called instance to move this token.",
     )
@@ -108,7 +122,7 @@ describe("moving a token from the instance screen", () => {
     clickShape("Activity_ReserveStock")
     await nextFrame()
 
-    expect(harness.root.querySelector(".move-entry")).toBeNull()
+    expect(queryPart(harness.root, "move-entry")).toBeNull()
   })
 
   it("shows no move on an engine without writes", async () => {
@@ -119,7 +133,7 @@ describe("moving a token from the instance screen", () => {
     clickShape(APPROVE)
     await nextFrame()
 
-    expect(harness.root.querySelector(".move-entry")).toBeNull()
+    expect(queryPart(harness.root, "move-entry")).toBeNull()
   })
 
   it("marks the allowed and the refused targets on the diagram", async () => {
@@ -141,9 +155,11 @@ describe("moving a token from the instance screen", () => {
     })
     expect(shape("Activity_ShipOrder")?.classList).toContain("pulse-move-to")
     expect(
-      [...harness.root.querySelectorAll(".move-badge")].map((badge) => badge.textContent),
+      allRoles(harness.root, "img", {
+        name: /^The token goes|^The token leaves|^The element runs/,
+      }).map((badge) => badge.textContent),
     ).toEqual(expect.arrayContaining(["−1", "+1"]))
-    const review = panel.querySelector(".move-panel__review")?.textContent ?? ""
+    const review = getRole(panel, "list", { name: "What the move does" }).textContent
     expect(review).toContain("Cancels Approve order.")
     expect(review).toContain("Ship order already holds a token; then it holds two.")
     expect(review).toContain("This can't be undone.")
@@ -155,14 +171,18 @@ describe("moving a token from the instance screen", () => {
     await pick(panel, APPROVE)
 
     await vi.waitFor(() => {
-      expect(harness.root.querySelector(".move-badge--again")?.textContent).toContain("runs again")
+      expect(queryPart(harness.root, "move-badge", { kind: "again" })?.textContent).toContain(
+        "runs again",
+      )
     })
     expect(shape(APPROVE)?.classList).not.toContain("pulse-move-from")
   })
 
   it("picks a target by clicking it on the diagram and explains a refused one", async () => {
     const panel = await startMove()
-    await waitForElement(harness.root, ".pulse-move-target")
+    await vi.waitFor(() => {
+      expect(shape("Activity_ReserveStock")?.classList).toContain("pulse-move-target")
+    })
 
     clickShape("Event_OrderShipped")
     await vi.waitFor(() => {
@@ -213,7 +233,7 @@ describe("moving a token from the instance screen", () => {
     press(panel.querySelector("select")!, "Escape")
 
     await vi.waitFor(() => {
-      expect(harness.root.querySelector(".move-panel")).toBeNull()
+      expect(queryRole(harness.root, "group", { name: /^Move the token at / })).toBeNull()
     })
     await vi.waitFor(() => {
       expect(document.activeElement?.getAttribute("data-move-from")).toBe(APPROVE)
@@ -261,7 +281,7 @@ describe("moving a token from the instance screen", () => {
     await nextFrame()
     publishWith({ status: "done", target: TOKEN })
     await vi.waitFor(() => {
-      expect(harness.root.querySelector(".move-panel")).toBeNull()
+      expect(queryRole(harness.root, "group", { name: /^Move the token at / })).toBeNull()
     })
   })
 
@@ -282,7 +302,7 @@ describe("moving a token from the instance screen", () => {
     publishWith({ status: "done", target: TOKEN })
 
     await vi.waitFor(() => {
-      expect(harness.root.querySelector(".move-panel")).toBeNull()
+      expect(queryRole(harness.root, "group", { name: /^Move the token at / })).toBeNull()
     })
   })
 
@@ -293,11 +313,11 @@ describe("moving a token from the instance screen", () => {
     publishWith(undefined, { ...MOVABLE_INSTANCE, moves: [] })
 
     await vi.waitFor(() => {
-      expect(harness.root.querySelector('.move-panel [role="status"]')?.textContent).toBe(
-        "This token is no longer at Approve order.",
-      )
-      expect(harness.root.querySelector(".move-badge")).toBeNull()
-      expect(harness.root.querySelector(".pulse-move-from")).toBeNull()
+      expect(
+        queryPart(harness.root, "move-panel")?.querySelector('[role="status"]')?.textContent,
+      ).toBe("This token is no longer at Approve order.")
+      expect(queryPart(harness.root, "move-badge")).toBeNull()
+      expect(shape(APPROVE)?.classList).not.toContain("pulse-move-from")
       expect(document.activeElement?.textContent).toBe("Close")
     })
   })

@@ -3,7 +3,6 @@
   "ignorieren": [
     "docs/.vitepress/miragon/",
     "packages/core/ui/src/tokens/cd-tokens.generated.css",
-    "packages/core/runtime-view/src/webview/theme/cd-tokens.generated.css",
     "packages/core/runtime-view/src/webview/theme/cd-tokens.generated.json",
     "packages/core/runtime-view/src/webview/theme/cd-canvas.css"
   ]

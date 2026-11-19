@@ -11,6 +11,7 @@ interface OverlayCall {
   activityId: string
   position: object
   className: string
+  html: string
 }
 
 function createMockCanvas() {
@@ -37,6 +38,7 @@ function createMockOverlays() {
           activityId,
           position: overlay.position,
           className: match ? match[1] : "",
+          html: overlay.html,
         })
       },
     },
@@ -148,6 +150,19 @@ describe("applyHighlights: overlays", () => {
     expect(o.calls).toHaveLength(1)
     expect(o.calls[0].activityId).toBe("C")
   })
+
+  it("hides every count badge from assistive technology: a bare number beside the canvas image", () => {
+    const c = createMockCanvas()
+    const o = createMockOverlays()
+    applyHighlights(c.canvas, o.overlays, [
+      { kind: "instance-count", counts: [{ activityId: "A", count: 2 }] },
+      { kind: "incident", activityIds: ["B"], counts: [{ activityId: "B", count: 3 }] },
+      { kind: "failed-jobs", counts: [{ activityId: "C", count: 1 }] },
+    ])
+    expect(o.calls).toHaveLength(3)
+    for (const call of o.calls)
+      expect(call.html).toMatch(/^<div [^>]*aria-hidden="true"[^>]*>\d+<\/div>$/)
+  })
 })
 
 describe("HIGHLIGHT_COLORS", () => {
@@ -174,7 +189,8 @@ describe("HIGHLIGHT_COLORS", () => {
 
   it("styles every marker class applyHighlights sets", () => {
     for (const marker of ["highlight-running", "highlight-open-user-task", "highlight-incident"]) {
-      expect(BPMN_OVERLAY_CSS).toContain(`.${marker}:not(.djs-connection)`)
+      // On the marked shape's own outline (widget-shell's bpmn-tokens.test.ts holds what it paints).
+      expect(BPMN_OVERLAY_CSS).toContain(`.djs-shape.${marker} > .djs-visual`)
     }
     for (const badge of ["instance-count", "incident-count"]) {
       expect(BPMN_OVERLAY_CSS).toContain(`.bpmn-overlay-badge--${badge}`)

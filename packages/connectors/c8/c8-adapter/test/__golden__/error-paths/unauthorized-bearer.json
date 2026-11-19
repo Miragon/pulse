@@ -1,0 +1,27 @@
+{
+  "case": "unauthorized-bearer",
+  "connection": {
+    "credentials": {
+      "audience": "camunda",
+      "clientId": "pulse-reader",
+      "clientSecret": "reader-secret",
+      "kind": "clientCredentials",
+      "tokenEndpoint": "http://127.0.0.1:<port>/realms/pulse/protocol/openid-connect/token"
+    },
+    "endpoint": "http://127.0.0.1:<port>/v2"
+  },
+  "probes": [
+    {
+      "call": "describeEngine",
+      "outcome": {
+        "failure": "unauthorized",
+        "hint": "The cluster refused this client's token. Check that the client has the rights to read the cluster and that the profile names the audience the cluster expects. If the client ID or secret changed, enter them again with Set credentials.",
+        "message": "HTTP 401 Unauthorized"
+      },
+      "sent": [
+        "POST /realms/pulse/protocol/openid-connect/token grant_type=client_credentials&audience=camunda&client_id=pulse-reader&client_secret=reader-secret",
+        "GET /v2/topology [Bearer tok-demo-123]"
+      ]
+    }
+  ]
+}

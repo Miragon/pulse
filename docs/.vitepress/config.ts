@@ -14,7 +14,7 @@ export default miragonDocs({
   title: "Miragon",
   siteTitle: "Pulse",
   description:
-    "Pulse: operate and analyse your Camunda 7, CIB seven and Operaton engines from your AI chat, your terminal and VS Code.",
+    "Pulse: operate and analyse your Camunda 7, CIB seven and Operaton engines from your AI chat, the web app, your terminal and your editor, and read your Camunda 8 clusters in your editor and on boards.",
   productPage: "https://miragon.ai/tools/pulse/",
   footerMessage: "Released under the MIT License.",
 
@@ -25,6 +25,7 @@ export default miragonDocs({
   nav: [
     { text: "Overview", link: "/overview" },
     { text: "MCP server", link: "/mcp/" },
+    { text: "Web app", link: "/web/" },
     { text: "CLI", link: "/cli/" },
     { text: "VS Code", link: "/vscode/" },
     { text: "Orca", link: "/orca/" },
@@ -43,11 +44,23 @@ export default miragonDocs({
         { text: "Introduction", link: "/mcp/" },
         { text: "Getting started", link: "/mcp/getting-started" },
         { text: "Usage", link: "/mcp/usage" },
+        { text: "Boards", link: "/mcp/boards" },
+        { text: "Camunda 8", link: "/mcp/camunda8" },
         { text: "Tools and settings", link: "/mcp/reference" },
         { text: "Operations", link: "/mcp/operations" },
+        { text: "Identity providers", link: "/mcp/identity-providers" },
         { text: "Architecture", link: "/mcp/architecture" },
         { text: "Build your own server", link: "/mcp/build-your-own" },
         { text: "Developer guide", link: "/mcp/developer" },
+      ],
+    },
+    {
+      text: "Web app",
+      collapsed: false,
+      items: [
+        { text: "Introduction", link: "/web/" },
+        { text: "Set up the sign-in", link: "/web/sign-in" },
+        { text: "How it works", link: "/web/architecture" },
       ],
     },
     {
@@ -89,6 +102,7 @@ export default miragonDocs({
           link: "https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse-cockpit",
         },
         { text: "Configuration", link: "/vscode/configuration" },
+        { text: "Camunda 8", link: "/vscode/camunda8" },
         { text: "Usage", link: "/vscode/usage" },
         { text: "Boards", link: "/vscode/boards" },
         { text: "Architecture", link: "/vscode/architecture" },

@@ -1,6 +1,7 @@
 import { execFileSync, spawnSync } from "node:child_process"
 import { mkdirSync, readFileSync } from "node:fs"
 import { resolve } from "node:path"
+import { CONTAINER_CONFIG_HOME } from "./support/config-home.mjs"
 import { containerTool } from "./support/containers.mjs"
 
 const SUITES = ["smoke", "e2e"]
@@ -80,6 +81,12 @@ process.exit(
     "PULSE_E2E_SHOTS=/results/e2e",
     "-e",
     "PULSE_VSCODE_NO_SANDBOX=1",
+    "-e",
+    `XDG_CONFIG_HOME=${CONTAINER_CONFIG_HOME}`,
+    "-e",
+    `APPDATA=${CONTAINER_CONFIG_HOME}`,
+    "-e",
+    "PULSE_CLI_CONFIG=",
     IMAGE,
     "bash",
     "/src/apps/vscode/test/docker/run-suite.sh",

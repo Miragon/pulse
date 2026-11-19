@@ -1,5 +1,5 @@
 import { useUiMessages } from "../locale/locale-provider.js"
-import type { ListFooterMessages } from "../locale/message-types.js"
+import type { CountNoun, ListFooterMessages } from "../locale/message-types.js"
 import { ErrorState } from "./ErrorState.js"
 import { ListFooter } from "./ListFooter.js"
 
@@ -53,8 +53,8 @@ export interface PagedListState {
 export interface PagedListFooterProps {
   /** The paged list's state. */
   paged: PagedListState
-  /** Plural noun for "Showing X of Y {noun}". Default: the locale's word for rows. */
-  noun?: string
+  /** The noun of "Showing X of Y {noun}", a word or one in the total's number ({@link ListFooter}). */
+  noun?: CountNoun
   /** Override strings of the active catalog's `listFooter` section. */
   labels?: Partial<ListFooterMessages>
   /** Retry button label of both error lines. Default: the locale's "Try again". */

@@ -126,11 +126,12 @@
  *                                   shrink-only, never removed
  *   apps/<app>/test/__golden__/bundle-budget.json
  *                                   bundle size ceilings shrink-only, never
- *                                   removed: the MCP server's widget bundle
- *                                   and the VS Code webview (gzip), the CLI's
- *                                   dist (raw bytes; scripts/published-
- *                                   imports.test.mjs reads it); each file's
- *                                   $comment says what it measures
+ *                                   removed: the MCP server's widget bundle,
+ *                                   the web app's page and the VS Code
+ *                                   webview (gzip), the CLI's dist (raw
+ *                                   bytes; scripts/published-imports.test.mjs
+ *                                   reads it); each file's $comment says what
+ *                                   it measures
  *   package.json (root)             no gate drops out of `lint`/`test`, and the
  *                                   chains only gain plain `pnpm <script>`
  *                                   gates; every chained gate script and the
@@ -2083,7 +2084,7 @@ const BUDGET_GROWTH = {
   "char-budgets": (relPath, name, from, to) =>
     `${relPath} -> "${name}": ${from} -> ${to} model-visible characters. The surface a model reads (tools/list plus the server instructions) is shrink-only: trim descriptions, schemas or instructions, or justify the growth with a Ratchet-Exception trailer.`,
   "bundle-budget": (relPath, name, from, to) =>
-    `${relPath} -> "${name}": ${from} -> ${to} bytes (what the file's $comment says it measures). A shipped bundle's ceiling is shrink-only: every view resource inlines the widget bundle, the extension ships its webview, every npm install of the CLI downloads its dist. Shrink the bundle, or justify the growth with a Ratchet-Exception trailer.`,
+    `${relPath} -> "${name}": ${from} -> ${to} bytes (what the file's $comment says it measures). A shipped bundle's ceiling is shrink-only: every view resource inlines the widget bundle, every first load of the web app downloads its page, the extension ships its webview, every npm install of the CLI downloads its dist. Shrink the bundle, or justify the growth with a Ratchet-Exception trailer.`,
 }
 
 function compareBudgets(kind, relPath, oldJson, newJson) {

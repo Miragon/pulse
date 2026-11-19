@@ -1,4 +1,6 @@
+import { cn } from "@miragon/pulse-ui"
 import type { CallLink } from "../../core/protocol/index.js"
+
 const DRILLDOWN_ARROW = "M4.82 3.51 10.5 9.19V4H12v8H4v-1.5h5.69L3.76 4.57a.75.75 0 0 1 1.06-1.06Z"
 
 export interface CallButtonProps {
@@ -10,8 +12,10 @@ export function CallButton({ call, onOpen }: CallButtonProps) {
   return (
     <button
       type="button"
-      class={`bjs-drilldown call-button${call.missing === true ? " call-button--missing" : ""}`}
+      className={cn("bjs-drilldown call-button", call.missing === true && "call-button--missing")}
+      data-part="call-button"
       data-call-for={call.elementId}
+      data-state={call.missing === true ? "missing" : undefined}
       aria-label={call.label}
       title={call.label}
       onClick={(event) => {
@@ -20,7 +24,7 @@ export function CallButton({ call, onOpen }: CallButtonProps) {
       }}
     >
       <svg width="20" height="20" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-        <path fill-rule="evenodd" d={DRILLDOWN_ARROW} />
+        <path fillRule="evenodd" d={DRILLDOWN_ARROW} />
       </svg>
     </button>
   )

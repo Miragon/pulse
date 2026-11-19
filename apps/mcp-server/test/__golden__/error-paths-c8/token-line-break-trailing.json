@@ -1,0 +1,78 @@
+{
+  "case": "token-line-break-trailing",
+  "probes": [
+    {
+      "arguments": {
+        "board": "cluster",
+        "view": "board"
+      },
+      "board": {
+        "asOf": "2026-11-15T09:00:00.000Z",
+        "engines": [
+          {
+            "failure": {
+              "code": "unexpectedResponse",
+              "message": "the token endpoint answered with a token outside the Bearer token syntax (RFC 6750) (engine c8) The server asks the token endpoint again a minute after its last answer."
+            },
+            "name": "c8",
+            "state": "failed"
+          }
+        ],
+        "notes": [],
+        "rows": [
+          [
+            {
+              "groups": [
+                {
+                  "engine": "c8"
+                }
+              ],
+              "kind": "instanceList",
+              "widget": {
+                "columns": [
+                  "businessKey",
+                  "process",
+                  "state",
+                  "startedAt"
+                ],
+                "engines": [
+                  "c8"
+                ],
+                "filter": {
+                  "process": "pulse-order",
+                  "state": "running"
+                },
+                "title": "Orders",
+                "widget": "instanceList"
+              }
+            }
+          ]
+        ],
+        "title": "Cluster"
+      },
+      "facts": [
+        "{\"view\":\"board\",\"board\":\"cluster\",\"title\":\"Cluster\",\"asOf\":\"2026-11-15T09:00:00.000Z\",\"engines\":[{\"name\":\"c8\",\"state\":\"failed\",\"failure\":\"unexpectedResponse\"}],\"tiles\":[{\"kind\":\"instanceList\",\"title\":\"Orders\",\"process\":\"pulse-order\",\"shown\":0,\"groups\":[{\"engine\":\"c8\",\"total\":null}]}]}"
+      ],
+      "failure": "unexpectedResponse",
+      "matches": "describeEngine",
+      "sent": [
+        "POST /realms/pulse/protocol/openid-connect/token grant_type=client_credentials&audience=camunda&client_id=pulse-reader&client_secret=reader-secret"
+      ],
+      "tool": "engine_open_cockpit"
+    }
+  ],
+  "profile": {
+    "auth": {
+      "audience": "camunda",
+      "clientId": "pulse-reader",
+      "clientSecretEnv": "ENGINE_SECRET_C8_CLIENT",
+      "tokenEndpoint": "http://127.0.0.1:<port>/realms/pulse/protocol/openid-connect/token",
+      "type": "clientCredentials"
+    },
+    "flavor": "camunda8",
+    "url": "http://127.0.0.1:<port>/v2"
+  },
+  "secrets": {
+    "ENGINE_SECRET_C8_CLIENT": "reader-secret"
+  }
+}

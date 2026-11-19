@@ -4,7 +4,11 @@ export type ErrorSource = { type: "engine"; id?: string } | { type: "unknown" }
 
 export interface ErrorKindLabels {
   title: (p: { source: string; status: string }) => string
-  hint: (p: { source: ErrorSource["type"] }) => string
+  /**
+   * What you can do. `page` where the view sits on a page that posts to no chat (a host whose
+   * `followUp` is not `chat`): those words never send the reader to a chat.
+   */
+  hint: (p: { source: ErrorSource["type"]; page: boolean }) => string
 }
 
 /** Checked branch by branch by the catalog text and glossary tests in `kit-words.test.ts`. */
@@ -15,6 +19,11 @@ export interface ErrorLabels {
   status: (p: { status: number }) => string
   profileRefused: ErrorKindLabels
   readOnly: ErrorKindLabels
+  notServed: ErrorKindLabels
+  signedOut: ErrorKindLabels
+  unknownBoard: ErrorKindLabels
+  boardRefused: ErrorKindLabels
+  invalidArguments: ErrorKindLabels
   unreachable: ErrorKindLabels
   timeout: ErrorKindLabels
   notOnServer: ErrorKindLabels
@@ -53,6 +62,37 @@ const EN: ErrorLabels = {
     hint: () =>
       "Its profile allows reads only, so nothing was changed. Ask whoever runs this server if you need to change something there.",
   },
+  // Neutral: the words name no dialect, the server's text under Details does.
+  notServed: {
+    title: () => "This view doesn't read this engine",
+    hint: ({ page }) =>
+      page
+        ? "This server shows it on boards only. Pulse's start page lists the boards."
+        : "This server shows it on boards only. Ask in the chat which boards show it.",
+  },
+  signedOut: {
+    title: () => "You're signed out",
+    hint: () => "Sign in again to see the current state.",
+  },
+  unknownBoard: {
+    title: () => "This board isn't on this server",
+    hint: ({ page }) =>
+      page
+        ? "Go to Pulse's start page, which shows this server's boards and engines."
+        : "Ask in the chat which boards this server shows.",
+  },
+  boardRefused: {
+    title: () => "This board can't be shown: its file gives no board",
+    hint: () =>
+      "Its problems are under Details and in the server's log at startup. Ask whoever runs this server to fix the file.",
+  },
+  invalidArguments: {
+    title: () => "The server refused this request",
+    hint: ({ page }) =>
+      page
+        ? "You'll find the reason under Details. Open the view from Pulse's start page instead."
+        : "You'll find the reason under Details. Ask in the chat to try it another way.",
+  },
   unreachable: {
     title: ({ source, status }) => `${source} is unreachable${status}`,
     hint: ({ source }) =>
@@ -69,7 +109,10 @@ const EN: ErrorLabels = {
   },
   notOnServer: {
     title: () => "This data isn't available on this server",
-    hint: () => "The module behind it isn't active here. Ask in the chat what you can do instead.",
+    hint: ({ page }) =>
+      page
+        ? "The module behind it isn't active here. Pulse's start page shows what this server offers."
+        : "The module behind it isn't active here. Ask in the chat what you can do instead.",
   },
   unauthorized: {
     title: ({ source, status }) => `${source} rejected the server's credentials${status}`,
@@ -86,11 +129,17 @@ const EN: ErrorLabels = {
   },
   failed: {
     title: ({ source, status }) => `${source} reported an error${status}`,
-    hint: () => "You'll find the reason under Details. Try again, or ask in the chat.",
+    hint: ({ page }) =>
+      page
+        ? "You'll find the reason under Details. Try again, or ask whoever runs this server."
+        : "You'll find the reason under Details. Try again, or ask in the chat.",
   },
   unknown: {
     title: () => "Something went wrong",
-    hint: () => "Try again. If it fails again, ask in the chat.",
+    hint: ({ page }) =>
+      page
+        ? "Try again. If it fails again, reload the page."
+        : "Try again. If it fails again, ask in the chat.",
   },
   toast: {
     reason: ({ title, reason }) => `${title}: “${unstop(reason)}”.`,
@@ -118,6 +167,36 @@ const DE: ErrorLabels = {
     hint: () =>
       "Das Profil dieser Engine erlaubt nur Lesezugriffe, darum hat sich nichts geändert. Bitte die Person, die den Server betreibt, wenn du dort etwas ändern musst.",
   },
+  notServed: {
+    title: () => "Diese Ansicht liest diese Engine nicht",
+    hint: ({ page }) =>
+      page
+        ? "Dieser Server zeigt sie nur auf Boards. Die Startseite von Pulse listet die Boards."
+        : "Dieser Server zeigt sie nur auf Boards. Frag im Chat, welche Boards sie zeigen.",
+  },
+  signedOut: {
+    title: () => "Du bist abgemeldet",
+    hint: () => "Melde dich erneut an, um den aktuellen Stand zu sehen.",
+  },
+  unknownBoard: {
+    title: () => "Dieses Board gibt es auf diesem Server nicht",
+    hint: ({ page }) =>
+      page
+        ? "Geh zur Startseite von Pulse. Sie zeigt die Boards und Engines dieses Servers."
+        : "Frag im Chat, welche Boards dieser Server zeigt.",
+  },
+  boardRefused: {
+    title: () => "Dieses Board lässt sich nicht zeigen: seine Datei ergibt kein Board",
+    hint: () =>
+      "Die Probleme stehen unter Details und im Log des Servers beim Start. Bitte die Person, die den Server betreibt, die Datei zu korrigieren.",
+  },
+  invalidArguments: {
+    title: () => "Der Server hat diese Anfrage abgelehnt",
+    hint: ({ page }) =>
+      page
+        ? "Den Grund findest du unter Details. Öffne die Ansicht stattdessen von der Startseite von Pulse aus."
+        : "Den Grund findest du unter Details. Frag im Chat nach einem anderen Weg.",
+  },
   unreachable: {
     title: ({ source, status }) => `${source} ist nicht erreichbar${status}`,
     hint: ({ source }) =>
@@ -134,8 +213,10 @@ const DE: ErrorLabels = {
   },
   notOnServer: {
     title: () => "Diese Daten gibt es auf diesem Server nicht",
-    hint: () =>
-      "Das zuständige Modul ist hier nicht aktiv. Frag im Chat, was du stattdessen tun kannst.",
+    hint: ({ page }) =>
+      page
+        ? "Das zuständige Modul ist hier nicht aktiv. Die Startseite von Pulse zeigt, was dieser Server bietet."
+        : "Das zuständige Modul ist hier nicht aktiv. Frag im Chat, was du stattdessen tun kannst.",
   },
   unauthorized: {
     title: ({ source, status }) => `${source} lehnt die Zugangsdaten des Servers ab${status}`,
@@ -153,11 +234,17 @@ const DE: ErrorLabels = {
   },
   failed: {
     title: ({ source, status }) => `${source} meldet einen Fehler${status}`,
-    hint: () => "Den Grund findest du unter Details. Versuch es noch mal oder frag im Chat nach.",
+    hint: ({ page }) =>
+      page
+        ? "Den Grund findest du unter Details. Versuch es noch mal oder frag die Person, die den Server betreibt."
+        : "Den Grund findest du unter Details. Versuch es noch mal oder frag im Chat nach.",
   },
   unknown: {
     title: () => "Das hat nicht geklappt",
-    hint: () => "Versuch es noch mal. Klappt es wieder nicht, frag im Chat nach.",
+    hint: ({ page }) =>
+      page
+        ? "Versuch es noch mal. Klappt es wieder nicht, lade die Seite neu."
+        : "Versuch es noch mal. Klappt es wieder nicht, frag im Chat nach.",
   },
   toast: {
     reason: ({ title, reason }) => `${title}: „${unstop(reason)}“.`,

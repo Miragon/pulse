@@ -22,6 +22,7 @@ jobs:
     outputs:
       typescript: ${{ steps.scopes.outputs.typescript }}
       mcp: ${{ steps.scopes.outputs.mcp }}
+      mcp-engines: ${{ steps.scopes.outputs.mcp-engines }}
       template: ${{ steps.scopes.outputs.template }}
       starter-engine: ${{ steps.scopes.outputs.starter-engine }}
       cli: ${{ steps.scopes.outputs.cli }}
@@ -143,15 +144,63 @@ jobs:
         uses: actions/upload-artifact@v7.0.2
         with:
           name: host-sim-results
-          path: apps/mcp-server/test-results/
+          path: apps/mcp-server/test-results/host/
           if-no-files-found: ignore
           retention-days: 7
 
-  # Real engines in Testcontainers, one leg per flavor; each suite runs in its app's scope.
+  # The web app's page on the real server, signed in through fake identity providers
+  # (test-host/README.md, "The web app on the real server").
+  web-app:
+    name: Web app (test:web)
+    needs: changes
+    if: needs.changes.outputs.mcp == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: pnpm/action-setup@v6.1.1
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm build
+
+      # Browser cache keyed on the @playwright/test pin, shared with the host simulation.
+      - id: playwright
+        run: echo "version=$(node -p "require('./apps/mcp-server/package.json').devDependencies['@playwright/test']")" >> "$GITHUB_OUTPUT"
+
+      - id: playwright-cache
+        uses: actions/cache@v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium-shell
+
+      - if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server exec playwright install --with-deps --only-shell chromium
+
+      - if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server exec playwright install-deps chromium
+
+      - run: pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server test:web
+
+      - if: failure()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: web-app-results
+          path: apps/mcp-server/test-results/web/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # Real engines in Testcontainers, one leg per flavor; each suite runs in its own scope.
   engines:
     name: Engines (${{ matrix.flavor }})
     needs: changes
-    if: needs.changes.outputs.cli == 'true' || needs.changes.outputs.vscode == 'true'
+    if: needs.changes.outputs.cli == 'true' || needs.changes.outputs.vscode == 'true' || needs.changes.outputs.mcp-engines == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -190,7 +239,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - id: build
-        run: pnpm turbo build --filter=@miragon/pulse-cli... --filter=@miragon/pulse-c7-adapter...
+        run: pnpm turbo build --filter=@miragon/pulse-cli... --filter=@miragon/pulse-c7-adapter... --filter=@miragon/pulse-engine-connector^...
 
       # Every suite runs even after a failure; the operaton leg also tests the packed tarball.
       - name: CLI integration (apps/cli)
@@ -205,6 +254,13 @@ jobs:
         env:
           PULSE_ENGINE_IMAGE: ${{ matrix.image }}
         run: pnpm --fail-if-no-match --filter @miragon/pulse-c7-adapter run test:engines
+
+      # The read laws over the MCP server's SDK wire: c7-core's runtime on the connector's port.
+      - name: MCP SDK wire conformance (packages/connectors/engine/engine-connector)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' && needs.changes.outputs.mcp-engines == 'true' }}
+        env:
+          PULSE_ENGINE_IMAGE: ${{ matrix.image }}
+        run: pnpm --fail-if-no-match --filter @miragon/pulse-engine-connector run test:engines
 
   # The one requirable check of the matrix; skipped passes.
   engines-result:

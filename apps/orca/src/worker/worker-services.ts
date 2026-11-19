@@ -4,20 +4,22 @@ import type { IncidentDetails } from "@miragon/pulse-engine-core"
 import type { SourceLocation } from "@miragon/pulse-runtime-view/ports"
 import type { InstanceChoice } from "@miragon/pulse-runtime-view/core"
 import type { Environment } from "@miragon/pulse-runtime-view/protocol"
-import { type Connection, ProjectFile } from "@miragon/pulse-runtime-view/host-kit"
+import { type Connection, ProjectFile, TargetLogin } from "@miragon/pulse-runtime-view/host-kit"
 import type { OrcaWorkerApi } from "orca/worker"
-import type { Notice, PromptAnswer } from "../protocol.js"
+import type { Notice, PromptAnswer, UserConfigRow } from "../protocol.js"
 import type { ServiceHost } from "./effects-host.js"
 import type { EngineRegistry } from "./engine-registry.js"
 import { LocalFiles } from "./local-files.js"
 import type { OrcaSettings } from "./orca-settings.js"
 import type { OrcaWorkspaces } from "./orca-workspaces.js"
 import type { Prompts } from "./prompts.js"
+import { UserConfigFile } from "./user-config-file.js"
 import { ViewHandles } from "./view-handles.js"
 import type { WriteConfirmation } from "./write-confirmation.js"
 
 export class WorkerServices implements ServiceHost {
   private focusedRoot: string | undefined
+  private readonly userConfig: UserConfigFile
 
   constructor(
     private readonly orca: OrcaWorkerApi,
@@ -28,7 +30,9 @@ export class WorkerServices implements ServiceHost {
       readonly prompts: Prompts
       readonly confirmation: WriteConfirmation
     },
-  ) {}
+  ) {
+    this.userConfig = new UserConfigFile(registry, workspaces)
+  }
 
   get confirmation(): WriteConfirmation {
     return this.parts.confirmation
@@ -70,13 +74,34 @@ export class WorkerServices implements ServiceHost {
     })
   }
 
-  editConnection(): void {
-    void this.configure().catch((error: unknown) => {
-      this.notice({ tone: "danger", text: `Pulse can't open the project file: ${String(error)}` })
+  editConnection(connection?: Connection): void {
+    const ownFile = this.userConfig.named() || connection?.target.source.kind === "user-config"
+    const opening = ownFile ? this.openUserConfig() : this.configure()
+    void opening.catch((error: unknown) => {
+      const file = ownFile ? "your CLI config" : "the project file"
+      this.notice({ tone: "danger", text: `Pulse can't open ${file}: ${String(error)}` })
     })
   }
 
+  userConfigRow(): Promise<UserConfigRow> {
+    return this.userConfig.row()
+  }
+
+  async openUserConfig(): Promise<boolean> {
+    const opened = await this.userConfig.open()
+    if (!opened) {
+      this.notice({
+        tone: "neutral",
+        text: `Orca opens files of a workspace only, and no workspace holds your CLI config. Edit ${this.userConfig.path()} in another editor.`,
+      })
+    }
+    return opened
+  }
+
   async configure(): Promise<string> {
+    if (this.userConfig.named()) {
+      return this.configureNamed()
+    }
     const known = this.registry.projectFiles()[0] ?? this.registry.formerProjectFiles()[0]
     const configured = await this.parts.settings.projectFile()
     const file =
@@ -91,6 +116,11 @@ export class WorkerServices implements ServiceHost {
 
   askForLogin(connection: Connection): void {
     const engine = connection.target.name
+    const login = TargetLogin.of(connection.target)
+    if ("refused" in login) {
+      this.notice({ tone: "neutral", text: login.refused })
+      return
+    }
     this.orca.panels.post("engines.login", { engine })
     void this.orca.host
       .call("notifications.show", {
@@ -138,5 +168,13 @@ export class WorkerServices implements ServiceHost {
 
   async learnRoots(): Promise<void> {
     this.focusedRoot = (await this.workspaces.focusedWorkspace())?.path
+  }
+
+  private async configureNamed(): Promise<string> {
+    const path = this.userConfig.path()
+    if (!(await this.openUserConfig())) {
+      throw new Error(`No local Orca workspace holds ${path}.`)
+    }
+    return path
   }
 }

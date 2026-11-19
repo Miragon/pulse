@@ -41,9 +41,13 @@ export class PulseWorker {
         orca.log(message)
       },
     })
+    const root = CompositionRoot.create()
     this.settings = new OrcaSettings(orca)
     this.workspaces = new OrcaWorkspaces(orca)
-    this.registry = new EngineRegistry(orca, this.settings, this.workspaces, audit)
+    this.registry = new EngineRegistry(orca, this.settings, this.workspaces, {
+      audit,
+      engines: root.engines,
+    })
     this.live = new OrcaLive((line) => {
       orca.log(line)
     })
@@ -78,7 +82,7 @@ export class PulseWorker {
       registry: this.registry,
       live: this.live,
       audit,
-      sources: CompositionRoot.localSources(new OrcaWorkspaceFiles(() => this.services.roots())),
+      sources: root.localSources(new OrcaWorkspaceFiles(() => this.services.roots())),
       services: this.services,
       openFile: (request) => this.writeAndOpen(request),
       closed: (frame) => {

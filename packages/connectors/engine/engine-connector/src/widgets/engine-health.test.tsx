@@ -1,9 +1,10 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeAll, describe, expect, it } from "vitest"
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { LocaleProvider, formatNumber } from "@miragon/pulse-ui"
 import {
   TestViewHost,
+  WebApiError,
   type HostAction,
   createTestQueryClient,
 } from "@miragon/pulse-widget-shell/widgets"
@@ -103,7 +104,13 @@ const Widget = ({ data }: { data: EngineHealthData }) => (
   <EngineHealthVerdict data={data} engine="default" />
 )
 
-describe("EngineHealthVerdict (fixture render)", () => {
+/**
+ * A case renders widgets in happy-dom and waits for their queries: up to 0.2 s alone, up to 2.1 s
+ * on the CI runner, where `pnpm test` runs every package's suite at once on four cores.
+ */
+const RENDER = { timeout: 15_000 }
+
+describe("EngineHealthVerdict (fixture render)", RENDER, () => {
   it("labels each view's clusters section by its own heading, two views on one page included", () => {
     const Two = () => (
       <>
@@ -144,7 +151,7 @@ describe("EngineHealthVerdict (fixture render)", () => {
     // Clustered incidents (cross-process, by activity + type).
     expect(screen.getByText("Top failures, grouped by cause")).toBeTruthy()
     expect(screen.getByText("callWMS")).toBeTruthy()
-    expect(screen.getByText("failedExternalTask")).toBeTruthy()
+    expect(screen.getByText("Failed external task")).toBeTruthy()
     expect(screen.getByText("checkCustomer")).toBeTruthy()
 
     // A deterministic drill + the guarded remediation hand-off.
@@ -195,7 +202,7 @@ describe("EngineHealthVerdict (fixture render)", () => {
     expect(within(cluster).getByText("Connection timeout to WMS")).toBeTruthy()
     expect(within(cluster).getByText(/· Shipping$/)).toBeTruthy()
     // The type is a neutral chip, not a red badge on every row.
-    expect(within(cluster).getByText("failedExternalTask").closest("[data-tone]")).toBeNull()
+    expect(within(cluster).getByText("Failed external task").closest("[data-tone]")).toBeNull()
   })
 
   it("a stable engine's badge is the table's healthy: neutral, never green", () => {
@@ -265,7 +272,7 @@ describe("EngineHealthVerdict (fixture render)", () => {
 })
 
 /** The verdict travels as data and the widget words it in the view's language (#322 U3). */
-describe("the verdict line and the hand-offs speak the view's language", () => {
+describe("the verdict line and the hand-offs speak the view's language", RENDER, () => {
   function renderIn(locale: string, data: EngineHealthData) {
     return render(
       <LocaleProvider locale={locale}>
@@ -351,7 +358,7 @@ describe("the verdict line and the hand-offs speak the view's language", () => {
  * The chat can look for why an engine does not answer, and a retry may reach it; a refused
  * profile's reason is on screen, and neither helps until the operator fixes the profile.
  */
-describe("an engine whose health cannot be read", () => {
+describe("an engine whose health cannot be read", RENDER, () => {
   const REFUSED =
     '[ENGINE_PROFILE_REFUSED] Engine "default" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask whoever runs this server to fix it.'
 
@@ -420,8 +427,36 @@ describe("an engine whose health cannot be read", () => {
       </TestViewHost>,
     )
     await act(() => queryClient.invalidateQueries({ queryKey: ["engine:health"] }))
-    const banner = await screen.findByRole("alert")
-    expect(banner.textContent).toContain("This overview is not current")
-    expect(within(banner).queryByRole("button", { name: "Try again" }) !== null).toBe(offered)
+    // The kit's strip docked under the view's bar, a warning said politely.
+    const strip = await waitFor(() => {
+      const found = document.querySelector<HTMLElement>('[data-slot="status-strip"]')
+      if (!found) throw new Error("no status strip yet")
+      return found
+    })
+    const bar = document.querySelector('[data-slot="view-bar"]')!
+    expect(bar.nextElementSibling).toBe(strip)
+    expect(strip.getAttribute("data-tone")).toBe("warning")
+    expect(within(strip).getByRole("status").textContent).toContain("This overview is not current")
+    expect(within(strip).getByRole("status").textContent).not.toContain(message)
+    expect(within(strip).queryByRole("button", { name: "Try again" }) !== null).toBe(offered)
+    // The engine's own text waits under the strip's Details.
+    const reason = within(strip).getByText(message)
+    expect(reason.hidden).toBe(true)
+    fireEvent.click(within(strip).getByRole("button", { name: "Details" }))
+    expect(reason.hidden).toBe(false)
+  })
+
+  it("leaves a page's ended session to the page's frame: the verdict stays, no strip", async () => {
+    const ended = () => Promise.reject(new WebApiError(401, { code: "signed_out", message: "x" }))
+    render(
+      <TestViewHost tools={{ ...tools, [ENGINE_HEALTH_DATA]: ended }} client={queryClient}>
+        <EngineHealthView data={DEGRADED} engine="default" />
+      </TestViewHost>,
+    )
+    await act(() => queryClient.invalidateQueries({ queryKey: ["engine:health"] }))
+    const key = ["engine:health", "default", { engine: "default" }]
+    await waitFor(() => expect(queryClient.getQueryState(key)?.status).toBe("error"))
+    expect(document.querySelector('[data-slot="status-strip"]')).toBeNull()
+    expect(document.querySelector('[data-slot="view-bar"]')).toBeTruthy()
   })
 })

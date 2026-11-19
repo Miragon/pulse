@@ -1,6 +1,8 @@
-import type { BatchRef } from "./views/views.js"
-
 export type RetryOutcome = "retried" | "gone" | "skipped"
+
+export interface BatchRef {
+  readonly id: string
+}
 
 export interface EngineWriter {
   retryIncident(incidentId: string): Promise<RetryOutcome>

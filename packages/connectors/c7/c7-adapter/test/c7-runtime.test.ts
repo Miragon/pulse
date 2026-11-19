@@ -32,8 +32,8 @@ function incidentsOf(definitionId: string): IncidentRow[] {
   return rows.filter((row) => row.processDefinitionId === definitionId)
 }
 
-function historicRows(): HistoricRow[] {
-  return JSON.parse(fixture("historic-instances-order.json")) as HistoricRow[]
+function failingRows(): HistoricRow[] {
+  return JSON.parse(fixture("process-instances-with-incident.json")) as HistoricRow[]
 }
 
 function pathOf(id: string): string {
@@ -67,30 +67,21 @@ const CHARGE_MESSAGE =
   "Unknown property used in expression: ${paymentService.charge(amount)}. Cause: Cannot resolve identifier 'paymentService'"
 const LABEL_MESSAGE =
   "Unknown property used in expression: ${labelPrinter.print(orderId)}. Cause: Cannot resolve identifier 'labelPrinter'"
-function stacktraceDetails(identifier: string) {
-  return {
-    kind: "stacktrace",
-    text: expect.stringMatching(/^org\.operaton\.bpm\.engine\.ProcessEngineException/) as string,
-    truncated: false,
-    rootCause: `PropertyNotFoundException: Cannot resolve identifier '${identifier}'`,
-    rootCauseLine: 82,
-  }
-}
-
 const ROUTE = {
   telemetry: { route: "GET /telemetry/data", answer: new Response(fixture("telemetry.json")) },
   definitionStatistics: {
     route: "GET /process-definition/statistics",
     answer: new Response(fixture("definition-statistics.json")),
   },
-  incidentInstances: {
-    route: "GET /incident",
-    when: (url: URL) => !url.searchParams.has("sortBy"),
-    answer: new Response(fixture("incidents.json")),
+  instancesWithIncident: {
+    route: "GET /process-instance",
+    when: (url: URL) =>
+      url.searchParams.get("withIncident") === "true" &&
+      !url.searchParams.has("processInstanceIds"),
+    answer: new Response(fixture("process-instances-with-incident.json")),
   },
   allIncidents: {
     route: "GET /incident",
-    when: (url: URL) => url.searchParams.has("sortBy"),
     answer: new Response(fixture("incidents.json")),
   },
   incidentsOfDispatch: {
@@ -127,34 +118,15 @@ const ROUTE = {
     ),
   },
   flaggedInstances: {
-    route: "POST /history/process-instance",
-    when: (_url: URL, body: string) => body.includes('"incidentStatus":"open"'),
-    answer: historicRows().filter((row) => row.businessKey === "ORD-1002"),
+    route: "GET /process-instance",
+    when: (url: URL) =>
+      url.searchParams.get("withIncident") === "true" && url.searchParams.has("processInstanceIds"),
+    answer: failingRows().filter((row) => row.businessKey === "ORD-1002"),
   },
   orderInstances: {
     route: "POST /history/process-instance",
     when: (_url: URL, body: string) => !body.includes("processInstanceIds"),
     answer: new Response(fixture("historic-instances-order.json")),
-  },
-  calledLabelInstance: {
-    route: "POST /history/process-instance",
-    when: (_url: URL, body: string) => body.includes(WORLD_IDS.label),
-    answer: [
-      {
-        id: WORLD_IDS.label,
-        processDefinitionId: WORLD_IDS.label1,
-        processDefinitionKey: "pulse-label",
-        processDefinitionVersion: 1,
-        processDefinitionName: "Print label",
-        state: "ACTIVE",
-        startTime: "2026-10-21T18:44:04.587+0000",
-      },
-    ],
-  },
-  variablesReview: {
-    route: "GET /variable-instance",
-    when: (url: URL) => url.searchParams.get("processInstanceIdIn") === WORLD_IDS.review,
-    answer: new Response(fixture("variable-instances-review.json")),
   },
   instanceMissing: {
     route: "GET /process-instance/00000000-0000",
@@ -186,13 +158,123 @@ const ROUTE = {
   },
 } satisfies Record<string, RestRoute>
 
-const SNAPSHOT = {
-  dispatch: { [WORLD_IDS.dispatch]: fixture("inspect-dispatch.json") },
-  review: { [WORLD_IDS.review]: fixture("inspect-review.json") },
-  charge: { [WORLD_IDS.charge]: fixture("inspect-charge.json") },
-  ended: { [WORLD_IDS.ended]: fixture("inspect-ended.json") },
-  externalTask: { [WORLD_IDS.externalTaskInstance]: fixture("inspect-external-task.json") },
+const DETAIL_SINCE = "2026-10-21T18:44:04.587+0000"
+const PARENT_DEFINITION = "order:1:d1"
+const CALLED_DEFINITION = "label:2:d2"
+
+function detailRoute(path: string, answer: unknown, query?: readonly [string, string]): RestRoute {
+  return {
+    route: `GET ${path}`,
+    answer,
+    ...(query === undefined
+      ? {}
+      : { when: (url: URL) => url.searchParams.get(query[0]) === query[1] }),
+  }
 }
+
+function activityTree(id: string, definitionId: string, leaf: Record<string, unknown>) {
+  return { id, activityId: definitionId, childActivityInstances: [leaf] }
+}
+
+const DETAIL_ROUTES: readonly RestRoute[] = [
+  detailRoute("/process-instance/p1", { id: "p1", definitionId: PARENT_DEFINITION }),
+  detailRoute("/history/process-instance/p1", {
+    id: "p1",
+    businessKey: "ORD-1",
+    processDefinitionId: PARENT_DEFINITION,
+    processDefinitionKey: "order",
+    processDefinitionVersion: 1,
+    processDefinitionName: "Order",
+    startTime: DETAIL_SINCE,
+    state: "ACTIVE",
+  }),
+  detailRoute(
+    "/process-instance",
+    [{ id: "c1", definitionId: CALLED_DEFINITION }],
+    ["superProcessInstance", "p1"],
+  ),
+  detailRoute("/process-instance", [], ["superProcessInstance", "c1"]),
+  detailRoute(
+    "/process-instance/p1/activity-instances",
+    activityTree("p1", PARENT_DEFINITION, {
+      id: "call:a1",
+      activityId: "call",
+      activityType: "callActivity",
+      executionIds: ["e1"],
+    }),
+  ),
+  detailRoute(
+    "/process-instance/c1/activity-instances",
+    activityTree("c1", CALLED_DEFINITION, {
+      id: "print:b1",
+      activityId: "print",
+      activityName: "Print label",
+      activityType: "serviceTask",
+      executionIds: ["c1"],
+    }),
+  ),
+  detailRoute("/incident", [], ["processInstanceId", "p1"]),
+  detailRoute(
+    "/incident",
+    [
+      {
+        id: "i1",
+        rootCauseIncidentId: "i1",
+        incidentType: "failedJob",
+        activityId: "print",
+        processInstanceId: "c1",
+        configuration: "j1",
+        incidentMessage: "Printer offline",
+        incidentTimestamp: DETAIL_SINCE,
+      },
+    ],
+    ["processInstanceId", "c1"],
+  ),
+  detailRoute("/event-subscription", []),
+  detailRoute("/task", []),
+  detailRoute("/external-task", []),
+  detailRoute("/job", [], ["timers", "true"]),
+  detailRoute("/job", [
+    { id: "j1", failedActivityId: "print", executionId: "c1", processInstanceId: "c1", retries: 0 },
+  ]),
+  detailRoute("/process-definition", [
+    { id: PARENT_DEFINITION, key: "order", version: 1, name: "Order" },
+    { id: CALLED_DEFINITION, key: "label", version: 2, name: "Print label" },
+  ]),
+  detailRoute("/job-definition", []),
+  detailRoute("/process-instance/p1/variables", { route: { type: "String", value: "x" } }),
+  detailRoute("/history/activity-instance", [
+    {
+      activityId: "call",
+      activityType: "callActivity",
+      startTime: DETAIL_SINCE,
+      calledProcessInstanceId: "c1",
+    },
+  ]),
+  detailRoute(
+    "/job/j1/stacktrace",
+    new Response("org.x.PrinterException: offline\n\tat org.x.Printer.print(Printer.java:7)\n"),
+  ),
+  detailRoute(
+    "/variable-instance",
+    new Response(
+      '[{"name":"ledger","type":"Long","value":9007199254740993,"activityInstanceId":"p1","processInstanceId":"p1"}]',
+    ),
+  ),
+  {
+    route: "POST /history/process-instance",
+    answer: [
+      {
+        id: "c1",
+        processDefinitionId: CALLED_DEFINITION,
+        processDefinitionKey: "label",
+        processDefinitionVersion: 2,
+        processDefinitionName: "Print label",
+        state: "ACTIVE",
+      },
+    ],
+  },
+]
 
 describe("the C7 runtime over recorded engine answers", () => {
   test("describes the engine by its product and version", async () => {
@@ -220,7 +302,10 @@ describe("the C7 runtime over recorded engine answers", () => {
   })
 
   test("summarises each process by its latest version and counts instances with an incident", async () => {
-    const { runtime, engine } = fakeRuntime([ROUTE.definitionStatistics, ROUTE.incidentInstances])
+    const { runtime, engine } = fakeRuntime([
+      ROUTE.definitionStatistics,
+      ROUTE.instancesWithIncident,
+    ])
 
     const summaries = await runtime.listDefinitions()
 
@@ -242,7 +327,7 @@ describe("the C7 runtime over recorded engine answers", () => {
   })
 
   test("lists the versions of one process newest first with their own counts", async () => {
-    const { runtime } = fakeRuntime([ROUTE.definitionStatistics, ROUTE.incidentInstances])
+    const { runtime } = fakeRuntime([ROUTE.definitionStatistics, ROUTE.instancesWithIncident])
 
     const versions = await runtime.listVersions(BpmnProcessId("pulse-order"))
 
@@ -352,13 +437,18 @@ describe("the C7 runtime over recorded engine answers", () => {
       ],
     })
     expect(engine.requests[0]?.query.maxResults).toBe("4")
+    expect(engine.requests[1]?.query).toMatchObject({
+      withIncident: "true",
+      processInstanceIds: `${WORLD_IDS.reviewV2},${WORLD_IDS.charge}`,
+    })
   })
 
-  test("continues after a cursor and skips the flag query when only incidents are asked for", async () => {
+  test("pages the history rows of the instances the runtime holds an open incident for", async () => {
     const { runtime, engine } = fakeRuntime([
+      ROUTE.instancesWithIncident,
       {
         ...ROUTE.orderInstances,
-        when: (_url, body) => body.includes('"incidentStatus":"open"'),
+        when: (_url, body) => body.includes("processInstanceIds"),
       },
     ])
 
@@ -374,9 +464,23 @@ describe("the C7 runtime over recorded engine answers", () => {
       ["ORD-1002", true],
       ["ORD-1001", true],
     ])
-    expect(engine.requests).toHaveLength(1)
-    expect(bodyOf(engine)).toMatchObject({ incidentStatus: "open", unfinished: true })
-    expect(engine.requests[0]?.query.firstResult).toBe("3")
+    expect(routesOf(engine)).toEqual(["GET /process-instance", "POST /history/process-instance"])
+    expect(engine.requests[0]?.query).toEqual({
+      withIncident: "true",
+      sortBy: "instanceId",
+      sortOrder: "asc",
+      firstResult: "0",
+      maxResults: "500",
+    })
+    expect(bodyOf(engine, 1)).toEqual({
+      processInstanceIds: [WORLD_IDS.charge, WORLD_IDS.dispatch, WORLD_IDS.label],
+      unfinished: true,
+      sorting: [
+        { sortBy: "startTime", sortOrder: "desc" },
+        { sortBy: "instanceId", sortOrder: "asc" },
+      ],
+    })
+    expect(engine.requests[1]?.query.firstResult).toBe("3")
   })
 
   test("translates lifecycle, business key and active element into the historic query", async () => {
@@ -413,9 +517,31 @@ describe("the C7 runtime over recorded engine answers", () => {
     expect(page.items.map((item) => item.businessKey)).toEqual(["ORD-2001", "ORD-1003", "ORD-1001"])
   })
 
-  test("counts instances with one call that carries the filter of the search", async () => {
+  test("counts instances with an incident in one runtime count when the runtime knows the filter", async () => {
     const { runtime, engine } = fakeRuntime([
-      { route: "POST /history/process-instance/count", answer: { count: 2 } },
+      { route: "GET /process-instance/count", answer: { count: 2 } },
+    ])
+
+    const count = await runtime.countInstances({
+      definitionId: DefinitionId(WORLD_IDS.order1),
+      lifecycle: "running",
+      withIncident: true,
+      businessKey: "ORD-1002",
+    })
+
+    expect(count).toEqual({ count: 2 })
+    expect(engine.requests.map((request) => [request.route, request.query])).toEqual([
+      [
+        "GET /process-instance/count",
+        { withIncident: "true", processDefinitionId: WORLD_IDS.order1, businessKey: "ORD-1002" },
+      ],
+    ])
+  })
+
+  test("counts instances with an incident at an element over the runtime's ids with the filter of the search", async () => {
+    const { runtime, engine } = fakeRuntime([
+      { ...ROUTE.instancesWithIncident, answer: failingRows().slice(0, 1) },
+      { route: "POST /history/process-instance/count", answer: { count: 1 } },
     ])
 
     const count = await runtime.countInstances({
@@ -426,29 +552,25 @@ describe("the C7 runtime over recorded engine answers", () => {
       activeElementId: ElementId("Activity_ChargePayment"),
     })
 
-    expect(count).toEqual({ count: 2 })
-    expect(engine.requests).toHaveLength(1)
-    expect(bodyOf(engine)).toEqual({
+    expect(count).toEqual({ count: 1 })
+    expect(engine.requests[0]?.query).toMatchObject({
+      withIncident: "true",
       processDefinitionId: WORLD_IDS.order1,
+      businessKey: "ORD-1002",
+    })
+    expect(bodyOf(engine, 1)).toEqual({
+      processDefinitionId: WORLD_IDS.order1,
+      processInstanceIds: [WORLD_IDS.charge],
       processInstanceBusinessKey: "ORD-1002",
       unfinished: true,
-      incidentStatus: "open",
       activityIdIn: ["Activity_ChargePayment"],
     })
   })
 
   test("counts instances without an incident as all of them minus those with one", async () => {
-    const { runtime } = fakeRuntime([
-      {
-        route: "POST /history/process-instance/count",
-        when: (_url, body) => body.includes('"incidentStatus":"open"'),
-        answer: { count: 1 },
-      },
-      {
-        route: "POST /history/process-instance/count",
-        when: (_url, body) => !body.includes("incidentStatus"),
-        answer: { count: 3 },
-      },
+    const { runtime, engine } = fakeRuntime([
+      { route: "GET /process-instance/count", answer: { count: 1 } },
+      { route: "POST /history/process-instance/count", answer: { count: 3 } },
     ])
 
     const count = await runtime.countInstances({
@@ -457,226 +579,115 @@ describe("the C7 runtime over recorded engine answers", () => {
     })
 
     expect(count).toEqual({ count: 2 })
+    expect(engine.requests.filter((request) => request.body.includes("ncident"))).toEqual([])
+    expect(
+      bodyOf(engine, routesOf(engine).indexOf("POST /history/process-instance/count")),
+    ).toEqual({
+      processDefinitionKey: "pulse-order",
+    })
   })
 
-  test("details a parent with the wait states and the root incident of its called instance", async () => {
-    const { runtime, engine } = fakeRuntime([ROUTE.calledLabelInstance], SNAPSHOT.dispatch)
+  test("details an instance through the inspection's reads, its typed variables and the history of a called instance", async () => {
+    const { runtime, engine } = fakeRuntime(DETAIL_ROUTES)
 
-    const detail = await runtime.getInstanceDetail(InstanceId(WORLD_IDS.dispatch))
+    const detail = await runtime.getInstanceDetail(InstanceId("p1"))
 
     expect(detail?.instance).toEqual({
-      id: WORLD_IDS.dispatch,
-      definition: {
-        id: WORLD_IDS.dispatch1,
-        bpmnProcessId: "pulse-dispatch",
-        version: 1,
-        name: "Dispatch order",
-      },
+      id: "p1",
+      definition: { id: PARENT_DEFINITION, bpmnProcessId: "order", version: 1, name: "Order" },
       state: "running",
       hasIncident: true,
-      businessKey: "DSP-3001",
-      startedAt: "2026-10-21T18:44:04.586Z",
+      businessKey: "ORD-1",
+      startedAt: "2026-10-21T18:44:04.587Z",
     })
-    expect(detail?.calledInstances).toEqual([
-      {
-        id: WORLD_IDS.label,
-        parentInstanceId: WORLD_IDS.dispatch,
-        bpmnProcessId: "pulse-label",
-        state: "running",
-        calledFromElementId: "Activity_PrintShippingLabel",
-      },
-    ])
     expect(detail?.waitStates).toEqual([
       {
-        instanceId: WORLD_IDS.label,
-        elementId: "Activity_RenderLabel",
-        elementName: "Render label",
-        since: "2026-10-21T18:44:04.588Z",
-        incidentId: WORLD_IDS.labelIncident,
+        instanceId: "c1",
+        elementId: "print",
+        elementName: "Print label",
+        incidentId: "i1",
         kind: "asyncContinuation",
         retriesLeft: 0,
       },
     ])
     expect(detail?.incidents).toEqual([
       {
-        id: WORLD_IDS.labelIncident,
-        instanceId: WORLD_IDS.label,
-        definition: LABEL_V1,
-        elementId: "Activity_RenderLabel",
+        id: "i1",
+        instanceId: "c1",
+        definition: {
+          id: CALLED_DEFINITION,
+          bpmnProcessId: "label",
+          version: 2,
+          name: "Print label",
+        },
+        elementId: "print",
         type: "failedJob",
-        message: LABEL_MESSAGE,
-        createdAt: "2026-10-21T18:44:04.613Z",
+        message: "Printer offline",
+        createdAt: "2026-10-21T18:44:04.587Z",
         retriesLeft: 0,
-        job: { id: WORLD_IDS.labelJob },
-        details: stacktraceDetails("labelPrinter"),
+        job: { id: "j1" },
+        details: {
+          kind: "stacktrace",
+          text: "org.x.PrinterException: offline\n\tat org.x.Printer.print(Printer.java:7)",
+          truncated: false,
+          rootCause: "PrinterException: offline",
+        },
       },
+    ])
+    expect(detail?.calledInstances).toEqual([
+      {
+        id: "c1",
+        parentInstanceId: "p1",
+        bpmnProcessId: "label",
+        state: "running",
+        calledFromElementId: "call",
+      },
+    ])
+    expect(detail?.path).toEqual([
+      { elementId: "call", startedAt: "2026-10-21T18:44:04.587Z", canceled: false },
     ])
     expect(detail?.variables).toEqual([
-      {
-        name: "orderId",
-        scope: { kind: "instance" },
-        valueJson: '"ORD-1001"',
-        truncated: false,
-        kind: "string",
-      },
-    ])
-    expect(detail?.truncated).toBe(false)
-    expect(routesOf(engine)).toEqual(["GET /variable-instance", "POST /history/process-instance"])
-  })
-
-  test("details a user task wait with the typed variables of every scope", async () => {
-    const { runtime, engine } = fakeRuntime([ROUTE.variablesReview], SNAPSHOT.review)
-
-    const detail = await runtime.getInstanceDetail(InstanceId(WORLD_IDS.review))
-
-    expect(detail?.waitStates).toEqual([
-      {
-        instanceId: WORLD_IDS.review,
-        elementId: "Activity_ReviewOrder",
-        elementName: "Review order",
-        since: "2026-10-21T18:44:04.475Z",
-        kind: "userTask",
-        assignee: "demo",
-      },
-    ])
-    const instanceScope = { kind: "instance" }
-    expect(detail?.variables).toEqual([
-      {
-        name: "address",
-        scope: instanceScope,
-        valueJson: '{"city":"Munich"}',
-        truncated: false,
-        kind: "json",
-        type: "Json",
-      },
-      {
-        name: "invoice",
-        scope: instanceScope,
-        valueJson: '"rO0ABXNyABFqYXZhLnV0aWwuSGFzaE1hcA=="',
-        truncated: false,
-        kind: "opaque",
-        type: "Object",
-      },
       {
         name: "ledger",
-        scope: instanceScope,
+        scope: { kind: "instance" },
         valueJson: "9007199254740993",
         truncated: false,
         kind: "integer",
         type: "Long",
       },
-      {
-        name: "nrOfInstances",
-        scope: { kind: "element", elementId: "Activity_PackParcel" },
-        valueJson: "2",
-        truncated: false,
-        kind: "integer",
-        type: "Integer",
-      },
-      {
-        name: "reviewNote",
-        scope: { kind: "element", elementId: "Activity_ReviewOrder" },
-        valueJson: '"Check the delivery address"',
-        truncated: false,
-        kind: "string",
-        type: "String",
-      },
-      {
-        name: "route",
-        scope: instanceScope,
-        valueJson: '"review"',
-        truncated: false,
-        kind: "string",
-        type: "String",
-      },
     ])
-    expect(detail?.incidents).toEqual([])
-    expect(detail?.instance.hasIncident).toBe(false)
-    expect(routesOf(engine)).toEqual(["GET /variable-instance"])
-    expect(engine.requests[0]?.query.deserializeValues).toBe("false")
+    expect(detail?.truncated).toBe(false)
+    expect(routesOf(engine)).toHaveLength(DETAIL_ROUTES.length + 2)
   })
 
-  test("details an incident at the failing element of the instance itself", async () => {
-    const { runtime, engine } = fakeRuntime([], SNAPSHOT.charge)
+  test("reads an instance's detail in one round of four reads, then the history of a called instance", async () => {
+    const { runtime, engine } = fakeRuntime(DETAIL_ROUTES)
 
-    const detail = await runtime.getInstanceDetail(InstanceId(WORLD_IDS.charge))
+    await runtime.getInstanceDetail(InstanceId("p1"))
 
-    expect(detail?.incidents).toEqual([
-      {
-        id: WORLD_IDS.chargeIncident,
-        instanceId: WORLD_IDS.charge,
-        definition: ORDER_V1,
-        elementId: "Activity_ChargePayment",
-        type: "failedJob",
-        message: CHARGE_MESSAGE,
-        createdAt: "2026-10-21T18:44:04.554Z",
-        retriesLeft: 0,
-        job: { id: WORLD_IDS.chargeJob },
-        details: stacktraceDetails("paymentService"),
-      },
+    const [timeline, variables] = engine.requests.slice(2, 4)
+    const history = engine.requests.at(-1)
+    expect(routesOf(engine).slice(0, 4)).toEqual([
+      "GET /process-instance/p1",
+      "GET /history/process-instance/p1",
+      "GET /history/activity-instance",
+      "GET /variable-instance",
     ])
-    expect(detail?.path).toEqual([
-      {
-        elementId: "Event_OrderReceived",
-        elementName: "Order received",
-        startedAt: "2026-10-21T18:44:04.497Z",
-        endedAt: "2026-10-21T18:44:04.497Z",
-        canceled: false,
-      },
-      {
-        elementId: "Gateway_Route",
-        elementName: "Route?",
-        startedAt: "2026-10-21T18:44:04.497Z",
-        endedAt: "2026-10-21T18:44:04.497Z",
-        canceled: false,
-      },
-    ])
-    expect(routesOf(engine)).toEqual(["GET /variable-instance"])
-  })
-
-  test("names the failed external task with its topic and maps the worker wait", async () => {
-    const { runtime } = fakeRuntime([], SNAPSHOT.externalTask)
-
-    const detail = await runtime.getInstanceDetail(InstanceId(WORLD_IDS.externalTaskInstance))
-
-    expect(detail?.incidents.map((incident) => [incident.type, incident.job])).toEqual([
-      ["failedJob", { id: "c729ac73-cd79-11f1-9d36-92016cbb8c45" }],
-      [
-        "failedExternalTask",
-        { id: "c72a6fc7-cd79-11f1-9d36-92016cbb8c45", type: "notify-customer" },
-      ],
-    ])
-    expect(detail?.waitStates.map((waitState) => waitState.kind)).toEqual([
-      "asyncContinuation",
-      "workerTask",
-      "message",
-      "userTask",
-      "timer",
-    ])
-    expect(detail?.waitStates[1]).toEqual({
-      instanceId: WORLD_IDS.externalTaskInstance,
-      elementId: "notify",
-      elementName: "Notify customer",
-      since: "2026-10-21T18:03:54.138Z",
-      incidentId: "ccbde620-cd79-11f1-9d36-92016cbb8c45",
-      kind: "workerTask",
-      taskType: "notify-customer",
-      retriesLeft: 0,
+    expect(timeline?.query).toEqual({
+      processInstanceId: "p1",
+      sortBy: "occurrence",
+      sortOrder: "asc",
+      firstResult: "0",
+      maxResults: "500",
     })
-    expect(detail?.variables.find((variable) => variable.name === "bigId")?.valueJson).toBe(
-      "9007199254740993",
-    )
-  })
-
-  test("details an ended instance without wait states and incidents", async () => {
-    const { runtime } = fakeRuntime([], SNAPSHOT.ended)
-
-    const detail = await runtime.getInstanceDetail(InstanceId(WORLD_IDS.ended))
-
-    expect(detail?.instance.state).toBe("completed")
-    expect(detail?.instance.endedAt).toBe("2026-10-21T18:44:04.526Z")
-    expect(detail?.waitStates).toEqual([])
-    expect(detail?.incidents).toEqual([])
+    expect(Object.entries(variables?.query ?? {})).toEqual([
+      ["processInstanceIdIn", "p1"],
+      ["deserializeValues", "false"],
+      ["maxResults", "500"],
+    ])
+    expect(history?.route).toBe("POST /history/process-instance")
+    expect(history?.query).toEqual({ firstResult: "0", maxResults: "1" })
+    expect(JSON.parse(history?.body ?? "")).toMatchObject({ processInstanceIds: ["c1"] })
   })
 
   test("returns undefined for an unknown instance", async () => {
@@ -685,23 +696,13 @@ describe("the C7 runtime over recorded engine answers", () => {
     expect(await runtime.getInstanceDetail(InstanceId("00000000-0000"))).toBeUndefined()
   })
 
-  test("lists root incidents only, each with the version it was raised in", async () => {
+  test("lists root incidents only, newest first, each with the version it was raised in", async () => {
     const { runtime, engine } = fakeRuntime([ROUTE.allIncidents, ROUTE.definitionStatistics])
 
     const page = await runtime.searchIncidents({}, { limit: 50 })
 
     expect(page).toEqual({
       items: [
-        {
-          id: WORLD_IDS.chargeIncident,
-          instanceId: WORLD_IDS.charge,
-          definition: ORDER_V1,
-          elementId: "Activity_ChargePayment",
-          type: "failedJob",
-          message: CHARGE_MESSAGE,
-          createdAt: "2026-10-21T18:44:04.554Z",
-          job: { id: WORLD_IDS.chargeJob },
-        },
         {
           id: WORLD_IDS.labelIncident,
           instanceId: WORLD_IDS.label,
@@ -712,9 +713,26 @@ describe("the C7 runtime over recorded engine answers", () => {
           createdAt: "2026-10-21T18:44:04.613Z",
           job: { id: WORLD_IDS.labelJob },
         },
+        {
+          id: WORLD_IDS.chargeIncident,
+          instanceId: WORLD_IDS.charge,
+          definition: ORDER_V1,
+          elementId: "Activity_ChargePayment",
+          type: "failedJob",
+          message: CHARGE_MESSAGE,
+          createdAt: "2026-10-21T18:44:04.554Z",
+          job: { id: WORLD_IDS.chargeJob },
+        },
       ],
     })
     expect(engine.requests).toHaveLength(2)
+    const incidents = engine.requests.find((request) => request.route === "GET /incident")
+    expect(Object.entries(incidents?.query ?? {})).toEqual([
+      ["sortBy", "incidentTimestamp"],
+      ["sortOrder", "desc"],
+      ["firstResult", "0"],
+      ["maxResults", "51"],
+    ])
   })
 
   test("lists the job of an incident type the engine raises itself, never of a custom one", async () => {
@@ -738,8 +756,8 @@ describe("the C7 runtime over recorded engine answers", () => {
     const page = await runtime.searchIncidents({}, { limit: 50 })
 
     expect(page.items.map((incident) => [incident.id, incident.job])).toEqual([
-      ["external", { id: "external-target" }],
       ["custom", undefined],
+      ["external", { id: "external-target" }],
     ])
   })
 
@@ -883,7 +901,7 @@ describe("failures of the C7 runtime", () => {
       ? new C7Adapter(() => Promise.reject(answer)).runtime(CONNECTION)
       : fakeRuntime([
           { route: "GET /process-definition/statistics", answer },
-          { route: "GET /incident", answer: [] },
+          { route: "GET /process-instance", answer: [] },
         ]).runtime
 
   const failingWith = async (answer: Response | Error): Promise<unknown> =>
@@ -928,7 +946,7 @@ describe("failures of the C7 runtime", () => {
   test('maps output it cannot read to "unexpectedResponse"', async () => {
     const { runtime } = fakeRuntime([
       { route: "GET /process-definition/statistics", answer: { not: "a list" } },
-      { route: "GET /incident", answer: [] },
+      { route: "GET /process-instance", answer: [] },
     ])
 
     const error = await runtime.listDefinitions().then(

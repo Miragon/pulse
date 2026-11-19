@@ -1,6 +1,13 @@
-import { describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { runWithMcpRequestInfo } from "@miragon/pulse-widget-shell/server"
-import { CREDENTIALS, credentialFor, credentialProblemOf, unauthorizedHint } from "./credentials.js"
+import {
+  CREDENTIALS,
+  credentialFor,
+  credentialProblemOf,
+  SERVER_PLATFORM,
+  unauthorizedHint,
+} from "./credentials.js"
+import { c8Platform, json, TOKEN_ENDPOINT } from "./test-support/c8-platform.js"
 
 /** The Authorization header a credential sends, or undefined for none. */
 async function header(engineId: string, auth: Parameters<typeof credentialFor>[1]) {
@@ -49,6 +56,52 @@ describe("the credential of each auth type", () => {
   })
 })
 
+describe("the credential of the client credentials grant", () => {
+  const CLIENT = {
+    type: "clientCredentials",
+    tokenEndpoint: TOKEN_ENDPOINT,
+    clientId: "pulse-reader",
+    clientSecret: "reader-secret-42",
+  } as const
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it("sends a token the endpoint issues, renewable, over the platform it is handed", async () => {
+    const platform = c8Platform({
+      "POST /realms/pulse/token": () =>
+        json({ access_token: "tok-1", token_type: "Bearer", expires_in: 60 }),
+    })
+    const credential = credentialFor("c8", CLIENT, platform)
+    expect(credential.renewable).toBe(true)
+    expect((await credential.authorization())?.header).toBe("Bearer tok-1")
+    expect(platform.sent.map(({ method, path }) => `${method} ${path}`)).toEqual([
+      "POST /realms/pulse/token",
+    ])
+  })
+
+  it("sends nothing for an incomplete one, as the profiles refuse it before", async () => {
+    const withoutSecret = {
+      type: "clientCredentials",
+      tokenEndpoint: TOKEN_ENDPOINT,
+      clientId: "c",
+    } as const
+    expect(await credentialFor("c8", withoutSecret).authorization()).toBeUndefined()
+    expect(credentialProblemOf(CLIENT)).toBeUndefined()
+  })
+
+  it("asks the token endpoint through the global fetch as it is then, on the clock", async () => {
+    const fetch = vi.fn(() =>
+      Promise.resolve(json({ access_token: "tok-2", token_type: "Bearer", expires_in: 60 })),
+    )
+    vi.stubGlobal("fetch", fetch)
+    expect((await credentialFor("c8", CLIENT).authorization())?.header).toBe("Bearer tok-2")
+    expect(fetch).toHaveBeenCalledTimes(1)
+    expect(Math.abs(SERVER_PLATFORM.now() - Date.now())).toBeLessThan(1_000)
+  })
+})
+
 describe("the check the profiles are judged with at boot", () => {
   it("names the problem of a credential the transport cannot send, none for one it can", () => {
     expect(credentialProblemOf({ type: "bearer", token: "tok-1\nsecond-line" })).toBe(
@@ -69,7 +122,9 @@ describe("the check the profiles are judged with at boot", () => {
 describe("the remedy a 401 names", () => {
   it("depends on where the credential came from", () => {
     expect(unauthorizedHint("none")()).toBe(
-      "The engine requires authentication, but none is configured.",
+      "The engine requires authentication, but none is configured. Set it in the server's " +
+        "configuration: auth in the engine's profile (its secret in an ENGINE_SECRET_* variable), " +
+        "or ENGINE_AUTH_TYPE with ENGINE_USERNAME and ENGINE_PASSWORD or ENGINE_TOKEN.",
     )
     expect(unauthorizedHint("basic")()).toBe("The engine rejected the configured credentials.")
     expect(unauthorizedHint("bearer")()).toBe("The engine rejected the configured credentials.")

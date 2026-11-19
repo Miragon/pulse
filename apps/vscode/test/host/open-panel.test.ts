@@ -19,9 +19,9 @@ import {
   type Connection,
   ConnectionBuilder,
   type EngineTarget,
-  LOCAL_TARGET,
   WriteAudit,
 } from "@miragon/pulse-runtime-view/host-kit"
+import { LOCAL_TARGET } from "./support/local-target.js"
 import type { EngineCli } from "@miragon/pulse-runtime-view/ports"
 import { describe, expect, test, vi } from "vitest"
 import type * as vscode from "vscode"
@@ -81,7 +81,7 @@ const BEHIND_A_GATEWAY: InstanceDetail = {
 
 function connectionTo(target: EngineTarget): Connection {
   return new ConnectionBuilder(
-    CompositionRoot.create(),
+    CompositionRoot.create().engines,
     new WriteAudit({ info: () => undefined }),
     VSCODE_WRITES_WORDING,
   ).build(target, { kind: "none" }, "local", {

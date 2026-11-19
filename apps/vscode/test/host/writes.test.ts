@@ -16,13 +16,13 @@ import {
   ConnectionBuilder,
   type Credentials,
   type EngineFactories,
-  LOCAL_TARGET,
   type EngineTarget,
   WriteAudit,
   WritePolicy,
   NotificationText,
   type EnvironmentSettings,
 } from "@miragon/pulse-runtime-view/host-kit"
+import { LOCAL_TARGET } from "./support/local-target.js"
 import { EngineBulkRuns } from "../../src/host/connections/engine-bulk-runs.js"
 
 const NO_LOGIN: Credentials = { kind: "none" }
@@ -319,6 +319,7 @@ describe("a connection", () => {
     return {
       runtime: () => ({}) as never,
       commands: () => (withCommands ? commands : undefined),
+      canWrite: () => withCommands,
       webUi: () => undefined,
       cli: () => undefined,
     }
@@ -350,7 +351,7 @@ describe("a connection", () => {
     expect(noAdapter.commands).toBeUndefined()
     expect(noAdapter.badge.access).toEqual({
       writable: false,
-      note: "Read-only. Pulse does not change data on this engine.",
+      note: "Read-only. Pulse reads this engine and changes no data on it.",
     })
   })
 

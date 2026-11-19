@@ -50,8 +50,8 @@
           }
         },
         "flavor": {
-          "description": "The product behind the URL; camunda7 when absent.",
-          "enum": ["camunda7", "cibseven", "operaton"]
+          "description": "The product behind the URL; camunda7 when absent. camunda7, cibseven and operaton speak the Camunda 7 REST API, camunda8 the REST API of a Camunda 8 cluster, which takes other auth types: client credentials, but no OAuth login and no passthrough.",
+          "enum": ["camunda7", "camunda8", "cibseven", "operaton"]
         },
         "environment": {
           "description": "The environment the engine belongs to (prod-eu, test): lower case letters, digits and \"-\". An MCP server groups its engines by it.",
@@ -96,7 +96,47 @@
           "description": "true refuses every write through this profile.",
           "type": "boolean"
         }
-      }
+      },
+      "allOf": [
+        {
+          "description": "The auth types a flavor's API takes: client credentials only on camunda8, an OAuth login and passthrough only on the others.",
+          "if": {
+            "type": "object",
+            "properties": {
+              "flavor": {
+                "enum": ["camunda8"]
+              }
+            },
+            "required": ["flavor"]
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "auth": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "enum": ["none", "basic", "bearer", "clientCredentials"]
+                  }
+                }
+              }
+            }
+          },
+          "else": {
+            "type": "object",
+            "properties": {
+              "auth": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "enum": ["none", "basic", "bearer", "oauth", "passthrough"]
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "headerValue": {
       "description": "An ISO-8859-1 (Latin-1) value without control characters but tab.",
@@ -104,13 +144,13 @@
       "pattern": "^[\\u0009\\u0020-\\u007E\\u00A0-\\u00FF]*$"
     },
     "auth": {
-      "description": "How a client authenticates. Without type a username selects Basic auth; OAuth and a stored token need their type. The secret comes from elsewhere: a variable the profile names, a login, or what each client keeps itself.",
+      "description": "How a client authenticates. Without type a username selects Basic auth; OAuth, client credentials and a stored token need their type. The secret comes from elsewhere: a variable the profile names, a login, or what each client keeps itself.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "type": {
-          "description": "none, basic, bearer, oauth or passthrough (an MCP server forwards its caller's token). none switches the other keys off.",
-          "enum": ["none", "basic", "bearer", "oauth", "passthrough"]
+          "description": "none, basic, bearer, oauth (a person's login), clientCredentials (the client's own token from tokenEndpoint, camunda8 only) or passthrough (an MCP server forwards its caller's token). none switches the other keys off.",
+          "enum": ["none", "basic", "bearer", "oauth", "clientCredentials", "passthrough"]
         },
         "username": {
           "description": "The Basic auth username: not blank, without \":\" and control characters.",
@@ -143,12 +183,12 @@
           "pattern": "\\S"
         },
         "tokenEndpoint": {
-          "description": "The OAuth token endpoint; with type oauth only together with authorizationEndpoint.",
+          "description": "The OAuth token endpoint; with type oauth only together with authorizationEndpoint. Client credentials need it.",
           "type": "string",
           "pattern": "\\S"
         },
         "clientId": {
-          "description": "The OAuth client id.",
+          "description": "The OAuth client id, of a login or of client credentials.",
           "type": "string",
           "pattern": "\\S"
         },
@@ -161,7 +201,7 @@
           "$ref": "#/definitions/secret"
         },
         "scopes": {
-          "description": "The OAuth scopes, each listed once; openid and offline_access when absent.",
+          "description": "The OAuth scopes, each listed once; for a login openid and offline_access when absent.",
           "type": "array",
           "uniqueItems": true,
           "items": {
@@ -236,7 +276,7 @@
         "tokenEndpoint": {
           "allOf": [
             {
-              "$ref": "#/definitions/oauthKeys"
+              "$ref": "#/definitions/clientKeys"
             },
             {
               "if": {
@@ -255,12 +295,12 @@
           ]
         },
         "clientId": {
-          "$ref": "#/definitions/oauthKeys"
+          "$ref": "#/definitions/clientKeys"
         },
         "clientSecretEnv": {
           "allOf": [
             {
-              "$ref": "#/definitions/oauthKeys"
+              "$ref": "#/definitions/clientKeys"
             },
             {
               "type": "object",
@@ -271,13 +311,13 @@
           ]
         },
         "clientSecret": {
-          "$ref": "#/definitions/oauthKeys"
+          "$ref": "#/definitions/clientKeys"
         },
         "scopes": {
-          "$ref": "#/definitions/oauthKeys"
+          "$ref": "#/definitions/clientKeys"
         },
         "audience": {
-          "$ref": "#/definitions/oauthKeys"
+          "$ref": "#/definitions/clientKeys"
         },
         "redirectPort": {
           "$ref": "#/definitions/oauthKeys"
@@ -298,6 +338,20 @@
         "token": {
           "$ref": "#/definitions/bearerKeys"
         }
+      },
+      "if": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "const": "clientCredentials"
+          }
+        },
+        "required": ["type"]
+      },
+      "then": {
+        "description": "Client credentials get their token from tokenEndpoint: no issuer discovers one.",
+        "type": "object",
+        "required": ["tokenEndpoint"]
       }
     },
     "variable": {
@@ -312,12 +366,12 @@
       "pattern": "\\S"
     },
     "basicKeys": {
-      "description": "Basic auth keys: type basic, none or no type, and no key of OAuth or a stored token.",
+      "description": "Basic auth keys: type basic, none or no type, and no key of OAuth, client credentials or a stored token.",
       "type": "object",
       "properties": {
         "type": {
           "not": {
-            "enum": ["bearer", "oauth", "passthrough"]
+            "enum": ["bearer", "oauth", "clientCredentials", "passthrough"]
           }
         }
       },
@@ -360,12 +414,32 @@
       }
     },
     "oauthKeys": {
-      "description": "OAuth keys: type oauth (or none, which switches them off), and no key of a stored token.",
+      "description": "The keys of a person's OAuth login: type oauth (or none, which switches them off), and no key of a stored token.",
       "type": "object",
       "required": ["type"],
       "properties": {
         "type": {
           "enum": ["none", "oauth"]
+        }
+      },
+      "not": {
+        "anyOf": [
+          {
+            "required": ["tokenEnv"]
+          },
+          {
+            "required": ["token"]
+          }
+        ]
+      }
+    },
+    "clientKeys": {
+      "description": "OAuth keys that client credentials share with a login: type oauth or clientCredentials (or none, which switches them off), and no key of a stored token.",
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "enum": ["none", "oauth", "clientCredentials"]
         }
       },
       "not": {

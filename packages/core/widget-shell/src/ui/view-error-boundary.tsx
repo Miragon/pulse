@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from "react"
 import { ErrorState, useLocale } from "@miragon/pulse-ui"
 import { kitLabels } from "./kit-labels.js"
+import { WidgetShell } from "./widget-shell.js"
 
 interface BoundaryState {
   error: Error | null
@@ -41,15 +42,18 @@ export class ViewErrorBoundary extends Component<
   }
 }
 
+/** In a shell of its own: in the gutter where a view stood, part of the content inside a padded shell. */
 function Crashed({ error, onRetry }: { error: Error; onRetry: () => void }) {
   const labels = kitLabels(useLocale())
   return (
-    <ErrorState
-      variant="inline"
-      title={labels.viewCrashed}
-      details={error.message || undefined}
-      onRetry={onRetry}
-      retryLabel={labels.retry}
-    />
+    <WidgetShell>
+      <ErrorState
+        variant="inline"
+        title={labels.viewCrashed}
+        details={error.message || undefined}
+        onRetry={onRetry}
+        retryLabel={labels.retry}
+      />
+    </WidgetShell>
   )
 }

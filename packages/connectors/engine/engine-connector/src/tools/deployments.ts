@@ -4,7 +4,7 @@ import {
   createDeploymentInput,
   getDeploymentInput,
 } from "../schemas/index.js"
-import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
+import type { EngineToolRegistrar } from "../lib/engine/served-engines.js"
 import { engineLike, engineSorting } from "@miragon/pulse-c7-core"
 import {
   getDeployments,
@@ -14,7 +14,6 @@ import {
 } from "@miragon/pulse-c7-client/sdk"
 import type { MultiFormDeploymentDto } from "@miragon/pulse-c7-client/types"
 import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
-import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 
 /**
@@ -39,7 +38,7 @@ function deploymentForm(args: z.infer<typeof createDeploymentInput>): Deployment
 }
 
 export function registerDeploymentTools(
-  register: ToolRegistrar<EngineRegistry>,
+  register: EngineToolRegistrar,
   { allowDeployments }: { allowDeployments: boolean },
 ) {
   register({
@@ -48,6 +47,7 @@ export function registerDeploymentTools(
     description:
       "Get a deployment by ID: its timestamp and source, for pre/post deployment correlation (commit hash → deployment ID → timestamp).",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...getDeploymentInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) =>
       getDeployment({ client, path: { id: args.deploymentId } }),
@@ -59,6 +59,7 @@ export function registerDeploymentTools(
     category: "deployments",
     description: "List deployments.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...listDeploymentsInput.shape, ...engineParamShape },
     outputSchema: paginatedListOutput,
     handler: withEngine(async (client, args) => {
@@ -91,6 +92,7 @@ export function registerDeploymentTools(
       "WARNING: deploying runs code inside the engine JVM, since expressions, scripts and listener/delegate references in the " +
       "deployed models execute with the engine's privileges. Available only in the admin toolset with ENGINE_ALLOW_DEPLOYMENTS=true.",
     annotations: { destructiveHint: true, openWorldHint: true },
+    dialects: ["c7"],
     inputSchema: { ...createDeploymentInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) =>
       createDeployment({ client, body: deploymentForm(args) }),

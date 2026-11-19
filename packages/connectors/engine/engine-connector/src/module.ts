@@ -2,10 +2,12 @@ import { z } from "zod"
 import { MAX_TIMEOUT_MS, PROFILE_NAME } from "@miragon/pulse-profile"
 import type { ModulePlugin } from "@miragon/pulse-widget-shell/server"
 import { createPlugin } from "./plugin.js"
-import { DEFAULT_ENGINE_FLAVOR } from "./providers/index.js"
+import { DEFAULT_ENGINE_FLAVOR, providerForEntry } from "./providers/index.js"
 import { engineToolsets } from "./lib/mcp/toolsets.js"
 import { engineInstructions } from "./instructions.js"
 import { engineConfigErrorText } from "./engine-config-error.js"
+import type { BoardFiles } from "./board-files.js"
+import { loadEngineBoards } from "./engine-boards.js"
 import type { EngineEntry } from "./engine-provider.js"
 import {
   type EngineProfiles,
@@ -32,6 +34,12 @@ const engineEntry = z.custom<EngineEntry>(
 const refusedEngine = z.custom<RefusedProfile>(
   (value) => isObject(value) && typeof value.id === "string" && typeof value.reason === "string",
   "Expected a refused engine: its id and the reason",
+)
+
+/** The boards as `loadEngineBoards` read them: checked there, so only their shape here. */
+const boardFiles = z.custom<BoardFiles>(
+  (value) => isObject(value) && Array.isArray(value.boards) && Array.isArray(value.refused),
+  "Expected the board files: the boards and the refused files",
 )
 
 /**
@@ -92,6 +100,8 @@ export const engineConfigSchema = z
         criticalClusterSize: z.coerce.number().int().positive().optional(),
       })
       .optional(),
+    /** The board files of ENGINE_BOARDS_DIR: the board feed builds them. */
+    boards: boardFiles.optional(),
   })
   // No quotes around the ids: ZodError.message is the issues JSON, which would escape them.
   .superRefine((c, issues) => {
@@ -128,6 +138,15 @@ function profilesQuietly(env: NodeJS.ProcessEnv): EngineProfiles | undefined {
   }
 }
 
+/** What the board files tell the operator; none when they do not load: the boot fails on them. */
+function boardWarnings(env: NodeJS.ProcessEnv): readonly string[] {
+  try {
+    return loadEngineBoards(env, profilesQuietly(env)?.engineIds ?? [])?.warnings ?? []
+  } catch {
+    return []
+  }
+}
+
 /** The single engine's settings a profile file makes meaningless. */
 function ignoredSingleEngineWarning(env: NodeJS.ProcessEnv): string[] {
   if (!hasProfileFile(env)) return []
@@ -136,6 +155,33 @@ function ignoredSingleEngineWarning(env: NodeJS.ProcessEnv): string[] {
   const source = env.ENGINES_FILE?.trim() ? "ENGINES_FILE" : "ENGINES_JSON"
   return [
     `${ignored.join(", ")} ${ignored.length === 1 ? "is" : "are"} set next to ${source} and ignored: they describe the single engine, which a profile file replaces. A profile states its own url and auth, for example {"url": "…", "auth": {"type": "basic", "username": "…", "passwordEnv": "ENGINE_SECRET_PASSWORD"}}.`,
+  ]
+}
+
+/** True for an engine of another dialect than the Camunda 7 REST API's, which only boards read. */
+const readOnBoardsOnly = (engine: EngineEntry): boolean => providerForEntry(engine).dialect !== "c7"
+
+/**
+ * A default engine that only boards read (Camunda 8) beside a Camunda 7 one: every tool of the
+ * latter called without `engine` goes to it and refuses, never to another engine (allowed, the
+ * operator's choice, and said once here). Without a Camunda 7 engine no such tool registers.
+ */
+function boardsOnlyDefaultWarning(
+  profiles: EngineProfiles,
+  explicit: string | undefined,
+): string[] {
+  if (profiles.engines.every(readOnBoardsOnly)) return []
+  const named = explicit || profiles.defaultProfile
+  const only = profiles.profileCount === 1 ? profiles.engineIds[0] : undefined
+  const id = named ?? only
+  const engine = profiles.engines.find((entry) => entry.id === id)
+  if (engine === undefined || !readOnBoardsOnly(engine)) return []
+  const which =
+    named === undefined
+      ? "The only profile is"
+      : `${explicit ? "ENGINE_DEFAULT" : "defaultProfile"} names`
+  return [
+    `${which} "${engine.id}", a ${providerForEntry(engine).branding.displayName} engine, which this server reads on boards only: a tool called without engine goes to it and refuses with ENGINE_DIALECT_NOT_SERVED, never to another engine.`,
   ]
 }
 
@@ -151,6 +197,7 @@ function profileWarnings(env: NodeJS.ProcessEnv): string[] {
       `${explicit ? "ENGINE_DEFAULT" : "defaultProfile"} names "${String(fallback)}", whose profile is refused: a call without engine fails with ENGINE_PROFILE_REFUSED until the profile is fixed, and never goes to another engine.`,
     )
   }
+  warnings.push(...boardsOnlyDefaultWarning(profiles, explicit))
   const passthrough = profiles.engines.filter((e) => e.auth?.type === "passthrough")
   if (passthrough.length > 0) {
     warnings.push(
@@ -166,6 +213,7 @@ export const engineModule = {
   /** Env → raw config, checked against the schema here; `createPlugin` parses it again. */
   configFromEnv(env: NodeJS.ProcessEnv): Record<string, unknown> {
     const profiles = loadEngineProfiles(env)
+    const boards = loadEngineBoards(env, profiles.engineIds)
     const config = {
       engines: profiles.engines,
       refused: profiles.refused,
@@ -183,6 +231,9 @@ export const engineModule = {
             },
           }
         : {}),
+      ...(boards === undefined
+        ? {}
+        : { boards: { boards: boards.boards, refused: boards.refused } }),
     }
     return checkedConfig(config)
   },
@@ -204,6 +255,7 @@ export const engineModule = {
     "ENGINE_HEALTH_CRITICAL_CLUSTER_SIZE",
     "ENGINE_ALLOW_DEPLOYMENTS",
     "ENGINE_REQUEST_TIMEOUT_MS",
+    "ENGINE_BOARDS_DIR",
   ] as const,
 
   /** The ENGINE_SECRET_ variables the profiles name: the server reads them, so they are no typo. */
@@ -222,7 +274,11 @@ export const engineModule = {
         `No engine is configured (ENGINES_FILE / ENGINES_JSON / ENGINE_BASE_URL): defaulting to ${LOCAL_ENGINE_URL} with engine id "${id}", where the Pulse starter's compose.yaml (Miragon/pulse-starter) and the Pulse playground (Miragon/pulse) serve their engine. Its cockpit links and name follow flavor "${flavor}"; both of those engines are CIB seven (ENGINE_FLAVOR=cibseven), and the starter's asks for a login (ENGINE_AUTH_TYPE=basic, demo/demo).`,
       )
     }
-    warnings.push(...ignoredSingleEngineWarning(env), ...profileWarnings(env))
+    warnings.push(
+      ...ignoredSingleEngineWarning(env),
+      ...profileWarnings(env),
+      ...boardWarnings(env),
+    )
     if (allowDeploymentsFromEnv(env) === "true") {
       warnings.push(
         "ENGINE_ALLOW_DEPLOYMENTS=true: engine_create_deployment is registered under engine:admin. Deploying a process runs code inside the engine JVM (expressions, scripts and listener/delegate references execute with the engine's privileges): grant engine:admin only to callers you would trust with that.",
@@ -238,6 +294,8 @@ export const engineModule = {
       profileCount: parsed.profileCount,
       defaultEngine: parsed.defaultEngine,
       toolset: engineToolsets.resolve(parsed.toolset),
+      hasBoards: (parsed.boards?.boards.length ?? 0) > 0,
+      dialects: [...new Set(parsed.engines.map((engine) => providerForEntry(engine).dialect))],
     })
   },
 

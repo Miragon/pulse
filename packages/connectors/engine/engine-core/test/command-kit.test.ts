@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest"
+import { afterEach, describe, expect, test, vi } from "vitest"
 import { ElementId, RuntimeError, type ProcessCommands } from "../src/index.js"
 import {
   COMMAND_CASE,
@@ -10,6 +10,10 @@ import {
   type CommandHarness,
 } from "../src/testing/index.js"
 import { CommandHarnesses } from "./support/command-harnesses.js"
+
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 type Sabotage = (commands: ProcessCommands, harness: CommandHarness) => Partial<ProcessCommands>
 

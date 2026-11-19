@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process"
 import * as esbuild from "esbuild"
+import { isolatedConfigHome } from "./support/config-home.mjs"
 
 const OUTFILE = "dist-dev/dev-host.mjs"
 
@@ -17,5 +18,8 @@ await esbuild.build({
   logLevel: "warning",
 })
 
-const host = spawn(process.execPath, [OUTFILE], { stdio: "inherit", env: process.env })
+const host = spawn(process.execPath, [OUTFILE], {
+  stdio: "inherit",
+  env: { ...process.env, ...isolatedConfigHome() },
+})
 host.on("exit", (code) => process.exit(code ?? 0))

@@ -56,6 +56,11 @@ const errorBody = (err: unknown) => ({
   error: { message: err instanceof Error ? err.message : String(err) },
 })
 
+async function sendFile(res: http.ServerResponse, file: string, type: string): Promise<void> {
+  res.writeHead(200, { "content-type": type })
+  res.end(await readFile(file))
+}
+
 async function route(
   client: Client,
   req: http.IncomingMessage,
@@ -65,8 +70,7 @@ async function route(
   const endpoint = `${req.method} ${url.pathname}`
   switch (endpoint) {
     case "GET /":
-      res.writeHead(200, { "content-type": "text/html; charset=utf-8" })
-      res.end(await readFile(HOST_PAGE))
+      await sendFile(res, HOST_PAGE, "text/html; charset=utf-8")
       return
     case "GET /favicon.ico":
       // Keeps the browser's automatic request out of the console-error check.

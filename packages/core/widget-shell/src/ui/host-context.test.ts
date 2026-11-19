@@ -98,11 +98,13 @@ describe("hostTokenOverrides", () => {
   })
 
   it("never lets the host set a brand, interaction or status role", () => {
-    // Focus ring, 3:1 field edge, selection tint and tones stay the theme's.
+    // Focus ring, 3:1 field edge, selection tint, the raised surface and tones stay the theme's.
     const brandRoles = [
       "--primary",
       "--primary-foreground",
       "--primary-hover",
+      "--interaction",
+      "--raised",
       "--link",
       "--focus",
       "--ring",
@@ -115,6 +117,7 @@ describe("hostTokenOverrides", () => {
     const tones = ["danger", "warning", "success", "info"].flatMap((tone) => [
       `--${tone}`,
       `--${tone}-soft`,
+      `--${tone}-surface`,
       `--${tone}-ink`,
     ])
     for (const role of [...brandRoles, ...tones]) expect(HOST_MAPPED_TOKENS).not.toContain(role)

@@ -8,7 +8,7 @@ const STATE_LABELS: Readonly<Record<InstanceState, InstanceStateLabel>> = {
   running: "Running",
   suspended: "Suspended",
   completed: "Completed",
-  terminated: "Terminated",
+  terminated: "Cancelled",
 }
 
 const WAIT_KIND_LABELS: Readonly<Record<WaitStateKind, string>> = {

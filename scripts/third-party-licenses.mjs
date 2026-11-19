@@ -13,7 +13,8 @@
  * (apps/cli/scripts/licenses/, tsdown), @miragon/pulse-c7-client (its generated SDK), the server
  * image (Vite), Pulse for VS Code and Pulse for Orca (esbuild). The readers of the module graphs
  * are here too: `renderedModules` (rolldown, rollup, Vite), `esbuildModules` (an esbuild
- * metafile) and `cssDependencies` (what Vite inlines into a stylesheet).
+ * metafile), `cssDependencies` (what Vite inlines into a stylesheet) and `inlinedStylesheets`
+ * (what an esbuild plugin inlines into one, a Tailwind entry).
  * scripts/third-party-licenses.d.mts types it, scripts/third-party-licenses.test.mjs holds it to
  * planted cases.
  */
@@ -23,7 +24,7 @@
  * scripts/third-party-licenses.test.mjs holds the declarations to the module's exports.
  * @import * as Declarations from "./third-party-licenses.d.mts"
  * @import { Inventory, Layout, LicenceFiles, LicenceFileText, OpenApiSource } from "./third-party-licenses.d.mts"
- * @import { LicenceText, RenderedChunk, ThirdParty, Work } from "./third-party-licenses.d.mts"
+ * @import { InliningPlugin, LicenceText, RenderedChunk, ThirdParty, Work } from "./third-party-licenses.d.mts"
  */
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs"
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path"
@@ -470,13 +471,46 @@ const CSS_IMPORT = /@import\s+(?:url\(\s*)?(?:"([^"]*)"|'([^']*)'|([^\s"'()]+))/
 /** A specifier that names a URL, which stays a request of the stylesheet and is never bundled. */
 const isUrl = (specifier) => /^(?:[a-z][\w+.-]*:|\/\/)/i.test(specifier)
 
+/**
+ * The entry of the subpath pattern (`./*`, `./*.css`) that matches `subpath`, its `*` replaced
+ * in every target: the longest prefix wins, as Node's resolver picks.
+ */
+function patternEntry(exports, subpath) {
+  const [key] = Object.keys(exports)
+    .filter((each) => {
+      const [prefix, suffix, ...rest] = each.split("*")
+      return (
+        suffix !== undefined &&
+        rest.length === 0 &&
+        subpath.length >= prefix.length + suffix.length &&
+        subpath.startsWith(prefix) &&
+        subpath.endsWith(suffix)
+      )
+    })
+    .sort((a, b) => b.indexOf("*") - a.indexOf("*") || b.length - a.length)
+  if (key === undefined) return undefined
+  const [prefix, suffix] = key.split("*")
+  const match = subpath.slice(prefix.length, subpath.length - suffix.length)
+  const replace = (node) =>
+    typeof node === "string"
+      ? node.replaceAll("*", match)
+      : node !== null && typeof node === "object"
+        ? Object.fromEntries(Object.entries(node).map(([k, v]) => [k, replace(v)]))
+        : node
+  return replace(exports[key])
+}
+
 /** The string targets of a package's `exports` for a subpath, under any condition. */
 function exportTargets(exports, subpath) {
   const conditionsOnly =
     typeof exports === "string" ||
     Array.isArray(exports) ||
     !Object.keys(exports).some((key) => key.startsWith("."))
-  const entry = conditionsOnly ? (subpath === "." ? exports : undefined) : exports[subpath]
+  const entry = conditionsOnly
+    ? subpath === "."
+      ? exports
+      : undefined
+    : (exports[subpath] ?? patternEntry(exports, subpath))
   const leaves = (node) =>
     typeof node === "string"
       ? [node]
@@ -517,6 +551,53 @@ function importTargets(specifier, from) {
 }
 
 /**
+ * The stylesheets `sheets` are and every stylesheet their `@import`s pull in, transitively, each
+ * resolved to a file of `read` (real paths), sorted. An `@import` that names no file of `read`
+ * fails, as do `@plugin` and `@config` (code Tailwind loads) and a stylesheet in another language
+ * than CSS, which the list cannot read yet.
+ * @param {string[]} sheets
+ * @param {ReadonlySet<string>} read
+ */
+function importedStylesheets(sheets, read) {
+  const queue = [...sheets]
+  const found = new Set()
+  for (let sheet = queue.shift(); sheet !== undefined; sheet = queue.shift()) {
+    if (found.has(sheet)) continue
+    found.add(sheet)
+    if (!sheet.endsWith(".css")) {
+      throw new Error(`${sheet} is no CSS: teach scripts/third-party-licenses.mjs to read it`)
+    }
+    const text = readFileSync(sheet, "utf8").replace(/\/\*[\s\S]*?\*\//g, "")
+    if (/@(?:plugin|config)\b/.test(text)) {
+      throw new Error(
+        `${sheet} loads code into Tailwind (@plugin, @config): teach ` +
+          "scripts/third-party-licenses.mjs to list what it adds",
+      )
+    }
+    for (const [, ...quoted] of text.matchAll(CSS_IMPORT)) {
+      const specifier = quoted.find((each) => each !== undefined) ?? ""
+      if (!isAbsolute(specifier) && isUrl(specifier)) continue
+      const targets = importTargets(specifier, sheet)
+        .filter((path) => existsSync(path))
+        .map((path) => realpathSync(path))
+        .filter((path) => read.has(path))
+      if (targets.length === 0) {
+        throw new Error(
+          `${sheet} imports ${JSON.stringify(specifier)}, which names no stylesheet the build ` +
+            "read: teach scripts/third-party-licenses.mjs to resolve it",
+        )
+      }
+      queue.push(...targets)
+    }
+  }
+  return [...found].sort()
+}
+
+/** The real paths of the files of a list that exist. */
+const realFiles = (ids) =>
+  new Set([...ids].filter((id) => isAbsolute(id) && existsSync(id)).map((id) => realpathSync(id)))
+
+/**
  * The stylesheets a Vite build inlines into its CSS, which never render code in their chunk: a
  * Vite plugin that records every file the plugins' `load` and `transform` hooks name with
  * `this.addWatchFile` (Vite's CSS plugin and Tailwind's name each file an `@import` pulls in that
@@ -553,45 +634,41 @@ export function cssDependencies() {
     },
   }
   const files = (/** @type {readonly RenderedChunk[]} */ chunks) => {
-    const read = new Set(
-      [...watched].filter((id) => isAbsolute(id) && existsSync(id)).map((id) => realpathSync(id)),
-    )
-    const queue = chunks
+    const sheets = chunks
       .flatMap((chunk) => (chunk.type === "chunk" ? (chunk.moduleIds ?? []) : []))
       .map((id) => id.replace(/[?#].*$/, ""))
       .filter((id) => !id.startsWith("\0") && STYLESHEET.test(id))
       .map((id) => realpathSync(id))
-    const sheets = new Set()
-    for (let sheet = queue.shift(); sheet !== undefined; sheet = queue.shift()) {
-      if (sheets.has(sheet)) continue
-      sheets.add(sheet)
-      if (!sheet.endsWith(".css")) {
-        throw new Error(`${sheet} is no CSS: teach scripts/third-party-licenses.mjs to read it`)
-      }
-      const text = readFileSync(sheet, "utf8").replace(/\/\*[\s\S]*?\*\//g, "")
-      if (/@(?:plugin|config)\b/.test(text)) {
-        throw new Error(
-          `${sheet} loads code into Tailwind (@plugin, @config): teach ` +
-            "scripts/third-party-licenses.mjs to list what it adds",
-        )
-      }
-      for (const [, ...quoted] of text.matchAll(CSS_IMPORT)) {
-        const specifier = quoted.find((each) => each !== undefined) ?? ""
-        if (!isAbsolute(specifier) && isUrl(specifier)) continue
-        const found = importTargets(specifier, sheet)
-          .filter((path) => existsSync(path))
-          .map((path) => realpathSync(path))
-          .filter((path) => read.has(path))
-        if (found.length === 0) {
-          throw new Error(
-            `${sheet} imports ${JSON.stringify(specifier)}, which names no stylesheet the build ` +
-              "read: teach scripts/third-party-licenses.mjs to resolve it",
-          )
-        }
-        queue.push(...found)
-      }
-    }
-    return [...sheets].sort()
+    return importedStylesheets(sheets, realFiles(watched))
   }
   return { plugin, files }
+}
+
+/**
+ * The stylesheets the plugins of an esbuild build inline into its CSS, which its metafile never
+ * names: a plugin that hands esbuild contents of its own shows the metafile the path it loaded,
+ * never the files it read for it. So every plugin of the build says, after the build, what it
+ * inlined as `inlined()`: each entry it compiled with its dependency list (the runtime view's
+ * `TailwindEntries`: the files Tailwind's `compile` read for the entry, never a source it scanned
+ * for class names); a plugin without `inlined` fails. The result: each entry and every stylesheet
+ * its `@import`s pull in, transitively, each resolved to a file of that entry's own list, real
+ * paths, sorted. The rules are `cssDependencies`': an `@import` that names no file of the list
+ * fails, as do `@plugin`, `@config` and a stylesheet in another language than CSS.
+ * @param {readonly InliningPlugin[]} plugins
+ */
+export function inlinedStylesheets(plugins) {
+  const sheets = plugins.flatMap((plugin) => {
+    if (typeof plugin.inlined !== "function") {
+      throw new Error(
+        `the esbuild plugin ${plugin.name} does not say what it inlines: give it an inlined() ` +
+          "that lists each entry it compiled with the files it read for it",
+      )
+    }
+    return plugin
+      .inlined()
+      .flatMap(({ entry, dependencies }) =>
+        importedStylesheets([realpathSync(entry)], realFiles(dependencies)),
+      )
+  })
+  return [...new Set(sheets)].sort()
 }

@@ -23,21 +23,12 @@ export class ErrorTranslation {
     try {
       return await work()
     } catch (error: unknown) {
-      throw RuntimeError.is(error)
-        ? error
-        : ErrorTranslation.runtimeErrorOf(error, Redaction.NOTHING)
+      throw RuntimeError.is(error) ? error : ErrorTranslation.runtimeError(error)
     }
   }
 
-  static async unlessMissing<Result>(work: () => Promise<Result>): Promise<Result | undefined> {
-    try {
-      return await work()
-    } catch (error: unknown) {
-      if (EngineRequestError.isMissingResource(error)) {
-        return undefined
-      }
-      throw error
-    }
+  static runtimeError(error: unknown): RuntimeError {
+    return ErrorTranslation.runtimeErrorOf(error, Redaction.NOTHING)
   }
 
   static async commanded<Result>(

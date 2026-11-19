@@ -17,8 +17,10 @@ export interface FakeIdpOptions {
   readonly metadata?: Readonly<Record<string, unknown>>
   /** `expires_in` of access tokens (default 300); null leaves it out. */
   readonly expiresIn?: number | string | null
-  /** `refresh_expires_in` (default 1800); null leaves it out. */
+  /** The refresh token's lifetime (default 1800); null leaves it out. */
   readonly refreshExpiresIn?: number | null
+  /** Where the lifetime goes: Keycloak's `refresh_expires_in` (default) or ADFS's key. */
+  readonly refreshExpiresKey?: "refresh_expires_in" | "refresh_token_expires_in"
   /** Issue refresh tokens (default true). */
   readonly refreshTokens?: boolean
   /** Rotate refresh tokens on every refresh (default true); false returns none on a refresh. */
@@ -238,7 +240,7 @@ export function fakeIdp(options: FakeIdpOptions = {}): FakeIdp {
       const refreshToken = refreshTokenOf(scope, session)
       if (refreshToken !== undefined) body.refresh_token = refreshToken
       if (options.refreshExpiresIn !== null) {
-        body.refresh_expires_in = options.refreshExpiresIn ?? 1800
+        body[options.refreshExpiresKey ?? "refresh_expires_in"] = options.refreshExpiresIn ?? 1800
       }
     }
     return tokenJson({ ...body, ...displayValues(options, scope) })

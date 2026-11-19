@@ -6,8 +6,6 @@ skillVersion: 1.32.0
 files:
   - source: skills/modeler-tool-design/assets/cd-tokens.generated.css
     out: packages/core/ui/src/tokens/cd-tokens.generated.css
-  - source: skills/modeler-tool-design/assets/cd-tokens.generated.css
-    out: packages/core/runtime-view/src/webview/theme/cd-tokens.generated.css
   - source: skills/modeler-tool-design/assets/cd-tokens.generated.json
     out: packages/core/runtime-view/src/webview/theme/cd-tokens.generated.json
   - source: skills/modeler-tool-design/assets/cd-canvas.css

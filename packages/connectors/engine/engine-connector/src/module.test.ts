@@ -395,10 +395,21 @@ describe("engineModule.configFromEnv settings", () => {
           url: "http://a.example/engine-rest",
           auth: { type: "bearer", tokenEnv: "ENGINE_SECRET_A_TOKEN" },
         },
+        c8: {
+          url: "https://c8.example.com/v2",
+          flavor: "camunda8",
+          auth: {
+            type: "clientCredentials",
+            tokenEndpoint: "https://login.example.com/token",
+            clientId: "pulse",
+            clientSecretEnv: "ENGINE_SECRET_C8_CLIENT",
+          },
+        },
       },
     })
     expect(engineModule.referencedEnvVars({ ENGINES_JSON: json })).toEqual([
       "ENGINE_SECRET_A_TOKEN",
+      "ENGINE_SECRET_C8_CLIENT",
     ])
   })
 })

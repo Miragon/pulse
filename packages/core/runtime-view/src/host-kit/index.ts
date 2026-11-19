@@ -6,24 +6,27 @@ export {
 } from "./connections/confirmation-policy.js"
 export { ConnectionBuilder, type ConnectionSettings } from "./connections/connection-builder.js"
 export type { Credentials, Connection, EngineFactories } from "./connections/connection.js"
-export { CredentialStore, type SecretStorage } from "./connections/credential-store.js"
+export { CredentialStore, type Login, type SecretStorage } from "./connections/credential-store.js"
 export { EndpointPath } from "./connections/endpoint-path.js"
 export { EngineBadges } from "./connections/engine-badges.js"
 export { EngineLanes, type LaneRequest } from "./connections/engine-lanes.js"
-export {
-  LOCAL_TARGET,
-  type EngineKind,
-  type TargetAuth,
-  type EngineTarget,
-} from "./connections/engine-target.js"
+export { EngineRoot } from "./connections/engine-root.js"
+export type { LoginFields, Refused } from "./connections/editor-auth.js"
+export type { TargetAuth, EngineTarget } from "./connections/engine-target.js"
 export { EnvironmentClassifier } from "./connections/environment-classifier.js"
 export type { EnvironmentSettings } from "./connections/environment-settings.js"
 export { LivePolicy } from "./connections/live-policy.js"
 export { ProjectFile } from "./connections/project-file.js"
 export { TargetHosts } from "./connections/target-hosts.js"
+export { ProfileSource, type ProfileSourceKind } from "./connections/profile-source.js"
+export type { FileVerdict, UserConfigVerdict } from "./connections/file-verdict.js"
+export { TargetMerge, type DiscoveredTargets } from "./connections/target-merge.js"
+export { TargetLogin, type LoginAsk } from "./connections/target-login.js"
 export { TargetPolicy } from "./connections/target-policy.js"
 export { TargetsParser, type ParsedTargets } from "./connections/targets-parser.js"
 export { TargetsProblem } from "./connections/targets-problem.js"
+export { UserConfigLocation } from "./connections/user-config-location.js"
+export { UserConfigRead } from "./connections/user-config-read.js"
 export {
   WriteAudit,
   type AuditLog,

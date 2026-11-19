@@ -43,9 +43,10 @@ export function clusterKeyParts(
   return keys.length === 1 ? { processDefinitionKey: keys[0] } : { processDefinitionKeyIn: keys }
 }
 
-// `engine` is a boot-time enum, so a placeholder would be a refused call. `canFix` is the
-// deployment gate of the retry write (`useActionAllowed`): fail-closed, so an unanswered gate
-// offers the diagnosis, and the caller's button says which hand-off it is.
+// `engine` is a boot-time enum, so a placeholder would be a refused call. `canFix` is the gate
+// of the retry write (`useActionAllowed`: the host writes, a page does not, and the deployment
+// offers it): fail-closed, so an unanswered gate offers the diagnosis, and the caller's button
+// says which hand-off it is.
 export function remediationHandOff(
   cluster: RemediationCluster,
   engine: string | undefined,

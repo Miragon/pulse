@@ -1,5 +1,4 @@
-import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
-import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
+import type { EngineToolRegistrar } from "../lib/engine/served-engines.js"
 
 import { registerProcessDefinitionTools } from "./process-definitions.js"
 import { registerProcessInstanceTools } from "./process-instances.js"
@@ -20,7 +19,7 @@ export interface RegisterToolsOptions {
 }
 
 export function registerTools(
-  register: ToolRegistrar<EngineRegistry>,
+  register: EngineToolRegistrar,
   opts: RegisterToolsOptions = {},
 ): void {
   registerProcessDefinitionTools(register)

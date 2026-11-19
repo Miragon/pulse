@@ -12,11 +12,12 @@ import { ActivityIncidentList } from "./list.js"
  */
 export function ProcessDefinitionView({
   focus,
+  title,
   ...scope
-}: DefinitionScope & { focus?: "incidents" }) {
+}: DefinitionScope & { focus?: "incidents"; title?: string }) {
   return (
     <ViewStack>
-      <ProcessDetailHeader {...scope} />
+      <ProcessDetailHeader {...scope} title={title} />
       <ProcessDefinitionKpi {...scope} />
       <ProcessDefinitionFlow {...scope} />
       <ActivityIncidentList {...scope} emptyVariant={focus === "incidents" ? "siblings" : "note"} />

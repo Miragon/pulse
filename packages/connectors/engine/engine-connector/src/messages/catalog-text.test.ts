@@ -8,6 +8,8 @@ import { enAskAi } from "./en.ask-ai.js"
 import { deAskAi } from "./de.ask-ai.js"
 import { enFeedback } from "./en.feedback.js"
 import { deFeedback } from "./de.feedback.js"
+import { enBoard } from "./en.board.js"
+import { deBoard } from "./de.board.js"
 import { catalogs } from "./index.js"
 import { countOf, isOne } from "./plural.js"
 
@@ -25,8 +27,27 @@ describe("engine copy follows the voice rules", () => {
     ["chat hand-offs (de)", deAskAi, "de"],
     ["write toasts (en)", enFeedback, "en"],
     ["write toasts (de)", deFeedback, "de"],
+    ["board view (en)", enBoard, "en"],
+    ["board view (de)", deBoard, "de"],
   ] as const)("%s", (_, catalog, language) => {
     expect(catalogTextFindings(catalog, { language })).toEqual([])
+  })
+})
+
+// A hint that is a sentence (a verb's, not a phrase's) starts upper case in both languages, as a
+// sentence does: "Klapp einen Prozess auf …", never "klapp einen Prozess auf …".
+describe("a sentence starts upper case", () => {
+  const SENTENCE_HINTS = [
+    "incidentsList.clickToExpand",
+    "fleet.engineHealth.hint",
+    "fleet.fleetAnalyses.copyHint",
+    "fleet.fleetAnalyses.hint",
+  ] as const
+
+  it.each(["en", "de"] as const)("in %s", (language) => {
+    const catalog = catalogs[language] as Record<string, unknown>
+    const lower = SENTENCE_HINTS.filter((key) => !/^\p{Lu}/u.test(String(catalog[key])))
+    expect(lower).toEqual([])
   })
 })
 

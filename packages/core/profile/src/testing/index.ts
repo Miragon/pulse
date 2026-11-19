@@ -3,8 +3,9 @@
  * each with its verdict under every credential policy and whether the JSON Schema accepts it;
  * and the one form both sides compare in (`outcomeOf`). A reader's tests run the fixtures through
  * its own path (the CLI's config layer, the VS Code extension's connections, the MCP server's
- * profiles) and hold what it makes of each verdict next to its tests. Data only: no file system,
- * no test framework.
+ * profiles) and hold what it makes of each verdict next to its tests. Beside them the cases of
+ * where the CLI's user config lives (`CLI_CONFIG_LOCATIONS`), which the CLI and the editor hosts
+ * each find with their own code. Data only: no file system, no test framework.
  */
 
 import {
@@ -14,6 +15,7 @@ import {
   type Profile,
   type ProfileFile,
 } from "../types.js"
+import locations from "./cli-config-locations.json" with { type: "json" }
 import fixtures from "./profile-fixtures.json" with { type: "json" }
 
 /** One profile of an outcome: its name (or position, for an invalid name) and its problems. */
@@ -123,3 +125,27 @@ function fixtureOf(raw: unknown): ProfileFixture {
 export const PROFILE_FIXTURES: readonly ProfileFixture[] = (fixtures as readonly unknown[]).map(
   fixtureOf,
 )
+
+/**
+ * One case of where the CLI's user config lives: the environment, the home folder and the
+ * platform a reader runs with, the path it finds (as the CLI takes it: a relative path the CLI's
+ * config variable names stays relative) and whether that variable named it (`explicit`: then the
+ * CLI reads that file only, no project file).
+ */
+export interface CliConfigLocation {
+  /** One sentence on what the case pins. */
+  readonly about: string
+  readonly env: Readonly<Record<string, string>>
+  readonly home: string
+  /** A value of Node's `process.platform`. */
+  readonly platform: string
+  readonly path: string
+  readonly explicit: boolean
+}
+
+/**
+ * Every case of the CLI's user config location, in the order of the file. The rule stays with each
+ * reader (it needs `node:path`, which this package never imports): the CLI's config layer and the
+ * editor hosts' host kit run this table in their tests, so both find the same file.
+ */
+export const CLI_CONFIG_LOCATIONS: readonly CliConfigLocation[] = locations

@@ -8,13 +8,13 @@ import {
   type RefObject,
 } from "react"
 import NavigatedViewer from "bpmn-js/lib/NavigatedViewer"
+import { BPMN_LABEL_STYLE } from "@miragon/pulse-ui"
+import { clearFitViewbox, keptClearOf, type FitRect } from "./bpmn-fit.js"
 import { BPMN_TOKENS, cdVar } from "./bpmn-tokens.js"
 import { useInlineBudget } from "./inline-budget.js"
 
 /** bpmn-js ships no usable types on `Viewer#get`; the slice the widgets use. */
 export interface BpmnCanvas {
-  /** Never zooms in past 1:1. */
-  zoom(mode: "fit-viewport", center?: "auto"): void
   zoom(level: number): void
   zoom(): number
   addMarker(elementId: string, marker: string): void
@@ -25,7 +25,11 @@ export interface BpmnCanvas {
     height: number
     scale: number
     inner?: { x: number; y: number; width: number; height: number }
+    outer?: { width: number; height: number }
   }
+  /** Shows `box` (diagram units) on the whole canvas, at the scale that fits it. */
+  viewbox(box: FitRect): unknown
+  /** diagram-js's container of the canvas, the box its size is read from. */
   getContainer(): HTMLElement
   /** Drops diagram-js's cached viewbox; a fit after a resize would scale against the old size. */
   resized(): void
@@ -90,7 +94,7 @@ function paintLightCanvas(container: HTMLElement): void {
 export const DIAGRAM_MIN_HEIGHT = 240
 export const DIAGRAM_MAX_HEIGHT = 560
 const DIAGRAM_DEFAULT_HEIGHT = 360
-/** The fit's 0.95 margin plus the zoom bar's reach. */
+/** The frame's height over the drawing's at full width: the fit's 5 % margin and air around it. */
 const DIAGRAM_HEIGHT_PADDING = 48
 
 export interface DiagramBounds {
@@ -99,8 +103,10 @@ export interface DiagramBounds {
 }
 
 /**
- * `fit-viewport` shrinks a wide diagram to the width but never zooms in past
- * 1:1, so a small diagram gets a frame just as tall, clamped to min/max.
+ * The frame for a diagram drawn across `width`: the clear fit (`clearFitViewbox`) shrinks a wide
+ * diagram to the width but never zooms in past 1:1, so a small diagram gets a frame just as tall,
+ * clamped to min/max. Where the zoom bar or bpmn.io's link would lie over the drawing, the fit
+ * draws it smaller beside them in this same frame; the frame does not grow for it.
  */
 export function diagramHeight(bounds: DiagramBounds | null, width: number): number {
   if (!bounds || !(bounds.width > 0) || !(bounds.height > 0) || !(width > 0)) {
@@ -182,6 +188,15 @@ export interface UseBpmnViewerOptions {
   reimportKey?: unknown
   /** Off by default: the heatmap preserves the operator's pan/zoom. */
   fitOnResize?: boolean
+  /**
+   * The diagram's name. The canvas alone (bpmn-js's SVG) becomes the image (`role="img"`) under
+   * it, so what lies beside the canvas in the frame (the zoom controls, bpmn.io's link) stays
+   * outside any image: an image's content is presentational, a control inside it would be lost to
+   * assistive technology (axe's nested-interactive). Never put the role on the frame. An overlay a
+   * caller draws over the canvas (a count badge) reads beside the image, so the caller hides it
+   * (`aria-hidden`) and says its value in words elsewhere in the view.
+   */
+  ariaLabel?: string
 }
 
 export interface UseBpmnViewerResult {
@@ -190,6 +205,10 @@ export interface UseBpmnViewerResult {
   importError: string | null
   zoomIn: () => void
   zoomOut: () => void
+  /**
+   * Fits the whole diagram, never past 1:1, clear of what lies over its canvas: `BpmnZoomControls`
+   * beside the container in its frame (the container's parent) and bpmn.io's link.
+   */
   fit: () => void
 }
 
@@ -198,6 +217,7 @@ export function useBpmnViewer({
   onImported,
   reimportKey,
   fitOnResize = false,
+  ariaLabel,
 }: UseBpmnViewerOptions): UseBpmnViewerResult {
   const containerRef = useRef<HTMLDivElement>(null)
   const viewerRef = useRef<NavigatedViewer | null>(null)
@@ -221,15 +241,21 @@ export function useBpmnViewer({
     return (viewerRef.current as unknown as BpmnViewerWithGet).get("canvas")
   }, [])
 
+  // bpmn-js's fit (never past 1:1, centred, 95 % of the canvas), kept clear of what lies over the
+  // canvas: where the zoom bar or bpmn.io's link would cover the drawing, it takes the room beside
+  // them (`clearFitViewbox`).
   const fit = useCallback(() => {
     const canvas = getCanvas()
-    if (!canvas) return
+    const frame = containerRef.current
+    if (!canvas || !frame) return
     // A hidden container (`display: none`: the origin view behind a drill) has no layout box, and
     // bpmn-js throws on the non-finite scale it would compute; showing it again resizes and refits.
-    if (containerRef.current?.getClientRects().length === 0) return
+    if (frame.getClientRects().length === 0) return
     canvas.resized()
-    canvas.zoom("fit-viewport", "auto")
-    canvas.zoom(canvas.zoom() * 0.95)
+    const { inner, outer } = canvas.viewbox()
+    if (!inner || !outer) return
+    const box = clearFitViewbox(inner, outer, keptClearOf(canvas.getContainer(), frame))
+    if (box) canvas.viewbox(box)
   }, [getCanvas])
 
   const zoomIn = useCallback(() => {
@@ -266,7 +292,8 @@ export function useBpmnViewer({
     const container = containerRef.current
     if (!container || !bpmnXml) return
 
-    const viewer = new NavigatedViewer({ container })
+    // The labels in bpmn-js's Arial, handed over explicitly: the same object as the webview's.
+    const viewer = new NavigatedViewer({ container, textRenderer: BPMN_LABEL_STYLE })
     viewerRef.current = viewer
     let cancelled = false
     let importCleanup: (() => void) | null = null
@@ -316,5 +343,33 @@ export function useBpmnViewer({
     }
   }, [bpmnXml, reimportKey, fitOnResize, fit, getCanvas])
 
+  // After the viewer's effect, so a viewer created in this commit has its canvas named in it too.
+  useEffect(() => {
+    nameCanvas(containerRef.current, ariaLabel)
+    hideBreadcrumbs(containerRef.current)
+  })
+
   return { containerRef, height, importError, zoomIn, zoomOut, fit }
+}
+
+/** bpmn-js draws into `.bjs-container > .djs-container > svg` inside the frame it is handed. */
+const CANVAS_SVG = ".djs-container > svg"
+/** bpmn-js's drilldown trail, a list it appends under the canvas. */
+const BREADCRUMBS = ".djs-container > .bjs-breadcrumbs"
+
+/**
+ * The trail (the planes above a drilled-into subprocess) lies under the canvas, clipped by the
+ * frame and, without bpmn-js's stylesheet, never in sight: hidden, so it does not read beside the
+ * image either, as a list of one item, the process's name.
+ */
+function hideBreadcrumbs(container: HTMLElement | null): void {
+  container?.querySelector(BREADCRUMBS)?.setAttribute("hidden", "")
+}
+
+/** The canvas becomes the image under its name; without a name it stays as bpmn-js drew it. */
+function nameCanvas(container: HTMLElement | null, label: string | undefined): void {
+  const svg = container?.querySelector(CANVAS_SVG)
+  if (!svg || label === undefined) return
+  svg.setAttribute("role", "img")
+  svg.setAttribute("aria-label", label)
 }

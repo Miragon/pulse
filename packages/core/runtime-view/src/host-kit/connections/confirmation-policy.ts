@@ -1,6 +1,7 @@
 import type { WriteAction } from "../../core/index.js"
 import type { BulkKind, Environment } from "../../core/protocol/index.js"
 import type { EngineTarget } from "./engine-target.js"
+import { EnvironmentClassifier } from "./environment-classifier.js"
 import type { EnvironmentSettings } from "./environment-settings.js"
 import { TargetHosts } from "./target-hosts.js"
 
@@ -33,8 +34,9 @@ export class ConfirmationPolicy {
       TargetHosts.isLoopback(target) ? LEVELS.local : LEVELS.unclassified,
       ACTION_FLOORS[action],
     )
-    const raised = [settings.user, ...settings.workspace].map(
-      (scope) => ConfirmationPolicy.levelOf(target, scope?.[target.name]) ?? 0,
+    const said = [settings.user, ...settings.workspace].map((scope) => scope?.[target.name])
+    const raised = [EnvironmentClassifier.namedByProfile(target), ...said].map(
+      (value) => ConfirmationPolicy.levelOf(target, value) ?? 0,
     )
     const level = Math.max(base, ...raised)
     return CONFIRMATIONS[level] ?? "typeHost"

@@ -32,9 +32,17 @@ function boundOf(count: Count): { value: number | null | undefined; atLeast: boo
 
 /** `1,234`; a lower bound `≥ 2,000`; unknown `—`. */
 export function formatCount(count: Count): string {
+  return countIn(count, localeTag())
+}
+
+/**
+ * {@link formatCount} in the `Intl` locale `tag` (`undefined` is the runtime's own): the kit's own
+ * text writes its counts in the locale of its words, the format locale's formatters in theirs.
+ */
+export function countIn(count: Count, tag: string | undefined): string {
   const { value, atLeast } = boundOf(count)
   if (!isNumber(value)) return EMPTY
-  const text = formatNumber(value)
+  const text = new Intl.NumberFormat(tag).format(value)
   return atLeast ? `${AT_LEAST_PREFIX}${text}` : text
 }
 
@@ -49,13 +57,21 @@ const COMPACT_FROM = { en: 1000, de: 1_000_000 } as const
  * beside it (a tooltip, a title).
  */
 export function formatCompactCount(count: Count): string {
+  return compactCountIn(count, localeTag(), unitLanguage())
+}
+
+/** {@link formatCompactCount} in the `Intl` locale `tag`, shortened from `language`'s threshold. */
+export function compactCountIn(
+  count: Count,
+  tag: string | undefined,
+  language: "de" | "en",
+): string {
   const { value, atLeast } = boundOf(count)
   if (!isNumber(value)) return EMPTY
-  const language = unitLanguage()
   const text =
     Math.abs(value) < COMPACT_FROM[language]
-      ? formatNumber(value)
-      : new Intl.NumberFormat(localeTag(), { notation: "compact", maximumFractionDigits: 1 })
+      ? new Intl.NumberFormat(tag).format(value)
+      : new Intl.NumberFormat(tag, { notation: "compact", maximumFractionDigits: 1 })
           .format(value)
           .replace(/K$/, "k")
   return atLeast ? `${text}${AT_LEAST_SUFFIX}` : text

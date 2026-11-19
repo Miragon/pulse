@@ -128,6 +128,27 @@ describe("classifyError: the mapping table", () => {
     expect(reason("plain words")).toBe("plain words")
   })
 
+  // The server adds a hint after the engine id (a Camunda 8 cluster's failure as a tool error):
+  // the reason reads the message, then the hint as a sentence of its own.
+  it("keeps a hint that follows the engine id readable, after the message's own sentence", () => {
+    const reason = (text: string) => classifyError(text).reason
+    expect(
+      reason(
+        "[misconfigured] [404 Not Found] No message available (engine c8) The profile's url must be the REST root of the cluster and end in /v2.",
+      ),
+    ).toBe(
+      "No message available. The profile's url must be the REST root of the cluster and end in /v2.",
+    )
+    expect(
+      reason(
+        "[unauthorized] [401] empty response body. (engine c8) The cluster refused the client's token.",
+      ),
+    ).toBe("empty response body. The cluster refused the client's token.")
+    expect(reason("[500] (engine c8) The cluster failed.")).toBe("The cluster failed.")
+    // An id the message quotes in lower case before more words stays where it is.
+    expect(reason("[500 X] (engine c8) failed twice (engine c8)")).toBe("(engine c8) failed twice")
+  })
+
   it("knows a write whose answer never came may have gone through", () => {
     expect(
       classifyError(
@@ -152,6 +173,7 @@ describe("classifyError: hostile input stays linear (CodeQL js/polynomial-redos)
     expect(facts.reason).toBe("boom")
     expect(classifyError(`[500 X] boom${spaces}(engine prod)${spaces}`).reason).toBe("boom")
     expect(classifyError(`[500 X] ${spaces}x`).reason).toBe("x")
+    expect(classifyError(`[500 X] boom${spaces}(engine prod) Hint.`).reason).toBe("boom. Hint.")
     expect(performance.now() - started).toBeLessThan(500)
   })
 })

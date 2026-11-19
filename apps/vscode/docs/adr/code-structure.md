@@ -1,7 +1,7 @@
 # Code structure
 
 - Status: accepted
-- Last reviewed: 2026-11-10 (one adapter per dialect family, the C7 adapter in the c7 family); 2026-10-28
+- Last reviewed: 2026-11-15 (the C7 adapter's commands take the writer and c7-core's port, the adapter keeps no reading client; the C7 adapter's instance detail is read by c7-core's `InstanceDetailReader` over the adapter's port; the composition roots build the host kit's `EngineRoot` over a record of one adapter per dialect; an adapter brings its BPMN dialect); 2026-11-10 (one adapter per dialect family, the C7 adapter in the c7 family); 2026-10-28
 
 ## Context
 
@@ -24,33 +24,34 @@ visible responsibility per file.
 | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `packages/connectors/engine/engine-core/src/ports` | `ProcessRuntime` (read), `ProcessCommands` (write): the engine contract, which the runtime view and the adapters import                                  |
 | `packages/connectors/engine/engine-core/src/model` | what the ports exchange: ids, read models, queries, `RuntimeError`, value kinds                                                                          |
-| `packages/core/runtime-view/src/ports`             | `EngineAdapter` (one per dialect family: turns a connection into a runtime and, if it can, commands) and the local ports                                 |
+| `packages/core/runtime-view/src/ports`             | `EngineAdapter` (one per dialect family: turns a connection into a runtime and, if it can, commands; brings its `BpmnDialect`) and the local ports       |
 | `packages/connectors/<family>/<family>-adapter`    | `class <Engine>Adapter implements EngineAdapter`, `class <Engine>ProcessRuntime implements ProcessRuntime`, `class <Engine>ProcessCommands implements …` |
-| `apps/vscode/src/host`                             | the composition root keeps one `EngineAdapter` per engine kind and hands the core what the active one returns                                            |
+| `apps/vscode/src/host`                             | the composition root hands the host kit's `EngineRoot` one `EngineAdapter` per dialect, which hands the core what the target's adapter returns           |
 | `packages/core/runtime-view/src/core`              | sees only `ProcessRuntime` and `ProcessCommands`, never an adapter                                                                                       |
 
 ### Classes own behaviour
 
-1. **One class per file**, named after it: `InstanceDetailReader` lives in
-   `instance-detail-reader.ts`. Types and interfaces that are part of that class's API
+1. **One class per file**, named after it: `HttpEngineTransport` lives in
+   `http-engine-transport.ts`. Types and interfaces that are part of that class's API
    may sit next to it.
 2. **No module-level functions.** Behaviour is a method of the class that owns the job:
    public methods say what the class does and come first; private methods say how.
    Module-level constants are fine.
 3. **Utility classes** hold stateless helpers that several classes need, as static
-   methods, named after the concept (`Timestamps.fromEngine`, `JsonText.pretty`). No
+   methods, named after the concept (`RequestArguments.identifier`, `JsonText.pretty`). No
    `utils.ts` grab bags; a utility class has one topic.
 4. **Roles are interfaces.** A class implements an interface when it plays a role that
    has, or is meant to have, more than one player, or when it is a seam other code
-   depends on: the ports, `EngineClient` and `EngineWriter` in the C7 adapter, `Panel` in
+   depends on: the ports, `EngineWriter` in the C7 adapter, `Panel` in
    the core, `Command` and the VS Code provider interfaces in the extension. Not every
    class gets an interface: a translation with one user is a private method of that
    class (an adapter's reader maps its own answers), not a class of its own.
 5. **Constructor injection.** Ports and I/O seams come through the constructor (a
-   runtime, an engine client, the panel's effects); per-session parts may be built
+   runtime, an engine port, a writer, the panel's effects); per-session parts may be built
    inside, as the core's panels build their `ViewSession`, `CallJumps` and
-   `InstanceWrites` from the context they receive. Wiring happens in a static `create`
-   of an adapter's entry classes (`C7ProcessRuntime.create`) or in the composition root.
+   `InstanceWrites` from the context they receive. Wiring happens in a static factory
+   of a dialect core's entry classes (c8-core's `C8Runtime.over`, c7-core's `C7Runtime.over`) or in
+   the composition root.
    Tests pass fakes the same way.
 6. **The budgets stay** (complexity 10, 300 lines per file, 60 per function, 4
    parameters, 20 statements). A class that outgrows them splits along its
@@ -62,11 +63,16 @@ Exceptions, each for a reason outside our control:
   constructor share a name, like `Number('3')`;
 - `activate` and `deactivate` in `apps/vscode/src/host/extension.ts`: VS Code calls
   these exported functions;
-- Preact components and hooks (functions named `Xyz` or `useXyz` in `.tsx` files): the
+- React components and hooks (functions named `Xyz` or `useXyz` in `.tsx` files): the
   framework's idiom; their helpers follow the rules above.
 - tests and their support code.
 
 ### Example: reading an instance in the C7 adapter
+
+The adapter's runtime is c7-core's `C7Runtime` (`@miragon/pulse-c7-core/runtime`, whose own
+style keeps its readers as classes over the port and their mappings as functions), which
+`C7Adapter` builds over the port of its wire; it asks one reader per question, and the reader takes
+the inspection through its constructor, as a test passes a fake.
 
 ```mermaid
 classDiagram
@@ -75,24 +81,28 @@ classDiagram
     <<interface>>
     getInstanceDetail(id) InstanceDetail
   }
-  class C7ProcessRuntime {
+  class C7Adapter {
+    +runtime(connection) ProcessRuntime
+  }
+  class C7Runtime {
     -C7Readers readers
-    +create(client)$ C7ProcessRuntime
+    +over(port, options)$ C7Runtime
     +getInstanceDetail(id)
   }
   class InstanceDetailReader {
-    -EngineClient client
+    -EnginePort port
+    -Inspection inspection
     +read(id) InstanceDetail
-    -definitionsOfIncidentInstances(view)
-    -incidentOf(incident, facts)
-    -calledInstanceOf(child, view)
+    -definitionsOf(view)
   }
-  class EngineClient {
+  class EnginePort {
     <<interface>>
   }
-  ProcessRuntime <|.. C7ProcessRuntime
-  C7ProcessRuntime --> InstanceDetailReader
-  InstanceDetailReader --> EngineClient
+  ProcessRuntime <|.. C7Runtime
+  C7Adapter --> C7Runtime
+  C7Adapter --> EnginePort
+  C7Runtime --> InstanceDetailReader
+  InstanceDetailReader --> EnginePort
 ```
 
 ### Enforcement
@@ -104,7 +114,8 @@ the repository's `eslint.config.mjs` and proven in
 - `no-restricted-syntax` rejects module-level function declarations and functions
   assigned to module-level constants in shipped code (the `src` of the hosts, the runtime view
   and the adapter), with the exceptions above, in every layer: `ports`, `core`, `webview`, the
-  adapter, `model`, `host-kit` and `host`, and in engine-core;
+  adapter, `model`, `host-kit` and `host`, and in engine-core and the board format
+  (`packages/core/board`);
 - `max-classes-per-file: 1`;
 - `@typescript-eslint/member-ordering`: fields, constructor, public before private
   methods;
@@ -113,17 +124,17 @@ the repository's `eslint.config.mjs` and proven in
 The rules were switched on package by package while the code moved to classes; since the
 move into the monorepo they hold for every layer. In the webview, helpers of components are static utility
 classes (`JsonText` and `TimeLabels` in `packages/core/runtime-view/src/webview/format`, `VariableEditorText` next to its screen), and a file that
-holds a Preact context and its hook is a `.tsx` file. In the extension, every command
+holds a React context and its hook is a `.tsx` file. In the extension, every command
 is a class implementing `Command` (`id`, `run`) that `CommandRegistrar` registers;
 `PulseExtension` wires VS Code, `CompositionRoot` wires the engines, and the panel
 manager hands the core's `Panel` sessions a `VsCodePanelEffects` per connection.
 
 ## Consequences
 
-- The C7 adapter, every fake and any future adapter implement the same interfaces; the
-  composition root picks one by the target's `engine` and nothing else branches on
+- The C7 adapter, the C8 adapter and every fake implement the same interfaces; the host kit's
+  `EngineRoot` picks one by the target's `engine`, its dialect, and nothing else branches on
   engines.
 - Many small files. Navigation goes by class name; the folder says the area
   (`reading/`, `views/`, `panels/`).
-- Preact components stay functions: class components are the framework's legacy API
+- React components stay functions: class components are the framework's legacy API
   and would not make the webview clearer.

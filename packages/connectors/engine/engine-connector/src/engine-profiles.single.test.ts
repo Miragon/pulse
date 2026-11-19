@@ -89,11 +89,11 @@ describe("the single engine: ENGINE_BASE_URL and its siblings yield one profile"
     ],
     [
       { ENGINE_ID: "-x", ENGINE_FLAVOR: "flowable" },
-      'ENGINE_ID: The profile\'s name is not valid (it is not shown): use letters, digits, ".", "_" and "-", starting with a letter or digit. ENGINE_FLAVOR: flavor must be one of camunda7, cibseven, operaton (the value is not shown).',
+      'ENGINE_ID: The profile\'s name is not valid (it is not shown): use letters, digits, ".", "_" and "-", starting with a letter or digit. ENGINE_FLAVOR: flavor must be one of camunda7, camunda8, cibseven, operaton (the value is not shown).',
     ],
     [
       { ENGINE_AUTH_TYPE: "Basic" },
-      "ENGINE_AUTH_TYPE: auth.type must be one of none, basic, bearer, oauth, passthrough (the value is not shown).",
+      "ENGINE_AUTH_TYPE: auth.type must be one of none, basic, bearer, oauth, clientCredentials, passthrough (the value is not shown).",
     ],
     [
       { ENGINE_AUTH_TYPE: "oauth" },

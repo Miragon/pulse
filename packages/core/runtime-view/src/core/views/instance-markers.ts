@@ -1,10 +1,11 @@
+import { CollapsedShapes } from "@miragon/pulse-board/builder"
 import type {
   CalledInstance,
   ElementId,
   InstanceDetail,
   InstanceId,
 } from "@miragon/pulse-engine-core"
-import type { BpmnStructure } from "../bpmn/bpmn-structure.js"
+import { BpmnStructure } from "../bpmn/bpmn-structure.js"
 import type { ElementMarker, MarkerKind } from "../protocol/index.js"
 import { SubProcessRollUp } from "./sub-process-roll-up.js"
 
@@ -20,7 +21,12 @@ export class InstanceMarkers {
   constructor(
     private readonly detail: InstanceDetail,
     private readonly structure: BpmnStructure,
+    private readonly shapes: CollapsedShapes,
   ) {}
+
+  static of(detail: InstanceDetail, diagramXml: string): InstanceMarkers {
+    return new InstanceMarkers(detail, BpmnStructure.of(diagramXml), CollapsedShapes.of(diagramXml))
+  }
 
   markers(): ElementMarker[] {
     const located = [
@@ -29,7 +35,7 @@ export class InstanceMarkers {
       ...this.completedMarkers(),
     ]
     return [
-      ...this.strongest(SubProcessRollUp.markers(located, this.structure)),
+      ...this.strongest(SubProcessRollUp.markers(located, this.shapes)),
       ...this.takenMarkers(),
     ]
   }
@@ -52,7 +58,7 @@ export class InstanceMarkers {
     ])
     return this.structure
       .flowsBetween(ended, reached)
-      .filter((flowId) => this.structure.collapsedAround(flowId).length === 0)
+      .filter((flowId) => this.shapes.around(flowId).length === 0)
       .map((flowId) => ({ elementId: flowId, kind: "taken" }))
   }
 

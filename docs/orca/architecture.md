@@ -1,7 +1,7 @@
 # Architecture
 
 Pulse for Orca and Pulse for VS Code are two hosts of one runtime view. What both show and
-decide lives in two packages they bundle; each host only wires it into its editor:
+decide lives in packages they bundle; each host only wires it into its editor:
 
 ```mermaid
 flowchart LR
@@ -12,6 +12,9 @@ flowchart LR
   worker --> adapter["C7 adapter: REST"]
   adapter --> contract
   adapter -- "@miragon/pulse-http" --> engines["Operaton, CIB seven, Camunda 7: /engine-rest"]
+  worker --> c8["C8 adapter: REST, read-only"]
+  c8 --> contract
+  c8 -- "@miragon/pulse-http" --> cluster["Camunda 8: /v2"]
 ```
 
 | Part                      | Holds                                                                                        |
@@ -36,6 +39,8 @@ Pulse for Orca works around these, and moves on when Orca offers them:
 - The worker does not know the active editor, so "Show runtime data for this model" is the
   list of local models in the panel.
 - `editor.open` takes no line, so incident details, models and code open at the top.
+- `editor.open` reaches files of a workspace only, and the panel has no clipboard, so the panel
+  shows your CLI config's path and opens the file only where a workspace holds it.
 - Tree items have no badge, colour or row action.
 - Orca grants a plugin's secrets to all its parts; Pulse reads them in the worker only.
 

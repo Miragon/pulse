@@ -1,16 +1,22 @@
 import { useId, useState } from "react"
 import {
+  Button,
   formatNumber,
   FilterBar,
   ListFooter,
   useDebouncedValue,
-  DrillButton,
+  SectionHeading,
 } from "@miragon/pulse-ui"
-import { ViewDataState, WidgetShell, useViewData } from "@miragon/pulse-widget-shell/widgets"
-import type { CockpitDashboardData } from "../../view-models.js"
+import {
+  ViewDataState,
+  WidgetShell,
+  useViewData,
+  type ViewDataResult,
+} from "@miragon/pulse-widget-shell/widgets"
+import type { CockpitDashboardData, EngineHealthData } from "../../view-models.js"
 import { buildRows } from "./lib.js"
 import { useNav } from "../navigation.js"
-import { ENGINE_COCKPIT_OVERVIEW_DATA } from "../../tool-names.js"
+import { ENGINE_COCKPIT_OVERVIEW_DATA, ENGINE_HEALTH_DATA } from "../../tool-names.js"
 import { useT } from "../../messages/use-t.js"
 import {
   ProcessDefinitionsTableView,
@@ -23,13 +29,7 @@ const PAGE_SIZE = 50
  * Client-side search and paging on purpose: `/process-definition/statistics` is uncapped, has
  * no filter/offset params, and engine-side paging would lose the issue-first sort.
  */
-function ProcessDefinitionsSection({
-  data: initialData = null,
-  engine,
-}: {
-  data?: CockpitDashboardData | null
-  engine: string
-}) {
+function ProcessDefinitionsSection({ view }: { view: ViewDataResult<CockpitDashboardData> }) {
   const t = useT()
   const go = useNav()
   const headingId = useId()
@@ -41,14 +41,7 @@ function ProcessDefinitionsSection({
     setPrevSearch(debouncedSearch)
     setLimit(PAGE_SIZE)
   }
-  // Shares the health KPI's query key, so one fetch.
-  const { data, loading, error, refetch } = useViewData<CockpitDashboardData>(
-    initialData,
-    ["engine:cockpit-overview", engine],
-    ENGINE_COCKPIT_OVERVIEW_DATA,
-    { engine },
-    true,
-  )
+  const { data, loading, error, refetch } = view
 
   if (!data) {
     return (
@@ -67,7 +60,6 @@ function ProcessDefinitionsSection({
     key: row.key,
     name: row.name,
     version: row.latestVersion,
-    tone: row.tone,
     counts: {
       instances: row.instances,
       failedJobs: row.failedJobs,
@@ -84,16 +76,16 @@ function ProcessDefinitionsSection({
   const rows = filtered.slice(0, limit)
 
   return (
-    // A real heading on the same step as the failure clusters above it (#322 U27).
+    // A real heading on the same step as the failure clusters above it (#322 U27): the compact
+    // section caption (13 px at 600), never above the 13 px view bar.
     <section aria-labelledby={headingId}>
-      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <h2 id={headingId} className="text-section text-foreground">
-          {t("cockpitDefs.heading")}
-        </h2>
-        <span className="text-muted-foreground text-small">
-          {t("cockpitDefs.deployedHint", { count: formatNumber(allRows.length) })}
-        </span>
-      </div>
+      <SectionHeading
+        as="h2"
+        id={headingId}
+        title={t("cockpitDefs.heading")}
+        hint={t("cockpitDefs.deployedHint", { count: formatNumber(allRows.length) })}
+        className="mb-2"
+      />
       <FilterBar
         search={search}
         onSearchChange={setSearch}
@@ -101,33 +93,31 @@ function ProcessDefinitionsSection({
         searchAriaLabel={t("cockpitDefs.searchLabel")}
         chips={[]}
         onChipToggle={() => undefined}
-        className="mb-2"
+        // A bar inside the content reaches the card's edges, as a view's tab bar does.
+        className="-mx-gutter mb-2"
       />
       <ProcessDefinitionsTableView
         rows={rows}
         ariaLabel={t("cockpitDefs.tableAria")}
         emptyText={debouncedSearch ? t("cockpitDefs.noMatch") : t("cockpitDefs.emptyState")}
+        // The row opens its process; its instances are the one further action at its end.
+        onOpen={(row) =>
+          go({
+            type: "process-detail",
+            processDefinitionKey: row.key,
+            label: row.name ?? undefined,
+          })
+        }
         renderActions={(row) => (
-          <>
-            <DrillButton
-              onDrill={() => go({ type: "process-instances", processDefinitionKey: row.key })}
-              ariaLabel={t("cockpitDefs.viewInstancesAria", { name: row.name ?? row.key })}
-            >
-              {t("cockpitDefs.instancesAction")}
-            </DrillButton>
-            <DrillButton
-              onDrill={() =>
-                go({
-                  type: "process-detail",
-                  processDefinitionKey: row.key,
-                  label: row.name ?? undefined,
-                })
-              }
-              ariaLabel={t("cockpitDefs.openDetailAria", { name: row.name ?? row.key })}
-            >
-              {t("cockpitDefs.openAction")}
-            </DrillButton>
-          </>
+          <Button
+            type="button"
+            variant="outline"
+            size="xs"
+            onClick={() => go({ type: "process-instances", processDefinitionKey: row.key })}
+            aria-label={t("cockpitDefs.viewInstancesAria", { name: row.name ?? row.key })}
+          >
+            {t("cockpitDefs.instancesAction")}
+          </Button>
         )}
       />
       <ListFooter
@@ -135,12 +125,17 @@ function ProcessDefinitionsSection({
         total={filtered.length}
         hasMore={rows.length < filtered.length}
         onLoadMore={() => setLimit((prev) => prev + PAGE_SIZE)}
-        noun={t("cockpitDefs.footerNoun")}
+        noun={(total) => t("cockpitDefs.footerNoun", { count: total })}
       />
     </section>
   )
 }
 
+/**
+ * The overview's definitions under its verdict, which reads the same engine through a feed of its
+ * own (one query, shared): when both fail, the verdict's state stands for the overview, so an
+ * engine that does not answer shows one status box, whose Try again reads both again.
+ */
 export function ProcessDefinitionsTable({
   data,
   engine,
@@ -148,9 +143,24 @@ export function ProcessDefinitionsTable({
   data: CockpitDashboardData | null
   engine: string
 }) {
+  const view = useViewData<CockpitDashboardData>(
+    data,
+    ["engine:cockpit-overview", engine],
+    ENGINE_COCKPIT_OVERVIEW_DATA,
+    { engine },
+    true,
+  )
+  const verdict = useViewData<EngineHealthData>(
+    null,
+    ["engine:health", engine],
+    ENGINE_HEALTH_DATA,
+    { engine },
+    true,
+  )
+  if (!view.data && view.error && !verdict.data && verdict.error) return null
   return (
     <WidgetShell>
-      <ProcessDefinitionsSection data={data} engine={engine} />
+      <ProcessDefinitionsSection view={view} />
     </WidgetShell>
   )
 }

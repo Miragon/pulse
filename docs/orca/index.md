@@ -11,7 +11,8 @@ turn them on.
 Pulse for Orca shows what your process engine is running inside [Orca](https://github.com/stablyai/orca):
 definitions, instances, incidents and variables, with badges on the deployed diagram, in Orca's
 editor tabs, and the engines in a Pulse panel in the right sidebar. It works with Operaton,
-CIB seven and Camunda 7 and reads the same engine profiles as the [Pulse CLI](../cli/index.md).
+CIB seven and Camunda 7, reads [Camunda 8](../vscode/camunda8.md) from 8.9 on without writing, and
+reads the same engine profiles as the [Pulse CLI](../cli/index.md).
 
 ![Pulse in Orca: a deployed process with incidents and running instances on its diagram, the Pulse panel on the right](../assets/orca/definition.webp)
 

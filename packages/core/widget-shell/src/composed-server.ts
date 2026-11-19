@@ -5,7 +5,9 @@
  * modules, each recorded once through the module registry, the views primed once after the last
  * one; the request log first of all routes, metrics before the others (hono only counts later
  * routes), then the Host/Origin guard, then health (reachable by IP-addressed probes), fonts
- * behind the guard, `/mcp` (the OAuth gate, then the MCP handler) last. `listen()` serves it all
+ * behind the guard, the web app under `/app`, its sign-in and the web build read once at boot (only
+ * with `MCP_WEB_CLIENT_ID` beside an OAuth provider), `/mcp` (the OAuth gate, then the MCP handler)
+ * last. `listen()` serves it all
  * through the listener, so a target that is not its own normal form gets 404, a TRACE 405 and a
  * body over the cap 413 before any of them.
  */
@@ -34,6 +36,7 @@ import {
 } from "./http-edge.js"
 import { installMetrics } from "./metrics.js"
 import { OAUTH_DEBUG_ENV_VAR, OAUTH_ENV_VARS, oauthFromEnv } from "./oauth-env.js"
+import { describeOAuthTokens } from "./oauth-providers.js"
 import { createBodyLimitedListener, type BodyLimitedListener } from "./node-listener.js"
 import { fontAssetsCsp, installFontAssets } from "./font-assets.js"
 import { installMcpRequestContext } from "./request-context.js"
@@ -41,6 +44,9 @@ import { REQUEST_LOG_LEVEL_ENV_VAR, requestLogLevelWarning } from "./request-log
 import { createModuleRegistry, type ModuleRegistrations } from "./tool-registration.js"
 import { viewPrelude } from "./protocol/view-name.js"
 import { labelBootError } from "./boot-error.js"
+import { installWebSignIn } from "./web/install.js"
+import { describeWebSettings, readWebSettings, WEB_ENV_VARS } from "./web/settings.js"
+import { readWebBuild } from "./web/static.js"
 
 /** What the server reports as `serverInfo` (plus the `instructions` it advertises). */
 export interface ComposedServerInfo {
@@ -68,6 +74,11 @@ export interface ComposedServerOptions<TShared extends object = object> {
   envVarHint?: string
   /** Installed INSTEAD of the provider the env names (a test's stub IdP). Production omits it. */
   oauth?: OAuthProvider
+  /**
+   * The web app's build, served under `/app` once `MCP_WEB_CLIENT_ID` turns the web app on:
+   * `index.html`, `pages.json` (its page routes) and `assets/`. `MCP_WEB_DIR` overrides `dir`.
+   */
+  web?: { dir: string }
 }
 
 export interface ListenOptions {
@@ -109,8 +120,8 @@ export const DEFAULT_REQUEST_TIMEOUT_MS = 30_000
 
 /**
  * What the boot itself reads: the listener's port and bind address, the HTTP edge, the OAuth
- * provider variables, the module selection, the switch that logs why a bearer token was refused
- * and the request-log level (the boot warns at debug/trace).
+ * provider variables, the web app's sign-in, the module selection, the switch that logs why a
+ * bearer token was refused and the request-log level (the boot warns at debug/trace).
  */
 const BOOT_ENV_VARS: readonly string[] = [
   "PORT",
@@ -118,6 +129,7 @@ const BOOT_ENV_VARS: readonly string[] = [
   ...HTTP_EDGE_ENV_VARS,
   ...OAUTH_ENV_VARS,
   OAUTH_DEBUG_ENV_VAR,
+  ...WEB_ENV_VARS,
   "MCP_ACTIVE_MODULES",
   REQUEST_LOG_LEVEL_ENV_VAR,
 ]
@@ -164,17 +176,6 @@ function oauthResource(
   }
   // `resolveHttpEdgePolicy` has validated it; one with a path fails in `resolveOAuthResource`.
   return new URL(mcpUrl).origin
-}
-
-/**
- * The `aud` the bearer gate accepts, the `resource` the protected-resource metadata advertises;
- * the JWT verifier also requires `sub`. An IdP set up for another value gets a 401 on every call,
- * so the boot names the value.
- */
-function describeOAuthAudience(resource: string, basePath: string): string {
-  const audience = new URL(resource)
-  audience.pathname = basePath
-  return `OAuth: tokens must carry aud ${audience.href} (RFC 8707) and a sub claim.`
 }
 
 function serverInstructions(info: ComposedServerInfo, modules?: string): string | undefined {
@@ -248,6 +249,17 @@ function resolveSelection<TShared extends object>(
   const edge = resolveHttpEdgePolicy(env)
   const oauth = options.oauth ?? oauthFromEnv(env, label)
   const resource = oauthResource(oauth, env, label)
+  const webSettings = readWebSettings(env, {
+    provider: oauth,
+    mcpUrl: env.MCP_URL,
+    dir: options.web?.dir,
+  })
+  // readWebSettings refuses a web app without a provider, so `oauth` is set beside its settings;
+  // the build is read now, so a missing one fails the boot before a line reads like a healthy one.
+  const web =
+    webSettings && oauth
+      ? { settings: webSettings, provider: oauth, build: readWebBuild(webSettings.dir) }
+      : undefined
   // The same test `createServer` installs OAuth on: a boot is authenticated only with the bearer gate.
   const boot = composition.resolveBoot(env, { authenticated: Boolean(oauth) })
   composition.emitBootWarnings(env)
@@ -255,7 +267,8 @@ function resolveSelection<TShared extends object>(
   if (logLevel) console.warn(`[${label}] ${logLevel}`)
   composition.logEffectiveToolsets(boot)
   console.info(`[${label}] ${describeHttpEdgePolicy(edge)}`)
-  return { edge, oauth, resource, boot }
+  if (webSettings) console.info(`[${label}] ${describeWebSettings(webSettings)}`)
+  return { edge, oauth, resource, web, boot }
 }
 
 async function buildServer<TShared extends object>(
@@ -414,9 +427,11 @@ async function boot<TShared extends object>(
   const guard = edge
 
   const app = await buildServer(options, composition, selection, env)
-  // After the app accepted the resource and the issuer: it knows the base path.
-  if (selection.resource) {
-    console.info(`[${label}] ${describeOAuthAudience(selection.resource, app.basePath)}`)
+  // After the app accepted the resource and the issuer. An IdP set up for another audience or
+  // caller claim gets a 401 on every call, so the boot names what the provider's gate checks.
+  const resource = app.oauthResource
+  if (selection.oauth && resource) {
+    console.info(`[${label}] ${describeOAuthTokens(selection.oauth, resource)}`)
   }
   const state = { draining: false }
 
@@ -426,6 +441,8 @@ async function boot<TShared extends object>(
   installHealthEndpoints(app, { path: HEALTH_PATH, label, draining: () => state.draining })
   // Behind the guard: a font GET passes the Origin half, a foreign Host does not.
   installFontAssets(app, { label })
+  // Behind the guard as well, and only beside a provider: its tokens are the gate's to verify.
+  if (selection.web && resource) installWebSignIn(app, { ...selection.web, resource, label })
 
   return {
     app,

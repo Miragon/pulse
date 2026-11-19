@@ -1,14 +1,17 @@
 import { describe, expect, it } from "vitest"
+import { dialectOf, FLAVORS, type Flavor } from "@miragon/pulse-profile"
 import type { EngineFlavor } from "./engine-provider.js"
 import { engineConfigSchema, engineModule } from "./module.js"
 import {
   DEFAULT_ENGINE_FLAVOR,
   ENGINE_PROVIDERS,
   camunda7Provider,
+  camunda8Provider,
   cibsevenProvider,
   operatonProvider,
   providerForEntry,
 } from "./providers/index.js"
+import { buildInstanceCockpitUrl, buildProcessCockpitUrl } from "./lib/engine/cockpit-url.js"
 
 /**
  * The vendor an engine entry resolves to. Without a `flavor` it is Camunda 7,
@@ -26,14 +29,45 @@ describe("providerForEntry", () => {
     expect(providerForEntry({ id: "a", flavor: "cibseven" })).toBe(cibsevenProvider)
     expect(providerForEntry({ id: "a", flavor: "operaton" })).toBe(operatonProvider)
     expect(providerForEntry({ id: "a", flavor: "camunda7" })).toBe(camunda7Provider)
+    expect(providerForEntry({ id: "a", flavor: "camunda8" })).toBe(camunda8Provider)
     for (const [flavor, provider] of Object.entries(ENGINE_PROVIDERS)) {
       expect(provider.flavor).toBe(flavor)
     }
   })
 
+  it("has a provider for every flavor of the profile format, each with the format's dialect", () => {
+    const flavors = Object.keys(FLAVORS) as Flavor[]
+    expect(Object.keys(ENGINE_PROVIDERS).sort()).toEqual([...flavors].sort())
+    for (const flavor of flavors) {
+      expect(ENGINE_PROVIDERS[flavor].dialect, flavor).toBe(dialectOf({ flavor }))
+    }
+  })
+
+  it("gives a client to the Camunda 7 REST dialect's providers alone", () => {
+    const flavors = Object.keys(FLAVORS) as Flavor[]
+    const c7 = flavors.filter((flavor) => FLAVORS[flavor] === "c7")
+    expect(c7.sort()).toEqual(["camunda7", "cibseven", "operaton"])
+    for (const flavor of flavors) {
+      expect("createClient" in ENGINE_PROVIDERS[flavor], flavor).toBe(c7.includes(flavor))
+    }
+  })
+
+  it("names Camunda 8 and links nowhere into Operate: no base derived, no route", () => {
+    const engine = {
+      baseUrl: "https://cluster.example/v2",
+      cockpitUrl: "https://operate.example/operate",
+      provider: camunda8Provider,
+    }
+    expect(camunda8Provider.branding.displayName).toBe("Camunda 8")
+    expect(camunda8Provider.cockpit.deriveWebappBase("https://cluster.example/v2")).toBeNull()
+    const ref = { key: "order", version: 1, definitionId: "2251799813685249", instanceId: "1" }
+    expect(buildProcessCockpitUrl(engine, ref)).toBeNull()
+    expect(buildInstanceCockpitUrl(engine, ref, { tab: "incidents" })).toBeNull()
+  })
+
   it("fails on a flavor an untyped caller made up, naming the engine and the known ones", () => {
     expect(() => providerForEntry({ id: "a", flavor: "flowable" as EngineFlavor })).toThrow(
-      'Unknown engine flavor "flowable" for engine "a". Expected one of: cibseven, operaton, camunda7',
+      'Unknown engine flavor "flowable" for engine "a". Expected one of: cibseven, operaton, camunda7, camunda8',
     )
   })
 })
@@ -91,10 +125,16 @@ describe("engineModule.configFromEnv engine flavor", () => {
     "fails the boot on %j, naming the variable and never the value",
     (raw) => {
       expect(() => engineModule.configFromEnv({ ENGINE_FLAVOR: raw })).toThrow(
-        "ENGINE_FLAVOR: flavor must be one of camunda7, cibseven, operaton (the value is not shown).",
+        "ENGINE_FLAVOR: flavor must be one of camunda7, camunda8, cibseven, operaton (the value is not shown).",
       )
     },
   )
+
+  it("fails the boot on camunda8, whose engine is a profile of ENGINES_JSON or ENGINES_FILE", () => {
+    expect(() => engineModule.configFromEnv({ ENGINE_FLAVOR: "camunda8" })).toThrow(
+      /^ENGINE_FLAVOR=camunda8: ENGINE_BASE_URL and its siblings describe a Camunda 7 engine\. A camunda8 engine is a profile in ENGINES_JSON or ENGINES_FILE/,
+    )
+  })
 
   it("declares ENGINE_FLAVOR so the unknown-env-var warner does not flag it", () => {
     expect(engineModule.knownEnvVars).toContain("ENGINE_FLAVOR")

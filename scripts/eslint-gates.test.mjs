@@ -67,13 +67,15 @@ const WS = "packages/core/widget-shell/src/ui"
 const UI = "packages/core/ui/src"
 const APP_UI = "apps/mcp-server/src/ui"
 /**
- * WIDGET_TREES of eslint.config.mjs: the host bundle's src/ui, widget-shell's view half and the
- * connector's widgets, a .ts and a .tsx probe each. The date and number gates hold all of them.
+ * WIDGET_TREES of eslint.config.mjs: the host bundle's src/ui, widget-shell's view half, the
+ * connector's widgets, Pulse's building blocks and the web app's page, a .ts and a .tsx probe each.
+ * The date and number gates hold all of them.
  */
-const WIDGET_TREE_PATHS = [APP_UI, WS, `${ENGINE_CONNECTOR_SRC_DIR}/widgets`].flatMap((dir) => [
-  `${dir}/__probe__.ts`,
-  `${dir}/__probe__.tsx`,
-])
+const BLOCKS = "packages/core/blocks/src/board"
+const WEB = "apps/web/src"
+const WIDGET_TREE_PATHS = [APP_UI, WS, `${ENGINE_CONNECTOR_SRC_DIR}/widgets`, BLOCKS, WEB].flatMap(
+  (dir) => [`${dir}/__probe__.ts`, `${dir}/__probe__.tsx`],
+)
 /**
  * The runtime view's core and webview, which Pulse for VS Code and Pulse for Orca host: they
  * format through pulse-ui's foundation (`@miragon/pulse-ui/format`), so the date and number
@@ -213,6 +215,8 @@ describe("MCP Apps runtime gate (invariant 6): only widget-shell's host adapter 
     "apps/mcp-server/src/ui/__probe__.tsx",
     "apps/mcp-server/test/__probe__.test.ts",
     "apps/mcp-server/test-host/__probe__.spec.ts",
+    "apps/web/src/__probe__.tsx",
+    "apps/web/test/__probe__.test.ts",
   ]
 
   // Every way a static import or re-export reaches the runtime: its root, each browser subpath
@@ -509,9 +513,11 @@ describe("connector resource gate (invariant 3): a connector's views belong in t
     `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.ts`,
     "packages/connectors/c7/c7-client/src/__probe__.ts",
     "packages/connectors/newfamily/newfamily-connector/src/__probe__.ts",
-    // engine-core's src and the C7 adapter's, where the blocks of Pulse for VS Code's house
-    // rules carry the gate in their union, the id constructors' block too.
+    // engine-core's src, c8-core's and the family adapters', where the blocks of Pulse for VS
+    // Code's house rules carry the gate in their union, the id constructors' block too.
     "packages/connectors/c7/c7-adapter/src/__probe__.ts",
+    "packages/connectors/c8/c8-adapter/src/wire/__probe__.ts",
+    "packages/connectors/c8/c8-core/src/rest/__probe__.ts",
     "packages/connectors/engine/engine-core/src/__probe__.ts",
     "packages/connectors/engine/engine-core/src/testing/fake/__probe__.ts",
     "packages/connectors/engine/engine-core/src/model/ids.ts",
@@ -953,11 +959,15 @@ describe("no import or re-export of types alone stays in the emitted JavaScript"
     "packages/connectors/c7/c7-client/src/__probe__.ts",
     "packages/connectors/c7/c7-core/src/__probe__.ts",
     "packages/connectors/c7/c7-adapter/test/__probe__.test.ts",
+    "packages/connectors/c8/c8-adapter/test/__probe__.test.ts",
     `${ENGINE_CONNECTOR_SRC_DIR}/__probe__.ts`,
     "packages/connectors/engine/engine-core/src/__probe__.ts",
     ...WIDGET_TREE_PATHS,
   ]
-  /** A JSX file of every tree with JSX: React, Preact (the runtime view) and Orca's own runtime. */
+  /**
+   * A JSX file of every tree with JSX: the React trees (the runtime view's webview among them)
+   * and Orca's own runtime.
+   */
   const JSX_TREES = [
     `${UI}/primitives/__probe__.tsx`,
     ...WIDGET_TREE_PATHS.filter((rel) => rel.endsWith(".tsx")),

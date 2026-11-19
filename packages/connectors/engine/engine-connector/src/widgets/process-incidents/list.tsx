@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { formatNumber, GroupCard, SectionHeading, TONE_DOT } from "@miragon/pulse-ui"
+import { formatNumber, GroupCard, SectionHeading, TableEmptyState } from "@miragon/pulse-ui"
 import { ViewDataState, WidgetShell } from "@miragon/pulse-widget-shell/widgets"
 import type { ProcessIncidentsData } from "../../view-models.js"
 import { useNav } from "../navigation.js"
@@ -29,19 +29,16 @@ function NoIncidentsState({
       />
     )
   }
-  return (
-    <div className="border-border bg-card text-dense flex items-center gap-2 rounded-lg border px-4 py-2.5">
-      <span className={`size-1.5 rounded-full ${TONE_DOT.success}`} aria-hidden="true" />
-      <span className="text-foreground">{t("procIncList.noIncidentsNote", { processName })}</span>
-    </div>
-  )
+  // A process without a problem is neutral (`SITUATION_TONES`): the kit's empty note, never a
+  // green dot or check.
+  return <TableEmptyState>{t("procIncList.noIncidentsNote", { processName })}</TableEmptyState>
 }
 
 export function ActivityIncidentList({
   emptyVariant = "note",
   ...scope
 }: DefinitionScope & {
-  /** "note" is the default slim success line; "siblings" the explorative empty state of the incidents focus. */
+  /** "note" is the kit's neutral empty note; "siblings" the explorative empty state of the incidents focus. */
   emptyVariant?: "siblings" | "note"
 }) {
   const t = useT()

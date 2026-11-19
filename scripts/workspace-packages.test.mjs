@@ -23,7 +23,7 @@ describe("workspace-packages", () => {
     assert.equal(lib("packages/core/x", { engines: { vscode: "^1.101.0" } }), false)
   })
 
-  it("lists the repo's eight libraries, what test-template.sh packs and the mirror waits for", () => {
+  it("lists the repo's eleven libraries, what test-template.sh packs and the mirror waits for", () => {
     const out = execFileSync(
       process.execPath,
       [path.join(REPO_ROOT, "scripts/workspace-packages.mjs"), "libraries"],
@@ -38,8 +38,11 @@ describe("workspace-packages", () => {
       publishedLibraries(REPO_ROOT).map(({ dir, manifest }) => [dir, manifest.name]),
     )
     assert.deepEqual(rows.map(([, name]) => name).sort(), [
+      "@miragon/pulse-blocks",
+      "@miragon/pulse-board",
       "@miragon/pulse-c7-client",
       "@miragon/pulse-c7-core",
+      "@miragon/pulse-c8-core",
       "@miragon/pulse-engine-connector",
       "@miragon/pulse-engine-core",
       "@miragon/pulse-http",

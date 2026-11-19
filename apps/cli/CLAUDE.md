@@ -127,10 +127,15 @@ flag, a `PULSE_CLI_*` variable). `apps/cli/src/config/profile-fixtures.test.ts` 
 fixture of `@miragon/pulse-profile/testing` through both readers and resolves each profile the
 format takes. A change to what a profile may hold changes the package, its schema and a fixture
 in the same commit; the CLI and the runtime view's host kit, which Pulse for VS Code and Pulse for
-Orca read their project files through, follow in theirs. The lookup fails (CONFIG) at a
-directory that holds the project file only under its former name (`FORMER_PROJECT_FILE` in
-`apps/cli/src/config/project.ts`, the one place of its code that names it) with a hint to rename
-it, so a command never runs with the user's own default where the repository meant its profiles.
+Orca read their project files through (and Pulse for VS Code the user's config file), follow in
+theirs. Where the user's config file lives (`configFilePath` in `apps/cli/src/config/file.ts`) is
+one case table, `CLI_CONFIG_LOCATIONS` of `@miragon/pulse-profile/testing`
+(`packages/core/profile/src/testing/cli-config-locations.json`), which
+`apps/cli/src/config/file.test.ts` and the host kit's `UserConfigLocation` test both run: a change
+to the rule changes the table, and both readers follow in the same commit. The lookup fails (CONFIG)
+at a directory that holds the project file only under its former name (`FORMER_PROJECT_FILE` in
+`apps/cli/src/config/project.ts`, the one place of its code that names it) with a hint to rename it,
+so a command never runs with the user's own default where the repository meant its profiles.
 
 ## Catalogs
 
@@ -213,8 +218,12 @@ upload glob, each link with a planted break.
   only `@miragon/pulse-c7-core`, which holds the workflow rules the CLI bundles,
   `@miragon/pulse-http`, the transport it bundles (owner decision 2026-11-08), the
   root-cause, value-kind and move-reason rules of `@miragon/pulse-engine-core`, whose root-cause
-  rule the CLI bundles through c7-core (owner decision 2026-11-09), and `@miragon/pulse-profile`,
-  the profile format it bundles (owner decision 2026-11-07).
+  rule the CLI bundles through c7-core (owner decision 2026-11-09), `@miragon/pulse-profile`,
+  the profile format it bundles (owner decision 2026-11-07), and three packages it does not
+  bundle: `@miragon/pulse-board` (owner decision 2026-11-15), the web app's server rules, the
+  gate's token rules, the provider's discovery, the generic OpenID Connect provider and the Entra
+  ID provider of `@miragon/pulse-widget-shell` (owner decisions 2026-11-16 to 2026-11-18) and the
+  rules of `@miragon/pulse-c8-core` (owner decision 2026-11-17).
 - Coverage floors in `apps/cli/vitest.config.ts` only rise.
 
 ## The command and its second name

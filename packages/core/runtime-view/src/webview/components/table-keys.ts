@@ -1,14 +1,15 @@
 export class TableKeys {
-  static wantsSide(event: KeyboardEvent | MouseEvent): boolean {
-    return event.metaKey || event.ctrlKey
+  static isCopy(event: {
+    readonly ctrlKey: boolean
+    readonly metaKey: boolean
+    readonly key: string
+  }): boolean {
+    return (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "c"
   }
 
-  static isCopy(event: KeyboardEvent): boolean {
-    return TableKeys.wantsSide(event) && event.key.toLowerCase() === "c"
-  }
-
-  static focusRow(row: EventTarget | null, index: number): void {
-    const body = row instanceof HTMLElement ? row.parentElement : null
-    body?.querySelectorAll<HTMLElement>("tr")[index]?.focus()
+  static indexOf(row: HTMLTableRowElement): number {
+    return row.parentElement === null
+      ? -1
+      : [...row.parentElement.children].filter((child) => child.tagName === "TR").indexOf(row)
   }
 }

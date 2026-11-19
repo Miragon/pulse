@@ -4,6 +4,7 @@ import {
   isPermanentError,
   useActionFeedback,
   useQueryClient,
+  useHostWrites,
   useToolMutation,
   type ConfirmTarget,
   type QueryClient,
@@ -42,7 +43,10 @@ interface RunOptions<TResult> {
   onError?: (error: Error) => void
 }
 
-/** The toolset and the engine's profile decide (`engine_widget_actions_data`), AND `available`. */
+/**
+ * The host (a page writes nothing), the toolset and the engine's profile decide
+ * (`engine_widget_actions_data`), AND `available`.
+ */
 export interface EngineActionOptions<TArgs> {
   tool: EngineWidgetAction
   /**
@@ -111,12 +115,15 @@ function invalidateAfter(client: QueryClient, tool: EngineWidgetAction): void {
 }
 
 /**
- * The deployment gate of one write on `engine`, for a surface that only words an offer (fix or
- * diagnose) without running the write itself. Fail-closed until the gate feed answered; the gate
- * stays in this primitive (`src/widget-actions.test.ts`).
+ * The gate of one write on `engine`, for a surface that only words an offer (fix or diagnose)
+ * without running the write itself: the host lets a view write (a page outside a chat writes
+ * nothing, so it never asks the gate feed) AND the deployment offers it. Fail-closed until the
+ * gate feed answered; the gate stays in this primitive (`src/widget-actions.test.ts`).
  */
 export function useActionAllowed(tool: EngineWidgetAction, engine: string | undefined): boolean {
-  return useCanRun()(tool, engine)
+  const writes = useHostWrites()
+  const canRun = useCanRun(writes)
+  return writes && canRun(tool, engine)
 }
 
 /** The one in-widget write primitive (`src/widget-actions.test.ts`); fail-closed until the gate feed answered. */

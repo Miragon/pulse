@@ -7,13 +7,14 @@ import { MODULES, sharedResources, type ModuleDefinition } from "./setup.js"
 const PACKAGE_ROOT = path.join(import.meta.dirname, "..")
 
 /**
- * The preamble of the server `instructions`, deliberately short and factual.
- * Each active module appends its own snippet (engine routing, dates, tool
- * families, health routing; `ComposableModule.instructions`), and the tool
- * descriptions carry the per-tool details.
+ * The preamble of the server `instructions`, deliberately short and factual, and true on every
+ * configuration: what the engines of a deployment are (Camunda 7, CIB seven, Operaton, Camunda 8
+ * on boards) the engine module's own snippet says by the dialects configured. Each active module
+ * appends its own snippet (engine routing, dates, tool families, health routing;
+ * `ComposableModule.instructions`), and the tool descriptions carry the per-tool details.
  */
 export const SERVER_INSTRUCTIONS =
-  "Camunda 7 / CIB seven operations. " +
+  "Process engine operations. " +
   "Toolsets fail closed: a tool missing from tools/list is not enabled on this deployment. " +
   "On hosts that render MCP Apps, prefer the view tools (*_open_*) to present results to the user."
 
@@ -31,6 +32,11 @@ export interface AppDeps {
   bundle?: { jsPath: string; cssPath?: string }
   /** The composition; default: `MODULES`. The host simulation adds a module's own view to it. */
   modules?: readonly ModuleDefinition[]
+  /**
+   * The web app's build, served under `/app` once `MCP_WEB_CLIENT_ID` is set (`MCP_WEB_DIR`
+   * overrides it); default: the package's `web/`, which the server image fills.
+   */
+  webDir?: string
 }
 
 /** The one boot `src/index.ts` (production and `pnpm dev`) and the e2e suites share. */
@@ -43,7 +49,7 @@ export async function createApp(
       name: "pulse",
       version: packageVersion(),
       title: "Pulse",
-      description: "Camunda 7 / CIB seven operations",
+      description: "Process engine operations",
       websiteUrl: "https://github.com/Miragon/pulse",
       instructions: SERVER_INSTRUCTIONS,
     },
@@ -55,5 +61,6 @@ export async function createApp(
       jsPath: path.join(PACKAGE_ROOT, "dist", "mcp-app.js"),
       cssPath: path.join(PACKAGE_ROOT, "dist", "mcp-app.css"),
     },
+    web: { dir: deps.webDir ?? path.join(PACKAGE_ROOT, "web") },
   })
 }

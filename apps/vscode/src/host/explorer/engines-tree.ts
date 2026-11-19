@@ -3,7 +3,7 @@ import * as vscode from "vscode"
 import { COMMAND } from "../commands/command-ids.js"
 import type { Connection, TargetsProblem } from "@miragon/pulse-runtime-view/host-kit"
 import type { ConnectionRegistry } from "../connections/connection-registry.js"
-import type { PanelFocus } from "../panels/panel-manager.js"
+import type { PanelFocus } from "../panels/active-panel-focus.js"
 import type { LiveTree } from "./engines-tree-live.js"
 import { IncidentDecorations } from "./incident-decorations.js"
 
@@ -22,6 +22,9 @@ type EngineNode = Extract<EnginesTreeNode, { kind: "engine" }>
 type DefinitionTreeNode = Extract<EnginesTreeNode, { kind: "definition" }>
 type MessageNode = Extract<EnginesTreeNode, { kind: "message" }>
 
+const NOTHING_VISIBLE =
+  "No process definitions deployed, or you may not have permission to see them."
+
 const ENVIRONMENT_LABELS = {
   local: "LOCAL",
   test: "TEST",
@@ -38,6 +41,7 @@ export class EnginesTree
   private readonly subscription: vscode.Disposable
   private readonly productsByEndpoint = new Map<string, string>()
   private readonly engineNodes = new WeakMap<Connection, EngineNode>()
+  private readonly shownBelow = new WeakMap<Connection, readonly EnginesTreeNode[]>()
   private readonly expanded = new Set<string>()
 
   constructor(private readonly registry: ConnectionRegistry) {
@@ -105,7 +109,9 @@ export class EnginesTree
     }
     this.expanded.add(element.connection.target.name)
     void this.learnProduct(element.connection)
-    return this.definitionsOf(element.connection)
+    const children = await this.definitionsOf(element.connection)
+    this.shownBelow.set(element.connection, children)
+    return children
   }
 
   getParent(element: EnginesTreeNode): EnginesTreeNode | undefined {
@@ -209,7 +215,7 @@ export class EnginesTree
   private messageItem({ text, detail, icon }: MessageNode): vscode.TreeItem {
     const item = new vscode.TreeItem(text, vscode.TreeItemCollapsibleState.None)
     item.iconPath = new vscode.ThemeIcon(icon)
-    item.tooltip = detail
+    item.tooltip = detail === "" ? text : detail
     item.description = detail
     item.accessibilityInformation = { label: [text, detail].filter(Boolean).join(" ") }
     return item
@@ -229,7 +235,14 @@ export class EnginesTree
     connection: Connection,
     bpmnProcessId: string,
   ): Promise<DefinitionTreeNode | undefined> {
-    const nodes = await this.definitionsOf(connection)
+    const shown = EnginesTree.definitionIn(this.shownBelow.get(connection) ?? [], bpmnProcessId)
+    return shown ?? EnginesTree.definitionIn(await this.definitionsOf(connection), bpmnProcessId)
+  }
+
+  private static definitionIn(
+    nodes: readonly EnginesTreeNode[],
+    bpmnProcessId: string,
+  ): DefinitionTreeNode | undefined {
     return nodes.find(
       (node): node is DefinitionTreeNode =>
         node.kind === "definition" && node.node.bpmnProcessId === bpmnProcessId,
@@ -260,7 +273,7 @@ export class EnginesTree
         return [
           {
             kind: "message",
-            text: "No process definitions deployed",
+            text: NOTHING_VISIBLE,
             detail: "",
             icon: "debug-disconnect",
           },

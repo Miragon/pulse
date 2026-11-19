@@ -1,18 +1,23 @@
 import { access, readFile } from "node:fs/promises"
-import { dirname, join } from "node:path"
+import { join } from "node:path"
 import { CompositionRoot } from "./composition-root.js"
 import {
   type Connection,
   ConnectionBuilder,
   CredentialStore,
+  type DiscoveredTargets,
   EngineLanes,
-  LOCAL_TARGET,
-  type EngineTarget,
+  type EngineRoot,
   EnvironmentClassifier,
+  type FileVerdict,
   LivePolicy,
+  type Login,
   ProjectFile,
-  TargetsParser,
-  TargetsProblem,
+  TargetMerge,
+  type TargetsProblem,
+  type UserConfigLocation,
+  UserConfigRead,
+  type UserConfigVerdict,
   type WriteAudit,
   type EnvironmentSettings,
 } from "@miragon/pulse-runtime-view/host-kit"
@@ -23,30 +28,30 @@ import type { OrcaWorkspaces } from "./orca-workspaces.js"
 
 const ACTIVE_KEY = "activeEngine"
 
-const CANT_READ = "Pulse can't read this file"
-
 type Listener = () => void
 
-interface Discovered {
-  readonly files: readonly string[]
-  readonly targets: readonly EngineTarget[]
-  readonly problems: readonly TargetsProblem[]
+export interface RegistryWiring {
+  readonly audit: WriteAudit
+  readonly engines: EngineRoot
 }
 
-interface ProjectText {
-  readonly text?: string
-  readonly missing: boolean
+interface Discovered extends DiscoveredTargets {
+  readonly files: readonly string[]
+  readonly user: UserConfigRead
 }
 
 export class EngineRegistry {
   private connections: readonly Connection[] = []
   private problems: readonly TargetsProblem[] = []
   private files: readonly string[] = []
+  private userVerdict: UserConfigVerdict | undefined
   private activeName: string | undefined
   private environments: EnvironmentSettings = { user: undefined, workspace: [] }
   private readonly lanes = new EngineLanes()
+  private readonly merge: TargetMerge
   private readonly credentials: CredentialStore
   private readonly builder: ConnectionBuilder
+  private readonly location: UserConfigLocation
   private readonly changed = new Set<Listener>()
   private readonly written = new Set<Listener>()
   private reloads: Promise<void> = Promise.resolve()
@@ -55,14 +60,12 @@ export class EngineRegistry {
     private readonly orca: OrcaWorkerApi,
     private readonly settings: OrcaSettings,
     private readonly workspaces: OrcaWorkspaces,
-    audit: WriteAudit,
+    { audit, engines }: RegistryWiring,
   ) {
     this.credentials = new CredentialStore(new OrcaSecretStorage(orca.secrets))
-    this.builder = new ConnectionBuilder(
-      CompositionRoot.create(),
-      audit,
-      OrcaSettings.WRITES_WORDING,
-    )
+    this.builder = new ConnectionBuilder(engines, audit, OrcaSettings.WRITES_WORDING)
+    this.merge = new TargetMerge(engines.localTarget())
+    this.location = CompositionRoot.userConfig()
   }
 
   reload(): Promise<void> {
@@ -112,7 +115,15 @@ export class EngineRegistry {
   }
 
   projectFiles(): readonly string[] {
-    return this.files
+    return this.location.explicit ? [] : this.files
+  }
+
+  userConfigLocation(): UserConfigLocation {
+    return this.location
+  }
+
+  userConfigVerdict(): UserConfigVerdict | undefined {
+    return this.userVerdict
   }
 
   configurationProblems(): readonly TargetsProblem[] {
@@ -132,12 +143,12 @@ export class EngineRegistry {
     EngineRegistry.fire(this.written)
   }
 
-  async saveLogin(name: string, username: string, password: string): Promise<boolean> {
+  async saveLogin(name: string, login: Login): Promise<boolean> {
     const connection = this.byName(name)
     if (connection === undefined) {
       return false
     }
-    await this.credentials.write(connection.target, username, password)
+    await this.credentials.write(connection.target, login)
     await this.reload()
     return true
   }
@@ -169,69 +180,55 @@ export class EngineRegistry {
       ),
     )
     this.files = discovered.files
+    this.userVerdict = discovered.user.verdict()
     this.problems = discovered.problems
     EngineRegistry.fire(this.changed)
   }
 
   private async discover(): Promise<Discovered> {
     const configured = await this.settings.projectFile()
-    const files = configured === "" ? await this.focusedProjectFile() : [configured]
-    const targets: EngineTarget[] = []
-    const problems: TargetsProblem[] = []
-    const found: string[] = []
-    let blocked = false
-    for (const file of files) {
-      const read = await EngineRegistry.read(file)
-      if (read.text === undefined) {
-        problems.push(...(await EngineRegistry.unreadable(file, file === configured, read.missing)))
-        blocked ||= !read.missing
-        continue
-      }
-      found.push(file)
-      const parsed = new TargetsParser(file).parse(read.text)
-      targets.push(
-        ...parsed.targets.filter((target) => !targets.some((known) => known.name === target.name)),
-      )
-      problems.push(...parsed.problems)
-    }
-    const fallback =
-      targets.length === 0 &&
-      !blocked &&
-      !problems.some((problem) => problem.message === ProjectFile.RENAME)
-    return { files: found, targets: fallback ? [LOCAL_TARGET] : targets, problems }
+    const verdicts =
+      configured === ""
+        ? await this.focusedProjectFile()
+        : [await EngineRegistry.configuredFile(configured)]
+    const files = verdicts.flatMap((verdict) => (verdict.kind === "read" ? [verdict.path] : []))
+    const user = await UserConfigRead.of(this.location, (path) =>
+      EngineRegistry.configuredFile(path),
+    )
+    return { files, user, ...this.merge.merge(verdicts, user) }
   }
 
-  private async focusedProjectFile(): Promise<readonly string[]> {
+  private async focusedProjectFile(): Promise<readonly FileVerdict[]> {
     const focused = await this.workspaces.focusedWorkspace()
-    return focused === undefined ? [] : [join(focused.path, ProjectFile.NAME)]
+    if (focused === undefined) {
+      return []
+    }
+    const verdict = await EngineRegistry.verdictOf(join(focused.path, ProjectFile.NAME))
+    if (verdict !== undefined) {
+      return [verdict]
+    }
+    const former = join(focused.path, ProjectFile.FORMER_NAME)
+    const present = await access(former).then(
+      () => true,
+      () => false,
+    )
+    return present ? [{ kind: "former-name", path: former }] : []
   }
 
-  private static async read(file: string): Promise<ProjectText> {
+  private static async configuredFile(file: string): Promise<UserConfigVerdict> {
+    return (await EngineRegistry.verdictOf(file)) ?? { kind: "missing", path: file }
+  }
+
+  private static async verdictOf(file: string): Promise<UserConfigVerdict | undefined> {
     try {
-      return { text: await readFile(file, "utf8"), missing: false }
+      return { kind: "read", path: file, text: await readFile(file, "utf8") }
     } catch (error) {
-      return { missing: EngineRegistry.isMissing(error) }
+      return EngineRegistry.isMissing(error) ? undefined : { kind: "unreadable", path: file }
     }
   }
 
   private static isMissing(error: unknown): boolean {
     return error instanceof Error && "code" in error && error.code === "ENOENT"
-  }
-
-  private static async unreadable(
-    file: string,
-    configured: boolean,
-    missing: boolean,
-  ): Promise<TargetsProblem[]> {
-    if (configured || !missing) {
-      return [new TargetsProblem(file, CANT_READ)]
-    }
-    const former = join(dirname(file), ProjectFile.FORMER_NAME)
-    const present = await access(former).then(
-      () => true,
-      () => false,
-    )
-    return present ? [new TargetsProblem(former, ProjectFile.RENAME)] : []
   }
 
   private static subscribe(listeners: Set<Listener>, listener: Listener): () => void {

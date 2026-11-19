@@ -44,13 +44,16 @@ kit holds everything that touches no host (primitives, components, tone
 maps, `cn`, the formatters, `Icon`, the table cells); the view runtime holds
 what reads the host or calls a tool. Neither re-exports the other's names:
 
-- `WidgetShell` (container) from the view runtime; `WidgetHeader`
-  (title/sub/badge, no icon tile, `as` for the heading level) and `Section`
-  from the kit
-- Tables: the view runtime's `ListTable` (the frame: a named,
-  keyboard-reachable scroll region so a wide table never widens the view;
+- `WidgetShell` (container) from the view runtime, the kit's `WidgetHeader`
+  (title/sub/badge/actions, no icon tile, `as` for the heading level) in its
+  `header` (the view's bar, from edge to edge), the content as its children
+  (in the gutter); `Section` from the kit
+- Tables: the view runtime's `ListTable` (the frame, over the kit's
+  `DataTable`: a named, keyboard-reachable scroll region with a sticky head
+  and 28 px rows, so a wide table never widens the view;
   `hideBelow` on a column a narrow view can do without; `sticky` on the last
-  column, the row actions; `sort` on the column the rows are ordered by;
+  column, the row actions; `fit` on a column as narrow as its one line (an
+  id, a time) beside a long text; `sort` on the column the rows are ordered by;
   `groups` to head adjacent columns) with hand-composed `<tr>` + the kit's
   `Td` rows; `IdCell` (view runtime) for an id column (Geist Mono, shortened,
   a copy button); the kit's `TableEmptyState` instead of an empty frame
@@ -71,10 +74,12 @@ what reads the host or calls a tool. Neither re-exports the other's names:
   local helpers, no `Intl.DateTimeFormat`/`toLocaleDateString`/`toFixed` in
   widget code
 - Status: a tone (`danger`/`warning`/`success`/`info`/`neutral`) via the
-  kit's `StatusBadge`/`CountPill`/`KpiCell.tone` or its `TONE_*` maps, next
-  to readable words; colours come from the role variables (override them in
-  `server/src/ui/brand.css`, light and dark, to brand), never palette
-  classes or raw colours in widgets
+  kit's `StatusBadge`/`CountPill` or its `TONE_*` maps, next to readable
+  words; a count stays a neutral figure (an alarming one is the kit's
+  `CountFigure`, also as a `KpiGrid` value: never a tinted tile); colours
+  come from the role variables (override them in `server/src/ui/brand.css`,
+  light and dark, to brand), never palette classes or raw colours in
+  widgets
 - Icons: Lucide through the kit's `Icon` (add `lucide-react` to the module's
   dependencies at the exact version `server/package.json` pins), never Unicode
   glyphs or emoji

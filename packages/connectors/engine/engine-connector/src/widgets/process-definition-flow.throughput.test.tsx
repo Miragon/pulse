@@ -138,9 +138,9 @@ function renderFlow(throughput: unknown = THROUGHPUT, client: QueryClient = quer
   return { contexts, reads }
 }
 
-const modeGroup = () => screen.findByRole("group", { name: "Process flow display" })
+const modeGroup = () => screen.findByRole("radiogroup", { name: "Process flow display" })
 const pick = async (name: string) =>
-  fireEvent.click(within(await modeGroup()).getByRole("button", { name }))
+  fireEvent.click(within(await modeGroup()).getByRole("radio", { name }))
 
 const CAPTION = /1,234 instances started since/
 
@@ -150,7 +150,7 @@ describe("definition view flow: Throughput", () => {
     const group = await modeGroup()
     expect(
       within(group)
-        .getAllByRole("button")
+        .getAllByRole("radio")
         .map((b) => b.textContent),
     ).toEqual(["Incidents", "Running", "Throughput · 30 days"])
     expect(reads()).toEqual([])
@@ -202,11 +202,11 @@ describe("definition view flow: Throughput", () => {
         .getAllByRole("row")
         .map((row) => row.textContent),
     ).toEqual([
-      "ActivityPassesRunningCanceled",
-      "Assessassess1,300412",
+      "ActivityPassesRunningCancelled",
+      "Assess assess1,300412",
       "sendPolicy1,10000",
-      "Legacy checklegacyCheck · only in older versions4003",
-      "Reviewreview020",
+      "Legacy check legacyCheck · only in older versions4003",
+      "Review review020",
     ])
   })
 

@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.28.0",
   "displayName": "Miragon Pulse",
-  "description": "See what your process engine is running, right next to your BPMN models: definitions, instances, incidents and variables. Retry incidents and fix variables, guarded.",
+  "description": "See what your process engine is running, right next to your BPMN models: definitions, instances, incidents and variables. Retry incidents and fix variables, guarded. For Operaton, CIB seven and Camunda 7, and Camunda 8 read-only.",
   "publisher": "miragon-gmbh",
   "icon": "media/icon.png",
   "galleryBanner": {
@@ -34,6 +34,7 @@
     "operaton",
     "cib seven",
     "camunda 7",
+    "camunda 8",
     "incidents",
     "workflow",
     "runtime"
@@ -66,7 +67,7 @@
     "viewsWelcome": [
       {
         "view": "pulse.engines",
-        "contents": "See what your process engine is running: definitions, instances, incidents. Retry incidents and fix variables on local engines.\n[Configure Engines](command:pulse.openTargetsFile)\nEngines from .pulse.json show up here on their own. Works with Operaton, CIB seven and Camunda 7."
+        "contents": "See what your process engine is running: definitions, instances, incidents. Retry incidents and fix variables on local engines.\n[Configure Engines](command:pulse.openTargetsFile)\nEngines from .pulse.json and your CLI config show up here on their own. Works with Operaton, CIB seven and Camunda 7, and reads Camunda 8."
       }
     ],
     "commands": [
@@ -205,7 +206,7 @@
       "properties": {
         "pulse.environments": {
           "type": "object",
-          "markdownDescription": "Environment of each engine by target name, e.g. `{ \"prod-eu\": \"production\" }`. Production engines are shown in red. Loopback hosts (`localhost`, `127.0.0.1`, `[::1]`) are local without configuration.",
+          "markdownDescription": "Environment of each engine by target name, e.g. `{ \"prod-eu\": \"production\" }`. Production engines are shown in red. Loopback hosts (`localhost`, `127.0.0.1`, `[::1]`) are local unless their profile names another `environment`: `test` or `production` counts as that, any other as unclassified.",
           "additionalProperties": {
             "type": "string",
             "enum": [
@@ -304,7 +305,9 @@
   },
   "dependencies": {
     "@miragon/modeler-shell": "0.12.0",
+    "@miragon/pulse-board": "workspace:*",
     "@miragon/pulse-c7-adapter": "workspace:*",
+    "@miragon/pulse-c8-adapter": "workspace:*",
     "@miragon/pulse-engine-core": "workspace:*",
     "@miragon/pulse-runtime-view": "workspace:*"
   },

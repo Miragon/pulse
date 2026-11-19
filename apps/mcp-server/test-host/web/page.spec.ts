@@ -1,0 +1,652 @@
+import { readFileSync } from "node:fs"
+import path from "node:path"
+import { expect, test, type Locator, type Page } from "@playwright/test"
+import {
+  BROKEN_ENGINE,
+  C8_ENGINE,
+  C8_OPERATE,
+  C8_UNBOARDED_ENGINE,
+  HEALTHY_ENGINE,
+  REFUSED_C8_ENGINE,
+} from "../engines.js"
+import {
+  collectErrors,
+  expectNoAxeFinding,
+  idpRecord,
+  originOf,
+  recordCalls,
+  rendered,
+  signIn,
+} from "./web-sim.js"
+
+/**
+ * The cockpit as a page of the server (#573): apps/web mounts the engine module's views with
+ * widget-shell's `mountPage`, under the browser adapter instead of ext-apps' `App`, and its caller
+ * posts each tool call to the server's `/app/api/call`, which forwards it to `/mcp` with the
+ * session's token. The views are the chat's, built from the same sources: the view tool's data,
+ * every feed, the browser's language and theme, and no hand-off, since the page posts to no chat.
+ * A page writes nothing: the deployment's toolset registers the widget writes, and the page offers
+ * none, nor asks the gate feed. Every page has one main landmark and one h1, which titles it, and
+ * says what to do on the page, never in a chat.
+ */
+
+const SERVER = path.resolve(import.meta.dirname, "..", "..")
+const WEB_BUILD = path.resolve(SERVER, "..", "web", "dist")
+const OVERVIEW_PAGE = `/app/cockpit?engine=${HEALTHY_ENGINE}`
+const JOBS_PAGE = `/app/cockpit?view=jobs&engine=${HEALTHY_ENGINE}`
+/** The stub's invoice instance: two open incidents whose jobs have no retries, one variable. */
+const INSTANCE_PAGE = `/app/cockpit?view=instance-detail&engine=${HEALTHY_ENGINE}&processInstanceId=pi-invoice-42`
+const DEFINITIONS_TABLE =
+  "Deployed process definitions with running instances, jobs without retries and incidents"
+const STUB_DEFINITIONS = ["Customer Onboarding", "Invoice Receipt", "Order Fulfillment"]
+
+/** The page's script's name in the build (`assets/…`), as the build's index.html loads it. */
+function pageScriptName(): string {
+  const index = readFileSync(path.join(WEB_BUILD, "index.html"), "utf8")
+  const [, src] = /<script type="module" crossorigin src="\/app\/([^"]+)"/.exec(index) ?? []
+  if (src === undefined) throw new Error("apps/web/dist/index.html loads no script")
+  return src
+}
+
+/** The page's script, as the build holds it. */
+const pageScript = (): string => readFileSync(path.join(WEB_BUILD, pageScriptName()), "utf8")
+
+/** Whether the page scrolls sideways: wider content than its viewport. */
+const scrollsSideways = (page: Page) =>
+  page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
+
+/** The tools `/mcp` lists to a caller with the deployment's access token. */
+async function listedTools(token: string): Promise<string[]> {
+  const response = await fetch(`${originOf()}/mcp`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+      accept: "application/json, text/event-stream",
+    },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} }),
+  })
+  const text = await response.text()
+  const json = text.trimStart().startsWith("{")
+    ? text
+    : (text.split("\n").find((line) => line.startsWith("data: ")) ?? "").slice("data: ".length)
+  const { result } = JSON.parse(json) as { result: { tools: { name: string }[] } }
+  return result.tools.map((tool) => tool.name)
+}
+
+test.describe("the cockpit as a page", () => {
+  test("mounts over the page's caller: one view call, every row, no fullscreen switch", async ({
+    page,
+  }) => {
+    const errors = collectErrors(page)
+    const calls = recordCalls(page)
+    await signIn(page, OVERVIEW_PAGE)
+
+    const table = page.getByRole("table", { name: DEFINITIONS_TABLE })
+    await expect(table).toBeVisible({ timeout: 15_000 })
+    // One main landmark, the view frame's: the cockpit's route renders none of its own.
+    await expect(page.getByRole("main")).toHaveCount(1)
+    await expect(page).toHaveTitle(`${HEALTHY_ENGINE} · Overview · Pulse`)
+    // A page owns its viewport: every row, no inline fit and its footer, no switch to fullscreen.
+    for (const name of STUB_DEFINITIONS) await expect(table.getByText(name)).toBeVisible()
+    await expect(page.getByText(/of 3 shown/)).toHaveCount(0)
+    await expect(page.getByRole("button", { name: "Fullscreen" })).toHaveCount(0)
+    await expect(page.getByRole("heading", { name: "All processes", exact: true })).toHaveCount(1)
+    // The page called the view tool itself, once, with the arguments its query names.
+    expect(calls.filter((call) => call.name === "engine_open_cockpit")).toEqual([
+      { name: "engine_open_cockpit", arguments: { engine: HEALTHY_ENGINE } },
+    ])
+    // The locale gate resolved the browser's language and wrote it on the document.
+    await expect(page.locator("html")).toHaveAttribute("lang", "en")
+    expect(errors).toEqual([])
+    await expectNoAxeFinding(page)
+  })
+
+  test("a section of the cockpit reads its feed through the page's caller", async ({ page }) => {
+    const calls = recordCalls(page)
+    await signIn(page, OVERVIEW_PAGE)
+    const sections = page.getByRole("navigation", { name: "Cockpit sections" })
+    await sections.getByRole("button", { name: "Jobs" }).click({ timeout: 15_000 })
+    const jobs = page.getByRole("region", { name: "Jobs", exact: true })
+    await expect(jobs.getByText("Card declined").first()).toBeVisible({ timeout: 15_000 })
+    expect(
+      calls.filter((call) => call.name === "engine_jobs_data").at(-1)?.arguments,
+    ).toMatchObject({ engine: HEALTHY_ENGINE })
+    // The document's title follows the view the page moved on to.
+    await expect(page).toHaveTitle(`${HEALTHY_ENGINE} · Jobs · Pulse`)
+  })
+
+  test("names the engine in each engine section's heading and title", async ({ page }) => {
+    await expectEngineSections(page, ["Overview", "Incidents", "Jobs"])
+  })
+
+  // One row convention on every surface (owner direction 2026-11-18): a page's rows open as the
+  // chat's and the webview's do, each named by what it opens, with no column of drills.
+  test("a row opens what it names on Enter or a click, as in the chat and the webview", async ({
+    page,
+  }) => {
+    await signIn(page, OVERVIEW_PAGE)
+    const process = page
+      .getByRole("table", { name: DEFINITIONS_TABLE })
+      .getByRole("row", { name: "Process Invoice Receipt" })
+    await expect(process).toBeVisible({ timeout: 15_000 })
+    await process.focus()
+    await page.keyboard.press("Enter")
+    await expect(page.getByRole("heading", { level: 1, name: "Invoice Receipt" })).toBeVisible({
+      timeout: 15_000,
+    })
+    // An instance's incidents: a click on a row opens its incident, no drill in it.
+    await page.goto(`${originOf()}${INSTANCE_PAGE}`)
+    const incidents = page.getByRole("region", { name: "Incidents of this instance" })
+    const incident = incidents.getByRole("row", { name: /^Incident at chargeCard, / })
+    await expect(incident).toBeVisible({ timeout: 15_000 })
+    await expect(incidents.getByRole("button", { name: /^Open\b/ })).toHaveCount(0)
+    await expectNoAxeFinding(page)
+    await incident.getByRole("cell").first().click()
+    await expect(page.getByRole("heading", { level: 1, name: "chargeCard" })).toBeVisible({
+      timeout: 15_000,
+    })
+  })
+
+  test("hides the chat's hand-offs, and every menu, column or section that holds them alone", async ({
+    page,
+  }) => {
+    await signIn(page, JOBS_PAGE)
+    const jobs = page.getByRole("region", { name: "Jobs", exact: true })
+    await expect(jobs.getByText("Card declined").first()).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole("button", { name: "Assess in chat" })).toHaveCount(0)
+    await expect(page.getByRole("button", { name: /^Copy prompt/ })).toHaveCount(0)
+    // A failed job's menu holds two hand-offs and nothing else, and a page offers no retry: no
+    // menu button that opens empty, no actions column that no row fills.
+    await expect(page.getByRole("button", { name: /^More actions/ })).toHaveCount(0)
+    await expect(jobs.getByRole("columnheader", { name: "Actions" })).toHaveCount(0)
+
+    // The fleet's analyses are hand-offs only: the section goes with them, its heading too.
+    await page.goto(`${originOf()}/app`)
+    await page.getByRole("button", { name: "Cross-engine overview" }).click({ timeout: 15_000 })
+    await expect(page.getByRole("heading", { name: "Cross-engine overview" })).toBeVisible()
+    await expect(page.getByText("Analyses across all engines")).toHaveCount(0)
+    await expect(page.getByText(/\bchat\b/i)).toHaveCount(0)
+  })
+
+  test("offers no write and asks no gate, while the deployment's toolset registers the writes", async ({
+    page,
+  }) => {
+    const calls = recordCalls(page)
+    await signIn(page, INSTANCE_PAGE)
+    // The deployment registers the widget writes for the same user: /mcp lists them.
+    const { issued } = await idpRecord()
+    const tools = await listedTools(issued.access.at(-1) ?? "")
+    expect(tools).toEqual(
+      expect.arrayContaining(["engine_set_job_retries", "engine_widget_actions_data"]),
+    )
+
+    // The chat's view of this instance on such a deployment offers Retry and Edit by these names
+    // (test:host's compact-frame.spec.ts), so a renamed write fails there, not silently here.
+    const incidents = page.getByRole("region", { name: "Incidents of this instance" })
+    await expect(incidents.locator("tbody tr")).toHaveCount(2, { timeout: 15_000 })
+    await rendered(page)
+    await expect(incidents.getByRole("button", { name: "Retry" })).toHaveCount(0)
+    await page
+      .getByRole("tab", { name: /^Variables/ })
+      .first()
+      .click()
+    const variables = page.getByRole("region", { name: "Process instance variables" })
+    await expect(variables.getByText("amount")).toBeVisible()
+    await expect(variables.getByRole("button", { name: "Edit" })).toHaveCount(0)
+    await expect(variables.getByRole("columnheader", { name: "Actions" })).toHaveCount(0)
+    await rendered(page)
+    expect(calls.map((call) => call.name)).toContain("engine_open_cockpit")
+    expect(calls.map((call) => call.name)).not.toContain("engine_widget_actions_data")
+  })
+
+  test("a start the tool refuses says why and what to do on the page, with no Try again", async ({
+    page,
+  }) => {
+    const calls = recordCalls(page)
+    await signIn(page, `/app/cockpit?view=no-such-view&engine=${HEALTHY_ENGINE}`)
+    const alert = page.getByRole("alert")
+    const refused = "The server refused this request"
+    await expect(alert.getByRole("heading", { level: 1, name: refused })).toBeVisible({
+      timeout: 15_000,
+    })
+    await expect(
+      alert.getByText(
+        "You'll find the reason under Details. Open the view from Pulse's start page instead.",
+      ),
+    ).toBeVisible()
+    await expect(alert.getByText(/^Input validation error: /)).toBeAttached()
+    await expect(alert.getByRole("button", { name: "Try again" })).toHaveCount(0)
+    await expect(alert.getByRole("link", { name: "Go to the start page" })).toHaveAttribute(
+      "href",
+      "/app",
+    )
+    await expect(page.getByText(/\bchat\b/i)).toHaveCount(0)
+    await expect(page).toHaveTitle(`${refused} · Pulse`)
+    expect(calls.filter((call) => call.name === "engine_open_cockpit")).toHaveLength(1)
+    await expectNoAxeFinding(page)
+  })
+
+  test("loads its script compressed with brotli, decoded byte for byte the build's file", async ({
+    page,
+  }) => {
+    const name = pageScriptName()
+    const loaded = page.waitForResponse((response) => response.url().endsWith(`/app/${name}`))
+    await signIn(page, OVERVIEW_PAGE)
+    const response = await loaded
+    const file = readFileSync(path.join(WEB_BUILD, name))
+    const headers = await response.allHeaders()
+    expect(response.status()).toBe(200)
+    expect(headers["content-encoding"]).toBe("br")
+    expect(headers.vary).toBe("Accept-Encoding")
+    expect(Number(headers["content-length"])).toBeLessThan(file.byteLength)
+    expect((await response.body()).equals(file)).toBe(true)
+  })
+
+  test("the page's script holds no MCP Apps runtime, which the chat's bundle does", () => {
+    // The handshake every ext-apps `App` sends first.
+    const handshake = "ui/initialize"
+    expect(pageScript()).not.toContain(handshake)
+    expect(readFileSync(path.join(SERVER, "dist", "mcp-app.js"), "utf8")).toContain(handshake)
+  })
+})
+
+test.describe("the cockpit as a page in German, on a dark system", () => {
+  test.use({ locale: "de-DE", colorScheme: "dark" })
+
+  test("takes the browser's language and the system's theme, and follows a theme the page sets", async ({
+    page,
+  }) => {
+    await signIn(page, OVERVIEW_PAGE)
+    await expect(page.getByRole("heading", { name: "Alle Prozesse", exact: true })).toHaveCount(1, {
+      timeout: 15_000,
+    })
+    await expect(page.getByRole("button", { name: "Abmelden" })).toBeVisible()
+    const html = page.locator("html")
+    await expect(html).toHaveAttribute("lang", "de")
+    await expect(html).toHaveAttribute("data-theme", "dark")
+    await expect(html).toHaveClass(/\bdark\b/)
+    await expectNoAxeFinding(page)
+    await page.evaluate(() => document.documentElement.setAttribute("data-cd-theme", "light"))
+    await expect(html).toHaveAttribute("data-theme", "light")
+    await expect(html).not.toHaveClass(/\bdark\b/)
+  })
+
+  test("names the engine in each engine section's heading and title, in German", async ({
+    page,
+  }) => {
+    await expectEngineSections(page, ["Übersicht", "Incidents", "Jobs"])
+  })
+
+  test("fits 320 px without scrolling sideways", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 640 })
+    await signIn(page, OVERVIEW_PAGE)
+    await expect(page.getByRole("heading", { name: "Alle Prozesse", exact: true })).toHaveCount(1, {
+      timeout: 15_000,
+    })
+    await rendered(page)
+    expect(await scrollsSideways(page)).toBe(false)
+    await expectNoAxeFinding(page)
+  })
+
+  test("the landing fits 320 px, its cross-engine action wrapped under the hero", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 320, height: 640 })
+    await signIn(page)
+    await expectLandingFits(page, "Engine-übergreifende Übersicht")
+  })
+})
+
+/**
+ * The engine sections (overview, incidents, jobs) each head their page `<engine> · <section>`, in
+ * the page's language (`sections`, in that order), which titles the document.
+ */
+async function expectEngineSections(page: Page, sections: readonly string[]): Promise<void> {
+  await signIn(page, OVERVIEW_PAGE)
+  for (const [view, section] of ["", "&view=incidents", "&view=jobs"].map(
+    (query, index) => [query, sections[index]] as const,
+  )) {
+    await page.goto(`${originOf()}/app/cockpit?engine=${HEALTHY_ENGINE}${view}`)
+    const heading = `${HEALTHY_ENGINE} · ${section}`
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText([heading], { timeout: 15_000 })
+    await expect(page).toHaveTitle(`${heading} · Pulse`)
+  }
+}
+
+/** Every word of `text` in `scope` shows: nothing of it cut, nothing overflowing its box. */
+async function expectWhole(scope: Locator, text: string): Promise<void> {
+  const words = scope.getByText(text, { exact: true })
+  await expect(words).toBeVisible()
+  expect(await words.evaluate((el) => el.scrollWidth <= el.clientWidth), text).toBe(true)
+}
+
+/** At 320 px the landing scrolls not sideways, its hero's action whole within the gutter. */
+async function expectLandingFits(page: Page, fleet: string): Promise<void> {
+  const action = page.getByRole("button", { name: fleet })
+  await expect(action).toBeVisible({ timeout: 15_000 })
+  const boards = page.getByRole("region", { name: "Boards" })
+  await expect(boards.getByRole("button")).toHaveCount(1)
+  await rendered(page)
+  expect(await scrollsSideways(page)).toBe(false)
+  // The action ends where the landing's lists end, inside the gutter, its label whole.
+  const [box, list] = await Promise.all([action.boundingBox(), boards.boundingBox()])
+  expect((box?.x ?? 0) + (box?.width ?? Infinity)).toBeLessThanOrEqual(
+    (list?.x ?? 0) + (list?.width ?? 0) + 0.5,
+  )
+  expect(await action.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true)
+  await expectNoAxeFinding(page)
+}
+
+test("the landing fits 320 px in English, its engines and its boards", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 640 })
+  await signIn(page)
+  await expectLandingFits(page, "Cross-engine overview")
+})
+
+/**
+ * The jobs' KPI captions at 320 px in either language: the strip drops to two columns under 25rem,
+ * so a caption breaks between its words, never inside one ("verbleibenden").
+ */
+test.describe("the jobs' KPI captions at 320 px", () => {
+  for (const [locale, group, caption] of [
+    ["en-US", "Job summary", "With retries left"],
+    ["de-DE", "Job-Übersicht", "Mit verbleibenden Versuchen"],
+  ] as const) {
+    test(`break between words, never inside one (${locale})`, async ({ browser }) => {
+      const context = await browser.newContext({ locale, viewport: { width: 320, height: 640 } })
+      try {
+        const page = await context.newPage()
+        await signIn(page, JOBS_PAGE)
+        const strip = page.getByRole("group", { name: group }).locator("[data-slot=kpi-strip]")
+        await expect(strip).toContainText(caption, { timeout: 15_000 })
+        await rendered(page)
+        const split = await strip.evaluate((el) =>
+          [...el.querySelectorAll(":scope > div > * > div:first-child > span")].flatMap(
+            (caption) => {
+              const text = caption.firstChild!
+              return [...(text.textContent ?? "").matchAll(/\S+/g)].flatMap((word) => {
+                const range = document.createRange()
+                range.setStart(text, word.index)
+                range.setEnd(text, word.index + word[0].length)
+                return range.getClientRects().length > 1 ? [word[0]] : []
+              })
+            },
+          ),
+        )
+        expect(split).toEqual([])
+        expect(await scrollsSideways(page)).toBe(false)
+      } finally {
+        await context.close()
+      }
+    })
+  }
+})
+
+/**
+ * On a touch screen at 320 px (40 px rows, their wider padding) a board row names its board
+ * whole and puts what it says of it under the name where both do not fit beside each other.
+ */
+test.describe("the landing's boards at 320 px on a touch screen", () => {
+  for (const [locale, engines, refused] of [
+    ["en-US", "2 engines: stub, down", "file refused: 1 problem"],
+    ["de-DE", "2 Engines: stub, down", "Datei abgelehnt: 1 Problem"],
+  ] as const) {
+    test(`names each board whole, what it says under it (${locale})`, async ({ browser }) => {
+      const context = await browser.newContext({
+        locale,
+        hasTouch: true,
+        viewport: { width: 320, height: 640 },
+      })
+      try {
+        const page = await context.newPage()
+        await signIn(page)
+        const boards = page.getByRole("region", { name: "Boards" })
+        await expect(boards.getByRole("button")).toHaveCount(1, { timeout: 15_000 })
+        await rendered(page)
+        for (const text of ["Invoice operations", engines, "broken", refused]) {
+          await expectWhole(boards, text)
+        }
+        expect(await scrollsSideways(page)).toBe(false)
+        await expectNoAxeFinding(page)
+      } finally {
+        await context.close()
+      }
+    })
+  }
+})
+
+/**
+ * The landing of the Camunda 8 deployment at 320 px, in either language: its default engine's row
+ * (the badge, the longest words) names its engine whole and puts what it says under the name where
+ * both do not fit beside each other, its arrow inside the row (WCAG 1.4.10).
+ */
+test.describe("the landing's engines of the Camunda 8 deployment at 320 px", () => {
+  for (const [locale, onBoards, onNoBoard] of [
+    ["en-US", "Camunda 8, on boards", "Camunda 8, on no board yet"],
+    ["de-DE", "Camunda 8, auf Boards", "Camunda 8, noch auf keinem Board"],
+  ] as const) {
+    test(`names each engine whole, its words and its arrow inside the row (${locale})`, async ({
+      browser,
+    }) => {
+      const context = await browser.newContext({ locale, viewport: { width: 320, height: 640 } })
+      try {
+        const page = await context.newPage()
+        await signIn(page, "/app", { deployment: "camunda8" })
+        const engines = page.getByRole("region", { name: "Engines" })
+        await expect(engines.getByRole("button")).toHaveCount(3, { timeout: 15_000 })
+        await rendered(page)
+        for (const text of [HEALTHY_ENGINE, C8_ENGINE, C8_UNBOARDED_ENGINE, onBoards, onNoBoard]) {
+          await expectWhole(engines, text)
+        }
+        const arrows = await engines.evaluate((el) =>
+          [...el.querySelectorAll("button")].map((button) => {
+            const row = button.getBoundingClientRect()
+            const arrow = button.querySelector(":scope > svg:last-of-type")!.getBoundingClientRect()
+            return arrow.right <= row.right + 0.5 && button.scrollWidth <= button.clientWidth
+          }),
+        )
+        expect(arrows).toEqual([true, true, true])
+        expect(await scrollsSideways(page)).toBe(false)
+        await expectNoAxeFinding(page)
+      } finally {
+        await context.close()
+      }
+    })
+  }
+})
+
+/**
+ * The pages that show no view, each with its one heading as its title, in the page's words: the
+ * signed-out page per reason (the server's, no session needed), and the pages whose session
+ * ended before their first read or could not be read (the session route's answer stubbed).
+ */
+test.describe("the pages without a view", () => {
+  const REASONS = {
+    denied: "Sign-in was refused",
+    expired: "Your sign-in took too long",
+    failed: "Sign-in didn't work",
+    audience: "Your sign-in isn't valid for this server",
+    signed_out: "You signed out",
+    unavailable: "The sign-in service doesn't answer",
+  }
+
+  test("the signed-out page names each reason in its h1 and its title", async ({ page }) => {
+    for (const [reason, heading] of Object.entries(REASONS)) {
+      await page.goto(`${originOf()}/app/signed-out?reason=${reason}`)
+      await expect(page.getByRole("heading", { level: 1, name: heading })).toBeVisible()
+      await expect(page).toHaveTitle(`${heading} · Pulse`)
+      await expectNoAxeFinding(page)
+    }
+  })
+
+  for (const [state, answer, heading] of [
+    [
+      "ended before its first read",
+      { status: 401, body: '{"code":"signed_out","message":"No session."}' },
+      "Your session has ended",
+    ],
+    ["whose session could not be read", { status: 502, body: "busy" }, "Pulse doesn't answer"],
+  ] as const) {
+    test(`a page ${state}: its h1, its title, one main`, async ({ page }) => {
+      await signIn(page, JOBS_PAGE)
+      await page.route("**/app/api/session", (route) =>
+        route.fulfill({ ...answer, contentType: "application/json" }),
+      )
+      await page.reload()
+      await expect(page.getByRole("heading", { level: 1, name: heading })).toBeVisible()
+      await expect(page).toHaveTitle(`${heading} · Pulse`)
+      await expect(page.getByRole("main")).toHaveCount(1)
+      await expectNoAxeFinding(page)
+    })
+  }
+})
+
+test.describe("a page whose engine doesn't answer", () => {
+  // Its start fails for the engine, not for the page: the cockpit keeps its head (its sections,
+  // the switcher, the way to the other engines) over the route, which says so in its place.
+  test("/app/cockpit?engine=<an unreachable engine> keeps the cockpit's head over its failure", async ({
+    page,
+  }) => {
+    const calls = recordCalls(page)
+    await signIn(page, `/app/cockpit?engine=${BROKEN_ENGINE}`)
+    await expect(page.getByRole("navigation", { name: "Cockpit sections" })).toBeVisible({
+      timeout: 15_000,
+    })
+    const failure = page.getByRole("heading", {
+      name: `Engine ${BROKEN_ENGINE} is unreachable (HTTP 503)`,
+    })
+    await expect(failure).toHaveCount(1, { timeout: 30_000 })
+    await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1)
+    await expect(page.getByRole("button", { name: "Try again" })).toHaveCount(1)
+    expect(calls.filter((call) => call.name === "engine_open_cockpit")).toHaveLength(1)
+    await rendered(page)
+    await expectNoAxeFinding(page)
+  })
+})
+
+test.describe("the cockpit's pages on a Camunda 8 engine", () => {
+  // The cockpit's `engine` names every engine it shows: without a view a Camunda 8 engine opens the
+  // picker, never a refusal of the input.
+  test("/app/cockpit?engine=<a Camunda 8 engine> gives the picker, whose Camunda 8 entry leads to the gate", async ({
+    page,
+  }) => {
+    const errors = collectErrors(page)
+    const calls = recordCalls(page)
+    await signIn(page, `/app/cockpit?engine=${C8_ENGINE}`, { deployment: "camunda8" })
+    await expect(page.getByRole("heading", { level: 1, name: "Operations Cockpit" })).toBeVisible({
+      timeout: 15_000,
+    })
+    await expect(page.getByText(/Input validation error/)).toHaveCount(0)
+    const engines = page.getByRole("region", { name: "Engines" })
+    await engines.getByRole("button", { name: `${C8_ENGINE} , Camunda 8, on boards` }).click()
+    await expect(
+      page.getByRole("heading", { level: 1, name: `${C8_ENGINE} is a Camunda 8 engine` }),
+    ).toBeVisible()
+    await expect(page).toHaveTitle(`${C8_ENGINE} is a Camunda 8 engine · Pulse`)
+    await expect(page.getByRole("navigation", { name: "Cockpit sections" })).toHaveCount(0)
+    await expect(
+      page.getByRole("link", { name: "Open in Operate (opens in a new tab)" }),
+    ).toHaveAttribute("href", C8_OPERATE)
+    expect(calls.filter((call) => call.arguments?.engine === C8_ENGINE)).toEqual([
+      { name: "engine_open_cockpit", arguments: { engine: C8_ENGINE } },
+    ])
+    await rendered(page)
+    expect(errors).toEqual([])
+    await expectNoAxeFinding(page)
+  })
+
+  // A view of one engine names a Camunda 8 engine: the view does not read it, never arguments the
+  // tool does not take.
+  test("/app/cockpit?view=jobs&engine=<a Camunda 8 engine> says the view does not read it, with the way to the start page", async ({
+    page,
+  }) => {
+    const calls = recordCalls(page)
+    await signIn(page, `/app/cockpit?view=jobs&engine=${C8_ENGINE}`, { deployment: "camunda8" })
+    const alert = page.getByRole("alert")
+    const refused = "This view doesn't read this engine"
+    await expect(alert.getByRole("heading", { level: 1, name: refused })).toBeVisible({
+      timeout: 15_000,
+    })
+    await expect(
+      alert.getByText(new RegExp(`^\\[ENGINE_DIALECT_NOT_SERVED\\] Engine "${C8_ENGINE}"`)),
+    ).toBeAttached()
+    await expect(page.getByText(/Input validation error/)).toHaveCount(0)
+    await expect(alert.getByRole("button", { name: "Try again" })).toHaveCount(0)
+    expect(calls.filter((call) => call.name === "engine_open_cockpit")).toHaveLength(1)
+    await expectNoAxeFinding(page)
+    await alert.getByRole("link", { name: "Go to the start page" }).click()
+    await expect(page.getByRole("heading", { level: 1, name: "Operations Cockpit" })).toBeVisible({
+      timeout: 15_000,
+    })
+    expect(new URL(page.url()).pathname).toBe("/app")
+  })
+
+  // The call-time net: a page without `engine` goes to the default, here a Camunda 8 engine,
+  // which no route of one engine serves.
+  test("/app/cockpit?view=jobs on a Camunda 8 default says the view does not read it, with the way to the start page", async ({
+    page,
+  }) => {
+    const calls = recordCalls(page)
+    await signIn(page, "/app/cockpit?view=jobs", { deployment: "camunda8" })
+    const alert = page.getByRole("alert")
+    const refused = "This view doesn't read this engine"
+    await expect(alert.getByRole("heading", { level: 1, name: refused })).toBeVisible({
+      timeout: 15_000,
+    })
+    await expect(
+      alert.getByText("This server shows it on boards only. Pulse's start page lists the boards."),
+    ).toBeVisible()
+    await expect(
+      alert.getByText(
+        new RegExp(
+          `^\\[ENGINE_DIALECT_NOT_SERVED\\] Engine "${C8_UNBOARDED_ENGINE}" is a Camunda 8 engine`,
+        ),
+      ),
+    ).toBeAttached()
+    await expect(alert.getByRole("button", { name: "Try again" })).toHaveCount(0)
+    await expect(page.getByText(/\bchat\b/i)).toHaveCount(0)
+    await expect(page).toHaveTitle(`${refused} · Pulse`)
+    expect(calls.filter((call) => call.name === "engine_open_cockpit")).toHaveLength(1)
+    await expectNoAxeFinding(page)
+
+    await alert.getByRole("link", { name: "Go to the start page" }).click()
+    await expect(page.getByRole("heading", { level: 1, name: "Operations Cockpit" })).toBeVisible({
+      timeout: 15_000,
+    })
+    expect(new URL(page.url()).pathname).toBe("/app")
+  })
+})
+
+/**
+ * A refused profile of the other dialect on a page: the server offers it no feed (its feeds' engine
+ * enums name the stub alone), so its page reads nothing of it and says the profile's own reason as
+ * its one heading and title, without Try again and without the head's sections.
+ */
+test.describe("the cockpit's page on a refused profile of the other dialect", () => {
+  test("its gate says the profile's own reason, reads nothing and titles the page", async ({
+    page,
+  }) => {
+    const errors = collectErrors(page)
+    const calls = recordCalls(page)
+    await signIn(page, "/app", { deployment: "refusedC8" })
+    const row = page.getByRole("button", { name: new RegExp(`^${REFUSED_C8_ENGINE}\\b`) })
+    await expect(row).toHaveAccessibleName(/\bprofile refused$/, { timeout: 15_000 })
+    await row.click()
+    const title = `Engine ${REFUSED_C8_ENGINE} cannot be used: its profile is refused`
+    await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible()
+    await expect(page).toHaveTitle(`${title} · Pulse`)
+    await expect(
+      page.getByText(
+        new RegExp(`^\\[ENGINE_PROFILE_REFUSED\\] Engine "${REFUSED_C8_ENGINE}" is configured`),
+      ),
+    ).toBeAttached()
+    await expect(page.getByText(/Input validation error/)).toHaveCount(0)
+    await expect(page.getByRole("button", { name: "Try again" })).toHaveCount(0)
+    await expect(page.getByRole("navigation", { name: "Cockpit sections" })).toHaveCount(0)
+    expect(calls.filter((call) => call.arguments?.engine === REFUSED_C8_ENGINE)).toEqual([])
+    await rendered(page)
+    expect(errors).toEqual([])
+    await expectNoAxeFinding(page)
+  })
+})

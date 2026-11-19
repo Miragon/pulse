@@ -27,14 +27,30 @@ export type Grant =
       readonly audience?: string
       readonly scopes?: readonly string[]
     }
-  /** Without a scope, so the original grant is kept. */
-  | { readonly type: "refresh_token"; readonly refreshToken: string }
-  /** The code of a login, with the redirect URI and the PKCE verifier as sent. */
+  /**
+   * With the resources (RFC 8707) the new access token is for, each sent as it is, and the scopes
+   * it names as one scope parameter. Without scopes the original grant is kept (RFC 6749 §6); a
+   * server that asks for them at every grant (Microsoft Entra ID) is asked the login's set, so
+   * the grant keeps there too.
+   */
+  | {
+      readonly type: "refresh_token"
+      readonly refreshToken: string
+      readonly resources?: readonly string[]
+      readonly scopes?: readonly string[]
+    }
+  /**
+   * The code of a login, with the redirect URI and the PKCE verifier as sent, the resources
+   * (RFC 8707) its access token is for, each sent as it is, and the scopes it names as one scope
+   * parameter (Microsoft Entra ID refuses a code redeemed without them, AADSTS28003).
+   */
   | {
       readonly type: "authorization_code"
       readonly code: string
       readonly redirectUri: string
       readonly verifier: string
+      readonly resources?: readonly string[]
+      readonly scopes?: readonly string[]
     }
 
 /** A refresh token the authorization server refused: recorded, so no request asks again. */
@@ -57,7 +73,10 @@ export interface TokenRecord {
   /** When it expires: the receipt plus the answer's expires_in; none when unknown. */
   readonly expiresAt?: number | undefined
   readonly refreshToken?: string | undefined
-  /** When the refresh token expires (Keycloak's refresh_expires_in); none when unknown. */
+  /**
+   * When the refresh token expires (Keycloak's refresh_expires_in, else ADFS's
+   * refresh_token_expires_in); none when unknown.
+   */
   readonly refreshExpiresAt?: number | undefined
   readonly scope?: string | undefined
   /** The ID token as received, unchecked: for display only (`jwtClaims`). */

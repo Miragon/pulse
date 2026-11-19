@@ -41,6 +41,8 @@ export function BpmnHeatmap({ bpmnXml, values, ariaLabel }: BpmnHeatmapProps) {
 
   const { containerRef, height, importError, zoomIn, zoomOut, fit } = useBpmnViewer({
     bpmnXml,
+    // The canvas alone is the image; the heat layer above it is a drawing (aria-hidden).
+    ariaLabel,
     onImported: (imported) => {
       const ramp = containerRef.current ? readHeatRamp(containerRef.current) : null
       const gradientLut = ramp ? buildGradientLut(ramp) : null
@@ -100,8 +102,6 @@ export function BpmnHeatmap({ bpmnXml, values, ariaLabel }: BpmnHeatmapProps) {
     <div data-theme-mode="light" className="relative">
       <div
         ref={containerRef}
-        role="img"
-        aria-label={ariaLabel}
         className="border-border rounded-md border"
         style={{ height: `${height}px`, width: "100%" }}
       />
@@ -112,7 +112,7 @@ export function BpmnHeatmap({ bpmnXml, values, ariaLabel }: BpmnHeatmapProps) {
         style={{ width: "100%", height: "100%", mixBlendMode: "multiply" }}
       />
       {importError !== null && (
-        <div className="absolute inset-0 grid place-items-center p-6">
+        <div className="p-gutter absolute inset-0 grid place-items-center">
           <ErrorState variant="inline" title={t("bpmnDiagram.renderError")} details={importError} />
         </div>
       )}

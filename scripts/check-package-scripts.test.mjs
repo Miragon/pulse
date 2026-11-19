@@ -382,14 +382,20 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
     }
   })
 
-  it("the real map lists c7-core, the transport, engine-core's rules and the profile format, each with the owner's decision", () => {
+  it("the real map lists c7-core, the transport, engine-core's rules, the profile format, the board format with its builder, the web app's server rules with the gate's JWT verifier and c8-core's rules, each with the owner's decision", () => {
     const engineCore = "packages/connectors/engine/engine-core"
     const profile = "packages/core/profile"
+    const board = "packages/core/board"
+    const widgetShell = "packages/core/widget-shell"
+    const c8Core = "packages/connectors/c8/c8-core"
     assert.deepEqual(Object.keys(MUTATED_PACKAGES), [
       CORE,
       "packages/core/http",
       engineCore,
       profile,
+      board,
+      widgetShell,
+      c8Core,
     ])
     assert.match(
       MUTATED_PACKAGES[CORE],
@@ -408,6 +414,87 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
         "every surface accepts, so a surviving mutant is a wrong rule in the CLI, Pulse for " +
         "VS Code and the MCP server",
     )
+    assert.equal(
+      MUTATED_PACKAGES[board],
+      "owner decision 2026-11-15: the board format decides which board files and widgets every " +
+        "surface reads or refuses, and its builder the numbers each widget shows over the engine " +
+        "contract, so a surviving mutant is a wrong refusal or a wrong number on every board; its " +
+        "format and builder are mutated, not its barrels or fixtures",
+    )
+    assert.equal(
+      MUTATED_PACKAGES[widgetShell],
+      "owner decisions 2026-11-16 to 2026-11-18: the web app's server rules (src/web: the seal " +
+        "of its cookies, the cookies, the return path, the CSRF check, the forward of a page's " +
+        "call, the token's renewal, the served build, the security headers, the sessions signed " +
+        "out, the session's opening and refusal, the sign-out, the session route) guard every " +
+        "session and every call of the web app, the gate's JWT verifier (src/oauth-jwt.ts) " +
+        "decides which bearer token /mcp takes, the identity provider's discovery " +
+        "(src/oauth-discovery.ts) where the sign-in sends its secrets and which key set the gate " +
+        "trusts, the generic OpenID Connect provider (src/oauth-oidc.ts) which settings the gate " +
+        "refuses, and Microsoft Entra ID (src/oauth-entra.ts) which tenant, version and scope its " +
+        "tokens carry, so a surviving mutant there is a security hole; only those sixteen files " +
+        "are mutated, not the boot, the view runtime or the other routes",
+    )
+    assert.equal(
+      MUTATED_PACKAGES[c8Core],
+      "owner decision 2026-11-17: c8-core's rules decide the kind of every Camunda 8 failure, " +
+        "the version floor, the instance filters and how the cluster's answers map onto the " +
+        "contract's read models, which the editor hosts and the MCP server read Camunda 8 " +
+        "through, so a surviving mutant is a wrong answer on every surface; only src/mapping, " +
+        "the instance filters, the version floor and the failure kinds are mutated, not the " +
+        "REST client, the readers or src/testing",
+    )
+  })
+
+  it("c8-core's config mutates its mappings, the instance filters, the version floor and the failure kinds, never src/testing, as its reason says", () => {
+    const config = JSON.parse(
+      readFileSync(
+        path.join(repoRoot, "packages/connectors/c8/c8-core/stryker.config.json"),
+        "utf8",
+      ),
+    )
+    assert.deepEqual(config.mutate, [
+      "src/mapping/**/*.ts",
+      "src/reading/instance-filters.ts",
+      "src/reading/version-floor.ts",
+      "src/c8-failures.ts",
+    ])
+  })
+
+  it("the board's config mutates its format and builder without the tests and the builder's barrel, as its reason says", () => {
+    const config = JSON.parse(
+      readFileSync(path.join(repoRoot, "packages/core/board/stryker.config.json"), "utf8"),
+    )
+    assert.deepEqual(config.mutate, [
+      "src/format/**/*.ts",
+      "src/builder/**/*.ts",
+      "!src/**/*.test.ts",
+      "!src/builder/index.ts",
+    ])
+  })
+
+  it("widget-shell's config mutates exactly the web app's twelve rule files, the JWT verifier, the discovery, the generic provider and Entra ID, as its reason says", () => {
+    const config = JSON.parse(
+      readFileSync(path.join(repoRoot, "packages/core/widget-shell/stryker.config.json"), "utf8"),
+    )
+    assert.deepEqual(config.mutate, [
+      "src/web/seal.ts",
+      "src/web/cookies.ts",
+      "src/web/return-path.ts",
+      "src/web/csrf.ts",
+      "src/web/forward.ts",
+      "src/web/refresh.ts",
+      "src/web/static.ts",
+      "src/web/security-headers.ts",
+      "src/web/ended.ts",
+      "src/web/session.ts",
+      "src/web/logout.ts",
+      "src/web/session-route.ts",
+      "src/oauth-jwt.ts",
+      "src/oauth-discovery.ts",
+      "src/oauth-oidc.ts",
+      "src/oauth-entra.ts",
+    ])
   })
 
   it("engine-core's config mutates exactly its three rule files, as its reason says", () => {

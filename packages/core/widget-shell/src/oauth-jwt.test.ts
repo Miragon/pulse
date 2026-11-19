@@ -1,104 +1,36 @@
-import crypto from "node:crypto"
-import http from "node:http"
-import type { AddressInfo } from "node:net"
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 import type { AuthInfo } from "@modelcontextprotocol/server"
-import { oauthGate } from "./oauth-gate.js"
+import { gateTokenCheck, oauthGate } from "./oauth-gate.js"
 import { NOT_BEFORE_LEEWAY_SECONDS } from "./oauth-jwt.js"
+import {
+  ec,
+  JWK_RSA,
+  JWK_RSA2,
+  now,
+  resetIdp,
+  rsa,
+  rsa2,
+  rsa3,
+  sign,
+  signWithSecret,
+  startIdp,
+  type Idp,
+  type Mode,
+  type SignOptions,
+} from "./oauth-jwt.test-support.js"
 import { oauthKeycloakProvider, type OAuthProvider } from "./oauth-providers.js"
+import { isAudienceRefusal } from "./oauth-shared.js"
 
 /**
  * The JWT verifier against a loopback IdP that serves only its key set, with tokens this file
  * signs: the case matrix the port was red-teamed with (issuer, audience and resource, algorithms,
- * clock, the key set failing), each through the gate the boot puts in front of `/mcp`.
+ * clock, the key set failing), each through the gate the boot puts in front of `/mcp`. The rules a
+ * provider sets beyond the table's (key sets per issuer, audiences, caller claims, clients) are
+ * oauth-jwt.rules.test.ts's.
  */
 
 const RESOURCE = new URL("http://localhost/mcp")
 const AUD = RESOURCE.href
-
-type Mode = "ok" | "500" | "html" | "malformed"
-
-interface Idp {
-  url: string
-  issuer: string
-  mode: Mode
-  keys: object[]
-  hits: number
-  close(): Promise<void>
-}
-
-const rsa = crypto.generateKeyPairSync("rsa", { modulusLength: 2048 })
-const rsa2 = crypto.generateKeyPairSync("rsa", { modulusLength: 2048 })
-const rsa3 = crypto.generateKeyPairSync("rsa", { modulusLength: 2048 })
-const ec = crypto.generateKeyPairSync("ec", { namedCurve: "P-256" })
-const jwk = (key: crypto.KeyObject, extra: Record<string, unknown>) => ({
-  ...key.export({ format: "jwk" }),
-  use: "sig",
-  ...extra,
-})
-const JWK_RSA = jwk(rsa.publicKey, { kid: "k1", alg: "RS256" })
-const JWK_RSA2 = jwk(rsa2.publicKey, { kid: "k2", alg: "RS256" })
-const JWK_EC = jwk(ec.publicKey, { kid: "e1", alg: "ES256" })
-
-async function startIdp(): Promise<Idp> {
-  const state = { mode: "ok" as Mode, keys: [JWK_RSA, JWK_EC] as object[], hits: 0 }
-  const server = http.createServer((_req, res) => {
-    state.hits += 1
-    if (state.mode === "500") {
-      res.statusCode = 500
-      return res.end("boom")
-    }
-    if (state.mode === "html") {
-      res.setHeader("content-type", "text/html")
-      return res.end("<html></html>")
-    }
-    res.setHeader("content-type", "application/json")
-    res.end(JSON.stringify(state.mode === "malformed" ? { keys: "nope" } : { keys: state.keys }))
-  })
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve))
-  const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
-  return Object.assign(state, {
-    url,
-    issuer: `${url}/realms/platform`,
-    close: () => new Promise<void>((resolve) => server.close(() => resolve())),
-  })
-}
-
-const segment = (value: object) => Buffer.from(JSON.stringify(value)).toString("base64url")
-
-interface SignOptions {
-  key?: crypto.KeyObject | string
-  alg?: string
-  kid?: string | null
-  typ?: string
-  header?: Record<string, unknown>
-}
-
-function sign(claims: Record<string, unknown>, options: SignOptions = {}): string {
-  const { key = rsa.privateKey, alg = "RS256", kid = "k1", typ = "JWT", header = {} } = options
-  const head = { alg, typ, ...(kid === null ? {} : { kid }), ...header }
-  const input = `${segment(head)}.${segment(claims)}`
-  const data = Buffer.from(input)
-  let signature: Buffer
-  if (alg === "RS256") signature = crypto.sign("RSA-SHA256", data, key)
-  else if (alg === "RS512") signature = crypto.sign("RSA-SHA512", data, key)
-  else if (alg === "PS256") {
-    signature = crypto.sign("sha256", data, {
-      key: key as crypto.KeyObject,
-      padding: crypto.constants.RSA_PKCS1_PSS_PADDING,
-      saltLength: 32,
-    })
-  } else if (alg === "ES256") {
-    signature = crypto.sign("sha256", data, {
-      key: key as crypto.KeyObject,
-      dsaEncoding: "ieee-p1363",
-    })
-  } else if (alg === "HS256") signature = crypto.createHmac("sha256", key).update(input).digest()
-  else signature = Buffer.alloc(0)
-  return `${input}.${signature.toString("base64url")}`
-}
-
-const now = () => Math.floor(Date.now() / 1000)
 
 let idp: Idp
 
@@ -109,12 +41,18 @@ beforeAll(async () => {
 afterAll(() => idp.close())
 
 afterEach(() => {
-  idp.mode = "ok"
-  idp.keys = [JWK_RSA, JWK_EC]
+  resetIdp(idp)
   vi.restoreAllMocks()
 })
 
-const good = () => ({ iss: idp.issuer, aud: AUD, sub: "u1", exp: now() + 3600 })
+const good = () => ({
+  iss: idp.issuer,
+  aud: AUD,
+  sub: "u1",
+  sid: "session-1",
+  auth_time: now() - 60,
+  exp: now() + 3600,
+})
 
 const keycloak = (debug = false) =>
   oauthKeycloakProvider({ serverUrl: idp.url, realm: "platform", debug })
@@ -176,11 +114,23 @@ describe("the bearer gate: tokens", () => {
       () => ({ ...good(), exp: String(now() + 3600) }),
       "JWT verification failed",
     ],
-    ["an exp a second past", () => ({ ...good(), exp: now() - 1 }), "Missing or expired exp claim"],
+    ["an exp a second past", () => ({ ...good(), exp: now() - 1 }), "Token has expired"],
+    ["an exp an hour past", () => ({ ...good(), exp: now() - 3600 }), "Token has expired"],
     ["an nbf an hour ahead", () => ({ ...good(), nbf: now() + 3600 }), "JWT verification failed"],
   ])("refuses a token with %s: 401", async (_case, claims, description) => {
     const result = await refusal(await call(gateOf(), bearer(sign(claims()))))
     expect(result).toEqual({ status: 401, error: "invalid_token", description })
+  })
+
+  // A Keycloak audience mapper with "Add to ID token" puts the resource into the ID token too.
+  it("refuses the realm's ID token with the resource in aud: 401", async () => {
+    const token = sign({ ...good(), typ: "ID", azp: "pulse-web", at_hash: "h" })
+    expect(await refusal(await call(gateOf(), bearer(token)))).toEqual({
+      status: 401,
+      error: "invalid_token",
+      description:
+        "Token is an ID, logout or refresh token, not an access token (its at_hash claim)",
+    })
   })
 
   // The leeway is for an IdP clock slightly ahead; exp stays exact (above).
@@ -234,6 +184,8 @@ describe("the bearer gate: the RFC 8707 binding", () => {
 
   it.each<[string, unknown, string]>([
     ["a number", 7, "Token resource claim must be an absolute URL"],
+    // `new URL` would read the list as its one string, this server.
+    ["a list holding it", [AUD], "Token resource claim must be an absolute URL"],
     ["no URL", "mcp", "Token resource claim must be an absolute URL"],
     ["a query", `${AUD}?a=1`, "Token resource claim does not match protected resource"],
     [
@@ -244,6 +196,42 @@ describe("the bearer gate: the RFC 8707 binding", () => {
   ])("refuses a resource claim that is %s", async (_case, resource, description) => {
     const token = sign({ ...good(), aud: AUD, resource })
     expect((await refusal(await call(gateOf(), bearer(token)))).description).toBe(description)
+  })
+})
+
+// The web sign-in keeps no token /mcp would refuse: it runs the gate's own check on one token,
+// and tells a token bound to another resource (a missing audience mapper) from the rest.
+describe("gateTokenCheck: the gate's check of one token", () => {
+  const check = () => gateTokenCheck(keycloak(), RESOURCE)
+
+  const thrown = (token: string) => check()(token).then(String, (error: unknown) => error)
+
+  it("answers the caller the gate would hand the handlers", async () => {
+    const info = await check()(sign({ ...good(), azp: "pulse-web" }))
+    expect(info.extra).toMatchObject({ user: { id: "u1" }, payload: { sub: "u1" } })
+    expect(info.clientId).toBe("pulse-web")
+    expect(info.resource?.href).toBe(AUD)
+  })
+
+  it.each<[string, Record<string, unknown>]>([
+    ["no aud", { aud: undefined }],
+    ["another aud", { aud: "account" }],
+    ["a resource claim of another server", { resource: "https://other.example/mcp" }],
+    ["a resource claim that is no URL", { resource: "mcp" }],
+  ])("refuses a token with %s as an audience refusal", async (_case, claims) => {
+    const error = await thrown(sign({ ...good(), ...claims }))
+    expect(error).toMatchObject({ code: "invalid_token" })
+    expect(isAudienceRefusal(error)).toBe(true)
+  })
+
+  it.each<[string, () => Record<string, unknown>]>([
+    ["an exp past", () => ({ exp: now() - 1 })],
+    ["another issuer", () => ({ iss: `${idp.url}/realms/other` })],
+    ["a blank sub", () => ({ sub: " " })],
+  ])("refuses a token with %s, and not as an audience refusal", async (_case, claims) => {
+    const error = await thrown(sign({ ...good(), ...claims() }))
+    expect(error).toMatchObject({ code: "invalid_token" })
+    expect(isAudienceRefusal(error)).toBe(false)
   })
 })
 
@@ -272,10 +260,6 @@ describe("the bearer gate: algorithms and keys", () => {
   it.each<[string, SignOptions]>([
     ["RS512 against an RS256 key", { alg: "RS512" }],
     ["PS256 against an RS256 key", { alg: "PS256" }],
-    [
-      "HS256 keyed with the public key",
-      { alg: "HS256", key: rsa.publicKey.export({ type: "spki", format: "pem" }).toString() },
-    ],
     ["alg none", { alg: "none" }],
     ["an unknown crit header", { header: { crit: ["x-unknown"], "x-unknown": 1 } }],
     ["a kid the key set lacks", { kid: "nope" }],
@@ -283,6 +267,16 @@ describe("the bearer gate: algorithms and keys", () => {
   ])("refuses %s: 401", async (_case, options) => {
     const result = await refusal(await call(gateOf(), bearer(sign(good(), options))))
     expect(result).toEqual({
+      status: 401,
+      error: "invalid_token",
+      description: "JWT verification failed",
+    })
+  })
+
+  it("refuses HS256 keyed with the public key: 401", async () => {
+    const publicPem = rsa.publicKey.export({ type: "spki", format: "pem" }).toString()
+    const forged = await signWithSecret(good(), publicPem)
+    expect(await refusal(await call(gateOf(), bearer(forged)))).toEqual({
       status: 401,
       error: "invalid_token",
       description: "JWT verification failed",

@@ -1,0 +1,46 @@
+{
+  "name": "@miragon/pulse-c8-adapter",
+  "private": true,
+  "version": "0.28.0",
+  "description": "The Camunda 8 family's adapter of Pulse's runtime view (the Orchestration Cluster REST API, from 8.9 on, read-only), a plug of @miragon/pulse-c8-core's runtime: its wire on @miragon/pulse-http with client credentials behind c8-core's transport port, the words of its failures and its BPMN dialect. Bundled by the editor hosts.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Miragon/pulse.git",
+    "directory": "packages/connectors/c8/c8-adapter"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "test:engines": "vitest run --config vitest.engines.config.ts",
+    "golden:update": "turbo run build --filter=@miragon/pulse-c8-adapter^... --output-logs=errors-only && GOLDEN_UPDATE=1 vitest run --project unit --coverage.enabled=false",
+    "c8:up": "node scripts/c8.mjs up",
+    "c8:down": "node scripts/c8.mjs down",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.build.json",
+    "lint": "eslint src test scripts",
+    "lint:fix": "eslint src test scripts --fix"
+  },
+  "dependencies": {
+    "@miragon/pulse-c8-core": "workspace:*",
+    "@miragon/pulse-engine-core": "workspace:*",
+    "@miragon/pulse-http": "workspace:*",
+    "@miragon/pulse-runtime-view": "workspace:*",
+    "zeebe-bpmn-moddle": "2.0.0"
+  },
+  "devDependencies": {
+    "@miragon/pulse-board": "workspace:*",
+    "@types/node": "22.20.5",
+    "@vitest/coverage-v8": "5.1.0",
+    "testcontainers": "12.2.1",
+    "typescript": "6.0.3",
+    "vitest": "5.1.0"
+  }
+}

@@ -150,6 +150,7 @@ describe("checkSteps", () => {
     assert.deepEqual(names(all).slice(names(all).indexOf("format:check") + 1), [
       "host browsers",
       "test:host",
+      "test:web",
       "template",
       "cibseven-example",
       "docs:build",

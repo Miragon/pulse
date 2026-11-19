@@ -4,6 +4,7 @@ import {
   isLoopbackHost,
   normalizeCockpitUrl,
   normalizeUrl,
+  tokenEndpointUrlProblem,
   urlProblem,
 } from "./url.js"
 
@@ -29,6 +30,32 @@ describe("urlProblem", () => {
 
   it("trims a no-break space around a URL, which the URL parser keeps", () => {
     expect(urlProblem("\u00a0https://engine.example.com/engine-rest\u00a0")).toBeUndefined()
+  })
+})
+
+describe("tokenEndpointUrlProblem", () => {
+  it.each([
+    ["https://login.example.com/oauth/token", undefined],
+    ["  http://localhost:18089/realms/pulse/protocol/openid-connect/token  ", undefined],
+    ["https://login.example.com/token?tenant=acme", undefined],
+    ["https://login.example.com/token?", undefined],
+    ["login.example.com/token", "url-invalid"],
+    ["", "url-invalid"],
+    ["https://pulse:s3cret@login.example.com/token", "url-credentials"],
+    ["https://pulse@login.example.com/token", "url-credentials"],
+    ["https://:s3cret@login.example.com/token", "url-credentials"],
+    ["ftp://pulse@login.example.com/token", "url-credentials"],
+    ["ftp://login.example.com/token", "url-not-http"],
+    ["file:///etc/token", "url-not-http"],
+    ["https://login.example.com/token#top", "url-fragment"],
+    ["https://login.example.com/token?p=1#", "url-fragment"],
+    ["https://login.example.com/token#", "url-fragment"],
+  ])("%j: %s", (url, problem) => {
+    expect(tokenEndpointUrlProblem(url)).toBe(problem)
+  })
+
+  it("trims a no-break space around a URL, which the URL parser keeps", () => {
+    expect(tokenEndpointUrlProblem("\u00a0https://login.example.com/token\u00a0")).toBeUndefined()
   })
 })
 

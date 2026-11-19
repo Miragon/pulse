@@ -1,6 +1,6 @@
 import { DefinitionNodes, Problems } from "@miragon/pulse-runtime-view/core"
-import type { Connection } from "@miragon/pulse-runtime-view/host-kit"
-import type { DefinitionRow, EngineRow } from "../protocol.js"
+import { type Connection, TargetLogin } from "@miragon/pulse-runtime-view/host-kit"
+import type { DefinitionRow, EngineRow, LoginRow } from "../protocol.js"
 
 const ENVIRONMENT_LABELS = {
   local: "LOCAL",
@@ -16,7 +16,7 @@ export class EngineRows {
       name: connection.target.name,
       active,
       writable: connection.commands !== undefined,
-      needsLogin: connection.target.auth.kind === "basic",
+      ...EngineRows.loginOf(connection),
     }
     if ("problem" in listed) {
       return {
@@ -63,6 +63,11 @@ export class EngineRows {
         },
       }
     }
+  }
+
+  private static loginOf(connection: Connection): { readonly login?: LoginRow } {
+    const login = TargetLogin.of(connection.target)
+    return "refused" in login ? {} : { login: { ...login.fields, sendsTo: login.sendsTo } }
   }
 
   private static describe(connection: Connection, detail: string): string {

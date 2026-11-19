@@ -10,7 +10,7 @@ import type { ConnectionRegistry } from "../../src/host/connections/connection-r
 import type { PanelManager } from "../../src/host/panels/panel-manager.js"
 import type { HostMessage, PanelState } from "@miragon/pulse-runtime-view/protocol"
 import { RuntimeError } from "@miragon/pulse-engine-core"
-import { BoardParser } from "@miragon/pulse-runtime-view/core"
+import { BoardParser } from "@miragon/pulse-board"
 import { instance } from "./support/board-instance.js"
 
 interface FakeUri {
@@ -301,6 +301,44 @@ describe("the boards view", () => {
     tree.dispose()
   })
 
+  test("counts the problems of its refused widgets and, without them, its notes", async () => {
+    const broken = { widget: "counter", props: { filter: { state: "ended", withIncident: true } } }
+    const payments = {
+      title: "Payments",
+      engines: ["shop"],
+      rows: [{ row: [broken, { widget: "chart" }] }],
+    }
+    fake.files.set("/w/.pulse/boards/payments.board.json", JSON.stringify(payments))
+    fake.files.set(
+      "/w/.pulse/boards/tenants.board.json",
+      JSON.stringify({
+        title: "Tenants",
+        engines: ["shop"],
+        tenants: ["acme"],
+        rows: [{ row: [{ widget: "incidentList" }, { widget: "incidentSummary" }] }],
+      }),
+    )
+    fake.files.set(
+      "/w/.pulse/boards/wide.board.json",
+      JSON.stringify({ title: "Wide", engines: ["shop"], layout: "wide", rows: [] }),
+    )
+    const tree = new BoardsTree()
+
+    const items = (await tree.getChildren()).map((node) => tree.getTreeItem(node))
+
+    expect(items.map((item) => [item.label, item.description])).toEqual([
+      ["Payments", "payments.board.json · 2 problems"],
+      ["Tenants", "tenants.board.json · 2 problems"],
+      ["Wide", "wide.board.json · 1 note"],
+    ])
+    expect(items.map((item) => (item.iconPath as { id: string }).id)).toEqual([
+      "error",
+      "error",
+      "dashboard",
+    ])
+    tree.dispose()
+  })
+
   test("counts several problems and announces when there is no board", async () => {
     fake.files.set("/w/.pulse/boards/empty.board.json", "{}")
     const tree = new BoardsTree()
@@ -369,7 +407,7 @@ describe("an open board", () => {
     fire(fake.watcher.remove.all, uri(file))
     await vi.waitFor(() => {
       expect(lastState(panels[0]!)).toMatchObject({
-        view: { title: "Again", problems: [{ path: "(file)", reason: "could not be read" }] },
+        view: { title: "Again", problems: [{ path: "(file)", code: "unreadable" }] },
       })
     })
 
@@ -463,6 +501,29 @@ describe("a new board", () => {
     expect(written).toHaveProperty("board.engines", ["shop", "locked"])
     expect(fake.shown[0]).toEqual(["validate", "Enter a name with letters or digits.", undefined])
     expect(panels).toHaveLength(1)
+  })
+
+  test.each([
+    [
+      "without the dash the cut leaves",
+      `${"Order fulfillment ".repeat(3)}warehouse and payment`,
+      "order-fulfillment-order-fulfillment-order-fulfillment-warehouse",
+    ],
+    [
+      "cut inside a word",
+      `${"Order fulfillment ".repeat(3)}warehousing`,
+      "order-fulfillment-order-fulfillment-order-fulfillment-warehousin",
+    ],
+  ])("names its file within the 64 characters of a board id, %s", async (_, title, name) => {
+    fake.folders.push({ uri: uri("/w") })
+    fake.inputs.push(title)
+    const { registry, manager } = setup()
+
+    await new NewBoardCommand(registry, new BoardPanels(registry, manager)).run()
+
+    const written = BoardParser.parse(fake.files.get(`/w/.pulse/boards/${name}.board.json`) ?? "")
+    expect(written).toHaveProperty("board.title", title)
+    expect([...fake.files.keys()]).toEqual([`/w/.pulse/boards/${name}.board.json`])
   })
 
   test("never overwrites a board that exists", async () => {

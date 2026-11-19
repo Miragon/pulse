@@ -25,6 +25,7 @@ import {
 } from "@miragon/pulse-runtime-view/host-kit"
 import { ConnectionRegistry } from "./connections/connection-registry.js"
 import { ConnectionWatcher } from "./connections/connection-watcher.js"
+import { TargetDiscovery } from "./connections/target-discovery.js"
 import { VSCODE_WRITES_WORDING } from "./connections/writes-wording.js"
 import { EngineStatusBar } from "./engine-status-bar.js"
 import { EnginesTree } from "./explorer/engines-tree.js"
@@ -47,16 +48,18 @@ export class PulseExtension {
     const log = vscode.window.createOutputChannel("Pulse", { log: true })
     const audit = new WriteAudit(log)
     const credentials = new CredentialStore(this.context.secrets)
+    const root = CompositionRoot.create()
     const registry = new ConnectionRegistry(
       this.context.workspaceState,
       credentials,
-      new ConnectionBuilder(CompositionRoot.create(), audit, VSCODE_WRITES_WORDING),
+      new ConnectionBuilder(root.engines, audit, VSCODE_WRITES_WORDING),
+      new TargetDiscovery(root.engines.localTarget()),
     )
     const picker = new ConnectionPicker(registry)
-    const setCredentials = new SetCredentialsCommand(registry, credentials, picker)
     const openTargetsFile = new OpenTargetsFileCommand(registry)
+    const setCredentials = new SetCredentialsCommand(registry, credentials, picker, openTargetsFile)
     const documents = new IncidentDocuments()
-    const sources = CompositionRoot.localSources(new VsCodeWorkspaceFiles())
+    const sources = root.localSources(new VsCodeWorkspaceFiles())
     const attention = new WindowAttention()
     const live = new LiveWiring(attention, (line) => {
       log.info(line)

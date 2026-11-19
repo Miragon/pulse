@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { page, userEvent } from "vitest/browser"
 import { DEFINITION_VIEW } from "../../dev/webview/fixtures/definition.js"
 import { FIXTURES } from "../../dev/webview/fixtures/states.js"
-import { mountApp, nextFrame, waitForElement, type Harness } from "./harness.js"
+import { getRole, mountApp, nextFrame, queryPart, waitForElement, type Harness } from "./harness.js"
 
 const BADGES = '.djs-overlays[data-container-id="Activity_ShipOrder"]'
 
@@ -116,6 +116,28 @@ describe("definition screen", () => {
     })
   })
 
+  it("names a badge count by the compact figure it shows before the whole count", async () => {
+    harness = mountApp()
+    harness.publish(FIXTURES["definition-camunda8"])
+    const cluster = await waitForElement<HTMLElement>(
+      harness.root,
+      '[data-badge-for="Activity_ApproveOrder"]',
+    )
+    const running = cluster.querySelector<HTMLButtonElement>('[data-scope="running"]')!
+    const exact = harness.root.querySelector<HTMLButtonElement>(
+      '[data-badge-for="Activity_ReserveStock"] [data-scope="running"]',
+    )!
+
+    expect(running.textContent).toBe("5.1k")
+    expect(running.getAttribute("aria-label")).toBe(
+      "5.1k, Approve order: 5,120 instances running. Show the running instances here.",
+    )
+    expect(running.title).toBe(
+      "Approve order: 5,120 instances running. Show the running instances here.",
+    )
+    expect(exact.getAttribute("aria-label")).toBe(exact.title)
+  })
+
   it("keeps the viewbox and the overlays when the theme switches", async () => {
     harness = mountApp()
     harness.publish(FIXTURES.definition)
@@ -176,11 +198,13 @@ describe("definition screen", () => {
     harness.publish(FIXTURES.refreshing)
 
     await vi.waitFor(() => {
-      expect(harness.root.querySelector(".freshness")?.textContent).toBe("Refreshing…")
+      expect(queryPart(harness.root, "freshness", { state: "refreshing" })?.textContent).toBe(
+        "Refreshing…",
+      )
     })
     expect(harness.root.querySelector(`${BADGES} [data-variant="incident"]`)).not.toBeNull()
-    expect(harness.root.querySelectorAll(".data-table__row")).toHaveLength(
-      DEFINITION_VIEW.instances.length,
-    )
+    expect(
+      getRole<HTMLTableElement>(harness.root, "table", { name: "Instances" }).tBodies[0]?.rows,
+    ).toHaveLength(DEFINITION_VIEW.instances.length)
   })
 })

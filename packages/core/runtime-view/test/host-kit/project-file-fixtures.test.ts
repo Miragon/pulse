@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs"
-import { authTypeOf, parseProfileFile, type Profile } from "@miragon/pulse-profile"
+import { authTypeOf, dialectOf, parseProfileFile, type Profile } from "@miragon/pulse-profile"
 import { PROFILE_FIXTURES, type ProfileFixture } from "@miragon/pulse-profile/testing"
 import { describe, expect, test } from "vitest"
 import type { EngineTarget } from "../../src/host-kit/connections/engine-target.js"
@@ -16,6 +16,7 @@ const AUTH_KINDS: Readonly<Record<string, EngineTarget["auth"]["kind"]>> = {
   none: "none",
   basic: "basic",
   oauth: "oauth2",
+  clientCredentials: "clientCredentials",
 }
 
 const expected = JSON.parse(readFileSync(EXPECTED, "utf8")) as Readonly<Record<string, Expected>>
@@ -36,9 +37,16 @@ function expectLikeTheFormat(target: EngineTarget, profile: Profile): void {
   expect(target.endpoint).toBe(profile.url)
   expect(target.readOnly ?? false).toBe(profile.readOnly ?? false)
   expect(target.webUiUrl).toBe(profile.cockpitUrl)
+  expect(target.environment).toBe(profile.environment)
   expect(target.auth.kind).toBe(AUTH_KINDS[authTypeOf(profile)])
-  expect(target.engine).toBe("c7")
+  expect(target.engine).toBe(dialectOf(profile))
   expect([undefined, "default"]).toContain(profile.engine)
+  if (target.auth.kind === "clientCredentials") {
+    expect(target.auth.tokenEndpoint).toBe(profile.auth?.tokenEndpoint?.trim())
+    expect(target.auth.clientId).toBe(profile.auth?.clientId)
+    expect(target.auth.audience).toBe(profile.auth?.audience)
+    expect(target.auth.scopes).toEqual(profile.auth?.scopes)
+  }
 }
 
 describe("the shared profile fixtures of @miragon/pulse-profile", () => {

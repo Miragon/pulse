@@ -1,6 +1,6 @@
-import { formatNumber, LivePill, SITUATION_TONES, WidgetHeader } from "@miragon/pulse-ui"
+import { formatNumber, StateLabel, WidgetHeader } from "@miragon/pulse-ui"
 import { HandOffButton } from "@miragon/pulse-widget-shell/widgets"
-import { useHandOff, type HandOff } from "../lib/hand-off.js"
+import { useHandOff, useHandOffsShown, type HandOff } from "../lib/hand-off.js"
 import { useT } from "../../messages/use-t.js"
 import { instancesFilterFacts, type InstancesListFilters } from "./hand-offs.js"
 
@@ -55,15 +55,18 @@ export function InstancesHeader({
 }) {
   const t = useT()
   const { ask } = useHandOff()
+  // Its one action is a hand-off: where the host hides it, the bar has no action group.
+  const handOffs = useHandOffsShown()
   return (
     <WidgetHeader
       title={title}
       sub={
         <>
-          {/* The running state's tint and dot; the count inside stays in the text colour. */}
-          <LivePill tone={SITUATION_TONES.running}>
+          {/* A count in the header is a state label, never a tinted pill (invariant 6): the
+              running state's icon carries the tone, the number stays in the foreground. */}
+          <StateLabel state="running">
             {t("processInstances.runningCount", { count: formatNumber(total) })}
-          </LivePill>
+          </StateLabel>
           {scopedKey && (
             <>
               <span className="text-muted-foreground">·</span>
@@ -76,10 +79,13 @@ export function InstancesHeader({
         </>
       }
       actions={
-        <HandOffButton
-          action="assess"
-          prompt={ask(triageInstancesHandOff({ scopedKey, processName, total, engine, filters }))}
-        />
+        handOffs && (
+          <HandOffButton
+            action="assess"
+            variant="toolbar"
+            prompt={ask(triageInstancesHandOff({ scopedKey, processName, total, engine, filters }))}
+          />
+        )
       }
     />
   )

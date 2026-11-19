@@ -5,8 +5,10 @@
  * npm-installed module package needs an explicit @source. The Miragon module
  * packages ship their `src/` (their /widgets export points at TypeScript
  * source, compiled by this app's Vite build); pulse-ui and widget-shell ship
- * compiled `dist/` (class names survive as string literals). A package
- * missing here renders with broken styling and no build error.
+ * compiled `dist/` (class names survive as string literals), and so do the
+ * board's tiles of @miragon/pulse-blocks, which the engine module's cockpit
+ * renders (a dependency of this server, so its build is in node_modules here).
+ * A package missing here renders with broken styling and no build error.
  * Workspace modules need NO entry: the glob below covers every package under
  * `modules/` (the explicit extension list is load-bearing: Tailwind appends
  * its implicit one only to plain directory paths, so a bare directory glob
@@ -14,6 +16,7 @@
  */
 @source "../../node_modules/@miragon/pulse-ui/dist";
 @source "../../node_modules/@miragon/pulse-widget-shell/dist";
+@source "../../node_modules/@miragon/pulse-blocks/dist";
 @source "../../node_modules/@miragon/pulse-engine-connector/src";
 @source "../../../modules/*/src/**/*.{ts,tsx}";
 /*

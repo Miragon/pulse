@@ -2,7 +2,7 @@ import { DefinitionId } from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
 import { fakeRuntime } from "./support/fake-engine.js"
 import { engineFailure, type RestRoute } from "./support/fake-engine-rest.js"
-import { fixture, WORLD_IDS } from "./support/fixtures.js"
+import { fixture, WORLD_IDS, worldDiagram } from "./support/fixtures.js"
 
 const INVOICE_V1 = "invoice:1:61c3f9a0-cd7f-11f1-86d2-667bc3771e0d"
 const INVOICE_V2 = "invoice:2:62318889-cd7f-11f1-86d2-667bc3771e0d"
@@ -13,10 +13,10 @@ const DEFINITION_STATISTICS: RestRoute = {
   answer: new Response(fixture("definition-statistics.json")),
 }
 
-function xmlRoute(definitionId: string, file: string): RestRoute {
+function xmlRoute(definitionId: string, bpmn20Xml: string): RestRoute {
   return {
     route: `GET /process-definition/${encodeURIComponent(definitionId)}/xml`,
-    answer: { id: definitionId, bpmn20Xml: fixture(file) },
+    answer: { id: definitionId, bpmn20Xml },
   }
 }
 
@@ -27,7 +27,7 @@ function ref(id: string, bpmnProcessId: string, version: number, name: string) {
 describe("the processes a C7 call activity calls", () => {
   test("names the latest deployed version of the called process", async () => {
     const { runtime, engine } = fakeRuntime([
-      xmlRoute(WORLD_IDS.dispatch1, "../world/dispatch.bpmn"),
+      xmlRoute(WORLD_IDS.dispatch1, worldDiagram("dispatch")),
       DEFINITION_STATISTICS,
     ])
 
@@ -45,7 +45,7 @@ describe("the processes a C7 call activity calls", () => {
 
   test("resolves each binding and skips what only an expression decides", async () => {
     const { runtime } = fakeRuntime([
-      xmlRoute(INVOICE_V1, "call-bindings.bpmn"),
+      xmlRoute(INVOICE_V1, fixture("call-bindings.bpmn")),
       DEFINITION_STATISTICS,
     ])
 
@@ -78,7 +78,7 @@ describe("the processes a C7 call activity calls", () => {
 
   test("finds nothing deployed with the caller when the binding asks for its deployment", async () => {
     const { runtime } = fakeRuntime([
-      xmlRoute(INVOICE_V2, "call-bindings.bpmn"),
+      xmlRoute(INVOICE_V2, fixture("call-bindings.bpmn")),
       DEFINITION_STATISTICS,
     ])
 

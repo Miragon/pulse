@@ -7,6 +7,10 @@
  * one engine, never a copy of its own; it is the package's one module with Node built-ins
  * (node:http, node:https, node:crypto, the named exception of http-is-a-leaf), an entry of its
  * own, so `@miragon/pulse-http/testing` stays free of them, and no shipped code imports it.
+ *
+ * The same engine replays recorded answers (`startRecordedEngine`): each request gets the answer
+ * of what it asks, whatever the order a client sends its requests in, so two clients that read
+ * the same things over their own wires can be held to the same recorded engine.
  */
 import { generateKeyPairSync, sign } from "node:crypto"
 import http, { type IncomingMessage, type ServerResponse } from "node:http"
@@ -17,6 +21,13 @@ export interface CaseEngine {
   /** Where the case's root is appended: `http(s)://127.0.0.1:<port>`, or an unresolvable host. */
   readonly origin: string
   readonly seen: readonly Seen[]
+  /**
+   * The caller's abort of a case whose request has `cancelAfterMs`: it fires that long after the
+   * request reached this engine, never before, so a machine under load cannot cut the request
+   * on its way, as a timer started at the send could; where no request arrives, it never fires.
+   * Undefined for a case without one.
+   */
+  readonly callerSignal?: AbortSignal
   close(): Promise<void>
 }
 
@@ -132,8 +143,61 @@ async function listening(
  */
 const CLOSED_PORT = 2
 
+/** The answer to a request the engine recorded, by the request and the count of requests so far. */
+type Reply = (request: Seen, count: number) => CaseAnswer
+
+/**
+ * The caller's abort `afterMs` after the first request reached the engine: `arrived`, which the
+ * engine calls with each request, starts a timer on the engine's timers, and the first one aborts.
+ */
+function callerAbort(afterMs: number, timers: Set<NodeJS.Timeout>) {
+  const controller = new AbortController()
+  const arrived = () => {
+    const timer = setTimeout(() => {
+      timers.delete(timer)
+      controller.abort()
+    }, afterMs)
+    timers.add(timer)
+  }
+  return { signal: controller.signal, arrived }
+}
+
+/** Records each request as it reached the socket, tells `arrived` and answers it with `reply`. */
+function recording(seen: Seen[], timers: Set<NodeJS.Timeout>, reply: Reply, arrived?: () => void) {
+  return (req: IncomingMessage, res: ServerResponse) => {
+    const chunks: Buffer[] = []
+    req.on("data", (chunk: Buffer) => chunks.push(chunk))
+    req.on("end", () => {
+      const { authorization } = req.headers
+      // A Node server always has a method and a URL.
+      const request: Seen = {
+        method: String(req.method),
+        target: String(req.url),
+        body: Buffer.concat(chunks).toString("utf8"),
+        ...(authorization ? { authorization } : {}),
+      }
+      seen.push(request)
+      arrived?.()
+      answer(req, res, reply(request, seen.length), timers)
+    })
+  }
+}
+
 /** The engine of `kase`, recording every request and answering with the case's answers in order. */
 export async function startCaseEngine(kase: TransportCase): Promise<CaseEngine> {
+  const timers = new Set<NodeJS.Timeout>()
+  const { cancelAfterMs } = kase.request
+  const caller = cancelAfterMs === undefined ? undefined : callerAbort(cancelAfterMs, timers)
+  const engine = await caseEngineOf(kase, timers, caller?.arrived)
+  return caller === undefined ? engine : { ...engine, callerSignal: caller.signal }
+}
+
+/** The engine at the case's endpoint; where no request can arrive, nothing listens. */
+async function caseEngineOf(
+  kase: TransportCase,
+  timers: Set<NodeJS.Timeout>,
+  arrived: (() => void) | undefined,
+): Promise<CaseEngine> {
   const { endpoint } = kase.connection
   if (endpoint === "closed-port") {
     const origin = `http://127.0.0.1:${String(CLOSED_PORT)}`
@@ -143,27 +207,149 @@ export async function startCaseEngine(kase: TransportCase): Promise<CaseEngine> 
     return { origin: "http://transport-case.invalid", seen: [], close: () => Promise.resolve() }
   }
   const seen: Seen[] = []
-  const timers = new Set<NodeJS.Timeout>()
-  const handler = (req: IncomingMessage, res: ServerResponse) => {
-    const chunks: Buffer[] = []
-    req.on("data", (chunk: Buffer) => chunks.push(chunk))
-    req.on("end", () => {
-      const { authorization } = req.headers
-      const body = Buffer.concat(chunks).toString("utf8")
-      // A Node server always has a method and a URL.
-      seen.push({
-        method: String(req.method),
-        target: String(req.url),
-        body,
-        ...(authorization ? { authorization } : {}),
-      })
-      // The last answer answers every request after it; a case without one answers 200.
-      const reply: CaseAnswer = { ...kase.answers[Math.min(seen.length, kase.answers.length) - 1] }
-      answer(req, res, reply, timers)
-    })
-  }
+  // The last answer answers every request after it; a case without one answers 200.
+  const reply: Reply = (_, count) => ({
+    ...kase.answers[Math.min(count, kase.answers.length) - 1],
+  })
+  const handler = recording(seen, timers, reply, arrived)
   if (endpoint === "self-signed-tls") {
     return listening(https.createServer(selfSigned(), handler), "https", seen, timers)
   }
   return listening(http.createServer(handler), "http", seen, timers)
+}
+
+/** A request as recorded: what it asks, which the recorded engine matches a request by. */
+interface RecordedRequest {
+  readonly method: string
+  /** The request's path, decoded: `/engine-rest/process-definition/a:1/xml`. */
+  readonly path: string
+  /** The request's query, decoded; a request matches with its parameters in any order. */
+  readonly query?: Readonly<Record<string, string>>
+  /** The request's JSON body; a request matches with the keys of its objects in any order. */
+  readonly body?: unknown
+}
+
+/**
+ * An answer of an engine as recorded: the request it answered and the JSON it answered with, or
+ * the text it answered with and that text's content type, for an answer that is no JSON (a
+ * diagram's XML, as Camunda 8 serves it). The recorded engine sends either with status 200.
+ */
+export type RecordedAnswer = RecordedRequest &
+  (
+    | {
+        /** The JSON the engine answered with. */
+        readonly answer: unknown
+      }
+    | {
+        /** The text the engine answered with, sent as it is. */
+        readonly text: string
+        /** The content type the engine answered the text with: `text/xml`. */
+        readonly contentType: string
+      }
+  )
+
+export interface RecordedEngine extends CaseEngine {
+  /** The requests no recorded answer matched, each answered with a 500 that names it. */
+  readonly unanswered: readonly Seen[]
+}
+
+/** Code unit order, which no locale changes. */
+const byCodeUnits = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
+
+/** A JSON value as text, the keys of each of its objects in code unit order. */
+function canonical(value: unknown): string {
+  return JSON.stringify(value, (_, entry: unknown) =>
+    entry !== null && typeof entry === "object" && !Array.isArray(entry)
+      ? Object.fromEntries(Object.entries(entry).sort(([a], [b]) => byCodeUnits(a, b)))
+      : entry,
+  )
+}
+
+/** What a request asks, as text: its method, its decoded path, its query as a set, its body. */
+function requestKey(
+  method: string,
+  path: string,
+  query: readonly (readonly [string, string])[],
+  body: string | undefined,
+): string {
+  const parameters = query.map((parameter) => JSON.stringify(parameter)).sort(byCodeUnits)
+  return JSON.stringify([method, path, parameters, body ?? null])
+}
+
+/** A path with its escapes decoded; one that holds a malformed escape stays as it was sent. */
+function decodedPath(path: string): string {
+  try {
+    return decodeURIComponent(path)
+  } catch {
+    return path
+  }
+}
+
+/** A request's body as `canonical` writes its JSON; a body that is no JSON stays as it was sent. */
+function canonicalBody(body: string): string | undefined {
+  if (body === "") return undefined
+  try {
+    return canonical(JSON.parse(body))
+  } catch {
+    return body
+  }
+}
+
+function recordedKey({ method, path, query = {}, body }: RecordedRequest): string {
+  const recordedBody = body === undefined ? undefined : canonical(body)
+  return requestKey(method, path, Object.entries(query), recordedBody)
+}
+
+function seenKey({ method, target, body }: Seen): string {
+  const url = new URL(target, "http://loopback")
+  return requestKey(method, decodedPath(url.pathname), [...url.searchParams], canonicalBody(body))
+}
+
+/** The 200 of a recorded answer: its text with its content type, else its JSON. */
+function replyOf(recorded: RecordedAnswer): CaseAnswer {
+  if ("text" in recorded) {
+    return { status: 200, headers: { "Content-Type": recorded.contentType }, body: recorded.text }
+  }
+  const json = { "Content-Type": "application/json" }
+  return { status: 200, headers: json, body: JSON.stringify(recorded.answer) }
+}
+
+/** The 500 of a request no recorded answer matched, naming it. */
+function unrecorded({ method, target, body }: Seen): CaseAnswer {
+  return {
+    status: 500,
+    headers: { "Content-Type": "text/plain" },
+    body: `No recorded answer for ${method} ${target}${body === "" ? "" : ` ${body}`}`,
+  }
+}
+
+/**
+ * An engine that replays `answers`: each request gets the answer recorded for its method, its
+ * decoded path, its query as a set of parameters and its JSON body, so a client may send its
+ * requests in any order and encode them its own way: the recorded JSON, or the recorded text with
+ * its content type. A request no answer matches gets a 500 that names it and is listed in
+ * `unanswered`.
+ */
+export async function startRecordedEngine(
+  answers: readonly RecordedAnswer[],
+): Promise<RecordedEngine> {
+  const replies = new Map(answers.map((recorded) => [recordedKey(recorded), replyOf(recorded)]))
+  const seen: Seen[] = []
+  const unanswered: Seen[] = []
+  const timers = new Set<NodeJS.Timeout>()
+  const reply = (request: Seen): CaseAnswer => {
+    const recorded = replies.get(seenKey(request))
+    if (recorded === undefined) {
+      unanswered.push(request)
+      return unrecorded(request)
+    }
+    return recorded
+  }
+  const engine = await listening(
+    http.createServer(recording(seen, timers, reply)),
+    "http",
+    seen,
+    timers,
+  )
+  return { ...engine, unanswered }
 }

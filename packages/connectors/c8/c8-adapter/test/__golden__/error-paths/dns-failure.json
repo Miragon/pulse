@@ -1,0 +1,20 @@
+{
+  "case": "dns-failure",
+  "connection": {
+    "credentials": {
+      "kind": "none"
+    },
+    "endpoint": "http://cluster.pulse-golden.invalid/v2"
+  },
+  "probes": [
+    {
+      "call": "describeEngine",
+      "outcome": {
+        "failure": "unreachable",
+        "hint": "Check the host name in the cluster URL.",
+        "message": "Cannot reach http://cluster.pulse-golden.invalid/v2/topology: the host name does not resolve (ENOTFOUND)"
+      },
+      "sent": []
+    }
+  ]
+}

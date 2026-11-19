@@ -115,6 +115,8 @@ export const ROLE_CONTRAST_PAIRS: readonly ContrastPair[] = [
     min: 4.5,
   },
   { label: "accent-foreground on accent", fg: "--accent-foreground", bg: "--accent", min: 4.5 },
+  { label: "muted-foreground on accent", fg: "--muted-foreground", bg: "--accent", min: 4.5 },
+  { label: "foreground on raised", fg: "--foreground", bg: "--raised", min: 4.5 },
   {
     label: "destructive-foreground on destructive",
     fg: "--destructive-foreground",
@@ -140,6 +142,23 @@ export const ROLE_CONTRAST_PAIRS: readonly ContrastPair[] = [
     over: "--background",
     min: 3,
   },
+  { label: "interaction mark on card", fg: "--interaction", bg: "--card", min: 3 },
+  { label: "interaction mark on raised", fg: "--interaction", bg: "--raised", min: 3 },
+  {
+    label: "interaction mark on background",
+    fg: "--interaction",
+    bg: "--background",
+    over: "--background",
+    min: 3,
+  },
+  // A progress bar's fill against its track (Progress): the share must read (WCAG 1.4.11).
+  { label: "interaction mark on muted", fg: "--interaction", bg: "--muted", min: 3 },
+  ...(["success", "warning", "danger", "info"] as const).map((tone): ContrastPair => ({
+    label: `${tone}-ink on ${tone}-surface`,
+    fg: `--${tone}-ink`,
+    bg: `--${tone}-surface`,
+    min: 4.5,
+  })),
 ]
 
 /**

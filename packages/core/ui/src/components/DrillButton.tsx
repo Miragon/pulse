@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import { ArrowRight } from "lucide-react"
+import { cn } from "../lib/utils.js"
 import { buttonVariants } from "../primitives/button.js"
 
 export interface DrillButtonProps {
@@ -12,26 +13,31 @@ export interface DrillButtonProps {
    * Decorative (`aria-hidden`). The trailing arrow is always rendered.
    */
   icon?: ReactNode
-  /** `sm` for table rows, `md` for surface headers. Default `"sm"`. */
-  size?: "sm" | "md"
+  /**
+   * `xs` in a dense list card (24 px, beside its other row-height actions), `sm` beside a view's
+   * other controls, `md` for surface headers. Default `"sm"`.
+   */
+  size?: "xs" | "sm" | "md"
   /** Accessible label when the visible text is terse; keep the visible text in it (WCAG 2.5.3). */
   ariaLabel?: string
 }
 
 /** The `Button` size each drill size is: one scale for every action of a view. */
-const BUTTON_SIZE = { sm: "sm", md: "default" } as const
+const BUTTON_SIZE = { xs: "xs", sm: "sm", md: "lg" } as const
 
 /**
- * The single, deterministic in-widget navigation control: a neutral outline
- * button with a trailing Lucide arrow that drills into a detail/sub-view. Use
- * it for every in-app drill (row "Open", header nav) so they read identically
- * and stay visually quieter than primary/agentic actions. Decoupled from any
- * host: pass an `onDrill` callback (e.g. wrapping `useHostActions().showWidget`).
+ * The single, deterministic in-widget navigation control outside a table: a neutral outline
+ * button with a trailing Lucide arrow that drills into a detail/sub-view. Use it for every in-app
+ * drill (a card's way into its view, a header's) so they read identically and stay visually
+ * quieter than primary/agentic actions; a table row opens itself on a click or Enter
+ * (`DataTableRow`, a `DataTable`'s `onActivate`) and carries no drill. Decoupled from any host:
+ * pass an `onDrill` callback.
  *
- * It IS the kit's outline `Button` (`buttonVariants`): `sm` is 32 px,
- * 14 px, weight 600, the size of a `Button size="sm"` or an `AskAiButton`
- * beside it in a row; `md` is the `Button` default (36 px). The design
- * system gives every button weight 600 and one radius.
+ * It IS the kit's outline `Button` (`buttonVariants`): `xs` is the 24 px button (the named
+ * deviation: a dense row's actions are xs, so it stays the row height, 28 px, 40 px on touch),
+ * its arrow the xs button's 12 px icon; `sm` is the control of the density roles (28 px,
+ * 36 px on touch), 13 px, weight 600, the size of a `Button size="sm"` beside it; `md` is the
+ * `Button` `lg` (36 px). The design system gives every button weight 600 and one radius.
  */
 export function DrillButton({ children, onDrill, icon, size = "sm", ariaLabel }: DrillButtonProps) {
   return (
@@ -47,7 +53,10 @@ export function DrillButton({ children, onDrill, icon, size = "sm", ariaLabel }:
         </span>
       )}
       {children}
-      <ArrowRight aria-hidden="true" className="size-4 shrink-0" />
+      <ArrowRight
+        aria-hidden="true"
+        className={cn(size === "xs" ? "size-3" : "size-4", "shrink-0")}
+      />
     </button>
   )
 }

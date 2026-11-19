@@ -1,7 +1,7 @@
 # Boards
 
 - Status: accepted
-- Last reviewed: 2026-11-09 (the project file is read with `@miragon/pulse-profile`; before that 2026-11-04, the CLI's rules)
+- Last reviewed: 2026-11-17 (the MCP server and its web app show boards over Camunda 8 clusters too, held to c8-core's recorded board; an engine whose definitions read fails as misconfigured fails on every surface); 2026-11-16 (the MCP server shows the board files of `ENGINE_BOARDS_DIR` with the same builder and tiles, and both editors cut a new board's file name at 64 characters, the server's id rule; before that the same day, the webview's board cards moved into the published package `@miragon/pulse-blocks`, which words the tiles in English and German, every problem code included, and takes the webview's table, short id and canvas as slots; the protocol's problems stay codes; before that the same day, the webview gets a board in its JSON form, `BoardJson.of`, plus the targets and the diagram's XML); 2026-11-15 (a broken widget is refused in its place instead of the whole board, an unknown root key is a note, problems and notes are data with codes, the version rule, `tenants`, and a widget of ended instances with incident is refused; before that the same day, the format moved out of the runtime view into the published package `@miragon/pulse-board`, with its JSON Schema, shared fixtures and one starter board for both editors; the builder followed into its `./builder` entry, and the runtime view renders its model); 2026-11-14 (the counter and the incident summary read "with incident" one way, c7-core's runtime rule); 2026-11-12 (boards are the first feature of D2; the format and the builder move to a new published package); 2026-11-09 (the project file is read with `@miragon/pulse-profile`; before that 2026-11-04, the CLI's rules)
 
 ## Context
 
@@ -35,28 +35,82 @@ What they found:
 
 ### Format
 
-`.pulse/boards/<name>.board.json`, anywhere in the workspace, read by `BoardParser`
-(`packages/core/runtime-view/src/core/boards`) and validated by hand, unlike `.pulse.json`, which
-`@miragon/pulse-profile` parses. Every problem names its JSON path and reason. `schemaVersion`
-1, `title`, `engines` (profile names of `.pulse.json`, the only engine id the extension has) and
+`.pulse/boards/<name>.board.json`, anywhere in the workspace, read by `BoardParser` of Pulse's
+board format `@miragon/pulse-board` (`packages/core/board/src/format`, the format without a
+runtime dependency, which the runtime view's core and the Boards view import through the package's
+main entry) and validated by hand, unlike `.pulse.json`, which `@miragon/pulse-profile` parses. Every problem and every note is data, its JSON path, a code and the values its words need
+(`{ path, code, values }`), which `BoardProblems.describe` words in English, so another surface
+may word the codes in its language. `schemaVersion`
+1, `title`, `engines` (profile names of `.pulse.json`, the only engine id the extension has),
+`tenants` (optional, tenant ids) and
 `rows`, each `{ "row": [...] }` of `{ "widget", "props" }`, the toolkit's layout grammar. The
 widgets are `counter`, `instanceList`, `incidentSummary`, `processDiagram` and `incidentList`; a
 widget may narrow the board's engines, and a `processDiagram` names exactly one. One filter
 vocabulary without aliases: `process`, `activeElement` (needs `process`, never with `ended`),
-`state` (`running` by default, `ended`), `withIncident`, `businessKey`. At most 12 widgets.
-The editor validates with `apps/vscode/schemas/board.schema.json` (`jsonValidation`, shipped in
-the .vsix); `apps/vscode/test/architecture/board-schema.test.ts` holds it equal to
-`BoardVocabulary`.
+`state` (`running` by default, `ended`), `withIncident` (`true` never with `ended`: an ended
+instance holds no open incident, so such a counter or list could only read 0), `businessKey`. At
+most 12 widgets. The file fails only when it gives no board (not JSON, no object, another
+`schemaVersion`, `title`, `engines` or `rows` missing, or one of them, a row or `tenants` of the
+wrong shape), and a broken save keeps the last valid board under its problems. A broken widget (a
+bad or unknown prop, an unknown widget, a widget after the 12th that reads) is refused in its
+place with its problems, which the board shows in a card where the widget would be, while the
+others read; a root key the format does not know is a note, a quiet strip over the board. The Boards view counts
+the problems of a file or of its refused widgets ("payments.board.json · 2 problems") and, without
+them, its notes. `tenants` is kept, but each widget of such a board is refused in its place
+(`tenantsNotRead`): no read of the contract filters by tenant on both dialects, and a widget
+would read every tenant. The rule is the format's (`BoardTiles`), which the builder and the
+Boards view both read, so the view counts these refusals as problems too.
 
-Not interchangeable with the MCP server's layouts: same layout grammar, different widgets, data
-binding and engine scope. No per-user boards, no interval in the file (a workspace file must
+The version rule: `schemaVersion` protects an older reader from a newer file. A root key that
+changes what any widget reads (a tenant, a time window, a scope) or a changed meaning takes a new
+version, and an older reader refuses that file. Under version 1 only root keys that change how
+the board looks may be added, which an older reader notes; new widgets and new props stay in
+version 1, because an older reader refuses such a widget in its place. A newer reader refusing
+what an older one accepted is a breaking change of the package, not a new version.
+
+The JSON Schema is the format's too (`packages/core/board/schema/board.schema.json`, published as
+the package's `./schema/board.schema.json`): the package's
+`packages/core/board/test/format/board-schema.test.ts` holds it equal to `BoardVocabulary` and
+runs it over the shared fixtures (`BOARD_FIXTURES` of its `./testing` entry, a text and its
+verdict each), of which it takes every board the parser reads without a note or a refused
+widget, and marks an unknown root key and a filter of ended instances with incident. The editor
+validates with a
+checked-in copy, `apps/vscode/schemas/board.schema.json` (`jsonValidation`, shipped in the .vsix),
+which `apps/vscode/test/architecture/board-schema.test.ts` holds byte-equal to the package's
+schema, read through its export; a copy made at build time would be missing after a turbo cache
+hit, under `pnpm test:one` and in a dev host started with F5, so a change to the schema copies it
+over in the same commit.
+
+The MCP server keeps no layouts of its own any more and reads these files since 2026-11-16 (The
+MCP server, below). No per-user boards, no interval in the file (a workspace file must
 not add load), no writes.
 
 ### Reading
 
+The numbers come from one builder over one read (D2): `BoardBuilder` of
+`@miragon/pulse-board/builder` (`packages/core/board/src/builder`) reads seven reads of the
+contract (`BoardReads`: `describeEngine`, `listDefinitions`, `countInstances`, `searchInstances`,
+`getDiagramXml`, `getElementStatistics`, `searchIncidents`) and returns a `BoardModel` of no text,
+formatting, diagram or navigation: per engine ready, failed with its error or not configured, per
+tile the widget and its numbers from the contract's read models. The runtime view hands it to the
+webview in the board's JSON form, `BoardData` of `@miragon/pulse-board`, which `BoardJson.of`
+serializes for every surface (`BoardViews` in `packages/core/runtime-view/src/core/boards`; the
+protocol keeps a copy of its tiles, held equal to the format's), with what only the editors add:
+an engine's problem, the targets a click opens, against which the core checks an intent, and the
+diagram's XML; a problem and a note stay codes with their values. The tiles are Pulse's building
+blocks, `@miragon/pulse-blocks` (`packages/core/blocks`), created from the webview's cards: they
+word a tile's title (the widget's, else one from its filter or kind), its counts, columns and
+notes and every problem code in English and German, the English ones equal to
+`BoardProblems.describe`, and take the surface's table, id and diagram as slots; the webview
+renders them under an English `LocaleProvider` with its table (row activation, the copy keys),
+its short id and its canvas, and words only what is its own (a file it could not read, the engine
+strip). It reads over a `BoardRuntime` per engine and load that reads the definitions through the
+panel's `SharedDefinitions` and the diagram once for the builder and the drawing.
 `BoardPanel` publishes only `ready` states, so `PanelState` and `ViewSession` stay
-single-engine. Per engine it probes `describeEngine` first and reads nothing else from an engine
-that fails it; `EngineReads` reads each distinct question once per engine and load. Honest
+single-engine. Per engine the builder probes `describeEngine` first and reads nothing else from an
+engine that fails it; an engine whose `listDefinitions` fails as `misconfigured` (a Camunda 8
+cluster without secondary storage) fails with that error and is asked nothing else either, never
+ready with empty tiles. It reads each distinct question once per engine and load. Honest
 numbers: totals come from counts and the shared definitions, never from page lengths; a failed
 read shows "not read", never 0; a total says how many engines it counts ("from 2 of 3 engines"); a
 threshold warns per engine, and a count that is only a lower bound at or below it reads
@@ -64,8 +118,10 @@ threshold warns per engine, and a count that is only a lower bound at or below i
 engine's total, in one table with an engine column and the rows of each engine together, because the contract promises no order across
 engines. `incidentSummary` counts instances with incident from `listDefinitions`, one call per
 engine. `processDiagram` draws the latest version of one engine's deployment with the
-element statistics of that version, the same diagram and badges the definition panel draws
-(`ElementBadges`); a click on a count opens that panel at the element. `incidentList` shows
+element statistics of that version, the same diagram and badges the definition panel draws: both
+roll the counts inside a collapsed sub-process up onto it with the builder's `DiagramBadges`, and
+the instance panel marks such a shape with its `CollapsedShapes`; a click on a count opens that
+panel at the element. `incidentList` shows
 each engine's first 50 open incidents from `searchIncidents` and says when more are open, since
 the contract has no incident count. A broken save keeps the last valid board under its problems.
 
@@ -75,8 +131,29 @@ The intents `openBoardInstance`, `openBoardProcess`, `openBoardEngine`, `setBoar
 and `openBoardFile` carry engine names and ids; `BoardTargets` opens only what the shown view
 lists, on the engine it came from, through the host's `BoardNavigation`
 (`apps/vscode/src/host/boards/board-panels.ts`), which reuses the panel manager's existing
-panels. The **Boards** view lists the files (shown only when there are any), a watcher reloads
-an open board on save, and **Pulse: New Board…** writes a starter board.
+panels. The tiles take their data, callbacks and slots only, with no host context, and the board
+screen turns a target they open into its intent. The **Boards** view lists the files (shown
+only when there are any), a watcher reloads an open board on save, and **Pulse: New Board…**
+writes the format's starter board (`StarterBoard.of(title, engines)`), the one Pulse for Orca
+writes too.
+
+### The MCP server
+
+Since 2026-11-16 the MCP server shows the same files. Its engine module reads every `*.board.json`
+of `ENGINE_BOARDS_DIR` at boot with the format
+(`packages/connectors/engine/engine-connector/src/engine-boards.ts`); a board's id is its file name
+without `.board.json`, a letter or digit first and 64 characters at most (`BOARD_ID`), which a new
+board of either editor keeps, since both cut its file name there. Its `engines` are profile names
+of the server's own configuration, so a file shared with the editors works where both name the
+same engines (`docs/mcp/boards.md`). The app-only feed `engine_board_data` builds a board with the
+same builder over each engine's runtime (`C7Runtime`, or c8-core's `C8Runtime` for a cluster) and
+serializes it with `BoardJson.of`, kept 30 seconds per caller and board, and the cockpit's `board`
+route renders the tiles of `@miragon/pulse-blocks` with its own table, id and diagram; a tile opens
+one of the cockpit's routes, a cluster's tile none (`BoardSlots.opens`). c7-core's recorded
+answers (`C7_BOARD_ENGINE`) hold both wires to one board, and the board cases of both engine suites
+read it on a live engine; c8-core's (`C8_BOARD_ENGINE`) hold the C8 adapter and the server's
+Camunda 8 wire to one board too, and the board cases of both Camunda 8 engine suites read it on a
+live cluster, locally only until #531.
 
 ## Consequences
 
@@ -85,6 +162,17 @@ an open board on save, and **Pulse: New Board…** writes a starter board.
 - Deferred: `var:` columns (a variable projection in the contract with a law and a saboteur),
   oldest first and an age filter for stuck instances, a real incident count in the contract,
   and grouping incidents by message.
+- Boards are the first feature of the owner decision D2 of 2026-11-12
+  ([ui-foundation.md](ui-foundation.md)): once another surface shows them, every surface shows a
+  board's numbers from one builder over one read, so the format and the builder leave the runtime
+  view for a published package, `@miragon/pulse-board`: the format moved on 2026-11-15 (its
+  problems read as before; a count in one reads in plain digits, which differs only from 1,000
+  widgets on), the builder the same day into `./builder`, with the same numbers from the same
+  reads; the MCP server shows its model since 2026-11-16 (above), the web app since the same day,
+  and on 2026-11-17 over Camunda 8 clusters too, held to `C8_BOARD_ENGINE` as the editors are
+  (`docs/mcp/camunda8.md`). The counter's and the incident summary's readings of "with incident"
+  are one since 2026-11-14 (owner decision): an open incident the runtime holds now, c7-core's
+  rule, on every history level.
 - `.pulse.json` is parsed in the CLI and in the extension by one package, Pulse's profile
   format `@miragon/pulse-profile`, which owns its JSON Schema and the fixtures that hold both
   readers to it ([architecture.md](architecture.md)).
@@ -100,3 +188,12 @@ an open board on save, and **Pulse: New Board…** writes a starter board.
 | Merge of lists   | One table, rows of each engine together, totals per engine | No order across engines in the contract          |
 | Workspace trust  | No `capabilities`: off in untrusted folders                | `limited` would allow engine reads there         |
 | Diagram scope    | One engine, latest version                                 | Deployments and versions differ between engines  |
+| Schema home      | The format's package, a copy held equal in the extension   | A build copy is missing after a turbo cache hit  |
+| Builder home     | `@miragon/pulse-board/builder`, a model of no text         | D2: every surface, one builder over one read     |
+| Tile data        | The JSON form `BoardJson.of` gives, copied in the protocol | One form for every surface, words in the tiles   |
+| Tiles            | `@miragon/pulse-blocks`, the surface's table, id, diagram  | One look and one row convention (D9 point 8)     |
+| MCP server       | The files of `ENGINE_BOARDS_DIR`, one builder, the blocks  | D2 and D8: one builder and one look everywhere   |
+| A broken widget  | Refused in its place; an unknown root key is a note        | One typo no longer hides every number            |
+| Version rule     | A root key that changes what a widget reads is a version   | An older reader never reads a newer file wrong   |
+| Ended, incident  | Refused in its place                                       | It could only ever read 0                        |
+| `tenants`        | Kept, each widget refused until the contract filters       | Reading every tenant would show others' numbers  |

@@ -23,7 +23,15 @@ const SERVER_CODE =
 /** A Node built-in stays external, so a leak shows as an import of the output. */
 const NODE_BUILTINS = [...builtinModules, ...builtinModules.map((name) => `node:${name}`)]
 
-const BLOCKS = ["ListTable", "describeError", "ConfirmDialog", "TestViewHost", "useToolQuery"]
+/** The page root among them: a page outside a chat mounts its views without ext-apps. */
+const BLOCKS = [
+  "ListTable",
+  "describeError",
+  "ConfirmDialog",
+  "TestViewHost",
+  "useToolQuery",
+  "mountPage",
+]
 
 /** Bundles one export of the barrel: the server-side packages in the output, and its imports. */
 async function bundleOne(name: string) {
@@ -68,8 +76,10 @@ describe("the /widgets barrel tree-shakes", () => {
   }, 30_000)
 
   it("ships no stylesheet and no bare import, which false would let a bundler drop", () => {
-    // Either needs an entry in "sideEffects" first.
-    const files = readdirSync(here, { recursive: true, encoding: "utf8" })
+    // Either needs an entry in "sideEffects" first. A test-support folder ships not ("files").
+    const files = readdirSync(here, { recursive: true, encoding: "utf8" }).filter(
+      (file) => !file.split(/[\\/]/).includes("test-support"),
+    )
     expect(files.filter((file) => file.endsWith(".css"))).toEqual([])
     const bare = files.filter(
       (file) =>

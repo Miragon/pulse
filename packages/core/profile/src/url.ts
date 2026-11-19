@@ -1,8 +1,9 @@
 /**
  * The URL rules of a profile, which the readers also apply to a URL from elsewhere (the CLI's
  * flags and environment): the REST root and the web app are http or https, without credentials,
- * a query or a fragment. And the one loopback definition, for the rule that a credential never
- * travels over plain http beyond the local machine.
+ * a query or a fragment; a token endpoint, which a reader checks itself, takes a query but no
+ * fragment. And the one loopback definition, for the rule that a credential never travels over
+ * plain http beyond the local machine.
  */
 
 import type { AuthType } from "./types.js"
@@ -22,6 +23,10 @@ declare const URL: new (input: string) => {
 /** What is wrong with a URL; each is a code of the verdict. */
 export type UrlProblemCode =
   "url-invalid" | "url-credentials" | "url-not-http" | "url-query-or-fragment"
+
+/** What is wrong with a token endpoint's URL: a query is its own, a fragment is not. */
+export type TokenEndpointUrlProblemCode =
+  "url-invalid" | "url-credentials" | "url-not-http" | "url-fragment"
 
 const LOOPBACK_HOSTS: ReadonlySet<string> = new Set(["localhost", "[::1]"])
 const LOOPBACK_V4 = /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/
@@ -45,6 +50,19 @@ export function urlProblem(url: string): UrlProblemCode | undefined {
   if (address.username !== "" || address.password !== "") return "url-credentials"
   if (address.protocol !== "http:" && address.protocol !== "https:") return "url-not-http"
   return /[?#]/.test(trimmed) ? "url-query-or-fragment" : undefined
+}
+
+/**
+ * Why `url` (blanks around it ignored) is no usable token endpoint of the client credentials
+ * grant, or undefined: an http(s) URL without credentials (the client's ID and secret go into the
+ * request, never into the URL) and without a fragment, which no request carries; a query it may
+ * keep. The format checks only that a profile names one; each reader applies this rule, and
+ * `credentialsInClearText` beside it.
+ */
+export function tokenEndpointUrlProblem(url: string): TokenEndpointUrlProblemCode | undefined {
+  const problem = urlProblem(url)
+  if (problem !== "url-query-or-fragment") return problem
+  return url.includes("#") ? "url-fragment" : undefined
 }
 
 /**

@@ -28,6 +28,7 @@
 export const EXPECTED_TOOLS_READ_ONLY: readonly string[] = [
   "engine_activity_incidents_data",
   "engine_activity_statistics_data",
+  "engine_board_data",
   "engine_bpmn_xml_data",
   "engine_cluster_detail_data",
   "engine_cockpit_overview_data",
@@ -107,3 +108,15 @@ export const EXPECTED_TOOLS_ADMIN: readonly string[] = [
   ...EXPECTED_TOOLS_OPERATIONS,
   ...ADMIN_ADDS,
 ].sort()
+
+/**
+ * A server of Camunda 8 engines alone, in every toolset: the boot registers only what serves a
+ * configured engine's dialect (each tool's, feed's and route's mark), so the engine list, the
+ * cockpit (its board and landing) and the board and XML feeds; no write, since none serves Camunda 8.
+ */
+export const EXPECTED_TOOLS_CAMUNDA_8: readonly string[] = [
+  "engine_board_data",
+  "engine_bpmn_xml_data",
+  "engine_list_engines",
+  "engine_open_cockpit",
+]

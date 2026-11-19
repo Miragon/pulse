@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "title": "Approvals",
+  "engines": ["stub"],
+  "rows": [
+    {
+      "row": [
+        {
+          "widget": "counter",
+          "props": {
+            "title": "Waiting for approval",
+            "filter": { "process": "invoice", "activeElement": "approveInvoice" }
+          }
+        }
+      ]
+    }
+  ]
+}

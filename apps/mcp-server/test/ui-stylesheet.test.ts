@@ -44,6 +44,9 @@ describe("the app's stylesheet (#339)", () => {
     // workspace sources, where the brand gates' fixtures sit in src/testing.
     expect(rules).toMatch(/@source "[^"]*packages\/core\/ui\/src"/)
     expect(rules).toMatch(/@source not "[^"]*packages\/core\/ui\/src\/testing"/)
+    // The board's tiles the cockpit renders, their tests and test support left out.
+    expect(rules).toMatch(/@source "[^"]*packages\/core\/blocks\/src"/)
+    expect(rules).toMatch(/@source not "[^"]*packages\/core\/blocks\/src/)
   })
 })
 

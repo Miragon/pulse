@@ -17,7 +17,15 @@ import { ProcessInstancesWidget } from "./process-instances/list.js"
 import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 
 // WCAG 2.5.3: named by the placeholder's words, never the FilterBar's generic "Filter"; a placeholder
-// vanishes while typing and voice users say the words they see.
+// vanishes while typing and voice users say the words they see. The name starts with them and may
+// go on to say what the box searches where a short placeholder fits a narrow field.
+
+/** The label is the placeholder's words, or goes on after them with a space: never a cut word. */
+function startsWithWholeWords(label: string, placeholder: string): boolean {
+  if (!/\S…$/.test(placeholder)) return false
+  const words = placeholder.slice(0, -1)
+  return label === words || label.startsWith(`${words} `)
+}
 
 afterEach(() => {
   cleanup()
@@ -121,7 +129,8 @@ type Locale = "en" | "de"
 interface SearchSite {
   widget: ComponentType<Record<string, unknown>>
   search: Record<Locale, string>
-  chips?: Record<Locale, string>
+  /** A scope picked in segments: a radio group of its own name. */
+  scope?: Record<Locale, string>
 }
 
 const SITES: Record<string, SearchSite> = {
@@ -129,8 +138,11 @@ const SITES: Record<string, SearchSite> = {
     widget: () => (
       <ProcessInstancesWidget data={INSTANCES} processDefinitionKey="invoice" engine="prod-a" />
     ),
-    search: { en: "Search by business key or ID", de: "Nach Geschäftsschlüssel oder ID suchen" },
-    chips: { en: "Instance filters", de: "Instanzfilter" },
+    search: {
+      en: "Search instances by business key or ID",
+      de: "Instanzen suchen nach Geschäftsschlüssel oder ID",
+    },
+    scope: { en: "Show instances", de: "Instanzen zeigen" },
   },
   "cluster detail": {
     widget: () => (
@@ -152,9 +164,9 @@ const SITES: Record<string, SearchSite> = {
     widget: () => <IncidentProcessList data={INCIDENTS} engine="prod-a" />,
     search: {
       en: "Filter incidents by process, activity or error message",
-      de: "Incidents nach Prozess, Aktivität oder Fehlermeldung filtern",
+      de: "Incidents filtern nach Prozess, Aktivität oder Fehlermeldung",
     },
-    chips: { en: "Incident filters", de: "Incident-Filter" },
+    scope: { en: "Show incidents", de: "Incidents zeigen" },
   },
 }
 
@@ -164,7 +176,7 @@ const CASES = Object.keys(SITES).flatMap((site) =>
 
 describe("every search box is named by what it searches", () => {
   it.each(CASES)("%s (%s)", (site, locale) => {
-    const { widget, search, chips } = SITES[site]
+    const { widget, search, scope } = SITES[site]
     render(
       <LocaleProvider locale={locale}>
         <TestViewHost>{createElement(widget)}</TestViewHost>
@@ -172,19 +184,19 @@ describe("every search box is named by what it searches", () => {
     )
 
     const box = screen.getByRole("searchbox", { name: search[locale] })
-    expect(box.getAttribute("placeholder")).toBe(`${search[locale]}…`)
-    if (chips) expect(screen.getByRole("group", { name: chips[locale] })).toBeTruthy()
+    expect(startsWithWholeWords(search[locale], box.getAttribute("placeholder") ?? "")).toBe(true)
+    if (scope) expect(screen.getByRole("radiogroup", { name: scope[locale] })).toBeTruthy()
   })
 })
 
-describe("the catalogs keep each search label inside its placeholder", () => {
+describe("the catalogs start each search label with its placeholder's words", () => {
   it.each(["en", "de"] as const)("%s", (locale) => {
     const catalog = catalogs[locale]
     const labels = Object.keys(catalog).filter((key) => key.endsWith(".searchLabel"))
     expect(labels).toHaveLength(Object.keys(SITES).length)
     for (const key of labels) {
       const placeholder = catalog[key.replace(/searchLabel$/, "searchPlaceholder")]
-      expect(placeholder, key).toBe(`${String(catalog[key])}…`)
+      expect(startsWithWholeWords(String(catalog[key]), String(placeholder)), key).toBe(true)
     }
   })
 })

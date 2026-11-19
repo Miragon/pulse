@@ -136,10 +136,10 @@ function renderFlow(props: DefinitionScope, running: unknown = RUNNING) {
   return { actions, contexts, calls }
 }
 
-const modeGroup = () => screen.findByRole("group", { name: "Process flow display" })
+const modeGroup = () => screen.findByRole("radiogroup", { name: "Process flow display" })
 
 async function chooseRunning() {
-  fireEvent.click(within(await modeGroup()).getByRole("button", { name: "Running" }))
+  fireEvent.click(within(await modeGroup()).getByRole("radio", { name: "Running" }))
 }
 
 const lastDrawn = () => drawn.at(-1)
@@ -153,7 +153,7 @@ describe.each(ENTRIES)("definition view flow: %s", (_entry, props) => {
     expect(await screen.findByTestId("diagram")).toBeTruthy()
     const group = await modeGroup()
     expect(
-      within(group).getByRole("button", { name: "Incidents" }).getAttribute("aria-pressed"),
+      within(group).getByRole("radio", { name: "Incidents" }).getAttribute("aria-checked"),
     ).toBe("true")
     expect(highlightOf("incident")?.counts).toEqual([{ activityId: "assess", count: 1 }])
     expect(screen.getByText("diagram v2 (latest) · counts span all versions")).toBeTruthy()
@@ -198,10 +198,10 @@ describe("definition view flow: Running", () => {
     const table = await screen.findByRole("region", { name: "Values per activity" })
     const rows = within(table).getAllByRole("row").slice(1)
     expect(rows.map((row) => row.textContent)).toEqual([
-      "Send policysendPolicy700",
-      "Assessassess311",
+      "Send policy sendPolicy700",
+      "Assess assess311",
       "notify202",
-      "Legacy checklegacyCheck · only in older versions100",
+      "Legacy check legacyCheck · only in older versions100",
     ])
   })
 
@@ -230,7 +230,7 @@ describe("definition view flow: Running", () => {
     await screen.findByText(/running now/)
     expect(calls(ENGINE_ACTIVITY_STATISTICS_DATA)).toHaveLength(2)
 
-    fireEvent.click(within(await modeGroup()).getByRole("button", { name: "Incidents" }))
+    fireEvent.click(within(await modeGroup()).getByRole("radio", { name: "Incidents" }))
     await screen.findByText("diagram v2 (latest) · counts span all versions")
   })
 

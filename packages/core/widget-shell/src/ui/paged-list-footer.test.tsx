@@ -5,7 +5,9 @@ import { LocaleProvider, PagedListFooter } from "@miragon/pulse-ui"
 import { NO_FIT_ROWS } from "./inline-fit.js"
 import { PagedRows } from "./paged-rows.js"
 import { createTestQueryClient, TestViewHost } from "./test-view-host.js"
+import { createViewQueryClient } from "./tool-query.js"
 import { usePagedViewData, type PagedViewData } from "./use-paged-view-data.js"
+import { WebApiError } from "./web-caller.js"
 
 afterEach(() => cleanup())
 
@@ -203,4 +205,116 @@ describe("usePagedViewData + PagedListFooter: a refused engine", () => {
       expect(alert.querySelector("button")).toBeNull()
     },
   )
+})
+
+/**
+ * A page whose session ended while it shows a list: the view's own query client asks once (no
+ * retries of a refusal no sign-in has changed), and the footer says nothing of it, which the
+ * page's frame says once: no alert, no Try again, no "Updating…", the rows and their count stay.
+ */
+describe("usePagedViewData + PagedListFooter: a page's session ended", () => {
+  interface Page {
+    items: string[]
+    total: number
+  }
+
+  function EndedList() {
+    const paged = usePagedViewData<string, Page>({
+      initialData: null,
+      key: ["test:ended"],
+      tool: "test_list_data",
+      args: {},
+      pageSize: 2,
+      ready: true,
+      selectItems: (data) => data.items,
+      selectTotal: (data) => data.total,
+    })
+    return <PagedListFooter paged={paged} noun="items" />
+  }
+
+  it("asks once, and leaves the ended session to the page's frame", async () => {
+    // The view's own client: three retries for a failure a retry may change.
+    const client = createViewQueryClient()
+    let calls = 0
+    const tools = {
+      test_list_data: () => {
+        calls += 1
+        if (calls === 1) return { structuredContent: { items: ["a", "b"], total: 3 } }
+        throw new WebApiError(401, { code: "signed_out", message: "No session." })
+      },
+    }
+    render(
+      <TestViewHost client={client} tools={tools} locale="en" followUp="none">
+        <EndedList />
+      </TestViewHost>,
+    )
+    await waitFor(() => expect(screen.getByRole("status").textContent).toContain("2"))
+    await act(() => client.invalidateQueries({ queryKey: ["test:ended"] }))
+    // No retry runs behind it: the read is over after one refusal.
+    await waitFor(() => expect(calls).toBe(2))
+    await waitFor(() => expect(client.isFetching()).toBe(0))
+    expect(screen.queryByRole("alert")).toBeNull()
+    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull()
+    expect(screen.getByRole("status").textContent).toBe("Showing 2 of 3 items")
+    expect(calls).toBe(2)
+    client.clear()
+  })
+})
+
+/**
+ * A refusal over the rows on screen, worded for where the list sits: a page's words never send the
+ * reader to a chat, a chat's do (`describeRefusal` reads the host's `followUp`).
+ */
+describe("usePagedViewData + PagedListFooter: a refusal's words follow the host", () => {
+  interface Page {
+    items: string[]
+    total: number
+  }
+  const INVALID =
+    "Input validation error: Invalid arguments for tool test_list_data: state: Invalid option"
+
+  function RefusedList() {
+    const paged = usePagedViewData<string, Page>({
+      initialData: null,
+      key: ["test:invalid"],
+      tool: "test_list_data",
+      args: {},
+      pageSize: 2,
+      ready: true,
+      selectItems: (data) => data.items,
+      selectTotal: (data) => data.total,
+    })
+    return <PagedListFooter paged={paged} noun="items" />
+  }
+
+  async function refusedLine(followUp: "chat" | "none") {
+    const client = createTestQueryClient()
+    const answers = [
+      { structuredContent: { items: ["a", "b"], total: 3 } },
+      { isError: true, content: [{ type: "text", text: INVALID }] },
+    ]
+    const tools = { test_list_data: () => answers.shift() ?? answers[0] }
+    render(
+      <TestViewHost client={client} tools={tools} locale="en" followUp={followUp}>
+        <RefusedList />
+      </TestViewHost>,
+    )
+    await waitFor(() => expect(screen.getByRole("status").textContent).toContain("2"))
+    await act(() => client.invalidateQueries({ queryKey: ["test:invalid"] }))
+    const alert = await screen.findByRole("alert")
+    expect(alert.querySelector("button")).toBeNull()
+    return alert.textContent
+  }
+
+  it("on a page: what to do there, never the chat", async () => {
+    const line = await refusedLine("none")
+    expect(line).toContain(
+      "You're seeing the previous result. The server refused this request. You'll find the reason under Details. Open the view from Pulse's start page instead.",
+    )
+    expect(line).not.toMatch(/\bchat\b/i)
+  })
+
+  it("in a chat: the chat's words", async () => {
+    expect(await refusedLine("chat")).toContain("Ask in the chat to try it another way.")
+  })
 })

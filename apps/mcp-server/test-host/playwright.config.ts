@@ -4,8 +4,11 @@ const CI = Boolean(process.env.CI)
 
 export default defineConfig({
   testDir: ".",
-  // Matches the .gitignore entry and the CI artifact upload.
-  outputDir: "../test-results",
+  // The web app's suite has its own config and global setup (web/playwright.config.ts, test:web).
+  testIgnore: "web/**",
+  // Under the .gitignore entry, as the CI artifact upload names it. A sibling of test:web's, since
+  // Playwright empties its output directory at every run.
+  outputDir: "../test-results/host",
   // Boots the real server (built bundle) + stub engine + host backend once,
   // on ephemeral ports; see global-setup.ts.
   globalSetup: "./global-setup.ts",

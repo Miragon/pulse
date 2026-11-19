@@ -26,7 +26,9 @@ two seconds and names the count to set.
 Never edit a golden by hand. An intended change runs
 `pnpm --fail-if-no-match --filter @miragon/pulse-c7-adapter golden:update` (refused in CI) and
 commits the diff. The MCP server (`apps/mcp-server/test/__golden__/error-paths`) and the CLI
-(`apps/cli/test/__golden__/error-paths`) pin the same cases under the same names.
+(`apps/cli/test/__golden__/error-paths`) pin the same cases under the same names. The C8 adapter
+(`packages/connectors/c8/c8-adapter/test/__golden__/error-paths`) pins them under the same names
+with the answers of a Camunda 8 cluster.
 
 The network codes (ECONNREFUSED, ENOTFOUND, DEPTH_ZERO_SELF_SIGNED_CERT) come from Node, not from
 the adapter; they are checked with Node 22.23.4 (CI runs the newest Node 22) and 24.15.0.
@@ -38,12 +40,13 @@ put the adapter on `@miragon/pulse-http`: the failures read as before (`ErrorTra
 adapter's own table), but a 404 of no engine resource and a redirect add a hint to the REST root,
 a status names its phrase (HTTP 401 Unauthorized), an engine text reads the request's credentials
 as `***` and is cut after 500 characters on one line, and TLS and DNS name their own reason and
-what to check. Only the seven cases with a 15 below changed.
+what to check. Only the seven cases with a 15 below changed. Step 3.10 of the Camunda 8 plan of
+#617 added the hint to add a login with Set credentials to a 401 without one, as on every surface.
 
 | Case | Status | What the golden shows, or why there is none | Changes in step |
 | ---- | ------ | ------------------------------------------- | --------------- |
 | `redirect` | pinned | a 302 to a login page: `misconfigured`, its target without the query and the hint to the REST root, nothing followed; for `describeEngine` and `getInstanceDetail` | 15 (root hint, status phrase) |
-| `unauthorized-none` | pinned | 401: `unauthorized` "HTTP 401 Unauthorized"; for `describeEngine` and `getInstanceDetail` | 15 (status phrase) |
+| `unauthorized-none` | pinned | 401: `unauthorized` "HTTP 401 Unauthorized" with the hint to add a login with Set credentials; for `describeEngine` and `getInstanceDetail` | 15 (status phrase), 3.10 (the hint) |
 | `unauthorized-basic` | pinned | the same to Basic `demo`/`demo-secret`, the header as sent | 15 (status phrase) |
 | `unauthorized-bearer` | not reachable | the adapter knows only no credentials and Basic (`EngineCredentials`); a token profile is refused before any adapter runs | |
 | `unauthorized-passthrough` | not reachable | the extension has no caller whose token it could forward: passthrough is the MCP server's alone | |

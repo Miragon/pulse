@@ -5,8 +5,11 @@
  */
 
 import { MAX_TIMEOUT_MS } from "./profile.js"
+import { flavorsOf } from "./surface.js"
 import {
   AUTH_TYPES,
+  type Dialect,
+  DIALECT_AUTH_TYPES,
   FLAVORS,
   OUTPUT_FORMATS,
   type Problem,
@@ -53,6 +56,11 @@ const EXPECTED: Readonly<Record<string, string>> = {
 }
 
 const subject = (problem: Problem) => problem.key ?? "A key that is not shown"
+
+/** The flavors of each dialect with the auth types it takes: `camunda8: none, basic, …`. */
+const DIALECT_TYPES = (Object.keys(DIALECT_AUTH_TYPES) as Dialect[])
+  .map((dialect) => `${flavorsOf(dialect).join(", ")}: ${DIALECT_AUTH_TYPES[dialect].join(", ")}`)
+  .join("; ")
 
 /** What `key` takes; only the keys EXPECTED lists, never a name the prototype answers to. */
 const expected = (key: string): string =>
@@ -103,17 +111,22 @@ const SENTENCES: Readonly<Record<ProblemCode, (problem: Problem) => string>> = {
   "auth-keys-mixed": () =>
     "auth mixes the keys of two kinds of credentials (Basic auth, OAuth, a bearer token): keep one.",
   "auth-type-mismatch": () =>
-    'auth.type does not fit the other auth keys: OAuth keys need "oauth", a stored token "bearer", Basic auth keys "basic" or no type, "passthrough" takes none, and "none" switches them off.',
+    'auth.type does not fit the other auth keys: OAuth keys need "oauth", or "clientCredentials" without issuer, authorizationEndpoint and redirectPort; a stored token "bearer"; Basic auth keys "basic" or no type; "passthrough" takes none; and "none" switches them off.',
+  "auth-type-not-in-dialect": () =>
+    `auth.type does not fit the API of the flavor (${DIALECT_TYPES}).`,
   "secret-twice": (problem) =>
     `Both ${subject(problem)} and ${subject(problem)}Env are set: keep one, the variable.`,
   "endpoint-alone": () =>
     "auth.authorizationEndpoint and auth.tokenEndpoint go together: set both, or neither and let auth.issuer name them.",
+  "token-endpoint-missing": () =>
+    'auth.tokenEndpoint is missing: auth.type "clientCredentials" gets its tokens from that URL, such as https://login.example.com/oauth/token.',
   "url-invalid": (problem) => `${subject(problem)} is no URL: use ${LINK}.`,
   "url-not-http": (problem) => `${subject(problem)} must start with http:// or https://.`,
   "url-credentials": (problem) =>
     `${subject(problem)} must not contain credentials (they are not shown): put them into auth.`,
   "url-query-or-fragment": (problem) =>
     `${subject(problem)} must not contain a query string or a fragment.`,
+  "url-fragment": (problem) => `${subject(problem)} must not contain a fragment.`,
   "credential-in-shared-file": (problem) =>
     `${subject(problem)} is set, but a file others share names no credential, neither a secret nor the variable that holds one.`,
   "literal-secret": (problem) =>

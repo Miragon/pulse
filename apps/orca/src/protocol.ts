@@ -17,12 +17,18 @@ export interface DefinitionRow {
   readonly withIncident: number
 }
 
+export interface LoginRow {
+  readonly identity?: string
+  readonly secret: string
+  readonly sendsTo: string
+}
+
 export interface EngineRow {
   readonly name: string
   readonly description: string
   readonly active: boolean
   readonly writable: boolean
-  readonly needsLogin: boolean
+  readonly login?: LoginRow
   readonly problem?: EngineProblem
   readonly definitions: readonly DefinitionRow[]
 }
@@ -32,8 +38,16 @@ export interface ConfigurationProblem {
   readonly tone: "warning" | "danger"
 }
 
+export interface UserConfigRow {
+  readonly path: string
+  readonly named: boolean
+  readonly present: boolean
+  readonly openable: boolean
+}
+
 export interface EngineList {
   readonly projectFile: string
+  readonly userConfig: UserConfigRow
   readonly engines: readonly EngineRow[]
   readonly problems: readonly ConfigurationProblem[]
 }
@@ -129,10 +143,11 @@ declare module "orca" {
     "engines.activate": { input: { engine: string }; output: { ok: boolean } }
     "engines.setProjectFile": { input: { path: string }; output: { ok: boolean } }
     "engines.setCredentials": {
-      input: { engine: string; username: string; password: string }
+      input: { engine: string; identity?: string; secret: string }
       output: { ok: boolean }
     }
     "engines.configure": { output: { path: string } }
+    "engines.openUserConfig": { output: { opened: boolean } }
     "instances.find": { input: { query: string }; output: { found: readonly FoundInstance[] } }
     "boards.list": { output: { boards: readonly FileRow[] } }
     "boards.create": { input: { title: string }; output: { path: string } }

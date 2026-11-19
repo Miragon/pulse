@@ -8,6 +8,7 @@ import {
   waitForPanel,
 } from "./panel-steps.mjs"
 import { closeEditors, goToInstance, panelFrame, selectTab, showPulse } from "./vscode-driver.mjs"
+import { part } from "../support/webview-parts.mjs"
 
 const SHIP_ORDER_CALL = '[data-call-for="Activity_ShipOrder"]'
 const CHARGE_PAYMENT_BADGE = '[data-badge-for="Activity_ChargePayment"]'
@@ -19,13 +20,13 @@ export const NAVIGATION_USE_CASES = [
     file: "definition-filter-with-incident",
     title: "Filter the instances by scope, with counts",
     shows:
-      "One filter bar above the instances: every scope carries its count, the incident count in red; With incident lists only the instances of v3 with an incident. Search and the legend button share the bar.",
+      "One filter bar above the instances: every scope carries its count, the incident count beside the incident icon; With incident lists only the instances of v3 with an incident. Search and the legend button share the bar.",
     run: async (window) => {
       await openDefinition(window)
       const frame = panelFrame(window)
       await frame.getByRole("radio", { name: /^With incident/ }).click()
       await frame
-        .locator('.segmented[aria-busy="false"] [aria-checked="true"]', {
+        .locator('[role="radiogroup"][aria-busy="false"] [role="radio"][aria-checked="true"]', {
           hasText: "With incident",
         })
         .waitFor()
@@ -41,9 +42,9 @@ export const NAVIGATION_USE_CASES = [
       await openDefinition(window)
       const frame = panelFrame(window)
       await frame.locator(`${CHARGE_PAYMENT_BADGE} [data-scope="withIncident"]`).click()
-      await frame.locator(".filter-chip", { hasText: "Charge payment" }).waitFor()
+      await frame.locator(part("filter-chip"), { hasText: "Charge payment" }).waitFor()
       await frame
-        .locator('.segmented[aria-busy="false"] [aria-checked="true"]', {
+        .locator('[role="radiogroup"][aria-busy="false"] [role="radio"][aria-checked="true"]', {
           hasText: "With incident",
         })
         .waitFor()
@@ -101,7 +102,7 @@ export const NAVIGATION_USE_CASES = [
       await goToInstanceOf(window, "ORD-10137", "Order fulfillment")
       await panelFrame(window).locator(SHIP_ORDER_CALL).click()
       await window.locator(".tab.active", { hasText: "Shipment" }).waitFor({ timeout: 30_000 })
-      await panelFrame(window).locator(".context-bar", { hasText: "from " }).waitFor({
+      await panelFrame(window).locator(part("context-bar"), { hasText: "from " }).waitFor({
         timeout: 30_000,
       })
       await waitForPanel(window)
@@ -128,7 +129,7 @@ export const ENGINE_OVERVIEW_USE_CASES = [
     file: "engine-overview",
     title: "The processes of an engine at a glance",
     shows:
-      "A click on shop-dev in the Engines view opens its overview: product and version, access, Refresh and Open in Cockpit in the header; one filter bar with the scopes and their counts, a search by name or key and the summary of the engine; the processes with incidents first, their incident counts in red. A row opens the process, Ctrl/Cmd+click to the side.",
+      "A click on shop-dev in the Engines view opens its overview: product and version, access, Refresh and Open in Cockpit in the header; one filter bar with the scopes and their counts, a search by name or key and the summary of the engine; the processes with incidents first, their incident counts beside the incident icon. A row opens the process, Ctrl/Cmd+click to the side.",
     run: async (window) => {
       await closeEditors(window)
       await showPulse(window)

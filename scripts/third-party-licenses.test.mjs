@@ -16,6 +16,7 @@ import {
   cssDependencies,
   ESBUILD_RUNTIME,
   esbuildModules,
+  inlinedStylesheets,
   inventoryOf,
   licenceFindings,
   licenceTexts,
@@ -107,6 +108,22 @@ const FILES = {
   "repo/node_modules/.pnpm/styled@1.0.0/node_modules/styled/dist/styled.css": "b {}",
   "repo/node_modules/.pnpm/styled@1.0.0/node_modules/styled/extra.css":
     '@import "./dist/styled.css";',
+  "repo/node_modules/.pnpm/patterned@1.0.0/node_modules/patterned/package.json": JSON.stringify({
+    name: "patterned",
+    version: "1.0.0",
+    license: "MIT",
+    exports: {
+      ".": "./index.js",
+      "./*.css": { style: "./css/*.css" },
+      "./deep/*": "./deep-dist/*",
+    },
+  }),
+  "repo/node_modules/.pnpm/patterned@1.0.0/node_modules/patterned/css/theme.css": "e {}",
+  "repo/node_modules/.pnpm/patterned@1.0.0/node_modules/patterned/css/deep/x.css": "f {}",
+  "repo/node_modules/.pnpm/patterned@1.0.0/node_modules/patterned/deep-dist/x.css": "g {}",
+  "repo/apps/cli/src/ui/patterned.css":
+    '@import "patterned/theme.css";\n@import "patterned/deep/x.css";\n',
+  "repo/apps/cli/src/ui/unmatched.css": '@import "patterned/readme.md";\n',
   "repo/apps/cli/src/ui/main.css":
     '@import "tw";\n/* @import "gone"; */\n@import "./theme" layer(theme);\n' +
     '@import url("https://fonts.example.org/a.css");\n',
@@ -123,6 +140,8 @@ const FILES = {
 const LINKS = {
   "repo/apps/cli/node_modules/tw": "repo/node_modules/.pnpm/tw@1.0.0/node_modules/tw",
   "repo/apps/cli/node_modules/styled": "repo/node_modules/.pnpm/styled@1.0.0/node_modules/styled",
+  "repo/apps/cli/node_modules/patterned":
+    "repo/node_modules/.pnpm/patterned@1.0.0/node_modules/patterned",
 }
 
 let root = ""
@@ -739,6 +758,75 @@ describe("cssDependencies", () => {
     const files = await built([])
     assert.throws(() => files([chunk(`${UI}/other.scss`)]), /other\.scss is no CSS/)
     assert.throws(() => files([chunk(`${UI}/plugin.css`)]), /plugin\.css loads code into Tailwind/)
+  })
+})
+
+describe("inlinedStylesheets", () => {
+  const UI = "repo/apps/cli/src/ui"
+  const TW = "repo/node_modules/.pnpm/tw@1.0.0/node_modules/tw/index.css"
+  const STYLED = "repo/node_modules/.pnpm/styled@1.0.0/node_modules/styled"
+  const MAIN = {
+    entry: at(`${UI}/main.css`),
+    dependencies: [
+      TW,
+      `${UI}/theme.css`,
+      `${STYLED}/dist/styled.css`,
+      `${UI}/scanned.css`,
+      "repo/apps/cli/src/main.ts",
+    ].map(at),
+  }
+  const plugin = (...inlined) => ({ name: "tailwind", setup() {}, inlined: () => inlined })
+  const entry = (path, dependencies = []) => ({
+    entry: at(path),
+    dependencies: dependencies.map(at),
+  })
+
+  it("follows each entry's @imports to files of its dependency list, not a source it scanned", () => {
+    const sheets = [`${UI}/main.css`, `${UI}/theme.css`, `${STYLED}/dist/styled.css`, TW].map(at)
+    assert.deepEqual(inlinedStylesheets([plugin(MAIN)]), sheets)
+    // an entry without imports, one whose sheets another pulled in, a plugin that inlines nothing
+    const extra = entry(`${STYLED}/extra.css`, [`${STYLED}/dist/styled.css`])
+    assert.deepEqual(inlinedStylesheets([plugin(MAIN, extra), plugin(entry(TW)), plugin()]), [
+      ...sheets.slice(0, 3),
+      at(`${STYLED}/extra.css`),
+      at(TW),
+    ])
+    assert.deepEqual(inlinedStylesheets([]), [])
+  })
+
+  it("fails on a plugin that does not say what it inlines", () => {
+    assert.throws(
+      () => inlinedStylesheets([plugin(MAIN), { name: "bpmn", setup() {} }]),
+      /the esbuild plugin bpmn does not say what it inlines/,
+    )
+  })
+
+  it("fails on an @import that names no file of the entry's own dependency list", () => {
+    const theme = entry(`${UI}/theme.css`, [`${STYLED}/dist/styled.css`])
+    assert.throws(
+      () => inlinedStylesheets([plugin(entry(`${UI}/main.css`, [TW]), theme)]),
+      /main\.css imports "\.\/theme", which names no stylesheet the build read/,
+    )
+  })
+
+  it("resolves a package's subpath patterns, the longest prefix first, under any condition", () => {
+    const P = "repo/node_modules/.pnpm/patterned@1.0.0/node_modules/patterned"
+    const read = [`${P}/css/theme.css`, `${P}/css/deep/x.css`, `${P}/deep-dist/x.css`]
+    assert.deepEqual(inlinedStylesheets([plugin(entry(`${UI}/patterned.css`, read))]), [
+      at(`${UI}/patterned.css`),
+      at(`${P}/css/theme.css`),
+      at(`${P}/deep-dist/x.css`),
+    ])
+    assert.throws(
+      () => inlinedStylesheets([plugin(entry(`${UI}/unmatched.css`, read))]),
+      /unmatched\.css imports "patterned\/readme\.md", which names no stylesheet the build read/,
+    )
+  })
+
+  it("fails on a stylesheet in another language and on code Tailwind loads", () => {
+    const of = (path) => inlinedStylesheets([plugin(entry(path))])
+    assert.throws(() => of(`${UI}/other.scss`), /other\.scss is no CSS/)
+    assert.throws(() => of(`${UI}/plugin.css`), /plugin\.css loads code into Tailwind/)
   })
 })
 

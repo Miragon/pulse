@@ -1,99 +1,108 @@
 import type { ReactNode } from "react"
-import { Icon, cn, CountPill, TONE_DOT, type ToneVariant, SITUATION_TONES } from "@miragon/pulse-ui"
-import { ChevronRight, TriangleAlert } from "lucide-react"
+import { CountBadge, Icon, cn, formatNumber } from "@miragon/pulse-ui"
+import { ChevronRight } from "lucide-react"
+import { useT } from "../messages/use-t.js"
 
 export interface GroupSummaryStat {
   value: ReactNode
   label: ReactNode
 }
 
-/** Shared so the grouped incident lists stay pixel-identical; decorative, the row names the activity. */
-export function IncidentGroupIcon({ tone = SITUATION_TONES.openIncident }: { tone?: ToneVariant }) {
-  return (
-    <div
-      className={cn(
-        "grid size-6 place-items-center rounded-md",
-        tone === "danger" ? "bg-danger-soft text-danger-ink" : "bg-muted text-muted-foreground",
-      )}
-    >
-      <Icon icon={TriangleAlert} dense />
-    </div>
-  )
-}
+/**
+ * Under this width of the row (42rem) its stats move onto a line of their own under the title,
+ * each its label then its value, so the title keeps its share beside the count and the chevron.
+ */
+const NARROW = {
+  stats:
+    "@max-2xl/summary:order-last @max-2xl/summary:basis-full @max-2xl/summary:flex-wrap @max-2xl/summary:gap-x-3 @max-2xl/summary:gap-y-0",
+  stat: "@max-2xl/summary:min-w-0 @max-2xl/summary:flex-row-reverse @max-2xl/summary:justify-end @max-2xl/summary:gap-1 @max-2xl/summary:text-left",
+} as const
 
-/** Shared summary-row anatomy; `expanded` doubles as the expandability switch (omit for plain rows). */
+/**
+ * Shared summary-row anatomy, so the grouped incident lists stay pixel-identical; `expanded`
+ * doubles as the expandability switch (omit for plain rows). The row's one alarm sign is its
+ * incident count's pill, the tone's icon of its own shape: no second icon leads the row. On the
+ * density roles: a list entry's height at least, the cell's padding. The title keeps 10rem at
+ * least; in a narrow row (a phone-width chat) the stats sit under it. The stats and the count
+ * take fixed tracks (a stat 10rem, the count 3.5rem, its pill at the end), so they line up from
+ * row to row whatever a date's or a count's width.
+ */
 export function GroupSummaryRow({
-  icon,
-  tone,
   title,
   titleSuffix,
   subline,
   stats = [],
-  count,
-  countTone = SITUATION_TONES.openIncident,
+  incidents,
   actions,
   expanded,
   className,
 }: {
-  icon?: ReactNode
-  tone?: ToneVariant
   title: ReactNode
   /** Inline suffix after the title, e.g. a `VersionChip`. */
   titleSuffix?: ReactNode
   /** Truncated second line under the title (the cause, in words). */
   subline?: ReactNode
   stats?: GroupSummaryStat[]
-  /** Count-pill content after the stats; omit to render no pill. */
-  count?: ReactNode
-  countTone?: ToneVariant
+  /**
+   * The group's open incidents after the stats: a neutral count pill with the incident's icon,
+   * the count in words for a screen reader, never a coloured number; omit to render none.
+   */
+  incidents?: number
   /** Action cells (AskAi / drill / cockpit link) between the pill and the chevron. */
   actions?: ReactNode
   expanded?: boolean
   className?: string
 }) {
+  const t = useT()
   return (
     <div
-      className={cn(
-        "flex items-center gap-4 px-4 py-3",
-        expanded && "border-border border-b",
-        className,
-      )}
+      data-slot="group-summary"
+      className={cn("@container/summary", expanded && "border-border border-b", className)}
     >
-      {icon}
-      <div className="min-w-0 flex-1">
-        <div className="text-foreground text-dense flex items-center gap-2 font-semibold">
-          {tone && (
-            <span
-              aria-hidden="true"
-              className={`size-1.5 shrink-0 rounded-full ${TONE_DOT[tone]}`}
-            />
+      <div className="px-cell py-cell min-h-entry flex flex-wrap items-center gap-x-4 gap-y-1">
+        <div data-slot="group-summary-title" className="min-w-[min(10rem,100%)] flex-1">
+          <div className="text-foreground text-dense flex items-center gap-2 font-semibold">
+            <span className="truncate">{title}</span>
+            {titleSuffix}
+          </div>
+          {/* The cause in words (an engine message), not code: no mono. */}
+          {subline !== undefined && (
+            <div className="text-muted-foreground text-small truncate">{subline}</div>
           )}
-          <span className="truncate">{title}</span>
-          {titleSuffix}
         </div>
-        {/* The cause in words (an engine message), not code: no mono. */}
-        {subline !== undefined && (
-          <div className="text-muted-foreground text-small truncate">{subline}</div>
+        {stats.length > 0 && (
+          <div data-slot="group-summary-stats" className={cn("flex gap-4", NARROW.stats)}>
+            {stats.map((stat, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "text-muted-foreground text-small flex min-w-40 flex-col text-right tabular-nums",
+                  NARROW.stat,
+                )}
+              >
+                <div className="text-foreground font-semibold whitespace-nowrap">{stat.value}</div>
+                <div>{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        )}
+        {incidents !== undefined && (
+          <span data-slot="group-summary-count" className="flex min-w-14 justify-end">
+            <CountBadge
+              count={incidents}
+              situation={incidents > 0 ? "openIncident" : undefined}
+              label={t("procIncHeader.openIncidents", { count: formatNumber(incidents) })}
+            />
+          </span>
+        )}
+        {actions}
+        {expanded !== undefined && (
+          <Icon
+            icon={ChevronRight}
+            className={`text-muted-foreground transition-transform ${expanded ? "rotate-90" : ""}`}
+          />
         )}
       </div>
-      {stats.map((stat, i) => (
-        <div
-          key={i}
-          className="text-muted-foreground text-small min-w-[80px] text-right tabular-nums"
-        >
-          <div className="text-foreground font-semibold">{stat.value}</div>
-          <div>{stat.label}</div>
-        </div>
-      ))}
-      {count !== undefined && <CountPill tone={countTone}>{count}</CountPill>}
-      {actions}
-      {expanded !== undefined && (
-        <Icon
-          icon={ChevronRight}
-          dense
-          className={`text-muted-foreground transition-transform ${expanded ? "rotate-90" : ""}`}
-        />
-      )}
     </div>
   )
 }

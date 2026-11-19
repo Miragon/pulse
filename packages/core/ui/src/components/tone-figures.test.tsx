@@ -1,13 +1,17 @@
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
 import type { ToneVariant } from "../tones/index.js"
+import { SegmentedControl } from "../kit/segmented-control.js"
+import { CountBadge } from "./CountBadge.js"
+import { CountFigure } from "./CountFigure.js"
 import { KpiGrid } from "./KpiGrid.js"
 import { CountPill, LivePill } from "./Pills.js"
+import { StateLabel } from "./StateLabel.js"
 
 /**
- * Status model (owner decision 2e-f, CI §3.3): coloured digits are retired.
- * A figure (a KPI value, a trend, a count) stays in the foreground; the tone
- * shows as a dot, a border or a tint next to it. These components carry
+ * Status model (owner decision 2e-f, CI §3.3; owner decision (d) of D9): coloured digits are
+ * retired. A figure (a KPI value, a trend, a count) stays in the foreground; the tone shows as
+ * an icon of its own shape or a border next to it, never a tinted KPI tile. These components carry
  * figures, so no tone colour may reach their text (SSR, the house render path).
  */
 
@@ -17,23 +21,24 @@ const TONES: ToneVariant[] = ["neutral", ...STATUS]
 const TONE_AS_TEXT = /\btext-(?:success|warning|danger|info)(?:-ink)?\b/
 
 describe("figures never take a tone colour", () => {
-  it("KpiGrid: trend lines and toned cells keep their text in the foreground", () => {
+  it("KpiGrid: trend lines and toned trends keep their text in the foreground", () => {
     const html = renderToStaticMarkup(
       <KpiGrid
         cells={[
           { label: "Up", value: "12", trend: "+12% vs last week", trendDirection: "up" },
           { label: "Down", value: "3", trend: "-4% vs last week", trendDirection: "down" },
           { label: "Flat", value: "7", trend: "±0", trendDirection: "flat" },
-          ...STATUS.map((tone) => ({ label: tone, value: "1", tone })),
+          ...STATUS.map((tone) => ({ label: tone, value: "1", trend: tone, trendTone: tone })),
         ]}
       />,
     )
     // Icons draw in the tone (SVG currentColor, TONE_ICON); no WORD or digit does.
     const words = html.replace(/<svg[\s\S]*?<\/svg>/g, "")
     expect(words).not.toMatch(TONE_AS_TEXT)
-    // The tone is still there: as a dot next to a label, an icon next to a trend.
-    expect(html).toMatch(/bg-danger\b/)
-    expect(html).toMatch(/bg-success\b/)
+    // The tone is still there, as an icon of its own shape, never a tile's tint or a dot.
+    expect(html).not.toMatch(/\bbg-(?:danger|warning|success|info)(?:-soft)?\b/)
+    expect(html).toMatch(/<svg[^>]*class="lucide lucide-circle-x[^"]*text-danger"/)
+    expect(html).toMatch(/<svg[^>]*class="[^"]*lucide-triangle-alert[^"]*text-warning"/)
     expect(html).toMatch(/<svg[^>]*class="lucide lucide-trending-up[^"]*text-danger"/)
     expect(html).toMatch(/<svg[^>]*class="lucide lucide-trending-down[^"]*text-success"/)
     // A toned trend reads in the foreground, an untoned one stays quiet.
@@ -55,4 +60,33 @@ describe("figures never take a tone colour", () => {
       }
     },
   )
+})
+
+describe("a tone's icon follows forced colours", () => {
+  // theme.css lets every Lucide icon outside a docked strip inherit its surroundings' system colour
+  // under forced colours (theme-css.test.ts), so each tone icon must be a Lucide SVG.
+  it("KPI tiles, pills, states, counts and segments draw their tone icons as Lucide SVGs", () => {
+    const html = renderToStaticMarkup(
+      <>
+        <KpiGrid cells={[{ label: "Alarm", value: "4", trend: "+2", trendTone: "danger" }]} />
+        <CountBadge count={3} label="3 open incidents" situation="openIncident" />
+        <CountFigure situation="jobWithRetriesLeft" label="Why it alarms">
+          2
+        </CountFigure>
+        <StateLabel state="incident" />
+        <SegmentedControl
+          ariaLabel="Scope"
+          value="all"
+          onChange={() => undefined}
+          options={[
+            { value: "all", label: "All", count: 9 },
+            { value: "failed", label: "With incident", count: 2, tone: "danger" },
+          ]}
+        />
+      </>,
+    )
+    const toned = [...html.matchAll(/<svg[^>]*class="([^"]*\btext-(?:danger|warning)\b[^"]*)"/g)]
+    expect(toned).toHaveLength(5)
+    for (const [, classes] of toned) expect(classes.split(" ")).toContain("lucide")
+  })
 })

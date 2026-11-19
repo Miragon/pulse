@@ -9,6 +9,7 @@ function list(id: string, count: number, height: number, top = 0, order = 0): Fi
     order,
     bottoms: Array.from({ length: count }, (_, i) => top + (i + 1) * height),
     frozen: false,
+    footer: 0,
   }
 }
 
@@ -61,7 +62,7 @@ describe("solveInlineFit: one list", () => {
   })
 
   it("ignores lists that show no rows (hidden, empty)", () => {
-    const hidden: FitSlot = { id: "hidden", order: 1, bottoms: [], frozen: false }
+    const hidden: FitSlot = { id: "hidden", order: 1, bottoms: [], frozen: false, footer: 0 }
     expect(solveInlineFit({ budget: 600, content: 700, slots: [hidden] })).toEqual({
       cuts: {},
       fits: false,
@@ -73,6 +74,48 @@ describe("solveInlineFit: one list", () => {
     expect(solveInlineFit(view(600, 520, 2, 66))).toEqual({ cuts: { rows: 1 }, fits: true })
     // 92 px over: even 1 row does not fit, so both stay.
     expect(solveInlineFit(view(600, 560, 2, 66))).toEqual({ cuts: {}, fits: false })
+  })
+})
+
+describe("solveInlineFit: the footer a cut adds", () => {
+  /** A list showing every row, whose cut adds a 44 px footer ("1 of 2 shown" and its button). */
+  const whole = (count: number, top: number) => ({ ...list("rows", count, 28, top), footer: 44 })
+
+  it("never cuts a list whose cut adds more than it hides: the instance's two incidents", () => {
+    // 627 px with both 28 px rows, 27 px over: 1 row and the footer would be 643 px.
+    const slot = whole(2, 571)
+    expect(solveInlineFit({ budget: 600, content: 627, slots: [slot] })).toEqual({
+      cuts: {},
+      fits: false,
+    })
+  })
+
+  it("cuts deep enough to pay for the footer where that makes the view fit", () => {
+    // 3 rows, 6 px over: 2 rows and the footer grow the view; 1 row and the footer save 12 px.
+    const slot = whole(3, 412)
+    expect(solveInlineFit({ budget: 490, content: 496, slots: [slot] })).toEqual({
+      cuts: { rows: 1 },
+      fits: true,
+    })
+    // 18 px over: even 1 row does not fit, so all three stay and the view scrolls.
+    expect(solveInlineFit({ budget: 478, content: 496, slots: [slot] })).toEqual({
+      cuts: {},
+      fits: false,
+    })
+  })
+
+  it("leaves a list whole whose soft cut would not pay for its footer", () => {
+    // 4 rows, nothing fits: 3 rows and the footer would be taller than 4 rows.
+    const slot = whole(4, 900)
+    expect(solveInlineFit({ budget: 600, content: 1100, slots: [slot] })).toEqual({
+      cuts: {},
+      fits: false,
+    })
+  })
+
+  it("counts the rows a cut hides in full where the footer shows already", () => {
+    const slot = { ...whole(4, 412), footer: 0 }
+    expect(solveInlineFit({ budget: 600, content: 620, slots: [slot] }).cuts).toEqual({ rows: 3 })
   })
 })
 

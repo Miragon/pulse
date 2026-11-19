@@ -16,10 +16,22 @@ export class EnvironmentClassifier {
     const environmentIn = (scope: EnvironmentSettings["user"]) =>
       EnvironmentClassifier.environmentOf(scope?.[target.name], loopback)
     const own = environmentIn(settings.user) ?? (loopback ? "local" : "unclassified")
-    return settings.workspace.reduce<Environment>(
-      (environment, scope) => EnvironmentClassifier.higher(environment, environmentIn(scope)),
+    const raised = [
+      EnvironmentClassifier.namedByProfile(target),
+      ...settings.workspace.map(environmentIn),
+    ]
+    return raised.reduce<Environment>(
+      (environment, raise) => EnvironmentClassifier.higher(environment, raise),
       own,
     )
+  }
+
+  static namedByProfile(target: EngineTarget): Environment | undefined {
+    const named = target.environment
+    if (named === undefined || named === "local") {
+      return undefined
+    }
+    return named === "test" || named === "production" ? named : "unclassified"
   }
 
   private static environmentOf(value: unknown, loopback: boolean): Environment | undefined {

@@ -12,7 +12,7 @@ export const COMMANDS = {
   "stack:down": { options: ["--wipe"], summary: "stop the playground (--wipe: its volumes too)" },
   "stack:status": { options: [], summary: "what runs, healthy or not, and the URLs" },
   play: {
-    options: ["--multi-engine", "--auth", "--admin", "--deploy", "--jdk-container"],
+    options: ["--multi-engine", "--auth", "--admin", "--deploy", "--web", "--jdk-container"],
     summary: "install, start the playground, build and run the MCP server with its inspector",
   },
   "play:cli": { options: [], summary: "the built CLI against the playground engine" },
@@ -24,7 +24,7 @@ export const COMMANDS = {
   check: { options: ["--force"], summary: "the standard local bar, one log per step" },
   "check:all": {
     options: ["--force", "--jdk-container"],
-    summary: "check plus host simulation, template, Gradle, docs and engine suites",
+    summary: "check plus host simulation, web suite, template, Gradle, docs and engine suites",
   },
 }
 
@@ -48,7 +48,8 @@ export const USAGE = [
  * `{ command, options, rest }` for `argv` (without node and the script), or an Error naming what
  * is wrong. play:cli passes every argument on to the CLI (a leading `--` dropped); a command
  * with `operands` needs at least one, in `rest`; `--deploy` implies `--admin`, since deployments
- * register only in the admin toolset.
+ * register only in the admin toolset, and `--web` implies `--auth`, since the web app signs in
+ * through the server's OAuth provider.
  */
 export function parseArgs(argv) {
   const [command, ...args] = argv
@@ -77,5 +78,6 @@ export function parseArgs(argv) {
     return new Error(`${command} needs at least one ${spec.operands}`)
   }
   if (options.deploy) options.admin = true
+  if (options.web) options.auth = true
   return { command, options, rest }
 }

@@ -23,7 +23,7 @@ interface Writes {
   readonly commands?: ProcessCommands
 }
 
-const NO_ADAPTER = "Pulse does not change data on this engine."
+const READS_ONLY = "Pulse reads this engine and changes no data on it."
 
 export class ConnectionBuilder {
   constructor(
@@ -68,6 +68,9 @@ export class ConnectionBuilder {
     environment: Environment,
     writes: WritesSetting,
   ): Writes {
+    if (!this.engines.canWrite(target)) {
+      return { access: ConnectionBuilder.withoutCommands(target, credentials) }
+    }
     const access = WritePolicy.access(target, writes, credentials, this.wording)
     const commands = access.writable ? this.engines.commands(target, credentials) : undefined
     if (commands === undefined) {
@@ -84,13 +87,13 @@ export class ConnectionBuilder {
 
   private static withoutCommands(target: EngineTarget, credentials: Credentials): EngineAccess {
     const refusal = TargetPolicy.refusal(target, credentials)
-    return { writable: false, note: `Read-only. ${refusal ?? NO_ADAPTER}` }
+    return { writable: false, note: `Read-only. ${refusal ?? READS_ONLY}` }
   }
 
   private static cliTargetOf(target: EngineTarget): CliTarget {
-    return target.source.kind === "file"
-      ? { kind: "profile", name: target.name, endpoint: target.endpoint }
-      : { kind: "endpoint", endpoint: target.endpoint }
+    return target.source.kind === "default"
+      ? { kind: "endpoint", endpoint: target.endpoint }
+      : { kind: "profile", name: target.name, endpoint: target.endpoint }
   }
 
   private static identityOf(target: EngineTarget, credentials: Credentials): string | undefined {

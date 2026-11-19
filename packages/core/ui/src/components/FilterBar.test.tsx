@@ -51,17 +51,33 @@ describe("FilterBar: a labelled search and toggle chips", () => {
     const html = render()
     const group = openingTags(html, "div").find((t) => attribute(t, "role") === "group")
     expect(attribute(group ?? "", "aria-label")).toBe("Filters")
-    expect(
-      attribute(openingTags(render({ chipsAriaLabel: "Priority" }), "div")[1] ?? "", "aria-label"),
-    ).toBe("Priority")
+    const named = openingTags(render({ chipsAriaLabel: "Priority" }), "div").find(
+      (t) => attribute(t, "role") === "group",
+    )
+    expect(attribute(named ?? "", "aria-label")).toBe("Priority")
     const [open, done] = openingTags(html, "button")
     expect(attribute(open ?? "", "aria-pressed")).toBe("true")
     expect(attribute(done ?? "", "aria-pressed")).toBe("false")
     for (const chip of [open, done]) {
       expect(attribute(chip ?? "", "type")).toBe("button")
       expect(classOf(chip)).toContain(FOCUS_RING)
-      expect(classOf(chip)).toContain("text-small")
+      // A 28 px pill in the dense size, up to 240 px wide, its whole label in its title.
+      expect(classOf(chip)).toEqual(
+        expect.stringMatching(
+          /(?=.*\btext-dense\b)(?=.*\bmin-h-control\b)(?=.*\brounded-pill\b)(?=.*\bmax-w-60\b)/,
+        ),
+      )
     }
+    expect(attribute(open ?? "", "title")).toBe("Open")
+  })
+
+  it("is a Toolbar: 36 px with a rule below, the search a SearchField, the summary at its end", () => {
+    const html = render({ summary: "Showing 2 of 9" })
+    const [bar] = openingTags(html, "div")
+    expect(attribute(bar ?? "", "data-slot")).toBe("toolbar")
+    expect(classOf(bar)).toContain("border-b")
+    expect(html).toContain('data-slot="search-field"')
+    expect(html).toMatch(/data-slot="toolbar-summary"[^>]*>Showing 2 of 9</)
   })
 
   it("shows the active chip as a selection: info tint and edge around foreground text", () => {

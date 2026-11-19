@@ -1,7 +1,15 @@
 import { mount, type TestPanel } from "orca/testing"
 import { afterEach, describe, expect, test } from "vitest"
 import * as panel from "../../../src/panel/engines.js"
-import { engineList, panelHost, sent, SHOP_DEV, SHOP_TEST, SIGN_IN_PROBLEM } from "./panel-host.js"
+import {
+  engineList,
+  NO_CLI_CONFIG,
+  panelHost,
+  sent,
+  SHOP_DEV,
+  SHOP_TEST,
+  SIGN_IN_PROBLEM,
+} from "./panel-host.js"
 
 const TREE = { role: "tree" }
 let view: TestPanel | undefined
@@ -28,7 +36,7 @@ describe("the engines tree", () => {
 
     expect(shown.summary()).toContain('Tree "Engines": 2 top-level item(s)')
     expect(shown.find(TREE)?.text).toBe(
-      "shop-dev (active) shop-test Order fulfillment Invoice No process definitions deployed",
+      "shop-dev (active) shop-test Order fulfillment Invoice No process definitions deployed, or you may not have permission to see them.",
     )
     expect(shown.expandedOf(TREE)).toEqual(["engine|shop-dev"])
     expect(shown.find({ type: "Text", text: "shop/.pulse.json" })).not.toBeNull()
@@ -46,12 +54,14 @@ describe("the engines tree", () => {
     expectClean(shown)
   })
 
-  test("says when an engine has no process definitions deployed", async () => {
+  test("says when an engine shows no process definitions, which a missing permission explains too", async () => {
     const shown = await mounted(
       panelHost({ "engines.list": engineList([{ ...SHOP_DEV, definitions: [] }]) }),
     )
 
-    expect(shown.find(TREE)?.text).toBe("shop-dev (active) No process definitions deployed")
+    expect(shown.find(TREE)?.text).toBe(
+      "shop-dev (active) No process definitions deployed, or you may not have permission to see them.",
+    )
   })
 
   test("shows the empty state and the default engine without engines", async () => {
@@ -177,5 +187,57 @@ describe("the engines tree's actions", () => {
 
     expect(sent(host, "engines.configure")).toEqual([undefined])
     expectClean(shown)
+  })
+
+  test("shows the CLI config's path and opens it where a workspace holds it", async () => {
+    const userConfig = {
+      path: "/work/dotfiles/pulse-cli/config.json",
+      named: false,
+      present: true,
+      openable: true,
+    }
+    const host = panelHost({
+      "engines.list": engineList([SHOP_DEV], { projectFile: "", userConfig }),
+      "engines.openUserConfig": { opened: true },
+    })
+    const shown = await mounted(host)
+
+    expect(shown.find({ type: "Text", text: `CLI config: ${userConfig.path}` })).not.toBeNull()
+    expect(shown.find({ type: "Text", text: "No project file" })).not.toBeNull()
+    await shown.press({ label: "Open your CLI config" })
+
+    expect(sent(host, "engines.openUserConfig")).toEqual([undefined])
+    expectClean(shown)
+  })
+
+  test("names the file PULSE_CLI_CONFIG names as the engines' only source", async () => {
+    const userConfig = { ...NO_CLI_CONFIG, path: "/ci/pulse.json", named: true }
+    const shown = await mounted(
+      panelHost({ "engines.list": engineList([], { projectFile: "", userConfig }) }),
+    )
+
+    expect(shown.find({ type: "Text", text: "CLI config from PULSE_CLI_CONFIG" })).not.toBeNull()
+    expect(shown.find({ type: "Text", text: "No CLI config at /ci/pulse.json" })).not.toBeNull()
+    expect(shown.find({ type: "Text", text: "Default engine on localhost" })).toBeNull()
+    expectClean(shown)
+  })
+
+  test("names where a CLI config would be read and offers no button outside a workspace", async () => {
+    const present = { ...NO_CLI_CONFIG, present: true }
+    const missing = await mounted()
+
+    expect(
+      missing.find({ type: "Text", text: `No CLI config at ${NO_CLI_CONFIG.path}` }),
+    ).not.toBeNull()
+    expect(missing.find({ label: "Open your CLI config" })).toBeNull()
+    await missing.unmount()
+
+    const outside = await mounted(
+      panelHost({ "engines.list": engineList([SHOP_DEV], { userConfig: present }) }),
+    )
+
+    expect(outside.find({ type: "Text", text: `CLI config: ${present.path}` })).not.toBeNull()
+    expect(outside.find({ label: "Open your CLI config" })).toBeNull()
+    expectClean(outside)
   })
 })

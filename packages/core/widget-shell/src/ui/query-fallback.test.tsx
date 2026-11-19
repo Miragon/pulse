@@ -1,16 +1,27 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { LocaleProvider } from "@miragon/pulse-ui"
 import { QueryFallback, TableSkeleton } from "./query-fallback.js"
+import { TestViewHost } from "./test-view-host.js"
+import { SKELETON_DELAY_MS } from "./view-data-state.js"
+import { WebApiError } from "./web-caller.js"
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.useRealTimers()
+})
 
 const SKELETON = <div>loading skeleton</div>
 
 describe("QueryFallback: never an eternal skeleton, never a dead end (U1, U22)", () => {
-  it("renders the skeleton under a polite status while the query has not errored", () => {
+  it("renders the skeleton under a polite status while the query has not errored, after 400 ms", () => {
+    vi.useFakeTimers()
     render(<QueryFallback isError={false} onRetry={vi.fn()} skeleton={SKELETON} />)
+    expect(screen.queryByText("loading skeleton")).toBeNull()
+    act(() => {
+      vi.advanceTimersByTime(SKELETON_DELAY_MS)
+    })
     expect(screen.getByText("loading skeleton").closest('[aria-hidden="true"]')).toBeTruthy()
     expect(screen.getByRole("status").textContent).toContain("Loading view…")
     expect(screen.queryByRole("alert")).toBeNull()
@@ -91,9 +102,84 @@ describe("QueryFallback: never an eternal skeleton, never a dead end (U1, U22)",
   })
 })
 
+describe("QueryFallback on a page that posts to no chat", () => {
+  it("says what to do on the page, and still retries", () => {
+    const onRetry = vi.fn()
+    render(
+      <TestViewHost followUp="none" locale="de">
+        <QueryFallback isError error={new Error("odd")} onRetry={onRetry} skeleton={SKELETON} />
+      </TestViewHost>,
+    )
+    expect(
+      screen.getByText("Versuch es noch mal. Klappt es wieder nicht, lade die Seite neu."),
+    ).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Erneut versuchen" }))
+    expect(onRetry).toHaveBeenCalledOnce()
+  })
+})
+
+describe("QueryFallback on a page whose session ended", () => {
+  it("leaves it to the page's frame: a quiet line in the caller's title, no box, no retry", () => {
+    render(
+      <TestViewHost followUp="none">
+        <QueryFallback
+          isError
+          error={new WebApiError(401, { code: "signed_out", message: "No session." })}
+          errorTitle="Couldn't load the process instances"
+          onRetry={vi.fn()}
+          skeleton={SKELETON}
+        />
+      </TestViewHost>,
+    )
+    expect(screen.queryByRole("alert")).toBeNull()
+    expect(screen.queryByRole("button")).toBeNull()
+    expect(document.body.textContent).toBe("Couldn't load the process instances")
+  })
+})
+
 describe("TableSkeleton", () => {
   it("draws a card with two bars", () => {
     const { container } = render(<TableSkeleton />)
     expect(container.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(2)
+  })
+})
+
+describe("QueryFallback: the loaded content, refreshed in place", () => {
+  it("renders the content once the first load is done, its region busy while a new read runs", () => {
+    const { container, rerender } = render(
+      <QueryFallback isError={false} isLoading onRetry={vi.fn()} skeleton={SKELETON}>
+        <p>Rows</p>
+      </QueryFallback>,
+    )
+    expect(screen.queryByText("Rows")).toBeNull()
+    expect(screen.getByRole("status")).toBeTruthy()
+    rerender(
+      <QueryFallback
+        isError={false}
+        isLoading={false}
+        refreshing
+        onRetry={vi.fn()}
+        skeleton={SKELETON}
+      >
+        <p>Rows</p>
+      </QueryFallback>,
+    )
+    const region = container.querySelector('[data-slot="view-data"]')!
+    expect(region.textContent).toBe("Rows")
+    expect(region.getAttribute("aria-busy")).toBe("true")
+    expect(screen.queryByRole("status")).toBeNull()
+  })
+
+  it("takes null and false content as missing: it stands in for it, never an empty busy region", () => {
+    for (const content of [null, false]) {
+      const { container, unmount } = render(
+        <QueryFallback isError={false} isLoading={false} onRetry={vi.fn()} skeleton={SKELETON}>
+          {content}
+        </QueryFallback>,
+      )
+      expect(container.querySelector('[data-slot="view-data"]')).toBeNull()
+      expect(screen.getByRole("status")).toBeTruthy()
+      unmount()
+    }
   })
 })

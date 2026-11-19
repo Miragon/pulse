@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises"
+import tailwindcss from "@tailwindcss/vite"
 import { playwright } from "@vitest/browser-playwright"
 import { defineConfig, mergeConfig, type Plugin } from "vitest/config"
 import { sharedConfig } from "../../../vitest.shared"
@@ -29,7 +30,7 @@ export default mergeConfig(
           "src/core/**": { lines: 98, statements: 98, functions: 98, branches: 90 },
           "src/model/**": { lines: 98, statements: 98, functions: 98, branches: 88 },
           "src/webview/**": { lines: 78, statements: 78, functions: 78, branches: 68 },
-          "src/host-kit/**": { lines: 67, statements: 68, functions: 66, branches: 70 },
+          "src/host-kit/**": { lines: 75, statements: 76, functions: 75, branches: 78 },
         },
       },
       projects: [
@@ -43,7 +44,8 @@ export default mergeConfig(
         },
         {
           extends: true,
-          oxc: { jsx: { runtime: "automatic", importSource: "preact" } },
+          plugins: [tailwindcss()],
+          oxc: { jsx: { runtime: "automatic", importSource: "react" } },
           test: {
             name: "browser",
             include: ["test/webview/**/*.test.tsx"],

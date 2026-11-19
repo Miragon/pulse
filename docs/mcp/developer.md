@@ -29,29 +29,29 @@ it on `:8400` against the playground, the engine module alone, next to the offic
 [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector) on `127.0.0.1`: open the URL it prints (no browser
 opens by itself) to call tools and render the widgets, or connect any MCP host to `http://localhost:8400/mcp`.
 It boots read-only; `--admin` adds the write tools, `--deploy` deployments, `--multi-engine` a
-second engine. A variable set in your shell wins over the playground's settings. Ctrl-C stops the
-server, the playground keeps running. Every port binds to `127.0.0.1`. Worktrees share the playground
-(`pnpm stack:down` stops it for all); `.mcp.json` reaches `${PORT:-8400}`, so run a second worktree's server as
-`PORT=<port> CLIENT_PORT=<port> MCP_SANDBOX_PORT=<port> MCP_APP_ORIGIN_PORT=<port> pnpm play` (the inspector's
-three ports, 6274, 6275 and 6278 by default) and its Claude Code session as `PORT=<port> claude`. The inspector
-prints its sign-in token, one from `MCP_INSPECTOR_API_TOKEN` too: keep the output of `pnpm play` and `pnpm dev` out of shared logs.
+second engine, `--web` the [web app](../web/sign-in.md#try-it-locally). Your shell's variables win.
+Ctrl-C stops only the server; worktrees share the playground (`pnpm stack:down` stops it for all).
+The inspector prints its sign-in token, one from `MCP_INSPECTOR_API_TOKEN` too: keep that output out
+of shared logs. `.mcp.json` reaches `${PORT:-8400}` and the inspector binds 6274, 6275 and 6278, so
+`PORT=<port> CLIENT_PORT=<port> MCP_SANDBOX_PORT=<port> MCP_APP_ORIGIN_PORT=<port> pnpm play` runs a
+second worktree's server and inspector, `PORT=<port> claude` its Claude Code session.
 
 ## Common tasks
 
-| Command                                         | What it does                                                                                          |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `pnpm play:cli -- <args>`                       | The CLI against the playground engine                                                                 |
-| `pnpm stack:up` / `stack:down` / `stack:status` | Start (`--multi-engine`, `--auth`), stop (`--wipe` drops the volumes) or show the playground          |
-| `pnpm dev`                                      | The server and the inspector with your own settings (`cp .env.example .env` first)                    |
-| `pnpm test:one <file...>`                       | Test files in their packages, the packages under them built first, coverage off (`--watch`)           |
-| `pnpm check`                                    | The bar for every change: install, build, typecheck, test, lint, format; a log per step in `reports/` |
-| `pnpm check:all`                                | `check` plus the host simulation, the template, the Gradle build, the docs build, the engine suites   |
-| `pnpm lint:fix` / `pnpm format`                 | ESLint and Prettier fixes                                                                             |
+| Command                                         | What it does                                                                                                                          |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm play:cli -- <args>`                       | The CLI against the playground engine                                                                                                 |
+| `pnpm stack:up` / `stack:down` / `stack:status` | Start (`--multi-engine`, `--auth`), stop (`--wipe` drops the volumes) or show the playground                                          |
+| `pnpm dev`                                      | The server and the inspector with your own settings (`cp .env.example .env` first)                                                    |
+| `pnpm test:one <file...>`                       | Test files in their packages, the packages under them built first, coverage off (`--watch`)                                           |
+| `pnpm check`                                    | The bar for every change: install, build, typecheck, test, lint, format; a log per step in `reports/`                                 |
+| `pnpm check:all`                                | `check` plus the host simulation, the web app's suite (`test:web`), the template, the Gradle build, the docs build, the engine suites |
+| `pnpm lint:fix` / `pnpm format`                 | ESLint and Prettier fixes                                                                                                             |
 
 The gates one by one: `pnpm build`, `pnpm typecheck`, `pnpm test`, `pnpm lint`, `pnpm format:check`.
 While you iterate: `pnpm test:one <file...>`, then the package and what depends on it with
 `pnpm exec turbo run typecheck test lint --filter=...<pkg>`, then `pnpm check`. A change to a tool,
-an engine read's result or its error text refreshes the goldens with `pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server golden:update`.
+an engine read's result or its error text refreshes the goldens with `pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server golden:update` (the tools/list goldens per configuration: Camunda 7 engines alone, beside a Camunda 8 cluster, a cluster alone).
 `pnpm dev` and `pnpm play` bind 127.0.0.1; `pnpm start` and Docker listen on all interfaces.
 The inspector has no chat, so a hand-off shows only in a real host: tunnel the server
 (`cloudflared tunnel --url http://localhost:8400`), set `MCP_URL` to the `https://` origin it prints
@@ -59,7 +59,7 @@ and restart (Cloudflare's quick tunnels carry no Server-Sent Events, which the s
 calls hang, use a named tunnel). Anyone with that URL reaches the server, so keep the read-only default.
 To debug, press F5 in VS Code (`.vscode/launch.json`) or run any command in a JavaScript Debug Terminal.
 
-Mutation testing covers `@miragon/pulse-c7-core`, `@miragon/pulse-http`, the root-cause, value-kind and move-reason rules of `@miragon/pulse-engine-core` and the profile format `@miragon/pulse-profile` (`MUTATED_PACKAGES`), nightly, never on a pull request: `pnpm --fail-if-no-match --filter @miragon/pulse-c7-core exec stryker run`, the same with `@miragon/pulse-http`, `@miragon/pulse-engine-core` and `@miragon/pulse-profile`.
+Mutation testing covers `@miragon/pulse-c7-core`, `@miragon/pulse-http`, the root-cause, value-kind and move-reason rules of `@miragon/pulse-engine-core`, the profile format `@miragon/pulse-profile`, the board format with its builder `@miragon/pulse-board`, the web app's server rules and the gate's token rules of `@miragon/pulse-widget-shell` (its sign-in and sign-out, the session's refusal and route, the forward of a page's calls, the token's renewal, the served build, the security headers, the JWT verifier in front of `/mcp`, the identity provider's discovery, the generic OpenID Connect provider and the Entra ID provider) and the rules of `@miragon/pulse-c8-core` (its mappings, instance filters, version floor and failure kinds; `MUTATED_PACKAGES`), nightly, never on a pull request: `pnpm --fail-if-no-match --filter @miragon/pulse-c7-core exec stryker run`, the same with `@miragon/pulse-http`, `@miragon/pulse-engine-core`, `@miragon/pulse-profile`, `@miragon/pulse-board`, `@miragon/pulse-widget-shell` and `@miragon/pulse-c8-core`.
 
 Editors read only `tsconfig.json`: each widget, host-bundle and test tree has a nested one extending the `tsconfig.<x>.json` that checks it (`pnpm lint:package-scripts`); `.vscode/` pins TypeScript.
 

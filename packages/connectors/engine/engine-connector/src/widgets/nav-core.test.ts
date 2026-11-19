@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest"
-import { truncate } from "@miragon/pulse-ui"
 import { crumbLabel, intentToView, selectedEntity, popTo, pushView, viewKey } from "./nav-core.js"
 import type { NavIntent } from "./navigation.js"
 import type { CockpitView } from "../view-models.js"
+
+/** A Camunda 7 id (a UUID) and a Camunda 8 key (a number on partition 1). */
+const C7_ID = "5f0ce78e-1c4b-11ee-9f2a-0242ac120002"
+const C8_KEY = "2251799813685249"
 
 describe("intentToView", () => {
   it("maps every intent variant onto its view", () => {
@@ -39,6 +42,11 @@ describe("intentToView", () => {
         { section: "jobs", processDefinitionKey: "invoice", failedOnly: true },
       ],
       [{ type: "jobs" }, { section: "jobs" }],
+      // A board's tile names the view on its engine; the cockpit moves there.
+      [
+        { type: "board-target", engine: "prod-a", view: { section: "incidents" } },
+        { section: "incidents" },
+      ],
     ]
     for (const [intent, view] of cases) {
       expect(intentToView(intent)).toEqual(view)
@@ -108,6 +116,12 @@ describe("viewKey", () => {
     expect(viewKey({ section: "history", processInstanceId: "pi-1" })).toBe("history:pi-1")
   })
 
+  it("keys a board by its id, never its title", () => {
+    expect(viewKey({ section: "board", board: "invoices", label: "Invoices" })).toBe(
+      "board:invoices",
+    )
+  })
+
   it("stacks the engine's jobs and one process's failed jobs as two entries", () => {
     const engineJobs: CockpitView = { section: "jobs" }
     const processJobs: CockpitView = {
@@ -123,10 +137,49 @@ describe("crumbLabel", () => {
   it("names the jobs, and the history by its instance", () => {
     expect(crumbLabel({ section: "jobs", processDefinitionKey: "invoice" }, "en")).toBe("Jobs")
     expect(crumbLabel({ section: "jobs" }, "de")).toBe("Jobs")
-    expect(crumbLabel({ section: "history", processInstanceId: "0123456789abcdef" }, "en")).toBe(
-      `History ${truncate("0123456789abcdef", 8)}`,
+    expect(crumbLabel({ section: "history", processInstanceId: C7_ID }, "en")).toBe(
+      "History 5f0ce78e…",
     )
     expect(crumbLabel({ section: "history", processInstanceId: "pi-1" }, "de")).toBe("Verlauf pi-1")
+  })
+
+  // A Camunda 8 key's head is its partition's: every key on partition 1 starts with 22517998.
+  it("names an instance, an incident and a history by the part of its id that tells it apart", () => {
+    const crumbs = (id: string) => [
+      crumbLabel({ section: "instance-detail", processInstanceId: id }, "en"),
+      crumbLabel({ section: "incident-detail", incidentId: id }, "en"),
+      crumbLabel({ section: "history", processInstanceId: id }, "en"),
+    ]
+    expect(crumbs(C7_ID)).toEqual(["Instance 5f0ce78e…", "Incident 5f0ce78e…", "History 5f0ce78e…"])
+    expect(crumbs(C8_KEY)).toEqual([
+      "Instance …13685249",
+      "Incident …13685249",
+      "History …13685249",
+    ])
+    expect(crumbs("2251799813685250")).not.toEqual(crumbs(C8_KEY))
+    expect(crumbs("pi-1")).toEqual(["Instance pi-1", "Incident pi-1", "History pi-1"])
+  })
+
+  it("names an instance and an incident by the drill's label first", () => {
+    const instance: CockpitView = {
+      section: "instance-detail",
+      processInstanceId: C8_KEY,
+      label: "ORD-7",
+    }
+    const incident: CockpitView = {
+      section: "incident-detail",
+      incidentId: C8_KEY,
+      label: "Charge payment",
+    }
+    expect(crumbLabel(instance, "en")).toBe("ORD-7")
+    expect(crumbLabel(incident, "de")).toBe("Incident bei Charge payment")
+  })
+
+  it("names a board by its title, else its id", () => {
+    expect(crumbLabel({ section: "board", board: "invoices", label: "Invoices" }, "en")).toBe(
+      "Invoices",
+    )
+    expect(crumbLabel({ section: "board", board: "invoices" }, "de")).toBe("invoices")
   })
 })
 

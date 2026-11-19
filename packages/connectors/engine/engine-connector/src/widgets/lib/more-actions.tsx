@@ -48,7 +48,8 @@ function nextItem(items: HTMLElement[], current: number, key: string): HTMLEleme
  * #322 U20, CI §8/§12 menu button: arrows/Home/End move, Escape returns focus to the button,
  * Tab, an outside click, scroll or resize close it. Portaled into the theme scope's overlay node and placed
  * `fixed`: a pinned action column is a stacking context per row, so an in-cell panel would
- * paint under the next rows and lose its clicks.
+ * paint under the next rows and lose its clicks. A row's further actions: its button is the 24 px
+ * icon-xs, like every action in a row, so the row keeps the row height.
  */
 export function MoreActions({ label, children }: { label: string; children: ReactNode }) {
   const [open, setOpen] = useState(false)
@@ -121,7 +122,7 @@ export function MoreActions({ label, children }: { label: string; children: Reac
         ref={buttonRef}
         type="button"
         variant="ghost"
-        size="icon-sm"
+        size="icon-xs"
         aria-label={label}
         title={label}
         aria-haspopup="menu"
@@ -132,7 +133,7 @@ export function MoreActions({ label, children }: { label: string; children: Reac
           setOpen((was) => !was)
         }}
       >
-        <Icon icon={Ellipsis} dense />
+        <Icon icon={Ellipsis} />
       </Button>
       {open &&
         createPortal(

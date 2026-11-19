@@ -3,7 +3,8 @@ import {
   complementaryFlags,
   engineInstanceSearch,
   engineLike,
-  trueOnly,
+  withIncidentAmong,
+  withIncidentBody,
 } from "@miragon/pulse-c7-core"
 import {
   LIST_PAGE_SIZE,
@@ -14,7 +15,6 @@ import {
   type ProcessInstancesData,
 } from "../view-models.js"
 import {
-  getProcessInstances,
   getJobsCount,
   queryJobs,
   queryProcessInstances,
@@ -39,6 +39,7 @@ import {
   resolveDefinitionKeys,
   type DefinitionInfo,
 } from "./definition-info.js"
+import { enginePortFor } from "../lib/core-adapter/engine-port.js"
 import { countOf, optional, rowsOf } from "./engine-reads.js"
 
 /** One row per KEY, summed over every version; the statistics call's failure is the view's (no "0 instances"). */
@@ -86,14 +87,16 @@ export type ProcessInstancesArgs = ProcessInstancesFilters & InstanceSearchArgs 
 
 // The engine IGNORES `false` for active/suspended/withIncident (HTTP 200, no
 // filter), so a forwarded false would list every instance: active/suspended
-// send the complement, withIncident only goes out as true. businessKeyLike
-// needs `%`, or it matches exactly.
+// send the complement. businessKeyLike needs `%`, or it matches exactly. "With
+// incident" is c7-core's one reading (with-incident.ts): the runtime's open
+// incidents, on every history level, in the search body's form
+// (`withIncidentBody`), which never sends a false flag.
 function toProcessInstanceFilter(args: ProcessInstancesArgs) {
   const { orQueries } = engineInstanceSearch(args.search)
   return {
     processDefinitionKey: args.processDefinitionKey,
     ...complementaryFlags(args, "active", "suspended"),
-    withIncident: trueOnly(args.withIncidents),
+    ...withIncidentBody(args.withIncidents),
     businessKeyLike: orQueries ? undefined : engineLike(args.businessKeyLike),
     orQueries,
   }
@@ -130,7 +133,7 @@ async function filteredTotals(client: Client, filter: ProcessInstanceFilter) {
     queryProcessInstancesCount({ client, body }).then(countOf)
   const scope = { ...filter, withIncident: undefined, suspended: undefined }
   const all = count(scope)
-  const withIncident = count({ ...scope, withIncident: true })
+  const withIncident = count({ ...scope, ...withIncidentBody(true) })
   const suspended = filter.active ? Promise.resolve(0) : count({ ...scope, suspended: true })
   const total = filter.withIncident
     ? filter.suspended
@@ -148,26 +151,17 @@ async function filteredTotals(client: Client, filter: ProcessInstanceFilter) {
   return { totalCount, allCount, withIncidentCount, suspendedCount }
 }
 
-/** Scoped to the page's ids, not an engine-wide incident scan. */
+/**
+ * Scoped to the page's ids, not an engine-wide incident scan: c7-core's flag of a listed instance
+ * (`withIncidentAmong`), the one the editors' instance lists read too.
+ */
 async function instancesWithIncident(
   client: Client,
   pageIds: string[],
   filter: ProcessInstanceFilter,
-): Promise<Set<string>> {
-  if (filter.withIncident || pageIds.length === 0) {
-    return new Set(filter.withIncident ? pageIds : [])
-  }
-  const flagged = rowsOf<RawInstance>(
-    await getProcessInstances({
-      client,
-      query: {
-        processInstanceIds: pageIds.join(","),
-        withIncident: true,
-        maxResults: pageIds.length,
-      },
-    }),
-  )
-  return new Set(flagged.map((i) => i.id).filter((id): id is string => !!id))
+): Promise<ReadonlySet<string>> {
+  if (filter.withIncident) return new Set(pageIds)
+  return withIncidentAmong(enginePortFor(client), pageIds)
 }
 
 /** ENRICHMENT: a failed statistics read leaves bare-id keys null ("—", no drill), never a UUID. */

@@ -3,7 +3,8 @@
 Guidance for agents working on Pulse for Orca: the Orca plugin `pulse-cockpit`
 (`@miragon/pulse-orca`), the runtime view of Pulse for VS Code inside Orca. It is an interface
 app of the Pulse monorepo and the second editor host of the runtime view
-(`packages/core/runtime-view`) and the C7 adapter (`packages/connectors/c7/c7-adapter`).
+(`packages/core/runtime-view`) and the adapters (`packages/connectors/c7/c7-adapter`,
+`packages/connectors/c8/c8-adapter`).
 The repository's package rules hold here (the root `CLAUDE.md`), and so do the rules of
 `apps/vscode/CLAUDE.md` for everything both hosts share (the house rules, the ADRs in
 `apps/vscode/docs/adr/`); this file adds what is Orca's.
@@ -68,7 +69,11 @@ podman run --rm --init -v "$PWD":/work -w /work -v "$PLUGIN":/plugin:ro \
 
 `$PLUGIN` is the `miragon-brand` plugin folder. Make them again after a visible change of the
 tabs or the panel and after an update of the skill (the version the config names), and copy the two light
-screenshots to `docs/assets/orca/`.
+screenshots to `docs/assets/orca/`. The released skill (1.32.0) still ignores the config's `files`
+and `panel` (a patch on Miragon/corporate-identity#78): without it the demo folder has no project
+file and the panel stays closed, so a local copy of the plugin copies those files into the demo
+folder and opens the panel (`orca plugin open <key>`) before the window shots. The run leaves
+root-owned core files in the repository root and `apps/orca/dist/.orca`: remove both.
 
 ## Where code goes
 
@@ -84,20 +89,49 @@ screenshots to `docs/assets/orca/`.
 
 The dependency rules are closed-world (`apps/orca/.dependency-cruiser.cjs`): the worker uses the
 runtime view's ports, core, protocol and host kit, the main entry of the engine contract
-`@miragon/pulse-engine-core` (its ids and read models), `orca/worker` and Node built-ins; the panel
-`orca` and the protocol's types; the frames the protocol's types; only the composition root the
-adapter and the model reader. No part imports a dialect's core (`plugin-is-dialect-neutral`) or
-the transport `@miragon/pulse-http`, which the C7 adapter's wire alone sends through (the
+`@miragon/pulse-engine-core` (its ids and read models), the main entry of the board format
+`@miragon/pulse-board` (the starter board of a new board), `orca/worker` and Node built-ins; the
+panel `orca` and the protocol's types; the frames the protocol's types; only the composition root
+the adapters and the model reader. No part imports a dialect's core (`plugin-is-dialect-neutral`) or
+the transport `@miragon/pulse-http`, which the adapters' wires alone send through (the
 repository's `http-consumers`), over the worker's global `fetch`. The repository's licence list
 (`scripts/third-party-licenses.mjs`), which the licence test reads, may use Node built-ins and
 nothing else. `pnpm lint:architecture:orca` says where an import belongs.
+
+The frames show the runtime view's webview. By the owner's decision D9 of 2026-11-12
+(`apps/vscode/docs/adr/ui-foundation.md`) it moved from Preact to React 19 on `@miragon/pulse-ui` in
+one switch, a commit of the pull request that recorded D9, in the one compact look of every surface.
+Orca's build is readable (`apps/orca/scripts/build.mjs`): it takes the
+webview's esbuild options of a build that ships (`production: true`, which defines
+`process.env.NODE_ENV` as production, so React's development build never ships) and turns off
+their minifying and source maps. The frames' bridge
+(`apps/orca/src/editor/bridge.ts`) sets `data-cd-theme`. Orca's theme event reports only light or
+dark (`apps/orca/types/orca/index.d.ts`), so in Orca high contrast reaches the webview through
+`forced-colors` alone: the bridge sets no `data-cd-kontrast`.
 
 The project file is `.pulse.json`, read through the host kit (`TargetsParser` over
 `@miragon/pulse-profile`, the rules in `apps/vscode/CLAUDE.md`); `ProjectFile` of the host kit
 names it and its former name, `.pulse-cli.json`, which the worker turns into one problem and no
 engine. A project file that is there but can't be read is one problem too, and no local default
-engine takes its place; only a missing file falls back to it. Logins are keyed by the project
-file's path (the host kit's `CredentialStore`).
+engine takes its place; only a missing file falls back to it (the one the setting names is a problem
+beside it). The host kit's `TargetMerge` decides the engines from what the worker read, the rule
+Pulse for VS Code runs too. Logins are keyed by the path of the file a profile comes from (the host
+kit's `CredentialStore`).
+
+The worker reads the CLI's user config too, by the rules of Pulse for VS Code
+(`apps/vscode/CLAUDE.md`): the host kit's `UserConfigLocation` finds it, `UserConfigRead.of` reads
+it and `TargetMerge` joins it after the project file. Only the composition root finds it, from the
+worker's environment, home folder and platform (`CompositionRoot.userConfig`); the worker's unit
+tests point it at a folder of each test's own, and the unit tests, the kit tests and
+`orca plugin check` (through `apps/orca/scripts/orca.mjs`) read a temporary config home with
+`PULSE_CLI_CONFIG` blank (`apps/orca/test/architecture/user-config-isolation.test.ts`).
+`UserConfigWatch` watches the file's folder, or the folder above it while that is missing. Orca's
+`editor.open` reaches files of a workspace only, and the panel has no clipboard: the panel shows the
+file's path and opens it only where a workspace holds it, and the plugin never creates it. With
+`PULSE_CLI_CONFIG` set, the registry lists no project file (the settings beside it still classify
+the engines), the panel names the variable's file as the source and the gear opens that file.
+`test:smoke` runs in your own Orca, whose environment it cannot set, so it stops when your CLI
+config at the default location names a profile of the sandbox.
 
 ## Rules
 
@@ -120,8 +154,8 @@ file's path (the host kit's `CredentialStore`).
   ends when Orca aborts it: Orca has no close event, and `orca plugin check` waits for every
   request in flight.
 - Commit messages are Conventional Commits with the scope `orca`. The catalog's release notes
-  take the changelog lines of the scopes `orca`, `runtime-view` and `c7-adapter`
-  (`apps/orca/scripts/release-notes.mjs`).
+  take the changelog lines of the scopes `orca`, `runtime-view`, `c7-adapter`, `c7-core`,
+  `c8-adapter` and `c8-core` (`apps/orca/scripts/release-notes.mjs`).
 - A release publishes `dist` into `Miragon/orca-plugins` as `plugins/pulse-cockpit`, listed as
   `miragon.pulse-cockpit` (`.github/workflows/publish-orca-plugin.yml`). The id is that
   repository's `sources.json` entry and every installation's key: a new id is a new plugin.
@@ -131,9 +165,10 @@ file's path (the host kit's `CredentialStore`).
 - The plugin folder ships `LICENSE` and `THIRD_PARTY_LICENSES.txt` (`PLUGIN_FILES` of
   `apps/orca/scripts/build.mjs`; the release's folder check in
   `.github/workflows/publish-orca-plugin.yml` names both): the works of others esbuild bundles
-  into the worker, the panel, the frames' bridge and the webview (packages, fonts, the Lucide
-  geometry of `lucide-glyphs.json`) with their licence files, read from the metafiles of the four
-  builds (`pluginBuilds`) by the repository's licence list (`scripts/third-party-licenses.mjs`).
+  into the worker, the panel, the frames' bridge and the webview (packages, fonts, the components
+  pulse-ui's primitives build on, shadcn/ui) with their licence files, read from the metafiles of the four
+  builds (`pluginBuilds`), and from what the webview's Tailwind step inlines, which no metafile
+  names (`inlinedStylesheets`), by the repository's licence list (`scripts/third-party-licenses.mjs`).
   `apps/orca/test/third-party-licenses.test.ts` fails while it misses a work or lists one the
   bundles hold no more, so a bump of a bundled package writes it again in its pull request:
   `pnpm --fail-if-no-match --filter @miragon/pulse-orca third-party-licenses`.

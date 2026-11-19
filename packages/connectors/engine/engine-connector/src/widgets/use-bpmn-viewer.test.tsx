@@ -6,15 +6,38 @@ import { useBpmnViewer, type BpmnViewerWithGet } from "@miragon/pulse-widget-she
 
 // bpmn-js replaced by a recording stub: it needs a real SVG engine, which happy-dom lacks.
 const mock = vi.hoisted(() => {
+  type Box = { x: number; y: number; width: number; height: number }
   class MockCanvas {
+    static readonly outer = { width: 640, height: 300 }
     level = 1
-    zoomCalls: Array<"fit-viewport" | number> = []
-    zoom = (arg?: "fit-viewport" | number): number => {
+    zoomCalls: number[] = []
+    viewboxCalls: Box[] = []
+    zoom = (arg?: number): number => {
       if (arg === undefined) return this.level
       this.zoomCalls.push(arg)
-      this.level = arg === "fit-viewport" ? 0.8 : arg
+      this.level = arg
       return this.level
     }
+    /** A diagram of 800 × 200 units on a 640 × 300 px canvas; setting a box sets its scale. */
+    viewbox = (box?: Box) => {
+      if (box) {
+        this.viewboxCalls.push(box)
+        this.level = Math.min(
+          MockCanvas.outer.width / box.width,
+          MockCanvas.outer.height / box.height,
+        )
+        return box
+      }
+      return {
+        x: 0,
+        y: 0,
+        ...MockCanvas.outer,
+        scale: this.level,
+        inner: { x: 100, y: 50, width: 800, height: 200 },
+        outer: MockCanvas.outer,
+      }
+    }
+    getContainer = () => document.createElement("div")
     addMarker = () => {}
     resizedCalls = 0
     resized = () => {
@@ -89,9 +112,14 @@ describe("useBpmnViewer", () => {
     const viewer = mock.MockViewer.instances[0]
     expect(viewer.container).toBe(container.firstElementChild)
     expect(viewer.importedXml).toEqual([XML])
-    // diagram-js recomputes the viewbox first (it caches the container size), then the 0.95 breathing room.
-    await waitFor(() => expect(viewer.canvas.zoomCalls).toEqual(["fit-viewport", 0.8 * 0.95]))
-    expect(viewer.canvas.resizedCalls).toBe(1)
+    // Each fit has diagram-js recompute the viewbox first (it caches the container size), then
+    // shows the whole diagram at 95 % of the canvas's width, centred.
+    await waitFor(() => expect(viewer.canvas.viewboxCalls.length).toBeGreaterThan(0))
+    expect(viewer.canvas.resizedCalls).toBe(viewer.canvas.viewboxCalls.length)
+    expect(viewer.canvas.level).toBeCloseTo((0.95 * 640) / 800, 9)
+    const box = viewer.canvas.viewboxCalls.at(-1)
+    expect(box!.x + box!.width / 2).toBeCloseTo(100 + 800 / 2, 9)
+    expect(box!.y + box!.height / 2).toBeCloseTo(50 + 200 / 2, 9)
     expect(latest.importError).toBeNull()
   })
 
@@ -99,7 +127,7 @@ describe("useBpmnViewer", () => {
     const cleanupSpy = vi.fn()
     const onImported = vi.fn((viewer: BpmnViewerWithGet) => {
       // The fit already happened when the decoration callback runs.
-      expect(mock.MockViewer.instances[0].canvas.zoomCalls[0]).toBe("fit-viewport")
+      expect(mock.MockViewer.instances[0].canvas.viewboxCalls.length).toBeGreaterThan(0)
       expect(viewer.get("canvas")).toBe(
         mock.MockViewer.instances[0].canvas as unknown as ReturnType<typeof viewer.get>,
       )
@@ -125,7 +153,7 @@ describe("useBpmnViewer", () => {
   it("zoomIn/zoomOut multiply the current zoom by 1.1/0.9", async () => {
     render(<Harness xml={XML} />)
     await waitFor(() =>
-      expect(mock.MockViewer.instances[0]?.canvas.zoomCalls.length).toBeGreaterThan(1),
+      expect(mock.MockViewer.instances[0]?.canvas.viewboxCalls.length).toBeGreaterThan(0),
     )
     const canvas = mock.MockViewer.instances[0].canvas
 

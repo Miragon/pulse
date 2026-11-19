@@ -8,6 +8,7 @@ import {
   registryFor,
   startFakeEngine,
   type FakeEngine,
+  type FakeRoutes,
   type RecordedRequest,
 } from "./test-support/fake-engine.js"
 
@@ -23,8 +24,8 @@ afterEach(async () => {
   await Promise.all(engines.splice(0).map((engine) => engine.close()))
 })
 
-async function requestsOf(name: string, args: Record<string, unknown>) {
-  const engine = await startFakeEngine({}, { body: [] })
+async function requestsOf(name: string, args: Record<string, unknown>, routes: FakeRoutes = {}) {
+  const engine = await startFakeEngine(routes, { body: [] })
   engines.push(engine)
   const config = tools.get(name)
   if (!config) throw new Error(`${name} is not registered`)
@@ -92,15 +93,20 @@ describe("engine_query_historic_activity_instances", () => {
 
 describe("engine_query_historic_process_instances", () => {
   it("filters by instance, business key, incidents and finish window", async () => {
-    const requests = await requestsOf("engine_query_historic_process_instances", {
-      processInstanceId: "pi-1",
-      businessKey: "ORDER-1",
-      businessKeyLike: "ORDER",
-      withIncidents: true,
-      incidentStatus: "open",
-      finishedAfter: "2026-10-01",
-      finishedBefore: "2026-10-02",
-    })
+    const requests = await requestsOf(
+      "engine_query_historic_process_instances",
+      {
+        processInstanceId: "pi-1",
+        businessKey: "ORDER-1",
+        businessKeyLike: "ORDER",
+        withIncidents: true,
+        incidentStatus: "open",
+        finishedAfter: "2026-10-01",
+        finishedBefore: "2026-10-02",
+      },
+      // A row found: no check of the incident history (history-incidents.wire.test.ts).
+      { "GET /history/process-instance/count": { body: { count: 1 } } },
+    )
     expectBothQueries(requests, "/history/process-instance", {
       processInstanceId: "pi-1",
       processInstanceBusinessKey: "ORDER-1",
@@ -115,15 +121,19 @@ describe("engine_query_historic_process_instances", () => {
 
 describe("engine_query_historic_incidents", () => {
   it("filters by instance, process, activity, type, status and create window", async () => {
-    const requests = await requestsOf("engine_query_historic_incidents", {
-      processInstanceId: "pi-1",
-      processDefinitionKey: "invoice",
-      activityId: "ServiceTask_1",
-      incidentType: "failedJob",
-      open: true,
-      createTimeAfter: "2026-10-01",
-      createTimeBefore: "2026-10-02T12:00:00+02:00",
-    })
+    const requests = await requestsOf(
+      "engine_query_historic_incidents",
+      {
+        processInstanceId: "pi-1",
+        processDefinitionKey: "invoice",
+        activityId: "ServiceTask_1",
+        incidentType: "failedJob",
+        open: true,
+        createTimeAfter: "2026-10-01",
+        createTimeBefore: "2026-10-02T12:00:00+02:00",
+      },
+      { "GET /history/incident/count": { body: { count: 1 } } },
+    )
     expectBothQueries(requests, "/history/incident", {
       processInstanceId: "pi-1",
       processDefinitionKey: "invoice",

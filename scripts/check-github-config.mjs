@@ -10,8 +10,11 @@
  *   (checkPublishWorkflow);
  * - release-please.yml's publish-npm matrix lists exactly the workspace packages npm receives,
  *   each naming this repository for its provenance (checkPublishMatrix), and
- *   release-please-config.json bumps every workspace package (checkReleaseExtraFiles) and
- *   every Claude Code plugin manifest an app ships (checkPluginVersions);
+ *   release-please-config.json bumps every workspace package (checkReleaseExtraFiles), every
+ *   Claude Code plugin manifest an app ships (checkPluginVersions) and every @miragon/pulse-*
+ *   pin of a package.json under templates/, by that pin's exact jsonpath
+ *   (checkTemplatePinBumps), each json file of them in the form release-please writes it back
+ *   in, so prettier takes the Release PR's bump (checkJsonExtraFileForm);
  * - every job of release-please.yml past the approval waits for gate, and release-please.yml
  *   calls the publish workflows of the CLI and the Orca plugin, which run on no other trigger
  *   (a dispatch only publishes the formula of a release again) and hold their tokens like the
@@ -39,12 +42,16 @@ import { fileURLToPath } from "node:url"
 import { isDeepStrictEqual } from "node:util"
 import { parse } from "yaml"
 import { SCOPES } from "./ci-scopes.mjs"
+import { STANZAS, templateManifests } from "./template-pins.mjs"
 import { isNpmPublished, isVscodeExtension, readWorkspace } from "./workspace-packages.mjs"
 
 export const PUBLISH_WORKFLOW = ".github/workflows/publish-npm-package.yml"
 export const RELEASE_WORKFLOW = ".github/workflows/release-please.yml"
 export const CI_WORKFLOW = ".github/workflows/ci.yml"
 export const VSCODE_PUBLISH_WORKFLOW = ".github/workflows/publish-vscode-extension.yml"
+
+/** The npm scope of Pulse's packages, whose template pins release-please bumps. */
+const PRODUCT_SCOPE = "@miragon/pulse-"
 
 /** The directories the Resolve package step of the publish workflow accepts. */
 export const PUBLISHABLE_DIR =
@@ -432,6 +439,43 @@ export function checkReleaseExtraFiles(config, packages, { fileExists = () => tr
 }
 
 /**
+ * Every json entry of extra-files is in the form release-please writes it back in: its json
+ * updater serializes the whole file as `JSON.stringify(…, null, 2)` with the final newline, which
+ * spreads every array over lines. A file prettier formats otherwise (an array on one line) fails
+ * `format:check` on the Release PR and blocks it, as it did on 0.28.0's. prettier keeps a file in
+ * that form under its `json-stringify` parser, which it gives every `package.json` by itself and
+ * any other file by an override in `.prettierrc.json`. `readText` returns a file's text, or
+ * undefined for one that does not exist (checkReleaseExtraFiles names it).
+ */
+export function checkJsonExtraFileForm(config, readText) {
+  const files = new Set(
+    asList(config?.packages?.["."]?.["extra-files"])
+      .filter((entry) => entry?.type === "json" && typeof entry.path === "string")
+      .map((entry) => entry.path),
+  )
+  const errors = []
+  for (const file of [...files].sort()) {
+    const text = readText(file)
+    if (text === undefined) continue
+    let written
+    try {
+      written = `${JSON.stringify(JSON.parse(text), null, 2)}\n`
+    } catch {
+      errors.push(`release-please-config.json: the json extra-file ${file} is no JSON`)
+      continue
+    }
+    if (text !== written) {
+      errors.push(
+        `${file} is not in the form release-please writes it back in (JSON.stringify with two ` +
+          `spaces): prettier would refuse the Release PR's bump of it. Give it prettier's ` +
+          `json-stringify parser in .prettierrc.json's overrides and run pnpm format`,
+      )
+    }
+  }
+  return errors
+}
+
+/**
  * Every Claude Code plugin manifest an app ships (`apps/<app>/skills/<skill>/.claude-plugin/
  * plugin.json`): its version is the release's too, so release-please bumps it with the rest.
  */
@@ -463,6 +507,45 @@ export function checkPluginVersions(config, manifests) {
         `release-please-config.json: ${file} is missing from extra-files as { type: json, ` +
         `jsonpath: $.version }: the plugin would announce the previous release's version`,
     )
+}
+
+/** Every package.json under templates/ as `{ file, manifest }`, its path from the repo root. */
+export function templatePackageFiles(root) {
+  const templates = path.join(root, "templates")
+  if (!existsSync(templates)) return []
+  return templateManifests(templates).map(({ file, manifest }) => ({
+    file: `templates/${file}`,
+    manifest,
+  }))
+}
+
+/**
+ * Each @miragon/pulse-* pin of a template's package.json (`manifests`, `{ file, manifest }[]`)
+ * is in extra-files as { type: json, path: <file>, jsonpath: $.<stanza>['<name>'] }, that exact
+ * jsonpath: release-please bumps it with the libraries, or the starter keeps that pin a release
+ * behind, which template-pins.mjs notices only after the bump (pure).
+ */
+export function checkTemplatePinBumps(config, manifests) {
+  const bumped = new Set(
+    asList(config?.packages?.["."]?.["extra-files"])
+      .filter((entry) => entry?.type === "json")
+      .map((entry) => `${entry.path} ${entry.jsonpath}`),
+  )
+  const errors = []
+  for (const { file, manifest } of manifests) {
+    for (const stanza of STANZAS) {
+      for (const name of Object.keys(manifest?.[stanza] ?? {})) {
+        const jsonpath = `$.${stanza}['${name}']`
+        if (!name.startsWith(PRODUCT_SCOPE) || bumped.has(`${file} ${jsonpath}`)) continue
+        errors.push(
+          `release-please-config.json: ${file} ${jsonpath} is missing from extra-files as ` +
+            `{ type: json, path: ${file}, jsonpath: ${jsonpath} }: a release would bump the ` +
+            `libraries and leave this pin at the previous version`,
+        )
+      }
+    }
+  }
+  return errors
 }
 
 // ── release-please.yml: the release gate ────────────────────────────────────
@@ -1179,6 +1262,14 @@ export function checkRepo(root) {
       JSON.parse(readFileSync(path.join(root, "release-please-config.json"), "utf8")),
       pluginManifests(root, packages),
     ),
+    ...checkTemplatePinBumps(
+      JSON.parse(readFileSync(path.join(root, "release-please-config.json"), "utf8")),
+      templatePackageFiles(root),
+    ),
+    ...checkJsonExtraFileForm(
+      JSON.parse(readFileSync(path.join(root, "release-please-config.json"), "utf8")),
+      (rel) => (exists(rel) ? readFileSync(path.join(root, rel), "utf8") : undefined),
+    ),
     ...checkReleaseGate(workflows.get(RELEASE_WORKFLOW)),
     ...checkChannelPublishWorkflows(workflows),
     ...checkVscodePublish(
@@ -1205,8 +1296,8 @@ if (isMain) {
     process.exit(1)
   }
   console.log(
-    "GitHub config: publish workflow, npm matrix and repositories, release extra-files and " +
-      "plugin versions, the release gate, the CLI and Orca publish workflows, the extension's release " +
-      "path, the docs deploy and the CI scopes hold.",
+    "GitHub config: publish workflow, npm matrix and repositories, release extra-files, " +
+      "plugin versions and template pins in release-please's form, the release gate, the CLI and Orca publish " +
+      "workflows, the extension's release path, the docs deploy and the CI scopes hold.",
   )
 }

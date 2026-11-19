@@ -15,6 +15,8 @@ import path from "node:path"
  */
 const OTHER_SUITES = [
   { pattern: /\.(?:it|engine)\.test\.ts$/, script: "test:engines", needs: "Docker" },
+  // The web app's suite under test-host has a script of its own; first match wins.
+  { pattern: /^test-host\/web(?:\/|$)/, script: "test:web", needs: "Playwright" },
   { pattern: /^test-host(?:\/|$)/, script: "test:host", needs: "Playwright" },
   { pattern: /^test\/smoke(?:\/|$)/, script: "test:smoke", needs: "VS Code" },
 ]

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Pulse board",
-  "description": "A board of the Pulse VS Code extension: read-only widgets over one or more engines.",
+  "description": "A Pulse board: read-only widgets over one or more engines, read by Pulse for VS Code, Pulse for Orca, the Pulse MCP server and the npm package @miragon/pulse-board.",
   "type": "object",
   "additionalProperties": false,
   "required": ["title", "engines", "rows"],
@@ -10,7 +10,8 @@
       "type": "string"
     },
     "schemaVersion": {
-      "const": 1
+      "const": 1,
+      "description": "The version of the board format; without it a file reads as version 1. A file that changes what a widget reads takes a new version, and a reader refuses a version it does not know."
     },
     "title": {
       "type": "string",
@@ -23,7 +24,17 @@
         "type": "string",
         "minLength": 1
       },
-      "description": "Profile names from .pulse.json.",
+      "description": "Profile names: in Pulse for VS Code and Pulse for Orca from .pulse.json or the CLI's user config, in the Pulse MCP server from the profiles of its configuration (ENGINES_FILE or ENGINES_JSON, else ENGINE_ID, default \"default\", the one engine of ENGINE_BASE_URL). A board shared between them works where both name the same engines.",
+      "uniqueItems": true
+    },
+    "tenants": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Tenant ids the board is about. Pulse has no tenant filter, so it refuses each widget of a board that names tenants instead of reading every tenant.",
       "uniqueItems": true
     },
     "rows": {
@@ -48,6 +59,21 @@
       "type": "object",
       "additionalProperties": false,
       "description": "Which instances the widget reads. Without a state it reads running instances.",
+      "if": {
+        "properties": {
+          "state": {
+            "const": "ended"
+          }
+        },
+        "required": ["state"]
+      },
+      "then": {
+        "properties": {
+          "withIncident": {
+            "const": false
+          }
+        }
+      },
       "properties": {
         "process": {
           "type": "string",
@@ -65,7 +91,7 @@
         },
         "withIncident": {
           "type": "boolean",
-          "description": "true: only instances with an open incident; false: only without."
+          "description": "true: only running instances with an open incident, which an ended instance never has; false: only without."
         },
         "businessKey": {
           "type": "string",

@@ -277,8 +277,8 @@ describe("following a bulk cancel", () => {
       notice: { tone: "info", title: "Cancelled 2 instances." },
     })
     expect(opened.view().instances.map((row) => row.state)).toEqual([
-      "Terminated",
-      "Terminated",
+      "Cancelled",
+      "Cancelled",
       "Completed",
     ])
     expect(opened.gate.pending).toBe(0)

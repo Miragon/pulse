@@ -7,6 +7,7 @@ const MODEL_ENTRY = `${RUNTIME_VIEW}dist/model/index[.]d[.]ts$`
 const ADAPTER_ENTRY = "(^|/)node_modules/@miragon/pulse-[^/]+-adapter/dist/index[.]d[.]ts$"
 const ENGINE_CORE_ENTRY = "(^|/)node_modules/@miragon/pulse-engine-core/dist/index[.]d[.]ts$"
 const ENGINE_CORE_TREE = "^packages/connectors/engine/engine-core/"
+const BOARD_ENTRY = "(^|/)node_modules/@miragon/pulse-board/dist/index[.]d[.]ts$"
 const DIALECT_PACKAGES =
   "(^|/)node_modules/@miragon/pulse-(?!engine-core/)[^/]+-(core|client|connector)/|^@miragon/pulse-(?!engine-core(/|$))[^/]+-(core|client|connector)(/|$)|^packages/connectors/(?!engine/engine-core/)[^/]+/[^/]+-(core|client|connector)/"
 const EXTENSION_LIBRARIES = "(^|/)node_modules/@miragon/modeler-shell/"
@@ -45,12 +46,19 @@ module.exports = {
       to: { path: ENGINE_CORE_ENTRY },
     },
     {
+      comment:
+        "The extension host reads the board files of the Boards view with Pulse's board format (@miragon/pulse-board, its main entry), which esbuild bundles into the extension.",
+      from: { path: `${APP}src/host/` },
+      to: { path: BOARD_ENTRY },
+    },
+    {
       comment: "The extension host may use Node built-ins.",
       from: { path: `${APP}src/host/` },
       to: { dependencyTypes: ["core"] },
     },
     {
-      comment: "Only the composition root knows the engine adapters and the model adapter.",
+      comment:
+        "Only the composition root knows the engine adapters (the C7 adapter, the C8 adapter) and the model adapter.",
       from: { path: `${APP}src/host/composition-root[.]ts$` },
       to: { path: [ADAPTER_ENTRY, MODEL_ENTRY] },
     },
@@ -60,7 +68,7 @@ module.exports = {
       name: "not-in-allowed",
       severity: "error",
       comment:
-        "No entry of `allowed` in apps/vscode/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md). The host uses its own modules, the runtime view (@miragon/pulse-runtime-view) through the entries of its ports, core, protocol and host kit, the main entry of @miragon/pulse-engine-core (never ./testing), vscode, modeler-shell and Node built-ins, and only its composition root the engine adapters (@miragon/pulse-<family>-adapter) and the model adapter (@miragon/pulse-runtime-view/model).",
+        "No entry of `allowed` in apps/vscode/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md). The host uses its own modules, the runtime view (@miragon/pulse-runtime-view) through the entries of its ports, core, protocol and host kit, the main entry of @miragon/pulse-engine-core (never ./testing), the main entry of @miragon/pulse-board, vscode, modeler-shell and Node built-ins, and only its composition root the engine adapters (@miragon/pulse-<family>-adapter) and the model adapter (@miragon/pulse-runtime-view/model).",
       from: {},
       to: { path: "^$" },
     },
@@ -76,7 +84,7 @@ module.exports = {
       name: "model-libraries-stay-in-the-model-adapter",
       severity: "error",
       comment:
-        "BPMN model libraries (bpmn-moddle, its vendor descriptors, bpmn-modeler libs) belong in packages/core/runtime-view/src/model only. Read what you need through the ModelSource or CodeLocator port instead.",
+        "BPMN model libraries (bpmn-moddle, bpmn-modeler libs) belong in packages/core/runtime-view/src/model only, a vendor's descriptor in the BPMN dialect of its family's adapter. Read what you need through the ModelSource or CodeLocator port instead.",
       from: { pathNot: "(^|/)node_modules/" },
       to: { path: MODEL_LIBRARIES },
     },

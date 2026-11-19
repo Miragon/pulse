@@ -5,7 +5,6 @@ import {
   KpiGrid,
   LivePill,
   WidgetHeader,
-  SITUATION_TONES,
 } from "@miragon/pulse-ui"
 import {
   HandOffButton,
@@ -15,7 +14,8 @@ import {
 } from "@miragon/pulse-widget-shell/widgets"
 import type { IncidentsDashboardData } from "../../view-models.js"
 import { ENGINE_INCIDENTS_DATA } from "../../tool-names.js"
-import { useHandOff, type HandOff } from "../lib/hand-off.js"
+import { AlarmCount } from "../lib/alarm-count.js"
+import { useHandOff, useHandOffsShown, type HandOff } from "../lib/hand-off.js"
 import { useT } from "../../messages/use-t.js"
 import { dashboardScope, incidentsFeed } from "./scope.js"
 
@@ -58,56 +58,74 @@ function IncidentOverviewKpiView({
   )
   const t = useT()
   const { ask } = useHandOff()
+  const handOffs = useHandOffsShown()
 
+  // Loading or failed, the route keeps its title, the page's one heading.
   if (!data) {
     return (
-      <ViewDataState
-        loading={loading}
-        error={error}
-        onRetry={refetch}
-        loadingText={t("incidentsKpi.loading")}
-        emptyText={t("incidentsKpi.noData")}
-      />
+      <WidgetShell header={<WidgetHeader title={t("incidentsKpi.titleFor", { engine })} />}>
+        <ViewDataState
+          loading={loading}
+          error={error}
+          onRetry={refetch}
+          loadingText={t("incidentsKpi.loading")}
+          emptyText={t("incidentsKpi.noData")}
+        />
+      </WidgetShell>
     )
   }
 
   return (
-    <>
-      <WidgetHeader
-        // The engine in the title (#322 U4).
-        title={t("incidentsKpi.titleFor", { engine })}
-        sub={
-          <>
-            <LivePill>{t("incidentsKpi.live")}</LivePill>
-            <span>
-              {t("incidentsKpi.openSummary", {
-                count: formatNumber(data.totalCount),
-                processes: formatNumber(data.processCount),
-              })}
-              {data.latestIncident && (
-                <>
-                  {" "}
-                  {t("incidentsKpi.lastEvent", {
-                    time: formatTimestamp(data.latestIncident),
-                  })}
-                </>
-              )}
-            </span>
-          </>
-        }
-        actions={
-          <HandOffButton action="assess" prompt={ask(triageIncidentsHandOff(data, engine))} />
-        }
-      />
-      {/* Only the open incidents carry a state (#322 U14); the rest are counts. */}
+    <WidgetShell
+      header={
+        <WidgetHeader
+          // The engine in the title (#322 U4).
+          title={t("incidentsKpi.titleFor", { engine })}
+          sub={
+            <>
+              <LivePill>{t("incidentsKpi.live")}</LivePill>
+              <span>
+                {t("incidentsKpi.openSummary", {
+                  count: formatNumber(data.totalCount),
+                  processes: formatNumber(data.processCount),
+                })}
+                {data.latestIncident && (
+                  <>
+                    {" "}
+                    {t("incidentsKpi.lastEvent", {
+                      time: formatTimestamp(data.latestIncident),
+                    })}
+                  </>
+                )}
+              </span>
+            </>
+          }
+          actions={
+            // Its one action is a hand-off: where the host hides it, the bar has no group.
+            handOffs && (
+              <HandOffButton
+                action="assess"
+                variant="toolbar"
+                prompt={ask(triageIncidentsHandOff(data, engine))}
+              />
+            )
+          }
+        />
+      }
+    >
+      {/* Only the open incidents alarm, by their icon and words (#322 U14); every number stays
+          neutral, no tile tinted. */}
       <KpiGrid
         boxed
         ariaLabel={t("incidentsKpi.overviewLabel")}
         cells={[
           {
             label: t("incidentsKpi.cellOpenIncidents"),
-            value: formatNumber(data.totalCount),
-            tone: data.totalCount > 0 ? SITUATION_TONES.openIncident : undefined,
+            value: (
+              <AlarmCount alarm={data.totalCount > 0 && "openIncidents"}>
+                {formatNumber(data.totalCount)}
+              </AlarmCount>
+            ),
           },
           {
             label: t("incidentsKpi.cellProcessesAffected"),
@@ -123,10 +141,11 @@ function IncidentOverviewKpiView({
           },
         ]}
       />
-    </>
+    </WidgetShell>
   )
 }
 
+/** The incidents route's view of its own: its bar and the KPIs. */
 export function IncidentOverviewKpi({
   data,
   engine,
@@ -134,9 +153,5 @@ export function IncidentOverviewKpi({
   data: IncidentsDashboardData | null
   engine: string
 }) {
-  return (
-    <WidgetShell>
-      <IncidentOverviewKpiView data={data} engine={engine} />
-    </WidgetShell>
-  )
+  return <IncidentOverviewKpiView data={data} engine={engine} />
 }

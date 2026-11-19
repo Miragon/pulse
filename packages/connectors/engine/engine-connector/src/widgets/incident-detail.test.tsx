@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import {
   ENGINE_INCIDENT_DETAIL_DATA,
   ENGINE_WIDGET_ACTIONS,
@@ -40,6 +40,7 @@ function detail(over: Partial<IncidentDetailData>): IncidentDetailData {
     engineVendor: "CIB seven",
     diagramDefinitionId: null,
     job: null,
+    externalTask: null,
     recovery: { action: "resolve" },
     instance: {
       id: "pi-1",
@@ -176,7 +177,8 @@ describe("the incident detail offers the remedy the engine accepts", () => {
     ])
     expect(lines).toEqual([
       ["Incident", "inc-1"],
-      ["Type", "invoiceMismatch"],
+      // A custom type in words from its code, as the extension reads it.
+      ["Type", "Invoice mismatch"],
       ["Business key", "LEA-7"],
       ["Process instance", "5f0ce78e…"],
       ["Engine", "prod"],
@@ -193,7 +195,13 @@ describe("the incident detail offers the remedy the engine accepts", () => {
     expect(await screen.findByText("Retry job")).toBeTruthy()
     // A write elsewhere (a variable edit) or a refresh re-reads the incident.
     void queryClient.invalidateQueries({ queryKey: ["engine:incident-detail"] })
-    expect(await screen.findByText(/inc-1 does not exist/)).toBeTruthy()
+    // The strip under the view's bar says the view could not be refreshed (the kit's words);
+    // the engine's own reason waits under its Details.
+    const reason = await screen.findByText(/inc-1 does not exist/)
+    const strip = reason.closest<HTMLElement>('[data-slot="status-strip"]')!
+    expect(within(strip).getByText("Couldn't refresh this view")).toBeTruthy()
+    fireEvent.click(within(strip).getByRole("button", { name: "Details" }))
+    expect(reason.hidden).toBe(false)
     expect(screen.queryByText("Retry job")).toBeNull()
   })
 
@@ -202,8 +210,51 @@ describe("the incident detail offers the remedy the engine accepts", () => {
       [ENGINE_WIDGET_ACTIONS_DATA]: { allowedActions: ["engine_resolve_incident"] },
     })
     await gateSettled()
-    expect(await screen.findAllByText("failedJob")).not.toHaveLength(0)
+    expect(await screen.findAllByText("Failed job")).not.toHaveLength(0)
     expect(screen.queryByText("Retry job")).toBeNull()
     expect(screen.queryByText("Mark as resolved")).toBeNull()
+  })
+})
+
+describe("the incident's stacktrace, as the engine gives it", () => {
+  const DETAILS = "java.net.SocketTimeoutException: payment gateway\n\tat PaymentWorker.charge(42)"
+
+  /** The Stacktrace tab, the one open first. */
+  const stacktraceTab = () => screen.findByRole("tabpanel", { name: "Stacktrace" })
+
+  it("shows a failed external task's error details, as the webview does, under the task's id", async () => {
+    renderDetail(
+      { ...FAILED_TASK, externalTask: { id: "ext-1", errorDetails: DETAILS } },
+      { [ENGINE_WIDGET_ACTIONS_DATA]: ALL_ACTIONS },
+    )
+    const tab = await stacktraceTab()
+    const text = within(tab).getByLabelText("Stacktrace")
+    expect(text.tagName).toBe("PRE")
+    expect(text.textContent).toBe(DETAILS)
+    expect(within(tab).getByText("External task")).toBeTruthy()
+    expect(within(tab).queryByText(/returned no stacktrace/)).toBeNull()
+  })
+
+  it("says the worker's details are missing, never that a job has no stacktrace", async () => {
+    renderDetail(
+      { ...FAILED_TASK, externalTask: { id: "ext-1", errorDetails: null } },
+      { [ENGINE_WIDGET_ACTIONS_DATA]: ALL_ACTIONS },
+    )
+    const tab = await stacktraceTab()
+    expect(within(tab).getByText(/returned no error details/)).toBeTruthy()
+    expect(within(tab).queryByLabelText("Stacktrace")).toBeNull()
+    expect(within(tab).queryByText(/returned no stacktrace/)).toBeNull()
+  })
+
+  it("keeps a failed job's stacktrace under its job", async () => {
+    renderDetail(
+      { ...FAILED_JOB, job: { ...JOB, stacktrace: "boom\n\tat Billing.charge(7)" } },
+      { [ENGINE_WIDGET_ACTIONS_DATA]: ALL_ACTIONS },
+    )
+    const tab = await stacktraceTab()
+    expect(within(tab).getByLabelText("Stacktrace").textContent).toBe(
+      "boom\n\tat Billing.charge(7)",
+    )
+    expect(within(tab).queryByText("External task")).toBeNull()
   })
 })

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { Client } from "@miragon/pulse-c7-client"
-import { createCallerCache, oneAtATime } from "./per-engine.js"
+import { createCallerCache, createOwnerCache, oneAtATime } from "./per-engine.js"
 
 // A stand-in engine client: what the module keeps per engine keys on its interceptors.
 const engineClient = () => ({ interceptors: {} }) as unknown as Client
@@ -40,6 +40,27 @@ describe("createCallerCache", () => {
     await cache(client, "a", () => Promise.resolve(++reads))
     clock = Number.MAX_SAFE_INTEGER
     expect(await cache(client, "a", () => Promise.resolve(++reads))).toBe(1)
+  })
+})
+
+describe("createOwnerCache", () => {
+  it("keeps reads apart per owner object", async () => {
+    const cache = createOwnerCache<string>({ maxEntries: 8 })
+    const [first, second] = [{}, {}]
+    expect(await cache(first, "a", () => Promise.resolve("first"))).toBe("first")
+    expect(await cache(second, "a", () => Promise.resolve("second"))).toBe("second")
+    expect(await cache(first, "a", () => Promise.resolve("again"))).toBe("first")
+  })
+
+  it("answers the calls that shared a value `keep` refuses, then reads again", async () => {
+    const cache = createOwnerCache<number>({ maxEntries: 8, keep: (value) => value > 1 })
+    const owner = {}
+    let reads = 0
+    const read = () => Promise.resolve(++reads)
+    const [shared, joined] = [cache(owner, "a", read), cache(owner, "a", read)]
+    expect([await shared, await joined]).toEqual([1, 1])
+    expect(await cache(owner, "a", read)).toBe(2)
+    expect(await cache(owner, "a", read)).toBe(2)
   })
 })
 

@@ -17,6 +17,7 @@ export { withToolErrors } from "./tool-errors.js"
 export { createToolRegistrar, type ToolConfig, type ToolRegistrar } from "./tool-registrar.js"
 export {
   appOnly,
+  forViews,
   showToolBinding,
   strictToolInput,
   type OwnViewBinding,

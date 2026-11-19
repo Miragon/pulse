@@ -81,6 +81,18 @@
       },
     },
 
+    "packages/connectors/engine/engine-connector": {
+      "vitest": {
+        "config": ["vitest.config.ts", "vitest.engines.config.ts"],
+      },
+    },
+
+    "packages/connectors/c8/c8-adapter": {
+      "vitest": {
+        "config": ["vitest.config.ts", "vitest.engines.config.ts"],
+      },
+    },
+
     "packages/connectors/c7/c7-client": {
       // Generated Camunda 7 REST SDK (pnpm generate): its export surface
       // mirrors the OpenAPI spec, not our usage.
@@ -93,7 +105,19 @@
       },
     },
 
+    "packages/connectors/c8/c8-core": {
+      "vitest": {
+        "config": ["vitest.config.ts", "vitest.stryker.config.ts"],
+      },
+    },
+
     "packages/connectors/engine/engine-core": {
+      "vitest": {
+        "config": ["vitest.config.ts", "vitest.stryker.config.ts"],
+      },
+    },
+
+    "packages/core/board": {
       "vitest": {
         "config": ["vitest.config.ts", "vitest.stryker.config.ts"],
       },
@@ -106,6 +130,12 @@
     },
 
     "packages/core/profile": {
+      "vitest": {
+        "config": ["vitest.config.ts", "vitest.stryker.config.ts"],
+      },
+    },
+
+    "packages/core/widget-shell": {
       "vitest": {
         "config": ["vitest.config.ts", "vitest.stryker.config.ts"],
       },

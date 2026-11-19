@@ -28,15 +28,19 @@ page: [CLI development](docs/cli/development.md), the [VS Code extension](apps/v
 | [`apps/cli/`](apps/cli)                                                                       | `@miragon/pulse-cli`                                | The command line interface                                                    |
 | [`apps/vscode/`](apps/vscode)                                                                 | `pulse-cockpit` (a .vsix)                           | Pulse for VS Code                                                             |
 | [`apps/orca/`](apps/orca)                                                                     | `pulse-cockpit` (an Orca plugin, not published yet) | Pulse for Orca                                                                |
-| [`packages/connectors/engine/engine-connector/`](packages/connectors/engine/engine-connector) | `@miragon/pulse-engine-connector`                   | Operations tools and widgets for Camunda 7 engines                            |
+| [`packages/connectors/engine/engine-connector/`](packages/connectors/engine/engine-connector) | `@miragon/pulse-engine-connector`                   | Operations tools and widgets for Camunda 7, boards for Camunda 8 too          |
 | [`packages/connectors/engine/engine-core/`](packages/connectors/engine/engine-core)           | `@miragon/pulse-engine-core`                        | Core of the engine family: the contract every dialect implements              |
 | [`packages/connectors/c7/c7-client/`](packages/connectors/c7/c7-client)                       | `@miragon/pulse-c7-client`                          | SDK of the Camunda 7 REST dialect family: typed REST SDK and client           |
 | [`packages/connectors/c7/c7-core/`](packages/connectors/c7/c7-core)                           | `@miragon/pulse-c7-core`                            | Core of the Camunda 7 REST dialect family: workflow domain, engine REST rules |
 | [`packages/connectors/c7/c7-adapter/`](packages/connectors/c7/c7-adapter)                     | `@miragon/pulse-c7-adapter` (private)               | The C7 adapter of the editor hosts' runtime view                              |
+| [`packages/connectors/c8/c8-core/`](packages/connectors/c8/c8-core)                           | `@miragon/pulse-c8-core`                            | Core of the Camunda 8 dialect family: its runtime, REST client and readers    |
+| [`packages/connectors/c8/c8-adapter/`](packages/connectors/c8/c8-adapter)                     | `@miragon/pulse-c8-adapter` (private)               | The C8 adapter of the editor hosts' runtime view                              |
 | [`packages/core/ui/`](packages/core/ui)                                                       | `@miragon/pulse-ui`                                 | Design kit for Pulse views and your own React UIs                             |
 | [`packages/core/widget-shell/`](packages/core/widget-shell)                                   | `@miragon/pulse-widget-shell`                       | View runtime and server boot for composed MCP servers                         |
 | [`packages/core/runtime-view/`](packages/core/runtime-view)                                   | `@miragon/pulse-runtime-view` (private)             | The runtime view the VS Code extension and the Orca plugin share              |
 | [`packages/core/profile/`](packages/core/profile)                                             | `@miragon/pulse-profile`                            | One profile format for the CLI, the editors and the MCP server                |
+| [`packages/core/board/`](packages/core/board)                                                 | `@miragon/pulse-board`                              | One board file format and builder for every surface that shows a board        |
+| [`packages/core/blocks/`](packages/core/blocks)                                               | `@miragon/pulse-blocks`                             | Building blocks every surface renders alike, today the tiles of a board       |
 | [`packages/core/http/`](packages/core/http)                                                   | `@miragon/pulse-http`                               | One engine transport for the CLI, the editors and the MCP server              |
 | [`playground/`](playground)                                                                   | —                                                   | Demo engine, Compose stack and the public playground                          |
 | [`templates/composed-server/`](templates/composed-server)                                     | `Miragon/pulse-starter`                             | [Starter](docs/mcp/build-your-own.md) for your own server                     |
@@ -71,4 +75,24 @@ from the repository root after the views or the skill changed:
 ```bash
 node packages/core/runtime-view/dev/webview/serve.mjs --build   # the webview dev page the VS Code card loads
 node "<product-shots skill>/scripts/listing.mjs"
+```
+
+The skill's scripts take Playwright from `PLAYWRIGHT_CORE`, the workspace's with
+`export PLAYWRIGHT_CORE=$(node -p "require.resolve('playwright', { paths: ['apps/vscode'] })")`, and
+set the title of a window frame in Geist, so install the Geist font before you frame.
+
+The incident view of the MCP card, `docs/assets/widget-incident.png` and its dark twin (the MCP
+server's README shows both), is the journey `.miragon/shots/incident-view.mjs`: the cockpit's
+incident route of the built MCP server (`pnpm build`, the `engine:operations` toolset) for
+ORD-10131's incident on shop-dev, in the host page of `test:host`
+(`apps/mcp-server/test-host/host-sim.html`), on a fresh shop sandbox
+(`pnpm --filter pulse-cockpit run sandbox:up`). Render it before the covers, since the MCP card
+crops it:
+
+```bash
+node "<product-shots skill>/scripts/render.mjs" --journey .miragon/shots/incident-view.mjs \
+  --viewport 960x620 --chrome mac --title "Incident · Charge payment" --out docs/assets/widget-incident.png
+node "<product-shots skill>/scripts/render.mjs" --journey .miragon/shots/incident-view.mjs \
+  --viewport 960x620 --chrome mac --theme dark --title "Incident · Charge payment" \
+  --out docs/assets/widget-incident-dark.png
 ```

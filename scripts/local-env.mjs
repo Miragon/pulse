@@ -114,8 +114,45 @@ const ENGINE_B = {
   cockpitUrl: "http://localhost:8411/webapp",
 }
 
+/**
+ * The playground's board files (`*.board.json`, over `prod-a`), relative to the repository: `pnpm
+ * play` hands the server their absolute path as ENGINE_BOARDS_DIR, so the cockpit lists them.
+ */
+export const PLAYGROUND_BOARDS = "playground/boards"
+
 /** The variable the playground's engine profiles name for their demo password (ENGINE_SECRET_*). */
 export const PLAYGROUND_PASSWORD_VARIABLE = "ENGINE_SECRET_PLAYGROUND_PASSWORD"
+
+/**
+ * The confidential client of the web app's sign-in in the playground's realm
+ * (playground/docker/keycloak/realm-miragon.json), its secret as public as the realm's demo login.
+ */
+export const PLAYGROUND_WEB_CLIENT = { id: "pulse-web", secret: "pulse-web-secret" }
+
+/**
+ * The web app's build, relative to the repository: `pnpm play --web` hands the server its absolute
+ * path as MCP_WEB_DIR, never the server package's web/, which only the image fills.
+ */
+export const WEB_BUILD = "apps/web/dist"
+
+/**
+ * An authorization request like a browser's sign-in on `port`, as far as the playground's Keycloak
+ * checks it before any login: the web client, its redirect URI and PKCE (RFC 7636's example
+ * challenge). It answers 200 (the login page) only while the realm holds that client with that
+ * URI, so `pnpm play --web` finds a Keycloak started before the realm had it.
+ */
+export const webClientProbe = (port = DEFAULT_SERVER_PORT) => {
+  const url = new URL("http://127.0.0.1:8480/realms/miragon/protocol/openid-connect/auth")
+  url.search = new URLSearchParams({
+    client_id: PLAYGROUND_WEB_CLIENT.id,
+    response_type: "code",
+    scope: "openid",
+    redirect_uri: `http://localhost:${port}/app/auth/callback`,
+    code_challenge: "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+    code_challenge_method: "S256",
+  }).toString()
+  return url.href
+}
 
 /**
  * The MCP server's settings against the playground: the playground's public demo login, the
@@ -125,13 +162,21 @@ export const PLAYGROUND_PASSWORD_VARIABLE = "ENGINE_SECRET_PLAYGROUND_PASSWORD"
  * toolset, `deploy` registers deployments, `auth` puts the server behind the playground's
  * Keycloak (.env.example, "Local playground"), with MCP_URL on localhost and the server's
  * `port`: OAuth needs it, and the realm stamps http://localhost:8400/mcp into every token's aud.
+ * `boardsDir`, an absolute path (the server resolves a relative one against its own folder), is
+ * the directory of the board files (ENGINE_BOARDS_DIR). `web` turns on the web app under `/app`
+ * behind the same Keycloak: the realm's client PLAYGROUND_WEB_CLIENT, `sessionKey` (the caller's
+ * fresh one) for MCP_WEB_SESSION_KEYS and `webDir`, the absolute path of WEB_BUILD.
  */
 export function serverPreset({
   multiEngine = false,
   admin = false,
   deploy = false,
   auth = false,
+  web = false,
   port = DEFAULT_SERVER_PORT,
+  boardsDir,
+  webDir,
+  sessionKey,
 } = {}) {
   const login = { type: "basic", username: "demo", passwordEnv: PLAYGROUND_PASSWORD_VARIABLE }
   const engines = multiEngine
@@ -160,11 +205,20 @@ export function serverPreset({
     HOST: "127.0.0.1",
     MCP_ACTIVE_MODULES: admin ? "engine:admin" : "engine",
     ...(deploy ? { ENGINE_ALLOW_DEPLOYMENTS: "true" } : {}),
-    ...(auth
+    ...(boardsDir ? { ENGINE_BOARDS_DIR: boardsDir } : {}),
+    ...(auth || web
       ? {
           MCP_URL: `http://localhost:${port}`,
           MCP_OAUTH_KEYCLOAK_SERVER_URL: "http://localhost:8480",
           MCP_OAUTH_KEYCLOAK_REALM: "miragon",
+        }
+      : {}),
+    ...(web
+      ? {
+          MCP_WEB_CLIENT_ID: PLAYGROUND_WEB_CLIENT.id,
+          MCP_WEB_CLIENT_SECRET: PLAYGROUND_WEB_CLIENT.secret,
+          MCP_WEB_SESSION_KEYS: sessionKey,
+          MCP_WEB_DIR: webDir,
         }
       : {}),
   }

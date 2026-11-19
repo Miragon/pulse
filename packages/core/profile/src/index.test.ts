@@ -13,8 +13,10 @@ describe("the @miragon/pulse-profile entries", () => {
         "AUTH_TYPES",
         "BASIC_AUTH_KEYS",
         "BEARER_AUTH_KEYS",
+        "CLIENT_CREDENTIALS_AUTH_KEYS",
         "CREDENTIAL_POLICIES",
         "DEFAULT_FLAVOR",
+        "DIALECT_AUTH_TYPES",
         "ENVIRONMENT_ID",
         "ENV_NAME",
         "FLAVORS",
@@ -33,6 +35,7 @@ describe("the @miragon/pulse-profile entries", () => {
         "defaultProfileOf",
         "describeProblem",
         "dialectOf",
+        "flavorsOf",
         "isConventionalVariable",
         "isEngineName",
         "isHeaderName",
@@ -48,16 +51,50 @@ describe("the @miragon/pulse-profile entries", () => {
         "normalizeUrl",
         "parseProfileFile",
         "refusalsOn",
+        "tokenEndpointUrlProblem",
         "urlProblem",
       ].sort(),
     )
   })
 
-  it("export the fixtures and the form they compare in from ./testing", () => {
-    expect(Object.keys(testing).sort()).toEqual(["PROFILE_FIXTURES", "outcomeOf", "problemLabel"])
+  it("export the fixtures, the form they compare in and the config locations from ./testing", () => {
+    expect(Object.keys(testing).sort()).toEqual([
+      "CLI_CONFIG_LOCATIONS",
+      "PROFILE_FIXTURES",
+      "outcomeOf",
+      "problemLabel",
+    ])
   })
 
-  it("map each flavor to the dialect it speaks: one dialect today", () => {
-    expect(profile.FLAVORS).toEqual({ camunda7: "c7", cibseven: "c7", operaton: "c7" })
+  it("map each flavor to the dialect it speaks: Camunda 7 REST, and Camunda 8", () => {
+    expect(profile.FLAVORS).toEqual({
+      camunda7: "c7",
+      camunda8: "c8",
+      cibseven: "c7",
+      operaton: "c7",
+    })
+  })
+
+  it("give each dialect its auth types and the client credentials grant its keys", () => {
+    expect(profile.AUTH_TYPES).toEqual([
+      "none",
+      "basic",
+      "bearer",
+      "oauth",
+      "clientCredentials",
+      "passthrough",
+    ])
+    expect(profile.DIALECT_AUTH_TYPES).toEqual({
+      c7: ["none", "basic", "bearer", "oauth", "passthrough"],
+      c8: ["none", "basic", "bearer", "clientCredentials"],
+    })
+    expect(profile.CLIENT_CREDENTIALS_AUTH_KEYS).toEqual([
+      "tokenEndpoint",
+      "clientId",
+      "clientSecretEnv",
+      "clientSecret",
+      "scopes",
+      "audience",
+    ])
   })
 })

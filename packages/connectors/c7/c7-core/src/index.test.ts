@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import * as core from "./index.js"
 import * as routes from "./routes.js"
+import * as runtime from "./runtime/index.js"
 import * as testing from "./testing/index.js"
 
 /**
@@ -25,6 +26,7 @@ describe("the @miragon/pulse-c7-core entries", () => {
       "RAW_VARIABLES_QUERY",
       "Slots",
       "UTC_WITHOUT_OFFSET",
+      "WITH_INCIDENT",
       "WorkflowError",
       "activeTree",
       "advanceSteps",
@@ -44,6 +46,7 @@ describe("the @miragon/pulse-c7-core entries", () => {
       "compareTime",
       "complementaryFlags",
       "conditionLabel",
+      "countWithIncident",
       "createEnginePort",
       "criticalIncidentsRule",
       "decide",
@@ -64,6 +67,7 @@ describe("the @miragon/pulse-c7-core entries", () => {
       "incidentRecovery",
       "inspectInstance",
       "instanceRequests",
+      "instancesWithIncident",
       "intentOf",
       "isAdvanceable",
       "isEngineDateInput",
@@ -104,7 +108,11 @@ describe("the @miragon/pulse-c7-core entries", () => {
       "toEngineVariables",
       "toOptionalEngineDate",
       "trueOnly",
+      "unrecordedIncidents",
       "waitId",
+      "withIncidentAmong",
+      "withIncidentBody",
+      "withIncidentByVersion",
     ])
   })
 
@@ -112,12 +120,25 @@ describe("the @miragon/pulse-c7-core entries", () => {
     expect(Object.keys(routes)).toEqual(["ROUTES"])
   })
 
-  it("export exactly the fixtures, the fake port and the test seams from ./testing", () => {
+  it("export exactly the runtime, the reads of the commands, the checked views and the id rule from ./runtime", () => {
+    expect(Object.keys(runtime).sort()).toEqual([
+      "C7Runtime",
+      "JsonView",
+      "findActivityTree",
+      "findHistoricBatch",
+      "isEngineId",
+      "readBatchStatistics",
+      "readHistoricInstances",
+    ])
+  })
+
+  it("export exactly the fixtures, the fake port, the world's seed, the recorded board engine and the test seams from ./testing", () => {
     expect(Object.keys(testing).sort()).toEqual([
       "APPROVE_INCIDENT",
       "ASYNC",
       "BOOK_ERROR",
       "C",
+      "C7_BOARD_ENGINE",
       "CHILD_DEF",
       "CHILD_NODE",
       "CONDITIONAL",
@@ -133,12 +154,14 @@ describe("the @miragon/pulse-c7-core entries", () => {
       "PARENT_DEF",
       "RECEIVE",
       "ROOT_NODE",
+      "RUNTIME_OPERATIONS",
       "SIGNAL",
       "STACKTRACE",
       "STATUS_OPERATIONS",
       "TIMER",
       "USER_TASK",
       "VARS",
+      "WITH_INCIDENT_OPERATIONS",
       "activeData",
       "activity",
       "activityTree",
@@ -166,6 +189,8 @@ describe("the @miragon/pulse-c7-core entries", () => {
       "paidStage",
       "plainVariables",
       "runtimeDto",
+      "seedC7CommandWorld",
+      "seedC7World",
       "statistics",
       "topicStatus",
       "unknownKeys",

@@ -5,6 +5,7 @@ import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
 import { listJobsInput } from "./schemas/index.js"
 import { runWithMcpRequestInfo } from "@miragon/pulse-widget-shell/server"
 import { engineModule } from "./module.js"
+import { worldBoard } from "./data/honest-numbers.test-support.js"
 
 describe("engineModule.instructions", () => {
   const TWO = [
@@ -35,8 +36,80 @@ describe("engineModule.instructions", () => {
       "- Engine state: engine_status triages, engine_open_cockpit shows the user.\n",
     )
     expect(text).toContain(
-      "- History (engine_query_historic_*) covers finished instances, activities, tasks, variables and resolved incidents.\n",
+      "- History (engine_query_historic_*) covers finished instances, activities, tasks, variables and resolved incidents (incidents need history level FULL).\n",
     )
+  })
+
+  // Only a server with boards says how one opens: elsewhere the line would cost every deployment.
+  // It names no board: engine_list_engines does, so the line keeps its size with every file.
+  it("says where the boards are listed and how one opens, only on a server with boards", () => {
+    const rule =
+      "- Boards: engine_list_engines lists them; engine_open_cockpit with view board and a " +
+      "board's id shows one to the user, read from the engines the board names; its facts are " +
+      "that board's numbers.\n"
+    const withBoards = engineModule.instructions({
+      engines: TWO,
+      toolset: "read-only",
+      boards: { boards: [worldBoard()], refused: [] },
+    })
+    expect(withBoards).toContain(rule)
+    expect(withBoards).not.toMatch(/\borders\b/)
+    expect(snippet(TWO, "read-only")).not.toContain("- Boards")
+    const empty = engineModule.instructions({
+      engines: TWO,
+      toolset: "read-only",
+      boards: { boards: [], refused: [] },
+    })
+    expect(empty).not.toContain("- Boards")
+  })
+
+  // Only a server with a Camunda 8 engine says what reads it: elsewhere the line would cost every
+  // deployment. Its characters are the char budget instructions-camunda8 of the server app.
+  it("says where a Camunda 8 engine shows and that the rest neither offer nor take it, only with one", () => {
+    const rule =
+      "- Camunda 8 engines (dialect c8 in engine_list_engines) show on boards only " +
+      "(engine_open_cockpit with view board); other tools offer none and refuse a c8 default: " +
+      "ENGINE_DIALECT_NOT_SERVED.\n"
+    const c8 = { id: "c8", baseUrl: "https://c8.example/v2", flavor: "camunda8" }
+    const withC8 = engineModule.instructions({ engines: [TWO[0], c8], toolset: "read-only" })
+    expect(withC8).toContain(rule)
+    expect(withC8.replace(rule, "")).toBe(
+      snippet([TWO[0], { ...c8, flavor: "camunda7" }], "read-only"),
+    )
+    expect(snippet(TWO, "read-only")).not.toContain("Camunda 8 engines")
+    const refused = engineModule.instructions({
+      engines: TWO,
+      refused: [{ id: "c8", reason: "auth.clientSecretEnv names a variable that is not set." }],
+      toolset: "read-only",
+    })
+    expect(refused).not.toContain("Camunda 8 engines")
+  })
+
+  // A server of Camunda 8 engines alone registers four tools and feeds: its rules name what they
+  // do and nothing of Camunda 7's tools, whatever its toolset.
+  it("a server of Camunda 8 engines alone: says what shows them, and nothing of Camunda 7", () => {
+    const c8 = { id: "c8", baseUrl: "https://c8.example/v2", flavor: "camunda8" }
+    const lines = (toolset: string, boards = false) =>
+      engineModule
+        .instructions({
+          engines: [c8],
+          toolset,
+          ...(boards ? { boards: { boards: [worldBoard()], refused: [] } } : {}),
+        })
+        .split("\n")
+    expect(lines("admin")).toEqual([
+      "engine (Camunda 8, which this server reads on boards):",
+      "- Its engines (dialect c8 in engine_list_engines) show on boards only: engine_open_cockpit with view board shows one, landing the engines and boards to pick from; in its facts null is unknown, never 0.",
+      expect.stringMatching(/^- Widget hand-offs /),
+    ])
+    expect(lines("read-only")).toEqual(lines("admin"))
+    expect(lines("read-only", true)[2]).toMatch(/^- Boards: engine_list_engines lists them;/)
+    const tools = new Set(
+      lines("admin", true)
+        .join("\n")
+        .match(/engine_[a-z_]+/g),
+    )
+    expect([...tools].sort()).toEqual(["engine_list_engines", "engine_open_cockpit"])
   })
 
   it("several engines with a default: names the ids and the default engine", () => {

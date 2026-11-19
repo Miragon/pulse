@@ -14,6 +14,9 @@ has its own adapter in the CLI, so a difference of one engine stays in one place
 Commands for features an engine does not offer fail with the engine's error. Property names that
 differ between the engines are both accepted (`operatonFormRef`, `camundaFormRef`). Camunda 8 is
 not supported: it has a different API (see the [decision](adr/002-camunda-8-is-a-separate-api.md)).
+A file may still hold a `camunda8` profile for another Pulse client: the CLI refuses only that
+profile when you use it, and `pulse config` changes none of its client credentials and gives no
+profile an auth type its flavor does not take.
 
 ## Choosing the engine
 

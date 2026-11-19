@@ -66,6 +66,24 @@ const DATA: IncidentsDashboardData = {
 const asWidget = (c: unknown) => c as ComponentType<Record<string, unknown>>
 const data = DATA as unknown as Record<string, unknown>
 
+describe("the incidents route while its feed fails", () => {
+  it("keeps its title, the page's one heading, above the failure", async () => {
+    render(
+      <TestViewHost
+        tools={{
+          [ENGINE_INCIDENTS_DATA]: () => {
+            throw new Error("engine prod-a unreachable (ECONNREFUSED)")
+          },
+        }}
+      >
+        <IncidentOverviewKpi data={null} engine="prod-a" />
+      </TestViewHost>,
+    )
+    await screen.findByRole("alert")
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("prod-a · Incidents")
+  })
+})
+
 describe("incidents dashboard widgets: honest numbers", () => {
   it("shows the unknown affected-activity total as —, never 0", () => {
     render(
@@ -101,14 +119,21 @@ describe("incidents dashboard widgets: honest numbers", () => {
     ).toBeTruthy()
   })
 
-  it("the Last 24h chip shows the key's 24h count (— when unknown) and drops a process without any", () => {
+  it("the Last 24h scope shows the key's 24h count (— when unknown) and drops a process without any", () => {
     render(
       <TestViewHost>
         {createElement(asWidget(IncidentProcessList), { data, engine: "prod-a" })}
       </TestViewHost>,
     )
 
-    fireEvent.click(screen.getByText("Last 24h"))
+    // One pick of two, a radio group as the instance scope, each with its count.
+    const scopes = screen.getByRole("radiogroup", { name: "Show incidents" })
+    const all = within(scopes).getByRole("radio", { name: /^All/ })
+    const last24h = within(scopes).getByRole("radio", { name: /^Last 24h/ })
+    expect(all.getAttribute("aria-checked")).toBe("true")
+    fireEvent.click(last24h)
+    expect(last24h.getAttribute("aria-checked")).toBe("true")
+    expect(all.getAttribute("aria-checked")).toBe("false")
 
     expect(screen.getByText("Burst")).toBeTruthy()
     expect(screen.queryByText("Quiet")).toBeNull()

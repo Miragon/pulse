@@ -1,27 +1,23 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
-import type {
-  CockpitAppData,
-  CockpitStart,
-  CockpitView,
-  EngineHealthData,
-  JobPanelData,
-} from "../../view-models.js"
-import {
-  ENGINE_COCKPIT_OVERVIEW_DATA,
-  ENGINE_HEALTH_DATA,
-  ENGINE_JOB_BACKLOG_DATA,
-  ENGINE_JOBS_DATA,
-  ENGINE_LIST_ENGINES,
-} from "../../tool-names.js"
+import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react"
+import { createTestQueryClient } from "@miragon/pulse-widget-shell/widgets"
+import type { CockpitAppData } from "../../view-models.js"
+import { ENGINE_HEALTH_DATA, ENGINE_JOB_BACKLOG_DATA, ENGINE_JOBS_DATA } from "../../tool-names.js"
 import { engineInstructions } from "../../instructions.js"
-import { CockpitApp } from "./app.js"
 import {
-  TestViewHost,
-  createTestQueryClient,
-  type HostAction,
-} from "@miragon/pulse-widget-shell/widgets"
+  activeEngine,
+  boot,
+  ENGINES,
+  type EngineList,
+  headSection,
+  type HostMode,
+  INLINE,
+  JOBS_DATA,
+  onLanding,
+  renderCockpitOn,
+  trailLabels,
+} from "./app.test-support.js"
 
 // One retry-free client per test; the test reads and pokes its cache.
 let queryClient = createTestQueryClient()
@@ -31,122 +27,18 @@ afterEach(() => {
   queryClient = createTestQueryClient()
 })
 
-const ENGINES = [
-  { id: "prod-a", environment: "default" },
-  { id: "prod-b", environment: "default" },
-]
+function renderCockpit(bootstrap?: CockpitAppData, list?: EngineList, displayMode?: HostMode) {
+  return renderCockpitOn(queryClient, bootstrap, list, displayMode)
+}
 
 /**
- * A bootstrap as `engine_open_cockpit` returns it. Without a start view, or with a start whose
- * data the test leaves out, the routes fetch.
+ * A case renders widgets in happy-dom and waits for their queries: up to 0.2 s alone, up to 2.6 s
+ * on the CI runner, where `pnpm test` runs every package's suite at once on four cores.
  */
-function boot(
-  engineId: string | null,
-  engines: CockpitAppData["engines"],
-  view: CockpitView | null = null,
-  data: CockpitStart["data"] | null = null,
-): CockpitAppData {
-  return { engineId, engines, start: view ? ({ view, data } as CockpitStart) : null }
-}
-
-/** Stable objects: the test host memoizes on them. Fullscreen shows the head and the trail apart. */
-const FULLSCREEN = { displayMode: "fullscreen" } as const
-const INLINE = { displayMode: "inline" } as const
-
-/** What the server answers for an engine whose profile it refused. */
-const REFUSED_TEXT =
-  '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask whoever runs this server to fix it.'
-
-/** `list` is mutable, so a test can reload it; its `refused` are the profiles the server refused. */
-function renderCockpit(
-  bootstrap: CockpitAppData = boot(null, ENGINES),
-  list: {
-    engines: CockpitAppData["engines"]
-    refused?: Array<{ id: string; environment?: string; reason: string }>
-  } = { engines: ENGINES },
-  displayMode: typeof FULLSCREEN | typeof INLINE = FULLSCREEN,
-) {
-  const modelContexts: string[] = []
-  const actions: HostAction[] = []
-  const listEngines = () => ({
-    engines: list.engines,
-    environments: [],
-    defaultEngineId: "prod-b",
-    ...(list.refused ? { refused: list.refused } : {}),
-  })
-  const refusedEngine = (args: Record<string, unknown>) => {
-    if (list.refused?.some(({ id }) => id === args.engine)) throw new Error(REFUSED_TEXT)
-  }
-  const overview = (args: Record<string, unknown>) => {
-    refusedEngine(args)
-    return overviewOf(args)
-  }
-  const overviewOf = (args: Record<string, unknown>) => ({
-    summary: {
-      totalDefinitions: 0,
-      totalRunningInstances: 0,
-      totalFailedJobs: 0,
-      totalIncidents: 0,
-    },
-    definitions: [],
-    engineId: args.engine,
-  })
-  const health = (args: Record<string, unknown>): EngineHealthData => {
-    refusedEngine(args)
-    return healthOf(args)
-  }
-  const healthOf = (args: Record<string, unknown>): EngineHealthData => ({
-    status: "ok",
-    statusRule: "ok without open incidents",
-    summary: {
-      totalIncidents: 0,
-      lastHourIncidents: 0,
-      last24hIncidents: 0,
-      affectedActivities: 0,
-      affectedDefinitions: 0,
-      runningInstances: 3,
-      totalDefinitions: 1,
-      started24h: null,
-      completed24h: null,
-    },
-    clusters: [],
-    fetchedAt: "2026-06-11T14:05:00.000Z",
-    engineId: String(args.engine),
-  })
-  const tools = {
-    [ENGINE_LIST_ENGINES]: listEngines,
-    [ENGINE_COCKPIT_OVERVIEW_DATA]: overview,
-    [ENGINE_HEALTH_DATA]: health,
-    [ENGINE_JOBS_DATA]: () => JOBS_DATA,
-    [ENGINE_JOB_BACKLOG_DATA]: (args: Record<string, unknown>) => ({
-      executableJobs: 0,
-      suspendedJobs: 0,
-      jobsDueLater: 0,
-      externalTasks: 0,
-      engineId: String(args.engine),
-    }),
-  }
-  const host = (data: CockpitAppData) => (
-    <TestViewHost
-      tools={tools}
-      onModelContext={(text) => modelContexts.push(text)}
-      onHostAction={(action) => actions.push(action)}
-      client={queryClient}
-      host={displayMode}
-    >
-      <CockpitApp data={data} />
-    </TestViewHost>
-  )
-  const { rerender } = render(host(bootstrap))
-  /** The host delivers another tool result to the same view. */
-  const redeliver = (data: CockpitAppData) => rerender(host(data))
-  const reads = (feed: string) =>
-    actions.flatMap((a) => (a.type === "callTool" && a.name === feed ? [a.args] : []))
-  return { modelContexts, redeliver, reads }
-}
+const RENDER = { timeout: 15_000 }
 
 /** A profile the server refused: the picker lists it as not answering, and opening it says why. */
-describe("CockpitApp lists a refused engine with the others", () => {
+describe("CockpitApp lists a refused engine with the others", RENDER, () => {
   const REFUSED = [{ id: "locked", environment: "prod", reason: "auth.tokenEnv is missing." }]
 
   it("the picker shows it among the engines, its profile refused in words", async () => {
@@ -179,7 +71,7 @@ describe("CockpitApp lists a refused engine with the others", () => {
   })
 })
 
-describe("CockpitApp navigation is side-effect free", () => {
+describe("CockpitApp navigation is side-effect free", RENDER, () => {
   // Navigation never moves the default engine, so the model must learn the viewed engine.
   it("tells the model which engine the operator is viewing, and to pin it", async () => {
     const { modelContexts } = renderCockpit()
@@ -195,18 +87,15 @@ describe("CockpitApp navigation is side-effect free", () => {
   })
 })
 
-const activeEngine = () =>
-  screen.queryByLabelText<HTMLSelectElement>("Selected engine")?.value ?? null
-const onLanding = () =>
-  screen.queryByRole("heading", { level: 1, name: "Operations Cockpit" }) !== null
-
 /** #341 K43 / N105: opens where `engine_open_cockpit` resolved, and the context says what is shown. */
-describe("CockpitApp opens on the bootstrap's engine", () => {
+describe("CockpitApp opens on the bootstrap's engine", RENDER, () => {
   it("a resolved engine (per-call `engine` or default engine): lands on it, not on the picker", async () => {
     const { modelContexts } = renderCockpit(boot("prod-a", ENGINES))
     await waitFor(() => expect(activeEngine()).toBe("prod-a"))
     expect(onLanding()).toBe(false)
     await waitFor(() => expect(modelContexts.at(-1)).toContain('Ids: engine="prod-a"'))
+    // The view frame's main holds the cockpit: an engine's route renders none of its own.
+    expect(screen.queryByRole("main")).toBeNull()
   })
 
   it("a single engine: lands on it", async () => {
@@ -227,7 +116,7 @@ describe("CockpitApp opens on the bootstrap's engine", () => {
 })
 
 /** #341 N106 */
-describe("CockpitApp reconciles its engine scope with the engine list", () => {
+describe("CockpitApp reconciles its engine scope with the engine list", RENDER, () => {
   const THREE = [...ENGINES, { id: "prod-c", environment: "default" }]
 
   async function reloadEngines(list: { engines: CockpitAppData["engines"] }, next: typeof THREE) {
@@ -266,7 +155,7 @@ describe("CockpitApp reconciles its engine scope with the engine list", () => {
 })
 
 /** The cross-engine overview reads the engines themselves: no other module gates it. */
-describe("CockpitApp offers the cross-engine overview with two engines or more", () => {
+describe("CockpitApp offers the cross-engine overview with two engines or more", RENDER, () => {
   it("from the picker, with nothing but the engine module's feeds", async () => {
     const { reads } = renderCockpit()
     fireEvent.click(await screen.findByRole("button", { name: "Cross-engine overview" }))
@@ -295,7 +184,7 @@ describe("CockpitApp offers the cross-engine overview with two engines or more",
 })
 
 /** #322 U4, U15, U20, U27 */
-describe("CockpitApp head", () => {
+describe("CockpitApp head", RENDER, () => {
   const ENVIRONMENTS = [
     { id: "prod-a", environment: "prod" },
     { id: "test-a", environment: "test" },
@@ -339,30 +228,8 @@ describe("CockpitApp head", () => {
   })
 })
 
-const JOBS_DATA: JobPanelData = {
-  totalCount: 0,
-  failedCount: 0,
-  jobs: [],
-  filters: {},
-  engineId: "prod-a",
-}
-
-const headSection = (name: string) =>
-  within(screen.getByRole("navigation", { name: "Cockpit sections" })).getByRole("button", {
-    name,
-  })
-
-const trailLabels = () =>
-  Array.from(
-    screen
-      .getByRole("navigation", { name: "Breadcrumb" })
-      .querySelectorAll("button, [aria-current='page']"),
-  )
-    .map((el) => el.textContent)
-    .filter((text): text is string => !!text)
-
 /** The start view `engine_open_cockpit` names: where the cockpit opens, seeded with its data. */
-describe("CockpitApp opens on the start view", () => {
+describe("CockpitApp opens on the start view", RENDER, () => {
   it("a head section's start is current in the head, with no picker", async () => {
     renderCockpit(boot("prod-a", ENGINES, { section: "jobs" }, JOBS_DATA))
     await waitFor(() => expect(headSection("Jobs").getAttribute("aria-current")).toBe("page"))
@@ -444,7 +311,7 @@ describe("CockpitApp opens on the start view", () => {
 })
 
 /** #396: inline is a card, so the head and the trail share one row. */
-describe("CockpitApp inline", () => {
+describe("CockpitApp inline", RENDER, () => {
   const sections = () => screen.queryByRole("navigation", { name: "Cockpit sections" })
   const trail = () => screen.queryByRole("navigation", { name: "Breadcrumb" })
 

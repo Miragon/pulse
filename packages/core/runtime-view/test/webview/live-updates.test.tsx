@@ -1,12 +1,22 @@
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { DefinitionView, LiveUpdates, PanelState } from "../../src/core/protocol/index.js"
 import { FIXTURES } from "../../dev/webview/fixtures/states.js"
 import { App } from "../../src/webview/app.js"
 import { HostBridge } from "../../src/webview/host/host-bridge.js"
-import { render } from "preact"
-import { buttonNamed, mountApp, waitForElement, type Harness } from "./harness.js"
+import {
+  buttonNamed,
+  findPart,
+  findRole,
+  mount,
+  mountApp,
+  queryPart,
+  queryRole,
+  type Harness,
+} from "./harness.js"
 
 const VIEW = (FIXTURES.definition as { readonly view: DefinitionView }).view
+
+const NOON = new Date(2026, 10, 14, 12, 0, 0)
 
 function live(status: LiveUpdates, ageMs = 1000, refreshing = false): PanelState {
   return {
@@ -18,7 +28,7 @@ function live(status: LiveUpdates, ageMs = 1000, refreshing = false): PanelState
 }
 
 function stamp(harness: Harness): HTMLElement {
-  const found = harness.root.querySelector<HTMLElement>(".freshness")
+  const found = queryPart(harness.root, "freshness")
   if (found === null) {
     throw new Error("no freshness stamp")
   }
@@ -26,20 +36,25 @@ function stamp(harness: Harness): HTMLElement {
 }
 
 function liveButton(harness: Harness): HTMLButtonElement | null {
-  return harness.root.querySelector<HTMLButtonElement>(".live-button")
+  return queryRole<HTMLButtonElement>(harness.root, "button", { name: /live updates/ })
 }
 
 describe("the freshness stamp with live updates", () => {
   let harness: Harness
 
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"], now: NOON })
+  })
+
   afterEach(() => {
     harness.unmount()
+    vi.useRealTimers()
   })
 
   it("shows only the time while live and names the cadence in its tooltip", async () => {
     harness = mountApp()
     harness.publish(live({ status: "live", everySeconds: 10 }))
-    await waitForElement(harness.root, ".live-button")
+    await findRole(harness.root, "button", { name: /live updates/ })
 
     expect(stamp(harness).textContent).toMatch(/^As of \d\d:\d\d:\d\d$/)
     expect(stamp(harness).title).toContain(
@@ -52,7 +67,7 @@ describe("the freshness stamp with live updates", () => {
   it("pauses and resumes on request", async () => {
     harness = mountApp()
     harness.publish(live({ status: "live", everySeconds: 10 }))
-    ;(await waitForElement<HTMLButtonElement>(harness.root, ".live-button")).click()
+    ;(await findRole(harness.root, "button", { name: /live updates/ })).click()
     expect(harness.posted).toContainEqual({ type: "pauseLiveUpdates" })
 
     harness.publish(live({ status: "paused", reason: "user" }))
@@ -78,7 +93,7 @@ describe("the freshness stamp with live updates", () => {
   it("marks data older than two intervals as stale with its age", async () => {
     harness = mountApp()
     harness.publish(live({ status: "live", everySeconds: 10 }, 120_000))
-    await waitForElement(harness.root, ".freshness--stale")
+    await findPart(harness.root, "freshness", { state: "stale" })
 
     expect(stamp(harness).textContent).toMatch(/^As of \d\d:\d\d:\d\d · 2m ago$/)
   })
@@ -93,13 +108,16 @@ describe("the freshness stamp with live updates", () => {
     })
 
     expect(stamp(harness).title).toContain("Pulse tries again at 12:41:10.")
-    expect(harness.root.querySelector(".spin")).toBeNull()
+    expect(queryPart(harness.root, "freshness", { state: "refreshing" })).toBeNull()
+    expect(harness.root.querySelector('[aria-busy="true"]')).toBeNull()
   })
 
   it("offers to turn live updates on for production engines", async () => {
     harness = mountApp()
     harness.publish(live({ status: "off", environment: "production", everySeconds: 30 }))
-    const button = await waitForElement<HTMLButtonElement>(harness.root, ".live-button")
+    const button = await findRole<HTMLButtonElement>(harness.root, "button", {
+      name: /live updates/,
+    })
 
     expect(button.getAttribute("aria-label")).toBe("Turn on live updates for production engines")
     expect(stamp(harness).title).toContain("turns them on in your user settings;")
@@ -133,9 +151,9 @@ describe("the freshness stamp with live updates", () => {
       )
     }
     withBack(FIXTURES["instance-writable"])
-    await waitForElement(harness.root, ".incident-card")
+    await findPart(harness.root, "incident-card")
     buttonNamed(harness.root, "Variables8").click()
-    ;(await waitForElement<HTMLButtonElement>(harness.root, ".value-cell__edit")).click()
+    ;(await findRole(harness.root, "button", { name: "Edit amount" })).click()
     await new Promise((resolve) => setTimeout(resolve, 50))
     withBack(FIXTURES["instance-writable"])
     withBack(FIXTURES["instance-writable"])
@@ -164,18 +182,15 @@ describe("activity inside a panel", () => {
       getState: () => undefined,
       setState: () => undefined,
     })
-    const root = document.createElement("div")
-    document.body.append(root)
-    render(<App bridge={bridge} />, root)
+    const mounted = mount(<App bridge={bridge} />)
     await new Promise((resolve) => setTimeout(resolve, 50))
 
     document.dispatchEvent(new PointerEvent("pointerdown"))
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "a" }))
 
     expect(sent).toEqual([{ type: "activity" }])
-    render(null, root)
+    mounted.unmount()
     bridge.dispose()
-    root.remove()
   })
 })
 
@@ -185,9 +200,7 @@ describe("focus in a table that updates on its own", () => {
     readonly status: "ready"
     readonly view: DefinitionView
   }
-  const rows = () => [
-    ...harness.root.querySelectorAll<HTMLTableRowElement>(".data-table__row--interactive"),
-  ]
+  const rows = () => [...harness.root.querySelectorAll<HTMLTableRowElement>("tbody tr[tabindex]")]
 
   afterEach(() => {
     harness.unmount()
@@ -196,7 +209,7 @@ describe("focus in a table that updates on its own", () => {
   it("moves to the neighbour when the focused row leaves", async () => {
     harness = mountApp()
     harness.publish(READY)
-    await waitForElement(harness.root, ".data-table__row--interactive")
+    await findRole(harness.root, "table", { name: "Instances" })
     rows()[2]?.focus()
     const removed = READY.view.instances[2]?.id
 
@@ -213,9 +226,9 @@ describe("focus in a table that updates on its own", () => {
   it("does not pull focus back after the user left the table", async () => {
     harness = mountApp()
     harness.publish(READY)
-    await waitForElement(harness.root, ".data-table__row--interactive")
+    await findRole(harness.root, "table", { name: "Instances" })
     rows()[1]?.focus()
-    const search = harness.root.querySelector<HTMLInputElement>(".search-field input")
+    const search = queryRole<HTMLInputElement>(harness.root, "searchbox")
     search?.focus()
 
     harness.publish({
@@ -236,7 +249,7 @@ describe("focus in a table that updates on its own", () => {
         }
         observer.disconnect()
         rows()[1]?.focus()
-        const search = harness.root.querySelector<HTMLInputElement>(".search-field input")
+        const search = queryRole<HTMLInputElement>(harness.root, "searchbox")
         search?.focus()
         resolve(search)
       })

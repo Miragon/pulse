@@ -42,10 +42,22 @@ function FlowModeToolbar({
   const options: SegmentedControlOption<FlowMode>[] = [
     { value: "incidents", label: t("procIncFlow.modeIncidents") },
     { value: "running", label: t("procIncFlow.modeRunning") },
-    { value: "throughput", label: t("procIncFlow.modeThroughput") },
+    {
+      value: "throughput",
+      // Its window stays in its name; a card under 21rem shows the word alone, on one line.
+      label: (
+        <span>
+          {t("procIncFlow.modeThroughput")}
+          <span className="@max-[21rem]/flow:sr-only">
+            {" · "}
+            {t("procIncFlow.modeThroughputWindow")}
+          </span>
+        </span>
+      ),
+    },
   ]
   return (
-    <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+    <div className="@container/flow mb-2 flex flex-wrap items-center justify-between gap-3">
       <SegmentedControl<FlowMode>
         options={options}
         value={mode}

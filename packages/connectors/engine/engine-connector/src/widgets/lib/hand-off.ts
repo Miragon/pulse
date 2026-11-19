@@ -6,6 +6,7 @@ import {
   type AskAiPrompt,
   type HandOffParts,
   type ModelContextSpec,
+  useHostFollowUp,
 } from "@miragon/pulse-widget-shell/widgets"
 import type { EngineAskAiKey } from "../../messages/en.ask-ai.js"
 import { translator } from "../../messages/use-t.js"
@@ -43,4 +44,12 @@ export function bindHandOff(locale: string) {
 export function useHandOff() {
   const locale = useLocale()
   return useMemo(() => bindHandOff(locale), [locale])
+}
+
+/**
+ * Whether this host shows a hand-off at all: a page outside a chat may hide them (`followUp`
+ * "none"), and then a menu or a section that holds only hand-offs shows not at all.
+ */
+export function useHandOffsShown(): boolean {
+  return useHostFollowUp() !== "none"
 }

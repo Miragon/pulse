@@ -267,9 +267,12 @@ describe("maskUrlsInText", () => {
 
   it("scans long texts in linear time", () => {
     const text = `${"a".repeat(200_000)} ${"b.".repeat(100_000)}`
+    // The scan takes 50 ms alone, up to 0.8 s on the CI runner and 1.2 s while `pnpm test` runs
+    // every package's suite at once; a scheme without its bound of 32 backtracks on this text
+    // for about 50 s alone, so 10 s still tells the two apart.
     const start = performance.now()
     expect(maskUrlsInText(text, false)).toBe(text)
-    expect(performance.now() - start).toBeLessThan(1000)
+    expect(performance.now() - start).toBeLessThan(10_000)
   })
 
   it("never leaks a URL password in a text (property)", () => {

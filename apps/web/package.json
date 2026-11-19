@@ -1,0 +1,41 @@
+{
+  "name": "@miragon/pulse-web",
+  "version": "0.28.0",
+  "private": true,
+  "description": "Pulse's web app: the MCP server's views as pages of the server under /app, signed in through its OAuth provider.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Miragon/pulse.git",
+    "directory": "apps/web"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
+    "test": "vitest run",
+    "third-party-licenses": "THIRD_PARTY_LICENSES_UPDATE=1 vitest run test/third-party-licenses.test.ts --coverage.enabled=false",
+    "lint": "eslint src test",
+    "lint:fix": "eslint src test --fix"
+  },
+  "devDependencies": {
+    "@miragon/pulse-engine-connector": "workspace:*",
+    "@miragon/pulse-ui": "workspace:*",
+    "@miragon/pulse-widget-shell": "workspace:*",
+    "@tailwindcss/vite": "4.3.5",
+    "@tanstack/react-query": "5.107.1",
+    "@testing-library/react": "16.3.3",
+    "@types/node": "26.6.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.3.0",
+    "happy-dom": "21.0.4",
+    "lucide-react": "1.70.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "tailwindcss": "4.3.5",
+    "typescript": "6.0.3",
+    "vite": "8.3.8",
+    "vitest": "5.1.0"
+  }
+}

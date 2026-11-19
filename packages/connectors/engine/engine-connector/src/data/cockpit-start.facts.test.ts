@@ -12,7 +12,8 @@ import { WORLD, worldReply } from "../tools/test-support/engine-world.js"
 import type { CockpitView } from "../view-models.js"
 import { messageSignature } from "@miragon/pulse-c7-core"
 import { CLUSTER_SCAN_LIMIT } from "./cluster-scan.js"
-import { buildCockpitStart, cockpitFacts } from "./cockpit-start.js"
+import { buildCockpitStart, cockpitFacts, isAppView } from "./cockpit-start.js"
+import { worldBoard, worldResolver } from "./honest-numbers.test-support.js"
 import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-c7-core"
 import { healthVerdictRule } from "./health-data.js"
 
@@ -32,16 +33,32 @@ afterEach(async () => {
 
 type Override = (request: RecordedRequest) => FakeReply | undefined
 
-/** The start's facts, as the tool puts them after `engine` and `view`. */
+/** A board file that gives no board. */
+const BROKEN_FILE = {
+  id: "broken",
+  file: "broken.board.json",
+  problems: [{ path: "$.rows", code: "missing" }],
+} as const
+
+/**
+ * The start's facts, as the tool puts them after `engine` and `view`; an app route's after `view`,
+ * over the world's board, which names the world's one engine, beside a file that gives no board.
+ * The call lists the world's engine and a second one.
+ */
 async function factsOf(view: CockpitView, override: Override = () => undefined) {
   const engine = await startFakeEngine({}, (request) => override(request) ?? worldReply(request))
   engines.push(engine)
-  const start = await buildCockpitStart(
-    view,
-    resolveEngine(undefined, registryFor(engine)),
-    DEFAULT_VERDICT_THRESHOLDS,
-  )
-  return cockpitFacts(start)
+  const start = isAppView(view)
+    ? await buildCockpitStart(view, {
+        resolve: worldResolver(engine.baseUrl),
+        boards: { boards: [worldBoard()], refused: [BROKEN_FILE] },
+      })
+    : await buildCockpitStart(
+        view,
+        resolveEngine(undefined, registryFor(engine)),
+        DEFAULT_VERDICT_THRESHOLDS,
+      )
+  return cockpitFacts(start, { engines: ["fake", "other"] })
 }
 
 const ok = (body: unknown): FakeReply => ({ body })
@@ -326,6 +343,65 @@ describe("cockpitFacts: the model's view of each route", () => {
       startTime: null,
       endTime: null,
       totalActivities: 1,
+    })
+  })
+
+  // The tool sends the facts as JSON: a field without a value is left out.
+  const asJson = (facts: unknown) => JSON.parse(JSON.stringify(facts)) as unknown
+
+  it("board: the engines in their state and each tile's numbers and processes", async () => {
+    expect(asJson(await factsOf({ section: "board", board: "orders" }))).toEqual({
+      board: "orders",
+      title: "Orders",
+      asOf: NOW,
+      engines: [
+        { name: "fake", state: "ready", product: "CIB seven", running: 3, withIncident: 1 },
+      ],
+      tiles: [
+        { kind: "counter", process: WORLD.key, count: 1, enginesRead: 1, engines: 1 },
+        {
+          kind: "instanceList",
+          process: WORLD.key,
+          shown: 1,
+          groups: [{ engine: "fake", total: 1 }],
+        },
+        {
+          kind: "incidentSummary",
+          groupBy: "process",
+          withIncident: 1,
+          enginesRead: 1,
+          engines: 1,
+        },
+        { kind: "processDiagram", process: WORLD.key, engine: "fake", version: 2 },
+        { kind: "incidentList", groups: [{ engine: "fake", shown: 1 }] },
+      ],
+    })
+  })
+
+  it("landing: the engine ids the call lists and the board ids the engine list names", async () => {
+    expect(asJson(await factsOf({ section: "landing" }))).toEqual({
+      engines: ["fake", "other"],
+      boards: ["orders"],
+      refusedBoards: ["broken"],
+    })
+  })
+
+  it("board: an engine that fails to say what it is shows failed, its numbers null, never 0", async () => {
+    const facts = asJson(
+      await factsOf(
+        { section: "board", board: "orders" },
+        at("/telemetry/data", { status: 503, body: { type: "ProcessEngineException" } }),
+      ),
+    )
+    expect(facts).toMatchObject({
+      engines: [{ name: "fake", state: "failed", failure: "engineFailure" }],
+      tiles: [
+        { kind: "counter", count: null, enginesRead: 0, engines: 1 },
+        { kind: "instanceList", shown: 0, groups: [{ engine: "fake", total: null }] },
+        { kind: "incidentSummary", withIncident: null, enginesRead: 0 },
+        { kind: "processDiagram", version: null },
+        { kind: "incidentList", groups: [{ engine: "fake", shown: null }] },
+      ],
     })
   })
 })

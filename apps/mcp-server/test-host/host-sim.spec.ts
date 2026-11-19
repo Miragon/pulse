@@ -28,7 +28,7 @@ import {
  */
 
 const RENDER_TOOL = "engine_open_cockpit"
-/** The cockpit opened on its engine-wide jobs (the stub's three failed jobs). */
+/** The cockpit opened on its engine-wide jobs (the stub's twelve failed jobs). */
 const JOBS_ARGS = { engine: HEALTHY_ENGINE, view: "jobs" }
 /**
  * How long every re-execution count waits after the last lifecycle event
@@ -177,35 +177,98 @@ function germanDefinitionsTable(app: FrameLocator): Locator {
   })
 }
 
-/** The cockpit's overview rendered the stub engine's three definitions. */
-async function expectOverview(app: FrameLocator): Promise<void> {
-  const table = definitionsTable(app)
+const STUB_DEFINITIONS = ["Customer Onboarding", "Invoice Receipt", "Order Fulfillment"]
+
+/**
+ * The stub's three definitions in `table`, issues then running instances first (the stub's
+ * order): inline exactly the `shown` rows the host's budget leaves room for under the cockpit's
+ * head (#396), and a cut list says how many of the three in its footer row (`shownLine`).
+ *
+ * Under the compact look (28 px heads, 28 px rows with their 24 px row actions; the cockpit's
+ * 40 px head and the view's 40 px bar from edge to edge, each route's content in the 12 px
+ * gutter, the section's heading on the 13 px chrome step) the overview with all three rows is
+ * 448 px high at 960 px and at the inline width of 760 px, English and German alike: the
+ * unstated budget (fitted as 600 px) fits all three, with 152 px to spare. A host that adds a
+ * line above the view (a recovered render's "Reloaded at", the fullscreen toggle's bar) adds
+ * 40 px: all three still fit (488 px). Under that line one row and the 44 px footer row are
+ * 476 px and two rows and the footer 504 px, more than all three without a footer, so a 482 px
+ * budget fits exactly one, 6 px either side of what one and all three need.
+ * Where even one row would not fit (a 220 px budget) the fit cuts nothing and the view scrolls
+ * instead, and fullscreen fits nothing.
+ */
+async function expectDefinitions(
+  table: Locator,
+  shown: 1 | 2 | 3,
+  shownLine: (shown: number) => string,
+): Promise<void> {
   await expect(table).toBeVisible({ timeout: 15_000 })
-  // Header + one row per fixture definition, issues then running instances first (the stub's order).
-  await expect(table.getByRole("row")).toHaveCount(4)
-  await expect(table.getByRole("row").nth(1)).toContainText("Customer Onboarding")
-  await expect(table.getByRole("row").nth(2)).toContainText("Invoice Receipt")
-  await expect(table.getByRole("row").nth(3)).toContainText("Order Fulfillment")
+  const rows = table.getByRole("row")
+  const cut = shown < STUB_DEFINITIONS.length
+  // The head, the rows and, in a cut list, its footer row.
+  await expect(rows).toHaveCount(shown + 1 + (cut ? 1 : 0))
+  for (const [index, name] of STUB_DEFINITIONS.slice(0, shown).entries()) {
+    await expect(rows.nth(index + 1)).toContainText(name)
+  }
+  if (cut) await expect(rows.last()).toContainText(shownLine(shown))
+  else await expect(table.locator("tfoot")).toHaveCount(0)
+}
+
+/** The cockpit's overview in English: the definitions as {@link expectDefinitions} says. */
+async function expectOverview(app: FrameLocator, shown: 1 | 2 | 3 = 3): Promise<void> {
+  await expectDefinitions(definitionsTable(app), shown, (count) => `${count} of 3 shown`)
   await expect(app.getByText("3 deployed · counts span all versions")).toBeVisible()
 }
 
-const STUB_JOBS = ["Card declined", "Card expired", "Billing address unknown"]
+/** The same in German. */
+async function expectGermanOverview(app: FrameLocator, shown: 1 | 2 | 3 = 3): Promise<void> {
+  await expectDefinitions(germanDefinitionsTable(app), shown, (count) => `${count} von 3 angezeigt`)
+  await expect(app.getByText("3 bereitgestellt · Zahlen über alle Versionen")).toBeVisible()
+}
 
 /**
- * The cockpit's jobs route rendered the stub engine's three failed jobs, the first job first:
- * inline exactly the `shown` rows the host's budget leaves room for under the cockpit's head
- * and the KPI strip (#396), and the count line says how many of the three. At 960 px a 600 px
- * budget (and the unstated one, fitted as 600 px) leaves room for two; 800 px fits all three.
- * A head section shows no trail inline, so the head is the only row above the view.
+ * A budget that fits exactly one of the overview's three rows at 960 px under the fullscreen
+ * toggle's bar, 6 px either side.
  */
-async function expectJobs(app: FrameLocator, shown: 2 | 3) {
+const ONE_DEFINITION_BUDGET = 482
+
+const STUB_JOBS = [
+  "Card declined",
+  "Card expired",
+  "Billing address unknown",
+  "Insufficient funds",
+  "Issuer unavailable",
+  "Limit exceeded",
+  "Card blocked",
+  "Currency not supported",
+  "Gateway timeout",
+  "Fraud check failed",
+  "Security code mismatch",
+  "Account closed",
+  "Risk score too high",
+  "Bank holiday",
+  "Invalid IBAN",
+  "Duplicate payment",
+]
+
+/**
+ * The cockpit's jobs route rendered the stub engine's sixteen failed jobs, the first job first:
+ * inline exactly the `shown` rows the host's budget leaves room for under the cockpit's head
+ * and the KPI card (#396), and the count line says how many of the sixteen. Under the compact
+ * look (28 px rows with their 24 px row actions, ids in one line, the cockpit's 40 px head and the
+ * view's 40 px bar from edge to edge, the content in the 12 px gutter, the KPI card's 12 px
+ * tiles) a 600 px budget (and the unstated one, fitted as 600 px) leaves room for eleven at 960 px
+ * and at 760 px (575 px with the Load more button; a twelfth row would need 3 px more);
+ * 800 px fits all sixteen (706 px). A head section shows no trail inline, so the head is the
+ * only row above the view.
+ */
+async function expectJobs(app: FrameLocator, shown: 11 | 16) {
   const region = app.getByRole("region", { name: "Jobs", exact: true })
   await expect(region).toBeVisible({ timeout: 15_000 })
   await expect(region.getByRole("row")).toHaveCount(shown + 1)
   for (const message of STUB_JOBS.slice(0, shown)) {
     await expect(region.getByText(message)).toBeVisible()
   }
-  await expect(app.getByText(`Showing ${shown} of 3 jobs`)).toBeVisible()
+  await expect(app.getByText(`Showing ${shown} of ${STUB_JOBS.length} jobs`)).toBeVisible()
 }
 
 /** Relative luminance (0 = black, 1 = white) of an element's computed color property. */
@@ -331,6 +394,20 @@ async function listLayout(page: Page, app: FrameLocator) {
   return { table: box!, row: row!, overflow, reported: await settledHeight(page, app) }
 }
 
+/**
+ * Shows every one-line NamedId of the view whole (its floor, `--named-id-floor`, at its text), so a
+ * font probe reads the id's own glyphs, not the ellipsis a cut line draws in the line's font.
+ */
+async function wholeIdLines(app: FrameLocator): Promise<void> {
+  await app
+    .locator("body")
+    .evaluate((body) =>
+      body
+        .querySelectorAll<HTMLElement>("[data-named-id='inline']")
+        .forEach((line) => line.style.setProperty("--named-id-floor", "max-content")),
+    )
+}
+
 /** `actual` within `tolerance` (a share, e.g. 0.05) of `expected`. */
 function expectWithin(actual: number, expected: number, tolerance: number, label: string): void {
   expect(Math.abs(actual - expected), `${label}: ${actual} vs ${expected}`).toBeLessThanOrEqual(
@@ -415,7 +492,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
     await expect(rows.first()).toBeVisible({ timeout: 15_000 })
 
     // Named by the placeholder's words, never the kit's generic "Filter".
-    const search = app.getByRole("searchbox", { name: "Search by business key or ID" })
+    const search = app.getByRole("searchbox", { name: "Search instances by business key or ID" })
     const before = await rows.count()
     // The stub engine holds its answer to this search until the in-flight
     // state has been looked at: no timing window to race.
@@ -473,6 +550,8 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
   }) => {
     const app = await openView(page, { structuredContent: "strip" })
 
+    // With the "Reloaded at" line above it the view (488 px) still fits all three rows into the
+    // unstated budget.
     await expectOverview(app)
     // The view loaded these figures itself, so they can differ from the
     // chat's answer: the frame's "Reloaded at" line says so.
@@ -633,12 +712,15 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
 
   test("host locale de-DE: a German view (#339)", async ({ page }) => {
     // The host's locale decides the view's language.
-    const app = await openView(page, { locale: "de-DE", displayModes: ["inline", "fullscreen"] })
+    const app = await openView(page, {
+      locale: "de-DE",
+      displayModes: ["inline", "fullscreen"],
+      maxHeight: ONE_DEFINITION_BUDGET,
+    })
 
-    const table = germanDefinitionsTable(app)
-    await expect(table).toBeVisible({ timeout: 15_000 })
-    await expect(table.getByRole("row")).toHaveCount(4)
-    await expect(app.getByText("3 bereitgestellt · Zahlen über alle Versionen")).toBeVisible()
+    // The budget leaves room for one of the three (#396): the head, its row and the footer row
+    // that says so in German.
+    await expectGermanOverview(app, 1)
     // One German title and no English toolbar title over it: the server
     // never titles a view (#322 U3).
     await expect(app.getByRole("heading", { name: "Alle Prozesse", exact: true })).toHaveCount(1)
@@ -648,10 +730,31 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
     expect(await app.locator("html").getAttribute("lang")).toBe("de")
   })
 
+  for (const [locale, sections] of [
+    ["en-US", ["Overview", "Incidents", "Jobs"]],
+    ["de-DE", ["Übersicht", "Incidents", "Jobs"]],
+  ] as const) {
+    test(`each engine section heads its view with the engine first (${locale})`, async ({
+      page,
+    }) => {
+      for (const [view, section] of [undefined, "incidents", "jobs"].map(
+        (name, index) => [name, sections[index]] as const,
+      )) {
+        const app = await openView(page, { locale, args: { engine: HEALTHY_ENGINE, view } })
+        await expect(app.getByRole("heading", { level: 1 })).toHaveText(
+          [`${HEALTHY_ENGINE} · ${section}`],
+          { timeout: 15_000 },
+        )
+      }
+    })
+  }
+
   test("a slow handshake: nothing paints before the host context arrives, no English or OS-theme flash (#339)", async ({
     page,
   }) => {
-    const app = await openView(page, { initDelayMs: 3_000, theme: "dark", locale: "de-DE" })
+    // The host answers five seconds late, so the sample two seconds in stays before its answer
+    // under the suite's parallel load too.
+    const app = await openView(page, { initDelayMs: 5_000, theme: "dark", locale: "de-DE" })
 
     await expect.poll(async () => (await hostLog(page)).initializeRequested).toBe(true)
     // Two seconds in, the host has not answered yet: the gate waits for the
@@ -663,8 +766,11 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
       text: root.textContent,
     }))
     expect(documentLayer).toEqual({ children: 0, text: "" })
-    // Once the host answers: the German view on the host's dark theme.
-    await expect(germanDefinitionsTable(app).getByRole("row")).toHaveCount(4, { timeout: 15_000 })
+    // The sample came before the handshake ended: the view has not said `initialized` yet.
+    expect((await hostLog(page)).initialized).toBe(false)
+    // Once the host answers: the German view on the host's dark theme, all three rows in the
+    // unstated budget.
+    await expectGermanOverview(app)
     expect(await documentTheme(app)).toEqual({ dark: true, dataTheme: "dark", colorScheme: "dark" })
   })
 
@@ -751,7 +857,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
   }) => {
     const app = await openView(page, { maxHeight: 220 })
 
-    await expectOverview(app)
+    await expectOverview(app, 3)
     // The shell's document layer is the scroll container, capped at the budget.
     const container = await app.locator("#root").evaluate((root) => {
       const el = root.firstElementChild as HTMLElement
@@ -776,7 +882,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
   }) => {
     const app = await openView(page, { args: JOBS_ARGS, maxHeight: 600 })
 
-    await expectJobs(app, 2)
+    await expectJobs(app, 11)
     const container = await app.locator("#root").evaluate((root) => {
       const el = root.firstElementChild as HTMLElement
       return { scrollHeight: el.scrollHeight, clientHeight: el.clientHeight }
@@ -789,7 +895,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
   }) => {
     const app = await openView(page, { args: JOBS_ARGS })
 
-    await expectJobs(app, 2)
+    await expectJobs(app, 11)
     // The old html/body/#root floor reported 600 for every view. `settledHeight`
     // waits for the report that equals the content's max-content height.
     const reported = await settledHeight(page, app)
@@ -800,14 +906,19 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
   test("host with fullscreen: the toggle requests it and follows the host's switch", async ({
     page,
   }) => {
-    const app = await openView(page, { displayModes: ["inline", "fullscreen"] })
+    const app = await openView(page, {
+      displayModes: ["inline", "fullscreen"],
+      maxHeight: ONE_DEFINITION_BUDGET,
+    })
 
-    await expectOverview(app)
+    // Inline, the toggle's bar above the view leaves this budget room for one row.
+    await expectOverview(app, 1)
     await app.getByRole("button", { name: CHROME.enterFullscreen }).click()
 
     await expect.poll(async () => (await hostLog(page)).displayModeRequests).toEqual(["fullscreen"])
     await expect(app.getByRole("button", { name: CHROME.exitFullscreen })).toBeVisible()
-    await expectOverview(app)
+    // Fullscreen fits nothing: every row shows.
+    await expectOverview(app, 3)
   })
 })
 
@@ -838,7 +949,9 @@ test.describe("served fonts (Geist from the server's font route)", () => {
         .join(",")
       twin.style.fontSize = style.fontSize
       twin.style.fontWeight = style.fontWeight
-      el.parentElement!.appendChild(twin)
+      // Beside the text in its cell, never inside a line that truncates: an ellipsis there
+      // would draw in the line's own font.
+      ;(el.closest("td") ?? el.parentElement!).appendChild(twin)
       return twin.id
     })
     const twin = app.locator(`#${id}`)
@@ -860,7 +973,9 @@ test.describe("served fonts (Geist from the server's font route)", () => {
     await expect
       .poll(() => servedFaces(app), { timeout: 15_000 })
       .toEqual({ Geist: "loaded", "Geist Mono": "loaded" })
-    // What Chromium drew the text with, not just the stack it was given.
+    // What Chromium drew the text with, not just the stack it was given (the whole line, so no
+    // ellipsis draws in the line's font).
+    await wholeIdLines(app)
     expect(await renderedFonts(page, nameCell(app))).toEqual(["Geist"])
     expect(await renderedFonts(page, keyCell(app))).toEqual(["Geist Mono"])
     // Each file once, from the server that served the view, by its versioned URL.
@@ -875,21 +990,23 @@ test.describe("served fonts (Geist from the server's font route)", () => {
     page,
   }) => {
     const fontSans = '"Host Sim Sans", serif'
-    const allowed = await openView(page, { fontSans })
-    await expectOverview(allowed)
+    // A budget every row fits under either font, so the two layouts hold the same rows.
+    const allowed = await openView(page, { fontSans, maxHeight: 1000 })
+    await expectOverview(allowed, 3)
     await expect
       .poll(() => servedFaces(allowed), { timeout: 15_000 })
       .toEqual({ Geist: "loaded", "Geist Mono": "loaded" })
     const withGeist = await listLayout(page, allowed)
 
     const errors = collectErrors(page)
-    const blocked = await openView(page, { fontSans, ignoreResourceDomains: true })
-    await expectOverview(blocked)
+    const blocked = await openView(page, { fontSans, ignoreResourceDomains: true, maxHeight: 1000 })
+    await expectOverview(blocked, 3)
     // The CSP refuses both files; the faces fail instead of hanging.
     await expect
       .poll(() => servedFaces(blocked), { timeout: 15_000 })
       .toEqual({ Geist: "error", "Geist Mono": "error" })
     const withoutGeist = await listLayout(page, blocked)
+    await wholeIdLines(blocked)
     const name = await renderedFonts(page, nameCell(blocked))
     expect(name).not.toContain("Geist")
     expect(name).toEqual(await fallbackFonts(page, blocked, nameCell(blocked)))
@@ -942,9 +1059,12 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
     })
     expect((await documentTheme(app)).dark).toBe(true)
 
-    // The canvas is light in a dark theme; bpmn-js's near-black strokes and
+    // The canvas alone is the image (its SVG), the zoom controls and bpmn.io's link beside it.
+    expect(await canvas.evaluate((el) => el.tagName.toLowerCase())).toBe("svg")
+    // The paper under it is light in a dark theme; bpmn-js's near-black strokes and
     // labels sit on it, not on the dark card.
-    expect(await luminance(canvas, "backgroundColor")).toBeGreaterThan(0.95)
+    const paper = canvas.locator("xpath=ancestor::*[@data-theme-mode='light'][1]")
+    expect(await luminance(paper, "backgroundColor")).toBeGreaterThan(0.95)
     expect(await luminance(canvas.locator(".djs-connection path").first(), "stroke")).toBeLessThan(
       0.25,
     )
@@ -968,23 +1088,77 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
     }
   })
 
+  // An instance's activity tree names the process at its root, so the view marks the process too:
+  // a marker paints its own shape's outline, never what lies inside the process or a label.
+  test("an instance's markers paint their shapes alone: every label keeps its ink, the other shapes theirs", async ({
+    page,
+  }) => {
+    const app = await openView(page, {
+      args: { engine: HEALTHY_ENGINE, view: "instance-detail", processInstanceId: "pi-invoice-42" },
+    })
+    const canvas = app.getByRole("img", { name: "BPMN process diagram" })
+    await expect(canvas.locator(".djs-connection")).toHaveCount(4, { timeout: 15_000 })
+    const drawn = await canvas.evaluate((svg) => {
+      const ink = (el: Element) => {
+        const style = getComputedStyle(el)
+        return { fill: style.fill, stroke: style.stroke, strokeWidth: style.strokeWidth }
+      }
+      const outline = (id: string) =>
+        svg.querySelector(`[data-element-id="${id}"] > .djs-visual > :first-child`)!
+      /** A `--cd-*` token as the browser computes it, to compare with what a shape paints. */
+      const token = (name: string) => {
+        const probe = document.createElement("span")
+        probe.style.color = `var(--cd-${name})`
+        svg.parentElement!.appendChild(probe)
+        const color = getComputedStyle(probe).color
+        probe.remove()
+        return color
+      }
+      return {
+        labels: [...svg.querySelectorAll("text")].map((text) => ({
+          text: text.textContent,
+          ...ink(text),
+        })),
+        incident: ink(outline("approveInvoice")),
+        start: ink(outline("StartEvent_received")),
+        running: { stroke: token("blau"), fill: token("info-soft") },
+        danger: token("danger"),
+        rootMarked: svg.querySelector(".highlight-running:not(.djs-shape)") !== null,
+      }
+    })
+    // The process (the tree's root) carries the running marker, and it paints nothing.
+    expect(drawn.rootMarked).toBe(true)
+    // Every text in one ink, bpmn-js's dark one, never stroked: the labels beside the events,
+    // the gateway and the flows, and the task's name inside its marked shape.
+    expect(drawn.labels.length).toBeGreaterThanOrEqual(6)
+    expect(new Set(drawn.labels.map((label) => label.fill)).size).toBe(1)
+    for (const label of drawn.labels) {
+      expect(label, `"${label.text}" keeps bpmn-js's ink`).toMatchObject({ stroke: "none" })
+      expect(label.fill).not.toBe(drawn.running.stroke)
+    }
+    // The incident's task in its tone; the start event, which no marker names, as bpmn-js drew it.
+    expect(drawn.incident).toMatchObject({ stroke: drawn.danger, strokeWidth: "2px" })
+    expect(drawn.start.stroke).not.toBe(drawn.running.stroke)
+    expect(drawn.start.fill).not.toBe(drawn.running.fill)
+  })
+
   // The flow's "Running" end to end: the server's real feed against the stub's statistics, its
-  // count on the built diagram and the values under it.
+  // count on the built diagram (hidden from assistive technology) and the values under it.
   test("the process flow shows what runs at each element now, read from the engine", async ({
     page,
   }) => {
     const app = await openView(page, {
       args: { engine: HEALTHY_ENGINE, view: "process-detail", processDefinitionKey: "invoice" },
     })
-    const modes = app.getByRole("group", { name: "Process flow display" })
+    const modes = app.getByRole("radiogroup", { name: "Process flow display" })
     await expect(modes).toBeVisible({ timeout: 15_000 })
     // No other module's mode: the flow offers what the engine reads, nothing to probe.
-    await expect(modes.getByRole("button")).toHaveText([
+    await expect(modes.getByRole("radio")).toHaveText([
       "Incidents",
       "Running",
       "Throughput · 30 days",
     ])
-    await modes.getByRole("button", { name: "Running" }).click()
+    await modes.getByRole("radio", { name: "Running" }).click()
 
     await expect(
       app.getByText("diagram v3 (latest) · running now, counts span 1 version"),
@@ -993,14 +1167,86 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
     })
     const canvas = app.getByRole("img", { name: "BPMN process diagram" })
     await expect(canvas.locator(".djs-connection")).toHaveCount(4, { timeout: 15_000 })
-    // The two instances at approveInvoice, as a badge on that element.
-    await expect(app.locator(".bpmn-overlay-badge--instance-count")).toHaveText(["2"])
+    // The two instances at approveInvoice, as a badge on that element: a drawing, its count in
+    // words in the values below.
+    const badge = app.locator(".bpmn-overlay-badge--instance-count")
+    await expect(badge).toHaveText(["2"])
+    await expect(badge).toHaveAttribute("aria-hidden", "true")
+    // What the diagram's frame says to assistive technology: the image, bpmn.io's link and the
+    // zoom controls, never a bare "2" or bpmn-js's drilldown trail (a list of the process's name).
+    const frame = canvas.locator("xpath=ancestor::*[@data-theme-mode='light'][2]")
+    const exposed = (await frame.ariaSnapshot())
+      .split("\n")
+      .map((line) => /^- ([\w-]+)(?: "([^"]*)")?/.exec(line))
+      .filter((match): match is RegExpExecArray => match !== null)
+      .map(([, role, name]) => (name === undefined ? role : `${role} "${name}"`))
+    expect(exposed).toEqual([
+      'img "BPMN process diagram"',
+      'link "Powered by bpmn.io"',
+      'button "Zoom in"',
+      'button "Fit to viewport"',
+      'button "Zoom out"',
+    ])
 
     await app.getByText("Values per activity").click()
     const values = app.getByRole("region", { name: "Values per activity" })
     await expect(values.getByRole("row")).toHaveCount(2)
     await expect(values.getByRole("row").nth(1)).toContainText("Approve Invoice")
     await expect(values.getByRole("row").nth(1)).toContainText("approveInvoice")
+  })
+
+  // The labels bpmn-js draws are its own Arial at its sizes, the canvas text of Camunda Modeler and
+  // bpmn.io, whose label boxes are sized for it (a named deviation: the guide asks for Geist on SVG
+  // text). "Invoice rejected" fits its 80 px box in Arial (77 px) and would wrap in Geist (81 px);
+  // the count badge over the canvas, chrome, stays in Geist.
+  test("the diagram's labels keep bpmn-js's Arial, so a label sized for it keeps one line, the badge Geist", async ({
+    page,
+  }) => {
+    const app = await openView(page, {
+      args: { engine: HEALTHY_ENGINE, view: "process-detail", processDefinitionKey: "invoice" },
+    })
+    const modes = app.getByRole("radiogroup", { name: "Process flow display" })
+    await expect(modes).toBeVisible({ timeout: 15_000 })
+    await modes.getByRole("radio", { name: "Running" }).click()
+    const canvas = app.getByRole("img", { name: "BPMN process diagram" })
+    await expect(canvas.locator(".djs-connection")).toHaveCount(4, { timeout: 15_000 })
+    const badge = app.locator(".bpmn-overlay-badge--instance-count")
+    await expect(badge).toHaveText(["2"])
+    await canvas.evaluate(() => document.fonts.ready)
+
+    const drawn = await canvas.evaluate((svg) => {
+      const text = (id: string) => svg.querySelector(`[data-element-id="${id}"] text`)!
+      const font = (el: Element) => {
+        const style = getComputedStyle(el)
+        return { family: style.fontFamily, size: style.fontSize }
+      }
+      const rejected = text("EndEvent_rejected_label")
+      const box = svg.querySelector('[data-element-id="EndEvent_rejected_label"] .djs-hit')!
+      const context = document.createElement("canvas").getContext("2d")!
+      context.font = "11px Geist"
+      return {
+        rejected: {
+          text: rejected.textContent,
+          lines: rejected.querySelectorAll("tspan").length,
+          ...font(rejected),
+        },
+        task: font(text("approveInvoice")),
+        box: Number(box.getAttribute("width")),
+        geistLoaded: document.fonts.check("11px Geist"),
+        inGeist: context.measureText(rejected.textContent ?? "").width,
+      }
+    })
+    // The case is one Geist would break: the box is narrower than the label in Geist.
+    expect(drawn.geistLoaded).toBe(true)
+    expect(drawn.inGeist).toBeGreaterThan(drawn.box)
+    expect(drawn.rejected).toEqual({
+      text: "Invoice rejected",
+      lines: 1,
+      family: "Arial, sans-serif",
+      size: "11px",
+    })
+    expect(drawn.task).toEqual({ family: "Arial, sans-serif", size: "12px" })
+    expect(await badge.evaluate((el) => getComputedStyle(el).fontFamily)).toMatch(/^"?Geist"?,/)
   })
 
   // The flow's "Throughput" end to end: the real feed's history reads against the stub, the heat
@@ -1011,9 +1257,9 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
     const app = await openView(page, {
       args: { engine: HEALTHY_ENGINE, view: "process-detail", processDefinitionKey: "invoice" },
     })
-    const modes = app.getByRole("group", { name: "Process flow display" })
+    const modes = app.getByRole("radiogroup", { name: "Process flow display" })
     await expect(modes).toBeVisible({ timeout: 15_000 })
-    await modes.getByRole("button", { name: "Throughput · 30 days" }).click()
+    await modes.getByRole("radio", { name: "Throughput · 30 days" }).click()
 
     await expect(
       app.getByText(/^diagram v3 \(latest\) · 12 instances started since .+, on 1 version$/),
@@ -1049,11 +1295,50 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
  * The kit's design-system foundation in the BUILT bundle (#322): the Miragon
  * role variables reach the view (pulse-ui's theme survived Tailwind), Lucide
  * icons draw at the CI stroke through lucide-react's own strokeWidth, never a
- * CSS rule (2.5; 2 in dense rows and the view frame's toolbar, whose
- * dense icon sets it), and a KPI's state is a tinted, edged card around
- * neutral digits, never a coloured number.
+ * CSS rule (2.5 at every size), and an alarming KPI is a neutral figure with
+ * its tone's icon of its own shape and its words, on an untinted tile, never a
+ * coloured number (invariant 6).
  */
 test.describe("kit foundation (engine_open_cockpit, the jobs)", () => {
+  test("a row holding an id and its actions is the row height: 28 px, 40 px comfortable", async ({
+    page,
+  }) => {
+    // Wide enough for the Instance column (hidden below 64rem), so a row holds its id's copy button.
+    const app = await openView(page, { args: JOBS_ARGS, width: 1100, maxHeight: 900 })
+    const region = app.getByRole("region", { name: "Jobs", exact: true })
+    await expect(region).toBeVisible({ timeout: 15_000 })
+    const heights = await region.evaluate((el) => {
+      const row = el.querySelector<HTMLTableRowElement>("tbody tr")!
+      const copy = row.querySelector<HTMLElement>("button[aria-label^='Copy']")
+      // The row's actions (its menu; Retry job too where the toolset writes), the xs buttons of a
+      // table row.
+      const actions = [...row.lastElementChild!.querySelectorAll<HTMLElement>("button")]
+      const root = document.documentElement
+      const rowHeight = () => ({
+        row: row.getBoundingClientRect().height,
+        role: parseFloat(getComputedStyle(row).getPropertyValue("--row-h")) * 16,
+        copy: copy?.getBoundingClientRect().height,
+        actions: [...new Set(actions.map((action) => action.getBoundingClientRect().height))],
+      })
+      const compact = rowHeight()
+      root.setAttribute("data-density", "comfortable")
+      const comfortable = rowHeight()
+      root.removeAttribute("data-density")
+      return {
+        shown: !!copy && copy.offsetParent !== null,
+        actions: actions.map((action) => action.getAttribute("aria-label") ?? action.textContent),
+        compact,
+        comfortable,
+      }
+    })
+    expect(heights.shown, "the row holds an id's copy button").toBe(true)
+    expect(heights.actions).toContain("More actions for the job at chargeCard")
+    // The 24 px copy button and the row's 24 px actions (32 px comfortable) fit the cell with its
+    // padding and its rule: the row keeps the row height, and a one-line row is exactly it.
+    expect(heights.compact).toEqual({ row: 28, role: 28, copy: 24, actions: [24] })
+    expect(heights.comfortable).toEqual({ row: 40, role: 40, copy: 32, actions: [32] })
+  })
+
   test("role variables, Lucide strokes and the tone model reach the rendered view", async ({
     page,
   }) => {
@@ -1087,35 +1372,149 @@ test.describe("kit foundation (engine_open_cockpit, the jobs)", () => {
     expect(link).toBe("#2b50d4")
 
     const stroke = (locator: Locator) => locator.evaluate((el) => getComputedStyle(el).strokeWidth)
+    // The CI stroke at every size: 2.5, the 12 px icon of a row's 24 px icon button and the 16 px
+    // one of the frame's 28 px icon button included (no narrower stroke for dense chrome).
     expect(await stroke(handOff.locator("svg.lucide"))).toBe("2.5px")
-    const rowHandOffs = app.locator("td button svg.lucide")
-    expect(await rowHandOffs.count()).toBeGreaterThan(0)
-    expect(await stroke(rowHandOffs.first())).toBe("2px")
-    expect(await stroke(app.locator("svg.lucide-maximize-2"))).toBe("2px")
+    const rowMenu = app
+      .getByRole("button", { name: /^More actions for / })
+      .first()
+      .locator("svg.lucide")
+    expect(await stroke(rowMenu)).toBe("2.5px")
+    expect(await rowMenu.evaluate((svg) => svg.getBoundingClientRect().width)).toBe(12)
+    const fullscreen = app.locator("svg.lucide-maximize-2")
+    expect(await stroke(fullscreen)).toBe("2.5px")
+    expect(await fullscreen.getAttribute("width")).toBe("16")
     // No glyph icon anywhere in the view.
     expect(await app.locator("body").innerText()).not.toMatch(/[✦⊡▦↗›⚠⚙⏱⤧▶✓✕▤⊞↻]/)
 
-    const blocked = app.locator('[data-tone="danger"]').first()
-    await expect(blocked).toBeVisible()
-    const card = await blocked.evaluate((el) => {
-      const style = getComputedStyle(el)
-      // pulse-ui's KpiGrid: the figure on the type scale's title step.
-      const digits = getComputedStyle(el.querySelector(".text-title")!)
+    // The KPI tile of the jobs without retries: an alarming figure in an untinted tile.
+    const alarm = app
+      .locator('[data-slot="kpi-grid"] [data-slot="count-figure"][data-tone="danger"]')
+      .first()
+    await expect(alarm).toBeVisible()
+    const tile = await alarm.evaluate((el) => {
+      const cell = el.closest<HTMLElement>('[data-slot="kpi-strip"] > div > *')!
+      const strip = el.closest<HTMLElement>('[data-slot="kpi-strip"]')!
+      // pulse-ui's KpiGrid: the figure on the type scale's section step (the compact tile).
+      const digits = getComputedStyle(el.closest(".text-section")!)
+      const icon = el.querySelector("svg")!
       const page = getComputedStyle(document.body)
+      const transparent = "rgba(0, 0, 0, 0)"
+      const fill = getComputedStyle(cell).backgroundColor
       return {
-        edge: style.borderTopColor,
-        tint: style.backgroundColor,
-        pageBackground: page.backgroundColor,
+        tinted: fill !== transparent && fill !== getComputedStyle(strip).backgroundColor,
         digits: digits.color,
         digitSize: digits.fontSize,
         foreground: page.color,
+        icon: icon.getAttribute("class"),
+        iconColour: getComputedStyle(icon).color,
+        words: el.querySelector(".sr-only")?.textContent,
       }
     })
-    expect(card.edge).not.toBe("rgba(0, 0, 0, 0)")
-    expect(card.edge).not.toBe(card.foreground)
-    expect(card.tint, "the state is the card's tint").not.toBe(card.pageBackground)
-    expect(card.digits, "a KPI number stays neutral").toBe(card.foreground)
-    expect(card.digitSize, "a KPI figure is the CI page-title size").toBe("28px")
+    expect(tile.tinted, "no KPI tile is tinted").toBe(false)
+    expect(tile.digits, "a KPI number stays neutral").toBe(tile.foreground)
+    expect(tile.digitSize, "a KPI figure is the CI section size (21 px), the compact tile").toBe(
+      "21px",
+    )
+    expect(tile.icon, "the alarm is the danger tone's icon of its own shape").toContain(
+      "lucide-circle-x",
+    )
+    expect(tile.iconColour).not.toBe(tile.foreground)
+    expect(tile.words).toBe("Has jobs without retries")
+  })
+
+  test("forced colours: the current section keeps a Highlight ring, a status dot turns CanvasText, an outline marks focus only", async ({
+    page,
+  }) => {
+    await page.emulateMedia({ forcedColors: "active" })
+    const app = await openView(page)
+    await expectOverview(app)
+    await expect(
+      app.getByRole("navigation", { name: "Cockpit sections" }).locator('[aria-current="page"]'),
+    ).toBeVisible()
+
+    const seen = await app.locator("html").evaluate(() => {
+      // The system colours as this browser resolves them, from a probe of each.
+      const system = (colour: string) => {
+        const probe = document.createElement("i")
+        probe.style.color = colour
+        document.body.append(probe)
+        const value = getComputedStyle(probe).color
+        probe.remove()
+        return value
+      }
+      const section = getComputedStyle(document.querySelector('nav button[aria-current="page"]')!)
+      const dot = document.querySelector(
+        ".bg-success, .bg-warning, .bg-danger, .bg-info, .bg-muted-foreground",
+      )!
+      return {
+        canvas: system("Canvas"),
+        canvasText: system("CanvasText"),
+        highlight: system("Highlight"),
+        ring: `${section.outlineStyle} ${section.outlineColor}`,
+        dot: getComputedStyle(dot).backgroundColor,
+      }
+    })
+    // Its fill alone marked the current section; forced colours paint every fill Canvas.
+    expect(seen.ring).toBe(`solid ${seen.highlight}`)
+    expect(seen.dot).toBe(seen.canvasText)
+    expect(seen.dot).not.toBe(seen.canvas)
+
+    // The kit's focus ring is a shadow, which forced colours drop: its outline carries focus
+    // there, drawn only while focus is visible, so no control wears a frame at rest.
+    const jobs = app
+      .getByRole("navigation", { name: "Cockpit sections" })
+      .getByRole("button", { name: "Jobs" })
+    const outline = () =>
+      jobs.evaluate((el) => {
+        const style = getComputedStyle(el)
+        return {
+          style: style.outlineStyle,
+          width: parseFloat(style.outlineWidth),
+          color: style.outlineColor,
+        }
+      })
+    expect((await outline()).style, "a control at rest draws no outline").toBe("none")
+    await jobs.focus()
+    await page.keyboard.press("Shift+Tab")
+    await page.keyboard.press("Tab")
+    await expect(jobs).toBeFocused()
+    const focused = await outline()
+    expect(focused.style, "a control keyboard focus reaches draws an outline").not.toBe("none")
+    expect(focused.width).toBeGreaterThanOrEqual(2)
+    expect(focused.color, "in a system colour, never transparent").not.toBe("rgba(0, 0, 0, 0)")
+  })
+
+  test("high contrast (data-cd-kontrast): no shadows, a 3 px focus ring", async ({ page }) => {
+    const app = await openView(page, { args: JOBS_ARGS })
+    await expectJobs(app, 11)
+    const current = app
+      .getByRole("navigation", { name: "Cockpit sections" })
+      .getByRole("button", { name: "Jobs" })
+    /**
+     * The focused section's ring: a line tab of the head's bar draws it inside (the kit's inset
+     * ring, so the bar's edge never cuts it), its spread the focus width alone.
+     */
+    const ringReach = async () => {
+      await current.focus()
+      return await current.evaluate((el) => {
+        const shadow = getComputedStyle(el).boxShadow
+        const spreads = [...shadow.matchAll(/0px 0px 0px (\d+)px inset/g)]
+        return Math.max(...spreads.map((spread) => Number(spread[1])))
+      })
+    }
+
+    expect(await ringReach()).toBe(2)
+    await app.locator("html").evaluate((html) => html.setAttribute("data-cd-kontrast", "hoch"))
+    expect(await ringReach()).toBe(3)
+    const shadows = await app
+      .locator("html")
+      .evaluate((html) =>
+        ["--shadow-1", "--shadow-2", "--shadow-3"].map((name) =>
+          getComputedStyle(html).getPropertyValue(name).trim(),
+        ),
+      )
+    expect(shadows).toEqual(["0 0 transparent", "0 0 transparent", "0 0 transparent"])
   })
 })
 
@@ -1216,18 +1615,54 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
     page,
   }) => {
     const app = await openView(page, { width: INLINE_WIDTH })
-    await expectOverview(app)
+    // At 760 px the unstated budget fits all three (448 px).
+    await expectOverview(app, 3)
     const { scrollWidth, clientWidth } = await documentOverflow(app)
     expect(scrollWidth, "the document never scrolls sideways").toBeLessThanOrEqual(clientWidth)
     const region = app.getByRole("region", { name: DEFINITIONS_TABLE })
     await expect(region).toBeVisible()
-    expect(await region.getAttribute("tabindex")).toBe("0")
-    // The shell pads on the CI grid: 24 px at this width (16 px below 640).
-    const padding = await app
-      .locator(".max-w-7xl")
+    // Its rows open their process, so they take the keyboard's one stop, the region none.
+    expect(await region.getAttribute("tabindex")).toBeNull()
+    expect(await region.locator("tbody > tr").first().getAttribute("tabindex")).toBe("0")
+    // The shell pads nothing: the head's and the view's bars run from edge to edge, the gutter of
+    // the density roles (12 px, --cd-shell-rand) inside the view's bar and around each route's
+    // content. The list's filter bar under its heading reaches the card's edges too, its field
+    // in the gutter, on the content's edge.
+    const frame = await app
+      .locator('[data-slot="widget-shell"]')
       .first()
-      .evaluate((frame) => getComputedStyle(frame).paddingLeft)
-    expect(padding).toBe("24px")
+      .evaluate((shell) => {
+        const box = shell.getBoundingClientRect()
+        const span = (selector: string) =>
+          [...shell.querySelectorAll<HTMLElement>(selector)].map((bar) => {
+            const own = bar.getBoundingClientRect()
+            return { left: own.left - box.left, right: box.right - own.right }
+          })
+        const pad = (el: Element) => getComputedStyle(el).paddingLeft
+        return {
+          padding: getComputedStyle(shell).paddingLeft,
+          bars: span('[data-slot="cockpit-head"], [data-slot="view-bar"]'),
+          barInsets: [...shell.querySelectorAll('[data-slot="view-bar"] > div')].map(pad),
+          headInsets: [...shell.querySelectorAll('[data-slot="cockpit-head"]')].map(
+            (head) => `${pad(head)} ${getComputedStyle(head).paddingRight}`,
+          ),
+          contents: [...shell.querySelectorAll('[data-slot="widget-content"].px-gutter')].map(pad),
+          toolbars: span('[data-slot="toolbar"]'),
+          fields: [
+            ...shell.querySelectorAll('[data-slot="toolbar"] [data-slot="search-field"]'),
+          ].map((field) => field.getBoundingClientRect().left - box.left),
+        }
+      })
+    expect(frame.padding).toBe("0px")
+    expect(frame.bars).toHaveLength(2)
+    for (const bar of frame.bars) expect(bar).toEqual({ left: 0, right: 0 })
+    expect(frame.barInsets).toEqual(["12px"])
+    // The head's tabs start 8 px in, as a view's tab bar does; its end sits in the gutter.
+    expect(frame.headInsets).toEqual(["8px 12px"])
+    expect(frame.contents.length).toBeGreaterThan(0)
+    for (const padding of frame.contents) expect(padding).toBe("12px")
+    expect(frame.toolbars).toEqual([{ left: 0, right: 0 }])
+    expect(frame.fields).toEqual([12])
   })
 
   test("the job panel: low-priority columns hide, the row actions stay pinned and reachable", async ({
@@ -1259,13 +1694,63 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
     expect(layout.actionRight).toBeLessThanOrEqual(layout.regionRight + 1)
   })
 
+  test("a hovered row of a table with pinned actions fills from --accent, its pinned cell too", async ({
+    page,
+  }) => {
+    const app = await openView(page, { args: JOBS_ARGS, width: INLINE_WIDTH })
+    const region = app.getByRole("region", { name: "Jobs", exact: true })
+    await expect(region).toBeVisible({ timeout: 15_000 })
+    const hovered = region.locator("tbody tr").nth(1)
+    await hovered.hover()
+    const paint = () =>
+      region.evaluate((el) => {
+        const role = (name: string) => {
+          const probe = document.createElement("div")
+          probe.style.backgroundColor = `var(${name})`
+          document.body.append(probe)
+          const colour = getComputedStyle(probe).backgroundColor
+          probe.remove()
+          return colour
+        }
+        const [first, second] = [...el.querySelectorAll("tbody tr")]
+        const fill = (row: Element) => ({
+          row: getComputedStyle(row).backgroundColor,
+          pinned: getComputedStyle(row.lastElementChild!).backgroundColor,
+          position: getComputedStyle(row.lastElementChild!).position,
+        })
+        return {
+          accent: role("--accent"),
+          card: role("--card"),
+          rest: fill(first),
+          hovered: fill(second),
+        }
+      })
+    // The row's colour eases in (transition-colors): read it once it has arrived.
+    await expect
+      .poll(async () => {
+        const now = await paint()
+        return now.hovered.row === now.accent
+      })
+      .toBe(true)
+    const settled = await paint()
+    expect(settled.accent).not.toBe(settled.card)
+    // The hover fill wins over the pinned rows' surface, which sits in a lower cascade layer.
+    expect(settled.hovered).toEqual({
+      row: settled.accent,
+      pinned: settled.accent,
+      position: "sticky",
+    })
+    // A row at rest paints the table's surface, so its pinned cell covers what scrolls under it.
+    expect(settled.rest).toEqual({ row: settled.card, pinned: settled.card, position: "sticky" })
+  })
+
   test("a row's menu lies over the next rows' pinned cells: its entries take the clicks (U20)", async ({
     page,
   }) => {
-    // The cockpit's head and the KPI strip take the room of two rows at the default 600 px fit
-    // (#396): an 800 px budget fits all three jobs, so a middle row has a row under it.
+    // The cockpit's head and the KPI card leave room for eleven rows at the default 600 px fit
+    // (#396): an 800 px budget fits all sixteen jobs, so a middle row has a row under it.
     const app = await openView(page, { args: JOBS_ARGS, width: INLINE_WIDTH, maxHeight: 800 })
-    await expectJobs(app, 3)
+    await expectJobs(app, 16)
     // The stub's job-2 (never written), with job-3's row under it.
     const row = app.getByRole("row").filter({ hasText: "Card expired" })
     const next = app.getByRole("row").filter({ hasText: "Billing address unknown" })
@@ -1319,9 +1804,9 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
     await expect(region).toBeVisible({ timeout: 15_000 })
     const { scrollWidth, clientWidth } = await documentOverflow(app)
     expect(scrollWidth, "the document never scrolls sideways").toBeLessThanOrEqual(clientWidth)
-    // The last data column against the pinned row actions, at both ends of
-    // the region's scroll: without the region's own scroll it would stay
-    // under the actions, out of reach.
+    // The last column (the row actions, which scroll with the row under 40rem) against the
+    // region's right edge, at both ends of its scroll: without the region's own scroll it would
+    // stay past that edge, out of reach.
     const lastColumn = (at: "start" | "end") =>
       region.evaluate((el, side) => {
         el.scrollLeft = side === "end" ? el.scrollWidth : 0
@@ -1330,60 +1815,48 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
         )
         return {
           scrolled: el.scrollLeft,
-          right: cells.at(-2)!.getBoundingClientRect().right,
-          actionsLeft: cells.at(-1)!.getBoundingClientRect().left,
+          right: cells.at(-1)!.getBoundingClientRect().right,
+          regionRight: el.getBoundingClientRect().left + el.clientLeft + el.clientWidth,
         }
       }, at)
     const start = await lastColumn("start")
     expect(start.right, "the table really overflows its region").toBeGreaterThan(
-      start.actionsLeft + 1,
+      start.regionRight + 1,
     )
     const end = await lastColumn("end")
     expect(end.scrolled, "the region itself scrolls").toBeGreaterThan(0)
-    expect(end.right, "the last column scrolls into view").toBeLessThanOrEqual(end.actionsLeft + 1)
+    expect(end.right, "the last column scrolls into view").toBeLessThanOrEqual(end.regionRight + 1)
   })
 
-  test("a job table that overflows: the row actions stay at the region's right edge while it scrolls", async ({
+  test("a job table that overflows a narrow region: its row actions scroll with the row, pinned from 40rem up only, so no column lies under them", async ({
     page,
   }) => {
     const app = await openView(page, { args: JOBS_ARGS, width: NARROW_WIDTH })
     const region = app.getByRole("region", { name: "Jobs", exact: true })
     await expect(region).toBeVisible({ timeout: 15_000 })
-    const sizes = await region.evaluate((el) => ({
-      scroll: el.scrollWidth,
-      client: el.clientWidth,
-    }))
-    expect(sizes.scroll, "the table really overflows its region").toBeGreaterThan(sizes.client)
-    const { scrollWidth, clientWidth } = await documentOverflow(app)
-    expect(scrollWidth, "the document never scrolls sideways").toBeLessThanOrEqual(clientWidth)
-
-    for (const end of ["start", "end"] as const) {
-      const edges = await region.evaluate((el, at) => {
-        el.scrollLeft = at === "end" ? el.scrollWidth : 0
-        const box = el.getBoundingClientRect()
-        const action = el.querySelector("tbody tr > :last-child")!.getBoundingClientRect()
-        return {
-          scrolled: el.scrollLeft,
-          // The padding box's right edge: where `right: 0` pins the column.
-          regionRight: box.left + el.clientLeft + el.clientWidth,
-          actionLeft: action.left,
-          actionRight: action.right,
-          regionLeft: box.left,
-        }
-      }, end)
-      if (end === "end") expect(edges.scrolled).toBeGreaterThan(0)
-      expect(Math.abs(edges.actionRight - edges.regionRight), `pinned at the ${end}`).toBeLessThan(
-        1.5,
+    const layout = await region.evaluate((el) => {
+      const row = [...el.querySelectorAll("tbody tr:first-child > *")].filter(
+        (cell) => getComputedStyle(cell).display !== "none",
       )
-      expect(edges.actionLeft).toBeGreaterThan(edges.regionLeft)
-    }
+      const actions = row.at(-1)!
+      return {
+        overflows: el.scrollWidth > el.clientWidth,
+        position: getComputedStyle(actions).position,
+        under: row
+          .slice(0, -1)
+          .filter(
+            (cell) => cell.getBoundingClientRect().right > actions.getBoundingClientRect().left + 1,
+          ).length,
+      }
+    })
+    expect(layout).toEqual({ overflows: true, position: "static", under: 0 })
   })
 
   test("keyboard focus on a table region shows inside its box (WCAG 2.4.7)", async ({ page }) => {
-    // The overview's definitions region spans its card; the jobs region pins a
-    // column over its right edge.
+    // A region whose rows open nothing takes the keyboard's stop itself: the jobs region spans
+    // its card at the inline width and overflows a narrow card, where it scrolls.
     const views = [
-      { scenario: { width: INLINE_WIDTH }, name: DEFINITIONS_TABLE },
+      { scenario: { args: JOBS_ARGS, width: INLINE_WIDTH }, name: "Jobs" },
       { scenario: { args: JOBS_ARGS, width: NARROW_WIDTH }, name: "Jobs" },
     ]
     for (const { scenario, name } of views) {
@@ -1410,7 +1883,7 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
     }
   })
 
-  test("axe: the inline views pass WCAG 2.1 A/AA (light and dark)", async ({ page }) => {
+  test("axe: the inline views pass WCAG 2.2 A/AA (light and dark)", async ({ page }) => {
     for (const [view, args, theme] of [
       ["overview", { engine: HEALTHY_ENGINE }, "light"],
       ["jobs", JOBS_ARGS, "light"],
@@ -1421,7 +1894,7 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
       await expect(app.getByRole("table").first()).toBeVisible({ timeout: 15_000 })
       const results = await new AxeBuilder({ page })
         .include("#app")
-        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22a", "wcag22aa"])
         .analyze()
       const violations = results.violations.map((v) => ({
         id: v.id,
@@ -1451,7 +1924,7 @@ test.describe("cockpit (engine_open_cockpit)", () => {
 
   test("opens on its start view: the head section current, no picker", async ({ page }) => {
     const app = await openView(page, { args: JOBS_ARGS })
-    await expectJobs(app, 2)
+    await expectJobs(app, 11)
     const sections = app.getByRole("navigation", { name: "Cockpit sections" })
     await expect(sections.getByRole("button", { name: "Jobs" })).toHaveAttribute(
       "aria-current",
@@ -1479,13 +1952,13 @@ test.describe("cockpit (engine_open_cockpit)", () => {
 
 /**
  * What the VS Code extension showed and the cockpit lacked: an instance names the element of
- * each incident and leads to its process, and the instance list's chips count what each lists.
+ * each incident and leads to its process, and the instance list's scopes count what each lists.
  */
 test.describe("an instance and the instance list (engine_open_cockpit)", () => {
   test("an instance names each incident's element and leads to its process", async ({ page }) => {
     const errors = collectErrors(page)
     // The stub's one instance with open incidents (stub-engine.ts), no open task: the view
-    // opens on its Incidents tab.
+    // opens on its Incidents tab, in the unstated budget (fitted as 600 px).
     const app = await openView(page, {
       args: { engine: HEALTHY_ENGINE, view: "instance-detail", processInstanceId: "pi-invoice-42" },
     })
@@ -1493,8 +1966,14 @@ test.describe("an instance and the instance list (engine_open_cockpit)", () => {
     await expect(table).toBeVisible({ timeout: 15_000 })
     await expect(table.getByRole("columnheader").first()).toHaveText("Activity")
     const elements = table.locator("tbody > tr > td:first-child")
-    // The diagram's name leads with the id below it; an element the diagram lacks shows its id.
-    await expect(elements).toHaveText(["Approve InvoiceapproveInvoice", "chargeCard"])
+    // The diagram's name leads with the id after it on one line; an element the diagram lacks
+    // shows its id.
+    await expect(elements).toHaveText(["Approve Invoice approveInvoice", "chargeCard"])
+    // The view with both 28 px rows is 619 px. A cut to one row would add the 44 px "1 of 2
+    // shown" footer and make it taller still (635 px): a cut pays for its footer, so nothing is
+    // cut and the view scrolls inside its budget.
+    await expect(table.locator("tfoot")).toHaveCount(0)
+    await expect(app.locator("[data-inline-fit]")).toHaveAttribute("data-inline-fit", "overflow")
 
     await app.getByRole("button", { name: "View process" }).click()
     await expect(app.getByRole("heading", { name: "Invoice Receipt" })).toBeVisible({
@@ -1506,28 +1985,278 @@ test.describe("an instance and the instance list (engine_open_cockpit)", () => {
     expect(errors).toEqual([])
   })
 
-  test("the chips count what each lists, whichever chip is on", async ({ page }) => {
+  test("the scopes count what each lists, whichever scope is checked", async ({ page }) => {
     // The realistic engine: 160 running instances, 54 with an incident, 10 suspended.
     const app = await openView(page, {
       hostEnv: REALISTIC_HOST_ENV,
       args: { engine: REALISTIC_ENGINE, view: "process-instances" },
     })
-    const chips = app.getByRole("group", { name: "Instance filters" })
-    // Exact names and texts: a substring would let 540 pass for 54 and 154 running for 54.
-    const all = chips.getByRole("button", { name: "All 160", exact: true })
-    const withIncidents = chips.getByRole("button", { name: "With incident 54", exact: true })
-    const suspended = chips.getByRole("button", { name: "Suspended 10", exact: true })
+    // One radio group of segments (the webview's scope segments), each with its count.
+    const scopes = app.getByRole("radiogroup", { name: "Show instances" })
+    // Whole names: a substring would let 540 pass for 54 and 154 running for 54.
+    const all = scopes.getByRole("radio", { name: /^All ?160$/ })
+    // The label says why its count alarms, so the name is the label and the exact count, once.
+    const withIncidents = scopes.getByRole("radio", { name: /^With incident ?54$/ })
+    const suspended = scopes.getByRole("radio", { name: /^Suspended ?10$/ })
     await expect(all).toBeVisible({ timeout: 15_000 })
     await expect(withIncidents).toBeVisible()
     await expect(suspended).toBeVisible()
     await expect(app.getByText("160 running", { exact: true })).toBeVisible()
+    // The count with an incident alarms by the danger icon, its number neutral (invariant 6).
+    const alarm = withIncidents.locator("svg.lucide-circle-x")
+    await expect(alarm).toBeVisible()
+    const colours = await withIncidents.evaluate((segment) => ({
+      number: getComputedStyle(segment.querySelector('[aria-hidden="true"]:not(svg)')!).color,
+      icon: getComputedStyle(segment.querySelector("svg.lucide-circle-x")!).color,
+    }))
+    expect(colours.icon).not.toBe(colours.number)
 
-    await chips.getByRole("button", { name: /^With incident/ }).click()
+    await withIncidents.click()
     await expect(app.getByText("54 running", { exact: true })).toBeVisible({ timeout: 15_000 })
     // Still the whole list and its suspended ones, not those that also have an incident.
     await expect(all).toBeVisible()
     await expect(suspended).toBeVisible()
-    await expect(withIncidents).toHaveAttribute("aria-pressed", "true")
-    await expect(all).toHaveAttribute("aria-pressed", "false")
+    await expect(withIncidents).toHaveAttribute("aria-checked", "true")
+    await expect(all).toHaveAttribute("aria-checked", "false")
+    await expect(scopes).toHaveAttribute("aria-busy", "false")
+    // A table this wide shows each incident's word beside its icon (only a narrow one drops it).
+    const incident = app.locator("tbody [data-slot='state-label'][data-state='incident']").first()
+    await expect(incident).toBeVisible()
+    const word = await incident.locator("span").evaluate((el) => ({
+      text: el.textContent,
+      width: el.getBoundingClientRect().width,
+    }))
+    expect(word.text).toBe("Incident")
+    expect(word.width).toBeGreaterThan(20)
+  })
+
+  test("a phone-width chat shows each instance's state and its incident without scrolling sideways", async ({
+    page,
+  }) => {
+    // The realistic engine's long keys and process names are wider than 400 px together: the
+    // table scrolls sideways inside its region, the row actions with it (pinned from 40rem up).
+    const app = await openView(page, {
+      hostEnv: REALISTIC_HOST_ENV,
+      args: { engine: REALISTIC_ENGINE, view: "process-instances" },
+      width: 400,
+    })
+    const region = app.getByRole("region", { name: "Running instances", exact: true })
+    await expect(region.getByRole("columnheader", { name: "State" })).toBeVisible({
+      timeout: 15_000,
+    })
+    const placed = await region.evaluate((el) => {
+      // The extent of what a node shows, its text included, not its cell's.
+      const box = (node: Element) => {
+        const range = document.createRange()
+        range.selectNodeContents(node)
+        const rect = range.getBoundingClientRect()
+        return { left: rect.left, right: rect.right }
+      }
+      const pinned = el.querySelector("tbody tr td:last-child")!
+      return {
+        heads: [...el.querySelectorAll("thead th")].map((th) => th.textContent),
+        scrolls: el.scrollWidth > el.clientWidth,
+        scrollLeft: el.scrollLeft,
+        left: el.getBoundingClientRect().left,
+        pinnedLeft: pinned.getBoundingClientRect().left,
+        head: box(el.querySelector("thead th:nth-child(2)")!),
+        // Each row's own state, running or suspended, the first label of its state cell.
+        states: [...el.querySelectorAll("tbody tr td:nth-child(2) [data-slot='state-label']")]
+          .filter((label) => label.getAttribute("data-state") !== "incident")
+          .map(box),
+        // An open incident beside it: in a region this narrow its icon alone, its word kept for a
+        // screen reader and in its title.
+        incidents: [
+          ...el.querySelectorAll(
+            "tbody tr td:nth-child(2) [data-slot='state-label'][data-state='incident']",
+          ),
+        ].map((label) => {
+          const icon = label.querySelector("svg")!.getBoundingClientRect()
+          const word = label.querySelector("span")!
+          return {
+            left: icon.left,
+            right: icon.right,
+            title: label.getAttribute("title"),
+            word: word.textContent,
+            wordInSight: word.getBoundingClientRect().width > 1,
+          }
+        }),
+        rows: el.querySelectorAll("tbody tr").length,
+      }
+    })
+    // The state right after the ids (the webview's order): the process name is what scrolls.
+    expect(placed.heads.slice(0, 3)).toEqual(["Business key / ID", "State", "Process"])
+    expect(placed.scrolls, "the table is wider than a phone").toBe(true)
+    expect(placed.scrollLeft).toBe(0)
+    // The State head and every row's state lie in view, clear of the row actions.
+    expect(placed.states).toHaveLength(placed.rows)
+    for (const state of [placed.head, ...placed.states]) {
+      expect(state.left).toBeGreaterThanOrEqual(placed.left)
+      expect(state.right).toBeLessThanOrEqual(placed.pinnedLeft)
+    }
+    // So does each open incident's icon, a suspended row's too; its word reads to a screen
+    // reader and in its title, never under the actions.
+    expect(placed.incidents.length).toBeGreaterThan(0)
+    for (const incident of placed.incidents) {
+      expect(incident.left).toBeGreaterThanOrEqual(placed.left)
+      expect(incident.right).toBeLessThanOrEqual(placed.pinnedLeft)
+      expect(incident).toMatchObject({ title: "Incident", word: "Incident", wordInSight: false })
+    }
+  })
+})
+
+/**
+ * One row convention on every surface (owner direction 2026-11-18): in the chat as on a page and
+ * in the webview, a table row opens what it names on a click or Enter, its further actions at its
+ * end opening nothing. A row tells a screen reader what it opens and that Enter opens it, takes the
+ * table's one tab stop and shows its focus inside its box.
+ */
+test.describe("a row opens on a click or Enter (one row convention)", () => {
+  const INSTANCE = {
+    engine: HEALTHY_ENGINE,
+    view: "instance-detail",
+    processInstanceId: "pi-invoice-42",
+  }
+
+  /** The stub's instance with its two open incidents, its incidents' table one row each. */
+  async function incidentRow(app: FrameLocator) {
+    const table = app.getByRole("region", { name: "Incidents of this instance" })
+    const row = table.getByRole("row", { name: /^Incident at chargeCard, / })
+    await expect(row).toBeVisible({ timeout: 15_000 })
+    return row
+  }
+
+  test("a click on an incident's row opens it; the row holds no drill", async ({ page }) => {
+    const app = await openView(page, { args: INSTANCE })
+    const row = await incidentRow(app)
+    await expect(app.getByRole("button", { name: /^Open/ })).toHaveCount(0)
+    await row.getByRole("cell").first().click()
+    await expect(app.getByRole("heading", { level: 1, name: "chargeCard" })).toBeVisible({
+      timeout: 15_000,
+    })
+  })
+
+  test("Enter on the focused row opens it: one tab stop, its focus drawn, its name and hint read", async ({
+    page,
+  }) => {
+    const app = await openView(page, { args: INSTANCE })
+    const row = await incidentRow(app)
+    const rows = app
+      .getByRole("region", { name: "Incidents of this instance" })
+      .locator("tbody > tr[data-row-target]")
+    expect(await rows.evaluateAll((all) => all.map((el) => el.getAttribute("tabindex")))).toEqual([
+      "0",
+      "-1",
+    ])
+    const hint = await row.evaluate(
+      (el) => document.getElementById(el.getAttribute("aria-describedby") ?? "")?.textContent,
+    )
+    expect(hint).toBe("Enter opens the row, Ctrl or Cmd+C copies its ID.")
+    // From the first row the arrow moves to the next: the focus, drawn inside the row.
+    await rows.first().focus()
+    await page.keyboard.press("ArrowDown")
+    await expect(row).toBeFocused()
+    const outline = await row.evaluate((el) => {
+      const style = getComputedStyle(el)
+      return { style: style.outlineStyle, width: parseFloat(style.outlineWidth) }
+    })
+    expect(outline.style).toBe("solid")
+    expect(outline.width).toBeGreaterThanOrEqual(2)
+    await page.keyboard.press("Enter")
+    await expect(app.getByRole("heading", { level: 1, name: "chargeCard" })).toBeVisible({
+      timeout: 15_000,
+    })
+  })
+
+  test("a focused row's outline runs on over its pinned actions at 760 px", async ({ page }) => {
+    const app = await openView(page, { args: INSTANCE, width: INLINE_WIDTH })
+    const row = await incidentRow(app)
+    const rows = app
+      .getByRole("region", { name: "Incidents of this instance" })
+      .locator("tbody > tr[data-row-target]")
+    await rows.first().focus()
+    await page.keyboard.press("ArrowDown")
+    await expect(row).toBeFocused()
+    const end = await row.evaluate((el) => {
+      const cell = el.lastElementChild!
+      const ring = getComputedStyle(cell, "::after")
+      const outline = getComputedStyle(el)
+      return {
+        pinned: getComputedStyle(cell).position,
+        ring: ring.position,
+        style: ring.outlineStyle,
+        colour: ring.outlineColor === outline.outlineColor,
+        width: ring.outlineWidth === outline.outlineWidth,
+        offset: ring.outlineOffset === outline.outlineOffset,
+        // Its left side, one outline's width and a pixel before the cell, is clipped away.
+        left:
+          parseFloat(ring.left) === -parseFloat(outline.outlineWidth) - 1 &&
+          ring.clipPath === `inset(0px 0px 0px ${parseFloat(outline.outlineWidth) + 1}px)`,
+      }
+    })
+    // The pinned cell paints its surface over the row's outline, so it draws that part itself:
+    // the same outline, its top, right and bottom running on from the row's.
+    expect(end).toEqual({
+      pinned: "sticky",
+      ring: "absolute",
+      style: "solid",
+      colour: true,
+      width: true,
+      offset: true,
+      left: true,
+    })
+    // Forced colours paint both in one system colour.
+    await page.emulateMedia({ forcedColors: "active" })
+    const forced = await row.evaluate(
+      (el) =>
+        getComputedStyle(el.lastElementChild!, "::after").outlineColor ===
+        getComputedStyle(el).outlineColor,
+    )
+    expect(forced).toBe(true)
+    await page.emulateMedia({ forcedColors: "none" })
+    // Off focus it draws nothing.
+    await page.keyboard.press("ArrowUp")
+    const after = await row.evaluate(
+      (el) => getComputedStyle(el.lastElementChild!, "::after").content,
+    )
+    expect(after).toBe("none")
+  })
+
+  test("the overview's process row opens its process on Enter", async ({ page }) => {
+    const app = await openView(page, { args: { engine: HEALTHY_ENGINE }, width: INLINE_WIDTH })
+    const region = app.getByRole("region", { name: DEFINITIONS_TABLE, exact: true })
+    const row = region.getByRole("row", { name: "Process Invoice Receipt" })
+    await expect(row).toBeVisible({ timeout: 15_000 })
+    await row.focus()
+    await page.keyboard.press("Enter")
+    await expect(app.getByRole("heading", { level: 1, name: "Invoice Receipt" })).toBeVisible({
+      timeout: 15_000,
+    })
+  })
+
+  test("an instance list's row opens its instance on a click", async ({ page }) => {
+    const app = await openView(page, {
+      hostEnv: REALISTIC_HOST_ENV,
+      args: { engine: REALISTIC_ENGINE, view: "process-instances" },
+    })
+    const row = app
+      .getByRole("region", { name: "Running instances", exact: true })
+      .getByRole("row", { name: /^Instance / })
+      .first()
+    await expect(row).toBeVisible({ timeout: 15_000 })
+    const name = (await row.getAttribute("aria-label"))!.replace(/^Instance /, "")
+    await row.getByRole("cell").nth(1).click()
+    // The realistic engine serves lists alone: the instance's route keeps its name as its heading.
+    await expect(app.getByRole("heading", { level: 1, name })).toBeVisible({ timeout: 15_000 })
+  })
+
+  test("axe: an instance's incidents, rows that open, pass WCAG 2.2 A/AA", async ({ page }) => {
+    const app = await openView(page, { args: INSTANCE })
+    await incidentRow(app)
+    const results = await new AxeBuilder({ page })
+      .include("#app")
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22a", "wcag22aa"])
+      .analyze()
+    expect(results.violations.map((v) => v.id)).toEqual([])
   })
 })

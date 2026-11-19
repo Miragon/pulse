@@ -22,8 +22,22 @@ describe("parseArgs", () => {
       auth: false,
       admin: true,
       deploy: true,
+      web: false,
       jdkContainer: false,
     })
+  })
+
+  it("lets --web imply --auth: the web app signs in through the server's OAuth provider", () => {
+    assert.deepEqual(parseArgs(["play", "--web"]).options, {
+      multiEngine: false,
+      auth: true,
+      admin: false,
+      deploy: false,
+      web: true,
+      jdkContainer: false,
+    })
+    assert.equal(parseArgs(["play", "--auth"]).options.web, false)
+    assert.match(parseArgs(["stack:up", "--web"]).message, /stack:up does not take --web/)
   })
 
   it("passes every play:cli argument on, a leading -- dropped", () => {

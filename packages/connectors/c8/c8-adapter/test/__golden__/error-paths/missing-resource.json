@@ -1,0 +1,21 @@
+{
+  "case": "missing-resource",
+  "connection": {
+    "credentials": {
+      "kind": "none"
+    },
+    "endpoint": "http://127.0.0.1:<port>/v2"
+  },
+  "probes": [
+    {
+      "call": "getInstanceDetail 9007199254740993",
+      "outcome": {
+        "returned": "undefined"
+      },
+      "sent": [
+        "GET /v2/process-instances/9007199254740993",
+        "GET /v2/topology"
+      ]
+    }
+  ]
+}

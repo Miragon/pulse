@@ -1,10 +1,11 @@
-import type { EngineProvider } from "../engine-provider.js"
+import type { C7EngineProvider } from "../engine-provider.js"
 import { tabSuffix } from "../lib/engine/cockpit-url.js"
 import { createDialectClient } from "./create-client.js"
 
 /** Addressed by process KEY; an omitted version resolves to latest, a "latest" segment would 404. */
-export const cibsevenProvider: EngineProvider = {
+export const cibsevenProvider: C7EngineProvider = {
   flavor: "cibseven",
+  dialect: "c7",
   branding: { displayName: "CIB seven" },
   createClient: createDialectClient,
   cockpit: {

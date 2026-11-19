@@ -80,6 +80,7 @@ export function checkSteps({ all = false, force = false, scripts = rootScripts()
     ...steps,
     pnpm("host browsers", ...server, "exec", "playwright", "install", "chromium"),
     pnpm("test:host", ...server, "test:host"),
+    pnpm("test:web", ...server, "test:web"),
     { name: "template", command: "bash", args: ["scripts/test-template.sh"] },
     {
       name: "cibseven-example",

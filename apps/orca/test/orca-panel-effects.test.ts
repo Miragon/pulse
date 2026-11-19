@@ -6,7 +6,8 @@ import {
   type InstanceSummary,
 } from "@miragon/pulse-engine-core"
 import type { MigrationTarget } from "@miragon/pulse-runtime-view/core"
-import { type Connection, LOCAL_TARGET, WriteAudit } from "@miragon/pulse-runtime-view/host-kit"
+import { type Connection, WriteAudit } from "@miragon/pulse-runtime-view/host-kit"
+import { LOCAL_TARGET } from "./local-target.js"
 import type { EffectsHost } from "../src/worker/effects-host.js"
 import { OrcaPanelEffects } from "../src/worker/orca-panel-effects.js"
 
@@ -125,7 +126,7 @@ describe("the effects of a view in Orca", () => {
     await effects.confirmBulk({} as never)
 
     expect(services.showIncident).toHaveBeenCalledWith("shop", "Failed", details)
-    expect(services.editConnection).toHaveBeenCalled()
+    expect(services.editConnection).toHaveBeenCalledWith(connection)
     expect(services.askForLogin).toHaveBeenCalledWith(connection)
     expect(services.openLocation).toHaveBeenCalledTimes(2)
     expect(services.turnOnLiveUpdates).toHaveBeenCalledWith("test")

@@ -19,11 +19,12 @@ import { SELECTING_DEFINITION } from "../../dev/webview/fixtures/bulk.js"
 import { DEFINITION_VIEW, FILTERED_DEFINITION_VIEW } from "../../dev/webview/fixtures/definition.js"
 import {
   buttonNamed,
+  enterValue,
+  type Harness,
   mountApp,
   nextFrame,
   radioNamed,
   waitForElement,
-  type Harness,
 } from "./harness.js"
 
 const CONDITIONS: InstanceListFilter = {
@@ -70,11 +71,6 @@ function field(dialog: HTMLDialogElement, label: string): HTMLInputElement & HTM
   return dialog.querySelector(`#${CSS.escape(target?.htmlFor ?? "")}`)!
 }
 
-function enter(control: HTMLInputElement | HTMLSelectElement, value: string): void {
-  control.value = value
-  control.dispatchEvent(new Event(control instanceof HTMLSelectElement ? "change" : "input"))
-}
-
 function optionsOf(dialog: HTMLDialogElement, label: string): (string | null)[] {
   return [...field(dialog, label).options].map((option) => option.textContent)
 }
@@ -97,9 +93,9 @@ describe("the variable search of the definition panel", () => {
     const opener = await vi.waitFor(() => labelled(harness.root, "Filter by variables"))
 
     const dialog = await openDialog(harness, opener)
-    enter(field(dialog, "Name"), " amount ")
-    enter(field(dialog, "Operator"), "greaterThan")
-    enter(field(dialog, "Value"), "100")
+    enterValue(field(dialog, "Name"), " amount ")
+    enterValue(field(dialog, "Operator"), "greaterThan")
+    enterValue(field(dialog, "Value"), "100")
     await apply(dialog)
 
     await vi.waitFor(() => {
@@ -129,9 +125,9 @@ describe("the variable search of the definition panel", () => {
     expect(field(dialog, "Name").getAttribute("aria-invalid")).toBe("true")
     expect(document.activeElement).toBe(field(dialog, "Name"))
 
-    enter(field(dialog, "Name"), "amount")
-    enter(field(dialog, "Compare as"), "number")
-    enter(field(dialog, "Value"), "a lot")
+    enterValue(field(dialog, "Name"), "amount")
+    enterValue(field(dialog, "Compare as"), "number")
+    enterValue(field(dialog, "Value"), "a lot")
     await apply(dialog)
     await vi.waitFor(() => {
       expect(dialog.textContent).toContain("Enter a number, for example 42 or 9.5.")
@@ -151,8 +147,8 @@ describe("the variable search of the definition panel", () => {
       await vi.waitFor(() => labelled(harness.root, "Filter by variables")),
     )
 
-    enter(field(dialog, "Name"), "dueAt")
-    enter(field(dialog, "Compare as"), "date")
+    enterValue(field(dialog, "Name"), "dueAt")
+    enterValue(field(dialog, "Compare as"), "date")
     await nextFrame()
     expect(field(dialog, "Value").type).toBe("datetime-local")
     expect([...field(dialog, "Operator").options].map((option) => option.textContent)).toEqual([
@@ -161,8 +157,8 @@ describe("the variable search of the definition panel", () => {
       "is after",
       "is before",
     ])
-    enter(field(dialog, "Operator"), "lessThan")
-    enter(field(dialog, "Value"), "2026-03-15T10:00")
+    enterValue(field(dialog, "Operator"), "lessThan")
+    enterValue(field(dialog, "Value"), "2026-03-15T10:00")
     await apply(dialog)
 
     await vi.waitFor(() => {
@@ -188,7 +184,7 @@ describe("the variable search of the definition panel", () => {
       "Null",
     ])
     expect(optionsOf(dialog, "Operator")).toEqual(["is", "is not", "matches"])
-    enter(field(dialog, "Compare as"), "number")
+    enterValue(field(dialog, "Compare as"), "number")
     await nextFrame()
     expect(optionsOf(dialog, "Operator")).toEqual(["is", "is not"])
   })
@@ -202,10 +198,10 @@ describe("the variable search of the definition panel", () => {
     )
 
     expect(optionsOf(dialog, "Compare as")).toContain("Date and time")
-    enter(field(dialog, "Compare as"), "number")
+    enterValue(field(dialog, "Compare as"), "number")
     await nextFrame()
     expect(optionsOf(dialog, "Operator")).toEqual(["is", "is not"])
-    enter(field(dialog, "Compare as"), "date")
+    enterValue(field(dialog, "Compare as"), "date")
     await nextFrame()
     expect(optionsOf(dialog, "Operator")).toEqual(["is", "is not", "is after", "is before"])
   })
@@ -218,9 +214,9 @@ describe("the variable search of the definition panel", () => {
       await vi.waitFor(() => labelled(harness.root, "Filter by variables")),
     )
 
-    enter(field(dialog, "Name"), "giftNote")
-    enter(field(dialog, "Value"), "leftover")
-    enter(field(dialog, "Compare as"), "null")
+    enterValue(field(dialog, "Name"), "giftNote")
+    enterValue(field(dialog, "Value"), "leftover")
+    enterValue(field(dialog, "Compare as"), "null")
     await nextFrame()
     expect([...dialog.querySelectorAll("label")].map((label) => label.textContent)).not.toContain(
       "Value",
@@ -243,13 +239,15 @@ describe("the variable search of the definition panel", () => {
     harness.publish(ready({ ...DEFINITION_VIEW, filter: CONDITIONS, variableLabels: LABELS }))
     await vi.waitFor(() => labelled(harness.root, "Filter by variables, 2 active"))
 
-    labelled(harness.root, "Remove condition amount > 100").click()
+    const remove = labelled(harness.root, "Remove condition amount > 100")
+    expect(remove.title).toBe("Remove condition amount > 100")
+    remove.click()
     expect(lastFilter(harness)).toEqual({ scope: "running", variables: [CONDITIONS.variables![0]] })
 
     const chip = labelled(harness.root, 'Edit condition route = "review"')
     const dialog = await openDialog(harness, chip)
     expect(field(dialog, "Name").value).toBe("route")
-    enter(field(dialog, "Value"), "charge")
+    enterValue(field(dialog, "Value"), "charge")
     await apply(dialog)
 
     await vi.waitFor(() => {

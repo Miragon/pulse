@@ -59,9 +59,14 @@ assistant. Try asking _"show me the open incidents"_. Claude calls
 Most data-heavy answers come back as an interactive view: the engine
 operations cockpit (opened on its overview, the incidents, a process, an
 instance, an incident, the jobs or an instance's history, then navigated by
-clicking) renders inline. Inline a
-view stays a compact card: a list shows its first rows and how many there are,
-and **Show all** opens it fullscreen where your chat app offers that.
+clicking) renders inline. Its head switches between the overview, the
+incidents and the jobs, or leads back along the way you came; under it each
+view has one bar with what it shows, its facts and its actions, and a notice
+docks under that bar when a refresh fails, the engine's own words under its
+**Details**. A row of a table opens what it names on a click or Enter (Ctrl or Cmd+C copies its
+ID, a board's incident row its message), as in Pulse for VS Code; its other actions sit at its end. Inline a view stays a compact card:
+a list shows its first rows and how many there are, and **Show all** opens it fullscreen where your
+chat app offers that.
 
 What the assistant may _change_ depends on the deployment's toolset. A
 read-only deployment (the playground, or any server without login unless its
@@ -115,7 +120,12 @@ still answers you in your language.
   is an error, not an empty view.
 - An instance's view names the element of each open incident (its name in the
   diagram, else its id) and leads to its process with **View process**. The
-  instance list's chips (**All**, **With incident**, **Suspended**) count what
-  each one shows within the search, whichever chip is on.
+  instance list's scopes (**All**, **With incident**, **Suspended**) count what
+  each one shows within the search, whichever scope is picked. **With incident**
+  is an instance with an open incident now, read from the engine's runtime on
+  every history level, as Pulse for VS Code and Pulse for Orca read it.
+- A deployment with board files (`ENGINE_BOARDS_DIR`) answers _"show me the leasing board"_ with
+  the board's tiles, the ones Pulse for VS Code shows, and the cockpit's landing lists its boards
+  ([Boards](boards.md)).
 - If a tool isn't doing what you expect, ask the assistant to show you the raw
   arguments. It'll print them, and you can spot mismatches quickly.

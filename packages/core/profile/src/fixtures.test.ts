@@ -1,12 +1,13 @@
 /**
  * The shared fixtures against the parser: every fixture gets, under every credential policy, the
  * verdict it states, and the usable profiles it pins come out normalized as it says. The JSON
- * Schema's side of the same fixtures is test/schema.test.ts's.
+ * Schema's side of the same fixtures is test/schema.test.ts's. The cases of where the CLI's user
+ * config lives are data the readers run; here they only hold their own shape.
  */
 
 import { describe, expect, it } from "vitest"
 import { parseProfileFile } from "./parse.js"
-import { outcomeOf, PROFILE_FIXTURES, problemLabel } from "./testing/index.js"
+import { CLI_CONFIG_LOCATIONS, outcomeOf, PROFILE_FIXTURES, problemLabel } from "./testing/index.js"
 import { CREDENTIAL_POLICIES, PROBLEM_CODES } from "./types.js"
 
 const CASES = PROFILE_FIXTURES.flatMap((fixture) =>
@@ -49,8 +50,9 @@ describe("the shared profile fixtures", () => {
         ])
       }),
     )
+    // The codes of a reader's own rules: what it cannot serve, and its token endpoint's fragment.
     const readers = PROBLEM_CODES.filter(
-      (code) => code.endsWith("-served") || code === "url-missing",
+      (code) => code.endsWith("-served") || code === "url-missing" || code === "url-fragment",
     )
     expect(PROBLEM_CODES.filter((code) => !earned.has(code) && !readers.includes(code))).toEqual([])
   })
@@ -81,5 +83,26 @@ describe("problemLabel", () => {
     expect(problemLabel({ code: "not-json", line: 3, column: 14 })).toBe(
       "not-json (line 3, column 14)",
     )
+  })
+})
+
+describe("the cases of where the CLI's user config lives", () => {
+  it("each say what they pin and cover every platform, variable and outcome", () => {
+    for (const { about } of CLI_CONFIG_LOCATIONS) expect(about).toMatch(/^\S.+\.$/)
+    const abouts = CLI_CONFIG_LOCATIONS.map(({ about }) => about)
+    expect(new Set(abouts).size).toBe(abouts.length)
+    const platforms = new Set(CLI_CONFIG_LOCATIONS.map(({ platform }) => platform))
+    expect([...platforms].sort()).toEqual(["darwin", "linux", "win32"])
+    const variables = new Set(CLI_CONFIG_LOCATIONS.flatMap(({ env }) => Object.keys(env)))
+    expect([...variables].sort()).toEqual(["APPDATA", "PULSE_CLI_CONFIG", "XDG_CONFIG_HOME"])
+    const named = CLI_CONFIG_LOCATIONS.filter(({ explicit }) => explicit)
+    expect(named.length).toBeGreaterThan(2)
+    expect(named.every(({ env, path }) => env.PULSE_CLI_CONFIG === path)).toBe(true)
+  })
+
+  it("end in the CLI's folder and file wherever no variable names the file", () => {
+    const found = CLI_CONFIG_LOCATIONS.filter(({ explicit }) => !explicit)
+    expect(found.length).toBeGreaterThan(8)
+    for (const { path } of found) expect(path).toMatch(/[/\\]pulse-cli[/\\]config\.json$/)
   })
 })

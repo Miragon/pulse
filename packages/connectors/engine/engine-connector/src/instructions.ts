@@ -1,6 +1,7 @@
 import { MAX_PAGE_SIZE } from "./schemas/index.js"
 import { MAX_VARIABLE_VALUE_CHARS } from "./lib/mcp/variable-truncation.js"
 import type { EngineToolset } from "./lib/mcp/toolsets.js"
+import type { EngineDialect } from "./view-models.js"
 
 /** Rules for EVERY engine tool, once instead of per description (the `engine` text alone was a fifth of the surface). */
 export interface EngineInstructionsInput {
@@ -15,6 +16,17 @@ export interface EngineInstructionsInput {
   defaultEngine?: string
   /** The playbooks name only the writes the toolset registers (checked by the app's instructions test). */
   toolset: EngineToolset
+  /**
+   * Whether ENGINE_BOARDS_DIR holds a board the server shows: then the rules say how one opens.
+   * engine_list_engines names them, so the rules stay the same size however many there are.
+   */
+  hasBoards?: boolean
+  /**
+   * The dialects of the usable engines (default: Camunda 7's alone). The rules name only what
+   * their tools serve: Camunda 7's tools where one is configured, and where a Camunda 8 engine
+   * is, where it shows and that the rest neither offer it nor take it as the default.
+   */
+  dialects?: readonly EngineDialect[]
 }
 
 function routingRule({ engineIds, profileCount, defaultEngine }: EngineInstructionsInput): string {
@@ -109,7 +121,36 @@ function remediationRule(toolset: EngineToolset): string {
   )
 }
 
+/** Only on a server with boards: where they are listed, and how one opens. */
+const BOARD_RULE =
+  "- Boards: engine_list_engines lists them; engine_open_cockpit with view board and a board's " +
+  "id shows one to the user, read from the engines the board names; its facts are that board's " +
+  "numbers."
+
+/** Only on a server with a Camunda 7 and a Camunda 8 engine: what reads the latter, what not. */
+const BOARDS_ONLY_RULE =
+  "- Camunda 8 engines (dialect c8 in engine_list_engines) show on boards only (engine_open_cockpit " +
+  "with view board); other tools offer none and refuse a c8 default: ENGINE_DIALECT_NOT_SERVED."
+
+/** A server of Camunda 8 engines alone: the tools it registers show them, nothing else. */
+const CAMUNDA_8_SERVER_RULE =
+  "- Its engines (dialect c8 in engine_list_engines) show on boards only: engine_open_cockpit with " +
+  "view board shows one, landing the engines and boards to pick from; in its facts null is " +
+  "unknown, never 0."
+
+/** The rules of a server without a Camunda 7 engine: only what its four tools and feeds do. */
+function camunda8Instructions(input: EngineInstructionsInput): string {
+  return [
+    "engine (Camunda 8, which this server reads on boards):",
+    CAMUNDA_8_SERVER_RULE,
+    ...(input.hasBoards === true ? [BOARD_RULE] : []),
+    HAND_OFF_RULE,
+  ].join("\n")
+}
+
 export function engineInstructions(input: EngineInstructionsInput): string {
+  const dialects = input.dialects ?? ["c7"]
+  if (!dialects.includes("c7")) return camunda8Instructions(input)
   return [
     "engine (the Camunda 7 REST API of Camunda 7, CIB seven and Operaton):",
     `- Engine routing: ${routingRule(input)}`,
@@ -120,7 +161,7 @@ export function engineInstructions(input: EngineInstructionsInput): string {
     ...(input.toolset === "read-only" ? [] : [VARIABLE_INPUT_RULE]),
     // The tool families are tools/list's; only what history covers is said here.
     "- History (engine_query_historic_*) covers finished instances, activities, tasks, variables " +
-      "and resolved incidents.",
+      "and resolved incidents (incidents need history level FULL).",
     // How to read one whole and never to write a cut value back are said where they apply: the
     // runtime reads' `variableName` and the variable writes (`CUT_VALUE_WRITE_RULE`).
     `- Variable reads cut string values over ${MAX_VARIABLE_VALUE_CHARS} chars (truncated: true).`,
@@ -131,6 +172,8 @@ export function engineInstructions(input: EngineInstructionsInput): string {
       "version, diagramVersion names only the drawn diagram.",
     // Which tool answers "how is the engine": the triage for the model, the cockpit for the user.
     "- Engine state: engine_status triages, engine_open_cockpit shows the user.",
+    ...(input.hasBoards === true ? [BOARD_RULE] : []),
+    ...(dialects.includes("c8") ? [BOARDS_ONLY_RULE] : []),
     HAND_OFF_RULE,
     remediationRule(input.toolset),
   ].join("\n")

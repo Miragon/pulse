@@ -110,6 +110,45 @@ describe("IdText (U2, U13)", () => {
   })
 })
 
+describe("IdText's copy button in a table row", () => {
+  const copyButton = () => screen.getByRole("button", { name: /5f0ce78e/ })
+  const classes = () => copyButton().className.split(/\s+/)
+
+  it("is the 24 px control (xs), in the tab order wherever it shows", () => {
+    render(<IdText value={UUID} />)
+    expect(classes()).toContain("size-control-xs")
+    expect(copyButton().getAttribute("tabindex")).toBeNull()
+    expect(copyButton().hasAttribute("hidden")).toBe(false)
+  })
+
+  it("turns transparent in a row on a hover screen, never hidden, so a row stays one quiet line", () => {
+    render(<IdText value={UUID} />)
+    // Only in a row (`tr`), only where a pointer can hover: elsewhere it always shows.
+    expect(classes()).toContain("[@media(hover:hover)]:[tr_&]:opacity-0")
+    expect(classes().some((name) => /(^|:)(invisible|hidden)$/.test(name))).toBe(false)
+  })
+
+  it("keeps its row at the row height and draws its focus inside itself", () => {
+    render(<IdText value={UUID} />)
+    // Into the cell's padding above and below: 24 px in a 28 px row whose cell pads 4 px.
+    expect(classes()).toContain("[tr_&]:-my-(--cell-py)")
+    // Inset, so a cell at the region's edge never cuts the ring.
+    expect(classes()).toContain("focus-visible:ring-inset")
+    expect(classes()).not.toContain("focus-visible:ring-offset-2")
+  })
+
+  it("shows while the pointer is over the row or focus is in it, and on its own focus", () => {
+    render(<IdText value={UUID} />)
+    expect(classes()).toEqual(
+      expect.arrayContaining([
+        "[tr:hover_&]:opacity-100",
+        "[tr:focus-within_&]:opacity-100",
+        "focus-visible:opacity-100",
+      ]),
+    )
+  })
+})
+
 describe("copyText", () => {
   it("falls back to the selection copy without the Clipboard API", async () => {
     Object.defineProperty(navigator, "clipboard", { configurable: true, value: undefined })

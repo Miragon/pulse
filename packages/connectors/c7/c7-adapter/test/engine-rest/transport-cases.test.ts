@@ -10,6 +10,7 @@ import {
   type TransportCase,
 } from "@miragon/pulse-http/testing"
 import { startCaseEngine } from "@miragon/pulse-http/testing/loopback"
+import type { EngineCredentials } from "@miragon/pulse-runtime-view/ports"
 import { describe, expect, test, vi } from "vitest"
 import {
   EngineHttp,
@@ -17,7 +18,6 @@ import {
   LosslessJson,
   UnexpectedAnswerError,
 } from "../../src/engine-rest/index.js"
-import type { EngineCredentials } from "../../src/engine-rest/http/engine-wire.js"
 import { RequestArguments } from "../../src/engine-rest/request-arguments.js"
 
 const ADAPTER: readonly CaseCapability[] = ["basic", "read-only"]

@@ -116,6 +116,9 @@ function definitionStatistics() {
  */
 function overviewResource(pathname: string): { status: number; body: unknown } | null {
   switch (pathname) {
+    // What the engine is: a board's engine strip names its product.
+    case "/engine-rest/telemetry/data":
+      return { status: 200, body: { product: { name: "CIB seven", version: "2.2.0" } } }
     case "/engine-rest/process-definition/statistics":
       return { status: 200, body: definitionStatistics() }
     case "/engine-rest/incident":
@@ -140,7 +143,8 @@ const INVOICE_INSTANCE = "pi-invoice-42"
 /**
  * Its two open incidents: one at an element the diagram names (`approveInvoice`), one at an
  * element the diagram does not hold (`chargeCard`, the stub jobs' element), named by its id.
- * Only reads scoped to this instance see them; the engine-wide reads stay empty.
+ * Only reads scoped to this instance or naming one by its id see them (the incident view: the
+ * incident, then its failed job); the engine-wide reads stay empty.
  */
 function invoiceIncident(id: string, activityId: string, incidentMessage: string) {
   return {
@@ -163,6 +167,30 @@ const INVOICE_INSTANCE_INCIDENTS = [
   invoiceIncident("inc-approve", "approveInvoice", "Approver lookup failed"),
   invoiceIncident("inc-charge", "chargeCard", "Card declined"),
 ]
+
+/**
+ * The incident view's reads of one of {@link INVOICE_INSTANCE_INCIDENTS}: the incident by its id
+ * and the failed job its configuration names (no retries left); null for every other request.
+ */
+function invoiceIncidentResource(url: URL): { status: number; body: unknown } | null {
+  const byId = /^\/engine-rest\/incident\/([^/]+)$/.exec(url.pathname)
+  const incident = byId
+    ? INVOICE_INSTANCE_INCIDENTS.find((one) => one.id === decodeURIComponent(byId[1]))
+    : undefined
+  if (incident) return { status: 200, body: incident }
+  const jobId = url.pathname === "/engine-rest/job" ? url.searchParams.get("jobId") : null
+  const failed = INVOICE_INSTANCE_INCIDENTS.find((one) => one.configuration === jobId)
+  if (!failed) return null
+  return {
+    status: 200,
+    body: [
+      {
+        ...failedJob(failed.configuration, INVOICE_INSTANCE, failed.incidentMessage),
+        failedActivityId: failed.activityId,
+      },
+    ],
+  }
+}
 
 /** The instance view's reads of {@link INVOICE_INSTANCE}, or null. */
 function instanceResource(url: URL): { status: number; body: unknown } | null {
@@ -217,6 +245,51 @@ function instanceResource(url: URL): { status: number; body: unknown } | null {
   }
 }
 
+/** The two invoice instances a board's list shows: the one the instance view serves, and one more. */
+function historicInvoice(id: string, businessKey: string, startTime: string) {
+  return {
+    id,
+    processDefinitionId: INVOICE_V3,
+    processDefinitionKey: "invoice",
+    processDefinitionName: "Invoice Receipt",
+    processDefinitionVersion: 3,
+    businessKey,
+    startTime,
+    state: "ACTIVE",
+  }
+}
+
+const RUNNING_INVOICES = [
+  historicInvoice(INVOICE_INSTANCE, "INV-2026-0042", "2026-10-10T07:30:00.000+0000"),
+  historicInvoice("pi-invoice-43", "INV-2026-0043", "2026-10-10T07:45:00.000+0000"),
+]
+
+/**
+ * A board's reads beyond the overview's (fixtures/boards): the history's running invoices (POST,
+ * the filter in the body) and their count, both waiting at `approveInvoice` as the process
+ * statistics say, and the runtime's instances with an incident, none engine-wide as the stub's
+ * other engine-wide reads say. Null for every other request, so no other view reads them.
+ */
+function boardRoute(
+  method: string,
+  url: URL,
+  body: unknown,
+): { status: number; body: unknown } | null {
+  const filter = (body ?? {}) as { processDefinitionKey?: unknown; activityIdIn?: unknown }
+  const invoices = filter.processDefinitionKey === "invoice"
+  if (method === "POST" && url.pathname === "/engine-rest/history/process-instance/count") {
+    return { status: 200, body: { count: invoices ? RUNNING_INVOICES.length : 0 } }
+  }
+  if (method === "POST" && url.pathname === "/engine-rest/history/process-instance") {
+    return { status: 200, body: invoices ? RUNNING_INVOICES : [] }
+  }
+  const withIncident = url.searchParams.get("withIncident") === "true"
+  if (method === "GET" && url.pathname === "/engine-rest/process-instance" && withIncident) {
+    return { status: 200, body: [] }
+  }
+  return null
+}
+
 function filterDefinitions(query: URLSearchParams): ProcessDefinition[] {
   const key = query.get("key")
   return DEFINITIONS.filter((d) => !key || d.key === key)
@@ -252,6 +325,7 @@ function route(url: URL): { status: number; body: unknown } {
   }
   const resource =
     instanceResource(url) ??
+    invoiceIncidentResource(url) ??
     historyResource(url) ??
     overviewResource(pathname) ??
     definitionResource(pathname)
@@ -303,8 +377,10 @@ function failedJob(id: string, processInstanceId: string, exceptionMessage: stri
  * The stub's jobs. `job-1` is the write scenario's (`write-refresh.spec.ts`):
  * failed until a retry lands, the one stateful corner of the stub's engine
  * data (the search holds are scenario control), owned by that one scenario.
- * `job-2` and `job-3` are never written: the row menu scenario opens the
- * menu of a row with another row under it.
+ * The others are never written: the row menu scenario opens the menu of
+ * `job-2`'s row with another row under it. Sixteen, so a 600 px budget shows
+ * some of them ("k of 16") under the compact cockpit's 28 px rows, its row actions
+ * included, and 800 px all.
  */
 function stubJobs(): Map<string, StubJob> {
   return new Map(
@@ -312,6 +388,19 @@ function stubJobs(): Map<string, StubJob> {
       failedJob("job-1", "pi-1", "Card declined"),
       failedJob("job-2", "pi-2", "Card expired"),
       failedJob("job-3", "pi-3", "Billing address unknown"),
+      failedJob("job-4", "pi-4", "Insufficient funds"),
+      failedJob("job-5", "pi-5", "Issuer unavailable"),
+      failedJob("job-6", "pi-6", "Limit exceeded"),
+      failedJob("job-7", "pi-7", "Card blocked"),
+      failedJob("job-8", "pi-8", "Currency not supported"),
+      failedJob("job-9", "pi-9", "Gateway timeout"),
+      failedJob("job-10", "pi-10", "Fraud check failed"),
+      failedJob("job-11", "pi-11", "Security code mismatch"),
+      failedJob("job-12", "pi-12", "Account closed"),
+      failedJob("job-13", "pi-13", "Risk score too high"),
+      failedJob("job-14", "pi-14", "Bank holiday"),
+      failedJob("job-15", "pi-15", "Invalid IBAN"),
+      failedJob("job-16", "pi-16", "Duplicate payment"),
     ].map((job) => [job.id, job]),
   )
 }
@@ -394,6 +483,10 @@ function createSearchHolds() {
       for (const answer of entry.waiting) answer()
       return entry.waiting.length
     },
+    /** How many requests for `term` wait for its release. */
+    waiting(term: string): number {
+      return held.get(term)?.waiting.length ?? 0
+    },
     /** Answers now or, while `term` is held, once it is released. */
     answer(term: string, send: () => void): void {
       const entry = term === "" ? undefined : held.get(term)
@@ -409,8 +502,9 @@ function createSearchHolds() {
  * server ACTUALLY builds (view envelope, data shape, engine id) from a fixed
  * engine response (`fixtures/process-definitions.json` with their statistics,
  * no open incident, the `invoice` diagram `fixtures/invoice.bpmn` with two instances at
- * `approveInvoice`, twelve started in the last 30 days in its history, three failed jobs, and
- * one invoice instance with two open incidents that only its own reads see).
+ * `approveInvoice`, twelve started in the last 30 days in its history, sixteen failed jobs, and
+ * one invoice instance with two open incidents that only its own reads and a read by an
+ * incident's id see, and the reads of a board over it, `boardRoute`).
  * The broken base URL turns any tool into a genuine `isError` result: an
  * engine 503 through the server's own error mapping.
  *
@@ -419,8 +513,8 @@ function createSearchHolds() {
  * searches for `<term>` (its business-key search without the `%` wildcards,
  * case insensitive) wait; `POST /__control/release?term=<term>` drops that
  * hold, and the last release answers the waiting ones and lets later ones
- * through. Holds are per term, so scenarios searching for other terms never
- * wait on each other.
+ * through; `GET /__control/waiting?term=<term>` says how many wait. Holds are
+ * per term, so scenarios searching for other terms never wait on each other.
  */
 export async function startStubEngine(): Promise<StubEngine> {
   const jobs = stubJobs()
@@ -438,11 +532,14 @@ export async function startStubEngine(): Promise<StubEngine> {
         send(200, { held: term })
       } else if (req.method === "POST" && url.pathname === "/__control/release") {
         send(200, { released: holds.release(term) })
+      } else if (req.method === "GET" && url.pathname === "/__control/waiting") {
+        send(200, { waiting: holds.waiting(term) })
       } else {
         const method = req.method ?? "GET"
         const { status, body } =
           realisticRoute(method, url, requestBody) ??
           jobRoute(method, url, requestBody, jobs) ??
+          boardRoute(method, url, requestBody) ??
           route(url)
         holds.answer(term, () => send(status, body))
       }

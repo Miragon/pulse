@@ -8,7 +8,8 @@
 
 See what your Camunda 7, CIB seven or Operaton engine is running, right next to your BPMN models:
 the deployed diagram with its instances and incidents, the root cause of a failure next to your
-code, and a retry once you fixed it. Pulse is an early version, so its features can still change.
+code, and a retry once you fixed it. It reads Camunda 8 clusters too, from 8.9 on, without writing.
+Pulse is an early version, so its features can still change.
 
 Free and open source (MIT). No account, and your engines stay yours: Pulse talks to their REST API
 from your editor.
@@ -32,7 +33,8 @@ from your editor.
 3. Pick a process, or run **Pulse: Show Runtime Data for This Model** on an open `.bpmn` file.
 
 Every profile setting, production engines and Open in Cockpit links:
-[Configuration](https://miragon.github.io/pulse/vscode/configuration).
+[Configuration](https://miragon.github.io/pulse/vscode/configuration). A Camunda 8 cluster's
+profile, its login and what Pulse reads there: [Camunda 8](https://miragon.github.io/pulse/vscode/camunda8).
 
 ## The runtime on your model
 
@@ -86,8 +88,9 @@ deployed diagram across engines, so your team shares one view of its processes.
 
 - Needs VS Code 1.101 or later, or an editor built on it such as Cursor or VSCodium (from
   [Open VSX](https://open-vsx.org/extension/miragon-gmbh/pulse-cockpit)).
-- Works with Operaton, CIB seven and Camunda 7, not with Camunda 8. Engines without a login or
-  with Basic auth.
+- Works with Operaton, CIB seven and Camunda 7, engines without a login or with Basic auth.
+- Reads Camunda 8 from 8.9 on, without a login, with Basic auth or with client credentials, and
+  changes no data there.
 - Calls go through your editor's proxy and certificate settings.
 - Pulse also answers in your AI chat and your terminal: [Pulse](https://github.com/Miragon/pulse#readme).
 

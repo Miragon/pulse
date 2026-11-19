@@ -354,6 +354,13 @@ export interface Outcome {
 }
 
 /**
+ * The limit of a test that runs the CLI hundreds of times: each run builds the whole program
+ * (every operation's command and options), so such a test takes 2 to 4 s alone and took up to
+ * 45 s on the CI runner, where the package's suite shares four cores with every other package's.
+ */
+export const MANY_RUNS = { timeout: 180_000 }
+
+/**
  * Runs a CLI entry point (`run` of src/cli/run.ts, passed in because test support code must not
  * import the CLI layer) on a fake runtime and captures the outcome.
  */

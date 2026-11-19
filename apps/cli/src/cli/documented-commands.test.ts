@@ -13,6 +13,7 @@ import {
   execute,
   type FakeRuntime,
   fakeRuntime,
+  MANY_RUNS,
 } from "../../test/support/fake-runtime.js"
 import { SECOND_NAME } from "../../test/support/package-bins.js"
 import { WorkflowEngine } from "../../test/support/workflow-engine.js"
@@ -220,15 +221,19 @@ describe("documented command lines run in the CLI", () => {
     expect(documented.length).toBeGreaterThan(40)
   })
 
-  it("runs every example of every operation with --dry-run, previewing its request", async () => {
-    const examples = catalog.operations.flatMap((operation) =>
-      examplesFor(operation, catalog.schemas).map(
-        (example) => [operation, [...shellWords(example), "--dry-run"]] as const,
-      ),
-    )
-    expect(examples.length).toBeGreaterThan(catalog.operations.length)
-    expect(await previewFailures(examples)).toEqual([])
-  })
+  it(
+    "runs every example of every operation with --dry-run, previewing its request",
+    MANY_RUNS,
+    async () => {
+      const examples = catalog.operations.flatMap((operation) =>
+        examplesFor(operation, catalog.schemas).map(
+          (example) => [operation, [...shellWords(example), "--dry-run"]] as const,
+        ),
+      )
+      expect(examples.length).toBeGreaterThan(catalog.operations.length)
+      expect(await previewFailures(examples)).toEqual([])
+    },
+  )
 
   it("notices an example whose preview does not match its operation", async () => {
     const list = catalog.operations.find((operation) => operation.operationId === "getTasks")!

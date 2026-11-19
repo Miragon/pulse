@@ -2,7 +2,7 @@ import { CAUSE_OPERATIONS, CORE_ROUTES, isMissing } from "@miragon/pulse-c7-core
 import { ROUTES } from "@miragon/pulse-c7-core/routes"
 import { INSPECT_OPERATIONS } from "@miragon/pulse-c7-core/testing"
 import { describe, expect, test } from "vitest"
-import { EngineRequestError, RestEngineClient } from "../../src/engine-rest/index.js"
+import { EngineRequestError } from "../../src/engine-rest/index.js"
 import { CoreRequests } from "../../src/engine-rest/inspect/core-requests.js"
 import { HttpEngineTransport } from "../../src/engine-rest/inspect/http-engine-transport.js"
 import { httpOver } from "../support/fake-engine.js"
@@ -10,6 +10,10 @@ import { fakeEngineRest, type RestRoute } from "../support/fake-engine-rest.js"
 
 function get(path: string, answer: unknown): RestRoute {
   return { route: `GET ${path}`, answer }
+}
+
+function post(path: string, answer: unknown): RestRoute {
+  return { route: `POST ${path}`, answer }
 }
 
 function transportOver(routes: readonly RestRoute[]) {
@@ -35,15 +39,15 @@ describe("c7-core's port over the adapter's HTTP", () => {
   test("reads the text of each request that holds an incident's cause in c7-core", () => {
     for (const operation of CAUSE_OPERATIONS.values()) {
       expect(CoreRequests.answersText(routeOf(operation))).toBe(true)
-      expect(CoreRequests.textPath(operation, "r1")).toMatch(/\/r1\//)
+      expect(CoreRequests.pathOf(routeOf(operation), ["r1"])).toMatch(/\/r1\//)
     }
   })
 
-  test("reads a cause only through a request that answers with text", () => {
-    const engine = fakeEngineRest([])
-    const client = new RestEngineClient(httpOver(engine))
-    expect(() => client.causeText("getJobs", "j1")).toThrow(RangeError)
-    expect(engine.requests).toEqual([])
+  test("reads a text only from a route that answers with text", async () => {
+    const { transport, engine } = transportOver([get("/job", [{ id: "j1" }])])
+    const answer = await transport.send("getJobs", { pathArgs: [], query: {} })
+    expect([transport.json(answer), transport.text(answer)]).toEqual([[{ id: "j1" }], undefined])
+    expect(engine.requests.map((request) => request.route)).toEqual(["GET /job"])
   })
 
   test("fills the path arguments encoded and reads text only by a route that answers text", () => {
@@ -51,10 +55,8 @@ describe("c7-core's port over the adapter's HTTP", () => {
       "/process-instance/a%2Fb/activity-instances",
     )
     expect(CoreRequests.answersText(routeOf("getActivityInstanceTree"))).toBe(false)
-    expect(CoreRequests.textPath("getStacktrace", "j1")).toBe("/job/j1/stacktrace")
-    expect(() => CoreRequests.textPath("getJobs", "j1")).toThrow(RangeError)
-    expect(() => CoreRequests.textPath("deleteProcessInstance", "p1")).toThrow(RangeError)
-    expect(() => CoreRequests.textPath("toString", "p1")).toThrow(RangeError)
+    expect(CoreRequests.pathOf(routeOf("getStacktrace"), ["j1"])).toBe("/job/j1/stacktrace")
+    expect(CoreRequests.answersText(routeOf("getJobs"))).toBe(false)
   })
 
   test("refuses an operation c7-core's table does not hold before anything is sent", async () => {
@@ -66,32 +68,62 @@ describe("c7-core's port over the adapter's HTTP", () => {
   })
 
   test.each([
-    ["a write", "deleteProcessInstance", ["p1"]],
-    ["a POST that reads", "queryProcessInstances", []],
-  ])("refuses %s of the whole route table before anything is sent", async (_name, id, args) => {
-    const route = ROUTES[id]
-    if (route === undefined) {
-      throw new Error(`the route table holds no ${id}`)
-    }
-    const engine = fakeEngineRest([])
-    const wire = new HttpEngineTransport(httpOver(engine, true))
-    await expect(wire.send(route, { pathArgs: args, query: {}, body: {} })).rejects.toThrow(
-      RangeError,
-    )
-    expect(engine.requests).toEqual([])
-  })
+    ["a write", "deleteProcessInstance", ["p1"], {}],
+    ["a write without a body", "deleteProcessInstance", ["p1"], undefined],
+    ["a GET with a body", "getIncidents", [], { ignored: true }],
+    ["a POST that reads without its body", "queryProcessInstances", [], undefined],
+  ])(
+    "refuses %s of the whole route table before anything is sent",
+    async (_name, id, args, body) => {
+      const route = ROUTES[id]
+      if (route === undefined) {
+        throw new Error(`the route table holds no ${id}`)
+      }
+      const engine = fakeEngineRest([])
+      const wire = new HttpEngineTransport(httpOver(engine, true))
+      const input = { pathArgs: args, query: {}, ...(body === undefined ? {} : { body }) }
+      await expect(wire.send(route, input)).rejects.toThrow(RangeError)
+      expect(engine.requests).toEqual([])
+    },
+  )
 
-  test("sends each route of c7-core's table as the reading GET it is, without a body", async () => {
+  test("sends each route of c7-core's table by its own method, all of them reads", async () => {
     expect(
       Object.values(CORE_ROUTES).filter(
-        (route) => route.method !== "GET" || route.effect !== "read",
+        (route) => !["GET", "POST"].includes(route.method) || route.effect !== "read",
       ),
     ).toEqual([])
-    const { transport, engine } = transportOver([get("/incident", [])])
-    await transport.send("getIncidents", { pathArgs: [], query: {}, body: { ignored: true } })
-    expect(engine.requests.map((request) => [request.route, request.body])).toEqual([
-      ["GET /incident", ""],
+    const { transport, engine } = transportOver([
+      get("/incident", []),
+      post("/history/process-instance", []),
     ])
+    await transport.send("getIncidents", { pathArgs: [], query: {} })
+    await transport.send("queryHistoricProcessInstances", {
+      pathArgs: [],
+      query: { firstResult: "0", maxResults: "6" },
+      body: { processInstanceIds: ["p1"], unfinished: true },
+    })
+    expect(engine.requests.map((request) => [request.route, request.query, request.body])).toEqual([
+      ["GET /incident", {}, ""],
+      [
+        "POST /history/process-instance",
+        { firstResult: "0", maxResults: "6" },
+        '{"processInstanceIds":["p1"],"unfinished":true}',
+      ],
+    ])
+  })
+
+  test("sends a reading POST on a connection for reads", async () => {
+    const { transport, engine } = transportOver([
+      post("/history/process-instance/count", { count: 2 }),
+    ])
+    const answer = await transport.send("queryHistoricProcessInstancesCount", {
+      pathArgs: [],
+      query: {},
+      body: { unfinished: true },
+    })
+    expect(transport.json(answer)).toEqual({ count: 2 })
+    expect(engine.requests.map((request) => request.body)).toEqual(['{"unfinished":true}'])
   })
 
   test("reads JSON answers with their query and text answers as text", async () => {

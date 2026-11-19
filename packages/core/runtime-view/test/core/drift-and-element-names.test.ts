@@ -106,7 +106,7 @@ describe("the drift between the open file and the engine", () => {
     })
   })
 
-  test("says when the file is not deployed at all", async () => {
+  test("says when the file is not deployed at all, or not visible to the login", async () => {
     const fixture = panelFixture()
     const panel = new DefinitionPanel(fixture.context, {
       bpmnProcessId: BpmnProcessId("new-process"),
@@ -117,7 +117,12 @@ describe("the drift between the open file and the engine", () => {
 
     expect(fixture.lastState()).toMatchObject({
       status: "failed",
-      problem: { title: "new.bpmn is not deployed on local." },
+      problem: {
+        title: "new.bpmn is not deployed on local, or you may not have permission to see it.",
+        detail:
+          "Pulse finds no version of new-process there. Deploy it or ask for the permission to read it, then refresh.",
+        canEditConnection: false,
+      },
     })
   })
 

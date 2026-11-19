@@ -2,13 +2,22 @@ import type { WriteRequest } from "@miragon/pulse-runtime-view/core"
 import { beforeEach, describe, expect, test, vi } from "vitest"
 import { WriteDialog } from "../../src/host/panels/write-dialog.js"
 
-const shown = vi.hoisted(() => ({ details: [] as string[] }))
+const shown = vi.hoisted(() => ({
+  details: [] as string[],
+  answer: undefined as string | undefined,
+  typed: undefined as string | undefined,
+  hints: [] as (string | undefined)[],
+}))
 
 vi.mock("vscode", () => ({
   window: {
     showWarningMessage: (_title: string, options: { detail: string }) => {
       shown.details.push(options.detail)
-      return Promise.resolve(undefined)
+      return Promise.resolve(shown.answer)
+    },
+    showInputBox: (options: { validateInput: (value: string) => string | undefined }) => {
+      shown.hints.push(options.validateInput("localhost"), options.validateInput("localhost:18090"))
+      return Promise.resolve(shown.typed)
     },
   },
 }))
@@ -23,6 +32,30 @@ function request(action: WriteRequest["action"]): WriteRequest {
 describe("the write dialog", () => {
   beforeEach(() => {
     shown.details = []
+    shown.answer = undefined
+    shown.typed = undefined
+    shown.hints = []
+  })
+
+  test("goes ahead without asking where the policy asks for no confirmation", async () => {
+    expect(await new WriteDialog(request("retryIncident"), ENGINE).confirm("none")).toBe(true)
+    expect(shown.details).toEqual([])
+  })
+
+  test("asks for the host of an engine off this machine after the dialog, and goes ahead only when it is typed", async () => {
+    const dialog = new WriteDialog(request("moveToken"), ENGINE)
+    shown.answer = "Move"
+
+    shown.typed = "localhost:18090"
+    expect(await dialog.confirm("typeHost")).toBe(true)
+    shown.typed = "localhost"
+    expect(await dialog.confirm("typeHost")).toBe(false)
+    expect(shown.hints.slice(0, 2)).toEqual(["Type localhost:18090", undefined])
+  })
+
+  test("asks for no host once the dialog is dismissed", async () => {
+    expect(await new WriteDialog(request("moveToken"), ENGINE).confirm("typeHost")).toBe(false)
+    expect(shown.hints).toEqual([])
   })
 
   test("says that the engine does not record who migrated when it has no login", async () => {

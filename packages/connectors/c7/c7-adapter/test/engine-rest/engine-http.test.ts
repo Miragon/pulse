@@ -1,6 +1,6 @@
+import type { EngineCredentials } from "@miragon/pulse-runtime-view/ports"
 import { describe, expect, test, vi } from "vitest"
 import { EngineHttp, EngineRequestError } from "../../src/engine-rest/index.js"
-import type { EngineCredentials } from "../../src/engine-rest/http/engine-wire.js"
 import { engineFailure, REST_URL } from "../support/fake-engine-rest.js"
 
 const MEGABYTE = new Uint8Array(1024 * 1024)
@@ -83,6 +83,27 @@ describe("the engine's HTTP connection", () => {
         message: `${REST_URL}/version did not answer within 60000 ms`,
       })
       await vi.advanceTimersByTimeAsync(60_000)
+      await read
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  test("gives up at the profile's timeout where the connection names one", async () => {
+    vi.useFakeTimers()
+    try {
+      const http = new EngineHttp({
+        url: REST_URL,
+        credentials: { kind: "none" },
+        writes: false,
+        send: () => new Promise<Response>(() => undefined),
+        timeoutMs: 250,
+      })
+      const read = expect(http.read("/version")).rejects.toMatchObject({
+        failure: "unanswered",
+        message: `${REST_URL}/version did not answer within 250 ms`,
+      })
+      await vi.advanceTimersByTimeAsync(250)
       await read
     } finally {
       vi.useRealTimers()
@@ -178,6 +199,23 @@ describe("the engine's HTTP connection", () => {
     })
   })
 
+  test("says to add a login when the engine asks for one and Pulse sent none", async () => {
+    const asked = () => Promise.resolve(new Response("", { status: 401 }))
+    await expect(httpAnswering(asked).read("/version")).rejects.toMatchObject({
+      failure: "answered",
+      status: 401,
+      message: "HTTP 401 Unauthorized",
+      hint: "The engine asks for a login, and Pulse sent none. Add one with Set credentials.",
+    })
+    const refused = new EngineHttp({
+      url: REST_URL,
+      credentials: { kind: "basic", username: "demo", password: "s3cret" },
+      writes: false,
+      send: asked,
+    })
+    await expect(refused.read("/version")).rejects.toMatchObject({ status: 401, hint: undefined })
+  })
+
   test("masks the credentials an engine text echoes", async () => {
     const echo = `password s3cret,\n\tsent Basic ${btoa("demo:s3cret")}`
     const http = new EngineHttp({
@@ -219,6 +257,16 @@ describe("the engine's HTTP connection", () => {
       "a password with a line break",
       httpWith({ kind: "basic", username: "demo", password: "s3\ncret" }),
       "The user name or password holds a control character",
+    ],
+    [
+      "client credentials, which only Camunda 8 takes",
+      httpWith({
+        kind: "clientCredentials",
+        tokenEndpoint: "https://login.example.com/oauth/token",
+        clientId: "pulse",
+        clientSecret: "s3cret",
+      }),
+      "This engine takes no client credentials: sign in to it with basic authentication or none",
     ],
   ])(
     "refuses every call on a connection with %s, sending nothing",

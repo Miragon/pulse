@@ -6,6 +6,8 @@ export default mergeConfig(
   defineConfig({
     test: {
       include: ["src/**/*.test.{ts,tsx}"],
+      // The engine suite needs Docker: vitest.engines.config.ts runs it (`test:engines`).
+      exclude: ["src/**/*.engine.test.ts"],
       coverage: {
         // Ratchet: frozen 2 points under the baseline. Raise when you
         // push coverage up; never lower. Documented re-baseline 2026-08-13:

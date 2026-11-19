@@ -1,0 +1,196 @@
+{
+  "case": "token-endpoint-refusal",
+  "probes": [
+    {
+      "arguments": {
+        "board": "cluster",
+        "view": "board"
+      },
+      "board": {
+        "asOf": "2026-11-15T09:00:00.000Z",
+        "engines": [
+          {
+            "failure": {
+              "code": "unauthorized",
+              "message": "the token endpoint refused the client: unauthorized_client (engine c8) Check auth.clientId in the engine's profile and the secret in the ENGINE_SECRET_* variable its auth.clientSecretEnv names; the server reads both at its start. The server asks the token endpoint again a minute after its last answer."
+            },
+            "name": "c8",
+            "state": "failed"
+          }
+        ],
+        "notes": [],
+        "rows": [
+          [
+            {
+              "groups": [
+                {
+                  "engine": "c8"
+                }
+              ],
+              "kind": "instanceList",
+              "widget": {
+                "columns": [
+                  "businessKey",
+                  "process",
+                  "state",
+                  "startedAt"
+                ],
+                "engines": [
+                  "c8"
+                ],
+                "filter": {
+                  "process": "pulse-order",
+                  "state": "running"
+                },
+                "title": "Orders",
+                "widget": "instanceList"
+              }
+            }
+          ]
+        ],
+        "title": "Cluster"
+      },
+      "facts": [
+        "{\"view\":\"board\",\"board\":\"cluster\",\"title\":\"Cluster\",\"asOf\":\"2026-11-15T09:00:00.000Z\",\"engines\":[{\"name\":\"c8\",\"state\":\"failed\",\"failure\":\"unauthorized\"}],\"tiles\":[{\"kind\":\"instanceList\",\"title\":\"Orders\",\"process\":\"pulse-order\",\"shown\":0,\"groups\":[{\"engine\":\"c8\",\"total\":null}]}]}"
+      ],
+      "failure": "unauthorized",
+      "matches": "describeEngine",
+      "sent": [
+        "POST /realms/pulse/protocol/openid-connect/token grant_type=client_credentials&audience=camunda&client_id=pulse-reader&client_secret=reader-secret"
+      ],
+      "tool": "engine_open_cockpit"
+    },
+    {
+      "arguments": {
+        "board": "cluster",
+        "view": "board"
+      },
+      "atSecond": 59,
+      "board": {
+        "asOf": "2026-11-15T09:00:59.000Z",
+        "engines": [
+          {
+            "failure": {
+              "code": "unauthorized",
+              "message": "the token endpoint refused the client: unauthorized_client (engine c8) Check auth.clientId in the engine's profile and the secret in the ENGINE_SECRET_* variable its auth.clientSecretEnv names; the server reads both at its start. The server asks the token endpoint again a minute after its last answer."
+            },
+            "name": "c8",
+            "state": "failed"
+          }
+        ],
+        "notes": [],
+        "rows": [
+          [
+            {
+              "groups": [
+                {
+                  "engine": "c8"
+                }
+              ],
+              "kind": "instanceList",
+              "widget": {
+                "columns": [
+                  "businessKey",
+                  "process",
+                  "state",
+                  "startedAt"
+                ],
+                "engines": [
+                  "c8"
+                ],
+                "filter": {
+                  "process": "pulse-order",
+                  "state": "running"
+                },
+                "title": "Orders",
+                "widget": "instanceList"
+              }
+            }
+          ]
+        ],
+        "title": "Cluster"
+      },
+      "facts": [
+        "{\"view\":\"board\",\"board\":\"cluster\",\"title\":\"Cluster\",\"asOf\":\"2026-11-15T09:00:59.000Z\",\"engines\":[{\"name\":\"c8\",\"state\":\"failed\",\"failure\":\"unauthorized\"}],\"tiles\":[{\"kind\":\"instanceList\",\"title\":\"Orders\",\"process\":\"pulse-order\",\"shown\":0,\"groups\":[{\"engine\":\"c8\",\"total\":null}]}]}"
+      ],
+      "failure": "unauthorized",
+      "matches": "describeEngine",
+      "sent": [],
+      "tool": "engine_open_cockpit"
+    },
+    {
+      "arguments": {
+        "board": "cluster",
+        "view": "board"
+      },
+      "atSecond": 61,
+      "board": {
+        "asOf": "2026-11-15T09:01:01.000Z",
+        "engines": [
+          {
+            "failure": {
+              "code": "unauthorized",
+              "message": "the token endpoint refused the client: unauthorized_client (engine c8) Check auth.clientId in the engine's profile and the secret in the ENGINE_SECRET_* variable its auth.clientSecretEnv names; the server reads both at its start. The server asks the token endpoint again a minute after its last answer."
+            },
+            "name": "c8",
+            "state": "failed"
+          }
+        ],
+        "notes": [],
+        "rows": [
+          [
+            {
+              "groups": [
+                {
+                  "engine": "c8"
+                }
+              ],
+              "kind": "instanceList",
+              "widget": {
+                "columns": [
+                  "businessKey",
+                  "process",
+                  "state",
+                  "startedAt"
+                ],
+                "engines": [
+                  "c8"
+                ],
+                "filter": {
+                  "process": "pulse-order",
+                  "state": "running"
+                },
+                "title": "Orders",
+                "widget": "instanceList"
+              }
+            }
+          ]
+        ],
+        "title": "Cluster"
+      },
+      "facts": [
+        "{\"view\":\"board\",\"board\":\"cluster\",\"title\":\"Cluster\",\"asOf\":\"2026-11-15T09:01:01.000Z\",\"engines\":[{\"name\":\"c8\",\"state\":\"failed\",\"failure\":\"unauthorized\"}],\"tiles\":[{\"kind\":\"instanceList\",\"title\":\"Orders\",\"process\":\"pulse-order\",\"shown\":0,\"groups\":[{\"engine\":\"c8\",\"total\":null}]}]}"
+      ],
+      "failure": "unauthorized",
+      "matches": "describeEngine",
+      "sent": [
+        "POST /realms/pulse/protocol/openid-connect/token grant_type=client_credentials&audience=camunda&client_id=pulse-reader&client_secret=reader-secret"
+      ],
+      "tool": "engine_open_cockpit"
+    }
+  ],
+  "profile": {
+    "auth": {
+      "audience": "camunda",
+      "clientId": "pulse-reader",
+      "clientSecretEnv": "ENGINE_SECRET_C8_CLIENT",
+      "tokenEndpoint": "http://127.0.0.1:<port>/realms/pulse/protocol/openid-connect/token",
+      "type": "clientCredentials"
+    },
+    "flavor": "camunda8",
+    "url": "http://127.0.0.1:<port>/v2"
+  },
+  "secrets": {
+    "ENGINE_SECRET_C8_CLIENT": "reader-secret"
+  }
+}

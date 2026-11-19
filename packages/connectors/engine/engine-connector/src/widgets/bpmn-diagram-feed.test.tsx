@@ -14,6 +14,11 @@ let queryClient = createTestQueryClient()
 const imported = vi.hoisted(() => ({ xml: [] as string[] }))
 vi.mock("bpmn-js/lib/NavigatedViewer", () => ({
   default: class {
+    // bpmn-js's frame inside the container: the canvas is its SVG.
+    constructor({ container }: { container: HTMLElement }) {
+      container.innerHTML =
+        '<div class="bjs-container"><div class="djs-container"><svg tabindex="0"></svg></div></div>'
+    }
     importXML(xml: string): Promise<{ warnings: [] }> {
       imported.xml.push(xml)
       return Promise.resolve({ warnings: [] })
@@ -77,7 +82,9 @@ describe("BpmnDiagram reads its diagram by definition id", () => {
 
     await waitFor(() => expect(imported.xml).toEqual([DIAGRAM, DIAGRAM]))
     expect(calls).toEqual([{ processDefinitionId: "order:2:d2", engine: "prod-b" }])
-    expect(screen.getAllByRole("img", { name: "BPMN process diagram" })).toHaveLength(2)
+    // The canvas alone is the image, never the frame around its controls.
+    const canvases = screen.getAllByRole("img", { name: "BPMN process diagram" })
+    expect(canvases.map((canvas) => canvas.tagName.toLowerCase())).toEqual(["svg", "svg"])
   })
 
   it("says the engine has no diagram for the version when the feed has none", async () => {

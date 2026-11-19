@@ -49,7 +49,7 @@ export function InstanceDiagramSection({
       {/* Textual token view next to the diagram: shows multi-instance
           nesting the diagram overlay can't, collapsed by default. */}
       {activityTree && (
-        <Section title={t("instanceDetail.sectionActivityTree")}>
+        <Section as="h2" title={t("instanceDetail.sectionActivityTree")}>
           <ActivityNode node={activityTree} />
         </Section>
       )}

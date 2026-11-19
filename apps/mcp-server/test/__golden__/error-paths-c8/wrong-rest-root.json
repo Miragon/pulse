@@ -1,0 +1,92 @@
+{
+  "case": "wrong-rest-root",
+  "probes": [
+    {
+      "arguments": {
+        "board": "cluster",
+        "view": "board"
+      },
+      "board": {
+        "asOf": "2026-11-15T09:00:00.000Z",
+        "engines": [
+          {
+            "failure": {
+              "code": "misconfigured",
+              "message": "[404 Not Found] No message available (engine c8) The profile's url must be the REST root of the cluster and end in /v2."
+            },
+            "name": "c8",
+            "state": "failed"
+          }
+        ],
+        "notes": [],
+        "rows": [
+          [
+            {
+              "groups": [
+                {
+                  "engine": "c8"
+                }
+              ],
+              "kind": "instanceList",
+              "widget": {
+                "columns": [
+                  "businessKey",
+                  "process",
+                  "state",
+                  "startedAt"
+                ],
+                "engines": [
+                  "c8"
+                ],
+                "filter": {
+                  "process": "pulse-order",
+                  "state": "running"
+                },
+                "title": "Orders",
+                "widget": "instanceList"
+              }
+            }
+          ]
+        ],
+        "title": "Cluster"
+      },
+      "facts": [
+        "{\"view\":\"board\",\"board\":\"cluster\",\"title\":\"Cluster\",\"asOf\":\"2026-11-15T09:00:00.000Z\",\"engines\":[{\"name\":\"c8\",\"state\":\"failed\",\"failure\":\"misconfigured\"}],\"tiles\":[{\"kind\":\"instanceList\",\"title\":\"Orders\",\"process\":\"pulse-order\",\"shown\":0,\"groups\":[{\"engine\":\"c8\",\"total\":null}]}]}"
+      ],
+      "failure": "misconfigured",
+      "matches": "describeEngine",
+      "sent": [
+        "GET /topology"
+      ],
+      "tool": "engine_open_cockpit"
+    },
+    {
+      "arguments": {
+        "engine": "c8",
+        "processDefinitionId": "2251799813685326"
+      },
+      "failure": "misconfigured",
+      "matches": "describeEngine",
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "[misconfigured] [404 Not Found] No message available (engine c8) The profile's url must be the REST root of the cluster and end in /v2."
+            ],
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
+      "sent": [
+        "GET /topology"
+      ],
+      "tool": "engine_bpmn_xml_data"
+    }
+  ],
+  "profile": {
+    "flavor": "camunda8",
+    "url": "http://127.0.0.1:<port>"
+  },
+  "secrets": {}
+}

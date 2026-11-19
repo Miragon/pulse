@@ -4,13 +4,13 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/Miragon/pulse/ci.yml?style=flat-square&label=ci)](https://github.com/Miragon/pulse/actions/workflows/ci.yml)
 [![Docs](https://img.shields.io/badge/docs-miragon.github.io%2Fpulse-335DE5?style=flat-square)](https://miragon.github.io/pulse/)
 
-One HTTP transport for the engines Pulse reaches: the Pulse MCP server's engine connector, the
-[Pulse CLI](https://www.npmjs.com/package/@miragon/pulse-cli) and the C7 adapter of Pulse for VS
-Code and Pulse for Orca, and the OAuth client protocol they share (`./oauth`). It holds the rules
-of the wire once, so every client keeps them alike: a deadline to the last byte of the answer,
-never a redirect, a size cap, one credential seam with exactly one second attempt after a 401
-when the credential renewed, failure reasons as data, lossless JSON and the request's secrets
-masked in each error answer, failure and trace.
+One HTTP transport for the engines Pulse reaches: the MCP server's engine connector, the
+[Pulse CLI](https://www.npmjs.com/package/@miragon/pulse-cli) and the C7 and C8 adapters of Pulse
+for VS Code and Pulse for Orca, and the OAuth client protocol they share with the MCP server's web
+sign-in under `/app` in `@miragon/pulse-widget-shell` (`./oauth`). It holds the wire's rules once,
+so every client keeps them alike: a deadline to the last byte, never a redirect, a size cap, one
+credential seam with one retry after a 401 when the credential renewed, failure reasons as data,
+lossless JSON and the request's secrets masked in each error answer, failure and trace.
 
 ## What it is not
 
@@ -79,15 +79,21 @@ the path values before the URL is built, in the SDK's `requestValidator` with `p
 wire: the deadline to the last byte, never a redirect, a 1 MiB cap on an answer by default, every
 secret of a request (the client's, by `basic` or `post`, and the grant's) masked in a trace and in
 an error answer, and a URL with a user or a password refused before sending (a `RangeError`).
+Three kinds of client use it: the CLI's login (a public or confidential client with PKCE on a
+loopback redirect, its refresh and revocation), the C8 adapter's client credentials, and the MCP
+server's web sign-in under `/app` (`@miragon/pulse-widget-shell`, a confidential client that names
+the resource its tokens are for, RFC 8707, revokes its refresh token and ends the session at the
+authorization server, OpenID Connect RP-Initiated Logout 1.0).
 
-| Part           | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Token endpoint | `requestToken` for the code, refresh token and client credentials grants and `revokeToken` (RFC 7009), the client authenticated by `basic`, `post` or as a public client. An answer is checked (a b64token by `isAccessToken`, a Bearer type); a refusal is a `TokenFailure`: its kind, the server's `error` as sent and a hold.                                                                                                                                                                    |
-| Renewal        | `EXPIRY`, one policy for every surface: renew `min(60 s, a tenth of the lifetime)` before expiry, at least 5 s before; a token of unknown lifetime only after a 401 (client credentials assume 300 s); after a 401 only a token at least 30 s old (`refreshAt`, `isDue`, `renewsAfterRefusal`). A token has expired from its expiry on, one of unknown lifetime never (`isExpired`); a refresh token renews while there is one, the server did not refuse it and it has not expired (`canRefresh`). |
-| Token sources  | `clientCredentialsTokens` (one request at a time; a refusal fails the request and holds a minute; a failure holds 5 s, a rate limit as long as its `Retry-After` asks or a minute when it names none, and the still valid token goes out meanwhile), `refreshingTokens` (a login renewed under its store's lock), `commandTokens` (a command's token). Each is a `TokenSource` for `bearerCredential`.                                                                                              |
-| Store          | `TokenStore` (read, write, a lock per key), `memoryTokenStore` and `tokenKey`, the SHA-256 of what a token is kept for, so no secret stands in clear as a key.                                                                                                                                                                                                                                                                                                                                      |
-| Login          | `discover` and `serverMetadata` (the issuer exactly, PKCE S256, endpoints on https or on a host the caller's `isLoopback` accepts; `oauthUrlProblem` says why a URL cannot serve as one), `createPkce`, `authorizationUrl`, `callbackResult` (the state in constant time, then `iss` by RFC 9207).                                                                                                                                                                                                  |
-| JWT            | `jwtClaims`: expiry, subject, user, issuer and audience, without checking the signature; `decodeBase64Url` decodes one of its base64url segments as text.                                                                                                                                                                                                                                                                                                                                           |
+| Part           | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Token endpoint | `requestToken` for the code, refresh token and client credentials grants (the code and refresh token grants with the resources they name, RFC 8707, each sent as given, and every grant with the scopes it names as one `scope`, which Microsoft Entra ID asks for at the code and the refresh) and `revokeToken` (RFC 7009), the client authenticated by `basic`, `post` or as a public client. An answer is checked (a b64token by `isAccessToken`, a Bearer type); the refresh token's lifetime is Keycloak's `refresh_expires_in`, else ADFS's `refresh_token_expires_in`; a refusal is a `TokenFailure`: its kind, the server's `error` as sent and a hold. |
+| Renewal        | `EXPIRY`, one policy for every surface: renew `min(60 s, a tenth of the lifetime)` before expiry, at least 5 s before; a token of unknown lifetime only after a 401 (client credentials assume 300 s); after a 401 only a token at least 30 s old (`refreshAt`, `isDue`, `renewsAfterRefusal`). A token has expired from its expiry on, one of unknown lifetime never (`isExpired`); a refresh token renews while there is one, the server did not refuse it and it has not expired (`canRefresh`).                                                                                                                                                              |
+| Token sources  | `clientCredentialsTokens` (one request at a time; a refusal fails the request and holds a minute; a failure holds 5 s, a rate limit as long as its `Retry-After` asks or a minute when it names none, and the still valid token goes out meanwhile), `refreshingTokens` (a login renewed under its store's lock), `commandTokens` (a command's token). Each is a `TokenSource` for `bearerCredential`.                                                                                                                                                                                                                                                           |
+| Store          | `TokenStore` (read, write, a lock per key), `memoryTokenStore` and `tokenKey`, the SHA-256 of what a token is kept for, so no secret stands in clear as a key.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Login          | `discover` and `serverMetadata` (the issuer exactly, PKCE S256, endpoints on https or on a host the caller's `isLoopback` accepts; `oauthUrlProblem` says why a URL cannot serve as one), `createPkce`, `authorizationUrl` (with the resources a token is for, RFC 8707, each sent as given), `callbackResult` (the state in constant time, then `iss` by RFC 9207). `serverMetadata` drops a revocation or end-session endpoint that fails the URL rule; `endSessionUrl` builds the logout at the end-session endpoint (RP-Initiated Logout: the ID token hint, the client, the post-logout redirect URI, the state), the endpoint's own query kept.            |
+| Key set        | `keyMetadata`, what a resource server verifies tokens by, checked apart from `serverMetadata`, so a sign-in's needs never block it: the issuer exactly, `jwks_uri` by the same URL rule and on a loopback host only when the issuer is on one, so a remote document cannot point the verifier at the server's own machine, and `access_token_issuer` (MS-OIDCE, ADFS), only compared and so kept with plain http. Its problems are data (`no-jwks`, `jwks-insecure`, `jwks-loopback`).                                                                                                                                                                           |
+| JWT            | `jwtClaims`: expiry, subject, user, issuer and audience, without checking the signature; `decodeBase64Url` decodes one of its base64url segments as text.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 `refreshingTokens` keeps the refresh token in the store only: under the lock it takes over a newer
 token another process got, sends the stored refresh token (never one from memory, a replay that
@@ -114,14 +120,20 @@ Where tokens are kept, how a person logs in and every word a person reads stay w
 ## The conformance cases
 
 `@miragon/pulse-http/testing` exports `TRANSPORT_CASES`: each a connection, one request, the
-engine's answers and what every wiring of the transport must observe. Run each case your client
-can express (`casesFor(["basic", "bearer", …])`, and name the rest in your test) against the
-recording engine of `@miragon/pulse-http/testing/loopback` (`startCaseEngine(kase)`: real sockets
-on 127.0.0.1, a self-signed certificate made at test time, Node only), map what your client got
-onto an `Observed` and assert that `caseFindings` finds nothing. Where a case is also one of the error-path goldens of the Pulse
-clients, it carries that golden's name. For unit tests without sockets, `recordingFetch(script)`
-records each request and answers it with the script's next entry: a `Response`, a function of the
-request, `{ fail: "ECONNREFUSED" }` or `{ hang: "headers" }`.
+engine's answers and what every wiring of the transport must observe. Run each case your client can
+express (`casesFor(["basic", "bearer", …])`, and name the rest in your test) against the recording
+engine of `@miragon/pulse-http/testing/loopback` (`startCaseEngine(kase)`: real sockets on
+127.0.0.1, a self-signed certificate made at test time, Node only), map what your client got onto an
+`Observed` and assert that `caseFindings` finds nothing. Where a case is also one of the error-path
+goldens of the Pulse clients, it carries that golden's name. The same entry replays recorded
+answers, `startRecordedEngine(answers)`: each request gets the JSON recorded for its method, its
+decoded path, its query as a set of parameters and its JSON body, or the text recorded with its
+content type (`text` and `contentType` instead of `answer`: a diagram's XML, as Camunda 8 serves
+it), in whatever order a client sends them, and one nothing was recorded for gets a 500 that names
+it and is listed in `unanswered`. For
+unit tests without sockets, `recordingFetch(script)` records each request and answers it with the
+script's next entry: a `Response`, a function of the request, `{ fail: "ECONNREFUSED" }` or
+`{ hang: "headers" }`.
 
 ## License
 

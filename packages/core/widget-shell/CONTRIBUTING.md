@@ -12,7 +12,9 @@ on the design kit [`@miragon/pulse-ui`](../ui). Setup and the repository's bar:
 
 `pnpm typecheck` types both halves: `tsconfig.json` (Node, no DOM) and `tsconfig.widgets.json`
 (DOM, no Node). Changes here also need `test:host` (`pnpm --filter @miragon/pulse-mcp-server test:host`)
-and a manual render check in the MCP Inspector, as the root `CLAUDE.md` describes.
+and a manual render check in the MCP Inspector, as the root `CLAUDE.md` describes; changes to
+`src/web` or the page root also need `test:web` (`pnpm --filter @miragon/pulse-mcp-server test:web`),
+the web app in Chromium on the real server.
 
 The `lucide-react` peer range still admits 0.562 only for this repo's own test graph; a host
 bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
@@ -30,15 +32,49 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   root's call hook (`useViewCall` over `resolveViewCall`) owns the stripped-result recovery: a host that
   drops `structuredContent` (claude.ai) gets the view re-running its own show tool ONCE (every
   view-bound tool is a read), stamped "Reloaded at"; the view frame renders the phases (waiting,
-  error with a retry, none for a refusal no retry changes (`isPermanentError`), cancelled, ready)
-  and keeps a crashing view, and each `ViewStack` row,
+  error with a retry, none for a refusal no retry changes (`isPermanentError`: a refused profile,
+  a read-only engine, a page's ended session, an unknown or refused board, arguments the tool does
+  not take), cancelled, ready), each phase the document's one `<main>` (an error or a missing view
+  its one `h1`, so a view renders no main of its own), and keeps a crashing view, and each
+  `ViewStack` row,
   inside its own error boundary. Widgets reach the host only through the view
-  host seam (`useViewHost`: `callTool`, `sendFollowUp`, `openExternal`; `HostModelContext`) and the query
+  host seam (`useViewHost`: `callTool`, `sendFollowUp`, `followUp`, `writes`, `openExternal`; `HostModelContext`) and the query
   hooks (`useToolQuery`, `useToolQueries` (one read per entry of a list, under `useToolQuery`'s
   keys), `useToolMutation`, `useViewData` (which seeds a feed with the view's data),
   `useQueryClient`), never ext-apps, so a widget renders under `TestViewHost`
   (fake tools, a log of host actions and model contexts) in a plain test. No module renders
   another's widget, and the view root keeps no map for one.
+- **The page root** (`./widgets`): `mountPage(views, options)` is the second adapter, for a
+  page outside a chat (the web app); `readWebSession()` and `webToolCaller(session)`
+  (`src/ui/web-caller.ts`) are a page's client of the web app's API under `/app`, the caller a page
+  served by the server hands in. `BrowserViewHost` (`src/ui/browser-view-host.tsx`) fills the
+  same contexts from the page: tools through the caller it hands in, the theme from a
+  `data-cd-theme` on `<html>` else the OS, the locale from the option, the document's `lang` or
+  the browser, fullscreen as its one mode (so no switch and no inline budget), a model context
+  that reaches nothing. It imports nothing of ext-apps, the page root calls the view tool itself
+  (`usePageCall`: once, again on Try again) and renders a page's `frame` around the view under the
+  same providers (the view then fills no viewport: `ViewFrame`'s `fill`), and both roots share
+  `ViewProviders`
+  (`src/ui/view-providers.tsx`), so the provider order is one. The view host's `followUp` says
+  what a hand-off does: `chat` posts it (the ext-apps adapter; `TestViewHost` by default), and a
+  page that posts to no chat says `copy`, where `AskAiButton` copies the prompt with a toast, or
+  `none` (its default), where it renders nothing, and so does a widget's menu, column or section
+  that holds hand-offs alone (it asks `useHostFollowUp`, which hands it no tool caller). The view
+  frame words its states by it: a chat's say to ask in the chat, a page's to reload the page
+  (`pageSlowHint`, `pageViewMissing`; a page cancels no call, so `cancelled` stays a chat's), and
+  so do `describeError`'s hints through its `followUp` option (`ViewDataState`, `QueryFallback`
+  and a paged list's refusal read the host's) and the kit's `loadFailedHint`, which `LocaleGate`
+  replaces on a page with `describeError`'s page words for a failure it cannot name. A page's
+  `startPage` (`ViewHost.startPage`) is where a refused start's state links (`FailureState`:
+  an unknown board, arguments no tool takes, data the server does not offer), and a page's ended
+  session (`isSessionEnded`) is the page frame's to say, once: `FailureState` shows a quiet line,
+  and neither `useDetailView`'s notice nor a paged list's footer says it. A page whose frame
+  renders alone hands `mountPage` no caller (`FramePageOptions`). The
+  view host's `writes` says whether a view may write to an engine: the ext-apps adapter and
+  `TestViewHost` (unless a test passes `writes={false}`) write, a page writes nothing, and a
+  widget's write primitive asks `useHostWrites` before it shows a write control. The MCP
+  bundle mounts with `mountViews` alone, so tree-shaking leaves the page root out of it
+  (`apps/mcp-server/test/view-bundle.test.ts`).
 - **View builders** (`./server`): `buildViewResult(data, summary)` (a show tool's result: the
   `structuredContent` IS the view's data, the text what the model reads: a short summary or,
   where the model needs the figures, the result as compact JSON) and
@@ -71,9 +107,12 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   `InlineFitBox`) caps a paged list (`usePagedViewData`) and an unpaged `ListTable` to the
   rows that fit the host's height budget, measured on the rendered view, with the count and
   a way to the rest (fullscreen where the host offers it); the BPMN canvas stays at 320 px.
-  Layout, states and feedback: `ListTable` scrolls inside a named, keyboard-reachable region
-  (column priorities via `hideBelow`, the row actions pinned with `sticky`, the sorted
-  column marked with `sort`, heads over adjacent columns with `groups`), `IdCell`/`IdText`
+  Layout, states and feedback: `ListTable`, over pulse-ui's `DataTable`, scrolls inside a
+  named, keyboard-reachable region with a sticky head and 28 px rows (column priorities via
+  `hideBelow`, the row actions pinned with `sticky`, a column as narrow as its one line with
+  `fit`, pulse-ui's `DataTable` `fit`, so a long text column takes the rest, the sorted
+  column marked with `sort`, heads over adjacent columns with `groups`, captions that wrap in a
+  wide table of figures with `wrapHeads`), `IdCell`/`IdText`
   show an id shortened in Geist Mono with a copy button (the short form, `shortId`, and the
   severity ladder for incident and job counts, `countTone`/`severityTone`, are pulse-ui's), `describeError` turns an engine or
   transport failure into what happened and what you can do (pulse-ui's `ErrorState` in
@@ -90,6 +129,99 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
 - **Test server** (`./testing`): `recordingModuleServer`, the `ModuleServer` a module's tests
   register on, and `testServerContext`. The brand gates and the product glossary every widget
   package checks its catalogs against are `@miragon/pulse-ui/testing`. Node only.
+- **The web sign-in** (`src/web`): the boot installs it with `installWebSignIn` behind the edge
+  guard, only beside an OAuth provider. Its routes take a `Request` and answer a `Response` over
+  one `WebContext` (`context.ts`): `login.ts` (PKCE S256, the state and the return target in the
+  login cookie, the gate's resource as RFC 8707 `resource`), `callback.ts` (the login cookie and
+  the state before any request to the provider, then `iss`, the code exchanged as a confidential
+  client, the access token through the gate's own check, `gateTokenCheck`, a new session id and
+  CSRF secret), `logout.ts` (CSRF, the session ended on the server first, then revocation and the
+  end-session URL), `session-route.ts` (name, CSRF token, expiry; 401 for a session whose token
+  expired with nothing to renew it), `forward.ts` (a page's call: CSRF, JSON of at most 64 KiB,
+  only a read a view calls by the boot's record, then one `tools/call` in-process to
+  `<MCP_URL>/mcp` with exactly an
+  MCP client's headers, the session's bearer token and the page's signal (a page that leaves
+  cancels the tool's call and gets 499, never a failing `/mcp`'s 502), marked for the request log
+  by `markForwarded`; after the gate's 401 one renewal where a new token may help; no result and no
+  cookie for a session signed out while the call ran) and `refresh.ts` (the renewal by
+  `@miragon/pulse-http/oauth`'s policy over the tokens as the replica's clock reads them, one
+  refresh per pair of refresh and access token at a time, its outcome kept 30 s, new tokens no
+  longer than they hold; where the provider refuses the refresh token, a token that has not
+  expired still goes out, and the session's end after that clears no cookie, which a call beside
+  it may just have renewed). `session.ts` opens a request's session and refuses one signed out,
+  by `ended.ts` (the ids of the sessions signed out at this replica until their seal expires, in
+  memory, at most 100,000) or by the browser's ended cookie, and revokes the refused session's
+  refresh token behind its answer, once per token at a replica (`ended.ts` keeps their digests),
+  a failure only logged. The provider's metadata comes from its one discovery at a replica
+  (`src/oauth-discovery.ts`, beside `src/web`), which the gate's key set reads too where the
+  provider discovers it (the generic provider's `discovery`): each half checks the document by its
+  own needs, a document one half read within the hour serves the other, what a half found holds
+  for an hour, and another hour after a failed re-read, which the log says once (stale-if-error);
+  a failure before a half's first answer holds for nothing, and no source ever rejects. `separation.ts` keeps the
+  session cookie off `/mcp` (the gate's 401 and challenge, `gateChallenge`) and a bearer off
+  `/app` (400), and `installWebSignIn` answers every route under `/app` with the headers of
+  `security-headers.ts` (the page's CSP, nosniff, no referrer, COOP and CORP same-origin, HSTS on
+  an https `MCP_URL`), `no-store` unless the answer names a cache policy of its own.
+  `static.ts` reads the web build once at boot (`readWebBuild`: regular files inside
+  the folder, a link out fails the boot, `pages.json`'s page routes checked, each asset keyed by the
+  path a browser requests for its name, each text asset over 1 KiB compressed once with brotli and
+  gzip, an encoding kept only where it is smaller) and serves it (`installWebBuild`: the assets
+  immutable, in the encoding `Accept-Encoding` takes first of br and gzip, else as the file is, with
+  `Vary: Accept-Encoding`, an `ETag` per encoding and 304 on it, whole whatever a `Range` asks; the
+  signed-out page, each page behind the sign-in, which returns to it with its query). The sign-in
+  and the discovery send through `@miragon/pulse-http/oauth` and import the transport's main entry
+  by type alone (`widget-shell-oauth-by-the-oauth-entry`). Its rules: `readWebSettings` reads the
+  `MCP_WEB_*` variables (`MCP_WEB_CLIENT_ID` turns the web app on; it needs the server's OAuth
+  provider, a client secret, session keys of at least 32 bytes, an https `MCP_URL`, plain http
+  only on localhost, and a web build's folder, the root's `web.dir` or `MCP_WEB_DIR`;
+  `MCP_WEB_SCOPES` replaces the provider's web scopes, the gate's required scopes asked besides)
+  and logs one line without a secret; `createSealer` seals a cookie's value as a compact JWE (`dir`,
+  `A256GCM` on jose), each key derived by HKDF-SHA256 with its own key id, the first key sealing
+  and every key opening, the cookie's name in the authenticated header and an absolute expiry
+  that `reseal` keeps; `cookies.ts` writes the `__Host-` session cookie in at most three chunks of
+  3,800 bytes (a larger session is a failure of its own, stale chunks are cleared),
+  the login cookie for ten minutes and the ended cookie, which names the session a browser signed
+  out until that session's own expiry, all HttpOnly, Secure, SameSite=Lax on `/`;
+  `returnTarget` keeps a sign-in's return on the app's pages (a path under `/app` in its normal
+  form, never under `/app/auth` or `/app/api`, the query written again, at most 1,024 characters); `csrfRefusal` checks `Sec-Fetch-Site`, the
+  `Origin` and the CSRF header against the session's secret in constant time. The paths, the CSRF
+  header and the codes both halves read are `src/protocol/web.ts`, exported from `./widgets`. The
+  seal, the cookies, the return path, the CSRF check, the forward, the renewal, the served build,
+  the security headers, the signed-out sessions (`ended.ts`), the session (`session.ts`), the
+  sign-out, the session route, the provider's discovery, the generic provider and the Entra ID
+  provider are mutated nightly (StrykerJS, break 90, `src/web`'s and the OAuth suites alone);
+  `src/web`, the discovery, the generic provider and the Entra ID provider keep a coverage floor
+  of 100.
+- **Fake identity provider** (`./testing/oidc`): `startFakeOidc(options)` starts an OpenID
+  Connect provider on a loopback port with Keycloak's paths, so the boot's Keycloak provider
+  (`MCP_OAUTH_KEYCLOAK_SERVER_URL` its `serverUrl`, `MCP_OAUTH_KEYCLOAK_REALM` its `realm`)
+  verifies its access tokens with the real JWT verifier: discovery, its RS256 key set, a login page
+  with a link per user and one that cancels, the code grant with PKCE S256 and the client's
+  authentication (basic or post), refresh with optional rotation and refusal, revocation and the
+  end of a session (without Keycloak's confirmation). It sets the tokens' `aud` only as an audience
+  mapper would (`audience`, with `audienceInIdToken` in its ID tokens too, which carry Keycloak's
+  `typ` ID and an `at_hash`), since Keycloak ignores RFC 8707's `resource`. `flavor: "adfs"` plays
+  ADFS 2019 and later instead (`src/testing/oidc/adfs.ts`) for the generic provider
+  (`MCP_OAUTH_OIDC_ISSUER` its `issuer`): paths under `/adfs`, `access_token_issuer` in its
+  discovery and no PKCE methods, revocation endpoint or `iss`, access tokens of that issuer for the
+  request's resource (`urn:microsoft:userinfo` without one) with `scp`, `appid` and no caller
+  unless `callerClaim` names the claim its issuance rule emits, `refresh_token_expires_in`, refresh
+  tokens that never rotate and outlive an ended session. `flavor: "entra"` plays one Entra ID tenant
+  (`src/testing/oidc/entra.ts`; `entra` names its tenant, its oauth21 authority, the API
+  registration's client id, App ID URIs and scope): its v2.0 authority the issuer (no PKCE methods,
+  revocation endpoint or `iss`) and its `oauth21/2026-08` authority beside it (PKCE methods and the
+  `iss`, also at the RFC 8414 path), each with a key set whose keys name it, the oauth21 one holding
+  a key of its own; v2 access tokens of the authority asked with the API's client id as `aud`, a
+  short `scp`, `azp`, a `sub` hashed per client and `oid` and `tid` only where `profile` was asked
+  (`tokenVersion: 1` gives v1 tokens of `sts.windows.net`, `groups` 200 group ids,
+  `directoryRoles` a `wids` claim of two directory roles); a resource that is no App ID URI and a
+  code exchange without scope refused; refresh tokens only with `offline_access`, rotated with the
+  old one renewing on, alive after the end of a session.
+  `env(origin)` names the boot's variables for Keycloak, ADFS and Entra ID; `signIn` and
+  `decline` play the browser for a test without one, `requests`, `issued`, `revoked` and `endedSessions` record what
+  happened, `sessionOf` names the session a refresh token belongs to, so a test tells its own
+  browser's renewals and revocations from those of tests beside it, and `endGrant` takes back a
+  session's refresh tokens. Node only.
 - **Theme:** none of its own. The widgets colour through the role variables of pulse-ui's
   Miragon theme (`@miragon/pulse-ui/theme.css`: the vendored `--cd-*` corporate-design
   tokens and the roles on top, light and dark). Your stylesheet imports it after `tailwindcss`,
@@ -138,12 +270,32 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   `MCP_METRICS_TOKEN`), the Host/Origin guard in front of the OAuth gate,
   `/health/*` and the font route (`installFontAssets`: Geist + Geist Mono as woff2 under
   `/fonts/geist-<version>/`, cached immutable, any origin, behind the guard). OAuth comes from one
-  provider's `MCP_OAUTH_*` variables: a resource server that verifies tokens with `jose`; tokens
-  must carry `<MCP_URL>/mcp` in `aud`
-  (RFC 8707) and a `sub`, and the boot logs that audience. The providers, what fails the boot and
-  the identity provider's side are under
-  [Security](https://miragon.github.io/pulse/mcp/operations#security). Without a provider the boot
-  runs unauthenticated with one warning. OAuth is the only caller identity, and `oauth` installs a
+  provider's `MCP_OAUTH_*` variables: a resource server that verifies tokens with `jose`
+  (`oauth-jwt.ts`: the key set the token's `iss` picks, the audiences, the caller claim and the
+  client the provider names, never an ID, logout or refresh token, mutated nightly with the web
+  app's rules); a table provider's tokens must carry `<MCP_URL>/mcp` in `aud` (RFC 8707) and a
+  `sub`, and the boot logs what the provider's gate checks (`describeOAuthTokens`). The generic
+  OpenID Connect provider (`oauth-oidc.ts`, `MCP_OAUTH_OIDC_*`: the issuer, required, then
+  audiences, required scopes, the caller claim, algorithms and a client allowlist the web client
+  joins) reads its key set and its access tokens' issuer from the provider's discovery at the first
+  token (503 until it answers) and refuses at boot a caller claim whose value can change, an
+  algorithm with a shared secret or none, and an audience that is no https URL without a required
+  scope. Microsoft Entra ID for one tenant (`oauth-entra.ts`, `MCP_OAUTH_ENTRA_*`: the tenant's id
+  and the API registration's client id, required, then the scope, the App ID URI, the cloud's
+  authority and a client allowlist the web client joins) verifies the tenant's v2.0 and
+  `oauth21/2026-08` tokens each against its own key set with the keys tagged for it, takes the
+  API's client id or an App ID URI it names as `aud` (the resource only where it names it), reads
+  the short `scp` under the first App ID URI, names the caller by `oid`, else `sub`, and refuses a
+  v1 token for the API (naming `requestedAccessTokenVersion` 2) and one for another API (Microsoft
+  Graph's) by its `aud`, a `tid` of another tenant and a token without `scp`; its
+  metadata names the oauth21 authority, and its web client signs in through the v2.0 one without a
+  resource and with the scopes at every grant. A provider whose metadata names its issuer alone
+  gets no copy at `/.well-known/oauth-authorization-server` (404), and the protected resource metadata names its
+  required scopes in `scopes_supported`, never `offline_access`. The providers and what fails the
+  boot are under [Security](https://miragon.github.io/pulse/mcp/operations#security), each identity
+  provider's side under
+  [Identity providers](https://miragon.github.io/pulse/mcp/identity-providers). Without a provider
+  the boot runs unauthenticated with one warning. OAuth is the only caller identity, and `oauth` installs a
   provider instead (a test's stub IdP). Every bundle view advertises `MCP_URL`'s origin in its
   view CSP `resourceDomains` and the Apps SDK `openai/widgetCSP` (`fontAssetsCsp`, merged into its
   tool as it registers); without `MCP_URL` the boot appends the origin the host read the
@@ -175,8 +327,9 @@ engine-connector widgets (and your modules')
 ```
 
 One package, two halves that share one wire protocol: `./widgets` is `src/ui`, `./server` (and
-`./testing`) the rest of `src/`, and both import the protocol modules in `src/protocol` (tool
-results, the view name, the served fonts, the translator, the BPMN-name reader), which import
+`./testing`, `./testing/oidc`) the rest of `src/`, and both import the protocol modules in
+`src/protocol` (tool results, the view name, the served fonts, the translator, the BPMN-name
+reader, the web app's paths, codes and CSRF header), which import
 nothing themselves. The shipped code of one half imports nothing of the other (tests and the
 `./testing` fixtures aside): a server never loads React and a view bundle never loads the boot.
 dependency-cruiser holds the seam (`widget-shell-views-browser-only`,

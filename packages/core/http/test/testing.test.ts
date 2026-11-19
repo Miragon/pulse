@@ -263,10 +263,12 @@ describe("the entries", () => {
       "createPkce",
       "decodeBase64Url",
       "discover",
+      "endSessionUrl",
       "isAccessToken",
       "isDue",
       "isExpired",
       "jwtClaims",
+      "keyMetadata",
       "memoryTokenStore",
       "oauthUrlProblem",
       "refreshAt",
@@ -279,7 +281,7 @@ describe("the entries", () => {
     ])
   })
 
-  it("export exactly the recording engine of a case from ./testing/loopback", () => {
-    expect(Object.keys(loopback)).toEqual(["startCaseEngine"])
+  it("export exactly the recording engine of a case and the recorded engine from ./testing/loopback", () => {
+    expect(Object.keys(loopback).sort()).toEqual(["startCaseEngine", "startRecordedEngine"])
   })
 })

@@ -120,6 +120,19 @@ describe("engineModule.configFromEnv never echoes the profile file", () => {
  * refused entry, no module config and no engine_list_engines result repeats it. The parser
  * hands on no raw value of a refused profile, so the module config holds none either.
  */
+/** A Camunda 8 profile of the client credentials grant, `auth` over its keys. */
+const c8Profile = (auth: Record<string, unknown>) => ({
+  url: "https://c8.example.com/v2",
+  flavor: "camunda8",
+  auth: {
+    type: "clientCredentials",
+    tokenEndpoint: "https://login.example.com/token",
+    clientId: "pulse",
+    clientSecretEnv: "ENGINE_SECRET_C8_CLIENT",
+    ...auth,
+  },
+})
+
 describe("a planted secret appears nowhere", () => {
   const expectNoSecret = (text: string) => {
     expect(text).not.toContain(SECRET)
@@ -142,7 +155,7 @@ describe("a planted secret appears nowhere", () => {
     return JSON.stringify([config, warnings, listed, engineModule.instructions(config)])
   }
 
-  it.each([
+  it.each<readonly [string, unknown]>([
     ["a password in the url", { url: `https://svc:${SECRET}@engine.example.com/engine-rest` }],
     ["a user name in the url", { url: `https://${SECRET}@engine.example.com/engine-rest` }],
     ["a query string", { url: `https://engine.example.com/engine-rest?token=${SECRET}` }],
@@ -163,6 +176,14 @@ describe("a planted secret appears nowhere", () => {
       { url: BASE, auth: { type: "bearer", tokenEnv: SECRET.replace("-", "_") } },
     ],
     ["a header value", { url: BASE, headers: { "X-Api-Key": SECRET } }],
+    ...[
+      ["a password in a token endpoint", `https://svc:${SECRET}@login.example.com/token`],
+      ["a user name in a token endpoint", `https://${SECRET}@login.example.com/token`],
+      ["a token endpoint's fragment", `https://login.example.com/token#${SECRET}`],
+      ["a token endpoint without a scheme", `svc:${SECRET}@login:8080/token`],
+    ].map(([place, tokenEndpoint]) => [place, c8Profile({ tokenEndpoint })] as const),
+    ["a literal client secret", c8Profile({ clientSecret: SECRET })],
+    ["a client secret's variable outside the prefix", c8Profile({ clientSecretEnv: SECRET })],
     ["an unknown key", { url: BASE, [SECRET_NAME]: "x" }],
     ["a profile that is no object", SECRET],
   ])("in a refused profile: %s", async (_place, profile) => {

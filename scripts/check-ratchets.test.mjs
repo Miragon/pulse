@@ -69,6 +69,7 @@ describe("ratchetKind", () => {
     assert.equal(ratchetKind("apps/mcp-server/test/__golden__/bundle-budget.json"), "bundle-budget")
     assert.equal(ratchetKind("apps/vscode/test/__golden__/bundle-budget.json"), "bundle-budget")
     assert.equal(ratchetKind("apps/cli/test/__golden__/bundle-budget.json"), "bundle-budget")
+    assert.equal(ratchetKind("apps/web/test/__golden__/bundle-budget.json"), "bundle-budget")
     assert.equal(ratchetKind("package.json"), "root-scripts")
     assert.equal(ratchetKind("packages/core/widget-shell/package.json"), "package-scripts")
     assert.equal(ratchetKind("apps/mcp-server/package.json"), "package-scripts")
@@ -625,13 +626,22 @@ describe("vitest coverage thresholds: glob keys, perFile, the 100 shorthand, cou
     )
   })
 
-  it("reads every real config without a glob, a project or an unreadable shape", () => {
+  it("reads every real config without a project or an unreadable shape, and a glob floor only where one is named", () => {
+    const FULL = { statements: 100, branches: 100, functions: 100, lines: 100 }
+    const GLOB_FLOORS = {
+      "packages/core/widget-shell/vitest.config.ts": {
+        "src/web/**": FULL,
+        "src/oauth-discovery.ts": FULL,
+        "src/oauth-oidc.ts": FULL,
+        "src/oauth-entra.ts": FULL,
+      },
+    }
     for (const rel of ["vitest.shared.ts", ...REAL_VITEST_CONFIGS]) {
       const text = readFileSync(rel, "utf8")
       const read = extractVitestCoverage(rel, text)
       assert.equal(read.error, undefined, rel)
       assert.deepEqual(read.opaque, [], rel)
-      assert.deepEqual(read.globThresholds, {}, rel)
+      assert.deepEqual(read.globThresholds, GLOB_FLOORS[rel] ?? {}, rel)
       assert.equal(read.projects, null, rel)
       assert.deepEqual(checkRatchetFile(rel, text, text), [], rel)
     }

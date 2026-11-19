@@ -16,6 +16,7 @@ import {
   execute,
   fakeRuntime,
   type FakeRuntime,
+  MANY_RUNS,
 } from "../../test/support/fake-runtime.js"
 import { cachedLogin, cacheText, oauthProfiles, TOKEN_FILE } from "../../test/support/oauth.js"
 import { run } from "./run.js"
@@ -223,7 +224,7 @@ describe("OAuth secrets", () => {
     ])
   })
 
-  it("never appear in any output without --show-secrets", async () => {
+  it("never appear in any output without --show-secrets", MANY_RUNS, async () => {
     await fc.assert(
       fc.asyncProperty(secretsArbitrary, async (secrets) => {
         for (const scenario of scenarios()) {

@@ -2,23 +2,14 @@ import { readdirSync } from "node:fs"
 import { dirname } from "node:path"
 import { fileURLToPath } from "node:url"
 import { afterEach, describe, expect, it } from "vitest"
-import type { Client } from "@miragon/pulse-c7-client"
 import { toEngineDate } from "@miragon/pulse-c7-core"
 import { cibsevenProvider } from "../providers/index.js"
-import {
-  clientFor,
-  startFakeEngine,
-  type FakeEngine,
-  type FakeReply,
-  type RecordedRequest,
-} from "../tools/test-support/fake-engine.js"
+import type { FakeReply } from "../tools/test-support/fake-engine.js"
 import {
   BARE_DEFINITION_ID,
   ENGINE_FAILURE,
   onBareDefinitionId,
-  readOf,
   WORLD,
-  worldReply,
 } from "../tools/test-support/engine-world.js"
 import {
   buildCockpitDashboardData,
@@ -38,21 +29,17 @@ import { buildInstanceDetailData } from "./instance-detail-data.js"
 import { buildActivityIncidentsData, buildProcessIncidentsData } from "./process-incidents-data.js"
 import { buildActivityStatisticsData } from "./activity-statistics-data.js"
 import { buildJobBacklogData } from "./job-backlog-data.js"
+import { build, type BuildCase, closeBuildEngines, DEGRADE } from "./honest-numbers.test-support.js"
 
 // Each case declares only its enrichment reads; EVERY other read its healthy
 // build makes is primary and broken in turn, so a newly swallowed failure fails
 // here without anyone listing it. A builder without a case fails structurally.
 
-const engines: FakeEngine[] = []
-afterEach(async () => {
-  await Promise.all(engines.splice(0).map((engine) => engine.close()))
-})
+afterEach(closeBuildEngines)
 
 const urls = (baseUrl: string) => ({ baseUrl, provider: cibsevenProvider })
 
-interface Case {
-  run: (client: Client, baseUrl: string) => Promise<unknown>
-  world?: (request: RecordedRequest) => FakeReply | undefined
+interface Case extends BuildCase {
   /** The lookup of the id/key the builder is asked about, answering "nothing there". */
   unknown?: { read: string; reply: FakeReply }
   /** Enrichment reads: each failure leaves the build intact, with the read's value null. */
@@ -347,26 +334,6 @@ const CASES: Record<string, Case> = {
   buildJobBacklogData: { run: (client) => buildJobBacklogData(client) },
 }
 
-/** The case's engine: the world plus its overrides, with at most one read broken. */
-function engineReply(builder: Case, broken?: { read: string; reply: FakeReply }) {
-  return (request: RecordedRequest): FakeReply =>
-    broken && readOf(request) === broken.read
-      ? broken.reply
-      : (builder.world?.(request) ?? worldReply(request))
-}
-
-async function build(builder: Case, broken?: { read: string; reply: FakeReply }) {
-  const engine = await startFakeEngine({}, engineReply(builder, broken))
-  engines.push(engine)
-  const result = builder.run(clientFor(engine), engine.baseUrl)
-  // Settle before reading the recorded requests; the caller asserts the outcome.
-  const outcome = await result.then(
-    (data) => ({ ok: true as const, data }),
-    (error: unknown) => ({ ok: false as const, error }),
-  )
-  return { outcome, reads: new Set(engine.requests.map(readOf)) }
-}
-
 describe.each(Object.entries(CASES))("%s", (_name, builder) => {
   const enrichment = builder.enrichment ?? {}
 
@@ -434,8 +401,14 @@ it.each(["", " (With incident chip)", " (Suspended chip)"])(
   },
 )
 
-describe("the rejection table is complete", () => {
-  it("names every data builder exported from src/data", async () => {
+/**
+ * The completeness check imports every module of src/data: 0.3 s alone, up to 2.5 s on the CI
+ * runner, where `pnpm test` runs every package's suite at once on four cores.
+ */
+const EVERY_MODULE = { timeout: 30_000 }
+
+describe("the rejection and degrade tables are complete", () => {
+  it("name every data builder exported from src/data", EVERY_MODULE, async () => {
     const dir = dirname(fileURLToPath(import.meta.url))
     const modules = readdirSync(dir).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts"))
     const builders: string[] = []
@@ -447,8 +420,10 @@ describe("the rejection table is complete", () => {
           .map(([name]) => name),
       )
     }
-    // A variant case ("buildX (scan capped)") covers the same builder.
-    const covered = new Set(Object.keys(CASES).map((name) => name.split(" ")[0]))
+    // A variant case ("buildX (scan capped)") covers the same builder, and so does a case of the
+    // degrade table.
+    const named = [...Object.keys(CASES), ...Object.keys(DEGRADE)]
+    const covered = new Set(named.map((name) => name.split(" ")[0]))
     expect(builders.sort()).toEqual([...covered].sort())
   })
 })

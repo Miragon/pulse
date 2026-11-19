@@ -16,6 +16,7 @@ on:
       - turbo.json
       - tsconfig.base.json
       - apps/mcp-server/**
+      - apps/web/**
       - apps/*/package.json
       - packages/**
       - .github/workflows/docker-build.yml
@@ -47,4 +48,17 @@ jobs:
           docker run --rm --entrypoint sh "$IMAGE" -c
           'test -s /usr/share/doc/pulse-server/LICENSE &&
           test -s /usr/share/doc/pulse-server/THIRD_PARTY_LICENSES.txt &&
+          test -s /usr/share/doc/pulse-server/web/THIRD_PARTY_LICENSES.txt &&
           test -s /usr/local/LICENSE'
+
+      # The web app's build in the folder the server serves /app from (createApp's web/): its page
+      # and the page routes the boot reads (apps/mcp-server/test/third-party-licenses.test.ts holds
+      # this list to the Dockerfile too).
+      - name: The image holds the web app
+        env:
+          IMAGE: pulse-server:pr-${{ github.event.pull_request.number }}
+        run: >-
+          docker run --rm --entrypoint sh "$IMAGE" -c
+          'test -s /app/web/index.html &&
+          test -s /app/web/pages.json &&
+          test -d /app/web/assets'

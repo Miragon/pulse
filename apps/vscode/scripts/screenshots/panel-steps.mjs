@@ -1,4 +1,5 @@
 import { answer, closeEditors, panelFrame, runCommand, showPulse } from "./vscode-driver.mjs"
+import { part } from "../support/webview-parts.mjs"
 
 const RESTING_POINTER = { x: 200, y: 860 }
 
@@ -6,7 +7,7 @@ export const quickPickRow = (window, text) =>
   window.locator(".quick-input-widget .monaco-list-row", { hasText: text })
 
 export async function enlargeList(window) {
-  const handle = panelFrame(window).locator(".split-layout__handle")
+  const handle = panelFrame(window).getByRole("separator", { name: "Resize diagram and list" })
   await handle.focus()
   for (let step = 0; step < 5; step++) {
     await handle.press("ArrowUp")
@@ -15,23 +16,25 @@ export async function enlargeList(window) {
 }
 
 export async function stripButton(window, name) {
-  const button = panelFrame(window).locator(".strip-stack").getByRole("button", { name })
+  const button = panelFrame(window).locator('[data-part="strips"]').getByRole("button", { name })
   await button.first().click()
 }
 
 export async function cardButton(window, name) {
-  const card = panelFrame(window).locator(".incident-card")
+  const card = panelFrame(window).locator('[data-part="incident-card"]')
   await card.getByRole("button", { name, exact: true }).first().click()
 }
 
 export async function waitForStrip(window, text, timeout = 30_000) {
-  await panelFrame(window).locator(".strip-stack .status-strip", { hasText: text }).waitFor({
-    timeout,
-  })
+  await panelFrame(window)
+    .locator(`[data-part="strips"] ${part("status-strip")}`, { hasText: text })
+    .waitFor({
+      timeout,
+    })
 }
 
 export async function waitForPanel(window) {
-  await panelFrame(window).locator(".context-bar", { hasText: "As of" }).waitFor({
+  await panelFrame(window).locator(part("context-bar"), { hasText: "As of" }).waitFor({
     timeout: 30_000,
   })
   await window.waitForTimeout(1500)
@@ -44,7 +47,7 @@ export async function restPointer(window) {
 
 export async function restPointerOnDiagram(window) {
   await panelFrame(window)
-    .locator(".diagram-host")
+    .locator('[data-part="diagram-canvas"]')
     .hover({ position: { x: 16, y: 16 } })
   await window.waitForTimeout(600)
 }

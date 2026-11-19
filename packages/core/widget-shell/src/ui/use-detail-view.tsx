@@ -1,6 +1,7 @@
 import type { ReactElement, ReactNode } from "react"
-import { ErrorState, useLocale } from "@miragon/pulse-ui"
-import { describeError, isPermanentError } from "./describe-error.js"
+import { StatusStrip, useLocale, WidgetHeader } from "@miragon/pulse-ui"
+import { RefreshCw } from "lucide-react"
+import { describeError, isPermanentError, isSessionEnded } from "./describe-error.js"
 import { kitLabels } from "./kit-labels.js"
 import { useViewData } from "./tool-query.js"
 import { viewRefreshState } from "./view-refresh-state.js"
@@ -8,9 +9,13 @@ import { ViewDataState } from "./view-data-state.js"
 import { WidgetShell } from "./widget-shell.js"
 
 /**
- * `notice` reports a failed REFETCH over shown data, which may be stale.
- * `loadError` lets a section on a composed page hide itself when the feed's
- * tool is not on this server.
+ * `notice` reports a failed REFETCH over shown data, which may be stale: a `StatusStrip` for the
+ * view's header, docked under its bar, with Try again unless the failure is a refusal no retry
+ * changes. It says what happened in the kit's words; the raw engine text waits under its Details.
+ * A page's ended session gets none (`isSessionEnded`): the page's frame says it.
+ * `loadError` lets a section on a composed page hide itself when the feed's tool is not on this
+ * server. `guard` keeps the view's `title` in its bar while the view loads, fails or finds
+ * nothing, so the page keeps its one heading (and the document its title) through every state.
  */
 export function useDetailView<TData>(opts: {
   initialData: TData | null | undefined
@@ -25,6 +30,8 @@ export function useDetailView<TData>(opts: {
   retryText?: string
   /** Title of the stale-data notice (default: the active locale's "Couldn't refresh this view"). */
   refreshErrorTitle?: string
+  /** The view's title in the guard's bar, what is known before its data: none without it. */
+  title?: string
 }): {
   data: TData | null
   guard: ReactElement | null
@@ -41,7 +48,7 @@ export function useDetailView<TData>(opts: {
   const retry = () => void refetch()
   const { refreshError } = viewRefreshState(view)
   const guard = data ? null : (
-    <WidgetShell>
+    <WidgetShell header={opts.title && <WidgetHeader title={opts.title} />}>
       <ViewDataState
         loading={loading}
         error={error}
@@ -54,18 +61,21 @@ export function useDetailView<TData>(opts: {
     </WidgetShell>
   )
   let notice: ReactElement | null = null
-  if (refreshError) {
+  // A page's ended session is its frame's to say, once: the view keeps what it showed, silently.
+  if (refreshError && !isSessionEnded(refreshError)) {
     const described = describeError(refreshError, locale)
     notice = (
-      <ErrorState
-        variant="inline"
+      <StatusStrip
         tone="warning"
         title={opts.refreshErrorTitle ?? defaults.refreshFailed}
-        description={`${described.title}. ${defaults.refreshStale}`}
+        detail={`${described.title}. ${defaults.refreshStale}`}
         details={described.details ?? undefined}
         // A refusal no retry changes (`isPermanentError`) offers none here either.
-        onRetry={isPermanentError(refreshError) ? undefined : retry}
-        retryLabel={retryText}
+        actions={
+          isPermanentError(refreshError)
+            ? []
+            : [{ label: retryText ?? defaults.retry, icon: RefreshCw, onClick: retry }]
+        }
       />
     )
   }

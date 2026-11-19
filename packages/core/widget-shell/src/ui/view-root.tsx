@@ -2,19 +2,14 @@
  * The bundle root. `mountViews` picks the view the document's prelude names; `mountView` mounts one
  * view without a map, the entry a per-view build would call.
  */
-import { StrictMode, useState } from "react"
+import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
-import { QueryClientProvider } from "@tanstack/react-query"
-import { ToastProvider, ICON_STROKE } from "@miragon/pulse-ui"
-import { LucideProvider } from "lucide-react"
 import { readViewName } from "../protocol/view-name.js"
 import { SHELL_VIEW_CONFIG } from "./display-mode-toggle.js"
-import { HostDocument } from "./host-document.js"
 import { ExtAppsViewHost, useViewCall } from "./ext-apps-host.js"
-import { LocaleGate } from "./locale-gate.js"
-import { createViewQueryClient } from "./tool-query.js"
 import { ViewErrorBoundary } from "./view-error-boundary.js"
 import { ViewFrame } from "./view-frame.js"
+import { rootElement, ViewProviders } from "./view-providers.js"
 import { createViewRuntime, type ViewRuntime } from "./view-runtime.js"
 import type { ViewComponent, ViewMap } from "./views.js"
 
@@ -34,13 +29,7 @@ export function mountView(options: MountViewOptions): void {
   void runtime.connect().catch((error: unknown) => {
     console.error("[pulse] Failed to connect the view runtime:", error)
   })
-  let container = document.getElementById("root")
-  if (!container) {
-    container = document.createElement("div")
-    container.id = "root"
-    document.body.appendChild(container)
-  }
-  createRoot(container).render(
+  createRoot(rootElement()).render(
     <ViewErrorBoundary>
       <ViewRoot {...options} runtime={runtime} />
     </ViewErrorBoundary>,
@@ -59,26 +48,17 @@ function RootViewFrame({ name, view }: MountViewOptions) {
 }
 
 /**
- * The provider order is load-bearing: the host first (every hook below reads it), ONE query client
- * per document, the document layer (theme, fonts, the inline budget box), the gate that resolves
- * the locale from the host context, then the kit's icon stroke and toasts.
+ * The provider order is load-bearing: the host first (every hook below reads it), then the
+ * providers every root shares (`ViewProviders`: ONE query client per document, the document layer,
+ * the locale gate, the icon stroke and toasts).
  */
 export function ViewRoot({ name, view, runtime }: MountViewOptions & { runtime: ViewRuntime }) {
-  const [client] = useState(createViewQueryClient)
   return (
     <StrictMode>
       <ExtAppsViewHost runtime={runtime}>
-        <QueryClientProvider client={client}>
-          <HostDocument>
-            <LocaleGate>
-              <LucideProvider strokeWidth={ICON_STROKE}>
-                <ToastProvider>
-                  <RootViewFrame name={name} view={view} />
-                </ToastProvider>
-              </LucideProvider>
-            </LocaleGate>
-          </HostDocument>
-        </QueryClientProvider>
+        <ViewProviders>
+          <RootViewFrame name={name} view={view} />
+        </ViewProviders>
       </ExtAppsViewHost>
     </StrictMode>
   )

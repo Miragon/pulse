@@ -9,10 +9,14 @@ interface WidgetActionsFeed {
 
 // The key sits outside the `engine:` prefix on purpose: the answer is deployment config, and
 // the cockpit's Refresh (`refreshCockpitData`) re-reads that namespace. Undefined until it
-// answers, or on error.
-function useWidgetActions(): WidgetActionsFeed | undefined {
-  return useToolQuery<WidgetActionsFeed>(["engine-widget-actions"], ENGINE_WIDGET_ACTIONS_DATA, {})
-    .data
+// answers, on error, and where the host writes nothing (a page), which never asks.
+function useWidgetActions(writes: boolean): WidgetActionsFeed | undefined {
+  return useToolQuery<WidgetActionsFeed>(
+    ["engine-widget-actions"],
+    ENGINE_WIDGET_ACTIONS_DATA,
+    {},
+    { enabled: writes },
+  ).data
 }
 
 // A disallowed button is not rendered: the toolset is deployment-wide and a read-only profile
@@ -20,9 +24,12 @@ function useWidgetActions(): WidgetActionsFeed | undefined {
 // the feed answers (a button may appear late, never vanish under the cursor). Widgets read this
 // via `useEngineAction`, so write and gate travel together. `engine` is the engine the write goes
 // to, a required argument: without one the write goes to the default engine, which may be the
-// read-only one, so it stays closed while any engine's profile is read-only.
-export function useCanRun(): (action: EngineWidgetAction, engine: string | undefined) => boolean {
-  const feed = useWidgetActions()
+// read-only one, so it stays closed while any engine's profile is read-only. `writes` is the
+// host's: where it writes nothing, nothing is asked and nothing runs.
+export function useCanRun(
+  writes: boolean,
+): (action: EngineWidgetAction, engine: string | undefined) => boolean {
+  const feed = useWidgetActions(writes)
   return (action, engine) => {
     if (!(feed?.allowedActions?.includes(action) ?? false)) return false
     const readOnly = feed?.readOnlyEngines ?? []
