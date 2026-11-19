@@ -84,7 +84,11 @@ describe("normalizing", () => {
     expect(normalizeCockpitUrl(run("#/"))).toBe(run("#/"))
     expect(normalizeUrl(`http://a/x${"/".repeat(100_000)}`)).toBe("http://a/x")
     expect(normalizeCockpitUrl(`http://a/x${"#/".repeat(50_000)}`)).toBe("http://a/x")
-    expect(Date.now() - started).toBeLessThan(250)
+    // The four calls take 5 ms alone, up to 16 ms with coverage, and up to 30 times that while
+    // `pnpm test` runs every package's suite at once on the CI runner's four cores; the patterns
+    // the loop replaced, replace(/\/+$/) and replace(/[/#]+$/), take 1.7 s on the first value
+    // and 9 to 11 s on the second alone, so 1 s still tells the two apart.
+    expect(Date.now() - started).toBeLessThan(1_000)
   })
 })
 

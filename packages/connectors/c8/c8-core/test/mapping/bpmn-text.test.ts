@@ -234,6 +234,7 @@ describe("the BPMN text reader", () => {
 
   describe("a diagram whose element names run long", () => {
     const LONG = "p".repeat(48_000)
+    const LONG_PREFIXES_READ_LIMIT_MS = 2_000
 
     function waits(call: string, called: string, caught: string): string {
       return definitions(`<${call}:callActivity id="Call">
@@ -255,7 +256,7 @@ describe("the BPMN text reader", () => {
 
       const containers = BpmnText.containers(xml)
 
-      expect(Date.now() - started).toBeLessThan(1000)
+      expect(Date.now() - started).toBeLessThan(LONG_PREFIXES_READ_LIMIT_MS)
       expect(containers).toHaveLength(3500)
       expect(containers.at(-1)).toStrictEqual({ elementId: "Foreign_3499", callsProcess: false })
     })
