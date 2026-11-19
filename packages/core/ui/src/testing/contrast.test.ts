@@ -100,11 +100,18 @@ describe("hostile input stays linear (CodeQL js/polynomial-redos)", () => {
     expect(performance.now() - started).toBeLessThan(500)
   })
 
-  it("reads a block full of dashes without backtracking", () => {
+  // Reading the 200,000 characters one by one takes 20 to 30 ms alone, up to 30 times that while
+  // `pnpm test` runs every package's suite at once on the CI runner's four cores; a declaration
+  // regex, /(--[\w-]+)\s*:\s*([^;}]+)/g, retries at every dash and takes about 100 s on this
+  // block, so 10 s still tells the two apart. The case's timeout sits above the bound, since
+  // vitest fails a synchronous case that outlasts its default 5 s too.
+  const DASHES_BOUND_MS = 10_000
+
+  it("reads a block full of dashes without backtracking", { timeout: 2 * DASHES_BOUND_MS }, () => {
     const started = performance.now()
     const vars = parseThemeVariables(`:root { ${"--".repeat(100_000)} }\n:root { --ink: #111111; }`)
     expect(vars.light.get("--ink")).toBe("#111111")
-    expect(performance.now() - started).toBeLessThan(500)
+    expect(performance.now() - started).toBeLessThan(DASHES_BOUND_MS)
   })
 
   it("strips many unterminated comment openers in linear time", () => {

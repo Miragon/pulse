@@ -401,6 +401,10 @@ describe("createNodeRuntime().runCommand", () => {
     const result = await runtime.runCommand("echo started; sleep 5", { timeoutMs: 200 })
     expect(result.timedOut).toBe(true)
     expect(result.exitCode).toBeNull()
+    // Alone: the 200 ms of the timeout and about 5 ms of spawning and killing; the load of the CI
+    // runner multiplies the work, not the timer. A runner that waits for the pipes to close, which
+    // the shell's `sleep` keeps open after the kill, takes the whole 5 s on any machine, and load
+    // only lengthens that, so 4 s tells the two apart.
     expect(Date.now() - started).toBeLessThan(4_000)
   })
 
