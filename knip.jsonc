@@ -3,8 +3,8 @@
   // Dead-code fitness function (`pnpm lint:deadcode`, part of `pnpm lint`):
   // every check but unused exports and types, in every workspace. Exports and
   // types are `pnpm lint:deadcode:exports` (`--include exports,types`), in every
-  // workspace but docs (below). Together they report every issue type in every
-  // workspace (docs: all but exports and types), so no workspace runs on its own.
+  // workspace. Together they report every issue type in every workspace, so no
+  // workspace runs on its own.
   // knip never reports what an ENTRY file exports (includeEntryExports is off):
   // a test of its package holds each published entry's sorted runtime names
   // instead (an index, entries or testing test, next to the entry or in test/),
@@ -142,8 +142,6 @@
     },
 
     "docs": {
-      // `lint:deadcode:exports` skips this workspace: its code is the site's
-      // config and theme, which VitePress loads by path, not by import.
       "ignoreDependencies": [
         // mermaid's diagram runtimes, which vitepress-plugin-mermaid lists in
         // Vite's optimizeDeps.include: under pnpm's strict layout the dev
