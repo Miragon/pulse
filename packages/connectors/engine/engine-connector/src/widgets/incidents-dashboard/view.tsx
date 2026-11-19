@@ -1,9 +1,9 @@
 import { ViewStack } from "@miragon/pulse-widget-shell/widgets"
 import type { IncidentsDashboardData } from "../../view-models.js"
-import { IncidentOverviewKpi } from "./overview-kpi.js"
+import { IncidentsBar } from "./incidents-bar.js"
 import { IncidentProcessList } from "./process-list.js"
 
-/** The incidents dashboard, the cockpit's incidents route: KPIs over the per-process list. */
+/** The incidents dashboard, the cockpit's incidents route: its bar over the per-process list. */
 export function IncidentsDashboard({
   data = null,
   engine,
@@ -13,7 +13,7 @@ export function IncidentsDashboard({
 }) {
   return (
     <ViewStack>
-      <IncidentOverviewKpi data={data} engine={engine} />
+      <IncidentsBar data={data} engine={engine} />
       <IncidentProcessList data={data} engine={engine} />
     </ViewStack>
   )

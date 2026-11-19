@@ -1,7 +1,8 @@
 import type { Client } from "@miragon/pulse-c7-client"
-import { latestEngineDate, toEngineDate } from "@miragon/pulse-c7-core"
+import { causeKeyOf, latestEngineDate, toEngineDate } from "@miragon/pulse-c7-core"
 import { getIncidentsCount } from "@miragon/pulse-c7-client/sdk"
 import type {
+  IncidentCauseScope,
   IncidentsDashboardActivity,
   IncidentsDashboardData,
   IncidentsDashboardProcess,
@@ -11,11 +12,15 @@ import type { IncidentsDashboardFilters } from "../feed-contracts.js"
 import { buildProcessCockpitUrl } from "../lib/engine/cockpit-url.js"
 import {
   definitionKeyResolver,
+  elementNameIn,
+  fetchNamesByDefinition,
   fetchStatsByKey,
   nameUnnamedDefinitions,
   unknownKeyError,
   type KeyStats,
+  type NamesByDefinition,
 } from "./definition-info.js"
+import { isRootIncident } from "./cluster-scan.js"
 import { countOf, DAY_MS } from "./engine-reads.js"
 import {
   groupBy,
@@ -41,6 +46,7 @@ export async function buildIncidentsDashboardData(
   client: Client,
   options: IncidentsDashboardOptions,
 ): Promise<IncidentsDashboardData> {
+  const fetchedAt = new Date().toISOString()
   const cutoffMs = Date.now() - DAY_MS
   const filter = {
     processDefinitionKeyIn: options.processDefinitionKey,
@@ -66,13 +72,28 @@ export async function buildIncidentsDashboardData(
   const shown = [...statsByKey.entries()]
     .filter(([key, stats]) => stats.incidentCount > 0 && matchesKey(key, options))
     .sort((a, b) => b[1].incidentCount - a[1].incidentCount)
-  // A Modeler pool around an unnamed process names its card, as every view names it.
-  await nameUnnamedDefinitions(
-    client,
-    shown.map(([, stats]) => stats.latest),
+  const groupsByKey = new Map(
+    shown.map(([key]) => [key, activityGroups(scannedByKey.get(key) ?? [])] as const),
   )
+  const newestRows = [...groupsByKey.values()].flat().map((rows) => rows[0])
+  const rootOf = rootIncidentsIn(scan.rows)
+  const [, names] = await Promise.all([
+    // A Modeler pool around an unnamed process names its card, as every view names it.
+    nameUnnamedDefinitions(
+      client,
+      shown.map(([, stats]) => stats.latest),
+    ),
+    // ENRICHMENT: an activity is named in the diagram of its newest incident's version, the
+    // busiest cards first, then the root causes delegated rows stand for; a diagram past the cap or
+    // unread leaves its activities' ids.
+    fetchNamesByDefinition(client, [
+      ...newestRows.map((row) => row.processDefinitionId),
+      ...newestRows.map((row) => rootOf(row)?.processDefinitionId),
+    ]),
+  ])
+  const ctx = { scan, cutoffMs, options, names, rootOf }
   const processes = shown.map(([key, stats]) =>
-    toProcess(key, stats, scannedByKey.get(key) ?? [], { scan, cutoffMs, options }),
+    toProcess(key, stats, scannedByKey.get(key) ?? [], groupsByKey.get(key) ?? [], ctx),
   )
 
   return {
@@ -88,7 +109,68 @@ export async function buildIncidentsDashboardData(
       processDefinitionKey: options.processDefinitionKey,
       incidentType: options.incidentType,
     },
+    fetchedAt,
     engineVendor: options.provider.branding.displayName,
+  }
+}
+
+/**
+ * A card's rows by activity and incident type, the scope of the cluster a root's row opens (a
+ * delegated row opens its root cause's, `rowCause`), the most incidents first; each group's rows
+ * newest first, as the scan reads them.
+ */
+function activityGroups(scanned: IncidentRow[]): IncidentRow[][] {
+  return [...groupBy(scanned, (r) => `${r.activityId} ${r.incidentType}`).values()].sort(
+    (a, b) => b.length - a.length,
+  )
+}
+
+/**
+ * The root incident a delegated incident stands for (a call activity's copy of a called instance's
+ * failure), only where the scan holds it: no read of its own. Null for a root incident.
+ */
+function rootIncidentsIn(rows: IncidentRow[]): (row: IncidentRow) => IncidentRow | null {
+  const byId = new Map(rows.map((r) => [r.id, r]))
+  return (row) => {
+    const root = row.rootCauseIncidentId
+    return root && root !== row.id ? (byId.get(root) ?? null) : null
+  }
+}
+
+/**
+ * Where a row leads and what it says, by its newest incident: a root's row opens its own cluster
+ * and says its own message. A delegated row (a call activity's incident carries no message of its
+ * own, its root cause in the called instance does) says its root cause's message and opens that
+ * cause's cluster, as the overview's causes form it (`causeKeyOf`), where the scan holds the root:
+ * never its own cluster, which lists root incidents alone and so none of its copies. Nothing rather
+ * than the activity's id again.
+ */
+function rowCause(
+  newest: IncidentRow,
+  ctx: { names: NamesByDefinition; rootOf: (row: IncidentRow) => IncidentRow | null },
+): Pick<IncidentsDashboardActivity, "representativeMessage" | "delegated" | "rootCause"> {
+  if (isRootIncident(newest)) {
+    return {
+      representativeMessage: newest.incidentMessage || null,
+      delegated: false,
+      rootCause: null,
+    }
+  }
+  const root = ctx.rootOf(newest)
+  return {
+    representativeMessage: newest.incidentMessage || (root?.incidentMessage ?? null),
+    delegated: true,
+    rootCause: root ? causeScope(root, ctx.names) : null,
+  }
+}
+
+function causeScope(root: IncidentRow, names: NamesByDefinition): IncidentCauseScope {
+  const { activityId, incidentType, signature } = causeKeyOf(root)
+  return {
+    activityId,
+    incidentType,
+    messageSignature: signature,
+    activityName: elementNameIn(names, root.processDefinitionId, root.activityId),
   }
 }
 
@@ -100,23 +182,30 @@ function toProcess(
   key: string,
   stats: KeyStats,
   scanned: IncidentRow[],
-  ctx: { scan: IncidentScan; cutoffMs: number; options: IncidentsDashboardOptions },
+  groups: IncidentRow[][],
+  ctx: {
+    scan: IncidentScan
+    cutoffMs: number
+    options: IncidentsDashboardOptions
+    names: NamesByDefinition
+    rootOf: (row: IncidentRow) => IncidentRow | null
+  },
 ): IncidentsDashboardProcess {
   // Complete only when the scan holds every incident of the key (vs. the exact
   // count), so a card never reports confident zeros next to its N incidents.
   const fullyScanned = scanned.length >= stats.incidentCount
   const facts = scanFacts(scanned, { fullyScanned, scan: ctx.scan, cutoffMs: ctx.cutoffMs })
-  const activities: IncidentsDashboardActivity[] = [
-    ...groupBy(scanned, (r) => r.activityId).entries(),
-  ]
-    .sort((a, b) => b[1].length - a[1].length)
-    .map(([activityId, rows]) => ({
-      activityId,
-      // No BPMN on the overview: the definition view resolves display names.
-      activityName: null,
+  const activities: IncidentsDashboardActivity[] = groups.map((rows) => {
+    const [newest] = rows
+    return {
+      activityId: newest.activityId,
+      incidentType: newest.incidentType,
+      activityName: elementNameIn(ctx.names, newest.processDefinitionId, newest.activityId),
       scannedIncidentCount: rows.length,
       ...scanFacts(rows, { fullyScanned, scan: ctx.scan, cutoffMs: ctx.cutoffMs }),
-    }))
+      ...rowCause(newest, ctx),
+    }
+  })
 
   return {
     processDefinitionKey: key,
@@ -125,7 +214,8 @@ function toProcess(
     runningInstances: stats.instances,
     incidentCount: stats.incidentCount,
     scannedIncidentCount: scanned.length,
-    affectedActivityCount: fullyScanned ? activities.length : null,
+    // Activities, not their incident types: an activity failing two ways is one.
+    affectedActivityCount: fullyScanned ? new Set(activities.map((a) => a.activityId)).size : null,
     last24hCount: facts.last24hCount,
     latestIncident: facts.latestIncident,
     cockpitUrl: buildProcessCockpitUrl(

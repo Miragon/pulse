@@ -2,8 +2,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react"
 import { TestViewHost, type FollowUp } from "@miragon/pulse-widget-shell/widgets"
-import type { CockpitDashboardData, IncidentInstance } from "../view-models.js"
+import type { CockpitDashboardData, IncidentInstance, JobPanelData } from "../view-models.js"
 import { ProcessDefinitionsTable } from "./cockpit-dashboard/definitions-table.js"
+import { JobPanelWidget } from "./job-panel.js"
 import { NavProvider, type NavIntent } from "./navigation.js"
 import { IncidentTable } from "./process-incidents/incident-table.js"
 import type { IncidentRecoveryState } from "./process-incidents/use-incident-recovery.js"
@@ -167,5 +168,56 @@ describe("an incident table's rows", () => {
     cleanup()
     renderIncidents({ followUp: "none", retry: true })
     expect(screen.getByRole("columnheader", { name: "Actions" })).toBeTruthy()
+  })
+})
+
+const JOBS: JobPanelData = {
+  totalCount: 1,
+  allCount: 3,
+  failedCount: 1,
+  fetchedAt: "2026-10-09T09:30:00.000Z",
+  jobs: [
+    {
+      id: "job-7",
+      processInstanceId: "pi-7",
+      processDefinitionKey: "invoice",
+      processDefinitionId: "invoice:1:d",
+      processDefinitionName: "Invoice receipt",
+      activityId: "charge",
+      activityName: "Charge card",
+      retries: 0,
+      exceptionMessage: "Card declined",
+      dueDate: null,
+      suspended: false,
+      priority: 0,
+      createTime: "2026-10-09T09:00:00.000Z",
+    },
+  ],
+  filters: { failedOnly: true },
+  engineId: "prod",
+}
+
+// The jobs had no row target (A2): a job has no view of its own, so its row opens its instance,
+// where its incident shows, and copies the job's own id.
+describe("the jobs' rows", () => {
+  it("open their job's instance on a click or Enter and copy the job's id", async () => {
+    const go = vi.fn<(intent: NavIntent) => void>()
+    render(
+      <TestViewHost>
+        <NavProvider value={go}>
+          <JobPanelWidget data={JOBS} engine="prod" failedOnly />
+        </NavProvider>
+      </TestViewHost>,
+    )
+    const row = screen.getByRole("row", { name: "Job at Charge card, instance pi-7" })
+    fireEvent.click(within(row).getByText("Card declined"))
+    fireEvent.keyDown(row, { key: "Enter" })
+    expect(go.mock.calls.map(([intent]) => intent)).toEqual([
+      { type: "instance-detail", processInstanceId: "pi-7" },
+      { type: "instance-detail", processInstanceId: "pi-7" },
+    ])
+    fireEvent.keyDown(row, { key: "c", metaKey: true })
+    expect(await screen.findByText("Job ID copied")).toBeTruthy()
+    expect(writeText).toHaveBeenCalledWith("job-7")
   })
 })

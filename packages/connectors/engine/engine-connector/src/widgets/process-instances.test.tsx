@@ -25,6 +25,7 @@ function firstPage(flags: StateFlags): ProcessInstancesData {
     processDefinitionName: "Invoice",
     totalCount: 3,
     returnedCount: 2,
+    fetchedAt: "2026-10-26T08:00:00.000Z",
     allCount: 3,
     withIncidentCount: 0,
     suspendedCount: 0,
@@ -36,6 +37,7 @@ function firstPage(flags: StateFlags): ProcessInstancesData {
       version: 1,
       suspended: flags.suspended === true || flags.active === false,
       hasIncident: false,
+      startTime: null,
     })),
     filters: { ...flags, withIncidents: undefined, businessKeyLike: undefined },
     engineId: "prod",
@@ -99,6 +101,7 @@ describe("the engine-wide list's columns", () => {
           processDefinitionName: "Invoice receipt",
           suspended: true,
           hasIncident: true,
+          startTime: null,
         },
       ],
     }
@@ -131,10 +134,15 @@ describe("the engine-wide list's columns", () => {
         <ProcessInstancesView data={engineWide()} engine="prod" />
       </TestViewHost>,
     )
-    // No column hides: the state has its place in every width, right after the ids (the
-    // webview's order), so a narrow chat that scrolls the table sideways cuts the process first.
+    // Only the start hides, below 40rem: the state has its place in every width, right after the
+    // ids (the webview's order), so a narrow chat that scrolls the table sideways cuts the process
+    // first.
     const rules = container.querySelector("[data-list-table] style")?.textContent ?? ""
-    expect(rules).not.toMatch(/display: none/)
+    const hidden = [...rules.matchAll(/:nth-child\((\d+)\) \{ display: none; \}/g)].map((m) =>
+      Number(m[1]),
+    )
+    const heads = [...container.querySelectorAll("thead th")].map((th) => th.textContent)
+    expect(hidden).toEqual([heads.indexOf("Started") + 1])
     expect(headers()).not.toContain("Incident")
     expect(headers().slice(0, 3)).toEqual(["Business key / ID", "State", "Process"])
     const [running, suspended] = screen.getAllByRole("row").slice(1)
@@ -290,6 +298,7 @@ describe("the list's rows open their instance", () => {
         ...row,
         processDefinitionName: "Invoice receipt",
         hasIncident: withIncident && index === 1,
+        startTime: null,
       })),
     }
     const go = vi.fn<(intent: NavIntent) => void>()
@@ -334,5 +343,62 @@ describe("the list's rows open their instance", () => {
     expect(screen.getAllByRole("columnheader").map((th) => th.textContent)).not.toContain("Actions")
     const row = screen.getByRole("row", { name: "Instance BK-pi-2" })
     expect(within(row).queryAllByRole("button", { name: /chat/ })).toEqual([])
+  })
+})
+
+// V4, D5, X10: when an instance started, as the webview's list and a board's show it (a pair
+// feature): its time on the clock without seconds, right-aligned in tabular figures, the whole
+// instant in its title; an unread or unrecorded start is "—", never a guess. The bar says when the
+// page was read.
+describe("the instance list's start", () => {
+  function renderStarts() {
+    const page = firstPage({})
+    const data: ProcessInstancesData = {
+      ...page,
+      instances: [
+        { ...page.instances[0], startTime: new Date(Date.now() - 60_000).toISOString() },
+        page.instances[1],
+      ],
+    }
+    return render(
+      <TestViewHost>
+        <ProcessInstancesView data={data} processDefinitionKey="invoice" engine="prod" />
+      </TestViewHost>,
+    )
+  }
+
+  // A column hidden below 40rem stays in the markup: a test region has no width, so its cells are
+  // read from the table, not from the accessibility tree.
+  const heads = (container: HTMLElement) => [...container.querySelectorAll("thead th")]
+
+  it("shows each row's start right-aligned, its instant in its title, else —", () => {
+    const { container } = renderStarts()
+    const column = heads(container).findIndex((th) => th.textContent === "Started")
+    const [started, unknown] = [...container.querySelectorAll("tbody tr")].map(
+      (row) => row.querySelectorAll("td")[column],
+    )
+    expect(started.className).toContain("tabular-nums")
+    expect(started.getAttribute("align") ?? started.className).toMatch(/right/)
+    // Today: the time alone, without seconds.
+    expect(started.textContent).toMatch(/^\d{1,2}:\d{2}( [AP]M)?$/)
+    expect(started.querySelector("span")!.title).toMatch(/UTC/)
+    expect(unknown.textContent).toBe("—")
+    expect(unknown.querySelector("span")!.hasAttribute("title")).toBe(false)
+  })
+
+  it("fits the version to its chip, and the start to its time", () => {
+    const { container } = renderStarts()
+    const fitted = heads(container)
+      .filter((th) => th.className.includes("w-[1%]"))
+      .map((th) => th.textContent)
+    expect(fitted).toEqual(["Business key / ID", "Version", "Started"])
+  })
+
+  it("says when the page was read at the bar's end", () => {
+    const { container } = renderStarts()
+    const stamp = container.querySelector<HTMLElement>(
+      "[data-slot='view-bar'] [data-slot='freshness-stamp']",
+    )!
+    expect(stamp.textContent).toMatch(/^As of /)
   })
 })

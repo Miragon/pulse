@@ -55,8 +55,11 @@ describe("buildJobPanelData: exact totals from /job/count", () => {
     const all = await buildJobPanelData(client, "engine-a", { processDefinitionKey: "K1" })
     const failed = await buildJobPanelData(client, "engine-a", { failedOnly: true })
 
-    expect([all.totalCount, all.failedCount]).toEqual([120, 3])
-    expect([failed.totalCount, failed.failedCount]).toEqual([3, 3])
+    // Both counts in either scope (the segments' All and Without retries); the page's total is
+    // the listed scope's. The failed-only total never stands in for every job (D3).
+    expect([all.totalCount, all.allCount, all.failedCount]).toEqual([120, 120, 3])
+    expect([failed.totalCount, failed.allCount, failed.failedCount]).toEqual([3, 120, 3])
+    expect(Number.isNaN(Date.parse(failed.fetchedAt))).toBe(false)
     expect(calls(engine, "/job").map((r) => [r.method, r.query, r.body])).toEqual([
       [
         "POST",

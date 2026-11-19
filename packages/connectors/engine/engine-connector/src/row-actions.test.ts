@@ -33,6 +33,9 @@ const COMPOSES_ROWS = /<Td\b|<tr\b|<ListTable\b|<ListRow\b/
 const OPENING_TABLES = [
   "board/board-table.tsx",
   "cluster-detail.tsx",
+  "engine-health-clusters.tsx",
+  "incidents-dashboard/activity-table.tsx",
+  "job-panel/job-row.tsx",
   "process-definitions-table-view.tsx",
   "process-incidents/incident-table.tsx",
   "process-instances/instance-row.tsx",
@@ -84,10 +87,11 @@ function notXs(source: string): string[] {
   )
 }
 
-/** The drills that sit on a card and stay `sm`, each with its reason. */
-const SM_DRILLS: Readonly<Record<string, string>> = {
-  "engine-health.tsx": "a failure cluster's card on the overview, its actions beside its facts",
-}
+/**
+ * The drills that sit on a card and stay `sm`, each with its reason: none since the overview's top
+ * failures became a table's rows.
+ */
+const SM_DRILLS: Readonly<Record<string, string>> = {}
 
 /** A `<Button …>` whose last child is an `ArrowRight` icon: a drill in disguise. */
 const DRESSED_DRILL =
@@ -199,7 +203,6 @@ describe("one drill control outside tables", () => {
   it("keeps a drill where no table is: a card's way into its view", () => {
     const cards = sources(WIDGETS).filter((path) => /<DrillButton\b/.test(read(path)))
     expect(cards.map((path) => relative(WIDGETS, path)).sort()).toEqual([
-      "engine-health.tsx",
       "incidents-dashboard/process-list.tsx",
     ])
   })

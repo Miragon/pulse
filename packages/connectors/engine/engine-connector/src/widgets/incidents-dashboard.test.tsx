@@ -1,13 +1,15 @@
 // @vitest-environment happy-dom
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest"
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { createElement, type ComponentType } from "react"
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
-import { IncidentOverviewKpi } from "./incidents-dashboard/overview-kpi.js"
+import { IncidentsBar } from "./incidents-dashboard/incidents-bar.js"
 import { IncidentProcessList } from "./incidents-dashboard/process-list.js"
+import { NavProvider, type NavIntent } from "./navigation.js"
 import type { IncidentsDashboardData } from "../view-models.js"
 import { ENGINE_INCIDENTS_DATA, ENGINE_WIDGET_ACTIONS_DATA } from "../tool-names.js"
 import { widgetActionsFeedFor } from "./lib/hand-off.test-support.js"
 import { TestViewHost, type HostAction } from "@miragon/pulse-widget-shell/widgets"
+import { formatInstant, formatRelativeTime } from "@miragon/pulse-ui"
 
 afterEach(() => {
   cleanup()
@@ -21,6 +23,7 @@ const DATA: IncidentsDashboardData = {
   last24hCount: 251,
   latestIncident: "2026-10-10T12:00:00.000+0000",
   filters: {},
+  fetchedAt: "2026-10-10T12:05:00.000Z",
   engineVendor: "CIB seven",
   engineId: "prod-a",
   processes: [
@@ -38,6 +41,7 @@ const DATA: IncidentsDashboardData = {
       activities: [
         {
           activityId: "charge",
+          incidentType: "failedJob",
           activityName: null,
           representativeMessage: "card declined",
           scannedIncidentCount: 200,
@@ -76,7 +80,7 @@ describe("the incidents route while its feed fails", () => {
           },
         }}
       >
-        <IncidentOverviewKpi data={null} engine="prod-a" />
+        <IncidentsBar data={null} engine="prod-a" />
       </TestViewHost>,
     )
     await screen.findByRole("alert")
@@ -84,21 +88,59 @@ describe("the incidents route while its feed fails", () => {
   })
 })
 
-describe("incidents dashboard widgets: honest numbers", () => {
-  it("shows the unknown affected-activity total as —, never 0", () => {
-    render(
+// One home per number (V3, X4): the bar says the open incidents in words, the segments count All
+// and New in 24h, the cards their processes; no tiles repeat them, and no pill says "Live" where
+// nothing reloads by itself (A9): the bar says when the numbers were read.
+describe("the incidents route's bar", () => {
+  function renderBar(over: Partial<IncidentsDashboardData> = {}) {
+    return render(
       <TestViewHost>
-        {createElement(asWidget(IncidentOverviewKpi), { data, engine: "prod-a" })}
+        <IncidentsBar data={{ ...DATA, ...over }} engine="prod-a" />
       </TestViewHost>,
     )
+  }
 
-    const cell = screen
-      .getByText("Activities affected")
-      .closest<HTMLElement>('[data-slot="kpi-strip"] > div > *')!
-    expect(within(cell).getByText("—")).toBeTruthy()
-    expect(within(cell).queryByText("0")).toBeNull()
+  it("says the open incidents in one sentence, the activities only where every breakdown holds", () => {
+    const { container } = renderBar()
+    const bar = container.querySelector<HTMLElement>("[data-slot='view-bar']")!
+    // The unknown activity total is left out, never a 0.
+    expect(within(bar).getByText("257 open in 2 processes")).toBeTruthy()
+    expect(bar.textContent).not.toMatch(/activit/)
+    cleanup()
+    renderBar({ affectedActivityCount: 3 })
+    expect(screen.getByText("257 open in 2 processes, 3 activities")).toBeTruthy()
   })
 
+  it("carries the alarm on the incident's icon, the count in the foreground (invariant 6)", () => {
+    const { container } = renderBar()
+    const state = container.querySelector("[data-slot='view-bar'] [data-slot='state-label']")!
+    expect(state.getAttribute("data-state")).toBe("incident")
+    cleanup()
+    const quiet = renderBar({ totalCount: 0, processCount: 0, processes: [] })
+    expect(quiet.container.querySelector("[data-slot='state-label']")).toBeNull()
+    expect(screen.getByText("0 open in 0 processes")).toBeTruthy()
+  })
+
+  it("shows no tiles and no Live pill, and says when the numbers were read at its end", () => {
+    const { container } = renderBar()
+    expect(container.querySelector("[data-slot='kpi-grid']")).toBeNull()
+    expect(container.textContent).not.toMatch(/\bLive\b/)
+    const stamp = container.querySelector<HTMLElement>("[data-slot='freshness-stamp']")!
+    expect(stamp.textContent).toMatch(/^As of /)
+    expect(stamp.title).toContain("2026")
+  })
+
+  it("says it in German", () => {
+    render(
+      <TestViewHost locale="de">
+        <IncidentsBar data={{ ...DATA, affectedActivityCount: 1 }} engine="prod-a" />
+      </TestViewHost>,
+    )
+    expect(screen.getByText("257 offen in 2 Prozessen, 1 Aktivität")).toBeTruthy()
+  })
+})
+
+describe("incidents dashboard widgets: honest numbers", () => {
   it("keeps a process beyond the scan with its exact count and discloses a partial breakdown", () => {
     render(
       <TestViewHost>
@@ -119,7 +161,7 @@ describe("incidents dashboard widgets: honest numbers", () => {
     ).toBeTruthy()
   })
 
-  it("the Last 24h scope shows the key's 24h count (— when unknown) and drops a process without any", () => {
+  it("the New in 24h scope shows the key's 24h count (— when unknown) and drops a process without any", () => {
     render(
       <TestViewHost>
         {createElement(asWidget(IncidentProcessList), { data, engine: "prod-a" })}
@@ -129,7 +171,7 @@ describe("incidents dashboard widgets: honest numbers", () => {
     // One pick of two, a radio group as the instance scope, each with its count.
     const scopes = screen.getByRole("radiogroup", { name: "Show incidents" })
     const all = within(scopes).getByRole("radio", { name: /^All/ })
-    const last24h = within(scopes).getByRole("radio", { name: /^Last 24h/ })
+    const last24h = within(scopes).getByRole("radio", { name: /^New in 24h/ })
     expect(all.getAttribute("aria-checked")).toBe("true")
     fireEvent.click(last24h)
     expect(last24h.getAttribute("aria-checked")).toBe("true")
@@ -201,7 +243,7 @@ describe("incidents dashboard: a filtered view keeps its scope", () => {
   }
 
   it("the triage passes the filters as ids and states the filtered count", async () => {
-    const prompt = await promptOf(IncidentOverviewKpi, { data: FILTERED })
+    const prompt = await promptOf(IncidentsBar, { data: FILTERED })
 
     expect(prompt).toContain(
       'Ids: engine="prod-a", processDefinitionKey="quiet", incidentType="failedJob"\n',
@@ -214,7 +256,7 @@ describe("incidents dashboard: a filtered view keeps its scope", () => {
   })
 
   it("an unfiltered triage states the engine's open incidents and no filter", async () => {
-    const prompt = await promptOf(IncidentOverviewKpi, { data: DATA })
+    const prompt = await promptOf(IncidentsBar, { data: DATA })
 
     expect(prompt).toContain('Ids: engine="prod-a"\n')
     expect(prompt).toContain("On screen: openIncidents=257, processes=2")
@@ -235,12 +277,172 @@ describe("incidents dashboard: a filtered view keeps its scope", () => {
   it("the cockpit self-fetches the engine's whole dashboard and hands off its answer", async () => {
     // The cockpit's incidents view passes the engine alone: no data, no filter.
     const View = (props: Record<string, unknown>) => (
-      <IncidentOverviewKpi {...props} data={null} engine="prod-a" />
+      <IncidentsBar {...props} data={null} engine="prod-a" />
     )
     const prompt = await promptOf(View, {})
 
     await waitFor(() => expect(feedCalls).toEqual([{ engine: "prod-a" }]))
     expect(prompt).toContain('Ids: engine="prod-a"\n')
     expect(prompt).toContain("On screen: openIncidents=257, processes=2")
+  })
+})
+
+// N3 step 1, N12, X9: an expanded process lists its activities by their diagram's names, each a
+// row that opens its failure cluster; a row never repeats its name as its failure, and the card's
+// Open names where it goes.
+describe("a process card's activities", () => {
+  const ACTIVITIES: IncidentsDashboardData = {
+    ...DATA,
+    processes: [
+      {
+        ...DATA.processes[0],
+        scannedIncidentCount: 250,
+        activities: [
+          {
+            activityId: "Activity_Charge",
+            incidentType: "failedJob",
+            activityName: "Charge card",
+            representativeMessage: "card declined",
+            scannedIncidentCount: 200,
+            last24hCount: null,
+            firstSeen: "2026-10-09T08:00:00.000+0000",
+            latestIncident: "2026-10-10T12:00:00.000+0000",
+          },
+          {
+            // A call activity's incident: no message of its own and its root cause not scanned.
+            activityId: "Activity_CallBilling",
+            incidentType: "failedJob",
+            activityName: null,
+            representativeMessage: null,
+            scannedIncidentCount: 50,
+            last24hCount: null,
+            firstSeen: null,
+            latestIncident: "2026-10-10T11:00:00.000+0000",
+            delegated: true,
+            rootCause: null,
+          },
+          {
+            // A call activity's copies, their root cause in the called instance within the scan.
+            activityId: "Activity_AssessCredit",
+            incidentType: "failedJob",
+            activityName: "Assess creditworthiness",
+            representativeMessage: "Blacklist provider unreachable",
+            scannedIncidentCount: 49,
+            last24hCount: null,
+            firstSeen: null,
+            latestIncident: "2026-10-10T10:00:00.000+0000",
+            delegated: true,
+            rootCause: {
+              activityId: "CheckBlacklist",
+              incidentType: "failedJob",
+              messageSignature: "blacklist provider unreachable",
+              activityName: "Check blacklist",
+            },
+          },
+        ],
+      },
+    ],
+  }
+
+  function renderCard() {
+    const go = vi.fn<(intent: NavIntent) => void>()
+    render(
+      <TestViewHost>
+        <NavProvider value={go}>
+          <IncidentProcessList data={ACTIVITIES} engine="prod-a" />
+        </NavProvider>
+      </TestViewHost>,
+    )
+    fireEvent.click(screen.getByRole("button", { name: /^Burst/, expanded: false }))
+    return go
+  }
+
+  it("names each activity by its diagram's name, else its id, never the id again as its failure", () => {
+    renderCard()
+    const table = screen.getByRole("region", { name: "Incidents of Burst by activity" })
+    const named = within(table).getByRole("row", { name: "Incidents at Charge card" })
+    expect(named.textContent).toContain("card declined")
+    const bare = within(table).getByRole("row", {
+      name: "Incidents at Activity_CallBilling in Burst",
+    })
+    expect(bare.textContent?.match(/Activity_CallBilling/g)).toHaveLength(1)
+    expect(within(bare).getAllByText("—").length).toBeGreaterThan(0)
+  })
+
+  it("opens an activity's failure cluster on a click or Enter, by its activity and type", () => {
+    const go = renderCard()
+    const row = screen.getByRole("row", { name: "Incidents at Charge card" })
+    fireEvent.click(within(row).getByText("card declined"))
+    fireEvent.keyDown(row, { key: "Enter" })
+    expect(go.mock.calls.map(([intent]) => intent)).toEqual([
+      {
+        type: "cluster-detail",
+        activityId: "Activity_Charge",
+        incidentType: "failedJob",
+        label: "Charge card",
+      },
+      {
+        type: "cluster-detail",
+        activityId: "Activity_Charge",
+        incidentType: "failedJob",
+        label: "Charge card",
+      },
+    ])
+  })
+
+  // A cluster lists root incidents alone: a delegated row's own would answer 0 next to its count.
+  it("opens a delegated row's root cause, by its activity, type and message, named by it", () => {
+    const go = renderCard()
+    const row = screen.getByRole("row", {
+      name: "Incidents at Assess creditworthiness, caused at Check blacklist",
+    })
+    expect(row.textContent).toContain("Blacklist provider unreachable")
+    fireEvent.keyDown(row, { key: "Enter" })
+    expect(go).toHaveBeenCalledWith({
+      type: "cluster-detail",
+      activityId: "CheckBlacklist",
+      incidentType: "failedJob",
+      messageSignature: "blacklist provider unreachable",
+      label: "Check blacklist",
+    })
+    expect(go).not.toHaveBeenCalledWith(
+      expect.objectContaining({ activityId: "Activity_AssessCredit" }),
+    )
+  })
+
+  it("opens the process for a delegated row whose root cause lies beyond the scan", () => {
+    const go = renderCard()
+    fireEvent.click(screen.getByRole("row", { name: "Incidents at Activity_CallBilling in Burst" }))
+    expect(go.mock.calls.map(([intent]) => intent)).toEqual([
+      { type: "process-incidents", processDefinitionKey: "burst", label: "Burst" },
+    ])
+  })
+
+  // One grammar per fact: "first seen" and "last" read as a time ago, the instant in the title, as
+  // the process view's groups and its bar and the cluster's bar read them.
+  it("says when an activity was first seen and the card's last incident as a time ago", () => {
+    renderCard()
+    const row = screen.getByRole("row", { name: "Incidents at Charge card" })
+    const firstSeen = row.querySelector("time")!
+    expect(firstSeen.textContent).toBe(formatRelativeTime("2026-10-09T08:00:00.000+0000"))
+    expect(firstSeen.getAttribute("title")).toBe(formatInstant("2026-10-09T08:00:00.000+0000"))
+    // Unknown is "—", with no instant to title it.
+    const bare = screen.getByRole("row", { name: "Incidents at Activity_CallBilling in Burst" })
+    expect(bare.querySelector("time")).toBeNull()
+
+    const last = screen.getByText(/^last /)
+    expect(last.tagName).toBe("TIME")
+    expect(last.textContent).toBe(`last ${formatRelativeTime(DATA.processes[0].latestIncident)}`)
+    expect(last.getAttribute("title")).toBe(formatInstant(DATA.processes[0].latestIncident))
+  })
+
+  it("names the card's Open by its visible word and its real target, the process", () => {
+    const go = renderCard()
+    fireEvent.click(screen.getByRole("button", { name: "Open Burst" }))
+    expect(go).toHaveBeenCalledWith({
+      type: "process-incidents",
+      processDefinitionKey: "burst",
+      label: "Burst",
+    })
   })
 })

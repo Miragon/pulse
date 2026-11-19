@@ -1,5 +1,5 @@
 import { formatNumber, StateLabel, WidgetHeader } from "@miragon/pulse-ui"
-import { HandOffButton } from "@miragon/pulse-widget-shell/widgets"
+import { FreshnessStamp, HandOffButton } from "@miragon/pulse-widget-shell/widgets"
 import { useHandOff, useHandOffsShown, type HandOff } from "../lib/hand-off.js"
 import { useT } from "../../messages/use-t.js"
 import { instancesFilterFacts, type InstancesListFilters } from "./hand-offs.js"
@@ -45,6 +45,7 @@ export function InstancesHeader({
   total,
   engine,
   filters,
+  fetchedAt,
 }: {
   title: string
   processName: string | null
@@ -52,6 +53,8 @@ export function InstancesHeader({
   total: number
   engine: string
   filters: InstancesListFilters
+  /** When the page on screen was read: the bar's "As of". */
+  fetchedAt: string
 }) {
   const t = useT()
   const { ask } = useHandOff()
@@ -87,6 +90,7 @@ export function InstancesHeader({
           />
         )
       }
+      freshness={<FreshnessStamp at={fetchedAt} />}
     />
   )
 }
