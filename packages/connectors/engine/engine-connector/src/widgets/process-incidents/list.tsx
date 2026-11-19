@@ -1,9 +1,9 @@
 import { useState } from "react"
-import { formatNumber, GroupCard, SectionHeading, TableEmptyState } from "@miragon/pulse-ui"
+import { GroupCard, SectionHeading, TableEmptyState } from "@miragon/pulse-ui"
 import { ViewDataState, WidgetShell } from "@miragon/pulse-widget-shell/widgets"
 import type { ProcessIncidentsData } from "../../view-models.js"
 import { useNav } from "../navigation.js"
-import { ActivitySummary } from "./activity-summary.js"
+import { ActivitySummary, ActivityTitle } from "./activity-summary.js"
 import { useDefinitionData, type DefinitionScope } from "./feed.js"
 import { PagedIncidentTable } from "./incident-table.js"
 import { EmptyStateWithSiblings } from "./empty-state.js"
@@ -78,26 +78,22 @@ export function ActivityIncidentList({
     })
   }
 
-  const affectedActivityCount = data.activities.length
-
   return (
     <WidgetShell>
       <section>
-        <SectionHeading
-          title={t("procIncList.groupedHeading")}
-          hint={t("procIncList.affectedHint", { count: formatNumber(affectedActivityCount) })}
-        />
+        {/* One group per affected activity: their count is the KPI tile's, said once (D6). */}
+        <SectionHeading as="h2" title={t("procIncList.groupedHeading")} />
         {data.activities.length === 0 ? (
           <NoIncidentsState data={data} emptyVariant={emptyVariant} onJumpTo={jumpToProcess} />
         ) : (
           data.activities.map((activity) => (
             <GroupCard
               key={activity.activityId}
+              as="h3"
               expanded={expanded.has(activity.activityId)}
               onToggle={() => toggleExpanded(activity.activityId)}
-              summary={
-                <ActivitySummary activity={activity} expanded={expanded.has(activity.activityId)} />
-              }
+              title={<ActivityTitle activity={activity} />}
+              summary={(toggle) => <ActivitySummary activity={activity} toggle={toggle} />}
             >
               {/* Rows come from the paged per-activity feed (mounted on
                   expand), not the definition payload: the group reaches every

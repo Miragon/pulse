@@ -1,20 +1,18 @@
-import { useMemo } from "react"
+import { useMemo, type ReactNode } from "react"
 import {
-  Card,
-  CardContent,
   StatusBadge,
-  TONE_DOT,
   PagedListFooter,
   WidgetHeader,
-  cn,
   TableEmptyState,
+  formatClock,
   formatDuration,
-  formatTimestamp,
+  formatInstant,
 } from "@miragon/pulse-ui"
 import {
+  FreshnessStamp,
   HandOffButton,
   WidgetShell,
-  RowsBudgeted,
+  PagedRows,
   usePagedViewData,
   useViewData,
   HostModelContext,
@@ -24,15 +22,9 @@ import { HISTORY_PAGE_SIZE, type HistoryTimelineData } from "../view-models.js"
 import { ENGINE_HISTORY_TIMELINE_DATA } from "../tool-names.js"
 import { useHandOff, useHandOffsShown, type HandOff, type ViewContext } from "./lib/hand-off.js"
 import { durationOutliers } from "./lib/duration-outliers.js"
+import { instanceName } from "./lib/write-feedback.js"
 import { useT } from "../messages/use-t.js"
-import {
-  HistoryTable,
-  STEP_TONE,
-  StepState,
-  historyStepState,
-  instanceStateLabel,
-  type HistoryEntry,
-} from "./history-steps.js"
+import { HistoryTable, instanceStateLabel, type HistoryEntry } from "./history-steps.js"
 
 export type { HistoryTimelineData }
 
@@ -78,14 +70,16 @@ export function explainActivityHandOff(
   }
 }
 
-/** Shell-less activity history: `"timeline"` (outliers, Ask-AI) or the compact `"table"` of the incident detail. */
-function HistoryTimelineView({
+/**
+ * Shell-less activity history: the one steps table (`HistoryTable`), its "explain duration"
+ * hand-off at the end of the slowest steps' rows only, so the table is not cluttered
+ * (`durationOutliers`), and only where the host shows hand-offs.
+ */
+function HistorySteps({
   activities,
   instanceRef,
   engineId,
   incidentActivityIds,
-  variant = "timeline",
-  attachRows,
 }: {
   activities: HistoryEntry[]
   /** The instance the rows belong to, for their hand-offs. */
@@ -93,96 +87,33 @@ function HistoryTimelineView({
   engineId: string
   /** Activities with an open incident on this instance: their running step is marked. */
   incidentActivityIds?: readonly string[] | null
-  variant?: "timeline" | "table"
-  /** The element whose children are the rows, for the inline fit of a paged timeline. */
-  attachRows?: (element: HTMLElement | null) => void
 }) {
   const t = useT()
   const { ask } = useHandOff()
-  const incidentIds = new Set(incidentActivityIds ?? [])
+  const handOffs = useHandOffsShown()
   if (activities.length === 0) {
-    return (
-      <TableEmptyState>
-        {variant === "table" ? t("incidentHistory.empty") : t("historyTimeline.empty")}
-      </TableEmptyState>
-    )
+    return <TableEmptyState>{t("historyTimeline.empty")}</TableEmptyState>
   }
-
-  if (variant === "table") {
-    return <HistoryTable entries={activities} incidentIds={incidentIds} />
-  }
-
-  // Duration outliers: the per-row "explain duration" hand-off only on the
-  // slowest step(s), so the timeline isn't cluttered (`durationOutliers`).
   const isOutlier = durationOutliers(activities.map((a) => a.durationInMillis))
-
+  const explains = handOffs && activities.some((a) => isOutlier(a.durationInMillis))
   return (
-    <div className="gap-section flex flex-col">
-      <ol
-        ref={attachRows}
-        className="flex flex-col gap-1"
-        aria-label={t("historyTimeline.timelineLabel")}
-      >
-        {activities.map((activity, index) => {
-          const state = historyStepState(activity, incidentIds)
-          return (
-            <li key={activity.id} className="flex items-center gap-3">
-              <div className="flex flex-col items-center">
-                <div
-                  className={cn(
-                    "size-3 rounded-full",
-                    TONE_DOT[STEP_TONE[state]],
-                    state === "incident" &&
-                      "ring-danger ring-offset-background ring-2 ring-offset-2",
-                  )}
-                  aria-hidden="true"
+    <HistoryTable
+      entries={activities}
+      incidentIds={new Set(incidentActivityIds ?? [])}
+      renderActions={
+        explains
+          ? (activity) =>
+              isOutlier(activity.durationInMillis) && (
+                <HandOffButton
+                  action="explainDuration"
+                  variant="icon"
+                  size="xs"
+                  prompt={ask(explainActivityHandOff(activity, instanceRef, engineId))}
                 />
-                {index < activities.length - 1 && (
-                  <div className="bg-border h-6 w-0.5" aria-hidden="true" />
-                )}
-              </div>
-              <Card
-                className={cn(
-                  "flex-1 gap-0 py-0 shadow-none",
-                  state === "incident" && "border-danger",
-                )}
-              >
-                <CardContent className="px-cell py-cell flex flex-wrap items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <span className="text-dense font-semibold">
-                      {activity.activityName ?? activity.activityId}
-                    </span>
-                    <span className="text-muted-foreground text-small ml-2">
-                      {activity.activityType}
-                    </span>
-                    {activity.assignee && (
-                      <span className="text-muted-foreground text-small ml-2">
-                        {t("historyTimeline.assignedTo", { assignee: activity.assignee })}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {(state === "incident" || state === "running") && <StepState state={state} />}
-                    {activity.durationInMillis != null && (
-                      <span className="text-muted-foreground text-small">
-                        {formatDuration(activity.durationInMillis)}
-                      </span>
-                    )}
-                    {isOutlier(activity.durationInMillis) && (
-                      <HandOffButton
-                        action="explainDuration"
-                        variant="icon"
-                        prompt={ask(explainActivityHandOff(activity, instanceRef, engineId))}
-                      />
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </li>
-          )
-        })}
-      </ol>
-    </div>
+              )
+          : undefined
+      }
+    />
   )
 }
 
@@ -194,11 +125,13 @@ interface HistoryPage {
   totalCount?: number
 }
 
-/** Pages the history query with Load more instead of one capped fetch; `initialPage` skips the self-fetch. */
+/**
+ * Pages the history query with Load more instead of one capped fetch; `initialPage` skips the
+ * self-fetch. The history route, an instance's History tab and an incident's show it alike.
+ */
 export function PagedHistoryView({
   processInstanceId,
   engine,
-  variant = "timeline",
   initialPage = null,
   processDefinitionKey,
   incidentActivityIds,
@@ -207,7 +140,6 @@ export function PagedHistoryView({
   /** The route's engine: a page never reads the default engine. */
   engine: string
   processDefinitionKey?: string | null
-  variant?: "timeline" | "table"
   initialPage?: HistoryPage | null
   /** Activities with an open incident on this instance: their running step is marked. */
   incidentActivityIds?: readonly string[] | null
@@ -241,17 +173,15 @@ export function PagedHistoryView({
 
   return (
     <div className="flex flex-col gap-2">
-      {/* The rows fit as ONE list: the table variant hands its body to it. */}
-      <RowsBudgeted rows={paged.fit}>
-        <HistoryTimelineView
-          variant={variant}
+      {/* The rows fit as ONE list: the table hands its body to it. */}
+      <PagedRows paged={paged}>
+        <HistorySteps
           activities={paged.items}
           instanceRef={{ id: processInstanceId, processDefinitionKey }}
           engineId={engine}
           incidentActivityIds={incidentActivityIds}
-          attachRows={paged.fit.attachRows}
         />
-      </RowsBudgeted>
+      </PagedRows>
       <PagedListFooter
         paged={paged}
         noun={(total) => t("historyTimeline.footerNoun", { count: total })}
@@ -335,13 +265,20 @@ export function HistoryTimelineWidget({
     )
   }
   const instance = data.processInstance
+  // When the server read the history, once at the bar's end, as on every route.
+  const freshness = <FreshnessStamp at={data.fetchedAt} />
   return (
     <WidgetShell
       header={
         instance ? (
-          <HistoryHeader instance={instance} engineId={engine} total={data.totalActivities} />
+          <HistoryHeader
+            instance={instance}
+            engineId={engine}
+            total={data.totalActivities}
+            freshness={freshness}
+          />
         ) : (
-          routeBar
+          title && <WidgetHeader title={title} freshness={freshness} />
         )
       }
     >
@@ -356,7 +293,7 @@ export function HistoryTimelineWidget({
         />
       ) : (
         // Unknown to history: nothing to page (and no id to scope a page by).
-        <HistoryTimelineView
+        <HistorySteps
           activities={data.activities}
           engineId={engine}
           incidentActivityIds={data.incidentActivityIds}
@@ -366,15 +303,21 @@ export function HistoryTimelineWidget({
   )
 }
 
-/** The history route's bar: the instance's process, its state, start and duration. */
+/**
+ * The history route's bar: the instance by its one label (its business key, else its short id,
+ * #322 U13), its state, and in its facts its process, its start to the second with its instant in
+ * the title, and its duration.
+ */
 function HistoryHeader({
   instance,
   engineId,
   total,
+  freshness,
 }: {
   instance: TimelineInstance
   engineId: string
   total: number
+  freshness: ReactNode
 }) {
   const t = useT()
   const { ask } = useHandOff()
@@ -384,10 +327,14 @@ function HistoryHeader({
   return (
     <WidgetHeader
       badge={<StatusBadge tone={state.tone}>{state.label}</StatusBadge>}
-      title={instance.processDefinitionName ?? instance.processDefinitionKey}
+      // The whole id in its title, never a second name beside it.
+      title={<span title={instance.id}>{instanceName(instance.id, instance.businessKey)}</span>}
       sub={
         <>
-          <span>{t("historyTimeline.started", { time: formatTimestamp(instance.startTime) })}</span>
+          <span>{instance.processDefinitionName ?? instance.processDefinitionKey}</span>
+          <time dateTime={instance.startTime} title={formatInstant(instance.startTime)}>
+            {t("historyTimeline.started", { time: formatClock(instance.startTime) })}
+          </time>
           {instance.durationInMillis != null && (
             <span>
               {t("historyTimeline.duration", {
@@ -406,6 +353,7 @@ function HistoryHeader({
           />
         )
       }
+      freshness={freshness}
     />
   )
 }

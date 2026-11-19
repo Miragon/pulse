@@ -131,11 +131,11 @@ describe("engine_open_cockpit: the start view", () => {
       engineId: "solo",
       start: {
         view: { section: "jobs", processDefinitionKey: "order", failedOnly: true },
-        data: { totalCount: 1, failedCount: 1 },
+        data: { totalCount: 1, allCount: 1, failedCount: 1 },
       },
     })
     expect(textOf(result)).toBe(
-      '{"engine":"solo","view":"jobs","processDefinitionKey":"order","failedOnly":true,"totalCount":1,"failedCount":1}',
+      '{"engine":"solo","view":"jobs","processDefinitionKey":"order","failedOnly":true,"totalCount":1,"allCount":1,"failedCount":1}',
     )
   })
 

@@ -150,18 +150,18 @@ describe("useBpmnViewer", () => {
     expect(onImported).not.toHaveBeenCalled()
   })
 
-  it("zoomIn/zoomOut multiply the current zoom by 1.1/0.9", async () => {
+  it("zoomIn/zoomOut step the current zoom by a quarter", async () => {
     render(<Harness xml={XML} />)
     await waitFor(() =>
       expect(mock.MockViewer.instances[0]?.canvas.viewboxCalls.length).toBeGreaterThan(0),
     )
     const canvas = mock.MockViewer.instances[0].canvas
 
-    const before = canvas.level
+    canvas.level = 1
     latest.zoomIn()
-    expect(canvas.level).toBeCloseTo(before * 1.1)
+    expect(canvas.level).toBeCloseTo(1.25)
     latest.zoomOut()
-    expect(canvas.level).toBeCloseTo(before * 1.1 * 0.9)
+    expect(canvas.level).toBeCloseTo(1)
   })
 
   it("re-imports on reimportKey identity change, not on a stable key", async () => {

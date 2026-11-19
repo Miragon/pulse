@@ -1,4 +1,3 @@
-import { useId } from "react"
 import {
   Button,
   KpiGrid,
@@ -6,19 +5,16 @@ import {
   StatusStrip,
   WidgetHeader,
   type ToneVariant,
-  DrillButton,
   Icon,
-  NamedId,
   formatCount,
   formatNumber,
-  SectionHeading,
 } from "@miragon/pulse-ui"
 import {
+  FreshnessStamp,
   HandOffButton,
   isPermanentError,
   isSessionEnded,
   ViewDataState,
-  ViewMeta,
   WidgetShell,
   viewRefreshState,
   HostModelContext,
@@ -26,16 +22,14 @@ import {
   useViewData,
 } from "@miragon/pulse-widget-shell/widgets"
 import { RefreshCw, TriangleAlert } from "lucide-react"
-import type { EngineHealthCluster, EngineHealthData, EngineHealthStatus } from "../view-models.js"
+import type { EngineHealthData, EngineHealthStatus } from "../view-models.js"
 import { useNav, type OnNavigate } from "./navigation.js"
 import { ENGINE_HEALTH_DATA } from "../tool-names.js"
-import { remediationHandOff, UNKNOWN_KEY as UNKNOWN } from "./remediation.js"
 import { AlarmCount } from "./lib/alarm-count.js"
-import { useActionAllowed } from "./lib/engine-action.js"
 import { useHandOff, useHandOffsShown, type HandOff, type ViewContext } from "./lib/hand-off.js"
-import { healthFailureOf, healthVerdictLine, VERDICT_TONE } from "./lib/health-verdict.js"
+import { healthFailureOf, VERDICT_TONE } from "./lib/health-verdict.js"
+import { ClustersSection } from "./engine-health-clusters.js"
 import { useT } from "../messages/use-t.js"
-import { incidentTypeWords } from "./lib/incident-type.js"
 import { refreshCockpitData } from "./refresh.js"
 
 const STATUS_LABEL: Record<EngineHealthStatus, string> = {
@@ -117,85 +111,6 @@ function diagnoseHandOff(engine: string, error: Error): HandOff {
   }
 }
 
-/** One cross-process incident cluster (#322 U12): its state is the count, so the type is a neutral chip. */
-function ClusterRow({
-  cluster,
-  engine,
-  go,
-}: {
-  cluster: EngineHealthCluster
-  engine: string
-  go: OnNavigate
-}) {
-  const t = useT()
-  const { ask } = useHandOff()
-  const canFix = useActionAllowed("engine_set_job_retries", engine)
-  const handOff = remediationHandOff(cluster, engine, canFix)
-  const primaryKey = cluster.processDefinitionKeys.find((k) => k !== UNKNOWN)
-  const name = cluster.activityName ?? cluster.activityId
-  // Drill keeps the cluster scope (activity + type + message signature), not a list that loses the root-cause filter.
-  const drill = () =>
-    go({
-      type: "cluster-detail",
-      activityId: cluster.activityId,
-      incidentType: cluster.incidentType,
-      messageSignature: cluster.messageSignature,
-      label: cluster.activityName ?? undefined,
-    })
-
-  const scope =
-    cluster.processDefinitionKeys.length > 1
-      ? t("engineHealth.scopeProcesses", {
-          count: formatNumber(cluster.processDefinitionKeys.length),
-        })
-      : (cluster.processDefinitionName ?? primaryKey ?? UNKNOWN)
-  const facts = [
-    t("engineHealth.clusterAffected", {
-      count: formatCount(cluster.incidentCount ?? { atLeast: cluster.scannedIncidentCount }),
-    }),
-    cluster.last24hCount !== null && cluster.last24hCount > 0
-      ? t("engineHealth.clusterNew24h", { count: formatNumber(cluster.last24hCount) })
-      : null,
-    scope,
-  ].filter((part): part is string => part !== null)
-
-  // The words keep 16rem before the actions give way: in a narrow card (a chat's side panel, about
-  // 360 px) the actions go under them instead of squeezing them, so the element's id stays whole
-  // on its line and the message reads in lines, not word by word. Where the two actions do not fit
-  // side by side either (320 px, German), the hand-off goes under Open, inside the card.
-  return (
-    <li className="border-border p-gutter flex flex-wrap items-start justify-between gap-3 rounded-md border">
-      <div data-cluster-words="" className="flex min-w-0 grow basis-64 flex-col gap-1">
-        <div className="flex min-w-0 flex-wrap items-start gap-2">
-          <NamedId name={cluster.activityName} id={cluster.activityId} />
-          <span className="border-input text-muted-foreground text-small rounded-sm border px-1.5">
-            {incidentTypeWords(cluster.incidentType, t)}
-          </span>
-        </div>
-        {cluster.representativeMessage && (
-          <p className="text-foreground text-dense line-clamp-2 break-words">
-            <span className="sr-only">{t("engineHealth.clusterCause")} </span>
-            {cluster.representativeMessage}
-          </p>
-        )}
-        <p className="text-muted-foreground text-small">{facts.join(" · ")}</p>
-      </div>
-      <div
-        data-cluster-actions=""
-        className="flex max-w-full shrink-0 flex-wrap items-center gap-1.5"
-      >
-        <DrillButton
-          onDrill={drill}
-          ariaLabel={t("engineHealth.clusterViewAria", { activity: name })}
-        >
-          {t("engineHealth.clusterOpen")}
-        </DrillButton>
-        <HandOffButton action={canFix ? "planFix" : "explainError"} prompt={ask(handOff)} />
-      </div>
-    </li>
-  )
-}
-
 /**
  * The verdict loading or failed. Its state stands for the overview when the definitions under it
  * failed too, so its Try again reads the overview again.
@@ -272,61 +187,30 @@ function HealthKpis({ summary, go }: { summary: EngineHealthData["summary"]; go:
           // null (the incident scan was capped) shows "—", never a guessed count.
           value: formatCount(summary.affectedActivities),
         },
+        // The deployed count is the processes section's, never a denominator here (D12).
         {
           label: t("engineHealth.kpiAffectedProcesses"),
           value: formatNumber(summary.affectedDefinitions),
-          fraction: ` /${formatNumber(summary.totalDefinitions)}`,
         },
       ]}
     />
   )
 }
 
-/* Shows the engine moving work even with zero incidents; hidden when history is unavailable. */
+/**
+ * Shows the engine moving work even with zero incidents, started then completed in the last 24 h,
+ * an unread one as "—"; hidden when history is unavailable.
+ */
 function Throughput24h({ summary }: { summary: EngineHealthData["summary"] }) {
   const t = useT()
   if (summary.started24h === null && summary.completed24h === null) return null
   return (
     <p className="text-muted-foreground text-small">
       {t("engineHealth.throughput24h")}{" "}
-      {summary.started24h !== null
-        ? t("engineHealth.throughputStarted", { count: formatNumber(summary.started24h) })
-        : ""}
-      {summary.started24h !== null && summary.completed24h !== null ? " · " : ""}
-      {summary.completed24h !== null
-        ? t("engineHealth.throughputCompleted", { count: formatNumber(summary.completed24h) })
-        : ""}
+      <span className="tabular-nums">
+        {formatCount(summary.started24h)} · {formatCount(summary.completed24h)}
+      </span>
     </p>
-  )
-}
-
-function ClustersSection({
-  clusters,
-  engine,
-  go,
-}: {
-  clusters: EngineHealthCluster[]
-  engine: string
-  go: OnNavigate
-}) {
-  const t = useT()
-  // Per instance: two engine-health views on one page keep their own label.
-  const headingId = useId()
-  if (clusters.length === 0) return null
-  return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-2">
-      <SectionHeading
-        as="h2"
-        id={headingId}
-        title={t("engineHealth.clustersHeading")}
-        className="mb-0"
-      />
-      <ul className="flex flex-col gap-2">
-        {clusters.map((cluster) => (
-          <ClusterRow key={cluster.id} cluster={cluster} engine={engine} go={go} />
-        ))}
-      </ul>
-    </section>
   )
 }
 
@@ -376,12 +260,9 @@ export function EngineHealthView({
             // The engine in the title (#322 U4): prod-leasing and test-leasing
             // never share a heading.
             title={title}
-            sub={
-              <>
-                <ViewMeta asOf={data.fetchedAt} />
-                <span>{healthVerdictLine(t, data)}</span>
-              </>
-            }
+            // The KPIs under the bar hold the counts (one home per number): the bar keeps the
+            // title, the verdict and when the numbers were read.
+            freshness={<FreshnessStamp at={data.fetchedAt} />}
             actions={
               hasActions && (
                 <>

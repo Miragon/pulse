@@ -30,7 +30,9 @@ const JOB: JobPanelData["jobs"][number] = {
 function renderPanel(filters: JobPanelData["filters"]) {
   const data: JobPanelData = {
     totalCount: 1,
+    allCount: 1,
     failedCount: 1,
+    fetchedAt: "2026-10-26T08:00:00.000Z",
     jobs: [JOB],
     filters,
     engineId: "prod",
@@ -69,7 +71,9 @@ describe("a job's subject", () => {
   it("without an activity: the process alone under the dash", () => {
     const data: JobPanelData = {
       totalCount: 1,
+      allCount: 1,
       failedCount: 1,
+      fetchedAt: "2026-10-26T08:00:00.000Z",
       jobs: [{ ...JOB, activityId: null, activityName: null }],
       filters: {},
       engineId: "prod",

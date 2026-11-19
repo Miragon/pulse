@@ -99,11 +99,12 @@ describe("engineViews", () => {
     expect(feedReads(actions, ENGINE_PROCESS_INCIDENTS_DATA)).toEqual([])
   })
 
-  it("opens the cockpit on the incidents dashboard: its KPIs over its process list", async () => {
+  it("opens the cockpit on the incidents dashboard: its bar over its process list", async () => {
     const actions: HostAction[] = []
     const dashboard: IncidentsDashboardData = {
       totalCount: 0,
       processCount: 0,
+      fetchedAt: "2026-10-26T08:00:00.000Z",
       affectedActivityCount: 0,
       last24hCount: 0,
       latestIncident: null,

@@ -288,17 +288,23 @@ describe("cockpitFacts: the model's view of each route", () => {
   it("jobs: the counts, and the key and failedOnly only when the view names them", async () => {
     const json = async (view: CockpitView) =>
       JSON.parse(JSON.stringify(await factsOf(view))) as unknown
-    expect(await json({ section: "jobs" })).toStrictEqual({ totalCount: 1, failedCount: 1 })
+    expect(await json({ section: "jobs" })).toStrictEqual({
+      totalCount: 1,
+      allCount: 1,
+      failedCount: 1,
+    })
     expect(
       await json({ section: "jobs", processDefinitionKey: WORLD.key, failedOnly: true }),
     ).toStrictEqual({
       processDefinitionKey: WORLD.key,
       failedOnly: true,
       totalCount: 1,
+      allCount: 1,
       failedCount: 1,
     })
     expect(await json({ section: "jobs", failedOnly: false })).toStrictEqual({
       totalCount: 1,
+      allCount: 1,
       failedCount: 1,
     })
   })

@@ -1,6 +1,5 @@
 import type { ReactNode } from "react"
-import { CountBadge, Icon, cn, formatNumber } from "@miragon/pulse-ui"
-import { ChevronRight } from "lucide-react"
+import { CountBadge, GROUP_CARD_INSET, cn, formatNumber } from "@miragon/pulse-ui"
 import { useT } from "../messages/use-t.js"
 
 export interface GroupSummaryStat {
@@ -19,13 +18,14 @@ const NARROW = {
 } as const
 
 /**
- * Shared summary-row anatomy, so the grouped incident lists stay pixel-identical; `expanded`
- * doubles as the expandability switch (omit for plain rows). The row's one alarm sign is its
- * incident count's pill, the tone's icon of its own shape: no second icon leads the row. On the
- * density roles: a list entry's height at least, the cell's padding. The title keeps 10rem at
- * least; in a narrow row (a phone-width chat) the stats sit under it. The stats and the count
- * take fixed tracks (a stat 10rem, the count 3.5rem, its pill at the end), so they line up from
- * row to row whatever a date's or a count's width.
+ * Shared summary-row anatomy, so the grouped incident lists stay pixel-identical. In a
+ * `GroupCard` the title is the card's toggle (its chevron before the name, the subline lined up
+ * after it: `toggled`); without one it is a plain row. The row's one alarm sign is its incident
+ * count's pill, the tone's icon of its own shape: no second icon leads the row. On the density
+ * roles: a list entry's height at least, the cell's padding. The title keeps 10rem at least; in a
+ * narrow row (a phone-width chat) the stats sit under it. The stats and the count take fixed
+ * tracks (a stat 10rem, the count 3.5rem, its pill at the end), so they line up from row to row
+ * whatever a date's or a count's width.
  */
 export function GroupSummaryRow({
   title,
@@ -34,9 +34,10 @@ export function GroupSummaryRow({
   stats = [],
   incidents,
   actions,
-  expanded,
+  toggled = false,
   className,
 }: {
+  /** The name, or in a `GroupCard` the card's toggle, which holds the name after its chevron. */
   title: ReactNode
   /** Inline suffix after the title, e.g. a `VersionChip`. */
   titleSuffix?: ReactNode
@@ -48,26 +49,32 @@ export function GroupSummaryRow({
    * the count in words for a screen reader, never a coloured number; omit to render none.
    */
   incidents?: number
-  /** Action cells (AskAi / drill / cockpit link) between the pill and the chevron. */
+  /** Action cells (a drill, a cockpit link) after the pill, beside the toggle, never inside it. */
   actions?: ReactNode
-  expanded?: boolean
+  /** The title is a `GroupCard`'s toggle: the subline lines up with the name after its chevron. */
+  toggled?: boolean
   className?: string
 }) {
   const t = useT()
   return (
-    <div
-      data-slot="group-summary"
-      className={cn("@container/summary", expanded && "border-border border-b", className)}
-    >
+    <div data-slot="group-summary" className={cn("@container/summary", className)}>
       <div className="px-cell py-cell min-h-entry flex flex-wrap items-center gap-x-4 gap-y-1">
         <div data-slot="group-summary-title" className="min-w-[min(10rem,100%)] flex-1">
           <div className="text-foreground text-dense flex items-center gap-2 font-semibold">
-            <span className="truncate">{title}</span>
+            {/* A toggle cuts its own name: an overflow around it would clip its focus ring. */}
+            {toggled ? title : <span className="truncate">{title}</span>}
             {titleSuffix}
           </div>
           {/* The cause in words (an engine message), not code: no mono. */}
           {subline !== undefined && (
-            <div className="text-muted-foreground text-small truncate">{subline}</div>
+            <div
+              className={cn(
+                "text-muted-foreground text-small truncate",
+                toggled && GROUP_CARD_INSET,
+              )}
+            >
+              {subline}
+            </div>
           )}
         </div>
         {stats.length > 0 && (
@@ -80,7 +87,9 @@ export function GroupSummaryRow({
                   NARROW.stat,
                 )}
               >
-                <div className="text-foreground font-semibold whitespace-nowrap">{stat.value}</div>
+                {/* A value at 400 in the foreground: beside the name at 600 it reads as a figure,
+                    never a second title (V6); its label stays quiet. */}
+                <div className="text-foreground whitespace-nowrap">{stat.value}</div>
                 <div>{stat.label}</div>
               </div>
             ))}
@@ -96,12 +105,6 @@ export function GroupSummaryRow({
           </span>
         )}
         {actions}
-        {expanded !== undefined && (
-          <Icon
-            icon={ChevronRight}
-            className={`text-muted-foreground transition-transform ${expanded ? "rotate-90" : ""}`}
-          />
-        )}
       </div>
     </div>
   )

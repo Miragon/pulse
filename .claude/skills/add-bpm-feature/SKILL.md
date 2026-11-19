@@ -384,7 +384,8 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   (an incident's, an instance's) are pulse-ui's `Facts` (ids copyable through `IdText`, numbers
   neutral; an alarming one adds its tone's icon of its own shape with words in `Icon`'s
   `label`); a state is a `StateLabel`, a count in the header's `badge` or `sub` too (its tone's
-  icon, the number in the foreground), never a tinted `StatusBadge` or `LivePill`; a tab's count
+  icon, the number in the foreground), never a tinted `StatusBadge`; when the numbers were read
+  is the bar's `freshness` (`FreshnessStamp`), never a "Live" pill; a tab's count
   is `TabCount`, only for a count the view already holds
 - From pulse-ui: `Section` (collapsibles, `as` for the heading level); `Th`/`Td` (cells);
   `WidgetHeader` (`badge`/`titleSuffix`/`sub`/`actions`/`as`, `size="app"` only at app level, no

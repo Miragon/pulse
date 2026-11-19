@@ -73,27 +73,34 @@ describe("the incident hand-offs scope by a real key or the exact definition id"
   })
 })
 
-const JOBS = (filters: JobPanelData["filters"], totalCount: number): JobPanelData => ({
+const JOBS = (
+  filters: JobPanelData["filters"],
+  totalCount: number,
+  allCount = totalCount,
+): JobPanelData => ({
   totalCount,
+  allCount,
   failedCount: 7,
+  fetchedAt: "2026-10-26T08:00:00.000Z",
   jobs: [],
   filters,
   engineId: "prod-a",
 })
 
 describe("the job panel's hand-offs carry the echoed scope of its counts", () => {
-  it("a key-scoped, failed-only panel scopes the triage and never states its total as all jobs", () => {
+  it("a key-scoped, failed-only panel scopes the triage and states every job of the key apart", () => {
     const h = bindHandOff("en")
-    // failedOnly: the builder's totalCount IS the failed count.
-    const data = JOBS({ processDefinitionKey: "invoice", failedOnly: true }, 7)
+    // failedOnly: the page's totalCount IS the failed count; allCount counts every job of the key.
+    const data = JOBS({ processDefinitionKey: "invoice", failedOnly: true }, 7, 9)
     const prompt = h.ask(triageJobsHandOff(data, "prod-a"))!
     expect(prompt).toContain('Ids: engine="prod-a", processDefinitionKey="invoice"\n')
-    expect(prompt.split("\n")).toContain("On screen: failedJobs=7")
-    expect(prompt).not.toContain("totalJobs")
+    expect(prompt.split("\n")).toContain("On screen: totalJobs=9, failedJobs=7")
 
     const context = h.context(describeJobPanel(data, "prod-a", 7))
     expect(context).toContain('Ids: engine="prod-a", processDefinitionKey="invoice"\n')
-    expect(context.split("\n")).toContain("On screen: failedJobs=7, loaded=7, failedOnly=true")
+    expect(context.split("\n")).toContain(
+      "On screen: totalJobs=9, failedJobs=7, loaded=7, failedOnly=true",
+    )
   })
 
   it("an unscoped panel states the engine's totals and no key", () => {

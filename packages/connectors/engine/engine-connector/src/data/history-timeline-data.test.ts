@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { clientFor, startFakeEngine, type FakeEngine } from "../tools/test-support/fake-engine.js"
 import { ENGINE_FAILURE, WORLD, worldReply } from "../tools/test-support/engine-world.js"
 import { buildHistoryTimelineData } from "./history-timeline-data.js"
@@ -36,6 +36,20 @@ describe("buildHistoryTimelineData: the failing steps", () => {
     const { data } = await build(true)
     expect(data.incidentActivityIds).toBeNull()
     expect(data.totalActivities).toBe(1)
+  })
+})
+
+// One freshness on every route: the bar says when the server read the history.
+describe("buildHistoryTimelineData: when it was read", () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it("stamps the time its reads began, the bar's As of", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] })
+    vi.setSystemTime(new Date("2026-10-10T08:00:00.000Z"))
+    const { data } = await build(false)
+    expect(data.fetchedAt).toBe("2026-10-10T08:00:00.000Z")
   })
 })
 

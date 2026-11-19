@@ -156,7 +156,7 @@ describe.each(ENTRIES)("definition view flow: %s", (_entry, props) => {
       within(group).getByRole("radio", { name: "Incidents" }).getAttribute("aria-checked"),
     ).toBe("true")
     expect(highlightOf("incident")?.counts).toEqual([{ activityId: "assess", count: 1 }])
-    expect(screen.getByText("diagram v2 (latest) · counts span all versions")).toBeTruthy()
+    expect(screen.getByText("diagram v2 (latest)")).toBeTruthy()
     expect(calls(ENGINE_ACTIVITY_STATISTICS_DATA)).toEqual([])
 
     await chooseRunning()
@@ -231,7 +231,7 @@ describe("definition view flow: Running", () => {
     expect(calls(ENGINE_ACTIVITY_STATISTICS_DATA)).toHaveLength(2)
 
     fireEvent.click(within(await modeGroup()).getByRole("radio", { name: "Incidents" }))
-    await screen.findByText("diagram v2 (latest) · counts span all versions")
+    await screen.findByText("diagram v2 (latest)")
   })
 
   it("tells the model the three elements with the most running, names fenced", async () => {
