@@ -4,34 +4,48 @@ import { WEB_PATHS } from "@miragon/pulse-widget-shell/widgets"
 import { useT } from "./messages/index.js"
 
 /**
- * The page's bar, the app's own chrome above every page: 40 px with its rule, the product's name as
- * its chrome title (13 px at 600; the Komet stays on the app level, the cockpit's landing), and at
- * its end what the page puts there (who is signed in and the sign-out). Its container is `bar`, so
- * a toolbar button's label hides visually under 36rem. On a page with a session the name leads to
- * the start page (`home`), the way back to the boards and engines a page's words name.
+ * The page's width and its margin on the ground: the guide's content width (72rem, 1152 px) with
+ * its 24 px gutter around it from 40rem on; under that the sheet runs from edge to edge, as every
+ * pixel counts on a phone. The bar's row and the sheet share it, so the product's name stands over
+ * the sheet's content.
+ */
+const PAGE_WIDTH = "mx-auto w-full max-w-6xl"
+const PAGE_MARGIN = "sm:px-6"
+
+/**
+ * The page's bar, the app's own chrome above every page: 40 px on the card's surface with its rule
+ * across the window, the product's name as its chrome title (13 px at 600; the Komet stays on the
+ * app level, the cockpit's landing), and at its end what the page puts there (who is signed in and
+ * the sign-out), its row as wide as the sheet below. Its row's container is `bar`, so a toolbar
+ * button's label hides visually under 36rem. On a page with a session the name leads to the start
+ * page (`home`), the way back to the boards and engines a page's words name.
  */
 export function PageBar({ home = false, children }: { home?: boolean; children?: ReactNode }) {
   const t = useT()
   const product = "text-dense text-foreground shrink-0 font-semibold"
   return (
-    <div
-      data-slot="page-bar"
-      className="border-border min-h-bar px-gutter @container/bar flex min-w-0 items-center gap-3 border-b"
-    >
-      {home ? (
-        <a
-          href={WEB_PATHS.app}
-          className={cn(product, "rounded-sm hover:underline", FOCUS_RING)}
-          aria-label={t("frame.home")}
-        >
-          {t("frame.product")}
-        </a>
-      ) : (
-        <p className={product}>{t("frame.product")}</p>
-      )}
-      {children !== undefined && (
-        <div className="ms-auto flex min-w-0 items-center gap-3">{children}</div>
-      )}
+    <div data-slot="page-bar" className={cn("border-border bg-card border-b", PAGE_MARGIN)}>
+      <div
+        className={cn(
+          "min-h-bar px-gutter @container/bar flex min-w-0 items-center gap-3",
+          PAGE_WIDTH,
+        )}
+      >
+        {home ? (
+          <a
+            href={WEB_PATHS.app}
+            className={cn(product, "rounded-sm hover:underline", FOCUS_RING)}
+            aria-label={t("frame.home")}
+          >
+            {t("frame.product")}
+          </a>
+        ) : (
+          <p className={product}>{t("frame.product")}</p>
+        )}
+        {children !== undefined && (
+          <div className="ms-auto flex min-w-0 items-center gap-3">{children}</div>
+        )}
+      </div>
     </div>
   )
 }
@@ -63,7 +77,10 @@ function useHeadingTitle(fallback: string): RefCallback<HTMLElement> {
 
 /**
  * The page's frame: the banner (the bar and what it adds below) above the page's main content,
- * whose heading titles the document (`fallback` until it has one).
+ * whose heading titles the document (`fallback` until it has one). The content is a sheet on the
+ * app's ground, the guide's card: the card's surface with its 1 px rule, radius `lg` and the faint
+ * shadow, as high as what it holds. It clips what it holds to its corners, since a view paints its
+ * own surface up to its edges; what floats over a view (a menu, a dialog) renders outside it.
  */
 export function PageLayout({
   banner,
@@ -78,8 +95,17 @@ export function PageLayout({
   return (
     <div data-slot="page-frame" className="flex min-h-full flex-col">
       <header>{banner}</header>
-      <div ref={titled} data-slot="page-content" className="flex flex-1 flex-col">
-        {children}
+      <div className={cn("flex flex-1 flex-col sm:py-6", PAGE_MARGIN)}>
+        <div
+          ref={titled}
+          data-slot="page-content"
+          className={cn(
+            "bg-card border-border sm:shadow-1 flex flex-col overflow-clip border-b sm:rounded-lg sm:border",
+            PAGE_WIDTH,
+          )}
+        >
+          {children}
+        </div>
       </div>
     </div>
   )

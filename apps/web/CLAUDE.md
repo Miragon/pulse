@@ -45,7 +45,9 @@ server image builds the page beside the server and serves it from `/app/web`.
   (`readWebSession`) and mounts the view with widget-shell's `mountPage`, its caller
   `webToolCaller` (every call a POST to `/app/api/call` with the session's CSRF token; no token
   ever reaches the page), its `frame` the app's own (`src/frame.tsx`: the 40 px bar with the
-  product, who is signed in and the sign-out, and the session's notices under it). A page writes
+  product, who is signed in and the sign-out, and the session's notices under it; below it the
+  view on a sheet, the guide's card on the app's ground, the sheet and the bar's row 72rem wide at
+  most, the sheet edge to edge under 40rem: `src/bar.tsx`). A page writes
   to no engine and posts to no chat (`followUp: "none"`), so no write control and no hand-off show.
   A start that failed for its engine (an unreachable one, say) keeps the cockpit's head over the
   route that says so: `mountPage`'s `failedStart` takes the engine connector's
