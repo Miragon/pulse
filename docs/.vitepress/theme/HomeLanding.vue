@@ -200,8 +200,7 @@ async function moveBy(offset: number) {
               <div v-for="(line, at) in terminal" :key="at">
                 <span v-for="(part, from) in line" :key="from" :class="part.tone">{{
                   part.text
-                }}</span
-                >&#8203;
+                }}</span>&#8203;
               </div>
               <div>
                 <span class="prompt">~/shop</span> <span class="quiet">$</span>
