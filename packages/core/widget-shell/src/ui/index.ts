@@ -117,7 +117,14 @@ export { PagedRows } from "./paged-rows.js"
 export { RowsBudgeted } from "./inline-budget.js"
 export type { InlineRows } from "./inline-fit.js"
 export { FIT_CONTINUES_ROW } from "./inline-fit-registry.js"
-export { BPMN_TOKENS, BPMN_OVERLAY_CSS, injectBpmnOverlayCss, cdVar } from "./bpmn-tokens.js"
+export {
+  BPMN_CANVAS_SLOT,
+  BPMN_CANVAS_VARS,
+  BPMN_TOKENS,
+  BPMN_OVERLAY_CSS,
+  injectBpmnOverlayCss,
+  cdVar,
+} from "./bpmn-tokens.js"
 export {
   useBpmnViewer,
   type BpmnCanvas,

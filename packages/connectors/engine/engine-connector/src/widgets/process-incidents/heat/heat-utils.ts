@@ -1,4 +1,4 @@
-import { BPMN_TOKENS, cdVar, type BpmnElement } from "@miragon/pulse-widget-shell/widgets"
+import { BPMN_CANVAS_VARS, type BpmnElement } from "@miragon/pulse-widget-shell/widgets"
 
 /** The heat layer's math, free of React and viewer state so it is testable. */
 
@@ -31,7 +31,10 @@ export function heatIntensity(weight: number, range: { min: number; max: number 
   return MIN_HEAT_INTENSITY + (1 - MIN_HEAT_INTENSITY) * t
 }
 
-/** Below 1 on purpose: at 0.75 the darkest step keeps a black task label above 4.5:1. */
+/**
+ * Below 1 on purpose: at 0.75 the darkest step keeps a task's label above 4.5:1, black under the
+ * light canvas's multiplied ramp, white under the dark canvas's screened one.
+ */
 export const HEAT_PEAK_ALPHA = 0.75
 
 /** Intensity at which the opacity reaches its peak: the soft rim of a blob below it. */
@@ -39,10 +42,24 @@ const HEAT_RIM = 0.2
 
 type Rgb = readonly [number, number, number]
 
-/** The ramp's two ends: `BPMN_TOKENS.heat`, as the theme declares them. */
+/** The ramp's two ends, as the canvas declares them for its mode. */
 export interface HeatRamp {
   from: Rgb
   to: Rgb
+}
+
+/**
+ * How the layer meets the drawing: multiplied into light paper, so black ink stays black, and
+ * screened into dark paper, so white ink stays white.
+ */
+type HeatBlend = "multiply" | "screen"
+
+const BLENDS: ReadonlySet<string> = new Set<HeatBlend>(["multiply", "screen"])
+
+/** The ramp and its blend for the canvas's mode. */
+export interface HeatPaint {
+  ramp: HeatRamp
+  blend: HeatBlend
 }
 
 /** A colour as the vendored tokens declare it (`#RRGGBB`); null for anything else. */
@@ -54,14 +71,18 @@ export function parseColor(value: string): Rgb | null {
 }
 
 /**
- * The ramp from the theme's `--cd-*` variables where the diagram sits: the one source the legend's
- * gradient reads too, never a forked hex value. Null when the page declares no theme.
+ * The ramp and its blend from the canvas's variables where the diagram sits (widget-shell's
+ * `BPMN_CANVAS_VARS`, `--cd-*` tokens per mode): the one source the legend's gradient reads too,
+ * never a forked hex value. Read at each paint, so a theme that changes repaints in its own ramp.
+ * Null when the page declares no canvas.
  */
-export function readHeatRamp(element: Element): HeatRamp | null {
+export function readHeatPaint(element: Element): HeatPaint | null {
   const style = getComputedStyle(element)
-  const from = parseColor(style.getPropertyValue(`--cd-${BPMN_TOKENS.heat.from}`))
-  const to = parseColor(style.getPropertyValue(`--cd-${BPMN_TOKENS.heat.to}`))
-  return from && to ? { from, to } : null
+  const from = parseColor(style.getPropertyValue(BPMN_CANVAS_VARS.heatFrom))
+  const to = parseColor(style.getPropertyValue(BPMN_CANVAS_VARS.heatTo))
+  const blend = style.getPropertyValue(BPMN_CANVAS_VARS.heatBlend).trim()
+  if (!from || !to || !BLENDS.has(blend)) return null
+  return { ramp: { from, to }, blend: blend as HeatBlend }
 }
 
 /** ONE hue (owner decision 2j), never a rainbow and never red: red is for incidents. */
@@ -79,10 +100,15 @@ export function buildGradientLut(ramp: HeatRamp): Uint8ClampedArray {
   return lut
 }
 
-/** Painted at HEAT_PEAK_ALPHA on the light paper, it matches the diagram. */
-export const HEAT_GRADIENT_CSS = `linear-gradient(to right, color-mix(in srgb, ${cdVar(BPMN_TOKENS.heat.to)} ${String(
+const heatVar = (name: string) => `var(${name})`
+
+/** Painted at HEAT_PEAK_ALPHA in the heat's blend on the canvas's paper, it matches the diagram. */
+export const HEAT_GRADIENT_CSS = `linear-gradient(to right, color-mix(in srgb, ${heatVar(BPMN_CANVAS_VARS.heatTo)} ${String(
   Math.round(MIN_HEAT_INTENSITY * 100),
-)}%, ${cdVar(BPMN_TOKENS.heat.from)}), ${cdVar(BPMN_TOKENS.heat.to)})`
+)}%, ${heatVar(BPMN_CANVAS_VARS.heatFrom)}), ${heatVar(BPMN_CANVAS_VARS.heatTo)})`
+
+/** The legend's blend: the canvas's, as its heat layer meets the drawing. */
+export const HEAT_BLEND_CSS = heatVar(BPMN_CANVAS_VARS.heatBlend)
 
 function buildBrush(radius: number, blur: number): HTMLCanvasElement {
   const r2 = radius + blur

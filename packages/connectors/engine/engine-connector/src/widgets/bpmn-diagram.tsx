@@ -3,7 +3,6 @@ import { ErrorState, Skeleton } from "@miragon/pulse-ui"
 import {
   BpmnZoomControls,
   QueryFallback,
-  injectBpmnOverlayCss,
   useBpmnViewer,
   useHostDisplayMode,
   useToolQuery,
@@ -132,7 +131,6 @@ export function BpmnCanvas({
     // The canvas alone is the image: the zoom controls, bpmn.io's link and the badges lie beside it.
     ariaLabel: t("bpmnDiagram.ariaLabel"),
     onImported: (imported) => {
-      injectBpmnOverlayCss()
       applyHighlights(imported.get("canvas"), imported.get("overlays"), highlights)
     },
   })
@@ -142,9 +140,9 @@ export function BpmnCanvas({
     fit()
   }, [displayMode, fit])
 
-  // The paper, its zoom bar and its error stay light in a dark host (CI §10).
+  // The paper, its zoom bar and its error follow the theme, as the editors' canvas (D10, point 7).
   return (
-    <div data-theme-mode="light" className="relative">
+    <div className="relative">
       <div
         ref={containerRef}
         className="border-border rounded-md border"

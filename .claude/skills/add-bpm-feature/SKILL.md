@@ -465,23 +465,30 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   `renderActions`), which the webview renders in React too since its switch to React on pulse-ui
   (owner decision D9). Its pull request updates
   `docs/vscode/parity.md`
-- BPMN: viewer lifecycle and the fixed light canvas via `useBpmnViewer` (the container
-  is a forced-light island, `data-theme-mode="light"`, on the paper token) +
-  `BpmnZoomControls` (light in every theme, Lucide; beside the container in one frame, so the
-  hook's fit keeps the diagram clear of it and of bpmn.io's link). The frame height comes from the
+- BPMN: viewer lifecycle and the canvas in the theme via `useBpmnViewer` (the container is
+  the canvas, `BPMN_CANVAS_SLOT`, whose variables `BPMN_CANVAS_VARS` the hook's stylesheet
+  declares per mode and bpmn-js draws with: the light paper on light, the editors' dark canvas on
+  dark, their 3 px outlines and edged badges in high contrast, the system's palette under forced
+  colours; never wrap it in a light island) + `BpmnZoomControls` (a card in the theme, Lucide;
+  beside the container in one frame, so the hook's fit keeps the diagram clear of it and of
+  bpmn.io's link). The frame height comes from the
   diagram's size (`height` from the hook: its height at the scale bpmn-js draws it, never
   past 1:1, 240–560 px, read from the XML's DI before the import, so the frame does not
   jump): pass no fixed `height` to `BpmnDiagram` unless a layout needs one. The process flow
   draws only engine reads: the open incidents, or as "Running" the `instance-count`,
   `incident` and `failed-jobs` badges of `engine_activity_statistics_data` (every version
   summed onto the latest diagram, mounted only once picked), or as "Throughput" its history
-  source as heat (`BpmnHeatmap`, the ramp `BPMN_TOKENS.heat` read from the theme's variables;
-  a read that loads the engine's database: see CLAUDE.md invariant 7).
-  Overlay and legend colours are widget-shell's ONE token module (`BPMN_TOKENS`,
-  `widget-shell/src/ui/bpmn-tokens.ts`: incident = danger, running/open task = blue on the
-  info tint, counts white on blue or danger; strokes ≥ 3:1, badge text ≥ 4.5:1, drift- and contrast-tested) through `HIGHLIGHT_COLORS`
-  (`src/widgets/bpmn-highlights.ts`); the CSS is
-  `injectBpmnOverlayCss()`. No pulse: an open user task is a heavier dashed stroke. A marker
+  source as heat (`BpmnHeatmap`, the ramp and its blend read from the canvas's variables at each
+  paint, multiplied into light paper and screened into dark; a read that loads the engine's
+  database: see CLAUDE.md invariant 7).
+  Overlay and legend colours are widget-shell's ONE token module (`BPMN_TOKENS` on light,
+  pulse-ui's roles on dark, `widget-shell/src/ui/bpmn-tokens.ts`: incident = danger, running/open
+  task = blue on the info tint, on dark their light values on the neutral surface, counts white on
+  blue or danger; strokes ≥ 3:1, text ≥ 4.5:1 in both modes, drift- and contrast-tested, the
+  dark roles' pairs in pulse-ui's `ROLE_CONTRAST_PAIRS`; in high contrast 3 px outlines and badges
+  edged in the ink, under forced colours the system's palette, `BPMN_FORCED_CANVAS`) through
+  `HIGHLIGHT_COLORS` (`src/widgets/bpmn-highlights.ts`); the CSS is `injectBpmnOverlayCss()`,
+  which `useBpmnViewer` injects itself, as the heat's legend does where no diagram mounts. No pulse: an open user task is a heavier dashed stroke. A marker
   paints its own shape's outline only, never a label's text or what lies inside a marked
   process or subprocess. The diagram's name goes to the hook's `ariaLabel`, which makes the
   canvas alone the image: never `role="img"` on the frame, whose zoom controls and bpmn.io's

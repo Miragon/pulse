@@ -23,8 +23,8 @@ Back returns to the view before, a reload or a copied link shows it again, and t
 anew. An earlier release's URL (`/app/cockpit?view=…`) gives way to the view's own, which an
 incident and an id no path holds (`.`, `..`) keep; `/app/` is a 404. The bar names who is signed in
 and holds **Sign out**; **Pulse** in it leads to `/app`, so a tab shows no trail, a drilled view
-does. The page speaks the browser's German or English, follows the system's light or dark theme, and
-is compact on a desktop, comfortable on touch.
+does. The page speaks the browser's German or English, follows the system's light or dark theme (its
+diagrams too), and is compact on a desktop, comfortable on touch.
 
 ## When something ends
 

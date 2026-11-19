@@ -1,15 +1,23 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from "vitest"
 import { CD_TOKENS } from "@miragon/pulse-ui"
-import { composite, contrastRatio, type Rgba } from "@miragon/pulse-ui/testing"
-import type { BpmnElement } from "@miragon/pulse-widget-shell/widgets"
+import {
+  composite,
+  contrastRatio,
+  parseThemeVariables,
+  resolveColor,
+  themeStylesheets,
+  type Rgba,
+} from "@miragon/pulse-ui/testing"
+import { BPMN_CANVAS_VARS, type BpmnElement } from "@miragon/pulse-widget-shell/widgets"
 import {
   buildGradientLut,
   parseColor,
-  readHeatRamp,
+  readHeatPaint,
   type HeatRamp,
   buildHeatPoints,
   drawHeatLayer,
+  HEAT_BLEND_CSS,
   HEAT_GRADIENT_CSS,
   HEAT_PEAK_ALPHA,
   heatColor,
@@ -27,27 +35,52 @@ const rgba = ([r, g, b, a]: readonly number[]): Rgba => ({
 })
 const hex = (value: string): Rgba => rgba([...channels(value), 255])
 const WHITE = hex(CD_TOKENS.weiss)
-/** The theme's ramp: BPMN_TOKENS.heat over the vendored tokens. */
+/** The light canvas's ramp: widget-shell's BPMN_TOKENS.heat over the vendored tokens. */
 const RAMP: HeatRamp = { from: channels(CD_TOKENS["info-soft"]), to: channels(CD_TOKENS.blau) }
+/** The dark canvas's ramp, screened into the drawing. */
+const DARK_RAMP: HeatRamp = { from: channels(CD_TOKENS.schwarz), to: channels(CD_TOKENS.blau) }
+/** The dark paper and ink: pulse-ui's dark ground and text, the canvas's dark paper and ink. */
+const DARK = parseThemeVariables(...themeStylesheets()).dark
+const DARK_PAPER = resolveColor("var(--background)", DARK)
+const DARK_INK = resolveColor("var(--foreground)", DARK)
 
-describe("readHeatRamp", () => {
-  it("reads the ramp's ends from the theme's variables where the diagram sits", () => {
-    const element = document.createElement("div")
-    element.style.setProperty("--cd-info-soft", CD_TOKENS["info-soft"])
-    element.style.setProperty("--cd-blau", ` ${CD_TOKENS.blau}`)
-    document.body.append(element)
-    expect(readHeatRamp(element)).toEqual({
-      from: channels(CD_TOKENS["info-soft"]),
-      to: channels(CD_TOKENS.blau),
-    })
-    element.remove()
+/** `fg` screened into `bg` at its alpha (mix-blend-mode: screen): white stays white. */
+function screened(fg: Rgba, bg: Rgba): Rgba {
+  const screen = (s: number, b: number) => 1 - (1 - s) * (1 - b)
+  return composite(
+    { r: screen(fg.r, bg.r), g: screen(fg.g, bg.g), b: screen(fg.b, bg.b), a: fg.a },
+    bg,
+  )
+}
+
+/** An element on a canvas, its variables declared as the frame's stylesheet would. */
+function onCanvas(from: string, to: string, blend: string): HTMLElement {
+  const element = document.createElement("div")
+  element.style.setProperty(BPMN_CANVAS_VARS.heatFrom, from)
+  element.style.setProperty(BPMN_CANVAS_VARS.heatTo, ` ${to}`)
+  element.style.setProperty(BPMN_CANVAS_VARS.heatBlend, ` ${blend}`)
+  document.body.append(element)
+  return element
+}
+
+describe("readHeatPaint", () => {
+  it("reads the ramp's ends and the blend from the canvas's variables where the diagram sits", () => {
+    const light = onCanvas(CD_TOKENS["info-soft"], CD_TOKENS.blau, "multiply")
+    expect(readHeatPaint(light)).toEqual({ ramp: RAMP, blend: "multiply" })
+    const dark = onCanvas(CD_TOKENS.schwarz, CD_TOKENS.blau, "screen")
+    expect(readHeatPaint(dark)).toEqual({ ramp: DARK_RAMP, blend: "screen" })
+    light.remove()
+    dark.remove()
   })
 
-  it("is null on a page without the theme: no forked fallback colour", () => {
+  it("is null on a page without the canvas, or with a blend it does not paint: no forked fallback", () => {
     const element = document.createElement("div")
     document.body.append(element)
-    expect(readHeatRamp(element)).toBeNull()
+    expect(readHeatPaint(element)).toBeNull()
+    const odd = onCanvas(CD_TOKENS["info-soft"], CD_TOKENS.blau, "overlay")
+    expect(readHeatPaint(odd)).toBeNull()
     element.remove()
+    odd.remove()
   })
 })
 
@@ -90,10 +123,32 @@ describe("the heat ramp (owner decision 2j: one hue, --cd-info-soft to --cd-blau
     expect(contrastRatio(hex(CD_TOKENS.schwarz), strongest)).toBeGreaterThanOrEqual(4.5)
   })
 
-  it("draws its legend from the same tokens, starting at the minimum intensity", () => {
+  it("draws its legend from the canvas's variables, starting at the minimum intensity, in its blend", () => {
     expect(HEAT_GRADIENT_CSS).toBe(
-      "linear-gradient(to right, color-mix(in srgb, var(--cd-blau) 30%, var(--cd-info-soft)), var(--cd-blau))",
+      "linear-gradient(to right, color-mix(in srgb, var(--bpmn-heat-to) 30%, var(--bpmn-heat-from)), var(--bpmn-heat-to))",
     )
+    expect(HEAT_BLEND_CSS).toBe("var(--bpmn-heat-blend)")
+  })
+})
+
+describe("the heat ramp on the dark canvas (derived from D10, point 7; awaits the owner's confirmation)", () => {
+  it("never turns red: from the paper's own black (transparent there) every step is bluer than red", () => {
+    expect(heatColor(0, DARK_RAMP)[3]).toBe(0)
+    for (let i = 1; i <= 10; i++) {
+      const [r, , b] = heatColor(i / 10, DARK_RAMP)
+      expect(b).toBeGreaterThan(r)
+    }
+  })
+
+  it("the faintest value above zero still shows on the dark paper (U16)", () => {
+    const faintest = screened(rgba(heatColor(MIN_HEAT_INTENSITY, DARK_RAMP)), DARK_PAPER)
+    expect(contrastRatio(faintest, DARK_PAPER)).toBeGreaterThan(1.3)
+  })
+
+  it("keeps the white label readable under the strongest heat (4.5:1): screened, white stays white", () => {
+    const strongest = screened(rgba(heatColor(1, DARK_RAMP)), DARK_PAPER)
+    expect(contrastRatio(DARK_INK, strongest)).toBeGreaterThanOrEqual(4.5)
+    expect(screened(rgba(heatColor(1, DARK_RAMP)), DARK_INK)).toEqual(DARK_INK)
   })
 })
 

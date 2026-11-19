@@ -6,6 +6,7 @@ import TextRenderer from "bpmn-js/lib/draw/TextRenderer"
 import { BPMNIO_IMG } from "bpmn-js/lib/util/PoweredByUtil"
 import { BpmnZoomControls } from "./bpmn-zoom-controls.js"
 import { KEEP_CLEAR_GAP } from "./bpmn-fit.js"
+import { BPMN_OVERLAY_CSS, BPMN_RENDERER_COLORS } from "./bpmn-tokens.js"
 import {
   DIAGRAM_MAX_HEIGHT,
   DIAGRAM_MIN_HEIGHT,
@@ -71,6 +72,8 @@ const mock = vi.hoisted(() => {
     static containers: HTMLElement[] = []
     static canvases: FakeCanvas[] = []
     static options: Array<Record<string, unknown>> = []
+    /** The canvas's stylesheet when each viewer was created, before bpmn-js draws a shape. */
+    static stylesheets: Array<string | null> = []
     /** What `elementRegistry.getAll()` gives: the drawn shapes. */
     static elements: Array<{
       id: string
@@ -83,6 +86,9 @@ const mock = vi.hoisted(() => {
     constructor(opts: { container: HTMLElement }) {
       MockViewer.containers.push(opts.container)
       MockViewer.options.push(opts)
+      MockViewer.stylesheets.push(
+        opts.container.ownerDocument.getElementById("bpmn-overlay-css")?.textContent ?? null,
+      )
       this.canvas = new FakeCanvas(opts.container)
       MockViewer.canvases.push(this.canvas)
       // bpmn-js's frame inside the container: the canvas is its focusable SVG, the drilldown
@@ -170,10 +176,17 @@ function WithZoomBar({ xml }: { xml: string }) {
 
 const canvas = () => screen.getByTestId("canvas")
 
-function expectLightCanvas(el: HTMLElement) {
-  expect(el.style.getPropertyValue("background-color")).toBe("var(--cd-weiss)")
-  expect(el.getAttribute("data-theme-mode")).toBe("light")
-  expect(el.style.getPropertyValue("color-scheme")).toBe("light")
+/**
+ * The canvas in the theme: the frame takes the canvas's variables from the stylesheet in the
+ * document (light by default, dark where its nearest mode scope is), its paper inline over any
+ * themed class, and no forced-light island anywhere.
+ */
+function expectThemedCanvas(el: HTMLElement) {
+  expect(el.getAttribute("data-slot")).toBe("bpmn-canvas")
+  expect(el.style.getPropertyValue("background-color")).toBe("var(--bpmn-paper)")
+  expect(el.hasAttribute("data-theme-mode")).toBe(false)
+  expect(el.style.getPropertyValue("color-scheme")).toBe("")
+  expect(document.getElementById("bpmn-overlay-css")?.textContent).toBe(BPMN_OVERLAY_CSS)
 }
 
 afterEach(() => {
@@ -181,27 +194,38 @@ afterEach(() => {
   mock.MockViewer.containers.length = 0
   mock.MockViewer.canvases.length = 0
   mock.MockViewer.options.length = 0
+  mock.MockViewer.stylesheets.length = 0
   document.documentElement.classList.remove("dark")
 })
 
-describe("useBpmnViewer canvas (#339, N122)", () => {
-  it("paints the container as the fixed light canvas in a dark document: no call site opts in", async () => {
+describe("useBpmnViewer canvas follows the theme (owner decision D10, point 7)", () => {
+  it("marks the container as the canvas in a dark document, no light island: no call site opts in", async () => {
     document.documentElement.classList.add("dark")
     render(<Diagram xml={XML} />)
 
     await waitFor(() => expect(mock.MockViewer.containers).toEqual([canvas()]))
-    expectLightCanvas(canvas())
+    expectThemedCanvas(canvas())
+  })
+
+  it("hands bpmn-js the canvas's paper and ink, declared in the document before it draws", async () => {
+    document.getElementById("bpmn-overlay-css")?.remove()
+    render(<Diagram xml={XML} />)
+
+    await waitFor(() => expect(mock.MockViewer.options).toHaveLength(1))
+    expect(mock.MockViewer.options[0]?.bpmnRenderer).toBe(BPMN_RENDERER_COLORS)
+    expect(mock.MockViewer.stylesheets).toEqual([BPMN_OVERLAY_CSS])
+    expect(document.querySelectorAll("#bpmn-overlay-css")).toHaveLength(1)
   })
 
   it("paints before any viewer exists, and again when the ref moves to a new element", () => {
     const { rerender } = render(<Diagram xml="" />)
     expect(mock.MockViewer.containers).toEqual([])
     const first = canvas()
-    expectLightCanvas(first)
+    expectThemedCanvas(first)
 
     rerender(<Diagram xml="" element="b" />)
     expect(canvas()).not.toBe(first)
-    expectLightCanvas(canvas())
+    expectThemedCanvas(canvas())
   })
 
   it("waits for a container a loading widget has not rendered yet", () => {
@@ -209,7 +233,7 @@ describe("useBpmnViewer canvas (#339, N122)", () => {
     expect(screen.queryByTestId("canvas")).toBeNull()
 
     rerender(<Diagram xml={XML} />)
-    expectLightCanvas(canvas())
+    expectThemedCanvas(canvas())
   })
 })
 

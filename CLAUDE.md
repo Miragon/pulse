@@ -309,7 +309,17 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
   `--cd-blau-hell`), Status in den `-hell`-Werten ohne getönte Flächen. Der Host setzt nur die
   neutralen Rollen (`HOST_TOKEN_MAP`: Flächen, Text, `--border`), nie `--primary`, `--link`, `--focus`, `--ring`, `--input`, `--accent` oder einen
   Status; unter seinem Theme fallen Grund und Fläche zusammen, Bereiche trennen dann die
-  1-px-Linien. BPMN-Papier und seine Zoom-Leiste bleiben immer hell.
+  1-px-Linien. Das BPMN-Diagramm folgt dem Theme wie die Leinwand der Webview (D10, Punkt 7, in
+  den Widgets und in der Web-App): Dunkel ist sein Papier der Grund, Formen sind damit gefüllt,
+  Striche, Pfeile und Beschriftungen stehen im Text, ein Marker im `-hell`-Wert seines Tons auf
+  der neutralen Statusfläche, die Zähl-Badges gefüllt auf einem Ring aus Papier, der Link zu
+  bpmn.io im leisen Text, die Zoom-Leiste ist eine Karte im Theme. Hell bleibt das Papier weiß.
+  Es gilt der nächste Modus wie bei pulse-ui (`BPMN_DARK_CANVAS`). Bei hohem Kontrast
+  (`data-cd-kontrast="hoch"`) wie in der Webview: Marker für laufend und Incident mit 3 px, die
+  Zähl-Badges mit einer 1-px-Kante im Text statt dem Ring. Unter `forced-colors` zeichnet die
+  Leinwand in den Systemfarben, weil der Browser SVG-Farben nicht erzwingt: Papier und Formen
+  `Canvas`, Striche und Beschriftungen `CanvasText`, Marker `Highlight` (ein Incident mit 3 px,
+  laufend mit 2 px), Badges `Canvas` mit `CanvasText` und Kante, der Link zu bpmn.io `LinkText`.
 - Schrift: Geist zuerst, dann die Schrift des Hosts (`adoptHostFontVariables`), dann System.
   Der Server liefert Geist und Geist Mono selbst aus (`installFontAssets`, kein CDN), jede View
   erlaubt den Ursprung über ihre CSP `resourceDomains` (`declareServedFonts`). Blockt ein Host
@@ -330,7 +340,9 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
   (der Chrome-Titel des Guides); 28 px in 700 als h2 nur auf App-Ebene (Landing, Flotte) statt
   h1 mit 40 px.
 - Data-Viz: eine einfarbige Rampe von `--cd-info-soft` bis `--cd-blau`; Rot nur für
-  Incidents.
+  Incidents. Auf dunklem BPMN-Papier läuft die Wärme von `--cd-schwarz` bis `--cd-blau`,
+  aufgehellt statt multipliziert, damit weiße Beschriftungen lesbar bleiben: abgeleitet aus D10,
+  Punkt 7, keine eigene Entscheidung des Owners, die Bestätigung steht aus.
 - Komet: nur auf App-Ebene (Landing, Erststart, „keine Engines“), nicht in jedem Widget
   (`KometMark`/`AppEmptyState`, die CI-Datei unverändert). Eine Kundenmarke blendet ihn über
   den Theme-Slot `--brand-mark-display: none` aus.
@@ -740,9 +752,16 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      and the extension's core and webview; `scripts/eslint-gates.test.mjs`).
      A count reaches a catalog entry already formatted, and the entry puts the noun in the right
      number (`countOf`, `plural(…)`), never a `…One`/`…Other` key pair.
-   - **BPMN** renders through `useBpmnViewer` + `BpmnZoomControls` on a forced-light canvas
-     whose colours all come from `BPMN_TOKENS` (`packages/core/widget-shell/src/ui/bpmn-tokens.ts`)
-     and whose labels are bpmn-js's Arial (`BPMN_LABEL_STYLE`, the design section's deviation);
+   - **BPMN** renders through `useBpmnViewer` + `BpmnZoomControls` on a canvas that follows the
+     theme like the webview's (owner decision D10, point 7; the design section's deviation):
+     bpmn-js draws with the canvas's paper and ink (`BPMN_RENDERER_COLORS`), which its frame
+     declares per mode, dark in the nearest dark scope as pulse-ui's `dark:` (`BPMN_DARK_CANVAS`);
+     they and the markers' and badges' colours come from one module, `BPMN_TOKENS` on light and
+     pulse-ui's roles on dark (`packages/core/widget-shell/src/ui/bpmn-tokens.ts`, whose test holds
+     both modes to WCAG; the dark roles' pairs are in `ROLE_CONTRAST_PAIRS` too), high contrast
+     and forced colours as the design section says (`BPMN_FORCED_CANVAS`: the system's palette,
+     since no browser forces SVG paint), and its labels are bpmn-js's Arial (`BPMN_LABEL_STYLE`,
+     the design section's deviation);
      a marker paints its shape's outline, never a label, and the canvas alone is the image (the
      hook's `ariaLabel`), its controls beside it and its count badges `aria-hidden` drawings. The
      hook's fit keeps the drawing clear of the zoom bar beside the canvas and of bpmn.io's link,

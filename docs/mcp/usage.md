@@ -83,8 +83,8 @@ what it changed: completing a task shows the next one. The cockpit's
 
 The widgets speak German when your chat app's language is German, and
 English otherwise. Light or dark follows the chat app's theme, and your
-system's without one. The tool results the assistant reads are English; it
-still answers you in your language.
+system's without one, the process diagrams included. The tool results the
+assistant reads are English; it still answers you in your language.
 
 ## Tips
 

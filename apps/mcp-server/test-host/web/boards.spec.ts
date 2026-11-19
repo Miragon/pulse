@@ -244,7 +244,53 @@ test.describe("a board's page in German, on a dark system", () => {
     await expect(page.locator("html")).toHaveAttribute("lang", "de")
     await expectNoAxeFinding(page)
   })
+
+  // D10, point 7: the page's diagram follows the theme as the editors' canvas does, the system's
+  // dark first, then the theme the page sets on its document.
+  test("draws the diagram on the dark canvas, and on the light one once the page sets light", async ({
+    page,
+  }) => {
+    await signIn(page, BOARD_PAGE)
+    await drawn(page)
+    const canvas = page.locator("[data-slot='bpmn-canvas']").first()
+    await expect(canvas.locator(".djs-connection").first()).toBeAttached({ timeout: 15_000 })
+    const dark = await canvasInk(page)
+    expect(dark.paper).toBeLessThan(0.05)
+    expect(dark.flow).toBeGreaterThan(0.95)
+    expect(dark.label).toBeGreaterThan(0.95)
+    await page.evaluate(() => document.documentElement.setAttribute("data-cd-theme", "light"))
+    await expect.poll(async () => (await canvasInk(page)).paper).toBeGreaterThan(0.95)
+    const light = await canvasInk(page)
+    expect(light.flow).toBeLessThan(0.05)
+    expect(light.label).toBeLessThan(0.05)
+  })
 })
+
+/** WCAG relative luminance of the first canvas's paper, a flow's stroke and a label's fill. */
+async function canvasInk(page: Page): Promise<{ paper: number; flow: number; label: number }> {
+  return await page
+    .locator("[data-slot='bpmn-canvas']")
+    .first()
+    .evaluate((paper) => {
+      const pen = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!
+      const luminance = (value: string) => {
+        pen.clearRect(0, 0, 1, 1)
+        pen.fillStyle = value
+        pen.fillRect(0, 0, 1, 1)
+        const [r, g, b] = [...pen.getImageData(0, 0, 1, 1).data].map((c) => {
+          const x = c / 255
+          return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4
+        })
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b
+      }
+      const style = (selector: string) => getComputedStyle(paper.querySelector(selector)!)
+      return {
+        paper: luminance(getComputedStyle(paper).backgroundColor),
+        flow: luminance(style(".djs-connection .djs-visual > path").stroke),
+        label: luminance(style("text").fill),
+      }
+    })
+}
 
 test.describe("a board's page over a Camunda 7 engine and a Camunda 8 one", () => {
   const ORDERS_TITLE = "Order operations"
