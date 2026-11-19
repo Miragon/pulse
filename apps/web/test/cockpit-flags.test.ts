@@ -1,38 +1,21 @@
 import { describe, expect, it } from "vitest"
-import { engineModule } from "@miragon/pulse-engine-connector"
-import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
-import { COCKPIT_VIEW, routeOf } from "../src/routes.js"
+import { routeOf } from "../src/router/routes.js"
+import { cockpitProperties } from "./cockpit-tool.js"
 
 /**
- * The page's query reaches `engine_open_cockpit` one argument per parameter, as text, but for the
- * arguments that take no text (src/routes.ts, `COCKPIT_FLAGS`): those read `true` and `false`. The
- * list copies the tool's input schema, so this holds it to the schema as the tool registers it, in
- * the JSON Schema a host and the page's server read: a boolean the connector adds fails here until
- * the page reads it, and the page reads no other argument as one.
+ * The cockpit's query (the address of every view before the page's own addresses, which the page
+ * still reads) reaches `engine_open_cockpit` one argument per parameter, as text, but for the
+ * arguments that take no text (src/router/routes.ts, `COCKPIT_FLAGS`): those read `true` and
+ * `false`. The list copies the tool's input schema, so this holds it to the schema as the tool
+ * registers it: a boolean the connector adds fails here until the page reads it, and the page reads
+ * no other argument as one.
  */
 
-type Property = { readonly type?: unknown }
-
-/** The cockpit tool's input properties, as the engine module registers the tool. */
-function cockpitProperties(): Readonly<Record<string, Property>> {
-  const recording = recordingModuleServer()
-  engineModule
-    .createPlugin({ engines: [{ id: "prod", baseUrl: "http://prod.example/engine-rest" }] })
-    .register(recording.server)
-  const schema = recording.tool(COCKPIT_VIEW).config.inputSchema as {
-    toJSONSchema(): { properties: Record<string, Property> }
-  }
-  return schema.toJSONSchema().properties
-}
-
-/**
- * The argument the page makes of `?<key>=<value>` on its cockpit page, beside a view: an engine the
- * query names alone starts the landing instead (src/routes.ts, `cockpitStart`).
- */
+/** The argument the page makes of `?<key>=<value>` on the cockpit's old page, beside a view. */
 function argumentOf(key: string, value: string): unknown {
   const search = key === "view" ? `?view=${value}` : `?view=overview&${key}=${value}`
   const route = routeOf({ pathname: "/app/cockpit", search })
-  return route.kind === "view" ? route.args[key] : undefined
+  return route.kind === "view" ? route.place[key] : undefined
 }
 
 describe("the cockpit's flags in the page's query", () => {

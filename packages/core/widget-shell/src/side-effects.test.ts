@@ -31,6 +31,8 @@ const BLOCKS = [
   "TestViewHost",
   "useToolQuery",
   "mountPage",
+  "mountApp",
+  "PageView",
 ]
 
 /** Bundles one export of the barrel: the server-side packages in the output, and its imports. */

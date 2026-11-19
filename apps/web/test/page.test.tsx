@@ -19,8 +19,8 @@ const viewArgs = (fetch: Parameters<typeof callsOf>[0]): unknown =>
   callsOf(fetch, "engine_open_cockpit")[0]
 
 describe("a page with a session", () => {
-  it("shows the bar, who is signed in and the view the query names, called with the CSRF token", async () => {
-    const env = await start("/app/cockpit?view=jobs&engine=prod")
+  it("shows the bar, who is signed in and the view its address names, called with the CSRF token", async () => {
+    const env = await start("/app/engines/prod/jobs")
     const banner = screen.getByRole("banner")
     expect(within(banner).getByText("Pulse")).toBeTruthy()
     // The Komet is the app level's (the cockpit's landing), never the bar of every page.
@@ -45,7 +45,7 @@ describe("a page with a session", () => {
       Response.json({ result: { isError: true, content: [{ type: "text", text }] } })
     const views = { views: { engine_open_cockpit: Data as ViewComponent } }
     await start(
-      "/app/cockpit?view=jobs&engine=down",
+      "/app/engines/down/jobs",
       { call: failing("[503 ProcessEngineException] Engine is shutting down (engine down)") },
       views,
     )
@@ -57,7 +57,7 @@ describe("a page with a session", () => {
     })
     await stopPage()
     await start(
-      "/app/cockpit?view=jobs&engine=c8",
+      "/app/engines/c8/jobs",
       { call: failing('[ENGINE_DIALECT_NOT_SERVED] Engine "c8" is a Camunda 8 engine') },
       views,
     )
@@ -79,7 +79,7 @@ describe("a page with a session", () => {
   })
 
   it("says the session ended when a call finds it gone, and signs in back to the page", async () => {
-    const env = await start("/app/cockpit?view=jobs", {
+    const env = await start("/app/engines/prod/jobs?failed=true", {
       call: () => Response.json({ code: "signed_out", message: "No session." }, { status: 401 }),
     })
     expect(screen.getByRole("status").textContent).toContain("Your session has ended")
@@ -87,7 +87,9 @@ describe("a page with a session", () => {
     const signIn = screen.getByRole("button", { name: "Sign in again" })
     expect(signIn.querySelector("svg")).toBeNull()
     fireEvent.click(signIn)
-    expect(env.assign).toHaveBeenCalledWith("/app/auth/login?return=%2Fapp%2Fcockpit%3Fview%3Djobs")
+    expect(env.assign).toHaveBeenCalledWith(
+      "/app/auth/login?return=%2Fapp%2Fengines%2Fprod%2Fjobs%3Ffailed%3Dtrue",
+    )
   })
 
   it("signs out once, saying so while it runs, and goes where the server names", async () => {
@@ -131,12 +133,12 @@ describe("a page with a session", () => {
 
 describe("a page without a session", () => {
   it("says the session ended and signs in back to the page, calling no tool", async () => {
-    const env = await start("/app/cockpit?view=jobs", {
+    const env = await start("/app/engines/prod/instances/pi-1?tab=history", {
       session: () => Response.json({ code: "signed_out", message: "No session." }, { status: 401 }),
     })
     expect(screen.getByRole("heading", { name: "Your session has ended" })).toBeTruthy()
     expect(screen.getByRole("link", { name: "Sign in again" }).getAttribute("href")).toBe(
-      "/app/auth/login?return=%2Fapp%2Fcockpit%3Fview%3Djobs",
+      `/app/auth/login?return=${encodeURIComponent("/app/engines/prod/instances/pi-1?tab=history")}`,
     )
     expect(env.fetch.mock.calls.map(([path]) => path)).toEqual(["/app/api/session"])
   })
@@ -231,31 +233,52 @@ const Mover: ViewComponent<object> = () => {
 }
 const MOVER = { views: { engine_open_cockpit: Mover as ViewComponent } }
 
+/** A view that shows where the page's address put it beyond its start. */
+const Start: ViewComponent<object> = () => (
+  <p data-testid="start">{JSON.stringify(useHostLocation()?.start ?? null)}</p>
+)
+const START = { views: { engine_open_cockpit: Start as ViewComponent } }
+
+/** The landing's start as the cockpit tool answers it, every configured engine in its data. */
+const landingNaming = (engine: string) => () =>
+  Response.json({
+    result: {
+      content: [{ type: "text", text: "{}" }],
+      structuredContent: { engineId: null, engines: [{ id: engine }], start: null },
+    },
+  })
+
 describe("the page's address follows the view (N1)", () => {
   it("names each place the view reports, a move as a new entry of the browser's history", async () => {
-    const { browser } = await start("/app/cockpit?view=jobs&engine=prod", {}, MOVER)
+    const { browser } = await start("/app/engines/prod/jobs", {}, MOVER)
     expect(browser.writes[0]).toEqual({
       entry: "replace",
-      url: "/app/cockpit?view=jobs&engine=prod",
+      url: "/app/engines/prod/jobs",
       state: { at: "jobs" },
     })
     await act(async () => screen.getByRole("button", { name: "Go" }).click())
     expect(browser.writes.find((write) => write.entry === "push")).toEqual({
       entry: "push",
-      url: "/app/cockpit?view=incidents&engine=prod",
+      url: "/app/engines/prod/incidents",
       state: { at: "incidents" },
     })
-    expect(browser.location.search).toBe("?view=incidents&engine=prod")
+    expect(browser.location.pathname).toBe("/app/engines/prod/incidents")
   })
 
-  it("leads the view back on Back, and loads anew an entry the view does not go to", async () => {
-    const env = await start("/app/cockpit?view=jobs&engine=prod", {}, MOVER)
+  it("leads the view back on Back, and starts it anew at an entry it does not go to", async () => {
+    const env = await start("/app/engines/prod/jobs", {}, MOVER)
     await act(async () => screen.getByRole("button", { name: "Go" }).click())
-    await env.browser.back("/app/cockpit?view=jobs&engine=prod", { at: "jobs" })
+    await env.browser.back("/app/engines/prod/jobs", { at: "jobs" })
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("jobs")
+    expect(callsOf(env.fetch, "engine_open_cockpit")).toHaveLength(1)
+    await env.browser.back("/app/cockpit?view=nowhere&engine=prod")
+    // The page navigates itself: the view starts anew at the entry, the page stays loaded.
+    expect(callsOf(env.fetch, "engine_open_cockpit")).toEqual([
+      { view: "jobs", engine: "prod" },
+      { view: "nowhere", engine: "prod" },
+    ])
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("jobs")
     expect(env.reload).not.toHaveBeenCalled()
-    await env.browser.back("/app/cockpit?view=nowhere&engine=prod")
-    expect(env.reload).toHaveBeenCalledTimes(1)
   })
 
   it("starts the cross-engine overview's page on the landing, the view told where it is", async () => {
@@ -264,27 +287,44 @@ describe("the page's address follows the view (N1)", () => {
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("fleet")
   })
 
-  it("starts an engine its address names alone on the landing, the view told the engine", async () => {
-    // The place the cockpit writes for an engine without sections; a server of Camunda 8 clusters
-    // alone takes no `engine`, so the page never hands it one.
-    const Start: ViewComponent<object> = () => (
-      <p data-testid="start">{JSON.stringify(useHostLocation()?.start ?? null)}</p>
-    )
-    const env = await start(
-      "/app/cockpit?engine=orders-c8",
-      {},
-      {
-        views: { engine_open_cockpit: Start as ViewComponent },
-      },
-    )
+  it("starts an engine's own address on the landing, the view told the engine", async () => {
+    // An engine the cockpit shows without sections has this address too; a server of Camunda 8
+    // clusters alone takes no `engine`, so the page never hands the tool one here.
+    const env = await start("/app/engines/orders-c8", { call: landingNaming("orders-c8") }, START)
     expect(callsOf(env.fetch, "engine_open_cockpit")).toEqual([{ view: "landing" }])
     expect(JSON.parse(screen.getByTestId("start").textContent ?? "")).toEqual({
-      args: { engine: "orders-c8" },
+      args: { view: "overview", engine: "orders-c8" },
     })
   })
 
+  it.each([
+    ["en", "Engine no-such isn't on this server", "Go to the start page"],
+    ["de", "Die Engine no-such gibt es auf diesem Server nicht", "Zur Startseite"],
+  ])(
+    "refuses an engine its address names that the server does not configure (%s)",
+    async (lang, title, link) => {
+      document.documentElement.lang = lang
+      const env = await start("/app/engines/no-such", { call: landingNaming("prod") }, START)
+      const alert = screen.getByRole("alert")
+      expect(within(alert).getByRole("heading", { level: 1 }).textContent).toBe(title)
+      expect(within(alert).getByRole("link", { name: link }).getAttribute("href")).toBe("/app")
+      expect(within(alert).queryByRole("button")).toBeNull()
+      expect(document.title).toBe(`${title} · Pulse`)
+      // The view never opens to fall back from it: its address stays, a reload says the same.
+      expect(screen.queryByTestId("start")).toBeNull()
+      expect(env.browser.writes).toEqual([])
+      expect(callsOf(env.fetch, "engine_open_cockpit")).toEqual([{ view: "landing" }])
+    },
+  )
+
+  it("leaves a page without the view its address names to the view frame's own state", async () => {
+    const env = await start("/app/engines/no-such", {}, { views: {} })
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toContain("can't show this view")
+    expect(callsOf(env.fetch, "engine_open_cockpit")).toEqual([])
+  })
+
   it("lets go of Back and Forward with the page", async () => {
-    const env = await start("/app/cockpit?view=jobs&engine=prod", {}, MOVER)
+    const env = await start("/app/engines/prod/jobs", {}, MOVER)
     expect(env.browser.listeners.size).toBe(1)
     await stopPage()
     expect(env.browser.listeners.size).toBe(0)
@@ -292,7 +332,7 @@ describe("the page's address follows the view (N1)", () => {
 
   it("signs in back to where the reader moved, once the session ended", async () => {
     const env = await start(
-      "/app/cockpit?view=jobs&engine=prod",
+      "/app/engines/prod/jobs",
       {
         call: ({ name }) =>
           name === "engine_open_cockpit"
@@ -305,14 +345,90 @@ describe("the page's address follows the view (N1)", () => {
     await settled()
     fireEvent.click(await screen.findByRole("button", { name: "Sign in again" }))
     expect(env.assign).toHaveBeenCalledWith(
-      `/app/auth/login?return=${encodeURIComponent("/app/cockpit?view=incidents&engine=prod")}`,
+      `/app/auth/login?return=${encodeURIComponent("/app/engines/prod/incidents")}`,
     )
   })
 })
 
+describe("an old address", () => {
+  it("gives way to the view's own in its entry, before the page reads its session", async () => {
+    const env = await start("/app/cockpit?view=jobs&engine=prod&failedOnly=true")
+    expect(env.browser.writes[0]).toEqual({
+      entry: "replace",
+      url: "/app/engines/prod/jobs?failed=true",
+      state: null,
+    })
+    expect(viewArgs(env.fetch)).toEqual({ view: "jobs", engine: "prod", failedOnly: true })
+  })
+
+  it("is replaced by the view's own where the session ended, so the sign-in comes back there", async () => {
+    await start("/app/cockpit?view=instance-detail&engine=prod&processInstanceId=pi-1", {
+      session: () => Response.json({ code: "signed_out", message: "No session." }, { status: 401 }),
+    })
+    expect(screen.getByRole("link", { name: "Sign in again" }).getAttribute("href")).toBe(
+      `/app/auth/login?return=${encodeURIComponent("/app/engines/prod/instances/pi-1")}`,
+    )
+  })
+
+  it("of an engine the server does not configure leads to its own address, refused there", async () => {
+    const env = await start("/app/cockpit?engine=no-such", { call: landingNaming("prod") }, START)
+    expect(env.browser.writes).toEqual([
+      { entry: "replace", url: "/app/engines/no-such", state: null },
+    ])
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
+      "Engine no-such isn't on this server",
+    )
+  })
+
+  it("stays where no address names its view whole, and the tool says why", async () => {
+    const env = await start("/app/cockpit?view=jobs&engine=prod&utm_source=mail")
+    expect(env.browser.writes).toEqual([])
+    expect(viewArgs(env.fetch)).toEqual({ view: "jobs", engine: "prod", utm_source: "mail" })
+  })
+})
+
+describe("the bar's way to the start page", () => {
+  it("goes there in the page, a new entry, the document titled by the route it leads to", async () => {
+    const env = await start("/app/boards/invoices")
+    expect(document.title).toBe("Board invoices · Pulse")
+    const home = within(screen.getByRole("banner")).getByRole("link", { name: "Pulse, start page" })
+    expect(home.getAttribute("href")).toBe("/app")
+    await act(async () => fireEvent.click(home))
+    await settled()
+    expect(env.browser.writes.at(-1)).toEqual({ entry: "push", url: "/app", state: null })
+    expect(callsOf(env.fetch, "engine_open_cockpit")).toEqual([
+      { view: "board", board: "invoices" },
+      { view: "landing" },
+    ])
+    expect(document.title).toBe("Pulse")
+    expect(env.assign).not.toHaveBeenCalled()
+    expect(env.reload).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    { ctrlKey: true },
+    { metaKey: true },
+    { shiftKey: true },
+    { altKey: true },
+    { button: 1 },
+  ])(
+    "leaves a click with %o to the browser: a new tab, a new window, a download",
+    async (modifier) => {
+      const env = await start("/app/boards/invoices")
+      const home = within(screen.getByRole("banner")).getByRole("link", {
+        name: "Pulse, start page",
+      })
+      const click = new MouseEvent("click", { bubbles: true, cancelable: true, ...modifier })
+      await act(async () => home.dispatchEvent(click))
+      expect(env.browser.writes).toEqual([])
+      expect(callsOf(env.fetch, "engine_open_cockpit")).toHaveLength(1)
+    },
+  )
+})
+
 describe("the page's bar leads past itself (A5)", () => {
   it("offers a skip link first, which focuses the content's heading and keeps the address", async () => {
-    const env = await start("/app/cockpit?view=jobs&engine=prod", {}, MOVER)
+    const env = await start("/app/engines/prod/jobs", {}, MOVER)
     const banner = screen.getByRole("banner")
     const skip = within(banner).getByRole("link", { name: "Skip to content" })
     expect(within(banner).getAllByRole("link")[0]).toBe(skip)
@@ -322,14 +438,14 @@ describe("the page's bar leads past itself (A5)", () => {
     const heading = screen.getByRole("heading", { level: 1 })
     expect(document.activeElement).toBe(heading)
     expect(heading.getAttribute("tabindex")).toBe("-1")
-    expect(env.browser.location.pathname).toBe("/app/cockpit")
+    expect(env.browser.location.pathname).toBe("/app/engines/prod/jobs")
     // A second skip keeps the heading as it is.
     fireEvent.click(skip)
     expect(document.activeElement).toBe(heading)
   })
 
   it("focuses the content itself where it has no heading, and nothing where there is none", async () => {
-    await start("/app/cockpit?view=jobs&engine=prod")
+    await start("/app/engines/prod/jobs")
     const skip = screen.getByRole("link", { name: "Skip to content" })
     fireEvent.click(skip)
     const content = document.getElementById("content")!

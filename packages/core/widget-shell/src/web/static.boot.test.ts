@@ -88,6 +88,34 @@ describe("the web build's pages", () => {
     }
   })
 
+  // The web app's addresses nest: words after a param, several params, one param per segment.
+  it("answer a pattern of several params and words at each segment's escape, and nothing between", async () => {
+    const pages = ["/app", "/app/engines/:engine/instances/:instance/incidents/:incident"]
+    const nested = pages.concat("/app/engines/:engine/incidents/cause", "/app/engines/:engine")
+    const { build } = buildWith({ "pages.json": JSON.stringify({ pages: nested }) })
+    const browser = new Browser(await bootWeb(webEnv(fake, { MCP_WEB_DIR: build })))
+    const deep = "/app/engines/prod%2Fa/instances/pi%201/incidents/gr%C3%BC%C3%9Fe?tab=history"
+    const unsigned = await browser.fetch(deep)
+    expect([unsigned.status, returnOf(unsigned)]).toEqual([302, deep])
+    const login = await browser.fetch(String(unsigned.headers.get("location")))
+    const callback = await browser.fetch(await fake.signIn(String(login.headers.get("location"))))
+    expect(callback.headers.get("location")).toBe(deep)
+    for (const target of [deep, "/app/engines/x/incidents/cause?activity=a", "/app/engines/x"]) {
+      const page = await browser.fetch(target)
+      expect(page.status, target).toBe(200)
+      expect(await page.text(), target).toBe(INDEX_HTML)
+    }
+    const between = [
+      "/app/engines",
+      "/app/engines/x/instances",
+      "/app/engines/x/instances/y/incidents",
+      "/app/engines/x/incidents",
+      "/app/engines/x/incidents/other",
+      "/app/engines/x/y",
+    ]
+    for (const target of between) expect((await browser.fetch(target)).status, target).toBe(404)
+  })
+
   it("send a browser whose session cookie no longer opens to the sign-in, the cookie cleared", async () => {
     const browser = new Browser(await bootWeb(webEnv(fake)))
     browser.cookies.set(SESSION_COOKIE, "x")

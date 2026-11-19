@@ -1,43 +1,36 @@
 import {
-  mountPage,
+  mountApp,
   readWebSession,
   WEB_PATHS,
   webToolCaller,
-  type MountPageOptions,
+  type MountAppOptions,
   type ViewMap,
   type WebSessionInfo,
 } from "@miragon/pulse-widget-shell/widgets"
-import { cockpitAfterFailedStart } from "@miragon/pulse-engine-connector/widgets"
-import { pageAddress, type PageHistory } from "./address.js"
-import { sessionFrame } from "./frame.js"
+import { pageApp } from "./app.js"
 import { PageNotices } from "./notices.js"
 import { endedFrame, unreachableFrame } from "./page-states.js"
-import { routeOf, type PageLocation } from "./routes.js"
+import { createPageRouter, type RouterEnv } from "./router/router.js"
+import { routeOf, type PageLocation } from "./router/routes.js"
 import { signedOutFrame } from "./signed-out.js"
 import { signOut } from "./sign-out.js"
 
 /** What the page starts from: its views, its location and the browser's hands. */
-export interface PageEnv {
+export interface PageEnv extends RouterEnv {
   readonly views: ViewMap
   /** The live location (`window.location`): the address follows the view as the reader moves. */
   readonly location: PageLocation & { readonly origin: string }
-  readonly history: PageHistory
-  /** Subscribes to Back and Forward (`popstate`); returns the unsubscribe. */
-  readonly onPopState: (listener: () => void) => () => void
   readonly fetch: typeof fetch
   readonly assign: (url: string) => void
-  readonly reload: () => void
   /** Where the page mounts; default: the document's `#root`. */
   readonly container?: HTMLElement
 }
 
 /**
- * What every page hands `mountPage`: Geist from the server's own origin, no hand-offs, and `/app`
+ * What every page hands `mountApp`: Geist from the server's own origin, no hand-offs, and `/app`
  * as the start page a refused start links to.
  */
-function pageBase(
-  env: PageEnv,
-): Pick<MountPageOptions, "publicBase" | "followUp" | "startPage" | "container"> {
+function pageBase(env: PageEnv): MountAppOptions {
   return {
     publicBase: env.location.origin,
     followUp: "none",
@@ -59,52 +52,39 @@ async function sessionOf(env: PageEnv): Promise<WebSessionInfo | undefined | nul
 const hereOf = ({ pathname, search }: PageLocation): string => `${pathname}${search}`
 
 /**
- * Starts the page at its location: the signed-out page needs no session; any other page reads the
- * session first and shows its view in the frame, its calls posted with the session's CSRF token,
- * its address following where the view goes (`pageAddress`). A page that finds no session says so
- * and offers the sign-in back to it, one that cannot read it offers to try again; neither shows a
- * view, so neither hands a caller. A start that failed for its engine keeps the cockpit's head over
- * the route that says so (`cockpitAfterFailedStart`). Returns the unmount.
+ * Starts the page at its location: the signed-out page needs no session; any other page names its
+ * view canonically first (an old address gives way to the view's own, in the same entry of the
+ * browser's history), reads the session and shows its view in the frame, its calls posted with the
+ * session's CSRF token, the page navigating itself (`createPageRouter`). A page that finds no
+ * session says so and offers the sign-in back to its address, one that cannot read it offers to try
+ * again; neither shows a view, so neither hands a caller. Returns the unmount.
  */
 export async function startPage(env: PageEnv): Promise<() => void> {
   const route = routeOf(env.location)
   const base = pageBase(env)
-  if (route.kind === "signed-out") {
-    return mountPage(env.views, { ...base, frame: signedOutFrame(route.reason) })
+  if (route.kind === "signed-out") return mountApp(signedOutFrame(route.reason), base)
+  if (route.url !== hereOf(env.location)) {
+    env.history.replaceState(env.history.state, "", route.url)
   }
-  const returnTo = hereOf(env.location)
   const session = await sessionOf(env)
-  if (session === null) {
-    return mountPage(env.views, { ...base, frame: unreachableFrame(env.reload) })
-  }
-  if (session === undefined) {
-    return mountPage(env.views, { ...base, frame: endedFrame(returnTo) })
-  }
+  if (session === null) return mountApp(unreachableFrame(env.reload), base)
+  if (session === undefined) return mountApp(endedFrame(route.url), base)
   const notices = new PageNotices()
   const callTool = webToolCaller(session, {
     fetch: env.fetch,
     onSignedOut: () => notices.show("ended"),
   })
-  const frame = sessionFrame({
+  const router = createPageRouter(env, route)
+  const page = {
     session,
     notices,
-    title: route.title,
     returnTo: () => hereOf(env.location),
     assign: env.assign,
     signOut: () => signOut(session.csrf, { ...env, origin: env.location.origin }),
-  })
-  const address = pageAddress(env, route.place)
-  const unmount = mountPage(env.views, {
-    ...base,
-    view: route.view,
-    args: route.args,
-    callTool,
-    frame,
-    location: address.location,
-    failedStart: (error) => cockpitAfterFailedStart(route.args, error),
-  })
+  }
+  const unmount = mountApp(pageApp({ router, views: env.views, page }), { ...base, callTool })
   return () => {
-    address.stop()
+    router.stop()
     unmount()
   }
 }

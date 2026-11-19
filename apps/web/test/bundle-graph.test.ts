@@ -6,10 +6,10 @@ import viteConfig from "../vite.config.js"
 import { buildWeb, type WebBuild } from "./web-build.js"
 
 /**
- * What the page holds: the view runtime's page root, never the MCP Apps runtime of a chat, the
- * server half of widget-shell or the engine transport (the page sends its calls to its own server,
- * which talks to the engines), and one copy each of what VIEW_BUNDLE_DEDUPE names (CLAUDE.md
- * invariant 4: a second copy splits the React contexts every widget reads).
+ * What the page holds: the view runtime's app root and its page view, never the MCP Apps runtime of
+ * a chat, the server half of widget-shell or the engine transport (the page sends its calls to its
+ * own server, which talks to the engines), and one copy each of what VIEW_BUNDLE_DEDUPE names
+ * (CLAUDE.md invariant 4: a second copy splits the React contexts every widget reads).
  */
 
 let build: WebBuild
@@ -59,10 +59,15 @@ describe("the page's bundle", () => {
     expect(VIEW_BUNDLE_DEDUPE.filter((name) => !dedupe.includes(name))).toEqual([])
   })
 
-  it("holds the page root and its client of the web app's API, not the chat's root", () => {
+  it("holds the app root, its page view and its client of the web app's API, not the chat's root", () => {
     const modules = shellModules()
     expect(modules).toEqual(
-      expect.arrayContaining(["ui/page-root", "ui/browser-view-host", "ui/web-caller"]),
+      expect.arrayContaining([
+        "ui/app-root",
+        "ui/page-view",
+        "ui/browser-view-host",
+        "ui/web-caller",
+      ]),
     )
     expect(
       modules.filter((name) => /^ui\/(?:view-root|ext-apps-host|view-runtime)$/.test(name)),

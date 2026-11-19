@@ -22,6 +22,10 @@ export const en = {
   "page.unreachable.title": "Pulse doesn't answer",
   "page.unreachable.description": "Your session couldn't be read. Try again in a moment.",
 
+  "start.unknownEngine.title": "Engine {engine} isn't on this server",
+  "start.unknownEngine.description":
+    "Go to Pulse's start page, which shows this server's engines and boards.",
+
   "signedOut.denied.title": "Sign-in was refused",
   "signedOut.denied.description":
     "Your identity provider didn't let you sign in to Pulse. Ask your administrator for access, or sign in with another account.",

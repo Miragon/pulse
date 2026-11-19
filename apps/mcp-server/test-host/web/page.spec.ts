@@ -7,9 +7,11 @@ import {
   C8_OPERATE,
   C8_UNBOARDED_ENGINE,
   HEALTHY_ENGINE,
+  INVOICES_BOARD,
   REFUSED_C8_ENGINE,
 } from "../engines.js"
 import {
+  chooseUser,
   collectErrors,
   expectNoAxeFinding,
   idpRecord,
@@ -20,8 +22,9 @@ import {
 } from "./web-sim.js"
 
 /**
- * The cockpit as a page of the server (#573): apps/web mounts the engine module's views with
- * widget-shell's `mountPage`, under the browser adapter instead of ext-apps' `App`, and its caller
+ * The cockpit as a page of the server (#573): apps/web mounts its app with widget-shell's
+ * `mountApp` and shows the engine module's views in it with `PageView`, under the browser adapter
+ * instead of ext-apps' `App`, and its caller
  * posts each tool call to the server's `/app/api/call`, which forwards it to `/mcp` with the
  * session's token. The views are the chat's, built from the same sources: the view tool's data,
  * every feed, the browser's language and theme, and no hand-off, since the page posts to no chat.
@@ -32,10 +35,10 @@ import {
 
 const SERVER = path.resolve(import.meta.dirname, "..", "..")
 const WEB_BUILD = path.resolve(SERVER, "..", "web", "dist")
-const OVERVIEW_PAGE = `/app/cockpit?view=overview&engine=${HEALTHY_ENGINE}`
-const JOBS_PAGE = `/app/cockpit?view=jobs&engine=${HEALTHY_ENGINE}`
+const OVERVIEW_PAGE = `/app/engines/${HEALTHY_ENGINE}`
+const JOBS_PAGE = `/app/engines/${HEALTHY_ENGINE}/jobs`
 /** The stub's invoice instance: two open incidents whose jobs have no retries, one variable. */
-const INSTANCE_PAGE = `/app/cockpit?view=instance-detail&engine=${HEALTHY_ENGINE}&processInstanceId=pi-invoice-42`
+const INSTANCE_PAGE = `/app/engines/${HEALTHY_ENGINE}/instances/pi-invoice-42`
 const DEFINITIONS_TABLE =
   "Deployed process definitions with running instances, jobs without retries and incidents"
 const STUB_DEFINITIONS = ["Customer Onboarding", "Invoice Receipt", "Order Fulfillment"]
@@ -92,9 +95,10 @@ test.describe("the cockpit as a page", () => {
     await expect(page.getByText(/of 3 shown/)).toHaveCount(0)
     await expect(page.getByRole("button", { name: "Fullscreen" })).toHaveCount(0)
     await expect(page.getByRole("heading", { name: "All processes", exact: true })).toHaveCount(1)
-    // The page called the view tool itself, once, with the arguments its query names.
+    // The page called the view tool itself, once: an engine's own address starts on the landing,
+    // which every server's tool takes, and the cockpit opens the engine.
     expect(calls.filter((call) => call.name === "engine_open_cockpit")).toEqual([
-      { name: "engine_open_cockpit", arguments: { view: "overview", engine: HEALTHY_ENGINE } },
+      { name: "engine_open_cockpit", arguments: { view: "landing" } },
     ])
     // The locale gate resolved the browser's language and wrote it on the document.
     await expect(page.locator("html")).toHaveAttribute("lang", "en")
@@ -252,16 +256,18 @@ test.describe("the cockpit as a page", () => {
 })
 
 /**
- * The page's address follows the cockpit (N1): a drill and a section are each a new entry of the
- * browser's history, whose address names `engine_open_cockpit`'s arguments; Back is the entry
- * before, the trail as it was left there and no second call of the view tool; a reload shows the
- * view the address names; an engine switch keeps its section (N7) and rewrites the address; the
- * cross-engine overview is a page of its own, /app/fleet.
+ * The page's address follows the cockpit (N1) and the page navigates itself: every view has its
+ * canonical address (`/app/engines/<engine>/…`), a drill and a section are each a new entry of the
+ * browser's history; Back and Forward are the entries around it, the trail as it was left there and
+ * no second call of the view tool; a reload and a sign-in show the view the address names; an old
+ * address (`/app/cockpit?view=…`) gives way to the view's own in its entry; an engine switch keeps
+ * its section (N7) and rewrites the address; the cross-engine overview is a page of its own,
+ * /app/fleet; the bar's Pulse leads to /app in the page.
  */
 test.describe("the page's address", () => {
-  const OVERVIEW = `/app/cockpit?view=overview&engine=${HEALTHY_ENGINE}`
-  const PROCESS = `/app/cockpit?view=process-detail&engine=${HEALTHY_ENGINE}&processDefinitionKey=invoice`
-  const INCIDENTS = (engine: string) => `/app/cockpit?view=incidents&engine=${engine}`
+  const OVERVIEW = `/app/engines/${HEALTHY_ENGINE}`
+  const PROCESS = `/app/engines/${HEALTHY_ENGINE}/processes/invoice`
+  const INCIDENTS = (engine: string) => `/app/engines/${engine}/incidents`
   /** The page and its query, as the address bar names it. */
   const here = (page: Page) => {
     const url = new URL(page.url())
@@ -274,7 +280,7 @@ test.describe("the page's address", () => {
   const h1 = (page: Page, name: string) => page.getByRole("heading", { level: 1, name })
   const LANDING = "Operations Cockpit"
 
-  test("each drill is an entry of its own, a reload stays, Back steps back through them", async ({
+  test("each drill is an entry of its own, a reload stays, Back and Forward step through them", async ({
     page,
   }) => {
     const calls = recordCalls(page)
@@ -309,6 +315,15 @@ test.describe("the page's address", () => {
     await page.goBack()
     await expect(h1(page, LANDING)).toBeVisible({ timeout: 15_000 })
     expect(here(page)).toBe("/app")
+    expect(viewCalls(calls)).toBe(2)
+
+    // Forward: the overview, then the process, in the page again.
+    await page.goForward()
+    await expect(h1(page, `${HEALTHY_ENGINE} · Overview`)).toBeVisible({ timeout: 15_000 })
+    expect(here(page)).toBe(OVERVIEW)
+    await page.goForward()
+    await expect(h1(page, "Invoice Receipt")).toBeVisible({ timeout: 15_000 })
+    expect(here(page)).toBe(PROCESS)
     expect(viewCalls(calls)).toBe(2)
   })
 
@@ -352,6 +367,135 @@ test.describe("the page's address", () => {
     await page.goBack()
     await expect(h1(page, LANDING)).toBeVisible({ timeout: 15_000 })
     expect(here(page)).toBe("/app")
+  })
+
+  /** One address of each pattern of the page over the stub engine, and the h1 its view shows. */
+  const ADDRESSES: readonly (readonly [string, string])[] = [
+    ["/app", LANDING],
+    ["/app/fleet", "Cross-engine overview"],
+    [`/app/boards/${INVOICES_BOARD}`, "Invoice operations"],
+    [OVERVIEW, `${HEALTHY_ENGINE} · Overview`],
+    [PROCESS, "Invoice Receipt"],
+    [`${PROCESS}?scope=incident`, "Invoice Receipt"],
+    [`${OVERVIEW}/instances`, "Running instances"],
+    [`${OVERVIEW}/instances?process=invoice`, "invoice"],
+    [`${OVERVIEW}/instances/pi-invoice-42`, "INV-2026-0042"],
+    [`${OVERVIEW}/instances/pi-invoice-42?tab=history`, "History"],
+    [`${OVERVIEW}/instances/pi-invoice-42/incidents/inc-charge`, "chargeCard"],
+    [INCIDENTS(HEALTHY_ENGINE), `${HEALTHY_ENGINE} · Incidents`],
+    [`${OVERVIEW}/incidents/cause?activity=chargeCard&type=failedJob`, "chargeCard"],
+    [`${OVERVIEW}/jobs`, `${HEALTHY_ENGINE} · Jobs`],
+    [`${OVERVIEW}/jobs?failed=true`, `${HEALTHY_ENGINE} · Jobs`],
+  ]
+
+  test("every pattern shows its view at its address, and a reload shows the same", async ({
+    page,
+  }) => {
+    test.setTimeout(180_000)
+    await signIn(page, "/app")
+    for (const [address, heading] of ADDRESSES) {
+      const title = page.getByRole("heading", { level: 1, name: heading, exact: true })
+      await page.goto(`${originOf()}${address}`)
+      await expect(title, address).toBeVisible({ timeout: 15_000 })
+      expect(here(page), address).toBe(address)
+      await page.reload()
+      await expect(title, address).toBeVisible({ timeout: 15_000 })
+      expect(here(page), address).toBe(address)
+    }
+  })
+
+  test("an old address gives way to the view's own in its entry, and Back skips it", async ({
+    page,
+  }) => {
+    await signIn(page, "/app")
+    await expect(h1(page, LANDING)).toBeVisible({ timeout: 15_000 })
+    const old = (query: string) => `/app/cockpit?${query}&engine=${HEALTHY_ENGINE}`
+    for (const [address, canonical, heading] of [
+      [old("view=overview"), OVERVIEW, `${HEALTHY_ENGINE} · Overview`],
+      [
+        old("view=jobs&failedOnly=true"),
+        `${OVERVIEW}/jobs?failed=true`,
+        `${HEALTHY_ENGINE} · Jobs`,
+      ],
+      [
+        old("view=history&processInstanceId=pi-invoice-42"),
+        `${OVERVIEW}/instances/pi-invoice-42?tab=history`,
+        "History",
+      ],
+      [`/app/cockpit?engine=${HEALTHY_ENGINE}`, OVERVIEW, `${HEALTHY_ENGINE} · Overview`],
+    ] as const) {
+      const before = await entries(page)
+      await page.goto(`${originOf()}${address}`)
+      await expect(h1(page, heading), address).toBeVisible({ timeout: 15_000 })
+      expect(here(page), address).toBe(canonical)
+      expect(await entries(page), address).toBe(before + 1)
+    }
+    await page.goBack()
+    await expect(h1(page, "History")).toBeVisible({ timeout: 15_000 })
+    expect(here(page)).toBe(`${OVERVIEW}/instances/pi-invoice-42?tab=history`)
+  })
+
+  // An engine's own address starts on the landing; an engine the server does not configure is still
+  // a refused start there, as the tool refuses it at any other address of it: the address stays.
+  test("an engine the server does not configure is a refused start at its address, an old one's too", async ({
+    page,
+  }) => {
+    const calls = recordCalls(page)
+    const address = "/app/engines/no-such-engine"
+    await signIn(page, address)
+    const alert = page.getByRole("alert")
+    const refused = "Engine no-such-engine isn't on this server"
+    const heading = alert.getByRole("heading", { level: 1, name: refused })
+    await expect(heading).toBeVisible({ timeout: 15_000 })
+    await expect(
+      alert.getByText("Go to Pulse's start page, which shows this server's engines and boards."),
+    ).toBeVisible()
+    await expect(alert.getByRole("button", { name: "Try again" })).toHaveCount(0)
+    await expect(page.getByText(/no longer configured/)).toHaveCount(0)
+    await expect(page).toHaveTitle(`${refused} · Pulse`)
+    expect(here(page)).toBe(address)
+    expect(calls.filter((call) => call.arguments?.engine === "no-such-engine")).toEqual([])
+    await expectNoAxeFinding(page)
+    await page.reload()
+    await expect(heading).toBeVisible({ timeout: 15_000 })
+    expect(here(page)).toBe(address)
+    await page.goto(`${originOf()}/app/cockpit?view=overview&engine=no-such-engine`)
+    await expect(heading).toBeVisible({ timeout: 15_000 })
+    expect(here(page)).toBe(address)
+    await alert.getByRole("link", { name: "Go to the start page" }).click()
+    await expect(h1(page, LANDING)).toBeVisible({ timeout: 15_000 })
+    expect(here(page)).toBe("/app")
+  })
+
+  test("a sign-in returns to a deep address with its query, and to an old one's own", async ({
+    page,
+  }) => {
+    const deep = `${PROCESS}?scope=incident`
+    await signIn(page, deep)
+    await expect(h1(page, "Invoice Receipt")).toBeVisible({ timeout: 15_000 })
+    expect(here(page)).toBe(deep)
+    await page.context().clearCookies()
+    await page.goto(`${originOf()}${`/app/cockpit?view=jobs&engine=${HEALTHY_ENGINE}`}`)
+    await chooseUser(page)
+    await page.waitForURL(`${originOf()}${OVERVIEW}/jobs`)
+    await expect(h1(page, `${HEALTHY_ENGINE} · Jobs`)).toBeVisible({ timeout: 15_000 })
+  })
+
+  test("the bar's Pulse leads to the start page in the page, a new entry Back leaves", async ({
+    page,
+  }) => {
+    const calls = recordCalls(page)
+    await signIn(page, PROCESS)
+    await expect(h1(page, "Invoice Receipt")).toBeVisible({ timeout: 15_000 })
+    const before = await entries(page)
+    await page.getByRole("banner").getByRole("link", { name: "Pulse, start page" }).click()
+    await expect(h1(page, LANDING)).toBeVisible({ timeout: 15_000 })
+    expect(here(page)).toBe("/app")
+    expect(await entries(page)).toBe(before + 1)
+    expect(viewCalls(calls)).toBe(1)
+    await page.goBack()
+    await expect(h1(page, "Invoice Receipt")).toBeVisible({ timeout: 15_000 })
+    expect(here(page)).toBe(PROCESS)
   })
 
   test("Skip to content is the page's first stop: it focuses the view's h1 and adds no entry", async ({
@@ -426,10 +570,10 @@ test.describe("the cockpit as a page in German, on a dark system", () => {
  */
 async function expectEngineSections(page: Page, sections: readonly string[]): Promise<void> {
   await signIn(page, OVERVIEW_PAGE)
-  for (const [view, section] of ["overview", "incidents", "jobs"].map(
-    (query, index) => [query, sections[index]] as const,
+  for (const [path, section] of ["", "/incidents", "/jobs"].map(
+    (below, index) => [below, sections[index]] as const,
   )) {
-    await page.goto(`${originOf()}/app/cockpit?view=${view}&engine=${HEALTHY_ENGINE}`)
+    await page.goto(`${originOf()}/app/engines/${HEALTHY_ENGINE}${path}`)
     const heading = `${HEALTHY_ENGINE} · ${section}`
     await expect(page.getByRole("heading", { level: 1 })).toHaveText([heading], { timeout: 15_000 })
     await expect(page).toHaveTitle(`${heading} · Pulse`)
@@ -623,16 +767,14 @@ test.describe("the pages without a view", () => {
 test.describe("a page whose engine doesn't answer", () => {
   // The cockpit keeps its head (its sections, the switcher, the way to the other engines) over the
   // route, which says so in its place: where the start of its view fails for the engine, not for
-  // the page, and where an engine named alone starts the landing and the cockpit opens it.
-  for (const [start, query] of [
-    ["the start of its overview", `view=overview&engine=${BROKEN_ENGINE}`],
-    ["the engine named alone", `engine=${BROKEN_ENGINE}`],
+  // the page, and where the engine's own address starts the landing and the cockpit opens it.
+  for (const [start, address] of [
+    ["the start of its jobs", `/app/engines/${BROKEN_ENGINE}/jobs`],
+    ["the engine's own address", `/app/engines/${BROKEN_ENGINE}`],
   ] as const) {
-    test(`/app/cockpit?${query} (${start}) keeps the cockpit's head over its failure`, async ({
-      page,
-    }) => {
+    test(`${address} (${start}) keeps the cockpit's head over its failure`, async ({ page }) => {
       const calls = recordCalls(page)
-      await signIn(page, `/app/cockpit?${query}`)
+      await signIn(page, address)
       await expect(page.getByRole("navigation", { name: "Cockpit sections" })).toBeVisible({
         timeout: 15_000,
       })
@@ -650,15 +792,13 @@ test.describe("a page whose engine doesn't answer", () => {
 })
 
 test.describe("the cockpit's pages on a Camunda 8 engine", () => {
-  // The place the cockpit writes for a Camunda 8 engine names it alone: the page starts the landing,
-  // which every server takes (one of Camunda 8 clusters alone takes no `engine`), and the cockpit
-  // opens the engine's gate straight away, never a refusal of the input; a reload keeps it.
-  test("/app/cockpit?engine=<a Camunda 8 engine> opens its gate, a reload too", async ({
-    page,
-  }) => {
+  // A Camunda 8 engine's own address: the page starts the landing, which every server takes (one of
+  // Camunda 8 clusters alone takes no `engine`), and the cockpit opens the engine's gate straight
+  // away, never a refusal of the input; a reload keeps it, and the old address leads there.
+  test("/app/engines/<a Camunda 8 engine> opens its gate, a reload too", async ({ page }) => {
     const errors = collectErrors(page)
     const calls = recordCalls(page)
-    const address = `/app/cockpit?engine=${C8_ENGINE}`
+    const address = `/app/engines/${C8_ENGINE}`
     await signIn(page, address, { deployment: "camunda8" })
     const gate = page.getByRole("heading", { level: 1, name: `${C8_ENGINE} is a Camunda 8 engine` })
     await expect(gate).toBeVisible({ timeout: 15_000 })
@@ -681,15 +821,18 @@ test.describe("the cockpit's pages on a Camunda 8 engine", () => {
     await expectNoAxeFinding(page)
     await page.reload()
     await expect(gate).toBeVisible({ timeout: 15_000 })
+    await page.goto(`${originOf("camunda8")}/app/cockpit?engine=${C8_ENGINE}`)
+    await expect(gate).toBeVisible({ timeout: 15_000 })
+    expect(new URL(page.url()).pathname).toBe(address)
   })
 
   // A view of one engine names a Camunda 8 engine: the view does not read it, never arguments the
   // tool does not take.
-  test("/app/cockpit?view=jobs&engine=<a Camunda 8 engine> says the view does not read it, with the way to the start page", async ({
+  test("/app/engines/<a Camunda 8 engine>/jobs says the view does not read it, with the way to the start page", async ({
     page,
   }) => {
     const calls = recordCalls(page)
-    await signIn(page, `/app/cockpit?view=jobs&engine=${C8_ENGINE}`, { deployment: "camunda8" })
+    await signIn(page, `/app/engines/${C8_ENGINE}/jobs`, { deployment: "camunda8" })
     const alert = page.getByRole("alert")
     const refused = "This view doesn't read this engine"
     await expect(alert.getByRole("heading", { level: 1, name: refused })).toBeVisible({

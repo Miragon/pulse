@@ -21,9 +21,9 @@ import {
  * sign-in comes back to the page, and a reload then shows that the session ended.
  */
 
-const JOBS_PAGE = `/app/cockpit?view=jobs&engine=${HEALTHY_ENGINE}`
+const JOBS_PAGE = `/app/engines/${HEALTHY_ENGINE}/jobs`
 /** A drilled view: on a page its trail leads to the landing, which a head section leaves to the bar. */
-const INSTANCE_PAGE = `/app/cockpit?view=instance-detail&engine=${HEALTHY_ENGINE}&processInstanceId=pi-invoice-42`
+const INSTANCE_PAGE = `/app/engines/${HEALTHY_ENGINE}/instances/pi-invoice-42`
 
 /**
  * The calls the API refused from now on because the session was gone (401), each as its tool and
@@ -213,7 +213,7 @@ test.describe("a session's token", () => {
 
     // No silent redirect: the page stays, its address the section it moved to (N1), until the
     // user signs in again, and comes back to it.
-    const incidentsPage = `/app/cockpit?view=incidents&engine=${HEALTHY_ENGINE}`
+    const incidentsPage = `/app/engines/${HEALTHY_ENGINE}/incidents`
     expect(page.url()).toBe(`${originOf("short")}${incidentsPage}`)
     await page.getByRole("button", { name: "Sign in again" }).click()
     await chooseUser(page)

@@ -103,8 +103,12 @@ export function RefreshRegion({
   )
 }
 
-/** The way from a page's refused start to its start page, beside the words that lead there. */
-function StartPageLink({ href }: { href: string }) {
+/**
+ * The way from a page's refused start to its start page (`href`, the page's `startPage`), in the
+ * kit's words, beside the words that lead there: a failure's state puts it there, and so does a
+ * page that words such a refusal itself (the web app's engine the server does not configure).
+ */
+export function StartPageLink({ href }: { href: string }) {
   return (
     <a href={href} className={buttonVariants({ variant: "outline", size: "sm" })}>
       <House aria-hidden="true" />

@@ -154,7 +154,9 @@ test.describe("a board's page", () => {
     // The page offers no write on the instance it drilled into.
     await expect(page.getByRole("button", { name: "Retry" })).toHaveCount(0)
     // The address names the instance on its engine (N1); the trail, the board then the instance.
-    expect(new URL(page.url()).searchParams.get("view")).toBe("instance-detail")
+    expect(new URL(page.url()).pathname).toMatch(
+      new RegExp(`^/app/engines/${HEALTHY_ENGINE}/instances/[^/]+$`),
+    )
     await trail(page).getByRole("button", { name: TITLE }).click()
     await expect(boardHeading(page)).toBeVisible()
     expect(new URL(page.url()).pathname).toBe(BOARD_PAGE)

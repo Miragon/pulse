@@ -3,7 +3,7 @@ import type { PageFrame } from "@miragon/pulse-widget-shell/widgets"
 import { LogIn, LogOut } from "lucide-react"
 import { PageBar, PageLayout } from "./bar.js"
 import { useT } from "./messages/index.js"
-import { signInUrl } from "./routes.js"
+import { signInUrl } from "./router/routes.js"
 
 /**
  * A page that found no session when it asked for one (it ended between the page and its first
