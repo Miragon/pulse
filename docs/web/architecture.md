@@ -81,16 +81,15 @@ tool without `readOnlyHint`.
 
 ## The page
 
-`apps/web` is a Vite build on React, `@miragon/pulse-ui` and widget-shell. It mounts the engine
-module's views with `mountPage` from `@miragon/pulse-widget-shell/widgets` under a frame of its own
-(the bar, the session's notices), reads its session with `readWebSession()` and calls tools through
+`apps/web` is a Vite build on React, `@miragon/pulse-ui` and widget-shell. It mounts an app of its
+own with `mountApp` from `@miragon/pulse-widget-shell/widgets`: a frame (the bar, the session's
+notices) around the engine module's view its address names, which `PageView` calls. Its router
+gives each view its address and leads Back, Forward and its links to the view, which goes there
+itself or starts anew there, never loading the page; it replaces an old `/app/cockpit?view=…` by
+the view's own address. It reads its session with `readWebSession()` and calls tools through
 `webToolCaller(session)`, which posts each call with the CSRF token and rejects a refusal as a
-`WebApiError`. The build holds `index.html`, `pages.json` (router patterns under `/app`, never a
-route of the server's own) and `assets/`:
-
-```json
-{ "pages": ["/app", "/app/cockpit", "/app/fleet", "/app/boards/:id"] }
-```
+`WebApiError`. The build holds `index.html`, `pages.json` (the addresses' router patterns under
+`/app`, such as `/app/engines/:engine/jobs`, never a route of the server's own) and `assets/`.
 
 The server reads the build once at boot, so no request touches the file system, and compresses each
 text asset over 1 KiB once, in brotli and gzip, keeping an encoding only where it is smaller. The

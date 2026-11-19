@@ -92,11 +92,11 @@ A widget never talks to its host. It reads host-agnostic contexts from widget-sh
 runtime (`useViewHost` for tool calls and hand-offs, the theme, locale, display mode and height
 budget), and an adapter fills them: in a chat the MCP Apps adapter over the official `App` of
 `@modelcontextprotocol/ext-apps`, by an ESLint gate the only code that imports its view runtime,
-on a page the browser adapter of `mountPage`. `TestViewHost` fills them in tests and publishes the
+on a page the browser adapter of `mountApp`. `TestViewHost` fills them in tests and publishes the
 formatters' locale as the view root does, so a widget test reads the same on every machine.
 
 The MCP Apps host is one host among several: the web app shows the same components through
-`mountPage` (a caller for the server's tools from the page; a hand-off hidden or offering its prompt
+`PageView` (a caller for the server's tools from the page; a hand-off hidden or offering its prompt
 to copy, since a page posts into no chat; no write control and no call of the write gate, since a
 page writes to no engine). The widgets read the Camunda 7 REST family's data, a board's tiles its
 JSON form, which the board builder makes over engine-core from either dialect.

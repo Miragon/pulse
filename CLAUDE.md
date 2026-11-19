@@ -48,7 +48,7 @@ engines.
 | `apps/cli/`                                    | The CLI (npm `@miragon/pulse-cli`): every REST operation of the engine as a command, generated from its OpenAPI spec, plus the workflow commands; its rules in `apps/cli/CLAUDE.md`                                                                                                                                                                                                                                                                                                                                        |
 | `apps/vscode/`                                 | Pulse for VS Code (`pulse-cockpit`, a .vsix): the VS Code host of the runtime view; its rules in `apps/vscode/CLAUDE.md`                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `apps/orca/`                                   | Pulse for Orca (`@miragon/pulse-orca`, an Orca plugin): the Orca host of the runtime view (worker, components panel, custom editors); its rules in `apps/orca/CLAUDE.md`                                                                                                                                                                                                                                                                                                                                                   |
-| `apps/web/`                                    | The web app (`@miragon/pulse-web`, private): the MCP server's views as pages of the server under `/app` (the landing at `/app`, the engines and the server's boards; a board at `/app/boards/<id>`; a start view of the cockpit at `/app/cockpit?view=…`), over widget-shell's `mountPage` with its own frame (bar, sign-out, the session's notices, the signed-out page per reason); Vite builds it with its `pages.json`, which the server reads at boot; its rules in `apps/web/CLAUDE.md`                              |
+| `apps/web/`                                    | The web app (`@miragon/pulse-web`, private): the MCP server's views as pages of the server under `/app` (the landing at `/app`, the engines and the server's boards; a board at `/app/boards/<id>`; an engine's views under `/app/engines/<id>`), over widget-shell's `mountApp` and `PageView` with its own router and frame (bar, sign-out, the session's notices, the signed-out page per reason); Vite builds it with its `pages.json`, which the server reads at boot; its rules in `apps/web/CLAUDE.md`              |
 | `packages/connectors/engine/engine-connector/` | engine module, the one MCP module of every dialect: operations tools, widget tools, widgets                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `packages/connectors/engine/engine-core/`      | The neutral core of the engine family (npm `@miragon/pulse-engine-core`), the contract every dialect implements: the ports a process engine answers (`ProcessRuntime`, `ProcessCommands`), ids, read models, queries, `RuntimeError`, `RootCauses`; the conformance kit with its laws, its fixed world and the in-memory `FakeEngine` (`/testing`); no runtime dependency, Pulse for VS Code's house rules                                                                                                                 |
 | `packages/connectors/c7/c7-client/`            | The SDK of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-client`): the REST SDK generated from c7-core's one spec (`src/generated/`), `createEngineClient` over the `fetch` it is handed and the SDK-bound reads (`src/sdk-reads/`); a leaf                                                                                                                                                                                                                                                                 |
@@ -57,7 +57,7 @@ engines.
 | `packages/connectors/c8/c8-core/`              | The core of the Camunda 8 dialect family c8 (npm `@miragon/pulse-c8-core`), which the C8 adapter and the engine module run: `C8Runtime`, the contract's reads, and `C8Failures`, the kind of each failure, over the REST client with its checked views and a transport port that carries fields only (`CamundaTransport`, `CamundaFailure`), the readers and the mappings onto engine-core's read models; each surface brings its own wire and words (`wordsOf`); one runtime dependency, engine-core's main entry         |
 | `packages/connectors/c8/c8-adapter/`           | The C8 adapter of the runtime view (`@miragon/pulse-c8-adapter`, private): Camunda 8 through the Orchestration Cluster REST API, read-only, its wire on the transport with client credentials (`@miragon/pulse-http/oauth`) behind c8-core's transport port, the words of its failures and its plug `C8Adapter` (c8-core's `C8Runtime` over that wire and those words, links into Operate); for the editor hosts                                                                                                           |
 | `packages/core/ui/`                            | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the formatters and the tones without React under `/format` and `/tones`, the brand gates under `/testing`                                                                                                                                                                                 |
-| `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, `mountPage`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`) with the web app's sign-in (`src/web`), a module's test server (`/testing`)                                                                                                                                                                                                         |
+| `packages/core/widget-shell/`                  | The view runtime (`/widgets`: `mountViews`, `mountApp`, `PageView`, `mountPage`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`) with the web app's sign-in (`src/web`), a module's test server (`/testing`)                                                                                                                                                                                 |
 | `packages/core/runtime-view/`                  | The runtime view both editor hosts compose (`@miragon/pulse-runtime-view`, private) over the contract of `engine-core`: the ports a host and an engine family plug in, the core, the protocol, the webview (React on `@miragon/pulse-ui`), the local model reader and the host kit (targets from `.pulse.json` and the CLI's user config, policies, the write audit)                                                                                                                                                       |
 | `packages/core/profile/`                       | The one profile format of the CLI, the editor hosts and the MCP server (npm `@miragon/pulse-profile`): a parser from a file's text to a verdict per profile as data (a code and a key, never a value), the credential policy by where the file comes from, `refusalsOn` for what a reader cannot serve, the JSON Schema (`schema/pulse.schema.json`) and the shared fixtures (`/testing`); no runtime dependency                                                                                                           |
 | `packages/core/board/`                         | The board file format and builder (npm `@miragon/pulse-board`): `BoardParser` (a board with notes and refused widgets, or a file's problems as codes), `BoardProblems`, `BoardTiles`, `BoardVocabulary`, `StarterBoard`, the JSON Schema, `/testing` fixtures and figures, `/builder` (numbers over seven engine-core reads, an optional peer; no text), a built board's JSON form (`BoardData`; `BoardJson.of` in `/builder`); read by the editors and the engine module; no runtime dependency; VS Code's house rules    |
@@ -100,8 +100,10 @@ Three axes decide where code goes, and they stay apart:
   in `apps/vscode/CLAUDE.md`) and the Orca plugin (`apps/orca`, rules in `apps/orca/CLAUDE.md`).
   The server serves two of them: `/mcp` to an MCP client and, beside it, the web app's pages under
   `/app` to a browser signed in through the server's OAuth provider; the web app is the page host
-  of the MCP views, which it shows with widget-shell's `mountPage` and calls through the server's
-  `/app/api/call`. Another interface (a third editor, say) is an
+  of the MCP views, an app of its own on widget-shell's `mountApp` with its own router, which gives
+  every view its address (`/app/engines/<id>/…`, an old `/app/cockpit?view=…` replaced by it), shows
+  each view with widget-shell's `PageView` and calls through the server's `/app/api/call`. Another
+  interface (a third editor, say) is an
   app of its own. Apps never import each other, and no package imports an app: what the editor
   hosts share is the runtime view (`packages/core/runtime-view`) and a dialect's adapter of the
   engine contract (`packages/connectors/<family>/<family>-adapter`), private packages only they
@@ -606,18 +608,21 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      host-agnostic contexts every widget reads (`HostContexts`, from one `ShellHost` and one
      `ViewHost`), as `TestViewHost` does in tests, so another host (a web app, a VS Code
      webview) brings an adapter of its own and never touches a widget. The second adapter is a
-     page's outside a chat (the web app's root): `mountPage(views, options)`
-     (`src/ui/page-root.tsx`) mounts a view under `BrowserViewHost` (`src/ui/browser-view-host.tsx`:
-     tools through the caller the page hands in, the theme from `data-cd-theme` else the OS, the
-     page's locale, fullscreen without a switch, no model context, no ext-apps import) and the
-     same providers as `ViewRoot` (`src/ui/view-providers.tsx`), calls the view tool itself and
-     tree-shakes out of the MCP bundle (`apps/mcp-server/test/view-bundle.test.ts`; test:web's
-     `page.spec.ts` renders the cockpit on the web app's page on the real server). A page may
-     bring its own `frame` around the view (the web app's bar, its notices), which renders under
-     the same providers and lays out the page, so the view takes its content's height; with a
-     frame and no view the frame renders alone (the web app's signed-out page). The web app (`apps/web`) is that page:
-     the engine module's views under `mountPage`, its caller `webToolCaller`, its frame and words
-     its own, and its bundle holds the page root without the chat's (`apps/web/test/bundle-graph.test.ts`). What a hand-off does is the view
+     page's outside a chat (the web app's root): `mountApp(App, options)` (`src/ui/app-root.tsx`)
+     mounts the page's own app under `BrowserViewHost` (`src/ui/browser-view-host.tsx`: tools
+     through the caller the page hands in, the theme from `data-cd-theme` else the OS, the page's
+     locale, fullscreen without a switch, no model context, no ext-apps import) and the same
+     providers as `ViewRoot` (`src/ui/view-providers.tsx`), one query client for the page, and
+     calls no tool itself; `PageView` (`src/ui/page-view.tsx`) shows a view of a `ViewMap` where
+     the app puts it, calls its view tool once per start (another view or other arguments start it
+     anew) and gives it the page's address for it (`location`); `mountPage(views, options)`
+     (`src/ui/page-root.tsx`) is one such view in a page's `frame` (which lays out the page, so
+     the view takes its content's height; with a frame and no view the frame renders alone). All
+     three tree-shake out of the MCP bundle (`apps/mcp-server/test/view-bundle.test.ts`; test:web's
+     `page.spec.ts` renders the cockpit on the web app's page on the real server). The web app
+     (`apps/web`) is such an app: its router, its frame (the bar, its notices) and words its own,
+     the engine module's views under `PageView`, its caller `webToolCaller`, and its bundle holds
+     the app root without the chat's (`apps/web/test/bundle-graph.test.ts`). What a hand-off does is the view
      host's `followUp`: `chat` posts it, a page that posts to no chat says `copy` (its prompt to
      copy) or `none` (hidden), and `AskAiButton` reads it, as does a widget whose menu,
      column or section holds hand-offs alone (`useHostFollowUp`, no tool caller), so `none`
@@ -627,9 +632,9 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      (`useHostWrites`, beside `followUp`): a chat and `TestViewHost` write, a page writes
      nothing, so no write control shows there (invariant 8's `useEngineAction`). Where a view is,
      a page's address follows: the view host's optional `location` (`useHostLocation`), which a
-     page offers through `mountPage`'s `location` (the web app's `apps/web/src/address.ts`) and a
-     chat never; the cockpit reports each place as `engine_open_cockpit`'s arguments, a drill as a
-     new entry, and goes where Back leads
+     page offers through `PageView`'s `location` (the web app's router, `apps/web/src/router`, which
+     writes each place as its canonical address) and a chat never; the cockpit reports each place as
+     `engine_open_cockpit`'s arguments, a drill as a new entry, and goes where Back leads
      (`packages/connectors/engine/engine-connector/src/widgets/cockpit-app/place.ts`). On a page,
      whose bar leads to its start page (`useStartPage`), a head section shows no trail and a drill
      shows it on its row, which a cockpit narrower than 40rem moves into the head in the tabs'
@@ -674,9 +679,12 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      A page's ended session (`isSessionEnded`) is said once, by the page's frame: a view's state
      shows a quiet line that its content is missing, and no notice, footer alert or engine row
      speaks of it. A page's refused start (an unknown board, arguments a tool does not take, data
-     the server does not offer, a view of an engine shown on boards only) links to the page's
-     start page (`mountPage`'s `startPage`); a start that failed for its engine keeps the
-     cockpit's head over the route that says so (`mountPage`'s `failedStart`, the connector's
+     the server does not offer, a view of an engine shown on boards only, and an engine's own
+     address that names an engine the server does not configure, which the web app refuses in the
+     view's place over the landing's start, its address kept: the connector's
+     `cockpitNamesEngine`) links to the page's start page (the browser adapter's `startPage`,
+     widget-shell's `StartPageLink`); a start that failed for its engine keeps the
+     cockpit's head over the route that says so (`PageView`'s `failedStart`, the connector's
      `cockpitAfterFailedStart`). A write reports through
      `useActionFeedback()` toasts that name the object and confirms through `ConfirmDialog`;
      nothing to show is `TableEmptyState`. A first load shows its skeleton only after 400 ms

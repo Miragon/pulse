@@ -132,7 +132,7 @@ describe("the repo's apps", () => {
     const files = scanSources((file) => [file])
     for (const file of [
       "apps/mcp-server/src/index.ts",
-      "apps/web/src/routes.ts",
+      "apps/web/src/router/routes.ts",
       "packages/core/widget-shell/src/caller.ts",
       "packages/connectors/engine/engine-connector/src/module.ts",
     ]) {

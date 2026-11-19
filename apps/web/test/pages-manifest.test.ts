@@ -71,15 +71,31 @@ describe("the build's pages.json", () => {
   })
 
   it("is what the server serves the page at, behind the sign-in, the query kept", async () => {
-    // A pattern's param takes one segment: a board's id.
-    const paths = PAGE_PATTERNS.map((pattern) => pattern.replace(/:[a-z]+/g, "invoices"))
-    expect(paths).toContain("/app/boards/invoices")
-    for (const page of [...paths, `${PAGES.cockpit}?view=jobs&engine=prod`]) {
+    // A pattern's param takes one segment, an escaped one too: an id with a slash or a space.
+    const paths = PAGE_PATTERNS.map((pattern) => pattern.replace(/:[a-z]+/g, "in%2Fvoice%20s"))
+    expect(paths).toContain("/app/boards/in%2Fvoice%20s")
+    expect(paths).toContain(
+      "/app/engines/in%2Fvoice%20s/instances/in%2Fvoice%20s/incidents/in%2Fvoice%20s",
+    )
+    const deep = `${PAGES.engine.replace(":engine", "prod")}/instances/pi-1?tab=history`
+    for (const page of [...paths, deep, `${PAGES.cockpit}?view=jobs&engine=prod`]) {
       const response = await get(page)
       expect(response.status, page).toBe(302)
       const location = new URL(String(response.headers.get("location")), ORIGIN)
       expect(location.pathname).toBe("/app/auth/login")
       expect(location.searchParams.get("return")).toBe(page)
+    }
+  })
+
+  it("is all the server serves the page at: a path between or beyond its patterns is none", async () => {
+    for (const path of [
+      "/app/engines",
+      "/app/engines/prod/processes",
+      "/app/engines/prod/instances/pi-1/incidents",
+      "/app/engines/prod/jobs/x",
+      "/app/boards",
+    ]) {
+      expect((await get(path)).status, path).toBe(404)
     }
   })
 

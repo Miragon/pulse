@@ -23,6 +23,10 @@ export const de = {
   "page.unreachable.description":
     "Deine Sitzung konnte nicht gelesen werden. Versuche es gleich noch einmal.",
 
+  "start.unknownEngine.title": "Die Engine {engine} gibt es auf diesem Server nicht",
+  "start.unknownEngine.description":
+    "Geh zur Startseite von Pulse. Sie zeigt die Engines und Boards dieses Servers.",
+
   "signedOut.denied.title": "Anmeldung abgelehnt",
   "signedOut.denied.description":
     "Dein Identitätsanbieter hat die Anmeldung bei Pulse abgelehnt. Frag deine Administration nach Zugang oder melde dich mit einem anderen Konto an.",

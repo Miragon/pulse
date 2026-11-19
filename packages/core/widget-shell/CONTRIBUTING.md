@@ -44,16 +44,21 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   `useQueryClient`), never ext-apps, so a widget renders under `TestViewHost`
   (fake tools, a log of host actions and model contexts) in a plain test. No module renders
   another's widget, and the view root keeps no map for one.
-- **The page root** (`./widgets`): `mountPage(views, options)` is the second adapter, for a
-  page outside a chat (the web app); `readWebSession()` and `webToolCaller(session)`
+- **The page roots** (`./widgets`): `mountApp(App, options)` (`src/ui/app-root.tsx`) is the
+  second adapter, for a page's own app outside a chat (the web app, with its router and frame),
+  which shows a view where it puts it with `PageView` (`src/ui/page-view.tsx`: one call of the view
+  tool per start, keyed by its view and arguments, the page's address for it as the view host's
+  `location`); `mountPage(views, options)` (`src/ui/page-root.tsx`) is one such view in a page's
+  frame. `readWebSession()` and `webToolCaller(session)`
   (`src/ui/web-caller.ts`) are a page's client of the web app's API under `/app`, the caller a page
   served by the server hands in. `BrowserViewHost` (`src/ui/browser-view-host.tsx`) fills the
   same contexts from the page: tools through the caller it hands in, the theme from a
   `data-cd-theme` on `<html>` else the OS, the locale from the option, the document's `lang` or
   the browser, fullscreen as its one mode (so no switch and no inline budget), a model context
-  that reaches nothing. It imports nothing of ext-apps, the page root calls the view tool itself
-  (`usePageCall`: once, again on Try again) and renders a page's `frame` around the view under the
-  same providers (the view then fills no viewport: `ViewFrame`'s `fill`), and both roots share
+  that reaches nothing. It imports nothing of ext-apps, a page view calls its view tool itself
+  (`usePageCall`: once, again on Try again), `mountPage` renders a page's `frame` around the view
+  under the same providers (the view then fills no viewport: `ViewFrame`'s `fill`), and both roots
+  share
   `ViewProviders`
   (`src/ui/view-providers.tsx`), so the provider order is one. The view host's `followUp` says
   what a hand-off does: `chat` posts it (the ext-apps adapter; `TestViewHost` by default), and a
@@ -66,14 +71,15 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   and a paged list's refusal read the host's) and the kit's `loadFailedHint`, which `LocaleGate`
   replaces on a page with `describeError`'s page words for a failure it cannot name. A page's
   `startPage` (`ViewHost.startPage`) is where a refused start's state links (`FailureState`:
-  an unknown board, arguments no tool takes, data the server does not offer), and a page's ended
+  an unknown board, arguments no tool takes, data the server does not offer; `StartPageLink`, which
+  a page that words such a refusal itself puts beside its words), and a page's ended
   session (`isSessionEnded`) is the page frame's to say, once: `FailureState` shows a quiet line,
   and neither `useDetailView`'s notice nor a paged list's footer says it. A page whose frame
-  renders alone hands `mountPage` no caller (`FramePageOptions`). The
+  renders alone hands `mountPage` or `mountApp` no caller (`FramePageOptions`). The
   view host's `writes` says whether a view may write to an engine: the ext-apps adapter and
   `TestViewHost` (unless a test passes `writes={false}`) write, a page writes nothing, and a
   widget's write primitive asks `useHostWrites` before it shows a write control. The MCP
-  bundle mounts with `mountViews` alone, so tree-shaking leaves the page root out of it
+  bundle mounts with `mountViews` alone, so tree-shaking leaves the page roots out of it
   (`apps/mcp-server/test/view-bundle.test.ts`).
 - **View builders** (`./server`): `buildViewResult(data, summary)` (a show tool's result: the
   `structuredContent` IS the view's data, the text what the model reads: a short summary or,

@@ -48,13 +48,16 @@ async function viewRuntimeModules(): Promise<string[]> {
 }
 
 describe("the view bundle holds the chat's root alone", { timeout: 120_000 }, () => {
-  // A page's root (the web app's) comes from the same `/widgets` entry; tree-shaking keeps it, its
-  // browser adapter included, out of the bundle every view document inlines (its gzip budget).
-  it("carries the ext-apps adapter and no code of mountPage's page root", async () => {
+  // A page's roots (the web app's app root and the view it shows in it, a page of one view) come
+  // from the same `/widgets` entry; tree-shaking keeps them, their browser adapter included, out of
+  // the bundle every view document inlines (its gzip budget), and nothing of the web app's router
+  // reaches it: the chat has no address.
+  it("carries the ext-apps adapter and no code of a page's roots", async () => {
     const modules = await viewRuntimeModules()
     expect(modules).toEqual(
       expect.arrayContaining(["view-root", "ext-apps-host", "view-runtime", "view-providers"]),
     )
-    expect(modules.filter((name) => ["page-root", "browser-view-host"].includes(name))).toEqual([])
+    const pageRoots = ["app-root", "page-view", "page-root", "browser-view-host"]
+    expect(modules.filter((name) => pageRoots.includes(name))).toEqual([])
   })
 })

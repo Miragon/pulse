@@ -109,7 +109,7 @@ test.describe("the session's cookies", () => {
     context,
   }) => {
     const seen = watch(page)
-    await signIn(page, `/app/cockpit?view=jobs&engine=${HEALTHY_ENGINE}`)
+    await signIn(page, `/app/engines/${HEALTHY_ENGINE}/jobs`)
     const jobs = page.getByRole("region", { name: "Jobs", exact: true })
     await expect(jobs.getByText("Card declined").first()).toBeVisible({ timeout: 15_000 })
 

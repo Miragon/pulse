@@ -1,9 +1,9 @@
 /**
  * A page's client of the web app's API (src/protocol/web.ts), which a Pulse server serves under
  * `/app` beside its sign-in: `readWebSession()` reads who is signed in and the session's CSRF
- * token, and `webToolCaller(session)` is the `callTool` a page hands `mountPage`, each call a POST
- * to `/app/api/call` that carries the token, which the server forwards to `/mcp` with the session's
- * bearer token. Only the page's own cookie travels with it, and no token ever reaches the page.
+ * token, and `webToolCaller(session)` is the `callTool` a page hands `mountApp` (or `mountPage`),
+ * each call a POST to `/app/api/call` that carries the token, which the server forwards to `/mcp`
+ * with the session's bearer token. Only the page's own cookie travels with it, and no token ever reaches the page.
  */
 import type { ToolResult } from "../protocol/tool-result.js"
 import {

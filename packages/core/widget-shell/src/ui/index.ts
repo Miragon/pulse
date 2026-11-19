@@ -3,7 +3,7 @@
 // name; the view root's providers, the inline-fit machinery and the BPMN viewer's internals stay
 // behind `mountViews` and the components.
 export { WidgetShell, useHostDisplayMode } from "./widget-shell.js"
-export { ViewDataState } from "./view-data-state.js"
+export { StartPageLink, ViewDataState } from "./view-data-state.js"
 export {
   describeError,
   isPermanentError,
@@ -32,10 +32,12 @@ export {
   type MountViewOptions,
   type MountViewsOptions,
 } from "./view-root.js"
-// The page root: a view on a page outside a chat, under the browser adapter instead of ext-apps.
+// The page roots: a page's own app outside a chat, a view in it, and one view on a page, under the
+// browser adapter instead of ext-apps.
+export { mountApp, type MountAppOptions } from "./app-root.js"
+export { PageView, type FailedStart, type PageViewProps } from "./page-view.js"
 export {
   mountPage,
-  type FailedStart,
   type FramePageOptions,
   type MountPageOptions,
   type PageFrame,
@@ -130,7 +132,7 @@ export { BpmnZoomControls, type BpmnZoomControlsProps } from "./bpmn-zoom-contro
 // by, on the server and in a view.
 export { parseBpmnNames, readBpmnNames } from "../protocol/bpmn-names.js"
 // The web app's wire contract (src/protocol/), which a page's client and the server's routes read,
-// and that client: the session and the caller a page hands `mountPage`.
+// and that client: the session and the caller a page hands `mountApp` or `mountPage`.
 export {
   isSignedOutReason,
   SIGNED_OUT_REASONS,

@@ -13,7 +13,7 @@ import {
 } from "lucide-react"
 import { PageBar, PageLayout } from "./bar.js"
 import { useT } from "./messages/index.js"
-import { signInUrl } from "./routes.js"
+import { signInUrl } from "./router/routes.js"
 
 /** What the signed-out page shows per reason: its icon and the words of its one action. */
 const REASONS: Readonly<

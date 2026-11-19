@@ -19,7 +19,7 @@ import {
  * ADFS refuses ends the session once the token expired.
  */
 
-const JOBS_PAGE = `/app/cockpit?view=jobs&engine=${HEALTHY_ENGINE}`
+const JOBS_PAGE = `/app/engines/${HEALTHY_ENGINE}/jobs`
 
 /** This browser's renewals at the deployment's provider: the scenarios beside it renew there too. */
 const renewalsOf = (record: IdpRecord, session: string) =>

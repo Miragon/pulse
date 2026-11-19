@@ -65,7 +65,7 @@ variables only; the widgets follow the host's theme, then the OS.
 | Tool authoring | `./server`       | The registrar (`createToolRegistrar`, `withToolErrors`), `showToolBinding`, `OwnViewBinding`, `AppResourceCsp`, `appOnly`, `forViews`, `strictToolInput`, `buildViewResult`, `buildDataFeedResult`, `decodeToolResult`, `createTranslator`                                                                                                                                                                                                                                      |
 | Server helpers | `./server`       | The BPMN-name readers (`readBpmnNames`, `parseBpmnNames`), the per-caller request info (`callerCacheKey`, `getMcpRequestInfo`, `runWithMcpRequestInfo`), `composedEnvVars`, `viewResourceUri`, `viewPrelude`                                                                                                                                                                                                                                                                    |
 | Bundle build   | `./server`       | `VIEW_BUNDLE_DEDUPE`, `viewBundleWatchPlugin`, and the served fonts (`installFontAssets`, `fontAssetsCsp`)                                                                                                                                                                                                                                                                                                                                                                      |
-| View runtime   | `./widgets`      | `mountViews`, `mountPage` for a page outside a chat, the view host (`useViewHost`, `HostModelContext`), the query hooks (`useToolQuery`, `useToolQueries`, `useToolMutation`, `useViewData`), `TestViewHost` for tests                                                                                                                                                                                                                                                          |
+| View runtime   | `./widgets`      | `mountViews`, `mountApp`, `PageView` and `mountPage` for a page outside a chat, the view host (`useViewHost`, `HostModelContext`), the query hooks (`useToolQuery`, `useToolQueries`, `useToolMutation`, `useViewData`), `TestViewHost` for tests                                                                                                                                                                                                                               |
 | Host-bound UI  | `./widgets`      | `WidgetShell`, `ListTable` + `PagedRows` with `ListRow` (a row that opens on a click or Enter and copies its id, or what `copyLabel` names, which `ListTable`'s `copyHint` tells a screen reader), `IdCell`/`IdText`, `TextBlock` (engine text to scroll by keyboard and copy whole), `FreshnessStamp` (a bar's "As of"), `describeError`, `useActionFeedback`, `ConfirmDialog`, the hand-offs (`HAND_OFF_ACTIONS`, `AskAiButton` for one it does not list) and the BPMN viewer |
 | Module tests   | `./testing`      | `recordingModuleServer` and `testServerContext` for a module's tools, prompts and resources                                                                                                                                                                                                                                                                                                                                                                                     |
 | Sign-in tests  | `./testing/oidc` | `startFakeOidc`: a fake OpenID Connect provider with Keycloak's paths, ADFS's (`flavor: "adfs"`) or an Entra ID tenant's (`flavor: "entra"`), on a loopback port (discovery, its signing key, a login page per user, the code grant with PKCE, refresh, revocation, the end of a session), for a server's sign-in tests; Node only                                                                                                                                              |
@@ -126,34 +126,41 @@ through the v2.0 authority without a resource, its scopes at every grant.
 
 ## A view on a page outside a chat
 
-`mountPage(views, options)` mounts one view on a plain page, a web app's say, without the MCP
-Apps runtime: the page hands in a caller for the server's tools (a fetch to its `/mcp` endpoint)
-and the view calls its own view tool with `args`, then runs under the same providers as in a
-chat, so every widget works unchanged. The page's theme follows a `data-cd-theme` it sets on
-`<html>`, else the OS; its language the `locale` option, else the document's `lang`, else the
-browser's. It owns its viewport, so it shows fullscreen with no switch, and nothing reaches a
-model. A page posts into no chat, so a hand-off shows only where the page asks for it to be
-copied (`followUp: "copy"`); a widget asks the host's `followUp` with `useHostFollowUp()`, so a
-menu, a column or a section that holds hand-offs alone shows not at all where they are hidden, and
-the view's frame and the kit's failure words say what to do on the page where a chat's would say
-to ask in the chat. A page's `startPage` (its start page's URL) is where the state of a start the
-server refuses for good links to (a board it does not show, arguments no tool takes, data it does
-not offer), and a call that finds the page's session gone (`isSessionEnded`) is the page frame's to
-say: a view's state then shows a quiet line, no error box, notice or footer alert. A page writes
-to no engine: `useHostWrites()` answers false there (true in a chat and in `TestViewHost`), so a
-widget that asks it before it shows a write control offers none. A page whose address follows the
-view hands in `location` (a `ViewLocation`): the view reports each place as its view tool's
-arguments with a memo of its own, a move as a new entry of the page's history, and goes where Back
-and Forward lead; a widget reads it with `useHostLocation()`, which a chat never offers, and the
-page's start page with `useStartPage()`. A page that brings its own chrome
-hands it in as `frame`, a component that gets the view as its `children` and renders under the same
-providers (the view's locale, theme, icon stroke and toasts); the frame then lays out the page and
-the view takes its content's height. With a frame and no `view`, the frame renders alone, needs no
-`callTool` and calls nothing (a page that needs no tool, such as a signed-out page). A view that
-says a failed start in its own place takes `failedStart`, which gives its data for the error, or
-null to leave it to the frame: the web app keeps the cockpit's head over a route whose engine does
-not answer (`cockpitAfterFailedStart` of the engine connector's `/widgets`). Pulse's web app
-(`apps/web`) is such a page.
+`mountPage(views, options)` mounts one view on a plain page, a web app's say, without the MCP Apps
+runtime: the page hands in a caller for the server's tools (a fetch to its `/mcp` endpoint) and the
+view calls its own view tool with `args`, then runs under the same providers as in a chat, so every
+widget works unchanged. The page's theme follows a `data-cd-theme` it sets on `<html>`, else the OS;
+its language the `locale` option, else the document's `lang`, else the browser's. It owns its
+viewport, so it shows fullscreen with no switch, and nothing reaches a model. A page posts into no
+chat, so a hand-off shows only where the page asks for it to be copied (`followUp: "copy"`); a
+widget asks the host's `followUp` with `useHostFollowUp()`, so a menu, a column or a section that
+holds hand-offs alone shows not at all where they are hidden, and the view's frame and the kit's
+failure words say what to do on the page where a chat's would say to ask in the chat. A page's
+`startPage` (its start page's URL) is where the state of a start the server refuses for good links
+to (a board it does not show, arguments no tool takes, data it does not offer; `StartPageLink` is
+that link for a page that words such a refusal itself), and a call that finds the page's session
+gone (`isSessionEnded`) is the page frame's to say: a view's state then shows a quiet line, no error
+box, notice or footer alert. A page writes to no engine: `useHostWrites()` answers false there (true
+in a chat and in `TestViewHost`), so a widget that asks it before it shows a write control offers
+none. A page whose address follows the view hands `PageView` (or `mountPage`) its `location` (a
+`ViewLocation`): the view reports each place as its view tool's arguments with a memo of its own, a
+move as a new entry of the page's history, and goes where Back and Forward lead; a widget reads it
+with `useHostLocation()`, which a chat never offers, and the page's start page with
+`useStartPage()`. A page that brings its own chrome hands it in as `frame`, a component that gets
+the view as its `children` and renders under the same providers (the view's locale, theme, icon
+stroke and toasts); the frame then lays out the page and the view takes its content's height. With a
+frame and no `view`, the frame renders alone, needs no `callTool` and calls nothing (a page that
+needs no tool, such as a signed-out page). A view that says a failed start in its own place takes
+`failedStart`, which gives its data for the error, or null to leave it to the frame: the web app
+keeps the cockpit's head over a route whose engine does not answer (`cockpitAfterFailedStart` of the
+engine connector's `/widgets`). A page with an app of its own (a router, a frame that stays while
+its views change) mounts it with `mountApp(App, options)`, which takes the same options without
+`view`, `args`, `frame`, `location` and `failedStart`, calls no tool itself and gives the whole page
+one query client, and shows each view where the app puts it with `PageView` (`views`, `view`,
+`args`, `location`, `failedStart`): it calls its view tool once per start, another view or other
+arguments start it anew (as does another React `key`), and it gives the view its own address.
+`mountPage` is one `PageView` in a `frame` on `mountApp`. Pulse's web app (`apps/web`) is such an
+app.
 
 ```ts
 import { mountPage } from "@miragon/pulse-widget-shell/widgets"
@@ -169,8 +176,8 @@ mountPage(engineViews, {
 })
 ```
 
-The MCP bundle never carries it: tree-shaking leaves `mountPage` out of a bundle that mounts
-with `mountViews`.
+The MCP bundle never carries them: tree-shaking leaves `mountApp`, `PageView` and `mountPage` out
+of a bundle that mounts with `mountViews`.
 
 ## The web app
 
@@ -261,7 +268,7 @@ refresh tokens: where it does, a renewal whose answer never reaches the browser 
 session, on one replica too. A sign-in without a refresh token works, its session ending with its
 access token, and the log says so; with the check, a session whose refresh token expired ends at
 its check without asking the provider. No answer ever holds a token.
-A page reads its session with `readWebSession()` and hands `mountPage` the caller
+A page reads its session with `readWebSession()` and hands `mountApp` (or `mountPage`) the caller
 `webToolCaller(session)` from `./widgets`, which posts each call with the CSRF token and tells
 `onSignedOut` when the session is gone.
 

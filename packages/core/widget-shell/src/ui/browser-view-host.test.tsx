@@ -176,7 +176,7 @@ describe("BrowserViewHost: what a widget asks the page", () => {
     expect(container.textContent).toBe("/app")
   })
 
-  it("hands the view the page's address where the page has one, none otherwise", async () => {
+  it("keeps no address of its own: a page's view gets one where the page shows it", async () => {
     const seenLocation: Array<ViewLocation | undefined> = []
     function LocationProbe() {
       const location = useHostLocation()
@@ -185,12 +185,15 @@ describe("BrowserViewHost: what a widget asks the page", () => {
       })
       return null
     }
-    await render({}, <LocationProbe />)
+    await render(
+      { startPage: "/app" },
+      <>
+        <Probe />
+        <LocationProbe />
+      </>,
+    )
     expect(seenLocation.at(-1)).toBeUndefined()
-    await act(async () => reactRoot?.unmount())
-    const location: ViewLocation = { report: vi.fn(), subscribe: () => () => undefined }
-    await render({ location }, <LocationProbe />)
-    expect(seenLocation.at(-1)).toBe(location)
+    expect(seen.host).not.toHaveProperty("location")
   })
 
   it("offers no write: a page writes to no engine", async () => {

@@ -1,28 +1,16 @@
 /**
- * The page root: one view on a plain page outside a chat (the web app), without ext-apps' `App`.
- * The page calls the view tool itself through the caller it hands in, and the view runs under the
- * same providers as in a chat, so every widget runs unchanged. A page may bring its own frame
- * around the view (its bar, its notices), which renders under those providers too.
+ * The page root: one view on a plain page outside a chat, without ext-apps' `App`. It is the app
+ * root (`mountApp`) with one `PageView` as its app, in the page's frame where it brings one: the
+ * page calls the view tool itself through the caller it hands in, and the view runs under the same
+ * providers as in a chat, so every widget runs unchanged. A page with an app of its own (a router,
+ * views it changes) mounts that app with `mountApp` and shows its views with `PageView`.
  */
-import {
-  StrictMode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ComponentType,
-  type ReactNode,
-} from "react"
-import { createRoot } from "react-dom/client"
-import { decodeToolResult } from "../protocol/tool-result.js"
-import { BrowserViewHost, type BrowserHostOptions, type ToolCaller } from "./browser-view-host.js"
-import { isViewData, type ViewCall, type ViewPhase } from "./view-call.js"
-import { ViewErrorBoundary } from "./view-error-boundary.js"
-import { ViewFrame } from "./view-frame.js"
-import { useViewHost, type ViewHost } from "./view-host.js"
-import { rootElement, ViewProviders } from "./view-providers.js"
-import type { ViewComponent, ViewMap } from "./views.js"
+import type { ComponentType, ReactNode } from "react"
+import { mountApp } from "./app-root.js"
+import type { BrowserHostOptions } from "./browser-view-host.js"
+import { PageView, type FailedStart } from "./page-view.js"
+import type { ViewLocation } from "./view-host.js"
+import type { ViewMap } from "./views.js"
 
 /** A page's own frame around its view: the view, if the page shows one, is its `children`. */
 export type PageFrame = ComponentType<{ children?: ReactNode }>
@@ -44,15 +32,17 @@ export interface MountPageOptions extends BrowserHostOptions {
    */
   frame?: PageFrame
   /**
+   * The page's address for the view, which follows where it is: the view reports each move, and
+   * Back and Forward lead it back (`PageView`'s `location`). Without one the address stays where
+   * the page started.
+   */
+  location?: ViewLocation
+  /**
    * The view's data for a start whose view tool failed, where the view shows that failure in its
-   * own place (the cockpit keeps its head over the route that failed to read its engine); null
-   * leaves the failure to the frame's error state, as without this option.
+   * own place; null leaves the failure to the frame's error state, as without this option.
    */
   failedStart?: FailedStart
 }
-
-/** The view's data for a start that failed with `error`, or null for the frame's error state. */
-export type FailedStart = (error: Error) => object | null
 
 /**
  * A page whose frame renders alone (a signed-out page, say): no view, so no caller. Its frame runs
@@ -65,111 +55,28 @@ export interface FramePageOptions extends Omit<BrowserHostOptions, "callTool"> {
   /** The page's chrome, alone: see {@link MountPageOptions.frame}. */
   frame: PageFrame
   callTool?: undefined
+  location?: undefined
   failedStart?: undefined
 }
 
-const NO_ARGS: Record<string, unknown> = {}
-
-/** The caller of a page that shows no view: it calls no tool, and says so to a frame that asks. */
-const NO_VIEW_CALLS: ToolCaller = () =>
-  Promise.reject(new Error("This page shows no view, so it calls no tool."))
-
-/** The view tool's result as the frame shows it: the view's data, or why it is missing. */
-async function loadView(
-  callTool: ViewHost["callTool"],
-  name: string,
-  args: Record<string, unknown>,
-): Promise<ViewPhase> {
-  try {
-    const data = decodeToolResult<unknown>(await callTool(name, args))
-    if (!isViewData(data)) {
-      return { phase: "error", error: new Error("The view's data did not arrive.") }
-    }
-    return { phase: "ready", data, reloadedAt: null }
-  } catch (error) {
-    return { phase: "error", error: error instanceof Error ? error : new Error(String(error)) }
-  }
-}
-
-/** A failed start's phase: the view's own data where `failedStart` gives some, else the error. */
-function afterFailure(phase: ViewPhase, failedStart: FailedStart | undefined): ViewPhase {
-  if (phase.phase !== "error" || failedStart === undefined) return phase
-  const data = failedStart(phase.error)
-  return data === null ? phase : { phase: "ready", data, reloadedAt: null }
-}
-
-/** The page's own call of the view tool: once on mount, again on the user's retry. */
-function usePageCall(
-  name: string,
-  args: Record<string, unknown>,
-  enabled: boolean,
-  failedStart: FailedStart | undefined,
-): ViewCall {
-  const { callTool } = useViewHost()
-  const [phase, setPhase] = useState<ViewPhase>({ phase: "waiting" })
-  const started = useRef(false)
-  const load = useCallback(
-    () => loadView(callTool, name, args).then((loaded) => afterFailure(loaded, failedStart)),
-    [callTool, name, args, failedStart],
-  )
-  useEffect(() => {
-    // Once per mount; the ref also stops StrictMode's second effect run.
-    if (!enabled || started.current) return
-    started.current = true
-    void load().then(setPhase)
-  }, [enabled, load])
-  const retry = useCallback(() => {
-    setPhase({ phase: "waiting" })
-    void load().then(setPhase)
-  }, [load])
-  return useMemo(() => ({ phase, retry }), [phase, retry])
-}
-
-interface PageViewProps {
-  name: string
-  view: ViewComponent | undefined
-  args: Record<string, unknown>
-  fill: boolean
-  failedStart: FailedStart | undefined
-}
-
-function PageViewFrame({ name, view, args, fill, failedStart }: PageViewProps) {
-  const call = usePageCall(name, args, view !== undefined, failedStart)
-  return <ViewFrame call={call} view={view} fill={fill} />
-}
-
-interface PageRootProps {
-  name: string | undefined
-  view: ViewComponent | undefined
-  args: Record<string, unknown>
-  frame: PageFrame | undefined
-  failedStart: FailedStart | undefined
-  host: BrowserHostOptions
+interface PageBodyProps {
+  readonly views: ViewMap
+  readonly name: string | undefined
+  readonly args: Record<string, unknown> | undefined
+  readonly frame: PageFrame | undefined
+  readonly location: ViewLocation | undefined
+  readonly failedStart: FailedStart | undefined
 }
 
 /** The view in the page's frame, or the frame alone; without a frame the view fills the page. */
-function PageBody({ name, frame: Frame, ...view }: Omit<PageRootProps, "host">) {
-  if (Frame === undefined) {
-    return <PageViewFrame name={name ?? ""} {...view} fill />
-  }
+function PageBody({ views, name, args, frame: Frame, location, failedStart }: PageBodyProps) {
+  const view = { views, args, location, failedStart }
+  if (Frame === undefined) return <PageView {...view} view={name ?? ""} fill />
   if (name === undefined) return <Frame />
   return (
     <Frame>
-      <PageViewFrame name={name} {...view} fill={false} />
+      <PageView {...view} view={name} />
     </Frame>
-  )
-}
-
-/** The provider order is `ViewRoot`'s: the host first, then the providers every root shares. */
-function PageRoot({ host, ...body }: PageRootProps) {
-  return (
-    <StrictMode>
-      <BrowserViewHost options={host}>
-        <ViewProviders>
-          <PageBody {...body} />
-        </ViewProviders>
-      </BrowserViewHost>
-    </StrictMode>
   )
 }
 
@@ -182,21 +89,7 @@ export function mountPage(
   views: ViewMap,
   options: MountPageOptions | FramePageOptions,
 ): () => void {
-  const { view: name, args = NO_ARGS, container, frame, callTool, failedStart, ...rest } = options
-  const host: BrowserHostOptions = { ...rest, callTool: callTool ?? NO_VIEW_CALLS }
-  const view = name !== undefined && Object.hasOwn(views, name) ? views[name] : undefined
-  const root = createRoot(container ?? rootElement())
-  root.render(
-    <ViewErrorBoundary>
-      <PageRoot
-        name={name}
-        view={view}
-        args={args}
-        frame={frame}
-        failedStart={failedStart}
-        host={host}
-      />
-    </ViewErrorBoundary>,
-  )
-  return () => root.unmount()
+  const { view: name, args, frame, failedStart, location, ...host } = options
+  const body = { views, name, args, frame, location, failedStart }
+  return mountApp(() => <PageBody {...body} />, host)
 }

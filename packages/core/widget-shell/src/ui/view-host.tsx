@@ -4,7 +4,7 @@ import type { ToolResult } from "../protocol/tool-result.js"
 /**
  * What a hand-off does in this host: `chat` posts it into the chat (`sendFollowUp`), `copy` offers
  * its prompt to copy into a chat of the user's own, `none` shows no hand-off. Only a chat host
- * posts; a page outside a chat (`mountPage`) copies or hides.
+ * posts; a page outside a chat (`mountApp`, `mountPage`) copies or hides.
  */
 export type FollowUp = "chat" | "copy" | "none"
 
@@ -20,7 +20,7 @@ export interface ViewPlace {
 
 /**
  * A page's address, which follows the view (`ViewHost.location`): only a page outside a chat offers
- * it (`mountPage`'s `location`), a chat has no address to follow.
+ * it (`PageView`'s `location`, `mountPage`'s), a chat has no address to follow.
  */
 export interface ViewLocation {
   /**
@@ -43,7 +43,7 @@ export interface ViewLocation {
 /**
  * The ONE seam between a view and its host. Widgets never import `@modelcontextprotocol/ext-apps`:
  * a chat provides the ext-apps adapter (`mountViews`), a page outside a chat the browser adapter
- * (`mountPage`), tests `TestViewHost`. Display mode stays in the host-agnostic
+ * (`mountApp`, `mountPage`), tests `TestViewHost`. Display mode stays in the host-agnostic
  * `useShellHost`/`useDisplayModeControl`.
  */
 export interface ViewHost {
@@ -59,18 +59,18 @@ export interface ViewHost {
   followUp: FollowUp
   /**
    * Whether a view may write to an engine here: absent or true in a chat and in `TestViewHost`,
-   * false on a page outside a chat (`mountPage`), which offers no write, so no write control
-   * shows there (`useHostWrites`).
+   * false on a page outside a chat (`mountApp`, `mountPage`), which offers no write, so no write
+   * control shows there (`useHostWrites`).
    */
   writes?: boolean
   /**
-   * The page's start page, where a page's words of a refused start lead (`mountPage`'s
-   * `startPage`): the failure's state then links to it. A chat has none.
+   * The page's start page, where a page's words of a refused start lead (`mountApp`'s and
+   * `mountPage`'s `startPage`): the failure's state then links to it. A chat has none.
    */
   startPage?: string
   /**
-   * The page's address, which follows where the view is (`mountPage`'s `location`): a view reports
-   * each move and goes where Back and Forward lead. A chat has none.
+   * The page's address for this view, which follows where it is (`PageView`'s `location`,
+   * `mountPage`'s): a view reports each move and goes where Back and Forward lead. A chat has none.
    */
   location?: ViewLocation
   /** Opens a URL outside the frame. Fail-soft. */

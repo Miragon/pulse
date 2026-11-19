@@ -2,6 +2,7 @@ import { useCallback, type MouseEvent, type ReactNode, type RefCallback } from "
 import { cn, FOCUS_RING } from "@miragon/pulse-ui"
 import { WEB_PATHS } from "@miragon/pulse-widget-shell/widgets"
 import { useT } from "./messages/index.js"
+import { PageLink, type Navigate } from "./router/page-link.js"
 
 /**
  * The page's width and its margin on the ground: the guide's content width (72rem, 1152 px) with
@@ -49,11 +50,13 @@ function SkipLink() {
  * as its chrome title (13 px at 600; the Komet stays on the app level, the cockpit's landing), and
  * at its end what the page puts there (who is signed in and the sign-out), its row as wide as the
  * sheet below. Its row's container is `bar`, so a toolbar
- * button's label hides visually under 36rem. On a page with a session the name leads to the start
- * page (`home`), the way back to the boards and engines a page's words name.
+ * button's label hides visually under 36rem. On a page with a session (`navigate`, its router's)
+ * the name leads to the start page in the page, the way back to the boards and engines a page's
+ * words name.
  */
-export function PageBar({ home = false, children }: { home?: boolean; children?: ReactNode }) {
+export function PageBar({ navigate, children }: { navigate?: Navigate; children?: ReactNode }) {
   const t = useT()
+  const home = navigate !== undefined
   const product = "text-dense text-foreground shrink-0 font-semibold"
   return (
     <div data-slot="page-bar" className={cn("border-border bg-card border-b", PAGE_MARGIN)}>
@@ -65,13 +68,14 @@ export function PageBar({ home = false, children }: { home?: boolean; children?:
       >
         {home && <SkipLink />}
         {home ? (
-          <a
+          <PageLink
             href={WEB_PATHS.app}
+            navigate={navigate}
             className={cn(product, "rounded-sm hover:underline", FOCUS_RING)}
             aria-label={t("frame.home")}
           >
             {t("frame.product")}
-          </a>
+          </PageLink>
         ) : (
           <p className={product}>{t("frame.product")}</p>
         )}

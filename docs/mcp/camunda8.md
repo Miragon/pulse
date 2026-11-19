@@ -31,7 +31,7 @@ a cluster has no Overview, Incidents or Jobs tab but one state: the boards that 
 none does yet, and with `cockpitUrl` a link to Operate's start page, never to an instance in it. A
 board's tiles of a cluster open nothing, the cross-engine view names the clusters it leaves out, a
 view of one engine refuses a cluster it names (`ENGINE_DIALECT_NOT_SERVED`, in the web app with a
-link to its start page), and `/app/cockpit?engine=<cluster>` opens the cluster's one state.
+link to its start page), and `/app/engines/<cluster>` opens the cluster's one state.
 
 ## A profile
 
