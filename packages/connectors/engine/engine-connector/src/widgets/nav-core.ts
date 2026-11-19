@@ -139,8 +139,9 @@ export function crumbLabel(view: CockpitView, locale: string): string {
       return view.label ?? tr("cockpit.crumb.cluster", { activity: view.activityId })
     case "jobs":
       return tr("cockpit.crumb.jobs")
+    // The view's own title names the instance (N6): its crumb names the view, never the id twice.
     case "history":
-      return tr("cockpit.crumb.history", { id: shortId(view.processInstanceId) })
+      return tr("cockpit.crumb.history")
     // The board's title, once its data named it; else its id.
     case "board":
       return view.label ?? view.board

@@ -17,6 +17,7 @@ import {
 import type { CockpitAppData, CockpitView } from "../../view-models.js"
 import { BOARD, RUNNING_INSTANCE } from "../board/board.test-support.js"
 import { CockpitApp } from "./app.js"
+import { headSection, trailLabels } from "./app.test-support.js"
 
 afterEach(cleanup)
 
@@ -98,7 +99,10 @@ describe("CockpitApp opens a board", () => {
     })
     await waitFor(() => expect(activeEngine()).toBe("prod-a"))
     expect(boardHeading()).toBeNull()
-    expect(within(trail()).getByRole("button", { name: "Overview" })).toBeTruthy()
+    // N10: the board, then the view; no overview the reader never passed, and no section current.
+    expect(trailLabels()).toEqual(["Invoices", "INV-0042"])
+    expect(headSection("Overview").getAttribute("aria-current")).toBeNull()
+    expect(headSection("Incidents").getAttribute("aria-current")).toBeNull()
     // The drill carries the name the tile gives, as the cockpit's own drills do.
     expect(within(trail()).getByText("INV-0042").getAttribute("aria-current")).toBe("page")
     expect(within(trail()).queryByText(`Instance ${RUNNING_INSTANCE.slice(0, 8)}…`)).toBeNull()

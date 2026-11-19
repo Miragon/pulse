@@ -22,6 +22,8 @@ import {
  */
 
 const JOBS_PAGE = `/app/cockpit?view=jobs&engine=${HEALTHY_ENGINE}`
+/** A drilled view: on a page its trail leads to the landing, which a head section leaves to the bar. */
+const INSTANCE_PAGE = `/app/cockpit?view=instance-detail&engine=${HEALTHY_ENGINE}&processInstanceId=pi-invoice-42`
 
 /**
  * The calls the API refused from now on because the session was gone (401), each as its tool and
@@ -209,12 +211,19 @@ test.describe("a session's token", () => {
     await expect(reloaded.getByRole("heading", { name: "Operations Cockpit" })).toHaveCount(0)
     await reloaded.close()
 
-    // No silent redirect: the page stays until the user signs in again, and comes back to it.
-    expect(page.url()).toBe(`${originOf("short")}${JOBS_PAGE}`)
+    // No silent redirect: the page stays, its address the section it moved to (N1), until the
+    // user signs in again, and comes back to it.
+    const incidentsPage = `/app/cockpit?view=incidents&engine=${HEALTHY_ENGINE}`
+    expect(page.url()).toBe(`${originOf("short")}${incidentsPage}`)
     await page.getByRole("button", { name: "Sign in again" }).click()
     await chooseUser(page)
-    await page.waitForURL(`${originOf("short")}${JOBS_PAGE}`)
-    await expect(jobs.getByText("Card declined").first()).toBeVisible({ timeout: 15_000 })
+    await page.waitForURL(`${originOf("short")}${incidentsPage}`)
+    await expect(
+      page.getByRole("heading", { level: 1, name: `${HEALTHY_ENGINE} · Incidents` }),
+    ).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText("No open incidents on this engine.")).toBeVisible({
+      timeout: 15_000,
+    })
     await expect(page.getByText("Your session has ended")).toHaveCount(0)
   })
 })
@@ -253,9 +262,9 @@ test.describe("a session that ends while the cockpit is open", () => {
     context,
   }) => {
     const refused = refusedCalls(page)
-    await signIn(page, JOBS_PAGE)
-    const jobs = page.getByRole("region", { name: "Jobs", exact: true })
-    await expect(jobs.getByText("Card declined").first()).toBeVisible({ timeout: 15_000 })
+    await signIn(page, INSTANCE_PAGE)
+    const incidents = page.getByRole("region", { name: "Incidents of this instance" })
+    await expect(incidents.locator("tbody tr").first()).toBeVisible({ timeout: 15_000 })
     await context.clearCookies({ name: SESSION_COOKIE })
     await page.getByRole("button", { name: "Refresh" }).click()
     await expect(page.getByText("Your session has ended")).toBeVisible({ timeout: 15_000 })

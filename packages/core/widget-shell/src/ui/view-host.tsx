@@ -9,6 +9,38 @@ import type { ToolResult } from "../protocol/tool-result.js"
 export type FollowUp = "chat" | "copy" | "none"
 
 /**
+ * Where a view is, in its view tool's argument shape (`{ view, engine, <ids> }` for the cockpit):
+ * what a page's address names. `memo` is the view's own record of how it got there (its trail, say),
+ * which the page keeps with the entry and hands back on Back or Forward; the page never reads it.
+ */
+export interface ViewPlace {
+  readonly args: Readonly<Record<string, unknown>>
+  readonly memo?: unknown
+}
+
+/**
+ * A page's address, which follows the view (`ViewHost.location`): only a page outside a chat offers
+ * it (`mountPage`'s `location`), a chat has no address to follow.
+ */
+export interface ViewLocation {
+  /**
+   * Where the page's address put the view at its start, where the view tool's arguments name less
+   * than the address (a page path of its own over the view's start); absent otherwise.
+   */
+  readonly start?: ViewPlace
+  /**
+   * The view moved: `push` adds an entry to the page's history (a drill, a section), `replace`
+   * names the entry the reader is on anew (the view's first place, a tab inside a view).
+   */
+  readonly report: (place: ViewPlace, entry: "push" | "replace") => void
+  /**
+   * Back or Forward on the page: `go` gets the place the entry names and answers whether the view
+   * goes there itself; where no view does, the page loads the entry anew. Returns the unsubscribe.
+   */
+  readonly subscribe: (go: (place: ViewPlace) => boolean) => () => void
+}
+
+/**
  * The ONE seam between a view and its host. Widgets never import `@modelcontextprotocol/ext-apps`:
  * a chat provides the ext-apps adapter (`mountViews`), a page outside a chat the browser adapter
  * (`mountPage`), tests `TestViewHost`. Display mode stays in the host-agnostic
@@ -36,6 +68,11 @@ export interface ViewHost {
    * `startPage`): the failure's state then links to it. A chat has none.
    */
   startPage?: string
+  /**
+   * The page's address, which follows where the view is (`mountPage`'s `location`): a view reports
+   * each move and goes where Back and Forward lead. A chat has none.
+   */
+  location?: ViewLocation
   /** Opens a URL outside the frame. Fail-soft. */
   openExternal: (url: string) => void
   /** One node of the view's model-context tree; nested nodes join into one context. */
@@ -79,6 +116,14 @@ export function useWordsFollowUp(): FollowUp {
  */
 export function useStartPage(): string | undefined {
   return useContext(ViewHostContext)?.startPage
+}
+
+/**
+ * The page's address (`ViewHost.location`), without the host's tool caller; outside a view host
+ * and in a chat none, so a view that asks it moves on screen alone.
+ */
+export function useHostLocation(): ViewLocation | undefined {
+  return useContext(ViewHostContext)?.location
 }
 
 /**

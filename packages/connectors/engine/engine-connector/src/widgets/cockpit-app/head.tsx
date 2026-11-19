@@ -79,9 +79,12 @@ export function EngineSwitch({
  * two do not fit on one line (a phone-width chat) the sections stay on the head's last line, the
  * context above them, so the open section's bar still lands on the rule (`flex-wrap-reverse`;
  * the reading order stays the sections, then the context). A `trail` takes the sections' place:
- * its first crumb leads back to them. Its container is `bar`, so the cross-engine button keeps
- * only its icon in a bar under 36rem. Only the sections whose route the engine's `dialect` is
- * served by show (`ROUTE_DIALECTS`): a Camunda 8 engine has none, nor has a refused profile.
+ * its first crumb leads back to them; a `narrowTrail` takes it only where the head, as wide as the
+ * cockpit, is narrower than 40rem, as the trail's own row then gives way (a page on a phone, A6).
+ * Its container is `bar`, so the cross-engine button keeps only its icon in a bar under 36rem.
+ * Only the sections whose route the engine's `dialect` is served by show (`ROUTE_DIALECTS`): a
+ * Camunda 8 engine has none, nor has a refused profile. No section is current under a board's
+ * target (`activeSection` null), which sits under the board alone.
  */
 export function CockpitHead({
   activeSection,
@@ -91,8 +94,9 @@ export function CockpitHead({
   engineSwitch,
   onOpenFleet,
   trail,
+  narrowTrail,
 }: {
-  activeSection: TopSection
+  activeSection: TopSection | null
   /** The open engine's dialect; a refused profile's is unread. */
   dialect: EngineDialect | undefined
   /** Its profile refused: no section reads it, so none shows. */
@@ -101,10 +105,13 @@ export function CockpitHead({
   engineSwitch: ReactNode
   onOpenFleet?: () => void
   trail?: ReactNode
+  narrowTrail?: ReactNode
 }) {
   const locale = useLocale()
   const crossEngine = translator(locale, "cockpit.nav.crossEngine")
   const sections = refused ? [] : SECTIONS.filter((section) => routeServes(section.id, dialect))
+  // In a narrow cockpit the trail stands where the tabs stood, on the head's last line.
+  const narrow = narrowTrail !== undefined
   return (
     <div
       data-slot="cockpit-head"
@@ -116,22 +123,28 @@ export function CockpitHead({
       {/* The tabs start 8 px in, as a view's tab bar does; the trail's words line up with the
           view's title below, in the gutter. */}
       {trail ? (
-        <div className="flex min-w-0 items-center ps-[calc(var(--gutter)-0.5rem)]">{trail}</div>
+        <TrailInHead>{trail}</TrailInHead>
       ) : (
-        sections.length > 0 && (
-          <NavTabs ariaLabel={translator(locale, "cockpit.aria.sections")}>
-            {sections.map((s) => (
-              <NavTab
-                key={s.id}
-                current={activeSection === s.id}
-                icon={<Icon icon={s.icon} />}
-                onClick={() => onSection(s.intent)}
-              >
-                {translator(locale, `cockpit.section.${s.id}`)}
-              </NavTab>
-            ))}
-          </NavTabs>
-        )
+        <>
+          {narrow && <TrailInHead className="hidden @max-[40rem]:flex">{narrowTrail}</TrailInHead>}
+          {sections.length > 0 && (
+            <NavTabs
+              ariaLabel={translator(locale, "cockpit.aria.sections")}
+              className={cn(narrow && "@max-[40rem]:hidden")}
+            >
+              {sections.map((s) => (
+                <NavTab
+                  key={s.id}
+                  current={activeSection === s.id}
+                  icon={<Icon icon={s.icon} />}
+                  onClick={() => onSection(s.intent)}
+                >
+                  {translator(locale, `cockpit.section.${s.id}`)}
+                </NavTab>
+              ))}
+            </NavTabs>
+          )}
+        </>
       )}
       <div className="ms-auto flex min-w-0 flex-wrap items-center gap-2 py-1">
         {onOpenFleet && (
@@ -153,12 +166,34 @@ export function CockpitHead({
   )
 }
 
-/** The trail under the head where there is room for both (fullscreen): a 36 px row on its rule. */
-export function CockpitTrailBar({ children }: { children: ReactNode }) {
+/** The trail in the head, its words in the gutter like the view's title below. */
+function TrailInHead({ className, children }: { className?: string; children: ReactNode }) {
+  return (
+    <div className={cn("flex min-w-0 items-center ps-[calc(var(--gutter)-0.5rem)]", className)}>
+      {children}
+    </div>
+  )
+}
+
+/**
+ * The trail under the head where there is room for both (fullscreen): a 36 px row on its rule.
+ * `narrow`: it gives way to the head in a cockpit narrower than 40rem (a page's), measured on the
+ * nearest container, `EngineBars`, as wide as the cockpit.
+ */
+export function CockpitTrailBar({
+  narrow = false,
+  children,
+}: {
+  narrow?: boolean
+  children: ReactNode
+}) {
   return (
     <div
       data-slot="cockpit-trail"
-      className="border-border bg-card min-h-toolbar px-gutter flex min-w-0 items-center border-b py-1"
+      className={cn(
+        "border-border bg-card min-h-toolbar px-gutter flex min-w-0 items-center border-b py-1",
+        narrow && "@max-[40rem]:hidden",
+      )}
     >
       {children}
     </div>

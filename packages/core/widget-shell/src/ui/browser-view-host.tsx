@@ -9,7 +9,7 @@ import type { ToolResult } from "../protocol/tool-result.js"
 import { HostContexts, type RequestDisplayMode } from "./host-contexts.js"
 import { hostThemeOf, type EffectiveTheme } from "./host-context.js"
 import type { ShellHost } from "./shell-host.js"
-import type { FollowUp, ViewHost } from "./view-host.js"
+import type { FollowUp, ViewHost, ViewLocation } from "./view-host.js"
 
 /**
  * Calls a server tool for the page, a fetch to the server's `/mcp` endpoint say. RESOLVES with the
@@ -29,6 +29,12 @@ export interface BrowserHostOptions {
    * does not show, arguments no tool takes, data it does not offer) links to it, as its words say.
    */
   startPage?: string
+  /**
+   * The page's address, which follows where the view is: the view reports each move, and Back and
+   * Forward lead it back (`ViewHost.location`). Without one the address stays where the page
+   * started.
+   */
+  location?: ViewLocation
   /** The page's locale; default: the document's `lang`, else the browser's language. */
   locale?: string
   /**
@@ -79,6 +85,7 @@ function browserViewHost(
   callTool: ToolCaller,
   followUp: FollowUp,
   startPage: string | undefined,
+  location: ViewLocation | undefined,
 ): ViewHost {
   return {
     callTool: async (name, args = {}) => await callTool(name, args as Record<string, unknown>),
@@ -86,6 +93,7 @@ function browserViewHost(
     followUp,
     writes: false,
     startPage,
+    ...(location === undefined ? {} : { location }),
     openExternal: openInNewTab,
     ModelContext: NoModelContext,
   }
@@ -98,7 +106,7 @@ export function BrowserViewHost({
   options: BrowserHostOptions
   children: ReactNode
 }) {
-  const { callTool, followUp = "none", startPage, publicBase } = options
+  const { callTool, followUp = "none", startPage, location, publicBase } = options
   const theme = useSyncExternalStore(subscribePageTheme, pageTheme, () => undefined)
   const [locale] = useState(() => options.locale ?? pageLocale())
   const shell = useMemo<ShellHost>(
@@ -113,8 +121,8 @@ export function BrowserViewHost({
     [theme, locale, publicBase],
   )
   const host = useMemo(
-    () => browserViewHost(callTool, followUp, startPage),
-    [callTool, followUp, startPage],
+    () => browserViewHost(callTool, followUp, startPage, location),
+    [callTool, followUp, startPage, location],
   )
   return (
     <HostContexts shell={shell} host={host} requestDisplayMode={NO_SWITCH}>

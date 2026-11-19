@@ -10,20 +10,20 @@ The web app only reads: a page shows no write control and, posting to no chat, n
 
 ## Pages
 
-| URL                                  | What it shows                                                                                                                     |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| `/app`                               | The engines and the server's [boards](../mcp/boards.md) to pick from; with one engine and no board, that engine's overview        |
-| `/app/boards/<id>`                   | A board, with the tiles and numbers the chat shows; a [Camunda 8](../mcp/camunda8.md) cluster's as the server's client reads them |
-| `/app/cockpit?view=jobs&engine=prod` | The start the query names: each parameter is one argument of `engine_open_cockpit`, which refuses one it does not take            |
-| `/app/signed-out`                    | Why a sign-in ended, and a new one                                                                                                |
+| URL                                  | What it shows                                                                                                                                                 |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/app`                               | The engines and the server's [boards](../mcp/boards.md) to pick from; with one engine and no board, that engine's overview                                    |
+| `/app/fleet`                         | The cross-engine overview, with two engines or more: each engine's row opens it                                                                               |
+| `/app/boards/<id>`                   | A board, with the tiles and numbers the chat shows; a [Camunda 8](../mcp/camunda8.md) cluster's as the server's client reads them                             |
+| `/app/cockpit?view=jobs&engine=prod` | The view the query names: each parameter is one argument of `engine_open_cockpit`, which refuses one it does not take; `?engine=<id>` alone opens that engine |
+| `/app/signed-out`                    | Why a sign-in ended, and a new one                                                                                                                            |
 
-A URL names where a page starts. Inside the page you move as in the cockpit (a row opened by a
-click or Enter, the trail, **All engines**) and the address stays; the browser's Back leaves the
-page. `/app` has no trailing slash, like `/mcp`: `/app/` answers 404.
+Each view you open (a row by a click or Enter, a tab, the trail) has its own URL: Back returns to
+the view before, a reload or a copied link shows the same view. `/app/` with a slash answers 404.
 
-The bar names who is signed in and holds **Sign out**. The page speaks German or English by the
-browser, follows the system's light or dark theme, and is compact on a desktop and comfortable on
-touch.
+The bar names who is signed in and holds **Sign out**; **Pulse** in it leads to `/app`, so a tab
+shows no trail, a drilled view does. The page speaks German or English by the browser, follows the
+system's light or dark theme, and is compact on a desktop and comfortable on touch.
 
 ## When something ends
 

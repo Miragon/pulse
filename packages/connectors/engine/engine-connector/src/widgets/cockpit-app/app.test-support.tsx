@@ -1,11 +1,14 @@
-import { render, screen, within } from "@testing-library/react"
+import { act, fireEvent, render, screen, within } from "@testing-library/react"
 import {
   TestViewHost,
   type createTestQueryClient,
   type HostAction,
+  type ViewLocation,
+  type ViewPlace,
 } from "@miragon/pulse-widget-shell/widgets"
 import type {
   CockpitAppData,
+  CockpitEngineInfo,
   CockpitStart,
   CockpitView,
   EngineHealthData,
@@ -42,17 +45,20 @@ export function boot(
 }
 
 /** Stable objects: the test host memoizes on them. Fullscreen shows the head and the trail apart. */
-const FULLSCREEN = { displayMode: "fullscreen" } as const
+export const FULLSCREEN = { displayMode: "fullscreen" } as const
 export const INLINE = { displayMode: "inline" } as const
 export type HostMode = typeof FULLSCREEN | typeof INLINE
 
+/** Why the server refused the profile of the engine `locked`, in its words. */
+export const REFUSED_REASON = "auth.tokenEnv names a variable that is not set."
 /** What the server answers for an engine whose profile it refused. */
-const REFUSED_TEXT =
-  '[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: auth.tokenEnv names a variable that is not set. Ask whoever runs this server to fix it.'
+const REFUSED_TEXT = `[ENGINE_PROFILE_REFUSED] Engine "locked" is configured, but its profile cannot be used: ${REFUSED_REASON} Ask whoever runs this server to fix it.`
 
 export const JOBS_DATA: JobPanelData = {
   totalCount: 0,
+  allCount: 0,
   failedCount: 0,
+  fetchedAt: "2026-10-26T08:00:00.000Z",
   jobs: [],
   filters: {},
   engineId: "prod-a",
@@ -67,9 +73,14 @@ export interface EngineList {
   refused?: Array<{ id: string; environment?: string; reason: string }>
   boards?: Array<{ id: string; title: string; engines: string[] }>
   refusedBoards?: Array<{ id: string; problems: number }>
+  /** The process keys each engine's overview lists; none where the test names none. */
+  deployed?: Record<string, string[]>
+  /** Holds the jobs feed's answer until it settles: a refresh the test watches go on. */
+  hold?: Promise<void>
 }
 
-function healthOf(args: Record<string, unknown>): EngineHealthData {
+/** An engine's health as its feed answers: ok, no incident. */
+export function healthOf(args: Record<string, unknown>): EngineHealthData {
   return {
     status: "ok",
     statusRule: "ok without open incidents",
@@ -90,16 +101,26 @@ function healthOf(args: Record<string, unknown>): EngineHealthData {
   }
 }
 
-function overviewOf(args: Record<string, unknown>) {
+/** An engine's overview as its feed answers, listing the process keys `deployed` names for it. */
+export function overviewOf(args: Record<string, unknown>, deployed: Record<string, string[]> = {}) {
+  const keys = deployed[String(args.engine)] ?? []
   return {
     summary: {
-      totalDefinitions: 0,
+      totalDefinitions: keys.length,
       totalRunningInstances: 0,
       totalFailedJobs: 0,
       totalIncidents: 0,
     },
-    definitions: [],
-    engineId: args.engine,
+    definitions: keys.map((key) => ({
+      id: `${key}:1:d`,
+      key,
+      name: null,
+      latestVersion: 1,
+      instances: 0,
+      failedJobs: 0,
+      incidents: [],
+    })),
+    engineId: String(args.engine),
   }
 }
 
@@ -119,13 +140,16 @@ function cockpitTools(list: EngineList) {
     }),
     [ENGINE_COCKPIT_OVERVIEW_DATA]: (args: Record<string, unknown>) => {
       refusedEngine(args)
-      return overviewOf(args)
+      return overviewOf(args, list.deployed)
     },
     [ENGINE_HEALTH_DATA]: (args: Record<string, unknown>): EngineHealthData => {
       refusedEngine(args)
       return healthOf(args)
     },
-    [ENGINE_JOBS_DATA]: () => JOBS_DATA,
+    [ENGINE_JOBS_DATA]: async () => {
+      await list.hold
+      return JOBS_DATA
+    },
     [ENGINE_BOARD_DATA]: () => BOARD,
     [ENGINE_BPMN_XML_DATA]: (args: Record<string, unknown>) => ({
       processDefinitionId: args.processDefinitionId,
@@ -141,12 +165,22 @@ function cockpitTools(list: EngineList) {
   }
 }
 
+/**
+ * A page outside a chat (the web app): its start page, which its bar leads to, and its address,
+ * which follows the cockpit where the test hands one.
+ */
+export interface PageHost {
+  startPage: string
+  location?: ViewLocation
+}
+
 /** The cockpit under the test host, on `client`, whose cache the test reads and pokes. */
 export function renderCockpitOn(
   client: ReturnType<typeof createTestQueryClient>,
   bootstrap: CockpitAppData = boot(null, ENGINES),
   list: EngineList = { engines: ENGINES },
   displayMode: HostMode = FULLSCREEN,
+  page?: PageHost,
 ) {
   const modelContexts: string[] = []
   const actions: HostAction[] = []
@@ -158,6 +192,8 @@ export function renderCockpitOn(
       onHostAction={(action) => actions.push(action)}
       client={client}
       host={displayMode}
+      startPage={page?.startPage}
+      location={page?.location}
     >
       <CockpitApp data={data} />
     </TestViewHost>
@@ -189,3 +225,69 @@ export const trailLabels = () =>
   )
     .map((el) => el.textContent)
     .filter((text): text is string => !!text)
+
+/** A page's address as the web app keeps it: every report, and Back to an entry. */
+export function fakeAddress(start?: ViewPlace) {
+  const reports: Array<{ place: ViewPlace; entry: "push" | "replace" }> = []
+  let follower: ((place: ViewPlace) => boolean) | undefined
+  const location: ViewLocation = {
+    ...(start === undefined ? {} : { start }),
+    report: (place, entry) => reports.push({ place, entry }),
+    subscribe: (go) => {
+      follower = go
+      return () => {
+        follower = undefined
+      }
+    },
+  }
+  const back = (place: ViewPlace): boolean => {
+    let followed = false
+    act(() => {
+      followed = follower?.(place) ?? false
+    })
+    return followed
+  }
+  return { location, reports, back }
+}
+
+export type Report = ReturnType<typeof fakeAddress>["reports"][number]
+
+/** The browser's history the reports make: a push adds an entry, a replace names the last anew. */
+export function historyOf(reports: readonly Report[]): Array<Readonly<Record<string, unknown>>> {
+  return reports.reduce<Array<Readonly<Record<string, unknown>>>>(
+    (entries, { place, entry }) =>
+      entry === "push" ? [...entries, place.args] : [...entries.slice(0, -1), place.args],
+    [],
+  )
+}
+
+/** An engine the server reads on boards only (Camunda 8), as the start data and the list name it. */
+export const ON_BOARDS: CockpitEngineInfo = {
+  id: "orders-c8",
+  environment: "default",
+  dialect: "c8",
+}
+export const BOARDS_ONLY_TITLE = "orders-c8 is a Camunda 8 engine"
+/** An engine whose profile the server refused, as the start data names it. */
+export const REFUSED: CockpitEngineInfo = {
+  id: "locked",
+  environment: "default",
+  refused: { reason: REFUSED_REASON },
+}
+export const REFUSED_TITLE = "Engine locked cannot be used: its profile is refused"
+
+export const selectEngine = (id: string) =>
+  fireEvent.change(screen.getByLabelText("Selected engine"), { target: { value: id } })
+export const jobScopes = () => screen.getByRole("radiogroup", { name: "Show jobs" })
+
+export const trailRow = () => document.querySelector<HTMLElement>("[data-slot='cockpit-trail']")
+/** The trail on its row: a page's drill also renders the head's copy for a narrow cockpit. */
+export const rowLabels = () =>
+  Array.from(
+    trailRow()?.querySelectorAll("button, [aria-current='page']") ?? [],
+    (el) => el.textContent,
+  )
+export const PROCESS: Extract<CockpitView, { section: "process-detail" }> = {
+  section: "process-detail",
+  processDefinitionKey: "invoice",
+}

@@ -70,7 +70,9 @@ const SEEDED: Array<[string, CockpitView, CockpitStart, string, string, string]>
       view: { section: "jobs", processDefinitionKey: "invoice", failedOnly: true },
       data: {
         totalCount: 0,
+        allCount: 0,
         failedCount: 0,
+        fetchedAt: "2026-10-26T08:00:00.000Z",
         jobs: [],
         filters: { processDefinitionKey: "invoice", failedOnly: true },
         engineId: "prod-a",
@@ -90,6 +92,7 @@ const SEEDED: Array<[string, CockpitView, CockpitStart, string, string, string]>
         processDefinitionName: "Invoice",
         totalCount: 0,
         returnedCount: 0,
+        fetchedAt: "2026-10-26T08:00:00.000Z",
         allCount: 0,
         withIncidentCount: 0,
         suspendedCount: 0,
@@ -261,10 +264,7 @@ const TITLED: Array<[CockpitView, string]> = [
   [{ section: "overview" }, "prod-a · Overview"],
   [{ section: "incidents" }, "prod-a · Incidents"],
   [{ section: "jobs" }, "prod-a · Jobs"],
-  [
-    { section: "cluster-detail", activityId: "charge", incidentType: "failedJob" },
-    "Cluster: charge",
-  ],
+  [{ section: "cluster-detail", activityId: "charge", incidentType: "failedJob" }, "charge"],
   [{ section: "process-detail", processDefinitionKey: "invoice", label: "Invoice" }, "Invoice"],
   [{ section: "process-detail", processDefinitionKey: "invoice" }, "invoice"],
   [{ section: "process-instances", processDefinitionKey: "invoice" }, "invoice"],
@@ -273,7 +273,7 @@ const TITLED: Array<[CockpitView, string]> = [
   [{ section: "instance-detail", processInstanceId: "pi-12345678" }, "Instance pi-12345678"],
   [{ section: "instance-detail", processInstanceId: "2251799813685249" }, "Instance …13685249"],
   [{ section: "incident-detail", incidentId: "inc-1" }, "Incident inc-1"],
-  [{ section: "history", processInstanceId: "pi-1" }, "History pi-1"],
+  [{ section: "history", processInstanceId: "pi-1" }, "History"],
   [{ section: "board", board: "invoices" }, "invoices"],
 ]
 

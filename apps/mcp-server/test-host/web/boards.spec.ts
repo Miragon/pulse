@@ -68,15 +68,24 @@ test.describe("the board list", () => {
     expect(errors).toEqual([])
     await expectNoAxeFinding(page)
 
-    // A board opens in the page, the title following it; its trail leads back to the list, the
-    // address stays.
+    // A board opens in the page, the title and the address following it (N1); the bar's Pulse is
+    // the way home, so no trail repeats it, and Back leads to the list in the page, which calls
+    // the view tool no second time.
     await board.click()
     await drawn(page)
     await expect(page).toHaveTitle(`${TITLE} · Pulse`)
-    await trail(page).getByRole("button", { name: "All engines" }).click()
+    expect(new URL(page.url()).pathname).toBe(BOARD_PAGE)
+    await expect(trail(page)).toHaveCount(0)
+    await page.goBack()
     await expect(landing(page)).toBeVisible()
     await expect(page).toHaveTitle("Operations Cockpit · Pulse")
     expect(new URL(page.url()).pathname).toBe("/app")
+    expect(viewCalls(calls)).toHaveLength(1)
+    // A reload shows the board again, from the address.
+    await page.goForward()
+    await drawn(page)
+    await page.reload()
+    await drawn(page)
   })
 
   test("with one engine and no board, /app opens that engine", async ({ page }) => {
@@ -111,8 +120,10 @@ test.describe("a board's page", () => {
     await expect(instances.getByRole("row").filter({ hasText: "INV-2026-0042" })).toBeVisible()
     await expect(page.getByText(`Engine ${BROKEN_ENGINE} is unreachable (HTTP 503)`)).toBeVisible()
     await expect(tile(page, 'Widget "chart"').getByText(/must be one of counter/)).toBeVisible()
-    // The trail leads to the list, where two engines and the boards are to pick from.
-    await expect(trail(page).getByRole("button", { name: "All engines" })).toBeVisible()
+    // The bar's Pulse leads to the list, where two engines and the boards are to pick from: no
+    // trail repeats it on a page.
+    await expect(page.getByRole("link", { name: "Pulse, start page" })).toBeVisible()
+    await expect(trail(page)).toHaveCount(0)
     await rendered(page)
     expect(errors).toEqual([])
     await expectNoAxeFinding(page)
@@ -133,12 +144,17 @@ test.describe("a board's page", () => {
     await expect(page.getByLabel("Selected engine")).toHaveValue(HEALTHY_ENGINE, {
       timeout: 15_000,
     })
-    await expect(page.getByText("INV-2026-0042").first()).toBeVisible({ timeout: 15_000 })
+    // The instance's bar names it (a narrow head's trail, hidden at this width, names it too).
+    await expect(page.getByRole("heading", { level: 1, name: "INV-2026-0042" })).toBeVisible({
+      timeout: 15_000,
+    })
     expect(
       calls.filter((call) => call.name === "engine_instance_detail_data").at(-1)?.arguments,
     ).toMatchObject({ engine: HEALTHY_ENGINE })
     // The page offers no write on the instance it drilled into.
     await expect(page.getByRole("button", { name: "Retry" })).toHaveCount(0)
+    // The address names the instance on its engine (N1); the trail, the board then the instance.
+    expect(new URL(page.url()).searchParams.get("view")).toBe("instance-detail")
     await trail(page).getByRole("button", { name: TITLE }).click()
     await expect(boardHeading(page)).toBeVisible()
     expect(new URL(page.url()).pathname).toBe(BOARD_PAGE)

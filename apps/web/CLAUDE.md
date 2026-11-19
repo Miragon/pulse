@@ -27,20 +27,31 @@ server image builds the page beside the server and serves it from `/app/web`.
 
 - One page, `index.html`, for every route of the server that serves it: `/app` (the cockpit's
   landing, `view: "landing"`: the engines and the server's boards, with one engine and no board
-  that engine), `/app/boards/<id>` (a board, `view: "board"`, the tool refusing an id the server
-  shows no board for), `/app/cockpit?view=…&engine=…&<ids>` (the start the query names, one
-  argument of `engine_open_cockpit` per parameter, so the tool refuses one it does not take and
-  the page shows why) and the server's own `/app/signed-out?reason=…`. `src/routes.ts` reads the
-  route. Every page has one main landmark and one `h1` (a view's, the view frame's failure in its
-  place, a state page's reason), which titles the document, `<h1> · Pulse` in the page's language,
-  and the title follows it as the user moves on inside the page (`src/bar.tsx`, WCAG 2.4.2);
+  that engine), `/app/fleet` (the cross-engine overview: the landing's start, then the cockpit
+  opens the overview, no view of the tool), `/app/boards/<id>` (a board, `view: "board"`, the tool
+  refusing an id the server shows no board for), `/app/cockpit?view=…&engine=…&<ids>` (the start
+  the query names, one argument of `engine_open_cockpit` per parameter, so the tool refuses one it
+  does not take and the page shows why; an `engine` named alone, the place the cockpit writes for
+  an engine without sections, starts the landing and the cockpit opens that engine, since the tool
+  takes no `engine` on a server of Camunda 8 clusters alone) and the server's own
+  `/app/signed-out?reason=…`.
+  `src/routes.ts` reads the route and writes it back (`urlOf`). Every page has one main landmark
+  and one `h1` (a view's, the view frame's failure in its place, a state page's reason), which
+  titles the document, `<h1> · Pulse` in the page's language, and the title follows it as the user
+  moves on inside the page (`src/bar.tsx`, WCAG 2.4.2);
   before a view shows its heading the route's title stands (a board's page names the board's id
   from the URL, its title arriving with the view's heading; any other Pulse). The product's name
   in the bar of a page with a session leads to `/app`, the start page the words of a refused start
   name and its state links to (`mountPage`'s `startPage`). `src/pages.ts` lists the page routes;
   the build writes them into `dist/pages.json`, which the server reads at boot, and
-  `test/pages-manifest.test.ts` boots a server over the build to hold both to each other. Navigation inside the cockpit stays in the
-  page: a URL names where it starts.
+  `test/pages-manifest.test.ts` boots a server over the build to hold both to each other. The
+  address follows the cockpit (`src/address.ts`, handed to `mountPage` as its `location`): each
+  place the cockpit reports becomes the URL that opens it again, a drill or a section with
+  `pushState`, its first place and a move inside a view with `replaceState`, the cockpit's memo of
+  its trail kept in the entry's state; Back and Forward hand the cockpit the entry's place, and an
+  entry it does not go to itself (a page that shows a failure) loads anew. The bar of a page with a
+  session starts with a skip link to the content's heading, seen only while it has focus, which
+  writes no fragment into the address.
 - `src/start.ts` starts a page: the signed-out page needs no session; any other reads the session
   (`readWebSession`) and mounts the view with widget-shell's `mountPage`, its caller
   `webToolCaller` (every call a POST to `/app/api/call` with the session's CSRF token; no token
