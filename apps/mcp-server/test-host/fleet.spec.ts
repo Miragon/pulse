@@ -7,8 +7,9 @@ import { BROKEN_ENGINE, HEALTHY_ENGINE } from "./engines.js"
  * view (760 px), opened from the picker of the default deployment's two engines: the stub engine
  * and the one that answers every request with a 503. Its landscape is read from each engine's own
  * REST API: the tables keep every column they promise in view
- * without widening the document, their column groups are headed, the engine that does not answer
- * says so in words and gets no column, and the view passes axe in light and dark.
+ * without widening the document, each engine is a row that opens it (no card repeats its numbers),
+ * the engine that does not answer says so in words and gets no column, and the view passes axe in
+ * light and dark.
  */
 
 const INLINE_WIDTH = 760
@@ -58,14 +59,16 @@ const matrix = (app: FrameLocator) =>
   app.getByRole("region", { name: "Process definitions by engine" })
 
 /**
- * Until the broken engine is counted unreachable, the layout is still moving. The count stands
- * above the tables, so it shows under any height budget.
+ * Until the broken engine's row says it is unreachable, the layout is still moving. The engines'
+ * table is the first, so its rows show under any height budget.
  */
 async function settled(app: FrameLocator, locale = "en-US"): Promise<void> {
-  const unreachable = locale === "de-DE" ? "1 nicht erreichbar" : "1 unreachable"
-  await expect(app.getByText(unreachable, { exact: true })).toBeVisible({
-    timeout: UNREACHABLE_MS,
-  })
+  const german = locale === "de-DE"
+  const table = engineTable(app, german ? "Last und Job-Rückstand je Engine" : undefined)
+  await expect(table.getByRole("row").filter({ hasText: BROKEN_ENGINE })).toContainText(
+    german ? "nicht erreichbar" : "unreachable",
+    { timeout: UNREACHABLE_MS },
+  )
 }
 
 async function documentOverflow(app: FrameLocator) {
@@ -91,7 +94,7 @@ async function columnsInView(region: Locator) {
 }
 
 test.describe("the cross-engine overview at the inline width (760 px)", () => {
-  test("the landscape: headed column groups, the backlog in reach, the silent engine in words", async ({
+  test("the landscape: one head row, the backlog in reach, the silent engine in words", async ({
     page,
   }) => {
     const app = await openFleet(page)
@@ -100,12 +103,11 @@ test.describe("the cross-engine overview at the inline width (760 px)", () => {
     const { scrollWidth, clientWidth } = await documentOverflow(app)
     expect(scrollWidth, "the document never scrolls sideways").toBeLessThanOrEqual(clientWidth)
 
-    await expect(engines.getByRole("columnheader", { name: "Load (absolute)" })).toBeVisible()
-    await expect(
-      engines.getByRole("columnheader", { name: "Job backlog, comparable across engines" }),
-    ).toBeVisible()
+    // The columns name themselves: no group row above them (N8), so the backlog can give way on
+    // a phone.
+    await expect(engines.locator("thead tr")).toHaveCount(1)
     const columns = await columnsInView(engines)
-    for (const label of ["Executable jobs", "Suspended jobs", "Due later", "External tasks"]) {
+    for (const label of ["Executable jobs", "Suspended jobs", "Jobs due later", "External tasks"]) {
       expect(
         columns.find((c) => c.label === label),
         label,
@@ -134,9 +136,6 @@ test.describe("the cross-engine overview at the inline width (760 px)", () => {
     const app = await openFleet(page, { locale: "de-DE" })
     await settled(app, "de-DE")
     const engines = engineTable(app, "Last und Job-Rückstand je Engine")
-    await expect(
-      engines.getByRole("columnheader", { name: "Job-Rückstand, über Engines vergleichbar" }),
-    ).toBeVisible()
     // Everything but the inventory column, which gives way below 768 px.
     const columns = (await columnsInView(engines)).filter((c) => c.label !== "Definitionen")
     expect(columns).toHaveLength(8)
@@ -219,26 +218,34 @@ test.describe("an inline card under the host's height budget (issue 396)", () =>
   })
 })
 
-test.describe("the engine cards and the landscape's captions", () => {
-  test("the card of the engine that does not answer has the outage's icon in danger, never a quiet dot", async ({
+test.describe("the engines' rows and the landscape's captions", () => {
+  test("the row of the engine that does not answer has the outage's icon in danger, never a quiet dot", async ({
     page,
   }) => {
     const app = await openFleet(page)
     await settled(app)
-    const card = (id: string) =>
-      app.getByRole("button").filter({ has: app.getByText(id, { exact: true }) })
-    const down = card(BROKEN_ENGINE)
-    await expect(down).toContainText("unreachable")
+    const row = (id: string) => engineTable(app).getByRole("row").filter({ hasText: id })
+    const down = row(BROKEN_ENGINE)
     await expect(down.locator("[data-part=verdict]")).toHaveCount(0)
     await expect(down.locator("svg.lucide-unplug")).toHaveClass(/text-danger/)
-    // The engine that answers keeps its verdict's dot.
-    await expect(card(HEALTHY_ENGINE).locator("[data-part=verdict]")).toHaveCount(1)
+    // The engine that answers keeps its verdict's dot, and no card repeats either.
+    await expect(row(HEALTHY_ENGINE).locator("[data-part=verdict]")).toHaveCount(1)
+    await expect(app.getByRole("heading", { name: "Engine health" })).toHaveCount(0)
   })
 
-  test("at 320 px in German a caption splits a word only where the language hyphenates it", async ({
+  test("an engine's row opens its overview, on a click or Enter", async ({ page }) => {
+    const app = await openFleet(page)
+    await settled(app)
+    await engineTable(app).getByRole("row").filter({ hasText: HEALTHY_ENGINE }).click()
+    await expect(
+      app.getByRole("heading", { level: 1, name: `${HEALTHY_ENGINE} · Overview` }),
+    ).toBeVisible({ timeout: 15_000 })
+  })
+
+  test("at 400 px in German a caption splits a word only where the language hyphenates it", async ({
     page,
   }) => {
-    const app = await openFleet(page, { locale: "de-DE", width: 320 })
+    const app = await openFleet(page, { locale: "de-DE", width: 400 })
     await settled(app, "de-DE")
     const strip = app
       .getByRole("region", { name: "Prozesslandschaft" })
@@ -259,7 +266,9 @@ test.describe("the engine cards and the landscape's captions", () => {
         })
       })
     })
-    // Two columns of 320 px leave "Prozessdefinitionen" less than its width: it splits, hyphenated.
+    // The landscape's three tiles keep their row from 25rem, where a third leaves
+    // "Prozessdefinitionen" less than its width: it splits, hyphenated. (At 320 px two columns
+    // leave it room since the captions are quiet at 400.)
     expect(split.map(({ word }) => word)).toContain("Prozessdefinitionen")
     for (const word of split) expect(word).toMatchObject({ hyphens: "auto", lang: "de" })
   })

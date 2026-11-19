@@ -380,7 +380,9 @@ function failedJob(id: string, processInstanceId: string, exceptionMessage: stri
  * The others are never written: the row menu scenario opens the menu of
  * `job-2`'s row with another row under it. Sixteen, so a 600 px budget shows
  * some of them ("k of 16") under the compact cockpit's 28 px rows, its row actions
- * included, and 800 px all.
+ * included, and 800 px all. `job-5`'s message is longer than the error column's
+ * 10rem floor, so a narrow card cuts it (and opens it as a disclosure); the
+ * others fit it whole.
  */
 function stubJobs(): Map<string, StubJob> {
   return new Map(
@@ -389,7 +391,7 @@ function stubJobs(): Map<string, StubJob> {
       failedJob("job-2", "pi-2", "Card expired"),
       failedJob("job-3", "pi-3", "Billing address unknown"),
       failedJob("job-4", "pi-4", "Insufficient funds"),
-      failedJob("job-5", "pi-5", "Issuer unavailable"),
+      failedJob("job-5", "pi-5", "Issuer unavailable, try again later"),
       failedJob("job-6", "pi-6", "Limit exceeded"),
       failedJob("job-7", "pi-7", "Card blocked"),
       failedJob("job-8", "pi-8", "Currency not supported"),

@@ -405,9 +405,10 @@ test.describe("a 400 px chat", () => {
     await groupedIncidents(page)
     const app = await openView(page, PROCESS_ARGS, { width: 400 })
     await expect(app.getByText("Incidents by activity")).toBeVisible({ timeout: 15_000 })
-    const groups = app.locator('[role="button"][aria-expanded]')
+    const groups = app.locator('[data-slot="group-card-toggle"]')
     await expect(groups).toHaveCount(2)
-    // Each group's title beside its count and chevron, 10rem at least, its stats on a line below.
+    // Each group's toggle (its chevron and title) beside its count, 10rem at least, its stats on a
+    // line below.
     const summaries = await app.locator('[data-slot="group-summary"]').evaluateAll((all) =>
       all.map((summary) => {
         const title = summary.querySelector('[data-slot="group-summary-title"]')!
@@ -417,9 +418,10 @@ test.describe("a 400 px chat", () => {
         return {
           title: Math.round(box(title).width),
           titleText: (title.firstElementChild as HTMLElement).innerText,
+          // The name in the group's toggle, cut there with an ellipsis where it has no room.
           titleWhole:
-            title.firstElementChild!.firstElementChild!.scrollWidth <=
-            title.firstElementChild!.firstElementChild!.clientWidth,
+            title.querySelector(".truncate")!.scrollWidth <=
+            title.querySelector(".truncate")!.clientWidth,
           statsBelow: box(stats).top >= box(title).bottom - 1,
           countBeside: Math.abs(box(count).top - box(title).top) < box(title).height,
         }
@@ -455,7 +457,7 @@ test.describe("a 400 px chat", () => {
   }) => {
     await groupedIncidents(page)
     const app = await openView(page, PROCESS_ARGS, { width: 400 })
-    const groups = app.locator('[role="button"][aria-expanded]')
+    const groups = app.locator('[data-slot="group-card-toggle"]')
     await expect(groups).toHaveCount(2, { timeout: 15_000 })
     await groups.first().click()
     const region = app.getByRole("region", { name: "Incidents in this activity" })
@@ -556,28 +558,27 @@ async function cluster(page: Page) {
   })
 }
 
-test.describe("a cluster's affected instances", () => {
+test.describe("a cluster's incidents", () => {
   for (const width of [760, 400]) {
-    test(`at ${width} px the table fits its region, no column under the actions`, async ({
-      page,
-    }) => {
+    test(`at ${width} px the table fits its region, no column of actions`, async ({ page }) => {
       await cluster(page)
       const app = await openView(page, CLUSTER_ARGS, { width })
-      const region = app.getByRole("region", { name: "Affected instances" }).last()
-      await expect(region.locator("tbody tr")).toHaveCount(3, { timeout: 15_000 })
-      const seen = await region.evaluate((el) => {
-        const head = [...el.querySelectorAll("thead th")]
-        const pinned = head.at(-1)!.getBoundingClientRect().left
-        return {
-          scrolls: el.scrollWidth > el.clientWidth,
-          covered: head
-            .slice(0, -1)
-            .filter((cell) => getComputedStyle(cell).display !== "none")
-            .filter((cell) => cell.getBoundingClientRect().right > pinned + 1)
-            .map((cell) => (cell as HTMLElement).innerText),
-        }
-      })
-      expect(seen).toEqual({ scrolls: false, covered: [] })
+      // The table's region is the one named after the incidents: its section has no name.
+      const region = app.getByRole("region", { name: "Incidents" }).last()
+      const rows = region.locator("tbody tr")
+      // The rows that fit the card's height: all three at 760 px; at 400 px the bar's lines (its
+      // action's label and its freshness each on a line of their own) leave room for fewer, as
+      // many as the footer says.
+      if (width === 760) {
+        await expect(rows).toHaveCount(3, { timeout: 15_000 })
+      } else {
+        const footer = app.getByText(/^Showing \d of 3 incidents$/)
+        await expect(footer).toBeVisible({ timeout: 15_000 })
+        await expect(rows).toHaveCount(Number((await footer.innerText()).split(" ")[1]))
+      }
+      await expect(region.getByRole("columnheader", { name: "Actions" })).toHaveCount(0)
+      const scrolls = await region.evaluate((el) => el.scrollWidth > el.clientWidth)
+      expect(scrolls).toBe(false)
     })
   }
 })
@@ -640,81 +641,61 @@ async function topFailures(page: Page) {
 }
 
 test.describe("the overview's top failures in a narrow card", () => {
-  for (const width of [360, 400]) {
-    test(`at ${width} px each card's words keep its width: the id on one line, the message in lines, the actions under them`, async ({
+  for (const width of [320, 360, 400]) {
+    test(`at ${width} px each cause is one 28 px row: the activity and the cause keep their line, the table scrolls in its region`, async ({
       page,
     }) => {
       await topFailures(page)
       const app = await openView(page, { engine: HEALTHY_ENGINE }, { width })
-      const cards = app.locator("li:has([data-cluster-words])")
-      await expect(cards).toHaveCount(2, { timeout: 15_000 })
-      const seen = await cards.evaluateAll((all) =>
-        all.map((card) => {
-          const words = card.querySelector("[data-cluster-words]")!.getBoundingClientRect()
-          const id = card.querySelector("[data-named-id] .font-mono")!
-          const message = card.querySelector("[data-cluster-words] p")!
-          const actions = card.querySelector("[data-cluster-words] + div")!.getBoundingClientRect()
-          const inner = card.clientWidth - 2 * parseFloat(getComputedStyle(card).paddingLeft)
-          const lineHeight = parseFloat(getComputedStyle(id).lineHeight)
-          return {
-            id: id.textContent,
-            idLines: Math.round(id.getBoundingClientRect().height / lineHeight),
-            wordsShare: words.width / inner,
-            messageShare: message.getBoundingClientRect().width / inner,
-            actionsUnder: actions.top >= words.bottom,
-          }
-        }),
-      )
-      expect(seen.map((card) => card.id)).toEqual([
-        "ServiceTask_ChargeCreditCard",
-        "Task_SendPaymentReminder",
-      ])
-      for (const card of seen) {
-        expect(card, card.id ?? "").toMatchObject({ idLines: 1, actionsUnder: true })
-        expect(card.wordsShare, `${card.id}: the words take the card's width`).toBeGreaterThan(0.98)
-        expect(card.messageShare, `${card.id}: the message reads in lines`).toBeGreaterThan(0.9)
+      const region = app.getByRole("region", { name: "Top failures, grouped by cause" })
+      await expect(region.getByRole("row", { name: /^Failures at / })).toHaveCount(2, {
+        timeout: 15_000,
+      })
+      const seen = await narrowTable(region)
+      expect(seen.rows).toEqual([28, 28])
+      expect(seen.documentScrolls, "the document never scrolls sideways").toBe(false)
+      // Each cause's message on its one line, cut with an ellipsis, whole in its title.
+      for (const message of seen.messages) {
+        expect(message).toMatchObject({ lines: 1 })
+        expect(message.title.length).toBeGreaterThan(0)
       }
     })
   }
 
-  test("at 320 px in German the actions stay inside the card: the hand-off goes under Open", async ({
+  test("in a wide card each row shows its counts and process, and its hand-off at its end", async ({
+    page,
+  }) => {
+    await topFailures(page)
+    const app = await openView(page, { engine: HEALTHY_ENGINE }, { width: 760 })
+    const region = app.getByRole("region", { name: "Top failures, grouped by cause" })
+    const row = region.getByRole("row", { name: "Failures at Charge credit card" })
+    await expect(row).toBeVisible({ timeout: 15_000 })
+    const cells = await row
+      .locator("td")
+      .evaluateAll((all) =>
+        all
+          .filter((cell) => getComputedStyle(cell).display !== "none")
+          .map((cell) => (cell as HTMLElement).innerText.trim()),
+      )
+    expect(cells[2]).toBe("12")
+    expect(cells[3]).toBe("3")
+    expect(await row.getByRole("button", { name: /in chat$/ }).count()).toBe(1)
+    // The row is the drill: no "Open" beside it.
+    await expect(region.getByRole("button", { name: /^Open/ })).toHaveCount(0)
+  })
+
+  test("at 320 px in German the hand-off stays at its row's end inside the region", async ({
     page,
   }) => {
     await topFailures(page)
     const app = await openView(page, { engine: HEALTHY_ENGINE }, { width: 320, locale: "de-DE" })
-    const cards = app.locator("li:has([data-cluster-words])")
-    await expect(cards).toHaveCount(2, { timeout: 15_000 })
-    const seen = await cards.evaluateAll((all) =>
-      all.map((card) => {
-        const box = card.getBoundingClientRect()
-        const inner = box.right - parseFloat(getComputedStyle(card).paddingRight)
-        const buttons = [...card.querySelectorAll("[data-cluster-actions] > *")].map((button) =>
-          button.getBoundingClientRect(),
-        )
-        return {
-          inside: buttons.every((button) => button.right <= inner + 0.5),
-          stacked: buttons.length === 2 && buttons[1].top >= buttons[0].bottom,
-          documentScrolls:
-            document.documentElement.scrollWidth > document.documentElement.clientWidth,
-        }
-      }),
-    )
-    for (const card of seen) {
-      expect(card).toEqual({ inside: true, stacked: true, documentScrolls: false })
-    }
-  })
-
-  test("in a wide card the actions stay beside the words", async ({ page }) => {
-    await topFailures(page)
-    const app = await openView(page, { engine: HEALTHY_ENGINE }, { width: 760 })
-    const card = app.locator("li:has([data-cluster-words])").first()
-    await expect(card).toBeVisible({ timeout: 15_000 })
-    const beside = await card.evaluate((el) => {
-      const words = el.querySelector("[data-cluster-words]")!.getBoundingClientRect()
-      const actions = el.querySelector("[data-cluster-words] + div")!.getBoundingClientRect()
-      return actions.left >= words.right && actions.top < words.bottom
+    const region = app.getByRole("region", { name: "Häufigste Fehler, nach Ursache gruppiert" })
+    await expect(region.getByRole("row", { name: /^Fehler bei / })).toHaveCount(2, {
+      timeout: 15_000,
     })
-    expect(beside).toBe(true)
+    const seen = await narrowTable(region)
+    expect(seen.rows).toEqual([28, 28])
+    expect(seen.documentScrolls).toBe(false)
   })
 })
 
@@ -743,23 +724,17 @@ async function narrowRows(region: Locator) {
 }
 
 test.describe("a 320 px card's tables", () => {
-  test("a cluster's actions scroll with the row: every business key whole, the actions head read only", async ({
+  test("a cluster's rows: every business key whole, the document never sideways", async ({
     page,
   }) => {
     await cluster(page)
     const app = await openView(page, CLUSTER_ARGS, { width: 320 })
-    const region = app.getByRole("region", { name: "Affected instances" }).last()
+    const region = app.getByRole("region", { name: "Incidents" }).last()
     // The inline card shows the rows that fit its height; the first is a business key.
     await expect(region.locator("tbody tr").first()).toBeVisible({ timeout: 15_000 })
-    await expect(region.getByRole("columnheader", { name: "Actions" })).toBeAttached()
     const seen = await narrowRows(region)
     expect(seen.documentScrolls, "the document never scrolls sideways").toBe(false)
-    expect(seen.head.at(-1), "the head's word, for a screen reader alone").toEqual({
-      name: "Actions",
-      inSight: false,
-    })
     for (const row of seen.rows) {
-      expect(row).toMatchObject({ position: "static", overlap: false })
       // Only the quiet id beside a business key may give way to its ellipsis (NamedId).
       expect(row.cut.filter((text) => text?.includes("INV-"))).toEqual([])
     }
@@ -822,19 +797,6 @@ async function actionsHeadOverButtons(region: Locator, group = "div") {
 }
 
 test.describe("a 760 px card's action heads", () => {
-  test("a cluster's actions head sits over its buttons, right-aligned like them", async ({
-    page,
-  }) => {
-    await cluster(page)
-    const app = await openView(page, CLUSTER_ARGS, { width: 760 })
-    const region = app.getByRole("region", { name: "Affected instances" }).last()
-    await expect(region.locator("tbody tr").first()).toBeVisible({ timeout: 15_000 })
-    // The row opens its instance; its incident's button is the one action at its end.
-    const seen = await actionsHeadOverButtons(region, "button")
-    expect(seen).toMatchObject({ head: "Actions", align: "right" })
-    expect(seen.buttons).toEqual([seen.word])
-  })
-
   test("the instance list's actions head sits over its buttons, every row's group ending at one edge", async ({
     page,
   }) => {
@@ -870,7 +832,7 @@ test.describe("a 760 px card's action heads", () => {
   }) => {
     await groupedIncidents(page)
     const process = await openView(page, PROCESS_ARGS, { width: 760 })
-    const groups = process.locator('[role="button"][aria-expanded]')
+    const groups = process.locator('[data-slot="group-card-toggle"]')
     await expect(groups).toHaveCount(2, { timeout: 15_000 })
     await groups.first().click()
     const byActivity = process.getByRole("region", { name: "Incidents in this activity" })
@@ -948,13 +910,14 @@ test.describe("a table's heads, a guard for when the cockpit sizes its columns",
 })
 
 test.describe("a view's header counts", () => {
-  test("the process's open incidents: a state label, the number in the foreground on no tint", async ({
+  // The process's bar leaves its counts to the KPI tiles under it (X4); an instance's carries its
+  // open incidents, which no tile shows and an inline card shows without its tabs (V11).
+  test("the instance's open incidents: a state label, the number in the foreground on no tint", async ({
     page,
   }) => {
-    await groupedIncidents(page)
-    const app = await openView(page, PROCESS_ARGS)
+    const app = await openView(page, INSTANCE_ARGS)
     const state = app.locator('[data-slot="view-bar"] [data-slot="state-label"]')
-    await expect(state).toHaveText("4 open incidents", { timeout: 15_000 })
+    await expect(state).toHaveText("2 open incidents", { timeout: 15_000 })
     const seen = await state.evaluate((label) => {
       const words = label.lastElementChild!
       return {
@@ -971,11 +934,28 @@ test.describe("a view's header counts", () => {
     expect(seen.icon).not.toBe(seen.foreground)
   })
 
-  test("at 760 px the title keeps its share beside the count, whole, and no fact is cut", async ({
+  test("the process's bar shows no count its tiles show: its open incidents are the tile's", async ({
     page,
   }) => {
     await groupedIncidents(page)
     const app = await openView(page, PROCESS_ARGS)
+    const label = app.locator('[data-slot="kpi-grid"] [data-slot="kpi-label"]', {
+      hasText: "Open incidents",
+    })
+    await expect(label).toBeVisible({ timeout: 15_000 })
+    // The tile, its label over its figure.
+    await expect(label.locator("xpath=..")).toContainText("4")
+    const bar = app.locator('[data-slot="view-bar"]').first()
+    await expect(bar.locator('[data-slot="state-label"]')).toHaveCount(0)
+    // Its facts name the key and the version scope, its actions lead on; no count of a tile.
+    await expect(bar).toContainText("all versions")
+    await expect(bar).not.toContainText(/\d+ (open incidents?|running)/)
+  })
+
+  test("at 760 px the title keeps its share beside the count, whole, and no fact is cut", async ({
+    page,
+  }) => {
+    const app = await openView(page, INSTANCE_ARGS)
     const bar = app.locator('[data-slot="view-bar"]').first()
     await expect(bar.locator('[data-slot="state-label"]')).toBeVisible({ timeout: 15_000 })
     const seen = await bar.evaluate((el) => {
@@ -1157,12 +1137,13 @@ test.describe("a narrow card's details", () => {
       expect(seen.share, "the drawing's share of the canvas's width").toBeGreaterThanOrEqual(0.7)
     })
 
-    // Three tiles keep their row from 25rem, where "verbleibenden" fits its third; below it two.
+    // The scope's two segments, the counts the tiles held, each on its one line in either
+    // language: a segment that has no room wraps whole, never inside its label.
     for (const [locale, group, caption] of [
-      ["de-DE", "Job-Übersicht", "Mit verbleibenden Versuchen"],
-      ["en-US", "Job summary", "With retries left"],
+      ["de-DE", "Jobs zeigen", "Ohne Versuche"],
+      ["en-US", "Show jobs", "Without retries"],
     ] as const) {
-      test(`at ${width} px in ${locale} the jobs' KPI captions break between words, never inside one`, async ({
+      test(`at ${width} px in ${locale} the jobs' scope keeps each segment on one line`, async ({
         page,
       }) => {
         const app = await openView(
@@ -1170,23 +1151,17 @@ test.describe("a narrow card's details", () => {
           { engine: HEALTHY_ENGINE, view: "jobs" },
           { width, locale },
         )
-        const strip = app.getByRole("group", { name: group }).locator("[data-slot=kpi-strip]")
-        await expect(strip).toContainText(caption, { timeout: 15_000 })
-        const seen = await strip.evaluate((el) => {
-          const captions = [...el.querySelectorAll(":scope > div > * > div:first-child > span")]
-          const columns = getComputedStyle(el.firstElementChild!).gridTemplateColumns.split(" ")
-          const split = captions.flatMap((caption) => {
-            const text = caption.firstChild!
-            return [...(text.textContent ?? "").matchAll(/\S+/g)].flatMap((word) => {
-              const range = document.createRange()
-              range.setStart(text, word.index)
-              range.setEnd(text, word.index + word[0].length)
-              return range.getClientRects().length > 1 ? [word[0]] : []
-            })
-          })
-          return { captions: captions.length, columns: columns.length, split }
+        const scope = app.getByRole("radiogroup", { name: group })
+        await expect(scope.getByRole("radio", { name: new RegExp(`^${caption}`) })).toBeVisible({
+          timeout: 15_000,
         })
-        expect(seen).toEqual({ captions: 3, columns: width < 400 ? 2 : 3, split: [] })
+        const heights = await scope.evaluate((el) =>
+          [...el.querySelectorAll<HTMLElement>("[role=radio]")].map((radio) =>
+            Math.round(radio.getBoundingClientRect().height),
+          ),
+        )
+        expect(heights).toHaveLength(2)
+        expect(new Set(heights).size, "every segment the same one-line height").toBe(1)
       })
     }
 
@@ -1223,6 +1198,7 @@ test.describe("a narrow card's details", () => {
         expect(error.width, "an error keeps 10rem").toBeGreaterThanOrEqual(160)
         expect(error.disclosure, "a cut error opens, a whole one does not").toBe(error.cut)
       }
+      // The stub's job-5 says more than the column's 10rem hold in the sans: cut, a disclosure.
       expect(
         seen.errors.some((error) => error.cut),
         "a longer error is cut",
@@ -1631,24 +1607,37 @@ async function factBaselines(facts: Locator) {
 }
 
 test.describe("facts", () => {
-  for (const [name, args, count] of [
-    ["the incident's (copyable ids, retries with their tone's icon)", INCIDENT_ARGS, 4],
-    ["the instance's (a state label, counts with their tone's icon)", INSTANCE_ARGS, 4],
-  ] as const) {
-    test(`${name}: each term on its value's baseline`, async ({ page }) => {
-      const app = await openView(page, args)
-      const facts = app.locator('[data-slot="facts"]').first()
-      await expect(facts).toBeVisible({ timeout: 15_000 })
-      const rows = await factBaselines(facts)
-      expect(rows.length).toBeGreaterThanOrEqual(count)
-      for (const row of rows) {
-        expect(
-          Math.abs(row.termBaseline - row.valueBaseline),
-          `${row.term}: its term and its value on one baseline`,
-        ).toBeLessThanOrEqual(0.5)
-      }
+  test("the incident's (copyable ids, retries with their tone's icon): each term on its value's baseline", async ({
+    page,
+  }) => {
+    const app = await openView(page, INCIDENT_ARGS)
+    const facts = app.locator('[data-slot="facts"]').first()
+    await expect(facts).toBeVisible({ timeout: 15_000 })
+    const rows = await factBaselines(facts)
+    expect(rows.length).toBeGreaterThanOrEqual(4)
+    for (const row of rows) {
+      expect(
+        Math.abs(row.termBaseline - row.valueBaseline),
+        `${row.term}: its term and its value on one baseline`,
+      ).toBeLessThanOrEqual(0.5)
+    }
+  })
+
+  // V11: what the instance's facts said, its bar's badge and its tabs' counts already say.
+  test("the instance has no facts block: its state in the bar's badge, its counts in the bar and the tabs", async ({
+    page,
+  }) => {
+    const app = await openView(page, INSTANCE_ARGS)
+    const bar = app.locator('[data-slot="view-bar"]').first()
+    await expect(bar.locator('[data-slot="state-label"]')).toHaveText("2 open incidents", {
+      timeout: 15_000,
     })
-  }
+    await expect(bar.getByText("Running", { exact: true })).toBeVisible()
+    for (const tab of [/^Tasks\s*0$/, /^Incidents\s*2$/, /^Variables\s*1$/]) {
+      await expect(app.getByRole("tab", { name: tab })).toHaveCount(1)
+    }
+    await expect(app.locator('[data-slot="facts"]')).toHaveCount(0)
+  })
 
   test("an alarming count names its alarm in words beside its tone's icon", async ({ page }) => {
     /** The facts' alarming count: the danger icon of its own shape and its words, read after it. */
@@ -1659,12 +1648,20 @@ test.describe("facts", () => {
     await expect(facts).toBeVisible({ timeout: 15_000 })
     await expect(alarmOf(facts).locator("svg.lucide-circle-x")).toBeVisible()
     await expect(alarmOf(facts).locator(".sr-only")).toHaveText("No retries left")
-    const instance = await openView(page, INSTANCE_ARGS)
-    const instanceFacts = instance.locator('[data-slot="facts"]')
-    await expect(alarmOf(instanceFacts).locator(".sr-only")).toHaveText("Has open incidents", {
-      timeout: 15_000,
-    })
-    await expect(alarmOf(instanceFacts).locator("svg.lucide-circle-x")).toBeVisible()
+    // The instance's open incidents, a state label in its bar: the icon, then the words that say
+    // the alarm; in a bar under 28rem the icon alone, its words still read out and in its title.
+    for (const width of [760, 320]) {
+      const instance = await openView(page, INSTANCE_ARGS, { width })
+      const state = instance.locator('[data-slot="view-bar"] [data-slot="state-label"]')
+      await expect(state).toHaveText("2 open incidents", { timeout: 15_000 })
+      await expect(state.locator("svg.lucide-circle-x")).toBeVisible()
+      await expect(state).toHaveAttribute("title", "2 open incidents")
+      const words = await state.evaluate(
+        (label) => label.lastElementChild!.getBoundingClientRect().width,
+      )
+      if (width === 760) expect(words, "the words beside the icon").toBeGreaterThan(40)
+      else expect(words, "the icon alone, its words for a screen reader").toBeLessThanOrEqual(1)
+    }
   })
 })
 

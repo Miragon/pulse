@@ -191,7 +191,7 @@
           "type": "string"
         },
         "businessKeyLike": {
-          "description": "Narrow the affected-instance list by business key (substring; % wildcards allowed).",
+          "description": "Narrow the incident list by business key or id (substring; % wildcards allowed).",
           "type": "string"
         },
         "engine": {
