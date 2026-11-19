@@ -13,7 +13,8 @@
  *   release-please-config.json bumps every workspace package (checkReleaseExtraFiles), every
  *   Claude Code plugin manifest an app ships (checkPluginVersions) and every @miragon/pulse-*
  *   pin of a package.json under templates/, by that pin's exact jsonpath
- *   (checkTemplatePinBumps);
+ *   (checkTemplatePinBumps), each json file of them in the form release-please writes it back
+ *   in, so prettier takes the Release PR's bump (checkJsonExtraFileForm);
  * - every job of release-please.yml past the approval waits for gate, and release-please.yml
  *   calls the publish workflows of the CLI and the Orca plugin, which run on no other trigger
  *   (a dispatch only publishes the formula of a release again) and hold their tokens like the
@@ -432,6 +433,43 @@ export function checkReleaseExtraFiles(config, packages, { fileExists = () => tr
     const file = typeof entry === "string" ? entry : entry?.path
     if (typeof file !== "string" || !fileExists(file)) {
       errors.push(`release-please-config.json: the extra-files path ${file} does not exist`)
+    }
+  }
+  return errors
+}
+
+/**
+ * Every json entry of extra-files is in the form release-please writes it back in: its json
+ * updater serializes the whole file as `JSON.stringify(…, null, 2)` with the final newline, which
+ * spreads every array over lines. A file prettier formats otherwise (an array on one line) fails
+ * `format:check` on the Release PR and blocks it, as it did on 0.28.0's. prettier keeps a file in
+ * that form under its `json-stringify` parser, which it gives every `package.json` by itself and
+ * any other file by an override in `.prettierrc.json`. `readText` returns a file's text, or
+ * undefined for one that does not exist (checkReleaseExtraFiles names it).
+ */
+export function checkJsonExtraFileForm(config, readText) {
+  const files = new Set(
+    asList(config?.packages?.["."]?.["extra-files"])
+      .filter((entry) => entry?.type === "json" && typeof entry.path === "string")
+      .map((entry) => entry.path),
+  )
+  const errors = []
+  for (const file of [...files].sort()) {
+    const text = readText(file)
+    if (text === undefined) continue
+    let written
+    try {
+      written = `${JSON.stringify(JSON.parse(text), null, 2)}\n`
+    } catch {
+      errors.push(`release-please-config.json: the json extra-file ${file} is no JSON`)
+      continue
+    }
+    if (text !== written) {
+      errors.push(
+        `${file} is not in the form release-please writes it back in (JSON.stringify with two ` +
+          `spaces): prettier would refuse the Release PR's bump of it. Give it prettier's ` +
+          `json-stringify parser in .prettierrc.json's overrides and run pnpm format`,
+      )
     }
   }
   return errors
@@ -1228,6 +1266,10 @@ export function checkRepo(root) {
       JSON.parse(readFileSync(path.join(root, "release-please-config.json"), "utf8")),
       templatePackageFiles(root),
     ),
+    ...checkJsonExtraFileForm(
+      JSON.parse(readFileSync(path.join(root, "release-please-config.json"), "utf8")),
+      (rel) => (exists(rel) ? readFileSync(path.join(root, rel), "utf8") : undefined),
+    ),
     ...checkReleaseGate(workflows.get(RELEASE_WORKFLOW)),
     ...checkChannelPublishWorkflows(workflows),
     ...checkVscodePublish(
@@ -1255,7 +1297,7 @@ if (isMain) {
   }
   console.log(
     "GitHub config: publish workflow, npm matrix and repositories, release extra-files, " +
-      "plugin versions and template pins, the release gate, the CLI and Orca publish " +
+      "plugin versions and template pins in release-please's form, the release gate, the CLI and Orca publish " +
       "workflows, the extension's release path, the docs deploy and the CI scopes hold.",
   )
 }
