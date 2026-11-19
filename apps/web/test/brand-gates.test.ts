@@ -59,9 +59,11 @@ describe("the page's stylesheet", () => {
     expect(rules).toMatch(/@source "[^"]*packages\/core\/blocks\/src"/)
   })
 
-  it("lays every page on one ground, the card's surface, after the theme", () => {
+  it("lays every page on one ground, the app's ground, after the theme", () => {
     const rules = stylesheetRules(STYLES)
-    const ground = rules.search(/@layer base\s*\{\s*html,\s*body\s*\{\s*@apply bg-card;\s*\}\s*\}/)
+    const ground = rules.search(
+      /@layer base\s*\{\s*html,\s*body\s*\{\s*@apply bg-background;\s*\}\s*\}/,
+    )
     expect(ground).toBeGreaterThan(rules.indexOf('@import "@miragon/pulse-ui/theme.css"'))
   })
 })

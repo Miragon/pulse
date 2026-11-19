@@ -20,13 +20,13 @@
  */
 @import "@miragon/pulse-ui/theme.css";
 /*
- * One ground for every page: the card's surface, which the views are laid out on in a chat too.
- * The bar, the notices, the views and the signed-out page sit on it alike, and it reaches the
- * viewport's edge on a short page and under an overscroll.
+ * One ground for every page: the app's ground (the guide's grund), which reaches the viewport's
+ * edge on a short page and under an overscroll. The bar and the page's sheet sit on it in the
+ * card's surface, the surface the views are laid out on in a chat too (bar.tsx).
  */
 @layer base {
   html,
   body {
-    @apply bg-card;
+    @apply bg-background;
   }
 }
