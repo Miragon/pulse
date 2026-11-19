@@ -1,7 +1,7 @@
 # UI foundation and shared building blocks
 
 - Status: accepted
-- Last reviewed: 2026-11-18 (decided, D9's point 8: one row convention on every surface, a row opens on a click or Enter and copies with Ctrl or Cmd+C, the cockpit's rows without a drill); 2026-11-17 (executed for the web app of #573: `apps/web` renders the MCP server's views, the cockpit and its boards, as pages of the server through widget-shell's `mountPage`, a third surface on React, pulse-ui and widget-shell beside the chat's widgets, whose board route renders `@miragon/pulse-blocks` there too; a page writes to no engine); 2026-11-16 (executed for boards in the MCP server: the cockpit's board route renders `@miragon/pulse-blocks` with its own table, id and diagram, over the board feed `engine_board_data`, which builds the board files of `ENGINE_BOARDS_DIR` with the board builder over `C7Runtime` and serializes them with `BoardJson.of`, so D8's blocks have their second renderer; D2 for boards is held by c7-core's recorded answers, `C7_BOARD_ENGINE`, from which the board feed and the C7 adapter build one board, and by the board cases of both engine suites; earlier that day, executed for building blocks, D8: the shared package exists, `@miragon/pulse-blocks` in `packages/core/blocks`, created from the webview's board cards, which the webview renders with its table, short id and canvas as slots, `blocks-are-building-blocks` and `blocks-consumers`; decided: the engine connector imports engine-core before it serves a second dialect, its server layers `src/lib/engine`, `src/lib/core-adapter` and `src/data` by the main entry, `engine-connector-contract-by-its-main-entry`; `runtimeOf` runs c7-core's `C7Runtime` as the connector's runtime, its failures read by `runtimeErrorOf`); 2026-11-15 (executed for boards, D8: the board file format moved into the published package `@miragon/pulse-board` with its dependency rules, and the board builder followed into its `./builder` entry, whose model the runtime view renders, D2 for boards); 2026-11-14 (executed: the switch of D9 landed, the webview renders with React 19 on `@miragon/pulse-ui`; every precondition of D7 is in place; its follow-up landed too: the webview and its tests follow `react-hooks`' `recommended-latest`, the React Compiler rules included, every rule of it an error; decided: "with incident" reads one way on every C7 surface, an open incident the runtime holds now, so the board's two readings are one); 2026-11-12, later the same day (decided, D9: the webview moves from Preact to React 19 on `@miragon/pulse-ui` in one switch, without a `preact/compat` bridge; one compact look for every surface, on density roles over the guide's `--cd-shell-*` tokens and pulse-ui's colour roles on the guide's `--cd-ui-*` roles, numbers neutral; replaces D4 and turns D7 into the switch's preconditions); 2026-11-12 (decided: the surfaces share a core up to building blocks, not everything: formats, the engine reads and their rules, the numbers and view models of a feature more than one surface shows, and building blocks on React's API; a feature more than one surface shows, boards first, shows the same numbers on every surface; replaces the two UI families of 2026-11-08)
+- Last reviewed: 2026-11-19 (decided, D10: the web app gets a frame of its own, a side navigation, its own router and an address per view, and screens of its own in the editors' style, which it composes from building blocks of `@miragon/pulse-blocks` over the builders of a new published package, @miragon/pulse-screens, that the runtime view's core runs too; the cockpit's operations views stay embedded in the frame, the chat keeps its cockpit, the web app writes to no engine, and the diagram's canvas follows the theme in the web app and in the chat's widgets as in the editors; D2 and E2 amended: "Incidents" are open root incidents on every surface, the chat included, and the verdict follows on root incidents with the same thresholds; D8 amended with the screens' home, D9's point 7 with the web page's budget); 2026-11-18 (decided, D9's point 8: one row convention on every surface, a row opens on a click or Enter and copies with Ctrl or Cmd+C, the cockpit's rows without a drill); 2026-11-17 (executed for the web app of #573: `apps/web` renders the MCP server's views, the cockpit and its boards, as pages of the server through widget-shell's `mountPage`, a third surface on React, pulse-ui and widget-shell beside the chat's widgets, whose board route renders `@miragon/pulse-blocks` there too; a page writes to no engine); 2026-11-16 (executed for boards in the MCP server: the cockpit's board route renders `@miragon/pulse-blocks` with its own table, id and diagram, over the board feed `engine_board_data`, which builds the board files of `ENGINE_BOARDS_DIR` with the board builder over `C7Runtime` and serializes them with `BoardJson.of`, so D8's blocks have their second renderer; D2 for boards is held by c7-core's recorded answers, `C7_BOARD_ENGINE`, from which the board feed and the C7 adapter build one board, and by the board cases of both engine suites; earlier that day, executed for building blocks, D8: the shared package exists, `@miragon/pulse-blocks` in `packages/core/blocks`, created from the webview's board cards, which the webview renders with its table, short id and canvas as slots, `blocks-are-building-blocks` and `blocks-consumers`; decided: the engine connector imports engine-core before it serves a second dialect, its server layers `src/lib/engine`, `src/lib/core-adapter` and `src/data` by the main entry, `engine-connector-contract-by-its-main-entry`; `runtimeOf` runs c7-core's `C7Runtime` as the connector's runtime, its failures read by `runtimeErrorOf`); 2026-11-15 (executed for boards, D8: the board file format moved into the published package `@miragon/pulse-board` with its dependency rules, and the board builder followed into its `./builder` entry, whose model the runtime view renders, D2 for boards); 2026-11-14 (executed: the switch of D9 landed, the webview renders with React 19 on `@miragon/pulse-ui`; every precondition of D7 is in place; its follow-up landed too: the webview and its tests follow `react-hooks`' `recommended-latest`, the React Compiler rules included, every rule of it an error; decided: "with incident" reads one way on every C7 surface, an open incident the runtime holds now, so the board's two readings are one); 2026-11-12, later the same day (decided, D9: the webview moves from Preact to React 19 on `@miragon/pulse-ui` in one switch, without a `preact/compat` bridge; one compact look for every surface, on density roles over the guide's `--cd-shell-*` tokens and pulse-ui's colour roles on the guide's `--cd-ui-*` roles, numbers neutral; replaces D4 and turns D7 into the switch's preconditions); 2026-11-12 (decided: the surfaces share a core up to building blocks, not everything: formats, the engine reads and their rules, the numbers and view models of a feature more than one surface shows, and building blocks on React's API; a feature more than one surface shows, boards first, shows the same numbers on every surface; replaces the two UI families of 2026-11-08)
 
 ## Context
 
@@ -10,7 +10,8 @@ and widget-shell, cards in an AI chat with a height budget, hand-offs to the cha
 every view resource inlines. This extension's webview, which Pulse for Orca shows too, was Preact
 with its own components and stylesheets until the switch of D9 (2026-11-14), tabs in the editor next to the models and the code. The
 web app of #573 (`apps/web`, since 2026-11-17) is React on pulse-ui and widget-shell and renders the
-cockpit through widget-shell's `mountPage`.
+cockpit through widget-shell's `mountPage`, until the steps of D10 give it a frame and screens of its
+own.
 
 On 2026-11-08 the product owner decided for two UI families: the webview and the MCP widgets share
 pulse-ui's framework-free foundation and never a component (E1), the words align and the numbers
@@ -62,10 +63,30 @@ Later the same day two studies looked at the look of the surfaces and at the web
   builds readable, and without `NODE_ENV=production` React's development build ships (273 KB
   instead of 180 KB). Expected after the move: 210 to 235 KB.
 
+On 2026-11-19, after the UI and UX review of the cockpit (#635, which also made the web app's address
+follow the cockpit's navigation), three drafts of a web app in the editors' style were judged by two
+juries, one for the architecture and one for the experience:
+
+- "Frame first" (a frame of its own, then one screen after another, each pull request shippable
+  alone) won the architecture jury, "blocks first" (screens composed of shared blocks, a frame with
+  one bar) the experience jury; "operations first" brought the web app's own router, an incident's
+  address under its instance, a search across engines and "Copy link". The plan takes frame first
+  with those parts and every correction both juries made mandatory.
+- The cockpit counts every open incident, copies included. Camunda 7 copies an incident of a called
+  instance to each call activity above it, so a failure N calls deep counts N + 1 times there, once
+  here: this extension counts root incidents, as the contract's reads give them. A screen two
+  surfaces show cannot count both ways.
+- The webview has more room than the drafts assumed: its ceiling of 247,500 B is its measurement
+  plus about 5 %, so the limit of 250,000 B leaves about 14 kB, not 2.5 kB. The web page keeps the
+  cockpit embedded until every section it shows is replaced (the cockpit's route switch is total),
+  so it grows before it shrinks.
+
 ## Decision
 
 The product owner decided on 2026-11-12. D1 replaces E1, D2 amends E2, D3 keeps E4. Later the same
-day the owner decided D9, which replaces D4 and turns D7 into the switch's preconditions.
+day the owner decided D9, which replaces D4 and turns D7 into the switch's preconditions. On
+2026-11-19 the owner decided D10 and amended D2 (and with it E2's words), D8 and D9; D1 stays, so
+each surface keeps its screens and the web app's are its own.
 
 - **D1, one core up to building blocks.** The surfaces (this extension and Pulse for Orca, which
   show one webview; the MCP server's widgets; the web app of #573) share a core up to building
@@ -101,6 +122,33 @@ day the owner decided D9, which replaces D4 and turns D7 into the switch's preco
   board, which the C8 adapter and the server's board feed over its Camunda 8 wire build exactly,
   and the board cases of both Camunda 8 engine suites read on a live cluster, locally only until
   #531.
+
+  Amended on 2026-11-19, with E2's words. "Incidents" are the open root incidents of the thing
+  shown, on every surface, the chat and the web app's embedded operations views included (the owner
+  chose this reach over leaving the chat out). A copy Camunda 7 raises at a call activity never
+  counts; a diagram shows it apart and quiet, as an incident in called instances, never part of the
+  incident count. An instance counts the root incidents of its tree, its own and those of the
+  instances it called, as this extension counts them, so an instance that waits on a failed called
+  instance shows that instance's incident with where it lies; a copy is never a number and never a
+  row. "With incident" keeps the reading of 2026-11-14, an open incident the runtime
+  holds now, so a caller that waits on a failed called instance counts, and "With incident 9" may
+  stand beside "Incidents 2"; a legend and the glossary say why, in English and German.
+  1. **Read whole.** Per process from the statistics with `rootIncidents=true`, summed over its
+     versions, an exact statistic. Per element from every incident of one version (later from those
+     at call activities alone, where copies lie), an exception to "never from a scan" recorded here,
+     since the read is whole and never a capped page. In the contract a count of open root incidents
+     per process and version enters by the admission rule, with a law and a saboteur; Camunda 8
+     answers it from its cluster's incidents, which it never copies.
+  2. **The verdict follows** (`engineVerdict`: `engine_status`, `pulse status`, the cockpit's health
+     route): it counts root incidents, its thresholds unchanged (`ENGINE_HEALTH_*`, the CLI's 50 and
+     25), and the docs say what a threshold counts.
+  3. **Step by step.** The shared screens of D10 count root incidents from their first step; the
+     chat and the embedded operations views follow in a breaking step right after the web app's
+     instance screen, and the verdict in a breaking step of its own. Until each lands, a surface
+     keeps the numbers above and `docs/vscode/parity.md` says the difference per row. Whether "new
+     in 24 h", which Camunda 7 cannot count for root incidents in a window, reads its window whole
+     or goes is decided before the chat's step.
+
 - **D3, the foundation stays pulse-ui's (keeps E4).** Two framework-free subpaths,
   `@miragon/pulse-ui/tones` (the tone vocabulary, `SITUATION_TONES`, `countTone`, `severityTone`)
   and `@miragon/pulse-ui/format` (dates and times to the millisecond, relative times, durations,
@@ -153,6 +201,31 @@ day the owner decided D9, which replaces D4 and turns D7 into the switch's preco
   (`blocks-are-building-blocks`, `blocks-consumers`). Until a block moves
   there the cockpit side keeps its content of props and callbacks in the connector, as the build
   rule of a pair feature says.
+
+  Extended on 2026-11-19 for the screens of D10. Their builders go into a new published package,
+  @miragon/pulse-screens under packages/core, MIT, with three entries: a leaf format as its main
+  entry (the screens' JSON forms and their codes, the targets a screen opens, the pure rules a
+  surface applies in the browser: a process list's filter, the sums across engines, the diagram's
+  decorations); a builder (an engine, a process in one version, its instance list, an instance with
+  its incident cards, wait rows, path, call links and headline, the search), of no text, over
+  engine-core's main entry as an optional peer and the board builder's roll-up onto collapsed
+  sub-processes (`@miragon/pulse-board/builder`), so no third copy of the XML tag reader; and a
+  testing entry, the screens the conformance kit's fixed world gives. It keeps this extension's
+  house rules, as the board package does. The runtime view's core delegates its numbers to it, the
+  engine connector's server layers run it behind new app-only feeds over the contract.
+  1. **Blocks.** The screens' building blocks go into `@miragon/pulse-blocks`: tables, cards, filter
+     bars, the diagram's badge clusters and call buttons, worded in English and German, with the
+     slots a surface brings (its table, id, diagram, link, what it remembers) and write slots only
+     the webview fills.
+  2. **D2 per screen**, as for boards: c7-core's and c8-core's recorded answers give one engine, one
+     process, one instance list and one instance screen, which the server's feeds and both adapters
+     build exactly, the blocks render in English and German, and both engine suites read live,
+     Camunda 8 locally only until #531; a test over every form keeps text out of the model.
+  3. **Mutation tests.** The builder joins them, since it decides the numbers of two surfaces, the
+     board package's criterion.
+  4. **Release.** Its first npm publish is by hand, with its trusted publisher, before the release
+     that first carries it, or that release names a version npm lacks.
+
 - **D9, the webview moves to React on pulse-ui; one compact look for every surface** (later on
   2026-11-12; replaces D4, turns D7 into the switch's preconditions; executed 2026-11-14).
   1. **One switch.** The webview, which both editor hosts show, moves from Preact to React 19 on
@@ -229,7 +302,13 @@ day the owner decided D9, which replaces D4 and turns D7 into the switch's preco
      ceiling goes to its measured size plus about 5 %, at most 250,000 B gzip; the MCP view
      bundle's JS may grow by about 10 % over 310,450 B. pulse-ui's new look and neutrals are a
      `feat(ui)!` with a `BREAKING CHANGE:` footer; the new look of Pulse for VS Code and Pulse for
-     Orca is a `feat` with a clear note.
+     Orca is a `feat` with a clear note. Amended on 2026-11-19 for the web app's page, which keeps
+     the cockpit embedded until D10's screens replace its sections and so grows before it shrinks:
+     its gzip ceilings may grow to at most 340,000 B for its script and 18,000 B for its stylesheet,
+     each ceiling its measurement plus 2 %, behind a `Ratchet-Exception:` trailer on each commit
+     that grows one. The webview stays at most 250,000 B: its ceiling of 247,500 B is its
+     measurement plus about 5 %, so the measurement sits about 14 kB below the limit, not the
+     2.5 kB the drafts assumed.
   8. **One row convention** (the owner, 2026-11-18). On every surface, the MCP widgets, the web
      app and the webview, a table row opens what it names on a click or Enter and copies its id
      with Ctrl or Cmd+C, as the webview's rows did from the start; the cockpit's rows lose their
@@ -241,6 +320,65 @@ day the owner decided D9, which replaces D4 and turns D7 into the switch's preco
      that Enter opens it, shows its focus inside its box and takes the table's one tab stop, the
      arrows moving between the rows that open. A board's tiles follow through their table slot,
      a drill stays for what is no table row (a card's way into its view).
+- **D10, the web app's own frame and screens: variant B, "frame first"** (2026-11-19). The web app
+  moves from the cockpit under `mountPage` (2026-11-17) to a frame and screens of its own, one step
+  at a time, each pull request shippable alone: first the router with an address per view, then the
+  frame, then per screen its builder (the extension moves onto it, its tests proving that nothing
+  changes), its blocks (the webview renders them first) and the web app's screen.
+  1. **A frame of its own.** A side navigation (the engines grouped by environment, the current one
+     open with the sections its dialect has in the web app, the boards, a search, who is signed in
+     and the sign-out; a drawer under 64rem), a router of its own and one address per view. Each
+     view has one bar, its `ViewBar`, and no app bar sits above it. The navigation carries no
+     counts, so every number has one place and a page costs no read per engine.
+  2. **Screens of its own, in the editors' style:** an engine, a process in one version, an instance
+     with the focus on one of its incidents, a search across engines and a start page over all
+     engines. The web app composes each from the building blocks of D8 (D1's grain: tables, cards,
+     filter bars and the diagram's decorations, never a whole screen) and brings its states by
+     invariant 6. The numbers come from the screens' builders behind new read-only app-only feeds of
+     the MCP server, which read the engine contract in every dialect. A screen of the page is never
+     a second view, and new engine UI of the chat stays a cockpit route.
+  3. **The operations views stay the cockpit's.** Its incidents, a cause, its jobs and the boards run
+     unchanged inside the frame, without their head. Once a screen replaces a section, the page
+     takes every drill into it, from the embedded routes and a board's tiles too.
+  4. **The chat keeps its cockpit**, in behaviour, not in every line: `engine_open_cockpit` keeps its
+     input, its views and its structured content, every feed its payload, test:host its scenarios.
+     The cockpit learns two things only a page uses (to leave its head to a page with chrome of its
+     own, and to leave a place the page shows itself), and each pull request that touches it names
+     its delta of `mcp-app.js`. The chat changes only where the owner decided it: root incidents
+     (D2) and the diagram's theme (point 7).
+  5. **Camunda 8.** The screens serve every dialect: the web app shows a Camunda 8 engine whole once
+     its screens open to Camunda 8, its operations views stay Camunda 7's, and the chat keeps showing
+     a Camunda 8 engine on boards only (`BoardsOnlyEngineGate`).
+  6. **The web's conventions.** An address is public and stable from the first release that carries
+     it. A new subject (an engine, a process, a version, an instance, an incident) adds a history
+     entry; a filter, a scope, an element, a business key or a tab replaces it, so Back goes from
+     subject to subject. Every entry is a link, so Ctrl or Cmd+click and a middle click open a new
+     tab. A version is its number in the address, an incident's address hangs under the instance
+     that holds it. The split's share and the column widths stay in the browser, and no single key
+     is a shortcut (WCAG 2.1.4). Today's addresses (`/app/cockpit?view=…`, `/app/fleet`) stay
+     readable one minor version beyond the step that makes the start page replace the landing and
+     the fleet.
+  7. **The diagram follows the theme**, in the web app and in the chat's widgets, as the webview's
+     canvas does in the editors (dark, high contrast), instead of light paper in every theme. The
+     labels stay bpmn-js's Arial (D9's point 6), and the badges and markers keep their contrast on
+     the paper the theme gives. It revises the deviation for embedded chat widgets in the root
+     `CLAUDE.md` that the BPMN paper and its zoom bar stay light, which changes with the step that
+     implements it: one change of widget-shell's canvas to the theme for the chat's widgets and the
+     web app alike, before the web app's instance screen. The zoom bar keeps its place top right,
+     where bpmn.io's link takes the bottom right.
+  8. **Versions, pages and freshness of the shared screens.** A process screen shows one version,
+     with a picker and a notice about older versions still running; the engine screen's rows span
+     every version and say so. The root `CLAUDE.md`'s rule that a process view spans every version
+     of its key keeps holding for the cockpit. A list pages by a cursor with "Load more" and counts
+     its scopes with "≥" where an engine stops counting; the chat keeps offset pages with an honest
+     total. In the web app each bar has Refresh and the time its data are from, a query older than
+     60 s reads again when the window has focus again, and nothing polls. Where history level NONE
+     leaves a list without what the history holds, the screen says so, with no fallback; variable
+     conditions come with the process screen, a pair feature with this extension.
+  9. **No writes in the web app.** They stay out of this plan: a block carries a write control only
+     as a slot, which the web app leaves empty and the webview fills. Writing in a browser is a
+     decision of its own, since the forward admits reads alone and a write would need the page's
+     view host to write, a confirmation, an identity per user and an audit.
 
 The small form questions settled on 2026-11-08 stay for both tools: no green "healthy" (running
 info, suspended and ended neutral, an engine whose verdict is ok too), 12 px icons beside dense
@@ -316,7 +454,17 @@ missing value ([user-interface.md](user-interface.md)).
   `src/data` import its main entry (`engine-connector-contract-by-its-main-entry`), and
   `runtimeOf` runs c7-core's `C7Runtime` over the connector's port.
 - Outside boards and the views that move onto shared numbers, users of both tools still see
-  different numbers for the same process, under the same words.
+  different numbers for the same process, under the same words. The steps of D2's amendment align
+  what "Incidents" counts; the version scope stays per tool (D10's point 8), where each header
+  names it.
+- D10 and the amendments of 2026-11-19 change the texts that say what the code does with the steps
+  that change the code, not with this record: the root `CLAUDE.md` (the surfaces, the package
+  table, invariants 1, 3, 5, 6 and 7, the count words, the BPMN paper of the embedded widgets, the
+  releases and mutation sections), `apps/web/CLAUDE.md`, `docs/web` and `docs/mcp`.
+  `docs/vscode/parity.md` marks each row this record decided with the step that lands it.
+- Open after 2026-11-19: "new in 24 h" (D2's amendment, before the chat's step), and whether an
+  inbox of root incidents across engines replaces the embedded incidents and cause views once the
+  numbers agree.
 
 ## Decision log
 
@@ -348,3 +496,11 @@ runtime. The same day `@miragon/pulse-blocks` was created from the webview's boa
 cockpit's board route became their second renderer, and c7-core's recorded answers hold both wires
 to one board. 2026-11-17: the MCP server shows Camunda 8 clusters on boards, and c8-core's recorded
 answers (`C8_BOARD_ENGINE`) hold the C8 adapter's wire and the server's to one board the same way.
+2026-11-19: three drafts of a web app in the editors' style, judged for architecture and for
+experience, and a plan from the winner, frame first; the product owner decided D10 as planned, with
+no writes in the web app, root incidents on every surface with the chat (D2, E2), the verdict on root
+incidents with the same thresholds, "with incident" as on 2026-11-14, the diagram following the
+theme in the web app and in the chat, the screens' builders in a published package of their own with
+mutation tests (D8), the web page's budget (D9's point 7), today's addresses one minor version
+beyond the start page, a hint at history level NONE and variable conditions with the process screen
+as a pair feature.
