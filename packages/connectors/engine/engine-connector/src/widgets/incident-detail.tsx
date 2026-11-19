@@ -61,6 +61,8 @@ export function describeIncident(data: IncidentDetailData, resolved: boolean): V
       incidentId: data.incidentId,
       processInstanceId: data.processInstanceId,
       jobId: data.job?.id,
+      rootCauseIncidentId: data.rootCause?.incidentId,
+      calledProcessInstanceId: data.rootCause?.processInstanceId,
     },
     facts: {
       incidentType: data.incidentType,
@@ -75,6 +77,7 @@ export function describeIncident(data: IncidentDetailData, resolved: boolean): V
       { label: "incidentMessage", text: data.incidentMessage ?? data.job?.exceptionMessage },
       { label: "activityName", text: data.activityName },
       { label: "processName", text: data.processDefinitionName },
+      { label: "rootCauseActivityName", text: data.rootCause?.activityName },
     ],
   }
 }
@@ -139,6 +142,7 @@ export function IncidentDetailWidget({
       diagram={
         <section>
           <SectionHeading
+            as="h2"
             title={t("incidentDetail.processFlowTitle")}
             hint={t("incidentDetail.processFlowHint", {
               activity: data.activityName ?? data.activityId,
@@ -177,7 +181,6 @@ export function IncidentDetailWidget({
             <PagedHistoryView
               processInstanceId={data.processInstanceId}
               engine={engine}
-              variant="table"
               incidentActivityIds={resolved || retried ? [] : [data.activityId]}
             />
           ),

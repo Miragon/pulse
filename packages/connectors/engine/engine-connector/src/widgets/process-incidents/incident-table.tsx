@@ -3,9 +3,11 @@ import {
   Button,
   cn,
   PagedListFooter,
-  formatTimestamp,
+  formatClock,
+  formatInstant,
   LogText,
   NamedId,
+  shortId,
   StateLabel,
   Td,
 } from "@miragon/pulse-ui"
@@ -21,7 +23,11 @@ import {
   ViewDataState,
 } from "@miragon/pulse-widget-shell/widgets"
 
-import type { ActivityIncidentsData, IncidentInstance } from "../../view-models.js"
+import type {
+  ActivityIncidentsData,
+  IncidentInstance,
+  IncidentRootCause,
+} from "../../view-models.js"
 import { ENGINE_ACTIVITY_INCIDENTS_DATA } from "../../tool-names.js"
 import { useHandOff, useHandOffsShown, type HandOff } from "../lib/hand-off.js"
 import { useT, type T } from "../../messages/use-t.js"
@@ -33,6 +39,7 @@ import { DoneMark } from "../lib/done-mark.js"
 import { MoreActions } from "../lib/more-actions.js"
 import { WriteError } from "../lib/write-error.js"
 import { instanceName } from "../lib/write-feedback.js"
+import { useNav } from "../navigation.js"
 
 /** Mirrors the feed's server default. */
 const INCIDENT_PAGE_SIZE = 10
@@ -46,7 +53,9 @@ function draftIncidentTicketHandOff(
     intent: "askAi.incident.draftTicket",
     ids: { engine, incidentId: incident.id },
     facts: { incidentType: incident.incidentType, processInstanceId: incident.processInstanceId },
-    untrusted: [{ label: "incidentMessage", text: incident.incidentMessage }],
+    untrusted: [
+      { label: "incidentMessage", text: incident.incidentMessage ?? incident.rootCause?.message },
+    ],
   }
 }
 
@@ -90,25 +99,58 @@ function IncidentElement({ incident }: { incident: IncidentInstance }) {
 }
 
 /**
+ * Where a copy's failure is: its root incident's element and its called instance's short id, a
+ * quiet link that opens that instance (a control of its own, so the row does not open too).
+ */
+function CalledInstanceLink({ cause }: { cause: IncidentRootCause }) {
+  const t = useT()
+  const go = useNav()
+  const id = shortId(cause.processInstanceId)
+  return (
+    <Button
+      type="button"
+      variant="link"
+      size="xs"
+      title={t("procIncTable.openCalledInstance", { id: cause.processInstanceId })}
+      onClick={() =>
+        go({ type: "instance-detail", processInstanceId: cause.processInstanceId, label: id })
+      }
+      className="text-muted-foreground hover:text-foreground shrink-0 px-0 font-normal underline decoration-1 underline-offset-3"
+    >
+      {t("procIncTable.inCalledInstance", { activity: cause.activityName ?? cause.activityId, id })}
+    </Button>
+  )
+}
+
+/**
  * The incident's type as its state label and its message on one line, never a pill stacked above
  * it or a message wrapped into a tall row: the message is pulse-ui's `LogText` line, cut with an
  * ellipsis, its whole text in its title, on a disclosure where it is cut and on the incident's
  * page, and keeps 10rem, so a narrow table scrolls inside its region instead of squeezing it.
- * Under 28rem the type shows its icon alone, its word read out and in its title.
+ * Under 28rem the type shows its icon alone, its word read out and in its title. A copy of a
+ * called instance's incident has no message of its own: its root's shows, followed by where that
+ * one is; an unread root leaves the "—".
  */
 function IncidentMessage({ incident }: { incident: IncidentInstance }) {
   const t = useT()
-  const message = incident.incidentMessage
+  const cause = incident.incidentMessage ? null : (incident.rootCause ?? null)
+  const message = incident.incidentMessage ?? cause?.message ?? null
   return (
     <div className="flex min-w-0 items-center gap-3 @max-md:gap-1.5">
       <StateLabel state="incident" iconOnlyBelow="md" className="shrink-0">
         {incidentTypeWords(incident.incidentType, t)}
       </StateLabel>
-      <div data-incident-message="" className="min-w-0">
-        <LogText text={message} line />
+      <div data-incident-message="" className="flex min-w-0 items-center gap-2">
+        <LogText kind="message" text={message} line className="min-w-0" />
+        {cause && <CalledInstanceLink cause={cause} />}
       </div>
     </div>
   )
+}
+
+/** A row's time: the clock without seconds (its day on another day), the whole instant in its title. */
+function IncidentTime({ timestamp }: { timestamp: string }) {
+  return <span title={formatInstant(timestamp)}>{formatClock(timestamp, { seconds: false })}</span>
 }
 
 /**
@@ -122,7 +164,7 @@ function rowLabel(t: T, incident: IncidentInstance, byInstance: boolean) {
       })
     : t("procIncTable.rowLabelElement", {
         element: incident.activityName ?? incident.activityId ?? incident.id,
-        time: formatTimestamp(incident.incidentTimestamp),
+        time: formatClock(incident.incidentTimestamp, { seconds: false }),
       })
 }
 
@@ -227,8 +269,8 @@ export function IncidentTable({
               <Td>
                 <IncidentMessage incident={incident} />
               </Td>
-              <Td align="right" className="text-muted-foreground text-small">
-                {formatTimestamp(incident.incidentTimestamp)}
+              <Td align="right" className="text-muted-foreground text-small tabular-nums">
+                <IncidentTime timestamp={incident.incidentTimestamp} />
               </Td>
               {actions && (
                 <Td align="right">

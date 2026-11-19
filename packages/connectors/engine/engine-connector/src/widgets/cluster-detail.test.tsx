@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react"
-import { formatNumber, formatTimestamp } from "@miragon/pulse-ui"
+import { formatClock, formatInstant, formatNumber, formatRelativeTime } from "@miragon/pulse-ui"
 import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 import { ClusterDetailWidget, describeCluster } from "./cluster-detail.js"
 import { NavProvider, type NavIntent } from "./navigation.js"
@@ -68,7 +68,7 @@ const Widget = ({ data }: { data: ClusterDetailData }) => (
 )
 
 describe("ClusterDetailWidget (fixture render)", () => {
-  it("renders the cluster header, message, and business-key-first instance rows", async () => {
+  it("renders the cluster header, message, and its incidents named by their instances", async () => {
     render(
       <TestViewHost tools={tools}>
         <Widget data={CLUSTER as never} />
@@ -89,19 +89,29 @@ describe("ClusterDetailWidget (fixture render)", () => {
     expect(screen.getByText("ORDER-4711")).toBeTruthy()
     expect(screen.getByText("a1b2c3d4…")).toBeTruthy()
     expect(screen.getByRole("button", { name: "Copy a1b2c3d4…" })).toBeTruthy()
-    expect(screen.getByText(/Showing 2 of 40 instances/)).toBeTruthy()
+    expect(screen.getByText(/Showing 2 of 40 incidents/)).toBeTruthy()
     expect(screen.getByText("Load more")).toBeTruthy()
 
-    // Each row opens its instance itself (one row convention); its incident by the row's button.
-    expect(screen.getByRole("row", { name: "Instance ORDER-4711" })).toBeTruthy()
-    expect(screen.getByRole("row", { name: "Instance a1b2c3d4…" })).toBeTruthy()
-    expect(screen.getAllByRole("button", { name: /^Open incident detail for / })).toHaveLength(2)
-    expect(screen.queryAllByRole("button", { name: /^Open instance / })).toEqual([])
+    // Each row is one incident and opens it itself (one row convention): no column of buttons.
+    expect(screen.getByRole("row", { name: "Incident of instance ORDER-4711" })).toBeTruthy()
+    expect(screen.getByRole("row", { name: "Incident of instance a1b2c3d4…" })).toBeTruthy()
+    expect(screen.queryByText("Actions", { selector: "th" })).toBeNull()
+    expect(screen.queryAllByRole("button", { name: /incident/i })).toEqual([])
     // The scan holds the whole cluster: no capped-list note.
     expect(screen.queryByText(/The list covers the newest/)).toBeNull()
   })
 
-  it("opens a row's instance on a click or Enter, its incident by the button, which opens no row", () => {
+  it("names the table after its incidents, the one landmark of that name", () => {
+    render(
+      <TestViewHost>
+        <Widget data={CLUSTER as never} />
+      </TestViewHost>,
+    )
+    expect(screen.getByRole("heading", { level: 2, name: "Incidents" })).toBeTruthy()
+    expect(screen.getAllByRole("region", { name: "Incidents" })).toHaveLength(1)
+  })
+
+  it("opens a row's incident on a click or Enter and copies the incident's id", () => {
     const go = vi.fn<(intent: NavIntent) => void>()
     render(
       <TestViewHost tools={tools}>
@@ -110,35 +120,36 @@ describe("ClusterDetailWidget (fixture render)", () => {
         </NavProvider>
       </TestViewHost>,
     )
-    const row = screen.getByRole("row", { name: "Instance ORDER-4711" })
+    const row = screen.getByRole("row", { name: "Incident of instance ORDER-4711" })
     fireEvent.click(within(row).getByText("ORDER-4711"))
     fireEvent.keyDown(row, { key: "Enter" })
-    fireEvent.click(within(row).getByRole("button", { name: /^Open incident detail for / }))
     const [first] = CLUSTER.incidents
     expect(go.mock.calls.map(([intent]) => intent)).toEqual([
-      { type: "instance-detail", processInstanceId: first.processInstanceId, label: "ORDER-4711" },
-      { type: "instance-detail", processInstanceId: first.processInstanceId, label: "ORDER-4711" },
+      { type: "incident-detail", incidentId: first.incidentId, label: undefined },
       { type: "incident-detail", incidentId: first.incidentId, label: undefined },
     ])
   })
 
-  it("has no column of actions where no row has an incident to open", () => {
+  it("opens nothing from a row the engine reported without an incident id", () => {
+    const go = vi.fn<(intent: NavIntent) => void>()
     const noIncidents: ClusterDetailData = {
       ...CLUSTER,
       incidents: CLUSTER.incidents.map((row) => ({ ...row, incidentId: "" })),
     }
     render(
       <TestViewHost tools={tools}>
-        <Widget data={noIncidents as never} />
+        <NavProvider value={go}>
+          <Widget data={noIncidents as never} />
+        </NavProvider>
       </TestViewHost>,
     )
-    expect(screen.queryByText("Actions", { selector: "th" })).toBeNull()
-    expect(screen.getByRole("row", { name: "Instance ORDER-4711" })).toBeTruthy()
-    expect(screen.queryAllByRole("button", { name: /^Open incident detail for / })).toEqual([])
+    fireEvent.click(screen.getByText("ORDER-4711"))
+    expect(go).not.toHaveBeenCalled()
   })
 
-  // #322 U12, U13: first seen is a point in time on the head's line, not a KPI tile.
-  it("names the processes and the first sighting in the head's line", () => {
+  // #322 U12, U13: first seen is a point in time on the head's line, not a KPI tile; the
+  // affected count is the KPI's alone.
+  it("names the processes and the first sighting in the head's line, its instant in its title", () => {
     const named: ClusterDetailData = {
       ...CLUSTER,
       processDefinitionKeys: ["shipping", "returns"],
@@ -153,24 +164,94 @@ describe("ClusterDetailWidget (fixture render)", () => {
       </TestViewHost>,
     )
 
-    const firstSeen = formatTimestamp("2026-06-11T08:00:00.000Z")
-    expect(
-      screen.getByText(`40 affected · in Ship order, returns · first seen ${firstSeen}`),
-    ).toBeTruthy()
+    expect(screen.getByText("in Ship order, returns")).toBeTruthy()
+    const firstSeen = screen.getByText(/^first seen /)
+    expect(firstSeen.textContent).toBe(
+      `first seen ${formatRelativeTime("2026-06-11T08:00:00.000Z")}`,
+    )
+    expect(firstSeen.getAttribute("title")).toBe(formatInstant("2026-06-11T08:00:00.000Z"))
+    expect(screen.queryByText(/affected ·/)).toBeNull()
     expect(screen.queryByText("First seen")).toBeNull()
-    // Two processes: the rows say which one each instance runs on.
+    // Two processes: the rows say which one each incident's instance runs on, and the bar offers
+    // no single process to open.
     expect(screen.getByText("Process", { selector: "th" })).toBeTruthy()
     expect(screen.getAllByText("Ship order")).toHaveLength(2)
+    expect(screen.queryByRole("button", { name: "View process" })).toBeNull()
   })
 
-  it("leaves the process column out when the cluster spans one process", () => {
+  it("leaves the process column out when the cluster spans one process, which the bar opens", () => {
+    const go = vi.fn<(intent: NavIntent) => void>()
+    render(
+      <TestViewHost>
+        <NavProvider value={go}>
+          <Widget data={CLUSTER as never} />
+        </NavProvider>
+      </TestViewHost>,
+    )
+    expect(screen.queryByText("Process", { selector: "th" })).toBeNull()
+    expect(screen.getByText("in shipping")).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "View process" }))
+    expect(go).toHaveBeenCalledWith({
+      type: "process-detail",
+      processDefinitionKey: "shipping",
+      label: undefined,
+    })
+  })
+
+  it("opens no process the scan cannot name", () => {
+    render(
+      <TestViewHost>
+        <Widget data={{ ...CLUSTER, processDefinitionKeys: ["(unknown)"] }} />
+      </TestViewHost>,
+    )
+    expect(screen.queryByRole("button", { name: "View process" })).toBeNull()
+  })
+
+  it("stamps when it was read at the bar's end, never among the facts", () => {
+    const { container } = render(
+      <TestViewHost>
+        <Widget data={CLUSTER as never} />
+      </TestViewHost>,
+    )
+    const stamp = container.querySelector('[data-slot="view-bar-freshness"]')
+    expect(stamp?.textContent).toBe(
+      `As of ${formatClock("2026-06-11T14:05:00.000Z", { seconds: false })}`,
+    )
+    expect(container.querySelector('[data-slot="view-bar-facts"]')?.textContent).not.toMatch(
+      /As of/,
+    )
+  })
+
+  it("shows a row's time as a clock without seconds, the whole instant in its title", () => {
     render(
       <TestViewHost>
         <Widget data={CLUSTER as never} />
       </TestViewHost>,
     )
-    expect(screen.queryByText("Process", { selector: "th" })).toBeNull()
-    expect(screen.getByText(/^40 affected · in shipping · first seen /)).toBeTruthy()
+    const row = screen.getByRole("row", { name: "Incident of instance ORDER-4711" })
+    const time = within(row).getByTitle(formatInstant("2026-06-11T14:00:00.000Z"))
+    expect(time.textContent).toBe(formatClock("2026-06-11T14:00:00.000Z", { seconds: false }))
+  })
+
+  it("says what the search finds: a business key or an id, or an id alone where no row has a key", () => {
+    const { unmount } = render(
+      <TestViewHost>
+        <Widget data={CLUSTER as never} />
+      </TestViewHost>,
+    )
+    expect(screen.getByRole("searchbox", { name: "Filter by business key or ID" })).toBeTruthy()
+    unmount()
+    const called: ClusterDetailData = {
+      ...CLUSTER,
+      incidents: CLUSTER.incidents.map((row) => ({ ...row, businessKey: null })),
+    }
+    render(
+      <TestViewHost>
+        <Widget data={called as never} />
+      </TestViewHost>,
+    )
+    const search = screen.getByRole("searchbox", { name: "Filter by ID" })
+    expect(search.getAttribute("placeholder")).toBe("Filter by ID…")
   })
 
   it("renders a cluster larger than the scan as a lower bound, its unknowns as —", () => {
@@ -193,7 +274,7 @@ describe("ClusterDetailWidget (fixture render)", () => {
     // render in the runtime's locale; the matcher reads the no-break space as a space).
     const atLeast = `≥ ${formatNumber(1000)}`
     expect(screen.getByText(atLeast)).toBeTruthy()
-    expect(screen.getByText(`${atLeast} affected · in shipping`)).toBeTruthy()
+    expect(screen.getByText("in shipping")).toBeTruthy()
     expect(screen.getAllByText("—")).toHaveLength(2)
     expect(screen.queryByText("0")).toBeNull()
     // A first sighting the scan cannot vouch for is left out, never guessed.

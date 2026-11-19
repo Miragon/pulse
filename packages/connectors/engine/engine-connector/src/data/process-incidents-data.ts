@@ -27,6 +27,7 @@ import {
 import { countOf, DAY_MS, optional, rowsOf } from "./engine-reads.js"
 import {
   fetchBusinessKeys,
+  fetchRootCauses,
   groupBy,
   scanFacts,
   scanIncidents,
@@ -52,7 +53,8 @@ export async function buildProcessIncidentsData(
   options: ProcessIncidentsOptions,
 ): Promise<ProcessIncidentsData> {
   const key = options.processDefinitionKey
-  const cutoffMs = Date.now() - DAY_MS
+  const nowMs = Date.now()
+  const cutoffMs = nowMs - DAY_MS
   const byKey = { processDefinitionKeyIn: key }
   const [definition, runningInstances, failedJobs, incidentCount, last24hCount, scan] =
     await Promise.all([
@@ -79,10 +81,11 @@ export async function buildProcessIncidentsData(
 
   const diagramIds = bpmnXml ? new Set(bpmnActivityIds(bpmnXml)) : null
   const diagramNames = readBpmnNames(bpmnXml ?? "")
-  const activities = toActivities(activityCounts, scan, {
-    names: diagramNames.elements,
-    cutoffMs,
-  })
+  const activities = await withRootCauseMessages(
+    client,
+    scan,
+    toActivities(activityCounts, scan, { names: diagramNames.elements, cutoffMs }),
+  )
   return {
     processDefinitionKey: key,
     // The engine's name, else the diagram's (a Modeler pool around an unnamed process).
@@ -107,6 +110,7 @@ export async function buildProcessIncidentsData(
     latestIncident: latestEngineDate(scan.rows.map((r) => r.incidentTimestamp)),
     activities,
     siblingsWithIncidents,
+    fetchedAt: new Date(nowMs).toISOString(),
     engineVendor: options.provider.branding.displayName,
   }
 }
@@ -135,6 +139,31 @@ function toActivities(
       }
     })
     .sort((a, b) => b.incidentCount - a.incidentCount)
+}
+
+/**
+ * ENRICHMENT: a call activity's group holds copies of its called instances' incidents, which carry
+ * no message of their own, and this key's scan holds none of their roots. Its newest copy's root
+ * is read (`fetchRootCauses`, bounded) for the group's message; an unread root leaves it null, so
+ * the group says nothing rather than a guess.
+ */
+async function withRootCauseMessages(
+  client: Client,
+  scan: IncidentScan,
+  activities: ProcessIncidentsActivity[],
+): Promise<ProcessIncidentsActivity[]> {
+  const newest = groupBy(scan.rows, (r) => r.activityId)
+  const copies = activities
+    .filter((a) => a.representativeMessage === null)
+    .map((a) => newest.get(a.activityId)?.[0])
+    .filter((row): row is IncidentRow => row !== undefined)
+  if (copies.length === 0) return activities
+  const roots = await fetchRootCauses(client, copies)
+  return activities.map((a) => {
+    const row = newest.get(a.activityId)?.[0]
+    const root = a.representativeMessage === null && row ? roots.get(row.id) : undefined
+    return root?.message ? { ...a, representativeMessage: root.message } : a
+  })
 }
 
 /** A complete scan already holds every incident; otherwise sum each incident-carrying version's statistics. */
@@ -192,7 +221,10 @@ export type ActivityIncidentsArgs = ActivityIncidentsFilters & PagingArgs
 
 const ACTIVITY_INCIDENTS_PAGE = 10
 
-/** Each row links to its OWN definition version, so no definition lookup runs per page (N67). */
+/**
+ * Each row links to its OWN definition version, so no definition lookup runs per page (N67). A
+ * copy's row (a call activity's) carries its root incident in the called instance (enrichment).
+ */
 export async function buildActivityIncidentsData(
   client: Client,
   options: {
@@ -218,17 +250,20 @@ export async function buildActivityIncidentsData(
     }).then((rows) => rowsOf<IncidentRow>(rows)),
     getIncidentsCount({ client, query }).then(countOf),
   ])
-  // Enrichment: a failed read names the rows by their short ids.
-  const businessKeys = await optional(
-    fetchBusinessKeys(
-      client,
-      raw.map((r) => r.processInstanceId),
+  // Enrichment: a failed read names the rows by their short ids, a copy's message "—".
+  const [businessKeys, rootCauses] = await Promise.all([
+    optional(
+      fetchBusinessKeys(
+        client,
+        raw.map((r) => r.processInstanceId),
+      ),
     ),
-  )
+    fetchRootCauses(client, raw),
+  ])
   return {
     processDefinitionKey: options.processDefinitionKey,
     activityId: options.activityId,
-    incidents: raw.map((r) => toIncidentInstance(r, options, businessKeys)),
+    incidents: raw.map((r) => toIncidentInstance(r, options, businessKeys, rootCauses)),
     totalCount,
   }
 }

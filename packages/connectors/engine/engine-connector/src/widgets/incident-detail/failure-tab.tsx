@@ -4,16 +4,14 @@ import {
   AlertDescription,
   Button,
   Facts,
-  cn,
   formatNumber,
   formatTimestamp,
   Icon,
   LogText,
-  TEXT_BLOCK_FRAME,
   type Fact,
   SectionHeading,
 } from "@miragon/pulse-ui"
-import { HandOffButton, IdText } from "@miragon/pulse-widget-shell/widgets"
+import { HandOffButton, IdText, TextBlock } from "@miragon/pulse-widget-shell/widgets"
 import { Check, RotateCcw } from "lucide-react"
 
 import type {
@@ -78,8 +76,9 @@ function RetriesLeft({ retries }: { retries: number }) {
 
 /**
  * The incident's key facts as the webview's incident card lists them, never a KPI strip whose
- * tiles cut "10/10/202" (#322 U12): when, its retries, its job and its own id (each copyable),
- * how much history it has.
+ * tiles cut "10/10/202" (#322 U12): when (to the second, where the order of failures counts), where
+ * a delegated incident's failure is (its called instance), its retries, its job and its own id
+ * (each copyable). The history counts in its tab's footer.
  */
 function IncidentFacts({ data }: { data: IncidentDetailData }) {
   const t = useT()
@@ -90,6 +89,13 @@ function IncidentFacts({ data }: { data: IncidentDetailData }) {
       value: formatTimestamp(data.incidentTimestamp),
     },
   ]
+  if (data.rootCause) {
+    facts.push({
+      id: "located",
+      label: t("incidentFailure.factLocatedIn"),
+      value: <IdText value={data.rootCause.processInstanceId} />,
+    })
+  }
   if (data.job) {
     facts.push(
       {
@@ -105,13 +111,6 @@ function IncidentFacts({ data }: { data: IncidentDetailData }) {
     label: t("incidentFailure.factIncident"),
     value: <IdText value={data.incidentId} />,
   })
-  if (data.historyTotalCount !== null) {
-    facts.push({
-      id: "history",
-      label: t("incidentFailure.factHistory"),
-      value: <span className="tabular-nums">{formatNumber(data.historyTotalCount)}</span>,
-    })
-  }
   return <Facts facts={facts} />
 }
 
@@ -138,7 +137,7 @@ export function FailureSummary({
         title={t("incidentFailure.errorMessageTitle")}
         className="mb-0"
       />
-      <LogText text={errorText(data)} />
+      <LogText kind="message" size="body" text={errorText(data)} />
       <IncidentFacts data={data} />
       <div className="flex flex-wrap items-center gap-2">
         {retried || resolved ? (
@@ -233,15 +232,12 @@ function EngineText({ text, none }: { text: IncidentDetailJob["stacktrace"]; non
       </Alert>
     )
   }
+  // To read with the keyboard and to copy whole, on a page too: copying is no write.
   return (
-    <pre
-      aria-label={t("incidentFailure.stacktraceTitle")}
-      className={cn(
-        "border-border bg-card text-foreground text-small p-gutter rounded-md border font-mono leading-relaxed",
-        TEXT_BLOCK_FRAME,
-      )}
-    >
-      {text}
-    </pre>
+    <TextBlock
+      text={text}
+      label={t("incidentFailure.stacktraceTitle")}
+      copyLabel={t("incidentFailure.copyStacktrace")}
+    />
   )
 }

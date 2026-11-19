@@ -38,7 +38,7 @@ export function InstanceDiagramSection({
     <section>
       {diagramDefinitionId && (
         <>
-          <SectionHeading title={t("instanceDetail.sectionDiagram")} />
+          <SectionHeading as="h2" title={t("instanceDetail.sectionDiagram")} />
           <BpmnDiagram
             definitionId={diagramDefinitionId}
             engineId={engineId}
