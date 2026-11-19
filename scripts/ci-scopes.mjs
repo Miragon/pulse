@@ -42,8 +42,6 @@ export const PATH_RULES = [
   { pattern: /^\.github\//, scopes: ["typescript"] },
   // Read by the CLI's tests and bundled into the CLI as its guide topics.
   { pattern: /^docs\/cli\//, scopes: ["typescript", "brand", "cli"] },
-  // Read by the token drift test (pulse-ui).
-  { pattern: /^docs\/\.vitepress\/miragon\//, scopes: ["typescript", "brand"] },
   // Read by the token drift scan (pulse-ui).
   { pattern: /^docs\/.*\.css$/, scopes: ["brand", "typescript"] },
   // Linted by lint:configs.
@@ -88,7 +86,8 @@ export const PATH_RULES = [
 export const ALSO_READ_BY = [
   { pattern: /^apps\/cli\/README\.md$/, scopes: ["brand"] },
   // The docs package's manifest: the CLI bundles pages of it, so its licence test reads its
-  // name and licence.
+  // name and licence; it pins the docs kit (@miragon/docs-starter), whose tokens the token
+  // drift test (pulse-ui) reads.
   { pattern: /^docs\/package\.json$/, scopes: ["cli", "typescript"] },
   // The one Camunda 7 REST spec, its patches and its route table, read as files: c7-client's
   // generate (the SDK, which the MCP server and the template build on) and the CLI's catalog

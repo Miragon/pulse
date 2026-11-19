@@ -641,7 +641,7 @@ describe("what the guard reads", () => {
     "CHANGELOG.md",
     "apps/cli/CHANGELOG.md",
     "packages/core/widget-shell/CHANGELOG.md",
-    "docs/.vitepress/miragon/README.md",
+    "docs/.vitepress/theme/README.md",
     "docs/node_modules/vitepress/README.md",
     "apps/vscode/node_modules/foo/README.md",
     "packages/core/widget-shell/node_modules/x/README.md",

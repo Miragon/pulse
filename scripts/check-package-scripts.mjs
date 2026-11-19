@@ -473,8 +473,8 @@ export function checkFilters(files) {
   ])
 }
 
-/** Release history, generated and vendored files: no filter in them runs or is copied. */
-const UNFILTERED = /^(?:CHANGELOG\.md|pnpm-lock\.yaml|docs\/\.vitepress\/miragon\/)/
+/** Release history and generated files: no filter in them runs or is copied. */
+const UNFILTERED = /^(?:CHANGELOG\.md|pnpm-lock\.yaml)/
 
 /** Every text file git tracks or would add, as { file, text }. */
 export function repoTextFiles(root) {

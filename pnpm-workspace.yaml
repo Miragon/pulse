@@ -45,8 +45,8 @@ overrides:
   minimatch: "^11.0.1"
   # The docs site (docs/): VitePress 1.6.4 asks for vite ^5.4.14, below the fix
   # for the server.fs.deny bypass. An exact pin, not a range: it is the vite the
-  # Miragon docs kit (docs/.vitepress/miragon/) is built and tested with, and it
-  # moves only with a release of Miragon/corporate-identity (skill docs-site).
+  # Miragon docs kit (@miragon/docs-starter) is built and tested with, and it
+  # moves only with a release of the kit (Miragon/brand-toolbox, kits/docs/example).
   "vitepress>vite": 6.4.5
 
 peerDependencyRules:
