@@ -1,6 +1,6 @@
 {
   "name": "@miragon/pulse-profile",
-  "version": "0.27.1",
+  "version": "0.28.0",
   "description": "One profile format for the Pulse CLI, Pulse for VS Code and the Pulse MCP server: a parser that takes the text of a profile file and returns a verdict per profile as data, the JSON Schema for editors and the shared fixtures. No runtime dependency.",
   "license": "MIT",
   "keywords": [

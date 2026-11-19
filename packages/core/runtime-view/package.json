@@ -1,7 +1,7 @@
 {
   "name": "@miragon/pulse-runtime-view",
   "private": true,
-  "version": "0.27.1",
+  "version": "0.28.0",
   "description": "The engine-neutral runtime view of Pulse's editor hosts (VS Code, Orca) over the engine contract of @miragon/pulse-engine-core: the ports a host and an engine family plug in, the core, the protocol, the webview, the local model reader and the host rules every editor host shares.",
   "license": "MIT",
   "repository": {
