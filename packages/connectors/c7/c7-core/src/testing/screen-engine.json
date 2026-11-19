@@ -1,0 +1,318 @@
+{
+  "about": "The answers of one engine of the Camunda 7 REST family to the reads of the screens Pulse's surfaces share, taken from the answers recorded once from the conformance world of @miragon/pulse-engine-core/testing seeded by seedC7World into operaton/operaton:2.1.5 at history level full (the recording of c7-core's board engine, whose reads include the engine screen's), and the screens every C7 wire of Pulse builds from them at asOf, in the JSON form of @miragon/pulse-screens.",
+  "engine": "conformance",
+  "asOf": "2026-11-19T09:00:00.000Z",
+  "answers": [
+    {
+      "method": "GET",
+      "path": "/engine-rest/telemetry/data",
+      "answer": {
+        "installation": "d1517869-a187-4e11-9a56-4a95c91b1115",
+        "product": {
+          "name": "Operaton BPM Runtime",
+          "version": "2.1.5",
+          "edition": "community",
+          "internals": {
+            "database": {
+              "vendor": "H2",
+              "version": "2.4.240 (2025-09-22)"
+            },
+            "commands": {
+              "AcquireJobsCmd": {
+                "count": 15
+              },
+              "SetTaskVariablesCmd": {
+                "count": 1
+              },
+              "AuthorizationQueryImpl": {
+                "count": 22
+              },
+              "CreateGroupCmd": {
+                "count": 1
+              },
+              "DbGroupQueryImpl": {
+                "count": 1
+              },
+              "CreateGroupQueryCmd": {
+                "count": 1
+              },
+              "IncidentQueryImpl": {
+                "count": 1
+              },
+              "BootstrapEngineCommand": {
+                "count": 1
+              },
+              "DefaultHistoryLevelSetupCommand": {
+                "count": 1
+              },
+              "SaveFilterCmd": {
+                "count": 1
+              },
+              "CreateFilterCmd": {
+                "count": 1
+              },
+              "TaskQueryImpl": {
+                "count": 1
+              },
+              "CreateUserQueryCmd": {
+                "count": 1
+              },
+              "DbUserQueryImpl": {
+                "count": 1
+              },
+              "SaveGroupCmd": {
+                "count": 1
+              },
+              "ExecuteJobsCmd": {
+                "count": 6
+              },
+              "SaveUserCmd": {
+                "count": 1
+              },
+              "StartProcessInstanceCmd": {
+                "count": 5
+              },
+              "SaveAuthorizationCmd": {
+                "count": 22
+              },
+              "DeployCmd": {
+                "count": 4
+              },
+              "FailedJobListener": {
+                "count": 6
+              },
+              "CreateMembershipCmd": {
+                "count": 1
+              },
+              "FailedJobListener_FailedJobListenerCmd": {
+                "count": 6
+              },
+              "GetTableMetaDataCmd": {
+                "count": 1
+              },
+              "CreateUserCmd": {
+                "count": 1
+              },
+              "FilterQueryImpl": {
+                "count": 1
+              },
+              "HistoryCleanupCmd": {
+                "count": 1
+              },
+              "SchemaOperationsProcessEngineBuild": {
+                "count": 1
+              }
+            },
+            "metrics": {
+              "executed-decision-elements": {
+                "count": 0
+              },
+              "flow-node-instances": {
+                "count": 20
+              },
+              "decision-instances": {
+                "count": 0
+              },
+              "process-instances": {
+                "count": 5
+              }
+            },
+            "webapps": [],
+            "jdk": {
+              "version": "17.0.20",
+              "vendor": "Alpine"
+            },
+            "application-server": {
+              "vendor": "Apache Tomcat",
+              "version": "Apache Tomcat/11.0.26"
+            },
+            "operaton-integration": ["spring-boot-starter", "operaton-bpm-run"],
+            "data-collection-start-date": "2026-11-16T11:01:33.363+0000"
+          }
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/process-definition/statistics",
+      "answer": [
+        {
+          "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+          "id": "pulse-dispatch:1:178b68ea-e1ad-11f1-99ba-be7fd0075b83",
+          "instances": 1,
+          "failedJobs": 0,
+          "incidents": [],
+          "definition": {
+            "id": "pulse-dispatch:1:178b68ea-e1ad-11f1-99ba-be7fd0075b83",
+            "key": "pulse-dispatch",
+            "category": "http://bpmn.io/schema/bpmn",
+            "description": null,
+            "name": "Dispatch order",
+            "version": 1,
+            "resource": "dispatch.bpmn",
+            "deploymentId": "17880d88-e1ad-11f1-99ba-be7fd0075b83",
+            "diagram": null,
+            "suspended": false,
+            "tenantId": null,
+            "versionTag": null,
+            "historyTimeToLive": null,
+            "startableInTasklist": true
+          }
+        },
+        {
+          "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+          "id": "pulse-label:1:1774faae-e1ad-11f1-99ba-be7fd0075b83",
+          "instances": 1,
+          "failedJobs": 0,
+          "incidents": [],
+          "definition": {
+            "id": "pulse-label:1:1774faae-e1ad-11f1-99ba-be7fd0075b83",
+            "key": "pulse-label",
+            "category": "http://bpmn.io/schema/bpmn",
+            "description": null,
+            "name": "Print label",
+            "version": 1,
+            "resource": "label.bpmn",
+            "deploymentId": "1760131c-e1ad-11f1-99ba-be7fd0075b83",
+            "diagram": null,
+            "suspended": false,
+            "tenantId": null,
+            "versionTag": null,
+            "historyTimeToLive": null,
+            "startableInTasklist": true
+          }
+        },
+        {
+          "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+          "id": "pulse-order:1:1780e192-e1ad-11f1-99ba-be7fd0075b83",
+          "instances": 2,
+          "failedJobs": 0,
+          "incidents": [],
+          "definition": {
+            "id": "pulse-order:1:1780e192-e1ad-11f1-99ba-be7fd0075b83",
+            "key": "pulse-order",
+            "category": "http://bpmn.io/schema/bpmn",
+            "description": null,
+            "name": "Order fulfillment",
+            "version": 1,
+            "resource": "order.bpmn",
+            "deploymentId": "177a51e0-e1ad-11f1-99ba-be7fd0075b83",
+            "diagram": null,
+            "suspended": false,
+            "tenantId": null,
+            "versionTag": null,
+            "historyTimeToLive": null,
+            "startableInTasklist": true
+          }
+        },
+        {
+          "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+          "id": "pulse-order:2:178638c6-e1ad-11f1-99ba-be7fd0075b83",
+          "instances": 1,
+          "failedJobs": 0,
+          "incidents": [],
+          "definition": {
+            "id": "pulse-order:2:178638c6-e1ad-11f1-99ba-be7fd0075b83",
+            "key": "pulse-order",
+            "category": "http://bpmn.io/schema/bpmn",
+            "description": null,
+            "name": "Order fulfillment",
+            "version": 2,
+            "resource": "order.bpmn",
+            "deploymentId": "17830474-e1ad-11f1-99ba-be7fd0075b83",
+            "diagram": null,
+            "suspended": false,
+            "tenantId": null,
+            "versionTag": null,
+            "historyTimeToLive": null,
+            "startableInTasklist": true
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/process-instance",
+      "query": {
+        "firstResult": "0",
+        "maxResults": "500",
+        "sortBy": "instanceId",
+        "sortOrder": "asc",
+        "withIncident": "true"
+      },
+      "answer": [
+        {
+          "links": [],
+          "id": "17aea864-e1ad-11f1-99ba-be7fd0075b83",
+          "definitionId": "pulse-order:1:1780e192-e1ad-11f1-99ba-be7fd0075b83",
+          "businessKey": "ORD-1002",
+          "caseInstanceId": null,
+          "ended": false,
+          "suspended": false,
+          "tenantId": null,
+          "definitionKey": "pulse-order"
+        },
+        {
+          "links": [],
+          "id": "17bdeac5-e1ad-11f1-99ba-be7fd0075b83",
+          "definitionId": "pulse-dispatch:1:178b68ea-e1ad-11f1-99ba-be7fd0075b83",
+          "businessKey": "DSP-3001",
+          "caseInstanceId": null,
+          "ended": false,
+          "suspended": false,
+          "tenantId": null,
+          "definitionKey": "pulse-dispatch"
+        },
+        {
+          "links": [],
+          "id": "17befc3d-e1ad-11f1-99ba-be7fd0075b83",
+          "definitionId": "pulse-label:1:1774faae-e1ad-11f1-99ba-be7fd0075b83",
+          "businessKey": null,
+          "caseInstanceId": null,
+          "ended": false,
+          "suspended": false,
+          "tenantId": null,
+          "definitionKey": "pulse-label"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "engine": {
+      "engine": "conformance",
+      "asOf": "2026-11-19T09:00:00.000Z",
+      "info": {
+        "product": "Operaton BPM Runtime",
+        "version": "2.1.5"
+      },
+      "processes": [
+        {
+          "bpmnProcessId": "pulse-order",
+          "name": "Order fulfillment",
+          "latestVersion": 2,
+          "running": 3,
+          "withIncident": 1
+        },
+        {
+          "bpmnProcessId": "pulse-dispatch",
+          "name": "Dispatch order",
+          "latestVersion": 1,
+          "running": 1,
+          "withIncident": 1
+        },
+        {
+          "bpmnProcessId": "pulse-label",
+          "name": "Print label",
+          "latestVersion": 1,
+          "running": 1,
+          "withIncident": 1
+        }
+      ],
+      "totals": {
+        "processes": 3,
+        "running": 5,
+        "withIncident": 3
+      }
+    }
+  }
+}

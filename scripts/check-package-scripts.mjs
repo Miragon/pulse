@@ -105,6 +105,12 @@ export const MUTATED_PACKAGES = {
     "surface reads or refuses, and its builder the numbers each widget shows over the engine " +
     "contract, so a surviving mutant is a wrong refusal or a wrong number on every board; its " +
     "format and builder are mutated, not its barrels or fixtures",
+  "packages/core/screens":
+    "owner decision 2026-11-19 (D8 as amended, apps/vscode/docs/adr/ui-foundation.md): the " +
+    "screens' builder decides the numbers of the screens the web app and the editors share, and " +
+    "its format the rules a surface applies to them (a process list's filter, the sums across " +
+    "engines), so a surviving mutant is a wrong number on two surfaces, the board package's " +
+    "criterion; its format and builder are mutated, not its barrels or ./testing",
   "packages/core/widget-shell":
     "owner decisions 2026-11-16 to 2026-11-18: the web app's server rules (src/web: the seal of " +
     "its cookies, the cookies, the return path, the CSRF check, the forward of a page's call, " +

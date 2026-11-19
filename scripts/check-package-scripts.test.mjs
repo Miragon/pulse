@@ -382,10 +382,11 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
     }
   })
 
-  it("the real map lists c7-core, the transport, engine-core's rules, the profile format, the board format with its builder, the web app's server rules with the gate's JWT verifier and c8-core's rules, each with the owner's decision", () => {
+  it("the real map lists c7-core, the transport, engine-core's rules, the profile format, the board format with its builder, the screens with their builder, the web app's server rules with the gate's JWT verifier and c8-core's rules, each with the owner's decision", () => {
     const engineCore = "packages/connectors/engine/engine-core"
     const profile = "packages/core/profile"
     const board = "packages/core/board"
+    const screens = "packages/core/screens"
     const widgetShell = "packages/core/widget-shell"
     const c8Core = "packages/connectors/c8/c8-core"
     assert.deepEqual(Object.keys(MUTATED_PACKAGES), [
@@ -394,6 +395,7 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
       engineCore,
       profile,
       board,
+      screens,
       widgetShell,
       c8Core,
     ])
@@ -420,6 +422,14 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
         "surface reads or refuses, and its builder the numbers each widget shows over the engine " +
         "contract, so a surviving mutant is a wrong refusal or a wrong number on every board; its " +
         "format and builder are mutated, not its barrels or fixtures",
+    )
+    assert.equal(
+      MUTATED_PACKAGES[screens],
+      "owner decision 2026-11-19 (D8 as amended, apps/vscode/docs/adr/ui-foundation.md): the " +
+        "screens' builder decides the numbers of the screens the web app and the editors share, " +
+        "and its format the rules a surface applies to them (a process list's filter, the sums " +
+        "across engines), so a surviving mutant is a wrong number on two surfaces, the board " +
+        "package's criterion; its format and builder are mutated, not its barrels or ./testing",
     )
     assert.equal(
       MUTATED_PACKAGES[widgetShell],
@@ -464,6 +474,18 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
   it("the board's config mutates its format and builder without the tests and the builder's barrel, as its reason says", () => {
     const config = JSON.parse(
       readFileSync(path.join(repoRoot, "packages/core/board/stryker.config.json"), "utf8"),
+    )
+    assert.deepEqual(config.mutate, [
+      "src/format/**/*.ts",
+      "src/builder/**/*.ts",
+      "!src/**/*.test.ts",
+      "!src/builder/index.ts",
+    ])
+  })
+
+  it("the screens' config mutates their format and builder without the tests, the barrels and ./testing, as its reason says", () => {
+    const config = JSON.parse(
+      readFileSync(path.join(repoRoot, "packages/core/screens/stryker.config.json"), "utf8"),
     )
     assert.deepEqual(config.mutate, [
       "src/format/**/*.ts",

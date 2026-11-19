@@ -61,6 +61,7 @@ engines.
 | `packages/core/runtime-view/`                  | The runtime view both editor hosts compose (`@miragon/pulse-runtime-view`, private) over the contract of `engine-core`: the ports a host and an engine family plug in, the core, the protocol, the webview (React on `@miragon/pulse-ui`), the local model reader and the host kit (targets from `.pulse.json` and the CLI's user config, policies, the write audit)                                                                                                                                                       |
 | `packages/core/profile/`                       | The one profile format of the CLI, the editor hosts and the MCP server (npm `@miragon/pulse-profile`): a parser from a file's text to a verdict per profile as data (a code and a key, never a value), the credential policy by where the file comes from, `refusalsOn` for what a reader cannot serve, the JSON Schema (`schema/pulse.schema.json`) and the shared fixtures (`/testing`); no runtime dependency                                                                                                           |
 | `packages/core/board/`                         | The board file format and builder (npm `@miragon/pulse-board`): `BoardParser` (a board with notes and refused widgets, or a file's problems as codes), `BoardProblems`, `BoardTiles`, `BoardVocabulary`, `StarterBoard`, the JSON Schema, `/testing` fixtures and figures, `/builder` (numbers over seven engine-core reads, an optional peer; no text), a built board's JSON form (`BoardData`; `BoardJson.of` in `/builder`); read by the editors and the engine module; no runtime dependency; VS Code's house rules    |
+| `packages/core/screens/`                       | The screens the web app and the editors share, as data (npm `@miragon/pulse-screens`): their JSON forms (`EngineScreenData`) and the targets a screen opens (`ScreenTarget`), the pure rules a surface applies to them (`ProcessFilter`, `FleetSums`), `/builder` (`EngineScreen` over two engine-core reads, an optional peer, no text, and `ScreenJson`), `/testing` (the kit world's screens, `ScreenFigures`); built by the runtime view's core; no runtime dependency; VS Code's house rules                          |
 | `packages/core/blocks/`                        | Pulse's building blocks (npm `@miragon/pulse-blocks`), React on `@miragon/pulse-ui` with props, callbacks and the slots a surface brings (`Table`, `Id`, `Diagram`, `onOpen`): the tiles of a board over a built board's JSON form (`BoardGrid`, `BoardTile`), worded in en and de (`useProblemWords`, `ProblemList`); rendered by the runtime view's webview and the cockpit's board route; no React context of its own                                                                                                   |
 | `packages/core/http/`                          | The one engine transport of the MCP server, the CLI and the editor hosts' adapters (npm `@miragon/pulse-http`) over the `fetch` each hands in: a deadline to the last byte, no redirects, a 64 MiB cap, one retry after a 401, reasons as data, lossless JSON, masking, the path value rule; the OAuth client (`/oauth`); conformance cases, fake fetch (`/testing`), loopback engine (`/testing/loopback`); no dependency                                                                                                 |
 | `playground/`                                  | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
@@ -128,7 +129,10 @@ Three axes decide where code goes, and they stay apart:
   the runtime view's core, ports, model reader and host kit stay framework-free. The board format
   and the board builder go into a published package, `@miragon/pulse-board`
   (`packages/core/board`), which holds both with their dependency rules since 2026-11-15 (the
-  builder in `@miragon/pulse-board/builder`, whose model the runtime view renders); a shared building block
+  builder in `@miragon/pulse-board/builder`, whose model the runtime view renders); the builders of
+  the screens the web app and the editors share go into a published package of their own,
+  `@miragon/pulse-screens` (`packages/core/screens`, D8 as amended on 2026-11-19), whose engine
+  screen the runtime view's core builds since 2026-11-19; a shared building block
   goes into pulse-ui (a primitive) or into a shared package created with the first engine block
   two surfaces render, executed for boards on 2026-11-16: `@miragon/pulse-blocks`
   (`packages/core/blocks`) holds a board's tiles, which the webview and the cockpit's board route
@@ -175,7 +179,11 @@ the one home of the contract): the runtime view's layers that speak it (`src/por
 of the foundation into a family, which the owner accepted (`runtime-view-builds-on-the-engine-contract`),
 and the board builder (`@miragon/pulse-board/builder`, `packages/core/board/src/builder`) the
 named exception written like it: it reads seven reads of `ProcessRuntime` through engine-core's
-main entry alone (`board-builder-builds-on-the-engine-contract`), the format stays a leaf.
+main entry alone (`board-builder-builds-on-the-engine-contract`), the format stays a leaf; the
+screens' builder (`@miragon/pulse-screens/builder`, `packages/core/screens/src/builder`) is a
+named exception written the same way: it reads two reads of `ProcessRuntime` for the engine
+screen through engine-core's main entry alone (`screens-builder-builds-on-the-engine-contract`),
+and its format stays a leaf too.
 The ports only the editor hosts need (`EngineAdapter`, the engine's web UI, the local model and
 its code) stay in the runtime view's `src/ports`, never in engine-core. The engine connector runs
 the contract, admitted for the boards of the MCP server (owner decision 2026-11-16, the case #488
@@ -1103,7 +1111,15 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      runtime view's core, the engine connector's `src/data` and tests import it
      (`board-builder-consumers`, `BOARD_BUILDERS`); the
      package's tests that read the contract import of the families engine-core alone, by its
-     entries (`board-tests-build-on-the-engine-contract`); the building blocks
+     entries (`board-tests-build-on-the-engine-contract`); the screens
+     (`@miragon/pulse-screens`, `packages/core/screens`) are written like it: their format (the
+     main entry and `./testing`: the screens' JSON forms, `ScreenTarget`, `ProcessFilter`,
+     `FleetSums`) a leaf (`screens-format-is-a-leaf`), their builder (`./builder`) the named
+     exception over engine-core's main entry alone (`screens-builder-builds-on-the-engine-contract`;
+     engine-core an optional peer), their tests reading of the families engine-core alone
+     (`screens-tests-build-on-the-engine-contract`), and both imported only by the runtime view's
+     core, the engine connector's `src/data` and tests (`screens-format-consumers`,
+     `screens-builder-consumers`, `SCREENS_READERS`, `SCREENS_BUILDERS`); the building blocks
      (`@miragon/pulse-blocks`, `packages/core/blocks`) import in their shipped code only React,
      Lucide, pulse-ui's root, `/format` and `/tones` and the board format's main entry, never
      widget-shell, ext-apps, a family, engine-core, the builder or a Node built-in
@@ -1137,11 +1153,12 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      bundles it with c7-core and never imports it), and the src of a family's adapter
      (`ENGINE_CORE_IMPLEMENTERS`), where the runtime view reads the contract's answers, its
      layers `src/ports`, `src/core`, `src/model` and `src/host-kit` (never its webview), the
-     editor hosts' src and the board builder (`ENGINE_CORE_READERS`; the closed worlds and
-     `board-builder-builds-on-the-engine-contract` hold them to the main entry, the closed worlds
+     editor hosts' src and the board and screens builders (`ENGINE_CORE_READERS`; the closed
+     worlds, `board-builder-builds-on-the-engine-contract` and
+     `screens-builder-builds-on-the-engine-contract` hold them to the main entry, the closed worlds
      their tests and dev harnesses to the package's entries), and by test files and test-support
-     anywhere and the test trees of the runtime view, the adapters, the dialect cores and the
-     board package (`ENGINE_CORE_TESTS`), and where the engine connector runs the contract, its `src/lib/engine`,
+     anywhere and the test trees of the runtime view, the adapters, the dialect cores, the
+     board package and the screens package (`ENGINE_CORE_TESTS`), and where the engine connector runs the contract, its `src/lib/engine`,
      `src/lib/core-adapter` and `src/data` (`ENGINE_CONNECTOR_CONTRACT_READERS`, held to the main
      entry by `engine-connector-contract-by-its-main-entry`);
      never the rest of the engine connector (its view models, widgets, `src/lib/shared`, tools
@@ -1298,8 +1315,9 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
   (`save-exact=true` in `.npmrc`). Consumer-shared libraries are RANGED `peerDependencies`, so
   a downstream app dedupes them (`react`/`react-dom` `^19.2.0`, `zod` `^4.4.0`, `bpmn-js`
   `^18.31.1`, `@miragon/pulse-ui` and `@miragon/pulse-widget-shell` as `workspace:^`, packed to
-  `^<version>`; `@miragon/pulse-engine-core` too, an optional peer of `@miragon/pulse-board`,
-  whose `./builder` alone reads it), each also an EXACT devDependency. `bpmn-js` is a peer of
+  `^<version>`; `@miragon/pulse-engine-core` too, an optional peer of `@miragon/pulse-board`
+  and `@miragon/pulse-screens`, whose `./builder` alone reads it), each also an EXACT
+  devDependency. `bpmn-js` is a peer of
   widget-shell (`./widgets` exports the BPMN viewer, so every view bundle imports it) and of the
   engine connector, which draws diagrams. A published package imports only what its
   `dependencies` or `peerDependencies` declare (`scripts/published-imports.test.mjs`), and its
@@ -1429,7 +1447,7 @@ The release workflows hold the publish credentials and no pull request runs them
 workspace (its header lists each check).
 
 - **One release-please train.** Conventional commits on `main` drive `release-please.yml`: one
-  Release PR (tag `v<version>`) bumps the root, every app, the eleven packages, the three private
+  Release PR (tag `v<version>`) bumps the root, every app, the twelve packages, the three private
   packages the editor hosts bundle, the Orca plugin's manifest, the template's pins, the
   c7-client User-Agent and the engine connector's own, which its Camunda 8 wire sends
   (`packages/connectors/engine/engine-connector/src/lib/engine/user-agent.ts`), in lockstep
@@ -1437,17 +1455,18 @@ workspace (its header lists each check).
   `@miragon/pulse-*` pin under `templates/` without its jsonpath).
   Merging it creates the release; every publish job then waits for manual approval of the
   `release` environment gate.
-- **npm:** the eleven packages and `@miragon/pulse-cli` publish through
+- **npm:** the twelve packages and `@miragon/pulse-cli` publish through
   `publish-npm-package.yml` with OIDC trusted publishing (no NPM_TOKEN, provenance attached).
   Each names this repository in its `repository` field, since npm refuses a provenance publish
   from another repository. The pack job runs `pnpm pack`, which rewrites `workspace:*` (npm's
   own pack would ship it verbatim); the one job that holds `id-token: write` runs no package
   manager. A package new to npm (`@miragon/pulse-board`, `@miragon/pulse-blocks` and
-  `@miragon/pulse-c8-core`, all three first published by the release after #617) is published once
-  by hand and gets its trusted publisher (`release-please.yml`, environment `npm`) before the
-  release that first publishes it, or its publish job fails and the engine connector, which
-  depends on the board package and c8-core and peers the blocks, or the starter, which pins the
-  blocks, names a version npm lacks.
+  `@miragon/pulse-c8-core`, all three first published by the release after #617, and
+  `@miragon/pulse-screens`, first published by the release after the pull request that created
+  it) is published once by hand and gets its trusted publisher (`release-please.yml`, environment
+  `npm`) before the release that first publishes it, or its publish job fails and the engine
+  connector, which depends on the board package and c8-core and peers the blocks, or the starter,
+  which pins the blocks, names a version npm lacks.
   The server app, the two editor hosts and the packages only they bundle (the runtime view, the
   C7 and C8 adapters) stay private. The `miragon-ai` names
   used up to 0.20.0 are retired, and so is the npm name of engine-client, the c7 family's client
@@ -1503,7 +1522,7 @@ workspace (its header lists each check).
 | `pnpm typecheck`  | **The only check that type-checks widget code**: `tsc -p tsconfig.widgets.json` in the engine connector and widget-shell (its view half), `tsc -p tsconfig.ui.json` (and `tsconfig.test.json`) in the server app; the runtime view per layer (`packages/core/runtime-view/tsconfig.<layer>.json`), the editor hosts per part, each with that part's runtime globals only                                                                                                                                                                                                                                                                                                                                                                                       |
 | `pnpm test`       | Vitest unit tests, the server app's wire-contract tests and tools/list goldens (in-process boot, loopback HTTP), the engine output goldens (the CLI, the MCP server) and the error-path goldens (those two, the MCP server's on a Camunda 8 engine too, the C7 and C8 adapters of the editors), the architecture tests of the editor hosts and the packages they share, the per-package coverage floors, then `node --test` over `scripts/*.test.mjs` (repo guards and gate self-tests, below the table); docs-refs, old-names and `lint:package-scripts` also run in Lint + Format; **no widget rendering** (the runtime view's webview tests render in Chromium; locally once: `pnpm --filter @miragon/pulse-runtime-view exec playwright install chromium`) |
 | `pnpm lint`       | The build-free gates first (`lint:naming`, `lint:package-scripts`, `lint:github`, `lint:ratchets`, which needs `git fetch origin`), then ESLint per package incl. the pattern gates, dependency-cruiser (`lint:architecture`, `:cli`, `:vscode`, `:runtime-view`, `:c7-adapter`, `:c8-adapter`, `:orca`) and knip (`lint:deadcode`: everything but exports and types; `:exports`: exports and types in every workspace but the vendored docs kit), and last `lint:configs` (the config files no tsconfig holds and no package lints: `DEFAULT_PROJECT_FILES` in `eslint.config.mjs`)                                                                                                                                                                           |
-| `pnpm fitness`    | Report: architecture graph, per-package coverage and the mutation scores of c7-core, the transport, engine-core's rules, the profile format, the board package, widget-shell's web app, token and discovery rules and c8-core's rules; locally after `pnpm test` (no CI job on a pull request), else the "Mutation summary" job of `.github/workflows/mutation-nightly.yml`                                                                                                                                                                                                                                                                                                                                                                                    |
+| `pnpm fitness`    | Report: architecture graph, per-package coverage and the mutation scores of c7-core, the transport, engine-core's rules, the profile format, the board package, the screens package, widget-shell's web app, token and discovery rules and c8-core's rules; locally after `pnpm test` (no CI job on a pull request), else the "Mutation summary" job of `.github/workflows/mutation-nightly.yml`                                                                                                                                                                                                                                                                                                                                                               |
 | `./gradlew build` | The playground engine (`playground/cibseven-example/`): Kotlin compile + unit tests of its processes; CI "CIB Seven Example (Build + Test)", in `pnpm check:all`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | `test:host`       | `pnpm --filter @miragon/pulse-mcp-server test:host`: Playwright host simulation of the **built** widget bundle behind a SEP-1865 host shim, the real `engine_open_cockpit` against a stub engine and, in a composition of its own, a loopback Camunda 8 cluster beside it (`test-host/camunda8.spec.ts`: the landing and the gate read nothing of it, its board's tiles and Zeebe diagram) (`pinned …` scenarios are known defects, flipped when fixed); CI "Widget host simulation (test:host)"; run it for changes to widget-shell, pulse-ui, `src/ui/` or the `@modelcontextprotocol/ext-apps` pin                                                                                                                                                          |
 | `test:web`        | `pnpm --filter @miragon/pulse-mcp-server test:web`: Playwright in Chromium against the **built** web app (`apps/web/dist` through `MCP_WEB_DIR`) on the real `createApp` under OAuth with fake identity providers and test:host's stub engine and Camunda 8 cluster (a board over both, the gate): the sign-in, the sign-out, the token's renewal and its refusal, the session's cookies, no token in the browser, CSRF, open redirect, session fixation, the cockpit on the page, its script compressed, German, dark, 320 px, axe (`apps/mcp-server/test-host/web`); CI "Web app (test:web)", in `pnpm check:all`; run it for changes to the web app, widget-shell's `src/web` or the page root                                                              |
@@ -1545,7 +1564,8 @@ host simulation renders one real view, not every widget's data path).
 each against the merge base with `origin/main`, and its header lists them: coverage floors in
 each `vitest.config.ts` rise (raise one when you better a file); a `stryker.config.json`'s
 `mutate` allowlist (the tested surface; today c7-core's, the transport's, engine-core's three
-rule files, the profile format's, the board package's format and builder, widget-shell's twelve
+rule files, the profile format's, the board package's format and builder, the screens'
+format and builder, widget-shell's twelve
 web app rule files, its JWT verifier, its provider's discovery, its generic OpenID Connect
 provider and its Entra ID provider, and c8-core's mappings, instance filters, version floor and
 failure kinds)
@@ -1571,11 +1591,12 @@ emitted JavaScript as a side-effect import, so ESLint refuses it
 which reports a namespace import that only types use (`scripts/eslint-gates.test.mjs`).
 
 **Mutation testing covers `@miragon/pulse-c7-core`, `@miragon/pulse-http`, the rules of
-`@miragon/pulse-engine-core`, `@miragon/pulse-profile`, `@miragon/pulse-board`, the web
-app's server rules and the gate's token rules of `@miragon/pulse-widget-shell` and the rules of
+`@miragon/pulse-engine-core`, `@miragon/pulse-profile`, `@miragon/pulse-board`,
+`@miragon/pulse-screens`, the web app's server rules and the gate's token rules of `@miragon/pulse-widget-shell` and the rules of
 `@miragon/pulse-c8-core`** (owner decisions: c7-core, engine-core until 0.27, 2026-11-04; the
 profile format 2026-11-07; the transport 2026-11-08; engine-core's rules 2026-11-09; the board
-format and its builder 2026-11-15; the web sign-in's rules 2026-11-16, the forward, the renewal,
+format and its builder 2026-11-15; the screens' format and builder 2026-11-19; the web sign-in's
+rules 2026-11-16, the forward, the renewal,
 the build's files and the security headers with them later that day, the sessions signed out, the
 session's refusal, the sign-out and the session route 2026-11-17; c8-core's rules 2026-11-17; the
 gate's JWT verifier and the provider's discovery 2026-11-17; the generic OpenID Connect provider
@@ -1594,7 +1615,10 @@ MCP server reach it through c7-core), `ValueKinds` and `MoveReasons` today in th
 alone (the runtime view's core and the C7 adapter); the board format and its builder
 (`packages/core/board/src/format` and `packages/core/board/src/builder` without the builder's
 barrel) decide which board files and widgets every surface reads or refuses and the numbers each
-widget shows; widget-shell's web app rules (`packages/core/widget-shell/src/web/seal.ts`,
+widget shows; the screens' format and builder (`packages/core/screens/src/format` and
+`packages/core/screens/src/builder` without the builder's barrel) decide the numbers of the
+screens the web app and the editors share and the rules a surface applies to them; widget-shell's
+web app rules (`packages/core/widget-shell/src/web/seal.ts`,
 `cookies.ts`, `return-path.ts`, `csrf.ts`, `forward.ts`, `refresh.ts`, `static.ts`,
 `security-headers.ts`, `ended.ts`, `session.ts`, `logout.ts` and `session-route.ts`) seal the web
 app's session and login cookies, keep its return path on the app, check a page's request for CSRF,
@@ -1626,6 +1650,6 @@ finds. A package joins only by an owner decision, as an entry in `MUTATED_PACKAG
 `scripts/mutation-pause.mjs` and drops the schedule. Locally:
 `pnpm --fail-if-no-match --filter @miragon/pulse-c7-core exec stryker run`, the same with
 `@miragon/pulse-http`, `@miragon/pulse-engine-core`, `@miragon/pulse-profile`,
-`@miragon/pulse-board`, `@miragon/pulse-widget-shell` and `@miragon/pulse-c8-core`
-(`--mutate <file>` narrows it), with each package's `vitest.stryker.config.ts`: coverage off, since
+`@miragon/pulse-board`, `@miragon/pulse-screens`, `@miragon/pulse-widget-shell` and
+`@miragon/pulse-c8-core` (`--mutate <file>` narrows it), with each package's `vitest.stryker.config.ts`: coverage off, since
 a threshold failure would read as a killed mutant.

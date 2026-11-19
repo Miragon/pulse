@@ -159,6 +159,23 @@ const PLANTED: Readonly<Record<string, string>> = {
   "src/core/escapes-into-the-board.ts":
     "import { BoardParser } from '../../../board/src/index.ts';\nexport const parser = BoardParser;\n",
   "../board/src/index.ts": "export const BoardParser = 1;\n",
+  "src/core/reads-a-screen.ts":
+    "import { ProcessFilter } from '@miragon/pulse-screens';\nexport const filter = ProcessFilter;\n",
+  "src/core/builds-a-screen.ts":
+    "import { EngineScreen } from '@miragon/pulse-screens/builder';\nexport const screen = EngineScreen;\n",
+  "src/core/protocol/reads-a-screen.ts":
+    "import type { EngineScreenData } from '@miragon/pulse-screens';\nexport type Screen = EngineScreenData;\n",
+  "src/webview/reads-a-screen.ts":
+    "import type { EngineScreenData } from '@miragon/pulse-screens';\nexport type Screen = EngineScreenData;\n",
+  "src/host-kit/builds-a-screen.ts":
+    "import { EngineScreen } from '@miragon/pulse-screens/builder';\nexport const screen = EngineScreen;\n",
+  "src/core/ships-the-world-screens.ts":
+    "import { WORLD_SCREENS } from '@miragon/pulse-screens/testing';\nexport const world = WORLD_SCREENS;\n",
+  "src/core/escapes-into-the-screens.ts":
+    "import { ProcessFilter } from '../../../screens/src/index.ts';\nexport const filter = ProcessFilter;\n",
+  "../screens/src/index.ts": "export const ProcessFilter = 1;\n",
+  "test/core/builds-a-screen.test.ts":
+    "import { ScreenFigures } from '@miragon/pulse-screens/testing';\nexport const figures = ScreenFigures;\n",
   "src/webview/renders-blocks.ts":
     "import { BoardGrid } from '@miragon/pulse-blocks';\nexport const grid = BoardGrid;\n",
   "src/core/renders-blocks.ts":
@@ -186,7 +203,7 @@ const PLANTED: Readonly<Record<string, string>> = {
     '{ "name": "radix-ui", "exports": { ".": { "types": "./index.d.ts" } } }\n',
   "../../../node_modules/radix-ui/index.d.ts": "export declare const Tabs: number;\n",
   "package.json":
-    '{ "name": "@miragon/pulse-runtime-view", "private": true, "dependencies": { "@miragon/pulse-blocks": "workspace:*", "@miragon/pulse-board": "workspace:*", "@miragon/pulse-c7-core": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-profile": "workspace:*", "@miragon/pulse-ui": "workspace:*", "bpmn-moddle": "10.3.1", "lucide-react": "1.70.0", "react": "19.3.1", "react-dom": "19.3.1" }, "devDependencies": { "camunda-bpmn-moddle": "8.0.2" } }\n',
+    '{ "name": "@miragon/pulse-runtime-view", "private": true, "dependencies": { "@miragon/pulse-blocks": "workspace:*", "@miragon/pulse-board": "workspace:*", "@miragon/pulse-c7-core": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-profile": "workspace:*", "@miragon/pulse-screens": "workspace:*", "@miragon/pulse-ui": "workspace:*", "bpmn-moddle": "10.3.1", "lucide-react": "1.70.0", "react": "19.3.1", "react-dom": "19.3.1" }, "devDependencies": { "camunda-bpmn-moddle": "8.0.2" } }\n',
 }
 
 const tree = new PlantedTree("packages/core/runtime-view", PLANTED)
@@ -218,6 +235,9 @@ describe("the dependency rules", () => {
     const board = at("node_modules/@miragon/pulse-board/dist/index.d.ts")
     const builder = at("node_modules/@miragon/pulse-board/dist/builder/index.d.ts")
     const blocks = at("node_modules/@miragon/pulse-blocks/dist/index.d.ts")
+    const screens = at("node_modules/@miragon/pulse-screens/dist/index.d.ts")
+    const screensBuilder = at("node_modules/@miragon/pulse-screens/dist/builder/index.d.ts")
+    const screensTesting = at("node_modules/@miragon/pulse-screens/dist/testing/index.d.ts")
     const blocksSubpath = "@miragon/pulse-blocks/board"
     const blocksSource = "packages/core/blocks/src/index.ts"
     const c7Core = "node_modules/@miragon/pulse-c7-core/dist/index.d.ts"
@@ -303,6 +323,11 @@ describe("the dependency rules", () => {
         `not-in-allowed: ${at("src/host-kit/builds-a-board.ts")} -> ${builder}`,
         `not-in-allowed: ${at("src/webview/builds-a-board.ts")} -> ${builder}`,
         `not-in-allowed: ${at("src/core/escapes-into-the-builder.ts")} -> packages/core/board/src/builder/index.ts`,
+        `protocol-imports-nothing: ${at("src/core/protocol/reads-a-screen.ts")} -> ${screens}`,
+        `not-in-allowed: ${at("src/webview/reads-a-screen.ts")} -> ${screens}`,
+        `not-in-allowed: ${at("src/host-kit/builds-a-screen.ts")} -> ${screensBuilder}`,
+        `not-in-allowed: ${at("src/core/ships-the-world-screens.ts")} -> ${screensTesting}`,
+        `not-in-allowed: ${at("src/core/escapes-into-the-screens.ts")} -> packages/core/screens/src/index.ts`,
         `not-in-allowed: ${at("src/core/renders-blocks.ts")} -> ${blocks}`,
         `not-in-allowed: ${at("src/host-kit/renders-blocks.ts")} -> ${blocks}`,
         `webview-blocks-by-its-entry: ${at("src/webview/reads-a-blocks-subpath.ts")} -> ${blocksSubpath}`,

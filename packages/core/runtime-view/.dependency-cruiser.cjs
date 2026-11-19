@@ -9,6 +9,9 @@ const ENGINE_CORE_TREE = "^packages/connectors/engine/engine-core/"
 const PROFILE_ENTRY = "(^|/)node_modules/@miragon/pulse-profile/dist/index[.]d[.]ts$"
 const BOARD_ENTRY = "(^|/)node_modules/@miragon/pulse-board/dist/index[.]d[.]ts$"
 const BOARD_BUILDER_ENTRY = "(^|/)node_modules/@miragon/pulse-board/dist/builder/index[.]d[.]ts$"
+const SCREENS_ENTRY = "(^|/)node_modules/@miragon/pulse-screens/dist/index[.]d[.]ts$"
+const SCREENS_BUILDER_ENTRY =
+  "(^|/)node_modules/@miragon/pulse-screens/dist/builder/index[.]d[.]ts$"
 const BLOCKS_ENTRY = "(^|/)node_modules/@miragon/pulse-blocks/dist/index[.]d[.]ts$"
 const BLOCKS =
   "(^|/)node_modules/@miragon/pulse-blocks/|^@miragon/pulse-blocks(/|$)|^packages/core/blocks/"
@@ -122,6 +125,12 @@ module.exports = {
       to: { path: [BOARD_ENTRY, BOARD_BUILDER_ENTRY] },
     },
     {
+      comment:
+        "The core builds the numbers of the screens it shares with the web app with Pulse's screens (@miragon/pulse-screens/builder: the engine screen over the engine contract into a model of no text, and its JSON form) and applies their pure rules (@miragon/pulse-screens, its main entry: the screens' JSON forms and the process list's filter, no runtime dependency), which the editor hosts bundle with esbuild; the core words the screens in English. The protocol keeps its own view models and imports nothing (protocol-imports-nothing).",
+      from: { path: `${PACKAGE}src/core/` },
+      to: { path: [SCREENS_ENTRY, SCREENS_BUILDER_ENTRY] },
+    },
+    {
       comment: "The host kit runs in a host's Node and may use Node built-ins.",
       from: { path: `${PACKAGE}src/host-kit/` },
       to: { dependencyTypes: ["core"] },
@@ -132,7 +141,7 @@ module.exports = {
       name: "not-in-allowed",
       severity: "error",
       comment:
-        "No entry of `allowed` in packages/core/runtime-view/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md). A layer uses its own modules and another layer only through its index.ts: the ports, the core, the model adapter and the host kit speak the main entry of @miragon/pulse-engine-core, the engine family's neutral core (never ./testing), the core and the model adapter reach the ports, the model adapter also bpmn-moddle (never a vendor's descriptor, which its family's adapter brings), core and webview @miragon/pulse-ui/tones and their label helpers (core/views/labels.ts, webview/format/) @miragon/pulse-ui/format, the webview protocol types, its rendering libraries, for shared building blocks @miragon/pulse-ui's root and @miragon/pulse-ui/theme.css and the board's tiles of @miragon/pulse-blocks' main entry, the host kit core, protocol, ports and Node built-ins, its connections also @miragon/pulse-profile's main entry, and the core @miragon/pulse-board's main entry and ./builder. The runtime view knows no editor host and no dialect.",
+        "No entry of `allowed` in packages/core/runtime-view/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md). A layer uses its own modules and another layer only through its index.ts: the ports, the core, the model adapter and the host kit speak the main entry of @miragon/pulse-engine-core, the engine family's neutral core (never ./testing), the core and the model adapter reach the ports, the model adapter also bpmn-moddle (never a vendor's descriptor, which its family's adapter brings), core and webview @miragon/pulse-ui/tones and their label helpers (core/views/labels.ts, webview/format/) @miragon/pulse-ui/format, the webview protocol types, its rendering libraries, for shared building blocks @miragon/pulse-ui's root and @miragon/pulse-ui/theme.css and the board's tiles of @miragon/pulse-blocks' main entry, the host kit core, protocol, ports and Node built-ins, its connections also @miragon/pulse-profile's main entry, and the core @miragon/pulse-board's main entry and ./builder and @miragon/pulse-screens' main entry and ./builder. The runtime view knows no editor host and no dialect.",
       from: {},
       to: { path: "^$" },
     },

@@ -14,7 +14,11 @@ describe("the @miragon/pulse-c8-core entry", () => {
 })
 
 describe("the @miragon/pulse-c8-core/testing entry", () => {
-  it("exports exactly the recorded board engine and the seed of the conformance world", () => {
-    expect(Object.keys(testing).sort()).toStrictEqual(["C8WorldSeed", "C8_BOARD_ENGINE"])
+  it("exports exactly the recorded board and screen engines and the seed of the conformance world", () => {
+    expect(Object.keys(testing).sort()).toStrictEqual([
+      "C8WorldSeed",
+      "C8_BOARD_ENGINE",
+      "C8_SCREEN_ENGINE",
+    ])
   })
 })

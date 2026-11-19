@@ -48,6 +48,8 @@ export const DEFAULT_PROJECT_FILES = [
   "packages/core/blocks/vitest.config.ts",
   "packages/core/board/vitest.config.ts",
   "packages/core/board/vitest.stryker.config.ts",
+  "packages/core/screens/vitest.config.ts",
+  "packages/core/screens/vitest.stryker.config.ts",
   "packages/core/http/vitest.config.ts",
   "packages/core/http/vitest.stryker.config.ts",
   "packages/core/profile/vitest.config.ts",
@@ -352,6 +354,14 @@ const ENGINE_CORE_PROBE = "packages/connectors/engine/engine-core/test/runtime.b
 const BOARD_SRC = "packages/core/board/src/**/*.{ts,mts,cts,tsx}"
 const BOARD_TESTS = "packages/core/board/test/**/*.ts"
 const BOARD_CONFIGS = "packages/core/board/*.ts"
+// The screens' format and builder (packages/core/screens), the numbers the web app and the editors
+// share, keep the board package's rules as it keeps engine-core's: each block that names the board
+// package names the screens' paths beside it (SCREENS_SRC, SCREENS_TESTS, SCREENS_CONFIGS). No
+// family's package either, so no connector resource gate in its union, and its engine words say
+// where they belong in its own terms (SCREENS_WORDS_MESSAGE).
+const SCREENS_SRC = "packages/core/screens/src/**/*.{ts,mts,cts,tsx}"
+const SCREENS_TESTS = "packages/core/screens/test/**/*.ts"
+const SCREENS_CONFIGS = "packages/core/screens/*.ts"
 // The core of the Camunda 8 dialect family (packages/connectors/c8/c8-core), whose reads left the
 // C8 adapter for a package of their own, keeps every one of these rules as engine-core does: each
 // block that holds engine-core names the package's paths beside it (C8_CORE_SRC, C8_CORE_TESTS,
@@ -392,6 +402,8 @@ const ENGINE_CORE_WORDS_MESSAGE =
   "Engine vocabulary belongs in a dialect's implementation (its engine adapter, its core), never in the engine family's neutral core, the contract every dialect implements. Use the contract's neutral words (elementId, definitionId, bpmnProcessId, instanceId)."
 const BOARD_WORDS_MESSAGE =
   "Engine vocabulary belongs in a dialect's implementation (its engine adapter, its core), never in the board format and its builder, which every surface reads the same. Use the board's own words and the contract's neutral ones (process, activeElement, elementId, bpmnProcessId, instanceId)."
+const SCREENS_WORDS_MESSAGE =
+  "Engine vocabulary belongs in a dialect's implementation (its engine adapter, its core), never in the screens' format and builder, which every surface reads the same. Use the contract's neutral words (elementId, bpmnProcessId, definitionId, instanceId)."
 const VSCODE_HOST_COLOUR_MESSAGE =
   "The webview takes no colour from VS Code. Use a Miragon token (--cd-*) from packages/core/runtime-view/src/webview/theme instead of a --vscode-* variable."
 const VSCODE_CLASS_MESSAGE =
@@ -428,6 +440,10 @@ const engineCoreNeutralCode = [
 const boardNeutralCode = [
   ...vscodeForbiddenWords(VSCODE_ENGINE_WORDS, BOARD_WORDS_MESSAGE),
   ...vscodeForbiddenWords(VSCODE_ENGINE_SPELLINGS, BOARD_WORDS_MESSAGE),
+]
+const screensNeutralCode = [
+  ...vscodeForbiddenWords(VSCODE_ENGINE_WORDS, SCREENS_WORDS_MESSAGE),
+  ...vscodeForbiddenWords(VSCODE_ENGINE_SPELLINGS, SCREENS_WORDS_MESSAGE),
 ]
 const vscodeHostColours = vscodeForbiddenWords("--vscode-", VSCODE_HOST_COLOUR_MESSAGE)
 const vscodeHostEngineWords = [
@@ -777,6 +793,9 @@ export default tseslint.config(
       BOARD_SRC,
       BOARD_TESTS,
       BOARD_CONFIGS,
+      SCREENS_SRC,
+      SCREENS_TESTS,
+      SCREENS_CONFIGS,
       C8_CORE_SRC,
       C8_CORE_TESTS,
       C8_CORE_CONFIGS,
@@ -802,6 +821,9 @@ export default tseslint.config(
       BOARD_SRC,
       BOARD_TESTS,
       BOARD_CONFIGS,
+      SCREENS_SRC,
+      SCREENS_TESTS,
+      SCREENS_CONFIGS,
       C8_CORE_SRC,
       C8_CORE_TESTS,
       C8_CORE_CONFIGS,
@@ -830,6 +852,7 @@ export default tseslint.config(
       "apps/vscode/test/smoke/*.cjs",
       ENGINE_CORE_SRC,
       BOARD_SRC,
+      SCREENS_SRC,
       C8_CORE_SRC,
     ],
     rules: {
@@ -845,6 +868,7 @@ export default tseslint.config(
       `${EDITOR_TREES}/test/**/*.test.tsx`,
       ENGINE_CORE_TESTS,
       BOARD_TESTS,
+      SCREENS_TESTS,
       C8_CORE_TESTS,
     ],
     rules: { "@typescript-eslint/no-non-null-assertion": "off" },
@@ -868,6 +892,16 @@ export default tseslint.config(
   },
   {
     files: ["packages/core/board/test/**/*.test.ts"],
+    rules: { "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }] },
+  },
+  // The screens' tests and config files keep the board format's budgets: 300 effective lines for a
+  // config file and a test support module, 400 for a test file.
+  {
+    files: [SCREENS_TESTS, SCREENS_CONFIGS],
+    rules: { "max-lines": ["error", { max: 300, skipBlankLines: true, skipComments: true }] },
+  },
+  {
+    files: ["packages/core/screens/test/**/*.test.ts"],
     rules: { "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }] },
   },
   // c8-core's tests and config files keep the same budgets as engine-core's: 300 effective lines
@@ -931,6 +965,21 @@ export default tseslint.config(
       "no-restricted-syntax": [
         "error",
         ...boardNeutralCode,
+        ...vscodeModuleFunctionGate,
+        ...widgetDateGate,
+        ...widgetNumberGate,
+      ],
+    },
+  },
+  // The screens' src: its engine words and module functions, and the date and number gates of the
+  // board format, whose rules it keeps: a screen holds counts and times as data, never in a locale.
+  // No family's package, so no connector resource gate in its union.
+  {
+    files: [SCREENS_SRC],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        ...screensNeutralCode,
         ...vscodeModuleFunctionGate,
         ...widgetDateGate,
         ...widgetNumberGate,
@@ -1020,7 +1069,13 @@ export default tseslint.config(
     },
   },
   {
-    files: [`${EDITOR_TREES}/src/**/*.{ts,tsx}`, ENGINE_CORE_SRC, BOARD_SRC, C8_CORE_SRC],
+    files: [
+      `${EDITOR_TREES}/src/**/*.{ts,tsx}`,
+      ENGINE_CORE_SRC,
+      BOARD_SRC,
+      SCREENS_SRC,
+      C8_CORE_SRC,
+    ],
     rules: {
       "max-classes-per-file": ["error", 1],
       "@typescript-eslint/member-ordering": [

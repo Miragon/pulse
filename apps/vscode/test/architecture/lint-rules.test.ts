@@ -6,6 +6,7 @@ const PROBE_FILE = "packages/core/runtime-view/src/core/views/labels.ts"
 const ENGINE_CORE = "packages/connectors/engine/engine-core/src"
 const CLASS_PROBE = `${ENGINE_CORE}/model/value-kinds.ts`
 const BOARD_FORMAT = "packages/core/board/src/format"
+const SCREENS = "packages/core/screens/src"
 const COMPONENT_PROBE = "packages/core/runtime-view/src/webview/app.tsx"
 const WEBVIEW_TEST_PROBE = "packages/core/runtime-view/test/webview/harness.tsx"
 const HOOKS_SET = "recommended-latest"
@@ -108,12 +109,14 @@ describe("the lint gates", { timeout: 120_000 }, () => {
     `${ENGINE_CORE}/model/ids.ts`,
     `${ENGINE_CORE}/testing/fake/fake-engine.ts`,
     `${BOARD_FORMAT}/board-parser.ts`,
+    `${SCREENS}/format/process-filter.ts`,
+    `${SCREENS}/builder/engine-screen.ts`,
     "packages/core/runtime-view/src/ports/engine-adapter.ts",
     "packages/core/runtime-view/src/ports/bpmn-dialect.ts",
     "packages/core/runtime-view/src/model/model/model-parser.ts",
     "packages/core/runtime-view/src/model/code/workspace-code-locator.ts",
   ])(
-    "keep engine words out of the contract, the board format and the model reader: %s",
+    "keep engine words out of the contract, the board format, the screens and the model reader: %s",
     async (filePath) => {
       expect(await rulesFiredOn(readRepoFile(filePath), filePath)).toEqual([])
       const probe = `${readRepoFile(filePath)}\nexport type Key = 'processInstanceKey';\n`
@@ -292,6 +295,7 @@ describe("the lint gates", { timeout: 120_000 }, () => {
     "packages/core/runtime-view/src/host-kit/notification-text.ts",
     "packages/core/runtime-view/src/host-kit/connections/target-hosts.ts",
     `${BOARD_FORMAT}/filter-parser.ts`,
+    `${SCREENS}/format/fleet-sums.ts`,
   ])("hold the adapters and the extension to the same class structure: %s", async (filePath) => {
     const probe = `${readRepoFile(filePath)}\nexport function helper(): number {\n  return 1;\n}\nexport class Second {}\n`
     expect(await rulesFiredOn(probe, filePath)).toEqual(

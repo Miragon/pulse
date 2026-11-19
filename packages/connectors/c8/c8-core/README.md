@@ -97,7 +97,7 @@ pnpm --fail-if-no-match --filter @miragon/pulse-c8-core exec stryker run  # the 
 ## Testing helpers
 
 `@miragon/pulse-c8-core/testing` exports the conformance world of `@miragon/pulse-engine-core/testing`
-as a Camunda 8 cluster holds it, and a board recorded from it.
+as a Camunda 8 cluster holds it, and a board and the shared screens recorded from it.
 
 `C8WorldSeed.seed(engine, plan)` seeds that world into a cluster over a port the caller hands in
 (`C8SeedEngine`: the REST root, a `fetch`-shaped `send` that signs its requests in, the `wait`
@@ -149,3 +149,12 @@ query and JSON body) with the JSON the cluster answers, or its text and content 
 that is no JSON, check that both builds give the same board and that a build over the kept answers
 on `startRecordedEngine` gives it too with no request unanswered, and write the board file, the
 answers and that board into `packages/connectors/c8/c8-core/src/testing/board-engine.json`.
+
+`C8_SCREEN_ENGINE` is the same for the screens Pulse's surfaces share (`@miragon/pulse-screens`):
+one cluster's answers to the screens' reads under `/v2`, the time a surface builds them at (`asOf`)
+and the screens they give in their JSON form, today the engine screen (`expected.engine`,
+`EngineScreenData`), which the editors' C8 adapter builds exactly over its wire, with the numbers of
+the recorded Camunda 7 screen. Its answers are those of `C8_BOARD_ENGINE`'s recording that the
+engine screen reads, from the same seeded world, so no recording of its own was made for it; a
+screen that reads more brings its answers with a recording of its own, made by hand as the
+board's, into `packages/connectors/c8/c8-core/src/testing/screen-engine.json`.
