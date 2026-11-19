@@ -574,7 +574,7 @@ jobs:
 
       - run: sha256sum -c .miragon/brand-assets.sha256
 
-  # Docs kit vs. Miragon/corporate-identity + brand-lint; skipped without the secret.
+  # brand-lint from Miragon/corporate-identity; skipped without the secret.
   brand:
     name: Brand (CI source + brand-lint)
     needs: changes
@@ -587,9 +587,8 @@ jobs:
 
       - name: No access to Miragon/corporate-identity
         if: env.CI_SOURCE_TOKEN == ''
-        run: echo "::warning title=Brand checks skipped::CORPORATE_IDENTITY_READ_TOKEN is not set, so the vendored docs kit is not compared with Miragon/corporate-identity and brand-lint does not run. Add the secret (contents:read on Miragon/corporate-identity)."
+        run: echo "::warning title=Brand checks skipped::CORPORATE_IDENTITY_READ_TOKEN is not set, so brand-lint does not run. Add the secret (contents:read on Miragon/corporate-identity)."
 
-      # Keep in line with docs/.vitepress/miragon/manifest.json.
       - uses: actions/checkout@v7.0.1
         if: env.CI_SOURCE_TOKEN != ''
         with:
@@ -603,10 +602,6 @@ jobs:
         if: env.CI_SOURCE_TOKEN != ''
         with:
           node-version: 22
-
-      - name: The docs kit equals the CI source
-        if: env.CI_SOURCE_TOKEN != ''
-        run: node docs/.vitepress/miragon/check.mjs --ci .ci-source
 
       - name: brand-lint
         if: env.CI_SOURCE_TOKEN != ''

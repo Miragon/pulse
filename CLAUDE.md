@@ -21,7 +21,7 @@ Docs are held to the code:
   (pnpm 10 exits 0 when a filter matches nothing, so a stale name turns a gate green).
 
 `docs/` holds the Pulse docs, a VitePress site on the Miragon docs kit
-(`docs/.vitepress/miragon/`, skill `miragon-brand:docs-site`) that `.github/workflows/docs.yml`
+(`@miragon/docs-starter`, skill `miragon-brand:docs-site`) that `.github/workflows/docs.yml`
 builds on a pull request and publishes to https://miragon.github.io/pulse/ with each release, so
 the site shows only released docs: `release-please.yml` calls it on `main` after the approval (the
 `github-pages` environment admits `main` only, never a tag), a dispatch on `main` deploys by hand,
@@ -253,14 +253,15 @@ App (`apps/mcp-server/src/ui/globals.css`) und das Starter-Template
 (`server/src/ui/brand.css`) importieren es nach `tailwindcss` und überschreiben nur Rollen- und
 Alias-Variablen (`--primary`, `--link`, `--focus`, `--<ton>`, `--<ton>-soft`, `--<ton>-ink`, Radien,
 Schatten), nie `--cd-*`; Komponenten nutzen nie Palettenklassen oder rohe Farben. Die Docs-Site
-nimmt das Doku-Kit der CI unverändert (`docs/.vitepress/miragon/`, `docs/public/logo/`; bei jedem
-CI-Release neu vendoren, nie von Hand ändern).
+nimmt das Doku-Kit der CI als Paket (`@miragon/docs-starter` in `docs/package.json`; bei jedem
+Kit-Release die Version heben).
 
 Ein `--cd-*` steht nur in vendorten Kopien, deren Manifest `SANCTIONED_TOKEN_MANIFESTS` freigibt:
 die Kopien aus `.miragon/brand-assets.yaml` (pulse-ui in `packages/core/ui/src/tokens/`, deren
 Tokens auch die Webview von VS Code und Orca über `theme.css` nimmt, und deren Diagramm-Leinwand mit
 `cd-canvas.css` und `cd-tokens.generated.json` in `packages/core/runtime-view/src/webview/theme/`,
-Prüfsummen in `.miragon/brand-assets.sha256`) und das Doku-Kit. Eine weitere Kopie kommt mit
+Prüfsummen in `.miragon/brand-assets.sha256`). Das Doku-Kit ist keine Kopie: Der Drift-Test hält
+die Tokens, die es setzt, auf den Werten von pulse-ui. Eine weitere Kopie kommt mit
 `brand-assets.mjs --add` aus dem Plugin miragon-brand, nie als Ausnahme im Scan. Ein Token, das
 mehrere Kopien im selben Geltungsbereich setzen (`:root`, Hell, Dunkel), hat in allen denselben
 Wert: Ändert ein CI-Release einen Wert, kommt er in alle Kopien zugleich. Der Drift-Test ist

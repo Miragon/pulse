@@ -17,12 +17,6 @@ packages/connectors/*/*-adapter/test/__golden__/
 # .gitignore, which Prettier does not read)
 docs/.vitepress/cache/
 
-# The Miragon docs kit, vendored byte for byte from Miragon/corporate-identity
-# (skill docs-site) and pinned by its own manifest (check.mjs, run by
-# packages/core/ui/src/theme/token-drift.test.ts and docs.yml): re-vendored on every CI release, never
-# formatted or hand-edited here.
-docs/.vitepress/miragon/
-
 # The one Camunda 7 REST spec (Operaton REST 1.0.1), vendored as it is, its JSON patches and the
 # patched spec c7-core's generator writes from them (spec/patched/, ignored by git), which
 # c7-client's SDK generator and the CLI's catalog generator read

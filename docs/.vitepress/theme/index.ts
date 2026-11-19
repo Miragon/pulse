@@ -1,5 +1,5 @@
 import type { Theme } from "vitepress"
-import MiragonTheme from "../miragon/theme"
+import MiragonTheme from "@miragon/docs-starter/theme"
 import HomeLanding from "./HomeLanding.vue"
 
 export default {

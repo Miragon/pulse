@@ -104,11 +104,7 @@ describe("scopesFor: prose reaches only the checks that read it", () => {
     assert.deepEqual(scopes("docs/package.json"), ["brand", "cli", "typescript"])
   })
 
-  it("runs the token drift test for the vendored docs kit, not for the rest of the site's config", () => {
-    assert.deepEqual(scopes("docs/.vitepress/miragon/cd-tokens.generated.css"), [
-      "brand",
-      "typescript",
-    ])
+  it("runs no token drift test for the rest of the site's config", () => {
     assert.deepEqual(scopes("docs/.vitepress/theme/HomeLanding.vue"), ["brand"])
   })
 

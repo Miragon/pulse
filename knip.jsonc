@@ -142,13 +142,8 @@
     },
 
     "docs": {
-      // `lint:deadcode:exports` skips this workspace: its code is the vendored kit,
-      // whose exports (miragonLegal, MiragonGitHub, …) are the kit's API for every
-      // Miragon docs site and are never edited here.
-      // The Miragon docs kit (.vitepress/miragon/, vendored unchanged from
-      // Miragon/corporate-identity, pinned by its check.mjs): slug.d.mts types
-      // slug.mjs for TypeScript, so no import names the declaration itself.
-      "ignore": [".vitepress/miragon/slug.d.mts"],
+      // `lint:deadcode:exports` skips this workspace: its code is the site's
+      // config and theme, which VitePress loads by path, not by import.
       "ignoreDependencies": [
         // mermaid's diagram runtimes, which vitepress-plugin-mermaid lists in
         // Vite's optimizeDeps.include: under pnpm's strict layout the dev
