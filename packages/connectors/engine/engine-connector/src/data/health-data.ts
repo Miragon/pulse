@@ -5,6 +5,7 @@ import {
   DEFAULT_VERDICT_THRESHOLDS,
   engineDateMillis,
   engineVerdict,
+  isRootIncident,
   largestCause,
   latestEngineDate,
   toEngineDate,
@@ -19,7 +20,6 @@ import type { EngineHealthCluster, EngineHealthData } from "../view-models.js"
 import {
   CLUSTER_SCAN_LIMIT,
   HOUR_MS,
-  isRootIncident,
   scanCoverage,
   truncateMessage,
   UNKNOWN,

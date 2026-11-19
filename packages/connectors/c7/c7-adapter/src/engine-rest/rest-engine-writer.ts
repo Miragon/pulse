@@ -1,3 +1,4 @@
+import { rootIdOfCopy } from "@miragon/pulse-c7-core"
 import { JsonView } from "@miragon/pulse-c7-core/runtime"
 import type { BatchRef, EngineWriter, RetryOutcome } from "./engine-writer.js"
 import { EngineRequestError } from "./http/engine-request-error.js"
@@ -73,8 +74,12 @@ export class RestEngineWriter implements EngineWriter {
   private async rootCauseOf(incidentId: string): Promise<JsonView | undefined> {
     const path = `/incident/${RequestArguments.segment(incidentId)}`
     const incident = JsonView.of(await this.http.read(path), "incident")
-    const rootId = incident.optionalString("rootCauseIncidentId")
-    if (rootId === undefined || rootId === incident.requiredString("id")) {
+    const namedRoot = incident.optionalString("rootCauseIncidentId")
+    const rootId =
+      namedRoot === undefined
+        ? undefined
+        : rootIdOfCopy({ rootCauseIncidentId: namedRoot, id: incident.requiredString("id") })
+    if (rootId === undefined) {
       return incident
     }
     const root = await this.http.find(`/incident/${RequestArguments.segment(rootId)}`)

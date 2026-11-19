@@ -4,7 +4,7 @@ import {
   readProcessInstanceVariables,
   type Client,
 } from "@miragon/pulse-c7-client"
-import { incidentRecovery } from "@miragon/pulse-c7-core"
+import { incidentRecovery, rootIdOfCopy } from "@miragon/pulse-c7-core"
 import type {
   ActivityTree,
   IncidentDetailData,
@@ -176,10 +176,8 @@ async function fetchRootCauseIncident(
   client: Client,
   rawIncident: RawIncident,
 ): Promise<RawIncident | null> {
-  const rootId = rawIncident.rootCauseIncidentId
-  return rootId && rootId !== rawIncident.id
-    ? await getIncident({ client, path: { id: rootId } })
-    : null
+  const rootId = rootIdOfCopy(rawIncident)
+  return rootId === undefined ? null : await getIncident({ client, path: { id: rootId } })
 }
 
 /**

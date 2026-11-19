@@ -97,6 +97,18 @@ describe("planRetry", () => {
     })
   })
 
+  it("retries an incident without a root incident itself, by the family's root rule", () => {
+    const incidents = [
+      incident("1", { rootCauseIncidentId: undefined }),
+      incident("2", { rootCauseIncidentId: null }),
+    ]
+    expect(planRetry(incidents, {}).map((entry) => [entry.incidentId, entry.action])).toEqual([
+      ["1", "job"],
+      ["2", "job"],
+    ])
+    expect(missingRoots(incidents)).toEqual([])
+  })
+
   it("refuses more than 1000 retries or a truncated list", () => {
     const entries = planRetry(
       Array.from({ length: 1001 }, (_, index) =>

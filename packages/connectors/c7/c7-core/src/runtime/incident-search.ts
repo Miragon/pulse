@@ -22,11 +22,12 @@ import {
 import type { EnginePort } from "../port.js"
 import { compareText } from "../records.js"
 import { queryInput } from "../requests.js"
+import { isRootIncident } from "../root-incident.js"
 import { compact } from "../util.js"
 import type { DefinitionReader } from "./definition-reader.js"
 import { engineIdOf } from "./engine-ids.js"
 import { FillingPages } from "./filling-pages.js"
-import { type IncidentRow, incidentRowsOf, isRootIncident, recoveryIdOf } from "./incident-rows.js"
+import { type IncidentRow, incidentRowsOf, recoveryIdOf } from "./incident-rows.js"
 import type { OffsetWindow } from "./offset-paging.js"
 import { timestampOf } from "./timestamps.js"
 

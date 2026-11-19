@@ -170,7 +170,11 @@ missing.
   (`engineSorting`), variable writes and typing (`toEngineVariable(s)`, which refuses a value that
   is or holds a number that is not finite, since JSON would carry it as null; `autoTypedValue`),
   incident recovery (`incidentRecovery`, over `BUILT_IN_INCIDENT_TYPES`, the two types the engine
-  raises itself), the raw variable read flag (`RAW_VARIABLES`, and `RAW_VARIABLES_QUERY` for a
+  raises itself), the root incident (`isRootIncident`, and `rootIdOfCopy`, the root incident a
+  copy stands for: Camunda 7 copies an incident of a called instance up its call chain, each copy
+  naming its root in `rootCauseIncidentId`; one without that field is a root, the one reading of
+  the status triage, the inspection, the retry plan, the runtime, the engine module and the C7
+  adapter), the raw variable read flag (`RAW_VARIABLES`, and `RAW_VARIABLES_QUERY` for a
   port's query), the history timeline (`timelineOf`), the request that holds an incident's cause
   (`CAUSE_OPERATIONS`, an operation id per built-in type) and the cause of a failure
   (`causeOf(text, fallback)`: the root cause of a stack trace or error details by engine-core's

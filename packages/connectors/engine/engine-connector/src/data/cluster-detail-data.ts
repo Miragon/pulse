@@ -2,6 +2,7 @@ import type { Client } from "@miragon/pulse-c7-client"
 import {
   earliestEngineDate,
   engineLike,
+  isRootIncident,
   latestEngineDate,
   messageSignature,
   toEngineDate,
@@ -12,7 +13,6 @@ import type { ClusterDetailFilters, PagingArgs } from "../feed-contracts.js"
 import {
   CLUSTER_SCAN_LIMIT,
   HOUR_MS,
-  isRootIncident,
   scanCoverage,
   truncateMessage,
   UNKNOWN,

@@ -7,6 +7,7 @@
 import { compact } from "./util.js"
 import { type ActivityIndex, type ActivityNode, indexActivities } from "./activities.js"
 import { amount, compareText, field, num, type Rec, str, yes } from "./records.js"
+import { isRootIncident } from "./root-incident.js"
 import type { InstanceData, WaitKind, WaitState } from "./types.js"
 
 interface Context {
@@ -76,7 +77,7 @@ function incidentOf(context: Context, resourceId: string): string | undefined {
     .filter((incident) => str(incident, "configuration") === resourceId)
     .map((incident) => ({
       id: field(incident, "id"),
-      root: str(incident, "id") === str(incident, "rootCauseIncidentId"),
+      root: isRootIncident(incident),
     }))
     .toSorted(
       (left, right) => Number(right.root) - Number(left.root) || compareText(left.id, right.id),

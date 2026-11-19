@@ -18,6 +18,7 @@ import {
 } from "./records.js"
 import { engineTime } from "./dates.js"
 import { messageSignature } from "./message-signature.js"
+import { isRootIncident } from "./root-incident.js"
 import { compact } from "./util.js"
 
 export interface DefinitionStatus {
@@ -203,10 +204,6 @@ export interface GroupedIncidents {
   readonly propagated: number
 }
 
-function isRoot(incident: Rec): boolean {
-  return str(incident, "id") === str(incident, "rootCauseIncidentId")
-}
-
 /** The group of an incident: key (else its job definition), activity, type, message signature. */
 function groupId(incident: Rec, key: string): string {
   return [
@@ -253,7 +250,7 @@ export function groupIncidents(
 ): GroupedIncidents {
   const definitions = definitionsById(statistics)
   const roots = incidents
-    .filter(isRoot)
+    .filter(isRootIncident)
     .filter((incident) => !batchJobDefinitions.has(field(incident, "jobDefinitionId")))
   const groups = new Map<string, Rec[]>()
   for (const incident of roots.toSorted(newestFirst)) {
@@ -272,7 +269,7 @@ export function groupIncidents(
           compareTime(right.lastAt, left.lastAt) ||
           compareSteps(left.next, right.next),
       ),
-    propagated: incidents.filter((incident) => !isRoot(incident)).length,
+    propagated: incidents.filter((incident) => !isRootIncident(incident)).length,
   }
 }
 
