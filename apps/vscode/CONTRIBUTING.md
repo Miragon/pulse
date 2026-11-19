@@ -47,7 +47,7 @@ pnpm test && pnpm lint`) covers the extension too.
 | `pnpm lint:architecture:c7-adapter`                        | the closed-world dependency rules of the C7 adapter                                                                          |
 | `pnpm lint:architecture:c8-adapter`                        | the closed-world dependency rules of the C8 adapter                                                                          |
 | `pnpm lint:deadcode`                                       | knip over every workspace, the extension included: no dead file, dependency or enum member                                   |
-| `pnpm lint:deadcode:exports`                               | knip over every workspace but docs: no unused export or exported type                                                        |
+| `pnpm lint:deadcode:exports`                               | knip over every workspace: no unused export or exported type                                                                 |
 | `pnpm --filter @miragon/pulse-c7-adapter run test:engines` | conformance kit against a real engine (`PULSE_ENGINE_IMAGE`, testcontainers)                                                 |
 | `pnpm --filter pulse-cockpit run test:smoke`               | activation test in VS Code (`@vscode/test-cli`)                                                                              |
 | `pnpm --filter pulse-cockpit run test:e2e`                 | Playwright drives VS Code against `engine:up`                                                                                |

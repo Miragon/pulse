@@ -46,7 +46,7 @@
     "docs:preview": "pnpm --fail-if-no-match --filter @miragon/pulse-docs preview",
     "fitness": "node scripts/fitness-report.mjs",
     "lint:deadcode": "knip --exclude exports,types",
-    "lint:deadcode:exports": "knip --workspace '!docs' --include exports,types"
+    "lint:deadcode:exports": "knip --include exports,types"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

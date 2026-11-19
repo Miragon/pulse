@@ -19,7 +19,7 @@ pnpm lint:architecture:runtime-view             # the closed-world rules of the 
 pnpm lint:architecture:c7-adapter               # the closed-world rules of the C7 adapter
 pnpm lint:architecture:c8-adapter               # the closed-world rules of the C8 adapter
 pnpm lint:deadcode                              # knip over every workspace: dead files, dependencies, enum members
-pnpm lint:deadcode:exports                      # knip over every workspace but docs: unused exports and types
+pnpm lint:deadcode:exports                      # knip over every workspace: unused exports and types
 pnpm --filter pulse-cockpit test                 # the host's unit and architecture tests, coverage floors, the brand and word scans
 pnpm --filter @miragon/pulse-runtime-view test   # core, model, host kit and webview (Chromium) tests, coverage floors per layer
 pnpm --filter @miragon/pulse-c7-adapter test     # the C7 adapter against a recorded REST API and its error-path goldens
