@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { EmptyState, Icon } from "@miragon/pulse-ui"
+import { EmptyState, Icon, type StateHeadingLevel } from "@miragon/pulse-ui"
 import { OpenInCockpitLink, WidgetShell } from "@miragon/pulse-widget-shell/widgets"
 import { Server } from "lucide-react"
 import { useT } from "../../messages/use-t.js"
@@ -12,6 +12,8 @@ interface GateProps {
   /** The server's boards as the engine list names them, for their titles; null before it answers. */
   boards: ServerBoards | null
   onOpenBoard: (board: string, title: string) => void
+  /** The state's title: the route's h1, or the heading under a bar that holds it. */
+  titleAs?: StateHeadingLevel
 }
 
 /**
@@ -21,7 +23,8 @@ interface GateProps {
  * way in, or says that none does yet, and leads to the engine's own web app where its profile
  * names one. The way back to the chooser is the head's trail, whose first crumb is "All engines"
  * wherever the chooser shows, so the state offers none of its own. Its title is the route's
- * heading (h1), as a route's view bar's is; its mark is an engine's, as on the landing. Another
+ * heading (h1), as a route's view bar's is, or the heading under a bar that holds the h1
+ * (`titleAs`, a page with chrome of its own); its mark is an engine's, as on the landing. Another
  * engine renders its route (`children`).
  */
 export function BoardsOnlyEngineGate({
@@ -42,6 +45,7 @@ function BoardsOnlyEngineState({
   engineId,
   boards,
   onOpenBoard,
+  titleAs = "h1",
 }: GateProps & { engine: BoardsOnlyEngine }) {
   const t = useT()
   const listed = engine.boards.map((id) => listedBoard(id, boards))
@@ -53,7 +57,7 @@ function BoardsOnlyEngineState({
       >
         <EmptyState
           icon={<Icon icon={Server} />}
-          titleAs="h1"
+          titleAs={titleAs}
           title={t("cockpit.boardsOnly.title", { engine: engineId, product: engine.product })}
           description={t(
             listed.length > 0 ? "cockpit.boardsOnly.onBoards" : "cockpit.boardsOnly.noBoard",

@@ -1,5 +1,5 @@
 import type { Dispatch } from "react"
-import { StatusStrip, useLocale } from "@miragon/pulse-ui"
+import { StatusStrip, useLocale, WidgetHeader } from "@miragon/pulse-ui"
 import { environmentIn } from "../lib/engine-context.js"
 import { type BoardView, crumbLabel } from "../nav-core.js"
 import { translator } from "../../messages/use-t.js"
@@ -12,6 +12,7 @@ import {
 } from "./cockpit-state.js"
 import { CockpitHead, CockpitTrailBar, EngineSwitch } from "./head.js"
 import { boardsOnlyOf, type CockpitEngine } from "./boards-only.js"
+import { CockpitRefreshButton } from "./refresh-button.js"
 
 /** Docked under the head: the engine the view showed went away, and the view fell back. */
 export function EngineGoneNotice({ engineId }: { engineId: string | null }) {
@@ -75,12 +76,26 @@ function trailPlaces({
 }
 
 /**
+ * The bar of an engine without sections on a page with chrome of its own: the engine's name as the
+ * view's title (h1, its one state's title the heading under it), the page's menu first
+ * (`ViewBarSlots`) and the cockpit's Refresh, which the head offered it, as its one action: it
+ * reads the engine list again, which gives a profile the server no longer refuses its view back.
+ */
+function SectionlessBar({ engineId }: { engineId: string }) {
+  return <WidgetHeader title={engineId} actions={<CockpitRefreshButton bar />} />
+}
+
+/**
  * An engine's bars, from edge to edge above its route: the head (the sections its dialect is
  * served by, inline a drilled view's trail in their place), the trail where `trailPlaces` puts
  * it, and the notices of an engine that went away or a process the engine switched to lacks. An
  * engine shown on boards only, or whose profile the server refused, has no section: its trail,
  * the way back and its name, takes their place in the head, never a crumb of a route it has not.
- * It is the trail row's container, which a page's narrow cockpit hides the row by.
+ * It is the trail row's container, which a page's narrow cockpit hides the row by. On a page with
+ * chrome of its own (`chrome`) the page's navigation holds the head's sections, its engine switch
+ * and the way across engines, and the route's bar its Refresh: no head shows, a drill's trail
+ * keeps its row at every width, and an engine without sections shows a bar of its own over its
+ * one state, its name the title, the menu first and the Refresh its action (`SectionlessBar`).
  */
 export function EngineBars({
   engineId,
@@ -91,6 +106,7 @@ export function EngineBars({
   state,
   inline,
   page,
+  chrome,
   onOpenFleet,
   dispatch,
 }: {
@@ -105,6 +121,8 @@ export function EngineBars({
   inline: boolean
   /** A page whose bar leads to its start page (`useStartPage`). */
   page: boolean
+  /** A page with chrome of its own (`useHostChrome`), which takes the head's parts. */
+  chrome: boolean
   onOpenFleet?: () => void
   dispatch: Dispatch<CockpitAction>
 }) {
@@ -131,6 +149,21 @@ export function EngineBars({
     inline,
     page,
   })
+  const notices = (
+    <>
+      <EngineGoneNotice engineId={goneEngineId} />
+      <ProcessGoneNotice gone={processGone} />
+    </>
+  )
+  if (chrome) {
+    return (
+      <div>
+        {sectionless && <SectionlessBar engineId={engineId} />}
+        {onRow && <CockpitTrailBar>{trail}</CockpitTrailBar>}
+        {notices}
+      </div>
+    )
+  }
   const narrow = page && onRow
   return (
     <div className="@container">
@@ -152,8 +185,7 @@ export function EngineBars({
         }
       />
       {onRow && <CockpitTrailBar narrow={narrow}>{trail}</CockpitTrailBar>}
-      <EngineGoneNotice engineId={goneEngineId} />
-      <ProcessGoneNotice gone={processGone} />
+      {notices}
     </div>
   )
 }

@@ -59,29 +59,60 @@ server image builds the page beside the server and serves it from `/app/web`.
   the address the reader is on; Back, Forward and a link of the page (`src/router/page-link.tsx`:
   a real `<a href>`, which Ctrl or Cmd, Shift, Alt and the middle button leave to the browser) hand
   the view the entry's place, and an entry it does not go to itself starts the view anew there
-  (`PageView` under a new key), never a reload. The product's name in the bar of a page with a
-  session is such a link to `/app`, the start page the words of a refused start name and its state
-  links to (the browser adapter's `startPage`). Every page has one main landmark and one `h1` (a
-  view's, the view frame's failure in its place, a state page's reason), which titles the document,
-  `<h1> · Pulse` in the page's language, and the title follows it as the user moves on inside the
-  page (`src/bar.tsx`, WCAG 2.4.2); before a view shows its heading the route's title stands (a
-  board's page names the board's id from the URL, its title arriving with the view's heading; any
-  other Pulse). The build writes `src/pages.ts` into `dist/pages.json`, which the server reads at
-  boot, and `test/pages-manifest.test.ts` boots a server over the build to hold both to each other.
-  The bar of a page with a session starts with a skip link to the content's heading, seen only while
-  it has focus, which writes no fragment into the address.
+  (`PageView` under a new key), never a reload. Each of the page's own moves (a link of its
+  navigation, Back, Forward; never a move the view reports) hands focus to the new view's `h1`
+  (the router's `moves`, pulse-ui's `NavigationFocus`); a move inside a view (a filter, a tab)
+  leaves it where it is. Every page has one main landmark and one `h1` (a view's, the view
+  frame's failure in its place, a state page's reason), which titles the document, `<h1> · Pulse`
+  in the page's language, and the title follows it as the user moves on inside the page
+  (`src/frame/layout.tsx`, WCAG 2.4.2); before a view shows its heading the route's title stands
+  (a board's page names the board's id from the URL, its title arriving with the view's heading;
+  any other Pulse). The build writes `src/pages.ts` into `dist/pages.json`, which the server reads
+  at boot, and `test/pages-manifest.test.ts` boots a server over the build to hold both to each
+  other.
+  A page with a session starts with a skip link to the content's heading, seen only while it has
+  focus, which writes no fragment into the address: the tab order is the skip link, the
+  navigation, the content.
+- The frame of a page with a session (`src/frame`) is the editors' look, one bar per view and no
+  app bar above it: a side navigation (`src/frame/navigation.tsx`, pulse-ui's `SideNav` in a
+  `nav` landmark named Pulse, 15rem beside the view from 64rem on) with the start page, the view
+  across engines where the cockpit offers it (two engines or more it reads whole), the engines by
+  environment (where the server names environments) with the open one's sections, the boards, and
+  at its foot who is signed in and the sign-out. The sections an engine opens are its dialect's on
+  the web (`src/frame/nav-sections.ts`: Camunda 7's overview, incidents and jobs, none of Camunda
+  8's, which says it shows on boards only; `test/nav-sections.test.tsx` holds the table to the
+  routes `engine_open_cockpit` offers each dialect alone and to the sections the cockpit's head
+  shows an engine of each dialect, rendered); a refused profile shows the landing's warning mark
+  and says refused, and opens its one state. Either one's state stands under a bar of its own on
+  the page, the engine's name its h1 and the cockpit's Refresh its action. An engine's entry opens
+  its overview, its address the same wherever the page is: the chat's engine switch, which keeps
+  the open section and a process the other engine deploys (N7), is the head's, which the page
+  hides. Every entry is a real `<a href>` of the router (`src/router/page-link.tsx`), the current
+  place `aria-current="page"` with the 2 px edge in `--interaction`. The navigation carries no counts: it
+  reads the engine list once (`engine_list_engines` under the cockpit's own cache key, so the page
+  and its cockpit share one read per page view) and no engine. Under 64rem a drawer holds it
+  (`src/frame/drawer.tsx`, pulse-ui's `Dialog` from the left: its scrim, its focus trap, Escape)
+  behind a menu button, the first element of every view bar (the page's chrome, `PageView`'s
+  `chrome`, which makes the cockpit leave its head to the frame: the sections, the engine switch
+  and the view across engines are the navigation's, the Refresh the view bar's) and of the page's
+  own row where a view shows no bar (its frame's states, a refused start); an entry closes it and
+  the focus goes to the new view's heading, never back to the menu, and a sign-out from it that
+  did not go through closes it with the focus back on the menu, so its notice shows. The view takes the width
+  beside the navigation on a sheet 16 px off its edges (edge to edge under 40rem), as high as the
+  window; the session's notice stands once above the view's bar.
 - `src/start.ts` starts a page: the signed-out page needs no session; any other names its view
   canonically, reads the session (`readWebSession`) and mounts the page's app with widget-shell's
   `mountApp` (`src/app.tsx`: the frame around the view, which `PageView` shows at the router's
   start), its caller `webToolCaller` (every call a POST to `/app/api/call` with the session's CSRF
-  token; no token ever reaches the page), its frame the app's own (`src/frame.tsx`: the 40 px bar
-  with the product, who is signed in and the sign-out, and the session's notices under it; below it
-  the view on a sheet, the guide's card on the app's ground, the sheet and the bar's row 72rem wide
-  at most, the sheet edge to edge under 40rem: `src/bar.tsx`). A page writes to no engine and posts
-  to no chat (`followUp: "none"`), so no write control and no hand-off show. A start that failed
-  for its engine (an unreachable one, say) keeps the cockpit's head over the route that says so:
-  `PageView`'s `failedStart` takes the engine connector's `cockpitAfterFailedStart`, and a refusal
-  no retry changes stays the frame's.
+  token; no token ever reaches the page), its frame the app's own (`src/frame/session-frame.tsx`,
+  above). A page without a session (the signed-out page, a session that ended before its first
+  read or could not be read) shows the product's name in a 40 px bar above its sheet
+  (`src/frame/layout.tsx`). A page writes to no engine and posts to no chat (`followUp: "none"`),
+  so no write control and no hand-off show. A start that failed
+  for its engine (an unreachable one, say) keeps the cockpit on that engine over the route that
+  says so, and the navigation keeps the engine open with its sections: `PageView`'s `failedStart`
+  takes the engine connector's `cockpitAfterFailedStart`, and a refusal no retry changes stays the
+  frame's.
 - No silent redirect: a call that finds the session gone shows a notice whose sign-in comes back
   to the page; a page whose session ended before it read one, or whose session could not be read,
   says so (`src/page-states.tsx`), neither handing `mountApp` a caller. The sign-out is a fetch to

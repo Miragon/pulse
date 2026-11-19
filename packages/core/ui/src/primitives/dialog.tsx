@@ -58,21 +58,35 @@ function DialogOverlay({
 /** Whether the content draws its close button, which sits in the header's top right corner. */
 const DialogCloseButtonContext = createContext(false)
 
+/** Where the dialog sits: centred over the view, or a drawer along the window's left edge. */
+const DIALOG_SIDE = {
+  center:
+    "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 top-[50%] left-[50%] grid w-full max-w-[min(560px,calc(100%-2rem))] translate-x-[-50%] translate-y-[-50%] rounded-md border",
+  left: "data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left inset-y-0 left-0 flex w-[min(18rem,calc(100%-3rem))] flex-col border-r",
+} as const
+
 /**
  * A dialog up to 560 px wide, 16 px off each edge of a narrower view (a confirmation narrows it
  * to 440 px through `className`), in three parts that carry its spacing (CI §8): `DialogHeader`,
  * `DialogBody` and `DialogFooter`. Its close button is a 32 px ghost icon button in the header's
- * top right corner, 16 px in from the edges.
+ * top right corner, 16 px in from the edges. `side="left"` makes it a drawer instead (a page's
+ * navigation under its wide layout): the window's height along its left edge, where Pulse's
+ * languages start a line, 18rem wide and 3rem clear of the other edge in a narrower window, its
+ * rule on its inner edge, sliding in from the left; the scrim, the focus trap and Escape as any
+ * dialog's.
  */
 function DialogContent({
   className,
   children,
+  side = "center",
   showCloseButton = true,
   closeLabel,
   onOpenAutoFocus,
   onCloseAutoFocus,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
+  /** Centred (the default) or a drawer along the left edge, where a line starts. */
+  side?: keyof typeof DIALOG_SIDE
   showCloseButton?: boolean
   /** Accessible name of the close button. Default: the locale's "Close". */
   closeLabel?: string
@@ -86,8 +100,10 @@ function DialogContent({
       <DialogOverlay />
       <DialogPrimitive.Content
         data-slot="dialog-content"
+        data-side={side}
         className={cn(
-          "bg-popover text-popover-foreground dark:border-input data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 shadow-3 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[min(560px,calc(100%-2rem))] translate-x-[-50%] translate-y-[-50%] rounded-md border duration-(--motion-base) focus-visible:outline-hidden",
+          "bg-popover text-popover-foreground dark:border-input data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 shadow-3 fixed z-50 duration-(--motion-base) focus-visible:outline-hidden",
+          DIALOG_SIDE[side],
           className,
         )}
         {...props}

@@ -10,6 +10,7 @@ import {
 import {
   collectErrors,
   expectNoAxeFinding,
+  navEntry,
   type PageCall,
   recordCalls,
   rendered,
@@ -68,9 +69,9 @@ test.describe("the board list", () => {
     expect(errors).toEqual([])
     await expectNoAxeFinding(page)
 
-    // A board opens in the page, the title and the address following it (N1); the bar's Pulse is
-    // the way home, so no trail repeats it, and Back leads to the list in the page, which calls
-    // the view tool no second time.
+    // A board opens in the page, the title and the address following it (N1); the navigation's
+    // Start is the way home, so no trail repeats it, and Back leads to the list in the page, which
+    // calls the view tool no second time.
     await board.click()
     await drawn(page)
     await expect(page).toHaveTitle(`${TITLE} · Pulse`)
@@ -90,12 +91,9 @@ test.describe("the board list", () => {
 
   test("with one engine and no board, /app opens that engine", async ({ page }) => {
     await signIn(page, "/app", { deployment: "short" })
-    const sections = page.getByRole("navigation", { name: "Cockpit sections" })
-    await expect(sections.getByRole("button", { name: "Overview" })).toHaveAttribute(
-      "aria-current",
-      "page",
-      { timeout: 15_000 },
-    )
+    await expect(navEntry(page, "Overview")).toHaveAttribute("aria-current", "page", {
+      timeout: 15_000,
+    })
     await expect(landing(page)).toHaveCount(0)
   })
 })
@@ -120,9 +118,10 @@ test.describe("a board's page", () => {
     await expect(instances.getByRole("row").filter({ hasText: "INV-2026-0042" })).toBeVisible()
     await expect(page.getByText(`Engine ${BROKEN_ENGINE} is unreachable (HTTP 503)`)).toBeVisible()
     await expect(tile(page, 'Widget "chart"').getByText(/must be one of counter/)).toBeVisible()
-    // The bar's Pulse leads to the list, where two engines and the boards are to pick from: no
-    // trail repeats it on a page.
-    await expect(page.getByRole("link", { name: "Pulse, start page" })).toBeVisible()
+    // The navigation's Start leads to the list, where two engines and the boards are to pick
+    // from, its entry of the board the current one: no trail repeats it on a page.
+    await expect(navEntry(page, "Start")).toHaveAttribute("href", "/app")
+    await expect(navEntry(page, TITLE)).toHaveAttribute("aria-current", "page")
     await expect(trail(page)).toHaveCount(0)
     await rendered(page)
     expect(errors).toEqual([])
@@ -141,10 +140,13 @@ test.describe("a board's page", () => {
       .filter({ hasText: "INV-2026-0042" })
     await expect(row.getByRole("button", { name: /^Open/ })).toHaveCount(0)
     await row.getByRole("cell").first().click()
-    await expect(page.getByLabel("Selected engine")).toHaveValue(HEALTHY_ENGINE, {
-      timeout: 15_000,
-    })
-    // The instance's bar names it (a narrow head's trail, hidden at this width, names it too).
+    // The navigation opens the engine the instance runs on, its sections under it.
+    await expect(navEntry(page, "Overview")).toHaveAttribute(
+      "href",
+      `/app/engines/${HEALTHY_ENGINE}`,
+      { timeout: 15_000 },
+    )
+    // The instance's bar names it, the trail on its row above it.
     await expect(page.getByRole("heading", { level: 1, name: "INV-2026-0042" })).toBeVisible({
       timeout: 15_000,
     })
@@ -221,11 +223,8 @@ test.describe("a board's page", () => {
     await expect(page.getByText(/\bchat\b/i)).toHaveCount(0)
     await expectNoAxeFinding(page)
 
-    // The box holds the way there, beside its words; the bar's product name leads there too.
-    await expect(page.getByRole("link", { name: "Pulse, start page" })).toHaveAttribute(
-      "href",
-      "/app",
-    )
+    // The box holds the way there, beside its words; the navigation's Start leads there too.
+    await expect(navEntry(page, "Start")).toHaveAttribute("href", "/app")
     await alert.getByRole("link", { name: "Go to the start page" }).click()
     await expect(landing(page)).toBeVisible({ timeout: 15_000 })
     expect(new URL(page.url()).pathname).toBe("/app")

@@ -41,10 +41,15 @@ interface ShownView {
   readonly generation: number
 }
 
-/** What the page shows: the route its address names now, and the start of the view it shows. */
+/**
+ * What the page shows: the route its address names now, the start of the view it shows, and how
+ * often the page moved itself (`moves`: a link of the page, Back, Forward; never a move the view
+ * reported), which the frame's focus follows.
+ */
 interface RouterState {
   readonly route: ViewRoute
   readonly shown: ShownView
+  readonly moves: number
 }
 
 /** The web app's own router: the page navigates itself, every view at its canonical address. */
@@ -110,7 +115,7 @@ export function createPageRouter(env: RouterEnv, first: ViewRoute): PageRouter {
     },
   })
 
-  let state: RouterState = { route: first, shown: shownAt(first.start, 0) }
+  let state: RouterState = { route: first, shown: shownAt(first.start, 0), moves: 0 }
 
   /** The address moved under the page: its view goes to the entry, else starts there anew. */
   const follow = (): void => {
@@ -122,9 +127,10 @@ export function createPageRouter(env: RouterEnv, first: ViewRoute): PageRouter {
     if (route.url !== here()) env.history.replaceState(env.history.state, "", route.url)
     const place: ViewPlace = { args: route.place, memo: env.history.state }
     const goes = [...followers].some((go) => go(place))
+    const moves = state.moves + 1
     state = goes
-      ? { ...state, route }
-      : { route, shown: shownAt(route.start, state.shown.generation + 1) }
+      ? { ...state, route, moves }
+      : { route, shown: shownAt(route.start, state.shown.generation + 1), moves }
     notify()
   }
 

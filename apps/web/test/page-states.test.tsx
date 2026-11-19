@@ -10,7 +10,7 @@ import {
   type ViewMap,
 } from "@miragon/pulse-widget-shell/widgets"
 import { catalogs } from "../src/messages/index.js"
-import { callsOf, settled, start, stopPage, viewResult } from "./page.test-support.js"
+import { callsOf, engineList, settled, start, stopPage, viewResult } from "./page.test-support.js"
 
 /**
  * What every page says of itself: one heading, which titles the document (WCAG 2.4.2) per page
@@ -81,7 +81,14 @@ describe("a page with a view: the view's heading titles the document", () => {
   it("names a board's id until the view answers, then the view's heading, which it follows", async () => {
     let answer: (response: Response) => void = () => undefined
     const pending = new Promise<Response>((resolve) => (answer = resolve))
-    await start("/app/boards/invoices", { call: () => pending }, { views })
+    await start(
+      "/app/boards/invoices",
+      {
+        call: ({ name }) =>
+          name === "engine_open_cockpit" ? pending : Response.json(engineList()),
+      },
+      { views },
+    )
     expect(document.title).toBe("Board invoices · Pulse")
     const board = { ...viewResult, structuredContent: { greeting: "Invoice operations" } }
     await act(async () => answer(Response.json({ result: board })))
@@ -92,11 +99,14 @@ describe("a page with a view: the view's heading titles the document", () => {
     expect(document.title).toBe("Jobs · Pulse")
   })
 
-  it("leads to the start page from the product's name in its bar", async () => {
+  it("leads to the start page from its navigation's first entry", async () => {
     await start("/app/cockpit?view=jobs", {}, { views })
-    const home = within(screen.getByRole("banner")).getByRole("link", { name: "Pulse, start page" })
+    const navigation = within(screen.getByRole("banner")).getByRole("navigation", {
+      name: "Pulse",
+    })
+    const home = within(navigation).getAllByRole("link")[0]
     expect(home.getAttribute("href")).toBe("/app")
-    expect(home.textContent).toBe("Pulse")
+    expect(home.textContent).toBe("Start")
   })
 })
 

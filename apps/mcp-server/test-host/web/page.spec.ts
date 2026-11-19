@@ -15,6 +15,7 @@ import {
   collectErrors,
   expectNoAxeFinding,
   idpRecord,
+  navEntry,
   originOf,
   recordCalls,
   rendered,
@@ -30,7 +31,8 @@ import {
  * every feed, the browser's language and theme, and no hand-off, since the page posts to no chat.
  * A page writes nothing: the deployment's toolset registers the widget writes, and the page offers
  * none, nor asks the gate feed. Every page has one main landmark and one h1, which titles it, and
- * says what to do on the page, never in a chat.
+ * says what to do on the page, never in a chat. The page's frame (its side navigation) takes the
+ * cockpit's head: frame.spec.ts.
  */
 
 const SERVER = path.resolve(import.meta.dirname, "..", "..")
@@ -109,8 +111,7 @@ test.describe("the cockpit as a page", () => {
   test("a section of the cockpit reads its feed through the page's caller", async ({ page }) => {
     const calls = recordCalls(page)
     await signIn(page, OVERVIEW_PAGE)
-    const sections = page.getByRole("navigation", { name: "Cockpit sections" })
-    await sections.getByRole("button", { name: "Jobs" }).click({ timeout: 15_000 })
+    await navEntry(page, "Jobs").click({ timeout: 15_000 })
     const jobs = page.getByRole("region", { name: "Jobs", exact: true })
     await expect(jobs.getByText("Card declined").first()).toBeVisible({ timeout: 15_000 })
     expect(
@@ -260,9 +261,10 @@ test.describe("the cockpit as a page", () => {
  * canonical address (`/app/engines/<engine>/…`), a drill and a section are each a new entry of the
  * browser's history; Back and Forward are the entries around it, the trail as it was left there and
  * no second call of the view tool; a reload and a sign-in show the view the address names; an old
- * address (`/app/cockpit?view=…`) gives way to the view's own in its entry; an engine switch keeps
- * its section (N7) and rewrites the address; the cross-engine overview is a page of its own,
- * /app/fleet; the bar's Pulse leads to /app in the page.
+ * address (`/app/cockpit?view=…`) gives way to the view's own in its entry; a section and an
+ * engine of the page's navigation are each an entry, marked current through Back and Forward; the
+ * cross-engine overview is a page of its own, /app/fleet; the navigation's Start leads to /app in
+ * the page.
  */
 test.describe("the page's address", () => {
   const OVERVIEW = `/app/engines/${HEALTHY_ENGINE}`
@@ -327,30 +329,41 @@ test.describe("the page's address", () => {
     expect(viewCalls(calls)).toBe(2)
   })
 
-  test("a section is an entry of its own; an engine switch keeps it and rewrites the address", async ({
+  test("a section and an engine of the navigation are each an entry of their own, marked current through Back and Forward", async ({
     page,
   }) => {
+    const calls = recordCalls(page)
     await signIn(page, OVERVIEW)
     await expect(h1(page, `${HEALTHY_ENGINE} · Overview`)).toBeVisible({ timeout: 15_000 })
+    await expect(navEntry(page, "Overview")).toHaveAttribute("aria-current", "page")
     const start = await entries(page)
-    const sections = page.getByRole("navigation", { name: "Cockpit sections" })
-    const incidents = sections.getByRole("button", { name: "Incidents" })
-    await incidents.click()
+    await navEntry(page, "Incidents").click()
     await expect(h1(page, `${HEALTHY_ENGINE} · Incidents`)).toBeVisible({ timeout: 15_000 })
+    await expect(navEntry(page, "Incidents")).toHaveAttribute("aria-current", "page")
+    await expect(navEntry(page, "Overview")).not.toHaveAttribute("aria-current")
     expect(here(page)).toBe(INCIDENTS(HEALTHY_ENGINE))
     expect(await entries(page)).toBe(start + 1)
 
-    // The address names the engine on screen, never the one the page left.
-    await page.getByLabel("Selected engine").selectOption(BROKEN_ENGINE)
-    await expect(h1(page, `${BROKEN_ENGINE} · Incidents`)).toBeVisible({ timeout: 15_000 })
-    await expect(incidents).toHaveAttribute("aria-current", "page")
-    expect(here(page)).toBe(INCIDENTS(BROKEN_ENGINE))
+    // Another engine: its own address, its sections under it, the one left folded.
+    await navEntry(page, BROKEN_ENGINE).click()
+    await expect(h1(page, `${BROKEN_ENGINE} · Overview`)).toBeVisible({ timeout: 15_000 })
+    expect(here(page)).toBe(`/app/engines/${BROKEN_ENGINE}`)
     expect(await entries(page)).toBe(start + 2)
+    await expect(navEntry(page, "Overview")).toHaveAttribute(
+      "href",
+      `/app/engines/${BROKEN_ENGINE}`,
+    )
+    await expect(navEntry(page, "Overview")).toHaveAttribute("aria-current", "page")
 
     await page.goBack()
     await expect(h1(page, `${HEALTHY_ENGINE} · Incidents`)).toBeVisible({ timeout: 15_000 })
-    await expect(page.getByLabel("Selected engine")).toHaveValue(HEALTHY_ENGINE)
-    expect(here(page)).toBe(INCIDENTS(HEALTHY_ENGINE))
+    await expect(navEntry(page, "Incidents")).toHaveAttribute("aria-current", "page")
+    await expect(navEntry(page, "Incidents")).toHaveAttribute("href", INCIDENTS(HEALTHY_ENGINE))
+    await page.goForward()
+    await expect(h1(page, `${BROKEN_ENGINE} · Overview`)).toBeVisible({ timeout: 15_000 })
+    await expect(navEntry(page, "Overview")).toHaveAttribute("aria-current", "page")
+    // The cockpit went there itself: the view tool was called once, for the page's start.
+    expect(viewCalls(calls)).toBe(1)
   })
 
   test("the cross-engine overview is /app/fleet: a reload stays there, Back leads to the landing", async ({
@@ -481,14 +494,14 @@ test.describe("the page's address", () => {
     await expect(h1(page, `${HEALTHY_ENGINE} · Jobs`)).toBeVisible({ timeout: 15_000 })
   })
 
-  test("the bar's Pulse leads to the start page in the page, a new entry Back leaves", async ({
+  test("the navigation's Start leads to the start page in the page, a new entry Back leaves", async ({
     page,
   }) => {
     const calls = recordCalls(page)
     await signIn(page, PROCESS)
     await expect(h1(page, "Invoice Receipt")).toBeVisible({ timeout: 15_000 })
     const before = await entries(page)
-    await page.getByRole("banner").getByRole("link", { name: "Pulse, start page" }).click()
+    await navEntry(page, "Start").click()
     await expect(h1(page, LANDING)).toBeVisible({ timeout: 15_000 })
     expect(here(page)).toBe("/app")
     expect(await entries(page)).toBe(before + 1)
@@ -510,6 +523,11 @@ test.describe("the page's address", () => {
     const skip = page.getByRole("link", { name: "Skip to content" })
     await expect(skip).toBeFocused()
     await expect(skip).toBeInViewport()
+    // Then the navigation, then the content: the skip link leads past the navigation.
+    await page.keyboard.press("Tab")
+    await expect(navEntry(page, "Start")).toBeFocused()
+    await page.keyboard.press("Shift+Tab")
+    await expect(skip).toBeFocused()
     await page.keyboard.press("Enter")
     await expect(title).toBeFocused()
     expect(new URL(page.url()).hash).toBe("")
@@ -765,19 +783,25 @@ test.describe("the pages without a view", () => {
 })
 
 test.describe("a page whose engine doesn't answer", () => {
-  // The cockpit keeps its head (its sections, the switcher, the way to the other engines) over the
-  // route, which says so in its place: where the start of its view fails for the engine, not for
-  // the page, and where the engine's own address starts the landing and the cockpit opens it.
+  // The page's navigation keeps the engine open with its sections (and the way to the other
+  // engines) beside the route, which says so in its place: where the start of its view fails for
+  // the engine, not for the page, and where the engine's own address starts the landing and the
+  // cockpit opens it.
   for (const [start, address] of [
     ["the start of its jobs", `/app/engines/${BROKEN_ENGINE}/jobs`],
     ["the engine's own address", `/app/engines/${BROKEN_ENGINE}`],
   ] as const) {
-    test(`${address} (${start}) keeps the cockpit's head over its failure`, async ({ page }) => {
+    test(`${address} (${start}) keeps the engine's sections beside its failure`, async ({
+      page,
+    }) => {
       const calls = recordCalls(page)
       await signIn(page, address)
-      await expect(page.getByRole("navigation", { name: "Cockpit sections" })).toBeVisible({
-        timeout: 15_000,
-      })
+      await expect(navEntry(page, "Jobs")).toHaveAttribute(
+        "href",
+        `/app/engines/${BROKEN_ENGINE}/jobs`,
+        { timeout: 15_000 },
+      )
+      await expect(navEntry(page, HEALTHY_ENGINE)).toBeVisible()
       const failure = page.getByRole("heading", {
         name: `Engine ${BROKEN_ENGINE} is unreachable (HTTP 503)`,
       })
@@ -800,11 +824,13 @@ test.describe("the cockpit's pages on a Camunda 8 engine", () => {
     const calls = recordCalls(page)
     const address = `/app/engines/${C8_ENGINE}`
     await signIn(page, address, { deployment: "camunda8" })
-    const gate = page.getByRole("heading", { level: 1, name: `${C8_ENGINE} is a Camunda 8 engine` })
+    // The gate's title is the heading under the engine's own bar, whose title is the page's h1.
+    const gate = page.getByRole("heading", { level: 2, name: `${C8_ENGINE} is a Camunda 8 engine` })
     await expect(gate).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(C8_ENGINE)
     await expect(page.getByText(/Input validation error/)).toHaveCount(0)
     await expect(page.getByRole("heading", { level: 1, name: "Operations Cockpit" })).toHaveCount(0)
-    await expect(page).toHaveTitle(`${C8_ENGINE} is a Camunda 8 engine · Pulse`)
+    await expect(page).toHaveTitle(`${C8_ENGINE} · Pulse`)
     await expect(page.getByRole("navigation", { name: "Cockpit sections" })).toHaveCount(0)
     await expect(
       page.getByRole("link", { name: "Open in Operate (opens in a new tab)" }),
@@ -890,11 +916,12 @@ test.describe("the cockpit's pages on a Camunda 8 engine", () => {
 
 /**
  * A refused profile of the other dialect on a page: the server offers it no feed (its feeds' engine
- * enums name the stub alone), so its page reads nothing of it and says the profile's own reason as
- * its one heading and title, without Try again and without the head's sections.
+ * enums name the stub alone), so its page reads nothing of it and says the profile's own reason
+ * under the engine's own bar (its name the page's h1 and title, the Refresh its one action),
+ * without Try again and without the head's sections.
  */
 test.describe("the cockpit's page on a refused profile of the other dialect", () => {
-  test("its gate says the profile's own reason, reads nothing and titles the page", async ({
+  test("its gate says the profile's own reason under the engine's bar and reads nothing", async ({
     page,
   }) => {
     const errors = collectErrors(page)
@@ -904,8 +931,10 @@ test.describe("the cockpit's page on a refused profile of the other dialect", ()
     await expect(row).toHaveAccessibleName(/\bprofile refused$/, { timeout: 15_000 })
     await row.click()
     const title = `Engine ${REFUSED_C8_ENGINE} cannot be used: its profile is refused`
-    await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible()
-    await expect(page).toHaveTitle(`${title} · Pulse`)
+    await expect(page.getByRole("heading", { level: 2, name: title })).toBeVisible()
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(REFUSED_C8_ENGINE)
+    await expect(page).toHaveTitle(`${REFUSED_C8_ENGINE} · Pulse`)
+    await expect(page.getByRole("button", { name: "Refresh" })).toHaveCount(1)
     await expect(
       page.getByText(
         new RegExp(`^\\[ENGINE_PROFILE_REFUSED\\] Engine "${REFUSED_C8_ENGINE}" is configured`),

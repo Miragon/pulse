@@ -8,7 +8,13 @@ import type { ToolCaller } from "./browser-view-host.js"
 import { mountPage } from "./page-root.js"
 import { PageView } from "./page-view.js"
 import { useToolQuery } from "./tool-query.js"
-import { useHostLocation, useViewHost, type ViewLocation } from "./view-host.js"
+import {
+  useHostChrome,
+  useHostLocation,
+  useViewHost,
+  type HostChrome,
+  type ViewLocation,
+} from "./view-host.js"
 import type { ViewComponent, ViewMap } from "./views.js"
 
 /**
@@ -184,6 +190,38 @@ describe("PageView", () => {
     )
     const container = await mount(App, { callTool: stubCaller(), locale: "en" })
     expect(container.querySelector('[data-testid="view"]')?.textContent).toBe("a|2|located")
+    expect(container.querySelector('[data-testid="app"]')?.textContent).toBe("none")
+  })
+
+  it("gives the view the page's chrome, its address kept, and the app beside it none", async () => {
+    const location: ViewLocation = { report: vi.fn(), subscribe: () => () => undefined }
+    const chrome: HostChrome = { menu: <button type="button">Menu</button> }
+    /** What a view reads of the page around it: its chrome's menu and its address. */
+    const Chromed: ViewComponent = () => {
+      const seen = useHostChrome()
+      return (
+        <main data-testid="view">
+          {seen?.menu}
+          {useHostLocation() ? "located" : "none"}
+        </main>
+      )
+    }
+    const App = () => (
+      <>
+        <p data-testid="app">{useHostChrome() ? "chrome" : "none"}</p>
+        <PageView views={{ [VIEW_TOOL]: Chromed }} view={VIEW_TOOL} chrome={chrome} />
+        <PageView
+          views={{ [VIEW_TOOL]: Chromed }}
+          view={VIEW_TOOL}
+          args={{ rows: "b" }}
+          chrome={chrome}
+          location={location}
+        />
+      </>
+    )
+    const container = await mount(App, { callTool: stubCaller(), locale: "en" })
+    const views = [...container.querySelectorAll('[data-testid="view"]')]
+    expect(views.map((view) => view.textContent)).toEqual(["Menunone", "Menulocated"])
     expect(container.querySelector('[data-testid="app"]')?.textContent).toBe("none")
   })
 

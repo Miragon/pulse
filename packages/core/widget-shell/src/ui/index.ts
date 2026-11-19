@@ -47,12 +47,14 @@ export { ViewStack, type ViewComponent, type ViewMap, type ViewProps } from "./v
 export { ViewErrorBoundary } from "./view-error-boundary.js"
 export {
   HostModelContext,
+  useHostChrome,
   useHostFollowUp,
   useHostLocation,
   useHostWrites,
   useStartPage,
   useViewHost,
   type FollowUp,
+  type HostChrome,
   type ViewHost,
   type ViewLocation,
   type ViewPlace,

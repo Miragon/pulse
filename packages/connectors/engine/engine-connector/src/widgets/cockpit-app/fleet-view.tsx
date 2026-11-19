@@ -1,6 +1,11 @@
 import { Fragment } from "react"
 import { formatNumber, SectionHeading, WidgetHeader } from "@miragon/pulse-ui"
-import { HandOffButton, useHostFollowUp } from "@miragon/pulse-widget-shell/widgets"
+import {
+  HandOffButton,
+  useHostChrome,
+  useHostFollowUp,
+  WidgetShell,
+} from "@miragon/pulse-widget-shell/widgets"
 import {
   enginesByEnvironment,
   formatEnginesByEnvironment,
@@ -93,19 +98,23 @@ export function FleetView({
   const engineGroups = groupEnginesByEnvironment(engines)
   const idList = formatEnginesByEnvironment(engineGroups)
   const fleet: Fleet = { engineIds: ids, environments: enginesByEnvironment(engineGroups) }
-
-  return (
-    <div className="gap-section flex flex-col">
-      <WidgetHeader
-        size="app"
-        title={t("fleet.heading")}
-        sub={t("fleet.engineCount", { count: formatNumber(engines.length), list: idList })}
-        actions={
-          followUp !== "none" && (
-            <HandOffButton action="assess" prompt={ask(fleetOverviewHandOff(fleet))} />
-          )
-        }
-      />
+  // On a page with chrome of its own the title is the view bar's, the page's menu first: a view
+  // of its own in the cockpit's flush shell, its bar from edge to edge.
+  const chrome = useHostChrome() !== undefined
+  const header = (
+    <WidgetHeader
+      size={chrome ? "default" : "app"}
+      title={t("fleet.heading")}
+      sub={t("fleet.engineCount", { count: formatNumber(engines.length), list: idList })}
+      actions={
+        followUp !== "none" && (
+          <HandOffButton action="assess" prompt={ask(fleetOverviewHandOff(fleet))} />
+        )
+      }
+    />
+  )
+  const content = (
+    <>
       <BoardsOnlyLine engines={all} />
 
       <FleetLandscape engineIds={ids} refused={refused} onEnterEngine={onEnterEngine} />
@@ -126,6 +135,13 @@ export function FleetView({
           </div>
         </section>
       )}
+    </>
+  )
+  if (chrome) return <WidgetShell header={header}>{content}</WidgetShell>
+  return (
+    <div className="gap-section flex flex-col">
+      {header}
+      {content}
     </div>
   )
 }

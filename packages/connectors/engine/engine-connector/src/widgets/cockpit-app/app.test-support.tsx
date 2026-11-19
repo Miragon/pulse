@@ -3,6 +3,7 @@ import {
   TestViewHost,
   type createTestQueryClient,
   type HostAction,
+  type HostChrome,
   type ViewLocation,
   type ViewPlace,
 } from "@miragon/pulse-widget-shell/widgets"
@@ -166,12 +167,13 @@ function cockpitTools(list: EngineList) {
 }
 
 /**
- * A page outside a chat (the web app): its start page, which its bar leads to, and its address,
- * which follows the cockpit where the test hands one.
+ * A page outside a chat (the web app): its start page, which its bar leads to, its address, which
+ * follows the cockpit where the test hands one, and its chrome, where it navigates itself.
  */
 export interface PageHost {
   startPage: string
   location?: ViewLocation
+  chrome?: HostChrome
 }
 
 /** The cockpit under the test host, on `client`, whose cache the test reads and pokes. */
@@ -194,6 +196,7 @@ export function renderCockpitOn(
       host={displayMode}
       startPage={page?.startPage}
       location={page?.location}
+      chrome={page?.chrome}
     >
       <CockpitApp data={data} />
     </TestViewHost>

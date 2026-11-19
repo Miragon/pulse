@@ -41,6 +41,20 @@ export interface ViewLocation {
 }
 
 /**
+ * A page's chrome of its own around its views (`PageView`'s `chrome`): the page navigates itself,
+ * its navigation holding what a view's head holds in a chat (the sections, the engine switch, the
+ * view across engines), so a view leaves that head to it and keeps its bar. Only a page offers it,
+ * a chat never.
+ */
+export interface HostChrome {
+  /**
+   * The page's menu button, which opens its navigation where the page hides it (a narrow
+   * window): the first element of every view bar (pulse-ui's `ViewBarSlots` `lead`).
+   */
+  readonly menu: ReactNode
+}
+
+/**
  * The ONE seam between a view and its host. Widgets never import `@modelcontextprotocol/ext-apps`:
  * a chat provides the ext-apps adapter (`mountViews`), a page outside a chat the browser adapter
  * (`mountApp`, `mountPage`), tests `TestViewHost`. Display mode stays in the host-agnostic
@@ -73,6 +87,11 @@ export interface ViewHost {
    * `mountPage`'s): a view reports each move and goes where Back and Forward lead. A chat has none.
    */
   location?: ViewLocation
+  /**
+   * The page's chrome around the view (`PageView`'s `chrome`), where the page navigates itself:
+   * the view leaves its own head to it and shows the page's menu first in its bar. A chat has none.
+   */
+  chrome?: HostChrome
   /** Opens a URL outside the frame. Fail-soft. */
   openExternal: (url: string) => void
   /** One node of the view's model-context tree; nested nodes join into one context. */
@@ -124,6 +143,14 @@ export function useStartPage(): string | undefined {
  */
 export function useHostLocation(): ViewLocation | undefined {
   return useContext(ViewHostContext)?.location
+}
+
+/**
+ * The page's chrome around the view (`ViewHost.chrome`), without the host's tool caller; outside a
+ * view host, in a chat and on a page without chrome of its own none, so a view shows its own head.
+ */
+export function useHostChrome(): HostChrome | undefined {
+  return useContext(ViewHostContext)?.chrome
 }
 
 /**

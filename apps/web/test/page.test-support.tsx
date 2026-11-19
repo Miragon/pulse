@@ -23,6 +23,13 @@ export const viewResult = {
   structuredContent: { greeting: "Hi" },
 }
 
+/** The engine list the navigation reads, as `engine_list_engines` answers it: one engine. */
+export const engineList = (
+  structuredContent: unknown = { engines: [{ id: "prod", environment: "default", dialect: "c7" }] },
+) => ({
+  result: { content: [{ type: "text", text: "{}" }], structuredContent },
+})
+
 export interface Server {
   session?: () => Response
   call?: (body: {
@@ -48,7 +55,8 @@ export function fakeFetch(server: Server) {
       return Promise.resolve(server.session?.() ?? Response.json(SESSION))
     if (path === "/app/api/call") {
       const body = JSON.parse(bodyOf(init)) as { name: string }
-      return Promise.resolve(server.call?.(body) ?? Response.json({ result: viewResult }))
+      const fallback = body.name === "engine_list_engines" ? engineList() : { result: viewResult }
+      return Promise.resolve(server.call?.(body) ?? Response.json(fallback))
     }
     if (path === "/app/auth/logout") {
       return Promise.resolve(server.logout?.() ?? Response.json({ location: "/app/signed-out" }))

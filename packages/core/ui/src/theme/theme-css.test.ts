@@ -329,6 +329,11 @@ describe("theme.css: the role-token contract", () => {
       expect.arrayContaining([...dots, '[data-slot="switch-thumb"]']),
     )
     expect(css).toContain('[data-theme-mode="light"] { forced-color-adjust: none; }')
+    // A side navigation's current item keeps its 2 px left edge in Highlight, the others' in Canvas.
+    expect(css).toMatch(/\[data-slot="side-nav-item"\],[^{]*\) \{ border-color: Canvas; \}/)
+    expect(css).toMatch(
+      /\[data-slot="side-nav-item"\]\[aria-current="page"\],[^{]*\) \{ border-color: Highlight; \}/,
+    )
     // A line list stops on its bar's rule, so no tab's Canvas edge covers it.
     expect(css).toContain(
       ':is([data-slot="tabs-bar"][data-variant="line"] > [data-slot="tabs-list"], [data-slot="nav-tabs"] > ul) { margin-bottom: 0; }',

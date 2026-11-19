@@ -1,7 +1,9 @@
 import { useCallback, useMemo, useSyncExternalStore, type ComponentType } from "react"
 import { PageView, type ViewMap } from "@miragon/pulse-widget-shell/widgets"
 import { cockpitAfterFailedStart } from "@miragon/pulse-engine-connector/widgets"
-import { SessionFrame, type SessionPage } from "./frame.js"
+import { PAGE_CHROME } from "./frame/drawer.js"
+import { SessionFrame } from "./frame/session-frame.js"
+import type { SessionPage } from "./frame/session-page.js"
 import type { PageRouter } from "./router/router.js"
 import { viewsAt } from "./unknown-engine.js"
 
@@ -15,13 +17,15 @@ export interface PageAppParts {
 /**
  * The page with a session: its frame around the view its address names, at the start its router
  * gives (`PageView`, mounted anew at each start of the router's), the view's address the router's
- * too. A start that failed for its engine keeps the cockpit's head over the route that says so
- * (`cockpitAfterFailedStart`); a refusal no retry changes stays the frame's, and an engine's own
- * address that names an engine the server does not configure is refused in the view's place
- * (`viewsAt`).
+ * too, and the page's chrome its own (`PAGE_CHROME`: the page navigates itself, so the cockpit
+ * leaves its head to the frame's navigation and shows the frame's menu first in its bar). A start
+ * that failed for its engine keeps the cockpit on that engine over the route that says so
+ * (`cockpitAfterFailedStart`), the navigation keeping the engine open with its sections; a refusal
+ * no retry changes stays the frame's, and an engine's own address that names an engine the server
+ * does not configure is refused in the view's place (`viewsAt`).
  */
 function PageApp({ router, views, page }: PageAppParts) {
-  const { route, shown } = useSyncExternalStore(router.subscribe, router.state)
+  const { route, shown, moves } = useSyncExternalStore(router.subscribe, router.state)
   const { start, location, generation } = shown
   const failedStart = useCallback(
     (error: Error) => cockpitAfterFailedStart(start.args, error),
@@ -29,13 +33,20 @@ function PageApp({ router, views, page }: PageAppParts) {
   )
   const shownViews = useMemo(() => viewsAt(views, start), [views, start])
   return (
-    <SessionFrame page={page} title={route.title} navigate={router.navigate}>
+    <SessionFrame
+      page={page}
+      place={route.place}
+      title={route.title}
+      moves={moves}
+      navigate={router.navigate}
+    >
       <PageView
         key={generation}
         views={shownViews}
         view={start.view}
         args={start.args}
         location={location}
+        chrome={PAGE_CHROME}
         failedStart={failedStart}
       />
     </SessionFrame>
