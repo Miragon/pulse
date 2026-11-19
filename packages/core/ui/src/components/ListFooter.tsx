@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react"
 import { cn } from "../lib/utils.js"
 import { Button } from "../primitives/button.js"
 import { useUiLocale, useUiMessages } from "../locale/locale-provider.js"
@@ -43,6 +44,85 @@ export interface ListFooterProps {
 }
 
 /**
+ * The mark of a row that continues the one above it (an error under its row), widget-shell's
+ * `FIT_CONTINUES_ROW` as the DOM carries it: such a row is no item of the list. pulse-ui is a leaf,
+ * so widget-shell's `src/ui/paged-list-footer.test.tsx` holds the two spellings equal.
+ */
+const CONTINUES_ROW = "data-inline-fit-continues"
+
+/**
+ * The item rows of the table body the footer counts: the last body before it in its list, never a
+ * skeleton, without the rows that continue the one above them, so the index of an item is its row.
+ */
+function rowsBefore(footer: HTMLElement): HTMLElement[] {
+  let scope = footer.parentElement
+  for (let depth = 0; scope !== null && depth < 4; depth += 1) {
+    const bodies = Array.from(scope.querySelectorAll<HTMLElement>("tbody")).filter(
+      (body) =>
+        body.getAttribute("aria-hidden") !== "true" &&
+        (body.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
+    )
+    const body = bodies.at(-1)
+    if (body) {
+      return Array.from(body.querySelectorAll<HTMLElement>(`:scope > tr:not([${CONTINUES_ROW}])`))
+    }
+    scope = scope.parentElement
+  }
+  return []
+}
+
+/**
+ * Focuses `target` if it takes focus there (shown, focusable: a tabindex, or natively, as a button
+ * is); says whether it did. A row without a tabindex opens nothing and takes no focus.
+ */
+function focused(target: HTMLElement | null | undefined): boolean {
+  if (!target?.isConnected || (target.tabIndex < 0 && !target.hasAttribute("tabindex"))) {
+    return false
+  }
+  target.focus()
+  return document.activeElement === target
+}
+
+/**
+ * After "Load more", focus goes where the reader goes on: to the first new row, if it takes focus
+ * (a row that opens is one), else to the button while there is a next page, else to the status
+ * line, which says the new count. Never where focus left the footer meanwhile: only from the
+ * footer (its button, which turns disabled and drops focus while the page loads, or a failure's
+ * retry beside it) or from nowhere. A new search or filter, or rows that went stale, cancel it.
+ */
+function useFocusAfterLoadMore(shown: number, counted: boolean, refreshing: boolean) {
+  const rootRef = useRef<HTMLDivElement>(null)
+  const statusRef = useRef<HTMLParagraphElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  // The page in flight or the rows stale: what changes the count is no page of this list.
+  const settled = counted && !refreshing
+  /** The rows on screen when Load more was asked, until its page is. */
+  const asked = useRef<number | null>(null)
+  useEffect(() => {
+    const before = asked.current
+    if (before === null || shown === before) return
+    asked.current = null
+    const footer = rootRef.current
+    if (shown < before || !settled || !footer) return
+    const list = footer.closest<HTMLElement>("[data-slot='paged-list-footer']") ?? footer
+    const active = document.activeElement
+    if (active !== null && active !== document.body && !list.contains(active)) return
+    // After the rows' own effects: a table marks a new row focusable once it is in the DOM.
+    const timer = setTimeout(() => {
+      if (focused(rowsBefore(footer)[before])) return
+      const button = buttonRef.current
+      if (button && !button.disabled && focused(button)) return
+      focused(statusRef.current)
+    }, 0)
+    return () => clearTimeout(timer)
+  }, [shown, settled])
+  const ask = () => {
+    asked.current = shown
+  }
+  return { rootRef, statusRef, buttonRef, ask }
+}
+
+/**
  * Footer for a paginated list: an honest "Showing X of Y" total plus an
  * explicit "Load more" control. Deliberately not infinite scroll: the user
  * gets the total, a reachable footer, and control over fetching. The count
@@ -52,7 +132,10 @@ export interface ListFooterProps {
  * nothing in flight it shows nothing, but the live region stays mounted
  * (visually hidden) and says "No entries": a search that finds nothing is
  * announced too, and the region is never re-created with its news already in
- * it (a screen reader stays silent then). Text and number format follow the
+ * it (a screen reader stays silent then). After "Load more" focus moves on to
+ * the first new row where it takes focus, else stays on the button while there
+ * is a next page, else goes to the status line once the button is gone (the
+ * last page), never to the page's body. Text and number format follow the
  * active locale (the nearest `LocaleProvider`, else English).
  */
 export function ListFooter({
@@ -71,17 +154,22 @@ export function ListFooter({
   const listFooter = { ...useUiMessages().listFooter, ...labels }
   const counted = total > 0 && !stale
   const visible = counted || refreshing
+  const { rootRef, statusRef, buttonRef, ask } = useFocusAfterLoadMore(shown, counted, refreshing)
   // Without a live region of its own there is nothing to keep mounted.
   if (!visible && !announce) return null
   return (
     <div
+      ref={rootRef}
       data-slot="list-footer"
       // The same element tree in both states, so React keeps the live region.
       className={visible ? cn(FOOTER_CLASS, className) : "sr-only"}
     >
       <p
+        ref={statusRef}
         role={announce ? "status" : undefined}
         data-slot="list-footer-status"
+        // Focus lands here after the last page, when the button that had it is gone.
+        tabIndex={-1}
         className="flex flex-wrap items-center gap-x-2"
       >
         <StatusLine
@@ -97,10 +185,14 @@ export function ListFooter({
       </p>
       {counted && hasMore && (
         <Button
+          ref={buttonRef}
           type="button"
           variant="outline"
           size="sm"
-          onClick={onLoadMore}
+          onClick={() => {
+            ask()
+            onLoadMore()
+          }}
           disabled={loadingMore}
         >
           {loadingMore ? listFooter.loadingMore : listFooter.loadMore}

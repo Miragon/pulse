@@ -89,7 +89,7 @@ module's views with `mountPage` from `@miragon/pulse-widget-shell/widgets` under
 route of the server's own) and `assets/`:
 
 ```json
-{ "pages": ["/app", "/app/cockpit", "/app/boards/:id"] }
+{ "pages": ["/app", "/app/cockpit", "/app/fleet", "/app/boards/:id"] }
 ```
 
 The server reads the build once at boot, so no request touches the file system, and compresses each

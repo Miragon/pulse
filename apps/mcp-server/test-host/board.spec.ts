@@ -222,17 +222,22 @@ test.describe("a board, the cockpit's app-level route", () => {
       timeout: 15_000,
     })
     await expect(app.getByText("INV-2026-0042").first()).toBeVisible({ timeout: 15_000 })
+    // The trail is the way the reader came (N10): the board, then the instance, no overview the
+    // reader never saw between them.
     const trail = app.getByRole("navigation", { name: "Breadcrumb" })
+    await expect(trail.locator('[aria-current="page"]')).toHaveText("INV-2026-0042")
+    await expect(trail.getByRole("button")).toHaveCount(1)
     await trail.getByRole("button", { name: TITLE }).click()
     await expect(heading(app)).toBeVisible()
 
+    // The chip opens its engine's overview under the board: inline its trail, the board then the
+    // overview, takes the sections' place.
     const engines = app.getByRole("group", { name: "Engines of this board" })
     await engines.getByRole("button", { name: new RegExp(HEALTHY_ENGINE) }).click()
-    await expect(
-      app.getByRole("navigation", { name: "Cockpit sections" }).getByRole("button", {
-        name: "Overview",
-      }),
-    ).toHaveAttribute("aria-current", "page", { timeout: 15_000 })
+    await expect(heading(app, `${HEALTHY_ENGINE} · Overview`)).toBeVisible({ timeout: 15_000 })
+    await expect(trail.locator('[aria-current="page"]')).toHaveText("Overview")
+    await expect(trail.getByRole("button", { name: TITLE })).toBeVisible()
+    await expect(app.getByRole("navigation", { name: "Cockpit sections" })).toHaveCount(0)
   })
 
   test("a board file that gives no board is a tool error that names its problem", async ({

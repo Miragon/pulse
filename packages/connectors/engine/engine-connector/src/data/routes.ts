@@ -272,6 +272,7 @@ export const COCKPIT_ROUTES: { readonly [S in CockpitSection]: CockpitRoute<S> }
       processDefinitionKey: view.processDefinitionKey,
       failedOnly: view.failedOnly === true ? true : undefined,
       totalCount: data.totalCount,
+      allCount: data.allCount,
       failedCount: data.failedCount,
     }),
   },

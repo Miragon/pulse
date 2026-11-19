@@ -1,7 +1,6 @@
 # Pulse usage
 
-You use Pulse by pointing an MCP-aware AI assistant
-at it and asking questions in natural language.
+You use Pulse by pointing an MCP-aware AI assistant at it and asking questions in natural language.
 
 ## Connect your assistant
 
@@ -38,9 +37,8 @@ Config, add the bridge, and restart the app:
 }
 ```
 
-For a server on your own machine, use `http://127.0.0.1:8400/mcp` there:
-`127.0.0.1` rather than `localhost`, which Node may resolve to IPv6 while the
-server listens on IPv4.
+For a server on your own machine, use `http://127.0.0.1:8400/mcp` there: `127.0.0.1` rather than
+`localhost`, which Node may resolve to IPv6 while the server listens on IPv4.
 
 Once connected, you'll see the Camunda tools available in the
 assistant. Try asking _"show me the open incidents"_. Claude calls
@@ -104,6 +102,12 @@ still answers you in your language.
   one cause) and count one cause alike (activity, type, masked message);
   `engine_status` also judges overdue jobs, workers and batches. "Has this activity failed
   before?" is answered from incident history, resolved incidents included.
+- Camunda 7 copies an incident of a called instance to each call activity above it, without a
+  message. The counts keep every copy, but a cause is its root incidents alone: the overview's top
+  failures and a cluster list no copy, and a cluster's row opens its incident. A copy's row shows
+  its root's message and `in <element> · <id>`, which opens the called instance; the incident of a
+  copy names its cause and opens it with **Open cause**, every incident its instance with **Open
+  instance**, and a called instance its caller by its short id.
 - A process view counts every deployed version of its key: old versions keep
   running after a redeploy; only the diagram is one version, and it says
   which. Its flow shows the open incidents per element or, under **Running**,
@@ -118,12 +122,27 @@ still answers you in your language.
   counted on every engine, never ranked. A number the engine could not confirm shows as "—" (or "≥N" when
   only part of it was read), never as 0, and an engine that does not answer
   is an error, not an empty view.
-- An instance's view names the element of each open incident (its name in the
-  diagram, else its id) and leads to its process with **View process**. The
-  instance list's scopes (**All**, **With incident**, **Suspended**) count what
-  each one shows within the search, whichever scope is picked. **With incident**
-  is an instance with an open incident now, read from the engine's runtime on
-  every history level, as Pulse for VS Code and Pulse for Orca read it.
+- An instance's view names the element of each open incident (its name in the diagram, else its
+  id), shows its open incidents beside its state in its bar, and leads to its process with **View
+  process**. The instance list's scopes (**All**, **With incident**, **Suspended**) count what each
+  one shows within the search, whichever scope is picked. **With incident** is an instance with an
+  open incident now, read from the engine's runtime on every history level, as Pulse for VS Code
+  and Pulse for Orca read it. **Started** is when each began, "—" where the engine keeps no history.
+- Each number has one home: a view's bar names only what its tiles do not (a process's key and,
+  once, the version scope of its counts) and ends with when the numbers were read (**As of**).
+  "First seen", "latest" and "last event" read as a time ago, the whole instant in their tooltip.
+  The overview's top failures are rows that open their cause; an instance's history is one table
+  on its route and in its tabs (state, start to the second, duration; an open step since when).
+- The jobs view shows **All** jobs or those **Without retries** (a drill to the jobs without
+  retries picks that scope), both counted; a job's row opens its instance, where its incident
+  shows. In the **Incidents** tab an expanded process lists its activities by name; each row opens
+  its failure cluster, a row of copies its root cause's cluster, or its process's incidents where
+  the root lies beyond the 200 newest open incidents the tab reads. Nothing reloads by itself:
+  **Refresh** reads again.
+- A chevron expands, an arrow opens. An incident's stacktrace scrolls with the keyboard and its
+  button copies it whole, on the web app's page too, since copying changes nothing. A diagram fits
+  the whole process; each zoom is a quarter, the first centres the marked element, and the arrow
+  keys move the focused diagram.
 - A deployment with board files (`ENGINE_BOARDS_DIR`) answers _"show me the leasing board"_ with
   the board's tiles, the ones Pulse for VS Code shows, and the cockpit's landing lists its boards
   ([Boards](boards.md)).

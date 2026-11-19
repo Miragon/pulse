@@ -11,10 +11,11 @@ export interface SectionHeadingProps {
   /** Right-aligned slot that overrides `hint` when set (e.g. a control). */
   trailing?: ReactNode
   /**
-   * The title's heading element, so the section sits in the view's outline at its level (`h2`
-   * for a block of the view, `h3` under it). Default: none, a caption outside the outline.
+   * The title's element, which every call names: a heading at the section's level of the view's
+   * outline (`h2` for a block of the view, `h3` under it), or `"span"` for a caption inside a card
+   * that is no section of its own, outside the outline.
    */
-  as?: SectionHeadingLevel
+  as: SectionHeadingLevel | "span"
   /** The title's id, for the section's `aria-labelledby`. */
   id?: string
   /** Classes for the row, a margin other than the default 12 px below it (`mb-2`, `mb-0`). */
@@ -26,12 +27,20 @@ export interface SectionHeadingProps {
  * right. Use to label a block inside a widget body (e.g. a list or sub-table) without the visual
  * weight of a full card header. The title is the compact section title of every Pulse UI, the
  * webview's: 13 px at 600 in the foreground ({@link MICRO_LABEL}, normal case); the hint stays
- * quiet. Pass `as` where the section needs a real heading, so every section title of a view has
- * one look whatever its level; `text-section` (21 px) is only for a dialog's title and a KPI
- * figure. Where the row is short of room the hint moves under the title, never cut.
+ * quiet. `as` names its level in the view's outline at every call (a section's `h2`, an `h3`
+ * under it, a card's caption a `"span"`), so screen readers can jump between a view's sections
+ * and every section title has one look whatever its level; `text-section` (21 px) is only for a
+ * dialog's title and a KPI figure. Where the row is short of room the hint moves under the title,
+ * never cut.
  */
-export function SectionHeading({ title, hint, trailing, as, id, className }: SectionHeadingProps) {
-  const Title = as ?? "span"
+export function SectionHeading({
+  title,
+  hint,
+  trailing,
+  as: Title,
+  id,
+  className,
+}: SectionHeadingProps) {
   return (
     <div
       data-slot="section-heading"

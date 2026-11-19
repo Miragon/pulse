@@ -30,6 +30,7 @@ import { buildActivityIncidentsData, buildProcessIncidentsData } from "./process
 import { buildActivityStatisticsData } from "./activity-statistics-data.js"
 import { buildJobBacklogData } from "./job-backlog-data.js"
 import { build, type BuildCase, closeBuildEngines, DEGRADE } from "./honest-numbers.test-support.js"
+import { COPY_CASES, HISTORY_ENRICHMENT } from "./honest-numbers.copies.test-support.js"
 
 // Each case declares only its enrichment reads; EVERY other read its healthy
 // build makes is primary and broken in turn, so a newly swallowed failure fails
@@ -94,9 +95,6 @@ const incidentDetailEnrichment = {
   [`GET /process-definition/${WORLD.instanceDefinitionId}/xml`]: (data: {
     diagramDefinitionId: unknown
   }) => data.diagramDefinitionId,
-  "GET /history/activity-instance/count?processInstanceId": (data: {
-    historyTotalCount: unknown
-  }) => data.historyTotalCount,
   [`GET /job/${WORLD.jobId}/stacktrace`]: (data: { job: { stacktrace: unknown } }) =>
     data.job.stacktrace,
 }
@@ -113,11 +111,18 @@ const activityStatistics = (source: "runtime" | "history"): Case => ({
 })
 const HISTORY_OPEN = "GET /history/process-instance?maxResults&unfinished"
 const recorded = (data: { historyRecorded: unknown }) => data.historyRecorded
+/** When each instance of the page started: one history read over the page's ids. */
+const instanceStarts = {
+  "POST /history/process-instance?maxResults {processInstanceIds}": (data: {
+    instances: Array<{ startTime: unknown }>
+  }) => data.instances[0]?.startTime,
+}
 /** The instance list on the world's key, with a chip on or none. */
 const instancesOf = (args: { withIncidents?: boolean; suspended?: boolean }): Case => ({
   run: (client) =>
     buildProcessInstancesData(client, "fake", { processDefinitionKey: WORLD.key, ...args }),
   unknown: { read: KEY_LOOKUP, reply: NO_ROWS },
+  enrichment: instanceStarts,
 })
 
 const CASES: Record<string, Case> = {
@@ -136,6 +141,7 @@ const CASES: Record<string, Case> = {
       { id: WORLD.instanceId, definitionId: BARE_DEFINITION_ID, suspended: false },
     ]),
     enrichment: {
+      ...instanceStarts,
       "GET /process-definition/statistics?incidents": (data: {
         instances: Array<{ processDefinitionKey: unknown }>
       }) => data.instances[0]?.processDefinitionKey,
@@ -164,6 +170,8 @@ const CASES: Record<string, Case> = {
         diagramDefinitionId: unknown
         incidents: Array<{ activityName: unknown }>
       }) => data.diagramDefinitionId ?? data.incidents[0]?.activityName,
+      // Its caller and its start, from its history (none on history level none).
+      ...HISTORY_ENRICHMENT,
     },
   },
   // A bare definition id names no key: that one definition's row resolves it (enrichment, never
@@ -187,6 +195,7 @@ const CASES: Record<string, Case> = {
         incidents: Array<{ activityName: unknown }>
       }) =>
         data.diagramDefinitionId ?? data.processDefinitionName ?? data.incidents[0]?.activityName,
+      ...HISTORY_ENRICHMENT,
     },
   },
   buildHistoryTimelineData: {
@@ -277,6 +286,12 @@ const CASES: Record<string, Case> = {
       buildIncidentsDashboardData(client, { ...urls(baseUrl), processDefinitionKey: WORLD.key }),
     // The statistics list every deployed key: a key they lack is not deployed.
     unknown: { read: "GET /process-definition/statistics?incidents", reply: NO_ROWS },
+    enrichment: {
+      // An activity's row is named in the diagram of its newest incident's version.
+      [namesFrom(WORLD.instanceDefinitionId)]: (data: {
+        processes: Array<{ activities: Array<{ activityName: unknown }> }>
+      }) => data.processes[0]?.activities[0]?.activityName,
+    },
   },
   buildProcessIncidentsData: {
     run: processIncidents,
@@ -319,6 +334,8 @@ const CASES: Record<string, Case> = {
       }) => data.incidents[0]?.businessKey,
     },
   },
+  // A call activity's copies: each root incident, and its element's name, are enrichment.
+  ...COPY_CASES,
   // Every version's statistics are primary: a version left out would undercount the key.
   buildActivityStatisticsData: activityStatistics("runtime"),
   // "Throughput": the counts pick the versions and the window, the statistics are the figures.

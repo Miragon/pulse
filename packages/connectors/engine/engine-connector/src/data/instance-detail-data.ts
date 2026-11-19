@@ -3,6 +3,7 @@ import { incidentRecovery } from "@miragon/pulse-c7-core"
 import type { InstanceDetailData, TaskData } from "../view-models.js"
 import {
   getActivityInstanceTree,
+  getHistoricProcessInstance,
   getIncidents,
   getIncidentsCount,
   getProcessInstance,
@@ -21,6 +22,7 @@ import {
   fetchDefinitionXml,
 } from "./definition-info.js"
 import { countOf, optional, rowsOf } from "./engine-reads.js"
+import { fetchRootCauses } from "./incident-scan.js"
 
 const INCIDENT_ROWS = 100
 const TASK_ROWS = 50
@@ -33,6 +35,22 @@ interface RawIncident {
   incidentTimestamp?: string | null
   activityId?: string | null
   configuration?: string | null
+  rootCauseIncidentId?: string | null
+}
+
+/**
+ * ENRICHMENT, the instance's caller and start from its history, one read (as the webview reads
+ * them): on history level none, or when the read fails, both are null, never a guess.
+ */
+async function readHistoricInstance(
+  client: Client,
+  id: string,
+): Promise<{ callerInstanceId: string | null; startTime: string | null }> {
+  const historic = await optional(getHistoricProcessInstance({ client, path: { id } }))
+  return {
+    callerInstanceId: historic?.superProcessInstanceId || null,
+    startTime: historic?.startTime || null,
+  }
 }
 
 /** Null when the read fails; the forms are then UNKNOWN. */
@@ -66,7 +84,7 @@ async function instanceDefinitionKey(
 
 /**
  * State, tokens, variables, incidents and tasks are PRIMARY; diagram, names, forms, the process
- * key and cockpit links are enrichment.
+ * key, cockpit links, the caller, the start and a copy's root incident are enrichment.
  */
 export async function buildInstanceDetailData(
   client: Client,
@@ -76,6 +94,8 @@ export async function buildInstanceDetailData(
 ): Promise<InstanceDetailData> {
   const id = args.processInstanceId
   const byInstance = { processInstanceId: id }
+  // When the reads began: the bar's "As of".
+  const fetchedAt = new Date().toISOString()
   const [instance, activityTree, variables, incidents, incidentCount, openTasksRaw, openTaskCount] =
     await Promise.all([
       getProcessInstance({ client, path: { id } }),
@@ -93,9 +113,12 @@ export async function buildInstanceDetailData(
     ])
 
   const definitionId = (instance as { definitionId?: string } | null)?.definitionId
-  const [{ bpmnXml, unreadable }, defKey] = await Promise.all([
+  const [{ bpmnXml, unreadable }, defKey, historic, rootCauses] = await Promise.all([
     readBpmnXml(client, definitionId),
     instanceDefinitionKey(client, definitionId),
+    readHistoricInstance(client, id),
+    // A copy at a call activity holds no message: its root incident in the called instance does.
+    fetchRootCauses(client, incidents),
   ])
   // The diagram names the process and each incident's element (no extra read).
   const diagramNames = bpmnXml ? readBpmnNames(bpmnXml) : null
@@ -139,6 +162,7 @@ export async function buildInstanceDetailData(
             { tab: "incidents" },
           )
         : null,
+    rootCause: i.id ? (rootCauses.get(i.id) ?? null) : null,
   }))
 
   return {
@@ -146,6 +170,8 @@ export async function buildInstanceDetailData(
     // Its own name, else its pool's.
     processDefinitionName: diagramNames && defKey ? bpmnProcessNameOf(diagramNames, defKey) : null,
     definitionKey: defKey,
+    callerInstanceId: historic.callerInstanceId,
+    startTime: historic.startTime,
     activityTree: activityTree as unknown as InstanceDetailData["activityTree"],
     variables: variables as unknown as InstanceDetailData["variables"],
     incidents: incidentRows,
@@ -155,6 +181,7 @@ export async function buildInstanceDetailData(
     incidentActivityIds: collectIncidentActivityIds(incidents),
     openTasks,
     openTaskCount,
+    fetchedAt,
     engineId,
   }
 }

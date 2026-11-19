@@ -378,7 +378,13 @@ test.describe("Camunda 8 on a board", () => {
     const chips = app.getByRole("group", { name: "Engines of this board" })
     await expect(chips.getByRole("button")).toHaveCount(1)
     await chips.getByRole("button", { name: new RegExp(`^${HEALTHY_ENGINE} `) }).click()
-    await expect(app.getByRole("navigation", { name: "Cockpit sections" })).toBeVisible()
+    // Its overview, under the board (N10): inline the trail, the board then the overview.
+    await expect(
+      app.getByRole("heading", { level: 1, name: `${HEALTHY_ENGINE} · Overview` }),
+    ).toBeVisible({ timeout: 15_000 })
+    await expect(
+      app.getByRole("navigation", { name: "Breadcrumb" }).locator('[aria-current="page"]'),
+    ).toHaveText("Overview")
     expect((await callsForCamunda8(page)).map((call) => call.name)).toEqual([
       "engine_bpmn_xml_data",
     ])

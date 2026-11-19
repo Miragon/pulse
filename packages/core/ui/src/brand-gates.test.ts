@@ -113,7 +113,6 @@ describe("kit copy follows the voice rules", () => {
     "copyableId",
     "conditionChip",
     "stateLabel",
-    "pills",
   ] as const
   it.each(
     (["de", "en"] as const).flatMap((language) =>

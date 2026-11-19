@@ -48,6 +48,7 @@ export const en = {
   "open.process": "Open the process on {engine}, latest version first",
   "open.toSide": "{title} (Ctrl/Cmd+click: to the side)",
   "row.instance": "Instance {id}",
+  "row.instanceAt": "Instance {id} at {element}",
   "summary.noIncident": "No instance has an open incident.",
   "summary.noIncidentAnswered": "No instance has an open incident on the engines that answered.",
   "instances.label": "Instances",

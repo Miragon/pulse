@@ -13,8 +13,8 @@ export interface SessionPage {
   readonly notices: PageNotices
   /** What the document's title names, in the page's language, until the view shows its heading. */
   readonly title: PageTitle
-  /** The page and its query, where a sign-in from the notice comes back to. */
-  readonly returnTo: string
+  /** The page and its query as the address names them now, where a sign-in from the notice comes back to. */
+  readonly returnTo: () => string
   /** Signs out; false where it did not go through. */
   readonly signOut: () => Promise<boolean>
   /** Leaves the page for `url`. */
@@ -76,7 +76,7 @@ function Notice({ notice, page }: { notice: PageNotice; page: SessionPage }) {
       title={t("notice.ended.title")}
       detail={t("notice.ended.detail")}
       actions={[
-        { label: t("notice.signInAgain"), onClick: () => page.assign(signInUrl(page.returnTo)) },
+        { label: t("notice.signInAgain"), onClick: () => page.assign(signInUrl(page.returnTo())) },
       ]}
     />
   )

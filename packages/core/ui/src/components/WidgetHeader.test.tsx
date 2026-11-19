@@ -68,6 +68,19 @@ describe("WidgetHeader: a view's bar, the hero only at app level", () => {
     expect(html).not.toMatch(/size-11|bg-info-soft/)
   })
 
+  it("puts its freshness at the bar's end, never among the facts; the hero shows none", () => {
+    const html = renderToStaticMarkup(
+      <WidgetHeader title="Jobs" sub="54 total" freshness="As of 14:32" />,
+    )
+    expect(html).toMatch(/data-slot="view-bar-freshness"[^>]*>As of 14:32</)
+    const facts = html.slice(html.indexOf('data-slot="view-bar-facts"'))
+    expect(facts.indexOf("As of")).toBeGreaterThan(facts.indexOf("view-bar-meta"))
+    const app = renderToStaticMarkup(
+      <WidgetHeader size="app" title="All engines" freshness="As of 14:32" />,
+    )
+    expect(app).not.toContain("As of")
+  })
+
   it("merges a className onto the bar", () => {
     const html = renderToStaticMarkup(<WidgetHeader title="x" className="mb-6" />)
     expect(classOf(openingTags(html, "header")[0])).toContain("mb-6")
@@ -76,7 +89,7 @@ describe("WidgetHeader: a view's bar, the hero only at app level", () => {
 
 describe("SectionHeading: a block label inside a widget body", () => {
   it("is a 13 px caption (MICRO_LABEL) in the foreground, the webview's section title; its hint quiet", () => {
-    const html = renderToStaticMarkup(<SectionHeading title="Recent" hint="3 new" />)
+    const html = renderToStaticMarkup(<SectionHeading as="span" title="Recent" hint="3 new" />)
     const row = classOf(openingTags(html, "div")[0])
     expect(row).toContain(MICRO_LABEL)
     expect(row).toContain("text-foreground")
@@ -97,8 +110,8 @@ describe("SectionHeading: a block label inside a widget body", () => {
     expect(row).not.toContain("mb-3")
   })
 
-  it("is a caption outside the outline by default", () => {
-    const html = renderToStaticMarkup(<SectionHeading title="Recent" />)
+  it("is a caption outside the outline where a call names a span", () => {
+    const html = renderToStaticMarkup(<SectionHeading as="span" title="Recent" />)
     expect(html).not.toMatch(/<h[1-6]/)
   })
 })

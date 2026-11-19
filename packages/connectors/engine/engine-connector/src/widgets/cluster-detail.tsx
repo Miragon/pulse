@@ -1,13 +1,17 @@
+import { useState } from "react"
 import {
   Button,
+  Icon,
   LogText,
   NamedId,
   SectionHeading,
   TableEmptyState,
   Td,
+  formatClock,
   formatCount,
+  formatInstant,
   formatNumber,
-  formatTimestamp,
+  formatRelativeTime,
   FilterBar,
   KpiGrid,
   StatusBadge,
@@ -16,6 +20,7 @@ import {
   SITUATION_TONES,
 } from "@miragon/pulse-ui"
 import {
+  FreshnessStamp,
   HandOffButton,
   ListRow,
   ListTable,
@@ -24,8 +29,8 @@ import {
   WidgetShell,
   usePagedListView,
   HostModelContext,
-  ViewMeta,
 } from "@miragon/pulse-widget-shell/widgets"
+import { Workflow } from "lucide-react"
 import { LIST_PAGE_SIZE, type ClusterDetailData, type ClusterIncidentRow } from "../view-models.js"
 import { DetailPage } from "./detail-page.js"
 import { useNav } from "./navigation.js"
@@ -35,6 +40,7 @@ import {
   clusterKeyParts,
   clusterScanComplete,
   remediationHandOff,
+  UNKNOWN_KEY,
 } from "./remediation.js"
 import { AlarmCount } from "./lib/alarm-count.js"
 import { useActionAllowed } from "./lib/engine-action.js"
@@ -51,7 +57,7 @@ export function describeCluster(data: ClusterDetailData): ViewContext {
   const keys = clusterKeyParts(data, data.processDefinitionKeys)
   return {
     summary:
-      "The operator is inspecting ONE failure cluster and its affected instances (with their business keys). Propose remediation only scoped to this cluster.",
+      "The operator is inspecting ONE failure cluster: its root incidents, each by its instance. Propose remediation only scoped to this cluster.",
     ids: {
       engine: data.engineId,
       activityId: data.activityId,
@@ -88,20 +94,44 @@ function clusterFeedArgs({ engine, activityId, incidentType, messageSignature }:
   return args
 }
 
+/** The process a row names by its name (#322 U13), else null. */
+function processNameOf(data: ClusterDetailData, key: string): string | null {
+  return (
+    data.incidents.find((row) => row.processDefinitionKey === key && row.processDefinitionName)
+      ?.processDefinitionName ?? null
+  )
+}
+
 /** By name where a row carries one (#322 U13), else by key. */
 function clusterProcesses(data: ClusterDetailData, unknown: string): string {
-  const names = new Map<string, string>()
-  for (const row of data.incidents) {
-    if (row.processDefinitionName) names.set(row.processDefinitionKey, row.processDefinitionName)
-  }
-  return data.processDefinitionKeys.map((key) => names.get(key) ?? key).join(", ") || unknown
+  return (
+    data.processDefinitionKeys.map((key) => processNameOf(data, key) ?? key).join(", ") || unknown
+  )
+}
+
+/** The one process the cluster names, whose view the bar opens; null for several or an unknown one. */
+function singleProcess(data: ClusterDetailData): string | null {
+  const [key, ...more] = data.processDefinitionKeys
+  return key !== undefined && more.length === 0 && key !== UNKNOWN_KEY ? key : null
+}
+
+/** When the cluster began, relative to now, the whole instant in its title. */
+function FirstSeen({ at }: { at: string }) {
+  const t = useT()
+  return (
+    <span title={formatInstant(at)}>
+      {t("clusterDetail.firstSeen", { time: formatRelativeTime(at) })}
+    </span>
+  )
 }
 
 function ClusterHeader({ data, engineId }: { data: ClusterDetailData; engineId: string }) {
   const t = useT()
+  const go = useNav()
   const { ask } = useHandOff()
-  // Its one action is a hand-off: where the host hides it, the bar has no action group.
+  // A hand-off the host hides and no process to open: the bar has no action group.
   const handOffs = useHandOffsShown()
+  const processKey = singleProcess(data)
   const canFix = useActionAllowed("engine_set_job_retries", engineId)
   const handOff = remediationHandOff(
     {
@@ -125,28 +155,50 @@ function ClusterHeader({ data, engineId }: { data: ClusterDetailData; engineId: 
       }
       // The activity by its name; its BPMN id only where it has none (#322 U13).
       title={data.activityName ?? <span className="font-mono">{data.activityId}</span>}
+      // The facts the KPIs do not hold: where, and since when (a point in time is a fact of the
+      // line, not a KPI tile it would not fit in, #322 U12); the affected count is the first KPI.
       sub={
         <>
-          <ViewMeta asOf={data.fetchedAt} />
           <span>
             {t("clusterDetail.affectedAcross", {
-              count: formatCount(data.incidentCount ?? { atLeast: data.scannedIncidentCount }),
               keys: clusterProcesses(data, t("clusterDetail.unknownKeys")),
             })}
-            {/* A point in time is a fact of the line, not a KPI tile it
-                would not fit in (#322 U12). */}
-            {data.firstSeen &&
-              ` · ${t("clusterDetail.firstSeen", { time: formatTimestamp(data.firstSeen) })}`}
           </span>
+          {data.firstSeen && (
+            <>
+              <span aria-hidden="true">·</span>
+              <FirstSeen at={data.firstSeen} />
+            </>
+          )}
         </>
       }
+      freshness={<FreshnessStamp at={data.fetchedAt} />}
       actions={
-        handOffs && (
-          <HandOffButton
-            action={canFix ? "planFix" : "explainError"}
-            variant="toolbar"
-            prompt={ask(handOff)}
-          />
+        (processKey !== null || handOffs) && (
+          <>
+            {processKey !== null && (
+              <Button
+                type="button"
+                variant="toolbar"
+                size="sm"
+                onClick={() =>
+                  go({
+                    type: "process-detail",
+                    processDefinitionKey: processKey,
+                    label: processNameOf(data, processKey) ?? undefined,
+                  })
+                }
+              >
+                <Icon icon={Workflow} />
+                {t("clusterDetail.viewProcess")}
+              </Button>
+            )}
+            <HandOffButton
+              action={canFix ? "planFix" : "explainError"}
+              variant="toolbar"
+              prompt={ask(handOff)}
+            />
+          </>
         )
       }
     />
@@ -192,21 +244,18 @@ function spansProcesses(data: ClusterDetailData): boolean {
 }
 
 /**
- * One affected instance (#322 U2, U13): the row opens the instance on a click or Enter and copies
- * its id on Ctrl or Cmd with C (one row convention); its incident opens by the button at the row's
- * end, which does not open the row.
+ * One incident of the cause (#322 U2, U13), named by its instance: the row opens the incident on a
+ * click or Enter and copies its id on Ctrl or Cmd with C (one row convention); its instance is a
+ * step on from the incident. A row the engine reported without an incident id opens nothing.
  */
 function IncidentRow({
   row,
   activityName,
   showProcess,
-  actions,
 }: {
   row: ClusterIncidentRow
   activityName: string | null
   showProcess: boolean
-  /** The table has a column of row actions (a row of the page has an incident to open). */
-  actions: boolean
 }) {
   const go = useNav()
   const t = useT()
@@ -214,10 +263,17 @@ function IncidentRow({
   return (
     <ListRow
       label={t("clusterDetail.rowLabel", { ref: label })}
-      onOpen={() =>
-        go({ type: "instance-detail", processInstanceId: row.processInstanceId, label })
+      onOpen={
+        row.incidentId
+          ? () =>
+              go({
+                type: "incident-detail",
+                incidentId: row.incidentId,
+                label: activityName ?? undefined,
+              })
+          : undefined
       }
-      copy={row.processInstanceId}
+      copy={row.incidentId || undefined}
     >
       <Td>
         <InstanceLabel id={row.processInstanceId} businessKey={row.businessKey} />
@@ -227,33 +283,26 @@ function IncidentRow({
           <NamedId name={row.processDefinitionName} id={row.processDefinitionKey} />
         </Td>
       )}
-      <Td align="right" className="text-muted-foreground text-small whitespace-nowrap">
-        {formatTimestamp(row.incidentTimestamp)}
+      <Td align="right" className="text-muted-foreground text-small whitespace-nowrap tabular-nums">
+        {/* The clock without seconds, its day on another day, the whole instant in its title. */}
+        <span title={formatInstant(row.incidentTimestamp)}>
+          {formatClock(row.incidentTimestamp, { seconds: false })}
+        </span>
       </Td>
-      {actions && (
-        <Td align="right">
-          {/* A row's actions are xs, so the row keeps the row height (28 px). */}
-          {row.incidentId && (
-            <Button
-              type="button"
-              variant="outline"
-              size="xs"
-              onClick={() =>
-                go({
-                  type: "incident-detail",
-                  incidentId: row.incidentId,
-                  label: activityName ?? undefined,
-                })
-              }
-              aria-label={t("clusterDetail.openIncidentAria", { ref: label })}
-            >
-              {t("clusterDetail.incident")}
-            </Button>
-          )}
-        </Td>
-      )}
     </ListRow>
   )
+}
+
+/**
+ * Whether the rows carry business keys, read from an unsearched page and kept while a search
+ * narrows it, so the search box keeps saying what it finds: a business key or an id, or an id
+ * alone where no row has a key (a called instance has none).
+ */
+function useKeyedRows(rows: readonly ClusterIncidentRow[], searching: boolean): boolean {
+  const keyed = rows.some((row) => !!row.businessKey)
+  const [kept, setKept] = useState(keyed)
+  if (!searching && kept !== keyed) setKept(keyed)
+  return searching ? kept : keyed
 }
 
 /** Drill-in for ONE failure cluster, between the engine overview's cluster list and the single-incident detail. */
@@ -280,7 +329,7 @@ function ClusterDetailView({
     selectTotal: (d) => d.totalMatching,
   })
   const data = paged.firstPage
-  const incidentActions = paged.items.some((row) => !!row.incidentId)
+  const keyed = useKeyedRows(paged.items, search.trim() !== "")
 
   if (!data) {
     // Loading or failed, the route keeps its title, the page's one heading.
@@ -307,20 +356,24 @@ function ClusterDetailView({
           {data.representativeMessage && (
             <div>
               <SectionHeading as="h2" title={t("clusterDetail.failureMessage")} className="mb-1" />
-              <LogText text={data.representativeMessage} />
+              <LogText kind="message" text={data.representativeMessage} />
             </div>
           )}
 
-          <section
-            aria-label={t("clusterDetail.affectedInstances")}
-            className="flex flex-col gap-2"
-          >
+          {/* No name of its own: the table's region is the one landmark named after the incidents. */}
+          <section className="flex flex-col gap-2">
             <SectionHeading as="h2" title={t("clusterDetail.affectedInstances")} className="mb-0" />
             <FilterBar
               search={search}
               onSearchChange={setSearch}
-              searchPlaceholder={t("clusterDetail.searchPlaceholder")}
-              searchAriaLabel={t("clusterDetail.searchLabel")}
+              searchPlaceholder={
+                keyed
+                  ? t("clusterDetail.searchPlaceholder")
+                  : t("clusterDetail.searchPlaceholderId")
+              }
+              searchAriaLabel={
+                keyed ? t("clusterDetail.searchLabel") : t("clusterDetail.searchLabelId")
+              }
               chips={[]}
               onChipToggle={() => undefined}
               // A bar inside the content reaches the card's edges, as a view's tab bar does.
@@ -340,21 +393,8 @@ function ClusterDetailView({
                     ...(spansProcesses(data)
                       ? [{ label: t("clusterDetail.colProcess"), hideBelow: "sm" as const }]
                       : []),
-                    // In a 760 px card the time gives way, as in the incident tables, so the
-                    // table fits without scrolling under its pinned actions.
+                    // The time gives way first in a narrow card, as in the incident tables.
                     { label: t("clusterDetail.colOccurred"), align: "right", hideBelow: "md" },
-                    // Pinned from 40rem up only, as in the incident tables: in a narrower region
-                    // the actions scroll with the row, so they never cover the instance. Only
-                    // while a row has an incident to open: the row itself opens the instance.
-                    ...(incidentActions
-                      ? [
-                          {
-                            label: t("clusterDetail.colActions"),
-                            align: "right" as const,
-                            sticky: "sm" as const,
-                          },
-                        ]
-                      : []),
                   ]}
                 >
                   {paged.items.map((row) => (
@@ -365,7 +405,6 @@ function ClusterDetailView({
                       row={row}
                       activityName={data.activityName}
                       showProcess={spansProcesses(data)}
-                      actions={incidentActions}
                     />
                   ))}
                 </ListTable>

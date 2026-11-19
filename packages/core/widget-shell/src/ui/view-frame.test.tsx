@@ -216,7 +216,8 @@ describe("ViewFrame: the view", () => {
       { phase: "ready", data: { rows: ["a"] }, reloadedAt: at },
       { host: { timeZone: "UTC" } },
     )
-    expect(screen.getByText(/^Reloaded at 02:32\sPM$/)).toBeTruthy()
+    // A 12-hour clock writes no leading zero.
+    expect(screen.getByText(/^Reloaded at 2:32\sPM$/)).toBeTruthy()
     expect(lines.at(-1)).toContain("2026-10-31T14:32:00.000Z")
   })
 

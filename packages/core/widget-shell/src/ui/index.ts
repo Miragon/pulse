@@ -14,10 +14,17 @@ export {
 export { ListTable, type ListTableColumn, type ListTableGroup } from "./list-table.js"
 export { ListRow } from "./list-row.js"
 export { IdText, IdCell } from "./id-text.js"
+export { TextBlock, type TextBlockProps } from "./text-block.js"
 export { ConfirmDialog, type ConfirmDialogProps, type ConfirmTarget } from "./confirm-dialog.js"
 export { useActionFeedback, type ActionFeedback } from "./action-feedback.js"
 export { QueryFallback, TableSkeleton } from "./query-fallback.js"
-export { ViewMeta, formatLookback, type ViewMetaEngines, type ViewMetaParts } from "./view-meta.js"
+export {
+  FreshnessStamp,
+  ViewMeta,
+  formatLookback,
+  type ViewMetaEngines,
+  type ViewMetaParts,
+} from "./view-meta.js"
 // The view runtime: the bundle root, the host seam, the data layer and the test host.
 export {
   mountView,
@@ -39,10 +46,14 @@ export { ViewErrorBoundary } from "./view-error-boundary.js"
 export {
   HostModelContext,
   useHostFollowUp,
+  useHostLocation,
   useHostWrites,
+  useStartPage,
   useViewHost,
   type FollowUp,
   type ViewHost,
+  type ViewLocation,
+  type ViewPlace,
 } from "./view-host.js"
 export {
   createViewQueryClient,

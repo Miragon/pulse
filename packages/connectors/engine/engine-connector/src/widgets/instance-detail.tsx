@@ -5,7 +5,7 @@ import { ENGINE_INSTANCE_DETAIL_DATA } from "../tool-names.js"
 import { DetailPage, type DetailPageTab } from "./detail-page.js"
 import { InstanceActionDialogs } from "./instance-detail/dialogs.js"
 import { InstanceDiagramSection } from "./instance-detail/diagram.js"
-import { InstanceFacts, InstanceHeader, instanceStatus } from "./instance-detail/header.js"
+import { InstanceHeader, instanceStatus } from "./instance-detail/header.js"
 import { HistoryTab } from "./instance-detail/history-tab.js"
 import { IncidentsTab } from "./instance-detail/incidents-tab.js"
 import { InstanceModelContext } from "./instance-detail/model-context.js"
@@ -61,6 +61,10 @@ export function InstanceDetailWidget({
   const openIncidentCount = data.incidentCount - (incidents.length - activeIncidents.length)
   const openTaskCount = data.openTaskCount - (data.openTasks.length - visibleTasks.length)
   const status = instanceStatus(t, { cancelled, ended: instance.ended, isSuspended })
+  const callerId = data.callerInstanceId
+  const openCaller = callerId
+    ? () => go({ type: "instance-detail", processInstanceId: callerId })
+    : undefined
   const processKey = data.definitionKey
   const openProcess = processKey
     ? () =>
@@ -137,26 +141,24 @@ export function InstanceDetailWidget({
           instance={instance}
           processName={data.processDefinitionName}
           status={status}
+          openIncidentCount={openIncidentCount}
+          startTime={data.startTime}
+          fetchedAt={data.fetchedAt}
+          callerInstanceId={callerId}
           engineId={engineId}
           activeActivityIds={data.activeActivityIds}
           incidentActivityIds={data.incidentActivityIds}
           isSuspended={isSuspended}
           isActionable={isActionable}
           isMutatingInstance={actions.isMutatingInstance}
+          onOpenCaller={openCaller}
           onOpenProcess={openProcess}
           onRequestSuspendToggle={actions.canSuspend ? actions.requestSuspendToggle : undefined}
           onRequestCancel={actions.canCancel ? actions.requestCancel : undefined}
         />
       }
       notice={notice}
-      summary={
-        <InstanceFacts
-          status={status}
-          openTaskCount={openTaskCount}
-          openIncidentCount={openIncidentCount}
-          variableCount={variableEntries.length}
-        />
-      }
+      // No facts block: the bar holds the state and the open incidents, the tabs count the rest.
       diagram={
         <InstanceDiagramSection
           diagramDefinitionId={diagramDefinitionId}
@@ -177,6 +179,7 @@ export function InstanceDetailWidget({
         unconfirmed={refreshError !== null}
         isSuspended={isSuspended}
         openIncidentCount={openIncidentCount}
+        callerInstanceId={callerId}
       />
       <InstanceActionDialogs actions={actions} />
     </DetailPage>

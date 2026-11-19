@@ -88,6 +88,21 @@ export function WithDefinitionXml({
 // Stable default: an inline `[]` would force a bpmn-js re-import on every render via `reimportKey`.
 const NO_HIGHLIGHTS: ReadonlyArray<BpmnHighlight> = []
 
+/** The marks the first zoom in centres, by the markers' own priority; running counts mark none. */
+const MARK_ORDER = ["incident", "open-task", "active", "failed-jobs"] as const
+
+/** Where the first zoom in centres: the elements of the first kind the view marks. */
+export function markedIdsOf(highlights: ReadonlyArray<BpmnHighlight>): ReadonlyArray<string> {
+  for (const kind of MARK_ORDER) {
+    const marked = highlights.flatMap((h) => {
+      if (h.kind !== kind) return []
+      return "activityIds" in h ? h.activityIds : h.counts.map((c) => c.activityId)
+    })
+    if (marked.length > 0) return marked
+  }
+  return []
+}
+
 export function BpmnCanvas({
   bpmnXml,
   height,
@@ -113,6 +128,7 @@ export function BpmnCanvas({
     // markers/overlays are only ever added, never removed.
     reimportKey: highlights,
     fitOnResize: true,
+    markedIds: markedIdsOf(highlights),
     // The canvas alone is the image: the zoom controls, bpmn.io's link and the badges lie beside it.
     ariaLabel: t("bpmnDiagram.ariaLabel"),
     onImported: (imported) => {

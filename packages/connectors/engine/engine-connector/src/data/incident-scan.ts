@@ -4,13 +4,20 @@ import {
   engineDateMillis,
   incidentRecovery,
   latestEngineDate,
+  mapLimit,
+  PARALLEL,
 } from "@miragon/pulse-c7-core"
-import { getIncidents, getProcessInstances } from "@miragon/pulse-c7-client/sdk"
-import type { IncidentInstance } from "../view-models.js"
+import { getIncident, getIncidents, getProcessInstances } from "@miragon/pulse-c7-client/sdk"
+import type { IncidentInstance, IncidentRootCause } from "../view-models.js"
 import type { EngineProvider } from "../engine-provider.js"
 import { buildInstanceCockpitUrl } from "../lib/engine/cockpit-url.js"
-import { definitionVersionFromId } from "./definition-info.js"
-import { INCIDENT_SCAN_LIMIT, rowsOf } from "./engine-reads.js"
+import { isRootIncident } from "./cluster-scan.js"
+import {
+  definitionVersionFromId,
+  elementNameIn,
+  fetchNamesByDefinition,
+} from "./definition-info.js"
+import { INCIDENT_SCAN_LIMIT, optional, rowsOf } from "./engine-reads.js"
 
 /**
  * The newest {@link INCIDENT_SCAN_LIMIT} open incidents: enrichment only, and a
@@ -27,6 +34,8 @@ export interface IncidentRow {
   incidentMessage: string | null
   incidentTimestamp: string
   configuration: string | null
+  /** The incident a call activity's copy copies; its own id on a root (`isRootIncident`). */
+  rootCauseIncidentId?: string | null
 }
 
 export interface IncidentScan {
@@ -125,6 +134,68 @@ export async function fetchBusinessKeys(
   )
 }
 
+/** At most this many root incidents per page: past it a copy shows no root, as an unread one. */
+export const ROOT_CAUSE_READS = 25
+
+interface RawRootIncident {
+  id?: string | null
+  processDefinitionId?: string | null
+  processInstanceId?: string | null
+  activityId?: string | null
+  incidentMessage?: string | null
+}
+
+/**
+ * ENRICHMENT, a page's copies (a call activity's copy of a called instance's incident, which holds
+ * no message of its own): each root incident once, by its id, since the engine filters incidents by
+ * one id only (at most {@link ROOT_CAUSE_READS}, {@link PARALLEL} at a time), and its element's name
+ * from its diagram. Keyed by the copy's id; a copy whose root is unread is left out, so its message
+ * shows "—", never a guess.
+ */
+export async function fetchRootCauses(
+  client: Client,
+  rows: ReadonlyArray<{ id?: string | null; rootCauseIncidentId?: string | null }>,
+): Promise<Map<string, IncidentRootCause>> {
+  const copies = rows.filter(
+    (row): row is { id: string; rootCauseIncidentId: string } =>
+      !!row.id && !!row.rootCauseIncidentId && !isRootIncident(row),
+  )
+  const rootIds = [...new Set(copies.map((row) => row.rootCauseIncidentId))].slice(
+    0,
+    ROOT_CAUSE_READS,
+  )
+  if (rootIds.length === 0) return new Map()
+  const read = await mapLimit(rootIds, PARALLEL, (id) =>
+    optional(getIncident({ client, path: { id } }) as Promise<RawRootIncident>),
+  )
+  const roots = read.filter(
+    (root): root is RawRootIncident & { id: string; processInstanceId: string } =>
+      !!root?.id && !!root.processInstanceId,
+  )
+  const names = await fetchNamesByDefinition(
+    client,
+    roots.map((root) => root.processDefinitionId),
+  )
+  const byRoot = new Map(
+    roots.map((root): [string, IncidentRootCause] => [
+      root.id,
+      {
+        incidentId: root.id,
+        message: root.incidentMessage || null,
+        activityId: root.activityId ?? "",
+        activityName: elementNameIn(names, root.processDefinitionId, root.activityId),
+        processInstanceId: root.processInstanceId,
+      },
+    ]),
+  )
+  return new Map(
+    copies.flatMap((copy) => {
+      const root = byRoot.get(copy.rootCauseIncidentId)
+      return root ? [[copy.id, root] as const] : []
+    }),
+  )
+}
+
 export interface IncidentLinkContext {
   baseUrl: string
   cockpitUrl?: string
@@ -140,6 +211,7 @@ export function toIncidentInstance(
   r: IncidentRow,
   ctx: IncidentLinkContext,
   businessKeys?: Map<string, string | null> | null,
+  rootCauses?: Map<string, IncidentRootCause> | null,
 ): IncidentInstance {
   return {
     id: r.id,
@@ -163,5 +235,6 @@ export function toIncidentInstance(
       // Drill-in from an incident list: the operator is debugging failures.
       { tab: "incidents" },
     ),
+    rootCause: rootCauses?.get(r.id) ?? null,
   }
 }

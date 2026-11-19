@@ -8,7 +8,9 @@ import {
 } from "../tool-names.js"
 import type { IncidentDetailData } from "../view-models.js"
 import { IncidentDetailWidget } from "./incident-detail.js"
+import { NavProvider, type NavIntent } from "./navigation.js"
 import { TestViewHost, createTestQueryClient } from "@miragon/pulse-widget-shell/widgets"
+import { formatClock, formatInstant } from "@miragon/pulse-ui"
 
 // One retry-free client per test; the test reads and pokes its cache.
 let queryClient = createTestQueryClient()
@@ -51,7 +53,7 @@ function detail(over: Partial<IncidentDetailData>): IncidentDetailData {
     },
     activityTree: null,
     variables: {},
-    historyTotalCount: null,
+    rootCause: null,
     engineId: "prod",
     ...over,
   }
@@ -69,9 +71,13 @@ const CUSTOM = detail({ incidentType: "invoiceMismatch" })
 type Calls = Array<[string, Record<string, unknown>]>
 
 /** The incident-detail route on the fixtures' engine. */
-function renderDetail(data: IncidentDetailData, tools: Record<string, unknown>) {
+function renderDetail(
+  data: IncidentDetailData,
+  tools: Record<string, unknown>,
+  host: { writes?: boolean; followUp?: "chat" | "copy" | "none" } = {},
+) {
   render(
-    <TestViewHost tools={tools} client={queryClient}>
+    <TestViewHost tools={tools} client={queryClient} {...host}>
       <IncidentDetailWidget data={data} incidentId={data.incidentId} engine="prod" />
     </TestViewHost>,
   )
@@ -256,5 +262,98 @@ describe("the incident's stacktrace, as the engine gives it", () => {
       "boom\n\tat Billing.charge(7)",
     )
     expect(within(tab).queryByText("External task")).toBeNull()
+  })
+
+  it("offers the stacktrace to copy whole and to scroll by keyboard, on a page that writes nothing too", async () => {
+    renderDetail(
+      { ...FAILED_JOB, job: { ...JOB, stacktrace: "boom\n\tat Billing.charge(7)" } },
+      { [ENGINE_WIDGET_ACTIONS_DATA]: ALL_ACTIONS },
+      { writes: false, followUp: "none" },
+    )
+    const tab = await stacktraceTab()
+    expect(within(tab).getByRole("region", { name: "Stacktrace" }).tabIndex).toBe(0)
+    expect(within(tab).getByRole("button", { name: "Copy stacktrace" })).toBeTruthy()
+  })
+})
+
+/**
+ * From an incident the way leads on in Pulse (N9): its instance first, a delegated incident's root
+ * cause next (a copy at a call activity, whose failure is in a called instance), both actions of
+ * its bar, which holds facts alone; the cause in words among those facts.
+ */
+describe("the incident's ways on: its instance and a delegated incident's root cause", () => {
+  const CAUSE: NonNullable<IncidentDetailData["rootCause"]> = {
+    incidentId: "inc-root",
+    message: "Blacklist provider unreachable",
+    activityId: "checkBlacklist",
+    activityName: "Check blacklist",
+    processInstanceId: "30668387-aaaa-bbbb-cccc-ddddeeeeffff",
+    processName: "Assess customer credibility",
+  }
+
+  function renderWithNav(data: IncidentDetailData) {
+    const intents: NavIntent[] = []
+    const view = render(
+      <NavProvider value={(intent) => intents.push(intent)}>
+        <TestViewHost tools={{ [ENGINE_WIDGET_ACTIONS_DATA]: ALL_ACTIONS }} client={queryClient}>
+          <IncidentDetailWidget data={data} incidentId={data.incidentId} engine="prod" />
+        </TestViewHost>
+      </NavProvider>,
+    )
+    return { intents, ...view }
+  }
+
+  it("opens its instance, named as the head names it", () => {
+    const { intents } = renderWithNav(detail({ businessKey: "INV-7" }))
+    fireEvent.click(screen.getByRole("button", { name: "Open instance" }))
+    expect(intents).toEqual([
+      { type: "instance-detail", processInstanceId: "pi-1", label: "INV-7" },
+    ])
+    // A root incident has no cause of its own to open.
+    expect(screen.queryByRole("button", { name: "Open cause" })).toBeNull()
+    expect(screen.queryByText(/^Cause: /)).toBeNull()
+  })
+
+  it("says a delegated incident's cause in the bar's facts, as text, and opens it from the group", () => {
+    const { intents, container } = renderWithNav(detail({ rootCause: CAUSE }))
+    const facts = container.querySelector<HTMLElement>('[data-slot="view-bar-facts"]')!
+    expect(
+      within(facts).getByText("Cause: Check blacklist in Assess customer credibility"),
+    ).toBeTruthy()
+    expect(facts.querySelectorAll("a")).toHaveLength(0)
+
+    fireEvent.click(screen.getByRole("button", { name: "Open cause" }))
+    expect(intents).toEqual([
+      { type: "incident-detail", incidentId: "inc-root", label: "Check blacklist" },
+    ])
+  })
+
+  it("names where a delegated incident's failure is: its called instance, copyable", () => {
+    renderWithNav(detail({ rootCause: { ...CAUSE, activityName: null, processName: null } }))
+    // Without names the element by its id, the process by the called instance's short id.
+    expect(screen.getByText("Cause: checkBlacklist in 30668387…")).toBeTruthy()
+    const located = screen.getByText("Located in")
+    expect(located.nextElementSibling?.textContent).toContain("30668387…")
+    expect(screen.getAllByRole("button", { name: "Copy 30668387…" })).toHaveLength(1)
+  })
+
+  // X1, D9: every route says when it was read, once, at its bar's end.
+  it("says when the server read the incident, once at the bar's end, never among its facts", () => {
+    const fetchedAt = "2026-10-09T09:41:00.000Z"
+    const { container } = renderWithNav(detail({ fetchedAt }))
+    const bar = container.querySelector<HTMLElement>('[data-slot="view-bar"]')!
+    const stamps = bar.querySelectorAll<HTMLElement>('[data-slot="freshness-stamp"]')
+    expect(stamps).toHaveLength(1)
+    expect(stamps[0].textContent).toBe(`As of ${formatClock(fetchedAt, { seconds: false })}`)
+    expect(stamps[0].title).toBe(formatInstant(fetchedAt))
+    expect(
+      bar.querySelector('[data-slot="view-bar-facts"] [data-slot="freshness-stamp"]'),
+    ).toBeNull()
+  })
+
+  it("counts no history among its facts: the History tab's footer does", () => {
+    renderWithNav(detail({}))
+    expect(screen.queryByText("History entries")).toBeNull()
+    expect(screen.getByText("Occurred")).toBeTruthy()
   })
 })

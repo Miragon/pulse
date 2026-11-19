@@ -7,6 +7,7 @@ export const en = {
   "frame.signOut": "Sign out",
   "frame.signingOut": "Signing out…",
   "frame.home": "Pulse, start page",
+  "frame.skipToContent": "Skip to content",
   "title.page": "{page} · Pulse",
   "title.board": "Board {board} · Pulse",
 

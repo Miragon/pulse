@@ -12,9 +12,9 @@ export const de: MessageCatalog = {
   // Die {id} kommt bereits gekürzt an (Kit-`truncate` ergänzt die Ellipse).
   "cockpit.crumb.instance": ({ id }) => `Instanz ${String(id)}`,
   "cockpit.crumb.incident": ({ id }) => `Incident ${String(id)}`,
-  "cockpit.crumb.cluster": ({ activity }) => `Cluster: ${String(activity)}`,
+  "cockpit.crumb.cluster": ({ activity }) => String(activity),
   "cockpit.crumb.incidentAt": ({ activity }) => `Incident bei ${String(activity)}`,
-  "cockpit.crumb.history": ({ id }) => `Verlauf ${String(id)}`,
+  "cockpit.crumb.history": "Verlauf",
   "cockpit.loading.engines": "Engines werden geladen…",
   "cockpit.empty.enginesTitle": "Keine Engines konfiguriert",
   "cockpit.empty.engines":
@@ -59,6 +59,9 @@ export const de: MessageCatalog = {
   "cockpit.crumb.fleet": "Engine-übergreifende Übersicht",
   "cockpit.engineGone": ({ engineId }) =>
     `Die Engine ${String(engineId)} ist auf diesem Server nicht mehr konfiguriert.`,
+  // Nach einem Engine-Wechsel: der Prozess der Ansicht ist auf der neuen Engine nicht da.
+  "cockpit.processGone": ({ process, engineId }) =>
+    `${String(process)} ist auf ${String(engineId)} nicht bereitgestellt.`,
   // Eine Engine eines anderen Dialekts, die der Server nur auf Boards liest: ihre Zeile auf der
   // Landing, der eine Zustand ihrer Routen (BoardsOnlyEngineGate) und die Zeile der Übersicht.
   "cockpit.landing.status.onBoards": ({ product }) => `${String(product)}, auf Boards`,

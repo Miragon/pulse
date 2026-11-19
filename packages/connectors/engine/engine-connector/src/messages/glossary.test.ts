@@ -28,6 +28,34 @@ const DE_RULES: readonly GlossaryRule[] = [
     use: "läuft (Instanz)",
     probe: "Aktive Instanzen",
   },
+  // One word per quantity (D11, D12, X11): a tile, a column and a line call one count alike.
+  {
+    pattern: /(?<![\p{L}])(Aktivitäten|Prozesse) betroffen/u,
+    use: "Betroffene Aktivitäten / Prozesse",
+    probe: "Aktivitäten betroffen",
+  },
+  // New incidents in a day: never a balance with a plus, never "the last 24 hours".
+  { pattern: /\+\s*24|Letzte 24/, use: "Neu in 24 Std.", probe: "+24 Std." },
+  { pattern: /24\s?h\b|24 Stunden/, use: "24 Std.", probe: "neu in 24h" },
+  {
+    // The overview's growth says "neu" as the cluster's tiles do, in either window.
+    pattern: /(?<!neu )in (24 Std\.|der letzten Stunde)/i,
+    use: "neu in 24 Std. / neu in der letzten Stunde",
+    probe: "(3 in der letzten Stunde)",
+  },
+  { pattern: /Fehlernachricht|Fehlertext/, use: "Fehlermeldung", probe: "Fehlernachricht" },
+  {
+    // The 30 days' passes are the flow's „Durchlauf“, the day's counts started and completed.
+    pattern: /Durchsatz/,
+    use: "Gestartet und abgeschlossen (24 Std.) / Durchlauf",
+    probe: "Durchsatz (24 Std.):",
+  },
+  // Camunda 7's own term, never translated.
+  {
+    pattern: /(?<![\p{L}])[Ee]xterne[nrs]? (Aufgabe|Task)/u,
+    use: "External Task",
+    probe: "externe Aufgabe",
+  },
 ]
 
 const EN_RULES: readonly GlossaryRule[] = [
@@ -46,6 +74,28 @@ const EN_RULES: readonly GlossaryRule[] = [
     pattern: /\bactive\b/i,
     use: "running (instance)",
     probe: "3 active instances",
+  },
+  // One word per quantity (D11, D12, X11): a tile, a column and a line call one count alike.
+  {
+    pattern: /\b(activities|processes) affected\b/i,
+    use: "affected activities / processes",
+    probe: "Activities affected",
+  },
+  // New incidents in a day: never a balance with a plus, never "the last 24h", one spelling.
+  { pattern: /\+\s*24|\blast 24/i, use: "New in 24h", probe: "+24h" },
+  { pattern: /\b24 h\b|24 hours/, use: "24h", probe: "4 new in 24 h" },
+  {
+    // The overview's growth says "new" as the cluster's tiles do, in either window.
+    pattern: /(?<!new )\bin (24h|the last hour)\b/i,
+    use: "new in 24h / new in the last hour",
+    probe: "(3 in the last hour)",
+  },
+  { pattern: /\bfailure message\b/i, use: "error message", probe: "Failure message" },
+  {
+    // "Throughput" is the flow's 30 days of passes; the day's counts are started and completed.
+    pattern: /\bthroughput \(24/i,
+    use: "Started and completed (24h)",
+    probe: "Throughput (24h):",
   },
 ]
 
@@ -92,15 +142,14 @@ describe("the count terms", () => {
     ["processInstances.chipWithIncidents", COUNT_TERMS.withIncident],
     ["instanceDetail.tabIncidents", COUNT_TERMS.incidents],
     ["cockpitDefs.colIncidents", COUNT_TERMS.incidents],
-    ["fleet.incidents", COUNT_TERMS.incidents],
+    ["incidentsList.colIncidents", COUNT_TERMS.incidents],
     ["fleet.landscape.colIncidents", COUNT_TERMS.incidents],
     ["procIncFlow.modeIncidents", COUNT_TERMS.incidents],
     ["procIncFlow.valuesColIncidents", COUNT_TERMS.incidents],
     // A KPI tile names the same count spelled out, standing alone.
+    ["engineHealth.colIncidents", COUNT_TERMS.incidents],
     ["engineHealth.kpiOpenIncidents", COUNT_TERMS.incidents.long],
     ["fleet.landscape.kpiIncidents", COUNT_TERMS.incidents.long],
-    ["incidentsKpi.cellOpenIncidents", COUNT_TERMS.incidents.long],
-    ["instanceDetail.kpiOpenIncidents", COUNT_TERMS.incidents.long],
     ["procIncKpi.openIncidents", COUNT_TERMS.incidents.long],
     ["procIncHeader.allVersions", COUNT_TERMS.allVersions],
     ["processInstances.allVersions", COUNT_TERMS.allVersions],
@@ -109,15 +158,15 @@ describe("the count terms", () => {
     expect(catalogs.en[key]).toBe(term.en)
   })
 
-  it.each([
-    "cockpitDefs.deployedHint",
-    "procIncFlow.diagramVersion",
-    "procIncKpi.headerBadge",
-    "fleet.landscape.matrix.hint",
-  ])("%s names the version scope of its counts", (key) => {
-    expect(catalogs.de[key]).toContain(COUNT_TERMS.allVersions.de)
-    expect(catalogs.en[key]).toContain(COUNT_TERMS.allVersions.en)
-  })
+  // A process view names the scope of all its counts once, in its bar (`procIncHeader.allVersions`
+  // above): its tiles, its flow's caption and its list say no more of it.
+  it.each(["cockpitDefs.deployedHint", "fleet.landscape.matrix.hint"])(
+    "%s names the version scope of its counts",
+    (key) => {
+      expect(catalogs.de[key]).toContain(COUNT_TERMS.allVersions.de)
+      expect(catalogs.en[key]).toContain(COUNT_TERMS.allVersions.en)
+    },
+  )
 })
 
 /** Owner decision (#322 U5): marking an incident resolved never claims a fix. */
@@ -130,8 +179,6 @@ describe("the decided wording", () => {
     ["confirmDialog.resolveConfirm", "Als gelöst markieren", "Mark as resolved"],
     ["value.yes", "Ja", "Yes"],
     ["value.no", "Nein", "No"],
-    // The engine cards and the landscape's column say it alike.
-    ["fleet.failedJobs", "Jobs ohne Versuche", "Jobs without retries"],
     ["fleet.landscape.colFailedJobs", "Jobs ohne Versuche", "Jobs without retries"],
     ["fleet.landscape.colRunning", "Laufend", "Running"],
     // The process flow's mode: what runs at each element now, a count, so "laufend", never "aktiv".
@@ -143,26 +190,9 @@ describe("the decided wording", () => {
     ["procIncFlow.modeThroughputWindow", "30 Tage", "30 days"],
     ["procIncFlow.valuesColPassed", "Durchläufe", "Passes"],
     // An engine that refuses the server's login runs (F2): describeError's 401 and 403 in short,
-    // never "unreachable", and its count says the same.
+    // never "unreachable".
     ["cockpit.landing.status.unauthorized", "Zugangsdaten abgelehnt", "credentials rejected"],
     ["cockpit.landing.status.forbidden", "Zugriff verweigert", "access denied"],
-    [
-      "fleet.landscape.kpiUnauthorized",
-      "{count} mit abgelehnten Zugangsdaten",
-      "{count} with credentials rejected",
-    ],
-    [
-      "fleet.landscape.kpiForbidden",
-      "{count} mit verweigertem Zugriff",
-      "{count} with access denied",
-    ],
-    // A refused profile's count names the profile, so it never reads like the refused login
-    // beside it; the glossary's word for it, abgelehnt / refused.
-    [
-      "fleet.landscape.kpiRefused",
-      "{count} mit abgelehntem Profil",
-      "{count} with profile refused",
-    ],
   ])("%s", (key, german, english) => {
     expect(catalogs.de[key]).toBe(german)
     expect(catalogs.en[key]).toBe(english)

@@ -105,9 +105,12 @@ describe("ViewBar", () => {
     expect(
       slot(container, "view-bar-meta")?.querySelector('[aria-hidden="true"].w-px'),
     ).toBeTruthy()
-    expect(classes(slot(container, "view-bar-freshness"))).toEqual(
-      expect.arrayContaining(["min-w-[24ch]", "tabular-nums", "text-right"]),
+    const stamp = classes(slot(container, "view-bar-freshness"))
+    expect(stamp).toEqual(
+      expect.arrayContaining(["tabular-nums", "text-right", "whitespace-nowrap"]),
     )
+    // The slot reserves no width: a plain stamp stays on the actions' line.
+    expect(stamp.some((c) => c.startsWith("min-w-"))).toBe(false)
     rerender(<ViewBar title="x" access={{ writable: false }} />)
     expect(slot(container, "view-bar-access")?.textContent).toBe(UI_MESSAGES.en.viewBar.readOnly)
     // Without the host's live control or stamp, no divider.
@@ -214,5 +217,36 @@ describe("ViewBar", () => {
     expect(narrowRules(css, "30rem") + narrowRules(css, "36rem")).not.toMatch(/display: none/)
     const toolbar = screen.getByRole("button", { name: "Find" })
     expect(toolbar.querySelector('[data-slot="button-label"]')?.textContent).toBe("Find")
+  })
+
+  it("shows its actions' labels again under 30rem, on their own line, and only there", async () => {
+    const { container } = render(
+      <ViewBar
+        title="x"
+        actions={
+          <Button variant="toolbar">
+            <Icon icon={Search} />
+            Find
+          </Button>
+        }
+      />,
+    )
+    const css = await compiled(classesUnder(container.firstElementChild!))
+    const label = ":is(a, button):has( > svg) > [data-slot=button-label]"
+    const under30 = narrowRules(css, "30rem")
+    // The label back in the flow on one line, the button's padding around it again.
+    expect(under30).toContain(`${label} { position: static;`)
+    expect(under30).toContain(`${label} { white-space: nowrap;`)
+    expect(under30).toMatch(
+      /:is\(a, button\):has\( > svg\) \{ padding-inline: calc\(var\(--spacing\) \* 2\); \}/,
+    )
+    // It outranks the button's own 36rem rule by a type selector (`:is(a, button)`) on the group:
+    // the button hides its label by `.class:has(>svg) > [data-slot=button-label]`.
+    expect(narrowRules(css, "36rem")).toMatch(
+      /:has\( > svg\) > \[data-slot=button-label\] \{ position: absolute;/,
+    )
+    // The group alone: the bar's other parts keep the 36rem rule.
+    const owners = [...container.querySelectorAll("[class*='30rem]/bar:[&_:is']")]
+    expect(owners).toEqual([slot(container, "view-bar-actions")])
   })
 })

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest"
-import { toEngineDate } from "@miragon/pulse-c7-core"
+import { messageSignature, toEngineDate } from "@miragon/pulse-c7-core"
 import { cibsevenProvider } from "../providers/index.js"
 import {
   clientFor,
@@ -8,6 +8,8 @@ import {
   type FakeRoutes,
   type RecordedRequest,
 } from "../tools/test-support/fake-engine.js"
+import type { IncidentsDashboardActivity } from "../view-models.js"
+import { buildClusterDetailData } from "./cluster-detail-data.js"
 import { buildIncidentsDashboardData } from "./incidents-dashboard-data.js"
 
 // #335 N61: a burst on one process must not push another off the overview.
@@ -255,5 +257,202 @@ describe("buildIncidentsDashboardData: names", () => {
     expect(requests.filter((r) => r.path.endsWith("/xml")).map((r) => r.path)).toEqual([
       "/process-definition/quiet:1:d/xml",
     ])
+  })
+})
+
+// N3 step 1, X9: an activity's row is named by its diagram and opens its failure cluster, so it
+// carries the cluster's scope (the activity and the incident type; a delegated row's its root
+// cause's, below); its failure is in words, a propagated incident's its root cause's, never the
+// activity's id again.
+describe("buildIncidentsDashboardData: an activity's row", () => {
+  const XML = `<definitions><process id="burst"><serviceTask id="charge" name="Charge card"/><callActivity id="billing" name="Run billing"/></process></definitions>`
+
+  const scan = () => {
+    const charge = row(1, "burst", "charge", HOUR)
+    const custom = { ...row(2, "burst", "charge", 2 * HOUR), incidentType: "custom" }
+    const root = { ...row(3, "billing", "debit", 3 * HOUR), incidentMessage: "Debit refused" }
+    // The call activity's incident, propagated from the root in the called instance.
+    const delegated = {
+      ...row(4, "burst", "billing", 3 * HOUR),
+      incidentMessage: null,
+      rootCauseIncidentId: root.id,
+    }
+    // Its root lies beyond the scan: no message, and never the id instead.
+    const orphan = {
+      ...row(5, "burst", "lost", 4 * HOUR),
+      incidentMessage: null,
+      rootCauseIncidentId: "elsewhere",
+    }
+    return [charge, custom, root, delegated, orphan]
+  }
+
+  async function activities() {
+    const { data, requests } = await build({
+      "GET /incident": { body: scan() },
+      "GET /incident/count": { body: { count: 5 } },
+      "GET /process-definition/statistics": {
+        body: [stats("burst", 1, 10, 4), stats("billing", 1, 3, 1)],
+      },
+      "GET /process-definition/burst:1:d/xml": { body: { bpmn20Xml: XML } },
+    })
+    const burst = data.processes.find((p) => p.processDefinitionKey === "burst")!
+    return { burst, requests }
+  }
+
+  it("is one per activity and incident type, the scope of the cluster it opens", async () => {
+    const { burst } = await activities()
+    expect(burst.activities.map((a) => [a.activityId, a.incidentType])).toEqual([
+      ["charge", "failedJob"],
+      ["charge", "custom"],
+      ["billing", "failedJob"],
+      ["lost", "failedJob"],
+    ])
+    // Activities, not their types: charge failing two ways is one of three.
+    expect(burst.affectedActivityCount).toBe(3)
+  })
+
+  it("is named in the diagram of its newest incident's version, else null (its id shows)", async () => {
+    const { burst, requests } = await activities()
+    expect(burst.activities.map((a) => a.activityName)).toEqual([
+      "Charge card",
+      "Charge card",
+      "Run billing",
+      null,
+    ])
+    // One diagram per version read, each once (the billing card names its root's activity).
+    const diagrams = requests.filter((r) => r.path.endsWith("/xml")).map((r) => r.path)
+    expect(diagrams.sort()).toEqual([
+      "/process-definition/billing:1:d/xml",
+      "/process-definition/burst:1:d/xml",
+    ])
+  })
+
+  it("says a propagated failure by its root cause where the scan holds it, else nothing", async () => {
+    const { burst } = await activities()
+    expect(burst.activities.map((a) => a.representativeMessage)).toEqual([
+      "charge failed",
+      "charge failed",
+      "Debit refused",
+      null,
+    ])
+  })
+})
+
+// A delegated row's incidents are copies of a called instance's failure, and a cluster is one cause,
+// its root incidents alone: the row opens the cause it stands for where the scan holds its root,
+// else its process's view; never its own cluster, which answers 0 next to the row's count.
+describe("buildIncidentsDashboardData: a delegated row leads to its cause", () => {
+  const BLACKLIST = "Blacklist provider unreachable"
+  const root = (n: number) => ({
+    ...row(n, "check", "CheckBlacklist", HOUR + n),
+    incidentMessage: BLACKLIST,
+    rootCauseIncidentId: `check-${n}`,
+  })
+  // Each root's copy at the caller's call activity, newer than the root by nothing.
+  const copy = (n: number) => ({
+    ...row(n, "leasing", "AssessCredit", HOUR + n),
+    incidentMessage: null,
+    rootCauseIncidentId: `check-${n}`,
+  })
+  // Copies whose roots lie beyond the scan.
+  const orphan = (n: number) => ({
+    ...row(10 + n, "leasing", "CallLost", 2 * HOUR + n),
+    incidentMessage: null,
+    rootCauseIncidentId: `beyond-${n}`,
+  })
+  const INCIDENTS = [copy(0), root(0), copy(1), root(1), copy(2), root(2), orphan(0), orphan(1)]
+
+  /** What a cluster is read by: an activity and a type, a cause's message too. */
+  interface ClusterScope {
+    activityId: string
+    incidentType: string
+    messageSignature?: string
+  }
+
+  /** The engine filters `/incident` and its count by the activity and the type, as a cluster reads. */
+  function world(): FakeRoutes {
+    const matching = (r: RecordedRequest) =>
+      INCIDENTS.filter(
+        (i) =>
+          (!r.query.activityId || i.activityId === r.query.activityId) &&
+          (!r.query.incidentType || i.incidentType === r.query.incidentType),
+      )
+    return {
+      "GET /incident": (r: RecordedRequest) => ({ body: matching(r) }),
+      "GET /incident/count": (r: RecordedRequest) => ({ body: { count: matching(r).length } }),
+      "GET /process-definition/statistics": {
+        body: [stats("leasing", 1, 5, 5), stats("check", 1, 3, 3)],
+      },
+    }
+  }
+
+  async function dashboard() {
+    const engine = await startFakeEngine(world(), { body: [] })
+    engines.push(engine)
+    const client = clientFor(engine)
+    const data = await buildIncidentsDashboardData(client, {
+      baseUrl: engine.baseUrl,
+      provider: cibsevenProvider,
+    })
+    const activity = (key: string, activityId: string): IncidentsDashboardActivity =>
+      data.processes
+        .find((p) => p.processDefinitionKey === key)!
+        .activities.find((a) => a.activityId === activityId)!
+    /** The cluster a row's scope answers: its own activity and type, or a given cause's. */
+    const cluster = (scope: ClusterScope) => buildClusterDetailData(client, "fake", scope)
+    return { data, activity, cluster }
+  }
+
+  it("names a delegated row's root cause where the scan holds it, whose cluster lists that cause", async () => {
+    const { activity, cluster } = await dashboard()
+    const assess = activity("leasing", "AssessCredit")
+    expect(assess).toMatchObject({
+      delegated: true,
+      representativeMessage: BLACKLIST,
+      scannedIncidentCount: 3,
+      rootCause: {
+        activityId: "CheckBlacklist",
+        incidentType: "failedJob",
+        messageSignature: messageSignature(BLACKLIST),
+      },
+    })
+
+    // The row's own scope holds copies alone: a cluster of none, which the row must never open.
+    expect((await cluster(assess)).incidentCount).toBe(0)
+    const cause = await cluster(assess.rootCause!)
+    expect(cause.incidentCount).toBe(3)
+    expect(cause.incidents.map((i) => i.incidentId).sort()).toEqual([
+      "check-0",
+      "check-1",
+      "check-2",
+    ])
+  })
+
+  it("names no cause for a delegated row whose root lies beyond the scan, which opens its process", async () => {
+    const { activity } = await dashboard()
+    expect(activity("leasing", "CallLost")).toMatchObject({
+      delegated: true,
+      representativeMessage: null,
+      rootCause: null,
+    })
+  })
+
+  it("leads every row to a cluster that lists its incidents, or to no cluster at all", async () => {
+    const { data, cluster } = await dashboard()
+    const rows = data.processes.flatMap((p) => p.activities)
+    expect(rows.map((a) => [a.activityId, a.delegated ?? false])).toEqual([
+      ["AssessCredit", true],
+      ["CallLost", true],
+      ["CheckBlacklist", false],
+    ])
+    // A root's row opens its own cluster, a delegated row its cause's; without one, no cluster.
+    const scopes = rows.flatMap((a): ClusterScope[] => {
+      if (!a.delegated) return [a]
+      return a.rootCause ? [a.rootCause] : []
+    })
+    const counts = await Promise.all(
+      scopes.map(async (scope) => (await cluster(scope)).incidentCount),
+    )
+    expect(counts).toEqual([3, 3])
   })
 })

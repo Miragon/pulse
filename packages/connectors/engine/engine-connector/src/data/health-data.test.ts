@@ -17,6 +17,7 @@ import {
 } from "@miragon/pulse-c7-client/sdk"
 import type { Client } from "@miragon/pulse-c7-client"
 import { buildClusterDetailData } from "./cluster-detail-data.js"
+import { CLUSTER_SCAN_LIMIT } from "./cluster-scan.js"
 import {
   causeKeyOf,
   engineVerdict,
@@ -240,5 +241,224 @@ describe("buildEngineHealthData verdict", () => {
     const data = await verdict([1, 1], 10)
     expect(data.summary.totalIncidents).toBe(10)
     expect(data.status).toBe("critical")
+  })
+})
+
+/**
+ * Camunda 7 copies an incident of a called instance to the call activity above it, without a
+ * message: the copy is that failure, never a cause of its own (c7-core's `groupIncidents` forms
+ * `engine_status`'s groups from root incidents too). The open incidents keep counting every copy
+ * (docs/vscode/parity.md, "Incident counts").
+ */
+describe("causes from root incidents alone", () => {
+  /** `count` failures in a called process, each with its copy at the caller's call activity. */
+  function calledFailures(count: number) {
+    return Array.from({ length: count }, (_, n) => [
+      {
+        id: `root-${n}`,
+        rootCauseIncidentId: `root-${n}`,
+        processDefinitionId: "Check:1:c",
+        processInstanceId: `called-${n}`,
+        incidentType: "failedJob",
+        activityId: "CheckBlacklist",
+        incidentMessage: "Blacklist provider unreachable",
+        incidentTimestamp: "2026-04-01T00:00:00.000Z",
+      },
+      {
+        id: `copy-${n}`,
+        rootCauseIncidentId: `root-${n}`,
+        processDefinitionId: "Leasing:1:l",
+        processInstanceId: `caller-${n}`,
+        incidentType: "failedJob",
+        activityId: "CallCheck",
+        incidentMessage: null,
+        incidentTimestamp: "2026-04-01T00:00:00.000Z",
+      },
+    ]).flat()
+  }
+
+  it("the overview names the called process's failure once, its copies no cause", async () => {
+    const rows = calledFailures(3)
+    mockedGetIncidents.mockResolvedValue(rows)
+    vi.mocked(getIncidentsCount).mockResolvedValue({ count: 6 })
+    vi.mocked(getProcessDefinitionStatistics).mockResolvedValue([] as never)
+    vi.mocked(getHistoricProcessInstancesCount).mockResolvedValue({ count: 0 })
+
+    const data = await buildEngineHealthData(client, "eng1")
+
+    expect(data.clusters.map((c) => [c.activityId, c.incidentCount])).toEqual([
+      ["CheckBlacklist", 3],
+    ])
+    expect(data.clusters[0]?.representativeMessage).toBe("Blacklist provider unreachable")
+    // The counts keep every incident: six open, at two activities.
+    expect(data.summary.totalIncidents).toBe(6)
+    expect(data.summary.affectedActivities).toBe(2)
+  })
+
+  it("keeps the verdict c7-core's over every scanned incident, as engine_status judges", async () => {
+    const rows = calledFailures(2)
+    mockedGetIncidents.mockResolvedValue(rows)
+    vi.mocked(getIncidentsCount).mockResolvedValue({ count: 4 })
+    vi.mocked(getProcessDefinitionStatistics).mockResolvedValue([] as never)
+    vi.mocked(getHistoricProcessInstancesCount).mockResolvedValue({ count: 0 })
+    const T: VerdictThresholds = { criticalIncidents: 10, criticalClusterSize: 2 }
+
+    const data = await buildEngineHealthData(client, "eng1", T)
+
+    expect(data.status).toBe(
+      engineVerdict({ openIncidents: 4, largestCluster: largestCause(rows)?.count ?? 0 }, T),
+    )
+  })
+
+  it("a cluster lists its root incidents, never the copies at a call activity", async () => {
+    const rows = calledFailures(3)
+    // The engine filters by the activity.
+    mockedGetIncidents.mockImplementation((options) =>
+      Promise.resolve(rows.filter((row) => row.activityId === options?.query?.activityId) as never),
+    )
+
+    const copies = await buildClusterDetailData(client, "eng1", {
+      activityId: "CallCheck",
+      incidentType: "failedJob",
+    })
+    expect(copies.incidents).toEqual([])
+    expect(copies.incidentCount).toBe(0)
+
+    const roots = await buildClusterDetailData(client, "eng1", {
+      activityId: "CheckBlacklist",
+      incidentType: "failedJob",
+    })
+    expect(roots.incidents.map((row) => row.incidentId)).toEqual(["root-0", "root-1", "root-2"])
+    expect(roots.incidentCount).toBe(3)
+  })
+
+  it("a capped scan with copies in it counts none from /incident/count, which would count them", async () => {
+    // A call activity that failed itself (a root) and holds copies, past the scan's limit.
+    const rows = Array.from({ length: CLUSTER_SCAN_LIMIT }, (_, n) => ({
+      id: `i${n}`,
+      rootCauseIncidentId: n % 2 === 0 ? `i${n}` : "elsewhere",
+      processDefinitionId: "K1:1:abc",
+      processInstanceId: `p${n}`,
+      incidentType: "failedJob",
+      activityId: "A1",
+      incidentMessage: null,
+      incidentTimestamp: "2026-04-01T00:00:00.000Z",
+    }))
+    mockedGetIncidents.mockResolvedValue(rows)
+
+    const data = await buildClusterDetailData(client, "eng1", {
+      activityId: "A1",
+      incidentType: "failedJob",
+    })
+
+    expect(getIncidentsCount).not.toHaveBeenCalled()
+    expect(data.incidentCount).toBeNull()
+    expect(data.scannedIncidentCount).toBe(CLUSTER_SCAN_LIMIT / 2)
+  })
+})
+
+/** A called instance has no business key: the search finds a row by its ids too. */
+describe("buildClusterDetailData search by id", () => {
+  const args = { activityId: "A1", incidentType: "failedJob" }
+
+  it("finds a row by a part of its instance's id, a pasted id whole, and its incident's id", async () => {
+    mockedGetIncidents.mockResolvedValue(incidents(20))
+
+    const byPart = await buildClusterDetailData(client, "eng1", { ...args, businessKeyLike: "P1" })
+    // p1 and p10 to p19 hold "p1"; case is ignored, as the business key's search.
+    expect(byPart.incidents.map((row) => row.processInstanceId)).toEqual([
+      "p1",
+      ...Array.from({ length: 10 }, (_, n) => `p1${n}`),
+    ])
+    expect(byPart.totalMatching).toBe(11)
+    // The KPIs keep describing the whole cluster.
+    expect(byPart.incidentCount).toBe(20)
+
+    const whole = await buildClusterDetailData(client, "eng1", { ...args, businessKeyLike: " p7 " })
+    expect(whole.incidents.map((row) => row.processInstanceId)).toEqual(["p7"])
+
+    const incident = await buildClusterDetailData(client, "eng1", {
+      ...args,
+      businessKeyLike: "i19",
+    })
+    expect(incident.incidents.map((row) => row.incidentId)).toEqual(["i19"])
+  })
+
+  it("reads a % as the business key's LIKE does, any run of characters", async () => {
+    mockedGetIncidents.mockResolvedValue(incidents(20))
+
+    const data = await buildClusterDetailData(client, "eng1", { ...args, businessKeyLike: "p%5" })
+    expect(data.incidents.map((row) => row.processInstanceId)).toEqual(["p5", "p15"])
+
+    const nothing = await buildClusterDetailData(client, "eng1", { ...args, businessKeyLike: "%" })
+    expect(nothing.incidents).toEqual([])
+  })
+
+  it("finds the parts between % in order, the first at the id's start, the last at its end", async () => {
+    mockedGetIncidents.mockResolvedValue(incidents(20))
+
+    // A run of % is one: p1, then anything.
+    const run = await buildClusterDetailData(client, "eng1", {
+      ...args,
+      businessKeyLike: "p%%1%%%",
+    })
+    expect(run.incidents.map((row) => row.processInstanceId)).toEqual([
+      "p1",
+      ...Array.from({ length: 10 }, (_, n) => `p1${n}`),
+    ])
+    // The last part never overlaps the first: p1 is no "p1%1", p11 is.
+    const ends = await buildClusterDetailData(client, "eng1", { ...args, businessKeyLike: "P1%1" })
+    expect(ends.incidents.map((row) => row.processInstanceId)).toEqual(["p11"])
+    // A middle part lies between them: "%1%1%" holds two 1s.
+    const twice = await buildClusterDetailData(client, "eng1", {
+      ...args,
+      businessKeyLike: "%1%1%",
+    })
+    expect(twice.incidents.map((row) => row.processInstanceId)).toEqual(["p11"])
+  })
+
+  /** Ids as the engine's: UUIDs, none of which holds a "z". */
+  function uuidRows(count: number): IncidentRowFixture[] {
+    const uuid = (n: number, tail: string) =>
+      `${n.toString(16).padStart(8, "0")}-9b7d-11ef-8c2a-${tail}`
+    return incidents(count).map((row, n) => ({
+      ...row,
+      id: uuid(n, "0242ac120002"),
+      processInstanceId: uuid(n, "0242ac130002"),
+    }))
+  }
+
+  // The term is the viewer's: a run of % before a letter no id holds made a backtracking pattern
+  // take seconds per id from eight % on, synchronously on the server's one event loop.
+  it("reads a term of many % in one pass over each id, a long one as fast as a short one", async () => {
+    mockedGetIncidents.mockResolvedValue(uuidRows(4))
+    let started = performance.now()
+    const eight = await buildClusterDetailData(client, "eng1", {
+      ...args,
+      businessKeyLike: `${"%".repeat(8)}z`,
+    })
+    expect(eight.incidents).toEqual([])
+    expect(performance.now() - started).toBeLessThan(250)
+
+    const rows = uuidRows(CLUSTER_SCAN_LIMIT - 1)
+    mockedGetIncidents.mockResolvedValue(rows)
+    const percents = "%".repeat(10_000)
+    started = performance.now()
+    const none = await buildClusterDetailData(client, "eng1", {
+      ...args,
+      businessKeyLike: `${percents}z`,
+    })
+    const allPercent = await buildClusterDetailData(client, "eng1", {
+      ...args,
+      businessKeyLike: percents,
+    })
+    const tail = await buildClusterDetailData(client, "eng1", {
+      ...args,
+      businessKeyLike: `${percents}0002${percents}`,
+    })
+    expect(performance.now() - started).toBeLessThan(1_000)
+    expect(none.totalMatching).toBe(0)
+    expect(allPercent.totalMatching).toBe(0)
+    expect(tail.totalMatching).toBe(rows.length)
   })
 })

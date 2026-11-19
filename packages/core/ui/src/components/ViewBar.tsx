@@ -50,6 +50,20 @@ export interface ViewBarProps {
   className?: string
 }
 
+/**
+ * The actions' toolbar buttons show their labels again under 30rem, where the group has a line of
+ * its own below the subject and room for the words: the kit's `Button` hides a toolbar label in a
+ * bar under 36rem, so between 30 and 36rem, where the group shares its line with the title, they
+ * stay icons. This group alone: a `Toolbar`'s or a `StatusStrip`'s buttons share their line at
+ * every width and keep the 36rem rule. Each selector outranks the button's own (`:is(a,button)`
+ * adds a type), so neither the label's `sr-only` nor the square padding holds here.
+ */
+const ACTIONS_LABELLED_ON_OWN_LINE = [
+  "@max-[30rem]/bar:[&_:is(a,button):has(>svg)>[data-slot=button-label]]:not-sr-only",
+  "@max-[30rem]/bar:[&_:is(a,button):has(>svg)>[data-slot=button-label]]:whitespace-nowrap",
+  "@max-[30rem]/bar:[&_:is(a,button):has(>svg)]:px-2",
+].join(" ")
+
 function AccessChip({ access }: { access: ViewBarAccess }) {
   const { viewBar } = useUiMessages()
   return (
@@ -77,10 +91,13 @@ function BarMeta({ access, live, freshness }: Pick<ViewBarProps, "access" | "liv
       {access && <AccessChip access={access} />}
       {access && host && <span aria-hidden="true" className="bg-border h-4 w-px" />}
       {live}
+      {/* No reserved width: a stamp that changes its words while it refreshes holds its own (the
+          webview's live stamp); a plain "As of 14:32" takes only its text, so it stays on the
+          actions' line instead of opening a line of its own. */}
       {freshness !== undefined && (
         <span
           data-slot="view-bar-freshness"
-          className="inline-flex min-w-[24ch] items-center justify-end gap-1.5 text-right tabular-nums"
+          className="inline-flex items-center justify-end gap-1.5 text-right whitespace-nowrap tabular-nums"
         >
           {freshness}
         </span>
@@ -100,7 +117,8 @@ function BarMeta({ access, live, freshness }: Pick<ViewBarProps, "access" | "liv
  * visually under 36rem (its container is `bar`) and stays its name. Only a group that still has
  * no room moves onto a further line, never cut or hidden (WCAG 1.4.10: the facts hold ids and
  * links, the meta the host's controls), and under 30rem the actions and the meta start a line of
- * their own below the subject and its facts. The bar's height is its content's, 40 px at least.
+ * their own below the subject and its facts, where the actions' labels show again: a line of
+ * their own has room for the words. The bar's height is its content's, 40 px at least.
  */
 export function ViewBar({
   title,
@@ -185,7 +203,10 @@ export function ViewBar({
           <span aria-hidden="true" className="hidden h-0 basis-full @max-[30rem]/bar:block" />
         )}
         {actions && (
-          <div data-slot="view-bar-actions" className="flex flex-wrap items-center gap-2">
+          <div
+            data-slot="view-bar-actions"
+            className={cn("flex flex-wrap items-center gap-2", ACTIONS_LABELLED_ON_OWN_LINE)}
+          >
             {actions}
           </div>
         )}

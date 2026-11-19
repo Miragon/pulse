@@ -1,8 +1,15 @@
 /** What the widgets render, not engine API types (those live in `@miragon/pulse-c7-client/types`). */
 import type { IncidentRecovery } from "@miragon/pulse-c7-core"
-import type { IncidentsDashboardFilters, JobsFilters } from "./feed-contracts.js"
+import type { IncidentsDashboardFilters } from "./feed-contracts.js"
 import type { BoardStartData, LandingStartData } from "./view-models.board.js"
 import type { ClusterDetailData, EngineHealthData } from "./view-models.health.js"
+import type { JobPanelData } from "./view-models.jobs.js"
+import type {
+  IncidentDetailExternalTask,
+  IncidentDetailJob,
+  IncidentDetailRootCause,
+  IncidentRootCause,
+} from "./view-models.incidents.js"
 
 /**
  * Page sizes the server and the widgets share: the start view is built with the size its widget
@@ -34,21 +41,6 @@ export interface CockpitDashboardData {
   }
   definitions: DefinitionStat[]
   engineId?: string
-}
-
-/**
- * One engine's job backlog right now, four counts of that engine alone: the cross-engine
- * overview compares them across engines, since no process mix is in them.
- */
-export interface JobBacklogData {
-  /** Jobs the job executor runs next: retries left, due and active (c7-core's `EXECUTABLE`). */
-  executableJobs: number
-  suspendedJobs: number
-  /** Jobs due later than now: timers, and retries waiting out their back-off. */
-  jobsDueLater: number
-  /** External tasks waiting for a worker or locked by one. */
-  externalTasks: number
-  engineId: string
 }
 
 export interface TaskData {
@@ -91,33 +83,6 @@ export interface OpenUserTask extends TaskData {
   formSchema: TaskFormSchema | null
 }
 
-interface Job {
-  id: string
-  processInstanceId: string
-  processDefinitionKey: string | null
-  processDefinitionId: string | null
-  /** The process's name (the job's definition version); null without one or unread. */
-  processDefinitionName: string | null
-  activityId: string | null
-  /** The failing activity's name in the job's diagram; null without one or unread. */
-  activityName: string | null
-  retries: number
-  exceptionMessage: string | null
-  dueDate: string | null
-  suspended: boolean
-  priority: number
-  createTime: string | null
-}
-
-export interface JobPanelData {
-  totalCount: number
-  failedCount: number
-  jobs: Job[]
-  /** The filters the page on screen was read with; hand-offs and model contexts state its scope. */
-  filters: JobsFilters
-  engineId?: string
-}
-
 export interface ProcessInstanceRow {
   id: string
   businessKey: string | null
@@ -128,6 +93,8 @@ export interface ProcessInstanceRow {
   version: number | null
   suspended: boolean
   hasIncident: boolean
+  /** When the instance started, from the history (enrichment): null when unread or unrecorded. */
+  startTime: string | null
 }
 
 /**
@@ -276,6 +243,8 @@ export interface ProcessInstancesData {
     /** The search box's term (business key fragment or whole id), when it replaced `businessKeyLike`. */
     search?: string
   }
+  /** When the page and its counts were read (ISO timestamp): the view's "As of". */
+  fetchedAt: string
   engineId?: string
 }
 
@@ -306,6 +275,8 @@ export interface IncidentInstance {
   recovery: IncidentRecovery
   /** Null without cockpitUrl or when scheme validation rejected it. */
   cockpitInstanceUrl: string | null
+  /** A copy's root incident in a called instance; absent or null otherwise and where unread. */
+  rootCause?: IncidentRootCause | null
 }
 
 export interface ActivityTree {
@@ -333,6 +304,13 @@ export interface InstanceDetailData {
   definitionKey: string | null
   activityTree: ActivityTree | null
   variables: Record<string, VariableValue>
+  /**
+   * The instance that called this one at a call activity, from the history (as the webview reads
+   * it); null for an instance nothing called, and unread (history level none, a failed read).
+   */
+  callerInstanceId: string | null
+  /** When the instance started, from the history; null unread (history level none, a failed read). */
+  startTime: string | null
   /** The instance's open incidents (capped list; the total is `incidentCount`). */
   incidents: IncidentInstance[]
   incidentCount: number
@@ -343,6 +321,8 @@ export interface InstanceDetailData {
   /** The instance's open user tasks (capped list; the total is `openTaskCount`). */
   openTasks: OpenUserTask[]
   openTaskCount: number
+  /** When the server read the instance (ISO), for its bar's "As of"; absent in an older payload. */
+  fetchedAt?: string
   engineId?: string
 }
 
@@ -360,6 +340,8 @@ interface ActivityData {
 
 interface HistoricProcessInstance {
   id: string
+  /** The engine's row carries it; the history route's title names the instance by it. */
+  businessKey?: string | null
   processDefinitionKey: string
   processDefinitionName: string | null
   startTime: string
@@ -374,6 +356,8 @@ export interface HistoryTimelineData {
   totalActivities: number
   /** Activities with an open incident on this instance, which the timeline marks; null when unread. */
   incidentActivityIds: string[] | null
+  /** When the server read the history (ISO), for its bar's "As of"; absent in an older payload. */
+  fetchedAt?: string
   engineId?: string
 }
 
@@ -390,11 +374,38 @@ interface IncidentActivityFacts {
   latestIncident: string | null
 }
 
+/**
+ * A failure cause as a cluster's scope, c7-core's cause key (`causeKeyOf`, the overview's causes'):
+ * the root incident a delegated row stands for.
+ */
+export interface IncidentCauseScope {
+  activityId: string
+  incidentType: string
+  messageSignature: string
+  /** Its element's name in its process's diagram; null without one or unread. */
+  activityName: string | null
+}
+
+/**
+ * One activity and incident type of a process, the scope of its failure cluster (the cluster view
+ * it opens). Its name comes from the diagram of its newest incident's version, and its message is
+ * that incident's, a delegated one's the root cause's where the scan holds it, else null.
+ */
 export interface IncidentsDashboardActivity extends IncidentActivityFacts {
+  incidentType: string
   /** This activity's incidents within the scan (exact when the card is fully scanned). */
   scannedIncidentCount: number
   /** Incidents since now − 24h; null when the scan does not reach back that far. */
   last24hCount: number | null
+  /**
+   * Its newest incident, whose message the row shows, is delegated: a call activity's copy of a
+   * called instance's failure. A cluster lists root incidents alone, so the row opens the cause it
+   * stands for (`rootCause`), else its process's view, never its own cluster, which would list
+   * none. Absent in an older payload: the row of a root incident, which opens its own cluster.
+   */
+  delegated?: boolean
+  /** A delegated row's root cause, where the scan holds it; null otherwise and beyond the scan. */
+  rootCause?: IncidentCauseScope | null
 }
 
 /** One process definition KEY with open incidents. Every count spans all versions. */
@@ -407,7 +418,7 @@ export interface IncidentsDashboardProcess {
   incidentCount: number
   /** How many of `incidentCount` the per-activity breakdown covers (the recency scan's share). */
   scannedIncidentCount: number
-  /** Null unless the breakdown covers every incident of the key. */
+  /** Distinct activities; null unless the breakdown covers every incident of the key. */
   affectedActivityCount: number | null
   /** Null when the scan does not reach back 24h. */
   last24hCount: number | null
@@ -430,6 +441,8 @@ export interface IncidentsDashboardData extends EngineVendorInfo {
   processes: IncidentsDashboardProcess[]
   /** Hand-offs read the scope here: a filtered total is not the engine's. */
   filters: IncidentsDashboardFilters
+  /** When the counts were read (ISO timestamp): the view's "As of". */
+  fetchedAt: string
   engineId?: string
 }
 
@@ -476,6 +489,8 @@ export interface ProcessIncidentsData extends EngineVendorInfo {
   activities: ProcessIncidentsActivity[]
   /** Read only for the empty state, to jump to where incidents are; null when not read. */
   siblingsWithIncidents: IncidentsByProcess[] | null
+  /** When the server read these numbers (ISO), for the view's "As of"; absent in an older payload. */
+  fetchedAt?: string
   engineId?: string
 }
 
@@ -566,22 +581,6 @@ export interface ActivityThroughputData {
   engineId: string
 }
 
-export interface IncidentDetailJob {
-  id: string
-  retries: number
-  exceptionMessage: string | null
-  /** Null when the engine rejected it or the incident is not job-backed. */
-  stacktrace: string | null
-  dueDate: string | null
-}
-
-/** A failed external task an incident names: its worker's error details, as the engine gives them. */
-export interface IncidentDetailExternalTask {
-  id: string
-  /** Null when its worker sent none, the task is gone or the engine rejected the read. */
-  errorDetails: string | null
-}
-
 export interface IncidentDetailData extends EngineVendorInfo {
   incidentId: string
   incidentType: string
@@ -617,11 +616,18 @@ export interface IncidentDetailData extends EngineVendorInfo {
   activityTree: ActivityTree | null
   variables: Record<string, VariableValue>
 
-  /** Null on history level "none"; the History tab pages rows itself. */
-  historyTotalCount: number | null
+  /**
+   * A delegated incident's root cause (a copy at a call activity): the failure in a called
+   * instance, by its element and its process; null for a root incident. Its names are enrichment.
+   */
+  rootCause: IncidentDetailRootCause | null
 
+  /** When the server read the incident (ISO), for its bar's "As of"; absent in an older payload. */
+  fetchedAt?: string
   engineId?: string
 }
 
 // Re-exported so every consumer keeps one import path.
 export type * from "./view-models.health.js"
+export type * from "./view-models.jobs.js"
+export type * from "./view-models.incidents.js"

@@ -7,6 +7,7 @@ export const de = {
   "frame.signOut": "Abmelden",
   "frame.signingOut": "Wird abgemeldet…",
   "frame.home": "Pulse, Startseite",
+  "frame.skipToContent": "Zum Inhalt springen",
   "title.page": "{page} · Pulse",
   "title.board": "Board {board} · Pulse",
 

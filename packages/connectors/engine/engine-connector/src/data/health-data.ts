@@ -19,6 +19,7 @@ import type { EngineHealthCluster, EngineHealthData } from "../view-models.js"
 import {
   CLUSTER_SCAN_LIMIT,
   HOUR_MS,
+  isRootIncident,
   scanCoverage,
   truncateMessage,
   UNKNOWN,
@@ -99,6 +100,11 @@ function deriveIncidentFacts(
   }
 }
 
+/**
+ * The causes come from the root incidents alone (`isRootIncident`): a call activity's copy of a
+ * called instance's failure is that failure, not a cause of its own without a message. The
+ * activities count every incident's, as the open incidents do.
+ */
 function clusterIncidents(
   incidents: IncidentLike[],
   cutoffMs: number,
@@ -110,6 +116,7 @@ function clusterIncidents(
   for (const inc of incidents) {
     const facts = deriveIncidentFacts(inc, cutoffMs, keyOf)
     activitySet.add(facts.activityId)
+    if (!isRootIncident(inc)) continue
 
     const acc =
       byCluster.get(facts.clusterKey) ??

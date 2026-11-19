@@ -64,10 +64,10 @@ describe("a row tells a screen reader what it opens and what its keys do", () =>
     expect(hintOf(row)).toBe(OPENS_AND_COPIES_ITS_ID)
   })
 
-  it("names a board's instance row by the instance it opens", async () => {
+  it("names a board's instance row by the instance it opens, as the row shows it", async () => {
     harness = mountApp()
     harness.publish(FIXTURES.board)
-    const row = await findRole(harness.root, "row", { name: "Instance 9b1c4d22…" })
+    const row = await findRole(harness.root, "row", { name: "Instance ORD-10007" })
 
     expect(hintOf(row)).toBe(OPENS_AND_COPIES_ITS_ID)
   })
@@ -75,7 +75,7 @@ describe("a row tells a screen reader what it opens and what its keys do", () =>
   it("says that a board's incident row copies its message, and copies it", async () => {
     harness = mountApp()
     harness.publish({ status: "ready", view: INCIDENT_BOARD, refreshing: false })
-    const row = await findRole(harness.root, "row", { name: "Instance 5c0ffee0…" })
+    const row = await findRole(harness.root, "row", { name: "Instance 5c0ffee0… at Task_Ship" })
 
     row.focus()
     press(row, "c", { ctrlKey: true })

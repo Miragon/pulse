@@ -26,7 +26,7 @@ import { formatLocaleOf, isFormatLocale, usePublishedFormatLocale } from "./form
 import { HostContexts, type RequestDisplayMode } from "./host-contexts.js"
 import type { ShellHost } from "./shell-host.js"
 import { createViewQueryClient } from "./tool-query.js"
-import type { FollowUp, ViewHost } from "./view-host.js"
+import type { FollowUp, ViewHost, ViewLocation } from "./view-host.js"
 
 export type HostAction =
   | { type: "callTool"; name: string; args: Record<string, unknown> }
@@ -55,6 +55,8 @@ export interface TestViewHostProps {
   writes?: boolean
   /** The page's start page (`ViewHost.startPage`); default none, as in a chat host. */
   startPage?: string
+  /** The page's address (`ViewHost.location`); default none, as in a chat host. */
+  location?: ViewLocation
   /**
    * Merged over `{ connected: true, displayMode: "inline", availableDisplayModes: [] }`. Its
    * `timeZone` is the formatters' zone, as a host's is (unknown or none: the runtime's own).
@@ -114,11 +116,18 @@ interface FakeHostOptions {
   followUp?: FollowUp
   writes?: boolean
   startPage?: string
+  location?: ViewLocation
 }
 
 function createFakeHost(
   tools: Readonly<Record<string, unknown>> = {},
-  { record = () => undefined, followUp = "chat", writes = true, startPage }: FakeHostOptions,
+  {
+    record = () => undefined,
+    followUp = "chat",
+    writes = true,
+    startPage,
+    location,
+  }: FakeHostOptions,
 ): ViewHost {
   return {
     callTool: async (name, args = {}) => {
@@ -134,6 +143,7 @@ function createFakeHost(
     followUp,
     writes,
     startPage,
+    ...(location === undefined ? {} : { location }),
     openExternal: (url) => record({ type: "openExternal", url }),
     ModelContext: FakeModelContext,
   }
@@ -146,14 +156,15 @@ export function TestViewHost({
   followUp,
   writes,
   startPage,
+  location,
   host,
   client,
   locale,
   children,
 }: TestViewHostProps) {
   const fake = useMemo(
-    () => createFakeHost(tools, { record: onHostAction, followUp, writes, startPage }),
-    [tools, onHostAction, followUp, writes, startPage],
+    () => createFakeHost(tools, { record: onHostAction, followUp, writes, startPage, location }),
+    [tools, onHostAction, followUp, writes, startPage, location],
   )
   const [ownClient] = useState(createTestQueryClient)
   const shell = useMemo<ShellHost>(() => ({ ...NO_HOST, ...host }), [host])

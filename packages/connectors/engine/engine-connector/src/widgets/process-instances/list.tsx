@@ -71,7 +71,13 @@ function instanceColumns(t: T, scoped: boolean, actions: boolean): ListTableColu
     // The state and an open incident on one line in one column, right after the ids as the
     // webview has it, so a narrow chat that scrolls the table sideways still shows it.
     { label: t("processInstances.colState") },
-    { label: scoped ? t("processInstances.colVersion") : t("processInstances.colProcess") },
+    // The version as narrow as its chip; the process's name takes the room it needs.
+    scoped
+      ? { label: t("processInstances.colVersion"), fit: true }
+      : { label: t("processInstances.colProcess") },
+    // When it started, as the webview's list and a board's: a time on the clock, right-aligned in
+    // tabular figures. Below 40rem the ids, the state and the process keep the room.
+    { label: t("processInstances.colStarted"), align: "right", fit: true, hideBelow: "sm" },
     // Pinned from 40rem up only, as in the incident tables: in a narrower region the actions
     // scroll with the row, so they never cover the instance or its state. Only while a row of the
     // page has one: the row itself opens the instance.
@@ -173,6 +179,7 @@ export function ProcessInstancesView({
             total={paged.total}
             engine={engine}
             filters={listFilters}
+            fetchedAt={data.fetchedAt}
           />
           {/* The list's filters under the view's bar, from edge to edge: the scope segments
               first, then the search (the webview's filter bar). Busy while a scope's page

@@ -244,7 +244,7 @@ describe("formatTime to the millisecond", () => {
 
   it("follows the locale's clock: a 12-hour English, a 24-hour one with -u-hc-h23", () => {
     setFormatLocale({ language: "en", locale: "en-US", timeZone: "UTC" })
-    expect(formatTime("2026-10-21T16:41:00Z", { seconds: false })).toBe("04:41 PM")
+    expect(formatTime("2026-10-21T16:41:00Z", { seconds: false })).toBe("4:41 PM")
     setFormatLocale({ language: "en", locale: "en-u-hc-h23", timeZone: "UTC" })
     expect(formatTime("2026-10-21T16:41:00Z", { seconds: false })).toBe("16:41")
     expect(formatTime("2026-10-21T06:41:09Z")).toBe("06:41:09")
@@ -270,6 +270,22 @@ describe("formatClock", () => {
     expect(formatClock(iso, { milliseconds: true, now: nextDay })).toBe("Oct 21, 09:05:07.042")
     setFormatLocale({ language: "de", locale: "de-DE", timeZone: "Europe/Berlin" })
     expect(formatClock(iso, { seconds: false, now: nextDay })).toBe("21. Okt., 09:05")
+  })
+
+  it("writes the hour without a leading zero on a 12-hour clock, two digits on a 24-hour one", () => {
+    setFormatLocale({ language: "en", locale: "en-US", timeZone: "Europe/Berlin" })
+    expect(formatClock(iso, { seconds: false, now: sameDay })).toBe("9:05 AM")
+    expect(formatClock(iso, { now: sameDay })).toBe("9:05:07 AM")
+    expect(formatClock(iso, { seconds: false, now: nextDay })).toBe("Oct 21, 9:05 AM")
+    expect(formatClock(iso, { now: nextDay })).toBe("Oct 21, 9:05:07 AM")
+    expect(formatClock(iso, { milliseconds: true, now: nextDay })).toBe("Oct 21, 9:05:07.042 AM")
+    expect(formatClock("2026-10-21T13:01:00Z", { seconds: false, now: sameDay })).toBe("3:01 PM")
+    expect(formatTime(iso, { seconds: false })).toBe("9:05 AM")
+    // The 24-hour clock keeps its two digits: the extension's English and German alike.
+    setFormatLocale(ENGLISH_24H)
+    expect(formatClock(iso, { seconds: false, now: nextDay })).toBe("Oct 21, 09:05")
+    setFormatLocale({ language: "de", locale: "de-DE", timeZone: "Europe/Berlin" })
+    expect(formatClock(iso, { seconds: false, now: sameDay })).toBe("09:05")
   })
 
   it("counts the day in the view's time zone", () => {

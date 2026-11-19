@@ -15,7 +15,6 @@ import {
   KpiGridSkeleton,
   Input,
   ListFooter,
-  LivePill,
   LocaleProvider,
   PagedListFooter,
   rowSelection,
@@ -128,11 +127,6 @@ export const RENDER_CASES: RenderCase[] = [
     render: () => <KpiGridSkeleton cells={4} boxed />,
   },
   {
-    name: "LivePill",
-    marker: "RC:LivePill",
-    render: () => <LivePill tone="success">RC:LivePill</LivePill>,
-  },
-  {
     name: "CountPill",
     marker: "RC:CountPill",
     render: () => <CountPill tone="warning">RC:CountPill</CountPill>,
@@ -145,7 +139,7 @@ export const RENDER_CASES: RenderCase[] = [
   {
     name: "SectionHeading",
     marker: "RC:SectionHeading",
-    render: () => <SectionHeading title="RC:SectionHeading" hint="3 shown" />,
+    render: () => <SectionHeading as="span" title="RC:SectionHeading" hint="3 shown" />,
   },
   {
     name: "WidgetHeader",
@@ -155,7 +149,7 @@ export const RENDER_CASES: RenderCase[] = [
         as="h2"
         title="RC:WidgetHeader"
         badge={<StatusBadge tone="info">Running</StatusBadge>}
-        sub={<LivePill>Live</LivePill>}
+        sub={<span>3 open incidents</span>}
         actions={
           <Button size="sm" variant="ghost" onClick={noop}>
             Refresh
@@ -168,7 +162,7 @@ export const RENDER_CASES: RenderCase[] = [
     name: "GroupCard",
     marker: "RC:GroupCard",
     render: () => (
-      <GroupCard expanded onToggle={noop} summary={<div>RC:GroupCard</div>}>
+      <GroupCard expanded onToggle={noop} title="RC:GroupCard">
         <div>Expanded body row</div>
       </GroupCard>
     ),

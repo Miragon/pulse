@@ -26,10 +26,12 @@ import { createTestQueryClient, TestViewHost, type HostAction } from "./test-vie
 import {
   HostModelContext,
   useHostFollowUp,
+  useHostLocation,
   useHostWrites,
   useViewHost,
   ViewHostProvider,
   type ViewHost,
+  type ViewLocation,
 } from "./view-host.js"
 import { useHostDisplayMode } from "./widget-shell.js"
 
@@ -131,6 +133,19 @@ describe("TestViewHost: what the widget asked the host", () => {
     expect(writesUnder()).toBe(true)
     expect(writesUnder(true)).toBe(true)
     expect(writesUnder(false)).toBe(false)
+  })
+
+  it("offers no address as a chat host does unless a test renders the view on a page", () => {
+    const locationUnder = (location?: ViewLocation) =>
+      renderHook(() => useHostLocation(), {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <TestViewHost location={location}>{children}</TestViewHost>
+        ),
+      }).result.current
+    expect(locationUnder()).toBeUndefined()
+    expect("location" in hostWith()).toBe(false)
+    const location: ViewLocation = { report: () => undefined, subscribe: () => () => undefined }
+    expect(locationUnder(location)).toBe(location)
   })
 
   it("lets a view write under an adapter that states nothing about writes", () => {

@@ -69,7 +69,6 @@ export function resolveUiMessages(
     conditionChip: { ...base.conditionChip, ...override.conditionChip },
     stateLabel: { ...base.stateLabel, ...override.stateLabel },
     count: { ...base.count, ...override.count },
-    pills: { ...base.pills, ...override.pills },
   }
 }
 

@@ -65,27 +65,88 @@ export async function settled(): Promise<void> {
   })
 }
 
+/** An entry the page wrote into the browser's history. */
+interface HistoryWrite {
+  entry: "push" | "replace"
+  url: string
+  state: unknown
+}
+
+/**
+ * The browser's location and history as the page uses them: the address the page writes moves the
+ * location, `back` sets it to an earlier entry and tells the page, as Back does.
+ */
+function fakeBrowser(url: string) {
+  const { pathname, search, origin } = new URL(url, "http://localhost")
+  const location = { pathname, search, origin }
+  const writes: HistoryWrite[] = []
+  const listeners = new Set<() => void>()
+  let state: unknown = null
+  const moveTo = (to: string, data: unknown) => {
+    const next = new URL(to, origin)
+    location.pathname = next.pathname
+    location.search = next.search
+    state = data
+  }
+  const history = {
+    get state() {
+      return state
+    },
+    pushState: (data: unknown, _unused: string, to: string) => {
+      writes.push({ entry: "push", url: to, state: data })
+      moveTo(to, data)
+    },
+    replaceState: (data: unknown, _unused: string, to: string) => {
+      writes.push({ entry: "replace", url: to, state: data })
+      moveTo(to, data)
+    },
+  }
+  const onPopState = (listener: () => void) => {
+    listeners.add(listener)
+    return () => {
+      listeners.delete(listener)
+    }
+  }
+  /** Back or Forward to the entry at `to`, which kept `data`. */
+  const back = async (to: string, data: unknown = null) => {
+    moveTo(to, data)
+    await act(async () => {
+      for (const listener of listeners) listener()
+    })
+    await settled()
+  }
+  return { location, history, onPopState, writes, back, listeners }
+}
+
 /**
  * Starts the page at `url` over `server`, in a container unless `inRoot`, with `views` (default
- * the greeting); its hands recorded.
+ * the greeting); its hands recorded, and its browser's history.
  */
 export async function start(
   url: string,
   server: Server = {},
   { inRoot = false, views = VIEWS }: { inRoot?: boolean; views?: ViewMap } = {},
 ) {
-  const { pathname, search, origin } = new URL(url, "http://localhost")
+  const browser = fakeBrowser(url)
   const fetch = fakeFetch(server)
   const assign = vi.fn<(url: string) => void>()
   const reload = vi.fn<() => void>()
-  const env: PageEnv = { views, location: { pathname, search, origin }, fetch, assign, reload }
+  const env: PageEnv = {
+    views,
+    location: browser.location,
+    history: browser.history,
+    onPopState: browser.onPopState,
+    fetch,
+    assign,
+    reload,
+  }
   const container = document.createElement("div")
   document.body.appendChild(container)
   await act(async () => {
     unmount = await startPage(inRoot ? env : { ...env, container })
   })
   await settled()
-  return { fetch, assign, reload }
+  return { fetch, assign, reload, browser }
 }
 
 /** Unmounts the page and puts the document back. */

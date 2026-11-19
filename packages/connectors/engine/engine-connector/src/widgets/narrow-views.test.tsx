@@ -17,6 +17,8 @@ import { IncidentTable } from "./process-incidents/incident-table.js"
 import { useIncidentRecovery } from "./process-incidents/use-incident-recovery.js"
 import { InstancesHeader } from "./process-instances/list-header.js"
 import { ProcessInstancesView } from "./process-instances/list.js"
+import { ProcessDefinitionsTableView } from "./process-definitions-table-view.js"
+import { JobPanelWidget } from "./job-panel.js"
 
 /**
  * The cockpit in a narrow chat (a 400 px card): its tables keep one line per row and scroll in
@@ -160,6 +162,7 @@ const INSTANCES: ProcessInstancesData = {
   processDefinitionName: "Invoice",
   totalCount: 2,
   returnedCount: 2,
+  fetchedAt: "2026-10-26T08:00:00.000Z",
   allCount: 2,
   withIncidentCount: 0,
   suspendedCount: 0,
@@ -171,6 +174,7 @@ const INSTANCES: ProcessInstancesData = {
     version: 1,
     suspended: false,
     hasIncident: false,
+    startTime: null,
   })),
   filters: {},
   engineId: "prod",
@@ -179,7 +183,7 @@ const INSTANCES: ProcessInstancesData = {
 describe("a list of instances: the instance fits its content, the rest gives way first", () => {
   it.each([
     [
-      "a cluster's affected instances",
+      "a cluster's incidents, by their instances",
       () => (
         <ClusterDetailWidget
           data={CLUSTER}
@@ -189,22 +193,28 @@ describe("a list of instances: the instance fits its content, the rest gives way
           messageSignature={CLUSTER.messageSignature ?? undefined}
         />
       ),
+      [0],
     ],
     [
       "the instance list",
       () => <ProcessInstancesView data={INSTANCES} processDefinitionKey="invoice" engine="prod" />,
+      // Its version as narrow as its chip and its start as its time: the state takes the rest.
+      [0, 2, 3],
     ],
-  ] as const)("%s: the instance column alone fits, one line per row", (_view, View) => {
+  ] as const)("%s: the instance column fits, one line per row", (_view, View, fits) => {
     const { container } = renderIn(View)
     const table = container.querySelector("tbody [data-instance-label]")!.closest("table")!
     const heads = [...table.querySelectorAll("thead th")]
+    const fitted = (i: number) => (fits as readonly number[]).includes(i)
     // ListTable's `fit`: the head as narrow as its content, the cells marked one line each.
-    expect(heads.map((th) => classes(th).includes("w-[1%]"))).toEqual(heads.map((_, i) => i === 0))
+    expect(heads.map((th) => classes(th).includes("w-[1%]"))).toEqual(
+      heads.map((_, i) => fitted(i)),
+    )
     const rows = [...table.querySelectorAll("tbody tr")]
     expect(rows).toHaveLength(2)
     for (const row of rows) {
       expect([...row.children].map((cell) => cell.hasAttribute("data-fit"))).toEqual(
-        [...row.children].map((_, i) => i === 0),
+        [...row.children].map((_, i) => fitted(i)),
       )
     }
     // Under 28rem the key gives way to 8rem, over its column's whole text.
@@ -260,7 +270,6 @@ describe("a group's summary in a narrow row", () => {
             { value: "10/10/2026, 8:00 AM", label: "latest" },
           ]}
           incidents={3}
-          expanded={false}
         />
       </TestViewHost>,
     )
@@ -318,7 +327,9 @@ describe("a count in a view's header is a state label, never a tinted badge", ()
     engineId: "prod-a",
   }
 
-  it("a process's open incidents: the incident's icon, the number in the foreground", () => {
+  // One home per number: the process's open incidents are its KPI tile's, so its bar shows no
+  // count at all, neither a tinted badge nor a state label.
+  it("a process's open incidents: none in its bar, the tile under it holds them", () => {
     const { container } = render(
       <TestViewHost>
         <ProcessDetailHeader
@@ -330,10 +341,8 @@ describe("a count in a view's header is a state label, never a tinted badge", ()
     )
     const bar = container.querySelector("[data-slot='view-bar']")!
     expect(bar.querySelector("[data-slot='status-badge']")).toBeNull()
-    const state = bar.querySelector("[data-slot='state-label']")!
-    expect(state.getAttribute("data-state")).toBe("incident")
-    expect(state.textContent).toBe("4 open incidents")
-    expect(classes(state.lastElementChild)).toContain("text-foreground")
+    expect(bar.querySelector("[data-slot='state-label']")).toBeNull()
+    expect(bar.textContent).not.toMatch(/\b(4|99) /)
   })
 
   it("an instance list's running count: the running state's icon, the number in the foreground", () => {
@@ -346,6 +355,7 @@ describe("a count in a view's header is a state label, never a tinted badge", ()
           total={160}
           engine="prod-a"
           filters={{}}
+          fetchedAt="2026-10-26T08:00:00.000Z"
         />
       </TestViewHost>,
     )
@@ -353,5 +363,83 @@ describe("a count in a view's header is a state label, never a tinted badge", ()
     const state = container.querySelector("[data-slot='state-label']")!
     expect(state.getAttribute("data-state")).toBe("running")
     expect(state.textContent).toBe("160 running")
+  })
+})
+
+/** Each head's word and the region width below which its column hides, from the table's rules. */
+function hiddenBelow(container: HTMLElement): Record<string, string> {
+  const rules = container.querySelector("[data-list-table] style")?.textContent ?? ""
+  const heads = [...container.querySelectorAll("thead th")].map((th) => th.textContent ?? "")
+  return Object.fromEntries(
+    [
+      ...rules.matchAll(
+        /@container \(min-width: ([\d.]+rem)\) \{ [^{}]*:nth-child\((\d+)\) \{ display: table-cell; \} \}/g,
+      ),
+    ].map(([, width, nth]) => [heads[Number(nth) - 1], width]),
+  )
+}
+
+// A8: a narrow region drops columns by their importance, never by their position, so the alarms
+// stay in view where the name does.
+describe("a narrow table drops what matters least first", () => {
+  it("the overview's processes: the version, then the running instances; name and alarms stay", () => {
+    const { container } = render(
+      <TestViewHost>
+        <ProcessDefinitionsTableView
+          rows={[
+            {
+              id: "invoice:2:d",
+              key: "invoice",
+              name: "Invoice receipt",
+              version: 2,
+              counts: { instances: 70, failedJobs: 54, totalIncidents: 53 },
+            },
+          ]}
+          ariaLabel="All processes"
+          emptyText="None"
+        />
+      </TestViewHost>,
+    )
+    expect(hiddenBelow(container)).toEqual({ "Latest version": "48rem", Running: "40rem" })
+  })
+
+  it("the jobs: the error keeps its column, the instance and the creation give way", () => {
+    const { container } = render(
+      <TestViewHost>
+        <JobPanelWidget
+          data={{
+            totalCount: 1,
+            allCount: 1,
+            failedCount: 1,
+            fetchedAt: "2026-10-26T08:00:00.000Z",
+            jobs: [
+              {
+                id: "job-1",
+                processInstanceId: "pi-1",
+                processDefinitionKey: "invoice",
+                processDefinitionId: "invoice:1:d",
+                processDefinitionName: "Invoice receipt",
+                activityId: "Activity_CheckBlacklist",
+                activityName: "Check blacklist",
+                retries: 0,
+                exceptionMessage: LONG,
+                dueDate: null,
+                suspended: false,
+                priority: 0,
+                createTime: "2026-10-26T07:00:00.000Z",
+              },
+            ],
+            filters: { failedOnly: true },
+            engineId: "prod",
+          }}
+          engine="prod"
+          failedOnly
+        />
+      </TestViewHost>,
+    )
+    expect(hiddenBelow(container)).toEqual({ Instance: "64rem", Created: "48rem" })
+    // The activity keeps no floor of its own beyond its name's line: the error gets the room.
+    const subject = screen.getByText("Check blacklist").closest("td")!.firstElementChild!
+    expect(classes(subject)).not.toContain("min-w-48")
   })
 })

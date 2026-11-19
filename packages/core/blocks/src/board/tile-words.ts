@@ -4,6 +4,7 @@ import type {
   CountData,
   CounterData,
   DefinitionData,
+  IncidentListData,
   IncidentSummaryData,
   IncidentSummaryRowData,
   InstanceListData,
@@ -64,6 +65,14 @@ export function tileTitle(t: Words, tile: TileData): string {
       : t("title.widgetNamed", { widget: tile.widget })
   }
   return tile.widget.title ?? untitled(t, tile)
+}
+
+/**
+ * Whether an incident list's title names its process: the untitled list of one process
+ * (`title.openIncidentsOf`). A title the file gives names what its author chose instead.
+ */
+export function titleNamesProcess(tile: IncidentListData): boolean {
+  return tile.widget.process !== undefined && tile.widget.title === undefined
 }
 
 /** A list's columns: the engine first over several engines, unless the file places it. */

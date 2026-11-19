@@ -11,7 +11,7 @@ import {
   formatNumber,
   SectionHeading,
 } from "@miragon/pulse-ui"
-import { WidgetShell } from "@miragon/pulse-widget-shell/widgets"
+import { useStartPage, WidgetShell } from "@miragon/pulse-widget-shell/widgets"
 import { ArrowRight, Ban, ClipboardList, Layers, Server } from "lucide-react"
 import { DEFAULT_ENVIRONMENT_ID, groupEnginesByEnvironment } from "../../lib/shared/environments.js"
 import { translator } from "../../messages/use-t.js"
@@ -241,24 +241,29 @@ function BoardList({
 
 /**
  * #322 U15: hangs on the theme slot a customer brand empties (`--brand-mark-display: none`). The
- * title is the app-level one (`WidgetHeader` `size="app"`), the signature above it. The action
- * sits beside the hero where both fit and wraps under it where they do not, on the whole width,
- * never past the gutter (WCAG 1.4.10: the German one is wider than the Komet's column at 320 px).
+ * title is the app-level one (`WidgetHeader` `size="app"`), the signature above it in a chat's
+ * card; a page's bar names the product already, so there the Komet and the title stand alone
+ * (V12). The action sits beside the hero where both fit and wraps under it where they do not, on
+ * the whole width, never past the gutter (WCAG 1.4.10: the German one is wider than the Komet's
+ * column at 320 px).
  */
 export function LandingHeader({ subtitle, action }: { subtitle?: string; action?: ReactNode }) {
   const locale = useLocale()
+  const page = useStartPage() !== undefined
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
       <div className="flex min-w-0 items-center gap-4">
         <KometMark />
         <div className="min-w-0 flex-1">
-          <p
-            data-brand-signature=""
-            className="text-muted-foreground text-small font-semibold"
-            style={{ display: "var(--brand-mark-display, block)" }}
-          >
-            {translator(locale, "cockpit.signature")}
-          </p>
+          {!page && (
+            <p
+              data-brand-signature=""
+              className="text-muted-foreground text-small font-semibold"
+              style={{ display: "var(--brand-mark-display, block)" }}
+            >
+              {translator(locale, "cockpit.signature")}
+            </p>
+          )}
           <WidgetHeader
             size="app"
             title={translator(locale, "cockpit.landing.title")}
@@ -291,7 +296,8 @@ function subtitleKey(named: boolean, boards: ServerBoards | null): string {
 /**
  * The same live health and verdict as the engine's own overview (#322 U15). With `boards` (the
  * server's ENGINE_BOARDS_DIR) the boards follow the engines, which then have a heading of their
- * own where no environment names them.
+ * own where no environment names them. Its lists take the view's width, a page's sheet's too
+ * (V12): a narrower column would leave the sheet's sides empty.
  */
 export function LandingChooser({
   engines,
@@ -328,7 +334,7 @@ export function LandingChooser({
   })
   return (
     <WidgetShell header={notice}>
-      <div className="gap-section mx-auto flex w-full max-w-3xl flex-col">
+      <div className="gap-section flex flex-col">
         <LandingHeader
           subtitle={subtitle}
           action={

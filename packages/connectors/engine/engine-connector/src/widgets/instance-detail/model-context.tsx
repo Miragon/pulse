@@ -11,11 +11,13 @@ function describeInstance({
   engineId,
   state,
   openIncidentCount,
+  callerInstanceId,
 }: {
   instance: InstanceDetailData["instance"]
   engineId: string | undefined
   state: InstanceState
   openIncidentCount: number
+  callerInstanceId: string | null
 }): ViewContext {
   return {
     summary: "The operator is viewing one process instance.",
@@ -23,6 +25,8 @@ function describeInstance({
       engine: engineId,
       processInstanceId: instance.id,
       processDefinitionId: instance.definitionId,
+      // The instance that called this one at a call activity, where the history names it.
+      superProcessInstanceId: callerInstanceId ?? undefined,
     },
     facts: { state, openIncidents: openIncidentCount },
     untrusted: [{ label: "businessKey", text: instance.businessKey }],
@@ -36,6 +40,7 @@ export function InstanceModelContext({
   unconfirmed,
   isSuspended,
   openIncidentCount,
+  callerInstanceId = null,
 }: {
   instance: InstanceDetailData["instance"]
   engineId: string | undefined
@@ -43,6 +48,7 @@ export function InstanceModelContext({
   unconfirmed: boolean
   isSuspended: boolean
   openIncidentCount: number
+  callerInstanceId?: string | null
 }) {
   const { context } = useHandOff()
   const state: InstanceState = cancelled
@@ -56,7 +62,9 @@ export function InstanceModelContext({
           : "running"
   return (
     <HostModelContext
-      content={context(describeInstance({ instance, engineId, state, openIncidentCount }))}
+      content={context(
+        describeInstance({ instance, engineId, state, openIncidentCount, callerInstanceId }),
+      )}
     >
       {null}
     </HostModelContext>

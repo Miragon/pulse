@@ -13,9 +13,9 @@ export const en: MessageCatalog = {
   // The {id} arrives pre-truncated (kit `truncate` appends the ellipsis).
   "cockpit.crumb.instance": ({ id }) => `Instance ${String(id)}`,
   "cockpit.crumb.incident": ({ id }) => `Incident ${String(id)}`,
-  "cockpit.crumb.cluster": ({ activity }) => `Cluster: ${String(activity)}`,
+  "cockpit.crumb.cluster": ({ activity }) => String(activity),
   "cockpit.crumb.incidentAt": ({ activity }) => `Incident at ${String(activity)}`,
-  "cockpit.crumb.history": ({ id }) => `History ${String(id)}`,
+  "cockpit.crumb.history": "History",
   "cockpit.loading.engines": "Loading engines…",
   "cockpit.empty.enginesTitle": "No engines configured",
   "cockpit.empty.engines":
@@ -61,6 +61,9 @@ export const en: MessageCatalog = {
   "cockpit.crumb.fleet": "Cross-engine overview",
   "cockpit.engineGone": ({ engineId }) =>
     `Engine ${String(engineId)} is no longer configured on this server.`,
+  // After an engine switch: the process the view showed is not on the new engine.
+  "cockpit.processGone": ({ process, engineId }) =>
+    `${String(process)} isn't deployed on ${String(engineId)}.`,
   // An engine of another dialect, which the server reads on boards only: its landing row, the one
   // state of its routes (BoardsOnlyEngineGate) and the cross-engine view's line.
   "cockpit.landing.status.onBoards": ({ product }) => `${String(product)}, on boards`,

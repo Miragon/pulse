@@ -1,4 +1,4 @@
-import { useCallback, type ReactNode, type RefCallback } from "react"
+import { useCallback, type MouseEvent, type ReactNode, type RefCallback } from "react"
 import { cn, FOCUS_RING } from "@miragon/pulse-ui"
 import { WEB_PATHS } from "@miragon/pulse-widget-shell/widgets"
 import { useT } from "./messages/index.js"
@@ -12,11 +12,43 @@ import { useT } from "./messages/index.js"
 const PAGE_WIDTH = "mx-auto w-full max-w-6xl"
 const PAGE_MARGIN = "sm:px-6"
 
+/** The page's content, which the skip link leads to. */
+const CONTENT_ID = "content"
+
+/**
+ * Focus to the content's heading (a view's `h1`, a state page's), else the content itself, from
+ * script only: the address keeps no fragment, so Back never stops at a skip.
+ */
+function skipToContent(event: MouseEvent<HTMLAnchorElement>): void {
+  event.preventDefault()
+  const content = document.getElementById(CONTENT_ID)
+  const target = content?.querySelector("h1") ?? content
+  if (!target) return
+  if (!target.hasAttribute("tabindex")) target.tabIndex = -1
+  target.focus()
+}
+
+/** The first stop of the page (WCAG 2.4.1): seen only while it has focus. */
+function SkipLink() {
+  const t = useT()
+  return (
+    <a
+      href={`#${CONTENT_ID}`}
+      onClick={skipToContent}
+      className={cn("text-dense text-foreground sr-only rounded-sm focus:not-sr-only", FOCUS_RING)}
+    >
+      {t("frame.skipToContent")}
+    </a>
+  )
+}
+
 /**
  * The page's bar, the app's own chrome above every page: 40 px on the card's surface with its rule
- * across the window, the product's name as its chrome title (13 px at 600; the Komet stays on the
- * app level, the cockpit's landing), and at its end what the page puts there (who is signed in and
- * the sign-out), its row as wide as the sheet below. Its row's container is `bar`, so a toolbar
+ * across the window, on a page with a session a skip link to the content first (seen while it has
+ * focus), the product's name
+ * as its chrome title (13 px at 600; the Komet stays on the app level, the cockpit's landing), and
+ * at its end what the page puts there (who is signed in and the sign-out), its row as wide as the
+ * sheet below. Its row's container is `bar`, so a toolbar
  * button's label hides visually under 36rem. On a page with a session the name leads to the start
  * page (`home`), the way back to the boards and engines a page's words name.
  */
@@ -31,6 +63,7 @@ export function PageBar({ home = false, children }: { home?: boolean; children?:
           PAGE_WIDTH,
         )}
       >
+        {home && <SkipLink />}
         {home ? (
           <a
             href={WEB_PATHS.app}
@@ -98,6 +131,7 @@ export function PageLayout({
       <div className={cn("flex flex-1 flex-col sm:py-6", PAGE_MARGIN)}>
         <div
           ref={titled}
+          id={CONTENT_ID}
           data-slot="page-content"
           className={cn(
             "bg-card border-border sm:shadow-1 flex flex-col overflow-clip border-b sm:rounded-lg sm:border",

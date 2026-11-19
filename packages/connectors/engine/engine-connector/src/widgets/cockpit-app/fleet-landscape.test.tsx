@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import {
   TestViewHost,
   createTestQueryClient,
@@ -32,13 +32,17 @@ function definition(key: string, name: string, instances: number, incidents = 0)
   }
 }
 
-/** prod-a and prod-b share `invoice`; prod-b's backlog does not answer; down answers nothing. */
+/**
+ * prod-a and prod-b share `invoice`, prod-a and prod-c `billing`; prod-b's backlog does not answer;
+ * down answers nothing.
+ */
 const DEFINITIONS: Record<string, DefinitionStat[]> = {
   "prod-a": [definition("invoice", "Invoice Receipt", 3, 2), definition("billing", "Billing", 1)],
   "prod-b": [
     definition("invoice", "Invoice Receipt", 4),
     definition("onboarding", "Onboarding", 0),
   ],
+  "prod-c": [definition("billing", "Billing", 2)],
 }
 
 /** What the server answers for an engine whose profile it refused: it never asks that engine. */
@@ -123,20 +127,23 @@ const cells = (row: HTMLElement) =>
 const RENDER = { timeout: 15_000 }
 
 describe("the cross-engine landscape, read from each engine", RENDER, () => {
-  it("totals the engines that answered as a lower bound, and counts the unreachable one", async () => {
+  it("totals the engines that answered as a lower bound; the rows, not a tile, count the engines", async () => {
     renderFleet()
     const landscape = screen.getByRole("region", { name: "Process landscape" })
-    await waitFor(() => expect(within(landscape).getByText("1 unreachable")).toBeTruthy())
     // 3 + 1 on prod-a, 4 + 0 on prod-b: a sum of counts, never an average or a rate.
-    expect(within(landscape).getByText("≥ 8")).toBeTruthy()
+    expect(await within(landscape).findByText("≥ 8")).toBeTruthy()
     expect(within(landscape).getByText("1 on several engines")).toBeTruthy()
+    // N8: the header counts the engines, each row says its state; no tile repeats them.
+    expect(within(landscape).queryByText("Engines")).toBeNull()
+    expect(within(landscape).queryByText(/unreachable/)).toBeTruthy()
+    expect(document.querySelectorAll("[data-slot='kpi-label']")).toHaveLength(3)
   })
 
   it("rows every engine with its load and backlog, an engine without an answer in words", async () => {
     renderFleet()
     const table = await screen.findByRole("region", { name: "Load and job backlog per engine" })
     await waitFor(() => expect(within(table).getByText("unreachable")).toBeTruthy())
-    const rows = within(table).getAllByRole("row").slice(2)
+    const rows = within(table).getAllByRole("row").slice(1)
     await waitFor(() =>
       expect(cells(rows[0])).toEqual([
         "prod-a",
@@ -155,10 +162,34 @@ describe("the cross-engine landscape, read from each engine", RENDER, () => {
     expect(cells(rows[1]).slice(4, 8)).toEqual(Array(4).fill(expect.stringContaining("—")))
     expect(cells(rows[2]).slice(1)).toEqual(Array(8).fill(expect.stringContaining("—")))
     expect(screen.getByText("— Not read from this engine: figure unknown")).toBeTruthy()
-    expect(within(table).getByRole("columnheader", { name: "Load (absolute)" })).toBeTruthy()
-    expect(
-      within(table).getByRole("columnheader", { name: "Job backlog, comparable across engines" }),
-    ).toBeTruthy()
+    // One head row: the columns name themselves, so the backlog can give way on a narrow table.
+    expect(within(table).queryByRole("columnheader", { name: "Load (absolute)" })).toBeNull()
+    const heads = within(table)
+      .getAllByRole("columnheader", { hidden: true })
+      .map((head) => head.textContent)
+    expect(heads).toContain("Jobs due later")
+    // Four backlog columns and the inventory give way on a narrow table (`hideBelow`).
+    const css = table.closest("[data-list-table]")?.querySelector("style")?.textContent ?? ""
+    expect(css.match(/display: none/g)).toHaveLength(5)
+  })
+
+  it("opens an engine from its row, on a click or Enter", async () => {
+    const entered: string[] = []
+    render(
+      <TestViewHost tools={TOOLS} client={queryClient}>
+        <FleetView
+          engines={[{ id: "prod-a" }, { id: "prod-b" }]}
+          onEnterEngine={(id) => entered.push(id)}
+        />
+      </TestViewHost>,
+    )
+    const table = await screen.findByRole("region", { name: "Load and job backlog per engine" })
+    const row = within(table).getByText("prod-b", { selector: "span" }).closest("tr")!
+    fireEvent.click(row)
+    fireEvent.keyDown(within(table).getByText("prod-a", { selector: "span" }).closest("tr")!, {
+      key: "Enter",
+    })
+    expect(entered).toEqual(["prod-b", "prod-a"])
   })
 
   it("lays out what runs where: shared first, a column per answering engine, the rest named", async () => {
@@ -170,7 +201,10 @@ describe("the cross-engine landscape, read from each engine", RENDER, () => {
     expect(heads).toEqual(["Process definition", "prod-a", "prod-b", "Incidents"])
     const rows = within(matrix).getAllByRole("row").slice(1)
     expect(within(rows[0]).getByText("Invoice Receipt")).toBeTruthy()
-    expect(within(rows[0]).getByText("on 2 engines")).toBeTruthy()
+    // On every engine read: its cells say so, no pill repeats it (D14), and no legend explains
+    // an empty cell.
+    expect(within(matrix).queryByText("on 2 engines")).toBeNull()
+    expect(screen.queryByText(/An empty cell/)).toBeNull()
     expect(cells(rows[0]).slice(1)).toEqual(["3", "4", "2Has open incidents"])
     // Not deployed is an empty cell, said for screen readers; deployed with nothing running is 0.
     expect(cells(rows.find((r) => r.textContent?.includes("Onboarding"))!).slice(1)).toEqual([
@@ -179,6 +213,23 @@ describe("the cross-engine landscape, read from each engine", RENDER, () => {
       "0",
     ])
     expect(screen.getByText("No column for down: its row above says why.")).toBeTruthy()
+  })
+
+  it("names how many engines run a process only where not every engine does", async () => {
+    render(
+      <TestViewHost tools={TOOLS} client={queryClient}>
+        <FleetView
+          engines={[{ id: "prod-a" }, { id: "prod-b" }, { id: "prod-c" }]}
+          onEnterEngine={() => {}}
+        />
+      </TestViewHost>,
+    )
+    const matrix = await screen.findByRole("region", { name: "Process definitions by engine" })
+    await waitFor(() => expect(within(matrix).getAllByText("on 2 engines")).toHaveLength(2))
+    const heads = within(matrix)
+      .getAllByRole("columnheader")
+      .map((head) => head.textContent)
+    expect(heads).toEqual(["Process definition", "prod-a", "prod-b", "prod-c", "Incidents"])
   })
 
   it("asks only the engine module's feeds and offers no performance hand-off", async () => {
@@ -229,7 +280,7 @@ describe("the cross-engine landscape, read from each engine", RENDER, () => {
       </TestViewHost>,
     )
     const landscape = screen.getByRole("region", { name: "Process landscape" })
-    await waitFor(() => expect(within(landscape).getByText("2 unreachable")).toBeTruthy())
+    await waitFor(() => expect(within(landscape).getAllByText("unreachable")).toHaveLength(2))
     expect(within(landscape).queryByText(/^(≥\s)?0$/)).toBeNull()
     expect(
       screen.getByText(
@@ -247,13 +298,9 @@ describe("the cross-engine landscape, read from each engine", RENDER, () => {
         />
       </TestViewHost>,
     )
-    const landscape = screen.getByRole("region", { name: "Process landscape" })
-    await waitFor(() =>
-      expect(within(landscape).getByText("1 unreachable · 1 with profile refused")).toBeTruthy(),
-    )
     const table = screen.getByRole("region", { name: "Load and job backlog per engine" })
+    await waitFor(() => expect(within(table).getByText("unreachable")).toBeTruthy())
     expect(within(table).getByText("profile refused")).toBeTruthy()
-    expect(within(table).getByText("unreachable")).toBeTruthy()
   })
 
   it("never reads a profile the server refused, whatever dialect it names: refused, never unreachable", async () => {
@@ -275,13 +322,11 @@ describe("the cross-engine landscape, read from each engine", RENDER, () => {
       </TestViewHost>,
     )
     const landscape = screen.getByRole("region", { name: "Process landscape" })
-    await waitFor(() => expect(within(landscape).getByText("1 with profile refused")).toBeTruthy())
-    expect(within(landscape).queryByText(/unreachable/)).toBeNull()
-    const card = screen.getByRole("button", { name: /^c8bad/ })
-    expect(card.textContent).toContain("profile refused")
-    expect(card.querySelector("svg")?.getAttribute("class")).toContain("lucide-ban")
     const table = screen.getByRole("region", { name: "Load and job backlog per engine" })
-    expect(within(table).getByText("profile refused")).toBeTruthy()
+    await waitFor(() => expect(within(table).getByText("profile refused")).toBeTruthy())
+    expect(within(landscape).queryByText(/unreachable/)).toBeNull()
+    const row = within(table).getByText("c8bad", { selector: "span" }).closest("tr")!
+    expect(row.querySelector("svg")?.getAttribute("class")).toContain("lucide-ban")
     expect(read.every((engine) => engine === "prod-a")).toBe(true)
   })
 
@@ -300,44 +345,27 @@ describe("the cross-engine landscape, read from each engine", RENDER, () => {
       })
     }
 
-    const trendOf = (landscape: HTMLElement, text: string) =>
-      within(landscape).getByText(text, { exact: true })
-    /** The tone of the icon of its own shape beside a KPI's trend line (never a coloured dot). */
-    const toneOf = (landscape: HTMLElement, text: string) =>
-      trendOf(landscape, text)
-        .closest("[data-slot='kpi-trend']")
-        ?.querySelector("svg[data-tone]")
-        ?.getAttribute("data-tone")
+    /** The row of an engine, its mark the first icon. */
+    const rowOf = (engine: string) =>
+      within(screen.getByRole("region", { name: "Load and job backlog per engine" }))
+        .getByText(engine, { selector: "span" })
+        .closest("tr")!
 
-    it("counts a 401 and a 403 apart, never as unreachable, with a refused profile's tone", async () => {
+    it("words a 401 and a 403 apart, never as unreachable, each with a refused profile's tone", async () => {
       const landscape = renderLogin()
-      await waitFor(() =>
-        expect(
-          trendOf(
-            landscape,
-            "1 with profile refused · 1 with credentials rejected · 1 with access denied",
-          ),
-        ).toBeTruthy(),
-      )
-      expect(within(landscape).queryByText(/unreachable/)).toBeNull()
-      expect(
-        toneOf(
-          landscape,
-          "1 with profile refused · 1 with credentials rejected · 1 with access denied",
-        ),
-      ).toBe("warning")
       const table = screen.getByRole("region", { name: "Load and job backlog per engine" })
-      expect(within(table).getByText("credentials rejected")).toBeTruthy()
+      await waitFor(() => expect(within(table).getByText("credentials rejected")).toBeTruthy())
       expect(within(table).getByText("access denied")).toBeTruthy()
-      expect(within(table).queryByText("unreachable")).toBeNull()
+      expect(within(landscape).queryByText(/unreachable/)).toBeNull()
+      const mark = rowOf("locked-out").querySelector("svg")?.getAttribute("class") ?? ""
+      expect(mark).toContain("lucide-key-round")
     })
 
-    it("keeps the outage's tone when an engine is unreachable too", async () => {
-      const landscape = renderLogin([{ id: "prod-a" }, { id: "down" }, { id: "locked-out" }])
-      await waitFor(() =>
-        expect(trendOf(landscape, "1 unreachable · 1 with credentials rejected")).toBeTruthy(),
-      )
-      expect(toneOf(landscape, "1 unreachable · 1 with credentials rejected")).toBe("danger")
+    it("marks an unreachable engine in the outage's tone beside one that refused the login", async () => {
+      renderLogin([{ id: "prod-a" }, { id: "down" }, { id: "locked-out" }])
+      const table = screen.getByRole("region", { name: "Load and job backlog per engine" })
+      await waitFor(() => expect(within(table).getByText("unreachable")).toBeTruthy())
+      expect(rowOf("down").querySelector("svg")?.getAttribute("class")).toContain("lucide-unplug")
     })
 
     /** The landscape's notes on an engine it could not read never say it did not answer. */
@@ -375,29 +403,12 @@ describe("the cross-engine landscape, read from each engine", RENDER, () => {
       expect(within(de).queryByText(/erreichbar|geantwortet/)).toBeNull()
     })
 
-    it("words them on the engine cards as the landing does", async () => {
-      renderLogin()
-      expect(
-        await screen.findByRole("button", { name: /^locked-out\b.*credentials rejected/ }),
-      ).toBeTruthy()
-      expect(
-        await screen.findByRole("button", { name: /^no-access\b.*access denied/ }),
-      ).toBeTruthy()
-    })
-
     it("speaks German on a German host", async () => {
-      const landscape = renderLogin(ENGINES, "de")
-      await waitFor(() =>
-        expect(
-          trendOf(
-            landscape,
-            "1 mit abgelehntem Profil · 1 mit abgelehnten Zugangsdaten · 1 mit verweigertem Zugriff",
-          ),
-        ).toBeTruthy(),
-      )
+      renderLogin(ENGINES, "de")
       const table = screen.getByRole("region", { name: "Last und Job-Rückstand je Engine" })
-      expect(within(table).getByText("Zugangsdaten abgelehnt")).toBeTruthy()
+      await waitFor(() => expect(within(table).getByText("Zugangsdaten abgelehnt")).toBeTruthy())
       expect(within(table).getByText("Zugriff verweigert")).toBeTruthy()
+      expect(within(table).getByText("Profil abgelehnt")).toBeTruthy()
     })
   })
 

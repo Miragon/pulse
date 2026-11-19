@@ -7,7 +7,14 @@ import { BrowserViewHost, type BrowserHostOptions } from "./browser-view-host.js
 import { useDisplayModeControl } from "./display-mode-toggle.js"
 import { NO_INLINE_BUDGET, useInlineBudget } from "./inline-budget.js"
 import { useShellHost } from "./shell-host.js"
-import { HostModelContext, useHostWrites, useStartPage, useViewHost } from "./view-host.js"
+import {
+  HostModelContext,
+  useHostLocation,
+  useHostWrites,
+  useStartPage,
+  useViewHost,
+  type ViewLocation,
+} from "./view-host.js"
 import { useHostDisplayMode } from "./widget-shell.js"
 
 /**
@@ -167,6 +174,23 @@ describe("BrowserViewHost: what a widget asks the page", () => {
     await act(async () => reactRoot?.unmount())
     const container = await render({ startPage: "/app" }, <StartPageProbe />)
     expect(container.textContent).toBe("/app")
+  })
+
+  it("hands the view the page's address where the page has one, none otherwise", async () => {
+    const seenLocation: Array<ViewLocation | undefined> = []
+    function LocationProbe() {
+      const location = useHostLocation()
+      useEffect(() => {
+        seenLocation.push(location)
+      })
+      return null
+    }
+    await render({}, <LocationProbe />)
+    expect(seenLocation.at(-1)).toBeUndefined()
+    await act(async () => reactRoot?.unmount())
+    const location: ViewLocation = { report: vi.fn(), subscribe: () => () => undefined }
+    await render({ location }, <LocationProbe />)
+    expect(seenLocation.at(-1)).toBe(location)
   })
 
   it("offers no write: a page writes to no engine", async () => {

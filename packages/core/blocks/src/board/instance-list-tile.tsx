@@ -156,7 +156,10 @@ export function InstanceListTile({ tile, slots }: InstanceListTileProps) {
           if (target !== undefined) onOpen(target, how)
         }}
         opens={(row) => openable(slots, targetOf(row)) !== undefined}
-        rowLabel={(row) => t("row.instance", { id: shortId(row.instance.id) })}
+        // Named after what it opens and as the row shows it: by its business key where it has one.
+        rowLabel={({ instance }) =>
+          t("row.instance", { id: instance.businessKey ?? shortId(instance.id) })
+        }
         copyOf={(row) => ({ text: row.instance.id, label: t("instances.copy") })}
         empty={<EmptyNote text={t("instances.empty")} />}
         footer={

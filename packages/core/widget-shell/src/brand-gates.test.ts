@@ -32,6 +32,8 @@ describe("kit widget code draws icons with Lucide, never glyphs or emoji", SCAN,
  */
 const DENSE_ICONS_ALLOWED: Readonly<Record<string, string>> = {
   "id-text.tsx": "the copy button beside an id is 24 px (the xs control), so its icon is 12 px",
+  "text-block.tsx":
+    "the copy button of a text block is IdText's, 24 px (the xs control), so its icon is 12 px",
 }
 
 describe("kit widget code draws icons at the CI sizes", SCAN, () => {

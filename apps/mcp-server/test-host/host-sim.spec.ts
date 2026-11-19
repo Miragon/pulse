@@ -236,7 +236,7 @@ const STUB_JOBS = [
   "Card expired",
   "Billing address unknown",
   "Insufficient funds",
-  "Issuer unavailable",
+  "Issuer unavailable, try again later",
   "Limit exceeded",
   "Card blocked",
   "Currency not supported",
@@ -253,15 +253,15 @@ const STUB_JOBS = [
 /**
  * The cockpit's jobs route rendered the stub engine's sixteen failed jobs, the first job first:
  * inline exactly the `shown` rows the host's budget leaves room for under the cockpit's head
- * and the KPI card (#396), and the count line says how many of the sixteen. Under the compact
- * look (28 px rows with their 24 px row actions, ids in one line, the cockpit's 40 px head and the
- * view's 40 px bar from edge to edge, the content in the 12 px gutter, the KPI card's 12 px
- * tiles) a 600 px budget (and the unstated one, fitted as 600 px) leaves room for eleven at 960 px
- * and at 760 px (575 px with the Load more button; a twelfth row would need 3 px more);
- * 800 px fits all sixteen (706 px). A head section shows no trail inline, so the head is the
- * only row above the view.
+ * and the scope's segments (#396), and the count line says how many of the sixteen. Under the
+ * compact look (28 px rows with their 24 px row actions, ids in one line, the cockpit's 40 px
+ * head, the view's 40 px bar and the 36 px toolbar of its scope from edge to edge, the 28 px
+ * table head, the content in the 12 px gutter) a 600 px budget (and the unstated one, fitted as
+ * 600 px) leaves room for thirteen at 960 px and at 760 px (584 px with the Load more button; a
+ * fourteenth row would need 12 px more); 800 px fits all sixteen (660 px). A head section shows
+ * no trail inline, so the head is the only row above the view.
  */
-async function expectJobs(app: FrameLocator, shown: 11 | 16) {
+async function expectJobs(app: FrameLocator, shown: 13 | 16) {
   const region = app.getByRole("region", { name: "Jobs", exact: true })
   await expect(region).toBeVisible({ timeout: 15_000 })
   await expect(region.getByRole("row")).toHaveCount(shown + 1)
@@ -882,7 +882,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
   }) => {
     const app = await openView(page, { args: JOBS_ARGS, maxHeight: 600 })
 
-    await expectJobs(app, 11)
+    await expectJobs(app, 13)
     const container = await app.locator("#root").evaluate((root) => {
       const el = root.firstElementChild as HTMLElement
       return { scrollHeight: el.scrollHeight, clientHeight: el.clientHeight }
@@ -895,7 +895,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
   }) => {
     const app = await openView(page, { args: JOBS_ARGS })
 
-    await expectJobs(app, 11)
+    await expectJobs(app, 13)
     // The old html/body/#root floor reported 600 for every view. `settledHeight`
     // waits for the report that equals the content's max-content height.
     const reported = await settledHeight(page, app)
@@ -1387,40 +1387,27 @@ test.describe("kit foundation (engine_open_cockpit, the jobs)", () => {
     // No glyph icon anywhere in the view.
     expect(await app.locator("body").innerText()).not.toMatch(/[✦⊡▦↗›⚠⚙⏱⤧▶✓✕▤⊞↻]/)
 
-    // The KPI tile of the jobs without retries: an alarming figure in an untinted tile.
-    const alarm = app
-      .locator('[data-slot="kpi-grid"] [data-slot="count-figure"][data-tone="danger"]')
-      .first()
-    await expect(alarm).toBeVisible()
-    const tile = await alarm.evaluate((el) => {
-      const cell = el.closest<HTMLElement>('[data-slot="kpi-strip"] > div > *')!
-      const strip = el.closest<HTMLElement>('[data-slot="kpi-strip"]')!
-      // pulse-ui's KpiGrid: the figure on the type scale's section step (the compact tile).
-      const digits = getComputedStyle(el.closest(".text-section")!)
+    // The count of the jobs without retries, in its scope's segment (the tiles are gone): the
+    // danger tone's icon of its own shape before a neutral number, never a coloured one.
+    const segment = app.getByRole("radio", { name: /^Without retries/ })
+    await expect(segment).toBeVisible()
+    const count = await segment.evaluate((el) => {
       const icon = el.querySelector("svg")!
-      const page = getComputedStyle(document.body)
-      const transparent = "rgba(0, 0, 0, 0)"
-      const fill = getComputedStyle(cell).backgroundColor
+      const digits = icon.nextElementSibling as HTMLElement
       return {
-        tinted: fill !== transparent && fill !== getComputedStyle(strip).backgroundColor,
-        digits: digits.color,
-        digitSize: digits.fontSize,
-        foreground: page.color,
         icon: icon.getAttribute("class"),
         iconColour: getComputedStyle(icon).color,
-        words: el.querySelector(".sr-only")?.textContent,
+        digits: getComputedStyle(digits).color,
+        label: getComputedStyle(el).color,
       }
     })
-    expect(tile.tinted, "no KPI tile is tinted").toBe(false)
-    expect(tile.digits, "a KPI number stays neutral").toBe(tile.foreground)
-    expect(tile.digitSize, "a KPI figure is the CI section size (21 px), the compact tile").toBe(
-      "21px",
-    )
-    expect(tile.icon, "the alarm is the danger tone's icon of its own shape").toContain(
+    expect(count.icon, "the alarm is the danger tone's icon of its own shape").toContain(
       "lucide-circle-x",
     )
-    expect(tile.iconColour).not.toBe(tile.foreground)
-    expect(tile.words).toBe("Has jobs without retries")
+    expect(count.iconColour, "the icon carries the tone, the number does not").not.toBe(
+      count.digits,
+    )
+    expect(count.digits, "the number stays neutral").not.toBe(count.iconColour)
   })
 
   test("forced colours: the current section keeps a Highlight ring, a status dot turns CanvasText, an outline marks focus only", async ({
@@ -1487,7 +1474,7 @@ test.describe("kit foundation (engine_open_cockpit, the jobs)", () => {
 
   test("high contrast (data-cd-kontrast): no shadows, a 3 px focus ring", async ({ page }) => {
     const app = await openView(page, { args: JOBS_ARGS })
-    await expectJobs(app, 11)
+    await expectJobs(app, 13)
     const current = app
       .getByRole("navigation", { name: "Cockpit sections" })
       .getByRole("button", { name: "Jobs" })
@@ -1747,8 +1734,8 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
   test("a row's menu lies over the next rows' pinned cells: its entries take the clicks (U20)", async ({
     page,
   }) => {
-    // The cockpit's head and the KPI card leave room for eleven rows at the default 600 px fit
-    // (#396): an 800 px budget fits all sixteen jobs, so a middle row has a row under it.
+    // The cockpit's head and the scope's segments leave room for thirteen rows at the default
+    // 600 px fit (#396): an 800 px budget fits all sixteen jobs, so a middle row has a row under it.
     const app = await openView(page, { args: JOBS_ARGS, width: INLINE_WIDTH, maxHeight: 800 })
     await expectJobs(app, 16)
     // The stub's job-2 (never written), with job-3's row under it.
@@ -1853,16 +1840,28 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
   })
 
   test("keyboard focus on a table region shows inside its box (WCAG 2.4.7)", async ({ page }) => {
-    // A region whose rows open nothing takes the keyboard's stop itself: the jobs region spans
-    // its card at the inline width and overflows a narrow card, where it scrolls.
+    // A region whose rows open nothing takes the keyboard's stop itself: an instance's variables
+    // span the card at the inline width and in a narrow card.
+    const INSTANCE = {
+      engine: HEALTHY_ENGINE,
+      view: "instance-detail",
+      processInstanceId: "pi-invoice-42",
+    }
     const views = [
-      { scenario: { args: JOBS_ARGS, width: INLINE_WIDTH }, name: "Jobs" },
-      { scenario: { args: JOBS_ARGS, width: NARROW_WIDTH }, name: "Jobs" },
+      { scenario: { args: INSTANCE, width: INLINE_WIDTH }, name: "Process instance variables" },
+      { scenario: { args: INSTANCE, width: NARROW_WIDTH }, name: "Process instance variables" },
     ]
     for (const { scenario, name } of views) {
       const app = await openView(page, scenario)
+      // The tab by the keyboard, as a keyboard reader reaches the region (a click would leave the
+      // next focus without its visible ring).
+      const tab = app.getByRole("tab", { name: /^Variables/ }).first()
+      await tab.focus({ timeout: 15_000 })
+      await page.keyboard.press("Enter")
+      await expect(tab).toHaveAttribute("aria-selected", "true")
       const region = app.getByRole("region", { name, exact: true })
       await expect(region).toBeVisible({ timeout: 15_000 })
+      expect(await region.getAttribute("tabindex")).toBe("0")
       await region.scrollIntoViewIfNeeded()
       const before = await edgeStrips(page, region)
       await region.focus()
@@ -1880,6 +1879,34 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
           `${name}: the ring shows along the whole ${side} edge`,
         ).toBeGreaterThanOrEqual(0.9)
       }
+    }
+    // The jobs' rows open their job's instance (A2): the first row takes the stop and the region
+    // none, also in a narrow card, where the table overflows its region and scrolls; the focused
+    // row draws its outline inside itself.
+    for (const width of [INLINE_WIDTH, NARROW_WIDTH]) {
+      const app = await openView(page, { args: JOBS_ARGS, width })
+      const region = app.getByRole("region", { name: "Jobs", exact: true })
+      await expect(region).toBeVisible({ timeout: 15_000 })
+      const rows = region.locator("tbody > tr[data-row-target]")
+      await expect(rows.first()).toBeVisible()
+      expect(await region.getAttribute("tabindex")).toBeNull()
+      expect(await rows.first().getAttribute("tabindex")).toBe("0")
+      const overflows = await region.evaluate((el) => el.scrollWidth > el.clientWidth)
+      expect(overflows, `at ${width} px: only the narrow card's table overflows`).toBe(
+        width === NARROW_WIDTH,
+      )
+      await rows.first().focus()
+      const ring = await rows.first().evaluate((el) => {
+        const style = getComputedStyle(el)
+        return {
+          visible: el.matches(":focus-visible"),
+          style: style.outlineStyle,
+          width: parseFloat(style.outlineWidth),
+          inside: parseFloat(style.outlineOffset) <= -parseFloat(style.outlineWidth),
+        }
+      })
+      expect(ring, `at ${width} px`).toMatchObject({ visible: true, style: "solid", inside: true })
+      expect(ring.width).toBeGreaterThanOrEqual(2)
     }
   })
 
@@ -1924,7 +1951,7 @@ test.describe("cockpit (engine_open_cockpit)", () => {
 
   test("opens on its start view: the head section current, no picker", async ({ page }) => {
     const app = await openView(page, { args: JOBS_ARGS })
-    await expectJobs(app, 11)
+    await expectJobs(app, 13)
     const sections = app.getByRole("navigation", { name: "Cockpit sections" })
     await expect(sections.getByRole("button", { name: "Jobs" })).toHaveAttribute(
       "aria-current",
@@ -1969,11 +1996,12 @@ test.describe("an instance and the instance list (engine_open_cockpit)", () => {
     // The diagram's name leads with the id after it on one line; an element the diagram lacks
     // shows its id.
     await expect(elements).toHaveText(["Approve Invoice approveInvoice", "chargeCard"])
-    // The view with both 28 px rows is 619 px. A cut to one row would add the 44 px "1 of 2
-    // shown" footer and make it taller still (635 px): a cut pays for its footer, so nothing is
-    // cut and the view scrolls inside its budget.
+    // The bar carries the state and the open incidents, no facts block under it (V11): the view
+    // with both 28 px rows is 564 px, inside the budget, so nothing is cut, no footer counts the
+    // rows and the view does not scroll.
     await expect(table.locator("tfoot")).toHaveCount(0)
-    await expect(app.locator("[data-inline-fit]")).toHaveAttribute("data-inline-fit", "overflow")
+    await expect(app.locator("[data-inline-fit]")).toHaveAttribute("data-inline-fit", "fits")
+    expect(await settledHeight(page, app)).toBeLessThanOrEqual(600)
 
     await app.getByRole("button", { name: "View process" }).click()
     await expect(app.getByRole("heading", { name: "Invoice Receipt" })).toBeVisible({

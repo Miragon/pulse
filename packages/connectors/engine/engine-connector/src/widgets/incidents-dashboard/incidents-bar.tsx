@@ -1,12 +1,6 @@
+import { formatNumber, StateLabel, WidgetHeader } from "@miragon/pulse-ui"
 import {
-  formatCount,
-  formatNumber,
-  formatTimestamp,
-  KpiGrid,
-  LivePill,
-  WidgetHeader,
-} from "@miragon/pulse-ui"
-import {
+  FreshnessStamp,
   HandOffButton,
   ViewDataState,
   WidgetShell,
@@ -14,9 +8,8 @@ import {
 } from "@miragon/pulse-widget-shell/widgets"
 import type { IncidentsDashboardData } from "../../view-models.js"
 import { ENGINE_INCIDENTS_DATA } from "../../tool-names.js"
-import { AlarmCount } from "../lib/alarm-count.js"
 import { useHandOff, useHandOffsShown, type HandOff } from "../lib/hand-off.js"
-import { useT } from "../../messages/use-t.js"
+import { useT, type T } from "../../messages/use-t.js"
 import { dashboardScope, incidentsFeed } from "./scope.js"
 
 /** A filtered total is stated as the matching incidents; a plan, nothing changed yet. */
@@ -40,14 +33,36 @@ function triageIncidentsHandOff(data: IncidentsDashboardData, engine: string): H
   }
 }
 
-function IncidentOverviewKpiView({
+/**
+ * The open incidents in one sentence: how many, in how many processes and, where every card's
+ * breakdown is complete, at how many activities ("101 open in 2 processes, 3 activities").
+ */
+function openSummary(t: T, data: IncidentsDashboardData): string {
+  const count = formatNumber(data.totalCount)
+  const processes = formatNumber(data.processCount)
+  return data.affectedActivityCount === null
+    ? t("incidentsKpi.openSummary", { count, processes })
+    : t("incidentsKpi.openSummaryActivities", {
+        count,
+        processes,
+        activities: formatNumber(data.affectedActivityCount),
+      })
+}
+
+/**
+ * The incidents route's bar, a view of its own over the list's feed (one query, shared): the
+ * engine in its title, the open incidents in words, its one action the hand-off and, at its end,
+ * when the numbers were read. No tiles: the segments under it count All and New in 24h, the cards
+ * their processes. Loading or failed, it says so once for the route, with the Try again that reads
+ * the feed for the list too.
+ */
+export function IncidentsBar({
   data: initialData = null,
   engine,
 }: {
   data?: IncidentsDashboardData | null
   engine: string
 }) {
-  // Shares the process-list feed, so both panels dedupe to one fetch.
   const feed = incidentsFeed(engine)
   const { data, loading, error, refetch } = useViewData<IncidentsDashboardData>(
     initialData,
@@ -59,11 +74,13 @@ function IncidentOverviewKpiView({
   const t = useT()
   const { ask } = useHandOff()
   const handOffs = useHandOffsShown()
+  // The engine in the title (#322 U4).
+  const title = t("incidentsKpi.titleFor", { engine })
 
   // Loading or failed, the route keeps its title, the page's one heading.
   if (!data) {
     return (
-      <WidgetShell header={<WidgetHeader title={t("incidentsKpi.titleFor", { engine })} />}>
+      <WidgetShell header={<WidgetHeader title={title} />}>
         <ViewDataState
           loading={loading}
           error={error}
@@ -75,30 +92,20 @@ function IncidentOverviewKpiView({
     )
   }
 
+  const summary = openSummary(t, data)
   return (
     <WidgetShell
       header={
         <WidgetHeader
-          // The engine in the title (#322 U4).
-          title={t("incidentsKpi.titleFor", { engine })}
+          title={title}
           sub={
-            <>
-              <LivePill>{t("incidentsKpi.live")}</LivePill>
-              <span>
-                {t("incidentsKpi.openSummary", {
-                  count: formatNumber(data.totalCount),
-                  processes: formatNumber(data.processCount),
-                })}
-                {data.latestIncident && (
-                  <>
-                    {" "}
-                    {t("incidentsKpi.lastEvent", {
-                      time: formatTimestamp(data.latestIncident),
-                    })}
-                  </>
-                )}
-              </span>
-            </>
+            // A count in the header is a state label (invariant 6): the incident's icon carries
+            // the alarm, the number stays in the foreground.
+            data.totalCount > 0 ? (
+              <StateLabel state="incident">{summary}</StateLabel>
+            ) : (
+              <span>{summary}</span>
+            )
           }
           actions={
             // Its one action is a hand-off: where the host hides it, the bar has no group.
@@ -110,48 +117,9 @@ function IncidentOverviewKpiView({
               />
             )
           }
+          freshness={<FreshnessStamp at={data.fetchedAt} />}
         />
       }
-    >
-      {/* Only the open incidents alarm, by their icon and words (#322 U14); every number stays
-          neutral, no tile tinted. */}
-      <KpiGrid
-        boxed
-        ariaLabel={t("incidentsKpi.overviewLabel")}
-        cells={[
-          {
-            label: t("incidentsKpi.cellOpenIncidents"),
-            value: (
-              <AlarmCount alarm={data.totalCount > 0 && "openIncidents"}>
-                {formatNumber(data.totalCount)}
-              </AlarmCount>
-            ),
-          },
-          {
-            label: t("incidentsKpi.cellProcessesAffected"),
-            value: formatNumber(data.processCount),
-          },
-          {
-            label: t("incidentsKpi.cellActivitiesAffected"),
-            value: formatCount(data.affectedActivityCount),
-          },
-          {
-            label: t("incidentsKpi.cellLast24h"),
-            value: `+${formatNumber(data.last24hCount)}`,
-          },
-        ]}
-      />
-    </WidgetShell>
+    />
   )
-}
-
-/** The incidents route's view of its own: its bar and the KPIs. */
-export function IncidentOverviewKpi({
-  data,
-  engine,
-}: {
-  data: IncidentsDashboardData | null
-  engine: string
-}) {
-  return <IncidentOverviewKpiView data={data} engine={engine} />
 }

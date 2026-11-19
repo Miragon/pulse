@@ -1,4 +1,12 @@
-import { formatNumber, NamedId, StateLabel, Td, VersionChip } from "@miragon/pulse-ui"
+import {
+  formatClock,
+  formatInstant,
+  formatNumber,
+  NamedId,
+  StateLabel,
+  Td,
+  VersionChip,
+} from "@miragon/pulse-ui"
 import { HandOffButton, ListRow } from "@miragon/pulse-widget-shell/widgets"
 import type { ProcessInstanceRow } from "../../view-models.js"
 import { useHandOff } from "../lib/hand-off.js"
@@ -109,6 +117,13 @@ export function InstanceRow({
           )}
         </Td>
       )}
+      <Td align="right" className="text-muted-foreground whitespace-nowrap tabular-nums">
+        {/* The time on the clock, its day on another day, the whole instant in its title; an
+            unread or unrecorded start is "—", never a guess. */}
+        <span title={row.startTime ? formatInstant(row.startTime) : undefined}>
+          {formatClock(row.startTime, { seconds: false })}
+        </span>
+      </Td>
       {actions && (
         <Td align="right">
           {/* A row's actions are xs, so the row keeps the row height (28 px). */}

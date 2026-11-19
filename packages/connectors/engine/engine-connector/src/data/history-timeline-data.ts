@@ -21,6 +21,8 @@ export async function buildHistoryTimelineData(
   args: { processInstanceId: string } & PagingArgs,
 ): Promise<HistoryTimelineData> {
   const { processInstanceId } = args
+  // When the reads began: the bar's "As of".
+  const fetchedAt = new Date().toISOString()
   const [activities, totalActivities, instances, incidents] = await Promise.all([
     getHistoricActivityInstances({
       client,
@@ -48,6 +50,7 @@ export async function buildHistoryTimelineData(
     activities,
     totalActivities,
     incidentActivityIds: incidents ? collectIncidentActivityIds(incidents) : null,
+    fetchedAt,
     engineId,
   }
 }

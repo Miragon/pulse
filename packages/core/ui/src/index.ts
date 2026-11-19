@@ -91,10 +91,8 @@ export {
   type KpiGridSkeletonProps,
 } from "./components/KpiGrid.js"
 export {
-  LivePill,
   CountPill,
   StatusBadge,
-  type LivePillProps,
   type CountPillProps,
   type StatusBadgeProps,
   type StatusBadgeText,
@@ -105,7 +103,7 @@ export {
   type WidgetHeaderProps,
   type WidgetHeadingLevel,
 } from "./components/WidgetHeader.js"
-export { GroupCard, type GroupCardProps } from "./components/GroupCard.js"
+export { GROUP_CARD_INSET, GroupCard, type GroupCardProps } from "./components/GroupCard.js"
 export { FilterBar, type FilterBarProps, type FilterChip } from "./components/FilterBar.js"
 export { DrillButton, type DrillButtonProps } from "./components/DrillButton.js"
 export { ListFooter, type ListFooterProps } from "./components/ListFooter.js"
@@ -242,7 +240,13 @@ export {
 } from "./kit/segmented-control.js"
 export { RowCard } from "./kit/row-card.js"
 export { NamedId, type NamedIdLayout } from "./kit/named-id.js"
-export { LogText, LOG_TEXT_PREVIEW, TEXT_BLOCK_FRAME } from "./kit/log-text.js"
+export {
+  LogText,
+  LOG_TEXT_PREVIEW,
+  TEXT_BLOCK_FRAME,
+  type LogTextKind,
+  type LogTextSize,
+} from "./kit/log-text.js"
 // The Komet belongs on app-level surfaces only (a landing, a first start), never in a widget.
 export { KometMark, AppEmptyState } from "./kit/brand-mark.js"
 export { NavigationFocus } from "./kit/navigation-focus.js"

@@ -25,9 +25,13 @@ function cockpitProperties(): Readonly<Record<string, Property>> {
   return schema.toJSONSchema().properties
 }
 
-/** The argument the page makes of `?<key>=<value>` on its cockpit page. */
+/**
+ * The argument the page makes of `?<key>=<value>` on its cockpit page, beside a view: an engine the
+ * query names alone starts the landing instead (src/routes.ts, `cockpitStart`).
+ */
 function argumentOf(key: string, value: string): unknown {
-  const route = routeOf({ pathname: "/app/cockpit", search: `?${key}=${value}` })
+  const search = key === "view" ? `?view=${value}` : `?view=overview&${key}=${value}`
+  const route = routeOf({ pathname: "/app/cockpit", search })
   return route.kind === "view" ? route.args[key] : undefined
 }
 

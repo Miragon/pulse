@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, render, screen, within } from "@testing-library/react"
-import { TONE_DOT, TONE_ICON } from "@miragon/pulse-ui"
+import { TONE_DOT, TONE_ICON, formatInstant } from "@miragon/pulse-ui"
+import { ProcessDetailHeader } from "./process-incidents/header.js"
 import { ProcessDefinitionKpi } from "./process-incidents/kpi.js"
 import { ActivityIncidentList } from "./process-incidents/list.js"
 import { diagramActivityFraction } from "./process-incidents/activity-scope.js"
@@ -54,8 +55,8 @@ const Kpi = ({ data }: { data: ProcessIncidentsData }) => (
   <ProcessDefinitionKpi data={data} processDefinitionKey="leasing" engine="prod-a" />
 )
 
-describe("definition view: activities affected over the diagram", () => {
-  it("counts only the diagram's activities in the fraction and names the older-version ones beside it", () => {
+describe("definition view: affected activities over the diagram", () => {
+  it("counts only the diagram's activities, with no denominator, and names the older-version ones under it", () => {
     render(
       <TestViewHost>
         <Kpi data={DATA as never} />
@@ -63,12 +64,27 @@ describe("definition view: activities affected over the diagram", () => {
     )
 
     const cell = screen
-      .getByText("Activities affected")
+      .getByText("Affected activities")
       .closest<HTMLElement>('[data-slot="kpi-strip"] > div > *')!
     expect(within(cell).getByText("1")).toBeTruthy()
-    expect(within(cell).getByText("/2")).toBeTruthy()
+    expect(within(cell).queryByText("/2")).toBeNull()
     expect(within(cell).getByText("+1 only in older versions")).toBeTruthy()
     expect(within(cell).queryByText("2")).toBeNull()
+  })
+
+  it("names the new incidents of a day without a plus, and leaves the version scope to the bar", () => {
+    const { container } = render(
+      <TestViewHost>
+        <Kpi data={{ ...DATA, last24hCount: 4 }} />
+      </TestViewHost>,
+    )
+    const cell = screen
+      .getByText("New in 24h")
+      .closest<HTMLElement>('[data-slot="kpi-strip"] > div > *')!
+    expect(cell.textContent).toBe("New in 24h4")
+    expect(container.textContent).not.toMatch(/\+24h|\+4|all versions|Process health/)
+    // The strip is still named, as a group, for a screen reader.
+    expect(screen.getByRole("group", { name: "Process health" })).toBeTruthy()
   })
 
   it("keeps the key-wide count without a diagram, with no fraction to mix scopes into", () => {
@@ -116,5 +132,82 @@ describe("definition view: a process without open incidents", () => {
     if (emptyVariant === "siblings") {
       expect(within(note as HTMLElement).getByRole("button", { name: /^Order/ })).toBeTruthy()
     }
+  })
+})
+
+// One home per number (D6, X4): the bar says what no tile says, and the dates read as a time ago.
+describe("definition view: the bar and the dates", () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it("names the key and the version scope once, the last event as a time ago, and when it was read", () => {
+    vi.useFakeTimers({ toFake: ["Date"] })
+    vi.setSystemTime(new Date("2026-10-10T15:00:00.000Z"))
+    render(
+      <TestViewHost>
+        <ProcessDetailHeader
+          data={{ ...DATA, fetchedAt: "2026-10-10T14:55:00.000Z" }}
+          processDefinitionKey="leasing"
+          engine="prod-a"
+        />
+      </TestViewHost>,
+    )
+    const bar = document.querySelector<HTMLElement>('[data-slot="view-bar"]')!
+    const facts = bar.querySelector<HTMLElement>('[data-slot="view-bar-facts"]')!
+    expect(facts.textContent).toBe("leasing·all versions·last event 3h ago")
+    const last = within(facts).getByText("last event 3h ago")
+    expect(last.getAttribute("title")).toBe(formatInstant(DATA.latestIncident))
+    // No count of a tile: neither the open incidents nor the running instances.
+    expect(bar.textContent).not.toMatch(/\b(3|99) (open incidents|running instances)/)
+    // When the numbers were read: the stamp at the bar's end, never a fact.
+    const stamp = bar.querySelector<HTMLElement>('[data-slot="freshness-stamp"]')!
+    expect(stamp.textContent).toMatch(/^As of /)
+    expect(facts.contains(stamp)).toBe(false)
+  })
+
+  it("an older payload without its read time shows no stamp, never a guess", () => {
+    render(
+      <TestViewHost>
+        <ProcessDetailHeader data={DATA} processDefinitionKey="leasing" engine="prod-a" />
+      </TestViewHost>,
+    )
+    expect(document.querySelector('[data-slot="freshness-stamp"]')).toBeNull()
+  })
+
+  it("an activity's group says first seen and latest as a time ago at 400, its instant in the title", () => {
+    vi.useFakeTimers({ toFake: ["Date"] })
+    vi.setSystemTime(new Date("2026-10-10T15:00:00.000Z"))
+    const { container } = render(
+      <TestViewHost>
+        <ActivityIncidentList
+          data={{
+            ...DATA,
+            activities: [{ ...DATA.activities[0], firstSeen: "2026-10-08T15:00:00.000Z" }],
+          }}
+          processDefinitionKey="leasing"
+          engine="prod-a"
+        />
+      </TestViewHost>,
+    )
+    // No count beside the heading: the affected activities are the KPI tile's.
+    expect(
+      screen.getByRole("heading", { name: "Incidents by activity" }).parentElement!.textContent,
+    ).toBe("Incidents by activity")
+    const stats = container.querySelector<HTMLElement>('[data-slot="group-summary-stats"]')!
+    const times = [...stats.querySelectorAll("time")]
+    expect(times.map((time) => time.textContent)).toEqual(["2d ago", "3h ago"])
+    expect(times[0].getAttribute("title")).toBe(formatInstant("2026-10-08T15:00:00.000Z"))
+    for (const time of times) expect(time.parentElement!.className).not.toContain("font-semibold")
+  })
+
+  it("an activity whose first incident lies beyond the scan says — for it, never a guess", () => {
+    const { container } = render(
+      <TestViewHost>
+        <ActivityIncidentList data={DATA} processDefinitionKey="leasing" engine="prod-a" />
+      </TestViewHost>,
+    )
+    const stats = container.querySelector<HTMLElement>('[data-slot="group-summary-stats"]')!
+    expect(stats.textContent).toContain("—first seen")
   })
 })

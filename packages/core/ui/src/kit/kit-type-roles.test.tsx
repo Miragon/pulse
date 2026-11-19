@@ -66,7 +66,7 @@ describe("kit type roles", () => {
   it("log text, version chips and row-card subtitles are captions (13 px)", () => {
     render(
       <>
-        <LogText text="NullPointerException" />
+        <LogText kind="code" text="NullPointerException" />
         <VersionChip version={3} />
         <RowCard title="Order" subtitle="v3 · 12 running" />
       </>,

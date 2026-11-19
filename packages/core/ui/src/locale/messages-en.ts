@@ -63,5 +63,4 @@ export const en: UiMessages = {
     incident: "Incident",
   },
   count: { atLeast: ({ count }) => `at least ${count}`, unknown: "count unknown" },
-  pills: { live: "Live" },
 }

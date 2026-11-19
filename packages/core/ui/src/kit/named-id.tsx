@@ -37,9 +37,18 @@ function textOf(facts: ReactNode[]): string[] {
 const INLINE_TRACK = "grid min-w-0 grid-cols-[minmax(var(--named-id-floor,8rem),max-content)]"
 
 /**
+ * Under 28rem of the table's region (its `@container`, a phone-width chat) a named one shows its
+ * name alone: the id beside it would push the column that tells the rows apart into the ellipsis.
+ * It stays in the title and is read out, and the row's Ctrl or Cmd+C still copies it. The instance
+ * list's rule for a business key, the same width.
+ */
+const ID_GIVES_WAY = "@max-md:sr-only"
+
+/**
  * One line: the name, then the id short (`shortId`) in mono and quiet, then the details, cut with
  * an ellipsis where the cell ends. The whole text is in the title on hover, and the whole id is
- * what a screen reader reads.
+ * what a screen reader reads. Under 28rem of the table's region a name shows alone
+ * (`ID_GIVES_WAY`); an id without a name is the identity and stays.
  */
 function InlineNamedId({ shown, id, lead, facts, className }: NamedIdParts) {
   const short = shortId(id)
@@ -52,10 +61,12 @@ function InlineNamedId({ shown, id, lead, facts, className }: NamedIdParts) {
           {shown && <span className="text-foreground">{shown} </span>}
           <span className={cn("font-mono", shown ? "text-muted-foreground" : "text-foreground")}>
             {short === id ? (
-              id
+              <span className={cn(shown && ID_GIVES_WAY)}>{id}</span>
             ) : (
               <>
-                <span aria-hidden="true">{short}</span>
+                <span aria-hidden="true" className={cn(shown && "@max-md:hidden")}>
+                  {short}
+                </span>
                 <span className="sr-only">{id}</span>
               </>
             )}

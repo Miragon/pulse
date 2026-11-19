@@ -1,7 +1,12 @@
 // @vitest-environment happy-dom
 import { act, fireEvent, screen, within } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import type { ViewComponent } from "@miragon/pulse-widget-shell/widgets"
+import { useEffect, useState } from "react"
+import {
+  useHostLocation,
+  useViewHost,
+  type ViewComponent,
+} from "@miragon/pulse-widget-shell/widgets"
 import { PageNotices } from "../src/notices.js"
 import { bodyOf, callsOf, settled, start, stopPage } from "./page.test-support.js"
 
@@ -186,5 +191,153 @@ describe("PageNotices", () => {
     leave()
     notices.show("sign-out-failed")
     expect([notices.current(), listener.mock.calls.length]).toEqual(["sign-out-failed", 1])
+  })
+})
+
+/**
+ * A view that moves as the cockpit does: it reports its place, goes on to another with a push and
+ * goes where Back leads; it shows where it is and what the page's address put it at.
+ */
+const Mover: ViewComponent<object> = () => {
+  const location = useHostLocation()
+  const { callTool } = useViewHost()
+  const [at, setAt] = useState<string>(location?.start ? "fleet" : "jobs")
+  useEffect(() => {
+    location?.report({ args: { view: at, engine: "prod" }, memo: { at } }, "replace")
+    return location?.subscribe((place) => {
+      if (place.args.view === "nowhere") return false
+      setAt(String(place.args.view))
+      return true
+    })
+  }, [location, at])
+  return (
+    <>
+      <h1>{at}</h1>
+      <button
+        type="button"
+        onClick={() => {
+          location?.report(
+            { args: { view: "incidents", engine: "prod" }, memo: { at: "incidents" } },
+            "push",
+          )
+          setAt("incidents")
+          void callTool("engine_list_engines", {}).catch(() => undefined)
+        }}
+      >
+        Go
+      </button>
+    </>
+  )
+}
+const MOVER = { views: { engine_open_cockpit: Mover as ViewComponent } }
+
+describe("the page's address follows the view (N1)", () => {
+  it("names each place the view reports, a move as a new entry of the browser's history", async () => {
+    const { browser } = await start("/app/cockpit?view=jobs&engine=prod", {}, MOVER)
+    expect(browser.writes[0]).toEqual({
+      entry: "replace",
+      url: "/app/cockpit?view=jobs&engine=prod",
+      state: { at: "jobs" },
+    })
+    await act(async () => screen.getByRole("button", { name: "Go" }).click())
+    expect(browser.writes.find((write) => write.entry === "push")).toEqual({
+      entry: "push",
+      url: "/app/cockpit?view=incidents&engine=prod",
+      state: { at: "incidents" },
+    })
+    expect(browser.location.search).toBe("?view=incidents&engine=prod")
+  })
+
+  it("leads the view back on Back, and loads anew an entry the view does not go to", async () => {
+    const env = await start("/app/cockpit?view=jobs&engine=prod", {}, MOVER)
+    await act(async () => screen.getByRole("button", { name: "Go" }).click())
+    await env.browser.back("/app/cockpit?view=jobs&engine=prod", { at: "jobs" })
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("jobs")
+    expect(env.reload).not.toHaveBeenCalled()
+    await env.browser.back("/app/cockpit?view=nowhere&engine=prod")
+    expect(env.reload).toHaveBeenCalledTimes(1)
+  })
+
+  it("starts the cross-engine overview's page on the landing, the view told where it is", async () => {
+    const env = await start("/app/fleet", {}, MOVER)
+    expect(viewArgs(env.fetch)).toEqual({ view: "landing" })
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("fleet")
+  })
+
+  it("starts an engine its address names alone on the landing, the view told the engine", async () => {
+    // The place the cockpit writes for an engine without sections; a server of Camunda 8 clusters
+    // alone takes no `engine`, so the page never hands it one.
+    const Start: ViewComponent<object> = () => (
+      <p data-testid="start">{JSON.stringify(useHostLocation()?.start ?? null)}</p>
+    )
+    const env = await start(
+      "/app/cockpit?engine=orders-c8",
+      {},
+      {
+        views: { engine_open_cockpit: Start as ViewComponent },
+      },
+    )
+    expect(callsOf(env.fetch, "engine_open_cockpit")).toEqual([{ view: "landing" }])
+    expect(JSON.parse(screen.getByTestId("start").textContent ?? "")).toEqual({
+      args: { engine: "orders-c8" },
+    })
+  })
+
+  it("lets go of Back and Forward with the page", async () => {
+    const env = await start("/app/cockpit?view=jobs&engine=prod", {}, MOVER)
+    expect(env.browser.listeners.size).toBe(1)
+    await stopPage()
+    expect(env.browser.listeners.size).toBe(0)
+  })
+
+  it("signs in back to where the reader moved, once the session ended", async () => {
+    const env = await start(
+      "/app/cockpit?view=jobs&engine=prod",
+      {
+        call: ({ name }) =>
+          name === "engine_open_cockpit"
+            ? Response.json({ result: { content: [], structuredContent: {} } })
+            : Response.json({ code: "signed_out", message: "No session." }, { status: 401 }),
+      },
+      MOVER,
+    )
+    await act(async () => screen.getByRole("button", { name: "Go" }).click())
+    await settled()
+    fireEvent.click(await screen.findByRole("button", { name: "Sign in again" }))
+    expect(env.assign).toHaveBeenCalledWith(
+      `/app/auth/login?return=${encodeURIComponent("/app/cockpit?view=incidents&engine=prod")}`,
+    )
+  })
+})
+
+describe("the page's bar leads past itself (A5)", () => {
+  it("offers a skip link first, which focuses the content's heading and keeps the address", async () => {
+    const env = await start("/app/cockpit?view=jobs&engine=prod", {}, MOVER)
+    const banner = screen.getByRole("banner")
+    const skip = within(banner).getByRole("link", { name: "Skip to content" })
+    expect(within(banner).getAllByRole("link")[0]).toBe(skip)
+    expect(skip.className).toContain("sr-only")
+    expect(skip.className).toContain("focus:not-sr-only")
+    fireEvent.click(skip)
+    const heading = screen.getByRole("heading", { level: 1 })
+    expect(document.activeElement).toBe(heading)
+    expect(heading.getAttribute("tabindex")).toBe("-1")
+    expect(env.browser.location.pathname).toBe("/app/cockpit")
+    // A second skip keeps the heading as it is.
+    fireEvent.click(skip)
+    expect(document.activeElement).toBe(heading)
+  })
+
+  it("focuses the content itself where it has no heading, and nothing where there is none", async () => {
+    await start("/app/cockpit?view=jobs&engine=prod")
+    const skip = screen.getByRole("link", { name: "Skip to content" })
+    fireEvent.click(skip)
+    const content = document.getElementById("content")!
+    expect(document.activeElement).toBe(content)
+    expect(content.getAttribute("tabindex")).toBe("-1")
+    content.removeAttribute("id")
+    skip.focus()
+    fireEvent.click(skip)
+    expect(document.activeElement).toBe(skip)
   })
 })

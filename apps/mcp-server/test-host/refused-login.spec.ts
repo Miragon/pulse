@@ -12,7 +12,7 @@ import {
  * stub engine that answers every request with a 401, and one to a stub engine that answers with
  * a 403 and the engine's AuthorizationException. Both run, so the landing's rows say "credentials
  * rejected" and "access denied" (describeError's 401 and 403 in short) with a key, never
- * "unreachable" with an unplugged cable, the cross-engine view counts them apart from the
+ * "unreachable" with an unplugged cable, the cross-engine view words them apart from the
  * unreachable ones in a refused profile's tone and never says they did not answer, and the
  * overview names the status once, its verdict's state standing for its definitions. The view's
  * client retries a 401 or 403 like any read (1 + 2 + 4 s), so the rows word it after that.
@@ -79,24 +79,29 @@ test.describe("landing with an engine that refuses the server's login", () => {
     await expect(de.getByText("nicht erreichbar", { exact: true })).toHaveCount(0)
   })
 
-  test("the cross-engine view counts it apart from the unreachable ones, as a warning", async ({
+  test("the cross-engine view words it apart from the unreachable ones, as a warning", async ({
     page,
   }) => {
     const app = await openCockpit(page)
     await app.getByRole("button", { name: "Cross-engine overview" }).click({ timeout: 15_000 })
     const landscape = app.getByRole("region", { name: "Process landscape" })
-    const words = "1 with profile refused · 1 with credentials rejected · 1 with access denied"
-    await expect(landscape.getByText(words, { exact: true })).toBeVisible({ timeout: RETRIED_MS })
-    // The trend's dot carries the tone: a refused profile's warning, not an outage's danger.
-    await expect(
-      landscape.locator("[data-slot='kpi-trend']", { hasText: words }).locator("[data-tone]"),
-    ).toHaveAttribute("data-tone", "warning")
-    await expect(landscape.getByText(/unreachable/)).toHaveCount(0)
     const table = app.getByRole("region", { name: "Load and job backlog per engine" })
-    await expect(table.getByText("credentials rejected", { exact: true })).toBeVisible()
-    // Inline the table shows three of its four engines: the fourth is one click away.
+    const row = (engine: string) => table.getByRole("row").filter({ hasText: engine })
+    await expect(row(LOGIN_REFUSED_ENGINE)).toContainText("credentials rejected", {
+      timeout: RETRIED_MS,
+    })
+    // Its row's mark carries the tone: a refused login's key in the warning tone, never an outage.
+    await expect(row(LOGIN_REFUSED_ENGINE).locator("svg.lucide-key-round")).toHaveClass(
+      /text-warning/,
+    )
+    await expect(landscape.getByText(/unreachable/)).toHaveCount(0)
+    // Inline the table shows three of its four engines: the fourth is one click away, its 403
+    // retried like the 401 before its row words it.
     await table.getByRole("button", { name: "Show more" }).click()
-    await expect(table.getByText("access denied", { exact: true })).toBeVisible()
+    await expect(table.getByText("access denied", { exact: true })).toBeVisible({
+      timeout: RETRIED_MS,
+    })
+    await expect(table.getByText("profile refused", { exact: true })).toBeVisible()
     // The notes on the engines it could not read never say they did not answer.
     const note = landscape.getByText(/^No columns for .+: their rows above say why\.$/)
     await expect(note).toBeVisible()

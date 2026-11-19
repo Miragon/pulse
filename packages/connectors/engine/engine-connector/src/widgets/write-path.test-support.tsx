@@ -60,6 +60,8 @@ export function instance(over: Partial<InstanceDetailData> = {}): InstanceDetail
     },
     processDefinitionName: null,
     definitionKey: "invoice",
+    callerInstanceId: null,
+    startTime: null,
     activityTree: null,
     variables: { amount: { value: 42, type: "Integer" } },
     incidents: [],

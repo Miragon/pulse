@@ -151,7 +151,8 @@ describe("buildProcessInstancesData: totals and page-scoped incident flags (#335
 
     const data = await buildProcessInstancesData(client, "engine-a", { processDefinitionKey: "K1" })
 
-    expect(data.instances).toEqual([
+    // Each row as listed; its start is cockpit-data.starts.test.ts's.
+    expect(data.instances).toMatchObject([
       {
         id: "p1",
         businessKey: "BK-1",

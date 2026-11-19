@@ -7,6 +7,11 @@ import "./styles.css"
 void startPage({
   views: engineViews,
   location: window.location,
+  history: window.history,
+  onPopState: (listener) => {
+    window.addEventListener("popstate", listener)
+    return () => window.removeEventListener("popstate", listener)
+  },
   fetch: (input, init) => fetch(input, init),
   assign: (url) => window.location.assign(url),
   reload: () => window.location.reload(),

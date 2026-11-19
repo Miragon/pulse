@@ -62,7 +62,7 @@ describe("the cockpit's board view", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Invoices" })).toBeTruthy()
     expect(screen.getByText("3 engines: prod-a, down, nowhere")).toBeTruthy()
     // Another day's reading names its day.
-    expect(screen.getByText("As of Oct 26, 08:00 AM")).toBeTruthy()
+    expect(screen.getByText("As of Oct 26, 8:00 AM")).toBeTruthy()
     expect(screen.getByRole("button", { name: "Refresh" })).toBeTruthy()
   })
 

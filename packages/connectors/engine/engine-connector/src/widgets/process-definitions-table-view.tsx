@@ -39,9 +39,11 @@ export function ProcessDefinitionsTableView({
 
   const columns: ListTableColumn[] = [
     { label: t("cockpitDefs.colProcess") },
-    // Counts sum every version, so the version chip is not theirs; it yields its room inline (#322 U2).
+    // A narrow region drops by importance, never by position: the version first (the counts sum
+    // every version, so the chip is not theirs, #322 U2), then the running instances, so the
+    // name and the alarms (jobs without retries, incidents) stay in view.
     { label: t("cockpitDefs.colLatestVersion"), hideBelow: "md" },
-    { label: t("cockpitDefs.colRunning"), align: "right" },
+    { label: t("cockpitDefs.colRunning"), align: "right", hideBelow: "sm" },
     { label: t("cockpitDefs.colFailedJobs"), align: "right" },
     { label: t("cockpitDefs.colIncidents"), align: "right" },
     // Pinned from 40rem up only: in a narrower region a pinned column would cover the process, so
