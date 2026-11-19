@@ -1663,15 +1663,27 @@ describe("checkJsonExtraFileForm", () => {
     assert.match(errors[2], /c\.json is no JSON/)
   })
 
+  it("holds a plain string entry ending in .json too, which release-please's json updater rewrites", () => {
+    const oneLine = '{\n  "version": "0.27.1",\n  "enum": ["on", "off"]\n}\n'
+    const files = { "apps/x/manifest.json": oneLine, "apps/y/manifest.json": written(manifest) }
+    const errors = checkJsonExtraFileForm(
+      config("apps/x/manifest.json", "apps/y/manifest.json"),
+      (f) => files[f],
+    )
+    assert.equal(errors.length, 1)
+    assert.match(errors[0], /^apps\/x\/manifest\.json is not in the form release-please/)
+  })
+
   it("reads a json entry once and leaves generic ones and missing files to the other checks", () => {
     const reads = []
-    const files = { "a.json": written(manifest) }
+    const files = { "a.json": written(manifest), "b.json": written(manifest) }
     const errors = checkJsonExtraFileForm(
       config(
         json("a.json"),
         { type: "json", path: "a.json", jsonpath: "$.dependencies['x']" },
         { type: "generic", path: "src/user-agent.ts" },
         "CHANGELOG.md",
+        "b.json",
         json("gone.json"),
       ),
       (f) => {
@@ -1680,7 +1692,7 @@ describe("checkJsonExtraFileForm", () => {
       },
     )
     assert.deepEqual(errors, [])
-    assert.deepEqual(reads, ["a.json", "gone.json"])
+    assert.deepEqual(reads, ["a.json", "b.json", "gone.json"])
   })
 })
 
