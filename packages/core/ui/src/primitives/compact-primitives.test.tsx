@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from "vitest"
 import { cleanup, render, screen } from "@testing-library/react"
 import { Search } from "lucide-react"
 import { compile } from "tailwindcss"
-import { CountPill, LivePill, StatusBadge } from "../components/Pills.js"
+import { CountPill, StatusBadge } from "../components/Pills.js"
 import { setFormatLocale, type Count } from "../format/index.js"
 import { Icon } from "../kit/icon.js"
 import { MENU_ITEM } from "../kit/menu-item.js"
@@ -371,12 +371,11 @@ describe("menu entries and badges", () => {
   it("pills take the badge height; a count pill is a 13 px pill at least as wide as it is high", () => {
     render(
       <>
-        <LivePill>Live</LivePill>
         <StatusBadge tone="neutral">Running</StatusBadge>
         <CountPill>7</CountPill>
       </>,
     )
-    for (const text of ["Live", "Running"]) {
+    for (const text of ["Running"]) {
       const pill = screen.getByText(text).closest("span:not([aria-hidden])")
       expect(classes(pill), text).toContain("min-h-badge")
       expect(classes(pill), text).not.toContain("py-0.5")

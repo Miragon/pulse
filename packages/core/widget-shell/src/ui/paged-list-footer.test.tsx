@@ -1,8 +1,10 @@
 // @vitest-environment happy-dom
+import { Fragment, useState } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { LocaleProvider, PagedListFooter } from "@miragon/pulse-ui"
 import { NO_FIT_ROWS } from "./inline-fit.js"
+import { FIT_CONTINUES_ROW } from "./inline-fit-registry.js"
 import { PagedRows } from "./paged-rows.js"
 import { createTestQueryClient, TestViewHost } from "./test-view-host.js"
 import { createViewQueryClient } from "./tool-query.js"
@@ -316,5 +318,60 @@ describe("usePagedViewData + PagedListFooter: a refusal's words follow the host"
 
   it("in a chat: the chat's words", async () => {
     expect(await refusedLine("chat")).toContain("Ask in the chat to try it another way.")
+  })
+})
+
+/**
+ * pulse-ui is a leaf and spells `FIT_CONTINUES_ROW`'s attribute itself, to leave a row that
+ * continues the one above it (a job's failed retry under its row) out of the items it counts: the
+ * focus after Load more lands on the first new item's row, never a row the page had already.
+ */
+describe("PagedListFooter: a row marked FIT_CONTINUES_ROW is no item of the list", () => {
+  function ContinuedList() {
+    const [shown, setShown] = useState(2)
+    const [loadingMore, setLoadingMore] = useState(false)
+    const items = Array.from({ length: shown }, (_, index) => `Row ${index + 1}`)
+    const loadMore = () => {
+      setLoadingMore(true)
+      setTimeout(() => {
+        setShown((n) => n + 2)
+        setLoadingMore(false)
+      }, 0)
+    }
+    return (
+      <div>
+        <table>
+          <tbody>
+            {items.map((item, index) => (
+              <Fragment key={item}>
+                <tr tabIndex={index === 0 ? 0 : -1}>
+                  <td>{item}</td>
+                </tr>
+                {index === 0 && (
+                  <tr {...FIT_CONTINUES_ROW}>
+                    <td>{`${item} failed`}</td>
+                  </tr>
+                )}
+              </Fragment>
+            ))}
+          </tbody>
+        </table>
+        <PagedListFooter
+          paged={{ items, total: 6, hasMore: shown < 6, loadMore, loadingMore }}
+          noun="rows"
+        />
+      </div>
+    )
+  }
+
+  it("focuses the first new item's row after Load more, past the row that continues another", async () => {
+    render(<ContinuedList />)
+    const button = screen.getByRole("button", { name: "Load more" })
+    button.focus()
+    fireEvent.click(button)
+    await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Showing 4 of 6 rows"))
+    await waitFor(() => expect(document.activeElement?.textContent).toBe("Row 3"))
+    // Counted with the continuing row, the row at the index of the first new item is Row 2.
+    expect(document.activeElement?.textContent).not.toBe("Row 2")
   })
 })

@@ -116,7 +116,7 @@ describe("kit catalogs", () => {
     const identical = flatten(UI_MESSAGES.de)
       .filter(([path, text]) => en.get(path) === text)
       .map(([, text]) => text)
-    expect([...new Set(identical)].sort()).toEqual(["Details", "Incident", "Live"])
+    expect([...new Set(identical)].sort()).toEqual(["Details", "Incident"])
   })
 
   it("renders counts and names into the parametrised messages", () => {
@@ -188,7 +188,6 @@ describe("resolveUiMessages", () => {
       "copyableId",
       "conditionChip",
       "stateLabel",
-      "pills",
     ] as const) {
       expect(merged[section]).toEqual(UI_MESSAGES.de[section])
     }

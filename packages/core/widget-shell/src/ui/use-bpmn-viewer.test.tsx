@@ -1,13 +1,16 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react"
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react"
 import { BPMN_LABEL_STYLE } from "@miragon/pulse-ui"
 import TextRenderer from "bpmn-js/lib/draw/TextRenderer"
+import { BPMNIO_IMG } from "bpmn-js/lib/util/PoweredByUtil"
 import { BpmnZoomControls } from "./bpmn-zoom-controls.js"
 import { KEEP_CLEAR_GAP } from "./bpmn-fit.js"
 import {
   DIAGRAM_MAX_HEIGHT,
   DIAGRAM_MIN_HEIGHT,
+  DIAGRAM_NARROW_MIN_HEIGHT,
+  DIAGRAM_NARROW_WIDTH,
   diagramBoundsFromXml,
   diagramHeight,
   useBpmnViewer,
@@ -68,6 +71,14 @@ const mock = vi.hoisted(() => {
     static containers: HTMLElement[] = []
     static canvases: FakeCanvas[] = []
     static options: Array<Record<string, unknown>> = []
+    /** What `elementRegistry.getAll()` gives: the drawn shapes. */
+    static elements: Array<{
+      id: string
+      x?: number
+      y?: number
+      width?: number
+      height?: number
+    }> = []
     canvas: FakeCanvas
     constructor(opts: { container: HTMLElement }) {
       MockViewer.containers.push(opts.container)
@@ -268,6 +279,48 @@ describe("diagramHeight (U20: the frame follows the diagram, 240–560 px)", () 
     expect(diagramHeight({ width: 2000, height: 100 }, 760)).toBe(DIAGRAM_MIN_HEIGHT)
     expect(diagramHeight({ width: 400, height: 1200 }, 760)).toBe(DIAGRAM_MAX_HEIGHT)
     expect([DIAGRAM_MIN_HEIGHT, DIAGRAM_MAX_HEIGHT]).toEqual([240, 560])
+  })
+
+  it("on a narrow canvas (under 40rem) takes the fitted drawing's height, down to the overlays' floor", () => {
+    // A wide process on a phone: 356 / 1500 of 500 is 119, plus 48, not 240 with 120 px empty.
+    expect(diagramHeight({ width: 1500, height: 500 }, 356)).toBe(167)
+    expect(diagramHeight({ width: 1500, height: 375 }, 356)).toBe(DIAGRAM_NARROW_MIN_HEIGHT)
+    expect(diagramHeight({ width: 3000, height: 100 }, 356)).toBe(DIAGRAM_NARROW_MIN_HEIGHT)
+    expect(DIAGRAM_NARROW_MIN_HEIGHT).toBe(156)
+    // From 40rem on the 240 px floor holds.
+    expect(diagramHeight({ width: 1500, height: 375 }, DIAGRAM_NARROW_WIDTH)).toBe(
+      DIAGRAM_MIN_HEIGHT,
+    )
+  })
+
+  // bpmn-js pins its link (the licence keeps it in sight, at z-index 100) 15 px above the frame's
+  // bottom; the zoom bar hangs from the frame's top. On a frame too low for both the link lies over
+  // the bar's last button: a tap there opens bpmn.io, and the logo is half covered.
+  it("keeps bpmn.io's link below the zoom bar, however small a narrow canvas fits the drawing", () => {
+    render(<BpmnZoomControls onZoomIn={vi.fn()} onZoomOut={vi.fn()} onFit={vi.fn()} />)
+    const bar = document.querySelector<HTMLElement>('[data-slot="bpmn-zoom-controls"]')!
+    const buttons = within(bar).getAllByRole("button")
+    const classes = (element: Element) => element.className.split(/\s+/)
+    // `top-3` (12 px), three `size-8` buttons (32 px), a 1 px rule between them, the 1 px border.
+    expect(classes(bar)).toEqual(expect.arrayContaining(["top-3", "border"]))
+    expect(buttons.map((button) => classes(button).includes("size-8"))).toEqual([true, true, true])
+    const barBottom = 12 + buttons.length * 32 + (buttons.length - 1) + 2
+    // bpmn-js's `addProjectLogo`: `bottom: 15px`, the logo as tall as its SVG says.
+    const linkHeight = Number(/height="(\d+)"/.exec(BPMNIO_IMG)?.[1])
+    expect([barBottom, linkHeight]).toEqual([112, 21])
+    for (const bounds of [
+      { width: 3000, height: 100 },
+      { width: 1200, height: 250 },
+      { width: 900, height: 300 },
+    ]) {
+      for (const width of [320, 360, 400, DIAGRAM_NARROW_WIDTH - 1]) {
+        const linkTop = diagramHeight(bounds, width) - 15 - linkHeight
+        expect(
+          linkTop - barBottom,
+          `${bounds.width}×${bounds.height} at ${width} px`,
+        ).toBeGreaterThanOrEqual(KEEP_CLEAR_GAP)
+      }
+    }
   })
 
   it("keeps the default until both the size and the width are known", () => {

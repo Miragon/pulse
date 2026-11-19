@@ -1,12 +1,17 @@
 import {
   cn,
+  formatClock,
   formatDate,
+  formatInstant,
   formatNumber,
   formatPeriod,
   formatTime,
   getFormatLocale,
+  Icon,
+  useLocale,
 } from "@miragon/pulse-ui"
-import type { Locale } from "./host-context.js"
+import { Clock } from "lucide-react"
+import { resolveLanguage, type Locale } from "./host-context.js"
 
 /**
  * Period, engine set and as-of time under a view title (U7). Each part is
@@ -112,5 +117,27 @@ export function ViewMeta({ className, ...parts }: ViewMetaParts & { className?: 
     <p data-view-meta="" className={cn("text-muted-foreground text-small", className)}>
       {text}
     </p>
+  )
+}
+
+/**
+ * When a view's numbers were read, for the freshness slot of its bar (`WidgetHeader`'s and
+ * `ViewBar`'s `freshness`): a clock and "As of 14:32", the time without seconds and its day before
+ * it on another day (`formatClock`), the whole instant in its title (`formatInstant`). The board's
+ * form, one for every route: right-aligned at the bar's end in tabular figures, never a fact.
+ * Nothing for no time or one that does not parse, never a guess.
+ */
+export function FreshnessStamp({ at }: { at: string | null | undefined }) {
+  const words = VIEW_META_LABELS[resolveLanguage(useLocale())]
+  if (!at || Number.isNaN(new Date(at).getTime())) return null
+  return (
+    <span
+      data-slot="freshness-stamp"
+      title={formatInstant(at)}
+      className="inline-flex items-center gap-1.5"
+    >
+      <Icon icon={Clock} />
+      {words.asOf({ time: formatClock(at, { seconds: false }) })}
+    </span>
   )
 }

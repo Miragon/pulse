@@ -62,7 +62,10 @@ export interface BoardTableProps<Row> {
    * and no key. Without it, every row opens.
    */
   readonly opens?: (row: Row) => boolean
-  /** The accessible name of a row that opens: what it opens ("Instance 81a2e0b4…"). */
+  /**
+   * The accessible name of a row that opens: what it opens, as the row shows it ("Instance B-7",
+   * "Instance 81a2e0b4… at Task_Ship").
+   */
   readonly rowLabel: (row: Row) => string
   /** What a row's copy puts on the clipboard. */
   readonly copyOf: (row: Row) => BoardCopy

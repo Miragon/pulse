@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest"
 import { attribute, openingTags, userFacingTexts } from "../render-scan.js"
 import { TONE_BORDER, TONE_DOT, TONE_SOFT } from "../lib/tone-utils.js"
 import { TONE_VARIANTS } from "../tones/index.js"
-import { CountPill, LivePill, StatusBadge } from "./Pills.js"
+import { CountPill, StatusBadge } from "./Pills.js"
 
 const classOf = (tag: string | undefined) => attribute(tag ?? "", "class") ?? ""
 
@@ -43,30 +43,14 @@ describe("StatusBadge: the state in words, marked in its tone", () => {
   })
 })
 
-describe("LivePill and CountPill", () => {
-  it("LivePill pulses only without reduced motion and defaults to the locale's Live", () => {
-    const html = renderToStaticMarkup(<LivePill />)
-    const dot = openingTags(html, "span")[1] ?? ""
-    expect(classOf(dot)).toContain("motion-safe:animate-pulse")
-    expect(classOf(dot).split(/\s+/)).not.toContain("animate-pulse")
-    expect(html).toContain(">Live</span>")
-    expect(classOf(openingTags(html, "span")[0])).toContain(TONE_SOFT.info)
-  })
-
+describe("CountPill", () => {
   it("CountPill keeps a neutral count in the foreground on the muted tint", () => {
     const html = renderToStaticMarkup(<CountPill>7</CountPill>)
     expect(classOf(openingTags(html, "span")[0])).toContain("bg-muted text-foreground")
     expect(html).not.toContain("text-muted-foreground")
   })
 
-  it("both take a className and resolve tone aliases", () => {
-    const live = renderToStaticMarkup(
-      <LivePill tone="ok" className="ml-2">
-        On
-      </LivePill>,
-    )
-    expect(classOf(openingTags(live, "span")[0])).toContain(TONE_SOFT.success)
-    expect(classOf(openingTags(live, "span")[0])).toContain("ml-2")
+  it("takes a className and resolves tone aliases", () => {
     const count = renderToStaticMarkup(
       <CountPill tone="error" className="ml-auto">
         3

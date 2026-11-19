@@ -4,7 +4,7 @@ import { useWords, type Words } from "../messages/translate.js"
 import { BoardCard, EmptyNote, GROUP_NOTES, MissingNote } from "./board-card.js"
 import type { BoardInstanceTarget, BoardSlots, BoardTableColumn } from "./slots.js"
 import { openable } from "./targets.js"
-import { processName, tileTitle } from "./tile-words.js"
+import { processName, tileTitle, titleNamesProcess } from "./tile-words.js"
 
 export interface IncidentListTileProps {
   readonly tile: IncidentListData
@@ -16,15 +16,25 @@ interface IncidentRow {
   readonly incident: IncidentData
 }
 
-function columnsOf(t: Words, engines: number): readonly BoardTableColumn<IncidentRow>[] {
+/**
+ * The tile's columns: the engine first over several engines; the process unless the tile's title
+ * names it (the untitled tile of one process, `titleNamesProcess`), where the message takes the
+ * room. A title the file gives keeps the column, so the process stays in sight.
+ */
+function columnsOf(
+  t: Words,
+  engines: number,
+  processInTitle: boolean,
+): readonly BoardTableColumn<IncidentRow>[] {
+  const process: BoardTableColumn<IncidentRow> = {
+    key: "process",
+    label: t("column.process"),
+    cell: ({ incident }) => (
+      <span title={incident.definition.bpmnProcessId}>{processName(incident.definition)}</span>
+    ),
+  }
   const columns: readonly BoardTableColumn<IncidentRow>[] = [
-    {
-      key: "process",
-      label: t("column.process"),
-      cell: ({ incident }) => (
-        <span title={incident.definition.bpmnProcessId}>{processName(incident.definition)}</span>
-      ),
-    },
+    ...(processInTitle ? [] : [process]),
     {
       key: "element",
       label: t("column.element"),
@@ -88,7 +98,7 @@ export function IncidentListTile({ tile, slots }: IncidentListTileProps) {
     <BoardCard title={tileTitle(t, tile)} kind="incidentList">
       <Table<IncidentRow>
         label={t("incidents.label")}
-        columns={columnsOf(t, tile.groups.length)}
+        columns={columnsOf(t, tile.groups.length, titleNamesProcess(tile))}
         rows={rows}
         rowKey={(row) => `${row.engine}|${row.incident.id}`}
         onOpen={(row, how) => {
@@ -96,7 +106,10 @@ export function IncidentListTile({ tile, slots }: IncidentListTileProps) {
           if (target !== undefined) onOpen(target, how)
         }}
         opens={(row) => openable(slots, targetOf(row)) !== undefined}
-        rowLabel={({ incident }) => t("row.instance", { id: shortId(incident.instanceId) })}
+        // Named after what it opens, the instance, at the element its incident is at.
+        rowLabel={({ incident }) =>
+          t("row.instanceAt", { id: shortId(incident.instanceId), element: incident.elementId })
+        }
         copyOf={({ incident }) => ({ text: incident.message, label: t("incidents.copy") })}
         copyHint={t("incidents.copyHint")}
         empty={<EmptyNote text={t(unread ? "noEngineRead" : "incidents.empty")} />}

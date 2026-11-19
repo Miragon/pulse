@@ -175,5 +175,4 @@ export interface UiMessages {
   conditionChip: ConditionChipMessages
   stateLabel: StateLabelMessages
   count: CountMessages
-  pills: { live: string }
 }

@@ -624,7 +624,16 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      action group; `ViewFrame` words its states by it too (a chat's say to ask in the chat, a
      page's to reload the page). Whether a view writes is the view host's `writes`
      (`useHostWrites`, beside `followUp`): a chat and `TestViewHost` write, a page writes
-     nothing, so no write control shows there (invariant 8's `useEngineAction`).
+     nothing, so no write control shows there (invariant 8's `useEngineAction`). Where a view is,
+     a page's address follows: the view host's optional `location` (`useHostLocation`), which a
+     page offers through `mountPage`'s `location` (the web app's `apps/web/src/address.ts`) and a
+     chat never; the cockpit reports each place as `engine_open_cockpit`'s arguments, a drill as a
+     new entry, and goes where Back leads
+     (`packages/connectors/engine/engine-connector/src/widgets/cockpit-app/place.ts`). On a page,
+     whose bar leads to its start page (`useStartPage`), a head section shows no trail and a drill
+     shows it on its row, which a cockpit narrower than 40rem moves into the head in the tabs'
+     place; a chat's fullscreen keeps its trail. A navigation focuses the new view's `h1`
+     (pulse-ui's `NavigationFocus`), which a route renders before its data.
      The root's call hook (`useViewCall` over `resolveViewCall`) owns the stripped-result
      recovery: a host that drops `structuredContent` gets ONE re-run of the view's own view
      tool, so every view-bound tool is a read (`apps/mcp-server/test/view-registry.test.ts`).
@@ -660,7 +669,7 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      into it (its tiles' rows and its chip open nothing: `BoardSlots.opens` of
      `@miragon/pulse-blocks`), and the cross-engine view leaves it out and names it. A route
      whose panels fail alike says it once, its first panel's state with a Try again that reads
-     them all (the overview's verdict over its definitions, the incidents' KPIs over their list).
+     them all (the overview's verdict over its definitions, the incidents' bar over their list).
      A page's ended session (`isSessionEnded`) is said once, by the page's frame: a view's state
      shows a quiet line that its content is missing, and no notice, footer alert or engine row
      speaks of it. A page's refused start (an unknown board, arguments a tool does not take, data
@@ -682,7 +691,9 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      before carries `FIT_CONTINUES_ROW`. An id in a table cell takes one line, so a row keeps the
      row height: `NamedId` lays out inline in a `DataTable`'s body (the name, then the short id
      quiet in mono, the whole in its title), whole where the table has room and cut with an
-     ellipsis first where it has none, and `IdText`'s copy button reaches into the cell's padding,
+     ellipsis first where it has none, the name alone under 28rem of the table (the id in its
+     title and read out, as the instance list's business key), and `IdText`'s copy button reaches
+     into the cell's padding,
      shows on the row's hover and focus, always on touch, never leaving the tab order. Only
      outside tables (facts, a detail's header) does an id stack and wrap between its parts
      (`BreakableId`). Roots declare inline + fullscreen only (`SHELL_VIEW_CONFIG`).
@@ -700,7 +711,8 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
    - **Type, dates and numbers.** Text sits on pulse-ui's `TYPE_SCALE` (13 px floor, weights
      400, 600 and 700 only, `scanTypeScale`); a disabled control is opaque, never faded; a
      section's title is pulse-ui's `SectionHeading` (13 px at 600 in the foreground, the
-     webview's; `as` for its level), never a heading composed by hand (the connector's
+     webview's; `as` names its outline level at every call, `"span"` for a card's caption),
+     never a heading composed by hand (the connector's
      `src/brand-gates.test.ts`). Dates,
      durations, numbers, counts and short ids go through the kit's `format*` helpers and `shortId`
      in the locale `LocaleGate` publishes, one set for every Pulse UI (pulse-ui's framework-free
@@ -746,7 +758,9 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      cell is a `StateLabel` (an icon of the state's own shape, its one word from the kit's
      catalog) on the row's one line, never a pill (those are a header's `badge`) and never stacked
      under an id; a count in a view's header is a `StateLabel` too (its tone's icon, the number
-     in the foreground), never a tinted `StatusBadge` or `LivePill`. Components use
+     in the foreground), never a tinted `StatusBadge`, and no pill says "Live" where nothing
+     reloads by itself: when a view's numbers were read is its bar's `freshness`
+     (widget-shell's `FreshnessStamp`). Components use
      role names only (`scanColors`); `packages/core/ui/src/theme/tone-contrast.test.ts` holds every
      role pair to WCAG AA (a role a brand may override belongs in `ROLE_CONTRAST_PAIRS`). A brand
      override goes under `:root` AND the dark scopes, or a light-only value shows in dark
@@ -762,10 +776,13 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      view's `ViewBar`, the hero only at app level with `size="app"`; the landing's one action sits
      beside its hero and wraps under it where both do not fit, WCAG 1.4.10), all the kit's toolbar
      buttons of one size (`variant="toolbar"`, `size="sm"`: an icon and its label at 400, the
-     label hidden visually in a bar under 36rem and kept as the name; `OpenInCockpitLink` and
+     label hidden visually in a bar under 36rem and kept as the name, shown again in a view's bar
+     under 30rem, where its actions take a line of their own; `OpenInCockpitLink` and
      `HandOffButton` take `variant="toolbar"` there), ordered: deterministic steps, the engine's
      own web app (`OpenInCockpitLink`), then the chat; the bar's facts hold facts only
-     (`action-group.test.tsx`), and a state goes into the header's `badge`, not an icon tile.
+     (`action-group.test.tsx`), never a count the tiles under the bar show (one home per number),
+     the time its numbers were read at the bar's end (`freshness`, widget-shell's
+     `FreshnessStamp`), and a state goes into the header's `badge`, not an icon tile.
      `WidgetShell` pads nothing: its `header` (the bar, the strips under it) runs from edge to
      edge, its content sits in the gutter, and a `flush` shell's children are views of their own
      (the cockpit's routes). A table row opens what it names on a click or Enter and copies its

@@ -156,7 +156,40 @@ describe("the lists and the diagram", () => {
       within(one)
         .getAllByRole("columnheader")
         .map((head) => head.textContent),
-    ).toEqual(["Process", "Element", "Message", "Since"])
+    ).toEqual(["Element", "Message", "Since"])
+  })
+
+  it("shows the process column only where the incident list spans processes or its file titles it: an untitled one names it in its title", () => {
+    const heads = (tile: Parameters<typeof tileOf>[0]) => {
+      const names = within(tileOf(tile))
+        .getAllByRole("columnheader")
+        .map((head) => head.textContent)
+      cleanup()
+      return names
+    }
+    expect(heads(INCIDENTS)).toEqual(["Engine", "Element", "Message", "Since"])
+    const spanning = { widget: "incidentList", engines: ["local", "test"] } as const
+    expect(heads({ ...INCIDENTS, widget: spanning })).toEqual([
+      "Engine",
+      "Process",
+      "Element",
+      "Message",
+      "Since",
+    ])
+  })
+
+  // A title the file gives names what the author chose, not the process: the column says it.
+  it("keeps the process column of an incident list of one process whose file titles it", () => {
+    const titled = tileOf({
+      ...INCIDENTS,
+      widget: { ...INCIDENTS.widget, title: "Carrier failures" },
+    })
+    expect(
+      within(titled)
+        .getAllByRole("columnheader")
+        .map((head) => head.textContent),
+    ).toEqual(["Engine", "Process", "Element", "Message", "Since"])
+    expect(within(titled).getByRole("cell", { name: "Order fulfillment" })).toBeTruthy()
   })
 
   it("says why a diagram is missing instead of drawing it", () => {
