@@ -3,12 +3,10 @@ import { cleanup, fireEvent, render, within } from "@testing-library/react"
 import { LocaleProvider, setFormatLocale } from "@miragon/pulse-ui"
 import type { InstanceListFilterData, InstanceRowData } from "@miragon/pulse-screens"
 import { WORLD_SCREENS } from "@miragon/pulse-screens/testing"
-import type { ReactNode } from "react"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import type { ScreenSlots } from "../slots.js"
 import { editorSlots, pageSlots } from "../slots.test-support.js"
-import { InstanceTable, type InstanceSelectSlot } from "./instance-table.js"
-import { LoadMore } from "./load-more.js"
+import { InstanceTable, type InstanceMoreSlot, type InstanceSelectSlot } from "./instance-table.js"
 
 afterEach(cleanup)
 
@@ -26,7 +24,7 @@ interface Shown {
   readonly slots: ScreenSlots
   readonly rows?: readonly InstanceRowData[]
   readonly filter?: InstanceListFilterData
-  readonly footer?: ReactNode
+  readonly more?: InstanceMoreSlot
   readonly select?: InstanceSelectSlot<InstanceRowData>
   readonly locale?: string
 }
@@ -35,7 +33,7 @@ function tableOf({
   slots,
   rows = ROWS,
   filter = { scope: "all" },
-  footer,
+  more,
   select,
   locale = "en",
 }: Shown) {
@@ -47,7 +45,7 @@ function tableOf({
         rows={rows}
         filter={filter}
         onFilter={(next) => asked.push(next)}
-        footer={footer}
+        more={more}
         select={select}
         slots={slots}
       />
@@ -135,16 +133,28 @@ describe("the instance table in the editors' table", () => {
     expect(toggled).toEqual(["fake-ORD-1002"])
   })
 
-  it("shows the surface's footer under its rows", () => {
+  it("shows Load more under its rows, what the surface says beside it, and its way to ask again", () => {
     const { slots } = editorSlots()
-    const more: string[] = []
+    const asks: string[] = []
     const { container } = tableOf({
       slots,
-      footer: <LoadMore busy={false} onMore={() => more.push("more")} />,
+      more: {
+        busy: false,
+        onMore: () => asks.push("more"),
+        beside: (retry) => (
+          <button type="button" onClick={retry}>
+            Again
+          </button>
+        ),
+      },
     })
 
     fireEvent.click(within(container).getByRole("button", { name: "Load more" }))
-    expect(more).toEqual(["more"])
+    fireEvent.click(within(container).getByRole("button", { name: "Again" }))
+    expect(asks).toEqual(["more", "more"])
+    expect(document.activeElement).toBe(
+      within(container).getByRole("button", { name: "Load more" }),
+    )
   })
 
   it("says that no instance matches the filter", () => {
@@ -186,7 +196,7 @@ describe("the instance table in a page's table", () => {
     const { container } = tableOf({
       slots,
       locale: "de",
-      footer: <LoadMore busy onMore={() => undefined} />,
+      more: { busy: true, onMore: () => undefined },
     })
 
     expect([...container.querySelectorAll("th")].map((head) => head.textContent)).toEqual([
@@ -198,8 +208,8 @@ describe("the instance table in a page's table", () => {
     expect(cells(container)[1]?.[2]).toBe("LäuftIncident")
     expect(container.querySelector("tbody tr")?.getAttribute("aria-label")).toBe("Instanz ORD-1001")
     const more = within(container).getByRole("button", { name: "Mehr laden" })
-    expect([(more as HTMLButtonElement).disabled, more.title]).toEqual([
-      true,
+    expect([more.getAttribute("aria-disabled"), more.title]).toEqual([
+      "true",
       "Warte, bis die Aktualisierung fertig ist",
     ])
     cleanup()

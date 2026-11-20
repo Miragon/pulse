@@ -2,7 +2,6 @@ import {
   BadgeLegend,
   InstanceFilterBar,
   InstanceTable,
-  LoadMore,
   type ScreenIdProps,
   type ScreenSlots,
 } from "@miragon/pulse-blocks"
@@ -64,15 +63,15 @@ export function InstanceList({ view, elementName, onFilter, refreshing, busy }: 
         rows={rows}
         filter={view.filter}
         onFilter={onFilter}
-        footer={
-          view.hasMoreInstances ? (
-            <LoadMore
-              busy={busy}
-              onMore={() => {
-                host.post({ type: "loadMoreInstances" })
-              }}
-            />
-          ) : undefined
+        more={
+          view.hasMoreInstances
+            ? {
+                busy,
+                onMore: () => {
+                  host.post({ type: "loadMoreInstances" })
+                },
+              }
+            : undefined
         }
         select={select}
         slots={slots}

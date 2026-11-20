@@ -58,6 +58,26 @@ export const en = {
   "screen.instance.truncated": "Some lists are cut off, so Pulse shows only part of them.",
   "screen.instance.noIncidents": "This instance has no open incidents.",
 
+  "screen.process.loading": "Loading process {process}…",
+  "screen.process.failed": "Process {process} couldn't be loaded",
+  "screen.process.unknown.title": "Process {process} isn't on engine {engine}",
+  "screen.process.unknown.description":
+    "The engine has no version of this process. Check the address, or find the process among the engine's processes.",
+  "screen.process.unknown.processes": "Processes of {engine}",
+  "screen.process.versionMissing": "Version {version} of this process isn't on the engine",
+  "screen.process.versionShown": "Pulse shows v{shown}, the latest version.",
+  "screen.process.statisticsUnread":
+    "The counts on the diagram couldn't be loaded. Refresh to try again.",
+  "screen.process.callsUnread":
+    "The processes this version calls couldn't be loaded. Refresh to try again.",
+  "screen.process.split": "Resize diagram and instances",
+  "screen.process.instances": "Instance list",
+  "screen.process.list.loading": "Loading the instances…",
+  "screen.process.list.failed": "The instances couldn't be loaded",
+  "screen.process.list.refused": "The engine can't search with these variable conditions",
+  "screen.process.list.clear": "Clear variable conditions",
+  "screen.process.more.failed": "More instances couldn't be loaded",
+
   "tab.history": "History",
   "tab.incidents": "Incidents",
   "tab.waiting": "Waiting",

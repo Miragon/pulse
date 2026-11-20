@@ -7,6 +7,7 @@ describe("the @miragon/pulse-screens entries", () => {
     expect(Object.keys(screens).sort()).toStrictEqual([
       "DiagramDecorations",
       "FleetSums",
+      "HistoryGaps",
       "InstanceRows",
       "ProcessFilter",
       "VariableConditionTypes",

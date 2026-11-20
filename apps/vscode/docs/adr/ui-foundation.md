@@ -1,7 +1,18 @@
 # UI foundation and shared building blocks
 
 - Status: accepted
-- Last reviewed: 2026-11-20, after the process screen's builder (executed, D8's blocks of the
+- Last reviewed: 2026-11-20, after the process screen's blocks (executed, D10's process screen:
+  the web app shows a process in one version on its own screen, a process's blocks of
+  `@miragon/pulse-blocks` over the MCP server's app-only feeds `engine_screen_process_data`,
+  `engine_screen_instances_data` and `engine_screen_variable_names_data`, which build the process
+  screen and the instance list of `@miragon/pulse-screens` exactly as both adapters do, its reads
+  that load an engine's database on a floor of 30 s per caller; the version, the list's scope,
+  element, key and variable conditions in the address, a version a new entry; pages of 50 by cursor
+  with Load more; the variable conditions a pair with this extension, Camunda 8's refused kinds
+  offered disabled with their reason; the hint of a history that misses running instances,
+  `MissingHistoryNotice` over the screens' `HistoryGaps`, with no fallback; the page claiming the
+  cockpit's process view and its list of a process's instances, no write slot filled);
+  2026-11-20, before it (executed, D8's blocks of the
   process screen and its instance list: `@miragon/pulse-blocks` holds a process's version picker,
   the notice that older versions run, its instance list's filter bar with the variable condition
   dialog, the instance table and its next page, the counts and call buttons on its diagram and
@@ -317,7 +328,8 @@ each surface keeps its screens and the web app's are its own.
      pulse-dispatch and the list of pulse-order's version 1 beside the engine and instance screens,
      each recording one run anew on a seeded engine (Operaton 2.1.5 at history level full,
      camunda/camunda:8.10.9 on H2), which both adapters and the server's two wires build exactly;
-     the feeds come with the web app's process screen.
+     the server's feeds give them exactly since the web app's process screen
+     (`process-screen-data.numbers.test.ts` in the engine connector).
   3. **Mutation tests.** The builder joins them, since it decides the numbers of two surfaces, the
      board package's criterion.
   4. **Release.** Its first npm publish is by hand, with its trusted publisher, before the release
@@ -454,6 +466,17 @@ each surface keeps its screens and the web app's are its own.
      id alone to the instance that holds its root, and fills none of the blocks' write slots. A
      screen of the page fills the window's height from 64rem on, which the frame, widget-shell's
      `WidgetShell` and `ListTable` and pulse-ui's `NavigationFocus` learnt to do for a page alone.
+     Executed for the process on 2026-11-20, the same day: at a process's own address the page
+     shows it in one version with the blocks this extension's definition view renders (the version
+     picker, the notice of older versions, the instance list's filter bar with the variable
+     condition dialog, the instance table and Load more, the badges and call buttons on its
+     diagram and their legend), over the feeds `engine_screen_process_data`,
+     `engine_screen_instances_data` and `engine_screen_variable_names_data`, which the server builds
+     exactly as both adapters do from the recorded engines; the version and the list's filter in
+     the address (point 6), its badges on the canvas that follows the theme, a count's click
+     filtering the list, Escape clearing it; from 64rem on the split movable by mouse and keyboard,
+     under it the diagram at 240 to 560 px above three rows; the page claims the cockpit's process
+     view and its list of a process's instances, and fills none of the blocks' write slots.
   3. **The operations views stay the cockpit's.** Its incidents, a cause, its jobs and the boards run
      unchanged inside the frame, without their head. Once a screen replaces a section, the page
      takes every drill into it, from the embedded routes and a board's tiles too.

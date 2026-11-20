@@ -220,6 +220,12 @@ The main entry holds what a surface does with a screen's JSON form without readi
   its value reads as one, else text.
 - `InstanceRows.appended(shown, more)` puts a later page of an instance list after the rows shown,
   without a row shown already, in the engine's order.
+- `HistoryGaps.of(version, filter, counts)` finds a history that misses instances the runtime runs
+  (history level NONE, a cleanup by removal time at start): the version's running instances, which
+  the runtime counts, against the instance list's count over every lifecycle, which the history
+  answers, both read in that order (`runtime-contract.md`), where the list counts the version whole
+  (no element, business key or variable condition) and the history did not stop counting. The
+  web app's process screen shows its hint; nothing falls back to the runtime's instances.
 - `ScreenTarget` names what a screen opens: an engine, a process of an engine, one version of a
   process (by its number and its definition id) or an instance, with one of its root incidents in
   focus where a link leads to it (an incident card's "Located in").
@@ -250,11 +256,11 @@ numbers.
 
 ## Entries
 
-| Entry                            | Holds                                                                                                                                                                   |
-| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@miragon/pulse-screens`         | `ProcessFilter`, `FleetSums`, `DiagramDecorations`, `VariableConditionTypes`, `InstanceRows` and the types of the screens' JSON forms, their codes and `ScreenTarget`   |
-| `@miragon/pulse-screens/builder` | `EngineScreen`, `ProcessScreen`, `InstanceList`, `InstanceCounts`, `InstanceQuery`, `InstanceScreen`, `CallLinks`, `ScreenJson` and the types of their models and reads |
-| `@miragon/pulse-screens/testing` | `WORLD_SCREENS`, the screens of the conformance kit's fixed world, and `ScreenFigures`                                                                                  |
+| Entry                            | Holds                                                                                                                                                                                |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `@miragon/pulse-screens`         | `ProcessFilter`, `FleetSums`, `DiagramDecorations`, `VariableConditionTypes`, `InstanceRows`, `HistoryGaps` and the types of the screens' JSON forms, their codes and `ScreenTarget` |
+| `@miragon/pulse-screens/builder` | `EngineScreen`, `ProcessScreen`, `InstanceList`, `InstanceCounts`, `InstanceQuery`, `InstanceScreen`, `CallLinks`, `ScreenJson` and the types of their models and reads              |
+| `@miragon/pulse-screens/testing` | `WORLD_SCREENS`, the screens of the conformance kit's fixed world, and `ScreenFigures`                                                                                               |
 
 ## Stability
 
@@ -278,9 +284,12 @@ JSON form, which name the targets they open by `ScreenTarget`. The Pulse
 MCP server: its engine module
 ([`@miragon/pulse-engine-connector`](https://www.npmjs.com/package/@miragon/pulse-engine-connector))
 builds the engine screen with `EngineScreen` and `ScreenJson` behind its app-only feed
-`engine_screen_processes_data` and the instance screen with `InstanceScreen` behind
+`engine_screen_processes_data`, the process screen with `ProcessScreen` behind
+`engine_screen_process_data`, the instance list with `InstanceList` behind
+`engine_screen_instances_data` and the instance screen with `InstanceScreen` behind
 `engine_screen_instance_data`, which the server's web app renders with the same blocks, naming
-the screen's JSON form by type alone.
+the screen's JSON form by type alone and applying its rules through the blocks
+(`useDiagramDecorations`, `useInstanceRows`, `MissingHistoryNotice` over `HistoryGaps`).
 
 ## Help and feedback
 

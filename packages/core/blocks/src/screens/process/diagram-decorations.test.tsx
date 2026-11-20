@@ -192,6 +192,36 @@ describe("a call activity's button on a process's diagram", () => {
     ])
   })
 
+  it("is a link where the surface gives the address: a plain click opens, a modified one is the browser's", () => {
+    const opened: [string, ScreenOpenHow][] = []
+    const container = inLocale(
+      <>
+        <CallButton
+          elementId="Activity_A"
+          label="Open called process Print label"
+          href="/app/engines/e/processes/label?version=1"
+          onOpen={(...args) => opened.push(args)}
+        />
+        <CallButton elementId="Activity_C" label="Open called process Pack" href="/pack" />
+        <CallButton elementId="Activity_B" label="pulse-label isn't deployed" missing />
+      </>,
+    )
+    const [open, alone] = within(container).getAllByRole("link")
+    expect(open?.getAttribute("href")).toBe("/app/engines/e/processes/label?version=1")
+    expect(open?.className).toBe("bjs-drilldown call-button")
+
+    expect(fireEvent.click(open!)).toBe(false)
+    expect(fireEvent.click(open!, { ctrlKey: true })).toBe(true)
+    expect(fireEvent.click(open!, { button: 1 })).toBe(true)
+    expect(fireEvent.click(alone!)).toBe(true)
+    expect(opened).toEqual([["Activity_A", { toSide: false }]])
+
+    const missing = within(container).getByRole("button", { name: "pulse-label isn't deployed" })
+    expect(missing.getAttribute("aria-disabled")).toBe("true")
+    fireEvent.click(missing)
+    expect(opened).toHaveLength(1)
+  })
+
   it("words each call link as the editors' core does, in English and German", () => {
     const calls: CallLinkData[] = [
       ...WORLD_SCREENS.callingProcess.calls,

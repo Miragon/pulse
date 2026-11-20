@@ -1,28 +1,25 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react"
 import { cn, FOCUS_RING } from "@miragon/pulse-ui"
 
-/** Where the page keeps the share the diagram takes, in this browser only. */
-const SHARE_KEY = "pulse.web.instance.diagramShare"
-
 /** The diagram's share of the split: never less than a fifth, never more than four fifths. */
 export const SPLIT = { min: 0.2, max: 0.8, start: 0.5, step: 0.05 } as const
 
 const clamp = (share: number): number => Math.min(SPLIT.max, Math.max(SPLIT.min, share))
 
 /** The share the reader left, where this browser kept one (its storage may be off): else the start. */
-function storedShare(): number {
+function storedShare(key: string): number {
   try {
-    const stored = Number.parseFloat(window.localStorage.getItem(SHARE_KEY) ?? "")
+    const stored = Number.parseFloat(window.localStorage.getItem(key) ?? "")
     return Number.isFinite(stored) ? clamp(stored) : SPLIT.start
   } catch {
     return SPLIT.start
   }
 }
 
-/** Keeps the share for the next instance this browser opens; a storage that refuses keeps none. */
-function keepShare(share: number): void {
+/** Keeps the share for the next screen of its kind; a storage that refuses keeps none. */
+function keepShare(key: string, share: number): void {
   try {
-    window.localStorage.setItem(SHARE_KEY, String(share))
+    window.localStorage.setItem(key, String(share))
   } catch {
     // Storage is off in this browser: the split starts at its middle next time.
   }
@@ -49,25 +46,29 @@ const HANDLE = cn(
  * The diagram above, the details below, and between them a separator the reader moves by mouse,
  * touch or keyboard (the arrows by a twentieth, Home and End to the ends; WCAG 2.1.1): a
  * `separator` that says the diagram's share in percent. The share stays in this browser for the
- * next instance; nothing of it reaches the server.
+ * next screen of its kind (`storageKey`: an instance's, a process's); nothing of it reaches the
+ * server.
  */
 export function SplitPane({
   top,
   bottom,
   label,
+  storageKey,
 }: {
   readonly top: ReactNode
   readonly bottom: ReactNode
   /** The separator's name. */
   readonly label: string
+  /** Where this browser keeps the share (`pulse.web.<screen>.diagramShare`). */
+  readonly storageKey: string
 }) {
-  const [share, setShare] = useState(storedShare)
+  const [share, setShare] = useState(() => storedShare(storageKey))
   const [dragging, setDragging] = useState(false)
   const frame = useRef<HTMLDivElement>(null)
   const commit = (next: number): void => {
     const clamped = clamp(next)
     setShare(clamped)
-    keepShare(clamped)
+    keepShare(storageKey, clamped)
   }
   const follow = (event: PointerEvent<HTMLDivElement>): void => {
     const box = frame.current?.getBoundingClientRect()

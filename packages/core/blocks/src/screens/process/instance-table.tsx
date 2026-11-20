@@ -19,6 +19,7 @@ import { useProcessWords, type ProcessWords } from "../../messages/process-words
 import { InstanceTime, NoValue } from "../instance/instance-time.js"
 import type { ScreenIdProps, ScreenSlots, ScreenTableColumn } from "../slots.js"
 import { InstanceFilters } from "./instance-filters.js"
+import { LoadMore, useFocusAfterMore } from "./load-more.js"
 
 const STATES: Readonly<Record<InstanceStateCode, StateLabelState>> = {
   running: "running",
@@ -36,6 +37,18 @@ export interface InstanceSelectSlot<Row> {
   readonly onToggle: (row: Row) => void
 }
 
+/**
+ * The next page of a list that pages by cursor, while one follows: Load more waits while the
+ * surface reads (`busy`), asks for the page (`onMore`), and beside it the surface says what it has
+ * to (a further page that failed), given the way to ask again, which puts the focus back on Load
+ * more first.
+ */
+export interface InstanceMoreSlot {
+  readonly busy: boolean
+  readonly onMore: () => void
+  readonly beside?: (retry: () => void) => ReactNode
+}
+
 export interface InstanceTableProps<Row extends InstanceRowData> {
   /** The engine the instances run on, as the surface names it. */
   readonly engine: string
@@ -45,8 +58,8 @@ export interface InstanceTableProps<Row extends InstanceRowData> {
   readonly filter: InstanceListFilterData
   /** The filter its empty state asks for: without the variable conditions that left no row. */
   readonly onFilter: (filter: InstanceListFilterData) => void
-  /** What the table shows under its rows: the blocks' `LoadMore` while more follow. */
-  readonly footer?: ReactNode
+  /** The next page while one follows: `LoadMore` under the rows, what the surface says beside it. */
+  readonly more?: InstanceMoreSlot | undefined
   /** The surface's selection, a write slot; none on a surface that writes nothing. */
   readonly select?: InstanceSelectSlot<Row> | undefined
   readonly slots: Pick<ScreenSlots, "Table" | "Id" | "onOpen" | "linkOf">
@@ -112,15 +125,32 @@ function emptyOf(t: ProcessWords, filter: InstanceListFilterData) {
 /**
  * A process's instances, one row each over the surface's table (the instance list's rows): its id,
  * its business key, its state with an open incident beside it, when it started. A row opens its
- * instance and copies its id; under the rows the surface's footer (the next page), before them the
- * surface's selection where it writes.
+ * instance and copies its id; under the rows Load more while a page follows (once the page shows,
+ * the focus goes on to its first row), before them the surface's selection where it writes.
  */
 export function InstanceTable<Row extends InstanceRowData>(props: InstanceTableProps<Row>) {
-  const { engine, rows, filter, onFilter, footer, select, slots } = props
+  const { engine, rows, filter, onFilter, more, select, slots } = props
   const t = useProcessWords()
   const { Table, Id, onOpen, linkOf } = slots
+  const { button, ask, again } = useFocusAfterMore(rows.length)
   const targetOf = (row: Row): ScreenTarget => ({ kind: "instance", engine, instanceId: row.id })
   const columns = columnsOf<Row>(t, Id)
+  const footer = more && (
+    <span className="inline-flex flex-wrap items-center gap-2" data-part="instance-more">
+      <LoadMore
+        ref={button}
+        busy={more.busy}
+        onMore={() => {
+          ask()
+          more.onMore()
+        }}
+      />
+      {more.beside?.(() => {
+        again()
+        more.onMore()
+      })}
+    </span>
+  )
   return (
     <Table<Row>
       name="instances"

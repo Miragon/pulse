@@ -222,7 +222,6 @@ import {
   BadgeLegend,
   InstanceFilterBar,
   InstanceTable,
-  LoadMore,
   VersionPicker,
   type CountBadgeProps,
   type ScreenSlots,
@@ -278,7 +277,7 @@ export function Process({
         rows={rows}
         filter={filter}
         onFilter={onFilter}
-        footer={list.next === null ? undefined : <LoadMore busy={false} onMore={onMore} />}
+        more={list.next === null ? undefined : { busy: false, onMore }}
         slots={slots}
       />
     </>
@@ -297,6 +296,10 @@ read as 0.
   blocks' name or a surface's own (`label`, `placeholder`).
 - `OlderVersionsNotice`: the strip over the latest version that says how many instances still
   run on older versions, how many of them with incident, and offers the newest of those versions.
+- `MissingHistoryNotice`: the strip over a version's instance list whose history misses instances
+  its runtime runs (the screens' `HistoryGaps`: history level NONE, a history cleaned up while
+  instances ran), how many of them the history holds and that the list shows only those; nothing
+  falls back to the runtime's instances. The web app's process screen renders it.
 - `InstanceFilterBar`: the scopes running, with incident, ended and all with their counts (a count
   the engine stopped at as a lower bound), the chip of the element the list is filtered to, a
   search for the exact business key, the variable conditions (a chip per condition and the
@@ -311,9 +314,13 @@ read as 0.
   the refused kinds), which a surface that validates conditions holds its own rules to.
 - `InstanceTable`: an instance per row over the surface's table, its id, business key, state with
   an open incident beside it and start; a row opens its instance and copies its id. An empty table
-  says why, and offers to clear the variable conditions that left no row. `footer` holds the
-  next page (`LoadMore`), and `select` is the surface's selection, a write slot (the column of its
-  boxes, what Space on a row toggles) only a surface that writes fills.
+  says why, and offers to clear the variable conditions that left no row. `more` is the next page
+  while one follows: `LoadMore` under the rows, which waits while the surface reads and keeps the
+  focus, the focus moved on to the page's first row once it shows (never where the reader went
+  meanwhile), and beside it what the surface says (`beside`, a further page that failed, given the
+  way to ask again, which puts the focus back on Load more). `select` is the surface's selection, a
+  write slot (the column of its boxes, what Space on a row toggles) only a surface that writes
+  fills.
 - `BadgeCluster`: the counts on an element of the diagram, apart and in the format's order
   (`DiagramDecorations`): its root incidents, the incidents in the instances it called (never part
   of the incident count) and its running instances, each a button that filters the list to the
@@ -404,7 +411,9 @@ release.
 - The Pulse MCP server: the cockpit's board route (`@miragon/pulse-engine-connector`) renders them
   with widget-shell's table (row activation, the copy keys, the inline fit), its copyable id and its
   BPMN canvas, and the server's web app its engine screen's process list with widget-shell's table,
-  its rows links to the process they open (`linkOf`), and its named id.
+  its rows links to the process they open (`linkOf`), and its named id, its instance screen's
+  blocks with its plain table, links and copy, and its process screen's blocks with that table,
+  its badge on its BPMN canvas and Load more under its rows, every write slot empty.
 
 ## Help and feedback
 

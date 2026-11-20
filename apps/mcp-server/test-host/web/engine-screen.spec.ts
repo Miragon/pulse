@@ -201,7 +201,7 @@ test.describe("the engine screen", () => {
     expect(new URL(tab.url()).pathname).toBe(`${ENGINE_PAGE}/processes/invoice`)
     await tab.close()
     expect(new URL(page.url()).pathname).toBe(ENGINE_PAGE)
-    // A click opens it in the page, a new entry: still the cockpit's process view.
+    // A click opens it in the page, a new entry: the page's process screen.
     await row.getByRole("cell").nth(1).click()
     const process = page.getByRole("heading", { level: 1, name: "Invoice Receipt" })
     await expect(process).toBeVisible({ timeout: 15_000 })

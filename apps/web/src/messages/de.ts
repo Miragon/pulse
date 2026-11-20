@@ -60,6 +60,27 @@ export const de = {
   "screen.instance.truncated": "Manche Listen sind gekürzt, Pulse zeigt nur einen Teil davon.",
   "screen.instance.noIncidents": "Diese Instanz hat keine offenen Incidents.",
 
+  "screen.process.loading": "Der Prozess {process} wird geladen…",
+  "screen.process.failed": "Der Prozess {process} konnte nicht geladen werden",
+  "screen.process.unknown.title": "Den Prozess {process} gibt es auf der Engine {engine} nicht",
+  "screen.process.unknown.description":
+    "Die Engine hat keine Version dieses Prozesses. Prüfe die Adresse oder such den Prozess bei den Prozessen der Engine.",
+  "screen.process.unknown.processes": "Prozesse von {engine}",
+  "screen.process.versionMissing":
+    "Die Version {version} dieses Prozesses gibt es auf der Engine nicht",
+  "screen.process.versionShown": "Pulse zeigt v{shown}, die neueste Version.",
+  "screen.process.statisticsUnread":
+    "Die Zahlen im Diagramm konnten nicht geladen werden. Aktualisiere, um es erneut zu versuchen.",
+  "screen.process.callsUnread":
+    "Die Prozesse, die diese Version aufruft, konnten nicht geladen werden. Aktualisiere, um es erneut zu versuchen.",
+  "screen.process.split": "Diagramm und Instanzen anders aufteilen",
+  "screen.process.instances": "Liste der Instanzen",
+  "screen.process.list.loading": "Die Instanzen werden geladen…",
+  "screen.process.list.failed": "Die Instanzen konnten nicht geladen werden",
+  "screen.process.list.refused": "Mit diesen Variablenbedingungen kann die Engine nicht suchen",
+  "screen.process.list.clear": "Variablenbedingungen entfernen",
+  "screen.process.more.failed": "Weitere Instanzen konnten nicht geladen werden",
+
   "tab.history": "Verlauf",
   "tab.incidents": "Incidents",
   "tab.waiting": "Wartet",

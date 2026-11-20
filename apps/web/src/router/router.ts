@@ -71,10 +71,12 @@ export interface PageRouter {
    */
   readonly navigate: (url: string, entry?: Entry) => void
   /**
-   * Names the current entry anew with `url`, the page's own screen in another state of its own (a
-   * filter, a search): the screen stays, and so does the focus, at the control the reader used.
+   * Names the current entry anew with `url` (default), or goes to it in a new entry of the
+   * browser's history (`push`: another version a process's picker asks for), the page's own screen
+   * in another state of its own (a filter, a search, a version): the screen stays, and so does the
+   * focus, at the control the reader used.
    */
-  readonly refine: (url: string) => void
+  readonly refine: (url: string, entry?: Entry) => void
   /** Lets go of Back and Forward, with the page. */
   readonly stop: () => void
 }
@@ -87,6 +89,8 @@ function subjectOf(screen: PageScreen): string {
   switch (screen.kind) {
     case "engine":
       return JSON.stringify([screen.kind, screen.engine])
+    case "process":
+      return JSON.stringify([screen.kind, screen.engine, screen.process])
     case "instance":
       return JSON.stringify([screen.kind, screen.engine, screen.instance, screen.incident ?? null])
     case "incident":
@@ -95,8 +99,10 @@ function subjectOf(screen: PageScreen): string {
 }
 
 /**
- * Whether `other` is the screen `one` is, whatever state of its own each is in (a filter, a tab):
- * the same engine's processes, the same instance with the same incident in focus.
+ * Whether `other` is the screen `one` is, whatever state of its own each is in (a filter, a tab, a
+ * version): the same engine's processes, the same process (in any version: another version is a
+ * new entry of the page's history, the screen kept, so a pick keeps the picker and its focus), the
+ * same instance with the same incident in focus.
  */
 const sameScreen = (one: PageScreen, other: PageScreen | undefined): boolean =>
   other !== undefined && subjectOf(one) === subjectOf(other)
@@ -213,8 +219,9 @@ export function createPageRouter(env: RouterEnv, first: ViewRoute): PageRouter {
       else env.history.replaceState(null, "", url)
       follow()
     },
-    refine: (url) => {
-      env.history.replaceState(env.history.state, "", url)
+    refine: (url, entry = "replace") => {
+      if (entry === "push" && url !== here()) env.history.pushState(null, "", url)
+      else env.history.replaceState(env.history.state, "", url)
       follow(false)
     },
     stop,

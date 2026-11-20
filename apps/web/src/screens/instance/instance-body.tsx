@@ -5,7 +5,10 @@ import type { InstanceTab } from "../../router/routes.js"
 import { InstanceDetails } from "./instance-details.js"
 import { InstanceDiagram } from "./instance-diagram.js"
 import type { InstanceScreenFeed } from "./instance-feed.js"
-import { SplitPane } from "./split-pane.js"
+import { SplitPane } from "../split-pane.js"
+
+/** Where this browser keeps the share an instance's diagram takes of the split. */
+const INSTANCE_SHARE_KEY = "pulse.web.instance.diagramShare"
 
 /** The element the focus puts on the diagram: the incident's own, or the call activity it lies under. */
 function focusElementOf(screen: InstanceScreenFeed, focus: string | undefined): string | undefined {
@@ -120,7 +123,16 @@ export function InstanceBody({
       slots={slots}
     />
   )
-  if (wide) return <SplitPane top={diagram} bottom={details} label={t("screen.instance.split")} />
+  if (wide) {
+    return (
+      <SplitPane
+        top={diagram}
+        bottom={details}
+        label={t("screen.instance.split")}
+        storageKey={INSTANCE_SHARE_KEY}
+      />
+    )
+  }
   return (
     <div className="flex flex-col">
       {diagram}

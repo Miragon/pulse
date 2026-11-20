@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { SPLIT, SplitPane } from "../src/screens/instance/split-pane.js"
+import { SPLIT, SplitPane } from "../src/screens/split-pane.js"
 import { useWide, WIDE } from "../src/screens/use-wide.js"
 
 /**
@@ -23,7 +23,12 @@ afterEach(() => {
 
 const renderSplit = () =>
   render(
-    <SplitPane top={<p>diagram</p>} bottom={<p>details</p>} label="Resize diagram and details" />,
+    <SplitPane
+      top={<p>diagram</p>}
+      bottom={<p>details</p>}
+      label="Resize diagram and details"
+      storageKey={KEY}
+    />,
   )
 
 const separator = () => screen.getByRole("separator", { name: "Resize diagram and details" })

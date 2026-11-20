@@ -1,3 +1,4 @@
+import type { MouseEvent } from "react"
 import { cn, formatCount, shortId } from "@miragon/pulse-ui"
 import type { CallLinkData } from "@miragon/pulse-screens"
 import { useProcessWords } from "../../messages/process-words.js"
@@ -13,32 +14,69 @@ export interface CallButtonProps {
   readonly label: string
   /** The process it calls is not deployed: the button says so and opens nothing new. */
   readonly missing?: boolean
-  readonly onOpen: (elementId: string, how: ScreenOpenHow) => void
+  /**
+   * The address of what it opens, on a surface with addresses (the web app): then it is a link, a
+   * plain click `onOpen`, Ctrl or Cmd, Shift, Alt and the middle button the browser's.
+   */
+  readonly href?: string | undefined
+  /** Opens what it calls; none where the surface opens nothing there (`aria-disabled`). */
+  readonly onOpen?: ((elementId: string, how: ScreenOpenHow) => void) | undefined
+}
+
+/** Whether a click on a link is the browser's: another tab or window, a download, not the main button. */
+const isBrowsers = (event: MouseEvent<HTMLAnchorElement>): boolean =>
+  event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey
+
+function DrilldownArrow() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <path fillRule="evenodd" d={DRILLDOWN_ARROW} />
+    </svg>
+  )
 }
 
 /**
  * A call activity's way to what it calls, on the diagram: bpmn-js's drill-down button, named by
- * what it opens, a process the engine lacks marked as missing. Its look is the canvas's (bpmn-js's
- * `bjs-drilldown` and the canvas's `call-button` rules).
+ * what it opens, a process the engine lacks marked as missing; a link where the surface gives its
+ * address. Its look is the canvas's (bpmn-js's `bjs-drilldown` and the canvas's `call-button`
+ * rules).
  */
-export function CallButton({ elementId, label, missing = false, onOpen }: CallButtonProps) {
+export function CallButton({ elementId, label, missing = false, href, onOpen }: CallButtonProps) {
+  const parts = {
+    className: cn("bjs-drilldown call-button", missing && "call-button--missing"),
+    "data-part": "call-button",
+    "data-call-for": elementId,
+    "data-state": missing ? "missing" : undefined,
+    "aria-label": label,
+    title: label,
+  }
+  if (href !== undefined) {
+    return (
+      <a
+        {...parts}
+        href={href}
+        onClick={(event) => {
+          event.stopPropagation()
+          if (isBrowsers(event) || onOpen === undefined) return
+          event.preventDefault()
+          onOpen(elementId, { toSide: false })
+        }}
+      >
+        <DrilldownArrow />
+      </a>
+    )
+  }
   return (
     <button
+      {...parts}
       type="button"
-      className={cn("bjs-drilldown call-button", missing && "call-button--missing")}
-      data-part="call-button"
-      data-call-for={elementId}
-      data-state={missing ? "missing" : undefined}
-      aria-label={label}
-      title={label}
+      aria-disabled={onOpen === undefined || undefined}
       onClick={(event) => {
         event.stopPropagation()
-        onOpen(elementId, { toSide: event.metaKey || event.ctrlKey })
+        onOpen?.(elementId, { toSide: event.metaKey || event.ctrlKey })
       }}
     >
-      <svg width="20" height="20" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-        <path fillRule="evenodd" d={DRILLDOWN_ARROW} />
-      </svg>
+      <DrilldownArrow />
     </button>
   )
 }

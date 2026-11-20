@@ -14,7 +14,8 @@ import {
  * deployment, whose one engine replays an Operaton run of the conformance world (chain-engine.ts):
  * DSP-3001 waits at its call activity for the root incident of the "Print label" instance it
  * called, a failed job whose stack trace names its root cause. The journey follows that failure
- * from the process's instance list (the cockpit, embedded) to the instance, where its incident card
+ * from the process's instance list (the process screen, from the list's old address) to the
+ * instance, where its incident card
  * says where the failure lies ("Located in"), on to the called instance with the incident in focus
  * (its card open, its stack trace read in place with the root cause line marked, its element
  * selected on the diagram), to the caller and Back. An ended instance opens from its history, an
@@ -68,7 +69,8 @@ test.describe("the instance screen", () => {
     const errors = collectErrors(page)
     const calls = recordCalls(page)
     await signIn(page, `${ENGINE}/instances?process=pulse-dispatch`, { deployment: "chain" })
-    // The process's instances, the cockpit's list embedded in the frame: its row opens the instance.
+    // The process's instances, the old address of the list now the process screen: its row opens
+    // the instance.
     const row = page.getByRole("row", { name: /DSP-3001/ })
     await expect(row).toBeVisible({ timeout: 15_000 })
     await row.click()

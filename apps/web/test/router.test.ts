@@ -156,17 +156,13 @@ describe("Back and Forward", () => {
     const { router, back, env } = routerAt("/app/engines/prod-a/jobs")
     const first = router.state().shown
     const stop = first.location.subscribe(() => false)
-    back("/app/engines/prod-a/processes/invoice")
+    back("/app/engines/prod-a/incidents")
     const next = router.state().shown
     expect(next.generation).toBe(first.generation + 1)
-    expect(next.start.args).toEqual({
-      view: "process-detail",
-      engine: "prod-a",
-      processDefinitionKey: "invoice",
-    })
+    expect(next.start.args).toEqual({ view: "incidents", engine: "prod-a" })
     stop()
     // With no view on the page, the same start again is a start of its own.
-    back("/app/engines/prod-a/processes/invoice")
+    back("/app/engines/prod-a/incidents")
     expect(router.state().shown.generation).toBe(first.generation + 2)
     expect(env.reload).not.toHaveBeenCalled()
   })
@@ -358,7 +354,7 @@ describe("the page's instance screen (an instance, an incident under it)", () =>
   })
 
   it("takes over the cockpit's drill to an instance, the focus moving to its heading", () => {
-    const { router, push, here } = routerAt("/app/engines/prod-a/instances?process=invoice")
+    const { router, push, here } = routerAt("/app/engines/prod-a/instances")
     const first = router.state()
     first.shown.location.report(
       { args: { view: "instance-detail", engine: "prod-a", processInstanceId: "pi-1" } },
@@ -409,5 +405,78 @@ describe("the page's instance screen (an instance, an incident under it)", () =>
     const shown = router.state().shown
     router.navigate("/app/cockpit?view=incident-detail&engine=prod-a&incidentId=inc-9", "replace")
     expect(router.state().shown.generation).toBe(shown.generation)
+  })
+})
+
+describe("the page's process screen", () => {
+  const process = (more: Record<string, unknown> = {}) => ({
+    kind: "process",
+    engine: "prod-a",
+    process: "invoice",
+    filter: { scope: "running" },
+    ...more,
+  })
+
+  it("claims a process's view and the list of its instances, so the cockpit's drill shows it", () => {
+    const { router, push } = routerAt("/app/engines/prod-a/instances")
+    const { claims } = router.state().shown.location
+    expect(claims?.({ view: "process-detail", engine: "prod-a", processDefinitionKey: "a" })).toBe(
+      true,
+    )
+    expect(claims?.({ view: "process-instances", engine: "prod-a" })).toBe(false)
+    const first = router.state()
+    first.shown.location.report(
+      { args: { view: "process-instances", engine: "prod-a", processDefinitionKey: "invoice" } },
+      "push",
+    )
+    expect(push).toHaveBeenLastCalledWith(null, "", "/app/engines/prod-a/instances?process=invoice")
+    expect(router.state().shown.screen).toEqual(process())
+    expect(router.state().moves).toBe(first.moves + 1)
+  })
+
+  it("names the entry anew with a filter, the screen staying; another version a new entry of the same screen", () => {
+    const { router, replace, push, back } = routerAt("/app/engines/prod-a/processes/invoice")
+    const first = router.state()
+    router.refine("/app/engines/prod-a/processes/invoice?scope=all&element=Task_A")
+    expect(replace).toHaveBeenLastCalledWith(
+      null,
+      "",
+      "/app/engines/prod-a/processes/invoice?scope=all&element=Task_A",
+    )
+    expect(router.state().shown.screen).toEqual(
+      process({ filter: { scope: "all", elementId: "Task_A" } }),
+    )
+    expect(router.state().shown.generation).toBe(first.shown.generation)
+    expect(router.state().moves).toBe(first.moves)
+    // The older versions' notice: a new entry, the screen kept, the focus to its heading.
+    router.navigate("/app/engines/prod-a/processes/invoice?version=1")
+    expect(push).toHaveBeenLastCalledWith(
+      null,
+      "",
+      "/app/engines/prod-a/processes/invoice?version=1",
+    )
+    expect(router.state().shown.screen).toEqual(process({ version: 1 }))
+    expect(router.state().shown.generation).toBe(first.shown.generation)
+    expect(router.state().moves).toBe(first.moves + 1)
+    // A pick in the picker: a new entry, the screen and the focus where they are.
+    router.refine("/app/engines/prod-a/processes/invoice?version=3", "push")
+    expect(push).toHaveBeenLastCalledWith(
+      null,
+      "",
+      "/app/engines/prod-a/processes/invoice?version=3",
+    )
+    expect(router.state().shown.screen).toEqual(process({ version: 3 }))
+    expect(router.state().shown.generation).toBe(first.shown.generation)
+    expect(router.state().moves).toBe(first.moves + 1)
+    // The same address again names the entry the reader is on.
+    router.refine("/app/engines/prod-a/processes/invoice?version=3", "push")
+    expect(push).toHaveBeenCalledTimes(2)
+    // Back to the latest version: the screen kept, with the filter its entry kept.
+    back("/app/engines/prod-a/processes/invoice?scope=all&element=Task_A")
+    expect(router.state().shown.screen).toEqual(
+      process({ filter: { scope: "all", elementId: "Task_A" } }),
+    )
+    expect(router.state().shown.generation).toBe(first.shown.generation)
+    expect(router.state().moves).toBe(first.moves + 2)
   })
 })

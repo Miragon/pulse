@@ -12,7 +12,7 @@
  * is degrades to null. The process screens and the instance list of the same recordings are built
  * by the screens' builder over the runtime the server resolves for the engine (`runtimeOf`, the
  * diagram through the one XML cache, `diagramXmlOf`), exactly as the editors' adapters build them;
- * their feeds come with the web app's process screen.
+ * their feeds hold the same screens in process-screen-data.numbers.test.ts.
  */
 
 import { afterEach, describe, expect, it } from "vitest"

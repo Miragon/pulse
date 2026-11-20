@@ -60,6 +60,7 @@ per-caller caches key on the token, so a renewed token starts afresh.
 `POST /app/api/call` takes `{ name, arguments }` as JSON of at most 64 KiB, with the CSRF token. It
 admits a tool a view calls that only reads (`readOnlyHint`): the view tool `engine_open_cockpit`,
 the app-only `*_data` feeds (the page's own screens read them too: `engine_screen_processes_data`,
+`engine_screen_process_data`, `engine_screen_instances_data`, `engine_screen_variable_names_data`,
 `engine_screen_instance_data`, `engine_screen_incident_text_data`) and the model tools marked `forViews` because the widgets read them
 (`engine_list_engines`, `engine_query_historic_activity_instances`, `engine_get_task_form`). Any
 other tool gets 403 `WEB_NOT_FOR_PAGES`, a write 403 `WEB_READ_ONLY`, before it runs.
@@ -86,10 +87,14 @@ tool without `readOnlyHint`.
 own with `mountApp` from `@miragon/pulse-widget-shell/widgets`: a frame (the side navigation, a
 drawer under 64rem, the session's notices) around the engine module's view its address names, which
 `PageView` calls with the page's chrome, so the cockpit leaves its head to the navigation, or a
-screen of its own: an engine's processes, an instance and an incident under it, the building blocks
-of `@miragon/pulse-blocks` over the screen feeds, whose places the page claims, so the cockpit
-embedded elsewhere never shows them. A screen fills the window's height from 64rem on and scrolls
-its regions in themselves; an incident's text is read only when it opens. Its router
+screen of its own: an engine's processes, a process in one version, an instance and an incident
+under it, the building blocks of `@miragon/pulse-blocks` over the screen feeds, whose places the
+page claims, so the cockpit embedded elsewhere never shows them. A screen fills the window's height
+from 64rem on and scrolls its regions in themselves; an incident's text is read only when it opens,
+a version's variable names when the condition dialog does. The reads that load an engine's database
+(a version's element statistics, an instance list's first page with its counts, the variable names) stand on
+a floor of 30 s per signed-in user and arguments at the server, so a Refresh within it shows the same
+read. Its router
 gives each view its address and leads Back, Forward and its links to the view, which goes there
 itself or starts anew there, never loading the page; it replaces an old `/app/cockpit?view=…` by
 the view's own address. It reads its session with `readWebSession()` and calls tools through

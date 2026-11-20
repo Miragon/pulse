@@ -14,8 +14,8 @@ chat's toolset, engine routing and numbers. It only reads: no write control, no 
 | `/app/fleet`                            | The cross-engine overview, with two engines or more: each engine's row opens it                                                             |
 | `/app/boards/<id>`                      | A board, with the tiles and numbers the chat shows; a [Camunda 8](../mcp/camunda8.md) cluster's as the server reads it                      |
 | `/app/engines/<engine>`                 | The engine's processes (`?scope=incident&q=…`: filtered), or why the page shows no view of it (an engine on boards only, a refused profile) |
-| `…/processes/<key>`, `…/instances/<id>` | A process (`?scope=incident`: its incidents), an instance (`?tab=…`: its tab, `/incidents/<id>`: one of its incidents in focus)             |
-| `…/instances`, `…/incidents`, `…/jobs`  | The engine's instances (`?process=<key>`), incidents (`/cause?activity=…&type=…`: one cause) and jobs (`?failed=true`)                      |
+| `…/processes/<key>`, `…/instances/<id>` | A process in one version (`?version=…&scope=…&element=…&key=…&var=…`: its list's filter), an instance (`?tab=…`, `/incidents/<id>`)         |
+| `…/instances`, `…/incidents`, `…/jobs`  | The engine's instances, incidents (`/cause?activity=…&type=…`: one cause) and jobs (`?failed=true`)                                         |
 | `/app/signed-out`                       | Why a sign-in ended, and a new one                                                                                                          |
 
 Each view you open (an entry, a row, the trail) has its own URL, stable from the release that ships
@@ -37,6 +37,10 @@ drawer behind the menu button, the first of each view's bar. It shows no numbers
 An engine's processes list each with its latest version, running instances and instances with
 incident over every version, the numbers Pulse for VS Code shows; scopes and search filter in the
 browser, a row opens its process, and **Refresh** reads again (on its own when you return after 60 s).
+A process shows one version, picked with the running instances and those with incident of each,
+older versions that still run, its diagram with the counts on each element (incidents in called
+instances apart) and its instances, 50 at a time with **Load more**, by scope, element, exact
+business key and variable conditions; a count's click filters to its element, Escape clears it.
 An instance shows where it stands and why, its diagram with what it did, where it waits and its
 incidents, and the tabs History, Incidents, Waiting and Variables (from 64rem on under the diagram
 at the window's height, the split movable by mouse or keyboard). An incident in an instance it

@@ -514,15 +514,15 @@ const DOCS_BUDGETS = {
   // What the server reads of a Camunda 8 cluster and offers per engine (the web app's screen feeds
   // among it), its profile and client, its failures and the server's legs of the conformance
   // matrix.
-  "mcp/camunda8.md": 117,
+  "mcp/camunda8.md": 118,
   "mcp/reference.md": 160,
   // The web app's pages (docs/web/): what it shows and for whom, its navigation, its engine screen
   // and its instance screen, the sign-in an operator sets up (variables, the provider's side,
   // sessions and their check at the provider, a proxy, local), how it is built and what its
   // screens read.
-  "web/index.md": 67,
+  "web/index.md": 71,
   "web/sign-in.md": 135,
-  "web/architecture.md": 107,
+  "web/architecture.md": 112,
   // The CLI's pages (docs/cli/).
   "cli/index.md": 40,
   "cli/getting-started.md": 140,
@@ -554,7 +554,7 @@ const DOCS_BUDGETS = {
   // Every difference between the MCP cockpit and the webview, a row each: it grows with a
   // feature built on one side and shrinks with one that closes a row; a section a screen of the web
   // app takes says so above its rows (the engine overview, an instance and what is inside it).
-  "vscode/parity.md": 224,
+  "vscode/parity.md": 230,
   // The Orca plugin's pages (docs/orca/).
   "orca/index.md": 40,
   "orca/installation.md": 50,

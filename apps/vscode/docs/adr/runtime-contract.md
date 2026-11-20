@@ -1,7 +1,8 @@
 # Runtime contract
 
 - Status: accepted
-- Last reviewed: 2026-11-20 (the variable dialog offers each refused kind of condition disabled with its reason, the owner's decision that day); 2026-11-20 (a C7 engine at history level NONE: what the instance search, its
+- Last reviewed: 2026-11-20 (the web app's process screen shows the hint where the history misses
+  running instances, by the screens' `HistoryGaps`); 2026-11-20 (the variable dialog offers each refused kind of condition disabled with its reason, the owner's decision that day); 2026-11-20 (a C7 engine at history level NONE: what the instance search, its
   count and the other reads answer there, pinned on Operaton and CIB seven; a count without an
   incident subtracts only the instances with one the history holds, so it counts what the search
   lists and never falls below 0, which a read law holds on Operaton and CIB seven, at NONE too,
@@ -193,9 +194,17 @@ for any workspace, and the conformance kit does not cover them
   for the case. If these gaps are not acceptable, an explicit read (an optional member such as
   `instanceHistory?()`) would be one only the C7 family answers, which engine-core admits only by
   the owner's decision; a search that refused instead would take the diagram and the runtime's
-  counts from Pulse for VS Code's definition panel, whose reads fail together. The screens builder
-  turns the case into a notice and the web app's process screen shows the hint (the plan's step
-  "feat(web): the process screen"); until then no surface shows a hint.
+  counts from Pulse for VS Code's definition panel, whose reads fail together. The screens' format
+  holds the rule over one version (`HistoryGaps` of `@miragon/pulse-screens`: the version's running
+  instances against the instance list's count over every lifecycle, where the list counts the
+  version whole and the history did not stop counting), and the web app's process screen shows its
+  hint since 2026-11-20 (`MissingHistoryNotice` of `@miragon/pulse-blocks`), the version's read
+  before its list's, as the rule asks, and the list's counts only where read no earlier than the
+  versions (their `asOf`), never a floor's answer of an earlier read; this extension's definition
+  view shows none, since its refresh reads the versions and the history's counts on cadences of
+  their own and at once (`DefinitionReads.refresh`), so its count over every lifecycle can be the
+  older read and the hint would show where nothing is missing; the hint's words are a catalog of
+  their own in the blocks, which its bundle leaves out.
 - **Statistics** always address one version (`definitionId`), never a process.
 - **Incidents name their version.** `Incident.definition` is the `DefinitionRef` of the
   version the incident was raised in, so grouping by process and version needs no

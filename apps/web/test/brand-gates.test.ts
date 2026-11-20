@@ -18,6 +18,15 @@ import {
  * on pulse-ui's theme after Tailwind and keeps the view's shape.
  */
 const SRC = fileURLToPath(new URL("../src", import.meta.url))
+
+/**
+ * The files that may draw the dense 12 px icon, each with its reason (the density deviation of
+ * CLAUDE.md's design section: the icons on the diagram's 20 px overlays).
+ */
+const DENSE_ICONS_ALLOWED: Readonly<Record<string, string>> = {
+  "screens/process/canvas-badge.tsx":
+    "the incident's icon beside the count of incidents in called instances, a 22 px badge on the process diagram",
+}
 const STYLES = readFileSync(new URL("../src/styles.css", import.meta.url), "utf8")
 
 describe("the page's sources", () => {
@@ -25,8 +34,8 @@ describe("the page's sources", () => {
     expect(scanGlyphs(SRC)).toEqual([])
   })
 
-  it("draw icons at 16 and 24 px, never the dense 12 px", () => {
-    expect(scanIconSizes(SRC)).toEqual([])
+  it("draw icons at 16 and 24 px, the dense 12 px only on the diagram's overlays", () => {
+    expect(scanIconSizes(SRC, { allowDense: DENSE_ICONS_ALLOWED })).toEqual([])
   })
 
   it("colour through role names only", () => {

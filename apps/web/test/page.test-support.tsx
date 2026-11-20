@@ -48,6 +48,32 @@ export const engineScreen = (
   },
 })
 
+/** The process screen's feeds: a process in one version and a page of its instances. */
+export const PROCESS_SCREEN_FEED = "engine_screen_process_data"
+export const INSTANCES_FEED = "engine_screen_instances_data"
+
+/**
+ * A process screen's feeds as they answer: the kit world's pulse-order at its latest version
+ * (WORLD_SCREENS.process) and every instance of a version (WORLD_SCREENS.instanceList), under the
+ * engine's name; any other feed's name null.
+ */
+export const processFeeds = (name: string, engine: unknown) =>
+  name === PROCESS_SCREEN_FEED
+    ? {
+        result: {
+          content: [{ type: "text", text: "{}" }],
+          structuredContent: { ...WORLD_SCREENS.process, engine, webApp: null },
+        },
+      }
+    : name === INSTANCES_FEED
+      ? {
+          result: {
+            content: [{ type: "text", text: "{}" }],
+            structuredContent: { ...WORLD_SCREENS.instanceList, engine },
+          },
+        }
+      : null
+
 export interface Server {
   session?: () => Response
   call?: (body: {

@@ -304,18 +304,14 @@ test.describe("the page's address", () => {
     await expect(h1(page, "Invoice Receipt")).toBeVisible({ timeout: 15_000 })
     expect(here(page)).toBe(PROCESS)
     expect(await entries(page)).toBe(start + 2)
-    // The landing's start and the process's: the screen between them reads its feed alone.
-    expect(viewCalls(calls)).toBe(2)
+    // The landing's start alone: the engine's and the process's screens read their feeds.
+    expect(viewCalls(calls)).toBe(1)
 
-    // A reload: the view the address names, its trail back to the engine's processes, which it
-    // names by the navigation's word for them.
+    // A reload: the screen the address names, which still reads no view.
     await page.reload()
     await expect(h1(page, "Invoice Receipt")).toBeVisible({ timeout: 15_000 })
     expect(here(page)).toBe(PROCESS)
-    const trail = page.getByRole("navigation", { name: "Breadcrumb" })
-    await expect(trail).toContainText("Processes")
-    await expect(trail).not.toContainText("Overview")
-    expect(viewCalls(calls)).toBe(3)
+    expect(viewCalls(calls)).toBe(1)
 
     // Back: the engine's screen, then the landing, in the page.
     await page.goBack()
@@ -325,7 +321,7 @@ test.describe("the page's address", () => {
     await expect(h1(page, LANDING)).toBeVisible({ timeout: 15_000 })
     expect(here(page)).toBe("/app")
 
-    // Forward: the engine's screen, then the process, in the page again.
+    // Forward: the engine's screen, in the page again.
     await page.goForward()
     await expect(h1(page, HEALTHY_ENGINE)).toBeVisible({ timeout: 15_000 })
     expect(here(page)).toBe(OVERVIEW)
@@ -387,6 +383,16 @@ test.describe("the page's address", () => {
     expect(here(page)).toBe("/app")
   })
 
+  test("a drill of the cockpit names the engine's processes in its trail by the navigation's word", async ({
+    page,
+  }) => {
+    await signIn(page, `${OVERVIEW}/instances`)
+    await expect(h1(page, "Running instances")).toBeVisible({ timeout: 15_000 })
+    const trail = page.getByRole("navigation", { name: "Breadcrumb" })
+    await expect(trail).toContainText("Processes")
+    await expect(trail).not.toContainText("Overview")
+  })
+
   /** One address of each pattern of the page over the stub engine, and the h1 its view shows. */
   const ADDRESSES: readonly (readonly [string, string])[] = [
     ["/app", LANDING],
@@ -396,7 +402,6 @@ test.describe("the page's address", () => {
     [PROCESS, "Invoice Receipt"],
     [`${PROCESS}?scope=incident`, "Invoice Receipt"],
     [`${OVERVIEW}/instances`, "Running instances"],
-    [`${OVERVIEW}/instances?process=invoice`, "invoice"],
     // The page's instance screen and an incident under it: instance-screen.spec.ts on `chain`, whose
     // engine serves an instance whole (this stub serves the chat's reads of one, not its history).
     [INCIDENTS(HEALTHY_ENGINE), `${HEALTHY_ENGINE} · Incidents`],
@@ -435,6 +440,8 @@ test.describe("the page's address", () => {
         `${HEALTHY_ENGINE} · Jobs`,
       ],
       [`/app/cockpit?engine=${HEALTHY_ENGINE}`, OVERVIEW, HEALTHY_ENGINE],
+      // The list of a process's instances is the process screen at the process's own address.
+      [`${OVERVIEW}/instances?process=invoice`, PROCESS, "Invoice Receipt"],
     ] as const) {
       const before = await entries(page)
       await page.goto(`${originOf()}${address}`)
@@ -442,6 +449,9 @@ test.describe("the page's address", () => {
       expect(here(page), address).toBe(canonical)
       expect(await entries(page), address).toBe(before + 1)
     }
+    await page.goBack()
+    await expect(h1(page, HEALTHY_ENGINE)).toBeVisible({ timeout: 15_000 })
+    expect(here(page)).toBe(OVERVIEW)
     await page.goBack()
     await expect(h1(page, `${HEALTHY_ENGINE} · Jobs`)).toBeVisible({ timeout: 15_000 })
     expect(here(page)).toBe(`${OVERVIEW}/jobs?failed=true`)

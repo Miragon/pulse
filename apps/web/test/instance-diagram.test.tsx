@@ -208,7 +208,7 @@ describe("the instance screen's diagram", () => {
     const version = screen.getByRole("link", {
       name: "Open Print label v2, called at name of Call_Version",
     })
-    expect(version.getAttribute("href")).toBe("/app/engines/prod-a/processes/pulse-label")
+    expect(version.getAttribute("href")).toBe("/app/engines/prod-a/processes/pulse-label?version=2")
     // A process the engine lacks has no way, nor has a call activity that called nothing yet.
     expect(
       screen.getByRole("link", { name: "Open pulse-ship v1, called at name of Call_Unnamed" }),

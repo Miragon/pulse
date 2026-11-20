@@ -2544,6 +2544,160 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
+    "description": "Internal JSON feed (no UI) for the web app's process screen: a page of 50 instances of one version by its filter, and on the first page the counts of its scopes.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "after": {
+          "description": "The cursor of the page before, from its next.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "businessKey": {
+          "description": "The exact business key.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "definitionId": {
+          "description": "The version's id.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "element": {
+          "description": "An element the instances are active at.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "scope": {
+          "description": "Which instances: running, running with an open incident, ended, or all.",
+          "enum": [
+            "running",
+            "withIncident",
+            "ended",
+            "all"
+          ],
+          "type": "string"
+        },
+        "variables": {
+          "description": "Variable conditions, all of which hold.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "as": {
+                "description": "The type the value compares as; by the value and the operator without it.",
+                "enum": [
+                  "text",
+                  "number",
+                  "boolean",
+                  "date",
+                  "null"
+                ],
+                "type": "string"
+              },
+              "name": {
+                "description": "The variable's name, case sensitive.",
+                "minLength": 1,
+                "type": "string"
+              },
+              "operator": {
+                "description": "How the variable compares with the value; like takes * as a wildcard.",
+                "enum": [
+                  "equals",
+                  "notEquals",
+                  "like",
+                  "greaterThan",
+                  "lessThan"
+                ],
+                "type": "string"
+              },
+              "value": {
+                "description": "The value, as text; a date an instant with its offset.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "operator",
+              "value"
+            ],
+            "type": "object"
+          },
+          "maxItems": 5,
+          "type": "array"
+        }
+      },
+      "required": [
+        "definitionId",
+        "scope"
+      ],
+      "type": "object"
+    },
+    "name": "engine_screen_instances_data",
+    "title": "Instance list data (internal)"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI) for the web app's process screen: a process in one version with every version's counts, the counts on the version's diagram, its call targets and the notice that older versions still run.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "process": {
+          "description": "The process's BPMN process ID.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "version": {
+          "description": "The number of the version to show; the latest without it.",
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "process"
+      ],
+      "type": "object"
+    },
+    "name": "engine_screen_process_data",
+    "title": "Process screen data (internal)"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
     "description": "Internal JSON feed (no UI) for the web app's engine screen: the engine's product and each process's latest version, running instances and instances with incident over every version.",
     "inputSchema": {
       "additionalProperties": false,
@@ -2559,6 +2713,44 @@
     },
     "name": "engine_screen_processes_data",
     "title": "Engine screen data (internal)"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI) for the web app's process screen: the names of a version's variables and the kinds of condition the engine refuses.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "definitionId": {
+          "description": "The version's id.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "definitionId"
+      ],
+      "type": "object"
+    },
+    "name": "engine_screen_variable_names_data",
+    "title": "Variable names data (internal)"
   },
   {
     "annotations": {
