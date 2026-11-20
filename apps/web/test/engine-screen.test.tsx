@@ -432,16 +432,26 @@ describe("the reader's return to the page", () => {
 })
 
 describe("the page's slots of a screen", () => {
-  it("link an engine's processes and a process to their addresses, and open them in the page", () => {
+  it("link an engine's processes, a process, a version and an instance to their addresses, and open them in the page", () => {
     const navigate = vi.fn<(url: string) => void>()
     const engine = { kind: "engine", engine: "prod a" } as const
     const process = { kind: "process", engine: "prod", bpmnProcessId: "order" } as const
+    const version = {
+      kind: "version",
+      engine: "prod",
+      bpmnProcessId: "order",
+      version: 7,
+      definitionId: "order:7:4a1c",
+    } as const
+    const instance = { kind: "instance", engine: "prod", instanceId: "8f3c/2a1e" } as const
     function Probe() {
       const slots = usePageSlots(navigate)
       return (
         <>
           <p data-testid="engine">{slots.linkOf?.(engine)}</p>
           <p data-testid="process">{slots.linkOf?.(process)}</p>
+          <p data-testid="version">{slots.linkOf?.(version)}</p>
+          <p data-testid="instance">{slots.linkOf?.(instance)}</p>
           <button
             type="button"
             onClick={() => {
@@ -456,6 +466,10 @@ describe("the page's slots of a screen", () => {
     render(<Probe />)
     expect(screen.getByTestId("engine").textContent).toBe("/app/engines/prod%20a")
     expect(screen.getByTestId("process").textContent).toBe("/app/engines/prod/processes/order")
+    expect(screen.getByTestId("version").textContent).toBe("/app/engines/prod/processes/order")
+    expect(screen.getByTestId("instance").textContent).toBe(
+      "/app/engines/prod/instances/8f3c%2F2a1e",
+    )
     fireEvent.click(screen.getByRole("button", { name: "Open" }))
     expect(navigate).toHaveBeenCalledWith("/app/engines/prod%20a")
   })

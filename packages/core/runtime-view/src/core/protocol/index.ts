@@ -75,6 +75,7 @@ export type {
   EngineView,
   Environment,
   IncidentRow,
+  InstanceHead,
   InstanceHeader,
   InstanceListFilter,
   InstanceScope,

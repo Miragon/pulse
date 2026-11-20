@@ -97,7 +97,9 @@ export const MOVABLE_INSTANCE: InstanceView = {
     {
       elementId: "Activity_CheckCredit",
       elementName: "Check credit",
-      kindLabel: "External task",
+      kindLabel: "Worker task",
+      detail: "Task type credit-scoring",
+      taskType: "credit-scoring",
       since: minutesBefore(20),
       calledInstance: {
         instanceId: "called-1",

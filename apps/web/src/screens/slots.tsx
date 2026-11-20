@@ -65,17 +65,28 @@ function PageId({ id, name }: ScreenIdProps) {
 }
 
 /**
- * The address of a target: an engine's processes, or a process, which the page shows as the
- * cockpit's process view until it has a screen of its own.
+ * The address of a target: an engine's processes, a process or one of its versions, which the page
+ * shows as the cockpit's process view (over every version) until it has a screen of its own, or an
+ * instance, the cockpit's instance view until the instance screen.
  */
 function targetUrl(target: ScreenTarget): string {
-  return target.kind === "process"
-    ? urlOf({
+  switch (target.kind) {
+    case "engine":
+      return urlOf({ view: "overview", engine: target.engine })
+    case "process":
+    case "version":
+      return urlOf({
         view: "process-detail",
         engine: target.engine,
         processDefinitionKey: target.bpmnProcessId,
       })
-    : urlOf({ view: "overview", engine: target.engine })
+    case "instance":
+      return urlOf({
+        view: "instance-detail",
+        engine: target.engine,
+        processInstanceId: target.instanceId,
+      })
+  }
 }
 
 /**

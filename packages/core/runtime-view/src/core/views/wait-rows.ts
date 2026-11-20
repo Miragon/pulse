@@ -7,7 +7,9 @@ const DETAILS: Readonly<Record<WaitKindCode, (wait: WaitRowData) => string | und
   userTask: ({ assignee }) => (assignee === undefined ? "Unassigned" : `Assigned to ${assignee}`),
   workerTask: ({ taskType }) => `Task type ${taskType ?? ""}`,
   asyncContinuation: ({ retriesLeft }) =>
-    retriesLeft === undefined ? undefined : `${String(retriesLeft)} retries left`,
+    retriesLeft === undefined
+      ? undefined
+      : Labels.plural(retriesLeft, "retry left", "retries left"),
   message: ({ messageName }) => messageName,
   signal: ({ signalName }) => signalName,
   other: ({ description }) => description,
@@ -26,9 +28,27 @@ export class WaitRows {
       kindLabel: Labels.waitKind(wait.kind),
       ...(wait.elementName === undefined ? {} : { elementName: wait.elementName }),
       ...(text === undefined ? {} : { detail: text }),
+      ...WaitRows.factsOf(wait),
       ...(wait.since === undefined ? {} : { since: wait.since }),
       ...(wait.dueAt === undefined ? {} : { dueAt: wait.dueAt }),
       ...(wait.liesIn === null ? {} : { calledInstance: CalledInstanceLinks.of(wait.liesIn) }),
+    }
+  }
+
+  private static factsOf(
+    wait: WaitRowData,
+  ): Pick<
+    WaitRow,
+    "assignee" | "taskType" | "retriesLeft" | "messageName" | "signalName" | "description"
+  > {
+    const { assignee, taskType, retriesLeft, messageName, signalName, description } = wait
+    return {
+      ...(assignee === undefined ? {} : { assignee }),
+      ...(taskType === undefined ? {} : { taskType }),
+      ...(retriesLeft === undefined ? {} : { retriesLeft }),
+      ...(messageName === undefined ? {} : { messageName }),
+      ...(signalName === undefined ? {} : { signalName }),
+      ...(description === undefined ? {} : { description }),
     }
   }
 }

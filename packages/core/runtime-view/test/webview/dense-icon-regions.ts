@@ -7,5 +7,5 @@ export const DENSE_ICON_REGIONS: Readonly<Record<string, string>> = {
   "screens/instance-header.tsx": "caller-link",
   "screens/mapping-table.tsx": "mapping-note",
   "screens/move-panel.tsx": "move-warning",
-  "screens/variables-tab.tsx": "variable-name",
+  "screens/variables-tab.tsx": "shadow-warning",
 }

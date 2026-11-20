@@ -10,7 +10,9 @@ export class PathRows {
       state,
       ...(elementName === undefined ? {} : { elementName }),
       ...(endedAt === undefined ? {} : { endedAt }),
-      ...(durationMs === undefined ? {} : { duration: Labels.duration(durationMs) }),
+      ...(durationMs === undefined
+        ? {}
+        : { duration: Labels.duration(durationMs), durationMs: Math.max(0, durationMs) }),
     }))
   }
 }

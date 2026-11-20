@@ -93,12 +93,13 @@ describe("the extension's texts", PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, () => {
     expect(wordFindings(format)).toEqual([])
   })
 
-  test("in the building blocks, whose board tiles and engine tab both editors show, use the product's words too", () => {
+  test("in the building blocks, whose board tiles, engine tab and instance view both editors show, use the product's words too", () => {
     const blocks = join(REPO_ROOT, BLOCKS_SOURCES)
     expect(Object.keys(sourceTexts(blocks))).toEqual(
       expect.arrayContaining([
         expect.stringMatching(/^messages\/en\.ts:/),
         expect.stringMatching(/^messages\/screen-en\.ts:/),
+        expect.stringMatching(/^messages\/instance-en\.ts:/),
       ]),
     )
     expect(wordFindings(blocks)).toEqual([])

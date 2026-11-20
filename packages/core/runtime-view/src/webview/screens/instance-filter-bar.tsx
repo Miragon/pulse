@@ -80,10 +80,7 @@ export function InstanceFilterBar(props: InstanceFilterBarProps) {
           onFilter={onFilter}
         />
         <div className={NARROW.legend}>
-          <DiagramLegend
-            kind="badges"
-            scope={`Badges count running instances of v${props.version}`}
-          />
+          <DiagramLegend scope={`Badges count running instances of v${props.version}`} />
         </div>
         <span aria-hidden="true" className={NARROW.wrap} />
       </Toolbar>

@@ -134,6 +134,24 @@ describe("the instance view", () => {
     ])
   })
 
+  test("says one retry left in the singular, every other count in the plural", () => {
+    const base = { instanceId: ROOT, elementId: ELEMENT, kind: "asyncContinuation" } as const
+    const view = viewOf(
+      detailWith({
+        waitStates: [
+          wait({ ...base, retriesLeft: 1 }),
+          wait({ ...base, retriesLeft: 0 }),
+          wait({ ...base, retriesLeft: 3 }),
+        ],
+      }),
+    )
+    expect(view.waitStates.map((row) => row.detail)).toEqual([
+      "1 retry left",
+      "0 retries left",
+      "3 retries left",
+    ])
+  })
+
   test("marks the call activity that leads to a wait two levels down", () => {
     const view = viewOf(
       detailWith({

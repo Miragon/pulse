@@ -1,49 +1,12 @@
-import type { PathRow, PathState } from "../../core/protocol/index.js"
-import { DataTable, type Column } from "../components/data-table.js"
-import { EmptyHint } from "../components/empty-hint.js"
-import { NoValue } from "../components/no-value.js"
-import { StateLabel, type StateLabelProps } from "../components/state-label.js"
-import { TimeCell } from "./waiting-tab.js"
+import { HistoryTable } from "@miragon/pulse-blocks"
+import type { PathRow } from "../../core/protocol/index.js"
+import { useInstanceSlots } from "./instance-slots.js"
 
 export interface HistoryTabProps {
   readonly path: readonly PathRow[]
   readonly elementName: (elementId: string) => string
 }
 
-const STATE_LABELS: Readonly<Record<PathState, StateLabelProps["state"]>> = {
-  active: "Running",
-  completed: "Completed",
-  canceled: "Cancelled",
-}
-
 export function HistoryTab({ path, elementName }: HistoryTabProps) {
-  const columns: readonly Column<PathRow>[] = [
-    {
-      key: "element",
-      label: "Element",
-      render: (row) => row.elementName ?? elementName(row.elementId),
-    },
-    {
-      key: "state",
-      label: "State",
-      render: (row) => <StateLabel state={STATE_LABELS[row.state]} />,
-    },
-    { key: "started", label: "Started", render: (row) => <TimeCell iso={row.startedAt} precise /> },
-    { key: "ended", label: "Ended", render: (row) => <TimeCell iso={row.endedAt} precise /> },
-    {
-      key: "duration",
-      label: "Duration",
-      render: (row) => row.duration ?? <NoValue />,
-    },
-  ]
-  return (
-    <DataTable
-      label="History"
-      resizeId="history"
-      columns={columns}
-      rows={path}
-      rowKey={(row) => `${row.elementId}:${row.startedAt}`}
-      empty={<EmptyHint text="The engine has no history for this instance." />}
-    />
-  )
+  return <HistoryTable path={path} nameOf={elementName} slots={useInstanceSlots()} />
 }

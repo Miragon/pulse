@@ -34,6 +34,7 @@ export class InstanceViewBuilder {
   build(): InstanceView {
     const { detail } = this.snapshot
     const incidents = new IncidentRows(this.snapshot, this.screen.incidents).rows()
+    const head = InstanceHeadline.headOf(this.screen.headline)
     const headline = InstanceHeadline.of(this.screen.headline, incidents)
     const header = this.header()
     const waitRows = WaitRows.of(this.screen.waits)
@@ -54,6 +55,7 @@ export class InstanceViewBuilder {
       variables: new VariableRows(detail, this.snapshot.writable).rows(),
       truncated: this.screen.truncated,
       ...(waits.moves.length === 0 ? {} : { moves: waits.moves }),
+      ...(head === undefined ? {} : { head }),
       ...(headline === undefined ? {} : { headline }),
       ...WebUiLinks.to(header.businessKey ?? header.shortId, this.snapshot.engine),
     }

@@ -174,6 +174,7 @@ export interface PathRow {
   readonly startedAt: string
   readonly endedAt?: string
   readonly duration?: string
+  readonly durationMs?: number
   readonly state: PathState
 }
 
@@ -182,6 +183,12 @@ export interface WaitRow {
   readonly elementName?: string
   readonly kindLabel: string
   readonly detail?: string
+  readonly assignee?: string
+  readonly taskType?: string
+  readonly retriesLeft?: number
+  readonly messageName?: string
+  readonly signalName?: string
+  readonly description?: string
   readonly since?: string
   readonly dueAt?: string
   readonly calledInstance?: CalledInstanceLink
@@ -234,6 +241,11 @@ export interface InstanceHeader {
   readonly parent?: ParentLink
 }
 
+export type InstanceHead =
+  | { readonly code: "incidents"; readonly count: number; readonly suspended: boolean }
+  | { readonly code: "suspended" }
+  | { readonly code: "ended"; readonly state: "completed" | "terminated" }
+
 export interface InstanceView {
   readonly kind: "instance"
   readonly engine: EngineBadge
@@ -242,6 +254,7 @@ export interface InstanceView {
   readonly diagramXml: string
   readonly markers: readonly ElementMarker[]
   readonly calls: readonly CallLink[]
+  readonly head?: InstanceHead
   readonly headline?: Notice
   readonly incidents: readonly IncidentRow[]
   readonly waitStates: readonly WaitRow[]

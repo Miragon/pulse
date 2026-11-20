@@ -113,7 +113,12 @@ describe("the instance panel", () => {
     ])
     expect(view.headline).toBeUndefined()
     expect(view.waitStates).toEqual([
-      { elementId: "Activity_ReviewOrder", kindLabel: "User task", detail: "Assigned to demo" },
+      {
+        elementId: "Activity_ReviewOrder",
+        kindLabel: "User task",
+        detail: "Assigned to demo",
+        assignee: "demo",
+      },
     ])
     expect(view.variables).toEqual([
       { name: "route", type: "String", valueJson: '"review"', truncated: false },

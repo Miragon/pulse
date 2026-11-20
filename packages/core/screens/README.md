@@ -135,7 +135,8 @@ The main entry holds what a surface does with a screen's JSON form without readi
   over all of them. Counts only, never a rate: engines run different processes, so a rate summed
   across them measures their mix. An engine whose read failed is not among the screens it sums, and
   the surface says so in its place.
-- `ScreenTarget` names what a screen opens: an engine, or a process of an engine.
+- `ScreenTarget` names what a screen opens: an engine, a process of an engine, one version of a
+  process (by its number and its definition id) or an instance.
 
 ## Fixtures
 
@@ -176,7 +177,10 @@ Pulse for VS Code and Pulse for Orca: the runtime view they share builds its eng
 words in English, and opens a call activity's target with `CallLinks`; its webview renders the
 engine's process list with the building blocks of [`@miragon/pulse-blocks`](https://www.npmjs.com/package/@miragon/pulse-blocks)
 (`ProcessTable`, `ListFilterBar`), which read the main entry: the screen's JSON form and
-`ProcessFilter`, which they apply in the browser where a surface holds the whole list. The Pulse
+`ProcessFilter`, which they apply in the browser where a surface holds the whole list; and its
+instance view with the instance's blocks (`InstanceFacts`, `HeadlineStrip`, `IncidentCard`,
+`WaitingTable`, `HistoryTable`, `VariablesTable`, `MarkerLegend`) over the instance screen's
+JSON form, which name the targets they open by `ScreenTarget`. The Pulse
 MCP server: its engine module
 ([`@miragon/pulse-engine-connector`](https://www.npmjs.com/package/@miragon/pulse-engine-connector))
 builds the engine screen with `EngineScreen` and `ScreenJson` behind its app-only feed

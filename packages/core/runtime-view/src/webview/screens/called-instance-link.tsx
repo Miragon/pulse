@@ -1,8 +1,6 @@
 import { ArrowUpRightIcon } from "lucide-react"
-import type { ComponentProps } from "react"
-import type { CalledInstanceLink as CalledInstance } from "../../core/protocol/index.js"
+import type { ComponentProps, ReactNode } from "react"
 import { cn, FOCUS_RING, Icon } from "@miragon/pulse-ui"
-import { useHost } from "../host/host-context.js"
 
 const LINK_BUTTON = cn(
   "text-link inline-flex min-h-6 cursor-pointer items-center gap-1 rounded-sm text-left whitespace-nowrap underline decoration-1 underline-offset-3 hover:decoration-2",
@@ -14,22 +12,23 @@ export function LinkButton({ className, ...props }: ComponentProps<"button">) {
   return <button type="button" {...props} className={cn(LINK_BUTTON, className)} />
 }
 
-export function CalledInstanceLink({ link }: { readonly link: CalledInstance }) {
-  const host = useHost()
+export interface OpenLinkProps {
+  readonly title: string
+  readonly onOpen: (toSide: boolean) => void
+  readonly children: ReactNode
+}
+
+export function CalledInstanceLink({ title, onOpen, children }: OpenLinkProps) {
   return (
     <LinkButton
       data-part="called-instance-link"
-      title={`Open called instance ${link.instanceId}`}
+      title={title}
       onClick={(event) => {
         event.stopPropagation()
-        host.post({
-          type: "openInstance",
-          instanceId: link.instanceId,
-          toSide: event.metaKey || event.ctrlKey,
-        })
+        onOpen(event.metaKey || event.ctrlKey)
       }}
     >
-      {link.bpmnProcessId} <code className="font-mono">{link.shortId}</code>
+      {children}
       <Icon icon={ArrowUpRightIcon} dense />
     </LinkButton>
   )

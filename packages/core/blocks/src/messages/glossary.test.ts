@@ -11,6 +11,10 @@ import {
 import { describe, expect, it } from "vitest"
 import { de } from "./de.js"
 import { en, isOne } from "./en.js"
+import { instanceDe } from "./instance-de.js"
+import { instanceEn } from "./instance-en.js"
+import { instanceTranslate } from "./instance-words.js"
+import { humanized } from "./message.js"
 import { screenDe } from "./screen-de.js"
 import { screenEn } from "./screen-en.js"
 import { screenTranslate } from "./screen-words.js"
@@ -39,6 +43,8 @@ const LANGUAGES = [
   ["the tiles' English", en, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
   ["the screens' German", screenDe, [...PRODUCT_GLOSSARY.de, ...DE_RULES]],
   ["the screens' English", screenEn, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
+  ["an instance's German", instanceDe, [...PRODUCT_GLOSSARY.de, ...DE_RULES]],
+  ["an instance's English", instanceEn, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
 ] as const
 
 describe.each(LANGUAGES)("the glossary holds in %s", (_language, catalog, rules) => {
@@ -116,6 +122,46 @@ describe("the screens' words", () => {
     )
     expect(screenTranslate("de", "processes.summary", counts)).toMatch(
       new RegExp(` · ${COUNT_TERMS.allVersions.de}$`),
+    )
+  })
+})
+
+describe("an instance's words", () => {
+  it("follow the voice rules in both languages (du, no dash as a connector, the plural)", () => {
+    expect(catalogTextFindings(instanceEn, { language: "en" })).toEqual([])
+    expect(catalogTextFindings(instanceDe, { language: "de" })).toEqual([])
+  })
+
+  it("have a German entry for every English key and no other", () => {
+    expect(Object.keys(instanceDe).sort()).toEqual(Object.keys(instanceEn).sort())
+  })
+
+  it("put the noun in the number its count has, in both languages", () => {
+    const words = (locale: string, key: string, count: string) =>
+      instanceTranslate(locale, key, { count })
+    expect([
+      words("en", "headline.incidents", "1"),
+      words("en", "headline.incidents", "1,204"),
+    ]).toEqual(["1 incident", "1,204 incidents"])
+    expect([words("de", "wait.retriesLeft", "1"), words("de", "wait.retriesLeft", "0")]).toEqual([
+      "1 Versuch übrig",
+      "0 Versuche übrig",
+    ])
+    expect([words("en", "called.menu", "1"), words("de", "called.menu", "2")]).toEqual([
+      "1 called instance",
+      "2 aufgerufene Instanzen",
+    ])
+  })
+
+  it("read an engine's code no catalog names in words, as the editors did", () => {
+    expect(
+      ["failedJob", "JOB_NO_RETRIES", "failed-external_task", "callActivity2Failed"].map(humanized),
+    ).toEqual(["Failed job", "Job no retries", "Failed external task", "Call activity2 failed"])
+    expect(instanceTranslate("en", "incident.type", { type: "failedExternalTask" })).toBe(
+      "Failed external task",
+    )
+    expect(instanceTranslate("de", "incident.type", { type: "failedExternalTask" })).toBe(
+      "Fehlgeschlagene externe Aufgabe",
     )
   })
 })
