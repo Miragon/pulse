@@ -96,6 +96,7 @@ function columnsOf<Row extends InstanceRowData>(
       key: "businessKey",
       label: t("column.businessKey"),
       cell: (row) => row.businessKey ?? <NoValue />,
+      hideBelow: "40rem",
     },
     {
       key: "state",
@@ -111,6 +112,7 @@ function columnsOf<Row extends InstanceRowData>(
       key: "started",
       label: t("column.started"),
       cell: (row) => <InstanceTime iso={row.startedAt} />,
+      hideBelow: "40rem",
     },
   ]
 }
@@ -124,9 +126,11 @@ function emptyOf(t: ProcessWords, filter: InstanceListFilterData) {
 
 /**
  * A process's instances, one row each over the surface's table (the instance list's rows): its id,
- * its business key, its state with an open incident beside it, when it started. A row opens its
- * instance and copies its id; under the rows Load more while a page follows (once the page shows,
- * the focus goes on to its first row), before them the surface's selection where it writes.
+ * its business key, its state with an open incident beside it, when it started (a region narrower
+ * than 40rem keeps the id and the state, which fit a phone; the instance shows the rest). A row
+ * opens its instance and copies its id; under the rows Load more while a page follows (once the
+ * page shows, the focus goes on to its first row), before them the surface's selection where it
+ * writes.
  */
 export function InstanceTable<Row extends InstanceRowData>(props: InstanceTableProps<Row>) {
   const { engine, rows, filter, onFilter, more, select, slots } = props

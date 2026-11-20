@@ -313,7 +313,9 @@ read as 0.
   words (the operators per type, what a number and a date look like, at most five conditions,
   the refused kinds), which a surface that validates conditions holds its own rules to.
 - `InstanceTable`: an instance per row over the surface's table, its id, business key, state with
-  an open incident beside it and start; a row opens its instance and copies its id. An empty table
+  an open incident beside it and start (the business key and the start drop where a table that fits
+  its region is narrower than 40rem, so a phone keeps the id and the state); a row opens its
+  instance and copies its id. An empty table
   says why, and offers to clear the variable conditions that left no row. `more` is the next page
   while one follows: `LoadMore` under the rows, which waits while the surface reads and keeps the
   focus, the focus moved on to the page's first row once it shows (never where the reader went

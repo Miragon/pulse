@@ -242,6 +242,17 @@ test.describe("the process screen", () => {
     await rendered(de)
     if (SHOTS !== undefined) await de.screenshot({ path: `${SHOTS}/process-de-390.png` })
     expect(await de.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
+    // The list keeps its id and state on a phone, the business key and the start dropped, so its
+    // region never scrolls sideways.
+    const instances = de.getByRole("table", { name: "Instanzen" })
+    await expect(instances.getByRole("columnheader", { name: "Geschäftsschlüssel" })).toBeHidden()
+    await expect(instances.getByRole("columnheader", { name: "Gestartet" })).toBeHidden()
+    await expect(instances.getByRole("columnheader", { name: "Status" })).toBeInViewport()
+    expect(
+      await de
+        .getByRole("region", { name: "Instanzen", exact: true })
+        .evaluate((region) => region.scrollWidth - region.clientWidth),
+    ).toBe(0)
     // No split under 64rem: the diagram at a height of its own, three rows under it in the window.
     await expect(de.getByRole("separator")).toHaveCount(0)
     const frame = await de.locator("[data-slot=process-diagram-frame]").boundingBox()

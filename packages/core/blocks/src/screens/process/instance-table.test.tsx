@@ -174,6 +174,18 @@ describe("the instance table in a page's table", () => {
     expect(container.querySelector("tbody tr")?.getAttribute("data-href")).toBe(
       "/app/engines/conformance/instances/fake-ORD-1001",
     )
+    // A phone's region keeps the id and the state; the business key and the start drop under 40rem.
+    expect(
+      [...container.querySelectorAll("th")].map((head) => [
+        head.textContent,
+        head.dataset.hideBelow,
+      ]),
+    ).toEqual([
+      ["ID", undefined],
+      ["Business key", "40rem"],
+      ["State", undefined],
+      ["Started", "40rem"],
+    ])
     cleanup()
 
     const filter: InstanceListFilterData = {
