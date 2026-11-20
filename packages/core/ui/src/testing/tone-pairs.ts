@@ -159,6 +159,25 @@ export const ROLE_CONTRAST_PAIRS: readonly ContrastPair[] = [
     bg: `--${tone}-surface`,
     min: 4.5,
   })),
+  // The dark BPMN canvas of widget-shell paints these roles (owner decision D10, point 7): a
+  // marked shape's outline in its tone on its status surface, its name in the foreground on it,
+  // and the count badges' fixed fills on the ground, the dark paper.
+  ...(["danger", "info"] as const).flatMap((tone): ContrastPair[] => [
+    { label: `${tone} on ${tone}-surface`, fg: `--${tone}`, bg: `--${tone}-surface`, min: 3 },
+    {
+      label: `foreground on ${tone}-surface`,
+      fg: "--foreground",
+      bg: `--${tone}-surface`,
+      min: 4.5,
+    },
+  ]),
+  ...(["blau", "danger"] as const).map((token): ContrastPair => ({
+    label: `count badge (--cd-${token}) on background`,
+    fg: `--cd-${token}`,
+    bg: "--background",
+    over: "--background",
+    min: 3,
+  })),
 ]
 
 /**

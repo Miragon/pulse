@@ -11,6 +11,8 @@ describe("the /widgets entry", () => {
   it("exports exactly these runtime names", () => {
     expect(Object.keys(widgets).sort()).toEqual([
       "AskAiButton",
+      "BPMN_CANVAS_SLOT",
+      "BPMN_CANVAS_VARS",
       "BPMN_OVERLAY_CSS",
       "BPMN_TOKENS",
       "BpmnZoomControls",
@@ -72,6 +74,7 @@ describe("the /widgets entry", () => {
       "useActionFeedback",
       "useBpmnViewer",
       "useDetailView",
+      "useHostChrome",
       "useHostDisplayMode",
       "useHostFollowUp",
       "useHostLocation",

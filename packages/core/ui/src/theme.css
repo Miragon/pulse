@@ -34,8 +34,9 @@
  * theme), `data-theme="dark"` (what SEP-1865 hosts write on <html>) or the
  * guide's own switch, `data-cd-theme="dark"` (what the editor hosts write).
  * `data-theme-mode="light"` marks a forced-light island: an always-light
- * surface such as a diagram's paper and its zoom chrome; `data-cd-theme="light"`
- * inside a dark scope is one too.
+ * surface such as a light preview inside a dark app (a BPMN canvas follows the
+ * mode, widget-shell's `BPMN_DARK_CANVAS`); `data-cd-theme="light"` inside a
+ * dark scope is one too.
  *
  * `dark:` follows the NEAREST mode scope: an element is dark when it sits in a
  * dark scope with no light island in between. The second branch is a dark
@@ -580,8 +581,8 @@
    card (edged by a shadow ring) and a switch an edge in CanvasText, a status
    dot, the switch's thumb and a progress bar's fill CanvasText, the bar's
    track a CanvasText outline. A transparent edge (the kit's
-   buttons) turns visible here, so a button keeps its outline. A light island (a diagram's paper and its zoom
-   bar) keeps the colours it is drawn in, so the drawing stays on its paper.
+   buttons) turns visible here, so a button keeps its outline. A light island
+   keeps the colours it is drawn in.
    Unlayered, so these win over the utilities. */
 @media (forced-colors: active) {
   :is(
@@ -596,13 +597,15 @@
   :is([data-slot="card"], [data-slot="switch"]) {
     border-color: CanvasText;
   }
-  /* A line tab's bar (a view's tab or a navigation's item) and a segment's
-     edge are borders, Highlight on the selected or current one; an
-     unselected tab's bar and an unchecked segment's edge, transparent, stay
+  /* A line tab's bar (a view's tab or a navigation's item), a side
+     navigation item's left edge and a segment's edge are borders,
+     Highlight on the selected or current one; an unselected tab's bar, an
+     item's edge and an unchecked segment's edge, transparent, stay
      unpainted. */
   :is(
     [data-slot="tabs-trigger"][data-variant="line"],
     [data-slot="nav-tab"],
+    [data-slot="side-nav-item"],
     [data-slot="segmented-option"]
   ) {
     border-color: Canvas;
@@ -610,6 +613,7 @@
   :is(
     [data-slot="tabs-trigger"][data-variant="line"][data-state="active"],
     [data-slot="nav-tab"][aria-current="page"],
+    [data-slot="side-nav-item"][aria-current="page"],
     [data-slot="segmented-option"][aria-checked="true"]
   ) {
     border-color: Highlight;

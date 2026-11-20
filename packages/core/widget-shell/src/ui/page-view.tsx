@@ -8,7 +8,13 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { decodeToolResult } from "../protocol/tool-result.js"
 import { isViewData, type ViewCall, type ViewPhase } from "./view-call.js"
 import { ViewFrame } from "./view-frame.js"
-import { useViewHost, ViewHostProvider, type ViewHost, type ViewLocation } from "./view-host.js"
+import {
+  useViewHost,
+  ViewHostProvider,
+  type HostChrome,
+  type ViewHost,
+  type ViewLocation,
+} from "./view-host.js"
 import type { ViewComponent, ViewMap } from "./views.js"
 
 /** The view's data for a start that failed with `error`, or null for the frame's error state. */
@@ -32,6 +38,12 @@ export interface PageViewProps {
    * lead (`ViewHost.location`). Without one the view moves on screen alone.
    */
   readonly location?: ViewLocation
+  /**
+   * The page's chrome around the view, where it navigates itself (`ViewHost.chrome`): the view
+   * leaves its head to the page and shows the page's menu first in its bar. Without it the view
+   * shows its own head, as in a chat.
+   */
+  readonly chrome?: HostChrome
   /**
    * The view's data for a start whose view tool failed, where the view shows that failure in its
    * own place (the cockpit keeps its head over the route that failed to read its engine); null
@@ -112,11 +124,26 @@ function StartedView({ name, view, args, fill, failedStart }: StartedViewProps) 
   return <ViewFrame call={call} view={view} fill={fill} />
 }
 
-/** The page's host, its address the one of this view. */
-function AtLocation({ location, children }: { location: ViewLocation; children: ReactNode }) {
+/** The page's host, its address and its chrome the ones of this view. */
+function OnPage({
+  location,
+  chrome,
+  children,
+}: {
+  location: ViewLocation | undefined
+  chrome: HostChrome | undefined
+  children: ReactNode
+}) {
   const host = useViewHost()
-  const located = useMemo<ViewHost>(() => ({ ...host, location }), [host, location])
-  return <ViewHostProvider host={located}>{children}</ViewHostProvider>
+  const placed = useMemo<ViewHost>(
+    () => ({
+      ...host,
+      ...(location === undefined ? {} : { location }),
+      ...(chrome === undefined ? {} : { chrome }),
+    }),
+    [host, location, chrome],
+  )
+  return <ViewHostProvider host={placed}>{children}</ViewHostProvider>
 }
 
 /**
@@ -130,6 +157,7 @@ export function PageView({
   view,
   args = NO_ARGS,
   location,
+  chrome,
   failedStart,
   fill = false,
 }: PageViewProps) {
@@ -144,5 +172,10 @@ export function PageView({
       failedStart={failedStart}
     />
   )
-  return location === undefined ? started : <AtLocation location={location}>{started}</AtLocation>
+  if (location === undefined && chrome === undefined) return started
+  return (
+    <OnPage location={location} chrome={chrome}>
+      {started}
+    </OnPage>
+  )
 }

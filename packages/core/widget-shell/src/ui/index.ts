@@ -47,12 +47,14 @@ export { ViewStack, type ViewComponent, type ViewMap, type ViewProps } from "./v
 export { ViewErrorBoundary } from "./view-error-boundary.js"
 export {
   HostModelContext,
+  useHostChrome,
   useHostFollowUp,
   useHostLocation,
   useHostWrites,
   useStartPage,
   useViewHost,
   type FollowUp,
+  type HostChrome,
   type ViewHost,
   type ViewLocation,
   type ViewPlace,
@@ -117,7 +119,14 @@ export { PagedRows } from "./paged-rows.js"
 export { RowsBudgeted } from "./inline-budget.js"
 export type { InlineRows } from "./inline-fit.js"
 export { FIT_CONTINUES_ROW } from "./inline-fit-registry.js"
-export { BPMN_TOKENS, BPMN_OVERLAY_CSS, injectBpmnOverlayCss, cdVar } from "./bpmn-tokens.js"
+export {
+  BPMN_CANVAS_SLOT,
+  BPMN_CANVAS_VARS,
+  BPMN_TOKENS,
+  BPMN_OVERLAY_CSS,
+  injectBpmnOverlayCss,
+  cdVar,
+} from "./bpmn-tokens.js"
 export {
   useBpmnViewer,
   type BpmnCanvas,

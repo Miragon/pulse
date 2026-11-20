@@ -9,7 +9,8 @@ name: Mutation (nightly)
 # @miragon/pulse-http (owner decision 2026-11-08), the rules of the engine family's neutral core,
 # @miragon/pulse-engine-core (its root-cause, value-kind and move-reason rules alone; owner
 # decision 2026-11-09), the profile format, @miragon/pulse-profile (owner decision 2026-11-07),
-# the board format with its builder, @miragon/pulse-board (owner decision 2026-11-15), the web
+# the board format with its builder, @miragon/pulse-board (owner decision 2026-11-15), the
+# screens' format with its builder, @miragon/pulse-screens (owner decision 2026-11-19), the web
 # app's server rules, the gate's token rules, the provider's discovery, the generic OpenID Connect
 # provider and the Entra ID provider of @miragon/pulse-widget-shell (its seal, cookies, return path,
 # CSRF check, forward, renewal, served build, security headers, signed-out sessions, session,
@@ -33,9 +34,9 @@ name: Mutation (nightly)
 # web sign-in rules on 2026-11-16, its forward, renewal, served build and security headers later
 # that day, its signed-out sessions, session, sign-out and session route on 2026-11-17, and
 # c8-core's rules and widget-shell's JWT verifier the same day, its discovery, its generic OpenID
-# Connect provider and its Entra ID provider on 2026-11-18. A pause flips
-# scripts/mutation-pause.mjs to true and removes the schedule here (a workflow cannot read that
-# switch); resuming flips it back and restores the schedule.
+# Connect provider and its Entra ID provider on 2026-11-18, the screens package on 2026-11-19. A
+# pause flips scripts/mutation-pause.mjs to true and removes the schedule here (a workflow cannot
+# read that switch); resuming flips it back and restores the schedule.
 on:
   schedule:
     - cron: "0 2 * * *"
@@ -92,7 +93,8 @@ jobs:
     # files (packages/connectors/engine/engine-core, 115 mutants) in about 10 s on 17 and 15 s
     # on 4, the profile format (packages/core/profile, 1,168 mutants) in about 3 min on 4 local
     # workers, the board format and builder (packages/core/board, 1,083 mutants) in about 40 s on
-    # 11 and 70 s on 4, the web app's server rules, the gate's JWT verifier, the discovery, the
+    # 11 and 70 s on 4, the screens' format and builder (packages/core/screens, 110 mutants) in
+    # about 5 s on 11 and 25 s on 4, the web app's server rules, the gate's JWT verifier, the discovery, the
     # generic provider and the Entra ID provider (packages/core/widget-shell, 1,987 mutants over
     # src/web's and the OAuth suites alone, 328 of them in static.ts, which every suite runs) in
     # about 8 min on 11 and 10 min on 4, c8-core's

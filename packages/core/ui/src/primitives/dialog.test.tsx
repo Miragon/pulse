@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
-import { cleanup, render, screen } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { LocaleProvider } from "../locale/locale-provider.js"
 import { Button } from "./button.js"
 import {
@@ -104,5 +104,65 @@ describe("Dialog geometry (CI §8)", () => {
       "Keep name",
       "Rename",
     ])
+  })
+})
+
+describe("Dialog as a drawer (side left)", () => {
+  function drawer(onOpenChange: (open: boolean) => void = () => {}) {
+    return render(
+      <LocaleProvider locale="en">
+        <Dialog open onOpenChange={onOpenChange}>
+          <DialogContent side="left" aria-describedby={undefined}>
+            <DialogTitle className="sr-only">Navigation</DialogTitle>
+            <a href="/app">Start</a>
+          </DialogContent>
+        </Dialog>
+      </LocaleProvider>,
+    )
+  }
+
+  it("runs the window's height along its left edge, 18rem wide at most, sliding in", () => {
+    drawer()
+    const box = screen.getByRole("dialog", { name: "Navigation" })
+    expect(box.getAttribute("data-side")).toBe("left")
+    expect(classes(box)).toEqual(
+      expect.arrayContaining([
+        "fixed",
+        "inset-y-0",
+        "left-0",
+        "w-[min(18rem,calc(100%-3rem))]",
+        "border-r",
+        "data-[state=open]:slide-in-from-left",
+        "data-[state=closed]:slide-out-to-left",
+      ]),
+    )
+    // None of the centred dialog's place, size or zoom.
+    expect(
+      classes(box).filter((c) =>
+        /^(?:top|left)-\[50%\]|translate-|zoom-|max-w-\[min\(560px/.test(c),
+      ),
+    ).toEqual([])
+    // The scrim is any dialog's.
+    expect(classes(document.querySelector('[data-slot="dialog-overlay"]'))).toContain("bg-scrim")
+  })
+
+  it("closes on Escape, as any dialog does", () => {
+    const changes: boolean[] = []
+    drawer((open) => changes.push(open))
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" })
+    expect(changes).toEqual([false])
+  })
+
+  it("keeps the centred dialog the default", () => {
+    render(
+      <LocaleProvider locale="en">
+        <Dialog open>
+          <DialogContent aria-describedby={undefined}>
+            <DialogTitle>Rename</DialogTitle>
+          </DialogContent>
+        </Dialog>
+      </LocaleProvider>,
+    )
+    expect(screen.getByRole("dialog").getAttribute("data-side")).toBe("center")
   })
 })

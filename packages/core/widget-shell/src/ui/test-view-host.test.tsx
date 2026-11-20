@@ -25,11 +25,13 @@ import { useShellHost } from "./shell-host.js"
 import { createTestQueryClient, TestViewHost, type HostAction } from "./test-view-host.js"
 import {
   HostModelContext,
+  useHostChrome,
   useHostFollowUp,
   useHostLocation,
   useHostWrites,
   useViewHost,
   ViewHostProvider,
+  type HostChrome,
   type ViewHost,
   type ViewLocation,
 } from "./view-host.js"
@@ -146,6 +148,21 @@ describe("TestViewHost: what the widget asked the host", () => {
     expect("location" in hostWith()).toBe(false)
     const location: ViewLocation = { report: () => undefined, subscribe: () => () => undefined }
     expect(locationUnder(location)).toBe(location)
+  })
+
+  it("offers no chrome as a chat host does unless a test renders the view on a page with one", () => {
+    const chromeUnder = (chrome?: HostChrome) =>
+      renderHook(() => useHostChrome(), {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <TestViewHost chrome={chrome}>{children}</TestViewHost>
+        ),
+      }).result.current
+    expect(chromeUnder()).toBeUndefined()
+    expect("chrome" in hostWith()).toBe(false)
+    const chrome: HostChrome = { menu: null }
+    expect(chromeUnder(chrome)).toBe(chrome)
+    // Outside any view host, as a kit piece rendered on its own: none.
+    expect(renderHook(() => useHostChrome()).result.current).toBeUndefined()
   })
 
   it("lets a view write under an adapter that states nothing about writes", () => {

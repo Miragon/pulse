@@ -10,8 +10,9 @@ reads a Camunda 8 cluster with its own client.
   `/app/engines/prod/jobs?failed=true` and every other view its own address, which a reload, Back
   and a copied link open again. An address of an earlier release (`/app/cockpit?view=…`) still
   opens its view and gives way to the view's own.
-- The bar names who is signed in and signs out; a session that ends while a page is open shows a
-  notice whose sign-in comes back to the page.
+- A side navigation beside the view (a drawer under 64rem) holds the start page, the engines with
+  the open one's sections, the boards, who is signed in and the sign-out; a session that ends while
+  a page is open shows a notice whose sign-in comes back to the page.
 - `/app/signed-out` says why a sign-in ended and starts a new one.
 
 The server turns the web app on with `MCP_WEB_CLIENT_ID` beside its OAuth provider and reads this

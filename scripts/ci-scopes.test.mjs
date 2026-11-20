@@ -193,7 +193,7 @@ describe("scopesFor: a package's code reaches its dependents", () => {
   })
 
   it("runs the MCP server's checks for the web app, whose page shows the MCP views", () => {
-    assert.deepEqual(scopes("apps/web/src/frame.tsx"), ["mcp", "typescript"])
+    assert.deepEqual(scopes("apps/web/src/frame/session-frame.tsx"), ["mcp", "typescript"])
     assert.deepEqual(scopes("apps/web/README.md"), [])
   })
 

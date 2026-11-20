@@ -20,7 +20,7 @@ export interface BpmnZoomControlsProps {
 
 /**
  * Top-right, not bottom-right: bpmn-js pins its bpmn.io logo (licence requirement) there at z-index
- * 100, covering zoom-out. A forced-light island, so a dark host shows no black chip on white paper.
+ * 100, covering zoom-out. In the theme, as the canvas under it (a raised card on its paper).
  * Placed beside the viewer's container in one frame, as `useBpmnViewer` expects: its fit keeps the
  * diagram clear of the bar (and of the logo) wherever the bar lies.
  */
@@ -40,7 +40,6 @@ export function BpmnZoomControls({
   return (
     <div
       data-slot={ZOOM_CONTROLS_SLOT}
-      data-theme-mode="light"
       className={cn(
         "border-border bg-card text-card-foreground shadow-1 absolute top-3 right-3 flex flex-col overflow-hidden rounded-md border",
         className,

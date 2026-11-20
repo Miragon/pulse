@@ -19,16 +19,21 @@ const viewArgs = (fetch: Parameters<typeof callsOf>[0]): unknown =>
   callsOf(fetch, "engine_open_cockpit")[0]
 
 describe("a page with a session", () => {
-  it("shows the bar, who is signed in and the view its address names, called with the CSRF token", async () => {
+  it("shows its navigation, who is signed in and the view its address names, called with the CSRF token", async () => {
     const env = await start("/app/engines/prod/jobs")
     const banner = screen.getByRole("banner")
-    expect(within(banner).getByText("Pulse")).toBeTruthy()
-    // The Komet is the app level's (the cockpit's landing), never the bar of every page.
+    expect(within(banner).getAllByText("Pulse").length).toBeGreaterThan(0)
+    expect(within(banner).getByRole("navigation", { name: "Pulse" })).toBeTruthy()
+    // The Komet is the app level's (the cockpit's landing), never the frame of every page.
     expect(banner.querySelector("[data-brand-mark]")).toBeNull()
     expect(within(banner).getByText("Signed in as Alice Adams")).toBeTruthy()
     expect(within(banner).getByRole("button", { name: "Sign out" })).toBeTruthy()
     expect(screen.getByTestId("view").textContent).toBe("Hi")
-    const [, call] = env.fetch.mock.calls.find(([path]) => path === "/app/api/call") ?? []
+    const call = env.fetch.mock.calls.find(
+      ([path, init]) =>
+        path === "/app/api/call" &&
+        (JSON.parse(bodyOf(init)) as { name: string }).name === "engine_open_cockpit",
+    )?.[1]
     expect(JSON.parse(bodyOf(call))).toEqual({
       name: "engine_open_cockpit",
       arguments: { view: "jobs", engine: "prod" },
@@ -387,11 +392,14 @@ describe("an old address", () => {
   })
 })
 
-describe("the bar's way to the start page", () => {
+/** The navigation's entry to the start page, on the wide layout's side. */
+const startEntry = () => within(screen.getByRole("banner")).getByRole("link", { name: "Start" })
+
+describe("the navigation's way to the start page", () => {
   it("goes there in the page, a new entry, the document titled by the route it leads to", async () => {
     const env = await start("/app/boards/invoices")
     expect(document.title).toBe("Board invoices · Pulse")
-    const home = within(screen.getByRole("banner")).getByRole("link", { name: "Pulse, start page" })
+    const home = startEntry()
     expect(home.getAttribute("href")).toBe("/app")
     await act(async () => fireEvent.click(home))
     await settled()
@@ -415,9 +423,7 @@ describe("the bar's way to the start page", () => {
     "leaves a click with %o to the browser: a new tab, a new window, a download",
     async (modifier) => {
       const env = await start("/app/boards/invoices")
-      const home = within(screen.getByRole("banner")).getByRole("link", {
-        name: "Pulse, start page",
-      })
+      const home = startEntry()
       const click = new MouseEvent("click", { bubbles: true, cancelable: true, ...modifier })
       await act(async () => home.dispatchEvent(click))
       expect(env.browser.writes).toEqual([])
@@ -426,7 +432,7 @@ describe("the bar's way to the start page", () => {
   )
 })
 
-describe("the page's bar leads past itself (A5)", () => {
+describe("the page's frame leads past its navigation (A5)", () => {
   it("offers a skip link first, which focuses the content's heading and keeps the address", async () => {
     const env = await start("/app/engines/prod/jobs", {}, MOVER)
     const banner = screen.getByRole("banner")

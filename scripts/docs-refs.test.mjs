@@ -515,10 +515,10 @@ const DOCS_BUDGETS = {
   // its failures and the server's legs of the conformance matrix.
   "mcp/camunda8.md": 115,
   "mcp/reference.md": 160,
-  // The web app's pages (docs/web/): what it shows and for whom, the sign-in an operator sets up
-  // (variables, the provider's side, sessions and their check at the provider, a proxy, local),
-  // how it is built.
-  "web/index.md": 50,
+  // The web app's pages (docs/web/): what it shows and for whom, its navigation, the sign-in an
+  // operator sets up (variables, the provider's side, sessions and their check at the provider, a
+  // proxy, local), how it is built.
+  "web/index.md": 58,
   "web/sign-in.md": 135,
   "web/architecture.md": 102,
   // The CLI's pages (docs/cli/).

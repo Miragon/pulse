@@ -47,13 +47,14 @@ describe("widget-shell type roles", () => {
   })
 })
 
-describe("BpmnZoomControls (CI §8, §10: chrome over the paper stays light)", () => {
-  it("is a forced-light island of 32 px icon buttons with Lucide icons and names", () => {
+describe("BpmnZoomControls (CI §8: chrome over the paper, in the theme like the paper)", () => {
+  it("is a card of 32 px icon buttons with Lucide icons and names, no light island", () => {
     const { container } = render(
       <BpmnZoomControls onZoomIn={vi.fn()} onZoomOut={vi.fn()} onFit={vi.fn()} />,
     )
     const bar = container.firstElementChild!
-    expect(bar.getAttribute("data-theme-mode")).toBe("light")
+    expect(bar.hasAttribute("data-theme-mode")).toBe(false)
+    expect(classes(bar)).toContain("bg-card")
     expect(classes(bar)).toContain("rounded-md")
     for (const name of ["Zoom in", "Fit to viewport", "Zoom out"]) {
       const button = screen.getByRole("button", { name })

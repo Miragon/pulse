@@ -1,0 +1,173 @@
+{
+  "about": "The answers of one cluster of Camunda 8 to the reads of the screens Pulse's surfaces share, under /v2, taken from the answers recorded once from the world C8WorldSeed seeds on camunda/camunda:8.10.9 with H2 and no security (the recording of c8-core's board engine, whose reads include the engine screen's), and the screens every Camunda 8 wire of Pulse builds from them at asOf, in the JSON form of @miragon/pulse-screens.",
+  "engine": "c8-conformance",
+  "asOf": "2026-11-19T09:00:00.000Z",
+  "answers": [
+    {
+      "method": "GET",
+      "path": "/v2/topology",
+      "answer": {
+        "brokers": [
+          {
+            "nodeId": 0,
+            "brokerId": "0",
+            "host": "172.18.0.2",
+            "port": 26501,
+            "partitions": [
+              {
+                "partitionId": 1,
+                "role": "leader",
+                "health": "healthy",
+                "state": "active"
+              }
+            ],
+            "version": "8.10.9"
+          }
+        ],
+        "clusterId": "333312ef-01c9-4031-adeb-4a8e3109b49a",
+        "clusterSize": 1,
+        "partitionsCount": 1,
+        "replicationFactor": 1,
+        "gatewayVersion": "8.10.9",
+        "lastCompletedChangeId": "-1"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v2/process-definitions/search",
+      "body": {
+        "filter": {
+          "isLatestVersion": true
+        },
+        "page": {
+          "limit": 500
+        }
+      },
+      "answer": {
+        "items": [
+          {
+            "name": "Print label",
+            "resourceName": "label.bpmn",
+            "version": 1,
+            "versionTag": null,
+            "processDefinitionId": "pulse-label",
+            "tenantId": "<default>",
+            "processDefinitionKey": "2251799813685322",
+            "hasStartForm": false,
+            "state": "ACTIVE"
+          },
+          {
+            "name": "Order fulfillment",
+            "resourceName": "order.bpmn",
+            "version": 2,
+            "versionTag": null,
+            "processDefinitionId": "pulse-order",
+            "tenantId": "<default>",
+            "processDefinitionKey": "2251799813685326",
+            "hasStartForm": false,
+            "state": "ACTIVE"
+          },
+          {
+            "name": "Dispatch order",
+            "resourceName": "dispatch.bpmn",
+            "version": 1,
+            "versionTag": null,
+            "processDefinitionId": "pulse-dispatch",
+            "tenantId": "<default>",
+            "processDefinitionKey": "2251799813685328",
+            "hasStartForm": false,
+            "state": "ACTIVE"
+          }
+        ],
+        "page": {
+          "totalItems": 3,
+          "hasMoreTotalItems": false,
+          "startCursor": "WzIyNTE3OTk4MTM2ODUzMjJd",
+          "endCursor": "WzIyNTE3OTk4MTM2ODUzMjhd"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v2/process-definitions/statistics/process-instances",
+      "body": {
+        "page": {
+          "from": 0,
+          "limit": 500
+        }
+      },
+      "answer": {
+        "items": [
+          {
+            "processDefinitionId": "pulse-dispatch",
+            "tenantId": "<default>",
+            "latestProcessDefinitionName": "Dispatch order",
+            "hasMultipleVersions": false,
+            "activeInstancesWithoutIncidentCount": 0,
+            "activeInstancesWithIncidentCount": 1
+          },
+          {
+            "processDefinitionId": "pulse-label",
+            "tenantId": "<default>",
+            "latestProcessDefinitionName": "Print label",
+            "hasMultipleVersions": false,
+            "activeInstancesWithoutIncidentCount": 0,
+            "activeInstancesWithIncidentCount": 1
+          },
+          {
+            "processDefinitionId": "pulse-order",
+            "tenantId": "<default>",
+            "latestProcessDefinitionName": "Order fulfillment",
+            "hasMultipleVersions": true,
+            "activeInstancesWithoutIncidentCount": 2,
+            "activeInstancesWithIncidentCount": 1
+          }
+        ],
+        "page": {
+          "totalItems": 3,
+          "hasMoreTotalItems": false,
+          "startCursor": "WyJwdWxzZS1kaXNwYXRjaCJd",
+          "endCursor": "WyJwdWxzZS1vcmRlciJd"
+        }
+      }
+    }
+  ],
+  "expected": {
+    "engine": {
+      "engine": "c8-conformance",
+      "asOf": "2026-11-19T09:00:00.000Z",
+      "info": {
+        "product": "Camunda 8",
+        "version": "8.10.9"
+      },
+      "processes": [
+        {
+          "bpmnProcessId": "pulse-order",
+          "name": "Order fulfillment",
+          "latestVersion": 2,
+          "running": 3,
+          "withIncident": 1
+        },
+        {
+          "bpmnProcessId": "pulse-dispatch",
+          "name": "Dispatch order",
+          "latestVersion": 1,
+          "running": 1,
+          "withIncident": 1
+        },
+        {
+          "bpmnProcessId": "pulse-label",
+          "name": "Print label",
+          "latestVersion": 1,
+          "running": 1,
+          "withIncident": 1
+        }
+      ],
+      "totals": {
+        "processes": 3,
+        "running": 5,
+        "withIncident": 3
+      }
+    }
+  }
+}

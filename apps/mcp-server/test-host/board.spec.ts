@@ -348,17 +348,31 @@ test.describe("a board, the cockpit's app-level route", () => {
     await expect(icon).toBeVisible()
   })
 
-  test("dark: the tiles on the dark card, the diagram's paper stays light", async ({ page }) => {
+  test("dark: the tiles on the dark card, the diagram's canvas in the theme (D10, point 7)", async ({
+    page,
+  }) => {
     const app = await openBoard(page, { theme: "dark" })
     await drawn(app)
     const card = tile(app, "Invoice Receipt")
     const dark = await app.locator("html").evaluate((html) => html.classList.contains("dark"))
     expect(dark).toBe(true)
     expect(await backgroundLuminance(card)).toBeLessThan(0.3)
-    // The paper the canvas is drawn on, its nearest light island, is light on the dark card.
+    // The paper the canvas is drawn on is the dark ground, as the editors' canvas, its flows and
+    // labels light on it.
     const canvas = card.getByRole("img", { name: "BPMN process diagram" })
-    const paper = canvas.locator("xpath=ancestor::*[@data-theme-mode='light'][1]")
-    expect(await backgroundLuminance(paper)).toBeGreaterThan(0.95)
+    const paper = canvas.locator("xpath=ancestor::*[@data-slot='bpmn-canvas'][1]")
+    expect(await backgroundLuminance(paper)).toBeLessThan(0.15)
+    const ink = await canvas
+      .locator(".djs-connection .djs-visual > path")
+      .first()
+      .evaluate((el) => {
+        const pen = document.createElement("canvas").getContext("2d")!
+        pen.fillStyle = getComputedStyle(el).stroke
+        pen.fillRect(0, 0, 1, 1)
+        const [r, g, b] = pen.getImageData(0, 0, 1, 1).data
+        return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
+      })
+    expect(ink).toBeGreaterThan(0.95)
   })
 
   test("a stripping host: one re-run of the view's own tool, with the invocation's arguments", async ({

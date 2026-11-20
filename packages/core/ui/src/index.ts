@@ -130,9 +130,11 @@ export { ErrorState, type ErrorStateProps, type ErrorStateTone } from "./compone
 // host inside; the cockpit and, after the switch, the webview compose them.
 export {
   ViewBar,
+  ViewBarSlots,
   type ViewBarAccess,
   type ViewBarHeadingLevel,
   type ViewBarProps,
+  type ViewBarSlotsProps,
 } from "./components/ViewBar.js"
 export {
   StatusStrip,
@@ -149,6 +151,16 @@ export { CopyableId, type CopyableIdProps } from "./components/CopyableId.js"
 export { ConditionChip, type ConditionChipProps } from "./components/ConditionChip.js"
 export { LoadingState, type LoadingStateProps } from "./components/LoadingState.js"
 export { NavTab, NavTabs, type NavTabProps, type NavTabsProps } from "./components/NavTabs.js"
+export {
+  SideNav,
+  SideNavGroup,
+  SideNavItem,
+  SideNavList,
+  type SideNavGroupProps,
+  type SideNavItemProps,
+  type SideNavListProps,
+  type SideNavProps,
+} from "./components/SideNav.js"
 
 // Hooks
 export { useDebouncedValue } from "./hooks/use-debounced-value.js"

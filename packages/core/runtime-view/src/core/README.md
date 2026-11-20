@@ -42,7 +42,7 @@ sequenceDiagram
 
 - `packages/core/runtime-view/src/core/protocol`: intents, states and view models shared with the webview (`MessageGuards`)
 - `packages/core/runtime-view/src/core/panels`: the three panel sessions and their loading (`ViewSession`, `InstanceWrites`)
-- `packages/core/runtime-view/src/core/views`: view builders: read models in, one view model out
+- `packages/core/runtime-view/src/core/views`: view builders: read models in, one view model out; the engine view takes its numbers from the engine screen of `@miragon/pulse-screens/builder` and its process list's filter from `ProcessFilter` of `@miragon/pulse-screens`, and words them in English (`EngineViewBuilder`)
 - `packages/core/runtime-view/src/core/boards`: the board panel, which reads a board file with `@miragon/pulse-board`, builds its numbers with `@miragon/pulse-board/builder` and hands the webview the model's JSON form (`BoardJson.of` in `BoardViews`) with the targets a click opens and the diagram's XML (`TileViews`), a problem staying a code; the tiles of `@miragon/pulse-blocks` word it in the webview
 - `packages/core/runtime-view/src/core/explorer`: what the Engines tree lists
 - `packages/core/runtime-view/src/core/drift`: does a local `.bpmn` file match a deployed version? (`ModelDrift`)
@@ -50,7 +50,7 @@ sequenceDiagram
 
 ## Rules
 
-- Imports the engine contract (`@miragon/pulse-engine-core`, its main entry), the runtime view's ports, Pulse's UI foundation (`@miragon/pulse-ui/tones`, `/format` in `views/labels.ts`) and the board package (`@miragon/pulse-board`, its main entry and `./builder`) only, no `vscode`, Node or other npm package; the protocol none (dependency-cruiser)
+- Imports the engine contract (`@miragon/pulse-engine-core`, its main entry), the runtime view's ports, Pulse's UI foundation (`@miragon/pulse-ui/tones`, `/format` in `views/labels.ts`), the board package (`@miragon/pulse-board`, its main entry and `./builder`) and the screens package (`@miragon/pulse-screens`, its main entry and `./builder`) only, no `vscode`, Node or other npm package; the protocol none (dependency-cruiser)
 - No DOM and no Node globals: `lib` is ES2023 only (`packages/core/runtime-view/tsconfig.core.json`, `packages/core/runtime-view/test/core/runtime.boundary.ts`)
 - No engine words, no comments, one class per file, no module functions (ESLint)
 

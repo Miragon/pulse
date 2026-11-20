@@ -50,4 +50,26 @@ describe("role contrast (the kit's Miragon theme, light + dark)", () => {
     // text on muted (4.34:1); the Miragon roles reach 3.40:1 and 5.29:1.
     expect(contrastFindings(theme, ROLE_CONTRAST_PAIRS)).toEqual([])
   })
+
+  it("fails a brand's dark ground that the diagram's count badges and markers no longer stand off", () => {
+    // The dark BPMN canvas's paper is the ground: a lighter one drops the blue badge below 3:1.
+    /* brand-lint-disable */
+    const ground = ".dark { --background: #262624; }"
+    const surfaces = ".dark { --info-surface: #9db4f5; --danger-surface: #f0a0a0; }"
+    /* brand-lint-enable */
+    expect(contrastFindings(parseThemeVariables(...shipped, ground), ROLE_CONTRAST_PAIRS)).toEqual([
+      "dark: count badge (--cd-blau) on background",
+      "dark: count badge (--cd-danger) on background",
+    ])
+    expect(
+      contrastFindings(parseThemeVariables(...shipped, surfaces), ROLE_CONTRAST_PAIRS),
+    ).toEqual(
+      expect.arrayContaining([
+        "dark: info on info-surface",
+        "dark: danger on danger-surface",
+        "dark: foreground on info-surface",
+        "dark: foreground on danger-surface",
+      ]),
+    )
+  })
 })

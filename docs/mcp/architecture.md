@@ -140,11 +140,11 @@ differs. The decisions are in `apps/vscode/docs/adr/ui-foundation.md`.
 
 ## Repository layout
 
-| Path                   | Description                                                                                                         |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `apps/mcp-server/`     | The MCP server entry point and the widget bundle.                                                                   |
-| `packages/core/`       | What every family builds on: widget-shell, pulse-ui, profile, board format and builder, building blocks, transport. |
-| `packages/connectors/` | One folder per family: the neutral `engine` (module, core), one per dialect (`c7`, `c8`).                           |
-| `playground/`          | Demo env: showcases, Compose stack, Fly.io deployment.                                                              |
+| Path                   | Description                                                                                                                  |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `apps/mcp-server/`     | The MCP server entry point and the widget bundle.                                                                            |
+| `packages/core/`       | What every family builds on: widget-shell, pulse-ui, profile, board format and builder, screens, building blocks, transport. |
+| `packages/connectors/` | One folder per family: the neutral `engine` (module, core), one per dialect (`c7`, `c8`).                                    |
+| `playground/`          | Demo env: showcases, Compose stack, Fly.io deployment.                                                                       |
 
 For deeper detail, [Reference](reference.md) lists every tool and toolset.

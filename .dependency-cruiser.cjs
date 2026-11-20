@@ -47,8 +47,10 @@
  * without a role suffix, e.g. `@miragon/pulse-widget-shell`), never one family's code; three of
  * them are leaves only their consumers import: the profile format (`@miragon/pulse-profile`,
  * PROFILE), read where a surface reads its profiles, the board format (`@miragon/pulse-board`,
- * BOARD), read where a surface reads its board files, and the transport (`@miragon/pulse-http`,
- * HTTP), used where a surface sends its engine requests; the building blocks
+ * BOARD), read where a surface reads its board files, the screens' format
+ * (`@miragon/pulse-screens`, SCREENS), read where a surface builds or reads a shared screen, and
+ * the transport (`@miragon/pulse-http`, HTTP), used where a surface sends its engine requests; the
+ * building blocks
  * (`@miragon/pulse-blocks`, BLOCKS) are React on pulse-ui that only the surfaces rendering them
  * import. The apps under `apps/` sit ON TOP of
  * the packages: the MCP server (`@miragon/pulse-mcp-server`) composes the
@@ -365,6 +367,44 @@ const BOARD_TEST_TREE = `^${escapeRegExp(BOARD.tree)}/test/`
 const BOARD_TESTS = [BOARD_TEST_TREE, `${BOARD_BUILDER_TREE}.+[.]test[.]ts$`]
 
 /**
+ * The screens (packages/core/screens, npm `@miragon/pulse-screens`; owner decision D8 as amended on
+ * 2026-11-19, apps/vscode/docs/adr/ui-foundation.md): the JSON forms of the screens the web app and
+ * the editors share, their codes, the targets a screen opens and the pure rules a surface applies
+ * to them (the main entry and ./testing, a leaf: screens-format-is-a-leaf), and in ./builder each
+ * screen's numbers over the engine contract, a model of no text, the package's named exception
+ * written like the board builder's (screens-builder-builds-on-the-engine-contract). A foundation
+ * package, so it stays out of CORE_BUNDLES: who imports it is screens-format-consumers' and
+ * screens-builder-consumers'. As an import reaches the builder: a relative escape into its tree,
+ * resolved through an importer's node_modules to its build (shape 2) or bare (shape 3).
+ */
+const SCREENS = { name: "@miragon/pulse-screens", tree: "packages/core/screens" }
+const SCREENS_BUILDER_TREE = `^${escapeRegExp(SCREENS.tree)}/src/builder/`
+const SCREENS_BUILDER = [
+  SCREENS_BUILDER_TREE,
+  `(?:^|/)node_modules/${escapeRegExp(SCREENS.name)}/dist/builder/`,
+  `^${escapeRegExp(SCREENS.name)}/builder(?:/|$)`,
+]
+
+/**
+ * Where a surface builds a shared screen's numbers and applies its rules, the only shipped
+ * importers of the screens, its format and its builder alike: the runtime view's core (the engine
+ * panel of both editor hosts, which words the screen in English) and the engine connector's data
+ * builders (src/data, where the screen feeds of the web app build them). Tests import them
+ * anywhere. A surface that renders a screen's JSON form (the building blocks, the web app) joins
+ * the format's readers through a rule change of its own.
+ */
+const SCREENS_BUILDERS = [`${RUNTIME_VIEW_TREE}src/core/`, `${ENGINE_CONNECTOR_TREE}src/data/`]
+const SCREENS_READERS = SCREENS_BUILDERS
+
+/**
+ * The screens package's tests that read the engine contract its builder builds on: its test tree
+ * and the builder's own test files, which core-is-foundation leaves out, as the board package's;
+ * screens-tests-build-on-the-engine-contract keeps every other family's package out of them.
+ */
+const SCREENS_TEST_TREE = `^${escapeRegExp(SCREENS.tree)}/test/`
+const SCREENS_TESTS = [SCREENS_TEST_TREE, `${SCREENS_BUILDER_TREE}.+[.]test[.]ts$`]
+
+/**
  * The transport (packages/core/http, npm `@miragon/pulse-http`): one HTTP client over an
  * injected fetch for the MCP server's engine connector, the CLI and Pulse for VS Code's adapters.
  * A foundation package and a leaf, so it stays out of CORE_BUNDLES too: its own rules are
@@ -466,16 +506,20 @@ const ENGINE_CORE_IMPLEMENTERS = [
  * webview, which renders protocol view models, and the editor hosts' src, which wire them and
  * name ids. Their closed worlds hold each to engine-core's main entry. The board builder
  * (`@miragon/pulse-board/builder`, BOARD_BUILDER_TREE) reads the seven board reads through it too,
- * held to the main entry by board-builder-builds-on-the-engine-contract. The engine connector
+ * held to the main entry by board-builder-builds-on-the-engine-contract, and so does the screens'
+ * builder (`@miragon/pulse-screens/builder`, SCREENS_BUILDER_TREE), held by
+ * screens-builder-builds-on-the-engine-contract. The engine connector
  * reads it in its server layers (ENGINE_CONNECTOR_CONTRACT_READERS, below). The CLI does not
  * until it serves a second dialect (owner decision 2026-11-09): it reaches the contract's rules
  * through c7-core's causeOf. Test files and test-support import it anywhere, the test trees of the
- * runtime view, the adapters, the dialect cores and the board package too (ENGINE_CORE_TESTS).
+ * runtime view, the adapters, the dialect cores, the board package and the screens package too
+ * (ENGINE_CORE_TESTS).
  */
 const ENGINE_CORE_READERS = [
   `${RUNTIME_VIEW_TREE}src/(?:ports|core|model|host-kit)/`,
   ...EDITOR_HOST_SOURCES,
   BOARD_BUILDER_TREE,
+  SCREENS_BUILDER_TREE,
 ]
 
 /**
@@ -493,7 +537,7 @@ const ENGINE_CONNECTOR_CONTRACT_READERS = [
 
 /**
  * The test trees of the packages that run the contract, the runtime view's, the family adapters',
- * the dialect cores' and the board package's, whose builder reads it (their support modules, fakes
+ * the dialect cores', the board package's and the screens package's, whose builders read it (their support modules, fakes
  * and worlds, which are no *.test.ts): they import engine-core and its ./testing entry. Another
  * package's test tree imports it only from a test file or test-support, as its src does. The editor
  * hosts' test trees answer to their closed worlds; the CLI's are cli-is-headless's.
@@ -503,6 +547,7 @@ const ENGINE_CORE_TESTS = [
   `${FAMILY_ADAPTER_TREE}test/`,
   `${DIALECT_CORE_TREE}test/`,
   BOARD_TEST_TREE,
+  SCREENS_TEST_TREE,
 ]
 
 /**
@@ -530,12 +575,14 @@ const ADAPTER_IMPORTS = [
 
 /**
  * What a family's adapter's tests import beside ADAPTER_IMPORTS: the board format and its builder,
- * which build a board over the adapter's runtime, so a test holds the adapter to the numbers the
- * other surfaces show (c7-core's recorded board engine). Only adapter-tests-own-their-family
- * admits it: adapters-own-their-family, board-consumers, board-builder-consumers and the
- * adapter's closed world keep both out of its src.
+ * which build a board over the adapter's runtime, and the screens with their builder, which build
+ * the shared screens over it, so a test holds the adapter to the numbers the other surfaces show
+ * (c7-core's recorded board and screen engines). Only adapter-tests-own-their-family admits them:
+ * adapters-own-their-family, board-consumers, board-builder-consumers,
+ * screens-format-consumers, screens-builder-consumers and the adapter's closed world keep them
+ * out of its src.
  */
-const ADAPTER_TEST_IMPORTS = npm(escapeRegExp(BOARD.name))
+const ADAPTER_TEST_IMPORTS = npm(`${escapeRegExp(BOARD.name)}|${escapeRegExp(SCREENS.name)}`)
 
 /**
  * A family's adapter with its family as $1, the `from` of adapters-own-their-family, and its test
@@ -782,10 +829,17 @@ module.exports = {
         "The runtime view answers to runtime-view-builds-on-the-engine-contract, the board " +
         "builder (packages/core/board/src/builder) to board-builder-builds-on-the-engine-contract " +
         "and the board package's tests that read the engine contract (its test tree, the " +
-        "builder's own tests) to board-tests-build-on-the-engine-contract.",
+        "builder's own tests) to board-tests-build-on-the-engine-contract; the screens' builder " +
+        "(packages/core/screens/src/builder) and tests answer to the screens' rules alike.",
       from: {
         path: "^packages/core/",
-        pathNot: [RUNTIME_VIEW_TREE, BOARD_BUILDER_TREE, BOARD_TEST_TREE],
+        pathNot: [
+          RUNTIME_VIEW_TREE,
+          BOARD_BUILDER_TREE,
+          BOARD_TEST_TREE,
+          SCREENS_BUILDER_TREE,
+          SCREENS_TEST_TREE,
+        ],
       },
       to: {
         path: [
@@ -1168,6 +1222,113 @@ module.exports = {
       to: { path: BOARD_BUILDER },
     },
     {
+      name: "screens-format-is-a-leaf",
+      severity: "error",
+      comment:
+        "The screens' format (packages/core/screens, @miragon/pulse-screens, its main entry and " +
+        "./testing) has no runtime dependency: its shipped code imports only its own modules, " +
+        "never the builder (src/builder), no workspace package, no npm package and no Node " +
+        "built-in. It holds the JSON forms of the shared screens, their codes, the targets a " +
+        "screen opens and the pure rules a surface applies to them in the browser (a process " +
+        "list's filter, the sums across engines); the reads of a screen's numbers are the " +
+        "builder's and every word around them the surface's. Its tests may import vitest.",
+      from: {
+        path: `^${escapeRegExp(SCREENS.tree)}/src/`,
+        pathNot: ["[.]test[.]ts$", SCREENS_BUILDER_TREE],
+      },
+      to: { pathNot: `^${escapeRegExp(SCREENS.tree)}/src/(?!builder/)` },
+    },
+    {
+      name: "screens-builder-builds-on-the-engine-contract",
+      severity: "error",
+      comment:
+        "The screens' builder (packages/core/screens/src/builder, @miragon/pulse-screens/builder) " +
+        "is the screens package's one edge into a family, the named exception written like the " +
+        "board builder's (owner decision D8 as amended on 2026-11-19): it builds each shared " +
+        "screen's numbers over the reads of the engine contract, so it imports its own modules, " +
+        "the format (src/format) and the main entry of @miragon/pulse-engine-core (an optional " +
+        "peer of the package), nothing else: no other subpath of engine-core (./testing ships " +
+        "the kit), no relative escape into its tree, no other workspace package, no npm package " +
+        "and no Node built-in. Every word, format and navigation stays with the surface that " +
+        "renders the screen (the runtime view's core words it in English). Its tests may import " +
+        "vitest and the kit.",
+      from: { path: SCREENS_BUILDER_TREE, pathNot: ["[.]test[.]ts$"] },
+      to: {
+        pathNot: [`^${escapeRegExp(SCREENS.tree)}/src/(?:builder|format)/`, ...ENGINE_CORE_ENTRY],
+      },
+    },
+    {
+      name: "screens-tests-build-on-the-engine-contract",
+      severity: "error",
+      comment:
+        "The screens package's tests that read the engine contract its builder builds on, its " +
+        "test tree (packages/core/screens/test) and the builder's own tests " +
+        "(packages/core/screens/src/builder/*.test.ts), which core-is-foundation leaves out, " +
+        "import of the families only @miragon/pulse-engine-core, by its package entries: the " +
+        "main entry and ./testing, the kit's fake and world (engine-core-consumers admits both). " +
+        "No connector, client, adapter or other family core (a dialect's recorded screens are " +
+        "held by its family's adapter; a screens test reads the contract over the kit's fake), " +
+        "and no relative escape into engine-core's tree.",
+      from: { path: SCREENS_TESTS },
+      to: {
+        path: [
+          "^packages/connectors/",
+          "@miragon/pulse-[^/]+-(connector|client|core|adapter)(/|$)",
+        ],
+        pathNot: npm(escapeRegExp(ENGINE_CORE.name)),
+      },
+    },
+    {
+      name: "screens-format-consumers",
+      severity: "error",
+      comment:
+        "The screens' format (@miragon/pulse-screens, its main entry; ./testing for tests " +
+        "only, shipped-code-not-to-testing) may be imported only where a surface builds a " +
+        "shared screen or applies its rules " +
+        "(SCREENS_READERS): the runtime view's core (packages/core/runtime-view/src/core, the " +
+        "engine panel both editor hosts open) and the engine connector's data builders " +
+        "(src/data, the screen feeds of the web app), and by tests anywhere. Not the runtime " +
+        "view's protocol or other layers, not the rest of the connector, no other package and no " +
+        "app until it renders a screen's JSON form itself (the building blocks, the web app), " +
+        "through a rule change of its own. A relative escape into packages/core/screens is a " +
+        "violation too. Its builder answers to screens-builder-consumers.",
+      from: {
+        pathNot: [
+          ...SCREENS_READERS,
+          `^${escapeRegExp(SCREENS.tree)}/(?:src|test)/`,
+          ...SRC_TEST_CODE,
+          `^${PACKAGE_ROOT}/(?:test|test-host)/`,
+        ],
+      },
+      to: {
+        path: [`^${escapeRegExp(SCREENS.tree)}/`, ...npm(escapeRegExp(SCREENS.name))],
+        pathNot: SCREENS_BUILDER,
+      },
+    },
+    {
+      name: "screens-builder-consumers",
+      severity: "error",
+      comment:
+        "The screens' builder (@miragon/pulse-screens/builder) may be imported only where a " +
+        "surface builds a shared screen's numbers (SCREENS_BUILDERS): the runtime view's core " +
+        "(packages/core/runtime-view/src/core, whose engine panel delegates its numbers to it) " +
+        "and the engine connector's data builders (src/data, the screen feeds of the web app), " +
+        "and by tests anywhere. Not the editor hosts' src (the runtime view builds their " +
+        "numbers), not the runtime view's other layers, not the rest of the connector, not the " +
+        "building blocks or the web app (they render a screen's JSON form, never build it), no " +
+        "other package and no other app. A relative escape into " +
+        "packages/core/screens/src/builder is a violation too.",
+      from: {
+        pathNot: [
+          ...SCREENS_BUILDERS,
+          `^${escapeRegExp(SCREENS.tree)}/(?:src|test)/`,
+          ...SRC_TEST_CODE,
+          `^${PACKAGE_ROOT}/(?:test|test-host)/`,
+        ],
+      },
+      to: { path: SCREENS_BUILDER },
+    },
+    {
       name: "blocks-are-building-blocks",
       severity: "error",
       comment:
@@ -1322,14 +1483,16 @@ module.exports = {
         "of the runtime view; and where the contract's answers are read (ENGINE_CORE_READERS): " +
         "the runtime view's layers src/ports, src/core, src/model and src/host-kit (never its " +
         "webview, which renders protocol view models), the src of the editor hosts, apps/vscode " +
-        "and apps/orca, and the board builder (packages/core/board/src/builder, held to the main " +
-        "entry by board-builder-builds-on-the-engine-contract); where the engine module runs the " +
+        "and apps/orca, the board builder (packages/core/board/src/builder, held to the main " +
+        "entry by board-builder-builds-on-the-engine-contract) and the screens' builder " +
+        "(packages/core/screens/src/builder, held to it by " +
+        "screens-builder-builds-on-the-engine-contract); where the engine module runs the " +
         "contract (ENGINE_CONNECTOR_CONTRACT_READERS, owner decision 2026-11-16 with boards in " +
         "the MCP server, the case #488 names): the connector's src/lib/engine, " +
         "src/lib/core-adapter and src/data, held to the main entry by " +
         "engine-connector-contract-by-its-main-entry; by test files and test-support anywhere " +
-        "and in the test trees of the runtime view, the adapters, the dialect cores and the " +
-        "board package (ENGINE_CORE_TESTS). Not another family's core (a family core of another " +
+        "and in the test trees of the runtime view, the adapters, the dialect cores, the " +
+        "board package and the screens package (ENGINE_CORE_TESTS). Not another family's core (a family core of another " +
         "source than a dialect included), not the rest of the engine connector (its view models, " +
         "widgets, src/lib/shared, tools and widget tools: they read what src/data builds), not " +
         "the CLI until it serves a second dialect (owner decision 2026-11-09: it reaches the " +
@@ -1438,8 +1601,9 @@ module.exports = {
       comment:
         "A family's adapter's tests (its test tree, its test files and their test-support) " +
         "import what adapters-own-their-family admits its src and ADAPTER_TEST_IMPORTS, the " +
-        "board format and its builder, which build a board over the adapter's runtime, so a test " +
-        "holds the adapter to the numbers the other surfaces show. No other workspace package: " +
+        "board format and its builder, which build a board over the adapter's runtime, and the " +
+        "screens with their builder, which build the shared screens over it, so a test holds the " +
+        "adapter to the numbers the other surfaces show. No other workspace package: " +
         "no connector, another family's core or client, or the UI; its own family's client is " +
         "client-consumers', which admits it in a test.",
       from: { path: FAMILY_ADAPTER_TEST_CODE },

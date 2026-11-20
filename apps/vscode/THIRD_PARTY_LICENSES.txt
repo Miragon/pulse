@@ -73,6 +73,7 @@ Pulse's own packages in the bundles, under the MIT licence in LICENSE:
   @miragon/pulse-http
   @miragon/pulse-profile
   @miragon/pulse-runtime-view
+  @miragon/pulse-screens
   @miragon/pulse-ui
 
 ================================================================================

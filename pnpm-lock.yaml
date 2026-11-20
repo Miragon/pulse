@@ -405,6 +405,9 @@ importers:
       '@miragon/pulse-board':
         specifier: workspace:*
         version: link:../../../core/board
+      '@miragon/pulse-screens':
+        specifier: workspace:*
+        version: link:../../../core/screens
       '@types/node':
         specifier: 22.20.5
         version: 22.20.5
@@ -482,6 +485,9 @@ importers:
       '@miragon/pulse-board':
         specifier: workspace:*
         version: link:../../../core/board
+      '@miragon/pulse-screens':
+        specifier: workspace:*
+        version: link:../../../core/screens
       '@types/node':
         specifier: 22.20.5
         version: 22.20.5
@@ -737,6 +743,9 @@ importers:
       '@miragon/pulse-profile':
         specifier: workspace:*
         version: link:../profile
+      '@miragon/pulse-screens':
+        specifier: workspace:*
+        version: link:../screens
       '@miragon/pulse-ui':
         specifier: workspace:*
         version: link:../ui
@@ -807,6 +816,24 @@ importers:
       zeebe-bpmn-moddle:
         specifier: 2.0.0
         version: 2.0.0(moddle@8.2.1)
+
+  packages/core/screens:
+    devDependencies:
+      '@miragon/pulse-engine-core':
+        specifier: workspace:*
+        version: link:../../connectors/engine/engine-core
+      '@stryker-mutator/core':
+        specifier: 10.1.1
+        version: 10.1.1(@types/node@26.6.5)
+      '@stryker-mutator/vitest-runner':
+        specifier: 10.1.1
+        version: 10.1.1(@stryker-mutator/core@10.1.1(@types/node@26.6.5))(vitest@5.1.1)
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: 5.1.1
+        version: 5.1.1(@opentelemetry/api@1.9.1)(@types/node@26.6.5)(@vitest/browser-playwright@5.1.1)(@vitest/coverage-v8@5.1.1)(@vitest/ui@5.1.1)(happy-dom@21.0.4)(jsdom@29.0.0)(vite@8.3.8(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/core/ui:
     dependencies:
@@ -11582,9 +11609,9 @@ snapshots:
       obug: 3.0.0
       std-env: 4.3.0
       tinyrainbow: 3.2.0
-      vitest: 5.1.1(@opentelemetry/api@1.9.1)(@types/node@26.6.5)(@vitest/browser-playwright@5.1.1)(@vitest/coverage-v8@5.1.1)(@vitest/ui@5.1.1)(happy-dom@21.0.4)(jsdom@29.0.0)(vite@8.3.8(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+      vitest: 5.1.1(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/browser-playwright@5.1.1)(@vitest/coverage-v8@5.1.1)(@vitest/ui@5.1.1)(happy-dom@21.0.4)(jsdom@29.0.0)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
     optionalDependencies:
-      '@vitest/browser': 5.1.1(vite@8.3.8(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(vitest@5.1.1)
+      '@vitest/browser': 5.1.1(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(vitest@5.1.1)
 
   '@vitest/istanbul-lib-coverage@2.1.0': {}
 
@@ -11624,7 +11651,7 @@ snapshots:
       pathe: 2.0.3
       sirv: 3.0.2
       tinyrainbow: 3.2.0
-      vitest: 5.1.1(@opentelemetry/api@1.9.1)(@types/node@26.6.5)(@vitest/browser-playwright@5.1.1)(@vitest/coverage-v8@5.1.1)(@vitest/ui@5.1.1)(happy-dom@21.0.4)(jsdom@29.0.0)(vite@8.3.8(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+      vitest: 5.1.1(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/browser-playwright@5.1.1)(@vitest/coverage-v8@5.1.1)(@vitest/ui@5.1.1)(happy-dom@21.0.4)(jsdom@29.0.0)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   '@vitest/utils@5.1.1':
     dependencies:

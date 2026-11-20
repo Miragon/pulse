@@ -46,23 +46,26 @@ export function CockpitRefreshRegion({ children }: { children: ReactNode }) {
 /**
  * #322 U27: re-reads every feed of the open view; also the retry of a view stuck in error. While it
  * reads, the button stays in the tab order with its focus (`aria-disabled`, A4) and a click does
- * nothing.
+ * nothing. In the head an icon button; in a view's bar (`bar`, a page with chrome of its own) one
+ * of the bar's toolbar buttons, its label shown where the bar has room.
  */
-export function CockpitRefreshButton() {
+export function CockpitRefreshButton({ bar = false }: { bar?: boolean }) {
   const locale = useLocale()
   const { refreshing, refresh } = useCockpitRefresh()
   const label = translator(locale, refreshing ? "cockpit.refreshing" : "cockpit.refresh")
+  const icon = <Icon icon={RefreshCw} className={cn(refreshing && "motion-safe:animate-spin")} />
   return (
     <Button
       type="button"
-      variant="ghost"
-      size="icon-sm"
+      variant={bar ? "toolbar" : "ghost"}
+      size={bar ? "sm" : "icon-sm"}
       aria-disabled={refreshing || undefined}
-      aria-label={label}
+      aria-label={bar ? undefined : label}
       title={label}
       onClick={refreshing ? undefined : refresh}
     >
-      <Icon icon={RefreshCw} className={cn(refreshing && "motion-safe:animate-spin")} />
+      {icon}
+      {bar && label}
     </Button>
   )
 }

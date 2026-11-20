@@ -151,6 +151,17 @@ export async function signIn(
   return session
 }
 
+/**
+ * The page's navigation on its side, from 64rem on: under that the drawer behind the menu holds
+ * it (a dialog of its own, outside the banner).
+ */
+export const navigation = (page: Page) =>
+  page.getByRole("banner").getByRole("navigation", { name: "Pulse" })
+
+/** An entry of the page's navigation by its whole name ("Incidents", "Jobs", an engine's id). */
+export const navEntry = (page: Page, name: string) =>
+  navigation(page).getByRole("link", { name, exact: true })
+
 /** A tool call the page posted to the API. */
 export interface PageCall {
   name: string

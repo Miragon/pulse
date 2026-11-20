@@ -82,8 +82,9 @@ tool without `readOnlyHint`.
 ## The page
 
 `apps/web` is a Vite build on React, `@miragon/pulse-ui` and widget-shell. It mounts an app of its
-own with `mountApp` from `@miragon/pulse-widget-shell/widgets`: a frame (the bar, the session's
-notices) around the engine module's view its address names, which `PageView` calls. Its router
+own with `mountApp` from `@miragon/pulse-widget-shell/widgets`: a frame (the side navigation, a
+drawer under 64rem, the session's notices) around the engine module's view its address names, which
+`PageView` calls with the page's chrome, so the cockpit leaves its head to the navigation. Its router
 gives each view its address and leads Back, Forward and its links to the view, which goes there
 itself or starts anew there, never loading the page; it replaces an old `/app/cockpit?view=…` by
 the view's own address. It reads its session with `readWebSession()` and calls tools through

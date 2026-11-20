@@ -5,11 +5,12 @@ import {
   chooseUser,
   expectNoAxeFinding,
   idpRecord,
+  navEntry,
   originOf,
-  type IdpRecord,
   recordCalls,
   SHORT_TOKEN_SECONDS,
   signIn,
+  type IdpRecord,
   WEB_CLIENT_ID,
 } from "./web-sim.js"
 
@@ -77,11 +78,7 @@ test.describe("signing in", () => {
     await signIn(page, JOBS_PAGE)
     const jobs = page.getByRole("region", { name: "Jobs", exact: true })
     await expect(jobs.getByText("Card declined").first()).toBeVisible({ timeout: 15_000 })
-    const sections = page.getByRole("navigation", { name: "Cockpit sections" })
-    await expect(sections.getByRole("button", { name: "Jobs" })).toHaveAttribute(
-      "aria-current",
-      "page",
-    )
+    await expect(navEntry(page, "Jobs")).toHaveAttribute("aria-current", "page")
     expect(calls.find((call) => call.name === "engine_open_cockpit")?.arguments).toEqual({
       view: "jobs",
       engine: HEALTHY_ENGINE,
@@ -139,8 +136,7 @@ test.describe("a session's token", () => {
       record.grants.filter((grant) => grant.type === "refresh_token" && grant.session === session)
         .length
     const before = renewals(await idpRecord("short"))
-    const sections = page.getByRole("navigation", { name: "Cockpit sections" })
-    await sections.getByRole("button", { name: "Incidents" }).click()
+    await navEntry(page, "Incidents").click()
     await expect(page.getByText("No open incidents on this engine.")).toBeVisible({
       timeout: 15_000,
     })
@@ -185,8 +181,7 @@ test.describe("a session's token", () => {
 
     // A section opened after it: its title stays the page's heading, its reads refused once, and
     // each of its parts says only that it is not loaded: no box, no second word of the session.
-    const sections = page.getByRole("navigation", { name: "Cockpit sections" })
-    await sections.getByRole("button", { name: "Incidents" }).click()
+    await navEntry(page, "Incidents").click()
     await expect(
       page.getByRole("heading", { level: 1, name: `${HEALTHY_ENGINE} · Incidents` }),
     ).toBeVisible()

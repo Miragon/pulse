@@ -72,6 +72,11 @@
         },
         {
           "type": "json",
+          "path": "packages/core/screens/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
           "path": "packages/core/blocks/package.json",
           "jsonpath": "$.version"
         },

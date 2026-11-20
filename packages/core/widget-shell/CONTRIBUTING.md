@@ -125,9 +125,10 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   `ViewDataState`, `QueryFallback`, `useDetailView`, raw text under "Details", retry
   required), `useActionFeedback` raises pulse-ui's toasts after a write (an engine
   refusal's own reason quoted, a write whose answer never came flagged), `ConfirmDialog`
-  asks before one, and the BPMN canvas reads one token module (`BPMN_TOKENS`,
-  `BPMN_OVERLAY_CSS`) with its height from the diagram's size at the scale bpmn-js draws it
-  (read from the XML's DI before the import). The design kit (the
+  asks before one, and the BPMN canvas follows the theme from one token module (`BPMN_TOKENS`
+  on light, pulse-ui's roles on dark, the system's palette under forced colours,
+  `BPMN_OVERLAY_CSS`) with its height from the diagram's
+  size at the scale bpmn-js draws it (read from the XML's DI before the import). The design kit (the
   primitives and components, the `TONE_*` maps, `cn`, the formatters, `Icon`, the table
   cells `Th`/`Td`, `TableEmptyState`, `NamedId`, `KometMark`/`AppEmptyState`,
   `TEXT_BLOCK_FRAME`, …) is imported from `@miragon/pulse-ui`: widget-shell neither forks nor

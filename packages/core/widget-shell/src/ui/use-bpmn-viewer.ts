@@ -10,7 +10,12 @@ import {
 import NavigatedViewer from "bpmn-js/lib/NavigatedViewer"
 import { BPMN_LABEL_STYLE } from "@miragon/pulse-ui"
 import { clearFitViewbox, KEEP_CLEAR_GAP, keptClearOf, type FitRect } from "./bpmn-fit.js"
-import { BPMN_TOKENS, cdVar } from "./bpmn-tokens.js"
+import {
+  BPMN_CANVAS_SLOT,
+  BPMN_CANVAS_VARS,
+  BPMN_RENDERER_COLORS,
+  injectBpmnOverlayCss,
+} from "./bpmn-tokens.js"
 import { useInlineBudget } from "./inline-budget.js"
 
 /** bpmn-js ships no usable types on `Viewer#get`; the slice the widgets use. */
@@ -84,13 +89,14 @@ export interface BpmnViewerWithGet {
 }
 
 /**
- * The paper stays light in both themes: bpmn-js paints near-black strokes into
- * the SVG, unreadable on a dark card. Inline style beats any themed class.
+ * The canvas follows the theme (owner decision D10, point 7): its frame takes the canvas's
+ * variables per mode from the injected stylesheet, bpmn-js draws with them
+ * (`BPMN_RENDERER_COLORS`), and the paper is inline, so no themed class of a caller covers it.
  */
-function paintLightCanvas(container: HTMLElement): void {
-  container.setAttribute("data-theme-mode", "light")
-  container.style.setProperty("background-color", cdVar(BPMN_TOKENS.paper))
-  container.style.setProperty("color-scheme", "light")
+function paintCanvas(container: HTMLElement): void {
+  injectBpmnOverlayCss(container.ownerDocument)
+  container.setAttribute("data-slot", BPMN_CANVAS_SLOT)
+  container.style.setProperty("background-color", `var(${BPMN_CANVAS_VARS.paper})`)
 }
 
 export const DIAGRAM_MIN_HEIGHT = 240
@@ -324,9 +330,10 @@ export function useBpmnViewer({
     onImportedRef.current = onImported
   })
 
-  // On every commit, since the ref may now point at a different element.
+  // On every commit, since the ref may now point at a different element; before the viewer's
+  // effect, so bpmn-js never draws with a variable the document does not declare yet.
   useLayoutEffect(() => {
-    if (containerRef.current) paintLightCanvas(containerRef.current)
+    if (containerRef.current) paintCanvas(containerRef.current)
   })
 
   const getCanvas = useCallback((): BpmnCanvas | null => {
@@ -402,8 +409,13 @@ export function useBpmnViewer({
     const container = containerRef.current
     if (!container || !bpmnXml) return
 
-    // The labels in bpmn-js's Arial, handed over explicitly: the same object as the webview's.
-    const viewer = new NavigatedViewer({ container, textRenderer: BPMN_LABEL_STYLE })
+    // The labels in bpmn-js's Arial, handed over explicitly: the same object as the webview's;
+    // the paint in the canvas's variables, which follow the theme.
+    const viewer = new NavigatedViewer({
+      container,
+      textRenderer: BPMN_LABEL_STYLE,
+      bpmnRenderer: BPMN_RENDERER_COLORS,
+    })
     viewerRef.current = viewer
     let cancelled = false
     let importCleanup: (() => void) | null = null

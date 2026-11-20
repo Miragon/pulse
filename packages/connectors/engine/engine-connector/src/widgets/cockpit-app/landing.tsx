@@ -11,7 +11,7 @@ import {
   formatNumber,
   SectionHeading,
 } from "@miragon/pulse-ui"
-import { useStartPage, WidgetShell } from "@miragon/pulse-widget-shell/widgets"
+import { useHostChrome, useStartPage, WidgetShell } from "@miragon/pulse-widget-shell/widgets"
 import { ArrowRight, Ban, ClipboardList, Layers, Server } from "lucide-react"
 import { DEFAULT_ENVIRONMENT_ID, groupEnginesByEnvironment } from "../../lib/shared/environments.js"
 import { translator } from "../../messages/use-t.js"
@@ -280,6 +280,22 @@ export function LandingHeader({ subtitle, action }: { subtitle?: string; action?
   )
 }
 
+/**
+ * The landing's title on a page with chrome of its own: its view bar's, the page's menu first
+ * (`ViewBarSlots`), what it offers its facts and its action the bar's one action. The page's
+ * navigation names the product, so neither the Komet nor the signature shows.
+ */
+export function LandingBar({ subtitle, action }: { subtitle?: string; action?: ReactNode }) {
+  const locale = useLocale()
+  return (
+    <WidgetHeader
+      title={translator(locale, "cockpit.landing.title")}
+      sub={subtitle}
+      actions={action}
+    />
+  )
+}
+
 /** An engine's row: a refused profile's, one shown on boards only, or one every route reads. */
 function engineRowOf(engine: CockpitEngine, row: EngineRowProps): ReactNode {
   if (engine.refused !== undefined) return <RefusedEngineRow {...row} />
@@ -332,20 +348,34 @@ export function LandingChooser({
     envCount: formatNumber(groups.length),
     boardCount: formatNumber(boards?.boards.length ?? 0),
   })
+  // On a page with chrome the title is the view bar's, its action one of the bar's buttons.
+  const chrome = useHostChrome() !== undefined
+  const action = onOpenFleet && (
+    <Button
+      type="button"
+      variant={chrome ? "toolbar" : "outline"}
+      size={chrome ? "sm" : "default"}
+      onClick={onOpenFleet}
+    >
+      <Icon icon={Layers} />
+      {tr("cockpit.landing.fleet.open")}
+    </Button>
+  )
   return (
-    <WidgetShell header={notice}>
+    <WidgetShell
+      header={
+        chrome ? (
+          <>
+            <LandingBar subtitle={subtitle} action={action} />
+            {notice}
+          </>
+        ) : (
+          notice
+        )
+      }
+    >
       <div className="gap-section flex flex-col">
-        <LandingHeader
-          subtitle={subtitle}
-          action={
-            onOpenFleet && (
-              <Button type="button" variant="outline" onClick={onOpenFleet}>
-                <Icon icon={Layers} />
-                {tr("cockpit.landing.fleet.open")}
-              </Button>
-            )
-          }
-        />
+        {!chrome && <LandingHeader subtitle={subtitle} action={action} />}
         {groups.map((g) => (
           <section
             key={g.id}

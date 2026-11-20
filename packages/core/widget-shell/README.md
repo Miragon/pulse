@@ -152,12 +152,15 @@ stroke and toasts); the frame then lays out the page and the view takes its cont
 frame and no `view`, the frame renders alone, needs no `callTool` and calls nothing (a page that
 needs no tool, such as a signed-out page). A view that says a failed start in its own place takes
 `failedStart`, which gives its data for the error, or null to leave it to the frame: the web app
-keeps the cockpit's head over a route whose engine does not answer (`cockpitAfterFailedStart` of the
-engine connector's `/widgets`). A page with an app of its own (a router, a frame that stays while
+keeps the cockpit over a route whose engine does not answer (`cockpitAfterFailedStart` of the
+engine connector's `/widgets`). A page that navigates itself hands its view `chrome` (a
+`HostChrome`: its menu button), which a widget reads with `useHostChrome()` and a chat never offers:
+the cockpit then leaves its head (its sections, its engine switch, the way across engines) to the
+page's navigation and shows the menu first in every view bar (pulse-ui's `ViewBarSlots`). A page with an app of its own (a router, a frame that stays while
 its views change) mounts it with `mountApp(App, options)`, which takes the same options without
 `view`, `args`, `frame`, `location` and `failedStart`, calls no tool itself and gives the whole page
 one query client, and shows each view where the app puts it with `PageView` (`views`, `view`,
-`args`, `location`, `failedStart`): it calls its view tool once per start, another view or other
+`args`, `location`, `chrome`, `failedStart`): it calls its view tool once per start, another view or other
 arguments start it anew (as does another React `key`), and it gives the view its own address.
 `mountPage` is one `PageView` in a `frame` on `mountApp`. Pulse's web app (`apps/web`) is such an
 app.

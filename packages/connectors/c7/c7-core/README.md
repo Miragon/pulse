@@ -261,6 +261,15 @@ front of the engine that keeps each request (method, decoded path, query and JSO
 JSON the engine answers, check that both build the same board, and write the board file, the answers
 and that board into `packages/connectors/c7/c7-core/src/testing/board-engine.json`.
 
+`C7_SCREEN_ENGINE` is the same for the screens Pulse's surfaces share
+([`@miragon/pulse-screens`](https://www.npmjs.com/package/@miragon/pulse-screens)): one engine's
+answers to the screens' reads, the time a surface builds them at (`asOf`) and the screens they give
+in their JSON form, today the engine screen (`expected.engine`, `EngineScreenData`), which the
+editors' C7 adapter builds exactly over its wire. Its answers are those of `C7_BOARD_ENGINE`'s
+recording that the engine screen reads, from the same seeded world, so no recording of its own was
+made for it; a screen that reads more brings its answers with a recording of its own, made by
+hand as the board's, into `packages/connectors/c7/c7-core/src/testing/screen-engine.json`.
+
 ## Help and feedback
 
 - **Documentation:** the Pulse servers, CLI and modules built on these rules are explained at [miragon.github.io/pulse](https://miragon.github.io/pulse/).

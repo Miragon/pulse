@@ -1,6 +1,6 @@
 import type { BoardData } from "@miragon/pulse-board"
 import { BoardFigures } from "@miragon/pulse-board/testing"
-import { C8_BOARD_ENGINE } from "@miragon/pulse-c8-core/testing"
+import { C8_BOARD_ENGINE, C8_SCREEN_ENGINE } from "@miragon/pulse-c8-core/testing"
 import { ElementId, InstanceId, type WaitState } from "@miragon/pulse-engine-core"
 import {
   ConformanceKit,
@@ -8,6 +8,9 @@ import {
   FakeWorld,
   type ConformanceHarness,
 } from "@miragon/pulse-engine-core/testing"
+import type { EngineScreenData } from "@miragon/pulse-screens"
+import { EngineScreen, ScreenJson } from "@miragon/pulse-screens/builder"
+import { ScreenFigures, WORLD_SCREENS } from "@miragon/pulse-screens/testing"
 import { afterAll, beforeAll, describe, expect, test } from "vitest"
 import { C8Adapter } from "../src/index.js"
 import { RecordedBoard } from "./support/recorded-board.js"
@@ -73,6 +76,17 @@ describe.skipIf(!RUNS_ON_CAMUNDA_8)(
       expect(board.engines.map(({ state }) => state)).toEqual(["ready"])
       expect(BoardFigures.of(board)).toEqual(BoardFigures.of(fake))
       expect(BoardFigures.of(board)).toEqual(BoardFigures.of(C8_BOARD_ENGINE.expected as BoardData))
+    })
+
+    test("screens: the engine screen over the seeded world has the numbers of the kit's world", async () => {
+      const { runtime } = harness ?? expect.fail("the cluster did not start")
+      const model = await EngineScreen.read(C8_SCREEN_ENGINE.engine, runtime, () => new Date())
+      const figures = ScreenFigures.engine(ScreenJson.engine(model))
+
+      expect(figures).toEqual(ScreenFigures.engine(WORLD_SCREENS.engine))
+      expect(figures).toEqual(
+        ScreenFigures.engine(C8_SCREEN_ENGINE.expected.engine as EngineScreenData),
+      )
     })
 
     test("names the event and the message an instance waits for", async () => {

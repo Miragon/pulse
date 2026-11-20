@@ -1,14 +1,30 @@
 import type { MessageCatalog } from "@miragon/pulse-widget-shell/widgets"
 
-/** The web app's own words in English: its frame, its notices and the signed-out page. */
+/**
+ * The web app's own words in English: its frame and its navigation, its notices and the signed-out
+ * page.
+ */
 export const en = {
   "frame.product": "Pulse",
   "frame.signedInAs": "Signed in as {name}",
   "frame.signOut": "Sign out",
   "frame.signingOut": "Signing out…",
-  "frame.home": "Pulse, start page",
   "frame.skipToContent": "Skip to content",
   "title.page": "{page} · Pulse",
+
+  "nav.label": "Pulse",
+  "nav.start": "Start",
+  "nav.fleet": "Cross-engine overview",
+  "nav.engines": "Engines",
+  "nav.boards": "Boards",
+  "nav.section.overview": "Overview",
+  "nav.section.incidents": "Incidents",
+  "nav.section.jobs": "Jobs",
+  "nav.boardsOnly": "boards only",
+  "nav.refused": "refused",
+  "nav.enginesFailed": "The engines couldn't be loaded. Reload the page.",
+  "nav.menu": "Menu",
+  "nav.close": "Close menu",
   "title.board": "Board {board} · Pulse",
 
   "notice.ended.title": "Your session has ended",

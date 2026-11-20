@@ -45,6 +45,7 @@ const SHELL = "packages/core/widget-shell"
 const UI = "packages/core/ui"
 const PROFILE = "packages/core/profile"
 const BOARD = "packages/core/board"
+const SCREENS = "packages/core/screens"
 const BLOCKS = "packages/core/blocks"
 const HTTP = "packages/core/http"
 const ENGINE_CORE = "packages/connectors/engine/engine-core"
@@ -73,6 +74,7 @@ const WORKSPACE = {
   [UI]: { name: "@miragon/pulse-ui" },
   [PROFILE]: { name: "@miragon/pulse-profile" },
   [BOARD]: { name: "@miragon/pulse-board" },
+  [SCREENS]: { name: "@miragon/pulse-screens" },
   [BLOCKS]: { name: "@miragon/pulse-blocks" },
   [HTTP]: { name: "@miragon/pulse-http", main: "dist/index.js" },
   [ENGINE_CORE]: { name: "@miragon/pulse-engine-core", main: "dist/index.js" },
@@ -147,6 +149,11 @@ const BOARD_USERS = "board-consumers"
 const BOARD_BUILDER = "board-builder-builds-on-the-engine-contract"
 const BOARD_BUILDER_USERS = "board-builder-consumers"
 const BOARD_TESTS = "board-tests-build-on-the-engine-contract"
+const SCREENS_LEAF = "screens-format-is-a-leaf"
+const SCREENS_BUILDER = "screens-builder-builds-on-the-engine-contract"
+const SCREENS_TESTS = "screens-tests-build-on-the-engine-contract"
+const SCREENS_USERS = "screens-format-consumers"
+const SCREENS_BUILDER_USERS = "screens-builder-consumers"
 const BLOCKS_LEAF = "blocks-are-building-blocks"
 const BLOCKS_USERS = "blocks-consumers"
 const VIEW_MODELS_BOARD = "connector-view-models-board-types-only"
@@ -220,6 +227,9 @@ const PROFILE_SRC = `${PROFILE}/src/index.ts`
 const BOARD_NAME = "@miragon/pulse-board"
 const BOARD_SRC = `${BOARD}/src/index.ts`
 const BOARD_BUILDER_SRC = `${BOARD}/src/builder/index.ts`
+const SCREENS_NAME = "@miragon/pulse-screens"
+const SCREENS_SRC = `${SCREENS}/src/index.ts`
+const SCREENS_BUILDER_SRC = `${SCREENS}/src/builder/index.ts`
 const BLOCKS_NAME = "@miragon/pulse-blocks"
 const BLOCKS_SRC = `${BLOCKS}/src/index.ts`
 const HTTP_NAME = "@miragon/pulse-http"
@@ -286,6 +296,10 @@ const LEAVES = [
   `${BOARD}/src/format/lib.ts`,
   `${BOARD}/src/builder/lib.ts`,
   `${BOARD}/dist/builder/index.js`,
+  `${SCREENS}/src/target.ts`,
+  `${SCREENS}/src/format/lib.ts`,
+  `${SCREENS}/src/builder/lib.ts`,
+  `${SCREENS}/dist/builder/index.js`,
   `${BLOCKS}/src/target.ts`,
   `${BLOCKS}/src/lib.ts`,
   `${HTTP}/src/target.ts`,
@@ -701,6 +715,245 @@ const SUITES = [
       [`${RUNTIME_VIEW}/test/core/support/board.ts`, BOARD_NAME, []],
       [`${SHELL}/test/support/board.ts`, BOARD_NAME, []],
       [`${SHELL}/src/board.test.ts`, BOARD_NAME, []],
+    ],
+  },
+  {
+    rule: SCREENS_LEAF,
+    title:
+      "the screens' format imports only its own modules: no package, no npm module, no built-in",
+    cases: [
+      // Not even a sibling of packages/core: core-is-foundation lets the others import one.
+      [SCREENS_SRC, "@miragon/pulse-ui", [SCREENS_LEAF]],
+      [SCREENS_SRC, BOARD_NAME, [SCREENS_LEAF, BOARD_USERS]],
+      [SCREENS_SRC, ENGINE_CORE_NAME, [SCREENS_LEAF, CORE, ENGINE_CORE_USERS]],
+      [SCREENS_SRC, C7_CORE, [CORE, SCREENS_LEAF]],
+      [SCREENS_SRC, "@miragon/pulse-cli", [NO_APP, SCREENS_LEAF]],
+      ...["zod", "react", "reactive", "node:fs"].map((spec) => [SCREENS_SRC, spec, [SCREENS_LEAF]]),
+      [`${SCREENS}/src/format/escape.ts`, "../../../ui/src/target.ts", [SCREENS_LEAF, DEEP]],
+      // The format never reaches its builder: the main entry, the format and ./testing stay free
+      // of the engine contract the builder reads.
+      [`${SCREENS}/src/format/builds.ts`, "../builder/lib.ts", [SCREENS_LEAF]],
+      [`${SCREENS}/src/builds.ts`, "./builder/lib.ts", [SCREENS_LEAF]],
+      [`${SCREENS}/src/testing/builds.ts`, "../builder/lib.ts", [SCREENS_LEAF]],
+      [`${SCREENS}/src/testing/figures.ts`, "../format/lib.ts", []],
+      [`${SCREENS}/src/format/filter.ts`, "./lib.ts", []],
+      [`${SCREENS}/src/entry.ts`, "./format/lib.ts", []],
+      [`${SCREENS}/src/a.test.ts`, "vitest", []],
+    ],
+  },
+  {
+    rule: SCREENS_BUILDER,
+    title:
+      "the screens' builder imports its own modules, the format and engine-core's main entry: no " +
+      "other package, no npm module, no built-in",
+    cases: [
+      [SCREENS_BUILDER_SRC, `${ENGINE_CORE_NAME}/testing`, [SCREENS_BUILDER, NO_TESTING]],
+      [`${SCREENS}/src/builder/model.ts`, `${ENGINE_CORE_NAME}/model`, [SCREENS_BUILDER]],
+      [
+        `${SCREENS}/src/builder/escape.ts`,
+        "../../../../connectors/engine/engine-core/src/target.ts",
+        [SCREENS_BUILDER, DEEP],
+      ],
+      [
+        `${SCREENS}/src/builder/escape-build.ts`,
+        "../../../../connectors/engine/engine-core/dist/index.js",
+        [SCREENS_BUILDER, DEEP],
+      ],
+      [SCREENS_BUILDER_SRC, C7_CORE, [SCREENS_BUILDER]],
+      [SCREENS_BUILDER_SRC, "@miragon/pulse-c7-client", [SCREENS_BUILDER, CLIENT_USERS]],
+      [SCREENS_BUILDER_SRC, "@miragon/pulse-ui", [SCREENS_BUILDER]],
+      [SCREENS_BUILDER_SRC, PROFILE_NAME, [SCREENS_BUILDER, PROFILE_USERS]],
+      [SCREENS_BUILDER_SRC, BOARD_NAME, [SCREENS_BUILDER, BOARD_USERS]],
+      [
+        `${SCREENS}/src/builder/roll-up.ts`,
+        `${BOARD_NAME}/builder`,
+        [SCREENS_BUILDER, BOARD_BUILDER_USERS],
+      ],
+      ...["zod", "react", "reactive", "node:fs"].map((spec) => [
+        SCREENS_BUILDER_SRC,
+        spec,
+        [SCREENS_BUILDER],
+      ]),
+      [`${SCREENS}/src/builder/escape-ui.ts`, "../../../ui/src/target.ts", [SCREENS_BUILDER, DEEP]],
+      // Allowed: engine-core's main entry, the format, its own modules, and in its tests vitest
+      // and the kit (the package's test tree reads engine-core like the board package's).
+      [SCREENS_BUILDER_SRC, ENGINE_CORE_NAME, []],
+      [`${SCREENS}/src/builder/reads.ts`, ENGINE_CORE_NAME, [], "type"],
+      [`${SCREENS}/src/builder/engine-screen.ts`, "../format/lib.ts", []],
+      [`${SCREENS}/src/builder/json.ts`, "./lib.ts", []],
+      [`${SCREENS}/src/builder/a.test.ts`, "vitest", []],
+      [`${SCREENS}/test/builder/support/world.ts`, `${ENGINE_CORE_NAME}/testing`, []],
+      [`${SCREENS}/test/builder/screen.test.ts`, ENGINE_CORE_NAME, []],
+    ],
+  },
+  {
+    rule: SCREENS_TESTS,
+    title:
+      "the screens package's tests read the engine contract: engine-core by its entries, no " +
+      "other family's package",
+    cases: [
+      // Its test tree, a test file or a support module, and the builder's own test files.
+      [`${SCREENS}/test/builder/support/probe.ts`, C7_CORE, [SCREENS_TESTS]],
+      [`${SCREENS}/test/builder/probe.test.ts`, `${C7_CORE}/testing`, [SCREENS_TESTS]],
+      [`${SCREENS}/test/format/routes.test.ts`, `${C7_CORE}/routes`, [SCREENS_TESTS]],
+      [`${SCREENS}/src/builder/probe.test.ts`, C7_CORE, [SCREENS_TESTS]],
+      [
+        `${SCREENS}/test/builder/support/module.ts`,
+        "@miragon/pulse-engine-connector",
+        [SCREENS_TESTS],
+      ],
+      [`${SCREENS}/test/builder/client.test.ts`, "@miragon/pulse-c7-client", [SCREENS_TESTS]],
+      [`${SCREENS}/test/builder/adapter.test.ts`, ADAPTER, [ADAPTER_USERS, SCREENS_TESTS]],
+      [`${SCREENS}/test/builder/billing.test.ts`, BILLING_CORE_NAME, [SCREENS_TESTS]],
+      [
+        `${SCREENS}/test/builder/escape-c7.test.ts`,
+        "../../../../connectors/c7/c7-core/src/target.ts",
+        [SCREENS_TESTS, DEEP],
+      ],
+      // Not engine-core by path either: its package entries only.
+      [
+        `${SCREENS}/test/builder/support/escape.ts`,
+        "../../../../../connectors/engine/engine-core/src/target.ts",
+        [SCREENS_TESTS, DEEP],
+      ],
+      // Allowed: engine-core's main entry and its kit, the package's own modules, the runner.
+      [`${SCREENS}/test/builder/support/fake.ts`, `${ENGINE_CORE_NAME}/testing`, []],
+      [`${SCREENS}/test/builder/reads.test.ts`, ENGINE_CORE_NAME, []],
+      [`${SCREENS}/src/builder/kit.test.ts`, `${ENGINE_CORE_NAME}/testing`, []],
+      [`${SCREENS}/test/builder/own.test.ts`, "../../src/builder/lib.ts", []],
+      [`${SCREENS}/test/format/runner.test.ts`, "vitest", []],
+    ],
+  },
+  {
+    rule: SCREENS_USERS,
+    title: "the screens' format is read where a surface builds a shared screen, and in tests",
+    cases: [
+      [SERVER_SRC, SCREENS_NAME, [SCREENS_USERS]],
+      [SHELL_SRC, SCREENS_NAME, [SCREENS_USERS]],
+      [`${SHELL}/src/ui/screen.ts`, SCREENS_NAME, [SHELL_VIEWS, SCREENS_USERS]],
+      [UI_SRC, SCREENS_NAME, [UI_LEAF, SCREENS_USERS]],
+      [BOARD_SRC, SCREENS_NAME, [BOARD_LEAF, SCREENS_USERS]],
+      [PROFILE_SRC, SCREENS_NAME, [PROFILE_LEAF, SCREENS_USERS]],
+      [C7_SRC, SCREENS_NAME, [CORE_LEAF, SCREENS_USERS]],
+      [CLI_SRC, SCREENS_NAME, [HEADLESS, SCREENS_USERS]],
+      [EXT_SRC, SCREENS_NAME, [SCREENS_USERS]],
+      [ORCA_SRC, SCREENS_NAME, [SCREENS_USERS]],
+      // The blocks and the web app render a screen's JSON form only once a rule change of their
+      // own admits it.
+      [`${BLOCKS}/src/screens/table.ts`, SCREENS_NAME, [BLOCKS_LEAF, SCREENS_USERS], "type"],
+      [WEB_SRC, SCREENS_NAME, [WEB_PAGE, SCREENS_USERS], "type"],
+      // Of the engine connector only its data builders build a screen: not its root, widgets,
+      // shared lib, view models, tools or widget tools, nor a look-alike of its data folder.
+      [ENGINE_CONNECTOR_SRC, SCREENS_NAME, [SCREENS_USERS]],
+      [`${ENGINE_CONNECTOR}/src/widgets/screen.ts`, SCREENS_NAME, [WIDGETS_BROWSER, SCREENS_USERS]],
+      [
+        `${ENGINE_CONNECTOR}/src/lib/shared/screen.ts`,
+        SCREENS_NAME,
+        [WIDGETS_BROWSER, SCREENS_USERS],
+      ],
+      [`${ENGINE_CONNECTOR}/src/view-models.screens.ts`, SCREENS_NAME, [SCREENS_USERS], "type"],
+      [`${ENGINE_CONNECTOR}/src/tools/screen.ts`, SCREENS_NAME, [SCREENS_USERS]],
+      [`${ENGINE_CONNECTOR}/src/widget-tools/screen.ts`, SCREENS_NAME, [SCREENS_USERS]],
+      [`${ENGINE_CONNECTOR}/src/data-x/screen.ts`, SCREENS_NAME, [SCREENS_USERS]],
+      [`${BILLING_CONNECTOR}/src/data/screen.ts`, SCREENS_NAME, [SCREENS_USERS]],
+      // An adapter's src builds none (adapter-tests-own-their-family admits it in its tests).
+      [ADAPTER_SRC, SCREENS_NAME, [ADAPTER_FAMILY, SCREENS_USERS]],
+      // Of the runtime view only its core, never its protocol's neighbours outside the core.
+      [`${RUNTIME_VIEW}/src/host-kit/screen.ts`, SCREENS_NAME, [SCREENS_USERS]],
+      [`${RUNTIME_VIEW}/src/webview/screen.ts`, SCREENS_NAME, [SCREENS_USERS], "type"],
+      [`${RUNTIME_VIEW}/src/ports/screen.ts`, SCREENS_NAME, [SCREENS_USERS]],
+      [`${RUNTIME_VIEW}/src/corex/screen.ts`, SCREENS_NAME, [SCREENS_USERS]],
+      [
+        `${SERVER}/src/escape-screens.ts`,
+        "../../../packages/core/screens/src/target.ts",
+        [SCREENS_USERS, DEEP],
+      ],
+      // An unresolved subpath (shape 3: dependency-cruiser reads no exports map).
+      [`${SHELL}/src/screens-sub.ts`, `${SCREENS_NAME}/sub`, [SCREENS_USERS]],
+      // The readers this rule admits take the main entry only: ./testing ships the recorded
+      // worlds, which shipped code never imports.
+      [`${ENGINE_CONNECTOR}/src/data/screens/world.ts`, `${SCREENS_NAME}/testing`, [NO_TESTING]],
+      [`${RUNTIME_VIEW}/src/core/views/world.ts`, `${SCREENS_NAME}/testing`, [NO_TESTING]],
+      // Allowed: the runtime view's core, the engine connector's data builders (shape 2 too),
+      // and tests anywhere.
+      [`${RUNTIME_VIEW}/src/core/views/engine-view-builder.ts`, SCREENS_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/data/screens/engine.ts`, SCREENS_NAME, []],
+      [`${ENGINE_CONNECTOR}/src/data/screens/types.ts`, SCREENS_NAME, [], "type"],
+      [`${RUNTIME_VIEW}/test/core/screen.test.ts`, `${SCREENS_NAME}/testing`, []],
+      [`${C7_ADAPTER}/test/screen.test.ts`, SCREENS_NAME, []],
+      [`${SHELL}/test/support/screen.ts`, SCREENS_NAME, []],
+      [`${SHELL}/src/screen.test.ts`, SCREENS_NAME, []],
+    ],
+  },
+  {
+    rule: SCREENS_BUILDER_USERS,
+    title: "the screens' builder is imported where a surface builds a shared screen, and in tests",
+    cases: [
+      // The editor hosts and the surfaces that render a screen build none.
+      [EXT_SRC, `${SCREENS_NAME}/builder`, [SCREENS_BUILDER_USERS]],
+      [ORCA_SRC, `${SCREENS_NAME}/builder`, [SCREENS_BUILDER_USERS]],
+      [
+        `${BLOCKS}/src/screens/table.ts`,
+        `${SCREENS_NAME}/builder`,
+        [BLOCKS_LEAF, SCREENS_BUILDER_USERS],
+      ],
+      [WEB_SRC, `${SCREENS_NAME}/builder`, [WEB_PAGE, SCREENS_BUILDER_USERS]],
+      // Shape 2: resolved through the importer's node_modules to the build.
+      [
+        `${EXT}/src/host/built.ts`,
+        `${SCREENS_NAME}/dist/builder/index.js`,
+        [SCREENS_BUILDER_USERS],
+      ],
+      [
+        `${EXT}/src/host/escape-screens.ts`,
+        "../../../../packages/core/screens/src/builder/lib.ts",
+        [SCREENS_BUILDER_USERS, DEEP],
+      ],
+      // The engine connector builds a screen in its data builders alone: not its root, its view
+      // models (not even by type), its widgets or its tools.
+      [ENGINE_CONNECTOR_SRC, `${SCREENS_NAME}/builder`, [SCREENS_BUILDER_USERS]],
+      [
+        `${ENGINE_CONNECTOR}/src/view-models.screens.ts`,
+        `${SCREENS_NAME}/dist/builder/index.js`,
+        [SCREENS_BUILDER_USERS],
+        "type",
+      ],
+      [
+        `${ENGINE_CONNECTOR}/src/widgets/screen.ts`,
+        `${SCREENS_NAME}/builder`,
+        [WIDGETS_BROWSER, SCREENS_BUILDER_USERS],
+      ],
+      [
+        `${ENGINE_CONNECTOR}/src/tools/screen.ts`,
+        `${SCREENS_NAME}/builder`,
+        [SCREENS_BUILDER_USERS],
+      ],
+      [SERVER_SRC, `${SCREENS_NAME}/builder`, [SCREENS_BUILDER_USERS]],
+      [SHELL_SRC, `${SCREENS_NAME}/builder`, [SCREENS_BUILDER_USERS]],
+      [
+        `${SERVER}/src/escape-screens-builder.ts`,
+        "../../../packages/core/screens/src/builder/lib.ts",
+        [SCREENS_BUILDER_USERS, DEEP],
+      ],
+      [
+        `${C7_ADAPTER}/src/screen.ts`,
+        `${SCREENS_NAME}/builder`,
+        [ADAPTER_FAMILY, SCREENS_BUILDER_USERS],
+      ],
+      // Of the runtime view only its core builds a screen.
+      [
+        `${RUNTIME_VIEW}/src/host-kit/screen.ts`,
+        `${SCREENS_NAME}/builder`,
+        [SCREENS_BUILDER_USERS],
+      ],
+      [`${RUNTIME_VIEW}/src/webview/screen.ts`, `${SCREENS_NAME}/builder`, [SCREENS_BUILDER_USERS]],
+      // Allowed: the runtime view's core, the engine connector's data builders, and tests
+      // anywhere.
+      [`${RUNTIME_VIEW}/src/core/views/engine-view-builder.ts`, `${SCREENS_NAME}/builder`, []],
+      [`${ENGINE_CONNECTOR}/src/data/screens/engine.ts`, `${SCREENS_NAME}/builder`, []],
+      [`${RUNTIME_VIEW}/test/core/engine-panel.test.ts`, `${SCREENS_NAME}/builder`, []],
+      [`${C7_ADAPTER}/test/support/screens.ts`, `${SCREENS_NAME}/builder`, []],
+      [`${EXT}/src/host/screen.test.ts`, `${SCREENS_NAME}/builder`, []],
     ],
   },
   {
@@ -1151,6 +1404,14 @@ const SUITES = [
       [`${BOARD}/src/builder/contract.ts`, ENGINE_CORE_NAME, []],
       [`${BOARD}/test/builder/world.ts`, `${ENGINE_CORE_NAME}/testing`, []],
       [`${BOARD}/src/format/contract.ts`, ENGINE_CORE_NAME, [BOARD_LEAF, CORE, ENGINE_CORE_USERS]],
+      // So do the screens' builder and tests; the screens' format never.
+      [`${SCREENS}/src/builder/contract.ts`, ENGINE_CORE_NAME, []],
+      [`${SCREENS}/test/builder/world.ts`, `${ENGINE_CORE_NAME}/testing`, []],
+      [
+        `${SCREENS}/src/format/contract.ts`,
+        ENGINE_CORE_NAME,
+        [SCREENS_LEAF, CORE, ENGINE_CORE_USERS],
+      ],
     ],
   },
   {
@@ -1455,6 +1716,7 @@ const SUITES = [
         [ADAPTER_FAMILY, BOARD_BUILDER_USERS],
       ],
       [`${C7_ADAPTER}/src/testing/board.ts`, BOARD_NAME, [ADAPTER_FAMILY]],
+      [`${C7_ADAPTER}/src/testing/screens.ts`, SCREENS_NAME, [ADAPTER_FAMILY]],
       [`${C7_ADAPTER}/scripts/board.ts`, BOARD_NAME, [ADAPTER_FAMILY, BOARD_USERS]],
       [
         `${C7_ADAPTER}/src/escape-board.ts`,
@@ -1485,7 +1747,8 @@ const SUITES = [
   {
     rule: ADAPTER_TESTS,
     title:
-      "a family's adapter's tests import what its src does and the board format and its builder",
+      "a family's adapter's tests import what its src does, the board format and the screens " +
+      "with their builders",
     cases: [
       // Its tests stay in its family too: client-consumers admits every client in a test, this
       // rule refuses another family's, and every other package adapters-own-their-family does.
@@ -1511,6 +1774,10 @@ const SUITES = [
       [`${C7_ADAPTER}/src/board.test.ts`, BOARD_NAME, []],
       [`${C7_ADAPTER}/src/board.test-support.ts`, `${BOARD_NAME}/builder`, []],
       [`${BILLING_ADAPTER}/src/test-support/board.ts`, BOARD_NAME, []],
+      // And the screens with their builder, which build the shared screens over its runtime.
+      [`${C7_ADAPTER}/test/screens.test.ts`, SCREENS_NAME, [], "type"],
+      [`${C8_ADAPTER}/test/screens.test.ts`, `${SCREENS_NAME}/builder`, []],
+      [`${C7_ADAPTER}/test/support/screens.ts`, `${SCREENS_NAME}/testing`, []],
       [`${C7_ADAPTER}/test/support/engine.ts`, ENGINE_CORE_NAME, []],
       [`${C7_ADAPTER}/test/support/c7.ts`, C7_CORE, []],
       [`${C7_ADAPTER}/test/wire.test.ts`, HTTP_NAME, []],
@@ -1814,6 +2081,14 @@ const SUITES = [
       [`${BOARD}/src/builder/engine.ts`, ENGINE_CORE_NAME, []],
       [`${BOARD}/test/builder/kit.ts`, `${ENGINE_CORE_NAME}/testing`, []],
       [`${BOARD}/src/testing/connector.ts`, "@miragon/pulse-engine-connector", [CORE, BOARD_LEAF]],
+      // The screens' builder and tests answer to their own rules, the rest of the package to this.
+      [`${SCREENS}/src/builder/engine.ts`, ENGINE_CORE_NAME, []],
+      [`${SCREENS}/test/builder/kit.ts`, `${ENGINE_CORE_NAME}/testing`, []],
+      [
+        `${SCREENS}/src/testing/connector.ts`,
+        "@miragon/pulse-engine-connector",
+        [CORE, SCREENS_LEAF],
+      ],
     ],
   },
   {

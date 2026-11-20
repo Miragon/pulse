@@ -7,6 +7,10 @@ import {
   LoadingState,
   NavTab,
   NavTabs,
+  SideNav,
+  SideNavGroup,
+  SideNavItem,
+  SideNavList,
   StateLabel,
   StatusStrip,
   Toolbar,
@@ -104,6 +108,30 @@ export const BLOCK_RENDER_CASES: RenderCase[] = [
           <a href="#/history">History</a>
         </NavTab>
       </NavTabs>
+    ),
+  },
+  {
+    name: "SideNav",
+    marker: "RC:SideNav",
+    render: () => (
+      <SideNav ariaLabel="Pulse">
+        <SideNavGroup label="Engines">
+          <SideNavList>
+            <SideNavItem
+              current
+              href="#/prod"
+              note="c7"
+              nested={
+                <SideNavList>
+                  <SideNavItem href="#/prod/jobs">Jobs</SideNavItem>
+                </SideNavList>
+              }
+            >
+              RC:SideNav
+            </SideNavItem>
+          </SideNavList>
+        </SideNavGroup>
+      </SideNav>
     ),
   },
 ]

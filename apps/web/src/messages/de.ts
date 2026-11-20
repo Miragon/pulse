@@ -1,14 +1,30 @@
 import type { en } from "./en.js"
 
-/** Die eigenen Worte der Web-App auf Deutsch: Rahmen, Hinweise und die Seite nach der Abmeldung. */
+/**
+ * Die eigenen Worte der Web-App auf Deutsch: Rahmen und Navigation, Hinweise und die Seite nach der
+ * Abmeldung.
+ */
 export const de = {
   "frame.product": "Pulse",
   "frame.signedInAs": "Angemeldet als {name}",
   "frame.signOut": "Abmelden",
   "frame.signingOut": "Wird abgemeldet…",
-  "frame.home": "Pulse, Startseite",
   "frame.skipToContent": "Zum Inhalt springen",
   "title.page": "{page} · Pulse",
+
+  "nav.label": "Pulse",
+  "nav.start": "Start",
+  "nav.fleet": "Engine-übergreifende Übersicht",
+  "nav.engines": "Engines",
+  "nav.boards": "Boards",
+  "nav.section.overview": "Übersicht",
+  "nav.section.incidents": "Incidents",
+  "nav.section.jobs": "Jobs",
+  "nav.boardsOnly": "nur Boards",
+  "nav.refused": "abgelehnt",
+  "nav.enginesFailed": "Die Engines konnten nicht geladen werden. Lade die Seite neu.",
+  "nav.menu": "Menü",
+  "nav.close": "Menü schließen",
   "title.board": "Board {board} · Pulse",
 
   "notice.ended.title": "Deine Sitzung ist abgelaufen",

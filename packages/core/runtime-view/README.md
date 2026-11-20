@@ -29,7 +29,9 @@ form, `BoardData`, which `test/core/board-format.test.ts` holds equal to the for
 builder (`@miragon/pulse-board/builder`: a board's numbers, which `BoardViews` serializes with
 `BoardJson.of` and hands the webview with what only the editors add, the targets the core checks
 a click against and the diagram's XML, a problem staying a code, and the roll-up onto collapsed
-sub-processes the definition and instance views draw too), and no layer a dialect's core. The
+sub-processes the definition and instance views draw too), the core also the screens
+(`@miragon/pulse-screens` and its `./builder`: the engine screen's numbers and the process list's
+filter, which the engine view words in English), and no layer a dialect's core. The
 webview renders a board's tiles with the building blocks under an English `LocaleProvider`, which
 word them, and brings their slots: its table, its short id and its diagram canvas.
 That edge of `packages/core` into the engine family is the one the owner accepted
