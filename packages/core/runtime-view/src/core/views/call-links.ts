@@ -1,6 +1,4 @@
 import type { CalledInstanceData, CallLinkData } from "@miragon/pulse-screens"
-import type { CalledProcess } from "@miragon/pulse-engine-core"
-import { CallLinks as ScreenCallLinks, ScreenJson } from "@miragon/pulse-screens/builder"
 import type { CallLink } from "../protocol/index.js"
 import { Labels } from "./labels.js"
 
@@ -13,9 +11,8 @@ export class CallLinks {
     private readonly openDefinitionLabel: string,
   ) {}
 
-  static ofDefinition(calledProcesses: readonly CalledProcess[]): CallLinks {
-    const links = ScreenJson.callLinks(ScreenCallLinks.of(calledProcesses).links())
-    return new CallLinks(links, OPEN_FROM_DEFINITION)
+  static ofDefinition(calls: readonly CallLinkData[]): CallLinks {
+    return new CallLinks(calls, OPEN_FROM_DEFINITION)
   }
 
   static ofInstance(calls: readonly CallLinkData[]): CallLinks {

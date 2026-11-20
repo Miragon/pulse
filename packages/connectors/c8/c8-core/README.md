@@ -153,11 +153,15 @@ answers and that board into `packages/connectors/c8/c8-core/src/testing/board-en
 `C8_SCREEN_ENGINE` is the same for the screens Pulse's surfaces share (`@miragon/pulse-screens`):
 one cluster's answers to the screens' reads under `/v2`, the time a surface builds them at (`asOf`)
 and the screens they give in their JSON form: the engine screen (`expected.engine`,
-`EngineScreenData`) and the instance screens (`InstanceScreenData`) of DSP-3001, which waits at its
+`EngineScreenData`); the instance screens (`InstanceScreenData`) of DSP-3001, which waits at its
 call activity for the incident of the instance it called (`expected.instance`), and of that called
-instance (`expected.calledInstance`), which the editors' C8 adapter builds exactly over its wire,
-with the figures of the recorded Camunda 7 screens. Its answers come from one run of their own,
-recorded by hand on 2026-11-20 as the board's: the world seeded with `C8WorldSeed` on
+instance (`expected.calledInstance`); the process screens (`ProcessScreenData`) of pulse-order at
+its latest version (`expected.process`) and at its version 1 (`expected.olderVersion`) and of
+pulse-dispatch (`expected.callingProcess`); and the first page of every instance of pulse-order's
+version 1 with the counts of each scope (`expected.instanceList`, `InstanceListData`); the editors'
+C8 adapter and the MCP server's Camunda 8 wire build each exactly, with the figures of the recorded
+Camunda 7 screens. Its answers come from one run of their own, recorded by hand on 2026-11-20 as
+the board's, made anew with the process screens and the instance list: the world seeded with `C8WorldSeed` on
 `camunda/camunda:8.10.9` with H2 and no security, every screen built twice through a proxy in front
 of the cluster that keeps each request with what the cluster answers (the same answer both times),
 and once more over the kept answers on `startRecordedEngine`, with no request unanswered. So every

@@ -41,15 +41,15 @@ const RECORDING = JSON.parse(
 
 /** The calling instance and the one it called, as the recording names them. */
 export const CHAIN = {
-  dispatch: "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
-  label: "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
-  rootIncident: "9ad584af-e4d4-11f1-8d05-0ec72f60445f",
-  copyIncident: "9ad5abc0-e4d4-11f1-8d05-0ec72f60445f",
+  dispatch: "02884da0-e4fa-11f1-a98a-a2a764d20660",
+  label: "02895f16-e4fa-11f1-a98a-a2a764d20660",
+  rootIncident: "0291c39a-e4fa-11f1-a98a-a2a764d20660",
+  copyIncident: "0291c39b-e4fa-11f1-a98a-a2a764d20660",
   /** An ended instance of "Dispatch order", which the history alone holds. */
-  ended: "7f0c0eb3-e4d4-11f1-8d05-0ec72f60445f",
+  ended: "7f0c0eb3-e4fa-11f1-a98a-a2a764d20660",
 } as const
 
-const DISPATCH_V1 = "pulse-dispatch:1:9aa99268-e4d4-11f1-8d05-0ec72f60445f"
+const DISPATCH_V1 = "pulse-dispatch:1:0256b623-e4fa-11f1-a98a-a2a764d20660"
 
 /** A JSON value as text, the keys of each of its objects in order, so two spellings compare equal. */
 function canonical(value: unknown): string {

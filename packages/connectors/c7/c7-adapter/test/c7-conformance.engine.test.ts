@@ -1,5 +1,5 @@
 import { C7_BOARD_ENGINE, C7_SCREEN_ENGINE } from "@miragon/pulse-c7-core/testing"
-import { InstanceId } from "@miragon/pulse-engine-core"
+import { BpmnProcessId, DefinitionId, InstanceId } from "@miragon/pulse-engine-core"
 import {
   ConformanceKit,
   FakeEngine,
@@ -8,8 +8,19 @@ import {
 } from "@miragon/pulse-engine-core/testing"
 import type { BoardData } from "@miragon/pulse-board"
 import { BoardFigures } from "@miragon/pulse-board/testing"
-import type { EngineScreenData, InstanceScreenData } from "@miragon/pulse-screens"
-import { EngineScreen, InstanceScreen, ScreenJson } from "@miragon/pulse-screens/builder"
+import type {
+  EngineScreenData,
+  InstanceListData,
+  InstanceScreenData,
+  ProcessScreenData,
+} from "@miragon/pulse-screens"
+import {
+  EngineScreen,
+  InstanceList,
+  InstanceScreen,
+  ProcessScreen,
+  ScreenJson,
+} from "@miragon/pulse-screens/builder"
 import { ScreenFigures, WORLD_SCREENS } from "@miragon/pulse-screens/testing"
 import { afterAll, beforeAll, describe, expect, test } from "vitest"
 import { C7Adapter } from "../src/index.js"
@@ -117,6 +128,66 @@ describe.skipIf(!RUNS_ON_CAMUNDA_7)(`the C7 adapter against ${ENGINE_IMAGE}`, ()
       expect(figures).toEqual(ScreenFigures.instance(WORLD_SCREENS[name]))
       expect(figures).toEqual(ScreenFigures.instance(recorded))
     }
+  })
+
+  test("screens: the process screens and the instance list over the seeded world have the kit's numbers", async () => {
+    if (harness === undefined) {
+      throw new Error("the engine did not start")
+    }
+    const { runtime } = harness
+    const read = async (bpmnProcessId: string, version?: number): Promise<ProcessScreenData> => {
+      const latest = await ProcessScreen.read(
+        C7_SCREEN_ENGINE.engine,
+        { bpmnProcessId: BpmnProcessId(bpmnProcessId) },
+        runtime,
+        () => new Date(),
+      )
+      const definitionId = latest?.versions.find(({ definition }) => definition.version === version)
+        ?.definition.id
+      const model =
+        definitionId === undefined
+          ? latest
+          : await ProcessScreen.read(
+              C7_SCREEN_ENGINE.engine,
+              { bpmnProcessId: BpmnProcessId(bpmnProcessId), definitionId },
+              runtime,
+              () => new Date(),
+            )
+      if (model === undefined) {
+        throw new Error(`the engine holds no version of ${bpmnProcessId}`)
+      }
+      return ScreenJson.process(model)
+    }
+    const processes = {
+      process: await read("pulse-order"),
+      olderVersion: await read("pulse-order", 1),
+      callingProcess: await read("pulse-dispatch"),
+    }
+    const definitionId = processes.olderVersion.selected?.id
+    if (definitionId === undefined) {
+      throw new Error("the engine holds no version 1 of pulse-order")
+    }
+    const list = ScreenJson.instanceList(
+      await InstanceList.read(
+        C7_SCREEN_ENGINE.engine,
+        { definitionId: DefinitionId(definitionId), filter: { scope: "all" } },
+        runtime,
+        () => new Date(),
+      ),
+    )
+
+    for (const name of ["process", "olderVersion", "callingProcess"] as const) {
+      const figures = ScreenFigures.process(processes[name])
+      expect(figures).toEqual(ScreenFigures.process(WORLD_SCREENS[name]))
+      expect(figures).toEqual(
+        ScreenFigures.process(C7_SCREEN_ENGINE.expected[name] as ProcessScreenData),
+      )
+    }
+    const figures = ScreenFigures.instanceList(list)
+    expect(figures).toEqual(ScreenFigures.instanceList(WORLD_SCREENS.instanceList))
+    expect(figures).toEqual(
+      ScreenFigures.instanceList(C7_SCREEN_ENGINE.expected.instanceList as InstanceListData),
+    )
   })
 
   kit.registerCommandLaws(async () => {

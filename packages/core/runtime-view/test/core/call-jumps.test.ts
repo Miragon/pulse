@@ -93,6 +93,26 @@ describe("jumping from a call activity in the definition view", () => {
     expect(fixture.calls).not.toContain("getCalledProcesses")
   })
 
+  test("asks the engine where a call activity's id is quoted singly, by the rule the screens' builder applies", async () => {
+    const fixture = panelFixture(
+      (runtime) =>
+        new PatchedRuntime(runtime, {
+          getDiagramXml: async (definitionId) =>
+            (await runtime.getDiagramXml(definitionId))?.replace(
+              /<\/((?:\w+:)?)process>/,
+              "<$1callActivity id='Call_Quoted' /></$1process>",
+            ),
+        }),
+    )
+    const panel = new DefinitionPanel(fixture.context, {
+      bpmnProcessId: BpmnProcessId("pulse-order"),
+    })
+
+    await panel.handle({ type: "ready" })
+
+    expect(fixture.calls).toContain("getCalledProcesses")
+  })
+
   test("draws a process that is not deployed as missing and explains it in a strip on click", async () => {
     const fixture = panelFixture(nothingDeployed)
     const panel = new DefinitionPanel(fixture.context, { bpmnProcessId: DISPATCH })

@@ -27,6 +27,23 @@ export interface C7ExpectedScreens {
    * caller.
    */
   readonly calledInstance: unknown
+  /**
+   * The process screen of pulse-order at its latest version, `ProcessScreenData`: it says that
+   * instances still run on its version 1.
+   */
+  readonly process: unknown
+  /** The process screen of pulse-order at its version 1, where an incident stops an instance. */
+  readonly olderVersion: unknown
+  /**
+   * The process screen of pulse-dispatch, whose call activity waits for the incident of the
+   * instance DSP-3001 called.
+   */
+  readonly callingProcess: unknown
+  /**
+   * The first page of every instance of pulse-order's version 1, running and ended, with the
+   * counts of each scope, `InstanceListData`.
+   */
+  readonly instanceList: unknown
 }
 
 /** The recorded screen engine: its engine's answers and the screens they give. */

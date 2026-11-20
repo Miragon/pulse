@@ -36,7 +36,7 @@ wiring and the composition root:
 | `packages/core/board`                    |            | the board file format and builder, shared with the MCP server (`@miragon/pulse-board`)          |
 | `packages/core/blocks`                   |            | a board's tiles, the process list, an instance's blocks, shared (`@miragon/pulse-blocks`)       |
 | `packages/core/runtime-view`             | `ports`    | the ports of the editor hosts: engine plug, local model                                         |
-|                                          | `core`     | grouping, view models (engine, instance numbers from `@miragon/pulse-screens`), panel behaviour |
+|                                          | `core`     | grouping, view models (engine, process and instance: `@miragon/pulse-screens`), panel behaviour |
 |                                          | `protocol` | the messages between host and webview                                                           |
 |                                          | `webview`  | what the panels draw                                                                            |
 |                                          | `model`    | the local `.bpmn` model and the code that implements it                                         |

@@ -10,6 +10,7 @@ import {
   type PageCursor,
   type VersionSummary,
 } from "@miragon/pulse-engine-core"
+import { InstanceRows } from "@miragon/pulse-screens"
 import type { ModelFile } from "../../ports/index.js"
 import type { DriftCheck } from "../drift/drift-check.js"
 import type {
@@ -135,10 +136,9 @@ export class DefinitionReads {
 
   async more(loaded: DefinitionLoaded): Promise<DefinitionLoaded> {
     const page = await this.instances.page(loaded.selected, loaded.filter, loaded.next)
-    const shown = new Set(loaded.instances.map((instance) => instance.id))
     return this.snapshot({
       ...loaded,
-      instances: [...loaded.instances, ...page.items.filter((item) => !shown.has(item.id))],
+      instances: InstanceRows.appended(loaded.instances, page.items),
       next: page.next,
       pages: loaded.pages + 1,
     })
@@ -199,6 +199,7 @@ export class DefinitionReads {
     const view = new DefinitionViewBuilder({
       engine: this.context.engine,
       asOf: state.asOf,
+      bpmnProcessId: this.bpmnProcessId,
       versions: state.versions,
       selectedDefinitionId: state.selected,
       diagramXml: state.diagramXml,

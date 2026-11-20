@@ -1,14 +1,22 @@
 import type {
+  BpmnProcessId,
   CalledProcess,
   DefinitionId,
   ElementStatistics,
   InstanceSummary,
   VersionSummary,
 } from "@miragon/pulse-engine-core"
+import type {
+  DefinitionRefData,
+  InstanceRowData,
+  ProcessNoticeData,
+  ProcessScreenData,
+  VersionData,
+} from "@miragon/pulse-screens"
+import { InstanceList, ProcessScreen, ScreenJson } from "@miragon/pulse-screens/builder"
 import {
   VariableConditionRules,
   type DefinitionView,
-  type ElementBadge,
   type EngineBadge,
   type InstanceListFilter,
   type InstanceRow,
@@ -18,13 +26,13 @@ import {
   type VersionOption,
 } from "../protocol/index.js"
 import { CallLinks } from "./call-links.js"
-import { ElementBadges } from "./element-badges.js"
 import { Labels } from "./labels.js"
 import { WebUiLinks } from "./web-ui-links.js"
 
 export interface DefinitionSnapshot {
   readonly engine: EngineBadge
   readonly asOf: Date
+  readonly bpmnProcessId: BpmnProcessId
   readonly versions: readonly VersionSummary[]
   readonly selectedDefinitionId: DefinitionId
   readonly diagramXml: string
@@ -44,27 +52,58 @@ export class DefinitionViewBuilder {
   constructor(private readonly snapshot: DefinitionSnapshot) {}
 
   build(): DefinitionView {
-    const identity = this.identityOf(this.selectedVersion())
+    const screen = this.screen()
+    const identity = this.identityOf(screen.selected)
     const subject = `${identity.processName} v${identity.selectedVersion}`
     return {
       kind: "definition",
       engine: this.snapshot.engine,
-      asOf: this.snapshot.asOf.toISOString(),
+      asOf: screen.asOf,
       ...identity,
-      versions: this.versionOptions(),
+      versions: screen.versions.map((version) => this.versionOption(version)),
       selectedDefinitionId: this.snapshot.selectedDefinitionId,
       diagramXml: this.snapshot.diagramXml,
-      badges: this.badges(),
-      calls: CallLinks.ofDefinition(this.snapshot.calledProcesses).links(this.snapshot.engine.name),
-      instances: this.snapshot.instances.map((instance) => this.instanceRow(instance)),
+      badges: screen.badges.map((badge) => ({ ...badge })),
+      calls: CallLinks.ofDefinition(screen.calls).links(this.snapshot.engine.name),
+      instances: this.rows().map((row) => this.instanceRow(row)),
       hasMoreInstances: this.snapshot.hasMoreInstances,
       filter: this.snapshot.filter,
       ...this.variableLabels(),
       ...this.refusedConditions(),
       scopeCounts: this.snapshot.scopeCounts,
-      notices: this.notices(),
+      notices: this.notices(screen.notices),
       ...WebUiLinks.to(subject, this.snapshot.engine),
     }
+  }
+
+  private screen(): ProcessScreenData {
+    const { snapshot } = this
+    return ScreenJson.process(
+      ProcessScreen.of({
+        engine: snapshot.engine.name,
+        asOf: snapshot.asOf,
+        bpmnProcessId: snapshot.bpmnProcessId,
+        versions: snapshot.versions,
+        selected: snapshot.selectedDefinitionId,
+        diagramXml: snapshot.diagramXml,
+        statistics: snapshot.statistics,
+        calledProcesses: snapshot.calledProcesses,
+      }),
+    )
+  }
+
+  private rows(): readonly InstanceRowData[] {
+    const { snapshot } = this
+    return ScreenJson.instanceList(
+      InstanceList.of({
+        engine: snapshot.engine.name,
+        asOf: snapshot.asOf,
+        definitionId: snapshot.selectedDefinitionId,
+        page: { items: snapshot.instances },
+        counts: snapshot.scopeCounts,
+        refusedVariableConditions: snapshot.refusedVariableConditions ?? [],
+      }),
+    ).rows
   }
 
   private refusedConditions(): Pick<DefinitionView, "refusedVariableConditions"> {
@@ -79,15 +118,7 @@ export class DefinitionViewBuilder {
       : { variableLabels: variables.map((condition) => VariableConditionRules.label(condition)) }
   }
 
-  private selectedVersion(): VersionSummary | undefined {
-    const selected = this.snapshot.versions.find(
-      (version) => version.definition.id === this.snapshot.selectedDefinitionId,
-    )
-    return selected ?? this.snapshot.versions[0]
-  }
-
-  private identityOf(version: VersionSummary | undefined): Identity {
-    const definition = version?.definition
+  private identityOf(definition: DefinitionRefData | null): Identity {
     return {
       processName: definition?.name ?? definition?.bpmnProcessId ?? "",
       bpmnProcessId: definition?.bpmnProcessId ?? "",
@@ -95,57 +126,33 @@ export class DefinitionViewBuilder {
     }
   }
 
-  private versionOptions(): VersionOption[] {
-    return this.snapshot.versions.map((version) => ({
-      definitionId: version.definition.id,
-      version: version.definition.version,
-      running: version.running,
-      withIncident: version.withIncident,
-    }))
+  private versionOption({ definition, running, withIncident }: VersionData): VersionOption {
+    return { definitionId: definition.id, version: definition.version, running, withIncident }
   }
 
-  private badges(): ElementBadge[] {
-    return ElementBadges.of(this.snapshot.diagramXml, this.snapshot.statistics)
-  }
-
-  private instanceRow(instance: InstanceSummary): InstanceRow {
+  private instanceRow(row: InstanceRowData): InstanceRow {
     return {
-      id: instance.id,
-      shortId: Labels.shortId(instance.id),
-      state: Labels.instanceState(instance.state),
-      hasIncident: instance.hasIncident,
-      ...(instance.businessKey === undefined ? {} : { businessKey: instance.businessKey }),
-      ...(instance.startedAt === undefined ? {} : { startedAt: instance.startedAt }),
+      id: row.id,
+      shortId: Labels.shortId(row.id),
+      state: Labels.instanceState(row.state),
+      hasIncident: row.hasIncident,
+      ...(row.businessKey === undefined ? {} : { businessKey: row.businessKey }),
+      ...(row.startedAt === undefined ? {} : { startedAt: row.startedAt }),
     }
   }
 
-  private notices(): Notice[] {
-    const older = this.olderVersionsNotice()
-    return [...(this.snapshot.extraNotices ?? []), ...(older === undefined ? [] : [older])]
+  private notices(notices: readonly ProcessNoticeData[]): Notice[] {
+    return [
+      ...(this.snapshot.extraNotices ?? []),
+      ...notices.map((notice) => this.olderVersionsNotice(notice)),
+    ]
   }
 
-  private olderVersionsNotice(): Notice | undefined {
-    const { versions, selectedDefinitionId } = this.snapshot
-    const newest = versions[0]
-    if (newest?.definition.id !== selectedDefinitionId) {
-      return undefined
-    }
-    const olderRunning = versions.slice(1).filter((version) => version.running > 0)
-    const firstOlder = olderRunning[0]
-    if (firstOlder === undefined) {
-      return undefined
-    }
-    const running = olderRunning.reduce((sum, version) => sum + version.running, 0)
+  private olderVersionsNotice({ running, show }: ProcessNoticeData): Notice {
     return {
       tone: "info",
       title: `${Labels.plural(running, "instance")} still run on older versions.`,
-      actions: [
-        {
-          kind: "selectVersion",
-          label: `Show v${firstOlder.definition.version}`,
-          definitionId: firstOlder.definition.id,
-        },
-      ],
+      actions: [{ kind: "selectVersion", label: `Show v${show.version}`, definitionId: show.id }],
     }
   }
 }

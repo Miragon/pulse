@@ -31,11 +31,14 @@ builder (`@miragon/pulse-board/builder`: a board's numbers, which `BoardViews` s
 a click against and the diagram's XML, a problem staying a code, and the roll-up onto collapsed
 sub-processes the definition and instance views draw too), the core also the screens
 (`@miragon/pulse-screens` and its `./builder`: the engine screen's numbers and the process list's
-filter, and an instance's incident cards, wait rows, path, call links, head strip and markers,
-whose JSON form the core words in English into the instance view, its protocol unchanged; the
-protocol keeps a copy of the engine screen's JSON form of a process row, its filter, its scope
-counts and its totals, which `test/core/engine-screen-format.test.ts` holds equal to the
-format's), and no layer a dialect's core. The webview renders a board's tiles, the engine's
+filter, a process's versions, badges, call targets and the older versions' notice and an
+instance list's page, counts and query, and an instance's incident cards, wait rows, path, call
+links, head strip and markers, whose JSON forms the core words in English into the definition and
+instance views, their protocol unchanged; the protocol keeps a copy of the engine screen's JSON
+form of a process row, its filter, its scope counts and its totals, which
+`test/core/engine-screen-format.test.ts` holds equal to the format's, and of a badge, an instance
+list's filter, its counts and a variable condition's type rule, which
+`test/core/process-screen-format.test.ts` holds equal), and no layer a dialect's core. The webview renders a board's tiles, the engine's
 process list and the instance view's facts, head strip, incident cards, tables of waits, path and
 variables and marker legend with the building blocks under an English `LocaleProvider`, which
 word them, and brings their slots: its table, its short id or named id, its diagram canvas, its

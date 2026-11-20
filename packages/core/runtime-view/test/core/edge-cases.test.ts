@@ -38,6 +38,7 @@ describe("labels without optional facts", () => {
     const view = new DefinitionViewBuilder({
       engine: { name: "local", environment: "local", host: "localhost" },
       asOf: NOW,
+      bpmnProcessId: BpmnProcessId("p"),
       versions: [],
       selectedDefinitionId: DefinitionId("p:1"),
       diagramXml: "",

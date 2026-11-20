@@ -17,5 +17,6 @@ export type {
   TileModel,
 } from "./board-model.js"
 export type { BoardReads, EngineSource } from "./board-reads.js"
+export { CallActivities } from "./call-activities.js"
 export { CollapsedShapes } from "./collapsed-shapes.js"
 export { DiagramBadges } from "./diagram-badges.js"

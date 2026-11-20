@@ -1,3 +1,4 @@
 export type { InstanceFiguresData } from "./instance-figures.js"
+export type { InstanceListFiguresData, ProcessFiguresData } from "./process-figures.js"
 export { ScreenFigures, type EngineFiguresData } from "./screen-figures.js"
 export { WORLD_SCREENS, type WorldScreens } from "./world-screens.js"

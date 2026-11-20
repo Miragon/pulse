@@ -1,7 +1,20 @@
 # UI foundation and shared building blocks
 
 - Status: accepted
-- Last reviewed: 2026-11-20, the very last time that day (executed, D10's instance screen: the
+- Last reviewed: 2026-11-20, after the instance screen (executed, D8's builder of the process
+  screen and the instance list: `@miragon/pulse-screens/builder` builds a process's versions with
+  their counts, the badges of a version's diagram, rolled up onto collapsed sub-processes with the
+  board builder's `DiagramBadges`, root incidents at the element and the incidents in called
+  instances apart, its call targets, read unless the board builder's `CallActivities` finds no call
+  activity in a diagram it could read, the rule this extension's core applies too, and the notice
+  that older versions still run, and an instance list's page of 50, its scopes' counts on the first
+  page with their lower bounds and its query, the variable conditions included, a date an instant
+  with its offset, with the condition kinds a dialect refuses, and the rule that puts a later page
+  after the rows shown without a repeated row (`InstanceRows` of the main entry); this extension's
+  definition view and its instance list word them in English, its core reading a date condition's
+  wall clock in the host's time zone, its protocol and fixtures unchanged; both recordings made
+  anew in one run each; the instance screen reads the processes a version calls by the same rule,
+  as the editors do); 2026-11-20, the very last time that day before (executed, D10's instance screen: the
   web app shows an instance and an incident under it on its own screen, the instance blocks of
   `@miragon/pulse-blocks` over the MCP server's app-only feed `engine_screen_instance_data`, which
   builds the instance screen of `@miragon/pulse-screens` exactly as both adapters do, an incident's
@@ -263,6 +276,19 @@ each surface keeps its screens and the web app's are its own.
      exactly, the server's feed with the web app's instance screen; the figures
      `ScreenFigures.instance` compares leave out a path's open runs, since Camunda 7 enters an
      element it waits before only once the wait is over.
+     Executed for the process screen's and the instance list's builder the same day:
+     `ProcessScreen` reads a process's versions (primary), its selected version's diagram, element
+     statistics and, only where the diagram has a call activity or could not be read, the
+     processes it calls (each an enrichment its screen names when its read fails); `InstanceList`
+     reads a page of 50 by cursor (primary) and, on the first page only, the three scopes' counts,
+     a lower bound kept as `atLeast`. This extension's definition view and instance list take them
+     and word them in English, their protocol and fixtures unchanged; the protocol's copy of the
+     condition's type rule is held to the format's `VariableConditionTypes`. Both recordings hold
+     the process screens of pulse-order at its latest version and at its version 1 and of
+     pulse-dispatch and the list of pulse-order's version 1 beside the engine and instance screens,
+     each recording one run anew on a seeded engine (Operaton 2.1.5 at history level full,
+     camunda/camunda:8.10.9 on H2), which both adapters and the server's two wires build exactly;
+     the feeds come with the web app's process screen.
   3. **Mutation tests.** The builder joins them, since it decides the numbers of two surfaces, the
      board package's criterion.
   4. **Release.** Its first npm publish is by hand, with its trusted publisher, before the release

@@ -1,17 +1,33 @@
-import { ElementId, InstanceId, type InstanceDetail } from "@miragon/pulse-engine-core"
+import {
+  BpmnProcessId,
+  DefinitionId,
+  ElementId,
+  InstanceId,
+  type InstanceDetail,
+} from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
-import { EngineScreen, InstanceScreen, ScreenJson } from "../src/builder/index.js"
+import {
+  EngineScreen,
+  InstanceList,
+  InstanceScreen,
+  ProcessScreen,
+  ScreenJson,
+} from "../src/builder/index.js"
 import {
   FleetSums,
   type CallLinkKind,
   type CauseSourceCode,
   type HeadlineCode,
+  type InstanceScopeCode,
   type IncidentTextKind,
   type InstanceReadCode,
   type InstanceStateCode,
   type MarkerKindCode,
   type PathStateCode,
+  type ProcessNoticeCode,
+  type ProcessReadCode,
   type ValueKindCode,
+  type VariableConditionKindCode,
   type WaitKindCode,
 } from "../src/index.js"
 import { WORLD_SCREENS } from "../src/testing/index.js"
@@ -26,6 +42,8 @@ const STRING_FIELDS: Readonly<Record<string, FieldKind>> = {
   id: "id",
   instanceId: "id",
   incidentId: "id",
+  definitionId: "id",
+  next: "id",
   elementId: "id",
   scopeElementId: "id",
   asOf: "time",
@@ -54,6 +72,8 @@ const STRING_FIELDS: Readonly<Record<string, FieldKind>> = {
   text: "code",
   causeSource: "code",
   unread: "code",
+  atLeast: "code",
+  refusedVariableConditions: "code",
 }
 
 const CODES: ReadonlySet<string> = new Set<
@@ -67,6 +87,10 @@ const CODES: ReadonlySet<string> = new Set<
   | IncidentTextKind
   | CauseSourceCode
   | InstanceReadCode
+  | ProcessReadCode
+  | ProcessNoticeCode
+  | InstanceScopeCode
+  | VariableConditionKindCode
 >([
   ...(["running", "suspended", "completed", "terminated", "active", "canceled"] as const),
   ...(["incident", "incidentInCalledInstance", "incidents", "ended", "waiting"] as const),
@@ -89,6 +113,7 @@ const CODES: ReadonlySet<string> = new Set<
     "calledProcesses",
     "caller",
   ] as const),
+  ...(["statistics", "olderVersionsRun", "withIncident", "all", "ordering", "date"] as const),
 ])
 
 const ISO_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
@@ -162,8 +187,16 @@ async function worldForms(): Promise<{ readonly forms: unknown[]; readonly words
     ...definitions.flatMap(({ latest }) => (latest.name === undefined ? [] : [latest.name])),
   ])
   const instances = await instanceForms()
+  const processes = await processForms()
   return {
-    forms: [screen, bare, WORLD_SCREENS.engine, FleetSums.of([screen, bare]), ...instances.forms],
+    forms: [
+      screen,
+      bare,
+      WORLD_SCREENS.engine,
+      FleetSums.of([screen, bare]),
+      ...instances.forms,
+      ...processes,
+    ],
     words: new Set([...words, ...instances.words]),
   }
 }
@@ -212,6 +245,50 @@ const RICH: InstanceDetail = Instances.detail({
     },
   ],
 })
+
+async function processForms(): Promise<unknown[]> {
+  const runtime = ScreenWorld.world({
+    countInstances: () => Promise.resolve({ count: 1000, atLeast: true }),
+    refusedVariableConditions: () => ["ordering", "date"],
+  })
+  const read = (bpmnProcessId: string) =>
+    ProcessScreen.read(
+      "prod-a",
+      { bpmnProcessId: BpmnProcessId(bpmnProcessId) },
+      runtime,
+      () => ScreenWorld.AS_OF,
+    )
+  const [order, dispatch, unread] = await Promise.all([
+    read("pulse-order"),
+    read("pulse-dispatch"),
+    ProcessScreen.read(
+      "prod-a",
+      { bpmnProcessId: BpmnProcessId("pulse-dispatch") },
+      ScreenWorld.world({
+        getDiagramXml: () => Promise.resolve(undefined),
+        getElementStatistics: () => Promise.reject(new Error("down")),
+        getCalledProcesses: () => Promise.reject(new Error("down")),
+      }),
+      () => ScreenWorld.AS_OF,
+    ),
+  ])
+  const list = await InstanceList.read(
+    "prod-a",
+    { definitionId: DefinitionId("pulse-order:1"), filter: { scope: "all" } },
+    runtime,
+    () => ScreenWorld.AS_OF,
+  )
+  return [
+    ...[order, dispatch, unread].map((model) =>
+      model === undefined ? {} : ScreenJson.process(model),
+    ),
+    ScreenJson.instanceList(list),
+    WORLD_SCREENS.process,
+    WORLD_SCREENS.olderVersion,
+    WORLD_SCREENS.callingProcess,
+    WORLD_SCREENS.instanceList,
+  ]
+}
 
 async function instanceForms(): Promise<{ readonly forms: unknown[]; readonly words: string[] }> {
   const runtime = ScreenWorld.world()

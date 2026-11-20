@@ -10,9 +10,12 @@ the [Pulse MCP server](https://miragon.github.io/pulse/mcp/) and the editors,
 and [Pulse for Orca](https://miragon.github.io/pulse/orca/). Where two of them show a screen, this
 package builds its numbers once, over the engine contract, so each surface shows the same numbers
 and words them in its own language. Today it holds the engine screen, every process of an engine
-with its latest version, its running instances and its instances with incident, and the instance
-screen, an instance with its root incidents, where it waits, its path, its call links, its head
-strip and the markers of its diagram.
+with its latest version, its running instances and its instances with incident; the process
+screen, a process's versions with their counts, the badges of a version's diagram, its call
+targets and the notice that older versions still run; the instance list, a version's instances by
+scope, page by page, with the count of each scope; and the instance screen, an instance with its
+root incidents, where it waits, its path, its call links, its head strip and the markers of its
+diagram.
 Below 1.0: pin the exact version and update all `@miragon/pulse-*` packages together.
 
 ## What it is not
@@ -20,8 +23,9 @@ Below 1.0: pin the exact version and update all `@miragon/pulse-*` packages toge
 No runtime dependency, no file system, no engine of its own and no text: the main entry imports
 only its own modules and holds the screens' JSON forms and the rules a surface applies to them. The
 builder (`@miragon/pulse-screens/builder`) reads through the engine contract of
-[`@miragon/pulse-engine-core`](https://www.npmjs.com/package/@miragon/pulse-engine-core) and rolls
-an instance's markers up onto collapsed sub-processes with `CollapsedShapes` of
+[`@miragon/pulse-engine-core`](https://www.npmjs.com/package/@miragon/pulse-engine-core), rolls
+a version's badges and an instance's markers up onto collapsed sub-processes with `DiagramBadges`
+and `CollapsedShapes` and tells whether a diagram has a call activity with `CallActivities` of
 [`@miragon/pulse-board/builder`](https://www.npmjs.com/package/@miragon/pulse-board) (both
 optional peers: install them next to this package to use the builder), and returns data: ids,
 codes, counts, the time of its reads and what the engine names itself, never a sentence, a format
@@ -64,6 +68,77 @@ screen: a surface that hands it on, to a webview or to a page, sends this data a
 hand. The time of the reads is ISO text, a missing description is `null`, and of the read models it
 keeps each field the form names, so `JSON.parse(JSON.stringify(data))` equals `data`.
 
+## The process screen
+
+```ts
+import { ProcessScreen, ScreenJson } from "@miragon/pulse-screens/builder"
+
+const model = await ProcessScreen.read("prod-a", { bpmnProcessId }, runtime, () => new Date())
+const screen = model === undefined ? undefined : ScreenJson.process(model)
+```
+
+`ProcessScreen.read(engine, { bpmnProcessId, definitionId, version }, reads, now)` asks the clock
+once, then reads the process's versions (`listVersions`), selects the one asked for (by its
+definition id, else by its number, as an address names it, else the latest; the model's `selected`
+says which) and reads that version's diagram (`getDiagramXml`), its element statistics
+(`getElementStatistics`) and, unless `CallActivities.found` finds no call activity in a diagram it
+could read, the processes it calls (`getCalledProcesses`): a diagram that could not be read, or one
+too long to read, reads them. A process the engine holds no version of gives no screen (`undefined`). A
+surface that holds the reads already hands them to `ProcessScreen.of` instead. Honest numbers: the
+versions are the screen, so their failure is the screen's, as thrown; the diagram, the statistics
+and the called processes only add to it, so a read that failed or found nothing leaves its part
+out and names it in `unread` (`diagram`, `statistics`, `calledProcesses`), never a 0. The model,
+and its JSON form `ProcessScreenData` (`ScreenJson.process`), hold:
+
+- every version as the engine lists them, the latest first, with its running instances and its
+  instances with incident, and the version selected;
+- a badge per element of the selected version (`badges`): the tokens running there without those
+  an incident at the element holds, the root incidents raised there and, apart, the incidents in
+  the instances it called, which are never part of the incident count; the root incidents and the
+  incidents in called instances rolled up onto every collapsed sub-process around the element, as
+  a board and the instance screen roll theirs up, while a sub-process's running count stays the
+  one the engine counts there;
+- the call targets (`calls`), per call activity the version it starts or the process the engine
+  lacks;
+- the notice that instances still run on older versions (`olderVersionsRun`, on the latest version
+  only): how many run there, how many of them have an incident, and the newest older version that
+  runs, which a surface offers to show.
+
+## The instance list
+
+```ts
+import { InstanceList, ScreenJson } from "@miragon/pulse-screens/builder"
+
+const list = ScreenJson.instanceList(
+  await InstanceList.read("prod-a", { definitionId, filter: { scope: "running" } }, runtime, now),
+)
+```
+
+`InstanceList.read(engine, { definitionId, filter, after }, reads, now)` asks the clock once and
+reads a page of 50 instances of the version (`searchInstances`), after the cursor `after` where it
+continues a list, and, on the first page only, the counts of the scopes running, with incident and
+ended (`countInstances`, three reads, which a refresh reads anew), so a later page reads no
+history. The filter (`InstanceListFilterData`) takes the scope (`running`, `withIncident`,
+`ended`, `all`), the element an instance is active at, the exact business key and variable
+conditions, each compared as the type it names or its value implies (`VariableConditionTypes`);
+`InstanceQuery.of(definitionId, filter)` is the engine's question it asks. A date condition's
+value is an instant with its offset (`Z` or `±hh:mm`): the surface reads its user's wall clock
+into it where it knows the user's time zone (the editors' core in the host, a web page in the
+browser), and the builder refuses a date without an offset with a `RangeError`, since the zone of
+whatever process runs it would decide the instant. The rows and the counts
+are the list, so a failure of either is the list's, as thrown. The model, and its JSON form
+`InstanceListData` (`ScreenJson.instanceList`), hold each row's id, state as a code, whether it has
+an incident, its business key and when it started; the cursor of the next page, `null` on the
+last; the counts (`null` on a later page), `all` as running and ended together, and each scope
+whose count the engine stopped at as a lower bound in `atLeast` (all with running or ended); and
+the kinds of variable condition the engine's dialect refuses (`refusedVariableConditions`:
+`ordering`, `date` on Camunda 8), which a surface offers disabled with its reason.
+`InstanceCounts.read` counts the scopes on their own, an ended count handed in kept, for a refresh
+that reads no history. A surface that shows a later page after the rows it shows takes
+`InstanceRows.appended(shown, more)` of the main entry, which leaves out a row shown already: an
+engine that pages by offset repeats the last row of a page where an instance started between two
+reads, and the list shows it once.
+
 ## The instance screen
 
 ```ts
@@ -75,7 +150,8 @@ const screen = model === undefined ? undefined : ScreenJson.instance(model)
 
 `InstanceScreen.read(engine, instanceId, reads, now)` asks the clock once, then reads the
 instance's detail (`getInstanceDetail`), and with it the version's diagram (`getDiagramXml`), the
-processes it calls (`getCalledProcesses`) and, for an instance another one called, that caller
+processes it calls (`getCalledProcesses`, only where the diagram has a call activity or could not
+be read) and, for an instance another one called, that caller
 (`searchInstances` by its id, one at most). An instance the engine does not hold gives no screen
 (`undefined`). A surface that holds the reads already hands them to `InstanceScreen.of` instead,
 the caller `undefined` where it did not read it and `null` where its read failed or found nothing.
@@ -135,6 +211,15 @@ The main entry holds what a surface does with a screen's JSON form without readi
   over all of them. Counts only, never a rate: engines run different processes, so a rate summed
   across them measures their mix. An engine whose read failed is not among the screens it sums, and
   the surface says so in its place.
+- `DiagramDecorations.of(screen)` gives each element of a process screen's diagram what a surface
+  draws there: its counts above 0 in the order root incidents, incidents in called instances,
+  running, each with the scope of the instance list it filters to, whether its outline marks a
+  root incident (never for incidents in called instances alone) and its call target.
+- `VariableConditionTypes.of(condition)` is the type a variable condition compares as: the type it
+  names, else text for a pattern and a number for an ordering, else a number or a boolean where
+  its value reads as one, else text.
+- `InstanceRows.appended(shown, more)` puts a later page of an instance list after the rows shown,
+  without a row shown already, in the engine's order.
 - `ScreenTarget` names what a screen opens: an engine, a process of an engine, one version of a
   process (by its number and its definition id) or an instance, with one of its root incidents in
   focus where a link leads to it (an incident card's "Located in").
@@ -144,7 +229,10 @@ The main entry holds what a surface does with a screen's JSON form without readi
 `@miragon/pulse-screens/testing` exports `WORLD_SCREENS`, the screens the builder gives over the
 fixed world of the conformance kit (`FakeWorld.seed()` in a `FakeEngine` of
 `@miragon/pulse-engine-core/testing`): the engine, the instance DSP-3001 that waits at its call
-activity for the incident of the instance it called, and that called instance. `ScreenFigures`
+activity for the incident of the instance it called, and that called instance; the process
+pulse-order at its latest version (`process`) and at its version 1 (`olderVersion`), the process
+pulse-dispatch (`callingProcess`) and every instance of pulse-order's version 1 (`instanceList`).
+`ScreenFigures`
 reads a screen as its figures, without what an engine makes on its own (its name, ids, times, its
 product, its names and words): `ScreenFigures.engine(data)` each row's id, latest version and
 counts in their order and the totals; `ScreenFigures.instance(data)` the instance's state, its
@@ -152,18 +240,21 @@ caller's process, the head strip's code, the markers, the call links with the st
 instance, where each root incident and each wait lies and the ended runs of the path, each in an
 order of its own, since a dialect reads in its own order, enters an element it waits before (an
 asynchronous continuation on Camunda 7) only once the wait is over and names a wait's kind in its
-own terms. The numbers tests of every surface compare the screens a dialect's recorded answers
+own terms; `ScreenFigures.process(data)` the selected version, the versions with their counts in
+their order, the badges, the call targets, the notices and what was not read; and
+`ScreenFigures.instanceList(data)` the rows by business key, state and incident, whether more
+follow and the counts, without the condition kinds a dialect refuses. The numbers tests of every surface compare the screens a dialect's recorded answers
 give (`C7_SCREEN_ENGINE` of `@miragon/pulse-c7-core/testing`, `C8_SCREEN_ENGINE` of
 `@miragon/pulse-c8-core/testing`) with these figures, so one rule decides what counts as the same
 numbers.
 
 ## Entries
 
-| Entry                            | Holds                                                                                                 |
-| -------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `@miragon/pulse-screens`         | `ProcessFilter`, `FleetSums` and the types of the screens' JSON forms, their codes and `ScreenTarget` |
-| `@miragon/pulse-screens/builder` | `EngineScreen`, `InstanceScreen`, `CallLinks`, `ScreenJson` and the types of their models and reads   |
-| `@miragon/pulse-screens/testing` | `WORLD_SCREENS`, the screens of the conformance kit's fixed world, and `ScreenFigures`                |
+| Entry                            | Holds                                                                                                                                                                   |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@miragon/pulse-screens`         | `ProcessFilter`, `FleetSums`, `DiagramDecorations`, `VariableConditionTypes`, `InstanceRows` and the types of the screens' JSON forms, their codes and `ScreenTarget`   |
+| `@miragon/pulse-screens/builder` | `EngineScreen`, `ProcessScreen`, `InstanceList`, `InstanceCounts`, `InstanceQuery`, `InstanceScreen`, `CallLinks`, `ScreenJson` and the types of their models and reads |
+| `@miragon/pulse-screens/testing` | `WORLD_SCREENS`, the screens of the conformance kit's fixed world, and `ScreenFigures`                                                                                  |
 
 ## Stability
 
@@ -174,8 +265,10 @@ builder takes the `@miragon/pulse-engine-core` and `@miragon/pulse-board` of the
 ## Who uses it
 
 Pulse for VS Code and Pulse for Orca: the runtime view they share builds its engine panel with
-`EngineScreen` and `ProcessFilter` and its instance panel with `InstanceScreen`, whose JSON form it
-words in English, and opens a call activity's target with `CallLinks`; its webview renders the
+`EngineScreen` and `ProcessFilter`, its definition panel with `ProcessScreen` and its instance list
+with `InstanceList`, `InstanceCounts` and `InstanceQuery`, and its instance panel with
+`InstanceScreen`, whose JSON forms it words in English, and opens a call activity's target with
+`CallLinks`; its webview renders the
 engine's process list with the building blocks of [`@miragon/pulse-blocks`](https://www.npmjs.com/package/@miragon/pulse-blocks)
 (`ProcessTable`, `ListFilterBar`), which read the main entry: the screen's JSON form and
 `ProcessFilter`, which they apply in the browser where a surface holds the whole list; and its
