@@ -37,6 +37,14 @@ export function webAppUrlOf(cockpitUrl: string | undefined): string | null {
   return url && /^https?:\/\/\S/i.test(url) ? url : null
 }
 
+/**
+ * An engine's own web app (its home): the base the provider's routes build on, the profile's
+ * `cockpitUrl` or the one the provider derives from the REST root; null where none is known.
+ */
+export function buildEngineCockpitUrl(engine: EngineLink): string | null {
+  return resolveCockpitBase(engine)
+}
+
 export function buildProcessCockpitUrl(
   engine: EngineLink,
   ref: CockpitRef,

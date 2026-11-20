@@ -11,6 +11,7 @@ const CRUMB = cn("hover:text-foreground min-h-control inline-flex items-center r
  * Every crumb pops back to the view it names, so back never re-drills from the top.
  * `rootLabel` adds a leading crumb that leaves the trail via `onPop(-1)`. `current` names the one
  * view of an engine shown on boards only in place of the stack's: its one state, no route's.
+ * `nameOf` names a view the page shows itself by the page's word (`ViewLocation.nameOf`).
  */
 export function NavBreadcrumb({
   stack,
@@ -18,6 +19,7 @@ export function NavBreadcrumb({
   onPop,
   rootLabel,
   current,
+  nameOf,
   className,
 }: {
   stack: CockpitView[]
@@ -25,11 +27,15 @@ export function NavBreadcrumb({
   onPop: (to: number) => void
   rootLabel?: string
   current?: string
+  nameOf?: (view: CockpitView) => string | undefined
   className?: string
 }) {
   const views =
     current === undefined
-      ? stack.map((view, index) => ({ label: crumbLabel(view, locale), index }))
+      ? stack.map((view, index) => ({
+          label: nameOf?.(view) ?? crumbLabel(view, locale),
+          index,
+        }))
       : [{ label: current, index: 0 }]
   const entries = [...(rootLabel !== undefined ? [{ label: rootLabel, index: -1 }] : []), ...views]
   if (entries.length <= 1) return null

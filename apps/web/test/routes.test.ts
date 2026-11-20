@@ -4,8 +4,11 @@ import {
   COCKPIT_VIEW,
   placeKey,
   routeOf,
+  screenOf,
+  screenUrlOf,
   signInUrl,
   urlOf,
+  viewRouteOf,
   type Place,
   type ViewRoute,
 } from "../src/router/routes.js"
@@ -364,6 +367,69 @@ describe("signInUrl", () => {
   it("names the page and its query to come back to", () => {
     expect(signInUrl("/app/engines/prod/jobs?failed=true")).toBe(
       "/app/auth/login?return=%2Fapp%2Fengines%2Fprod%2Fjobs%3Ffailed%3Dtrue",
+    )
+  })
+})
+
+describe("the page's own screen at a place", () => {
+  /** The engine screen of `engine`, its list unfiltered. */
+  const unfiltered = (engine: string) => ({ kind: "engine", engine, filter: { scope: "all" } })
+
+  it("is the engine screen at an engine's overview, its own address or the old query", () => {
+    expect(screenOf({ view: "overview", engine: "prod-a" })).toEqual(unfiltered("prod-a"))
+    expect(viewRouteOf({ pathname: "/app/engines/prod-a", search: "" }).screen).toEqual(
+      unfiltered("prod-a"),
+    )
+    expect(
+      viewRouteOf({ pathname: "/app/cockpit", search: "?view=overview&engine=prod-a" }).screen,
+    ).toEqual(unfiltered("prod-a"))
+    // The old query that names an engine alone leads to its address, so to its screen too.
+    expect(viewRouteOf({ pathname: "/app/cockpit", search: "?engine=prod-a" }).screen).toEqual(
+      unfiltered("prod-a"),
+    )
+  })
+
+  it("carries the screen's filter in its address's query, the defaults left out, both ways", () => {
+    const cases: Array<[string, unknown]> = [
+      ["/app/engines/prod-a", { scope: "all" }],
+      ["/app/engines/prod-a?scope=incident", { scope: "withIncident" }],
+      ["/app/engines/prod-a?q=order", { scope: "all", search: "order" }],
+      [
+        "/app/engines/prod%20a?scope=incident&q=order+fulfillment+%26+co",
+        { scope: "withIncident", search: "order fulfillment & co" },
+      ],
+    ]
+    for (const [url, filter] of cases) {
+      const { pathname, search } = new URL(url, "http://localhost")
+      const route = viewRouteOf({ pathname, search })
+      expect(route.screen?.filter).toEqual(filter)
+      expect(route.url).toBe(url)
+      expect(route.place).toEqual({
+        view: "overview",
+        engine: decodeURIComponent(pathname.split("/")[3]),
+      })
+      expect(screenUrlOf(route.screen!)).toBe(url)
+    }
+  })
+
+  it("leaves out a scope it does not know, an empty search and spaces around one", () => {
+    const read = (search: string) => viewRouteOf({ pathname: "/app/engines/prod-a", search })
+    expect(read("?scope=all&q=").url).toBe("/app/engines/prod-a")
+    expect(read("?scope=ended&q=%20%20").screen?.filter).toEqual({ scope: "all" })
+    expect(read("?q=%20label%20").url).toBe("/app/engines/prod-a?q=label")
+    expect(
+      screenUrlOf({ kind: "engine", engine: "prod-a", filter: { scope: "all", search: " " } }),
+    ).toBe("/app/engines/prod-a")
+  })
+
+  it("is none for an engine named alone, another view, more arguments or an id of dots", () => {
+    expect(screenOf({ engine: "orders-c8" })).toBeUndefined()
+    expect(screenOf({ view: "incidents", engine: "prod-a" })).toBeUndefined()
+    expect(screenOf({ view: "overview", engine: "prod-a", focus: "incidents" })).toBeUndefined()
+    expect(screenOf({ view: "overview", engine: ".." })).toBeUndefined()
+    expect(screenOf({ view: "overview" })).toBeUndefined()
+    expect(viewRouteOf({ pathname: "/app/engines/prod-a/jobs", search: "" })).not.toHaveProperty(
+      "screen",
     )
   })
 })

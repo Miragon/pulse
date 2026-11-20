@@ -71,6 +71,7 @@ export type {
   ElementMarker,
   EngineAccess,
   EngineBadge,
+  EngineTotals,
   EngineView,
   Environment,
   IncidentRow,

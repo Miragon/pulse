@@ -14,7 +14,7 @@ const WITHOUT_RUN_EXAMPLE = {
   OPERATON_BPM_RUN_EXAMPLE_ENABLED: "false",
 } as const
 
-type HistoryLevel = "full" | "audit"
+type HistoryLevel = "full" | "audit" | "none"
 
 export interface RunningEngine {
   readonly url: string

@@ -1,5 +1,6 @@
 import type { Dispatch } from "react"
 import { StatusStrip, useLocale, WidgetHeader } from "@miragon/pulse-ui"
+import { useHostLocation } from "@miragon/pulse-widget-shell/widgets"
 import { environmentIn } from "../lib/engine-context.js"
 import { type BoardView, crumbLabel } from "../nav-core.js"
 import { translator } from "../../messages/use-t.js"
@@ -12,6 +13,7 @@ import {
 } from "./cockpit-state.js"
 import { CockpitHead, CockpitTrailBar, EngineSwitch } from "./head.js"
 import { boardsOnlyOf, type CockpitEngine } from "./boards-only.js"
+import { engineViewArgs } from "./place.js"
 import { CockpitRefreshButton } from "./refresh-button.js"
 
 /** Docked under the head: the engine the view showed went away, and the view fell back. */
@@ -127,6 +129,8 @@ export function EngineBars({
   dispatch: Dispatch<CockpitAction>
 }) {
   const locale = useLocale()
+  // A view the page shows itself (an engine's processes) goes by the page's word in the trail.
+  const pageName = useHostLocation()?.nameOf
   const { stack, goneEngineId, processGone, fromBoard } = state
   const engine = engines.find(({ id }) => id === engineId)
   const sectionless = refused || boardsOnlyOf(engine) !== null
@@ -138,6 +142,7 @@ export function EngineBars({
       locale={locale}
       rootLabel={rootLabel}
       current={sectionless ? engineId : undefined}
+      nameOf={pageName && ((view) => pageName(engineViewArgs(engineId, view)))}
       onPop={(to) => dispatch(to < 0 ? leave : { type: "pop", to })}
     />
   )

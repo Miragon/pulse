@@ -2,7 +2,7 @@ import { CircleXIcon } from "lucide-react"
 import { Icon, SegmentedControl, TONE_ICON, cn } from "@miragon/pulse-ui"
 import { CountLabels } from "../format/count-labels.js"
 
-export interface ScopeOption<Scope extends string> {
+interface ScopeOption<Scope extends string> {
   readonly scope: Scope
   readonly label: string
 }

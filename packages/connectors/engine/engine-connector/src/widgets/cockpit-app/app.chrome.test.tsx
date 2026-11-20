@@ -17,6 +17,7 @@ import {
   REFUSED,
   REFUSED_REASON,
   REFUSED_TITLE,
+  fakeAddress,
   renderCockpitOn,
   rowLabels,
   trailRow,
@@ -101,6 +102,23 @@ describe("the cockpit on a page with chrome of its own", RENDER, () => {
     expect(trailRow()?.className).not.toContain("@max-[40rem]:hidden")
     expect(screen.getAllByRole("navigation", { name: "Breadcrumb" })).toHaveLength(1)
     expect(rowLabels()).toEqual(["All engines", "Overview", "invoice"])
+  })
+
+  it("names a crumb to a place the page shows itself by the page's word, the others its own", async () => {
+    // The web app shows an engine's processes itself, under its navigation's word for them.
+    const address = fakeAddress(undefined, (args) => args.view === "overview")
+    const location = {
+      ...address.location,
+      nameOf: (args: Readonly<Record<string, unknown>>) =>
+        args.view === "overview" && args.engine === "prod-a" ? "Processes" : undefined,
+    }
+    renderCockpitOn(queryClient, boot("prod-a", ENGINES, PROCESS), undefined, FULLSCREEN, {
+      startPage: "/app",
+      chrome: CHROME,
+      location,
+    })
+    await waitFor(() => expect(trailRow()).not.toBeNull())
+    expect(rowLabels()).toEqual(["All engines", "Processes", "invoice"])
   })
 
   it("makes the landing's title its view bar's, with its action and the menu first, no Komet", async () => {

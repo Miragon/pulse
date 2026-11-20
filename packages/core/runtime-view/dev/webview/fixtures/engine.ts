@@ -36,6 +36,7 @@ export const ENGINE_VIEW: EngineView = {
   processes: [ORDER, RETURNS, SHIPMENT],
   filter: { scope: "all" },
   scopeCounts: { all: 3, withIncident: 2 },
+  totals: { processes: 3, running: 1_369, withIncident: 10 },
   emptyText: "No processes match this filter.",
   webUi: { label: "Open in Cockpit", title: "Open Cockpit on shop-dev" },
 }

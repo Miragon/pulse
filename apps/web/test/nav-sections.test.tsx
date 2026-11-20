@@ -3,18 +3,28 @@ import { cleanup, render, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, it } from "vitest"
 import { TestViewHost, type ViewComponent } from "@miragon/pulse-widget-shell/widgets"
 import { engineViews } from "@miragon/pulse-engine-connector/widgets"
-import { NAV_SECTIONS, sectionAt, sectionsOf, type NavDialect } from "../src/frame/nav-sections.js"
+import {
+  hasEngineScreen,
+  NAV_SECTIONS,
+  placeOfSection,
+  SECTION_VIEWS,
+  sectionAt,
+  sectionsOf,
+  type NavDialect,
+} from "../src/frame/nav-sections.js"
 import { catalogs } from "../src/messages/index.js"
 import { COCKPIT_VIEW } from "../src/router/routes.js"
-import { cockpitProperties, type EngineEntry } from "./cockpit-tool.js"
+import { cockpitProperties, type EngineEntry, registeredTools } from "./cockpit-tool.js"
 
 /**
  * The sections the page's navigation opens under an engine, per dialect (src/frame/nav-sections.ts),
  * held to the engine module: to the views its cockpit tool offers a server of that dialect's engines
- * alone (`view`'s enum follows ROUTE_DIALECTS), so the navigation offers no section the server
- * does not serve, and to the sections the cockpit's head shows an engine of that dialect, as the
+ * alone (`view`'s enum follows ROUTE_DIALECTS) and, for the page's own engine screen, to the
+ * engine screen's feed it registers for them, so the navigation offers no section the server does
+ * not serve, and to the sections the cockpit's head shows an engine of that dialect, as the
  * cockpit renders them in a chat, so no section of the head, which a page with chrome of its own
- * hides, goes missing from the navigation, in the head's order and by the head's words.
+ * hides, goes missing from the navigation, in the head's order and by the head's words, the
+ * overview's place the page's processes.
  */
 
 afterEach(cleanup)
@@ -24,6 +34,9 @@ const ENGINE_OF: Readonly<Record<NavDialect, readonly EngineEntry[]>> = {
   c7: [{ id: "prod", baseUrl: "http://prod.example/engine-rest" }],
   c8: [{ id: "orders", baseUrl: "https://orders.example/v2", flavor: "camunda8" }],
 }
+
+/** The cockpit head's word for its overview, the place the page shows as an engine's processes. */
+const OVERVIEW_WORD = { en: "Overview", de: "Übersicht" } as const
 
 /** The views the cockpit tool offers a server of `dialect`'s engines alone. */
 function servedViews(dialect: NavDialect): readonly unknown[] {
@@ -75,7 +88,13 @@ describe("the navigation's sections per dialect", () => {
       const served = servedViews(dialect)
       // The comparison is not vacuous: every server offers its app-level views.
       expect(served).toEqual(expect.arrayContaining(["landing", "board"]))
-      expect(NAV_SECTIONS[dialect].filter((section) => !served.includes(section))).toEqual([])
+      const views = NAV_SECTIONS[dialect].map((section) => SECTION_VIEWS[section])
+      expect(views.filter((view) => !served.includes(view))).toEqual([])
+      // The page's own engine screen reads its feed, which the server registers for the dialect.
+      const feeds = registeredTools(ENGINE_OF[dialect])
+      expect(hasEngineScreen(dialect) && !feeds.includes("engine_screen_processes_data")).toBe(
+        false,
+      )
     },
   )
 
@@ -86,15 +105,21 @@ describe("the navigation's sections per dialect", () => {
   )(
     "offers %s every section the cockpit's head shows it, in its order, in %s",
     async (dialect, locale) => {
-      const words = NAV_SECTIONS[dialect].map(
-        (section) => catalogs[locale][`nav.section.${section}`],
+      // The page's processes stand in the place of the cockpit's overview, which the page claims.
+      const words = NAV_SECTIONS[dialect].map((section) =>
+        section === "processes"
+          ? OVERVIEW_WORD[locale]
+          : catalogs[locale][`nav.section.${section}`],
       )
       expect(words).toEqual(await headSections(dialect, locale))
     },
   )
 
   it("opens Camunda 7's three and none of Camunda 8, which the page shows on boards only", () => {
-    expect(sectionsOf("c7")).toEqual(["overview", "incidents", "jobs"])
+    expect(sectionsOf("c7")).toEqual(["processes", "incidents", "jobs"])
+    expect(hasEngineScreen("c7")).toBe(true)
+    expect(hasEngineScreen("c8")).toBe(false)
+    expect(hasEngineScreen(undefined)).toBe(false)
     expect(sectionsOf("c8")).toEqual([])
     expect(sectionsOf(undefined)).toEqual([])
     expect(sectionsOf("hasOwnProperty")).toEqual([])
@@ -103,7 +128,7 @@ describe("the navigation's sections per dialect", () => {
 
 describe("the section a place is the page of", () => {
   it.each([
-    [{ view: "overview", engine: "prod" }, "overview"],
+    [{ view: "overview", engine: "prod" }, "processes"],
     [{ view: "incidents", engine: "prod" }, "incidents"],
     [{ view: "jobs", engine: "prod" }, "jobs"],
     [{ view: "jobs", engine: "prod", failedOnly: true }, "jobs"],
@@ -113,5 +138,13 @@ describe("the section a place is the page of", () => {
     [{ view: "landing" }, undefined],
   ])("%o is %s", (place, section) => {
     expect(sectionAt(place)).toBe(section)
+  })
+})
+
+describe("the place a section opens", () => {
+  it("opens the page's processes at the engine's own place, the others at their own", () => {
+    expect(placeOfSection("processes", "prod")).toEqual({ view: "overview", engine: "prod" })
+    expect(placeOfSection("incidents", "prod")).toEqual({ view: "incidents", engine: "prod" })
+    expect(placeOfSection("jobs", "prod")).toEqual({ view: "jobs", engine: "prod" })
   })
 })

@@ -229,12 +229,16 @@ export const trailLabels = () =>
     .map((el) => el.textContent)
     .filter((text): text is string => !!text)
 
-/** A page's address as the web app keeps it: every report, and Back to an entry. */
-export function fakeAddress(start?: ViewPlace) {
+/**
+ * A page's address as the web app keeps it: every report, and Back to an entry; `claims` the
+ * places the page shows itself.
+ */
+export function fakeAddress(start?: ViewPlace, claims?: ViewLocation["claims"]) {
   const reports: Array<{ place: ViewPlace; entry: "push" | "replace" }> = []
   let follower: ((place: ViewPlace) => boolean) | undefined
   const location: ViewLocation = {
     ...(start === undefined ? {} : { start }),
+    ...(claims === undefined ? {} : { claims }),
     report: (place, entry) => reports.push({ place, entry }),
     subscribe: (go) => {
       follower = go

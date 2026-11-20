@@ -273,6 +273,12 @@ export interface ProcessRow {
   readonly withIncident: number
 }
 
+export interface EngineTotals {
+  readonly processes: number
+  readonly running: number
+  readonly withIncident: number
+}
+
 export interface EngineView {
   readonly kind: "engine"
   readonly engine: EngineBadge
@@ -281,6 +287,7 @@ export interface EngineView {
   readonly processes: readonly ProcessRow[]
   readonly filter: ProcessListFilter
   readonly scopeCounts: ProcessScopeCounts
+  readonly totals: EngineTotals
   readonly emptyText: string
   readonly webUi?: WebUiLink
 }

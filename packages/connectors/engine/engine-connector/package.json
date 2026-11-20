@@ -61,7 +61,8 @@
     "@miragon/pulse-c8-core": "workspace:*",
     "@miragon/pulse-engine-core": "workspace:*",
     "@miragon/pulse-http": "workspace:*",
-    "@miragon/pulse-profile": "workspace:*"
+    "@miragon/pulse-profile": "workspace:*",
+    "@miragon/pulse-screens": "workspace:*"
   },
   "peerDependencies": {
     "@miragon/pulse-blocks": "workspace:^",

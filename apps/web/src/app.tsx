@@ -1,10 +1,14 @@
 import { useCallback, useMemo, useSyncExternalStore, type ComponentType } from "react"
-import { PageView, type ViewMap } from "@miragon/pulse-widget-shell/widgets"
+import type { ProcessFilterData } from "@miragon/pulse-screens"
+import { PageView, type ViewLocation, type ViewMap } from "@miragon/pulse-widget-shell/widgets"
 import { cockpitAfterFailedStart } from "@miragon/pulse-engine-connector/widgets"
 import { PAGE_CHROME } from "./frame/drawer.js"
 import { SessionFrame } from "./frame/session-frame.js"
 import type { SessionPage } from "./frame/session-page.js"
+import { useT } from "./messages/index.js"
 import type { PageRouter } from "./router/router.js"
+import { screenOf, screenUrlOf } from "./router/routes.js"
+import { EngineRoute } from "./screens/engine/engine-route.js"
 import { viewsAt } from "./unknown-engine.js"
 
 /** What the page with a session is made of: its router, its views and what its frame shows. */
@@ -22,16 +26,39 @@ export interface PageAppParts {
  * that failed for its engine keeps the cockpit on that engine over the route that says so
  * (`cockpitAfterFailedStart`), the navigation keeping the engine open with its sections; a refusal
  * no retry changes stays the frame's, and an engine's own address that names an engine the server
- * does not configure is refused in the view's place (`viewsAt`).
+ * does not configure is refused in the view's place (`viewsAt`). Where the page shows the place
+ * with a screen of its own (an engine's processes), the screen stands in the view's place, the
+ * cockpit's view its fallback for an engine the screen does not serve; its filter rides in the
+ * address (the router's `refine`), and the view names the place in its trail by the navigation's
+ * word (`ViewLocation.nameOf`).
  */
 function PageApp({ router, views, page }: PageAppParts) {
   const { route, shown, moves } = useSyncExternalStore(router.subscribe, router.state)
-  const { start, location, generation } = shown
+  const { start, screen, location, generation } = shown
+  const t = useT()
+  const named = useMemo<ViewLocation>(
+    () => ({
+      ...location,
+      nameOf: (args) => (screenOf(args) === undefined ? undefined : t("nav.section.processes")),
+    }),
+    [location, t],
+  )
   const failedStart = useCallback(
     (error: Error) => cockpitAfterFailedStart(start.args, error),
     [start],
   )
   const shownViews = useMemo(() => viewsAt(views, start), [views, start])
+  const view = (
+    <PageView
+      key={generation}
+      views={shownViews}
+      view={start.view}
+      args={start.args}
+      location={named}
+      chrome={PAGE_CHROME}
+      failedStart={failedStart}
+    />
+  )
   return (
     <SessionFrame
       page={page}
@@ -40,15 +67,20 @@ function PageApp({ router, views, page }: PageAppParts) {
       moves={moves}
       navigate={router.navigate}
     >
-      <PageView
-        key={generation}
-        views={shownViews}
-        view={start.view}
-        args={start.args}
-        location={location}
-        chrome={PAGE_CHROME}
-        failedStart={failedStart}
-      />
+      {screen === undefined ? (
+        view
+      ) : (
+        <EngineRoute
+          key={generation}
+          engine={screen.engine}
+          navigate={router.navigate}
+          filter={screen.filter}
+          onFilter={(filter: ProcessFilterData) => {
+            router.refine(screenUrlOf({ ...screen, filter }))
+          }}
+          fallback={view}
+        />
+      )}
     </SessionFrame>
   )
 }

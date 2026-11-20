@@ -5,6 +5,7 @@ import {
   strictToolInput,
 } from "@miragon/pulse-widget-shell/server"
 import { type ContractFeed, DATA_FEEDS, type DataFeed, type NamingFeed } from "../data/feeds.js"
+import { SCREEN_FEEDS } from "../data/screen-feeds.js"
 import { resolveEngine, resolveRuntimeEngine } from "../lib/engine/resolve-engine.js"
 import { contractToolError } from "../lib/engine/runtime-errors.js"
 import { engineServing, offeredEngineIds, servedEngineIds } from "../lib/engine/served-engines.js"
@@ -14,7 +15,8 @@ import { namedReads, type WidgetToolsContext } from "./shared.js"
 const FEED_ANNOTATIONS = { readOnlyHint: true, idempotentHint: true, openWorldHint: true }
 
 /**
- * Registers every `*_data` feed `data/feeds.ts` describes, app-only and read-only, where a
+ * Registers every `*_data` feed `data/feeds.ts` describes and the web app's screen feeds
+ * (`data/screen-feeds.ts`), app-only and read-only, where a
  * configured engine speaks a dialect of its mark (`dialects`): a feed of one engine with the
  * `engine` parameter, its enum the engines it serves (a Camunda 7 engine's through
  * `resolveEngine`; a contract feed's of any dialect through `resolveRuntimeEngine`, a failed read
@@ -73,7 +75,7 @@ export function registerWidgetDataFeeds(ctx: WidgetToolsContext) {
     )
   }
 
-  for (const feed of DATA_FEEDS) {
+  for (const feed of [...DATA_FEEDS, ...SCREEN_FEEDS]) {
     if (servedEngineIds(registry, { dialects: feed.dialects }).length === 0) continue
     if ("engines" in feed && feed.engines === "named") registerNamingFeed(feed)
     else registerDataFeed(feed)

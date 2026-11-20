@@ -23,6 +23,11 @@ function idsOf(view: CockpitView): Record<string, unknown> {
   )
 }
 
+/** The place of `view`, a view of one engine, as the tool's arguments. */
+export function engineViewArgs(engineId: string, view: CockpitView): Record<string, unknown> {
+  return { view: view.section, engine: engineId, ...idsOf(view) }
+}
+
 /**
  * Where the cockpit is. An engine without sections (one the server shows on boards only, or whose
  * profile it refused) is named by its id alone, never as a route that refuses it: the web app
@@ -41,8 +46,7 @@ export function placeArgsOf(state: CockpitState, sectionless: boolean): Record<s
       return { view: "board", board: scope.view.board }
     case "engine": {
       if (sectionless) return { engine: scope.engineId }
-      const top = stack[stack.length - 1]
-      return { view: top.section, engine: scope.engineId, ...idsOf(top) }
+      return engineViewArgs(scope.engineId, stack[stack.length - 1])
     }
   }
 }
@@ -143,13 +147,16 @@ export function useAddressStart(): CockpitAction | null {
  * The cockpit's moves on a page's address: each place it reaches goes into the page's history as
  * the move went (`CockpitState.moved`: a drill adds an entry, a fallback or another focus names the
  * current one), the first one names the entry the page opened on; Back and Forward lead the
- * cockpit back to their entry's place. A chat has no address: nothing happens there.
+ * cockpit back to their entry's place, never to one the page shows itself (`ViewLocation.claims`).
+ * Answers whether the page claims the place the cockpit is at: the cockpit then renders nothing,
+ * since the page takes over there. A chat has no address: nothing happens there, and it claims
+ * nothing.
  */
 export function usePlaceOnAddress(
   state: CockpitState,
   sectionless: boolean,
   dispatch: Dispatch<CockpitAction>,
-): void {
+): boolean {
   const location = useHostLocation()
   const args = useMemo(() => placeArgsOf(state, sectionless), [state, sectionless])
   const place = placeKey(args)
@@ -169,11 +176,12 @@ export function usePlaceOnAddress(
   useEffect(
     () =>
       location?.subscribe((next) => {
-        const action = actionOfPlace(next)
+        const action = location.claims?.(next.args) === true ? null : actionOfPlace(next)
         if (action === null) return false
         dispatch({ type: "arrive", action })
         return true
       }),
     [location, dispatch],
   )
+  return location?.claims?.(args) === true
 }

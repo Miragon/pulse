@@ -8,6 +8,8 @@ import {
   recordingModuleServer,
 } from "@miragon/pulse-widget-shell/testing"
 import { BoardParser } from "@miragon/pulse-board"
+import type { EngineScreenData } from "@miragon/pulse-screens"
+import { ScreenFigures, WORLD_SCREENS } from "@miragon/pulse-screens/testing"
 import { RuntimeError } from "@miragon/pulse-engine-core"
 import {
   FakeEngine as ContractFake,
@@ -25,6 +27,7 @@ import {
   ENGINE_BPMN_XML_DATA,
   ENGINE_LIST_ENGINES,
   ENGINE_OPEN_COCKPIT,
+  ENGINE_SCREEN_PROCESSES_DATA,
   ENGINE_WIDGET_ACTIONS_DATA,
 } from "./tool-names.js"
 import { worldReply } from "./tools/test-support/engine-world.js"
@@ -34,7 +37,8 @@ import { feedPayload } from "./tools/test-support/feed-payload.js"
 /**
  * An engine of another dialect beside a Camunda 7 one, hand-built: its runtime factory is a spy.
  * Every tool and feed of the admin surface offers it only where its mark serves its dialect (the
- * engine list, the board feed, the XML feed, the cockpit's board and landing), and the call-time
+ * engine list, the board feed, the XML feed, the web app's engine screen feed, the cockpit's board
+ * and landing), and the call-time
  * net refuses it elsewhere before its runtime is built, the default engine above all.
  */
 describe("createPlugin on an engine of another dialect", () => {
@@ -101,6 +105,7 @@ describe("createPlugin on an engine of another dialect", () => {
     ENGINE_LIST_ENGINES,
     ENGINE_BOARD_DATA,
     ENGINE_BPMN_XML_DATA,
+    ENGINE_SCREEN_PROCESSES_DATA,
     ENGINE_OPEN_COCKPIT,
     ENGINE_WIDGET_ACTIONS_DATA,
   ]
@@ -119,6 +124,7 @@ describe("createPlugin on an engine of another dialect", () => {
     expect(others.length).toBeGreaterThan(50)
     for (const name of others) expect(offered(recording, name), name).toEqual(["a"])
     expect(offered(recording, ENGINE_BPMN_XML_DATA)).toEqual(["a", "c8"])
+    expect(offered(recording, ENGINE_SCREEN_PROCESSES_DATA)).toEqual(["a", "c8"])
     // The cockpit's `engine` names every engine it shows: a route of one engine refuses this one.
     expect(offered(recording, ENGINE_OPEN_COCKPIT)).toEqual(["a", "c8"])
     expect(offered(recording, ENGINE_LIST_ENGINES)).toBeUndefined()
@@ -189,7 +195,7 @@ describe("createPlugin on an engine of another dialect", () => {
     expect(runtime).not.toHaveBeenCalled()
   })
 
-  it("serves the XML feed and the board feed through its runtime", async () => {
+  it("serves the XML feed, the board feed and the engine screen feed through its runtime", async () => {
     const { recording, runtime } = await bootOverBoth()
     const definitionId = FakeWorld.seed().world.definitionIds["order@1"]
     const xml = feedPayload<{ bpmnXml: string | null }>(
@@ -205,6 +211,11 @@ describe("createPlugin on an engine of another dialect", () => {
       ["a", "ready"],
       ["c8", "ready"],
     ])
+    // The web app's engine screen of the kit's world: the numbers its builder gives that world.
+    const screen = feedPayload<EngineScreenData>(
+      await recording.tool(ENGINE_SCREEN_PROCESSES_DATA).call({ engine: "c8" }),
+    )
+    expect(ScreenFigures.engine(screen)).toEqual(ScreenFigures.engine(WORLD_SCREENS.engine))
     expect(runtime).toHaveBeenCalled()
   })
 
@@ -306,7 +317,13 @@ describe("createPlugin over Camunda 8 profiles and the boards that name them", (
   it("a server of Camunda 8 engines alone registers what serves them, and nothing else", async () => {
     const recording = bootFromEnv()
     expect([...recording.tools.keys()].sort()).toEqual(
-      [ENGINE_LIST_ENGINES, ENGINE_OPEN_COCKPIT, ENGINE_BPMN_XML_DATA, ENGINE_BOARD_DATA].sort(),
+      [
+        ENGINE_LIST_ENGINES,
+        ENGINE_OPEN_COCKPIT,
+        ENGINE_BPMN_XML_DATA,
+        ENGINE_BOARD_DATA,
+        ENGINE_SCREEN_PROCESSES_DATA,
+      ].sort(),
     )
     // The prompt drafts through a Camunda 7 tool, which is not there.
     expect([...recording.prompts.keys()]).toEqual([])

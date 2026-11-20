@@ -125,7 +125,7 @@ export interface ContractFeed<TShape extends z.ZodRawShape = z.ZodRawShape, TDat
   read(input: FeedInput<TShape>, engine: RuntimeEngine): Promise<TData>
 }
 
-const contractFeed = <TShape extends z.ZodRawShape, TData extends object>(
+export const contractFeed = <TShape extends z.ZodRawShape, TData extends object>(
   feed: ContractFeed<TShape, TData>,
 ) => feed
 

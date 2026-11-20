@@ -30,8 +30,15 @@ describe("the view bundle's vite config", () => {
   })
 })
 
-/** widget-shell's view-half modules the bundle holds code of, as `vite build` builds it. */
-async function viewRuntimeModules(): Promise<string[]> {
+/** Every module the bundle holds code of, as `vite build` builds it (one build per run). */
+let bundled: Promise<string[]> | undefined
+
+function bundleModules(): Promise<string[]> {
+  bundled ??= buildModules()
+  return bundled
+}
+
+async function buildModules(): Promise<string[]> {
   const output = await build({
     ...viteConfig,
     configFile: false,
@@ -41,8 +48,13 @@ async function viewRuntimeModules(): Promise<string[]> {
     build: { ...viteConfig.build, write: false },
   })
   const outputs = (Array.isArray(output) ? output : [output]) as Rolldown.RolldownOutput[]
-  const shell = /\/widget-shell\/dist\/ui\/([^/]+)\.js$/
   return renderedModules(outputs.flatMap(({ output: each }) => each))
+}
+
+/** widget-shell's view-half modules the bundle holds code of. */
+async function viewRuntimeModules(): Promise<string[]> {
+  const shell = /\/widget-shell\/dist\/ui\/([^/]+)\.js$/
+  return (await bundleModules())
     .map((id) => shell.exec(id)?.[1])
     .filter((name): name is string => name !== undefined)
 }
@@ -59,5 +71,18 @@ describe("the view bundle holds the chat's root alone", { timeout: 120_000 }, ()
     )
     const pageRoots = ["app-root", "page-view", "page-root", "browser-view-host"]
     expect(modules.filter((name) => pageRoots.includes(name))).toEqual([])
+  })
+
+  // The web app's screens (D10) are the page's own: the chat's cockpit keeps its routes, so no
+  // module of the web app, no screen block of @miragon/pulse-blocks (its board's tiles stay) and
+  // nothing of @miragon/pulse-screens reaches the bundle every view document inlines.
+  it("carries none of the web app's screens, their blocks or the screens' format", async () => {
+    const modules = await bundleModules()
+    expect(modules.filter((id) => /\/core\/blocks\/dist\/board\//.test(id))).not.toEqual([])
+    expect(
+      modules.filter((id) =>
+        /\/apps\/web\/|\/core\/blocks\/(?:dist|src)\/screens\/|\/core\/screens\//.test(id),
+      ),
+    ).toEqual([])
   })
 })

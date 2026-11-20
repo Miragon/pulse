@@ -93,10 +93,13 @@ describe("the extension's texts", PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, () => {
     expect(wordFindings(format)).toEqual([])
   })
 
-  test("in the building blocks, whose board tiles both editors show, use the product's words too", () => {
+  test("in the building blocks, whose board tiles and engine tab both editors show, use the product's words too", () => {
     const blocks = join(REPO_ROOT, BLOCKS_SOURCES)
     expect(Object.keys(sourceTexts(blocks))).toEqual(
-      expect.arrayContaining([expect.stringMatching(/^messages\/en\.ts:/)]),
+      expect.arrayContaining([
+        expect.stringMatching(/^messages\/en\.ts:/),
+        expect.stringMatching(/^messages\/screen-en\.ts:/),
+      ]),
     )
     expect(wordFindings(blocks)).toEqual([])
   })
@@ -114,12 +117,14 @@ describe("the extension's texts", PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, () => {
 
   test("name the version scope of the counts over every version, in the overview and the tree", () => {
     const coreTexts = Object.entries(sourceTexts(join(RUNTIME_VIEW_SOURCES, "core")))
-    const scoped = (file: string) =>
-      coreTexts
+    const blockTexts = Object.entries(sourceTexts(join(REPO_ROOT, BLOCKS_SOURCES)))
+    const scoped = (texts: readonly (readonly [string, string])[], file: string) =>
+      texts
         .filter(([key]) => key.startsWith(file))
         .some(([, text]) => text.includes(COUNT_TERMS.allVersions.en))
-    expect(scoped("views/engine-view-builder.ts")).toBe(true)
-    expect(scoped("explorer/definition-nodes.ts")).toBe(true)
+    expect(scoped(coreTexts, "views/engine-view-builder.ts")).toBe(true)
+    expect(scoped(blockTexts, "messages/screen-en.ts")).toBe(true)
+    expect(scoped(coreTexts, "explorer/definition-nodes.ts")).toBe(true)
   })
 
   test("are held to rules that each catch their own probe", () => {

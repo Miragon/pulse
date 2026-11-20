@@ -19,7 +19,9 @@
     "lint:fix": "eslint src test --fix"
   },
   "devDependencies": {
+    "@miragon/pulse-blocks": "workspace:*",
     "@miragon/pulse-engine-connector": "workspace:*",
+    "@miragon/pulse-screens": "workspace:*",
     "@miragon/pulse-ui": "workspace:*",
     "@miragon/pulse-widget-shell": "workspace:*",
     "@tailwindcss/vite": "4.3.5",

@@ -10,11 +10,13 @@ import { kitLabels } from "./kit-labels.js"
  * the row, which the browser copies. A screen reader hears its `label` and that Enter opens it; the
  * table keeps one tab stop for its rows, the arrows move between them. Its further actions (a
  * write, a hand-off, `MoreActions`) stay controls at the row's end and open nothing; the row needs
- * no drill. Without `onOpen` (a row whose view this surface cannot show) it is a plain row.
+ * no drill. Without `onOpen` (a row whose view this surface cannot show) it is a plain row. On a
+ * page with addresses the row links to what it opens (`href`): a new tab where the click asks.
  */
 export function ListRow({
   label,
   onOpen,
+  href,
   copy,
   copyLabel,
   className,
@@ -23,6 +25,12 @@ export function ListRow({
   /** The row's accessible name: what it opens ("Instance ORD-1001"). */
   label: string
   onOpen?: () => void
+  /**
+   * The address of what the row opens, on a page with addresses: the row is a link to it, so Ctrl
+   * or Cmd with a click or Enter and a middle click open it in a new tab (pulse-ui's
+   * `DataTableRow`); a plain click or Enter open it in place (`onOpen`). A chat has no address.
+   */
+  href?: string
   /** What Ctrl or Cmd with C copies: its id. */
   copy?: string
   /**
@@ -44,6 +52,7 @@ export function ListRow({
     <DataTableRow
       label={label}
       onActivate={onOpen && (() => onOpen())}
+      href={href}
       onCopy={copy === undefined ? undefined : () => void copyId(copy)}
       className={className}
     >

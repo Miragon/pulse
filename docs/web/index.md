@@ -8,15 +8,15 @@ chat's toolset, engine routing and numbers. It only reads: no write control, no 
 
 ## Pages
 
-| URL                                     | What it shows                                                                                                           |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `/app`                                  | The engines and the server's [boards](../mcp/boards.md) to pick from; with one engine and no board, that engine         |
-| `/app/fleet`                            | The cross-engine overview, with two engines or more: each engine's row opens it                                         |
-| `/app/boards/<id>`                      | A board, with the tiles and numbers the chat shows; a [Camunda 8](../mcp/camunda8.md) cluster's as the server reads it  |
-| `/app/engines/<engine>`                 | The engine's overview, or why the page shows no view of it (an engine on boards only, a refused profile)                |
-| `…/processes/<key>`, `…/instances/<id>` | A process (`?scope=incident`: its incidents), an instance (`?tab=history`: its history, `/incidents/<id>`: an incident) |
-| `…/instances`, `…/incidents`, `…/jobs`  | The engine's instances (`?process=<key>`), incidents (`/cause?activity=…&type=…`: one cause) and jobs (`?failed=true`)  |
-| `/app/signed-out`                       | Why a sign-in ended, and a new one                                                                                      |
+| URL                                     | What it shows                                                                                                                               |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/app`                                  | The engines and the server's [boards](../mcp/boards.md) to pick from; with one engine and no board, that engine                             |
+| `/app/fleet`                            | The cross-engine overview, with two engines or more: each engine's row opens it                                                             |
+| `/app/boards/<id>`                      | A board, with the tiles and numbers the chat shows; a [Camunda 8](../mcp/camunda8.md) cluster's as the server reads it                      |
+| `/app/engines/<engine>`                 | The engine's processes (`?scope=incident&q=…`: filtered), or why the page shows no view of it (an engine on boards only, a refused profile) |
+| `…/processes/<key>`, `…/instances/<id>` | A process (`?scope=incident`: its incidents), an instance (`?tab=history`: its history, `/incidents/<id>`: an incident)                     |
+| `…/instances`, `…/incidents`, `…/jobs`  | The engine's instances (`?process=<key>`), incidents (`/cause?activity=…&type=…`: one cause) and jobs (`?failed=true`)                      |
+| `/app/signed-out`                       | Why a sign-in ended, and a new one                                                                                                          |
 
 Each view you open (an entry, a row, the trail) has its own URL, stable from the release that ships
 it: Back returns to the view before, a reload or a copied link shows it again, and the page never
@@ -28,11 +28,14 @@ desktop, comfortable on touch.
 ## Navigation
 
 The side navigation holds **Start**, the cross-engine overview (with two engines or more), the
-engines by environment, the open one with its sections (overview, incidents, jobs; an engine's
-entry opens its overview), and the boards; at its foot who is signed in and **Sign out**. A
+engines by environment, the open one with its sections (processes, incidents, jobs; an engine's
+entry opens its processes), and the boards; at its foot who is signed in and **Sign out**. A
 Camunda 8 engine says it shows on boards only, a refused profile says so; each opens its one state.
 Every entry is a link, so Ctrl or Cmd+click and a middle click open a new tab. Under 64rem it is a
 drawer behind the menu button, the first of each view's bar. It shows no numbers: the views do.
+An engine's processes list each with its latest version, running instances and instances with
+incident over every version, the numbers Pulse for VS Code shows; scopes and search filter in the
+browser, a row opens its process, and **Refresh** reads again (on its own when you return after 60 s).
 
 ## When something ends
 

@@ -22,7 +22,7 @@ closed-world dependency rules (`.dependency-cruiser.cjs`, `pnpm lint:architectur
 the ports, the core, the model reader and the host kit import engine-core's main entry, the core
 and the webview Pulse's UI foundation (`@miragon/pulse-ui/tones`, `@miragon/pulse-ui/format`), the
 webview also pulse-ui's React kit and its `theme.css` and Pulse's building blocks
-(`@miragon/pulse-blocks`, its main entry: a board's tiles), the host kit's
+(`@miragon/pulse-blocks`, its main entry: a board's tiles and the engine's process list), the host kit's
 connections the profile format (`@miragon/pulse-profile`), the core the board format
 (`@miragon/pulse-board`, its main entry; the protocol keeps a copy of the tiles of a board's JSON
 form, `BoardData`, which `test/core/board-format.test.ts` holds equal to the format's) and its
@@ -31,9 +31,11 @@ builder (`@miragon/pulse-board/builder`: a board's numbers, which `BoardViews` s
 a click against and the diagram's XML, a problem staying a code, and the roll-up onto collapsed
 sub-processes the definition and instance views draw too), the core also the screens
 (`@miragon/pulse-screens` and its `./builder`: the engine screen's numbers and the process list's
-filter, which the engine view words in English), and no layer a dialect's core. The
-webview renders a board's tiles with the building blocks under an English `LocaleProvider`, which
-word them, and brings their slots: its table, its short id and its diagram canvas.
+filter; the protocol keeps a copy of the screen's JSON form of a process row, its filter, its
+scope counts and its totals, which `test/core/engine-screen-format.test.ts` holds equal to the
+format's), and no layer a dialect's core. The webview renders a board's tiles and the engine's
+process list with the building blocks under an English `LocaleProvider`, which word them, and
+brings their slots: its table, its short id or named id and its diagram canvas.
 That edge of `packages/core` into the engine family is the one the owner accepted
 (`runtime-view-builds-on-the-engine-contract` in the repository's `.dependency-cruiser.cjs`).
 The hosts read the types from the build (`dist`, declarations only) and bundle the sources.
@@ -94,7 +96,8 @@ harness's. The hooks:
 | boards            | `board-card` (`data-kind`: the tile's kind, `refused` for a widget the file breaks), `refused-reason`, `board-notes`, `counter-value`, `counter-partial`, `counter-threshold`, `counter-entry`, `counter-count`, `group-note` |
 
 The board's parts are the building blocks' own (`@miragon/pulse-blocks` carries the boards row's
-hooks but `board-notes`, and `incident-flag` and `empty-hint` in its tiles). The kit's slots a part
+hooks but `board-notes`, and `incident-flag` and `empty-hint` in its tiles), and so are the engine
+tab's `filter-bar`, `segment-count` and `incident-count` (its process table and filter bar). The kit's slots a part
 resolves to as well: `context-bar` `view-bar`, `context-subject`
 `view-bar-subject`, `access` `view-bar-access`, `freshness` `view-bar-freshness`, `status-strip`
 `status-strip`, `strip-title` the strip's first text, `state-label` `state-label`,

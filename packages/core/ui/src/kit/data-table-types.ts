@@ -161,6 +161,12 @@ export interface DataTableRowProps {
   onActivate?: (how: RowActivation) => void
   /** Ctrl or Cmd with C on the focused row copies what it names (its id). */
   onCopy?: () => void
+  /**
+   * The address of what the row opens, where the surface has addresses (a page's router): the row
+   * is a link to it, so Ctrl or Cmd with a click or Enter and a middle click open it in a new tab,
+   * as the browser opens a link; a plain click or Enter open it in place (`onActivate`).
+   */
+  href?: string
   className?: string
   /** The row's cells (`Td`), one per column. */
   children: ReactNode

@@ -1,3 +1,4 @@
+import type { ProcessFilterData } from "@miragon/pulse-screens"
 import {
   isSignedOutReason,
   WEB_PATHS,
@@ -51,9 +52,31 @@ export interface PageStart {
 }
 
 /**
+ * A screen of the page's own (D10), which it shows at a place of the cockpit instead of the
+ * cockpit's view there: an engine's processes at the engine's own address, the place of the
+ * cockpit's overview. The page claims that place (`ViewLocation.claims`): the cockpit, embedded
+ * elsewhere, never shows it on the page. Its state beyond the place rides in the address's query
+ * (`filter`: the list's scope and search, `scope=incident` and `q`), the defaults left out.
+ */
+export interface PageScreen {
+  readonly kind: "engine"
+  readonly engine: string
+  readonly filter: ProcessFilterData
+}
+
+/** The engine screen's list without a filter: every process, no search. */
+const EVERY_PROCESS: ProcessFilterData = { scope: "all" }
+
+/** The engine screen's query: its scope (the processes with an instance with incident) and search. */
+const SCREEN_QUERY = { scope: "scope", withIncident: "incident", search: "q" } as const
+
+/**
  * Where a page's location leads: a view, or the signed-out page. A view's route names its place,
  * its canonical address (`url`: the one the address bar shows, where an old address or another
- * spelling of it is replaced), the start the page opens it at and its document title.
+ * spelling of it is replaced), the start the page opens it at and its document title; where the
+ * page shows the place with a screen of its own, that screen (`screen`), the start then the
+ * cockpit's for an engine the screen does not serve (one shown on boards only, a refused profile,
+ * one the server does not configure).
  */
 export type PageRoute =
   | {
@@ -61,6 +84,7 @@ export type PageRoute =
       readonly place: Place
       readonly url: string
       readonly start: PageStart
+      readonly screen?: PageScreen
       readonly title: PageTitle
     }
   | { readonly kind: "signed-out"; readonly reason: SignedOutReason }
@@ -390,6 +414,44 @@ function startOf(place: Place): PageStart {
     : { view: COCKPIT_VIEW, args: place }
 }
 
+/**
+ * The page's own screen at `place`, as the place names it whole: an engine's overview, which the
+ * page shows as the engine's processes, its list unfiltered. An engine named alone (one without
+ * sections, as the cockpit reports it) is no such place: the cockpit shows its one state.
+ */
+export function screenOf(place: Place): PageScreen | undefined {
+  const { view, engine } = place
+  return shapeOf(place) === "engine,view" && view === "overview" && isSegment(engine)
+    ? { kind: "engine", engine, filter: EVERY_PROCESS }
+    : undefined
+}
+
+/**
+ * The engine screen's filter an address's query names: `scope=incident` the processes with an
+ * instance with incident, `q` the search, trimmed as the search field applies it; any other value
+ * the default.
+ */
+function filterOf(search: string): ProcessFilterData {
+  const query = new URLSearchParams(search)
+  const scope = query.get(SCREEN_QUERY.scope) === SCREEN_QUERY.withIncident ? "withIncident" : "all"
+  const text = query.get(SCREEN_QUERY.search)?.trim() ?? ""
+  return text === "" ? { scope } : { scope, search: text }
+}
+
+/**
+ * The address of the page's own screen, which `viewRouteOf` reads back to it: the engine's own
+ * address, its list's filter in the query, the defaults left out.
+ */
+export function screenUrlOf({ engine, filter }: PageScreen): string {
+  const query = new URLSearchParams()
+  if (filter.scope === "withIncident") query.set(SCREEN_QUERY.scope, SCREEN_QUERY.withIncident)
+  const text = filter.search?.trim() ?? ""
+  if (text !== "") query.set(SCREEN_QUERY.search, text)
+  const path = urlOf({ view: "overview", engine })
+  const written = query.toString()
+  return written === "" ? path : `${path}?${written}`
+}
+
 /** A board's page names the board by its id until the view titles it; any other page Pulse. */
 function titleOf(place: Place): PageTitle {
   const { view, board } = place
@@ -402,12 +464,24 @@ function titleOf(place: Place): PageTitle {
  * The view a location of a page with a view opens. A canonical address names its view
  * (`ADDRESSES`); the cockpit's query under `/app/cockpit`, the address of every view before this
  * scheme, names it as the tool's arguments, and the route's `url` is its canonical address, which
- * replaces it.
+ * replaces it. Where the page shows the place with a screen of its own (`screenOf`), the route
+ * names it beside the cockpit's start, with the screen's state from the query, which its canonical
+ * address keeps (`screenUrlOf`).
  */
 export function viewRouteOf(location: PageLocation): ViewRoute {
   const { place, url } =
     location.pathname === PAGES.cockpit ? readCockpit(location.search) : readAddress(location)
-  return { kind: "view", place, url, start: startOf(place), title: titleOf(place) }
+  // An engine named alone is its address's place too: the page's screen, or the cockpit's one state.
+  const found = screenOf(canonicalOf(place))
+  const screen = found && { ...found, filter: filterOf(location.search) }
+  return {
+    kind: "view",
+    place,
+    url: screen === undefined ? url : screenUrlOf(screen),
+    start: startOf(place),
+    ...(screen === undefined ? {} : { screen }),
+    title: titleOf(place),
+  }
 }
 
 /**

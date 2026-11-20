@@ -59,7 +59,8 @@ per-caller caches key on the token, so a renewed token starts afresh.
 
 `POST /app/api/call` takes `{ name, arguments }` as JSON of at most 64 KiB, with the CSRF token. It
 admits a tool a view calls that only reads (`readOnlyHint`): the view tool `engine_open_cockpit`,
-the app-only `*_data` feeds and the model tools marked `forViews` because the widgets read them
+the app-only `*_data` feeds (the page's own screens read them too, such as
+`engine_screen_processes_data`) and the model tools marked `forViews` because the widgets read them
 (`engine_list_engines`, `engine_query_historic_activity_instances`, `engine_get_task_form`). Any
 other tool gets 403 `WEB_NOT_FOR_PAGES`, a write 403 `WEB_READ_ONLY`, before it runs.
 
@@ -84,7 +85,9 @@ tool without `readOnlyHint`.
 `apps/web` is a Vite build on React, `@miragon/pulse-ui` and widget-shell. It mounts an app of its
 own with `mountApp` from `@miragon/pulse-widget-shell/widgets`: a frame (the side navigation, a
 drawer under 64rem, the session's notices) around the engine module's view its address names, which
-`PageView` calls with the page's chrome, so the cockpit leaves its head to the navigation. Its router
+`PageView` calls with the page's chrome, so the cockpit leaves its head to the navigation, or a
+screen of its own: an engine's processes, the building blocks of `@miragon/pulse-blocks` over the
+screen feed, whose place the page claims, so the cockpit embedded elsewhere never shows it. Its router
 gives each view its address and leads Back, Forward and its links to the view, which goes there
 itself or starts anew there, never loading the page; it replaces an old `/app/cockpit?view=…` by
 the view's own address. It reads its session with `readWebSession()` and calls tools through

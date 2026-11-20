@@ -89,11 +89,15 @@ test.describe("the board list", () => {
     await drawn(page)
   })
 
-  test("with one engine and no board, /app opens that engine", async ({ page }) => {
+  test("with one engine and no board, /app opens that engine, its processes the page's own screen", async ({
+    page,
+  }) => {
     await signIn(page, "/app", { deployment: "short" })
-    await expect(navEntry(page, "Overview")).toHaveAttribute("aria-current", "page", {
+    await expect(navEntry(page, "Processes")).toHaveAttribute("aria-current", "page", {
       timeout: 15_000,
     })
+    await expect(page.getByRole("table", { name: "Processes" })).toBeVisible({ timeout: 15_000 })
+    expect(new URL(page.url()).pathname).toBe(`/app/engines/${HEALTHY_ENGINE}`)
     await expect(landing(page)).toHaveCount(0)
   })
 })
@@ -141,7 +145,7 @@ test.describe("a board's page", () => {
     await expect(row.getByRole("button", { name: /^Open/ })).toHaveCount(0)
     await row.getByRole("cell").first().click()
     // The navigation opens the engine the instance runs on, its sections under it.
-    await expect(navEntry(page, "Overview")).toHaveAttribute(
+    await expect(navEntry(page, "Processes")).toHaveAttribute(
       "href",
       `/app/engines/${HEALTHY_ENGINE}`,
       { timeout: 15_000 },

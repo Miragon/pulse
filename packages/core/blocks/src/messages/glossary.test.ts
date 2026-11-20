@@ -11,6 +11,9 @@ import {
 import { describe, expect, it } from "vitest"
 import { de } from "./de.js"
 import { en, isOne } from "./en.js"
+import { screenDe } from "./screen-de.js"
+import { screenEn } from "./screen-en.js"
+import { screenTranslate } from "./screen-words.js"
 
 /**
  * The engine module's own rules that hold for the tiles too, each with a probe it must catch. The
@@ -32,11 +35,13 @@ const EN_RULES: readonly GlossaryRule[] = [
 ]
 
 const LANGUAGES = [
-  ["German", de, [...PRODUCT_GLOSSARY.de, ...DE_RULES]],
-  ["English", en, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
+  ["the tiles' German", de, [...PRODUCT_GLOSSARY.de, ...DE_RULES]],
+  ["the tiles' English", en, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
+  ["the screens' German", screenDe, [...PRODUCT_GLOSSARY.de, ...DE_RULES]],
+  ["the screens' English", screenEn, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
 ] as const
 
-describe.each(LANGUAGES)("the tiles' glossary holds in %s", (_language, catalog, rules) => {
+describe.each(LANGUAGES)("the glossary holds in %s", (_language, catalog, rules) => {
   it("uses the glossary terms, never their synonyms", () => {
     expect(glossaryFindings(catalog, rules)).toEqual([])
   })
@@ -83,5 +88,34 @@ describe("GLOSSARY.md names every term the gate holds the words to", () => {
   it("the product-wide terms", () => {
     const doc = readFileSync(new URL("./GLOSSARY.md", import.meta.url), "utf8")
     expect(unnamedGlossaryTerms(doc, [...PRODUCT_GLOSSARY.de, ...PRODUCT_GLOSSARY.en])).toEqual([])
+  })
+})
+
+describe("the screens' words", () => {
+  it("follow the voice rules in both languages (du, no dash as a connector, the plural)", () => {
+    expect(catalogTextFindings(screenEn, { language: "en" })).toEqual([])
+    expect(catalogTextFindings(screenDe, { language: "de" })).toEqual([])
+  })
+
+  it("have a German entry for every English key and no other", () => {
+    expect(Object.keys(screenDe).sort()).toEqual(Object.keys(screenEn).sort())
+  })
+
+  it("name the instances with incident and the version scope with the count terms every Pulse UI uses", () => {
+    const counts = { processes: "4", running: "1,274", withIncident: "17" }
+    expect([screenEn["column.withIncident"], screenEn["processes.scope.withIncident"]]).toEqual([
+      COUNT_TERMS.withIncident.en,
+      COUNT_TERMS.withIncident.en,
+    ])
+    expect([screenDe["column.withIncident"], screenDe["processes.scope.withIncident"]]).toEqual([
+      COUNT_TERMS.withIncident.de,
+      COUNT_TERMS.withIncident.de,
+    ])
+    expect(screenTranslate("en", "processes.summary", counts)).toMatch(
+      new RegExp(` · ${COUNT_TERMS.allVersions.en}$`),
+    )
+    expect(screenTranslate("de", "processes.summary", counts)).toMatch(
+      new RegExp(` · ${COUNT_TERMS.allVersions.de}$`),
+    )
   })
 })

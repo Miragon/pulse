@@ -15,7 +15,8 @@ with its latest version, running and with-incident counts, the ones in trouble f
 The **Definition** panel draws the deployed diagram of one version with badges per element, a
 version picker with counts per version, and the instances (running, with incident, ended),
 filtered by element or business key. _With incident_ counts the instances with an open incident
-now, read from the engine's runtime on every history level, as the MCP cockpit does.
+now, read from the engine's runtime on every history level, as the MCP cockpit does. At history
+level `none` the engine keeps no history, so the list finds no instance, not even a running one.
 
 The funnel button in the filter bar finds instances by their process variables: a name (the
 dialog suggests the names the newest instances of the version hold, any other name works

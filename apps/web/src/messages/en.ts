@@ -1,8 +1,8 @@
 import type { MessageCatalog } from "@miragon/pulse-widget-shell/widgets"
 
 /**
- * The web app's own words in English: its frame and its navigation, its notices and the signed-out
- * page.
+ * The web app's own words in English: its frame and its navigation, its notices, the chrome of its
+ * screens (their bars and states; the blocks word their tables) and the signed-out page.
  */
 export const en = {
   "frame.product": "Pulse",
@@ -17,7 +17,7 @@ export const en = {
   "nav.fleet": "Cross-engine overview",
   "nav.engines": "Engines",
   "nav.boards": "Boards",
-  "nav.section.overview": "Overview",
+  "nav.section.processes": "Processes",
   "nav.section.incidents": "Incidents",
   "nav.section.jobs": "Jobs",
   "nav.boardsOnly": "boards only",
@@ -37,6 +37,14 @@ export const en = {
   "page.ended.description": "Sign in again to open this page.",
   "page.unreachable.title": "Pulse doesn't answer",
   "page.unreachable.description": "Your session couldn't be read. Try again in a moment.",
+
+  "screen.refresh": "Refresh",
+  "screen.refreshing": "Refreshing…",
+  "screen.refreshFailed": "Couldn't refresh this view",
+  "screen.refreshStale": "You're seeing the last loaded state.",
+  "screen.productUnknown": "The engine didn't say what it is",
+  "screen.engine.loading": "Loading the processes of {engine}…",
+  "screen.engine.failed": "The processes of {engine} couldn't be loaded",
 
   "start.unknownEngine.title": "Engine {engine} isn't on this server",
   "start.unknownEngine.description":

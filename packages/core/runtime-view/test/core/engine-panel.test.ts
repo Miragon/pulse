@@ -149,6 +149,21 @@ describe("the engine panel", () => {
     expect(byId.asOf).toBe(byName.asOf)
   })
 
+  test("hands the webview the engine's totals over every process, whatever the filter shows", async () => {
+    const fixture = panelFixture(listing(MIXED))
+    const panel = new EnginePanel(fixture.context)
+    await panel.handle({ type: "ready" })
+    const unfiltered = readyView(fixture.lastState())
+
+    await panel.handle({ type: "filterProcesses", filter: { scope: "all", search: "zeta" } })
+
+    expect(unfiltered.totals).toEqual({ processes: 5, running: 16, withIncident: 4 })
+    expect(readyView(fixture.lastState())).toMatchObject({
+      processes: [{ bpmnProcessId: "zeta" }],
+      totals: { processes: 5, running: 16, withIncident: 4 },
+    })
+  })
+
   test("shows only the processes with an incident in that scope", async () => {
     const fixture = panelFixture(listing(MIXED))
     const panel = new EnginePanel(fixture.context)

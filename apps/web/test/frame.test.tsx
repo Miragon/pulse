@@ -9,7 +9,16 @@ import {
   type ViewComponent,
 } from "@miragon/pulse-widget-shell/widgets"
 import { PAGE_MENU } from "../src/frame/drawer.js"
-import { bodyOf, callsOf, engineList, settled, start, stopPage } from "./page.test-support.js"
+import {
+  bodyOf,
+  callsOf,
+  ENGINE_SCREEN_FEED,
+  engineList,
+  engineScreen,
+  settled,
+  start,
+  stopPage,
+} from "./page.test-support.js"
 
 /**
  * The frame of a page with a session (src/frame): the side navigation from the one read of the
@@ -56,19 +65,22 @@ const CONFIGURED = [...LIST.engines, ...LIST.refused].map(({ id }) => ({ id }))
 
 /**
  * The server: the view tool answers with its arguments and the configured engines (an engine's
- * own address starts the landing, whose data must name the engine), the engine list with `list`.
+ * own address starts the landing, whose data must name the engine), the engine list with `list`,
+ * the engine screen's feed with the kit world's screen under the engine's name.
  */
 function server(list: unknown = LIST) {
   return {
     call: ({ name, arguments: args }: { name: string; arguments?: Record<string, unknown> }) =>
       name === "engine_list_engines"
         ? Response.json(engineList(list))
-        : Response.json({
-            result: {
-              content: [{ type: "text", text: "{}" }],
-              structuredContent: { args, engines: CONFIGURED },
-            },
-          }),
+        : name === ENGINE_SCREEN_FEED
+          ? Response.json(engineScreen(args?.engine))
+          : Response.json({
+              result: {
+                content: [{ type: "text", text: "{}" }],
+                structuredContent: { args, engines: CONFIGURED },
+              },
+            }),
   }
 }
 
@@ -93,7 +105,7 @@ describe("the page's navigation", () => {
       ["Start", "/app"],
       ["Cross-engine overview", "/app/fleet"],
       ["prod-a", "/app/engines/prod-a"],
-      ["Overview", "/app/engines/prod-a"],
+      ["Processes", "/app/engines/prod-a"],
       ["Incidents", "/app/engines/prod-a/incidents"],
       ["Jobs", "/app/engines/prod-a/jobs"],
       ["prod-b", "/app/engines/prod-b"],
@@ -112,7 +124,7 @@ describe("the page's navigation", () => {
   })
 
   it("carries no counts: one read of the engine list for the page and its view, none per engine", async () => {
-    const env = await start("/app/engines/prod-a", server(), PLACED)
+    const env = await start("/app/engines/prod-a/incidents", server(), PLACED)
     await settled()
     expect(callsOf(env.fetch, "engine_list_engines")).toHaveLength(1)
     const tools = env.fetch.mock.calls
@@ -120,6 +132,15 @@ describe("the page's navigation", () => {
       .map(([, init]) => (JSON.parse(bodyOf(init)) as { name: string }).name)
     expect([...new Set(tools)].sort()).toEqual(["engine_list_engines", "engine_open_cockpit"])
     expect(navigation().textContent).not.toMatch(/\b\d+\b/)
+  })
+
+  it("shares its one read of the engine list with the engine screen, which reads its engine alone", async () => {
+    const env = await start("/app/engines/prod-a", server(), PLACED)
+    await settled()
+    expect(callsOf(env.fetch, "engine_list_engines")).toHaveLength(1)
+    expect(callsOf(env.fetch, ENGINE_SCREEN_FEED)).toEqual([{ engine: "prod-a" }])
+    expect(callsOf(env.fetch, "engine_open_cockpit")).toEqual([])
+    expect(current()).toEqual(["Processes"])
   })
 
   it("lists the engines in one list where the server names no environment, the fleet only for two", async () => {
@@ -165,7 +186,7 @@ describe("the page's navigation", () => {
   it("marks an engine without sections its own page while it is open, a board while it shows", async () => {
     await start("/app/engines/c8-dev", server(), PLACED)
     expect(current()).toEqual(["c8-dev, boards only"])
-    expect(within(navigation()).queryByRole("link", { name: "Overview" })).toBeNull()
+    expect(within(navigation()).queryByRole("link", { name: "Processes" })).toBeNull()
     await stopPage()
     await start("/app/boards/leasing", server(), PLACED)
     expect(current()).toEqual(["Leasing operations"])
@@ -209,7 +230,7 @@ describe("the page's navigation", () => {
       "Start",
       "Engine-übergreifende Übersicht",
       "prod-a",
-      "Übersicht",
+      "Prozesse",
       "Incidents",
       "Jobs",
       "prod-b",
@@ -246,6 +267,83 @@ describe("the page's moves through its navigation", () => {
   })
 })
 
+describe("the engine screen's filter in the page's address", () => {
+  /** The rows of the engine screen's table, by the process each names. */
+  const shownRows = () =>
+    Array.from(
+      screen.getByRole("table", { name: "Processes" }).querySelectorAll("tbody > tr"),
+      (row) => row.getAttribute("aria-label"),
+    )
+
+  it("shows the filter its address names, and names the entry anew at each pick, the focus kept", async () => {
+    const env = await start("/app/engines/prod-a?q=order", server(), PLACED)
+    await screen.findByRole("table", { name: "Processes" })
+    expect(shownRows()).toEqual(["Process Order fulfillment", "Process Dispatch order"])
+    expect(env.browser.writes).toEqual([])
+    const scope = screen.getByRole("radio", { name: /^With incident/ })
+    scope.focus()
+    await act(async () => fireEvent.click(scope))
+    await settled()
+    expect(env.browser.writes).toEqual([
+      { entry: "replace", url: "/app/engines/prod-a?scope=incident&q=order", state: null },
+    ])
+    expect(document.activeElement).toBe(screen.getByRole("radio", { name: /^With incident/ }))
+    expect(current()).toEqual(["Processes"])
+    expect(callsOf(env.fetch, ENGINE_SCREEN_FEED)).toHaveLength(1)
+  })
+
+  it("keeps it on Back from a process the screen opened", async () => {
+    const env = await start("/app/engines/prod-a?scope=incident&q=order", server(), PLACED)
+    const row = await screen.findByRole("row", { name: "Process Order fulfillment" })
+    await act(async () => fireEvent.click(within(row).getByText("v2")))
+    await settled()
+    expect(env.browser.writes.at(-1)).toMatchObject({
+      entry: "push",
+      url: "/app/engines/prod-a/processes/pulse-order",
+    })
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "process-detail prod-a" }),
+    ).toBeTruthy()
+    await env.browser.back("/app/engines/prod-a?scope=incident&q=order")
+    await screen.findByRole("table", { name: "Processes" })
+    expect(shownRows()).toEqual(["Process Order fulfillment", "Process Dispatch order"])
+    expect(screen.getByRole("radio", { name: /^With incident/ }).getAttribute("aria-checked")).toBe(
+      "true",
+    )
+    expect(
+      screen.getByRole<HTMLInputElement>("searchbox", {
+        name: "Search by name or BPMN process ID",
+      }).value,
+    ).toBe("order")
+  })
+})
+
+describe("the page's name of a place it shows itself", () => {
+  /** A view that says how the page names an engine's processes and its jobs, for its trail. */
+  const Naming: ViewComponent = () => {
+    const location = useHostLocation()
+    const names = [
+      location?.nameOf?.({ view: "overview", engine: "prod-a" }),
+      location?.nameOf?.({ view: "jobs", engine: "prod-a" }) ?? "its own",
+    ]
+    return (
+      <main>
+        <h1>{names.join(", ")}</h1>
+      </main>
+    )
+  }
+  const NAMING = { views: { engine_open_cockpit: Naming } }
+
+  it.each([
+    ["en", "Processes, its own"],
+    ["de", "Prozesse, its own"],
+  ])("is its navigation's word, a view's own elsewhere (%s)", async (lang, names) => {
+    document.documentElement.lang = lang
+    await start("/app/engines/prod-a/jobs", server(), NAMING)
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(names)
+  })
+})
+
 describe("the drawer under 64rem", () => {
   /** The view bar's menu button: the first element of its bar. */
   const barMenu = () => {
@@ -258,7 +356,12 @@ describe("the drawer under 64rem", () => {
   it("puts the menu first in the view's bar, and a row of its own for a view without one", async () => {
     await start("/app/engines/prod-a", server(), PLACED)
     const menu = barMenu()
-    expect(menu.closest<HTMLElement>("[data-slot=view-bar]")?.firstElementChild).toBe(menu)
+    // The engine screen's bar (the kit's ViewBar) holds the menu first, before its title.
+    const bar = menu.closest<HTMLElement>("[data-slot=view-bar]")!
+    expect(within(bar).getAllByRole("button")[0]).toBe(menu)
+    expect(menu.compareDocumentPosition(within(bar).getByRole("heading", { level: 1 }))).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    )
     expect(menu.className).toContain("lg:hidden")
     expect(menu.getAttribute("aria-haspopup")).toBe("dialog")
     expect(menu.getAttribute("aria-expanded")).toBe("false")
@@ -331,11 +434,11 @@ describe("the drawer under 64rem", () => {
 describe("the page's notice", () => {
   it("says it once, above the view's bar", async () => {
     await start(
-      "/app/engines/prod-a",
+      "/app/engines/prod-a/incidents",
       {
         call: ({ name }) =>
           name === "engine_open_cockpit"
-            ? server().call({ name, arguments: { view: "overview", engine: "prod-a" } })
+            ? server().call({ name, arguments: { view: "incidents", engine: "prod-a" } })
             : Response.json({ code: "signed_out", message: "No session." }, { status: 401 }),
       },
       PLACED,

@@ -296,9 +296,15 @@ importers:
 
   apps/web:
     devDependencies:
+      '@miragon/pulse-blocks':
+        specifier: workspace:*
+        version: link:../../packages/core/blocks
       '@miragon/pulse-engine-connector':
         specifier: workspace:*
         version: link:../../packages/connectors/engine/engine-connector
+      '@miragon/pulse-screens':
+        specifier: workspace:*
+        version: link:../../packages/core/screens
       '@miragon/pulse-ui':
         specifier: workspace:*
         version: link:../../packages/core/ui
@@ -552,6 +558,9 @@ importers:
       '@miragon/pulse-profile':
         specifier: workspace:*
         version: link:../../../core/profile
+      '@miragon/pulse-screens':
+        specifier: workspace:*
+        version: link:../../../core/screens
     devDependencies:
       '@miragon/pulse-blocks':
         specifier: workspace:*
@@ -622,6 +631,9 @@ importers:
       '@miragon/pulse-board':
         specifier: workspace:*
         version: link:../board
+      '@miragon/pulse-screens':
+        specifier: workspace:*
+        version: link:../screens
     devDependencies:
       '@miragon/pulse-ui':
         specifier: workspace:*
