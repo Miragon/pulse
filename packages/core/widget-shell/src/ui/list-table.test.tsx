@@ -28,6 +28,35 @@ function Jobs() {
   )
 }
 
+describe("ListTable on a page's screen at the window's height (fill)", () => {
+  it("takes the room its flex column leaves and scrolls its rows in its own region", () => {
+    render(
+      <ListTable ariaLabel="Failed jobs" columns={[{ label: "Activity" }]} fill>
+        <tr>
+          <Td>Send invoice</Td>
+        </tr>
+      </ListTable>,
+    )
+    const region = screen.getByRole("region", { name: "Failed jobs" })
+    const table = region.closest<HTMLElement>("[data-slot=data-table]")!
+    const frame = table.parentElement!
+    expect(frame.className.split(" ")).toEqual(
+      expect.arrayContaining(["flex", "min-h-0", "flex-1", "flex-col"]),
+    )
+    expect(table.className.split(" ")).toEqual(expect.arrayContaining(["min-h-0", "flex-1"]))
+    expect(region.className).toContain("overflow-auto")
+  })
+
+  it("takes its rows' height without it, as every view of a chat does", () => {
+    render(<Jobs />)
+    const table = screen
+      .getByRole("region", { name: "Failed jobs" })
+      .closest<HTMLElement>("[data-slot=data-table]")!
+    expect(table.parentElement!.className).toBe("w-full min-w-0")
+    expect(table.className).not.toContain("flex-1")
+  })
+})
+
 describe("ListTable: the table never widens the document (U2, WCAG 1.4.10)", () => {
   it("scrolls inside a named region a keyboard can reach (pulse-ui's DataTable)", () => {
     render(<Jobs />)

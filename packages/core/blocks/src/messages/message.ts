@@ -30,3 +30,16 @@ export function translatorOf<Key extends string>(catalogs: Catalogs<Key>) {
     )
   }
 }
+
+/**
+ * An engine's code in words, for a code no catalog names: `failedJob` and `JOB_NO_RETRIES` read
+ * "Failed job" and "Job no retries", the editors' words for an incident's type.
+ */
+export function humanized(code: string): string {
+  const words = code
+    .replace(/[_-]+/g, " ")
+    .replace(/([a-z\d])([A-Z])/g, "$1 $2")
+    .trim()
+    .toLowerCase()
+  return words.charAt(0).toUpperCase() + words.slice(1)
+}

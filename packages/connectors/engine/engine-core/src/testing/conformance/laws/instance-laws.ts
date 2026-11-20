@@ -198,6 +198,20 @@ const instancesCounted: ConformanceCase = {
   },
 }
 
+const instancesNeverBelowZero: ConformanceCase = {
+  name: CASE.instancesNeverBelowZero,
+  async run(harness) {
+    for (const filter of InstanceReads.scopedFilters(harness)) {
+      const counted = await harness.runtime.countInstances(filter)
+      Ensure.that(
+        counted.count >= 0,
+        this.name,
+        `${JSON.stringify(filter)} counted ${Ensure.describe(counted)}`,
+      )
+    }
+  },
+}
+
 const instancesByIds: ConformanceCase = {
   name: CASE.instancesByIds,
   async run(harness) {
@@ -250,5 +264,6 @@ export const INSTANCE_LAWS: readonly ConformanceCase[] = [
   instancesNewestFirst,
   instancesUtcTimestamps,
   instancesCounted,
+  instancesNeverBelowZero,
   instancesByIds,
 ]

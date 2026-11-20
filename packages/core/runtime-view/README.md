@@ -31,11 +31,18 @@ builder (`@miragon/pulse-board/builder`: a board's numbers, which `BoardViews` s
 a click against and the diagram's XML, a problem staying a code, and the roll-up onto collapsed
 sub-processes the definition and instance views draw too), the core also the screens
 (`@miragon/pulse-screens` and its `./builder`: the engine screen's numbers and the process list's
-filter; the protocol keeps a copy of the screen's JSON form of a process row, its filter, its
-scope counts and its totals, which `test/core/engine-screen-format.test.ts` holds equal to the
-format's), and no layer a dialect's core. The webview renders a board's tiles and the engine's
-process list with the building blocks under an English `LocaleProvider`, which word them, and
-brings their slots: its table, its short id or named id and its diagram canvas.
+filter, and an instance's incident cards, wait rows, path, call links, head strip and markers,
+whose JSON form the core words in English into the instance view, its protocol unchanged; the
+protocol keeps a copy of the engine screen's JSON form of a process row, its filter, its scope
+counts and its totals, which `test/core/engine-screen-format.test.ts` holds equal to the
+format's), and no layer a dialect's core. The webview renders a board's tiles, the engine's
+process list and the instance view's facts, head strip, incident cards, tables of waits, path and
+variables and marker legend with the building blocks under an English `LocaleProvider`, which
+word them, and brings their slots: its table, its short id or named id, its diagram canvas, its
+links and copy (`src/webview/screens/instance-slots.tsx`), and the instance's writes (the retry,
+the variable editor, a move from a wait) and its stacktrace document in the slots of the block
+that shows them; the protocol's instance rows carry what the blocks word beside the core's
+words, which `test/core/instance-screen-format.test.ts` holds to the instance screen's form.
 That edge of `packages/core` into the engine family is the one the owner accepted
 (`runtime-view-builds-on-the-engine-contract` in the repository's `.dependency-cruiser.cjs`).
 The hosts read the types from the build (`dist`, declarations only) and bundle the sources.
@@ -90,14 +97,15 @@ harness's. The hooks:
 | notices           | `status-strip`, `strip-title`, `status-box`, `bulk-strip`, `empty-hint`, `loading-layout`, `skeleton`                                                                                                                         |
 | lists             | `data-table` (`data-state`: auto, fixed), `column-label`, `table-empty`, `table-footer`, `filter-bar`, `filter-chip`, `filter-summary`, `segment-count`, `selection-count`, `tab-bar`                                         |
 | states and counts | `state-label`, `incident-flag`, `count-badge`, `incident-count`                                                                                                                                                               |
-| instance          | `incident-card`, `variable-name`, `editor-hint`, `editor-warning`, `caller-link`, `called-instance-link`                                                                                                                      |
+| instance          | `incident-card`, `variable-name`, `shadow-warning`, `editor-hint`, `editor-warning`, `caller-link`, `called-instance-link`                                                                                                    |
 | diagram           | `diagram`, `diagram-canvas`, `diagram-failure`, `badge-count`, `call-button`, `element-actions`, `move-entry`, `move-badge`, `code-button`, `move-panel`, `move-warning`                                                      |
 | migration         | `migration-diagram`, `migration-summary`, `migration-refusal`, `mapping-note`                                                                                                                                                 |
 | boards            | `board-card` (`data-kind`: the tile's kind, `refused` for a widget the file breaks), `refused-reason`, `board-notes`, `counter-value`, `counter-partial`, `counter-threshold`, `counter-entry`, `counter-count`, `group-note` |
 
 The board's parts are the building blocks' own (`@miragon/pulse-blocks` carries the boards row's
 hooks but `board-notes`, and `incident-flag` and `empty-hint` in its tiles), and so are the engine
-tab's `filter-bar`, `segment-count` and `incident-count` (its process table and filter bar). The kit's slots a part
+tab's `filter-bar`, `segment-count` and `incident-count` (its process table and filter bar), and the
+instance view's `incident-card` and `variable-name` (its incident cards and variables table). The kit's slots a part
 resolves to as well: `context-bar` `view-bar`, `context-subject`
 `view-bar-subject`, `access` `view-bar-access`, `freshness` `view-bar-freshness`, `status-strip`
 `status-strip`, `strip-title` the strip's first text, `state-label` `state-label`,

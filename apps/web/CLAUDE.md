@@ -38,8 +38,9 @@ server image builds the page beside the server and serves it from `/app/web`.
   where the landing's start data does not name the engine, the engine connector's
   `cockpitNamesEngine`, so the cockpit never falls back from it and the address stays),
   `processes/<key>` (`?scope=incident`: its incidents in
-  focus), `instances` (`?process=<key>`), `instances/<id>` (`?tab=history`: its history),
-  `instances/<id>/incidents/<id>` (an incident under its instance, opened by its id), `incidents`,
+  focus), `instances` (`?process=<key>`), `instances/<id>` (the page's instance screen below;
+  `?tab=history|incidents|waiting|variables`: its tab, `?tab=history` the cockpit's history),
+  `instances/<id>/incidents/<id>` (the instance screen with that root incident in focus), `incidents`,
   `incidents/cause` (`?activity=…&type=…&signature=…`) and `jobs` (`?process=<key>&failed=true`),
   and the server's own `/app/signed-out?reason=…`. Ids are path segments (`encodeURIComponent`), the
   query carries a view's state alone, its defaults left out. The addresses are public and stay
@@ -47,8 +48,10 @@ server image builds the page beside the server and serves it from `/app/web`.
   replaces it by the new one in its entry for the transition period (owner decision of 2026-11-19).
   A place no address names whole keeps the cockpit's query under `/app/cockpit` (one argument of
   `engine_open_cockpit` per parameter, so the tool refuses one it does not take and the page shows
-  why): an id that can be no segment (empty, `.`, `..`) for good, and an incident, which the cockpit
-  names without its instance, until the instance screen finds it. `/app/cockpit?view=…`, every
+  why): an id that can be no segment (empty, `.`, `..`) for good, and an incident the cockpit names
+  without its instance, which the page then leads on to the instance that holds its root, the entry
+  named anew (`src/screens/instance/incident-resolve.tsx`, through `engine_incident_detail_data`,
+  Camunda 7's, a copy at a call activity to its root in the instance it called). `/app/cockpit?view=…`, every
   view's address before, still opens its view and is replaced by the view's own address in its entry
   before the session is read; that old use and `/app/fleet` stay readable until one minor version
   after the start page replaces the cross-engine overview (owner decision of 2026-11-19), and
@@ -140,6 +143,54 @@ server image builds the page beside the server and serves it from `/app/web`.
   to it from another place starts the screen anew, never the cockpit. The page names the place by
   its navigation's word (`ViewLocation.nameOf`), so a cockpit's trail back to it says Processes,
   never Overview.
+- The instance screen (`src/screens/instance`), at an instance's own address and, with one of its
+  root incidents in focus, at the address of that incident under it: the instance from the instance
+  screen's feed (`engine_screen_instance_data`, an app-only read of the engine contract in every
+  dialect, the instance screen of `@miragon/pulse-screens` the editors' adapters build of the same
+  answers, beside it the instance in the engine's web app and on Camunda 7 each card's cause),
+  rendered with the instance's blocks of `@miragon/pulse-blocks` the webview renders. Its bar: the
+  business key as the h1 (else the short id, the whole id to copy beside it), its state, its facts
+  (`InstanceFacts`: the version as a link, the caller, when it started or ended) and the engine, the
+  Refresh, the instance in the engine's web app, when it was read. Under it the strips: who called
+  it and as what (`src/screens/instance/instance-head.tsx`, an em dash where the caller's read
+  failed) with Open caller, where it stands (`HeadlineStrip`), an incident in focus the instance does
+  not hold (with a link to the instance), a cut list. Then its diagram (`instance-diagram.tsx`:
+  widget-shell's `useBpmnViewer` on the canvas that follows the theme, the screen's markers, the kit's
+  for an element that waits and an incident, the page's own for an incident in a called instance and
+  an element already done and the focus's glow, `src/styles.css`; each call activity's way to what it
+  called, one instance a link, several the blocks' `CalledInstanceMenu`, a version it starts a link;
+  a failed read of it read again by the Refresh and on the reader's return) and its details in the
+  editors' tabs and order (`instance-details.tsx`: History, Incidents, Waiting, Variables with their
+  counts, the markers' legend at the bar's end), the tab in the address (the
+  router's `refine`), none there the screen's pick: its incidents where it has some, else where it
+  waits while it runs, else its history. From 64rem on the diagram and the details split the window's
+  height (`split-pane.tsx`: a `separator` the reader moves by mouse, touch, the arrows, Home and End,
+  the share kept in this browser's guarded storage), under it the diagram takes the viewer's height
+  above the details and the page scrolls (`src/screens/use-wide.ts`). Its incident cards
+  (`incident-cards.tsx`, `IncidentCard` over the root incidents of the tree, its own and those of the
+  instances it called) lead to their incident in focus at the address under the instance that holds
+  it ("Located in" and Open incident); the card in focus opens its text at once, its element selected
+  and in the middle of the diagram (the call activity it lies under where it lies in a called
+  instance), and on Camunda 7 leads to every incident with its cause (the cockpit's cause view). A
+  card's text (`IncidentText`) is read only when it opens, through `engine_screen_incident_text_data`,
+  once, its root cause's line marked by the index the contract gives (`RootCauses.lineOf`), a stack
+  trace offered wherever an incident has a job; a text the engine no longer has (the feed's
+  `UNKNOWN_INCIDENT`, `isUnknownIncident`) or another refusal no retry changes is said in the card
+  without Try again (the blocks' `refused` read), an ended session there only as a quiet line. The
+  slots (`instance-slots.tsx`): widget-shell's `ListTable` at the height its tab leaves it with
+  plain rows, the router's link, the clipboard with a toast. An instance the engine does not know is
+  a refusal no retry changes (the feed's `UNKNOWN_INSTANCE`, `isUnknownInstance`): asked once, said
+  in the view's place with the way to the engine's processes, no Try again, not read again on
+  return. It writes nothing (every write slot of the blocks empty) and hands nothing to a chat.
+  `src/screens/instance/instance-route.tsx` decides on
+  the frame's one read of the engine list as the engine screen does (`src/screens/screen-shown.ts`:
+  Camunda 7's engines, the cockpit's view of any other); the page claims the cockpit's instance view,
+  its history and an incident (`ViewLocation.claims`), so a drill of the embedded cockpit to one of
+  them shows the screen.
+- A screen of the page's fills the window's height from 64rem on (`SessionLayout`'s `fill`, which
+  bounds the sheet; widget-shell's `WidgetShell` and `ListTable` `fill`; pulse-ui's
+  `NavigationFocus` `className`): the engine screen's list and the instance screen's split scroll in
+  their own regions; under 64rem, and for every view of the cockpit, the page scrolls.
 - `src/start.ts` starts a page: the signed-out page needs no session; any other names its view
   canonically, reads the session (`readWebSession`) and mounts the page's app with widget-shell's
   `mountApp` (`src/app.tsx`: the frame around the view, which `PageView` shows at the router's
@@ -180,7 +231,9 @@ server image builds the page beside the server and serves it from `/app/web`.
 - Every tool the page names is a read its server's forward admits a page's call to:
   `test/page-reads.test.ts` holds each tool name in `src` to a view tool, an app-only feed or a
   `forViews` tool of the admin golden of the tools/list payload, each with `readOnlyHint`. A new
-  screen reads a screen feed of the engine module (`SCREEN_FEEDS`), never a write.
+  screen reads a screen feed of the engine module (`SCREEN_FEEDS`), never a write; a screen's
+  diagram reads `engine_bpmn_xml_data`, and an incident the page knows by its id alone is found
+  through the cockpit's `engine_incident_detail_data`, both reads of every view.
 - The page's words live in `src/messages` (`en.ts`, `de.ts`, the same keys, brand tone in both;
   `test/messages.test.ts`), its UI on the kit with the brand gates of `@miragon/pulse-ui/testing`
   (`test/brand-gates.test.ts`), dates and numbers through the kit's formatters (the date and number

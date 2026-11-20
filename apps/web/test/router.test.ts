@@ -323,3 +323,91 @@ describe("the page's own screen (an engine's processes)", () => {
     )
   })
 })
+
+describe("the page's instance screen (an instance, an incident under it)", () => {
+  const instance = (more: Record<string, unknown> = {}) => ({
+    kind: "instance",
+    engine: "prod-a",
+    instance: "pi-1",
+    ...more,
+  })
+
+  it("claims an instance's view, its history and an incident, never one whose id is no segment", () => {
+    const { claims } = routerAt("/app").router.state().shown.location
+    expect(claims?.({ view: "instance-detail", engine: "prod-a", processInstanceId: "pi-1" })).toBe(
+      true,
+    )
+    expect(claims?.({ view: "history", engine: "prod-a", processInstanceId: "pi-1" })).toBe(true)
+    expect(claims?.({ view: "incident-detail", engine: "prod-a", incidentId: "inc-1" })).toBe(true)
+    expect(claims?.({ view: "instance-detail", engine: "prod-a", processInstanceId: ".." })).toBe(
+      false,
+    )
+    expect(claims?.({ view: "process-instances", engine: "prod-a" })).toBe(false)
+  })
+
+  it("shows it at an instance's address, its tab and an incident in focus from the address", () => {
+    expect(routerAt("/app/engines/prod-a/instances/pi-1").router.state().shown.screen).toEqual(
+      instance(),
+    )
+    expect(
+      routerAt("/app/engines/prod-a/instances/pi-1?tab=waiting").router.state().shown.screen,
+    ).toEqual(instance({ tab: "waiting" }))
+    expect(
+      routerAt("/app/engines/prod-a/instances/pi-1/incidents/inc-1").router.state().shown.screen,
+    ).toEqual(instance({ incident: "inc-1" }))
+  })
+
+  it("takes over the cockpit's drill to an instance, the focus moving to its heading", () => {
+    const { router, push, here } = routerAt("/app/engines/prod-a/instances?process=invoice")
+    const first = router.state()
+    first.shown.location.report(
+      { args: { view: "instance-detail", engine: "prod-a", processInstanceId: "pi-1" } },
+      "push",
+    )
+    expect(push).toHaveBeenLastCalledWith(null, "", "/app/engines/prod-a/instances/pi-1")
+    expect(here()).toBe("/app/engines/prod-a/instances/pi-1")
+    expect(router.state().shown.screen).toEqual(instance())
+    expect(router.state().moves).toBe(first.moves + 1)
+  })
+
+  it("names the entry anew with a tab, the screen staying; an incident of it is a subject of its own", () => {
+    const { router, replace, push } = routerAt("/app/engines/prod-a/instances/pi-1")
+    const first = router.state()
+    router.refine("/app/engines/prod-a/instances/pi-1?tab=variables")
+    expect(push).not.toHaveBeenCalled()
+    expect(replace).toHaveBeenLastCalledWith(
+      null,
+      "",
+      "/app/engines/prod-a/instances/pi-1?tab=variables",
+    )
+    expect(router.state().shown.screen).toEqual(instance({ tab: "variables" }))
+    expect(router.state().shown.generation).toBe(first.shown.generation)
+    expect(router.state().moves).toBe(first.moves)
+    router.navigate("/app/engines/prod-a/instances/pi-1/incidents/inc-1")
+    expect(router.state().shown.screen).toEqual(instance({ incident: "inc-1" }))
+    expect(router.state().shown.generation).toBe(first.shown.generation + 1)
+    expect(router.state().moves).toBe(first.moves + 1)
+    router.navigate("/app/engines/prod-a/instances/pi-2")
+    expect(router.state().shown.screen).toEqual(instance({ instance: "pi-2" }))
+    expect(router.state().shown.generation).toBe(first.shown.generation + 2)
+  })
+
+  it("leads an incident the cockpit names alone to the page, which finds its instance", () => {
+    const { router } = routerAt("/app/engines/prod-a/incidents")
+    router
+      .state()
+      .shown.location.report(
+        { args: { view: "incident-detail", engine: "prod-a", incidentId: "inc-9" } },
+        "push",
+      )
+    expect(router.state().shown.screen).toEqual({
+      kind: "incident",
+      engine: "prod-a",
+      incident: "inc-9",
+    })
+    // The same incident again keeps its screen, which finds its instance once.
+    const shown = router.state().shown
+    router.navigate("/app/cockpit?view=incident-detail&engine=prod-a&incidentId=inc-9", "replace")
+    expect(router.state().shown.generation).toBe(shown.generation)
+  })
+})

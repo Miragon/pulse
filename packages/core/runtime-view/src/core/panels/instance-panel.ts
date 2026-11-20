@@ -1,8 +1,8 @@
 import { IncidentId, type InstanceId } from "@miragon/pulse-engine-core"
+import { CallLinks } from "@miragon/pulse-screens/builder"
 import type { InstanceView, WebviewIntent } from "../protocol/index.js"
 import type { Attention } from "../refresh/live-context.js"
 import { PanelLive } from "../refresh/panel-live.js"
-import { CallTargets } from "../views/call-targets.js"
 import { HandoverText } from "../views/handover-text.js"
 import { Labels } from "../views/labels.js"
 import { CallJumps } from "./call-jumps.js"
@@ -147,7 +147,7 @@ export class InstancePanel implements Panel {
   private async openCall(elementId: string, toSide: boolean): Promise<void> {
     const loaded = this.session.current()
     if (loaded !== undefined) {
-      const target = new CallTargets(loaded.calledProcesses, loaded.detail).of(elementId)
+      const target = CallLinks.of(loaded.calledProcesses, loaded.detail).target(elementId)
       await this.jumps.open({ target, elementId, diagramXml: loaded.view.diagramXml }, { toSide })
     }
   }

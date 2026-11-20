@@ -1,7 +1,7 @@
 {
   "name": "@miragon/pulse-screens",
   "version": "0.29.0",
-  "description": "The screens of Pulse as data: the JSON forms of the screens the web app and the editors share and their codes, the targets a screen opens and the pure rules a surface applies to them (a process list's filter, the sums across engines), and in ./builder the numbers of each screen over the reads of the engine contract, a model of no text, with the one serializer into that form. The format has no runtime dependency; ./builder needs @miragon/pulse-engine-core, an optional peer.",
+  "description": "The screens of Pulse as data: the JSON forms of the screens the web app and the editors share and their codes, the targets a screen opens and the pure rules a surface applies to them (a process list's filter, the sums across engines), and in ./builder the numbers of each screen over the reads of the engine contract, a model of no text, with the one serializer into that form. The format has no runtime dependency; ./builder needs @miragon/pulse-engine-core and @miragon/pulse-board, optional peers.",
   "license": "MIT",
   "keywords": [
     "bpmn",
@@ -59,14 +59,19 @@
     "lint:fix": "eslint src test --fix"
   },
   "peerDependencies": {
+    "@miragon/pulse-board": "workspace:^",
     "@miragon/pulse-engine-core": "workspace:^"
   },
   "peerDependenciesMeta": {
+    "@miragon/pulse-board": {
+      "optional": true
+    },
     "@miragon/pulse-engine-core": {
       "optional": true
     }
   },
   "devDependencies": {
+    "@miragon/pulse-board": "workspace:*",
     "@miragon/pulse-engine-core": "workspace:*",
     "@stryker-mutator/core": "10.1.1",
     "@stryker-mutator/vitest-runner": "10.1.1",

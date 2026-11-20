@@ -4,11 +4,12 @@ import type { ScreenTarget } from "@miragon/pulse-screens"
 import { NamedId, TableEmptyState, Td } from "@miragon/pulse-ui"
 import { ListRow, ListTable } from "@miragon/pulse-widget-shell/widgets"
 import type { Navigate } from "../router/page-link.js"
-import { urlOf } from "../router/routes.js"
+import { screenUrlOf, urlOf } from "../router/routes.js"
 
 /**
  * The page's table of a screen's block: widget-shell's `ListTable` (its named scroll region, the
- * sticky head, a column a narrow region drops) with a `ListRow` per row in the one row convention
+ * sticky head, a column a narrow region drops) at the height its screen leaves it, its rows
+ * scrolling in that region, with a `ListRow` per row in the one row convention
  * (a click or Enter opens it, Ctrl or Cmd with C copies its id and says so), each row a link to
  * what it opens, so Ctrl or Cmd with a click and a middle click open it in a new tab. The block
  * owns the columns, the cells and the words; an empty table is the kit's empty state.
@@ -28,6 +29,7 @@ function PageTable<Row>({
   return (
     <ListTable
       ariaLabel={label}
+      fill
       columns={columns.map((column) => ({
         label: column.label,
         ...(column.hideBelow === undefined ? {} : { hideBelow: "sm" as const }),
@@ -65,17 +67,30 @@ function PageId({ id, name }: ScreenIdProps) {
 }
 
 /**
- * The address of a target: an engine's processes, or a process, which the page shows as the
- * cockpit's process view until it has a screen of its own.
+ * The address of a target: an engine's processes, a process or one of its versions, which the page
+ * shows as the cockpit's process view (over every version) until it has a screen of its own, or an
+ * instance, the page's instance screen, with a root incident of it in focus where the target names
+ * one.
  */
-function targetUrl(target: ScreenTarget): string {
-  return target.kind === "process"
-    ? urlOf({
+export function targetUrl(target: ScreenTarget): string {
+  switch (target.kind) {
+    case "engine":
+      return urlOf({ view: "overview", engine: target.engine })
+    case "process":
+    case "version":
+      return urlOf({
         view: "process-detail",
         engine: target.engine,
         processDefinitionKey: target.bpmnProcessId,
       })
-    : urlOf({ view: "overview", engine: target.engine })
+    case "instance":
+      return screenUrlOf({
+        kind: "instance",
+        engine: target.engine,
+        instance: target.instanceId,
+        ...(target.incidentId === undefined ? {} : { incident: target.incidentId }),
+      })
+  }
 }
 
 /**

@@ -5,10 +5,9 @@
  * SDK once its screen feeds read them. Each serves the answers on the transport's recorded engine
  * (`startRecordedEngine` of @miragon/pulse-http/testing/loopback), builds the screens at `asOf`
  * and must give exactly the expected ones, so a screen shows the same numbers on every surface
- * without an engine. The answers are those of the board engine's recording (`C7_BOARD_ENGINE`),
- * from the same seeded world, since the engine screen reads a part of what a board reads; a screen
- * that reads more brings its answers in a recording of its own. A request the runtime changes
- * misses its answer and is named.
+ * without an engine. The answers are one run's, recorded once from the seeded world, so every id
+ * they name is that engine's; the board engine's recording (`C7_BOARD_ENGINE`) is a run of its own
+ * with ids of its own. A request the runtime changes misses its answer and is named.
  */
 
 import type { C7RecordedAnswer } from "./board-engine.js"
@@ -18,6 +17,16 @@ import recording from "./screen-engine.json" with { type: "json" }
 export interface C7ExpectedScreens {
   /** The engine screen, `EngineScreenData`. */
   readonly engine: unknown
+  /**
+   * The instance screen of DSP-3001, `InstanceScreenData`: it waits at its call activity for the
+   * root incident of the instance it called.
+   */
+  readonly instance: unknown
+  /**
+   * The instance screen of the instance DSP-3001 called, which holds that incident, with its
+   * caller.
+   */
+  readonly calledInstance: unknown
 }
 
 /** The recorded screen engine: its engine's answers and the screens they give. */

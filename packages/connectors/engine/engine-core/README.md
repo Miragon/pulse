@@ -51,7 +51,7 @@ The kit binds every law to any `(name, fn)` runner and throws an `Error` naming 
 it found when one fails. Your harness deploys diagrams with the world's element ids into your engine and seeds the
 world's instances; the fake seeds it in memory. An engine whose reads lag behind its writes
 declares `writeVisibility`, one whose bulk work runs in the background `asyncWork`. The kit
-proves itself: 79 saboteurs, each the fake with one flaw, fail exactly their laws (the package's
+proves itself: 80 saboteurs, each the fake with one flaw, fail exactly their laws (the package's
 `test/`).
 
 ## What it provides
@@ -72,7 +72,7 @@ proves itself: 79 saboteurs, each the fake with one flaw, fail exactly their law
   first non-blank line, a leading class name shortened to its simple name, in one line of at most
   300 characters; `lineOf` is the line a viewer opens the text at, none without a `Caused by:`
   line.
-- **`./testing`:** the conformance kit (`ConformanceKit` with 51 read laws and 15 command laws),
+- **`./testing`:** the conformance kit (`ConformanceKit` with 52 read laws and 15 command laws),
   its fixed world (`WORLD_*`, the three neutral diagrams `NEUTRAL_DIAGRAMS` with fixed element
   ids) and `FakeEngine`, an in-memory engine that passes every law, with `PatchedRuntime` and
   `PatchedCommands` to change one answer of it in a test.
@@ -89,8 +89,9 @@ never with a flag that can disagree with what the engine does:
 
 - **A count may be a lower bound.** `countInstances` returns an `InstanceCount`: `{ count }` is
   exact, `{ count, atLeast: true }` means the engine stopped counting there (Camunda 8's search
-  stops at 10,000). The laws require an exact count over the world, and a surface shows a lower
-  bound as one (`≥ 10,000`, `10k+`).
+  stops at 10,000). The laws require an exact count over the world and no count below 0 in any
+  scope, also where an engine's history misses instances its runtime runs, and a surface shows a
+  lower bound as one (`≥ 10,000`, `10k+`).
 - **A question an engine cannot answer** fails as `RuntimeError` `unsupported`, never as
   `rejected` (a refused change) or `misconfigured` (a connection to fix). So does a command on a
   connection that only reads: it fails before the write leaves, never as a missing item.

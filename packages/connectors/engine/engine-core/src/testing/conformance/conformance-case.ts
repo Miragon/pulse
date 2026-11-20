@@ -31,6 +31,8 @@ export const CASE = {
   instancesNewestFirst: "instances: the newest come first, in the same order on every read",
   instancesUtcTimestamps: "instances: timestamps are ISO-8601 in UTC",
   instancesCounted: "instances: counts agree with the search",
+  instancesNeverBelowZero:
+    "instances: no count is below 0, in any scope, lifecycle or incident filter",
   instancesByIds: "instances: filter by up to 1000 instance ids",
   variablesEquals: "variables: equals finds the instances holding the value",
   variablesNotEquals: "variables: not equals skips instances without the variable",

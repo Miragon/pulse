@@ -14,14 +14,15 @@ chat's toolset, engine routing and numbers. It only reads: no write control, no 
 | `/app/fleet`                            | The cross-engine overview, with two engines or more: each engine's row opens it                                                             |
 | `/app/boards/<id>`                      | A board, with the tiles and numbers the chat shows; a [Camunda 8](../mcp/camunda8.md) cluster's as the server reads it                      |
 | `/app/engines/<engine>`                 | The engine's processes (`?scope=incident&q=…`: filtered), or why the page shows no view of it (an engine on boards only, a refused profile) |
-| `…/processes/<key>`, `…/instances/<id>` | A process (`?scope=incident`: its incidents), an instance (`?tab=history`: its history, `/incidents/<id>`: an incident)                     |
+| `…/processes/<key>`, `…/instances/<id>` | A process (`?scope=incident`: its incidents), an instance (`?tab=…`: its tab, `/incidents/<id>`: one of its incidents in focus)             |
 | `…/instances`, `…/incidents`, `…/jobs`  | The engine's instances (`?process=<key>`), incidents (`/cause?activity=…&type=…`: one cause) and jobs (`?failed=true`)                      |
 | `/app/signed-out`                       | Why a sign-in ended, and a new one                                                                                                          |
 
 Each view you open (an entry, a row, the trail) has its own URL, stable from the release that ships
 it: Back returns to the view before, a reload or a copied link shows it again, and the page never
-loads anew. An earlier release's URL (`/app/cockpit?view=…`) gives way to the view's own, which an
-incident and an id no path holds (`.`, `..`) keep; `/app/` is a 404. The page speaks the browser's
+loads anew. An earlier release's URL (`/app/cockpit?view=…`) gives way to the view's own (an
+incident's leads to the instance that holds it), which an id no path holds (`.`, `..`) keeps;
+`/app/` is a 404. The page speaks the browser's
 German or English, follows the system's light or dark theme (its diagrams too), and is compact on a
 desktop, comfortable on touch.
 
@@ -36,6 +37,11 @@ drawer behind the menu button, the first of each view's bar. It shows no numbers
 An engine's processes list each with its latest version, running instances and instances with
 incident over every version, the numbers Pulse for VS Code shows; scopes and search filter in the
 browser, a row opens its process, and **Refresh** reads again (on its own when you return after 60 s).
+An instance shows where it stands and why, its diagram with what it did, where it waits and its
+incidents, and the tabs History, Incidents, Waiting and Variables (from 64rem on under the diagram
+at the window's height, the split movable by mouse or keyboard). An incident in an instance it
+called says where it lies and opens there in focus: its stack trace read in place, the root cause's
+line marked, copy and wrap; **Open caller** leads back. It is the instance Pulse for VS Code shows.
 
 ## When something ends
 

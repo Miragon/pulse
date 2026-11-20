@@ -39,6 +39,7 @@ export const INSTANCE_WITH_CALLED_INCIDENT: InstanceView = {
       startedAt: minutesBefore(150),
       endedAt: minutesBefore(150),
       duration: "4ms",
+      durationMs: 4,
       state: "completed",
     },
     {
@@ -47,6 +48,7 @@ export const INSTANCE_WITH_CALLED_INCIDENT: InstanceView = {
       startedAt: minutesBefore(150),
       endedAt: minutesBefore(149),
       duration: "1m 2s",
+      durationMs: 62_000,
       state: "completed",
     },
     {
@@ -97,7 +99,8 @@ export const INSTANCE_WITH_CALLED_INCIDENT: InstanceView = {
       elementId: "Activity_CallScoringApi",
       elementName: "Call scoring API",
       kindLabel: "Async continuation",
-      detail: "job 5c1d77a0… · 0 retries left",
+      detail: "0 retries left",
+      retriesLeft: 0,
       since: minutesBefore(148),
       calledInstance: SCORING,
     },
@@ -151,7 +154,8 @@ export const INSTANCE_WAITING: InstanceView = {
     {
       elementId: "Activity_ApproveOrder",
       kindLabel: "User task",
-      detail: "assignee mia",
+      detail: "Assigned to mia",
+      assignee: "mia",
       since: minutesBefore(82),
       dueAt: minutesAfter(28),
     },

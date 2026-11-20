@@ -132,7 +132,7 @@ test.describe("a board's page", () => {
     await expectNoAxeFinding(page)
   })
 
-  test("a tile's row opens the cockpit on its engine on a click, through the page's caller, and the trail leads back", async ({
+  test("a tile's row opens the page's instance screen on its engine on a click, and Back leads back", async ({
     page,
   }) => {
     const calls = recordCalls(page)
@@ -150,21 +150,31 @@ test.describe("a board's page", () => {
       `/app/engines/${HEALTHY_ENGINE}`,
       { timeout: 15_000 },
     )
-    // The instance's bar names it, the trail on its row above it.
-    await expect(page.getByRole("heading", { level: 1, name: "INV-2026-0042" })).toBeVisible({
+    // The page's instance screen, which the page claims. The stub serves this instance's runtime to
+    // the chat's views, never its history and path, which the engine contract's inspection reads: so
+    // the screen names it by its id and says, once and with no Try again, that the engine has no such
+    // instance (instance-screen.spec.ts reads one whole on the `chain` deployment).
+    await expect(page.getByRole("heading", { level: 1, name: "pi-invoice-42" })).toBeVisible({
       timeout: 15_000,
     })
+    await expect(
+      page.getByRole("heading", {
+        level: 2,
+        name: `Instance pi-invoice-42 isn't on engine ${HEALTHY_ENGINE}`,
+      }),
+    ).toBeVisible()
+    await expect(page.getByRole("button", { name: "Try again" })).toHaveCount(0)
     expect(
-      calls.filter((call) => call.name === "engine_instance_detail_data").at(-1)?.arguments,
-    ).toMatchObject({ engine: HEALTHY_ENGINE })
+      calls.filter((call) => call.name === "engine_screen_instance_data").at(-1)?.arguments,
+    ).toMatchObject({ engine: HEALTHY_ENGINE, instance: "pi-invoice-42" })
     // The page offers no write on the instance it drilled into.
     await expect(page.getByRole("button", { name: "Retry" })).toHaveCount(0)
-    // The address names the instance on its engine (N1); the trail, the board then the instance.
-    expect(new URL(page.url()).pathname).toMatch(
-      new RegExp(`^/app/engines/${HEALTHY_ENGINE}/instances/[^/]+$`),
+    // The address names the instance on its engine (N1); Back leads to the board.
+    expect(new URL(page.url()).pathname).toBe(
+      `/app/engines/${HEALTHY_ENGINE}/instances/pi-invoice-42`,
     )
-    await trail(page).getByRole("button", { name: TITLE }).click()
-    await expect(boardHeading(page)).toBeVisible()
+    await page.goBack()
+    await expect(boardHeading(page)).toBeVisible({ timeout: 15_000 })
     expect(new URL(page.url()).pathname).toBe(BOARD_PAGE)
   })
 
@@ -178,10 +188,10 @@ test.describe("a board's page", () => {
       .filter({ hasText: "INV-2026-0043" })
     await row.focus()
     await page.keyboard.press("Enter")
-    // The stub engine serves this instance nothing: its read fails, once the view's retries did.
+    // The stub engine serves this instance nothing: the screen says so in the view's place, once.
     await expect(page.getByRole("main").getByRole("alert")).toBeVisible({ timeout: 20_000 })
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(["INV-2026-0043"])
-    await expect(page).toHaveTitle("INV-2026-0043 · Pulse")
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(["pi-invoice-43"])
+    await expect(page).toHaveTitle("pi-invoice-43 · Pulse")
     await expectNoAxeFinding(page)
   })
 

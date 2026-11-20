@@ -130,6 +130,7 @@ export function SessionLayout({
   menu,
   focusKey,
   fallbackTitle,
+  fill = false,
   children,
 }: {
   side: ReactNode
@@ -137,11 +138,20 @@ export function SessionLayout({
   menu: ReactNode
   focusKey: string
   fallbackTitle: string
+  /**
+   * The view fills the window's height from 64rem on (a screen of the page's), so what
+   * it scrolls scrolls in its own region; under 64rem, and for every other view, the page scrolls.
+   */
+  fill?: boolean
   children?: ReactNode
 }) {
   const titled = useHeadingTitle(fallbackTitle)
   return (
-    <div data-slot="page-frame" className="flex min-h-dvh">
+    <div
+      data-slot="page-frame"
+      data-fill={fill || undefined}
+      className={cn("flex min-h-dvh", fill && "lg:h-dvh")}
+    >
       <header
         data-slot="page-side"
         className="lg:border-border lg:bg-card lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-60 lg:shrink-0 lg:flex-col lg:border-e"
@@ -149,12 +159,12 @@ export function SessionLayout({
         <SkipLink />
         <div className="hidden min-h-0 flex-1 flex-col lg:flex">{side}</div>
       </header>
-      <div className="flex min-w-0 flex-1 flex-col sm:p-4">
+      <div className={cn("flex min-w-0 flex-1 flex-col sm:p-4", fill && "lg:min-h-0")}>
         <div
           ref={titled}
           id={CONTENT_ID}
           data-slot="page-content"
-          className={cn("group/content", SHEET)}
+          className={cn("group/content", SHEET, fill && "lg:min-h-0")}
         >
           {notice}
           <div
@@ -163,7 +173,12 @@ export function SessionLayout({
           >
             {menu}
           </div>
-          <NavigationFocus viewKey={focusKey}>{children}</NavigationFocus>
+          <NavigationFocus
+            viewKey={focusKey}
+            className={fill ? "lg:flex lg:min-h-0 lg:flex-1 lg:flex-col" : undefined}
+          >
+            {children}
+          </NavigationFocus>
         </div>
       </div>
     </div>

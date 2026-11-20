@@ -2,10 +2,11 @@
  * The instances of an engine (`searchInstances` and `countInstances` of the engine contract): the
  * history's rows, newest first, paged by offset, each flagged when the runtime holds an open
  * incident for it. "With incident" is the runtime's (`with-incident.ts`): a search with it pages
- * the history's rows of the runtime's ids in the filter's scope, a count asks the runtime alone
- * when it knows the whole filter, and "without" is all minus those with one. A search without
- * drops the rows the runtime flags and fills its page from further windows (`filling-pages.ts`),
- * flagging every running row of each window.
+ * the history's rows of the runtime's ids in the filter's scope, and a count asks the runtime alone
+ * when it knows the whole filter. A search without drops the rows the runtime flags and fills its
+ * page from further windows (`filling-pages.ts`), flagging every running row of each window; its
+ * count is the history's count of the filter minus the history's count of the runtime's ids with
+ * one, so it counts what the search lists, never below 0 (`withoutIncidentCount`).
  */
 
 import {
@@ -66,16 +67,32 @@ export class InstanceSearch {
   /** How many instances `filter` finds. */
   async count(filter: InstanceFilter): Promise<number> {
     if (filter.withIncident === false) {
-      const [counted, withIncident] = await Promise.all([
-        this.historyCount(filter),
-        this.count({ ...filter, withIncident: true }),
-      ])
-      return counted - withIncident
+      return this.withoutIncidentCount(filter)
     }
     if (filter.withIncident === true && runtimeKnowsWhole(filter)) {
       return countWithIncident(this.port, incidentScopeOf(filter))
     }
     return this.historyCount(await this.scopedToIncidents(filter))
+  }
+
+  /**
+   * The instances of `filter` without an open incident, as the search lists them: the history's
+   * instances of the filter minus those of them the runtime holds an open incident for, which the
+   * history counts over the runtime's ids in the filter's scope. Never the runtime's own count of
+   * those: a history that misses instances the runtime runs (history level NONE keeps none, a level
+   * raised from it, a cleanup by removal time at start) counts none of them, so subtracting them
+   * would count too few, below 0 at NONE. Both counts read the history, the second over a subset
+   * of the first's instances, so it is never the larger unless an instance starts or ends between
+   * the two reads; then the count is 0, never below.
+   */
+  private async withoutIncidentCount(filter: InstanceFilter): Promise<number> {
+    const [counted, withIncident] = await Promise.all([
+      this.historyCount(filter),
+      this.scopedToIncidents({ ...filter, withIncident: true }).then((scoped) =>
+        this.historyCount(scoped),
+      ),
+    ])
+    return Math.max(0, counted - withIncident)
   }
 
   private historyCount(filter: InstanceFilter): Promise<number> {

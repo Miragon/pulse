@@ -13,7 +13,9 @@ widget the file breaks, in their grid. They came from the VS Code webview's boar
 are the blocks of the screens the editors and the web app of the Pulse MCP server share, over the
 screens' JSON forms of
 [`@miragon/pulse-screens`](https://www.npmjs.com/package/@miragon/pulse-screens): an engine's
-process table and the filter bar above it.
+process table and the filter bar above it, and an instance's facts, head strip, incident cards
+and their text, its tables of waits, path and variables, the menu of the instances a call
+activity called and the legend of its diagram's markers.
 Below 1.0: pin the exact version and update all `@miragon/pulse-*` packages together.
 
 ## What it is not
@@ -126,6 +128,90 @@ without a search, the screen's `totals` under one), or that nothing matches the 
 - `linkOf`, optional: a target's address on a surface that has addresses (the web app); its rows
   link there, so a new tab opens them. The editors bring none.
 
+## An instance
+
+```tsx
+import {
+  HistoryTable,
+  IncidentCard,
+  InstanceFacts,
+  type InstanceSlots,
+} from "@miragon/pulse-blocks"
+import type { InstanceScreenData } from "@miragon/pulse-screens"
+
+export function Instance({
+  screen,
+  nameOf,
+  slots,
+}: {
+  screen: InstanceScreenData
+  nameOf: (elementId: string) => string
+  slots: InstanceSlots
+}) {
+  return (
+    <>
+      <InstanceFacts
+        engine={screen.engine}
+        instance={screen.instance}
+        caller={screen.caller}
+        slots={slots}
+      />
+      {screen.incidents.map((card) => (
+        <IncidentCard
+          key={card.rootIncident.id}
+          engine={screen.engine}
+          card={card}
+          elementName={nameOf(card.elementId)}
+          slots={slots}
+        />
+      ))}
+      <HistoryTable path={screen.path} nameOf={nameOf} slots={slots} />
+    </>
+  )
+}
+```
+
+The blocks of an instance read the instance screen's JSON form of `@miragon/pulse-screens`
+(`InstanceScreenData`), or a surface's rows that carry its fields:
+
+- `InstanceFacts`: the facts of the instance's bar, its id to copy where its title is its business
+  key, the process and version it runs (a link to that version), the instance that called it (by
+  its business key where the read found it, else its short id; `callerLabel` for a surface's own
+  words) and when it started or ended, to the millisecond.
+- `HeadlineStrip`: the strip that says where the instance stands, from the screen's head strip
+  code: it waits at an incident here or in an instance it called, several incidents with the
+  first's cause, suspended, ended.
+- `IncidentCard`: a root incident of the instance's tree, its type at its element and since when,
+  the line its root cause stands on (`rootCauseLine`, by its source: a stack trace, a worker's
+  error, the engine's message), the message where the cause does not hold it, the called instance
+  it lies in, its job and retries (none left with the danger icon and its words, `CountFigure`),
+  the surface's own `facts` and its id; under them the surface's `detail` (its way to the text)
+  and `actions` (its writes).
+- `IncidentText`: an incident's text in place, read only when it shows open (`onRead`, the
+  surface's `read` handed back; opened from the start with `defaultOpen`, it asks at once), the line
+  the read names marked as the root cause's (`rootCauseLine`, the contract's index by
+  `RootCauses.lineOf`, never a search for the cause's words), copied whole and wrapped on request,
+  a cut text and a failed read said so, a refused read (no retry changes it) in the surface's words.
+- `WaitingTable`, `HistoryTable`, `VariablesTable`: where the instance waits (its kind and what the
+  engine says of it, in a called instance with that instance's link; `ElementLink` a surface's
+  way to the element, where a token moves from it), the elements it ran through (state, times,
+  duration) and its variables (type, value to open and copy, scope; `editor` a surface's editor).
+  Their rows open nothing.
+- `CalledInstanceMenu`: the instances a call activity called, each with its state, an incident
+  and a link, in a popover at its own button (an anchor of its own per menu), named by the words it
+  shows and the call activity. `MarkerLegend`: what each marker of the diagram says, after the surface's `Swatch`
+  of it (`takenFlows` where its diagram draws the flows taken).
+- `JsonText`: a variable's value as JSON laid out (`pretty`) or on one line (`compact`), every
+  digit of a large integer kept.
+
+`InstanceSlots`, what a surface brings to an instance's blocks: `PlainTable`, its table whose rows
+open nothing (`ScreenPlainTableProps`); `Link`, its link to a `ScreenTarget` (a version, the
+calling or a called instance, an incident card's "Located in" with its root incident in focus),
+which it draws in its own look by `rel`; and `onCopy`, which puts a
+text on the clipboard its own way. A write control is a slot of the block that shows it (an
+incident's `actions`, a wait's `ElementLink`, a variable's `editor`), which only a surface that
+writes fills.
+
 ## The slots of a board's tiles
 
 The tiles own their columns, cells, words, group notes, problems and the card; the surface brings
@@ -160,8 +246,9 @@ process or kind, counts and their engines, thresholds, columns, notes and every 
 file with its values. Numbers and times render through pulse-ui's formatters in the locale set
 with `setFormatLocale`, states through pulse-ui's `StateLabel`. The English words of a problem
 equal `BoardProblems.describe` of the board package; the English words of the screens' blocks are
-those of the engine tab of Pulse for VS Code and Pulse for Orca, letter for letter. The tiles and the
-screens' blocks keep a catalog each, so a surface bundles only the words of the blocks it renders. `useProblemWords()` words a problem of the
+those of the engine tab and the instance view of Pulse for VS Code and Pulse for Orca, letter for
+letter. The tiles, an engine's process list and an instance's blocks keep a catalog each, so a
+surface bundles only the words of the blocks it renders. `useProblemWords()` words a problem of the
 file for a surface's own strips, `useNoteLines()` a board's note in one line (a note of the file
 after its JSON path, the builder's note on a diagram too long to roll up after the tile's title and
 engine), and `ProblemList` lists problems with their paths.
@@ -170,13 +257,15 @@ The parts carry `data-part` hooks a surface's tests may query: `board-card` (`da
 tile's kind), `counter-value`, `counter-partial`, `counter-threshold` (`data-state`: above,
 undecided), `counter-entry`, `counter-count`, `group-note`, `incident-flag`, `refused-reason` and
 `empty-hint`, and of the screens' blocks `filter-bar`, `segment-count` (`data-tone`: danger on
-instances with incident above 0) and `incident-count` (`data-tone`: danger above 0).
+instances with incident above 0), `incident-count` (`data-tone`: danger above 0), `incident-card`,
+`variable-name`, `incident-text-region`, `incident-text`, `root-cause-line` and
+`called-instance-menu`.
 
 ## Entries
 
-| Entry                   | Holds                                                                                                                                                                              |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@miragon/pulse-blocks` | `BoardGrid`, `BoardTile`, `ProblemList`, `useProblemWords`, `useNoteLines`, `ListFilterBar`, `ProcessTable`, `useProcessList` and the types of the slots and targets of both kinds |
+| Entry                   | Holds                                                                                                                                                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@miragon/pulse-blocks` | `BoardGrid`, `BoardTile`, `ProblemList`, `useProblemWords`, `useNoteLines`, `ListFilterBar`, `ProcessTable`, `useProcessList`, the instance's blocks, `JsonText` and the types of the slots and targets |
 
 ## Stability
 
@@ -188,8 +277,10 @@ release.
 ## Who uses it
 
 - Pulse for VS Code and Pulse for Orca: the runtime view's webview renders a board's tiles with
-  its table (row activation, the copy keys, its hooks), its short id and its diagram canvas, and
-  its engine tab's process list with the same table and its named id.
+  its table (row activation, the copy keys, its hooks), its short id and its diagram canvas, its
+  engine tab's process list with the same table and its named id, and its instance view's blocks
+  with that table, its links and its copy, its retry, variable editor, move and stacktrace
+  document in their slots.
 - The Pulse MCP server: the cockpit's board route (`@miragon/pulse-engine-connector`) renders them
   with widget-shell's table (row activation, the copy keys, the inline fit), its copyable id and its
   BPMN canvas, and the server's web app its engine screen's process list with widget-shell's table,
@@ -213,8 +304,10 @@ the count terms, brand-tone) and `src/messages/GLOSSARY.md`, their look by the b
 `@miragon/pulse-ui/testing` (`src/brand-gates.test.ts`). They import only React, Lucide, pulse-ui's
 root, `/format` and `/tones` and the main entries of the board format and the screens
 (`blocks-are-building-blocks` in the repository's `.dependency-cruiser.cjs`), and only a surface
-that renders them imports them (`blocks-consumers`). Each block renders in its tests with the
-slots of both kinds of surface, an editor's table and a page's.
+that renders them imports them (`blocks-consumers`); `src/no-host-context.test.ts` holds their
+sources to that and to no host context (no host query, confirmation, hand-off, bridge or React
+context of their own). Each block renders in its tests with the slots of both kinds of surface, an
+editor's table and a page's.
 
 ```sh
 pnpm --fail-if-no-match --filter @miragon/pulse-blocks test

@@ -1,10 +1,21 @@
+import { BoardParser } from "@miragon/pulse-board"
+import { BoardBuilder, BoardJson } from "@miragon/pulse-board/builder"
+import { BoardFigures } from "@miragon/pulse-board/testing"
 import {
   BpmnProcessId,
+  ElementId,
   type ElementStatistics,
   type InstanceFilter,
   type ProcessRuntime,
 } from "@miragon/pulse-engine-core"
-import { WORLD_ELEMENT, WORLD_PROCESS, type SeededWorld } from "@miragon/pulse-engine-core/testing"
+import {
+  CASE,
+  ConformanceKit,
+  WORLD_ELEMENT,
+  WORLD_PROCESS,
+  type ConformanceHarness,
+  type SeededWorld,
+} from "@miragon/pulse-engine-core/testing"
 import { afterAll, beforeAll, describe, expect, test } from "vitest"
 import { C7Adapter } from "../src/index.js"
 import {
@@ -17,11 +28,8 @@ import { seedWorld } from "./support/world.js"
 
 const ORDER = BpmnProcessId(WORLD_PROCESS.order)
 const PAGE = { limit: 50 } as const
-
-interface Seeded {
-  readonly runtime: ProcessRuntime
-  readonly world: SeededWorld
-}
+const UNREACHABLE_URL = "http://127.0.0.1:9/engine-rest"
+const BOARD_ENGINE = "none"
 
 interface Scope {
   readonly name: string
@@ -60,13 +68,22 @@ const SCOPES: readonly Scope[] = [
     count: 1,
   },
   {
-    name: "the running instances of order v1 without an incident",
+    name: "the running instances of order v1 without an incident, none of which the history holds",
     filter: (world) => ({
       definitionId: world.definitionIds["order@1"],
       lifecycle: "running",
       withIncident: false,
     }),
-    count: -1,
+    count: 0,
+  },
+  {
+    name: "the ended instances of order v1 without an incident",
+    filter: (world) => ({
+      definitionId: world.definitionIds["order@1"],
+      lifecycle: "ended",
+      withIncident: false,
+    }),
+    count: 0,
   },
   {
     name: "the ended instances of order v1",
@@ -102,20 +119,91 @@ const SCOPES: readonly Scope[] = [
     count: 0,
   },
   {
+    name: "the running instances of order with an incident at an element, the history's",
+    filter: () => ({
+      bpmnProcessId: ORDER,
+      lifecycle: "running",
+      activeElementId: ElementId(WORLD_ELEMENT.chargePayment),
+      withIncident: true,
+    }),
+    count: 0,
+  },
+  {
     name: "the engine's instances with an incident",
     filter: () => ({ withIncident: true }),
     count: 3,
   },
   {
-    name: "the engine's instances without an incident",
+    name: "the engine's instances without an incident, none of which the history holds",
     filter: () => ({ withIncident: false }),
-    count: -3,
+    count: 0,
   },
 ]
 
-const HONEST_COUNTS = SCOPES.filter(({ count }) => count >= 0)
+const LAWS_WITHOUT_THE_HISTORY = ConformanceKit.runtimeLaws().filter(
+  ({ name }) => name === CASE.instancesNeverBelowZero,
+)
 
-const DEFECTIVE_COUNTS_BELOW_ZERO = SCOPES.filter(({ count }) => count < 0)
+const BOARD = {
+  schemaVersion: 1,
+  title: "Orders at history level none",
+  engines: [BOARD_ENGINE],
+  rows: [
+    {
+      row: [
+        { widget: "counter", props: { title: "Running", filter: { process: ORDER } } },
+        {
+          widget: "counter",
+          props: { title: "With incident", filter: { process: ORDER, withIncident: true } },
+        },
+        {
+          widget: "counter",
+          props: {
+            title: "With incident at charge payment",
+            filter: {
+              process: ORDER,
+              withIncident: true,
+              activeElement: WORLD_ELEMENT.chargePayment,
+            },
+          },
+        },
+        {
+          widget: "counter",
+          props: { title: "Without incident", filter: { process: ORDER, withIncident: false } },
+        },
+        {
+          widget: "counter",
+          props: { title: "Every process without incident", filter: { withIncident: false } },
+        },
+        {
+          widget: "counter",
+          props: { title: "Ended", filter: { process: ORDER, state: "ended" } },
+        },
+      ],
+    },
+    {
+      row: [
+        {
+          widget: "instanceList",
+          props: {
+            title: "Running orders without incident",
+            filter: { process: ORDER, withIncident: false },
+          },
+        },
+        { widget: "incidentSummary", props: { title: "With incident per process" } },
+      ],
+    },
+  ],
+} as const
+
+async function boardOver(runtime: ProcessRuntime) {
+  const parsed = BoardParser.parse(JSON.stringify(BOARD))
+  if (!("board" in parsed)) {
+    throw new Error(JSON.stringify(parsed.problems))
+  }
+  const model = await BoardBuilder.build(parsed.board, [{ name: BOARD_ENGINE, reads: runtime }])
+  return BoardJson.of(model, { failureOf: () => ({ code: "unknown" }), notes: parsed.notes })
+}
 
 function connectionTo(endpoint: string) {
   return { endpoint, credentials: { kind: "none" } } as const
@@ -148,10 +236,11 @@ function byElement(statistics: readonly ElementStatistics[]): ElementStatistics[
 describe.skipIf(!RUNS_ON_CAMUNDA_7)(
   `the C7 adapter's reads against ${ENGINE_IMAGE} at history level NONE`,
   () => {
+    const adapter = new C7Adapter()
     let engine: RunningEngine | undefined
-    let seeded: Seeded | undefined
+    let seeded: ConformanceHarness | undefined
 
-    function seededWorld(): Seeded {
+    function seededWorld(): ConformanceHarness {
       if (seeded === undefined) {
         throw new Error("the engine did not start")
       }
@@ -162,7 +251,11 @@ describe.skipIf(!RUNS_ON_CAMUNDA_7)(
       engine = await startEngine(ENGINE_IMAGE, "none")
       const world = await seedWorld(engine.url)
       await ensureNoInstanceHistory(engine.url)
-      seeded = { runtime: new C7Adapter().runtime(connectionTo(engine.url)), world }
+      seeded = {
+        runtime: adapter.runtime(connectionTo(engine.url)),
+        unreachableRuntime: adapter.runtime(connectionTo(UNREACHABLE_URL)),
+        world,
+      }
     })
 
     afterAll(async () => {
@@ -219,23 +312,42 @@ describe.skipIf(!RUNS_ON_CAMUNDA_7)(
         expect(await runtime.searchInstances(filter(world), PAGE)).toEqual({ items: [] })
       })
 
-      test.each(HONEST_COUNTS)(
-        "countInstances counts $count of $name",
-        async ({ filter, count }) => {
-          const { runtime, world } = seededWorld()
+      test.each(SCOPES)("countInstances counts $count of $name", async ({ filter, count }) => {
+        const { runtime, world } = seededWorld()
 
-          expect(await runtime.countInstances(filter(world))).toEqual({ count })
-        },
-      )
+        expect(await runtime.countInstances(filter(world))).toEqual({ count })
+      })
 
-      test.each(DEFECTIVE_COUNTS_BELOW_ZERO)(
-        "pinned defect: countInstances counts $count, below 0, of $name",
-        async ({ filter, count }) => {
-          const { runtime, world } = seededWorld()
+      test.each(LAWS_WITHOUT_THE_HISTORY)("conformance: $name", async (law) => {
+        await law.run(seededWorld())
+      })
+    })
 
-          expect(await runtime.countInstances(filter(world))).toEqual({ count })
-        },
-      )
+    describe("a board", () => {
+      test("counts the runtime's instances with an incident where it knows the filter whole, 0 at an element or without one, and lists none", async () => {
+        const board = await boardOver(seededWorld().runtime)
+
+        expect(BoardFigures.of(board)).toEqual({
+          engines: [{ running: 5, withIncident: 3 }],
+          tiles: [
+            { readings: [[BOARD_ENGINE, { count: 0 }, undefined]], total: { count: 0 } },
+            { readings: [[BOARD_ENGINE, { count: 1 }, undefined]], total: { count: 1 } },
+            { readings: [[BOARD_ENGINE, { count: 0 }, undefined]], total: { count: 0 } },
+            { readings: [[BOARD_ENGINE, { count: 0 }, undefined]], total: { count: 0 } },
+            { readings: [[BOARD_ENGINE, { count: 0 }, undefined]], total: { count: 0 } },
+            { readings: [[BOARD_ENGINE, { count: 0 }, undefined]], total: { count: 0 } },
+            [{ engine: BOARD_ENGINE, total: { count: 0 }, rows: [] }],
+            {
+              total: 3,
+              rows: [
+                JSON.stringify([BOARD_ENGINE, WORLD_PROCESS.dispatch, 1]),
+                JSON.stringify([BOARD_ENGINE, WORLD_PROCESS.label, 1]),
+                JSON.stringify([BOARD_ENGINE, WORLD_PROCESS.order, 1]),
+              ],
+            },
+          ],
+        })
+      })
     })
 
     describe("the reads that answer from the runtime", () => {

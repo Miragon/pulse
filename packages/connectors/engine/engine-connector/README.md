@@ -65,7 +65,12 @@ in `ENGINES_JSON` / `ENGINES_FILE`; every variable is in the
   build a screen of [`@miragon/pulse-screens`](https://www.npmjs.com/package/@miragon/pulse-screens)
   in its JSON form, the numbers the editors show: `engine_screen_processes_data` an engine's
   processes with their latest version, running instances and instances with incident, beside the
-  engine's own web app. No view of the cockpit reads them; the server's web app renders them.
+  engine's own web app; `engine_screen_instance_data` an instance, running or ended, with its root
+  incidents and those of the instances it called, its waits, path, variables and markers, beside
+  it the instance in the engine's web app and on Camunda 7 each incident's cause (an instance the
+  engine does not know refused as `UNKNOWN_INSTANCE`); `engine_screen_incident_text_data` a root
+  incident's stack trace or error message with the line its root cause stands on, cut at 64 KiB.
+  No view of the cockpit reads them; the server's web app renders them.
 - **Engines as profiles.** `ENGINES_FILE` or `ENGINES_JSON` hold a profile file of
   `@miragon/pulse-profile`, the format of the CLI and Pulse for VS Code; without one,
   `ENGINE_BASE_URL` and its siblings yield the profile of a single engine. A profile's name is the

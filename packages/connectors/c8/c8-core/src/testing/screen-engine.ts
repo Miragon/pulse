@@ -3,6 +3,8 @@ import recording from "./screen-engine.json" with { type: "json" }
 
 export interface C8ExpectedScreens {
   readonly engine: unknown
+  readonly instance: unknown
+  readonly calledInstance: unknown
 }
 
 export interface C8ScreenEngine {

@@ -17,7 +17,9 @@ import { ENGINE_CONTROL_ENV } from "../engines.js"
  * provider a fake ADFS behind the generic OpenID Connect provider (`MCP_OAUTH_OIDC_ISSUER`);
  * `entra` like `short`, its provider a fake Entra ID tenant behind the boot's Entra ID provider
  * (`MCP_OAUTH_ENTRA_*`); `camunda8` over the stub engine and two profiles of test:host's Camunda 8
- * cluster with its board files (`fixtures/camunda8-boards`).
+ * cluster with its board files (`fixtures/camunda8-boards`); `chain` over the stub's chain engine
+ * alone (`chain-engine.ts`: an instance that waits for the root incident of the instance it called),
+ * without boards.
  */
 export const DEPLOYMENTS = {
   main: "WEB_SIM_URL",
@@ -26,6 +28,7 @@ export const DEPLOYMENTS = {
   entra: "WEB_SIM_ENTRA_URL",
   camunda8: "WEB_SIM_CAMUNDA8_URL",
   refusedC8: "WEB_SIM_REFUSED_C8_URL",
+  chain: "WEB_SIM_CHAIN_URL",
 } as const
 export type Deployment = keyof typeof DEPLOYMENTS
 

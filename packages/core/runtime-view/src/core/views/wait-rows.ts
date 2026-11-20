@@ -1,52 +1,54 @@
-import type { InstanceDetail, WaitState } from "@miragon/pulse-engine-core"
+import type { WaitKindCode, WaitRowData } from "@miragon/pulse-screens"
 import type { WaitRow } from "../protocol/index.js"
-import type { CalledInstanceLinks } from "./called-instance-links.js"
+import { CalledInstanceLinks } from "./called-instance-links.js"
 import { Labels } from "./labels.js"
 
-export class WaitRows {
-  constructor(
-    private readonly detail: InstanceDetail,
-    private readonly links: CalledInstanceLinks,
-  ) {}
+const DETAILS: Readonly<Record<WaitKindCode, (wait: WaitRowData) => string | undefined>> = {
+  userTask: ({ assignee }) => (assignee === undefined ? "Unassigned" : `Assigned to ${assignee}`),
+  workerTask: ({ taskType }) => `Task type ${taskType ?? ""}`,
+  asyncContinuation: ({ retriesLeft }) =>
+    retriesLeft === undefined
+      ? undefined
+      : Labels.plural(retriesLeft, "retry left", "retries left"),
+  message: ({ messageName }) => messageName,
+  signal: ({ signalName }) => signalName,
+  other: ({ description }) => description,
+  timer: () => undefined,
+}
 
-  rows(): WaitRow[] {
-    return this.detail.waitStates.map((waitState) => this.rowOf(waitState))
+export class WaitRows {
+  static of(waits: readonly WaitRowData[]): WaitRow[] {
+    return waits.map((wait) => WaitRows.rowOf(wait))
   }
 
-  private rowOf(waitState: WaitState): WaitRow {
-    const text = this.detailOf(waitState)
-    const dueAt =
-      waitState.kind === "timer" || waitState.kind === "userTask" ? waitState.dueAt : undefined
-    const link = this.links.linkTo(waitState.instanceId)
+  private static rowOf(wait: WaitRowData): WaitRow {
+    const text = DETAILS[wait.kind](wait)
     return {
-      elementId: waitState.elementId,
-      kindLabel: Labels.waitKind(waitState.kind),
-      ...(waitState.elementName === undefined ? {} : { elementName: waitState.elementName }),
+      elementId: wait.elementId,
+      kindLabel: Labels.waitKind(wait.kind),
+      ...(wait.elementName === undefined ? {} : { elementName: wait.elementName }),
       ...(text === undefined ? {} : { detail: text }),
-      ...(waitState.since === undefined ? {} : { since: waitState.since }),
-      ...(dueAt === undefined ? {} : { dueAt }),
-      ...(link === undefined ? {} : { calledInstance: link }),
+      ...WaitRows.factsOf(wait),
+      ...(wait.since === undefined ? {} : { since: wait.since }),
+      ...(wait.dueAt === undefined ? {} : { dueAt: wait.dueAt }),
+      ...(wait.liesIn === null ? {} : { calledInstance: CalledInstanceLinks.of(wait.liesIn) }),
     }
   }
 
-  private detailOf(waitState: WaitState): string | undefined {
-    switch (waitState.kind) {
-      case "userTask":
-        return waitState.assignee === undefined ? "Unassigned" : `Assigned to ${waitState.assignee}`
-      case "workerTask":
-        return `Task type ${waitState.taskType}`
-      case "asyncContinuation":
-        return waitState.retriesLeft === undefined
-          ? undefined
-          : `${waitState.retriesLeft} retries left`
-      case "message":
-        return waitState.messageName
-      case "signal":
-        return waitState.signalName
-      case "other":
-        return waitState.description
-      case "timer":
-        return undefined
+  private static factsOf(
+    wait: WaitRowData,
+  ): Pick<
+    WaitRow,
+    "assignee" | "taskType" | "retriesLeft" | "messageName" | "signalName" | "description"
+  > {
+    const { assignee, taskType, retriesLeft, messageName, signalName, description } = wait
+    return {
+      ...(assignee === undefined ? {} : { assignee }),
+      ...(taskType === undefined ? {} : { taskType }),
+      ...(retriesLeft === undefined ? {} : { retriesLeft }),
+      ...(messageName === undefined ? {} : { messageName }),
+      ...(signalName === undefined ? {} : { signalName }),
+      ...(description === undefined ? {} : { description }),
     }
   }
 }

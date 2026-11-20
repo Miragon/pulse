@@ -27,11 +27,14 @@ export interface ScreenCopy {
   readonly label: string
 }
 
-/** The props of the surface's table: the block owns the columns, the cells and the words. */
-export interface ScreenTableProps<Row> {
+/**
+ * The props of the surface's table whose rows open nothing (an instance's history, its waits, its
+ * variables): the block owns the columns, the cells and the words.
+ */
+export interface ScreenPlainTableProps<Row> {
   /**
-   * The table's name on its screen ("processes"), stable across languages: what a surface keys
-   * the table's memory by (the editors' column widths).
+   * The table's name on its screen ("processes", "history"), stable across languages: what a
+   * surface keys the table's memory by (the editors' column widths).
    */
   readonly name: string
   /** Names the table and its scroll region. */
@@ -39,6 +42,12 @@ export interface ScreenTableProps<Row> {
   readonly columns: readonly ScreenTableColumn<Row>[]
   readonly rows: readonly Row[]
   readonly rowKey: (row: Row) => string
+  /** What the table says without a row: words the surface shows as its empty state. */
+  readonly empty: string
+}
+
+/** The props of the surface's table whose rows open what they name. */
+export interface ScreenTableProps<Row> extends ScreenPlainTableProps<Row> {
   /** Opens a row: a click on it or Enter, Ctrl or Cmd held beside the view. */
   readonly onOpen: (row: Row, how: ScreenOpenHow) => void
   /**
@@ -50,8 +59,6 @@ export interface ScreenTableProps<Row> {
   readonly rowLabel: (row: Row) => string
   /** What a row's copy puts on the clipboard. */
   readonly copyOf: (row: Row) => ScreenCopy
-  /** What the table says without a row: words the surface shows as its empty state. */
-  readonly empty: string
 }
 
 /**
@@ -82,4 +89,38 @@ export interface ScreenSlots {
    * open the target link to it. Without it (the editors) a target opens through `onOpen` alone.
    */
   readonly linkOf?: (target: ScreenTarget) => string
+}
+
+/**
+ * The surface's table whose rows open nothing: the same table, its rows plain (no open, no copy,
+ * no tab stop of their own), so the controls in a cell keep the focus.
+ */
+export type ScreenPlainTableSlot = <Row>(props: ScreenPlainTableProps<Row>) => ReactNode
+
+/**
+ * What a link of a block is to the thing it shows, so a surface draws each in its own look: the
+ * version an instance runs, the instance that called it, an instance it called.
+ */
+export type ScreenLinkRel = "version" | "caller" | "called"
+
+/** The props of the surface's link: its target, what it is to the thing shown, and its words. */
+export interface ScreenLinkProps {
+  readonly rel: ScreenLinkRel
+  readonly target: ScreenTarget
+  /** What the link opens, in words: its title ("Open called instance 3e9d1c2b-…"). */
+  readonly title: string
+  /** What the link says. */
+  readonly children: ReactNode
+}
+
+/**
+ * What a surface brings to an instance's blocks: its plain table, its link to a target (the web
+ * app's address, the editors' intent) and its copy, which puts a text on the clipboard its own way
+ * and says what it copied. A block's write controls (a retry, a variable's editor, a move) are
+ * slots of the block that shows them, which only a surface that writes fills.
+ */
+export interface InstanceSlots {
+  readonly PlainTable: ScreenPlainTableSlot
+  readonly Link: ComponentType<ScreenLinkProps>
+  readonly onCopy: (copy: ScreenCopy) => void
 }

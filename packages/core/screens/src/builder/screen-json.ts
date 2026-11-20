@@ -4,7 +4,10 @@ import type {
   EngineScreenData,
   ProcessRowData,
 } from "../format/engine-screen-data.js"
+import type { CallLinkData, InstanceScreenData } from "../format/instance-screen-data.js"
 import type { EngineScreenModel } from "./engine-screen-model.js"
+import { InstanceJson } from "./instance-json.js"
+import type { CallLinkModel, InstanceScreenModel } from "./instance-screen-model.js"
 
 export class ScreenJson {
   static engine(model: EngineScreenModel): EngineScreenData {
@@ -16,6 +19,14 @@ export class ScreenJson {
       processes: model.processes.map((summary) => ScreenJson.processRow(summary)),
       totals: { processes, running, withIncident },
     }
+  }
+
+  static instance(model: InstanceScreenModel): InstanceScreenData {
+    return InstanceJson.of(model)
+  }
+
+  static callLinks(links: readonly CallLinkModel[]): CallLinkData[] {
+    return InstanceJson.calls(links)
   }
 
   private static info({ product, version }: EngineInfo): EngineInfoData {

@@ -98,6 +98,7 @@ export function SessionFrame({
   title,
   moves,
   navigate,
+  fill = false,
   children,
 }: {
   page: SessionPage
@@ -107,6 +108,8 @@ export function SessionFrame({
   /** How often the page moved itself (a link of the page, Back, Forward): focus follows. */
   moves: number
   navigate: Navigate
+  /** Whether the view fills the window's height from 64rem on (a screen of the page's). */
+  fill?: boolean
   children?: ReactNode
 }) {
   const t = useT()
@@ -132,6 +135,7 @@ export function SessionFrame({
         menu={PAGE_MENU}
         focusKey={String(moves)}
         fallbackTitle={routeTitle(t, title)}
+        fill={fill}
       >
         {children}
       </SessionLayout>

@@ -27,11 +27,56 @@ export type {
 export { ListFilterBar, type ListFilterBarProps } from "./screens/list-filter-bar.js"
 export { useProcessList } from "./screens/process-list.js"
 export { ProcessTable, type ProcessTableProps } from "./screens/process-table.js"
+// An instance's blocks over the instance screen's JSON form: its facts, its head strip, its
+// incident cards and their text, its tables of waits, path and variables, the menu of the
+// instances it called and the legend of its markers. JsonText lays out a variable's value.
+export {
+  CalledInstanceMenu,
+  type CalledInstanceMenuProps,
+} from "./screens/instance/called-instance-menu.js"
+export { HeadlineStrip, type HeadlineStripProps } from "./screens/instance/headline-strip.js"
+export { HistoryTable, type HistoryTableProps } from "./screens/instance/history-table.js"
+export {
+  IncidentCard,
+  type IncidentCardFields,
+  type IncidentCardProps,
+} from "./screens/instance/incident-card.js"
+export {
+  IncidentText,
+  type IncidentTextProps,
+  type IncidentTextRead,
+} from "./screens/instance/incident-text.js"
+export {
+  InstanceFacts,
+  type InstanceFactsData,
+  type InstanceFactsProps,
+} from "./screens/instance/instance-facts.js"
+export { JsonText } from "./screens/instance/json-text.js"
+export {
+  MarkerLegend,
+  type MarkerLegendProps,
+  type MarkerSwatchProps,
+} from "./screens/instance/marker-legend.js"
+export {
+  VariablesTable,
+  type VariableEditorSlot,
+  type VariablesTableProps,
+} from "./screens/instance/variables-table.js"
+export {
+  WaitingTable,
+  type ElementLinkProps,
+  type WaitingTableProps,
+} from "./screens/instance/waiting-table.js"
 export type {
+  InstanceSlots,
   ScreenColumnWidth,
   ScreenCopy,
   ScreenIdProps,
+  ScreenLinkProps,
+  ScreenLinkRel,
   ScreenOpenHow,
+  ScreenPlainTableProps,
+  ScreenPlainTableSlot,
   ScreenSlots,
   ScreenTableColumn,
   ScreenTableProps,

@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs"
 import http from "node:http"
 import type { AddressInfo } from "node:net"
 import path from "node:path"
+import { CHAIN_PREFIX, chainRoute } from "./chain-engine.js"
 import { REALISTIC_PREFIX, realisticRoute } from "./realistic-engine.js"
 
 export interface StubEngine {
@@ -15,6 +16,11 @@ export interface StubEngine {
   accessDeniedBaseUrl: string
   /** `baseUrl` of the realistic engine (`realistic-engine.ts`): long names, 160 instances, 73 jobs. */
   realisticBaseUrl: string
+  /**
+   * `baseUrl` of the chain engine (`chain-engine.ts`): an instance that waits for the root incident
+   * of the instance it called, as an engine recorded it, and an ended one.
+   */
+  chainBaseUrl: string
   /** Origin of the scenario control routes (see {@link startStubEngine}). */
   controlUrl: string
   close(): Promise<void>
@@ -524,9 +530,15 @@ export async function startStubEngine(): Promise<StubEngine> {
   const server = http.createServer((req, res) => {
     void readJson(req).then((requestBody) => {
       const url = new URL(req.url ?? "/", "http://stub")
-      const send = (status: number, body: unknown) => {
-        res.writeHead(status, { "content-type": "application/json" })
-        res.end(body === undefined ? undefined : JSON.stringify(body))
+      const send = (status: number, body: unknown, contentType = "application/json") => {
+        res.writeHead(status, { "content-type": contentType })
+        if (body === undefined) res.end()
+        else
+          res.end(
+            typeof body === "string" && contentType !== "application/json"
+              ? body
+              : JSON.stringify(body),
+          )
       }
       const term = searchTerm(url, requestBody)
       if (req.method === "POST" && url.pathname === "/__control/hold") {
@@ -538,12 +550,13 @@ export async function startStubEngine(): Promise<StubEngine> {
         send(200, { waiting: holds.waiting(term) })
       } else {
         const method = req.method ?? "GET"
-        const { status, body } =
+        const reply: { status: number; body: unknown; contentType?: string } =
+          chainRoute(method, url, requestBody) ??
           realisticRoute(method, url, requestBody) ??
           jobRoute(method, url, requestBody, jobs) ??
           boardRoute(method, url, requestBody) ??
           route(url)
-        holds.answer(term, () => send(status, body))
+        holds.answer(term, () => send(reply.status, reply.body, reply.contentType))
       }
     })
   })
@@ -556,6 +569,7 @@ export async function startStubEngine(): Promise<StubEngine> {
     loginRefusedBaseUrl: `${origin}/login-refused/engine-rest`,
     accessDeniedBaseUrl: `${origin}/access-denied/engine-rest`,
     realisticBaseUrl: `${origin}${REALISTIC_PREFIX}/engine-rest`,
+    chainBaseUrl: `${origin}${CHAIN_PREFIX}/engine-rest`,
     controlUrl: origin,
     close: () =>
       new Promise<void>((resolve, reject) => {

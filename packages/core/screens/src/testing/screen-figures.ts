@@ -1,4 +1,6 @@
 import type { EngineScreenData, EngineTotalsData } from "../format/engine-screen-data.js"
+import type { InstanceScreenData } from "../format/instance-screen-data.js"
+import { InstanceFigures, type InstanceFiguresData } from "./instance-figures.js"
 
 export interface EngineFiguresData {
   readonly processes: readonly (readonly [string, number, number, number])[]
@@ -14,5 +16,9 @@ export class ScreenFigures {
       ),
       totals: data.totals,
     }
+  }
+
+  static instance(data: InstanceScreenData): InstanceFiguresData {
+    return InstanceFigures.of(data)
   }
 }

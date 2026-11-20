@@ -6,6 +6,7 @@
 @source "../../../../packages/core/blocks/src";
 @source not "../../../../packages/core/blocks/src/**/*.test.tsx";
 @source not "../../../../packages/core/blocks/src/**/*.test-support.{ts,tsx}";
+@source not "../../../../packages/core/blocks/src/screens";
 /*
  * pulse-ui's Miragon theme: the vendored corporate-design tokens (--cd-*) and
  * the role variables on top of them, light and dark (neutrals,
@@ -13,7 +14,9 @@
  * shadows, motion, the font stacks). Every widget colours through those role
  * names; this app overrides none of them. The brand gates' fixtures in
  * pulse-ui's src/testing hold palette classes on purpose, so Tailwind never
- * scans them.
+ * scans them. Of the building blocks the chat renders a board's tiles alone,
+ * so the screens' blocks (src/screens, the web app's and the editors') stay
+ * out of its stylesheet.
  *
  * Never import pulse-ui's `globals.css` next to it (a second Tailwind entry
  * with its own @source) or `fonts.css` (Geist as base64 in every view

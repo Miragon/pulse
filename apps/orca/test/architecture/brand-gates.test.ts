@@ -37,7 +37,7 @@ function wordFindings(root: string): string[] {
 function englishBlockTexts(): Record<string, string> {
   return Object.fromEntries(
     Object.entries(sourceTexts(BLOCKS_MESSAGES)).filter(([key]) =>
-      /^(?:screen-)?en\.ts:/.test(key),
+      /^(?:screen-|instance-)?en\.ts:/.test(key),
     ),
   )
 }
@@ -101,11 +101,12 @@ describe(
   "the building blocks' English words, which the editor frames show",
   PARSING_SOURCES_ON_A_BUSY_CI_RUNNER,
   () => {
-    test("are read: the catalogs of a board's tiles and of the engine tab's process list", () => {
+    test("are read: the catalogs of a board's tiles, the engine tab's process list and an instance's view", () => {
       expect(Object.keys(englishBlockTexts())).toEqual(
         expect.arrayContaining([
           expect.stringMatching(/^en\.ts:/),
           expect.stringMatching(/^screen-en\.ts:/),
+          expect.stringMatching(/^instance-en\.ts:/),
         ]),
       )
     })

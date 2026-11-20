@@ -10,13 +10,14 @@ incidents too ([in the editors](../vscode/camunda8.md)).
 
 ## What a server offers
 
-| Tool or feed                                | On a Camunda 8 cluster                                                                      |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `engine_list_engines`                       | Lists it with `dialect` `c8` and its `cockpitUrl`, and names the boards that read it        |
-| `engine_open_cockpit` with `view` `board`   | A board over it and the other engines the board names, with the numbers the editors show    |
-| `engine_open_cockpit` with `view` `landing` | The engines and boards to pick from; a cluster reads "Camunda 8, on boards", no health read |
-| `engine_board_data`, `engine_bpmn_xml_data` | The app-only feeds behind a board: its numbers, kept 30 s per caller, and its diagram       |
-| `engine_screen_processes_data`              | The app-only feed of the web app's engine screen (the web app shows a cluster on boards)    |
+| Tool or feed                                                      | On a Camunda 8 cluster                                                                      |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `engine_list_engines`                                             | Lists it with `dialect` `c8` and its `cockpitUrl`, and names the boards that read it        |
+| `engine_open_cockpit` with `view` `board`                         | A board over it and the other engines the board names, with the numbers the editors show    |
+| `engine_open_cockpit` with `view` `landing`                       | The engines and boards to pick from; a cluster reads "Camunda 8, on boards", no health read |
+| `engine_board_data`, `engine_bpmn_xml_data`                       | The app-only feeds behind a board: its numbers, kept 30 s per caller, and its diagram       |
+| `engine_screen_processes_data`                                    | The app-only feed of the web app's engine screen (the web app shows a cluster on boards)    |
+| `engine_screen_instance_data`, `engine_screen_incident_text_data` | The app-only feeds of the web app's instance screen: an instance and an incident's text     |
 
 Each tool, feed and view of the cockpit names the dialects it serves, so the server decides at
 startup what it offers: a tool registers only where a configured engine serves it (a write only
@@ -96,10 +97,10 @@ Camunda 7 too); a cluster's call activity or subprocess counts the incidents ins
 The conformance kit of the engine contract proves the server's own Camunda 8 wire on a local cluster
 in Testcontainers
 (`packages/connectors/engine/engine-connector/src/lib/core-adapter/c8-runtime.engine.test.ts`): its
-51 read laws, the recorded board's numbers over the kit's world, and that no tool or view of the
-Camunda 7 REST API reaches the cluster;
-`packages/connectors/engine/engine-connector/CONTRIBUTING.md` says how to run a leg. Four legs
-passed on 2026-11-17, one at a time (the time includes starting the containers):
+52 read laws, the recorded board's numbers over the kit's world, and that no tool or view of the
+Camunda 7 REST API reaches the cluster; `packages/connectors/engine/engine-connector/CONTRIBUTING.md`
+says how to run a leg. On 2026-11-20 the leg 8.10.9, H2, none passed all 52 (54 of 54); the
+51 laws of 2026-11-17 passed on four legs, one at a time (the time includes starting the containers):
 
 | Camunda | Secondary storage | Security | Passed   | Time |
 | ------- | ----------------- | -------- | -------- | ---- |

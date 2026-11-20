@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react"
+import { cn } from "../lib/utils.js"
 
 /**
  * The view's heading, focusable from script only, takes focus: a screen reader reads the view's
@@ -25,7 +26,16 @@ function focusHeading(frame: HTMLElement): HTMLElement | null {
  * the view changes: one the reader left keeps the reader's focus. The first render takes no focus.
  * Render one frame for all views so it persists.
  */
-export function NavigationFocus({ viewKey, children }: { viewKey: string; children: ReactNode }) {
+export function NavigationFocus({
+  viewKey,
+  className,
+  children,
+}: {
+  viewKey: string
+  /** The frame's layout in its parent (a page's flex column that a screen fills). */
+  className?: string
+  children: ReactNode
+}) {
   const frame = useRef<HTMLDivElement>(null)
   const shown = useRef(viewKey)
   useEffect(() => {
@@ -54,7 +64,7 @@ export function NavigationFocus({ viewKey, children }: { viewKey: string; childr
     return () => observer.disconnect()
   }, [viewKey])
   return (
-    <div ref={frame} tabIndex={-1} className="min-w-0 outline-none">
+    <div ref={frame} tabIndex={-1} className={cn("min-w-0 outline-none", className)}>
       {children}
     </div>
   )

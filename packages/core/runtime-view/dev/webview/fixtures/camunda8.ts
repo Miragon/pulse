@@ -135,6 +135,7 @@ export const C8_INSTANCE_VIEW: InstanceView = {
       elementName: "Reserve stock",
       kindLabel: "Worker task",
       detail: "Task type reserve-stock",
+      taskType: "reserve-stock",
       since: minutesBefore(18),
     },
   ],
@@ -145,6 +146,7 @@ export const C8_INSTANCE_VIEW: InstanceView = {
       startedAt: minutesBefore(18),
       endedAt: minutesBefore(18),
       duration: "12ms",
+      durationMs: 12,
       state: "completed",
     },
     {

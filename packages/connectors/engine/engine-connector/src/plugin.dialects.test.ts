@@ -8,7 +8,7 @@ import {
   recordingModuleServer,
 } from "@miragon/pulse-widget-shell/testing"
 import { BoardParser } from "@miragon/pulse-board"
-import type { EngineScreenData } from "@miragon/pulse-screens"
+import type { EngineScreenData, InstanceScreenData } from "@miragon/pulse-screens"
 import { ScreenFigures, WORLD_SCREENS } from "@miragon/pulse-screens/testing"
 import { RuntimeError } from "@miragon/pulse-engine-core"
 import {
@@ -27,6 +27,8 @@ import {
   ENGINE_BPMN_XML_DATA,
   ENGINE_LIST_ENGINES,
   ENGINE_OPEN_COCKPIT,
+  ENGINE_SCREEN_INCIDENT_TEXT_DATA,
+  ENGINE_SCREEN_INSTANCE_DATA,
   ENGINE_SCREEN_PROCESSES_DATA,
   ENGINE_WIDGET_ACTIONS_DATA,
 } from "./tool-names.js"
@@ -106,6 +108,8 @@ describe("createPlugin on an engine of another dialect", () => {
     ENGINE_BOARD_DATA,
     ENGINE_BPMN_XML_DATA,
     ENGINE_SCREEN_PROCESSES_DATA,
+    ENGINE_SCREEN_INSTANCE_DATA,
+    ENGINE_SCREEN_INCIDENT_TEXT_DATA,
     ENGINE_OPEN_COCKPIT,
     ENGINE_WIDGET_ACTIONS_DATA,
   ]
@@ -125,6 +129,8 @@ describe("createPlugin on an engine of another dialect", () => {
     for (const name of others) expect(offered(recording, name), name).toEqual(["a"])
     expect(offered(recording, ENGINE_BPMN_XML_DATA)).toEqual(["a", "c8"])
     expect(offered(recording, ENGINE_SCREEN_PROCESSES_DATA)).toEqual(["a", "c8"])
+    expect(offered(recording, ENGINE_SCREEN_INSTANCE_DATA)).toEqual(["a", "c8"])
+    expect(offered(recording, ENGINE_SCREEN_INCIDENT_TEXT_DATA)).toEqual(["a", "c8"])
     // The cockpit's `engine` names every engine it shows: a route of one engine refuses this one.
     expect(offered(recording, ENGINE_OPEN_COCKPIT)).toEqual(["a", "c8"])
     expect(offered(recording, ENGINE_LIST_ENGINES)).toBeUndefined()
@@ -195,7 +201,7 @@ describe("createPlugin on an engine of another dialect", () => {
     expect(runtime).not.toHaveBeenCalled()
   })
 
-  it("serves the XML feed, the board feed and the engine screen feed through its runtime", async () => {
+  it("serves the XML feed, the board feed and the screen feeds through its runtime", async () => {
     const { recording, runtime } = await bootOverBoth()
     const definitionId = FakeWorld.seed().world.definitionIds["order@1"]
     const xml = feedPayload<{ bpmnXml: string | null }>(
@@ -216,6 +222,21 @@ describe("createPlugin on an engine of another dialect", () => {
       await recording.tool(ENGINE_SCREEN_PROCESSES_DATA).call({ engine: "c8" }),
     )
     expect(ScreenFigures.engine(screen)).toEqual(ScreenFigures.engine(WORLD_SCREENS.engine))
+    // Its instance screen and the text of the root incident the instance it called holds.
+    const called = WORLD_SCREENS.calledInstance
+    const instance = feedPayload<InstanceScreenData>(
+      await recording
+        .tool(ENGINE_SCREEN_INSTANCE_DATA)
+        .call({ engine: "c8", instance: called.instance.id }),
+    )
+    expect(ScreenFigures.instance(instance)).toEqual(ScreenFigures.instance(called))
+    const [card] = called.incidents
+    const text = feedPayload<{ rootCause: string | null }>(
+      await recording
+        .tool(ENGINE_SCREEN_INCIDENT_TEXT_DATA)
+        .call({ engine: "c8", incident: card?.rootIncident.id }),
+    )
+    expect(text.rootCause).toBe(card?.rootCauseLine)
     expect(runtime).toHaveBeenCalled()
   })
 
@@ -323,6 +344,8 @@ describe("createPlugin over Camunda 8 profiles and the boards that name them", (
         ENGINE_BPMN_XML_DATA,
         ENGINE_BOARD_DATA,
         ENGINE_SCREEN_PROCESSES_DATA,
+        ENGINE_SCREEN_INSTANCE_DATA,
+        ENGINE_SCREEN_INCIDENT_TEXT_DATA,
       ].sort(),
     )
     // The prompt drafts through a Camunda 7 tool, which is not there.
