@@ -171,7 +171,8 @@ server image builds the page beside the server and serves it from `/app/web`.
   router's `refine`), none there the screen's pick: its incidents where it has some, else where it
   waits while it runs, else its history. From 64rem on the diagram and the details split the window's
   height (`split-pane.tsx`: a `separator` the reader moves by mouse, touch, the arrows, Home and End,
-  the share kept in this browser's guarded storage), under it the diagram takes the viewer's height
+  the share kept in this browser's guarded storage, its one column as wide as the screen, so a stack
+  trace opened scrolls in its own box), under it the diagram takes the viewer's height
   above the details and the page scrolls (`src/screens/use-wide.ts`). Its incident cards
   (`incident-cards.tsx`, `IncidentCard` over the root incidents of the tree, its own and those of the
   instances it called) lead to their incident in focus at the address under the instance that holds
@@ -226,7 +227,7 @@ server image builds the page beside the server and serves it from `/app/web`.
   business key, the variable conditions with their dialog, the kinds the engine refuses offered
   disabled with their reason, the variable names read through `engine_screen_variable_names_data`
   once the dialog opens, a date the dialog writes as this browser's wall clock sent as its instant;
-  the badges' legend at its end) and `InstanceTable` over `engine_screen_instances_data`, pages of
+  the badges' legend at its end) and `InstanceTable` over `engine_screen_instances_data` pages of
   50 by cursor with `LoadMore` under the rows (`InstanceTable`'s `more`: it waits `aria-disabled`
   and keeps the focus, which goes on to the first new row once the page shows; a further page that
   failed said beside it, its Try again putting the focus back on Load more, an ended session left to

@@ -111,6 +111,12 @@ test.describe("the instance screen", () => {
     await expect(cause).toContainText("Caused by:")
     await expect(cause).toContainText("PropertyNotFoundException")
     await expect(page.getByRole("button", { name: "Copy stacktrace" })).toBeVisible()
+    // Its long lines unwrapped scroll in the text's own box: the split stays as wide as the screen,
+    // the diagram keeps its zoom bar and bpmn.io's link in the window.
+    const split = page.locator("[data-slot=split-pane]")
+    expect(await split.evaluate((pane) => pane.scrollWidth - pane.clientWidth)).toBe(0)
+    await expect(page.getByRole("button", { name: "Zoom in" })).toBeInViewport()
+    await expect(page.getByRole("link", { name: /bpmn\.io/ })).toBeInViewport()
     await page.getByRole("button", { name: "Wrap lines" }).click()
     await expect(page.getByRole("button", { name: "Wrap lines" })).toHaveAttribute(
       "aria-pressed",

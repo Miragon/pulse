@@ -47,7 +47,9 @@ const HANDLE = cn(
  * touch or keyboard (the arrows by a twentieth, Home and End to the ends; WCAG 2.1.1): a
  * `separator` that says the diagram's share in percent. The share stays in this browser for the
  * next screen of its kind (`storageKey`: an instance's, a process's); nothing of it reaches the
- * server.
+ * server. Its one column is as wide as the screen, never as its widest line: a stack trace or a
+ * value read in place scrolls in its own box, and the diagram keeps its zoom bar and bpmn.io's link
+ * in sight.
  */
 export function SplitPane({
   top,
@@ -78,13 +80,13 @@ export function SplitPane({
   return (
     <div
       ref={frame}
-      className="grid min-h-0 flex-1"
+      className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)]"
       data-slot="split-pane"
       style={{
         gridTemplateRows: `minmax(0, ${String(share)}fr) auto minmax(0, ${String(1 - share)}fr)`,
       }}
     >
-      <div className="relative min-h-0 overflow-hidden" data-slot="split-top">
+      <div className="relative min-h-0 min-w-0 overflow-hidden" data-slot="split-top">
         {top}
       </div>
       <div
@@ -117,7 +119,7 @@ export function SplitPane({
           setDragging(false)
         }}
       />
-      <div className="flex min-h-0 flex-col" data-slot="split-bottom">
+      <div className="flex min-h-0 min-w-0 flex-col" data-slot="split-bottom">
         {bottom}
       </div>
     </div>
