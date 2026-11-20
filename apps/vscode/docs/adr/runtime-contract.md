@@ -1,7 +1,12 @@
 # Runtime contract
 
 - Status: accepted
-- Last reviewed: 2026-11-15 (three read laws for the lists a board reads: incidents newest
+- Last reviewed: 2026-11-20 (a C7 engine at history level NONE: what the instance search, its
+  count and the other reads answer there, pinned on Operaton and CIB seven, a count below 0
+  without an incident as a defect; a screen shows a hint where the history misses instances the
+  runtime runs and nothing falls back to the runtime (owner decision 2026-11-19), told from the
+  contract's own reads over the engine, a process or a version);
+  2026-11-15 (three read laws for the lists a board reads: incidents newest
   first, pages of root incidents without gaps, every page of instances but the last full; the
   read laws hold for the C7 family's one implementation of the reads, c7-core's `C7Runtime`,
   over two wires: the C7 adapter's and the MCP server's generated SDK;
@@ -137,6 +142,51 @@ for any workspace, and the conformance kit does not cover them
   `InstanceCount`: exact, or with `atLeast` when the engine stopped counting (Camunda 8 at
   10,000). The laws require an exact count over the world; a sum over a lower bound is one
   too, and a board threshold at or above a lower bound reads "stopped counting", never calm.
+- **History level NONE.** The C7 family's instance search and its count read the engine's history,
+  which an engine at history level NONE does not keep, while its runtime still runs the instances.
+  On the kit's world, on Operaton 2.1.5 and CIB seven 2.2.0, a suite of the C7 adapter pins every
+  answer this item names (`packages/connectors/c7/c7-adapter/test/c7-history-none.engine.test.ts`).
+  `searchInstances` finds no instance in any scope (the engine's, a process's, a version's;
+  running, ended, with an incident or without one; by business key or by id) and fails nowhere.
+  `countInstances` counts 0 wherever the history answers; where the runtime knows a filter with an
+  incident whole it counts the runtime's instances (1 of order v1, 3 on the engine), which the
+  search does not list. Without an incident it counts the history's 0 minus those, below 0 (-1,
+  -3): a defect against the honest numbers (CLAUDE.md invariant 7) that a board's counter without
+  an incident shows today, which the suite pins as a defect; its fix, to subtract only the
+  instances with an incident the history holds, is a step of its own and not planned yet. The
+  reads of the runtime hold: `listDefinitions` and `listVersions` count the running instances and
+  those with an incident (order: 3 and 1; order v1: 2 and 1), `getElementStatistics` counts the
+  active instances and the incidents per element, those in called instances too, and
+  `searchIncidents` finds the open incidents. The reads that join the history come back short: a
+  running instance's detail has its wait states and no path, a caller's detail names its called
+  instance but not the incident raised there, an ended instance has no detail, and
+  `listVariableNames` names no variable. The read laws do not hold there, so the suites run them
+  at FULL and AUDIT only.
+- **A hint where the history misses instances.** The owner decided (2026-11-19) that a screen shows
+  a hint at history level NONE and that nothing falls back to the runtime's instances. The case is a
+  history that does not hold instances the runtime runs. History level NONE causes it for every
+  instance; a level raised from NONE while instances ran, a history cleanup by removal time with the
+  `start` strategy (which can remove the history of an instance that still runs) and a login that
+  may not read the history (not measured) cause it too, so the hint names the missing history, never
+  the level. A screen tells it from the contract's own reads: it reads the running instances the
+  runtime counts first, then `countInstances` over the same scope and every lifecycle, and the
+  history misses instances when that count is the smaller. Over the whole engine, the running of
+  `listDefinitions` summed against `countInstances({})` (5 against 0 on the world, both pinned), the
+  rule serves every screen of an engine and the search across engines, also for a version or a
+  process that runs nothing now; over one process (`countInstances({ bpmnProcessId })`) or one
+  version (`listVersions`) it answers for that scope alone. In that order the two reads give no
+  false hint on an engine that keeps its history: an instance that ends between them stays in the
+  history, and one that starts between them only raises the count. Two cases stay blind: an engine
+  at NONE that runs nothing reads as an empty one, and a history that still holds more instances
+  than the runtime runs (a level lowered to NONE after a time at one that kept history) hides the
+  missing ones; a comparison with the history's running instances alone would catch the second, at
+  the price of a false hint whenever an instance ends between the reads. The contract has no member
+  for the case. If these gaps are not acceptable, an explicit read (an optional member such as
+  `instanceHistory?()`) would be one only the C7 family answers, which engine-core admits only by
+  the owner's decision; a search that refused instead would take the diagram and the runtime's
+  counts from Pulse for VS Code's definition panel, whose reads fail together. The screens builder
+  turns the case into a notice and the web app's process screen shows the hint (the plan's step
+  "feat(web): the process screen"); until then no surface shows a hint.
 - **Statistics** always address one version (`definitionId`), never a process.
 - **Incidents name their version.** `Incident.definition` is the `DefinitionRef` of the
   version the incident was raised in, so grouping by process and version needs no
@@ -388,7 +438,9 @@ business key fail the ids law too, as does a search that ignores the instance id
   (`packages/connectors/engine/engine-connector/src/lib/core-adapter/c7-runtime.engine.test.ts`).
   The laws prove the answers, not equal bytes: an integer beyond 2^53 reaches the runtime over
   the SDK as a string of its digits, and no read law reads a bulk operation, which that suite
-  reads in two cases of its own. The C8 adapter's
+  reads in two cases of its own. At history level NONE, where the read laws do not hold, a suite
+  of the C7 adapter pins on both images what the instance search, its count and the other reads
+  answer (`packages/connectors/c7/c7-adapter/test/c7-history-none.engine.test.ts`). The C8 adapter's
   engine test runs on a local Camunda 8 cluster only: CI starts no Camunda 8 image until the
   licence question of #531 has an answer ([c8-adapter.md](c8-adapter.md)).
 - The contract holds beyond the C7 family. During the spike a Camunda 8 adapter on the REST API
