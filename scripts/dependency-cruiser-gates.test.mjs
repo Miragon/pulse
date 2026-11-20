@@ -770,8 +770,8 @@ const SUITES = [
   {
     rule: SCREENS_BUILDER,
     title:
-      "the screens' builder imports its own modules, the format and engine-core's main entry: no " +
-      "other package, no npm module, no built-in",
+      "the screens' builder imports its own modules, the format, engine-core's main entry and the " +
+      "board builder's entry: no other package, no npm module, no built-in",
     cases: [
       [SCREENS_BUILDER_SRC, `${ENGINE_CORE_NAME}/testing`, [SCREENS_BUILDER, NO_TESTING]],
       [`${SCREENS}/src/builder/model.ts`, `${ENGINE_CORE_NAME}/model`, [SCREENS_BUILDER]],
@@ -790,10 +790,14 @@ const SUITES = [
       [SCREENS_BUILDER_SRC, "@miragon/pulse-ui", [SCREENS_BUILDER]],
       [SCREENS_BUILDER_SRC, PROFILE_NAME, [SCREENS_BUILDER, PROFILE_USERS]],
       [SCREENS_BUILDER_SRC, BOARD_NAME, [SCREENS_BUILDER, BOARD_USERS]],
+      // Of the board package only the builder's entry: never its ./testing, a subpath of the
+      // builder or a file of its tree.
+      [SCREENS_BUILDER_SRC, `${BOARD_NAME}/testing`, [SCREENS_BUILDER, BOARD_USERS, NO_TESTING]],
+      [`${SCREENS}/src/builder/shapes.ts`, `${BOARD_NAME}/builder/shapes`, [SCREENS_BUILDER]],
       [
-        `${SCREENS}/src/builder/roll-up.ts`,
-        `${BOARD_NAME}/builder`,
-        [SCREENS_BUILDER, BOARD_BUILDER_USERS],
+        `${SCREENS}/src/builder/escape-board.ts`,
+        "../../../board/src/builder/lib.ts",
+        [SCREENS_BUILDER, DEEP],
       ],
       ...["zod", "react", "reactive", "node:fs"].map((spec) => [
         SCREENS_BUILDER_SRC,
@@ -801,9 +805,12 @@ const SUITES = [
         [SCREENS_BUILDER],
       ]),
       [`${SCREENS}/src/builder/escape-ui.ts`, "../../../ui/src/target.ts", [SCREENS_BUILDER, DEEP]],
-      // Allowed: engine-core's main entry, the format, its own modules, and in its tests vitest
-      // and the kit (the package's test tree reads engine-core like the board package's).
+      // Allowed: engine-core's main entry, the board builder's entry (the instance screen's
+      // markers roll up onto collapsed sub-processes with its CollapsedShapes), the format, its own
+      // modules, and in its tests vitest and the kit (the package's test tree reads engine-core
+      // like the board package's).
       [SCREENS_BUILDER_SRC, ENGINE_CORE_NAME, []],
+      [`${SCREENS}/src/builder/instance-markers.ts`, `${BOARD_NAME}/builder`, []],
       [`${SCREENS}/src/builder/reads.ts`, ENGINE_CORE_NAME, [], "type"],
       [`${SCREENS}/src/builder/engine-screen.ts`, "../format/lib.ts", []],
       [`${SCREENS}/src/builder/json.ts`, "./lib.ts", []],
@@ -1121,8 +1128,15 @@ const SUITES = [
       // Of the runtime view only its core builds a board's numbers.
       [`${RUNTIME_VIEW}/src/host-kit/builder.ts`, `${BOARD_NAME}/builder`, [BOARD_BUILDER_USERS]],
       [`${RUNTIME_VIEW}/src/webview/builder.ts`, `${BOARD_NAME}/builder`, [BOARD_BUILDER_USERS]],
-      // Allowed: the runtime view's core (the board panel, the views that draw the roll-up), and
-      // tests anywhere.
+      // The screens' format stays a leaf: only their builder rolls a screen's markers up.
+      [
+        `${SCREENS}/src/format/shapes.ts`,
+        `${BOARD_NAME}/builder`,
+        [SCREENS_LEAF, BOARD_BUILDER_USERS],
+      ],
+      // Allowed: the runtime view's core (the board panel, the views that draw the roll-up), the
+      // screens' builder (the instance screen's markers), and tests anywhere.
+      [`${SCREENS}/src/builder/markers.ts`, `${BOARD_NAME}/builder`, []],
       [`${RUNTIME_VIEW}/src/core/boards/board-panel.ts`, `${BOARD_NAME}/builder`, []],
       [`${RUNTIME_VIEW}/src/core/views/element-badges.ts`, `${BOARD_NAME}/builder`, [], "type"],
       [`${ENGINE_CONNECTOR}/src/data/board-data.ts`, `${BOARD_NAME}/builder`, []],

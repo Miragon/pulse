@@ -266,11 +266,20 @@ and that board into `packages/connectors/c7/c7-core/src/testing/board-engine.jso
 `C7_SCREEN_ENGINE` is the same for the screens Pulse's surfaces share
 ([`@miragon/pulse-screens`](https://www.npmjs.com/package/@miragon/pulse-screens)): one engine's
 answers to the screens' reads, the time a surface builds them at (`asOf`) and the screens they give
-in their JSON form, today the engine screen (`expected.engine`, `EngineScreenData`), which the
-editors' C7 adapter builds exactly over its wire. Its answers are those of `C7_BOARD_ENGINE`'s
-recording that the engine screen reads, from the same seeded world, so no recording of its own was
-made for it; a screen that reads more brings its answers with a recording of its own, made by
-hand as the board's, into `packages/connectors/c7/c7-core/src/testing/screen-engine.json`.
+in their JSON form: the engine screen (`expected.engine`, `EngineScreenData`) and the instance
+screens (`InstanceScreenData`) of DSP-3001, which waits at its call activity for the root incident
+of the instance it called (`expected.instance`), and of that called instance, which holds it
+(`expected.calledInstance`). The editors' C7 adapter builds each exactly over its wire. Its answers
+come from one run of their own, recorded by hand on 2026-11-20 as the board's: the world seeded
+with `seedC7World` into `operaton/operaton:2.1.5` at history level FULL, every screen built twice
+through a proxy in front of the engine that keeps each request with what the engine answers (the
+same answer both times but for the telemetry, which counts the engine's commands and keeps its
+first), and once more over the kept answers on `startRecordedEngine`, with no request unanswered.
+So every id they name is that engine's, and a screen built over them later (a process, an instance
+list) reads the same instances and versions; one that reads more is recorded again with the others
+in one run, never joined from another recording, whose ids are another engine's (`C7_BOARD_ENGINE`
+is a run of its own). An answer that is no JSON (a job's stack trace) keeps its text and content type
+(`C7RecordedAnswer`).
 
 ## Help and feedback
 

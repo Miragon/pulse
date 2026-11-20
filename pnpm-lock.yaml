@@ -831,6 +831,9 @@ importers:
 
   packages/core/screens:
     devDependencies:
+      '@miragon/pulse-board':
+        specifier: workspace:*
+        version: link:../board
       '@miragon/pulse-engine-core':
         specifier: workspace:*
         version: link:../../connectors/engine/engine-core

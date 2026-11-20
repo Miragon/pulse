@@ -152,9 +152,15 @@ answers and that board into `packages/connectors/c8/c8-core/src/testing/board-en
 
 `C8_SCREEN_ENGINE` is the same for the screens Pulse's surfaces share (`@miragon/pulse-screens`):
 one cluster's answers to the screens' reads under `/v2`, the time a surface builds them at (`asOf`)
-and the screens they give in their JSON form, today the engine screen (`expected.engine`,
-`EngineScreenData`), which the editors' C8 adapter builds exactly over its wire, with the numbers of
-the recorded Camunda 7 screen. Its answers are those of `C8_BOARD_ENGINE`'s recording that the
-engine screen reads, from the same seeded world, so no recording of its own was made for it; a
-screen that reads more brings its answers with a recording of its own, made by hand as the
-board's, into `packages/connectors/c8/c8-core/src/testing/screen-engine.json`.
+and the screens they give in their JSON form: the engine screen (`expected.engine`,
+`EngineScreenData`) and the instance screens (`InstanceScreenData`) of DSP-3001, which waits at its
+call activity for the incident of the instance it called (`expected.instance`), and of that called
+instance (`expected.calledInstance`), which the editors' C8 adapter builds exactly over its wire,
+with the figures of the recorded Camunda 7 screens. Its answers come from one run of their own,
+recorded by hand on 2026-11-20 as the board's: the world seeded with `C8WorldSeed` on
+`camunda/camunda:8.10.9` with H2 and no security, every screen built twice through a proxy in front
+of the cluster that keeps each request with what the cluster answers (the same answer both times),
+and once more over the kept answers on `startRecordedEngine`, with no request unanswered. So every
+key they name is that cluster's, and a screen built over them later reads the same instances and
+versions; one that reads more is recorded again with the others in one run, never joined from
+another recording.

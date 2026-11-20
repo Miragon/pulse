@@ -1,87 +1,76 @@
-import type { Incident, IncidentDetails, IncidentJob } from "@miragon/pulse-engine-core"
-import type { CauseLabel, IncidentRow, JobLink } from "../protocol/index.js"
-import type { CalledInstanceLinks } from "./called-instance-links.js"
+import { IncidentId } from "@miragon/pulse-engine-core"
+import type { CauseSourceCode, IncidentCardData, IncidentTextKind } from "@miragon/pulse-screens"
+import type { CauseLabel, IncidentRow } from "../protocol/index.js"
+import { CalledInstanceLinks } from "./called-instance-links.js"
 import { ModelFactsView } from "./model-facts-view.js"
 import type { InstanceSnapshot } from "./instance-snapshot.js"
 import { Labels } from "./labels.js"
 
+const CAUSE_LABELS: Readonly<Record<CauseSourceCode, CauseLabel>> = {
+  stacktrace: "Root cause",
+  workerError: "Worker error",
+  errorMessage: "Cause",
+}
+
+const DETAILS_LABELS: Readonly<Record<IncidentTextKind, string>> = {
+  stacktrace: "Stacktrace",
+  errorMessage: "Error message",
+}
+
 export class IncidentRows {
   constructor(
     private readonly snapshot: InstanceSnapshot,
-    private readonly links: CalledInstanceLinks,
+    private readonly cards: readonly IncidentCardData[],
   ) {}
 
   rows(): IncidentRow[] {
-    return this.snapshot.detail.incidents.map((incident) => this.rowOf(incident))
+    return this.cards.map((card) => this.rowOf(card))
   }
 
-  private rowOf(incident: Incident): IncidentRow {
-    const link = this.links.linkTo(incident.instanceId)
-    const detailsKind = incident.details?.kind
+  private rowOf(card: IncidentCardData): IncidentRow {
+    const { rootIncident, liesIn, job, text } = card
     return {
-      id: incident.id,
-      shortId: Labels.shortId(incident.id),
-      elementId: incident.elementId,
-      typeLabel: Labels.humanize(incident.type),
-      engineType: incident.type,
-      message: incident.message,
-      createdAt: incident.createdAt,
-      ...this.causeOf(incident),
-      ...(incident.retriesLeft === undefined ? {} : { retriesLeft: incident.retriesLeft }),
-      ...(detailsKind === undefined
+      id: rootIncident.id,
+      shortId: Labels.shortId(rootIncident.id),
+      elementId: card.elementId,
+      typeLabel: Labels.humanize(card.type),
+      engineType: card.type,
+      message: card.message,
+      createdAt: card.createdAt,
+      ...this.causeOf(card),
+      ...(card.retriesLeft === undefined ? {} : { retriesLeft: card.retriesLeft }),
+      ...(text === null ? {} : { detailsLabel: DETAILS_LABELS[text] }),
+      ...(liesIn === null ? {} : { inCalledInstance: CalledInstanceLinks.of(liesIn) }),
+      ...(job === undefined
         ? {}
-        : { detailsLabel: detailsKind === "stacktrace" ? "Stacktrace" : "Error message" }),
-      ...(link === undefined ? {} : { inCalledInstance: link }),
-      ...(incident.job === undefined ? {} : { job: this.jobLink(incident.job) }),
-      ...this.actionsOf(incident),
+        : {
+            job: {
+              id: job.id,
+              shortId: Labels.shortId(job.id),
+              ...(job.type === undefined ? {} : { type: job.type }),
+            },
+          }),
+      ...this.actionsOf(card),
     }
   }
 
-  private actionsOf(incident: Incident): Pick<IncidentRow, "retryable" | "model"> {
-    const modelLink = this.snapshot.modelLinks?.get(incident.id)
-    return {
-      ...(this.isRetryable(incident) ? { retryable: true as const } : {}),
-      ...(modelLink === undefined
-        ? {}
-        : { model: ModelFactsView.of(modelLink, incident.job?.type) }),
-    }
-  }
-
-  private causeOf(incident: Incident): Pick<IncidentRow, "rootCause" | "causeLabel"> {
-    const details = this.completeDetails(incident)
-    const rootCause = details?.rootCause
-    return details === undefined || rootCause === undefined
+  private causeOf({
+    rootCauseLine,
+    causeSource,
+  }: IncidentCardData): Pick<IncidentRow, "rootCause" | "causeLabel"> {
+    return rootCauseLine === null || causeSource === null
       ? {}
-      : { rootCause, causeLabel: this.causeLabel(details, incident) }
+      : { rootCause: rootCauseLine, causeLabel: CAUSE_LABELS[causeSource] }
   }
 
-  private causeLabel(details: IncidentDetails, incident: Incident): CauseLabel {
-    if (details.kind === "stacktrace") {
-      return "Root cause"
-    }
-    return this.stopsAWorkerTask(incident) ? "Worker error" : "Cause"
-  }
-
-  private stopsAWorkerTask(incident: Incident): boolean {
-    return this.snapshot.detail.waitStates.some(
-      (wait) => wait.incidentId === incident.id && wait.kind === "workerTask",
-    )
-  }
-
-  private completeDetails(incident: Incident): IncidentDetails | undefined {
-    const details = this.snapshot.fullDetails.get(incident.id) ?? incident.details
-    return details?.truncated === false ? details : undefined
-  }
-
-  private jobLink(job: IncidentJob): JobLink {
+  private actionsOf({
+    rootIncident,
+    job,
+  }: IncidentCardData): Pick<IncidentRow, "retryable" | "model"> {
+    const modelLink = this.snapshot.modelLinks?.get(IncidentId(rootIncident.id))
     return {
-      id: job.id,
-      shortId: Labels.shortId(job.id),
-      ...(job.type === undefined ? {} : { type: job.type }),
+      ...(this.snapshot.writable && job !== undefined ? { retryable: true as const } : {}),
+      ...(modelLink === undefined ? {} : { model: ModelFactsView.of(modelLink, job?.type) }),
     }
-  }
-
-  private isRetryable(incident: Incident): boolean {
-    return this.snapshot.writable && incident.job !== undefined
   }
 }

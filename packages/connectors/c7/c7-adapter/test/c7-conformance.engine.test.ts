@@ -1,4 +1,5 @@
 import { C7_BOARD_ENGINE, C7_SCREEN_ENGINE } from "@miragon/pulse-c7-core/testing"
+import { InstanceId } from "@miragon/pulse-engine-core"
 import {
   ConformanceKit,
   FakeEngine,
@@ -7,8 +8,8 @@ import {
 } from "@miragon/pulse-engine-core/testing"
 import type { BoardData } from "@miragon/pulse-board"
 import { BoardFigures } from "@miragon/pulse-board/testing"
-import type { EngineScreenData } from "@miragon/pulse-screens"
-import { EngineScreen, ScreenJson } from "@miragon/pulse-screens/builder"
+import type { EngineScreenData, InstanceScreenData } from "@miragon/pulse-screens"
+import { EngineScreen, InstanceScreen, ScreenJson } from "@miragon/pulse-screens/builder"
 import { ScreenFigures, WORLD_SCREENS } from "@miragon/pulse-screens/testing"
 import { afterAll, beforeAll, describe, expect, test } from "vitest"
 import { C7Adapter } from "../src/index.js"
@@ -85,6 +86,37 @@ describe.skipIf(!RUNS_ON_CAMUNDA_7)(`the C7 adapter against ${ENGINE_IMAGE}`, ()
     expect(figures).toEqual(
       ScreenFigures.engine(C7_SCREEN_ENGINE.expected.engine as EngineScreenData),
     )
+  })
+
+  test("screens: the instance screens of DSP-3001 and its called instance have the kit's numbers", async () => {
+    if (harness === undefined) {
+      throw new Error("the engine did not start")
+    }
+    const { runtime } = harness
+    const read = async (id: string): Promise<InstanceScreenData> => {
+      const model = await InstanceScreen.read(
+        C7_SCREEN_ENGINE.engine,
+        InstanceId(id),
+        runtime,
+        () => new Date(),
+      )
+      if (model === undefined) {
+        throw new Error(`the engine holds no instance ${id}`)
+      }
+      return ScreenJson.instance(model)
+    }
+    const instance = await read(harness.world.instanceIds["DSP-3001"])
+    const [called] = instance.calls.flatMap((link) =>
+      link.kind === "instances" ? link.instances : [],
+    )
+    const screens = { instance, calledInstance: await read(called?.id ?? "none") }
+
+    for (const name of ["instance", "calledInstance"] as const) {
+      const figures = ScreenFigures.instance(screens[name])
+      const recorded = C7_SCREEN_ENGINE.expected[name] as InstanceScreenData
+      expect(figures).toEqual(ScreenFigures.instance(WORLD_SCREENS[name]))
+      expect(figures).toEqual(ScreenFigures.instance(recorded))
+    }
   })
 
   kit.registerCommandLaws(async () => {

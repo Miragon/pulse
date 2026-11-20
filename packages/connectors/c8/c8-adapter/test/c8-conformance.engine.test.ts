@@ -8,8 +8,8 @@ import {
   FakeWorld,
   type ConformanceHarness,
 } from "@miragon/pulse-engine-core/testing"
-import type { EngineScreenData } from "@miragon/pulse-screens"
-import { EngineScreen, ScreenJson } from "@miragon/pulse-screens/builder"
+import type { EngineScreenData, InstanceScreenData } from "@miragon/pulse-screens"
+import { EngineScreen, InstanceScreen, ScreenJson } from "@miragon/pulse-screens/builder"
 import { ScreenFigures, WORLD_SCREENS } from "@miragon/pulse-screens/testing"
 import { afterAll, beforeAll, describe, expect, test } from "vitest"
 import { C8Adapter } from "../src/index.js"
@@ -87,6 +87,31 @@ describe.skipIf(!RUNS_ON_CAMUNDA_8)(
       expect(figures).toEqual(
         ScreenFigures.engine(C8_SCREEN_ENGINE.expected.engine as EngineScreenData),
       )
+    })
+
+    test("screens: the instance screens of DSP-3001 and its called instance have the kit's numbers", async () => {
+      const { runtime, world } = harness ?? expect.fail("the cluster did not start")
+      const read = async (id: string): Promise<InstanceScreenData> => {
+        const model = await InstanceScreen.read(
+          C8_SCREEN_ENGINE.engine,
+          InstanceId(id),
+          runtime,
+          () => new Date(),
+        )
+        return model === undefined ? expect.fail(`no instance ${id}`) : ScreenJson.instance(model)
+      }
+      const instance = await read(world.instanceIds["DSP-3001"])
+      const [called] = instance.calls.flatMap((link) =>
+        link.kind === "instances" ? link.instances : [],
+      )
+      const screens = { instance, calledInstance: await read(called?.id ?? "none") }
+
+      for (const name of ["instance", "calledInstance"] as const) {
+        const figures = ScreenFigures.instance(screens[name])
+        const recorded = C8_SCREEN_ENGINE.expected[name] as InstanceScreenData
+        expect(figures).toEqual(ScreenFigures.instance(WORLD_SCREENS[name]))
+        expect(figures).toEqual(ScreenFigures.instance(recorded))
+      }
     })
 
     test("names the event and the message an instance waits for", async () => {

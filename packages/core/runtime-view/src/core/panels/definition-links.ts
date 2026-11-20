@@ -1,6 +1,6 @@
 import { ElementId } from "@miragon/pulse-engine-core"
+import { CallLinks } from "@miragon/pulse-screens/builder"
 import type { WebviewIntent } from "../protocol/index.js"
-import { CallTargets } from "../views/call-targets.js"
 import type { CallJumps } from "./call-jumps.js"
 import type { DefinitionLoaded } from "./definition-reads.js"
 import type { ModelLinks } from "./model-links.js"
@@ -52,7 +52,7 @@ export class DefinitionLinks {
   private async openCall(elementId: string, toSide: boolean): Promise<void> {
     const loaded = this.parts.current()
     if (loaded !== undefined) {
-      const target = new CallTargets(loaded.calledProcesses).of(elementId)
+      const target = CallLinks.of(loaded.calledProcesses).target(elementId)
       await this.parts.jumps.open({ target, elementId, diagramXml: loaded.diagramXml }, { toSide })
     }
   }

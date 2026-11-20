@@ -1,19 +1,95 @@
+import { ElementId, InstanceId, type InstanceDetail } from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
-import { EngineScreen, ScreenJson } from "../src/builder/index.js"
-import { FleetSums } from "../src/index.js"
+import { EngineScreen, InstanceScreen, ScreenJson } from "../src/builder/index.js"
+import {
+  FleetSums,
+  type CallLinkKind,
+  type CauseSourceCode,
+  type HeadlineCode,
+  type IncidentTextKind,
+  type InstanceReadCode,
+  type InstanceStateCode,
+  type MarkerKindCode,
+  type PathStateCode,
+  type ValueKindCode,
+  type WaitKindCode,
+} from "../src/index.js"
 import { WORLD_SCREENS } from "../src/testing/index.js"
+import { Instances } from "./builder/support/instances.js"
 import { ScreenWorld } from "./builder/support/world.js"
 
-type FieldKind = "id" | "time" | "engineWord"
+type FieldKind = "id" | "time" | "engineWord" | "code"
 
 const STRING_FIELDS: Readonly<Record<string, FieldKind>> = {
   engine: "id",
   bpmnProcessId: "id",
+  id: "id",
+  instanceId: "id",
+  incidentId: "id",
+  elementId: "id",
+  scopeElementId: "id",
   asOf: "time",
+  startedAt: "time",
+  endedAt: "time",
+  createdAt: "time",
+  since: "time",
+  dueAt: "time",
   name: "engineWord",
   product: "engineWord",
   version: "engineWord",
+  businessKey: "engineWord",
+  elementName: "engineWord",
+  type: "engineWord",
+  message: "engineWord",
+  rootCauseLine: "engineWord",
+  assignee: "engineWord",
+  taskType: "engineWord",
+  messageName: "engineWord",
+  signalName: "engineWord",
+  description: "engineWord",
+  valueJson: "engineWord",
+  state: "code",
+  code: "code",
+  kind: "code",
+  text: "code",
+  causeSource: "code",
+  unread: "code",
 }
+
+const CODES: ReadonlySet<string> = new Set<
+  | InstanceStateCode
+  | PathStateCode
+  | HeadlineCode
+  | MarkerKindCode
+  | WaitKindCode
+  | CallLinkKind
+  | ValueKindCode
+  | IncidentTextKind
+  | CauseSourceCode
+  | InstanceReadCode
+>([
+  ...(["running", "suspended", "completed", "terminated", "active", "canceled"] as const),
+  ...(["incident", "incidentInCalledInstance", "incidents", "ended", "waiting"] as const),
+  ...([
+    "userTask",
+    "workerTask",
+    "asyncContinuation",
+    "timer",
+    "message",
+    "signal",
+    "other",
+  ] as const),
+  ...(["instances", "definition", "missing"] as const),
+  ...(["string", "integer", "decimal", "boolean", "date", "json", "null", "opaque"] as const),
+  ...([
+    "stacktrace",
+    "errorMessage",
+    "workerError",
+    "diagram",
+    "calledProcesses",
+    "caller",
+  ] as const),
+])
 
 const ISO_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
 
@@ -59,6 +135,8 @@ class FormWalk {
         return ISO_TIME.test(value) && new Date(value).toISOString() === value
       case "engineWord":
         return engineWords.has(value)
+      case "code":
+        return CODES.has(value)
     }
   }
 }
@@ -83,7 +161,78 @@ async function worldForms(): Promise<{ readonly forms: unknown[]; readonly words
     info.version,
     ...definitions.flatMap(({ latest }) => (latest.name === undefined ? [] : [latest.name])),
   ])
-  return { forms: [screen, bare, WORLD_SCREENS.engine, FleetSums.of([screen, bare])], words }
+  const instances = await instanceForms()
+  return {
+    forms: [screen, bare, WORLD_SCREENS.engine, FleetSums.of([screen, bare]), ...instances.forms],
+    words: new Set([...words, ...instances.words]),
+  }
+}
+
+function stringsOf(value: unknown): string[] {
+  return FormWalk.strings(value).map(({ value: text }) => text)
+}
+
+const RICH: InstanceDetail = Instances.detail({
+  instance: Instances.summary({ businessKey: "ORD-1", state: "suspended" }),
+  ...Instances.chain(),
+  incidents: [
+    Instances.incident("a", {
+      instanceId: Instances.GRANDCHILD,
+      job: { id: "job-1", type: "charge-card" },
+      details: Instances.complete("errorMessage", "Card declined"),
+    }),
+    Instances.incident("b", { details: Instances.complete("stacktrace", "MissingBean: no bean") }),
+  ],
+  waitStates: [
+    Instances.wait({ kind: "workerTask", taskType: "charge-card", incidentId: "a" } as never),
+    Instances.wait({
+      kind: "message",
+      messageName: "Paid",
+      elementName: "Wait for payment",
+    } as never),
+    Instances.wait({ kind: "other", description: "conditionalEvent" }),
+  ],
+  path: [
+    {
+      elementId: ElementId("Event_Start"),
+      elementName: "Start",
+      startedAt: Instances.SINCE,
+      endedAt: Instances.SINCE,
+      canceled: false,
+    },
+  ],
+  variables: [
+    {
+      name: "note",
+      scope: { kind: "element", elementId: Instances.ELEMENT },
+      valueJson: '"long"',
+      truncated: true,
+      type: "String",
+      kind: "string",
+    },
+  ],
+})
+
+async function instanceForms(): Promise<{ readonly forms: unknown[]; readonly words: string[] }> {
+  const runtime = ScreenWorld.world()
+  const ids = [WORLD_SCREENS.instance.instance.id, WORLD_SCREENS.calledInstance.instance.id]
+  const read = await Promise.all(
+    ids.map((id) =>
+      InstanceScreen.read("prod-a", InstanceId(id), runtime, () => ScreenWorld.AS_OF),
+    ),
+  )
+  const details = await Promise.all(ids.map((id) => runtime.getInstanceDetail(InstanceId(id))))
+  const callers = await runtime.searchInstances({}, { limit: 50 })
+  const rich = ScreenJson.instance(InstanceScreen.of(Instances.facts(RICH)))
+  return {
+    forms: [
+      ...read.map((model) => (model === undefined ? {} : ScreenJson.instance(model))),
+      WORLD_SCREENS.instance,
+      WORLD_SCREENS.calledInstance,
+      rich,
+    ],
+    words: [...stringsOf(details), ...stringsOf(callers), ...stringsOf(RICH)],
+  }
 }
 
 describe("the screens' JSON forms", () => {
@@ -91,7 +240,7 @@ describe("the screens' JSON forms", () => {
     const { forms, words } = await worldForms()
 
     expect(forms.flatMap((form) => FormWalk.findings(form, words))).toEqual([])
-    expect(forms.flatMap((form) => FormWalk.strings(form)).length).toBeGreaterThan(20)
+    expect(forms.flatMap((form) => FormWalk.strings(form)).length).toBeGreaterThan(200)
   })
 
   test("are held to it by a walk that finds a planted text, a wrong time and a word no engine gave", async () => {
@@ -102,6 +251,7 @@ describe("the screens' JSON forms", () => {
       info: { product: "Unknown engine", version: "1.0.0" },
       summary: "3 processes · 5 running",
       processes: [{ bpmnProcessId: "with space" }],
+      headline: { code: "Waiting at an incident", title: "Waiting" },
     }
 
     expect(FormWalk.findings(planted, words)).toEqual([
@@ -109,6 +259,8 @@ describe("the screens' JSON forms", () => {
       "$.info.product: no engineWord",
       '$.summary: "3 processes · 5 running" is text of its own',
       "$.processes[0].bpmnProcessId: no id",
+      "$.headline.code: no code",
+      '$.headline.title: "Waiting" is text of its own',
     ])
   })
 })

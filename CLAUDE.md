@@ -61,7 +61,7 @@ engines.
 | `packages/core/runtime-view/`                  | The runtime view both editor hosts compose (`@miragon/pulse-runtime-view`, private) over the contract of `engine-core`: the ports a host and an engine family plug in, the core, the protocol, the webview (React on `@miragon/pulse-ui`), the local model reader and the host kit (targets from `.pulse.json` and the CLI's user config, policies, the write audit)                                                                                                                                                                                                                                                                                                                  |
 | `packages/core/profile/`                       | The one profile format of the CLI, the editor hosts and the MCP server (npm `@miragon/pulse-profile`): a parser from a file's text to a verdict per profile as data (a code and a key, never a value), the credential policy by where the file comes from, `refusalsOn` for what a reader cannot serve, the JSON Schema (`schema/pulse.schema.json`) and the shared fixtures (`/testing`); no runtime dependency                                                                                                                                                                                                                                                                      |
 | `packages/core/board/`                         | The board file format and builder (npm `@miragon/pulse-board`): `BoardParser` (a board with notes and refused widgets, or a file's problems as codes), `BoardProblems`, `BoardTiles`, `BoardVocabulary`, `StarterBoard`, the JSON Schema, `/testing` fixtures and figures, `/builder` (numbers over seven engine-core reads, an optional peer; no text), a built board's JSON form (`BoardData`; `BoardJson.of` in `/builder`); read by the editors and the engine module; no runtime dependency; VS Code's house rules                                                                                                                                                               |
-| `packages/core/screens/`                       | The screens the web app and the editors share, as data (npm `@miragon/pulse-screens`): their JSON forms (`EngineScreenData`) and the targets a screen opens (`ScreenTarget`), the pure rules a surface applies to them (`ProcessFilter`, `FleetSums`), `/builder` (`EngineScreen` over two engine-core reads, an optional peer, no text, and `ScreenJson`), `/testing` (the kit world's screens, `ScreenFigures`); built by the runtime view's core and the engine connector's screen feeds; no runtime dependency; VS Code's house rules                                                                                                                                             |
+| `packages/core/screens/`                       | The screens the web app and the editors share, as data (npm `@miragon/pulse-screens`): their JSON forms (`EngineScreenData`, `InstanceScreenData`), codes and targets (`ScreenTarget`), the pure rules a surface applies to them (`ProcessFilter`, `FleetSums`), `/builder` (`EngineScreen`, `InstanceScreen` with its cards, rows, call links, head strip and markers, over engine-core reads and the board builder's `CollapsedShapes`, optional peers, no text; `ScreenJson`), `/testing` (the kit world's screens, `ScreenFigures`); built by the runtime view's core and the engine connector's screen feeds; no runtime dependency; VS Code's house rules                       |
 | `packages/core/blocks/`                        | Pulse's building blocks (npm `@miragon/pulse-blocks`), React on `@miragon/pulse-ui` with props, callbacks and the slots a surface brings (`Table`, `Id`, `Diagram`, `onOpen`, `linkOf`): the tiles of a board over a built board's JSON form (`BoardGrid`, `BoardTile`), worded in en and de (`useProblemWords`, `ProblemList`), and the screens' blocks over their JSON forms (an engine's `ProcessTable` and `ListFilterBar`, `useProcessList`, the slots `ScreenSlots`), worded in en and de by a catalog of their own; rendered by the runtime view's webview (the board, the engine tab), the cockpit's board route and the web app's engine screen; no React context of its own |
 | `packages/core/http/`                          | The one engine transport of the MCP server, the CLI and the editor hosts' adapters (npm `@miragon/pulse-http`) over the `fetch` each hands in: a deadline to the last byte, no redirects, a 64 MiB cap, one retry after a 401, reasons as data, lossless JSON, masking, the path value rule; the OAuth client (`/oauth`); conformance cases, fake fetch (`/testing`), loopback engine (`/testing/loopback`); no dependency                                                                                                                                                                                                                                                            |
 | `playground/`                                  | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
@@ -136,7 +136,8 @@ Three axes decide where code goes, and they stay apart:
   builder in `@miragon/pulse-board/builder`, whose model the runtime view renders); the builders of
   the screens the web app and the editors share go into a published package of their own,
   `@miragon/pulse-screens` (`packages/core/screens`, D8 as amended on 2026-11-19), whose engine
-  screen the runtime view's core builds since 2026-11-19; a shared building block
+  screen the runtime view's core builds since 2026-11-19 and whose instance screen (its incident
+  cards, wait rows, path, call links, head strip and markers) since 2026-11-20; a shared building block
   goes into pulse-ui (a primitive) or into a shared package created with the first engine block
   two surfaces render, executed for boards on 2026-11-16: `@miragon/pulse-blocks`
   (`packages/core/blocks`) holds a board's tiles, which the webview and the cockpit's board route
@@ -188,8 +189,9 @@ named exception written like it: it reads seven reads of `ProcessRuntime` throug
 main entry alone (`board-builder-builds-on-the-engine-contract`), the format stays a leaf; the
 screens' builder (`@miragon/pulse-screens/builder`, `packages/core/screens/src/builder`) is a
 named exception written the same way: it reads two reads of `ProcessRuntime` for the engine
-screen through engine-core's main entry alone (`screens-builder-builds-on-the-engine-contract`),
-and its format stays a leaf too.
+screen and four for an instance's through engine-core's main entry alone and rolls an instance's
+markers up onto collapsed sub-processes with the board builder's `CollapsedShapes`, by that
+builder's entry (`screens-builder-builds-on-the-engine-contract`), and its format stays a leaf too.
 The ports only the editor hosts need (`EngineAdapter`, the engine's web UI, the local model and
 its code) stay in the runtime view's `src/ports`, never in engine-core. The engine connector runs
 the contract, admitted for the boards of the MCP server (owner decision 2026-11-16, the case #488
@@ -1170,15 +1172,16 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      `src/builder`) is the package's named exception, which imports only its own modules, the
      format and engine-core's main entry, no npm package and no Node built-in
      (`board-builder-builds-on-the-engine-contract`; engine-core an optional peer), and only the
-     runtime view's core, the engine connector's `src/data` and tests import it
-     (`board-builder-consumers`, `BOARD_BUILDERS`); the
+     runtime view's core, the engine connector's `src/data`, the screens' builder and tests import
+     it (`board-builder-consumers`, `BOARD_BUILDERS`); the
      package's tests that read the contract import of the families engine-core alone, by its
      entries (`board-tests-build-on-the-engine-contract`); the screens
      (`@miragon/pulse-screens`, `packages/core/screens`) are written like it: their format (the
      main entry and `./testing`: the screens' JSON forms, `ScreenTarget`, `ProcessFilter`,
      `FleetSums`) a leaf (`screens-format-is-a-leaf`), their builder (`./builder`) the named
-     exception over engine-core's main entry alone (`screens-builder-builds-on-the-engine-contract`;
-     engine-core an optional peer), their tests reading of the families engine-core alone
+     exception over engine-core's main entry and the board builder's entry alone
+     (`screens-builder-builds-on-the-engine-contract`; both optional peers), their tests reading of
+     the families engine-core alone
      (`screens-tests-build-on-the-engine-contract`), and both imported only by the runtime view's
      core, the engine connector's `src/data` and tests, the format also by the building blocks and
      the web app's src (`screens-format-consumers`, `screens-builder-consumers`, `SCREENS_READERS`,
@@ -1379,7 +1382,8 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
   a downstream app dedupes them (`react`/`react-dom` `^19.2.0`, `zod` `^4.4.0`, `bpmn-js`
   `^18.31.1`, `@miragon/pulse-ui` and `@miragon/pulse-widget-shell` as `workspace:^`, packed to
   `^<version>`; `@miragon/pulse-engine-core` too, an optional peer of `@miragon/pulse-board`
-  and `@miragon/pulse-screens`, whose `./builder` alone reads it), each also an EXACT
+  and `@miragon/pulse-screens`, whose `./builder` alone reads it, and `@miragon/pulse-board` an
+  optional peer of `@miragon/pulse-screens`, whose `./builder` reads the board's), each also an EXACT
   devDependency. `bpmn-js` is a peer of
   widget-shell (`./widgets` exports the BPMN viewer, so every view bundle imports it) and of the
   engine connector, which draws diagrams. A published package imports only what its

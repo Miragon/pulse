@@ -344,25 +344,46 @@ describe("the cause of an incident", () => {
 
 describe("the strip under the instance header", () => {
   const row = { rootCause: "CardExpired", message: "boom" } as IncidentRow
+  const one = {
+    code: "incident",
+    incidentId: "incident-1",
+    elementId: "Activity_Wait",
+    since: SINCE,
+    suspended: false,
+  } as const
 
   test("stays away for one incident and a running instance", () => {
-    expect(InstanceHeadline.of([row], "running")).toBeUndefined()
-    expect(InstanceHeadline.of([], "running")).toBeUndefined()
+    expect(InstanceHeadline.of(one, [row])).toBeUndefined()
+    expect(InstanceHeadline.of(null, [])).toBeUndefined()
   })
 
   test("says when the instance is suspended or has ended", () => {
-    expect(InstanceHeadline.of([row], "suspended")?.title).toBe("This instance is suspended.")
-    expect(InstanceHeadline.of([], "terminated")?.title).toBe("This instance is cancelled.")
+    expect(InstanceHeadline.of({ ...one, suspended: true }, [row])?.title).toBe(
+      "This instance is suspended.",
+    )
+    expect(InstanceHeadline.of({ code: "suspended" }, [])?.title).toBe(
+      "This instance is suspended.",
+    )
+    expect(InstanceHeadline.of({ code: "ended", state: "terminated" }, [])?.title).toBe(
+      "This instance is cancelled.",
+    )
   })
 
   test("sums up several incidents without actions, which sit on each card", () => {
-    expect(InstanceHeadline.of([row, { message: "other" } as IncidentRow], "suspended")).toEqual({
+    const several = { code: "incidents", count: 2, suspended: true } as const
+
+    expect(InstanceHeadline.of(several, [row, { message: "other" } as IncidentRow])).toEqual({
       tone: "danger",
       title: "2 incidents · suspended",
       detail: "CardExpired",
       actions: [],
     })
-    expect(InstanceHeadline.of([{ message: "boom" } as IncidentRow, row], "running")).toEqual({
+    expect(
+      InstanceHeadline.of({ ...several, suspended: false }, [
+        { message: "boom" } as IncidentRow,
+        row,
+      ]),
+    ).toEqual({
       tone: "danger",
       title: "2 incidents",
       detail: "boom",

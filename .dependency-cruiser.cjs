@@ -364,12 +364,27 @@ const BOARD_BUILDER = [
 ]
 
 /**
- * Where a surface builds a board's numbers, the only shipped importers of the builder: the runtime
- * view's core (the board panel and the definition and instance views, which draw the same roll-up)
- * and the engine connector's data builders (src/data: the board feed, with boards in the MCP
- * server). Tests import it anywhere.
+ * The board builder's main entry as the screens' builder reaches it: resolved through its
+ * node_modules to the build, or bare. Never a file of its tree by path, ./testing or the format.
  */
-const BOARD_BUILDERS = [`${RUNTIME_VIEW_TREE}src/core/`, `${ENGINE_CONNECTOR_TREE}src/data/`]
+const BOARD_BUILDER_ENTRY = [
+  `(?:^|/)node_modules/${escapeRegExp(BOARD.name)}/dist/builder/index[.](?:js|d[.]ts)$`,
+  `^${escapeRegExp(BOARD.name)}/builder$`,
+]
+
+/**
+ * Where a surface builds a board's numbers, the only shipped importers of the builder: the runtime
+ * view's core (the board panel and the definition and instance views, which draw the same roll-up), the engine
+ * connector's data builders (src/data: the board feed, with boards in the MCP server) and the
+ * screens' builder (packages/core/screens/src/builder: the instance screen's markers roll up onto
+ * collapsed sub-processes with the board's CollapsedShapes, so no third copy of the XML tag
+ * reader; owner decision D8 as amended on 2026-11-19). Tests import it anywhere.
+ */
+const BOARD_BUILDERS = [
+  `${RUNTIME_VIEW_TREE}src/core/`,
+  `${ENGINE_CONNECTOR_TREE}src/data/`,
+  `^packages/core/screens/src/builder/`,
+]
 
 /**
  * The board package's tests that read the engine contract its builder builds on: its test tree and
@@ -1222,8 +1237,11 @@ module.exports = {
         "The board builder (@miragon/pulse-board/builder) may be imported only where a surface " +
         "builds a board's numbers (BOARD_BUILDERS): the runtime view's core " +
         "(packages/core/runtime-view/src/core: the board panel, and the definition and instance " +
-        "views, which draw the same roll-up onto collapsed sub-processes) and the engine " +
-        "connector's data builders (src/data: the board feed), and by tests anywhere. Not the " +
+        "views, which draw the same roll-up onto collapsed sub-processes), the engine " +
+        "connector's data builders (src/data: the board feed) and the screens' builder " +
+        "(packages/core/screens/src/builder, whose instance screen rolls its markers up the same " +
+        "way, by the builder's entry: screens-builder-builds-on-the-engine-contract), and by " +
+        "tests anywhere. Not the " +
         "editor hosts' src (they read board files, the runtime view builds their numbers), not " +
         "the runtime view's other layers, not the rest of the connector, no other package and no " +
         "other app until it shows a board itself, through a rule change of its own. A relative " +
@@ -1263,15 +1281,21 @@ module.exports = {
         "is the screens package's one edge into a family, the named exception written like the " +
         "board builder's (owner decision D8 as amended on 2026-11-19): it builds each shared " +
         "screen's numbers over the reads of the engine contract, so it imports its own modules, " +
-        "the format (src/format) and the main entry of @miragon/pulse-engine-core (an optional " +
-        "peer of the package), nothing else: no other subpath of engine-core (./testing ships " +
-        "the kit), no relative escape into its tree, no other workspace package, no npm package " +
-        "and no Node built-in. Every word, format and navigation stays with the surface that " +
-        "renders the screen (the runtime view's core words it in English). Its tests may import " +
-        "vitest and the kit.",
+        "the format (src/format), the main entry of @miragon/pulse-engine-core and the board " +
+        "builder's entry, @miragon/pulse-board/builder, whose CollapsedShapes rolls the instance " +
+        "screen's markers up onto collapsed sub-processes (both optional peers of the package), " +
+        "nothing else: no other subpath of engine-core (./testing ships the kit), not the board " +
+        "format's main entry or ./testing, no relative escape into either tree, no other " +
+        "workspace package, no npm package and no Node built-in. Every word, format and " +
+        "navigation stays with the surface that renders the screen (the runtime view's core " +
+        "words it in English). Its tests may import vitest and the kit.",
       from: { path: SCREENS_BUILDER_TREE, pathNot: ["[.]test[.]ts$"] },
       to: {
-        pathNot: [`^${escapeRegExp(SCREENS.tree)}/src/(?:builder|format)/`, ...ENGINE_CORE_ENTRY],
+        pathNot: [
+          `^${escapeRegExp(SCREENS.tree)}/src/(?:builder|format)/`,
+          ...ENGINE_CORE_ENTRY,
+          ...BOARD_BUILDER_ENTRY,
+        ],
       },
     },
     {

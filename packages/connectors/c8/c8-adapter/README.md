@@ -49,9 +49,10 @@ served by the transport's `startRecordedEngine`) it builds exactly the board the
 expects, whose numbers are those of the kit's own world (`test/c8-board-numbers.test.ts`), compared
 by `BoardFigures` of `@miragon/pulse-board/testing`, the one rule every surface's board suites
 compare by. Over c8-core's recorded screen answers (`C8_SCREEN_ENGINE`) it builds exactly the
-engine screen of `@miragon/pulse-screens` the recording expects, whose numbers are those of the
-kit's own world and of the C7 adapter's recorded screen (`test/c8-screen-numbers.test.ts`, compared
-by `ScreenFigures` of `@miragon/pulse-screens/testing`; the conformance suite reads them live too).
+engine screen and the two instance screens of `@miragon/pulse-screens` the recording expects, whose
+figures are those of the kit's own world and of the C7 adapter's recorded screens
+(`test/c8-screen-numbers.test.ts`, compared by `ScreenFigures` of `@miragon/pulse-screens/testing`;
+the conformance suite reads them live too).
 Its wire passes the transport's conformance cases it can express
 (`test/wire/transport-cases.test.ts`), and its error-path goldens (`test/goldens/`) pin what it
 reports for the failures the MCP server, the CLI and the C7 adapter pin, made with a Camunda 8
