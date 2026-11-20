@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.30.0](https://github.com/Miragon/pulse/compare/v0.29.0...v0.30.0) (2026-11-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* **cockpit:** pulse-ui's GroupCard takes the group's name as a required `title`, and `summary` is an optional function `(toggle) => ReactNode` that places the toggle among the bar's other controls instead of a ReactNode; the summary has no role="button" or tab stop any more, the toggle is a button with aria-expanded (data-slot="group-card-toggle"). SectionHeading's `as` is required (`SectionHeadingLevel | "span"`). LogText's `kind` ("message" | "code") is required. LivePill and LivePillProps are removed, and with them UiMessages' `pills`, which a UiMessagesOverride can no longer set. NavigationFocus drops its `label` prop and its role="status" region and focuses the new view's h1 instead. widget-shell's BpmnCanvas interface requires `scroll({ dx, dy })`, so an object typed as one (a test's fake canvas) has to implement it. formatClock and formatTime write a 12-hour clock without a leading zero ("4:41 PM", was "04:41 PM").
+
+### Features
+
+* **cockpit:** apply the UI and UX review to the cockpit and its kit ([#635](https://github.com/Miragon/pulse/issues/635)) ([fe21bab](https://github.com/Miragon/pulse/commit/fe21babd55e38e8c83f5838126adc398d918439d))
+* **web:** own router and canonical addresses ([#638](https://github.com/Miragon/pulse/issues/638)) ([a5e89d5](https://github.com/Miragon/pulse/commit/a5e89d5685985c7958673573470a844353aaacab))
+* **web:** the engine screen over shared blocks, and history level NONE pinned ([#641](https://github.com/Miragon/pulse/issues/641)) ([c6ffbd1](https://github.com/Miragon/pulse/commit/c6ffbd1a1e1c953bd871d7a4fea7d9183f7ab115))
+* **web:** the frame, the themed BPMN canvas and @miragon/pulse-screens ([#640](https://github.com/Miragon/pulse/issues/640)) ([75f4c8a](https://github.com/Miragon/pulse/commit/75f4c8a3572e650ac949cb12e646132b4e67e868))
+* **web:** the instance screen over shared blocks, and no instance count below 0 ([#642](https://github.com/Miragon/pulse/issues/642)) ([11d10ee](https://github.com/Miragon/pulse/commit/11d10ee056e7f53d33c9cab594f68d0b682a1be1))
+* **web:** the process screen over shared blocks, with variable conditions in both surfaces ([#643](https://github.com/Miragon/pulse/issues/643)) ([ffdc609](https://github.com/Miragon/pulse/commit/ffdc60970bdad27a918629a7d067828820054f28))
+
 ## [0.29.0](https://github.com/Miragon/pulse/compare/v0.28.0...v0.29.0) (2026-11-19)
 
 
