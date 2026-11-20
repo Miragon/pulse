@@ -1,6 +1,6 @@
 {
   "name": "@miragon/pulse-blocks",
-  "version": "0.29.0",
+  "version": "0.30.0",
   "description": "Pulse's building blocks for the surfaces that show the same engine view: the tiles of a board (counter, instance list, incident summary, incident list, process diagram and the tile of a refused widget) over a built board's JSON form of @miragon/pulse-board, and the blocks of the shared screens over their JSON forms of @miragon/pulse-screens (an engine's process table and the filter bar above it; an instance's facts, head strip, incident cards and their text, its tables of waits, path and variables, the menu of its called instances and its markers' legend; a process's version picker, the notice that older versions run, its instance list's filter bar with the variable condition dialog, the instance table, the counts and call buttons on its diagram and their legend), worded in English and German, React on @miragon/pulse-ui with props and callbacks only. The surface brings its table, its id and its diagram as slots.",
   "license": "MIT",
   "keywords": [
