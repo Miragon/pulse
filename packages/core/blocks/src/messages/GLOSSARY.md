@@ -6,14 +6,17 @@ Probleme einer Board-Datei, die Texte der Bausteine der Screens (`screen-en.ts`,
 `screen-de.ts`): die Prozessliste einer Engine mit ihrer Filterleiste, und die Texte der Bausteine
 einer Instanz (`instance-en.ts`, `instance-de.ts`): Fakten, Kopfstreifen, Incident-Karten und ihr
 Text, die Tabellen Wartet an, Verlauf und Variablen, das Menü der aufgerufenen Instanzen und die
-Legende der Marker. Jeder Katalog steht für
+Legende der Marker, und die Texte der Bausteine eines Prozesses (`process-en.ts`,
+`process-de.ts`): Versionsauswahl, Hinweis auf ältere Versionen, die Filterleiste seiner
+Instanzliste mit dem Dialog der Variablenbedingungen, die Instanztabelle, die Zähler und
+Aufrufknöpfe am Diagramm und ihre Legende. Jeder Katalog steht für
 sich, damit eine Oberfläche nur die Wörter der Bausteine bündelt, die sie zeigt. `glossary.test.ts`
 prüft die verbotenen Synonyme (jede Regel mit einer Probe, die sie fangen muss), die Regeln aus
 brand-tone (du, AI, „CIB seven“, kein Gedankenstrich als Verbinder, Plural nach der Zahl), dass
 jeder englische Schlüssel seinen deutschen hat und dass die Bausteine die Zählbegriffe „Mit
 Incident“ und „alle Versionen“ aller Oberflächen nutzen. Die englischen Texte der Screens sind die
-des Engine-Tabs und der Instanzansicht von Pulse for VS Code und Pulse for Orca, Buchstabe für
-Buchstabe.
+des Engine-Tabs, der Instanzansicht und der Definitionsansicht von Pulse for VS Code und Pulse for
+Orca, Buchstabe für Buchstabe.
 Die englischen Texte der Probleme sind die des Board-Formats (`BoardProblems.describe` in
 `@miragon/pulse-board`), was `src/board/problem-words.test.ts` über die gemeinsamen Fixtures prüft.
 Neue Begriffe kommen erst hier hinein, dann in den Test, dann in den Katalog.
@@ -85,3 +88,19 @@ ein Wort pro Zustand auf jeder Oberfläche.
 
 Eine asynchrone Fortsetzung heißt im Deutschen „Asynchroner Job“: das Wort „Fortsetzung“ meint im
 Produkt das Aktivieren einer ausgesetzten Instanz (die Glossarregel oben).
+
+## Begriffe eines Prozesses
+
+| Sache                                                | Deutsch                                               | Englisch                                           |
+| ---------------------------------------------------- | ----------------------------------------------------- | -------------------------------------------------- |
+| Die Bereiche einer Instanzliste                      | Laufend, Mit Incident, Beendet, Alle                  | Running, With incident, Ended, All                 |
+| Der Filter auf ein Element                           | An (Element), Elementfilter entfernen                 | At (element), Clear element filter                 |
+| Eine Bedingung über eine Variable                    | Variablenbedingung, Bedingung                         | variable condition, condition                      |
+| Wie eine Bedingung vergleicht                        | Vergleichen als: Automatisch, Text, Zahl …            | Compare as: Automatic, Text, Number …              |
+| Eine Bedingung, die die Engine nicht kann (gesperrt) | Diese Engine vergleicht keine Datumswerte.            | This engine can't compare dates.                   |
+| Die nächste Seite einer Liste                        | Mehr laden                                            | Load more                                          |
+| Instanzen auf älteren Versionen                      | laufen noch auf älteren Versionen, davon mit Incident | still run on older versions, of them with incident |
+| Die Zähler an einem Element des Diagramms            | Badges: wartet hier, Incident hier                    | badges: waiting here, incident here                |
+
+Die Zahl gesetzter Bedingungen heißt „2 Bedingungen“, nie „aktiv“: „aktiv“ meint im Produkt eine
+laufende Instanz (die Glossarregel oben).

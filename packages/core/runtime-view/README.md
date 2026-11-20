@@ -22,7 +22,7 @@ closed-world dependency rules (`.dependency-cruiser.cjs`, `pnpm lint:architectur
 the ports, the core, the model reader and the host kit import engine-core's main entry, the core
 and the webview Pulse's UI foundation (`@miragon/pulse-ui/tones`, `@miragon/pulse-ui/format`), the
 webview also pulse-ui's React kit and its `theme.css` and Pulse's building blocks
-(`@miragon/pulse-blocks`, its main entry: a board's tiles and the engine's process list), the host kit's
+(`@miragon/pulse-blocks`, its main entry: a board's tiles, the engine's process list, an instance's and a process's blocks), the host kit's
 connections the profile format (`@miragon/pulse-profile`), the core the board format
 (`@miragon/pulse-board`, its main entry; the protocol keeps a copy of the tiles of a board's JSON
 form, `BoardData`, which `test/core/board-format.test.ts` holds equal to the format's) and its
@@ -108,7 +108,9 @@ harness's. The hooks:
 The board's parts are the building blocks' own (`@miragon/pulse-blocks` carries the boards row's
 hooks but `board-notes`, and `incident-flag` and `empty-hint` in its tiles), and so are the engine
 tab's `filter-bar`, `segment-count` and `incident-count` (its process table and filter bar), and the
-instance view's `incident-card` and `variable-name` (its incident cards and variables table). The kit's slots a part
+instance view's `incident-card` and `variable-name` (its incident cards and variables table), and
+the definition view's `filter-bar`, `segment-count`, `filter-chip`, `incident-flag`, `badge-count`
+and `call-button` (its filter bar, instance table, badge clusters and call buttons). The kit's slots a part
 resolves to as well: `context-bar` `view-bar`, `context-subject`
 `view-bar-subject`, `access` `view-bar-access`, `freshness` `view-bar-freshness`, `status-strip`
 `status-strip`, `strip-title` the strip's first text, `state-label` `state-label`,

@@ -82,6 +82,12 @@ export type ScopeCounts = Readonly<Record<InstanceScope, number>> & {
 
 export type RefusedVariableCondition = "ordering" | "date"
 
+export interface OlderVersionsView {
+  readonly running: number
+  readonly withIncident: number
+  readonly show: { readonly definitionId: string; readonly version: number }
+}
+
 export interface DefinitionView {
   readonly kind: "definition"
   readonly engine: EngineBadge
@@ -103,6 +109,7 @@ export interface DefinitionView {
   readonly scopeCounts: ScopeCounts
   readonly historyNote?: string
   readonly notices: readonly Notice[]
+  readonly olderVersions?: OlderVersionsView
   readonly webUi?: WebUiLink
   readonly model?: LocalModelLink
   readonly selection?: SelectionView

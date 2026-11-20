@@ -1,7 +1,7 @@
 # Runtime contract
 
 - Status: accepted
-- Last reviewed: 2026-11-20 (a C7 engine at history level NONE: what the instance search, its
+- Last reviewed: 2026-11-20 (the variable dialog offers each refused kind of condition disabled with its reason, the owner's decision that day); 2026-11-20 (a C7 engine at history level NONE: what the instance search, its
   count and the other reads answer there, pinned on Operaton and CIB seven; a count without an
   incident subtracts only the instances with one the history holds, so it counts what the search
   lists and never falls below 0, which a read law holds on Operaton and CIB seven, at NONE too,
@@ -123,10 +123,10 @@ for any workspace, and the conformance kit does not cover them
   them the core offers no migration, and an engine that migrates has them), never a flags
   object that can disagree with behaviour. The one declaration is
   `refusedVariableConditions?()`, and the laws hold it to behaviour: what it names fails as
-  `unsupported`, everything else answers correctly, and the variable dialog offers no refused
-  kind. `ordering` is _greater than_ and _less than_ on a value (`valueJson`), `date` every
-  condition on a point in time (`at`), _after_ and _before_ included. No engine family enum
-  crosses the port.
+  `unsupported`, everything else answers correctly, and the variable dialog offers each refused
+  kind disabled with its reason and never applies one (the owner, 2026-11-20). `ordering` is
+  _greater than_ and _less than_ on a value (`valueJson`), `date` every condition on a point in
+  time (`at`), _after_ and _before_ included. No engine family enum crosses the port.
 - **Errors.** A missing single item is `undefined`. Everything else throws
   `RuntimeError` with a closed `failure` (`unreachable`, `unauthorized`, `forbidden`,
   `misconfigured`, `engineFailure`, `unexpectedResponse`, `unsupported` when the engine

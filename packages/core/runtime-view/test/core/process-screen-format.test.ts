@@ -3,6 +3,7 @@ import {
   type ElementBadgeData,
   type InstanceListFilterData,
   type InstanceScopeCode,
+  type OlderVersionsData,
   type ScopeCountsData,
   type VariableConditionData,
   type VariableConditionKindCode,
@@ -15,6 +16,7 @@ import {
   type ElementBadge,
   type InstanceListFilter,
   type InstanceScope,
+  type OlderVersionsView,
   type RefusedVariableCondition,
   type ScopeCounts,
   type VariableConditionView,
@@ -49,6 +51,16 @@ describe("the definition view of the protocol", () => {
     expectTypeOf<VariableOperator>().toEqualTypeOf<VariableOperatorCode>()
     expectTypeOf<VariableValueType>().toEqualTypeOf<VariableValueTypeCode>()
     expectTypeOf<RefusedVariableCondition>().toEqualTypeOf<VariableConditionKindCode>()
+  })
+
+  test("carries the screens' notice that older versions run, its version by definition id", () => {
+    expectTypeOf<Omit<OlderVersionsView, "show">>().toEqualTypeOf<
+      Omit<OlderVersionsData, "code" | "show">
+    >()
+    expectTypeOf<OlderVersionsView["show"]>().toEqualTypeOf<{
+      readonly definitionId: OlderVersionsData["show"]["id"]
+      readonly version: OlderVersionsData["show"]["version"]
+    }>()
   })
 
   test("reads a variable condition's type by the screens' rule, which the builder asks the engine by", () => {

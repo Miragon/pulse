@@ -3,7 +3,12 @@ import { BOARD_VIEW, BROKEN_BOARD_VIEW, REFUSED_BOARD_VIEW } from "./board.js"
 import { PROCESS_BOARD_VIEW } from "./process-board.js"
 import { BULK_RUNNING_DEFINITION, BULK_STOPPED_DEFINITION, SELECTING_DEFINITION } from "./bulk.js"
 import { C8_DEFINITION_VIEW, C8_INSTANCE_VIEW } from "./camunda8.js"
-import { DEFINITION_VIEW, ENDED_DEFINITION_VIEW, FILTERED_DEFINITION_VIEW } from "./definition.js"
+import {
+  DEFINITION_VIEW,
+  ENDED_DEFINITION_VIEW,
+  FILTERED_DEFINITION_VIEW,
+  QUIET_DEFINITION_VIEW,
+} from "./definition.js"
 import { ENGINE_VIEW } from "./engine.js"
 import { LOCAL_ENGINE, PROD_ENGINE } from "./engines.js"
 import { INSTANCE_WAITING, INSTANCE_WITH_CALLED_INCIDENT } from "./instance.js"
@@ -28,7 +33,7 @@ export const FIXTURES = {
   "definition-ended": { status: "ready", view: ENDED_DEFINITION_VIEW, refreshing: false },
   "definition-prod": {
     status: "ready",
-    view: { ...DEFINITION_VIEW, engine: PROD_ENGINE, notices: [] },
+    view: { ...QUIET_DEFINITION_VIEW, engine: PROD_ENGINE },
     refreshing: false,
   },
   "definition-selecting": { status: "ready", view: SELECTING_DEFINITION, refreshing: false },
@@ -76,7 +81,7 @@ export const FIXTURES = {
     status: "failed",
     problem: UNREACHABLE,
     engine: PROD_ENGINE,
-    staleView: { ...DEFINITION_VIEW, engine: PROD_ENGINE, notices: [] },
+    staleView: { ...QUIET_DEFINITION_VIEW, engine: PROD_ENGINE },
   },
   "failed-empty": { status: "failed", problem: UNREACHABLE, engine: PROD_ENGINE },
 } as const satisfies Record<string, PanelState>

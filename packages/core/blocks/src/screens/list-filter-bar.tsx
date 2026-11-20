@@ -1,14 +1,4 @@
-import { CircleXIcon } from "lucide-react"
-import {
-  Icon,
-  SearchField,
-  SegmentedControl,
-  TONE_ICON,
-  Toolbar,
-  cn,
-  formatCompactCount,
-  formatCount,
-} from "@miragon/pulse-ui"
+import { SearchField, Toolbar, formatCount } from "@miragon/pulse-ui"
 import type {
   EngineTotalsData,
   ProcessFilterData,
@@ -17,6 +7,7 @@ import type {
 } from "@miragon/pulse-screens"
 import type { ScreenWordKey } from "../messages/screen-en.js"
 import { useScreenWords } from "../messages/screen-words.js"
+import { ScopeSegments } from "./scope-segments.js"
 
 /** A search applies once the typing pauses this long, or at once on Enter. */
 const SEARCH_DELAY_MS = 400
@@ -39,21 +30,6 @@ export interface ListFilterBarProps {
   readonly onFilter: (filter: ProcessFilterData) => void
 }
 
-/** A scope's count: compact, exact in its title, the alarm icon on instances with incident. */
-function ScopeCount({ count, alarming }: { readonly count: number; readonly alarming: boolean }) {
-  return (
-    <span
-      className="text-muted-foreground inline-flex items-center gap-1 font-normal tabular-nums"
-      data-part="segment-count"
-      data-tone={alarming ? "danger" : undefined}
-      title={formatCount(count)}
-    >
-      {alarming && <Icon icon={CircleXIcon} className={cn(TONE_ICON.danger)} />}
-      {formatCompactCount(count)}
-    </span>
-  )
-}
-
 /**
  * The bar over an engine's process list: the scopes, every process or those with an instance with
  * incident, each with its count, a search over the process's name or BPMN process ID, and the
@@ -72,25 +48,15 @@ export function ListFilterBar({ filter, counts, totals, busy, onFilter }: ListFi
           withIncident: formatCount(totals.withIncident),
         })}
       >
-        <SegmentedControl<ProcessScope>
-          ariaLabel={t("processes.scopes")}
-          value={scope}
-          {...(busy === undefined ? {} : { busy })}
-          onChange={(next) => {
+        <ScopeSegments<ProcessScope>
+          label={t("processes.scopes")}
+          options={SCOPES.map(({ scope: option, word }) => ({ scope: option, label: t(word) }))}
+          checked={scope}
+          counts={counts}
+          busy={busy}
+          onSelect={(next) => {
             onFilter({ ...filter, scope: next })
           }}
-          options={SCOPES.map(({ scope: option, word }) => ({
-            value: option,
-            label: (
-              <>
-                {`${t(word)} `}
-                <ScopeCount
-                  count={counts[option]}
-                  alarming={option === "withIncident" && counts[option] > 0}
-                />
-              </>
-            ),
-          }))}
         />
         <SearchField
           value={filter.search ?? ""}

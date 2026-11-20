@@ -71,7 +71,8 @@ export class DefinitionViewBuilder {
       ...this.variableLabels(),
       ...this.refusedConditions(),
       scopeCounts: this.snapshot.scopeCounts,
-      notices: this.notices(screen.notices),
+      notices: [...(this.snapshot.extraNotices ?? [])],
+      ...this.olderVersions(screen.notices),
       ...WebUiLinks.to(subject, this.snapshot.engine),
     }
   }
@@ -141,18 +142,18 @@ export class DefinitionViewBuilder {
     }
   }
 
-  private notices(notices: readonly ProcessNoticeData[]): Notice[] {
-    return [
-      ...(this.snapshot.extraNotices ?? []),
-      ...notices.map((notice) => this.olderVersionsNotice(notice)),
-    ]
-  }
-
-  private olderVersionsNotice({ running, show }: ProcessNoticeData): Notice {
-    return {
-      tone: "info",
-      title: `${Labels.plural(running, "instance")} still run on older versions.`,
-      actions: [{ kind: "selectVersion", label: `Show v${show.version}`, definitionId: show.id }],
-    }
+  private olderVersions(
+    notices: readonly ProcessNoticeData[],
+  ): Pick<DefinitionView, "olderVersions"> {
+    const [older] = notices
+    return older === undefined
+      ? {}
+      : {
+          olderVersions: {
+            running: older.running,
+            withIncident: older.withIncident,
+            show: { definitionId: older.show.id, version: older.show.version },
+          },
+        }
   }
 }

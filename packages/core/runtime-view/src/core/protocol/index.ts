@@ -86,6 +86,7 @@ export type {
   MarkerKind,
   ModelFacts,
   ModelSetting,
+  OlderVersionsView,
   ParentLink,
   Problem,
   ProcessListFilter,

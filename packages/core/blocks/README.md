@@ -13,9 +13,12 @@ widget the file breaks, in their grid. They came from the VS Code webview's boar
 are the blocks of the screens the editors and the web app of the Pulse MCP server share, over the
 screens' JSON forms of
 [`@miragon/pulse-screens`](https://www.npmjs.com/package/@miragon/pulse-screens): an engine's
-process table and the filter bar above it, and an instance's facts, head strip, incident cards
+process table and the filter bar above it, an instance's facts, head strip, incident cards
 and their text, its tables of waits, path and variables, the menu of the instances a call
-activity called and the legend of its diagram's markers.
+activity called and the legend of its diagram's markers, and a process's version picker, the
+notice that older versions still run, the filter bar of its instance list with the variable
+condition dialog, the instance table and its next page, the counts and call buttons on its
+diagram and their legend.
 Below 1.0: pin the exact version and update all `@miragon/pulse-*` packages together.
 
 ## What it is not
@@ -212,6 +215,119 @@ text on the clipboard its own way. A write control is a slot of the block that s
 incident's `actions`, a wait's `ElementLink`, a variable's `editor`), which only a surface that
 writes fills.
 
+## A process
+
+```tsx
+import {
+  BadgeLegend,
+  InstanceFilterBar,
+  InstanceTable,
+  LoadMore,
+  VersionPicker,
+  type CountBadgeProps,
+  type ScreenSlots,
+} from "@miragon/pulse-blocks"
+import type {
+  InstanceListData,
+  InstanceListFilterData,
+  InstanceRowData,
+  ProcessScreenData,
+  ScopeCountsData,
+} from "@miragon/pulse-screens"
+
+export function Process({
+  screen,
+  list,
+  rows,
+  counts,
+  filter,
+  onFilter,
+  onPick,
+  onMore,
+  Badge,
+  slots,
+}: {
+  screen: ProcessScreenData
+  /** The page of the instance list read last. */
+  list: InstanceListData
+  /** The pages read so far, each appended with `InstanceRows.appended(rows, page.rows)`. */
+  rows: readonly InstanceRowData[]
+  /** The first page's counts: a later page reads none (`counts: null`). */
+  counts: ScopeCountsData
+  filter: InstanceListFilterData
+  onFilter: (filter: InstanceListFilterData) => void
+  onPick: (definitionId: string) => void
+  onMore: () => void
+  Badge: (props: CountBadgeProps) => React.ReactNode
+  slots: ScreenSlots
+}) {
+  return (
+    <>
+      <VersionPicker versions={screen.versions} selected={screen.selected?.id} onPick={onPick} />
+      <InstanceFilterBar
+        filter={filter}
+        counts={counts}
+        busy={false}
+        elementName={(elementId) => elementId}
+        variables={{ refused: list.refusedVariableConditions }}
+        legend={<BadgeLegend version={screen.selected?.version ?? 0} Badge={Badge} />}
+        onFilter={onFilter}
+      />
+      <InstanceTable
+        engine={list.engine}
+        rows={rows}
+        filter={filter}
+        onFilter={onFilter}
+        footer={list.next === null ? undefined : <LoadMore busy={false} onMore={onMore} />}
+        slots={slots}
+      />
+    </>
+  )
+}
+```
+
+The blocks of a process read the process screen's and the instance list's JSON forms of
+`@miragon/pulse-screens` (`ProcessScreenData`, `InstanceListData`), or a surface's rows that carry
+their fields. Only the instance list's first page counts its scopes: a surface keeps those counts
+and the rows of every page it read (`InstanceRows.appended`), and never shows a count it has not
+read as 0.
+
+- `VersionPicker`: a process's versions, each with its running instances and, where there are,
+  its instances with incident; a pick shows at once and asks for the version (`onPick`), under the
+  blocks' name or a surface's own (`label`, `placeholder`).
+- `OlderVersionsNotice`: the strip over the latest version that says how many instances still
+  run on older versions, how many of them with incident, and offers the newest of those versions.
+- `InstanceFilterBar`: the scopes running, with incident, ended and all with their counts (a count
+  the engine stopped at as a lower bound), the chip of the element the list is filtered to, a
+  search for the exact business key, the variable conditions (a chip per condition and the
+  dialog that adds or edits one; `variables` brings a surface's own words for each, the
+  engine's variable names and the kinds it refuses; a chip without the surface's words is worded
+  as the editors' core words it, `amount > 100`, `route = "review"`, _matches_ in the reader's
+  language) and the surface's `legend`. The dialog offers
+  every way of comparing and every operator, those an engine refuses (Camunda 8: a date, greater
+  or less than) disabled with their reason, and says inline what is wrong instead of applying.
+  `InstanceFilters` composes the filters it asks for, `VariableDraft` holds its rules without
+  words (the operators per type, what a number and a date look like, at most five conditions,
+  the refused kinds), which a surface that validates conditions holds its own rules to.
+- `InstanceTable`: an instance per row over the surface's table, its id, business key, state with
+  an open incident beside it and start; a row opens its instance and copies its id. An empty table
+  says why, and offers to clear the variable conditions that left no row. `footer` holds the
+  next page (`LoadMore`), and `select` is the surface's selection, a write slot (the column of its
+  boxes, what Space on a row toggles) only a surface that writes fills.
+- `BadgeCluster`: the counts on an element of the diagram, apart and in the format's order
+  (`DiagramDecorations`): its root incidents, the incidents in the instances it called (never part
+  of the incident count) and its running instances, each a button that filters the list to the
+  element and the count's scope. `BadgeLegend` says which version the badges count and what each
+  says. Both draw a badge through the surface's `Badge` (`CountBadgeProps`), as its canvas draws
+  one: the editors' filled 20 px pills, the web app's badges on its BPMN canvas.
+- `CallButton`: a call activity's way to what it calls, bpmn-js's drill-down button named by what
+  it opens; `useCallLabel` words a call link (the process it opens, the one instance or how many
+  it called, a process the engine lacks).
+
+A surface's canvas styles the overlays by their classes: `badge-cluster` and
+`badge-cluster__count` place the counts on the shape's corner, bpmn-js's `bjs-drilldown` and
+`call-button` (`call-button--missing`) draw the call button.
+
 ## The slots of a board's tiles
 
 The tiles own their columns, cells, words, group notes, problems and the card; the surface brings
@@ -246,8 +362,9 @@ process or kind, counts and their engines, thresholds, columns, notes and every 
 file with its values. Numbers and times render through pulse-ui's formatters in the locale set
 with `setFormatLocale`, states through pulse-ui's `StateLabel`. The English words of a problem
 equal `BoardProblems.describe` of the board package; the English words of the screens' blocks are
-those of the engine tab and the instance view of Pulse for VS Code and Pulse for Orca, letter for
-letter. The tiles, an engine's process list and an instance's blocks keep a catalog each, so a
+those of the engine tab, the instance view and the definition view of Pulse for VS Code and Pulse
+for Orca, letter for letter (but for two words of the definition view: the notice of older
+versions counts those with incident, and the variable filter counts its conditions). The tiles, an engine's process list, an instance's and a process's blocks keep a catalog each, so a
 surface bundles only the words of the blocks it renders. `useProblemWords()` words a problem of the
 file for a surface's own strips, `useNoteLines()` a board's note in one line (a note of the file
 after its JSON path, the builder's note on a diagram too long to roll up after the tile's title and
@@ -258,14 +375,16 @@ tile's kind), `counter-value`, `counter-partial`, `counter-threshold` (`data-sta
 undecided), `counter-entry`, `counter-count`, `group-note`, `incident-flag`, `refused-reason` and
 `empty-hint`, and of the screens' blocks `filter-bar`, `segment-count` (`data-tone`: danger on
 instances with incident above 0), `incident-count` (`data-tone`: danger above 0), `incident-card`,
-`variable-name`, `incident-text-region`, `incident-text`, `root-cause-line` and
-`called-instance-menu`.
+`variable-name`, `incident-text-region`, `incident-text`, `root-cause-line`,
+`called-instance-menu`, `filter-chip` (`data-kind`: element), `incident-flag`, `badge-count`
+(`data-scope`: the scope it filters to; its cluster `data-badge-for` the element) and
+`call-button` (`data-call-for` the element, `data-state`: missing).
 
 ## Entries
 
-| Entry                   | Holds                                                                                                                                                                                                   |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@miragon/pulse-blocks` | `BoardGrid`, `BoardTile`, `ProblemList`, `useProblemWords`, `useNoteLines`, `ListFilterBar`, `ProcessTable`, `useProcessList`, the instance's blocks, `JsonText` and the types of the slots and targets |
+| Entry                   | Holds                                                                                                                                                                                                                 |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@miragon/pulse-blocks` | `BoardGrid`, `BoardTile`, `ProblemList`, `useProblemWords`, `useNoteLines`, `ListFilterBar`, `ProcessTable`, `useProcessList`, `ScopeSegments`, an instance's and a process's blocks, `JsonText` and the slots' types |
 
 ## Stability
 
@@ -280,7 +399,8 @@ release.
   its table (row activation, the copy keys, its hooks), its short id and its diagram canvas, its
   engine tab's process list with the same table and its named id, and its instance view's blocks
   with that table, its links and its copy, its retry, variable editor, move and stacktrace
-  document in their slots.
+  document in their slots, and its definition view's blocks with that table, its id, its count
+  badge and its canvas, its selection and bulk actions in the instance table's write slot.
 - The Pulse MCP server: the cockpit's board route (`@miragon/pulse-engine-connector`) renders them
   with widget-shell's table (row activation, the copy keys, the inline fit), its copyable id and its
   BPMN canvas, and the server's web app its engine screen's process list with widget-shell's table,

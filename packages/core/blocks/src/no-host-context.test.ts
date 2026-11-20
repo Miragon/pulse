@@ -49,6 +49,8 @@ describe("the building blocks bring no host context", () => {
         "screens/instance/incident-card.tsx",
         "screens/instance/variables-table.tsx",
         "screens/process-table.tsx",
+        "screens/process/variable-condition-dialog.tsx",
+        "screens/process/badge-cluster.tsx",
         "board/board-grid.tsx",
       ]),
     )

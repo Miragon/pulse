@@ -32,7 +32,7 @@ export const INSTANCES: readonly InstanceRow[] = [
   instance("e2f3a4b5-c6d7-4e8f-9a0b-1c2d3e4f5a6b", "ORD-10402", 2900),
 ]
 
-export const DEFINITION_VIEW: DefinitionView = {
+export const QUIET_DEFINITION_VIEW: DefinitionView = {
   kind: "definition",
   engine: LOCAL_ENGINE,
   asOf: AS_OF,
@@ -59,19 +59,20 @@ export const DEFINITION_VIEW: DefinitionView = {
   hasMoreInstances: true,
   filter: { scope: "running" },
   scopeCounts: { running: 12, withIncident: 2, ended: 12437, all: 12449 },
-  notices: [
-    {
-      tone: "info",
-      title: "3 instances still run on v6.",
-      actions: [
-        { kind: "selectVersion", label: "Show v6", definitionId: "order-fulfillment:6:91e0" },
-      ],
-    },
-  ],
+  notices: [],
+}
+
+export const DEFINITION_VIEW: DefinitionView = {
+  ...QUIET_DEFINITION_VIEW,
+  olderVersions: {
+    running: 3,
+    withIncident: 1,
+    show: { definitionId: "order-fulfillment:6:91e0", version: 6 },
+  },
 }
 
 export const FILTERED_DEFINITION_VIEW: DefinitionView = {
-  ...DEFINITION_VIEW,
+  ...QUIET_DEFINITION_VIEW,
   instances: INSTANCES.slice(0, 2),
   hasMoreInstances: false,
   filter: { scope: "withIncident", elementId: "Activity_CheckCredit" },
@@ -80,7 +81,7 @@ export const FILTERED_DEFINITION_VIEW: DefinitionView = {
 }
 
 export const ENDED_DEFINITION_VIEW: DefinitionView = {
-  ...DEFINITION_VIEW,
+  ...QUIET_DEFINITION_VIEW,
   instances: [
     instance("d1e2f3a4-b5c6-4d7e-8f9a-0b1c2d3e4f5a", "ORD-10399", 3100, { state: "Completed" }),
     instance("a9b8c7d6-e5f4-4a3b-9c2d-1e0f9a8b7c6d", "ORD-10391", 3400, { state: "Cancelled" }),

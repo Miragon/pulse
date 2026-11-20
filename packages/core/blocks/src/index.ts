@@ -30,6 +30,46 @@ export { ProcessTable, type ProcessTableProps } from "./screens/process-table.js
 // An instance's blocks over the instance screen's JSON form: its facts, its head strip, its
 // incident cards and their text, its tables of waits, path and variables, the menu of the
 // instances it called and the legend of its markers. JsonText lays out a variable's value.
+// A process's blocks over the process screen's and the instance list's JSON forms: its version
+// picker, the notice that older versions still run, the filter bar of its instance list with its
+// scopes, chips and variable condition dialog, the instance table and its next page, the counts and
+// call buttons on its diagram and their legend. InstanceFilters and VariableDraft are their rules.
+export { BadgeCluster, type BadgeClusterProps } from "./screens/process/badge-cluster.js"
+export { BadgeLegend, type BadgeLegendProps } from "./screens/process/badge-legend.js"
+export { CallButton, useCallLabel, type CallButtonProps } from "./screens/process/call-button.js"
+export {
+  InstanceFilterBar,
+  type InstanceFilterBarProps,
+} from "./screens/process/instance-filter-bar.js"
+export { InstanceFilters } from "./screens/process/instance-filters.js"
+export {
+  InstanceTable,
+  type InstanceSelectSlot,
+  type InstanceTableProps,
+} from "./screens/process/instance-table.js"
+export { LoadMore, type LoadMoreProps } from "./screens/process/load-more.js"
+export {
+  OlderVersionsNotice,
+  type OlderVersionsNoticeData,
+  type OlderVersionsNoticeProps,
+} from "./screens/process/older-versions-notice.js"
+export {
+  ScopeSegments,
+  type ScopeOption,
+  type ScopeSegmentsProps,
+} from "./screens/scope-segments.js"
+export type { VariableFilterProps } from "./screens/process/variable-chips.js"
+export {
+  VariableDraft,
+  type CompareAs,
+  type VariableDraftData,
+  type VariableDraftErrors,
+} from "./screens/process/variable-draft.js"
+export {
+  VersionPicker,
+  type VersionOptionData,
+  type VersionPickerProps,
+} from "./screens/process/version-picker.js"
 export {
   CalledInstanceMenu,
   type CalledInstanceMenuProps,
@@ -68,9 +108,11 @@ export {
   type WaitingTableProps,
 } from "./screens/instance/waiting-table.js"
 export type {
+  CountBadgeProps,
   InstanceSlots,
   ScreenColumnWidth,
   ScreenCopy,
+  ScreenEmptyAction,
   ScreenIdProps,
   ScreenLinkProps,
   ScreenLinkRel,

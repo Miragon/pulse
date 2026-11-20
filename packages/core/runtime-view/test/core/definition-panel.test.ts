@@ -182,19 +182,13 @@ describe("the definition panel", () => {
 
     await panel.handle({ type: "ready" })
 
-    expect(readyView(fixture.lastState()).notices).toEqual([
-      {
-        tone: "info",
-        title: "2 instances still run on older versions.",
-        actions: [
-          {
-            kind: "selectVersion",
-            label: "Show v1",
-            definitionId: fixture.world.definitionIds["order@1"],
-          },
-        ],
-      },
-    ])
+    const view = readyView(fixture.lastState())
+    expect(view.notices).toEqual([])
+    expect(view.olderVersions).toEqual({
+      running: 2,
+      withIncident: 1,
+      show: { definitionId: fixture.world.definitionIds["order@1"], version: 1 },
+    })
   })
 
   test("switches to another version with its own badges", async () => {

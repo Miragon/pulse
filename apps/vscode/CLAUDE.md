@@ -106,6 +106,7 @@ This app holds only the VS Code wiring.
 | Change what a definition view counts or lists (versions, badges, calls, instance list)       | `packages/core/screens/src/builder` (`ProcessScreen` over four reads of the contract into a `ProcessScreenModel` of no text, its badges over the board builder's `DiagramBadges`, the called processes read unless `CallActivities` finds none in a diagram it could read, the rule the core's `CallJumps` applies too; `InstanceList`, `InstanceCounts` and `InstanceQuery` over two, a date condition an instant with its offset; `ScreenJson`; `InstanceRows` of the main entry for a later page), which the runtime view's core reads through `@miragon/pulse-screens/builder` and words in English (`definition-view-builder.ts`, `instance-list-query.ts`, which reads a date condition's wall clock in the host's time zone) | text in the builder; a copy in a surface               |
 | Change how the engine tab's process list looks or reads (columns, scopes, search, its words) | `packages/core/blocks/src/screens` (`ProcessTable` and `ListFilterBar` over the engine screen's JSON form, the slots `ScreenSlots`: `Table`, `Id`, `onOpen`, `linkOf`) and `packages/core/blocks/src/messages` (`screen-en.ts`, `screen-de.ts`), which the webview renders through `@miragon/pulse-blocks`' main entry with its table and id (`packages/core/runtime-view/src/webview/screens/process-slots.tsx`)                                                                                                                                                                                                                                                                                                                   | a column or a word in the webview; a copy in a surface |
 | Change how an instance view looks or reads (its facts, strip, cards, tables, legend, words)  | `packages/core/blocks/src/screens/instance` (`InstanceFacts`, `HeadlineStrip`, `IncidentCard`, `WaitingTable`, `HistoryTable`, `VariablesTable`, `MarkerLegend` over the instance screen's JSON form, the slots `InstanceSlots`: `PlainTable`, `Link`, `onCopy`; a write a slot of the block that shows it) and `packages/core/blocks/src/messages` (`instance-en.ts`), which the webview renders through `@miragon/pulse-blocks`' main entry with its table, links and copy, its retry, variable editor, move and stacktrace document in the slots (`packages/core/runtime-view/src/webview/screens/instance-slots.tsx`), as the web app's instance screen does with its own                                                       | a column or a word in the webview; a copy in a surface |
+| Change how a definition view looks (its picker, filter bar, dialog, table, badges, words)    | `packages/core/blocks/src/screens/process` (`VersionPicker`, `OlderVersionsNotice`, `InstanceFilterBar` with the variable condition dialog, `InstanceTable`, `LoadMore`, `BadgeCluster`, `CallButton`, `BadgeLegend` over the process screen's and the instance list's JSON forms; their rules `InstanceFilters` and `VariableDraft`) and `packages/core/blocks/src/messages` (`process-en.ts`), which the webview renders with its table, id, count badge and canvas, its selection the table's write slot (`packages/core/runtime-view/src/webview/screens/instance-list.tsx`)                                                                                                                                                    | a column or a word in the webview; a copy in a surface |
 | Change how a board's tiles look or read (titles, columns, notes, a problem's words)          | `packages/core/blocks/src/board` (`BoardGrid` and the tiles over `BoardData`, the targets a click opens, the slots `Table`, `Id`, `Diagram`) and `packages/core/blocks/src/messages` (en and de), which the webview renders through `@miragon/pulse-blocks`' main entry with its table, short id and canvas (`packages/core/runtime-view/src/webview/screens/board/board-slots.tsx`, `board-diagram.tsx`), and the MCP cockpit's board route with its own (`packages/connectors/engine/engine-connector/src/widgets/board`)                                                                                                                                                                                                         | a tile in the webview; a copy in a surface             |
 | Talk to Operaton / CIB seven / Camunda 7                                                     | `packages/connectors/c7/c7-adapter/src` (`C7Adapter`, the commands, `C7BpmnDialect`) and `packages/connectors/c7/c7-adapter/src/engine-rest` (the wire, the port c7-core reads over, the writes); every read of the contract (`C7Runtime`: the engine, its processes, a diagram and its counts, called processes, instances, incidents, an instance's detail, bulk operations, migrations) and the reads the commands check before a write in `@miragon/pulse-c7-core/runtime`; inspect, wait states, an incident's retry target and cause request, variable typing in `@miragon/pulse-c7-core`, the root cause in `RootCauses`                                                                                                     | imports from core, webview or host; a copy             |
 | Talk to Camunda 8 (the Orchestration Cluster REST API)                                       | `packages/connectors/c8/c8-adapter/src`: `C8Adapter`, the plug that builds `@miragon/pulse-c8-core`'s `C8Runtime` over its wire and its words (`packages/connectors/c8/c8-core/src`: every read of the contract in `C8Runtime`, the kind of each failure in `C8Failures`, the REST client with its checked views in `src/rest`, the readers in `src/reading`, the mappings in `src/mapping`, over its transport port `CamundaTransport`), the wire behind that port (`CamundaHttp` in `src/rest` over `src/wire`, `CamundaWire`, `ClientCredentialsSources`); the words of its failures in `src/errors`; `C8BpmnDialect`                                                                                                            | a client library, a copy of the transport              |
@@ -206,7 +207,16 @@ links and copy as their slots
 through `InstanceForms`) and its retry, the variable editor, a move from a wait and the
 stacktrace document in the slots of the block that shows them;
 `packages/core/runtime-view/test/webview/instance-wording.test.tsx` holds its English words to
-what the view showed before the blocks (a job without retries now says so beside its figure).
+what the view showed before the blocks (a job without retries now says so beside its figure). The
+definition view renders a process's building blocks the same way (`VersionPicker`,
+`OlderVersionsNotice` over the protocol's `DefinitionView.olderVersions`, `InstanceFilterBar` with
+the variable condition dialog, `InstanceTable` and `LoadMore`, and on its canvas `BadgeCluster`,
+`CallButton` and `BadgeLegend` through its `DecorationLayer`), with its own table, id, count badge
+and canvas as their slots, its selection and bulk actions in the table's write slot; the dialog
+offers the kinds of condition an engine refuses disabled with their reason (the owner,
+2026-11-20), and `packages/core/runtime-view/test/webview/definition-wording.test.tsx` holds its
+English words to what the view showed before the blocks (the older versions' notice now counts
+those with incident, and the variable filter counts its conditions, never "active").
 The
 runtime view's core and webview import Pulse's UI foundation as `@miragon/pulse-ui/tones` and `@miragon/pulse-ui/format`:
 the tone vocabulary and `SITUATION_TONES`, the one tone per situation the MCP widgets show
@@ -216,8 +226,9 @@ import nothing else of pulse-ui (`pulse-ui-only-its-foundation`); the webview ta
 React kit and its stylesheet only for shared building blocks, by the package's root and
 `@miragon/pulse-ui/theme.css` (`webview-pulse-ui-by-its-entries`, below). The webview draws a
 tone through the kit's pieces (`StateLabel`, `CountFigure`, `StatusStrip`) and its diagram badges,
-and `packages/core/runtime-view/test/webview/situation-tones.test.tsx` holds its state labels and
-diagram badges to the table. A time, a duration, a count or a short id goes through
+and `packages/core/runtime-view/test/webview/situation-tones.test.tsx` holds the state labels and
+incident flag its definition view renders (the blocks' instance table) and its diagram badges to
+the table. A time, a duration, a count or a short id goes through
 `TimeLabels`, `CountLabels` (webview) or `Labels` (core), which delegate to the formatters in
 English with a 24-hour clock and alone may import them (the closed world allows
 `@miragon/pulse-ui/format` only from `core/views/labels.ts` and the webview's `format/`); a count
@@ -245,8 +256,9 @@ webview (`ViewBar`, `StatusStrip`, `Facts`, `StateLabel`, `CountBadge`, `CountFi
 of the view models the core pushes, without widget-shell. It keeps its host wiring (the push
 protocol and live updates, the native confirmation, sign-in), its diagram runtime and overlays
 (portals that carry only the classes of `packages/core/runtime-view/src/webview/styles/diagram.css`),
-the condition dialog as a native `<dialog>` on the kit's roles, and the split pane with the widths
-it stores, which stay the editor's; where it shows the same thing as the MCP widgets or the web
+and the split pane with the widths it stores, which stay the editor's (the condition dialog, a
+native `<dialog>` on the kit's roles, is a shared block now, `InstanceFilterBar`'s of
+`@miragon/pulse-blocks`); where it shows the same thing as the MCP widgets or the web
 app of #573 (`apps/web`, which renders the cockpit through widget-shell's `PageView`), a shared
 building block is the default, and no screen of it is replaced by force. A
 shared building block is a component on React that takes props and callbacks only, with no host
@@ -285,9 +297,9 @@ its metafile. The closed world admits the kit in the webview alone
 without a Tailwind entry of its own, or `fonts.css`); its rendering libraries are `react`,
 `react-dom` and `lucide-react` (the repository's one pin). The webview's script and stylesheet
 each have a shrink-only gzip ceiling (`apps/vscode/test/__golden__/bundle-budget.json`), set at the
-measured size plus about 5 %; a file that shrinks more than 10 % below its ceiling fails until the
-ceiling comes down. Numbers stay neutral here too: an alarming count is neutral and carries a tone
-icon of its own shape and words. A feature more than one surface shows, boards first, shows the same
+measured size plus about 2 %, the script at most 500,000 B (the owner, 2026-11-20: not wasteful); a
+file that shrinks more than 10 % below its ceiling fails until the ceiling comes down. Numbers stay
+neutral here too: an alarming count is neutral and carries a tone icon of its own shape and words. A feature more than one surface shows, boards first, shows the same
 numbers on every surface, from one framework-free builder over one read of engine-core's read
 models; elsewhere each tool keeps its own numbers behind the same words (`COUNT_TERMS`) until its
 view moves onto shared numbers. For boards c7-core's recorded answers (`C7_BOARD_ENGINE`) hold both

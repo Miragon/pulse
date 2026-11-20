@@ -1,11 +1,12 @@
 import { SITUATION_TONES, type Situation, type ToneVariant } from "@miragon/pulse-ui/tones"
 import { afterAll, beforeAll, describe, expect, test } from "vitest"
+import type {
+  DefinitionView,
+  InstanceRow,
+  InstanceStateLabel,
+} from "../../src/core/protocol/index.js"
 import { CountBadge, type CountBadgeProps } from "../../src/webview/components/count-badge.js"
-import {
-  IncidentFlag,
-  StateLabel,
-  type StateLabelProps,
-} from "../../src/webview/components/state-label.js"
+import { DEFINITION_VIEW } from "../../dev/webview/fixtures/definition.js"
 import { FIXTURES } from "../../dev/webview/fixtures/states.js"
 import {
   allParts,
@@ -14,6 +15,7 @@ import {
   mountApp,
   nextFrame,
   queryPart,
+  type Harness,
   type Mounted,
   type Renderable,
 } from "./harness.js"
@@ -28,12 +30,32 @@ const TONE_ROLES: Readonly<Record<ToneVariant, string>> = {
   neutral: "--cd-ui-text-leise",
 }
 
-const STATE_SITUATIONS: Readonly<Record<StateLabelProps["state"], Situation>> = {
+const STATE_SITUATIONS: Readonly<Record<InstanceStateLabel, Situation>> = {
   Running: "running",
   Suspended: "suspended",
   Completed: "ended",
   Cancelled: "ended",
-  Incident: "openIncident",
+}
+
+const STATE_IDS: Readonly<Record<InstanceStateLabel, string>> = {
+  Running: "0b1c2d3e-4f5a-4b6c-8d7e-9f0a1b2c3d4e",
+  Suspended: "1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
+  Completed: "2d3e4f5a-6b7c-4d8e-9f0a-1b2c3d4e5f6a",
+  Cancelled: "3e4f5a6b-7c8d-4e9f-8a1b-2c3d4e5f6a7b",
+}
+
+const STATES_VIEW: DefinitionView = {
+  ...DEFINITION_VIEW,
+  instances: Object.entries(STATE_IDS).map(([state, id]): InstanceRow => ({
+    id,
+    shortId: `${id.slice(0, 8)}…`,
+    businessKey: `TONE-${state}`,
+    state: state as InstanceStateLabel,
+    hasIncident: state === "Running",
+    startedAt: DEFINITION_VIEW.asOf,
+  })),
+  hasMoreInstances: false,
+  filter: { scope: "all" },
 }
 
 const BADGE_SITUATIONS: Readonly<
@@ -120,28 +142,52 @@ function iconColour(element: Element): string {
   return channels(getComputedStyle(icon).color)
 }
 
-describe.each(THEMES)("the webview's states in the %s theme, contrast %s", (theme, contrast) => {
-  beforeAll(() => {
-    useTheme(theme, contrast)
-  })
-
-  test.each(Object.entries(STATE_SITUATIONS))(
-    "show the state %s in the tone of its situation",
-    async (state, situation) => {
-      await rendered(<StateLabel state={state as StateLabelProps["state"]} />)
-      const label = queryPart(host, "state-label")!
-      expect(label.dataset.tone).toBe(SITUATION_TONES[situation])
-      expect(iconColour(label)).toBe(colourOf(situation))
-    },
+function rowOf(table: HTMLTableElement, businessKey: string): HTMLTableRowElement {
+  const row = [...(table.tBodies[0]?.rows ?? [])].find((candidate) =>
+    candidate.textContent.includes(businessKey),
   )
+  if (row === undefined) throw new Error(`no row ${businessKey}`)
+  return row
+}
 
-  test("flag an open incident in its tone", async () => {
-    const flag = await rendered(<IncidentFlag />)
-    expect(flag.dataset.part).toBe("incident-flag")
-    expect(flag.dataset.tone).toBe(SITUATION_TONES.openIncident)
-    expect(iconColour(flag)).toBe(colourOf("openIncident"))
-  })
-})
+describe.each(THEMES)(
+  "the definition view's instance states in the %s theme, contrast %s",
+  (theme, contrast) => {
+    let harness: Harness | undefined
+    let table: HTMLTableElement
+
+    beforeAll(async () => {
+      harness = mountApp()
+      harness.publish({ status: "ready", view: STATES_VIEW, refreshing: false })
+      table = await findRole<HTMLTableElement>(harness.root, "table", { name: "Instances" })
+      useTheme(theme, contrast)
+      await nextFrame()
+    })
+
+    afterAll(() => {
+      harness?.unmount()
+      useTheme("light", undefined)
+    })
+
+    test.each(Object.entries(STATE_SITUATIONS))(
+      "show the state %s in the tone of its situation",
+      (state, situation) => {
+        const label = queryPart(rowOf(table, `TONE-${state}`), "state-label")!
+        expect(label.textContent).toBe(state)
+        expect(label.dataset.tone).toBe(SITUATION_TONES[situation])
+        expect(iconColour(label)).toBe(colourOf(situation))
+      },
+    )
+
+    test("flag an open incident in its tone, beside the state", () => {
+      const flags = allParts(table, "incident-flag")
+      const flag = queryPart(rowOf(table, "TONE-Running"), "incident-flag")!
+      expect(flags).toEqual([flag])
+      expect(flag.dataset.tone).toBe(SITUATION_TONES.openIncident)
+      expect(iconColour(flag)).toBe(colourOf("openIncident"))
+    })
+  },
+)
 
 describe("the webview's diagram badges", () => {
   beforeAll(() => {

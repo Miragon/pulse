@@ -36,7 +36,9 @@ const shows = (node: ReactNode): boolean =>
  * A form field (CI §8 "Eingabefelder"): the label 4 px above the control, a hint and an error
  * below it, all wired to the control (`htmlFor`, `aria-describedby` with the hint first,
  * `aria-invalid` while the error shows), so a screen reader reads them with it. Fields stack 16
- * px apart (`gap-4` on their container). The label turns quiet while the control is disabled.
+ * px apart (`gap-4` on their container). The label turns quiet while the control is disabled,
+ * never for a disabled option of a select (a choice offered but refused), which leaves the select
+ * enabled.
  * Props and callbacks only: the entry, its check and its error are the caller's.
  */
 export function Field({ label, hint, error, id, children, className }: FieldProps) {
@@ -52,7 +54,7 @@ export function Field({ label, hint, error, id, children, className }: FieldProp
     <div data-slot="field" className={cn("group/field flex flex-col gap-1", className)}>
       <Label
         htmlFor={controlId}
-        className="group-has-[:disabled]/field:text-muted-foreground self-start"
+        className="group-has-[:disabled:not(option)]/field:text-muted-foreground self-start"
       >
         {label}
       </Label>
