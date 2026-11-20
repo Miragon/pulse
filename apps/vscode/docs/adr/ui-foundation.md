@@ -1,7 +1,40 @@
 # UI foundation and shared building blocks
 
 - Status: accepted
-- Last reviewed: 2026-11-20, the very last time that day (executed, D10's instance screen: the
+- Last reviewed: 2026-11-20, after the process screen's blocks (executed, D10's process screen:
+  the web app shows a process in one version on its own screen, a process's blocks of
+  `@miragon/pulse-blocks` over the MCP server's app-only feeds `engine_screen_process_data`,
+  `engine_screen_instances_data` and `engine_screen_variable_names_data`, which build the process
+  screen and the instance list of `@miragon/pulse-screens` exactly as both adapters do, its reads
+  that load an engine's database on a floor of 30 s per caller; the version, the list's scope,
+  element, key and variable conditions in the address, a version a new entry; pages of 50 by cursor
+  with Load more; the variable conditions a pair with this extension, Camunda 8's refused kinds
+  offered disabled with their reason; the hint of a history that misses running instances,
+  `MissingHistoryNotice` over the screens' `HistoryGaps`, with no fallback; the page claiming the
+  cockpit's process view and its list of a process's instances, no write slot filled);
+  2026-11-20, before it (executed, D8's blocks of the
+  process screen and its instance list: `@miragon/pulse-blocks` holds a process's version picker,
+  the notice that older versions run, its instance list's filter bar with the variable condition
+  dialog, the instance table and its next page, the counts and call buttons on its diagram and
+  their legend, over the process screen's and the instance list's JSON forms; this extension's
+  definition view renders them with its own table, id, count badge and canvas, its selection and
+  bulk actions in a write slot; the dialog offers the kinds of condition a dialect refuses
+  disabled with their reason, the owner's decision that day; D9's point 7 amended the same day:
+  the webview's script may grow to 500,000 B gzip, not wasteful, each ceiling its measurement plus
+  2 %); 2026-11-20, after the instance screen (executed, D8's builder of the process
+  screen and the instance list: `@miragon/pulse-screens/builder` builds a process's versions with
+  their counts, the badges of a version's diagram, rolled up onto collapsed sub-processes with the
+  board builder's `DiagramBadges`, root incidents at the element and the incidents in called
+  instances apart, its call targets, read unless the board builder's `CallActivities` finds no call
+  activity in a diagram it could read, the rule this extension's core applies too, and the notice
+  that older versions still run, and an instance list's page of 50, its scopes' counts on the first
+  page with their lower bounds and its query, the variable conditions included, a date an instant
+  with its offset, with the condition kinds a dialect refuses, and the rule that puts a later page
+  after the rows shown without a repeated row (`InstanceRows` of the main entry); this extension's
+  definition view and its instance list word them in English, its core reading a date condition's
+  wall clock in the host's time zone, its protocol and fixtures unchanged; both recordings made
+  anew in one run each; the instance screen reads the processes a version calls by the same rule,
+  as the editors do); 2026-11-20, the very last time that day before (executed, D10's instance screen: the
   web app shows an instance and an incident under it on its own screen, the instance blocks of
   `@miragon/pulse-blocks` over the MCP server's app-only feed `engine_screen_instance_data`, which
   builds the instance screen of `@miragon/pulse-screens` exactly as both adapters do, an incident's
@@ -83,7 +116,8 @@ juries, one for the architecture and one for the experience:
   here: this extension counts root incidents, as the contract's reads give them. A screen two
   surfaces show cannot count both ways.
 - The webview has more room than the drafts assumed: its ceiling of 247,500 B is its measurement
-  plus about 5 %, so the limit of 250,000 B leaves about 14 kB, not 2.5 kB. The web page keeps the
+  plus about 5 %, so the limit of 250,000 B leaves about 14 kB, not 2.5 kB (on 2026-11-20 the
+  owner raised that limit to 500,000 B, D9's point 7). The web page keeps the
   cockpit embedded until every section it shows is replaced (the cockpit's route switch is total),
   so it grows before it shrinks.
 
@@ -244,7 +278,26 @@ each surface keeps its screens and the web app's are its own.
      the switch, a job without retries now with the danger icon and "No retries left", as D9's
      point 4 asks of an alarming count; the webview's script grew from 244,680 to 249,465 B gzip
      with them, mostly the instance's words in both languages, so the next blocks need the
-     catalogs injected per language or the owner's word on the limit of point 7.
+     catalogs injected per language or the owner's word on the limit of point 7, which the owner
+     gave on 2026-11-20: 500,000 B, not wasteful. Executed for the process screen and its
+     instance list on 2026-11-20: `VersionPicker`, `OlderVersionsNotice`, `InstanceFilterBar` (the
+     scopes with their counts and lower bounds, the element's chip, the exact business key, the
+     variable chips and the condition dialog, which offers the kinds a dialect refuses, Camunda
+     8's dates and greater or less than, disabled with their reason, the owner's decision of
+     2026-11-20 that brings the conditions to the web app's process screen as a pair),
+     `InstanceTable` (the row convention of D9's point 8; the surface's selection a write slot of
+     its own, `InstanceSelectSlot`), `LoadMore`, `BadgeCluster` (root incidents, incidents in
+     called instances and running instances apart, each a filter; the badge the surface's, as its
+     canvas draws one), `CallButton` and `BadgeLegend`, over the process screen's and the instance
+     list's JSON forms, with their rules `InstanceFilters` and `VariableDraft`. This extension's
+     definition view renders all of them, its diagram's through its `DecorationLayer`, with its
+     own table, id, count badge and canvas, its selection and bulk actions in the table's write
+     slot, and the protocol carries the older versions' notice as data
+     (`DefinitionView.olderVersions`), additively; its English words are held to those before the
+     switch but two: the notice counts the instances with incident on older versions, and the
+     variable filter's button counts its conditions instead of calling them "active", a word the
+     product keeps for running instances. The webview's script grew from 249,604 to 251,996 B
+     gzip, its ceiling to 257,000 B (its measurement plus 2 %).
   2. **D2 per screen**, as for boards: c7-core's and c8-core's recorded answers give one engine, one
      process, one instance list and one instance screen, which the server's feeds and both adapters
      build exactly, the blocks render in English and German, and both engine suites read live,
@@ -263,6 +316,20 @@ each surface keeps its screens and the web app's are its own.
      exactly, the server's feed with the web app's instance screen; the figures
      `ScreenFigures.instance` compares leave out a path's open runs, since Camunda 7 enters an
      element it waits before only once the wait is over.
+     Executed for the process screen's and the instance list's builder the same day:
+     `ProcessScreen` reads a process's versions (primary), its selected version's diagram, element
+     statistics and, only where the diagram has a call activity or could not be read, the
+     processes it calls (each an enrichment its screen names when its read fails); `InstanceList`
+     reads a page of 50 by cursor (primary) and, on the first page only, the three scopes' counts,
+     a lower bound kept as `atLeast`. This extension's definition view and instance list take them
+     and word them in English, their protocol and fixtures unchanged; the protocol's copy of the
+     condition's type rule is held to the format's `VariableConditionTypes`. Both recordings hold
+     the process screens of pulse-order at its latest version and at its version 1 and of
+     pulse-dispatch and the list of pulse-order's version 1 beside the engine and instance screens,
+     each recording one run anew on a seeded engine (Operaton 2.1.5 at history level full,
+     camunda/camunda:8.10.9 on H2), which both adapters and the server's two wires build exactly;
+     the server's feeds give them exactly since the web app's process screen
+     (`process-screen-data.numbers.test.ts` in the engine connector).
   3. **Mutation tests.** The builder joins them, since it decides the numbers of two surfaces, the
      board package's criterion.
   4. **Release.** Its first npm publish is by hand, with its trusted publisher, before the release
@@ -341,16 +408,20 @@ each surface keeps its screens and the web app's are its own.
   7. **Budgets and release notes.** Each growth of a shrink-only ceiling the move needs (the
      webview's, the MCP view bundle's, the char budgets) updates the ceiling with a
      `Ratchet-Exception:` trailer that says what it buys; no checker is weakened. The webview's
-     ceiling goes to its measured size plus about 5 %, at most 250,000 B gzip; the MCP view
+     ceiling goes to its measured size plus about 5 %, at most 250,000 B gzip (amended below on
+     2026-11-20: plus about 2 %, at most 500,000 B); the MCP view
      bundle's JS may grow by about 10 % over 310,450 B. pulse-ui's new look and neutrals are a
      `feat(ui)!` with a `BREAKING CHANGE:` footer; the new look of Pulse for VS Code and Pulse for
      Orca is a `feat` with a clear note. Amended on 2026-11-19 for the web app's page, which keeps
      the cockpit embedded until D10's screens replace its sections and so grows before it shrinks:
      its gzip ceilings may grow to at most 340,000 B for its script and 18,000 B for its stylesheet,
      each ceiling its measurement plus 2 %, behind a `Ratchet-Exception:` trailer on each commit
-     that grows one. The webview stays at most 250,000 B: its ceiling of 247,500 B is its
-     measurement plus about 5 %, so the measurement sits about 14 kB below the limit, not the
-     2.5 kB the drafts assumed.
+     that grows one. The webview stayed at most 250,000 B: its ceiling of 247,500 B was its
+     measurement plus about 5 %, so the measurement sat about 14 kB below the limit, not the
+     2.5 kB the drafts assumed. Amended on 2026-11-20, when a process's blocks first needed more
+     (the owner: "nur nicht verschwenderisch", not wasteful): the webview's script may grow to
+     at most 500,000 B gzip, each ceiling its measurement plus 2 % behind a `Ratchet-Exception:`
+     trailer that says what the growth buys, and what the webview bundles stays lean.
   8. **One row convention** (the owner, 2026-11-18). On every surface, the MCP widgets, the web
      app and the webview, a table row opens what it names on a click or Enter and copies its id
      with Ctrl or Cmd+C, as the webview's rows did from the start; the cockpit's rows lose their
@@ -395,6 +466,17 @@ each surface keeps its screens and the web app's are its own.
      id alone to the instance that holds its root, and fills none of the blocks' write slots. A
      screen of the page fills the window's height from 64rem on, which the frame, widget-shell's
      `WidgetShell` and `ListTable` and pulse-ui's `NavigationFocus` learnt to do for a page alone.
+     Executed for the process on 2026-11-20, the same day: at a process's own address the page
+     shows it in one version with the blocks this extension's definition view renders (the version
+     picker, the notice of older versions, the instance list's filter bar with the variable
+     condition dialog, the instance table and Load more, the badges and call buttons on its
+     diagram and their legend), over the feeds `engine_screen_process_data`,
+     `engine_screen_instances_data` and `engine_screen_variable_names_data`, which the server builds
+     exactly as both adapters do from the recorded engines; the version and the list's filter in
+     the address (point 6), its badges on the canvas that follows the theme, a count's click
+     filtering the list, Escape clearing it; from 64rem on the split movable by mouse and keyboard,
+     under it the diagram at 240 to 560 px above three rows; the page claims the cockpit's process
+     view and its list of a process's instances, and fills none of the blocks' write slots.
   3. **The operations views stay the cockpit's.** Its incidents, a cause, its jobs and the boards run
      unchanged inside the frame, without their head. Once a screen replaces a section, the page
      takes every drill into it, from the embedded routes and a board's tiles too.

@@ -65,7 +65,17 @@ in `ENGINES_JSON` / `ENGINES_FILE`; every variable is in the
   build a screen of [`@miragon/pulse-screens`](https://www.npmjs.com/package/@miragon/pulse-screens)
   in its JSON form, the numbers the editors show: `engine_screen_processes_data` an engine's
   processes with their latest version, running instances and instances with incident, beside the
-  engine's own web app; `engine_screen_instance_data` an instance, running or ended, with its root
+  engine's own web app; `engine_screen_process_data` a process in one version (its number, else
+  the latest) with every version's counts, the counts on its diagram (root incidents, incidents in
+  called instances apart, running), its call targets and the notice that older versions still run,
+  beside the version in the engine's web app (a process without a version refused as
+  `UNKNOWN_PROCESS`); `engine_screen_instances_data` a page of 50 of the version's instances by
+  scope, element, exact business key and variable conditions, its cursor and on the first page the
+  counts of its scopes (a condition the engine refuses refused as `REFUSED_CONDITION`);
+  `engine_screen_variable_names_data` the names of the version's variables and the kinds of
+  condition the engine refuses; the reads that load the engine's database (element statistics,
+  the search, history counts, variable names) kept 30 s per caller and arguments;
+  `engine_screen_instance_data` an instance, running or ended, with its root
   incidents and those of the instances it called, its waits, path, variables and markers, beside
   it the instance in the engine's web app and on Camunda 7 each incident's cause (an instance the
   engine does not know refused as `UNKNOWN_INSTANCE`); `engine_screen_incident_text_data` a root

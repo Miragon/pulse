@@ -29,6 +29,9 @@ import {
   ENGINE_OPEN_COCKPIT,
   ENGINE_SCREEN_INCIDENT_TEXT_DATA,
   ENGINE_SCREEN_INSTANCE_DATA,
+  ENGINE_SCREEN_INSTANCES_DATA,
+  ENGINE_SCREEN_PROCESS_DATA,
+  ENGINE_SCREEN_VARIABLE_NAMES_DATA,
   ENGINE_SCREEN_PROCESSES_DATA,
   ENGINE_WIDGET_ACTIONS_DATA,
 } from "./tool-names.js"
@@ -39,8 +42,8 @@ import { feedPayload } from "./tools/test-support/feed-payload.js"
 /**
  * An engine of another dialect beside a Camunda 7 one, hand-built: its runtime factory is a spy.
  * Every tool and feed of the admin surface offers it only where its mark serves its dialect (the
- * engine list, the board feed, the XML feed, the web app's engine screen feed, the cockpit's board
- * and landing), and the call-time
+ * engine list, the board feed, the XML feed, the web app's screen feeds, the cockpit's board and
+ * landing), and the call-time
  * net refuses it elsewhere before its runtime is built, the default engine above all.
  */
 describe("createPlugin on an engine of another dialect", () => {
@@ -108,6 +111,9 @@ describe("createPlugin on an engine of another dialect", () => {
     ENGINE_BOARD_DATA,
     ENGINE_BPMN_XML_DATA,
     ENGINE_SCREEN_PROCESSES_DATA,
+    ENGINE_SCREEN_PROCESS_DATA,
+    ENGINE_SCREEN_INSTANCES_DATA,
+    ENGINE_SCREEN_VARIABLE_NAMES_DATA,
     ENGINE_SCREEN_INSTANCE_DATA,
     ENGINE_SCREEN_INCIDENT_TEXT_DATA,
     ENGINE_OPEN_COCKPIT,
@@ -129,6 +135,9 @@ describe("createPlugin on an engine of another dialect", () => {
     for (const name of others) expect(offered(recording, name), name).toEqual(["a"])
     expect(offered(recording, ENGINE_BPMN_XML_DATA)).toEqual(["a", "c8"])
     expect(offered(recording, ENGINE_SCREEN_PROCESSES_DATA)).toEqual(["a", "c8"])
+    expect(offered(recording, ENGINE_SCREEN_PROCESS_DATA)).toEqual(["a", "c8"])
+    expect(offered(recording, ENGINE_SCREEN_INSTANCES_DATA)).toEqual(["a", "c8"])
+    expect(offered(recording, ENGINE_SCREEN_VARIABLE_NAMES_DATA)).toEqual(["a", "c8"])
     expect(offered(recording, ENGINE_SCREEN_INSTANCE_DATA)).toEqual(["a", "c8"])
     expect(offered(recording, ENGINE_SCREEN_INCIDENT_TEXT_DATA)).toEqual(["a", "c8"])
     // The cockpit's `engine` names every engine it shows: a route of one engine refuses this one.
@@ -344,6 +353,9 @@ describe("createPlugin over Camunda 8 profiles and the boards that name them", (
         ENGINE_BPMN_XML_DATA,
         ENGINE_BOARD_DATA,
         ENGINE_SCREEN_PROCESSES_DATA,
+        ENGINE_SCREEN_PROCESS_DATA,
+        ENGINE_SCREEN_INSTANCES_DATA,
+        ENGINE_SCREEN_VARIABLE_NAMES_DATA,
         ENGINE_SCREEN_INSTANCE_DATA,
         ENGINE_SCREEN_INCIDENT_TEXT_DATA,
       ].sort(),

@@ -1,4 +1,4 @@
-import type { ProcessFilterData } from "@miragon/pulse-screens"
+import type { InstanceListFilterData, ProcessFilterData } from "@miragon/pulse-screens"
 import {
   isSignedOutReason,
   WEB_PATHS,
@@ -6,6 +6,20 @@ import {
   type SignedOutReason,
 } from "@miragon/pulse-widget-shell/widgets"
 import { PAGES } from "../pages.js"
+import { isSegment, paramsOn, withQuery } from "./paths.js"
+import {
+  EVERY_PROCESS,
+  filterOf,
+  filterQueryOf,
+  processQueryOf,
+  processStateOf,
+  RUNNING_LIST,
+  tabOf,
+  tabQueryOf,
+  type InstanceTab,
+} from "./screen-queries.js"
+
+export { INSTANCE_TABS, type InstanceTab } from "./screen-queries.js"
 
 /** The engine module's view, the cockpit: every page of the app opens it at a start of its own. */
 export const COCKPIT_VIEW = "engine_open_cockpit"
@@ -51,17 +65,6 @@ export interface PageStart {
   readonly place?: Place
 }
 
-/** A tab of the instance screen, in the editors' order: its path, its incidents, its waits, its variables. */
-export type InstanceTab = "history" | "incidents" | "waiting" | "variables"
-
-/** The instance screen's tabs, in their order. */
-export const INSTANCE_TABS: readonly InstanceTab[] = [
-  "history",
-  "incidents",
-  "waiting",
-  "variables",
-]
-
 /**
  * A screen of the page's own (D10), which it shows at a place of the cockpit instead of the
  * cockpit's view there. The page claims that place (`ViewLocation.claims`): the cockpit, embedded
@@ -75,9 +78,20 @@ export const INSTANCE_TABS: readonly InstanceTab[] = [
  *   address of an incident under its instance, the root incident in focus (`incident`).
  * - `incident`: an incident the page knows by its id alone (the cockpit's drill to one, an old
  *   address of one), which the page leads on to the instance that holds its root.
+ * - `process`: a process in one version at the process's own address, the place of the cockpit's
+ *   process view and of its list of a process's instances; the version by its number (`version`,
+ *   none for the latest) and its instance list's filter (`filter`: `scope`, `element`, `key`,
+ *   `var`).
  */
 export type PageScreen =
   | { readonly kind: "engine"; readonly engine: string; readonly filter: ProcessFilterData }
+  | {
+      readonly kind: "process"
+      readonly engine: string
+      readonly process: string
+      readonly version?: number
+      readonly filter: InstanceListFilterData
+    }
   | {
       readonly kind: "instance"
       readonly engine: string
@@ -86,15 +100,6 @@ export type PageScreen =
       readonly incident?: string
     }
   | { readonly kind: "incident"; readonly engine: string; readonly incident: string }
-
-/** The engine screen's list without a filter: every process, no search. */
-const EVERY_PROCESS: ProcessFilterData = { scope: "all" }
-
-/** The engine screen's query: its scope (the processes with an instance with incident) and search. */
-const SCREEN_QUERY = { scope: "scope", withIncident: "incident", search: "q" } as const
-
-/** The instance screen's query: its tab. */
-const TAB_QUERY = "tab"
 
 /**
  * Where a page's location leads: a view, or the signed-out page. A view's route names its place,
@@ -228,22 +233,6 @@ const ADDRESSES: readonly Address[] = [
   },
 ]
 
-/**
- * Whether `value` can be a segment of a path: a text that is neither empty nor a dot segment, in
- * any spelling (the listener refuses those, `isNormalTarget`, and a browser resolves them).
- */
-const isSegment = (value: unknown): value is string =>
-  typeof value === "string" && value !== "" && value !== "." && value !== ".."
-
-/** A segment of the path as its text: the browser escapes it, a broken escape stays as sent. */
-function segmentText(segment: string): string {
-  try {
-    return decodeURIComponent(segment)
-  } catch {
-    return segment
-  }
-}
-
 /** The address's path with each `:param`'s value, or undefined where one can be no segment. */
 function pathOf(address: Address, valueOf: (param: string) => unknown): string | undefined {
   const parts = address.page.split("/").map((part) => {
@@ -338,25 +327,6 @@ interface Read {
   readonly url: string
 }
 
-/** The text of each `:param` of `page` in `pathname`, or undefined where the path is not on it. */
-function paramsOn(page: string, pathname: string): Record<string, string> | undefined {
-  const want = page.split("/")
-  const got = pathname.split("/")
-  if (want.length !== got.length) return undefined
-  const params: Record<string, string> = {}
-  for (const [index, part] of want.entries()) {
-    const segment = got[index]
-    if (!part.startsWith(":")) {
-      if (part !== segment) return undefined
-    } else if (segment === "") {
-      return undefined
-    } else {
-      params[part.slice(1)] = segmentText(segment)
-    }
-  }
-  return params
-}
-
 /**
  * The place an address on `address` names, and its canonical address: the view's ids from its
  * path and its query (a parameter it does not read is left out, so the canonical address drops
@@ -445,7 +415,9 @@ function startOf(place: Place): PageStart {
 
 /**
  * The page's own screen at `place`, as the place names it whole: an engine's overview, which the
- * page shows as the engine's processes, its list unfiltered; an instance's view or its history,
+ * page shows as the engine's processes, its list unfiltered; a process's view or the list of a
+ * process's instances, which it shows as the process screen at its latest version, its running
+ * instances listed (with its incidents in focus, those with incident); an instance's view or its history,
  * which it shows as the instance screen (the history its tab); an incident by its id, which it
  * leads on to the instance that holds its root. An engine named alone (one without sections, as the
  * cockpit reports it) is no such place: the cockpit shows its one state; nor is a place with an id
@@ -457,6 +429,9 @@ export function screenOf(place: Place): PageScreen | undefined {
   switch (shapeOf(place)) {
     case "engine,view":
       return view === "overview" ? { kind: "engine", engine, filter: EVERY_PROCESS } : undefined
+    case "engine,processDefinitionKey,view":
+    case "engine,focus,processDefinitionKey,view":
+      return processScreenOf(engine, place)
     case "engine,processInstanceId,view":
       if (!isSegment(processInstanceId)) return undefined
       if (view === "history") {
@@ -474,10 +449,20 @@ export function screenOf(place: Place): PageScreen | undefined {
   }
 }
 
-/** The instance screen's tab an address's query names; none for a tab it does not know. */
-function tabOf(search: string): InstanceTab | undefined {
-  const tab = new URLSearchParams(search).get(TAB_QUERY)
-  return INSTANCE_TABS.find((known) => known === tab)
+/**
+ * The process screen at a process's view or the list of its instances on `engine`, where the
+ * process's id can be a segment of its address: its running instances listed, with its incidents in
+ * focus those with incident.
+ */
+function processScreenOf(engine: string, place: Place): PageScreen | undefined {
+  const { view, focus, processDefinitionKey: process } = place
+  if (!isSegment(process)) return undefined
+  const instances = view === "process-instances" && focus === undefined
+  if (view !== "process-detail" && !instances) return undefined
+  if (focus === undefined) return { kind: "process", engine, process, filter: RUNNING_LIST }
+  return focus === "incidents"
+    ? { kind: "process", engine, process, filter: { scope: "withIncident" } }
+    : undefined
 }
 
 /**
@@ -491,6 +476,11 @@ function screenAt(location: PageLocation, place: Place): PageScreen | undefined 
   switch (found.kind) {
     case "engine":
       return { ...found, filter: filterOf(location.search) }
+    case "process":
+      // The process's own address carries the screen's state; an old list of its instances none.
+      return paramsOn(PAGES.process, location.pathname) === undefined
+        ? found
+        : { ...found, ...processStateOf(location.search, found.filter.scope) }
     case "instance": {
       const tab = found.tab ?? tabOf(location.search)
       return tab === undefined ? found : { ...found, tab }
@@ -510,24 +500,6 @@ function screenAt(location: PageLocation, place: Place): PageScreen | undefined 
   }
 }
 
-/**
- * The engine screen's filter an address's query names: `scope=incident` the processes with an
- * instance with incident, `q` the search, trimmed as the search field applies it; any other value
- * the default.
- */
-function filterOf(search: string): ProcessFilterData {
-  const query = new URLSearchParams(search)
-  const scope = query.get(SCREEN_QUERY.scope) === SCREEN_QUERY.withIncident ? "withIncident" : "all"
-  const text = query.get(SCREEN_QUERY.search)?.trim() ?? ""
-  return text === "" ? { scope } : { scope, search: text }
-}
-
-/** `path` with `query`, without a `?` where the query is empty. */
-function withQuery(path: string, query: URLSearchParams): string {
-  const written = query.toString()
-  return written === "" ? path : `${path}?${written}`
-}
-
 /** The address of an incident under its instance, or undefined where an id can be no segment. */
 function incidentPathOf(engine: string, instance: string, incident: string): string | undefined {
   const params: Readonly<Record<string, string>> = { engine, instance, incident }
@@ -536,27 +508,32 @@ function incidentPathOf(engine: string, instance: string, incident: string): str
 
 /**
  * The address of the page's own screen, which `viewRouteOf` reads back to it: the engine's own
- * address with its list's filter in the query, the defaults left out; an instance's own address,
+ * address with its list's filter in the query, the defaults left out; a process's own address with
+ * its version and its list's filter in the query, the defaults left out; an instance's own address,
  * or an incident's under it, with its tab in the query where the reader picked one; an incident
  * by its id alone in the cockpit's query.
  */
 export function screenUrlOf(screen: PageScreen): string {
-  const query = new URLSearchParams()
   switch (screen.kind) {
-    case "engine": {
-      const { engine, filter } = screen
-      if (filter.scope === "withIncident") query.set(SCREEN_QUERY.scope, SCREEN_QUERY.withIncident)
-      const text = filter.search?.trim() ?? ""
-      if (text !== "") query.set(SCREEN_QUERY.search, text)
-      return withQuery(urlOf({ view: "overview", engine }), query)
+    case "engine":
+      return withQuery(
+        urlOf({ view: "overview", engine: screen.engine }),
+        filterQueryOf(screen.filter),
+      )
+    case "process": {
+      const { engine, process } = screen
+      const path = urlOf({ view: "process-detail", engine, processDefinitionKey: process })
+      // An id no segment takes keeps the cockpit's process view, which takes no screen state.
+      return path.startsWith(PAGES.cockpit)
+        ? path
+        : withQuery(path, processQueryOf(screen.version, screen.filter))
     }
     case "instance": {
       const { engine, instance, tab, incident } = screen
       const own = urlOf({ view: "instance-detail", engine, processInstanceId: instance })
       const path =
         incident === undefined ? own : (incidentPathOf(engine, instance, incident) ?? own)
-      if (tab !== undefined) query.set(TAB_QUERY, tab)
-      return withQuery(path, query)
+      return withQuery(path, tabQueryOf(tab))
     }
     case "incident":
       return urlOf({ view: "incident-detail", engine: screen.engine, incidentId: screen.incident })

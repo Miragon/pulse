@@ -150,7 +150,9 @@ describe("the instance screen", () => {
     const bar = (await heading()).closest<HTMLElement>("[data-slot=view-bar]")!
     expect(within(bar).getByText("Running")).toBeTruthy()
     const version = within(bar).getByRole("link", { name: "Dispatch order v1" })
-    expect(version.getAttribute("href")).toBe("/app/engines/prod-a/processes/pulse-dispatch")
+    expect(version.getAttribute("href")).toBe(
+      "/app/engines/prod-a/processes/pulse-dispatch?version=1",
+    )
     expect(within(bar).getByText("prod-a")).toBeTruthy()
     expect(within(bar).getByRole("button", { name: "Refresh" })).toBeTruthy()
     expect(

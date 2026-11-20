@@ -76,6 +76,17 @@ describe("the instance screen's reads", () => {
     ])
   })
 
+  test("read no processes a version calls where its diagram has no call activity", async () => {
+    const { reads, calls } = counted(ScreenWorld.world())
+
+    const model = await InstanceScreen.read("conformance", LABEL, reads, () => ScreenWorld.AS_OF)
+
+    expect(calls).toContain("getDiagramXml pulse-label:1")
+    expect(calls.filter((call) => call.startsWith("getCalledProcesses"))).toEqual([])
+    expect(model?.calls).toEqual([])
+    expect(model?.unread).toEqual([])
+  })
+
   test("read the caller of a called instance by its id, one at most", async () => {
     const { reads, calls, searches } = counted(ScreenWorld.world())
 

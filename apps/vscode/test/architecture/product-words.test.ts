@@ -93,13 +93,14 @@ describe("the extension's texts", PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, () => {
     expect(wordFindings(format)).toEqual([])
   })
 
-  test("in the building blocks, whose board tiles, engine tab and instance view both editors show, use the product's words too", () => {
+  test("in the building blocks, whose board tiles, engine tab, instance view and definition view both editors show, use the product's words too", () => {
     const blocks = join(REPO_ROOT, BLOCKS_SOURCES)
     expect(Object.keys(sourceTexts(blocks))).toEqual(
       expect.arrayContaining([
         expect.stringMatching(/^messages\/en\.ts:/),
         expect.stringMatching(/^messages\/screen-en\.ts:/),
         expect.stringMatching(/^messages\/instance-en\.ts:/),
+        expect.stringMatching(/^messages\/process-en\.ts:/),
       ]),
     )
     expect(wordFindings(blocks)).toEqual([])
@@ -110,10 +111,13 @@ describe("the extension's texts", PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, () => {
     expect(texts).toEqual(expect.arrayContaining([expect.stringMatching(/no tenant filter/)]))
   })
 
-  test("name the counts with the count terms the MCP widgets use", () => {
+  test("name the counts with the count terms the MCP widgets use, in the webview and the blocks of its definition view", () => {
     const texts = Object.values(sourceTexts(WEBVIEW))
-    expect(texts).toContain(COUNT_TERMS.withIncident.en)
+    const processTexts = Object.entries(sourceTexts(join(REPO_ROOT, BLOCKS_SOURCES)))
+      .filter(([key]) => key.startsWith("messages/process-en.ts"))
+      .map(([, text]) => text)
     expect(texts).toContain(COUNT_TERMS.incidents.en)
+    expect(processTexts).toContain(COUNT_TERMS.withIncident.en)
   })
 
   test("name the version scope of the counts over every version, in the overview and the tree", () => {

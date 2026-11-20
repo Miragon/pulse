@@ -4,7 +4,14 @@ import * as testing from "./testing/index.js"
 
 describe("the @miragon/pulse-screens entries", () => {
   it("export exactly the pure rules a surface applies to a screen's JSON form", () => {
-    expect(Object.keys(screens).sort()).toStrictEqual(["FleetSums", "ProcessFilter"])
+    expect(Object.keys(screens).sort()).toStrictEqual([
+      "DiagramDecorations",
+      "FleetSums",
+      "HistoryGaps",
+      "InstanceRows",
+      "ProcessFilter",
+      "VariableConditionTypes",
+    ])
   })
 
   it("export exactly the screens of the kit's fixed world and a screen's figures from ./testing", () => {

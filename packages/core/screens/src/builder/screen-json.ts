@@ -4,10 +4,15 @@ import type {
   EngineScreenData,
   ProcessRowData,
 } from "../format/engine-screen-data.js"
+import type { InstanceListData } from "../format/instance-list-data.js"
 import type { CallLinkData, InstanceScreenData } from "../format/instance-screen-data.js"
+import type { ProcessScreenData } from "../format/process-screen-data.js"
 import type { EngineScreenModel } from "./engine-screen-model.js"
 import { InstanceJson } from "./instance-json.js"
+import type { InstanceListModel } from "./instance-list-model.js"
 import type { CallLinkModel, InstanceScreenModel } from "./instance-screen-model.js"
+import { ProcessJson } from "./process-json.js"
+import type { ProcessScreenModel } from "./process-screen-model.js"
 
 export class ScreenJson {
   static engine(model: EngineScreenModel): EngineScreenData {
@@ -23,6 +28,14 @@ export class ScreenJson {
 
   static instance(model: InstanceScreenModel): InstanceScreenData {
     return InstanceJson.of(model)
+  }
+
+  static process(model: ProcessScreenModel): ProcessScreenData {
+    return ProcessJson.of(model)
+  }
+
+  static instanceList(model: InstanceListModel): InstanceListData {
+    return ProcessJson.list(model)
   }
 
   static callLinks(links: readonly CallLinkModel[]): CallLinkData[] {

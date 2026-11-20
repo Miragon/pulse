@@ -1,7 +1,7 @@
 # User interface
 
 - Status: accepted
-- Last reviewed: 2026-11-18 (production also where a profile's `environment` says `production`, and no LOCAL badge for an engine whose profile names another environment); 2026-11-15 (a broken board widget a card with its problems in its place, a board's notes a quiet strip, the Boards view counting refused widgets and notes; a worker's error named only where the incident stops a worker task, an instance without a business key named by its copyable id once, the Engines tree selecting the node it shows for the tab that is active; an incident's cause labelled by its source, every text that finds nothing deployed allows for a missing permission, the cut-off note names no end of a list); 2026-11-14 (the switch of D9 landed: the webview draws pulse-ui's `Icon` over `lucide-react`, its copy of Lucide's glyphs went; its bundle ceilings and the two cascade rules of its stylesheet; the split's handle a 24 px target with a forced-colours line); 2026-11-12, later the same day (decided, D9 of [ui-foundation.md](ui-foundation.md): the webview moves to React on `@miragon/pulse-ui` in one switch; its 12 px icons become the density deviation every surface shares; its notice strips become pulse-ui's `StatusStrip`; its sizes come from pulse-ui's density roles; its red and orange counts turn neutral with a tone icon); 2026-11-12 (a button beside the "can't move" sign copies the CLI command its reason names); 2026-11-09 (the Engines tree's problems in the profile format's words, a cockpitUrl's trailing `#/` dropped); 2026-11-08 (the tones of Pulse's situation table; times, durations, counts and short ids from Pulse's formatters; 2026-10-26: boards, see [boards.md](boards.md); live updates, see [live-updates.md](live-updates.md); moving a token; bulk cancel, see [writes.md](writes.md); migration, see [migrations.md](migrations.md))
+- Last reviewed: 2026-11-20 (a process's building blocks: the definition view's filter bar, chips and condition dialog are `@miragon/pulse-blocks`' `InstanceFilterBar`, which offers the kinds of condition the engine refuses disabled with their reason, the owner's decision that day, and counts its conditions in the funnel's name; its instance list's state labels and incident flag held to Pulse's situation table where the view renders them; the webview's ceiling under the owner's 500,000 B); 2026-11-18 (production also where a profile's `environment` says `production`, and no LOCAL badge for an engine whose profile names another environment); 2026-11-15 (a broken board widget a card with its problems in its place, a board's notes a quiet strip, the Boards view counting refused widgets and notes; a worker's error named only where the incident stops a worker task, an instance without a business key named by its copyable id once, the Engines tree selecting the node it shows for the tab that is active; an incident's cause labelled by its source, every text that finds nothing deployed allows for a missing permission, the cut-off note names no end of a list); 2026-11-14 (the switch of D9 landed: the webview draws pulse-ui's `Icon` over `lucide-react`, its copy of Lucide's glyphs went; its bundle ceilings and the two cascade rules of its stylesheet; the split's handle a 24 px target with a forced-colours line); 2026-11-12, later the same day (decided, D9 of [ui-foundation.md](ui-foundation.md): the webview moves to React on `@miragon/pulse-ui` in one switch; its 12 px icons become the density deviation every surface shares; its notice strips become pulse-ui's `StatusStrip`; its sizes come from pulse-ui's density roles; its red and orange counts turn neutral with a tone icon); 2026-11-12 (a button beside the "can't move" sign copies the CLI command its reason names); 2026-11-09 (the Engines tree's problems in the profile format's words, a cockpitUrl's trailing `#/` dropped); 2026-11-08 (the tones of Pulse's situation table; times, durations, counts and short ids from Pulse's formatters; 2026-10-26: boards, see [boards.md](boards.md); live updates, see [live-updates.md](live-updates.md); moving a token; bulk cancel, see [writes.md](writes.md); migration, see [migrations.md](migrations.md))
 
 ## Context
 
@@ -149,7 +149,7 @@ which also outlines the target.
   picker. While the panel refreshes the old counts stay and the group is
   `aria-busy`.
 - **Variable conditions:** the funnel button ("Filter by variables", with conditions their
-  count beside the icon and "…, 2 active" in its name) opens a modal `<dialog>` for one
+  count beside the icon and "…, 2 conditions" in its name) opens a modal `<dialog>` for one
   condition: name, _Compare as_ (Automatic, Text, Number, True or
   false, Date and time, Null), the operators that fit the type and the value. Opening
   it sends `suggestVariableNames`; the core reads `listVariableNames` once per version and
@@ -165,14 +165,20 @@ which also outlines the target.
   second row instead; all conditions must hold, at most 5. Automatic reads
   `42` and `-4.5` as a number, `true` and `false` as true or false and anything else as
   text; _matches_ compares text and _is greater than_ and _is less than_ numbers. The dialog
-  leaves out what the engine refuses (`DefinitionView.refusedVariableConditions`): _Date and
-  time_ for `date`, _is greater than_ and _is less than_ for `ordering`.
+  offers every way of comparing and every operator; what the engine refuses
+  (`DefinitionView.refusedVariableConditions`: _Date and time_ for `date`, _is greater than_ and
+  _is less than_ for `ordering`) shows disabled with its reason in the field's hint and the
+  option's title, and Apply says inline what is refused instead of applying it (the owner,
+  2026-11-20, as a pair with the web app's process screen).
   `VariableConditionRules` in the protocol holds these rules for the guard and the core,
-  which also labels the chips (`DefinitionView.variableLabels`); the webview imports the
-  protocol as types only, so the dialog keeps its operator table, number and date patterns and cap
-  as constants a test holds equal to the rules. The conditions survive a scope change, the element filter,
-  the business-key search and a version switch, which resets scope and element only; the
-  cancel confirmation names them in its filter line.
+  which also labels the chips (`DefinitionView.variableLabels`). The bar, the chips and the
+  dialog are `InstanceFilterBar` of `@miragon/pulse-blocks`, its rules without words
+  `VariableDraft`, whose operator table, number and date patterns and cap a webview test holds
+  equal to the protocol's rules; a chip without the core's label is worded by the block as the
+  core words it, which the same test holds equal to `VariableConditionRules.label`. The
+  conditions survive a scope change, the element filter, the business-key search and a version
+  switch, which resets scope and element only; the cancel confirmation names them in its filter
+  line.
 - **Instance panel:** the History / Incidents / Waiting / Variables tablist on the left, the marker
   legend button on the right. An incident card names its cause by its source, as the core decides
   it (`IncidentRow.causeLabel`): "Root cause" for a stack trace, "Worker error" for an error
@@ -380,10 +386,13 @@ overdue jobs and topics without workers, variable history.
 - The design guide's "no header bar" rule is broken on purpose: a tab title cannot hold
   version, access, freshness and the live updates button. Strips dock under it.
 - The bpmn.io watermark stays visible (bpmn-js licence).
-- Webview bundle: about 235.7 kB gzip on React 19 and pulse-ui, a ceiling of 247,500 B; its
-  stylesheet about 28.9 kB, a ceiling of 30,100 B (`apps/vscode/test/__golden__/bundle-budget.json`).
-  Both were set by the switch of D9 (2026-11-14, its `Ratchet-Exception:` trailer) at the measured
-  size plus about 5 % and may only shrink from there (guardrails.md).
+- Webview bundle: about 252.0 kB gzip on React 19, pulse-ui and the building blocks of
+  `@miragon/pulse-blocks`, a ceiling of 257,000 B; its stylesheet about 29.5 kB, a ceiling of
+  30,100 B (`apps/vscode/test/__golden__/bundle-budget.json`). The switch of D9 (2026-11-14, its
+  `Ratchet-Exception:` trailer) set both at the measured size plus about 5 %; since the owner's
+  decision of 2026-11-20 a ceiling that must grow goes to its measurement plus about 2 %, the
+  script at most 500,000 B (D9's point 7: not wasteful), each growth behind a trailer that says
+  what it buys, and both may only shrink otherwise (guardrails.md).
 - The webview's stylesheet (`src/webview/styles/webview.css`) keeps two cascade rules. modeler-shell's
   `shell.css` sits in a layer of its own, `shell`, below `components` and `utilities`: unlayered,
   its `font: inherit` and `color: inherit` on the document's controls beat every kit class. The

@@ -11,7 +11,6 @@ import {
 } from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
 import parcelReturnXml from "../../dev/webview/fixtures/parcel-return.bpmn"
-import { BpmnStructure } from "../../src/core/bpmn/bpmn-structure.js"
 import { DefinitionViewBuilder } from "../../src/core/views/definition-view-builder.js"
 import { InstanceViewBuilder } from "../../src/core/views/instance-view-builder.js"
 
@@ -37,6 +36,7 @@ function badgesOf(statistics: readonly ElementStatistics[]) {
   return new DefinitionViewBuilder({
     engine: ENGINE,
     asOf: AT,
+    bpmnProcessId: DEFINITION.bpmnProcessId,
     versions: [{ definition: DEFINITION, running: 3, withIncident: 1 }],
     selectedDefinitionId: DEFINITION.id,
     diagramXml: parcelReturnXml,
@@ -97,11 +97,6 @@ describe("the structure of a diagram", () => {
     expect(shapes.around("Activity_CheckParcel")).toEqual(["Activity_InspectParcel"])
     expect(shapes.around("Activity_PayRefund")).toEqual([])
     expect(shapes.around("Activity_NotifyCustomer")).toEqual([])
-  })
-
-  test("tells whether a diagram has call activities", () => {
-    expect(BpmnStructure.hasCallActivities(parcelReturnXml)).toBe(true)
-    expect(BpmnStructure.hasCallActivities('<bpmn:process id="p"><bpmn:task id="t"/>')).toBe(false)
   })
 })
 

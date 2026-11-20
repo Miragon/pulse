@@ -16,12 +16,12 @@ import { CanvasRoles, RENDERER_COLORS } from "./canvas-roles.js"
 import { CanvasShell } from "./canvas-shell.js"
 import {
   DecorationLayer,
+  type BadgeFilter,
   type CanvasMarkersLike,
   type Decorations,
   type OverlaysLike,
   type SelectionLike,
 } from "./decoration-layer.js"
-import type { BadgeFilter } from "./badge-cluster.js"
 import {
   DiagramElements,
   type DiagramElement,

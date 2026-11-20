@@ -9,7 +9,10 @@
  * builds from the same answers over its wire (the C7 adapter's test/c7-screen-numbers.test.ts, the
  * C8 adapter's test/c8-screen-numbers.test.ts), at the time it reads; the web app renders it in
  * apps/web/test/engine-screen.test.tsx. The list of processes is primary, what the engine says it
- * is degrades to null.
+ * is degrades to null. The process screens and the instance list of the same recordings are built
+ * by the screens' builder over the runtime the server resolves for the engine (`runtimeOf`, the
+ * diagram through the one XML cache, `diagramXmlOf`), exactly as the editors' adapters build them;
+ * their feeds hold the same screens in process-screen-data.numbers.test.ts.
  */
 
 import { afterEach, describe, expect, it } from "vitest"
@@ -22,9 +25,20 @@ import {
   type RecordedEngine,
   startRecordedEngine,
 } from "@miragon/pulse-http/testing/loopback"
-import type { EngineScreenData } from "@miragon/pulse-screens"
+import { BpmnProcessId, DefinitionId } from "@miragon/pulse-engine-core"
+import type { EngineScreenData, InstanceListData, ProcessScreenData } from "@miragon/pulse-screens"
+import {
+  InstanceList,
+  ProcessScreen,
+  type ProcessScreenReads,
+  ScreenJson,
+} from "@miragon/pulse-screens/builder"
 import { ScreenFigures, WORLD_SCREENS } from "@miragon/pulse-screens/testing"
-import { engineModule } from "../../module.js"
+import { diagramXmlOf } from "../../lib/engine/diagram-xml.js"
+import { runtimeOf } from "../../lib/engine/engine-runtime.js"
+import { type RuntimeEngine, resolveRuntimeEngine } from "../../lib/engine/resolve-engine.js"
+import { engineConfigSchema, engineModule } from "../../module.js"
+import { createConfiguredEngineRegistry } from "../../plugin.js"
 import { ENGINE_SCREEN_PROCESSES_DATA } from "../../tool-names.js"
 import { feedPayload } from "../../tools/test-support/feed-payload.js"
 import type { EngineScreenFeedData } from "./engine-screen-data.js"
@@ -38,6 +52,8 @@ interface Recorded {
   readonly about: string | null
   /** The answer whose loss fails the screen: the list of processes. */
   readonly processes: string
+  /** The answer whose loss fails a process screen: the process's versions. */
+  readonly versions: string
 }
 
 /** Operaton, as recorded, at its REST root: its web app derived from it. */
@@ -47,6 +63,7 @@ const RECORDED_C7: Recorded = {
   webApp: (origin) => ({ url: `${origin}/operaton/app/cockpit/default`, vendor: "Operaton" }),
   about: "/engine-rest/telemetry/data",
   processes: "/engine-rest/process-definition/statistics",
+  versions: "/engine-rest/process-definition/statistics",
 }
 
 /** A Camunda 8 cluster without security, as recorded: no web app without the profile's cockpitUrl. */
@@ -56,6 +73,7 @@ const RECORDED_C8: Recorded = {
   webApp: () => null,
   about: null,
   processes: "/v2/process-definitions/search",
+  versions: "/v2/process-definitions/search",
 }
 
 const engines: RecordedEngine[] = []
@@ -134,5 +152,107 @@ describe("an engine that does not say what it is (Camunda 7's telemetry)", () =>
     const screen = feedPayload<EngineScreenFeedData>(await call())
     expect(screen.info).toBeNull()
     expect(ScreenFigures.engine(screen)).toEqual(ScreenFigures.engine(WORLD_SCREENS.engine))
+  })
+})
+
+type ProcessName = "process" | "olderVersion" | "callingProcess"
+
+const PROCESSES: readonly ProcessName[] = ["process", "olderVersion", "callingProcess"]
+
+/** The engine the server resolves over `recorded`'s engine answering `answers`. */
+async function resolved(
+  recorded: Recorded,
+  answers: readonly RecordedAnswer[] = recorded.screen.answers,
+): Promise<{ readonly engine: RecordedEngine; readonly resolved: RuntimeEngine }> {
+  const engine = await startRecordedEngine(answers)
+  engines.push(engine)
+  const config = engineModule.configFromEnv({
+    ENGINES_JSON: JSON.stringify({
+      profiles: { [recorded.screen.engine]: recorded.profile(engine.origin) },
+    }),
+  })
+  const registry = createConfiguredEngineRegistry(engineConfigSchema.parse(config))
+  return { engine, resolved: resolveRuntimeEngine(recorded.screen.engine, registry) }
+}
+
+/** The reads of a process screen on `engine`: its runtime's, the diagram through the XML cache. */
+function processReads(engine: RuntimeEngine): ProcessScreenReads {
+  const runtime = runtimeOf(engine)
+  return {
+    listVersions: (id) => runtime.listVersions(id),
+    getElementStatistics: (id) => runtime.getElementStatistics(id),
+    getCalledProcesses: (id) => runtime.getCalledProcesses(id),
+    getDiagramXml: async (id) => (await diagramXmlOf(engine, id)) ?? undefined,
+  }
+}
+
+const expectedProcess = (recorded: Recorded, name: ProcessName): ProcessScreenData =>
+  recorded.screen.expected[name] as ProcessScreenData
+
+const expectedList = (recorded: Recorded): InstanceListData =>
+  recorded.screen.expected.instanceList as InstanceListData
+
+describe.each([
+  ["c7-core's recorded screen engine, over the SDK wire", RECORDED_C7],
+  ["c8-core's recorded screen engine, over the server's Camunda 8 wire", RECORDED_C8],
+])("the process screens and the instance list over %s", (_name, recorded) => {
+  const asOf = () => new Date(recorded.screen.asOf)
+
+  it.each(PROCESSES)(
+    "ask the engine only what it answered and give the %s screen the recording expects",
+    async (name) => {
+      const { engine, resolved: on } = await resolved(recorded)
+      const { bpmnProcessId, selected } = expectedProcess(recorded, name)
+
+      const model = await ProcessScreen.read(
+        recorded.screen.engine,
+        {
+          bpmnProcessId: BpmnProcessId(bpmnProcessId),
+          ...(name === "olderVersion" && selected !== null
+            ? { definitionId: DefinitionId(selected.id) }
+            : {}),
+        },
+        processReads(on),
+        asOf,
+      )
+
+      expect(engine.unanswered).toEqual([])
+      expect(model === undefined ? undefined : ScreenJson.process(model)).toEqual(
+        expectedProcess(recorded, name),
+      )
+      expect(ScreenFigures.process(expectedProcess(recorded, name))).toEqual(
+        ScreenFigures.process(WORLD_SCREENS[name]),
+      )
+    },
+  )
+
+  it("asks the engine only what it answered and gives the instance list the recording expects", async () => {
+    const { engine, resolved: on } = await resolved(recorded)
+
+    const model = await InstanceList.read(
+      recorded.screen.engine,
+      { definitionId: DefinitionId(expectedList(recorded).definitionId), filter: { scope: "all" } },
+      runtimeOf(on),
+      asOf,
+    )
+
+    expect(engine.unanswered).toEqual([])
+    expect(ScreenJson.instanceList(model)).toEqual(expectedList(recorded))
+    expect(ScreenFigures.instanceList(expectedList(recorded))).toEqual(
+      ScreenFigures.instanceList(WORLD_SCREENS.instanceList),
+    )
+  })
+
+  it("fails as the versions fail, never with an empty screen", async () => {
+    const { resolved: on } = await resolved(recorded, without(recorded, recorded.versions))
+
+    await expect(
+      ProcessScreen.read(
+        recorded.screen.engine,
+        { bpmnProcessId: BpmnProcessId("pulse-order") },
+        processReads(on),
+        asOf,
+      ),
+    ).rejects.toThrow()
   })
 })

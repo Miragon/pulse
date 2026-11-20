@@ -1,7 +1,6 @@
 import { useEffect, useEffectEvent, useRef, useState, type RefObject } from "react"
 import { createPortal } from "react-dom"
-import type { BadgeFilter } from "../diagram/badge-cluster.js"
-import type { Decorations } from "../diagram/decoration-layer.js"
+import type { BadgeFilter, Decorations } from "../diagram/decoration-layer.js"
 import { ReactOverlaySink, type OverlaySlot } from "../diagram/overlay-slots.js"
 import { RuntimeCanvas } from "../diagram/runtime-canvas.js"
 import { useHost } from "../host/host-context.js"

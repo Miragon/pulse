@@ -15,6 +15,7 @@ import {
   ENGINE_SCREEN_FEED,
   engineList,
   engineScreen,
+  processFeeds,
   settled,
   start,
   stopPage,
@@ -75,12 +76,14 @@ function server(list: unknown = LIST) {
         ? Response.json(engineList(list))
         : name === ENGINE_SCREEN_FEED
           ? Response.json(engineScreen(args?.engine))
-          : Response.json({
-              result: {
-                content: [{ type: "text", text: "{}" }],
-                structuredContent: { args, engines: CONFIGURED },
-              },
-            }),
+          : processFeeds(name, args?.engine) !== null
+            ? Response.json(processFeeds(name, args?.engine))
+            : Response.json({
+                result: {
+                  content: [{ type: "text", text: "{}" }],
+                  structuredContent: { args, engines: CONFIGURED },
+                },
+              }),
   }
 }
 
@@ -301,9 +304,8 @@ describe("the engine screen's filter in the page's address", () => {
       entry: "push",
       url: "/app/engines/prod-a/processes/pulse-order",
     })
-    expect(
-      await screen.findByRole("heading", { level: 1, name: "process-detail prod-a" }),
-    ).toBeTruthy()
+    // The page's process screen, at the process's own address.
+    expect(await screen.findByRole("heading", { level: 1, name: "Order fulfillment" })).toBeTruthy()
     await env.browser.back("/app/engines/prod-a?scope=incident&q=order")
     await screen.findByRole("table", { name: "Processes" })
     expect(shownRows()).toEqual(["Process Order fulfillment", "Process Dispatch order"])
@@ -319,12 +321,22 @@ describe("the engine screen's filter in the page's address", () => {
 })
 
 describe("the page's name of a place it shows itself", () => {
-  /** A view that says how the page names an engine's processes and its jobs, for its trail. */
+  /**
+   * A view that says how the page names an engine's processes, its jobs, the list of a process's
+   * instances and a process, for its trail.
+   */
   const Naming: ViewComponent = () => {
     const location = useHostLocation()
     const names = [
       location?.nameOf?.({ view: "overview", engine: "prod-a" }),
       location?.nameOf?.({ view: "jobs", engine: "prod-a" }) ?? "its own",
+      location?.nameOf?.({
+        view: "process-instances",
+        engine: "prod-a",
+        processDefinitionKey: "invoice",
+      }),
+      location?.nameOf?.({ view: "process-detail", engine: "prod-a", processDefinitionKey: "a" }) ??
+        "the process's own",
     ]
     return (
       <main>
@@ -335,8 +347,8 @@ describe("the page's name of a place it shows itself", () => {
   const NAMING = { views: { engine_open_cockpit: Naming } }
 
   it.each([
-    ["en", "Processes, its own"],
-    ["de", "Prozesse, its own"],
+    ["en", "Processes, its own, invoice, the process's own"],
+    ["de", "Prozesse, its own, invoice, the process's own"],
   ])("is its navigation's word, a view's own elsewhere (%s)", async (lang, names) => {
     document.documentElement.lang = lang
     await start("/app/engines/prod-a/jobs", server(), NAMING)

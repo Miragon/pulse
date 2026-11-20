@@ -5,6 +5,7 @@ import type {
   InstanceSummary,
 } from "@miragon/pulse-engine-core"
 import type { InstanceReadCode } from "../format/instance-screen-data.js"
+import { CalledProcesses } from "./called-processes.js"
 import { CallLinks } from "./call-links.js"
 import { Headline } from "./headline.js"
 import { IncidentCards } from "./incident-cards.js"
@@ -34,9 +35,10 @@ export class InstanceScreen {
       return undefined
     }
     const { definition, parentInstanceId } = detail.instance
+    const diagram = reads.getDiagramXml(definition.id).catch(() => undefined)
     const [diagramXml, calledProcesses, caller] = await Promise.all([
-      reads.getDiagramXml(definition.id).catch(() => undefined),
-      reads.getCalledProcesses(definition.id).catch(() => undefined),
+      diagram,
+      CalledProcesses.read(reads, definition.id, diagram),
       InstanceScreen.callerOf(reads, parentInstanceId),
     ])
     return InstanceScreen.of({ engine, asOf, detail, diagramXml, calledProcesses, caller })

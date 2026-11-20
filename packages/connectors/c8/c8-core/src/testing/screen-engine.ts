@@ -5,6 +5,10 @@ export interface C8ExpectedScreens {
   readonly engine: unknown
   readonly instance: unknown
   readonly calledInstance: unknown
+  readonly process: unknown
+  readonly olderVersion: unknown
+  readonly callingProcess: unknown
+  readonly instanceList: unknown
 }
 
 export interface C8ScreenEngine {

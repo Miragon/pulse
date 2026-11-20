@@ -1,4 +1,4 @@
-import type { ScreenTarget } from "@miragon/pulse-screens"
+import type { BadgeCountKind, ScreenTarget } from "@miragon/pulse-screens"
 import type { ComponentType, ReactNode } from "react"
 
 /** How a target opens: in place, or beside the view (Ctrl or Cmd held) where the surface can. */
@@ -19,6 +19,13 @@ export interface ScreenTableColumn<Row> {
    * (the web app's), one whose columns the user sizes keeps it (the editors').
    */
   readonly hideBelow?: ScreenColumnWidth
+  /**
+   * A caption that is a control, not a word (a selection's box for every row shown): the surface
+   * draws it in place of the label, which stays the column's name.
+   */
+  readonly header?: ReactNode
+  /** A fixed width in pixels for a column whose content has one (a selection's box). */
+  readonly width?: number
 }
 
 /** What a row's copy puts on the clipboard, and what it names ("BPMN process ID"). */
@@ -46,6 +53,12 @@ export interface ScreenPlainTableProps<Row> {
   readonly empty: string
 }
 
+/** What a table's empty state offers to do: a way out of the filter that left no row. */
+export interface ScreenEmptyAction {
+  readonly label: string
+  readonly onClick: () => void
+}
+
 /** The props of the surface's table whose rows open what they name. */
 export interface ScreenTableProps<Row> extends ScreenPlainTableProps<Row> {
   /** Opens a row: a click on it or Enter, Ctrl or Cmd held beside the view. */
@@ -59,6 +72,15 @@ export interface ScreenTableProps<Row> extends ScreenPlainTableProps<Row> {
   readonly rowLabel: (row: Row) => string
   /** What a row's copy puts on the clipboard. */
   readonly copyOf: (row: Row) => ScreenCopy
+  /** What the empty state offers beside its words, where a filter left no row. */
+  readonly emptyAction?: ScreenEmptyAction
+  /** What the table shows under its rows (a list's Load more). */
+  readonly footer?: ReactNode
+  /**
+   * Toggles a row's selection on Space, where a surface selects rows (a write slot of the block,
+   * which only a surface that writes fills).
+   */
+  readonly onToggle?: (row: Row) => void
 }
 
 /**
@@ -123,4 +145,17 @@ export interface InstanceSlots {
   readonly PlainTable: ScreenPlainTableSlot
   readonly Link: ComponentType<ScreenLinkProps>
   readonly onCopy: (copy: ScreenCopy) => void
+}
+
+/**
+ * The props of the surface's count badge, as its diagram draws one: its kind, its count (none in a
+ * legend's sample) and whether the counts are stale. Its look is the canvas's (the editors' filled
+ * 20 px pills, the web app's badges on its BPMN canvas).
+ */
+export interface CountBadgeProps {
+  readonly kind: BadgeCountKind
+  readonly count?: number
+  readonly stale?: boolean
+  /** A legend's sample, not a count on the diagram. */
+  readonly legend?: boolean
 }

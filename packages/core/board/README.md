@@ -157,8 +157,11 @@ to: instances and incidents newest first, incidents in pages without gaps, every
 full.
 
 `DiagramBadges.of(xml, statistics)` is the roll-up (the incidents inside a collapsed sub-process
-counted on its shape too) and `CollapsedShapes.of(xml)` the reader of the collapsed sub-processes
-around an element, so a surface draws its process views by the same rule as a board. It reads the
+counted on its shape too), `CollapsedShapes.of(xml)` the reader of the collapsed sub-processes
+around an element and `CallActivities.found(xml)` whether a diagram has a call activity, by the
+element alone, its id quoted either way or missing, `undefined` for a text too long to read (the
+screens' builder and the editors' core read the processes a version calls unless it is `false`),
+so a surface draws its process views by the same rule as a board. It reads the
 tags in one pass, in time that grows with the text: a comment, a CDATA section and a processing
 instruction to their own ends, a quoted `>` as part of its tag, and no tag of markup that never
 ends or of a text over 4 Mi characters (`XmlTags.readable`), which rolls up nothing. c8-core's BPMN text reads over a
@@ -231,7 +234,7 @@ dialect's recorded board by it, so one rule decides what counts as the same numb
 | Entry                                           | Holds                                                                                                                                                                             |
 | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@miragon/pulse-board`                          | `BoardParser`, `BoardProblems`, `BoardTiles`, `BoardVocabulary`, `StarterBoard` and the types of a board, its widgets and problems and of a built board's JSON form (`BoardData`) |
-| `@miragon/pulse-board/builder`                  | `BoardBuilder`, `BoardJson`, `DiagramBadges`, `CollapsedShapes` and the types of `BoardModel` and `BoardReads`                                                                    |
+| `@miragon/pulse-board/builder`                  | `BoardBuilder`, `BoardJson`, `DiagramBadges`, `CollapsedShapes`, `CallActivities` and the types of `BoardModel` and `BoardReads`                                                  |
 | `@miragon/pulse-board/schema/board.schema.json` | The JSON Schema of a board file                                                                                                                                                   |
 | `@miragon/pulse-board/testing`                  | `BOARD_FIXTURES`, the shared fixtures, and `BoardFigures`, a built board's figures                                                                                                |
 

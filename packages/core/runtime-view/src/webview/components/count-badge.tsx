@@ -1,4 +1,5 @@
 import { CircleXIcon } from "lucide-react"
+import type { CountBadgeProps as BadgeSlotProps } from "@miragon/pulse-blocks"
 import { cn, Icon } from "@miragon/pulse-ui"
 import { CountLabels } from "../format/count-labels.js"
 
@@ -9,6 +10,12 @@ export interface CountBadgeProps {
   readonly count?: number
   readonly stale?: boolean
   readonly legend?: boolean
+}
+
+const VARIANTS: Readonly<Record<BadgeSlotProps["kind"], CountBadgeVariant>> = {
+  incidents: "incident",
+  incidentsInCalledInstances: "propagated",
+  running: "running",
 }
 
 export function CountBadge({ variant, count, stale = false, legend = false }: CountBadgeProps) {
@@ -30,5 +37,16 @@ export function CountBadge({ variant, count, stale = false, legend = false }: Co
         <span className="count-badge__count">{CountLabels.compact(count)}</span>
       )}
     </span>
+  )
+}
+
+export function DiagramBadge({ kind, count, stale, legend }: BadgeSlotProps) {
+  return (
+    <CountBadge
+      variant={VARIANTS[kind]}
+      {...(count === undefined ? {} : { count })}
+      {...(stale === undefined ? {} : { stale })}
+      {...(legend === undefined ? {} : { legend })}
+    />
   )
 }

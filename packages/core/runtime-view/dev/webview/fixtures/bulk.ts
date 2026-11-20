@@ -1,5 +1,5 @@
 import type { BulkView, DefinitionView, InstanceRow } from "../../../src/core/protocol/index.js"
-import { DEFINITION_VIEW, INSTANCES } from "./definition.js"
+import { INSTANCES, QUIET_DEFINITION_VIEW } from "./definition.js"
 import { LOCAL_ENGINE } from "./engines.js"
 
 const SELECTED = new Set(["ORD-10442", "ORD-10438", "ORD-10431"])
@@ -9,7 +9,7 @@ function selectable(row: InstanceRow, selected: boolean): InstanceRow {
 }
 
 const WRITABLE_DEFINITION: DefinitionView = {
-  ...DEFINITION_VIEW,
+  ...QUIET_DEFINITION_VIEW,
   engine: {
     ...LOCAL_ENGINE,
     access: {

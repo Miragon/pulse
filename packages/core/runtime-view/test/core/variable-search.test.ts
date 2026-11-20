@@ -144,7 +144,7 @@ describe("the definition panel with variable conditions", () => {
     ])
   })
 
-  test("sends a date as a point in time and null as null", async () => {
+  test("sends a date as the point in time its wall clock names in the host's time zone, and null as null", async () => {
     const opened = await openOrder("order@1")
 
     await opened.panel.handle({
@@ -162,7 +162,7 @@ describe("the definition panel with variable conditions", () => {
       {
         name: "dueAt",
         operator: "greaterThan",
-        at: new Date("2026-01-01T00:00").toISOString(),
+        at: new Date(2026, 0, 1, 0, 0).toISOString(),
       },
       { name: "giftNote", operator: "equals", valueJson: "null" },
     ])

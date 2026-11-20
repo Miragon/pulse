@@ -91,6 +91,16 @@ const PLACES: readonly (readonly [Place, string])[] = [
   ],
 ]
 
+/**
+ * The address the page keeps for `place`, which `urlOf` names at `url`: its own, but for the list of
+ * a process's instances, which the page shows as the process screen at the process's own address,
+ * the old one replaced in its entry.
+ */
+function keptUrl(place: Place, url: string): string {
+  const screen = screenOf(place)
+  return place.view === "process-instances" && screen !== undefined ? screenUrlOf(screen) : url
+}
+
 /** The ids of a place, the texts an address must carry as they are. */
 const IDS = new Set([
   "engine",
@@ -117,15 +127,15 @@ describe("every place of the cockpit at its address and back", () => {
     expect(urlOf(place)).toBe(url)
     const route = viewAt(url)
     expect(route.place).toEqual(place)
-    // A canonical address is the one the page keeps: nothing replaces it.
-    expect(route.url).toBe(url)
+    // A canonical address is the one the page keeps: nothing replaces it, but the process screen's.
+    expect(route.url).toBe(keptUrl(place, url))
   })
 
   it.each(PLACES)("%o round-trips with ids no path takes as they are", (place) => {
     const encoded = withIds(place, (id) => `${id} a/ü?#%&=+.`)
     const url = urlOf(encoded)
     expect(viewAt(url).place).toEqual(encoded)
-    expect(viewAt(url).url).toBe(url)
+    expect(viewAt(url).url).toBe(keptUrl(encoded, url))
   })
 
   it.each(PLACES)("%o round-trips with ids of dots, which no path takes at all", (place) => {
@@ -304,7 +314,7 @@ describe("the cockpit's query, the address before the page's own", () => {
       ).toString()}`
       const route = viewAt(old)
       expect(route.place, old).toEqual(place)
-      expect(route.url, old).toBe(url)
+      expect(route.url, old).toBe(keptUrl(place, url))
     }
   })
 
@@ -502,5 +512,177 @@ describe("the page's instance screen at a place", () => {
     expect(route(url).screen).toEqual({ kind: "incident", engine: E, incident: "inc-1" })
     expect(route(url).url).toBe(url)
     expect(screenUrlOf({ kind: "incident", engine: E, incident: "inc-1" })).toBe(url)
+  })
+})
+
+describe("the page's process screen at a place", () => {
+  const route = (url: string) => {
+    const { pathname, search } = new URL(url, "http://localhost")
+    return viewRouteOf({ pathname, search })
+  }
+  const RUNNING = { scope: "running" } as const
+
+  it("is the process screen at a process's view, with its incidents in focus, and at its instances", () => {
+    expect(
+      screenOf({ view: "process-detail", engine: E, processDefinitionKey: "invoice" }),
+    ).toEqual({ kind: "process", engine: E, process: "invoice", filter: RUNNING })
+    expect(
+      screenOf({
+        view: "process-detail",
+        engine: E,
+        processDefinitionKey: "invoice",
+        focus: "incidents",
+      }),
+    ).toEqual({ kind: "process", engine: E, process: "invoice", filter: { scope: "withIncident" } })
+    expect(
+      screenOf({ view: "process-instances", engine: E, processDefinitionKey: "invoice" }),
+    ).toEqual({ kind: "process", engine: E, process: "invoice", filter: RUNNING })
+    // The engine's instances without a process stay the cockpit's, as an id of dots does.
+    expect(screenOf({ view: "process-instances", engine: E })).toBeUndefined()
+    expect(
+      screenOf({ view: "process-detail", engine: E, processDefinitionKey: ".." }),
+    ).toBeUndefined()
+    expect(
+      screenOf({ view: "jobs", engine: E, processDefinitionKey: "invoice", focus: "incidents" }),
+    ).toBeUndefined()
+    expect(
+      screenOf({ view: "process-detail", engine: E, processDefinitionKey: "a", focus: "jobs" }),
+    ).toBeUndefined()
+    expect(screenOf({ view: "jobs", engine: E, processDefinitionKey: "invoice" })).toBeUndefined()
+  })
+
+  it("carries the version and the list's filter in the address's query, the defaults left out, both ways", () => {
+    const cases: Array<[string, Record<string, unknown>]> = [
+      ["/app/engines/prod-a/processes/invoice", { filter: RUNNING }],
+      ["/app/engines/prod-a/processes/invoice?version=7", { version: 7, filter: RUNNING }],
+      [
+        "/app/engines/prod-a/processes/invoice?scope=incident",
+        { filter: { scope: "withIncident" } },
+      ],
+      ["/app/engines/prod-a/processes/invoice?scope=ended", { filter: { scope: "ended" } }],
+      ["/app/engines/prod-a/processes/invoice?scope=all", { filter: { scope: "all" } }],
+      [
+        "/app/engines/prod-a/processes/invoice?version=2&scope=all&element=Task_Review&key=ORD+1%2F2",
+        {
+          version: 2,
+          filter: { scope: "all", elementId: "Task_Review", businessKey: "ORD 1/2" },
+        },
+      ],
+      [
+        `/app/engines/prod-a/processes/invoice?var=amount%7EgreaterThan%7E100&var=dueAt%7ElessThan.date%7E${encodeURIComponent(new Date("2026-03-15T10:00").toISOString())}&var=a%257Eb%7Eequals%7Ex%7Ey`,
+        {
+          filter: {
+            scope: "running",
+            variables: [
+              { name: "amount", operator: "greaterThan", value: "100" },
+              { name: "dueAt", operator: "lessThan", value: "2026-03-15T10:00", as: "date" },
+              { name: "a~b", operator: "equals", value: "x~y" },
+            ],
+          },
+        },
+      ],
+    ]
+    for (const [url, state] of cases) {
+      const shown = route(url)
+      expect(shown.screen, url).toEqual({
+        kind: "process",
+        engine: E,
+        process: "invoice",
+        ...state,
+      })
+      expect(shown.url, url).toBe(url)
+      expect(shown.place).toMatchObject({ view: "process-detail", processDefinitionKey: "invoice" })
+      expect(screenUrlOf(shown.screen!)).toBe(url)
+    }
+  })
+
+  it("carries a date as the instant it names here and reads it on this browser's clock, an old wall clock replaced", () => {
+    const path = "/app/engines/prod-a/processes/invoice"
+    const due = (value: string) =>
+      `${path}?${new URLSearchParams([["var", `due~lessThan.date~${value}`]]).toString()}`
+    const dueOf = (url: string) => {
+      const shown = route(url).screen
+      return shown?.kind === "process" ? shown.filter.variables?.[0]?.value : undefined
+    }
+    const instant = new Date("2026-03-15T10:00:30").toISOString()
+
+    // An old address's wall clock: read as it is, its entry named by the instant.
+    expect(dueOf(due("2026-03-15T10:00:30"))).toBe("2026-03-15T10:00:30")
+    expect(route(due("2026-03-15T10:00:30")).url).toBe(due(instant))
+    // An instant with its offset: on this browser's clock, its seconds where it has some.
+    expect(dueOf(due(instant))).toBe("2026-03-15T10:00:30")
+    expect(dueOf(due(new Date("2026-03-15T10:00").toISOString()))).toBe("2026-03-15T10:00")
+    expect(new Date(dueOf(due("2026-03-15T09:00:00+00:00")) ?? "").toISOString()).toBe(
+      "2026-03-15T09:00:00.000Z",
+    )
+    // What names no time it can read stays as it is, for the server to refuse.
+    expect(dueOf(due("2026-13-45T10:00"))).toBe("2026-13-45T10:00")
+    expect(dueOf(due("2026-13-45T10:00Z"))).toBe("2026-13-45T10:00Z")
+    expect(dueOf(due("soon"))).toBe("soon")
+    // Another type keeps its value.
+    const other = `${path}?${new URLSearchParams([["var", "at~equals~2026-03-15T10:00"]]).toString()}`
+    expect(route(other).url).toBe(other)
+  })
+
+  it("leaves out what it does not read: a version that is no number, a scope, an empty key, a broken condition", () => {
+    const read = (search: string) => route(`/app/engines/prod-a/processes/invoice${search}`)
+    expect(read("?version=0&scope=running&key=%20%20&element=").url).toBe(
+      "/app/engines/prod-a/processes/invoice",
+    )
+    expect(read("?version=v7&scope=waiting").screen).toEqual({
+      kind: "process",
+      engine: E,
+      process: "invoice",
+      filter: RUNNING,
+    })
+    expect(read("?key=%20ORD-1%20").url).toBe("/app/engines/prod-a/processes/invoice?key=ORD-1")
+    const conditions = [
+      "amount", // no operator
+      "amount~greaterThan", // no value
+      "~equals~1", // no name
+      "%E0%A4%A~equals~1", // a broken escape
+      "amount~between~1", // an operator no list takes
+      "amount~equals.money~1", // a type no condition compares as
+      "amount~equals.text.more~1", // more than a type
+    ]
+    const search = conditions.map((text) => `var=${encodeURIComponent(text)}`).join("&")
+    expect(read(`?${search}`).url).toBe("/app/engines/prod-a/processes/invoice")
+  })
+
+  it("takes at most five variable conditions, as a list does", () => {
+    const search = Array.from({ length: 7 }, (_, n) => `var=v${String(n)}%7Eequals%7E1`).join("&")
+    const shown = route(`/app/engines/prod-a/processes/invoice?${search}`).screen
+    if (shown?.kind !== "process") throw new Error("no process screen")
+    expect(shown.filter.variables).toHaveLength(5)
+  })
+
+  it("replaces the address of a process's instances, and the old one of its view, by its own", () => {
+    expect(route("/app/engines/prod-a/instances?process=invoice").url).toBe(
+      "/app/engines/prod-a/processes/invoice",
+    )
+    expect(
+      route(
+        "/app/cockpit?view=process-detail&engine=prod-a&processDefinitionKey=invoice&focus=incidents",
+      ).url,
+    ).toBe("/app/engines/prod-a/processes/invoice?scope=incident")
+    // The list of a process's instances takes no screen state from its own query.
+    expect(route("/app/engines/prod-a/instances?process=invoice&version=7").screen).toEqual({
+      kind: "process",
+      engine: E,
+      process: "invoice",
+      filter: RUNNING,
+    })
+  })
+
+  it("keeps the cockpit's process view for an engine no segment takes, without the screen's state", () => {
+    expect(
+      screenUrlOf({
+        kind: "process",
+        engine: ".",
+        process: "invoice",
+        version: 7,
+        filter: RUNNING,
+      }),
+    ).toBe("/app/cockpit?view=process-detail&engine=.&processDefinitionKey=invoice")
   })
 })

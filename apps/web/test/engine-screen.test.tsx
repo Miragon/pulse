@@ -466,7 +466,10 @@ describe("the page's slots of a screen", () => {
     render(<Probe />)
     expect(screen.getByTestId("engine").textContent).toBe("/app/engines/prod%20a")
     expect(screen.getByTestId("process").textContent).toBe("/app/engines/prod/processes/order")
-    expect(screen.getByTestId("version").textContent).toBe("/app/engines/prod/processes/order")
+    // A version is the process screen at its number, a new subject of the page's history.
+    expect(screen.getByTestId("version").textContent).toBe(
+      "/app/engines/prod/processes/order?version=7",
+    )
     expect(screen.getByTestId("instance").textContent).toBe(
       "/app/engines/prod/instances/8f3c%2F2a1e",
     )

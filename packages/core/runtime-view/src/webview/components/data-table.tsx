@@ -8,7 +8,7 @@ import { useColumnSizing } from "./column-sizing.js"
 import { RowTargets, type RowActions } from "./row-targets.js"
 import { TableKeys } from "./table-keys.js"
 
-export interface Column<Row> {
+interface Column<Row> {
   readonly key: string
   readonly label: string
   readonly render: (row: Row) => ReactNode

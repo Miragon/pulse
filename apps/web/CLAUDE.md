@@ -37,8 +37,13 @@ server image builds the page beside the server and serves it from `/app/web`.
   does not configure the page's refused start: `src/unknown-engine.tsx` says it in the view's place
   where the landing's start data does not name the engine, the engine connector's
   `cockpitNamesEngine`, so the cockpit never falls back from it and the address stays),
-  `processes/<key>` (`?scope=incident`: its incidents in
-  focus), `instances` (`?process=<key>`), `instances/<id>` (the page's instance screen below;
+  `processes/<key>` (the page's process screen below;
+  `?version=<n>&scope=incident|ended|all&element=<id>&key=<key>&var=<name~operator~value>`: the
+  version, the instance list's scope, element, exact business key and variable conditions (a date
+  as its instant with its offset),
+  `scope=incident` the old address of its incidents in focus too), `instances` (the engine's
+  instances; `?process=<key>`, the old address of a process's instances, gives way to the process's
+  own), `instances/<id>` (the page's instance screen below;
   `?tab=history|incidents|waiting|variables`: its tab, `?tab=history` the cockpit's history),
   `instances/<id>/incidents/<id>` (the instance screen with that root incident in focus), `incidents`,
   `incidents/cause` (`?activity=…&type=…&signature=…`) and `jobs` (`?process=<key>&failed=true`),
@@ -68,7 +73,8 @@ server image builds the page beside the server and serves it from `/app/web`.
   navigation, Back, Forward) hands focus to the new view's `h1` (the router's `moves`, pulse-ui's
   `NavigationFocus`), as does a drill the view reports to a place the page claims (its engine
   screen), which the page shows anew; never another move the view reports. A move inside a view or
-  a screen (a filter, a tab; the router's `refine`) leaves it where it is. Every page has one main
+  a screen (a filter, a tab, a version the process's picker picks; the router's `refine`, in the
+  entry or a new one) leaves it where it is. Every page has one main
   landmark and one `h1` (a view's, the view frame's failure in its place, a state page's reason),
   which titles the document, `<h1> · Pulse` in the page's language, and the title follows it as
   the user moves on inside the page (`src/frame/layout.tsx`, WCAG 2.4.2); before a view shows its
@@ -121,7 +127,7 @@ server image builds the page beside the server and serves it from `/app/web`.
   defaults left out): each pick names the entry anew through the router's `refine`, which keeps the
   screen and the focus where they are, and Back, Forward and a reload show the list as it was left
   (a move between two entries of the screen keeps it, with the entry's filter). A row opens its
-  process (the cockpit's process view, a new entry), Ctrl or Cmd with a click or Enter and a
+  process (the page's process screen, a new entry), Ctrl or Cmd with a click or Enter and a
   middle click open it in a new tab, Ctrl or Cmd with C copies its BPMN process ID. Its bar names
   the engine (its h1) and its product (an em dash where the engine did not say it), the page's menu
   first, the Refresh and the engine's own web app where the profile or the provider knows its
@@ -165,7 +171,8 @@ server image builds the page beside the server and serves it from `/app/web`.
   router's `refine`), none there the screen's pick: its incidents where it has some, else where it
   waits while it runs, else its history. From 64rem on the diagram and the details split the window's
   height (`split-pane.tsx`: a `separator` the reader moves by mouse, touch, the arrows, Home and End,
-  the share kept in this browser's guarded storage), under it the diagram takes the viewer's height
+  the share kept in this browser's guarded storage, its one column as wide as the screen, so a stack
+  trace opened scrolls in its own box), under it the diagram takes the viewer's height
   above the details and the page scrolls (`src/screens/use-wide.ts`). Its incident cards
   (`incident-cards.tsx`, `IncidentCard` over the root incidents of the tree, its own and those of the
   instances it called) lead to their incident in focus at the address under the instance that holds
@@ -187,10 +194,71 @@ server image builds the page beside the server and serves it from `/app/web`.
   Camunda 7's engines, the cockpit's view of any other); the page claims the cockpit's instance view,
   its history and an incident (`ViewLocation.claims`), so a drill of the embedded cockpit to one of
   them shows the screen.
+- The process screen (`src/screens/process`), at a process's own address: the process in one version
+  (the address's `version`, else the latest) from the process screen's feed
+  (`engine_screen_process_data`, an app-only read of the engine contract in every dialect, the
+  process screen of `@miragon/pulse-screens` the editors' adapters build of the same answers, beside
+  it the version in the engine's web app), rendered with a process's blocks of
+  `@miragon/pulse-blocks` the webview's definition view renders (D10, a pair with Pulse for VS Code
+  since 2026-11-20). Its bar: the process's name as the h1, the engine its fact, its actions in the
+  webview's order, the version picker with each version's running instances and those with incident
+  (`VersionPicker`) first, the Refresh, the version in the engine's web app, then when it was read.
+  Under it the strips: a version the address names that the engine lacks (the latest shown), older
+  versions that still run with the way to the newest of them (`OlderVersionsNotice`), a history that
+  misses running instances (`MissingHistoryNotice` over the screens' `HistoryGaps`: the version's
+  running instances, which the runtime counts, against the list's count over every lifecycle, which
+  the history answers, read in that order: the list's first page is sent only once the versions
+  answered, and its counts count only where read no earlier than the versions (`asOf`), never a
+  floor's answer of an earlier read; the owner's decision of 2026-11-19, no fallback to the
+  runtime), and what it could not read beside its versions (the counts on its diagram, the processes
+  it calls; never a 0). Its diagram (`process-diagram.tsx`: widget-shell's `useBpmnViewer` on the
+  canvas that follows the theme) draws the blocks' decorations (`useDiagramDecorations`): each
+  element's counts apart, its root incidents, the incidents in the instances it called (quiet, never
+  part of the incident count) and its running instances (`BadgeCluster` with the page's badge,
+  `canvas-badge.tsx` over the canvas's `bpmn-overlay-badge`), the outline of an element with a root
+  incident, each call activity's link to the version it calls (`CallButton` with its address, worded
+  by `useCallLabel`: a plain click in place, Ctrl or Cmd, Shift, Alt and the middle button the
+  browser's; a process the engine lacks a button that opens nothing), and the element the list is
+  filtered to ringed; a count's click filters the list to its element and scope, Escape clears the
+  element (not from a field, nor with a dialog open), and a ring, a count or a call target changes
+  in place (each overlay reads its data at each render), so the reader's zoom stays. Its instance
+  list (`instance-list.tsx`, `instance-pages.ts`): the blocks' `InstanceFilterBar` (the scopes with
+  their counts, a lower bound where the engine stopped counting, the element's chip, the exact
+  business key, the variable conditions with their dialog, the kinds the engine refuses offered
+  disabled with their reason, the variable names read through `engine_screen_variable_names_data`
+  once the dialog opens, a date the dialog writes as this browser's wall clock sent as its instant;
+  the badges' legend at its end) and `InstanceTable` over `engine_screen_instances_data` (under
+  40rem its id and state, the business key and the start dropped, so its region never scrolls
+  sideways on a phone), pages of
+  50 by cursor with `LoadMore` under the rows (`InstanceTable`'s `more`: it waits `aria-disabled`
+  and keeps the focus, which goes on to the first new row once the page shows; a further page that
+  failed said beside it, its Try again putting the focus back on Load more, an ended session left to
+  the frame's notice), each later page after the rows shown without a row shown already
+  (`useInstanceRows`), the scopes' counts from the first page, which a Refresh, a filter or the
+  reader's return reads anew, after the versions, and so starts the list over; a failed read of it
+  over the rows on screen is the strip under the bar; a row opens its instance. A condition the
+  engine refuses (the feed's `REFUSED_CONDITION`) is said in the list's place with the way to clear
+  the conditions, no Try again. The version, the scope, the element, the key and the conditions ride
+  in the address (a date as the instant it names, read on this browser's clock, so a shared link
+  lists the same instances in another time zone): another version is a new entry, the variable
+  conditions kept as in the editors, the screen kept (the router's same subject), a pick in the
+  picker leaving the focus there (`refine` with `push`, WCAG 3.2.2) and the notice's way moving it
+  to the h1, the bar keeping the version before while the next one reads; a filter names the entry
+  anew (the router's `refine`). From 64rem on the diagram and the list split the window's height
+  (`split-pane.tsx`, its share in this browser's guarded storage per screen), under it the diagram
+  takes 240 to 560 px with three rows of the list under it in the window, beside the strips under
+  the bar as measured (`--process-strips`), and the page scrolls. A process the engine has no
+  version of (the feed's `UNKNOWN_PROCESS`) is asked once and said in the view's place with the way
+  to the engine's processes, no Try again. It writes nothing, selects nothing (every write slot of
+  the blocks empty) and hands nothing to a chat. The page claims the cockpit's process view and its
+  list of a process's instances (`ViewLocation.claims`), so a drill of the embedded cockpit to one
+  shows the screen. The process screen's feeds stand on the server's floor of 30 s per caller and
+  arguments (the list's first page, never a later one), so a Refresh within it shows the same read.
 - A screen of the page's fills the window's height from 64rem on (`SessionLayout`'s `fill`, which
   bounds the sheet; widget-shell's `WidgetShell` and `ListTable` `fill`; pulse-ui's
-  `NavigationFocus` `className`): the engine screen's list and the instance screen's split scroll in
-  their own regions; under 64rem, and for every view of the cockpit, the page scrolls.
+  `NavigationFocus` `className`): the engine screen's list and the process and instance screens'
+  splits scroll in their own regions; under 64rem, and for every view of the cockpit, the page
+  scrolls.
 - `src/start.ts` starts a page: the signed-out page needs no session; any other names its view
   canonically, reads the session (`readWebSession`) and mounts the page's app with widget-shell's
   `mountApp` (`src/app.tsx`: the frame around the view, which `PageView` shows at the router's

@@ -49,7 +49,8 @@ served by the transport's `startRecordedEngine`) it builds exactly the board the
 expects, whose numbers are those of the kit's own world (`test/c8-board-numbers.test.ts`), compared
 by `BoardFigures` of `@miragon/pulse-board/testing`, the one rule every surface's board suites
 compare by. Over c8-core's recorded screen answers (`C8_SCREEN_ENGINE`) it builds exactly the
-engine screen and the two instance screens of `@miragon/pulse-screens` the recording expects, whose
+engine screen, the two instance screens, the three process screens and the instance list of
+`@miragon/pulse-screens` the recording expects, whose
 figures are those of the kit's own world and of the C7 adapter's recorded screens
 (`test/c8-screen-numbers.test.ts`, compared by `ScreenFigures` of `@miragon/pulse-screens/testing`;
 the conformance suite reads them live too).

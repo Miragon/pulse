@@ -81,11 +81,11 @@ describe("the webview bundle", { timeout: 60_000 }, () => {
     const gzip = gzipSync(readFileSync(join(outdir, file))).length
     expect(
       gzip,
-      `${file} is ${String(gzip)} bytes gzip, over its ceiling: shrink it, or raise the ceiling in test/__golden__/bundle-budget.json with a Ratchet-Exception trailer that says why`,
+      `${file} is ${String(gzip)} bytes gzip, over its ceiling: shrink it, or raise the ceiling in test/__golden__/bundle-budget.json to the measurement plus about 2 % (the script at most 500,000 bytes) with a Ratchet-Exception trailer that says what it buys`,
     ).toBeLessThanOrEqual(ceiling)
     expect(
       gzip,
-      `${file} is ${String(gzip)} bytes gzip, well below its ceiling of ${String(ceiling)}: lower the ceiling to about ${String(Math.ceil((gzip * 1.05) / 100) * 100)}`,
+      `${file} is ${String(gzip)} bytes gzip, well below its ceiling of ${String(ceiling)}: lower the ceiling to about ${String(Math.ceil((gzip * 1.02) / 100) * 100)}`,
     ).toBeGreaterThan(ceiling * TIGHT)
   })
 

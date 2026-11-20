@@ -268,17 +268,22 @@ and that board into `packages/connectors/c7/c7-core/src/testing/board-engine.jso
 `C7_SCREEN_ENGINE` is the same for the screens Pulse's surfaces share
 ([`@miragon/pulse-screens`](https://www.npmjs.com/package/@miragon/pulse-screens)): one engine's
 answers to the screens' reads, the time a surface builds them at (`asOf`) and the screens they give
-in their JSON form: the engine screen (`expected.engine`, `EngineScreenData`) and the instance
+in their JSON form: the engine screen (`expected.engine`, `EngineScreenData`); the instance
 screens (`InstanceScreenData`) of DSP-3001, which waits at its call activity for the root incident
 of the instance it called (`expected.instance`), and of that called instance, which holds it
-(`expected.calledInstance`). The editors' C7 adapter builds each exactly over its wire. Its answers
-come from one run of their own, recorded by hand on 2026-11-20 as the board's: the world seeded
+(`expected.calledInstance`); the process screens (`ProcessScreenData`) of pulse-order at its
+latest version (`expected.process`) and at its version 1 (`expected.olderVersion`) and of
+pulse-dispatch (`expected.callingProcess`); and the first page of every instance of pulse-order's
+version 1 with the counts of each scope (`expected.instanceList`, `InstanceListData`). The editors'
+C7 adapter and the MCP server's SDK wire build each exactly. Its answers come from one run of their
+own, recorded by hand on 2026-11-20 as the board's, made anew with the process screens and the
+instance list: the world seeded
 with `seedC7World` into `operaton/operaton:2.1.5` at history level FULL, every screen built twice
 through a proxy in front of the engine that keeps each request with what the engine answers (the
 same answer both times but for the telemetry, which counts the engine's commands and keeps its
 first), and once more over the kept answers on `startRecordedEngine`, with no request unanswered.
-So every id they name is that engine's, and a screen built over them later (a process, an instance
-list) reads the same instances and versions; one that reads more is recorded again with the others
+So every id they name is that engine's, and every screen built over them reads the same instances
+and versions; one that reads more is recorded again with the others
 in one run, never joined from another recording, whose ids are another engine's (`C7_BOARD_ENGINE`
 is a run of its own). An answer that is no JSON (a job's stack trace) keeps its text and content type
 (`C7RecordedAnswer`).

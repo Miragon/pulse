@@ -10,11 +10,16 @@ import {
 } from "@miragon/pulse-ui/testing"
 import { describe, expect, it } from "vitest"
 import { de } from "./de.js"
+import { historyDe } from "./history-de.js"
+import { historyEn } from "./history-en.js"
 import { en, isOne } from "./en.js"
 import { instanceDe } from "./instance-de.js"
 import { instanceEn } from "./instance-en.js"
 import { instanceTranslate } from "./instance-words.js"
 import { humanized } from "./message.js"
+import { processDe } from "./process-de.js"
+import { processEn } from "./process-en.js"
+import { processTranslate } from "./process-words.js"
 import { screenDe } from "./screen-de.js"
 import { screenEn } from "./screen-en.js"
 import { screenTranslate } from "./screen-words.js"
@@ -45,6 +50,10 @@ const LANGUAGES = [
   ["the screens' English", screenEn, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
   ["an instance's German", instanceDe, [...PRODUCT_GLOSSARY.de, ...DE_RULES]],
   ["an instance's English", instanceEn, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
+  ["a process's German", processDe, [...PRODUCT_GLOSSARY.de, ...DE_RULES]],
+  ["a process's English", processEn, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
+  ["the history notice's German", historyDe, [...PRODUCT_GLOSSARY.de, ...DE_RULES]],
+  ["the history notice's English", historyEn, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
 ] as const
 
 describe.each(LANGUAGES)("the glossary holds in %s", (_language, catalog, rules) => {
@@ -163,5 +172,59 @@ describe("an instance's words", () => {
     expect(instanceTranslate("de", "incident.type", { type: "failedExternalTask" })).toBe(
       "Fehlgeschlagene externe Aufgabe",
     )
+  })
+})
+
+describe("a process's words", () => {
+  it("follow the voice rules in both languages (du, no dash as a connector, the plural)", () => {
+    expect(catalogTextFindings(processEn, { language: "en" })).toEqual([])
+    expect(catalogTextFindings(processDe, { language: "de" })).toEqual([])
+  })
+
+  it("have a German entry for every English key and no other", () => {
+    expect(Object.keys(processDe).sort()).toEqual(Object.keys(processEn).sort())
+  })
+
+  it("name the instances with incident with the count term every Pulse UI uses", () => {
+    expect([processEn["scope.withIncident"], processDe["scope.withIncident"]]).toEqual([
+      COUNT_TERMS.withIncident.en,
+      COUNT_TERMS.withIncident.de,
+    ])
+    const option = { version: 7, running: "12", withIncident: "2" }
+    const inSentence = (term: string) => `${term.charAt(0).toLowerCase()}${term.slice(1)}`
+    expect(processTranslate("en", "version.optionWithIncident", option)).toMatch(
+      new RegExp(` · 2 ${inSentence(COUNT_TERMS.withIncident.en)}$`),
+    )
+    expect(processTranslate("de", "version.optionWithIncident", option)).toMatch(
+      new RegExp(` · 2 ${inSentence(COUNT_TERMS.withIncident.de)}$`),
+    )
+  })
+
+  it("put the noun and the verb in the number their count has, in both languages", () => {
+    const words = (locale: string, key: string, params: Record<string, unknown>) =>
+      processTranslate(locale, key, params)
+    expect([
+      words("en", "older.title", { running: "1" }),
+      words("en", "older.title", { running: "1,204" }),
+      words("de", "older.title", { running: "1" }),
+      words("de", "older.title", { running: "3" }),
+    ]).toEqual([
+      "1 instance still runs on older versions.",
+      "1,204 instances still run on older versions.",
+      "1 Instanz läuft noch auf älteren Versionen.",
+      "3 Instanzen laufen noch auf älteren Versionen.",
+    ])
+    expect([
+      words("en", "variables.filterCount", { count: "1" }),
+      words("de", "variables.filterCount", { count: "2" }),
+    ]).toEqual(["Filter by variables, 1 condition", "Nach Variablen filtern, 2 Bedingungen"])
+  })
+})
+
+describe("the history notice's words", () => {
+  it("follow the voice rules in both languages and have a German entry for every English key", () => {
+    expect(catalogTextFindings(historyEn, { language: "en" })).toEqual([])
+    expect(catalogTextFindings(historyDe, { language: "de" })).toEqual([])
+    expect(Object.keys(historyDe).sort()).toEqual(Object.keys(historyEn).sort())
   })
 })

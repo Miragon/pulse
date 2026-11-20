@@ -75,6 +75,19 @@ function optionsOf(dialog: HTMLDialogElement, label: string): (string | null)[] 
   return [...field(dialog, label).options].map((option) => option.textContent)
 }
 
+function disabledOf(dialog: HTMLDialogElement, label: string): (string | null)[] {
+  return [...field(dialog, label).options]
+    .filter((option) => option.disabled)
+    .map((option) => option.textContent)
+}
+
+function labelColour(dialog: HTMLDialogElement, label: string): string {
+  const target = [...dialog.querySelectorAll("label")].find(
+    (candidate) => candidate.textContent === label,
+  )
+  return target === undefined ? "" : getComputedStyle(target).color
+}
+
 async function apply(dialog: HTMLDialogElement): Promise<void> {
   await nextFrame()
   buttonNamed(dialog, "Apply").click()
@@ -168,7 +181,7 @@ describe("the variable search of the definition panel", () => {
     })
   })
 
-  it("offers no date comparison and no greater or less than where the engine refuses them", async () => {
+  it("offers a date comparison and greater or less than disabled where the engine refuses them, with the reason (owner, 2026-11-20)", async () => {
     harness = mountApp()
     harness.publish(ready({ ...DEFINITION_VIEW, refusedVariableConditions: ["ordering", "date"] }))
     const dialog = await openDialog(
@@ -181,12 +194,18 @@ describe("the variable search of the definition panel", () => {
       "Text",
       "Number",
       "True or false",
+      "Date and time",
       "Null",
     ])
-    expect(optionsOf(dialog, "Operator")).toEqual(["is", "is not", "matches"])
+    expect(disabledOf(dialog, "Compare as")).toEqual(["Date and time"])
+    expect(disabledOf(dialog, "Operator")).toEqual(["is greater than", "is less than"])
+    expect(dialog.textContent).toContain("This engine can't compare dates.")
+    expect(dialog.textContent).toContain("This engine can't search for greater or less than.")
     enterValue(field(dialog, "Compare as"), "number")
     await nextFrame()
-    expect(optionsOf(dialog, "Operator")).toEqual(["is", "is not"])
+    expect(disabledOf(dialog, "Operator")).toEqual(["is greater than", "is less than"])
+    expect(labelColour(dialog, "Compare as")).toBe(labelColour(dialog, "Name"))
+    expect(labelColour(dialog, "Operator")).toBe(labelColour(dialog, "Name"))
   })
 
   it("keeps is after and is before where the engine refuses only greater and less than", async () => {
@@ -197,13 +216,14 @@ describe("the variable search of the definition panel", () => {
       await vi.waitFor(() => labelled(harness.root, "Filter by variables")),
     )
 
-    expect(optionsOf(dialog, "Compare as")).toContain("Date and time")
+    expect(disabledOf(dialog, "Compare as")).toEqual([])
     enterValue(field(dialog, "Compare as"), "number")
     await nextFrame()
-    expect(optionsOf(dialog, "Operator")).toEqual(["is", "is not"])
+    expect(disabledOf(dialog, "Operator")).toEqual(["is greater than", "is less than"])
     enterValue(field(dialog, "Compare as"), "date")
     await nextFrame()
     expect(optionsOf(dialog, "Operator")).toEqual(["is", "is not", "is after", "is before"])
+    expect(disabledOf(dialog, "Operator")).toEqual([])
   })
 
   it("asks for no value when it compares with null", async () => {
@@ -237,7 +257,7 @@ describe("the variable search of the definition panel", () => {
   it("shows every condition as a chip that edits or removes it", async () => {
     harness = mountApp()
     harness.publish(ready({ ...DEFINITION_VIEW, filter: CONDITIONS, variableLabels: LABELS }))
-    await vi.waitFor(() => labelled(harness.root, "Filter by variables, 2 active"))
+    await vi.waitFor(() => labelled(harness.root, "Filter by variables, 2 conditions"))
 
     const remove = labelled(harness.root, "Remove condition amount > 100")
     expect(remove.title).toBe("Remove condition amount > 100")
@@ -275,7 +295,7 @@ describe("the variable search of the definition panel", () => {
   it("keeps the conditions when the scope changes", async () => {
     harness = mountApp()
     harness.publish(ready({ ...DEFINITION_VIEW, filter: CONDITIONS, variableLabels: LABELS }))
-    await vi.waitFor(() => labelled(harness.root, "Filter by variables, 2 active"))
+    await vi.waitFor(() => labelled(harness.root, "Filter by variables, 2 conditions"))
 
     radioNamed(harness.root, "Ended").click()
 
@@ -327,11 +347,23 @@ describe("the variable search of the definition panel", () => {
     expect(options).toEqual(["amount", "route"])
   })
 
-  it("names a condition by its name until the host labels it", async () => {
+  it("words a condition as the core labels it until the host labels it", async () => {
+    const conditions = [
+      ...(CONDITIONS.variables ?? []),
+      { name: "route", operator: "like", value: "rev%" },
+      { name: "dueAt", operator: "lessThan", value: "2026-03-15T10:00", as: "date" },
+      { name: "giftNote", operator: "notEquals", value: "", as: "null" },
+    ] as const
     harness = mountApp()
-    harness.publish(ready({ ...DEFINITION_VIEW, filter: CONDITIONS }))
+    harness.publish(
+      ready({ ...DEFINITION_VIEW, filter: { scope: "running", variables: conditions } }),
+    )
 
-    await vi.waitFor(() => labelled(harness.root, "Remove condition amount"))
+    for (const condition of conditions) {
+      await vi.waitFor(() =>
+        labelled(harness.root, `Remove condition ${VariableConditionRules.label(condition)}`),
+      )
+    }
   })
 })
 
@@ -360,19 +392,19 @@ describe("the variable dialog", () => {
     expect(Object.keys(VariableDraft.errors(draft, 0))).toEqual(wrong === undefined ? [] : [wrong])
   })
 
-  it("offers no date and no ordering where the engine refuses them", () => {
-    const compareAs = VariableDraft.compareAsOptions(["date"]).map(([value]) => value)
-    expect(compareAs).not.toContain("date")
-    expect(VariableDraft.compareAsOptions([]).map(([value]) => value)).toContain("date")
-    expect(VariableDraft.operatorsOf("number", ["ordering"])).toEqual(["equals", "notEquals"])
-    expect(VariableDraft.operatorsOf("auto", ["ordering"])).toEqual(["equals", "notEquals", "like"])
-    expect(VariableDraft.operatorsOf("number", [])).toEqual(OPERATORS_OF.number)
-    expect(VariableDraft.operatorsOf("date", ["ordering"])).toEqual(OPERATORS_OF.date)
+  it("offers date and ordering, and names them refused where the engine refuses them (owner, 2026-11-20)", () => {
+    expect(VariableDraft.compareAsOptions()).toContain("date")
+    expect(VariableDraft.refusedKind("date", undefined, ["date"])).toBe("date")
+    expect(VariableDraft.refusedKind("date", undefined, [])).toBeUndefined()
+    expect(VariableDraft.operatorsOf("number")).toEqual(OPERATORS_OF.number)
+    expect(VariableDraft.refusedKind("number", "greaterThan", ["ordering"])).toBe("ordering")
+    expect(VariableDraft.refusedKind("auto", "like", ["ordering"])).toBeUndefined()
+    expect(VariableDraft.refusedKind("date", "greaterThan", ["ordering"])).toBeUndefined()
   })
 
   it("refuses a sixth condition", () => {
     const draft = VariableDraft.from({ name: "route", operator: "equals", value: "review" })
-    expect(VariableDraft.errors(draft, 5).count).toBe("Use 5 conditions or fewer.")
+    expect(VariableDraft.errors(draft, 5).count).toBe("tooMany")
   })
 
   it("keeps only the operators a type offers when the type changes", () => {

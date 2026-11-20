@@ -17,15 +17,26 @@ export interface ScreenAsked {
 function editorTable(asked: ScreenAsked) {
   return function EditorTable<Row>(props: ScreenTableProps<Row>) {
     const { name, label, columns, rows, rowKey, onOpen, rowLabel, copyOf, empty } = props
+    const { emptyAction, footer, onToggle } = props
     return (
-      <div data-testid="editor-table" data-name={name}>
+      <div
+        data-testid="editor-table"
+        data-name={name}
+        onKeyDown={(event: KeyboardEvent) => {
+          const row = event.target instanceof HTMLTableRowElement ? event.target : null
+          const at = row === null ? -1 : row.sectionRowIndex
+          const toggled = rows[at]
+          if (event.key === " " && toggled !== undefined) onToggle?.(toggled)
+        }}
+      >
         <DataTable<Row>
           label={label}
           columns={columns.map((column) => ({
             key: column.key,
             name: column.label,
-            label: column.label,
+            label: column.header ?? column.label,
             cell: column.cell,
+            ...(column.width === undefined ? {} : { width: column.width }),
           }))}
           rows={rows}
           rowKey={rowKey}
@@ -36,7 +47,17 @@ function editorTable(asked: ScreenAsked) {
           onCopy={(row) => {
             asked.copied.push(copyOf(row))
           }}
-          empty={<p data-part="table-empty">{empty}</p>}
+          empty={
+            <p data-part="table-empty">
+              {empty}
+              {emptyAction !== undefined && (
+                <button type="button" onClick={emptyAction.onClick}>
+                  {emptyAction.label}
+                </button>
+              )}
+            </p>
+          }
+          {...(footer === undefined ? {} : { footer })}
         />
       </div>
     )
@@ -51,7 +72,19 @@ function editorTable(asked: ScreenAsked) {
 function pageTable(asked: ScreenAsked) {
   return function PageTable<Row>(props: ScreenTableProps<Row>) {
     const { name, label, columns, rows, rowKey, onOpen, linkOf, rowLabel, copyOf, empty } = props
-    if (rows.length === 0) return <TableEmptyState>{empty}</TableEmptyState>
+    const { emptyAction, footer } = props
+    if (rows.length === 0) {
+      return (
+        <TableEmptyState>
+          {empty}
+          {emptyAction !== undefined && (
+            <button type="button" onClick={emptyAction.onClick}>
+              {emptyAction.label}
+            </button>
+          )}
+        </TableEmptyState>
+      )
+    }
     return (
       <table aria-label={label} data-testid="page-table" data-name={name}>
         <thead>
@@ -88,6 +121,13 @@ function pageTable(asked: ScreenAsked) {
             </tr>
           ))}
         </tbody>
+        {footer !== undefined && (
+          <tfoot>
+            <tr>
+              <td>{footer}</td>
+            </tr>
+          </tfoot>
+        )}
       </table>
     )
   }
@@ -124,10 +164,14 @@ export function pageSlots(): { readonly slots: ScreenSlots; readonly asked: Scre
       onOpen: (target, how) => {
         asked.opened.push({ target, how })
       },
-      linkOf: (target) =>
-        target.kind === "process"
-          ? `/app/engines/${target.engine}/processes/${target.bpmnProcessId}`
-          : `/app/engines/${target.engine}`,
+      linkOf: (target) => {
+        if (target.kind === "process") {
+          return `/app/engines/${target.engine}/processes/${target.bpmnProcessId}`
+        }
+        return target.kind === "instance"
+          ? `/app/engines/${target.engine}/instances/${target.instanceId}`
+          : `/app/engines/${target.engine}`
+      },
     },
   }
 }

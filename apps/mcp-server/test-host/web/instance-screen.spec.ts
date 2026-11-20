@@ -14,7 +14,8 @@ import {
  * deployment, whose one engine replays an Operaton run of the conformance world (chain-engine.ts):
  * DSP-3001 waits at its call activity for the root incident of the "Print label" instance it
  * called, a failed job whose stack trace names its root cause. The journey follows that failure
- * from the process's instance list (the cockpit, embedded) to the instance, where its incident card
+ * from the process's instance list (the process screen, from the list's old address) to the
+ * instance, where its incident card
  * says where the failure lies ("Located in"), on to the called instance with the incident in focus
  * (its card open, its stack trace read in place with the root cause line marked, its element
  * selected on the diagram), to the caller and Back. An ended instance opens from its history, an
@@ -26,12 +27,12 @@ import {
  * done is drawn and explained apart from a wait.
  */
 
-const DISPATCH = "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f"
-const LABEL = "9accaafb-e4d4-11f1-8d05-0ec72f60445f"
-const ROOT_INCIDENT = "9ad584af-e4d4-11f1-8d05-0ec72f60445f"
-const COPY_INCIDENT = "9ad5abc0-e4d4-11f1-8d05-0ec72f60445f"
-const ENDED = "7f0c0eb3-e4d4-11f1-8d05-0ec72f60445f"
-const UNKNOWN = "4f0c0eb3-e4d4-11f1-8d05-0ec72f60445f"
+const DISPATCH = "02884da0-e4fa-11f1-a98a-a2a764d20660"
+const LABEL = "02895f16-e4fa-11f1-a98a-a2a764d20660"
+const ROOT_INCIDENT = "0291c39a-e4fa-11f1-a98a-a2a764d20660"
+const COPY_INCIDENT = "0291c39b-e4fa-11f1-a98a-a2a764d20660"
+const ENDED = "7f0c0eb3-e4fa-11f1-a98a-a2a764d20660"
+const UNKNOWN = "4f0c0eb3-e4fa-11f1-a98a-a2a764d20660"
 
 const ENGINE = `/app/engines/${CHAIN_ENGINE}`
 const instanceUrl = (id: string) => `${ENGINE}/instances/${id}`
@@ -68,7 +69,8 @@ test.describe("the instance screen", () => {
     const errors = collectErrors(page)
     const calls = recordCalls(page)
     await signIn(page, `${ENGINE}/instances?process=pulse-dispatch`, { deployment: "chain" })
-    // The process's instances, the cockpit's list embedded in the frame: its row opens the instance.
+    // The process's instances, the old address of the list now the process screen: its row opens
+    // the instance.
     const row = page.getByRole("row", { name: /DSP-3001/ })
     await expect(row).toBeVisible({ timeout: 15_000 })
     await row.click()
@@ -84,7 +86,7 @@ test.describe("the instance screen", () => {
     await expect(card(page)).toHaveCount(1)
     await expect(card(page)).toContainText("Root cause")
     await expect(card(page)).toContainText("PropertyNotFoundException: Cannot resolve identifier")
-    const liesIn = card(page).getByRole("link", { name: /pulse-label 9accaafb/ })
+    const liesIn = card(page).getByRole("link", { name: /pulse-label 02895f16/ })
     await expect(liesIn).toHaveAttribute("href", incidentUrl(LABEL, ROOT_INCIDENT))
     // The call activity's way to the instance it called, on the diagram.
     await expect(page.locator("[data-part=call-button]")).toHaveAttribute(
@@ -95,7 +97,7 @@ test.describe("the instance screen", () => {
     // Located in: the called instance, its root incident in focus.
     await liesIn.click()
     await expect(page).toHaveURL(new RegExp(`${incidentUrl(LABEL, ROOT_INCIDENT)}$`))
-    await expect(heading(page)).toHaveText("9accaafb…")
+    await expect(heading(page)).toHaveText("02895f16…")
     await expect(heading(page)).toBeFocused()
     const caller = page.locator("[data-slot=caller-strip]")
     await expect(caller).toContainText("Called by DSP-3001")
@@ -109,6 +111,12 @@ test.describe("the instance screen", () => {
     await expect(cause).toContainText("Caused by:")
     await expect(cause).toContainText("PropertyNotFoundException")
     await expect(page.getByRole("button", { name: "Copy stacktrace" })).toBeVisible()
+    // Its long lines unwrapped scroll in the text's own box: the split stays as wide as the screen,
+    // the diagram keeps its zoom bar and bpmn.io's link in the window.
+    const split = page.locator("[data-slot=split-pane]")
+    expect(await split.evaluate((pane) => pane.scrollWidth - pane.clientWidth)).toBe(0)
+    await expect(page.getByRole("button", { name: "Zoom in" })).toBeInViewport()
+    await expect(page.getByRole("link", { name: /bpmn\.io/ })).toBeInViewport()
     await page.getByRole("button", { name: "Wrap lines" }).click()
     await expect(page.getByRole("button", { name: "Wrap lines" })).toHaveAttribute(
       "aria-pressed",
@@ -133,7 +141,7 @@ test.describe("the instance screen", () => {
     await expect(heading(page)).toHaveText("DSP-3001")
     await page.goBack()
     await expect(page).toHaveURL(new RegExp(`${incidentUrl(LABEL, ROOT_INCIDENT)}$`))
-    await expect(heading(page)).toHaveText("9accaafb…")
+    await expect(heading(page)).toHaveText("02895f16…")
     await page.goBack()
     await expect(heading(page)).toHaveText("DSP-3001")
     await page.goBack()
@@ -150,7 +158,7 @@ test.describe("the instance screen", () => {
     for (const [address, title, selected] of [
       [instanceUrl(DISPATCH), "DSP-3001", /^Incidents/],
       [`${instanceUrl(DISPATCH)}?tab=history`, "DSP-3001", /^History/],
-      [incidentUrl(LABEL, ROOT_INCIDENT), "9accaafb…", /^Incidents/],
+      [incidentUrl(LABEL, ROOT_INCIDENT), "02895f16…", /^Incidents/],
     ] as const) {
       await page.goto(`${originOf("chain")}${address}`)
       await expect(heading(page), address).toHaveText(title, { timeout: 15_000 })
@@ -232,7 +240,7 @@ test.describe("the instance screen", () => {
     await expect(page).toHaveURL(new RegExp(`${incidentUrl(LABEL, ROOT_INCIDENT)}$`), {
       timeout: 15_000,
     })
-    await expect(heading(page)).toHaveText("9accaafb…")
+    await expect(heading(page)).toHaveText("02895f16…")
     await expect(page.locator("[data-part=root-cause-line]")).toContainText("Caused by:")
   })
 
@@ -285,7 +293,7 @@ test.describe("the instance screen", () => {
     await de.getByRole("link", { name: "Aufrufer öffnen" }).click()
     await expect(heading(de)).toHaveText("DSP-3001")
     await card(de)
-      .getByRole("link", { name: /pulse-label 9accaafb/ })
+      .getByRole("link", { name: /pulse-label 02895f16/ })
       .click()
     await expect(de).toHaveURL(new RegExp(`${incidentUrl(LABEL, ROOT_INCIDENT)}$`))
     await expect(heading(de)).toBeFocused()

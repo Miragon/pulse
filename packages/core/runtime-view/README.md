@@ -22,7 +22,7 @@ closed-world dependency rules (`.dependency-cruiser.cjs`, `pnpm lint:architectur
 the ports, the core, the model reader and the host kit import engine-core's main entry, the core
 and the webview Pulse's UI foundation (`@miragon/pulse-ui/tones`, `@miragon/pulse-ui/format`), the
 webview also pulse-ui's React kit and its `theme.css` and Pulse's building blocks
-(`@miragon/pulse-blocks`, its main entry: a board's tiles and the engine's process list), the host kit's
+(`@miragon/pulse-blocks`, its main entry: a board's tiles, the engine's process list, an instance's and a process's blocks), the host kit's
 connections the profile format (`@miragon/pulse-profile`), the core the board format
 (`@miragon/pulse-board`, its main entry; the protocol keeps a copy of the tiles of a board's JSON
 form, `BoardData`, which `test/core/board-format.test.ts` holds equal to the format's) and its
@@ -31,11 +31,14 @@ builder (`@miragon/pulse-board/builder`: a board's numbers, which `BoardViews` s
 a click against and the diagram's XML, a problem staying a code, and the roll-up onto collapsed
 sub-processes the definition and instance views draw too), the core also the screens
 (`@miragon/pulse-screens` and its `./builder`: the engine screen's numbers and the process list's
-filter, and an instance's incident cards, wait rows, path, call links, head strip and markers,
-whose JSON form the core words in English into the instance view, its protocol unchanged; the
-protocol keeps a copy of the engine screen's JSON form of a process row, its filter, its scope
-counts and its totals, which `test/core/engine-screen-format.test.ts` holds equal to the
-format's), and no layer a dialect's core. The webview renders a board's tiles, the engine's
+filter, a process's versions, badges, call targets and the older versions' notice and an
+instance list's page, counts and query, and an instance's incident cards, wait rows, path, call
+links, head strip and markers, whose JSON forms the core words in English into the definition and
+instance views, their protocol unchanged; the protocol keeps a copy of the engine screen's JSON
+form of a process row, its filter, its scope counts and its totals, which
+`test/core/engine-screen-format.test.ts` holds equal to the format's, and of a badge, an instance
+list's filter, its counts and a variable condition's type rule, which
+`test/core/process-screen-format.test.ts` holds equal), and no layer a dialect's core. The webview renders a board's tiles, the engine's
 process list and the instance view's facts, head strip, incident cards, tables of waits, path and
 variables and marker legend with the building blocks under an English `LocaleProvider`, which
 word them, and brings their slots: its table, its short id or named id, its diagram canvas, its
@@ -105,7 +108,9 @@ harness's. The hooks:
 The board's parts are the building blocks' own (`@miragon/pulse-blocks` carries the boards row's
 hooks but `board-notes`, and `incident-flag` and `empty-hint` in its tiles), and so are the engine
 tab's `filter-bar`, `segment-count` and `incident-count` (its process table and filter bar), and the
-instance view's `incident-card` and `variable-name` (its incident cards and variables table). The kit's slots a part
+instance view's `incident-card` and `variable-name` (its incident cards and variables table), and
+the definition view's `filter-bar`, `segment-count`, `filter-chip`, `incident-flag`, `badge-count`
+and `call-button` (its filter bar, instance table, badge clusters and call buttons). The kit's slots a part
 resolves to as well: `context-bar` `view-bar`, `context-subject`
 `view-bar-subject`, `access` `view-bar-access`, `freshness` `view-bar-freshness`, `status-strip`
 `status-strip`, `strip-title` the strip's first text, `state-label` `state-label`,

@@ -3,15 +3,24 @@ import path from "node:path"
 
 /**
  * The CHAIN engine of test:web (`/chain/engine-rest`): a CIB seven REST stand-in for the instance
- * screen's journey, a failure that lies in an instance another one called. It replays one Operaton
- * run of the conformance world (fixtures/chain-engine.json, a copy of c7-core's recorded screen
- * engine, held to it by scripts/recorded-engine-copy.test.mjs): DSP-3001 of "Dispatch order" waits
- * at its call activity for the root incident of the "Print label" instance it called, a failed job
- * whose stack trace names its root cause. Beside the recording it answers what the page reads
- * around it: the incident by its id (the row the recording's incident list holds), the process's
- * instance list the cockpit shows embedded, an ended instance of the process (DSP-2999, from the
- * history alone), and nothing for any other instance, as an engine answers an instance it does not
- * know.
+ * screen's journey, a failure that lies in an instance another one called, and for the process
+ * screen's. It replays one Operaton run of the conformance world (fixtures/chain-engine.json, a
+ * copy of c7-core's recorded screen engine, held to it by scripts/recorded-engine-copy.test.mjs):
+ * DSP-3001 of "Dispatch order" waits at its call activity for the root incident of the "Print
+ * label" instance it called, a failed job whose stack trace names its root cause. Beside the
+ * recording it answers what the page reads around it: the incident by its id (the row the
+ * recording's incident list holds), the process's instance list the cockpit shows embedded, an
+ * ended instance of the process (DSP-2999, from the history alone), and nothing for any other
+ * instance, as an engine answers an instance it does not know. For the process screen's instance
+ * lists it answers the history of every instance the recording names, ORD-2001 of "Order
+ * fulfillment" v2 (which the statistics count and no recorded read lists; its business key the
+ * conformance world's, its id made up here) and sixty ended instances of "Dispatch order" before
+ * DSP-2999 (DSP-2900 to DSP-2959, so its ended instances fill more than a page), by version,
+ * lifecycle, business key and element, newest first and paged by offset, counted alike, and the
+ * runtime's instances with an open incident among them. Synthesized beside the recording, and so
+ * not the kit world's numbers: ORD-2001's id and history row, DSP-2999 and DSP-2900 to DSP-2959
+ * (the dispatch's 61 ended instances); a recording anew that changes the recorded ids needs them
+ * checked.
  */
 
 export const CHAIN_PREFIX = "/chain"
@@ -41,15 +50,15 @@ const RECORDING = JSON.parse(
 
 /** The calling instance and the one it called, as the recording names them. */
 export const CHAIN = {
-  dispatch: "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
-  label: "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
-  rootIncident: "9ad584af-e4d4-11f1-8d05-0ec72f60445f",
-  copyIncident: "9ad5abc0-e4d4-11f1-8d05-0ec72f60445f",
+  dispatch: "02884da0-e4fa-11f1-a98a-a2a764d20660",
+  label: "02895f16-e4fa-11f1-a98a-a2a764d20660",
+  rootIncident: "0291c39a-e4fa-11f1-a98a-a2a764d20660",
+  copyIncident: "0291c39b-e4fa-11f1-a98a-a2a764d20660",
   /** An ended instance of "Dispatch order", which the history alone holds. */
-  ended: "7f0c0eb3-e4d4-11f1-8d05-0ec72f60445f",
+  ended: "7f0c0eb3-e4fa-11f1-a98a-a2a764d20660",
 } as const
 
-const DISPATCH_V1 = "pulse-dispatch:1:9aa99268-e4d4-11f1-8d05-0ec72f60445f"
+const DISPATCH_V1 = "pulse-dispatch:1:0256b623-e4fa-11f1-a98a-a2a764d20660"
 
 /** A JSON value as text, the keys of each of its objects in order, so two spellings compare equal. */
 function canonical(value: unknown): string {
@@ -230,6 +239,145 @@ function instanceListRoute(method: string, route: string, body: unknown): Reply 
   return null
 }
 
+/** "Order fulfillment" v2, which runs one instance the statistics count and no recorded read lists. */
+const ORDER_V2 = "pulse-order:2:0250266f-e4fa-11f1-a98a-a2a764d20660"
+
+/** The history of ORD-2001, the instance of "Order fulfillment" v2, as the history lists one. */
+const ORD_2001 = {
+  ...DISPATCH_HISTORY,
+  id: "0281b0d3-e4fa-11f1-a98a-a2a764d20660",
+  businessKey: "ORD-2001",
+  processDefinitionId: ORDER_V2,
+  processDefinitionKey: "pulse-order",
+  processDefinitionVersion: 2,
+  processDefinitionName: "Order fulfillment",
+  rootProcessInstanceId: "0281b0d3-e4fa-11f1-a98a-a2a764d20660",
+  startActivityId: "Event_OrderReceived",
+  startTime: "2026-11-20T15:49:46.020+0000",
+  state: "ACTIVE",
+}
+
+/** DSP-2900 to DSP-2959: ended instances of "Dispatch order", one a minute before DSP-2999. */
+const ENDED_DISPATCHES = Array.from({ length: 60 }, (_, index) => {
+  const at = Date.parse("2026-11-20T09:00:00.000Z") + index * 60_000
+  const id = `7f0c${String(index).padStart(4, "0")}-e4fa-11f1-a98a-a2a764d20660`
+  const stamp = (ms: number) => new Date(ms).toISOString().replace("Z", "+0000")
+  return {
+    ...ENDED_HISTORY,
+    id,
+    businessKey: `DSP-${String(2900 + index)}`,
+    rootProcessInstanceId: id,
+    startTime: stamp(at),
+    endTime: stamp(at + 1_000),
+  }
+})
+
+/** Every history the process screen's lists read: the recording's, and this world's beside it. */
+const HISTORY: Array<Record<string, unknown>> = [
+  ...new Map(
+    [
+      ...RECORDING.answers
+        .filter(
+          (recorded) =>
+            /\/history\/process-instance(?:\/[^/]+)?$/.test(recorded.path) &&
+            !recorded.path.endsWith("/count"),
+        )
+        .flatMap((recorded) => [recorded.answer].flat() as Array<Record<string, unknown>>),
+      ENDED_HISTORY,
+      ORD_2001,
+      ...ENDED_DISPATCHES,
+    ].map((row: Record<string, unknown>) => [row.id, row]),
+  ).values(),
+]
+
+/** The running instances with an open incident, as the runtime lists them engine-wide. */
+const WITH_INCIDENT = (REPLIES.get(
+  keyOf(
+    "GET",
+    `${ROOT}/process-instance`,
+    Object.entries({
+      withIncident: "true",
+      sortBy: "instanceId",
+      sortOrder: "asc",
+      firstResult: "0",
+      maxResults: "500",
+    }),
+    undefined,
+  ),
+)?.body ?? []) as Array<Record<string, unknown>>
+
+/** A history list's filter as the contract's instance search sends it. */
+interface HistoryQuery {
+  readonly processInstanceIds?: readonly string[]
+  readonly processDefinitionId?: string
+  readonly processDefinitionKey?: string
+  readonly processInstanceBusinessKey?: string
+  readonly unfinished?: boolean
+  readonly finished?: boolean
+  readonly activityIdIn?: readonly string[]
+}
+
+/** Where each running instance of this world waits, which an element filter finds it at. */
+const WAITS_AT: Readonly<Record<string, string>> = {
+  [CHAIN.dispatch]: "Activity_PrintShippingLabel",
+  [CHAIN.label]: "Activity_RenderLabel",
+  // ORD-1001 at its review, ORD-1002 at the payment its incident holds, ORD-2001 at its review.
+  "02677f04-e4fa-11f1-a98a-a2a764d20660": "Activity_ReviewOrder",
+  "0279ce8d-e4fa-11f1-a98a-a2a764d20660": "Activity_ChargePayment",
+  [ORD_2001.id]: "Activity_ReviewOrder",
+}
+
+/** The histories `query` finds, newest first. */
+function historyOf(query: HistoryQuery): Array<Record<string, unknown>> {
+  return HISTORY.filter(
+    (row) =>
+      (query.processInstanceIds === undefined ||
+        query.processInstanceIds.includes(String(row.id))) &&
+      (query.processDefinitionId === undefined ||
+        row.processDefinitionId === query.processDefinitionId) &&
+      (query.processDefinitionKey === undefined ||
+        row.processDefinitionKey === query.processDefinitionKey) &&
+      (query.processInstanceBusinessKey === undefined ||
+        row.businessKey === query.processInstanceBusinessKey) &&
+      (query.unfinished !== true || row.endTime === null || row.endTime === undefined) &&
+      (query.finished !== true || typeof row.endTime === "string") &&
+      (query.activityIdIn === undefined ||
+        query.activityIdIn.includes(WAITS_AT[String(row.id)] ?? "")),
+  ).sort((one, other) => String(other.startTime).localeCompare(String(one.startTime)))
+}
+
+/**
+ * The process screen's lists: the histories of a version (or a process) by lifecycle, business key,
+ * element and ids, a page by offset and their count, and the runtime's instances with an incident
+ * of a version or among ids, and their count. Null for a read by ids alone, which the other routes
+ * answer, and for every other request.
+ */
+function processListRoute(method: string, route: string, url: URL, body: unknown): Reply | null {
+  const query = (body ?? {}) as HistoryQuery
+  const scoped = query.processDefinitionId !== undefined || query.processDefinitionKey !== undefined
+  if (method === "POST" && scoped) {
+    if (route === `${ROOT}/history/process-instance/count`) {
+      return { status: 200, body: { count: historyOf(query).length } }
+    }
+    if (route === `${ROOT}/history/process-instance`) {
+      const first = Number(url.searchParams.get("firstResult") ?? 0)
+      const most = Number(url.searchParams.get("maxResults") ?? HISTORY.length)
+      return { status: 200, body: historyOf(query).slice(first, first + most) }
+    }
+  }
+  if (method !== "GET" || url.searchParams.get("withIncident") !== "true") return null
+  const version = url.searchParams.get("processDefinitionId")
+  const ids = url.searchParams.get("processInstanceIds")?.split(",")
+  const rows = WITH_INCIDENT.filter(
+    (row) =>
+      (version === null || row.definitionId === version) &&
+      (ids === undefined || ids.includes(String(row.id))),
+  )
+  if (route === `${ROOT}/process-instance/count`)
+    return { status: 200, body: { count: rows.length } }
+  return route === `${ROOT}/process-instance` ? { status: 200, body: rows } : null
+}
+
 /** A count no row of this world fills, and a list of a query the recording did not make. */
 function emptyRoute(method: string, route: string): Reply | null {
   if (route.endsWith("/count")) return { status: 200, body: { count: 0 } }
@@ -258,6 +406,7 @@ export function chainRoute(method: string, url: URL, body: unknown): Reply | nul
     endedRoute(route, url, body) ??
     incidentRoute(route) ??
     definitionRoute(route, url) ??
+    processListRoute(method, route, url, body) ??
     instanceListRoute(method, route, body) ??
     emptyRoute(method, route) ??
     NOT_FOUND

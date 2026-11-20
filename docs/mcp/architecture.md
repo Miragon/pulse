@@ -113,7 +113,7 @@ building blocks: the formats (the board file first), pulse-ui's framework-free
 `@miragon/pulse-ui/testing` the product glossary, the count words and the brand gates, the engine
 rules of c7-core, the numbers of a feature several show (boards first: one builder over one read)
 and building blocks on React with props and callbacks only (`@miragon/pulse-blocks`, a board's tiles,
-an engine's process list and an instance's blocks). Each keeps its own screens and host wiring: six cockpit views and a
+an engine's process list, an instance's and a process's blocks). Each keeps its own screens and host wiring: six cockpit views and a
 board have a counterpart in the editors, and [Parity with the MCP cockpit](../vscode/parity.md)
 lists what still differs. The decisions are in `apps/vscode/docs/adr/ui-foundation.md`.
 

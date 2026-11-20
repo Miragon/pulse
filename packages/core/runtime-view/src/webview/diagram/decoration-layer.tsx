@@ -1,18 +1,21 @@
 import type { ReactNode } from "react"
+import { BadgeCluster, CallButton } from "@miragon/pulse-blocks"
 import type {
   CallLink,
   ElementBadge,
   ElementMarker,
+  InstanceScope,
   MarkerKind,
 } from "../../core/protocol/index.js"
-import { BadgeCluster, type BadgeFilter } from "./badge-cluster.js"
-import { CallButton } from "./call-button.js"
+import { DiagramBadge } from "../components/count-badge.js"
 import type { ElementRegistryLike } from "./diagram-elements.js"
 import { CodeButton, type ElementCode } from "./code-button.js"
 import { MoveBadge, type MoveBadgeKind } from "./move-badge.js"
 import { MoveEntry, type MoveEntryDecoration } from "./move-entry.js"
 import { OverlayFocus, type HeldOverlayFocus } from "./overlay-focus.js"
 import type { OverlayKind, OverlaySlot } from "./overlay-slots.js"
+
+export type BadgeFilter = (elementId: string, scope?: InstanceScope) => void
 
 export interface MoveDecoration {
   readonly from: string
@@ -152,7 +155,18 @@ export class DecorationLayer {
       this.addBadge(badge, decorations.stale)
     }
     for (const call of decorations.calls) {
-      this.addOverlay(call.elementId, "call", <CallButton call={call} onOpen={this.onOpenCall} />)
+      this.addOverlay(
+        call.elementId,
+        "call",
+        <CallButton
+          elementId={call.elementId}
+          label={call.label}
+          missing={call.missing === true}
+          onOpen={(elementId, how) => {
+            this.onOpenCall(elementId, how.toSide)
+          }}
+        />,
+      )
     }
     this.addElementActions(decorations.codes ?? [], decorations.moveEntry)
     for (const marker of decorations.markers) {
@@ -237,7 +251,10 @@ export class DecorationLayer {
         badge={badge}
         elementName={this.services.names.get(badge.elementId) ?? badge.elementId}
         stale={stale}
-        onSelect={this.onSelect}
+        onSelect={(elementId, scope) => {
+          this.onSelect(elementId, scope)
+        }}
+        Badge={DiagramBadge}
       />,
     )
   }

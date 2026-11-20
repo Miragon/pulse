@@ -7,6 +7,7 @@ import { useHost } from "../host/host-context.js"
 function ScreenTable<Row>(props: ScreenTableProps<Row>) {
   const host = useHost()
   const { name, label, columns, rows, rowKey, onOpen, rowLabel, copyOf, empty } = props
+  const { emptyAction, footer, onToggle } = props
   return (
     <DataTable
       label={label}
@@ -15,6 +16,8 @@ function ScreenTable<Row>(props: ScreenTableProps<Row>) {
         key: column.key,
         label: column.label,
         render: column.cell,
+        ...(column.header === undefined ? {} : { header: column.header }),
+        ...(column.width === undefined ? {} : { width: column.width }),
       }))}
       rows={rows}
       rowKey={rowKey}
@@ -27,8 +30,12 @@ function ScreenTable<Row>(props: ScreenTableProps<Row>) {
           const copy = copyOf(row)
           host.post({ type: "copy", text: copy.text, label: copy.label })
         },
+        ...(onToggle === undefined ? {} : { onToggle }),
       }}
-      empty={<EmptyHint text={empty} />}
+      empty={
+        <EmptyHint text={empty} {...(emptyAction === undefined ? {} : { action: emptyAction })} />
+      }
+      {...(footer === undefined ? {} : { footer })}
     />
   )
 }
@@ -45,6 +52,8 @@ export function useProcessSlots(): ScreenSlots {
     onOpen: (target, how) => {
       if (target.kind === "process") {
         host.post({ type: "openProcess", bpmnProcessId: target.bpmnProcessId, toSide: how.toSide })
+      } else if (target.kind === "instance") {
+        host.post({ type: "openInstance", instanceId: target.instanceId, toSide: how.toSide })
       }
     },
   }
