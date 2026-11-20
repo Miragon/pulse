@@ -293,10 +293,12 @@ const BLOCKS_SRC = `^${escapeRegExp(BLOCKS.tree)}/src/`
 
 /**
  * What the blocks' shipped code imports: its own modules, React, Lucide, pulse-ui's root and its
- * framework-free ./format and ./tones, and the board format's main entry, for the types of a built
- * board's JSON form. As an import reaches pulse-ui and the board format: resolved through the
- * importer's node_modules (to the build in the repository, to the src of a package without one)
- * or bare.
+ * framework-free ./format and ./tones, the board format's main entry, for the types of a built
+ * board's JSON form, and the screens' main entry (the screens' format, owner decision D10 of
+ * 2026-11-19), for the JSON forms of the shared screens and the rules a surface applies to them in
+ * the browser (a process list's filter); never the screens' ./builder or ./testing. As an import
+ * reaches pulse-ui, the board format and the screens: resolved through the importer's node_modules
+ * (to the build in the repository, to the src of a package without one) or bare.
  */
 const BLOCKS_IMPORTS = [
   BLOCKS_SRC,
@@ -305,6 +307,8 @@ const BLOCKS_IMPORTS = [
   "^@miragon/pulse-ui(?:/(?:format|tones))?$",
   `(?:^|/)node_modules/${escapeRegExp(BOARD.name)}/(?:dist|src)/index[.](?:js|d[.]ts|ts)$`,
   `^${escapeRegExp(BOARD.name)}$`,
+  `(?:^|/)node_modules/@miragon/pulse-screens/(?:dist|src)/index[.](?:js|d[.]ts|ts)$`,
+  `^@miragon/pulse-screens$`,
 ]
 
 /**
@@ -387,14 +391,15 @@ const SCREENS_BUILDER = [
 
 /**
  * Where a surface builds a shared screen's numbers and applies its rules, the only shipped
- * importers of the screens, its format and its builder alike: the runtime view's core (the engine
- * panel of both editor hosts, which words the screen in English) and the engine connector's data
- * builders (src/data, where the screen feeds of the web app build them). Tests import them
- * anywhere. A surface that renders a screen's JSON form (the building blocks, the web app) joins
- * the format's readers through a rule change of its own.
+ * importers of the screens' builder: the runtime view's core (the engine panel of both editor
+ * hosts) and the engine connector's data builders (src/data, where the screen feeds of the web app
+ * build them). The format's readers are these and the building blocks (BLOCKS_SRC, held to the
+ * format's main entry by blocks-are-building-blocks), which render a screen's JSON form and apply
+ * its rules in the browser (owner decision D10 of 2026-11-19). Tests import them anywhere. The web
+ * app joins the format's readers through a rule change of its own.
  */
 const SCREENS_BUILDERS = [`${RUNTIME_VIEW_TREE}src/core/`, `${ENGINE_CONNECTOR_TREE}src/data/`]
-const SCREENS_READERS = SCREENS_BUILDERS
+const SCREENS_READERS = [...SCREENS_BUILDERS, BLOCKS_SRC]
 
 /**
  * The screens package's tests that read the engine contract its builder builds on: its test tree
@@ -1286,12 +1291,14 @@ module.exports = {
         "only, shipped-code-not-to-testing) may be imported only where a surface builds a " +
         "shared screen or applies its rules " +
         "(SCREENS_READERS): the runtime view's core (packages/core/runtime-view/src/core, the " +
-        "engine panel both editor hosts open) and the engine connector's data builders " +
-        "(src/data, the screen feeds of the web app), and by tests anywhere. Not the runtime " +
-        "view's protocol or other layers, not the rest of the connector, no other package and no " +
-        "app until it renders a screen's JSON form itself (the building blocks, the web app), " +
-        "through a rule change of its own. A relative escape into packages/core/screens is a " +
-        "violation too. Its builder answers to screens-builder-consumers.",
+        "engine panel both editor hosts open), the engine connector's data builders " +
+        "(src/data, the screen feeds of the web app) and the building blocks " +
+        "(packages/core/blocks/src, which render a screen's JSON form and filter a process list " +
+        "in the browser), and by tests anywhere. Not the runtime view's protocol or other " +
+        "layers, not the rest of the connector, no other package and no app until it renders a " +
+        "screen's JSON form itself (the web app), through a rule change of its own. A relative " +
+        "escape into packages/core/screens is a violation too. Its builder answers to " +
+        "screens-builder-consumers.",
       from: {
         pathNot: [
           ...SCREENS_READERS,
@@ -1334,13 +1341,17 @@ module.exports = {
       comment:
         "Pulse's building blocks (packages/core/blocks, @miragon/pulse-blocks) are React on " +
         "@miragon/pulse-ui with props, callbacks and the slots a surface brings (its table, its " +
-        "id, its diagram): their shipped code imports only its own modules, react, react-dom, " +
-        "lucide-react, pulse-ui's root, @miragon/pulse-ui/format and @miragon/pulse-ui/tones, and " +
-        "the board format's main entry (@miragon/pulse-board, the types of a built board's JSON " +
-        "form). Never widget-shell or ext-apps (a host's view runtime: the surface wires its host " +
-        "through the slots), a family's package or engine-core, the board builder, another " +
+        "id, its diagram, its link): their shipped code imports only its own modules, react, " +
+        "react-dom, lucide-react, pulse-ui's root, @miragon/pulse-ui/format and " +
+        "@miragon/pulse-ui/tones, the board format's main entry (@miragon/pulse-board, the types " +
+        "of a built board's JSON form) and the screens' main entry (@miragon/pulse-screens, the " +
+        "JSON forms of the shared screens and the rules a surface applies to them in the " +
+        "browser). Never widget-shell or ext-apps (a host's view runtime: the surface wires its " +
+        "host through the slots), a family's package or engine-core, the board builder, the " +
+        "screens' builder (a surface renders a screen's JSON form, never builds it), another " +
         "subpath, an npm package of the MCP stack or a Node built-in, and no relative escape. " +
-        "Its tests may import vitest, Testing Library and the board's fixtures.",
+        "Its tests may import vitest, Testing Library and the fixtures of the board and the " +
+        "screens.",
       from: { path: BLOCKS_SRC, pathNot: SRC_TEST_CODE },
       to: { pathNot: BLOCKS_IMPORTS },
     },

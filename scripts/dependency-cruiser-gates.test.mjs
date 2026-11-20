@@ -838,9 +838,7 @@ const SUITES = [
       [CLI_SRC, SCREENS_NAME, [HEADLESS, SCREENS_USERS]],
       [EXT_SRC, SCREENS_NAME, [SCREENS_USERS]],
       [ORCA_SRC, SCREENS_NAME, [SCREENS_USERS]],
-      // The blocks and the web app render a screen's JSON form only once a rule change of their
-      // own admits it.
-      [`${BLOCKS}/src/screens/table.ts`, SCREENS_NAME, [BLOCKS_LEAF, SCREENS_USERS], "type"],
+      // The web app renders a screen's JSON form only once a rule change of its own admits it.
       [WEB_SRC, SCREENS_NAME, [WEB_PAGE, SCREENS_USERS], "type"],
       // Of the engine connector only its data builders build a screen: not its root, widgets,
       // shared lib, view models, tools or widget tools, nor a look-alike of its data folder.
@@ -874,8 +872,14 @@ const SUITES = [
       // worlds, which shipped code never imports.
       [`${ENGINE_CONNECTOR}/src/data/screens/world.ts`, `${SCREENS_NAME}/testing`, [NO_TESTING]],
       [`${RUNTIME_VIEW}/src/core/views/world.ts`, `${SCREENS_NAME}/testing`, [NO_TESTING]],
+      // The blocks take the format by its main entry alone: its recorded screens ship in
+      // ./testing, which shipped code never imports.
+      [`${BLOCKS}/src/screens/world.ts`, `${SCREENS_NAME}/testing`, [BLOCKS_LEAF, NO_TESTING]],
       // Allowed: the runtime view's core, the engine connector's data builders (shape 2 too),
-      // and tests anywhere.
+      // the building blocks, which render a screen's JSON form and filter in the browser, and
+      // tests anywhere.
+      [`${BLOCKS}/src/screens/table.ts`, SCREENS_NAME, [], "type"],
+      [`${BLOCKS}/src/screens/list.ts`, SCREENS_NAME, []],
       [`${RUNTIME_VIEW}/src/core/views/engine-view-builder.ts`, SCREENS_NAME, []],
       [`${ENGINE_CONNECTOR}/src/data/screens/engine.ts`, SCREENS_NAME, []],
       [`${ENGINE_CONNECTOR}/src/data/screens/types.ts`, SCREENS_NAME, [], "type"],
@@ -959,7 +963,7 @@ const SUITES = [
   {
     rule: BLOCKS_LEAF,
     title:
-      "the building blocks import React, Lucide, pulse-ui's root, /format and /tones and the board format's main entry",
+      "the building blocks import React, Lucide, pulse-ui's root, /format and /tones and the main entries of the board format and the screens",
     cases: [
       // A host's view runtime, a family, the engine contract, the builder, another subpath.
       [BLOCKS_SRC, "@miragon/pulse-widget-shell/widgets", [BLOCKS_LEAF]],
@@ -979,8 +983,18 @@ const SUITES = [
       ]),
       [`${BLOCKS}/src/escape.ts`, "../../ui/src/target.ts", [BLOCKS_LEAF, DEEP]],
       [`${BLOCKS}/src/board/escape.ts`, "../../../board/src/target.ts", [BLOCKS_LEAF, DEEP]],
-      // Allowed: React, Lucide, the kit's root and its two framework-free entries, the board
-      // format's main entry, its own modules; its tests import what they need.
+      // The screens' format only: never its builder, its fixtures, a subpath or its tree.
+      [
+        `${BLOCKS}/src/screens/table.ts`,
+        `${SCREENS_NAME}/dist/builder/index.js`,
+        [BLOCKS_LEAF, SCREENS_BUILDER_USERS],
+      ],
+      [`${BLOCKS}/src/screens/table.ts`, `${SCREENS_NAME}/testing`, [BLOCKS_LEAF, NO_TESTING]],
+      [`${BLOCKS}/src/screens/table.ts`, `${SCREENS_NAME}/sub`, [BLOCKS_LEAF]],
+      [`${BLOCKS}/src/screens/escape.ts`, "../../../screens/src/target.ts", [BLOCKS_LEAF, DEEP]],
+      // Allowed: React, Lucide, the kit's root and its two framework-free entries, the main
+      // entries of the board format and the screens, its own modules; its tests import what they
+      // need.
       ...["react", "react-dom", "lucide-react", "@miragon/pulse-ui"].map((spec) => [
         `${BLOCKS}/src/board/tile.ts`,
         spec,
@@ -989,9 +1003,12 @@ const SUITES = [
       [`${BLOCKS}/src/board/words.ts`, "@miragon/pulse-ui/format", []],
       [`${BLOCKS}/src/board/tones.ts`, "@miragon/pulse-ui/tones", []],
       [`${BLOCKS}/src/board/tile.ts`, BOARD_NAME, [], "type"],
+      [`${BLOCKS}/src/screens/process-list.ts`, SCREENS_NAME, []],
+      [`${BLOCKS}/src/screens/slots.ts`, SCREENS_NAME, [], "type"],
       [`${BLOCKS}/src/board/grid.ts`, "../lib.ts", []],
       [`${BLOCKS}/src/board/tile.test.ts`, "vitest", []],
       [`${BLOCKS}/src/board/words.test.ts`, `${BOARD_NAME}/testing`, []],
+      [`${BLOCKS}/src/screens/table.test.tsx`, `${SCREENS_NAME}/testing`, []],
       [`${BLOCKS}/src/brand-gates.test.ts`, "@miragon/pulse-ui/testing", []],
     ],
   },

@@ -103,8 +103,12 @@ builder takes the `@miragon/pulse-engine-core` of the same release.
 ## Who uses it
 
 Pulse for VS Code and Pulse for Orca: the runtime view they share builds its engine panel with
-`EngineScreen` and `ProcessFilter` and words it in English. In the repository, the dependency rules
-admit one more importer, the data builders of the MCP server's engine module
+`EngineScreen` and `ProcessFilter`, and its webview renders the engine's process list with the
+building blocks of [`@miragon/pulse-blocks`](https://www.npmjs.com/package/@miragon/pulse-blocks)
+(`ProcessTable`, `ListFilterBar`), which read the main entry: the screen's JSON form and
+`ProcessFilter`, which they apply in the browser where a surface holds the whole list. In the
+repository, the dependency rules admit one more importer, the data builders of the MCP server's
+engine module
 ([`@miragon/pulse-engine-connector`](https://www.npmjs.com/package/@miragon/pulse-engine-connector)).
 
 ## Help and feedback

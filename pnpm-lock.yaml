@@ -622,6 +622,9 @@ importers:
       '@miragon/pulse-board':
         specifier: workspace:*
         version: link:../board
+      '@miragon/pulse-screens':
+        specifier: workspace:*
+        version: link:../screens
     devDependencies:
       '@miragon/pulse-ui':
         specifier: workspace:*

@@ -39,6 +39,7 @@ export class EngineViewBuilder {
       processes,
       filter,
       scopeCounts: counts,
+      totals: this.screen.totals,
       emptyText:
         this.screen.totals.processes === 0
           ? `No processes deployed on ${engine.name}, or you may not have permission to see them.`

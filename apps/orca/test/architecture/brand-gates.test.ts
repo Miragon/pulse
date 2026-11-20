@@ -26,9 +26,19 @@ const STATE_TEXTS: Readonly<Record<string, string>> = {
     "the Node releases the worker runs on: later names releases of Node, not a feature of Pulse",
 }
 
+const BLOCKS_MESSAGES = join(REPO_ROOT, "packages/core/blocks/src/messages")
+
 function wordFindings(root: string): string[] {
   return glossaryFindings(sourceTexts(root), PRODUCT_GLOSSARY.en).map(
     (finding) => `${finding.key}: "${finding.text}", write ${finding.use}`,
+  )
+}
+
+function englishBlockTexts(): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(sourceTexts(BLOCKS_MESSAGES)).filter(([key]) =>
+      /^(?:screen-)?en\.ts:/.test(key),
+    ),
   )
 }
 
@@ -86,6 +96,29 @@ describe("the plugin's own texts", PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, () => {
     expect(PromiseWords.allowanceFindings(texts, STATE_TEXTS)).toEqual([])
   })
 })
+
+describe(
+  "the building blocks' English words, which the editor frames show",
+  PARSING_SOURCES_ON_A_BUSY_CI_RUNNER,
+  () => {
+    test("are read: the catalogs of a board's tiles and of the engine tab's process list", () => {
+      expect(Object.keys(englishBlockTexts())).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(/^en\.ts:/),
+          expect.stringMatching(/^screen-en\.ts:/),
+        ]),
+      )
+    })
+
+    test("use the product's words, never their synonyms", () => {
+      expect(glossaryFindings(englishBlockTexts(), PRODUCT_GLOSSARY.en)).toEqual([])
+    })
+
+    test("say what Pulse does today and promise no later feature", () => {
+      expect(PromiseWords.findings(englishBlockTexts(), STATE_TEXTS)).toEqual([])
+    })
+  },
+)
 
 describe("the promise scan", PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, () => {
   const root = mkdtempSync(join(tmpdir(), "promise-words-"))
