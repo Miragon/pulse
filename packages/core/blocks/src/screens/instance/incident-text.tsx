@@ -16,14 +16,16 @@ import type { InstanceSlots } from "../slots.js"
 const LINE_BREAK = /\r\n|[\n\r]/
 
 /**
- * What a surface read of an incident's text: reading, failed, or read (the text, whether the
- * engine cut it off, and the index of the line its root cause stands on, as the contract's
- * `IncidentDetails.rootCauseLine` gives it by `RootCauses.lineOf`: the last "Caused by:" line,
- * none without one). Before the first read it hands in none.
+ * What a surface read of an incident's text: reading, failed (a retry may change it), refused (no
+ * retry changes it, the incident resolved meanwhile say, in the surface's words), or read (the
+ * text, whether the engine cut it off, and the index of the line its root cause stands on, as the
+ * contract's `IncidentDetails.rootCauseLine` gives it by `RootCauses.lineOf`: the last "Caused by:"
+ * line, none without one). Before the first read it hands in none.
  */
 export type IncidentTextRead =
   | { readonly status: "reading" }
   | { readonly status: "failed" }
+  | { readonly status: "refused"; readonly reason: string }
   | {
       readonly status: "read"
       readonly text: string
@@ -100,6 +102,13 @@ function ReadText({ kind, read, onRead, slots }: Omit<IncidentTextProps, "defaul
       </p>
     )
   }
+  if (read.status === "refused") {
+    return (
+      <p className="text-muted-foreground" role="status">
+        {read.reason}
+      </p>
+    )
+  }
   if (read.status === "failed") {
     return (
       <p className="flex flex-wrap items-center gap-2" role="alert">
@@ -151,7 +160,7 @@ function ReadText({ kind, read, onRead, slots }: Omit<IncidentTextProps, "defaul
  * message where the engine keeps no stack trace. It marks the line its root cause stands on (the
  * read's `rootCauseLine`), copies the whole text and wraps its lines on request; a long text
  * scrolls in its own box, and a text the engine cut off says so. A failed read says so and reads
- * again on request.
+ * again on request; a refused one says why, in the surface's words, and offers no retry.
  */
 export function IncidentText({ defaultOpen = false, ...props }: IncidentTextProps) {
   const t = useInstanceWords()
@@ -169,7 +178,7 @@ export function IncidentText({ defaultOpen = false, ...props }: IncidentTextProp
   }
   return (
     <div
-      className="flex w-full basis-full flex-col items-start gap-2"
+      className="flex w-full min-w-0 basis-full flex-col items-start gap-2"
       data-part="incident-text-region"
     >
       <Button type="button" variant="outline" aria-expanded={open} onClick={toggle}>

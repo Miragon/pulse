@@ -56,7 +56,7 @@ function factsOf(card: HTMLElement): string[] {
 }
 
 describe.each(SURFACES)("an incident card with %s", (_surface, slotsOf) => {
-  it("names a called instance's root incident, where it lies, its job, its retries and its id", () => {
+  it("names a called instance's root incident, where it lies (a link to it in focus), its job, its retries and its id", () => {
     const { slots, asked } = slotsOf()
     const card = cardOf(CALLED!, { slots, elementName: "Render label" })
 
@@ -76,7 +76,12 @@ describe.each(SURFACES)("an incident card with %s", (_surface, slotsOf) => {
     ])
     expect(asked.opened).toEqual([
       {
-        target: { kind: "instance", engine: "prod-a", instanceId: "fake-label-of-DSP-3001" },
+        target: {
+          kind: "instance",
+          engine: "prod-a",
+          instanceId: "fake-label-of-DSP-3001",
+          incidentId: "incident-of-fake-label-of-DSP-3001",
+        },
         toSide: false,
       },
     ])

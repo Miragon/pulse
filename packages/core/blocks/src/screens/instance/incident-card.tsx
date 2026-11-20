@@ -91,7 +91,14 @@ function whereFacts(
       : [
           {
             label: t("fact.liesIn"),
-            value: <CalledInstanceLink engine={engine} called={liesIn} Link={slots.Link} />,
+            value: (
+              <CalledInstanceLink
+                engine={engine}
+                called={liesIn}
+                incidentId={card.rootIncident.id}
+                Link={slots.Link}
+              />
+            ),
           },
         ]),
     ...(job === undefined
@@ -172,7 +179,7 @@ export function IncidentCard(props: IncidentCardProps) {
           },
         ]}
       />
-      <div className="flex flex-wrap gap-2">
+      <div className="flex w-full min-w-0 flex-wrap gap-2">
         {detail}
         {actions}
       </div>

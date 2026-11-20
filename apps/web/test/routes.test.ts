@@ -402,7 +402,7 @@ describe("the page's own screen at a place", () => {
     for (const [url, filter] of cases) {
       const { pathname, search } = new URL(url, "http://localhost")
       const route = viewRouteOf({ pathname, search })
-      expect(route.screen?.filter).toEqual(filter)
+      expect(route.screen).toMatchObject({ kind: "engine", filter })
       expect(route.url).toBe(url)
       expect(route.place).toEqual({
         view: "overview",
@@ -415,7 +415,7 @@ describe("the page's own screen at a place", () => {
   it("leaves out a scope it does not know, an empty search and spaces around one", () => {
     const read = (search: string) => viewRouteOf({ pathname: "/app/engines/prod-a", search })
     expect(read("?scope=all&q=").url).toBe("/app/engines/prod-a")
-    expect(read("?scope=ended&q=%20%20").screen?.filter).toEqual({ scope: "all" })
+    expect(read("?scope=ended&q=%20%20").screen).toMatchObject({ filter: { scope: "all" } })
     expect(read("?q=%20label%20").url).toBe("/app/engines/prod-a?q=label")
     expect(
       screenUrlOf({ kind: "engine", engine: "prod-a", filter: { scope: "all", search: " " } }),
@@ -431,5 +431,76 @@ describe("the page's own screen at a place", () => {
     expect(viewRouteOf({ pathname: "/app/engines/prod-a/jobs", search: "" })).not.toHaveProperty(
       "screen",
     )
+  })
+})
+
+describe("the page's instance screen at a place", () => {
+  const route = (url: string) => {
+    const { pathname, search } = new URL(url, "http://localhost")
+    return viewRouteOf({ pathname, search })
+  }
+
+  it("is the instance screen at an instance's view and at its history, which is its tab", () => {
+    expect(screenOf({ view: "instance-detail", engine: E, processInstanceId: "pi-1" })).toEqual({
+      kind: "instance",
+      engine: E,
+      instance: "pi-1",
+    })
+    expect(screenOf({ view: "history", engine: E, processInstanceId: "pi-1" })).toEqual({
+      kind: "instance",
+      engine: E,
+      instance: "pi-1",
+      tab: "history",
+    })
+    expect(screenOf({ view: "incident-detail", engine: E, incidentId: "inc-1" })).toEqual({
+      kind: "incident",
+      engine: E,
+      incident: "inc-1",
+    })
+    expect(screenOf({ view: "instance-detail", engine: E, processInstanceId: "." })).toBeUndefined()
+    expect(screenOf({ view: "incident-detail", engine: E, incidentId: "" })).toBeUndefined()
+    expect(
+      screenOf({ view: "instance-detail", engine: E, processInstanceId: "pi-1", more: 1 }),
+    ).toBeUndefined()
+    expect(screenOf({ view: "jobs", engine: E, processInstanceId: "pi-1" })).toBeUndefined()
+    expect(screenOf({ view: "jobs", engine: E, incidentId: "inc-1" })).toBeUndefined()
+  })
+
+  it("carries the tab in the address's query, a tab it does not know left out, both ways", () => {
+    for (const tab of ["history", "incidents", "waiting", "variables"] as const) {
+      const url = `/app/engines/prod-a/instances/pi%201?tab=${tab}`
+      expect(route(url).screen).toEqual({ kind: "instance", engine: E, instance: "pi 1", tab })
+      expect(route(url).url).toBe(url)
+      expect(screenUrlOf({ kind: "instance", engine: E, instance: "pi 1", tab })).toBe(url)
+    }
+    expect(route("/app/engines/prod-a/instances/pi-1?tab=jobs").url).toBe(
+      "/app/engines/prod-a/instances/pi-1",
+    )
+  })
+
+  it("puts an incident in focus at its address under its instance, its tab beside it", () => {
+    const url = "/app/engines/prod-a/instances/pi-1/incidents/inc%201?tab=history"
+    expect(route(url).screen).toEqual({
+      kind: "instance",
+      engine: E,
+      instance: "pi-1",
+      incident: "inc 1",
+      tab: "history",
+    })
+    expect(route(url).url).toBe(url)
+    expect(screenUrlOf({ kind: "instance", engine: E, instance: "pi-1", incident: "inc 1" })).toBe(
+      "/app/engines/prod-a/instances/pi-1/incidents/inc%201",
+    )
+    // An incident whose id can be no segment leaves the instance's own address.
+    expect(screenUrlOf({ kind: "instance", engine: E, instance: "pi-1", incident: ".." })).toBe(
+      "/app/engines/prod-a/instances/pi-1",
+    )
+  })
+
+  it("keeps an incident the page knows by its id alone in the cockpit's query, to find its instance", () => {
+    const url = "/app/cockpit?view=incident-detail&engine=prod-a&incidentId=inc-1"
+    expect(route(url).screen).toEqual({ kind: "incident", engine: E, incident: "inc-1" })
+    expect(route(url).url).toBe(url)
+    expect(screenUrlOf({ kind: "incident", engine: E, incident: "inc-1" })).toBe(url)
   })
 })

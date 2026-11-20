@@ -1,4 +1,10 @@
-import { useCallback, useMemo, useSyncExternalStore, type ComponentType } from "react"
+import {
+  useCallback,
+  useMemo,
+  useSyncExternalStore,
+  type ComponentType,
+  type ReactNode,
+} from "react"
 import type { ProcessFilterData } from "@miragon/pulse-screens"
 import { PageView, type ViewLocation, type ViewMap } from "@miragon/pulse-widget-shell/widgets"
 import { cockpitAfterFailedStart } from "@miragon/pulse-engine-connector/widgets"
@@ -7,8 +13,10 @@ import { SessionFrame } from "./frame/session-frame.js"
 import type { SessionPage } from "./frame/session-page.js"
 import { useT } from "./messages/index.js"
 import type { PageRouter } from "./router/router.js"
-import { screenOf, screenUrlOf } from "./router/routes.js"
+import { screenOf, screenUrlOf, type InstanceTab, type PageScreen } from "./router/routes.js"
 import { EngineRoute } from "./screens/engine/engine-route.js"
+import { IncidentRoute, InstanceRoute } from "./screens/instance/instance-route.js"
+import { useScreenShown } from "./screens/screen-shown.js"
 import { viewsAt } from "./unknown-engine.js"
 
 /** What the page with a session is made of: its router, its views and what its frame shows. */
@@ -27,10 +35,11 @@ export interface PageAppParts {
  * (`cockpitAfterFailedStart`), the navigation keeping the engine open with its sections; a refusal
  * no retry changes stays the frame's, and an engine's own address that names an engine the server
  * does not configure is refused in the view's place (`viewsAt`). Where the page shows the place
- * with a screen of its own (an engine's processes), the screen stands in the view's place, the
- * cockpit's view its fallback for an engine the screen does not serve; its filter rides in the
- * address (the router's `refine`), and the view names the place in its trail by the navigation's
- * word (`ViewLocation.nameOf`).
+ * with a screen of its own (an engine's processes, an instance, an incident under its instance),
+ * the screen stands in the view's place, the cockpit's view its fallback for an engine the screens
+ * do not serve, and the frame fills the window's height for it from 64rem on (`fill`); its state
+ * rides in the address (the router's `refine`: a filter, a tab), and the view names an engine's
+ * processes in its trail by the navigation's word (`ViewLocation.nameOf`).
  */
 function PageApp({ router, views, page }: PageAppParts) {
   const { route, shown, moves } = useSyncExternalStore(router.subscribe, router.state)
@@ -39,7 +48,8 @@ function PageApp({ router, views, page }: PageAppParts) {
   const named = useMemo<ViewLocation>(
     () => ({
       ...location,
-      nameOf: (args) => (screenOf(args) === undefined ? undefined : t("nav.section.processes")),
+      nameOf: (args) =>
+        screenOf(args)?.kind === "engine" ? t("nav.section.processes") : undefined,
     }),
     [location, t],
   )
@@ -48,6 +58,8 @@ function PageApp({ router, views, page }: PageAppParts) {
     [start],
   )
   const shownViews = useMemo(() => viewsAt(views, start), [views, start])
+  // A screen of the page's fills the window from 64rem on; the cockpit's view in its place does not.
+  const fill = useScreenShown(screen?.engine) !== "fallback"
   const view = (
     <PageView
       key={generation}
@@ -66,23 +78,70 @@ function PageApp({ router, views, page }: PageAppParts) {
       title={route.title}
       moves={moves}
       navigate={router.navigate}
+      fill={fill}
     >
       {screen === undefined ? (
         view
       ) : (
+        <PageScreenAt key={generation} screen={screen} router={router} fallback={view} />
+      )}
+    </SessionFrame>
+  )
+}
+
+/**
+ * The page's own screen at its place (`screen`), each deciding on the frame's one read of the engine
+ * list whether it serves the engine, else the cockpit's view the page starts there (`fallback`): an
+ * engine's processes, its filter the address's; an instance, its tab the address's and one of its
+ * root incidents in focus at the address of that incident; an incident known by its id alone, which
+ * the page leads on to the instance that holds its root.
+ */
+function PageScreenAt({
+  screen,
+  router,
+  fallback,
+}: {
+  screen: PageScreen
+  router: PageRouter
+  fallback: ReactNode
+}) {
+  switch (screen.kind) {
+    case "engine":
+      return (
         <EngineRoute
-          key={generation}
           engine={screen.engine}
           navigate={router.navigate}
           filter={screen.filter}
           onFilter={(filter: ProcessFilterData) => {
             router.refine(screenUrlOf({ ...screen, filter }))
           }}
-          fallback={view}
+          fallback={fallback}
         />
-      )}
-    </SessionFrame>
-  )
+      )
+    case "instance":
+      return (
+        <InstanceRoute
+          engine={screen.engine}
+          instance={screen.instance}
+          {...(screen.tab === undefined ? {} : { tab: screen.tab })}
+          {...(screen.incident === undefined ? {} : { incident: screen.incident })}
+          navigate={router.navigate}
+          onTab={(tab: InstanceTab) => {
+            router.refine(screenUrlOf({ ...screen, tab }))
+          }}
+          fallback={fallback}
+        />
+      )
+    case "incident":
+      return (
+        <IncidentRoute
+          engine={screen.engine}
+          incident={screen.incident}
+          navigate={router.navigate}
+          fallback={fallback}
+        />
+      )
+  }
 }
 
 /** The page's app for `mountApp`. */

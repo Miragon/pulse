@@ -237,6 +237,7 @@ export function ListTable({
   wrapHeads,
   copyHint,
   className,
+  fill = false,
   children,
 }: {
   columns: ReadonlyArray<ListTableColumn>
@@ -254,6 +255,12 @@ export function ListTable({
    */
   copyHint?: string
   className?: string
+  /**
+   * Fills the height its flex column leaves it and scrolls its rows in its own region under the
+   * sticky head (a page's screen at the window's height); without it the table takes its rows'
+   * height, as every view of a chat does.
+   */
+  fill?: boolean
   children: ReactNode
 }) {
   const scope = useId()
@@ -275,10 +282,14 @@ export function ListTable({
     className: column.className,
   }))
   return (
-    <div data-list-table={scope} className="w-full min-w-0">
+    <div
+      data-list-table={scope}
+      className={cn("w-full min-w-0", fill && "flex min-h-0 flex-1 flex-col")}
+    >
       {css && <style>{css}</style>}
       <DataTable
         label={ariaLabel}
+        className={fill ? "min-h-0 flex-1" : undefined}
         columns={heads}
         headRows={groups && <GroupRow groups={groups} />}
         wrapHeads={wrapHeads}

@@ -191,7 +191,7 @@ The blocks of an instance read the instance screen's JSON form of `@miragon/puls
   surface's `read` handed back; opened from the start with `defaultOpen`, it asks at once), the line
   the read names marked as the root cause's (`rootCauseLine`, the contract's index by
   `RootCauses.lineOf`, never a search for the cause's words), copied whole and wrapped on request,
-  a cut text and a failed read said so.
+  a cut text and a failed read said so, a refused read (no retry changes it) in the surface's words.
 - `WaitingTable`, `HistoryTable`, `VariablesTable`: where the instance waits (its kind and what the
   engine says of it, in a called instance with that instance's link; `ElementLink` a surface's
   way to the element, where a token moves from it), the elements it ran through (state, times,
@@ -206,7 +206,8 @@ The blocks of an instance read the instance screen's JSON form of `@miragon/puls
 
 `InstanceSlots`, what a surface brings to an instance's blocks: `PlainTable`, its table whose rows
 open nothing (`ScreenPlainTableProps`); `Link`, its link to a `ScreenTarget` (a version, the
-calling or a called instance), which it draws in its own look by `rel`; and `onCopy`, which puts a
+calling or a called instance, an incident card's "Located in" with its root incident in focus),
+which it draws in its own look by `rel`; and `onCopy`, which puts a
 text on the clipboard its own way. A write control is a slot of the block that shows it (an
 incident's `actions`, a wait's `ElementLink`, a variable's `editor`), which only a surface that
 writes fills.

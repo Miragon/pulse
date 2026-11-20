@@ -30,3 +30,76 @@
     @apply bg-background;
   }
 }
+/*
+ * The instance screen's diagram (src/screens/instance/instance-diagram.tsx): the markers the kit's
+ * canvas does not draw, in the canvas's variables and the kit's roles, so they follow the theme
+ * (owner decision D10, point 7). An incident in an instance it called: the incident's outline,
+ * dashed, nothing filled. An element already done: the success tone's outline on its status
+ * surface. The element in focus (an incident's): a glow in the interaction's colour around
+ * whatever marks it. Under forced colours the system's palette draws them beside the kit's markers
+ * (a wait Highlight at 2 px, an incident Highlight at 3 px): the incident in a called instance
+ * Highlight dashed, an element already done GrayText on Canvas, so it never reads as a wait.
+ * Then the legend's sample of each marker, as the diagram draws it: in high contrast a wait and an
+ * incident at 3 px as on the canvas, under forced colours in the same system colours and widths
+ * (doubled classes: they win over high contrast's, as the canvas's forced widths do).
+ */
+.djs-shape.pulse-incident-called > .djs-visual > :first-child:not(text) {
+  stroke: var(--bpmn-incident-stroke) !important;
+  stroke-width: 2px !important;
+  stroke-dasharray: 6 4 !important;
+}
+.djs-shape.pulse-completed > .djs-visual > :first-child:not(text) {
+  stroke: var(--success) !important;
+  fill: var(--success-surface) !important;
+}
+.djs-shape.pulse-selected > .djs-visual {
+  filter: drop-shadow(0 0 3px var(--interaction));
+}
+@media (forced-colors: active) {
+  .djs-shape.pulse-incident-called > .djs-visual > :first-child:not(text) {
+    stroke: Highlight !important;
+  }
+  .djs-shape.pulse-completed > .djs-visual > :first-child:not(text) {
+    stroke: GrayText !important;
+    fill: Canvas !important;
+  }
+}
+.pulse-swatch {
+  display: inline-block;
+  box-sizing: border-box;
+  width: 18px;
+  height: 14px;
+  border-radius: 3px;
+}
+.pulse-swatch--waiting {
+  border: 2px solid var(--info);
+  background: var(--info-surface);
+}
+.pulse-swatch--incident {
+  border: 2px solid var(--danger);
+  background: var(--danger-surface);
+}
+.pulse-swatch--incidentInCalledInstance {
+  border: 2px dashed var(--danger);
+}
+.pulse-swatch--completed {
+  border: 2px solid var(--success);
+  background: var(--success-surface);
+}
+[data-cd-kontrast="hoch"] :is(.pulse-swatch--waiting, .pulse-swatch--incident) {
+  border-width: 3px;
+}
+@media (forced-colors: active) {
+  .pulse-swatch.pulse-swatch {
+    forced-color-adjust: none;
+    background: Canvas;
+    border-color: Highlight;
+    border-width: 2px;
+  }
+  .pulse-swatch.pulse-swatch--incident {
+    border-width: 3px;
+  }
+  .pulse-swatch.pulse-swatch--completed {
+    border-color: GrayText;
+  }
+}

@@ -48,6 +48,52 @@ export const de = {
   "screen.engine.loading": "Die Prozesse von {engine} werden geladen…",
   "screen.engine.failed": "Die Prozesse von {engine} konnten nicht geladen werden",
 
+  "screen.instance.loading": "Die Instanz {instance} wird geladen…",
+  "screen.instance.failed": "Die Instanz {instance} konnte nicht geladen werden",
+  "screen.instance.unknown.title": "Die Instanz {instance} gibt es auf der Engine {engine} nicht",
+  "screen.instance.unknown.description":
+    "Die Engine kennt keine solche Instanz, weder laufend noch beendet. Prüfe die Adresse oder such die Instanz bei den Prozessen der Engine.",
+  "screen.instance.unknown.processes": "Prozesse von {engine}",
+  "screen.instance.id": "Instanz-ID",
+  "screen.instance.details": "Details der Instanz",
+  "screen.instance.split": "Diagramm und Details anders aufteilen",
+  "screen.instance.truncated": "Manche Listen sind gekürzt, Pulse zeigt nur einen Teil davon.",
+  "screen.instance.noIncidents": "Diese Instanz hat keine offenen Incidents.",
+
+  "tab.history": "Verlauf",
+  "tab.incidents": "Incidents",
+  "tab.waiting": "Wartet",
+  "tab.variables": "Variablen",
+
+  "diagram.label": "Diagramm von {process}",
+  "diagram.loading": "Das Diagramm wird geladen…",
+  "diagram.none": "Die Engine hat kein Diagramm für diese Version.",
+  "diagram.readFailed":
+    "Das Diagramm konnte nicht geladen werden. Aktualisiere, um es erneut zu versuchen.",
+  "diagram.drawFailed": "Das Diagramm konnte nicht gezeichnet werden.",
+  "diagram.callInstance": "Die Instanz {id} öffnen, die {element} aufgerufen hat",
+  "diagram.callVersion": "{process} v{version} öffnen, aufgerufen an {element}",
+
+  "caller.calledBy": "Aufgerufen von {caller}",
+  "caller.processUnread": "Der Prozess des Aufrufers konnte nicht gelesen werden",
+  "caller.open": "Aufrufer öffnen",
+
+  "incident.title": "Incident {incident}",
+  "incident.open": "Incident öffnen",
+  "incident.sameCause": "Alle mit dieser Ursache",
+  "incident.missing.title": "Der Incident {incident} ist in dieser Instanz nicht offen",
+  "incident.missing.detail":
+    "Vielleicht ist er schon gelöst. Die Instanz zeigt die Incidents, die sie jetzt hat.",
+  "incident.missing.show": "Instanz zeigen",
+  "incident.resolving": "Die Instanz des Incidents {incident} wird gesucht…",
+  "incident.resolveFailed": "Die Instanz des Incidents {incident} konnte nicht geladen werden",
+  "incident.textGone":
+    "Die Engine hat zu diesem Incident keinen Text. Vielleicht ist er schon gelöst. Aktualisiere die Instanz.",
+
+  "copy.done": "{label} kopiert",
+  "copy.failed": "{label} nicht kopiert",
+  "copy.failedHint": "Dein Browser hat es nicht erlaubt. Markiere den Text und kopiere ihn selbst.",
+
   "start.unknownEngine.title": "Die Engine {engine} gibt es auf diesem Server nicht",
   "start.unknownEngine.description":
     "Geh zur Startseite von Pulse. Sie zeigt die Engines und Boards dieses Servers.",

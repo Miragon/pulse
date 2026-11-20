@@ -131,6 +131,20 @@ describe("an incident's text", () => {
     expect(read.onRead).not.toHaveBeenCalled()
   })
 
+  it("says a refused read in the surface's words, with no retry", () => {
+    const refused = textOf({
+      defaultOpen: true,
+      read: { status: "refused", reason: "The engine has no text for this incident any more." },
+    })
+
+    expect(refused.region.getByRole("status").textContent).toBe(
+      "The engine has no text for this incident any more.",
+    )
+    expect(refused.region.queryByRole("alert")).toBeNull()
+    expect(refused.region.queryByRole("button", { name: "Try again" })).toBeNull()
+    expect(refused.onRead).not.toHaveBeenCalled()
+  })
+
   it("speaks German under a German locale", () => {
     const { region, container } = textOf({ kind: "errorMessage", read: READ }, "de")
 

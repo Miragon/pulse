@@ -46,6 +46,51 @@ export const en = {
   "screen.engine.loading": "Loading the processes of {engine}…",
   "screen.engine.failed": "The processes of {engine} couldn't be loaded",
 
+  "screen.instance.loading": "Loading instance {instance}…",
+  "screen.instance.failed": "Instance {instance} couldn't be loaded",
+  "screen.instance.unknown.title": "Instance {instance} isn't on engine {engine}",
+  "screen.instance.unknown.description":
+    "The engine knows no such instance, running or ended. Check the address, or find the instance among the engine's processes.",
+  "screen.instance.unknown.processes": "Processes of {engine}",
+  "screen.instance.id": "instance ID",
+  "screen.instance.details": "Instance details",
+  "screen.instance.split": "Resize diagram and details",
+  "screen.instance.truncated": "Some lists are cut off, so Pulse shows only part of them.",
+  "screen.instance.noIncidents": "This instance has no open incidents.",
+
+  "tab.history": "History",
+  "tab.incidents": "Incidents",
+  "tab.waiting": "Waiting",
+  "tab.variables": "Variables",
+
+  "diagram.label": "Diagram of {process}",
+  "diagram.loading": "Loading the diagram…",
+  "diagram.none": "The engine has no diagram for this version.",
+  "diagram.readFailed": "The diagram couldn't be loaded. Refresh to try again.",
+  "diagram.drawFailed": "The diagram couldn't be drawn.",
+  "diagram.callInstance": "Open the instance {id} that {element} called",
+  "diagram.callVersion": "Open {process} v{version}, called at {element}",
+
+  "caller.calledBy": "Called by {caller}",
+  "caller.processUnread": "The caller's process couldn't be read",
+  "caller.open": "Open caller",
+
+  "incident.title": "Incident {incident}",
+  "incident.open": "Open incident",
+  "incident.sameCause": "All with this cause",
+  "incident.missing.title": "Incident {incident} isn't open in this instance",
+  "incident.missing.detail":
+    "It may be resolved already. The instance shows the incidents it has now.",
+  "incident.missing.show": "Show the instance",
+  "incident.resolving": "Finding the instance of incident {incident}…",
+  "incident.resolveFailed": "The instance of incident {incident} couldn't be loaded",
+  "incident.textGone":
+    "The engine has no text for this incident. It may be resolved already. Refresh the instance.",
+
+  "copy.done": "Copied the {label}",
+  "copy.failed": "Couldn't copy the {label}",
+  "copy.failedHint": "Your browser didn't allow it. Select the text and copy it yourself.",
+
   "start.unknownEngine.title": "Engine {engine} isn't on this server",
   "start.unknownEngine.description":
     "Go to Pulse's start page, which shows this server's engines and boards.",

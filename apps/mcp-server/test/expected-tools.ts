@@ -65,6 +65,8 @@ export const EXPECTED_TOOLS_READ_ONLY: readonly string[] = [
   "engine_query_historic_process_instances",
   "engine_query_historic_task_instances",
   "engine_query_historic_variable_instances",
+  "engine_screen_incident_text_data",
+  "engine_screen_instance_data",
   "engine_screen_processes_data",
   "engine_widget_actions_data",
 ]
@@ -113,13 +115,15 @@ export const EXPECTED_TOOLS_ADMIN: readonly string[] = [
 /**
  * A server of Camunda 8 engines alone, in every toolset: the boot registers only what serves a
  * configured engine's dialect (each tool's, feed's and route's mark), so the engine list, the
- * cockpit (its board and landing), the board and XML feeds and the web app's engine screen feed;
- * no write, since none serves Camunda 8.
+ * cockpit (its board and landing), the board and XML feeds and the web app's screen feeds (an
+ * engine's processes, an instance, an incident's text); no write, since none serves Camunda 8.
  */
 export const EXPECTED_TOOLS_CAMUNDA_8: readonly string[] = [
   "engine_board_data",
   "engine_bpmn_xml_data",
   "engine_list_engines",
   "engine_open_cockpit",
+  "engine_screen_incident_text_data",
+  "engine_screen_instance_data",
   "engine_screen_processes_data",
 ]

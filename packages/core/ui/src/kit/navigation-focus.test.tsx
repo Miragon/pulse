@@ -39,6 +39,15 @@ describe("NavigationFocus", () => {
     expect(heading.style.outlineStyle).toBe("none")
   })
 
+  it("lays its frame out in its parent as the page asks, a screen's flex column say", () => {
+    render(
+      <NavigationFocus viewKey="overview" className="flex min-h-0 flex-1 flex-col">
+        <p>view body</p>
+      </NavigationFocus>,
+    )
+    expect(frameOf().className).toBe("min-w-0 outline-none flex min-h-0 flex-1 flex-col")
+  })
+
   it("keeps a heading's own tab order", () => {
     const { rerender } = render(
       <NavigationFocus viewKey="overview">

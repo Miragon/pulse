@@ -17,14 +17,19 @@ interface ScreenRead {
  * tab shown again, and its last read is older than 60 s; nothing polls. TanStack's own refetch on
  * focus follows the tab's visibility alone, so a move between two windows would read nothing: the
  * screen listens to both. The two events of one return read once (a read that runs is joined,
- * never started again), and a refusal no retry changes (`isPermanentError`) is not read again.
+ * never started again), and a refusal no retry changes (`isPermanentError`, or the screen's own
+ * `permanent`) is not read again.
  * Only while `enabled`: a screen that does not read yet reads nothing on a return either.
  */
-export function useReadOnReturn(read: ScreenRead, enabled: boolean): void {
+export function useReadOnReturn(
+  read: ScreenRead,
+  enabled: boolean,
+  permanent: (error: unknown) => boolean = isPermanentError,
+): void {
   const onReturn = useEffectEvent(() => {
     const last = Math.max(read.dataUpdatedAt, read.errorUpdatedAt)
     if (Date.now() - last < READ_AGAIN_AFTER_MS) return
-    if (read.error !== null && isPermanentError(read.error)) return
+    if (read.error !== null && permanent(read.error)) return
     void read.refetch({ cancelRefetch: false })
   })
   useEffect(() => {

@@ -82,9 +82,24 @@ export interface PageRouter {
 /** Whether the page shows the place `args` names with a screen of its own. */
 const claims = (args: ViewPlace["args"]): boolean => screenOf(args) !== undefined
 
-/** Whether `other` is the screen `one` is, whatever state of its own each is in. */
+/** What a screen shows, whatever state of its own it is in: its subject. */
+function subjectOf(screen: PageScreen): string {
+  switch (screen.kind) {
+    case "engine":
+      return JSON.stringify([screen.kind, screen.engine])
+    case "instance":
+      return JSON.stringify([screen.kind, screen.engine, screen.instance, screen.incident ?? null])
+    case "incident":
+      return JSON.stringify([screen.kind, screen.engine, screen.incident])
+  }
+}
+
+/**
+ * Whether `other` is the screen `one` is, whatever state of its own each is in (a filter, a tab):
+ * the same engine's processes, the same instance with the same incident in focus.
+ */
 const sameScreen = (one: PageScreen, other: PageScreen | undefined): boolean =>
-  other !== undefined && one.kind === other.kind && one.engine === other.engine
+  other !== undefined && subjectOf(one) === subjectOf(other)
 
 /**
  * The router of a page whose address names `first`. The view reports each place it reaches, which

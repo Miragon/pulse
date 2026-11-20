@@ -1,0 +1,1087 @@
+{
+  "about": "A copy of c7-core's recorded screen engine (packages/connectors/c7/c7-core/src/testing/screen-engine.json, C7_SCREEN_ENGINE): one Operaton run of the conformance world, DSP-3001 waiting at its call activity for the root incident of the instance it called. test:web's chain engine (chain-engine.ts) replays these answers; the MCP server's app may not import a family core (family-core-consumers), so its test host keeps a copy, whose answers scripts/recorded-engine-copy.test.mjs holds to the recording's.",
+  "answers": [
+    {
+      "method": "GET",
+      "path": "/engine-rest/process-definition/statistics",
+      "answer": [
+        {
+          "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+          "id": "pulse-dispatch:1:9aa99268-e4d4-11f1-8d05-0ec72f60445f",
+          "instances": 1,
+          "failedJobs": 0,
+          "incidents": [],
+          "definition": {
+            "id": "pulse-dispatch:1:9aa99268-e4d4-11f1-8d05-0ec72f60445f",
+            "key": "pulse-dispatch",
+            "category": "http://bpmn.io/schema/bpmn",
+            "description": null,
+            "name": "Dispatch order",
+            "version": 1,
+            "resource": "dispatch.bpmn",
+            "deploymentId": "9aa60ff6-e4d4-11f1-8d05-0ec72f60445f",
+            "diagram": null,
+            "suspended": false,
+            "tenantId": null,
+            "versionTag": null,
+            "historyTimeToLive": null,
+            "startableInTasklist": true
+          }
+        },
+        {
+          "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+          "id": "pulse-label:1:9a95470c-e4d4-11f1-8d05-0ec72f60445f",
+          "instances": 1,
+          "failedJobs": 0,
+          "incidents": [],
+          "definition": {
+            "id": "pulse-label:1:9a95470c-e4d4-11f1-8d05-0ec72f60445f",
+            "key": "pulse-label",
+            "category": "http://bpmn.io/schema/bpmn",
+            "description": null,
+            "name": "Print label",
+            "version": 1,
+            "resource": "label.bpmn",
+            "deploymentId": "9a84f35a-e4d4-11f1-8d05-0ec72f60445f",
+            "diagram": null,
+            "suspended": false,
+            "tenantId": null,
+            "versionTag": null,
+            "historyTimeToLive": null,
+            "startableInTasklist": true
+          }
+        },
+        {
+          "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+          "id": "pulse-order:1:9a9f5930-e4d4-11f1-8d05-0ec72f60445f",
+          "instances": 2,
+          "failedJobs": 0,
+          "incidents": [],
+          "definition": {
+            "id": "pulse-order:1:9a9f5930-e4d4-11f1-8d05-0ec72f60445f",
+            "key": "pulse-order",
+            "category": "http://bpmn.io/schema/bpmn",
+            "description": null,
+            "name": "Order fulfillment",
+            "version": 1,
+            "resource": "order.bpmn",
+            "deploymentId": "9a9965be-e4d4-11f1-8d05-0ec72f60445f",
+            "diagram": null,
+            "suspended": false,
+            "tenantId": null,
+            "versionTag": null,
+            "historyTimeToLive": null,
+            "startableInTasklist": true
+          }
+        },
+        {
+          "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+          "id": "pulse-order:2:9aa46244-e4d4-11f1-8d05-0ec72f60445f",
+          "instances": 1,
+          "failedJobs": 0,
+          "incidents": [],
+          "definition": {
+            "id": "pulse-order:2:9aa46244-e4d4-11f1-8d05-0ec72f60445f",
+            "key": "pulse-order",
+            "category": "http://bpmn.io/schema/bpmn",
+            "description": null,
+            "name": "Order fulfillment",
+            "version": 2,
+            "resource": "order.bpmn",
+            "deploymentId": "9aa15502-e4d4-11f1-8d05-0ec72f60445f",
+            "diagram": null,
+            "suspended": false,
+            "tenantId": null,
+            "versionTag": null,
+            "historyTimeToLive": null,
+            "startableInTasklist": true
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/telemetry/data",
+      "answer": {
+        "installation": "992a30e2-2db0-4b90-b189-6e52b260735b",
+        "product": {
+          "name": "Operaton BPM Runtime",
+          "version": "2.1.5",
+          "edition": "community",
+          "internals": {
+            "database": {
+              "vendor": "H2",
+              "version": "2.4.240 (2025-09-22)"
+            },
+            "commands": {
+              "AcquireJobsCmd": {
+                "count": 14
+              },
+              "SetTaskVariablesCmd": {
+                "count": 1
+              },
+              "AuthorizationQueryImpl": {
+                "count": 22
+              },
+              "CreateGroupCmd": {
+                "count": 1
+              },
+              "DbGroupQueryImpl": {
+                "count": 1
+              },
+              "CreateGroupQueryCmd": {
+                "count": 1
+              },
+              "IncidentQueryImpl": {
+                "count": 1
+              },
+              "BootstrapEngineCommand": {
+                "count": 1
+              },
+              "DefaultHistoryLevelSetupCommand": {
+                "count": 1
+              },
+              "SaveFilterCmd": {
+                "count": 1
+              },
+              "CreateFilterCmd": {
+                "count": 1
+              },
+              "ProcessDefinitionQueryImpl": {
+                "count": 1
+              },
+              "TaskQueryImpl": {
+                "count": 1
+              },
+              "CreateUserQueryCmd": {
+                "count": 1
+              },
+              "DbUserQueryImpl": {
+                "count": 1
+              },
+              "SaveGroupCmd": {
+                "count": 1
+              },
+              "ExecuteJobsCmd": {
+                "count": 6
+              },
+              "SaveUserCmd": {
+                "count": 1
+              },
+              "StartProcessInstanceCmd": {
+                "count": 5
+              },
+              "ProcessDefinitionStatisticsQueryImpl": {
+                "count": 1
+              },
+              "SaveAuthorizationCmd": {
+                "count": 22
+              },
+              "DeployCmd": {
+                "count": 4
+              },
+              "FailedJobListener": {
+                "count": 6
+              },
+              "CreateMembershipCmd": {
+                "count": 1
+              },
+              "FailedJobListener_FailedJobListenerCmd": {
+                "count": 6
+              },
+              "GetTableMetaDataCmd": {
+                "count": 1
+              },
+              "CreateUserCmd": {
+                "count": 1
+              },
+              "FilterQueryImpl": {
+                "count": 1
+              },
+              "HistoryCleanupCmd": {
+                "count": 1
+              },
+              "SchemaOperationsProcessEngineBuild": {
+                "count": 1
+              }
+            },
+            "metrics": {
+              "executed-decision-elements": {
+                "count": 0
+              },
+              "flow-node-instances": {
+                "count": 20
+              },
+              "decision-instances": {
+                "count": 0
+              },
+              "process-instances": {
+                "count": 5
+              }
+            },
+            "webapps": [],
+            "jdk": {
+              "version": "17.0.20",
+              "vendor": "Alpine"
+            },
+            "application-server": {
+              "vendor": "Apache Tomcat",
+              "version": "Apache Tomcat/11.0.26"
+            },
+            "operaton-integration": ["spring-boot-starter", "operaton-bpm-run"],
+            "data-collection-start-date": "2026-11-20T11:21:57.863+0000"
+          }
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/process-instance",
+      "query": {
+        "withIncident": "true",
+        "sortBy": "instanceId",
+        "sortOrder": "asc",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": [
+        {
+          "links": [],
+          "id": "9abf1642-e4d4-11f1-8d05-0ec72f60445f",
+          "definitionId": "pulse-order:1:9a9f5930-e4d4-11f1-8d05-0ec72f60445f",
+          "businessKey": "ORD-1002",
+          "caseInstanceId": null,
+          "ended": false,
+          "suspended": false,
+          "tenantId": null,
+          "definitionKey": "pulse-order"
+        },
+        {
+          "links": [],
+          "id": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+          "definitionId": "pulse-dispatch:1:9aa99268-e4d4-11f1-8d05-0ec72f60445f",
+          "businessKey": "DSP-3001",
+          "caseInstanceId": null,
+          "ended": false,
+          "suspended": false,
+          "tenantId": null,
+          "definitionKey": "pulse-dispatch"
+        },
+        {
+          "links": [],
+          "id": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+          "definitionId": "pulse-label:1:9a95470c-e4d4-11f1-8d05-0ec72f60445f",
+          "businessKey": null,
+          "caseInstanceId": null,
+          "ended": false,
+          "suspended": false,
+          "tenantId": null,
+          "definitionKey": "pulse-label"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/process-instance/9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+      "answer": {
+        "links": [],
+        "id": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+        "definitionId": "pulse-dispatch:1:9aa99268-e4d4-11f1-8d05-0ec72f60445f",
+        "businessKey": "DSP-3001",
+        "caseInstanceId": null,
+        "ended": false,
+        "suspended": false,
+        "tenantId": null,
+        "definitionKey": "pulse-dispatch"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/variable-instance",
+      "query": {
+        "processInstanceIdIn": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+        "deserializeValues": "false",
+        "maxResults": "500"
+      },
+      "answer": [
+        {
+          "type": "String",
+          "value": "ORD-1001",
+          "valueInfo": {},
+          "id": "9acc0eb4-e4d4-11f1-8d05-0ec72f60445f",
+          "name": "orderId",
+          "processDefinitionId": "pulse-dispatch:1:9aa99268-e4d4-11f1-8d05-0ec72f60445f",
+          "processInstanceId": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+          "executionId": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+          "caseInstanceId": null,
+          "caseExecutionId": null,
+          "taskId": null,
+          "batchId": null,
+          "activityInstanceId": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+          "errorMessage": null,
+          "tenantId": null
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/history/activity-instance",
+      "query": {
+        "processInstanceId": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+        "sortBy": "occurrence",
+        "sortOrder": "asc",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": [
+        {
+          "id": "Event_DispatchRequested:9acc35c6-e4d4-11f1-8d05-0ec72f60445f",
+          "parentActivityInstanceId": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+          "activityId": "Event_DispatchRequested",
+          "activityName": "Dispatch requested",
+          "activityType": "startEvent",
+          "processDefinitionKey": "pulse-dispatch",
+          "processDefinitionId": "pulse-dispatch:1:9aa99268-e4d4-11f1-8d05-0ec72f60445f",
+          "processInstanceId": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+          "executionId": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+          "taskId": null,
+          "calledProcessInstanceId": null,
+          "calledCaseInstanceId": null,
+          "assignee": null,
+          "startTime": "2026-11-20T11:22:00.647+0000",
+          "endTime": "2026-11-20T11:22:00.647+0000",
+          "durationInMillis": 0,
+          "canceled": false,
+          "completeScope": false,
+          "tenantId": null,
+          "removalTime": null,
+          "rootProcessInstanceId": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f"
+        },
+        {
+          "id": "Activity_PrintShippingLabel:9acc5cda-e4d4-11f1-8d05-0ec72f60445f",
+          "parentActivityInstanceId": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+          "activityId": "Activity_PrintShippingLabel",
+          "activityName": "Print shipping label",
+          "activityType": "callActivity",
+          "processDefinitionKey": "pulse-dispatch",
+          "processDefinitionId": "pulse-dispatch:1:9aa99268-e4d4-11f1-8d05-0ec72f60445f",
+          "processInstanceId": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+          "executionId": "9acc35c9-e4d4-11f1-8d05-0ec72f60445f",
+          "taskId": null,
+          "calledProcessInstanceId": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+          "calledCaseInstanceId": null,
+          "assignee": null,
+          "startTime": "2026-11-20T11:22:00.648+0000",
+          "endTime": null,
+          "durationInMillis": null,
+          "canceled": false,
+          "completeScope": false,
+          "tenantId": null,
+          "removalTime": null,
+          "rootProcessInstanceId": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/history/process-instance/9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+      "answer": {
+        "id": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+        "businessKey": "DSP-3001",
+        "processDefinitionId": "pulse-dispatch:1:9aa99268-e4d4-11f1-8d05-0ec72f60445f",
+        "processDefinitionKey": "pulse-dispatch",
+        "processDefinitionName": "Dispatch order",
+        "processDefinitionVersion": 1,
+        "startTime": "2026-11-20T11:22:00.646+0000",
+        "endTime": null,
+        "removalTime": null,
+        "durationInMillis": null,
+        "startUserId": null,
+        "startActivityId": "Event_DispatchRequested",
+        "deleteReason": null,
+        "rootProcessInstanceId": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+        "superProcessInstanceId": null,
+        "superCaseInstanceId": null,
+        "caseInstanceId": null,
+        "tenantId": null,
+        "state": "ACTIVE",
+        "restartedProcessInstanceId": null
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/process-instance",
+      "query": {
+        "superProcessInstance": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+        "firstResult": "0",
+        "maxResults": "101"
+      },
+      "answer": [
+        {
+          "links": [],
+          "id": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+          "definitionId": "pulse-label:1:9a95470c-e4d4-11f1-8d05-0ec72f60445f",
+          "businessKey": null,
+          "caseInstanceId": null,
+          "ended": false,
+          "suspended": false,
+          "tenantId": null,
+          "definitionKey": "pulse-label"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/process-instance",
+      "query": {
+        "superProcessInstance": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+        "firstResult": "0",
+        "maxResults": "101"
+      },
+      "answer": []
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/incident",
+      "query": {
+        "processInstanceId": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": [
+        {
+          "id": "9ad5abc0-e4d4-11f1-8d05-0ec72f60445f",
+          "processDefinitionId": "pulse-dispatch:1:9aa99268-e4d4-11f1-8d05-0ec72f60445f",
+          "processInstanceId": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+          "executionId": "9acc35c9-e4d4-11f1-8d05-0ec72f60445f",
+          "incidentTimestamp": "2026-11-20T11:22:00.709+0000",
+          "incidentType": "failedJob",
+          "activityId": "Activity_PrintShippingLabel",
+          "failedActivityId": "Activity_PrintShippingLabel",
+          "causeIncidentId": "9ad584af-e4d4-11f1-8d05-0ec72f60445f",
+          "rootCauseIncidentId": "9ad584af-e4d4-11f1-8d05-0ec72f60445f",
+          "configuration": null,
+          "incidentMessage": null,
+          "tenantId": null,
+          "jobDefinitionId": null,
+          "annotation": null
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/incident",
+      "query": {
+        "processInstanceId": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": [
+        {
+          "id": "9ad584af-e4d4-11f1-8d05-0ec72f60445f",
+          "processDefinitionId": "pulse-label:1:9a95470c-e4d4-11f1-8d05-0ec72f60445f",
+          "processInstanceId": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+          "executionId": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+          "incidentTimestamp": "2026-11-20T11:22:00.708+0000",
+          "incidentType": "failedJob",
+          "activityId": "Activity_RenderLabel",
+          "failedActivityId": "Activity_RenderLabel",
+          "causeIncidentId": "9ad584af-e4d4-11f1-8d05-0ec72f60445f",
+          "rootCauseIncidentId": "9ad584af-e4d4-11f1-8d05-0ec72f60445f",
+          "configuration": "9accd20f-e4d4-11f1-8d05-0ec72f60445f",
+          "incidentMessage": "Unknown property used in expression: ${labelPrinter.print(orderId)}. Cause: Cannot resolve identifier 'labelPrinter'",
+          "tenantId": null,
+          "jobDefinitionId": "9a95470d-e4d4-11f1-8d05-0ec72f60445f",
+          "annotation": null
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/task",
+      "query": {
+        "processInstanceIdIn": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f,9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": []
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/event-subscription",
+      "query": {
+        "processInstanceId": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": []
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/event-subscription",
+      "query": {
+        "processInstanceId": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": []
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/process-instance/9accaafb-e4d4-11f1-8d05-0ec72f60445f/activity-instances",
+      "answer": {
+        "id": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+        "parentActivityInstanceId": null,
+        "activityId": "pulse-label:1:9a95470c-e4d4-11f1-8d05-0ec72f60445f",
+        "activityType": "processDefinition",
+        "processInstanceId": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+        "processDefinitionId": "pulse-label:1:9a95470c-e4d4-11f1-8d05-0ec72f60445f",
+        "childActivityInstances": [],
+        "childTransitionInstances": [
+          {
+            "id": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+            "parentActivityInstanceId": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+            "processInstanceId": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+            "processDefinitionId": "pulse-label:1:9a95470c-e4d4-11f1-8d05-0ec72f60445f",
+            "activityId": "Activity_RenderLabel",
+            "activityName": "Render label",
+            "activityType": "serviceTask",
+            "executionId": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+            "incidentIds": ["9ad584af-e4d4-11f1-8d05-0ec72f60445f"],
+            "incidents": [
+              {
+                "id": "9ad584af-e4d4-11f1-8d05-0ec72f60445f",
+                "activityId": "Activity_RenderLabel"
+              }
+            ],
+            "targetActivityId": "Activity_RenderLabel"
+          }
+        ],
+        "executionIds": ["9accaafb-e4d4-11f1-8d05-0ec72f60445f"],
+        "activityName": "Print label",
+        "incidentIds": [],
+        "incidents": [],
+        "name": "Print label"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/process-instance/9acc0eb3-e4d4-11f1-8d05-0ec72f60445f/activity-instances",
+      "answer": {
+        "id": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+        "parentActivityInstanceId": null,
+        "activityId": "pulse-dispatch:1:9aa99268-e4d4-11f1-8d05-0ec72f60445f",
+        "activityType": "processDefinition",
+        "processInstanceId": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+        "processDefinitionId": "pulse-dispatch:1:9aa99268-e4d4-11f1-8d05-0ec72f60445f",
+        "childActivityInstances": [
+          {
+            "id": "Activity_PrintShippingLabel:9acc5cda-e4d4-11f1-8d05-0ec72f60445f",
+            "parentActivityInstanceId": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+            "activityId": "Activity_PrintShippingLabel",
+            "activityType": "callActivity",
+            "processInstanceId": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+            "processDefinitionId": "pulse-dispatch:1:9aa99268-e4d4-11f1-8d05-0ec72f60445f",
+            "childActivityInstances": [],
+            "childTransitionInstances": [],
+            "executionIds": ["9acc35c9-e4d4-11f1-8d05-0ec72f60445f"],
+            "activityName": "Print shipping label",
+            "incidentIds": ["9ad5abc0-e4d4-11f1-8d05-0ec72f60445f"],
+            "incidents": [
+              {
+                "id": "9ad5abc0-e4d4-11f1-8d05-0ec72f60445f",
+                "activityId": "Activity_PrintShippingLabel"
+              }
+            ],
+            "name": "Print shipping label"
+          }
+        ],
+        "childTransitionInstances": [],
+        "executionIds": ["9acc0eb3-e4d4-11f1-8d05-0ec72f60445f"],
+        "activityName": "Dispatch order",
+        "incidentIds": [],
+        "incidents": [],
+        "name": "Dispatch order"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/job",
+      "query": {
+        "timers": "true",
+        "processInstanceIds": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f,9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": []
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/job-definition",
+      "query": {
+        "processDefinitionId": "pulse-dispatch:1:9aa99268-e4d4-11f1-8d05-0ec72f60445f",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": []
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/job-definition",
+      "query": {
+        "processDefinitionId": "pulse-label:1:9a95470c-e4d4-11f1-8d05-0ec72f60445f",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": [
+        {
+          "id": "9a95470d-e4d4-11f1-8d05-0ec72f60445f",
+          "processDefinitionId": "pulse-label:1:9a95470c-e4d4-11f1-8d05-0ec72f60445f",
+          "processDefinitionKey": "pulse-label",
+          "jobType": "async-continuation",
+          "jobConfiguration": "async-before",
+          "activityId": "Activity_RenderLabel",
+          "suspended": false,
+          "overridingJobPriority": null,
+          "tenantId": null,
+          "deploymentId": null
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/job",
+      "query": {
+        "processInstanceIds": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f,9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": [
+        {
+          "id": "9accd20f-e4d4-11f1-8d05-0ec72f60445f",
+          "jobDefinitionId": "9a95470d-e4d4-11f1-8d05-0ec72f60445f",
+          "processInstanceId": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+          "processDefinitionId": "pulse-label:1:9a95470c-e4d4-11f1-8d05-0ec72f60445f",
+          "processDefinitionKey": "pulse-label",
+          "executionId": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+          "exceptionMessage": "Unknown property used in expression: ${labelPrinter.print(orderId)}. Cause: Cannot resolve identifier 'labelPrinter'",
+          "failedActivityId": "Activity_RenderLabel",
+          "retries": 0,
+          "dueDate": null,
+          "suspended": false,
+          "priority": 0,
+          "tenantId": null,
+          "createTime": "2026-11-20T11:22:00.651+0000",
+          "batchId": null
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/process-instance/9acc0eb3-e4d4-11f1-8d05-0ec72f60445f/variables",
+      "query": {
+        "deserializeValues": "false"
+      },
+      "answer": {
+        "orderId": {
+          "type": "String",
+          "value": "ORD-1001",
+          "valueInfo": {}
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/external-task",
+      "query": {
+        "processInstanceIdIn": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f,9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": []
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/process-definition",
+      "query": {
+        "processDefinitionIdIn": "pulse-dispatch:1:9aa99268-e4d4-11f1-8d05-0ec72f60445f,pulse-label:1:9a95470c-e4d4-11f1-8d05-0ec72f60445f",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": [
+        {
+          "id": "pulse-dispatch:1:9aa99268-e4d4-11f1-8d05-0ec72f60445f",
+          "key": "pulse-dispatch",
+          "category": "http://bpmn.io/schema/bpmn",
+          "description": null,
+          "name": "Dispatch order",
+          "version": 1,
+          "resource": "dispatch.bpmn",
+          "deploymentId": "9aa60ff6-e4d4-11f1-8d05-0ec72f60445f",
+          "diagram": null,
+          "suspended": false,
+          "tenantId": null,
+          "versionTag": null,
+          "historyTimeToLive": 180,
+          "startableInTasklist": true
+        },
+        {
+          "id": "pulse-label:1:9a95470c-e4d4-11f1-8d05-0ec72f60445f",
+          "key": "pulse-label",
+          "category": "http://bpmn.io/schema/bpmn",
+          "description": null,
+          "name": "Print label",
+          "version": 1,
+          "resource": "label.bpmn",
+          "deploymentId": "9a84f35a-e4d4-11f1-8d05-0ec72f60445f",
+          "diagram": null,
+          "suspended": false,
+          "tenantId": null,
+          "versionTag": null,
+          "historyTimeToLive": 180,
+          "startableInTasklist": true
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/job/9accd20f-e4d4-11f1-8d05-0ec72f60445f/stacktrace",
+      "text": "org.operaton.bpm.engine.ProcessEngineException: Unknown property used in expression: ${labelPrinter.print(orderId)}. Cause: Cannot resolve identifier 'labelPrinter'\n\tat org.operaton.bpm.engine.impl.el.JuelExpression.getValue(JuelExpression.java:66)\n\tat org.operaton.bpm.engine.impl.el.JuelExpression.getValue(JuelExpression.java:53)\n\tat org.operaton.bpm.engine.impl.bpmn.behavior.ServiceTaskExpressionActivityBehavior.lambda$performExecution$0(ServiceTaskExpressionActivityBehavior.java:46)\n\tat org.operaton.bpm.engine.impl.bpmn.behavior.AbstractBpmnActivityBehavior.executeWithErrorPropagation(AbstractBpmnActivityBehavior.java:90)\n\tat org.operaton.bpm.engine.impl.bpmn.behavior.ServiceTaskExpressionActivityBehavior.performExecution(ServiceTaskExpressionActivityBehavior.java:44)\n\tat org.operaton.bpm.engine.impl.bpmn.behavior.TaskActivityBehavior.execute(TaskActivityBehavior.java:69)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationActivityExecute.lambda$execute$1(PvmAtomicOperationActivityExecute.java:57)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.continueIfExecutionDoesNotAffectNextOperation(PvmExecutionImpl.java:2061)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationActivityExecute.execute(PvmAtomicOperationActivityExecute.java:44)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationActivityExecute.execute(PvmAtomicOperationActivityExecute.java:31)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:120)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperation(ExecutionEntity.java:629)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperation(ExecutionEntity.java:605)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.lambda$dispatchDelayedEventsAndPerformOperation$4(PvmExecutionImpl.java:2007)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.continueExecutionIfNotCanceled(PvmExecutionImpl.java:2067)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.dispatchDelayedEventsAndPerformOperation(PvmExecutionImpl.java:2022)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.dispatchDelayedEventsAndPerformOperation(PvmExecutionImpl.java:2006)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationTransitionNotifyListenerStart.eventNotificationsCompleted(PvmAtomicOperationTransitionNotifyListenerStart.java:62)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationTransitionNotifyListenerStart.eventNotificationsCompleted(PvmAtomicOperationTransitionNotifyListenerStart.java:29)\n\tat org.operaton.bpm.engine.impl.core.operation.AbstractEventAtomicOperation.execute(AbstractEventAtomicOperation.java:70)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:120)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:86)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperationSync(ExecutionEntity.java:638)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperationSync(ExecutionEntity.java:615)\n\tat org.operaton.bpm.engine.impl.core.operation.AbstractEventAtomicOperation.execute(AbstractEventAtomicOperation.java:66)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:120)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:86)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperationSync(ExecutionEntity.java:638)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperationSync(ExecutionEntity.java:615)\n\tat org.operaton.bpm.engine.impl.core.operation.AbstractEventAtomicOperation.execute(AbstractEventAtomicOperation.java:66)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:120)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:86)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperationSync(ExecutionEntity.java:638)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperationSync(ExecutionEntity.java:615)\n\tat org.operaton.bpm.engine.impl.core.operation.AbstractEventAtomicOperation.execute(AbstractEventAtomicOperation.java:66)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:120)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperation(ExecutionEntity.java:629)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperation(ExecutionEntity.java:605)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationTransitionCreateScope.scopeCreated(PvmAtomicOperationTransitionCreateScope.java:41)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationCreateScope.execute(PvmAtomicOperationCreateScope.java:55)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationCreateScope.execute(PvmAtomicOperationCreateScope.java:28)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:127)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:86)\n\tat org.operaton.bpm.engine.impl.jobexecutor.AsyncContinuationJobHandler.execute(AsyncContinuationJobHandler.java:81)\n\tat org.operaton.bpm.engine.impl.jobexecutor.AsyncContinuationJobHandler.execute(AsyncContinuationJobHandler.java:40)\n\tat org.operaton.bpm.engine.impl.persistence.entity.JobEntity.execute(JobEntity.java:123)\n\tat org.operaton.bpm.engine.impl.cmd.ExecuteJobsCmd.execute(ExecuteJobsCmd.java:106)\n\tat org.operaton.bpm.engine.impl.cmd.ExecuteJobsCmd.execute(ExecuteJobsCmd.java:41)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandExecutorImpl.execute(CommandExecutorImpl.java:29)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandContextInterceptor.execute(CommandContextInterceptor.java:113)\n\tat org.operaton.bpm.engine.spring.SpringTransactionInterceptor.lambda$execute$0(SpringTransactionInterceptor.java:64)\n\tat org.springframework.transaction.support.TransactionTemplate.execute(TransactionTemplate.java:137)\n\tat org.operaton.bpm.engine.spring.SpringTransactionInterceptor.execute(SpringTransactionInterceptor.java:64)\n\tat org.operaton.bpm.engine.impl.interceptor.ProcessApplicationContextInterceptor.execute(ProcessApplicationContextInterceptor.java:64)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandCounterInterceptor.execute(CommandCounterInterceptor.java:34)\n\tat org.operaton.bpm.engine.impl.interceptor.LogInterceptor.execute(LogInterceptor.java:34)\n\tat org.operaton.bpm.engine.impl.interceptor.ExceptionCodeInterceptor.execute(ExceptionCodeInterceptor.java:55)\n\tat org.operaton.bpm.engine.impl.jobexecutor.ExecuteJobHelper.executeJob(ExecuteJobHelper.java:62)\n\tat org.operaton.bpm.engine.impl.jobexecutor.ExecuteJobsRunnable.executeJob(ExecuteJobsRunnable.java:110)\n\tat org.operaton.bpm.engine.impl.jobexecutor.ExecuteJobsRunnable.run(ExecuteJobsRunnable.java:71)\n\tat java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)\n\tat java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)\n\tat java.base/java.lang.Thread.run(Thread.java:840)\nCaused by: jakarta.el.PropertyNotFoundException: Cannot resolve identifier 'labelPrinter'\n\tat org.operaton.bpm.impl.juel.AstIdentifier.eval(AstIdentifier.java:93)\n\tat org.operaton.bpm.impl.juel.AstMethod.invoke(AstMethod.java:88)\n\tat org.operaton.bpm.impl.juel.AstMethod.eval(AstMethod.java:83)\n\tat org.operaton.bpm.impl.juel.AstEval.eval(AstEval.java:53)\n\tat org.operaton.bpm.impl.juel.AstNode.getValue(AstNode.java:27)\n\tat org.operaton.bpm.impl.juel.TreeValueExpression.getValue(TreeValueExpression.java:115)\n\tat org.operaton.bpm.engine.impl.delegate.ExpressionGetInvocation.invoke(ExpressionGetInvocation.java:42)\n\tat org.operaton.bpm.engine.impl.delegate.DelegateInvocation.proceed(DelegateInvocation.java:59)\n\tat org.operaton.bpm.engine.impl.delegate.DefaultDelegateInterceptor.handleInvocationInContext(DefaultDelegateInterceptor.java:88)\n\tat org.operaton.bpm.engine.impl.delegate.DefaultDelegateInterceptor.handleInvocation(DefaultDelegateInterceptor.java:59)\n\tat org.operaton.bpm.engine.impl.el.JuelExpression.getValue(JuelExpression.java:63)\n\t... 80 more\n",
+      "contentType": "text/plain"
+    },
+    {
+      "method": "POST",
+      "path": "/engine-rest/history/process-instance",
+      "query": {
+        "firstResult": "0",
+        "maxResults": "1"
+      },
+      "body": {
+        "processInstanceIds": ["9accaafb-e4d4-11f1-8d05-0ec72f60445f"],
+        "sorting": [
+          {
+            "sortBy": "startTime",
+            "sortOrder": "desc"
+          },
+          {
+            "sortBy": "instanceId",
+            "sortOrder": "asc"
+          }
+        ]
+      },
+      "answer": [
+        {
+          "id": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+          "businessKey": null,
+          "processDefinitionId": "pulse-label:1:9a95470c-e4d4-11f1-8d05-0ec72f60445f",
+          "processDefinitionKey": "pulse-label",
+          "processDefinitionName": "Print label",
+          "processDefinitionVersion": 1,
+          "startTime": "2026-11-20T11:22:00.650+0000",
+          "endTime": null,
+          "removalTime": null,
+          "durationInMillis": null,
+          "startUserId": null,
+          "startActivityId": "Event_LabelRequested",
+          "deleteReason": null,
+          "rootProcessInstanceId": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+          "superProcessInstanceId": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+          "superCaseInstanceId": null,
+          "caseInstanceId": null,
+          "tenantId": null,
+          "state": "ACTIVE",
+          "restartedProcessInstanceId": null
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/process-definition/pulse-dispatch:1:9aa99268-e4d4-11f1-8d05-0ec72f60445f/xml",
+      "answer": {
+        "id": "pulse-dispatch:1:9aa99268-e4d4-11f1-8d05-0ec72f60445f",
+        "bpmn20Xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<bpmn:definitions xmlns:bpmn=\"http://www.omg.org/spec/BPMN/20100524/MODEL\" xmlns:bpmndi=\"http://www.omg.org/spec/BPMN/20100524/DI\" xmlns:dc=\"http://www.omg.org/spec/DD/20100524/DC\" xmlns:di=\"http://www.omg.org/spec/DD/20100524/DI\" xmlns:camunda=\"http://camunda.org/schema/1.0/bpmn\" xmlns:modeler=\"http://camunda.org/schema/modeler/1.0\" id=\"Definitions_DispatchOrder\" targetNamespace=\"http://bpmn.io/schema/bpmn\" modeler:executionPlatform=\"Camunda Platform\" modeler:executionPlatformVersion=\"7.24.0\">\n  <bpmn:process id=\"pulse-dispatch\" name=\"Dispatch order\" isExecutable=\"true\" camunda:historyTimeToLive=\"180\">\n    <bpmn:startEvent id=\"Event_DispatchRequested\" name=\"Dispatch requested\">\n      <bpmn:outgoing>Flow_DispatchRequestedToPrintShippingLabel</bpmn:outgoing>\n    </bpmn:startEvent>\n    <bpmn:callActivity id=\"Activity_PrintShippingLabel\" name=\"Print shipping label\" calledElement=\"pulse-label\">\n      <bpmn:extensionElements>\n        <camunda:in variables=\"all\" />\n      </bpmn:extensionElements>\n      <bpmn:incoming>Flow_DispatchRequestedToPrintShippingLabel</bpmn:incoming>\n      <bpmn:outgoing>Flow_PrintShippingLabelToOrderDispatched</bpmn:outgoing>\n    </bpmn:callActivity>\n    <bpmn:endEvent id=\"Event_OrderDispatched\" name=\"Order dispatched\">\n      <bpmn:incoming>Flow_PrintShippingLabelToOrderDispatched</bpmn:incoming>\n    </bpmn:endEvent>\n    <bpmn:sequenceFlow id=\"Flow_PrintShippingLabelToOrderDispatched\" sourceRef=\"Activity_PrintShippingLabel\" targetRef=\"Event_OrderDispatched\" />\n    <bpmn:sequenceFlow id=\"Flow_DispatchRequestedToPrintShippingLabel\" sourceRef=\"Event_DispatchRequested\" targetRef=\"Activity_PrintShippingLabel\" />\n  </bpmn:process>\n  <bpmndi:BPMNDiagram id=\"BPMNDiagram_pulse-dispatch\">\n    <bpmndi:BPMNPlane id=\"BPMNPlane_pulse-dispatch\" bpmnElement=\"pulse-dispatch\">\n      <bpmndi:BPMNShape id=\"BPMNShape_Event_DispatchRequested\" bpmnElement=\"Event_DispatchRequested\">\n        <dc:Bounds x=\"80\" y=\"102\" width=\"36\" height=\"36\" />\n        <bpmndi:BPMNLabel>\n          <dc:Bounds x=\"61\" y=\"144\" width=\"75\" height=\"28\" />\n        </bpmndi:BPMNLabel>\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"BPMNShape_Activity_PrintShippingLabel\" bpmnElement=\"Activity_PrintShippingLabel\">\n        <dc:Bounds x=\"176\" y=\"80\" width=\"100\" height=\"80\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"BPMNShape_Event_OrderDispatched\" bpmnElement=\"Event_OrderDispatched\">\n        <dc:Bounds x=\"336\" y=\"102\" width=\"36\" height=\"36\" />\n        <bpmndi:BPMNLabel>\n          <dc:Bounds x=\"313\" y=\"144\" width=\"82\" height=\"28\" />\n        </bpmndi:BPMNLabel>\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNEdge id=\"BPMNEdge_Flow_PrintShippingLabelToOrderDispatched\" bpmnElement=\"Flow_PrintShippingLabelToOrderDispatched\">\n        <di:waypoint x=\"276\" y=\"120\" />\n        <di:waypoint x=\"336\" y=\"120\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"BPMNEdge_Flow_DispatchRequestedToPrintShippingLabel\" bpmnElement=\"Flow_DispatchRequestedToPrintShippingLabel\">\n        <di:waypoint x=\"116\" y=\"120\" />\n        <di:waypoint x=\"176\" y=\"120\" />\n      </bpmndi:BPMNEdge>\n    </bpmndi:BPMNPlane>\n  </bpmndi:BPMNDiagram>\n</bpmn:definitions>\n"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/history/activity-instance",
+      "query": {
+        "processInstanceId": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+        "sortBy": "occurrence",
+        "sortOrder": "asc",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": [
+        {
+          "id": "Event_LabelRequested:9accd20e-e4d4-11f1-8d05-0ec72f60445f",
+          "parentActivityInstanceId": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+          "activityId": "Event_LabelRequested",
+          "activityName": "Label requested",
+          "activityType": "startEvent",
+          "processDefinitionKey": "pulse-label",
+          "processDefinitionId": "pulse-label:1:9a95470c-e4d4-11f1-8d05-0ec72f60445f",
+          "processInstanceId": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+          "executionId": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+          "taskId": null,
+          "calledProcessInstanceId": null,
+          "calledCaseInstanceId": null,
+          "assignee": null,
+          "startTime": "2026-11-20T11:22:00.651+0000",
+          "endTime": "2026-11-20T11:22:00.651+0000",
+          "durationInMillis": 0,
+          "canceled": false,
+          "completeScope": false,
+          "tenantId": null,
+          "removalTime": null,
+          "rootProcessInstanceId": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/variable-instance",
+      "query": {
+        "processInstanceIdIn": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+        "deserializeValues": "false",
+        "maxResults": "500"
+      },
+      "answer": [
+        {
+          "type": "String",
+          "value": "ORD-1001",
+          "valueInfo": {},
+          "id": "9accaafc-e4d4-11f1-8d05-0ec72f60445f",
+          "name": "orderId",
+          "processDefinitionId": "pulse-label:1:9a95470c-e4d4-11f1-8d05-0ec72f60445f",
+          "processInstanceId": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+          "executionId": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+          "caseInstanceId": null,
+          "caseExecutionId": null,
+          "taskId": null,
+          "batchId": null,
+          "activityInstanceId": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+          "errorMessage": null,
+          "tenantId": null
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/history/process-instance/9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+      "answer": {
+        "id": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+        "businessKey": null,
+        "processDefinitionId": "pulse-label:1:9a95470c-e4d4-11f1-8d05-0ec72f60445f",
+        "processDefinitionKey": "pulse-label",
+        "processDefinitionName": "Print label",
+        "processDefinitionVersion": 1,
+        "startTime": "2026-11-20T11:22:00.650+0000",
+        "endTime": null,
+        "removalTime": null,
+        "durationInMillis": null,
+        "startUserId": null,
+        "startActivityId": "Event_LabelRequested",
+        "deleteReason": null,
+        "rootProcessInstanceId": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+        "superProcessInstanceId": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+        "superCaseInstanceId": null,
+        "caseInstanceId": null,
+        "tenantId": null,
+        "state": "ACTIVE",
+        "restartedProcessInstanceId": null
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/process-instance/9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+      "answer": {
+        "links": [],
+        "id": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+        "definitionId": "pulse-label:1:9a95470c-e4d4-11f1-8d05-0ec72f60445f",
+        "businessKey": null,
+        "caseInstanceId": null,
+        "ended": false,
+        "suspended": false,
+        "tenantId": null,
+        "definitionKey": "pulse-label"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/job",
+      "query": {
+        "processInstanceIds": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": [
+        {
+          "id": "9accd20f-e4d4-11f1-8d05-0ec72f60445f",
+          "jobDefinitionId": "9a95470d-e4d4-11f1-8d05-0ec72f60445f",
+          "processInstanceId": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+          "processDefinitionId": "pulse-label:1:9a95470c-e4d4-11f1-8d05-0ec72f60445f",
+          "processDefinitionKey": "pulse-label",
+          "executionId": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+          "exceptionMessage": "Unknown property used in expression: ${labelPrinter.print(orderId)}. Cause: Cannot resolve identifier 'labelPrinter'",
+          "failedActivityId": "Activity_RenderLabel",
+          "retries": 0,
+          "dueDate": null,
+          "suspended": false,
+          "priority": 0,
+          "tenantId": null,
+          "createTime": "2026-11-20T11:22:00.651+0000",
+          "batchId": null
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/job",
+      "query": {
+        "timers": "true",
+        "processInstanceIds": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": []
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/task",
+      "query": {
+        "processInstanceIdIn": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": []
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/process-definition",
+      "query": {
+        "processDefinitionIdIn": "pulse-label:1:9a95470c-e4d4-11f1-8d05-0ec72f60445f",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": [
+        {
+          "id": "pulse-label:1:9a95470c-e4d4-11f1-8d05-0ec72f60445f",
+          "key": "pulse-label",
+          "category": "http://bpmn.io/schema/bpmn",
+          "description": null,
+          "name": "Print label",
+          "version": 1,
+          "resource": "label.bpmn",
+          "deploymentId": "9a84f35a-e4d4-11f1-8d05-0ec72f60445f",
+          "diagram": null,
+          "suspended": false,
+          "tenantId": null,
+          "versionTag": null,
+          "historyTimeToLive": 180,
+          "startableInTasklist": true
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/external-task",
+      "query": {
+        "processInstanceIdIn": "9accaafb-e4d4-11f1-8d05-0ec72f60445f",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": []
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/process-instance/9accaafb-e4d4-11f1-8d05-0ec72f60445f/variables",
+      "query": {
+        "deserializeValues": "false"
+      },
+      "answer": {
+        "orderId": {
+          "type": "String",
+          "value": "ORD-1001",
+          "valueInfo": {}
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/process-definition/pulse-label:1:9a95470c-e4d4-11f1-8d05-0ec72f60445f/xml",
+      "answer": {
+        "id": "pulse-label:1:9a95470c-e4d4-11f1-8d05-0ec72f60445f",
+        "bpmn20Xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<bpmn:definitions xmlns:bpmn=\"http://www.omg.org/spec/BPMN/20100524/MODEL\" xmlns:bpmndi=\"http://www.omg.org/spec/BPMN/20100524/DI\" xmlns:dc=\"http://www.omg.org/spec/DD/20100524/DC\" xmlns:di=\"http://www.omg.org/spec/DD/20100524/DI\" xmlns:camunda=\"http://camunda.org/schema/1.0/bpmn\" xmlns:modeler=\"http://camunda.org/schema/modeler/1.0\" id=\"Definitions_PrintLabel\" targetNamespace=\"http://bpmn.io/schema/bpmn\" modeler:executionPlatform=\"Camunda Platform\" modeler:executionPlatformVersion=\"7.24.0\">\n  <bpmn:process id=\"pulse-label\" name=\"Print label\" isExecutable=\"true\" camunda:historyTimeToLive=\"180\">\n    <bpmn:startEvent id=\"Event_LabelRequested\" name=\"Label requested\">\n      <bpmn:outgoing>Flow_LabelRequestedToRenderLabel</bpmn:outgoing>\n    </bpmn:startEvent>\n    <bpmn:serviceTask id=\"Activity_RenderLabel\" name=\"Render label\" camunda:asyncBefore=\"true\" camunda:expression=\"${labelPrinter.print(orderId)}\">\n      <bpmn:incoming>Flow_LabelRequestedToRenderLabel</bpmn:incoming>\n      <bpmn:outgoing>Flow_RenderLabelToLabelPrinted</bpmn:outgoing>\n    </bpmn:serviceTask>\n    <bpmn:endEvent id=\"Event_LabelPrinted\" name=\"Label printed\">\n      <bpmn:incoming>Flow_RenderLabelToLabelPrinted</bpmn:incoming>\n    </bpmn:endEvent>\n    <bpmn:sequenceFlow id=\"Flow_RenderLabelToLabelPrinted\" sourceRef=\"Activity_RenderLabel\" targetRef=\"Event_LabelPrinted\" />\n    <bpmn:sequenceFlow id=\"Flow_LabelRequestedToRenderLabel\" sourceRef=\"Event_LabelRequested\" targetRef=\"Activity_RenderLabel\" />\n  </bpmn:process>\n  <bpmndi:BPMNDiagram id=\"BPMNDiagram_pulse-label\">\n    <bpmndi:BPMNPlane id=\"BPMNPlane_pulse-label\" bpmnElement=\"pulse-label\">\n      <bpmndi:BPMNShape id=\"BPMNShape_Event_LabelRequested\" bpmnElement=\"Event_LabelRequested\">\n        <dc:Bounds x=\"80\" y=\"102\" width=\"36\" height=\"36\" />\n        <bpmndi:BPMNLabel>\n          <dc:Bounds x=\"61\" y=\"144\" width=\"75\" height=\"28\" />\n        </bpmndi:BPMNLabel>\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"BPMNShape_Activity_RenderLabel\" bpmnElement=\"Activity_RenderLabel\">\n        <dc:Bounds x=\"176\" y=\"80\" width=\"100\" height=\"80\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"BPMNShape_Event_LabelPrinted\" bpmnElement=\"Event_LabelPrinted\">\n        <dc:Bounds x=\"336\" y=\"102\" width=\"36\" height=\"36\" />\n        <bpmndi:BPMNLabel>\n          <dc:Bounds x=\"324\" y=\"144\" width=\"61\" height=\"28\" />\n        </bpmndi:BPMNLabel>\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNEdge id=\"BPMNEdge_Flow_RenderLabelToLabelPrinted\" bpmnElement=\"Flow_RenderLabelToLabelPrinted\">\n        <di:waypoint x=\"276\" y=\"120\" />\n        <di:waypoint x=\"336\" y=\"120\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"BPMNEdge_Flow_LabelRequestedToRenderLabel\" bpmnElement=\"Flow_LabelRequestedToRenderLabel\">\n        <di:waypoint x=\"116\" y=\"120\" />\n        <di:waypoint x=\"176\" y=\"120\" />\n      </bpmndi:BPMNEdge>\n    </bpmndi:BPMNPlane>\n  </bpmndi:BPMNDiagram>\n</bpmn:definitions>\n"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/engine-rest/history/process-instance",
+      "query": {
+        "firstResult": "0",
+        "maxResults": "1"
+      },
+      "body": {
+        "processInstanceIds": ["9acc0eb3-e4d4-11f1-8d05-0ec72f60445f"],
+        "sorting": [
+          {
+            "sortBy": "startTime",
+            "sortOrder": "desc"
+          },
+          {
+            "sortBy": "instanceId",
+            "sortOrder": "asc"
+          }
+        ]
+      },
+      "answer": [
+        {
+          "id": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+          "businessKey": "DSP-3001",
+          "processDefinitionId": "pulse-dispatch:1:9aa99268-e4d4-11f1-8d05-0ec72f60445f",
+          "processDefinitionKey": "pulse-dispatch",
+          "processDefinitionName": "Dispatch order",
+          "processDefinitionVersion": 1,
+          "startTime": "2026-11-20T11:22:00.646+0000",
+          "endTime": null,
+          "removalTime": null,
+          "durationInMillis": null,
+          "startUserId": null,
+          "startActivityId": "Event_DispatchRequested",
+          "deleteReason": null,
+          "rootProcessInstanceId": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+          "superProcessInstanceId": null,
+          "superCaseInstanceId": null,
+          "caseInstanceId": null,
+          "tenantId": null,
+          "state": "ACTIVE",
+          "restartedProcessInstanceId": null
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/process-instance",
+      "query": {
+        "withIncident": "true",
+        "processInstanceIds": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": [
+        {
+          "links": [],
+          "id": "9acc0eb3-e4d4-11f1-8d05-0ec72f60445f",
+          "definitionId": "pulse-dispatch:1:9aa99268-e4d4-11f1-8d05-0ec72f60445f",
+          "businessKey": "DSP-3001",
+          "caseInstanceId": null,
+          "ended": false,
+          "suspended": false,
+          "tenantId": null,
+          "definitionKey": "pulse-dispatch"
+        }
+      ]
+    }
+  ]
+}

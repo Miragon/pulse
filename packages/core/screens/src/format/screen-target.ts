@@ -8,4 +8,9 @@ export type ScreenTarget =
       readonly version: number
       readonly definitionId: string
     }
-  | { readonly kind: "instance"; readonly engine: string; readonly instanceId: string }
+  | {
+      readonly kind: "instance"
+      readonly engine: string
+      readonly instanceId: string
+      readonly incidentId?: string
+    }

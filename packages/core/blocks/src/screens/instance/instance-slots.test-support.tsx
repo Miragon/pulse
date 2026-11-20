@@ -72,8 +72,12 @@ function pageAddressOf(target: ScreenTarget): string {
       return `/app/engines/${target.engine}/processes/${target.bpmnProcessId}`
     case "version":
       return `/app/engines/${target.engine}/processes/${target.bpmnProcessId}?version=${String(target.version)}`
-    case "instance":
-      return `/app/engines/${target.engine}/instances/${target.instanceId}`
+    case "instance": {
+      const instance = `/app/engines/${target.engine}/instances/${target.instanceId}`
+      return target.incidentId === undefined
+        ? instance
+        : `${instance}/incidents/${target.incidentId}`
+    }
   }
 }
 

@@ -511,17 +511,18 @@ const DOCS_BUDGETS = {
   "mcp/usage.md": 150,
   // A board in the chat and the cockpit, the server's board files, a board shared with the editors.
   "mcp/boards.md": 70,
-  // What the server reads of a Camunda 8 cluster and offers per engine (the web app's engine screen
-  // feed among it), its profile and client, its failures and the server's legs of the conformance
+  // What the server reads of a Camunda 8 cluster and offers per engine (the web app's screen feeds
+  // among it), its profile and client, its failures and the server's legs of the conformance
   // matrix.
-  "mcp/camunda8.md": 116,
+  "mcp/camunda8.md": 117,
   "mcp/reference.md": 160,
-  // The web app's pages (docs/web/): what it shows and for whom, its navigation and its engine
-  // screen, the sign-in an operator sets up (variables, the provider's side, sessions and their
-  // check at the provider, a proxy, local), how it is built and what its screens read.
-  "web/index.md": 61,
+  // The web app's pages (docs/web/): what it shows and for whom, its navigation, its engine screen
+  // and its instance screen, the sign-in an operator sets up (variables, the provider's side,
+  // sessions and their check at the provider, a proxy, local), how it is built and what its
+  // screens read.
+  "web/index.md": 67,
   "web/sign-in.md": 135,
-  "web/architecture.md": 105,
+  "web/architecture.md": 107,
   // The CLI's pages (docs/cli/).
   "cli/index.md": 40,
   "cli/getting-started.md": 140,
@@ -552,8 +553,8 @@ const DOCS_BUDGETS = {
   "vscode/architecture.md": 60,
   // Every difference between the MCP cockpit and the webview, a row each: it grows with a
   // feature built on one side and shrinks with one that closes a row; a section a screen of the web
-  // app takes says so above its rows (the engine overview).
-  "vscode/parity.md": 219,
+  // app takes says so above its rows (the engine overview, an instance and what is inside it).
+  "vscode/parity.md": 224,
   // The Orca plugin's pages (docs/orca/).
   "orca/index.md": 40,
   "orca/installation.md": 50,

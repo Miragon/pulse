@@ -2962,6 +2962,82 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
+    "description": "Internal JSON feed (no UI) for the web app's instance screen: a root incident's stack trace or error message, with the line its root cause stands on.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "incident": {
+          "description": "The root incident's id.",
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "incident"
+      ],
+      "type": "object"
+    },
+    "name": "engine_screen_incident_text_data",
+    "title": "Incident text data (internal)"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI) for the web app's instance screen: one process instance, running or ended, with its root incidents and those of the instances it called, where it waits, its path, its variables and its diagram's markers.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "instance": {
+          "description": "The process instance's id.",
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "instance"
+      ],
+      "type": "object"
+    },
+    "name": "engine_screen_instance_data",
+    "title": "Instance screen data (internal)"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
     "description": "Internal JSON feed (no UI) for the web app's engine screen: the engine's product and each process's latest version, running instances and instances with incident over every version.",
     "inputSchema": {
       "additionalProperties": false,

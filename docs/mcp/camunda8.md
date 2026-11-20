@@ -10,13 +10,14 @@ incidents too ([in the editors](../vscode/camunda8.md)).
 
 ## What a server offers
 
-| Tool or feed                                | On a Camunda 8 cluster                                                                      |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `engine_list_engines`                       | Lists it with `dialect` `c8` and its `cockpitUrl`, and names the boards that read it        |
-| `engine_open_cockpit` with `view` `board`   | A board over it and the other engines the board names, with the numbers the editors show    |
-| `engine_open_cockpit` with `view` `landing` | The engines and boards to pick from; a cluster reads "Camunda 8, on boards", no health read |
-| `engine_board_data`, `engine_bpmn_xml_data` | The app-only feeds behind a board: its numbers, kept 30 s per caller, and its diagram       |
-| `engine_screen_processes_data`              | The app-only feed of the web app's engine screen (the web app shows a cluster on boards)    |
+| Tool or feed                                                      | On a Camunda 8 cluster                                                                      |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `engine_list_engines`                                             | Lists it with `dialect` `c8` and its `cockpitUrl`, and names the boards that read it        |
+| `engine_open_cockpit` with `view` `board`                         | A board over it and the other engines the board names, with the numbers the editors show    |
+| `engine_open_cockpit` with `view` `landing`                       | The engines and boards to pick from; a cluster reads "Camunda 8, on boards", no health read |
+| `engine_board_data`, `engine_bpmn_xml_data`                       | The app-only feeds behind a board: its numbers, kept 30 s per caller, and its diagram       |
+| `engine_screen_processes_data`                                    | The app-only feed of the web app's engine screen (the web app shows a cluster on boards)    |
+| `engine_screen_instance_data`, `engine_screen_incident_text_data` | The app-only feeds of the web app's instance screen: an instance and an incident's text     |
 
 Each tool, feed and view of the cockpit names the dialects it serves, so the server decides at
 startup what it offers: a tool registers only where a configured engine serves it (a write only

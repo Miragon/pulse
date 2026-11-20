@@ -22,9 +22,12 @@ export const ENGINE_JOB_BACKLOG_DATA = "engine_job_backlog_data"
 export const ENGINE_CLUSTER_DETAIL_DATA = "engine_cluster_detail_data"
 // One board of ENGINE_BOARDS_DIR, by its id: it names its own engines, so it takes no `engine`.
 export const ENGINE_BOARD_DATA = "engine_board_data"
-// The web app's screens (SCREEN_FEEDS): an engine's processes, in the JSON form of
-// @miragon/pulse-screens, which the page renders with the blocks. No view of the cockpit reads it.
+// The web app's screens (SCREEN_FEEDS): an engine's processes, an instance and the text of one of
+// its incidents, in the JSON form of @miragon/pulse-screens, which the page renders with the
+// blocks. No view of the cockpit reads them.
 export const ENGINE_SCREEN_PROCESSES_DATA = "engine_screen_processes_data"
+export const ENGINE_SCREEN_INSTANCE_DATA = "engine_screen_instance_data"
+export const ENGINE_SCREEN_INCIDENT_TEXT_DATA = "engine_screen_incident_text_data"
 export const ENGINE_LIST_ENGINES = "engine_list_engines"
 // The toolset may not register these, so widgets ask `*_widget_actions_data` which exist.
 // `src/widget-actions.test.ts` fails on an in-widget write missing here.

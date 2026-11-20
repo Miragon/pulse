@@ -136,7 +136,8 @@ The main entry holds what a surface does with a screen's JSON form without readi
   across them measures their mix. An engine whose read failed is not among the screens it sums, and
   the surface says so in its place.
 - `ScreenTarget` names what a screen opens: an engine, a process of an engine, one version of a
-  process (by its number and its definition id) or an instance.
+  process (by its number and its definition id) or an instance, with one of its root incidents in
+  focus where a link leads to it (an incident card's "Located in").
 
 ## Fixtures
 
@@ -184,7 +185,8 @@ JSON form, which name the targets they open by `ScreenTarget`. The Pulse
 MCP server: its engine module
 ([`@miragon/pulse-engine-connector`](https://www.npmjs.com/package/@miragon/pulse-engine-connector))
 builds the engine screen with `EngineScreen` and `ScreenJson` behind its app-only feed
-`engine_screen_processes_data`, which the server's web app renders with the same blocks, naming
+`engine_screen_processes_data` and the instance screen with `InstanceScreen` behind
+`engine_screen_instance_data`, which the server's web app renders with the same blocks, naming
 the screen's JSON form by type alone.
 
 ## Help and feedback

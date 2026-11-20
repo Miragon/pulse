@@ -23,8 +23,6 @@ import {
  */
 
 const JOBS_PAGE = `/app/engines/${HEALTHY_ENGINE}/jobs`
-/** A drilled view: on a page its trail leads to the landing, which a head section leaves to the bar. */
-const INSTANCE_PAGE = `/app/engines/${HEALTHY_ENGINE}/instances/pi-invoice-42`
 
 /**
  * The calls the API refused from now on because the session was gone (401), each as its tool and
@@ -257,17 +255,16 @@ test.describe("a session that ends while the cockpit is open", () => {
     context,
   }) => {
     const refused = refusedCalls(page)
-    await signIn(page, INSTANCE_PAGE)
-    const incidents = page.getByRole("region", { name: "Incidents of this instance" })
-    await expect(incidents.locator("tbody tr").first()).toBeVisible({ timeout: 15_000 })
+    await signIn(page, JOBS_PAGE)
+    const jobs = page.getByRole("region", { name: "Jobs", exact: true })
+    await expect(jobs.getByText("Card declined").first()).toBeVisible({ timeout: 15_000 })
     await context.clearCookies({ name: SESSION_COOKIE })
     await page.getByRole("button", { name: "Refresh" }).click()
     await expect(page.getByText("Your session has ended")).toBeVisible({ timeout: 15_000 })
 
     // The landing's rows read now and meet the ended session: no engine refused a login, and
     // none is down, so no row says so; each says it read nothing, without a tone.
-    const trail = page.getByRole("navigation", { name: "Breadcrumb" })
-    await trail.getByRole("button", { name: "All engines" }).click()
+    await navEntry(page, "Start").click()
     for (const engine of [HEALTHY_ENGINE, BROKEN_ENGINE]) {
       const row = page.getByRole("button", { name: new RegExp(`^${engine}\\s*,\\s*not loaded$`) })
       await expect(row).toHaveAttribute("data-status", "notLoaded", { timeout: 15_000 })

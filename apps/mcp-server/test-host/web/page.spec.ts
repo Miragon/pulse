@@ -6,6 +6,7 @@ import {
   C8_ENGINE,
   C8_OPERATE,
   C8_UNBOARDED_ENGINE,
+  CHAIN_ENGINE,
   HEALTHY_ENGINE,
   INVOICES_BOARD,
   REFUSED_C8_ENGINE,
@@ -20,6 +21,7 @@ import {
   recordCalls,
   rendered,
   signIn,
+  type Deployment,
 } from "./web-sim.js"
 
 /**
@@ -41,8 +43,8 @@ const WEB_BUILD = path.resolve(SERVER, "..", "web", "dist")
 /** An engine's own address: the page's engine screen, its processes (engine-screen.spec.ts). */
 const OVERVIEW_PAGE = `/app/engines/${HEALTHY_ENGINE}`
 const JOBS_PAGE = `/app/engines/${HEALTHY_ENGINE}/jobs`
-/** The stub's invoice instance: two open incidents whose jobs have no retries, one variable. */
-const INSTANCE_PAGE = `/app/engines/${HEALTHY_ENGINE}/instances/pi-invoice-42`
+/** The chain engine's DSP-3001 (chain-engine.ts), which the page's instance screen reads whole. */
+const CHAIN_INSTANCE_PAGE = `/app/engines/${CHAIN_ENGINE}/instances/9acc0eb3-e4d4-11f1-8d05-0ec72f60445f`
 
 /** The page's script's name in the build (`assets/…`), as the build's index.html loads it. */
 function pageScriptName(): string {
@@ -60,8 +62,8 @@ const scrollsSideways = (page: Page) =>
   page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
 
 /** The tools `/mcp` lists to a caller with the deployment's access token. */
-async function listedTools(token: string): Promise<string[]> {
-  const response = await fetch(`${originOf()}/mcp`, {
+async function listedTools(token: string, deployment: Deployment = "main"): Promise<string[]> {
+  const response = await fetch(`${originOf(deployment)}/mcp`, {
     method: "POST",
     headers: {
       authorization: `Bearer ${token}`,
@@ -138,17 +140,22 @@ test.describe("the cockpit as a page", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Invoice Receipt" })).toBeVisible({
       timeout: 15_000,
     })
-    // An instance's incidents: a click on a row opens its incident, no drill in it.
-    await page.goto(`${originOf()}${INSTANCE_PAGE}`)
-    const incidents = page.getByRole("region", { name: "Incidents of this instance" })
-    const incident = incidents.getByRole("row", { name: /^Incident at chargeCard, / })
-    await expect(incident).toBeVisible({ timeout: 15_000 })
-    await expect(incidents.getByRole("button", { name: /^Open\b/ })).toHaveCount(0)
+    // A failed job's row in the cockpit's list on the page: a click opens the instance it names
+    // (the page's instance screen: instance-screen.spec.ts), no drill in it.
+    await page.goto(`${originOf()}${JOBS_PAGE}`)
+    const job = page
+      .getByRole("region", { name: "Jobs", exact: true })
+      .getByRole("row")
+      .filter({ hasText: "Card declined" })
+      .first()
+    await expect(job).toBeVisible({ timeout: 15_000 })
+    await expect(job.getByRole("button", { name: /^Open\b/ })).toHaveCount(0)
     await expectNoAxeFinding(page)
-    await incident.getByRole("cell").first().click()
-    await expect(page.getByRole("heading", { level: 1, name: "chargeCard" })).toBeVisible({
+    await job.getByRole("cell").first().click()
+    await expect(page.getByRole("heading", { level: 1, name: "pi-1" })).toBeVisible({
       timeout: 15_000,
     })
+    expect(new URL(page.url()).pathname).toBe(`/app/engines/${HEALTHY_ENGINE}/instances/pi-1`)
   })
 
   test("hides the chat's hand-offs, and every menu, column or section that holds them alone", async ({
@@ -176,30 +183,28 @@ test.describe("the cockpit as a page", () => {
     page,
   }) => {
     const calls = recordCalls(page)
-    await signIn(page, INSTANCE_PAGE)
+    await signIn(page, CHAIN_INSTANCE_PAGE, { deployment: "chain" })
     // The deployment registers the widget writes for the same user: /mcp lists them.
-    const { issued } = await idpRecord()
-    const tools = await listedTools(issued.access.at(-1) ?? "")
+    const { issued } = await idpRecord("chain")
+    const tools = await listedTools(issued.access.at(-1) ?? "", "chain")
     expect(tools).toEqual(
       expect.arrayContaining(["engine_set_job_retries", "engine_widget_actions_data"]),
     )
 
-    // The chat's view of this instance on such a deployment offers Retry and Edit by these names
-    // (test:host's compact-frame.spec.ts), so a renamed write fails there, not silently here.
-    const incidents = page.getByRole("region", { name: "Incidents of this instance" })
-    await expect(incidents.locator("tbody tr")).toHaveCount(2, { timeout: 15_000 })
+    // The chat's view of an instance on such a deployment offers Retry and Edit by these names
+    // (test:host's compact-frame.spec.ts); the page's instance screen fills none of the blocks'
+    // write slots, so neither shows.
+    const card = page.locator("[data-part=incident-card]")
+    await expect(card).toHaveCount(1, { timeout: 15_000 })
     await rendered(page)
-    await expect(incidents.getByRole("button", { name: "Retry" })).toHaveCount(0)
-    await page
-      .getByRole("tab", { name: /^Variables/ })
-      .first()
-      .click()
-    const variables = page.getByRole("region", { name: "Process instance variables" })
-    await expect(variables.getByText("amount")).toBeVisible()
-    await expect(variables.getByRole("button", { name: "Edit" })).toHaveCount(0)
+    await expect(page.getByRole("button", { name: "Retry" })).toHaveCount(0)
+    await page.getByRole("tab", { name: /^Variables/ }).click()
+    const variables = page.getByRole("table", { name: "Variables" })
+    await expect(variables.getByText("orderId")).toBeVisible()
+    await expect(page.getByRole("button", { name: "Edit" })).toHaveCount(0)
     await expect(variables.getByRole("columnheader", { name: "Actions" })).toHaveCount(0)
     await rendered(page)
-    expect(calls.map((call) => call.name)).toContain("engine_open_cockpit")
+    expect(calls.map((call) => call.name)).toContain("engine_screen_instance_data")
     expect(calls.map((call) => call.name)).not.toContain("engine_widget_actions_data")
   })
 
@@ -392,9 +397,8 @@ test.describe("the page's address", () => {
     [`${PROCESS}?scope=incident`, "Invoice Receipt"],
     [`${OVERVIEW}/instances`, "Running instances"],
     [`${OVERVIEW}/instances?process=invoice`, "invoice"],
-    [`${OVERVIEW}/instances/pi-invoice-42`, "INV-2026-0042"],
-    [`${OVERVIEW}/instances/pi-invoice-42?tab=history`, "History"],
-    [`${OVERVIEW}/instances/pi-invoice-42/incidents/inc-charge`, "chargeCard"],
+    // The page's instance screen and an incident under it: instance-screen.spec.ts on `chain`, whose
+    // engine serves an instance whole (this stub serves the chat's reads of one, not its history).
     [INCIDENTS(HEALTHY_ENGINE), `${HEALTHY_ENGINE} · Incidents`],
     [`${OVERVIEW}/incidents/cause?activity=chargeCard&type=failedJob`, "chargeCard"],
     [`${OVERVIEW}/jobs`, `${HEALTHY_ENGINE} · Jobs`],
@@ -430,11 +434,6 @@ test.describe("the page's address", () => {
         `${OVERVIEW}/jobs?failed=true`,
         `${HEALTHY_ENGINE} · Jobs`,
       ],
-      [
-        old("view=history&processInstanceId=pi-invoice-42"),
-        `${OVERVIEW}/instances/pi-invoice-42?tab=history`,
-        "History",
-      ],
       [`/app/cockpit?engine=${HEALTHY_ENGINE}`, OVERVIEW, HEALTHY_ENGINE],
     ] as const) {
       const before = await entries(page)
@@ -444,8 +443,8 @@ test.describe("the page's address", () => {
       expect(await entries(page), address).toBe(before + 1)
     }
     await page.goBack()
-    await expect(h1(page, "History")).toBeVisible({ timeout: 15_000 })
-    expect(here(page)).toBe(`${OVERVIEW}/instances/pi-invoice-42?tab=history`)
+    await expect(h1(page, `${HEALTHY_ENGINE} · Jobs`)).toBeVisible({ timeout: 15_000 })
+    expect(here(page)).toBe(`${OVERVIEW}/jobs?failed=true`)
   })
 
   // An engine's own address starts on the landing; an engine the server does not configure is still

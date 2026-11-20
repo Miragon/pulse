@@ -1,20 +1,19 @@
 import { ListFilterBar, ProcessTable, useProcessList } from "@miragon/pulse-blocks"
 import type { ProcessFilterData } from "@miragon/pulse-screens"
-import { Button, cn, Icon, StatusStrip, useLocale, WidgetHeader } from "@miragon/pulse-ui"
+import { Icon, WidgetHeader } from "@miragon/pulse-ui"
 import {
-  describeError,
   FreshnessStamp,
-  isPermanentError,
-  isSessionEnded,
   OpenInCockpitLink,
   useToolQuery,
   ViewDataState,
   WidgetShell,
 } from "@miragon/pulse-widget-shell/widgets"
-import { RefreshCw, Server } from "lucide-react"
+import { Server } from "lucide-react"
 import { useT } from "../../messages/index.js"
 import type { Navigate } from "../../router/page-link.js"
 import { READ_AGAIN_AFTER_MS, useReadOnReturn } from "../read-on-return.js"
+import { RefreshButton, RefreshNotice } from "../screen-chrome.js"
+import { useWide } from "../use-wide.js"
 import { usePageSlots } from "../slots.js"
 import { ENGINE_SCREEN_FEED, engineScreenKey, type EngineScreenFeed } from "./engine-feed.js"
 
@@ -34,28 +33,6 @@ function Product({ info }: { info: EngineScreenFeed["info"] | undefined }) {
     )
   }
   return <span data-slot="engine-product">{`${info.product} ${info.version}`}</span>
-}
-
-/**
- * The bar's Refresh: reads the screen again. While it reads it keeps its focus and its place in the
- * tab order (`aria-disabled`), and a second click does nothing.
- */
-function RefreshButton({ refreshing, onRefresh }: { refreshing: boolean; onRefresh: () => void }) {
-  const t = useT()
-  const label = t(refreshing ? "screen.refreshing" : "screen.refresh")
-  return (
-    <Button
-      type="button"
-      variant="toolbar"
-      size="sm"
-      aria-disabled={refreshing || undefined}
-      title={label}
-      onClick={refreshing ? undefined : onRefresh}
-    >
-      <Icon icon={RefreshCw} className={cn(refreshing && "motion-safe:animate-spin")} />
-      {label}
-    </Button>
-  )
 }
 
 /**
@@ -97,30 +74,6 @@ function EngineBar({
 }
 
 /**
- * A failed refresh over the numbers on screen: docked under the bar, in the kit's words, Try again
- * unless no retry changes it; a page's ended session the frame's notice says, once.
- */
-function RefreshNotice({ error, onRetry }: { error: Error | null; onRetry: () => void }) {
-  const t = useT()
-  const locale = useLocale()
-  if (error === null || isSessionEnded(error)) return null
-  const described = describeError(error, locale, { followUp: "none" })
-  return (
-    <StatusStrip
-      tone="warning"
-      title={t("screen.refreshFailed")}
-      detail={`${described.title}. ${t("screen.refreshStale")}`}
-      details={described.details ?? undefined}
-      actions={
-        isPermanentError(error)
-          ? []
-          : [{ label: t("action.tryAgain"), icon: RefreshCw, onClick: onRetry }]
-      }
-    />
-  )
-}
-
-/**
  * The web app's engine screen (D10), at the engine's own address: an engine's processes, each with
  * its latest version, its running instances and its instances with incident over every version,
  * from the engine screen's feed, the same numbers the editors' engine tab shows (D2). A row opens
@@ -131,7 +84,9 @@ function RefreshNotice({ error, onRetry }: { error: Error | null; onRetry: () =>
  * or its tab, `useReadOnReturn`) or the screen mounts again, and nothing polls. Its states are its
  * own: a first load's skeleton after 400 ms, a failure in the kit's words with Try again unless no
  * retry changes it (a refused profile, an engine whose dialect the server does not read), a failed
- * refresh over the numbers on screen a strip under the bar. It shows no verdict and writes nothing.
+ * refresh over the numbers on screen a strip under the bar. From 64rem on it fills the window's
+ * height and its list scrolls in its own region under its sticky head. It shows no verdict and
+ * writes nothing.
  */
 export function EngineScreen({
   engine,
@@ -150,6 +105,7 @@ export function EngineScreen({
   ready?: boolean
 }) {
   const t = useT()
+  const wide = useWide()
   const query = useToolQuery<EngineScreenFeed>(
     engineScreenKey(engine),
     ENGINE_SCREEN_FEED,
@@ -165,8 +121,9 @@ export function EngineScreen({
   const refreshing = data !== undefined && isFetching
   const refreshError = data !== undefined ? (error ?? query.failureReason ?? null) : null
   return (
-    <main data-slot="engine-screen" className="flex min-w-0 flex-col">
+    <main data-slot="engine-screen" className="flex min-w-0 flex-col lg:min-h-0 lg:flex-1">
       <WidgetShell
+        fill={wide}
         header={
           <>
             <EngineBar
@@ -199,7 +156,7 @@ export function EngineScreen({
             retryLabel={t("action.tryAgain")}
           />
         ) : (
-          <div className="min-w-0" aria-busy={refreshing || undefined}>
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col" aria-busy={refreshing || undefined}>
             <ProcessTable
               engine={engine}
               listed={listed}
