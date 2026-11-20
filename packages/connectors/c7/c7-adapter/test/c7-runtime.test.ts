@@ -567,9 +567,14 @@ describe("the C7 runtime over recorded engine answers", () => {
     })
   })
 
-  test("counts instances without an incident as all of them minus those with one", async () => {
+  test("counts instances without an incident as the history's minus its count of the runtime's ids with one", async () => {
     const { runtime, engine } = fakeRuntime([
-      { route: "GET /process-instance/count", answer: { count: 1 } },
+      { ...ROUTE.instancesWithIncident, answer: failingRows().slice(0, 1) },
+      {
+        route: "POST /history/process-instance/count",
+        when: (_url: URL, body: string) => body.includes("processInstanceIds"),
+        answer: { count: 1 },
+      },
       { route: "POST /history/process-instance/count", answer: { count: 3 } },
     ])
 
@@ -580,11 +585,30 @@ describe("the C7 runtime over recorded engine answers", () => {
 
     expect(count).toEqual({ count: 2 })
     expect(engine.requests.filter((request) => request.body.includes("ncident"))).toEqual([])
+    expect(routesOf(engine).filter((route) => route === "GET /process-instance/count")).toEqual([])
+    expect(engine.requests[routesOf(engine).indexOf("GET /process-instance")]?.query).toMatchObject(
+      { withIncident: "true", processDefinitionKey: "pulse-order" },
+    )
     expect(
-      bodyOf(engine, routesOf(engine).indexOf("POST /history/process-instance/count")),
-    ).toEqual({
-      processDefinitionKey: "pulse-order",
-    })
+      engine.requests
+        .map((request, index) => ({ request, index }))
+        .filter(({ request }) => request.route === "POST /history/process-instance/count")
+        .map(({ index }) => bodyOf(engine, index)),
+    ).toEqual([
+      { processDefinitionKey: "pulse-order" },
+      { processDefinitionKey: "pulse-order", processInstanceIds: [WORLD_IDS.charge] },
+    ])
+  })
+
+  test("counts no instance without an incident, never below 0, where the history holds none the runtime runs", async () => {
+    const { runtime } = fakeRuntime([
+      ROUTE.instancesWithIncident,
+      { route: "POST /history/process-instance/count", answer: { count: 0 } },
+    ])
+
+    const count = await runtime.countInstances({ withIncident: false })
+
+    expect(count).toEqual({ count: 0 })
   })
 
   test("details an instance through the inspection's reads, its typed variables and the history of a called instance", async () => {

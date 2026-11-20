@@ -115,9 +115,11 @@ missing.
   instances), `CalledProcessReader` (each call activity of a version with the version its binding
   starts), `InstanceSearch` (the history's instances newest first, paged by offset behind the
   contract's cursor, each flagged with "with incident", and their count; a variable condition's
-  value as the engine reads it, every integer beyond 2^53 in it digit for digit; at history level
-  NONE, whose history holds no instance, it finds none and counts 0 where the history answers, the
-  runtime's count with an incident and below 0 without one, a known defect),
+  value as the engine reads it, every integer beyond 2^53 in it digit for digit; without an
+  incident it counts the history's instances minus those of them the runtime holds an open incident
+  for, the history's count of the runtime's ids, so the count is what the search lists and never
+  below 0; at history level NONE, whose history holds no instance, it finds none and counts 0, the
+  runtime's count with an incident where the runtime knows the filter whole),
   `VariableNameReader` (the variable names of a version's newest 50 instances),
   `InstanceDetailReader` (an instance's detail: `loadInstance`'s rounds without history and its path
   from the history, in parallel with its typed variables of every scope, which the inspection's

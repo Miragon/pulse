@@ -2,10 +2,13 @@
 
 - Status: accepted
 - Last reviewed: 2026-11-20 (a C7 engine at history level NONE: what the instance search, its
-  count and the other reads answer there, pinned on Operaton and CIB seven, a count below 0
-  without an incident as a defect; a screen shows a hint where the history misses instances the
-  runtime runs and nothing falls back to the runtime (owner decision 2026-11-19), told from the
-  contract's own reads over the engine, a process or a version);
+  count and the other reads answer there, pinned on Operaton and CIB seven; a count without an
+  incident subtracts only the instances with one the history holds, so it counts what the search
+  lists and never falls below 0, which a read law holds on Operaton and CIB seven, at NONE too,
+  and on a local Camunda 8.10.9 cluster with H2 and no security, the one Camunda 8 leg that has
+  run it; a screen shows a hint where the history misses instances the runtime runs and nothing
+  falls back to the runtime (owner decision 2026-11-19), told from the contract's own reads over
+  the engine, a process or a version);
   2026-11-15 (three read laws for the lists a board reads: incidents newest
   first, pages of root incidents without gaps, every page of instances but the last full; the
   read laws hold for the C7 family's one implementation of the reads, c7-core's `C7Runtime`,
@@ -140,7 +143,8 @@ for any workspace, and the conformance kit does not cover them
   laws on an engine at history level AUDIT as well as at FULL.
   `countInstances(filter)` counts what `searchInstances(filter, …)` pages through, as an
   `InstanceCount`: exact, or with `atLeast` when the engine stopped counting (Camunda 8 at
-  10,000). The laws require an exact count over the world; a sum over a lower bound is one
+  10,000), and never below 0. The laws require an exact count over the world and no count below 0
+  in any scope; a sum over a lower bound is one
   too, and a board threshold at or above a lower bound reads "stopped counting", never calm.
 - **History level NONE.** The C7 family's instance search and its count read the engine's history,
   which an engine at history level NONE does not keep, while its runtime still runs the instances.
@@ -150,10 +154,14 @@ for any workspace, and the conformance kit does not cover them
   running, ended, with an incident or without one; by business key or by id) and fails nowhere.
   `countInstances` counts 0 wherever the history answers; where the runtime knows a filter with an
   incident whole it counts the runtime's instances (1 of order v1, 3 on the engine), which the
-  search does not list. Without an incident it counts the history's 0 minus those, below 0 (-1,
-  -3): a defect against the honest numbers (CLAUDE.md invariant 7) that a board's counter without
-  an incident shows today, which the suite pins as a defect; its fix, to subtract only the
-  instances with an incident the history holds, is a step of its own and not planned yet. The
+  search does not list. Without an incident it counts 0: c7-core subtracts from the history's
+  count only the instances with an incident the history holds (its count of the runtime's ids in
+  the scope), so the count is what the search lists at every level, never below 0 (CLAUDE.md
+  invariant 7); it subtracted the runtime's count until 2026-11-20 and counted -1 and -3 there,
+  which a board's counter without an incident showed. A board at NONE shows 0 in its counters
+  over the history, the runtime's count in a counter with an incident whose filter the runtime
+  knows whole (with an element it reads the history and shows 0), no rows in its instance lists
+  and the runtime's numbers in its engine totals and incident summary. The
   reads of the runtime hold: `listDefinitions` and `listVersions` count the running instances and
   those with an incident (order: 3 and 1; order v1: 2 and 1), `getElementStatistics` counts the
   active instances and the incidents per element, those in called instances too, and
@@ -161,7 +169,8 @@ for any workspace, and the conformance kit does not cover them
   running instance's detail has its wait states and no path, a caller's detail names its called
   instance but not the incident raised there, an ended instance has no detail, and
   `listVariableNames` names no variable. The read laws do not hold there, so the suites run them
-  at FULL and AUDIT only.
+  at FULL and AUDIT only, all but one, which the suite runs at NONE too:
+  `instances: no count is below 0, in any scope, lifecycle or incident filter`.
 - **A hint where the history misses instances.** The owner decided (2026-11-19) that a screen shows
   a hint at history level NONE and that nothing falls back to the runtime's instances. The case is a
   history that does not hold instances the runtime runs. History level NONE causes it for every
@@ -315,7 +324,7 @@ contract read-only, through the Orchestration Cluster REST API from 8.9 on:
 
 ```mermaid
 flowchart LR
-  kit[ConformanceKit: 51 read laws, 15 command laws]
+  kit[ConformanceKit: 52 read laws, 15 command laws]
   kit --> fake[FakeEngine in memory]
   kit --> c7[C7Adapter on Operaton and CIB seven in containers]
   kit --> mcp[C7Runtime over the MCP server's SDK wire, same engines, read laws]
@@ -323,7 +332,7 @@ flowchart LR
 ```
 
 `@miragon/pulse-engine-core/testing` (`packages/connectors/engine/engine-core/src/testing/conformance`)
-holds 51 read laws and 15 command laws as executable cases, modelled on
+holds 52 read laws and 15 command laws as executable cases, modelled on
 `@miragon/modeler-api/conformance`:
 `new ConformanceKit(test).registerRuntimeLaws(prepare)` and `.registerCommandLaws(prepare)`
 bind them to any `(name, fn)` runner and throw a `ConformanceViolation` when a law fails. Command laws run on
@@ -349,7 +358,9 @@ nothing for an empty list. The read law `instances: filter by the element they w
 also finds an instance whose token waits before an asynchronous task. `instances: the newest
 come first, in the same order on every read` holds the order of a search;
 `instances: filter and flag instances with an incident` also finds a caller by an incident in
-its called instance; `instances: counts agree with the search` requires exact counts. The
+its called instance; `instances: counts agree with the search` requires exact counts, and
+`instances: no count is below 0, in any scope, lifecycle or incident filter` counts 27 filters
+(the engine, a process and a version, each lifecycle, with an incident, without one or either). The
 lists a board reads have three laws more: incidents come newest first, in the same order on
 every read and across pages of one; the root incidents in pages of one come once each, every
 page but the last full; and so do the instances of a process with an incident and without one,
@@ -398,7 +409,8 @@ by process, incidents counted as active, incidents reported on the latest versio
 leaked propagated incidents, a call without the version it starts, ignored cursor, local
 timestamps, truncated details, throwing on unknown ids, per-version definition lists, raw
 errors, missing kinds, flattened scopes, counts that ignore the element and the business
-key, counts without an incident that include those with one, variable conditions that are
+key, counts without an incident that include those with one, a count without an incident that
+subtracts more than it holds (below 0), variable conditions that are
 ignored by the search or the count, one condition instead of all, numbers compared as
 text, `%`, `_` or `?` read as wildcards, not equals finding instances without the variable,
 task-local variables left out, ended instances left out, an empty list that finds
@@ -453,7 +465,7 @@ business key fail the ids law too, as does a search that ignores the instance id
   documented exception.
 - Every change to the contract is a change to a published package: a new port, read model or
   law lands in `packages/connectors/engine/engine-core` with its saboteur, and the kit's
-  self-tests run there (`packages/connectors/engine/engine-core/test`, 79 saboteurs). Below 1.0 the package makes no
+  self-tests run there (`packages/connectors/engine/engine-core/test`, 80 saboteurs). Below 1.0 the package makes no
   stability promise; its laws and its fake follow the extension.
 - Panel loads have fixed engine-call budgets (definition ≤ 7, three of them the scope
   counts queried in parallel with the page; instance ≤ 2 plus lazy details; both + 1

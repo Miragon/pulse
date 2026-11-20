@@ -169,6 +169,25 @@ const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] =
     [CASE.instancesCounted],
   ],
   [
+    "a count of ended instances without an incident subtracts the running ones with one",
+    (runtime) => ({
+      countInstances: async (filter) => {
+        if (filter.lifecycle !== "ended" || filter.withIncident !== false) {
+          return runtime.countInstances(filter)
+        }
+        const scope = { ...filter }
+        delete scope.withIncident
+        delete scope.lifecycle
+        const [ended, withIncident] = await Promise.all([
+          runtime.countInstances({ ...scope, lifecycle: "ended" }),
+          runtime.countInstances({ ...scope, withIncident: true }),
+        ])
+        return { count: ended.count - withIncident.count }
+      },
+    }),
+    [CASE.instancesNeverBelowZero],
+  ],
+  [
     "full incident details come back truncated",
     (runtime) => ({
       getIncidentDetails: async (incidentId) => {

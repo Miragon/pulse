@@ -97,10 +97,10 @@ Camunda 7 too); a cluster's call activity or subprocess counts the incidents ins
 The conformance kit of the engine contract proves the server's own Camunda 8 wire on a local cluster
 in Testcontainers
 (`packages/connectors/engine/engine-connector/src/lib/core-adapter/c8-runtime.engine.test.ts`): its
-51 read laws, the recorded board's numbers over the kit's world, and that no tool or view of the
-Camunda 7 REST API reaches the cluster;
-`packages/connectors/engine/engine-connector/CONTRIBUTING.md` says how to run a leg. Four legs
-passed on 2026-11-17, one at a time (the time includes starting the containers):
+52 read laws, the recorded board's numbers over the kit's world, and that no tool or view of the
+Camunda 7 REST API reaches the cluster; `packages/connectors/engine/engine-connector/CONTRIBUTING.md`
+says how to run a leg. On 2026-11-20 the leg 8.10.9, H2, none passed all 52 (54 of 54); the
+51 laws of 2026-11-17 passed on four legs, one at a time (the time includes starting the containers):
 
 | Camunda | Secondary storage | Security | Passed   | Time |
 | ------- | ----------------- | -------- | -------- | ---- |
