@@ -2949,6 +2949,36 @@
     "name": "engine_resolve_incident"
   },
   {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI) for the web app's engine screen: the engine's product and each process's latest version, running instances and instances with incident over every version.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "engine_screen_processes_data",
+    "title": "Engine screen data (internal)"
+  },
+  {
     "annotations": {
       "destructiveHint": false,
       "idempotentHint": true,

@@ -20,7 +20,8 @@ import {
 
 /**
  * The web app's frame (variant B, "frame first"): a side navigation beside the view, in the
- * editors' look, the cockpit's routes as its content without their head. Every entry is a link of
+ * editors' look, the page's own screens (an engine's processes) and the cockpit's routes without
+ * their head as its content. Every entry is a link of
  * the page that navigates without a reload, its current one `aria-current="page"` through Back and
  * Forward, focus on the new view's h1; under 64rem a drawer behind the menu every view bar shows
  * first, with the account and the sign-out in it; one read of the engine list per page view.
@@ -58,12 +59,7 @@ test.describe("the page's side navigation", () => {
     await mark(page)
     for (const [entry, address, heading, current] of [
       ["Cross-engine overview", "/app/fleet", "Cross-engine overview", "Cross-engine overview"],
-      [
-        HEALTHY_ENGINE,
-        `/app/engines/${HEALTHY_ENGINE}`,
-        `${HEALTHY_ENGINE} · Overview`,
-        "Overview",
-      ],
+      [HEALTHY_ENGINE, `/app/engines/${HEALTHY_ENGINE}`, HEALTHY_ENGINE, "Processes"],
       [
         "Incidents",
         `/app/engines/${HEALTHY_ENGINE}/incidents`,
@@ -71,8 +67,8 @@ test.describe("the page's side navigation", () => {
         "Incidents",
       ],
       ["Jobs", `/app/engines/${HEALTHY_ENGINE}/jobs`, `${HEALTHY_ENGINE} · Jobs`, "Jobs"],
-      ["Overview", `/app/engines/${HEALTHY_ENGINE}`, `${HEALTHY_ENGINE} · Overview`, "Overview"],
-      [BROKEN_ENGINE, `/app/engines/${BROKEN_ENGINE}`, `${BROKEN_ENGINE} · Overview`, "Overview"],
+      ["Processes", `/app/engines/${HEALTHY_ENGINE}`, HEALTHY_ENGINE, "Processes"],
+      [BROKEN_ENGINE, `/app/engines/${BROKEN_ENGINE}`, BROKEN_ENGINE, "Processes"],
       [
         "Invoice operations",
         `/app/boards/${INVOICES_BOARD}`,
@@ -118,7 +114,7 @@ test.describe("the page's side navigation", () => {
     context,
   }) => {
     await signIn(page, `/app/engines/${HEALTHY_ENGINE}`)
-    await expect(h1(page, `${HEALTHY_ENGINE} · Overview`)).toBeVisible({ timeout: 15_000 })
+    await expect(h1(page, HEALTHY_ENGINE)).toBeVisible({ timeout: 15_000 })
     const opened = context.waitForEvent("page")
     await navEntry(page, "Jobs").click({ modifiers: ["ControlOrMeta"] })
     const tab = await opened
@@ -151,7 +147,7 @@ test.describe("the page's side navigation", () => {
     page,
   }) => {
     await signIn(page, `/app/engines/${HEALTHY_ENGINE}`)
-    await expect(h1(page, `${HEALTHY_ENGINE} · Overview`)).toBeVisible({ timeout: 15_000 })
+    await expect(h1(page, HEALTHY_ENGINE)).toBeVisible({ timeout: 15_000 })
     const side = page.getByRole("banner")
     await expect(side.getByText(`Signed in as ${ALICE.name}`)).toBeAttached()
     await expect(side.getByRole("button", { name: "Sign out" })).toBeVisible()
@@ -286,7 +282,7 @@ test.describe("the page's navigation in German, on a dark system", () => {
     await signIn(page, `/app/engines/${HEALTHY_ENGINE}/incidents`)
     await expect(h1(page, `${HEALTHY_ENGINE} · Incidents`)).toBeVisible({ timeout: 15_000 })
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark")
-    for (const name of ["Start", "Engine-übergreifende Übersicht", "Übersicht", "Jobs"]) {
+    for (const name of ["Start", "Engine-übergreifende Übersicht", "Prozesse", "Jobs"]) {
       await expect(navEntry(page, name), name).toBeVisible()
     }
     await expect(page.getByRole("banner").getByRole("button", { name: "Abmelden" })).toBeVisible()

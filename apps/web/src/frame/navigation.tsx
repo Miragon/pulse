@@ -1,40 +1,22 @@
 import type { ReactNode } from "react"
 import { Icon, SideNav, SideNavGroup, SideNavItem, SideNavList, TONE_ICON } from "@miragon/pulse-ui"
-import { isSessionEnded, useToolQuery } from "@miragon/pulse-widget-shell/widgets"
+import { isSessionEnded } from "@miragon/pulse-widget-shell/widgets"
 import {
   Ban,
   ClipboardList,
   Cog,
   House,
   Layers,
-  LayoutDashboard,
   Server,
   TriangleAlert,
+  Workflow,
   type LucideIcon,
 } from "lucide-react"
+import { useEngineList, type ListedEngines } from "../engine-list.js"
 import { useT } from "../messages/index.js"
 import { PageLink, type Navigate } from "../router/page-link.js"
 import { urlOf, type Place } from "../router/routes.js"
-import { sectionAt, sectionsOf, type NavSection } from "./nav-sections.js"
-
-/** The engine list, `engine_list_engines`, the one read of the navigation. */
-const ENGINE_LIST = "engine_list_engines"
-
-/**
- * The engine list's cache key: the embedded cockpit's own (`useToolQuery(["engine:engines"], …)`),
- * so the navigation and the cockpit share one read per page view.
- */
-const ENGINE_LIST_KEY = ["engine:engines"] as const
-
-/**
- * What the navigation reads of the engine list: the engines, the refused profiles, the boards,
- * each left out where the answer names none.
- */
-interface ListedEngines {
-  readonly engines?: ReadonlyArray<{ id: string; environment?: string; dialect?: string }>
-  readonly refused?: ReadonlyArray<{ id: string; environment?: string }>
-  readonly boards?: ReadonlyArray<{ id: string; title: string }>
-}
+import { placeOfSection, sectionAt, sectionsOf, type NavSection } from "./nav-sections.js"
 
 /** An engine as the navigation shows it: its sections, else on boards only, or refused. */
 interface NavEngine {
@@ -85,7 +67,7 @@ function offersFleet(environments: readonly NavEnvironment[]): boolean {
 }
 
 const SECTION_ICONS: Readonly<Record<NavSection, LucideIcon>> = {
-  overview: LayoutDashboard,
+  processes: Workflow,
   incidents: TriangleAlert,
   jobs: Cog,
 }
@@ -118,7 +100,7 @@ function Entry({
 }
 
 /**
- * An engine's entry: its own address (its overview, or its one state where it has no section),
+ * An engine's entry: its own address (its processes, or its one state where it has no section),
  * the same wherever the page is (the chat's engine switch keeps the open section, N7; an entry of
  * the navigation is a link that stays put), the open one with its sections under it; an engine on boards only says so, a refused profile
  * says so beside its warning (the landing's mark of a refused profile), and either one's entry is
@@ -140,7 +122,7 @@ function EngineEntry({
       {engine.sections.map((section) => (
         <Entry
           key={section}
-          href={urlOf({ view: section, engine: engine.id })}
+          href={urlOf(placeOfSection(section, engine.id))}
           navigate={navigate}
           current={sectionAt(place) === section}
           icon={<Icon icon={SECTION_ICONS[section]} />}
@@ -214,7 +196,7 @@ function Engines({
  */
 export function PageNavigation({ place, navigate }: { place: Place; navigate: Navigate }) {
   const t = useT()
-  const { data, error } = useToolQuery<ListedEngines>(ENGINE_LIST_KEY, ENGINE_LIST, {})
+  const { data, error } = useEngineList()
   // A page's ended session is the frame's notice to say, once: no line here repeats it.
   const failed = error !== null && !isSessionEnded(error)
   const environments = data === undefined ? [] : environmentsOf(data)

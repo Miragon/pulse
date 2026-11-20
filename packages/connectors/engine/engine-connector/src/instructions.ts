@@ -138,7 +138,7 @@ const CAMUNDA_8_SERVER_RULE =
   "view board shows one, landing the engines and boards to pick from; in its facts null is " +
   "unknown, never 0."
 
-/** The rules of a server without a Camunda 7 engine: only what its four tools and feeds do. */
+/** The rules of a server without a Camunda 7 engine: only what its tools and feeds do. */
 function camunda8Instructions(input: EngineInstructionsInput): string {
   return [
     "engine (Camunda 8, which this server reads on boards):",

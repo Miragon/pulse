@@ -85,7 +85,7 @@ describe("engineModule.instructions", () => {
     expect(refused).not.toContain("Camunda 8 engines")
   })
 
-  // A server of Camunda 8 engines alone registers four tools and feeds: its rules name what they
+  // A server of Camunda 8 engines alone registers five tools and feeds: its rules name what they
   // do and nothing of Camunda 7's tools, whatever its toolset.
   it("a server of Camunda 8 engines alone: says what shows them, and nothing of Camunda 7", () => {
     const c8 = { id: "c8", baseUrl: "https://c8.example/v2", flavor: "camunda8" }

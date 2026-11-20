@@ -33,3 +33,10 @@ export function cockpitProperties(
   }
   return schema.toJSONSchema().properties
 }
+
+/** The names of the tools the engine module registers over `engines`, feeds included. */
+export function registeredTools(engines: readonly EngineEntry[] = [C7_ENGINE]): readonly string[] {
+  const recording = recordingModuleServer()
+  engineModule.createPlugin({ engines: [...engines] }).register(recording.server)
+  return [...recording.tools.keys()]
+}

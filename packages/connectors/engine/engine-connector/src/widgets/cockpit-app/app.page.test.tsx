@@ -272,6 +272,46 @@ describe("the page's address follows the cockpit (N1)", RENDER, () => {
     expect(reads(ENGINE_HEALTH_DATA)).toEqual([])
   })
 
+  it("leaves a place the page claims to the page: reports it, renders and reads nothing there", async () => {
+    // The web app shows an engine's processes itself: the cockpit's overview is the page's there.
+    const claimsOverview = (args: Readonly<Record<string, unknown>>) => args.view === "overview"
+    const address = fakeAddress(undefined, claimsOverview)
+    const { reads } = renderPage(
+      boot("prod-a", ENGINES, { section: "jobs" }, JOBS_DATA),
+      undefined,
+      {
+        startPage: "/app",
+        location: address.location,
+      },
+    )
+    await waitFor(() => expect(address.reports).toHaveLength(1))
+    fireEvent.click(headSection("Overview"))
+    await waitFor(() =>
+      expect(address.reports.at(-1)).toMatchObject({
+        place: { args: { view: "overview", engine: "prod-a" } },
+        entry: "push",
+      }),
+    )
+    expect(screen.queryByRole("navigation", { name: "Cockpit sections" })).toBeNull()
+    expect(reads(ENGINE_COCKPIT_OVERVIEW_DATA)).toEqual([])
+    // Back to a claimed place is the page's to show; to another one the cockpit's.
+    expect(address.back({ args: { view: "overview", engine: "prod-a" } })).toBe(false)
+    expect(address.back({ args: { view: "jobs", engine: "prod-a" } })).toBe(true)
+    await waitFor(() => expect(headSection("Jobs").getAttribute("aria-current")).toBe("page"))
+  })
+
+  it("claims nothing where the page shows no place itself, an engine without sections either", async () => {
+    // An engine shown on boards only is named alone, never as the overview the page claims.
+    const engines = [...ENGINES, ON_BOARDS]
+    const address = fakeAddress(
+      { args: { view: "overview", engine: "orders-c8" } },
+      (args) => args.view === "overview",
+    )
+    renderPage(boot(null, engines), { engines }, { startPage: "/app", location: address.location })
+    expect(await screen.findByRole("heading", { level: 1, name: BOARDS_ONLY_TITLE })).toBeTruthy()
+    await waitFor(() => expect(address.reports[0]?.place.args).toEqual({ engine: "orders-c8" }))
+  })
+
   it("moves on screen alone in a chat, which has no address", async () => {
     const { reads } = renderCockpitOn(
       queryClient,

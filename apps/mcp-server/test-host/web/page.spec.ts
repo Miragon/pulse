@@ -25,7 +25,8 @@ import {
 /**
  * The cockpit as a page of the server (#573): apps/web mounts its app with widget-shell's
  * `mountApp` and shows the engine module's views in it with `PageView`, under the browser adapter
- * instead of ext-apps' `App`, and its caller
+ * instead of ext-apps' `App` (an engine's processes are the page's own screen: engine-screen.spec.ts),
+ * and its caller
  * posts each tool call to the server's `/app/api/call`, which forwards it to `/mcp` with the
  * session's token. The views are the chat's, built from the same sources: the view tool's data,
  * every feed, the browser's language and theme, and no hand-off, since the page posts to no chat.
@@ -37,13 +38,11 @@ import {
 
 const SERVER = path.resolve(import.meta.dirname, "..", "..")
 const WEB_BUILD = path.resolve(SERVER, "..", "web", "dist")
+/** An engine's own address: the page's engine screen, its processes (engine-screen.spec.ts). */
 const OVERVIEW_PAGE = `/app/engines/${HEALTHY_ENGINE}`
 const JOBS_PAGE = `/app/engines/${HEALTHY_ENGINE}/jobs`
 /** The stub's invoice instance: two open incidents whose jobs have no retries, one variable. */
 const INSTANCE_PAGE = `/app/engines/${HEALTHY_ENGINE}/instances/pi-invoice-42`
-const DEFINITIONS_TABLE =
-  "Deployed process definitions with running instances, jobs without retries and incidents"
-const STUB_DEFINITIONS = ["Customer Onboarding", "Invoice Receipt", "Order Fulfillment"]
 
 /** The page's script's name in the build (`assets/…`), as the build's index.html loads it. */
 function pageScriptName(): string {
@@ -80,27 +79,22 @@ async function listedTools(token: string): Promise<string[]> {
 }
 
 test.describe("the cockpit as a page", () => {
-  test("mounts over the page's caller: one view call, every row, no fullscreen switch", async ({
-    page,
-  }) => {
+  test("mounts over the page's caller: one view call, no fullscreen switch", async ({ page }) => {
     const errors = collectErrors(page)
     const calls = recordCalls(page)
-    await signIn(page, OVERVIEW_PAGE)
+    await signIn(page, JOBS_PAGE)
 
-    const table = page.getByRole("table", { name: DEFINITIONS_TABLE })
-    await expect(table).toBeVisible({ timeout: 15_000 })
+    const jobs = page.getByRole("region", { name: "Jobs", exact: true })
+    await expect(jobs.getByText("Card declined").first()).toBeVisible({ timeout: 15_000 })
     // One main landmark, the view frame's: the cockpit's route renders none of its own.
     await expect(page.getByRole("main")).toHaveCount(1)
-    await expect(page).toHaveTitle(`${HEALTHY_ENGINE} · Overview · Pulse`)
-    // A page owns its viewport: every row, no inline fit and its footer, no switch to fullscreen.
-    for (const name of STUB_DEFINITIONS) await expect(table.getByText(name)).toBeVisible()
-    await expect(page.getByText(/of 3 shown/)).toHaveCount(0)
+    await expect(page).toHaveTitle(`${HEALTHY_ENGINE} · Jobs · Pulse`)
+    // A page owns its viewport: no inline fit and its footer, no switch to fullscreen.
+    await expect(page.getByText(/ of \d+ shown/)).toHaveCount(0)
     await expect(page.getByRole("button", { name: "Fullscreen" })).toHaveCount(0)
-    await expect(page.getByRole("heading", { name: "All processes", exact: true })).toHaveCount(1)
-    // The page called the view tool itself, once: an engine's own address starts on the landing,
-    // which every server's tool takes, and the cockpit opens the engine.
+    // The page called the view tool itself, once, with the arguments its address names.
     expect(calls.filter((call) => call.name === "engine_open_cockpit")).toEqual([
-      { name: "engine_open_cockpit", arguments: { view: "landing" } },
+      { name: "engine_open_cockpit", arguments: { view: "jobs", engine: HEALTHY_ENGINE } },
     ])
     // The locale gate resolved the browser's language and wrote it on the document.
     await expect(page.locator("html")).toHaveAttribute("lang", "en")
@@ -110,19 +104,23 @@ test.describe("the cockpit as a page", () => {
 
   test("a section of the cockpit reads its feed through the page's caller", async ({ page }) => {
     const calls = recordCalls(page)
-    await signIn(page, OVERVIEW_PAGE)
-    await navEntry(page, "Jobs").click({ timeout: 15_000 })
+    await signIn(page, JOBS_PAGE)
     const jobs = page.getByRole("region", { name: "Jobs", exact: true })
     await expect(jobs.getByText("Card declined").first()).toBeVisible({ timeout: 15_000 })
+    // A section the cockpit goes to itself reads its feed through the page's caller.
+    await navEntry(page, "Incidents").click()
+    await expect(
+      page.getByRole("heading", { level: 1, name: `${HEALTHY_ENGINE} · Incidents` }),
+    ).toBeVisible({ timeout: 15_000 })
     expect(
-      calls.filter((call) => call.name === "engine_jobs_data").at(-1)?.arguments,
+      calls.filter((call) => call.name === "engine_incidents_data").at(-1)?.arguments,
     ).toMatchObject({ engine: HEALTHY_ENGINE })
     // The document's title follows the view the page moved on to.
-    await expect(page).toHaveTitle(`${HEALTHY_ENGINE} · Jobs · Pulse`)
+    await expect(page).toHaveTitle(`${HEALTHY_ENGINE} · Incidents · Pulse`)
   })
 
   test("names the engine in each engine section's heading and title", async ({ page }) => {
-    await expectEngineSections(page, ["Overview", "Incidents", "Jobs"])
+    await expectEngineSections(page, ["Incidents", "Jobs"])
   })
 
   // One row convention on every surface (owner direction 2026-11-18): a page's rows open as the
@@ -132,7 +130,7 @@ test.describe("the cockpit as a page", () => {
   }) => {
     await signIn(page, OVERVIEW_PAGE)
     const process = page
-      .getByRole("table", { name: DEFINITIONS_TABLE })
+      .getByRole("table", { name: "Processes" })
       .getByRole("row", { name: "Process Invoice Receipt" })
     await expect(process).toBeVisible({ timeout: 15_000 })
     await process.focus()
@@ -290,43 +288,45 @@ test.describe("the page's address", () => {
     await expect(h1(page, LANDING)).toBeVisible({ timeout: 15_000 })
     const start = await entries(page)
     await page.getByRole("button", { name: new RegExp(`^${HEALTHY_ENGINE}\\b`) }).click()
-    await expect(h1(page, `${HEALTHY_ENGINE} · Overview`)).toBeVisible({ timeout: 15_000 })
+    // The engine's processes are the page's own screen: the page takes over from the cockpit.
+    await expect(h1(page, HEALTHY_ENGINE)).toBeVisible({ timeout: 15_000 })
     expect(here(page)).toBe(OVERVIEW)
     expect(await entries(page)).toBe(start + 1)
     await page
-      .getByRole("region", { name: DEFINITIONS_TABLE, exact: true })
+      .getByRole("table", { name: "Processes" })
       .getByRole("row", { name: "Process Invoice Receipt" })
       .click()
     await expect(h1(page, "Invoice Receipt")).toBeVisible({ timeout: 15_000 })
     expect(here(page)).toBe(PROCESS)
     expect(await entries(page)).toBe(start + 2)
-    // The drills read their feeds: the view tool was called once, for the page's start.
-    expect(viewCalls(calls)).toBe(1)
+    // The landing's start and the process's: the screen between them reads its feed alone.
+    expect(viewCalls(calls)).toBe(2)
 
-    // A reload: the view the address names, its trail back to its section.
+    // A reload: the view the address names, its trail back to the engine's processes, which it
+    // names by the navigation's word for them.
     await page.reload()
     await expect(h1(page, "Invoice Receipt")).toBeVisible({ timeout: 15_000 })
     expect(here(page)).toBe(PROCESS)
-    await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toContainText("Overview")
-    expect(viewCalls(calls)).toBe(2)
+    const trail = page.getByRole("navigation", { name: "Breadcrumb" })
+    await expect(trail).toContainText("Processes")
+    await expect(trail).not.toContainText("Overview")
+    expect(viewCalls(calls)).toBe(3)
 
-    // Back: the overview, then the landing, in the page, no call of the view tool.
+    // Back: the engine's screen, then the landing, in the page.
     await page.goBack()
-    await expect(h1(page, `${HEALTHY_ENGINE} · Overview`)).toBeVisible({ timeout: 15_000 })
+    await expect(h1(page, HEALTHY_ENGINE)).toBeVisible({ timeout: 15_000 })
     expect(here(page)).toBe(OVERVIEW)
     await page.goBack()
     await expect(h1(page, LANDING)).toBeVisible({ timeout: 15_000 })
     expect(here(page)).toBe("/app")
-    expect(viewCalls(calls)).toBe(2)
 
-    // Forward: the overview, then the process, in the page again.
+    // Forward: the engine's screen, then the process, in the page again.
     await page.goForward()
-    await expect(h1(page, `${HEALTHY_ENGINE} · Overview`)).toBeVisible({ timeout: 15_000 })
+    await expect(h1(page, HEALTHY_ENGINE)).toBeVisible({ timeout: 15_000 })
     expect(here(page)).toBe(OVERVIEW)
     await page.goForward()
     await expect(h1(page, "Invoice Receipt")).toBeVisible({ timeout: 15_000 })
     expect(here(page)).toBe(PROCESS)
-    expect(viewCalls(calls)).toBe(2)
   })
 
   test("a section and an engine of the navigation are each an entry of their own, marked current through Back and Forward", async ({
@@ -334,36 +334,36 @@ test.describe("the page's address", () => {
   }) => {
     const calls = recordCalls(page)
     await signIn(page, OVERVIEW)
-    await expect(h1(page, `${HEALTHY_ENGINE} · Overview`)).toBeVisible({ timeout: 15_000 })
-    await expect(navEntry(page, "Overview")).toHaveAttribute("aria-current", "page")
+    await expect(h1(page, HEALTHY_ENGINE)).toBeVisible({ timeout: 15_000 })
+    await expect(navEntry(page, "Processes")).toHaveAttribute("aria-current", "page")
     const start = await entries(page)
     await navEntry(page, "Incidents").click()
     await expect(h1(page, `${HEALTHY_ENGINE} · Incidents`)).toBeVisible({ timeout: 15_000 })
     await expect(navEntry(page, "Incidents")).toHaveAttribute("aria-current", "page")
-    await expect(navEntry(page, "Overview")).not.toHaveAttribute("aria-current")
+    await expect(navEntry(page, "Processes")).not.toHaveAttribute("aria-current")
     expect(here(page)).toBe(INCIDENTS(HEALTHY_ENGINE))
     expect(await entries(page)).toBe(start + 1)
 
     // Another engine: its own address, its sections under it, the one left folded.
     await navEntry(page, BROKEN_ENGINE).click()
-    await expect(h1(page, `${BROKEN_ENGINE} · Overview`)).toBeVisible({ timeout: 15_000 })
+    await expect(h1(page, BROKEN_ENGINE)).toBeVisible({ timeout: 15_000 })
     expect(here(page)).toBe(`/app/engines/${BROKEN_ENGINE}`)
     expect(await entries(page)).toBe(start + 2)
-    await expect(navEntry(page, "Overview")).toHaveAttribute(
+    await expect(navEntry(page, "Processes")).toHaveAttribute(
       "href",
       `/app/engines/${BROKEN_ENGINE}`,
     )
-    await expect(navEntry(page, "Overview")).toHaveAttribute("aria-current", "page")
+    await expect(navEntry(page, "Processes")).toHaveAttribute("aria-current", "page")
 
     await page.goBack()
     await expect(h1(page, `${HEALTHY_ENGINE} · Incidents`)).toBeVisible({ timeout: 15_000 })
     await expect(navEntry(page, "Incidents")).toHaveAttribute("aria-current", "page")
     await expect(navEntry(page, "Incidents")).toHaveAttribute("href", INCIDENTS(HEALTHY_ENGINE))
     await page.goForward()
-    await expect(h1(page, `${BROKEN_ENGINE} · Overview`)).toBeVisible({ timeout: 15_000 })
-    await expect(navEntry(page, "Overview")).toHaveAttribute("aria-current", "page")
-    // The cockpit went there itself: the view tool was called once, for the page's start.
-    expect(viewCalls(calls)).toBe(1)
+    await expect(h1(page, BROKEN_ENGINE)).toBeVisible({ timeout: 15_000 })
+    await expect(navEntry(page, "Processes")).toHaveAttribute("aria-current", "page")
+    // The engine's screen reads no view: the cockpit started for the incidents, twice.
+    expect(viewCalls(calls)).toBe(2)
   })
 
   test("the cross-engine overview is /app/fleet: a reload stays there, Back leads to the landing", async ({
@@ -387,7 +387,7 @@ test.describe("the page's address", () => {
     ["/app", LANDING],
     ["/app/fleet", "Cross-engine overview"],
     [`/app/boards/${INVOICES_BOARD}`, "Invoice operations"],
-    [OVERVIEW, `${HEALTHY_ENGINE} · Overview`],
+    [OVERVIEW, HEALTHY_ENGINE],
     [PROCESS, "Invoice Receipt"],
     [`${PROCESS}?scope=incident`, "Invoice Receipt"],
     [`${OVERVIEW}/instances`, "Running instances"],
@@ -424,7 +424,7 @@ test.describe("the page's address", () => {
     await expect(h1(page, LANDING)).toBeVisible({ timeout: 15_000 })
     const old = (query: string) => `/app/cockpit?${query}&engine=${HEALTHY_ENGINE}`
     for (const [address, canonical, heading] of [
-      [old("view=overview"), OVERVIEW, `${HEALTHY_ENGINE} · Overview`],
+      [old("view=overview"), OVERVIEW, HEALTHY_ENGINE],
       [
         old("view=jobs&failedOnly=true"),
         `${OVERVIEW}/jobs?failed=true`,
@@ -435,7 +435,7 @@ test.describe("the page's address", () => {
         `${OVERVIEW}/instances/pi-invoice-42?tab=history`,
         "History",
       ],
-      [`/app/cockpit?engine=${HEALTHY_ENGINE}`, OVERVIEW, `${HEALTHY_ENGINE} · Overview`],
+      [`/app/cockpit?engine=${HEALTHY_ENGINE}`, OVERVIEW, HEALTHY_ENGINE],
     ] as const) {
       const before = await entries(page)
       await page.goto(`${originOf()}${address}`)
@@ -515,7 +515,7 @@ test.describe("the page's address", () => {
     page,
   }) => {
     await signIn(page, OVERVIEW)
-    const title = h1(page, `${HEALTHY_ENGINE} · Overview`)
+    const title = h1(page, HEALTHY_ENGINE)
     await expect(title).toBeVisible({ timeout: 15_000 })
     await rendered(page)
     const before = await entries(page)
@@ -542,9 +542,7 @@ test.describe("the cockpit as a page in German, on a dark system", () => {
     page,
   }) => {
     await signIn(page, OVERVIEW_PAGE)
-    await expect(page.getByRole("heading", { name: "Alle Prozesse", exact: true })).toHaveCount(1, {
-      timeout: 15_000,
-    })
+    await expect(page.getByRole("table", { name: "Prozesse" })).toBeVisible({ timeout: 15_000 })
     await expect(page.getByRole("button", { name: "Abmelden" })).toBeVisible()
     const html = page.locator("html")
     await expect(html).toHaveAttribute("lang", "de")
@@ -559,13 +557,13 @@ test.describe("the cockpit as a page in German, on a dark system", () => {
   test("names the engine in each engine section's heading and title, in German", async ({
     page,
   }) => {
-    await expectEngineSections(page, ["Übersicht", "Incidents", "Jobs"])
+    await expectEngineSections(page, ["Incidents", "Jobs"])
   })
 
   test("fits 320 px without scrolling sideways", async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 640 })
-    await signIn(page, OVERVIEW_PAGE)
-    await expect(page.getByRole("heading", { name: "Alle Prozesse", exact: true })).toHaveCount(1, {
+    await signIn(page, JOBS_PAGE)
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(`${HEALTHY_ENGINE} · Jobs`, {
       timeout: 15_000,
     })
     await rendered(page)
@@ -583,16 +581,18 @@ test.describe("the cockpit as a page in German, on a dark system", () => {
 })
 
 /**
- * The engine sections (overview, incidents, jobs) each head their page `<engine> · <section>`, in
- * the page's language (`sections`, in that order), which titles the document.
+ * An engine's sections each head their page in the page's language, which titles the document: its
+ * processes, the page's own screen, by the engine's name alone, and the cockpit's sections
+ * `<engine> · <section>` (`sections`: the incidents', then the jobs').
  */
 async function expectEngineSections(page: Page, sections: readonly string[]): Promise<void> {
   await signIn(page, OVERVIEW_PAGE)
-  for (const [path, section] of ["", "/incidents", "/jobs"].map(
-    (below, index) => [below, sections[index]] as const,
-  )) {
+  for (const [path, heading] of [
+    ["", HEALTHY_ENGINE],
+    ["/incidents", `${HEALTHY_ENGINE} · ${sections[0]}`],
+    ["/jobs", `${HEALTHY_ENGINE} · ${sections[1]}`],
+  ] as const) {
     await page.goto(`${originOf()}/app/engines/${HEALTHY_ENGINE}${path}`)
-    const heading = `${HEALTHY_ENGINE} · ${section}`
     await expect(page.getByRole("heading", { level: 1 })).toHaveText([heading], { timeout: 15_000 })
     await expect(page).toHaveTitle(`${heading} · Pulse`)
   }
@@ -784,12 +784,11 @@ test.describe("the pages without a view", () => {
 
 test.describe("a page whose engine doesn't answer", () => {
   // The page's navigation keeps the engine open with its sections (and the way to the other
-  // engines) beside the route, which says so in its place: where the start of its view fails for
-  // the engine, not for the page, and where the engine's own address starts the landing and the
-  // cockpit opens it.
-  for (const [start, address] of [
-    ["the start of its jobs", `/app/engines/${BROKEN_ENGINE}/jobs`],
-    ["the engine's own address", `/app/engines/${BROKEN_ENGINE}`],
+  // engines) beside the view, which says so in its place: the cockpit where the start of its view
+  // fails for the engine, not for the page, and the engine's own screen under its bar.
+  for (const [start, address, viewCalls] of [
+    ["the start of its jobs", `/app/engines/${BROKEN_ENGINE}/jobs`, 1],
+    ["the engine's own screen", `/app/engines/${BROKEN_ENGINE}`, 0],
   ] as const) {
     test(`${address} (${start}) keeps the engine's sections beside its failure`, async ({
       page,
@@ -808,7 +807,7 @@ test.describe("a page whose engine doesn't answer", () => {
       await expect(failure).toHaveCount(1, { timeout: 30_000 })
       await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1)
       await expect(page.getByRole("button", { name: "Try again" })).toHaveCount(1)
-      expect(calls.filter((call) => call.name === "engine_open_cockpit")).toHaveLength(1)
+      expect(calls.filter((call) => call.name === "engine_open_cockpit")).toHaveLength(viewCalls)
       await rendered(page)
       await expectNoAxeFinding(page)
     })

@@ -268,7 +268,10 @@ function CockpitScopes({ data, chrome }: { data: CockpitAppData | null; chrome: 
   // After an engine switch, whether the new engine deploys the process the view kept (N7).
   useProcessCheck(state, sectionless, dispatch)
   // A page's address follows where the cockpit is (N1); a chat has none.
-  usePlaceOnAddress(state, sectionless, dispatch)
+  const claimed = usePlaceOnAddress(state, sectionless, dispatch)
+
+  // A place the page shows itself (its engine screen): the page takes over as it reads the report.
+  if (claimed) return null
 
   // Bootstrap engines let us proceed when the engines query failed.
   if (engines.length === 0) {

@@ -114,6 +114,7 @@ describe("THIRD_PARTY_LICENSES.txt", { timeout: 120_000 }, () => {
     expect(inventory.own).toEqual([
       "@miragon/pulse-blocks",
       "@miragon/pulse-engine-connector",
+      "@miragon/pulse-screens",
       "@miragon/pulse-ui",
       "@miragon/pulse-widget-shell",
     ])

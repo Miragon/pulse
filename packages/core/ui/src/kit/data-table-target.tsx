@@ -8,7 +8,7 @@ import {
   type MouseEvent,
 } from "react"
 import { cn } from "../lib/utils.js"
-import type { DataTableRowProps } from "./data-table-types.js"
+import type { DataTableRowProps, RowActivation } from "./data-table-types.js"
 
 /**
  * A row a pointer or the keyboard opens: the hand, and the focus indicator as an outline drawn
@@ -82,15 +82,21 @@ export function DataTableRow({
   label,
   onActivate,
   onCopy,
+  href,
   className,
   children,
 }: DataTableRowProps) {
   const hints = useContext(RowHintsContext)
   if (onActivate === undefined) return <tr className={className}>{children}</tr>
+  // A row with an address opens beside the view as a link does, in a new tab.
+  const open = (how: RowActivation) => {
+    if (how.toSide && href !== undefined) window.open(href, "_blank", "noopener,noreferrer")
+    else onActivate(how)
+  }
   const onKeyDown = (event: KeyboardEvent<HTMLTableRowElement>) => {
     if (event.target !== event.currentTarget) return
     if (event.key === "Enter") {
-      onActivate({ toSide: wantsSide(event) })
+      open({ toSide: wantsSide(event) })
     } else if (onCopy && copiesRow(event)) {
       event.preventDefault()
       onCopy()
@@ -102,9 +108,15 @@ export function DataTableRow({
       aria-label={label}
       aria-describedby={hints?.(onCopy !== undefined)}
       tabIndex={hints ? undefined : 0}
+      data-href={href}
       className={cn(INTERACTIVE_ROW, className)}
       onClick={(event) => {
-        if (opensOnClick(event)) onActivate({ toSide: wantsSide(event) })
+        if (opensOnClick(event)) open({ toSide: wantsSide(event) })
+      }}
+      onAuxClick={(event) => {
+        if (event.button !== 1 || href === undefined || !opensOnClick(event)) return
+        event.preventDefault()
+        open({ toSide: true })
       }}
       onKeyDown={onKeyDown}
     >

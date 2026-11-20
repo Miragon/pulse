@@ -141,6 +141,7 @@ const NO_APP = "packages-never-import-the-app"
 const APP_APP = "apps-never-import-apps"
 const HEADLESS = "cli-is-headless"
 const WEB_PAGE = "web-is-a-page"
+const WEB_SCREENS_TYPES = "web-names-screens-by-type"
 const CORE_LEAF = "family-core-is-a-leaf"
 const PROFILE_LEAF = "profile-is-a-leaf"
 const PROFILE_USERS = "profile-consumers"
@@ -462,8 +463,11 @@ const SUITES = [
         "@miragon/pulse-ui/theme.css",
         "@miragon/pulse-widget-shell/widgets",
         "@miragon/pulse-engine-connector/widgets",
+        // Its own screens compose the blocks over a screen's JSON form (D10).
+        BLOCKS_NAME,
         "./lib.ts",
       ].map((spec) => [WEB_SRC, spec, []]),
+      [`${WEB}/src/screens/engine/feed.ts`, SCREENS_NAME, [], "type"],
       // Nothing of a server, no other entry and no other library.
       ...[
         "@miragon/pulse-widget-shell",
@@ -484,7 +488,11 @@ const SUITES = [
       [WEB_SRC, "@miragon/pulse-widget-shell/testing", [NO_TESTING, WEB_PAGE]],
       [WEB_SRC, "@modelcontextprotocol/ext-apps", [EXT_APPS, WEB_PAGE]],
       [WEB_SRC, HTTP_NAME, [HTTP_USERS, WEB_PAGE]],
-      [WEB_SRC, BLOCKS_NAME, [BLOCKS_USERS, WEB_PAGE]],
+      // A screen's builder, the engine contract and another entry of the blocks or the screens
+      // never reach the page: the server builds a screen, the page renders its JSON form.
+      [WEB_SRC, `${BLOCKS_NAME}/board`, [WEB_PAGE]],
+      [WEB_SRC, `${SCREENS_NAME}/testing`, [NO_TESTING, WEB_PAGE, WEB_SCREENS_TYPES]],
+      [WEB_SRC, `${BOARD_NAME}/builder`, [BOARD_BUILDER_USERS, WEB_PAGE]],
       [WEB_SRC, "@miragon/pulse-c7-client", [CLIENT_USERS, WEB_PAGE]],
       [WEB_SRC, "@miragon/pulse-mcp-server", [APP_APP, WEB_PAGE]],
       [`${WEB}/src/escape.ts`, "../../../packages/core/ui/src/target.ts", [DEEP, WEB_PAGE]],
@@ -492,6 +500,24 @@ const SUITES = [
       // Its tests import what they test with.
       [`${WEB}/src/page.test.tsx`, "@miragon/pulse-ui/testing", []],
       [`${WEB}/src/page.test.tsx`, "@miragon/pulse-widget-shell/server", []],
+    ],
+  },
+  {
+    rule: WEB_SCREENS_TYPES,
+    title: "the web app names the screens' JSON forms by type alone, the blocks apply their rules",
+    cases: [
+      // A value of the format (a rule, its sums) is the blocks' to apply, never the page's own.
+      [`${WEB}/src/screens/engine/filter.ts`, SCREENS_NAME, [WEB_SCREENS_TYPES]],
+      [`${WEB}/src/screens/start/sums.ts`, SCREENS_NAME, [WEB_SCREENS_TYPES]],
+      [
+        `${WEB}/src/escape-screens.ts`,
+        "../../../packages/core/screens/src/target.ts",
+        [WEB_PAGE, WEB_SCREENS_TYPES, DEEP],
+      ],
+      // Allowed: a type, and its tests' values.
+      [`${WEB}/src/screens/engine/rows.ts`, SCREENS_NAME, [], "type"],
+      [`${WEB}/src/screens/engine/screen.test.tsx`, SCREENS_NAME, []],
+      [`${WEB}/src/screens/engine/world.test.tsx`, `${SCREENS_NAME}/testing`, []],
     ],
   },
   {
@@ -838,8 +864,9 @@ const SUITES = [
       [CLI_SRC, SCREENS_NAME, [HEADLESS, SCREENS_USERS]],
       [EXT_SRC, SCREENS_NAME, [SCREENS_USERS]],
       [ORCA_SRC, SCREENS_NAME, [SCREENS_USERS]],
-      // The web app renders a screen's JSON form only once a rule change of its own admits it.
-      [WEB_SRC, SCREENS_NAME, [WEB_PAGE, SCREENS_USERS], "type"],
+      // The web app names a screen's JSON form, by type alone (web-names-screens-by-type).
+      [WEB_SRC, SCREENS_NAME, [], "type"],
+      [`${WEB}/src/screens/engine/list.ts`, SCREENS_NAME, [WEB_SCREENS_TYPES]],
       // Of the engine connector only its data builders build a screen: not its root, widgets,
       // shared lib, view models, tools or widget tools, nor a look-alike of its data folder.
       [ENGINE_CONNECTOR_SRC, SCREENS_NAME, [SCREENS_USERS]],
@@ -901,7 +928,7 @@ const SUITES = [
         `${SCREENS_NAME}/builder`,
         [BLOCKS_LEAF, SCREENS_BUILDER_USERS],
       ],
-      [WEB_SRC, `${SCREENS_NAME}/builder`, [WEB_PAGE, SCREENS_BUILDER_USERS]],
+      [WEB_SRC, `${SCREENS_NAME}/builder`, [WEB_PAGE, SCREENS_BUILDER_USERS, WEB_SCREENS_TYPES]],
       // Shape 2: resolved through the importer's node_modules to the build.
       [
         `${EXT}/src/host/built.ts`,
@@ -1041,8 +1068,10 @@ const SUITES = [
       ],
       // An unresolved subpath (shape 3: dependency-cruiser reads no exports map).
       [`${SHELL}/src/blocks-sub.ts`, `${BLOCKS_NAME}/board`, [BLOCKS_USERS]],
-      // Allowed: the runtime view's webview, the engine connector's widgets (shape 2 too), and
-      // tests anywhere.
+      // Allowed: the runtime view's webview, the engine connector's widgets (shape 2 too), the
+      // web app's src (its screens), and tests anywhere.
+      [`${WEB}/src/screens/slots.tsx`, BLOCKS_NAME, [], "type"],
+      [`${WEB}/src/screens/engine/screen.tsx`, BLOCKS_NAME, []],
       [`${RUNTIME_VIEW}/src/webview/screens/board.ts`, BLOCKS_NAME, []],
       [`${ENGINE_CONNECTOR}/src/widgets/board/board-view.tsx`, BLOCKS_NAME, []],
       [`${ENGINE_CONNECTOR}/src/widgets/board/built.tsx`, `${BLOCKS_NAME}/dist/index.js`, []],

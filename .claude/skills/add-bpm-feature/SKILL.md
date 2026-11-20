@@ -601,7 +601,9 @@ call's abort signal at `ctx.mcpReq.signal`):
   `engine_board_data`) is a `namingFeed({ …, engines: "named", read })`, which takes no `engine`
   and reads through `NamedReadContext`; a feed that reads one engine of any dialect through the
   engine contract (`engine_bpmn_xml_data`) is a `contractFeed({ …, engines: "contract", read })`
-  over a `RuntimeEngine`. `registerDataFeed` in `data-feeds.ts` registers each feed of one engine
+  over a `RuntimeEngine`; a feed of the web app's own screens is such a contract feed in
+  `SCREEN_FEEDS` (`src/data/screen-feeds.ts`, its builder in `src/data/screens/` over the screens'
+  builder, `engine_screen_processes_data`), no route's and no widget's. `registerDataFeed` in `data-feeds.ts` registers each feed of one engine
   (a contract feed's through `resolveRuntimeEngine`), `registerNamingFeed` each naming feed; both
   spread `...appOnly` (SEP-1865 `_meta.ui.visibility: ["app"]` plus `openai/widgetAccessible`;
   **no** view binding) and return `buildDataFeedResult(data)` so the in-widget `callTool()` gets

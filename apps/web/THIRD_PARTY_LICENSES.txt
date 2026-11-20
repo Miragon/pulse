@@ -71,6 +71,7 @@ Pulse's own packages in the page, under the MIT licence in LICENSE:
 
   @miragon/pulse-blocks
   @miragon/pulse-engine-connector
+  @miragon/pulse-screens
   @miragon/pulse-ui
   @miragon/pulse-widget-shell
 

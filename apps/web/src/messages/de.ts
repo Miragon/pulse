@@ -1,7 +1,8 @@
 import type { en } from "./en.js"
 
 /**
- * Die eigenen Worte der Web-App auf Deutsch: Rahmen und Navigation, Hinweise und die Seite nach der
+ * Die eigenen Worte der Web-App auf Deutsch: Rahmen und Navigation, Hinweise, das Drumherum ihrer
+ * Screens (Leisten und Zustände; ihre Tabellen formulieren die Blöcke) und die Seite nach der
  * Abmeldung.
  */
 export const de = {
@@ -17,7 +18,7 @@ export const de = {
   "nav.fleet": "Engine-übergreifende Übersicht",
   "nav.engines": "Engines",
   "nav.boards": "Boards",
-  "nav.section.overview": "Übersicht",
+  "nav.section.processes": "Prozesse",
   "nav.section.incidents": "Incidents",
   "nav.section.jobs": "Jobs",
   "nav.boardsOnly": "nur Boards",
@@ -38,6 +39,14 @@ export const de = {
   "page.unreachable.title": "Pulse antwortet nicht",
   "page.unreachable.description":
     "Deine Sitzung konnte nicht gelesen werden. Versuche es gleich noch einmal.",
+
+  "screen.refresh": "Aktualisieren",
+  "screen.refreshing": "Wird aktualisiert…",
+  "screen.refreshFailed": "Die Ansicht konnte nicht aktualisiert werden",
+  "screen.refreshStale": "Du siehst den zuletzt geladenen Stand.",
+  "screen.productUnknown": "Die Engine hat nicht gesagt, was sie ist",
+  "screen.engine.loading": "Die Prozesse von {engine} werden geladen…",
+  "screen.engine.failed": "Die Prozesse von {engine} konnten nicht geladen werden",
 
   "start.unknownEngine.title": "Die Engine {engine} gibt es auf diesem Server nicht",
   "start.unknownEngine.description":

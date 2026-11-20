@@ -192,7 +192,8 @@ release.
   its engine tab's process list with the same table and its named id.
 - The Pulse MCP server: the cockpit's board route (`@miragon/pulse-engine-connector`) renders them
   with widget-shell's table (row activation, the copy keys, the inline fit), its copyable id and its
-  BPMN canvas.
+  BPMN canvas, and the server's web app its engine screen's process list with widget-shell's table,
+  its rows links to the process they open (`linkOf`), and its named id.
 
 ## Help and feedback
 

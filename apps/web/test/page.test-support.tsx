@@ -1,6 +1,7 @@
 import { act } from "@testing-library/react"
 import { vi } from "vitest"
 import type { ViewComponent, ViewMap } from "@miragon/pulse-widget-shell/widgets"
+import { WORLD_SCREENS } from "@miragon/pulse-screens/testing"
 import { startPage, type PageEnv } from "../src/start.js"
 
 /**
@@ -30,6 +31,23 @@ export const engineList = (
   result: { content: [{ type: "text", text: "{}" }], structuredContent },
 })
 
+/** The engine screen's feed, `engine_screen_processes_data`. */
+export const ENGINE_SCREEN_FEED = "engine_screen_processes_data"
+
+/**
+ * The engine screen of `engine` as its feed answers it: the kit world's screen (WORLD_SCREENS of
+ * @miragon/pulse-screens/testing) under the engine's name, with `webApp`.
+ */
+export const engineScreen = (
+  engine: unknown,
+  webApp: { url: string; vendor: string } | null = null,
+) => ({
+  result: {
+    content: [{ type: "text", text: "{}" }],
+    structuredContent: { ...WORLD_SCREENS.engine, engine, webApp },
+  },
+})
+
 export interface Server {
   session?: () => Response
   call?: (body: {
@@ -54,8 +72,13 @@ export function fakeFetch(server: Server) {
     if (path === "/app/api/session")
       return Promise.resolve(server.session?.() ?? Response.json(SESSION))
     if (path === "/app/api/call") {
-      const body = JSON.parse(bodyOf(init)) as { name: string }
-      const fallback = body.name === "engine_list_engines" ? engineList() : { result: viewResult }
+      const body = JSON.parse(bodyOf(init)) as { name: string; arguments?: { engine?: unknown } }
+      const fallback =
+        body.name === "engine_list_engines"
+          ? engineList()
+          : body.name === ENGINE_SCREEN_FEED
+            ? engineScreen(body.arguments?.engine)
+            : { result: viewResult }
       return Promise.resolve(server.call?.(body) ?? Response.json(fallback))
     }
     if (path === "/app/auth/logout") {

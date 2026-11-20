@@ -38,6 +38,18 @@ export interface ViewLocation {
    * goes there itself; where no view does, the page loads the entry anew. Returns the unsubscribe.
    */
   readonly subscribe: (go: (place: ViewPlace) => boolean) => () => void
+  /**
+   * Whether the page shows the place `args` names itself, with a screen of its own: a view that
+   * reaches it reports it as any other move (`report`) and renders nothing there, and never goes
+   * there itself on Back or Forward, so the page takes over. Without it the page shows none.
+   */
+  readonly claims?: (args: ViewPlace["args"]) => boolean
+  /**
+   * The page's name of a place it shows itself (`claims`), its navigation's word: a view's trail
+   * names a crumb that leads there by it, so the page calls one place one thing. Undefined, or
+   * without it, the view names the place itself.
+   */
+  readonly nameOf?: (args: ViewPlace["args"]) => string | undefined
 }
 
 /**

@@ -116,9 +116,13 @@ const APP_NAMES = APP_PACKAGES.map(escapeRegExp).join("|")
 
 /**
  * The web app (apps/web, `@miragon/pulse-web`): the page a Pulse server serves under /app, the MCP
- * views on a page of their own. What its src may import (web-is-a-page): its own modules, the
- * rendering libraries, pulse-ui by its root and its stylesheet, the view runtime's view half and
- * the engine module's views, each by its entry.
+ * views on a page of their own and its own screens (owner decision D10 of 2026-11-19). What its
+ * src may import (web-is-a-page): its own modules, the rendering libraries, pulse-ui by its root
+ * and its stylesheet, the view runtime's view half, the engine module's views, the building
+ * blocks its screens compose and the screens' format, whose JSON forms its screens name by type
+ * alone (web-names-screens-by-type), each by its entry. As an import reaches the blocks and the
+ * screens: resolved through the app's node_modules to the build (or the src of a package without
+ * one) or bare.
  */
 const WEB_SRC = "^apps/web/src/"
 const WEB_IMPORTS = [
@@ -128,6 +132,10 @@ const WEB_IMPORTS = [
   "^@miragon/pulse-ui(?:/theme[.]css)?$",
   "^@miragon/pulse-widget-shell/widgets$",
   "^@miragon/pulse-engine-connector/widgets$",
+  "(?:^|/)node_modules/@miragon/pulse-blocks/(?:dist|src)/index[.](?:js|d[.]ts|tsx?)$",
+  "^@miragon/pulse-blocks$",
+  "(?:^|/)node_modules/@miragon/pulse-screens/(?:dist|src)/index[.](?:js|d[.]ts|ts)$",
+  "^@miragon/pulse-screens$",
 ]
 
 /** The root of a workspace package: an app, a foundation package or a family's package. */
@@ -313,13 +321,16 @@ const BLOCKS_IMPORTS = [
 
 /**
  * Where a surface renders the blocks, their only shipped importers: the runtime view's webview
- * (a board's tiles in Pulse for VS Code and Pulse for Orca; its closed world holds it to the main
- * entry) and the engine connector's widgets (the cockpit's board route, which brings its own table,
- * id and diagram as the slots). Tests import them anywhere.
+ * (a board's tiles and the engine tab's process list in Pulse for VS Code and Pulse for Orca; its
+ * closed world holds it to the main entry), the engine connector's widgets (the cockpit's board
+ * route, which brings its own table, id and diagram as the slots) and the web app's src (its own
+ * screens, owner decision D10 of 2026-11-19, by the main entry: web-is-a-page). Tests import them
+ * anywhere.
  */
 const BLOCKS_RENDERERS = [
   `${RUNTIME_VIEW_TREE}src/webview/`,
   `${ENGINE_CONNECTOR_TREE}src/widgets/`,
+  WEB_SRC,
 ]
 
 /**
@@ -393,13 +404,14 @@ const SCREENS_BUILDER = [
  * Where a surface builds a shared screen's numbers and applies its rules, the only shipped
  * importers of the screens' builder: the runtime view's core (the engine panel of both editor
  * hosts) and the engine connector's data builders (src/data, where the screen feeds of the web app
- * build them). The format's readers are these and the building blocks (BLOCKS_SRC, held to the
+ * build them). The format's readers are these, the building blocks (BLOCKS_SRC, held to the
  * format's main entry by blocks-are-building-blocks), which render a screen's JSON form and apply
- * its rules in the browser (owner decision D10 of 2026-11-19). Tests import them anywhere. The web
- * app joins the format's readers through a rule change of its own.
+ * its rules in the browser (owner decision D10 of 2026-11-19), and the web app's src, which names
+ * a screen's JSON form by type alone (web-names-screens-by-type) and renders it with the blocks.
+ * Tests import them anywhere.
  */
 const SCREENS_BUILDERS = [`${RUNTIME_VIEW_TREE}src/core/`, `${ENGINE_CONNECTOR_TREE}src/data/`]
-const SCREENS_READERS = [...SCREENS_BUILDERS, BLOCKS_SRC]
+const SCREENS_READERS = [...SCREENS_BUILDERS, BLOCKS_SRC, WEB_SRC]
 
 /**
  * The screens package's tests that read the engine contract its builder builds on: its test tree
@@ -1294,11 +1306,11 @@ module.exports = {
         "engine panel both editor hosts open), the engine connector's data builders " +
         "(src/data, the screen feeds of the web app) and the building blocks " +
         "(packages/core/blocks/src, which render a screen's JSON form and filter a process list " +
-        "in the browser), and by tests anywhere. Not the runtime view's protocol or other " +
-        "layers, not the rest of the connector, no other package and no app until it renders a " +
-        "screen's JSON form itself (the web app), through a rule change of its own. A relative " +
-        "escape into packages/core/screens is a violation too. Its builder answers to " +
-        "screens-builder-consumers.",
+        "in the browser), the web app's src (apps/web/src, whose screens name a screen's JSON " +
+        "form by type alone, web-names-screens-by-type), and by tests anywhere. Not the runtime " +
+        "view's protocol or other layers, not the rest of the connector, no other package and no " +
+        "other app. A relative escape into packages/core/screens is a violation too. Its builder " +
+        "answers to screens-builder-consumers.",
       from: {
         pathNot: [
           ...SCREENS_READERS,
@@ -1361,11 +1373,12 @@ module.exports = {
       comment:
         "The building blocks (@miragon/pulse-blocks) may be imported only where a surface renders " +
         "them (BLOCKS_RENDERERS): the runtime view's webview (packages/core/runtime-view/src/" +
-        "webview, a board's tiles in Pulse for VS Code and Pulse for Orca) and the engine " +
-        "connector's widgets (src/widgets, the cockpit's board route), and by tests anywhere. " +
-        "Not the runtime view's other layers, not the rest of the connector (its data builders, " +
-        "tools, lib folders), no other package and no app until it renders them itself, through a " +
-        "rule change of its own. A relative escape into packages/core/blocks is a violation too.",
+        "webview, a board's tiles and the engine tab in Pulse for VS Code and Pulse for Orca), " +
+        "the engine connector's widgets (src/widgets, the cockpit's board route) and the web " +
+        "app's src (apps/web/src, its own screens), and by tests anywhere. Not the runtime view's " +
+        "other layers, not the rest of the connector (its data builders, tools, lib folders), no " +
+        "other package and no other app until it renders them itself, through a rule change of " +
+        "its own. A relative escape into packages/core/blocks is a violation too.",
       from: {
         pathNot: [
           ...BLOCKS_RENDERERS,
@@ -1683,15 +1696,33 @@ module.exports = {
         "The web app (apps/web) is the page of the MCP views a Pulse server serves under /app: " +
         "its src imports only its own modules, react, react-dom and lucide-react, " +
         "@miragon/pulse-ui by its root and its stylesheet @miragon/pulse-ui/theme.css, the view " +
-        "runtime's view half @miragon/pulse-widget-shell/widgets (mountPage, the page's client of " +
-        "the web app's API) and the engine module's views @miragon/pulse-engine-connector/widgets. " +
+        "runtime's view half @miragon/pulse-widget-shell/widgets (mountApp, the page's client of " +
+        "the web app's API), the engine module's views @miragon/pulse-engine-connector/widgets, " +
+        "the building blocks its screens compose (@miragon/pulse-blocks) and the screens' format " +
+        "(@miragon/pulse-screens, by type: web-names-screens-by-type), each by its main entry. " +
         "Nothing of a server (widget-shell's /server, a connector's root, the transport, zod, the " +
-        "MCP SDK), no MCP Apps runtime (the page is no chat), no ./testing entry, no Node " +
-        "built-in and no file of another package by path: the page reaches the engines through " +
-        "its server's call route alone. Its tests and the build's config (vite.config.ts) may " +
-        "import more.",
+        "MCP SDK), no MCP Apps runtime (the page is no chat), no screen's builder or engine " +
+        "contract (the server builds a screen, the page renders its JSON form), no ./testing " +
+        "entry, no Node built-in and no file of another package by path: the page reaches the " +
+        "engines through its server's call route alone. Its tests and the build's config " +
+        "(vite.config.ts) may import more.",
       from: { path: WEB_SRC, pathNot: SRC_TEST_CODE },
       to: { pathNot: WEB_IMPORTS },
+    },
+    {
+      name: "web-names-screens-by-type",
+      severity: "error",
+      comment:
+        "The web app's src names the screens' JSON forms (@miragon/pulse-screens) by type alone: " +
+        "a value of the format (ProcessFilter, FleetSums) reaches the page through the building " +
+        "blocks that apply it (useProcessList of @miragon/pulse-blocks), so the page keeps no " +
+        "rule of a screen of its own and the editors' engine tab and the page apply one. Use " +
+        "`import type`, or the block that applies the rule.",
+      from: { path: WEB_SRC, pathNot: SRC_TEST_CODE },
+      to: {
+        path: [`^${escapeRegExp(SCREENS.tree)}/`, ...npm(escapeRegExp(SCREENS.name))],
+        dependencyTypesNot: ["type-only"],
+      },
     },
     {
       name: "cli-family-core-only-in-named-layers",
