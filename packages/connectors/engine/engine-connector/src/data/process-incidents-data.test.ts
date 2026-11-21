@@ -8,9 +8,12 @@ import {
 } from "../tools/test-support/fake-engine.js"
 import { buildActivityIncidentsData } from "./process-incidents-data.js"
 import {
+  at,
+  atActivity,
   build,
   closeEnginesAfterEach,
   definitionRoutes,
+  diagram,
   engines,
   KEY,
   row,
@@ -103,7 +106,7 @@ describe("buildProcessIncidentsData: key-wide (#335 N60)", () => {
     ).rejects.toThrow(`No process definition with key "${KEY}" is deployed on this engine.`)
   })
 
-  it("reads each version with root incidents whole when the scan is capped, as the process screen does", async () => {
+  it("reads each version with root incidents by the process screen's rule when the scan is capped", async () => {
     // 263 open root incidents and 5 copies at a call activity; the 200-row scan holds only the
     // newest, none of oldTask's.
     const rows = (activityId: string, id: string, count: number, from: number) =>
@@ -127,24 +130,25 @@ describe("buildProcessIncidentsData: key-wide (#335 N60)", () => {
     const { data, requests } = await build({
       ...definitionRoutes(scan, 263),
       "GET /incident": (r: RecordedRequest) => ({
-        body: r.query.processDefinitionId ? (byVersion[r.query.processDefinitionId] ?? []) : scan,
+        body: r.query.processDefinitionId ? atActivity(byVersion, r.query) : scan,
       }),
+      [`GET /process-definition/${V1}/xml`]: diagram(
+        V1,
+        '<serviceTask id="assess"/><serviceTask id="oldTask"/>',
+      ),
+      [`GET /process-definition/${V2}/xml`]: diagram(
+        V2,
+        '<serviceTask id="assess" name="Assess creditworthiness"/><serviceTask id="sendPolicy" name="Send policy"/>',
+        '<callActivity id="callCheck"/>',
+      ),
       "GET /process-definition/statistics": {
         body: [stats(KEY, V1, 113), stats(KEY, V2, 150), stats("other", "other:1:x", 9)],
       },
       [`GET /process-definition/${V1}/statistics`]: {
-        body: [
-          { id: "assess", instances: 100 },
-          { id: "oldTask", instances: 13 },
-        ],
+        body: [at("assess", 100), at("oldTask", 13)],
       },
       [`GET /process-definition/${V2}/statistics`]: {
-        body: [
-          { id: "assess", instances: 120 },
-          { id: "sendPolicy", instances: 30 },
-          { id: "callCheck", instances: 5 },
-          { id: "idle", instances: 0 },
-        ],
+        body: [at("assess", 120), at("sendPolicy", 30), at("callCheck", 5), at("idle", 0)],
       },
     })
 
@@ -160,17 +164,17 @@ describe("buildProcessIncidentsData: key-wide (#335 N60)", () => {
     // never the oldest SCANNED timestamp passed off as the first.
     expect(data.activities.map((a) => a.firstSeen)).toEqual([null, null, null])
     expect(data.activities[2]).toMatchObject({ representativeMessage: null, latestIncident: null })
-    // Each version once, its jobs without retries from the same read ("Running" shares it).
+    // Each version once, its jobs without retries and every incident at an element from the same
+    // read ("Running" shares it), and the incidents read where copies may lie: v2's call activity.
     expect(queriesOf(requests, `/process-definition/${V1}/statistics`)).toEqual([
-      { failedJobs: "true" },
+      { failedJobs: "true", incidents: "true" },
     ])
     expect(queriesOf(requests, `/process-definition/${V2}/statistics`)).toHaveLength(1)
     expect(
       queriesOf(requests, "/incident")
-        .map((q) => q.processDefinitionId)
-        .filter((id) => id !== undefined)
-        .sort(),
-    ).toEqual([V1, V2])
+        .filter((q) => q.processDefinitionId !== undefined)
+        .map((q) => [q.processDefinitionId, q.activityId]),
+    ).toEqual([[V2, "callCheck"]])
     expect(queriesOf(requests, "/process-definition/statistics")).toEqual([
       { rootIncidents: "true" },
     ])

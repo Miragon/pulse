@@ -6,12 +6,14 @@
  * src/data.
  */
 
+import { expect } from "vitest"
 import type { Client } from "@miragon/pulse-c7-client"
+import { toEngineDate } from "@miragon/pulse-c7-core"
 import { BoardParser, type TileData } from "@miragon/pulse-board"
 import type { EngineBoard } from "../board-files.js"
 import { createEngineRegistry, resolveEngine } from "../lib/engine/resolve-engine.js"
 import { providerForEntry } from "../providers/index.js"
-import { readOf, WORLD, worldReply } from "../tools/test-support/engine-world.js"
+import { ENGINE_FAILURE, readOf, WORLD, worldReply } from "../tools/test-support/engine-world.js"
 import {
   clientFor,
   type FakeEngine,
@@ -134,10 +136,12 @@ const BOARD_PLACES: Record<string, (data: BoardStartData) => unknown> = {
   "POST /history/process-instance/count {processDefinitionKey,unfinished}": (
     data: BoardStartData,
   ) => listGroup(data)?.total,
-  // The diagram's badges: its counts per element, the incidents behind them, its XML.
-  [`GET /process-definition/${WORLD.latestDefinitionId}/statistics`]: (data: BoardStartData) =>
-    tileOf(data, "processDiagram")?.badges,
-  "GET /incident?firstResult&maxResults&processDefinitionId&sortBy&sortOrder": (
+  // The diagram's badges: its counts per element with every incident there, the incidents at its
+  // call activity behind them, its XML (which names the call activity).
+  [`GET /process-definition/${WORLD.latestDefinitionId}/statistics?incidents`]: (
+    data: BoardStartData,
+  ) => tileOf(data, "processDiagram")?.badges,
+  "GET /incident?activityId&firstResult&maxResults&processDefinitionId&sortBy&sortOrder": (
     data: BoardStartData,
   ) => tileOf(data, "processDiagram")?.badges,
   [`GET /process-definition/${WORLD.latestDefinitionId}/xml`]: (data: BoardStartData) =>
@@ -175,4 +179,51 @@ export function zerosOf(value: unknown, at = ""): string[] {
   if (value === 0) return /\.known$/.test(at) ? [] : [at]
   if (typeof value !== "object" || value === null) return []
   return Object.entries(value).flatMap(([key, inner]) => zerosOf(inner, `${at}.${key}`))
+}
+
+/** The read of every incident of a version, by id: c7-core's whole read. */
+const WHOLE_READ = "GET /incident?firstResult&maxResults&processDefinitionId&sortBy&sortOrder"
+
+/** v1's diagram, which the element statistics alone read (v1 holds a root incident), and its fallback. */
+export const V1_CALL_ACTIVITIES = {
+  [`GET /process-definition/${WORLD.instanceDefinitionId}/xml`]: WHOLE_READ,
+}
+
+/** Each build's own: when it read, the engine's address and the times the scan stamps now. */
+const OWN_PER_BUILD = new Set(["fetchedAt", "cockpitUrl", "firstSeen", "latestIncident"])
+
+/** An outcome's figures, without what each build has of its own. */
+function figuresOf(outcome: unknown): unknown {
+  return JSON.parse(
+    JSON.stringify(outcome, (key, value: unknown) => (OWN_PER_BUILD.has(key) ? undefined : value)),
+  )
+}
+
+/** Breaks each fallback read in turn: the build reads the one it names, with the same figures. */
+export async function expectFallbacks(
+  builder: BuildCase,
+  fallback: Readonly<Record<string, string>>,
+): Promise<void> {
+  const healthy = await build(builder)
+  expect([...healthy.reads]).toEqual(expect.arrayContaining(Object.keys(fallback)))
+  for (const [read, replacement] of Object.entries(fallback)) {
+    const broken = await build(builder, { read, reply: ENGINE_FAILURE })
+    expect([...broken.reads], read).toContain(replacement)
+    expect(figuresOf(broken.outcome), read).toEqual(figuresOf(healthy.outcome))
+  }
+}
+
+/** `count` open incidents at the world's activity of v1, all raised now, as a key's scan lists them. */
+export function incidentScan(count: number): unknown[] {
+  const now = toEngineDate(new Date())
+  return Array.from({ length: count }, (_, n) => ({
+    id: `inc-scan-${n}`,
+    processDefinitionId: WORLD.instanceDefinitionId,
+    processInstanceId: WORLD.instanceId,
+    activityId: WORLD.activityId,
+    incidentType: "failedJob",
+    incidentMessage: "card declined",
+    incidentTimestamp: now,
+    configuration: WORLD.jobId,
+  }))
 }

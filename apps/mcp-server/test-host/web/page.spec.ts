@@ -44,7 +44,7 @@ const WEB_BUILD = path.resolve(SERVER, "..", "web", "dist")
 const OVERVIEW_PAGE = `/app/engines/${HEALTHY_ENGINE}`
 const JOBS_PAGE = `/app/engines/${HEALTHY_ENGINE}/jobs`
 /** The chain engine's DSP-3001 (chain-engine.ts), which the page's instance screen reads whole. */
-const CHAIN_INSTANCE_PAGE = `/app/engines/${CHAIN_ENGINE}/instances/02884da0-e4fa-11f1-a98a-a2a764d20660`
+const CHAIN_INSTANCE_PAGE = `/app/engines/${CHAIN_ENGINE}/instances/111b98c3-e5ad-11f1-9d86-0a5453971648`
 
 /** The page's script's name in the build (`assets/…`), as the build's index.html loads it. */
 function pageScriptName(): string {

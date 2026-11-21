@@ -9,7 +9,9 @@ import { SCREEN_FLOOR_MS } from "./screens/screen-floor.js"
 
 /**
  * Versions read at once: a key with many versions never fans out in one burst. Each version's read
- * sends its statistics and its incidents' pages, so at most twice this many requests are in flight.
+ * sends its statistics, then where an element holds an incident its diagram (through the one XML
+ * cache, so once per caller) and the pages of its call activities' incidents, one after the other,
+ * so this many versions' requests are in flight, the call activities' up to 8 each.
  */
 const VERSION_READS_AT_ONCE = 4
 
@@ -17,10 +19,11 @@ const VERSION_READS_AT_ONCE = 4
 const VERSION_FLOOR_ENTRIES = 256
 
 /**
- * The floor under a version's element counts: they read the version's incidents whole, which loads
- * the engine's database as the shared process screen's read does (plan 3.2), so a caller's read of
- * the same version within SCREEN_FLOOR_MS (30 s) gets the counts read before, whichever view asked
- * ("Running" or the process route), and a Refresh within it reads nothing again. Kept per engine
+ * The floor under a version's element counts: they read the statistics with every incident and the
+ * incidents at the version's call activities whole, which loads the engine's database as the shared
+ * process screen's read does (plan 3.2), so a caller's read of the same version within
+ * SCREEN_FLOOR_MS (30 s) gets the counts read before, whichever view asked ("Running" or the
+ * process route), and a Refresh within it reads nothing again. Kept per engine
  * client and per CALLER (`createCallerCache`: a renewed token reads anew); a failed read is not kept.
  */
 const versionFloor = createCallerCache<readonly ElementStatisticsWithFailedJobs[]>({
@@ -45,12 +48,13 @@ export interface ElementCounts {
  * The counts on the diagrams of `versionIds`, summed per element (a multi-instance body on its
  * element), by the rule the shared process screen reads them with: each version's element
  * statistics (c7-core's `ElementStatisticsReader` over the server's wire, with each element's jobs
- * without retries from the same one statistics read), which reads the version's incidents whole to
- * tell the root incidents raised at an element from the copies a call activity holds of its called
- * instances' (`isRootIncident`), the named exception to "never a scan" (invariant 7), since the
- * read is whole and never a capped page. At most {@link VERSION_READS_AT_ONCE} versions at once,
- * each on the floor of 30 s per caller (`versionFloor`). Every version's read is primary: one left
- * out would undercount the key.
+ * without retries and every incident at an element from the same one statistics read), whose
+ * incidents are root incidents wherever no copy can lie, and which reads the incidents at the
+ * version's call activities whole to tell the root incidents raised there from the copies a call
+ * activity holds of its called instances' (`isRootIncident`), the named exception to "never a scan"
+ * (invariant 7), since the read is whole and never a capped page. At most
+ * {@link VERSION_READS_AT_ONCE} versions at once, each on the floor of 30 s per caller
+ * (`versionFloor`). Every version's read is primary: one left out would undercount the key.
  */
 export async function readElementCounts(
   client: Client,

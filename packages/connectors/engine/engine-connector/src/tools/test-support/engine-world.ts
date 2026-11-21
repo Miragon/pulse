@@ -23,8 +23,9 @@ export const WORLD = {
   copyIncidentId: "inc-copy",
 } as const
 
+/** The key's diagram, every version's: the world's activity and the call activity the caller waits at. */
 const WORLD_XML =
-  '<?xml version="1.0"?><definitions><process id="order"><serviceTask id="charge" name="Charge card"/></process></definitions>'
+  '<?xml version="1.0"?><definitions><process id="order"><serviceTask id="charge" name="Charge card"/><callActivity id="callOrder" calledElement="order"/></process></definitions>'
 
 const definition = (version: 1 | 2) => ({
   id: `order:${version}:d${version}`,

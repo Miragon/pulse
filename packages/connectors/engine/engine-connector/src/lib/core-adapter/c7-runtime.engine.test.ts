@@ -13,7 +13,9 @@
  * feed's builder over the seeded world, shows every tile read, with the numbers the kit's fake
  * world gives and its recording holds, and the cockpit's "With incident" chip of a process (the
  * instance list's POST count) counts what the board's counter of that process (the runtime's GET
- * count) counts.
+ * count) counts. The counts with the jobs without retries ("Running"), from one statistics read with
+ * `failedJobs` and `incidents`, are the contract's counts and the jobs the engine counts without
+ * `incidents`.
  *
  * `pnpm --fail-if-no-match --filter @miragon/pulse-engine-connector test:engines` (Docker); its
  * own container start, since no package shares a Node test helper with another.
@@ -51,7 +53,7 @@ import { buildBoardData } from "../../data/board-data.js"
 import { buildProcessInstancesData } from "../../data/cockpit-data.js"
 import { providerForEntry } from "../../providers/index.js"
 import { createEngineConnection } from "../engine/engine-connection.js"
-import { runtimeOf } from "../engine/engine-runtime.js"
+import { c7RuntimeOf, runtimeOf } from "../engine/engine-runtime.js"
 import {
   createEngineRegistry,
   type ResolvedEngine,
@@ -212,6 +214,17 @@ function boardEngineAt(url: string): (name: string) => ResolvedEngine {
   return (name) => resolveEngine(name, registry)
 }
 
+/** The jobs without retries per element that hold one, as `rows` count them. */
+function failedJobsOf(
+  rows: readonly { readonly element: string; readonly failedJobs: number }[],
+): Record<string, number> {
+  return Object.fromEntries(
+    rows
+      .filter(({ failedJobs }) => failedJobs > 0)
+      .map(({ element, failedJobs }) => [element, failedJobs]),
+  )
+}
+
 /** The seeded engine and the kit's harness over it. */
 interface Suite {
   readonly url: string
@@ -273,6 +286,40 @@ describe.skipIf(ENGINE_IMAGE.dialect !== "c7")(
       )
       expect(instances.withIncidentCount).toBeGreaterThan(0)
       expect(counter).toMatchObject({ total: { count: instances.withIncidentCount } })
+    })
+
+    test("statistics: the counts with the jobs without retries are the contract's counts, and the engine's jobs without incidents", async () => {
+      const { url, harness } = prepared()
+      const entry = { id: "conformance", baseUrl: url, flavor: ENGINE_FLAVOR }
+      const runtime = c7RuntimeOf(createEngineConnection(entry, { type: "none" }))
+      const byElement = <T extends { readonly elementId: string }>(rows: readonly T[]) =>
+        [...rows].sort((left, right) => left.elementId.localeCompare(right.elementId))
+      let failedJobs = 0
+      for (const id of Object.values(harness.world.definitionIds)) {
+        const [withJobs, counts, alone] = await Promise.all([
+          runtime.getElementStatisticsWithFailedJobs(id),
+          runtime.getElementStatistics(id),
+          rest(`${url}/process-definition/${id}/statistics?failedJobs=true`),
+        ])
+        const contract = withJobs.map(
+          ({ elementId, active, incidents, incidentsInCalledInstances }) => ({
+            elementId,
+            active,
+            incidents,
+            incidentsInCalledInstances,
+          }),
+        )
+        expect(byElement(contract), id).toEqual(byElement(counts))
+        const engineRows = (alone as { id: string; failedJobs: number }[]).map((row) => ({
+          element: row.id,
+          failedJobs: row.failedJobs,
+        }))
+        const read = withJobs.map((row) => ({ element: row.elementId, failedJobs: row.failedJobs }))
+        expect(failedJobsOf(read), id).toEqual(failedJobsOf(engineRows))
+        failedJobs += read.reduce((sum, row) => sum + row.failedJobs, 0)
+      }
+      // The world holds jobs without retries, so the case reads some.
+      expect(failedJobs).toBeGreaterThan(0)
     })
 
     test("bulk: a batch that cancels one instance reads as such, from the runtime, then the history", async () => {

@@ -135,8 +135,9 @@ function toActivities(
 
 /**
  * The open root incidents per activity: a complete scan already holds every incident of the key, so
- * its root incidents are exact; otherwise each version that holds a root incident is read whole by
- * the shared process screen's rule (`readElementCounts`).
+ * its root incidents are exact; otherwise each version that holds a root incident is read by the
+ * shared process screen's rule (`readElementCounts`: its statistics with every incident at an
+ * element, and the incidents at its call activities whole).
  */
 async function activityIncidentCounts(
   client: Client,

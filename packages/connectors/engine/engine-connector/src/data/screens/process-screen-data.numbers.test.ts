@@ -48,10 +48,31 @@ interface Recorded {
    */
   readonly calls: (answer: RecordedAnswer) => boolean
   readonly callsUnread: readonly string[]
+  /**
+   * The answers an engine still gives without the calls' answers: on Camunda 7 a version's element
+   * statistics then read every incident of the version, which the engine answers with the rows of
+   * its call activity's read, since pulse-dispatch's statistics count its incidents there alone.
+   */
+  readonly withoutCalls: (answers: readonly RecordedAnswer[]) => RecordedAnswer[]
 }
 
 /** A request for a version's element statistics, in either dialect. */
 const STATISTICS = /\/process-definitions?\/[^/]+\/statistics/
+
+const C7_CALLS = (answer: RecordedAnswer) =>
+  /\/process-definition\/pulse-dispatch:[^/]+\/xml$/.test(answer.path)
+
+/** The read of every incident of pulse-dispatch's version, answered as its call activity's read. */
+function everyDispatchIncident(answers: readonly RecordedAnswer[]): RecordedAnswer[] {
+  return answers.flatMap((answer) => {
+    const { activityId, ...query } = answer.query ?? {}
+    return answer.path === "/engine-rest/incident" &&
+      activityId !== undefined &&
+      query.processDefinitionId?.startsWith("pulse-dispatch:") === true
+      ? [{ ...answer, query }]
+      : []
+  })
+}
 
 /** Operaton, as recorded, at its REST root: its web app derived from it. */
 const RECORDED_C7: Recorded = {
@@ -62,8 +83,12 @@ const RECORDED_C7: Recorded = {
     vendor: "Operaton",
   }),
   versions: "/engine-rest/process-definition/statistics",
-  calls: (answer) => /\/process-definition\/pulse-dispatch:[^/]+\/xml$/.test(answer.path),
+  calls: C7_CALLS,
   callsUnread: ["diagram", "calledProcesses"],
+  withoutCalls: (answers) => {
+    const kept = answers.filter((answer) => !C7_CALLS(answer))
+    return [...kept, ...everyDispatchIncident(kept)]
+  },
 }
 
 /** A Camunda 8 cluster without security, as recorded: no web app without the profile's cockpitUrl. */
@@ -74,6 +99,7 @@ const RECORDED_C8: Recorded = {
   versions: "/v2/process-definitions/statistics/process-instances-by-version",
   calls: (answer) => JSON.stringify(answer.body ?? null).includes('"isLatestVersion":true'),
   callsUnread: ["calledProcesses"],
+  withoutCalls: (answers) => answers.filter((answer) => !RECORDED_C8.calls(answer)),
 }
 
 const engines: RecordedEngine[] = []
@@ -186,8 +212,7 @@ describe.each([
   })
 
   it("keeps a calling version without its call targets where the called processes fail", async () => {
-    const answers = recorded.screen.answers.filter((answer) => !recorded.calls(answer))
-    const { call } = await boot(recorded, answers)
+    const { call } = await boot(recorded, recorded.withoutCalls(recorded.screen.answers))
 
     const screen = feedPayload<ProcessScreenFeedData>(
       await call(ENGINE_SCREEN_PROCESS_DATA, argsOf(recorded, "callingProcess")),

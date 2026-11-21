@@ -991,11 +991,18 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      statistics, never a capped page or scan; a definition view of the cockpit spans every version
      of its key (`data/honest-numbers.test.ts`), the web app's process screen shows one version
      with every version's counts in its picker and the notice that older versions still run (D10).
-     Its counts per element read a version's incidents whole to tell the root incidents from their
-     copies (c7-core's `ElementStatisticsReader`), an exact read and the named exception to "never a
-     scan", never a capped page, as an activity's incident page at a call activity reads its
-     incidents whole to page its root incidents in memory (`readAllIncidents`, where the key's latest
-     diagram draws a call activity or cannot tell); the cockpit's process flow ("Running") and its
+     Its counts per element (c7-core's `ElementStatisticsReader`) take the element statistics with
+     every incident at an element as root incidents wherever no copy can lie, and read the incidents
+     at the version's call activities that hold one whole, sorted by id, to tell the root incidents
+     from their copies (the diagram's call activities kept per reader, its XML through the
+     runtime's diagram read, the server's one XML cache below; where they cannot be told, or one
+     read takes fewer requests and less than a page of rows beyond theirs, every incident of the
+     version), an exact read and the
+     named exception to "never a scan", never a capped page (its law:
+     `packages/connectors/c7/c7-core/src/runtime/element-statistics-reader.law.test.ts`), as an
+     activity's incident page at a call activity reads its incidents whole to page its root
+     incidents in memory (`readAllIncidents`, where the key's latest diagram draws a call activity
+     or cannot tell); the cockpit's process flow ("Running") and its
      process route, where its scan cannot hold every incident of the key, read each version's counts
      the same way (`data/element-counts.ts`, c7-core's reader with each element's jobs without
      retries from the same one statistics read, four versions at once, on a floor of 30 s per caller
@@ -1018,8 +1025,10 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      some hosts): a view names the version it draws (`diagramDefinitionId`) and `BpmnDiagram`
      reads the XML from the app-only `engine_bpmn_xml_data`. The ONE XML cache is
      `lib/bpmn/definition-xml.ts`, per engine and per caller: it reads Camunda 7 through the
-     engine's client (`fetchDefinitionXml`) and another dialect through its runtime's
-     `getDiagramXml` (`diagramXmlOf`, `lib/engine/diagram-xml.ts`, the dialect switch).
+     engine's client (`fetchDefinitionXml`), c7-core's runtime too (`diagramXml` of `C7Runtime.over`
+     in `runtimeOf`: a version's diagram, its calls, the call activities of its element statistics),
+     and another dialect through its runtime's `getDiagramXml` (`diagramXmlOf`,
+     `lib/engine/diagram-xml.ts`, the dialect switch).
    - The process flow's "Throughput" (`data/activity-throughput.ts`) reads the engine's history
      statistics, which load its database (measured 2026-11-08): a fixed 30-day window, cut to the
      shortest `historyTimeToLive` of a version that ran in it or could have, and said so (0 days:

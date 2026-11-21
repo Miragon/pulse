@@ -362,7 +362,11 @@ dialect it implements.
 
 Engine calls per port method (`inspect` counts as one): `describeEngine` 1–2,
 `listDefinitions`/`listVersions` 2 (the runtime's instances with an open incident, every
-page), `getElementStatistics` 2, `getCalledProcesses` 2 in parallel, `searchInstances` 2 per
+page), `getElementStatistics` 1 (the statistics with every incident at an element) and, where an
+element holds an incident, the version's diagram once per connection and every page of the
+incidents of each call activity that holds one (every incident of the version where that takes
+fewer requests and less than a page of rows beyond theirs, or its call activities cannot be
+told), `getCalledProcesses` 2 in parallel, `searchInstances` 2 per
 page (never per row; the flag 1 per 50 running rows; with an incident first the runtime's ids,
 then the history's page of them), `listVariableNames` 2 (the newest 50
 instances of the version, then the historic variable query without values

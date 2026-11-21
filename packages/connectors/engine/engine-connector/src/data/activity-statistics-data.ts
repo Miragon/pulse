@@ -40,8 +40,9 @@ function countsPerElement(elements: Map<string, ElementCounts>): Map<string, Cou
  * after a redeploy, so every version is read (#335 N60) and summed per element onto the latest
  * version's diagram; an element only an older version has says so (`inDiagram: false`). Each
  * version's counts are the shared process screen's (`readElementCounts`, one statistics read with
- * the jobs without retries and the version's incidents whole, four versions at once, on the floor of
- * 30 s per caller): the tokens without those a root incident holds, the root incidents raised there
+ * the jobs without retries and every incident at an element, and the incidents at its call
+ * activities whole, four versions at once, on the floor of 30 s per caller): the tokens without
+ * those a root incident holds, the root incidents raised there
  * and, apart, the incidents of the instances a call activity called, and its jobs without retries.
  */
 async function readRunning(

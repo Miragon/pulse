@@ -157,6 +157,89 @@ describe("C7Runtime", () => {
     expect(seen).toStrictEqual([])
   })
 
+  it("reads every diagram through the surface's diagramXml where it gives one", async () => {
+    const xml =
+      '<bpmn:process id="order"><bpmn:callActivity id="Call" calledElement="label" /></bpmn:process>'
+    const port = fakePort({
+      getActivityStatistics: () => [
+        { id: "Call", instances: 1, incidents: [{ incidentType: "failedJob", incidentCount: 1 }] },
+      ],
+      getIncidents: () => [
+        {
+          id: "i1",
+          incidentType: "failedJob",
+          activityId: "Call",
+          incidentTimestamp: "2026-11-21T12:00:00.000+0000",
+          rootCauseIncidentId: "i9",
+        },
+      ],
+      getProcessDefinitionStatistics: () => [
+        { definition: { id: "label:1:l", key: "label", version: 1 }, instances: 0 },
+      ],
+    })
+    const asked: string[] = []
+    const runtime = C7Runtime.over(port, {
+      failureOf: (error) => new RuntimeError("engineFailure", String(error)),
+      diagramXml: (id) => {
+        asked.push(id)
+        return Promise.resolve(xml)
+      },
+    })
+
+    expect(await runtime.getDiagramXml(DEFINITION)).toBe(xml)
+    expect(await runtime.getCalledProcesses(DEFINITION)).toStrictEqual([
+      {
+        elementId: "Call",
+        bpmnProcessId: "label",
+        definition: { id: "label:1:l", bpmnProcessId: "label", version: 1 },
+      },
+    ])
+    expect(await runtime.getElementStatistics(DEFINITION)).toStrictEqual([
+      { elementId: "Call", active: 1, incidents: 0, incidentsInCalledInstances: 1 },
+    ])
+    expect(asked).toEqual([DEFINITION, DEFINITION, DEFINITION])
+    expect(port.calls.map((call) => call.operationId)).not.toContain(
+      "getProcessDefinitionBpmn20Xml",
+    )
+  })
+
+  it("words a failure of the surface's diagramXml by its failureOf, and counts on without it", async () => {
+    const failed = new Error("the surface's read failed")
+    const seen: unknown[] = []
+    const port = fakePort({
+      getActivityStatistics: () => [
+        { id: "Task", instances: 2, incidents: [{ incidentType: "failedJob", incidentCount: 1 }] },
+      ],
+      getIncidents: () => [
+        {
+          id: "i1",
+          incidentType: "failedJob",
+          activityId: "Task",
+          incidentTimestamp: "2026-11-21T12:00:00.000+0000",
+        },
+      ],
+      getProcessDefinitionStatistics: () => [],
+    })
+    const runtime = C7Runtime.over(port, {
+      failureOf: (error) => {
+        seen.push(error)
+        return new RuntimeError("unreachable", "worded by the surface")
+      },
+      diagramXml: () => Promise.reject(failed),
+    })
+
+    await expect(runtime.getDiagramXml(DEFINITION)).rejects.toMatchObject({
+      failure: "unreachable",
+    })
+    await expect(runtime.getCalledProcesses(DEFINITION)).rejects.toMatchObject({
+      failure: "unreachable",
+    })
+    expect(await runtime.getElementStatistics(DEFINITION)).toStrictEqual([
+      { elementId: "Task", active: 1, incidents: 1, incidentsInCalledInstances: 0 },
+    ])
+    expect(seen).toStrictEqual([failed, failed])
+  })
+
   it("answers through the readers over the port", async () => {
     const { runtime } = runtimeOver({
       getTelemetryData: () => {

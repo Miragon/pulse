@@ -15,7 +15,7 @@ import type {
 import type { EnginePort } from "../port.js"
 import { instancesWithIncident, withIncidentByVersion } from "../with-incident.js"
 import { definitionRefOf } from "./definition-refs.js"
-import { readDefinitionStatistics, readDiagramXml } from "./definition-rows.js"
+import { type DiagramRead, diagramReadOf, readDefinitionStatistics } from "./definition-rows.js"
 
 /** A process by its latest version: the first of `versions` per key, newest first. */
 function summariesOf(versions: readonly VersionSummary[]): DefinitionSummary[] {
@@ -45,7 +45,10 @@ function summariesOf(versions: readonly VersionSummary[]): DefinitionSummary[] {
 
 /** Reads the processes of an engine over its port. */
 export class DefinitionReader {
-  constructor(private readonly port: EnginePort) {}
+  constructor(
+    private readonly port: EnginePort,
+    private readonly diagram: DiagramRead = diagramReadOf(port),
+  ) {}
 
   /** Every process by its latest version, with its instances over all versions. */
   async list(): Promise<DefinitionSummary[]> {
@@ -60,7 +63,7 @@ export class DefinitionReader {
 
   /** The BPMN XML of a version; undefined for a version the engine does not know. */
   diagramXml(definitionId: DefinitionId): Promise<string | undefined> {
-    return readDiagramXml(this.port, definitionId)
+    return this.diagram(definitionId)
   }
 
   /** The reference to every deployed version, by its id. */

@@ -13,8 +13,14 @@ import {
   type DefinitionId,
 } from "@miragon/pulse-engine-core"
 import type { EnginePort } from "../port.js"
+import { CALL_ACTIVITY_TAG } from "./call-activity-tags.js"
 import { definitionRefOf } from "./definition-refs.js"
-import { type DefinitionRow, readDefinitionStatistics, readDiagramXml } from "./definition-rows.js"
+import {
+  type DefinitionRow,
+  type DiagramRead,
+  diagramReadOf,
+  readDefinitionStatistics,
+} from "./definition-rows.js"
 
 type CalledElementBinding =
   | { readonly kind: "latest" | "deployment" }
@@ -27,7 +33,6 @@ interface CalledElement {
   readonly binding: CalledElementBinding
 }
 
-const CALL_ACTIVITY_TAG = /<(?:[\w-]+:)?callActivity\b(?:[^>"]|"[^"]*")*>/g
 const EXPRESSION = /[$#]\{/
 const WHOLE_NUMBER = /^\d+$/
 
@@ -82,12 +87,15 @@ function definitionStartedBy(
 
 /** Reads the processes a version calls over the engine's port. */
 export class CalledProcessReader {
-  constructor(private readonly port: EnginePort) {}
+  constructor(
+    private readonly port: EnginePort,
+    private readonly diagram: DiagramRead = diagramReadOf(port),
+  ) {}
 
   /** The calls of the version `definitionId`; none for a version the engine does not know. */
   async read(definitionId: DefinitionId): Promise<CalledProcess[]> {
     const [xml, statistics] = await Promise.all([
-      readDiagramXml(this.port, definitionId),
+      this.diagram(definitionId),
       readDefinitionStatistics(this.port),
     ])
     if (xml === undefined) return []

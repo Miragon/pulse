@@ -107,12 +107,20 @@ missing.
   engine-core's `ProcessRuntime` over your port, for a surface that implements that contract:
   `C7Runtime.over(port, { failureOf })` answers every one of them (it refuses no variable
   condition); a failure c7-core words itself is a `RuntimeError` and passes as it is, every other
-  error, your wire's, becomes the `RuntimeError` your `failureOf` words. It asks one reader per
+  error, your wire's, becomes the `RuntimeError` your `failureOf` words. Where your surface keeps
+  the diagrams it read, hand that read in as `diagramXml` (a version's XML, undefined for a version
+  the engine does not know): every read of a diagram goes through it (`getDiagramXml`, the calls of a
+  version, the call activities of its element statistics; the MCP server's one XML cache), else over
+  your port. It asks one reader per
   question: `EngineReader` (the product and version telemetry names, else the REST API's version),
   `DefinitionReader` (every process by its latest version, its versions newest first, each with its
   running instances and those "with incident", a version's BPMN XML), `ElementStatisticsReader` (per
   element of a version the waiting tokens, the incidents raised there and those of called
-  instances), `CalledProcessReader` (each call activity of a version with the version its binding
+  instances: the statistics with every incident at an element, root incidents wherever no copy can
+  lie, and the incidents at the version's call activities that hold one read whole, sorted by id,
+  to tell the root incidents from the copies Camunda 7 keeps there; the call activities from the
+  version's diagram, kept per reader; every incident of the version where they cannot be told or
+  one read takes fewer requests and less than a page of rows beyond theirs), `CalledProcessReader` (each call activity of a version with the version its binding
   starts), `InstanceSearch` (the history's instances newest first, paged by offset behind the
   contract's cursor, each flagged with "with incident", and their count; a variable condition's
   value as the engine reads it, every integer beyond 2^53 in it digit for digit; without an
@@ -251,8 +259,9 @@ files of the repository, not of the package:
 
 `C7_BOARD_ENGINE` is a board and a model: the text of a board file over one engine with every
 widget and a refused one, that engine's answers to the board's reads (`C7RecordedAnswer`: method,
-decoded path, query and JSON body, and the JSON answered), recorded once from the seeded world on
-Operaton 2.1.5, and the board they give in the JSON form of
+decoded path, query and JSON body, and the JSON answered), recorded from the seeded world on
+Operaton 2.1.5 (made anew on 2026-11-21, when the element statistics read the incidents at call
+activities alone), and the board they give in the JSON form of
 [`@miragon/pulse-board`](https://www.npmjs.com/package/@miragon/pulse-board) (`BoardData`). It
 ships here because this package makes the requests: the MCP server's engine connector and the
 editors' C7 adapter each serve the answers to their own wire on the transport's recorded engine
@@ -277,7 +286,8 @@ pulse-dispatch (`expected.callingProcess`); and the first page of every instance
 version 1 with the counts of each scope (`expected.instanceList`, `InstanceListData`). The editors'
 C7 adapter and the MCP server's SDK wire build each exactly. Its answers come from one run of their
 own, recorded by hand on 2026-11-20 as the board's, made anew with the process screens and the
-instance list: the world seeded
+instance list, and again on 2026-11-21, when the element statistics read the incidents at call
+activities alone: the world seeded
 with `seedC7World` into `operaton/operaton:2.1.5` at history level FULL, every screen built twice
 through a proxy in front of the engine that keeps each request with what the engine answers (the
 same answer both times but for the telemetry, which counts the engine's commands and keeps its

@@ -84,3 +84,30 @@ export async function build(routes: FakeRoutes) {
   })
   return { data, requests: engine.requests }
 }
+
+/** A version's element statistics row with every incident at its element, the copies too. */
+export const at = (id: string, instances: number, incidentCount = instances) => ({
+  id,
+  instances,
+  incidents: incidentCount > 0 ? [{ incidentType: "failedJob", incidentCount }] : [],
+})
+
+/** A version's diagram with the given elements, as the engine answers it. */
+export const diagram = (id: string, tasks: string, calls = "") => ({
+  body: {
+    id,
+    bpmn20Xml: `<definitions><process id="${KEY}">${tasks}${calls}</process></definitions>`,
+  },
+})
+
+/** A version's incidents the query asks for: at its activity where it names one. */
+export function atActivity(
+  byVersion: Readonly<Record<string, readonly unknown[]>>,
+  query: Readonly<Record<string, string>>,
+): unknown[] {
+  return (byVersion[query.processDefinitionId ?? ""] ?? []).filter(
+    (incident) =>
+      query.activityId === undefined ||
+      (incident as { activityId: string }).activityId === query.activityId,
+  )
+}

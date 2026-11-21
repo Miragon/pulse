@@ -1,7 +1,13 @@
 # UI foundation and shared building blocks
 
 - Status: accepted
-- Last reviewed: 2026-11-21 (executed, D2's amendment for the chat: the MCP server's cockpit, in the
+- Last reviewed: 2026-11-21, later the same day (executed, D2's point 1 per element as planned:
+  c7-core's element statistics take the statistics' incident counts as root incidents wherever no
+  copy can lie and read the incidents of a version's call activities alone whole, where copies lie,
+  sorted by id, every incident of the version only where its call activities cannot be told or one
+  read takes fewer requests and less than a page of rows beyond theirs; the same counts, held by a
+  law; on the MCP server the diagram from its one XML cache; c7-core's recorded screens and board
+  made anew); 2026-11-21 (executed, D2's amendment for the chat: the MCP server's cockpit, in the
   chat and in the operations views the web app embeds, counts open root incidents, the statistics
   with `rootIncidents=true` per process and a version's incidents read whole per element as the
   shared process screen reads them, a copy at a call activity no count and no row of a process, an
@@ -182,9 +188,11 @@ each surface keeps its screens and the web app's are its own.
   holds now, so a caller that waits on a failed called instance counts, and "With incident 9" may
   stand beside "Incidents 2"; a legend and the glossary say why, in English and German.
   1. **Read whole.** Per process from the statistics with `rootIncidents=true`, summed over its
-     versions, an exact statistic. Per element from every incident of one version (later from those
-     at call activities alone, where copies lie), an exception to "never from a scan" recorded here,
-     since the read is whole and never a capped page. In the contract a count of open root incidents
+     versions, an exact statistic. Per element from the element statistics, whose incidents are
+     root incidents wherever no copy can lie, and from every incident at a version's call
+     activities, where copies lie (since 2026-11-21; before, from every incident of one version), an
+     exception to "never from a scan" recorded here, since the read is whole and never a capped
+     page. In the contract a count of open root incidents
      per process and version enters by the admission rule, with a law and a saboteur; Camunda 8
      answers it from its cluster's incidents, which it never copies.
   2. **The verdict follows** (`engineVerdict`: `engine_status`, `pulse status`, the cockpit's health
@@ -676,4 +684,6 @@ as a pair feature. 2026-11-20: the owner answered the plan's open questions: var
 screen as a pair, "new in 24 h" goes with the chat's step, the verdict counts root incidents with the
 same thresholds in a step of its own, an inbox across engines is decided after the chat's step, and
 the webview's script may grow to 500,000 B gzip. 2026-11-21: the chat and the operations views the
-web app embeds count open root incidents (D2's point 4), "new in 24 h" gone.
+web app embeds count open root incidents (D2's point 4), "new in 24 h" gone. Later that day, after a
+measurement on the playground, c7-core's element statistics read the incidents of a version's call
+activities alone (D2's point 1), with the same counts.

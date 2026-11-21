@@ -9,7 +9,9 @@
  * `rootIncidents=true`, a key's versions and counts, its incident scan, a version's jobs without
  * retries): those answers are this world's as the engine gives them, derived below from the
  * recorded answers (`COCKPIT_ANSWERS`: the root incidents and failed jobs from the recorded
- * incidents by c7-core's rule), and the engine answers no request beside them.
+ * incidents by c7-core's rule, and from the incidents a version's recorded statistics count at an
+ * element whose incidents no screen reads, since it is no call activity), and the engine answers no
+ * request beside them.
  */
 
 import { afterEach, describe, expect, it } from "vitest"
@@ -68,19 +70,30 @@ function answerAt(path: string, where: Record<string, string> = {}): unknown {
 /** Every version the engine deploys, as its statistics list them: three processes, four versions. */
 const STATISTICS = answerAt(`${ROOT}/process-definition/statistics`) as RecordedStatistics[]
 
-/** A version's open incidents, as the recording read them whole for its process screen. */
-const incidentsOf = (definitionId: string) =>
-  answerAt(`${ROOT}/incident`, { processDefinitionId: definitionId }) as unknown[]
-
 interface RecordedIncident {
   readonly id: string
   readonly processDefinitionId: string
+  readonly processInstanceId?: string
   readonly activityId: string
   readonly incidentType: string
+  readonly incidentTimestamp?: string
   readonly rootCauseIncidentId?: string | null
 }
 
-/** Every open incident the recording read (by version and by instance), once each. */
+interface RecordedElement {
+  readonly id: string
+  readonly incidents: ReadonlyArray<{
+    readonly incidentType: string
+    readonly incidentCount: number
+  }>
+}
+
+interface RecordedInstance {
+  readonly id: string
+  readonly definitionId: string
+}
+
+/** Every open incident the recording read (at a call activity, by instance), once each. */
 const RECORDED_INCIDENTS: readonly RecordedIncident[] = [
   ...new Map(
     RECORDED.answers
@@ -90,18 +103,65 @@ const RECORDED_INCIDENTS: readonly RecordedIncident[] = [
   ).values(),
 ]
 
+/** The running instances with an open incident, as the runtime lists them. */
+const WITH_INCIDENT = answerAt(`${ROOT}/process-instance`, {
+  withIncident: "true",
+  sortBy: "instanceId",
+}) as RecordedInstance[]
+
+/** A version's element statistics with its incidents, as its process screen read them; none unread. */
+const elementsOf = (definitionId: string): RecordedElement[] =>
+  RECORDED.answers.some(
+    (answer) =>
+      answer.path === `${ROOT}/process-definition/${definitionId}/statistics` &&
+      answer.query?.incidents === "true",
+  )
+    ? (answerAt(`${ROOT}/process-definition/${definitionId}/statistics`, {
+        incidents: "true",
+      }) as RecordedElement[])
+    : []
+
 /**
- * A version's open root incidents, as the engine counts them with `rootIncidents=true`: the
- * recorded incidents that name themselves their root (c7-core's rule, `isRootIncident`), so a
- * change of the recording reaches the cockpit's answers and the screens alike. pulse-dispatch holds
- * the copy of pulse-label's at its call activity, which the engine does not count as a root.
+ * A version's open incidents as the engine lists them: each the recording read, and for every
+ * further incident its statistics count at an element (one that is no call activity, whose
+ * incidents no screen reads, since all of them are root incidents), a root incident of its own
+ * there, held by the version's instance with an incident.
+ */
+function incidentsOf(definitionId: string): RecordedIncident[] {
+  const read = RECORDED_INCIDENTS.filter((i) => i.processDefinitionId === definitionId)
+  const holder = WITH_INCIDENT.find((instance) => instance.definitionId === definitionId)?.id
+  const further = elementsOf(definitionId).flatMap((element) =>
+    element.incidents.flatMap(({ incidentType, incidentCount }) => {
+      const known = read.filter(
+        (i) => i.activityId === element.id && i.incidentType === incidentType,
+      ).length
+      return Array.from({ length: Math.max(0, incidentCount - known) }, (_, at) => {
+        const id = `${definitionId}:${element.id}:${String(at)}`
+        return {
+          id,
+          processDefinitionId: definitionId,
+          ...(holder === undefined ? {} : { processInstanceId: holder }),
+          activityId: element.id,
+          incidentType,
+          incidentTimestamp: RECORDED.asOf.replace("Z", "+0000"),
+          rootCauseIncidentId: id,
+        }
+      })
+    }),
+  )
+  return [...read, ...further]
+}
+
+/**
+ * A version's open root incidents, as the engine counts them with `rootIncidents=true`: its
+ * incidents that name themselves their root (c7-core's rule, `isRootIncident`), so a change of the
+ * recording reaches the cockpit's answers and the screens alike. pulse-dispatch holds the copy of
+ * pulse-label's at its call activity, which the engine does not count as a root.
  */
 const rootIncidentsIn = (definitionId: string, activityId?: string) =>
-  RECORDED_INCIDENTS.filter(
+  incidentsOf(definitionId).filter(
     (incident) =>
-      incident.processDefinitionId === definitionId &&
-      (activityId === undefined || incident.activityId === activityId) &&
-      isRootIncident(incident),
+      (activityId === undefined || incident.activityId === activityId) && isRootIncident(incident),
   )
 
 /** A version's jobs without retries (at an element): its root incidents of failed jobs. */
@@ -175,10 +235,11 @@ function keyAnswers(key: string): RecordedAnswer[] {
     ...versions.map((version) =>
       get(
         `/process-definition/${version.id}/statistics`,
-        { failedJobs: "true" },
-        (
-          answerAt(`${ROOT}/process-definition/${version.id}/statistics`) as Array<{ id: string }>
-        ).map((row) => ({ ...row, failedJobs: failedJobsOf(version.id, row.id) })),
+        { failedJobs: "true", incidents: "true" },
+        elementsOf(version.id).map((row) => ({
+          ...row,
+          failedJobs: failedJobsOf(version.id, row.id),
+        })),
       ),
     ),
   ]
