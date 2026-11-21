@@ -10,12 +10,14 @@ import type { BoardData } from "@miragon/pulse-board"
 import { BoardFigures } from "@miragon/pulse-board/testing"
 import type {
   EngineScreenData,
+  FindScreenData,
   InstanceListData,
   InstanceScreenData,
   ProcessScreenData,
 } from "@miragon/pulse-screens"
 import {
   EngineScreen,
+  Finder,
   InstanceList,
   InstanceScreen,
   ProcessScreen,
@@ -127,6 +129,31 @@ describe.skipIf(!RUNS_ON_CAMUNDA_7)(`the C7 adapter against ${ENGINE_IMAGE}`, ()
       const recorded = C7_SCREEN_ENGINE.expected[name] as InstanceScreenData
       expect(figures).toEqual(ScreenFigures.instance(WORLD_SCREENS[name]))
       expect(figures).toEqual(ScreenFigures.instance(recorded))
+    }
+  })
+
+  test("screens: the finder finds ORD-1003 and the instance DSP-3001 called as on the kit's world", async () => {
+    if (harness === undefined) {
+      throw new Error("the engine did not start")
+    }
+    const { runtime, world } = harness
+    const find = async (text: string): Promise<FindScreenData> =>
+      ScreenJson.find(await Finder.read(C7_SCREEN_ENGINE.engine, text, runtime, () => new Date()))
+    const dispatch = await InstanceScreen.read(
+      C7_SCREEN_ENGINE.engine,
+      InstanceId(world.instanceIds["DSP-3001"]),
+      runtime,
+      () => new Date(),
+    )
+    const [called] = (dispatch === undefined ? [] : ScreenJson.instance(dispatch).calls).flatMap(
+      (link) => (link.kind === "instances" ? link.instances : []),
+    )
+    const screens = { find: await find("ORD-1003"), findById: await find(called?.id ?? "none") }
+
+    for (const name of ["find", "findById"] as const) {
+      const figures = ScreenFigures.find(screens[name])
+      expect(figures).toEqual(ScreenFigures.find(WORLD_SCREENS[name]))
+      expect(figures).toEqual(ScreenFigures.find(C7_SCREEN_ENGINE.expected[name] as FindScreenData))
     }
   })
 

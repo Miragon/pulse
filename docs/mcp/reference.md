@@ -101,7 +101,7 @@ The most common variables. See [Operations](operations.md#environment-variables)
 ### Multi-engine
 
 The server can route to several engines: CIB seven, Operaton and Camunda 7 mixed in one fleet,
-Camunda 8 clusters on boards beside them. Describe them in one profile file, the format of the CLI
+Camunda 8 clusters read-only beside them. Describe them in one profile file, the format of the CLI
 and the editors (`@miragon/pulse-profile`), inline in `ENGINES_JSON` or as a path in `ENGINES_FILE`
 (which wins). It replaces the single-engine variables, which the boot then names as ignored:
 
@@ -127,8 +127,8 @@ and the editors (`@miragon/pulse-profile`), inline in `ENGINES_JSON` or as a pat
 A profile's name is its engine id: the per-call `engine` selector, an enum of the engines a tool
 serves, and the name the cockpit shows. `url` is the REST root; `flavor` (`cibseven` | `operaton` |
 `camunda7`, default `camunda7`) selects the cockpit-link routes and display name, and `camunda8`
-names a cluster the server reads on boards ([Camunda 8](camunda8.md)). `cockpitUrl`, `timeout` (it
-beats `ENGINE_REQUEST_TIMEOUT_MS`) and `readOnly` (no tool writes to that engine) are optional. Each
+names a read-only cluster ([Camunda 8](camunda8.md)). `cockpitUrl`, `timeout` (it beats
+`ENGINE_REQUEST_TIMEOUT_MS`) and `readOnly` (no tool writes to that engine) are optional. Each
 profile signs in on its own (`none`, `basic`, `bearer`, `passthrough`; a cluster `none`, `basic` or
 `clientCredentials`), and a secret never sits in the file: `auth.passwordEnv`, `tokenEnv` or
 `clientSecretEnv` names the variable that holds it, and the server reads only names that start with

@@ -5,13 +5,13 @@ import {
   isPermanentError,
   parseBpmnNames,
   useToolQuery,
-  ViewDataState,
   WidgetShell,
 } from "@miragon/pulse-widget-shell/widgets"
 import { useT } from "../../messages/index.js"
 import type { Navigate } from "../../router/page-link.js"
 import { BPMN_XML_FEED, diagramKey } from "../instance/instance-feed.js"
 import { READ_AGAIN_AFTER_MS, useReadOnReturn } from "../read-on-return.js"
+import { ScreenState } from "../cluster-problem.js"
 import { RefreshNotice } from "../screen-chrome.js"
 import { usePageSlots } from "../slots.js"
 import { useWide } from "../use-wide.js"
@@ -120,6 +120,7 @@ export function ProcessScreen(props: ProcessScreenProps) {
               error={read.refreshError}
               onRetry={read.refetch}
               permanent={isScreenRefusal}
+              engine={engine}
             />
             {data !== undefined && (
               <div ref={setStrips} data-slot="process-strips">
@@ -404,7 +405,8 @@ function ProcessState({
     return <UnknownProcess engine={engine} process={process} navigate={navigate} />
   }
   return (
-    <ViewDataState
+    <ScreenState
+      engine={engine}
       loading={error === null}
       error={error}
       onRetry={onRetry}

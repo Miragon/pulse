@@ -44,6 +44,16 @@ export interface C7ExpectedScreens {
    * counts of each scope, `InstanceListData`.
    */
   readonly instanceList: unknown
+  /**
+   * What the finder finds by the business key ORD-1003, `FindScreenData`: that ended instance of
+   * pulse-order's version 1 alone.
+   */
+  readonly find: unknown
+  /**
+   * What the finder finds by the id of the instance DSP-3001 called: that instance alone, which
+   * runs with its incident and has no business key.
+   */
+  readonly findById: unknown
 }
 
 /** The recorded screen engine: its engine's answers and the screens they give. */

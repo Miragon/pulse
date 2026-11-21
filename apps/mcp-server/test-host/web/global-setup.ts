@@ -12,6 +12,7 @@ import { createApp } from "../../src/app.js"
 import { startC8HostEngine } from "../c8-engine.js"
 import {
   BROKEN_ENGINE,
+  C8_CONTROL_ENV,
   C8_ENGINE,
   CHAIN_ENGINE,
   C8_OPERATE,
@@ -163,12 +164,15 @@ async function startControl(idps: Record<Deployment, FakeOidc>) {
  * http. The workers find the deployments in `WEB_SIM_URL`, `WEB_SIM_SHORT_URL` and
  * `WEB_SIM_ADFS_URL` (the generic OpenID Connect provider at a fake ADFS) and `WEB_SIM_ENTRA_URL`
  * (the Entra ID provider at a fake tenant), the control
- * of their identity providers in `WEB_SIM_CONTROL_URL` and the stub engine's in
- * `HOST_SIM_ENGINE_URL` (all inherited from this process). The `camunda8` deployment, in
- * `WEB_SIM_CAMUNDA8_URL`, reads test:host's loopback Camunda 8 cluster (c8-engine.ts) beside the
- * stub engine: one profile a board names, one no board names. The `refusedC8` deployment, in
+ * of their identity providers in `WEB_SIM_CONTROL_URL`, the stub engine's in `HOST_SIM_ENGINE_URL`
+ * and the Camunda 8 cluster's in `HOST_SIM_C8_ENGINE_URL` (all inherited from this process). The
+ * `camunda8` deployment, in `WEB_SIM_CAMUNDA8_URL`, reads test:host's loopback Camunda 8 cluster
+ * (c8-engine.ts) beside the stub engine: one profile a board names, one no board names, each shown
+ * whole on the page's screens. The `refusedC8` deployment, in
  * `WEB_SIM_REFUSED_C8_URL`, refuses a Camunda 8 profile beside the stub. The `chain` deployment, in
- * `WEB_SIM_CHAIN_URL`, reads the stub's chain engine alone (the instance screen's journey).
+ * `WEB_SIM_CHAIN_URL`, reads the stub's chain engine alone (the instance screen's journey). The
+ * `search` deployment, in `WEB_SIM_SEARCH_URL`, reads the stub and the Camunda 8 cluster beside a
+ * refused Camunda 8 profile (the search across engines).
  */
 export default async function globalSetup(): Promise<() => Promise<void>> {
   const engine = await startStubEngine()
@@ -199,9 +203,9 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     { [HEALTHY_ENGINE]: { url: engine.baseUrl } },
     { idp: { flavor: "entra", accessTokenSeconds: SHORT_TOKEN_SECONDS } },
   )
-  // Camunda 8 beside the stub: a board page over both, and the cockpit's pages on a Camunda 8
-  // engine, which the server reads on boards only; the one no board names is the default, which a
-  // page without `engine` goes to.
+  // Camunda 8 beside the stub: a board page over both, and the page's screens on a Camunda 8 engine,
+  // which the page reads whole (the chat on boards only); the one no board names is the default,
+  // which a page without `engine` goes to.
   const c8 = await startC8HostEngine()
   const camunda8 = await deploy(
     {
@@ -225,6 +229,16 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   })
   // The instance screen's journey: the stub's chain engine alone, one engine and no board.
   const chain = await deploy({ [CHAIN_ENGINE]: { url: engine.chainBaseUrl } })
+  // The search across engines: the stub engine and the Camunda 8 cluster, each holding an instance
+  // of order ORD-7003 (an ended invoice, a running order), beside a refused Camunda 8 profile.
+  const search = await deploy(
+    {
+      [HEALTHY_ENGINE]: { url: engine.baseUrl },
+      [C8_ENGINE]: c8.profile("ENGINE_SECRET_WEB_SIM_C8"),
+      [REFUSED_C8_ENGINE]: c8.profile("ENGINE_SECRET_WEB_SIM_NEVER_SET"),
+    },
+    { env: { ENGINE_SECRET_WEB_SIM_C8: "web-sim-client-secret" } },
+  )
   const control = await startControl({
     main: main.idp,
     short: short.idp,
@@ -233,6 +247,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     camunda8: camunda8.idp,
     refusedC8: refusedC8.idp,
     chain: chain.idp,
+    search: search.idp,
   })
   process.env[DEPLOYMENTS.main] = main.origin
   process.env[DEPLOYMENTS.short] = short.origin
@@ -241,8 +256,10 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   process.env[DEPLOYMENTS.camunda8] = camunda8.origin
   process.env[DEPLOYMENTS.refusedC8] = refusedC8.origin
   process.env[DEPLOYMENTS.chain] = chain.origin
+  process.env[DEPLOYMENTS.search] = search.origin
   process.env[CONTROL_ENV] = control.url
   process.env[ENGINE_CONTROL_ENV] = engine.controlUrl
+  process.env[C8_CONTROL_ENV] = c8.origin
 
   return async () => {
     await control.close()
@@ -253,6 +270,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     await camunda8.close()
     await refusedC8.close()
     await chain.close()
+    await search.close()
     await engine.close()
     await c8.close()
   }

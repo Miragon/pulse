@@ -23,6 +23,13 @@ export type {
   BoardTableSlot,
   BoardTarget,
 } from "./board/slots.js"
+// What the search finds across engines, over the find screen's JSON form, and the notice of an
+// engine whose history misses running instances.
+export {
+  FindHistoryNotice,
+  type FindHistoryNoticeProps,
+} from "./screens/find/find-history-notice.js"
+export { FindResults, type FindResultsProps, type FoundRow } from "./screens/find/find-results.js"
 // The screens' blocks over the JSON forms of @miragon/pulse-screens: an engine's process list.
 export { ListFilterBar, type ListFilterBarProps } from "./screens/list-filter-bar.js"
 export { useProcessList } from "./screens/process-list.js"

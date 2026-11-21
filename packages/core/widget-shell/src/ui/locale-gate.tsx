@@ -1,11 +1,11 @@
 import { useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from "react"
 import { LocaleProvider, type UiMessagesOverride } from "@miragon/pulse-ui"
-import { ERROR_LABELS } from "./error-labels.js"
 import { formatLocaleOf, isFormatLocale, usePublishedFormatLocale } from "./format-locale.js"
 import { resolveLanguage } from "./host-context.js"
+import type { PageHints } from "./page-hints.js"
 import { useShellHost } from "./shell-host.js"
 import { useApplyTheme } from "./use-apply-theme.js"
-import { useHostFollowUp } from "./view-host.js"
+import { useErrorWords } from "./view-host.js"
 
 /** Painting without host context is the flash the gate prevents, so the host gets a generous bound. */
 const HOST_WAIT_MS = 5_000
@@ -22,16 +22,12 @@ function useElapsed(ms: number): boolean {
 
 /**
  * The kit's words on a page that posts to no chat: its load failure's line says what to do there,
- * in `describeError`'s page words for a failure it cannot name, as the view frame's do. In a chat,
- * none: the kit's own line points there.
+ * in the page's words for a failure `describeError` cannot name (`PAGE_HINTS`, which its host
+ * brings), as the view frame's do. In a chat, none: the kit's own line points there.
  */
-function pageWords(language: string, chat: boolean): UiMessagesOverride | undefined {
-  if (chat) return undefined
-  const hint = ERROR_LABELS[resolveLanguage(language)].unknown.hint({
-    source: "unknown",
-    page: true,
-  })
-  return { common: { loadFailedHint: hint } }
+function pageWords(language: string, hints: PageHints | undefined): UiMessagesOverride | undefined {
+  const hint = hints?.[resolveLanguage(language)].unknown
+  return hint === undefined ? undefined : { common: { loadFailedHint: hint } }
 }
 
 /**
@@ -57,8 +53,8 @@ export function LocaleGate({ children }: { children: ReactNode }) {
   }, [target])
   const published = usePublishedFormatLocale(target)
   const language = published?.language ?? target.language
-  const chat = useHostFollowUp() === "chat"
-  const uiMessages = useMemo(() => pageWords(language, chat), [language, chat])
+  const { pageHints } = useErrorWords()
+  const uiMessages = useMemo(() => pageWords(language, pageHints), [language, pageHints])
 
   const [ready, setReady] = useState(false)
   if (!ready && (host.connected || hostWaitedOut) && isFormatLocale(published, target)) {

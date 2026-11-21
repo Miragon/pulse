@@ -15,7 +15,7 @@ flowchart LR
 
   Server --> EngineModule
 
-  EngineModule -->|REST| Engine[(Camunda 7 / CIB seven<br/>Camunda 8 on boards)]
+  EngineModule -->|REST| Engine[(Camunda 7 / CIB seven<br/>Camunda 8, read-only)]
 
   Server -. serves .-> Widgets[Widget bundle<br/>React + Tailwind]
 ```

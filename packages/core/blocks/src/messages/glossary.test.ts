@@ -10,6 +10,8 @@ import {
 } from "@miragon/pulse-ui/testing"
 import { describe, expect, it } from "vitest"
 import { de } from "./de.js"
+import { findDe } from "./find-de.js"
+import { findEn } from "./find-en.js"
 import { historyDe } from "./history-de.js"
 import { historyEn } from "./history-en.js"
 import { en, isOne } from "./en.js"
@@ -54,6 +56,8 @@ const LANGUAGES = [
   ["a process's English", processEn, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
   ["the history notice's German", historyDe, [...PRODUCT_GLOSSARY.de, ...DE_RULES]],
   ["the history notice's English", historyEn, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
+  ["the search's German", findDe, [...PRODUCT_GLOSSARY.de, ...DE_RULES]],
+  ["the search's English", findEn, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
 ] as const
 
 describe.each(LANGUAGES)("the glossary holds in %s", (_language, catalog, rules) => {
@@ -226,5 +230,13 @@ describe("the history notice's words", () => {
     expect(catalogTextFindings(historyEn, { language: "en" })).toEqual([])
     expect(catalogTextFindings(historyDe, { language: "de" })).toEqual([])
     expect(Object.keys(historyDe).sort()).toEqual(Object.keys(historyEn).sort())
+  })
+})
+
+describe("the search's words", () => {
+  it("follow the voice rules in both languages and have a German entry for every English key", () => {
+    expect(catalogTextFindings(findEn, { language: "en" })).toEqual([])
+    expect(catalogTextFindings(findDe, { language: "de" })).toEqual([])
+    expect(Object.keys(findDe).sort()).toEqual(Object.keys(findEn).sort())
   })
 })

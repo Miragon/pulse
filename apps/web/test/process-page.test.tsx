@@ -27,6 +27,7 @@ const LIST = {
     { id: "prod-a", environment: "prod", dialect: "c7" },
     { id: "c8-dev", environment: "dev", dialect: "c8" },
   ],
+  refused: [{ id: "legacy", environment: "dev", reason: "no url" }],
 }
 
 /** The cockpit's view as the page starts it: its arguments in its heading. */
@@ -161,11 +162,21 @@ describe("the process screen on the page", () => {
   })
 
   it("leaves a process of an engine its screens do not serve to the cockpit", async () => {
-    const env = await start("/app/engines/c8-dev/processes/pulse-order", server(), VIEWS)
+    const env = await start("/app/engines/legacy/processes/pulse-order", server(), VIEWS)
     expect(
-      await screen.findByRole("heading", { level: 1, name: "cockpit process-detail c8-dev" }),
+      await screen.findByRole("heading", { level: 1, name: "cockpit process-detail legacy" }),
     ).toBeTruthy()
     expect(frame().hasAttribute("data-fill")).toBe(false)
     expect(callsOf(env.fetch, PROCESS_SCREEN_FEED)).toEqual([])
+  })
+
+  it("shows a Camunda 8 engine's process on its screen, never the cockpit's", async () => {
+    const env = await start("/app/engines/c8-dev/processes/pulse-order", server(), VIEWS)
+    await waitFor(() => {
+      expect(callsOf(env.fetch, PROCESS_SCREEN_FEED)).toEqual([
+        { engine: "c8-dev", process: "pulse-order" },
+      ])
+    })
+    expect(callsOf(env.fetch, "engine_open_cockpit")).toEqual([])
   })
 })

@@ -7,6 +7,7 @@ import {
 } from "@miragon/pulse-widget-shell/widgets"
 import { PAGES } from "../pages.js"
 import { isSegment, paramsOn, withQuery } from "./paths.js"
+import { SEARCH_VIEW, searchedIn, searchUrlOf } from "./search-address.js"
 import {
   EVERY_PROCESS,
   filterOf,
@@ -82,6 +83,9 @@ export interface PageStart {
  *   process view and of its list of a process's instances; the version by its number (`version`,
  *   none for the latest) and its instance list's filter (`filter`: `scope`, `element`, `key`,
  *   `var`).
+ * - `search`: the search for an instance across engines at the search's own address, a place of
+ *   the page's alone, which no view of the cockpit has; what it searches (`text`, `q` in the
+ *   address, trimmed, none for an empty search).
  */
 export type PageScreen =
   | { readonly kind: "engine"; readonly engine: string; readonly filter: ProcessFilterData }
@@ -100,14 +104,15 @@ export type PageScreen =
       readonly incident?: string
     }
   | { readonly kind: "incident"; readonly engine: string; readonly incident: string }
+  | { readonly kind: "search"; readonly text: string }
 
 /**
  * Where a page's location leads: a view, or the signed-out page. A view's route names its place,
  * its canonical address (`url`: the one the address bar shows, where an old address or another
  * spelling of it is replaced), the start the page opens it at and its document title; where the
  * page shows the place with a screen of its own, that screen (`screen`), the start then the
- * cockpit's for an engine the screen does not serve (one shown on boards only, a refused profile,
- * one the server does not configure).
+ * cockpit's for an engine the screen does not serve (a refused profile, one the server does not
+ * configure, an incident by its id alone on a Camunda 8 engine).
  */
 export type PageRoute =
   | {
@@ -392,9 +397,10 @@ const shapeOf = (place: Place): string => Object.keys(place).sort().join()
 /**
  * Where the page starts the view at `place`: the landing for the landing, and for the places the
  * landing's start leads on to (the cross-engine overview, which no argument of the tool names, and
- * an engine's own address, whose engine may have no section: one the server shows on boards only
- * or whose profile it refused, which the cockpit then shows as its one state, and the tool takes
- * no `engine` on a server of Camunda 8 clusters alone). The page refuses an engine there that the
+ * an engine's own address, whose engine may have no section the cockpit serves: one whose profile
+ * the server refused, which the cockpit then shows as its one state, or a Camunda 8 engine, which
+ * the page shows on its own engine screen, and the tool takes no `engine` on a server of Camunda 8
+ * clusters alone). The page refuses an engine there that the
  * server does not configure (`viewsAt`), as the tool does at any other address of it, and the
  * address stays. Any other place is the tool's arguments, and the tool refuses an argument it does
  * not take.
@@ -537,6 +543,25 @@ export function screenUrlOf(screen: PageScreen): string {
     }
     case "incident":
       return urlOf({ view: "incident-detail", engine: screen.engine, incidentId: screen.incident })
+    case "search":
+      return searchUrlOf(screen.text)
+  }
+}
+
+/**
+ * The search's route: its place (`view: "search"` with what it searches, the navigation's field
+ * keeps it), its canonical address (the text trimmed, any other parameter dropped) and its screen;
+ * the cockpit's landing its start, which the page never shows there.
+ */
+function searchRouteOf({ search }: PageLocation): ViewRoute {
+  const text = searchedIn(search)
+  return {
+    kind: "view",
+    place: { view: SEARCH_VIEW, q: text },
+    url: searchUrlOf(text),
+    start: { view: COCKPIT_VIEW, args: LANDING },
+    screen: { kind: "search", text },
+    title: { kind: "product" },
   }
 }
 
@@ -549,14 +574,15 @@ function titleOf(place: Place): PageTitle {
 }
 
 /**
- * The view a location of a page with a view opens. A canonical address names its view
- * (`ADDRESSES`); the cockpit's query under `/app/cockpit`, the address of every view before this
+ * The view a location of a page with a view opens. The search's address opens the page's search
+ * (`searchRouteOf`). A canonical address names its view (`ADDRESSES`); the cockpit's query under `/app/cockpit`, the address of every view before this
  * scheme, names it as the tool's arguments, and the route's `url` is its canonical address, which
  * replaces it. Where the page shows the place with a screen of its own (`screenOf`), the route
  * names it beside the cockpit's start, with the screen's state from the query, which its canonical
  * address keeps (`screenUrlOf`).
  */
 export function viewRouteOf(location: PageLocation): ViewRoute {
+  if (location.pathname === PAGES.search) return searchRouteOf(location)
   const { place, url } =
     location.pathname === PAGES.cockpit ? readCockpit(location.search) : readAddress(location)
   // An engine named alone is its address's place too: the page's screen, or the cockpit's one state.

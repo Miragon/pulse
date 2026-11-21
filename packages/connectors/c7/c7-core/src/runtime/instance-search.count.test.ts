@@ -94,6 +94,24 @@ describe("InstanceSearch.count", () => {
     )
   })
 
+  it("counts no instance by ids no engine assigns, without a request", async () => {
+    const { port, search } = searchOver({})
+
+    expect(await search.count({ instanceIds: [InstanceId("Müller GmbH / 10442")] })).toBe(0)
+    expect(await search.count({ instanceIds: [InstanceId("a b")], withIncident: true })).toBe(0)
+    expect(await search.count({ instanceIds: [InstanceId("a b")], withIncident: false })).toBe(0)
+    expect(port.calls).toStrictEqual([])
+  })
+
+  it("counts over only the ids an engine could have assigned", async () => {
+    const { port, search } = searchOver({
+      queryHistoricProcessInstancesCount: () => ({ count: 1 }),
+    })
+
+    expect(await search.count({ instanceIds: [InstanceId("p1"), InstanceId("ä")] })).toBe(1)
+    expect(bodyOf(port.calls[0])).toBe('{"processInstanceIds":["p1"]}')
+  })
+
   it("counts no ended instance with an incident and no given ids, without a request", async () => {
     const { port, search } = searchOver({})
 

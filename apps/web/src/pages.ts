@@ -6,8 +6,9 @@
  * segment none of the server's own routes, so the server takes it as it is.
  *
  * `/app` opens the start page (the cockpit's landing: the engines and the server's boards),
- * `/app/fleet` the cross-engine overview, `/app/boards/:id` a board and `/app/engines/:engine/…`
- * an engine's views. These addresses are public and stay stable from the first release that ships
+ * `/app/search` the search for an instance across engines (`?q=` what it searches), `/app/fleet`
+ * the cross-engine overview, `/app/boards/:id` a board and `/app/engines/:engine/…` an engine's
+ * views. These addresses are public and stay stable from the first release that ships
  * them: a change keeps the old address readable and replaces it by the new one for the transition
  * period. `/app/cockpit` is the address of every view before this scheme, whose query names the
  * cockpit's arguments: the page reads it and replaces it by the view's own address, readable as
@@ -20,6 +21,7 @@
  */
 export const PAGES = {
   app: "/app",
+  search: "/app/search",
   fleet: "/app/fleet",
   board: "/app/boards/:id",
   engine: "/app/engines/:engine",

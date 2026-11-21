@@ -2,6 +2,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, describe, expect, it } from "vitest"
 import { LocaleProvider } from "@miragon/pulse-ui"
+import { WORLD_SCREENS } from "@miragon/pulse-screens/testing"
 import {
   useHostChrome,
   useHostLocation,
@@ -76,16 +77,49 @@ function server(list: unknown = LIST) {
         ? Response.json(engineList(list))
         : name === ENGINE_SCREEN_FEED
           ? Response.json(engineScreen(args?.engine))
-          : processFeeds(name, args?.engine) !== null
-            ? Response.json(processFeeds(name, args?.engine))
-            : Response.json({
-                result: {
-                  content: [{ type: "text", text: "{}" }],
-                  structuredContent: { args, engines: CONFIGURED },
-                },
-              }),
+          : name === FIND_FEED
+            ? Response.json(found(args?.engine, args?.text))
+            : name === "engine_screen_instance_data"
+              ? Response.json(instance())
+              : processFeeds(name, args?.engine) !== null
+                ? Response.json(processFeeds(name, args?.engine))
+                : Response.json({
+                    result: {
+                      content: [{ type: "text", text: "{}" }],
+                      structuredContent: { args, engines: CONFIGURED },
+                    },
+                  }),
   }
 }
+
+/** The search's feed. */
+const FIND_FEED = "engine_screen_find_data"
+
+/** The engines that find ORD-1003 (the kit world's find screen under their name), by search. */
+const FINDING: Readonly<Record<string, readonly string[]>> = {
+  "ORD-1003": ["prod-a", "prod-b"],
+  "ORD-7": ["prod-a"],
+}
+
+/** What `engine` finds for `text`: the kit world's hit on the engines `FINDING` names, else none. */
+const found = (engine: unknown, text: unknown) => ({
+  result: {
+    content: [{ type: "text", text: "{}" }],
+    structuredContent: {
+      ...WORLD_SCREENS.find,
+      engine,
+      hits: FINDING[String(text)]?.includes(String(engine)) ? WORLD_SCREENS.find.hits : [],
+    },
+  },
+})
+
+/** The instance screen's feed: the kit world's called instance, read whole. */
+const instance = () => ({
+  result: {
+    content: [{ type: "text", text: "{}" }],
+    structuredContent: { ...WORLD_SCREENS.calledInstance, webApp: null, causes: null },
+  },
+})
 
 /** The banner on the wide layout's side, which the skip link and the navigation open. */
 const side = () => document.querySelector<HTMLElement>("[data-slot=page-side]")!
@@ -112,7 +146,7 @@ describe("the page's navigation", () => {
       ["Incidents", "/app/engines/prod-a/incidents"],
       ["Jobs", "/app/engines/prod-a/jobs"],
       ["prod-b", "/app/engines/prod-b"],
-      ["c8-dev, boards only", "/app/engines/c8-dev"],
+      ["c8-dev", "/app/engines/c8-dev"],
       ["legacy, refused", "/app/engines/legacy"],
       ["Leasing operations", "/app/boards/leasing"],
     ])
@@ -151,17 +185,19 @@ describe("the page's navigation", () => {
       engines: [
         { id: "solo", environment: "default", dialect: "c7" },
         { id: "orders", environment: "default", dialect: "c8" },
+        { id: "future", environment: "default", dialect: "c9" },
       ],
       refused: [{ id: "gone", reason: "no url" }],
     }
     await start("/app", server(list), PLACED)
     const engines = within(navigation()).getByRole("group", { name: "Engines" })
     expect(within(engines).queryAllByRole("group")).toEqual([])
+    // A dialect the page knows no screen of shows on boards only.
     expect(
       within(engines)
         .getAllByRole("link")
         .map((link) => link.textContent),
-    ).toEqual(["solo", "orders, boards only", "gone, refused"])
+    ).toEqual(["solo", "orders", "future, boards only", "gone, refused"])
     // A Camunda 7 engine and a refused profile: two the cross-engine view reads whole.
     expect(within(navigation()).getByRole("link", { name: "Cross-engine overview" })).toBeTruthy()
     expect(current()).toEqual(["Start"])
@@ -186,9 +222,21 @@ describe("the page's navigation", () => {
     expect(within(navigation()).queryByRole("group", { name: "Engines" })).toBeNull()
   })
 
-  it("marks an engine without sections its own page while it is open, a board while it shows", async () => {
+  it("opens a Camunda 8 engine's processes and nothing else, the cockpit's incidents and jobs Camunda 7's", async () => {
     await start("/app/engines/c8-dev", server(), PLACED)
-    expect(current()).toEqual(["c8-dev, boards only"])
+    expect(current()).toEqual(["Processes"])
+    expect(links()).toEqual(
+      expect.arrayContaining([
+        ["c8-dev", "/app/engines/c8-dev"],
+        ["Processes", "/app/engines/c8-dev"],
+      ]),
+    )
+    expect(within(navigation()).queryAllByRole("link", { name: /^(Incidents|Jobs)$/ })).toEqual([])
+  })
+
+  it("marks an engine without sections its own page while it is open, a board while it shows", async () => {
+    await start("/app/engines/legacy", server(), PLACED)
+    expect(current()).toEqual(["legacy, refused"])
     expect(within(navigation()).queryByRole("link", { name: "Processes" })).toBeNull()
     await stopPage()
     await start("/app/boards/leasing", server(), PLACED)
@@ -237,7 +285,7 @@ describe("the page's navigation", () => {
       "Incidents",
       "Jobs",
       "prod-b",
-      "c8-dev, nur Boards",
+      "c8-dev",
       "legacy, abgelehnt",
       "Leasing operations",
     ])
@@ -462,5 +510,110 @@ describe("the page's notice", () => {
       .getByRole("heading", { level: 1 })
       .closest<HTMLElement>("[data-slot=view-bar]")!
     expect(notice.compareDocumentPosition(bar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+})
+
+describe("the page's search across engines", () => {
+  /** The navigation's search field on the wide layout's side. */
+  const field = () =>
+    within(side()).getByRole<HTMLInputElement>("searchbox", { name: "Find an instance" })
+
+  it("searches from the navigation's field in a new entry, the field keeping what it searched, the focus on its heading", async () => {
+    const env = await start("/app/engines/prod-a/incidents", server(), PLACED)
+    const search = within(side()).getByRole("search", { name: "Find an instance" })
+    expect(document.getElementById(field().getAttribute("aria-describedby")!)?.textContent).toBe(
+      "ID or business key, exact",
+    )
+    fireEvent.change(field(), { target: { value: "  ORD-1003 " } })
+    await act(async () => fireEvent.submit(search))
+    await settled()
+    expect(env.browser.writes.filter(({ entry }) => entry === "push").at(-1)).toMatchObject({
+      url: "/app/search?q=ORD-1003",
+    })
+    const heading = await screen.findByRole("heading", { level: 1, name: "ORD-1003" })
+    await waitFor(() => expect(document.activeElement).toBe(heading))
+    expect(field().value).toBe("ORD-1003")
+    expect(current()).toEqual([])
+  })
+
+  it("searches nothing for a field without text", async () => {
+    const env = await start("/app/engines/prod-a/incidents", server(), PLACED)
+    const writes = env.browser.writes.length
+    fireEvent.change(field(), { target: { value: "   " } })
+    await act(async () => fireEvent.submit(within(side()).getByRole("search")))
+    await settled()
+    expect(env.browser.writes).toHaveLength(writes)
+  })
+
+  it("shows what the search on screen searched, and follows Back to the place before it", async () => {
+    const env = await start("/app/search?q=ORD-404", server(), PLACED)
+    expect(field().value).toBe("ORD-404")
+    expect(await screen.findByRole("heading", { level: 1, name: "ORD-404" })).toBeTruthy()
+    await env.browser.back("/app/engines/prod-a/incidents")
+    await settled()
+    await waitFor(() => expect(field().value).toBe(""))
+  })
+
+  it("gives the search's entry to the one instance it found, so Back leads to where the search started", async () => {
+    const env = await start("/app/engines/prod-a/incidents", server(), PLACED)
+    fireEvent.change(field(), { target: { value: "ORD-7" } })
+    await act(async () => fireEvent.submit(within(side()).getByRole("search")))
+    await settled()
+    await waitFor(() =>
+      expect(env.browser.writes.at(-1)).toMatchObject({
+        entry: "replace",
+        url: "/app/engines/prod-a/instances/fake-ORD-1003",
+      }),
+    )
+    expect(env.browser.writes.slice(-3, -1)).toMatchObject([
+      { entry: "push", url: "/app/search?q=ORD-7" },
+      { entry: "replace", url: "/app/search?q=ORD-7", state: { "pulse:seen": true } },
+    ])
+  })
+
+  it("keeps the search on an entry it decided on, where Back returns to it", async () => {
+    const env = await start("/app/engines/prod-a/incidents", server(), PLACED)
+    await env.browser.back("/app/search?q=ORD-7", { "pulse:seen": true })
+    await settled()
+
+    expect(await screen.findByRole("heading", { level: 1, name: "ORD-7" })).toBeTruthy()
+    expect(await screen.findByRole("table", { name: "Found instances" })).toBeTruthy()
+    expect(env.browser.location.pathname).toBe("/app/search")
+    expect(env.browser.writes.filter(({ url }) => url.includes("/instances/"))).toEqual([])
+  })
+
+  it("says a text longer than an ID or a business key can be next to the field, and searches nothing", async () => {
+    const env = await start("/app/engines/prod-a/incidents", server(), PLACED)
+    const writes = env.browser.writes.length
+    fireEvent.change(field(), { target: { value: ` ${"x".repeat(256)} ` } })
+    expect(field().getAttribute("aria-invalid")).toBeNull()
+    fireEvent.change(field(), { target: { value: "x".repeat(257) } })
+    await act(async () => fireEvent.submit(within(side()).getByRole("search")))
+    await settled()
+
+    expect(env.browser.writes).toHaveLength(writes)
+    expect(field().getAttribute("aria-invalid")).toBe("true")
+    expect(field().value).toHaveLength(257)
+    const described = field().getAttribute("aria-describedby")!.split(" ")
+    expect(described.map((id) => document.getElementById(id)?.textContent)).toEqual([
+      "ID or business key, exact",
+      "An ID or business key has at most 256 characters. Shorten the text to search.",
+    ])
+  })
+
+  it("searches from the drawer under 64rem, which closes as the page moves on", async () => {
+    const env = await start("/app/engines/prod-a", server(), PLACED)
+    const bar = screen
+      .getByRole("heading", { level: 1 })
+      .closest<HTMLElement>("[data-slot=view-bar]")!
+    await act(async () => fireEvent.click(within(bar).getByRole("button", { name: "Menu" })))
+    const drawer = screen.getByRole("dialog", { name: "Pulse" })
+    fireEvent.change(within(drawer).getByRole("searchbox", { name: "Find an instance" }), {
+      target: { value: "ORD-1003" },
+    })
+    await act(async () => fireEvent.submit(within(drawer).getByRole("search")))
+    await settled()
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
+    expect(env.browser.location.pathname).toBe("/app/search")
   })
 })

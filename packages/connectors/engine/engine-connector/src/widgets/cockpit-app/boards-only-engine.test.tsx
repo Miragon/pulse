@@ -5,6 +5,7 @@ import {
   TestViewHost,
   createTestQueryClient,
   type HostAction,
+  type ViewLocation,
 } from "@miragon/pulse-widget-shell/widgets"
 import {
   ENGINE_BOARD_DATA,
@@ -82,6 +83,7 @@ function renderCockpit({
   boards = [invoicesOver(engines)],
   locale,
   host = FULLSCREEN,
+  location,
 }: {
   engines: CockpitEngineInfo[]
   started?: CockpitEngineInfo[]
@@ -89,6 +91,8 @@ function renderCockpit({
   boards?: Board[]
   locale?: string
   host?: typeof FULLSCREEN | typeof INLINE
+  /** A page's address, whose `claims` names the places its screens show. */
+  location?: ViewLocation
 }) {
   const actions: HostAction[] = []
   const contexts: string[] = []
@@ -98,6 +102,7 @@ function renderCockpit({
       client={createTestQueryClient()}
       host={host}
       locale={locale}
+      {...(location === undefined ? {} : { location, startPage: "/app" })}
       onHostAction={(action) => actions.push(action)}
       onModelContext={(text) => contexts.push(text)}
       tools={{
@@ -322,6 +327,19 @@ describe("an engine the server reads on boards only, in the cross-engine view", 
     expect(readsOf("orders-c8")).toEqual([])
     expect(readsOf("billing-c8")).toEqual([])
     await waitFor(() => expect(contexts.at(-1)).toContain('engine=["prod-a","prod-b"]'))
+  })
+
+  it("on a page whose screens show them, names them only as left out of this view", async () => {
+    const location: ViewLocation = {
+      report: () => undefined,
+      subscribe: () => () => undefined,
+      claims: (args) => args.view === "overview",
+    }
+    renderCockpit({ engines: [C7, { ...C7, id: "prod-b" }, ON_BOARDS], location })
+    fireEvent.click(await screen.findByRole("button", { name: "Cross-engine overview" }))
+    expect(document.querySelector("[data-slot='fleet-boards-only']")?.textContent).toBe(
+      "Camunda 8, not in this overview: orders-c8",
+    )
   })
 
   it("names them in German on a German host", async () => {

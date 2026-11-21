@@ -6,8 +6,8 @@ What the server reports when a Camunda 8 cluster's call fails, pinned byte for b
 (`ENGINE_BOARDS_DIR`), against a loopback engine
 (`apps/mcp-server/test/engine-goldens/fake-c8-cluster.ts`) that is the cluster and, at Keycloak's
 path on the same origin, its token endpoint, under a clock the test holds (`Date`, which the token
-source's hold and renewal and the board's floor read). The server reads a Camunda 8 engine on
-boards only, so each case opens that board (`engine_open_cockpit` view `board`) unless it names its
+source's hold and renewal and the board's floor read). The chat shows a Camunda 8 engine on boards
+only, so each case opens that board (`engine_open_cockpit` view `board`) unless it names its
 own probes. The cases and the answers that make them are
 `apps/mcp-server/test/engine-goldens/error-cases-c8.ts`, a copy of the C8 adapter's
 (`packages/connectors/c8/c8-adapter/test/goldens/error-cases.ts`), and the world they build on is

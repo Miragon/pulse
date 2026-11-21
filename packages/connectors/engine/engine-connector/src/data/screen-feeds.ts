@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { VariableConditionTypes } from "@miragon/pulse-screens"
 import {
+  ENGINE_SCREEN_FIND_DATA,
   ENGINE_SCREEN_INCIDENT_TEXT_DATA,
   ENGINE_SCREEN_INSTANCE_DATA,
   ENGINE_SCREEN_INSTANCES_DATA,
@@ -11,6 +12,7 @@ import {
 import { EVERY_DIALECT } from "../view-models.dialects.js"
 import { type ContractFeed, contractFeed } from "./feeds.js"
 import { buildEngineScreenData } from "./screens/engine-screen-data.js"
+import { buildFindData } from "./screens/find-data.js"
 import { buildIncidentTextData } from "./screens/incident-text-data.js"
 import { buildInstanceListData } from "./screens/instance-list-data.js"
 import { buildInstanceScreenData } from "./screens/instance-screen-data.js"
@@ -20,13 +22,13 @@ import { buildVariableNamesData } from "./screens/variable-names-data.js"
 /**
  * The feeds of the web app's own screens (D10): an engine's processes, a process in one version,
  * its instance list and the names of its variables, an instance and the text of one of its root
- * incidents, app-only reads of the engine contract in every dialect, the one engine their `engine`
+ * incidents, what the search finds on one engine, app-only reads of the engine contract in every dialect, the one engine their `engine`
  * parameter resolves to (`resolveRuntimeEngine`), whose numbers the screens' builder makes. No
  * view of the cockpit reads them, so they are no route's: a page's screen reads a screen feed, and
  * it is never a second view. `widget-tools/data-feeds.ts` registers them beside `DATA_FEEDS`,
  * app-only and read-only, so the web app's forward admits a page's call to them. The reads that
  * load the engine's database (a version's element statistics, an instance list's search and
- * history counts, a version's variable names) stand on a floor of 30 s per caller and arguments,
+ * history counts, a version's variable names, a search) stand on a floor of 30 s per caller and arguments,
  * as a board's build does (`screens/screen-floor.ts`); the engine's processes, an instance and an
  * incident's text run none of them.
  */
@@ -151,6 +153,19 @@ const incidentTextFeed = contractFeed({
   read: ({ incident }, engine) => buildIncidentTextData(engine, incident),
 })
 
+const findFeed = contractFeed({
+  name: ENGINE_SCREEN_FIND_DATA,
+  title: "Find data (internal)",
+  description:
+    "Internal JSON feed (no UI) for the web app's search: the process instance with this id and up to 20 with this exact business key, running and ended, on one engine.",
+  dialects: EVERY_DIALECT,
+  shape: {
+    text: z.string().trim().min(1).max(256).describe("An instance's id or its exact business key."),
+  },
+  engines: "contract",
+  read: ({ text }, engine) => buildFindData(engine, text),
+})
+
 /** Every feed of the web app's screens, in registration order. */
 export const SCREEN_FEEDS: readonly ContractFeed[] = [
   engineScreenFeed,
@@ -159,4 +174,5 @@ export const SCREEN_FEEDS: readonly ContractFeed[] = [
   variableNamesFeed,
   instanceScreenFeed,
   incidentTextFeed,
+  findFeed,
 ]

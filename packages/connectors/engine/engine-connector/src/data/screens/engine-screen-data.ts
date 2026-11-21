@@ -26,12 +26,14 @@ export interface EngineScreenFeedData extends EngineScreenData {
 }
 
 /**
- * The engine's own web app: a Camunda 7 engine's from the profile's `cockpitUrl` or the base its
- * provider derives from the REST root, another dialect's from the profile's `cockpitUrl` alone.
+ * The engine's own web app, by its name (the provider's, else its vendor's): a Camunda 7 engine's
+ * from the profile's `cockpitUrl` or the base its provider derives from the REST root, another
+ * dialect's from the profile's `cockpitUrl` alone (a Camunda 8 cluster's Operate).
  */
 function webAppOf(engine: RuntimeEngine): EngineWebAppData | null {
   const url = "client" in engine ? buildEngineCockpitUrl(engine) : webAppUrlOf(engine.cockpitUrl)
-  return url === null ? null : { url, vendor: engine.provider.branding.displayName }
+  const { webApp, displayName } = engine.provider.branding
+  return url === null ? null : { url, vendor: webApp ?? displayName }
 }
 
 /** The engine screen of `engine`, read at `now`. */

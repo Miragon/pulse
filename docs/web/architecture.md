@@ -52,8 +52,9 @@ same provider, which the gate checked before the session kept it, and `/mcp` ver
 every forwarded call like any bearer token: the caller is its subject, and nothing the browser
 chooses names one. Under passthrough an engine gets the user's own token, as from a chat; a
 Camunda 8 cluster never does: the server reads it with its own client, so everyone signed in sees
-on a board what that client may read ([Camunda 8](../mcp/camunda8.md#one-client-per-server)). The
-per-caller caches key on the token, so a renewed token starts afresh.
+what that client may read, on boards and on the screens: its instances, variables and incident
+texts ([Camunda 8](../mcp/camunda8.md#one-client-per-server)). The per-caller caches key on the
+token, so a renewed token starts afresh.
 
 ## What a page may call
 
@@ -61,7 +62,8 @@ per-caller caches key on the token, so a renewed token starts afresh.
 admits a tool a view calls that only reads (`readOnlyHint`): the view tool `engine_open_cockpit`,
 the app-only `*_data` feeds (the page's own screens read them too: `engine_screen_processes_data`,
 `engine_screen_process_data`, `engine_screen_instances_data`, `engine_screen_variable_names_data`,
-`engine_screen_instance_data`, `engine_screen_incident_text_data`) and the model tools marked `forViews` because the widgets read them
+`engine_screen_instance_data`, `engine_screen_incident_text_data`, and the search's
+`engine_screen_find_data`, one call per engine) and the model tools marked `forViews` because the widgets read them
 (`engine_list_engines`, `engine_query_historic_activity_instances`, `engine_get_task_form`). Any
 other tool gets 403 `WEB_NOT_FOR_PAGES`, a write 403 `WEB_READ_ONLY`, before it runs.
 
@@ -92,9 +94,9 @@ under it, the building blocks of `@miragon/pulse-blocks` over the screen feeds, 
 page claims, so the cockpit embedded elsewhere never shows them. A screen fills the window's height
 from 64rem on and scrolls its regions in themselves; an incident's text is read only when it opens,
 a version's variable names when the condition dialog does. The reads that load an engine's database
-(a version's element statistics, an instance list's first page with its counts, the variable names) stand on
-a floor of 30 s per signed-in user and arguments at the server, so a Refresh within it shows the same
-read. Its router
+(a version's element statistics, an instance list's first page with its counts, the variable names, a
+search, its engine's history gap apart for every text) stand on a floor of 30 s per signed-in user and
+arguments at the server, so a Refresh within it shows the same read. Its router
 gives each view its address and leads Back, Forward and its links to the view, which goes there
 itself or starts anew there, never loading the page; it replaces an old `/app/cockpit?view=…` by
 the view's own address. It reads its session with `readWebSession()` and calls tools through

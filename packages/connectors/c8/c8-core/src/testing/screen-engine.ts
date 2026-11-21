@@ -9,6 +9,8 @@ export interface C8ExpectedScreens {
   readonly olderVersion: unknown
   readonly callingProcess: unknown
   readonly instanceList: unknown
+  readonly find: unknown
+  readonly findById: unknown
 }
 
 export interface C8ScreenEngine {

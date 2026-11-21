@@ -2470,6 +2470,46 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
+    "description": "Internal JSON feed (no UI) for the web app's search: the process instance with this id and up to 20 with this exact business key, running and ended, on one engine.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default",
+            "c8"
+          ],
+          "type": "string"
+        },
+        "text": {
+          "description": "An instance's id or its exact business key.",
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "type": "object"
+    },
+    "name": "engine_screen_find_data",
+    "title": "Find data (internal)"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
     "description": "Internal JSON feed (no UI) for the web app's instance screen: a root incident's stack trace or error message, with the line its root cause stands on.",
     "inputSchema": {
       "additionalProperties": false,

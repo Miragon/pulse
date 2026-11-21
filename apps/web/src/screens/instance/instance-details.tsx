@@ -6,7 +6,15 @@ import {
   type InstanceSlots,
   type MarkerSwatchProps,
 } from "@miragon/pulse-blocks"
-import { cn, TabCount, Tabs, TabsContent, TabsList, TabsTrigger } from "@miragon/pulse-ui"
+import {
+  cn,
+  TabCount,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+  type Count,
+} from "@miragon/pulse-ui"
 import type { InstanceScreenData } from "@miragon/pulse-screens"
 import { useT } from "../../messages/index.js"
 import type { Navigate } from "../../router/page-link.js"
@@ -31,8 +39,7 @@ function Swatch({ kind }: MarkerSwatchProps) {
   return <span aria-hidden="true" className={cn("pulse-swatch", `pulse-swatch--${kind}`)} />
 }
 
-/** How many rows each tab holds, which its count says. */
-function countOf(screen: InstanceScreenFeed, tab: InstanceTab): number {
+function rowsOf(screen: InstanceScreenFeed, tab: InstanceTab): number {
   switch (tab) {
     case "history":
       return screen.path.length
@@ -43,6 +50,16 @@ function countOf(screen: InstanceScreenFeed, tab: InstanceTab): number {
     case "variables":
       return screen.variables.length
   }
+}
+
+/**
+ * How many rows each tab holds, which its count says: a lower bound (`≥ n`) on every tab where the
+ * engine cut some of the instance's lists (`truncated`, the strip's "Some lists are cut off"), since
+ * its read names none of them, never the length of a cut list as its total.
+ */
+function countOf(screen: InstanceScreenFeed, tab: InstanceTab): Count {
+  const rows = rowsOf(screen, tab)
+  return screen.truncated ? { atLeast: rows } : rows
 }
 
 export interface InstanceDetailsProps {

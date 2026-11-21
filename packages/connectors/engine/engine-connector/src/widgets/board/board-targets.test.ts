@@ -75,6 +75,23 @@ describe("a tile's target on the cockpit's routes", () => {
   })
 })
 
+describe("a tile's target where the cockpit's incident view does not read the engine", () => {
+  it("opens an incident at the instance that holds it, and every other target as before", () => {
+    const incident = {
+      kind: "instance",
+      engine: "prod-a",
+      instanceId: RUNNING_INSTANCE,
+      incidentId: "inc-1",
+    } as const
+    expect(engineTargetOf(incident, BOARD, false)).toEqual({
+      engine: "prod-a",
+      view: { section: "instance-detail", processInstanceId: RUNNING_INSTANCE, label: "INV-0042" },
+    })
+    const ended = { kind: "instance", engine: "prod-a", instanceId: ENDED_INSTANCE } as const
+    expect(engineTargetOf(ended, BOARD, false)).toEqual(engineTargetOf(ended, BOARD))
+  })
+})
+
 describe("a process's name for its crumb, from any tile that names it on that engine", () => {
   const toInvoice = (engine: string) =>
     ({ kind: "instances", engine, bpmnProcessId: "invoice", filter: { scope: "running" } }) as const

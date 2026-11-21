@@ -480,3 +480,65 @@ describe("the page's process screen", () => {
     expect(router.state().moves).toBe(first.moves + 2)
   })
 })
+
+describe("the page's search across engines", () => {
+  it("shows it at its address and claims nothing of the cockpit's", () => {
+    const { router } = routerAt("/app/search?q=ORD-1")
+    const { route, shown } = router.state()
+    expect(route.screen).toEqual({ kind: "search", text: "ORD-1" })
+    expect(shown.screen).toEqual({ kind: "search", text: "ORD-1" })
+    expect(shown.location.claims?.({ view: "search", q: "ORD-1" })).toBe(false)
+  })
+
+  it("starts another search anew in a new entry, the focus moving; the same one stays", () => {
+    const { router, push, here } = routerAt("/app/search?q=ORD-1")
+    const first = router.state()
+    router.navigate("/app/search?q=ORD-1")
+    expect(push).not.toHaveBeenCalled()
+    expect(router.state().shown.generation).toBe(first.shown.generation)
+    router.navigate("/app/search?q=ORD-2")
+    expect(push).toHaveBeenCalledWith(null, "", "/app/search?q=ORD-2")
+    expect(here()).toBe("/app/search?q=ORD-2")
+    expect(router.state().shown.generation).toBe(first.shown.generation + 1)
+    expect(router.state().moves).toBe(first.moves + 2)
+  })
+
+  it("gives the search's entry to the one instance found, so Back leads to where it started", () => {
+    const { router, push, replace, here } = routerAt("/app/engines/prod-a")
+    router.navigate("/app/search?q=ORD-1")
+    router.navigate("/app/engines/prod-a/instances/pi-1", "replace")
+    expect(push.mock.calls.map((call) => call[2])).toEqual(["/app/search?q=ORD-1"])
+    expect(replace.mock.calls.map((call) => call[2])).toContain(
+      "/app/engines/prod-a/instances/pi-1",
+    )
+    expect(here()).toBe("/app/engines/prod-a/instances/pi-1")
+    expect(router.state().route.screen).toEqual({
+      kind: "instance",
+      engine: "prod-a",
+      instance: "pi-1",
+    })
+  })
+
+  it("marks the entry it is on seen, keeping its address and the state beside, and knows the mark on a return", () => {
+    const { router, replace, here, back } = routerAt("/app/search?q=ORD-1")
+    expect(router.seen()).toBe(false)
+
+    router.markSeen()
+    expect(router.seen()).toBe(true)
+    expect(replace).toHaveBeenLastCalledWith({ "pulse:seen": true }, "", "/app/search?q=ORD-1")
+    expect(here()).toBe("/app/search?q=ORD-1")
+
+    router.navigate("/app/search?q=ORD-2")
+    expect(router.seen()).toBe(false)
+    back("/app/search?q=ORD-1", { memo: 1, "pulse:seen": true })
+    expect(router.seen()).toBe(true)
+    router.markSeen()
+    expect(replace).toHaveBeenLastCalledWith(
+      { memo: 1, "pulse:seen": true },
+      "",
+      "/app/search?q=ORD-1",
+    )
+    back("/app/search?q=ORD-3", { "pulse:seen": "no" })
+    expect(router.seen()).toBe(false)
+  })
+})

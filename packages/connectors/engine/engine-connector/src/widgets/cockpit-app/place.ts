@@ -150,15 +150,22 @@ export function useAddressStart(): CockpitAction | null {
  * cockpit back to their entry's place, never to one the page shows itself (`ViewLocation.claims`).
  * Answers whether the page claims the place the cockpit is at: the cockpit then renders nothing,
  * since the page takes over there. A chat has no address: nothing happens there, and it claims
- * nothing.
+ * nothing. An engine without sections (`sectionless`) is named alone, unless the page shows its
+ * place itself, whole (a Camunda 8 engine's on the web app's screens): the cockpit then names the
+ * place, which the page claims, so the page shows it. A refused profile (`refused`) is named alone
+ * always.
  */
 export function usePlaceOnAddress(
   state: CockpitState,
   sectionless: boolean,
+  refused: boolean,
   dispatch: Dispatch<CockpitAction>,
 ): boolean {
   const location = useHostLocation()
-  const args = useMemo(() => placeArgsOf(state, sectionless), [state, sectionless])
+  const args = useMemo(() => {
+    const whole = placeArgsOf(state, false)
+    return sectionless && (refused || !location?.claims?.(whole)) ? placeArgsOf(state, true) : whole
+  }, [state, sectionless, refused, location])
   const place = placeKey(args)
   const memo = useMemo(() => memoOf(place, state), [place, state])
   const reported = useRef<{ place: string; memo: string } | null>(null)

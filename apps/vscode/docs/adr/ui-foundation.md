@@ -1,7 +1,11 @@
 # UI foundation and shared building blocks
 
 - Status: accepted
-- Last reviewed: 2026-11-21, later the same day (executed, D2's point 1 per element as planned:
+- Last reviewed: 2026-11-21, at the end of the day (executed, D10's search across engines: the
+  screens' `Finder`, the feed `engine_screen_find_data`, the blocks' `FindResults` and
+  `FindHistoryNotice`, the web app's `/app/search`; a law holds a business key's match whole on
+  both dialects; c7-core's and c8-core's recorded screens made anew with what the finder finds);
+  2026-11-21, later the same day (executed, D2's point 1 per element as planned:
   c7-core's element statistics take the statistics' incident counts as root incidents wherever no
   copy can lie and read the incidents of a version's call activities alone whole, where copies lie,
   sorted by id, every incident of the version only where its call activities cannot be told or one
@@ -457,7 +461,11 @@ each surface keeps its screens and the web app's are its own.
      2.5 kB the drafts assumed. Amended on 2026-11-20, when a process's blocks first needed more
      (the owner: "nur nicht verschwenderisch", not wasteful): the webview's script may grow to
      at most 500,000 B gzip, each ceiling its measurement plus 2 % behind a `Ratchet-Exception:`
-     trailer that says what the growth buys, and what the webview bundles stays lean.
+     trailer that says what the growth buys, and what the webview bundles stays lean. Amended on
+     2026-11-21, when the page's script reached its ceiling with the search across engines (the
+     owner: "wir machen ja schließlich auch mehr", we do more after all): the page's script may
+     grow to at most 400,000 B gzip and its stylesheet to at most 20,000 B, each ceiling still its
+     measurement plus 2 % behind a `Ratchet-Exception:` trailer on each commit that grows one.
   8. **One row convention** (the owner, 2026-11-18). On every surface, the MCP widgets, the web
      app and the webview, a table row opens what it names on a click or Enter and copies its id
      with Ctrl or Cmd+C, as the webview's rows did from the start; the cockpit's rows lose their
@@ -513,6 +521,17 @@ each surface keeps its screens and the web app's are its own.
      filtering the list, Escape clearing it; from 64rem on the split movable by mouse and keyboard,
      under it the diagram at 240 to 560 px above three rows; the page claims the cockpit's process
      view and its list of a process's instances, and fills none of the blocks' write slots.
+     Executed for the search on 2026-11-21: at `/app/search?q=…`, which the navigation's field opens,
+     the page asks every engine apart and at once for the instance with the text as its id and up
+     to 20 with it as their exact business key, running and ended (the screens' `Finder` behind the
+     feed `engine_screen_find_data`, which the server builds exactly as both adapters do from the
+     recorded engines), and lists the hits with the blocks' `FindResults`; an engine it could not
+     search is a row of a strip beside the hits of the others, a refused profile read nothing of;
+     an engine whose history misses running instances says so (`FindHistoryNotice`; at history
+     level NONE the search finds none); it never calls missing what an engine it could not search
+     or that has not answered may hold; exactly one hit, with every engine searched and none
+     missing history, takes the search's entry once, so Back leads to where it started. The
+     extension has no search, so its bundle leaves the blocks out.
   3. **The operations views stay the cockpit's.** Its incidents, a cause, its jobs and the boards run
      unchanged inside the frame, without their head. Once a screen replaces a section, the page
      takes every drill into it, from the embedded routes and a board's tiles too.
@@ -524,7 +543,15 @@ each surface keeps its screens and the web app's are its own.
      (D2) and the diagram's theme (point 7).
   5. **Camunda 8.** The screens serve every dialect: the web app shows a Camunda 8 engine whole once
      its screens open to Camunda 8, its operations views stay Camunda 7's, and the chat keeps showing
-     a Camunda 8 engine on boards only (`BoardsOnlyEngineGate`).
+     a Camunda 8 engine on boards only (`BoardsOnlyEngineGate`). Executed on 2026-11-21: the page's
+     navigation opens a Camunda 8 engine's processes (its engine, process and instance screens, an
+     incident at its instance) and no incidents or jobs; where the page shows its place itself the
+     cockpit names the place whole, so a board's tiles and chip and the landing's row open the
+     page's screens, an incident the instance that holds it; a cluster below 8.9 or without
+     secondary storage is said with its fix. A chat claims no place: its gate, landing rows and
+     tiles stay as they were, and only the kit's words changed there too (a Camunda 8 token
+     endpoint's refusal reads as a refused login); a page's words of a failure are its host's alone
+     (`PAGE_HINTS`), so the chat's bundle did not grow.
   6. **The web's conventions.** An address is public and stable from the first release that carries
      it. A new subject (an engine, a process, a version, an instance, an incident) adds a history
      entry; a filter, a scope, an element, a business key or a tab replaces it, so Back goes from
@@ -686,4 +713,5 @@ same thresholds in a step of its own, an inbox across engines is decided after t
 the webview's script may grow to 500,000 B gzip. 2026-11-21: the chat and the operations views the
 web app embeds count open root incidents (D2's point 4), "new in 24 h" gone. Later that day, after a
 measurement on the playground, c7-core's element statistics read the incidents of a version's call
-activities alone (D2's point 1), with the same counts.
+activities alone (D2's point 1), with the same counts. Later that day the web app read a Camunda 8
+engine whole (D10's point 5), and then it searched for an instance across engines (D10's point 2).

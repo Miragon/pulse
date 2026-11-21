@@ -1,3 +1,4 @@
+import type { Message } from "@miragon/pulse-widget-shell/widgets"
 import type { en } from "./en.js"
 
 /**
@@ -25,6 +26,11 @@ export const de = {
   "nav.refused": "abgelehnt",
   "nav.enginesFailed": "Die Engines konnten nicht geladen werden. Lade die Seite neu.",
   "nav.menu": "Menü",
+  "nav.search.label": "Instanz suchen",
+  "nav.search.placeholder": "Instanz suchen",
+  "nav.search.hint": "ID oder Geschäftsschlüssel, genau",
+  "nav.search.tooLong":
+    "Eine ID oder ein Geschäftsschlüssel hat höchstens {most} Zeichen. Kürze den Text, um zu suchen.",
   "nav.close": "Menü schließen",
   "title.board": "Board {board} · Pulse",
 
@@ -47,6 +53,14 @@ export const de = {
   "screen.productUnknown": "Die Engine hat nicht gesagt, was sie ist",
   "screen.engine.loading": "Die Prozesse von {engine} werden geladen…",
   "screen.engine.failed": "Die Prozesse von {engine} konnten nicht geladen werden",
+  "screen.engine.atInstances.title": "Incidents und Jobs stehen bei ihren Instanzen",
+  "screen.engine.atInstances.detail": "Öffne einen Prozess, dann eine Instanz.",
+  "screen.cluster.floor.title": "Pulse liest Camunda {floor} oder neuer",
+  "screen.cluster.floor.detail":
+    "Der Cluster von {engine} läuft auf Camunda {runs}. Bitte die Person, die ihn betreibt, ihn auf {floor} oder neuer zu aktualisieren.",
+  "screen.cluster.storage.title": "Der Cluster von {engine} hat keinen Sekundärspeicher",
+  "screen.cluster.storage.detail":
+    "Pulse liest die Such-API des Clusters, und die braucht einen Sekundärspeicher wie Elasticsearch, OpenSearch oder eine relationale Datenbank. Bitte die Person, die den Cluster betreibt, einen einzurichten.",
 
   "screen.instance.loading": "Die Instanz {instance} wird geladen…",
   "screen.instance.failed": "Die Instanz {instance} konnte nicht geladen werden",
@@ -80,6 +94,23 @@ export const de = {
   "screen.process.list.refused": "Mit diesen Variablenbedingungen kann die Engine nicht suchen",
   "screen.process.list.clear": "Variablenbedingungen entfernen",
   "screen.process.more.failed": "Weitere Instanzen konnten nicht geladen werden",
+
+  "screen.search.title": "Instanz suchen",
+  "screen.search.empty":
+    "Gib die ID einer Instanz oder ihren genauen Geschäftsschlüssel in das Suchfeld der Navigation ein.",
+  "screen.search.loading": "Alle Engines werden nach {text} durchsucht…",
+  "screen.search.listFailed": "Die Engines für die Suche konnten nicht geladen werden",
+  "screen.search.found": ({ count }: Readonly<Record<string, unknown>>) =>
+    String(count) === "1" ? "1 Instanz gefunden" : `${String(count)} Instanzen gefunden`,
+  "screen.search.searched": ({ count }: Readonly<Record<string, unknown>>) =>
+    String(count) === "1" ? "1 Engine durchsucht" : `${String(count)} Engines durchsucht`,
+  "screen.search.exact": "genaue Suche",
+  "screen.search.failed": "{engine} konnte nicht durchsucht werden",
+  "screen.search.tooLong":
+    "Die ID oder der Geschäftsschlüssel einer Instanz hat höchstens {most} Zeichen. Kürze den Text im Suchfeld und suche noch einmal.",
+  "screen.search.unsearched": "Keine Engine konnte durchsucht werden",
+  "screen.search.unsearchedHint":
+    "Oben steht für jede Engine, warum sie nicht durchsucht werden konnte und was du tun kannst.",
 
   "tab.history": "Verlauf",
   "tab.incidents": "Incidents",
@@ -140,4 +171,4 @@ export const de = {
   "action.signIn": "Anmelden",
   "action.signInAgain": "Erneut anmelden",
   "action.tryAgain": "Erneut versuchen",
-} satisfies Record<keyof typeof en, string>
+} satisfies Record<keyof typeof en, Message>

@@ -211,6 +211,35 @@ describe("InstanceSearch.search", () => {
     expect(port.calls).toStrictEqual([])
   })
 
+  it.each([
+    ["a text a reader typed", { instanceIds: [InstanceId("Müller GmbH / 10442 hängt")] }],
+    ["an empty id", { instanceIds: [InstanceId("")] }],
+    ["such ids with an incident", { instanceIds: [InstanceId("p 1")], withIncident: true }],
+    ["such ids without an incident", { instanceIds: [InstanceId("p/1")], withIncident: false }],
+  ] as const)(
+    "finds nothing by ids no engine assigns (%s), without a request",
+    async (_name, filter) => {
+      const { port, search } = searchOver({})
+
+      expect(await search.search(filter, { limit: 50 })).toStrictEqual({ items: [] })
+      expect(port.calls).toStrictEqual([])
+    },
+  )
+
+  it("sends only the ids an engine could have assigned", async () => {
+    const { port, search } = searchOver({
+      queryHistoricProcessInstances: () => [],
+    })
+
+    await search.search(
+      { instanceIds: [InstanceId("p1"), InstanceId("ORD-1003"), InstanceId("a b")] },
+      { limit: 5 },
+    )
+
+    expect(bodyOf(port.calls[0])).toContain('"processInstanceIds":["p1","ORD-1003"]')
+    expect(port.calls[0]?.input.query.maxResults).toBe("2")
+  })
+
   it("asks for no more rows than there are ids, and for the page and one more otherwise", async () => {
     const ids = ["p1", "p2", "p3"].map((id) => InstanceId(id))
     const { port, search } = searchOver({

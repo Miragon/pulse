@@ -27,6 +27,8 @@ import {
   overviewOf,
   type PageHost,
   PROCESS,
+  REFUSED,
+  REFUSED_TITLE,
   renderCockpitOn,
   rowLabels,
   trailLabels,
@@ -300,16 +302,64 @@ describe("the page's address follows the cockpit (N1)", RENDER, () => {
     await waitFor(() => expect(headSection("Jobs").getAttribute("aria-current")).toBe("page"))
   })
 
-  it("claims nothing where the page shows no place itself, an engine without sections either", async () => {
-    // An engine shown on boards only is named alone, never as the overview the page claims.
+  it("claims nothing where the page shows no place itself: an engine without sections is named alone", async () => {
+    const engines = [...ENGINES, ON_BOARDS]
+    const address = fakeAddress({ args: { view: "overview", engine: "orders-c8" } }, () => false)
+    renderPage(boot(null, engines), { engines }, { startPage: "/app", location: address.location })
+    expect(await screen.findByRole("heading", { level: 1, name: BOARDS_ONLY_TITLE })).toBeTruthy()
+    await waitFor(() => expect(address.reports[0]?.place.args).toEqual({ engine: "orders-c8" }))
+  })
+
+  it("names a Camunda 8 engine's place whole where the page shows it itself, and leaves it to the page", async () => {
+    // The web app's screens show a Camunda 8 engine's processes, which no route of the cockpit reads.
     const engines = [...ENGINES, ON_BOARDS]
     const address = fakeAddress(
       { args: { view: "overview", engine: "orders-c8" } },
       (args) => args.view === "overview",
     )
+    const { reads } = renderPage(
+      boot(null, engines),
+      { engines },
+      {
+        startPage: "/app",
+        location: address.location,
+      },
+    )
+    await waitFor(() =>
+      expect(address.reports[0]?.place.args).toEqual({ view: "overview", engine: "orders-c8" }),
+    )
+    expect(screen.queryByRole("heading", { level: 1, name: BOARDS_ONLY_TITLE })).toBeNull()
+    expect(reads(ENGINE_COCKPIT_OVERVIEW_DATA)).toEqual([])
+    expect(reads(ENGINE_HEALTH_DATA)).toEqual([])
+  })
+
+  it("names a refused profile alone even where the page claims its overview", async () => {
+    const engines = [...ENGINES, REFUSED]
+    const address = fakeAddress(
+      { args: { view: "overview", engine: "locked" } },
+      (args) => args.view === "overview",
+    )
     renderPage(boot(null, engines), { engines }, { startPage: "/app", location: address.location })
-    expect(await screen.findByRole("heading", { level: 1, name: BOARDS_ONLY_TITLE })).toBeTruthy()
-    await waitFor(() => expect(address.reports[0]?.place.args).toEqual({ engine: "orders-c8" }))
+    expect(await screen.findByRole("heading", { name: REFUSED_TITLE })).toBeTruthy()
+    await waitFor(() => expect(address.reports[0]?.place.args).toEqual({ engine: "locked" }))
+  })
+
+  it("on the landing a Camunda 8 engine the page shows says what it runs, and opens the page's screen", async () => {
+    const engines = [...ENGINES, ON_BOARDS]
+    const address = fakeAddress(undefined, (args) => args.view === "overview")
+    renderPage(boot(null, engines), { engines }, { startPage: "/app", location: address.location })
+    const row = await screen.findByRole("button", { name: /^orders-c8\b/ })
+    expect(row.textContent).toContain("Camunda 8")
+    expect(row.textContent).not.toMatch(/board/i)
+    expect(row.getAttribute("data-status")).toBe("screens")
+    fireEvent.click(row)
+    await waitFor(() =>
+      expect(address.reports.at(-1)).toMatchObject({
+        place: { args: { view: "overview", engine: "orders-c8" } },
+        entry: "push",
+      }),
+    )
+    expect(screen.queryByRole("heading", { level: 1, name: BOARDS_ONLY_TITLE })).toBeNull()
   })
 
   it("moves on screen alone in a chat, which has no address", async () => {

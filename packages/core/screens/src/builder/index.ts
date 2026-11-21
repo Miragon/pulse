@@ -6,6 +6,15 @@ export type {
   EngineScreenReads,
   EngineScreenTotals,
 } from "./engine-screen-model.js"
+export { Finder } from "./finder.js"
+export type {
+  FindFacts,
+  FinderGapReads,
+  FinderReads,
+  FinderSearchReads,
+  FindModel,
+  FindSearch,
+} from "./finder-model.js"
 export { InstanceCounts } from "./instance-counts.js"
 export { InstanceList } from "./instance-list.js"
 export type {
