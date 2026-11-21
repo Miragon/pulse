@@ -15,9 +15,9 @@ editors](../vscode/camunda8.md)).
 | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `engine_list_engines`                                                                             | Lists it with `dialect` `c8` and its `cockpitUrl`, and names the boards that read it                                                     |
 | `engine_open_cockpit` with `view` `board`                                                         | A board over it and the other engines the board names, with the numbers the editors show                                                 |
-| `engine_open_cockpit` with `view` `landing`                                                       | The engines and boards to pick from; a cluster reads "Camunda 8, on boards" (in the web app "Camunda 8"), no health read                 |
+| `engine_open_cockpit` with `view` `landing`                                                       | The engines and boards to pick from; a cluster reads "Camunda 8, on boards", no health read (the web app shows its own start page)       |
 | `engine_board_data`, `engine_bpmn_xml_data`                                                       | The app-only feeds behind a board: its numbers, kept 30 s per caller, and its diagram                                                    |
-| `engine_screen_processes_data`                                                                    | The app-only feed of the web app's engine screen: a cluster's processes, its Operate where the profile names `cockpitUrl`                |
+| `engine_screen_processes_data`                                                                    | The app-only feed of the web app's engine screen and start page: a cluster's processes, its Operate where the profile names `cockpitUrl` |
 | `engine_screen_process_data`, `engine_screen_instances_data`, `engine_screen_variable_names_data` | The app-only feeds of the web app's process screen: a version, its instances, its variable names; greater, less and a date refused       |
 | `engine_screen_instance_data`, `engine_screen_incident_text_data`                                 | The app-only feeds of the web app's instance screen: an instance and an incident's text                                                  |
 | `engine_screen_find_data`                                                                         | The app-only feed of the web app's search: the instance with a key, those with an exact business id (a called instance has its caller's) |
@@ -36,8 +36,8 @@ a cluster has no Overview, Incidents or Jobs tab but one state: the boards that 
 none does yet, and with `cockpitUrl` a link to Operate's start page, never to an instance in it. In
 the chat a board's tiles of a cluster open nothing, the cross-engine view names the clusters it
 leaves out, and a view of one engine refuses a cluster (`ENGINE_DIALECT_NOT_SERVED`). In the web app
-`/app/engines/<cluster>` shows its processes (its incidents at their instances), a board's tiles
-open its screens, and its incidents and jobs pages refuse it with a link to the start page.
+the start page lists it with its figures, `/app/engines/<cluster>` shows its processes (incidents at
+their instances), a board's tiles open its screens, and its incidents and jobs pages refuse it.
 
 ## A profile
 

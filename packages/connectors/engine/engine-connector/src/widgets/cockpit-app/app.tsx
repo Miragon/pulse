@@ -230,7 +230,7 @@ function CockpitScopes({ data, chrome }: { data: CockpitAppData | null; chrome: 
   const inline = useHostDisplayMode() === "inline"
   // A page whose bar leads to its start page: the chooser's crumb is the bar's product there.
   const page = useStartPage() !== undefined
-  // Where the page's address put the cockpit beyond its start view (the web app's fleet page).
+  // Where the page's address put the cockpit beyond its start view (an engine named alone).
   const addressStart = useAddressStart()
 
   const boards = serverBoards(listed ?? landingSeed(data))

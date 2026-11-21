@@ -18,7 +18,8 @@ and their text, its tables of waits, path and variables, the menu of the instanc
 activity called and the legend of its diagram's markers, and a process's version picker, the
 notice that older versions still run, the filter bar of its instance list with the variable
 condition dialog, the instance table and its next page, the counts and call buttons on its
-diagram and their legend.
+diagram and their legend, and the engines side by side (a row per engine, what runs where) over
+several engine screens summed.
 Below 1.0: pin the exact version and update all `@miragon/pulse-*` packages together.
 
 ## What it is not
@@ -360,6 +361,28 @@ Over the find screen's JSON form (`FindScreenData`, one per engine that answered
 The web app's search across engines renders both with its table and id; the editors have no search,
 so their bundles leave the blocks and their words out.
 
+## The engines side by side
+
+Over the engine screens of several engines summed (`useFleetSums(screens)`, the screens'
+`FleetSums` for a surface that names the screens by type alone: counts only, never a rate, since
+engines run different processes, so a rate summed across them would measure their mix):
+
+- `EngineTable`: an engine per row over the surface's table (`EngineRowData`: its sums once read,
+  `FleetSums`' engine, else `loading`, `failed`, `refused` or `unread`, nothing read for a reason
+  not the engine's, a page's ended session, a quiet mark without a tone): its id, its product, its
+  processes, running instances, instances with incident and open root incidents, each the figure
+  its engine screen shows (its totals, its rows' incidents summed, a lower bound where the engine
+  stopped counting); a row without figures keeps its place, its state in words beside the id and a
+  dash per figure, why in the dash's title. The product, the processes and the running instances drop where
+  a table that fits its region is narrower than 40rem. A row opens its engine and copies its id.
+- `ProcessesByEngine`: what runs where over the surface's plain table and its id, a row per process
+  (`FleetSums`' processes) with its running instances on each engine read, an empty cell where it is
+  not deployed (said for a screen reader), and its instances with incident over all of them; above
+  the table the note that the view shows counts, never rates, under it the engines not read.
+
+The web app's start page renders both with its tables and id; the editors show no engines side by
+side, so their bundles leave the blocks and their words out.
+
 ## The slots of a board's tiles
 
 The tiles own their columns, cells, words, group notes, problems and the card; the surface brings
@@ -397,7 +420,7 @@ with `setFormatLocale`, states through pulse-ui's `StateLabel`. The English word
 equal `BoardProblems.describe` of the board package; the English words of the screens' blocks are
 those of the engine tab, the instance view and the definition view of Pulse for VS Code and Pulse
 for Orca, letter for letter (but for two words of the definition view: the notice of older
-versions counts those with incident, and the variable filter counts its conditions). The tiles, an engine's process list, an instance's and a process's blocks, the history notice and the search keep a catalog each, so a
+versions counts those with incident, and the variable filter counts its conditions). The tiles, an engine's process list, an instance's and a process's blocks, the history notice, the search and the engines side by side keep a catalog each, so a
 surface bundles only the words of the blocks it renders. `useProblemWords()` words a problem of the
 file for a surface's own strips, `useNoteLines()` a board's note in one line (a note of the file
 after its JSON path, the builder's note on a diagram too long to roll up after the tile's title and
@@ -412,14 +435,16 @@ with incident and its open root incidents, `data-tone`: danger above 0), `counts
 `incident-card`,
 `variable-name`, `incident-text-region`, `incident-text`, `root-cause-line`,
 `called-instance-menu`, `filter-chip` (`data-kind`: element), `incident-flag`, `badge-count`
-(`data-scope`: the scope it filters to; its cluster `data-badge-for` the element) and
-`call-button` (`data-call-for` the element, `data-state`: missing).
+(`data-scope`: the scope it filters to; its cluster `data-badge-for` the element),
+`call-button` (`data-call-for` the element, `data-state`: missing), and of the engines side by
+side `engine` (`data-state`: read, loading, failed, refused), `processes-by-engine`, `counts-note`
+and `unread`.
 
 ## Entries
 
-| Entry                   | Holds                                                                                                                                                                                                                                                     |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@miragon/pulse-blocks` | `BoardGrid`, `BoardTile`, `ProblemList`, `useProblemWords`, `useNoteLines`, `ListFilterBar`, `ProcessTable`, `useProcessList`, `ScopeSegments`, an instance's and a process's blocks, `FindResults`, `FindHistoryNotice`, `JsonText` and the slots' types |
+| Entry                   | Holds                                                                                                                                                                                                                                                                                                         |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@miragon/pulse-blocks` | `BoardGrid`, `BoardTile`, `ProblemList`, `useProblemWords`, `useNoteLines`, `ListFilterBar`, `ProcessTable`, `useProcessList`, `ScopeSegments`, an instance's and a process's blocks, `FindResults`, `FindHistoryNotice`, `EngineTable`, `ProcessesByEngine`, `useFleetSums`, `JsonText` and the slots' types |
 
 ## Stability
 

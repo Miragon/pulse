@@ -8,11 +8,42 @@ import {
   type ViewComponent,
 } from "@miragon/pulse-widget-shell/widgets"
 import { PageNotices } from "../src/notices.js"
-import { bodyOf, callsOf, settled, start, stopPage } from "./page.test-support.js"
+import {
+  bodyOf,
+  callsOf,
+  ENGINE_SCREEN_FEED,
+  engineList,
+  engineScreen,
+  settled,
+  start,
+  stopPage,
+  viewResult,
+} from "./page.test-support.js"
 
 /** The page as a browser starts it: its route, its session, its frame and the view in it. */
 
 afterEach(stopPage)
+
+/** The engine list of a server with two engines, each read through the engine screen's feed. */
+const twoEngines = ({
+  name,
+  arguments: args,
+}: {
+  name: string
+  arguments?: { engine?: unknown }
+}) =>
+  Response.json(
+    name === "engine_list_engines"
+      ? engineList({
+          engines: [
+            { id: "prod", dialect: "c7" },
+            { id: "test", dialect: "c8" },
+          ],
+        })
+      : name === ENGINE_SCREEN_FEED
+        ? engineScreen(args?.engine)
+        : { result: viewResult },
+  )
 
 /** The arguments of the page's first call of the view tool. */
 const viewArgs = (fetch: Parameters<typeof callsOf>[0]): unknown =>
@@ -70,10 +101,27 @@ describe("a page with a session", () => {
     expect(screen.getByRole("link", { name: "Go to the start page" })).toBeTruthy()
   })
 
-  it("opens the cockpit's landing on /app, the document titled Pulse", async () => {
+  it("opens the start page on /app, every engine read through its engine screen and no view called", async () => {
+    const env = await start("/app", { call: twoEngines })
+    expect(screen.getByRole("heading", { level: 1, name: "All engines" })).toBeTruthy()
+    expect(document.title).toBe("All engines · Pulse")
+    expect(callsOf(env.fetch, ENGINE_SCREEN_FEED)).toEqual([{ engine: "prod" }, { engine: "test" }])
+    expect(callsOf(env.fetch, "engine_open_cockpit")).toEqual([])
+    expect(env.browser.writes).toEqual([])
+  })
+
+  it("gives /app to the engine of a server with one engine and no board, its processes the page's screen", async () => {
     const env = await start("/app")
-    expect(viewArgs(env.fetch)).toEqual({ view: "landing" })
-    expect(document.title).toBe("Pulse")
+    expect(env.browser.writes).toEqual([
+      { entry: "replace", url: "/app/engines/prod", state: null },
+    ])
+    expect(callsOf(env.fetch, ENGINE_SCREEN_FEED)).toEqual([{ engine: "prod" }])
+    expect(callsOf(env.fetch, "engine_open_cockpit")).toEqual([])
+    // No move of the reader's: the focus stays where the page starts, the skip link the first stop.
+    const heading = await screen.findByRole("heading", { level: 1, name: "prod" })
+    expect(document.activeElement).not.toBe(heading)
+    expect(document.activeElement).toBe(document.body)
+    expect(screen.getAllByRole("link")[0]?.textContent).toBe("Skip to content")
   })
 
   it("opens a board's page on the cockpit's board view, the document titled by the board", async () => {
@@ -131,7 +179,7 @@ describe("a page with a session", () => {
   })
 
   it("mounts into the document's #root without a container", async () => {
-    await start("/app", {}, { inRoot: true })
+    await start("/app/boards/invoices", {}, { inRoot: true })
     expect(document.getElementById("root")?.textContent).toContain("Hi")
   })
 })
@@ -286,10 +334,11 @@ describe("the page's address follows the view (N1)", () => {
     expect(env.reload).not.toHaveBeenCalled()
   })
 
-  it("starts the cross-engine overview's page on the landing, the view told where it is", async () => {
-    const env = await start("/app/fleet", {}, MOVER)
-    expect(viewArgs(env.fetch)).toEqual({ view: "landing" })
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("fleet")
+  it("gives the cross-engine overview's old address to the start page, before it reads its session", async () => {
+    const env = await start("/app/fleet", { call: twoEngines }, MOVER)
+    expect(env.browser.writes[0]).toEqual({ entry: "replace", url: "/app", state: null })
+    expect(screen.getByRole("heading", { level: 1, name: "All engines" })).toBeTruthy()
+    expect(viewArgs(env.fetch)).toBeUndefined()
   })
 
   it("starts an engine's own address on the landing, the view told the engine", async () => {
@@ -397,7 +446,7 @@ const startEntry = () => within(screen.getByRole("banner")).getByRole("link", { 
 
 describe("the navigation's way to the start page", () => {
   it("goes there in the page, a new entry, the document titled by the route it leads to", async () => {
-    const env = await start("/app/boards/invoices")
+    const env = await start("/app/boards/invoices", { call: twoEngines })
     expect(document.title).toBe("Board invoices · Pulse")
     const home = startEntry()
     expect(home.getAttribute("href")).toBe("/app")
@@ -406,9 +455,8 @@ describe("the navigation's way to the start page", () => {
     expect(env.browser.writes.at(-1)).toEqual({ entry: "push", url: "/app", state: null })
     expect(callsOf(env.fetch, "engine_open_cockpit")).toEqual([
       { view: "board", board: "invoices" },
-      { view: "landing" },
     ])
-    expect(document.title).toBe("Pulse")
+    expect(document.title).toBe("All engines · Pulse")
     expect(env.assign).not.toHaveBeenCalled()
     expect(env.reload).not.toHaveBeenCalled()
   })

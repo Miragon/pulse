@@ -1,43 +1,9 @@
 import { useCallback, useMemo } from "react"
-import type {
-  InstanceSlots,
-  ScreenCopy,
-  ScreenLinkProps,
-  ScreenPlainTableProps,
-} from "@miragon/pulse-blocks"
-import { cn, FOCUS_RING, TableEmptyState, Td, useToast } from "@miragon/pulse-ui"
-import { ListTable } from "@miragon/pulse-widget-shell/widgets"
+import type { InstanceSlots, ScreenCopy, ScreenLinkProps } from "@miragon/pulse-blocks"
+import { cn, FOCUS_RING, useToast } from "@miragon/pulse-ui"
 import { useT } from "../../messages/index.js"
 import { PageLink, type Navigate } from "../../router/page-link.js"
-import { targetUrl } from "../slots.js"
-
-/**
- * The page's table whose rows open nothing (an instance's history, its waits, its variables):
- * widget-shell's `ListTable` (its named scroll region, the sticky head, a column a narrow region
- * drops) at the height its tab leaves it, its rows scrolling in that region; an empty table is the
- * kit's empty state. The block owns the columns, the cells and the words.
- */
-function PagePlainTable<Row>({ label, columns, rows, rowKey, empty }: ScreenPlainTableProps<Row>) {
-  if (rows.length === 0) return <TableEmptyState>{empty}</TableEmptyState>
-  return (
-    <ListTable
-      ariaLabel={label}
-      fill
-      columns={columns.map((column) => ({
-        label: column.label,
-        ...(column.hideBelow === undefined ? {} : { hideBelow: "sm" as const }),
-      }))}
-    >
-      {rows.map((row) => (
-        <tr key={rowKey(row)}>
-          {columns.map((column) => (
-            <Td key={column.key}>{column.cell(row)}</Td>
-          ))}
-        </tr>
-      ))}
-    </ListTable>
-  )
-}
+import { PagePlainTable, targetUrl } from "../slots.js"
 
 /** A link of a block, in the page's quiet look: underlined text in the link's colour. */
 const LINK = cn(

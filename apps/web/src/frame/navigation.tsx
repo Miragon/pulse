@@ -6,7 +6,6 @@ import {
   ClipboardList,
   Cog,
   House,
-  Layers,
   Server,
   TriangleAlert,
   Workflow,
@@ -16,17 +15,16 @@ import { useEngineList, type ListedEngines } from "../engine-list.js"
 import { useT } from "../messages/index.js"
 import { PageLink, type Navigate } from "../router/page-link.js"
 import { urlOf, type Place } from "../router/routes.js"
-import { inFleet, placeOfSection, sectionAt, sectionsOf, type NavSection } from "./nav-sections.js"
+import { placeOfSection, sectionAt, sectionsOf, type NavSection } from "./nav-sections.js"
 
 /**
  * An engine as the navigation shows it: its sections, else on boards only (a dialect the page has
- * no screen of), or refused; and whether the cockpit's view across engines reads it (`fleet`).
+ * no screen of), or refused.
  */
 interface NavEngine {
   readonly id: string
   readonly kind: "sections" | "boardsOnly" | "refused"
   readonly sections: readonly NavSection[]
-  readonly fleet: boolean
 }
 
 /** The engines of one environment, in the order the list names them. */
@@ -52,21 +50,12 @@ function environmentsOf(list: ListedEngines): NavEnvironment[] {
   for (const { id, environment, dialect } of list.engines ?? []) {
     const sections = sectionsOf(dialect)
     const kind = sections.length > 0 ? "sections" : "boardsOnly"
-    add(environment, { id, kind, sections, fleet: inFleet(dialect) })
+    add(environment, { id, kind, sections })
   }
   for (const { id, environment } of list.refused ?? []) {
-    add(environment, { id, kind: "refused", sections: [], fleet: true })
+    add(environment, { id, kind: "refused", sections: [] })
   }
   return [...groups].map(([id, engines]) => ({ id, engines }))
-}
-
-/**
- * Whether the navigation offers the view across engines: where the cockpit offers it, two engines
- * or more that it reads whole (a refused profile counts; a Camunda 8 engine, which the page's
- * screens show and the cockpit's view across engines reads not, does not).
- */
-function offersFleet(environments: readonly NavEnvironment[]): boolean {
-  return environments.flatMap(({ engines }) => engines).filter((e) => e.fleet).length > 1
 }
 
 const SECTION_ICONS: Readonly<Record<NavSection, LucideIcon>> = {
@@ -192,8 +181,8 @@ function Engines({
 /**
  * The page's navigation, from the one read of the engine list (shared with the embedded cockpit,
  * so a page view costs no second read and no read per engine: the navigation carries no counts):
- * the start page, the view across engines where the cockpit offers it, the engines by environment
- * with the open one's sections, the server's boards. Every entry is a link of the page; the one
+ * the start page (every engine side by side), the engines by environment with the open one's
+ * sections, the server's boards. Every entry is a link of the page; the one
  * of the place on screen is current. `navigate` follows an entry in the page. Where the list
  * cannot be read, a quiet line says so; the session's end it leaves to the frame's notice.
  */
@@ -215,16 +204,6 @@ export function PageNavigation({ place, navigate }: { place: Place; navigate: Na
         >
           {t("nav.start")}
         </Entry>
-        {offersFleet(environments) && (
-          <Entry
-            href={urlOf({ view: "fleet" })}
-            navigate={navigate}
-            current={place.view === "fleet"}
-            icon={<Icon icon={Layers} />}
-          >
-            {t("nav.fleet")}
-          </Entry>
-        )}
       </SideNavList>
       {environments.length > 0 && (
         <Engines environments={environments} place={place} navigate={navigate} />

@@ -8,6 +8,7 @@ import type {
 } from "@miragon/pulse-screens"
 import type { ComponentType } from "react"
 import { useScreenWords, type ScreenWords } from "../messages/screen-words.js"
+import { IncidentCount } from "./incident-count.js"
 import type { ScreenIdProps, ScreenSlots, ScreenTableColumn } from "./slots.js"
 
 export interface ProcessTableProps {
@@ -26,35 +27,6 @@ export interface ProcessTableProps {
    */
   readonly totals: EngineTotalsData
   readonly slots: Pick<ScreenSlots, "Table" | "Id" | "onOpen" | "linkOf">
-}
-
-/**
- * A count of a process that alarms above 0 (its instances with incident, its open root incidents):
- * a neutral figure, its alarm icon and words above 0, a count the engine stopped at as a lower
- * bound (`≥ 10,000`).
- */
-function IncidentCount({
-  count,
-  atLeast = false,
-  part,
-}: {
-  readonly count: number
-  readonly atLeast?: boolean | undefined
-  readonly part: "incident-count" | "root-incident-count"
-}) {
-  const t = useScreenWords()
-  const text = formatCount(atLeast ? { atLeast: count } : count)
-  return (
-    <span data-part={part} data-tone={count > 0 ? "danger" : undefined}>
-      {count > 0 ? (
-        <CountFigure situation="openIncident" label={t("process.alarm")}>
-          {text}
-        </CountFigure>
-      ) : (
-        <CountFigure>{text}</CountFigure>
-      )}
-    </span>
-  )
 }
 
 function columnsOf(
@@ -84,7 +56,9 @@ function columnsOf(
     {
       key: "withIncident",
       label: t("column.withIncident"),
-      cell: (row) => <IncidentCount count={row.withIncident} part="incident-count" />,
+      cell: (row) => (
+        <IncidentCount count={row.withIncident} part="incident-count" alarm={t("process.alarm")} />
+      ),
     },
     {
       key: "incidents",
@@ -94,6 +68,7 @@ function columnsOf(
           count={row.incidents}
           atLeast={row.incidentsAtLeast}
           part="root-incident-count"
+          alarm={t("process.alarm")}
         />
       ),
     },

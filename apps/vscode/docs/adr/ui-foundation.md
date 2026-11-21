@@ -539,7 +539,18 @@ each surface keeps its screens and the web app's are its own.
      level NONE the search finds none); it never calls missing what an engine it could not search
      or that has not answered may hold; exactly one hit, with every engine searched and none
      missing history, takes the search's entry once, so Back leads to where it started. The
-     extension has no search, so its bundle leaves the blocks out.
+     extension has no search, so its bundle leaves the blocks out. Executed for the start page on
+     2026-11-21, last that day: at `/app`, in the place of the cockpit's landing and of its
+     cross-engine overview (whose address, `/app/fleet`, gives way to `/app` for the transition of
+     point 6), every engine side by side, each row the figures its engine screen shows (its product,
+     processes, running instances, instances with incident and open root incidents: one read per
+     engine of `engine_screen_processes_data`, all at once, summed in the browser with the screens'
+     `FleetSums`, counts only, never a rate), Camunda 8's clusters among them, then what runs where
+     and the server's boards, through two blocks of `@miragon/pulse-blocks` a second surface could
+     render (`EngineTable`, `ProcessesByEngine`); an engine it could not read keeps its row and says
+     why, a refused profile in the server's words; a server of one engine and no board shows that
+     engine there. The cockpit's words only the web app's landing and cross-engine view used for a
+     Camunda 8 engine went, so the chat's bundle shrank; the extension bundles neither block.
   3. **The operations views stay the cockpit's.** Its incidents, a cause, its jobs and the boards run
      unchanged inside the frame, without their head. Once a screen replaces a section, the page
      takes every drill into it, from the embedded routes and a board's tiles too.
@@ -724,4 +735,5 @@ measurement on the playground, c7-core's element statistics read the incidents o
 activities alone (D2's point 1), with the same counts. Later that day the web app read a Camunda 8
 engine whole (D10's point 5), and then it searched for an instance across engines (D10's point 2).
 Last that day the contract counted the open root incidents of a process and a version (D2's point
-1), which the engine screen and the engine tab show as their column Incidents.
+1), which the engine screen and the engine tab show as their column Incidents, and the web app's
+start page replaced the cockpit's landing and its cross-engine overview there (D10's point 2).

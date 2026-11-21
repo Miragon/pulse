@@ -72,14 +72,17 @@ export interface ToolRead {
 /**
  * Reads a list of the same kind at once (one engine's feed per engine, say), in the order given:
  * each entry is the {@link useToolQuery} of its read, under the same cache key, so a widget that
- * reads one of them alone shares its answer.
+ * reads one of them alone shares its answer. `options` hold for every read (`staleTime`: the age
+ * at which a read that mounts again reads anew, as the widget that reads one alone may set it).
  */
 export function useToolQueries<TData>(
   reads: readonly ToolRead[],
+  options: Pick<ToolQueryOptions<TData>, "staleTime"> = {},
 ): Array<UseQueryResult<TData, Error>> {
   const { callTool } = useViewHost()
   return useQueries({
     queries: reads.map(({ key, tool, args }) => ({
+      ...options,
       queryKey: [...key, args],
       queryFn: async () => decodeToolResult<TData>(await callTool(tool, args)),
     })),

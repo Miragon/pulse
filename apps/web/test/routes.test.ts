@@ -36,11 +36,11 @@ const E = "prod-a"
 
 /**
  * One place of each cockpit route, each id it needs and takes, with the address that names it: the
- * landing, the cross-engine overview, a board and every route of one engine (COCKPIT_ROUTES).
+ * landing (the page's start page), a board and every route of one engine (COCKPIT_ROUTES). The
+ * cross-engine overview has no address of its own: the start page replaced it.
  */
 const PLACES: readonly (readonly [Place, string])[] = [
   [{ view: "landing" }, "/app"],
-  [{ view: "fleet" }, "/app/fleet"],
   [{ view: "board", board: "invoices" }, "/app/boards/invoices"],
   [{ view: "overview", engine: E }, "/app/engines/prod-a"],
   [{ view: "incidents", engine: E }, "/app/engines/prod-a/incidents"],
@@ -157,7 +157,7 @@ describe("every place of the cockpit at its address and back", () => {
   it("covers every view and every id of the cockpit tool, so a new route needs an address", () => {
     const properties = cockpitProperties()
     const views = new Set(PLACES.map(([place]) => place.view))
-    expect([...views].sort()).toEqual([...(properties.view?.enum ?? []), "fleet"].sort())
+    expect([...views].sort()).toEqual([...(properties.view?.enum ?? [])].sort())
     const named = new Set(PLACES.flatMap(([place]) => Object.keys(place)))
     expect(Object.keys(properties).filter((key) => !named.has(key))).toEqual([])
   })
@@ -201,20 +201,20 @@ describe("every place of the cockpit at its address and back", () => {
 describe("the start of each place", () => {
   const LANDING = { view: COCKPIT_VIEW, args: { view: "landing" } }
 
-  it("opens the landing on /app, the engines and the boards, titled Pulse", () => {
+  it("opens the page's start page on /app, the cockpit's landing its start, titled Pulse", () => {
     expect(viewAt("/app")).toEqual({
       kind: "view",
       place: { view: "landing" },
       url: "/app",
       start: LANDING,
+      screen: { kind: "start" },
       title: { kind: "product" },
     })
   })
 
-  it("starts the cross-engine overview and an engine's own address on the landing", () => {
-    // No argument of the tool names the cross-engine overview; an engine's own address may name one
-    // without sections, and the tool takes no `engine` on a server of Camunda 8 clusters alone.
-    expect(viewAt("/app/fleet").start).toEqual({ ...LANDING, place: { view: "fleet" } })
+  it("starts an engine's own address on the landing", () => {
+    // An engine's own address may name one without sections, and the tool takes no `engine` on a
+    // server of Camunda 8 clusters alone.
     expect(viewAt("/app/engines/c8").start).toEqual({
       ...LANDING,
       place: { view: "overview", engine: "c8" },
@@ -223,7 +223,7 @@ describe("the start of each place", () => {
   })
 
   it("starts every other place at its arguments, the tool's own", () => {
-    for (const [place, url] of PLACES.slice(4)) {
+    for (const [place, url] of PLACES.slice(3)) {
       expect(viewAt(url).start, url).toEqual({ view: COCKPIT_VIEW, args: place })
     }
   })
@@ -308,7 +308,7 @@ describe("reading an address", () => {
 
 describe("the cockpit's query, the address before the page's own", () => {
   it("reads every place the old page named and replaces it by its canonical address", () => {
-    for (const [place, url] of PLACES.slice(3)) {
+    for (const [place, url] of PLACES.slice(2)) {
       const old = `/app/cockpit?${new URLSearchParams(
         Object.entries(place).map(([key, value]) => [key, String(value)]),
       ).toString()}`
@@ -378,6 +378,37 @@ describe("signInUrl", () => {
     expect(signInUrl("/app/engines/prod/jobs?failed=true")).toBe(
       "/app/auth/login?return=%2Fapp%2Fengines%2Fprod%2Fjobs%3Ffailed%3Dtrue",
     )
+  })
+})
+
+describe("the start page, which replaced the cross-engine overview", () => {
+  const START = {
+    kind: "view",
+    place: { view: "landing" },
+    url: "/app",
+    start: { view: COCKPIT_VIEW, args: { view: "landing" } },
+    screen: { kind: "start" },
+    title: { kind: "product" },
+  }
+
+  it("is the page's screen at the landing and at the cross-engine overview, its address /app", () => {
+    expect(screenOf({ view: "landing" })).toEqual({ kind: "start" })
+    expect(screenOf({ view: "fleet" })).toEqual({ kind: "start" })
+    expect(screenUrlOf({ kind: "start" })).toBe("/app")
+    expect(urlOf({ view: "fleet" })).toBe("/app")
+  })
+
+  it("reads the cross-engine overview's old address as its own, and gives way to /app", () => {
+    expect(viewAt("/app/fleet")).toEqual(START)
+    expect(viewAt("/app/fleet?x=1")).toEqual(START)
+    expect(viewAt("/app/cockpit?view=fleet")).toEqual(START)
+    expect(viewAt("/app/cockpit")).toMatchObject({ url: "/app", screen: { kind: "start" } })
+  })
+
+  it("is none where the landing or the overview carries more arguments", () => {
+    expect(screenOf({ view: "landing", engine: E })).toBeUndefined()
+    expect(screenOf({ view: "fleet", engine: E })).toBeUndefined()
+    expect(viewAt("/app/cockpit?view=fleet&engine=prod-a")).not.toHaveProperty("screen")
   })
 })
 

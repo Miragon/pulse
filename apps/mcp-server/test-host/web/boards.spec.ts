@@ -18,8 +18,8 @@ import {
 } from "./web-sim.js"
 
 /**
- * The board list and the board pages of the web app on the real server: `/app` opens the cockpit's
- * landing (`engine_open_cockpit` view `landing`), the engines and the server's boards, with one
+ * The board list and the board pages of the web app on the real server: `/app` opens the page's
+ * start page (start-page.spec.ts), every engine side by side and the server's boards, with one
  * engine too where the server has boards; `/app/boards/<id>` opens a board (view `board`), titled
  * by the board's title once the view shows it (by its id before). Both are read-only and show what
  * the chat shows: the same board feed, the same tiles of @miragon/pulse-blocks. A board the server
@@ -33,8 +33,8 @@ import {
 const TITLE = "Invoice operations"
 const BOARD_PAGE = `/app/boards/${INVOICES_BOARD}`
 
-const landing = (page: Page) => page.getByRole("heading", { level: 1, name: "Operations Cockpit" })
-const boards = (page: Page) => page.getByRole("region", { name: "Boards" })
+const landing = (page: Page) => page.getByRole("heading", { level: 1, name: "All engines" })
+const boards = (page: Page) => page.getByRole("table", { name: "Boards" })
 const boardHeading = (page: Page) => page.getByRole("heading", { level: 1, name: TITLE })
 const tile = (page: Page, name: string) => page.getByRole("region", { name })
 const trail = (page: Page) => page.getByRole("navigation", { name: "Breadcrumb" })
@@ -54,18 +54,16 @@ test.describe("the board list", () => {
     const calls = recordCalls(page)
     await signIn(page)
     await expect(landing(page)).toBeVisible({ timeout: 15_000 })
-    await expect(page.getByRole("region", { name: "Engines" }).getByRole("button")).toHaveCount(2)
-    const board = boards(page).getByRole("button", {
-      name: new RegExp(`^${TITLE}\\s*,\\s*2 engines: ${HEALTHY_ENGINE}, ${BROKEN_ENGINE}$`),
-    })
-    await expect(board).toBeVisible()
-    const refused = boards(page).locator("[data-status=refused]")
+    await expect(page.getByRole("table", { name: "Engines" }).locator("tbody tr")).toHaveCount(2)
+    const board = boards(page).getByRole("row", { name: `Board ${TITLE}` })
+    await expect(board).toContainText(`${HEALTHY_ENGINE}, ${BROKEN_ENGINE}`)
+    const refused = page.locator("[data-part=refused-boards] [data-status=refused]")
     await expect(refused).toContainText(BROKEN_BOARD)
     await expect(refused).toContainText(/file refused: 1 problem$/)
-    await expect(page).toHaveTitle("Operations Cockpit · Pulse")
-    expect(viewCalls(calls)).toEqual([
-      { name: "engine_open_cockpit", arguments: { view: "landing" } },
-    ])
+    await expect(page).toHaveTitle("All engines · Pulse")
+    // The start page reads each engine's engine screen and calls no view.
+    expect(viewCalls(calls)).toEqual([])
+    await rendered(page)
     expect(errors).toEqual([])
     await expectNoAxeFinding(page)
 
@@ -79,7 +77,7 @@ test.describe("the board list", () => {
     await expect(trail(page)).toHaveCount(0)
     await page.goBack()
     await expect(landing(page)).toBeVisible()
-    await expect(page).toHaveTitle("Operations Cockpit · Pulse")
+    await expect(page).toHaveTitle("All engines · Pulse")
     expect(new URL(page.url()).pathname).toBe("/app")
     expect(viewCalls(calls)).toHaveLength(1)
     // A reload shows the board again, from the address.

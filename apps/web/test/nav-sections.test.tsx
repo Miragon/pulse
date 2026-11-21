@@ -4,8 +4,6 @@ import { afterEach, describe, expect, it } from "vitest"
 import { TestViewHost, type ViewComponent } from "@miragon/pulse-widget-shell/widgets"
 import { engineViews } from "@miragon/pulse-engine-connector/widgets"
 import {
-  FLEET_DIALECTS,
-  inFleet,
   NAV_SECTIONS,
   placeOfSection,
   SECTION_VIEWS,
@@ -151,17 +149,6 @@ describe("the navigation's sections per dialect", () => {
     expect(hasScreens(undefined)).toBe(false)
     expect(sectionsOf(undefined)).toEqual([])
     expect(sectionsOf("hasOwnProperty")).toEqual([])
-  })
-
-  it("counts Camunda 7's engines into the view across engines, as the cockpit reads them", () => {
-    expect(FLEET_DIALECTS).toEqual(["c7"])
-    expect(inFleet("c7")).toBe(true)
-    expect(inFleet(undefined)).toBe(true)
-    expect(inFleet("c8")).toBe(false)
-    // The cockpit's fleet reads each engine's overview: the dialects it serves.
-    for (const dialect of Object.keys(NAV_SECTIONS) as NavDialect[]) {
-      expect(inFleet(dialect)).toBe(servedViews(dialect).includes("overview"))
-    }
   })
 })
 

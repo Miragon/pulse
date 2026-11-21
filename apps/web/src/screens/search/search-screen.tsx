@@ -13,10 +13,10 @@ import { Search } from "lucide-react"
 import { useT } from "../../messages/index.js"
 import type { Navigate } from "../../router/page-link.js"
 import { SEARCH_TEXT_MOST } from "../../router/search-address.js"
+import { EngineFailure } from "../engine-failure.js"
 import { RefreshButton } from "../screen-chrome.js"
 import { targetUrl, usePageSlots } from "../slots.js"
 import { useWide } from "../use-wide.js"
-import { SearchFailure } from "./search-failure.js"
 import { MOST_BY_BUSINESS_KEY, type EngineSearch, useSearchReads } from "./search-reads.js"
 
 /**
@@ -220,7 +220,14 @@ export function SearchScreen({
               freshness={<FreshnessStamp at={oldestAsOf(found)} />}
             />
             {searches.map(({ engine, error }) =>
-              error === null ? null : <SearchFailure key={engine} engine={engine} error={error} />,
+              error === null ? null : (
+                <EngineFailure
+                  key={engine}
+                  engine={engine}
+                  error={error}
+                  title={t("screen.search.failed", { engine })}
+                />
+              ),
             )}
             {found.map((screen) => (
               <FindHistoryNotice key={screen.engine} found={screen} />

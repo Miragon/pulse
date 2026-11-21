@@ -29,13 +29,6 @@ export const NAV_SECTIONS: Readonly<Record<NavDialect, readonly NavSection[]>> =
 }
 
 /**
- * The dialects whose engines the cockpit's view across engines reads (its fleet, which reads each
- * engine's overview: Camunda 7's alone), so the navigation offers that view where it reads two
- * engines or more, as the cockpit does.
- */
-export const FLEET_DIALECTS: readonly NavDialect[] = ["c7"]
-
-/**
  * The cockpit's view whose place each section opens: the engine screen at the overview's place
  * (the engine's own address), the others at their own.
  */
@@ -50,14 +43,6 @@ export function sectionsOf(dialect: string | undefined): readonly NavSection[] {
   return dialect !== undefined && Object.hasOwn(NAV_SECTIONS, dialect)
     ? NAV_SECTIONS[dialect as NavDialect]
     : []
-}
-
-/**
- * Whether the cockpit's view across engines reads an engine of `dialect` whole: one it names
- * without a dialect is Camunda 7's, as the cockpit reads it.
- */
-export function inFleet(dialect: string | undefined): boolean {
-  return dialect === undefined || (FLEET_DIALECTS as readonly string[]).includes(dialect)
 }
 
 /** The place a section of `engine` opens. */

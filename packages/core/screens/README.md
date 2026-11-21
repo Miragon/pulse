@@ -240,10 +240,11 @@ The main entry holds what a surface does with a screen's JSON form without readi
   7's failed timer start, which no instance holds) whose name or id holds the search in any case,
   and counts both scopes over what the search leaves.
 - `FleetSums.of(screens)` sums the engine screens of several engines: each engine's totals as its
-  screen says them, each process over the engines it runs on with a cell per engine, and the totals
-  over all of them. Counts only, never a rate: engines run different processes, so a rate summed
-  across them measures their mix. An engine whose read failed is not among the screens it sums, and
-  the surface says so in its place.
+  screen says them with its product and its open root incidents (its rows' summed, a lower bound
+  where one of them is), each process over the engines it runs on with a cell per engine, and the
+  totals over all of them. Counts only, never a rate: engines run different processes, so a rate
+  summed across them measures their mix. An engine whose read failed is not among the screens it
+  sums, and the surface says so in its place.
 - `DiagramDecorations.of(screen)` gives each element of a process screen's diagram what a surface
   draws there: its counts above 0 in the order root incidents, incidents in called instances,
   running, each with the scope of the instance list it filters to, whether its outline marks a

@@ -4,7 +4,6 @@ import {
   HandOffButton,
   useHostChrome,
   useHostFollowUp,
-  useHostLocation,
   WidgetShell,
 } from "@miragon/pulse-widget-shell/widgets"
 import {
@@ -41,12 +40,10 @@ function fleetFailuresHandOff({ engineIds, environments }: Fleet): HandOff {
 
 /**
  * The engines the server shows on boards only, one line per product, which the view leaves out
- * of its reads and sums: none of its reads would be served. On a page whose screens show such an
- * engine (the web app's) the line says only that the view leaves it out.
+ * of its reads and sums: none of its reads would be served.
  */
 function BoardsOnlyLine({ engines }: { engines: readonly CockpitEngine[] }) {
   const t = useT()
-  const claims = useHostLocation()?.claims
   const byProduct = new Map<string, string[]>()
   for (const engine of engines) {
     const product = boardsOnlyOf(engine)?.product
@@ -55,9 +52,7 @@ function BoardsOnlyLine({ engines }: { engines: readonly CockpitEngine[] }) {
   }
   return [...byProduct].map(([product, ids]) => (
     <p key={product} data-slot="fleet-boards-only" className="text-muted-foreground text-small">
-      {t(claims?.({ view: "overview", engine: ids[0] }) ? "fleet.notRead" : "fleet.boardsOnly", {
-        product,
-      })}
+      {t("fleet.boardsOnly", { product })}
       {ids.map((id, index) => (
         <Fragment key={id}>
           {" "}

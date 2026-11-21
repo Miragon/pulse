@@ -18,6 +18,7 @@ import { EngineRoute } from "./screens/engine/engine-route.js"
 import { IncidentRoute, InstanceRoute } from "./screens/instance/instance-route.js"
 import { ProcessRoute } from "./screens/process/process-route.js"
 import { SearchRoute } from "./screens/search/search-route.js"
+import { StartRoute } from "./screens/start/start-route.js"
 import type { VersionMove } from "./screens/process/process-screen.js"
 import { useScreenShown } from "./screens/screen-shown.js"
 import { viewsAt } from "./unknown-engine.js"
@@ -38,8 +39,8 @@ export interface PageAppParts {
  * (`cockpitAfterFailedStart`), the navigation keeping the engine open with its sections; a refusal
  * no retry changes stays the frame's, and an engine's own address that names an engine the server
  * does not configure is refused in the view's place (`viewsAt`). Where the page shows the place
- * with a screen of its own (an engine's processes, a process, an instance, an incident under its
- * instance, the search),
+ * with a screen of its own (its start page, an engine's processes, a process, an instance, an
+ * incident under its instance, the search),
  * the screen stands in the view's place, the cockpit's view its fallback for an engine the screens
  * do not serve, and the frame fills the window's height for it from 64rem on (`fill`); its state
  * rides in the address (the router's `refine`: a filter, a tab), and the view names an engine's
@@ -107,7 +108,8 @@ function PageApp({ router, views, page }: PageAppParts) {
 
 /**
  * The page's own screen at its place (`screen`), each deciding on the frame's one read of the engine
- * list whether it serves the engine, else the cockpit's view the page starts there (`fallback`): an
+ * list whether it serves the engine, else the cockpit's view the page starts there (`fallback`): the
+ * start page, every engine side by side (a server of one engine and no board that engine); an
  * engine's processes, its filter the address's; an instance, its tab the address's and one of its
  * root incidents in focus at the address of that incident; an incident known by its id alone, which
  * the page leads on to the instance that holds its root; a process in one version, its version and its
@@ -125,6 +127,8 @@ function PageScreenAt({
   fallback: ReactNode
 }) {
   switch (screen.kind) {
+    case "start":
+      return <StartRoute router={router} />
     case "engine":
       return (
         <EngineRoute

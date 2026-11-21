@@ -344,14 +344,13 @@ describe("the page's address follows the cockpit (N1)", RENDER, () => {
     await waitFor(() => expect(address.reports[0]?.place.args).toEqual({ engine: "locked" }))
   })
 
-  it("on the landing a Camunda 8 engine the page shows says what it runs, and opens the page's screen", async () => {
+  it("on the landing a Camunda 8 engine keeps the chat's words, and opens the screen of a page that shows it", async () => {
     const engines = [...ENGINES, ON_BOARDS]
     const address = fakeAddress(undefined, (args) => args.view === "overview")
     renderPage(boot(null, engines), { engines }, { startPage: "/app", location: address.location })
     const row = await screen.findByRole("button", { name: /^orders-c8\b/ })
-    expect(row.textContent).toContain("Camunda 8")
-    expect(row.textContent).not.toMatch(/board/i)
-    expect(row.getAttribute("data-status")).toBe("screens")
+    expect(row.textContent).toContain("Camunda 8, on no board yet")
+    expect(row.getAttribute("data-status")).toBe("boardsOnly")
     fireEvent.click(row)
     await waitFor(() =>
       expect(address.reports.at(-1)).toMatchObject({

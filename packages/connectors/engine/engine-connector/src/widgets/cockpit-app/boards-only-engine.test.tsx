@@ -329,7 +329,7 @@ describe("an engine the server reads on boards only, in the cross-engine view", 
     await waitFor(() => expect(contexts.at(-1)).toContain('engine=["prod-a","prod-b"]'))
   })
 
-  it("on a page whose screens show them, names them only as left out of this view", async () => {
+  it("names them so on a page whose screens show them too, which shows its own start page", async () => {
     const location: ViewLocation = {
       report: () => undefined,
       subscribe: () => () => undefined,
@@ -338,7 +338,7 @@ describe("an engine the server reads on boards only, in the cross-engine view", 
     renderCockpit({ engines: [C7, { ...C7, id: "prod-b" }, ON_BOARDS], location })
     fireEvent.click(await screen.findByRole("button", { name: "Cross-engine overview" }))
     expect(document.querySelector("[data-slot='fleet-boards-only']")?.textContent).toBe(
-      "Camunda 8, not in this overview: orders-c8",
+      "Camunda 8 on boards only, not in this overview: orders-c8",
     )
   })
 
