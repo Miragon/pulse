@@ -159,6 +159,34 @@ test.describe("the page's side navigation", () => {
     await rendered(page)
     await expectNoAxeFinding(page)
   })
+
+  test("stays in place while a longer page scrolls, the sign-out at the window's foot", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 560 })
+    await signIn(page, `/app/boards/${INVOICES_BOARD}`)
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible({ timeout: 15_000 })
+    await rendered(page)
+    const scrolled = await page.evaluate(() => {
+      const doc = document.documentElement
+      window.scrollTo(0, doc.scrollHeight)
+      return { room: doc.scrollHeight - doc.clientHeight, top: window.scrollY }
+    })
+    // The board is longer than the window, so the page scrolls; the navigation must not.
+    expect(scrolled.room).toBeGreaterThan(100)
+    expect(scrolled.top).toBe(scrolled.room)
+    await rendered(page)
+    const side = await page.locator("[data-slot=page-side]").boundingBox()
+    // At the frame's end the sticky box may sit a fraction of a pixel off; without the fix -353.
+    expect(Math.abs(side?.y ?? -560)).toBeLessThan(1)
+    expect(side?.height).toBeCloseTo(560, 0)
+    await expect(
+      page.getByRole("banner").getByRole("button", { name: "Sign out" }),
+    ).toBeInViewport()
+    // The frame grows with the page: scrolled to its end, its foot is the window's.
+    const frame = await page.locator("[data-slot=page-frame]").boundingBox()
+    expect((frame?.y ?? 0) + (frame?.height ?? 0)).toBeCloseTo(560, 0)
+  })
 })
 
 test.describe("the page's drawer under 64rem", () => {
