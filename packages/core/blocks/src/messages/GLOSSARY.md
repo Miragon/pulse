@@ -104,3 +104,12 @@ Produkt das Aktivieren einer ausgesetzten Instanz (die Glossarregel oben).
 
 Die Zahl gesetzter Bedingungen heißt „2 Bedingungen“, nie „aktiv“: „aktiv“ meint im Produkt eine
 laufende Instanz (die Glossarregel oben).
+
+## Begriffe der Suche
+
+| Sache                                        | Deutsch                                          | Englisch                                  |
+| -------------------------------------------- | ------------------------------------------------ | ----------------------------------------- |
+| Was die Suche findet                         | Gefundene Instanzen                              | Found instances                           |
+| Wonach sie sucht                             | die ganze ID oder der genaue Geschäftsschlüssel  | the whole ID or the exact business key    |
+| Eine Engine mit mehr Treffern, als sie zeigt | hat mehr Instanzen mit diesem Geschäftsschlüssel | has more instances with this business key |
+| Eine Historie, der laufende Instanzen fehlen | Laufende Instanzen fehlen in der Historie von …  | Running instances are missing from …      |

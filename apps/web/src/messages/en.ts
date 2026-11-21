@@ -24,6 +24,11 @@ export const en = {
   "nav.refused": "refused",
   "nav.enginesFailed": "The engines couldn't be loaded. Reload the page.",
   "nav.menu": "Menu",
+  "nav.search.label": "Find an instance",
+  "nav.search.placeholder": "Find an instance",
+  "nav.search.hint": "ID or business key, exact",
+  "nav.search.tooLong": ({ most }: Readonly<Record<string, unknown>>) =>
+    `An ID or business key has at most ${String(most)} ${String(most) === "1" ? "character" : "characters"}. Shorten the text to search.`,
   "nav.close": "Close menu",
   "title.board": "Board {board} · Pulse",
 
@@ -85,6 +90,23 @@ export const en = {
   "screen.process.list.refused": "The engine can't search with these variable conditions",
   "screen.process.list.clear": "Clear variable conditions",
   "screen.process.more.failed": "More instances couldn't be loaded",
+
+  "screen.search.title": "Find an instance",
+  "screen.search.empty":
+    "Type an instance's ID or its exact business key into the search field of the navigation.",
+  "screen.search.loading": "Searching every engine for {text}…",
+  "screen.search.listFailed": "The engines to search couldn't be loaded",
+  "screen.search.found": ({ count }: Readonly<Record<string, unknown>>) =>
+    String(count) === "1" ? "1 instance found" : `${String(count)} instances found`,
+  "screen.search.searched": ({ count }: Readonly<Record<string, unknown>>) =>
+    String(count) === "1" ? "1 engine searched" : `${String(count)} engines searched`,
+  "screen.search.exact": "exact search",
+  "screen.search.failed": "{engine} couldn't be searched",
+  "screen.search.tooLong": ({ most }: Readonly<Record<string, unknown>>) =>
+    `An instance's ID or business key has at most ${String(most)} ${String(most) === "1" ? "character" : "characters"}. Shorten the text in the search field and search again.`,
+  "screen.search.unsearched": "No engine could be searched",
+  "screen.search.unsearchedHint":
+    "Above, each engine says why it couldn't be searched and what you can do.",
 
   "tab.history": "History",
   "tab.incidents": "Incidents",

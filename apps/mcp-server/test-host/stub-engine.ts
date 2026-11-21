@@ -270,6 +270,47 @@ const RUNNING_INVOICES = [
   historicInvoice("pi-invoice-43", "INV-2026-0043", "2026-10-10T07:45:00.000+0000"),
 ]
 
+/** An ended invoice of order ORD-7003, which the search finds beside the cluster's running order. */
+const ENDED_INVOICE = {
+  ...historicInvoice("pi-invoice-7003", "ORD-7003", "2026-10-09T07:30:00.000+0000"),
+  endTime: "2026-10-09T08:10:00.000+0000",
+  state: "COMPLETED",
+}
+
+/** Every instance the history holds, which the search finds by its id or its business key. */
+const HISTORY = [...RUNNING_INVOICES, ENDED_INVOICE]
+
+/**
+ * The search's reads (the web app's `engine_screen_find_data`): the history's instances with a
+ * given id or business key (POST, the filter in the body), and the history's count over every
+ * instance (3), which the search holds against the running instances the statistics count (3), so
+ * the stub's history misses none. Null for every other request.
+ */
+function searchRoute(
+  method: string,
+  url: URL,
+  body: unknown,
+): { status: number; body: unknown } | null {
+  if (method !== "POST" || !url.pathname.startsWith("/engine-rest/history/process-instance")) {
+    return null
+  }
+  const filter: Record<string, unknown> = Object.fromEntries(
+    Object.entries((body ?? {}) as Record<string, unknown>).filter(([key]) => key !== "sorting"),
+  )
+  const keys = Object.keys(filter)
+  if (url.pathname === "/engine-rest/history/process-instance/count" && keys.length === 0) {
+    return { status: 200, body: { count: HISTORY.length } }
+  }
+  if (url.pathname !== "/engine-rest/history/process-instance" || keys.length !== 1) return null
+  const { processInstanceBusinessKey: key, processInstanceIds: ids } = filter
+  if (typeof key === "string") {
+    return { status: 200, body: HISTORY.filter(({ businessKey }) => businessKey === key) }
+  }
+  return Array.isArray(ids)
+    ? { status: 200, body: HISTORY.filter(({ id }) => ids.includes(id)) }
+    : null
+}
+
 /**
  * A board's reads beyond the overview's (fixtures/boards): the history's running invoices (POST,
  * the filter in the body) and their count, both waiting at `approveInvoice` as the process
@@ -554,6 +595,7 @@ export async function startStubEngine(): Promise<StubEngine> {
           chainRoute(method, url, requestBody) ??
           realisticRoute(method, url, requestBody) ??
           jobRoute(method, url, requestBody, jobs) ??
+          searchRoute(method, url, requestBody) ??
           boardRoute(method, url, requestBody) ??
           route(url)
         holds.answer(term, () => send(reply.status, reply.body, reply.contentType))

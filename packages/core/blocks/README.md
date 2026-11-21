@@ -337,6 +337,24 @@ A surface's canvas styles the overlays by their classes: `badge-cluster` and
 `badge-cluster__count` place the counts on the shape's corner, bpmn-js's `bjs-drilldown` and
 `call-button` (`call-button--missing`) draw the call button.
 
+## What the search finds
+
+Over the find screen's JSON form (`FindScreenData`, one per engine that answered):
+
+- `FindResults`: an instance per row over the surface's table, across engines in the surface's
+  order of its engines: its id, business key, process in its version, engine, state with an open
+  incident beside it and start (the business key, the process and the start drop where a table
+  that fits its region is narrower than 40rem); a row opens its instance on its engine and copies
+  its id, named by its business key (else its short id) and its engine. Under the rows the engines
+  that hold more instances with the business key than they list (`most`); an empty table says what
+  was searched (`text`) and that the search is exact.
+- `FindHistoryNotice`: the strip of an engine whose history misses running instances (the find
+  screen's `historyGap`), how many of them the history holds and that the search finds only those;
+  nothing falls back to the runtime's instances. Without a gap it renders nothing.
+
+The web app's search across engines renders both with its table and id; the editors have no search,
+so their bundles leave the blocks and their words out.
+
 ## The slots of a board's tiles
 
 The tiles own their columns, cells, words, group notes, problems and the card; the surface brings
@@ -374,7 +392,7 @@ with `setFormatLocale`, states through pulse-ui's `StateLabel`. The English word
 equal `BoardProblems.describe` of the board package; the English words of the screens' blocks are
 those of the engine tab, the instance view and the definition view of Pulse for VS Code and Pulse
 for Orca, letter for letter (but for two words of the definition view: the notice of older
-versions counts those with incident, and the variable filter counts its conditions). The tiles, an engine's process list, an instance's and a process's blocks keep a catalog each, so a
+versions counts those with incident, and the variable filter counts its conditions). The tiles, an engine's process list, an instance's and a process's blocks, the history notice and the search keep a catalog each, so a
 surface bundles only the words of the blocks it renders. `useProblemWords()` words a problem of the
 file for a surface's own strips, `useNoteLines()` a board's note in one line (a note of the file
 after its JSON path, the builder's note on a diagram too long to roll up after the tile's title and
@@ -392,9 +410,9 @@ instances with incident above 0), `incident-count` (`data-tone`: danger above 0)
 
 ## Entries
 
-| Entry                   | Holds                                                                                                                                                                                                                 |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@miragon/pulse-blocks` | `BoardGrid`, `BoardTile`, `ProblemList`, `useProblemWords`, `useNoteLines`, `ListFilterBar`, `ProcessTable`, `useProcessList`, `ScopeSegments`, an instance's and a process's blocks, `JsonText` and the slots' types |
+| Entry                   | Holds                                                                                                                                                                                                                                                     |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@miragon/pulse-blocks` | `BoardGrid`, `BoardTile`, `ProblemList`, `useProblemWords`, `useNoteLines`, `ListFilterBar`, `ProcessTable`, `useProcessList`, `ScopeSegments`, an instance's and a process's blocks, `FindResults`, `FindHistoryNotice`, `JsonText` and the slots' types |
 
 ## Stability
 

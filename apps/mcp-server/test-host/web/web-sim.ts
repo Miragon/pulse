@@ -19,7 +19,8 @@ import { ENGINE_CONTROL_ENV } from "../engines.js"
  * (`MCP_OAUTH_ENTRA_*`); `camunda8` over the stub engine and two profiles of test:host's Camunda 8
  * cluster with its board files (`fixtures/camunda8-boards`); `chain` over the stub's chain engine
  * alone (`chain-engine.ts`: an instance that waits for the root incident of the instance it called),
- * without boards.
+ * without boards; `search` over the stub engine, the Camunda 8 cluster and a refused Camunda 8
+ * profile, which the search across engines asks each.
  */
 export const DEPLOYMENTS = {
   main: "WEB_SIM_URL",
@@ -29,6 +30,7 @@ export const DEPLOYMENTS = {
   camunda8: "WEB_SIM_CAMUNDA8_URL",
   refusedC8: "WEB_SIM_REFUSED_C8_URL",
   chain: "WEB_SIM_CHAIN_URL",
+  search: "WEB_SIM_SEARCH_URL",
 } as const
 export type Deployment = keyof typeof DEPLOYMENTS
 

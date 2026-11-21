@@ -43,7 +43,7 @@ const WEB_BUILD = path.resolve(SERVER, "..", "web", "dist")
 const OVERVIEW_PAGE = `/app/engines/${HEALTHY_ENGINE}`
 const JOBS_PAGE = `/app/engines/${HEALTHY_ENGINE}/jobs`
 /** The chain engine's DSP-3001 (chain-engine.ts), which the page's instance screen reads whole. */
-const CHAIN_INSTANCE_PAGE = `/app/engines/${CHAIN_ENGINE}/instances/111b98c3-e5ad-11f1-9d86-0a5453971648`
+const CHAIN_INSTANCE_PAGE = `/app/engines/${CHAIN_ENGINE}/instances/2696e1af-e5cb-11f1-9ace-862100bd312e`
 
 /** The page's script's name in the build (`assets/…`), as the build's index.html loads it. */
 function pageScriptName(): string {
@@ -531,9 +531,15 @@ test.describe("the page's address", () => {
     const skip = page.getByRole("link", { name: "Skip to content" })
     await expect(skip).toBeFocused()
     await expect(skip).toBeInViewport()
-    // Then the navigation, then the content: the skip link leads past the navigation.
+    // Then the side (its search, then the navigation), then the content: the skip link leads past
+    // the side.
+    await page.keyboard.press("Tab")
+    await expect(
+      page.getByRole("banner").getByRole("searchbox", { name: "Find an instance" }),
+    ).toBeFocused()
     await page.keyboard.press("Tab")
     await expect(navEntry(page, "Start")).toBeFocused()
+    await page.keyboard.press("Shift+Tab")
     await page.keyboard.press("Shift+Tab")
     await expect(skip).toBeFocused()
     await page.keyboard.press("Enter")

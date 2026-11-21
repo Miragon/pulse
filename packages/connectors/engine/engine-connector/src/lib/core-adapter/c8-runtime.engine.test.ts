@@ -43,6 +43,7 @@ import { engineConfigSchema, engineModule } from "../../module.js"
 import { createConfiguredEngineRegistry } from "../../plugin.js"
 import type {
   EngineScreenData,
+  FindScreenData,
   InstanceScreenData,
   ProcessScreenData,
 } from "@miragon/pulse-screens"
@@ -50,6 +51,7 @@ import { ScreenFigures, WORLD_SCREENS } from "@miragon/pulse-screens/testing"
 import {
   ENGINE_BOARD_DATA,
   ENGINE_OPEN_COCKPIT,
+  ENGINE_SCREEN_FIND_DATA,
   ENGINE_SCREEN_INSTANCE_DATA,
   ENGINE_SCREEN_PROCESS_DATA,
   ENGINE_SCREEN_PROCESSES_DATA,
@@ -241,7 +243,7 @@ describe.skipIf(ENGINE_IMAGE.dialect !== "c8")(
 
     // The web app reads a Camunda 8 engine whole through these feeds (D10's point 5), the numbers
     // the C8 adapter's screens give over the same world (c8-conformance.engine.test.ts).
-    test("screens: the web app's engine, process and instance screen feeds give the kit world's numbers", async () => {
+    test("screens: the web app's engine, process, instance and search feeds give the kit world's numbers", async () => {
       const { server, harness } = prepared()
       const read = async <Data>(feed: string, args: Record<string, unknown>) =>
         feedPayload<Data>(await server.call(feed, { engine: ENGINE, ...args }))
@@ -257,6 +259,11 @@ describe.skipIf(ENGINE_IMAGE.dialect !== "c8")(
       expect(ScreenFigures.instance(instance)).toEqual(
         ScreenFigures.instance(WORLD_SCREENS.instance),
       )
+      // The search: the ended ORD-1003 by its exact business key, nothing by a part of it.
+      const found = await read<FindScreenData>(ENGINE_SCREEN_FIND_DATA, { text: "ORD-1003" })
+      expect(ScreenFigures.find(found)).toEqual(ScreenFigures.find(WORLD_SCREENS.find))
+      const part = await read<FindScreenData>(ENGINE_SCREEN_FIND_DATA, { text: "ORD-100" })
+      expect(part.hits).toEqual([])
     })
 
     test("no tool or cockpit view of the Camunda 7 REST API reaches the cluster: alone none registers, beside one the default refuses, nothing sent", async () => {

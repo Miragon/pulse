@@ -12,19 +12,21 @@ export class HistoryGaps {
     filter: InstanceListFilterData,
     counts: ScopeCountsData | null,
   ): HistoryGapData | undefined {
-    if (counts === null || HistoryGaps.narrowed(filter) || HistoryGaps.bounded(counts)) {
+    if (counts === null || HistoryGaps.narrowed(filter)) {
       return undefined
     }
-    return counts.all < version.running
-      ? { running: version.running, counted: counts.all }
-      : undefined
+    return HistoryGaps.between(
+      version.running,
+      counts.all,
+      counts.atLeast?.includes("all") === true,
+    )
+  }
+
+  static between(running: number, counted: number, atLeast: boolean): HistoryGapData | undefined {
+    return !atLeast && counted < running ? { running, counted } : undefined
   }
 
   private static narrowed({ elementId, businessKey, variables }: InstanceListFilterData): boolean {
     return elementId !== undefined || businessKey !== undefined || variables !== undefined
-  }
-
-  private static bounded(counts: ScopeCountsData): boolean {
-    return counts.atLeast?.includes("all") === true
   }
 }

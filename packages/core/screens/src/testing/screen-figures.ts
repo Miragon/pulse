@@ -1,7 +1,9 @@
 import type { EngineScreenData, EngineTotalsData } from "../format/engine-screen-data.js"
+import type { FindScreenData } from "../format/find-screen-data.js"
 import type { InstanceListData } from "../format/instance-list-data.js"
 import type { InstanceScreenData } from "../format/instance-screen-data.js"
 import type { ProcessScreenData } from "../format/process-screen-data.js"
+import { FindFigures, type FindFiguresData } from "./find-figures.js"
 import { InstanceFigures, type InstanceFiguresData } from "./instance-figures.js"
 import {
   ProcessFigures,
@@ -35,5 +37,9 @@ export class ScreenFigures {
 
   static instanceList(data: InstanceListData): InstanceListFiguresData {
     return ProcessFigures.list(data)
+  }
+
+  static find(data: FindScreenData): FindFiguresData {
+    return FindFigures.of(data)
   }
 }

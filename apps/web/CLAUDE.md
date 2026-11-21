@@ -27,7 +27,9 @@ server image builds the page beside the server and serves it from `/app/web`.
 
 - One page, `index.html`, for every route of the server that serves it, each the canonical address
   of a view (`src/pages.ts`): `/app` (the cockpit's landing, `view: "landing"`: the engines and the
-  server's boards, with one engine and no board that engine), `/app/fleet` (the cross-engine
+  server's boards, with one engine and no board that engine), `/app/search?q=…` (the page's search
+  across engines below, `q` what it searches, trimmed; a place of the page's alone, no view of the
+  cockpit's, `src/router/search-address.ts`), `/app/fleet` (the cross-engine
   overview: the landing's start, then the cockpit opens it, no view of the tool), `/app/boards/<id>`
   (a board, the tool refusing an id the server shows no board for), an engine's views under
   `/app/engines/<engine>`: its processes at the engine's own address, the page's own engine screen
@@ -83,11 +85,18 @@ server image builds the page beside the server and serves it from `/app/web`.
   `dist/pages.json`, which the server reads at boot, and `test/pages-manifest.test.ts` boots a
   server over the build to hold both to each other.
   A page with a session starts with a skip link to the content's heading, seen only while it has
-  focus, which writes no fragment into the address: the tab order is the skip link, the
-  navigation, the content.
+  focus, which writes no fragment into the address: the tab order is the skip link, the side
+  (its search, then the navigation), the content.
 - The frame of a page with a session (`src/frame`) is the editors' look, one bar per view and no
   app bar above it: a side navigation (`src/frame/navigation.tsx`, pulse-ui's `SideNav` in a
-  `nav` landmark named Pulse, 15rem beside the view from 64rem on) with the start page, the view
+  `nav` landmark named Pulse, 15rem beside the view from 64rem on), above it the search for an
+  instance across engines (`src/frame/search-form.tsx`: a `search` landmark with one field, its
+  hint that the search is exact; Enter goes to the search's address, nothing searches while typing
+  and no single key starts it, WCAG 2.1.4; a text longer than the search's feed takes,
+  `SEARCH_TEXT_MOST`, which `test/search-limits.test.ts` holds to the feed's schema, is said next to
+  the field it marks invalid and searches nothing, never cut; on the search's page it shows what was
+  searched), with
+  the start page, the view
   across engines where the cockpit offers it (two engines or more it reads whole), the engines by
   environment (where the server names environments) with the open one's sections, the boards, and
   at its foot who is signed in and the sign-out. The sections an engine opens are its dialect's on
@@ -269,6 +278,35 @@ server image builds the page beside the server and serves it from `/app/web`.
   list of a process's instances (`ViewLocation.claims`), so a drill of the embedded cockpit to one
   shows the screen. The process screen's feeds stand on the server's floor of 30 s per caller and
   arguments (the list's first page, never a later one), so a Refresh within it shows the same read.
+- The search across engines (`src/screens/search`), at `/app/search?q=…`: the instance with the
+  text as its id and those with it as their exact business key, running and ended, up to 20 per
+  engine, from the search's feed (`engine_screen_find_data`, an app-only read of the engine contract
+  in every dialect, the screens' `Finder`), one call per engine of the frame's one read of the
+  engine list, all at once, as the landing reads each engine, so each engine's failure is its own;
+  a refused profile is read nothing of, its refusal the list's reason in the kit's words
+  (`search-reads.ts`). Its bar: what was searched as the h1 (none: "Find an instance" and how to
+  search, nothing read), once every engine settled how many instances were found on how many
+  engines and that the search is exact, the Refresh (every engine again), when the hits were read
+  (the oldest answer). Under it a strip per engine that could not be searched, refused or failing,
+  in the kit's words with its hint (`search-failure.tsx`, a Camunda 8 cluster's problem with its
+  fix, an ended session left to the frame's notice), and the blocks' `FindHistoryNotice` of an
+  engine whose history misses running instances (Camunda 7 at history level NONE, where the search
+  finds none), beside the hits of the others: the blocks' `FindResults` with the page's slots, a
+  row opening its instance screen by the one row convention, shown as they arrive, under the rows
+  the engines that hold more instances with the business key than they list. While no hit is on
+  screen it says it searches until every engine settled, so it never calls missing what a slower
+  engine may hold; an empty table says what was searched and that the search is exact, of the
+  engines that could be searched alone where one was refused or failed (`FindResults`' `partial`);
+  a search no engine answered says no engine could be searched (a page's ended session only the
+  quiet line), never that no instance exists. A text longer than `SEARCH_TEXT_MOST` reads nothing
+  and says so. Exactly one hit on every engine that could be searched (a refused profile counts as
+  searched; an engine that failed for a reason a retry may change keeps the search, and so does one
+  whose history misses running instances, whose notice stays to be read) replaces the address by
+  its instance's (the router's `navigate` with `replace`), so Back leads to where the search
+  started; it is decided once per entry, when every engine first settled, and the router marks the
+  entry (`seen`, `markSeen`, in the entry's state), so neither a Refresh nor a return to the entry
+  (Back, Forward, a reload) leaves it. Another search is a new entry and starts the screen anew. It
+  writes nothing and hands nothing to a chat.
 - A screen of the page's fills the window's height from 64rem on (`SessionLayout`'s `fill`, which
   bounds the sheet; widget-shell's `WidgetShell` and `ListTable` `fill`; pulse-ui's
   `NavigationFocus` `className`): the engine screen's list and the process and instance screens'

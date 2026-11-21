@@ -27,12 +27,12 @@ import {
  * done is drawn and explained apart from a wait.
  */
 
-const DISPATCH = "111b98c3-e5ad-11f1-9d86-0a5453971648"
-const LABEL = "111c3509-e5ad-11f1-9d86-0a5453971648"
-const ROOT_INCIDENT = "11236110-e5ad-11f1-9d86-0a5453971648"
-const COPY_INCIDENT = "11238821-e5ad-11f1-9d86-0a5453971648"
-const ENDED = "7f0c0eb3-e5ad-11f1-9d86-0a5453971648"
-const UNKNOWN = "4f0c0eb3-e5ad-11f1-9d86-0a5453971648"
+const DISPATCH = "2696e1af-e5cb-11f1-9ace-862100bd312e"
+const LABEL = "2697a505-e5cb-11f1-9ace-862100bd312e"
+const ROOT_INCIDENT = "26a5d5eb-e5cb-11f1-9ace-862100bd312e"
+const COPY_INCIDENT = "26a5d5ec-e5cb-11f1-9ace-862100bd312e"
+const ENDED = "7f0c0eb3-e5cb-11f1-9ace-862100bd312e"
+const UNKNOWN = "4f0c0eb3-e5cb-11f1-9ace-862100bd312e"
 
 const ENGINE = `/app/engines/${CHAIN_ENGINE}`
 const instanceUrl = (id: string) => `${ENGINE}/instances/${id}`
@@ -86,7 +86,7 @@ test.describe("the instance screen", () => {
     await expect(card(page)).toHaveCount(1)
     await expect(card(page)).toContainText("Root cause")
     await expect(card(page)).toContainText("PropertyNotFoundException: Cannot resolve identifier")
-    const liesIn = card(page).getByRole("link", { name: /pulse-label 111c3509/ })
+    const liesIn = card(page).getByRole("link", { name: /pulse-label 2697a505/ })
     await expect(liesIn).toHaveAttribute("href", incidentUrl(LABEL, ROOT_INCIDENT))
     // The call activity's way to the instance it called, on the diagram.
     await expect(page.locator("[data-part=call-button]")).toHaveAttribute(
@@ -97,7 +97,7 @@ test.describe("the instance screen", () => {
     // Located in: the called instance, its root incident in focus.
     await liesIn.click()
     await expect(page).toHaveURL(new RegExp(`${incidentUrl(LABEL, ROOT_INCIDENT)}$`))
-    await expect(heading(page)).toHaveText("111c3509…")
+    await expect(heading(page)).toHaveText("2697a505…")
     await expect(heading(page)).toBeFocused()
     const caller = page.locator("[data-slot=caller-strip]")
     await expect(caller).toContainText("Called by DSP-3001")
@@ -141,7 +141,7 @@ test.describe("the instance screen", () => {
     await expect(heading(page)).toHaveText("DSP-3001")
     await page.goBack()
     await expect(page).toHaveURL(new RegExp(`${incidentUrl(LABEL, ROOT_INCIDENT)}$`))
-    await expect(heading(page)).toHaveText("111c3509…")
+    await expect(heading(page)).toHaveText("2697a505…")
     await page.goBack()
     await expect(heading(page)).toHaveText("DSP-3001")
     await page.goBack()
@@ -158,7 +158,7 @@ test.describe("the instance screen", () => {
     for (const [address, title, selected] of [
       [instanceUrl(DISPATCH), "DSP-3001", /^Incidents/],
       [`${instanceUrl(DISPATCH)}?tab=history`, "DSP-3001", /^History/],
-      [incidentUrl(LABEL, ROOT_INCIDENT), "111c3509…", /^Incidents/],
+      [incidentUrl(LABEL, ROOT_INCIDENT), "2697a505…", /^Incidents/],
     ] as const) {
       await page.goto(`${originOf("chain")}${address}`)
       await expect(heading(page), address).toHaveText(title, { timeout: 15_000 })
@@ -240,7 +240,7 @@ test.describe("the instance screen", () => {
     await expect(page).toHaveURL(new RegExp(`${incidentUrl(LABEL, ROOT_INCIDENT)}$`), {
       timeout: 15_000,
     })
-    await expect(heading(page)).toHaveText("111c3509…")
+    await expect(heading(page)).toHaveText("2697a505…")
     await expect(page.locator("[data-part=root-cause-line]")).toContainText("Caused by:")
   })
 
@@ -293,7 +293,7 @@ test.describe("the instance screen", () => {
     await de.getByRole("link", { name: "Aufrufer öffnen" }).click()
     await expect(heading(de)).toHaveText("DSP-3001")
     await card(de)
-      .getByRole("link", { name: /pulse-label 111c3509/ })
+      .getByRole("link", { name: /pulse-label 2697a505/ })
       .click()
     await expect(de).toHaveURL(new RegExp(`${incidentUrl(LABEL, ROOT_INCIDENT)}$`))
     await expect(heading(de)).toBeFocused()

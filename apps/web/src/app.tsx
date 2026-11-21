@@ -17,6 +17,7 @@ import { screenOf, screenUrlOf, type InstanceTab, type PageScreen } from "./rout
 import { EngineRoute } from "./screens/engine/engine-route.js"
 import { IncidentRoute, InstanceRoute } from "./screens/instance/instance-route.js"
 import { ProcessRoute } from "./screens/process/process-route.js"
+import { SearchRoute } from "./screens/search/search-route.js"
 import type { VersionMove } from "./screens/process/process-screen.js"
 import { useScreenShown } from "./screens/screen-shown.js"
 import { viewsAt } from "./unknown-engine.js"
@@ -38,7 +39,7 @@ export interface PageAppParts {
  * no retry changes stays the frame's, and an engine's own address that names an engine the server
  * does not configure is refused in the view's place (`viewsAt`). Where the page shows the place
  * with a screen of its own (an engine's processes, a process, an instance, an incident under its
- * instance),
+ * instance, the search),
  * the screen stands in the view's place, the cockpit's view its fallback for an engine the screens
  * do not serve, and the frame fills the window's height for it from 64rem on (`fill`); its state
  * rides in the address (the router's `refine`: a filter, a tab), and the view names an engine's
@@ -69,9 +70,12 @@ function PageApp({ router, views, page }: PageAppParts) {
   )
   const shownViews = useMemo(() => viewsAt(views, start), [views, start])
   // A screen of the page's fills the window from 64rem on; the cockpit's view in its place does not.
-  const fill =
-    useScreenShown(screen?.engine, screen?.kind === "incident" ? "incidents" : "processes") !==
-    "fallback"
+  const engine = screen !== undefined && "engine" in screen ? screen.engine : undefined
+  const screenShown = useScreenShown(
+    engine,
+    screen?.kind === "incident" ? "incidents" : "processes",
+  )
+  const fill = screen?.kind === "search" || screenShown !== "fallback"
   const view = (
     <PageView
       key={generation}
@@ -108,7 +112,8 @@ function PageApp({ router, views, page }: PageAppParts) {
  * root incidents in focus at the address of that incident; an incident known by its id alone, which
  * the page leads on to the instance that holds its root; a process in one version, its version and its
  * list's filter the address's, another version a new entry of the page's history (a pick in the
- * picker keeps the focus there, the older versions' notice moves it to the heading).
+ * picker keeps the focus there, the older versions' notice moves it to the heading); the search
+ * across engines, what it searches the address's, which exactly one hit replaces by its instance's.
  */
 function PageScreenAt({
   screen,
@@ -175,6 +180,8 @@ function PageScreenAt({
           fallback={fallback}
         />
       )
+    case "search":
+      return <SearchRoute text={screen.text} router={router} />
   }
 }
 

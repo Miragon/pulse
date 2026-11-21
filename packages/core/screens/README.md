@@ -199,6 +199,36 @@ never a 0, and a caller the surface did not read is named nowhere. The model, an
   own;
 - its variables, and whether the engine cut what it read (`truncated`).
 
+## What the search finds
+
+```ts
+import { Finder, ScreenJson } from "@miragon/pulse-screens/builder"
+
+const found = ScreenJson.find(await Finder.read("prod-a", "ORD-10442", runtime, () => new Date()))
+```
+
+`Finder.read(engine, text, reads, now)` asks the clock once, then searches the engine at once for
+the instance with the text as its id (`searchInstances` by `instanceIds`, one at most) and for
+those with it as their exact business key (`searchInstances` by `businessKey`, up to
+`Finder.MOST`, 20), running and ended, and reads whether the engine's history misses running
+instances: the running instances of `listDefinitions` summed, then `countInstances({})`, in that
+order, the gap where the count is the smaller and no lower bound (`HistoryGaps.between`). A text
+that names nothing (empty, only spaces) is a `RangeError`, before anything is read. Both searches
+are the screen, so a failure of either is the screen's; the gap only adds to it, so a read of it
+that failed leaves it out, never a guess. Its parts read apart for a surface that keeps them
+apart: `Finder.search(text, reads, now)` the two searches, `Finder.historyGap(reads)` the gap (`null`
+without one; it fails as its reads fail), which reads the whole engine whatever was searched, so the
+MCP server keeps it per engine for every text. `Finder.of` builds from what a surface read. The model,
+and its JSON form `FindScreenData` (`ScreenJson.find`), hold the hits (the instance with the id
+first, then those with the business key as the engine lists them, newest first, each once: its id,
+its version, its state, whether it has an open incident, its business key and when it started and
+ended), whether more instances have the business key than it lists (`cut`) and the history's gap
+(`historyGap`: how many instances run and how many the history holds, `null` without one). A
+business key matches whole on every dialect (the conformance law
+`instances: a business key matches whole, never as a part of a longer one`); Camunda 8 hands a
+called instance its caller's business id, so a caller's key finds the instances it called there
+too.
+
 ## Rules for the browser
 
 The main entry holds what a surface does with a screen's JSON form without reading the engine again:
@@ -237,7 +267,9 @@ fixed world of the conformance kit (`FakeWorld.seed()` in a `FakeEngine` of
 `@miragon/pulse-engine-core/testing`): the engine, the instance DSP-3001 that waits at its call
 activity for the incident of the instance it called, and that called instance; the process
 pulse-order at its latest version (`process`) and at its version 1 (`olderVersion`), the process
-pulse-dispatch (`callingProcess`) and every instance of pulse-order's version 1 (`instanceList`).
+pulse-dispatch (`callingProcess`), every instance of pulse-order's version 1 (`instanceList`) and
+what the finder finds by ORD-1003 (`find`) and by the id of the instance DSP-3001 called
+(`findById`).
 `ScreenFigures`
 reads a screen as its figures, without what an engine makes on its own (its name, ids, times, its
 product, its names and words): `ScreenFigures.engine(data)` each row's id, latest version and
@@ -249,7 +281,10 @@ asynchronous continuation on Camunda 7) only once the wait is over and names a w
 own terms; `ScreenFigures.process(data)` the selected version, the versions with their counts in
 their order, the badges, the call targets, the notices and what was not read; and
 `ScreenFigures.instanceList(data)` the rows by business key, state and incident, whether more
-follow and the counts, without the condition kinds a dialect refuses. The numbers tests of every surface compare the screens a dialect's recorded answers
+follow and the counts, without the condition kinds a dialect refuses; `ScreenFigures.find(data)`
+each hit's business key, process, version, state, incident and whether it ended, whether the list
+was cut and the history's gap (`find`: ORD-1003 by its business key; `findById`: the instance
+DSP-3001 called, by its id). The numbers tests of every surface compare the screens a dialect's recorded answers
 give (`C7_SCREEN_ENGINE` of `@miragon/pulse-c7-core/testing`, `C8_SCREEN_ENGINE` of
 `@miragon/pulse-c8-core/testing`) with these figures, so one rule decides what counts as the same
 numbers.
@@ -259,7 +294,7 @@ numbers.
 | Entry                            | Holds                                                                                                                                                                                |
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `@miragon/pulse-screens`         | `ProcessFilter`, `FleetSums`, `DiagramDecorations`, `VariableConditionTypes`, `InstanceRows`, `HistoryGaps` and the types of the screens' JSON forms, their codes and `ScreenTarget` |
-| `@miragon/pulse-screens/builder` | `EngineScreen`, `ProcessScreen`, `InstanceList`, `InstanceCounts`, `InstanceQuery`, `InstanceScreen`, `CallLinks`, `ScreenJson` and the types of their models and reads              |
+| `@miragon/pulse-screens/builder` | `EngineScreen`, `ProcessScreen`, `InstanceList`, `InstanceCounts`, `InstanceQuery`, `InstanceScreen`, `Finder`, `CallLinks`, `ScreenJson` and the types of their models and reads    |
 | `@miragon/pulse-screens/testing` | `WORLD_SCREENS`, the screens of the conformance kit's fixed world, and `ScreenFigures`                                                                                               |
 
 ## Stability
@@ -286,10 +321,12 @@ MCP server: its engine module
 builds the engine screen with `EngineScreen` and `ScreenJson` behind its app-only feed
 `engine_screen_processes_data`, the process screen with `ProcessScreen` behind
 `engine_screen_process_data`, the instance list with `InstanceList` behind
-`engine_screen_instances_data` and the instance screen with `InstanceScreen` behind
-`engine_screen_instance_data`, which the server's web app renders with the same blocks, naming
+`engine_screen_instances_data`, the instance screen with `InstanceScreen` behind
+`engine_screen_instance_data` and what the search finds on an engine with `Finder` behind
+`engine_screen_find_data`, which the server's web app renders with the same blocks, naming
 the screen's JSON form by type alone and applying its rules through the blocks
-(`useDiagramDecorations`, `useInstanceRows`, `MissingHistoryNotice` over `HistoryGaps`).
+(`useDiagramDecorations`, `useInstanceRows`, `MissingHistoryNotice` over `HistoryGaps`,
+`FindResults` and `FindHistoryNotice` over the find screen).
 
 ## Help and feedback
 

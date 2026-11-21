@@ -605,7 +605,8 @@ call's abort signal at `ctx.mcpReq.signal`):
   `SCREEN_FEEDS` (`src/data/screen-feeds.ts`, its builder in `src/data/screens/` over the screens'
   builder: `engine_screen_processes_data`, `engine_screen_process_data`,
   `engine_screen_instances_data`, `engine_screen_variable_names_data`,
-  `engine_screen_instance_data`, `engine_screen_incident_text_data`; a read that loads the engine's
+  `engine_screen_instance_data`, `engine_screen_incident_text_data`, `engine_screen_find_data`;
+  a read that loads the engine's
   database on the floor of 30 s per caller, `screenFloor`), no route's and no widget's. `registerDataFeed` in `data-feeds.ts` registers each feed of one engine
   (a contract feed's through `resolveRuntimeEngine`), `registerNamingFeed` each naming feed; both
   spread `...appOnly` (SEP-1865 `_meta.ui.visibility: ["app"]` plus `openai/widgetAccessible`;

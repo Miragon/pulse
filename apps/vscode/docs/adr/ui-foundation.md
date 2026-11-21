@@ -1,7 +1,11 @@
 # UI foundation and shared building blocks
 
 - Status: accepted
-- Last reviewed: 2026-11-21, later the same day (executed, D2's point 1 per element as planned:
+- Last reviewed: 2026-11-21, at the end of the day (executed, D10's search across engines: the
+  screens' `Finder`, the feed `engine_screen_find_data`, the blocks' `FindResults` and
+  `FindHistoryNotice`, the web app's `/app/search`; a law holds a business key's match whole on
+  both dialects; c7-core's and c8-core's recorded screens made anew with what the finder finds);
+  2026-11-21, later the same day (executed, D2's point 1 per element as planned:
   c7-core's element statistics take the statistics' incident counts as root incidents wherever no
   copy can lie and read the incidents of a version's call activities alone whole, where copies lie,
   sorted by id, every incident of the version only where its call activities cannot be told or one
@@ -513,6 +517,17 @@ each surface keeps its screens and the web app's are its own.
      filtering the list, Escape clearing it; from 64rem on the split movable by mouse and keyboard,
      under it the diagram at 240 to 560 px above three rows; the page claims the cockpit's process
      view and its list of a process's instances, and fills none of the blocks' write slots.
+     Executed for the search on 2026-11-21: at `/app/search?q=…`, which the navigation's field opens,
+     the page asks every engine apart and at once for the instance with the text as its id and up
+     to 20 with it as their exact business key, running and ended (the screens' `Finder` behind the
+     feed `engine_screen_find_data`, which the server builds exactly as both adapters do from the
+     recorded engines), and lists the hits with the blocks' `FindResults`; an engine it could not
+     search is a row of a strip beside the hits of the others, a refused profile read nothing of;
+     an engine whose history misses running instances says so (`FindHistoryNotice`; at history
+     level NONE the search finds none); it never calls missing what an engine it could not search
+     or that has not answered may hold; exactly one hit, with every engine searched and none
+     missing history, takes the search's entry once, so Back leads to where it started. The
+     extension has no search, so its bundle leaves the blocks out.
   3. **The operations views stay the cockpit's.** Its incidents, a cause, its jobs and the boards run
      unchanged inside the frame, without their head. Once a screen replaces a section, the page
      takes every drill into it, from the embedded routes and a board's tiles too.
@@ -695,4 +710,4 @@ the webview's script may grow to 500,000 B gzip. 2026-11-21: the chat and the op
 web app embeds count open root incidents (D2's point 4), "new in 24 h" gone. Later that day, after a
 measurement on the playground, c7-core's element statistics read the incidents of a version's call
 activities alone (D2's point 1), with the same counts. Later that day the web app read a Camunda 8
-engine whole (D10's point 5).
+engine whole (D10's point 5), and then it searched for an instance across engines (D10's point 2).

@@ -11,6 +11,7 @@ chat's toolset, engine routing and numbers. It only reads: no write control, no 
 | URL                                     | What it shows                                                                                                                                |
 | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | `/app`                                  | The engines and the server's [boards](../mcp/boards.md) to pick from; with one engine and no board, that engine                              |
+| `/app/search?q=…`                       | The instances with this ID or exact business key on every engine, running and ended; one hit opens its instance                              |
 | `/app/fleet`                            | The cross-engine overview, with two engines or more: each engine's row opens it                                                              |
 | `/app/boards/<id>`                      | A board, with the tiles and numbers the chat shows; a [Camunda 8](../mcp/camunda8.md) cluster's as the server reads it                       |
 | `/app/engines/<engine>`                 | The engine's processes (`?scope=incident&q=…`: filtered), a Camunda 8 cluster's too, or why the page shows no view of it (a refused profile) |
@@ -28,7 +29,8 @@ desktop, comfortable on touch.
 
 ## Navigation
 
-The side navigation holds **Start**, the cross-engine overview (with two engines or more), the
+The side navigation holds the search for an instance (its ID or exact business key, on every
+engine), **Start**, the cross-engine overview (with two engines or more), the
 engines by environment, the open one with its sections (processes, incidents, jobs; an engine's
 entry opens its processes), and the boards; at its foot who is signed in and **Sign out**. A
 [Camunda 8](../mcp/camunda8.md) engine has its processes alone (its incidents show at their
@@ -48,6 +50,12 @@ incidents, and the tabs History, Incidents, Waiting and Variables (from 64rem on
 at the window's height, the split movable by mouse or keyboard). An incident in an instance it
 called says where it lies and opens there in focus: its stack trace read in place, the root cause's
 line marked, copy and wrap; **Open caller** leads back. It is the instance Pulse for VS Code shows.
+The search asks every engine at once for the instance with that ID and up to 20 with that exact
+business key (never a part of one, at most 256 characters), running and ended. An engine it could
+not search, refused or down, says so above the hits of the others, and "nothing found" then speaks
+of the others alone; one whose history misses running instances (Camunda 7 at history level NONE)
+says the search finds only those in its history. One hit, when every engine was searched and none
+misses history, opens its instance in the search's place, so Back leads to where you searched from.
 
 ## When something ends
 

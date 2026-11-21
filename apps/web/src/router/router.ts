@@ -77,9 +77,24 @@ export interface PageRouter {
    * focus, at the control the reader used.
    */
   readonly refine: (url: string, entry?: Entry) => void
+  /**
+   * Whether the current entry of the browser's history is marked seen (`markSeen`): the page
+   * returned to it (Back, Forward, a reload), so a screen that decided something there once (the
+   * search, whether its one hit takes its place) decides it no more.
+   */
+  readonly seen: () => boolean
+  /** Marks the current entry seen, the state it keeps beside it kept. */
+  readonly markSeen: () => void
   /** Lets go of Back and Forward, with the page. */
   readonly stop: () => void
 }
+
+/** The key of the mark `markSeen` sets in an entry's state. */
+const SEEN = "pulse:seen"
+
+/** An entry's state as an object of keys: none, or the state it holds. */
+const keysOf = (state: unknown): Readonly<Record<string, unknown>> =>
+  typeof state === "object" && state !== null ? (state as Record<string, unknown>) : {}
 
 /** Whether the page shows the place `args` names with a screen of its own. */
 const claims = (args: ViewPlace["args"]): boolean => screenOf(args) !== undefined
@@ -95,6 +110,8 @@ function subjectOf(screen: PageScreen): string {
       return JSON.stringify([screen.kind, screen.engine, screen.instance, screen.incident ?? null])
     case "incident":
       return JSON.stringify([screen.kind, screen.engine, screen.incident])
+    case "search":
+      return JSON.stringify([screen.kind, screen.text])
   }
 }
 
@@ -223,6 +240,10 @@ export function createPageRouter(env: RouterEnv, first: ViewRoute): PageRouter {
       if (entry === "push" && url !== here()) env.history.pushState(null, "", url)
       else env.history.replaceState(env.history.state, "", url)
       follow(false)
+    },
+    seen: () => keysOf(env.history.state)[SEEN] === true,
+    markSeen: () => {
+      env.history.replaceState({ ...keysOf(env.history.state), [SEEN]: true }, "", here())
     },
     stop,
   }

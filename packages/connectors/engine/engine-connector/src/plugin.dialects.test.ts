@@ -8,7 +8,7 @@ import {
   recordingModuleServer,
 } from "@miragon/pulse-widget-shell/testing"
 import { BoardParser } from "@miragon/pulse-board"
-import type { EngineScreenData, InstanceScreenData } from "@miragon/pulse-screens"
+import type { EngineScreenData, FindScreenData, InstanceScreenData } from "@miragon/pulse-screens"
 import { ScreenFigures, WORLD_SCREENS } from "@miragon/pulse-screens/testing"
 import { RuntimeError } from "@miragon/pulse-engine-core"
 import {
@@ -27,6 +27,7 @@ import {
   ENGINE_BPMN_XML_DATA,
   ENGINE_LIST_ENGINES,
   ENGINE_OPEN_COCKPIT,
+  ENGINE_SCREEN_FIND_DATA,
   ENGINE_SCREEN_INCIDENT_TEXT_DATA,
   ENGINE_SCREEN_INSTANCE_DATA,
   ENGINE_SCREEN_INSTANCES_DATA,
@@ -116,6 +117,7 @@ describe("createPlugin on an engine of another dialect", () => {
     ENGINE_SCREEN_VARIABLE_NAMES_DATA,
     ENGINE_SCREEN_INSTANCE_DATA,
     ENGINE_SCREEN_INCIDENT_TEXT_DATA,
+    ENGINE_SCREEN_FIND_DATA,
     ENGINE_OPEN_COCKPIT,
     ENGINE_WIDGET_ACTIONS_DATA,
   ]
@@ -140,6 +142,7 @@ describe("createPlugin on an engine of another dialect", () => {
     expect(offered(recording, ENGINE_SCREEN_VARIABLE_NAMES_DATA)).toEqual(["a", "c8"])
     expect(offered(recording, ENGINE_SCREEN_INSTANCE_DATA)).toEqual(["a", "c8"])
     expect(offered(recording, ENGINE_SCREEN_INCIDENT_TEXT_DATA)).toEqual(["a", "c8"])
+    expect(offered(recording, ENGINE_SCREEN_FIND_DATA)).toEqual(["a", "c8"])
     // The cockpit's `engine` names every engine it shows: a route of one engine refuses this one.
     expect(offered(recording, ENGINE_OPEN_COCKPIT)).toEqual(["a", "c8"])
     expect(offered(recording, ENGINE_LIST_ENGINES)).toBeUndefined()
@@ -246,6 +249,11 @@ describe("createPlugin on an engine of another dialect", () => {
         .call({ engine: "c8", incident: card?.rootIncident.id }),
     )
     expect(text.rootCause).toBe(card?.rootCauseLine)
+    // What the search finds on it by a business key.
+    const found = feedPayload<FindScreenData>(
+      await recording.tool(ENGINE_SCREEN_FIND_DATA).call({ engine: "c8", text: "ORD-1003" }),
+    )
+    expect(ScreenFigures.find(found)).toEqual(ScreenFigures.find(WORLD_SCREENS.find))
     expect(runtime).toHaveBeenCalled()
   })
 
@@ -358,6 +366,7 @@ describe("createPlugin over Camunda 8 profiles and the boards that name them", (
         ENGINE_SCREEN_VARIABLE_NAMES_DATA,
         ENGINE_SCREEN_INSTANCE_DATA,
         ENGINE_SCREEN_INCIDENT_TEXT_DATA,
+        ENGINE_SCREEN_FIND_DATA,
       ].sort(),
     )
     // The prompt drafts through a Camunda 7 tool, which is not there.

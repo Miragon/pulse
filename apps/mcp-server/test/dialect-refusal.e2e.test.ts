@@ -21,7 +21,7 @@ import { GOLDEN_DIR, isModelVisible } from "./golden.js"
 /**
  * Read such an engine: the engine list, the cockpit's board and landing, the board and XML feeds,
  * the web app's screen feeds (an engine's processes, a process in one version, its instance list
- * and its variable names, an instance, an incident's text).
+ * and its variable names, an instance, an incident's text, what the search finds).
  */
 const SERVE = [
   "engine_list_engines",
@@ -34,6 +34,7 @@ const SERVE = [
   "engine_screen_variable_names_data",
   "engine_screen_instance_data",
   "engine_screen_incident_text_data",
+  "engine_screen_find_data",
 ] as const
 
 /** Reads no engine at all: it lists such an engine among those no write reaches. */
@@ -163,13 +164,13 @@ describe("a Camunda 8 engine alone on the full surface: what serves it, and noth
     await c8?.close()
   })
 
-  it("classifies every tool and feed of the admin golden: 10 serve and are listed, 59 are not", () => {
+  it("classifies every tool and feed of the admin golden: 11 serve and are listed, 59 are not", () => {
     const golden = goldenNames()
     expect(tools.map(({ name }) => name).sort()).toEqual([...SERVE].sort())
     const absent = golden.filter((name) => !(SERVE as readonly string[]).includes(name))
     expect(absent).toHaveLength(59)
     expect(absent).toEqual(expect.arrayContaining([...NOT_APPLICABLE]))
-    expect(golden.filter((name) => !isRefusing({ name } as WireTool))).toHaveLength(11)
+    expect(golden.filter((name) => !isRefusing({ name } as WireTool))).toHaveLength(12)
     expect(c8.sent()).toEqual([])
   })
 
@@ -250,6 +251,24 @@ describe("a Camunda 8 engine alone on the full surface: what serves it, and noth
     expect(JSON.parse(textOf(names))).toMatchObject({ refused: ["ordering", "date"] })
   })
 
+  it("finds an instance of it through the web app's search feed, by its key and by its business key", async () => {
+    const byKey = await server.client.callTool({
+      name: "engine_screen_find_data",
+      arguments: { engine: "c8", text: INSTANCE_KEY },
+    })
+    expect(byKey.isError, textOf(byKey)).not.toBe(true)
+    expect(JSON.parse(textOf(byKey))).toMatchObject({ engine: "c8", cut: false })
+    const searches = c8.cluster.requests
+      .filter(({ target }) => target === "/v2/process-instances/search")
+      .map(({ body }) => (JSON.parse(body ?? "{}") as { filter?: unknown }).filter)
+    expect(searches).toEqual(
+      expect.arrayContaining([
+        { processInstanceKey: { $in: [INSTANCE_KEY] } },
+        { businessId: INSTANCE_KEY },
+      ]),
+    )
+  })
+
   it("reads it through the XML feed, its token from the token endpoint: the counts are real", async () => {
     const result = await server.client.callTool({
       name: "engine_bpmn_xml_data",
@@ -290,7 +309,7 @@ describe("a Camunda 8 default beside a Camunda 7 engine: offered nowhere else, r
     await c8?.close()
   })
 
-  it("classifies every tool and feed of the admin golden: 10 serve, 1 reads no engine, 58 offer only the Camunda 7 engine", () => {
+  it("classifies every tool and feed of the admin golden: 11 serve, 1 reads no engine, 58 offer only the Camunda 7 engine", () => {
     expect(tools.map(({ name }) => name).sort()).toEqual(goldenNames().sort())
     const refusing = tools.filter(isRefusing)
     expect(refusing).toHaveLength(58)
@@ -307,6 +326,7 @@ describe("a Camunda 8 default beside a Camunda 7 engine: offered nowhere else, r
     expect(served("engine_screen_variable_names_data")).toEqual(["c8", SHOP])
     expect(served("engine_screen_instance_data")).toEqual(["c8", SHOP])
     expect(served("engine_screen_incident_text_data")).toEqual(["c8", SHOP])
+    expect(served("engine_screen_find_data")).toEqual(["c8", SHOP])
     // The cockpit's `engine` names every engine it shows; its routes of one engine refuse this one.
     expect(served("engine_open_cockpit")).toEqual(["c8", SHOP])
   })

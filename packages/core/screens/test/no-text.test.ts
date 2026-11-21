@@ -8,6 +8,7 @@ import {
 import { describe, expect, test } from "vitest"
 import {
   EngineScreen,
+  Finder,
   InstanceList,
   InstanceScreen,
   ProcessScreen,
@@ -196,6 +197,7 @@ async function worldForms(): Promise<{ readonly forms: unknown[]; readonly words
       FleetSums.of([screen, bare]),
       ...instances.forms,
       ...processes,
+      ...(await findForms()),
     ],
     words: new Set([...words, ...instances.words]),
   }
@@ -245,6 +247,21 @@ const RICH: InstanceDetail = Instances.detail({
     },
   ],
 })
+
+async function findForms(): Promise<unknown[]> {
+  const gap = ScreenWorld.world({ countInstances: () => Promise.resolve({ count: 1 }) })
+  const read = (text: string, runtime = ScreenWorld.world()) =>
+    Finder.read("prod-a", text, runtime, () => ScreenWorld.AS_OF).then((model) =>
+      ScreenJson.find(model),
+    )
+  return [
+    await read("ORD-1003"),
+    await read("fake-label-of-DSP-3001"),
+    await read("ORD-1003", gap),
+    WORLD_SCREENS.find,
+    WORLD_SCREENS.findById,
+  ]
+}
 
 async function processForms(): Promise<unknown[]> {
   const runtime = ScreenWorld.world({

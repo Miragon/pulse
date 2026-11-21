@@ -170,7 +170,9 @@ async function startControl(idps: Record<Deployment, FakeOidc>) {
  * (c8-engine.ts) beside the stub engine: one profile a board names, one no board names, each shown
  * whole on the page's screens. The `refusedC8` deployment, in
  * `WEB_SIM_REFUSED_C8_URL`, refuses a Camunda 8 profile beside the stub. The `chain` deployment, in
- * `WEB_SIM_CHAIN_URL`, reads the stub's chain engine alone (the instance screen's journey).
+ * `WEB_SIM_CHAIN_URL`, reads the stub's chain engine alone (the instance screen's journey). The
+ * `search` deployment, in `WEB_SIM_SEARCH_URL`, reads the stub and the Camunda 8 cluster beside a
+ * refused Camunda 8 profile (the search across engines).
  */
 export default async function globalSetup(): Promise<() => Promise<void>> {
   const engine = await startStubEngine()
@@ -227,6 +229,16 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   })
   // The instance screen's journey: the stub's chain engine alone, one engine and no board.
   const chain = await deploy({ [CHAIN_ENGINE]: { url: engine.chainBaseUrl } })
+  // The search across engines: the stub engine and the Camunda 8 cluster, each holding an instance
+  // of order ORD-7003 (an ended invoice, a running order), beside a refused Camunda 8 profile.
+  const search = await deploy(
+    {
+      [HEALTHY_ENGINE]: { url: engine.baseUrl },
+      [C8_ENGINE]: c8.profile("ENGINE_SECRET_WEB_SIM_C8"),
+      [REFUSED_C8_ENGINE]: c8.profile("ENGINE_SECRET_WEB_SIM_NEVER_SET"),
+    },
+    { env: { ENGINE_SECRET_WEB_SIM_C8: "web-sim-client-secret" } },
+  )
   const control = await startControl({
     main: main.idp,
     short: short.idp,
@@ -235,6 +247,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     camunda8: camunda8.idp,
     refusedC8: refusedC8.idp,
     chain: chain.idp,
+    search: search.idp,
   })
   process.env[DEPLOYMENTS.main] = main.origin
   process.env[DEPLOYMENTS.short] = short.origin
@@ -243,6 +256,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   process.env[DEPLOYMENTS.camunda8] = camunda8.origin
   process.env[DEPLOYMENTS.refusedC8] = refusedC8.origin
   process.env[DEPLOYMENTS.chain] = chain.origin
+  process.env[DEPLOYMENTS.search] = search.origin
   process.env[CONTROL_ENV] = control.url
   process.env[ENGINE_CONTROL_ENV] = engine.controlUrl
   process.env[C8_CONTROL_ENV] = c8.origin
@@ -256,6 +270,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     await camunda8.close()
     await refusedC8.close()
     await chain.close()
+    await search.close()
     await engine.close()
     await c8.close()
   }
