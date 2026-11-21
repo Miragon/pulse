@@ -67,7 +67,9 @@ interface RouteParts<S extends CockpitSection> {
   /**
    * The model's view of the route: ids, verdicts and counts as compact JSON with English keys,
    * engine text clipped, never XML. A null fact is unknown, never 0; an `undefined` one is left
-   * out of the JSON.
+   * out of the JSON. An incident count is of open root incidents, as the view counts them, and a
+   * key that names incidents says so (`openRootIncidents`, `rootIncidentCount`); a cluster's counts
+   * are its root incidents by its definition.
    */
   facts: (view: ViewOf<S>, data: CockpitStartData[S], call: CallFacts) => Facts
 }
@@ -128,9 +130,8 @@ export const COCKPIT_ROUTES: { readonly [S in CockpitSection]: CockpitRoute<S> }
       return {
         status: health.status,
         statusRule: health.statusRule,
-        totalIncidents: s.totalIncidents,
-        lastHourIncidents: s.lastHourIncidents,
-        last24hIncidents: s.last24hIncidents,
+        openRootIncidents: s.totalIncidents,
+        rootIncidentsLastHour: s.lastHourIncidents,
         affectedActivities: s.affectedActivities,
         affectedDefinitions: s.affectedDefinitions,
         runningInstances: s.runningInstances,
@@ -157,9 +158,8 @@ export const COCKPIT_ROUTES: { readonly [S in CockpitSection]: CockpitRoute<S> }
     takes: [],
     start: (_, engine, ctx) => incidentsFeed.read({}, engine, ctx),
     facts: (_, data) => ({
-      totalCount: data.totalCount,
+      openRootIncidents: data.totalCount,
       processCount: data.processCount,
-      last24hCount: data.last24hCount,
       affectedActivityCount: data.affectedActivityCount,
       latestIncident: data.latestIncident,
     }),
@@ -186,7 +186,6 @@ export const COCKPIT_ROUTES: { readonly [S in CockpitSection]: CockpitRoute<S> }
       incidentCount: data.incidentCount,
       scannedIncidentCount: data.scannedIncidentCount,
       lastHourCount: data.lastHourCount,
-      last24hCount: data.last24hCount,
       processDefinitionKeys: data.processDefinitionKeys,
       sampleMessage: clip(data.representativeMessage, 140),
     }),
@@ -202,8 +201,7 @@ export const COCKPIT_ROUTES: { readonly [S in CockpitSection]: CockpitRoute<S> }
       focus: view.focus,
       diagramVersion: data.diagramVersion,
       runningInstances: data.runningInstances,
-      incidentCount: data.incidentCount,
-      last24hCount: data.last24hCount,
+      rootIncidentCount: data.incidentCount,
       failedJobs: data.failedJobs,
       affectedActivities: data.activities.length,
     }),
@@ -238,7 +236,7 @@ export const COCKPIT_ROUTES: { readonly [S in CockpitSection]: CockpitRoute<S> }
       processDefinitionKey: data.definitionKey,
       state: instanceState(data.instance),
       activeActivityIds: data.activeActivityIds,
-      incidentCount: data.incidentCount,
+      rootIncidentCount: data.incidentCount,
       openTaskCount: data.openTaskCount,
     }),
   },

@@ -71,7 +71,6 @@ export function describeCluster(data: ClusterDetailData): ViewContext {
       ...clusterCountFacts(data),
       scannedProcessDefinitionKeys: keys.scannedProcessDefinitionKeys,
       lastHour: data.lastHourCount,
-      last24h: data.last24hCount,
       firstSeen: data.firstSeen,
       latestIncident: data.latestIncident,
       listCoversNewest: listCapped(data) ? data.scannedIncidentCount : undefined,
@@ -139,7 +138,6 @@ function ClusterHeader({ data, engineId }: { data: ClusterDetailData; engineId: 
       incidentType: data.incidentType,
       incidentCount: data.incidentCount,
       scannedIncidentCount: data.scannedIncidentCount,
-      last24hCount: data.last24hCount,
       processDefinitionKeys: data.processDefinitionKeys,
       representativeMessage: data.representativeMessage,
     },
@@ -227,7 +225,6 @@ function ClusterKpis({ data }: { data: ClusterDetailData }) {
         },
         // How fast it grows is a count, not a second state (#322 U14).
         { label: t("clusterDetail.kpiNewLastHour"), value: formatCount(data.lastHourCount) },
-        { label: t("clusterDetail.kpiNew24h"), value: formatCount(data.last24hCount) },
       ]}
     />
   )

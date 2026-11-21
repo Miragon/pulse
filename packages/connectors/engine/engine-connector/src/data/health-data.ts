@@ -46,7 +46,6 @@ interface ClusterAcc {
   incidentType: string
   signature: string
   count: number
-  last24h: number
   keys: Map<string, number>
   sampleMessage: string | null
   sampleIncidentId: string
@@ -55,9 +54,12 @@ interface ClusterAcc {
   latest: string | null
 }
 
-/** How the overview's `status` comes about: c7-core's verdict over the open incidents. */
+/**
+ * How the overview's `status` comes about: c7-core's verdict over every open incident, a call
+ * activity's copy of a called instance's included, while the view's counts are root incidents.
+ */
 export function healthVerdictRule(t: VerdictThresholds): string {
-  return `From the engine's open incidents, read live: critical at ${criticalIncidentsRule(t)}, warning with any, else ok.`
+  return `From the engine's open incidents, copies at call activities included, read live: critical at ${criticalIncidentsRule(t)}, warning with any, else ok.`
 }
 
 interface IncidentScanAgg {
@@ -73,50 +75,39 @@ interface IncidentFacts {
   clusterKey: string
   defKey: string
   ts: string
-  isRecent: boolean
 }
 
-/**
- * Compare instants, never strings: engine timestamps carry its local UTC offset
- * (`…+0200`), which orders neither against a Zulu cutoff nor across a DST change.
- */
 function deriveIncidentFacts(
   inc: IncidentLike,
-  cutoffMs: number,
   keyOf: (definitionId: string) => string | null,
 ): IncidentFacts {
   const { activityId, incidentType, signature, key } = causeKeyOf(inc)
   const defKey = (inc.processDefinitionId ? keyOf(inc.processDefinitionId) : null) ?? UNKNOWN
-  const ts = inc.incidentTimestamp ?? ""
-  const tsMs = engineDateMillis(ts)
   return {
     activityId,
     incidentType,
     signature,
     clusterKey: key,
     defKey,
-    ts,
-    isRecent: tsMs !== null && tsMs >= cutoffMs,
+    ts: inc.incidentTimestamp ?? "",
   }
 }
 
 /**
- * The causes come from the root incidents alone (`isRootIncident`): a call activity's copy of a
- * called instance's failure is that failure, not a cause of its own without a message. The
- * activities count every incident's, as the open incidents do.
+ * The causes and the affected activities come from the root incidents alone (`isRootIncident`): a
+ * call activity's copy of a called instance's failure is that failure, not a cause or an activity
+ * of its own without a message.
  */
 function clusterIncidents(
-  incidents: IncidentLike[],
-  cutoffMs: number,
+  roots: IncidentLike[],
   keyOf: (definitionId: string) => string | null,
 ): IncidentScanAgg {
   const byCluster = new Map<string, ClusterAcc>()
   const activitySet = new Set<string>()
 
-  for (const inc of incidents) {
-    const facts = deriveIncidentFacts(inc, cutoffMs, keyOf)
+  for (const inc of roots) {
+    const facts = deriveIncidentFacts(inc, keyOf)
     activitySet.add(facts.activityId)
-    if (!isRootIncident(inc)) continue
 
     const acc =
       byCluster.get(facts.clusterKey) ??
@@ -126,7 +117,6 @@ function clusterIncidents(
         incidentType: facts.incidentType,
         signature: facts.signature,
         count: 0,
-        last24h: 0,
         keys: new Map<string, number>(),
         sampleMessage: truncateMessage(inc.incidentMessage ?? null),
         sampleIncidentId: inc.id ?? "",
@@ -135,7 +125,6 @@ function clusterIncidents(
       } satisfies ClusterAcc)
 
     acc.count += 1
-    if (facts.isRecent) acc.last24h += 1
     acc.keys.set(facts.defKey, (acc.keys.get(facts.defKey) ?? 0) + 1)
     acc.latest = latestEngineDate([acc.latest, facts.ts])
     byCluster.set(facts.clusterKey, acc)
@@ -145,14 +134,12 @@ function clusterIncidents(
 }
 
 /**
- * Counts are exact only as far as the scan reaches: the total when it read
- * everything, the 24h count when it reaches past the cutoff, else null.
+ * Counts are exact only as far as the scan reaches: the total when it read everything, else null.
  * Names are enrichment; the id stands in when unknown.
  */
 function toClusterList(
   ranked: ClusterAcc[],
   coverage: ScanCoverage,
-  cutoffMs: number,
   display: { names: NamesByDefinition; statsByKey: Map<string, KeyStats> },
 ): EngineHealthCluster[] {
   return ranked.map((c) => {
@@ -166,7 +153,6 @@ function toClusterList(
       messageSignature: c.signature,
       incidentCount: coverage.complete ? c.count : null,
       scannedIncidentCount: c.count,
-      last24hCount: coverage.covers(cutoffMs) ? c.last24h : null,
       processDefinitionKeys: keys,
       processDefinitionName:
         (primaryKey ? display.statsByKey.get(primaryKey)?.latest.name : null) ??
@@ -182,7 +168,27 @@ function topClusters(byCluster: Map<string, ClusterAcc>): ClusterAcc[] {
   return [...byCluster.values()].sort((a, b) => b.count - a.count).slice(0, MAX_CLUSTERS)
 }
 
-/** Deterministic, no LLM: the widget hands each cluster to the host agent on demand. */
+/**
+ * The root incidents raised since `sinceMs`, where the scan holds every incident since then (it
+ * reaches past it, or holds every open incident), else null: a window Camunda 7 cannot count
+ * root incidents in by itself (no `/count` tells a root from a copy), so a count the scan cannot
+ * vouch for is unknown, never a guess.
+ */
+function rootsSince(roots: IncidentLike[], coverage: ScanCoverage, sinceMs: number): number | null {
+  if (!coverage.covers(sinceMs)) return null
+  return roots.filter((inc) => {
+    const ms = engineDateMillis(inc.incidentTimestamp)
+    return ms !== null && ms >= sinceMs
+  }).length
+}
+
+/**
+ * Deterministic, no LLM: the widget hands each cluster to the host agent on demand. Its incident
+ * counts are open ROOT incidents (owner decision D2, amended on 2026-11-19): the definition
+ * statistics' (`rootIncidents=true`) summed over every process, and the scan's root incidents for the
+ * clusters, the affected activities and the last hour. The verdict keeps every open incident until
+ * it follows (D2's step of its own).
+ */
 export async function buildEngineHealthData(
   client: Client,
   engineId: string,
@@ -191,30 +197,18 @@ export async function buildEngineHealthData(
   // History filters take the engine's date format (REST contract).
   const startMs = Date.now()
   const dayAgoParam = toEngineDate(new Date(startMs - DAY_MS))
-  const hourAgoParam = toEngineDate(new Date(startMs - HOUR_MS))
 
   // Deliberately NO .catch(() => []) on the verdict inputs: a down engine must
   // be a tool error, never a confident "ok" verdict. The throughput counts are
   // optional, since history level "none" is a healthy engine. Totals come from
   // `/count` or statistics; the capped scan only feeds the clusters.
-  const count = (query: { incidentTimestampAfter?: string }) =>
-    getIncidentsCount({ client, query }).then(countOf)
-  const [
-    incidents,
-    totalIncidents,
-    lastHourIncidents,
-    last24hIncidents,
-    statsByKey,
-    startedRes,
-    completedRes,
-  ] = await Promise.all([
+  const [incidents, openIncidents, statsByKey, startedRes, completedRes] = await Promise.all([
     getIncidents({
       client,
       query: { maxResults: CLUSTER_SCAN_LIMIT, sortBy: "incidentTimestamp", sortOrder: "desc" },
     }).then((rows) => rowsOf<IncidentLike>(rows)),
-    count({}),
-    count({ incidentTimestampAfter: hourAgoParam }),
-    count({ incidentTimestampAfter: dayAgoParam }),
+    // The verdict's input alone: every open incident, copies included.
+    getIncidentsCount({ client, query: {} }).then(countOf),
     fetchStatsByKey(client, {}),
     getHistoricProcessInstancesCount({ client, query: { startedAfter: dayAgoParam } }).catch(
       () => null,
@@ -228,22 +222,19 @@ export async function buildEngineHealthData(
 
   const keyStats = [...statsByKey.values()]
   const runningInstances = keyStats.reduce((sum, k) => sum + k.instances, 0)
+  const totalIncidents = keyStats.reduce((sum, k) => sum + k.incidentCount, 0)
   const affectedDefinitions = keyStats.filter((k) => k.incidentCount > 0).length
 
-  const cutoffMs = nowMs - DAY_MS
   const coverage = scanCoverage(incidents)
+  const roots = incidents.filter(isRootIncident)
   // A bare generated definition id (long keys) carries no parseable key.
-  const { byCluster, activitySet } = clusterIncidents(
-    incidents,
-    cutoffMs,
-    definitionKeyResolver(statsByKey),
-  )
+  const { byCluster, activitySet } = clusterIncidents(roots, definitionKeyResolver(statsByKey))
   const ranked = topClusters(byCluster)
   const names = await fetchNamesByDefinition(
     client,
     ranked.map((c) => c.sampleDefinitionId),
   )
-  const clusters = toClusterList(ranked, coverage, cutoffMs, { names, statsByKey })
+  const clusters = toClusterList(ranked, coverage, { names, statsByKey })
   // The affected activities are exact only when the scan read every incident.
   const affectedActivities = coverage.complete ? activitySet.size : null
 
@@ -252,7 +243,7 @@ export async function buildEngineHealthData(
   // CLUSTER_SCAN_LIMIT incidents, which the total rule judges. The verdict travels as data; each
   // reader words it.
   const status = engineVerdict(
-    { openIncidents: totalIncidents, largestCluster: largestCause(incidents)?.count ?? 0 },
+    { openIncidents, largestCluster: largestCause(incidents)?.count ?? 0 },
     thresholds,
   )
 
@@ -261,8 +252,7 @@ export async function buildEngineHealthData(
     statusRule: healthVerdictRule(thresholds),
     summary: {
       totalIncidents,
-      lastHourIncidents,
-      last24hIncidents,
+      lastHourIncidents: rootsSince(roots, coverage, nowMs - HOUR_MS),
       affectedActivities,
       affectedDefinitions,
       runningInstances,

@@ -97,10 +97,6 @@ function ClusterRow({
       <Td align="right" className="tabular-nums">
         {formatCount(cluster.incidentCount ?? { atLeast: cluster.scannedIncidentCount })}
       </Td>
-      {/* Unknown (the scan does not reach back a day) is "—", never 0. */}
-      <Td align="right" className="tabular-nums">
-        {formatCount(cluster.last24hCount)}
-      </Td>
       <Td>
         <span className="block max-w-48 truncate" title={scope}>
           {scope}
@@ -143,7 +139,6 @@ export function ClustersSection({
     { label: t("engineHealth.colActivity"), fit: true },
     { label: t("engineHealth.colCause") },
     { label: t("engineHealth.colIncidents"), align: "right", fit: true },
-    { label: t("engineHealth.new24h"), align: "right", fit: true, hideBelow: "sm" },
     { label: t("engineHealth.colProcess"), hideBelow: "md" },
     ...(handOffs
       ? [{ label: t("engineHealth.colActions"), align: "right" as const, fit: true }]

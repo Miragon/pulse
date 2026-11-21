@@ -1,7 +1,7 @@
 import { RuntimeError } from "@miragon/pulse-engine-core"
 import { describe, expect, it } from "vitest"
 import { fakeFailure, fakePort } from "../testing/fake-port.js"
-import { readDefinitionStatistics, readDiagramXml } from "./definition-rows.js"
+import { diagramReadOf, readDefinitionStatistics, readDiagramXml } from "./definition-rows.js"
 
 const FULL = {
   id: "invoice:2:x",
@@ -121,4 +121,42 @@ describe("readDiagramXml", () => {
     const port = fakePort({ getProcessDefinitionBpmn20Xml: () => answer })
     await expectUnexpected(readDiagramXml(port, "order:1:y"), message)
   })
+})
+
+describe("diagramReadOf", () => {
+  it("reads over the port without a surface's read", async () => {
+    const port = fakePort({
+      getProcessDefinitionBpmn20Xml: () => ({ id: "order:1:y", bpmn20Xml: "<definitions/>" }),
+    })
+    expect(await diagramReadOf(port)("order:1:y")).toBe("<definitions/>")
+    expect(port.calls.map((call) => call.operationId)).toEqual(["getProcessDefinitionBpmn20Xml"])
+  })
+
+  it("reads through the surface's read where it gives one, its none as none", async () => {
+    const port = fakePort({})
+    const asked: string[] = []
+    const read = diagramReadOf(port, (id) => {
+      asked.push(id)
+      return Promise.resolve(id === "order:1:y" ? "<kept/>" : undefined)
+    })
+    expect(await read("order:1:y")).toBe("<kept/>")
+    expect(await read("nope:1:x")).toBeUndefined()
+    expect(asked).toEqual(["order:1:y", "nope:1:x"])
+    expect(port.calls).toEqual([])
+  })
+
+  it.each(["../x", "a b", ""])(
+    "reads %j, an id no engine assigns, as none, asking neither",
+    async (id) => {
+      const port = fakePort({})
+      const asked: string[] = []
+      const read = diagramReadOf(port, (definitionId) => {
+        asked.push(definitionId)
+        return Promise.resolve("<never/>")
+      })
+      expect(await read(id)).toBeUndefined()
+      expect(asked).toEqual([])
+      expect(port.calls).toEqual([])
+    },
+  )
 })

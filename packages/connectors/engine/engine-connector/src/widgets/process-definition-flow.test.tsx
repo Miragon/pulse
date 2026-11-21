@@ -44,7 +44,6 @@ const DATA: ProcessIncidentsData = {
   cockpitUrl: null,
   runningInstances: 4,
   incidentCount: 1,
-  last24hCount: 1,
   failedJobs: 1,
   totalActivityCount: 2,
   affectedDiagramActivityCount: 1,
@@ -78,6 +77,7 @@ const RUNNING: ActivityStatisticsData = {
       running: 7,
       failedJobs: 0,
       incidents: 0,
+      incidentsInCalledInstances: 0,
     },
     {
       activityId: "assess",
@@ -86,7 +86,9 @@ const RUNNING: ActivityStatisticsData = {
       running: 3,
       failedJobs: 1,
       incidents: 1,
+      incidentsInCalledInstances: 0,
     },
+    // A call activity: its called instances' incidents apart, never its own.
     {
       activityId: "notify",
       activityName: null,
@@ -94,6 +96,7 @@ const RUNNING: ActivityStatisticsData = {
       running: 2,
       failedJobs: 2,
       incidents: 0,
+      incidentsInCalledInstances: 2,
     },
     {
       activityId: "legacyCheck",
@@ -102,6 +105,7 @@ const RUNNING: ActivityStatisticsData = {
       running: 1,
       failedJobs: 0,
       incidents: 0,
+      incidentsInCalledInstances: 0,
     },
   ],
   engineId: "prod-a",
@@ -189,6 +193,10 @@ describe("definition view flow: Running", () => {
     })
     // assess's failed job raised its incident, which already takes the red corner.
     expect(highlightOf("failed-jobs")?.counts).toEqual([{ activityId: "notify", count: 2 }])
+    // The incidents of the instances notify called: a quiet badge of their own, no outline.
+    expect(highlightOf("called-incident-count")?.counts).toEqual([
+      { activityId: "notify", count: 2 },
+    ])
   })
 
   it("lists the values behind the badges, an element only older versions have marked", async () => {
@@ -197,12 +205,33 @@ describe("definition view flow: Running", () => {
 
     const table = await screen.findByRole("region", { name: "Values per activity" })
     const rows = within(table).getAllByRole("row").slice(1)
+    // Running, incidents, incidents in called instances, jobs without retries.
     expect(rows.map((row) => row.textContent)).toEqual([
-      "Send policy sendPolicy700",
-      "Assess assess311",
-      "notify202",
-      "Legacy check legacyCheck · only in older versions100",
+      "Send policy sendPolicy7000",
+      "Assess assess3101",
+      "notify2022",
+      "Legacy check legacyCheck · only in older versions1000",
     ])
+    // Its head beside the incidents', kept at every width: the quiet badge's words. A narrow
+    // region drops the jobs without retries alone (their cells' rule, which happy-dom cannot
+    // apply).
+    expect(table.querySelector("thead")?.textContent).toContain("IncidentsIn called instances")
+    const rules = table.closest("[data-list-table]")?.querySelector("style")?.textContent ?? ""
+    expect(rules).not.toContain(":nth-child(4) { display: none; }")
+    expect(rules).toContain(":nth-child(5) { display: none; }")
+  })
+
+  it("has no column for incidents in called instances where no element has one", async () => {
+    renderFlow(props, {
+      ...RUNNING,
+      activities: RUNNING.activities.map((a) => ({ ...a, incidentsInCalledInstances: 0 })),
+    })
+    await chooseRunning()
+
+    const table = await screen.findByRole("region", { name: "Values per activity" })
+    expect(table.querySelector("thead")?.textContent).toBe(
+      "ActivityRunningIncidentsJobs without retries",
+    )
   })
 
   it("says so when nothing runs, and draws the diagram bare", async () => {
@@ -244,7 +273,7 @@ describe("definition view flow: Running", () => {
       'Ids: engine="prod-a", processDefinitionKey="leasing", diagramDefinitionId="leasing:2:d2"',
     )
     expect(text).toContain(
-      'On screen: versions=2, diagramVersion=2, activitiesRunning=4, activitiesWithIncidents=1, top1ActivityId="sendPolicy", top1Running=7, top2ActivityId="assess", top2Running=3, top3ActivityId="notify", top3Running=2',
+      'On screen: versions=2, diagramVersion=2, activitiesRunning=4, activitiesWithRootIncidents=1, activitiesWithIncidentsInCalledInstances=1, top1ActivityId="sendPolicy", top1Running=7, top2ActivityId="assess", top2Running=3, top3ActivityId="notify", top3Running=2',
     )
     expect(text).not.toContain("legacyCheck")
     expect(text).toMatch(/top1Name:\n```text\nSend policy\n```/)

@@ -59,9 +59,8 @@ function describeHealth(data: EngineHealthData, engine: string): ViewContext {
     ids: { engine },
     facts: {
       verdict: status,
-      openIncidents: summary.totalIncidents,
-      lastHour: summary.lastHourIncidents,
-      last24h: summary.last24hIncidents,
+      openRootIncidents: summary.totalIncidents,
+      rootIncidentsLastHour: summary.lastHourIncidents,
       affectedActivities: summary.affectedActivities,
       affectedDefinitions: summary.affectedDefinitions,
       runningInstances: summary.runningInstances,
@@ -83,9 +82,8 @@ function triageHandOff(data: EngineHealthData, engine: string): HandOff {
     intent: "askAi.health.triage",
     ids: { engine },
     facts: {
-      openIncidents: summary.totalIncidents,
-      lastHour: summary.lastHourIncidents,
-      last24h: summary.last24hIncidents,
+      openRootIncidents: summary.totalIncidents,
+      rootIncidentsLastHour: summary.lastHourIncidents,
       affectedActivities: summary.affectedActivities,
       affectedDefinitions: summary.affectedDefinitions,
       runningInstances: summary.runningInstances,
@@ -147,7 +145,10 @@ function HealthUnavailable({
   )
 }
 
-/** Only open incidents carry a state; the other KPIs are neutral counts (#322 U14). */
+/**
+ * Only open incidents carry a state; the other KPIs are neutral counts (#322 U14). The incidents
+ * are open root incidents: a failure that runs through a chain of called instances counts once.
+ */
 function HealthKpis({ summary, go }: { summary: EngineHealthData["summary"]; go: OnNavigate }) {
   const t = useT()
   return (
@@ -166,19 +167,17 @@ function HealthKpis({ summary, go }: { summary: EngineHealthData["summary"]; go:
         },
         {
           label: t("engineHealth.kpiOpenIncidents"),
-          // The derivative beats the absolute during an active incident:
-          // "9 in the last hour" = burning now; fall back to the 24h count.
+          // The derivative beats the absolute during an active incident: "9 new in the last hour"
+          // = burning now; unknown (the scan does not reach back an hour) says nothing.
           value: (
             <AlarmCount alarm={summary.totalIncidents > 0 && "openIncidents"}>
               {formatNumber(summary.totalIncidents)}
             </AlarmCount>
           ),
           fraction:
-            summary.lastHourIncidents > 0
+            summary.lastHourIncidents !== null && summary.lastHourIncidents > 0
               ? ` ${t("engineHealth.kpiInLastHour", { count: formatNumber(summary.lastHourIncidents) })}`
-              : summary.last24hIncidents > 0
-                ? ` ${t("engineHealth.kpiIn24h", { count: formatNumber(summary.last24hIncidents) })}`
-                : undefined,
+              : undefined,
           onClick: () => go({ type: "incidents" }),
           actionHint: t("engineHealth.kpiOpenIncidentsAria"),
         },

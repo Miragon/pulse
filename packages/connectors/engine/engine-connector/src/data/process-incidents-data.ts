@@ -1,7 +1,6 @@
 import type { Client } from "@miragon/pulse-c7-client"
-import { latestEngineDate, toEngineDate } from "@miragon/pulse-c7-core"
+import { isRootIncident, latestEngineDate } from "@miragon/pulse-c7-core"
 import {
-  getActivityStatistics,
   getIncidents,
   getIncidentsCount,
   getJobsCount,
@@ -17,18 +16,20 @@ import type {
 import type { ActivityIncidentsFilters, PagingArgs } from "../feed-contracts.js"
 import type { EngineProvider } from "../engine-provider.js"
 import { buildProcessCockpitUrl } from "../lib/engine/cockpit-url.js"
-import { bpmnActivityIds } from "../lib/bpmn/bpmn-parse.js"
+import { bpmnActivityIds, bpmnCallActivityIds } from "../lib/bpmn/bpmn-parse.js"
 import {
   fetchDefinitionXml,
   fetchLatestDefinition,
   fetchStatsByKey,
   nameUnnamedDefinitions,
+  type KeyStats,
 } from "./definition-info.js"
-import { countOf, DAY_MS, optional, rowsOf } from "./engine-reads.js"
+import { readElementCounts } from "./element-counts.js"
+import { countOf, optional, rowsOf } from "./engine-reads.js"
 import {
   fetchBusinessKeys,
-  fetchRootCauses,
   groupBy,
+  readAllIncidents,
   scanFacts,
   scanIncidents,
   toIncidentInstance,
@@ -44,9 +45,12 @@ export interface ProcessIncidentsOptions {
 }
 
 /**
- * KEY-wide (#335 N60): old versions keep running after a redeploy, so every
- * number covers every version; only the diagram is one version. The engine-wide
- * definition statistics are read only when the key's incidents outrun the scan.
+ * KEY-wide (#335 N60): old versions keep running after a redeploy, so every number covers every
+ * version; only the diagram is one version. Its incidents are the key's open ROOT incidents (owner
+ * decision D2, amended on 2026-11-19): the definition statistics' (`rootIncidents=true`), and per
+ * activity the scan's root incidents (`isRootIncident`) where the scan holds every incident of the
+ * key, else each root-carrying version's element statistics, read as the shared process screen
+ * reads them. A call activity's copy of a called instance's incident counts in the called process.
  */
 export async function buildProcessIncidentsData(
   client: Client,
@@ -54,38 +58,31 @@ export async function buildProcessIncidentsData(
 ): Promise<ProcessIncidentsData> {
   const key = options.processDefinitionKey
   const nowMs = Date.now()
-  const cutoffMs = nowMs - DAY_MS
   const byKey = { processDefinitionKeyIn: key }
-  const [definition, runningInstances, failedJobs, incidentCount, last24hCount, scan] =
-    await Promise.all([
-      // Primary: an unknown key is a not-found error, never a view of zeros.
-      fetchLatestDefinition(client, key),
-      getProcessInstancesCount({ client, query: { processDefinitionKey: key } }).then(countOf),
-      getJobsCount({ client, query: { processDefinitionKey: key, noRetriesLeft: true } }).then(
-        countOf,
-      ),
-      getIncidentsCount({ client, query: byKey }).then(countOf),
-      getIncidentsCount({
-        client,
-        query: { ...byKey, incidentTimestampAfter: toEngineDate(new Date(cutoffMs)) },
-      }).then(countOf),
-      scanIncidents(client, byKey),
-    ])
+  const [definition, runningInstances, failedJobs, statsByKey, scan] = await Promise.all([
+    // Primary: an unknown key is a not-found error, never a view of zeros.
+    fetchLatestDefinition(client, key),
+    getProcessInstancesCount({ client, query: { processDefinitionKey: key } }).then(countOf),
+    getJobsCount({ client, query: { processDefinitionKey: key, noRetriesLeft: true } }).then(
+      countOf,
+    ),
+    fetchStatsByKey(client, {}),
+    scanIncidents(client, byKey),
+  ])
 
+  const stats = statsByKey.get(key)
+  const incidentCount = stats?.incidentCount ?? 0
+  const roots = scan.rows.filter(isRootIncident)
   const [bpmnXml, activityCounts, siblingsWithIncidents] = await Promise.all([
     definition.id ? optional(fetchDefinitionXml(client, definition.id)) : Promise.resolve(null),
-    activityIncidentCounts(client, key, scan),
-    // Read for the empty state alone; null otherwise, never an unread `[]`.
-    incidentCount === 0 ? optional(fetchSiblingsWithIncidents(client, key)) : Promise.resolve(null),
+    activityIncidentCounts(client, { scan, roots, stats }),
+    // For the empty state alone; null otherwise, never an unread `[]`.
+    incidentCount === 0 ? siblingsWithIncidentsOf(client, statsByKey, key) : Promise.resolve(null),
   ])
 
   const diagramIds = bpmnXml ? new Set(bpmnActivityIds(bpmnXml)) : null
   const diagramNames = readBpmnNames(bpmnXml ?? "")
-  const activities = await withRootCauseMessages(
-    client,
-    scan,
-    toActivities(activityCounts, scan, { names: diagramNames.elements, cutoffMs }),
-  )
+  const activities = toActivities(activityCounts, roots, diagramNames.elements)
   return {
     processDefinitionKey: key,
     // The engine's name, else the diagram's (a Modeler pool around an unnamed process).
@@ -99,7 +96,6 @@ export async function buildProcessIncidentsData(
     ),
     runningInstances,
     incidentCount,
-    last24hCount,
     failedJobs,
     totalActivityCount: diagramIds ? diagramIds.size : null,
     // Same scope as the denominator: an activity only an older version has
@@ -107,7 +103,7 @@ export async function buildProcessIncidentsData(
     affectedDiagramActivityCount: diagramIds
       ? activities.filter((a) => diagramIds.has(a.activityId)).length
       : null,
-    latestIncident: latestEngineDate(scan.rows.map((r) => r.incidentTimestamp)),
+    latestIncident: latestEngineDate(roots.map((r) => r.incidentTimestamp)),
     activities,
     siblingsWithIncidents,
     fetchedAt: new Date(nowMs).toISOString(),
@@ -117,21 +113,17 @@ export async function buildProcessIncidentsData(
 
 function toActivities(
   counts: Map<string, number>,
-  scan: IncidentScan,
-  ctx: { names: Record<string, string>; cutoffMs: number },
+  roots: IncidentRow[],
+  names: Record<string, string>,
 ): ProcessIncidentsActivity[] {
-  const scanned = groupBy(scan.rows, (r) => r.activityId)
+  const scanned = groupBy(roots, (r) => r.activityId)
   return [...counts.entries()]
     .map(([activityId, incidentCount]) => {
       const rows = scanned.get(activityId) ?? []
-      const facts = scanFacts(rows, {
-        fullyScanned: rows.length >= incidentCount,
-        scan,
-        cutoffMs: ctx.cutoffMs,
-      })
+      const facts = scanFacts(rows, { fullyScanned: rows.length >= incidentCount })
       return {
         activityId,
-        activityName: ctx.names[activityId] ?? null,
+        activityName: names[activityId] ?? null,
         representativeMessage: facts.representativeMessage,
         incidentCount,
         firstSeen: facts.firstSeen,
@@ -142,70 +134,38 @@ function toActivities(
 }
 
 /**
- * ENRICHMENT: a call activity's group holds copies of its called instances' incidents, which carry
- * no message of their own, and this key's scan holds none of their roots. Its newest copy's root
- * is read (`fetchRootCauses`, bounded) for the group's message; an unread root leaves it null, so
- * the group says nothing rather than a guess.
+ * The open root incidents per activity: a complete scan already holds every incident of the key, so
+ * its root incidents are exact; otherwise each version that holds a root incident is read by the
+ * shared process screen's rule (`readElementCounts`: its statistics with every incident at an
+ * element, and the incidents at its call activities whole).
  */
-async function withRootCauseMessages(
-  client: Client,
-  scan: IncidentScan,
-  activities: ProcessIncidentsActivity[],
-): Promise<ProcessIncidentsActivity[]> {
-  const newest = groupBy(scan.rows, (r) => r.activityId)
-  const copies = activities
-    .filter((a) => a.representativeMessage === null)
-    .map((a) => newest.get(a.activityId)?.[0])
-    .filter((row): row is IncidentRow => row !== undefined)
-  if (copies.length === 0) return activities
-  const roots = await fetchRootCauses(client, copies)
-  return activities.map((a) => {
-    const row = newest.get(a.activityId)?.[0]
-    const root = a.representativeMessage === null && row ? roots.get(row.id) : undefined
-    return root?.message ? { ...a, representativeMessage: root.message } : a
-  })
-}
-
-/** A complete scan already holds every incident; otherwise sum each incident-carrying version's statistics. */
 async function activityIncidentCounts(
   client: Client,
-  key: string,
-  scan: IncidentScan,
+  read: { scan: IncidentScan; roots: IncidentRow[]; stats: KeyStats | undefined },
 ): Promise<Map<string, number>> {
-  if (scan.complete) {
+  if (read.scan.complete) {
     return new Map(
-      [...groupBy(scan.rows, (r: IncidentRow) => r.activityId)].map(([id, rows]) => [
-        id,
-        rows.length,
-      ]),
+      [...groupBy(read.roots, (r) => r.activityId)].map(([id, rows]) => [id, rows.length]),
     )
   }
-  const versionIds = (await fetchStatsByKey(client, {})).get(key)?.incidentVersionIds ?? []
-  const perVersion = await Promise.all(
-    versionIds.map((id) =>
-      getActivityStatistics({ client, path: { id }, query: { incidents: true } }).then((rows) =>
-        rowsOf<{ id?: string | null; incidents?: Array<{ incidentCount?: number | null }> | null }>(
-          rows,
-        ),
-      ),
-    ),
+  const perElement = await readElementCounts(client, read.stats?.incidentVersionIds ?? [])
+  return new Map(
+    [...perElement]
+      .filter(([, counts]) => counts.incidents > 0)
+      .map(([id, counts]) => [id, counts.incidents]),
   )
-  const counts = new Map<string, number>()
-  for (const row of perVersion.flat()) {
-    const count = (row.incidents ?? []).reduce((sum, i) => sum + (i.incidentCount ?? 0), 0)
-    if (row.id && count > 0) counts.set(row.id, (counts.get(row.id) ?? 0) + count)
-  }
-  return counts
 }
 
-async function fetchSiblingsWithIncidents(
+/** The other processes with open root incidents, the most first, from the statistics read. */
+async function siblingsWithIncidentsOf(
   client: Client,
+  statsByKey: Map<string, KeyStats>,
   excludeKey: string,
 ): Promise<IncidentsByProcess[]> {
-  const siblings = [...(await fetchStatsByKey(client, {})).entries()]
+  const siblings = [...statsByKey.entries()]
     .filter(([key, stats]) => key !== excludeKey && stats.incidentCount > 0)
     .sort((a, b) => b[1].incidentCount - a[1].incidentCount)
-  // A Modeler pool around an unnamed process names it, as every view names it.
+  // A Modeler pool around an unnamed process names it, as every view names it (enrichment).
   await nameUnnamedDefinitions(
     client,
     siblings.map(([, stats]) => stats.latest),
@@ -221,9 +181,70 @@ export type ActivityIncidentsArgs = ActivityIncidentsFilters & PagingArgs
 
 const ACTIVITY_INCIDENTS_PAGE = 10
 
+/** A page of an activity's root incidents and how many it holds. */
+interface RootsPage {
+  rows: IncidentRow[]
+  totalCount: number
+}
+
 /**
- * Each row links to its OWN definition version, so no definition lookup runs per page (N67). A
- * copy's row (a call activity's) carries its root incident in the called instance (enrichment).
+ * Whether the activity may hold a call activity's copies of its called instances' incidents: it is
+ * a call activity in the key's latest diagram, or that diagram cannot tell (unread, or without the
+ * element, which only an older version has).
+ */
+function mayHoldCopies(bpmnXml: string | null, activityId: string): boolean {
+  return (
+    bpmnXml === null ||
+    bpmnCallActivityIds(bpmnXml).includes(activityId) ||
+    !bpmnActivityIds(bpmnXml).includes(activityId)
+  )
+}
+
+/**
+ * Where copies may lie: the activity's incidents read whole, its root incidents (`isRootIncident`)
+ * paged in memory and counted, so no copy is a row or part of the total.
+ */
+async function rootsReadWhole(
+  client: Client,
+  filter: { processDefinitionKeyIn: string; activityId: string },
+  first: number,
+  size: number,
+): Promise<RootsPage> {
+  const roots = (await readAllIncidents(client, filter)).filter(isRootIncident)
+  return { rows: roots.slice(first, first + size), totalCount: roots.length }
+}
+
+/** Where no copy lies: the engine pages the activity's incidents and counts them. */
+async function rootsPagedByEngine(
+  client: Client,
+  filter: { processDefinitionKeyIn: string; activityId: string },
+  first: number,
+  size: number,
+): Promise<RootsPage> {
+  const [rows, totalCount] = await Promise.all([
+    getIncidents({
+      client,
+      query: {
+        ...filter,
+        sortBy: "incidentTimestamp",
+        sortOrder: "desc",
+        firstResult: first,
+        maxResults: size,
+      },
+    }).then((answer) => rowsOf<IncidentRow>(answer)),
+    getIncidentsCount({ client, query: filter }).then(countOf),
+  ])
+  return { rows, totalCount }
+}
+
+/**
+ * A page of an activity's open ROOT incidents, newest first, as its group counts them (owner
+ * decision D2, amended on 2026-11-19): a call activity's copy of a called instance's incident is no
+ * row and no part of the total. Copies only lie at a call activity (`mayHoldCopies`, by the key's
+ * latest diagram, read through the one XML cache, which also names the rows' element): there the
+ * activity's incidents are read whole and its root incidents paged in memory; anywhere else the
+ * engine pages them and `/incident/count` counts them. Each row links to its OWN definition
+ * version, so no definition lookup runs per page (N67). An unknown key is a not-found error.
  */
 export async function buildActivityIncidentsData(
   client: Client,
@@ -233,37 +254,32 @@ export async function buildActivityIncidentsData(
     provider: EngineProvider
   } & ActivityIncidentsArgs,
 ): Promise<Omit<ActivityIncidentsData, "engineId">> {
-  const query = {
+  const filter = {
     processDefinitionKeyIn: options.processDefinitionKey,
     activityId: options.activityId,
   }
-  const [raw, totalCount] = await Promise.all([
-    getIncidents({
+  const first = Math.max(0, options.firstResult ?? 0)
+  const size = options.maxResults ?? ACTIVITY_INCIDENTS_PAGE
+  // Primary: an unknown key is a not-found error, never a page of zeros.
+  const latest = await fetchLatestDefinition(client, options.processDefinitionKey)
+  // Enrichment: an unread diagram names no element and leaves the copies to the whole read.
+  const bpmnXml = latest.id ? await optional(fetchDefinitionXml(client, latest.id)) : null
+  const { rows, totalCount } = mayHoldCopies(bpmnXml, options.activityId)
+    ? await rootsReadWhole(client, filter, first, size)
+    : await rootsPagedByEngine(client, filter, first, size)
+  const names = readBpmnNames(bpmnXml ?? "").elements
+  const activityName = Object.hasOwn(names, options.activityId) ? names[options.activityId] : null
+  // Enrichment: a failed read names the rows by their short ids.
+  const businessKeys = await optional(
+    fetchBusinessKeys(
       client,
-      query: {
-        ...query,
-        sortBy: "incidentTimestamp",
-        sortOrder: "desc",
-        firstResult: Math.max(0, options.firstResult ?? 0),
-        maxResults: options.maxResults ?? ACTIVITY_INCIDENTS_PAGE,
-      },
-    }).then((rows) => rowsOf<IncidentRow>(rows)),
-    getIncidentsCount({ client, query }).then(countOf),
-  ])
-  // Enrichment: a failed read names the rows by their short ids, a copy's message "—".
-  const [businessKeys, rootCauses] = await Promise.all([
-    optional(
-      fetchBusinessKeys(
-        client,
-        raw.map((r) => r.processInstanceId),
-      ),
+      rows.map((r) => r.processInstanceId),
     ),
-    fetchRootCauses(client, raw),
-  ])
+  )
   return {
     processDefinitionKey: options.processDefinitionKey,
     activityId: options.activityId,
-    incidents: raw.map((r) => toIncidentInstance(r, options, businessKeys, rootCauses)),
+    incidents: rows.map((r) => toIncidentInstance(r, options, businessKeys, activityName)),
     totalCount,
   }
 }

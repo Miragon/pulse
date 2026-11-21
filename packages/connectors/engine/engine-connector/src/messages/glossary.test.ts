@@ -34,13 +34,18 @@ const DE_RULES: readonly GlossaryRule[] = [
     use: "Betroffene Aktivitäten / Prozesse",
     probe: "Aktivitäten betroffen",
   },
-  // New incidents in a day: never a balance with a plus, never "the last 24 hours".
-  { pattern: /\+\s*24|Letzte 24/, use: "Neu in 24 Std.", probe: "+24 Std." },
+  // No count of new incidents over a day (owner decision 2026-11-20: Camunda 7 counts no root
+  // incidents in a window), never a balance with a plus.
+  {
+    pattern: /[Nn]eu in 24|\+\s*24|Letzte 24/,
+    use: "keine Zahl über einen Tag",
+    probe: "Neu in 24 Std.",
+  },
   { pattern: /24\s?h\b|24 Stunden/, use: "24 Std.", probe: "neu in 24h" },
   {
-    // The overview's growth says "neu" as the cluster's tiles do, in either window.
+    // The overview's growth says "neu" as the cluster's tile does.
     pattern: /(?<!neu )in (24 Std\.|der letzten Stunde)/i,
-    use: "neu in 24 Std. / neu in der letzten Stunde",
+    use: "neu in der letzten Stunde",
     probe: "(3 in der letzten Stunde)",
   },
   { pattern: /Fehlernachricht|Fehlertext/, use: "Fehlermeldung", probe: "Fehlernachricht" },
@@ -81,13 +86,14 @@ const EN_RULES: readonly GlossaryRule[] = [
     use: "affected activities / processes",
     probe: "Activities affected",
   },
-  // New incidents in a day: never a balance with a plus, never "the last 24h", one spelling.
-  { pattern: /\+\s*24|\blast 24/i, use: "New in 24h", probe: "+24h" },
-  { pattern: /\b24 h\b|24 hours/, use: "24h", probe: "4 new in 24 h" },
+  // No count of new incidents over a day (owner decision 2026-11-20: Camunda 7 counts no root
+  // incidents in a window), never a balance with a plus, one spelling of the window.
+  { pattern: /\bnew in 24|\+\s*24|\blast 24/i, use: "no count over a day", probe: "New in 24h" },
+  { pattern: /\b24 h\b|24 hours/, use: "24h", probe: "Throughput (24 h)" },
   {
-    // The overview's growth says "new" as the cluster's tiles do, in either window.
+    // The overview's growth says "new" as the cluster's tile does.
     pattern: /(?<!new )\bin (24h|the last hour)\b/i,
-    use: "new in 24h / new in the last hour",
+    use: "new in the last hour",
     probe: "(3 in the last hour)",
   },
   { pattern: /\bfailure message\b/i, use: "error message", probe: "Failure message" },

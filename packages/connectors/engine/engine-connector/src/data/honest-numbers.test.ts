@@ -2,7 +2,6 @@ import { readdirSync } from "node:fs"
 import { dirname } from "node:path"
 import { fileURLToPath } from "node:url"
 import { afterEach, describe, expect, it } from "vitest"
-import { toEngineDate } from "@miragon/pulse-c7-core"
 import { cibsevenProvider } from "../providers/index.js"
 import type { FakeReply } from "../tools/test-support/fake-engine.js"
 import {
@@ -29,12 +28,20 @@ import { buildInstanceDetailData } from "./instance-detail-data.js"
 import { buildActivityIncidentsData, buildProcessIncidentsData } from "./process-incidents-data.js"
 import { buildActivityStatisticsData } from "./activity-statistics-data.js"
 import { buildJobBacklogData } from "./job-backlog-data.js"
-import { build, type BuildCase, closeBuildEngines, DEGRADE } from "./honest-numbers.test-support.js"
+import {
+  build,
+  type BuildCase,
+  closeBuildEngines,
+  DEGRADE,
+  expectFallbacks,
+  incidentScan,
+  V1_CALL_ACTIVITIES,
+} from "./honest-numbers.test-support.js"
 import { COPY_CASES, HISTORY_ENRICHMENT } from "./honest-numbers.copies.test-support.js"
 
-// Each case declares only its enrichment reads; EVERY other read its healthy
-// build makes is primary and broken in turn, so a newly swallowed failure fails
-// here without anyone listing it. A builder without a case fails structurally.
+// Each case declares only its enrichment and fallback reads; EVERY other read its
+// healthy build makes is primary and broken in turn, so a newly swallowed failure
+// fails here without anyone listing it. A builder without a case fails structurally.
 
 afterEach(closeBuildEngines)
 
@@ -45,25 +52,25 @@ interface Case extends BuildCase {
   unknown?: { read: string; reply: FakeReply }
   /** Enrichment reads: each failure leaves the build intact, with the read's value null. */
   enrichment?: Record<string, (data: never) => unknown>
+  /**
+   * Fallback reads: each failure is answered by the read it names, with the same figures (a
+   * version's diagram, which c7-core's element statistics read for its call activities, by a read
+   * of every incident of the version).
+   */
+  fallback?: Record<string, string>
 }
 
 const KEY_LOOKUP = "GET /process-definition?key&latestVersion&maxResults&sortBy&sortOrder"
+/** Another process with a root incident, unnamed, so its diagram names it (enrichment). */
+const SHIP_STATS = {
+  id: "ship:1:s1",
+  instances: 1,
+  failedJobs: 0,
+  incidents: [{ incidentType: "failedJob", incidentCount: 1 }],
+  definition: { id: "ship:1:s1", key: "ship", name: null, version: 1 },
+}
 const NOT_FOUND = { status: 404, body: { type: "InvalidRequestException", message: "not found" } }
 const NO_ROWS = { body: [] }
-
-function incidentScan(count: number): unknown[] {
-  const now = toEngineDate(new Date())
-  return Array.from({ length: count }, (_, n) => ({
-    id: `inc-scan-${n}`,
-    processDefinitionId: WORLD.instanceDefinitionId,
-    processInstanceId: WORLD.instanceId,
-    activityId: WORLD.activityId,
-    incidentType: "failedJob",
-    incidentMessage: "card declined",
-    incidentTimestamp: now,
-    configuration: WORLD.jobId,
-  }))
-}
 
 const processIncidents: Case["run"] = (client, baseUrl) =>
   buildProcessIncidentsData(client, { ...urls(baseUrl), processDefinitionKey: WORLD.key })
@@ -108,6 +115,7 @@ const activityStatistics = (source: "runtime" | "history"): Case => ({
       activities: Array<{ inDiagram: unknown; activityName: unknown }>
     }) => data.activities[0]?.inDiagram ?? data.activities[0]?.activityName,
   },
+  ...(source === "runtime" ? { fallback: V1_CALL_ACTIVITIES } : {}),
 })
 const HISTORY_OPEN = "GET /history/process-instance?maxResults&unfinished"
 const recorded = (data: { historyRecorded: unknown }) => data.historyRecorded
@@ -142,7 +150,7 @@ const CASES: Record<string, Case> = {
     ]),
     enrichment: {
       ...instanceStarts,
-      "GET /process-definition/statistics?incidents": (data: {
+      "GET /process-definition/statistics?rootIncidents": (data: {
         instances: Array<{ processDefinitionKey: unknown }>
       }) => data.instances[0]?.processDefinitionKey,
       // The rows' process names (#322 U13): one read over the page's versions.
@@ -285,7 +293,7 @@ const CASES: Record<string, Case> = {
     run: (client, baseUrl) =>
       buildIncidentsDashboardData(client, { ...urls(baseUrl), processDefinitionKey: WORLD.key }),
     // The statistics list every deployed key: a key they lack is not deployed.
-    unknown: { read: "GET /process-definition/statistics?incidents", reply: NO_ROWS },
+    unknown: { read: "GET /process-definition/statistics?rootIncidents", reply: NO_ROWS },
     enrichment: {
       // An activity's row is named in the diagram of its newest incident's version.
       [namesFrom(WORLD.instanceDefinitionId)]: (data: {
@@ -302,22 +310,27 @@ const CASES: Record<string, Case> = {
   "buildProcessIncidentsData (scan capped)": {
     run: processIncidents,
     world: (r) =>
-      r.path === "/incident" ? { body: incidentScan(INCIDENT_SCAN_LIMIT) } : undefined,
+      r.path === "/incident" && r.query.processDefinitionKeyIn !== undefined
+        ? { body: incidentScan(INCIDENT_SCAN_LIMIT) }
+        : undefined,
     enrichment: processIncidentsXml,
+    fallback: V1_CALL_ACTIVITIES,
   },
-  // No incidents: the empty state reads the other processes (enrichment).
+  // No root incidents: the empty state names the other processes that have some, from the
+  // statistics the count reads (primary), their names enrichment.
   "buildProcessIncidentsData (no incidents)": {
     run: processIncidents,
     world: (r) =>
-      r.path === "/incident/count"
-        ? { body: { count: 0 } }
+      r.path === "/process-definition/statistics"
+        ? { body: [SHIP_STATS] }
         : r.path === "/incident"
           ? NO_ROWS
           : undefined,
     enrichment: {
       ...processIncidentsXml,
-      "GET /process-definition/statistics?incidents": (data: { siblingsWithIncidents: unknown }) =>
-        data.siblingsWithIncidents,
+      [namesFrom("ship:1:s1")]: (data: {
+        siblingsWithIncidents: Array<{ processDefinitionName: unknown }> | null
+      }) => data.siblingsWithIncidents?.[0]?.processDefinitionName ?? null,
     },
   },
   buildActivityIncidentsData: {
@@ -327,14 +340,21 @@ const CASES: Record<string, Case> = {
         processDefinitionKey: WORLD.key,
         activityId: WORLD.activityId,
       }),
+    unknown: { read: KEY_LOOKUP, reply: NO_ROWS },
     enrichment: {
       // The rows are named by their instances' business keys (#322 U13).
       "GET /process-instance?maxResults&processInstanceIds": (data: {
         incidents: Array<{ businessKey: unknown }>
       }) => data.incidents[0]?.businessKey,
+      // The latest diagram names the element; unread, the page reads the activity whole, since
+      // it cannot tell a call activity, and its rows stay the same.
+      [`GET /process-definition/${WORLD.latestDefinitionId}/xml`]: (data: {
+        incidents: Array<{ activityName: unknown }>
+      }) => data.incidents[0]?.activityName,
     },
   },
-  // A call activity's copies: each root incident, and its element's name, are enrichment.
+  // A call activity's copies: an instance's copy's root incident and its element's name are
+  // enrichment; an activity's page at a call activity reads its incidents whole.
   ...COPY_CASES,
   // Every version's statistics are primary: a version left out would undercount the key.
   buildActivityStatisticsData: activityStatistics("runtime"),
@@ -353,6 +373,7 @@ const CASES: Record<string, Case> = {
 
 describe.each(Object.entries(CASES))("%s", (_name, builder) => {
   const enrichment = builder.enrichment ?? {}
+  const fallback = builder.fallback ?? {}
 
   it("builds from a healthy engine, reading every declared enrichment", async () => {
     const { outcome, reads } = await build(builder)
@@ -364,7 +385,7 @@ describe.each(Object.entries(CASES))("%s", (_name, builder) => {
 
   it("fails (never a confident 0 or []) when ANY primary read fails", async () => {
     const { reads } = await build(builder)
-    const primary = [...reads].filter((read) => !(read in enrichment))
+    const primary = [...reads].filter((read) => !(read in enrichment) && !(read in fallback))
     const broken = await Promise.all(
       primary.map(async (read) => ({
         read,
@@ -394,6 +415,11 @@ describe.each(Object.entries(CASES))("%s", (_name, builder) => {
         if (outcome.ok) expect(value(outcome.data as never), read).toBeNull()
       }
     },
+  )
+
+  it.runIf(Object.keys(fallback).length > 0)(
+    "answers each failed fallback read by the read it names, with the same figures",
+    () => expectFallbacks(builder, fallback),
   )
 
   it.runIf(builder.unknown)("fails on an unknown id instead of reporting zeros", async () => {

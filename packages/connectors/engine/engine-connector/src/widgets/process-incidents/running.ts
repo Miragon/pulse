@@ -14,9 +14,10 @@ const countsOf = (
     .map((activity) => ({ activityId: activity.activityId, count: of(activity) }))
 
 /**
- * As the engine's own cockpit draws it: the running count on each element in blue, its open
- * incidents in red. A failed job that raised no incident still shows its count in red; one with an
- * incident shows the incident, since both badges take the same corner.
+ * As the engine's own cockpit draws it: the running count on each element in blue, its open root
+ * incidents in red, and apart and quiet the incidents of the instances it called, as the shared
+ * process screen draws them. A failed job that raised no incident still shows its count in red;
+ * one with an incident shows the incident, since both badges take the same corner.
  */
 export function runningHighlights(
   activities: readonly ActivityStatisticsActivity[],
@@ -30,6 +31,10 @@ export function runningHighlights(
     {
       kind: "failed-jobs",
       counts: countsOf(activities, (a) => (a.incidents > 0 ? 0 : a.failedJobs)),
+    },
+    {
+      kind: "called-incident-count",
+      counts: countsOf(activities, (a) => a.incidentsInCalledInstances),
     },
   ]
 }
@@ -54,7 +59,10 @@ export function describeRunningFlow(data: ActivityStatisticsData): ViewContext {
       versions: data.versionCount,
       diagramVersion: data.diagramVersion,
       activitiesRunning: data.activities.filter((a) => a.running > 0).length,
-      activitiesWithIncidents: data.activities.filter((a) => a.incidents > 0).length,
+      activitiesWithRootIncidents: data.activities.filter((a) => a.incidents > 0).length,
+      activitiesWithIncidentsInCalledInstances: data.activities.filter(
+        (a) => a.incidentsInCalledInstances > 0,
+      ).length,
       ...topFacts,
     },
     untrusted: top.map((activity, index) => ({

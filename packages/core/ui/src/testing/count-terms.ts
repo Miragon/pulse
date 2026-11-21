@@ -11,18 +11,21 @@ export interface CountTerm extends Readonly<Record<CatalogLanguage, string>> {
 }
 
 /**
- * The count terms (owner decision E2, 2026-11-08, amended by D2, 2026-11-12). The MCP widgets and
- * the VS Code webview may read a count differently (all incidents or the root ones, one version or
- * every one), so the words, not the numbers, are aligned: one word per count, and a word never
- * names two counts. Which number stands behind a word stays each tool's rule until its view moves
- * onto shared numbers; a feature more than one surface shows (boards first) shows the same numbers
- * on every surface, from one builder over one read. A count's version scope is always named in the
- * header above it: "all versions" for every version of a process, the version itself ("v3") for
- * one.
+ * The count terms (owner decision E2, 2026-11-08, amended by D2, 2026-11-12 and 2026-11-19): one
+ * word per count, and a word never names two counts. "Incidents" are the open ROOT incidents of the
+ * thing shown on every surface (the chat's cockpit and its views the web app embeds since
+ * 2026-11-21): a copy Camunda 7 holds at a call activity of a called instance's incident is never a
+ * number (nor a row of a process, an activity or a cause), a diagram shows it apart as an incident
+ * in called instances, and an instance counts the root incidents of its tree. "With incident" keeps the reading of 2026-11-14:
+ * an open incident the runtime holds now, so a caller that waits on a failed called instance
+ * counts. A feature more than one surface shows shows the same numbers on every surface, from one
+ * builder over one read. The surfaces may still read a different version scope (one version or
+ * every one), so a count's version scope is always named in the header above it: "all versions"
+ * for every version of a process, the version itself ("v3") for one.
  */
 export const COUNT_TERMS = {
   incidents: {
-    counts: "the open incidents of the thing shown",
+    counts: "the open root incidents of the thing shown",
     de: "Incidents",
     en: "Incidents",
     long: { de: "Offene Incidents", en: "Open incidents" },

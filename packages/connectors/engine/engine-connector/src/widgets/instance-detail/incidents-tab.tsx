@@ -24,7 +24,9 @@ export function IncidentsTab({
     <IncidentTable
       incidents={incidents ?? []}
       recovery={recovery}
-      onAnalyze={(incidentId) => go({ type: "incident-detail", incidentId })}
+      onAnalyze={({ incidentId, label }) =>
+        go({ type: "incident-detail", incidentId, label: label ?? undefined })
+      }
       subject="element"
       engine={engine}
     />

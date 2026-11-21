@@ -150,7 +150,7 @@ describe("EngineHealthVerdict (fixture render)", RENDER, () => {
     expect(screen.getByText(`${formatNumber(1240)} · —`)).toBeTruthy()
   })
 
-  it("names the incidents growth as new, in one spelling for either window, and no denominator", () => {
+  it("names the incidents growth as new in the last hour, no day's count and no denominator", () => {
     const { unmount } = render(
       <TestViewHost client={queryClient}>
         <Widget data={DEGRADED} />
@@ -159,13 +159,19 @@ describe("EngineHealthVerdict (fixture render)", RENDER, () => {
     expect(screen.getByText("(9 new in the last hour)", { exact: false })).toBeTruthy()
     // The deployed count is the processes section's: "Affected processes 2", never "2 /8".
     expect(document.body.textContent).not.toMatch(/\/\s?8\b/)
+    // Camunda 7 counts no root incidents in a day: no window of 24h, in the tile or the causes.
+    expect(document.body.textContent).not.toMatch(/new in 24h/i)
     unmount()
-    render(
-      <TestViewHost client={queryClient}>
-        <Widget data={{ ...DEGRADED, summary: { ...DEGRADED.summary, lastHourIncidents: 0 } }} />
-      </TestViewHost>,
-    )
-    expect(screen.getByText("(12 new in 24h)", { exact: false })).toBeTruthy()
+    // None in the last hour, or a scan that does not reach back an hour: the tile says no growth.
+    for (const lastHourIncidents of [0, null]) {
+      const { unmount: close } = render(
+        <TestViewHost client={queryClient}>
+          <Widget data={{ ...DEGRADED, summary: { ...DEGRADED.summary, lastHourIncidents } }} />
+        </TestViewHost>,
+      )
+      expect(screen.queryByText(/new in/)).toBeNull()
+      close()
+    }
   })
 })
 
@@ -205,8 +211,7 @@ describe("the verdict line and the hand-offs speak the view's language", RENDER,
   it("a German view names the window as the cluster's tiles do", () => {
     renderIn("de", DEGRADED)
     expect(screen.getByText("(9 neu in der letzten Stunde)", { exact: false })).toBeTruthy()
-    // The column's head (a narrow region hides it, which happy-dom cannot measure).
-    expect(document.querySelector("thead")!.textContent).toContain("Neu in 24 Std.")
+    expect(document.body.textContent).not.toMatch(/neu in 24 Std\./i)
     expect(screen.getByText(/^Gestartet und abgeschlossen \(24 Std\.\):/)).toBeTruthy()
   })
 

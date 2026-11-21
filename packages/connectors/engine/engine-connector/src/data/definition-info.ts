@@ -228,40 +228,52 @@ interface DefinitionStatsRow {
   definition?: RawDefinition | null
 }
 
+/**
+ * A key's statistics over every version. Its incidents are its open ROOT incidents (the statistics
+ * read with `rootIncidents=true`): an incident raised in one of its instances, never a call
+ * activity's copy of a called instance's incident, which counts where it was raised (owner
+ * decision D2, amended on 2026-11-19, followed by the cockpit on 2026-11-21).
+ */
 export interface KeyStats {
   latest: DefinitionInfo
   instances: number
   failedJobs: number
+  /** Its open root incidents per incident type. */
   incidentsByType: Map<string, number>
+  /** Its open root incidents, of the one type asked for where one was. */
   incidentCount: number
-  /** Where activity statistics are read. */
+  /** The versions that hold a root incident. */
   incidentVersionIds: string[]
   versionIds: string[]
 }
 
-function incidentSum(row: DefinitionStatsRow): number {
-  return (row.incidents ?? []).reduce((sum, i) => sum + (i.incidentCount ?? 0), 0)
-}
-
-function addVersion(stats: KeyStats, row: DefinitionStatsRow, version: DefinitionInfo): void {
+function addVersion(
+  stats: KeyStats,
+  row: DefinitionStatsRow,
+  version: DefinitionInfo,
+  incidentType: string | undefined,
+): void {
   stats.instances += row.instances ?? 0
   stats.failedJobs += row.failedJobs ?? 0
+  let incidents = 0
   for (const incident of row.incidents ?? []) {
     const type = incident.incidentType ?? "unknown"
-    stats.incidentsByType.set(
-      type,
-      (stats.incidentsByType.get(type) ?? 0) + (incident.incidentCount ?? 0),
-    )
+    if (incidentType !== undefined && type !== incidentType) continue
+    const count = incident.incidentCount ?? 0
+    stats.incidentsByType.set(type, (stats.incidentsByType.get(type) ?? 0) + count)
+    incidents += count
   }
-  const incidents = incidentSum(row)
   stats.incidentCount += incidents
   if (incidents > 0 && version.id) stats.incidentVersionIds.push(version.id)
   if (version.id) stats.versionIds.push(version.id)
   if (version.version > stats.latest.version) stats.latest = version
 }
 
-/** Rows without a key cannot be attributed and are skipped. */
-export function foldStatsByKey(rows: unknown): Map<string, KeyStats> {
+/**
+ * Rows without a key cannot be attributed and are skipped. With `incidentType`, a key counts the
+ * incidents of that type alone.
+ */
+export function foldStatsByKey(rows: unknown, incidentType?: string): Map<string, KeyStats> {
   const byKey = new Map<string, KeyStats>()
   for (const row of rowsOf<DefinitionStatsRow>(rows)) {
     const key = row.definition?.key
@@ -276,7 +288,7 @@ export function foldStatsByKey(rows: unknown): Map<string, KeyStats> {
       incidentVersionIds: [],
       versionIds: [],
     }
-    addVersion(stats, row, version)
+    addVersion(stats, row, version, incidentType)
     byKey.set(key, stats)
   }
   return byKey
@@ -293,23 +305,20 @@ export function definitionKeyResolver(
   return (definitionId) => keyById.get(definitionId) ?? definitionKeyInId(definitionId)
 }
 
-/** ONE engine-wide call (no key filter), so read it only when a view spans keys. */
+/**
+ * ONE engine-wide call (no key filter), so read it only when a view spans keys or needs a key's
+ * root incidents. The engine counts each version's open root incidents per type
+ * (`rootIncidents=true`, which takes no type of its own), so a type narrows the counts here.
+ */
 export async function fetchStatsByKey(
   client: Client,
-  query: { failedJobs?: boolean; incidentsForType?: string },
+  query: { failedJobs?: boolean; incidentType?: string },
 ): Promise<Map<string, KeyStats>> {
-  // `incidentsForType` narrows the incident counts to one type; without it
-  // every type is counted (`incidents: true`). The engine takes one or the other.
   const stats = await getProcessDefinitionStatistics({
     client,
-    query: {
-      failedJobs: query.failedJobs,
-      ...(query.incidentsForType
-        ? { incidentsForType: query.incidentsForType }
-        : { incidents: true }),
-    },
+    query: { failedJobs: query.failedJobs, rootIncidents: true },
   })
-  return foldStatsByKey(stats)
+  return foldStatsByKey(stats, query.incidentType)
 }
 
 /** Statistics are read only for bare generated ids, so short keys cost no call. */

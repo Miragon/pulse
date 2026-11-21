@@ -7,16 +7,15 @@ const DIAGRAM_HEIGHT = 318
 
 type Badge = BoardDiagramProps["badges"][number]
 
-/** A badge's open incidents, those of the instances it called included. */
-const incidentsOf = (badge: Badge) => badge.incidents + badge.incidentsInCalledInstances
-
 /**
- * As the process flow's "Running" draws it: what runs at each element in blue, its open incidents
- * (those of the instances it called included) in red.
+ * As the process flow's "Running" draws it: what runs at each element in blue, its open root
+ * incidents in red and, apart and quiet, the incidents of the instances it called, never part of
+ * the incident count (owner decision D2, amended on 2026-11-19).
  */
 export function boardHighlights(badges: readonly Badge[]): BpmnHighlight[] {
   const running = badges.filter((badge) => badge.active > 0)
-  const failing = badges.filter((badge) => incidentsOf(badge) > 0)
+  const failing = badges.filter((badge) => badge.incidents > 0)
+  const called = badges.filter((badge) => badge.incidentsInCalledInstances > 0)
   return [
     { kind: "active", activityIds: running.map((badge) => badge.elementId) },
     {
@@ -26,9 +25,13 @@ export function boardHighlights(badges: readonly Badge[]): BpmnHighlight[] {
     {
       kind: "incident",
       activityIds: failing.map((badge) => badge.elementId),
-      counts: failing.map((badge) => ({
+      counts: failing.map((badge) => ({ activityId: badge.elementId, count: badge.incidents })),
+    },
+    {
+      kind: "called-incident-count",
+      counts: called.map((badge) => ({
         activityId: badge.elementId,
-        count: incidentsOf(badge),
+        count: badge.incidentsInCalledInstances,
       })),
     },
   ]

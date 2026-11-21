@@ -227,6 +227,7 @@ describe("a copy's row names its root cause and opens its called instance", () =
     ...at("copy-1", "callCheck", "Assess creditworthiness"),
     incidentMessage: null,
     recovery: { action: "none" },
+    rootIncidentId: "root-1",
     rootCause: {
       incidentId: "root-1",
       message: "Blacklist provider unreachable",
@@ -245,6 +246,36 @@ describe("a copy's row names its root cause and opens its called instance", () =
     fireEvent.click(link)
     expect(intents).toEqual([
       { type: "instance-detail", processInstanceId: called, label: "30668387…" },
+    ])
+  })
+
+  it("opens the root incident it stands for on Enter, named by the root's element", () => {
+    const { intents } = renderDetail(withIncidents({ incidents: [copy], incidentCount: 1 }))
+    const row = screen.getByRole("row", {
+      name: /^Incident at Check blacklist in the called instance 30668387…, /,
+    })
+    fireEvent.keyDown(row, { key: "Enter" })
+    fireEvent.click(within(row).getByText("Blacklist provider unreachable"))
+    const root = { type: "incident-detail", incidentId: "root-1", label: "Check blacklist" }
+    expect(intents).toEqual([root, root])
+  })
+
+  it("opens the root incident whose read failed too, and a root incident of its own as itself", () => {
+    const { intents } = renderDetail(
+      withIncidents({
+        incidents: [{ ...copy, rootCause: null }, at("own", "charge", "Charge card")],
+        incidentCount: 2,
+      }),
+    )
+    fireEvent.keyDown(screen.getByRole("row", { name: /^Incident in a called instance, / }), {
+      key: "Enter",
+    })
+    fireEvent.keyDown(screen.getByRole("row", { name: /^Incident at Charge card, / }), {
+      key: "Enter",
+    })
+    expect(intents).toEqual([
+      { type: "incident-detail", incidentId: "root-1" },
+      { type: "incident-detail", incidentId: "own", label: "Charge card" },
     ])
   })
 

@@ -28,7 +28,7 @@ function describeInstance({
       // The instance that called this one at a call activity, where the history names it.
       superProcessInstanceId: callerInstanceId ?? undefined,
     },
-    facts: { state, openIncidents: openIncidentCount },
+    facts: { state, openRootIncidents: openIncidentCount },
     untrusted: [{ label: "businessKey", text: instance.businessKey }],
   }
 }

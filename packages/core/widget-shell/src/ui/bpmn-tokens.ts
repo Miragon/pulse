@@ -213,7 +213,9 @@ const contrasted = (marker: string) => `${BPMN_HIGH_CONTRAST} ${outline(marker)}
 
 /**
  * The canvas in the theme (its paper, its ink, its markers per mode), the markers and the count
- * badges, in high contrast and under forced colours as the webview's canvas. High contrast
+ * badges (the incidents of the instances an element called quiet, on the paper with the incident's
+ * colour in their edge alone, since they are never part of the incident count), in high contrast
+ * and under forced colours as the webview's canvas. High contrast
  * (`data-cd-kontrast="hoch"`): a running or incident outline at 3 px, a badge edged in the ink
  * instead of its ring. Forced colours: the drawing in the system's palette
  * ({@link BPMN_FORCED_CANVAS}), a badge Canvas with CanvasText, edged in CanvasText, bpmn.io's link
@@ -273,6 +275,11 @@ ${contrasted("highlight-incident")} {
 .bpmn-overlay-badge--incident-count {
   background: ${cdVar(incidentBadge.fill)};
   color: ${cdVar(incidentBadge.text)};
+}
+.bpmn-overlay-badge--called-incident-count {
+  border: 1.5px solid ${v(V.incidentStroke)};
+  background: ${v(V.paper)};
+  color: ${v(V.ink)};
 }
 ${BPMN_HIGH_CONTRAST} .bpmn-overlay-badge {
   box-shadow: none;

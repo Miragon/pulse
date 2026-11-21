@@ -1,12 +1,14 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { cleanup, render, screen, within } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react"
 import { TONE_DOT, TONE_ICON, formatInstant } from "@miragon/pulse-ui"
 import { ProcessDetailHeader } from "./process-incidents/header.js"
 import { ProcessDefinitionKpi } from "./process-incidents/kpi.js"
 import { ActivityIncidentList } from "./process-incidents/list.js"
 import { diagramActivityFraction } from "./process-incidents/activity-scope.js"
-import type { ProcessIncidentsData } from "../view-models.js"
+import type { ActivityIncidentsData, ProcessIncidentsData } from "../view-models.js"
+import { ENGINE_ACTIVITY_INCIDENTS_DATA } from "../tool-names.js"
+import { NavProvider, type NavIntent } from "./navigation.js"
 import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 
 afterEach(cleanup)
@@ -21,7 +23,6 @@ const DATA: ProcessIncidentsData = {
   cockpitUrl: null,
   runningInstances: 99,
   incidentCount: 3,
-  last24hCount: 1,
   failedJobs: 2,
   totalActivityCount: 2,
   affectedDiagramActivityCount: 1,
@@ -72,17 +73,14 @@ describe("definition view: affected activities over the diagram", () => {
     expect(within(cell).queryByText("2")).toBeNull()
   })
 
-  it("names the new incidents of a day without a plus, and leaves the version scope to the bar", () => {
+  it("counts no new incidents of a day (Camunda 7 counts no root incidents in a window), and leaves the version scope to the bar", () => {
     const { container } = render(
       <TestViewHost>
-        <Kpi data={{ ...DATA, last24hCount: 4 }} />
+        <Kpi data={DATA as never} />
       </TestViewHost>,
     )
-    const cell = screen
-      .getByText("New in 24h")
-      .closest<HTMLElement>('[data-slot="kpi-strip"] > div > *')!
-    expect(cell.textContent).toBe("New in 24h4")
-    expect(container.textContent).not.toMatch(/\+24h|\+4|all versions|Process health/)
+    expect(screen.getByText("Open incidents")).toBeTruthy()
+    expect(container.textContent).not.toMatch(/24h|\+24|all versions|Process health/)
     // The strip is still named, as a group, for a screen reader.
     expect(screen.getByRole("group", { name: "Process health" })).toBeTruthy()
   })
@@ -105,7 +103,6 @@ describe("definition view: a process without open incidents", () => {
   const QUIET: ProcessIncidentsData = {
     ...DATA,
     incidentCount: 0,
-    last24hCount: 0,
     failedJobs: 0,
     affectedDiagramActivityCount: 0,
     activities: [],
@@ -209,5 +206,50 @@ describe("definition view: the bar and the dates", () => {
     )
     const stats = container.querySelector<HTMLElement>('[data-slot="group-summary-stats"]')!
     expect(stats.textContent).toContain("—first seen")
+  })
+})
+
+describe("an activity group's rows", () => {
+  // The page lists the activity's root incidents alone; a row opens its incident, named in the
+  // trail by the activity (its own element, else the group's).
+  const page = (activityName: string | null): ActivityIncidentsData => ({
+    processDefinitionKey: "leasing",
+    activityId: "assess",
+    incidents: [
+      {
+        id: "inc-assess-0",
+        processInstanceId: "pi-assess-0",
+        businessKey: "LEA-7",
+        incidentType: "failedJob",
+        incidentMessage: "assess failed",
+        incidentTimestamp: "2026-10-10T12:00:00.000+0000",
+        activityId: "assess",
+        activityName,
+        recovery: { action: "none" },
+        cockpitInstanceUrl: null,
+        rootIncidentId: null,
+      },
+    ],
+    totalCount: 1,
+    engineId: "prod-a",
+  })
+
+  it.each([
+    ["its own element's name", "Assess (diagram)", "Assess (diagram)"],
+    ["the group's name where the page names none", null, "Assess creditworthiness"],
+  ])("open their incident on Enter, named by %s", async (_case, name, label) => {
+    const intents: NavIntent[] = []
+    render(
+      <TestViewHost tools={{ [ENGINE_ACTIVITY_INCIDENTS_DATA]: () => page(name) }}>
+        <NavProvider value={(intent) => intents.push(intent)}>
+          <ActivityIncidentList data={DATA} processDefinitionKey="leasing" engine="prod-a" />
+        </NavProvider>
+      </TestViewHost>,
+    )
+    fireEvent.click(screen.getByText("Assess creditworthiness"))
+    fireEvent.keyDown(await screen.findByRole("row", { name: "Incident of instance LEA-7" }), {
+      key: "Enter",
+    })
+    expect(intents).toEqual([{ type: "incident-detail", incidentId: "inc-assess-0", label }])
   })
 })

@@ -1,7 +1,20 @@
 # UI foundation and shared building blocks
 
 - Status: accepted
-- Last reviewed: 2026-11-20, after the process screen's blocks (executed, D10's process screen:
+- Last reviewed: 2026-11-21, later the same day (executed, D2's point 1 per element as planned:
+  c7-core's element statistics take the statistics' incident counts as root incidents wherever no
+  copy can lie and read the incidents of a version's call activities alone whole, where copies lie,
+  sorted by id, every incident of the version only where its call activities cannot be told or one
+  read takes fewer requests and less than a page of rows beyond theirs; the same counts, held by a
+  law; on the MCP server the diagram from its one XML cache; c7-core's recorded screens and board
+  made anew); 2026-11-21 (executed, D2's amendment for the chat: the MCP server's cockpit, in the
+  chat and in the operations views the web app embeds, counts open root incidents, the statistics
+  with `rootIncidents=true` per process and a version's incidents read whole per element as the
+  shared process screen reads them, a copy at a call activity no count and no row of a process, an
+  activity or a cause, a diagram's incidents in called instances a quiet badge apart; "new in 24 h"
+  went, as the owner decided on 2026-11-20, a window Camunda 7 cannot count root incidents in; the
+  verdict keeps every open incident until its own step); 2026-11-20, after the process screen's
+  blocks (executed, D10's process screen:
   the web app shows a process in one version on its own screen, a process's blocks of
   `@miragon/pulse-blocks` over the MCP server's app-only feeds `engine_screen_process_data`,
   `engine_screen_instances_data` and `engine_screen_variable_names_data`, which build the process
@@ -148,11 +161,12 @@ each surface keeps its screens and the web app's are its own.
 
 - **D2, one builder over one read (amends E2).** A feature more than one surface shows, boards
   first, shows the same numbers on every surface: one builder over one read. Elsewhere E2's numbers
-  per tool stay until a view moves onto shared numbers: this extension counts instances and root
+  per tool stayed until a view moved onto shared numbers: this extension counts instances and root
   incidents, over every version in the engine overview and the Engines tree and per version in a
-  process panel, the MCP widgets every open incident over every version. The words stay aligned
-  (`COUNT_TERMS`): "Incidents" are the open incidents of the thing shown, "With incident" the
-  instances that have one, and a count's header names its version scope. Boards hold it since
+  process panel, the MCP widgets counted every open incident over every version until they moved
+  onto root incidents on 2026-11-21 (the amendment below). The words stay aligned (`COUNT_TERMS`):
+  "Incidents" are the open incidents of the thing shown (its root incidents since the amendment),
+  "With incident" the instances that have one, and a count's header names its version scope. Boards hold it since
   2026-11-16 on both surfaces: c7-core's recorded answers (`C7_BOARD_ENGINE`) give one board, which
   the MCP server's board feed and the C7 adapter build exactly, each over its own wire
   (`packages/connectors/engine/engine-connector/src/data/board-data.numbers.test.ts`,
@@ -174,9 +188,11 @@ each surface keeps its screens and the web app's are its own.
   holds now, so a caller that waits on a failed called instance counts, and "With incident 9" may
   stand beside "Incidents 2"; a legend and the glossary say why, in English and German.
   1. **Read whole.** Per process from the statistics with `rootIncidents=true`, summed over its
-     versions, an exact statistic. Per element from every incident of one version (later from those
-     at call activities alone, where copies lie), an exception to "never from a scan" recorded here,
-     since the read is whole and never a capped page. In the contract a count of open root incidents
+     versions, an exact statistic. Per element from the element statistics, whose incidents are
+     root incidents wherever no copy can lie, and from every incident at a version's call
+     activities, where copies lie (since 2026-11-21; before, from every incident of one version), an
+     exception to "never from a scan" recorded here, since the read is whole and never a capped
+     page. In the contract a count of open root incidents
      per process and version enters by the admission rule, with a law and a saboteur; Camunda 8
      answers it from its cluster's incidents, which it never copies.
   2. **The verdict follows** (`engineVerdict`: `engine_status`, `pulse status`, the cockpit's health
@@ -185,9 +201,29 @@ each surface keeps its screens and the web app's are its own.
   3. **Step by step.** The shared screens of D10 count root incidents from their first step; the
      chat and the embedded operations views follow in a breaking step right after the web app's
      instance screen, and the verdict in a breaking step of its own. Until each lands, a surface
-     keeps the numbers above and `docs/vscode/parity.md` says the difference per row. Whether "new
-     in 24 h", which Camunda 7 cannot count for root incidents in a window, reads its window whole
-     or goes is decided before the chat's step.
+     keeps the numbers above and `docs/vscode/parity.md` says the difference per row. "New in
+     24 h", which Camunda 7 cannot count for root incidents in a window, goes with the chat's step
+     (the owner, 2026-11-20): reading its window whole was the other way, and a capped read would
+     be the one dishonest number.
+  4. **The chat follows (executed on 2026-11-21).** The MCP server's cockpit, in the chat and in
+     the operations views the web app embeds, counts open root incidents: the overview, the health
+     route, the incidents route and its cards, the cross-engine landscape and the process route per
+     process from the statistics with `rootIncidents=true`; per element the process route, where its
+     scan cannot hold every incident of a key, and the process flow's "Running" from each version's
+     element statistics of the engine contract, the rule the shared process screen reads by
+     (c7-core's `ElementStatisticsReader`, never a second one), the incidents of the instances an
+     element called a quiet badge apart on the flow and on a board's diagram. A copy is no row of
+     a process, an activity or a cause (an activity's page at a call activity reads its incidents
+     whole and lists its root incidents alone); where an instance's incidents list one, it stands
+     for its root, which its row opens, names and copies. The last hour's root incidents come from
+     the newest open incidents read, where they hold the hour, else they are unknown; a cluster
+     beyond its scan counts by `/incident/count` only where its element is no call activity. The
+     version counts the cockpit reads whole stand on a floor of 30 s per caller and version, as the
+     screens' reads do. The cockpit's facts for
+     the model name root incidents (`openRootIncidents`, `rootIncidentCount`). The verdict keeps
+     every open incident until its step; a test holds the cockpit's counts to the shared screens'
+     over c7-core's recorded screen engine
+     (`packages/connectors/engine/engine-connector/src/data/root-incidents.numbers.test.ts`).
 
 - **D3, the foundation stays pulse-ui's (keeps E4).** Two framework-free subpaths,
   `@miragon/pulse-ui/tones` (the tone vocabulary, `SITUATION_TONES`, `countTone`, `severityTone`)
@@ -594,17 +630,18 @@ missing value ([user-interface.md](user-interface.md)).
   `src/data` import its main entry (`engine-connector-contract-by-its-main-entry`), and
   `runtimeOf` runs c7-core's `C7Runtime` over the connector's port.
 - Outside boards and the views that move onto shared numbers, users of both tools still see
-  different numbers for the same process, under the same words. The steps of D2's amendment align
-  what "Incidents" counts; the version scope stays per tool (D10's point 8), where each header
-  names it.
+  different numbers for the same process, under the same words, where the version scope differs:
+  since 2026-11-21 "Incidents" counts open root incidents on every surface (the verdict follows in
+  its own step), while the version scope stays per tool (D10's point 8), where each header names
+  it.
 - D10 and the amendments of 2026-11-19 change the texts that say what the code does with the steps
   that change the code, not with this record: the root `CLAUDE.md` (the surfaces, the package
   table, invariants 1, 3, 5, 6 and 7, the count words, the BPMN paper of the embedded widgets, the
   releases and mutation sections), `apps/web/CLAUDE.md`, `docs/web` and `docs/mcp`.
   `docs/vscode/parity.md` marks each row this record decided with the step that lands it.
-- Open after 2026-11-19: "new in 24 h" (D2's amendment, before the chat's step), and whether an
-  inbox of root incidents across engines replaces the embedded incidents and cause views once the
-  numbers agree.
+- Open after 2026-11-21: whether an inbox of root incidents across engines replaces the embedded
+  incidents and cause views, now that the numbers agree (the owner decides it after the chat's
+  step). "New in 24 h" was decided on 2026-11-20: it went with the chat's step.
 
 ## Decision log
 
@@ -643,4 +680,10 @@ incidents with the same thresholds, "with incident" as on 2026-11-14, the diagra
 theme in the web app and in the chat, the screens' builders in a published package of their own with
 mutation tests (D8), the web page's budget (D9's point 7), today's addresses one minor version
 beyond the start page, a hint at history level NONE and variable conditions with the process screen
-as a pair feature.
+as a pair feature. 2026-11-20: the owner answered the plan's open questions: variable conditions with the process
+screen as a pair, "new in 24 h" goes with the chat's step, the verdict counts root incidents with the
+same thresholds in a step of its own, an inbox across engines is decided after the chat's step, and
+the webview's script may grow to 500,000 B gzip. 2026-11-21: the chat and the operations views the
+web app embeds count open root incidents (D2's point 4), "new in 24 h" gone. Later that day, after a
+measurement on the playground, c7-core's element statistics read the incidents of a version's call
+activities alone (D2's point 1), with the same counts.

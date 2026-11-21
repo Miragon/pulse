@@ -38,7 +38,11 @@ import type { EnginePort } from "../port.js"
 import { BulkOperationReader } from "./bulk-operation-reader.js"
 import { CalledProcessReader } from "./called-process-reader.js"
 import { DefinitionReader } from "./definition-reader.js"
-import { ElementStatisticsReader } from "./element-statistics-reader.js"
+import { type DiagramRead, diagramReadOf } from "./definition-rows.js"
+import {
+  ElementStatisticsReader,
+  type ElementStatisticsWithFailedJobs,
+} from "./element-statistics-reader.js"
 import { EngineReader } from "./engine-reader.js"
 import { IncidentDetailsReader } from "./incident-details-reader.js"
 import { IncidentSearch } from "./incident-search.js"
@@ -54,6 +58,13 @@ export interface C7RuntimeOptions {
    * surface's wire, in the surface's words.
    */
   readonly failureOf: (error: unknown) => RuntimeError
+  /**
+   * The surface's read of the BPMN XML a version was deployed with, where it keeps the diagrams it
+   * read (the MCP server's one XML cache): undefined for a version the engine does not know. Every
+   * read of a diagram goes through it (`getDiagramXml`, the processes a version calls, the call
+   * activities of its element statistics); without it each reads over the port.
+   */
+  readonly diagramXml?: DiagramRead
 }
 
 interface C7Readers {
@@ -79,13 +90,14 @@ export class C7Runtime implements ProcessRuntime {
 
   /** The runtime over `port`, a surface's wire whose failures `options.failureOf` words. */
   static over(port: EnginePort, options: C7RuntimeOptions): C7Runtime {
-    const definitions = new DefinitionReader(port)
+    const diagram = diagramReadOf(port, options.diagramXml)
+    const definitions = new DefinitionReader(port, diagram)
     return new C7Runtime(
       {
         engine: new EngineReader(port),
         definitions,
-        statistics: new ElementStatisticsReader(port),
-        calls: new CalledProcessReader(port),
+        statistics: new ElementStatisticsReader(port, diagram),
+        calls: new CalledProcessReader(port, diagram),
         instances: new InstanceSearch(port),
         variableNames: new VariableNameReader(port),
         instanceDetails: new InstanceDetailReader(port),
@@ -116,6 +128,16 @@ export class C7Runtime implements ProcessRuntime {
 
   getElementStatistics(definitionId: DefinitionId): Promise<readonly ElementStatistics[]> {
     return this.answered(() => this.readers.statistics.of(definitionId))
+  }
+
+  /**
+   * Beyond the contract: the counts of `getElementStatistics` with each element's jobs without
+   * retries, from the same one statistics read, for the MCP server's process flow ("Running").
+   */
+  getElementStatisticsWithFailedJobs(
+    definitionId: DefinitionId,
+  ): Promise<readonly ElementStatisticsWithFailedJobs[]> {
+    return this.answered(() => this.readers.statistics.withFailedJobs(definitionId))
   }
 
   getCalledProcesses(definitionId: DefinitionId): Promise<readonly CalledProcess[]> {

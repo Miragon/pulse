@@ -42,8 +42,6 @@ export interface IncidentScan {
   rows: IncidentRow[]
   /** The engine returned fewer than the limit. */
   complete: boolean
-  /** The oldest row predates `sinceMs`, so every incident since then is in `rows`. */
-  reachesBefore: (sinceMs: number) => boolean
 }
 
 export async function scanIncidents(
@@ -61,12 +59,38 @@ export async function scanIncidents(
       },
     }),
   )
-  const complete = rows.length < INCIDENT_SCAN_LIMIT
-  const oldest = engineDateMillis(earliestEngineDate(rows.map((r) => r.incidentTimestamp)))
-  return {
-    rows,
-    complete,
-    reachesBefore: (sinceMs) => oldest !== null && oldest < sinceMs,
+  return { rows, complete: rows.length < INCIDENT_SCAN_LIMIT }
+}
+
+/** Rows per request of a whole read (`readAllIncidents`), the size c7-core's whole reads take. */
+const WHOLE_READ_PAGE = 500
+
+/**
+ * EVERY open incident `filter` finds, newest first, page by page until a shorter page: for a view
+ * that must tell a call activity's copies from its root incidents exactly (an activity's page at a
+ * call activity), the named exception to "never a scan", since the read is whole and never a
+ * capped page. Primary: a failed page fails the read.
+ */
+export async function readAllIncidents(
+  client: Client,
+  filter: { processDefinitionKeyIn: string; activityId: string },
+): Promise<IncidentRow[]> {
+  const rows: IncidentRow[] = []
+  for (;;) {
+    const page = rowsOf<IncidentRow>(
+      await getIncidents({
+        client,
+        query: {
+          ...filter,
+          sortBy: "incidentTimestamp",
+          sortOrder: "desc",
+          firstResult: rows.length,
+          maxResults: WHOLE_READ_PAGE,
+        },
+      }),
+    )
+    rows.push(...page)
+    if (page.length < WHOLE_READ_PAGE) return rows
   }
 }
 
@@ -91,26 +115,18 @@ export interface ScanFacts {
   /** Exact whenever the group appears in the scan (newest first). */
   latestIncident: string | null
   firstSeen: string | null
-  last24hCount: number | null
 }
 
 /**
  * `fullyScanned` must be decided against an exact count, never the scan's
  * completeness: a complete scan whose rows a view cannot attribute must not vouch.
  */
-export function scanFacts(
-  groupRows: IncidentRow[],
-  options: { fullyScanned: boolean; scan: IncidentScan; cutoffMs: number },
-): ScanFacts {
+export function scanFacts(groupRows: IncidentRow[], options: { fullyScanned: boolean }): ScanFacts {
   const timestamps = groupRows.map((r) => r.incidentTimestamp)
   return {
     representativeMessage: groupRows[0]?.incidentMessage ?? null,
     latestIncident: latestEngineDate(timestamps),
     firstSeen: options.fullyScanned ? earliestEngineDate(timestamps) : null,
-    last24hCount:
-      options.fullyScanned || options.scan.reachesBefore(options.cutoffMs)
-        ? timestamps.filter((ts) => isOnOrAfter(ts, options.cutoffMs)).length
-        : null,
   }
 }
 
@@ -208,7 +224,7 @@ export function toIncidentInstance(
   r: IncidentRow,
   ctx: IncidentLinkContext,
   businessKeys?: Map<string, string | null> | null,
-  rootCauses?: Map<string, IncidentRootCause> | null,
+  activityName: string | null = null,
 ): IncidentInstance {
   return {
     id: r.id,
@@ -218,8 +234,7 @@ export function toIncidentInstance(
     incidentMessage: r.incidentMessage ?? null,
     incidentTimestamp: r.incidentTimestamp,
     activityId: r.activityId,
-    // The activity's group names it; its page reads no diagram.
-    activityName: null,
+    activityName,
     recovery: incidentRecovery(r),
     cockpitInstanceUrl: buildInstanceCockpitUrl(
       ctx,
@@ -232,6 +247,6 @@ export function toIncidentInstance(
       // Drill-in from an incident list: the operator is debugging failures.
       { tab: "incidents" },
     ),
-    rootCause: rootCauses?.get(r.id) ?? null,
+    rootIncidentId: rootIdOfCopy(r) ?? null,
   }
 }

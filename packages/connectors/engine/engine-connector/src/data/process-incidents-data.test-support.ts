@@ -5,7 +5,6 @@ import {
   startFakeEngine,
   type FakeEngine,
   type FakeRoutes,
-  type RecordedRequest,
 } from "../tools/test-support/fake-engine.js"
 import { buildProcessIncidentsData } from "./process-incidents-data.js"
 
@@ -46,8 +45,19 @@ export const row = (n: number, activityId: string, definitionId: string) => ({
   configuration: `job-${n}`,
 })
 
-// `incidentTotal` is what /incident/count reports.
-export function definitionRoutes(scan: unknown[], incidentTotal: number): FakeRoutes {
+/**
+ * The engine's statistics with `rootIncidents=true`: the key's root incidents on its latest
+ * version, none of another key.
+ */
+const rootStatistics = (rootIncidents: number) => ({
+  id: V2,
+  instances: 0,
+  incidents: rootIncidents ? [{ incidentType: "failedJob", incidentCount: rootIncidents }] : [],
+  definition: { id: V2, key: KEY, name: "Leasing", version: 2 },
+})
+
+// `rootIncidents` is what the definition statistics count for the key.
+export function definitionRoutes(scan: unknown[], rootIncidents: number): FakeRoutes {
   return {
     // The key's latest version over every tenant (the list endpoint).
     "GET /process-definition": {
@@ -59,9 +69,7 @@ export function definitionRoutes(scan: unknown[], incidentTotal: number): FakeRo
     [`GET /process-definition/${V2}/xml`]: { body: { id: V2, bpmn20Xml: XML } },
     "GET /process-instance/count": { body: { count: 99 } },
     "GET /job/count": { body: { count: 6 } },
-    "GET /incident/count": (r: RecordedRequest) => ({
-      body: { count: r.query.incidentTimestampAfter ? 4 : incidentTotal },
-    }),
+    "GET /process-definition/statistics": { body: [rootStatistics(rootIncidents)] },
     "GET /incident": { body: scan },
   }
 }
@@ -75,4 +83,31 @@ export async function build(routes: FakeRoutes) {
     processDefinitionKey: KEY,
   })
   return { data, requests: engine.requests }
+}
+
+/** A version's element statistics row with every incident at its element, the copies too. */
+export const at = (id: string, instances: number, incidentCount = instances) => ({
+  id,
+  instances,
+  incidents: incidentCount > 0 ? [{ incidentType: "failedJob", incidentCount }] : [],
+})
+
+/** A version's diagram with the given elements, as the engine answers it. */
+export const diagram = (id: string, tasks: string, calls = "") => ({
+  body: {
+    id,
+    bpmn20Xml: `<definitions><process id="${KEY}">${tasks}${calls}</process></definitions>`,
+  },
+})
+
+/** A version's incidents the query asks for: at its activity where it names one. */
+export function atActivity(
+  byVersion: Readonly<Record<string, readonly unknown[]>>,
+  query: Readonly<Record<string, string>>,
+): unknown[] {
+  return (byVersion[query.processDefinitionId ?? ""] ?? []).filter(
+    (incident) =>
+      query.activityId === undefined ||
+      (incident as { activityId: string }).activityId === query.activityId,
+  )
 }

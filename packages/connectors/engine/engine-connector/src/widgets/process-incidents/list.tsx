@@ -104,7 +104,9 @@ export function ActivityIncidentList({
                 activityId={activity.activityId}
                 engine={scope.engine}
                 vendor={data.engineVendor}
-                onAnalyze={(incidentId) => analyzeIncident(incidentId, activity.activityName)}
+                onAnalyze={({ incidentId, label }) =>
+                  analyzeIncident(incidentId, label ?? activity.activityName)
+                }
               />
             </GroupCard>
           ))

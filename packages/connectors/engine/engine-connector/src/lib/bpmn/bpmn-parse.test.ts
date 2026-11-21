@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { bpmnActivityIds } from "./bpmn-parse.js"
+import { bpmnActivityIds, bpmnCallActivityIds } from "./bpmn-parse.js"
 
 describe("bpmnActivityIds", () => {
   it("lists tasks, gateways, events, sub-processes, and call activities", () => {
@@ -21,5 +21,23 @@ describe("bpmnActivityIds", () => {
   it("returns no ids on input without recognised elements", () => {
     expect(bpmnActivityIds("<bpmn:definitions />")).toEqual([])
     expect(bpmnActivityIds("")).toEqual([])
+  })
+})
+
+describe("bpmnCallActivityIds", () => {
+  it("lists the call activities alone, with or without a prefix", () => {
+    const xml = `
+      <bpmn:serviceTask id="S1" />
+      <bpmn:callActivity id="CA" calledElement="check" />
+      <callActivity id="CB"/>
+      <bpmn:callActivityX id="NotOne" />
+      <bpmndi:BPMNShape id="CA_di" bpmnElement="CA" />
+    `
+    expect(bpmnCallActivityIds(xml)).toEqual(["CA", "CB"])
+  })
+
+  it("returns no ids on a diagram without call activities", () => {
+    expect(bpmnCallActivityIds('<bpmn:serviceTask id="S1" />')).toEqual([])
+    expect(bpmnCallActivityIds("")).toEqual([])
   })
 })

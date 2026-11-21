@@ -505,7 +505,7 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
 2. Widget: `usePagedListView` (owns search state, 300 ms debounce, the server-side
    `searchArg`, and the drop-initialData-on-interaction rule; a scope goes into
    `filtersActive` + the `args`) → the filter `Toolbar`: a single-choice scope (All, With
-   incident, Last 24h …) is a `SegmentedControl` first, named by its `ariaLabel`, its counts
+   incident, Suspended …) is a `SegmentedControl` first, named by its `ariaLabel`, its counts
    from the payload on screen, then the `SearchField` named by its `aria-label`, the
    placeholder's words without the ellipsis; a search alone may be a `FilterBar` with
    `searchAriaLabel` (pulse-ui's default name is a generic "Filter";

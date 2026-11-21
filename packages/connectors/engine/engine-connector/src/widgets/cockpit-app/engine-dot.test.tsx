@@ -80,7 +80,6 @@ function healthFeed(args: Record<string, unknown>): EngineHealthData {
     summary: {
       totalIncidents: e.openIncidents,
       lastHourIncidents: 0,
-      last24hIncidents: 0,
       affectedActivities: null,
       affectedDefinitions: 0,
       runningInstances: e.running,

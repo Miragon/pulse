@@ -20,7 +20,6 @@ const DATA: IncidentsDashboardData = {
   totalCount: 257,
   processCount: 2,
   affectedActivityCount: null,
-  last24hCount: 251,
   latestIncident: "2026-10-10T12:00:00.000+0000",
   filters: {},
   fetchedAt: "2026-10-10T12:05:00.000Z",
@@ -35,7 +34,6 @@ const DATA: IncidentsDashboardData = {
       incidentCount: 250,
       scannedIncidentCount: 200,
       affectedActivityCount: null,
-      last24hCount: null,
       latestIncident: "2026-10-10T12:00:00.000+0000",
       cockpitUrl: null,
       activities: [
@@ -45,7 +43,6 @@ const DATA: IncidentsDashboardData = {
           activityName: null,
           representativeMessage: "card declined",
           scannedIncidentCount: 200,
-          last24hCount: null,
           firstSeen: null,
           latestIncident: "2026-10-10T12:00:00.000+0000",
         },
@@ -59,7 +56,6 @@ const DATA: IncidentsDashboardData = {
       incidentCount: 7,
       scannedIncidentCount: 0,
       affectedActivityCount: null,
-      last24hCount: 0,
       latestIncident: null,
       cockpitUrl: null,
       activities: [],
@@ -88,9 +84,9 @@ describe("the incidents route while its feed fails", () => {
   })
 })
 
-// One home per number (V3, X4): the bar says the open incidents in words, the segments count All
-// and New in 24h, the cards their processes; no tiles repeat them, and no pill says "Live" where
-// nothing reloads by itself (A9): the bar says when the numbers were read.
+// One home per number (V3, X4): the bar says the open root incidents in words, the cards count
+// their processes; no tiles repeat them, and no pill says "Live" where nothing reloads by itself
+// (A9): the bar says when the numbers were read.
 describe("the incidents route's bar", () => {
   function renderBar(over: Partial<IncidentsDashboardData> = {}) {
     return render(
@@ -161,25 +157,21 @@ describe("incidents dashboard widgets: honest numbers", () => {
     ).toBeTruthy()
   })
 
-  it("the New in 24h scope shows the key's 24h count (— when unknown) and drops a process without any", () => {
+  // Camunda 7 counts no root incidents in a window (owner decision 2026-11-20): no scope of a
+  // day, the search alone narrows the list.
+  it("offers no scope of new incidents, the search alone narrowing the list, never the numbers", async () => {
     render(
       <TestViewHost>
         {createElement(asWidget(IncidentProcessList), { data, engine: "prod-a" })}
       </TestViewHost>,
     )
 
-    // One pick of two, a radio group as the instance scope, each with its count.
-    const scopes = screen.getByRole("radiogroup", { name: "Show incidents" })
-    const all = within(scopes).getByRole("radio", { name: /^All/ })
-    const last24h = within(scopes).getByRole("radio", { name: /^New in 24h/ })
-    expect(all.getAttribute("aria-checked")).toBe("true")
-    fireEvent.click(last24h)
-    expect(last24h.getAttribute("aria-checked")).toBe("true")
-    expect(all.getAttribute("aria-checked")).toBe("false")
-
-    expect(screen.getByText("Burst")).toBeTruthy()
-    expect(screen.queryByText("Quiet")).toBeNull()
-    expect(screen.queryByText("250")).toBeNull()
+    expect(screen.queryByRole("radiogroup")).toBeNull()
+    expect(document.body.textContent).not.toMatch(/24h/)
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "quiet" } })
+    await waitFor(() => expect(screen.queryByText("Burst")).toBeNull())
+    expect(screen.getByText("Quiet")).toBeTruthy()
+    expect(screen.getByText("7")).toBeTruthy()
   })
 })
 
@@ -190,7 +182,6 @@ describe("incidents dashboard: a filtered view keeps its scope", () => {
     ...DATA,
     totalCount: 7,
     processCount: 1,
-    last24hCount: 0,
     latestIncident: null,
     processes: [DATA.processes[1]],
     filters: { processDefinitionKey: "quiet", incidentType: "failedJob" },
@@ -248,8 +239,8 @@ describe("incidents dashboard: a filtered view keeps its scope", () => {
     expect(prompt).toContain(
       'Ids: engine="prod-a", processDefinitionKey="quiet", incidentType="failedJob"\n',
     )
-    expect(prompt).toContain("On screen: matchingIncidents=7, processes=1")
-    expect(prompt).not.toContain("openIncidents")
+    expect(prompt).toContain("On screen: matchingRootIncidents=7, processes=1")
+    expect(prompt).not.toContain("openRootIncidents")
     expect(prompt).not.toMatch(/all open incidents on this engine/)
     // Without an engine prop, the scope lives in the data alone: never in a request.
     expect(feedCalls).toEqual([])
@@ -259,8 +250,8 @@ describe("incidents dashboard: a filtered view keeps its scope", () => {
     const prompt = await promptOf(IncidentsBar, { data: DATA })
 
     expect(prompt).toContain('Ids: engine="prod-a"\n')
-    expect(prompt).toContain("On screen: openIncidents=257, processes=2")
-    expect(prompt).not.toMatch(/matchingIncidents|incidentType=/)
+    expect(prompt).toContain("On screen: openRootIncidents=257, processes=2")
+    expect(prompt).not.toMatch(/matchingRootIncidents|incidentType=/)
   })
 
   it("a card's root-cause hand-off carries the incident-type filter of its count", async () => {
@@ -269,8 +260,8 @@ describe("incidents dashboard: a filtered view keeps its scope", () => {
     expect(prompt).toContain(
       'Ids: engine="prod-a", processDefinitionKey="quiet", incidentType="failedJob"\n',
     )
-    expect(prompt).toContain('countScope="allVersions", latestVersion=1, matchingIncidents=7')
-    expect(prompt).not.toContain("openIncidents")
+    expect(prompt).toContain('countScope="allVersions", latestVersion=1, matchingRootIncidents=7')
+    expect(prompt).not.toContain("openRootIncidents")
     expect(feedCalls).toEqual([])
   })
 
@@ -283,13 +274,13 @@ describe("incidents dashboard: a filtered view keeps its scope", () => {
 
     await waitFor(() => expect(feedCalls).toEqual([{ engine: "prod-a" }]))
     expect(prompt).toContain('Ids: engine="prod-a"\n')
-    expect(prompt).toContain("On screen: openIncidents=257, processes=2")
+    expect(prompt).toContain("On screen: openRootIncidents=257, processes=2")
   })
 })
 
-// N3 step 1, N12, X9: an expanded process lists its activities by their diagram's names, each a
-// row that opens its failure cluster; a row never repeats its name as its failure, and the card's
-// Open names where it goes.
+// N3 step 1, N12, X9: an expanded process lists the activities of its root incidents by their
+// diagram's names, each a row that opens its failure cluster; a row never repeats its name as its
+// failure, and the card's Open names where it goes.
 describe("a process card's activities", () => {
   const ACTIVITIES: IncidentsDashboardData = {
     ...DATA,
@@ -304,40 +295,18 @@ describe("a process card's activities", () => {
             activityName: "Charge card",
             representativeMessage: "card declined",
             scannedIncidentCount: 200,
-            last24hCount: null,
             firstSeen: "2026-10-09T08:00:00.000+0000",
             latestIncident: "2026-10-10T12:00:00.000+0000",
           },
           {
-            // A call activity's incident: no message of its own and its root cause not scanned.
-            activityId: "Activity_CallBilling",
+            // An activity the diagram does not name, its failure beyond the scan.
+            activityId: "Activity_Billing",
             incidentType: "failedJob",
             activityName: null,
             representativeMessage: null,
             scannedIncidentCount: 50,
-            last24hCount: null,
             firstSeen: null,
             latestIncident: "2026-10-10T11:00:00.000+0000",
-            delegated: true,
-            rootCause: null,
-          },
-          {
-            // A call activity's copies, their root cause in the called instance within the scan.
-            activityId: "Activity_AssessCredit",
-            incidentType: "failedJob",
-            activityName: "Assess creditworthiness",
-            representativeMessage: "Blacklist provider unreachable",
-            scannedIncidentCount: 49,
-            last24hCount: null,
-            firstSeen: null,
-            latestIncident: "2026-10-10T10:00:00.000+0000",
-            delegated: true,
-            rootCause: {
-              activityId: "CheckBlacklist",
-              incidentType: "failedJob",
-              messageSignature: "blacklist provider unreachable",
-              activityName: "Check blacklist",
-            },
           },
         ],
       },
@@ -362,10 +331,8 @@ describe("a process card's activities", () => {
     const table = screen.getByRole("region", { name: "Incidents of Burst by activity" })
     const named = within(table).getByRole("row", { name: "Incidents at Charge card" })
     expect(named.textContent).toContain("card declined")
-    const bare = within(table).getByRole("row", {
-      name: "Incidents at Activity_CallBilling in Burst",
-    })
-    expect(bare.textContent?.match(/Activity_CallBilling/g)).toHaveLength(1)
+    const bare = within(table).getByRole("row", { name: "Incidents at Activity_Billing" })
+    expect(bare.textContent?.match(/Activity_Billing/g)).toHaveLength(1)
     expect(within(bare).getAllByText("—").length).toBeGreaterThan(0)
   })
 
@@ -390,31 +357,11 @@ describe("a process card's activities", () => {
     ])
   })
 
-  // A cluster lists root incidents alone: a delegated row's own would answer 0 next to its count.
-  it("opens a delegated row's root cause, by its activity, type and message, named by it", () => {
+  it("opens the cluster of an unnamed activity by its id", () => {
     const go = renderCard()
-    const row = screen.getByRole("row", {
-      name: "Incidents at Assess creditworthiness, caused at Check blacklist",
-    })
-    expect(row.textContent).toContain("Blacklist provider unreachable")
-    fireEvent.keyDown(row, { key: "Enter" })
-    expect(go).toHaveBeenCalledWith({
-      type: "cluster-detail",
-      activityId: "CheckBlacklist",
-      incidentType: "failedJob",
-      messageSignature: "blacklist provider unreachable",
-      label: "Check blacklist",
-    })
-    expect(go).not.toHaveBeenCalledWith(
-      expect.objectContaining({ activityId: "Activity_AssessCredit" }),
-    )
-  })
-
-  it("opens the process for a delegated row whose root cause lies beyond the scan", () => {
-    const go = renderCard()
-    fireEvent.click(screen.getByRole("row", { name: "Incidents at Activity_CallBilling in Burst" }))
+    fireEvent.click(screen.getByRole("row", { name: "Incidents at Activity_Billing" }))
     expect(go.mock.calls.map(([intent]) => intent)).toEqual([
-      { type: "process-incidents", processDefinitionKey: "burst", label: "Burst" },
+      { type: "cluster-detail", activityId: "Activity_Billing", incidentType: "failedJob" },
     ])
   })
 
@@ -427,7 +374,7 @@ describe("a process card's activities", () => {
     expect(firstSeen.textContent).toBe(formatRelativeTime("2026-10-09T08:00:00.000+0000"))
     expect(firstSeen.getAttribute("title")).toBe(formatInstant("2026-10-09T08:00:00.000+0000"))
     // Unknown is "—", with no instant to title it.
-    const bare = screen.getByRole("row", { name: "Incidents at Activity_CallBilling in Burst" })
+    const bare = screen.getByRole("row", { name: "Incidents at Activity_Billing" })
     expect(bare.querySelector("time")).toBeNull()
 
     const last = screen.getByText(/^last /)
