@@ -70,7 +70,6 @@ const CLUSTER: ClusterDetailData = {
   incidentCount: 2,
   scannedIncidentCount: 2,
   lastHourCount: 1,
-  last24hCount: 2,
   firstSeen: "2026-06-11T08:00:00.000Z",
   latestIncident: "2026-06-11T14:00:00.000Z",
   processDefinitionKeys: ["shipping"],

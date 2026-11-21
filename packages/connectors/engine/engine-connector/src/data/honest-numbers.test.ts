@@ -48,6 +48,14 @@ interface Case extends BuildCase {
 }
 
 const KEY_LOOKUP = "GET /process-definition?key&latestVersion&maxResults&sortBy&sortOrder"
+/** Another process with a root incident, unnamed, so its diagram names it (enrichment). */
+const SHIP_STATS = {
+  id: "ship:1:s1",
+  instances: 1,
+  failedJobs: 0,
+  incidents: [{ incidentType: "failedJob", incidentCount: 1 }],
+  definition: { id: "ship:1:s1", key: "ship", name: null, version: 1 },
+}
 const NOT_FOUND = { status: 404, body: { type: "InvalidRequestException", message: "not found" } }
 const NO_ROWS = { body: [] }
 
@@ -142,7 +150,7 @@ const CASES: Record<string, Case> = {
     ]),
     enrichment: {
       ...instanceStarts,
-      "GET /process-definition/statistics?incidents": (data: {
+      "GET /process-definition/statistics?rootIncidents": (data: {
         instances: Array<{ processDefinitionKey: unknown }>
       }) => data.instances[0]?.processDefinitionKey,
       // The rows' process names (#322 U13): one read over the page's versions.
@@ -285,7 +293,7 @@ const CASES: Record<string, Case> = {
     run: (client, baseUrl) =>
       buildIncidentsDashboardData(client, { ...urls(baseUrl), processDefinitionKey: WORLD.key }),
     // The statistics list every deployed key: a key they lack is not deployed.
-    unknown: { read: "GET /process-definition/statistics?incidents", reply: NO_ROWS },
+    unknown: { read: "GET /process-definition/statistics?rootIncidents", reply: NO_ROWS },
     enrichment: {
       // An activity's row is named in the diagram of its newest incident's version.
       [namesFrom(WORLD.instanceDefinitionId)]: (data: {
@@ -305,19 +313,21 @@ const CASES: Record<string, Case> = {
       r.path === "/incident" ? { body: incidentScan(INCIDENT_SCAN_LIMIT) } : undefined,
     enrichment: processIncidentsXml,
   },
-  // No incidents: the empty state reads the other processes (enrichment).
+  // No root incidents: the empty state names the other processes that have some, from the
+  // statistics the count reads (primary), their names enrichment.
   "buildProcessIncidentsData (no incidents)": {
     run: processIncidents,
     world: (r) =>
-      r.path === "/incident/count"
-        ? { body: { count: 0 } }
+      r.path === "/process-definition/statistics"
+        ? { body: [SHIP_STATS] }
         : r.path === "/incident"
           ? NO_ROWS
           : undefined,
     enrichment: {
       ...processIncidentsXml,
-      "GET /process-definition/statistics?incidents": (data: { siblingsWithIncidents: unknown }) =>
-        data.siblingsWithIncidents,
+      [namesFrom("ship:1:s1")]: (data: {
+        siblingsWithIncidents: Array<{ processDefinitionName: unknown }> | null
+      }) => data.siblingsWithIncidents?.[0]?.processDefinitionName ?? null,
     },
   },
   buildActivityIncidentsData: {
@@ -327,14 +337,21 @@ const CASES: Record<string, Case> = {
         processDefinitionKey: WORLD.key,
         activityId: WORLD.activityId,
       }),
+    unknown: { read: KEY_LOOKUP, reply: NO_ROWS },
     enrichment: {
       // The rows are named by their instances' business keys (#322 U13).
       "GET /process-instance?maxResults&processInstanceIds": (data: {
         incidents: Array<{ businessKey: unknown }>
       }) => data.incidents[0]?.businessKey,
+      // The latest diagram names the element; unread, the page reads the activity whole, since
+      // it cannot tell a call activity, and its rows stay the same.
+      [`GET /process-definition/${WORLD.latestDefinitionId}/xml`]: (data: {
+        incidents: Array<{ activityName: unknown }>
+      }) => data.incidents[0]?.activityName,
     },
   },
-  // A call activity's copies: each root incident, and its element's name, are enrichment.
+  // A call activity's copies: an instance's copy's root incident and its element's name are
+  // enrichment; an activity's page at a call activity reads its incidents whole.
   ...COPY_CASES,
   // Every version's statistics are primary: a version left out would undercount the key.
   buildActivityStatisticsData: activityStatistics("runtime"),

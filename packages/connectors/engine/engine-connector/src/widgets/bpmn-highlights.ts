@@ -32,6 +32,14 @@ export type BpmnHighlight =
       kind: "instance-count"
       counts: ReadonlyArray<{ activityId: string; count: number }>
     }
+  | {
+      kind: "called-incident-count"
+      /**
+       * The incidents of the instances an element called, apart from its own: a quiet badge, never
+       * part of the incident count (owner decision D2, amended on 2026-11-19).
+       */
+      counts: ReadonlyArray<{ activityId: string; count: number }>
+    }
 
 /** Order-preserving dedupe. */
 export function dedupe(values: ReadonlyArray<string>): string[] {
@@ -116,6 +124,8 @@ function applyCountOverlays(overlays: BpmnOverlays, highlights: ReadonlyArray<Bp
       addRedCountOverlays(overlays, h.counts)
     } else if (h.kind === "instance-count") {
       addInstanceCountOverlays(overlays, h.counts)
+    } else if (h.kind === "called-incident-count") {
+      addCalledIncidentOverlays(overlays, h.counts)
     }
   }
 }
@@ -125,8 +135,10 @@ function applyCountOverlays(overlays: BpmnOverlays, highlights: ReadonlyArray<Bp
  * image a bare number would read without its element or meaning. The view says each count in words
  * (the "Values per activity" list, the tables).
  */
-const badge = (kind: "instance-count" | "incident-count", count: number) =>
-  `<div class="bpmn-overlay-badge bpmn-overlay-badge--${kind}" aria-hidden="true">${count}</div>`
+const badge = (
+  kind: "instance-count" | "incident-count" | "called-incident-count",
+  count: number,
+) => `<div class="bpmn-overlay-badge bpmn-overlay-badge--${kind}" aria-hidden="true">${count}</div>`
 
 function addInstanceCountOverlays(
   overlays: BpmnOverlays,
@@ -152,6 +164,25 @@ function addRedCountOverlays(
     safeAddOverlay(overlays, c.activityId, {
       position: { top: -14, left: -14 },
       html: badge("incident-count", safeCount),
+    })
+  }
+}
+
+/**
+ * The incidents of the instances an element called, at its bottom left corner, clear of its own
+ * incidents' badge: quiet, the canvas's `bpmn-overlay-badge--called-incident-count` (the paper with
+ * the incident's colour in its edge alone), as the shared process screen draws them apart.
+ */
+function addCalledIncidentOverlays(
+  overlays: BpmnOverlays,
+  counts: ReadonlyArray<{ activityId: string; count: number }>,
+) {
+  for (const c of counts) {
+    const safeCount = Number(c.count) || 0
+    if (safeCount <= 0) continue
+    safeAddOverlay(overlays, c.activityId, {
+      position: { bottom: -14, left: -14 },
+      html: badge("called-incident-count", safeCount),
     })
   }
 }

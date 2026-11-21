@@ -1,5 +1,5 @@
 import { readProcessInstanceVariables, type Client } from "@miragon/pulse-c7-client"
-import { incidentRecovery } from "@miragon/pulse-c7-core"
+import { incidentRecovery, rootIdOfCopy } from "@miragon/pulse-c7-core"
 import type { InstanceDetailData, TaskData } from "../view-models.js"
 import {
   getActivityInstanceTree,
@@ -162,6 +162,7 @@ export async function buildInstanceDetailData(
             { tab: "incidents" },
           )
         : null,
+    rootIncidentId: rootIdOfCopy(i) ?? null,
     rootCause: i.id ? (rootCauses.get(i.id) ?? null) : null,
   }))
 

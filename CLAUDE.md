@@ -929,8 +929,17 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      `apps/vscode/test/architecture/support/promise-words.ts`, of which Pulse for Orca's gate
      holds a copy). The counts
      both tools show take the words of `COUNT_TERMS` (owner decision E2): "Incidents" are the open
-     incidents of the thing shown, "With incident" the instances that have one, and a count's
-     header names its version scope. On Camunda 7 "With incident" reads one way on every surface
+     root incidents of the thing shown on every surface (D2 as amended on 2026-11-19; the chat's
+     cockpit and the operations views the web app embeds since 2026-11-21: a call activity's copy
+     of a called instance's incident counts in the called process and is no row of a process, an
+     activity or a cause, a diagram shows it apart as a quiet badge, the cockpit's facts name root
+     incidents, `openRootIncidents`; the verdict alone judges every open incident until its own
+     step; `src/data/root-incidents.numbers.test.ts` holds the cockpit's counts to the shared
+     screens' over c7-core's recorded screen engine), "With incident" the instances that have one,
+     and a count's header names its version scope. No view counts new incidents over a day (owner
+     decision 2026-11-20): Camunda 7 counts no root incidents in a window; the last hour's come from
+     the newest open incidents read, where they hold the hour, else they are unknown. On Camunda 7
+     "With incident" reads one way on every surface
      (owner decision 2026-11-14): an open incident the runtime holds now, on every history level,
      by c7-core's rule (`packages/connectors/c7/c7-core/src/with-incident.ts`; the cockpit's
      instance list and its scope counts send the same runtime filter in their search body, and
@@ -983,13 +992,22 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      of its key (`data/honest-numbers.test.ts`), the web app's process screen shows one version
      with every version's counts in its picker and the notice that older versions still run (D10).
      Its counts per element read a version's incidents whole to tell the root incidents from their
-     copies (c7-core's `ElementStatisticsReader`), an exact read and the one named exception to "never
-     a scan", never a capped page. The screen feeds whose reads load the engine's database (a
-     version's element statistics, the first page of an instance list with its search and history
-     counts, never a later page, whose cursor belongs to the first page read before it, its variable
-     names) stand on a floor of 30 s per caller and arguments (`data/screens/screen-floor.ts` over
-     `createOwnerCache` and `callerCacheKey`, as a board's build: a Refresh within it reads nothing,
-     a renewed token reads anew), a process screen an enrichment is missing from kept for no one, so
+     copies (c7-core's `ElementStatisticsReader`), an exact read and the named exception to "never a
+     scan", never a capped page, as an activity's incident page at a call activity reads its
+     incidents whole to page its root incidents in memory (`readAllIncidents`, where the key's latest
+     diagram draws a call activity or cannot tell); the cockpit's process flow ("Running") and its
+     process route, where its scan cannot hold every incident of the key, read each version's counts
+     the same way (`data/element-counts.ts`, c7-core's reader with each element's jobs without
+     retries from the same one statistics read, four versions at once, on a floor of 30 s per caller
+     and version), every root incident count per process comes from the definition statistics with
+     `rootIncidents=true` (`fetchStatsByKey`), and a cluster beyond its scan counts by
+     `/incident/count` only where its element is no call activity (`countableAt`).
+     The screen feeds whose reads load the engine's database (a version's element statistics, the
+     first page of an instance list with its search and history counts, never a later page, whose
+     cursor belongs to the first page read before it, its variable names) stand on a floor of 30 s
+     per caller and arguments (`data/screens/screen-floor.ts` over `createOwnerCache` and
+     `callerCacheKey`, as a board's build: a Refresh within it reads nothing, a renewed token reads
+     anew), a process screen an enrichment is missing from kept for no one, so
      the next read tries it again (`process-screen-data.numbers.test.ts`). A board's numbers (the board feed `engine_board_data`,
      `data/board-data.ts` over the builder of `@miragon/pulse-board`) degrade per engine and tile
      instead of failing the call: a failed engine or a read left out shows in its place, never 0

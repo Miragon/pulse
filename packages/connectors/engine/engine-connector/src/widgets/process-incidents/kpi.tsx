@@ -63,11 +63,6 @@ export function ProcessDefinitionKpi(scope: DefinitionScope) {
         </AlarmCount>
       ),
     },
-    // New incidents, never a balance: no plus, since resolved ones are not subtracted (D11).
-    {
-      label: t("engineHealth.new24h"),
-      value: formatNumber(data.last24hCount),
-    },
     {
       label: t("procIncKpi.failedJobs"),
       value: (

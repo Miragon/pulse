@@ -44,15 +44,41 @@ import { useNav } from "../navigation.js"
 /** Mirrors the feed's server default. */
 const INCIDENT_PAGE_SIZE = 10
 
-/** Its message is engine text, quoted. */
+/** What a row opens: its incident (a copy's root, `targetOf`) and the element the crumb names. */
+export interface IncidentTarget {
+  incidentId: string
+  /** The element of the incident the row opens, by its name (else its id); null where unknown. */
+  label: string | null
+}
+
+/**
+ * The incident a row leads to: a copy of a called instance's incident (a call activity's) leads on
+ * to the root incident it stands for (`rootIncidentId`, c7-core's `rootIdOfCopy` on the server,
+ * whether or not its root was read), never to itself, so the copy is no incident of its own on
+ * screen; any other incident is its own. Its label is that incident's element.
+ */
+function targetOf(incident: IncidentInstance): IncidentTarget {
+  const rootId = incident.rootIncidentId ?? null
+  if (rootId === null) return { incidentId: incident.id, label: incident.activityName }
+  const cause = incident.rootCause ?? null
+  return { incidentId: rootId, label: cause ? (cause.activityName ?? cause.activityId) : null }
+}
+
+/**
+ * Its message is engine text, quoted. It names the incident the row opens: a copy's root, in the
+ * called instance where that was read.
+ */
 function draftIncidentTicketHandOff(
   incident: IncidentInstance,
   engine: string | undefined,
 ): HandOff {
   return {
     intent: "askAi.incident.draftTicket",
-    ids: { engine, incidentId: incident.id },
-    facts: { incidentType: incident.incidentType, processInstanceId: incident.processInstanceId },
+    ids: { engine, incidentId: targetOf(incident).incidentId },
+    facts: {
+      incidentType: incident.incidentType,
+      processInstanceId: incident.rootCause?.processInstanceId ?? incident.processInstanceId,
+    },
     untrusted: [
       { label: "incidentMessage", text: incident.incidentMessage ?? incident.rootCause?.message },
     ],
@@ -155,24 +181,36 @@ function IncidentTime({ timestamp }: { timestamp: string }) {
 
 /**
  * What a row opens, its accessible name: the incident, by its instance or by its element and its
- * time, since an instance can hold several incidents at one element.
+ * time, since an instance can hold several incidents at one element; a copy's row opens its root,
+ * so it names that one, by its element and its called instance where its root was read.
  */
 function rowLabel(t: T, incident: IncidentInstance, byInstance: boolean) {
+  const time = formatClock(incident.incidentTimestamp, { seconds: false })
+  if (incident.rootIncidentId) {
+    const cause = incident.rootCause ?? null
+    return cause
+      ? t("procIncTable.rowLabelCopy", {
+          element: cause.activityName ?? cause.activityId,
+          id: shortId(cause.processInstanceId),
+          time,
+        })
+      : t("procIncTable.rowLabelCopyUnread", { time })
+  }
   return byInstance
     ? t("procIncTable.rowLabelInstance", {
         name: instanceName(incident.processInstanceId, incident.businessKey),
       })
     : t("procIncTable.rowLabelElement", {
         element: incident.activityName ?? incident.activityId ?? incident.id,
-        time: formatClock(incident.incidentTimestamp, { seconds: false }),
+        time,
       })
 }
 
 /**
  * The incidents of an activity (by instance) or of an instance (by element), one line each: a row
- * opens its incident on a click or Enter and copies its id on Ctrl or Cmd with C (one row
- * convention, as the webview's lists), its write and its menu at the row's end open nothing, and a
- * row whose incident is done opens nothing either.
+ * opens its incident (a copy its root, `targetOf`) on a click or Enter and copies that incident's id
+ * on Ctrl or Cmd with C (one row convention, as the webview's lists), its write and its menu at the
+ * row's end open nothing, and a row whose incident is done opens nothing either.
  */
 export function IncidentTable({
   incidents,
@@ -184,7 +222,7 @@ export function IncidentTable({
 }: {
   incidents: IncidentInstance[]
   recovery: IncidentRecoveryState
-  onAnalyze: (incidentId: string) => void
+  onAnalyze: (target: IncidentTarget) => void
   /** The first column: each row's instance (an activity's incidents) or its element (an instance's). */
   subject?: "instance" | "element"
   engine?: string
@@ -252,8 +290,8 @@ export function IncidentTable({
           <Fragment key={incident.id}>
             <ListRow
               label={rowLabel(t, incident, byInstance)}
-              onOpen={done ? undefined : () => onAnalyze(incident.id)}
-              copy={incident.id}
+              onOpen={done ? undefined : () => onAnalyze(targetOf(incident))}
+              copy={targetOf(incident).incidentId}
             >
               <Td>
                 {byInstance ? (
@@ -340,7 +378,7 @@ export function PagedIncidentTable({
   /** The route's engine: a page never reads the default engine. */
   engine: string
   vendor?: string
-  onAnalyze: (incidentId: string) => void
+  onAnalyze: (target: IncidentTarget) => void
 }) {
   const t = useT()
   const paged = usePagedViewData<IncidentInstance, ActivityIncidentsData>({

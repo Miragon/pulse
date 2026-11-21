@@ -38,7 +38,10 @@ import type { EnginePort } from "../port.js"
 import { BulkOperationReader } from "./bulk-operation-reader.js"
 import { CalledProcessReader } from "./called-process-reader.js"
 import { DefinitionReader } from "./definition-reader.js"
-import { ElementStatisticsReader } from "./element-statistics-reader.js"
+import {
+  ElementStatisticsReader,
+  type ElementStatisticsWithFailedJobs,
+} from "./element-statistics-reader.js"
 import { EngineReader } from "./engine-reader.js"
 import { IncidentDetailsReader } from "./incident-details-reader.js"
 import { IncidentSearch } from "./incident-search.js"
@@ -116,6 +119,16 @@ export class C7Runtime implements ProcessRuntime {
 
   getElementStatistics(definitionId: DefinitionId): Promise<readonly ElementStatistics[]> {
     return this.answered(() => this.readers.statistics.of(definitionId))
+  }
+
+  /**
+   * Beyond the contract: the counts of `getElementStatistics` with each element's jobs without
+   * retries, from the same one statistics read, for the MCP server's process flow ("Running").
+   */
+  getElementStatisticsWithFailedJobs(
+    definitionId: DefinitionId,
+  ): Promise<readonly ElementStatisticsWithFailedJobs[]> {
+    return this.answered(() => this.readers.statistics.withFailedJobs(definitionId))
   }
 
   getCalledProcesses(definitionId: DefinitionId): Promise<readonly CalledProcess[]> {

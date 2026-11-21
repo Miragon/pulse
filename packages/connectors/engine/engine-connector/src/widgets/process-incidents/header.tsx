@@ -27,7 +27,7 @@ export function triageProcessHandOff(
     facts: {
       countScope: "allVersions",
       diagramVersion: data.diagramVersion,
-      openIncidents: data.incidentCount,
+      openRootIncidents: data.incidentCount,
       failedJobs: data.failedJobs,
       runningInstances: data.runningInstances,
       problemActivities: data.activities.map((a) => a.activityId),

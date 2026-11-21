@@ -3,6 +3,7 @@ import { cibsevenProvider } from "../providers/index.js"
 import {
   clientFor,
   startFakeEngine,
+  type FakeRoutes,
   type RecordedRequest,
 } from "../tools/test-support/fake-engine.js"
 import { buildActivityIncidentsData } from "./process-incidents-data.js"
@@ -23,7 +24,7 @@ const queriesOf = (requests: RecordedRequest[], path: string) =>
   requests.filter((r) => r.path === path).map((r) => r.query)
 
 describe("buildProcessIncidentsData: key-wide (#335 N60)", () => {
-  it("counts every version through key-scoped /count endpoints in two parallel stages (N67)", async () => {
+  it("counts every version through key-scoped /count endpoints and the root statistics in two parallel stages (N67)", async () => {
     // A complete scan: three incidents, on v1 AND v2.
     const scan = [row(0, "assess", V2), row(1, "assess", V1), row(2, "oldTask", V1)]
     const { data, requests } = await build(definitionRoutes(scan, 3))
@@ -35,7 +36,6 @@ describe("buildProcessIncidentsData: key-wide (#335 N60)", () => {
       runningInstances: 99,
       failedJobs: 6,
       incidentCount: 3,
-      last24hCount: 4,
       // "1 of the diagram's 2": oldTask (v1 only) has incidents but is no
       // activity of the v2 diagram: it stays in `activities`, outside the
       // fraction, which would otherwise read "2 of 2".
@@ -68,19 +68,18 @@ describe("buildProcessIncidentsData: key-wide (#335 N60)", () => {
     expect(queriesOf(requests, "/job/count")).toEqual([
       { processDefinitionKey: KEY, noRetriesLeft: "true" },
     ])
-    expect(queriesOf(requests, "/incident/count")).toEqual([
-      { processDefinitionKeyIn: KEY },
-      { processDefinitionKeyIn: KEY, incidentTimestampAfter: expect.any(String) as string },
+    // The root incidents from the statistics, never /count, which counts a call activity's copies.
+    expect(queriesOf(requests, "/process-definition/statistics")).toEqual([
+      { rootIncidents: "true" },
     ])
-    // A complete scan needs no statistics or per-version reads; the diagram is
-    // read by version id, never the tenant-less /key/{key}.
+    // A complete scan needs no per-version reads; the diagram is read by version id, never the
+    // tenant-less /key/{key}.
     expect(requests.map((r) => r.path).sort()).toEqual(
       [
         "/incident",
-        "/incident/count",
-        "/incident/count",
         "/job/count",
         "/process-definition",
+        "/process-definition/statistics",
         `/process-definition/${V2}/xml`,
         "/process-instance/count",
       ].sort(),
@@ -104,12 +103,21 @@ describe("buildProcessIncidentsData: key-wide (#335 N60)", () => {
     ).rejects.toThrow(`No process definition with key "${KEY}" is deployed on this engine.`)
   })
 
-  it("sums the activity statistics of every version with incidents when the scan is capped", async () => {
-    // 263 open incidents; the 200-row scan holds only the newest, none of oldTask's.
-    const scan = [
-      ...Array.from({ length: 180 }, (_, n) => row(n, "assess", n % 2 ? V1 : V2)),
-      ...Array.from({ length: 20 }, (_, n) => row(180 + n, "sendPolicy", V2)),
-    ]
+  it("reads each version with root incidents whole when the scan is capped, as the process screen does", async () => {
+    // 263 open root incidents and 5 copies at a call activity; the 200-row scan holds only the
+    // newest, none of oldTask's.
+    const rows = (activityId: string, id: string, count: number, from: number) =>
+      Array.from({ length: count }, (_, n) => row(from + n, activityId, id))
+    const copies = rows("callCheck", V2, 5, 900).map((copy, n) => ({
+      ...copy,
+      incidentMessage: null,
+      rootCauseIncidentId: `called-${n}`,
+    }))
+    const byVersion: Record<string, unknown[]> = {
+      [V1]: [...rows("assess", V1, 100, 0), ...rows("oldTask", V1, 13, 500)],
+      [V2]: [...rows("assess", V2, 120, 100), ...rows("sendPolicy", V2, 30, 300), ...copies],
+    }
+    const scan = [...rows("assess", V2, 180, 0), ...rows("sendPolicy", V2, 20, 300)]
     const stats = (key: string, id: string, incidentCount: number) => ({
       id,
       instances: 1,
@@ -118,26 +126,31 @@ describe("buildProcessIncidentsData: key-wide (#335 N60)", () => {
     })
     const { data, requests } = await build({
       ...definitionRoutes(scan, 263),
+      "GET /incident": (r: RecordedRequest) => ({
+        body: r.query.processDefinitionId ? (byVersion[r.query.processDefinitionId] ?? []) : scan,
+      }),
       "GET /process-definition/statistics": {
         body: [stats(KEY, V1, 113), stats(KEY, V2, 150), stats("other", "other:1:x", 9)],
       },
       [`GET /process-definition/${V1}/statistics`]: {
         body: [
-          { id: "assess", incidents: [{ incidentCount: 100 }] },
-          { id: "oldTask", incidents: [{ incidentCount: 13 }] },
+          { id: "assess", instances: 100 },
+          { id: "oldTask", instances: 13 },
         ],
       },
       [`GET /process-definition/${V2}/statistics`]: {
         body: [
-          { id: "assess", incidents: [{ incidentCount: 120 }] },
-          { id: "sendPolicy", incidents: [{ incidentCount: 30 }] },
-          { id: "idle", incidents: [] },
+          { id: "assess", instances: 120 },
+          { id: "sendPolicy", instances: 30 },
+          { id: "callCheck", instances: 5 },
+          { id: "idle", instances: 0 },
         ],
       },
     })
 
-    // Exact per-activity counts summing to the key's 263. The old view
-    // showed v2 only (150) next to a key-wide total.
+    // Exact root incidents per activity summing to the key's 263; the call activity's copies are
+    // no group. The old view showed v2 only (150) next to a key-wide total.
+    expect(data.incidentCount).toBe(263)
     expect(data.activities.map((a) => [a.activityId, a.incidentCount])).toEqual([
       ["assess", 220],
       ["sendPolicy", 30],
@@ -147,14 +160,23 @@ describe("buildProcessIncidentsData: key-wide (#335 N60)", () => {
     // never the oldest SCANNED timestamp passed off as the first.
     expect(data.activities.map((a) => a.firstSeen)).toEqual([null, null, null])
     expect(data.activities[2]).toMatchObject({ representativeMessage: null, latestIncident: null })
+    // Each version once, its jobs without retries from the same read ("Running" shares it).
     expect(queriesOf(requests, `/process-definition/${V1}/statistics`)).toEqual([
-      { incidents: "true" },
+      { failedJobs: "true" },
     ])
     expect(queriesOf(requests, `/process-definition/${V2}/statistics`)).toHaveLength(1)
-    expect(queriesOf(requests, "/process-definition/statistics")).toEqual([{ incidents: "true" }])
+    expect(
+      queriesOf(requests, "/incident")
+        .map((q) => q.processDefinitionId)
+        .filter((id) => id !== undefined)
+        .sort(),
+    ).toEqual([V1, V2])
+    expect(queriesOf(requests, "/process-definition/statistics")).toEqual([
+      { rootIncidents: "true" },
+    ])
   })
 
-  it("offers the keys that DO have incidents when this one has none; null when unreadable", async () => {
+  it("offers the keys that DO have root incidents when this one has none; fails as the statistics fail", async () => {
     const siblings = await build({
       ...definitionRoutes([], 0),
       "GET /process-definition/statistics": {
@@ -177,18 +199,33 @@ describe("buildProcessIncidentsData: key-wide (#335 N60)", () => {
       { processDefinitionKey: "b", processDefinitionName: "B", incidentCount: 5 },
     ])
 
-    const unreadable = await build({
-      ...definitionRoutes([], 0),
-      "GET /process-definition/statistics": { status: 500, body: { message: "boom" } },
-    })
-    expect(unreadable.data.siblingsWithIncidents).toBeNull()
-    expect(unreadable.data.incidentCount).toBe(0)
+    // The statistics hold the key's root incidents, the view's count: primary, never 0.
+    await expect(
+      build({
+        ...definitionRoutes([], 0),
+        "GET /process-definition/statistics": { status: 500, body: { message: "boom" } },
+      }),
+    ).rejects.toThrow()
   })
 })
+
+/** The key's latest version and its diagram, which draws `assess` as a service task. */
+function latestDiagram(key = KEY, definitionId = V2): FakeRoutes {
+  return {
+    "GET /process-definition": { body: [{ id: definitionId, key, name: "Leasing", version: 2 }] },
+    [`GET /process-definition/${definitionId}/xml`]: {
+      body: {
+        id: definitionId,
+        bpmn20Xml: `<definitions><process id="${key}"><serviceTask id="assess" name="Assess creditworthiness"/><callActivity id="callCheck" name="Check applicant"/></process></definitions>`,
+      },
+    },
+  }
+}
 
 describe("buildActivityIncidentsData: one page of an activity's incidents (N67)", () => {
   it("pages engine-side with the exact total and links each row to its own version", async () => {
     const engine = await startFakeEngine({
+      ...latestDiagram(),
       "GET /incident": { body: [row(0, "assess", V1)] },
       "GET /incident/count": { body: { count: 57 } },
     })
@@ -221,22 +258,122 @@ describe("buildActivityIncidentsData: one page of an activity's incidents (N67)"
         ["/incident/count", { processDefinitionKeyIn: KEY, activityId: "assess" }],
       ]),
     )
-    // No statistics or definition lookup per expanded group, only the page's
-    // business keys, ONE read (#322 U13).
-    expect(engine.requests.map((r) => r.path)).toEqual(
-      expect.arrayContaining(["/incident", "/incident/count", "/process-instance"]),
+    // No statistics per expanded group: the key's latest diagram (which names the element and
+    // tells no call activity), the page, its count and the page's business keys, ONE read (#322
+    // U13).
+    expect(engine.requests.map((r) => r.path).sort()).toEqual([
+      "/incident",
+      "/incident/count",
+      "/process-definition",
+      `/process-definition/${V2}/xml`,
+      "/process-instance",
+    ])
+    expect(data.incidents[0].activityName).toBe("Assess creditworthiness")
+  })
+
+  it("lists a call activity's root incidents alone, read whole and paged in memory, the copies no row and no part of the total", async () => {
+    // Newest first: the engine sorts, a copy between the roots; 23 roots and 4 copies.
+    const listed = Array.from({ length: 27 }, (_, n) =>
+      n % 7 === 3
+        ? { ...row(n, "callCheck", V2), incidentMessage: null, rootCauseIncidentId: `called-${n}` }
+        : row(n, "callCheck", V2),
     )
-    expect(engine.requests).toHaveLength(3)
+    const engine = await startFakeEngine({
+      ...latestDiagram(),
+      "GET /incident": (r: RecordedRequest) => {
+        const first = Number(r.query.firstResult ?? 0)
+        return { body: listed.slice(first, first + Number(r.query.maxResults ?? listed.length)) }
+      },
+      "GET /incident/count": { body: { count: listed.length } },
+    })
+    engines.push(engine)
+
+    const data = await buildActivityIncidentsData(clientFor(engine), {
+      baseUrl: engine.baseUrl,
+      provider: cibsevenProvider,
+      processDefinitionKey: KEY,
+      activityId: "callCheck",
+      firstResult: 20,
+    })
+
+    const roots = listed.filter((r) => !("rootCauseIncidentId" in r))
+    expect(data.totalCount).toBe(23)
+    expect(data.incidents.map((i) => i.id)).toEqual(roots.slice(20).map((r) => r.id))
+    expect(data.incidents.every((i) => i.rootIncidentId === null)).toBe(true)
+    // Whole, in pages of 500 from the first, never the engine's count (which counts the copies).
+    expect(queriesOf(engine.requests, "/incident")).toEqual([
+      {
+        processDefinitionKeyIn: KEY,
+        activityId: "callCheck",
+        sortBy: "incidentTimestamp",
+        sortOrder: "desc",
+        firstResult: "0",
+        maxResults: "500",
+      },
+    ])
+    expect(queriesOf(engine.requests, "/incident/count")).toEqual([])
+  })
+
+  it("reads an activity whole where the latest diagram cannot tell a call activity", async () => {
+    const page = async (routes: FakeRoutes, activityId: string) => {
+      const engine = await startFakeEngine({
+        ...latestDiagram(),
+        "GET /incident": {
+          body: [
+            row(0, activityId, V1),
+            { ...row(1, activityId, V1), incidentMessage: null, rootCauseIncidentId: "called-1" },
+          ],
+        },
+        "GET /incident/count": { body: { count: 2 } },
+        ...routes,
+      })
+      engines.push(engine)
+      const data = await buildActivityIncidentsData(clientFor(engine), {
+        baseUrl: engine.baseUrl,
+        provider: cibsevenProvider,
+        processDefinitionKey: KEY,
+        activityId,
+      })
+      return { data, counted: queriesOf(engine.requests, "/incident/count").length }
+    }
+
+    // An element only an older version has, and a diagram that cannot be read.
+    const older = await page({}, "oldCall")
+    const unread = await page(
+      { [`GET /process-definition/${V2}/xml`]: { status: 500, body: { message: "boom" } } },
+      "assess",
+    )
+    for (const { data, counted } of [older, unread]) {
+      expect(data.totalCount).toBe(1)
+      expect(data.incidents).toHaveLength(1)
+      expect(counted).toBe(0)
+    }
+    expect(unread.data.incidents[0].activityName).toBeNull()
+  })
+
+  it("fails on a key no version is deployed for, never a page of zeros", async () => {
+    const engine = await startFakeEngine({ "GET /process-definition": { body: [] } })
+    engines.push(engine)
+    await expect(
+      buildActivityIncidentsData(clientFor(engine), {
+        baseUrl: engine.baseUrl,
+        provider: cibsevenProvider,
+        processDefinitionKey: KEY,
+        activityId: "assess",
+      }),
+    ).rejects.toThrow(`No process definition with key "${KEY}" is deployed on this engine.`)
   })
 
   it("names each row by its instance's business key, and degrades to none", async () => {
     const engine = await startFakeEngine({
+      ...latestDiagram(),
       "GET /incident": { body: [row(0, "assess", V1), row(1, "assess", V1)] },
       "GET /incident/count": { body: { count: 2 } },
       "GET /process-instance": { body: [{ id: "pi-assess-0", businessKey: "LEA-7" }] },
     })
     engines.push(engine)
     const broken = await startFakeEngine({
+      ...latestDiagram(),
       "GET /incident": { body: [row(0, "assess", V1)] },
       "GET /incident/count": { body: { count: 1 } },
       "GET /process-instance": { status: 500, body: { message: "boom" } },
@@ -267,6 +404,7 @@ describe("buildActivityIncidentsData: one page of an activity's incidents (N67)"
     const longKey = "customerOnboardingApprovalProcess"
     const uuid = "6f1c2a9e-0b7d-4c33-9a51-3d2e8f40b7aa"
     const engine = await startFakeEngine({
+      ...latestDiagram(longKey, uuid),
       "GET /incident": { body: [row(0, "assess", uuid)] },
       "GET /incident/count": { body: { count: 1 } },
     })
@@ -283,16 +421,11 @@ describe("buildActivityIncidentsData: one page of an activity's incidents (N67)"
     // The CIB seven route by key; an unknown version is left out (latest).
     expect(url).toContain(`/process/${longKey}/pi-assess-0?tab=incidents`)
     expect(url).not.toContain(uuid)
-    // The rows' business keys, never a definition lookup.
-    expect(engine.requests.filter((r) => r.path.startsWith("/process-definition"))).toEqual([])
+    // The key's latest diagram, read once by the key, never a definition lookup per row.
+    expect(engine.requests.filter((r) => r.path.startsWith("/process-definition"))).toHaveLength(2)
   })
 })
 
-/**
- * A call activity's incidents are copies of a called instance's, without a message of their own:
- * each row carries its root incident (its message, element and called instance), read once per
- * root by its id, the element's name from the called process's diagram. Enrichment.
- */
 // One rule (`readBpmnNames`): an unnamed definition takes its pool
 // name, in the title and in the empty state alike.
 describe("buildProcessIncidentsData: names from a Modeler pool", () => {

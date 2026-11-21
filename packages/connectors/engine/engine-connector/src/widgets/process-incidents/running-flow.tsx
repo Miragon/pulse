@@ -79,6 +79,16 @@ export function RunningFlow({
           columns={[
             { label: t("procIncFlow.valuesColRunning"), value: (a) => a.running },
             { label: t("procIncFlow.valuesColIncidents"), value: (a) => a.incidents },
+            // The quiet badge's words, at every width: the canvas draws it as a hidden drawing,
+            // so where an element has one this column is its text alternative.
+            ...(data.activities.some((a) => a.incidentsInCalledInstances > 0)
+              ? [
+                  {
+                    label: t("procIncFlow.valuesColCalledIncidents"),
+                    value: (a: ActivityStatisticsActivity) => a.incidentsInCalledInstances,
+                  },
+                ]
+              : []),
             {
               label: t("procIncFlow.valuesColFailedJobs"),
               value: (a) => a.failedJobs,

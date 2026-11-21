@@ -164,7 +164,7 @@ describe("buildClusterDetailData paging", () => {
 describe("healthVerdictRule", () => {
   it("names the source and the deployment's own thresholds", () => {
     expect(healthVerdictRule({ criticalIncidents: 10, criticalClusterSize: 4 })).toBe(
-      "From the engine's open incidents, read live: critical at >=10 open incidents or >=4 of one cause, warning with any, else ok.",
+      "From the engine's open incidents, copies at call activities included, read live: critical at >=10 open incidents or >=4 of one cause, warning with any, else ok.",
     )
   })
 })
@@ -239,16 +239,16 @@ describe("buildEngineHealthData verdict", () => {
 
   it("judges the engine-wide /count, not the capped scan", async () => {
     const data = await verdict([1, 1], 10)
-    expect(data.summary.totalIncidents).toBe(10)
     expect(data.status).toBe("critical")
   })
 })
 
 /**
  * Camunda 7 copies an incident of a called instance to the call activity above it, without a
- * message: the copy is that failure, never a cause of its own (c7-core's `groupIncidents` forms
- * `engine_status`'s groups from root incidents too). The open incidents keep counting every copy
- * (docs/vscode/parity.md, "Incident counts").
+ * message: the copy is that failure, never a cause, an activity or an incident of its own (c7-core's
+ * `groupIncidents` forms `engine_status`'s groups from root incidents too). The open incidents are
+ * the root incidents (docs/vscode/parity.md, "Incident counts"); the verdict alone still judges
+ * every open incident, copies included, until its own step.
  */
 describe("causes from root incidents alone", () => {
   /** `count` failures in a called process, each with its copy at the caller's call activity. */
@@ -277,11 +277,25 @@ describe("causes from root incidents alone", () => {
     ]).flat()
   }
 
-  it("the overview names the called process's failure once, its copies no cause", async () => {
+  it("the overview names the called process's failure once, its copies no cause, no incident", async () => {
     const rows = calledFailures(3)
     mockedGetIncidents.mockResolvedValue(rows)
     vi.mocked(getIncidentsCount).mockResolvedValue({ count: 6 })
-    vi.mocked(getProcessDefinitionStatistics).mockResolvedValue([] as never)
+    // The statistics with `rootIncidents=true`: the called process's three, none at the caller.
+    vi.mocked(getProcessDefinitionStatistics).mockResolvedValue([
+      {
+        id: "Check:1:c",
+        instances: 3,
+        incidents: [{ incidentType: "failedJob", incidentCount: 3 }],
+        definition: { id: "Check:1:c", key: "Check", version: 1 },
+      },
+      {
+        id: "Leasing:1:l",
+        instances: 3,
+        incidents: [],
+        definition: { id: "Leasing:1:l", key: "Leasing", version: 1 },
+      },
+    ] as never)
     vi.mocked(getHistoricProcessInstancesCount).mockResolvedValue({ count: 0 })
 
     const data = await buildEngineHealthData(client, "eng1")
@@ -290,9 +304,13 @@ describe("causes from root incidents alone", () => {
       ["CheckBlacklist", 3],
     ])
     expect(data.clusters[0]?.representativeMessage).toBe("Blacklist provider unreachable")
-    // The counts keep every incident: six open, at two activities.
-    expect(data.summary.totalIncidents).toBe(6)
-    expect(data.summary.affectedActivities).toBe(2)
+    // Three root incidents at one activity of one process; with the copies: six at two in two.
+    expect(data.summary.totalIncidents).toBe(3)
+    expect(data.summary.affectedActivities).toBe(1)
+    expect(data.summary.affectedDefinitions).toBe(1)
+    expect(vi.mocked(getProcessDefinitionStatistics).mock.lastCall?.[0]?.query).toMatchObject({
+      rootIncidents: true,
+    })
   })
 
   it("keeps the verdict c7-core's over every scanned incident, as engine_status judges", async () => {

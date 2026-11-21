@@ -88,7 +88,6 @@ export function healthOf(args: Record<string, unknown>): EngineHealthData {
     summary: {
       totalIncidents: 0,
       lastHourIncidents: 0,
-      last24hIncidents: 0,
       affectedActivities: 0,
       affectedDefinitions: 0,
       runningInstances: 3,

@@ -54,7 +54,7 @@ async function engineWith(routes: FakeRoutes) {
 }
 
 describe("buildEngineHealthData: exact totals", () => {
-  it("reads the recency windows from /count and the landscape from per-key statistics", async () => {
+  it("reads the root incidents and the landscape from per-key statistics, the verdict from /count", async () => {
     const { engine, client } = await engineWith({
       // Newest first, as the engine sorts it.
       "GET /incident": { body: [incident("b", AFTER_FALL_BACK), incident("a", BEFORE_FALL_BACK)] },
@@ -81,11 +81,12 @@ describe("buildEngineHealthData: exact totals", () => {
 
     const data = await buildEngineHealthData(client, "fake")
 
-    // Each window lands in its own field: the hour's count is not the day's.
+    // The open root incidents are the statistics' (two, of one process), never the 11 every open
+    // incident counts, copies included; the last hour is the scan's, which holds every incident
+    // (both a month old), never a window /count, which cannot tell a root from a copy.
     expect(data.summary).toEqual({
-      totalIncidents: 11,
-      lastHourIncidents: 3,
-      last24hIncidents: 7,
+      totalIncidents: 2,
+      lastHourIncidents: 0,
       affectedActivities: 1,
       affectedDefinitions: 1,
       runningInstances: 103,
@@ -93,14 +94,36 @@ describe("buildEngineHealthData: exact totals", () => {
       started24h: 12,
       completed24h: 12,
     })
+    // The verdict's input alone: every open incident, read live.
     const counts = engine.requests.filter((r) => r.path === "/incident/count").map((r) => r.query)
-    expect(counts).toEqual([
-      {},
-      { incidentTimestampAfter: expect.any(String) as string },
-      { incidentTimestampAfter: expect.any(String) as string },
-    ])
+    expect(counts).toEqual([{}])
+    expect(data.status).toBe("warning")
+    const statistics = engine.requests.filter((r) => r.path === "/process-definition/statistics")
+    expect(statistics.map((r) => r.query)).toEqual([{ rootIncidents: "true" }])
     // N71: the cluster's latest incident by instant, not by string.
     expect(data.clusters[0].latestIncident).toBe(AFTER_FALL_BACK)
+  })
+
+  it("counts the last hour's root incidents from the scan, copies never, unknown past its reach", async () => {
+    const copy = { ...incident("c", ago(5 * MINUTE)), rootCauseIncidentId: "r", activityId: "call" }
+    const recent = await engineWith({
+      "GET /incident": {
+        body: [copy, incident("b", ago(10 * MINUTE)), incident("a", ago(3 * HOUR))],
+      },
+      "GET /incident/count": { body: { count: 3 } },
+    })
+    expect((await buildEngineHealthData(recent.client, "fake")).summary.lastHourIncidents).toBe(1)
+
+    // A capped scan all within the last half hour holds only part of the hour.
+    const capped = await engineWith({
+      "GET /incident": {
+        body: Array.from({ length: CLUSTER_SCAN_LIMIT }, (_, n) => incident(`i${n}`, ago(MINUTE))),
+      },
+      "GET /incident/count": { body: { count: 9000 } },
+    })
+    expect(
+      (await buildEngineHealthData(capped.client, "fake")).summary.lastHourIncidents,
+    ).toBeNull()
   })
 
   it("titles each cluster by its activity's and process's names, ids where unreadable", async () => {
@@ -152,7 +175,7 @@ describe("buildEngineHealthData: exact totals", () => {
     ])
   })
 
-  it("reports what a capped scan cannot vouch for as unknown: totals, cluster sizes, 24h", async () => {
+  it("reports what a capped scan cannot vouch for as unknown: cluster sizes, the last hour", async () => {
     // A mass failure: the newest 2000 of 5000 incidents, all from the last
     // half hour. The scan reaches back neither to the clusters' start nor 24h.
     const scan = Array.from({ length: CLUSTER_SCAN_LIMIT }, (_, n) =>
@@ -166,7 +189,7 @@ describe("buildEngineHealthData: exact totals", () => {
 
     const data = await buildEngineHealthData(client, "fake")
 
-    expect(data.summary.totalIncidents).toBe(5000)
+    expect(data.summary.lastHourIncidents).toBeNull()
     expect(data.summary.affectedActivities).toBeNull()
     // The verdict is data (status + counts); each reader words it (#322 U3).
     expect(data.status).toBe("critical")
@@ -176,11 +199,10 @@ describe("buildEngineHealthData: exact totals", () => {
       activityId: "a0",
       incidentCount: null,
       scannedIncidentCount: 667,
-      last24hCount: null,
     })
   })
 
-  it("keeps a capped scan's 24h cluster counts once the scan reaches back past 24h", async () => {
+  it("keeps a capped scan's cluster a lower bound though the scan reaches back past 24h", async () => {
     // 2000 rows spread over the last 48h: every incident of the last 24h is in it.
     const scan = Array.from({ length: CLUSTER_SCAN_LIMIT }, (_, n) =>
       incident(`i${n}`, ago((n * 48 * HOUR) / CLUSTER_SCAN_LIMIT)),
@@ -196,7 +218,6 @@ describe("buildEngineHealthData: exact totals", () => {
     expect(data.clusters[0]).toMatchObject({
       incidentCount: null,
       scannedIncidentCount: CLUSTER_SCAN_LIMIT,
-      last24hCount: 1000,
     })
   })
 
@@ -325,86 +346,6 @@ describe("buildClusterDetailData: names before ids (#322 U13)", () => {
       [null, "Order to cash"],
     ])
     expect(engine.requests.filter((r) => r.path.endsWith("/xml"))).toHaveLength(1)
-  })
-})
-
-describe("buildClusterDetailData: a cluster larger than the scan", () => {
-  /** The newest 2000 of a mass failure, all from the last half hour; every other one signature B. */
-  const massFailure = () =>
-    Array.from({ length: CLUSTER_SCAN_LIMIT }, (_, n) => ({
-      ...incident(`i${n}`, ago((n * 30 * MINUTE) / CLUSTER_SCAN_LIMIT)),
-      incidentMessage: n % 2 ? "card declined" : "gateway timeout",
-    }))
-
-  it("takes the cluster's counts from /incident/count without a message filter", async () => {
-    const { engine, client } = await engineWith({
-      "GET /incident": { body: massFailure() },
-      "GET /incident/count": windowedCount({ total: 5000, lastHour: 2400, last24h: 4800 }),
-    })
-
-    const data = await buildClusterDetailData(client, "fake", {
-      activityId: "charge",
-      incidentType: "failedJob",
-    })
-
-    expect(data).toMatchObject({
-      incidentCount: 5000,
-      scannedIncidentCount: CLUSTER_SCAN_LIMIT,
-      lastHourCount: 2400,
-      last24hCount: 4800,
-      // The oldest SCANNED row is not when the cluster started.
-      firstSeen: null,
-      totalMatching: CLUSTER_SCAN_LIMIT,
-    })
-    const filter = { activityId: "charge", incidentType: "failedJob" }
-    const counts = engine.requests.filter((r) => r.path === "/incident/count")
-    expect(counts.map((r) => r.query)).toEqual(
-      expect.arrayContaining([
-        filter,
-        { ...filter, incidentTimestampAfter: expect.any(String) as string },
-      ]),
-    )
-    expect(counts).toHaveLength(3)
-  })
-
-  it("reports a message-filtered cluster's unvouched counts as unknown (null)", async () => {
-    const { engine, client } = await engineWith({
-      "GET /incident": { body: massFailure() },
-    })
-
-    const data = await buildClusterDetailData(client, "fake", {
-      activityId: "charge",
-      incidentType: "failedJob",
-      messageSignature: "card declined",
-    })
-
-    expect(data).toMatchObject({
-      incidentCount: null,
-      scannedIncidentCount: CLUSTER_SCAN_LIMIT / 2,
-      lastHourCount: null,
-      last24hCount: null,
-      firstSeen: null,
-      totalMatching: CLUSTER_SCAN_LIMIT / 2,
-    })
-    // /incident/count cannot filter by message: it is not asked.
-    expect(engine.requests.filter((r) => r.path === "/incident/count")).toEqual([])
-  })
-
-  it("counts a window from the scan once the scan reaches back past it", async () => {
-    // 2000 rows over the last 2h: the hour is covered, 24h is not.
-    const scan = Array.from({ length: CLUSTER_SCAN_LIMIT }, (_, n) =>
-      incident(`i${n}`, ago((n * 2 * HOUR) / CLUSTER_SCAN_LIMIT)),
-    )
-    const { client } = await engineWith({ "GET /incident": { body: scan } })
-
-    const data = await buildClusterDetailData(client, "fake", {
-      activityId: "charge",
-      incidentType: "failedJob",
-      messageSignature: "card declined",
-    })
-
-    expect(data.lastHourCount).toBe(CLUSTER_SCAN_LIMIT / 2)
-    expect(data.last24hCount).toBeNull()
   })
 })
 

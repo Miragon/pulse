@@ -121,7 +121,6 @@ describe("the overview's top failures", { timeout: 15_000 }, () => {
           ...DEGRADED.clusters[0],
           incidentCount: null,
           scannedIncidentCount: 1400,
-          last24hCount: null,
         },
       ],
     }
@@ -135,7 +134,8 @@ describe("the overview's top failures", { timeout: 15_000 }, () => {
     // Every cell, the ones a narrow region hides included (happy-dom measures no region).
     const cells = row.querySelectorAll("td")
     expect(cells[2].textContent).toBe(formatCount({ atLeast: 1400 }))
-    // An unknown 24h count is "—", never "0".
-    expect(cells[3].textContent).toBe("—")
+    // No column counts a day's root incidents: the process follows the incidents.
+    expect(cells[3].textContent).toBe("shipping")
+    expect(screen.queryByRole("columnheader", { name: "New in 24h" })).toBeNull()
   })
 })

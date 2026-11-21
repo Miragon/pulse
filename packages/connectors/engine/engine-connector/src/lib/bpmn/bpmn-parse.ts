@@ -12,3 +12,18 @@ export function bpmnActivityIds(bpmnXml: string): string[] {
   }
   return ids
 }
+
+/**
+ * The diagram's call activities: the one kind of element where Camunda 7 holds a copy of a called
+ * instance's incident, so where a count of root incidents has to tell the copies apart.
+ */
+export function bpmnCallActivityIds(bpmnXml: string): string[] {
+  const re = /<(?:[a-zA-Z]+:)?callActivity\b[^>]*>/g
+  const ids: string[] = []
+  let m: RegExpExecArray | null
+  while ((m = re.exec(bpmnXml)) !== null) {
+    const id = /\bid="([^"]+)"/.exec(m[0])
+    if (id) ids.push(id[1])
+  }
+  return ids
+}

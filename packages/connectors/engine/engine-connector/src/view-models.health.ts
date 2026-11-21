@@ -3,14 +3,16 @@ import type { EngineStatus } from "@miragon/pulse-c7-core"
 /** c7-core's live verdict (`engineVerdict`), the one `engine_status` gives too. */
 export type EngineHealthStatus = EngineStatus
 
-/** A cluster larger than the scan (`CLUSTER_SCAN_LIMIT`) is only a lower bound, never the scan's length. */
+/**
+ * A cluster is one cause, so it counts root incidents alone (a call activity's copy of a called
+ * instance's failure is that failure's). A cluster larger than the scan (`CLUSTER_SCAN_LIMIT`) is
+ * only a lower bound, never the scan's length.
+ */
 export interface ClusterCounts {
-  /** The cluster's open incidents; null when unknown (only `scannedIncidentCount` of it is). */
+  /** The cluster's open root incidents; null when unknown (only `scannedIncidentCount` of it is). */
   incidentCount: number | null
-  /** The cluster's incidents among the newest scanned ones, a lower bound of `incidentCount`. */
+  /** The cluster's root incidents among the newest scanned ones, a lower bound of `incidentCount`. */
   scannedIncidentCount: number
-  /** Incidents since now − 24h; null when neither the scan nor a count can vouch for them. */
-  last24hCount: number | null
 }
 
 /**
@@ -40,13 +42,21 @@ export interface EngineHealthData {
   status: EngineHealthStatus
   /** How `status` was decided, in words (source + thresholds): `healthVerdictRule`. */
   statusRule: string
+  /**
+   * Its incident counts are open ROOT incidents: a call activity's copy of a called instance's
+   * incident counts where it was raised. `status` still judges every open incident.
+   */
   summary: {
+    /** The open root incidents of every process (the definition statistics, `rootIncidents=true`). */
     totalIncidents: number
-    /** New incidents in the last hour: the "is it burning right now?" signal. */
-    lastHourIncidents: number
-    last24hIncidents: number
-    /** Activities with open incidents; null unless the incident scan read every incident. */
+    /**
+     * Root incidents raised in the last hour, the "is it burning right now?" signal; null when the
+     * scan does not reach back an hour (no count tells a root from a copy in a window).
+     */
+    lastHourIncidents: number | null
+    /** Activities with open root incidents; null unless the incident scan read every incident. */
     affectedActivities: number | null
+    /** Processes with open root incidents. */
     affectedDefinitions: number
     runningInstances: number
     totalDefinitions: number
@@ -72,7 +82,10 @@ export interface ClusterIncidentRow {
   incidentTimestamp: string
 }
 
-/** Without a message filter the counts are `/incident/count` totals; with one, an unvouched count is null. */
+/**
+ * One cause's root incidents. Without a message filter and with no copy in the scan the counts are
+ * `/incident/count` totals; otherwise an unvouched count is null.
+ */
 export interface ClusterDetailData extends ClusterCounts {
   activityId: string
   /** The activity's name in the newest incident's diagram; null without one or unreadable. */
@@ -80,7 +93,7 @@ export interface ClusterDetailData extends ClusterCounts {
   incidentType: string
   /** Signature the result was filtered by; null = no message filter (activity+type only). */
   messageSignature: string | null
-  /** Incidents in the last hour; null when neither the scan nor a count can vouch for it. */
+  /** Root incidents in the last hour; null when neither the scan nor a count can vouch for it. */
   lastHourCount: number | null
   /** Null unless the scan holds the whole cluster. */
   firstSeen: string | null

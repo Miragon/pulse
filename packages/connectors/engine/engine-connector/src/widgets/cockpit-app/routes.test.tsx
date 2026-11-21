@@ -118,7 +118,6 @@ const SEEDED: Array<[string, CockpitView, CockpitStart, string, string, string]>
         cockpitUrl: null,
         runningInstances: 4,
         incidentCount: 0,
-        last24hCount: 0,
         failedJobs: 0,
         totalActivityCount: 2,
         affectedDiagramActivityCount: 0,

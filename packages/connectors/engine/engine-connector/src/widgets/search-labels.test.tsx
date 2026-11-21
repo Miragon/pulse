@@ -64,7 +64,6 @@ const CLUSTER: ClusterDetailData = {
   incidentCount: 1,
   scannedIncidentCount: 1,
   lastHourCount: 1,
-  last24hCount: 1,
   firstSeen: "2026-06-11T08:00:00.000Z",
   latestIncident: "2026-06-11T14:00:00.000Z",
   processDefinitionKeys: ["shipping"],
@@ -105,7 +104,6 @@ const INCIDENTS: IncidentsDashboardData = {
   processCount: 1,
   fetchedAt: "2026-10-26T08:00:00.000Z",
   affectedActivityCount: 1,
-  last24hCount: 1,
   latestIncident: "2026-10-10T12:00:00.000+0000",
   filters: {},
   engineVendor: "CIB seven",
@@ -119,7 +117,6 @@ const INCIDENTS: IncidentsDashboardData = {
       incidentCount: 2,
       scannedIncidentCount: 2,
       affectedActivityCount: 1,
-      last24hCount: 1,
       latestIncident: "2026-10-10T12:00:00.000+0000",
       cockpitUrl: null,
       activities: [],
@@ -172,7 +169,6 @@ const SITES: Record<string, SearchSite> = {
       en: "Filter incidents by process, activity or error message",
       de: "Incidents filtern nach Prozess, Aktivität oder Fehlermeldung",
     },
-    scope: { en: "Show incidents", de: "Incidents zeigen" },
   },
 }
 

@@ -23,18 +23,17 @@ function triageIncidentsHandOff(data: IncidentsDashboardData, engine: string): H
       incidentType: scope.incidentType,
     },
     facts: {
-      openIncidents: scope.filtered ? undefined : data.totalCount,
-      matchingIncidents: scope.filtered ? data.totalCount : undefined,
+      openRootIncidents: scope.filtered ? undefined : data.totalCount,
+      matchingRootIncidents: scope.filtered ? data.totalCount : undefined,
       processes: data.processCount,
       affectedActivities: data.affectedActivityCount,
-      last24h: data.last24hCount,
       latestIncident: data.latestIncident,
     },
   }
 }
 
 /**
- * The open incidents in one sentence: how many, in how many processes and, where every card's
+ * The open root incidents in one sentence: how many, in how many processes and, where every card's
  * breakdown is complete, at how many activities ("101 open in 2 processes, 3 activities").
  */
 function openSummary(t: T, data: IncidentsDashboardData): string {
@@ -51,10 +50,9 @@ function openSummary(t: T, data: IncidentsDashboardData): string {
 
 /**
  * The incidents route's bar, a view of its own over the list's feed (one query, shared): the
- * engine in its title, the open incidents in words, its one action the hand-off and, at its end,
- * when the numbers were read. No tiles: the segments under it count All and New in 24h, the cards
- * their processes. Loading or failed, it says so once for the route, with the Try again that reads
- * the feed for the list too.
+ * engine in its title, the open root incidents in words, its one action the hand-off and, at its
+ * end, when the numbers were read. No tiles: the cards under it count their processes. Loading or
+ * failed, it says so once for the route, with the Try again that reads the feed for the list too.
  */
 export function IncidentsBar({
   data: initialData = null,

@@ -85,13 +85,15 @@ function incidents(count: number, message = "card declined"): unknown[] {
 const RULE = healthVerdictRule(DEFAULT_VERDICT_THRESHOLDS)
 
 describe("cockpitFacts: the model's view of each route", () => {
-  it("overview: the verdict, the summary, the failed jobs and the top cluster", async () => {
+  // The world's caller holds a copy of its called instance's incident at its call activity: the
+  // root incidents count it nowhere (with the copies: 2 incidents at 2 activities in 1 process).
+  it("overview: the verdict, the root incidents, the failed jobs and the top cluster", async () => {
     expect(await factsOf({ section: "overview" })).toEqual({
       status: "warning",
       statusRule: RULE,
-      totalIncidents: 1,
-      lastHourIncidents: 1,
-      last24hIncidents: 1,
+      openRootIncidents: 1,
+      // The world's root incident is two hours old, and the scan holds every incident.
+      rootIncidentsLastHour: 0,
       affectedActivities: 1,
       affectedDefinitions: 1,
       runningInstances: 3,
@@ -130,9 +132,8 @@ describe("cockpitFacts: the model's view of each route", () => {
     expect(await factsOf({ section: "overview" }, quiet)).toEqual({
       status: "ok",
       statusRule: RULE,
-      totalIncidents: 0,
-      lastHourIncidents: 0,
-      last24hIncidents: 0,
+      openRootIncidents: 0,
+      rootIncidentsLastHour: 0,
       affectedActivities: 0,
       affectedDefinitions: 0,
       runningInstances: 3,
@@ -161,11 +162,10 @@ describe("cockpitFacts: the model's view of each route", () => {
     })
   })
 
-  it("incidents: the totals over every process", async () => {
+  it("incidents: the root incidents over every process", async () => {
     expect(await factsOf({ section: "incidents" })).toEqual({
-      totalCount: 1,
+      openRootIncidents: 1,
       processCount: 1,
-      last24hCount: 1,
       affectedActivityCount: 1,
       latestIncident: "2026-10-10T08:00:00.000+0200",
     })
@@ -185,7 +185,6 @@ describe("cockpitFacts: the model's view of each route", () => {
       incidentCount: 2,
       scannedIncidentCount: 2,
       lastHourCount: 0,
-      last24hCount: 2,
       processDefinitionKeys: [WORLD.key],
       sampleMessage: `${"x".repeat(100)} ${"y".repeat(39)}…`,
     })
@@ -197,8 +196,7 @@ describe("cockpitFacts: the model's view of each route", () => {
       processDefinitionKey: WORLD.key,
       diagramVersion: 2,
       runningInstances: 1,
-      incidentCount: 1,
-      last24hCount: 1,
+      rootIncidentCount: 1,
       failedJobs: 1,
       affectedActivities: 1,
     }
@@ -249,7 +247,7 @@ describe("cockpitFacts: the model's view of each route", () => {
       processDefinitionKey: WORLD.key,
       state,
       activeActivityIds: [WORLD.key, WORLD.activityId],
-      incidentCount: 1,
+      rootIncidentCount: 1,
       openTaskCount: 1,
     })
   })

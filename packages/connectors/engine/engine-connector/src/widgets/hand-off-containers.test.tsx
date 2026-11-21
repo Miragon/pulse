@@ -128,7 +128,6 @@ const DASHBOARD: IncidentsDashboardData = {
   processCount: 1,
   fetchedAt: "2026-10-26T08:00:00.000Z",
   affectedActivityCount: 1,
-  last24hCount: 1,
   latestIncident: null,
   processes: [],
   filters: {},
@@ -186,7 +185,6 @@ const CLUSTER: ClusterDetailData = {
   incidentCount: 2,
   scannedIncidentCount: 2,
   lastHourCount: 1,
-  last24hCount: 2,
   firstSeen: null,
   latestIncident: null,
   // Two processes: no single one for the bar to open, so its one action is the hand-off.

@@ -69,7 +69,6 @@ const DEFINITION: ProcessIncidentsData = {
   cockpitUrl: null,
   runningInstances: 1,
   incidentCount: 1,
-  last24hCount: 1,
   failedJobs: 1,
   totalActivityCount: null,
   affectedDiagramActivityCount: null,

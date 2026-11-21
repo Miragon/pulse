@@ -36,6 +36,7 @@ import {
 } from "@miragon/pulse-c7-client/sdk"
 import { buildTaskFormSchema } from "../lib/bpmn/task-form-schema.js"
 
+import { ROOT_CAUSE_READS } from "./incident-scan.js"
 import { buildInstanceDetailData } from "./instance-detail-data.js"
 
 const mockedActivityTree = vi.mocked(getActivityInstanceTree)
@@ -154,6 +155,21 @@ describe("buildInstanceDetailData", () => {
       ])
       // The copy keeps its own (empty) message: the root's is the view's to show.
       expect(data.incidents[0]?.incidentMessage).toBeNull()
+      // The root it stands for, which its row opens, by c7-core's rule; a root names none.
+      expect(data.incidents.map((i) => i.rootIncidentId)).toEqual(["root-1", null])
+    })
+
+    it("reads at most ROOT_CAUSE_READS roots, every copy still naming the root it opens", async () => {
+      const roots = Array.from({ length: ROOT_CAUSE_READS + 3 }, (_, n) => `root-${n}`)
+      const copies = roots.map((root, n) => ({ ...copy, id: `c${n}`, rootCauseIncidentId: root }))
+      mockedIncidents.mockResolvedValueOnce(copies)
+      mockedIncident.mockImplementation(({ path }) =>
+        Promise.resolve({ id: path.id, processInstanceId: `called-${path.id}` }),
+      )
+      const data = await buildInstanceDetailData(fakeClient, "e", { processInstanceId: "p1" })
+      expect(mockedIncident).toHaveBeenCalledTimes(ROOT_CAUSE_READS)
+      expect(data.incidents.filter((i) => i.rootCause)).toHaveLength(ROOT_CAUSE_READS)
+      expect(data.incidents.map((i) => i.rootIncidentId)).toEqual(roots)
     })
 
     it("has no root where its read fails, so its message stays the engine's '—'", async () => {

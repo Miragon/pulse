@@ -95,7 +95,7 @@ describe("a process's name for its crumb, from any tile that names it on that en
 })
 
 describe("the counts a board's diagram draws", () => {
-  it("what runs in blue, the open incidents, those of called instances included, in red", () => {
+  it("what runs in blue, the open root incidents in red, those of called instances apart and quiet", () => {
     expect(
       boardHighlights([
         { elementId: "approve", active: 7, incidents: 2, incidentsInCalledInstances: 1 },
@@ -105,11 +105,12 @@ describe("the counts a board's diagram draws", () => {
     ).toEqual([
       { kind: "active", activityIds: ["approve"] },
       { kind: "instance-count", counts: [{ activityId: "approve", count: 7 }] },
+      // A call activity with incidents in its called instances alone carries no incident outline.
+      { kind: "incident", activityIds: ["approve"], counts: [{ activityId: "approve", count: 2 }] },
       {
-        kind: "incident",
-        activityIds: ["approve", "call"],
+        kind: "called-incident-count",
         counts: [
-          { activityId: "approve", count: 3 },
+          { activityId: "approve", count: 1 },
           { activityId: "call", count: 4 },
         ],
       },

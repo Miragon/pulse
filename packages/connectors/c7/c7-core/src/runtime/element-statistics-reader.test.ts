@@ -80,6 +80,71 @@ describe("ElementStatisticsReader", () => {
     ])
   })
 
+  it("counts each element's jobs without retries from the one statistics read with failedJobs", async () => {
+    const { port, reader } = readerOver(
+      [
+        { id: "Activity_Charge", instances: 2, failedJobs: 1, incidents: [] },
+        { id: "Activity_Review", instances: 3 },
+        { id: "Activity_Call", instances: 1, failedJobs: null },
+      ],
+      [incident("i1", "Activity_Charge"), incident("i2", "Activity_Call", "i9")],
+    )
+    expect(await reader.withFailedJobs(ORDER)).toEqual([
+      {
+        elementId: "Activity_Charge",
+        active: 1,
+        incidents: 1,
+        incidentsInCalledInstances: 0,
+        failedJobs: 1,
+      },
+      {
+        elementId: "Activity_Review",
+        active: 3,
+        incidents: 0,
+        incidentsInCalledInstances: 0,
+        failedJobs: 0,
+      },
+      {
+        elementId: "Activity_Call",
+        active: 1,
+        incidents: 0,
+        incidentsInCalledInstances: 1,
+        failedJobs: 0,
+      },
+    ])
+    expect(port.calls.map((call) => [call.operationId, call.input.query])).toEqual([
+      ["getActivityStatistics", { failedJobs: "true" }],
+      [
+        "getIncidents",
+        {
+          processDefinitionId: ORDER,
+          sortBy: "incidentTimestamp",
+          sortOrder: "desc",
+          firstResult: "0",
+          maxResults: "500",
+        },
+      ],
+    ])
+  })
+
+  it("keeps the contract's counts free of the jobs without retries", async () => {
+    const { reader } = readerOver(
+      [{ id: "Activity_Charge", instances: 2, failedJobs: 1, incidents: [] }],
+      [],
+    )
+    expect(await reader.of(ORDER)).toEqual([
+      { elementId: "Activity_Charge", active: 2, incidents: 0, incidentsInCalledInstances: 0 },
+    ])
+  })
+
+  it("fails jobs without retries that are no number as unexpected", async () => {
+    const { reader } = readerOver([{ id: "A", instances: 1, failedJobs: "1" }], [])
+    await expect(reader.withFailedJobs(ORDER)).rejects.toMatchObject({
+      failure: "unexpectedResponse",
+      message: "failedJobs is not a number",
+    })
+  })
+
   it("fails an id no engine assigns as misconfigured, before any request", async () => {
     const { port, reader } = readerOver([], [])
     const read = reader.of(DefinitionId("../order"))

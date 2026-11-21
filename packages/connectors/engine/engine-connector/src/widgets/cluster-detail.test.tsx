@@ -28,7 +28,6 @@ const CLUSTER: ClusterDetailData = {
   incidentCount: 40,
   scannedIncidentCount: 40,
   lastHourCount: 9,
-  last24hCount: 12,
   firstSeen: "2026-06-11T08:00:00.000Z",
   latestIncident: "2026-06-11T14:00:00.000Z",
   processDefinitionKeys: ["shipping"],
@@ -260,7 +259,6 @@ describe("ClusterDetailWidget (fixture render)", () => {
       incidentCount: null,
       scannedIncidentCount: 1000,
       lastHourCount: null,
-      last24hCount: null,
       firstSeen: null,
       totalMatching: 1000,
     }
@@ -275,7 +273,10 @@ describe("ClusterDetailWidget (fixture render)", () => {
     const atLeast = `≥ ${formatNumber(1000)}`
     expect(screen.getByText(atLeast)).toBeTruthy()
     expect(screen.getByText("in shipping")).toBeTruthy()
-    expect(screen.getAllByText("—")).toHaveLength(2)
+    // The last hour's unknown count; no tile counts a day (Camunda 7 counts no root incidents in
+    // a window).
+    expect(screen.getAllByText("—")).toHaveLength(1)
+    expect(screen.queryByText("New in 24h")).toBeNull()
     expect(screen.queryByText("0")).toBeNull()
     // A first sighting the scan cannot vouch for is left out, never guessed.
     expect(screen.queryByText(/^first seen /)).toBeNull()
@@ -320,7 +321,6 @@ describe("ClusterDetailWidget (fixture render)", () => {
       incidentCount: 0,
       scannedIncidentCount: 0,
       lastHourCount: 0,
-      last24hCount: 0,
       incidents: [],
       totalMatching: 0,
     }
@@ -344,7 +344,7 @@ describe("describeCluster", () => {
   it("states an exact cluster as exact, with its whole list", () => {
     const text = bindHandOff("en").context(describeCluster(CLUSTER))
     expect(text).toContain('processDefinitionKey="shipping"')
-    expect(text).toContain("On screen: incidentCount=40, lastHour=9, last24h=12")
+    expect(text).toContain("On screen: incidentCount=40, lastHour=9, firstSeen=")
     expect(text).not.toMatch(/AtLeast|listCoversNewest|scannedProcessDefinitionKeys/)
   })
 
@@ -355,7 +355,6 @@ describe("describeCluster", () => {
         incidentCount: null,
         scannedIncidentCount: 1000,
         lastHourCount: null,
-        last24hCount: null,
         firstSeen: null,
       }),
     )

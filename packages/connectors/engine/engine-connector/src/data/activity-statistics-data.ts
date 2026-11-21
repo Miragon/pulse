@@ -1,58 +1,48 @@
 import type { Client } from "@miragon/pulse-c7-client"
-import { getActivityStatistics } from "@miragon/pulse-c7-client/sdk"
-import { mapLimit } from "@miragon/pulse-c7-core"
 import type { ActivityStatisticsArgs } from "../feed-contracts.js"
 import type {
   ActivityStatisticsActivity,
   ActivityStatisticsData,
   ActivityThroughputData,
 } from "../view-models.js"
-import { MULTI_INSTANCE_BODY, placeOnDiagram, readDiagramXml } from "./activity-diagram.js"
+import { placeOnDiagram, readDiagramXml } from "./activity-diagram.js"
 import { readActivityThroughput } from "./activity-throughput.js"
 import { fetchDefinitionVersions, fetchLatestDefinition } from "./definition-info.js"
-import { rowsOf } from "./engine-reads.js"
+import { readElementCounts, type ElementCounts } from "./element-counts.js"
 
-/** Version reads in flight at once: a key with many versions never fans out in one burst. */
-const VERSION_READS_AT_ONCE = 4
+type Counts = Pick<
+  ActivityStatisticsActivity,
+  "running" | "failedJobs" | "incidents" | "incidentsInCalledInstances"
+>
 
-interface ActivityStatsRow {
-  id?: string | null
-  instances?: number | null
-  failedJobs?: number | null
-  incidents?: Array<{ incidentCount?: number | null }> | null
-}
-
-type Counts = Pick<ActivityStatisticsActivity, "running" | "failedJobs" | "incidents">
-
-function readVersion(client: Client, definitionId: string): Promise<ActivityStatsRow[]> {
-  return getActivityStatistics({
-    client,
-    path: { id: definitionId },
-    query: { failedJobs: true, incidents: true },
-  }).then((rows) => rowsOf<ActivityStatsRow>(rows))
-}
-
-/** Sums the versions' rows per element (a multi-instance body on its element); nothing there is no row. */
-function sumPerElement(rows: ActivityStatsRow[]): Map<string, Counts> {
-  const byElement = new Map<string, Counts>()
-  for (const row of rows) {
-    if (!row.id) continue
-    const id = row.id.replace(MULTI_INSTANCE_BODY, "")
-    const counts = byElement.get(id) ?? { running: 0, failedJobs: 0, incidents: 0 }
-    counts.running += row.instances ?? 0
-    counts.failedJobs += row.failedJobs ?? 0
-    counts.incidents += (row.incidents ?? []).reduce((sum, i) => sum + (i.incidentCount ?? 0), 0)
-    byElement.set(id, counts)
-  }
+/** Each element's counts; nothing there is no row. */
+function countsPerElement(elements: Map<string, ElementCounts>): Map<string, Counts> {
   return new Map(
-    [...byElement].filter(([, c]) => c.running > 0 || c.failedJobs > 0 || c.incidents > 0),
+    [...elements]
+      .map(([id, element]): [string, Counts] => [
+        id,
+        {
+          running: element.active,
+          incidents: element.incidents,
+          incidentsInCalledInstances: element.incidentsInCalledInstances,
+          failedJobs: element.failedJobs,
+        },
+      ])
+      .filter(
+        ([, c]) =>
+          c.running > 0 || c.failedJobs > 0 || c.incidents > 0 || c.incidentsInCalledInstances > 0,
+      ),
   )
 }
 
 /**
  * The process flow's "Running": what runs at each element of a key now. Old versions keep running
  * after a redeploy, so every version is read (#335 N60) and summed per element onto the latest
- * version's diagram; an element only an older version has says so (`inDiagram: false`).
+ * version's diagram; an element only an older version has says so (`inDiagram: false`). Each
+ * version's counts are the shared process screen's (`readElementCounts`, one statistics read with
+ * the jobs without retries and the version's incidents whole, four versions at once, on the floor of
+ * 30 s per caller): the tokens without those a root incident holds, the root incidents raised there
+ * and, apart, the incidents of the instances a call activity called, and its jobs without retries.
  */
 async function readRunning(
   client: Client,
@@ -63,17 +53,19 @@ async function readRunning(
     fetchLatestDefinition(client, key),
     fetchDefinitionVersions(client, key),
   ])
-  const [perVersion, bpmnXml] = await Promise.all([
-    mapLimit(versions, VERSION_READS_AT_ONCE, (version) => readVersion(client, version.id)),
+  const versionIds = versions.map((version) => version.id)
+  const [elements, bpmnXml] = await Promise.all([
+    readElementCounts(client, versionIds),
     readDiagramXml(client, diagram),
   ])
   const place = placeOnDiagram(bpmnXml)
-  const activities = [...sumPerElement(perVersion.flat())]
+  const activities = [...countsPerElement(elements)]
     .map(([activityId, counts]) => ({ activityId, ...place(activityId), ...counts }))
     .sort(
       (a, b) =>
         b.running - a.running ||
         b.incidents - a.incidents ||
+        b.incidentsInCalledInstances - a.incidentsInCalledInstances ||
         a.activityId.localeCompare(b.activityId, "en"),
     )
   return {

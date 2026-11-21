@@ -19,13 +19,15 @@ import {
   type IncidentLike,
   type ScanCoverage,
 } from "./cluster-scan.js"
+import { bpmnCallActivityIds } from "../lib/bpmn/bpmn-parse.js"
 import {
   elementNameIn,
+  fetchDefinitionXml,
   fetchNamesByDefinition,
   processNameIn,
   resolveDefinitionKeys,
 } from "./definition-info.js"
-import { countOf, DAY_MS, optional, rowsOf } from "./engine-reads.js"
+import { countOf, optional, rowsOf } from "./engine-reads.js"
 import { fetchBusinessKeys, isOnOrAfter } from "./incident-scan.js"
 
 /**
@@ -41,9 +43,10 @@ export type ClusterDetailArgs = ClusterDetailFilters & PagingArgs
  * forms its causes): a call activity's copy of a called instance's failure is that failure's.
  * The process keys scope guarded remediation, so they resolve exactly (primary).
  * Once the scan hits {@link CLUSTER_SCAN_LIMIT} (a mass failure, exactly when a
- * cluster gets drilled into) its length is no total: counts come from
- * `/incident/count` without a message filter and without copies in the scan (it counts them),
- * else are null.
+ * cluster gets drilled into) its length is no total: counts come from `/incident/count`, which
+ * counts a call activity's copies too, so only without a message filter, where the scan holds no
+ * copy and the cluster's element is no call activity on its newest root incident's diagram (read
+ * through the one XML cache, as its names are; `countableAt`), else they are null.
  */
 export async function buildClusterDetailData(
   client: Client,
@@ -96,7 +99,10 @@ export async function buildClusterDetailData(
       coverage,
       matching,
       nowMs,
-      countable: roots.length === incidentsRaw.length,
+      countable: () =>
+        roots.length === incidentsRaw.length
+          ? countableAt(client, matching[0]?.processDefinitionId, args.activityId)
+          : Promise.resolve(false),
     }),
     // Enrichment: a failed lookup names the rows by their short ids.
     optional(
@@ -213,10 +219,22 @@ function aggregateClusterKpis(
   return { timestamps: matching.map((inc) => inc.incidentTimestamp), defCounts }
 }
 
-type ClusterWindowCounts = Pick<
-  ClusterDetailData,
-  "incidentCount" | "lastHourCount" | "last24hCount"
->
+type ClusterWindowCounts = Pick<ClusterDetailData, "incidentCount" | "lastHourCount">
+
+/**
+ * Whether `/incident/count` can count the cluster at `activityId`: it counts every incident there,
+ * a call activity's copies of its called instances' incidents too, so only where the element is no
+ * call activity on the diagram of `definitionId` (the cluster's newest root incident's version);
+ * an unread diagram cannot tell, so it cannot either.
+ */
+async function countableAt(
+  client: Client,
+  definitionId: string | null | undefined,
+  activityId: string,
+): Promise<boolean> {
+  const xml = definitionId ? await optional(fetchDefinitionXml(client, definitionId)) : null
+  return xml !== null && !bpmnCallActivityIds(xml).includes(activityId)
+}
 
 /**
  * From the scan where it can vouch (whole cluster, or reaches past the window),
@@ -230,13 +248,14 @@ function clusterCounts(
     coverage: ScanCoverage
     matching: IncidentLike[]
     nowMs: number
-    /** The scan holds no copy: `/incident/count` would count a call activity's copies too. */
-    countable: boolean
+    /** Whether `/incident/count` holds no copy of the cluster's (`countableAt`), asked once. */
+    countable: () => Promise<boolean>
   },
 ): Promise<ClusterWindowCounts> {
   const { coverage, matching, nowMs } = scan
-  const exact = (sinceMs?: number) =>
-    args.messageSignature === undefined && scan.countable
+  let countable: Promise<boolean> | undefined
+  const exact = async (sinceMs?: number) =>
+    args.messageSignature === undefined && (await (countable ??= scan.countable()))
       ? getIncidentsCount({
           client,
           query: {
@@ -246,7 +265,7 @@ function clusterCounts(
               sinceMs === undefined ? undefined : toEngineDate(new Date(sinceMs)),
           },
         }).then(countOf)
-      : Promise.resolve(null)
+      : null
   const since = (sinceMs: number) =>
     coverage.covers(sinceMs)
       ? Promise.resolve(matching.filter((i) => isOnOrAfter(i.incidentTimestamp, sinceMs)).length)
@@ -254,10 +273,5 @@ function clusterCounts(
   return Promise.all([
     coverage.complete ? Promise.resolve(matching.length) : exact(),
     since(nowMs - HOUR_MS),
-    since(nowMs - DAY_MS),
-  ]).then(([incidentCount, lastHourCount, last24hCount]) => ({
-    incidentCount,
-    lastHourCount,
-    last24hCount,
-  }))
+  ]).then(([incidentCount, lastHourCount]) => ({ incidentCount, lastHourCount }))
 }

@@ -3,7 +3,7 @@ import type { EngineHealthData } from "../view-models.js"
 /** The overview's fixtures, its verdict's tests and its top failures' alike. */
 
 const RULE =
-  "From the engine's open incidents, read live: critical at >=50 open incidents or >=25 of one cause, warning with any, else ok."
+  "From the engine's open incidents, copies at call activities included, read live: critical at >=50 open incidents or >=25 of one cause, warning with any, else ok."
 
 /** A degraded engine with two failure clusters, one of them across two processes. */
 export const DEGRADED: EngineHealthData = {
@@ -12,7 +12,6 @@ export const DEGRADED: EngineHealthData = {
   summary: {
     totalIncidents: 51,
     lastHourIncidents: 9,
-    last24hIncidents: 12,
     affectedActivities: 3,
     affectedDefinitions: 2,
     runningInstances: 312,
@@ -29,7 +28,6 @@ export const DEGRADED: EngineHealthData = {
       messageSignature: "connection timeout to wms",
       incidentCount: 40,
       scannedIncidentCount: 40,
-      last24hCount: 10,
       processDefinitionKeys: ["shipping"],
       processDefinitionName: null,
       representativeMessage: "Connection timeout to WMS",
@@ -44,7 +42,6 @@ export const DEGRADED: EngineHealthData = {
       messageSignature: "customerid is null",
       incidentCount: 8,
       scannedIncidentCount: 8,
-      last24hCount: 2,
       processDefinitionKeys: ["onboarding", "shipping"],
       processDefinitionName: null,
       representativeMessage: "customerId is null",
@@ -63,7 +60,6 @@ export const HEALTHY: EngineHealthData = {
   summary: {
     totalIncidents: 0,
     lastHourIncidents: 0,
-    last24hIncidents: 0,
     affectedActivities: 0,
     affectedDefinitions: 0,
     runningInstances: 312,

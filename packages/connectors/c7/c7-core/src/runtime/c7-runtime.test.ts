@@ -12,12 +12,12 @@ import { RUNTIME_OPERATIONS } from "../operations.js"
 import { fakeFailure, fakePort, type Route } from "../testing/fake-port.js"
 import { C7Runtime } from "./c7-runtime.js"
 
-type Read = (runtime: ProcessRuntime) => Promise<unknown>
+type Read = (runtime: C7Runtime) => Promise<unknown>
 
 const DEFINITION = DefinitionId("order:1:x")
 const PLAN = { sourceDefinitionId: DEFINITION, targetDefinitionId: DEFINITION, mappings: [] }
 
-/** Every read of the contract with the operation it sends first. */
+/** Every read of the contract, and the one beyond it, with the operation it sends first. */
 const READS: readonly (readonly [string, string, Read])[] = [
   ["describeEngine", "getTelemetryData", (runtime) => runtime.describeEngine()],
   ["listDefinitions", "getProcessDefinitionStatistics", (runtime) => runtime.listDefinitions()],
@@ -35,6 +35,11 @@ const READS: readonly (readonly [string, string, Read])[] = [
     "getElementStatistics",
     "getActivityStatistics",
     (runtime) => runtime.getElementStatistics(DEFINITION),
+  ],
+  [
+    "getElementStatisticsWithFailedJobs",
+    "getActivityStatistics",
+    (runtime) => runtime.getElementStatisticsWithFailedJobs(DEFINITION),
   ],
   [
     "getCalledProcesses",
@@ -72,9 +77,9 @@ const READS: readonly (readonly [string, string, Read])[] = [
   [
     "proposeMigration",
     "generateMigrationPlan",
-    (runtime) => runtime.proposeMigration!(DEFINITION, DEFINITION),
+    (runtime) => runtime.proposeMigration(DEFINITION, DEFINITION),
   ],
-  ["checkMigration", "validateMigrationPlan", (runtime) => runtime.checkMigration!(PLAN)],
+  ["checkMigration", "validateMigrationPlan", (runtime) => runtime.checkMigration(PLAN)],
 ]
 
 /** A port on which every runtime operation fails with `error`. */

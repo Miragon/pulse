@@ -76,7 +76,6 @@ const DEFINITION: ProcessIncidentsData = {
   cockpitUrl: "https://engine.example/cockpit/leasing",
   runningInstances: 99,
   incidentCount: 3,
-  last24hCount: 1,
   failedJobs: 2,
   totalActivityCount: 2,
   affectedDiagramActivityCount: 1,
@@ -135,7 +134,6 @@ const HEALTH: EngineHealthData = {
   summary: {
     totalIncidents: 3,
     lastHourIncidents: 1,
-    last24hIncidents: 2,
     affectedActivities: 1,
     affectedDefinitions: 1,
     runningInstances: 12,
@@ -152,7 +150,7 @@ const HEALTH: EngineHealthData = {
 const QUIET: EngineHealthData = {
   ...HEALTH,
   status: "ok",
-  summary: { ...HEALTH.summary, totalIncidents: 0, lastHourIncidents: 0, last24hIncidents: 0 },
+  summary: { ...HEALTH.summary, totalIncidents: 0, lastHourIncidents: 0 },
 }
 
 const definitionView = () => (

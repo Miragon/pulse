@@ -30,7 +30,7 @@ const statsRow = (key: string, version: number, over: Record<string, unknown> = 
 })
 
 describe("buildCockpitDashboardData: one row per KEY (#335 N60)", () => {
-  it("sums instances, failed jobs and incidents over every version of a key", async () => {
+  it("sums instances, failed jobs and root incidents over every version of a key", async () => {
     const { engine, client } = await engineWith({
       "GET /process-definition/statistics": {
         body: [
@@ -76,9 +76,9 @@ describe("buildCockpitDashboardData: one row per KEY (#335 N60)", () => {
     // Issues first, then the busier key.
     expect(data.definitions.map((d) => d.key)).toEqual(["leasing", "quiet"])
     expect(data.engineId).toBe("engine-a")
-    // ONE engine-wide statistics call with failed jobs and incidents.
+    // ONE engine-wide statistics call with failed jobs and the root incidents, never the copies.
     expect(engine.requests).toHaveLength(1)
-    expect(engine.requests[0].query).toEqual({ failedJobs: "true", incidents: "true" })
+    expect(engine.requests[0].query).toEqual({ failedJobs: "true", rootIncidents: "true" })
   })
 
   it("defaults missing counters and names, and skips rows without a key", async () => {

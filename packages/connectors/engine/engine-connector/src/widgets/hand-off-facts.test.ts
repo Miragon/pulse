@@ -14,7 +14,6 @@ const PROCESS_VIEW: ProcessIncidentsData = {
   cockpitUrl: null,
   runningInstances: 40,
   incidentCount: 7,
-  last24hCount: 2,
   failedJobs: 5,
   totalActivityCount: 2,
   affectedDiagramActivityCount: 1,
@@ -45,7 +44,7 @@ const PROCESS_VIEW: ProcessIncidentsData = {
 describe("triageProcessHandOff", () => {
   it("states key-wide counts and the diagram's own activity fraction", () => {
     const prompt = bindHandOff("en").ask(triageProcessHandOff(PROCESS_VIEW, "prod-a"))!
-    expect(prompt).toContain('countScope="allVersions", diagramVersion=3, openIncidents=7')
+    expect(prompt).toContain('countScope="allVersions", diagramVersion=3, openRootIncidents=7')
     // "1 of 2" over the diagram, never the key-wide list over it ("2 of 2").
     expect(prompt).toContain("affectedDiagramActivities=1, diagramActivities=2")
     expect(prompt).toContain("affectedOnlyInOlderVersions=1")
@@ -70,7 +69,6 @@ const CARD: IncidentsDashboardProcess = {
   incidentCount: 7,
   scannedIncidentCount: 0,
   affectedActivityCount: null,
-  last24hCount: null,
   latestIncident: null,
   cockpitUrl: null,
   activities: [],
@@ -80,7 +78,7 @@ describe("processRootCauseHandOff", () => {
   it("states the card's exact key-wide count and leaves unscanned facts out", () => {
     const prompt = bindHandOff("en").ask(processRootCauseHandOff(CARD, "prod-a", {}))!
     expect(prompt).toContain(
-      'On screen: countScope="allVersions", latestVersion=3, openIncidents=7, runningInstances=40',
+      'On screen: countScope="allVersions", latestVersion=3, openRootIncidents=7, runningInstances=40',
     )
     expect(prompt).not.toMatch(/affectedActivities|last24h|latestIncident/)
   })

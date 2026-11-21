@@ -21,9 +21,17 @@ import { runtimeErrorOf } from "./runtime-errors.js"
 
 /** The runtime of the Camunda 7 REST API, over the client of one call. */
 const RUNTIMES = {
-  c7: (client: Client): ProcessRuntime =>
+  c7: (client: Client): C7Runtime =>
     C7Runtime.over(enginePortFor(client), { failureOf: runtimeErrorOf }),
 } as const
+
+/**
+ * The runtime of the Camunda 7 REST API over `client`, the client a Camunda 7 call resolved, with
+ * its read beyond the contract (the counts on a diagram with the jobs without retries).
+ */
+export function c7RuntimeOf(client: Client): C7Runtime {
+  return RUNTIMES.c7(client)
+}
 
 /** The runtime of `engine`: C7Runtime over the client its call resolved, else its backend's own. */
 export function runtimeOf(

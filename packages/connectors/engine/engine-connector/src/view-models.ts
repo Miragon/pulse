@@ -27,7 +27,10 @@ export interface DefinitionStat {
   latestVersion: number
   instances: number
   failedJobs: number
-  /** Open incidents by type. */
+  /**
+   * Open root incidents by type: a call activity's copy of a called instance's incident counts in
+   * the called process, never here.
+   */
   incidents: Array<{ incidentType: string; incidentCount: number }>
 }
 
@@ -37,6 +40,7 @@ export interface CockpitDashboardData {
     totalDefinitions: number
     totalRunningInstances: number
     totalFailedJobs: number
+    /** Open root incidents of every process. */
     totalIncidents: number
   }
   definitions: DefinitionStat[]
@@ -275,6 +279,11 @@ export interface IncidentInstance {
   recovery: IncidentRecovery
   /** Null without cockpitUrl or when scheme validation rejected it. */
   cockpitInstanceUrl: string | null
+  /**
+   * The root incident a copy of a called instance's incident stands for (`rootIdOfCopy`), which its
+   * row opens; absent or null on a root incident.
+   */
+  rootIncidentId?: string | null
   /** A copy's root incident in a called instance; absent or null otherwise and where unread. */
   rootCause?: IncidentRootCause | null
 }
@@ -311,8 +320,16 @@ export interface InstanceDetailData {
   callerInstanceId: string | null
   /** When the instance started, from the history; null unread (history level none, a failed read). */
   startTime: string | null
-  /** The instance's open incidents (capped list; the total is `incidentCount`). */
+  /**
+   * The instance's open incidents (capped list; the total is `incidentCount`): its own root
+   * incidents and, at a call activity, a copy for each root incident of the instances it called,
+   * which leads on to that root (`rootCause`).
+   */
   incidents: IncidentInstance[]
+  /**
+   * Its open incidents, a copy at a call activity included: one per root incident of its tree (its
+   * own and those of the instances it called), so the root incidents of its tree.
+   */
   incidentCount: number
   /** Null when unreadable; `BpmnDiagram` reads the XML by this id from `engine_bpmn_xml_data`. */
   diagramDefinitionId: string | null
@@ -375,54 +392,32 @@ interface IncidentActivityFacts {
 }
 
 /**
- * A failure cause as a cluster's scope, c7-core's cause key (`causeKeyOf`, the overview's causes'):
- * the root incident a delegated row stands for.
- */
-export interface IncidentCauseScope {
-  activityId: string
-  incidentType: string
-  messageSignature: string
-  /** Its element's name in its process's diagram; null without one or unread. */
-  activityName: string | null
-}
-
-/**
  * One activity and incident type of a process, the scope of its failure cluster (the cluster view
- * it opens). Its name comes from the diagram of its newest incident's version, and its message is
- * that incident's, a delegated one's the root cause's where the scan holds it, else null.
+ * it opens): its root incidents. Its name comes from the diagram of its newest incident's version,
+ * and its message is that incident's.
  */
 export interface IncidentsDashboardActivity extends IncidentActivityFacts {
   incidentType: string
-  /** This activity's incidents within the scan (exact when the card is fully scanned). */
+  /** This activity's root incidents within the scan (exact when the card is fully scanned). */
   scannedIncidentCount: number
-  /** Incidents since now − 24h; null when the scan does not reach back that far. */
-  last24hCount: number | null
-  /**
-   * Its newest incident, whose message the row shows, is delegated: a call activity's copy of a
-   * called instance's failure. A cluster lists root incidents alone, so the row opens the cause it
-   * stands for (`rootCause`), else its process's view, never its own cluster, which would list
-   * none. Absent in an older payload: the row of a root incident, which opens its own cluster.
-   */
-  delegated?: boolean
-  /** A delegated row's root cause, where the scan holds it; null otherwise and beyond the scan. */
-  rootCause?: IncidentCauseScope | null
 }
 
-/** One process definition KEY with open incidents. Every count spans all versions. */
+/**
+ * One process definition KEY with open root incidents. Every count spans all versions; a call
+ * activity's copy of a called instance's incident counts in the called process.
+ */
 export interface IncidentsDashboardProcess {
   processDefinitionKey: string
   processDefinitionName: string | null
   latestVersion: number
   runningInstances: number
-  /** Exact open incidents of the key (definition statistics). */
+  /** Exact open root incidents of the key (definition statistics, `rootIncidents=true`). */
   incidentCount: number
   /** How many of `incidentCount` the per-activity breakdown covers (the recency scan's share). */
   scannedIncidentCount: number
-  /** Distinct activities; null unless the breakdown covers every incident of the key. */
+  /** Distinct activities; null unless the breakdown covers every root incident of the key. */
   affectedActivityCount: number | null
-  /** Null when the scan does not reach back 24h. */
-  last24hCount: number | null
-  /** Null when none of the key's incidents is within the scan. */
+  /** Null when none of the key's root incidents is within the scan. */
   latestIncident: string | null
   cockpitUrl: string | null
   activities: IncidentsDashboardActivity[]
@@ -432,11 +427,11 @@ export interface IncidentsDashboardProcess {
 type EngineVendorInfo = { engineVendor: string }
 
 export interface IncidentsDashboardData extends EngineVendorInfo {
+  /** The open root incidents of the processes shown, their cards' sum. */
   totalCount: number
   processCount: number
   /** Null unless every card's breakdown is complete. */
   affectedActivityCount: number | null
-  last24hCount: number
   latestIncident: string | null
   processes: IncidentsDashboardProcess[]
   /** Hand-offs read the scope here: a filtered total is not the engine's. */
@@ -453,7 +448,7 @@ export interface IncidentsByProcess {
 }
 
 export interface ProcessIncidentsActivity extends IncidentActivityFacts {
-  /** Exact open incidents of this activity over every version of the key. */
+  /** Exact open root incidents raised at this activity over every version of the key. */
   incidentCount: number
 }
 
@@ -468,7 +463,11 @@ export interface ActivityIncidentsData {
   engineId: string
 }
 
-/** Counts span all versions; only the diagram is one (`diagramVersion`, latest over every tenant). */
+/**
+ * Counts span all versions; only the diagram is one (`diagramVersion`, latest over every tenant).
+ * Its incidents are open root incidents: a call activity's copy of a called instance's incident
+ * counts in the called process.
+ */
 export interface ProcessIncidentsData extends EngineVendorInfo {
   processDefinitionKey: string
   processDefinitionName: string | null
@@ -477,8 +476,8 @@ export interface ProcessIncidentsData extends EngineVendorInfo {
   diagramDefinitionId: string | null
   cockpitUrl: string | null
   runningInstances: number
+  /** Open root incidents of the key (definition statistics, `rootIncidents=true`). */
   incidentCount: number
-  last24hCount: number
   /** Jobs with no retries left, over every version of the key. */
   failedJobs: number
   /** Activities in the diagram; null when the diagram is unavailable. */
@@ -494,19 +493,27 @@ export interface ProcessIncidentsData extends EngineVendorInfo {
   engineId?: string
 }
 
-/** One element of a process right now, summed over every version of its key. */
+/**
+ * One element of a process right now, summed over every version of its key, as the shared process
+ * screen counts a version's elements (its badges).
+ */
 export interface ActivityStatisticsActivity {
   activityId: string
   /** Its name in the drawn diagram; null when the diagram does not name it or is unreadable. */
   activityName: string | null
   /** False when only older versions have it, so the drawn diagram cannot show it; null when the diagram is unreadable. */
   inDiagram: boolean | null
-  /** Activity instances at the element now (the engine's `instances`), those with an incident included. */
+  /** Tokens at the element now, without those a root incident raised there holds. */
   running: number
   /** Jobs there with no retries left. */
   failedJobs: number
-  /** Open incidents there, every type. */
+  /** Open root incidents raised there, every type. */
   incidents: number
+  /**
+   * Open incidents of the instances a call activity called (the copies it holds of their root
+   * incidents): shown apart and quiet, never part of the incident count.
+   */
+  incidentsInCalledInstances: number
 }
 
 /**

@@ -514,7 +514,6 @@ const CLUSTER = {
   incidentCount: 3,
   scannedIncidentCount: 3,
   lastHourCount: 1,
-  last24hCount: 2,
   firstSeen: "2026-10-09T08:00:00.000+0000",
   latestIncident: "2026-10-10T08:00:00.000+0000",
   processDefinitionKeys: ["invoice", "onboarding"],
@@ -599,7 +598,6 @@ const TOP_FAILURES = [
     latestIncident: "2026-10-10T08:00:00.000+0000",
     incidentCount: 12,
     scannedIncidentCount: 12,
-    last24hCount: 3,
   },
   {
     id: "sendReminder::failedExternalTask::timeout",
@@ -614,7 +612,6 @@ const TOP_FAILURES = [
     latestIncident: "2026-10-10T08:00:00.000+0000",
     incidentCount: 4,
     scannedIncidentCount: 4,
-    last24hCount: 0,
   },
 ]
 
@@ -662,7 +659,7 @@ test.describe("the overview's top failures in a narrow card", () => {
     })
   }
 
-  test("in a wide card each row shows its counts and process, and its hand-off at its end", async ({
+  test("in a wide card each row shows its root incidents and process, and its hand-off at its end", async ({
     page,
   }) => {
     await topFailures(page)
@@ -677,8 +674,11 @@ test.describe("the overview's top failures in a narrow card", () => {
           .filter((cell) => getComputedStyle(cell).display !== "none")
           .map((cell) => (cell as HTMLElement).innerText.trim()),
       )
+    // The activity, the cause, its root incidents and the hand-off, the process giving way first:
+    // no column counts a day's incidents (Camunda 7 counts no root incidents in a window).
+    expect(cells).toHaveLength(4)
     expect(cells[2]).toBe("12")
-    expect(cells[3]).toBe("3")
+    await expect(region.getByRole("columnheader", { name: "New in 24h" })).toHaveCount(0)
     expect(await row.getByRole("button", { name: /in chat$/ }).count()).toBe(1)
     // The row is the drill: no "Open" beside it.
     await expect(region.getByRole("button", { name: /^Open/ })).toHaveCount(0)
