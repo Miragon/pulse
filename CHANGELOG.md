@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.31.0](https://github.com/Miragon/pulse/compare/v0.30.0...v0.31.0) (2026-11-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* **cockpit:** the MCP server's cockpit, in the chat and in the operations views the web app embeds, counts open root incidents: a copy Camunda 7 holds at a call activity of a called instance's incident counts in the called process, never at the caller, and is no row of a process, an activity or a cause (an activity's incident page, `engine_activity_incidents_data`, lists and counts its root incidents alone, and an unknown key fails as not found); the process flow's "Running" counts a token held by a root incident as that incident and shows the incidents in called instances apart. "New in 24h" is gone from the health route, its top failures, the process route, the incidents route (its scope) and the cluster detail, with `last24hCount` and `last24hIncidents` from the feeds' payloads; the cockpit's facts name root incidents (`openRootIncidents`, `rootIncidentCount`, `rootIncidentsLastHour`). The verdict still judges every open incident.
+
+### Features
+
+* **cockpit:** the chat and the operations views count root incidents, and the element statistics read only call activities ([#644](https://github.com/Miragon/pulse/issues/644)) ([72ee099](https://github.com/Miragon/pulse/commit/72ee0991b7109b5ddb60f21cbc624f629d1b5eff))
+
 ## [0.30.0](https://github.com/Miragon/pulse/compare/v0.29.0...v0.30.0) (2026-11-20)
 
 
