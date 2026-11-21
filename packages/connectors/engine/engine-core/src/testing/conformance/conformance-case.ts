@@ -23,6 +23,8 @@ export const CASE = {
   instancesAcrossVersions: "instances: filter by process across versions",
   instancesWithIncident: "instances: filter and flag instances with an incident",
   instancesEndedByBusinessKey: "instances: find an ended instance by business key",
+  instancesByExactBusinessKey:
+    "instances: a business key matches whole, never as a part of a longer one",
   instancesByActiveElement:
     "instances: filter by the element they wait at, also before an asynchronous task",
   instancesPaging: "instances: pages without gaps or duplicates",

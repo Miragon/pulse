@@ -17,6 +17,7 @@ export {
   type FleetProcessData,
   type FleetSumsData,
 } from "./format/fleet-sums.js"
+export type { FindHitData, FindScreenData } from "./format/find-screen-data.js"
 export { HistoryGaps, type HistoryGapData } from "./format/history-gaps.js"
 export {
   ProcessFilter,

@@ -136,11 +136,14 @@ describe.each([
     expect(result.isError).toBe(true)
   })
 
-  it("names the engine's own web app where the profile names it", async () => {
+  it("names the engine's own web app where the profile names it, by that web app's name", async () => {
     const { call } = await boot(recorded, undefined, { cockpitUrl: "https://ops.example/app/" })
     const { webApp } = feedPayload<EngineScreenFeedData>(await call())
-    expect(webApp?.url).toBe(
-      recorded === RECORDED_C7 ? "https://ops.example/app" : "https://ops.example/app/",
+    // A Camunda 8 cluster's web app is Operate, which the profile's cockpitUrl names.
+    expect(webApp).toEqual(
+      recorded === RECORDED_C7
+        ? { url: "https://ops.example/app", vendor: "Operaton" }
+        : { url: "https://ops.example/app/", vendor: "Operate" },
     )
   })
 })

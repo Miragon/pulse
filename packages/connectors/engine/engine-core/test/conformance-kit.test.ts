@@ -141,7 +141,7 @@ const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] =
           ...(filter.withIncident === undefined ? {} : { withIncident: filter.withIncident }),
         }),
     }),
-    [CASE.instancesCounted, CASE.instancesByIds],
+    [CASE.instancesCounted, CASE.instancesByIds, CASE.instancesByExactBusinessKey],
   ],
   [
     "the search ignores the instance ids",

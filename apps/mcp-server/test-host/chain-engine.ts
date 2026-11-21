@@ -50,15 +50,15 @@ const RECORDING = JSON.parse(
 
 /** The calling instance and the one it called, as the recording names them. */
 export const CHAIN = {
-  dispatch: "111b98c3-e5ad-11f1-9d86-0a5453971648",
-  label: "111c3509-e5ad-11f1-9d86-0a5453971648",
-  rootIncident: "11236110-e5ad-11f1-9d86-0a5453971648",
-  copyIncident: "11238821-e5ad-11f1-9d86-0a5453971648",
+  dispatch: "2696e1af-e5cb-11f1-9ace-862100bd312e",
+  label: "2697a505-e5cb-11f1-9ace-862100bd312e",
+  rootIncident: "26a5d5eb-e5cb-11f1-9ace-862100bd312e",
+  copyIncident: "26a5d5ec-e5cb-11f1-9ace-862100bd312e",
   /** An ended instance of "Dispatch order", which the history alone holds. */
-  ended: "7f0c0eb3-e5ad-11f1-9d86-0a5453971648",
+  ended: "7f0c0eb3-e5cb-11f1-9ace-862100bd312e",
 } as const
 
-const DISPATCH_V1 = "pulse-dispatch:1:10fd6239-e5ad-11f1-9d86-0a5453971648"
+const DISPATCH_V1 = "pulse-dispatch:1:266e4ae4-e5cb-11f1-9ace-862100bd312e"
 
 /** A JSON value as text, the keys of each of its objects in order, so two spellings compare equal. */
 function canonical(value: unknown): string {
@@ -240,27 +240,27 @@ function instanceListRoute(method: string, route: string, body: unknown): Reply 
 }
 
 /** "Order fulfillment" v2, which runs one instance the statistics count and no recorded read lists. */
-const ORDER_V2 = "pulse-order:2:10f96a95-e5ad-11f1-9d86-0a5453971648"
+const ORDER_V2 = "pulse-order:2:2665e670-e5cb-11f1-9ace-862100bd312e"
 
 /** The history of ORD-2001, the instance of "Order fulfillment" v2, as the history lists one. */
 const ORD_2001 = {
   ...DISPATCH_HISTORY,
-  id: "1118b0d3-e5ad-11f1-9d86-0a5453971648",
+  id: "1118b0d3-e5cb-11f1-9ace-862100bd312e",
   businessKey: "ORD-2001",
   processDefinitionId: ORDER_V2,
   processDefinitionKey: "pulse-order",
   processDefinitionVersion: 2,
   processDefinitionName: "Order fulfillment",
-  rootProcessInstanceId: "1118b0d3-e5ad-11f1-9d86-0a5453971648",
+  rootProcessInstanceId: "1118b0d3-e5cb-11f1-9ace-862100bd312e",
   startActivityId: "Event_OrderReceived",
-  startTime: "2026-11-21T13:11:30.410+0000",
+  startTime: "2026-11-21T16:46:51.350+0000",
   state: "ACTIVE",
 }
 
 /** DSP-2900 to DSP-2959: ended instances of "Dispatch order", one a minute before DSP-2999. */
 const ENDED_DISPATCHES = Array.from({ length: 60 }, (_, index) => {
   const at = Date.parse("2026-11-20T09:00:00.000Z") + index * 60_000
-  const id = `7f0c${String(index).padStart(4, "0")}-e5ad-11f1-9d86-0a5453971648`
+  const id = `7f0c${String(index).padStart(4, "0")}-e5cb-11f1-9ace-862100bd312e`
   const stamp = (ms: number) => new Date(ms).toISOString().replace("Z", "+0000")
   return {
     ...ENDED_HISTORY,
@@ -322,8 +322,8 @@ const WAITS_AT: Readonly<Record<string, string>> = {
   [CHAIN.dispatch]: "Activity_PrintShippingLabel",
   [CHAIN.label]: "Activity_RenderLabel",
   // ORD-1001 at its review, ORD-1002 at the payment its incident holds, ORD-2001 at its review.
-  "1106ff2a-e5ad-11f1-9d86-0a5453971648": "Activity_ReviewOrder",
-  "111249d3-e5ad-11f1-9d86-0a5453971648": "Activity_ChargePayment",
+  "267bdf75-e5cb-11f1-9ace-862100bd312e": "Activity_ReviewOrder",
+  "268b6fde-e5cb-11f1-9ace-862100bd312e": "Activity_ChargePayment",
   [ORD_2001.id]: "Activity_ReviewOrder",
 }
 

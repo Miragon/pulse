@@ -4,10 +4,12 @@ import { useT } from "../messages/index.js"
 import type { PageNotice } from "../notices.js"
 import type { Navigate } from "../router/page-link.js"
 import { signInUrl, type PageTitle, type Place } from "../router/routes.js"
+import { SEARCH_VIEW } from "../router/search-address.js"
 import { Account } from "./account.js"
 import { Drawer, PAGE_MENU } from "./drawer.js"
 import { SessionLayout } from "./layout.js"
 import { PageNavigation } from "./navigation.js"
+import { SearchForm } from "./search-form.js"
 import type { SessionPage } from "./session-page.js"
 
 /**
@@ -46,10 +48,15 @@ function routeTitle(t: ReturnType<typeof useT>, title: PageTitle): string {
   return title.kind === "board" ? t("title.board", { board: title.board }) : t("frame.product")
 }
 
+/** What the search on screen searches, which the navigation's field shows; none elsewhere. */
+function searchedAt(place: Place): string {
+  return place.view === SEARCH_VIEW && typeof place.q === "string" ? place.q : ""
+}
+
 /**
- * The side of the page: the product's name, the navigation (`navigate` follows an entry in the
- * page) and, at its foot, who is signed in and the sign-out (`onSignOutFailed` before its notice
- * shows).
+ * The side of the page: the product's name, the search for an instance across engines, the
+ * navigation (`navigate` follows an entry in the page) and, at its foot, who is signed in and the
+ * sign-out (`onSignOutFailed` before its notice shows).
  */
 function PageSide({
   page,
@@ -73,6 +80,7 @@ function PageSide({
           {t("frame.product")}
         </p>
       )}
+      <SearchForm text={searchedAt(place)} navigate={navigate} />
       <div className="min-h-0 flex-1 overflow-y-auto pb-3">
         <PageNavigation place={place} navigate={navigate} />
       </div>
@@ -84,8 +92,9 @@ function PageSide({
 }
 
 /**
- * The frame of a page with a session, in the editors' look: the side navigation (the start page,
- * the engines with the open one's sections, the boards, who is signed in and the sign-out), a
+ * The frame of a page with a session, in the editors' look: the side navigation (the search, the
+ * start page, the engines with the open one's sections, the boards, who is signed in and the
+ * sign-out), a
  * drawer under 64rem behind the menu every view bar shows first (closed where a sign-out from it
  * did not go through, so its notice shows), the session's notice once above the view's bar, and
  * the view, whose heading titles the document (`title` until it shows one) and

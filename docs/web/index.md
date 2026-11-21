@@ -8,15 +8,16 @@ chat's toolset, engine routing and numbers. It only reads: no write control, no 
 
 ## Pages
 
-| URL                                     | What it shows                                                                                                                               |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/app`                                  | The engines and the server's [boards](../mcp/boards.md) to pick from; with one engine and no board, that engine                             |
-| `/app/fleet`                            | The cross-engine overview, with two engines or more: each engine's row opens it                                                             |
-| `/app/boards/<id>`                      | A board, with the tiles and numbers the chat shows; a [Camunda 8](../mcp/camunda8.md) cluster's as the server reads it                      |
-| `/app/engines/<engine>`                 | The engine's processes (`?scope=incident&q=…`: filtered), or why the page shows no view of it (an engine on boards only, a refused profile) |
-| `…/processes/<key>`, `…/instances/<id>` | A process in one version (`?version=…&scope=…&element=…&key=…&var=…`: its list's filter), an instance (`?tab=…`, `/incidents/<id>`)         |
-| `…/instances`, `…/incidents`, `…/jobs`  | The engine's instances, incidents (`/cause?activity=…&type=…`: one cause) and jobs (`?failed=true`)                                         |
-| `/app/signed-out`                       | Why a sign-in ended, and a new one                                                                                                          |
+| URL                                     | What it shows                                                                                                                                |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/app`                                  | The engines and the server's [boards](../mcp/boards.md) to pick from; with one engine and no board, that engine                              |
+| `/app/search?q=…`                       | The instances with this ID or exact business key on every engine, running and ended; one hit opens its instance                              |
+| `/app/fleet`                            | The cross-engine overview, with two engines or more: each engine's row opens it                                                              |
+| `/app/boards/<id>`                      | A board, with the tiles and numbers the chat shows; a [Camunda 8](../mcp/camunda8.md) cluster's as the server reads it                       |
+| `/app/engines/<engine>`                 | The engine's processes (`?scope=incident&q=…`: filtered), a Camunda 8 cluster's too, or why the page shows no view of it (a refused profile) |
+| `…/processes/<key>`, `…/instances/<id>` | A process in one version (`?version=…&scope=…&element=…&key=…&var=…`: its list's filter), an instance (`?tab=…`, `/incidents/<id>`)          |
+| `…/instances`, `…/incidents`, `…/jobs`  | The engine's instances, incidents (`/cause?activity=…&type=…`: one cause) and jobs (`?failed=true`), on Camunda 7, CIB seven and Operaton    |
+| `/app/signed-out`                       | Why a sign-in ended, and a new one                                                                                                           |
 
 Each view you open (an entry, a row, the trail) has its own URL, stable from the release that ships
 it: Back returns to the view before, a reload or a copied link shows it again, and the page never
@@ -28,10 +29,12 @@ desktop, comfortable on touch.
 
 ## Navigation
 
-The side navigation holds **Start**, the cross-engine overview (with two engines or more), the
+The side navigation holds the search for an instance (its ID or exact business key, on every
+engine), **Start**, the cross-engine overview (with two engines or more), the
 engines by environment, the open one with its sections (processes, incidents, jobs; an engine's
 entry opens its processes), and the boards; at its foot who is signed in and **Sign out**. A
-Camunda 8 engine says it shows on boards only, a refused profile says so; each opens its one state.
+[Camunda 8](../mcp/camunda8.md) engine has its processes alone (its incidents show at their
+instances); a refused profile says so and opens its one state.
 Every entry is a link, so Ctrl or Cmd+click and a middle click open a new tab. Under 64rem it is a
 drawer behind the menu button, the first of each view's bar. It shows no numbers: the views do.
 An engine's processes list each with its latest version, running instances and instances with
@@ -40,12 +43,19 @@ browser, a row opens its process, and **Refresh** reads again (on its own when y
 A process shows one version, picked with the running instances and those with incident of each,
 older versions that still run, its diagram with the counts on each element (incidents in called
 instances apart) and its instances, 50 at a time with **Load more**, by scope, element, exact
-business key and variable conditions; a count's click filters to its element, Escape clears it.
+business key and variable conditions; a count's click filters to its element, Escape clears it
+(Camunda 8: a count it stopped at reads 10k+, titled ≥ 10,000; a condition it refuses is disabled).
 An instance shows where it stands and why, its diagram with what it did, where it waits and its
 incidents, and the tabs History, Incidents, Waiting and Variables (from 64rem on under the diagram
 at the window's height, the split movable by mouse or keyboard). An incident in an instance it
 called says where it lies and opens there in focus: its stack trace read in place, the root cause's
 line marked, copy and wrap; **Open caller** leads back. It is the instance Pulse for VS Code shows.
+The search asks every engine at once for the instance with that ID and up to 20 with that exact
+business key (never a part of one, at most 256 characters), running and ended. An engine it could
+not search, refused or down, says so above the hits of the others, and "nothing found" then speaks
+of the others alone; one whose history misses running instances (Camunda 7 at history level NONE)
+says the search finds only those in its history. One hit, when every engine was searched and none
+misses history, opens its instance in the search's place, so Back leads to where you searched from.
 
 ## When something ends
 
@@ -56,6 +66,7 @@ line marked, copy and wrap; **Open caller** leads back. It is the instance Pulse
   engine that doesn't answer keeps its sections in the navigation beside the view that says so).
 - **A start the server refuses for good** (a board or an engine it does not have, a board it cannot
   read, arguments `engine_open_cockpit` does not take): the page says why, links to the start page.
+- **A Camunda 8 cluster below 8.9 or without secondary storage**: its screen says so with the fix.
 - **A sign-in fails**: `/app/signed-out` says what happened (the identity provider refused it, it
   took too long, its token isn't meant for this server, the identity provider doesn't answer) and
   starts a new one. [Set up the sign-in](sign-in.md#when-a-sign-in-fails) lists the causes.

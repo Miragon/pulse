@@ -686,3 +686,29 @@ describe("the page's process screen at a place", () => {
     ).toBe("/app/cockpit?view=process-detail&engine=.&processDefinitionKey=invoice")
   })
 })
+
+describe("the page's search across engines", () => {
+  it("is the search at its own address, what it searches trimmed in its query, the landing its start", () => {
+    const route = viewAt("/app/search?q=%20ORD-10442%20&engine=prod-a")
+    expect(route.screen).toEqual({ kind: "search", text: "ORD-10442" })
+    expect(route.place).toEqual({ view: "search", q: "ORD-10442" })
+    expect(route.url).toBe("/app/search?q=ORD-10442")
+    expect(route.start).toEqual({ view: COCKPIT_VIEW, args: { view: "landing" } })
+    expect(route.title).toEqual({ kind: "product" })
+  })
+
+  it("is the search without a text at its address without a query, and escapes what it searches", () => {
+    expect(viewAt("/app/search").screen).toEqual({ kind: "search", text: "" })
+    expect(viewAt("/app/search?q=%20%20").url).toBe("/app/search")
+    expect(screenUrlOf({ kind: "search", text: "ORD 1&2/3" })).toBe("/app/search?q=ORD+1%262%2F3")
+    expect(viewAt(screenUrlOf({ kind: "search", text: "ORD 1&2/3" })).screen).toEqual({
+      kind: "search",
+      text: "ORD 1&2/3",
+    })
+    expect(screenUrlOf({ kind: "search", text: "" })).toBe("/app/search")
+  })
+
+  it("is no place of the cockpit's, which never names or claims it", () => {
+    expect(screenOf({ view: "search", q: "ORD-1" })).toBeUndefined()
+  })
+})

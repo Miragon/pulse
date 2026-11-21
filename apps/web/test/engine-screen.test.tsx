@@ -237,6 +237,57 @@ describe("the engine screen", () => {
     expect(within(alert).queryByRole("button", { name: "Try again" })).toBeNull()
   })
 
+  it("says a Camunda 8 cluster below the version Pulse reads, with its fix, and reads it again on Try again", async () => {
+    const { reads } = renderScreen({
+      feed: refusal(
+        "[misconfigured] Pulse reads Camunda 8.9 or newer. This cluster runs 8.8.12. (engine prod)",
+      ),
+    })
+    const alert = await screen.findByRole("alert")
+    expect(
+      within(alert).getByRole("heading", { name: "Pulse reads Camunda 8.9 or newer" }),
+    ).toBeTruthy()
+    expect(
+      within(alert).getByText(
+        "The cluster of prod is on Camunda 8.8.12. Ask whoever runs it to update it to 8.9 or newer.",
+      ),
+    ).toBeTruthy()
+    await act(async () => fireEvent.click(within(alert).getByRole("button", { name: "Try again" })))
+    await waitFor(() => expect(reads()).toHaveLength(2))
+  })
+
+  it("says a Camunda 8 cluster without secondary storage, with the board's hint, in German too", async () => {
+    renderScreen({
+      locale: "de",
+      feed: refusal(
+        "[misconfigured] This cluster runs without secondary storage, so Pulse has nothing to read. (engine prod) Pulse reads the cluster's search API, which needs secondary storage such as Elasticsearch, OpenSearch or a relational database.",
+      ),
+    })
+    const alert = await screen.findByRole("alert")
+    expect(
+      within(alert).getByRole("heading", {
+        name: "Der Cluster von prod hat keinen Sekundärspeicher",
+      }),
+    ).toBeTruthy()
+    expect(
+      within(alert).getByText(
+        "Pulse liest die Such-API des Clusters, und die braucht einen Sekundärspeicher wie Elasticsearch, OpenSearch oder eine relationale Datenbank. Bitte die Person, die den Cluster betreibt, einen einzurichten.",
+      ),
+    ).toBeTruthy()
+  })
+
+  it("words a Camunda 8 token endpoint's refusal as a refused login, as Camunda 7's", async () => {
+    renderScreen({
+      feed: refusal(
+        "[unauthorized] the token endpoint refused the client: unauthorized_client (engine prod) Check auth.clientId in the engine's profile.",
+      ),
+    })
+    const alert = await screen.findByRole("alert")
+    expect(
+      within(alert).getByRole("heading", { name: "Engine prod rejected the server's credentials" }),
+    ).toBeTruthy()
+  })
+
   it("words an unreachable engine with Try again, which reads it again", async () => {
     const { reads } = renderScreen({
       feed: refusal("[unreachable] connection to engine prod failed: ECONNREFUSED (engine prod)"),
@@ -272,6 +323,40 @@ describe("a refresh that fails over the numbers on screen", () => {
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "Try again" })))
     await waitFor(() => expect(reads()).toHaveLength(3))
   })
+
+  it.each([
+    [
+      "en",
+      "Couldn't refresh this view",
+      "Pulse reads Camunda 8.9 or newer. The cluster of prod is on Camunda 8.8.0. Ask whoever runs it to update it to 8.9 or newer. You're seeing the last loaded state.",
+    ],
+    [
+      "de",
+      "Die Ansicht konnte nicht aktualisiert werden",
+      "Pulse liest Camunda 8.9 oder neuer. Der Cluster von prod läuft auf Camunda 8.8.0. Bitte die Person, die ihn betreibt, ihn auf 8.9 oder neuer zu aktualisieren. Du siehst den zuletzt geladenen Stand.",
+    ],
+  ] as const)(
+    "%s: says a Camunda 8 cluster's problem with its fix over the rows on screen",
+    async (locale, title, detail) => {
+      renderScreen({
+        locale,
+        feed: thenFails(() =>
+          refusal(
+            "[misconfigured] Pulse reads Camunda 8.9 or newer. This cluster runs 8.8.0. (engine prod)",
+          ),
+        ),
+      })
+      await screen.findByRole("table")
+      await act(async () =>
+        fireEvent.click(
+          screen.getByRole("button", { name: locale === "de" ? "Aktualisieren" : "Refresh" }),
+        ),
+      )
+      expect(await screen.findByText(title)).toBeTruthy()
+      expect(screen.getByText(detail)).toBeTruthy()
+      expect(screen.getByRole("table")).toBeTruthy()
+    },
+  )
 
   it("keeps its Refresh in place while it reads, a second click reading nothing", async () => {
     let release: (() => void) | undefined
@@ -510,10 +595,21 @@ describe("the engine's own address", () => {
     const calls = renderRoute("prod")
     expect(await screen.findByRole("table", { name: "Processes" })).toBeTruthy()
     expect(calls()).toEqual(["engine_list_engines", ENGINE_SCREEN_FEED])
+    expect(screen.queryByText("Incidents and jobs show at their instances")).toBeNull()
+  })
+
+  it("shows the screen of a Camunda 8 engine, which says where its incidents show", async () => {
+    const calls = renderRoute("orders")
+    expect(await screen.findByRole("table", { name: "Processes" })).toBeTruthy()
+    expect(calls()).toEqual(["engine_list_engines", ENGINE_SCREEN_FEED])
+    const strip = screen
+      .getByText("Incidents and jobs show at their instances")
+      .closest("[role=status]")
+    expect(strip?.textContent).toContain("Open a process, then an instance.")
+    expect(screen.queryByTestId("cockpit")).toBeNull()
   })
 
   it.each([
-    ["an engine shown on boards only", "orders"],
     ["a refused profile", "legacy"],
     ["an engine the server does not configure", "nowhere"],
   ])("leaves %s to the cockpit's one state, and reads nothing of it", async (_name, engine) => {

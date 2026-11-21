@@ -334,6 +334,30 @@ describe("describeError: the words, en and de", () => {
     expect(isPermanentError(READ_ONLY)).toBe(true)
   })
 
+  it("a login a read through the engine contract was refused without a status: a refused login, as a 401", () => {
+    // A Camunda 8 token endpoint's refusal: the contract's failure leads, no status of its own.
+    const TOKEN_REFUSED =
+      "[unauthorized] the token endpoint refused the client: unauthorized_client (engine c8) Check auth.clientId in the engine's profile."
+    expect(describeError(TOKEN_REFUSED, "en")).toMatchObject({
+      kind: "unauthorized",
+      title: "Engine c8 rejected the server's credentials",
+      hint: "Ask whoever runs this server to check its credentials.",
+      details: TOKEN_REFUSED,
+    })
+    expect(
+      classifyError("[forbidden] the token endpoint refused to issue a token (engine c8)").kind,
+    ).toBe("forbidden")
+    // Anchored and after the status, the deadline and the outage: those keep their kinds.
+    expect(classifyError("[unauthorized] [401 Unauthorized] Unauthorized (engine c8)").status).toBe(
+      401,
+    )
+    expect(
+      classifyError("[unreachable] engine c8 did not respond within 300 ms (timeout)").kind,
+    ).toBe("timeout")
+    expect(classifyError("[misconfigured] [unauthorized] quoted (engine c8)").kind).toBe("unknown")
+    expect(isPermanentError(TOKEN_REFUSED)).toBe(false)
+  })
+
   it("a read-only engine: says nothing was changed, en and de", () => {
     expect(describeError(READ_ONLY, "en")).toMatchObject({
       kind: "readOnly",

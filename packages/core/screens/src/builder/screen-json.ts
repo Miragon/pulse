@@ -4,10 +4,13 @@ import type {
   EngineScreenData,
   ProcessRowData,
 } from "../format/engine-screen-data.js"
+import type { FindScreenData } from "../format/find-screen-data.js"
 import type { InstanceListData } from "../format/instance-list-data.js"
 import type { CallLinkData, InstanceScreenData } from "../format/instance-screen-data.js"
 import type { ProcessScreenData } from "../format/process-screen-data.js"
 import type { EngineScreenModel } from "./engine-screen-model.js"
+import { FindJson } from "./find-json.js"
+import type { FindModel } from "./finder-model.js"
 import { InstanceJson } from "./instance-json.js"
 import type { InstanceListModel } from "./instance-list-model.js"
 import type { CallLinkModel, InstanceScreenModel } from "./instance-screen-model.js"
@@ -36,6 +39,10 @@ export class ScreenJson {
 
   static instanceList(model: InstanceListModel): InstanceListData {
     return ProcessJson.list(model)
+  }
+
+  static find(model: FindModel): FindScreenData {
+    return FindJson.of(model)
   }
 
   static callLinks(links: readonly CallLinkModel[]): CallLinkData[] {

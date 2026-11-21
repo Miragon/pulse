@@ -10,12 +10,13 @@ const ENGINE_LIST = "engine_list_engines"
 const ENGINE_LIST_KEY = ["engine:engines"] as const
 
 /**
- * What the page reads of the engine list: the engines with their dialect, the refused profiles,
- * the boards, each left out where the answer names none.
+ * What the page reads of the engine list: the engines with their dialect, the refused profiles
+ * with the server's reason (keys only, never a value), the boards, each left out where the answer
+ * names none.
  */
 export interface ListedEngines {
   readonly engines?: ReadonlyArray<{ id: string; environment?: string; dialect?: string }>
-  readonly refused?: ReadonlyArray<{ id: string; environment?: string }>
+  readonly refused?: ReadonlyArray<{ id: string; environment?: string; reason?: string }>
   readonly boards?: ReadonlyArray<{ id: string; title: string }>
 }
 

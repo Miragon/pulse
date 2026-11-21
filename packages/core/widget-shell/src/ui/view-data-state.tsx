@@ -17,7 +17,7 @@ import {
   leadsToStartPage,
 } from "./describe-error.js"
 import { kitLabels } from "./kit-labels.js"
-import { useStartPage, useWordsFollowUp } from "./view-host.js"
+import { useErrorWords, useStartPage } from "./view-host.js"
 
 /**
  * How long a load runs before its skeleton shows (the webview's rule): a quick answer replaces
@@ -140,7 +140,7 @@ export function FailureState({
   className?: string
 }) {
   const locale = useLocale()
-  const followUp = useWordsFollowUp()
+  const words = useErrorWords()
   const startPage = useStartPage()
   const { common } = useUiMessages()
   if (isSessionEnded(error)) {
@@ -152,7 +152,7 @@ export function FailureState({
       />
     )
   }
-  const described = describeError(error, locale, { fallbackTitle: title, followUp })
+  const described = describeError(error, locale, { fallbackTitle: title, ...words })
   const home = startPage !== undefined && leadsToStartPage(described.kind)
   return (
     <ErrorState

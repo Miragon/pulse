@@ -1,7 +1,9 @@
 # Runtime contract
 
 - Status: accepted
-- Last reviewed: 2026-11-20 (the web app's process screen shows the hint where the history misses
+- Last reviewed: 2026-11-21 (a law holds a business key's match whole on both dialects, which the
+  web app's search across engines relies on; Camunda 8 gives a called instance its caller's
+  business id); 2026-11-20 (the web app's process screen shows the hint where the history misses
   running instances, by the screens' `HistoryGaps`); 2026-11-20 (the variable dialog offers each refused kind of condition disabled with its reason, the owner's decision that day); 2026-11-20 (a C7 engine at history level NONE: what the instance search, its
   count and the other reads answer there, pinned on Operaton and CIB seven; a count without an
   incident subtracts only the instances with one the history holds, so it counts what the search
@@ -204,7 +206,13 @@ for any workspace, and the conformance kit does not cover them
   view shows none, since its refresh reads the versions and the history's counts on cadences of
   their own and at once (`DefinitionReads.refresh`), so its count over every lifecycle can be the
   older read and the hint would show where nothing is missing; the hint's words are a catalog of
-  their own in the blocks, which its bundle leaves out.
+  their own in the blocks, which its bundle leaves out. The web app's search across engines (since
+  2026-11-21) holds the rule over the whole engine (the screens' `Finder`: the running instances of
+  `listDefinitions` summed, then `countInstances({})`, in that order, the gap named
+  `HistoryGaps.between` where the count is the smaller and no lower bound) and says per engine
+  that the search finds only the instances in the history (`FindHistoryNotice` of the blocks); at
+  history level NONE the search finds no instance at all, running ones included, so the hint names
+  the missing history and nothing falls back to the runtime.
 - **Statistics** always address one version (`definitionId`), never a process.
 - **Incidents name their version.** `Incident.definition` is the `DefinitionRef` of the
   version the incident was raised in, so grouping by process and version needs no
@@ -269,7 +277,9 @@ for any workspace, and the conformance kit does not cover them
 - **Instances by id.** `InstanceFilter.instanceIds` narrows `searchInstances` and
   `countInstances` to at most 1000 ids, combined with the other fields (version,
   lifecycle): ids of another version than `definitionId` are not found. An empty list
-  finds and counts nothing. The core re-reads a selection before a bulk
+  finds and counts nothing, and so does a list of values no engine of the dialect assigns
+  (Camunda 7's `isEngineId`, Camunda 8's keys), which are dropped before a request leaves, so a
+  text the web app's search tries as an id reaches no engine as one. The core re-reads a selection before a bulk
   write and reconciles a finished bulk operation with it.
 - **Truncation is explicit.** Details in an instance detail may be truncated and say
   so; `getIncidentDetails` never is. The core shows a root cause only of complete
@@ -418,7 +428,8 @@ by process, incidents counted as active, incidents reported on the latest versio
 leaked propagated incidents, a call without the version it starts, ignored cursor, local
 timestamps, truncated details, throwing on unknown ids, per-version definition lists, raw
 errors, missing kinds, flattened scopes, counts that ignore the element and the business
-key, counts without an incident that include those with one, a count without an incident that
+key, a business key that matches every key it begins, every key it is a part of, every key
+that is a part of it or every key it matches as a pattern with wildcards, counts without an incident that include those with one, a count without an incident that
 subtracts more than it holds (below 0), variable conditions that are
 ignored by the search or the count, one condition instead of all, numbers compared as
 text, `%`, `_` or `?` read as wildcards, not equals finding instances without the variable,
@@ -447,7 +458,14 @@ cancellation, a failed migration without reasons, a failure that names an instan
 was not submitted, a check that finds nothing, a problem without its mapping, a proposal
 of user tasks only, an element filter that misses tokens before an asynchronous task)
 each fails exactly its cases. The counts that ignore the element and the
-business key fail the ids law too, as does a search that ignores the instance ids.
+business key fail the ids law and the exact business key's too, as does a search that ignores the
+instance ids the ids law. A business key matches whole on both dialects (Camunda 7's
+`processInstanceBusinessKey`, Camunda 8's `businessId`, each an equality, never Camunda 7's
+`processInstanceBusinessKeyLike` or Camunda 8's `$like`), which the law
+`instances: a business key matches whole, never as a part of a longer one` holds on Operaton, CIB
+seven and Camunda 8, its `%`, `_`, `*` and `?` each a character of the key: the web app's search across engines (the screens' `Finder`) relies on it, and
+Camunda 8 hands a called instance its caller's business id, so a search by a caller's key finds
+the instances it called there too, where Camunda 7 finds the caller alone.
 
 ## Consequences
 
@@ -474,7 +492,7 @@ business key fail the ids law too, as does a search that ignores the instance id
   documented exception.
 - Every change to the contract is a change to a published package: a new port, read model or
   law lands in `packages/connectors/engine/engine-core` with its saboteur, and the kit's
-  self-tests run there (`packages/connectors/engine/engine-core/test`, 80 saboteurs). Below 1.0 the package makes no
+  self-tests run there (`packages/connectors/engine/engine-core/test`, 84 saboteurs). Below 1.0 the package makes no
   stability promise; its laws and its fake follow the extension.
 - Panel loads have fixed engine-call budgets (definition ≤ 7, three of them the scope
   counts queried in parallel with the page; instance ≤ 2 plus lazy details; both + 1

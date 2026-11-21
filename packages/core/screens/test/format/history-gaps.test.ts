@@ -56,3 +56,13 @@ describe("the history of a version that misses instances its runtime runs", () =
     ).toEqual({ running: 2, counted: 0 })
   })
 })
+
+describe("the history of an engine that misses instances its runtime runs", () => {
+  test("is found where the history counts fewer than run, and never over a lower bound", () => {
+    expect(HistoryGaps.between(5, 0, false)).toEqual({ running: 5, counted: 0 })
+    expect(HistoryGaps.between(5, 4, false)).toEqual({ running: 5, counted: 4 })
+    expect(HistoryGaps.between(5, 5, false)).toBeUndefined()
+    expect(HistoryGaps.between(5, 9, false)).toBeUndefined()
+    expect(HistoryGaps.between(20_000, 10_000, true)).toBeUndefined()
+  })
+})

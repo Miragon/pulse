@@ -16,12 +16,14 @@ import {
 } from "@miragon/pulse-engine-core/testing"
 import type {
   EngineScreenData,
+  FindScreenData,
   InstanceListData,
   InstanceScreenData,
   ProcessScreenData,
 } from "@miragon/pulse-screens"
 import {
   EngineScreen,
+  Finder,
   InstanceList,
   InstanceScreen,
   ProcessScreen,
@@ -187,6 +189,32 @@ describe.skipIf(!RUNS_ON_CAMUNDA_8)(
       expect(figures).toEqual(
         ScreenFigures.instanceList(C8_SCREEN_ENGINE.expected.instanceList as InstanceListData),
       )
+    })
+
+    test("screens: the finder finds ORD-1003 and the instance DSP-3001 called, with its caller's business id", async () => {
+      const { runtime, world } = harness ?? expect.fail("the cluster did not start")
+      const find = async (text: string): Promise<FindScreenData> =>
+        ScreenJson.find(await Finder.read(C8_SCREEN_ENGINE.engine, text, runtime, () => new Date()))
+      const dispatch = await InstanceScreen.read(
+        C8_SCREEN_ENGINE.engine,
+        InstanceId(world.instanceIds["DSP-3001"]),
+        runtime,
+        () => new Date(),
+      )
+      const [called] = (dispatch === undefined ? [] : ScreenJson.instance(dispatch).calls).flatMap(
+        (link) => (link.kind === "instances" ? link.instances : []),
+      )
+      const byKey = ScreenFigures.find(await find("ORD-1003"))
+      const byId = ScreenFigures.find(await find(called?.id ?? "none"))
+      const worldById = ScreenFigures.find(WORLD_SCREENS.findById)
+
+      expect(byKey).toEqual(ScreenFigures.find(WORLD_SCREENS.find))
+      expect(byKey).toEqual(ScreenFigures.find(C8_SCREEN_ENGINE.expected.find as FindScreenData))
+      expect(byId).toEqual({
+        ...worldById,
+        hits: worldById.hits.map(([, ...rest]) => ["DSP-3001", ...rest]),
+      })
+      expect(byId).toEqual(ScreenFigures.find(C8_SCREEN_ENGINE.expected.findById as FindScreenData))
     })
 
     test("names the event and the message an instance waits for", async () => {

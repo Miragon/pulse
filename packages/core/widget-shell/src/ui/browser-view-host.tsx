@@ -8,6 +8,7 @@ import { useMemo, useState, useSyncExternalStore, type ReactNode } from "react"
 import type { ToolResult } from "../protocol/tool-result.js"
 import { HostContexts, type RequestDisplayMode } from "./host-contexts.js"
 import { hostThemeOf, type EffectiveTheme } from "./host-context.js"
+import { PAGE_HINTS } from "./page-hints.js"
 import type { ShellHost } from "./shell-host.js"
 import type { FollowUp, ViewHost } from "./view-host.js"
 
@@ -87,6 +88,7 @@ function browserViewHost(
     callTool: async (name, args = {}) => await callTool(name, args as Record<string, unknown>),
     sendFollowUp: () => undefined,
     followUp,
+    pageHints: PAGE_HINTS,
     writes: false,
     startPage,
     openExternal: openInNewTab,

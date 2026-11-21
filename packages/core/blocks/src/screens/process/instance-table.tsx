@@ -82,6 +82,22 @@ function IncidentFlag() {
   )
 }
 
+/** An instance's state in a cell: its label, an open incident beside it, on the row's one line. */
+export function InstanceStateCell({
+  state,
+  hasIncident,
+}: {
+  readonly state: InstanceStateCode
+  readonly hasIncident: boolean
+}) {
+  return (
+    <span className="inline-flex items-center gap-3">
+      <StateLabel state={STATES[state]} />
+      {hasIncident && <IncidentFlag />}
+    </span>
+  )
+}
+
 function columnsOf<Row extends InstanceRowData>(
   t: ProcessWords,
   Id: ComponentType<ScreenIdProps>,
@@ -101,12 +117,7 @@ function columnsOf<Row extends InstanceRowData>(
     {
       key: "state",
       label: t("column.state"),
-      cell: (row) => (
-        <span className="inline-flex items-center gap-3">
-          <StateLabel state={STATES[row.state]} />
-          {row.hasIncident && <IncidentFlag />}
-        </span>
-      ),
+      cell: (row) => <InstanceStateCell state={row.state} hasIncident={row.hasIncident} />,
     },
     {
       key: "started",

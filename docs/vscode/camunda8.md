@@ -5,9 +5,9 @@ cluster's Orchestration Cluster REST API (`/v2`): processes, instances, incident
 where an instance waits, with badges on the deployed diagram. They read and never write: on a
 Camunda 8 cluster Pulse offers no retry, variable change, token move, cancellation or migration, and
 its views say that the engine is read-only. A cluster below 8.9 shows a problem that names its
-version. The MCP server shows a cluster [on boards](../mcp/camunda8.md); the CLI reads the Camunda 7
-REST API only and refuses a `camunda8` profile on its own, up to 0.27 the whole file that holds one
-([Configuration](./configuration.md#engines)).
+version. The MCP server's chat shows a cluster [on boards](../mcp/camunda8.md), its web app whole;
+the CLI reads the Camunda 7 REST API only and refuses a `camunda8` profile on its own, up to 0.27
+the whole file that holds one ([Configuration](./configuration.md#engines)).
 
 ## A profile
 

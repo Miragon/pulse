@@ -112,14 +112,14 @@ export function usePagedViewData<TItem, TData>(opts: {
   selectTotal: (data: TData) => number
 }): PagedViewData<TItem, TData> {
   const { initialData, key, tool, args, pageSize, ready, selectItems, selectTotal } = opts
-  const { callTool, followUp } = useViewHost()
+  const { callTool, followUp, pageHints } = useViewHost()
   const locale = useLocale()
   const describeRefusal = useCallback(
     (error: Error) => {
-      const described = describeError(error, locale, { followUp })
+      const described = describeError(error, locale, { followUp, pageHints })
       return `${described.title}. ${described.hint}`
     },
-    [locale, followUp],
+    [locale, followUp, pageHints],
   )
   const argsKey = JSON.stringify(args)
   const { scope, placeholderData } = useSameListPlaceholder<TData>(key)

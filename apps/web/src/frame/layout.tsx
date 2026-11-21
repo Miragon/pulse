@@ -100,7 +100,7 @@ export function PageLayout({
 }) {
   const titled = useHeadingTitle(fallbackTitle)
   return (
-    <div data-slot="page-frame" className="flex min-h-dvh flex-col">
+    <div data-slot="page-frame" className="flex min-h-dvh shrink-0 flex-col">
       <header>
         <PageBar />
       </header>
@@ -123,6 +123,9 @@ export function PageLayout({
  * so the navigation stays one step away. Each of the page's moves (`focusKey`: a link of the page,
  * Back, Forward) hands focus to the new view's `h1`; a move inside a view (a filter, a tab) leaves
  * it where it is. The content's heading titles the document (`fallbackTitle` until it has one).
+ * The navigation stays in place while a longer page scrolls (sticky at the window's top): the
+ * frame grows with its content and never shrinks to the window in the view host's column, whose
+ * height is the window's, or the navigation would scroll away at the end of its 100dvh.
  */
 export function SessionLayout({
   side,
@@ -150,7 +153,7 @@ export function SessionLayout({
     <div
       data-slot="page-frame"
       data-fill={fill || undefined}
-      className={cn("flex min-h-dvh", fill && "lg:h-dvh")}
+      className={cn("flex min-h-dvh shrink-0", fill && "lg:h-dvh")}
     >
       <header
         data-slot="page-side"

@@ -40,6 +40,7 @@ const ARGS = {
   incidentId: "inc-1",
   activityId: "task-1",
   board: "orders",
+  text: "ORD-1",
 }
 
 /** A board over the engine, so the board feed reads it too. */

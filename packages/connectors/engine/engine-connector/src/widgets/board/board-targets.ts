@@ -75,9 +75,10 @@ function processLabel(data: BoardStartData, engine: string, bpmnProcessId: strin
 function instanceView(
   target: Extract<BoardTarget, { kind: "instance" }>,
   data: BoardStartData,
+  incidents: boolean,
 ): CockpitView {
   const { engine, instanceId, incidentId } = target
-  if (incidentId !== undefined) {
+  if (incidentId !== undefined && incidents) {
     return { section: "incident-detail", incidentId, ...incidentLabel(data, engine, incidentId) }
   }
   const instances = listed(data, engine, instanceId)
@@ -114,11 +115,20 @@ function instancesView(
  * or, ended, its history; the instances of a process open the process, with incident on its
  * incidents; an engine's count opens its overview, with incident its incidents. A drill carries
  * the name the board's tiles give for its crumb, as the cockpit's own drills do: an instance's
- * business key, a process's name, an incident's element.
+ * business key, a process's name, an incident's element. Where the cockpit's incident view does
+ * not read the engine (`incidents` false: Camunda 8, whose incidents the web app's instance screen
+ * shows), an incident opens the instance that holds it, which a Camunda 8 cluster never copies.
  */
-export function engineTargetOf(target: BoardTarget, data: BoardStartData): EngineTarget {
+export function engineTargetOf(
+  target: BoardTarget,
+  data: BoardStartData,
+  incidents = true,
+): EngineTarget {
   return {
     engine: target.engine,
-    view: target.kind === "instance" ? instanceView(target, data) : instancesView(target, data),
+    view:
+      target.kind === "instance"
+        ? instanceView(target, data, incidents)
+        : instancesView(target, data),
   }
 }

@@ -93,6 +93,33 @@ const instancesEndedByBusinessKey: ConformanceCase = {
   },
 }
 
+const PARTS_OF_ORD_1001 = ["ORD-100", "RD-1001", "ORD-1001-"] as const
+
+const WILDCARD_PATTERNS_OF_ORD_1001 = ["ORD_1001", "ORD-100%", "ORD-100*", "ORD-100?"] as const
+
+const instancesByExactBusinessKey: ConformanceCase = {
+  name: CASE.instancesByExactBusinessKey,
+  async run(harness) {
+    const whole = await InstanceReads.search(harness, { businessKey: "ORD-1001" })
+    Ensure.sameSet(
+      whole.map((item) => item.id),
+      InstanceReads.idsOf(harness, ["ORD-1001"]),
+      this.name,
+    )
+    for (const part of [...PARTS_OF_ORD_1001, ...WILDCARD_PATTERNS_OF_ORD_1001]) {
+      const [found, counted] = await Promise.all([
+        InstanceReads.search(harness, { businessKey: part }),
+        harness.runtime.countInstances({ businessKey: part }),
+      ])
+      Ensure.that(
+        found.length === 0 && counted.count === 0,
+        this.name,
+        `"${part}" found ${Ensure.describe(found.map((item) => item.businessKey))} and counted ${Ensure.describe(counted)}`,
+      )
+    }
+  },
+}
+
 const instancesByActiveElement: ConformanceCase = {
   name: CASE.instancesByActiveElement,
   async run(harness) {
@@ -259,6 +286,7 @@ export const INSTANCE_LAWS: readonly ConformanceCase[] = [
   instancesAcrossVersions,
   instancesWithIncident,
   instancesEndedByBusinessKey,
+  instancesByExactBusinessKey,
   instancesByActiveElement,
   instancesPaging,
   instancesNewestFirst,

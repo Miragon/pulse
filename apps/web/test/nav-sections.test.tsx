@@ -4,13 +4,15 @@ import { afterEach, describe, expect, it } from "vitest"
 import { TestViewHost, type ViewComponent } from "@miragon/pulse-widget-shell/widgets"
 import { engineViews } from "@miragon/pulse-engine-connector/widgets"
 import {
-  hasEngineScreen,
+  FLEET_DIALECTS,
+  inFleet,
   NAV_SECTIONS,
   placeOfSection,
   SECTION_VIEWS,
   sectionAt,
   sectionsOf,
   type NavDialect,
+  type NavSection,
 } from "../src/frame/nav-sections.js"
 import { catalogs } from "../src/messages/index.js"
 import { COCKPIT_VIEW } from "../src/router/routes.js"
@@ -18,13 +20,14 @@ import { cockpitProperties, type EngineEntry, registeredTools } from "./cockpit-
 
 /**
  * The sections the page's navigation opens under an engine, per dialect (src/frame/nav-sections.ts),
- * held to the engine module: to the views its cockpit tool offers a server of that dialect's engines
- * alone (`view`'s enum follows ROUTE_DIALECTS) and, for the page's own engine screen, to the
- * engine screen's feed it registers for them, so the navigation offers no section the server does
- * not serve, and to the sections the cockpit's head shows an engine of that dialect, as the
- * cockpit renders them in a chat, so no section of the head, which a page with chrome of its own
- * hides, goes missing from the navigation, in the head's order and by the head's words, the
- * overview's place the page's processes.
+ * held to the engine module: the cockpit's sections the page embeds to the views its cockpit tool
+ * offers a server of that dialect's engines alone (`view`'s enum follows ROUTE_DIALECTS), and the
+ * page's own screens (an engine's processes, a process, an instance) to the screen feeds it
+ * registers for them, both ways, so the navigation offers no section the server does not serve and
+ * every dialect whose screens the server serves (Camunda 8's too) opens them; and to the sections
+ * the cockpit's head shows an engine of that dialect, as the cockpit renders them in a chat, so no
+ * section of the head, which a page with chrome of its own hides, goes missing from the navigation,
+ * in the head's order and by the head's words, the overview's place the page's processes.
  */
 
 afterEach(cleanup)
@@ -37,6 +40,22 @@ const ENGINE_OF: Readonly<Record<NavDialect, readonly EngineEntry[]>> = {
 
 /** The cockpit head's word for its overview, the place the page shows as an engine's processes. */
 const OVERVIEW_WORD = { en: "Overview", de: "Übersicht" } as const
+
+/** The page's own screens' feeds, which its processes section reads (the engine, process, instance). */
+const SCREEN_FEEDS = [
+  "engine_screen_processes_data",
+  "engine_screen_process_data",
+  "engine_screen_instances_data",
+  "engine_screen_instance_data",
+] as const
+
+/** Whether the page shows an engine of `dialect` on its own screens (its processes section). */
+const hasScreens = (dialect: string | undefined): boolean =>
+  sectionsOf(dialect).includes("processes")
+
+/** The sections the page embeds from the cockpit: all but its own processes. */
+const embedded = (dialect: NavDialect): readonly NavSection[] =>
+  NAV_SECTIONS[dialect].filter((section) => section !== "processes")
 
 /** The views the cockpit tool offers a server of `dialect`'s engines alone. */
 function servedViews(dialect: NavDialect): readonly unknown[] {
@@ -83,18 +102,21 @@ describe("the navigation's sections per dialect", () => {
   })
 
   it.each(Object.keys(NAV_SECTIONS) as NavDialect[])(
-    "offers %s no section the server does not serve it",
+    "offers %s no section the server does not serve it, and its screens wherever it serves them",
     (dialect) => {
       const served = servedViews(dialect)
       // The comparison is not vacuous: every server offers its app-level views.
       expect(served).toEqual(expect.arrayContaining(["landing", "board"]))
-      const views = NAV_SECTIONS[dialect].map((section) => SECTION_VIEWS[section])
+      const views = embedded(dialect).map((section) => SECTION_VIEWS[section])
       expect(views.filter((view) => !served.includes(view))).toEqual([])
-      // The page's own engine screen reads its feed, which the server registers for the dialect.
+      // The page's own screens read their feeds: offered exactly where the server registers them.
       const feeds = registeredTools(ENGINE_OF[dialect])
-      expect(hasEngineScreen(dialect) && !feeds.includes("engine_screen_processes_data")).toBe(
-        false,
+      expect(SCREEN_FEEDS.map((feed) => feeds.includes(feed))).toEqual(
+        SCREEN_FEEDS.map(() => hasScreens(dialect)),
       )
+      // An incident the page knows by its id alone is found through the cockpit's incident view,
+      // which serves the dialects of its incidents section (src/screens/screen-shown.ts).
+      expect(NAV_SECTIONS[dialect].includes("incidents")).toBe(served.includes("incident-detail"))
     },
   )
 
@@ -105,24 +127,41 @@ describe("the navigation's sections per dialect", () => {
   )(
     "offers %s every section the cockpit's head shows it, in its order, in %s",
     async (dialect, locale) => {
-      // The page's processes stand in the place of the cockpit's overview, which the page claims.
-      const words = NAV_SECTIONS[dialect].map((section) =>
-        section === "processes"
-          ? OVERVIEW_WORD[locale]
-          : catalogs[locale][`nav.section.${section}`],
-      )
-      expect(words).toEqual(await headSections(dialect, locale))
+      const head = await headSections(dialect, locale)
+      // The page's processes stand in the place of the cockpit's overview, which the page claims,
+      // where the server's cockpit offers the dialect an overview (Camunda 7): its head shows it
+      // first. Where it offers none (Camunda 8, which the chat shows on boards only) the head shows
+      // no section, and the page's processes come from its screens alone.
+      const overview = servedViews(dialect).includes("overview")
+      const words = embedded(dialect).map((section) => catalogs[locale][`nav.section.${section}`])
+      expect(overview ? [OVERVIEW_WORD[locale], ...words] : words).toEqual(head)
+      expect(NAV_SECTIONS[dialect][0]).toBe("processes")
     },
   )
 
-  it("opens Camunda 7's three and none of Camunda 8, which the page shows on boards only", () => {
+  it("opens Camunda 7's three and Camunda 8's processes, whose incidents and jobs no route reads", () => {
     expect(sectionsOf("c7")).toEqual(["processes", "incidents", "jobs"])
-    expect(hasEngineScreen("c7")).toBe(true)
-    expect(hasEngineScreen("c8")).toBe(false)
-    expect(hasEngineScreen(undefined)).toBe(false)
-    expect(sectionsOf("c8")).toEqual([])
+    expect(sectionsOf("c8")).toEqual(["processes"])
+    expect(hasScreens("c7")).toBe(true)
+    expect(hasScreens("c8")).toBe(true)
+    // The cockpit's routes the page embeds do not serve a server of Camunda 8 engines alone.
+    expect(servedViews("c8")).not.toEqual(expect.arrayContaining(["incidents"]))
+    expect(servedViews("c8")).not.toEqual(expect.arrayContaining(["jobs"]))
+    expect(servedViews("c8")).not.toEqual(expect.arrayContaining(["overview"]))
+    expect(hasScreens(undefined)).toBe(false)
     expect(sectionsOf(undefined)).toEqual([])
     expect(sectionsOf("hasOwnProperty")).toEqual([])
+  })
+
+  it("counts Camunda 7's engines into the view across engines, as the cockpit reads them", () => {
+    expect(FLEET_DIALECTS).toEqual(["c7"])
+    expect(inFleet("c7")).toBe(true)
+    expect(inFleet(undefined)).toBe(true)
+    expect(inFleet("c8")).toBe(false)
+    // The cockpit's fleet reads each engine's overview: the dialects it serves.
+    for (const dialect of Object.keys(NAV_SECTIONS) as NavDialect[]) {
+      expect(inFleet(dialect)).toBe(servedViews(dialect).includes("overview"))
+    }
   })
 })
 

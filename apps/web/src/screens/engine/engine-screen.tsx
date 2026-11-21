@@ -1,16 +1,16 @@
 import { ListFilterBar, ProcessTable, useProcessList } from "@miragon/pulse-blocks"
 import type { ProcessFilterData } from "@miragon/pulse-screens"
-import { Icon, WidgetHeader } from "@miragon/pulse-ui"
+import { Icon, StatusStrip, WidgetHeader } from "@miragon/pulse-ui"
 import {
   FreshnessStamp,
   OpenInCockpitLink,
   useToolQuery,
-  ViewDataState,
   WidgetShell,
 } from "@miragon/pulse-widget-shell/widgets"
 import { Server } from "lucide-react"
 import { useT } from "../../messages/index.js"
 import type { Navigate } from "../../router/page-link.js"
+import { ScreenState } from "../cluster-problem.js"
 import { READ_AGAIN_AFTER_MS, useReadOnReturn } from "../read-on-return.js"
 import { RefreshButton, RefreshNotice } from "../screen-chrome.js"
 import { useWide } from "../use-wide.js"
@@ -74,6 +74,21 @@ function EngineBar({
 }
 
 /**
+ * Where an engine of a dialect without the page's Incidents and Jobs (Camunda 8) shows its
+ * incidents: at their instances, which its processes lead to.
+ */
+function IncidentsAtInstances() {
+  const t = useT()
+  return (
+    <StatusStrip
+      tone="info"
+      title={t("screen.engine.atInstances.title")}
+      detail={t("screen.engine.atInstances.detail")}
+    />
+  )
+}
+
+/**
  * The web app's engine screen (D10), at the engine's own address: an engine's processes, each with
  * its latest version, its running instances and its instances with incident over every version,
  * from the engine screen's feed, the same numbers the editors' engine tab shows (D2). A row opens
@@ -86,7 +101,9 @@ function EngineBar({
  * retry changes it (a refused profile, an engine whose dialect the server does not read), a failed
  * refresh over the numbers on screen a strip under the bar. From 64rem on it fills the window's
  * height and its list scrolls in its own region under its sticky head. It shows no verdict and
- * writes nothing.
+ * writes nothing. An engine whose dialect has no Incidents and Jobs on the page (`atInstances`:
+ * Camunda 8) says where its incidents show; a Camunda 8 cluster it cannot read as set up (below the
+ * version Pulse reads, without secondary storage) says so with the fix (`ScreenState`).
  */
 export function EngineScreen({
   engine,
@@ -94,6 +111,7 @@ export function EngineScreen({
   filter,
   onFilter,
   ready = true,
+  atInstances = false,
 }: {
   engine: string
   navigate: Navigate
@@ -103,6 +121,8 @@ export function EngineScreen({
   onFilter: (filter: ProcessFilterData) => void
   /** Whether the screen reads: until then it names the engine in its bar and shows it loading. */
   ready?: boolean
+  /** The engine has no Incidents and Jobs on the page: its incidents show at their instances. */
+  atInstances?: boolean
 }) {
   const t = useT()
   const wide = useWide()
@@ -132,7 +152,8 @@ export function EngineScreen({
               refreshing={refreshing}
               onRefresh={ready ? refetch : undefined}
             />
-            <RefreshNotice error={refreshError} onRetry={refetch} />
+            <RefreshNotice error={refreshError} onRetry={refetch} engine={engine} />
+            {atInstances && <IncidentsAtInstances />}
             {data !== undefined && (
               <ListFilterBar
                 filter={filter}
@@ -146,7 +167,8 @@ export function EngineScreen({
         }
       >
         {data === undefined ? (
-          <ViewDataState
+          <ScreenState
+            engine={engine}
             loading={error === null}
             error={error}
             onRetry={refetch}

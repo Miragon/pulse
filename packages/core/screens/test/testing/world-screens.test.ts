@@ -2,6 +2,7 @@ import { BpmnProcessId, DefinitionId, InstanceId } from "@miragon/pulse-engine-c
 import { describe, expect, test } from "vitest"
 import {
   EngineScreen,
+  Finder,
   InstanceList,
   InstanceScreen,
   ProcessScreen,
@@ -73,6 +74,37 @@ describe("the process screens and the instance list of the kit's fixed world", (
     )
 
     expect(ScreenJson.instanceList(model)).toStrictEqual(expected)
+  })
+})
+
+describe("what the finder finds over the kit's fixed world", () => {
+  test.each([
+    ["find", "ORD-1003"],
+    ["findById", "fake-label-of-DSP-3001"],
+  ] as const)("holds the %s screen the builder gives for %s", async (name, text) => {
+    const expected = WORLD_SCREENS[name]
+
+    const model = await Finder.read(
+      expected.engine,
+      text,
+      ScreenWorld.world(),
+      () => new Date(expected.asOf),
+    )
+
+    expect(ScreenJson.find(model)).toStrictEqual(expected)
+  })
+
+  test("gives figures without ids: each hit's business key, process, version, state, incident and whether it ended", () => {
+    expect(ScreenFigures.find(WORLD_SCREENS.find)).toStrictEqual({
+      hits: [["ORD-1003", "pulse-order", 1, "completed", false, true]],
+      cut: false,
+      historyGap: null,
+    })
+    expect(ScreenFigures.find(WORLD_SCREENS.findById)).toStrictEqual({
+      hits: [[null, "pulse-label", 1, "running", true, false]],
+      cut: false,
+      historyGap: null,
+    })
   })
 })
 
