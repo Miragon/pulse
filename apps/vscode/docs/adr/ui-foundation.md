@@ -461,7 +461,11 @@ each surface keeps its screens and the web app's are its own.
      2.5 kB the drafts assumed. Amended on 2026-11-20, when a process's blocks first needed more
      (the owner: "nur nicht verschwenderisch", not wasteful): the webview's script may grow to
      at most 500,000 B gzip, each ceiling its measurement plus 2 % behind a `Ratchet-Exception:`
-     trailer that says what the growth buys, and what the webview bundles stays lean.
+     trailer that says what the growth buys, and what the webview bundles stays lean. Amended on
+     2026-11-21, when the page's script reached its ceiling with the search across engines (the
+     owner: "wir machen ja schließlich auch mehr", we do more after all): the page's script may
+     grow to at most 400,000 B gzip and its stylesheet to at most 20,000 B, each ceiling still its
+     measurement plus 2 % behind a `Ratchet-Exception:` trailer on each commit that grows one.
   8. **One row convention** (the owner, 2026-11-18). On every surface, the MCP widgets, the web
      app and the webview, a table row opens what it names on a click or Enter and copies its id
      with Ctrl or Cmd+C, as the webview's rows did from the start; the cockpit's rows lose their
