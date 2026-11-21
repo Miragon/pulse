@@ -124,20 +124,22 @@ describe("the engine screen", () => {
     renderScreen()
     await screen.findByRole("table", { name: "Processes" })
     expect(rows()).toEqual([
-      ["Order fulfillment pulse-order", "v2", "3", "1Has open incidents"],
-      ["Dispatch order pulse-dispatch", "v1", "1", "1Has open incidents"],
-      ["Print label pulse-label", "v1", "1", "1Has open incidents"],
+      ["Order fulfillment pulse-order", "v2", "3", "1Has open incidents", "1Has open incidents"],
+      ["Dispatch order pulse-dispatch", "v1", "1", "1Has open incidents", "0"],
+      ["Print label pulse-label", "v1", "1", "1Has open incidents", "1Has open incidents"],
     ])
     expect(
       screen.getByText("3 processes · 5 running · 3 with incident · all versions"),
     ).toBeTruthy()
+    expect(screen.getByRole("button", { name: "What the counts say" })).toBeTruthy()
   })
 
   it("speaks German where the page does, the same numbers", async () => {
     renderScreen({ locale: "de" })
     const table = await screen.findByRole("table", { name: "Prozesse" })
     const heads = Array.from(table.querySelectorAll("th"), (head) => head.textContent)
-    expect(heads).toEqual(["Prozess", "Neueste Version", "Laufend", "Mit Incident"])
+    expect(heads).toEqual(["Prozess", "Neueste Version", "Laufend", "Mit Incident", "Incidents"])
+    expect(screen.getByRole("button", { name: "Was die Zahlen sagen" })).toBeTruthy()
     expect(
       screen.getByText("3 Prozesse · 5 laufend · 3 mit Incident · alle Versionen"),
     ).toBeTruthy()

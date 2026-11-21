@@ -27,10 +27,10 @@ import { buildVariableNamesData } from "./screens/variable-names-data.js"
  * view of the cockpit reads them, so they are no route's: a page's screen reads a screen feed, and
  * it is never a second view. `widget-tools/data-feeds.ts` registers them beside `DATA_FEEDS`,
  * app-only and read-only, so the web app's forward admits a page's call to them. The reads that
- * load the engine's database (a version's element statistics, an instance list's search and
- * history counts, a version's variable names, a search) stand on a floor of 30 s per caller and arguments,
- * as a board's build does (`screens/screen-floor.ts`); the engine's processes, an instance and an
- * incident's text run none of them.
+ * load the engine's database (the engine's processes with their counts, a version's element
+ * statistics, an instance list's search and history counts, a version's variable names, a search)
+ * stand on a floor of 30 s per caller and arguments, as a board's build does
+ * (`screens/screen-floor.ts`); an instance and an incident's text run none of them.
  */
 
 const engineScreenFeed = contractFeed({

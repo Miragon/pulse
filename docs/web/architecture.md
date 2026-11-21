@@ -94,12 +94,12 @@ under it, the building blocks of `@miragon/pulse-blocks` over the screen feeds, 
 page claims, so the cockpit embedded elsewhere never shows them. A screen fills the window's height
 from 64rem on and scrolls its regions in themselves; an incident's text is read only when it opens,
 a version's variable names when the condition dialog does. The reads that load an engine's database
-(a version's element statistics, an instance list's first page with its counts, the variable names, a
-search, its engine's history gap apart for every text) stand on a floor of 30 s per signed-in user and
-arguments at the server, so a Refresh within it shows the same read. Its router
-gives each view its address and leads Back, Forward and its links to the view, which goes there
-itself or starts anew there, never loading the page; it replaces an old `/app/cockpit?view=…` by
-the view's own address. It reads its session with `readWebSession()` and calls tools through
+(an engine's processes with their counts, a version's element statistics, an instance list's first
+page with its counts, the variable names, a search, its engine's history gap apart for every text)
+stand on a floor of 30 s per signed-in user and arguments at the server, so a Refresh within it shows
+the same read. Its router gives each view its address and leads Back, Forward and its links to the
+view, which goes there itself or starts anew there, never loading the page; it replaces an old
+`/app/cockpit?view=…` by the view's own address. It reads its session with `readWebSession()` and calls tools through
 `webToolCaller(session)`, which posts each call with the CSRF token and rejects a refusal as a
 `WebApiError`. The build holds `index.html`, `pages.json` (the addresses' router patterns under
 `/app`, such as `/app/engines/:engine/jobs`, never a route of the server's own) and `assets/`.

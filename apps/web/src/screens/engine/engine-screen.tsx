@@ -90,8 +90,9 @@ function IncidentsAtInstances() {
 
 /**
  * The web app's engine screen (D10), at the engine's own address: an engine's processes, each with
- * its latest version, its running instances and its instances with incident over every version,
- * from the engine screen's feed, the same numbers the editors' engine tab shows (D2). A row opens
+ * its latest version, its running instances, its instances with incident and its open root
+ * incidents over every version, from the engine screen's feed, the same numbers the editors'
+ * engine tab shows (D2), the legend of the counts beside the search. A row opens
  * its process, a new entry of the page's history (still the cockpit's process view), and copies
  * its BPMN process ID. The scopes and the search derive the rows in the browser and read nothing;
  * the filter is the address's (`filter`, `onFilter`). The bar has the Refresh and when the numbers

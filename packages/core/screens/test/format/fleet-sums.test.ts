@@ -24,8 +24,9 @@ const PROD_A = screenOf("prod-a", [
     latestVersion: 7,
     running: 15,
     withIncident: 9,
+    incidents: 2,
   },
-  { bpmnProcessId: "shipment", latestVersion: 1, running: 1204, withIncident: 0 },
+  { bpmnProcessId: "shipment", latestVersion: 1, running: 1204, withIncident: 0, incidents: 0 },
 ])
 const PROD_B = screenOf("prod-b", [
   {
@@ -34,11 +35,19 @@ const PROD_B = screenOf("prod-b", [
     latestVersion: 3,
     running: 160,
     withIncident: 64,
+    incidents: 33,
   },
 ])
 const C8_EU = screenOf("c8-eu", [
-  { bpmnProcessId: "shipment", name: "Shipment", latestVersion: 2, running: 10, withIncident: 1 },
-  { bpmnProcessId: "order", latestVersion: 4, running: 88, withIncident: 3 },
+  {
+    bpmnProcessId: "shipment",
+    name: "Shipment",
+    latestVersion: 2,
+    running: 10,
+    withIncident: 1,
+    incidents: 1,
+  },
+  { bpmnProcessId: "order", latestVersion: 4, running: 88, withIncident: 3, incidents: 3 },
 ])
 
 describe("the sums across engines", () => {
@@ -95,7 +104,7 @@ describe("the sums across engines", () => {
 
   test("name a process by the first engine that names it, and leave the name out where none does", () => {
     const nameless = screenOf("prod-x", [
-      { bpmnProcessId: "audit", latestVersion: 1, running: 1, withIncident: 0 },
+      { bpmnProcessId: "audit", latestVersion: 1, running: 1, withIncident: 0, incidents: 0 },
     ])
 
     const [audit] = FleetSums.of([nameless, nameless]).processes

@@ -22,8 +22,13 @@ export class Processes {
     }
   }
 
-  static version(version: number, running: number, withIncident: number): VersionSummary {
-    return { definition: Processes.definition(version, "Order"), running, withIncident }
+  static version(
+    version: number,
+    running: number,
+    withIncident: number,
+    incidents = withIncident,
+  ): VersionSummary {
+    return { definition: Processes.definition(version, "Order"), running, withIncident, incidents }
   }
 
   static statistic(elementId: string, counts: Partial<ElementStatistics>): ElementStatistics {

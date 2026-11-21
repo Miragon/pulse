@@ -61,7 +61,14 @@ reads and gives one failure the same kind.
 - **The readers (`src/reading`) and mappings (`src/mapping`).** One reader per question of the
   contract (definitions and versions, diagrams, element statistics, called processes, instances and
   their counts, an instance's detail and wait states, incidents, variable names) and the version
-  floor (8.9), each a class over the REST client, and the mappings from the checked views onto
+  floor (8.9), each a class over the REST client (the definitions and versions count their open
+  incidents, which the cluster never copies, with one incident search per process and per version
+  that has an instance with incident, its total without a row, a lower bound,
+  `incidentsAtLeast`, where the search stops counting; none for one without, which holds no
+  incident; at most eight such searches at once, `FewAtOnce`, as an instance's detail reads its
+  members; one that fails fails the read of the definitions or versions, so every surface that lists
+  a cluster's processes, a board's engine and a process screen's versions included, fails with it),
+  and the mappings from the checked views onto
   engine-core's read models: keys that are Java longs, page cursors, the BPMN text a reader needs
   (read in one pass over the tags and their attributes, in time that grows with the text, no tag
   of a text over 4 Mi characters; the tag reader is a copy of the board builder's, held equal by
@@ -161,7 +168,8 @@ pulse-dispatch (`expected.callingProcess`); and the first page of every instance
 version 1 with the counts of each scope (`expected.instanceList`, `InstanceListData`); the editors'
 C8 adapter and the MCP server's Camunda 8 wire build each exactly, with the figures of the recorded
 Camunda 7 screens. Its answers come from one run of their own, recorded by hand on 2026-11-20 as
-the board's, made anew with the process screens and the instance list: the world seeded with `C8WorldSeed` on
+the board's, made anew with the process screens and the instance list, and with the board on
+2026-11-21, when the definitions and versions counted their open incidents: the world seeded with `C8WorldSeed` on
 `camunda/camunda:8.10.9` with H2 and no security, every screen built twice through a proxy in front
 of the cluster that keeps each request with what the cluster answers (the same answer both times),
 and once more over the kept answers on `startRecordedEngine`, with no request unanswered. So every

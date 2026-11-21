@@ -4,11 +4,11 @@
 
 The **Engines** view lists the profiles of `.pulse.json` and your CLI config with their deployed
 processes, running counts and incident markers. A click on an engine opens its overview: every process
-with its latest version, running and with-incident counts, the ones in trouble first.
+with its latest version, running, with-incident and open root incident counts, those with incident first.
 
 ![The Engines view with processes, counts and incident markers](../assets/vscode/01-engines-at-a-glance.png)
 
-![The engine overview, processes in trouble first](../assets/vscode/02-engine-overview.png)
+![The engine overview, processes with incident first](../assets/vscode/02-engine-overview.png)
 
 ## A process definition
 

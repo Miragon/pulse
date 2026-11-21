@@ -5,9 +5,11 @@
  * pulse-dispatch waits at its call activity for the root incident of the instance of pulse-label it
  * called, so Camunda 7 holds a copy of that incident at the call activity), the cockpit's overview,
  * process route and process flow's "Running" count what the engine screen and the process screens
- * count. The cockpit reads what the screens' recording holds no answer to (the statistics with
- * `rootIncidents=true`, a key's versions and counts, its incident scan, a version's jobs without
- * retries): those answers are this world's as the engine gives them, derived below from the
+ * count, the engine screen's column "Incidents" (the contract's `incidents`, from the statistics
+ * with `rootIncidents=true` the recording holds) among them. The cockpit reads what the screens'
+ * recording holds no answer to (the statistics with the jobs without retries, a key's versions and
+ * counts, its incident scan, a version's jobs without retries): those answers are this world's as
+ * the engine gives them, derived below from the
  * recorded answers (`COCKPIT_ANSWERS`: the root incidents and failed jobs from the recorded
  * incidents by c7-core's rule, and from the incidents a version's recorded statistics count at an
  * element whose incidents no screen reads, since it is no call activity), and the engine answers no
@@ -54,6 +56,7 @@ interface RecordedStatistics {
   readonly id: string
   readonly instances: number
   readonly definition: RecordedDefinition
+  readonly incidents: ReadonlyArray<{ readonly incidentCount: number }>
 }
 
 /** The recorded answer to `path` (and the query's values `where` names). */
@@ -182,14 +185,20 @@ const versionsOf = (key: string) =>
     .map((row) => row.definition)
     .sort((a, b) => b.version - a.version)
 
-/** The statistics with the root incidents, with each version's jobs without retries where asked. */
-function rootStatistics(failedJobs: boolean): unknown[] {
+/** The statistics with the root incidents and each version's jobs without retries. */
+function rootStatistics(): unknown[] {
   return STATISTICS.map((row) => ({
     ...row,
-    failedJobs: failedJobs ? failedJobsOf(row.id) : 0,
+    failedJobs: failedJobsOf(row.id),
     incidents: rootsByType(row.id),
   }))
 }
+
+/** The root incidents the recorded statistics count per process, over its versions. */
+const recordedRootsOf = (key: string) =>
+  STATISTICS.filter((row) => row.definition.key === key)
+    .flatMap((row) => row.incidents)
+    .reduce((sum, type) => sum + type.incidentCount, 0)
 
 const get = (
   path: string,
@@ -249,9 +258,8 @@ const COCKPIT_ANSWERS: RecordedAnswer[] = [
   get(
     "/process-definition/statistics",
     { failedJobs: "true", rootIncidents: "true" },
-    rootStatistics(true),
+    rootStatistics(),
   ),
-  get("/process-definition/statistics", { rootIncidents: "true" }, rootStatistics(false)),
   ...keyAnswers("pulse-order"),
   ...keyAnswers("pulse-dispatch"),
 ]
@@ -347,6 +355,16 @@ describe("the cockpit counts what the shared screens count, over c7-core's recor
     expect(incidents("pulse-dispatch")).toBe(0)
     expect(dispatch.badges.map((badge) => badge.incidentsInCalledInstances)).toEqual([1])
     expect(overview.summary.totalIncidents).toBe(2)
+    // The engine screen's column "Incidents" counts what the cockpit's overview counts, per process.
+    for (const process of screen.processes) {
+      expect(process.incidents, process.bpmnProcessId).toBe(incidents(process.bpmnProcessId))
+      expect(process.incidents, process.bpmnProcessId).toBe(recordedRootsOf(process.bpmnProcessId))
+    }
+    expect(screen.processes.map((row) => [row.bpmnProcessId, row.incidents])).toEqual([
+      ["pulse-order", 1],
+      ["pulse-dispatch", 0],
+      ["pulse-label", 1],
+    ])
   })
 
   it("the process route: a key's root incidents and their activities, as its versions' screens", async () => {

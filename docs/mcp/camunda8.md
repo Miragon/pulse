@@ -96,16 +96,17 @@ endpoint's URL or the cluster's `url`: a cluster's text that quotes either shows
 redirect says whose host it points to; each failure names its engine. A diagram over 4 Mi characters
 (Zeebe's limit) keeps its badges but rolls nothing up into a collapsed subprocess, which a board
 note says (on Camunda 7 too); a cluster's call activity or subprocess counts the incidents inside it
-as its own.
+as its own. Its open incidents take a search per process with an instance with incident, eight at
+once; one that fails fails the read of its processes, as a failed statistics read does.
 
 ## What is tested
 
 The conformance kit of the engine contract proves the server's own Camunda 8 wire on a local cluster
 in Testcontainers
 (`packages/connectors/engine/engine-connector/src/lib/core-adapter/c8-runtime.engine.test.ts`): its
-52 read laws, the recorded board's numbers over the kit's world, and that no tool or view of the
+55 read laws, the recorded board's numbers over the kit's world, and that no tool or view of the
 Camunda 7 REST API reaches the cluster; `packages/connectors/engine/engine-connector/CONTRIBUTING.md`
-says how to run a leg. On 2026-11-20 the leg 8.10.9, H2, none passed all 52 (54 of 54); the
+says how to run a leg. On 2026-11-21 the leg 8.10.9, H2, none passed all 55 (58 of 58); the
 51 laws of 2026-11-17 passed on four legs, one at a time (the time includes starting the containers):
 
 | Camunda | Secondary storage | Security | Passed   | Time |

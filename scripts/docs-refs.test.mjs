@@ -512,15 +512,15 @@ const DOCS_BUDGETS = {
   // A board in the chat and the cockpit, the server's board files, a board shared with the editors.
   "mcp/boards.md": 70,
   // What the server reads of a Camunda 8 cluster and offers per engine (the web app's screen feeds
-  // among it), its profile and client, its failures and the server's legs of the conformance
-  // matrix.
-  "mcp/camunda8.md": 124,
+  // among it), its profile and client, its failures (the incident searches whose failure fails a
+  // cluster's processes among them) and the server's legs of the conformance matrix.
+  "mcp/camunda8.md": 125,
   "mcp/reference.md": 160,
   // The web app's pages (docs/web/): what it shows and for whom, its navigation, its engine screen
   // and its instance screen, the sign-in an operator sets up (variables, the provider's side,
   // sessions and their check at the provider, a proxy, local), how it is built and what its
   // screens read.
-  "web/index.md": 82,
+  "web/index.md": 83,
   "web/sign-in.md": 135,
   "web/architecture.md": 114,
   // The CLI's pages (docs/cli/).

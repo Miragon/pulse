@@ -128,8 +128,10 @@ server image builds the page beside the server and serves it from `/app/web`.
   window; the session's notice stands once above the view's bar.
 - The page's own screens (`src/screens`, owner decision D10 of 2026-11-19), its first the engine
   screen (`src/screens/engine`): at an engine's own address an engine's processes, each with its
-  latest version, its running instances and its instances with incident over every version, the
-  blocks the editors' engine tab renders (`ListFilterBar`, `ProcessTable` and `useProcessList` of
+  latest version, its running instances, its instances with incident and its open root incidents
+  over every version (the column Incidents, the contract's `incidents`, a lower bound as one where a
+  cluster stopped counting; the legend of the counts beside the search), the blocks the editors'
+  engine tab renders (`ListFilterBar`, `ProcessTable` and `useProcessList` of
   `@miragon/pulse-blocks`, worded by their own catalog) over the engine screen's feed
   (`engine_screen_processes_data`, an app-only read of the engine contract in every dialect, the
   numbers the editors' adapters build of the same answers), with the page's slots
@@ -146,8 +148,9 @@ server image builds the page beside the server and serves it from `/app/web`.
   address, and when the numbers were read; a
   read older than 60 s runs again when the reader comes back to the page, its window focused or its
   tab shown again (`src/screens/read-on-return.ts`, since TanStack's own refetch on focus follows
-  the tab alone), once for both, never for a refusal no retry changes, and nothing polls. It shows
-  no verdict and writes nothing. Its states are its own: a first load's skeleton after 400 ms, a
+  the tab alone), once for both, never for a refusal no retry changes, and nothing polls. Its feed
+  stands on the server's floor of 30 s per caller (a Camunda 8 cluster's incident searches among
+  its reads), so a Refresh within it shows the same read. It shows no verdict and writes nothing. Its states are its own: a first load's skeleton after 400 ms, a
   failure in the kit's words (`describeError`) with Try again unless no retry changes it
   (`isPermanentError`: a refused profile, an engine whose dialect the server does not read), a
   failed refresh over the numbers on screen a strip under the bar; a Camunda 8 cluster the screen

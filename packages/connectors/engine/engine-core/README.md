@@ -51,7 +51,7 @@ The kit binds every law to any `(name, fn)` runner and throws an `Error` naming 
 it found when one fails. Your harness deploys diagrams with the world's element ids into your engine and seeds the
 world's instances; the fake seeds it in memory. An engine whose reads lag behind its writes
 declares `writeVisibility`, one whose bulk work runs in the background `asyncWork`. The kit
-proves itself: 84 saboteurs, each the fake with one flaw, fail exactly their laws (the package's
+proves itself: 89 saboteurs, each the fake with one flaw, fail exactly their laws (the package's
 `test/`).
 
 ## What it provides
@@ -60,7 +60,9 @@ proves itself: 84 saboteurs, each the fake with one flaw, fail exactly their law
   three of them optional) and `ProcessCommands` (6 writes: retry an incident, set a variable, move a
   token, cancel and migrate instances in bulk, stop a bulk operation); the branded ids
   (`InstanceId("…")`, `DefinitionId`, `BpmnProcessId`, `ElementId` and more); the read models
-  (`InstanceSummary`, `InstanceDetail`, `Incident`, `ElementStatistics`, `Variable` …), the queries
+  (`DefinitionSummary` and `VersionSummary` with their counts of running instances, instances with
+  an incident and open root incidents, `InstanceSummary`, `InstanceDetail`, `Incident`,
+  `ElementStatistics`, `Variable` …), the queries
   (`InstanceFilter`, `VariableCondition`, `PageRequest`, `Page`, `InstanceCount`), bulk operations and migration
   plans; `RuntimeError` with its closed `RuntimeFailure`, and `FailingRuntime`, a runtime that
   refuses every call with one error; the rules `ValueKinds` (the kind of a JSON value, with
@@ -72,7 +74,7 @@ proves itself: 84 saboteurs, each the fake with one flaw, fail exactly their law
   first non-blank line, a leading class name shortened to its simple name, in one line of at most
   300 characters; `lineOf` is the line a viewer opens the text at, none without a `Caused by:`
   line.
-- **`./testing`:** the conformance kit (`ConformanceKit` with 52 read laws and 15 command laws),
+- **`./testing`:** the conformance kit (`ConformanceKit` with 55 read laws and 15 command laws),
   its fixed world (`WORLD_*`, the three neutral diagrams `NEUTRAL_DIAGRAMS` with fixed element
   ids) and `FakeEngine`, an in-memory engine that passes every law, with `PatchedRuntime` and
   `PatchedCommands` to change one answer of it in a test.
@@ -91,7 +93,19 @@ never with a flag that can disagree with what the engine does:
   exact, `{ count, atLeast: true }` means the engine stopped counting there (Camunda 8's search
   stops at 10,000). The laws require an exact count over the world and no count below 0 in any
   scope, also where an engine's history misses instances its runtime runs, and a surface shows a
-  lower bound as one (`≥ 10,000`, `10k+`).
+  lower bound as one (`≥ 10,000`, `10k+`). So may the open root incidents of a process or a
+  version (`incidents`, with `incidentsAtLeast: true` where the engine stopped counting).
+- **Incidents are root incidents.** A `DefinitionSummary` counts the open root incidents over
+  every version of its process, a `VersionSummary` those of its version (`incidents`): an incident
+  counts at the process it was raised in, never as a copy at a calling instance's call activity
+  (Camunda 7 holds one there, Camunda 8 none), so a caller waiting for it is an instance with an
+  incident (`withIncident`) whose process counts no incident for it. Two laws hold it over the
+  world, exactly; their saboteurs count the copy, a process by its latest version alone, every
+  version at each version, the instances with an incident as incidents, or a lower bound within
+  the world. Each failing instance of the world holds one incident, so the laws cannot tell the
+  incidents from the instances that hold one of their own: a dialect's own tests pin that it counts
+  incidents. The field is required, a breaking change for an implementation outside this
+  repository (2026-11-21).
 - **A question an engine cannot answer** fails as `RuntimeError` `unsupported`, never as
   `rejected` (a refused change) or `misconfigured` (a connection to fix). So does a command on a
   connection that only reads: it fails before the write leaves, never as a missing item.
@@ -154,6 +168,11 @@ server's module, runs it in its server layers, its main entry alone, admitted fo
 boards (the owner's decision of 2026-11-16, the case #488 names: a second interface needs the same
 use case with the same rules). The Pulse CLI reaches it through c7-core; importing it directly waits
 until the CLI serves a second dialect, an admission decision in review.
+
+The open root incidents of a process and a version (`incidents`) entered by the rule on
+2026-11-21: both dialects answer them with the same meaning, and their laws pass on the fake, on
+Operaton and CIB seven over the C7 adapter's and the MCP server's wires, and on a local Camunda 8
+cluster over the C8 adapter's and the MCP server's wires.
 
 Two admissions came ahead of their second dialect, by the owner's decision, on the evidence of the
 Camunda 8 adapter's branch (#543):

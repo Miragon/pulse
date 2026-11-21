@@ -38,7 +38,12 @@ export class ScreenWorld {
 
   static summary(
     bpmnProcessId: string,
-    counts: { readonly running: number; readonly withIncident: number },
+    counts: {
+      readonly running: number
+      readonly withIncident: number
+      readonly incidents?: number
+      readonly incidentsAtLeast?: true
+    },
     name?: string,
   ): DefinitionSummary {
     return {
@@ -48,6 +53,7 @@ export class ScreenWorld {
         version: 4,
         ...(name === undefined ? {} : { name }),
       },
+      incidents: 0,
       ...counts,
     }
   }

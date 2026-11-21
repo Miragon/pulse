@@ -145,8 +145,9 @@ Three axes decide where code goes, and they stay apart:
   two surfaces render, executed for boards on 2026-11-16: `@miragon/pulse-blocks`
   (`packages/core/blocks`) holds a board's tiles, which the webview and the cockpit's board route
   render, each with its own table, id and canvas as slots, and since 2026-11-20 the screens' first
-  blocks, an engine's process table and its filter bar, which the webview's engine tab and the web
-  app's engine screen render, each with its own table and id, and an instance's blocks (its facts,
+  blocks, an engine's process table (its columns With incident and Incidents since 2026-11-21) and
+  its filter bar with the legend of its counts, which the webview's engine tab and the web app's
+  engine screen render, each with its own table and id, and an instance's blocks (its facts,
   head strip, incident cards and their text, its tables of waits, path and variables, the menu of
   the instances it called and its markers' legend), which the webview's instance view renders with
   its own table, link and copy, its writes (a retry, a variable's editor, a move) and its
@@ -1016,15 +1017,21 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      the same way (`data/element-counts.ts`, c7-core's reader with each element's jobs without
      retries from the same one statistics read, four versions at once, on a floor of 30 s per caller
      and version), every root incident count per process comes from the definition statistics with
-     `rootIncidents=true` (`fetchStatsByKey`), and a cluster beyond its scan counts by
-     `/incident/count` only where its element is no call activity (`countableAt`).
-     The screen feeds whose reads load the engine's database (a version's element statistics, the
-     first page of an instance list with its search and history counts, never a later page, whose
-     cursor belongs to the first page read before it, its variable names, a search) stand on a floor of 30 s
-     per caller and arguments (`data/screens/screen-floor.ts` over `createOwnerCache` and
-     `callerCacheKey`, as a board's build: a Refresh within it reads nothing, a renewed token reads
-     anew), a process screen an enrichment is missing from kept for no one, so
-     the next read tries it again (`process-screen-data.numbers.test.ts`), and a search's history
+     `rootIncidents=true` (`fetchStatsByKey`; the engine contract's `incidents` per process and
+     version, the shared engine screen's column Incidents, from the same read in c7-core's
+     `DefinitionReader`, on Camunda 8 one incident search per process and version with an instance
+     with incident, a lower bound, `incidentsAtLeast`, where it stops counting), and a cluster
+     beyond its scan counts by `/incident/count` only where its element is no call activity
+     (`countableAt`).
+     The screen feeds whose reads load the engine's database (an engine's processes with their
+     counts, on Camunda 8 an incident search per process with an instance with incident, at most
+     eight at once in c8-core, a version's element statistics, the first page of an instance list
+     with its search and history counts, never a later page, whose cursor belongs to the first page
+     read before it, its variable names, a search) stand on a floor of 30 s per caller and arguments
+     (`data/screens/screen-floor.ts` over `createOwnerCache` and `callerCacheKey`, as a board's
+     build: a Refresh within it reads nothing, a renewed token reads anew), an engine screen without
+     what the engine says it is and a process screen an enrichment is missing from kept for no one, so
+     the next read tries it again (`screen-data.numbers.test.ts`, `process-screen-data.numbers.test.ts`), and a search's history
      gap, which reads the whole engine whatever was searched, on a floor of its own per caller and
      engine that no failed read holds (`find-data.numbers.test.ts`). A board's numbers (the board feed `engine_board_data`,
      `data/board-data.ts` over the builder of `@miragon/pulse-board`) degrade per engine and tile

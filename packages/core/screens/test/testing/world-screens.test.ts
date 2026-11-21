@@ -210,12 +210,23 @@ describe("the figures of an engine screen", () => {
   test("keep each row's id, latest version and counts in their order, and the totals", () => {
     expect(ScreenFigures.engine(WORLD_SCREENS.engine)).toStrictEqual({
       processes: [
-        ["pulse-order", 2, 3, 1],
-        ["pulse-dispatch", 1, 1, 1],
-        ["pulse-label", 1, 1, 1],
+        ["pulse-order", 2, 3, 1, 1, false],
+        ["pulse-dispatch", 1, 1, 1, 0, false],
+        ["pulse-label", 1, 1, 1, 1, false],
       ],
       totals: { processes: 3, running: 5, withIncident: 3 },
     })
+  })
+
+  test("keep an incident count the engine stopped at apart from the same exact count", () => {
+    const [order, ...rest] = WORLD_SCREENS.engine.processes
+    const stopped = {
+      ...WORLD_SCREENS.engine,
+      processes: [{ ...order!, incidentsAtLeast: true as const }, ...rest],
+    }
+
+    expect(ScreenFigures.engine(stopped).processes[0]).toEqual(["pulse-order", 2, 3, 1, 1, true])
+    expect(ScreenFigures.engine(stopped)).not.toEqual(ScreenFigures.engine(WORLD_SCREENS.engine))
   })
 
   test("leave out what an engine makes on its own: its id, the time, its product and the names", () => {
@@ -225,11 +236,12 @@ describe("the figures of an engine screen", () => {
       asOf: "2026-11-20T10:00:00.000Z",
       info: { product: "Another engine", version: "8.10.9" },
       processes: WORLD_SCREENS.engine.processes.map(
-        ({ bpmnProcessId, latestVersion, running, withIncident }) => ({
+        ({ bpmnProcessId, latestVersion, running, withIncident, incidents }) => ({
           bpmnProcessId,
           latestVersion,
           running,
           withIncident,
+          incidents,
         }),
       ),
     }

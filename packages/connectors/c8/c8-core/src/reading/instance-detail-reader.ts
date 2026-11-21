@@ -27,12 +27,12 @@ import {
 } from "../rest/index.js"
 import type { Diagrams } from "./diagrams.js"
 import { ElementScopes } from "./element-scopes.js"
+import { FewAtOnce } from "./few-at-once.js"
 import { WaitStateReader, type MemberReads } from "./wait-state-reader.js"
 
 const MOST_CALLED_INSTANCES = 50
 const MOST_INCIDENTS = 200
 const MOST_VARIABLES = 1000
-const READS_AT_ONCE = 8
 const NOT_ON_THE_PATH: ReadonlySet<string> = new Set(["PROCESS", "SEQUENCE_FLOW"])
 const CANCELED = "TERMINATED"
 
@@ -75,7 +75,7 @@ export class InstanceDetailReader {
     const reads = await this.readsOf(instance, called.instances)
     const path = [...reads.history.items].reverse()
     const elements = await this.elementsOf(path, reads, instance)
-    const waits = await InstanceDetailReader.fewAtOnce(reads.members, (member) =>
+    const waits = await FewAtOnce.map(reads.members, (member) =>
       this.waits.of(member, reads.incidents.items),
     )
     return {
@@ -115,7 +115,7 @@ export class InstanceDetailReader {
     const members = [root, ...called]
     const [history, details, incidents, variables] = await Promise.all([
       this.client.elementHistory(root.key),
-      InstanceDetailReader.fewAtOnce(members, (member) => this.memberOf(member)),
+      FewAtOnce.map(members, (member) => this.memberOf(member)),
       this.client.incidents(
         { processInstanceKey: { $in: members.map((member) => member.key) } },
         { limit: MOST_INCIDENTS },
@@ -163,7 +163,7 @@ export class InstanceDetailReader {
     const missing = Keys.only([...scopeKeys]).filter(
       (key) => key !== instance.key && !elements.has(key),
     )
-    const found = await InstanceDetailReader.fewAtOnce(missing, (key) => this.scopes.of(key))
+    const found = await FewAtOnce.map(missing, (key) => this.scopes.of(key))
     for (const scope of found) {
       if (scope !== undefined) {
         elements.set(scope.key, scope)
@@ -184,30 +184,6 @@ export class InstanceDetailReader {
     )
     const found = await this.client.jobsByKey(missing)
     return { items: [...known, ...found.items], cut: found.cut }
-  }
-
-  private static async fewAtOnce<Item, Result>(
-    items: readonly Item[],
-    work: (item: Item) => Promise<Result>,
-  ): Promise<Result[]> {
-    const results = new Array<Result>(items.length)
-    const queue = items.entries()
-    let failed = false
-    const worker = async (): Promise<void> => {
-      for (const [index, item] of queue) {
-        if (failed) {
-          return
-        }
-        try {
-          results[index] = await work(item)
-        } catch (error: unknown) {
-          failed = true
-          throw error
-        }
-      }
-    }
-    await Promise.all(Array.from({ length: READS_AT_ONCE }, worker))
-    return results
   }
 
   private static cutIn(reads: TreeReads): boolean {

@@ -67,26 +67,33 @@ const badges = (data: BoardStartData) => tileAt<"processDiagram">(data, 2, 0)?.b
 
 /**
  * Where each recorded answer of c8-core's board engine shows on its board, in the recording's
- * order: the cluster's own answers (its topology, its statistics per process, the latest
- * versions), the diagram's (its XML, its element statistics, the incidents of the instances its
- * call activity started), the open incidents with the versions they name, and the counts and the
- * page of the instance reads.
+ * order: the cluster's own answers (its topology, its statistics per process, the latest versions,
+ * the open incidents of each process with an instance with incident, which the process list
+ * counts), the counts of the instance reads, the diagram's (its XML, its element statistics), the
+ * open incidents, the running orders' page, the versions the open incidents name and the incidents
+ * of the instances the diagram's call activity started.
  */
 const C8_PLACES: ReadonlyArray<readonly [string, (data: BoardStartData) => unknown]> = [
   ["the topology: what the engine is", (data) => engineOf(data)?.product],
   ["the instance statistics per process: the engine's totals", (data) => engineOf(data)?.totals],
   ["the latest versions: the engine's totals", (data) => engineOf(data)?.totals],
-  ["the diagram's XML", badges],
-  ["the open incidents", openIncidents],
-  ["the version an open incident names (Order fulfillment v1)", openIncidents],
-  ["the version an open incident names (Print label v1)", openIncidents],
-  ["the diagram's statistics per element", badges],
+  ["the open incidents of Dispatch order: the engine's totals", (data) => engineOf(data)?.totals],
+  ["the open incidents of Print label: the engine's totals", (data) => engineOf(data)?.totals],
+  [
+    "the open incidents of Order fulfillment: the engine's totals",
+    (data) => engineOf(data)?.totals,
+  ],
   ["the running orders' count", (data) => runningOrders(data)?.total],
-  ["the orders with incident", counter(1)],
-  ["the ended orders", counter(2)],
   ["the orders waiting for review", counter(0)],
-  ["the incidents of the instances the call activity started", badges],
+  ["the ended orders", counter(2)],
+  ["the diagram's XML", badges],
+  ["the orders with incident", counter(1)],
+  ["the diagram's statistics per element", badges],
+  ["the open incidents", openIncidents],
   ["the running orders' page", (data) => runningOrders(data)?.instances],
+  ["the version an open incident names (Print label v1)", openIncidents],
+  ["the incidents of the instances the call activity started", badges],
+  ["the version an open incident names (Order fulfillment v1)", openIncidents],
 ]
 
 describe("buildBoardData over the server's Camunda 8 wire (degrades in place)", () => {

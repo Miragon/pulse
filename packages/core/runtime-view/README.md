@@ -99,7 +99,7 @@ harness's. The hooks:
 | bar and states    | `context-bar` (`data-kind`: engine, definition, instance, migration, board, pending), `context-subject`, `context-key`, `access`, `freshness`, `strips`                                                                       |
 | notices           | `status-strip`, `strip-title`, `status-box`, `bulk-strip`, `empty-hint`, `loading-layout`, `skeleton`                                                                                                                         |
 | lists             | `data-table` (`data-state`: auto, fixed), `column-label`, `table-empty`, `table-footer`, `filter-bar`, `filter-chip`, `filter-summary`, `segment-count`, `selection-count`, `tab-bar`                                         |
-| states and counts | `state-label`, `incident-flag`, `count-badge`, `incident-count`                                                                                                                                                               |
+| states and counts | `state-label`, `incident-flag`, `count-badge`, `incident-count`, `root-incident-count`                                                                                                                                        |
 | instance          | `incident-card`, `variable-name`, `shadow-warning`, `editor-hint`, `editor-warning`, `caller-link`, `called-instance-link`                                                                                                    |
 | diagram           | `diagram`, `diagram-canvas`, `diagram-failure`, `badge-count`, `call-button`, `element-actions`, `move-entry`, `move-badge`, `code-button`, `move-panel`, `move-warning`                                                      |
 | migration         | `migration-diagram`, `migration-summary`, `migration-refusal`, `mapping-note`                                                                                                                                                 |
@@ -107,7 +107,8 @@ harness's. The hooks:
 
 The board's parts are the building blocks' own (`@miragon/pulse-blocks` carries the boards row's
 hooks but `board-notes`, and `incident-flag` and `empty-hint` in its tiles), and so are the engine
-tab's `filter-bar`, `segment-count` and `incident-count` (its process table and filter bar), and the
+tab's `filter-bar`, `segment-count`, `incident-count` and `root-incident-count` (its process table and
+filter bar), and the
 instance view's `incident-card` and `variable-name` (its incident cards and variables table), and
 the definition view's `filter-bar`, `segment-count`, `filter-chip`, `incident-flag`, `badge-count`
 and `call-button` (its filter bar, instance table, badge clusters and call buttons). The kit's slots a part

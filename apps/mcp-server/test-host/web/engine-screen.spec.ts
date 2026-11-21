@@ -29,6 +29,7 @@ interface ScreenRow {
   readonly latestVersion: number
   readonly running: number
   readonly withIncident: number
+  readonly incidents: number
 }
 
 interface FeedAnswer {
@@ -75,7 +76,7 @@ test.describe("the engine screen", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(HEALTHY_ENGINE)
     await expect(page).toHaveTitle(`${HEALTHY_ENGINE} · Pulse`)
     await expect(navEntry(page, "Processes")).toHaveAttribute("aria-current", "page")
-    // Every row the feed names, in its order, each with its latest version and both counts.
+    // Every row the feed names, in its order, each with its latest version and its three counts.
     expect(await shownProcesses(page)).toEqual(
       processes.map((row) => `Process ${row.name ?? row.bpmnProcessId}`),
     )
@@ -86,7 +87,10 @@ test.describe("the engine screen", () => {
       await expect(cells.nth(1)).toHaveText(`v${row.latestVersion}`)
       await expect(cells.nth(2)).toHaveText(String(row.running))
       await expect(cells.nth(3)).toContainText(String(row.withIncident))
+      await expect(cells.nth(4)).toContainText(String(row.incidents))
     }
+    await expect(table(page).getByRole("columnheader", { name: "Incidents" })).toBeVisible()
+    await expect(page.getByRole("button", { name: "What the counts say" })).toBeVisible()
     await expect(
       page.getByText(
         `${totals.processes} processes · ${totals.running} running · ${totals.withIncident} with incident · all versions`,
@@ -277,6 +281,7 @@ test.describe("the engine screen at 320 px, in German, on a dark system", () => 
       processes.getByRole("columnheader", { name: "Prozess", exact: true }),
     ).toBeVisible()
     await expect(processes.getByRole("columnheader", { name: "Mit Incident" })).toBeVisible()
+    await expect(processes.getByRole("columnheader", { name: "Incidents" })).toBeVisible()
     // Under 40rem of its region the table drops the latest version and the running instances.
     await expect(processes.getByRole("columnheader", { name: "Neueste Version" })).toBeHidden()
     await expect(processes.getByRole("columnheader", { name: "Laufend" })).toBeHidden()

@@ -23,9 +23,8 @@ Each view you open (an entry, a row, the trail) has its own URL, stable from the
 it: Back returns to the view before, a reload or a copied link shows it again, and the page never
 loads anew. An earlier release's URL (`/app/cockpit?view=…`) gives way to the view's own (an
 incident's leads to the instance that holds it), which an id no path holds (`.`, `..`) keeps;
-`/app/` is a 404. The page speaks the browser's
-German or English, follows the system's light or dark theme (its diagrams too), and is compact on a
-desktop, comfortable on touch.
+`/app/` is a 404. The page speaks the browser's German or English, follows the system's light or
+dark theme (its diagrams too), and is compact on a desktop, comfortable on touch.
 
 ## Navigation
 
@@ -37,9 +36,11 @@ entry opens its processes), and the boards; at its foot who is signed in and **S
 instances); a refused profile says so and opens its one state.
 Every entry is a link, so Ctrl or Cmd+click and a middle click open a new tab. Under 64rem it is a
 drawer behind the menu button, the first of each view's bar. It shows no numbers: the views do.
-An engine's processes list each with its latest version, running instances and instances with
-incident over every version, the numbers Pulse for VS Code shows; scopes and search filter in the
-browser, a row opens its process, and **Refresh** reads again (on its own when you return after 60 s).
+An engine's processes list each with its latest version, running instances, instances with incident
+and open incidents over every version, the numbers Pulse for VS Code shows (a legend says why a
+caller waiting for a called instance's incident counts with incident yet holds none); scopes and
+search filter in the browser, a row opens its process, **Refresh** reads again (on its own when you
+return after 60 s; the server reads the engine at most every 30 s per user).
 A process shows one version, picked with the running instances and those with incident of each,
 older versions that still run, its diagram with the counts on each element (incidents in called
 instances apart) and its instances, 50 at a time with **Load more**, by scope, element, exact

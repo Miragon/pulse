@@ -10,7 +10,8 @@ the [Pulse MCP server](https://miragon.github.io/pulse/mcp/) and the editors,
 and [Pulse for Orca](https://miragon.github.io/pulse/orca/). Where two of them show a screen, this
 package builds its numbers once, over the engine contract, so each surface shows the same numbers
 and words them in its own language. Today it holds the engine screen, every process of an engine
-with its latest version, its running instances and its instances with incident; the process
+with its latest version, its running instances, its instances with incident and its open root
+incidents; the process
 screen, a process's versions with their counts, the badges of a version's diagram, its call
 targets and the notice that older versions still run; the instance list, a version's instances by
 scope, page by page, with the count of each scope; and the instance screen, an instance with its
@@ -53,8 +54,9 @@ which it asks once, before it reads. A surface that holds the reads already (a c
 a tree, the engine's description kept from an earlier read) hands them to `EngineScreen.of` instead.
 Both return an `EngineScreenModel`:
 
-- every process with its latest version and its counts over every version, the most instances with
-  incident first, then the busiest, then by name in English collation (a process without a name by
+- every process with its latest version and its counts over every version (its running instances,
+  those with incident and its open root incidents, the last a lower bound, `incidentsAtLeast`, where
+  the engine stopped counting), the most instances with incident first, then the busiest, then by name in English collation (a process without a name by
   its id) and, between two of the same name, by id, so every surface lists them alike;
 - the totals over every process: how many there are, how many instances run and how many have an
   incident;
@@ -234,8 +236,9 @@ too.
 The main entry holds what a surface does with a screen's JSON form without reading the engine again:
 
 - `ProcessFilter.apply(processes, { scope, search })` keeps the rows of a scope (`all`, or
-  `withIncident`: a row with an instance with incident) whose name or id holds the search in any
-  case, and counts both scopes over what the search leaves.
+  `withIncident`: a row with an instance with incident or an open incident of its own, as Camunda
+  7's failed timer start, which no instance holds) whose name or id holds the search in any case,
+  and counts both scopes over what the search leaves.
 - `FleetSums.of(screens)` sums the engine screens of several engines: each engine's totals as its
   screen says them, each process over the engines it runs on with a cell per engine, and the totals
   over all of them. Counts only, never a rate: engines run different processes, so a rate summed
@@ -273,7 +276,7 @@ what the finder finds by ORD-1003 (`find`) and by the id of the instance DSP-300
 `ScreenFigures`
 reads a screen as its figures, without what an engine makes on its own (its name, ids, times, its
 product, its names and words): `ScreenFigures.engine(data)` each row's id, latest version and
-counts in their order and the totals; `ScreenFigures.instance(data)` the instance's state, its
+counts in their order, whether its incident count is a lower bound, and the totals; `ScreenFigures.instance(data)` the instance's state, its
 caller's process, the head strip's code, the markers, the call links with the state of each called
 instance, where each root incident and each wait lies and the ended runs of the path, each in an
 order of its own, since a dialect reads in its own order, enters an element it waits before (an

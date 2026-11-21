@@ -24,56 +24,12 @@
             "version": "8.10.9"
           }
         ],
-        "clusterId": "89309fee-9296-4557-89b5-a0c527b04245",
+        "clusterId": "d92d8b43-736f-4e36-951c-0f17ea3bcbb0",
         "clusterSize": 1,
         "partitionsCount": 1,
         "replicationFactor": 1,
         "gatewayVersion": "8.10.9",
         "lastCompletedChangeId": "-1"
-      }
-    },
-    {
-      "method": "POST",
-      "path": "/v2/process-definitions/statistics/process-instances",
-      "body": {
-        "page": {
-          "from": 0,
-          "limit": 500
-        }
-      },
-      "answer": {
-        "items": [
-          {
-            "processDefinitionId": "pulse-dispatch",
-            "tenantId": "<default>",
-            "latestProcessDefinitionName": "Dispatch order",
-            "hasMultipleVersions": false,
-            "activeInstancesWithoutIncidentCount": 0,
-            "activeInstancesWithIncidentCount": 1
-          },
-          {
-            "processDefinitionId": "pulse-label",
-            "tenantId": "<default>",
-            "latestProcessDefinitionName": "Print label",
-            "hasMultipleVersions": false,
-            "activeInstancesWithoutIncidentCount": 0,
-            "activeInstancesWithIncidentCount": 1
-          },
-          {
-            "processDefinitionId": "pulse-order",
-            "tenantId": "<default>",
-            "latestProcessDefinitionName": "Order fulfillment",
-            "hasMultipleVersions": true,
-            "activeInstancesWithoutIncidentCount": 2,
-            "activeInstancesWithIncidentCount": 1
-          }
-        ],
-        "page": {
-          "totalItems": 3,
-          "hasMoreTotalItems": false,
-          "startCursor": "WyJwdWxzZS1kaXNwYXRjaCJd",
-          "endCursor": "WyJwdWxzZS1vcmRlciJd"
-        }
       }
     },
     {
@@ -132,6 +88,146 @@
       }
     },
     {
+      "method": "POST",
+      "path": "/v2/process-definitions/statistics/process-instances",
+      "body": {
+        "page": {
+          "from": 0,
+          "limit": 500
+        }
+      },
+      "answer": {
+        "items": [
+          {
+            "processDefinitionId": "pulse-dispatch",
+            "tenantId": "<default>",
+            "latestProcessDefinitionName": "Dispatch order",
+            "hasMultipleVersions": false,
+            "activeInstancesWithoutIncidentCount": 0,
+            "activeInstancesWithIncidentCount": 1
+          },
+          {
+            "processDefinitionId": "pulse-label",
+            "tenantId": "<default>",
+            "latestProcessDefinitionName": "Print label",
+            "hasMultipleVersions": false,
+            "activeInstancesWithoutIncidentCount": 0,
+            "activeInstancesWithIncidentCount": 1
+          },
+          {
+            "processDefinitionId": "pulse-order",
+            "tenantId": "<default>",
+            "latestProcessDefinitionName": "Order fulfillment",
+            "hasMultipleVersions": true,
+            "activeInstancesWithoutIncidentCount": 2,
+            "activeInstancesWithIncidentCount": 1
+          }
+        ],
+        "page": {
+          "totalItems": 3,
+          "hasMoreTotalItems": false,
+          "startCursor": "WyJwdWxzZS1kaXNwYXRjaCJd",
+          "endCursor": "WyJwdWxzZS1vcmRlciJd"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v2/incidents/search",
+      "body": {
+        "filter": {
+          "processDefinitionId": "pulse-label",
+          "state": "ACTIVE"
+        },
+        "sort": [
+          {
+            "field": "creationTime",
+            "order": "DESC"
+          },
+          {
+            "field": "incidentKey",
+            "order": "ASC"
+          }
+        ],
+        "page": {
+          "limit": 0
+        }
+      },
+      "answer": {
+        "items": [],
+        "page": {
+          "totalItems": 1,
+          "hasMoreTotalItems": false,
+          "startCursor": null,
+          "endCursor": null
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v2/incidents/search",
+      "body": {
+        "filter": {
+          "processDefinitionId": "pulse-order",
+          "state": "ACTIVE"
+        },
+        "sort": [
+          {
+            "field": "creationTime",
+            "order": "DESC"
+          },
+          {
+            "field": "incidentKey",
+            "order": "ASC"
+          }
+        ],
+        "page": {
+          "limit": 0
+        }
+      },
+      "answer": {
+        "items": [],
+        "page": {
+          "totalItems": 1,
+          "hasMoreTotalItems": false,
+          "startCursor": null,
+          "endCursor": null
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v2/incidents/search",
+      "body": {
+        "filter": {
+          "processDefinitionId": "pulse-dispatch",
+          "state": "ACTIVE"
+        },
+        "sort": [
+          {
+            "field": "creationTime",
+            "order": "DESC"
+          },
+          {
+            "field": "incidentKey",
+            "order": "ASC"
+          }
+        ],
+        "page": {
+          "limit": 0
+        }
+      },
+      "answer": {
+        "items": [],
+        "page": {
+          "totalItems": 0,
+          "hasMoreTotalItems": false,
+          "startCursor": null,
+          "endCursor": null
+        }
+      }
+    },
+    {
       "method": "GET",
       "path": "/v2/process-instances/2251799813685367",
       "answer": {
@@ -139,7 +235,7 @@
         "processDefinitionName": "Dispatch order",
         "processDefinitionVersion": 1,
         "processDefinitionVersionTag": null,
-        "startDate": "2026-11-21T16:51:47.625Z",
+        "startDate": "2026-11-21T21:03:22.221Z",
         "endDate": null,
         "state": "ACTIVE",
         "suspendedDate": null,
@@ -184,7 +280,7 @@
             "processDefinitionName": "Print label",
             "processDefinitionVersion": 1,
             "processDefinitionVersionTag": null,
-            "startDate": "2026-11-21T16:51:47.625Z",
+            "startDate": "2026-11-21T21:03:22.221Z",
             "endDate": null,
             "state": "ACTIVE",
             "suspendedDate": null,
@@ -202,8 +298,8 @@
         "page": {
           "totalItems": 1,
           "hasMoreTotalItems": false,
-          "startCursor": "WyIyMDI2LTExLTIxVDE2OjUxOjQ3LjYyNVoiLDIyNTE3OTk4MTM2ODUzNzNd",
-          "endCursor": "WyIyMDI2LTExLTIxVDE2OjUxOjQ3LjYyNVoiLDIyNTE3OTk4MTM2ODUzNzNd"
+          "startCursor": "WyIyMDI2LTExLTIxVDIxOjAzOjIyLjIyMVoiLDIyNTE3OTk4MTM2ODUzNzNd",
+          "endCursor": "WyIyMDI2LTExLTIxVDIxOjAzOjIyLjIyMVoiLDIyNTE3OTk4MTM2ODUzNzNd"
         }
       }
     },
@@ -228,143 +324,6 @@
         ],
         "page": {
           "limit": 50
-        }
-      },
-      "answer": {
-        "items": [],
-        "page": {
-          "totalItems": 0,
-          "hasMoreTotalItems": false,
-          "startCursor": null,
-          "endCursor": null
-        }
-      }
-    },
-    {
-      "method": "POST",
-      "path": "/v2/element-instances/search",
-      "body": {
-        "filter": {
-          "processInstanceKey": "2251799813685367"
-        },
-        "sort": [
-          {
-            "field": "startDate",
-            "order": "DESC"
-          },
-          {
-            "field": "elementInstanceKey",
-            "order": "DESC"
-          }
-        ],
-        "page": {
-          "limit": 500
-        }
-      },
-      "answer": {
-        "items": [
-          {
-            "processDefinitionId": "pulse-dispatch",
-            "startDate": "2026-11-21T16:51:47.625Z",
-            "endDate": null,
-            "elementId": "Activity_PrintShippingLabel",
-            "elementName": "Print shipping label",
-            "type": "CALL_ACTIVITY",
-            "state": "ACTIVE",
-            "hasIncident": true,
-            "tenantId": "<default>",
-            "elementInstanceKey": "2251799813685372",
-            "processInstanceKey": "2251799813685367",
-            "rootProcessInstanceKey": "2251799813685367",
-            "processDefinitionKey": "2251799813685328",
-            "incidentKey": null
-          },
-          {
-            "processDefinitionId": "pulse-dispatch",
-            "startDate": "2026-11-21T16:51:47.625Z",
-            "endDate": "2026-11-21T16:51:47.625Z",
-            "elementId": "Event_DispatchRequested",
-            "elementName": "Dispatch requested",
-            "type": "START_EVENT",
-            "state": "COMPLETED",
-            "hasIncident": false,
-            "tenantId": "<default>",
-            "elementInstanceKey": "2251799813685370",
-            "processInstanceKey": "2251799813685367",
-            "rootProcessInstanceKey": "2251799813685367",
-            "processDefinitionKey": "2251799813685328",
-            "incidentKey": null
-          }
-        ],
-        "page": {
-          "totalItems": 2,
-          "hasMoreTotalItems": false,
-          "startCursor": "WyIyMDI2LTExLTIxVDE2OjUxOjQ3LjYyNVoiLDIyNTE3OTk4MTM2ODUzNzJd",
-          "endCursor": "WyIyMDI2LTExLTIxVDE2OjUxOjQ3LjYyNVoiLDIyNTE3OTk4MTM2ODUzNzBd"
-        }
-      }
-    },
-    {
-      "method": "POST",
-      "path": "/v2/element-instances/search",
-      "body": {
-        "filter": {
-          "processInstanceKey": "2251799813685367",
-          "state": "ACTIVE"
-        },
-        "sort": [
-          {
-            "field": "startDate",
-            "order": "ASC"
-          },
-          {
-            "field": "elementInstanceKey",
-            "order": "ASC"
-          }
-        ],
-        "page": {
-          "limit": 500
-        }
-      },
-      "answer": {
-        "items": [
-          {
-            "processDefinitionId": "pulse-dispatch",
-            "startDate": "2026-11-21T16:51:47.625Z",
-            "endDate": null,
-            "elementId": "Activity_PrintShippingLabel",
-            "elementName": "Print shipping label",
-            "type": "CALL_ACTIVITY",
-            "state": "ACTIVE",
-            "hasIncident": true,
-            "tenantId": "<default>",
-            "elementInstanceKey": "2251799813685372",
-            "processInstanceKey": "2251799813685367",
-            "rootProcessInstanceKey": "2251799813685367",
-            "processDefinitionKey": "2251799813685328",
-            "incidentKey": null
-          }
-        ],
-        "page": {
-          "totalItems": 1,
-          "hasMoreTotalItems": false,
-          "startCursor": "WyIyMDI2LTExLTIxVDE2OjUxOjQ3LjYyNVoiLDIyNTE3OTk4MTM2ODUzNzJd",
-          "endCursor": "WyIyMDI2LTExLTIxVDE2OjUxOjQ3LjYyNVoiLDIyNTE3OTk4MTM2ODUzNzJd"
-        }
-      }
-    },
-    {
-      "method": "POST",
-      "path": "/v2/user-tasks/search",
-      "body": {
-        "filter": {
-          "processInstanceKey": "2251799813685367",
-          "state": {
-            "$in": ["CREATING", "CREATED", "ASSIGNING", "UPDATING", "COMPLETING", "CANCELING"]
-          }
-        },
-        "page": {
-          "limit": 500
         }
       },
       "answer": {
@@ -409,6 +368,30 @@
     },
     {
       "method": "POST",
+      "path": "/v2/user-tasks/search",
+      "body": {
+        "filter": {
+          "processInstanceKey": "2251799813685367",
+          "state": {
+            "$in": ["CREATING", "CREATED", "ASSIGNING", "UPDATING", "COMPLETING", "CANCELING"]
+          }
+        },
+        "page": {
+          "limit": 500
+        }
+      },
+      "answer": {
+        "items": [],
+        "page": {
+          "totalItems": 0,
+          "hasMoreTotalItems": false,
+          "startCursor": null,
+          "endCursor": null
+        }
+      }
+    },
+    {
+      "method": "POST",
       "path": "/v2/element-instances/search",
       "body": {
         "filter": {
@@ -433,7 +416,7 @@
         "items": [
           {
             "processDefinitionId": "pulse-label",
-            "startDate": "2026-11-21T16:51:47.625Z",
+            "startDate": "2026-11-21T21:03:22.221Z",
             "endDate": null,
             "elementId": "Activity_RenderLabel",
             "elementName": "Render label",
@@ -451,8 +434,121 @@
         "page": {
           "totalItems": 1,
           "hasMoreTotalItems": false,
-          "startCursor": "WyIyMDI2LTExLTIxVDE2OjUxOjQ3LjYyNVoiLDIyNTE3OTk4MTM2ODUzNzdd",
-          "endCursor": "WyIyMDI2LTExLTIxVDE2OjUxOjQ3LjYyNVoiLDIyNTE3OTk4MTM2ODUzNzdd"
+          "startCursor": "WyIyMDI2LTExLTIxVDIxOjAzOjIyLjIyMVoiLDIyNTE3OTk4MTM2ODUzNzdd",
+          "endCursor": "WyIyMDI2LTExLTIxVDIxOjAzOjIyLjIyMVoiLDIyNTE3OTk4MTM2ODUzNzdd"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v2/element-instances/search",
+      "body": {
+        "filter": {
+          "processInstanceKey": "2251799813685367",
+          "state": "ACTIVE"
+        },
+        "sort": [
+          {
+            "field": "startDate",
+            "order": "ASC"
+          },
+          {
+            "field": "elementInstanceKey",
+            "order": "ASC"
+          }
+        ],
+        "page": {
+          "limit": 500
+        }
+      },
+      "answer": {
+        "items": [
+          {
+            "processDefinitionId": "pulse-dispatch",
+            "startDate": "2026-11-21T21:03:22.221Z",
+            "endDate": null,
+            "elementId": "Activity_PrintShippingLabel",
+            "elementName": "Print shipping label",
+            "type": "CALL_ACTIVITY",
+            "state": "ACTIVE",
+            "hasIncident": true,
+            "tenantId": "<default>",
+            "elementInstanceKey": "2251799813685372",
+            "processInstanceKey": "2251799813685367",
+            "rootProcessInstanceKey": "2251799813685367",
+            "processDefinitionKey": "2251799813685328",
+            "incidentKey": null
+          }
+        ],
+        "page": {
+          "totalItems": 1,
+          "hasMoreTotalItems": false,
+          "startCursor": "WyIyMDI2LTExLTIxVDIxOjAzOjIyLjIyMVoiLDIyNTE3OTk4MTM2ODUzNzJd",
+          "endCursor": "WyIyMDI2LTExLTIxVDIxOjAzOjIyLjIyMVoiLDIyNTE3OTk4MTM2ODUzNzJd"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v2/element-instances/search",
+      "body": {
+        "filter": {
+          "processInstanceKey": "2251799813685367"
+        },
+        "sort": [
+          {
+            "field": "startDate",
+            "order": "DESC"
+          },
+          {
+            "field": "elementInstanceKey",
+            "order": "DESC"
+          }
+        ],
+        "page": {
+          "limit": 500
+        }
+      },
+      "answer": {
+        "items": [
+          {
+            "processDefinitionId": "pulse-dispatch",
+            "startDate": "2026-11-21T21:03:22.221Z",
+            "endDate": null,
+            "elementId": "Activity_PrintShippingLabel",
+            "elementName": "Print shipping label",
+            "type": "CALL_ACTIVITY",
+            "state": "ACTIVE",
+            "hasIncident": true,
+            "tenantId": "<default>",
+            "elementInstanceKey": "2251799813685372",
+            "processInstanceKey": "2251799813685367",
+            "rootProcessInstanceKey": "2251799813685367",
+            "processDefinitionKey": "2251799813685328",
+            "incidentKey": null
+          },
+          {
+            "processDefinitionId": "pulse-dispatch",
+            "startDate": "2026-11-21T21:03:22.221Z",
+            "endDate": "2026-11-21T21:03:22.221Z",
+            "elementId": "Event_DispatchRequested",
+            "elementName": "Dispatch requested",
+            "type": "START_EVENT",
+            "state": "COMPLETED",
+            "hasIncident": false,
+            "tenantId": "<default>",
+            "elementInstanceKey": "2251799813685370",
+            "processInstanceKey": "2251799813685367",
+            "rootProcessInstanceKey": "2251799813685367",
+            "processDefinitionKey": "2251799813685328",
+            "incidentKey": null
+          }
+        ],
+        "page": {
+          "totalItems": 2,
+          "hasMoreTotalItems": false,
+          "startCursor": "WyIyMDI2LTExLTIxVDIxOjAzOjIyLjIyMVoiLDIyNTE3OTk4MTM2ODUzNzJd",
+          "endCursor": "WyIyMDI2LTExLTIxVDIxOjAzOjIyLjIyMVoiLDIyNTE3OTk4MTM2ODUzNzBd"
         }
       }
     },
@@ -477,6 +573,40 @@
           "hasMoreTotalItems": false,
           "startCursor": null,
           "endCursor": null
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v2/variables/search",
+      "body": {
+        "filter": {
+          "processInstanceKey": {
+            "$in": ["2251799813685367"]
+          }
+        },
+        "page": {
+          "limit": 1000
+        }
+      },
+      "answer": {
+        "items": [
+          {
+            "value": "\"ORD-1001\"",
+            "isTruncated": false,
+            "name": "orderId",
+            "tenantId": "<default>",
+            "variableKey": "2251799813685368",
+            "scopeKey": "2251799813685367",
+            "processInstanceKey": "2251799813685367",
+            "rootProcessInstanceKey": "2251799813685367"
+          }
+        ],
+        "page": {
+          "totalItems": 1,
+          "hasMoreTotalItems": false,
+          "startCursor": "WzIyNTE3OTk4MTM2ODUzNjhd",
+          "endCursor": "WzIyNTE3OTk4MTM2ODUzNjhd"
         }
       }
     },
@@ -541,7 +671,7 @@
             "errorType": "JOB_NO_RETRIES",
             "errorMessage": "java.lang.IllegalStateException: the worker failed\n\tat io.miragon.shop.Worker.handle(Worker.java:42)\nCaused by: java.net.ConnectException: the card gateway is unreachable\n\tat io.miragon.shop.Gateway.connect(Gateway.java:7)",
             "elementId": "Activity_RenderLabel",
-            "creationTime": "2026-11-21T16:51:47.766Z",
+            "creationTime": "2026-11-21T21:03:22.328Z",
             "state": "ACTIVE",
             "tenantId": "<default>",
             "incidentKey": "2251799813685382",
@@ -555,42 +685,8 @@
         "page": {
           "totalItems": 1,
           "hasMoreTotalItems": false,
-          "startCursor": "WyIyMDI2LTExLTIxVDE2OjUxOjQ3Ljc2NloiLDIyNTE3OTk4MTM2ODUzODJd",
-          "endCursor": "WyIyMDI2LTExLTIxVDE2OjUxOjQ3Ljc2NloiLDIyNTE3OTk4MTM2ODUzODJd"
-        }
-      }
-    },
-    {
-      "method": "POST",
-      "path": "/v2/variables/search",
-      "body": {
-        "filter": {
-          "processInstanceKey": {
-            "$in": ["2251799813685367"]
-          }
-        },
-        "page": {
-          "limit": 1000
-        }
-      },
-      "answer": {
-        "items": [
-          {
-            "value": "\"ORD-1001\"",
-            "isTruncated": false,
-            "name": "orderId",
-            "tenantId": "<default>",
-            "variableKey": "2251799813685368",
-            "scopeKey": "2251799813685367",
-            "processInstanceKey": "2251799813685367",
-            "rootProcessInstanceKey": "2251799813685367"
-          }
-        ],
-        "page": {
-          "totalItems": 1,
-          "hasMoreTotalItems": false,
-          "startCursor": "WzIyNTE3OTk4MTM2ODUzNjhd",
-          "endCursor": "WzIyNTE3OTk4MTM2ODUzNjhd"
+          "startCursor": "WyIyMDI2LTExLTIxVDIxOjAzOjIyLjMyOFoiLDIyNTE3OTk4MTM2ODUzODJd",
+          "endCursor": "WyIyMDI2LTExLTIxVDIxOjAzOjIyLjMyOFoiLDIyNTE3OTk4MTM2ODUzODJd"
         }
       }
     },
@@ -636,7 +732,7 @@
         "items": [
           {
             "customHeaders": {},
-            "deadline": "2026-11-21T16:52:47.743Z",
+            "deadline": "2026-11-21T21:04:22.315Z",
             "deniedReason": null,
             "elementId": "Activity_RenderLabel",
             "elementInstanceKey": "2251799813685377",
@@ -658,8 +754,8 @@
             "tenantId": "<default>",
             "type": "render-label",
             "worker": "pulse-seed",
-            "creationTime": "2026-11-21T16:51:47.625Z",
-            "lastUpdateTime": "2026-11-21T16:51:47.766Z",
+            "creationTime": "2026-11-21T21:03:22.221Z",
+            "lastUpdateTime": "2026-11-21T21:03:22.328Z",
             "priority": 0
           }
         ],
@@ -685,7 +781,7 @@
         "processDefinitionName": "Print label",
         "processDefinitionVersion": 1,
         "processDefinitionVersionTag": null,
-        "startDate": "2026-11-21T16:51:47.625Z",
+        "startDate": "2026-11-21T21:03:22.221Z",
         "endDate": null,
         "state": "ACTIVE",
         "suspendedDate": null,
@@ -758,7 +854,7 @@
         "items": [
           {
             "processDefinitionId": "pulse-label",
-            "startDate": "2026-11-21T16:51:47.625Z",
+            "startDate": "2026-11-21T21:03:22.221Z",
             "endDate": null,
             "elementId": "Activity_RenderLabel",
             "elementName": "Render label",
@@ -774,8 +870,8 @@
           },
           {
             "processDefinitionId": "pulse-label",
-            "startDate": "2026-11-21T16:51:47.625Z",
-            "endDate": "2026-11-21T16:51:47.625Z",
+            "startDate": "2026-11-21T21:03:22.221Z",
+            "endDate": "2026-11-21T21:03:22.221Z",
             "elementId": "Event_LabelRequested",
             "elementName": "Label requested",
             "type": "START_EVENT",
@@ -792,8 +888,8 @@
         "page": {
           "totalItems": 2,
           "hasMoreTotalItems": false,
-          "startCursor": "WyIyMDI2LTExLTIxVDE2OjUxOjQ3LjYyNVoiLDIyNTE3OTk4MTM2ODUzNzdd",
-          "endCursor": "WyIyMDI2LTExLTIxVDE2OjUxOjQ3LjYyNVoiLDIyNTE3OTk4MTM2ODUzNzVd"
+          "startCursor": "WyIyMDI2LTExLTIxVDIxOjAzOjIyLjIyMVoiLDIyNTE3OTk4MTM2ODUzNzdd",
+          "endCursor": "WyIyMDI2LTExLTIxVDIxOjAzOjIyLjIyMVoiLDIyNTE3OTk4MTM2ODUzNzVd"
         }
       }
     },
@@ -862,7 +958,7 @@
             "errorType": "JOB_NO_RETRIES",
             "errorMessage": "java.lang.IllegalStateException: the worker failed\n\tat io.miragon.shop.Worker.handle(Worker.java:42)\nCaused by: java.net.ConnectException: the card gateway is unreachable\n\tat io.miragon.shop.Gateway.connect(Gateway.java:7)",
             "elementId": "Activity_RenderLabel",
-            "creationTime": "2026-11-21T16:51:47.766Z",
+            "creationTime": "2026-11-21T21:03:22.328Z",
             "state": "ACTIVE",
             "tenantId": "<default>",
             "incidentKey": "2251799813685382",
@@ -876,8 +972,8 @@
         "page": {
           "totalItems": 1,
           "hasMoreTotalItems": false,
-          "startCursor": "WyIyMDI2LTExLTIxVDE2OjUxOjQ3Ljc2NloiLDIyNTE3OTk4MTM2ODUzODJd",
-          "endCursor": "WyIyMDI2LTExLTIxVDE2OjUxOjQ3Ljc2NloiLDIyNTE3OTk4MTM2ODUzODJd"
+          "startCursor": "WyIyMDI2LTExLTIxVDIxOjAzOjIyLjMyOFoiLDIyNTE3OTk4MTM2ODUzODJd",
+          "endCursor": "WyIyMDI2LTExLTIxVDIxOjAzOjIyLjMyOFoiLDIyNTE3OTk4MTM2ODUzODJd"
         }
       }
     },
@@ -917,7 +1013,7 @@
             "processDefinitionName": "Dispatch order",
             "processDefinitionVersion": 1,
             "processDefinitionVersionTag": null,
-            "startDate": "2026-11-21T16:51:47.625Z",
+            "startDate": "2026-11-21T21:03:22.221Z",
             "endDate": null,
             "state": "ACTIVE",
             "suspendedDate": null,
@@ -935,8 +1031,8 @@
         "page": {
           "totalItems": 1,
           "hasMoreTotalItems": false,
-          "startCursor": "WyIyMDI2LTExLTIxVDE2OjUxOjQ3LjYyNVoiLDIyNTE3OTk4MTM2ODUzNjdd",
-          "endCursor": "WyIyMDI2LTExLTIxVDE2OjUxOjQ3LjYyNVoiLDIyNTE3OTk4MTM2ODUzNjdd"
+          "startCursor": "WyIyMDI2LTExLTIxVDIxOjAzOjIyLjIyMVoiLDIyNTE3OTk4MTM2ODUzNjdd",
+          "endCursor": "WyIyMDI2LTExLTIxVDIxOjAzOjIyLjIyMVoiLDIyNTE3OTk4MTM2ODUzNjdd"
         }
       }
     },
@@ -1028,6 +1124,38 @@
           "hasMoreTotalItems": false,
           "startCursor": "WzFd",
           "endCursor": "WzJd"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v2/incidents/search",
+      "body": {
+        "filter": {
+          "processDefinitionKey": "2251799813685324",
+          "state": "ACTIVE"
+        },
+        "sort": [
+          {
+            "field": "creationTime",
+            "order": "DESC"
+          },
+          {
+            "field": "incidentKey",
+            "order": "ASC"
+          }
+        ],
+        "page": {
+          "limit": 0
+        }
+      },
+      "answer": {
+        "items": [],
+        "page": {
+          "totalItems": 1,
+          "hasMoreTotalItems": false,
+          "startCursor": null,
+          "endCursor": null
         }
       }
     },
@@ -1190,6 +1318,38 @@
     },
     {
       "method": "POST",
+      "path": "/v2/incidents/search",
+      "body": {
+        "filter": {
+          "processDefinitionKey": "2251799813685328",
+          "state": "ACTIVE"
+        },
+        "sort": [
+          {
+            "field": "creationTime",
+            "order": "DESC"
+          },
+          {
+            "field": "incidentKey",
+            "order": "ASC"
+          }
+        ],
+        "page": {
+          "limit": 0
+        }
+      },
+      "answer": {
+        "items": [],
+        "page": {
+          "totalItems": 0,
+          "hasMoreTotalItems": false,
+          "startCursor": null,
+          "endCursor": null
+        }
+      }
+    },
+    {
+      "method": "POST",
       "path": "/v2/process-definitions/2251799813685328/statistics/element-instances",
       "body": {},
       "answer": {
@@ -1252,40 +1412,6 @@
           "processDefinitionKey": "2251799813685324",
           "endDate": {
             "$exists": false
-          }
-        },
-        "sort": [
-          {
-            "field": "startDate",
-            "order": "DESC"
-          },
-          {
-            "field": "processInstanceKey",
-            "order": "ASC"
-          }
-        ],
-        "page": {
-          "limit": 0
-        }
-      },
-      "answer": {
-        "items": [],
-        "page": {
-          "totalItems": 2,
-          "hasMoreTotalItems": false,
-          "startCursor": null,
-          "endCursor": null
-        }
-      }
-    },
-    {
-      "method": "POST",
-      "path": "/v2/process-instances/search",
-      "body": {
-        "filter": {
-          "processDefinitionKey": "2251799813685324",
-          "endDate": {
-            "$exists": false
           },
           "hasIncident": true
         },
@@ -1307,6 +1433,40 @@
         "items": [],
         "page": {
           "totalItems": 1,
+          "hasMoreTotalItems": false,
+          "startCursor": null,
+          "endCursor": null
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v2/process-instances/search",
+      "body": {
+        "filter": {
+          "processDefinitionKey": "2251799813685324",
+          "endDate": {
+            "$exists": false
+          }
+        },
+        "sort": [
+          {
+            "field": "startDate",
+            "order": "DESC"
+          },
+          {
+            "field": "processInstanceKey",
+            "order": "ASC"
+          }
+        ],
+        "page": {
+          "limit": 0
+        }
+      },
+      "answer": {
+        "items": [],
+        "page": {
+          "totalItems": 2,
           "hasMoreTotalItems": false,
           "startCursor": null,
           "endCursor": null
@@ -1375,8 +1535,8 @@
             "processDefinitionName": "Order fulfillment",
             "processDefinitionVersion": 1,
             "processDefinitionVersionTag": null,
-            "startDate": "2026-11-21T16:51:47.565Z",
-            "endDate": "2026-11-21T16:51:47.565Z",
+            "startDate": "2026-11-21T21:03:22.174Z",
+            "endDate": "2026-11-21T21:03:22.174Z",
             "state": "COMPLETED",
             "suspendedDate": null,
             "hasIncident": false,
@@ -1394,7 +1554,7 @@
             "processDefinitionName": "Order fulfillment",
             "processDefinitionVersion": 1,
             "processDefinitionVersionTag": null,
-            "startDate": "2026-11-21T16:51:47.547Z",
+            "startDate": "2026-11-21T21:03:22.143Z",
             "endDate": null,
             "state": "ACTIVE",
             "suspendedDate": null,
@@ -1413,7 +1573,7 @@
             "processDefinitionName": "Order fulfillment",
             "processDefinitionVersion": 1,
             "processDefinitionVersionTag": null,
-            "startDate": "2026-11-21T16:51:47.435Z",
+            "startDate": "2026-11-21T21:03:22.069Z",
             "endDate": null,
             "state": "ACTIVE",
             "suspendedDate": null,
@@ -1431,8 +1591,8 @@
         "page": {
           "totalItems": 3,
           "hasMoreTotalItems": false,
-          "startCursor": "WyIyMDI2LTExLTIxVDE2OjUxOjQ3LjU2NVoiLDIyNTE3OTk4MTM2ODUzNTBd",
-          "endCursor": "WyIyMDI2LTExLTIxVDE2OjUxOjQ3LjQzNVoiLDIyNTE3OTk4MTM2ODUzMjld"
+          "startCursor": "WyIyMDI2LTExLTIxVDIxOjAzOjIyLjE3NFoiLDIyNTE3OTk4MTM2ODUzNTBd",
+          "endCursor": "WyIyMDI2LTExLTIxVDIxOjAzOjIyLjA2OVoiLDIyNTE3OTk4MTM2ODUzMjld"
         }
       }
     },
@@ -1464,8 +1624,8 @@
             "processDefinitionName": "Order fulfillment",
             "processDefinitionVersion": 1,
             "processDefinitionVersionTag": null,
-            "startDate": "2026-11-21T16:51:47.565Z",
-            "endDate": "2026-11-21T16:51:47.565Z",
+            "startDate": "2026-11-21T21:03:22.174Z",
+            "endDate": "2026-11-21T21:03:22.174Z",
             "state": "COMPLETED",
             "suspendedDate": null,
             "hasIncident": false,
@@ -1482,8 +1642,8 @@
         "page": {
           "totalItems": 1,
           "hasMoreTotalItems": false,
-          "startCursor": "WyIyMDI2LTExLTIxVDE2OjUxOjQ3LjU2NVoiLDIyNTE3OTk4MTM2ODUzNTBd",
-          "endCursor": "WyIyMDI2LTExLTIxVDE2OjUxOjQ3LjU2NVoiLDIyNTE3OTk4MTM2ODUzNTBd"
+          "startCursor": "WyIyMDI2LTExLTIxVDIxOjAzOjIyLjE3NFoiLDIyNTE3OTk4MTM2ODUzNTBd",
+          "endCursor": "WyIyMDI2LTExLTIxVDIxOjAzOjIyLjE3NFoiLDIyNTE3OTk4MTM2ODUzNTBd"
         }
       }
     },
@@ -1521,59 +1681,6 @@
       "path": "/v2/process-instances/search",
       "body": {
         "filter": {
-          "processInstanceKey": {
-            "$in": ["2251799813685373"]
-          }
-        },
-        "sort": [
-          {
-            "field": "startDate",
-            "order": "DESC"
-          },
-          {
-            "field": "processInstanceKey",
-            "order": "ASC"
-          }
-        ],
-        "page": {
-          "limit": 1
-        }
-      },
-      "answer": {
-        "items": [
-          {
-            "processDefinitionId": "pulse-label",
-            "processDefinitionName": "Print label",
-            "processDefinitionVersion": 1,
-            "processDefinitionVersionTag": null,
-            "startDate": "2026-11-21T16:51:47.625Z",
-            "endDate": null,
-            "state": "ACTIVE",
-            "suspendedDate": null,
-            "hasIncident": true,
-            "tenantId": "<default>",
-            "processInstanceKey": "2251799813685373",
-            "processDefinitionKey": "2251799813685322",
-            "parentProcessInstanceKey": "2251799813685367",
-            "parentElementInstanceKey": "2251799813685372",
-            "rootProcessInstanceKey": "2251799813685367",
-            "tags": [],
-            "businessId": "DSP-3001"
-          }
-        ],
-        "page": {
-          "totalItems": 1,
-          "hasMoreTotalItems": false,
-          "startCursor": "WyIyMDI2LTExLTIxVDE2OjUxOjQ3LjYyNVoiLDIyNTE3OTk4MTM2ODUzNzNd",
-          "endCursor": "WyIyMDI2LTExLTIxVDE2OjUxOjQ3LjYyNVoiLDIyNTE3OTk4MTM2ODUzNzNd"
-        }
-      }
-    },
-    {
-      "method": "POST",
-      "path": "/v2/process-instances/search",
-      "body": {
-        "filter": {
           "businessId": "2251799813685373"
         },
         "sort": [
@@ -1599,6 +1706,59 @@
           "endCursor": null
         }
       }
+    },
+    {
+      "method": "POST",
+      "path": "/v2/process-instances/search",
+      "body": {
+        "filter": {
+          "processInstanceKey": {
+            "$in": ["2251799813685373"]
+          }
+        },
+        "sort": [
+          {
+            "field": "startDate",
+            "order": "DESC"
+          },
+          {
+            "field": "processInstanceKey",
+            "order": "ASC"
+          }
+        ],
+        "page": {
+          "limit": 1
+        }
+      },
+      "answer": {
+        "items": [
+          {
+            "processDefinitionId": "pulse-label",
+            "processDefinitionName": "Print label",
+            "processDefinitionVersion": 1,
+            "processDefinitionVersionTag": null,
+            "startDate": "2026-11-21T21:03:22.221Z",
+            "endDate": null,
+            "state": "ACTIVE",
+            "suspendedDate": null,
+            "hasIncident": true,
+            "tenantId": "<default>",
+            "processInstanceKey": "2251799813685373",
+            "processDefinitionKey": "2251799813685322",
+            "parentProcessInstanceKey": "2251799813685367",
+            "parentElementInstanceKey": "2251799813685372",
+            "rootProcessInstanceKey": "2251799813685367",
+            "tags": [],
+            "businessId": "DSP-3001"
+          }
+        ],
+        "page": {
+          "totalItems": 1,
+          "hasMoreTotalItems": false,
+          "startCursor": "WyIyMDI2LTExLTIxVDIxOjAzOjIyLjIyMVoiLDIyNTE3OTk4MTM2ODUzNzNd",
+          "endCursor": "WyIyMDI2LTExLTIxVDIxOjAzOjIyLjIyMVoiLDIyNTE3OTk4MTM2ODUzNzNd"
+        }
+      }
     }
   ],
   "expected": {
@@ -1615,21 +1775,24 @@
           "name": "Order fulfillment",
           "latestVersion": 2,
           "running": 3,
-          "withIncident": 1
+          "withIncident": 1,
+          "incidents": 1
         },
         {
           "bpmnProcessId": "pulse-dispatch",
           "name": "Dispatch order",
           "latestVersion": 1,
           "running": 1,
-          "withIncident": 1
+          "withIncident": 1,
+          "incidents": 0
         },
         {
           "bpmnProcessId": "pulse-label",
           "name": "Print label",
           "latestVersion": 1,
           "running": 1,
-          "withIncident": 1
+          "withIncident": 1,
+          "incidents": 1
         }
       ],
       "totals": {
@@ -1652,7 +1815,7 @@
         "state": "running",
         "hasIncident": true,
         "businessKey": "DSP-3001",
-        "startedAt": "2026-11-21T16:51:47.625Z"
+        "startedAt": "2026-11-21T21:03:22.221Z"
       },
       "caller": null,
       "headline": {
@@ -1663,7 +1826,7 @@
           "instanceId": "2251799813685373",
           "bpmnProcessId": "pulse-label"
         },
-        "since": "2026-11-21T16:51:47.766Z",
+        "since": "2026-11-21T21:03:22.328Z",
         "suspended": false
       },
       "markers": [
@@ -1709,7 +1872,7 @@
           "elementId": "Activity_RenderLabel",
           "type": "JOB_NO_RETRIES",
           "message": "java.lang.IllegalStateException: the worker failed\n\tat io.miragon.shop.Worker.handle(Worker.java:42)\nCaused by: java.net.ConnectException: the card gateway is unreachable\n\tat io.miragon.shop.Gateway.connect(Gateway.java:7)",
-          "createdAt": "2026-11-21T16:51:47.766Z",
+          "createdAt": "2026-11-21T21:03:22.328Z",
           "retriesLeft": 0,
           "job": {
             "id": "2251799813685378",
@@ -1725,7 +1888,7 @@
           "elementId": "Activity_RenderLabel",
           "kind": "workerTask",
           "elementName": "Render label",
-          "since": "2026-11-21T16:51:47.625Z",
+          "since": "2026-11-21T21:03:22.221Z",
           "incidentId": "2251799813685382",
           "taskType": "render-label",
           "retriesLeft": 0,
@@ -1738,15 +1901,15 @@
       "path": [
         {
           "elementId": "Event_DispatchRequested",
-          "startedAt": "2026-11-21T16:51:47.625Z",
+          "startedAt": "2026-11-21T21:03:22.221Z",
           "state": "completed",
           "elementName": "Dispatch requested",
-          "endedAt": "2026-11-21T16:51:47.625Z",
+          "endedAt": "2026-11-21T21:03:22.221Z",
           "durationMs": 0
         },
         {
           "elementId": "Activity_PrintShippingLabel",
-          "startedAt": "2026-11-21T16:51:47.625Z",
+          "startedAt": "2026-11-21T21:03:22.221Z",
           "state": "active",
           "elementName": "Print shipping label"
         }
@@ -1776,7 +1939,7 @@
         "state": "running",
         "hasIncident": true,
         "businessKey": "DSP-3001",
-        "startedAt": "2026-11-21T16:51:47.625Z"
+        "startedAt": "2026-11-21T21:03:22.221Z"
       },
       "caller": {
         "instanceId": "2251799813685367",
@@ -1795,7 +1958,7 @@
         "code": "incident",
         "incidentId": "2251799813685382",
         "elementId": "Activity_RenderLabel",
-        "since": "2026-11-21T16:51:47.766Z",
+        "since": "2026-11-21T21:03:22.328Z",
         "suspended": false
       },
       "markers": [
@@ -1825,7 +1988,7 @@
           "elementId": "Activity_RenderLabel",
           "type": "JOB_NO_RETRIES",
           "message": "java.lang.IllegalStateException: the worker failed\n\tat io.miragon.shop.Worker.handle(Worker.java:42)\nCaused by: java.net.ConnectException: the card gateway is unreachable\n\tat io.miragon.shop.Gateway.connect(Gateway.java:7)",
-          "createdAt": "2026-11-21T16:51:47.766Z",
+          "createdAt": "2026-11-21T21:03:22.328Z",
           "retriesLeft": 0,
           "job": {
             "id": "2251799813685378",
@@ -1841,7 +2004,7 @@
           "elementId": "Activity_RenderLabel",
           "kind": "workerTask",
           "elementName": "Render label",
-          "since": "2026-11-21T16:51:47.625Z",
+          "since": "2026-11-21T21:03:22.221Z",
           "incidentId": "2251799813685382",
           "taskType": "render-label",
           "retriesLeft": 0,
@@ -1851,15 +2014,15 @@
       "path": [
         {
           "elementId": "Event_LabelRequested",
-          "startedAt": "2026-11-21T16:51:47.625Z",
+          "startedAt": "2026-11-21T21:03:22.221Z",
           "state": "completed",
           "elementName": "Label requested",
-          "endedAt": "2026-11-21T16:51:47.625Z",
+          "endedAt": "2026-11-21T21:03:22.221Z",
           "durationMs": 0
         },
         {
           "elementId": "Activity_RenderLabel",
-          "startedAt": "2026-11-21T16:51:47.625Z",
+          "startedAt": "2026-11-21T21:03:22.221Z",
           "state": "active",
           "elementName": "Render label"
         }
@@ -2036,21 +2199,21 @@
           "state": "completed",
           "hasIncident": false,
           "businessKey": "ORD-1003",
-          "startedAt": "2026-11-21T16:51:47.565Z"
+          "startedAt": "2026-11-21T21:03:22.174Z"
         },
         {
           "id": "2251799813685338",
           "state": "running",
           "hasIncident": true,
           "businessKey": "ORD-1002",
-          "startedAt": "2026-11-21T16:51:47.547Z"
+          "startedAt": "2026-11-21T21:03:22.143Z"
         },
         {
           "id": "2251799813685329",
           "state": "running",
           "hasIncident": false,
           "businessKey": "ORD-1001",
-          "startedAt": "2026-11-21T16:51:47.435Z"
+          "startedAt": "2026-11-21T21:03:22.069Z"
         }
       ],
       "next": null,
@@ -2077,8 +2240,8 @@
           "state": "completed",
           "hasIncident": false,
           "businessKey": "ORD-1003",
-          "startedAt": "2026-11-21T16:51:47.565Z",
-          "endedAt": "2026-11-21T16:51:47.565Z"
+          "startedAt": "2026-11-21T21:03:22.174Z",
+          "endedAt": "2026-11-21T21:03:22.174Z"
         }
       ],
       "cut": false,
@@ -2099,7 +2262,7 @@
           "state": "running",
           "hasIncident": true,
           "businessKey": "DSP-3001",
-          "startedAt": "2026-11-21T16:51:47.625Z"
+          "startedAt": "2026-11-21T21:03:22.221Z"
         }
       ],
       "cut": false,

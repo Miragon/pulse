@@ -237,7 +237,7 @@ const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] =
         return [...summaries, ...perVersion]
       },
     }),
-    [CASE.definitionsLatestVersion, CASE.definitionsCounts],
+    [CASE.definitionsLatestVersion, CASE.definitionsCounts, CASE.definitionsIncidents],
   ],
   [
     "variables come without their kind",

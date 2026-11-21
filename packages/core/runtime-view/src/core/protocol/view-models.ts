@@ -291,6 +291,8 @@ export interface ProcessRow {
   readonly latestVersion: number
   readonly running: number
   readonly withIncident: number
+  readonly incidents: number
+  readonly incidentsAtLeast?: true
 }
 
 export interface EngineTotals {

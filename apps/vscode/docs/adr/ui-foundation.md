@@ -1,7 +1,12 @@
 # UI foundation and shared building blocks
 
 - Status: accepted
-- Last reviewed: 2026-11-21, at the end of the day (executed, D10's search across engines: the
+- Last reviewed: 2026-11-21, last (executed, D2's point 1 in the contract: engine-core's
+  `incidents` of `DefinitionSummary` and `VersionSummary`, the open root incidents of a process over
+  every version and of a version, admitted by the rule with two laws and their saboteurs on both
+  dialects, a lower bound where a Camunda 8 search stops counting; the web app's engine screen and
+  this extension's engine tab show them as the column Incidents from one read, with a legend of the
+  counts); 2026-11-21, at the end of the day (executed, D10's search across engines: the
   screens' `Finder`, the feed `engine_screen_find_data`, the blocks' `FindResults` and
   `FindHistoryNotice`, the web app's `/app/search`; a law holds a business key's match whole on
   both dialects; c7-core's and c8-core's recorded screens made anew with what the finder finds);
@@ -198,7 +203,10 @@ each surface keeps its screens and the web app's are its own.
      exception to "never from a scan" recorded here, since the read is whole and never a capped
      page. In the contract a count of open root incidents
      per process and version enters by the admission rule, with a law and a saboteur; Camunda 8
-     answers it from its cluster's incidents, which it never copies.
+     answers it from its cluster's incidents, which it never copies. Executed on 2026-11-21:
+     `incidents` of `DefinitionSummary` and `VersionSummary` (`incidentsAtLeast` where a Camunda 8
+     search stops counting), which the web app's engine screen and this extension's engine tab show
+     as their column Incidents beside With incident, a legend of the counts beside the search.
   2. **The verdict follows** (`engineVerdict`: `engine_status`, `pulse status`, the cockpit's health
      route): it counts root incidents, its thresholds unchanged (`ENGINE_HEALTH_*`, the CLI's 50 and
      25), and the docs say what a threshold counts.
@@ -715,3 +723,5 @@ web app embeds count open root incidents (D2's point 4), "new in 24 h" gone. Lat
 measurement on the playground, c7-core's element statistics read the incidents of a version's call
 activities alone (D2's point 1), with the same counts. Later that day the web app read a Camunda 8
 engine whole (D10's point 5), and then it searched for an instance across engines (D10's point 2).
+Last that day the contract counted the open root incidents of a process and a version (D2's point
+1), which the engine screen and the engine tab show as their column Incidents.

@@ -42,6 +42,10 @@ function barOf(
   return { container, asked }
 }
 
+function texts(nodes: Iterable<Element>): string[] {
+  return [...nodes].map((node) => node.textContent)
+}
+
 function search(container: HTMLElement, text: string): void {
   const field = within(container).getByRole("searchbox")
   fireEvent.change(field, { target: { value: text } })
@@ -127,6 +131,24 @@ describe("the filter bar of a process list", () => {
     }
   })
 
+  it("explains its counts behind a legend beside its search: the versions, and a waiting caller apart from its incident", () => {
+    const { container } = barOf()
+    const button = within(container).getByRole("button", { name: "What the counts say" })
+    const legend = container.querySelector<HTMLElement>("[popover]")
+
+    expect(container.querySelector('[data-slot="toolbar-end"]')?.contains(button)).toBe(false)
+    expect(within(container).getByRole("searchbox").compareDocumentPosition(button)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    )
+    expect(button.getAttribute("popovertarget")).toBe(legend?.id)
+    expect(texts(legend?.querySelectorAll("p") ?? [])).toEqual([
+      "Each count covers every version of a process.",
+      "Running: the instances that run now.",
+      "With incident: the instances with an open incident, a caller waiting for an incident in an instance it called included.",
+      "Incidents: the open incidents, each counted once, at the process it was raised in, never at a caller that waits for it. An incident outside any instance, such as a failed timer start, counts here though no instance holds it.",
+    ])
+  })
+
   it("says while the surface reads again", () => {
     const { container } = barOf({ busy: true })
 
@@ -154,6 +176,13 @@ describe("the filter bar of a process list", () => {
     expect(container.querySelector('[data-slot="toolbar-summary"]')?.textContent).toBe(
       "4 Prozesse · 1.274 laufend · 17 mit Incident · alle Versionen",
     )
+    expect(within(container).getByRole("button", { name: "Was die Zahlen sagen" })).toBeTruthy()
+    expect(texts(container.querySelectorAll("[popover] p"))).toEqual([
+      "Jede Zahl zählt über alle Versionen eines Prozesses.",
+      "Laufend: die Instanzen, die gerade laufen.",
+      "Mit Incident: die Instanzen mit einem offenen Incident, auch ein Aufrufer, der auf einen Incident in einer aufgerufenen Instanz wartet.",
+      "Incidents: die offenen Incidents, jeder einmal gezählt, bei dem Prozess, in dem er auftrat, nie bei einem Aufrufer, der auf ihn wartet. Ein Incident außerhalb jeder Instanz, etwa ein gescheiterter Timer-Start, zählt hier, auch wenn ihn keine Instanz hält.",
+    ])
   })
 })
 

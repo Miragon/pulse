@@ -56,6 +56,7 @@ function state(change: Partial<MigrationState> = {}): MigrationState {
       definition: ref(version),
       running: 0,
       withIncident: 0,
+      incidents: 0,
     })),
     source: ref(1),
     target: ref(2),

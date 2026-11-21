@@ -19,6 +19,7 @@ describe("labels without optional facts", () => {
             latest: { id: DefinitionId("p:1"), bpmnProcessId: BpmnProcessId("p"), version: 1 },
             running: 0,
             withIncident: 0,
+            incidents: 0,
           },
         ]),
     })

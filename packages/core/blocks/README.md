@@ -105,15 +105,20 @@ export function Processes({
 }
 ```
 
-`ListFilterBar` offers the scopes (every process, or those with an instance with incident) with
-their counts, a search over a process's name or BPMN process ID and the engine's totals over every
-version; it asks for a filter (`onFilter`) and reads nothing. `useProcessList` derives the rows and
+`ListFilterBar` offers the scopes (every process, or those with an instance with incident or an
+open incident of their own) with their counts, a search over a process's name or BPMN process ID,
+beside it the legend of the list's counts behind a button (each count covers every version; a caller
+waiting for an incident in an instance it called is an instance with incident, while the incident
+counts at the process it was raised in; an incident outside any instance counts though no instance
+holds it) and the engine's totals over every version; it asks for a filter (`onFilter`) and reads
+nothing. `useProcessList` derives the rows and
 the counts of both scopes in the browser from the screen a surface loaded, through `ProcessFilter`
 of `@miragon/pulse-screens`, so a scope or a search costs no call; a surface whose own code filters
 (the editors' core, with the same rule) hands its rows and counts to the blocks instead.
 `ProcessTable` lists a process per row: its name and BPMN process ID through the surface's `Id`, its
-latest version, its running instances and its instances with incident, a neutral figure with the
-danger icon and words above 0. A row opens its process and copies its BPMN process ID; the latest
+latest version, its running instances (a neutral figure), its instances with incident and its open
+root incidents (the column Incidents, the engine contract's `incidents`), both neutral figures with
+the danger icon and words above 0, a count the engine stopped at as a lower bound (`≥ 10,000`). A row opens its process and copies its BPMN process ID; the latest
 version and the running instances drop where a table that fits its region is narrower than 40rem.
 An empty table says that the engine lists no process, whatever the search (the list's count
 without a search, the screen's `totals` under one), or that nothing matches the filter.
@@ -402,7 +407,9 @@ The parts carry `data-part` hooks a surface's tests may query: `board-card` (`da
 tile's kind), `counter-value`, `counter-partial`, `counter-threshold` (`data-state`: above,
 undecided), `counter-entry`, `counter-count`, `group-note`, `incident-flag`, `refused-reason` and
 `empty-hint`, and of the screens' blocks `filter-bar`, `segment-count` (`data-tone`: danger on
-instances with incident above 0), `incident-count` (`data-tone`: danger above 0), `incident-card`,
+instances with incident above 0), `incident-count` and `root-incident-count` (a process's instances
+with incident and its open root incidents, `data-tone`: danger above 0), `counts-legend`,
+`incident-card`,
 `variable-name`, `incident-text-region`, `incident-text`, `root-cause-line`,
 `called-instance-menu`, `filter-chip` (`data-kind`: element), `incident-flag`, `badge-count`
 (`data-scope`: the scope it filters to; its cluster `data-badge-for` the element) and
