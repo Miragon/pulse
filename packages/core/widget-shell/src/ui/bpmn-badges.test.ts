@@ -5,9 +5,9 @@ const V = (name: keyof typeof BPMN_CANVAS_VARS) => `var(${BPMN_CANVAS_VARS[name]
 
 /** The declarations of the canvas's top-level rule for exactly `selector`. */
 function rule(selector: string): Record<string, string> {
-  const body = new RegExp(`(?:^|\\n)${selector.replace(/[.-]/g, "\\$&")} \\{([^}]*)\\}`).exec(
-    BPMN_OVERLAY_CSS,
-  )?.[1]
+  const body = new RegExp(
+    `(?:^|\\n)${selector.replace(/[\\^$.*+?()[\]{}|-]/g, "\\$&")} \\{([^}]*)\\}`,
+  ).exec(BPMN_OVERLAY_CSS)?.[1]
   return Object.fromEntries(
     [...(body ?? "").matchAll(/([\w-]+):\s*([^;]+);/g)].map(([, name, value]) => [
       name,
