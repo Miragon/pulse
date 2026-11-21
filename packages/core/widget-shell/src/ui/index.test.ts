@@ -74,6 +74,7 @@ describe("the /widgets entry", () => {
       "useActionFeedback",
       "useBpmnViewer",
       "useDetailView",
+      "useErrorWords",
       "useHostChrome",
       "useHostDisplayMode",
       "useHostFollowUp",

@@ -69,7 +69,9 @@ function PageApp({ router, views, page }: PageAppParts) {
   )
   const shownViews = useMemo(() => viewsAt(views, start), [views, start])
   // A screen of the page's fills the window from 64rem on; the cockpit's view in its place does not.
-  const fill = useScreenShown(screen?.engine) !== "fallback"
+  const fill =
+    useScreenShown(screen?.engine, screen?.kind === "incident" ? "incidents" : "processes") !==
+    "fallback"
   const view = (
     <PageView
       key={generation}

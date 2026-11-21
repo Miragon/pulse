@@ -7,9 +7,9 @@ import { useScreenShown } from "../screen-shown.js"
 import { ProcessScreen, type VersionMove } from "./process-screen.js"
 
 /**
- * A process's own address: the page's process screen where its screens serve the engine, else the
- * cockpit's view the page starts there (`fallback`: an engine shown on boards only or a refused
- * profile with its one state, an engine the server does not configure the tool's refusal). It
+ * A process's own address: the page's process screen where its screens serve the engine (Camunda 7's
+ * and Camunda 8's), else the cockpit's view the page starts there (`fallback`: a refused profile
+ * with its one state, an engine the server does not configure the tool's refusal). It
  * decides on the frame's one read of the engine list; while that read runs the screen names the
  * process in its bar and reads nothing. The version and the list's filter are the address's.
  */

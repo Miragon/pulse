@@ -524,7 +524,15 @@ each surface keeps its screens and the web app's are its own.
      (D2) and the diagram's theme (point 7).
   5. **Camunda 8.** The screens serve every dialect: the web app shows a Camunda 8 engine whole once
      its screens open to Camunda 8, its operations views stay Camunda 7's, and the chat keeps showing
-     a Camunda 8 engine on boards only (`BoardsOnlyEngineGate`).
+     a Camunda 8 engine on boards only (`BoardsOnlyEngineGate`). Executed on 2026-11-21: the page's
+     navigation opens a Camunda 8 engine's processes (its engine, process and instance screens, an
+     incident at its instance) and no incidents or jobs; where the page shows its place itself the
+     cockpit names the place whole, so a board's tiles and chip and the landing's row open the
+     page's screens, an incident the instance that holds it; a cluster below 8.9 or without
+     secondary storage is said with its fix. A chat claims no place: its gate, landing rows and
+     tiles stay as they were, and only the kit's words changed there too (a Camunda 8 token
+     endpoint's refusal reads as a refused login); a page's words of a failure are its host's alone
+     (`PAGE_HINTS`), so the chat's bundle did not grow.
   6. **The web's conventions.** An address is public and stable from the first release that carries
      it. A new subject (an engine, a process, a version, an instance, an incident) adds a history
      entry; a filter, a scope, an element, a business key or a tab replaces it, so Back goes from
@@ -686,4 +694,5 @@ same thresholds in a step of its own, an inbox across engines is decided after t
 the webview's script may grow to 500,000 B gzip. 2026-11-21: the chat and the operations views the
 web app embeds count open root incidents (D2's point 4), "new in 24 h" gone. Later that day, after a
 measurement on the playground, c7-core's element statistics read the incidents of a version's call
-activities alone (D2's point 1), with the same counts.
+activities alone (D2's point 1), with the same counts. Later that day the web app read a Camunda 8
+engine whole (D10's point 5).

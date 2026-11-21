@@ -11,7 +11,12 @@ import {
   formatNumber,
   SectionHeading,
 } from "@miragon/pulse-ui"
-import { useHostChrome, useStartPage, WidgetShell } from "@miragon/pulse-widget-shell/widgets"
+import {
+  useHostChrome,
+  useHostLocation,
+  useStartPage,
+  WidgetShell,
+} from "@miragon/pulse-widget-shell/widgets"
 import { ArrowRight, Ban, ClipboardList, Layers, Server } from "lucide-react"
 import { DEFAULT_ENVIRONMENT_ID, groupEnginesByEnvironment } from "../../lib/shared/environments.js"
 import { translator } from "../../messages/use-t.js"
@@ -108,10 +113,12 @@ function EngineRow(props: EngineRowProps) {
 /**
  * An engine the server reads on boards only: the row reads nothing and has no verdict, so no dot;
  * its mark is an engine's, never a board's, and it says what the engine runs and whether a board
- * shows it, neutral.
+ * shows it, neutral. On a page whose screens show the engine itself (the web app's, which claim its
+ * processes) it says what the engine runs alone, and opens the page's screen.
  */
 function BoardsOnlyEngineRow({ engine, ...props }: EngineRowProps & { engine: BoardsOnlyEngine }) {
   const locale = useLocale()
+  const onPage = !!useHostLocation()?.claims?.({ view: "overview", engine: props.engineId })
   const key =
     engine.boards.length > 0
       ? "cockpit.landing.status.onBoards"
@@ -119,9 +126,9 @@ function BoardsOnlyEngineRow({ engine, ...props }: EngineRowProps & { engine: Bo
   return (
     <EngineRowFrame
       {...props}
-      kind="boardsOnly"
+      kind={onPage ? "screens" : "boardsOnly"}
       mark={<Icon icon={Server} className="text-muted-foreground" />}
-      status={translator(locale, key, { product: engine.product })}
+      status={onPage ? engine.product : translator(locale, key, { product: engine.product })}
     />
   )
 }

@@ -61,4 +61,20 @@ describe("the History tab of an instance", () => {
       expect(notes(harness.root)).toEqual([CUT_NOTE])
     })
   })
+
+  it("counts every tab as a lower bound where some lists are cut, since the read names none, never a cut list as its total", async () => {
+    const { view } = FIXTURES.instance
+    const tabCount = (name: RegExp) => getRole(harness.root, "tab", { name }).textContent
+    harness = mountApp()
+    harness.publish(FIXTURES.instance)
+    await findPart(harness.root, "incident-card")
+    expect(tabCount(/^History/)).toBe(`History${String(view.path.length)}`)
+
+    harness.publish({ ...FIXTURES.instance, view: { ...view, truncated: true } })
+
+    await vi.waitFor(() => {
+      expect(tabCount(/^History/)).toBe(`History≥\u00a0${String(view.path.length)}`)
+    })
+    expect(tabCount(/^Variables/)).toBe(`Variables≥\u00a0${String(view.variables.length)}`)
+  })
 })

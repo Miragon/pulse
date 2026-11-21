@@ -16,13 +16,17 @@ import { useEngineList, type ListedEngines } from "../engine-list.js"
 import { useT } from "../messages/index.js"
 import { PageLink, type Navigate } from "../router/page-link.js"
 import { urlOf, type Place } from "../router/routes.js"
-import { placeOfSection, sectionAt, sectionsOf, type NavSection } from "./nav-sections.js"
+import { inFleet, placeOfSection, sectionAt, sectionsOf, type NavSection } from "./nav-sections.js"
 
-/** An engine as the navigation shows it: its sections, else on boards only, or refused. */
+/**
+ * An engine as the navigation shows it: its sections, else on boards only (a dialect the page has
+ * no screen of), or refused; and whether the cockpit's view across engines reads it (`fleet`).
+ */
 interface NavEngine {
   readonly id: string
   readonly kind: "sections" | "boardsOnly" | "refused"
   readonly sections: readonly NavSection[]
+  readonly fleet: boolean
 }
 
 /** The engines of one environment, in the order the list names them. */
@@ -36,8 +40,8 @@ const DEFAULT_ENVIRONMENT = "default"
 
 /**
  * The engines by environment, first appearance first, the refused profiles after the engines as
- * the list names them: an engine whose dialect has sections on the web opens them, another one
- * shows on boards only.
+ * the list names them: an engine whose dialect has sections on the web (Camunda 7's and Camunda
+ * 8's) opens them, one of a dialect the page does not know shows on boards only.
  */
 function environmentsOf(list: ListedEngines): NavEnvironment[] {
   const groups = new Map<string, NavEngine[]>()
@@ -47,23 +51,22 @@ function environmentsOf(list: ListedEngines): NavEnvironment[] {
   }
   for (const { id, environment, dialect } of list.engines ?? []) {
     const sections = sectionsOf(dialect)
-    add(environment, { id, kind: sections.length > 0 ? "sections" : "boardsOnly", sections })
+    const kind = sections.length > 0 ? "sections" : "boardsOnly"
+    add(environment, { id, kind, sections, fleet: inFleet(dialect) })
   }
   for (const { id, environment } of list.refused ?? []) {
-    add(environment, { id, kind: "refused", sections: [] })
+    add(environment, { id, kind: "refused", sections: [], fleet: true })
   }
   return [...groups].map(([id, engines]) => ({ id, engines }))
 }
 
 /**
  * Whether the navigation offers the view across engines: where the cockpit offers it, two engines
- * or more that it reads whole (a refused profile counts, an engine on boards only does not).
+ * or more that it reads whole (a refused profile counts; a Camunda 8 engine, which the page's
+ * screens show and the cockpit's view across engines reads not, does not).
  */
 function offersFleet(environments: readonly NavEnvironment[]): boolean {
-  const whole = environments
-    .flatMap(({ engines }) => engines)
-    .filter((e) => e.kind !== "boardsOnly")
-  return whole.length > 1
+  return environments.flatMap(({ engines }) => engines).filter((e) => e.fleet).length > 1
 }
 
 const SECTION_ICONS: Readonly<Record<NavSection, LucideIcon>> = {

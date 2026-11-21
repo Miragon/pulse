@@ -24,6 +24,7 @@ import { LucideProvider } from "lucide-react"
 import type { ToolResult } from "../protocol/tool-result.js"
 import { formatLocaleOf, isFormatLocale, usePublishedFormatLocale } from "./format-locale.js"
 import { HostContexts, type RequestDisplayMode } from "./host-contexts.js"
+import { PAGE_HINTS } from "./page-hints.js"
 import type { ShellHost } from "./shell-host.js"
 import { createViewQueryClient } from "./tool-query.js"
 import type { FollowUp, HostChrome, ViewHost, ViewLocation } from "./view-host.js"
@@ -145,6 +146,8 @@ function createFakeHost(
     },
     sendFollowUp: (prompt) => record({ type: "sendFollowUp", prompt }),
     followUp,
+    // A page's host brings its words of what to do after a failure; a chat's none.
+    ...(followUp === "chat" ? {} : { pageHints: PAGE_HINTS }),
     writes,
     startPage,
     ...(location === undefined ? {} : { location }),

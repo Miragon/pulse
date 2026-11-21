@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react"
-import { BoardGrid, type BoardSlots } from "@miragon/pulse-blocks"
+import { useCallback, useMemo, useState } from "react"
+import { BoardGrid, type BoardSlots, type BoardTarget } from "@miragon/pulse-blocks"
 import {
   Button,
   Icon,
@@ -13,15 +13,17 @@ import {
   HostModelContext,
   WidgetShell,
   useDetailView,
+  useHostLocation,
   useQueryClient,
 } from "@miragon/pulse-widget-shell/widgets"
 import { ClipboardList, Clock, RefreshCw } from "lucide-react"
 import { useT } from "../../messages/use-t.js"
 import { ENGINE_BOARD_DATA } from "../../tool-names.js"
 import type { BoardStartData } from "../../view-models.board.js"
-import type { EngineDialect } from "../../view-models.js"
+import type { CockpitView, EngineDialect } from "../../view-models.js"
 import { routeServes } from "../../view-models.dialects.js"
 import { boardContext } from "../cockpit-app/model-context.js"
+import { engineViewArgs } from "../cockpit-app/place.js"
 import { useHandOff } from "../lib/hand-off.js"
 import { useNav } from "../navigation.js"
 import { BoardDiagram } from "./board-diagram.js"
@@ -90,27 +92,52 @@ function BoardBar({ board, data }: { readonly board: string; readonly data: Boar
 /** An engine's dialect as the cockpit lists it; unknown where the list names it not. */
 export type DialectOf = (engine: string) => EngineDialect | undefined
 
+/** Whether a drill onto `view` of `engine` opens here. */
+type Opens = (engine: string, view: CockpitView) => boolean
+
+/**
+ * A drill opens a view of the cockpit only where its route serves the engine's dialect
+ * (`ROUTE_DIALECTS`), or where the page shows its place itself (`ViewLocation.claims`): in a chat a
+ * Camunda 8 engine's rows, counts, diagram and chip open nothing, since no view of the cockpit reads
+ * it; on the web app's page they open its screens (an engine's processes, a process, an instance).
+ */
+function useOpens(dialectOf: DialectOf): Opens {
+  const claims = useHostLocation()?.claims
+  return useCallback(
+    (engine, view) =>
+      routeServes(view.section, dialectOf(engine)) || !!claims?.(engineViewArgs(engine, view)),
+    [dialectOf, claims],
+  )
+}
+
 /**
  * The cockpit's slots for the tiles: its table, its id, its diagram, a target onto its routes,
- * offered only where the route serves the target engine's dialect (`ROUTE_DIALECTS`): a Camunda 8
- * engine's rows, counts and diagram open nothing here, since no view of the cockpit reads it.
+ * offered where it opens (`useOpens`). Where the cockpit's incident view does not read the engine
+ * (Camunda 8), an incident opens the instance that holds it.
  */
-function useBoardSlots(data: BoardStartData | null, dialectOf: DialectOf): BoardSlots {
+function useBoardSlots(
+  data: BoardStartData | null,
+  dialectOf: DialectOf,
+  opens: Opens,
+): BoardSlots {
   const go = useNav()
-  return useMemo(
-    () => ({
+  return useMemo(() => {
+    const targetOf = (target: BoardTarget, board: BoardStartData) =>
+      engineTargetOf(target, board, routeServes("incident-detail", dialectOf(target.engine)))
+    return {
       Table: BoardTable,
       Id: BoardId,
       Diagram: BoardDiagram,
-      opens: (target) =>
-        data !== null &&
-        routeServes(engineTargetOf(target, data).view.section, dialectOf(target.engine)),
-      onOpen: (target) => {
-        if (data) go({ type: "board-target", ...engineTargetOf(target, data) })
+      opens: (target) => {
+        if (data === null) return false
+        const { engine, view } = targetOf(target, data)
+        return opens(engine, view)
       },
-    }),
-    [data, go, dialectOf],
-  )
+      onOpen: (target) => {
+        if (data) go({ type: "board-target", ...targetOf(target, data) })
+      },
+    }
+  }, [data, go, dialectOf, opens])
 }
 
 /**
@@ -146,7 +173,8 @@ export function BoardView({
     refreshErrorTitle: t("board.refreshFailed"),
     title,
   })
-  const slots = useBoardSlots(data, dialectOf)
+  const opens = useOpens(dialectOf)
+  const slots = useBoardSlots(data, dialectOf, opens)
   if (!data) return guard
   return (
     <WidgetShell
@@ -157,7 +185,7 @@ export function BoardView({
           <BoardStrips data={data} />
           <BoardEngines
             data={data}
-            opens={(engine) => routeServes("overview", dialectOf(engine))}
+            opens={(engine) => opens(engine, { section: "overview" })}
             onOpen={(engine) => go({ type: "board-target", engine, view: { section: "overview" } })}
           />
         </>

@@ -264,11 +264,12 @@ export function InstanceScreen({ view, freshness, stale, problem }: InstanceScre
   const { selected, selectElement, showElement } = useSelectedElement()
   const move = useTokenMove(view, selected)
   const decorations = useDecorations(view, stale, selected, move)
+  const atLeast = view.truncated
   const tabs: readonly TabItem<InstanceTab>[] = [
-    { id: "history", label: "History", count: view.path.length },
-    { id: "incidents", label: "Incidents", count: view.incidents.length },
-    { id: "waiting", label: "Waiting", count: view.waitStates.length },
-    { id: "variables", label: "Variables", count: view.variables.length },
+    { id: "history", label: "History", count: view.path.length, atLeast },
+    { id: "incidents", label: "Incidents", count: view.incidents.length, atLeast },
+    { id: "waiting", label: "Waiting", count: view.waitStates.length, atLeast },
+    { id: "variables", label: "Variables", count: view.variables.length, atLeast },
   ]
   return (
     <WriteContext.Provider value={view.write}>

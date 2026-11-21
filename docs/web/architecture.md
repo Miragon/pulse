@@ -52,8 +52,9 @@ same provider, which the gate checked before the session kept it, and `/mcp` ver
 every forwarded call like any bearer token: the caller is its subject, and nothing the browser
 chooses names one. Under passthrough an engine gets the user's own token, as from a chat; a
 Camunda 8 cluster never does: the server reads it with its own client, so everyone signed in sees
-on a board what that client may read ([Camunda 8](../mcp/camunda8.md#one-client-per-server)). The
-per-caller caches key on the token, so a renewed token starts afresh.
+what that client may read, on boards and on the screens: its instances, variables and incident
+texts ([Camunda 8](../mcp/camunda8.md#one-client-per-server)). The per-caller caches key on the
+token, so a renewed token starts afresh.
 
 ## What a page may call
 

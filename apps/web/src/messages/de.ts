@@ -47,6 +47,14 @@ export const de = {
   "screen.productUnknown": "Die Engine hat nicht gesagt, was sie ist",
   "screen.engine.loading": "Die Prozesse von {engine} werden geladen…",
   "screen.engine.failed": "Die Prozesse von {engine} konnten nicht geladen werden",
+  "screen.engine.atInstances.title": "Incidents und Jobs stehen bei ihren Instanzen",
+  "screen.engine.atInstances.detail": "Öffne einen Prozess, dann eine Instanz.",
+  "screen.cluster.floor.title": "Pulse liest Camunda {floor} oder neuer",
+  "screen.cluster.floor.detail":
+    "Der Cluster von {engine} läuft auf Camunda {runs}. Bitte die Person, die ihn betreibt, ihn auf {floor} oder neuer zu aktualisieren.",
+  "screen.cluster.storage.title": "Der Cluster von {engine} hat keinen Sekundärspeicher",
+  "screen.cluster.storage.detail":
+    "Pulse liest die Such-API des Clusters, und die braucht einen Sekundärspeicher wie Elasticsearch, OpenSearch oder eine relationale Datenbank. Bitte die Person, die den Cluster betreibt, einen einzurichten.",
 
   "screen.instance.loading": "Die Instanz {instance} wird geladen…",
   "screen.instance.failed": "Die Instanz {instance} konnte nicht geladen werden",

@@ -112,7 +112,7 @@ describe("the page's navigation", () => {
       ["Incidents", "/app/engines/prod-a/incidents"],
       ["Jobs", "/app/engines/prod-a/jobs"],
       ["prod-b", "/app/engines/prod-b"],
-      ["c8-dev, boards only", "/app/engines/c8-dev"],
+      ["c8-dev", "/app/engines/c8-dev"],
       ["legacy, refused", "/app/engines/legacy"],
       ["Leasing operations", "/app/boards/leasing"],
     ])
@@ -151,17 +151,19 @@ describe("the page's navigation", () => {
       engines: [
         { id: "solo", environment: "default", dialect: "c7" },
         { id: "orders", environment: "default", dialect: "c8" },
+        { id: "future", environment: "default", dialect: "c9" },
       ],
       refused: [{ id: "gone", reason: "no url" }],
     }
     await start("/app", server(list), PLACED)
     const engines = within(navigation()).getByRole("group", { name: "Engines" })
     expect(within(engines).queryAllByRole("group")).toEqual([])
+    // A dialect the page knows no screen of shows on boards only.
     expect(
       within(engines)
         .getAllByRole("link")
         .map((link) => link.textContent),
-    ).toEqual(["solo", "orders, boards only", "gone, refused"])
+    ).toEqual(["solo", "orders", "future, boards only", "gone, refused"])
     // A Camunda 7 engine and a refused profile: two the cross-engine view reads whole.
     expect(within(navigation()).getByRole("link", { name: "Cross-engine overview" })).toBeTruthy()
     expect(current()).toEqual(["Start"])
@@ -186,9 +188,21 @@ describe("the page's navigation", () => {
     expect(within(navigation()).queryByRole("group", { name: "Engines" })).toBeNull()
   })
 
-  it("marks an engine without sections its own page while it is open, a board while it shows", async () => {
+  it("opens a Camunda 8 engine's processes and nothing else, the cockpit's incidents and jobs Camunda 7's", async () => {
     await start("/app/engines/c8-dev", server(), PLACED)
-    expect(current()).toEqual(["c8-dev, boards only"])
+    expect(current()).toEqual(["Processes"])
+    expect(links()).toEqual(
+      expect.arrayContaining([
+        ["c8-dev", "/app/engines/c8-dev"],
+        ["Processes", "/app/engines/c8-dev"],
+      ]),
+    )
+    expect(within(navigation()).queryAllByRole("link", { name: /^(Incidents|Jobs)$/ })).toEqual([])
+  })
+
+  it("marks an engine without sections its own page while it is open, a board while it shows", async () => {
+    await start("/app/engines/legacy", server(), PLACED)
+    expect(current()).toEqual(["legacy, refused"])
     expect(within(navigation()).queryByRole("link", { name: "Processes" })).toBeNull()
     await stopPage()
     await start("/app/boards/leasing", server(), PLACED)
@@ -237,7 +251,7 @@ describe("the page's navigation", () => {
       "Incidents",
       "Jobs",
       "prod-b",
-      "c8-dev, nur Boards",
+      "c8-dev",
       "legacy, abgelehnt",
       "Leasing operations",
     ])

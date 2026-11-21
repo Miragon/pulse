@@ -19,6 +19,7 @@ const LIST = {
     { id: "prod-a", environment: "prod", dialect: "c7" },
     { id: "c8-dev", environment: "dev", dialect: "c8" },
   ],
+  refused: [{ id: "legacy", environment: "dev", reason: "no url" }],
 }
 
 const INSTANCE_FEED = "engine_screen_instance_data"
@@ -91,12 +92,22 @@ describe("the instance screen on the page", () => {
   })
 
   it("leaves an instance of an engine its screens do not serve to the cockpit, the page scrolling", async () => {
-    const env = await start("/app/engines/c8-dev/instances/2251799813685367", server(), VIEWS)
+    const env = await start("/app/engines/legacy/instances/2251799813685367", server(), VIEWS)
     expect(
-      await screen.findByRole("heading", { level: 1, name: "cockpit instance-detail c8-dev" }),
+      await screen.findByRole("heading", { level: 1, name: "cockpit instance-detail legacy" }),
     ).toBeTruthy()
     expect(frame().hasAttribute("data-fill")).toBe(false)
     expect(callsOf(env.fetch, INSTANCE_FEED)).toEqual([])
+  })
+
+  it("shows a Camunda 8 engine's instance on its screen, never the cockpit's", async () => {
+    const env = await start("/app/engines/c8-dev/instances/2251799813685367", server(), VIEWS)
+    await waitFor(() => {
+      expect(callsOf(env.fetch, INSTANCE_FEED)).toEqual([
+        { engine: "c8-dev", instance: "2251799813685367" },
+      ])
+    })
+    expect(callsOf(env.fetch, "engine_open_cockpit")).toEqual([])
   })
 
   it("leads an incident it knows by its id alone to the instance that holds its root", async () => {

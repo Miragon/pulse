@@ -12,7 +12,8 @@ import {
 } from "./engines.js"
 
 /**
- * Camunda 8 in the BUILT bundle: the server reads a Camunda 8 engine on boards only. The
+ * Camunda 8 in the BUILT bundle: the chat shows a Camunda 8 engine on boards only, while the web
+ * app's page reads it whole on its screens (test-host/web/camunda8-screens.spec.ts). The
  * deployment (global-setup.ts) sets the stub engine beside a loopback Camunda 8 cluster
  * (c8-engine.ts) under two profiles of the client credentials grant: `c8-orders`, which the board
  * `orders` names and whose profile names its Operate, and `c8-billing`, which no board names. The
@@ -21,7 +22,9 @@ import {
  * its Operate, or that none does yet), which reads nothing either and shows none of the sections
  * of an engine above it. The board shows the cluster's numbers, its instances by keys of 16 to 19
  * digits and its Zeebe diagram; no view of the cockpit reads a Camunda 8 engine, so its tiles'
- * rows, counts and diagram and its chip open nothing. Dark, forced colours, axe.
+ * rows, counts and diagram and its chip open nothing. None of it calls a screen feed of the web
+ * app's (`engine_screen_*`), which would show the engine whole: the chat's gate stays shut. Dark,
+ * forced colours, axe.
  * The scenarios run one after another, since the landing's and the gate's count the cluster's
  * requests, which the board's would add to.
  */
@@ -70,6 +73,11 @@ async function hostLog(page: Page): Promise<HostLog> {
 
 /** What the cluster was asked since the last forget; `forget` clears it. */
 const asked = (forget = false) => c8Requests(envOf(C8_CONTROL_ENV), forget)
+
+/** The calls of the web app's screen feeds, which a chat never makes: they show an engine whole. */
+async function screenCalls(page: Page) {
+  return (await hostLog(page)).toolCalls.filter((call) => call.name.startsWith("engine_screen_"))
+}
 
 /** The tool calls the view made for a Camunda 8 engine. */
 async function callsForCamunda8(page: Page) {
@@ -197,10 +205,13 @@ test.describe("Camunda 8 on the landing and in the gate", () => {
     const app = await openCockpit(page)
     await expect(landing(app)).toBeVisible({ timeout: 15_000 })
     await expect(app.getByRole("region", { name: "Engines" }).getByRole("button")).toHaveCount(3)
-    await expect(engineRow(app, `${C8_ENGINE} , Camunda 8, on boards`)).toBeVisible()
-    await expect(
+    // On boards only, as the chat shows it: never the row of an engine a page shows itself.
+    for (const row of [
+      engineRow(app, `${C8_ENGINE} , Camunda 8, on boards`),
       engineRow(app, `${C8_UNBOARDED_ENGINE} , Camunda 8, on no board yet`),
-    ).toBeVisible()
+    ]) {
+      await expect(row).toHaveAttribute("data-status", "boardsOnly")
+    }
     // The stub's row has its verdict: its reads are done, and none went to a Camunda 8 engine.
     await expect(engineRow(app, new RegExp(`^${HEALTHY_ENGINE} , `))).not.toHaveAttribute(
       "aria-busy",
@@ -235,6 +246,7 @@ test.describe("Camunda 8 on the landing and in the gate", () => {
     const operate = app.getByRole("link", { name: "Open in Operate (opens in a new tab)" })
     await expect(operate).toHaveAttribute("href", C8_OPERATE)
     expect(await callsForCamunda8(page)).toEqual([])
+    expect(await screenCalls(page)).toEqual([])
     expect(await asked()).toEqual([])
 
     await boards.getByRole("button", { name: new RegExp(`^${TITLE}`) }).click()
@@ -388,6 +400,7 @@ test.describe("Camunda 8 on a board", () => {
     expect((await callsForCamunda8(page)).map((call) => call.name)).toEqual([
       "engine_bpmn_xml_data",
     ])
+    expect(await screenCalls(page)).toEqual([])
   })
 
   // The chip that opens nothing keeps a button's one line: its name whole, its facts cut.

@@ -1,7 +1,6 @@
 import { expect, test, type Page } from "@playwright/test"
 import {
   BROKEN_ENGINE,
-  C8_ENGINE,
   C8_UNBOARDED_ENGINE,
   HEALTHY_ENGINE,
   INVOICES_BOARD,
@@ -310,23 +309,19 @@ test.describe("the page's navigation in German, on a dark system", () => {
 })
 
 test.describe("the page's navigation beside Camunda 8 and refused profiles", () => {
-  test("a Camunda 8 engine says it shows on boards only and opens its one state", async ({
+  test("a Camunda 8 engine opens its processes, its incidents and jobs not offered", async ({
     page,
   }) => {
     await signIn(page, "/app", { deployment: "camunda8" })
     await expect(h1(page, "Operations Cockpit")).toBeVisible({ timeout: 15_000 })
-    for (const engine of [C8_ENGINE, C8_UNBOARDED_ENGINE]) {
-      await expect(noted(page, engine, "boards only")).toBeVisible()
-    }
-    await noted(page, C8_ENGINE, "boards only").click()
-    // Its own bar: its name the h1, which takes the focus, the Refresh the bar's one action.
-    await expect(h1(page, C8_ENGINE)).toBeFocused({ timeout: 15_000 })
-    await expect(
-      page.getByRole("heading", { level: 2, name: `${C8_ENGINE} is a Camunda 8 engine` }),
-    ).toBeVisible()
-    await expect(page.getByRole("button", { name: "Refresh" })).toHaveCount(1)
-    expect(await currentEntries(page)).toEqual([`${C8_ENGINE}, boards only`])
-    await expect(navEntry(page, "Jobs")).toHaveCount(0)
+    // No note: the page's screens show it whole, never on boards only.
+    await expect(navigation(page).getByText("boards only")).toHaveCount(0)
+    await navEntry(page, C8_UNBOARDED_ENGINE).click()
+    // Its engine screen: its name the h1, which takes the focus, its processes the current section.
+    await expect(h1(page, C8_UNBOARDED_ENGINE)).toBeFocused({ timeout: 15_000 })
+    await expect(page.getByRole("table", { name: "Processes" })).toBeVisible({ timeout: 15_000 })
+    expect(await currentEntries(page)).toEqual(["Processes"])
+    for (const name of ["Incidents", "Jobs"]) await expect(navEntry(page, name)).toHaveCount(0)
     await expectNoAxeFinding(page)
   })
 

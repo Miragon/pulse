@@ -1,5 +1,6 @@
 import { createContext, useContext, type ComponentType, type ReactNode } from "react"
 import type { ToolResult } from "../protocol/tool-result.js"
+import type { PageHints } from "./page-hints.js"
 
 /**
  * What a hand-off does in this host: `chat` posts it into the chat (`sendFollowUp`), `copy` offers
@@ -84,6 +85,13 @@ export interface ViewHost {
   /** Whether a hand-off posts (`chat`), is copied (`copy`) or shows not at all (`none`). */
   followUp: FollowUp
   /**
+   * A page's words of what to do after a failure (`PAGE_HINTS`), where its `followUp` is not
+   * `chat`: the kit's words of a kind that would send the reader to the chat say what to do on the
+   * page instead (`describeError`'s `pageHints`). Only a page's host brings them, so a chat's
+   * bundle carries none.
+   */
+  pageHints?: PageHints
+  /**
    * Whether a view may write to an engine here: absent or true in a chat and in `TestViewHost`,
    * false on a page outside a chat (`mountApp`, `mountPage`), which offers no write, so no write
    * control shows there (`useHostWrites`).
@@ -133,12 +141,14 @@ export function useHostFollowUp(): FollowUp {
 }
 
 /**
- * Where the kit's words of a failure say what to do: a chat's (`chat`) may send the reader there,
- * a page's (`copy`, `none`) say what to do on the page (`describeError`'s `followUp`). Outside a
- * view host (a kit piece rendered on its own) a chat's, as before the host told.
+ * Where the kit's words of a failure say what to do, as `describeError`'s options: a chat's
+ * (`chat`) may send the reader there, a page's (`copy`, `none`) say what to do on the page in the
+ * page's words (`pageHints`). Outside a view host (a kit piece rendered on its own) a chat's, as
+ * before the host told.
  */
-export function useWordsFollowUp(): FollowUp {
-  return useContext(ViewHostContext)?.followUp ?? "chat"
+export function useErrorWords(): { followUp: FollowUp; pageHints: PageHints | undefined } {
+  const host = useContext(ViewHostContext)
+  return { followUp: host?.followUp ?? "chat", pageHints: host?.pageHints }
 }
 
 /**

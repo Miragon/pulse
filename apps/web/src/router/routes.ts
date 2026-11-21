@@ -106,8 +106,8 @@ export type PageScreen =
  * its canonical address (`url`: the one the address bar shows, where an old address or another
  * spelling of it is replaced), the start the page opens it at and its document title; where the
  * page shows the place with a screen of its own, that screen (`screen`), the start then the
- * cockpit's for an engine the screen does not serve (one shown on boards only, a refused profile,
- * one the server does not configure).
+ * cockpit's for an engine the screen does not serve (a refused profile, one the server does not
+ * configure, an incident by its id alone on a Camunda 8 engine).
  */
 export type PageRoute =
   | {
@@ -392,9 +392,10 @@ const shapeOf = (place: Place): string => Object.keys(place).sort().join()
 /**
  * Where the page starts the view at `place`: the landing for the landing, and for the places the
  * landing's start leads on to (the cross-engine overview, which no argument of the tool names, and
- * an engine's own address, whose engine may have no section: one the server shows on boards only
- * or whose profile it refused, which the cockpit then shows as its one state, and the tool takes
- * no `engine` on a server of Camunda 8 clusters alone). The page refuses an engine there that the
+ * an engine's own address, whose engine may have no section the cockpit serves: one whose profile
+ * the server refused, which the cockpit then shows as its one state, or a Camunda 8 engine, which
+ * the page shows on its own engine screen, and the tool takes no `engine` on a server of Camunda 8
+ * clusters alone). The page refuses an engine there that the
  * server does not configure (`viewsAt`), as the tool does at any other address of it, and the
  * address stays. Any other place is the tool's arguments, and the tool refuses an argument it does
  * not take.

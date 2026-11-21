@@ -4,13 +4,13 @@ import {
   isPermanentError,
   parseBpmnNames,
   useToolQuery,
-  ViewDataState,
   WidgetShell,
 } from "@miragon/pulse-widget-shell/widgets"
 import { useT } from "../../messages/index.js"
 import type { Navigate } from "../../router/page-link.js"
 import type { InstanceTab } from "../../router/routes.js"
 import { READ_AGAIN_AFTER_MS, useReadOnReturn } from "../read-on-return.js"
+import { ScreenState } from "../cluster-problem.js"
 import { RefreshNotice } from "../screen-chrome.js"
 import { useWide } from "../use-wide.js"
 import { InstanceBody } from "./instance-body.js"
@@ -101,7 +101,12 @@ export function InstanceScreen(props: InstanceScreenProps) {
               onRefresh={ready ? refetch : undefined}
               slots={slots}
             />
-            <RefreshNotice error={refreshError} onRetry={refetch} permanent={isRefusal} />
+            <RefreshNotice
+              error={refreshError}
+              onRetry={refetch}
+              permanent={isRefusal}
+              engine={engine}
+            />
             {data !== undefined && (
               <InstanceStrips screen={data} focus={incident} nameOf={nameOf} navigate={navigate} />
             )}
@@ -206,7 +211,8 @@ function InstanceState({
     return <UnknownInstance engine={engine} instance={instance} navigate={navigate} />
   }
   return (
-    <ViewDataState
+    <ScreenState
+      engine={engine}
       loading={error === null}
       error={error}
       onRetry={onRetry}

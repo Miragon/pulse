@@ -514,15 +514,15 @@ const DOCS_BUDGETS = {
   // What the server reads of a Camunda 8 cluster and offers per engine (the web app's screen feeds
   // among it), its profile and client, its failures and the server's legs of the conformance
   // matrix.
-  "mcp/camunda8.md": 118,
+  "mcp/camunda8.md": 123,
   "mcp/reference.md": 160,
   // The web app's pages (docs/web/): what it shows and for whom, its navigation, its engine screen
   // and its instance screen, the sign-in an operator sets up (variables, the provider's side,
   // sessions and their check at the provider, a proxy, local), how it is built and what its
   // screens read.
-  "web/index.md": 71,
+  "web/index.md": 74,
   "web/sign-in.md": 135,
-  "web/architecture.md": 112,
+  "web/architecture.md": 113,
   // The CLI's pages (docs/cli/).
   "cli/index.md": 40,
   "cli/getting-started.md": 140,

@@ -264,11 +264,11 @@ function CockpitScopes({ data, chrome }: { data: CockpitAppData | null; chrome: 
 
   const navigate: OnNavigate = dispatch
   // An engine shown without a section: its one state reads nothing, and names no route's place.
-  const sectionless = sectionlessEngineIn(scope, engines, refusal !== null) !== undefined
+  const withoutSection = sectionlessEngineIn(scope, engines, refusal !== null) !== undefined
   // After an engine switch, whether the new engine deploys the process the view kept (N7).
-  useProcessCheck(state, sectionless, dispatch)
+  useProcessCheck(state, withoutSection, dispatch)
   // A page's address follows where the cockpit is (N1); a chat has none.
-  const claimed = usePlaceOnAddress(state, sectionless, dispatch)
+  const claimed = usePlaceOnAddress(state, withoutSection, refusal !== null, dispatch)
 
   // A place the page shows itself (its engine screen): the page takes over as it reads the report.
   if (claimed) return null

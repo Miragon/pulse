@@ -81,8 +81,9 @@ Three axes decide where code goes, and they stay apart:
   `packages/connectors/<dialect>/`, named for the API family it speaks (`c7`, with its client
   `@miragon/pulse-c7-client`, its core `@miragon/pulse-c7-core` and the runtime view's C7 adapter
   `@miragon/pulse-c7-adapter`, private; `c8`, with its core `@miragon/pulse-c8-core`, which the
-  engine module runs over the server's own Camunda 8 wire for the engine list and the boards, the
-  only reads of the server that offer a Camunda 8 engine (`docs/mcp/camunda8.md`), and the runtime
+  engine module runs over the server's own Camunda 8 wire for the engine list, the boards and the
+  web app's screen feeds, the only reads of the server that offer a Camunda 8 engine (the chat
+  shows it on boards only, the web app whole: `docs/mcp/camunda8.md`), and the runtime
   view's C8 adapter `@miragon/pulse-c8-adapter`, private, which the editor hosts read Camunda 8
   through), whose core implements the contract of the engine family's core (the dialect families
   `DIALECT_FAMILIES` names in `.dependency-cruiser.cjs`, of which `ENGINE_DIALECTS`, `c7` and `c8`,
@@ -718,8 +719,8 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      chat never: the web app's frame, whose side navigation holds the sections, the engines and the
      view across engines) takes the head: the cockpit shows none, every view bar shows the page's
      menu first (pulse-ui's `ViewBarSlots`), an engine's bar the cockpit's Refresh first among its
-     actions, an engine without sections (a refused profile, one shown on boards only) gets a bar
-     of its own over its one state (its name the h1, the state's title an h2 under it, the Refresh
+     actions, an engine without sections (a refused profile; a Camunda 8 engine at a place the page
+     does not show itself) gets a bar of its own over its one state (its name the h1, the state's title an h2 under it, the Refresh
      its action), an app-level title (the landing, the cross-engine overview) is its bar's title,
      and a drill's trail keeps its row at every width. A navigation focuses the new view's `h1`
      (pulse-ui's `NavigationFocus`), which a route renders before its data; the web app's frame
@@ -739,7 +740,9 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      `QueryFallback` + `TableSkeleton` in a self-fetching widget (without an `isError` branch
      the skeleton never ends); both take a required `onRetry` and word a failure with
      `describeError`, the raw engine text only under "Details", its hint for the host the view
-     sits in (`followUp`: a page's words never send the reader to a chat). A refusal no retry
+     sits in (`followUp`: a page's words never send the reader to a chat; they are its host's,
+     `ViewHost.pageHints` from widget-shell's `PAGE_HINTS`, which only a page's host brings, so a
+     chat's bundle carries none: `useErrorWords`). A refusal no retry
      changes (`isPermanentError`: a refused profile, a write to a read-only engine, a call on an
      engine whose dialect it does not read (`notServed`, worded without the dialect), a page's ended
      session, an unknown or refused board, arguments a tool does not take) is not retried by the
@@ -751,19 +754,24 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      refused engine once, as its view's one state (`RefusedEngineGate`), also before the engine
      list answers, its title the route's h1 under a head without sections, and reads nothing where
      the start data or the engine list names the profile refused, whose reason it words as the
-     server's refusal (another dialect's refused profile is offered no feed); beside it, an engine the server reads on boards only (Camunda 8, its dialect
+     server's refusal (another dialect's refused profile is offered no feed); beside it, an engine the chat shows on boards only (Camunda 8, its dialect
      from the start data's `CockpitEngineInfo`) is every route's one state too
      (`BoardsOnlyEngineGate`), which reads nothing and names the boards that show it, under a head
      with only the sections its dialect is served by (`ROUTE_DIALECTS`: none) and a trail that
      names the engine; its landing row reads nothing and has no verdict, a board offers no way
      into it (its tiles' rows and its chip open nothing: `BoardSlots.opens` of
-     `@miragon/pulse-blocks`), and the cross-engine view leaves it out and names it. A route
+     `@miragon/pulse-blocks`), and the cross-engine view leaves it out and names it. On a page
+     whose screens show such an engine (`ViewLocation.claims`: the web app's, which read a Camunda
+     8 engine whole since 2026-11-21) the cockpit names its place whole, which the page claims, so
+     the page shows its screen there: its landing row says its product and opens the page's screen,
+     a board's tiles and chip open the page's screens (an incident the instance that holds it), and
+     the cross-engine view names it only as left out. A route
      whose panels fail alike says it once, its first panel's state with a Try again that reads
      them all (the overview's verdict over its definitions, the incidents' bar over their list).
      A page's ended session (`isSessionEnded`) is said once, by the page's frame: a view's state
      shows a quiet line that its content is missing, and no notice, footer alert or engine row
      speaks of it. A page's refused start (an unknown board, arguments a tool does not take, data
-     the server does not offer, a view of an engine shown on boards only, and an engine's own
+     the server does not offer, a view of an engine whose dialect its route does not read, and an engine's own
      address that names an engine the server does not configure, which the web app refuses in the
      view's place over the landing's start, its address kept: the connector's
      `cockpitNamesEngine`) links to the page's start page (the browser adapter's `startPage`,

@@ -11,6 +11,7 @@ export {
   type DescribeErrorOptions,
   type DescribedError,
 } from "./describe-error.js"
+export type { PageHints } from "./page-hints.js"
 export { ListTable, type ListTableColumn, type ListTableGroup } from "./list-table.js"
 export { ListRow } from "./list-row.js"
 export { IdText, IdCell } from "./id-text.js"
@@ -47,6 +48,7 @@ export { ViewStack, type ViewComponent, type ViewMap, type ViewProps } from "./v
 export { ViewErrorBoundary } from "./view-error-boundary.js"
 export {
   HostModelContext,
+  useErrorWords,
   useHostChrome,
   useHostFollowUp,
   useHostLocation,

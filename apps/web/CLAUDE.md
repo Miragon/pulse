@@ -31,8 +31,8 @@ server image builds the page beside the server and serves it from `/app/web`.
   overview: the landing's start, then the cockpit opens it, no view of the tool), `/app/boards/<id>`
   (a board, the tool refusing an id the server shows no board for), an engine's views under
   `/app/engines/<engine>`: its processes at the engine's own address, the page's own engine screen
-  (below; `?scope=incident&q=…`: its list's filter; an engine shown on boards only or a refused
-  profile shows its one state there instead,
+  (below; `?scope=incident&q=…`: its list's filter; a Camunda 8 engine's too; a refused profile
+  shows its one state there instead,
   the cockpit's, started on the landing, which every server's tool takes, and an engine the server
   does not configure the page's refused start: `src/unknown-engine.tsx` says it in the view's place
   where the landing's start data does not name the engine, the engine connector's
@@ -92,13 +92,16 @@ server image builds the page beside the server and serves it from `/app/web`.
   environment (where the server names environments) with the open one's sections, the boards, and
   at its foot who is signed in and the sign-out. The sections an engine opens are its dialect's on
   the web (`src/frame/nav-sections.ts`: Camunda 7's processes, the page's engine screen at the
-  engine's own address where the cockpit's head had its overview, then its incidents and jobs; none
-  of Camunda 8's, which says it shows on boards only; `test/nav-sections.test.tsx` holds the table
-  to the routes `engine_open_cockpit` offers each dialect alone, to the engine screen's feed the
-  server registers for it and to the sections the cockpit's head shows an engine of each dialect,
-  rendered); a refused profile shows the landing's warning mark
-  and says refused, and opens its one state. Either one's state stands under a bar of its own on
-  the page, the engine's name its h1 and the cockpit's Refresh its action. An engine's entry opens
+  engine's own address where the cockpit's head had its overview, then its incidents and jobs;
+  Camunda 8's processes alone since 2026-11-21, since the page's screens read the engine contract in
+  every dialect and the cockpit's routes it embeds the Camunda 7 REST API alone;
+  `test/nav-sections.test.tsx` holds the table to the routes `engine_open_cockpit` offers each
+  dialect alone, to the screen feeds the server registers for it, both ways, and to the sections the
+  cockpit's head shows an engine of each dialect, rendered; a dialect the page knows no screen of
+  says it shows on boards only); the view across engines counts the engines the cockpit's view
+  reads (`FLEET_DIALECTS`: Camunda 7's, and a refused profile), never a Camunda 8 one; a refused profile
+  shows the landing's warning mark and says refused, and opens its one state, which stands under a
+  bar of its own on the page, the engine's name its h1 and the cockpit's Refresh its action. An engine's entry opens
   its processes, its address the same wherever the page is: the chat's engine switch, which keeps
   the open section and a process the other engine deploys (N7), is the head's, which the page
   hides. Every entry is a real `<a href>` of the router (`src/router/page-link.tsx`), the current
@@ -138,11 +141,21 @@ server image builds the page beside the server and serves it from `/app/web`.
   no verdict and writes nothing. Its states are its own: a first load's skeleton after 400 ms, a
   failure in the kit's words (`describeError`) with Try again unless no retry changes it
   (`isPermanentError`: a refused profile, an engine whose dialect the server does not read), a
-  failed refresh over the numbers on screen a strip under the bar.
+  failed refresh over the numbers on screen a strip under the bar; a Camunda 8 cluster the screen
+  cannot read as it is set up (below 8.9, without secondary storage: c8-core's words after the
+  contract's `[misconfigured]`) in the page's own words with its fix, on a first load and in a
+  refresh's strip alike, the server's under Details (`src/screens/cluster-problem.tsx`,
+  `ScreenState`, which the process and instance screens take too, and `RefreshNotice`), and a token
+  endpoint's refusal as a refused login, as Camunda 7's (the kit reads the contract's
+  `[unauthorized]`). A Camunda 8 engine's screen says under its bar, in one line a laptop's width
+  holds, that its incidents and jobs show at their instances and how to get there, since the page
+  offers it no incidents and jobs. An instance whose engine cut some of its lists (its
+  `truncated`, the strip "Some lists are cut off") counts every tab as a lower bound (`≥ n`), since
+  the read names no list it cut, as Pulse for VS Code's tabs do.
   `src/screens/engine/engine-route.tsx` decides on the frame's one read of the engine list: the
-  screen for an engine of a dialect that has it on the web (Camunda 7's), else the cockpit's view
-  the page starts there, which shows an engine shown on boards only or a refused profile its one
-  state, as before the screen. A screen is never a view of the `ViewMap`: the router names it
+  screen for an engine of a dialect that has it on the web (Camunda 7's and Camunda 8's), else the
+  cockpit's view the page starts there, which shows a refused profile its one state, as before the
+  screen. A screen is never a view of the `ViewMap`: the router names it
   beside the route (`PageRoute`'s `screen`, `screenOf`) and claims its place for the page
   (`ViewLocation.claims`), so the cockpit, wherever it is embedded on the page, reports a move to
   an engine's overview and renders nothing there, and the page shows the screen; Back or Forward
@@ -191,7 +204,9 @@ server image builds the page beside the server and serves it from `/app/web`.
   return. It writes nothing (every write slot of the blocks empty) and hands nothing to a chat.
   `src/screens/instance/instance-route.tsx` decides on
   the frame's one read of the engine list as the engine screen does (`src/screens/screen-shown.ts`:
-  Camunda 7's engines, the cockpit's view of any other); the page claims the cockpit's instance view,
+  Camunda 7's and Camunda 8's engines, the cockpit's view of any other; an incident known by its id
+  alone Camunda 7's only, which the cockpit's incident feed finds, so a Camunda 8 engine's is the
+  cockpit's refusal); the page claims the cockpit's instance view,
   its history and an incident (`ViewLocation.claims`), so a drill of the embedded cockpit to one of
   them shows the screen.
 - The process screen (`src/screens/process`), at a process's own address: the process in one version
@@ -267,7 +282,9 @@ server image builds the page beside the server and serves it from `/app/web`.
   above). A page without a session (the signed-out page, a session that ended before its first
   read or could not be read) shows the product's name in a 40 px bar above its sheet
   (`src/frame/layout.tsx`). A page writes to no engine and posts to no chat (`followUp: "none"`),
-  so no write control and no hand-off show. A start that failed
+  so no write control and no hand-off show, and the kit's words of a failure are a page's
+  (`BrowserViewHost` brings widget-shell's `PAGE_HINTS`, which the chat's bundle never carries; the
+  screens take them through `useErrorWords`). A start that failed
   for its engine (an unreachable one, say) keeps the cockpit on that engine over the route that
   says so, and the navigation keeps the engine open with its sections: `PageView`'s `failedStart`
   takes the engine connector's `cockpitAfterFailedStart`, and a refusal no retry changes stays the

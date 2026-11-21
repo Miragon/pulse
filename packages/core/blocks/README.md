@@ -358,8 +358,9 @@ the parts that follow its own conventions:
   incident opens nothing, since no list shows only those.
 - `opens(target)`, optional: whether a target opens anything on the surface; without it every
   target does. One that opens nothing is offered nowhere: its count, summary row and diagram stay
-  text, its list row opens nothing. The cockpit opens no view of an engine it shows on boards only
-  (Camunda 8); Pulse for VS Code and Pulse for Orca open every target.
+  text, its list row opens nothing. The cockpit in a chat opens no view of an engine it shows on
+  boards only (Camunda 8), on the web app's page it opens the page's screens of one; Pulse for VS
+  Code and Pulse for Orca open every target.
 - `onOpenFile`, optional: opens the board file; without it a refused tile offers no way to it.
 - `opensToSide`, optional: the titles say that Ctrl or Cmd with a click opens beside the view.
 

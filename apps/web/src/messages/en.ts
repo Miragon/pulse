@@ -45,6 +45,14 @@ export const en = {
   "screen.productUnknown": "The engine didn't say what it is",
   "screen.engine.loading": "Loading the processes of {engine}…",
   "screen.engine.failed": "The processes of {engine} couldn't be loaded",
+  "screen.engine.atInstances.title": "Incidents and jobs show at their instances",
+  "screen.engine.atInstances.detail": "Open a process, then an instance.",
+  "screen.cluster.floor.title": "Pulse reads Camunda {floor} or newer",
+  "screen.cluster.floor.detail":
+    "The cluster of {engine} is on Camunda {runs}. Ask whoever runs it to update it to {floor} or newer.",
+  "screen.cluster.storage.title": "The cluster of {engine} has no secondary storage",
+  "screen.cluster.storage.detail":
+    "Pulse reads the cluster's search API, which needs secondary storage such as Elasticsearch, OpenSearch or a relational database. Ask whoever runs the cluster to set one up.",
 
   "screen.instance.loading": "Loading instance {instance}…",
   "screen.instance.failed": "Instance {instance} couldn't be loaded",

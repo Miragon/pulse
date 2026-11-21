@@ -309,7 +309,7 @@ test.describe("a board's page over a Camunda 7 engine and a Camunda 8 one", () =
   const ORDERS_TITLE = "Order operations"
   const ordersHeading = (page: Page) => page.getByRole("heading", { level: 1, name: ORDERS_TITLE })
 
-  test("shows both engines' numbers and the Zeebe diagram; a Camunda 8 engine's tiles and chip open nothing", async ({
+  test("shows both engines' numbers and the Zeebe diagram, reading nothing more of Camunda 8", async ({
     page,
   }) => {
     const errors = collectErrors(page)
@@ -325,9 +325,12 @@ test.describe("a board's page over a Camunda 7 engine and a Camunda 8 one", () =
     await expect(
       engines.getByRole("button", { name: new RegExp(`^${HEALTHY_ENGINE} CIB seven `) }),
     ).toBeVisible()
-    await expect(engines.locator("[data-part=board-engine]")).toHaveText(
-      `${C8_ENGINE}Camunda 8 8.9.28 · 3 running · 1 with incident`,
-    )
+    // The page shows a Camunda 8 engine itself: its chip opens its processes (below).
+    await expect(
+      engines.getByRole("button", {
+        name: `${C8_ENGINE} Camunda 8 8.9.28 · 3 running · 1 with incident`,
+      }),
+    ).toBeVisible()
     await expect(tile(page, "Orders in flight").locator("[data-part=counter-value]")).toHaveText(
       "3",
     )
@@ -338,17 +341,44 @@ test.describe("a board's page over a Camunda 7 engine and a Camunda 8 one", () =
     expect(errors).toEqual([])
     await expectNoAxeFinding(page)
 
-    // No view of the cockpit reads a Camunda 8 engine: the board offers no way into one, so its
-    // instances are plain rows and its chip opens nothing; it reads nothing of it but the board's.
-    await expect(
-      tile(page, "Running instances of pulse-order").getByRole("row", { name: /^Instance / }),
-    ).toHaveCount(0)
-    await expect(
-      tile(page, "Running instances of pulse-order").locator("tbody tr[tabindex]"),
-    ).toHaveCount(0)
-    await expect(engines.getByRole("button")).toHaveCount(1)
+    // Nothing of the Camunda 8 engine is read but the board and its diagram.
     expect(calls.filter((call) => call.arguments?.engine === C8_ENGINE).map((c) => c.name)).toEqual(
       ["engine_bpmn_xml_data"],
     )
+  })
+
+  // The page shows a Camunda 8 engine whole on its screens (the chat on boards only, test:host's
+  // camunda8.spec.ts): a tile's row opens its instance, an incident the instance that holds it, the
+  // diagram its process and the chip the engine's processes, each a new entry of the page's history.
+  test("a Camunda 8 engine's tiles and chip open the page's screens", async ({ page }) => {
+    const errors = collectErrors(page)
+    await signIn(page, `/app/boards/${ORDERS_BOARD}`, { deployment: "camunda8" })
+    await expect(ordersHeading(page)).toBeVisible({ timeout: 15_000 })
+    const h1 = page.getByRole("heading", { level: 1 })
+    const instances = tile(page, "Running instances of pulse-order")
+    await instances.getByRole("row", { name: /^Instance ORD-7001/ }).click()
+    await expect(h1).toHaveText("ORD-7001", { timeout: 15_000 })
+    expect(new URL(page.url()).pathname).toBe(
+      `/app/engines/${C8_ENGINE}/instances/9007199254741009`,
+    )
+    await page.goBack()
+    await expect(ordersHeading(page)).toBeVisible({ timeout: 15_000 })
+    await tile(page, "Open incidents").getByRole("row").nth(1).click()
+    await expect(h1).toHaveText("ORD-7001", { timeout: 15_000 })
+    await page.goBack()
+    await expect(ordersHeading(page)).toBeVisible({ timeout: 15_000 })
+    await tile(page, "Order fulfillment")
+      .getByRole("button", { name: /^Open process/ })
+      .click()
+    await expect(h1).toHaveText("Order fulfillment", { timeout: 15_000 })
+    expect(new URL(page.url()).pathname).toBe(`/app/engines/${C8_ENGINE}/processes/pulse-order`)
+    await page.goBack()
+    await expect(ordersHeading(page)).toBeVisible({ timeout: 15_000 })
+    const engines = page.getByRole("group", { name: "Engines of this board" })
+    await expect(engines.getByRole("button")).toHaveCount(2)
+    await engines.getByRole("button", { name: new RegExp(`^${C8_ENGINE} `) }).click()
+    await expect(h1).toHaveText(C8_ENGINE, { timeout: 15_000 })
+    await expect(page.getByRole("table", { name: "Processes" })).toBeVisible()
+    expect(errors).toEqual([])
   })
 })

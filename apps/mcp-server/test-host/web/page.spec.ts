@@ -4,7 +4,6 @@ import { expect, test, type Locator, type Page } from "@playwright/test"
 import {
   BROKEN_ENGINE,
   C8_ENGINE,
-  C8_OPERATE,
   C8_UNBOARDED_ENGINE,
   CHAIN_ENGINE,
   HEALTHY_ENGINE,
@@ -708,13 +707,11 @@ test.describe("the landing's boards at 320 px on a touch screen", () => {
 /**
  * The landing of the Camunda 8 deployment at 320 px, in either language: its default engine's row
  * (the badge, the longest words) names its engine whole and puts what it says under the name where
- * both do not fit beside each other, its arrow inside the row (WCAG 1.4.10).
+ * both do not fit beside each other, its arrow inside the row (WCAG 1.4.10). A Camunda 8 engine's
+ * row says what it runs, never that it shows on boards only: the page's screens show it whole.
  */
 test.describe("the landing's engines of the Camunda 8 deployment at 320 px", () => {
-  for (const [locale, onBoards, onNoBoard] of [
-    ["en-US", "Camunda 8, on boards", "Camunda 8, on no board yet"],
-    ["de-DE", "Camunda 8, auf Boards", "Camunda 8, noch auf keinem Board"],
-  ] as const) {
+  for (const locale of ["en-US", "de-DE"] as const) {
     test(`names each engine whole, its words and its arrow inside the row (${locale})`, async ({
       browser,
     }) => {
@@ -725,9 +722,15 @@ test.describe("the landing's engines of the Camunda 8 deployment at 320 px", () 
         const engines = page.getByRole("region", { name: "Engines" })
         await expect(engines.getByRole("button")).toHaveCount(3, { timeout: 15_000 })
         await rendered(page)
-        for (const text of [HEALTHY_ENGINE, C8_ENGINE, C8_UNBOARDED_ENGINE, onBoards, onNoBoard]) {
+        for (const text of [HEALTHY_ENGINE, C8_ENGINE, C8_UNBOARDED_ENGINE]) {
           await expectWhole(engines, text)
         }
+        // Each Camunda 8 row says what the engine runs, whole: never "on boards".
+        for (const engine of [C8_ENGINE, C8_UNBOARDED_ENGINE]) {
+          const row = engines.getByRole("button", { name: new RegExp(`^${engine}\\b`) })
+          await expectWhole(row, "Camunda 8")
+        }
+        await expect(engines.getByText(/board/i)).toHaveCount(0)
         const arrows = await engines.evaluate((el) =>
           [...el.querySelectorAll("button")].map((button) => {
             const row = button.getBoundingClientRect()
@@ -824,39 +827,36 @@ test.describe("a page whose engine doesn't answer", () => {
 })
 
 test.describe("the cockpit's pages on a Camunda 8 engine", () => {
-  // A Camunda 8 engine's own address: the page starts the landing, which every server takes (one of
-  // Camunda 8 clusters alone takes no `engine`), and the cockpit opens the engine's gate straight
-  // away, never a refusal of the input; a reload keeps it, and the old address leads there.
-  test("/app/engines/<a Camunda 8 engine> opens its gate, a reload too", async ({ page }) => {
+  // A Camunda 8 engine's own address: the page's engine screen, never the cockpit's gate of an
+  // engine shown on boards only; a reload keeps it, and the old address leads there.
+  test("/app/engines/<a Camunda 8 engine> opens its engine screen, a reload too", async ({
+    page,
+  }) => {
     const errors = collectErrors(page)
     const calls = recordCalls(page)
     const address = `/app/engines/${C8_ENGINE}`
     await signIn(page, address, { deployment: "camunda8" })
-    // The gate's title is the heading under the engine's own bar, whose title is the page's h1.
-    const gate = page.getByRole("heading", { level: 2, name: `${C8_ENGINE} is a Camunda 8 engine` })
-    await expect(gate).toBeVisible({ timeout: 15_000 })
+    const processes = page.getByRole("table", { name: "Processes" })
+    await expect(processes).toBeVisible({ timeout: 15_000 })
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(C8_ENGINE)
+    await expect(page.getByText(`${C8_ENGINE} is a Camunda 8 engine`)).toHaveCount(0)
     await expect(page.getByText(/Input validation error/)).toHaveCount(0)
-    await expect(page.getByRole("heading", { level: 1, name: "Operations Cockpit" })).toHaveCount(0)
     await expect(page).toHaveTitle(`${C8_ENGINE} · Pulse`)
     await expect(page.getByRole("navigation", { name: "Cockpit sections" })).toHaveCount(0)
-    await expect(
-      page.getByRole("link", { name: "Open in Operate (opens in a new tab)" }),
-    ).toHaveAttribute("href", C8_OPERATE)
-    // One call of the view tool, the landing's; nothing names the engine, which the gate reads not.
-    expect(calls.filter((call) => call.name === "engine_open_cockpit")).toEqual([
-      { name: "engine_open_cockpit", arguments: { view: "landing" } },
-    ])
-    expect(calls.filter((call) => call.arguments?.engine === C8_ENGINE)).toEqual([])
+    // No call of the view tool: the page shows the place itself.
+    expect(calls.filter((call) => call.name === "engine_open_cockpit")).toEqual([])
+    expect(calls.filter((call) => call.arguments?.engine === C8_ENGINE).map((c) => c.name)).toEqual(
+      ["engine_screen_processes_data"],
+    )
     const url = new URL(page.url())
     expect(`${url.pathname}${url.search}`).toBe(address)
     await rendered(page)
     expect(errors).toEqual([])
     await expectNoAxeFinding(page)
     await page.reload()
-    await expect(gate).toBeVisible({ timeout: 15_000 })
+    await expect(processes).toBeVisible({ timeout: 15_000 })
     await page.goto(`${originOf("camunda8")}/app/cockpit?engine=${C8_ENGINE}`)
-    await expect(gate).toBeVisible({ timeout: 15_000 })
+    await expect(processes).toBeVisible({ timeout: 15_000 })
     expect(new URL(page.url()).pathname).toBe(address)
   })
 
@@ -898,8 +898,11 @@ test.describe("the cockpit's pages on a Camunda 8 engine", () => {
     await expect(alert.getByRole("heading", { level: 1, name: refused })).toBeVisible({
       timeout: 15_000,
     })
+    // The words lead to the state's one way out, the start page, which lists the engine.
     await expect(
-      alert.getByText("This server shows it on boards only. Pulse's start page lists the boards."),
+      alert.getByText(
+        "Pulse shows its processes and instances on pages of their own. Open the engine from Pulse's start page.",
+      ),
     ).toBeVisible()
     await expect(
       alert.getByText(
@@ -919,6 +922,15 @@ test.describe("the cockpit's pages on a Camunda 8 engine", () => {
       timeout: 15_000,
     })
     expect(new URL(page.url()).pathname).toBe("/app")
+    // The start page lists the engine, which opens its processes on the page's own screen.
+    await page
+      .getByRole("region", { name: "Engines" })
+      .getByRole("button", { name: new RegExp(`^${C8_UNBOARDED_ENGINE}\\b`) })
+      .click()
+    await expect(page.getByRole("heading", { level: 1, name: C8_UNBOARDED_ENGINE })).toBeVisible({
+      timeout: 15_000,
+    })
+    expect(new URL(page.url()).pathname).toBe(`/app/engines/${C8_UNBOARDED_ENGINE}`)
   })
 })
 

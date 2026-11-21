@@ -92,7 +92,8 @@ interface ProviderParts {
   flavor: EngineFlavor
   dialect: Dialect
   cockpit: EngineCockpitStrategy
-  branding: { displayName: string }
+  /** Its vendor's name, and its web app's where that has a name of its own (Camunda 8's Operate). */
+  branding: { displayName: string; webApp?: string }
 }
 
 /** A vendor of the Camunda 7 REST dialect: it also builds an engine's client (the client hook). */

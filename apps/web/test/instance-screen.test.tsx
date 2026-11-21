@@ -512,6 +512,24 @@ describe("the instance screen's parts beside its rows", () => {
     ).toBeTruthy()
   })
 
+  // The engine names no list it cut (a Camunda 8 cluster stops an instance's history at 10,000
+  // rows, its incidents at 200, its variables at 1,000): every tab's count is then a lower bound,
+  // never a cut list's length as its total.
+  it("counts every tab as a lower bound where the engine cut some of its lists", async () => {
+    const { instance } = WORLD_SCREENS
+    const tabCount = (name: RegExp) =>
+      screen.getByRole("tab", { name }).querySelector("[data-slot='tab-count'] [aria-hidden]")
+        ?.textContent
+    renderScreen({ feed: answer({ ...instance, truncated: true }) })
+    await heading()
+    expect(tabCount(/^History/)).toBe(`≥\u00a0${String(instance.path.length)}`)
+    expect(tabCount(/^Variables/)).toBe(`≥\u00a0${String(instance.variables.length)}`)
+    cleanup()
+    renderScreen()
+    await heading()
+    expect(tabCount(/^History/)).toBe(String(instance.path.length))
+  })
+
   it("says a failed refresh under the bar, the instance on screen, no Try again for a refusal", async () => {
     let reads = 0
     renderScreen({

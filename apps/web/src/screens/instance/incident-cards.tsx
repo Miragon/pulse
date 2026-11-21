@@ -11,7 +11,7 @@ import {
   describeError,
   isPermanentError,
   isSessionEnded,
-  useHostFollowUp,
+  useErrorWords,
   useToolQuery,
 } from "@miragon/pulse-widget-shell/widgets"
 import { ArrowRight } from "lucide-react"
@@ -44,13 +44,13 @@ function textKindOf(card: IncidentCardData): IncidentTextKind | null {
 function useTextRefusal(): (error: Error) => string | undefined {
   const t = useT()
   const locale = useLocale()
-  const followUp = useHostFollowUp()
+  const words = useErrorWords()
   const { common } = useUiMessages()
   return (error) => {
     if (isSessionEnded(error)) return common.loadFailed
     if (isUnknownIncident(error)) return t("incident.textGone")
     if (!isPermanentError(error)) return undefined
-    const described = describeError(error, locale, { followUp })
+    const described = describeError(error, locale, words)
     return `${described.title}. ${described.hint}`
   }
 }

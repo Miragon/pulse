@@ -12,6 +12,7 @@ import { createApp } from "../../src/app.js"
 import { startC8HostEngine } from "../c8-engine.js"
 import {
   BROKEN_ENGINE,
+  C8_CONTROL_ENV,
   C8_ENGINE,
   CHAIN_ENGINE,
   C8_OPERATE,
@@ -163,10 +164,11 @@ async function startControl(idps: Record<Deployment, FakeOidc>) {
  * http. The workers find the deployments in `WEB_SIM_URL`, `WEB_SIM_SHORT_URL` and
  * `WEB_SIM_ADFS_URL` (the generic OpenID Connect provider at a fake ADFS) and `WEB_SIM_ENTRA_URL`
  * (the Entra ID provider at a fake tenant), the control
- * of their identity providers in `WEB_SIM_CONTROL_URL` and the stub engine's in
- * `HOST_SIM_ENGINE_URL` (all inherited from this process). The `camunda8` deployment, in
- * `WEB_SIM_CAMUNDA8_URL`, reads test:host's loopback Camunda 8 cluster (c8-engine.ts) beside the
- * stub engine: one profile a board names, one no board names. The `refusedC8` deployment, in
+ * of their identity providers in `WEB_SIM_CONTROL_URL`, the stub engine's in `HOST_SIM_ENGINE_URL`
+ * and the Camunda 8 cluster's in `HOST_SIM_C8_ENGINE_URL` (all inherited from this process). The
+ * `camunda8` deployment, in `WEB_SIM_CAMUNDA8_URL`, reads test:host's loopback Camunda 8 cluster
+ * (c8-engine.ts) beside the stub engine: one profile a board names, one no board names, each shown
+ * whole on the page's screens. The `refusedC8` deployment, in
  * `WEB_SIM_REFUSED_C8_URL`, refuses a Camunda 8 profile beside the stub. The `chain` deployment, in
  * `WEB_SIM_CHAIN_URL`, reads the stub's chain engine alone (the instance screen's journey).
  */
@@ -199,9 +201,9 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     { [HEALTHY_ENGINE]: { url: engine.baseUrl } },
     { idp: { flavor: "entra", accessTokenSeconds: SHORT_TOKEN_SECONDS } },
   )
-  // Camunda 8 beside the stub: a board page over both, and the cockpit's pages on a Camunda 8
-  // engine, which the server reads on boards only; the one no board names is the default, which a
-  // page without `engine` goes to.
+  // Camunda 8 beside the stub: a board page over both, and the page's screens on a Camunda 8 engine,
+  // which the page reads whole (the chat on boards only); the one no board names is the default,
+  // which a page without `engine` goes to.
   const c8 = await startC8HostEngine()
   const camunda8 = await deploy(
     {
@@ -243,6 +245,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   process.env[DEPLOYMENTS.chain] = chain.origin
   process.env[CONTROL_ENV] = control.url
   process.env[ENGINE_CONTROL_ENV] = engine.controlUrl
+  process.env[C8_CONTROL_ENV] = c8.origin
 
   return async () => {
     await control.close()

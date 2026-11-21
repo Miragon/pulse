@@ -5,6 +5,7 @@
     "test": {
       "inputs": [
         "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/apps/mcp-server/test/__golden__/error-paths-c8/**",
         "$TURBO_ROOT$/scripts/third-party-licenses.mjs",
         "$TURBO_ROOT$/scripts/third-party-licenses.d.mts"
       ]

@@ -1,14 +1,16 @@
 import { WEB_CODES } from "../protocol/web.js"
 import { resolveLanguage } from "./host-context.js"
 import { ERROR_LABELS, type ErrorKindLabels, type ErrorSource } from "./error-labels.js"
+import type { PageHints } from "./page-hints.js"
 import type { FollowUp } from "./view-host.js"
 
 /**
  * `unreachable` covers 502/503, `timeout` 408/504, `notOnServer` an inactive module,
  * `profileRefused` an engine whose profile the server refused (ENGINE_PROFILE_REFUSED),
  * `readOnly` a write to an engine whose profile is read-only (ENGINE_READ_ONLY), `notServed` a
- * call that does not read its engine's dialect (ENGINE_DIALECT_NOT_SERVED: the server shows such
- * an engine on boards only), `signedOut` a page's call that found its session gone (the web app's
+ * call that does not read its engine's dialect (ENGINE_DIALECT_NOT_SERVED: a chat shows such an
+ * engine on boards only, a page its processes and instances), `signedOut` a page's call that found
+ * its session gone (the web app's
  * `signed_out`), `unknownBoard` and
  * `boardRefused` a board the server does not show (UNKNOWN_BOARD) or whose file gives none
  * (BOARD_REFUSED), and `invalidArguments` a call whose arguments the tool's input schema refuses.
@@ -157,7 +159,11 @@ function kindOfStatus(status: number): ErrorKind {
   return "failed"
 }
 
-/** The server's refusals its text names, each by its code or the SDK's own words, in this order. */
+/**
+ * The server's refusals its text names, each by its code or the SDK's own words, in this order; and
+ * a refused login the engine contract's failure leads a read's text with (a screen's, a board's
+ * diagram), a status or none: a Camunda 8 token endpoint's refusal reads as Camunda 7's 401 does.
+ */
 const NAMED_KINDS: ReadonlyArray<readonly [RegExp, ErrorKind]> = [
   [PROFILE_REFUSED, "profileRefused"],
   [READ_ONLY, "readOnly"],
@@ -166,6 +172,8 @@ const NAMED_KINDS: ReadonlyArray<readonly [RegExp, ErrorKind]> = [
   [BOARD_REFUSED, "boardRefused"],
   [INVALID_ARGUMENTS, "invalidArguments"],
   [TOOL_MISSING, "notOnServer"],
+  [/^\[unauthorized\]/, "unauthorized"],
+  [/^\[forbidden\]/, "forbidden"],
 ]
 
 /** The web app's code on a page's refusal (`WebApiError.code`), which no text carries. */
@@ -234,8 +242,8 @@ export function isSessionEnded(error: unknown): boolean {
 
 /**
  * The refusals whose words on a page lead to its start page: what the page asked for is not
- * there (a board, an argument, a module, a view of an engine the server shows on boards only),
- * so its state links there where the host has one.
+ * there (a board, an argument, a module, a view of one engine whose dialect its route does not
+ * read), so its state links there where the host has one.
  */
 const START_PAGE_KINDS: ReadonlySet<ErrorKind> = new Set([
   "notServed",
@@ -253,9 +261,14 @@ export interface DescribeErrorOptions {
   /**
    * What the host does with a hand-off (`ViewHost.followUp`), which says where the view sits: a
    * chat's words (`chat`, the default) may send the reader there, a page's (`copy`, `none`) say
-   * what to do on the page, as the view frame's do.
+   * what to do on the page, as the view frame's do (`pageHints`).
    */
   followUp?: FollowUp
+  /**
+   * A page's words of what to do (`ViewHost.pageHints`), which its host brings: a page's
+   * `followUp` reads them where a kind's chat words would send the reader to the chat.
+   */
+  pageHints?: PageHints | undefined
 }
 
 /** Never the raw "[503 ProcessEngineException] …" as the headline; feed the result to pulse-ui's `ErrorState`. */
@@ -264,7 +277,8 @@ export function describeError(
   locale: string | undefined,
   options: DescribeErrorOptions = {},
 ): DescribedError {
-  const labels = ERROR_LABELS[resolveLanguage(locale)]
+  const language = resolveLanguage(locale)
+  const labels = ERROR_LABELS[language]
   const facts = classifyError(error)
   const words: ErrorKindLabels = labels[facts.kind]
   const source = labels.source({ source: facts.source })
@@ -277,7 +291,9 @@ export function describeError(
   return {
     kind: facts.kind,
     title,
-    hint: words.hint({ source: facts.source.type, page }),
+    hint:
+      (page && options.pageHints?.[language][facts.kind]) ||
+      words.hint({ source: facts.source.type }),
     details: facts.raw,
   }
 }
