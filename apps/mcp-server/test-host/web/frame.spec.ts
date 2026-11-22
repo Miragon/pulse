@@ -54,10 +54,11 @@ test.describe("the page's side navigation", () => {
     test.setTimeout(120_000)
     const errors = collectErrors(page)
     await signIn(page, "/app")
-    await expect(h1(page, "Operations Cockpit")).toBeVisible({ timeout: 15_000 })
+    await expect(h1(page, "All engines")).toBeVisible({ timeout: 15_000 })
+    // The start page shows every engine side by side: the navigation offers no view across them.
+    await expect(navEntry(page, "Cross-engine overview")).toHaveCount(0)
     await mark(page)
     for (const [entry, address, heading, current] of [
-      ["Cross-engine overview", "/app/fleet", "Cross-engine overview", "Cross-engine overview"],
       [HEALTHY_ENGINE, `/app/engines/${HEALTHY_ENGINE}`, HEALTHY_ENGINE, "Processes"],
       [
         "Incidents",
@@ -74,7 +75,7 @@ test.describe("the page's side navigation", () => {
         "Invoice operations",
         "Invoice operations",
       ],
-      ["Start", "/app", "Operations Cockpit", "Start"],
+      ["Start", "/app", "All engines", "Start"],
     ] as const) {
       await navEntry(page, entry).click()
       const title = h1(page, heading)
@@ -309,9 +310,10 @@ test.describe("the page's navigation in German, on a dark system", () => {
     await signIn(page, `/app/engines/${HEALTHY_ENGINE}/incidents`)
     await expect(h1(page, `${HEALTHY_ENGINE} · Incidents`)).toBeVisible({ timeout: 15_000 })
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark")
-    for (const name of ["Start", "Engine-übergreifende Übersicht", "Prozesse", "Jobs"]) {
+    for (const name of ["Start", "Prozesse", "Jobs"]) {
       await expect(navEntry(page, name), name).toBeVisible()
     }
+    await expect(navEntry(page, "Engine-übergreifende Übersicht")).toHaveCount(0)
     await expect(page.getByRole("banner").getByRole("button", { name: "Abmelden" })).toBeVisible()
     const current = navEntry(page, "Incidents")
     await expect(current).toHaveAttribute("aria-current", "page")
@@ -341,7 +343,7 @@ test.describe("the page's navigation beside Camunda 8 and refused profiles", () 
     page,
   }) => {
     await signIn(page, "/app", { deployment: "camunda8" })
-    await expect(h1(page, "Operations Cockpit")).toBeVisible({ timeout: 15_000 })
+    await expect(h1(page, "All engines")).toBeVisible({ timeout: 15_000 })
     // No note: the page's screens show it whole, never on boards only.
     await expect(navigation(page).getByText("boards only")).toHaveCount(0)
     await navEntry(page, C8_UNBOARDED_ENGINE).click()

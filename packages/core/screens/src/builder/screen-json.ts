@@ -53,13 +53,16 @@ export class ScreenJson {
     return { product, version }
   }
 
-  private static processRow({ latest, running, withIncident }: DefinitionSummary): ProcessRowData {
+  private static processRow(summary: DefinitionSummary): ProcessRowData {
+    const { latest, running, withIncident, incidents, incidentsAtLeast } = summary
     return {
       bpmnProcessId: latest.bpmnProcessId,
       ...(latest.name === undefined ? {} : { name: latest.name }),
       latestVersion: latest.version,
       running,
       withIncident,
+      incidents,
+      ...(incidentsAtLeast === true ? { incidentsAtLeast } : {}),
     }
   }
 }

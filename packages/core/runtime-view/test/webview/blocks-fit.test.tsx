@@ -73,7 +73,7 @@ function findings(root: HTMLElement): string[] {
   const heads = [...region.querySelectorAll('th [data-part="column-label"]')]
   const empty = queryPart(region, "table-empty")
   return [
-    ...(heads.length === 4 ? [] : [`${String(heads.length)} column captions, not 4`]),
+    ...(heads.length === 5 ? [] : [`${String(heads.length)} column captions, not 5`]),
     ...(document.documentElement.scrollWidth > PHONE ? ["the page scrolls sideways"] : []),
     ...allRoles(region, "radio").flatMap((radio) => [...cut(radio), ...outside(radio)]),
     ...outside(getRole(region, "searchbox")),

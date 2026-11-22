@@ -5,10 +5,11 @@
  * page the app knows. Every pattern is `/app` or lowercase words and `:params` below it, its first
  * segment none of the server's own routes, so the server takes it as it is.
  *
- * `/app` opens the start page (the cockpit's landing: the engines and the server's boards),
- * `/app/search` the search for an instance across engines (`?q=` what it searches), `/app/fleet`
- * the cross-engine overview, `/app/boards/:id` a board and `/app/engines/:engine/…` an engine's
- * views. These addresses are public and stay stable from the first release that ships
+ * `/app` opens the page's start page (every engine side by side and the server's boards; with one
+ * engine and no board that engine), `/app/search` the search for an instance across engines (`?q=`
+ * what it searches), `/app/fleet` the cross-engine overview's old address (read as `/app` and
+ * replaced by it until the transition ends), `/app/boards/:id` a board and
+ * `/app/engines/:engine/…` an engine's views. These addresses are public and stay stable from the first release that ships
  * them: a change keeps the old address readable and replaces it by the new one for the transition
  * period. `/app/cockpit` is the address of every view before this scheme, whose query names the
  * cockpit's arguments: the page reads it and replaces it by the view's own address, readable as

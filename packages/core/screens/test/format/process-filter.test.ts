@@ -7,12 +7,14 @@ const ORDER: ProcessRowData = {
   latestVersion: 2,
   running: 3,
   withIncident: 1,
+  incidents: 1,
 }
 const SHIPMENT: ProcessRowData = {
   bpmnProcessId: "shipment",
   latestVersion: 1,
   running: 1204,
   withIncident: 0,
+  incidents: 0,
 }
 const LABEL: ProcessRowData = {
   bpmnProcessId: "pulse-label",
@@ -20,8 +22,25 @@ const LABEL: ProcessRowData = {
   latestVersion: 1,
   running: 1,
   withIncident: 1,
+  incidents: 1,
 }
 const ROWS = [ORDER, SHIPMENT, LABEL]
+const BILLING: ProcessRowData = {
+  bpmnProcessId: "billing-run",
+  name: "Nightly billing",
+  latestVersion: 4,
+  running: 0,
+  withIncident: 0,
+  incidents: 1,
+}
+
+const DISPATCH: ProcessRowData = {
+  bpmnProcessId: "pulse-dispatch",
+  latestVersion: 1,
+  running: 1,
+  withIncident: 1,
+  incidents: 0,
+}
 
 function idsOf(rows: readonly ProcessRowData[]): string[] {
   return rows.map((row) => row.bpmnProcessId)
@@ -40,6 +59,20 @@ describe("the filter of a process list", () => {
 
     expect(idsOf(filtered.processes)).toEqual(["pulse-order", "pulse-label"])
     expect(filtered.counts).toEqual({ all: 3, withIncident: 2 })
+  })
+
+  test("keeps a process whose incident lies in no instance in that scope, and counts it there", () => {
+    const filtered = ProcessFilter.apply([...ROWS, BILLING], { scope: "withIncident" })
+
+    expect(idsOf(filtered.processes)).toEqual(["pulse-order", "pulse-label", "billing-run"])
+    expect(filtered.counts).toEqual({ all: 4, withIncident: 3 })
+  })
+
+  test("keeps a caller waiting for an incident in an instance it called in that scope", () => {
+    const filtered = ProcessFilter.apply([SHIPMENT, DISPATCH], { scope: "withIncident" })
+
+    expect(idsOf(filtered.processes)).toEqual(["pulse-dispatch"])
+    expect(filtered.counts).toEqual({ all: 2, withIncident: 1 })
   })
 
   test("searches the name in any case", () => {

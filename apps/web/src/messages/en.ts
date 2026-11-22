@@ -14,7 +14,6 @@ export const en = {
 
   "nav.label": "Pulse",
   "nav.start": "Start",
-  "nav.fleet": "Cross-engine overview",
   "nav.engines": "Engines",
   "nav.boards": "Boards",
   "nav.section.processes": "Processes",
@@ -90,6 +89,27 @@ export const en = {
   "screen.process.list.refused": "The engine can't search with these variable conditions",
   "screen.process.list.clear": "Clear variable conditions",
   "screen.process.more.failed": "More instances couldn't be loaded",
+
+  "screen.start.title": "All engines",
+  "screen.start.engines": ({ count }: Readonly<Record<string, unknown>>) =>
+    String(count) === "1" ? "1 engine" : `${String(count)} engines`,
+  "screen.start.refused": "{count} refused",
+  "screen.start.loading": "Loading the engines…",
+  "screen.start.listFailed": "The engines couldn't be loaded",
+  "screen.start.failed": "{engine} couldn't be read",
+  "screen.start.engines.title": "Engines",
+  "screen.start.runsWhere": "What runs where",
+  "screen.start.runsWhereHint": "running instances per engine · all versions",
+  "screen.start.runsWhereLoading": "Reading the processes of every engine…",
+  "screen.start.boards": "Boards",
+  "screen.start.boards.column.board": "Board",
+  "screen.start.boards.column.engines": "Engines",
+  "screen.start.boards.row": "Board {title}",
+  "screen.start.boards.id": "board ID",
+  "screen.start.boards.refused": ({ count }: Readonly<Record<string, unknown>>) =>
+    `file refused: ${String(count)} ${String(count) === "1" ? "problem" : "problems"}`,
+  "screen.start.boards.refusedHint":
+    "Pulse shows no board for a refused file. The file's problems are in the log the server writes at startup, and whoever runs the server can fix the file.",
 
   "screen.search.title": "Find an instance",
   "screen.search.empty":

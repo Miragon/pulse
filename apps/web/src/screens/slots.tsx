@@ -1,5 +1,10 @@
 import { useMemo } from "react"
-import type { ScreenIdProps, ScreenSlots, ScreenTableProps } from "@miragon/pulse-blocks"
+import type {
+  ScreenIdProps,
+  ScreenPlainTableProps,
+  ScreenSlots,
+  ScreenTableProps,
+} from "@miragon/pulse-blocks"
 import type { ScreenTarget } from "@miragon/pulse-screens"
 import { Button, NamedId, TableEmptyState, Td } from "@miragon/pulse-ui"
 import { ListRow, ListTable } from "@miragon/pulse-widget-shell/widgets"
@@ -85,6 +90,41 @@ function PageRows<Row>({
           </ListRow>
         )
       })}
+    </ListTable>
+  )
+}
+
+/**
+ * The page's table whose rows open nothing (an instance's history, its waits, its variables; what
+ * runs where across engines): widget-shell's `ListTable` (its named scroll region, the sticky head,
+ * a column a narrow region drops) at the height its screen leaves it, its rows scrolling in that
+ * region; an empty table is the kit's empty state. The block owns the columns, the cells and the
+ * words.
+ */
+export function PagePlainTable<Row>({
+  label,
+  columns,
+  rows,
+  rowKey,
+  empty,
+}: ScreenPlainTableProps<Row>) {
+  if (rows.length === 0) return <TableEmptyState>{empty}</TableEmptyState>
+  return (
+    <ListTable
+      ariaLabel={label}
+      fill
+      columns={columns.map((column) => ({
+        label: column.label,
+        ...(column.hideBelow === undefined ? {} : { hideBelow: "sm" as const }),
+      }))}
+    >
+      {rows.map((row) => (
+        <tr key={rowKey(row)}>
+          {columns.map((column) => (
+            <Td key={column.key}>{column.cell(row)}</Td>
+          ))}
+        </tr>
+      ))}
     </ListTable>
   )
 }

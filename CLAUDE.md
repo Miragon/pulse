@@ -48,7 +48,7 @@ engines.
 | `apps/cli/`                                    | The CLI (npm `@miragon/pulse-cli`): every REST operation of the engine as a command, generated from its OpenAPI spec, plus the workflow commands; its rules in `apps/cli/CLAUDE.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `apps/vscode/`                                 | Pulse for VS Code (`pulse-cockpit`, a .vsix): the VS Code host of the runtime view; its rules in `apps/vscode/CLAUDE.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `apps/orca/`                                   | Pulse for Orca (`@miragon/pulse-orca`, an Orca plugin): the Orca host of the runtime view (worker, components panel, custom editors); its rules in `apps/orca/CLAUDE.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `apps/web/`                                    | The web app (`@miragon/pulse-web`, private): the MCP server's views as pages of the server under `/app` (the landing at `/app`, the search across engines at `/app/search`, a board at `/app/boards/<id>`, an engine's views under `/app/engines/<id>`, its processes, an instance and an incident under it the page's own screens over the blocks), over widget-shell's `mountApp` and `PageView` with its own router and frame (a side navigation, a drawer under 64rem, the session's notices, the signed-out page per reason); Vite builds it with its `pages.json`, which the server reads at boot; its rules in `apps/web/CLAUDE.md`                                                                                                                 |
+| `apps/web/`                                    | The web app (`@miragon/pulse-web`, private): the MCP server's views as pages of the server under `/app` (the start page over every engine at `/app`, the old `/app/fleet` giving way to it, the search across engines at `/app/search`, a board at `/app/boards/<id>`, an engine's views under `/app/engines/<id>`, its processes, an instance and an incident under it the page's own screens over the blocks), over widget-shell's `mountApp` and `PageView` with its own router and frame (a side navigation, a drawer under 64rem, the session's notices, the signed-out page per reason); Vite builds it with its `pages.json`, which the server reads at boot; its rules in `apps/web/CLAUDE.md`                                                     |
 | `packages/connectors/engine/engine-connector/` | engine module, the one MCP module of every dialect: operations tools, widget tools, widgets, the web app's screen feeds                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `packages/connectors/engine/engine-core/`      | The neutral core of the engine family (npm `@miragon/pulse-engine-core`), the contract every dialect implements: the ports a process engine answers (`ProcessRuntime`, `ProcessCommands`), ids, read models, queries, `RuntimeError`, `RootCauses`; the conformance kit with its laws, its fixed world and the in-memory `FakeEngine` (`/testing`); no runtime dependency, Pulse for VS Code's house rules                                                                                                                                                                                                                                                                                                                                                 |
 | `packages/connectors/c7/c7-client/`            | The SDK of the Camunda 7 REST dialect family c7 (npm `@miragon/pulse-c7-client`): the REST SDK generated from c7-core's one spec (`src/generated/`), `createEngineClient` over the `fetch` it is handed and the SDK-bound reads (`src/sdk-reads/`); a leaf                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
@@ -62,7 +62,7 @@ engines.
 | `packages/core/profile/`                       | The one profile format of the CLI, the editor hosts and the MCP server (npm `@miragon/pulse-profile`): a parser from a file's text to a verdict per profile as data (a code and a key, never a value), the credential policy by where the file comes from, `refusalsOn` for what a reader cannot serve, the JSON Schema (`schema/pulse.schema.json`) and the shared fixtures (`/testing`); no runtime dependency                                                                                                                                                                                                                                                                                                                                           |
 | `packages/core/board/`                         | The board file format and builder (npm `@miragon/pulse-board`): `BoardParser` (a board with notes and refused widgets, or a file's problems as codes), `BoardProblems`, `BoardTiles`, `BoardVocabulary`, `StarterBoard`, the JSON Schema, `/testing` fixtures and figures, `/builder` (numbers over seven engine-core reads, an optional peer; no text), a built board's JSON form (`BoardData`; `BoardJson.of` in `/builder`); read by the editors and the engine module; no runtime dependency; VS Code's house rules                                                                                                                                                                                                                                    |
 | `packages/core/screens/`                       | The screens the web app and the editors share, as data (npm `@miragon/pulse-screens`): their JSON forms (`EngineScreenData`, `ProcessScreenData`, `InstanceListData`, `InstanceScreenData`, `FindScreenData`), codes, `ScreenTarget`, pure rules (`ProcessFilter`, `FleetSums`, `DiagramDecorations`, `VariableConditionTypes`, `InstanceRows`, `HistoryGaps`), `/builder` (`EngineScreen`, `ProcessScreen`, `InstanceList`, `InstanceScreen`, `Finder` over engine-core reads and the board builder's roll-up and call activities, optional peers, no text; `ScreenJson`), `/testing` (the kit world's screens, `ScreenFigures`); built by the runtime view's core and the engine connector's screen feeds; no runtime dependency; VS Code's house rules  |
-| `packages/core/blocks/`                        | Pulse's building blocks (npm `@miragon/pulse-blocks`), React on `@miragon/pulse-ui` with props, callbacks and a surface's slots: a board's tiles over a built board's JSON form (`BoardGrid`, `BoardTile`, `ProblemList`), and the screens' blocks over their JSON forms (`ScreenSlots`: an engine's `ProcessTable` and `ListFilterBar`, a process's `VersionPicker`, `InstanceFilterBar`, `InstanceTable`, `BadgeCluster`, `CallButton`; `InstanceSlots`: an instance's `InstanceFacts`, `IncidentCard`, `WaitingTable`, `HistoryTable` …; what the search finds, `FindResults`), worded in en and de; rendered by the runtime view's webview, the cockpit's board route and the web app's engine, process, instance and search screens; no React context |
+| `packages/core/blocks/`                        | Pulse's building blocks (npm `@miragon/pulse-blocks`), React on `@miragon/pulse-ui` with props, callbacks, a surface's slots: a board's tiles over a built board's JSON form (`BoardGrid`, `BoardTile`, `ProblemList`), and the screens' blocks over their JSON forms (`ScreenSlots`: an engine's `ProcessTable` and `ListFilterBar`, a process's `VersionPicker`, `InstanceFilterBar`, `InstanceTable`, `BadgeCluster`, `CallButton`; `InstanceSlots`: an instance's `InstanceFacts`, `IncidentCard`, `WaitingTable`, …; the search, `FindResults`; across engines `EngineTable`, `ProcessesByEngine`, `EngineVerdictBadge`), in en and de; rendered by the runtime view's webview, the cockpit's board route and the web app's screens; no React context |
 | `packages/core/http/`                          | The one engine transport of the MCP server, the CLI and the editor hosts' adapters (npm `@miragon/pulse-http`) over the `fetch` each hands in: a deadline to the last byte, no redirects, a 64 MiB cap, one retry after a 401, reasons as data, lossless JSON, masking, the path value rule; the OAuth client (`/oauth`); conformance cases, fake fetch (`/testing`), loopback engine (`/testing/loopback`); no dependency                                                                                                                                                                                                                                                                                                                                 |
 | `playground/`                                  | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `docs/`                                        | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
@@ -145,8 +145,9 @@ Three axes decide where code goes, and they stay apart:
   two surfaces render, executed for boards on 2026-11-16: `@miragon/pulse-blocks`
   (`packages/core/blocks`) holds a board's tiles, which the webview and the cockpit's board route
   render, each with its own table, id and canvas as slots, and since 2026-11-20 the screens' first
-  blocks, an engine's process table and its filter bar, which the webview's engine tab and the web
-  app's engine screen render, each with its own table and id, and an instance's blocks (its facts,
+  blocks, an engine's process table (its columns With incident and Incidents since 2026-11-21) and
+  its filter bar with the legend of its counts, which the webview's engine tab and the web app's
+  engine screen render, each with its own table and id, and an instance's blocks (its facts,
   head strip, incident cards and their text, its tables of waits, path and variables, the menu of
   the instances it called and its markers' legend), which the webview's instance view renders with
   its own table, link and copy, its writes (a retry, a variable's editor, a move) and its
@@ -559,12 +560,17 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
 
    A screen of the web app's own (D10, `apps/web/src/screens`) is never a second view either: it
    reads screen feeds, `SCREEN_FEEDS` (`src/data/screen-feeds.ts`: app-only `contractFeed`s of
-   every dialect, their names in `src/tool-names.ts`, registered beside `DATA_FEEDS` by
+   every dialect and a Camunda 7 engine's live verdict, `engine_screen_verdict_data`, its dialects
+   `["c7"]`, their names in `src/tool-names.ts`, registered beside `DATA_FEEDS` by
    `src/widget-tools/data-feeds.ts`), whose builders in `src/data/screens/` run the screens'
-   builder of `@miragon/pulse-screens/builder` over `runtimeOf`, and it renders their JSON form
-   with the blocks of `@miragon/pulse-blocks`; no view tool, no route, nothing in the chat's
+   builder of `@miragon/pulse-screens/builder` over `runtimeOf` (the verdict c7-core's
+   `engineVerdict` over the engine screen's read and the overview's incident scan), and it renders
+   their JSON form with the blocks of `@miragon/pulse-blocks`; no view tool, no route, nothing in the chat's
    bundle (`apps/mcp-server/test/view-bundle.test.ts`). Where it shows a place of the cockpit's
-   (an engine's overview: `engine_screen_processes_data`; a process's view and the list of a
+   (the landing and the cross-engine overview: the start page, an engine's
+   `engine_screen_processes_data` per engine summed by the blocks' `useFleetSums`, beside it each
+   Camunda 7 engine's `engine_screen_verdict_data`; an engine's overview:
+   `engine_screen_processes_data`, a Camunda 7 engine's verdict as its bar's badge; a process's view and the list of a
    process's instances: `engine_screen_process_data`, a version's instances by page through
    `engine_screen_instances_data`, its variable names through `engine_screen_variable_names_data`
    when the condition dialog opens; an instance's view and its history, an incident's:
@@ -717,12 +723,13 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      shows it on its row, which a cockpit narrower than 40rem moves into the head in the tabs'
      place; a chat's fullscreen keeps its trail. A page with chrome of its own (the view host's
      optional `chrome`, `useHostChrome`, which a page offers through `PageView`'s `chrome` and a
-     chat never: the web app's frame, whose side navigation holds the sections, the engines and the
-     view across engines) takes the head: the cockpit shows none, every view bar shows the page's
+     chat never: the web app's frame, whose side navigation holds the sections and the engines, its
+     start page the view across engines) takes the head: the cockpit shows none, every view bar shows the page's
      menu first (pulse-ui's `ViewBarSlots`), an engine's bar the cockpit's Refresh first among its
      actions, an engine without sections (a refused profile; a Camunda 8 engine at a place the page
      does not show itself) gets a bar of its own over its one state (its name the h1, the state's title an h2 under it, the Refresh
-     its action), an app-level title (the landing, the cross-engine overview) is its bar's title,
+     its action), an app-level title (the landing, the cross-engine overview, where a page with
+     chrome does not claim them; the web app claims both for its start page) is its bar's title,
      and a drill's trail keeps its row at every width. A navigation focuses the new view's `h1`
      (pulse-ui's `NavigationFocus`), which a route renders before its data; the web app's frame
      does so at each of its own moves too (a link of its navigation, Back, Forward).
@@ -764,9 +771,11 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      `@miragon/pulse-blocks`), and the cross-engine view leaves it out and names it. On a page
      whose screens show such an engine (`ViewLocation.claims`: the web app's, which read a Camunda
      8 engine whole since 2026-11-21) the cockpit names its place whole, which the page claims, so
-     the page shows its screen there: its landing row says its product and opens the page's screen,
-     a board's tiles and chip open the page's screens (an incident the instance that holds it), and
-     the cross-engine view names it only as left out. A route
+     the page shows its screen there: a board's tiles and chip open the page's screens (an incident
+     the instance that holds it). The web app shows neither the cockpit's landing nor its
+     cross-engine view (its start page claims both places since 2026-11-21, every engine side by
+     side from its engine screen, Camunda 8's whole), so the cockpit keeps one wording of a Camunda
+     8 engine there, the chat's. A route
      whose panels fail alike says it once, its first panel's state with a Try again that reads
      them all (the overview's verdict over its definitions, the incidents' bar over their list).
      A page's ended session (`isSessionEnded`) is said once, by the page's frame: a view's state
@@ -859,12 +868,18 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      process that runs without a problem `neutral`, never a green "healthy"; the VS Code webview's
      state labels read it too; a widget reads a state's tone there, never a literal), the count
      ladder over it pulse-ui's `countTone`/`severityTone`. An engine's own state is the tone of its
-     one verdict (`VERDICT_TONE`, the health feed's `status`; `ok` is the table's `healthy`,
-     neutral; the VS Code extension shows no verdict): the overview's badge and the engine's dot
-     on the landing and the fleet view alike. A failed health read has no verdict: its tone is
-     the engine module's `HEALTH_FAILURE_TONE`
-     (`packages/connectors/engine/engine-connector/src/widgets/lib/health-verdict.ts`), an
-     unreachable engine `danger`, a refused profile or login `warning`. Each tone has four
+     one verdict (pulse-ui's `VERDICT_TONES`, which the engine module's `VERDICT_TONE` is, over the
+     health feed's `status`; `ok` is the table's `healthy`, neutral; the VS Code extension shows no
+     verdict): the overview's badge and the engine's dot on the landing and the fleet view alike,
+     and the web app's engine screen's badge and its start page's column State (the blocks'
+     `EngineVerdictBadge` and `EngineTable` over the verdict feed, a Camunda 8 engine none, each
+     state a mark of its own shape, since the column shows the mark alone under 28rem); an engine
+     with nothing deployed is Empty only where its verdict is ok, on every surface. A
+     failed health read has no verdict: its tone is pulse-ui's `READ_FAILURE_TONES`, the engine
+     module's `HEALTH_FAILURE_TONE`
+     (`packages/connectors/engine/engine-connector/src/widgets/lib/health-verdict.ts`, whose
+     `healthFailureOf` the web app's verdict words its failure by), an unreachable engine
+     `danger`, a refused profile or login `warning`. Each tone has four
      roles: `--<tone>` (dot, edge, icon), `--<tone>-soft` (tint, black text), `--<tone>-surface`
      (the guide's status surface for a status box or strip: the tint on light, neutral on dark)
      and `--<tone>-ink` (text on card or page, never on a tint, never a number). Numbers stay
@@ -942,8 +957,8 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      cockpit and the operations views the web app embeds since 2026-11-21: a call activity's copy
      of a called instance's incident counts in the called process and is no row of a process, an
      activity or a cause, a diagram shows it apart as a quiet badge, the cockpit's facts name root
-     incidents, `openRootIncidents`; the verdict alone judges every open incident until its own
-     step; `src/data/root-incidents.numbers.test.ts` holds the cockpit's counts to the shared
+     incidents, `openRootIncidents`; the verdict judges root incidents too since 2026-11-22, a chain
+     of calls that one failure stops counted once; `src/data/root-incidents.numbers.test.ts` holds the cockpit's counts to the shared
      screens' over c7-core's recorded screen engine), "With incident" the instances that have one,
      and a count's header names its version scope. No view counts new incidents over a day (owner
      decision 2026-11-20): Camunda 7 counts no root incidents in a window; the last hour's come from
@@ -1016,15 +1031,22 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      the same way (`data/element-counts.ts`, c7-core's reader with each element's jobs without
      retries from the same one statistics read, four versions at once, on a floor of 30 s per caller
      and version), every root incident count per process comes from the definition statistics with
-     `rootIncidents=true` (`fetchStatsByKey`), and a cluster beyond its scan counts by
-     `/incident/count` only where its element is no call activity (`countableAt`).
-     The screen feeds whose reads load the engine's database (a version's element statistics, the
-     first page of an instance list with its search and history counts, never a later page, whose
-     cursor belongs to the first page read before it, its variable names, a search) stand on a floor of 30 s
-     per caller and arguments (`data/screens/screen-floor.ts` over `createOwnerCache` and
-     `callerCacheKey`, as a board's build: a Refresh within it reads nothing, a renewed token reads
-     anew), a process screen an enrichment is missing from kept for no one, so
-     the next read tries it again (`process-screen-data.numbers.test.ts`), and a search's history
+     `rootIncidents=true` (`fetchStatsByKey`; the engine contract's `incidents` per process and
+     version, the shared engine screen's column Incidents, from the same read in c7-core's
+     `DefinitionReader`, on Camunda 8 one incident search per process and version with an instance
+     with incident, a lower bound, `incidentsAtLeast`, where it stops counting), and a cluster
+     beyond its scan counts by `/incident/count` only where its element is no call activity
+     (`countableAt`).
+     The screen feeds whose reads load the engine's database (an engine's processes with their
+     counts, on Camunda 8 an incident search per process with an instance with incident, at most
+     eight at once in c8-core, a version's element statistics, the first page of an instance list
+     with its search and history counts, never a later page, whose cursor belongs to the first page
+     read before it, its variable names, a search, the verdict's incident scan beside the engine
+     screen's read it shares) stand on a floor of 30 s per caller and arguments
+     (`data/screens/screen-floor.ts` over `createOwnerCache` and `callerCacheKey`, as a board's
+     build: a Refresh within it reads nothing, a renewed token reads anew), an engine screen without
+     what the engine says it is and a process screen an enrichment is missing from kept for no one, so
+     the next read tries it again (`screen-data.numbers.test.ts`, `process-screen-data.numbers.test.ts`), and a search's history
      gap, which reads the whole engine whatever was searched, on a floor of its own per caller and
      engine that no failed read holds (`find-data.numbers.test.ts`). A board's numbers (the board feed `engine_board_data`,
      `data/board-data.ts` over the builder of `@miragon/pulse-board`) degrade per engine and tile
@@ -1124,9 +1146,14 @@ Ihre Diagrammbeschriftungen stehen wie die der Widgets in bpmn-js' Arial (die Ab
      `@miragon/pulse-c7-core`: selection, the root cause (`causeOf`), the composites' paging and
      caps, the ONE incident mask and cause (`messageSignature`, `causeKeyOf`: the status groups, the
      verdict's largest cause, the cockpit's cluster ids) and the ONE live verdict (`engineVerdict`:
-     `engine_status`, `pulse status` and the cockpit's health route, `ok | warning | critical`;
-     the MCP server's thresholds from `ENGINE_HEALTH_*`, the CLI's the defaults 50/25), a
-     threshold breach a critical `INCIDENTS_CRITICAL` finding; the
+     `engine_status`, `pulse status`, the cockpit's health route and the web app's verdict feed,
+     `ok | warning | critical`, over the open root incidents since 2026-11-22: `rootIncidentCounts`,
+     the processes' of the statistics with `rootIncidents=true` and, of the newest open incidents
+     read, those outside any process and the largest cause over root incidents alone, lower bounds
+     where the read stops, never a call activity's copy; the MCP server's thresholds from
+     `ENGINE_HEALTH_*`, the CLI's the defaults 50/25, each counting root incidents;
+     `engine_status`'s `rootIncidentsTotal` the basis beside `incidentsTotal`, every open
+     incident), a threshold breach a critical `INCIDENTS_CRITICAL` finding; the
      connector's port (`src/lib/core-adapter/engine-port.ts`) maps each operation to an SDK or
      SDK-bound read. Deliberate carve-outs: the composites read definitions by id inside inspect (not `data/definition-info.ts`;
      `definitionKeyOf` only as a fallback), send UTC `+0000` dates (`engineFormat`, not

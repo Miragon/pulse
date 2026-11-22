@@ -66,8 +66,16 @@ test.describe("the screens of a Camunda 8 engine", () => {
     await expect(page.locator("[data-slot=engine-product]")).toHaveText("Camunda 8 8.9.28")
     const processes = page.getByRole("table", { name: "Processes" })
     await expect(processes.getByRole("row", { name: /^Process Order fulfillment/ })).toBeVisible()
+    // Its open incidents, which the cluster never copies, beside its instances with incident.
+    await expect(
+      processes
+        .getByRole("row", { name: /^Process Order fulfillment/ })
+        .locator("[data-part=root-incident-count]"),
+    ).toHaveText(/^1/)
     const hint = "Incidents and jobs show at their instances"
     await expect(page.getByText(hint)).toBeVisible()
+    // No verdict in its bar: the server decides none for Camunda 8.
+    await expect(page.locator("[data-part=engine-verdict]")).toHaveCount(0)
     await expect(hintDetail(page, hint)).toHaveText("Open a process, then an instance.")
     // The hint fits its one line on a laptop's width, with the navigation beside the screen.
     await page.setViewportSize({ width: 1024, height: 768 })

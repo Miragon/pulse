@@ -8,6 +8,7 @@ import type {
 } from "@miragon/pulse-screens"
 import type { ComponentType } from "react"
 import { useScreenWords, type ScreenWords } from "../messages/screen-words.js"
+import { IncidentCount } from "./incident-count.js"
 import type { ScreenIdProps, ScreenSlots, ScreenTableColumn } from "./slots.js"
 
 export interface ProcessTableProps {
@@ -26,23 +27,6 @@ export interface ProcessTableProps {
    */
   readonly totals: EngineTotalsData
   readonly slots: Pick<ScreenSlots, "Table" | "Id" | "onOpen" | "linkOf">
-}
-
-/** The instances with incident of a process: a neutral figure, its alarm icon and words above 0. */
-function IncidentCount({ count }: { readonly count: number }) {
-  const t = useScreenWords()
-  const text = formatCount(count)
-  return (
-    <span data-part="incident-count" data-tone={count > 0 ? "danger" : undefined}>
-      {count > 0 ? (
-        <CountFigure situation="openIncident" label={t("process.alarm")}>
-          {text}
-        </CountFigure>
-      ) : (
-        <CountFigure>{text}</CountFigure>
-      )}
-    </span>
-  )
 }
 
 function columnsOf(
@@ -72,16 +56,32 @@ function columnsOf(
     {
       key: "withIncident",
       label: t("column.withIncident"),
-      cell: (row) => <IncidentCount count={row.withIncident} />,
+      cell: (row) => (
+        <IncidentCount count={row.withIncident} part="incident-count" alarm={t("process.alarm")} />
+      ),
+    },
+    {
+      key: "incidents",
+      label: t("column.incidents"),
+      cell: (row) => (
+        <IncidentCount
+          count={row.incidents}
+          atLeast={row.incidentsAtLeast}
+          part="root-incident-count"
+          alarm={t("process.alarm")}
+        />
+      ),
     },
   ]
 }
 
 /**
  * An engine's processes, one row each over the surface's table (the engine screen's process rows):
- * the process by its name and BPMN process ID, its latest version, its running instances and its
- * instances with incident, each count over every version. A row opens its process and copies its
- * BPMN process ID; the latest version and the running instances drop in a narrow region.
+ * the process by its name and BPMN process ID, its latest version, its running instances, its
+ * instances with incident and its open root incidents, each count over every version (a caller
+ * waiting for an incident in an instance it called is an instance with incident, and the incident
+ * counts at the process it was raised in). A row opens its process and copies its BPMN process ID;
+ * the latest version and the running instances drop in a narrow region.
  */
 export function ProcessTable({ engine, listed, filter, totals, slots }: ProcessTableProps) {
   const t = useScreenWords()

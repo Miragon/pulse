@@ -25,7 +25,7 @@ pnpm --filter @miragon/pulse-runtime-view test   # core, model, host kit and web
 pnpm --filter @miragon/pulse-c7-adapter test     # the C7 adapter against a recorded REST API and its error-path goldens
 pnpm --filter @miragon/pulse-c8-core test        # the Camunda 8 reads (c8-core) against a fake of its transport port
 pnpm --filter @miragon/pulse-c8-adapter test     # the C8 adapter's wire against a fake REST API, the transport's loopback engine and its error-path goldens
-pnpm --filter @miragon/pulse-engine-core test   # the kit's self-tests: the fake passes every law, 84 saboteurs fail theirs
+pnpm --filter @miragon/pulse-engine-core test   # the kit's self-tests: the fake passes every law, 89 saboteurs fail theirs
 pnpm --filter @miragon/pulse-c7-adapter run test:engines # adapter conformance on a real engine; needs podman/docker
 pnpm --filter @miragon/pulse-c8-adapter run test:engines # on a local Camunda 8 cluster; needs PULSE_ENGINE_IMAGE=camunda/camunda:<version>
 pnpm --filter @miragon/pulse-c8-adapter run c8:up -- --security oidc # a seeded Camunda 8 stack by hand; c8:down removes it

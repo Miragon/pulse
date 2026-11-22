@@ -2,7 +2,7 @@
  * The status triage of one engine in one call. Round 1 loads version, statistics, incidents,
  * external tasks, jobs, tasks and batches in parallel, round 2 the root cause of each incident
  * group shown; the findings name their next step, and the status is the live verdict
- * (`engineVerdict`) over the open incidents, the largest cause and the findings.
+ * (`engineVerdict`) over the open root incidents, the largest cause and the findings.
  */
 
 import { EXECUTABLE } from "./conditions.js"
@@ -32,7 +32,8 @@ import {
   DEFAULT_VERDICT_THRESHOLDS,
   engineVerdict,
   incidentsAtThreshold,
-  largestCause,
+  type RootIncidentCounts,
+  rootIncidentCounts,
   type VerdictThresholds,
 } from "./verdict.js"
 
@@ -83,7 +84,15 @@ export interface StatusData {
   readonly findings: readonly Finding[]
   readonly definitions: readonly DefinitionStatus[]
   readonly incidents: readonly IncidentGroup[]
+  /**
+   * The open root incidents the status judges (`rootIncidentCounts`): the definitions' in scope
+   * (the statistics with `rootIncidents=true`) and those outside any process among the incidents
+   * loaded, a lower bound of these where the list was cut.
+   */
+  readonly rootIncidentsTotal: number
+  /** Every open incident in scope, from a count: a call activity's copy counts too. */
   readonly incidentsTotal: number
+  /** The copies on calling instances among the incidents loaded. */
   readonly propagated: number
   readonly externalTasks: readonly TopicStatus[]
   readonly jobs: JobStatus
@@ -269,33 +278,30 @@ async function incidentGroups(port: EnginePort, data: RoundOne, options: Resolve
 }
 
 /**
- * The verdict's incident inputs, the cockpit's: every loaded open incident (propagated ones and
- * those of batch jobs too) by its cause over every definition. Past the threshold, the
- * INCIDENTS_CRITICAL input: its next step is the cause's largest group's, else its incidents by type.
+ * What made the status critical, where the open root incidents (`rootIncidentCounts`: the
+ * definitions' in scope and those outside any process loaded, a batch's failed job too) or their
+ * largest cause over every definition, a copy at a call activity in none, reach the thresholds: the
+ * INCIDENTS_CRITICAL input, its next step the cause's largest group's, else its incidents by type.
  */
-function incidentVerdict(data: RoundOne, grouped: GroupedIncidents, options: Resolved) {
-  const largest = largestCause(data.incidents.items)
-  const input = { openIncidents: data.incidentCount, largestCluster: largest?.count ?? 0 }
-  if (!incidentsAtThreshold(input, options.thresholds)) return { input }
-  const largestKey = largest?.cause.key
+function atThreshold(input: RootIncidentCounts, grouped: GroupedIncidents, options: Resolved) {
+  if (!incidentsAtThreshold(input, options.thresholds)) return undefined
+  const cause = input.largestCause
+  const key = cause?.key
   const group = grouped.groups.find(
     (candidate) =>
       causeKeyOf({
         activityId: candidate.activityId,
         incidentType: candidate.type,
         incidentMessage: candidate.message,
-      }).key === largestKey,
+      }).key === key,
   )
-  const incidentType = largest?.cause.incidentType ?? "failedJob"
+  const incidentType = cause?.incidentType ?? "failedJob"
   return {
-    input,
-    atThreshold: {
-      openIncidents: input.openIncidents,
-      largestCause: input.largestCluster,
-      ...compact({ cause: largest?.cause }),
-      rule: criticalIncidentsRule(options.thresholds),
-      next: group?.next ?? { action: "listIncidentsOfType" as const, incidentType },
-    },
+    openRootIncidents: input.openRootIncidents,
+    largestCause: input.largestCluster,
+    ...compact({ cause }),
+    rule: criticalIncidentsRule(options.thresholds),
+    next: group?.next ?? { action: "listIncidentsOfType" as const, incidentType },
   }
 }
 
@@ -315,9 +321,11 @@ export async function readStatus(
   const externalTasks = topicStatus(data.externalTasks.items, now)
   const jobs = jobStatus(data.executableJobs, data.staleJobs, now - options.staleAfterMs)
   const batches = data.batches ?? []
-  const verdict = incidentVerdict(data, grouped, options)
+  const definitions = definitionStatus(data.statistics, options.keys)
+  const ofDefinitions = definitions.reduce((sum, definition) => sum + definition.incidents, 0)
+  const counts = rootIncidentCounts(ofDefinitions, data.incidents.items)
   const list = findings({
-    ...compact({ incidentsAtThreshold: verdict.atThreshold }),
+    ...compact({ incidentsAtThreshold: atThreshold(counts, grouped, options) }),
     jobs,
     incidents,
     externalTasks,
@@ -329,10 +337,11 @@ export async function readStatus(
   const notes = truncation(data, grouped.groups.length, options)
   return {
     engine: { version: data.version, latencyMs: data.latencyMs },
-    status: engineVerdict({ ...verdict.input, findings: list }, options.thresholds),
+    status: engineVerdict({ ...counts, findings: list }, options.thresholds),
     findings: list,
-    definitions: definitionStatus(data.statistics, options.keys),
+    definitions,
     incidents,
+    rootIncidentsTotal: counts.openRootIncidents,
     incidentsTotal: data.incidentCount,
     propagated: grouped.propagated,
     externalTasks,

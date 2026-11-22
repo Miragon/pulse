@@ -9,13 +9,14 @@
  * builds from the same answers over its wire (the C7 adapter's test/c7-screen-numbers.test.ts, the
  * C8 adapter's test/c8-screen-numbers.test.ts), at the time it reads; the web app renders it in
  * apps/web/test/engine-screen.test.tsx. The list of processes is primary, what the engine says it
- * is degrades to null. The process screens and the instance list of the same recordings are built
+ * is degrades to null; a whole screen stands on the floor of 30 s per caller, one without what the
+ * engine says it is is read again on the next call. The process screens and the instance list of the same recordings are built
  * by the screens' builder over the runtime the server resolves for the engine (`runtimeOf`, the
  * diagram through the one XML cache, `diagramXmlOf`), exactly as the editors' adapters build them;
  * their feeds hold the same screens in process-screen-data.numbers.test.ts.
  */
 
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import type { z } from "zod"
 import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
 import { C7_SCREEN_ENGINE } from "@miragon/pulse-c7-core/testing"
@@ -42,6 +43,7 @@ import { createConfiguredEngineRegistry } from "../../plugin.js"
 import { ENGINE_SCREEN_PROCESSES_DATA } from "../../tool-names.js"
 import { feedPayload } from "../../tools/test-support/feed-payload.js"
 import type { EngineScreenFeedData } from "./engine-screen-data.js"
+import { SCREEN_FLOOR_MS } from "./screen-floor.js"
 
 /** A recorded screen engine of a dialect, the profile the server reads it through and its web app. */
 interface Recorded {
@@ -79,6 +81,7 @@ const RECORDED_C8: Recorded = {
 const engines: RecordedEngine[] = []
 
 afterEach(async () => {
+  vi.useRealTimers()
   await Promise.all(engines.splice(0).map((engine) => engine.close()))
 })
 
@@ -136,6 +139,23 @@ describe.each([
     expect(result.isError).toBe(true)
   })
 
+  it("answers a caller's read again within 30 s from its last read, and reads anew after it", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] })
+    const { engine, call } = await boot(recorded)
+
+    const first = feedPayload<EngineScreenFeedData>(await call())
+    const seen = engine.seen.length
+    vi.advanceTimersByTime(SCREEN_FLOOR_MS - 1)
+    const again = feedPayload<EngineScreenFeedData>(await call())
+
+    expect(engine.seen).toHaveLength(seen)
+    expect(again).toEqual(first)
+
+    vi.advanceTimersByTime(1)
+    await call()
+    expect(engine.seen).toHaveLength(2 * seen)
+  })
+
   it("names the engine's own web app where the profile names it, by that web app's name", async () => {
     const { call } = await boot(recorded, undefined, { cockpitUrl: "https://ops.example/app/" })
     const { webApp } = feedPayload<EngineScreenFeedData>(await call())
@@ -155,6 +175,16 @@ describe("an engine that does not say what it is (Camunda 7's telemetry)", () =>
     const screen = feedPayload<EngineScreenFeedData>(await call())
     expect(screen.info).toBeNull()
     expect(ScreenFigures.engine(screen)).toEqual(ScreenFigures.engine(WORLD_SCREENS.engine))
+  })
+
+  it("asks it again on the next call: a screen without its product stands on no floor", async () => {
+    const about = RECORDED_C7.about as string
+    const { engine, call } = await boot(RECORDED_C7, without(RECORDED_C7, about))
+
+    await call()
+    await call()
+
+    expect(engine.unanswered.filter(({ target }) => target.startsWith(about))).toHaveLength(2)
   })
 })
 

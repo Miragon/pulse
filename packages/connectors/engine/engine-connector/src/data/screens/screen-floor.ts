@@ -1,8 +1,9 @@
 /**
- * The floor under the web app's screen reads that load an engine's database (plan 3.2): a process
- * screen's element statistics, the first page of an instance list (its history counts and its
- * search; a later page's cursor belongs to the first page read before it, so it is read each time),
- * a version's variable names. A caller's read of the same feed with the same arguments within 30 s gets the
+ * The floor under the web app's screen reads that load an engine's database (plan 3.2): the engine
+ * screen's processes with their counts (Camunda 7's definition statistics, a Camunda 8 cluster's
+ * incident search per process in trouble), a process screen's element statistics, the first page of
+ * an instance list (its history counts and its search; a later page's cursor belongs to the first
+ * page read before it, so it is read each time), a version's variable names, a search. A caller's read of the same feed with the same arguments within 30 s gets the
  * answer read before, its `asOf` that read's, so a Refresh within the floor reads nothing again and
  * a page's many readers cost the engine one read. It keeps per configured engine and per CALLER
  * (`createOwnerCache` over `callerCacheKey`: a renewed token reads anew, under passthrough auth the

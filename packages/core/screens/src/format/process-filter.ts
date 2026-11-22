@@ -21,7 +21,7 @@ export class ProcessFilter {
   ): FilteredProcessesData {
     const wanted = filter.search?.toLowerCase() ?? ""
     const found = processes.filter((row) => ProcessFilter.matches(row, wanted))
-    const withIncident = found.filter((row) => row.withIncident > 0)
+    const withIncident = found.filter((row) => row.withIncident > 0 || row.incidents > 0)
     return {
       processes: filter.scope === "withIncident" ? withIncident : found,
       counts: { all: found.length, withIncident: withIncident.length },

@@ -1,4 +1,10 @@
-import { ListFilterBar, ProcessTable, useProcessList } from "@miragon/pulse-blocks"
+import {
+  EngineVerdictBadge,
+  type EngineVerdict,
+  ListFilterBar,
+  ProcessTable,
+  useProcessList,
+} from "@miragon/pulse-blocks"
 import type { ProcessFilterData } from "@miragon/pulse-screens"
 import { Icon, StatusStrip, WidgetHeader } from "@miragon/pulse-ui"
 import {
@@ -16,6 +22,12 @@ import { RefreshButton, RefreshNotice } from "../screen-chrome.js"
 import { useWide } from "../use-wide.js"
 import { usePageSlots } from "../slots.js"
 import { ENGINE_SCREEN_FEED, engineScreenKey, type EngineScreenFeed } from "./engine-feed.js"
+import {
+  ENGINE_VERDICT_FEED,
+  engineVerdictKey,
+  type EngineVerdictFeed,
+  verdictOf,
+} from "./verdict-feed.js"
 
 /** No process yet: the list derives nothing before the screen loaded. */
 const NO_PROCESSES: EngineScreenFeed["processes"] = []
@@ -35,19 +47,30 @@ function Product({ info }: { info: EngineScreenFeed["info"] | undefined }) {
   return <span data-slot="engine-product">{`${info.product} ${info.version}`}</span>
 }
 
+/** The figures an engine's state reads beside its verdict: an ok engine with nothing deployed. */
+function figuresOf(data: EngineScreenFeed | undefined) {
+  if (data === undefined) return undefined
+  const incidents = data.processes.reduce((sum, process) => sum + process.incidents, 0)
+  return { processes: data.totals.processes, incidents }
+}
+
 /**
- * The view's bar: the engine's name as the page's heading, its product as the bar's fact, the
- * Refresh and the engine's own web app as the actions (deterministic steps first), when the numbers
- * were read at its end. The page's menu comes first through the frame's `ViewBarSlots`.
+ * The view's bar: the engine's name as the page's heading, its live state as the header's badge
+ * (the verdict the server decided for a Camunda 7 engine, a failed read of it, none for a Camunda 8
+ * engine), its product as the bar's fact, the Refresh and the engine's own web app as the actions
+ * (deterministic steps first), when the numbers were read at its end. The page's menu comes first
+ * through the frame's `ViewBarSlots`.
  */
 function EngineBar({
   engine,
   data,
+  verdict,
   refreshing,
   onRefresh,
 }: {
   engine: string
   data: EngineScreenFeed | undefined
+  verdict: EngineVerdict
   refreshing: boolean
   /** Reads the screen again; none before the screen reads. */
   onRefresh: (() => void) | undefined
@@ -57,6 +80,7 @@ function EngineBar({
     <WidgetHeader
       title={engine}
       icon={<Icon icon={Server} />}
+      badge={<EngineVerdictBadge verdict={verdict} figures={figuresOf(data)} />}
       sub={<Product info={data?.info} />}
       actions={
         onRefresh && (
@@ -71,6 +95,37 @@ function EngineBar({
       freshness={<FreshnessStamp at={data?.asOf} />}
     />
   )
+}
+
+/**
+ * The engine's live state where the server decides one (`shown`: Camunda 7), read from the verdict
+ * feed apart from the screen once the screen reads (`ready`) and shows its figures (`figures`), so
+ * the verdict judges the numbers on screen, a first load that fails says so once (the screen's
+ * state, never a second failure in the bar) and the server takes the root incidents from the
+ * screen's own read; again when the reader comes back after 60 s and with the screen's Refresh
+ * (`refetch`); none where the server decides none.
+ */
+function useVerdict(
+  engine: string,
+  ready: boolean,
+  figures: EngineScreenFeed | undefined,
+  shown: boolean,
+) {
+  const judged = ready && figures !== undefined
+  const enabled = judged && shown
+  const query = useToolQuery<EngineVerdictFeed>(
+    engineVerdictKey(engine),
+    ENGINE_VERDICT_FEED,
+    { engine },
+    { staleTime: READ_AGAIN_AFTER_MS, enabled },
+  )
+  useReadOnReturn(query, enabled)
+  return {
+    verdict: verdictOf(judged ? query : undefined, shown),
+    refetch: () => {
+      if (enabled) void query.refetch()
+    },
+  }
 }
 
 /**
@@ -90,8 +145,9 @@ function IncidentsAtInstances() {
 
 /**
  * The web app's engine screen (D10), at the engine's own address: an engine's processes, each with
- * its latest version, its running instances and its instances with incident over every version,
- * from the engine screen's feed, the same numbers the editors' engine tab shows (D2). A row opens
+ * its latest version, its running instances, its instances with incident and its open root
+ * incidents over every version, from the engine screen's feed, the same numbers the editors'
+ * engine tab shows (D2), the legend of the counts beside the search. A row opens
  * its process, a new entry of the page's history (still the cockpit's process view), and copies
  * its BPMN process ID. The scopes and the search derive the rows in the browser and read nothing;
  * the filter is the address's (`filter`, `onFilter`). The bar has the Refresh and when the numbers
@@ -100,9 +156,12 @@ function IncidentsAtInstances() {
  * own: a first load's skeleton after 400 ms, a failure in the kit's words with Try again unless no
  * retry changes it (a refused profile, an engine whose dialect the server does not read), a failed
  * refresh over the numbers on screen a strip under the bar. From 64rem on it fills the window's
- * height and its list scrolls in its own region under its sticky head. It shows no verdict and
- * writes nothing. An engine whose dialect has no Incidents and Jobs on the page (`atInstances`:
- * Camunda 8) says where its incidents show; a Camunda 8 cluster it cannot read as set up (below the
+ * height and its list scrolls in its own region under its sticky head. A Camunda 7 engine's bar
+ * shows its live state (`verdict`: the server's verdict over its open root incidents, read from the
+ * verdict feed apart once the figures show, so its failure never hides them and a failed first load
+ * shows no state, and with the screen's Refresh and on the reader's return); it writes nothing.
+ * An engine whose dialect has no Incidents and Jobs on the page (`atInstances`: Camunda 8) says
+ * where its incidents show; a Camunda 8 cluster it cannot read as set up (below the
  * version Pulse reads, without secondary storage) says so with the fix (`ScreenState`).
  */
 export function EngineScreen({
@@ -112,6 +171,7 @@ export function EngineScreen({
   onFilter,
   ready = true,
   atInstances = false,
+  verdict = false,
 }: {
   engine: string
   navigate: Navigate
@@ -123,6 +183,8 @@ export function EngineScreen({
   ready?: boolean
   /** The engine has no Incidents and Jobs on the page: its incidents show at their instances. */
   atInstances?: boolean
+  /** The server decides a verdict for the engine (Camunda 7): its bar shows it. */
+  verdict?: boolean
 }) {
   const t = useT()
   const wide = useWide()
@@ -132,9 +194,13 @@ export function EngineScreen({
     { engine },
     { staleTime: READ_AGAIN_AFTER_MS, enabled: ready },
   )
-  useReadOnReturn(query, ready)
   const { data, error, isFetching } = query
-  const refetch = () => void query.refetch()
+  const judged = useVerdict(engine, ready, data, verdict)
+  useReadOnReturn(query, ready)
+  const refetch = () => {
+    void query.refetch()
+    judged.refetch()
+  }
   // The scopes and the search derive the rows in the browser from the screen loaded: no read.
   const listed = useProcessList(data?.processes ?? NO_PROCESSES, filter)
   const slots = usePageSlots(navigate)
@@ -149,6 +215,7 @@ export function EngineScreen({
             <EngineBar
               engine={engine}
               data={data}
+              verdict={judged.verdict}
               refreshing={refreshing}
               onRefresh={ready ? refetch : undefined}
             />

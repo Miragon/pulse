@@ -75,7 +75,11 @@ missing.
 - **Status:** `readStatus({ port, now }, options)` triages one engine: findings with severity, the
   overall status, definitions, incident groups with their root cause, topics, jobs and batches,
   every cut named in `truncated`. `engineVerdict` judges an engine `ok`, `warning` or `critical` by
-  thresholds you pass; `messageSignature` (the incident mask) and `causeKeyOf` (one cause) group
+  thresholds you pass, over its open root incidents: `rootIncidentCounts` takes the processes' from
+  the statistics with `rootIncidents=true` and, of the open incidents read, those outside any
+  process and the largest cause over root incidents alone, so a chain of calls one failure stops
+  counts it once (`readStatus` names the basis `rootIncidentsTotal` beside `incidentsTotal`, every
+  open incident); `messageSignature` (the incident mask) and `causeKeyOf` (one cause) group
   incidents alike everywhere.
 - **With incident:** one reading of "an instance with an incident" for every caller: an open
   incident the runtime holds now, which every history level answers alike (`WITH_INCIDENT`, the
@@ -114,7 +118,8 @@ missing.
   your port. It asks one reader per
   question: `EngineReader` (the product and version telemetry names, else the REST API's version),
   `DefinitionReader` (every process by its latest version, its versions newest first, each with its
-  running instances and those "with incident", a version's BPMN XML), `ElementStatisticsReader` (per
+  running instances, those "with incident" and its open root incidents, from one statistics read
+  with `rootIncidents=true`, a version's BPMN XML), `ElementStatisticsReader` (per
   element of a version the waiting tokens, the incidents raised there and those of called
   instances: the statistics with every incident at an element, root incidents wherever no copy can
   lie, and the incidents at the version's call activities that hold one read whole, sorted by id,
@@ -261,7 +266,7 @@ files of the repository, not of the package:
 widget and a refused one, that engine's answers to the board's reads (`C7RecordedAnswer`: method,
 decoded path, query and JSON body, and the JSON answered), recorded from the seeded world on
 Operaton 2.1.5 (made anew on 2026-11-21, when the element statistics read the incidents at call
-activities alone), and the board they give in the JSON form of
+activities alone, and again that day, when the definitions read their root incidents), and the board they give in the JSON form of
 [`@miragon/pulse-board`](https://www.npmjs.com/package/@miragon/pulse-board) (`BoardData`). It
 ships here because this package makes the requests: the MCP server's engine connector and the
 editors' C7 adapter each serve the answers to their own wire on the transport's recorded engine
@@ -287,7 +292,7 @@ version 1 with the counts of each scope (`expected.instanceList`, `InstanceListD
 C7 adapter and the MCP server's SDK wire build each exactly. Its answers come from one run of their
 own, recorded by hand on 2026-11-20 as the board's, made anew with the process screens and the
 instance list, and again on 2026-11-21, when the element statistics read the incidents at call
-activities alone: the world seeded
+activities alone, and once more that day, when the definitions read their root incidents: the world seeded
 with `seedC7World` into `operaton/operaton:2.1.5` at history level FULL, every screen built twice
 through a proxy in front of the engine that keeps each request with what the engine answers (the
 same answer both times but for the telemetry, which counts the engine's commands and keeps its

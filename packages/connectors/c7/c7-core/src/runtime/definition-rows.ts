@@ -1,6 +1,8 @@
 /**
  * The process definitions as the engine lists them: every deployed version with the count of its
- * running instances (`/process-definition/statistics`), and the BPMN XML a version was deployed
+ * running instances and of its open root incidents (`/process-definition/statistics` with
+ * `rootIncidents=true`, whose counts per incident type it sums; a copy a call activity holds of an
+ * incident in a called instance is no root incident), and the BPMN XML a version was deployed
  * with. Each answer is read through `JsonView`, so an unusable one fails as
  * `RuntimeError("unexpectedResponse")`.
  */
@@ -22,10 +24,11 @@ export interface DefinitionRow {
   readonly versionTag?: string
 }
 
-/** A version with the count of its running instances. */
+/** A version with the count of its running instances and of its open root incidents. */
 export interface DefinitionStatisticsRow {
   readonly definition: DefinitionRow
   readonly instances: number
+  readonly rootIncidents: number
 }
 
 function definitionRowOf(record: JsonView): DefinitionRow {
@@ -41,14 +44,30 @@ function definitionRowOf(record: JsonView): DefinitionRow {
   }
 }
 
-/** Every deployed version with its running instances, in one request. */
+/** The open root incidents of a statistics row: the sum of its counts per incident type. */
+function rootIncidentsOf(row: JsonView): number {
+  return row
+    .optionalList("incidents")
+    .reduce((sum, type) => sum + type.requiredNumber("incidentCount"), 0)
+}
+
+/**
+ * Every deployed version with its running instances and open root incidents, in one request: the
+ * one shape of the statistics read, which the definitions and versions read for their counts and
+ * the incident search's version refs and the called processes for the versions alone, the root
+ * incidents one grouped subquery over the open incidents beside the instances it already counts.
+ */
 export async function readDefinitionStatistics(
   port: EnginePort,
 ): Promise<DefinitionStatisticsRow[]> {
-  const answer = await port.json("getProcessDefinitionStatistics", queryInput({}))
+  const answer = await port.json(
+    "getProcessDefinitionStatistics",
+    queryInput({ rootIncidents: "true" }),
+  )
   return JsonView.listOf(answer, "definition statistics").map((row) => ({
     definition: definitionRowOf(row.object("definition", "statistics definition")),
     instances: row.requiredNumber("instances"),
+    rootIncidents: rootIncidentsOf(row),
   }))
 }
 

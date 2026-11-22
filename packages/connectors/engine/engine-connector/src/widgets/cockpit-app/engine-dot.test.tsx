@@ -19,23 +19,23 @@ afterEach(() => {
 })
 
 interface EngineCounts {
-  openIncidents: number
+  openRootIncidents: number
   largestCause: number
   failedJobs: number
   running: number
 }
 
 const ENGINES: Record<string, EngineCounts> = {
-  "one-incident": { openIncidents: 1, largestCause: 1, failedJobs: 0, running: 10 },
+  "one-incident": { openRootIncidents: 1, largestCause: 1, failedJobs: 0, running: 10 },
   "at-threshold": {
-    openIncidents: DEFAULT_VERDICT_THRESHOLDS.criticalIncidents,
+    openRootIncidents: DEFAULT_VERDICT_THRESHOLDS.criticalIncidents,
     largestCause: 3,
     failedJobs: 0,
     running: 10,
   },
-  "stuck-jobs": { openIncidents: 0, largestCause: 0, failedJobs: 4, running: 10 },
-  steady: { openIncidents: 0, largestCause: 0, failedJobs: 0, running: 10 },
-  idle: { openIncidents: 0, largestCause: 0, failedJobs: 0, running: 0 },
+  "stuck-jobs": { openRootIncidents: 0, largestCause: 0, failedJobs: 4, running: 10 },
+  steady: { openRootIncidents: 0, largestCause: 0, failedJobs: 0, running: 10 },
+  idle: { openRootIncidents: 0, largestCause: 0, failedJobs: 0, running: 0 },
 }
 
 const countsOf = (args: Record<string, unknown>) => ENGINES[String(args.engine)]
@@ -47,7 +47,7 @@ function overviewFeed(args: Record<string, unknown>): CockpitDashboardData {
       totalDefinitions: 2,
       totalRunningInstances: e.running,
       totalFailedJobs: e.failedJobs,
-      totalIncidents: e.openIncidents,
+      totalIncidents: e.openRootIncidents,
     },
     // The fleet's rows count from the definitions, the landing's words from the summary.
     definitions: [
@@ -59,8 +59,8 @@ function overviewFeed(args: Record<string, unknown>): CockpitDashboardData {
         instances: e.running,
         failedJobs: e.failedJobs,
         incidents:
-          e.openIncidents > 0
-            ? [{ incidentType: "failedJob", incidentCount: e.openIncidents }]
+          e.openRootIncidents > 0
+            ? [{ incidentType: "failedJob", incidentCount: e.openRootIncidents }]
             : [],
       },
     ],
@@ -73,12 +73,12 @@ function healthFeed(args: Record<string, unknown>): EngineHealthData {
   const e = countsOf(args)
   return {
     status: engineVerdict(
-      { openIncidents: e.openIncidents, largestCluster: e.largestCause },
+      { openRootIncidents: e.openRootIncidents, largestCluster: e.largestCause },
       DEFAULT_VERDICT_THRESHOLDS,
     ),
     statusRule: "",
     summary: {
-      totalIncidents: e.openIncidents,
+      totalIncidents: e.openRootIncidents,
       lastHourIncidents: 0,
       affectedActivities: null,
       affectedDefinitions: 0,
@@ -131,7 +131,7 @@ describe("the landing's engine dot follows the one verdict", () => {
     )
   }
 
-  it("one open incident, no threshold reached: warning, as the overview badge says", async () => {
+  it("one open root incident, no threshold reached: warning, as the overview badge says", async () => {
     renderLanding()
     const row = await landingRow("one-incident")
     await waitFor(() => expect(dotTone(row)).toBe("warning"))
@@ -168,6 +168,36 @@ describe("the landing's engine dot follows the one verdict", () => {
     expect(dotTone(row)).toBe("neutral")
   })
 
+  it("an engine with nothing deployed whose verdict is no ok shows its dot, never empty", async () => {
+    // A root incident outside any process (a batch's, the history cleanup's) counts in the
+    // verdict, which the overview's badge and the web app's state show: so does the landing.
+    const bare = (args: Record<string, unknown>) => args.engine === "bare"
+    const tools = {
+      [ENGINE_COCKPIT_OVERVIEW_DATA]: (args: Record<string, unknown>) => {
+        const data = overviewFeed(bare(args) ? { engine: "idle" } : args)
+        if (!bare(args)) return data
+        return { ...data, summary: { ...data.summary, totalDefinitions: 0 }, definitions: [] }
+      },
+      [ENGINE_HEALTH_DATA]: (args: Record<string, unknown>) => {
+        const data = healthFeed(bare(args) ? { engine: "idle" } : args)
+        if (!bare(args)) return data
+        return {
+          ...data,
+          status: "warning",
+          summary: { ...data.summary, totalDefinitions: 0 },
+          engineId: "bare",
+        }
+      },
+    }
+    render(
+      <TestViewHost tools={tools} client={queryClient}>
+        <LandingChooser engines={[{ id: "bare" }, { id: "steady" }]} onEnterEngine={() => {}} />
+      </TestViewHost>,
+    )
+    const row = await screen.findByRole("button", { name: /^bare\s*,\s*no running instances$/ })
+    await waitFor(() => expect(dotTone(row)).toBe("warning"))
+  })
+
   it("without a verdict the dot is neutral: the counts alone never colour it", async () => {
     render(
       <TestViewHost tools={{ [ENGINE_COCKPIT_OVERVIEW_DATA]: overviewFeed }} client={queryClient}>
@@ -189,7 +219,7 @@ describe("the fleet view's engine dot follows the one verdict", () => {
     )
   }
 
-  it("one open incident is warning, the threshold danger; the counts stay in the row", async () => {
+  it("one open root incident is warning, the threshold danger; the counts stay in the row", async () => {
     renderFleet()
     await waitFor(() => expect(dotTone(fleetRow("one-incident"))).toBe("warning"))
     await waitFor(() => expect(dotTone(fleetRow("at-threshold"))).toBe("danger"))

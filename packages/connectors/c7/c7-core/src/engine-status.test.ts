@@ -66,6 +66,7 @@ describe("readStatus", () => {
       next: { action: "retryActivity", processDefinitionKey: "order", activityId: "book" },
     })
     expect(data).toMatchObject({
+      rootIncidentsTotal: 3,
       incidentsTotal: 3,
       propagated: 0,
       jobs: { executable: 5, overdue: 1, oldestReadySince: "2026-01-01T11:40:00.000+0000" },
@@ -168,51 +169,135 @@ describe("readStatus verdict", () => {
     expect(data.status).toBe("warning")
   })
 
-  it("is critical from the open incidents of the count, not of the loaded page", async () => {
-    const data = await read({ getIncidentsCount: () => ({ count: 50 }) })
+  it("is critical from the open root incidents of the statistics, not of the loaded page", async () => {
+    const data = await read({
+      getProcessDefinitionStatistics: () => [statistics("order", 1, [41, 3, 50])],
+    })
     expect(data.status).toBe("critical")
+    expect(data.rootIncidentsTotal).toBe(50)
     // the findings say why, first: the threshold finding leads to the largest cause's group
     expect(data.findings[0]).toEqual({
       severity: "critical",
       code: "INCIDENTS_CRITICAL",
       message:
-        "50 open incidents, 2 of them failedJob at book: critical at >=50 open incidents or >=25 of one cause",
+        "50 open root incidents, 2 of them failedJob at book: critical at >=50 open root incidents or >=25 of one cause",
       next: { action: "retryActivity", processDefinitionKey: "order", activityId: "book" },
     })
     expect(data.findings.slice(1).every((finding) => finding.severity === "warning")).toBe(true)
   })
 
-  it("counts one cause as the cockpit does: across definitions, propagated and batch incidents too", async () => {
+  it("never judges by the count of every open incident, which counts the copies", async () => {
+    const data = await read({ getIncidentsCount: () => ({ count: 50 }) })
+    expect(data).toMatchObject({ status: "warning", rootIncidentsTotal: 3, incidentsTotal: 50 })
+  })
+
+  it("counts a chain of calls that one failure stops as one root incident", async () => {
+    // The label's failed job, copied to the call activity of each of the three instances above it.
+    const root = { ...failedJob("r", "printLabel"), processDefinitionId: "label:1:x" }
+    const copies = ["dispatch", "order", "customer"].map((caller, level) => ({
+      ...failedJob(`c${level}`, `call-${caller}`),
+      rootCauseIncidentId: "r",
+      incidentMessage: null,
+      processDefinitionId: `${caller}:1:x`,
+    }))
+    const data = await read(
+      {
+        getProcessDefinitionStatistics: () => [
+          statistics("label", 1, [1, 1, 1]),
+          ...["dispatch", "order", "customer"].map((key) => statistics(key, 1, [1, 0, 0])),
+        ],
+        getIncidents: () => [root, ...copies],
+        getIncidentsCount: () => ({ count: 4 }),
+      },
+      { criticalIncidents: 2, criticalClusterSize: 2 },
+    )
+    expect(data).toMatchObject({
+      status: "warning",
+      rootIncidentsTotal: 1,
+      incidentsTotal: 4,
+      propagated: 3,
+    })
+    expect(data.findings.map((finding) => finding.code)).toEqual(["INCIDENTS"])
+    expect(data.incidents.map((group) => [group.processDefinitionKey, group.count])).toEqual([
+      ["label", 1],
+    ])
+  })
+
+  it("counts one cause as the cockpit does: across definitions and batch incidents, never a copy", async () => {
     const other = (id: string) => ({ ...failedJob(id, "book"), processDefinitionId: "pay:1:y" })
     const propagated = (id: string) => ({ ...failedJob(id, "book"), rootCauseIncidentId: "x" })
     const batchJob = (id: string) => ({ ...failedJob(id, "book"), jobDefinitionId: "jd-b" })
     const incidents = [
       ...["o1", "o2"].map((id) => failedJob(id, "book")),
       ...["p1", "p2"].map(other),
-      propagated("c1"),
+      ...["c1", "c2"].map(propagated),
       batchJob("b1"),
     ]
+    const routes = {
+      getProcessDefinitionStatistics: () => [
+        statistics("order", 1, [41, 3, 3]),
+        statistics("pay", 1, [2, 2, 2]),
+      ],
+      getIncidents: () => incidents,
+      getIncidentsCount: () => ({ count: incidents.length }),
+      getBatchStatistics: () => [
+        { id: "b", type: "migration", failedJobs: 1, batchJobDefinitionId: "jd-b" },
+      ],
+    }
+    // the groups stay per definition and root cause; the verdict's cause spans the five roots
+    const below = await read(routes, { criticalIncidents: 99, criticalClusterSize: 6 })
+    expect(below.incidents.map((group) => group.count)).toEqual([2, 2])
+    expect(below.status).toBe("warning")
+    const at = await read(routes, { criticalIncidents: 99, criticalClusterSize: 5 })
+    expect(at.status).toBe("critical")
+    expect(at.findings[0]).toMatchObject({
+      code: "INCIDENTS_CRITICAL",
+      message:
+        "5 open root incidents, 5 of them failedJob at book: critical at >=99 open root incidents or >=5 of one cause",
+    })
+  })
+
+  it("adds the root incidents outside any process, which the statistics leave out", async () => {
+    const cleanup = {
+      ...failedJob("h1", "historyCleanup"),
+      processDefinitionId: null,
+      jobDefinitionId: "jd-cleanup",
+    }
+    const data = await read({
+      getProcessDefinitionStatistics: () => [statistics("order", 1, [41, 0, 0])],
+      getIncidents: () => [cleanup],
+      getIncidentsCount: () => ({ count: 1 }),
+    })
+    expect(data).toMatchObject({ status: "warning", rootIncidentsTotal: 1, incidentsTotal: 1 })
+  })
+
+  it("lists the cause's incidents by type when no group of it is shown", async () => {
+    // The largest cause is a batch's failed jobs, which BATCH_FAILURES reports, not a group.
     const data = await read(
       {
-        getIncidents: () => incidents,
-        getIncidentsCount: () => ({ count: incidents.length }),
+        getIncidents: () => [
+          {
+            ...failedJob("x", "book"),
+            incidentType: "failedExternalTask",
+            jobDefinitionId: "jd-b",
+          },
+        ],
+        getIncidentsCount: () => ({ count: 1 }),
+        getProcessDefinitionStatistics: () => [statistics("order", 1, [41, 0, 1])],
         getBatchStatistics: () => [
           { id: "b", type: "migration", failedJobs: 1, batchJobDefinitionId: "jd-b" },
         ],
       },
-      { criticalIncidents: 99, criticalClusterSize: 6 },
+      { criticalIncidents: 99, criticalClusterSize: 1 },
     )
-    // the groups stay per definition and root cause; the verdict's cause spans all six
-    expect(data.incidents.map((group) => group.count)).toEqual([2, 2])
-    expect(data.status).toBe("critical")
+    expect(data.incidents).toEqual([])
     expect(data.findings[0]).toMatchObject({
       code: "INCIDENTS_CRITICAL",
-      message:
-        "6 open incidents, 6 of them failedJob at book: critical at >=99 open incidents or >=6 of one cause",
+      next: { action: "listIncidentsOfType", incidentType: "failedExternalTask" },
     })
   })
 
-  it("lists the cause's incidents by type when no group of it is shown", async () => {
+  it("lists failed jobs by type when only copies are loaded at the threshold, naming no cause", async () => {
     const data = await read(
       {
         getIncidents: () => [{ ...failedJob("x", "book"), rootCauseIncidentId: "elsewhere" }],
@@ -221,10 +306,41 @@ describe("readStatus verdict", () => {
       { criticalIncidents: 1, criticalClusterSize: 99 },
     )
     expect(data.incidents).toEqual([])
-    expect(data.findings[0]).toMatchObject({
+    expect(data.findings[0]).toEqual({
+      severity: "critical",
       code: "INCIDENTS_CRITICAL",
+      message: "3 open root incidents: critical at >=1 open root incidents or >=99 of one cause",
       next: { action: "listIncidentsOfType", incidentType: "failedJob" },
     })
+  })
+
+  it("leads to the largest cause's own group, never the largest group of another cause", async () => {
+    const other = (id: string) => ({ ...failedJob(id, "pay"), processDefinitionId: "pay:1:y" })
+    const incidents = [
+      // three of one cause in one group, beside four of another cause in two groups
+      ...["x1", "x2", "x3"].map((id) => ({ ...failedJob(id, "ship"), incidentMessage: "late" })),
+      ...["o1", "o2"].map((id) => failedJob(id, "pay")),
+      ...["p1", "p2"].map(other),
+    ]
+    const data = await read(
+      { getIncidents: () => incidents, getIncidentsCount: () => ({ count: 7 }) },
+      { criticalIncidents: 99, criticalClusterSize: 4 },
+    )
+    expect(data.incidents.map((group) => [group.activityId, group.count])).toEqual([
+      ["ship", 3],
+      ["pay", 2],
+      ["pay", 2],
+    ])
+    expect(data.findings[0]).toMatchObject({
+      code: "INCIDENTS_CRITICAL",
+      next: { action: "retryActivity", processDefinitionKey: "order", activityId: "pay" },
+    })
+  })
+
+  it("is warning from the root incidents of the statistics where none of them was loaded", async () => {
+    const data = await read({ getIncidents: () => [], getIncidentsCount: () => ({ count: 3 }) })
+    expect(data.findings).toEqual([])
+    expect(data).toMatchObject({ status: "warning", rootIncidentsTotal: 3 })
   })
 
   it("is critical from the largest group of one cause", async () => {

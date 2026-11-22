@@ -2603,6 +2603,36 @@
     "title": "Variable names data (internal)"
   },
   {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI) for the web app's engine screen and start page: a Camunda 7 engine's live verdict, ok, warning or critical, over its open root incidents.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "engine_screen_verdict_data",
+    "title": "Engine verdict data (internal)"
+  },
+  {
     "annotations": {
       "idempotentHint": true,
       "openWorldHint": true,

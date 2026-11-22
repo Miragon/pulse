@@ -4,8 +4,6 @@ import { afterEach, describe, expect, it } from "vitest"
 import { TestViewHost, type ViewComponent } from "@miragon/pulse-widget-shell/widgets"
 import { engineViews } from "@miragon/pulse-engine-connector/widgets"
 import {
-  FLEET_DIALECTS,
-  inFleet,
   NAV_SECTIONS,
   placeOfSection,
   SECTION_VIEWS,
@@ -15,6 +13,7 @@ import {
   type NavSection,
 } from "../src/frame/nav-sections.js"
 import { catalogs } from "../src/messages/index.js"
+import { ENGINE_VERDICT_FEED, hasVerdict } from "../src/screens/engine/verdict-feed.js"
 import { COCKPIT_VIEW } from "../src/router/routes.js"
 import { cockpitProperties, type EngineEntry, registeredTools } from "./cockpit-tool.js"
 
@@ -114,6 +113,8 @@ describe("the navigation's sections per dialect", () => {
       expect(SCREEN_FEEDS.map((feed) => feeds.includes(feed))).toEqual(
         SCREEN_FEEDS.map(() => hasScreens(dialect)),
       )
+      // The verdict the page shows is the server's: read exactly where the server decides one.
+      expect(feeds.includes(ENGINE_VERDICT_FEED)).toBe(hasVerdict(dialect))
       // An incident the page knows by its id alone is found through the cockpit's incident view,
       // which serves the dialects of its incidents section (src/screens/screen-shown.ts).
       expect(NAV_SECTIONS[dialect].includes("incidents")).toBe(served.includes("incident-detail"))
@@ -151,17 +152,6 @@ describe("the navigation's sections per dialect", () => {
     expect(hasScreens(undefined)).toBe(false)
     expect(sectionsOf(undefined)).toEqual([])
     expect(sectionsOf("hasOwnProperty")).toEqual([])
-  })
-
-  it("counts Camunda 7's engines into the view across engines, as the cockpit reads them", () => {
-    expect(FLEET_DIALECTS).toEqual(["c7"])
-    expect(inFleet("c7")).toBe(true)
-    expect(inFleet(undefined)).toBe(true)
-    expect(inFleet("c8")).toBe(false)
-    // The cockpit's fleet reads each engine's overview: the dialects it serves.
-    for (const dialect of Object.keys(NAV_SECTIONS) as NavDialect[]) {
-      expect(inFleet(dialect)).toBe(servedViews(dialect).includes("overview"))
-    }
   })
 })
 

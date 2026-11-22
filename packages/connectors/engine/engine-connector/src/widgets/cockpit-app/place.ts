@@ -9,8 +9,9 @@ import type { CockpitAction, CockpitMemo, CockpitState } from "./cockpit-state.j
  * page's address names (`ViewLocation`). A view of one engine is its route's `view`, the `engine`
  * and the ids the route takes (`COCKPIT_ROUTES`' `needs` and `takes`, which are the fields of its
  * `CockpitView`); a board is `view: "board"` with its id, the chooser `view: "landing"`. The
- * cross-engine overview is no view of the tool: its place is `view: "fleet"`, which the web app
- * gives a page path of its own that starts the landing and opens it.
+ * cross-engine overview is no view of the tool: its place is `view: "fleet"`, which a page reads
+ * back to it; the web app claims it and the chooser's place, where its own start page shows every
+ * engine side by side.
  */
 export const FLEET_PLACE = "fleet"
 
@@ -134,9 +135,9 @@ export function actionOfPlace(place: ViewPlace): CockpitAction | null {
 }
 
 /**
- * Where the page's address put the cockpit at its start beyond the view tool's arguments (the web
- * app's page of the cross-engine overview, an engine its address names alone), or null: applied
- * once over the first boot.
+ * Where the page's address put the cockpit at its start beyond the view tool's arguments (an engine
+ * the web app's address names alone, which it starts on the landing), or null: applied once over
+ * the first boot.
  */
 export function useAddressStart(): CockpitAction | null {
   const start = useHostLocation()?.start

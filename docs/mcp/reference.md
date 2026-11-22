@@ -15,7 +15,7 @@ BPM operations across these domains (`category`): `engines`, `process-definition
 `jobs`, `history`, `migrations`, `batches`. Highlights:
 
 - **Engines:** `list_engines` (each with its `dialect`), `engine_status` (one engine's triage:
-  findings by severity, counts, the live verdict from the thresholds `ENGINE_HEALTH_*` and findings)
+  findings, counts, the live verdict from its open root incidents by `ENGINE_HEALTH_*` and findings)
 - **Process definitions:** `list_process_definitions`, `get_process_definition_xml`
 - **Process instances:** `start`, `list`, `inspect_process_instance` (where one instance waits and
   why, running or ended, by id, business key or definition key), `delete`, `modify`,
@@ -151,9 +151,9 @@ the server's login with HTTP 401 reads "credentials rejected", with 403 "access 
 neither the landing nor the cross-engine view calls it unreachable; the latter counts it apart, both
 give it a refused profile's warning tone, and its overview names the status. An engine's dot, there
 and in the cross-engine view, has the tone of the engine overview's verdict (ok, warning, critical),
-so one open incident below the thresholds is a warning, not an alarm. With two engines or more the
-cockpit offers the cross-engine view: each engine's health, its job backlog and which processes run
-where, read from every engine itself, as counts, never a ranking of the engines. `environment`
+so one open root incident below the thresholds is a warning, not an alarm. With two engines or more
+the cockpit offers the cross-engine view: each engine's health, its job backlog and which processes
+run where, read from every engine itself, as counts, never a ranking of the engines. `environment`
 groups the engines: the landing lists them under their environment, the engine switcher and
 `engine_list_engines` group them, and every engine view names the environment as a chip ("PROD")
 next to the engine, write confirmations included. With [boards](boards.md) the landing lists them

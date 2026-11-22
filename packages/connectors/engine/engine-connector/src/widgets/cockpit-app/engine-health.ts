@@ -33,6 +33,7 @@ export function useEngineHealth(engineId: string) {
     summary,
     incidents: summary?.totalIncidents ?? 0,
     failed: summary?.totalFailedJobs ?? 0,
+    status: health.data?.status,
     tone: dotTone(health.data),
   }
 }

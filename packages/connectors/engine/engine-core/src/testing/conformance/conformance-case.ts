@@ -11,6 +11,10 @@ export const CASE = {
   definitionsLatestVersion: "definitions: one summary per process, carrying its latest version",
   definitionsCounts: "definitions: counts running instances and instances with an incident",
   versionsCounts: "versions: one summary per version with its own counts, newest first",
+  definitionsIncidents:
+    "definitions: count the open root incidents over every version, exactly, never a copy in a caller",
+  versionsIncidents:
+    "versions: count the open root incidents of each version, exactly, never a copy in a caller",
   diagramOfVersion: "diagram: the XML of a version contains its elements, unknown is undefined",
   statisticsPerVersion: "statistics: address one version, never the whole process",
   statisticsDisjoint:

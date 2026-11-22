@@ -8,7 +8,7 @@ import { renderFinding } from "./status-command.js"
 const findings = (input: FindingInput) => coreFindings(input).map(renderFinding)
 /** The status of an engine without open incidents: the findings decide. */
 const statusOf = (list: readonly { readonly severity: "warning" | "critical" }[]) =>
-  engineVerdict({ openIncidents: 0, largestCluster: 0, findings: list })
+  engineVerdict({ openRootIncidents: 0, largestCluster: 0, findings: list })
 
 const NOW = Date.parse("2026-01-01T12:00:00.000Z")
 

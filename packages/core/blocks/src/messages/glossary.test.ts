@@ -10,6 +10,8 @@ import {
 } from "@miragon/pulse-ui/testing"
 import { describe, expect, it } from "vitest"
 import { de } from "./de.js"
+import { enginesDe } from "./engines-de.js"
+import { enginesEn } from "./engines-en.js"
 import { findDe } from "./find-de.js"
 import { findEn } from "./find-en.js"
 import { historyDe } from "./history-de.js"
@@ -58,6 +60,8 @@ const LANGUAGES = [
   ["the history notice's English", historyEn, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
   ["the search's German", findDe, [...PRODUCT_GLOSSARY.de, ...DE_RULES]],
   ["the search's English", findEn, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
+  ["the engines' German", enginesDe, [...PRODUCT_GLOSSARY.de, ...DE_RULES]],
+  ["the engines' English", enginesEn, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
 ] as const
 
 describe.each(LANGUAGES)("the glossary holds in %s", (_language, catalog, rules) => {
@@ -238,5 +242,24 @@ describe("the search's words", () => {
     expect(catalogTextFindings(findEn, { language: "en" })).toEqual([])
     expect(catalogTextFindings(findDe, { language: "de" })).toEqual([])
     expect(Object.keys(findDe).sort()).toEqual(Object.keys(findEn).sort())
+  })
+})
+
+describe("the words of the engines side by side", () => {
+  it("follow the voice rules in both languages and have a German entry for every English key", () => {
+    expect(catalogTextFindings(enginesEn, { language: "en" })).toEqual([])
+    expect(catalogTextFindings(enginesDe, { language: "de" })).toEqual([])
+    expect(Object.keys(enginesDe).sort()).toEqual(Object.keys(enginesEn).sort())
+  })
+
+  it("name the instances with incident with the count term every Pulse UI uses", () => {
+    expect([
+      enginesEn["engines.column.withIncident"],
+      enginesEn["matrix.column.withIncident"],
+    ]).toEqual([COUNT_TERMS.withIncident.en, COUNT_TERMS.withIncident.en])
+    expect([
+      enginesDe["engines.column.withIncident"],
+      enginesDe["matrix.column.withIncident"],
+    ]).toEqual([COUNT_TERMS.withIncident.de, COUNT_TERMS.withIncident.de])
   })
 })

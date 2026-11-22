@@ -1,7 +1,10 @@
 # Runtime contract
 
 - Status: accepted
-- Last reviewed: 2026-11-21 (a law holds a business key's match whole on both dialects, which the
+- Last reviewed: 2026-11-21, later (the definitions and versions count their open root incidents,
+  `incidents`, exactly or as a lower bound, held by two laws on both dialects, which the engine
+  screen of the web app and the engine tab show as their column "Incidents"); 2026-11-21 (a law
+  holds a business key's match whole on both dialects, which the
   web app's search across engines relies on; Camunda 8 gives a called instance its caller's
   business id); 2026-11-20 (the web app's process screen shows the hint where the history misses
   running instances, by the screens' `HistoryGaps`); 2026-11-20 (the variable dialog offers each refused kind of condition disabled with its reason, the owner's decision that day); 2026-11-20 (a C7 engine at history level NONE: what the instance search, its
@@ -54,8 +57,8 @@ engine question:
 | Method                       | Question                                                                                                                             |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | `describeEngine`             | Which product and version answers?                                                                                                   |
-| `listDefinitions`            | Which processes are deployed, latest version, running and with-incident counts?                                                      |
-| `listVersions`               | Per version of one process: running and with-incident counts, newest first                                                           |
+| `listDefinitions`            | Which processes are deployed, latest version, running, with-incident and open root incident counts?                                  |
+| `listVersions`               | Per version of one process: running, with-incident and open root incident counts, newest first                                       |
 | `getDiagramXml`              | The deployed XML of one version                                                                                                      |
 | `getElementStatistics`       | Per element of one version: active, incidents raised here, incidents in called instances                                             |
 | `getCalledProcesses`         | Per call activity of one version: the process it calls and the deployed version its binding starts                                   |
@@ -143,7 +146,34 @@ for any workspace, and the conformance kit does not cover them
 - **Counts** mean instances, not incidents (`withIncident`), on both engines. An instance with
   an incident is one with an open incident now; on the C7 family the runtime's, which every history
   level answers alike (c7-core's `with-incident.ts`), so the C7 adapter's harness runs the read
-  laws on an engine at history level AUDIT as well as at FULL.
+  laws on an engine at history level AUDIT as well as at FULL. Beside them a process and a version
+  count their open root incidents (`incidents`, since 2026-11-21, `RuntimeCounts` of
+  `DefinitionSummary` and `VersionSummary`): over every version of a process and per version, a
+  copy Camunda 7 holds at a call activity of an incident in a called instance never counted, so a
+  caller that waits for that incident is an instance with incident whose process counts no incident
+  for it (order: 1, order v1: 1, order v2: 0, dispatch: 0 with 1 with incident, label: 1). The C7
+  family reads them from the same one statistics read as the running instances,
+  `/process-definition/statistics` with `rootIncidents=true`, its counts per incident type summed,
+  an exact statistic; Camunda 8, which never copies an incident, counts the cluster's open
+  incidents with one search per process and per version that has an instance with incident
+  (`limit: 0`, its `totalItems`; none for one without, which holds no incident; at most eight at
+  once), and where that search stops counting the count is a lower bound, `incidentsAtLeast: true`
+  (`≥ 10,000` on a surface). The searches belong to `listDefinitions` and `listVersions`, so one
+  that fails fails the read as a failed statistics read does, also for a reader that shows no
+  incident count (a board's engine totals, a process screen's versions, the editors' tree). On
+  Camunda 7 an incident outside any instance (a failed timer start event's job) counts at its
+  version and process, never as an instance with incident: a process can count an incident with no
+  instance with incident, which the screens' scope "With incident" admits too (`ProcessFilter`). Two laws hold the counts exact over the world on both dialects: "definitions: count
+  the open root incidents over every version, exactly, never a copy in a caller" and "versions:
+  count the open root incidents of each version, exactly, never a copy in a caller"; their
+  saboteurs count a call activity's copy at the caller, a process by its latest version alone,
+  every version of a process at each version, the instances with incident as incidents, or call
+  a count within the world a lower bound. Each failing instance of the world holds one incident, so
+  the laws cannot tell the incidents from the instances that hold a root incident of their own;
+  each dialect's own tests pin that it counts incidents (c7-core sums the statistics' counts per
+  incident type, c8-core takes the incident search's total, two for one instance with incident).
+  The field is required: an implementation outside this repository answers it, a breaking change
+  below 1.0.
   `countInstances(filter)` counts what `searchInstances(filter, …)` pages through, as an
   `InstanceCount`: exact, or with `atLeast` when the engine stopped counting (Camunda 8 at
   10,000), and never below 0. The laws require an exact count over the world and no count below 0
@@ -331,7 +361,8 @@ contract read-only, through the Orchestration Cluster REST API from 8.9 on:
   compares variable values as text.
 - **Counts that stop.** A search counts up to 10,000 on Elasticsearch; above that a count is
   exact only where the cluster's statistics give it (running instances of the engine, a process
-  or a version) and `{ count: 10000, atLeast: true }` otherwise.
+  or a version) and `{ count: 10000, atLeast: true }` otherwise; a process's or a version's open
+  incidents, which no statistic gives, then read `incidents: 10000, incidentsAtLeast: true`.
 - **Error messages.** `IncidentDetails` is the incident's error message as the worker or the
   engine wrote it (`kind: "errorMessage"`), with its root cause by `RootCauses`.
 - **Undivided rows.** A container's statistics row keeps the cluster's counts when the search for
@@ -343,7 +374,7 @@ contract read-only, through the Orchestration Cluster REST API from 8.9 on:
 
 ```mermaid
 flowchart LR
-  kit[ConformanceKit: 52 read laws, 15 command laws]
+  kit[ConformanceKit: 55 read laws, 15 command laws]
   kit --> fake[FakeEngine in memory]
   kit --> c7[C7Adapter on Operaton and CIB seven in containers]
   kit --> mcp[C7Runtime over the MCP server's SDK wire, same engines, read laws]
@@ -351,7 +382,7 @@ flowchart LR
 ```
 
 `@miragon/pulse-engine-core/testing` (`packages/connectors/engine/engine-core/src/testing/conformance`)
-holds 52 read laws and 15 command laws as executable cases, modelled on
+holds 55 read laws and 15 command laws as executable cases, modelled on
 `@miragon/modeler-api/conformance`:
 `new ConformanceKit(test).registerRuntimeLaws(prepare)` and `.registerCommandLaws(prepare)`
 bind them to any `(name, fn)` runner and throw a `ConformanceViolation` when a law fails. Command laws run on
@@ -439,6 +470,9 @@ another incident order on each read, pages of one that list the oldest incident 
 instances with an incident or without one and incidents filtered after the page, an ignored
 incident cursor, a last page of incidents over its limit, a caller
 not flagged by the incident of its called instance, a count within the world that calls itself a lower bound,
+the open root incidents counted with a call activity's copy, by a process's latest version alone,
+with every version of a process at each version, as the instances with incident, or as a lower
+bound within the world,
 a declared refusal that answers anyway, in the search or in the count alone, a refusal without
 a declaration, a declared refusal that fails with another failure or with an error that is no
 `RuntimeError`; for commands: a retry that
@@ -492,7 +526,7 @@ the instances it called there too, where Camunda 7 finds the caller alone.
   documented exception.
 - Every change to the contract is a change to a published package: a new port, read model or
   law lands in `packages/connectors/engine/engine-core` with its saboteur, and the kit's
-  self-tests run there (`packages/connectors/engine/engine-core/test`, 84 saboteurs). Below 1.0 the package makes no
+  self-tests run there (`packages/connectors/engine/engine-core/test`, 89 saboteurs). Below 1.0 the package makes no
   stability promise; its laws and its fake follow the extension.
 - Panel loads have fixed engine-call budgets (definition ≤ 7, three of them the scope
   counts queried in parallel with the page; instance ≤ 2 plus lazy details; both + 1

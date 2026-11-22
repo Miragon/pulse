@@ -74,7 +74,8 @@ export interface PageRouter {
    * Names the current entry anew with `url` (default), or goes to it in a new entry of the
    * browser's history (`push`: another version a process's picker asks for), the page's own screen
    * in another state of its own (a filter, a search, a version): the screen stays, and so does the
-   * focus, at the control the reader used.
+   * focus, at the control the reader used. Where `url` names another screen (the start page's one
+   * engine), the page starts it there and the focus stays too: the reader moved nothing.
    */
   readonly refine: (url: string, entry?: Entry) => void
   /**
@@ -102,6 +103,8 @@ const claims = (args: ViewPlace["args"]): boolean => screenOf(args) !== undefine
 /** What a screen shows, whatever state of its own it is in: its subject. */
 function subjectOf(screen: PageScreen): string {
   switch (screen.kind) {
+    case "start":
+      return JSON.stringify([screen.kind])
     case "engine":
       return JSON.stringify([screen.kind, screen.engine])
     case "process":

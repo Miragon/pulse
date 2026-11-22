@@ -11,8 +11,10 @@ import {
   type ProcessFiguresData,
 } from "./process-figures.js"
 
+type ProcessFigure = readonly [string, number, number, number, number, boolean]
+
 export interface EngineFiguresData {
-  readonly processes: readonly (readonly [string, number, number, number])[]
+  readonly processes: readonly ProcessFigure[]
   readonly totals: EngineTotalsData
 }
 
@@ -20,8 +22,15 @@ export class ScreenFigures {
   static engine(data: EngineScreenData): EngineFiguresData {
     return {
       processes: data.processes.map(
-        ({ bpmnProcessId, latestVersion, running, withIncident }) =>
-          [bpmnProcessId, latestVersion, running, withIncident] as const,
+        ({ bpmnProcessId, latestVersion, running, withIncident, incidents, incidentsAtLeast }) =>
+          [
+            bpmnProcessId,
+            latestVersion,
+            running,
+            withIncident,
+            incidents,
+            incidentsAtLeast === true,
+          ] as const,
       ),
       totals: data.totals,
     }

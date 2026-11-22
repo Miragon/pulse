@@ -119,8 +119,10 @@ const listGroup = (data: BoardStartData) => tileOf(data, "instanceList")?.groups
 const BOARD_PLACES: Record<string, (data: BoardStartData) => unknown> = {
   // What the engine is: when it fails to say, the engine is failed and asked nothing else.
   "GET /telemetry/data": (data: BoardStartData) => engineOf(data)?.product,
-  // The definitions and their flags: the engine's totals (and the summary, the diagram's version).
-  "GET /process-definition/statistics": (data: BoardStartData) => engineOf(data)?.totals,
+  // The definitions with their root incidents and flags: the engine's totals (and the summary, the
+  // diagram's version).
+  "GET /process-definition/statistics?rootIncidents": (data: BoardStartData) =>
+    engineOf(data)?.totals,
   "GET /process-instance?firstResult&maxResults&sortBy&sortOrder&withIncident": (
     data: BoardStartData,
   ) => engineOf(data)?.totals,

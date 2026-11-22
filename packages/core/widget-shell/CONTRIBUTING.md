@@ -40,7 +40,7 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   inside its own error boundary. Widgets reach the host only through the view
   host seam (`useViewHost`: `callTool`, `sendFollowUp`, `followUp`, `writes`, `openExternal`; `HostModelContext`) and the query
   hooks (`useToolQuery`, `useToolQueries` (one read per entry of a list, under `useToolQuery`'s
-  keys), `useToolMutation`, `useViewData` (which seeds a feed with the view's data),
+  keys, a stale time for every read where a widget that reads one alone sets one), `useToolMutation`, `useViewData` (which seeds a feed with the view's data),
   `useQueryClient`), never ext-apps, so a widget renders under `TestViewHost`
   (fake tools, a log of host actions and model contexts) in a plain test. No module renders
   another's widget, and the view root keeps no map for one.

@@ -69,14 +69,15 @@ describe("the view's moves on the page's address", () => {
     )
     location.report({ args: { view: "board", board: "ops" } }, "push")
     location.report({ args: { view: "landing" } }, "push")
+    // The cross-engine overview is the start page's place now: its address is /app, already here.
     location.report({ args: { view: "fleet" } }, "push")
     expect(push.mock.calls.map((call) => [call[0], call[2]])).toEqual([
       [null, "/app/engines/prod-a/processes/invoice"],
       [null, "/app/boards/ops"],
       [null, "/app"],
-      [null, "/app/fleet"],
     ])
-    expect(here()).toBe("/app/fleet")
+    expect(replace).toHaveBeenLastCalledWith(null, "", "/app")
+    expect(here()).toBe("/app")
   })
 
   it("follows the view's moves with its route, and keeps the view it started", () => {
@@ -118,9 +119,7 @@ describe("the view's moves on the page's address", () => {
   })
 
   it("tells the view where the address put it beyond its arguments", () => {
-    expect(routerAt("/app/fleet").router.state().shown.location.start).toEqual({
-      args: { view: "fleet" },
-    })
+    expect(routerAt("/app/fleet").router.state().shown.location).not.toHaveProperty("start")
     expect(routerAt("/app/engines/c8").router.state().shown.location.start).toEqual({
       args: { view: "overview", engine: "c8" },
     })
@@ -140,11 +139,11 @@ describe("Back and Forward", () => {
       return true
     })
     back("/app/engines/prod-b/jobs?failed=true", { trail: 1 })
-    back("/app/fleet")
+    back("/app/engines/prod-a/incidents")
     back("/app/boards/ops")
     expect(seen).toEqual([
       { args: { view: "jobs", engine: "prod-b", failedOnly: true }, memo: { trail: 1 } },
-      { args: { view: "fleet" }, memo: null },
+      { args: { view: "incidents", engine: "prod-a" }, memo: null },
       { args: { view: "board", board: "ops" }, memo: null },
     ])
     expect(router.state().route.place).toEqual({ view: "board", board: "ops" })
@@ -191,19 +190,32 @@ describe("a link of the page", () => {
       seen.push(place)
       return true
     })
-    router.navigate("/app")
-    expect(push).toHaveBeenCalledWith(null, "", "/app")
-    expect(seen).toEqual([{ args: { view: "landing" }, memo: null }])
-    expect(here()).toBe("/app")
+    router.navigate("/app/boards/ops")
+    expect(push).toHaveBeenCalledWith(null, "", "/app/boards/ops")
+    expect(seen).toEqual([{ args: { view: "board", board: "ops" }, memo: null }])
+    expect(here()).toBe("/app/boards/ops")
   })
 
   it("names the entry anew where it leads to the address the reader is on, or is told to", () => {
-    const { router, push, replace } = routerAt("/app")
-    router.navigate("/app")
-    router.navigate("/app/fleet", "replace")
+    const { router, push, replace } = routerAt("/app/boards/ops")
+    router.navigate("/app/boards/ops")
+    router.navigate("/app/engines/prod-a/jobs", "replace")
     expect(push).not.toHaveBeenCalled()
-    expect(replace.mock.calls.map((call) => call[2])).toEqual(["/app", "/app/fleet"])
-    expect(router.state().shown.start.place).toEqual({ view: "fleet" })
+    expect(replace.mock.calls.map((call) => call[2])).toEqual([
+      "/app/boards/ops",
+      "/app/engines/prod-a/jobs",
+    ])
+    expect(router.state().shown.start.args).toEqual({ view: "jobs", engine: "prod-a" })
+  })
+
+  it("leads the cross-engine overview's old address to the start page, which takes its entry", () => {
+    const { router, push, replace, here } = routerAt("/app/engines/prod-a/jobs")
+    router.navigate("/app/fleet")
+    expect(push).toHaveBeenLastCalledWith(null, "", "/app/fleet")
+    expect(replace).toHaveBeenLastCalledWith(null, "", "/app")
+    expect(here()).toBe("/app")
+    expect(router.state().shown.screen).toEqual({ kind: "start" })
+    expect(router.state().route.place).toEqual({ view: "landing" })
   })
 })
 
@@ -222,7 +234,20 @@ describe("the page's own screen (an engine's processes)", () => {
     expect(claims?.({ view: "overview", engine: "prod-a" })).toBe(true)
     expect(claims?.({ engine: "orders-c8" })).toBe(false)
     expect(claims?.({ view: "jobs", engine: "prod-a" })).toBe(false)
-    expect(claims?.({ view: "landing" })).toBe(false)
+    expect(claims?.({ view: "landing", engine: "prod-a" })).toBe(false)
+  })
+
+  it("claims the landing and the cross-engine overview, the start page's place", () => {
+    const { claims } = routerAt("/app/engines/prod-a/jobs").router.state().shown.location
+    expect(claims?.({ view: "landing" })).toBe(true)
+    expect(claims?.({ view: "fleet" })).toBe(true)
+    const { router, push } = routerAt("/app/boards/ops")
+    const first = router.state()
+    first.shown.location.report({ args: { view: "landing" } }, "push")
+    expect(push).toHaveBeenLastCalledWith(null, "", "/app")
+    expect(router.state().shown.screen).toEqual({ kind: "start" })
+    expect(router.state().shown.generation).toBe(first.shown.generation + 1)
+    expect(router.state().moves).toBe(first.moves + 1)
   })
 
   it("takes over where the view reports a place it claims, the focus moving after a drill", () => {
@@ -235,8 +260,8 @@ describe("the page's own screen (an engine's processes)", () => {
     expect(next.shown.screen).toEqual(screenOf("prod-a"))
     expect(next.shown.generation).toBe(first.shown.generation + 1)
     expect(next.moves).toBe(first.moves + 1)
-    // The landing of a server with one engine opens it: its first place names the entry anew.
-    const single = routerAt("/app").router
+    // A view's first place names the entry anew, the focus where it is.
+    const single = routerAt("/app/boards/ops").router
     const before = single.state()
     before.shown.location.report({ args: { view: "overview", engine: "solo" } }, "replace")
     expect(single.state().shown.screen).toEqual(screenOf("solo"))
@@ -282,6 +307,19 @@ describe("the page's own screen (an engine's processes)", () => {
     expect(listener).toHaveBeenCalledOnce()
   })
 
+  it("starts another screen in the entry it names anew, the focus where it was (the start page's one engine)", () => {
+    const { router, replace, push, here } = routerAt("/app")
+    const first = router.state()
+    router.refine("/app/engines/prod-a", "replace")
+    const next = router.state()
+    expect(push).not.toHaveBeenCalled()
+    expect(replace).toHaveBeenLastCalledWith(null, "", "/app/engines/prod-a")
+    expect(here()).toBe("/app/engines/prod-a")
+    expect(next.shown.screen).toEqual(screenOf("prod-a"))
+    expect(next.shown.generation).toBe(first.shown.generation + 1)
+    expect(next.moves).toBe(first.moves)
+  })
+
   it("keeps the screen between two of its entries, each with its filter, the focus moving", () => {
     const { router, back, push } = routerAt("/app/engines/prod-a?scope=incident")
     const first = router.state()
@@ -301,14 +339,14 @@ describe("the page's own screen (an engine's processes)", () => {
   })
 
   it("starts the screen anew where the view the page shows left its place, or never had it", () => {
-    // The cockpit's one state of a refused profile at the screen's address, then the landing.
+    // The cockpit's one state of a refused profile at the screen's address, then a board.
     const fallback = routerAt("/app/engines/legacy")
     const before = fallback.router.state().shown
-    before.location.report({ args: { view: "landing" } }, "push")
+    before.location.report({ args: { view: "board", board: "ops" } }, "push")
     fallback.router.navigate("/app/engines/legacy")
     expect(fallback.router.state().shown.generation).toBe(before.generation + 1)
-    // The landing's cockpit opened an engine without sections, named alone: no screen it shows.
-    const landing = routerAt("/app")
+    // A board's cockpit opened an engine without sections, named alone: no screen it shows.
+    const landing = routerAt("/app/boards/ops")
     const start = landing.router.state().shown
     start.location.report({ args: { engine: "legacy" } }, "push")
     expect(landing.router.state().route.screen).toEqual(screenOf("legacy"))

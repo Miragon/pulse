@@ -14,7 +14,11 @@ describe("the JSON form of an engine screen", () => {
       engine: "prod-a",
       asOf: ScreenWorld.AS_OF,
       definitions: [
-        ScreenWorld.summary("pulse-order", { running: 3, withIncident: 1 }, "Order fulfillment"),
+        ScreenWorld.summary(
+          "pulse-order",
+          { running: 3, withIncident: 1, incidents: 2 },
+          "Order fulfillment",
+        ),
         ScreenWorld.summary("shipment", { running: 1204, withIncident: 0 }),
       ],
       info: { product: "CIB seven", version: "2.0.1" },
@@ -31,8 +35,15 @@ describe("the JSON form of an engine screen", () => {
           latestVersion: 4,
           running: 3,
           withIncident: 1,
+          incidents: 2,
         },
-        { bpmnProcessId: "shipment", latestVersion: 4, running: 1204, withIncident: 0 },
+        {
+          bpmnProcessId: "shipment",
+          latestVersion: 4,
+          running: 1204,
+          withIncident: 0,
+          incidents: 0,
+        },
       ],
       totals: { processes: 2, running: 1207, withIncident: 1 },
     })
@@ -57,9 +68,36 @@ describe("the JSON form of an engine screen", () => {
 
     expect(data.info).toStrictEqual({ product: "Engine", version: "1" })
     expect(data.processes).toStrictEqual([
-      { bpmnProcessId: "audit", latestVersion: 4, running: 1, withIncident: 0 },
+      { bpmnProcessId: "audit", latestVersion: 4, running: 1, withIncident: 0, incidents: 0 },
     ])
     expect(data.totals).toStrictEqual({ processes: 1, running: 1, withIncident: 0 })
+  })
+
+  test("says a process's incident count is a lower bound where the engine stopped counting", () => {
+    const model = EngineScreen.of({
+      engine: "c8-eu",
+      asOf: ScreenWorld.AS_OF,
+      definitions: [
+        ScreenWorld.summary("order", {
+          running: 12_000,
+          withIncident: 11_000,
+          incidents: 10_000,
+          incidentsAtLeast: true,
+        }),
+      ],
+      info: undefined,
+    })
+
+    expect(ScreenJson.engine(model).processes).toStrictEqual([
+      {
+        bpmnProcessId: "order",
+        latestVersion: 4,
+        running: 12_000,
+        withIncident: 11_000,
+        incidents: 10_000,
+        incidentsAtLeast: true,
+      },
+    ])
   })
 
   test("travels as JSON: written and read back it is the same screen", async () => {

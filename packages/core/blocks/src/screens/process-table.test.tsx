@@ -27,6 +27,26 @@ const BUSY: ProcessRowData = {
   latestVersion: 4,
   running: 1_204,
   withIncident: 0,
+  incidents: 0,
+}
+
+/** A process on a cluster that stopped counting its incidents at 10,000 (Camunda 8's search). */
+const FLOODED: ProcessRowData = {
+  bpmnProcessId: "billing",
+  latestVersion: 9,
+  running: 14_000,
+  withIncident: 12_000,
+  incidents: 10_000,
+  incidentsAtLeast: true,
+}
+
+/** Camunda 7's failed timer start: an open incident at its process, in no instance. */
+const TIMER: ProcessRowData = {
+  bpmnProcessId: "billing-run",
+  latestVersion: 2,
+  running: 0,
+  withIncident: 0,
+  incidents: 1,
 }
 
 const PROCESSES = [...SCREEN.processes, BUSY]
@@ -81,14 +101,65 @@ describe("the process table in the editors' table", () => {
       "Latest version",
       "Running",
       "With incident",
+      "Incidents",
     ])
     expect(rowsOf(container).map((row) => texts(row.querySelectorAll("td")))).toEqual([
-      ["Order fulfillment pulse-order", "v2", "3", "1Has open incidents"],
-      ["Dispatch order pulse-dispatch", "v1", "1", "1Has open incidents"],
-      ["Print label pulse-label", "v1", "1", "1Has open incidents"],
-      ["shipment", "v4", "1,204", "0"],
+      ["Order fulfillment pulse-order", "v2", "3", "1Has open incidents", "1Has open incidents"],
+      ["Dispatch order pulse-dispatch", "v1", "1", "1Has open incidents", "0"],
+      ["Print label pulse-label", "v1", "1", "1Has open incidents", "1Has open incidents"],
+      ["shipment", "v4", "1,204", "0", "0"],
     ])
     expect(within(container).getByTestId("editor-table").dataset.name).toBe("processes")
+  })
+
+  it("counts a caller waiting for an incident in an instance it called with incident, never its incident", () => {
+    const dispatch = rowsOf(tableOf(editorSlots().slots))[1]
+    const withIncident = dispatch?.querySelector('[data-part="incident-count"]')
+    const incidents = dispatch?.querySelector('[data-part="root-incident-count"]')
+
+    expect(withIncident?.getAttribute("data-tone")).toBe("danger")
+    expect(incidents?.hasAttribute("data-tone")).toBe(false)
+    expect(incidents?.querySelector("svg")).toBeNull()
+    expect(incidents?.textContent).toBe("0")
+  })
+
+  it("draws the alarm icon of an open incident above 0 only, the figure neutral", () => {
+    const [order, , , shipment] = rowsOf(tableOf(editorSlots().slots))
+    const alarm = order?.querySelector('[data-part="root-incident-count"]')
+    const calm = shipment?.querySelector('[data-part="root-incident-count"]')
+
+    expect(alarm?.getAttribute("data-tone")).toBe("danger")
+    expect(alarm?.querySelector('[data-slot="count-figure"]')?.getAttribute("data-tone")).toBe(
+      "danger",
+    )
+    expect(alarm?.querySelector("svg")).not.toBeNull()
+    expect(calm?.hasAttribute("data-tone")).toBe(false)
+  })
+
+  it("lists a process whose incident lies in no instance under With incident, its incident alarmed", () => {
+    const container = tableOf(editorSlots().slots, { scope: "withIncident" }, [BUSY, TIMER])
+
+    expect(rowsOf(container).map((row) => texts(row.querySelectorAll("td")))).toEqual([
+      ["billing-run", "v2", "0", "0", "1Has open incidents"],
+    ])
+    const [timer] = rowsOf(container)
+    expect(timer?.querySelector('[data-part="incident-count"]')?.hasAttribute("data-tone")).toBe(
+      false,
+    )
+    expect(
+      timer?.querySelector('[data-part="root-incident-count"]')?.getAttribute("data-tone"),
+    ).toBe("danger")
+  })
+
+  it("shows an incident count the engine stopped at as a lower bound", () => {
+    const [billing] = rowsOf(tableOf(editorSlots().slots, { scope: "all" }, [FLOODED]))
+
+    expect(billing?.querySelector('[data-part="root-incident-count"]')?.textContent).toBe(
+      "≥\u00a010,000Has open incidents",
+    )
+    expect(billing?.querySelector('[data-part="incident-count"]')?.textContent).toBe(
+      "12,000Has open incidents",
+    )
   })
 
   it("draws the alarm icon of an instance with incident above 0 only, the figure neutral", () => {
@@ -150,6 +221,7 @@ describe("the process table in a page's table", () => {
       ["Latest version", "40rem"],
       ["Running", "40rem"],
       ["With incident", undefined],
+      ["Incidents", undefined],
     ])
   })
 
@@ -223,10 +295,12 @@ describe("the process table in German", () => {
       "Neueste Version",
       "Laufend",
       "Mit Incident",
+      "Incidents",
     ])
     expect(texts(order.querySelectorAll("td")).slice(1)).toEqual([
       "v2",
       "3",
+      "1Hat offene Incidents",
       "1Hat offene Incidents",
     ])
     expect(within(container).getByRole("row", { name: "Prozess shipment" }).textContent).toContain(

@@ -182,8 +182,8 @@ interface EngineRowProps {
 
 /** The engine's verdict, as the landing's row shows it: its dot, or a failed read's icon. */
 function VerdictMark({ engineId }: { engineId: string }) {
-  const { failure, summary, tone } = useEngineHealth(engineId)
-  return <StatusMark kind={engineStatusKind({ failure, summary })} tone={tone} />
+  const { failure, summary, status, tone } = useEngineHealth(engineId)
+  return <StatusMark kind={engineStatusKind({ failure, summary, status })} tone={tone} />
 }
 
 /**

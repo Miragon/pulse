@@ -98,8 +98,8 @@ assistant reads are English; it still answers you in your language.
   migrations) only queue work: ask for the batch status afterwards. Completing a task that was delegated in
   Tasklist hands it back to its owner, and the task stays open.
 - An engine has one live verdict: the engine overview and `engine_status` rate it ok, warning or
-  critical (by default critical at 50 open incidents, a call activity's copy too, or 25 of one
-  cause) and count one cause alike (activity, type, masked message); `engine_status` also judges
+  critical (by default critical at 50 open root incidents, never a call activity's copy, or 25 of
+  one cause) and count one cause alike (activity, type, masked message); `engine_status` also judges
   overdue jobs, workers and batches. Incident history, resolved ones included, answers "has this
   activity failed before?".
 - Camunda 7 copies an incident of a called instance to each call activity above it, without a

@@ -16,7 +16,6 @@ export const de = {
 
   "nav.label": "Pulse",
   "nav.start": "Start",
-  "nav.fleet": "Engine-übergreifende Übersicht",
   "nav.engines": "Engines",
   "nav.boards": "Boards",
   "nav.section.processes": "Prozesse",
@@ -94,6 +93,27 @@ export const de = {
   "screen.process.list.refused": "Mit diesen Variablenbedingungen kann die Engine nicht suchen",
   "screen.process.list.clear": "Variablenbedingungen entfernen",
   "screen.process.more.failed": "Weitere Instanzen konnten nicht geladen werden",
+
+  "screen.start.title": "Alle Engines",
+  "screen.start.engines": ({ count }: Readonly<Record<string, unknown>>) =>
+    String(count) === "1" ? "1 Engine" : `${String(count)} Engines`,
+  "screen.start.refused": "{count} abgelehnt",
+  "screen.start.loading": "Die Engines werden geladen…",
+  "screen.start.listFailed": "Die Engines konnten nicht geladen werden",
+  "screen.start.failed": "{engine} konnte nicht gelesen werden",
+  "screen.start.engines.title": "Engines",
+  "screen.start.runsWhere": "Was wo läuft",
+  "screen.start.runsWhereHint": "laufende Instanzen je Engine · alle Versionen",
+  "screen.start.runsWhereLoading": "Die Prozesse jeder Engine werden gelesen…",
+  "screen.start.boards": "Boards",
+  "screen.start.boards.column.board": "Board",
+  "screen.start.boards.column.engines": "Engines",
+  "screen.start.boards.row": "Board {title}",
+  "screen.start.boards.id": "Board-ID",
+  "screen.start.boards.refused": ({ count }: Readonly<Record<string, unknown>>) =>
+    `Datei abgelehnt: ${String(count)} ${String(count) === "1" ? "Problem" : "Probleme"}`,
+  "screen.start.boards.refusedHint":
+    "Zu einer abgelehnten Datei zeigt Pulse kein Board. Die Probleme der Datei stehen im Log, das der Server beim Start schreibt. Wer den Server betreibt, kann die Datei korrigieren.",
 
   "screen.search.title": "Instanz suchen",
   "screen.search.empty":

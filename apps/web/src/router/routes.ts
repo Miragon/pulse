@@ -1,4 +1,3 @@
-import type { InstanceListFilterData, ProcessFilterData } from "@miragon/pulse-screens"
 import {
   isSignedOutReason,
   WEB_PATHS,
@@ -7,6 +6,7 @@ import {
 } from "@miragon/pulse-widget-shell/widgets"
 import { PAGES } from "../pages.js"
 import { isSegment, paramsOn, withQuery } from "./paths.js"
+import type { PageScreen } from "./page-screen.js"
 import { SEARCH_VIEW, searchedIn, searchUrlOf } from "./search-address.js"
 import {
   EVERY_PROCESS,
@@ -17,9 +17,9 @@ import {
   RUNNING_LIST,
   tabOf,
   tabQueryOf,
-  type InstanceTab,
 } from "./screen-queries.js"
 
+export type { PageScreen } from "./page-screen.js"
 export { INSTANCE_TABS, type InstanceTab } from "./screen-queries.js"
 
 /** The engine module's view, the cockpit: every page of the app opens it at a start of its own. */
@@ -33,12 +33,16 @@ export const COCKPIT_VIEW = "engine_open_cockpit"
  */
 export type Place = Readonly<Record<string, unknown>>
 
-/** The landing's place and start: the engines and the server's boards. */
+/**
+ * The landing's place, the start page's: the page shows its own start there (`screenOf`), and the
+ * cockpit's landing is the start of the views the page leads on to from it.
+ */
 const LANDING: Place = { view: "landing" }
 
 /**
- * The cockpit's place of the cross-engine overview (its `view: "fleet"`), which no argument of the
- * tool names: its page starts the landing, then the cockpit opens it.
+ * The cockpit's place of the cross-engine overview (its `view: "fleet"`), which the start page
+ * replaces: its old address, `/app/fleet`, reads as the start page's and gives way to `/app`, and
+ * the page claims the place where the cockpit reports it.
  */
 const FLEET = "fleet"
 
@@ -57,54 +61,14 @@ export type PageTitle =
 
 /**
  * Where the page starts its view: the view tool and its arguments, and `place`, where the address
- * puts the view beyond the arguments (the cross-engine overview, an engine's own address: both
- * start the landing, then the cockpit goes there), absent where the arguments name it all.
+ * puts the view beyond the arguments (an engine's own address: it starts the landing, then the
+ * cockpit goes there), absent where the arguments name it all.
  */
 export interface PageStart {
   readonly view: string
   readonly args: Place
   readonly place?: Place
 }
-
-/**
- * A screen of the page's own (D10), which it shows at a place of the cockpit instead of the
- * cockpit's view there. The page claims that place (`ViewLocation.claims`): the cockpit, embedded
- * elsewhere, never shows it on the page. Its state beyond the place rides in the address's query,
- * the defaults left out.
- *
- * - `engine`: an engine's processes at the engine's own address, the place of the cockpit's
- *   overview; its list's scope and search (`filter`: `scope=incident` and `q`).
- * - `instance`: an instance at its own address, the place of the cockpit's instance view and its
- *   history; its tab (`tab`, none where the screen picks it by the instance's state) and, at the
- *   address of an incident under its instance, the root incident in focus (`incident`).
- * - `incident`: an incident the page knows by its id alone (the cockpit's drill to one, an old
- *   address of one), which the page leads on to the instance that holds its root.
- * - `process`: a process in one version at the process's own address, the place of the cockpit's
- *   process view and of its list of a process's instances; the version by its number (`version`,
- *   none for the latest) and its instance list's filter (`filter`: `scope`, `element`, `key`,
- *   `var`).
- * - `search`: the search for an instance across engines at the search's own address, a place of
- *   the page's alone, which no view of the cockpit has; what it searches (`text`, `q` in the
- *   address, trimmed, none for an empty search).
- */
-export type PageScreen =
-  | { readonly kind: "engine"; readonly engine: string; readonly filter: ProcessFilterData }
-  | {
-      readonly kind: "process"
-      readonly engine: string
-      readonly process: string
-      readonly version?: number
-      readonly filter: InstanceListFilterData
-    }
-  | {
-      readonly kind: "instance"
-      readonly engine: string
-      readonly instance: string
-      readonly tab?: InstanceTab
-      readonly incident?: string
-    }
-  | { readonly kind: "incident"; readonly engine: string; readonly incident: string }
-  | { readonly kind: "search"; readonly text: string }
 
 /**
  * Where a page's location leads: a view, or the signed-out page. A view's route names its place,
@@ -201,7 +165,8 @@ const INCIDENT_ADDRESS: Address = {
  */
 const ADDRESSES: readonly Address[] = [
   { page: PAGES.app, view: "landing", params: {}, query: [] },
-  { page: PAGES.fleet, view: FLEET, params: {}, query: [] },
+  // The cross-engine overview's old address: the start page's now, which gives way to /app.
+  { page: PAGES.fleet, view: "landing", params: {}, query: [] },
   { page: PAGES.board, view: "board", params: { id: "board" }, query: [] },
   { page: PAGES.engine, view: "overview", params: ENGINE, query: [] },
   {
@@ -292,11 +257,14 @@ function cockpitUrlOf(place: Place): string {
   return query === "" ? PAGES.cockpit : `${PAGES.cockpit}?${query}`
 }
 
-/** The place without what it leaves unset, as the address names it. */
+/**
+ * The place without what it leaves unset, as the address names it: the cross-engine overview the
+ * start page's, which replaced it.
+ */
 function canonicalOf(place: Place): Place {
   const set = Object.fromEntries(Object.entries(place).filter(([, value]) => value !== undefined))
   const keys = Object.keys(set)
-  if (keys.length === 0) return LANDING
+  if (keys.length === 0 || (keys.join() === "view" && set.view === FLEET)) return LANDING
   // An engine named alone (one without sections): its address is the engine's own.
   return keys.join() === "engine" ? { view: "overview", ...set } : set
 }
@@ -325,6 +293,9 @@ export function placeKey(place: Place): string {
       .map((key) => [key, String(place[key])]),
   )
 }
+
+/** The place's arguments as one text, their order aside. */
+const shapeOf = (place: Place): string => Object.keys(place).sort().join()
 
 /** A place read from an address, and the address it names canonically. */
 interface Read {
@@ -373,9 +344,13 @@ function cockpitArgs(search: string): Record<string, unknown> {
   )
 }
 
-/** The place the cockpit's query names, and its canonical address, which replaces it. */
+/**
+ * The place the cockpit's query names, and its canonical address, which replaces it: the
+ * cross-engine overview's the start page's.
+ */
 function readCockpit(search: string): Read {
-  const place = cockpitArgs(search)
+  const args = cockpitArgs(search)
+  const place = shapeOf(args) === "view" && args.view === FLEET ? LANDING : args
   return { place, url: urlOf(place) }
 }
 
@@ -391,36 +366,30 @@ function readAddress(location: PageLocation): Read {
   return { place: LANDING, url: PAGES.app }
 }
 
-/** The place's arguments as one text, their order aside. */
-const shapeOf = (place: Place): string => Object.keys(place).sort().join()
-
 /**
- * Where the page starts the view at `place`: the landing for the landing, and for the places the
- * landing's start leads on to (the cross-engine overview, which no argument of the tool names, and
- * an engine's own address, whose engine may have no section the cockpit serves: one whose profile
- * the server refused, which the cockpit then shows as its one state, or a Camunda 8 engine, which
- * the page shows on its own engine screen, and the tool takes no `engine` on a server of Camunda 8
- * clusters alone). The page refuses an engine there that the
- * server does not configure (`viewsAt`), as the tool does at any other address of it, and the
- * address stays. Any other place is the tool's arguments, and the tool refuses an argument it does
- * not take.
+ * Where the page starts the view at `place`: the landing for the landing (the page shows its own
+ * start there, `screenOf`), and for the places the landing's start leads on to (an engine's own
+ * address, whose engine may have no section the cockpit serves: one whose profile the server
+ * refused, which the cockpit then shows as its one state, or a Camunda 8 engine, which the page
+ * shows on its own engine screen, and the tool takes no `engine` on a server of Camunda 8 clusters
+ * alone). The page refuses an engine there that the server does not configure (`viewsAt`), as the
+ * tool does at any other address of it, and the address stays. Any other place is the tool's
+ * arguments, and the tool refuses an argument it does not take.
  */
 function startOf(place: Place): PageStart {
   const shape = shapeOf(place)
   if (shape === "" || (shape === "view" && place.view === LANDING.view)) {
     return { view: COCKPIT_VIEW, args: LANDING }
   }
-  const onLanding =
-    (shape === "view" && place.view === FLEET) ||
-    shape === "engine" ||
-    (shape === "engine,view" && place.view === "overview")
+  const onLanding = shape === "engine" || (shape === "engine,view" && place.view === "overview")
   return onLanding
     ? { view: COCKPIT_VIEW, args: LANDING, place }
     : { view: COCKPIT_VIEW, args: place }
 }
 
 /**
- * The page's own screen at `place`, as the place names it whole: an engine's overview, which the
+ * The page's own screen at `place`, as the place names it whole: the landing and the cross-engine
+ * overview, which the page shows as its start page; an engine's overview, which the
  * page shows as the engine's processes, its list unfiltered; a process's view or the list of a
  * process's instances, which it shows as the process screen at its latest version, its running
  * instances listed (with its incidents in focus, those with incident); an instance's view or its history,
@@ -430,7 +399,10 @@ function startOf(place: Place): PageStart {
  * that can be no segment, which keeps the cockpit's query.
  */
 export function screenOf(place: Place): PageScreen | undefined {
-  const { view, engine, processInstanceId, incidentId } = place
+  const { view, engine, incidentId } = place
+  if (shapeOf(place) === "view" && (view === LANDING.view || view === FLEET)) {
+    return { kind: "start" }
+  }
   if (!isSegment(engine)) return undefined
   switch (shapeOf(place)) {
     case "engine,view":
@@ -439,13 +411,7 @@ export function screenOf(place: Place): PageScreen | undefined {
     case "engine,focus,processDefinitionKey,view":
       return processScreenOf(engine, place)
     case "engine,processInstanceId,view":
-      if (!isSegment(processInstanceId)) return undefined
-      if (view === "history") {
-        return { kind: "instance", engine, instance: processInstanceId, tab: "history" }
-      }
-      return view === "instance-detail"
-        ? { kind: "instance", engine, instance: processInstanceId }
-        : undefined
+      return instanceScreenOf(engine, place)
     case "engine,incidentId,view":
       return view === "incident-detail" && isSegment(incidentId)
         ? { kind: "incident", engine, incident: incidentId }
@@ -453,6 +419,14 @@ export function screenOf(place: Place): PageScreen | undefined {
     default:
       return undefined
   }
+}
+
+/** The instance screen at an instance's view or its history (its tab) on `engine`. */
+function instanceScreenOf(engine: string, place: Place): PageScreen | undefined {
+  const { view, processInstanceId: instance } = place
+  if (!isSegment(instance)) return undefined
+  if (view === "history") return { kind: "instance", engine, instance, tab: "history" }
+  return view === "instance-detail" ? { kind: "instance", engine, instance } : undefined
 }
 
 /**
@@ -480,6 +454,8 @@ function screenAt(location: PageLocation, place: Place): PageScreen | undefined 
   const found = screenOf(place)
   if (found === undefined) return undefined
   switch (found.kind) {
+    case "start":
+      return found
     case "engine":
       return { ...found, filter: filterOf(location.search) }
     case "process":
@@ -513,14 +489,16 @@ function incidentPathOf(engine: string, instance: string, incident: string): str
 }
 
 /**
- * The address of the page's own screen, which `viewRouteOf` reads back to it: the engine's own
- * address with its list's filter in the query, the defaults left out; a process's own address with
+ * The address of the page's own screen, which `viewRouteOf` reads back to it: the start page's
+ * `/app`; the engine's own address with its list's filter in the query, the defaults left out; a process's own address with
  * its version and its list's filter in the query, the defaults left out; an instance's own address,
  * or an incident's under it, with its tab in the query where the reader picked one; an incident
  * by its id alone in the cockpit's query.
  */
 export function screenUrlOf(screen: PageScreen): string {
   switch (screen.kind) {
+    case "start":
+      return PAGES.app
     case "engine":
       return withQuery(
         urlOf({ view: "overview", engine: screen.engine }),

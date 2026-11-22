@@ -34,7 +34,7 @@ ReviewInvoice  1         2          0          0
 Jobs       0 executable
 Tasks      6 open
 Batches    0 running, 0 with failures
-Incidents  0 open, 0 propagated
+Incidents  0 open, 0 root, 0 propagated
 ```
 
 ## Your first process
@@ -112,8 +112,12 @@ The [Claude Code plugin](./agents.md#claude-code-plugin) calls the CLI you insta
 `CLAUDE.md`: "Run `pulse guide` before using `pulse`."
 
 In CI, `--fail-on warning` fails on any finding, an open incident included. `--fail-on critical`
-fails from 50 open incidents, 25 of one cause or overdue executable jobs (that finding asks whether
-the job executor is running). Either way the command exits with code 9 (`CHECK_FAILED`).
+fails from 50 open root incidents, 25 of one cause or overdue executable jobs (that finding asks
+whether the job executor is running). A root incident is a failure where it was raised: Camunda 7
+copies an incident of a called instance to each call activity above it, and the thresholds count
+no copy, so a chain of calls that one failure stops counts as one (`rootIncidentsTotal`, beside
+`incidentsTotal`, which counts every open incident). Either way the command exits with code 9
+(`CHECK_FAILED`).
 
 ## Where next
 

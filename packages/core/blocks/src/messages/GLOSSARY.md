@@ -9,7 +9,8 @@ Text, die Tabellen Wartet an, Verlauf und Variablen, das Menü der aufgerufenen 
 Legende der Marker, und die Texte der Bausteine eines Prozesses (`process-en.ts`,
 `process-de.ts`): Versionsauswahl, Hinweis auf ältere Versionen, die Filterleiste seiner
 Instanzliste mit dem Dialog der Variablenbedingungen, die Instanztabelle, die Zähler und
-Aufrufknöpfe am Diagramm und ihre Legende. Jeder Katalog steht für
+Aufrufknöpfe am Diagramm und ihre Legende, und die Texte der Tabellen über alle Engines
+(`engines-en.ts`, `engines-de.ts`): eine Zeile je Engine und was wo läuft. Jeder Katalog steht für
 sich, damit eine Oberfläche nur die Wörter der Bausteine bündelt, die sie zeigt. `glossary.test.ts`
 prüft die verbotenen Synonyme (jede Regel mit einer Probe, die sie fangen muss), die Regeln aus
 brand-tone (du, AI, „CIB seven“, kein Gedankenstrich als Verbinder, Plural nach der Zahl), dass
@@ -58,14 +59,16 @@ ein Wort pro Zustand auf jeder Oberfläche.
 
 ## Begriffe der Screens
 
-| Sache                                        | Deutsch                                      | Englisch           |
-| -------------------------------------------- | -------------------------------------------- | ------------------ |
-| Die ID eines Prozesses im Modell             | BPMN-Prozess-ID (im Suchfeld kurz „BPMN-ID“) | BPMN process ID    |
-| Die neueste Version eines Prozesses          | Neueste Version                              | Latest version     |
-| Die laufenden Instanzen eines Prozesses      | Laufend, laufend                             | Running, running   |
-| Der Umfang einer Zählung über jede Version   | alle Versionen                               | all versions       |
-| Die Auswahl, welche Prozesse die Liste zeigt | Prozesse zeigen: Alle, Mit Incident          | Show processes     |
-| Eine Zählung mit Incident über 0             | Hat offene Incidents (für den Screenreader)  | Has open incidents |
+| Sache                                        | Deutsch                                      | Englisch            |
+| -------------------------------------------- | -------------------------------------------- | ------------------- |
+| Die ID eines Prozesses im Modell             | BPMN-Prozess-ID (im Suchfeld kurz „BPMN-ID“) | BPMN process ID     |
+| Die neueste Version eines Prozesses          | Neueste Version                              | Latest version      |
+| Die laufenden Instanzen eines Prozesses      | Laufend, laufend                             | Running, running    |
+| Der Umfang einer Zählung über jede Version   | alle Versionen                               | all versions        |
+| Die Auswahl, welche Prozesse die Liste zeigt | Prozesse zeigen: Alle, Mit Incident          | Show processes      |
+| Eine Zählung mit Incident über 0             | Hat offene Incidents (für den Screenreader)  | Has open incidents  |
+| Die offenen Wurzel-Incidents eines Prozesses | Incidents (die Spalte, über alle Versionen)  | Incidents           |
+| Die Legende der Zählungen der Prozessliste   | Was die Zahlen sagen                         | What the counts say |
 
 ## Begriffe einer Instanz
 
@@ -113,3 +116,13 @@ laufende Instanz (die Glossarregel oben).
 | Wonach sie sucht                             | die ganze ID oder der genaue Geschäftsschlüssel  | the whole ID or the exact business key    |
 | Eine Engine mit mehr Treffern, als sie zeigt | hat mehr Instanzen mit diesem Geschäftsschlüssel | has more instances with this business key |
 | Eine Historie, der laufende Instanzen fehlen | Laufende Instanzen fehlen in der Historie von …  | Running instances are missing from …      |
+
+## Begriffe der Tabellen über alle Engines
+
+| Sache                                           | Deutsch                                            | Englisch                                       |
+| ----------------------------------------------- | -------------------------------------------------- | ---------------------------------------------- |
+| Was eine Engine ist, wie ihr Engine-Screen sagt | Produkt (eine Engine ohne Angabe: Gedankenstrich)  | Product                                        |
+| Eine Engine ohne Zahlen, ihr Zustand            | lädt…, nicht gelesen, Profil abgelehnt             | loading…, not read, profile refused            |
+| Die Prozesse je Engine                          | Was wo läuft, Prozesse je Engine                   | What runs where, Processes by engine           |
+| Ein Prozess, den eine Engine nicht hat          | auf … nicht bereitgestellt (für den Screenreader)  | not deployed on … (for the screen reader)      |
+| Warum die Ansicht keine Raten zeigt             | Engines führen verschiedene Prozesse, … nie Raten. | Engines run different processes, … never rates |

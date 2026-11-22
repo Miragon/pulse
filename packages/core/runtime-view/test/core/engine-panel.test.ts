@@ -30,6 +30,7 @@ function summary(
       version: 4,
       ...(name === undefined ? {} : { name }),
     },
+    incidents: counts.withIncident,
     ...counts,
   }
 }
@@ -67,6 +68,7 @@ describe("the engine panel", () => {
         latestVersion: 2,
         running: 3,
         withIncident: 1,
+        incidents: 1,
       },
       {
         bpmnProcessId: "pulse-dispatch",
@@ -74,6 +76,7 @@ describe("the engine panel", () => {
         latestVersion: 1,
         running: 1,
         withIncident: 1,
+        incidents: 0,
       },
       {
         bpmnProcessId: "pulse-label",
@@ -81,6 +84,7 @@ describe("the engine panel", () => {
         latestVersion: 1,
         running: 1,
         withIncident: 1,
+        incidents: 1,
       },
     ])
     expect(view.summary).toBe("3 processes · 5 running · 3 with incident · all versions")
@@ -175,6 +179,26 @@ describe("the engine panel", () => {
     expect(view.processes.map((row) => row.bpmnProcessId)).toEqual(["gamma", "beta"])
     expect(view.scopeCounts).toEqual({ all: 5, withIncident: 2 })
     expect(view.summary).toBe("5 processes · 16 running · 4 with incident · all versions")
+  })
+
+  test("shows a process whose incident lies in no instance in that scope too (a failed timer start)", async () => {
+    const timer = {
+      ...summary("billing", { running: 0, withIncident: 0 }, "Billing"),
+      incidents: 1,
+    }
+    const fixture = panelFixture(listing([...MIXED, timer]))
+    const panel = new EnginePanel(fixture.context)
+    await panel.handle({ type: "ready" })
+
+    await panel.handle({ type: "filterProcesses", filter: { scope: "withIncident" } })
+
+    const view = readyView(fixture.lastState())
+    expect(view.processes.map((row) => [row.bpmnProcessId, row.incidents])).toEqual([
+      ["gamma", 2],
+      ["beta", 2],
+      ["billing", 1],
+    ])
+    expect(view.scopeCounts).toEqual({ all: 6, withIncident: 3 })
   })
 
   test("applies a filter that arrives before the engine has answered", async () => {

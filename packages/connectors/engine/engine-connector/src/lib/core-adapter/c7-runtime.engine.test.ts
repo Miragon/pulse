@@ -51,6 +51,8 @@ import {
 } from "@miragon/pulse-engine-core/testing"
 import { buildBoardData } from "../../data/board-data.js"
 import { buildProcessInstancesData } from "../../data/cockpit-data.js"
+import { buildEngineHealthData } from "../../data/health-data.js"
+import { buildEngineVerdictData } from "../../data/screens/verdict-data.js"
 import { providerForEntry } from "../../providers/index.js"
 import { createEngineConnection } from "../engine/engine-connection.js"
 import { c7RuntimeOf, runtimeOf } from "../engine/engine-runtime.js"
@@ -59,6 +61,7 @@ import {
   type ResolvedEngine,
   resolveEngine,
 } from "../engine/resolve-engine.js"
+import { engineStatusForModel } from "./composites.js"
 import { fakeWorldBoard, recordedBoard } from "./compared-boards.test-support.js"
 import { engineImageOf } from "./engine-image.test-support.js"
 
@@ -320,6 +323,34 @@ describe.skipIf(ENGINE_IMAGE.dialect !== "c7")(
       }
       // The world holds jobs without retries, so the case reads some.
       expect(failedJobs).toBeGreaterThan(0)
+    })
+
+    test("verdict: engine_status, the health feed and the verdict feed count the world's root incidents, never its copy", async () => {
+      const { url } = prepared()
+      const engine = boardEngineAt(url)(C7_BOARD_ENGINE.engine)
+      const all = ((await rest(`${url}/incident/count`)) as { count: number }).count
+      const rows = (await rest(`${url}/process-definition/statistics?rootIncidents=true`)) as {
+        incidents: { incidentCount: number }[]
+      }[]
+      const roots = rows
+        .flatMap(({ incidents }) => incidents)
+        .reduce((sum, { incidentCount }) => sum + incidentCount, 0)
+      // The world's dispatch waits for the label it called: Camunda 7 copies its incident there.
+      expect(all).toBeGreaterThan(roots)
+      // Critical by every open incident, the copy included; by the root incidents not.
+      const thresholds = { criticalIncidents: all, criticalClusterSize: 99 }
+      const [status, health, verdict] = await Promise.all([
+        engineStatusForModel(engine.client, {}, engine.engineId, thresholds),
+        buildEngineHealthData(engine.client, engine.engineId, thresholds),
+        buildEngineVerdictData(engine, thresholds),
+      ])
+      expect(status).toMatchObject({
+        status: "warning",
+        rootIncidentsTotal: roots,
+        incidentsTotal: all,
+      })
+      expect([health.status, health.summary.totalIncidents]).toEqual(["warning", roots])
+      expect(verdict).toEqual({ status: "warning" })
     })
 
     test("bulk: a batch that cancels one instance reads as such, from the runtime, then the history", async () => {

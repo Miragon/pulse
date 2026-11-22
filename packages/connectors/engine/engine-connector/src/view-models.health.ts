@@ -44,7 +44,8 @@ export interface EngineHealthData {
   statusRule: string
   /**
    * Its incident counts are open ROOT incidents: a call activity's copy of a called instance's
-   * incident counts where it was raised. `status` still judges every open incident.
+   * incident counts where it was raised. `status` judges root incidents too, those outside any
+   * process (a batch's failed job) beside these.
    */
   summary: {
     /** The open root incidents of every process (the definition statistics, `rootIncidents=true`). */

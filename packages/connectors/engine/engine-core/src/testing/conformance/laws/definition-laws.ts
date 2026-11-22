@@ -1,9 +1,13 @@
 import { BpmnProcessId, ElementId } from "../../../model/ids.js"
-import type { DefinitionSummary, ElementStatistics } from "../../../model/read-models.js"
+import type {
+  DefinitionSummary,
+  ElementStatistics,
+  VersionSummary,
+} from "../../../model/read-models.js"
 import { Ensure } from "../ensure.js"
 import { CASE, type ConformanceCase } from "../conformance-case.js"
 import type { ConformanceHarness } from "../harness.js"
-import { WORLD_ELEMENT, WORLD_PROCESS } from "../world/world.js"
+import { WORLD_ELEMENT, WORLD_PROCESS, type DeploymentAlias } from "../world/world.js"
 
 class DefinitionReads {
   static async summaryOf(
@@ -19,6 +23,10 @@ class DefinitionReads {
       `expected one summary of ${bpmnProcessId}, got ${matching.length}`,
     )
     return Ensure.defined(matching[0], law, `no summary of ${bpmnProcessId}`)
+  }
+
+  static incidentsOf({ incidents, incidentsAtLeast }: DefinitionSummary | VersionSummary): string {
+    return Ensure.describe({ incidents, incidentsAtLeast })
   }
 
   static statisticOf(
@@ -91,6 +99,53 @@ const versionsCounts: ConformanceCase = {
       this.name,
       `expected ${Ensure.describe(expected)}, got ${Ensure.describe(actual)}`,
     )
+  },
+}
+
+const definitionsIncidents: ConformanceCase = {
+  name: CASE.definitionsIncidents,
+  async run(harness) {
+    const expected = [
+      { process: WORLD_PROCESS.order, incidents: 1 },
+      { process: WORLD_PROCESS.dispatch, incidents: 0 },
+      { process: WORLD_PROCESS.label, incidents: 1 },
+    ]
+    for (const { process, incidents } of expected) {
+      const summary = await DefinitionReads.summaryOf(harness, process, this.name)
+      const actual = DefinitionReads.incidentsOf(summary)
+      Ensure.that(
+        actual === Ensure.describe({ incidents }),
+        this.name,
+        `${process} expected ${String(incidents)} open root incidents, exactly, got ${actual}`,
+      )
+    }
+  },
+}
+
+const versionsIncidents: ConformanceCase = {
+  name: CASE.versionsIncidents,
+  async run(harness) {
+    const expected: readonly (readonly [string, DeploymentAlias, number])[] = [
+      [WORLD_PROCESS.order, "order@2", 0],
+      [WORLD_PROCESS.order, "order@1", 1],
+      [WORLD_PROCESS.dispatch, "dispatch@1", 0],
+      [WORLD_PROCESS.label, "label@1", 1],
+    ]
+    for (const [process, alias, incidents] of expected) {
+      const versions = await harness.runtime.listVersions(BpmnProcessId(process))
+      const id = harness.world.definitionIds[alias]
+      const version = Ensure.defined(
+        versions.find((summary) => summary.definition.id === id),
+        this.name,
+        `no summary of ${alias}`,
+      )
+      const actual = DefinitionReads.incidentsOf(version)
+      Ensure.that(
+        actual === Ensure.describe({ incidents }),
+        this.name,
+        `${alias} expected ${String(incidents)} open root incidents, exactly, got ${actual}`,
+      )
+    }
   },
 }
 
@@ -181,6 +236,8 @@ export const DEFINITION_LAWS: readonly ConformanceCase[] = [
   definitionsLatestVersion,
   definitionsCounts,
   versionsCounts,
+  definitionsIncidents,
+  versionsIncidents,
   diagramOfVersion,
   statisticsPerVersion,
   statisticsDisjoint,

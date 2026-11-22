@@ -105,7 +105,10 @@ function statusLines(view: StatusView): string[] {
         ? undefined
         : `${batches.running} running, ${batches.withFailures} with failures`,
     ],
-    ["Incidents", `${view.incidentsTotal} open, ${view.propagated} propagated`],
+    [
+      "Incidents",
+      `${view.incidentsTotal} open, ${view.rootIncidentsTotal} root, ${view.propagated} propagated`,
+    ],
     ["Truncated", view.truncated?.join("; ")],
   ])
 }

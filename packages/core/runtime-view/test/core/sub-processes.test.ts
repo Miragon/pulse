@@ -37,7 +37,7 @@ function badgesOf(statistics: readonly ElementStatistics[]) {
     engine: ENGINE,
     asOf: AT,
     bpmnProcessId: DEFINITION.bpmnProcessId,
-    versions: [{ definition: DEFINITION, running: 3, withIncident: 1 }],
+    versions: [{ definition: DEFINITION, running: 3, withIncident: 1, incidents: 1 }],
     selectedDefinitionId: DEFINITION.id,
     diagramXml: parcelReturnXml,
     statistics,

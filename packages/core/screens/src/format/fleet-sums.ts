@@ -1,8 +1,19 @@
-import type { EngineScreenData, EngineTotalsData, ProcessRowData } from "./engine-screen-data.js"
+import type {
+  EngineInfoData,
+  EngineScreenData,
+  EngineTotalsData,
+  ProcessRowData,
+} from "./engine-screen-data.js"
 import { ProcessOrder } from "./process-order.js"
 
-export interface FleetEngineData extends EngineTotalsData {
+export interface FleetTotalsData extends EngineTotalsData {
+  readonly incidents: number
+  readonly incidentsAtLeast?: true
+}
+
+export interface FleetEngineData extends FleetTotalsData {
   readonly engine: string
+  readonly info: EngineInfoData | null
 }
 
 export interface FleetCellData {
@@ -22,21 +33,39 @@ export interface FleetProcessData {
 export interface FleetSumsData {
   readonly engines: readonly FleetEngineData[]
   readonly processes: readonly FleetProcessData[]
-  readonly totals: EngineTotalsData
+  readonly totals: FleetTotalsData
+}
+
+interface IncidentSum {
+  readonly incidents: number
+  readonly incidentsAtLeast?: true
 }
 
 export class FleetSums {
   static of(screens: readonly EngineScreenData[]): FleetSumsData {
     const processes = FleetSums.processesOf(screens)
+    const engines = screens.map((screen) => FleetSums.engineOf(screen))
     return {
-      engines: screens.map(({ engine, totals }) => ({ engine, ...totals })),
+      engines,
       processes,
       totals: {
         processes: processes.length,
         running: FleetSums.sum(screens.map(({ totals }) => totals.running)),
         withIncident: FleetSums.sum(screens.map(({ totals }) => totals.withIncident)),
+        ...FleetSums.incidentsOf(engines),
       },
     }
+  }
+
+  private static engineOf({ engine, info, totals, processes }: EngineScreenData): FleetEngineData {
+    return { engine, info, ...totals, ...FleetSums.incidentsOf(processes) }
+  }
+
+  private static incidentsOf(counts: readonly IncidentSum[]): IncidentSum {
+    const incidents = FleetSums.sum(counts.map((count) => count.incidents))
+    return counts.some(({ incidentsAtLeast }) => incidentsAtLeast === true)
+      ? { incidents, incidentsAtLeast: true }
+      : { incidents }
   }
 
   private static processesOf(screens: readonly EngineScreenData[]): FleetProcessData[] {

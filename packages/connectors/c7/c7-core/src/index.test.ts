@@ -98,6 +98,7 @@ describe("the @miragon/pulse-c7-core entries", () => {
       "retryMode",
       "retryPlanView",
       "rootIdOfCopy",
+      "rootIncidentCounts",
       "routeOf",
       "routedTransport",
       "selectInstance",

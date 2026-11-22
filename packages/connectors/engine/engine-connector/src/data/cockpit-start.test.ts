@@ -207,8 +207,8 @@ describe("buildCockpitStart: the seed is the feed, the landing's the engine list
 // D5: the landing, the fleet view and the overview badge read one verdict, this feed's.
 describe("engine_health_data: the one live verdict every engine surface reads", () => {
   it("carries engineVerdict's result on the deployment's thresholds", async () => {
-    // The world holds one open incident (`/incident/count` 1), one cause.
-    const inputs = { openIncidents: 1, largestCluster: 1 }
+    // The world holds one open root incident (its statistics with rootIncidents=true), one cause.
+    const inputs = { openRootIncidents: 1, largestCluster: 1 }
     const strict: VerdictThresholds = { criticalIncidents: 1, criticalClusterSize: 25 }
     for (const thresholds of [DEFAULT_VERDICT_THRESHOLDS, strict]) {
       const { feed, start } = await world(thresholds)

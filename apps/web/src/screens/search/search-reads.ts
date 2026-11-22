@@ -1,7 +1,7 @@
 import { useMemo } from "react"
 import type { FindScreenData } from "@miragon/pulse-screens"
 import { useToolQueries } from "@miragon/pulse-widget-shell/widgets"
-import { useEngineList } from "../../engine-list.js"
+import { refusalOf, useEngineList } from "../../engine-list.js"
 
 /**
  * The search's feed (the engine module's `SCREEN_FEEDS`): an app-only read of the engine contract
@@ -43,15 +43,6 @@ export function searchOf(engine: string, read: SearchRead | undefined): EngineSe
     pending: read.isPending,
     fetching: read.isFetching,
   }
-}
-
-/**
- * The server's refusal of a refused profile's calls, as the engine list names it: the page reads
- * nothing of such an engine and words the refusal as the server would (the kit's `profileRefused`).
- */
-function refusalOf(engine: string, reason: string | undefined): Error {
-  const why = reason === undefined ? "" : `: ${reason}`
-  return new Error(`[ENGINE_PROFILE_REFUSED] Engine "${engine}" is refused${why}`)
 }
 
 /**

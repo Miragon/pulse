@@ -28,7 +28,7 @@ export interface WorldScreens {
 
 export const WORLD_SCREENS: WorldScreens = {
   about:
-    "The screens the builder gives over the fixed world of the conformance kit of @miragon/pulse-engine-core/testing (FakeWorld.seed() in a FakeEngine), read at asOf for an engine named conformance, in their JSON form: the engine, the instance DSP-3001 that waits at its call activity for the incident of the instance it called, and that called instance; the process pulse-order at its latest version, which says that older versions still run, and at its version 1, where an incident stops an instance at an element; the process pulse-dispatch, whose call activity waits for an incident in the instance it called; and every instance of pulse-order's version 1, running and ended, in pages of 50 with the counts of each scope; and what the finder finds by the business key ORD-1003 (that ended instance alone) and by the id of the instance DSP-3001 called (that instance alone, which runs with its incident), the history missing nothing.",
+    "The screens the builder gives over the fixed world of the conformance kit of @miragon/pulse-engine-core/testing (FakeWorld.seed() in a FakeEngine), read at asOf for an engine named conformance, in their JSON form: the engine with each process's open root incidents (none at pulse-dispatch, whose instance waits for the incident of the instance it called), the instance DSP-3001 that waits at its call activity for the incident of the instance it called, and that called instance; the process pulse-order at its latest version, which says that older versions still run, and at its version 1, where an incident stops an instance at an element; the process pulse-dispatch, whose call activity waits for an incident in the instance it called; and every instance of pulse-order's version 1, running and ended, in pages of 50 with the counts of each scope; and what the finder finds by the business key ORD-1003 (that ended instance alone) and by the id of the instance DSP-3001 called (that instance alone, which runs with its incident), the history missing nothing.",
   engine: {
     engine: "conformance",
     asOf: "2026-11-19T09:00:00.000Z",
@@ -40,6 +40,7 @@ export const WORLD_SCREENS: WorldScreens = {
         latestVersion: 2,
         running: 3,
         withIncident: 1,
+        incidents: 1,
       },
       {
         bpmnProcessId: "pulse-dispatch",
@@ -47,6 +48,7 @@ export const WORLD_SCREENS: WorldScreens = {
         latestVersion: 1,
         running: 1,
         withIncident: 1,
+        incidents: 0,
       },
       {
         bpmnProcessId: "pulse-label",
@@ -54,6 +56,7 @@ export const WORLD_SCREENS: WorldScreens = {
         latestVersion: 1,
         running: 1,
         withIncident: 1,
+        incidents: 1,
       },
     ],
     totals: { processes: 3, running: 5, withIncident: 3 },

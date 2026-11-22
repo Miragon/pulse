@@ -10,9 +10,8 @@ chat's toolset, engine routing and numbers. It only reads: no write control, no 
 
 | URL                                     | What it shows                                                                                                                                |
 | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/app`                                  | The engines and the server's [boards](../mcp/boards.md) to pick from; with one engine and no board, that engine                              |
+| `/app`                                  | Every engine side by side, what runs where and the server's [boards](../mcp/boards.md); with one engine and no board, that engine            |
 | `/app/search?q=…`                       | The instances with this ID or exact business key on every engine, running and ended; one hit opens its instance                              |
-| `/app/fleet`                            | The cross-engine overview, with two engines or more: each engine's row opens it                                                              |
 | `/app/boards/<id>`                      | A board, with the tiles and numbers the chat shows; a [Camunda 8](../mcp/camunda8.md) cluster's as the server reads it                       |
 | `/app/engines/<engine>`                 | The engine's processes (`?scope=incident&q=…`: filtered), a Camunda 8 cluster's too, or why the page shows no view of it (a refused profile) |
 | `…/processes/<key>`, `…/instances/<id>` | A process in one version (`?version=…&scope=…&element=…&key=…&var=…`: its list's filter), an instance (`?tab=…`, `/incidents/<id>`)          |
@@ -21,25 +20,30 @@ chat's toolset, engine routing and numbers. It only reads: no write control, no 
 
 Each view you open (an entry, a row, the trail) has its own URL, stable from the release that ships
 it: Back returns to the view before, a reload or a copied link shows it again, and the page never
-loads anew. An earlier release's URL (`/app/cockpit?view=…`) gives way to the view's own (an
-incident's leads to the instance that holds it), which an id no path holds (`.`, `..`) keeps;
-`/app/` is a 404. The page speaks the browser's
-German or English, follows the system's light or dark theme (its diagrams too), and is compact on a
-desktop, comfortable on touch.
+loads anew. An earlier release's URL (`/app/cockpit?view=…`, `/app/fleet`) gives way to the view's
+own (an incident's leads to the instance that holds it), which an id no path holds (`.`, `..`)
+keeps; `/app/` is a 404. The page speaks the browser's German or English, follows the system's
+light or dark theme (its diagrams too), and is compact on a desktop, comfortable on touch.
 
 ## Navigation
 
 The side navigation holds the search for an instance (its ID or exact business key, on every
-engine), **Start**, the cross-engine overview (with two engines or more), the
+engine), **Start**, the
 engines by environment, the open one with its sections (processes, incidents, jobs; an engine's
 entry opens its processes), and the boards; at its foot who is signed in and **Sign out**. A
 [Camunda 8](../mcp/camunda8.md) engine has its processes alone (its incidents show at their
 instances); a refused profile says so and opens its one state.
 Every entry is a link, so Ctrl or Cmd+click and a middle click open a new tab. Under 64rem it is a
 drawer behind the menu button, the first of each view's bar. It shows no numbers: the views do.
-An engine's processes list each with its latest version, running instances and instances with
-incident over every version, the numbers Pulse for VS Code shows; scopes and search filter in the
-browser, a row opens its process, and **Refresh** reads again (on its own when you return after 60 s).
+**Start** lists each engine with its state and the figures of its processes page and what runs
+where, counts only, never rates; an engine it could not read says why, a refused profile in the
+server's words. A Camunda 7 engine's state, there and in its processes' bar, is the chat overview's
+verdict (Stable, Degraded, Critical: its open root incidents by the server's thresholds); a Camunda
+8 engine has none. An engine's processes list each with its latest version, running instances,
+instances with incident and open incidents over every version, the numbers Pulse for VS Code shows
+(a legend says why a caller waiting for a called instance's incident counts with incident yet holds
+none); scopes and search filter in the browser, a row opens its process, **Refresh** reads again (on
+its own when you return after 60 s; the server reads the engine at most every 30 s per user).
 A process shows one version, picked with the running instances and those with incident of each,
 older versions that still run, its diagram with the counts on each element (incidents in called
 instances apart) and its instances, 50 at a time with **Load more**, by scope, element, exact

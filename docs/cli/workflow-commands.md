@@ -61,7 +61,7 @@ Next:
   `wait --execute-jobs` are writes; `retry --process-definition-key` alone is a bulk operation
   that needs `--yes`.
 - **`status`** groups incidents by cause with the MCP cockpit's mask (ids, numbers and quoted
-  values masked) and is critical from 50 open incidents, 25 of one cause or an overdue job.
+  values masked) and is critical from 50 open root incidents, 25 of one cause or an overdue job.
 - `advance` needs `--activity-id` when the instance waits at several places; the error lists them
   with ready commands.
 - Options worth knowing: `inspect --history --stacktrace`,

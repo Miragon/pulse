@@ -7,6 +7,7 @@ import type {
 } from "@miragon/pulse-screens"
 import type { ScreenWordKey } from "../messages/screen-en.js"
 import { useScreenWords } from "../messages/screen-words.js"
+import { ProcessCountsLegend } from "./process-counts-legend.js"
 import { ScopeSegments } from "./scope-segments.js"
 
 /** A search applies once the typing pauses this long, or at once on Enter. */
@@ -32,9 +33,10 @@ export interface ListFilterBarProps {
 
 /**
  * The bar over an engine's process list: the scopes, every process or those with an instance with
- * incident, each with its count, a search over the process's name or BPMN process ID, and the
- * engine's totals over every version. It asks for a filter and reads nothing: the surface lists
- * the rows (`useProcessList` in the browser, the editors' core with the same rule).
+ * incident, each with its count, a search over the process's name or BPMN process ID, the legend
+ * of the list's counts beside it (never beside the totals, whose line a phone's width needs whole)
+ * and the engine's totals over every version. It asks for a filter and reads nothing: the surface
+ * lists the rows (`useProcessList` in the browser, the editors' core with the same rule).
  */
 export function ListFilterBar({ filter, counts, totals, busy, onFilter }: ListFilterBarProps) {
   const t = useScreenWords()
@@ -67,6 +69,7 @@ export function ListFilterBar({ filter, counts, totals, busy, onFilter }: ListFi
           placeholder={t("processes.searchPlaceholder")}
           aria-label={t("processes.search")}
         />
+        <ProcessCountsLegend />
       </Toolbar>
     </div>
   )

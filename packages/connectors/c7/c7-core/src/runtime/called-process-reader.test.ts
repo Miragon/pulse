@@ -174,7 +174,10 @@ describe("CalledProcessReader", () => {
         operationId: "getProcessDefinitionBpmn20Xml",
         input: { pathArgs: [CALLER.id], query: {} },
       },
-      { operationId: "getProcessDefinitionStatistics", input: { pathArgs: [], query: {} } },
+      {
+        operationId: "getProcessDefinitionStatistics",
+        input: { pathArgs: [], query: { rootIncidents: "true" } },
+      },
     ])
   })
 

@@ -8,9 +8,10 @@ import {
   ENGINE_SCREEN_PROCESS_DATA,
   ENGINE_SCREEN_PROCESSES_DATA,
   ENGINE_SCREEN_VARIABLE_NAMES_DATA,
+  ENGINE_SCREEN_VERDICT_DATA,
 } from "../tool-names.js"
 import { EVERY_DIALECT } from "../view-models.dialects.js"
-import { type ContractFeed, contractFeed } from "./feeds.js"
+import { type ContractFeed, contractFeed, type DataFeed, dataFeed } from "./feeds.js"
 import { buildEngineScreenData } from "./screens/engine-screen-data.js"
 import { buildFindData } from "./screens/find-data.js"
 import { buildIncidentTextData } from "./screens/incident-text-data.js"
@@ -18,18 +19,22 @@ import { buildInstanceListData } from "./screens/instance-list-data.js"
 import { buildInstanceScreenData } from "./screens/instance-screen-data.js"
 import { buildProcessScreenData } from "./screens/process-screen-data.js"
 import { buildVariableNamesData } from "./screens/variable-names-data.js"
+import { buildEngineVerdictData } from "./screens/verdict-data.js"
 
 /**
  * The feeds of the web app's own screens (D10): an engine's processes, a process in one version,
  * its instance list and the names of its variables, an instance and the text of one of its root
  * incidents, what the search finds on one engine, app-only reads of the engine contract in every dialect, the one engine their `engine`
- * parameter resolves to (`resolveRuntimeEngine`), whose numbers the screens' builder makes. No
+ * parameter resolves to (`resolveRuntimeEngine`), whose numbers the screens' builder makes; beside
+ * them a Camunda 7 engine's live verdict (c7-core's), which the engine screen's bar and the start
+ * page show, a read of the Camunda 7 REST API alone (`resolveEngine`). No
  * view of the cockpit reads them, so they are no route's: a page's screen reads a screen feed, and
  * it is never a second view. `widget-tools/data-feeds.ts` registers them beside `DATA_FEEDS`,
  * app-only and read-only, so the web app's forward admits a page's call to them. The reads that
- * load the engine's database (a version's element statistics, an instance list's search and
- * history counts, a version's variable names, a search) stand on a floor of 30 s per caller and arguments,
- * as a board's build does (`screens/screen-floor.ts`); the engine's processes, an instance and an
+ * load the engine's database (the engine's processes with their counts, a version's element
+ * statistics, an instance list's search and history counts, a version's variable names, a search,
+ * the verdict's incident scan beside the engine screen's own read) stand on a floor of 30 s per
+ * caller and arguments, as a board's build does (`screens/screen-floor.ts`); an instance and an
  * incident's text run none of them.
  */
 
@@ -166,8 +171,18 @@ const findFeed = contractFeed({
   read: ({ text }, engine) => buildFindData(engine, text),
 })
 
+const verdictFeed = dataFeed({
+  name: ENGINE_SCREEN_VERDICT_DATA,
+  title: "Engine verdict data (internal)",
+  description:
+    "Internal JSON feed (no UI) for the web app's engine screen and start page: a Camunda 7 engine's live verdict, ok, warning or critical, over its open root incidents.",
+  dialects: ["c7"],
+  shape: {},
+  read: (_, engine, { healthThresholds }) => buildEngineVerdictData(engine, healthThresholds),
+})
+
 /** Every feed of the web app's screens, in registration order. */
-export const SCREEN_FEEDS: readonly ContractFeed[] = [
+export const SCREEN_FEEDS: readonly (ContractFeed | DataFeed)[] = [
   engineScreenFeed,
   processScreenFeed,
   instancesFeed,
@@ -175,4 +190,5 @@ export const SCREEN_FEEDS: readonly ContractFeed[] = [
   instanceScreenFeed,
   incidentTextFeed,
   findFeed,
+  verdictFeed,
 ]

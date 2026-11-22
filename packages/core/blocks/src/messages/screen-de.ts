@@ -14,10 +14,18 @@ export const screenDe: Readonly<Record<ScreenWordKey, Message>> = {
   "processes.none":
     "Auf {engine} ist kein Prozess bereitgestellt, oder du darfst die Prozesse nicht sehen.",
   "processes.noMatch": "Kein Prozess passt zu diesem Filter.",
+  "processes.legend.label": "Was die Zahlen sagen",
+  "processes.legend.scope": "Jede Zahl zählt über alle Versionen eines Prozesses.",
+  "processes.legend.running": "Laufend: die Instanzen, die gerade laufen.",
+  "processes.legend.withIncident":
+    "Mit Incident: die Instanzen mit einem offenen Incident, auch ein Aufrufer, der auf einen Incident in einer aufgerufenen Instanz wartet.",
+  "processes.legend.incidents":
+    "Incidents: die offenen Incidents, jeder einmal gezählt, bei dem Prozess, in dem er auftrat, nie bei einem Aufrufer, der auf ihn wartet. Ein Incident außerhalb jeder Instanz, etwa ein gescheiterter Timer-Start, zählt hier, auch wenn ihn keine Instanz hält.",
   "column.process": "Prozess",
   "column.latestVersion": "Neueste Version",
   "column.running": "Laufend",
   "column.withIncident": "Mit Incident",
+  "column.incidents": "Incidents",
   "process.row": "Prozess {name}",
   "process.id": "BPMN-Prozess-ID",
   "process.version": "v{version}",

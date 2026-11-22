@@ -38,9 +38,15 @@ const STATUS_LABEL: Record<EngineHealthStatus, string> = {
   critical: "engineHealth.statusCritical",
 }
 
-/** An engine with nothing deployed is neutral, never a green check over an empty engine (#322 U14). */
+/**
+ * An ok engine with nothing deployed is neutral, never a green check over an empty engine (#322
+ * U14); one the verdict judges degraded or critical (a root incident outside any process: a
+ * batch's, the history cleanup's) shows its verdict, as the web app's badge does, so one engine
+ * never shows two states.
+ */
 function verdictBadge(data: EngineHealthData): { tone: ToneVariant; labelKey: string } {
-  if (data.summary.totalDefinitions === 0 && data.summary.totalIncidents === 0) {
+  const empty = data.summary.totalDefinitions === 0 && data.summary.totalIncidents === 0
+  if (data.status === "ok" && empty) {
     return { tone: "neutral", labelKey: "engineHealth.statusNothingDeployed" }
   }
   return { tone: VERDICT_TONE[data.status], labelKey: STATUS_LABEL[data.status] }

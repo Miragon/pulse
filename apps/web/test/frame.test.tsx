@@ -140,7 +140,6 @@ describe("the page's navigation", () => {
     await start("/app/engines/prod-a/incidents", server(), PLACED)
     expect(links()).toEqual([
       ["Start", "/app"],
-      ["Cross-engine overview", "/app/fleet"],
       ["prod-a", "/app/engines/prod-a"],
       ["Processes", "/app/engines/prod-a"],
       ["Incidents", "/app/engines/prod-a/incidents"],
@@ -180,7 +179,7 @@ describe("the page's navigation", () => {
     expect(current()).toEqual(["Processes"])
   })
 
-  it("lists the engines in one list where the server names no environment, the fleet only for two", async () => {
+  it("lists the engines in one list where the server names no environment, the start page current at /app", async () => {
     const list = {
       engines: [
         { id: "solo", environment: "default", dialect: "c7" },
@@ -198,25 +197,13 @@ describe("the page's navigation", () => {
         .getAllByRole("link")
         .map((link) => link.textContent),
     ).toEqual(["solo", "orders", "future, boards only", "gone, refused"])
-    // A Camunda 7 engine and a refused profile: two the cross-engine view reads whole.
-    expect(within(navigation()).getByRole("link", { name: "Cross-engine overview" })).toBeTruthy()
+    // The start page shows every engine side by side: no entry of the navigation repeats it.
+    expect(within(navigation()).queryByRole("link", { name: "Cross-engine overview" })).toBeNull()
     expect(current()).toEqual(["Start"])
     expect(within(navigation()).queryByRole("group", { name: "Boards" })).toBeNull()
   })
 
-  it("offers no cross-engine view for one engine read whole, and an empty list nothing", async () => {
-    await start(
-      "/app",
-      server({
-        engines: [
-          { id: "solo", environment: "default", dialect: "c7" },
-          { id: "orders", environment: "default", dialect: "c8" },
-        ],
-      }),
-      PLACED,
-    )
-    expect(within(navigation()).queryByRole("link", { name: "Cross-engine overview" })).toBeNull()
-    await stopPage()
+  it("lists the start page alone for an empty list", async () => {
     await start("/app", server({}), PLACED)
     expect(links()).toEqual([["Start", "/app"]])
     expect(within(navigation()).queryByRole("group", { name: "Engines" })).toBeNull()
@@ -242,8 +229,9 @@ describe("the page's navigation", () => {
     await start("/app/boards/leasing", server(), PLACED)
     expect(current()).toEqual(["Leasing operations"])
     await stopPage()
+    // The cross-engine overview's old address is the start page's now.
     await start("/app/fleet", server(), PLACED)
-    expect(current()).toEqual(["Cross-engine overview"])
+    expect(current()).toEqual(["Start"])
   })
 
   it("says quietly where the engine list could not be read, and leaves an ended session to the notice", async () => {
@@ -279,7 +267,6 @@ describe("the page's navigation", () => {
     await start("/app/engines/prod-a", server(), PLACED)
     expect(links().map(([name]) => name)).toEqual([
       "Start",
-      "Engine-übergreifende Übersicht",
       "prod-a",
       "Prozesse",
       "Incidents",

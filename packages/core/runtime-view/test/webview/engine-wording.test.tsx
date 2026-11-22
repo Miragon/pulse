@@ -13,7 +13,7 @@ import { allRoles, findRole, getRole, mountApp, press, queryPart, type Harness }
 
 function summary(
   bpmnProcessId: string,
-  counts: { readonly running: number; readonly withIncident: number },
+  counts: { readonly running: number; readonly withIncident: number; readonly incidents: number },
   name?: string,
 ): DefinitionSummary {
   return {
@@ -28,10 +28,10 @@ function summary(
 }
 
 const SHOP = [
-  summary("order-fulfillment", { running: 15, withIncident: 9 }, "Order fulfillment"),
-  summary("credit-scoring", { running: 40, withIncident: 7 }, "Credit scoring"),
-  summary("return-handling", { running: 15, withIncident: 1 }, "Return handling"),
-  summary("shipment", { running: 1_204, withIncident: 0 }),
+  summary("order-fulfillment", { running: 15, withIncident: 9, incidents: 2 }, "Order fulfillment"),
+  summary("credit-scoring", { running: 40, withIncident: 7, incidents: 7 }, "Credit scoring"),
+  summary("return-handling", { running: 15, withIncident: 1, incidents: 1 }, "Return handling"),
+  summary("shipment", { running: 1_204, withIncident: 0, incidents: 0 }),
 ]
 
 function listing(definitions: readonly DefinitionSummary[]) {
@@ -118,7 +118,7 @@ const BAR = {
   search: ["Search by name or BPMN process ID", "Name or key"],
   summary: "4 processes · 1,274 running · 17 with incident · all versions",
   table: "Processes",
-  heads: ["Process", "Latest version", "Running", "With incident"],
+  heads: ["Process", "Latest version", "Running", "With incident", "Incidents"],
 }
 
 const HINT = "Enter opens the row, Ctrl or Cmd+C copies its ID."
@@ -131,6 +131,7 @@ const ROWS = {
     "v7",
     "15",
     "9Has open incidents",
+    "2Has open incidents",
   ],
   credit: [
     "Process Credit scoring",
@@ -138,6 +139,7 @@ const ROWS = {
     "Credit scoring credit-scoring",
     "v7",
     "40",
+    "7Has open incidents",
     "7Has open incidents",
   ],
   returns: [
@@ -147,8 +149,9 @@ const ROWS = {
     "v7",
     "15",
     "1Has open incidents",
+    "1Has open incidents",
   ],
-  shipment: ["Process shipment", HINT, "shipment", "v7", "1,204", "0"],
+  shipment: ["Process shipment", HINT, "shipment", "v7", "1,204", "0", "0"],
 }
 
 describe("the engine tab's English words", () => {
@@ -218,6 +221,20 @@ describe("the engine tab's English words", () => {
       rows: [],
       empty: "No processes deployed on local, or you may not have permission to see them.",
     })
+  })
+
+  it("explain the counts behind the legend of the filter bar", async () => {
+    harness = mountApp()
+    await shown(harness, await stateOf(SHOP))
+    const legend = getRole(harness.root, "button", { name: "What the counts say" })
+    const target = document.getElementById(legend.getAttribute("popovertarget") ?? "")
+
+    expect([...(target?.querySelectorAll("p") ?? [])].map((line) => line.textContent)).toEqual([
+      "Each count covers every version of a process.",
+      "Running: the instances that run now.",
+      "With incident: the instances with an open incident, a caller waiting for an incident in an instance it called included.",
+      "Incidents: the open incidents, each counted once, at the process it was raised in, never at a caller that waits for it. An incident outside any instance, such as a failed timer start, counts here though no instance holds it.",
+    ])
   })
 
   it("name what a row's copy holds", async () => {

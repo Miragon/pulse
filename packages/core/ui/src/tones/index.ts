@@ -12,4 +12,5 @@ export {
   type ToneName,
 } from "./tone-variant.js"
 export { SITUATION_TONES, type Situation } from "./situations.js"
+export { VERDICT_TONES, READ_FAILURE_TONES, type Verdict, type ReadFailure } from "./verdicts.js"
 export { countTone, severityTone } from "./count-tone.js"

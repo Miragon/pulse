@@ -6,21 +6,17 @@ import {
   engineDateMillis,
   engineVerdict,
   isRootIncident,
-  largestCause,
   latestEngineDate,
+  rootIncidentCounts,
   toEngineDate,
   type VerdictThresholds,
 } from "@miragon/pulse-c7-core"
-import {
-  getHistoricProcessInstancesCount,
-  getIncidents,
-  getIncidentsCount,
-} from "@miragon/pulse-c7-client/sdk"
+import { getHistoricProcessInstancesCount } from "@miragon/pulse-c7-client/sdk"
 import type { EngineHealthCluster, EngineHealthData } from "../view-models.js"
 import {
-  CLUSTER_SCAN_LIMIT,
   HOUR_MS,
   scanCoverage,
+  scanOpenIncidents,
   truncateMessage,
   UNKNOWN,
   type IncidentLike,
@@ -35,7 +31,7 @@ import {
   type KeyStats,
   type NamesByDefinition,
 } from "./definition-info.js"
-import { countOf, DAY_MS, rowsOf } from "./engine-reads.js"
+import { DAY_MS } from "./engine-reads.js"
 
 const MAX_CLUSTERS = 6
 
@@ -55,11 +51,12 @@ interface ClusterAcc {
 }
 
 /**
- * How the overview's `status` comes about: c7-core's verdict over every open incident, a call
- * activity's copy of a called instance's included, while the view's counts are root incidents.
+ * How the overview's `status` comes about: c7-core's verdict over the open root incidents (the
+ * processes', which the view counts, and those outside any process), a call activity's copy of a
+ * called instance's never.
  */
 export function healthVerdictRule(t: VerdictThresholds): string {
-  return `From the engine's open incidents, copies at call activities included, read live: critical at ${criticalIncidentsRule(t)}, warning with any, else ok.`
+  return `From the engine's open root incidents (a copy at a call activity never counts), read live: critical at ${criticalIncidentsRule(t)}, warning with any, else ok.`
 }
 
 interface IncidentScanAgg {
@@ -186,8 +183,8 @@ function rootsSince(roots: IncidentLike[], coverage: ScanCoverage, sinceMs: numb
  * Deterministic, no LLM: the widget hands each cluster to the host agent on demand. Its incident
  * counts are open ROOT incidents (owner decision D2, amended on 2026-11-19): the definition
  * statistics' (`rootIncidents=true`) summed over every process, and the scan's root incidents for the
- * clusters, the affected activities and the last hour. The verdict keeps every open incident until
- * it follows (D2's step of its own).
+ * clusters, the affected activities and the last hour. The verdict counts root incidents too (owner
+ * decision of 2026-11-20): c7-core's `rootIncidentCounts` over the same statistics and scan.
  */
 export async function buildEngineHealthData(
   client: Client,
@@ -201,14 +198,9 @@ export async function buildEngineHealthData(
   // Deliberately NO .catch(() => []) on the verdict inputs: a down engine must
   // be a tool error, never a confident "ok" verdict. The throughput counts are
   // optional, since history level "none" is a healthy engine. Totals come from
-  // `/count` or statistics; the capped scan only feeds the clusters.
-  const [incidents, openIncidents, statsByKey, startedRes, completedRes] = await Promise.all([
-    getIncidents({
-      client,
-      query: { maxResults: CLUSTER_SCAN_LIMIT, sortBy: "incidentTimestamp", sortOrder: "desc" },
-    }).then((rows) => rowsOf<IncidentLike>(rows)),
-    // The verdict's input alone: every open incident, copies included.
-    getIncidentsCount({ client, query: {} }).then(countOf),
+  // statistics; the capped scan feeds the clusters and the verdict's lower bounds.
+  const [incidents, statsByKey, startedRes, completedRes] = await Promise.all([
+    scanOpenIncidents(client),
     fetchStatsByKey(client, {}),
     getHistoricProcessInstancesCount({ client, query: { startedAfter: dayAgoParam } }).catch(
       () => null,
@@ -238,14 +230,11 @@ export async function buildEngineHealthData(
   // The affected activities are exact only when the scan read every incident.
   const affectedActivities = coverage.complete ? activitySet.size : null
 
-  // c7-core's verdict over c7-core's largest cause, as engine_status judges. The scanned
-  // share is a lower bound, so it never raises a false "critical"; a capped scan means at least
-  // CLUSTER_SCAN_LIMIT incidents, which the total rule judges. The verdict travels as data; each
-  // reader words it.
-  const status = engineVerdict(
-    { openIncidents, largestCluster: largestCause(incidents)?.count ?? 0 },
-    thresholds,
-  )
+  // c7-core's verdict over the open root incidents, as engine_status judges: the processes' of
+  // the statistics and, of the scan, those outside any process and the largest cause over root
+  // incidents alone, lower bounds that never raise a false "critical". The verdict travels as
+  // data; each reader words it.
+  const status = engineVerdict(rootIncidentCounts(totalIncidents, incidents), thresholds)
 
   return {
     status,
