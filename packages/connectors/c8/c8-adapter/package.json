@@ -1,7 +1,7 @@
 {
   "name": "@miragon/pulse-c8-adapter",
   "private": true,
-  "version": "0.30.0",
+  "version": "0.31.0",
   "description": "The Camunda 8 family's adapter of Pulse's runtime view (the Orchestration Cluster REST API, from 8.9 on, read-only), a plug of @miragon/pulse-c8-core's runtime: its wire on @miragon/pulse-http with client credentials behind c8-core's transport port, the words of its failures and its BPMN dialect. Bundled by the editor hosts.",
   "license": "MIT",
   "repository": {

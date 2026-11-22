@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.31.0](https://github.com/Miragon/pulse/compare/v0.30.0...v0.31.0) (2026-11-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* **web:** `DefinitionSummary` and `VersionSummary` of @miragon/pulse-engine-core require `incidents`, the open root incidents of a process over every version and of a version (with `incidentsAtLeast: true` where the engine stopped counting), held by two new read laws: an implementation of `ProcessRuntime` outside this repository answers them. `ProcessRowData` of @miragon/pulse-screens, and so `EngineScreenData`, requires `incidents` (with `incidentsAtLeast` where the engine stopped counting): a producer of the engine screen's JSON form outside this repository writes it, and `ProcessTable` of @miragon/pulse-blocks reads it; the `/testing` entry's `ScreenFigures.engine` rows end with the incidents and whether they are a lower bound, six figures where they held four. c7-core's definition statistics read asks `rootIncidents=true`, and c8-core's definitions and versions search a cluster's incidents, so recorded answers of the old requests no longer serve them.
+* **cockpit:** the MCP server's cockpit, in the chat and in the operations views the web app embeds, counts open root incidents: a copy Camunda 7 holds at a call activity of a called instance's incident counts in the called process, never at the caller, and is no row of a process, an activity or a cause (an activity's incident page, `engine_activity_incidents_data`, lists and counts its root incidents alone, and an unknown key fails as not found); the process flow's "Running" counts a token held by a root incident as that incident and shows the incidents in called instances apart. "New in 24h" is gone from the health route, its top failures, the process route, the incidents route (its scope) and the cluster detail, with `last24hCount` and `last24hIncidents` from the feeds' payloads; the cockpit's facts name root incidents (`openRootIncidents`, `rootIncidentCount`, `rootIncidentsLastHour`). The verdict still judges every open incident.
+
+### Features
+
+* **cockpit:** the chat and the operations views count root incidents, and the element statistics read only call activities ([#644](https://github.com/Miragon/pulse/issues/644)) ([72ee099](https://github.com/Miragon/pulse/commit/72ee0991b7109b5ddb60f21cbc624f629d1b5eff))
+* **web:** the screens serve Camunda 8 engines, and an instance search across engines ([#645](https://github.com/Miragon/pulse/issues/645)) ([547b149](https://github.com/Miragon/pulse/commit/547b149a86227c8d663c90c5bc3f61b740d570dd))
+* **web:** the start page across all engines, the open root incidents in the engine contract, and a verdict that counts them ([#647](https://github.com/Miragon/pulse/issues/647)) ([5cd2f41](https://github.com/Miragon/pulse/commit/5cd2f413a9032cce441472e4d5196aaf2a0bfb91))
+
 ## [0.30.0](https://github.com/Miragon/pulse/compare/v0.29.0...v0.30.0) (2026-11-20)
 
 
