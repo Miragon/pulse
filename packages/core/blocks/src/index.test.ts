@@ -11,6 +11,7 @@ describe("the @miragon/pulse-blocks entry", () => {
       "CallButton",
       "CalledInstanceMenu",
       "EngineTable",
+      "EngineVerdictBadge",
       "FindHistoryNotice",
       "FindResults",
       "HeadlineStrip",

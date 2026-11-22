@@ -54,7 +54,7 @@ async function engineWith(routes: FakeRoutes) {
 }
 
 describe("buildEngineHealthData: exact totals", () => {
-  it("reads the root incidents and the landscape from per-key statistics, the verdict from /count", async () => {
+  it("reads the root incidents, the landscape and the verdict from per-key statistics, no /count", async () => {
     const { engine, client } = await engineWith({
       // Newest first, as the engine sorts it.
       "GET /incident": { body: [incident("b", AFTER_FALL_BACK), incident("a", BEFORE_FALL_BACK)] },
@@ -94,9 +94,8 @@ describe("buildEngineHealthData: exact totals", () => {
       started24h: 12,
       completed24h: 12,
     })
-    // The verdict's input alone: every open incident, read live.
-    const counts = engine.requests.filter((r) => r.path === "/incident/count").map((r) => r.query)
-    expect(counts).toEqual([{}])
+    // The verdict judges the same two root incidents: no count of every open incident is read.
+    expect(engine.requests.filter((r) => r.path === "/incident/count")).toEqual([])
     expect(data.status).toBe("warning")
     const statistics = engine.requests.filter((r) => r.path === "/process-definition/statistics")
     expect(statistics.map((r) => r.query)).toEqual([{ rootIncidents: "true" }])

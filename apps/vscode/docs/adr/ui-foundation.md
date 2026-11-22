@@ -1,7 +1,12 @@
 # UI foundation and shared building blocks
 
 - Status: accepted
-- Last reviewed: 2026-11-21, last (executed, D2's point 1 in the contract: engine-core's
+- Last reviewed: 2026-11-22 (executed, D2's point 2: the verdict counts open root incidents,
+  `engine_status`, `pulse status`, the cockpit's health route and the web app's verdict feed alike
+  by c7-core's `rootIncidentCounts`, the thresholds unchanged; the web app's engine screen shows it
+  as its bar's badge and the start page as its column State, for Camunda 7 engines, a Camunda 8
+  engine none; the verdict's tones are pulse-ui's `VERDICT_TONES` and `READ_FAILURE_TONES`);
+  2026-11-21, last (executed, D2's point 1 in the contract: engine-core's
   `incidents` of `DefinitionSummary` and `VersionSummary`, the open root incidents of a process over
   every version and of a version, admitted by the rule with two laws and their saboteurs on both
   dialects, a lower bound where a Camunda 8 search stops counting; the web app's engine screen and
@@ -209,7 +214,19 @@ each surface keeps its screens and the web app's are its own.
      as their column Incidents beside With incident, a legend of the counts beside the search.
   2. **The verdict follows** (`engineVerdict`: `engine_status`, `pulse status`, the cockpit's health
      route): it counts root incidents, its thresholds unchanged (`ENGINE_HEALTH_*`, the CLI's 50 and
-     25), and the docs say what a threshold counts.
+     25), and the docs say what a threshold counts. Executed on 2026-11-22: c7-core's
+     `rootIncidentCounts` gives every caller its input, the open root incidents of the processes
+     from the statistics with `rootIncidents=true` and, of the newest open incidents read, those
+     outside any process (a batch's or the history cleanup's failed job) and the largest cause over
+     root incidents alone, lower bounds where the read stops; `engine_status` and `pulse status`
+     name the verdict's basis `rootIncidentsTotal` beside `incidentsTotal`, every open incident.
+     The web app shows it, read from the server and never decided in the page: the engine screen's
+     bar as its badge and the start page as its column State, Camunda 7 engines alone, over the
+     app-only feed `engine_screen_verdict_data`, which takes the engine screen's own statistics
+     read (on its floor) and adds the overview's incident scan, so no engine is asked a second
+     statistics read; its failure shows apart from the figures, in the engine module's words of a
+     failed read, its mark of its own shape per state. An engine with nothing deployed is Empty
+     only where its verdict is ok, in the chat as on the page. This extension shows no verdict.
   3. **Step by step.** The shared screens of D10 count root incidents from their first step; the
      chat and the embedded operations views follow in a breaking step right after the web app's
      instance screen, and the verdict in a breaking step of its own. Until each lands, a surface
@@ -232,8 +249,8 @@ each surface keeps its screens and the web app's are its own.
      beyond its scan counts by `/incident/count` only where its element is no call activity. The
      version counts the cockpit reads whole stand on a floor of 30 s per caller and version, as the
      screens' reads do. The cockpit's facts for
-     the model name root incidents (`openRootIncidents`, `rootIncidentCount`). The verdict keeps
-     every open incident until its step; a test holds the cockpit's counts to the shared screens'
+     the model name root incidents (`openRootIncidents`, `rootIncidentCount`). The verdict followed
+     in its own step (point 2); a test holds the cockpit's counts to the shared screens'
      over c7-core's recorded screen engine
      (`packages/connectors/engine/engine-connector/src/data/root-incidents.numbers.test.ts`).
 
@@ -677,8 +694,8 @@ missing value ([user-interface.md](user-interface.md)).
   `runtimeOf` runs c7-core's `C7Runtime` over the connector's port.
 - Outside boards and the views that move onto shared numbers, users of both tools still see
   different numbers for the same process, under the same words, where the version scope differs:
-  since 2026-11-21 "Incidents" counts open root incidents on every surface (the verdict follows in
-  its own step), while the version scope stays per tool (D10's point 8), where each header names
+  since 2026-11-21 "Incidents" counts open root incidents on every surface (the verdict since
+  2026-11-22), while the version scope stays per tool (D10's point 8), where each header names
   it.
 - D10 and the amendments of 2026-11-19 change the texts that say what the code does with the steps
   that change the code, not with this record: the root `CLAUDE.md` (the surfaces, the package
@@ -737,3 +754,6 @@ engine whole (D10's point 5), and then it searched for an instance across engine
 Last that day the contract counted the open root incidents of a process and a version (D2's point
 1), which the engine screen and the engine tab show as their column Incidents, and the web app's
 start page replaced the cockpit's landing and its cross-engine overview there (D10's point 2).
+2026-11-22: the verdict counts open root incidents with the same thresholds (D2's point 2, the
+owner's answer of 2026-11-20), a breaking change of `engine_status`, `pulse status` and the chat's
+health; the web app shows a Camunda 7 engine's verdict on its engine screen and start page.

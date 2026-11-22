@@ -82,6 +82,7 @@ describe("the @miragon/pulse-ui entry", () => {
       "NavigationFocus",
       "PagedListFooter",
       "Progress",
+      "READ_FAILURE_TONES",
       "ROLE_TOKENS",
       "RowCard",
       "SITUATION_TONES",
@@ -130,6 +131,7 @@ describe("the @miragon/pulse-ui entry", () => {
       "ToastProvider",
       "Toolbar",
       "UI_MESSAGES",
+      "VERDICT_TONES",
       "VersionChip",
       "ViewBar",
       "ViewBarSlots",
@@ -205,9 +207,11 @@ describe("the @miragon/pulse-ui entry", () => {
 describe("the @miragon/pulse-ui/tones entry", () => {
   it("exports exactly these runtime names", () => {
     expect(Object.keys(tones).sort()).toEqual([
+      "READ_FAILURE_TONES",
       "SITUATION_TONES",
       "TONE_ALIASES",
       "TONE_VARIANTS",
+      "VERDICT_TONES",
       "countTone",
       "isToneVariant",
       "resolveTone",

@@ -3,7 +3,7 @@ import type { EngineHealthData } from "../view-models.js"
 /** The overview's fixtures, its verdict's tests and its top failures' alike. */
 
 const RULE =
-  "From the engine's open incidents, copies at call activities included, read live: critical at >=50 open incidents or >=25 of one cause, warning with any, else ok."
+  "From the engine's open root incidents (a copy at a call activity never counts), read live: critical at >=50 open root incidents or >=25 of one cause, warning with any, else ok."
 
 /** A degraded engine with two failure clusters, one of them across two processes. */
 export const DEGRADED: EngineHealthData = {

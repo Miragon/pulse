@@ -126,6 +126,24 @@ describe("EngineHealthVerdict (fixture render)", RENDER, () => {
     expect(screen.queryByRole("button", { name: "View incidents" })).toBeNull()
   })
 
+  it("an engine with nothing deployed that the verdict judges degraded shows its verdict, never Empty", () => {
+    // A root incident outside any process (a batch's, the history cleanup's): the verdict counts
+    // it, the processes hold none, so the badge says the verdict, as the web app's does.
+    const degraded: EngineHealthData = {
+      ...HEALTHY,
+      status: "warning",
+      summary: { ...HEALTHY.summary, runningInstances: 0, totalDefinitions: 0 },
+    }
+    render(
+      <TestViewHost client={queryClient}>
+        <Widget data={degraded as never} />
+      </TestViewHost>,
+    )
+    expect(screen.queryByText("Empty")).toBeNull()
+    const badge = screen.getByText("Degraded").closest("[data-slot='status-badge']")!
+    expect(badge.getAttribute("data-tone")).toBe("warning")
+  })
+
   it("renders the stable verdict with no cluster list when there are no incidents", () => {
     render(
       <TestViewHost client={queryClient}>

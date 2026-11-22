@@ -31,10 +31,13 @@ export interface Finding<N = FindingStep> {
   readonly next: N
 }
 
-/** Open incidents at the verdict's thresholds (`incidentsAtThreshold`): what made the status critical. */
+/**
+ * Open root incidents at the verdict's thresholds (`incidentsAtThreshold`): what made the status
+ * critical.
+ */
 interface IncidentsAtThreshold {
-  readonly openIncidents: number
-  /** The incidents of the largest cause (`largestCause`) and that cause. */
+  readonly openRootIncidents: number
+  /** The root incidents of the largest cause (`rootIncidentCounts`) and that cause. */
   readonly largestCause: number
   readonly cause?: { readonly activityId: string; readonly incidentType: string }
   /** The thresholds in words (`criticalIncidentsRule`). */
@@ -44,7 +47,7 @@ interface IncidentsAtThreshold {
 }
 
 export interface FindingInput {
-  /** Set when the open incidents reach the verdict's thresholds; raises INCIDENTS_CRITICAL. */
+  /** Set when the open root incidents reach the verdict's thresholds; raises INCIDENTS_CRITICAL. */
   readonly incidentsAtThreshold?: IncidentsAtThreshold
   readonly jobs: JobStatus
   /** The incident groups shown; their findings carry the group's next step on. */
@@ -92,7 +95,7 @@ function thresholdFindings(input: FindingInput): Finding[] {
     {
       severity: "critical",
       code: "INCIDENTS_CRITICAL",
-      message: `${plural(at.openIncidents, "open incident")}${cause}: critical at ${at.rule}`,
+      message: `${plural(at.openRootIncidents, "open root incident")}${cause}: critical at ${at.rule}`,
       next: at.next,
     },
   ]

@@ -36,8 +36,9 @@ a cluster has no Overview, Incidents or Jobs tab but one state: the boards that 
 none does yet, and with `cockpitUrl` a link to Operate's start page, never to an instance in it. In
 the chat a board's tiles of a cluster open nothing, the cross-engine view names the clusters it
 leaves out, and a view of one engine refuses a cluster (`ENGINE_DIALECT_NOT_SERVED`). In the web app
-the start page lists it with its figures, `/app/engines/<cluster>` shows its processes (incidents at
-their instances), a board's tiles open its screens, and its incidents and jobs pages refuse it.
+the start page lists it with its figures and no verdict (the server decides none for a cluster),
+`/app/engines/<cluster>` shows its processes (incidents at their instances), a board's tiles open its
+screens, and its incidents and jobs pages refuse it.
 
 ## A profile
 

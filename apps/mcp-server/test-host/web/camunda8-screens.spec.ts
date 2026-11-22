@@ -74,6 +74,8 @@ test.describe("the screens of a Camunda 8 engine", () => {
     ).toHaveText(/^1/)
     const hint = "Incidents and jobs show at their instances"
     await expect(page.getByText(hint)).toBeVisible()
+    // No verdict in its bar: the server decides none for Camunda 8.
+    await expect(page.locator("[data-part=engine-verdict]")).toHaveCount(0)
     await expect(hintDetail(page, hint)).toHaveText("Open a process, then an instance.")
     // The hint fits its one line on a laptop's width, with the navigation beside the screen.
     await page.setViewportSize({ width: 1024, height: 768 })

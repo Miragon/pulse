@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import { isRootIncident } from "@miragon/pulse-c7-core"
 import { portOf } from "../../test/support/engine-port.js"
 import { BASE_URL, fakeServer, json, text } from "../../test/support/fake-fetch.js"
 import { status, type StatusOptions, statusRequests } from "./status-command.js"
@@ -17,6 +18,16 @@ function page(items: readonly unknown[]) {
     const first = Number(request.query.get("firstResult") ?? 0)
     return json(items.slice(first, first + Number(request.query.get("maxResults") ?? items.length)))
   }
+}
+
+/** The statistics' incident counts of the order's root incidents among `incidents`. */
+function rootsOf(incidents: readonly unknown[]) {
+  const roots = incidents.filter(
+    (incident) =>
+      isRootIncident(incident as object) &&
+      (incident as { processDefinitionId?: unknown }).processDefinitionId === "order:1:x",
+  ).length
+  return roots === 0 ? [] : [{ incidentType: "failedJob", incidentCount: roots }]
 }
 
 function engine(
@@ -41,7 +52,8 @@ function engine(
           id: "order:1:x",
           instances: 1,
           failedJobs: 0,
-          incidents: [],
+          // rootIncidents=true: the incidents raised in the order, never a call activity's copy
+          incidents: rootsOf(overrides.incidents ?? []),
           definition: { id: "order:1:x", key: "order", version: 1 },
         },
       ]),
@@ -79,6 +91,7 @@ describe("status", () => {
           },
         ],
         incidents: [],
+        rootIncidentsTotal: 0,
         incidentsTotal: 0,
         propagated: 0,
         externalTasks: [],
@@ -192,7 +205,7 @@ describe("status: incident groups and the verdict, as the cockpit has them", () 
     expect(result.view.status).toBe("warning")
   })
 
-  it("is critical from 50 open incidents, a critical finding says so; --fail-on critical fails", async () => {
+  it("is critical from 50 open root incidents, a critical finding says so; --fail-on critical fails", async () => {
     const many = (count: number) =>
       Array.from({ length: count }, (_, index) =>
         incident(String(index), { activityId: `a${index}`, incidentMessage: `cause ${index}` }),
@@ -215,11 +228,35 @@ describe("status: incident groups and the verdict, as the cockpit has them", () 
       severity: "critical",
       code: "INCIDENTS_CRITICAL",
       message:
-        "50 open incidents, 1 of them custom at a0: critical at >=50 open incidents or >=25 of one cause",
+        "50 open root incidents, 1 of them custom at a0: critical at >=50 open root incidents or >=25 of one cause",
     })
     expect(at.view.findings.slice(1).every((finding) => finding.severity === "warning")).toBe(true)
     expect(at.failure).toMatchObject({ code: "CHECK_FAILED" })
     expect(at.failure?.details.hint).toBe(`Start with: ${at.view.findings[0]?.next ?? ""}`)
+  })
+
+  it("counts a chain of calls that one failure stops as one root incident, never critical", async () => {
+    // The order's failed job and Camunda 7's copy of it at each of 49 call activities above it.
+    const copies = Array.from({ length: 49 }, (_, level) =>
+      incident(`c${level}`, {
+        rootCauseIncidentId: "r",
+        activityId: `call${level}`,
+        processDefinitionId: `caller${level}:1:x`,
+        incidentMessage: null,
+      }),
+    )
+    const result = await status(engine({ incidents: [incident("r"), ...copies] }).deps, {
+      ...OPTIONS,
+      failOn: "critical",
+    })
+    if (result.kind !== "view") throw new Error("expected a view")
+    expect(result.view).toMatchObject({
+      status: "warning",
+      rootIncidentsTotal: 1,
+      incidentsTotal: 50,
+      propagated: 49,
+    })
+    expect(result.failure).toBeUndefined()
   })
 
   it("is critical from 25 incidents of one cause", async () => {

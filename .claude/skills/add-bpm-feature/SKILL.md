@@ -240,10 +240,11 @@ The pattern is `engine_inspect_process_instance` and `engine_status`
   `src/lib/core-adapter/composites-status.wire.test.ts` (status), over the helpers of
   `src/lib/core-adapter/composites.test-support.ts`.
 - How an engine is doing has one answer: mask incidents with c7-core's `messageSignature`,
-  count one cause with its `causeKeyOf`/`largestCause` and judge with its `engineVerdict`
-  (`ok | warning | critical`) by the `ENGINE_HEALTH_*` thresholds (`pulse status`: the
-  defaults), as `engine_status` and the cockpit's health route (`src/data/health-data.ts`)
-  do. Neither text names the other's verdict.
+  count its open root incidents and their largest cause with its `rootIncidentCounts` (never a
+  call activity's copy) and judge with its `engineVerdict` (`ok | warning | critical`) by the
+  `ENGINE_HEALTH_*` thresholds (`pulse status`: the defaults), as `engine_status`, the cockpit's
+  health route (`src/data/health-data.ts`) and the web app's verdict feed
+  (`src/data/screens/verdict-data.ts`) do. Neither text names the other's verdict.
 
 `src/lib/` is split by job, and each helper goes into the folder of its job: `engine/` (routing:
 `resolveEngine`, `withEngine`, `resolveRuntimeEngine` for a dialect-neutral read, the runtime of
@@ -428,7 +429,8 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   neutral; an instance's or a step's state takes its tone from `SITUATION_TONES`, the table the
   VS Code webview reads too: running `info`, suspended and ended `neutral`), retries left or
   degraded = `warning`; an
-  engine's own state is its verdict's tone, `VERDICT_TONE`, never a ladder over its counts)
+  engine's own state is its verdict's tone, pulse-ui's `VERDICT_TONES`, never a ladder over its
+  counts)
   shown via pulse-ui's `StatusBadge` (tone and words required)/`CountPill`/`CountFigure` or its
   `TONE_DOT`/`TONE_BORDER`/`TONE_ICON`/`TONE_SOFT`/`TONE_INK` maps (a tone
   from the wire through `resolveTone`), next to readable words; never a coloured
@@ -606,7 +608,8 @@ call's abort signal at `ctx.mcpReq.signal`):
   builder: `engine_screen_processes_data`, `engine_screen_process_data`,
   `engine_screen_instances_data`, `engine_screen_variable_names_data`,
   `engine_screen_instance_data`, `engine_screen_incident_text_data`, `engine_screen_find_data`;
-  a read that loads the engine's
+  beside them the one `dataFeed` there, Camunda 7's verdict `engine_screen_verdict_data`, marked
+  `dialects: ["c7"]`; a read that loads the engine's
   database on the floor of 30 s per caller, `screenFloor`), no route's and no widget's. `registerDataFeed` in `data-feeds.ts` registers each feed of one engine
   (a contract feed's through `resolveRuntimeEngine`), `registerNamingFeed` each naming feed; both
   spread `...appOnly` (SEP-1865 `_meta.ui.visibility: ["app"]` plus `openai/widgetAccessible`;

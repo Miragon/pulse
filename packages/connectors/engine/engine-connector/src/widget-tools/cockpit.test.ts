@@ -160,7 +160,7 @@ describe("engine_open_cockpit: the start view", () => {
       healthThresholds: { ...DEFAULT_VERDICT_THRESHOLDS, criticalIncidents: 10 },
     })
     expect(factsOf(await handler({})).statusRule).toBe(
-      "From the engine's open incidents, copies at call activities included, read live: critical at >=10 open incidents or >=25 of one cause, warning with any, else ok.",
+      "From the engine's open root incidents (a copy at a call activity never counts), read live: critical at >=10 open root incidents or >=25 of one cause, warning with any, else ok.",
     )
   })
 })

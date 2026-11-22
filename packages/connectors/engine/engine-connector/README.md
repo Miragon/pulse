@@ -82,8 +82,11 @@ in `ENGINES_JSON` / `ENGINES_FILE`; every variable is in the
   incident's stack trace or error message with the line its root cause stands on, cut at 64 KiB;
   `engine_screen_find_data` what the search across engines finds on one engine: the instance with
   the text as its id and up to 20 with it as their exact business key, running and ended, and where
-  the engine's history misses running instances (on the floor of 30 s per caller and text). No view
-  of the cockpit reads them; the server's web app renders them.
+  the engine's history misses running instances (on the floor of 30 s per caller and text). Beside
+  them, of Camunda 7 alone, `engine_screen_verdict_data` an engine's live verdict, c7-core's over its
+  open root incidents by the `ENGINE_HEALTH_*` thresholds, its root incidents from the engine
+  screen's own read and its incident scan on a floor of 30 s per caller. No view of the cockpit
+  reads them; the server's web app renders them.
 - **Engines as profiles.** `ENGINES_FILE` or `ENGINES_JSON` hold a profile file of
   `@miragon/pulse-profile`, the format of the CLI and Pulse for VS Code; without one,
   `ENGINE_BASE_URL` and its siblings yield the profile of a single engine. A profile's name is the

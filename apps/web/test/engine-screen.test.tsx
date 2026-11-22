@@ -8,6 +8,7 @@ import { WORLD_SCREENS } from "@miragon/pulse-screens/testing"
 import { EngineRoute } from "../src/screens/engine/engine-route.js"
 import { EngineScreen } from "../src/screens/engine/engine-screen.js"
 import { ENGINE_SCREEN_FEED } from "../src/screens/engine/engine-feed.js"
+import { ENGINE_VERDICT_FEED } from "../src/screens/engine/verdict-feed.js"
 import { usePageSlots } from "../src/screens/slots.js"
 
 /**
@@ -16,7 +17,8 @@ import { usePageSlots } from "../src/screens/slots.js"
  * the server's feed builds of the recorded engines: packages/connectors/engine/engine-connector/
  * src/data/screens/screen-data.numbers.test.ts): its bar, its rows and scopes in English and
  * German, a row's link and copy, the Refresh, a read when the reader comes back after 60 s, its
- * states and the engines it leaves to the cockpit.
+ * states, a Camunda 7 engine's live state from the server's verdict and the engines it leaves to the
+ * cockpit.
  */
 
 const writeText = vi.fn<(text: string) => Promise<void>>()
@@ -50,6 +52,7 @@ function Filtered({
   onFilter: (filter: ProcessFilterData) => void
   navigate: (url: string) => void
   ready: boolean
+  verdict: boolean
 }) {
   const [filter, setFilter] = useState(first)
   return (
@@ -71,18 +74,21 @@ function renderScreen({
   navigate = vi.fn<(url: string) => void>(),
   filter = { scope: "all" },
   ready = true,
+  verdict,
 }: {
   feed?: unknown
   locale?: string
   navigate?: (url: string) => void
   filter?: ProcessFilterData
   ready?: boolean
+  /** The verdict feed's answer, for a Camunda 7 engine's screen; none without it. */
+  verdict?: unknown
 } = {}) {
   const actions: HostAction[] = []
   const onFilter = vi.fn<(filter: ProcessFilterData) => void>()
   render(
     <TestViewHost
-      tools={{ [ENGINE_SCREEN_FEED]: feed }}
+      tools={{ [ENGINE_SCREEN_FEED]: feed, [ENGINE_VERDICT_FEED]: verdict }}
       onHostAction={(action) => actions.push(action)}
       locale={locale}
       host={{ timeZone: "UTC" }}
@@ -90,12 +96,20 @@ function renderScreen({
       followUp="none"
       startPage="/app"
     >
-      <Filtered first={filter} onFilter={onFilter} navigate={navigate} ready={ready} />
+      <Filtered
+        first={filter}
+        onFilter={onFilter}
+        navigate={navigate}
+        ready={ready}
+        verdict={verdict !== undefined}
+      />
     </TestViewHost>,
   )
   const reads = () =>
     actions.filter((action) => action.type === "callTool" && action.name === ENGINE_SCREEN_FEED)
-  return { navigate, reads, onFilter }
+  const verdictReads = () =>
+    actions.filter((action) => action.type === "callTool" && action.name === ENGINE_VERDICT_FEED)
+  return { navigate, reads, verdictReads, onFilter }
 }
 
 /**
@@ -578,7 +592,11 @@ describe("the engine's own address", () => {
     const actions: HostAction[] = []
     render(
       <TestViewHost
-        tools={{ engine_list_engines: list, [ENGINE_SCREEN_FEED]: answer(engine) }}
+        tools={{
+          engine_list_engines: list,
+          [ENGINE_SCREEN_FEED]: answer(engine),
+          [ENGINE_VERDICT_FEED]: { status: "critical" },
+        }}
         onHostAction={(action) => actions.push(action)}
       >
         <EngineRoute
@@ -593,17 +611,19 @@ describe("the engine's own address", () => {
     return () => actions.flatMap((action) => (action.type === "callTool" ? [action.name] : []))
   }
 
-  it("shows the screen of a Camunda 7 engine the list names", async () => {
+  it("shows the screen of a Camunda 7 engine the list names, its verdict in its bar", async () => {
     const calls = renderRoute("prod")
     expect(await screen.findByRole("table", { name: "Processes" })).toBeTruthy()
-    expect(calls()).toEqual(["engine_list_engines", ENGINE_SCREEN_FEED])
+    expect(await screen.findByText("Critical")).toBeTruthy()
+    expect(calls()).toEqual(["engine_list_engines", ENGINE_SCREEN_FEED, ENGINE_VERDICT_FEED])
     expect(screen.queryByText("Incidents and jobs show at their instances")).toBeNull()
   })
 
-  it("shows the screen of a Camunda 8 engine, which says where its incidents show", async () => {
+  it("shows the screen of a Camunda 8 engine, which says where its incidents show, and no verdict", async () => {
     const calls = renderRoute("orders")
     expect(await screen.findByRole("table", { name: "Processes" })).toBeTruthy()
     expect(calls()).toEqual(["engine_list_engines", ENGINE_SCREEN_FEED])
+    expect(document.querySelector('[data-part="engine-verdict"]')).toBeNull()
     const strip = screen
       .getByText("Incidents and jobs show at their instances")
       .closest("[role=status]")
@@ -627,5 +647,113 @@ describe("the engine's own address", () => {
     expect(screen.queryByRole("button", { name: "Refresh" })).toBeNull()
     expect(await screen.findByRole("table", { name: "Processes" })).toBeTruthy()
     expect(calls()).toEqual(["engine_list_engines", ENGINE_SCREEN_FEED])
+  })
+})
+
+describe("a Camunda 7 engine's live state in its bar", () => {
+  /** The verdict badge in the screen's bar, once it shows. */
+  const badge = async () => {
+    const bar = (
+      await screen.findByRole("heading", { level: 1, name: "prod" })
+    ).closest<HTMLElement>("[data-slot=view-bar]")!
+    return waitFor(() => {
+      const found = bar.querySelector<HTMLElement>(
+        '[data-part="engine-verdict"] [data-slot=status-badge]',
+      )
+      if (found === null) throw new Error("no verdict in the bar yet")
+      return found
+    })
+  }
+
+  it("shows the server's verdict in its tone, in English and German, and reads it once", async () => {
+    const { verdictReads } = renderScreen({ verdict: { status: "warning" } })
+    const shown = await badge()
+    expect([shown.textContent, shown.getAttribute("data-tone")]).toEqual(["Degraded", "warning"])
+    expect(verdictReads()).toHaveLength(1)
+    cleanup()
+    renderScreen({ verdict: { status: "critical" }, locale: "de" })
+    const german = await badge()
+    expect([german.textContent, german.getAttribute("data-tone")]).toEqual(["Kritisch", "danger"])
+  })
+
+  it("says Empty for an ok engine with nothing deployed, Stable, neutral, for one that runs", async () => {
+    renderScreen({
+      feed: {
+        ...answer(),
+        processes: [],
+        totals: { processes: 0, running: 0, withIncident: 0 },
+      },
+      verdict: { status: "ok" },
+    })
+    expect((await badge()).textContent).toBe("Empty")
+    cleanup()
+    renderScreen({ verdict: { status: "ok" } })
+    const stable = await badge()
+    expect([stable.textContent, stable.getAttribute("data-tone")]).toEqual(["Stable", "neutral"])
+  })
+
+  it("says a failed verdict read in the engine module's words, never ok, and keeps the figures", async () => {
+    renderScreen({
+      verdict: refusal("[unreachable] connection to engine prod failed (engine prod)"),
+    })
+    const failed = await badge()
+    expect([failed.textContent, failed.getAttribute("data-tone")]).toEqual([
+      "Unreachable",
+      "danger",
+    ])
+    expect(screen.getByRole("table", { name: "Processes" })).toBeTruthy()
+    expect(screen.queryByText("Stable")).toBeNull()
+  })
+
+  it("shows no state and asks no verdict where the screen's first read fails, said once", async () => {
+    const down = refusal("[unreachable] connection to engine prod failed (engine prod)")
+    const { verdictReads } = renderScreen({ feed: down, verdict: down })
+    const alert = await screen.findByRole("alert")
+    expect(within(alert).getByRole("button", { name: "Try again" })).toBeTruthy()
+    // The screen's state says the failure; the bar adds no second one in other words.
+    expect(document.querySelector('[data-part="engine-verdict"]')).toBeNull()
+    expect(screen.queryByText("Unreachable")).toBeNull()
+    expect(verdictReads()).toEqual([])
+  })
+
+  it("asks the verdict once the figures show, so an empty engine never shows Stable first", async () => {
+    let answerScreen: (value: unknown) => void = () => undefined
+    const { verdictReads } = renderScreen({
+      feed: () =>
+        new Promise((resolve) => {
+          answerScreen = resolve
+        }),
+      verdict: { status: "ok" },
+    })
+    await screen.findByRole("heading", { level: 1, name: "prod" })
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20))
+    })
+    expect(verdictReads()).toEqual([])
+    expect(document.querySelector('[data-part="engine-verdict"]')).toBeNull()
+    await act(async () => {
+      answerScreen({
+        ...answer(),
+        processes: [],
+        totals: { processes: 0, running: 0, withIncident: 0 },
+      })
+    })
+    expect((await badge()).textContent).toBe("Empty")
+    expect(verdictReads()).toHaveLength(1)
+  })
+
+  it("reads the verdict again with the screen on its Refresh", async () => {
+    const { reads, verdictReads } = renderScreen({ verdict: { status: "warning" } })
+    await badge()
+    fireEvent.click(screen.getByRole("button", { name: "Refresh" }))
+    await waitFor(() => expect(verdictReads()).toHaveLength(2))
+    expect(reads()).toHaveLength(2)
+  })
+
+  it("shows none and reads none for an engine without a verdict", async () => {
+    const { verdictReads } = renderScreen()
+    expect(await screen.findByRole("table", { name: "Processes" })).toBeTruthy()
+    expect(document.querySelector('[data-part="engine-verdict"]')).toBeNull()
+    expect(verdictReads()).toEqual([])
   })
 })

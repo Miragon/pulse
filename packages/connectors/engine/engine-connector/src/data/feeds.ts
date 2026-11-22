@@ -80,7 +80,7 @@ export interface DataFeed<TShape extends z.ZodRawShape = z.ZodRawShape, TData = 
   read(input: FeedInput<TShape>, engine: ResolvedEngine, ctx: ReadContext): Promise<TData>
 }
 
-const dataFeed = <TShape extends z.ZodRawShape, TData extends object>(
+export const dataFeed = <TShape extends z.ZodRawShape, TData extends object>(
   feed: DataFeed<TShape, TData>,
 ) => feed
 

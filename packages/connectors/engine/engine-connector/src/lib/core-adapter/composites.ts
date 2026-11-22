@@ -51,7 +51,7 @@ export const FINDING_RULES: Readonly<
     severity: "critical",
     says: "executable jobs overdue (is the job executor running?)",
   },
-  INCIDENTS: { severity: "warning", says: "any open incident (incident groups)" },
+  INCIDENTS: { severity: "warning", says: "any open root incident (incident groups)" },
   NO_WORKER: { severity: "warning", says: "topics without a worker" },
   LOCK_EXPIRED: { severity: "warning", says: "topics with expired locks" },
   BATCH_FAILURES: { severity: "warning", says: "failed batch jobs" },
@@ -72,8 +72,9 @@ function saying(severity: "critical" | "warning", thresholds: VerdictThresholds)
 export function statusRule(thresholds: VerdictThresholds): string {
   return (
     `critical: ${saying("critical", thresholds)}; warning: ${saying("warning", thresholds)}; ` +
-    "else ok. incidentsTotal counts every open incident, propagated the copies on calling " +
-    "instances; the incident groups and definitions count root causes."
+    "else ok. rootIncidentsTotal counts the open root incidents the status judges, incidentsTotal " +
+    "every open incident, propagated the copies on calling instances among those loaded; the " +
+    "incident groups and definitions count root incidents."
   )
 }
 

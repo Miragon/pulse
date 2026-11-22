@@ -164,11 +164,11 @@ describe("a Camunda 8 engine alone on the full surface: what serves it, and noth
     await c8?.close()
   })
 
-  it("classifies every tool and feed of the admin golden: 11 serve and are listed, 59 are not", () => {
+  it("classifies every tool and feed of the admin golden: 11 serve and are listed, 60 are not", () => {
     const golden = goldenNames()
     expect(tools.map(({ name }) => name).sort()).toEqual([...SERVE].sort())
     const absent = golden.filter((name) => !(SERVE as readonly string[]).includes(name))
-    expect(absent).toHaveLength(59)
+    expect(absent).toHaveLength(60)
     expect(absent).toEqual(expect.arrayContaining([...NOT_APPLICABLE]))
     expect(golden.filter((name) => !isRefusing({ name } as WireTool))).toHaveLength(12)
     expect(c8.sent()).toEqual([])
@@ -309,12 +309,12 @@ describe("a Camunda 8 default beside a Camunda 7 engine: offered nowhere else, r
     await c8?.close()
   })
 
-  it("classifies every tool and feed of the admin golden: 11 serve, 1 reads no engine, 58 offer only the Camunda 7 engine", () => {
+  it("classifies every tool and feed of the admin golden: 11 serve, 1 reads no engine, 59 offer only the Camunda 7 engine", () => {
     expect(tools.map(({ name }) => name).sort()).toEqual(goldenNames().sort())
     const refusing = tools.filter(isRefusing)
-    expect(refusing).toHaveLength(58)
+    expect(refusing).toHaveLength(59)
     expect(refusing.filter(isModelVisible)).toHaveLength(45)
-    expect(refusing.filter((tool) => !isModelVisible(tool))).toHaveLength(13)
+    expect(refusing.filter((tool) => !isModelVisible(tool))).toHaveLength(14)
     expect(refusing.map((tool) => [tool.name, offered(tool)])).toEqual(
       refusing.map(({ name }) => [name, [SHOP]]),
     )

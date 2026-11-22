@@ -19,8 +19,10 @@ import {
 } from "./web-sim.js"
 
 /**
- * The web app's start page (D10, step 20 of the plan) at `/app`: every engine of the server side by
- * side, a row each with the figures its engine screen shows (one read per engine of the engine
+ * The web app's start page (D10, steps 20 and 21 of the plan) at `/app`: every engine of the server
+ * side by side, a row each with its live state (a Camunda 7 engine's verdict, read from the server's
+ * verdict feed, `engine_screen_verdict_data`; none for a Camunda 8 cluster, for which the server
+ * decides none) and the figures its engine screen shows (one read per engine of the engine
  * screen's feed, `engine_screen_processes_data`, all at once, summed in the browser with the
  * screens' `FleetSums`: counts only, never a rate), what runs where, and the server's boards. A
  * Camunda 8 cluster has its numbers (the `camunda8` deployment over test:host's loopback cluster),
@@ -32,6 +34,7 @@ import {
  */
 
 const FEED = "engine_screen_processes_data"
+const VERDICT_FEED = "engine_screen_verdict_data"
 
 interface ScreenRow {
   readonly running: number
@@ -90,11 +93,14 @@ const scrollsSideways = (page: Page) =>
 /** What a screen reader alone hears beside a figure: its alarm, why a dash stands. */
 const SPOKEN = /Has open incidents|The engine didn't say what it is/g
 
-/** The figures a row of the engine table shows, in its columns' order after the engine. */
+/** The figures a row of the engine table shows, in its columns' order after the engine's state. */
 async function figuresOf(row: Locator): Promise<string[]> {
   const cells = await row.locator("td").allTextContents()
-  return cells.slice(1).map((cell) => cell.replace(SPOKEN, "").trim())
+  return cells.slice(2).map((cell) => cell.replace(SPOKEN, "").trim())
 }
+
+/** The state a row of the engine table shows: the verdict's word, or why it shows none. */
+const stateOf = (row: Locator) => row.locator("td").nth(1)
 
 /** The figures the start page shows for an engine screen: what its row must say. */
 function expectedFigures(screen: EngineScreenAnswer): string[] {
@@ -116,7 +122,7 @@ async function readAll(page: Page, read: readonly string[]): Promise<void> {
     timeout: 15_000,
   })
   for (const engine of read) {
-    await expect(engineRow(page, engine).locator("td").nth(4)).toHaveText(/^\d/, {
+    await expect(engineRow(page, engine).locator("td").nth(5)).toHaveText(/^\d/, {
       timeout: 15_000,
     })
   }
@@ -139,8 +145,12 @@ test.describe("the start page", () => {
     await expect(page.locator("[data-slot=freshness-stamp]")).toContainText("As of")
     const stub = await answerOf(answers, HEALTHY_ENGINE)
     expect(await figuresOf(engineRow(page, HEALTHY_ENGINE))).toEqual(expectedFigures(stub))
+    // The server's verdict on the stub engine, which holds no open root incident: Stable.
+    await expect(page.getByRole("columnheader", { name: "State" })).toBeVisible()
+    await expect(stateOf(engineRow(page, HEALTHY_ENGINE))).toHaveText("Stable", { timeout: 15_000 })
     // The engine that answers 503 keeps its row, a dash per figure, and its failure in a strip.
     await expect(engineRow(page, BROKEN_ENGINE)).toContainText("not read")
+    await expect(stateOf(engineRow(page, BROKEN_ENGINE))).toHaveText("—not read")
     const strip = page.locator("[data-slot=status-strip]", {
       hasText: `${BROKEN_ENGINE} couldn't be read`,
     })
@@ -162,6 +172,13 @@ test.describe("the start page", () => {
     expect(
       calls
         .filter((call) => call.name === FEED)
+        .map((call) => call.arguments?.engine)
+        .sort(),
+    ).toEqual([BROKEN_ENGINE, HEALTHY_ENGINE].sort())
+    // Each Camunda 7 engine's verdict, read once beside its engine screen.
+    expect(
+      calls
+        .filter((call) => call.name === VERDICT_FEED)
         .map((call) => call.arguments?.engine)
         .sort(),
     ).toEqual([BROKEN_ENGINE, HEALTHY_ENGINE].sort())
@@ -205,10 +222,11 @@ test.describe("the start page", () => {
     expect(new URL(page.url()).pathname).toBe(`/app/boards/${INVOICES_BOARD}`)
   })
 
-  test("a Camunda 8 cluster has its numbers, the same as its engine screen's, and a column in what runs where", async ({
+  test("a Camunda 8 cluster has its numbers, the same as its engine screen's, no state, and a column in what runs where", async ({
     page,
   }) => {
     const errors = collectErrors(page)
+    const calls = recordCalls(page)
     const answers = feedAnswers(page)
     await signIn(page, "/app", { deployment: "camunda8" })
     await readAll(page, [HEALTHY_ENGINE, C8_ENGINE, C8_UNBOARDED_ENGINE])
@@ -217,7 +235,15 @@ test.describe("the start page", () => {
       const screen = await answerOf(answers, engine)
       expect(await figuresOf(engineRow(page, engine)), engine).toEqual(expectedFigures(screen))
       await expect(engineRow(page, engine)).toContainText("Camunda")
+      // No verdict, honestly: the server decides none for Camunda 8, and the page reads none.
+      await expect(stateOf(engineRow(page, engine))).toHaveText(
+        "—Pulse judges no state for this engine",
+      )
     }
+    await expect(stateOf(engineRow(page, HEALTHY_ENGINE))).toHaveText("Stable", { timeout: 15_000 })
+    expect(
+      calls.filter((call) => call.name === VERDICT_FEED).map((call) => call.arguments?.engine),
+    ).toEqual([HEALTHY_ENGINE])
     // Its incident counted at its process, as its engine screen's column Incidents counts it.
     expect(
       (await answerOf(answers, C8_ENGINE)).processes.reduce((sum, row) => sum + row.incidents, 0),
@@ -309,7 +335,7 @@ test.describe("the start page in German on a phone", () => {
             .getByRole("table", { name: "Engines" })
             .getByRole("row", { name: `Engine ${HEALTHY_ENGINE}` })
             .locator("td")
-            .nth(4),
+            .nth(5),
         ).toHaveText(/^\d/, { timeout: 15_000 })
         await expect(page.getByRole("heading", { level: 2, name: "Was wo läuft" })).toBeVisible({
           timeout: 15_000,

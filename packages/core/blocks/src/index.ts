@@ -24,12 +24,18 @@ export type {
   BoardTarget,
 } from "./board/slots.js"
 // The engines side by side over the engine screens summed (`FleetSums` of @miragon/pulse-screens):
-// a row per engine and what runs where.
+// a row per engine and what runs where; an engine's live state, which the server decides, in its
+// screen's bar and in the table's column State.
 export {
   EngineTable,
   type EngineRowData,
   type EngineTableProps,
 } from "./screens/engines/engine-table.js"
+export {
+  EngineVerdictBadge,
+  type EngineVerdict,
+  type EngineVerdictFigures,
+} from "./screens/engines/engine-verdict.js"
 export { useFleetSums } from "./screens/engines/fleet-sums.js"
 export {
   ProcessesByEngine,

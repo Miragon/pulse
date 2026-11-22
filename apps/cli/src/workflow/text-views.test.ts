@@ -139,6 +139,7 @@ describe("view texts", () => {
             next: "n",
           },
         ],
+        rootIncidentsTotal: 1,
         incidentsTotal: 2,
         propagated: 1,
         externalTasks: [
@@ -166,7 +167,7 @@ describe("view texts", () => {
       "\nExternal tasks:\nTOPIC  WAITING  LOCKED  EXPIRED  FAILED  OLDEST  WORKERS\nt      1        2       0        0               w1, w2\n",
     )
     expect(text).toMatch(
-      /\nJobs {7}3 executable, 1 overdue \(oldest since o\)\nTasks {6}4 open\nIncidents {2}2 open, 1 propagated\nTruncated {2}incidents: 2000 of 2001 loaded\n$/,
+      /\nJobs {7}3 executable, 1 overdue \(oldest since o\)\nTasks {6}4 open\nIncidents {2}2 open, 1 root, 1 propagated\nTruncated {2}incidents: 2000 of 2001 loaded\n$/,
     )
   })
 
@@ -199,6 +200,7 @@ describe("view texts, other shapes", () => {
             next: "n",
           },
         ],
+        rootIncidentsTotal: 0,
         incidentsTotal: 0,
         propagated: 0,
         externalTasks: [
@@ -234,7 +236,7 @@ describe("view texts, other shapes", () => {
         "Jobs       3 executable",
         "Tasks      0 open",
         "Batches    1 running, 0 with failures",
-        "Incidents  0 open, 0 propagated",
+        "Incidents  0 open, 0 root, 0 propagated",
         "",
       ].join("\n"),
     )
@@ -245,6 +247,7 @@ describe("view texts, other shapes", () => {
         findings: [{ severity: "warning", code: "X", message: "w", next: "pulse x" }],
         definitions: [],
         incidents: [],
+        rootIncidentsTotal: 0,
         incidentsTotal: 0,
         propagated: 0,
         externalTasks: [],

@@ -93,10 +93,11 @@ function RunsWhere({
 
 /**
  * The web app's start page (D10, plan 2.4), at `/app`: every engine of the server side by side, a
- * row each with the figures its engine screen shows (its product, processes, running instances,
- * instances with incident and open root incidents: one read per engine of its engine screen's feed,
- * all at once, summed in the browser with `FleetSums`, counts only, never a rate), Camunda 8's
- * clusters among them; what runs where on the engines read; the server's boards. Its bar names it
+ * row each with its live state (the verdict the server decides for a Camunda 7 engine, read apart
+ * and worded as its engine screen's bar words it; none for a Camunda 8 cluster) and the figures its
+ * engine screen shows (its product, processes, running instances, instances with incident and open
+ * root incidents: one read per engine of its engine screen's feed, all at once, summed in the
+ * browser with `FleetSums`, counts only, never a rate), Camunda 8's clusters among them; what runs where on the engines read; the server's boards. Its bar names it
  * (its h1), how many engines the server configures and refused, the Refresh (every engine again)
  * and when the numbers were read (the oldest answer). An engine whose read failed keeps its row,
  * and a strip under the bar says why in the kit's words; a refused profile is read nothing of, the
@@ -171,7 +172,7 @@ export function StartScreen({ navigate, replace }: { navigate: Navigate; replace
           >
             <section data-part="start-engines">
               <SectionHeading as="h2" title={t("screen.start.engines.title")} />
-              <EngineTable engines={rows} slots={slots} />
+              <EngineTable engines={rows} slots={slots} withVerdict />
             </section>
             {rows.length > 1 && (
               <RunsWhere reads={reads} sums={sums} Id={slots.Id} onRetry={refetchAll} />

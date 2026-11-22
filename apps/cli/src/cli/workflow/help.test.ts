@@ -349,8 +349,9 @@ describe("workflow command help", () => {
       cause, overdue executable jobs (is the job executor running?), external task
       topics with waiting, locked and expired tasks (is a worker subscribed?), open
       tasks and failed batches. Every finding names the next command. The status is
-      critical from 50 open incidents, 25 of one cause or an overdue job, warning with
-      any other finding; --fail-on makes CI fail on it.
+      critical from 50 open root incidents (a call activity's copy of a called
+      instance's incident never counts), 25 of one cause or an overdue job, warning
+      with any other finding; --fail-on makes CI fail on it.
 
       Requests: in parallel GET /version, GET /process-definition/statistics, GET
       /incident and /incident/count, GET /external-task and /external-task/count, GET

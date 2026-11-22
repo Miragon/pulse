@@ -1,17 +1,15 @@
-import { SITUATION_TONES, type ToneVariant } from "@miragon/pulse-ui"
+import { READ_FAILURE_TONES, type ToneVariant, VERDICT_TONES } from "@miragon/pulse-ui"
 import { describeError, isSessionEnded } from "@miragon/pulse-widget-shell/widgets"
 import type { EngineHealthStatus } from "../../view-models.js"
 
 /**
  * c7-core's one live verdict as a tone: the overview's badge and the engine's dot on the
- * landing and the fleet view, so one engine never shows two states. An engine that runs without a
- * problem is the table's `healthy`, neutral as a process is: never a green "healthy".
+ * landing and the fleet view, so one engine never shows two states; the kit's table
+ * (`VERDICT_TONES`), which the web app's engine screen and start page read too. An engine that
+ * runs without a problem is the table's `healthy`, neutral as a process is: never a green
+ * "healthy".
  */
-export const VERDICT_TONE: Record<EngineHealthStatus, ToneVariant> = {
-  ok: SITUATION_TONES.healthy,
-  warning: "warning",
-  critical: SITUATION_TONES.openIncident,
-}
+export const VERDICT_TONE: Readonly<Record<EngineHealthStatus, ToneVariant>> = VERDICT_TONES
 
 /**
  * Why an engine's live health could not be read, as the landing and the cross-engine view's rows
@@ -40,14 +38,10 @@ export function isHealthFailure(kind: string): kind is HealthFailure {
 }
 
 /**
- * The tone of a failed read. These are no situations on the engine (`SITUATION_TONES` tones those)
- * but the server's way to it: an engine that does not answer may be down, an outage, so danger; a
- * refused profile or login leaves the engine running and waits only for whoever runs the server to
- * fix its configuration, a degraded engine, so warning.
+ * The tone of a failed read, the kit's table (`READ_FAILURE_TONES`), which the web app's verdict
+ * reads too. These are no situations on the engine (`SITUATION_TONES` tones those) but the
+ * server's way to it: an engine that does not answer may be down, an outage, so danger; a refused
+ * profile or login leaves the engine running and waits only for whoever runs the server to fix its
+ * configuration, a degraded engine, so warning.
  */
-export const HEALTH_FAILURE_TONE: Readonly<Record<HealthFailure, ToneVariant>> = {
-  unreachable: "danger",
-  refused: "warning",
-  unauthorized: "warning",
-  forbidden: "warning",
-}
+export const HEALTH_FAILURE_TONE: Readonly<Record<HealthFailure, ToneVariant>> = READ_FAILURE_TONES

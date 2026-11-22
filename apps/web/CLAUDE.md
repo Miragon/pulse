@@ -138,10 +138,24 @@ server image builds the page beside the server and serves it from `/app/web`.
   start page and an engine's screen show one read; one call per engine, all at once, as the search
   reads each engine, each engine's failure its own), summed in the browser with the blocks'
   `useFleetSums` (the screens' `FleetSums`, which a page names by type alone: counts only, never a
-  rate): the blocks' `EngineTable` (the engine, its product, its
+  rate): the blocks' `EngineTable` (the engine, its state, its product, its
   processes, running instances, instances with incident and open root incidents, each the figure
   its engine screen shows, the incidents its rows' summed, a lower bound where a cluster stopped
-  counting; under 40rem the engine, with incident and incidents), Camunda 8's clusters among them;
+  counting; under 40rem the engine, its state, with incident and incidents), Camunda 8's clusters
+  among them. The column State (`withVerdict`) is a Camunda 7 engine's live verdict as the server
+  decides it (c7-core's `engineVerdict` over its open root incidents by `ENGINE_HEALTH_*`, the
+  chat's overview's), read per Camunda 7 engine through the app-only feed
+  `engine_screen_verdict_data` (`src/screens/engine/verdict-feed.ts`: `hasVerdict` names the
+  dialects the server decides one for, which `test/nav-sections.test.tsx` holds to the feeds it
+  registers per dialect), beside the engine screen's read, which the server reads it beside too,
+  so no engine is asked twice: its mark of its own shape in the kit's verdict tone (an ok
+  engine's dot, a degraded one's triangle, a critical one's crossed circle, the mark alone under
+  28rem of the table) and its word (Stable, Degraded, Critical, Empty for an ok engine with nothing
+  deployed, as the chat's overview badge says it), a failed read's icon and word in the
+  engine module's words and tones of a failed read (`healthFailureOf`, pulse-ui's
+  `READ_FAILURE_TONES`), never the verdict read before it, its figures kept; a Camunda 8 cluster's a
+  dash that says Pulse judges no state for it, since the server decides none; a page's ended session
+  a quiet dash. The page never decides a verdict;
   what runs where on the engines read where the server has more than one, once every engine settled
   (the blocks' `ProcessesByEngine`: each process's running instances per engine, its instances with
   incident over all of them, the note that engines run different processes so the view shows
@@ -188,7 +202,12 @@ server image builds the page beside the server and serves it from `/app/web`.
   tab shown again (`src/screens/read-on-return.ts`, since TanStack's own refetch on focus follows
   the tab alone), once for both, never for a refusal no retry changes, and nothing polls. Its feed
   stands on the server's floor of 30 s per caller (a Camunda 8 cluster's incident searches among
-  its reads), so a Refresh within it shows the same read. It shows no verdict and writes nothing. Its states are its own: a first load's skeleton after 400 ms, a
+  its reads), so a Refresh within it shows the same read. A Camunda 7 engine's bar shows its live
+  state as the header's badge (the blocks' `EngineVerdictBadge` over the verdict feed, the start
+  page's column State in a badge: its read apart once the numbers show, so its failure never hides
+  them and a first load that fails says so once, in the screen's state, read again with the
+  screen's Refresh and on the reader's return); a Camunda 8 engine's shows none. It
+  writes nothing. Its states are its own: a first load's skeleton after 400 ms, a
   failure in the kit's words (`describeError`) with Try again unless no retry changes it
   (`isPermanentError`: a refused profile, an engine whose dialect the server does not read), a
   failed refresh over the numbers on screen a strip under the bar; a Camunda 8 cluster the screen

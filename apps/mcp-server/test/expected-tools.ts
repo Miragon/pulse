@@ -72,6 +72,7 @@ export const EXPECTED_TOOLS_READ_ONLY: readonly string[] = [
   "engine_screen_process_data",
   "engine_screen_processes_data",
   "engine_screen_variable_names_data",
+  "engine_screen_verdict_data",
   "engine_widget_actions_data",
 ]
 

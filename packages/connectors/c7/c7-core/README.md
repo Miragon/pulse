@@ -75,7 +75,11 @@ missing.
 - **Status:** `readStatus({ port, now }, options)` triages one engine: findings with severity, the
   overall status, definitions, incident groups with their root cause, topics, jobs and batches,
   every cut named in `truncated`. `engineVerdict` judges an engine `ok`, `warning` or `critical` by
-  thresholds you pass; `messageSignature` (the incident mask) and `causeKeyOf` (one cause) group
+  thresholds you pass, over its open root incidents: `rootIncidentCounts` takes the processes' from
+  the statistics with `rootIncidents=true` and, of the open incidents read, those outside any
+  process and the largest cause over root incidents alone, so a chain of calls one failure stops
+  counts it once (`readStatus` names the basis `rootIncidentsTotal` beside `incidentsTotal`, every
+  open incident); `messageSignature` (the incident mask) and `causeKeyOf` (one cause) group
   incidents alike everywhere.
 - **With incident:** one reading of "an instance with an incident" for every caller: an open
   incident the runtime holds now, which every history level answers alike (`WITH_INCIDENT`, the

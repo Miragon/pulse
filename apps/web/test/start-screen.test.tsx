@@ -5,6 +5,7 @@ import { TestViewHost, WebApiError, type HostAction } from "@miragon/pulse-widge
 import type { EngineScreenData } from "@miragon/pulse-screens"
 import { WORLD_SCREENS } from "@miragon/pulse-screens/testing"
 import { ENGINE_SCREEN_FEED } from "../src/screens/engine/engine-feed.js"
+import { ENGINE_VERDICT_FEED } from "../src/screens/engine/verdict-feed.js"
 import { onlyEngineOf, readOf } from "../src/screens/start/start-reads.js"
 import { StartScreen } from "../src/screens/start/start-screen.js"
 
@@ -13,9 +14,9 @@ import { StartScreen } from "../src/screens/start/start-screen.js"
  * @miragon/pulse-screens/testing, what the server's feed builds of the recorded engines:
  * packages/connectors/engine/engine-connector/src/data/screens/screen-data.numbers.test.ts) under
  * each engine's name: every engine side by side with its engine screen's figures, a Camunda 8
- * cluster that stopped counting, a failing engine and a refused profile keeping their rows, what
- * runs where, the boards, one engine in the start page's place, the Refresh, the reader's return,
- * German.
+ * cluster that stopped counting, a failing engine and a refused profile keeping their rows, each
+ * Camunda 7 engine's live state from the server's verdict (none for the cluster), what runs where,
+ * the boards, one engine in the start page's place, the Refresh, the reader's return, German.
  */
 
 afterEach(cleanup)
@@ -65,11 +66,29 @@ const ANSWERS: Readonly<Record<string, unknown>> = {
   "c8-eu": { ...CLUSTER, webApp: null },
 }
 
+/** The verdict feed's answers per Camunda 7 engine: the server's verdict, or its failure. */
+const VERDICTS: Readonly<Record<string, unknown>> = {
+  "prod-a": { status: "warning" },
+  down: refusal("[unreachable] connection to engine down failed (engine down)"),
+}
+
+/** An answer of a feed per engine: as it is, or what its function answers at each call. */
+const answerOf = (answers: Readonly<Record<string, unknown>>, engine: string) => {
+  const answer = answers[engine]
+  return typeof answer === "function" ? (answer as () => unknown)() : answer
+}
+
 function renderStart({
   list = LIST,
   answers = ANSWERS,
+  verdicts = VERDICTS,
   locale = "en",
-}: { list?: unknown; answers?: Readonly<Record<string, unknown>>; locale?: string } = {}) {
+}: {
+  list?: unknown
+  answers?: Readonly<Record<string, unknown>>
+  verdicts?: Readonly<Record<string, unknown>>
+  locale?: string
+} = {}) {
   const actions: HostAction[] = []
   const navigate = vi.fn<(url: string) => void>()
   const replace = vi.fn<(url: string) => void>()
@@ -77,10 +96,8 @@ function renderStart({
     <TestViewHost
       tools={{
         [ENGINE_LIST]: list,
-        [ENGINE_SCREEN_FEED]: ({ engine }: { engine: string }) => {
-          const answer = answers[engine]
-          return typeof answer === "function" ? (answer as () => unknown)() : answer
-        },
+        [ENGINE_SCREEN_FEED]: ({ engine }: { engine: string }) => answerOf(answers, engine),
+        [ENGINE_VERDICT_FEED]: ({ engine }: { engine: string }) => answerOf(verdicts, engine),
       }}
       onHostAction={(action) => actions.push(action)}
       locale={locale}
@@ -100,6 +117,7 @@ function renderStart({
     navigate,
     replace,
     reads: () => calls(ENGINE_SCREEN_FEED),
+    verdictReads: () => calls(ENGINE_VERDICT_FEED),
     lists: () => calls(ENGINE_LIST),
   }
 }
@@ -116,7 +134,7 @@ const rowsOf = (name: string) =>
 
 /** The engine table has its rows, the cluster's read. */
 async function loaded() {
-  await waitFor(() => expect(rowsOf("Engines")[2]?.[1]).toBe("Camunda 8.10.9"))
+  await waitFor(() => expect(rowsOf("Engines")[2]?.[2]).toBe("Camunda 8.10.9"))
 }
 
 describe("the start page", () => {
@@ -125,20 +143,58 @@ describe("the start page", () => {
     await loaded()
 
     expect(rowsOf("Engines")).toEqual([
-      ["prod-a", "Fake engine 1.0.0", "3", "5", "3Has open incidents", "2Has open incidents"],
-      ["downnot read", ...Array<string>(5).fill("—not read")],
+      [
+        "prod-a",
+        "Degraded",
+        "Fake engine 1.0.0",
+        "3",
+        "5",
+        "3Has open incidents",
+        "2Has open incidents",
+      ],
+      ["downnot read", ...Array<string>(6).fill("—not read")],
       [
         "c8-eu",
+        "—Pulse judges no state for this engine",
         "Camunda 8.10.9",
         "1",
         "12,000",
         "10,400Has open incidents",
         "≥ 10,000Has open incidents",
       ],
-      ["legacyprofile refused", ...Array<string>(5).fill("—profile refused")],
+      ["legacyprofile refused", ...Array<string>(6).fill("—profile refused")],
     ])
     expect(reads()).toEqual([{ engine: "prod-a" }, { engine: "down" }, { engine: "c8-eu" }])
     expect(replace).not.toHaveBeenCalled()
+  })
+
+  it("reads each Camunda 7 engine's verdict from the server, never the cluster's or the refused profile's", async () => {
+    const { verdictReads } = renderStart()
+    await loaded()
+    await waitFor(() => expect(rowsOf("Engines")[0]?.[1]).toBe("Degraded"))
+
+    expect(verdictReads()).toEqual([{ engine: "prod-a" }, { engine: "down" }])
+    const state = (engine: string) =>
+      screen
+        .getByRole("row", { name: `Engine ${engine}` })
+        .querySelector<HTMLElement>('[data-part="engine-verdict"]')
+    expect(state("prod-a")?.getAttribute("data-state")).toBe("warning")
+    // The cluster shows none, honestly: the server decides no verdict for Camunda 8.
+    expect(state("c8-eu")?.getAttribute("data-state")).toBeNull()
+  })
+
+  it("says a failed verdict read in the engine module's words beside the figures it keeps, never ok", async () => {
+    renderStart({
+      verdicts: {
+        ...VERDICTS,
+        "prod-a": refusal("[unreachable] connection to engine prod-a failed (engine prod-a)"),
+      },
+    })
+    await loaded()
+
+    await waitFor(() => expect(rowsOf("Engines")[0]?.[1]).toBe("Unreachable"))
+    expect(rowsOf("Engines")[0]?.slice(2, 5)).toEqual(["Fake engine 1.0.0", "3", "5"])
+    expect(screen.queryByText("prod-a couldn't be read")).toBeNull()
   })
 
   it("heads the page with All engines, how many the server configures and refused, the Refresh and when the numbers were read", async () => {
@@ -225,7 +281,7 @@ describe("the start page", () => {
         boards: [{ id: "x", title: "X", engines: ["prod-a"] }],
       },
     })
-    await waitFor(() => expect(rowsOf("Engines")[0]?.[2]).toBe("3"))
+    await waitFor(() => expect(rowsOf("Engines")[0]?.[3]).toBe("3"))
     expect(screen.queryByRole("heading", { name: "What runs where" })).toBeNull()
     cleanup()
     renderStart({ list: { ...LIST, boards: [], refusedBoards: [] } })
@@ -244,7 +300,7 @@ describe("the start page", () => {
           }),
       },
     })
-    await waitFor(() => expect(rowsOf("Engines")[0]?.[2]).toBe("3"))
+    await waitFor(() => expect(rowsOf("Engines")[0]?.[3]).toBe("3"))
     const status = within(sectionOf("What runs where")).getByRole("status")
     expect(status.textContent).toBe("Reading the processes of every engine…")
     expect(status.getAttribute("data-skeleton")).toBe("false")
@@ -301,7 +357,7 @@ describe("the start page", () => {
 
   it("reads every engine and the engine list again on its Refresh, the refused profile never", async () => {
     let failing = true
-    const { reads, lists } = renderStart({
+    const { reads, verdictReads, lists } = renderStart({
       answers: {
         ...ANSWERS,
         down: () =>
@@ -313,13 +369,15 @@ describe("the start page", () => {
     await loaded()
     failing = false
     fireEvent.click(screen.getByRole("button", { name: "Refresh" }))
-    await waitFor(() => expect(rowsOf("Engines")[1]?.[2]).toBe("3"))
+    await waitFor(() => expect(rowsOf("Engines")[1]?.[3]).toBe("3"))
     expect(screen.queryByText("down couldn't be read")).toBeNull()
     expect(
       reads()
         .map(({ engine }) => engine)
         .sort(),
     ).toEqual(["c8-eu", "c8-eu", "down", "down", "prod-a", "prod-a"].sort())
+    // Each Camunda 7 engine's verdict with it.
+    await waitFor(() => expect(verdictReads()).toHaveLength(4))
     expect(lists()).toHaveLength(2)
   })
 
@@ -340,7 +398,7 @@ describe("the start page", () => {
       "[data-slot=status-strip]",
     )!
     expect(strip.textContent).toContain("You're seeing the last loaded state.")
-    expect(rowsOf("Engines")[0]?.[2]).toBe("3")
+    expect(rowsOf("Engines")[0]?.[3]).toBe("3")
   })
 
   it("says the engines couldn't be loaded where the list fails, and reads them again on Try again", async () => {
@@ -377,10 +435,12 @@ describe("the start page", () => {
     renderStart({ locale: "de" })
     expect(await screen.findByRole("heading", { level: 1, name: "Alle Engines" })).toBeTruthy()
     expect(await screen.findByText("4 Engines · 1 abgelehnt")).toBeTruthy()
-    await waitFor(() => expect(rowsOf("Engines")[2]?.[1]).toBe("Camunda 8.10.9"))
+    await waitFor(() => expect(rowsOf("Engines")[2]?.[2]).toBe("Camunda 8.10.9"))
     expect(screen.getByText("down konnte nicht gelesen werden")).toBeTruthy()
     expect(sectionOf("Was wo läuft")).toBeTruthy()
     expect(sectionOf("Boards").textContent).toContain("broken · Datei abgelehnt: 2 Probleme")
+    expect(screen.getByRole("columnheader", { name: "Zustand" })).toBeTruthy()
+    await waitFor(() => expect(rowsOf("Engines")[0]?.[1]).toBe("Beeinträchtigt"))
   })
 })
 

@@ -46,7 +46,8 @@ export {
 export { Alert, AlertDescription, AlertTitle } from "./primitives/alert.js"
 export { Switch } from "./primitives/switch.js"
 
-// The tone model: the vocabulary, the situation table and the count ladder (the framework-free
+// The tone model: the vocabulary, the situation table, an engine's verdict and its failed read,
+// and the count ladder (the framework-free
 // `./tones` entry, the same names), then the kit's class maps (three roles per tone: colour,
 // tint, ink); the type scale, the focus ring, cn.
 export {
@@ -55,12 +56,16 @@ export {
   resolveTone,
   isToneVariant,
   SITUATION_TONES,
+  VERDICT_TONES,
+  READ_FAILURE_TONES,
   countTone,
   severityTone,
   type ToneVariant,
   type ToneAlias,
   type ToneName,
   type Situation,
+  type Verdict,
+  type ReadFailure,
 } from "./tones/index.js"
 export {
   TONE_SOFT,

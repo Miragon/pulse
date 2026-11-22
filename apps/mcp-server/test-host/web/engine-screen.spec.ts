@@ -103,7 +103,11 @@ test.describe("the engine screen", () => {
       "href",
       webApp?.url ?? "",
     )
-    // When the numbers were read, and the Refresh: no verdict, no write, no hand-off.
+    // The server's verdict on a Camunda 7 engine without an open root incident, as the header's
+    // badge, read apart from the screen's numbers.
+    await expect(bar.locator("[data-part=engine-verdict]")).toHaveText("Stable")
+    expect(calls.filter((call) => call.name === "engine_screen_verdict_data")).toHaveLength(1)
+    // When the numbers were read, and the Refresh: no write, no hand-off.
     await expect(page.locator("[data-slot=freshness-stamp]")).toContainText("As of")
     await expect(page.getByRole("button", { name: "Refresh" })).toHaveCount(1)
     await expect(page.getByText(/\bchat\b/i)).toHaveCount(0)

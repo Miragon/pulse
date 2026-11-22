@@ -46,7 +46,7 @@
     "Jobs       0 executable",
     "Tasks      1 open",
     "Batches    0 running, 0 with failures",
-    "Incidents  1 open, 0 propagated",
+    "Incidents  1 open, 1 root, 0 propagated",
     ""
   ]
 }

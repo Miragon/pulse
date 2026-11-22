@@ -35,13 +35,15 @@ entry opens its processes), and the boards; at its foot who is signed in and **S
 instances); a refused profile says so and opens its one state.
 Every entry is a link, so Ctrl or Cmd+click and a middle click open a new tab. Under 64rem it is a
 drawer behind the menu button, the first of each view's bar. It shows no numbers: the views do.
-**Start** lists each engine with the figures of its processes page and what runs where, counts
-only, never rates; an engine it could not read says why, a refused profile in the server's words.
-An engine's processes list each with its latest version, running instances, instances with incident
-and open incidents over every version, the numbers Pulse for VS Code shows (a legend says why a
-caller waiting for a called instance's incident counts with incident yet holds none); scopes and
-search filter in the browser, a row opens its process, **Refresh** reads again (on its own when you
-return after 60 s; the server reads the engine at most every 30 s per user).
+**Start** lists each engine with its state and the figures of its processes page and what runs
+where, counts only, never rates; an engine it could not read says why, a refused profile in the
+server's words. A Camunda 7 engine's state, there and in its processes' bar, is the chat overview's
+verdict (Stable, Degraded, Critical: its open root incidents by the server's thresholds); a Camunda
+8 engine has none. An engine's processes list each with its latest version, running instances,
+instances with incident and open incidents over every version, the numbers Pulse for VS Code shows
+(a legend says why a caller waiting for a called instance's incident counts with incident yet holds
+none); scopes and search filter in the browser, a row opens its process, **Refresh** reads again (on
+its own when you return after 60 s; the server reads the engine at most every 30 s per user).
 A process shows one version, picked with the running instances and those with incident of each,
 older versions that still run, its diagram with the counts on each element (incidents in called
 instances apart) and its instances, 50 at a time with **Load more**, by scope, element, exact

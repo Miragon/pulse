@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import { useFleetSums, type EngineRowData } from "@miragon/pulse-blocks"
+import { useFleetSums, type EngineRowData, type EngineVerdict } from "@miragon/pulse-blocks"
 import type { FleetSumsData } from "@miragon/pulse-screens"
 import { describeError, isSessionEnded, useToolQueries } from "@miragon/pulse-widget-shell/widgets"
 import { refusalOf, useEngineList, type ListedEngines } from "../../engine-list.js"
@@ -8,6 +8,13 @@ import {
   engineScreenKey,
   type EngineScreenFeed,
 } from "../engine/engine-feed.js"
+import {
+  ENGINE_VERDICT_FEED,
+  engineVerdictKey,
+  type EngineVerdictFeed,
+  hasVerdict,
+  verdictOf,
+} from "../engine/verdict-feed.js"
 import { READ_AGAIN_AFTER_MS } from "../read-on-return.js"
 
 /**
@@ -26,6 +33,11 @@ export interface EngineRead {
   /** When its last read answered or failed, 0 before one (a refused profile's never). */
   readonly readAt: number
   readonly refetch: Refetch
+  /**
+   * Its live state (the verdict the server decided for a Camunda 7 engine, read apart, a failed
+   * read of it, none for an engine of another dialect or a refused profile).
+   */
+  readonly verdict: EngineVerdict
 }
 
 /**
@@ -52,12 +64,21 @@ interface ScreenQuery {
   readonly refetch: Refetch
 }
 
+/** What the start page uses of a verdict's read: TanStack's query result. */
+type VerdictQuery = Parameters<typeof verdictOf>[0] & { readonly refetch: Refetch }
+
 /**
  * One engine's read from its query, pending while its query has not started: its failure from its
  * first failed attempt on, as the query client retries quietly behind it, so a down engine says so
- * at once.
+ * at once; beside it the engine's verdict where the server decides one (`judged`: its query, which
+ * reads again with the engine's).
  */
-export function readOf(engine: string, query: ScreenQuery | undefined): EngineRead {
+export function readOf(
+  engine: string,
+  query: ScreenQuery | undefined,
+  judged?: { readonly query: VerdictQuery | undefined },
+): EngineRead {
+  const verdict = verdictOf(judged?.query, judged !== undefined)
   if (query === undefined) {
     return {
       engine,
@@ -67,6 +88,7 @@ export function readOf(engine: string, query: ScreenQuery | undefined): EngineRe
       fetching: false,
       readAt: 0,
       refetch: () => Promise.resolve(),
+      verdict,
     }
   }
   return {
@@ -76,7 +98,8 @@ export function readOf(engine: string, query: ScreenQuery | undefined): EngineRe
     pending: query.isPending,
     fetching: query.isFetching,
     readAt: Math.max(query.dataUpdatedAt, query.errorUpdatedAt),
-    refetch: (options) => query.refetch(options),
+    refetch: (options) => Promise.all([query.refetch(options), judged?.query?.refetch(options)]),
+    verdict,
   }
 }
 
@@ -90,6 +113,7 @@ function refusedRead(engine: string, reason: string | undefined): EngineRead {
     fetching: false,
     readAt: 0,
     refetch: () => Promise.resolve(),
+    verdict: "none",
   }
 }
 
@@ -100,7 +124,9 @@ function refusedRead(engine: string, reason: string | undefined): EngineRead {
  */
 function rowOf(read: EngineRead, sums: FleetSumsData): EngineRowData {
   const summed = sums.engines.find(({ engine }) => engine === read.engine)
-  if (summed !== undefined) return { engine: read.engine, state: "read", sums: summed }
+  if (summed !== undefined) {
+    return { engine: read.engine, state: "read", sums: summed, verdict: read.verdict }
+  }
   if (read.error === null) return { engine: read.engine, state: "loading" }
   if (isSessionEnded(read.error)) return { engine: read.engine, state: "unread" }
   const refused = describeError(read.error, undefined).kind === "profileRefused"
@@ -111,16 +137,23 @@ function rowOf(read: EngineRead, sums: FleetSumsData): EngineRowData {
  * The start page's reads: the frame's one read of the engine list, then each engine's engine screen
  * (`engine_screen_processes_data`, the engine screen's own read and cache key, so the start page
  * and an engine's screen show one read), one call per engine, all at once, each engine's failure
- * its own; a refused profile read nothing of, its refusal the list's reason in the server's words
- * (after the engines). The screens read sum in the browser (the blocks' `useFleetSums` over the
- * screens' `FleetSums`: counts only, never a rate). Nothing is read where the server has one engine
- * and no board, which the page shows in the start page's place (`only`).
+ * its own, and beside it each Camunda 7 engine's verdict (`engine_screen_verdict_data`, the
+ * engine screen's bar's read and cache key; the server reads it beside the engine screen's own
+ * read, so it asks the engine no second statistics), its failure its own too; a refused profile
+ * read nothing of, its refusal the list's reason in the server's words (after the engines). The
+ * screens read sum in the browser (the blocks' `useFleetSums` over the screens' `FleetSums`: counts
+ * only, never a rate). Nothing is read where the server has one engine and no board, which the page
+ * shows in the start page's place (`only`).
  */
 export function useStartReads() {
   const list = useEngineList()
   const only = list.data === undefined ? undefined : onlyEngineOf(list.data)
   const listed = only === undefined ? list.data : undefined
   const ids = useMemo(() => (listed?.engines ?? []).map(({ id }) => id), [listed])
+  const judged = useMemo(
+    () => (listed?.engines ?? []).filter(({ dialect }) => hasVerdict(dialect)).map(({ id }) => id),
+    [listed],
+  )
   const queries = useToolQueries<EngineScreenFeed>(
     ids.map((engine) => ({
       key: engineScreenKey(engine),
@@ -129,8 +162,20 @@ export function useStartReads() {
     })),
     { staleTime: READ_AGAIN_AFTER_MS },
   )
+  const verdicts = useToolQueries<EngineVerdictFeed>(
+    judged.map((engine) => ({
+      key: engineVerdictKey(engine),
+      tool: ENGINE_VERDICT_FEED,
+      args: { engine },
+    })),
+    { staleTime: READ_AGAIN_AFTER_MS },
+  )
+  const judgedOf = (engine: string) => {
+    const index = judged.indexOf(engine)
+    return index < 0 ? undefined : { query: verdicts[index] }
+  }
   const reads: EngineRead[] = [
-    ...ids.map((engine, index) => readOf(engine, queries[index])),
+    ...ids.map((engine, index) => readOf(engine, queries[index], judgedOf(engine))),
     ...(listed?.refused ?? []).map(({ id, reason }) => refusedRead(id, reason)),
   ]
   const screens = reads.flatMap(({ screen }) => (screen === undefined ? [] : [screen]))

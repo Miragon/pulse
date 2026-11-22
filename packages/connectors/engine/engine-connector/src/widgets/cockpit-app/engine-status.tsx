@@ -8,6 +8,7 @@ import {
   Unplug,
   type LucideIcon,
 } from "lucide-react"
+import type { EngineHealthStatus } from "../../view-models.js"
 import {
   HEALTH_FAILURE_TONE,
   healthFailureOf,
@@ -31,11 +32,15 @@ export type EngineStatusKind =
  * an engine that refused the server's login are states of their own (`healthFailureOf`): the
  * server never asks the one, and the other answered, so neither is unreachable. A page whose
  * session ended asked no engine: the row keeps what it last read, and says it read nothing where
- * it read nothing yet (`notLoaded`, no tone); the page's frame says the session ended.
+ * it read nothing yet (`notLoaded`, no tone); the page's frame says the session ended. An engine
+ * with nothing deployed is empty unless its verdict, once read, is no ok (a root incident outside
+ * any process), whose dot then shows beside what it runs, as the overview's badge says it.
  */
 export function engineStatusKind(health: {
   /** The read's failure, from its first failed attempt (`useEngineHealth`); null without one. */
   failure: Error | null
+  /** The engine's verdict once read (the health feed's `status`); none before. */
+  status?: EngineHealthStatus | undefined
   summary:
     | {
         totalDefinitions: number
@@ -49,7 +54,7 @@ export function engineStatusKind(health: {
   if (failure) return failure
   const s = health.summary
   if (!s) return health.failure ? "notLoaded" : "loading"
-  if (s.totalDefinitions === 0) return "empty"
+  if (s.totalDefinitions === 0 && (health.status ?? "ok") === "ok") return "empty"
   if (s.totalIncidents > 0) return "incidents"
   if (s.totalFailedJobs > 0) return "failedJobs"
   if (s.totalRunningInstances === 0) return "idle"

@@ -62,10 +62,11 @@ token, so a renewed token starts afresh.
 admits a tool a view calls that only reads (`readOnlyHint`): the view tool `engine_open_cockpit`,
 the app-only `*_data` feeds (the page's own screens read them too: `engine_screen_processes_data`,
 `engine_screen_process_data`, `engine_screen_instances_data`, `engine_screen_variable_names_data`,
-`engine_screen_instance_data`, `engine_screen_incident_text_data`, and the search's
-`engine_screen_find_data`, one call per engine) and the model tools marked `forViews` because the widgets read them
-(`engine_list_engines`, `engine_query_historic_activity_instances`, `engine_get_task_form`). Any
-other tool gets 403 `WEB_NOT_FOR_PAGES`, a write 403 `WEB_READ_ONLY`, before it runs.
+`engine_screen_instance_data`, `engine_screen_incident_text_data`, the search's
+`engine_screen_find_data`, `engine_screen_verdict_data` of Camunda 7, one call per engine) and the
+model tools marked `forViews` because the widgets read them (`engine_list_engines`,
+`engine_query_historic_activity_instances`, `engine_get_task_form`). Any other tool gets 403
+`WEB_NOT_FOR_PAGES`, a write 403 `WEB_READ_ONLY`, before it runs.
 
 The server then sends one `tools/call` in-process to `/mcp` with the session's bearer token and an
 MCP client's headers, so the edge guard, the OAuth gate, toolsets, engine routing, read-only
@@ -95,9 +96,9 @@ the screen feeds, whose places the page claims, so the cockpit embedded elsewher
 A screen but the start page fills the window's height from 64rem on and scrolls its regions in themselves; an incident's text is read only when it opens,
 a version's variable names when the condition dialog does. The reads that load an engine's database
 (an engine's processes with their counts, a version's element statistics, an instance list's first
-page with its counts, the variable names, a search, its engine's history gap apart for every text)
-stand on a floor of 30 s per signed-in user and arguments at the server, so a Refresh within it shows
-the same read. Its router gives each view its address and leads Back, Forward and its links to the
+page with its counts, the variable names, a search, its engine's history gap apart for every text,
+the verdict's incident scan beside its engine's processes, whose read it shares, on the processes page once they show) stand on a floor of
+30 s per signed-in user and arguments at the server, so a Refresh within it shows the same read. Its router gives each view its address and leads Back, Forward and its links to the
 view, which goes there itself or starts anew there, never loading the page; it replaces an old
 `/app/cockpit?view=…` by the view's own address, `/app/fleet` by `/app`. It reads its session with `readWebSession()` and calls tools through
 `webToolCaller(session)`, which posts each call with the CSRF token and rejects a refusal as a

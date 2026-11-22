@@ -13,6 +13,7 @@ import {
   type NavSection,
 } from "../src/frame/nav-sections.js"
 import { catalogs } from "../src/messages/index.js"
+import { ENGINE_VERDICT_FEED, hasVerdict } from "../src/screens/engine/verdict-feed.js"
 import { COCKPIT_VIEW } from "../src/router/routes.js"
 import { cockpitProperties, type EngineEntry, registeredTools } from "./cockpit-tool.js"
 
@@ -112,6 +113,8 @@ describe("the navigation's sections per dialect", () => {
       expect(SCREEN_FEEDS.map((feed) => feeds.includes(feed))).toEqual(
         SCREEN_FEEDS.map(() => hasScreens(dialect)),
       )
+      // The verdict the page shows is the server's: read exactly where the server decides one.
+      expect(feeds.includes(ENGINE_VERDICT_FEED)).toBe(hasVerdict(dialect))
       // An incident the page knows by its id alone is found through the cockpit's incident view,
       // which serves the dialects of its incidents section (src/screens/screen-shown.ts).
       expect(NAV_SECTIONS[dialect].includes("incidents")).toBe(served.includes("incident-detail"))

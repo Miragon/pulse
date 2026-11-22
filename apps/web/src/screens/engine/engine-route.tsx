@@ -6,6 +6,7 @@ import type { Navigate } from "../../router/page-link.js"
 import { sectionsOf } from "../../frame/nav-sections.js"
 import { useEngineDialect, useScreenShown } from "../screen-shown.js"
 import { EngineScreen } from "./engine-screen.js"
+import { hasVerdict } from "./verdict-feed.js"
 
 /**
  * The engine's own address: the page's engine screen where it serves the engine (Camunda 7's and
@@ -42,6 +43,7 @@ export function EngineRoute({
         onFilter={onFilter}
         ready={shown === "screen"}
         atInstances={dialect !== undefined && !sectionsOf(dialect).includes("incidents")}
+        verdict={hasVerdict(dialect)}
       />
     </ViewBarSlots>
   )

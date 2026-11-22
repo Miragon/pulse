@@ -83,8 +83,9 @@ function EngineRowFrame({
 function EngineRow(props: EngineRowProps) {
   const locale = useLocale()
   const tr = (key: string, params?: Record<string, unknown>) => translator(locale, key, params)
-  const { failure, summary, tone } = useEngineHealth(props.engineId)
-  const kind = engineStatusKind({ failure, summary })
+  const health = useEngineHealth(props.engineId)
+  const { failure, summary, tone } = health
+  const kind = engineStatusKind({ failure, summary, status: health.status })
   const status =
     kind === "incidents"
       ? tr("cockpit.landing.status.incidents", {

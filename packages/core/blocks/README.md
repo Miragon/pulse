@@ -375,13 +375,24 @@ engines run different processes, so a rate summed across them would measure thei
   stopped counting); a row without figures keeps its place, its state in words beside the id and a
   dash per figure, why in the dash's title. The product, the processes and the running instances drop where
   a table that fits its region is narrower than 40rem. A row opens its engine and copies its id.
+  With `withVerdict` the column State follows the engine: each engine's live state
+  (`EngineVerdict` on a read row: the verdict the server decided, `ok`, `warning` or `critical`, a
+  mark of its own shape in pulse-ui's `VERDICT_TONES` (ok a dot, warning the kit's triangle,
+  critical its crossed circle) and its word, Empty with a dashed circle where an ok engine has
+  nothing deployed; a failed read of it, its icon of its own shape in `READ_FAILURE_TONES` and the
+  engine module's word, never the verdict read before; `loading`, `unread` and `none`, where the
+  server decides no verdict, a dash that says why), its word only read out under 28rem, where the
+  mark's shape still tells each state apart without its colour.
+- `EngineVerdictBadge`: an engine's live state as its screen's header badge, a `StatusBadge` in
+  the same tones and words; nothing while it reads, where nothing was read or where there is none.
 - `ProcessesByEngine`: what runs where over the surface's plain table and its id, a row per process
   (`FleetSums`' processes) with its running instances on each engine read, an empty cell where it is
   not deployed (said for a screen reader), and its instances with incident over all of them; above
   the table the note that the view shows counts, never rates, under it the engines not read.
 
-The web app's start page renders both with its tables and id; the editors show no engines side by
-side, so their bundles leave the blocks and their words out.
+The web app's start page renders both with its tables and id, its engine screen the badge; the
+editors show no engines side by side and no verdict, so their bundles leave the blocks and their
+words out.
 
 ## The slots of a board's tiles
 
@@ -442,9 +453,9 @@ and `unread`.
 
 ## Entries
 
-| Entry                   | Holds                                                                                                                                                                                                                                                                                                         |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@miragon/pulse-blocks` | `BoardGrid`, `BoardTile`, `ProblemList`, `useProblemWords`, `useNoteLines`, `ListFilterBar`, `ProcessTable`, `useProcessList`, `ScopeSegments`, an instance's and a process's blocks, `FindResults`, `FindHistoryNotice`, `EngineTable`, `ProcessesByEngine`, `useFleetSums`, `JsonText` and the slots' types |
+| Entry                   | Holds                                                                                                                                                                                                                                                                                                                               |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@miragon/pulse-blocks` | `BoardGrid`, `BoardTile`, `ProblemList`, `useProblemWords`, `useNoteLines`, `ListFilterBar`, `ProcessTable`, `useProcessList`, `ScopeSegments`, an instance's and a process's blocks, `FindResults`, `FindHistoryNotice`, `EngineTable`, `EngineVerdictBadge`, `ProcessesByEngine`, `useFleetSums`, `JsonText` and the slots' types |
 
 ## Stability
 
