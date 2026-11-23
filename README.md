@@ -71,7 +71,9 @@ The Claude Code plugin teaches Claude to use the CLI whenever a task touches an 
 ```
 
 A second plugin, `pulse-artifact@pulse`, builds [Claude artifacts](docs/mcp/claude-artifacts.md)
-from a template: live pages in claude.ai that read your engine through the Pulse MCP server.
+from a template: live pages in claude.ai that read your engine through the Pulse MCP server. A
+third, `pulse-boards@pulse`, writes [board files](docs/vscode/boards.md#let-claude-code-write-a-board)
+from your BPMN models and profiles and checks them as Pulse does.
 
 ## Help and feedback
 

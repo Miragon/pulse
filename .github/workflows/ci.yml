@@ -792,8 +792,8 @@ jobs:
             exit 1
           fi
 
-  # Validates the marketplace and every Claude Code plugin it lists (the CLI's, the MCP server's)
-  # with its skills, and holds each plugin's version to its app's.
+  # Validates the marketplace and every Claude Code plugin it lists (the CLI's, the MCP server's,
+  # Pulse for VS Code's) with its skills, and holds each plugin's version to its app's.
   plugins:
     name: Claude Code plugins (validate)
     needs: changes

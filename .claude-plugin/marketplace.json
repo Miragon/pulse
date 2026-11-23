@@ -13,6 +13,10 @@
     {
       "name": "pulse-artifact",
       "source": "./apps/mcp-server/skills/pulse-artifact"
+    },
+    {
+      "name": "pulse-boards",
+      "source": "./apps/vscode/skills/pulse-boards"
     }
   ]
 }
