@@ -126,6 +126,18 @@ describe("scopesFor: prose reaches only the checks that read it", () => {
     assert.deepEqual(scopes("apps/mcp-server/README.md"), [])
   })
 
+  it("validates the plugins for the boards plugin of Pulse for VS Code, prose included", () => {
+    const plugin = "apps/vscode/skills/pulse-boards"
+    assert.deepEqual(scopes(`${plugin}/SKILL.md`), ["plugins", "vscode-package"])
+    // The manifest is no prose: the package rules run the extension's checks as for its code.
+    assert.deepEqual(scopes(`${plugin}/.claude-plugin/plugin.json`), [
+      "plugins",
+      "typescript",
+      "vscode",
+      "vscode-package",
+    ])
+  })
+
   it("runs the CLI's tests and builds for its pages of the docs site", () => {
     assert.deepEqual(scopes("docs/cli/commands.md"), ["brand", "cli", "typescript"])
   })
@@ -417,7 +429,8 @@ describe("scopesFor: paths outside the packages", () => {
   it("validates the plugins for the manifest of an app that ships one: its version is the plugin's", () => {
     assert.ok(scopes("apps/cli/package.json").includes("plugins"))
     assert.ok(scopes("apps/mcp-server/package.json").includes("plugins"))
-    assert.ok(!scopes("apps/vscode/package.json").includes("plugins"))
+    assert.ok(scopes("apps/vscode/package.json").includes("plugins"))
+    assert.ok(!scopes("apps/orca/package.json").includes("plugins"))
     assert.ok(!scopes("apps/mcp-server/src/app.ts").includes("plugins"))
   })
 

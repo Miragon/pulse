@@ -1,7 +1,6 @@
 # CLAUDE.md
 
-Guidance for AI agents working in this repository. Read the repo skill before you add code:
-`.claude/skills/add-bpm-feature` (engine tools, queries, widgets).
+Guidance for AI agents working in this repository.
 
 Each rule below names the gate that enforces it; when a gate fails, its message and source carry
 the details. A rule without a gate is review knowledge and keeps its reason. This file holds what
@@ -379,9 +378,11 @@ for every workspace package.
 
    Every tool takes STRICT input (the registrar always, a raw registration through
    `strictToolInput(…)`; the boot refuses a schema that lets an unknown key through): an unknown
-   key is a tool error listing the valid keys, never a silently stripped filter. A parameter that
-   means the same on every tool is explained once in the module instructions (the add-bpm-feature
-   skill's guide).
+   key is a tool error listing the valid keys, never a silently stripped filter. A concept has one
+   parameter name on every tool (`apps/mcp-server/test/strict-input.e2e.test.ts` refuses the
+   retired ones), and a parameter that means the same on every tool is explained once in the
+   module instructions, on a tool only where it means more there
+   (`apps/mcp-server/test/tools-list.golden.test.ts`).
 
 6. **MCP App widgets compose from `@miragon/pulse-ui` and the view runtime of
    `@miragon/pulse-widget-shell/widgets`; never re-inline their primitives.** This covers the

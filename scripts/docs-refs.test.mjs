@@ -135,16 +135,8 @@ function listedFiles(root) {
 /** The checked docs among the listed files of the repo at `root`. */
 const checkedDocs = (root) => listedFiles(root).filter(isCheckedDoc)
 
-// Skills that teach no code of this repo: shadcn's is vendored (its own
-// components and CLI), create-ticket names the agent's tools.
-const NOT_REPO_CODE = new Set(["shadcn", "create-ticket"])
-const teachesRepoCode = (file) => !NOT_REPO_CODE.has(path.basename(path.dirname(file)))
-
-/** The docs whose identifiers are checked: the skills that teach repo code and the nested agent files. */
-const identifierDocs = (docs) => [
-  ...docs.filter(isSkill).filter(teachesRepoCode),
-  ...docs.filter(isNestedAgentFile),
-]
+/** The docs whose identifiers are checked: the skills and the nested agent files. */
+const identifierDocs = (docs) => [...docs.filter(isSkill), ...docs.filter(isNestedAgentFile)]
 
 const repoFiles = listedFiles(REPO_ROOT)
 const docFiles = repoFiles.filter(isCheckedDoc)
@@ -609,7 +601,7 @@ const DOCS_BUDGETS = {
   // A cluster's profile and login, what differs and the conformance matrix, a row per leg.
   "vscode/camunda8.md": 125,
   "vscode/usage.md": 81,
-  "vscode/boards.md": 70,
+  "vscode/boards.md": 80,
   // A plan file of pulse plan-migration: writing it, editing it, what that counts and refuses.
   "vscode/migration-plans.md": 75,
   "vscode/architecture.md": 60,
@@ -694,8 +686,8 @@ describe("what the guard reads", () => {
     "apps/mcp-server/skills/pulse-artifact/SKILL.md",
     "apps/mcp-server/skills/pulse-artifact/references/components.md",
     "apps/mcp-server/skills/pulse-artifact/evals/process-dashboard/prompt.md",
-    ".claude/skills/add-bpm-feature/SKILL.md",
-    ".claude/skills/shadcn/SKILL.md",
+    "apps/vscode/skills/pulse-boards/SKILL.md",
+    ".claude/skills/create-board/SKILL.md",
     "templates/composed-server/.claude/skills/add-widget/SKILL.md",
     "templates/composed-server/README.md",
     "templates/composed-server/CLAUDE.md",
@@ -716,7 +708,7 @@ describe("what the guard reads", () => {
     "packages/core/widget-shell/node_modules/x/README.md",
     "packages/core/widget-shell/src/notes.md",
     "packages/connectors/engine/engine-connector/src/messages/GLOSSARY.md",
-    ".claude/skills/shadcn/rules/forms.md",
+    ".claude/skills/create-board/rules/widgets.md",
     "templates/composed-server/server/README.md",
     "templates/claude-artifact/fixtures/README.md",
     "templates/claude-artifact/node_modules/@miragon/pulse-ui/README.md",
@@ -730,7 +722,7 @@ describe("what the guard reads", () => {
     })
   }
 
-  it("checks the identifiers of the skills that teach repo code and of the nested agent files", () => {
+  it("checks the identifiers of the skills and of the nested agent files", () => {
     assert.deepEqual(
       identifierDocs([
         "CLAUDE.md",
@@ -740,9 +732,7 @@ describe("what the guard reads", () => {
         "apps/vscode/CLAUDE.md",
         "apps/cli/README.md",
         "packages/connectors/engine/engine-domain/AGENTS.md",
-        ".claude/skills/add-bpm-feature/SKILL.md",
-        ".claude/skills/shadcn/SKILL.md",
-        ".claude/skills/create-ticket/SKILL.md",
+        ".claude/skills/create-board/SKILL.md",
         "templates/composed-server/.claude/skills/add-widget/SKILL.md",
         "templates/claude-artifact/README.md",
         "apps/cli/skills/pulse-cli/SKILL.md",
@@ -751,7 +741,7 @@ describe("what the guard reads", () => {
         "apps/mcp-server/skills/pulse-artifact/evals/process-dashboard/prompt.md",
       ]),
       [
-        ".claude/skills/add-bpm-feature/SKILL.md",
+        ".claude/skills/create-board/SKILL.md",
         "templates/composed-server/.claude/skills/add-widget/SKILL.md",
         "apps/mcp-server/skills/pulse-artifact/SKILL.md",
         "apps/mcp-server/skills/pulse-artifact/references/components.md",
@@ -908,7 +898,7 @@ describe("what the guard reads", () => {
       "apps/mcp-server/test-host/README.md",
       "templates/composed-server/CLAUDE.md",
       "templates/claude-artifact/README.md",
-      ".claude/skills/add-bpm-feature/SKILL.md",
+      "apps/vscode/skills/pulse-boards/SKILL.md",
       "templates/composed-server/.claude/skills/setup-server/SKILL.md",
     ]) {
       assert.ok(docFiles.includes(doc), doc)
@@ -916,10 +906,6 @@ describe("what the guard reads", () => {
     assert.ok(docFiles.length >= 28)
     // Every skill by name: the scanner reads each one, not just enough of them.
     assert.deepEqual([...skillFiles].sort(), [
-      ".claude/skills/add-bpm-feature/SKILL.md",
-      ".claude/skills/create-ticket/SKILL.md",
-      ".claude/skills/mcp-apps-builder/SKILL.md",
-      ".claude/skills/shadcn/SKILL.md",
       "apps/mcp-server/skills/pulse-artifact/SKILL.md",
       "templates/composed-server/.claude/skills/add-widget/SKILL.md",
       "templates/composed-server/.claude/skills/create-module/SKILL.md",

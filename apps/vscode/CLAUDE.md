@@ -495,6 +495,15 @@ at history level AUDIT too
   fails while it misses a work or lists one the bundles hold no more, so a bump of a bundled package
   writes it again in its pull request:
   `pnpm --fail-if-no-match --filter pulse-cockpit third-party-licenses`.
+- The Claude Code plugin `pulse-boards` (`apps/vscode/skills/pulse-boards`, listed in the
+  repository's `.claude-plugin/marketplace.json` beside the CLI's and the MCP server's) holds the
+  skill that writes a board file, for users of Pulse, never of this repository: it names no path of
+  the repository and checks a file with the published `@miragon/pulse-board`. Its plugin root is
+  the skill's folder, as the CLI's, its `plugin.json` carries the release's version
+  (`release-please-config.json`), the .vsix never ships it (`.vscodeignore`), and the job "Claude
+  Code plugins (validate)" of `ci.yml` validates it and holds its version to the extension's. A
+  change to the board format (widgets, props, filters, limits) updates its `SKILL.md` in the same
+  pull request.
 - Commit messages are Conventional Commits with the scope `vscode`.
 - Model BPMN only with the bpmn CLI (`npx -y @miragon/bpmn-cli@0.7.0`), never by hand; the
   conformance world's element ids are fixed.

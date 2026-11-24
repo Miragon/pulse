@@ -27,7 +27,7 @@ export const SCOPES = [
 ]
 
 /** The apps that ship a Claude Code plugin (apps/<app>/skills/<plugin>/.claude-plugin/plugin.json). */
-export const PLUGIN_APPS = ["cli", "mcp-server"]
+export const PLUGIN_APPS = ["cli", "mcp-server", "vscode"]
 
 const PROSE = /\.(?:md|png|jpe?g|gif|webp)$/
 

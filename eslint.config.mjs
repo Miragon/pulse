@@ -160,7 +160,7 @@ const CONNECTOR_SOURCE = "*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}"
 // Invariant 1: the SDK's method and ext-apps' `registerAppTool`.
 const registrarGate = registrationGate(
   "/^(registerTool|registerAppTool)$/",
-  "Operations tools are registered through createToolRegistrar (@miragon/pulse-widget-shell/server) in src/tools/ (see .claude/skills/add-bpm-feature); a raw server.registerTool() or ext-apps' registerAppTool() (also via an import, a computed key, .call/.bind/.apply, destructuring or a string that names it) is reserved for the widget-tools files.",
+  "Operations tools are registered through createToolRegistrar (@miragon/pulse-widget-shell/server) in src/tools/ (CLAUDE.md, invariant 1); a raw server.registerTool() or ext-apps' registerAppTool() (also via an import, a computed key, .call/.bind/.apply, destructuring or a string that names it) is reserved for the widget-tools files.",
 )
 
 // Invariant 3: a customer's module may bring a finished HTML view of its own; the engine

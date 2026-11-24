@@ -42,13 +42,12 @@ as `engine` via `engineModule` (`src/module.ts`), which conforms structurally to
 
 ## Adding a tool or widget
 
-This module has strict house patterns: read the
-[`add-bpm-feature`](../../../../.claude/skills/add-bpm-feature) skill and the architecture invariants in
+This module has strict house patterns: read the architecture invariants in
 [`CLAUDE.md`](../../../../CLAUDE.md) before adding tools, schemas, or widgets. In short: input schemas live
 in `src/schemas/` next to the tools, the pure engine rules in
 [`@miragon/pulse-c7-core`](../../c7/c7-core), tools register via the registrar (never a raw
 `server.registerTool()`), and a view is a cockpit route (its section, its builder and `*_data` feed, its
-start view), never a second view tool: see the add-bpm-feature skill.
+start view), never a second view tool (invariant 3).
 
 ## Layout
 

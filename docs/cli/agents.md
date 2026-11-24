@@ -68,7 +68,8 @@ The plugin lives in
 The npm package ships it too, so
 `claude --plugin-dir "$(npm root -g)/@miragon/pulse-cli/skills/pulse-cli"` loads the installed
 version for one session. The marketplace also lists `pulse-artifact`, which builds
-[Claude artifacts](../mcp/claude-artifacts.md) on the MCP server.
+[Claude artifacts](../mcp/claude-artifacts.md) on the MCP server, and `pulse-boards`, which writes
+[board files](../vscode/boards.md#let-claude-code-write-a-board) for Pulse for VS Code.
 
 ## Claude Code skill without the plugin
 

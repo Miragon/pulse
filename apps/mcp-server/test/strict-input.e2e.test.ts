@@ -70,9 +70,9 @@ describe("strict tool inputs on the wire (full surface)", () => {
 
   // Strict input makes the vocabulary load-bearing: a model that learned a
   // name on one tool is REFUSED on the next tool that spells the same concept
-  // differently. The naming guide (add-bpm-feature skill) names one spelling
+  // differently. The naming rule (CLAUDE.md, invariant 5) keeps one spelling
   // per concept; these are the spellings it retired.
-  it("no tool takes a name the naming guide replaced", () => {
+  it("no tool takes a name the naming rule retired", () => {
     const RETIRED: Record<string, string> = {
       key: "processDefinitionKey",
       id: "<entity>Id",
