@@ -67,7 +67,7 @@ services:
   #   docker compose -f playground/docker/docker-compose.yml --profile dev up -d cibseven-dev
   cibseven-dev:
     profiles: [dev]
-    image: cibseven/cibseven:run-2.2.0
+    image: cibseven/cibseven:run-3.0.0
     ports:
       - "127.0.0.1:8410:8080"
     environment:
