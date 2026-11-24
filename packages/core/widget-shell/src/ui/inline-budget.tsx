@@ -28,6 +28,15 @@ export function useInlineBudget(): InlineBudget {
   return useContext(InlineBudgetContext)
 }
 
+/**
+ * The tallest a diagram may grow in this view: 320 px inline in a chat, where the card offers
+ * fullscreen for more, else null (the diagram's own maximum). Hand it to pulse-ui's `BpmnDiagram`
+ * or `useBpmnViewer` as `maxHeight`, which know no host.
+ */
+export function useDiagramMaxHeight(): number | null {
+  return useInlineBudget().diagramMaxHeight
+}
+
 /** A paged list fits as ONE list: a `ListTable` inside hands its body here instead of capping twice. */
 const RowsBudgetedContext = createContext<InlineRows | null>(null)
 

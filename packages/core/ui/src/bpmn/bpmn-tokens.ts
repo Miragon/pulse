@@ -1,4 +1,4 @@
-import type { CdTokenName, ROLE_TOKENS } from "@miragon/pulse-ui"
+import type { CdTokenName, ROLE_TOKENS } from "../index.js"
 
 /**
  * The light canvas: every colour it paints, as a `--cd-*` token named once; `bpmn-tokens.test.ts`
@@ -88,8 +88,9 @@ export const BPMN_CANVAS_VARS = {
 
 type CanvasVar = (typeof BPMN_CANVAS_VARS)[keyof typeof BPMN_CANVAS_VARS]
 
-/** A canvas variable or one of pulse-ui's roles, as a value. */
-const v = (name: CanvasVar | RoleToken) => `var(${name})`
+/** A canvas variable or one of pulse-ui's roles, as a value; outside a canvas its fallback role. */
+const v = (name: CanvasVar | RoleToken, fallback?: RoleToken) =>
+  fallback === undefined ? `var(${name})` : `var(${name}, var(${fallback}))`
 const V = BPMN_CANVAS_VARS
 const L = BPMN_TOKENS
 const D = BPMN_DARK_ROLES
@@ -174,6 +175,17 @@ const DARK_SCOPES = '.dark, [data-theme="dark"], [data-theme-mode="dark"], [data
 const LIGHT_ISLANDS = '[data-theme-mode="light"], [data-cd-theme="light"]'
 
 /**
+ * The canvas where the page names no mode on its root (neither `data-theme` nor `data-cd-theme`),
+ * outside a light island: dark under the system's dark scheme (`prefers-color-scheme`), as the
+ * kit's roles are there, so a page without a script of its own draws its canvas in its mode. A host
+ * and the web app always name the mode (widget-shell's `applyDocumentTheme`).
+ */
+export const BPMN_SYSTEM_DARK_CANVAS = `:root:not([data-theme], [data-cd-theme]) ${CANVAS}:not(:is(${LIGHT_ISLANDS}) *)`
+
+/** The zero-sized host an element's counts grow from, over its top right corner. */
+export const BADGE_ANCHOR = "pulse-badge-anchor"
+
+/**
  * pulse-ui's `dark:` variant on the canvas: dark in the NEAREST mode scope, so the canvas takes
  * the mode its roles resolve in (a dark scope with no light island in between, or a dark scope
  * nested in a light island).
@@ -220,8 +232,13 @@ const contrasted = (marker: string) => `${BPMN_HIGH_CONTRAST} ${outline(marker)}
  * instead of its ring. Forced colours: the drawing in the system's palette
  * ({@link BPMN_FORCED_CANVAS}), a badge Canvas with CanvasText, edged in CanvasText, bpmn.io's link
  * LinkText; an incident's outline 3 px and a running one 2 px, so the two differ by their width
- * where both are Highlight. `useBpmnViewer` injects it once per document
- * ({@link injectBpmnOverlayCss}).
+ * where both are Highlight. A page that sets no mode on its root (neither `data-theme` nor
+ * `data-cd-theme`) follows the system's: its canvas is dark where the system is, as the kit's roles
+ * are ({@link BPMN_SYSTEM_DARK_CANVAS}). The counts on an element (`BpmnDiagram`) grow from a
+ * zero-sized anchor over its top right corner to the left, each count a button where it leads
+ * somewhere, a stale count neutral, a legend's sample smaller; the incidents in called instances
+ * keep their look outside a canvas too (a legend's sample), where each `--bpmn-*` variable falls
+ * back to a role. `useBpmnViewer` injects it once per document ({@link injectBpmnOverlayCss}).
  */
 export const BPMN_OVERLAY_CSS = `
 ${CANVAS} {
@@ -233,6 +250,14 @@ ${declare(BPMN_CANVAS_ROLES.dark)}
 }
 :where(${BPMN_DARK_CANVAS}) .bjs-powered-by {
   color: ${v(D.credit)} !important;
+}
+@media (prefers-color-scheme: dark) {
+  ${BPMN_SYSTEM_DARK_CANVAS} {
+${declare(BPMN_CANVAS_ROLES.dark, { indent: "    " })}
+  }
+  :where(${BPMN_SYSTEM_DARK_CANVAS}) .bjs-powered-by {
+    color: ${v(D.credit)} !important;
+  }
 }
 ${outline("highlight-running")} {
   fill: ${v(V.runningFill)} !important;
@@ -277,13 +302,55 @@ ${contrasted("highlight-incident")} {
   color: ${cdVar(incidentBadge.text)};
 }
 .bpmn-overlay-badge--called-incident-count {
-  border: 1.5px solid ${v(V.incidentStroke)};
-  background: ${v(V.paper)};
-  color: ${v(V.ink)};
+  gap: 3px;
+  padding-left: 4px;
+  border: 1.5px solid ${v(V.incidentStroke, "--danger")};
+  background: ${v(V.paper, "--card")};
+  color: ${v(V.ink, "--foreground")};
+}
+.bpmn-overlay-badge--called-incident-count > svg {
+  color: ${v(V.incidentStroke, "--danger")};
+}
+.bpmn-overlay-badge.pulse-badge-stale {
+  border: 1px solid ${v("--border")};
+  background: ${v("--card")};
+  color: ${v("--foreground")};
+}
+.bpmn-overlay-badge.pulse-badge-legend {
+  min-width: 24px;
+  height: 16px;
+  box-shadow: none;
 }
 ${BPMN_HIGH_CONTRAST} .bpmn-overlay-badge {
   box-shadow: none;
   outline: 1px solid ${v(V.ink)};
+}
+.${BADGE_ANCHOR} {
+  position: relative;
+  width: 0;
+  height: 0;
+}
+.badge-cluster {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  gap: 4px;
+}
+.badge-cluster__count {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  border-radius: var(--cd-radius-pill);
+  background: none;
+  cursor: pointer;
+}
+.badge-cluster__count--plain {
+  cursor: default;
+}
+.badge-cluster__count:focus-visible {
+  outline: 2px solid ${v("--focus")};
+  outline-offset: 2px;
 }
 @media (forced-colors: active) {
   ${CANVAS} {
@@ -303,6 +370,16 @@ ${declare({ ...BPMN_FORCED_CANVAS, ...heatOf("light") }, { indent: "    ", impor
   ${CANVAS} .bpmn-overlay-badge {
     border: 1px solid CanvasText;
     background: Canvas;
+    color: CanvasText;
+  }
+  .bpmn-overlay-badge.bpmn-overlay-badge--called-incident-count,
+  .bpmn-overlay-badge.pulse-badge-stale {
+    forced-color-adjust: none;
+    border: 1px solid CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+  .bpmn-overlay-badge--called-incident-count > svg {
     color: CanvasText;
   }
 }

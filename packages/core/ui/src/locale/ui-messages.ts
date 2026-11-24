@@ -12,6 +12,7 @@ import { de } from "./messages-de.js"
 import { en } from "./messages-en.js"
 
 export type {
+  BpmnMessages,
   CommonMessages,
   ConditionChipMessages,
   CopyableIdMessages,
@@ -76,6 +77,7 @@ export function resolveUiMessages(
     freshness: { ...base.freshness, ...override.freshness },
     sectionState: { ...base.sectionState, ...override.sectionState },
     pageError: { ...base.pageError, ...override.pageError },
+    bpmn: { ...base.bpmn, ...override.bpmn },
   }
 }
 

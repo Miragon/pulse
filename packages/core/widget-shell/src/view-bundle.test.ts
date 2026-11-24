@@ -9,9 +9,10 @@ const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.
 
 /**
  * Peers a second copy of costs only bytes, never a context: zod holds no state the views
- * share, and bpmn-js draws into the element it is given.
+ * share. (bpmn-js, which draws into the element it is given, is pulse-ui's peer since the diagram
+ * moved to `@miragon/pulse-ui/bpmn`.)
  */
-const STATELESS_PEERS = ["zod", "bpmn-js"]
+const STATELESS_PEERS = ["zod"]
 
 describe("VIEW_BUNDLE_DEDUPE", () => {
   it("names this package and every peer that carries a context or module state", () => {

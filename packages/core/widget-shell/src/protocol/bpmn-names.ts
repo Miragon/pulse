@@ -2,6 +2,11 @@
  * One BPMN name reader for server and browser, so no two modules name a process differently.
  * The Camunda Modeler names the POOL, not the process, and writes `&`, line breaks etc. as numeric
  * character references; a reader that missed either would show the key or the raw reference.
+ *
+ * One text in two files: pulse-ui's (`@miragon/pulse-ui/bpmn`, for the diagram and every page) and
+ * widget-shell's protocol (its `/server`, whose server half imports no pulse-ui). Both packages
+ * are leaves that share it through no third, so `scripts/bpmn-name-readers.test.mjs` holds the two
+ * files byte for byte: a fix of one reaches the other in the same change.
  */
 
 export interface BpmnNames {

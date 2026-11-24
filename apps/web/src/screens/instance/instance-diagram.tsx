@@ -3,11 +3,7 @@ import { createPortal } from "react-dom"
 import { CalledInstanceMenu, type InstanceSlots } from "@miragon/pulse-blocks"
 import type { CallLinkData, MarkerData, ScreenTarget } from "@miragon/pulse-screens"
 import { cn, FOCUS_RING, Icon, shortId } from "@miragon/pulse-ui"
-import {
-  BpmnZoomControls,
-  useBpmnViewer,
-  type BpmnViewerWithGet,
-} from "@miragon/pulse-widget-shell/widgets"
+import { BpmnZoomControls, useBpmnViewer, type BpmnViewerWithGet } from "@miragon/pulse-ui/bpmn"
 import { ArrowUpRight } from "lucide-react"
 import { useT } from "../../messages/index.js"
 import { PageLink, type Navigate } from "../../router/page-link.js"

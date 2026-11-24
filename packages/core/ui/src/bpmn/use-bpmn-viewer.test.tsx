@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react"
-import { BPMN_LABEL_STYLE } from "@miragon/pulse-ui"
+import { BPMN_LABEL_STYLE } from "../index.js"
 import TextRenderer from "bpmn-js/lib/draw/TextRenderer"
 import { BPMNIO_IMG } from "bpmn-js/lib/util/PoweredByUtil"
 import { BpmnZoomControls } from "./bpmn-zoom-controls.js"
@@ -17,7 +17,7 @@ import {
   useBpmnViewer,
 } from "./use-bpmn-viewer.js"
 
-// bpmn-js needs a real SVG engine happy-dom lacks; the full lifecycle suite runs in the engine connector.
+// bpmn-js needs a real SVG engine happy-dom lacks; the lifecycle suite is use-bpmn-viewer.lifecycle.test.tsx.
 const mock = vi.hoisted(() => {
   /** Viewbox cached on first read and dropped only by `resized()` (Canvas.js 15.27). */
   type Box = { x: number; y: number; width: number; height: number }
@@ -275,6 +275,13 @@ describe("useBpmnViewer names the canvas, never its frame (axe's nested-interact
     await waitFor(() => expect(mock.MockViewer.containers).toEqual([canvas()]))
     expect(screen.queryByRole("img")).toBeNull()
     expect(canvas().querySelector("svg")?.hasAttribute("aria-label")).toBe(false)
+  })
+
+  it("adds no drilldown button to a collapsed subprocess, whose plane has no way back", async () => {
+    render(<Named xml={XML} label="BPMN process diagram" />)
+    await screen.findByRole("img", { name: "BPMN process diagram" })
+    const [options] = mock.MockViewer.options
+    expect(options?.additionalModules).toEqual([{ drilldownOverlayBehavior: ["value", null] }])
   })
 
   it("hides bpmn-js's drilldown trail, never in sight under the canvas, so no list reads beside the image", async () => {

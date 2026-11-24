@@ -210,6 +210,7 @@ export {
 export {
   UI_MESSAGES,
   resolveUiMessages,
+  type BpmnMessages,
   type CommonMessages,
   type ConditionChipMessages,
   type CopyableIdMessages,

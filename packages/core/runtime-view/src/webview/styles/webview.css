@@ -4,6 +4,7 @@
 @source "../";
 @source "../../../node_modules/@miragon/pulse-ui/dist";
 @source not "../../../node_modules/@miragon/pulse-ui/dist/testing";
+@source not "../../../node_modules/@miragon/pulse-ui/dist/bpmn";
 @source not "../../../node_modules/@miragon/pulse-ui/dist/**/*.test.js";
 @source "../../../node_modules/@miragon/pulse-blocks/dist";
 @source not "../../../node_modules/@miragon/pulse-blocks/dist/**/*.test.js";

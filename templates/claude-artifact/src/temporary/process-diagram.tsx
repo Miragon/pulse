@@ -11,11 +11,7 @@ import {
   type ElementDecorationData,
 } from "@miragon/pulse-screens"
 import { formatCount } from "@miragon/pulse-ui"
-import {
-  BpmnZoomControls,
-  useBpmnViewer,
-  type BpmnViewerWithGet,
-} from "@miragon/pulse-widget-shell/widgets"
+import { BpmnZoomControls, useBpmnViewer, type BpmnViewerWithGet } from "@miragon/pulse-ui/bpmn"
 import { useT } from "../messages.ts"
 import { CanvasBadge } from "./canvas-badge.tsx"
 

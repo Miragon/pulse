@@ -101,18 +101,21 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   gets an answer naming the module, a thrown error's message reaches the client, its stack the log,
   and a template's `list` that fails or hangs costs only its own entries. A widget in the bundle is
   the right choice unless you need that independence.
-- **BPMN names** (`./server`, and `./widgets` for a view): `readBpmnNames` / `parseBpmnNames`: the one rule every module
-  reads a model's names by, without a DOM (a process's own name, else its Modeler pool's;
-  character references such as `&#10;` and `&#38;` decoded, space folded), so two modules never
-  name the same process or activity differently.
+- **BPMN names** (`./server`; a view reads them from `@miragon/pulse-ui/bpmn`):
+  `readBpmnNames` / `parseBpmnNames`: the one rule every module reads a model's names by, without
+  a DOM (a process's own name, else its Modeler pool's; character references such as `&#10;` and
+  `&#38;` decoded, space folded), so two modules never name the same process or activity
+  differently. `scripts/bpmn-name-readers.test.mjs` holds both copies to the same bytes.
 - **Host-bound UI** (`./widgets`): what widget-shell adds on top of the design kit
-  `@miragon/pulse-ui`, the pieces that touch the host, a tool call or BPMN
-  (`WidgetShell`, `ListTable` + `PagedRows`, the dual-mode data hooks, hand-offs, the BPMN
-  viewer, …), reused across both widget packages.
+  `@miragon/pulse-ui`, the pieces that touch the host or a tool call (`WidgetShell`,
+  `ListTable` + `PagedRows`, the dual-mode data hooks, hand-offs, …), reused across both widget
+  packages. The BPMN diagram and its viewer are pulse-ui's (`@miragon/pulse-ui/bpmn`).
   Inline in a chat a view is a card (#396): the view root's measured fit (`HostDocument`,
   `InlineFitBox`) caps a paged list (`usePagedViewData`) and an unpaged `ListTable` to the
   rows that fit the host's height budget, measured on the rendered view, with the count and
-  a way to the rest (fullscreen where the host offers it); the BPMN canvas stays at 320 px.
+  a way to the rest (fullscreen where the host offers it); a BPMN canvas stays at 320 px only
+  where the view hands `useDiagramMaxHeight()` to pulse-ui's `BpmnDiagram` (`maxHeight`) or
+  `useBpmnViewer`.
   Layout, states and feedback: `ListTable`, over pulse-ui's `DataTable`, scrolls inside a
   named, keyboard-reachable region with a sticky head and 28 px rows (column priorities via
   `hideBelow`, the row actions pinned with `sticky`, a column as narrow as its one line with
@@ -125,10 +128,8 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   `ViewDataState`, `QueryFallback`, `useDetailView`, raw text under "Details", retry
   required), `useActionFeedback` raises pulse-ui's toasts after a write (an engine
   refusal's own reason quoted, a write whose answer never came flagged), `ConfirmDialog`
-  asks before one, and the BPMN canvas follows the theme from one token module (`BPMN_TOKENS`
-  on light, pulse-ui's roles on dark, the system's palette under forced colours,
-  `BPMN_OVERLAY_CSS`) with its height from the diagram's
-  size at the scale bpmn-js draws it (read from the XML's DI before the import). The design kit (the
+  asks before one, and `useDiagramMaxHeight` hands pulse-ui's BPMN diagram (`@miragon/pulse-ui/bpmn`,
+  no host of its own) the inline budget of a chat card. The design kit (the
   primitives and components, the `TONE_*` maps, `cn`, the formatters, `Icon`, the table
   cells `Th`/`Td`, `TableEmptyState`, `NamedId`, `KometMark`/`AppEmptyState`,
   `TEXT_BLOCK_FRAME`, …) is imported from `@miragon/pulse-ui`: widget-shell neither forks nor

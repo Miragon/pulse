@@ -1,8 +1,8 @@
 import { useMemo } from "react"
 import { Section, SectionHeading } from "@miragon/pulse-ui"
-
+import type { DiagramMarker } from "@miragon/pulse-ui/bpmn"
 import type { InstanceDetailData, OpenUserTask } from "../../view-models.js"
-import { BpmnDiagram, type BpmnHighlight } from "../bpmn-diagram.js"
+import { BpmnDiagram } from "../bpmn-diagram.js"
 import { ActivityNode } from "../instance-sections.js"
 import { useT } from "../../messages/use-t.js"
 
@@ -22,14 +22,15 @@ export function InstanceDiagramSection({
   visibleTasks: OpenUserTask[]
 }) {
   const t = useT()
-  const highlights = useMemo<BpmnHighlight[]>(
+  // Where the instance waits, its open user tasks and its incidents, the strongest one an element.
+  const markers = useMemo<DiagramMarker[]>(
     () => [
-      { kind: "active", activityIds: activeActivityIds },
-      { kind: "incident", activityIds: incidentActivityIds },
-      {
-        kind: "open-task",
-        activityIds: visibleTasks.map((task) => task.taskDefinitionKey),
-      },
+      ...activeActivityIds.map((elementId) => ({ elementId, kind: "running" as const })),
+      ...visibleTasks.map((task) => ({
+        elementId: task.taskDefinitionKey,
+        kind: "openTask" as const,
+      })),
+      ...incidentActivityIds.map((elementId) => ({ elementId, kind: "incident" as const })),
     ],
     [activeActivityIds, incidentActivityIds, visibleTasks],
   )
@@ -39,11 +40,7 @@ export function InstanceDiagramSection({
       {diagramDefinitionId && (
         <>
           <SectionHeading as="h2" title={t("instanceDetail.sectionDiagram")} />
-          <BpmnDiagram
-            definitionId={diagramDefinitionId}
-            engineId={engineId}
-            highlights={highlights}
-          />
+          <BpmnDiagram definitionId={diagramDefinitionId} engineId={engineId} markers={markers} />
         </>
       )}
       {/* Textual token view next to the diagram: shows multi-instance

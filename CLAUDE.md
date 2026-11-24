@@ -53,8 +53,9 @@ as pages of the server, a CLI and two editor hosts for the same engines.
   editor hosts' private `c7-adapter`
 - `packages/connectors/c8/`: the Camunda 8 family: `c8-core` (`C8Runtime`, `C8Failures` over a
   transport port) and the editor hosts' private, read-only `c8-adapter`
-- `packages/core/ui/`: `@miragon/pulse-ui`, the design kit and theme (`theme.css`), framework-free
-  `/format` and `/tones`, the brand gates in `/testing`
+- `packages/core/ui/`: `@miragon/pulse-ui`, the design kit and theme (`theme.css`), the BPMN
+  diagram for any page (`/bpmn`, bpmn-js its optional peer), framework-free `/format` and
+  `/tones`, the brand gates in `/testing`
 - `packages/core/widget-shell/`: the view runtime (`/widgets`), the registrar
   (`createToolRegistrar`), the boot (`/server`) with the web app's sign-in (`src/web`), a module's
   test server (`/testing`)
@@ -212,7 +213,8 @@ nur hier dokumentiert):
   bleibt das Papier weiß; dunkel ist es der Grund, Striche und Beschriftungen im Text, Marker im
   `-hell`-Wert ihres Tons, Zähl-Badges gefüllt auf einem Ring aus Papier. Hoher Kontrast: Marker
   3 px, Badges mit 1-px-Kante statt Ring. `forced-colors`: Systemfarben, weil der Browser SVG nicht
-  umfärbt. Die Werte: `packages/core/widget-shell/src/ui/bpmn-tokens.ts`.
+  umfärbt. Eine Seite ohne Modus an ihrer Wurzel folgt dem System. Die Werte:
+  `packages/core/ui/src/bpmn/bpmn-tokens.ts`.
 - Schrift: Geist, dann die Schrift des Hosts (`adoptHostFontVariables`), dann System. Der Server
   liefert Geist selbst aus (`installFontAssets`, kein CDN, `declareServedFonts` in der CSP); blockt
   ein Host den Ursprung, rendert die Host-Schrift, ohne dass etwas wartet.
@@ -424,9 +426,14 @@ for every workspace package.
      `format*` helpers and `shortId` in the view's locale (ESLint's date and number gates over
      `WIDGET_TREES`); a count reaches a catalog entry formatted, and the entry puts the noun in the
      right number (`plural(…)`), never a `…One`/`…Other` key pair.
-   - **BPMN** renders through `useBpmnViewer` + `BpmnZoomControls` on the themed canvas, every
-     colour from `bpmn-tokens.ts`. A marker paints its shape's outline, never a label; the canvas
-     alone is the image (`ariaLabel`).
+   - **BPMN** renders through pulse-ui's `./bpmn` entry, which needs no host (owner decision
+     2026-11-24): `BpmnDiagram`, or `useBpmnViewer` + `BpmnZoomControls` for a drawing of a
+     surface's own (the heat), on the themed canvas, every colour from `bpmn-tokens.ts`; a chat view
+     hands it the host's inline budget (`useDiagramMaxHeight`). One badge scheme, the shared
+     screens' (owner decision 2026-11-24): an element's counts apart over its top right corner, root
+     incidents red, the incidents in called instances a quiet badge of their own, running blue; only
+     an own root incident outlines the element (the editors' webview keeps its filled pills). A
+     marker paints its shape's outline, never a label; the canvas alone is the image (`ariaLabel`).
    - **Paged lists** compose `usePagedListView` (an honest total; counts and model contexts read
      the payload on screen, never the request) + `ListTable` + `PagedListFooter`; optimistic state
      resets with `useResetOnChange`, never in an effect. A shared screen's list pages by cursor

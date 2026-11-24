@@ -2,9 +2,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { useEffect } from "react"
 import { cleanup, render, waitFor } from "@testing-library/react"
-import { useBpmnViewer, type BpmnViewerWithGet } from "@miragon/pulse-widget-shell/widgets"
+import { useBpmnViewer, type BpmnViewerWithGet } from "./use-bpmn-viewer.js"
 
-// bpmn-js replaced by a recording stub: it needs a real SVG engine, which happy-dom lacks.
+// bpmn-js replaced by a recording stub: it needs a real SVG engine, which happy-dom lacks. The
+// viewer's lifecycle: mount, import, reimport on a new key, its failure, its teardown.
 const mock = vi.hoisted(() => {
   type Box = { x: number; y: number; width: number; height: number }
   class MockCanvas {

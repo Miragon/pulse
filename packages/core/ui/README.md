@@ -15,8 +15,9 @@ npm install @miragon/pulse-ui react react-dom lucide-react tailwindcss
 ```
 
 `react`, `react-dom` and `lucide-react` are required peers; `tailwindcss` is needed for the
-stylesheets only, and `typescript` for the brand gates under `./testing` only. `./format`,
-`./tones` and `./glossary` need no peer at runtime.
+stylesheets only, `typescript` for the brand gates under `./testing` only, and `bpmn-js` (pin
+`18.31.1`) for the BPMN diagram under `./bpmn` only. `./format`, `./tones` and `./glossary` need
+no peer at runtime.
 
 ## Minimal example
 
@@ -289,6 +290,67 @@ reader reads each chart as a visually hidden table, each value in words ("at lea
 an exact whole: a lower bound's share says so (`≥ 40%`), no part reads as 0 % or as all unless
 it is, and a whole that is not exact (`total` a lower bound or unknown, or the rows' sum while a
 row is) shows no share at all, its bars comparing the rows.
+
+## The BPMN diagram (`./bpmn`)
+
+A process diagram with Pulse's markers, count badges and legend for any React page, with no host:
+no MCP SDK, no TanStack Query, no zod (its tests bundle the entry to prove it). It draws with
+bpmn-js, an optional peer only this entry imports, and brings its own stylesheet (the canvas in
+the theme, the markers, the badges), so a page imports no CSS for it.
+
+```sh
+npm install @miragon/pulse-ui bpmn-js@18.31.1
+```
+
+```tsx
+import { BpmnDiagram, DiagramLegend } from "@miragon/pulse-ui/bpmn"
+
+export function Diagram({ xml }: { xml: string }) {
+  return (
+    <>
+      <DiagramLegend scope="Badges count every version, drawn on v3." />
+      <BpmnDiagram
+        xml={xml}
+        ariaLabel="Bike Leasing, version 3"
+        decorations={[
+          {
+            elementId: "Activity_DecideOnApplication",
+            counts: [{ kind: "running", count: 33 }],
+            incident: false,
+          },
+          {
+            elementId: "Activity_SendPolicy",
+            counts: [{ kind: "incidents", count: 7 }],
+            incident: true,
+          },
+        ]}
+        onSelect={(element, count) => console.info(element.id, count.kind)}
+      />
+    </>
+  )
+}
+```
+
+- **One badge scheme**, the shared screens': an element's counts sit apart over its top right
+  corner, its open root incidents in red, the incidents in the instances it called in a quiet
+  badge of their own (never part of its incident count), its running instances in blue; only an
+  own root incident outlines the element. `decorations` takes the screens' diagram decorations
+  as they are (`DiagramDecorations.of` of `@miragon/pulse-screens`); `markers` outlines an
+  instance's wait, open task or incident without a count. An element the drawing lacks is
+  skipped without an error.
+- **Counts in words.** Without `onSelect` the badges are a drawing and the page says the counts
+  elsewhere; with it each count is a button named by its element and its figure, and
+  `selectable` draws one that leads nowhere without a button. `nameOf` names an element (default:
+  its name in the XML). `renderCounts` draws a surface's own counts in each element's anchor.
+- **The frame.** Its height is the diagram's own (240 to 560 px), a fixed `height`, or `"fill"`
+  for the box it sits in; `maxHeight` caps it (an MCP view passes widget-shell's
+  `useDiagramMaxHeight`). The zoom bar sits top right, bpmn.io's link bottom right, the fit
+  keeps the drawing clear of both. The canvas follows the theme: light, dark (`data-theme`,
+  `.dark`, or the system's scheme where the page sets no mode), high contrast
+  (`data-cd-kontrast="hoch"`) and forced colours.
+- **For a drawing of your own**: `useBpmnViewer` with `BpmnZoomControls`, the canvas's tokens
+  (`BPMN_TOKENS`, `BPMN_CANVAS_VARS`, `BPMN_OVERLAY_CSS`), `CanvasBadge` (the badge, as the blocks'
+  `Badge` slot) and the one BPMN name reader (`readBpmnNames`, `parseBpmnNames`).
 
 ## Your own brand
 

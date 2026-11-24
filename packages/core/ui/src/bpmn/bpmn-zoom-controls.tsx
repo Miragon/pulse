@@ -1,7 +1,6 @@
-import { cn, FOCUS_RING_INSET, useLocale, Icon } from "@miragon/pulse-ui"
 import { Scan, ZoomIn, ZoomOut } from "lucide-react"
+import { cn, FOCUS_RING_INSET, Icon, useUiMessages } from "../index.js"
 import { ZOOM_CONTROLS_SLOT } from "./bpmn-fit.js"
-import { kitLabels } from "./kit-labels.js"
 
 interface BpmnZoomControlsLabels {
   zoomIn?: string
@@ -31,10 +30,10 @@ export function BpmnZoomControls({
   labels,
   className,
 }: BpmnZoomControlsProps) {
-  const defaults = kitLabels(useLocale())
+  const defaults = useUiMessages().bpmn
   const buttons = [
     { key: "in", icon: ZoomIn, onClick: onZoomIn, title: labels?.zoomIn ?? defaults.zoomIn },
-    { key: "fit", icon: Scan, onClick: onFit, title: labels?.fit ?? defaults.fitViewport },
+    { key: "fit", icon: Scan, onClick: onFit, title: labels?.fit ?? defaults.fit },
     { key: "out", icon: ZoomOut, onClick: onZoomOut, title: labels?.zoomOut ?? defaults.zoomOut },
   ]
   return (

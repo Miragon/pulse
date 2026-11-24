@@ -19,7 +19,7 @@ of them:
 - `ColumnSizing`: columns a reader sizes by dragging, as `useColumnSizing` returns it
 - `BpmnElementRegistry`: bpmn-js's element registry, `viewer.get("elementRegistry")`
 - `BpmnEventBus`: bpmn-js's event bus, `viewer.get("eventBus")`
-- `FitRect`: a box `{ x, y, width, height }` in diagram units, which widget-shell keeps to itself
+- `FitRect`: a box `{ x, y, width, height }` in diagram units, which pulse-ui keeps to itself
 
 Import each name from the entry its section names, never from a `dist/` path.
 
@@ -1525,10 +1525,21 @@ interface DefinitionRefData {
 type InstanceScopeCode = "running" | "ended" | "withIncident" | "all"
 ```
 
-## @miragon/pulse-widget-shell/widgets
+## @miragon/pulse-ui/bpmn
 
 ```ts
 import {
+  BpmnDiagram,
+  type DiagramDecoration,
+  type DiagramCount,
+  type DiagramCountKind,
+  type DiagramMarker,
+  type DiagramMarkerKind,
+  type DiagramElement,
+  type DiagramSelectHow,
+  type DiagramCountsProps,
+  DiagramLegend,
+  CanvasBadge,
   useBpmnViewer,
   type BpmnViewerWithGet,
   type BpmnCanvas,
@@ -1536,10 +1547,204 @@ import {
   BpmnZoomControls,
   parseBpmnNames,
   readBpmnNames,
-  describeError,
-  type PageHints,
-  isPermanentError,
-} from "@miragon/pulse-widget-shell/widgets"
+} from "@miragon/pulse-ui/bpmn"
+```
+
+### BpmnDiagram
+
+```ts
+/**
+ * A BPMN diagram on the kit's themed canvas, for any React page, with no host: the drawing with
+ * Pulse's markers and count badges in the one badge scheme (owner decision 2026-11-24, the shared
+ * screens'), the zoom bar at its top right (bpmn.io's link takes the bottom right) and the fit.
+ * Each element's counts sit apart over its top right corner: its open root incidents in the
+ * incident's colour, the incidents in the instances it called quiet in a badge of their own, its
+ * running instances on the info ramp; only an own root incident outlines the element. An element
+ * the drawing lacks is skipped without an error. It draws again when the elements it decorates
+ * change; a count that changes on an element that has counts changes in place, so a refresh keeps
+ * the reader's zoom. The canvas follows the theme (light, dark, high contrast, forced colours)
+ * from its own stylesheet (`BPMN_OVERLAY_CSS`), which it injects, so a page imports no CSS for it.
+ */
+declare function BpmnDiagram<C>(props: {
+  /** The BPMN 2.0 XML to draw. */
+  readonly xml: string
+  /** The diagram's name: the canvas becomes the image under it (the process and its version). */
+  readonly ariaLabel: string
+  /**
+   * What each element shows: its counts (a badge each) and a root incident's outline. The shared
+   * screens' decorations (`DiagramDecorations.of` of `@miragon/pulse-screens`) are this shape. An
+   * element the drawing lacks is skipped.
+   */
+  readonly decorations?: readonly DiagramDecoration<C>[]
+  /** Outlines without a count (an instance's wait, an open user task, an incident). */
+  readonly markers?: readonly DiagramMarker[]
+  /** An element's name for its counts' words; default the name the XML gives it, else its id. */
+  readonly nameOf?: (elementId: string) => string
+  /**
+   * A count's click: each count a button (the page decides where it leads). Without it the counts
+   * are a drawing (`aria-hidden`), and the page says them in words elsewhere.
+   */
+  readonly onSelect?: (element: DiagramElement, count: C, how: DiagramSelectHow) => void
+  /**
+   * Whether a count leads somewhere; one that leads nowhere is drawn without a button, its words
+   * for a screen reader and as its tooltip. Default: every count does.
+   */
+  readonly selectable?: (element: DiagramElement, count: C) => boolean
+  /** The counts are older than what the page shows beside them (a refresh runs): neutral. */
+  readonly stale?: boolean
+  /** A surface's own counts of an element, drawn in its anchor instead of the kit's cluster. */
+  readonly renderCounts?: (props: DiagramCountsProps<C>) => ReactNode
+  /**
+   * After each drawing, with the viewer: a surface's own decoration (a marker it moves in place,
+   * an overlay it portals into `children`). Its cleanup runs before the next drawing.
+   */
+  readonly onDrawn?: (viewer: BpmnViewerWithGet) => void | (() => void)
+  /** A new value draws the diagram anew: what `onDrawn` decorates changed. */
+  readonly redrawKey?: unknown
+  /**
+   * The frame's height: a number of pixels, `"fill"` for the height of the box it sits in, or the
+   * diagram's own (240 to 560 px, by its drawing and the canvas's width).
+   */
+  readonly height?: number | "fill"
+  /** The tallest the diagram's own height may grow: an inline chat card's budget. */
+  readonly maxHeight?: number | null
+  /** Fits the diagram again when the canvas resizes. Default true. */
+  readonly fitOnResize?: boolean
+  /** A border around the canvas. Default true; off where the box it sits in draws one. */
+  readonly framed?: boolean
+  /** What the canvas says when bpmn-js could not draw the XML; default the kit's words. */
+  readonly drawFailed?: string
+  readonly className?: string
+  /** Laid in the frame over the canvas: a surface's own overlays (portals) and controls. */
+  readonly children?: ReactNode
+}): JSX.Element
+```
+
+### DiagramDecoration
+
+```ts
+/**
+ * An element's decoration: its counts, each drawn as its own badge, and whether it holds a root
+ * incident, which outlines it in the incident's colour. The screens' `ElementDecorationData` is
+ * one (its scope and call target ride along).
+ */
+interface DiagramDecoration<C> {
+  readonly elementId: string
+  readonly counts: readonly C[]
+  readonly incident: boolean
+}
+```
+
+### DiagramCount
+
+```ts
+/** One count on an element: its kind and its number. */
+interface DiagramCount {
+  readonly kind: "running" | "incidents" | "incidentsInCalledInstances"
+  readonly count: number
+}
+```
+
+### DiagramCountKind
+
+```ts
+/**
+ * What a badge on an element counts: its open root incidents, the incidents in the instances it
+ * called (never part of its incident count), its running instances.
+ */
+type DiagramCountKind = "running" | "incidents" | "incidentsInCalledInstances"
+```
+
+### DiagramMarker
+
+```ts
+interface DiagramMarker {
+  readonly elementId: string
+  readonly kind: "running" | "incident" | "openTask"
+}
+```
+
+### DiagramMarkerKind
+
+```ts
+/**
+ * An outline without a count: where an instance waits (`running`), an open user task (a heavier
+ * dashed stroke, shape not colour), an incident.
+ */
+type DiagramMarkerKind = "running" | "incident" | "openTask"
+```
+
+### DiagramElement
+
+```ts
+/** An element of the drawing as a count names it: its id and its BPMN type (`bpmn:UserTask`). */
+interface DiagramElement {
+  readonly id: string
+  /** As bpmn-js reads it; empty where the drawing does not say. */
+  readonly type: string
+}
+```
+
+### DiagramSelectHow
+
+```ts
+/** How a count was clicked: Ctrl or Cmd held asks for the target beside the page. */
+interface DiagramSelectHow {
+  readonly toSide: boolean
+}
+```
+
+### DiagramCountsProps
+
+```ts
+/** What a surface's own counts of an element get (`renderCounts`). */
+interface DiagramCountsProps<C> {
+  readonly element: DiagramElement
+  /** Its counts above 0, in the badges' order (root incidents first). */
+  readonly counts: readonly C[]
+  readonly elementName: string
+  readonly stale: boolean
+}
+```
+
+### DiagramLegend
+
+```ts
+/**
+ * The legend of a diagram's counts behind a button: what each badge says (waiting here, an
+ * incident here, an incident in a called instance), each with its badge as `BpmnDiagram` draws it,
+ * led by the page's line of what they count. It opens over the diagram and closes on Escape.
+ */
+declare function DiagramLegend(props: {
+  /** Its first line: what the badges count ("Badges count running instances of v3"). */
+  readonly scope?: string
+  /** The badges it explains, in the diagram's order; default all three. */
+  readonly kinds?: readonly DiagramCountKind[]
+  /** Where it opens from its button: below it (default) or above it. */
+  readonly placement?: "bottom" | "top"
+  readonly className?: string
+}): JSX.Element
+```
+
+### CanvasBadge
+
+```ts
+/**
+ * A count's badge on the BPMN canvas: a pill, its count compact, the incidents in called instances
+ * with the incident's icon at the overlays' 12 px beside it; neutral while stale, a legend's
+ * sample without a count. A drawing (`aria-hidden`): what names it is the count's button or the
+ * page's words. It brings the canvas's stylesheet, so a legend draws it where no diagram mounted;
+ * as the blocks' `Badge` slot it is the surface's badge of the shared screens.
+ */
+declare function CanvasBadge(props: {
+  readonly kind: "running" | "incidents" | "incidentsInCalledInstances"
+  /** None in a legend's sample. */
+  readonly count?: number
+  /** The counts are older than what the page shows beside them (a refresh runs): neutral. */
+  readonly stale?: boolean
+  /** A legend's sample, not a count on the diagram: smaller. */
+  readonly legend?: boolean
+}): JSX.Element
 ```
 
 ### useBpmnViewer
@@ -1559,6 +1764,11 @@ declare function useBpmnViewer(props: {
    * Read at the zoom, so a new array identity alone changes nothing.
    */
   markedIds?: readonly string[]
+  /**
+   * The tallest the frame may grow, below the diagram's own maximum (560 px): an inline chat card's
+   * budget (widget-shell's `useDiagramMaxHeight`). None, or null, for the diagram's own.
+   */
+  maxHeight?: number | null
   /**
    * The diagram's name. The canvas alone (bpmn-js's SVG) becomes the image (`role="img"`) under
    * it, so what lies beside the canvas in the frame (the zoom controls, bpmn.io's link) stays
@@ -1676,6 +1886,16 @@ declare function readBpmnNames(xml: string): {
   processes: Record<string, string>
   elements: Record<string, string>
 }
+```
+
+## @miragon/pulse-widget-shell/widgets
+
+```ts
+import {
+  describeError,
+  type PageHints,
+  isPermanentError,
+} from "@miragon/pulse-widget-shell/widgets"
 ```
 
 ### describeError

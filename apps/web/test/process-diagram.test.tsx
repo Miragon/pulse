@@ -1,91 +1,42 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
-import { useEffect, useRef, useState } from "react"
-import type * as Widgets from "@miragon/pulse-widget-shell/widgets"
+import { useState } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { useDiagramDecorations } from "@miragon/pulse-blocks"
 import type { ElementBadgeData, ProcessScreenData } from "@miragon/pulse-screens"
 import { setFormatLocale } from "@miragon/pulse-ui"
-import {
-  TestViewHost,
-  type UseBpmnViewerOptions,
-  type UseBpmnViewerResult,
-} from "@miragon/pulse-widget-shell/widgets"
+import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 import { ProcessDiagram } from "../src/screens/process/process-diagram.js"
+import { drawElements, drawn, failImports, reset } from "./bpmn-viewer.test-support.js"
 
 /**
- * The process screen's diagram over a stand-in of the kit's BPMN viewer (bpmn-js draws in a real
- * browser alone, test:web): each element's counts apart as the blocks' cluster with the page's
- * badge, the outline of an element with a root incident marked, each call activity's button, the
- * element the list is filtered to ringed and the ring moved without drawing anew, the elements the
- * drawing lacks left alone, and a drawing that failed said so.
+ * The process screen's diagram over a stand-in of bpmn-js's viewer (bpmn-js draws in a real browser
+ * alone, test:web) under pulse-ui's `BpmnDiagram`: each element's counts apart as the blocks'
+ * cluster with the kit's badge, the outline of an element with a root incident marked, each call
+ * activity's button, the element the list is filtered to ringed and the ring moved without drawing
+ * anew, the elements the drawing lacks left alone, and a drawing that failed said so.
  */
 
-interface Drawn {
-  markers: Array<[string, string, "add" | "remove"]>
-  overlays: Array<{ id: string; position: object; html: HTMLElement }>
-  imports: number
-}
-
-const drawn: Drawn = { markers: [], overlays: [], imports: 0 }
-let importError: string | null = null
+vi.mock("bpmn-js/lib/NavigatedViewer", async () => ({
+  default: (await import("./bpmn-viewer.test-support.js")).FakeViewer,
+}))
 
 /** The elements of the drawing: what the canvas knows. */
-const ELEMENTS = ["Task_Review", "Call_Label", "Call_Ship", "Task_Charge"]
-
-function fakeViewer(layer: HTMLElement) {
-  const known = (id: string) => ELEMENTS.includes(id)
-  const mark = (change: "add" | "remove") => (id: string, marker: string) => {
-    if (!known(id)) throw new Error(`no element ${id}`)
-    drawn.markers.push([id, marker, change])
-  }
-  return {
-    get: (service: string) =>
-      service === "canvas"
-        ? { addMarker: mark("add"), removeMarker: mark("remove") }
-        : {
-            add: (id: string, overlay: { position: object; html: HTMLElement }) => {
-              if (!known(id)) throw new Error(`no element ${id}`)
-              layer.appendChild(overlay.html)
-              drawn.overlays.push({ id, ...overlay })
-            },
-          },
-  }
-}
-
-vi.mock("@miragon/pulse-widget-shell/widgets", async (original) => ({
-  ...(await original<typeof Widgets>()),
-  useBpmnViewer: (options: UseBpmnViewerOptions): UseBpmnViewerResult => {
-    const containerRef = useRef<HTMLDivElement>(null)
-    const { onImported, reimportKey } = options
-    const imported = useRef(onImported)
-    useEffect(() => {
-      imported.current = onImported
-    })
-    useEffect(() => {
-      const layer = containerRef.current
-      if (layer === null) return undefined
-      drawn.imports += 1
-      const cleanup = imported.current?.(fakeViewer(layer) as never)
-      return typeof cleanup === "function" ? cleanup : undefined
-    }, [reimportKey])
-    return {
-      containerRef,
-      height: 320,
-      importError,
-      zoomIn: () => {},
-      zoomOut: () => {},
-      fit: () => {},
-    }
-  },
+const ELEMENTS = ["Task_Review", "Call_Label", "Call_Ship", "Task_Charge"].map((id) => ({
+  id,
+  type: id.startsWith("Call_") ? "bpmn:CallActivity" : "bpmn:Task",
 }))
+
+/** Lets the viewer's import land: bpmn-js imports a diagram asynchronously. */
+async function settle() {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0))
+  })
+}
 
 afterEach(() => {
   cleanup()
-  drawn.markers = []
-  drawn.overlays = []
-  drawn.imports = 0
-  importError = null
+  reset()
 })
 
 const BADGES: ElementBadgeData[] = [
@@ -156,23 +107,25 @@ function Diagram({
   )
 }
 
-function renderDiagram(
+async function renderDiagram(
   { first, stale = false }: { first?: string; stale?: boolean } = {},
   data: Pick<ProcessScreenData, "badges" | "calls"> = SCREEN,
 ) {
   setFormatLocale({ language: "en", locale: "en-u-hc-h23", timeZone: "UTC" })
+  drawElements(ELEMENTS)
   const handlers = { onSelect: vi.fn(), onOpenCall: vi.fn() }
   const view = render(
     <TestViewHost tools={{}} writes={false} followUp="none" startPage="/app">
       <Diagram screen={data} first={first} stale={stale} handlers={handlers} />
     </TestViewHost>,
   )
+  await settle()
   return { ...view, handlers }
 }
 
 describe("the process screen's diagram", () => {
-  it("draws each element's counts apart, root incidents first, on the elements the drawing has", () => {
-    renderDiagram()
+  it("draws each element's counts apart, root incidents first, on the elements the drawing has", async () => {
+    await renderDiagram()
     const clusters = [...document.querySelectorAll<HTMLElement>("[data-badge-for]")]
     expect(clusters.map((cluster) => cluster.dataset.badgeFor)).toEqual([
       "Task_Charge",
@@ -204,13 +157,13 @@ describe("the process screen's diagram", () => {
     ).toBeTruthy()
   })
 
-  it("marks the outline of an element with a root incident, never one with incidents in called instances alone", () => {
-    renderDiagram()
+  it("marks the outline of an element with a root incident, never one with incidents in called instances alone", async () => {
+    await renderDiagram()
     expect(drawn.markers).toEqual([["Task_Charge", "highlight-incident", "add"]])
   })
 
-  it("filters the list to an element and its count's scope on a count's click", () => {
-    const { handlers } = renderDiagram()
+  it("filters the list to an element and its count's scope on a count's click", async () => {
+    const { handlers } = await renderDiagram()
     fireEvent.click(screen.getByRole("button", { name: /^name of Task_Charge: 2 incidents/ }))
     expect(handlers.onSelect).toHaveBeenLastCalledWith("Task_Charge", "withIncident")
     fireEvent.click(
@@ -219,8 +172,8 @@ describe("the process screen's diagram", () => {
     expect(handlers.onSelect).toHaveBeenLastCalledWith("Task_Charge", "running")
   })
 
-  it("gives each call activity its link to the version it calls, a process the engine lacks marked as missing", () => {
-    const { handlers } = renderDiagram()
+  it("gives each call activity its link to the version it calls, a process the engine lacks marked as missing", async () => {
+    const { handlers } = await renderDiagram()
     const label = screen.getByRole("link", { name: "Open called process Print label" })
     expect(label.getAttribute("data-call-for")).toBe("Call_Label")
     expect(label.getAttribute("href")).toBe("/app/engines/prod-a/processes/label?version=1")
@@ -239,8 +192,8 @@ describe("the process screen's diagram", () => {
     expect(document.querySelector("[data-call-for=Call_Gone]")).toBeNull()
   })
 
-  it("rings the element the list is filtered to, and moves the ring without drawing anew", () => {
-    renderDiagram({ first: "Task_Charge" })
+  it("rings the element the list is filtered to, and moves the ring without drawing anew", async () => {
+    await renderDiagram({ first: "Task_Charge" })
     expect(drawn.markers).toContainEqual(["Task_Charge", "pulse-selected", "add"])
     fireEvent.click(screen.getByRole("button", { name: "Select review" }))
     expect(drawn.markers.slice(-2)).toEqual([
@@ -252,27 +205,68 @@ describe("the process screen's diagram", () => {
     expect(drawn.imports).toBe(1)
   })
 
-  it("leaves an element the drawing lacks unringed", () => {
-    renderDiagram({ first: "Task_Gone" })
+  it("leaves an element the drawing lacks unringed", async () => {
+    await renderDiagram({ first: "Task_Gone" })
     expect(drawn.markers.filter(([, marker]) => marker === "pulse-selected")).toEqual([])
   })
 
-  it("draws its counts quiet while a refresh reads them, and says a drawing that failed", () => {
-    importError = "unparsable"
-    renderDiagram({ stale: true })
+  it("draws no counts on an element the screen's badges no longer hold", async () => {
+    setFormatLocale({ language: "en", locale: "en-u-hc-h23", timeZone: "UTC" })
+    drawElements(ELEMENTS)
+    function Behind() {
+      // The decorations of a read before the badges of the next: a count with no badge behind it.
+      const decorations = useDiagramDecorations(SCREEN)
+      return (
+        <ProcessDiagram
+          engine="prod-a"
+          xml="<definitions/>"
+          decorations={decorations}
+          badges={BADGES.slice(1)}
+          selected={undefined}
+          stale={false}
+          label="Diagram of Order v2"
+          nameOf={(id) => `name of ${id}`}
+          fill={false}
+          onSelect={vi.fn()}
+          onOpenCall={vi.fn()}
+        />
+      )
+    }
+    render(
+      <TestViewHost tools={{}} writes={false} followUp="none" startPage="/app">
+        <Behind />
+      </TestViewHost>,
+    )
+    await settle()
+    expect(
+      [...document.querySelectorAll<HTMLElement>("[data-badge-for]")].map(
+        (cluster) => cluster.dataset.badgeFor,
+      ),
+    ).toEqual(["Call_Label"])
+  })
+
+  it("draws its counts quiet while a refresh reads them", async () => {
+    await renderDiagram({ stale: true })
     expect(
       [...document.querySelectorAll("[data-part=canvas-badge]")].every((badge) =>
         badge.classList.contains("pulse-badge-stale"),
       ),
     ).toBe(true)
+  })
+
+  it("says a drawing that failed in the page's words, at the diagram's own height", async () => {
+    failImports("unparsable")
+    await renderDiagram()
     expect(screen.getByText("The diagram couldn't be drawn.")).toBeTruthy()
-    expect(document.querySelector<HTMLElement>("[data-slot=process-diagram]")?.style.height).toBe(
-      "320px",
+    expect(screen.getByText("unparsable")).toBeTruthy()
+    // No DI to size it by: the kit's default height.
+    expect(document.querySelector<HTMLElement>("[data-slot=bpmn-diagram]")?.style.height).toBe(
+      "360px",
     )
   })
 
-  it("shows a count and a call target that changed in place, without drawing anew", () => {
-    const { rerender, handlers } = renderDiagram()
+  it("shows a count and a call target that changed in place, without drawing anew", async () => {
+    const { rerender, handlers } = await renderDiagram()
     const changed: Pick<ProcessScreenData, "badges" | "calls"> = {
       badges: [
         { elementId: "Task_Charge", running: 4, incidents: 1, incidentsInCalledInstances: 0 },
@@ -294,6 +288,7 @@ describe("the process screen's diagram", () => {
         </TestViewHost>,
       )
     })
+    await settle()
     expect(
       [...document.querySelectorAll("[data-badge-for=Task_Charge] [data-part=canvas-badge]")].map(
         (badge) => badge.textContent,
@@ -305,8 +300,8 @@ describe("the process screen's diagram", () => {
     expect(drawn.imports).toBe(1)
   })
 
-  it("draws anew when the elements it decorates change, and takes its overlays down before", () => {
-    const { rerender, handlers } = renderDiagram()
+  it("draws anew when the elements it decorates change, and takes its overlays down before", async () => {
+    const { rerender, handlers } = await renderDiagram()
     act(() => {
       rerender(
         <TestViewHost tools={{}} writes={false} followUp="none" startPage="/app">
@@ -319,6 +314,7 @@ describe("the process screen's diagram", () => {
         </TestViewHost>,
       )
     })
+    await settle()
     expect(drawn.imports).toBe(2)
     expect(document.querySelector("[data-badge-for]")).toBeNull()
   })

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { createPortal } from "react-dom"
 import { BadgeCluster, CallButton, useCallLabel } from "@miragon/pulse-blocks"
 import type {
@@ -7,37 +7,29 @@ import type {
   ElementDecorationData,
   InstanceScopeCode,
 } from "@miragon/pulse-screens"
+import { cn } from "@miragon/pulse-ui"
 import {
-  BpmnZoomControls,
-  useBpmnViewer,
+  BpmnDiagram,
+  CanvasBadge,
   type BpmnCanvas,
   type BpmnViewerWithGet,
-} from "@miragon/pulse-widget-shell/widgets"
+  type DiagramCountsProps,
+} from "@miragon/pulse-ui/bpmn"
 import { useT } from "../../messages/index.js"
 import { targetUrl } from "../slots.js"
-import { CanvasBadge } from "./canvas-badge.js"
-
-/** The class of an element whose outline marks a root incident: the kit's incident marker. */
-const INCIDENT_CLASS = "highlight-incident"
 
 /** The class of the element the list is filtered to: the page's ring in the interaction's colour. */
 const SELECTED_CLASS = "pulse-selected"
 
-/**
- * Where an element's overlays sit: its counts over its top right corner (a zero-sized anchor the
- * cluster grows from to the left, as in the webview), its call button inside its bottom right
- * corner, bpmn-js's own place for a drill-down.
- */
-const BADGE_POSITION = { top: -10, right: -6 }
+/** Where a call activity's button sits: inside its bottom right corner, bpmn-js's own place for a drill-down. */
 const CALL_POSITION = { bottom: 22, right: 22 }
 
 /**
- * Where an overlay of the diagram sits: an element's counts, or a call activity's button, and its
- * host. The data it draws is read at each render from the props (`clusterOf`, `callOf`), so a count
- * that changes in place shows its new number without drawing the diagram again.
+ * A call activity's button on the drawing and its host. The target it draws is read at each render
+ * from the props, so a call target that changes in place shows its new address without drawing
+ * the diagram again.
  */
-interface OverlayHost {
-  readonly part: "badges" | "call"
+interface CallHost {
   readonly key: string
   readonly elementId: string
   readonly host: HTMLElement
@@ -80,38 +72,20 @@ function safely(paint: () => void): void {
   }
 }
 
-/** Places a zero-sized host on `elementId` at `position`, or none where the drawing lacks it. */
-function hostOn(viewer: BpmnViewerWithGet, elementId: string, position: object, className: string) {
+/** The hosts of the call buttons: one on each call activity the drawing has, none it lacks. */
+function callHostsOf(
+  viewer: BpmnViewerWithGet,
+  decorations: readonly ElementDecorationData[],
+): CallHost[] {
   const overlays = viewer.get("overlays") as unknown as {
     add: (id: string, overlay: { position: object; html: HTMLElement }) => void
   }
-  const host = document.createElement("div")
-  host.className = className
-  safely(() => overlays.add(elementId, { position, html: host }))
-  return host.isConnected ? host : undefined
-}
-
-/**
- * The overlays of the drawing: a host for the cluster on each element the decorations give counts,
- * one for the button on each call activity, none on an element the drawing lacks.
- */
-function hostsOf(
-  viewer: BpmnViewerWithGet,
-  decorations: readonly ElementDecorationData[],
-): OverlayHost[] {
-  const clusters = decorations.flatMap(({ elementId, counts }): OverlayHost[] => {
-    if (counts.length === 0) return []
-    const host = hostOn(viewer, elementId, BADGE_POSITION, "pulse-badge-anchor")
-    return host === undefined
-      ? []
-      : [{ part: "badges", key: `badges:${elementId}`, elementId, host }]
-  })
-  const buttons = decorations.flatMap(({ elementId, call }): OverlayHost[] => {
+  return decorations.flatMap(({ elementId, call }): CallHost[] => {
     if (call === null) return []
-    const host = hostOn(viewer, elementId, CALL_POSITION, "")
-    return host === undefined ? [] : [{ part: "call", key: `call:${elementId}`, elementId, host }]
+    const host = document.createElement("div")
+    safely(() => overlays.add(elementId, { position: CALL_POSITION, html: host }))
+    return host.isConnected ? [{ key: `call:${elementId}`, elementId, host }] : []
   })
-  return [...clusters, ...buttons]
 }
 
 /** The address of what a call activity calls: the version it starts; none for a process the engine lacks. */
@@ -127,70 +101,38 @@ function callHref(engine: string, call: CallLinkData): string | undefined {
   })
 }
 
-/** What an overlay draws now: the element's counts or its call target, as the props give them. */
-function drawnOf(
-  overlay: OverlayHost,
-  badges: readonly ElementBadgeData[],
-  decorations: readonly ElementDecorationData[],
-): { readonly badge: ElementBadgeData } | { readonly call: CallLinkData } | undefined {
-  if (overlay.part === "badges") {
-    const badge = badges.find(({ elementId }) => elementId === overlay.elementId)
-    return badge === undefined ? undefined : { badge }
-  }
-  const call = decorations.find(({ elementId }) => elementId === overlay.elementId)?.call ?? null
-  return call === null ? undefined : { call }
-}
-
 /**
- * A process's diagram in one version on the page's canvas, which follows the theme (owner decision
- * D10, point 7): the version's drawing with the blocks' decorations, each element's counts apart
- * (its root incidents, the incidents in the instances it called, its running instances; the blocks'
- * `BadgeCluster` with the page's badge), each a button that filters the list to the element and the
- * count's scope, the outline of an element with a root incident marked, each call activity's
- * link to the version it calls (the blocks' `CallButton` with its address), the element the list is
- * filtered to ringed,
- * and the kit's zoom bar at its top right (bpmn.io's link takes the bottom right). It draws again
- * when the elements it decorates change; a count, a call target or the ring changes in place (each
- * overlay reads what it draws from the props at each render), so a click or a Refresh keeps the
- * reader's zoom.
+ * A process's diagram in one version: pulse-ui's `BpmnDiagram` on the canvas that follows the
+ * theme (owner decision D10, point 7), the shared screens' badge scheme. Each element's counts sit
+ * apart (its root incidents, the incidents in the instances it called, its running instances; the
+ * blocks' `BadgeCluster` with the kit's `CanvasBadge`), each a button that filters the list to the
+ * element and the count's scope; the outline of an element with a root incident marked; each call
+ * activity's link to the version it calls (the blocks' `CallButton` with its address); the element
+ * the list is filtered to ringed. It draws again when the elements it decorates change; a count, a
+ * call target or the ring changes in place, so a click or a Refresh keeps the reader's zoom.
  */
 export function ProcessDiagram(props: ProcessDiagramProps) {
   const { engine, xml, decorations, badges, selected, stale, label, nameOf, fill } = props
   const { onSelect, onOpenCall } = props
   const t = useT()
   const callLabel = useCallLabel()
-  const [hosts, setHosts] = useState<readonly OverlayHost[]>([])
+  const [calls, setCalls] = useState<readonly CallHost[]>([])
   const [viewer, setViewer] = useState<BpmnViewerWithGet | null>(null)
-  const drawnKey = useMemo(
+  const callKinds = useMemo(
     () =>
       JSON.stringify(
-        decorations.map(({ elementId, counts, incident, call }) => [
-          elementId,
-          counts.length > 0,
-          incident,
-          call === null ? null : call.kind,
-        ]),
+        decorations.map(({ elementId, call }) => [elementId, call === null ? null : call.kind]),
       ),
     [decorations],
   )
-  const { containerRef, height, importError, zoomIn, zoomOut, fit } = useBpmnViewer({
-    bpmnXml: xml,
-    reimportKey: drawnKey,
-    fitOnResize: fill,
-    ariaLabel: label,
-    onImported: (drawn) => {
-      const canvas = drawn.get("canvas")
-      for (const { elementId, incident } of decorations) {
-        if (incident) safely(() => canvas.addMarker(elementId, INCIDENT_CLASS))
-      }
-      setHosts(hostsOf(drawn, decorations))
-      setViewer(drawn)
-      return () => {
-        setHosts([])
-        setViewer(null)
-      }
-    },
-  })
+  const onDrawn = (drawn: BpmnViewerWithGet) => {
+    setCalls(callHostsOf(drawn, decorations))
+    setViewer(drawn)
+    return () => {
+      setCalls([])
+      setViewer(null)
+    }
+  }
   useEffect(() => {
     if (viewer === null || selected === undefined) return undefined
     const canvas = viewer.get("canvas") as MarkedCanvas
@@ -199,43 +141,55 @@ export function ProcessDiagram(props: ProcessDiagramProps) {
       safely(() => canvas.removeMarker(selected, SELECTED_CLASS))
     }
   }, [viewer, selected])
-  const style: CSSProperties = fill ? {} : { height: `${String(height)}px` }
+  const renderCounts = useCallback(
+    ({ element, elementName, stale: quiet }: DiagramCountsProps) => {
+      const badge = badges.find(({ elementId }) => elementId === element.id)
+      return badge === undefined ? null : (
+        <BadgeCluster
+          badge={badge}
+          elementName={elementName}
+          stale={quiet}
+          onSelect={(elementId, scope) => {
+            onSelect(elementId, scope)
+          }}
+          Badge={CanvasBadge}
+        />
+      )
+    },
+    [badges, onSelect],
+  )
   return (
-    <div className="relative h-full min-h-0 w-full" data-slot="process-diagram" style={style}>
-      <div ref={containerRef} className="h-full w-full" />
-      {importError !== null && (
-        <p className="text-muted-foreground absolute inset-0 grid place-items-center p-4">
-          {t("diagram.drawFailed")}
-        </p>
-      )}
-      <BpmnZoomControls onZoomIn={zoomIn} onZoomOut={zoomOut} onFit={fit} />
-      {hosts.map((overlay) => {
-        const drawn = drawnOf(overlay, badges, decorations)
-        if (drawn === undefined) return null
-        return createPortal(
-          "badge" in drawn ? (
-            <BadgeCluster
-              badge={drawn.badge}
-              elementName={nameOf(overlay.elementId)}
-              stale={stale}
-              onSelect={(elementId, scope) => {
-                onSelect(elementId, scope)
-              }}
-              Badge={CanvasBadge}
-            />
-          ) : (
+    <div className={cn("w-full", fill && "h-full min-h-0")} data-slot="process-diagram">
+      <BpmnDiagram
+        xml={xml}
+        ariaLabel={label}
+        decorations={decorations}
+        nameOf={nameOf}
+        stale={stale}
+        renderCounts={renderCounts}
+        onDrawn={onDrawn}
+        redrawKey={callKinds}
+        height={fill ? "fill" : undefined}
+        fitOnResize={fill}
+        framed={false}
+        drawFailed={t("diagram.drawFailed")}
+      >
+        {calls.map(({ key, elementId, host }) => {
+          const call = decorations.find((decoration) => decoration.elementId === elementId)?.call
+          if (call === null || call === undefined) return null
+          return createPortal(
             <CallLink
-              elementId={overlay.elementId}
-              label={callLabel(drawn.call, engine)}
-              call={drawn.call}
-              href={callHref(engine, drawn.call)}
+              elementId={elementId}
+              label={callLabel(call, engine)}
+              call={call}
+              href={callHref(engine, call)}
               onOpen={onOpenCall}
-            />
-          ),
-          overlay.host,
-          overlay.key,
-        )
-      })}
+            />,
+            host,
+            key,
+          )
+        })}
+      </BpmnDiagram>
     </div>
   )
 }

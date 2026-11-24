@@ -31,7 +31,7 @@ export interface SheetGroup {
  * name, and each own type their blocks name (`Fact` in `Facts`' props, `Translate` in
  * `createUseT`'s), so a reader finds every type a block names in the sheet; the render refuses a
  * sheet that names one it leaves out. A page reaches each through its package's `exports` only;
- * widget-shell's diagram names move into pulse-ui with Miragon/pulse#662, and this list with them.
+ * the BPMN diagram is pulse-ui's `./bpmn` entry (Miragon/pulse#662).
  */
 export const SHEET: readonly SheetGroup[] = [
   {
@@ -127,9 +127,20 @@ export const SHEET: readonly SheetGroup[] = [
     ],
   },
   {
-    from: "@miragon/pulse-widget-shell/widgets",
-    entry: "packages/core/widget-shell/dist/ui/index.d.ts",
+    from: "@miragon/pulse-ui/bpmn",
+    entry: "packages/core/ui/dist/bpmn/index.d.ts",
     names: [
+      "BpmnDiagram",
+      "DiagramDecoration",
+      "DiagramCount",
+      "DiagramCountKind",
+      "DiagramMarker",
+      "DiagramMarkerKind",
+      "DiagramElement",
+      "DiagramSelectHow",
+      "DiagramCountsProps",
+      "DiagramLegend",
+      "CanvasBadge",
       "useBpmnViewer",
       "BpmnViewerWithGet",
       "BpmnCanvas",
@@ -137,10 +148,12 @@ export const SHEET: readonly SheetGroup[] = [
       "BpmnZoomControls",
       "parseBpmnNames",
       "readBpmnNames",
-      "describeError",
-      "PageHints",
-      "isPermanentError",
     ],
+  },
+  {
+    from: "@miragon/pulse-widget-shell/widgets",
+    entry: "packages/core/widget-shell/dist/ui/index.d.ts",
+    names: ["describeError", "PageHints", "isPermanentError"],
   },
   {
     from: "@miragon/pulse-c7-core",
@@ -152,7 +165,7 @@ export const SHEET: readonly SheetGroup[] = [
 /**
  * The kit's types a block names that the sheet keeps as names, each with why a page needs no
  * more: a value the page passes on from a kit function the sheet leaves out, or a slice of
- * bpmn-js that widget-shell types for itself. The header lists them, so a reader knows they stay
+ * bpmn-js that pulse-ui types for itself. The header lists them, so a reader knows they stay
  * out on purpose; every other own type a block names is in SHEET, or the render fails.
  */
 export const NAMED_ONLY: Readonly<Record<string, string>> = {
@@ -162,7 +175,7 @@ export const NAMED_ONLY: Readonly<Record<string, string>> = {
   ColumnSizing: "columns a reader sizes by dragging, as `useColumnSizing` returns it",
   BpmnElementRegistry: 'bpmn-js\'s element registry, `viewer.get("elementRegistry")`',
   BpmnEventBus: 'bpmn-js\'s event bus, `viewer.get("eventBus")`',
-  FitRect: "a box `{ x, y, width, height }` in diagram units, which widget-shell keeps to itself",
+  FitRect: "a box `{ x, y, width, height }` in diagram units, which pulse-ui keeps to itself",
 }
 
 /** The packages whose declarations count as the kit's own: props from elsewhere (React's DOM props) stay out. */

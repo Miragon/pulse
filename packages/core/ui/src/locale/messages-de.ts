@@ -92,6 +92,23 @@ export const de: UiMessages = {
     toolErrorHint: () =>
       "Versuch es noch mal. Klappt es wieder nicht, frag die Person, die den Pulse-Server betreibt.",
   },
+  bpmn: {
+    zoomIn: "Vergrößern",
+    zoomOut: "Verkleinern",
+    fit: "An Ansicht anpassen",
+    drawFailed: "Das Diagramm ließ sich nicht zeichnen",
+    drawFailedHint: "Öffne das Modell in deinem Modeler, um es zu prüfen.",
+    countRunning: ({ element, count }) =>
+      `${element}: ${String(count) === "1" ? `${count} Instanz läuft` : `${count} Instanzen laufen`}`,
+    countIncidents: ({ element, count }) =>
+      `${element}: ${count} ${String(count) === "1" ? "Incident" : "Incidents"}`,
+    countIncidentsInCalledInstances: ({ element, count }) =>
+      `${element}: ${count} ${String(count) === "1" ? "Incident" : "Incidents"} in aufgerufenen Instanzen`,
+    legendLabel: "Legende",
+    legendRunning: "wartet hier",
+    legendIncidents: "Incident hier",
+    legendIncidentsInCalledInstances: "Incident in einer aufgerufenen Instanz",
+  },
 }
 
 /** A place after a name, as the page passes it („in claude.ai …“); nothing without one. */

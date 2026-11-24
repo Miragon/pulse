@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import { parseBpmnNames, readBpmnNames } from "@miragon/pulse-widget-shell/widgets"
+import { parseBpmnNames, readBpmnNames } from "@miragon/pulse-ui/bpmn"
 
 /** The process's name as the cockpit shows it: the pool's or the process's in the XML, else the key. */
 export function processNameOf(xml: string | null | undefined, key: string): string {

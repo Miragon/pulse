@@ -1,9 +1,9 @@
 @import "tailwindcss";
 /*
- * The classes the page renders: its own (this folder) and the compiled kit it imports, pulse-ui,
- * the building blocks and widget-shell's view half (the BPMN viewer and its zoom bar). The tarballs
- * ship no tests, so each dist is scanned whole; never pulse-ui's src/testing, which holds palette
- * classes on purpose.
+ * The classes the page renders: its own (this folder) and the compiled kit it imports, pulse-ui
+ * (its ./bpmn entry draws the BPMN viewer and its zoom bar), the building blocks and widget-shell's
+ * view half. The tarballs ship no tests, so each dist is scanned whole; never pulse-ui's
+ * src/testing, which holds palette classes on purpose.
  */
 @source "../node_modules/@miragon/pulse-ui/dist";
 @source "../node_modules/@miragon/pulse-blocks/dist";

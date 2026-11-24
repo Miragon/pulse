@@ -21,12 +21,10 @@ const SRC = fileURLToPath(new URL("../src", import.meta.url))
 
 /**
  * The files that may draw the dense 12 px icon, each with its reason (the density deviation of
- * CLAUDE.md's design section: the icons on the diagram's 20 px overlays).
+ * CLAUDE.md's design section: the icons on the diagram's 20 px overlays). None: the page's diagram
+ * badges are pulse-ui's (`CanvasBadge`), which its own gate allows.
  */
-const DENSE_ICONS_ALLOWED: Readonly<Record<string, string>> = {
-  "screens/process/canvas-badge.tsx":
-    "the incident's icon beside the count of incidents in called instances, a 22 px badge on the process diagram",
-}
+const DENSE_ICONS_ALLOWED: Readonly<Record<string, string>> = {}
 const STYLES = readFileSync(new URL("../src/styles.css", import.meta.url), "utf8")
 
 describe("the page's sources", () => {

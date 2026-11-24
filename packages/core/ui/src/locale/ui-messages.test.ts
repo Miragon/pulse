@@ -47,6 +47,9 @@ const SAMPLES: Record<string, unknown[]> = {
       [{ connector: "Pulse", place: "in claude.ai, in Settings under Connectors" }],
     ]),
   ),
+  countRunning: [{ element: "Approve order", count: "3" }],
+  countIncidents: [{ element: "Approve order", count: "1" }],
+  countIncidentsInCalledInstances: [{ element: "Ship order", count: "2" }],
 }
 
 /** Every message of a catalog as `[path, rendered text]`. */

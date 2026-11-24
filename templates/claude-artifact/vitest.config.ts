@@ -12,8 +12,8 @@ export default defineConfig({
     include: ["test/**/*.test.{ts,tsx}"],
     environment: "node",
     testTimeout: 30_000,
-    // widget-shell's view half imports bpmn-js without file extensions, as a bundler resolves
+    // pulse-ui's ./bpmn entry imports bpmn-js without file extensions, as a bundler resolves
     // them; Node does not, so Vite transforms it in the tests as it does in the build.
-    server: { deps: { inline: [/@miragon\/pulse-widget-shell/] } },
+    server: { deps: { inline: [/@miragon\/pulse-ui/, /@miragon\/pulse-widget-shell/] } },
   },
 })

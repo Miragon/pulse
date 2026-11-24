@@ -7,10 +7,10 @@ import {
 } from "@miragon/pulse-blocks"
 import type { InstanceListFilterData, VariableConditionKindCode } from "@miragon/pulse-screens"
 import { Button, Icon, TableEmptyState } from "@miragon/pulse-ui"
+import { CanvasBadge } from "@miragon/pulse-ui/bpmn"
 import { isSessionEnded, ViewDataState } from "@miragon/pulse-widget-shell/widgets"
 import { RefreshCw } from "lucide-react"
 import { useT } from "../../messages/index.js"
-import { CanvasBadge } from "./canvas-badge.js"
 import { isListRefusal, type InstancePages } from "./instance-pages.js"
 import { isRefusedCondition } from "./process-feed.js"
 

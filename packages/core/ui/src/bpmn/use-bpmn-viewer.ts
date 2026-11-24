@@ -8,7 +8,7 @@ import {
   type RefObject,
 } from "react"
 import NavigatedViewer from "bpmn-js/lib/NavigatedViewer"
-import { BPMN_LABEL_STYLE } from "@miragon/pulse-ui"
+import { BPMN_LABEL_STYLE } from "../index.js"
 import { clearFitViewbox, KEEP_CLEAR_GAP, keptClearOf, type FitRect } from "./bpmn-fit.js"
 import {
   BPMN_CANVAS_SLOT,
@@ -16,7 +16,6 @@ import {
   BPMN_RENDERER_COLORS,
   injectBpmnOverlayCss,
 } from "./bpmn-tokens.js"
-import { useInlineBudget } from "./inline-budget.js"
 
 /** bpmn-js ships no usable types on `Viewer#get`; the slice the widgets use. */
 export interface BpmnCanvas {
@@ -279,6 +278,11 @@ export interface UseBpmnViewerOptions {
    */
   markedIds?: ReadonlyArray<string>
   /**
+   * The tallest the frame may grow, below the diagram's own maximum (560 px): an inline chat card's
+   * budget (widget-shell's `useDiagramMaxHeight`). None, or null, for the diagram's own.
+   */
+  maxHeight?: number | null
+  /**
    * The diagram's name. The canvas alone (bpmn-js's SVG) becomes the image (`role="img"`) under
    * it, so what lies beside the canvas in the frame (the zoom controls, bpmn.io's link) stays
    * outside any image: an image's content is presentational, a control inside it would be lost to
@@ -310,6 +314,7 @@ export function useBpmnViewer({
   reimportKey,
   fitOnResize = false,
   markedIds,
+  maxHeight,
   ariaLabel,
 }: UseBpmnViewerOptions): UseBpmnViewerResult {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -397,8 +402,7 @@ export function useBpmnViewer({
 
   const xmlBounds = useMemo(() => diagramBoundsFromXml(bpmnXml), [bpmnXml])
   const bounds = xmlBounds ?? (drawn?.xml === bpmnXml ? drawn.bounds : null)
-  const { diagramMaxHeight } = useInlineBudget()
-  const height = Math.min(diagramHeight(bounds, width), diagramMaxHeight ?? Infinity)
+  const height = Math.min(diagramHeight(bounds, width), maxHeight ?? Infinity)
   // A width change refits only a viewer that refits on resize: the heatmap keeps pan and zoom.
   const refitOn = fitOnResize ? height : bounds
   useLayoutEffect(() => {
@@ -415,6 +419,7 @@ export function useBpmnViewer({
       container,
       textRenderer: BPMN_LABEL_STYLE,
       bpmnRenderer: BPMN_RENDERER_COLORS,
+      additionalModules: [WITHOUT_DRILLDOWN_BUTTONS],
     })
     viewerRef.current = viewer
     let cancelled = false
@@ -476,6 +481,14 @@ export function useBpmnViewer({
 
   return { containerRef, height, importError, zoomIn, zoomOut, fit }
 }
+
+/**
+ * bpmn-js puts a drilldown button on every collapsed subprocess that opens the subprocess's own
+ * plane. The way back, the trail, is hidden (`hideBreadcrumbs`), and a surface's decorations sit
+ * on the process's plane, so a press would strand the reader where nothing is marked: the
+ * behaviour that adds the buttons is replaced by none, and the process's plane is the one view.
+ */
+const WITHOUT_DRILLDOWN_BUTTONS = { drilldownOverlayBehavior: ["value", null] as ["value", null] }
 
 /** bpmn-js draws into `.bjs-container > .djs-container > svg` inside the frame it is handed. */
 const CANVAS_SVG = ".djs-container > svg"

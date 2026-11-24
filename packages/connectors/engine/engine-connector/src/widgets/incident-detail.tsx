@@ -5,7 +5,8 @@ import { useDetailView, HostModelContext } from "@miragon/pulse-widget-shell/wid
 import type { IncidentDetailData } from "../view-models.js"
 
 import { ENGINE_INCIDENT_DETAIL_DATA } from "../tool-names.js"
-import { BpmnDiagram, type BpmnHighlight } from "./bpmn-diagram.js"
+import type { DiagramMarker } from "@miragon/pulse-ui/bpmn"
+import { BpmnDiagram } from "./bpmn-diagram.js"
 import { DetailPage } from "./detail-page.js"
 import { FailureSummary, StacktraceTab } from "./incident-detail/failure-tab.js"
 import { IncidentDetailHeader } from "./incident-detail/header.js"
@@ -121,10 +122,10 @@ export function IncidentDetailWidget({
     available: refreshError === null,
   })
 
-  // New highlights reimport the diagram: one array per activity, so a refetch never redraws it.
+  // The incident's element, outlined; new markers draw the diagram anew, a refetch never does.
   const activityId = data?.activityId
-  const highlights = useMemo<BpmnHighlight[]>(
-    () => [{ kind: "incident", activityIds: activityId === undefined ? [] : [activityId] }],
+  const markers = useMemo<DiagramMarker[]>(
+    () => (activityId === undefined ? [] : [{ elementId: activityId, kind: "incident" }]),
     [activityId],
   )
 
@@ -152,7 +153,7 @@ export function IncidentDetailWidget({
             <BpmnDiagram
               definitionId={data.diagramDefinitionId}
               engineId={engine}
-              highlights={highlights}
+              markers={markers}
             />
           ) : (
             <Alert>

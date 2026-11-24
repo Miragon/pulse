@@ -101,8 +101,9 @@ nothing below the FULL history level.
     [#665](https://github.com/Miragon/pulse/issues/665) counts tokens per element.
 - **Drawing.** Put the counts into `ElementBadgeData` (`running`, `incidents`,
   `incidentsInCalledInstances`), let `DiagramDecorations.of` make the decorations and draw them
-  with `BadgeCluster` over `useBpmnViewer`. The legend is the template's `DiagramLegend`: the
-  blocks' `BadgeLegend` says its badges count one version, the page's sum every version.
+  with `BadgeCluster` over `useBpmnViewer` (`@miragon/pulse-ui/bpmn`). The legend is the
+  template's `DiagramLegend`: the blocks' `BadgeLegend` says its badges count one version, the
+  page's sum every version.
 
 ## Over time
 

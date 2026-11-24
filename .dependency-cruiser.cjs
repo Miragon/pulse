@@ -121,8 +121,8 @@ const APP_NAMES = APP_PACKAGES.map(escapeRegExp).join("|")
 /**
  * The web app (apps/web, `@miragon/pulse-web`): the page a Pulse server serves under /app, the MCP
  * views on a page of their own and its own screens (owner decision D10 of 2026-11-19). What its
- * src may import (web-is-a-page): its own modules, the rendering libraries, pulse-ui by its root
- * and its stylesheet, the view runtime's view half, the engine module's views, the building
+ * src may import (web-is-a-page): its own modules, the rendering libraries, pulse-ui by its root,
+ * its BPMN entry and its stylesheet, the view runtime's view half, the engine module's views, the building
  * blocks its screens compose and the screens' format, whose JSON forms its screens name by type
  * alone (web-names-screens-by-type), each by its entry. As an import reaches the blocks and the
  * screens: resolved through the app's node_modules to the build (or the src of a package without
@@ -133,7 +133,7 @@ const WEB_IMPORTS = [
   WEB_SRC,
   ...npm("react|react-dom|lucide-react"),
   "(?:^|/)node_modules/@miragon/pulse-ui/",
-  "^@miragon/pulse-ui(?:/theme[.]css)?$",
+  "^@miragon/pulse-ui(?:/(?:bpmn|theme[.]css))?$",
   "^@miragon/pulse-widget-shell/widgets$",
   "^@miragon/pulse-engine-connector/widgets$",
   "(?:^|/)node_modules/@miragon/pulse-blocks/(?:dist|src)/index[.](?:js|d[.]ts|tsx?)$",
@@ -736,6 +736,16 @@ const VIEW_STACK = `react|react-dom|lucide-react|@tanstack/[^/]+|@miragon/pulse-
  */
 const UI_FOUNDATION_ENTRIES = "^packages/core/ui/src/(format|tones|glossary)/"
 
+/**
+ * pulse-ui's BPMN entry (`@miragon/pulse-ui/bpmn`, src/bpmn): the diagram for any page, the one
+ * folder of the kit that imports bpmn-js (an optional peer). It reaches the rest of the kit
+ * through the root entry alone (src/index.ts), so a bundle of the entry shares the kit's React
+ * contexts with a bundle of the root, and the rest of the kit never imports it, so a page without
+ * a diagram never resolves bpmn-js (ui-bpmn-in-its-entry-alone, ui-bpmn-reaches-the-kit-by-its-root).
+ */
+const UI_BPMN_ENTRY = "^packages/core/ui/src/bpmn/"
+const UI_ROOT_ENTRY = "^packages/core/ui/src/index[.]ts$"
+
 /** widget-shell's two halves and the protocol modules both import (see the seam rules). */
 const SHELL_SRC = "^packages/core/widget-shell/src/"
 const SHELL_VIEWS = `${SHELL_SRC}ui/`
@@ -938,16 +948,45 @@ module.exports = {
         "packages/core/ui (@miragon/pulse-ui) is the design kit every Pulse view and every customer UI " +
         "builds on: it imports no workspace package and nothing of the MCP, query, server or schema " +
         "stack (@modelcontextprotocol, hono, jose, TanStack, zod, prom-client, " +
-        "@hey-api, bpmn-js, diagram-js). What needs the host, a tool call or BPMN belongs in widget-shell, " +
-        "which imports pulse-ui, never the other way round (CLAUDE.md invariants 6 and 8).",
+        "@hey-api). What needs the host or a tool call belongs in widget-shell, which imports " +
+        "pulse-ui, never the other way round (CLAUDE.md invariants 6 and 8); the BPMN diagram is " +
+        "its own entry (ui-bpmn-in-its-entry-alone).",
       from: { path: "^packages/core/ui/" },
       to: {
         path: [
           "^packages/(?!core/ui/)",
           "@miragon/pulse-(?!ui(?:/|$))",
           ...npm(
-            "@modelcontextprotocol/[^/]+|hono|@hono/[^/]+|jose|@tanstack/[^/]+|zod|prom-client|@hey-api/[^/]+|bpmn-js|diagram-js",
+            "@modelcontextprotocol/[^/]+|hono|@hono/[^/]+|jose|@tanstack/[^/]+|zod|prom-client|@hey-api/[^/]+",
           ),
+        ],
+      },
+    },
+    {
+      name: "ui-bpmn-in-its-entry-alone",
+      severity: "error",
+      comment:
+        "bpmn-js (and diagram-js under it) is an optional peer of pulse-ui that its BPMN entry " +
+        "alone imports (src/bpmn, published as @miragon/pulse-ui/bpmn): the rest of the kit never " +
+        "imports bpmn-js, diagram-js or a module of src/bpmn, so a page that renders no diagram " +
+        "never resolves bpmn-js.",
+      from: { path: "^packages/core/ui/", pathNot: UI_BPMN_ENTRY },
+      to: { path: [UI_BPMN_ENTRY, ...npm("bpmn-js|diagram-js")] },
+    },
+    {
+      name: "ui-bpmn-reaches-the-kit-by-its-root",
+      severity: "error",
+      comment:
+        "pulse-ui's BPMN entry (src/bpmn) imports its own folder, the kit's root entry " +
+        "(src/index.ts, never another file of the kit), React, Lucide and bpmn-js: a bundle of the " +
+        "entry (the browser bundle's pulse-ui-bpmn.js) then takes the kit from the root's bundle, " +
+        "one React and one copy of every context (the locale, the toasts). Its tests are exempt.",
+      from: { path: UI_BPMN_ENTRY, pathNot: SRC_TEST_CODE },
+      to: {
+        pathNot: [
+          UI_BPMN_ENTRY,
+          UI_ROOT_ENTRY,
+          ...npm("react|react-dom|lucide-react|bpmn-js|diagram-js"),
         ],
       },
     },
@@ -1789,7 +1828,8 @@ module.exports = {
       comment:
         "The web app (apps/web) is the page of the MCP views a Pulse server serves under /app: " +
         "its src imports only its own modules, react, react-dom and lucide-react, " +
-        "@miragon/pulse-ui by its root and its stylesheet @miragon/pulse-ui/theme.css, the view " +
+        "@miragon/pulse-ui by its root, its BPMN diagram @miragon/pulse-ui/bpmn and its stylesheet " +
+        "@miragon/pulse-ui/theme.css, the view " +
         "runtime's view half @miragon/pulse-widget-shell/widgets (mountApp, the page's client of " +
         "the web app's API), the engine module's views @miragon/pulse-engine-connector/widgets, " +
         "the building blocks its screens compose (@miragon/pulse-blocks) and the screens' format " +

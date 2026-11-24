@@ -1,14 +1,11 @@
 // @vitest-environment happy-dom
 import { cleanup, render, screen } from "@testing-library/react"
 import { useEffect, useRef } from "react"
-import type * as Widgets from "@miragon/pulse-widget-shell/widgets"
+import type * as Bpmn from "@miragon/pulse-ui/bpmn"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import type { CallLinkData, MarkerData } from "@miragon/pulse-screens"
-import {
-  TestViewHost,
-  type UseBpmnViewerOptions,
-  type UseBpmnViewerResult,
-} from "@miragon/pulse-widget-shell/widgets"
+import type { UseBpmnViewerOptions, UseBpmnViewerResult } from "@miragon/pulse-ui/bpmn"
+import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 import { InstanceDiagram } from "../src/screens/instance/instance-diagram.js"
 
 /**
@@ -72,8 +69,8 @@ function fakeViewer(layer: HTMLElement) {
   }
 }
 
-vi.mock("@miragon/pulse-widget-shell/widgets", async (original) => ({
-  ...(await original<typeof Widgets>()),
+vi.mock("@miragon/pulse-ui/bpmn", async (original) => ({
+  ...(await original<typeof Bpmn>()),
   useBpmnViewer: (options: UseBpmnViewerOptions): UseBpmnViewerResult => {
     const containerRef = useRef<HTMLDivElement>(null)
     const { onImported, reimportKey } = options

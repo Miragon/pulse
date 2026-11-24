@@ -89,6 +89,23 @@ export const en: UiMessages = {
     toolError: ({ connector }) => `${connector} couldn't complete this read`,
     toolErrorHint: () => "Try again. If it fails again, ask whoever runs the Pulse server.",
   },
+  bpmn: {
+    zoomIn: "Zoom in",
+    zoomOut: "Zoom out",
+    fit: "Fit to viewport",
+    drawFailed: "The diagram couldn't be drawn",
+    drawFailedHint: "Open the model in your modeler to check it.",
+    countRunning: ({ element, count }) =>
+      `${element}: ${count} ${String(count) === "1" ? "instance" : "instances"} running`,
+    countIncidents: ({ element, count }) =>
+      `${element}: ${count} ${String(count) === "1" ? "incident" : "incidents"}`,
+    countIncidentsInCalledInstances: ({ element, count }) =>
+      `${element}: ${count} ${String(count) === "1" ? "incident" : "incidents"} in called instances`,
+    legendLabel: "Legend",
+    legendRunning: "waiting here",
+    legendIncidents: "incident here",
+    legendIncidentsInCalledInstances: "incident in a called instance",
+  },
 }
 
 /** A place after a name, as the page passes it ("in claude.ai, …"); nothing without one. */

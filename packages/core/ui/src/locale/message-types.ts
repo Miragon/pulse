@@ -168,6 +168,34 @@ export interface CountMessages {
   unknown: string
 }
 
+/**
+ * The words of the BPMN diagram (`@miragon/pulse-ui/bpmn`): its zoom bar, its failure, what each
+ * count on an element says and the legend of the counts. A count reaches an entry formatted, and
+ * the entry puts the noun in the number it asks for.
+ */
+export interface BpmnMessages {
+  zoomIn: string
+  zoomOut: string
+  /** The zoom bar's button that fits the whole diagram into the canvas. */
+  fit: string
+  /** What the canvas says when bpmn-js could not draw the XML (its own text under "Details"). */
+  drawFailed: string
+  /** The line under {@link BpmnMessages.drawFailed}: what you can do. */
+  drawFailedHint: string
+  /** An element's running instances, e.g. "Approve: 3 instances running". */
+  countRunning: (params: { element: string; count: string }) => string
+  /** An element's open root incidents, e.g. "Approve: 2 incidents". */
+  countIncidents: (params: { element: string; count: string }) => string
+  /** The incidents in the instances an element called, never part of its incident count. */
+  countIncidentsInCalledInstances: (params: { element: string; count: string }) => string
+  /** The legend's button. */
+  legendLabel: string
+  /** The legend's line of each badge: what it says on an element. */
+  legendRunning: string
+  legendIncidents: string
+  legendIncidentsInCalledInstances: string
+}
+
 /** One locale's complete kit catalog. */
 export interface UiMessages {
   common: CommonMessages
@@ -183,6 +211,7 @@ export interface UiMessages {
   freshness: FreshnessMessages
   sectionState: SectionStateMessages
   pageError: PageErrorMessages
+  bpmn: BpmnMessages
 }
 
 /** The words of `FreshnessStamp`: when the numbers of a view or a page were read. */

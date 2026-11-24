@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest"
 import { BPMN_CANVAS_VARS, BPMN_OVERLAY_CSS } from "./bpmn-tokens.js"
 
-const V = (name: keyof typeof BPMN_CANVAS_VARS) => `var(${BPMN_CANVAS_VARS[name]})`
+const V = (name: keyof typeof BPMN_CANVAS_VARS, fallback?: string) =>
+  fallback === undefined
+    ? `var(${BPMN_CANVAS_VARS[name]})`
+    : `var(${BPMN_CANVAS_VARS[name]}, var(${fallback}))`
 
 /** The declarations of the canvas's top-level rule for exactly `selector`. */
 function rule(selector: string): Record<string, string> {
@@ -23,11 +26,17 @@ function rule(selector: string): Record<string, string> {
  * Its high-contrast edge and its forced colours are every count badge's (bpmn-tokens.test.ts).
  */
 describe("the incidents in called instances on the canvas", () => {
-  it("are a quiet badge: the paper, the ink, the incident's colour in its edge", () => {
+  it("are a quiet badge: the paper, the ink, the incident's colour in its edge and its icon", () => {
+    // Outside a canvas (a legend's sample) each canvas variable falls back to its role.
     expect(rule(".bpmn-overlay-badge--called-incident-count")).toEqual({
-      border: `1.5px solid ${V("incidentStroke")}`,
-      background: V("paper"),
-      color: V("ink"),
+      gap: "3px",
+      "padding-left": "4px",
+      border: `1.5px solid ${V("incidentStroke", "--danger")}`,
+      background: V("paper", "--card"),
+      color: V("ink", "--foreground"),
+    })
+    expect(rule(".bpmn-overlay-badge--called-incident-count > svg")).toEqual({
+      color: V("incidentStroke", "--danger"),
     })
   })
 

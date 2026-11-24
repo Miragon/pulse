@@ -105,6 +105,7 @@ describe("no English leaks into a German view", () => {
       `⟦${UI_MESSAGES.de.listFooter.showing({ shown: "1", total: "2", noun: "x" })}⟧`,
     )
     expect(Object.keys(PSEUDO).sort()).toEqual([
+      "bpmn",
       "common",
       "conditionChip",
       "copyableId",

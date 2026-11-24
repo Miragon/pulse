@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from "vitest"
 import { LINK_STYLES } from "bpmn-js/lib/util/PoweredByUtil"
-import { CD_TOKENS, ROLE_TOKENS, type CdTokenName } from "@miragon/pulse-ui"
+import { CD_TOKENS, ROLE_TOKENS, type CdTokenName } from "../index.js"
 import {
   composite,
   contrastRatio,
@@ -9,7 +9,7 @@ import {
   resolveColor,
   themeStylesheets,
   type Rgba,
-} from "@miragon/pulse-ui/testing"
+} from "../testing/index.js"
 import {
   BPMN_CANVAS_ROLES,
   BPMN_CANVAS_SLOT,
