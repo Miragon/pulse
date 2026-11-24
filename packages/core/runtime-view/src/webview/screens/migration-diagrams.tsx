@@ -5,12 +5,12 @@ import { RuntimeDiagram } from "../components/runtime-diagram.js"
 import type { Decorations } from "../diagram/decoration-layer.js"
 import { useHost } from "../host/host-context.js"
 
-export interface DiagramSide {
+interface DiagramSide {
   readonly version: number
   readonly diagramXml: string
 }
 
-export interface DiagramRow {
+interface DiagramRow {
   readonly sourceElementId: string
   readonly targetElementId?: string
   readonly unmappedTokens?: true
