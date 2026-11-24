@@ -1096,16 +1096,16 @@ exports[`workflow command describe text > renders the description of plan-migrat
   pulse plan-migration <key> <source> [target] [options]
 
 DESCRIPTION
-  Write a migration plan between two versions of a process as a file Pulse for VS Code previews
+  Write a migration plan between two versions of a process as a file Pulse for VS Code edits
   Effect: read; writes the plan file; nothing changes on the engine; --dry-run sends nothing and writes nothing
 
   Asks the engine for its mapping between two versions of a process (the target defaults to the
   latest version), applies --unmap and --map, has the engine check the result and writes it as a
   plan file keyed by the process definition key and the two version numbers, with no engine, no
   definition id and no instance in it (.pulse/migrations/<key>-v<source>-to-v<target>.migration.json
-  unless --plan-file names one). Pulse for VS Code previews the file on an engine you pick. The
-  command migrates nothing; when the engine finds problems it still writes the file and exits with
-  code 9 (CHECK_FAILED).
+  unless --plan-file names one). Pulse for VS Code edits the file in diagrams of both versions,
+  checked on an engine you pick. The command migrates nothing; when the engine finds problems it
+  still writes the file and exits with code 9 (CHECK_FAILED).
 
 ARGUMENTS
   <key>     The process definition key, the BPMN process id the plan names

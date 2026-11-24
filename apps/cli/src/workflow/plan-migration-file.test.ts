@@ -62,12 +62,12 @@ describe("planMigration command line", () => {
     [
       { planFile: "plans/invoice.json" },
       "--plan-file plans/invoice.json must end in .migration.json",
-      "Pulse for VS Code previews files ending in .migration.json, e.g. --plan-file plans/invoice.migration.json.",
+      "Pulse for VS Code edits files ending in .migration.json, e.g. --plan-file plans/invoice.migration.json.",
     ],
     [
       { planFile: "plans/.migration.json" },
       "--plan-file plans/.migration.json must end in .migration.json",
-      "Pulse for VS Code previews files ending in .migration.json, e.g. --plan-file plans/invoice.migration.json.",
+      "Pulse for VS Code edits files ending in .migration.json, e.g. --plan-file plans/invoice.migration.json.",
     ],
     [
       { map: ["check"] },

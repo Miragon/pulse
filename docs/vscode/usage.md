@@ -73,7 +73,8 @@ For one that holds null, write such a number as text to keep it as written.
 
 Tick instances in the definition panel to cancel or migrate them as one batch, follow its progress
 and stop it. A migration shows both versions, the engine's mapping and where instances would get
-stuck before anything runs; a [plan file](./migration-plans.md) from the CLI gets the same preview.
+stuck before anything runs; drag a mapping from one version to the other or pick it in the list. A
+[plan file](./migration-plans.md) from the CLI opens in the same diagrams and is edited there.
 
 ![A migration plan between two versions](../assets/vscode/10-migration-plan.png)
 
