@@ -26,7 +26,7 @@ no copy of it, so fetch it from the release this skill is of, whose libraries it
 <!-- x-release-please-start-version -->
 
 ```sh
-git clone --depth 1 --branch v0.31.0 https://github.com/Miragon/pulse
+git clone --depth 1 --branch v0.32.0 https://github.com/Miragon/pulse
 cp -r pulse/templates/claude-artifact my-dashboard && cd my-dashboard
 pnpm install
 pnpm dev        # the example dashboard on the recorded fixtures, no server needed
@@ -129,7 +129,7 @@ version is the release's; take this skill's version, never `latest`:
 <link rel="stylesheet" href="pulse-ui.css" />
 <div id="root"></div>
 <script type="module">
-  import * as ui from "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.31.0/dist/browser/pulse-ui.js"
+  import * as ui from "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.32.0/dist/browser/pulse-ui.js"
   const h = ui.createElement
   const mcp = await window.claude.use("mcp")
   const cache = { staleTime: 30000, gcTime: 600000 }

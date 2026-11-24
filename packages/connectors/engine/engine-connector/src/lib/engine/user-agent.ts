@@ -4,4 +4,4 @@
  * keeps the version in lockstep with the package's (an extra-files entry of
  * release-please-config.json reads the marker on its line).
  */
-export const USER_AGENT = "@miragon/pulse-engine-connector/0.31.0" // x-release-please-version
+export const USER_AGENT = "@miragon/pulse-engine-connector/0.32.0" // x-release-please-version

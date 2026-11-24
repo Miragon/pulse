@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.32.0](https://github.com/Miragon/pulse/compare/v0.31.0...v0.32.0) (2026-11-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* **ui,engine,templates:** @miragon/pulse-widget-shell/widgets no longer exports FreshnessStamp; import it from @miragon/pulse-ui. The kit's UiMessages catalog has three more sections (freshness, sectionState, pageError), so a complete catalog built by hand adds them.
+
+### Features
+
+* **cli,vscode:** migration plans written with pulse plan-migration and previewed in Pulse for VS Code ([#656](https://github.com/Miragon/pulse/issues/656)) ([ec7c7df](https://github.com/Miragon/pulse/commit/ec7c7dfd344b195fb4d7850463f2d236eb05d623))
+* **runtime-view,vscode:** migration plans edited in diagrams, mapped by drag and drop as in the Camunda 7 Cockpit ([#659](https://github.com/Miragon/pulse/issues/659)) ([be68b69](https://github.com/Miragon/pulse/commit/be68b6935359d430475f40844f1c557e04d77fb2))
+* **ui,engine,templates:** Claude artifacts on Pulse, a live process dashboard in minutes with three calls a load ([#674](https://github.com/Miragon/pulse/issues/674)) ([447e1dc](https://github.com/Miragon/pulse/commit/447e1dcef92a7ccfe6268bae6f11a4066aa769e0))
+
 ## [0.31.0](https://github.com/Miragon/pulse/compare/v0.30.0...v0.31.0) (2026-11-22)
 
 
