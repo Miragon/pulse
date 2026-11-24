@@ -1,0 +1,11 @@
+{
+  // The tests under test/, which read files outside the package (the repository's
+  // scripts/third-party-licenses.mjs): `tsc` builds src/ alone (tsconfig.json), so a build in a
+  // context without the repository's scripts/, the server image's, compiles none of them.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "."
+  },
+  "include": ["test"]
+}

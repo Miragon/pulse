@@ -29,9 +29,9 @@ describe("the canvas where the page names no mode", () => {
     expect(BPMN_OVERLAY_CSS).toContain(`:where(${BPMN_SYSTEM_DARK_CANVAS}) .bjs-powered-by {`)
   })
 
-  it("applies only where the root names neither mode attribute, never inside a light island", () => {
+  it("applies only where the root names none of the three mode attributes, never inside a light island", () => {
     expect(BPMN_SYSTEM_DARK_CANVAS).toBe(
-      `:root:not([data-theme], [data-cd-theme]) [data-slot="${BPMN_CANVAS_SLOT}"]:not(:is([data-theme-mode="light"], [data-cd-theme="light"]) *)`,
+      `[data-slot="${BPMN_CANVAS_SLOT}"]:is(:root:not([data-theme], [data-cd-theme], [data-theme-mode]) *:not(:is([data-theme-mode="light"], [data-cd-theme="light"]) *))`,
     )
   })
 })

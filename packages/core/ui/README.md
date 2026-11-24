@@ -78,18 +78,88 @@ export function App() {
 }
 ```
 
-Your stylesheet imports Tailwind v4, scans the kit's compiled sources and imports the theme
+Your stylesheet imports Tailwind v4, scans the kit's compiled sources, but not the browser
+bundle (React and the icons in it hold words Tailwind reads as classes), and imports the theme
 after it:
 
 ```css
 @import "tailwindcss";
 @source "../node_modules/@miragon/pulse-ui/dist";
+@source not "../node_modules/@miragon/pulse-ui/dist/browser";
 @import "@miragon/pulse-ui/theme.css";
 ```
 
 Never import `globals.css` next to your own Tailwind entry (two Tailwind layers), and never
 `fonts.css` in an MCP App view: an inlining bundler embeds the font files in every view. Serve
 the fonts by URL with `fontFaces({ baseUrl })` instead.
+
+## Use in a page without a build
+
+A page with no bundler and no Tailwind, a Claude artifact say, loads the kit as one ES module
+and one stylesheet from the package's `dist/browser/`, on a CDN such as jsDelivr:
+
+```html
+<link rel="stylesheet" href="pulse-ui.css" />
+<div id="root"></div>
+<script type="module">
+  import * as ui from "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@<version>/dist/browser/pulse-ui.js"
+
+  const h = ui.createElement
+  const incidents = { situation: "openIncident", label: "4 open incidents" }
+  const cells = [
+    { label: "Running", value: ui.formatCount(1284) },
+    { label: "Open incidents", value: h(ui.CountFigure, incidents, ui.formatCount(4)) },
+  ]
+  const page = h(
+    "main",
+    { className: "flex flex-col gap-section p-gutter" },
+    h(ui.WidgetHeader, { title: "Leasing" }),
+    h(ui.KpiGrid, { cells }),
+  )
+  const root = ui.createRoot(document.getElementById("root"))
+  root.render(h(ui.LocaleProvider, { locale: "en" }, page))
+</script>
+```
+
+- **`pulse-ui.js`** holds React, ReactDOM and the kit, React once: every name of the root entry,
+  React's and ReactDOM's public names (`createElement`, `Fragment`, the hooks, `createRoot`,
+  `createPortal`, …), the JSX runtime's `jsx` and `jsxs`, and `React` and `ReactDOM`. Take React
+  from it only: a second React from another URL breaks every hook. Without a build there is no
+  JSX; `createElement`, as `h` here, writes the same tree. Pin the version you install, as for every
+  `@miragon/pulse-*` package below 1.0.
+- **`lucide.js`** beside it holds every Lucide icon under lucide-react's names, on the same React,
+  for a page that draws icons of its own (`import { Activity } from ".../dist/browser/lucide.js"`);
+  `pulse-ui.js` holds only the icons the kit draws.
+- **`pulse-ui-bpmn.js`** beside it holds the BPMN diagram of `./bpmn` (below) with bpmn-js, on the
+  same React and the kit's contexts, for a page that draws a process
+  (`import { BpmnDiagram } from ".../dist/browser/pulse-ui-bpmn.js"`); it injects its own
+  stylesheet, and `pulse-ui.css` holds its classes.
+- **The words of `./glossary`** need no bundle: `dist/glossary/index.js` imports nothing, so a page
+  imports it as it is (`import { COUNT_TERMS } from ".../dist/glossary/index.js"`).
+- **`pulse-ui.css`** is the theme compiled with every class the kit renders and these layout
+  utilities, each also under `sm:` and `lg:` (a class outside the kit and this list renders
+  nothing):
+
+  | What     | Utilities                                                                                                                                                                                                                                                                           |
+  | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | Display  | `block`, `inline-block`, `inline`, `flex`, `inline-flex`, `grid`, `inline-grid`, `hidden`, `contents`                                                                                                                                                                               |
+  | Flex     | `flex-row`, `flex-col`, `flex-wrap`, `flex-nowrap`, `flex-1`, `flex-auto`, `flex-none`, `grow`, `shrink-0`; `items-`, `justify-` and `self-` with start, center and end, `items-baseline`, `items-stretch`, `justify-between`, `self-stretch`                                       |
+  | Grid     | `grid-cols-1` to `grid-cols-12`, `col-span-1` to `col-span-12`, `col-span-full`                                                                                                                                                                                                     |
+  | Spacing  | `gap`, `gap-x`, `gap-y` with 0, 1, 2, 3, 4, 6, 8, `gutter` or `section`; `p`, `px`, `py`, `pt`, `pr`, `pb`, `pl` with 0 to 4, 6, 8 or `gutter`; `m`, `mx`, `my`, `mt`, `mr`, `mb`, `ml` with 0 to 4, 6 or 8; `mx-auto`, `ml-auto`, `mr-auto`; `space-x`, `space-y` with 1 to 4 or 6 |
+  | Size     | `w-full`, `w-auto`, `w-fit`, `w-1/2`, `w-1/3`, `w-2/3`, `w-1/4`, `w-3/4`, `min-w-0`, `max-w-full`, `max-w-sm` to `max-w-7xl`, `max-w-prose`, `h-full`, `h-auto`, `min-h-0`                                                                                                          |
+  | Type     | `text-title`, `text-section`, `text-body`, `text-dense`, `text-small`, `text-left`, `text-center`, `text-right`, `font-sans`, `font-mono`, `font-normal`, `font-semibold`, `font-bold`, `tabular-nums`, `truncate`, `whitespace-nowrap`, `break-words`                              |
+  | Roles    | `text-foreground`, `text-muted-foreground`, `text-link`, `bg-background`, `bg-card`, `bg-muted`, `border`, `border-t`, `border-b`, `border-l`, `border-r`, `border-border`, `rounded-sm`, `rounded-md`, `rounded-lg`                                                                |
+  | Position | `overflow-hidden`, `overflow-auto`, `overflow-x-auto`, `relative`, `sticky`, `top-0`, `sr-only`                                                                                                                                                                                     |
+
+  It sets the body in the kit's font on the 13 px step, unlayered, so a host's reset before it
+  (a Claude artifact's skeleton) does not win. A Claude artifact loads stylesheets from its own
+  files only: copy `pulse-ui.css` into them. Geist comes from Google Fonts by a `<link>` of the
+  page (`family=Geist:wght@400;600;700&family=Geist+Mono:wght@400;600`); without it the system
+  font renders.
+
+The page is light or dark by the root's `data-theme` (`"light"` or `"dark"`), as an MCP host and
+a Claude artifact write it. With none of `data-theme`, `data-cd-theme` and `data-theme-mode` on
+the root, it follows the OS's setting (`prefers-color-scheme`) with no script of its own.
 
 ## What it provides
 
@@ -360,13 +430,19 @@ The theme maps role variables (`--primary`, `--interaction`, `--link`, `--focus`
 `--background` and `--muted` its ground (`#F9F7F7` on light), `--card` its surface, `--popover`
 and `--raised` its raised surface, `--accent` its hover, `--border` its line, `--muted-foreground`
 its quiet text, `--scrim` its backdrop. The mode follows `.dark`, `data-theme="dark"` and the
-guide's own `data-cd-theme="dark"`; `data-cd-kontrast="hoch"` switches high contrast (no shadows,
-stronger edges and quiet text, a 3 px focus) and forced colours keep every state visible. Your
-brand overrides role variables only, never a `--cd-*` token, under `:root` AND the dark scopes
+guide's own `data-cd-theme="dark"`; a root with none of `data-theme`, `data-cd-theme` and
+`data-theme-mode` follows the OS (`prefers-color-scheme: dark`), and `data-theme="light"` keeps
+it light. `data-cd-kontrast="hoch"` switches high contrast (no shadows, stronger edges and quiet
+text, a 3 px focus) and forced colours keep every state visible. Your brand overrides role
+variables only, never a `--cd-*` token, under `:root` AND the dark scopes
 (`.dark, [data-theme="dark"], [data-theme-mode="dark"], [data-cd-theme="dark"]`), or a light-only
-value shows in dark. Measure it in a test with `@miragon/pulse-ui/testing`:
+value shows in dark; for a page that follows the OS, also inside
+`@media (prefers-color-scheme: dark)` on
+`:root:where(:not([data-theme], [data-cd-theme], [data-theme-mode]))`.
+Measure it in a test with `@miragon/pulse-ui/testing`:
 `parseThemeVariables(...themeStylesheets(), brandCss)` and `contrastFindings` over
-`toneContrastPairs()` and `ROLE_CONTRAST_PAIRS`.
+`toneContrastPairs()` and `ROLE_CONTRAST_PAIRS`; the values for the OS's dark root are measured
+too (`os-dark`), wherever they resolve a pair apart from the dark scopes' values.
 
 The density roles set the size of controls, rows and bars on every surface, compact by default
 and in `rem` on the guide's shell ladder (`--cd-shell-zeile` 40 px, `--cd-shell-eintrag` 36,

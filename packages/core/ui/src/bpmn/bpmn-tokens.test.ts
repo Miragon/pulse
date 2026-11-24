@@ -22,6 +22,7 @@ import {
   BPMN_TOKENS,
   cdVar,
 } from "./bpmn-tokens.js"
+import { darkVariantBranches, OS_DARK_MEDIA, selectorList } from "./overlay-css.test-support.js"
 
 /** Every `--cd-*` token name the module uses. */
 function tokenNames(value: unknown): CdTokenName[] {
@@ -79,24 +80,6 @@ interface CssRule {
   media: string | null
   selectors: string[]
   body: string
-}
-
-/** Splits a selector list at its top-level commas (not those inside `:is()` or `:not()`). */
-function selectorList(selector: string): string[] {
-  const parts: string[] = []
-  let depth = 0
-  let start = 0
-  for (let i = 0; i < selector.length; i++) {
-    const c = selector[i]
-    if (c === "(") depth++
-    else if (c === ")") depth--
-    else if (c === "," && depth === 0) {
-      parts.push(selector.slice(start, i).trim())
-      start = i + 1
-    }
-  }
-  parts.push(selector.slice(start).trim())
-  return parts
 }
 
 /** The overlay CSS's rules, each `@media` block's with its condition (it nests one level). */
@@ -280,10 +263,10 @@ describe("the canvas follows the theme (owner decision D10, point 7)", () => {
 
   // happy-dom cannot match this selector; test:host proves it in Chromium (a light island in a dark
   // host keeps a light canvas, `host-sim.spec.ts`).
-  it("is dark exactly where pulse-ui's `dark:` variant is: the same selector on the canvas", () => {
-    const variant = /@custom-variant dark \((.+)\);/.exec(THEME_CSS)?.[1]
-    expect(variant).toBeDefined()
-    expect(BPMN_DARK_CANVAS).toBe(variant?.replaceAll("&", `[data-slot="${BPMN_CANVAS_SLOT}"]`))
+  it("is dark exactly where pulse-ui's `dark:` variant is, its branch under a dark OS too", () => {
+    const [own, os] = darkVariantBranches(THEME_CSS, CANVAS)
+    expect(BPMN_DARK_CANVAS).toBe(own)
+    expect(Object.fromEntries(declarations(os, OS_DARK_MEDIA))).toEqual(BPMN_CANVAS_ROLES.dark)
   })
 })
 

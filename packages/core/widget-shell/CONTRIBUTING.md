@@ -233,7 +233,8 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
 - **Theme:** none of its own. The widgets colour through the role variables of pulse-ui's
   Miragon theme (`@miragon/pulse-ui/theme.css`: the vendored `--cd-*` corporate-design
   tokens and the roles on top, light and dark). Your stylesheet imports it after `tailwindcss`,
-  `@source`s pulse-ui's `dist` and this package's `dist`, and
+  `@source`s pulse-ui's `dist` (but not its browser bundle, `dist/browser`) and this package's
+  `dist`, and
   overrides ROLE variables only; measure your overrides with `themeStylesheets()` from
   `@miragon/pulse-ui/testing`. The widgets follow the host's theme (then the OS); there is no
   theme preference.

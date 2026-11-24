@@ -98,6 +98,10 @@ describe("scopesFor: prose reaches only the checks that read it", () => {
     )
   })
 
+  it("runs pulse-ui's suites for its README, whose example the browser page suite renders", () => {
+    assert.deepEqual(scopes("packages/core/ui/README.md"), ["typescript"])
+  })
+
   it("treats the CLI's prose as code: its tests read its README and its skills", () => {
     assert.deepEqual(scopes("apps/cli/README.md"), ["brand", "cli", "typescript"])
     assert.deepEqual(scopes("apps/cli/skills/pulse-cli/SKILL.md"), ["cli", "plugins", "typescript"])

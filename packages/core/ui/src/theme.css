@@ -6,7 +6,12 @@
  *
  *   @import "tailwindcss";
  *   @source "<path>/node_modules/@miragon/pulse-ui/dist";
+ *   @source not "<path>/node_modules/@miragon/pulse-ui/dist/browser";
  *   @import "@miragon/pulse-ui/theme.css";
+ *
+ * A page without a build takes none of it: dist/browser/pulse-ui.css is this
+ * theme compiled with every class of the kit (the README's "Use in a page
+ * without a build").
  *
  * Three layers (modeler-tool-design §13):
  *   1. `--cd-*`  the Miragon corporate-design tokens, vendored unchanged.
@@ -38,12 +43,43 @@
  * mode, widget-shell's `BPMN_DARK_CANVAS`); `data-cd-theme="light"` inside a
  * dark scope is one too.
  *
+ * A document that names no mode follows the OS: when its root carries none of
+ * data-theme, data-cd-theme and data-theme-mode, the root is a dark scope
+ * under `prefers-color-scheme: dark` (the OS's mode blocks below), so a page
+ * needs no script. Any of the three on the root decides alone:
+ * `data-theme="light"` keeps it light on a dark OS.
+ *
  * `dark:` follows the NEAREST mode scope: an element is dark when it sits in a
  * dark scope with no light island in between. The second branch is a dark
  * scope nested in a light island (a dark preview inside a light app); one
  * such re-nesting is supported, which also covers a light island inside it.
+ * The third branch is the OS's dark root, as the first branch with the root as
+ * its scope (a dark scope inside a light island inside it is the second's).
  */
-@custom-variant dark (&:is(:is(.dark, [data-theme="dark"], [data-theme-mode="dark"], [data-cd-theme="dark"]) *:not(:is([data-theme-mode="light"], [data-cd-theme="light"]) *), :is([data-theme-mode="light"], [data-cd-theme="light"]) :is(.dark, [data-theme="dark"], [data-theme-mode="dark"], [data-cd-theme="dark"]) *:not(:is([data-theme-mode="light"], [data-cd-theme="light"]) :is(.dark, [data-theme="dark"], [data-theme-mode="dark"], [data-cd-theme="dark"]) :is([data-theme-mode="light"], [data-cd-theme="light"]) *)));
+@custom-variant dark {
+  &:is(
+    :is(.dark, [data-theme="dark"], [data-theme-mode="dark"], [data-cd-theme="dark"])
+      *:not(:is([data-theme-mode="light"], [data-cd-theme="light"]) *),
+    :is([data-theme-mode="light"], [data-cd-theme="light"])
+      :is(.dark, [data-theme="dark"], [data-theme-mode="dark"], [data-cd-theme="dark"])
+      *:not(
+        :is([data-theme-mode="light"], [data-cd-theme="light"])
+          :is(.dark, [data-theme="dark"], [data-theme-mode="dark"], [data-cd-theme="dark"])
+          :is([data-theme-mode="light"], [data-cd-theme="light"])
+          *
+      )
+  ) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:is(
+      :root:not([data-theme], [data-cd-theme], [data-theme-mode])
+        *:not(:is([data-theme-mode="light"], [data-cd-theme="light"]) *)
+    ) {
+      @slot;
+    }
+  }
+}
 
 @theme inline {
   --font-heading: var(--font-sans);
@@ -546,6 +582,140 @@
   --muted-foreground: var(--cd-weiss);
 }
 
+/* ── The OS's mode, where the document names none ─────────────────────────── */
+/* A root without data-theme, data-cd-theme and data-theme-mode (a page of its
+   own, a Claude artifact on the viewer's "system" setting) follows the OS: on
+   a dark OS the root is a dark scope, with no page script. A host that writes
+   one of the three (widget-shell's useApplyTheme, the editors' data-cd-theme)
+   keeps deciding alone, and data-theme="light" stays light on a dark OS.
+   Each block repeats one above for the OS's dark root, at its specificity and
+   after it: the dark roles as on .dark (0,1,0), the light roles on a light
+   island inside it, the dark high contrast on it and inside it.
+   theme-css.test.ts holds every copy equal to its original, so the contrast
+   suites that read the originals measure these too. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme], [data-cd-theme], [data-theme-mode])) {
+    --background: var(--cd-schwarz);
+    --foreground: var(--cd-weiss);
+    --card: color-mix(in srgb, var(--cd-weiss) 5%, var(--cd-schwarz));
+    --card-foreground: var(--cd-weiss);
+    --popover: color-mix(in srgb, var(--cd-weiss) 8%, var(--cd-schwarz));
+    --popover-foreground: var(--cd-weiss);
+    --raised: color-mix(in srgb, var(--cd-weiss) 8%, var(--cd-schwarz));
+    --primary: var(--cd-blau);
+    --primary-foreground: var(--cd-weiss);
+    --primary-hover: var(--cd-blau-link);
+    --interaction: var(--cd-blau-hell);
+    --secondary: color-mix(in srgb, var(--cd-weiss) 12%, var(--cd-schwarz));
+    --secondary-foreground: var(--cd-weiss);
+    --muted: var(--cd-schwarz);
+    --muted-foreground: color-mix(in srgb, var(--cd-weiss) 70%, var(--cd-schwarz));
+    --accent: color-mix(in srgb, var(--cd-weiss) 12%, var(--cd-schwarz));
+    --accent-foreground: var(--cd-weiss);
+    --link: var(--cd-gruen);
+    --destructive: var(--cd-danger);
+    --destructive-foreground: var(--cd-weiss);
+    --border: color-mix(in srgb, var(--cd-weiss) 18%, var(--cd-schwarz));
+    --input: var(--cd-kontur);
+    --ring: var(--cd-blau-hell);
+    --focus: var(--cd-blau-hell);
+    --success: var(--cd-success-hell);
+    --success-soft: transparent;
+    --success-surface: color-mix(in srgb, var(--cd-weiss) 5%, var(--cd-schwarz));
+    --success-ink: var(--cd-success-hell);
+    --warning: var(--cd-warning-hell);
+    --warning-soft: transparent;
+    --warning-surface: color-mix(in srgb, var(--cd-weiss) 5%, var(--cd-schwarz));
+    --warning-ink: var(--cd-warning-hell);
+    --danger: var(--cd-danger-hell);
+    --danger-soft: transparent;
+    --danger-surface: color-mix(in srgb, var(--cd-weiss) 5%, var(--cd-schwarz));
+    --danger-ink: var(--cd-danger-hell);
+    --info: var(--cd-info-hell);
+    --info-soft: transparent;
+    --info-surface: color-mix(in srgb, var(--cd-weiss) 5%, var(--cd-schwarz));
+    --info-ink: var(--cd-weiss);
+    --chart-1: color-mix(in srgb, var(--cd-blau) 60%, var(--cd-info-soft));
+    --chart-2: color-mix(in srgb, var(--cd-blau) 85%, var(--cd-info-soft));
+    --chart-3: var(--cd-blau);
+    --chart-4: color-mix(in srgb, var(--cd-blau) 60%, var(--cd-schwarz));
+    --chart-5: color-mix(in srgb, var(--cd-blau) 30%, var(--cd-schwarz));
+    --sidebar: color-mix(in srgb, var(--cd-weiss) 5%, var(--cd-schwarz));
+    --sidebar-foreground: var(--cd-weiss);
+    --sidebar-primary: var(--cd-blau);
+    --sidebar-primary-foreground: var(--cd-weiss);
+    --sidebar-accent: color-mix(in srgb, var(--cd-weiss) 12%, var(--cd-schwarz));
+    --sidebar-accent-foreground: var(--cd-weiss);
+    --sidebar-border: color-mix(in srgb, var(--cd-weiss) 18%, var(--cd-schwarz));
+    --sidebar-ring: var(--cd-blau-hell);
+    --scrim: color-mix(in srgb, var(--cd-schwarz) 60%, transparent);
+  }
+  :where(:root:not([data-theme], [data-cd-theme], [data-theme-mode]))
+    :is([data-theme-mode="light"], [data-cd-theme="light"]) {
+    --background: var(--cd-grau);
+    --foreground: var(--cd-schwarz);
+    --card: var(--cd-weiss);
+    --card-foreground: var(--cd-schwarz);
+    --popover: var(--cd-weiss);
+    --popover-foreground: var(--cd-schwarz);
+    --raised: var(--cd-weiss);
+    --primary: var(--cd-blau);
+    --primary-foreground: var(--cd-weiss);
+    --primary-hover: var(--cd-blau-link);
+    --interaction: var(--cd-blau);
+    --secondary: var(--cd-grau);
+    --secondary-foreground: var(--cd-schwarz);
+    --muted: var(--cd-grau);
+    --muted-foreground: var(--cd-text-leise);
+    --accent: var(--cd-info-soft);
+    --accent-foreground: var(--cd-blau-link);
+    --link: var(--cd-blau-link);
+    --destructive: var(--cd-danger);
+    --destructive-foreground: var(--cd-weiss);
+    --border: var(--cd-linie);
+    --input: var(--cd-kontur);
+    --ring: var(--cd-blau-link);
+    --focus: var(--cd-blau-link);
+    --success: var(--cd-success);
+    --success-soft: var(--cd-success-soft);
+    --success-surface: var(--cd-success-soft);
+    --success-ink: var(--cd-schwarz);
+    --warning: var(--cd-warning);
+    --warning-soft: var(--cd-warning-soft);
+    --warning-surface: var(--cd-warning-soft);
+    --warning-ink: var(--cd-schwarz);
+    --danger: var(--cd-danger);
+    --danger-soft: var(--cd-danger-soft);
+    --danger-surface: var(--cd-danger-soft);
+    --danger-ink: var(--cd-danger);
+    --info: var(--cd-info);
+    --info-soft: var(--cd-info-soft);
+    --info-surface: var(--cd-info-soft);
+    --info-ink: var(--cd-info);
+    --chart-1: var(--cd-blau);
+    --chart-2: color-mix(in srgb, var(--cd-blau) 72%, var(--cd-info-soft));
+    --chart-3: color-mix(in srgb, var(--cd-blau) 48%, var(--cd-info-soft));
+    --chart-4: color-mix(in srgb, var(--cd-blau) 24%, var(--cd-info-soft));
+    --chart-5: var(--cd-info-soft);
+    --sidebar: var(--cd-weiss);
+    --sidebar-foreground: var(--cd-schwarz);
+    --sidebar-primary: var(--cd-blau);
+    --sidebar-primary-foreground: var(--cd-weiss);
+    --sidebar-accent: var(--cd-info-soft);
+    --sidebar-accent-foreground: var(--cd-blau-link);
+    --sidebar-border: var(--cd-linie);
+    --sidebar-ring: var(--cd-blau-link);
+    --scrim: color-mix(in srgb, var(--cd-schwarz) 42%, transparent);
+  }
+  :root:where(:not([data-theme], [data-cd-theme], [data-theme-mode]))[data-cd-kontrast="hoch"],
+  :root:where(:not([data-theme], [data-cd-theme], [data-theme-mode])) [data-cd-kontrast="hoch"] {
+    --border: var(--cd-kontur);
+    --sidebar-border: var(--cd-kontur);
+    --input: var(--cd-weiss);
+    --muted-foreground: var(--cd-weiss);
+  }
+}
+
 @layer base {
   *,
   *::before,
@@ -575,6 +745,12 @@
   body:is(.dark, [data-theme="dark"], [data-theme-mode="dark"], [data-cd-theme="dark"]),
   :where(body) :is(.dark, [data-theme="dark"], [data-theme-mode="dark"], [data-cd-theme="dark"]) {
     color-scheme: dark;
+  }
+  /* The OS's dark root (the blocks above): its body, as a dark root's. */
+  @media (prefers-color-scheme: dark) {
+    :not([data-theme], [data-cd-theme], [data-theme-mode]) > body {
+      color-scheme: dark;
+    }
   }
 }
 

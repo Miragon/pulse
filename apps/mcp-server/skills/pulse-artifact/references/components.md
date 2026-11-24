@@ -1005,7 +1005,7 @@ declare function Skeleton(
 
 ```ts
 declare function Button(props: {
-  size?: null | "default" | "sm" | "lg" | "icon" | "xs" | "icon-xs" | "icon-sm" | "icon-lg"
+  size?: null | "default" | "sm" | "lg" | "xs" | "icon" | "icon-xs" | "icon-sm" | "icon-lg"
   variant?:
     null | "default" | "destructive" | "secondary" | "link" | "toolbar" | "outline" | "ghost"
   asChild?: boolean

@@ -2,10 +2,12 @@
 /*
  * The classes the page renders: its own (this folder) and the compiled kit it imports, pulse-ui
  * (its ./bpmn entry draws the BPMN viewer and its zoom bar), the building blocks and widget-shell's
- * view half. The tarballs ship no tests, so each dist is scanned whole; never pulse-ui's
- * src/testing, which holds palette classes on purpose.
+ * view half. The tarballs ship no tests, so each dist is scanned whole, but pulse-ui's browser
+ * bundle (dist/browser, whose React and icons hold words Tailwind reads as classes); never
+ * pulse-ui's src/testing, which holds palette classes on purpose.
  */
 @source "../node_modules/@miragon/pulse-ui/dist";
+@source not "../node_modules/@miragon/pulse-ui/dist/browser";
 @source "../node_modules/@miragon/pulse-blocks/dist";
 @source "../node_modules/@miragon/pulse-widget-shell/dist/ui";
 @source not "../node_modules/@miragon/**/*.test.js";

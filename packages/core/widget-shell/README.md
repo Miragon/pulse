@@ -54,8 +54,9 @@ Its `vite.config.ts` spreads `VIEW_BUNDLE_DEDUPE` (`./server`) into `resolve.ded
 once (this one included), or the React contexts diverge and every in-widget query hangs. Under
 `vite build --watch` next to `tsx watch`, add `viewBundleWatchPlugin()` to the plugins, so the
 server restarts only for a new bundle. The stylesheet imports `@miragon/pulse-ui/theme.css` after
-`tailwindcss`, `@source`s pulse-ui's `dist` and this package's `dist`, and overrides role
-variables only; the widgets follow the host's theme, then the OS.
+`tailwindcss`, `@source`s pulse-ui's `dist` (but not its browser bundle, `dist/browser`) and this
+package's `dist`, and overrides role variables only; the widgets follow the host's theme, then the
+OS.
 
 ## What it provides
 

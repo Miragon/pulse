@@ -108,10 +108,13 @@ describe("the view stylesheets (#339)", () => {
     expect(globals).toContain('@import "./brand.css"')
     expect(globals).not.toContain("@miragon/pulse-ui/globals.css")
     // The tarball's dist carries no tests (pulse-ui's package.json `files`), so the
-    // template scans it whole: no fixture class reaches your stylesheet.
+    // template scans it whole: no fixture class reaches your stylesheet. Only the browser bundle
+    // stays out (React and the icons in it hold words Tailwind reads as classes).
     expect(globals).toMatch(/@source "[^"]*node_modules\/@miragon\/pulse-ui\/dist"/)
     // The board's tiles the engine module's cockpit renders, with the classes of their build.
     expect(globals).toMatch(/@source "[^"]*node_modules\/@miragon\/pulse-blocks\/dist"/)
-    expect(globals).not.toMatch(/@source not/)
+    expect([...globals.matchAll(/@source not "([^"]*)"/g)].map((m) => m[1])).toEqual([
+      "../../node_modules/@miragon/pulse-ui/dist/browser",
+    ])
   })
 })

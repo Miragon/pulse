@@ -33,6 +33,7 @@
     "!dist/**/*.test.*",
     "!dist/**/*.test-support.*",
     "!dist/render-*",
+    "THIRD_PARTY_LICENSES.txt",
     "src",
     "!src/**/*.test.*",
     "!src/**/*.test-support.*",
@@ -70,12 +71,13 @@
     "./fonts.css": "./src/fonts.css"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node scripts/browser-bundle.mjs",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint src",
-    "lint:fix": "eslint src --fix",
-    "golden:update": "GOLDEN_UPDATE=1 vitest run src/glossary/glossary-page.test.ts --coverage.enabled=false"
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
+    "lint": "eslint src test",
+    "lint:fix": "eslint src test --fix",
+    "golden:update": "GOLDEN_UPDATE=1 vitest run src/glossary/glossary-page.test.ts --coverage.enabled=false",
+    "third-party-licenses": "THIRD_PARTY_LICENSES_UPDATE=1 vitest run test/third-party-licenses.test.ts --coverage.enabled=false"
   },
   "peerDependencies": {
     "bpmn-js": "^18.31.1",
@@ -106,6 +108,8 @@
     "tw-animate-css": "1.4.0"
   },
   "devDependencies": {
+    "@tailwindcss/node": "4.3.5",
+    "@tailwindcss/oxide": "4.3.5",
     "@testing-library/react": "16.3.3",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
@@ -113,6 +117,7 @@
     "esbuild": "0.28.2",
     "happy-dom": "21.0.4",
     "lucide-react": "1.73.0",
+    "playwright": "1.64.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "tailwindcss": "4.3.5",

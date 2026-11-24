@@ -5,7 +5,7 @@ export default mergeConfig(
   sharedConfig,
   defineConfig({
     test: {
-      include: ["src/**/*.test.{ts,tsx}"],
+      include: ["src/**/*.test.{ts,tsx}", "test/**/*.test.ts"],
       coverage: {
         // Ratchet: each floor is the measured value rounded down. Raise when you push
         // coverage up; never lower. Baselined 2026-11-01 as the package was created from

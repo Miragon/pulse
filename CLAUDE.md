@@ -55,7 +55,8 @@ as pages of the server, a CLI and two editor hosts for the same engines.
   transport port) and the editor hosts' private, read-only `c8-adapter`
 - `packages/core/ui/`: `@miragon/pulse-ui`, the design kit and theme (`theme.css`), the BPMN
   diagram for any page (`/bpmn`, bpmn-js its optional peer), framework-free `/format` and
-  `/tones`, the brand gates in `/testing`
+  `/tones`, the brand gates in `/testing`, and its browser bundle for a page without a build
+  (`dist/browser`, `packages/core/ui/scripts/browser-bundle.mjs`)
 - `packages/core/widget-shell/`: the view runtime (`/widgets`), the registrar
   (`createToolRegistrar`), the boot (`/server`) with the web app's sign-in (`src/web`), a module's
   test server (`/testing`)
@@ -188,7 +189,10 @@ Palettenklassen oder rohe Farben. Ein `--cd-*` steht nur in den Kopien, die
 `.miragon/brand-assets.sha256`); eine weitere kommt mit `brand-assets.mjs --add`, nie als Ausnahme
 im Scan. Setzen mehrere Kopien ein Token im selben Geltungsbereich, hat es überall denselben Wert,
 auch im Doku-Kit (`packages/core/ui/src/theme/token-drift.test.ts`). Die Docs-Site hebt
-`@miragon/docs-starter` mit jedem Kit-Release.
+`@miragon/docs-starter` mit jedem Kit-Release. Nennt die Wurzel weder `data-theme` noch
+`data-cd-theme` noch `data-theme-mode`, folgt `theme.css` dem OS (`prefers-color-scheme`), ohne
+Skript der Seite (#661); ein Host, der eines davon setzt, entscheidet allein, und die Kopien der
+dunklen Rollen hält `theme-css.test.ts` gleich.
 
 UI-Texte gibt es auf Deutsch und Englisch nach Host-Locale. Deutsch folgt brand-tone vollständig:
 du-Ansprache, AI statt `KI`, „CIB seven“, kein Gedankenstrich als Verbinder, normale Groß- und
@@ -638,18 +642,18 @@ for every workspace package.
   equal by `scripts/error-path-goldens.test.mjs`. Each package updates its goldens through its
   `golden:update`, never by hand.
 - **Bundles have shrink-only budgets**: the widget bundle (`test/__golden__/bundle-budget.json`,
-  every view resource inlines it), the web app's page, the VS Code webview and the CLI's npm dist,
-  each in its package's `test/__golden__/bundle-budget.json`; growth needs a `Ratchet-Exception:`
-  trailer that says why.
+  every view resource inlines it), the web app's page, the VS Code webview, pulse-ui's browser
+  bundle and the CLI's npm dist, each in its package's `test/__golden__/bundle-budget.json`; growth
+  needs a `Ratchet-Exception:` trailer that says why.
 - **Federation happens in an external MCP gateway IN FRONT of this server** (dropped
   deliberately in #162: no upstream/proxy mechanics). A gateway that terminates auth is invisible
   to the server, which then boots read-only without a caller, so such a deployment names its
   toolsets in `MCP_ACTIVE_MODULES`.
 - **An artifact ships the licences of the works of others it holds** (owner decision
   2026-11-12): a generated `THIRD_PARTY_LICENSES.txt` beside its `LICENSE` (the CLI, the c7
-  client, the server image, the web app, the .vsix, the Orca plugin), written from what its
-  bundler really holds by `scripts/third-party-licenses.mjs`; each artifact's drift test fails
-  while the file misses a work or lists one no longer held.
+  client, the server image, the web app, the .vsix, the Orca plugin, pulse-ui for its browser
+  bundle), written from what its bundler really holds by `scripts/third-party-licenses.mjs`; each
+  artifact's drift test fails while the file misses a work or lists one no longer held.
 - **The server reads no `PULSE_*` variable.** PulseAudio owns `PULSE_*` and `PULSE_CLI_*` is the
   CLI's; a server setting goes into `ENGINE_*`, `ENGINES_*` or `MCP_*`
   (`scripts/server-env-names.test.mjs`).

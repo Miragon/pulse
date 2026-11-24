@@ -175,12 +175,14 @@ const DARK_SCOPES = '.dark, [data-theme="dark"], [data-theme-mode="dark"], [data
 const LIGHT_ISLANDS = '[data-theme-mode="light"], [data-cd-theme="light"]'
 
 /**
- * The canvas where the page names no mode on its root (neither `data-theme` nor `data-cd-theme`),
- * outside a light island: dark under the system's dark scheme (`prefers-color-scheme`), as the
- * kit's roles are there, so a page without a script of its own draws its canvas in its mode. A host
- * and the web app always name the mode (widget-shell's `applyDocumentTheme`).
+ * The canvas where the page names no mode on its root (none of `data-theme`, `data-cd-theme` and
+ * `data-theme-mode`), outside a light island: dark under the system's dark scheme
+ * (`prefers-color-scheme`), as the kit's roles are there, so a page without a script of its own
+ * draws its canvas in its mode. It is the branch of pulse-ui's `dark:` variant under a dark OS
+ * (theme.css), on the canvas, so the canvas and the roles around it agree. A host and the web app
+ * always name the mode (widget-shell's `applyDocumentTheme`).
  */
-export const BPMN_SYSTEM_DARK_CANVAS = `:root:not([data-theme], [data-cd-theme]) ${CANVAS}:not(:is(${LIGHT_ISLANDS}) *)`
+export const BPMN_SYSTEM_DARK_CANVAS = `${CANVAS}:is(:root:not([data-theme], [data-cd-theme], [data-theme-mode]) *:not(:is(${LIGHT_ISLANDS}) *))`
 
 /** The zero-sized host an element's counts grow from, over its top right corner. */
 export const BADGE_ANCHOR = "pulse-badge-anchor"
@@ -232,8 +234,8 @@ const contrasted = (marker: string) => `${BPMN_HIGH_CONTRAST} ${outline(marker)}
  * instead of its ring. Forced colours: the drawing in the system's palette
  * ({@link BPMN_FORCED_CANVAS}), a badge Canvas with CanvasText, edged in CanvasText, bpmn.io's link
  * LinkText; an incident's outline 3 px and a running one 2 px, so the two differ by their width
- * where both are Highlight. A page that sets no mode on its root (neither `data-theme` nor
- * `data-cd-theme`) follows the system's: its canvas is dark where the system is, as the kit's roles
+ * where both are Highlight. A page that sets no mode on its root (none of `data-theme`,
+ * `data-cd-theme` and `data-theme-mode`) follows the system's: its canvas is dark where the system is, as the kit's roles
  * are ({@link BPMN_SYSTEM_DARK_CANVAS}). The counts on an element (`BpmnDiagram`) grow from a
  * zero-sized anchor over its top right corner to the left, each count a button where it leads
  * somewhere, a stale count neutral, a legend's sample smaller; the incidents in called instances
