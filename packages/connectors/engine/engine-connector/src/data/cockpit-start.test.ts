@@ -33,7 +33,7 @@ import {
 } from "../view-models.js"
 import { EVERY_DIALECT } from "../view-models.dialects.js"
 import { registerWidgetDataFeeds } from "../widget-tools/data-feeds.js"
-import { namedReads } from "../widget-tools/shared.js"
+import { namedReads } from "./feeds.js"
 import {
   DEFAULT_VERDICT_THRESHOLDS,
   engineVerdict,

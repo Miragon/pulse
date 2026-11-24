@@ -564,11 +564,13 @@ const DOCS_BUDGETS = {
   // A board in the chat and the cockpit, the server's board files, a board shared with the editors.
   "mcp/boards.md": 70,
   // What the server reads of a Camunda 8 cluster and offers per engine (the web app's screen feeds
-  // among it), its profile and client, its failures (the incident searches whose failure fails a
-  // cluster's processes among them) and the server's legs of the conformance matrix.
-  "mcp/camunda8.md": 126,
-  // Every tool and toolset (a process's numbers for a page among them) and the common settings.
-  "mcp/reference.md": 170,
+  // and the screens and boards as JSON among it), its profile and client, its failures (the
+  // incident searches whose failure fails a cluster's processes among them) and the server's legs
+  // of the conformance matrix.
+  "mcp/camunda8.md": 127,
+  // Every tool family and toolset (a process's numbers and the screens and boards as JSON for a
+  // page among them) and the common settings.
+  "mcp/reference.md": 175,
   // A Claude artifact on Pulse: what it is, the template and its loop, the plugin, publishing,
   // how a page calls the connector (its refusal codes), the reads of one load and what replaces
   // the template's temporary parts.

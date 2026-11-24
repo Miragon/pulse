@@ -618,7 +618,12 @@ call's abort signal at `ctx.mcpReq.signal`):
   `engine_screen_instance_data`, `engine_screen_incident_text_data`, `engine_screen_find_data`;
   beside them the one `dataFeed` there, Camunda 7's verdict `engine_screen_verdict_data`, marked
   `dialects: ["c7"]`; a read that loads the engine's
-  database on the floor of 30 s per caller, `screenFloor`), no route's and no widget's. `registerDataFeed` in `data-feeds.ts` registers each feed of one engine
+  database on the floor of 30 s per caller, `screenFloor`), no route's and no widget's. A
+  screen's or a board's JSON form reaches the model and a page outside the web app through the
+  registrar tools of `src/tools/screens.ts` (`engine_get_screen`, `engine_get_board`: owner
+  decision 2026-11-24), `{ formatVersion, data }` over the same builders and floors
+  (`src/data/json-forms.ts`); a new screen form goes there with its schema in
+  `src/tools/test-support/screen-forms.ts`, never a builder of its own. `registerDataFeed` in `data-feeds.ts` registers each feed of one engine
   (a contract feed's through `resolveRuntimeEngine`), `registerNamingFeed` each naming feed; both
   spread `...appOnly` (SEP-1865 `_meta.ui.visibility: ["app"]` plus `openai/widgetAccessible`;
   **no** view binding) and return `buildDataFeedResult(data)` so the in-widget `callTool()` gets

@@ -88,8 +88,8 @@ Three axes decide where code goes, and they stay apart:
 - **Dialect** (an engine API family): one package family under `packages/connectors/<dialect>/`
   whose core implements engine-core's contract: `c7` (the Camunda 7 REST API all three vendors
   serve) and `c8` (Camunda 8's Orchestration Cluster REST API, read-only; the server offers it in
-  the engine list, the boards and the web app's screens, the chat on boards only:
-  `docs/mcp/camunda8.md`). `DIALECT_FAMILIES` and `ENGINE_DIALECTS` in `.dependency-cruiser.cjs`
+  the engine list, the boards, the web app's screens and their JSON for the model, the chat's
+  views on boards only: `docs/mcp/camunda8.md`). `DIALECT_FAMILIES` and `ENGINE_DIALECTS` in `.dependency-cruiser.cjs`
   name them. A new dialect is a family, never an MCP server app or a module of its own.
 - **Interface** (how a person or an agent reaches an engine): an app under `apps/` with its own
   agent file. Apps never import each other, and no package imports an app; what the editor hosts
@@ -345,6 +345,13 @@ for every workspace package.
      `@miragon/pulse-blocks`; nothing of it reaches the chat's bundle
      (`apps/mcp-server/test/view-bundle.test.ts`). Where a screen shows a place of the cockpit's,
      the page claims it (`ViewLocation.claims`) and the embedded cockpit renders nothing there.
+   - A screen's or a board's JSON form reaches the model and any page outside the web app as data
+     (owner decision 2026-11-24, #666; D10 holds for the screens as UI): the read-only registrar
+     tools `engine_get_screen` and `engine_get_board` (`src/tools/screens.ts`), marked as their
+     feeds, return `{ formatVersion, data }` from the feeds' own builders and floors
+     (`src/data/json-forms.ts`), never a view and never a builder of their own; the version is the
+     format's (`ScreenFormat.JSON_VERSION`, `BoardVocabulary.JSON_VERSION`), and
+     `src/tools/test-support/screen-forms.ts` holds the forms.
    - The engine module's views are bundle views, never a resource of their own: ESLint blocks
      `registerResource` and `registerAppResource` under `packages/connectors/`. Only a customer's
      module may bring a finished HTML document (invariant 8, the module port).

@@ -7,6 +7,7 @@ import type {
 
 export class BoardVocabulary {
   static readonly SCHEMA_VERSION = 1
+  static readonly JSON_VERSION = 1
   static readonly MAX_WIDGETS = 12
   static readonly LIST_LIMIT = 50
   static readonly DOCUMENT_KEYS: readonly string[] = [

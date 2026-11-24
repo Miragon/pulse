@@ -12,7 +12,7 @@ ones, so a misspelled filter cannot widen the answer to the whole engine.
 
 BPM operations across these domains (`category`): `engines`, `process-definitions`,
 `process-instances`, `tasks`, `external-tasks`, `messages-signals`, `deployments`, `incidents`,
-`jobs`, `history`, `migrations`, `batches`, `process-numbers`. Highlights:
+`jobs`, `history`, `migrations`, `batches`, `process-numbers`, `screens`. Highlights:
 
 - **Engines:** `list_engines` (each with its `dialect`), `engine_status` (one engine's triage:
   findings, counts, the live verdict from its open root incidents by `ENGINE_HEALTH_*` and findings)
@@ -61,6 +61,11 @@ BPM operations across these domains (`category`): `engines`, `process-definition
   from the engine's history (the app-only `engine_activity_statistics_data`, `source` `history`)
 - **Boards:** with `ENGINE_BOARDS_DIR`, `list_engines` names them, `open_cockpit` (`view` `board`,
   its id) shows one, built by `engine_board_data` ([Boards](boards.md), [Camunda 8](camunda8.md))
+- **Screens and boards as JSON** (`screens`): `engine_get_screen` (`screen` `engine`; `process` with
+  `processDefinitionKey` and `version`; `instance` with `processInstanceId`) and `engine_get_board`
+  return a web app screen's or a board's JSON form, `{ formatVersion, data }`, which a page renders
+  with `@miragon/pulse-blocks`; data only, every dialect, built by the web app's and the cockpit's
+  builders, kept 30 s per caller as theirs, an instance's screen read anew on every call
 
 ### Toolsets
 

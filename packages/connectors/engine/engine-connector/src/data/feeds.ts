@@ -9,7 +9,14 @@ import {
   processInstancesFilterShape,
 } from "../feed-contracts.js"
 import { diagramXmlOf } from "../lib/engine/diagram-xml.js"
-import type { ResolvedEngine, RuntimeEngine } from "../lib/engine/resolve-engine.js"
+import {
+  type EngineCallContext,
+  type EngineRegistry,
+  type ResolvedEngine,
+  type RuntimeEngine,
+  resolveRuntimeEngine,
+} from "../lib/engine/resolve-engine.js"
+import { type EngineMark, engineServing } from "../lib/engine/served-engines.js"
 import { BOARD_ID, type BoardFiles } from "../board-files.js"
 import { pagingShape } from "../schemas/index.js"
 import {
@@ -90,6 +97,23 @@ export interface NamedReadContext {
   resolve: BoardEngineResolver
   /** The boards of ENGINE_BOARDS_DIR; none without it. */
   boards?: BoardFiles
+}
+
+/**
+ * What a read that names its own engines (a board's) reads with under one call: each engine by
+ * its name alone, never the default (invariant 2), of a dialect its mark serves (the call-time
+ * net), and the boards of ENGINE_BOARDS_DIR. The board feed, the cockpit's board and the model's
+ * board tool read through it.
+ */
+export function namedReads(
+  { registry, boards }: { registry: EngineRegistry; boards?: BoardFiles | undefined },
+  mark: EngineMark,
+  call?: EngineCallContext,
+): NamedReadContext {
+  return {
+    resolve: (name) => resolveRuntimeEngine(engineServing(name, registry, mark), registry, call),
+    ...(boards ? { boards } : {}),
+  }
 }
 
 /** An app-only JSON feed that names its own engines, so it takes no `engine` parameter. */

@@ -1,3 +1,4 @@
+import type { BoardFiles } from "../board-files.js"
 import type { EngineToolRegistrar } from "../lib/engine/served-engines.js"
 
 import { registerProcessDefinitionTools } from "./process-definitions.js"
@@ -13,10 +14,13 @@ import { registerHistoryTools } from "./history.js"
 import { registerMigrationTools } from "./migrations.js"
 import { registerBatchTools } from "./batches.js"
 import { registerProcessNumberTools } from "./process-numbers.js"
+import { registerScreenTools } from "./screens.js"
 
 export interface RegisterToolsOptions {
   /** `ENGINE_ALLOW_DEPLOYMENTS=true`: deploying runs code inside the engine JVM. */
   allowDeployments?: boolean
+  /** The boards of ENGINE_BOARDS_DIR, which the board tool builds; none without it. */
+  boards?: BoardFiles
 }
 
 export function registerTools(
@@ -37,4 +41,6 @@ export function registerTools(
   registerBatchTools(register)
   // A process's numbers ready to show (#665).
   registerProcessNumberTools(register)
+  // The screens and boards as JSON (#666): their own block, every dialect.
+  registerScreenTools(register, opts.boards)
 }

@@ -120,6 +120,9 @@ describe("createPlugin on an engine of another dialect", () => {
     ENGINE_SCREEN_FIND_DATA,
     ENGINE_OPEN_COCKPIT,
     ENGINE_WIDGET_ACTIONS_DATA,
+    // The screens and boards as JSON (#666), as the feeds they build alike.
+    "engine_get_screen",
+    "engine_get_board",
   ]
   const REFUSAL = '[ENGINE_DIALECT_NOT_SERVED] Engine "c8" is a Camunda 8 engine'
 
@@ -143,6 +146,9 @@ describe("createPlugin on an engine of another dialect", () => {
     expect(offered(recording, ENGINE_SCREEN_INSTANCE_DATA)).toEqual(["a", "c8"])
     expect(offered(recording, ENGINE_SCREEN_INCIDENT_TEXT_DATA)).toEqual(["a", "c8"])
     expect(offered(recording, ENGINE_SCREEN_FIND_DATA)).toEqual(["a", "c8"])
+    expect(offered(recording, "engine_get_screen")).toEqual(["a", "c8"])
+    // A board names its engines itself.
+    expect(offered(recording, "engine_get_board")).toBeUndefined()
     // The cockpit's `engine` names every engine it shows: a route of one engine refuses this one.
     expect(offered(recording, ENGINE_OPEN_COCKPIT)).toEqual(["a", "c8"])
     expect(offered(recording, ENGINE_LIST_ENGINES)).toBeUndefined()
@@ -367,6 +373,8 @@ describe("createPlugin over Camunda 8 profiles and the boards that name them", (
         ENGINE_SCREEN_INSTANCE_DATA,
         ENGINE_SCREEN_INCIDENT_TEXT_DATA,
         ENGINE_SCREEN_FIND_DATA,
+        "engine_get_screen",
+        "engine_get_board",
       ].sort(),
     )
     // The prompt drafts through a Camunda 7 tool, which is not there.

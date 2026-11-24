@@ -3,13 +3,14 @@ import * as screens from "./index.js"
 import * as testing from "./testing/index.js"
 
 describe("the @miragon/pulse-screens entries", () => {
-  it("export exactly the pure rules a surface applies to a screen's JSON form", () => {
+  it("export exactly the pure rules a surface applies to a screen's JSON form and the forms' version", () => {
     expect(Object.keys(screens).sort()).toStrictEqual([
       "DiagramDecorations",
       "FleetSums",
       "HistoryGaps",
       "InstanceRows",
       "ProcessFilter",
+      "ScreenFormat",
       "VariableConditionTypes",
     ])
   })

@@ -4,13 +4,19 @@ import {
   withToolErrors,
   strictToolInput,
 } from "@miragon/pulse-widget-shell/server"
-import { type ContractFeed, DATA_FEEDS, type DataFeed, type NamingFeed } from "../data/feeds.js"
+import {
+  type ContractFeed,
+  DATA_FEEDS,
+  type DataFeed,
+  namedReads,
+  type NamingFeed,
+} from "../data/feeds.js"
 import { SCREEN_FEEDS } from "../data/screen-feeds.js"
 import { resolveEngine, resolveRuntimeEngine } from "../lib/engine/resolve-engine.js"
 import { contractToolError } from "../lib/engine/runtime-errors.js"
 import { engineServing, offeredEngineIds, servedEngineIds } from "../lib/engine/served-engines.js"
 import { engineParamShapeFor } from "../lib/engine/with-engine.js"
-import { namedReads, type WidgetToolsContext } from "./shared.js"
+import type { WidgetToolsContext } from "./shared.js"
 
 const FEED_ANNOTATIONS = { readOnlyHint: true, idempotentHint: true, openWorldHint: true }
 

@@ -325,6 +325,29 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
+    "description": "A board as JSON data, no UI, in the form @miragon/pulse-blocks renders, read from the engines it names as engine_open_cockpit shows it. Check formatVersion.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "board": {
+          "description": "Its id, as engine_list_engines lists the boards.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "board"
+      ],
+      "type": "object"
+    },
+    "name": "engine_get_board"
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
     "description": "Get a deployment by ID: its timestamp and source, for pre/post deployment correlation (commit hash → deployment ID → timestamp).",
     "inputSchema": {
       "additionalProperties": false,
@@ -432,6 +455,53 @@
       "type": "object"
     },
     "name": "engine_get_process_instance_variables"
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "A web app screen as JSON data, no UI, in the form @miragon/pulse-blocks renders: engine (its processes with their counts), process (each version's counts, one version's badges per element) or instance (its incidents, waits, path, variables). Check formatVersion.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "processDefinitionKey": {
+          "description": "process (required).",
+          "minLength": 1,
+          "type": "string"
+        },
+        "processInstanceId": {
+          "description": "instance (required).",
+          "minLength": 1,
+          "type": "string"
+        },
+        "screen": {
+          "enum": [
+            "engine",
+            "process",
+            "instance"
+          ],
+          "type": "string"
+        },
+        "version": {
+          "description": "process: the version's number; the latest without it.",
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "screen"
+      ],
+      "type": "object"
+    },
+    "name": "engine_get_screen"
   },
   {
     "annotations": {
