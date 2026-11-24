@@ -1,7 +1,7 @@
 {
   "name": "@miragon/pulse-migration-plan",
   "private": true,
-  "version": "0.31.0",
+  "version": "0.32.0",
   "description": "The migration plan file format of Pulse: the types of a plan that names one BPMN process by its id and two of its versions by their numbers with one to one element mappings, a parser that takes the text of a .migration.json file and returns the plan with its notes or the problems of a file that gives no plan, each a code with its JSON path, the words of those problems, the one writer of a plan's text, the file names, the id and version rules, the rule that resolves a version number to exactly one definition, the JSON Schema for editors and the shared fixtures. No engine, no instance and no runtime dependency; the CLI and the editors bundle it.",
   "license": "MIT",
   "repository": {

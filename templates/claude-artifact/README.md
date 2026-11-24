@@ -20,7 +20,7 @@ have moved past.
 <!-- x-release-please-start-version -->
 
 ```sh
-git clone --depth 1 --branch v0.31.0 https://github.com/Miragon/pulse
+git clone --depth 1 --branch v0.32.0 https://github.com/Miragon/pulse
 cp -r pulse/templates/claude-artifact my-dashboard
 cd my-dashboard
 pnpm install
