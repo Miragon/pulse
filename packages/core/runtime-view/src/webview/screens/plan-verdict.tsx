@@ -27,7 +27,7 @@ export function PlanVerdict({ view }: { readonly view: MigrationPlanView }) {
       <ul
         className="text-muted-foreground list-disc ps-5"
         data-part="plan-facts"
-        aria-label={`What a migration from v${view.source.version} to v${view.target.version} does`}
+        aria-label={`Facts about a migration from v${view.source.version} to v${view.target.version}`}
       >
         {view.facts.map((fact) => (
           <li key={fact}>{fact}</li>

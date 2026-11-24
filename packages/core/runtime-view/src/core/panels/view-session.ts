@@ -179,8 +179,12 @@ export class ViewSession<View extends PanelView, Loaded extends Snapshot<View>> 
     }
   }
 
+  private failedOnItsFile(): boolean {
+    return this.problem?.file !== undefined
+  }
+
   private publishProgress(): void {
-    if (this.loaded === undefined) {
+    if (this.loaded === undefined || this.failedOnItsFile()) {
       this.publish({
         status: "loading",
         title: this.loadingTitle,

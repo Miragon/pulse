@@ -53,8 +53,8 @@ _Open file_ open the definition panel or the file: the preview starts nothing. A
 doesn't use the file and moves only the instances you select, at most 1,000 at a time.
 
 Pulse refuses a version the engine lacks or has more than once (tenants), a file it can't read, one
-over 1,048,576 characters and one with problems, among them an engine's plan and a `FOREIGN_KEYS`
-name (instance or definition ids, engines, tenants, engine options) at the root, in a side or in a
-mapping; it notes another root key and never reads it. Each names the file and offers Refresh and
+over 1,048,576 characters and one with problems, among them an engine's plan and a key reserved for
+ids, engines, tenants or engine options (`instanceIds`, `tenantId` …) at the root, in a side or in
+a mapping; it notes another root key and never reads it. Each names the file and offers Refresh and
 _Open file_. A pair that doesn't fit (a missing element, a target of another kind, a scope its
 element lacks or one mapped to another) is named on its row, never sent; the engine checks the rest.

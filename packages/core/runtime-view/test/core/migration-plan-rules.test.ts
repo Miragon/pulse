@@ -346,7 +346,7 @@ describe("the notices of a plan", () => {
     expect(`${notice?.title ?? ""} ${notice?.detail ?? ""}`.length).toBeLessThanOrEqual(90)
   })
 
-  test("warn when more instances run than a migration moves, and name the versions and the ignored keys", () => {
+  test("warn when more instances run than a migration moves, leave the cap out of the facts then, and name the versions and the ignored keys", () => {
     const view = viewOf(
       state({
         running: 1204,
@@ -374,6 +374,9 @@ describe("the notices of a plan", () => {
       { tone: "info", title: "v2 is not the latest version (v3).", actions: [] },
       { tone: "info", title: "Pulse ignores 2 keys of the file: title, $schema.", actions: [] },
     ])
+    expect(view.facts[1]).toBe(
+      "A migration moves only the instances you select in the definition panel.",
+    )
     expect(view.facts[2]).toBe("1,204 instances run on v1, 1 with incident.")
   })
 

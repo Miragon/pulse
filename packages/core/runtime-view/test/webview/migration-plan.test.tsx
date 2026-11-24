@@ -226,7 +226,7 @@ describe("the migration plan preview", () => {
 
   it("lists what a migration from one version to the other does, with no button beside it", async () => {
     await open(BLOCKED)
-    const facts = getRole(harness.root, "list", { name: "What a migration from v6 to v7 does" })
+    const facts = getRole(harness.root, "list", { name: "Facts about a migration from v6 to v7" })
     const group = getRole(harness.root, "group", { name: "Plan check" })
 
     expect(allRoles(facts, "listitem").map((item) => item.textContent)).toEqual(BLOCKED.facts)

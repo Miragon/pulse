@@ -103,7 +103,7 @@ export const BLOCKED_MIGRATION_PLAN_VIEW: MigrationPlanView = {
   },
   facts: [
     READS,
-    MOVES,
+    "A migration moves only the instances you select in the definition panel.",
     "1,204 instances run on v6, 7 with incident.",
     "Each migrates on its own; failed ones stay on v6.",
     "7 have an incident and keep it; retry them on v7.",

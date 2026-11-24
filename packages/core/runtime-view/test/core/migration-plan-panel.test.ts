@@ -620,4 +620,24 @@ describe("reading the plan again", () => {
     expect(state.status === "failed" && state.staleView?.kind).toBe("migrationPlan")
     expect(opened.source.reads).toBe(2)
   })
+
+  test.each([
+    { saved: "{ broken", settles: "failed" },
+    { saved: FITS, settles: "ready" },
+  ])(
+    "shows no older plan while it reads a broken file again ($settles)",
+    async ({ saved, settles }) => {
+      const opened = await openPlan(FITS)
+      opened.source.text = "{ broken"
+      await opened.panel.handle({ type: "refresh" })
+      const before = opened.fixture.states.length
+
+      opened.source.text = saved
+      await opened.panel.handle({ type: "refresh" })
+
+      const published = opened.fixture.states.slice(before)
+      expect(published.map((state) => state.status)).toEqual(["loading", settles])
+      expect(published[0]).toMatchObject({ status: "loading", title: PLAN_FILE })
+    },
+  )
 })

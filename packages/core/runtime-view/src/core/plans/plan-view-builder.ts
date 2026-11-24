@@ -202,7 +202,9 @@ export class PlanViewBuilder {
     const run = running === 1 ? "runs" : "run"
     return [
       `Pulse reads v${this.source} and v${this.target} of ${this.state.source.bpmnProcessId} on ${this.scene.engine.name} by their numbers.`,
-      `A migration moves only the instances you select in the definition panel, at most ${Labels.count(BULK_CAP)} at a time.`,
+      running > BULK_CAP
+        ? "A migration moves only the instances you select in the definition panel."
+        : `A migration moves only the instances you select in the definition panel, at most ${Labels.count(BULK_CAP)} at a time.`,
       `${Labels.plural(running, "instance")} ${run} on v${this.source}, ${Labels.count(withIncident)} with incident.`,
       MigrationFacts.ownWay(this.source, running),
       ...this.rows.restartingTimers(),
