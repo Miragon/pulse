@@ -22,6 +22,8 @@ export class FakePlanSource implements PlanSource {
   reads = 0
   failure: Error | undefined
   bytes: number | undefined
+  refusesWrites = false
+  readonly written: string[] = []
 
   constructor(public text: string) {}
 
@@ -34,6 +36,15 @@ export class FakePlanSource implements PlanSource {
   read(): Promise<string> {
     this.reads += 1
     return Promise.resolve(this.text)
+  }
+
+  write(text: string): Promise<boolean> {
+    if (this.refusesWrites) {
+      return Promise.resolve(false)
+    }
+    this.written.push(text)
+    this.text = text
+    return Promise.resolve(true)
   }
 }
 

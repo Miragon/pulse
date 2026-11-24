@@ -31,7 +31,14 @@ function click(target: Element): void {
   target.dispatchEvent(new MouseEvent("click", { bubbles: true, button: 0 }))
 }
 
-describe("the migration plan preview", () => {
+function shownText(cell: Element | undefined): string | undefined {
+  const select = cell?.querySelector("select")
+  return select === null || select === undefined
+    ? cell?.textContent
+    : select.selectedOptions[0]?.textContent
+}
+
+describe("the migration plan editor", () => {
   let harness: Harness
 
   afterEach(() => {
@@ -58,7 +65,7 @@ describe("the migration plan preview", () => {
     return row
   }
 
-  it("shows both versions, the file's mapping with its tokens and the verdict, and offers no migration", async () => {
+  it("shows both versions, the file's mapping with its tokens and the verdict, a pick per row, and offers no migration", async () => {
     const table = await open(PLAN)
 
     expect(allParts(harness.root, "migration-diagram")).toHaveLength(2)
@@ -69,13 +76,13 @@ describe("the migration plan preview", () => {
       "Check",
     ])
     expect(table.tBodies[0]!.rows).toHaveLength(6)
-    expect([...rowOf(table, "Check credit").cells].map((cell) => cell.textContent)).toEqual([
+    expect([...rowOf(table, "Check credit").cells].map((cell) => shownText(cell))).toEqual([
       "Check credit",
       "Check credit",
       "5",
       "—",
     ])
-    expect(allRoles(harness.root, "combobox")).toEqual([])
+    expect(allRoles(table, "combobox")).toHaveLength(6)
     expect(
       allRoles(harness.root, "button").filter((button) => /migrate/i.test(button.textContent)),
     ).toEqual([])
@@ -135,17 +142,23 @@ describe("the migration plan preview", () => {
     expect(getComputedStyle(rowOf(table, "Check credit")).outlineStyle).toBe("solid")
   })
 
-  it("focuses a mapping from the diagram to migrate from, and maps nothing from the one to migrate to", async () => {
+  it("focuses a mapping from the diagram to migrate from, and maps the focused one onto the element clicked in the one to migrate to", async () => {
     await open(PLAN)
     const [source, target] = allParts(harness.root, "migration-diagram")
 
     click(await hitOf(target!, "Activity_ApproveOrder"))
     click(await hitOf(source!, "Activity_ApproveOrder"))
 
+    expect(posted("mapElement")).toEqual([
+      {
+        type: "mapElement",
+        sourceElementId: "Activity_CheckCredit",
+        targetElementId: "Activity_ApproveOrder",
+      },
+    ])
     expect(posted("focusMapping")).toEqual([
       { type: "focusMapping", sourceElementId: "Activity_ApproveOrder" },
     ])
-    expect(posted("mapElement")).toEqual([])
     expect(posted("unmapElement")).toEqual([])
   })
 
@@ -162,13 +175,14 @@ describe("the migration plan preview", () => {
       "Payment received",
     ])
     const refused = rowOf(table, "Ship order")
-    expect(refused.cells[1]?.textContent).toBe("Activity_ShipParcel")
+    expect(shownText(refused.cells[1])).toBe("Activity_ShipParcel")
+    expect(refused.cells[1]?.querySelector("select")?.selectedOptions[0]?.disabled).toBe(true)
     expect(queryPart(refused, "mapping-note", { tone: "danger" })?.textContent).toBe(
       "v7 has no element Activity_ShipParcel.",
     )
     expect(queryPart(rowOf(table, "Check credit"), "mapping-note")?.dataset.tone).toBe("danger")
     const unmapped = rowOf(table, "Approve order")
-    expect([...unmapped.cells].map((cell) => cell.textContent)).toEqual([
+    expect([...unmapped.cells].map((cell) => shownText(cell))).toEqual([
       "Approve orderno mapping",
       "Not mapped",
       "3",
@@ -253,7 +267,7 @@ describe("the migration plan preview", () => {
         "[data-slot='status-strip'] p > span:last-child",
       )
 
-      expect(detail?.textContent).toBe("Migrating in the definition panel doesn't use this file.")
+      expect(detail?.textContent).toBe("Migrating in the definition panel doesn't use it.")
       expect(detail!.scrollWidth).toBeLessThanOrEqual(detail!.clientWidth)
     },
   )
@@ -292,7 +306,7 @@ describe("the migration plan preview", () => {
       const bar = queryPart(harness.root, "context-bar")!
 
       expect(getRole(bar, "heading", { level: 1 }).textContent).toBe(PLAN.fileName)
-      expect(box.textContent).toContain(`Pulse can't preview ${PLAN.fileName}.`)
+      expect(box.textContent).toContain(`Pulse can't read ${PLAN.fileName} as a migration plan.`)
       expect(harness.root.textContent).not.toContain("Offline")
       expect(queryPart(harness.root, "freshness")).toBeNull()
       expect(queryRole(harness.root, "table", { name: "Mapping" })).toBeNull()

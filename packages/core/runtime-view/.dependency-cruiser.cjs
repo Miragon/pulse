@@ -15,7 +15,7 @@ const SCREENS_BUILDER_ENTRY =
 const BLOCKS_ENTRY = "(^|/)node_modules/@miragon/pulse-blocks/dist/index[.]d[.]ts$"
 const MIGRATION_PLAN_ENTRY = "(^|/)node_modules/@miragon/pulse-migration-plan/dist/index[.]d[.]ts$"
 const PLANS = `${PACKAGE}src/core/plans/`
-const WRITE_PATH = `${PACKAGE}src/core/(?:index|panels/(?:bulk-(?!selection[.]ts$)[^/]+|cancel-instances-action|definition-panel|instance-panel|instance-writes|migrate-instances-action|migration-checks|migration-edits|migration-panel|migration-preview|selection-preview)|views/(?:bulk-requests|migration-requests|write-requests|write-outcomes|move-effects))[.]ts$`
+const WRITE_PATH = `${PACKAGE}src/core/(?:index|panels/(?:bulk-(?!selection[.]ts$)[^/]+|cancel-instances-action|definition-panel|instance-panel|instance-writes|migrate-instances-action|migration-edits|migration-panel|migration-preview|selection-preview)|views/(?:bulk-requests|migration-requests|write-requests|write-outcomes|move-effects))[.]ts$`
 const BLOCKS =
   "(^|/)node_modules/@miragon/pulse-blocks/|^@miragon/pulse-blocks(/|$)|^packages/core/blocks/"
 const PULSE_UI = "(^|/)node_modules/@miragon/pulse-ui/|^@miragon/pulse-ui(/|$)|^packages/core/ui/"
@@ -238,7 +238,7 @@ module.exports = {
       name: "plans-start-nothing",
       severity: "error",
       comment:
-        "The migration plan preview starts nothing: it imports no write, bulk run, confirmation or migration tab, nor a module that brings one in (the definition and instance panels, the core's entry) (apps/vscode/docs/adr/migrations.md, Plan files). The preview in packages/core/runtime-view/src/core/plans reads through its PlanContext alone; a next step it offers is a read of another panel (openDefinition), never a write of its own. The rule sees direct imports; the test 'starts nothing' in packages/core/runtime-view/test/core/migration-plan-panel.test.ts sends every intent through recording commands and holds the behaviour.",
+        "The migration plan editor starts nothing on the engine: it imports no write, bulk run, confirmation or migration tab, nor a module that brings one in (the definition and instance panels, the core's entry) (apps/vscode/docs/adr/migrations.md, Plan files). The editor in packages/core/runtime-view/src/core/plans reads the engine and writes only its plan file, both through its PlanContext; it checks a changed plan with the tab's debounced check (migration-checks, a read), and a next step it offers is a read of another panel (openDefinition), never a write of its own. The rule sees direct imports; the test 'starts nothing' in packages/core/runtime-view/test/core/migration-plan-panel.test.ts sends every intent through recording commands and holds the behaviour.",
       from: { path: PLANS },
       to: { path: WRITE_PATH },
     },

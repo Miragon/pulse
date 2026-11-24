@@ -44,6 +44,10 @@ export class ViewSession<View extends PanelView, Loaded extends Snapshot<View>> 
     this.closed = true
   }
 
+  showsProblem(): boolean {
+    return this.problem !== undefined
+  }
+
   republish(): void {
     if (this.loaded === undefined) {
       return

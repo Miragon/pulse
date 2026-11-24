@@ -1,4 +1,9 @@
-import { BpmnProcessId, type VersionSummary } from "@miragon/pulse-engine-core"
+import {
+  BpmnProcessId,
+  type ElementMapping,
+  type MigrationProblem,
+  type VersionSummary,
+} from "@miragon/pulse-engine-core"
 import {
   MigrationPlanParser,
   MigrationPlanVersions,
@@ -14,6 +19,7 @@ import type { Snapshot, Unavailable } from "../panels/view-session.js"
 import type { EngineBadge, MigrationPlanView } from "../protocol/index.js"
 import { MigrationElements } from "../views/migration-elements.js"
 import type { PlanContext, PlanSource } from "./plan-context.js"
+import { PlanEdits } from "./plan-edits.js"
 import { PlanMappings } from "./plan-mappings.js"
 import { PlanProblems, type PlanPlace } from "./plan-problems.js"
 import { PlanViewBuilder, type PlanState } from "./plan-view-builder.js"
@@ -46,6 +52,54 @@ export class PlanReads {
 
   static snapshot(state: PlanState, engine: EngineBadge): PlanLoaded {
     return { ...state, view: PlanViewBuilder.build(state, { engine }) }
+  }
+
+  static async revised(
+    context: PlanContext,
+    loaded: PlanLoaded,
+  ): Promise<PlanLoaded | "unchanged" | undefined> {
+    const parsed = await PlanReads.parsed(context.source)
+    if ("problem" in parsed || !PlanReads.sameVersions(parsed.plan, loaded)) {
+      return undefined
+    }
+    const { plan, notes } = parsed
+    const shown = PlanEdits.keyOf(PlanEdits.mappingsOf(loaded))
+    const notesOf = (list: readonly MigrationPlanNote[]) => list.map((note) => note.path).join(",")
+    if (PlanEdits.keyOf(plan.mappings) === shown && notesOf(notes) === notesOf(loaded.notes)) {
+      return "unchanged"
+    }
+    const elements = new MigrationElements(loaded.sourceXml, loaded.targetXml)
+    const { accepted, refused } = PlanMappings.split(elements, plan.mappings)
+    return PlanReads.snapshot(
+      {
+        ...loaded,
+        mappings: accepted,
+        refused,
+        notes,
+        problems: PlanReads.stillShown(loaded.problems, accepted),
+        checking: true,
+        checkFailure: undefined,
+      },
+      context.engine,
+    )
+  }
+
+  private static stillShown(
+    problems: readonly MigrationProblem[],
+    mappings: readonly ElementMapping[],
+  ): MigrationProblem[] {
+    const kept = new Set(mappings.map((pair) => PlanEdits.keyOf([pair])))
+    return problems.filter(
+      (problem) => problem.mapping === undefined || kept.has(PlanEdits.keyOf([problem.mapping])),
+    )
+  }
+
+  private static sameVersions(plan: MigrationPlanDefinition, loaded: PlanLoaded): boolean {
+    return (
+      plan.bpmnProcessId === loaded.source.bpmnProcessId &&
+      plan.source.version === loaded.source.version &&
+      plan.target.version === loaded.target.version
+    )
   }
 
   private static async parsed(source: PlanSource): Promise<ParsedPlan | Unavailable> {

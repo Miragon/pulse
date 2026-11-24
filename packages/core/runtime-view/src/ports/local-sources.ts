@@ -3,6 +3,7 @@ import type { BpmnProcessId } from "@miragon/pulse-engine-core"
 export interface SourceLocation {
   readonly uri: string
   readonly line: number
+  readonly beside?: boolean
 }
 
 export interface ModelFile {

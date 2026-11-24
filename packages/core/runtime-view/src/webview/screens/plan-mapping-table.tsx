@@ -3,7 +3,7 @@ import type { MigrationPlanView, PlanMappingRow } from "../../core/protocol/inde
 import { NoValue } from "../components/no-value.js"
 import { CountLabels } from "../format/count-labels.js"
 import { useHost } from "../host/host-context.js"
-import { NoteCell, SourceCell } from "./mapping-cells.js"
+import { NoteCell, SourceCell, TargetSelect } from "./mapping-cells.js"
 
 const SOURCE_BUTTON = cn(
   "min-h-control-xs h-control-xs min-w-control-xs inline-flex cursor-pointer items-center rounded-sm text-left whitespace-nowrap hover:underline in-[td]:focus-visible:ring-offset-0",
@@ -44,10 +44,6 @@ function SourceButton({ row, noteId }: PlanCellProps) {
   )
 }
 
-function TargetText({ label }: { readonly label: string | undefined }) {
-  return label ?? <span className="text-muted-foreground">Not mapped</span>
-}
-
 function TokensText({ tokens }: { readonly tokens: number | undefined }) {
   return tokens === undefined ? <NoValue /> : CountLabels.exact(tokens)
 }
@@ -65,7 +61,14 @@ function PlanLine({ row, focused }: { readonly row: PlanMappingRow; readonly foc
         />
       </Td>
       <Td>
-        <TargetText label={row.targetLabel} />
+        <TargetSelect
+          sourceElementId={row.sourceElementId}
+          sourceLabel={row.sourceLabel}
+          candidates={row.candidates}
+          targetElementId={row.targetElementId}
+          targetLabel={row.targetLabel}
+          noteId={noteId}
+        />
       </Td>
       <Td className="tabular-nums">
         <TokensText tokens={row.tokens} />

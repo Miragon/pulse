@@ -56,9 +56,6 @@ export function MigrationScreen({ view, freshness, stale, problem }: MigrationSc
             rows={view.rows}
             focused={view.focused}
             stale={stale}
-            onMap={(sourceElementId, targetElementId) => {
-              host.post({ type: "mapElement", sourceElementId, targetElementId })
-            }}
           />
         }
         bottom={

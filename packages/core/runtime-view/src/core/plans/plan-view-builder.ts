@@ -116,6 +116,7 @@ export class PlanViewBuilder {
     return {
       sourceElementId: row.sourceElementId,
       sourceLabel: row.sourceLabel,
+      candidates: row.candidates,
       ...this.targetOf(refused?.mapping.targetElementId ?? row.targetElementId),
       ...(tokens === undefined ? {} : { tokens }),
       ...(refused === undefined ? {} : { refused: this.refusalOf(refused) }),
@@ -130,6 +131,7 @@ export class PlanViewBuilder {
     return {
       sourceElementId,
       sourceLabel: this.elements.sourceLabel(sourceElementId),
+      candidates: this.elements.candidatesFor(sourceElementId),
       ...this.targetOf(targetElementId),
       refused: this.refusalOf(entry),
     }
@@ -169,12 +171,19 @@ export class PlanViewBuilder {
       `${Labels.count(this.state.mappings.length)} mapped`,
       ...(refused > 0 ? [`${Labels.count(refused)} left out`] : []),
       ...(onlyLeftOut ? [] : [MigrationFacts.findings(problems, unmapped)]),
+      ...(this.state.checking ? ["checking…"] : []),
     ].join(" · ")
   }
 
   private verdict(): PlanVerdict {
-    const { refused, problems } = this.state
+    const { refused, problems, checking, checkFailure } = this.state
     const [problem] = problems
+    if (checking) {
+      return { fits: false, checking: true, text: "The engine checks the changed plan." }
+    }
+    if (checkFailure !== undefined) {
+      return { fits: false, text: `Pulse could not check the plan: ${checkFailure}` }
+    }
     if (refused.length > 0) {
       const fit = refused.length === 1 ? "doesn't" : "don't"
       return {
@@ -221,8 +230,8 @@ export class PlanViewBuilder {
     return [
       PlanViewBuilder.notice(
         "info",
-        "This preview starts nothing.",
-        "Migrating in the definition panel doesn't use this file.",
+        "Your edits change only this file.",
+        "Migrating in the definition panel doesn't use it.",
       ),
       ...(running > BULK_CAP
         ? [
@@ -241,6 +250,7 @@ export class PlanViewBuilder {
             PlanViewBuilder.notice(
               "info",
               `Pulse ignores ${Labels.plural(notes.length, "key")} of the file: ${keys}.`,
+              `An edit here writes the plan without ${notes.length === 1 ? "it" : "them"}.`,
             ),
           ]
         : []),

@@ -2,7 +2,7 @@ import TextRenderer from "bpmn-js/lib/draw/TextRenderer"
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 import orderXml from "../../dev/webview/fixtures/order-fulfillment.bpmn"
 import { FIXTURES } from "../../dev/webview/fixtures/states.js"
-import type { Decorations } from "../../src/webview/diagram/decoration-layer.js"
+import type { Decorations } from "../../src/webview/diagram/decorations.js"
 import { RuntimeCanvas } from "../../src/webview/diagram/runtime-canvas.js"
 import { fakeApi, findPart, fontsLoaded, mountApp, type Harness } from "./harness.js"
 

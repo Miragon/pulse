@@ -7,6 +7,8 @@ export interface UiState {
   readonly instanceTab?: InstanceTab
   readonly diagramShare?: number
   readonly columnWidths?: Readonly<Record<string, ColumnWidths>>
+  readonly allMappings?: boolean
+  readonly diagramsApart?: boolean
 }
 
 const UI_STATE_KEY = "pulse"
@@ -23,8 +25,10 @@ export class UiStateStore {
     if (!UiStateStore.isRecord(part)) {
       return {}
     }
-    const { instanceTab, diagramShare, columnWidths } = part
+    const { instanceTab, diagramShare, columnWidths, allMappings, diagramsApart } = part
     return {
+      ...(typeof allMappings === "boolean" ? { allMappings } : {}),
+      ...(typeof diagramsApart === "boolean" ? { diagramsApart } : {}),
       ...(typeof instanceTab === "string" && TABS.has(instanceTab)
         ? { instanceTab: instanceTab as InstanceTab }
         : {}),

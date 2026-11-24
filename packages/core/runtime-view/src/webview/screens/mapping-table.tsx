@@ -1,47 +1,9 @@
-import { DataTable, NativeSelect, Td, cn, type DataTableColumn } from "@miragon/pulse-ui"
+import { DataTable, Td, cn, type DataTableColumn } from "@miragon/pulse-ui"
 import type { MappingRow, MigrationView } from "../../core/protocol/index.js"
 import { NoValue } from "../components/no-value.js"
-import { usePendingValue } from "../components/pending-value.js"
 import { CountLabels } from "../format/count-labels.js"
 import { useHost } from "../host/host-context.js"
-import { NoteCell, SourceCell } from "./mapping-cells.js"
-
-interface MappingCellProps {
-  readonly row: MappingRow
-  readonly noteId: string | undefined
-}
-
-function TargetSelect({ row, noteId }: MappingCellProps) {
-  const host = useHost()
-  const [target, pick] = usePendingValue(row.targetElementId ?? "")
-  return (
-    <NativeSelect
-      className="min-h-control-xs h-control-xs max-w-[280px] px-2"
-      aria-label={`Map ${row.sourceLabel} to`}
-      aria-describedby={noteId}
-      value={target}
-      onFocus={() => {
-        host.post({ type: "focusMapping", sourceElementId: row.sourceElementId })
-      }}
-      onChange={(event) => {
-        const targetElementId = event.currentTarget.value
-        pick(targetElementId)
-        host.post(
-          targetElementId === ""
-            ? { type: "unmapElement", sourceElementId: row.sourceElementId }
-            : { type: "mapElement", sourceElementId: row.sourceElementId, targetElementId },
-        )
-      }}
-    >
-      <option value="">Not mapped</option>
-      {row.candidates.map((candidate) => (
-        <option key={candidate.elementId} value={candidate.elementId}>
-          {candidate.label}
-        </option>
-      ))}
-    </NativeSelect>
-  )
-}
+import { NoteCell, SourceCell, TargetSelect } from "./mapping-cells.js"
 
 class MappingColumns {
   static of(view: MigrationView): DataTableColumn[] {
@@ -84,7 +46,17 @@ function MappingLine({ row, view }: { readonly row: MappingRow; readonly view: M
         <SourceCell label={row.sourceLabel} unmappedTokens={row.unmappedTokens === true} />
       </Td>
       <Td>
-        {view.target === undefined ? <NoValue /> : <TargetSelect row={row} noteId={noteId} />}
+        {view.target === undefined ? (
+          <NoValue />
+        ) : (
+          <TargetSelect
+            sourceElementId={row.sourceElementId}
+            sourceLabel={row.sourceLabel}
+            candidates={row.candidates}
+            targetElementId={row.targetElementId}
+            noteId={noteId}
+          />
+        )}
       </Td>
       <Td>
         <WaitingText waiting={row.waiting} />

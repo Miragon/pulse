@@ -24,7 +24,7 @@ export class PanelTitle {
       return `${view.processName} · ${view.engine.name}`
     }
     if (view.kind === "migrationPlan") {
-      return `${view.fileName} · Preview · ${view.engine.name}`
+      return `${view.fileName} · ${view.engine.name}`
     }
     if (view.kind === "migration") {
       const target = view.target === undefined ? "…" : `v${view.target.version}`

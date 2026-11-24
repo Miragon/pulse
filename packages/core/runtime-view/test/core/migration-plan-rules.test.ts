@@ -189,6 +189,10 @@ describe("the rows of a plan", () => {
       {
         sourceElementId: "Review",
         sourceLabel: "Review order",
+        candidates: [
+          { elementId: "Check", label: "Check order" },
+          { elementId: "Weigh", label: "Weigh" },
+        ],
         targetElementId: "Ship",
         targetLabel: "Ship",
         tokens: 3,
@@ -198,6 +202,7 @@ describe("the rows of a plan", () => {
       {
         sourceElementId: "Start",
         sourceLabel: "Order placed",
+        candidates: [{ elementId: "Start", label: "Order placed" }],
         targetElementId: "Gone",
         targetLabel: "Gone",
         refused: "v2 has no element Gone.",
@@ -205,6 +210,7 @@ describe("the rows of a plan", () => {
       {
         sourceElementId: "Paid",
         sourceLabel: "Paid",
+        candidates: [{ elementId: "Paid", label: "Paid" }],
         targetElementId: "Paid",
         targetLabel: "Paid",
         problem: "Paid cannot become Paid.",
@@ -212,6 +218,7 @@ describe("the rows of a plan", () => {
       {
         sourceElementId: "Overdue",
         sourceLabel: "3 days",
+        candidates: [{ elementId: "Overdue", label: "3 days" }],
         targetElementId: "Overdue",
         targetLabel: "3 days",
       },
@@ -334,12 +341,12 @@ describe("what a migration from one version to the other does", () => {
 describe("the notices of a plan", () => {
   const STARTS_NOTHING = {
     tone: "info",
-    title: "This preview starts nothing.",
-    detail: "Migrating in the definition panel doesn't use this file.",
+    title: "Your edits change only this file.",
+    detail: "Migrating in the definition panel doesn't use it.",
     actions: [],
   }
 
-  test("say first, in one short line, that the preview starts nothing", () => {
+  test("say first, in one short line, that edits change only the file", () => {
     const [notice] = viewOf(state()).notices
 
     expect(viewOf(state()).notices).toEqual([STARTS_NOTHING])
@@ -372,7 +379,12 @@ describe("the notices of a plan", () => {
         actions: [],
       },
       { tone: "info", title: "v2 is not the latest version (v3).", actions: [] },
-      { tone: "info", title: "Pulse ignores 2 keys of the file: title, $schema.", actions: [] },
+      {
+        tone: "info",
+        title: "Pulse ignores 2 keys of the file: title, $schema.",
+        detail: "An edit here writes the plan without them.",
+        actions: [],
+      },
     ])
     expect(view.facts[1]).toBe(
       "A migration moves only the instances you select in the definition panel.",
@@ -397,7 +409,7 @@ describe("the problems of a plan file", () => {
 
   test("name the first problem with its path and count the rest", () => {
     expect(PlanProblems.broken("a.migration.json", [MISSING])).toEqual({
-      title: "Pulse can't preview a.migration.json.",
+      title: "Pulse can't read a.migration.json as a migration plan.",
       detail: "source is missing.",
       canEditConnection: false,
       file: "a.migration.json",

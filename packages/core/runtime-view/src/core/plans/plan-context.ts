@@ -9,6 +9,7 @@ export interface PlanSource {
   readonly location: SourceLocation
   size(): Promise<number>
   read(): Promise<string>
+  write(text: string): Promise<boolean>
 }
 
 export interface PlanNavigation {
@@ -32,4 +33,5 @@ export interface PlanContext {
   readonly navigation: PlanNavigation
   readonly publish: (state: PanelState) => void
   readonly now: () => Date
+  readonly wait: (milliseconds: number) => Promise<void>
 }

@@ -1,3 +1,4 @@
+import type { MappingCandidate } from "./migration-views.js"
 import type { Notice } from "./notices.js"
 import type { EngineBadge } from "./view-models.js"
 
@@ -10,6 +11,7 @@ export interface PlanSideView {
 export interface PlanMappingRow {
   readonly sourceElementId: string
   readonly sourceLabel: string
+  readonly candidates: readonly MappingCandidate[]
   readonly targetElementId?: string
   readonly targetLabel?: string
   readonly tokens?: number
@@ -22,6 +24,7 @@ export interface PlanMappingRow {
 export interface PlanVerdict {
   readonly fits: boolean
   readonly text: string
+  readonly checking?: true
 }
 
 export interface MigrationPlanView {

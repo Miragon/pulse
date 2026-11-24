@@ -207,7 +207,7 @@ describe("opening a migration plan", () => {
     })
   })
 
-  test("hands the preview no commands, bulk runs, waits, CLI or local sources", async () => {
+  test("hands the editor no commands, bulk runs, CLI or local sources, only a wait to settle its checks", async () => {
     const opened = await openPlan(FITS)
     const context = Reflect.get(opened.panel, "context") as PlanContext
 
@@ -219,6 +219,7 @@ describe("opening a migration plan", () => {
       "publish",
       "runtime",
       "source",
+      "wait",
     ])
   })
 
@@ -348,7 +349,7 @@ describe("a file the preview refuses", () => {
     const opened = await openPlan('{ "bpmnProcessId": "order:1:abc" }')
 
     expect(problemOf(opened.fixture.lastState())).toEqual({
-      title: `Pulse can't preview ${PLAN_FILE}.`,
+      title: `Pulse can't read ${PLAN_FILE} as a migration plan.`,
       detail:
         "bpmnProcessId must be a BPMN process id: letters, digits, _, . or -, starting with a letter or _, at most 255 characters. And 3 more problems.",
       canEditConnection: false,
@@ -412,7 +413,7 @@ describe("a file the preview refuses", () => {
     const opened = await openPlan(FITS)
 
     expect(problemOf(opened.fixture.lastState())).toEqual({
-      title: `Pulse can't preview ${PLAN_FILE}.`,
+      title: `Pulse can't read ${PLAN_FILE} as a migration plan.`,
       detail: "The file holds no plan Pulse can read; write it again with pulse plan-migration.",
       canEditConnection: false,
       file: PLAN_FILE,
@@ -616,7 +617,7 @@ describe("reading the plan again", () => {
     await opened.panel.handle({ type: "ready" })
 
     const state = opened.fixture.lastState()
-    expect(problemOf(state).title).toBe(`Pulse can't preview ${PLAN_FILE}.`)
+    expect(problemOf(state).title).toBe(`Pulse can't read ${PLAN_FILE} as a migration plan.`)
     expect(state.status === "failed" && state.staleView?.kind).toBe("migrationPlan")
     expect(opened.source.reads).toBe(2)
   })
