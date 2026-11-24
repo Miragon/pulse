@@ -116,7 +116,7 @@ jobs:
       # Minted right before the push so the 1h token lifetime never races the
       # npm wait + test steps above. Same app as the release train, scoped
       # down to the mirror repo.
-      - uses: actions/create-github-app-token@v3.3.0
+      - uses: actions/create-github-app-token@v3.4.0
         id: mirror-token
         with:
           client-id: ${{ vars.RELEASE_PLEASE_APP_CLIENT_ID }}
