@@ -7,7 +7,8 @@ import {
   type SegmentedControlOption,
 } from "@miragon/pulse-ui"
 import { ViewDataState, WidgetShell } from "@miragon/pulse-widget-shell/widgets"
-import { BpmnDiagram, type BpmnHighlight } from "../bpmn-diagram.js"
+import type { DiagramDecoration } from "@miragon/pulse-ui/bpmn"
+import { BpmnDiagram } from "../bpmn-diagram.js"
 import { useT } from "../../messages/use-t.js"
 import { useDefinitionData, type DefinitionScope } from "./feed.js"
 import { RunningFlow } from "./running-flow.js"
@@ -65,16 +66,16 @@ export function ProcessDefinitionFlow(scope: DefinitionScope) {
   const { data, loading, error, refetch } = useDefinitionData(scope)
   const [mode, setMode] = useState<FlowMode>("incidents")
 
-  const highlights = useMemo<BpmnHighlight[]>(() => {
-    const activities = data?.activities ?? []
-    return [
-      {
-        kind: "incident",
-        activityIds: activities.map((a) => a.activityId),
-        counts: activities.map((a) => ({ activityId: a.activityId, count: a.incidentCount })),
-      },
-    ]
-  }, [data?.activities])
+  // Each affected activity's open root incidents: its badge and its outline.
+  const decorations = useMemo<DiagramDecoration[]>(
+    () =>
+      (data?.activities ?? []).map((a) => ({
+        elementId: a.activityId,
+        counts: [{ kind: "incidents", count: a.incidentCount }],
+        incident: a.incidentCount > 0,
+      })),
+    [data?.activities],
+  )
 
   if (!data) {
     return (
@@ -109,7 +110,7 @@ export function ProcessDefinitionFlow(scope: DefinitionScope) {
             <BpmnDiagram
               definitionId={data.diagramDefinitionId}
               engineId={engine}
-              highlights={highlights}
+              decorations={decorations}
             />
           </>
         ) : mode === "running" ? (

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { describe, it } from "node:test"
@@ -13,6 +13,7 @@ import {
   mcpPackages,
   peerRuleFindings,
   SHARED_LIBRARIES,
+  TEMPLATES,
   templatePinFindings,
   workspacePins,
 } from "./template-pins.mjs"
@@ -271,45 +272,113 @@ describe("template-pins", () => {
     )
   })
 
-  it("fails the template's install when strict peers are off or missing", () => {
+  it("fails a template's install when strict peers are off or missing, naming its file", () => {
     const yaml = (strict) => `${strict}packages:\n  - "server"\n  - "modules/*"\n`
-    assert.deepEqual(peerRuleFindings(yaml("strictPeerDependencies: true\n")), [])
+    const file = "templates/composed-server/pnpm-workspace.yaml"
+    assert.deepEqual(peerRuleFindings(yaml("strictPeerDependencies: true\n"), file), [])
     for (const [strict, found] of [
       ["strictPeerDependencies: false\n", "false"],
       ['strictPeerDependencies: "true"\n', '"true"'],
       ["", "missing"],
     ]) {
-      assert.deepEqual(peerRuleFindings(yaml(strict)), [
+      assert.deepEqual(peerRuleFindings(yaml(strict), file), [
         "templates/composed-server/pnpm-workspace.yaml: strictPeerDependencies is " +
-          `${found}, expected true: an unmet peer must fail the starter's install, or a split ` +
+          `${found}, expected true: an unmet peer must fail the template's install, or a split ` +
           "@miragon/pulse-* or MCP SDK bump installs",
       ])
     }
+    assert.match(
+      peerRuleFindings('packages: ["."]\n', "templates/claude-artifact/pnpm-workspace.yaml")[0],
+      /^templates\/claude-artifact\/pnpm-workspace\.yaml: strictPeerDependencies is missing/,
+    )
   })
 
-  it("names a missing template pnpm-workspace.yaml instead of crashing", () => {
+  /** A fixture repo at a temp root: the workspace above, plus `files` (repo-relative path → text). */
+  const fixtureRepo = (files) => {
     const root = mkdtempSync(path.join(tmpdir(), "template-pins-"))
+    const write = (file, content) => {
+      mkdirSync(path.dirname(path.join(root, file)), { recursive: true })
+      writeFileSync(path.join(root, file), content)
+    }
+    write("pnpm-workspace.yaml", 'packages:\n  - "packages/core/*"\n  - "apps/*"\n')
+    write("package.json", JSON.stringify(ROOT_MANIFEST))
+    for (const { dir, manifest } of WORKSPACE)
+      write(`${dir}/package.json`, JSON.stringify(manifest))
+    for (const [file, content] of Object.entries(files)) write(file, content)
+    return root
+  }
+  const STRICT = 'packages: ["."]\nstrictPeerDependencies: true\n'
+
+  it("names a missing template pnpm-workspace.yaml instead of crashing, per template", () => {
+    const root = fixtureRepo({
+      "templates/composed-server/server/package.json": "{}",
+      "templates/claude-artifact/package.json": "{}",
+    })
     try {
-      const write = (file, content) => {
-        mkdirSync(path.dirname(path.join(root, file)), { recursive: true })
-        writeFileSync(path.join(root, file), content)
-      }
-      write("pnpm-workspace.yaml", 'packages:\n  - "packages/core/*"\n  - "apps/*"\n')
-      write("package.json", JSON.stringify(ROOT_MANIFEST))
-      for (const { dir, manifest } of WORKSPACE) {
-        write(`${dir}/package.json`, JSON.stringify(manifest))
-      }
-      write("templates/composed-server/server/package.json", "{}")
-      assert.deepEqual(checkTemplatePins(root).slice(1), [
-        "No templates/composed-server/pnpm-workspace.yaml: the starter installs its workspace " +
-          "and its peer rules from it",
+      assert.deepEqual(checkTemplatePins(root), [
+        "The pnpm-workspace.yaml of templates/composed-server drifted from its peer contract:",
+        "No templates/composed-server/pnpm-workspace.yaml: a copy of the template installs its " +
+          "workspace and its peer rules from it",
+        "The pnpm-workspace.yaml of templates/claude-artifact drifted from its peer contract:",
+        "No templates/claude-artifact/pnpm-workspace.yaml: a copy of the template installs its " +
+          "workspace and its peer rules from it",
       ])
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
   })
 
-  it("holds in the repo: the template pins what the workspace pins", () => {
+  it("names a template that is gone, and checks the others", () => {
+    const root = fixtureRepo({
+      "templates/composed-server/server/package.json": "{}",
+      "templates/composed-server/pnpm-workspace.yaml": STRICT,
+    })
+    try {
+      assert.deepEqual(checkTemplatePins(root), [
+        "No package.json under templates/claude-artifact: is the template still there?",
+      ])
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it("names the template's own file in a drifted pin, the Claude artifact's too", () => {
+    const root = fixtureRepo({
+      "templates/composed-server/server/package.json": "{}",
+      "templates/composed-server/pnpm-workspace.yaml": STRICT,
+      "templates/claude-artifact/package.json": JSON.stringify({
+        dependencies: { "@miragon/pulse-ui": "0.24.1", react: "19.3.1", "react-dom": "19.2.0" },
+      }),
+      "templates/claude-artifact/node_modules/react-dom/package.json": JSON.stringify({
+        dependencies: { react: "0.0.1" },
+      }),
+      "templates/claude-artifact/pnpm-workspace.yaml": STRICT,
+    })
+    try {
+      // packages/core/ui is no package of the fixture workspace: any pulse name is unknown there.
+      assert.deepEqual(checkTemplatePins(root).slice(1), [
+        "templates/claude-artifact/package.json (dependencies): @miragon/pulse-ui is no library " +
+          "of this workspace",
+        "The pins of templates/claude-artifact drifted from the workspace (a missing " +
+          "release-please extra-files entry, or a bump that skipped the template?):",
+        "templates/claude-artifact/package.json (dependencies): react-dom pinned 19.2.0, the " +
+          "workspace 19.3.1",
+      ])
+      assert.match(checkTemplatePins(root)[0], /^templates\/claude-artifact depends on packages/)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it("lists every template under templates/ but the internal fixtures", () => {
+    const onDisk = readdirSync(path.join(REPO_ROOT, "templates"), { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && entry.name !== "fixtures")
+      .map((entry) => `templates/${entry.name}`)
+      .sort()
+    assert.deepEqual(TEMPLATES.map(({ dir }) => dir).sort(), onDisk)
+  })
+
+  it("holds in the repo: every template pins what the workspace pins", () => {
     assert.deepEqual(checkTemplatePins(REPO_ROOT), [])
   })
 

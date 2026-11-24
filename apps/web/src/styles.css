@@ -104,61 +104,13 @@
   }
 }
 /*
- * The process screen's diagram (src/screens/process/process-diagram.tsx): the overlays of the
- * blocks on the canvas, in the canvas's variables and the kit's roles, so they follow the theme.
- * An element's counts grow from a zero-sized anchor over its top right corner to the left (the
- * blocks' `badge-cluster`), each count a button around the page's badge (`CanvasBadge` over the
- * canvas's `bpmn-overlay-badge`): the incidents in called instances quiet, on the paper with the
- * incident's colour in its edge and its icon, never filled as a root incident's; a stale count
- * neutral until the refresh lands; a legend's sample smaller. A call activity's button (the
- * blocks' `CallButton`, bpmn-js's `bjs-drilldown`, whose stylesheet the page does not load) sits
- * inside its bottom right corner in the primary's colours, a process the engine lacks quiet.
- * Under forced colours the system's palette draws them, as the canvas's own badges.
+ * The process screen's diagram (src/screens/process/process-diagram.tsx): its counts are pulse-ui's
+ * (`BpmnDiagram`, whose stylesheet the kit injects: the counts of an element apart over its top
+ * right corner, the blocks' `BadgeCluster` around the kit's `CanvasBadge`). A call activity's
+ * button (the blocks' `CallButton`, bpmn-js's `bjs-drilldown`, whose stylesheet the page does not
+ * load) sits inside its bottom right corner in the primary's colours, a process the engine lacks
+ * quiet. Under forced colours the system's palette draws it, as the canvas's own badges.
  */
-.pulse-badge-anchor {
-  position: relative;
-  width: 0;
-  height: 0;
-}
-.badge-cluster {
-  position: absolute;
-  top: 0;
-  right: 0;
-  display: inline-flex;
-  gap: 4px;
-}
-.badge-cluster__count {
-  display: inline-flex;
-  padding: 0;
-  border: 0;
-  border-radius: 9999px;
-  background: none;
-  cursor: pointer;
-}
-.badge-cluster__count:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-.pulse-badge-called {
-  gap: 3px;
-  padding-left: 4px;
-  border: 1.5px solid var(--bpmn-incident-stroke, var(--danger));
-  background: var(--bpmn-paper, var(--card));
-  color: var(--bpmn-ink, var(--foreground));
-}
-.pulse-badge-called > svg {
-  color: var(--bpmn-incident-stroke, var(--danger));
-}
-.bpmn-overlay-badge.pulse-badge-stale {
-  border: 1px solid var(--border);
-  background: var(--card);
-  color: var(--foreground);
-}
-.bpmn-overlay-badge.pulse-badge-legend {
-  min-width: 24px;
-  height: 16px;
-  box-shadow: none;
-}
 .bjs-drilldown.call-button {
   display: inline-flex;
   align-items: center;
@@ -190,15 +142,5 @@
     border: 1px solid CanvasText;
     background: Canvas;
     fill: CanvasText;
-  }
-  .bpmn-overlay-badge.pulse-badge-called,
-  .bpmn-overlay-badge.pulse-badge-stale {
-    forced-color-adjust: none;
-    border: 1px solid CanvasText;
-    background: Canvas;
-    color: CanvasText;
-  }
-  .pulse-badge-called > svg {
-    color: CanvasText;
   }
 }

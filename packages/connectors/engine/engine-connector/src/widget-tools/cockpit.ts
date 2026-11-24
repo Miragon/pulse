@@ -15,6 +15,7 @@ import type {
 import { ROUTE_DIALECTS } from "../view-models.dialects.js"
 import { BOARD_ID } from "../board-files.js"
 import { buildCockpitStart, cockpitFacts, isAppView } from "../data/cockpit-start.js"
+import { namedReads } from "../data/feeds.js"
 import { COCKPIT_ROUTES, type StartParam } from "../data/routes.js"
 import { ENGINE_OPEN_COCKPIT } from "../tool-names.js"
 import { webAppUrlOf } from "../lib/engine/cockpit-url.js"
@@ -31,7 +32,7 @@ import {
 } from "../lib/engine/served-engines.js"
 import { type EngineParamShape, engineParamShapeFor } from "../lib/engine/with-engine.js"
 import { environmentOf } from "../lib/shared/environments.js"
-import { namedReads, type WidgetToolsContext } from "./shared.js"
+import type { WidgetToolsContext } from "./shared.js"
 
 /** The `view` enum: the routes in their descriptor's order (`data/routes.ts`). */
 const START_VIEWS = Object.keys(COCKPIT_ROUTES) as [CockpitSection, ...CockpitSection[]]

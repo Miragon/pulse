@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { BOARD, ENDED_INSTANCE, RUNNING_INSTANCE } from "./board.test-support.js"
-import { boardHighlights } from "./board-diagram.js"
+import { boardDecorations } from "./board-diagram.js"
 import { engineTargetOf } from "./board-targets.js"
 
 describe("a tile's target on the cockpit's routes", () => {
@@ -114,22 +114,29 @@ describe("a process's name for its crumb, from any tile that names it on that en
 describe("the counts a board's diagram draws", () => {
   it("what runs in blue, the open root incidents in red, those of called instances apart and quiet", () => {
     expect(
-      boardHighlights([
+      boardDecorations([
         { elementId: "approve", active: 7, incidents: 2, incidentsInCalledInstances: 1 },
         { elementId: "call", active: 0, incidents: 0, incidentsInCalledInstances: 4 },
-        { elementId: "idle", active: 0, incidents: 0, incidentsInCalledInstances: 0 },
       ]),
     ).toEqual([
-      { kind: "active", activityIds: ["approve"] },
-      { kind: "instance-count", counts: [{ activityId: "approve", count: 7 }] },
-      // A call activity with incidents in its called instances alone carries no incident outline.
-      { kind: "incident", activityIds: ["approve"], counts: [{ activityId: "approve", count: 2 }] },
       {
-        kind: "called-incident-count",
+        elementId: "approve",
         counts: [
-          { activityId: "approve", count: 1 },
-          { activityId: "call", count: 4 },
+          { kind: "incidents", count: 2 },
+          { kind: "incidentsInCalledInstances", count: 1 },
+          { kind: "running", count: 7 },
         ],
+        incident: true,
+      },
+      // A call activity with incidents in its called instances alone carries no incident outline.
+      {
+        elementId: "call",
+        counts: [
+          { kind: "incidents", count: 0 },
+          { kind: "incidentsInCalledInstances", count: 4 },
+          { kind: "running", count: 0 },
+        ],
+        incident: false,
       },
     ])
   })

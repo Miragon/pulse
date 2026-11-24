@@ -1317,7 +1317,25 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
   })
 
   // High contrast as the editors' canvas: a state's outline at 3 px, a badge edged in the ink.
-  test("high contrast (data-cd-kontrast): a running outline at 3 px, its badge edged in the ink instead of its ring", async ({
+  test("high contrast (data-cd-kontrast): an incident's outline at 3 px", async ({ page }) => {
+    const app = await openView(page, {
+      args: { engine: HEALTHY_ENGINE, view: "instance-detail", processInstanceId: "pi-invoice-42" },
+      theme: "dark",
+    })
+    const canvas = app.getByRole("img", { name: "BPMN process diagram" })
+    await expect(canvas.locator(".djs-connection")).toHaveCount(4, { timeout: 15_000 })
+    const outline = canvas
+      .locator('[data-element-id="approveInvoice"].highlight-incident .djs-visual > rect')
+      .first()
+    const width = () => outline.evaluate((el) => getComputedStyle(el).strokeWidth)
+    expect(await width()).toBe("2px")
+    await app.locator("html").evaluate((html) => html.setAttribute("data-cd-kontrast", "hoch"))
+    expect(await width()).toBe("3px")
+  })
+
+  // The one badge scheme (owner decision 2026-11-24): what runs at an element is its count alone,
+  // no outline; in high contrast the badge is edged in the ink instead of its ring.
+  test("high contrast (data-cd-kontrast): a running count outlines nothing, its badge edged in the ink instead of its ring", async ({
     page,
   }) => {
     const app = await openView(page, {
@@ -1329,13 +1347,8 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
     await modes.getByRole("radio", { name: "Running" }).click()
     const badge = app.locator(".bpmn-overlay-badge--instance-count")
     await expect(badge).toHaveText(["2"], { timeout: 15_000 })
-    const outline = app
-      .locator('[data-element-id="approveInvoice"].highlight-running .djs-visual > rect')
-      .first()
-    const width = () => outline.evaluate((el) => getComputedStyle(el).strokeWidth)
-    expect(await width()).toBe("2px")
+    await expect(app.locator(".djs-shape.highlight-running")).toHaveCount(0)
     await app.locator("html").evaluate((html) => html.setAttribute("data-cd-kontrast", "hoch"))
-    expect(await width()).toBe("3px")
     const paper = app.locator("[data-slot='bpmn-canvas']").first()
     const [edge, ink, ground] = await Promise.all([
       badge.evaluate((el) => {
@@ -1404,7 +1417,7 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
     })
   })
 
-  test("forced colours: a running outline Highlight at 2 px, also in high contrast; its badge Canvas with CanvasText, edged in CanvasText", async ({
+  test("forced colours: a running count's badge Canvas with CanvasText, edged in CanvasText, also in high contrast", async ({
     page,
   }) => {
     await page.emulateMedia({ forcedColors: "active", colorScheme: "light" })
@@ -1419,15 +1432,9 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
     await expect(badge).toHaveText(["2"], { timeout: 15_000 })
     const paper = app.locator("[data-slot='bpmn-canvas']").first()
     const system = await systemColours(paper)
-    const outline = app
-      .locator('[data-element-id="approveInvoice"].highlight-running .djs-visual > rect')
-      .first()
     const read = () =>
       computedOf({
         paper: [paper, "backgroundColor"],
-        runningStroke: [outline, "stroke"],
-        runningFill: [outline, "fill"],
-        runningWidth: [outline, "strokeWidth"],
         badgeFill: [badge, "backgroundColor"],
         badgeText: [badge, "color"],
         badgeEdge: [badge, "borderTopColor"],
@@ -1436,9 +1443,6 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
       })
     const expected = {
       paper: system.Canvas,
-      runningStroke: system.Highlight,
-      runningFill: system.Canvas,
-      runningWidth: "2px",
       badgeFill: system.Canvas,
       badgeText: system.CanvasText,
       badgeEdge: system.CanvasText,
@@ -1446,8 +1450,7 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
       badgeShadow: "none",
     }
     expect(await read()).toEqual(expected)
-    // High contrast widens a running outline, but under forced colours it keeps 2 px, so it stays
-    // apart from an incident's 3 px where both are Highlight.
+    // High contrast edges a badge in the ink, but under forced colours the system's palette wins.
     await app.locator("html").evaluate((html) => html.setAttribute("data-cd-kontrast", "hoch"))
     expect(await read()).toEqual(expected)
 

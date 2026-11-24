@@ -33,6 +33,7 @@ import {
   checkCiScopes,
   checkChannelPublishWorkflows,
   checkDocsDeploy,
+  checkGenericExtraFiles,
   checkJsonExtraFileForm,
   checkPluginVersions,
   checkPublishMatrix,
@@ -1693,6 +1694,82 @@ describe("checkJsonExtraFileForm", () => {
     )
     assert.deepEqual(errors, [])
     assert.deepEqual(reads, ["a.json", "b.json", "gone.json"])
+  })
+})
+
+describe("checkGenericExtraFiles", () => {
+  const config = (...entries) => ({ packages: { ".": { "extra-files": entries } } })
+  const generic = (path) => ({ type: "generic", path })
+  const check = (files, version = "0.31.0") =>
+    checkGenericExtraFiles(
+      config(...Object.keys(files).map(generic), { type: "json", path: "x.json" }),
+      (f) => files[f],
+      version,
+    )
+
+  it("passes a line marked inline and a block whose every version is the release's", () => {
+    const files = {
+      "src/user-agent.ts": 'export const UA = "pulse/0.31.0" // x-release-please-version\n',
+      "SKILL.md": [
+        "Load the kit:",
+        "<!-- x-release-please-start-version -->",
+        "```js",
+        'import * as ui from "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.31.0/dist/browser/pulse-ui.js"',
+        "const h = ui.createElement",
+        "```",
+        "<!-- x-release-please-end -->",
+        "pulse-ui 1.2.3 outside the block is no one's business",
+      ].join("\n"),
+    }
+    assert.deepEqual(check(files), [])
+  })
+
+  it("fails a version that is not the release's, inline or in a block", () => {
+    const files = {
+      "a.ts": 'const v = "0.30.0" // x-release-please-version',
+      "b.md":
+        "<!-- x-release-please-start-version -->\n@miragon/pulse-ui@0.29.1/x.js\n<!-- x-release-please-end -->",
+    }
+    const errors = check(files)
+    assert.equal(errors.length, 2)
+    assert.match(errors[0], /^a\.ts:1: marks 0\.30\.0, not the release's 0\.31\.0/)
+    assert.match(errors[1], /^b\.md:2: marks 0\.29\.1, not the release's 0\.31\.0/)
+  })
+
+  it("fails a file that marks no version, an inline marker without one and an unclosed block", () => {
+    const errors = check({
+      "none.md": "pulse-ui@0.31.0, unmarked",
+      "empty.ts": "// x-release-please-version",
+      "open.md": "<!-- x-release-please-start-version -->\npulse-ui@0.31.0",
+      "stray.md": "<!-- x-release-please-end -->\nv0.31.0 // x-release-please-version",
+    })
+    assert.deepEqual(
+      errors.map((error) => error.replace(/:\d+:/, ":")),
+      [
+        "empty.ts: the line marks a version but holds none",
+        "release-please-config.json: the generic extra-file empty.ts marks no version " +
+          "(x-release-please-version, or a block from x-release-please-start-version to " +
+          "x-release-please-end): a release would leave its version behind",
+        "release-please-config.json: the generic extra-file none.md marks no version " +
+          "(x-release-please-version, or a block from x-release-please-start-version to " +
+          "x-release-please-end): a release would leave its version behind",
+        "open.md: the version block is never closed (x-release-please-end)",
+        "stray.md: x-release-please-end closes no block",
+      ],
+    )
+  })
+
+  it("leaves json entries and missing files to the other checks", () => {
+    const reads = []
+    checkGenericExtraFiles(
+      config(generic("gone.md"), { type: "json", path: "a.json" }),
+      (f) => {
+        reads.push(f)
+        return undefined
+      },
+      "0.31.0",
+    )
+    assert.deepEqual(reads, ["gone.md"])
   })
 })
 

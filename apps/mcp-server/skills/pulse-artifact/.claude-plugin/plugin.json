@@ -1,0 +1,22 @@
+{
+  "name": "pulse-artifact",
+  "version": "0.31.0",
+  "description": "Build Claude artifacts on Pulse: live pages in claude.ai (dashboards, views and reports on Camunda 7, Operaton and CIB seven process engines) that read the engine through the Pulse MCP server, from the claude-artifact template with the pulse-ui components, the data recipes and the publish checklist.",
+  "author": {
+    "name": "Miragon GmbH",
+    "url": "https://github.com/Miragon"
+  },
+  "homepage": "https://miragon.github.io/pulse/mcp/claude-artifacts",
+  "repository": "https://github.com/Miragon/pulse",
+  "license": "MIT",
+  "keywords": [
+    "camunda",
+    "camunda7",
+    "operaton",
+    "cibseven",
+    "bpmn",
+    "mcp",
+    "claude-artifact",
+    "dashboard"
+  ]
+}

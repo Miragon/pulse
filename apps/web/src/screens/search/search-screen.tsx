@@ -1,9 +1,15 @@
 import { useEffect, useRef } from "react"
 import { FindHistoryNotice, FindResults } from "@miragon/pulse-blocks"
 import type { FindScreenData } from "@miragon/pulse-screens"
-import { EmptyState, formatCount, Icon, TableEmptyState, WidgetHeader } from "@miragon/pulse-ui"
 import {
   FreshnessStamp,
+  EmptyState,
+  formatCount,
+  Icon,
+  TableEmptyState,
+  WidgetHeader,
+} from "@miragon/pulse-ui"
+import {
   isPermanentError,
   isSessionEnded,
   ViewDataState,

@@ -153,7 +153,8 @@ juries, one for the architecture and one for the experience:
 The product owner decided on 2026-11-12. D1 replaces E1, D2 amends E2, D3 keeps E4. Later the same
 day the owner decided D9, which replaces D4 and turns D7 into the switch's preconditions. On
 2026-11-19 the owner decided D10 and amended D2 (and with it E2's words), D8 and D9; D1 stays, so
-each surface keeps its screens and the web app's are its own.
+each surface keeps its screens and the web app's are its own. On 2026-11-24 the owner added D10's
+point 10: the screens' JSON forms as data for any page.
 
 - **D1, one core up to building blocks.** The surfaces (this extension and Pulse for Orca, which
   show one webview; the MCP server's widgets; the web app of #573) share a core up to building
@@ -618,6 +619,15 @@ each surface keeps its screens and the web app's are its own.
      as a slot, which the web app leaves empty and the webview fills. Writing in a browser is a
      decision of its own, since the forward admits reads alone and a write would need the page's
      view host to write, a confirmation, an identity per user and an audit.
+  10. **The screens' JSON for any page** (added 2026-11-24, #666). A page outside the web app (a
+      Claude artifact) reads a screen's or a board's JSON form through read-only model tools of
+      the engine module, `engine_get_screen` (the engine, process and instance screens) and
+      `engine_get_board`, data only and never a view, each with the form's version
+      (`ScreenFormat.JSON_VERSION` of `@miragon/pulse-screens`, `BoardVocabulary.JSON_VERSION` of
+      `@miragon/pulse-board`) so a page refuses a form it does not know, built by the builders and
+      on the floors of the feeds the web app reads, in every dialect as they are. The screens as UI
+      stay as above: the web app's pages read the app-only feeds, and new engine UI of the chat is
+      a cockpit route.
 
 The small form questions settled on 2026-11-08 stay for both tools: no green "healthy" (running
 info, suspended and ended neutral, an engine whose verdict is ok too), 12 px icons beside dense

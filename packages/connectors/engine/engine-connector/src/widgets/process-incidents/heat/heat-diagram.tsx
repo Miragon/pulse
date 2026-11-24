@@ -5,7 +5,8 @@ import {
   BpmnZoomControls,
   injectBpmnOverlayCss,
   useBpmnViewer,
-} from "@miragon/pulse-widget-shell/widgets"
+} from "@miragon/pulse-ui/bpmn"
+import { useDiagramMaxHeight } from "@miragon/pulse-widget-shell/widgets"
 import { useT } from "../../../messages/use-t.js"
 import {
   buildGradientLut,
@@ -53,6 +54,8 @@ export function BpmnHeatmap({ bpmnXml, values, ariaLabel }: BpmnHeatmapProps) {
     bpmnXml,
     // The canvas alone is the image; the heat layer above it is a drawing (aria-hidden).
     ariaLabel,
+    // Inline in a chat card, the host's budget caps it, as every diagram of the cockpit.
+    maxHeight: useDiagramMaxHeight(),
     onImported: (imported) => {
       const canvas = imported.get("canvas")
       const elementRegistry = imported.get("elementRegistry")
@@ -149,7 +152,7 @@ const LEGEND_BLEND = HEAT_BLEND_CSS as CSSProperties["mixBlendMode"]
 /**
  * The ramp with the values its ends encode: the layer maps the range linearly onto the swatch;
  * one value for every element shows once, at the full end. The swatch takes the canvas's paper,
- * ramp and blend (widget-shell's `BPMN_CANVAS_SLOT`), so it shows the heat as the diagram does in
+ * ramp and blend (pulse-ui's `BPMN_CANVAS_SLOT`), so it shows the heat as the diagram does in
  * either mode. It declares the canvas's stylesheet itself, before it paints: the view shows it
  * where no diagram mounts (no version to draw, an XML read that failed).
  */

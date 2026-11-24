@@ -47,3 +47,5 @@ export {
 export { createMigrationPlanInput, migrateProcessInstancesAsyncInput } from "./migrations.js"
 export { getBatchInput } from "./batches.js"
 export { engineStatusInput } from "./engines.js"
+export { processStatsInput, activityCountsInput } from "./process-numbers.js"
+export { getBoardInput, getScreenInput, type ScreenKind } from "./screens.js"

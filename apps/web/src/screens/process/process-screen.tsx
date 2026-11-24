@@ -1,12 +1,8 @@
 import { useEffect, useMemo, useState, type KeyboardEvent } from "react"
 import { InstanceFilters } from "@miragon/pulse-blocks"
 import type { InstanceListFilterData } from "@miragon/pulse-screens"
-import {
-  isPermanentError,
-  parseBpmnNames,
-  useToolQuery,
-  WidgetShell,
-} from "@miragon/pulse-widget-shell/widgets"
+import { parseBpmnNames } from "@miragon/pulse-ui/bpmn"
+import { isPermanentError, useToolQuery, WidgetShell } from "@miragon/pulse-widget-shell/widgets"
 import { useT } from "../../messages/index.js"
 import type { Navigate } from "../../router/page-link.js"
 import { BPMN_XML_FEED, diagramKey } from "../instance/instance-feed.js"

@@ -393,7 +393,9 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   icon tile) + `VersionChip`; `KpiGrid` (KPI strips, neutral tiles: an alarming figure is its
   value's `CountFigure`, through the connector's `AlarmCount`; a clickable cell says what the
   click does in `actionHint`, never `ariaLabel`); `NavTabs`/`NavTab` (a navigation between
-  views, the cockpit head's sections); `Facts`, `StatusStrip`, `StateLabel`, `TabCount`. From
+  views, the cockpit head's sections); `Facts`, `StatusStrip`, `StateLabel`, `TabCount`; the
+  charts `BarChart`, `LineChart`, `Sparkline` and `MeterRows` (the blue ramp, at most two series
+  on it, red only for incidents; never a chart drawn by hand). From
   the view runtime: `WidgetShell` (the view's card, above; split into View + Shell only when the
   body is embedded elsewhere)
 - Where and what (#322 U4, U13): the cockpit's head names the engine and its environment (a
@@ -467,30 +469,36 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   `renderActions`), which the webview renders in React too since its switch to React on pulse-ui
   (owner decision D9). Its pull request updates
   `docs/vscode/parity.md`
-- BPMN: viewer lifecycle and the canvas in the theme via `useBpmnViewer` (the container is
-  the canvas, `BPMN_CANVAS_SLOT`, whose variables `BPMN_CANVAS_VARS` the hook's stylesheet
-  declares per mode and bpmn-js draws with: the light paper on light, the editors' dark canvas on
-  dark, their 3 px outlines and edged badges in high contrast, the system's palette under forced
-  colours; never wrap it in a light island) + `BpmnZoomControls` (a card in the theme, Lucide;
-  beside the container in one frame, so the hook's fit keeps the diagram clear of it and of
-  bpmn.io's link). The frame height comes from the
-  diagram's size (`height` from the hook: its height at the scale bpmn-js draws it, never
-  past 1:1, 240–560 px, read from the XML's DI before the import, so the frame does not
-  jump): pass no fixed `height` to `BpmnDiagram` unless a layout needs one. The process flow
-  draws only engine reads: the open incidents, or as "Running" the `instance-count`,
-  `incident` and `failed-jobs` badges of `engine_activity_statistics_data` (every version
-  summed onto the latest diagram, mounted only once picked), or as "Throughput" its history
-  source as heat (`BpmnHeatmap`, the ramp and its blend read from the canvas's variables at each
-  paint, multiplied into light paper and screened into dark; a read that loads the engine's
-  database: see CLAUDE.md invariant 7).
-  Overlay and legend colours are widget-shell's ONE token module (`BPMN_TOKENS` on light,
-  pulse-ui's roles on dark, `widget-shell/src/ui/bpmn-tokens.ts`: incident = danger, running/open
-  task = blue on the info tint, on dark their light values on the neutral surface, counts white on
-  blue or danger; strokes ≥ 3:1, text ≥ 4.5:1 in both modes, drift- and contrast-tested, the
-  dark roles' pairs in pulse-ui's `ROLE_CONTRAST_PAIRS`; in high contrast 3 px outlines and badges
-  edged in the ink, under forced colours the system's palette, `BPMN_FORCED_CANVAS`) through
-  `HIGHLIGHT_COLORS` (`src/widgets/bpmn-highlights.ts`); the CSS is `injectBpmnOverlayCss()`,
-  which `useBpmnViewer` injects itself, as the heat's legend does where no diagram mounts. No pulse: an open user task is a heavier dashed stroke. A marker
+- BPMN: pulse-ui's `./bpmn` entry, which needs no host. The cockpit's `BpmnDiagram`
+  (`src/widgets/bpmn-diagram.tsx`) reads the XML by id and draws it with the kit's `BpmnDiagram`:
+  `decorations` (an element's counts, the one badge scheme of the shared screens: apart over its
+  top right corner, root incidents red, the incidents in called instances a quiet badge of their
+  own, running blue; only an own root incident outlines it) and `markers` (an instance's wait,
+  open task or incident, the strongest one an element), capped inline by the host's budget
+  (`useDiagramMaxHeight`). A drawing of a view's own (the heat) uses the viewer lifecycle and
+  the canvas in the theme via `useBpmnViewer` (the container is the canvas,
+  `BPMN_CANVAS_SLOT`, whose variables `BPMN_CANVAS_VARS` the hook's stylesheet declares per mode
+  and bpmn-js draws with: the light paper on light, the editors' dark canvas on dark, their 3 px
+  outlines and edged badges in high contrast, the system's palette under forced colours; never
+  wrap it in a light island) + `BpmnZoomControls` (a card in the theme, Lucide; beside the
+  container in one frame, so the hook's fit keeps the diagram clear of it and of bpmn.io's
+  link). The frame height comes from the diagram's size (`height` from the hook: its height at
+  the scale bpmn-js draws it, never past 1:1, 240–560 px, read from the XML's DI before the
+  import, so the frame does not jump): pass no fixed `height` to `BpmnDiagram` unless a layout
+  needs one. The process flow draws only engine reads: the open incidents, or as "Running" the
+  counts of `engine_activity_statistics_data` (every version summed onto the latest diagram,
+  mounted only once picked; a failed job without an incident in its values alone), or as
+  "Throughput" its history source as heat (`BpmnHeatmap`, the ramp and its blend read from the
+  canvas's variables at each paint, multiplied into light paper and screened into dark; a read
+  that loads the engine's database: see CLAUDE.md invariant 7).
+  Overlay and legend colours are pulse-ui's ONE token module (`BPMN_TOKENS` on light,
+  pulse-ui's roles on dark, `packages/core/ui/src/bpmn/bpmn-tokens.ts`: incident = danger,
+  running/open task = blue on the info tint, on dark their light values on the neutral surface,
+  counts white on blue or danger; strokes ≥ 3:1, text ≥ 4.5:1 in both modes, drift- and
+  contrast-tested, the dark roles' pairs in pulse-ui's `ROLE_CONTRAST_PAIRS`; in high contrast
+  3 px outlines and badges edged in the ink, under forced colours the system's palette,
+  `BPMN_FORCED_CANVAS`); the CSS is `injectBpmnOverlayCss()`, which `useBpmnViewer` injects
+  itself, as the heat's legend does where no diagram mounts. No pulse: an open user task is a heavier dashed stroke. A marker
   paints its own shape's outline only, never a label's text or what lies inside a marked
   process or subprocess. The diagram's name goes to the hook's `ariaLabel`, which makes the
   canvas alone the image: never `role="img"` on the frame, whose zoom controls and bpmn.io's
@@ -610,7 +618,12 @@ call's abort signal at `ctx.mcpReq.signal`):
   `engine_screen_instance_data`, `engine_screen_incident_text_data`, `engine_screen_find_data`;
   beside them the one `dataFeed` there, Camunda 7's verdict `engine_screen_verdict_data`, marked
   `dialects: ["c7"]`; a read that loads the engine's
-  database on the floor of 30 s per caller, `screenFloor`), no route's and no widget's. `registerDataFeed` in `data-feeds.ts` registers each feed of one engine
+  database on the floor of 30 s per caller, `screenFloor`), no route's and no widget's. A
+  screen's or a board's JSON form reaches the model and a page outside the web app through the
+  registrar tools of `src/tools/screens.ts` (`engine_get_screen`, `engine_get_board`: owner
+  decision 2026-11-24), `{ formatVersion, data }` over the same builders and floors
+  (`src/data/json-forms.ts`); a new screen form goes there with its schema in
+  `src/tools/test-support/screen-forms.ts`, never a builder of its own. `registerDataFeed` in `data-feeds.ts` registers each feed of one engine
   (a contract feed's through `resolveRuntimeEngine`), `registerNamingFeed` each naming feed; both
   spread `...appOnly` (SEP-1865 `_meta.ui.visibility: ["app"]` plus `openai/widgetAccessible`;
   **no** view binding) and return `buildDataFeedResult(data)` so the in-widget `callTool()` gets

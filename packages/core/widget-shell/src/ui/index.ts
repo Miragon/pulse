@@ -19,13 +19,8 @@ export { TextBlock, type TextBlockProps } from "./text-block.js"
 export { ConfirmDialog, type ConfirmDialogProps, type ConfirmTarget } from "./confirm-dialog.js"
 export { useActionFeedback, type ActionFeedback } from "./action-feedback.js"
 export { QueryFallback, TableSkeleton } from "./query-fallback.js"
-export {
-  FreshnessStamp,
-  ViewMeta,
-  formatLookback,
-  type ViewMetaEngines,
-  type ViewMetaParts,
-} from "./view-meta.js"
+// The bar's freshness stamp is the kit's (`FreshnessStamp` in @miragon/pulse-ui).
+export { ViewMeta, formatLookback, type ViewMetaEngines, type ViewMetaParts } from "./view-meta.js"
 // The view runtime: the bundle root, the host seam, the data layer and the test host.
 export {
   mountView,
@@ -118,30 +113,12 @@ export { OpenInCockpitLink } from "./open-in-cockpit-link.js"
 export { usePagedViewData, type PagedViewData } from "./use-paged-view-data.js"
 export { usePagedListView, type PagedListView } from "./use-paged-list-view.js"
 export { PagedRows } from "./paged-rows.js"
-export { RowsBudgeted } from "./inline-budget.js"
+export { RowsBudgeted, useDiagramMaxHeight } from "./inline-budget.js"
 export type { InlineRows } from "./inline-fit.js"
 export { FIT_CONTINUES_ROW } from "./inline-fit-registry.js"
-export {
-  BPMN_CANVAS_SLOT,
-  BPMN_CANVAS_VARS,
-  BPMN_TOKENS,
-  BPMN_OVERLAY_CSS,
-  injectBpmnOverlayCss,
-  cdVar,
-} from "./bpmn-tokens.js"
-export {
-  useBpmnViewer,
-  type BpmnCanvas,
-  type BpmnElement,
-  type BpmnOverlays,
-  type BpmnViewerWithGet,
-  type UseBpmnViewerOptions,
-  type UseBpmnViewerResult,
-} from "./use-bpmn-viewer.js"
-export { BpmnZoomControls, type BpmnZoomControlsProps } from "./bpmn-zoom-controls.js"
-// Also on `/server` (src/protocol/): the one rule every module names a model's process and elements
-// by, on the server and in a view.
-export { parseBpmnNames, readBpmnNames } from "../protocol/bpmn-names.js"
+// The BPMN diagram, its viewer, its canvas's tokens and the name reader a view draws with are
+// pulse-ui's (`@miragon/pulse-ui/bpmn`); a view hands its diagram the host's inline budget
+// (`useDiagramMaxHeight`).
 // The web app's wire contract (src/protocol/), which a page's client and the server's routes read,
 // and that client: the session and the caller a page hands `mountApp` or `mountPage`.
 export {

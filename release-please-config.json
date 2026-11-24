@@ -150,12 +150,33 @@
           "path": "templates/composed-server/modules/mcp-notes/package.json",
           "jsonpath": "$.devDependencies['@miragon/pulse-ui']"
         },
+        {
+          "type": "json",
+          "path": "templates/claude-artifact/package.json",
+          "jsonpath": "$.dependencies['@miragon/pulse-ui']"
+        },
+        {
+          "type": "json",
+          "path": "templates/claude-artifact/package.json",
+          "jsonpath": "$.dependencies['@miragon/pulse-widget-shell']"
+        },
         { "type": "json", "path": "apps/cli/package.json", "jsonpath": "$.version" },
         {
           "type": "json",
           "path": "apps/cli/skills/pulse-cli/.claude-plugin/plugin.json",
           "jsonpath": "$.version"
-        }
+        },
+        {
+          "type": "json",
+          "path": "apps/mcp-server/skills/pulse-artifact/.claude-plugin/plugin.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "generic",
+          "path": "apps/mcp-server/skills/pulse-artifact/SKILL.md"
+        },
+        { "type": "generic", "path": "docs/mcp/claude-artifacts.md" },
+        { "type": "generic", "path": "templates/claude-artifact/README.md" }
       ]
     }
   }

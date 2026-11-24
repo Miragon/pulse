@@ -68,8 +68,8 @@ describe("engineModule.instructions", () => {
   it("says where a Camunda 8 engine shows and that the rest neither offer nor take it, only with one", () => {
     const rule =
       "- Camunda 8 engines (dialect c8 in engine_list_engines) show on boards only " +
-      "(engine_open_cockpit with view board); other tools offer none and refuse a c8 default: " +
-      "ENGINE_DIALECT_NOT_SERVED.\n"
+      "(engine_open_cockpit with view board); engine_get_screen reads them too, other tools offer " +
+      "none and refuse a c8 default: ENGINE_DIALECT_NOT_SERVED.\n"
     const c8 = { id: "c8", baseUrl: "https://c8.example/v2", flavor: "camunda8" }
     const withC8 = engineModule.instructions({ engines: [TWO[0], c8], toolset: "read-only" })
     expect(withC8).toContain(rule)

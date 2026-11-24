@@ -1,15 +1,8 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
-import { useEffect, useRef, useState } from "react"
-import type * as Widgets from "@miragon/pulse-widget-shell/widgets"
+import { useState } from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import {
-  TestViewHost,
-  WebApiError,
-  type HostAction,
-  type UseBpmnViewerOptions,
-  type UseBpmnViewerResult,
-} from "@miragon/pulse-widget-shell/widgets"
+import { TestViewHost, WebApiError, type HostAction } from "@miragon/pulse-widget-shell/widgets"
 import type {
   InstanceListData,
   InstanceListFilterData,
@@ -28,6 +21,7 @@ import {
 import { ProcessScreen } from "../src/screens/process/process-screen.js"
 import { READ_AGAIN_AFTER_MS } from "../src/screens/read-on-return.js"
 import { WIDE } from "../src/screens/use-wide.js"
+import { drawn, reset } from "./bpmn-viewer.test-support.js"
 
 /**
  * The web app's process screen over the kit world's process screens and instance list
@@ -41,53 +35,16 @@ import { WIDE } from "../src/screens/use-wide.js"
  * Escape, the variable names read when the dialog opens, its refusals, German, and no write.
  */
 
-const drawn = { overlays: 0 }
-
-/** A drawing's services as bpmn-js hands them over: every element is there. */
-function fakeViewer(layer: HTMLElement) {
-  return {
-    get: (service: string) =>
-      service === "canvas"
-        ? { addMarker: () => {}, removeMarker: () => {} }
-        : {
-            add: (_id: string, overlay: { html: HTMLElement }) => {
-              layer.appendChild(overlay.html)
-              drawn.overlays += 1
-            },
-          },
-  }
-}
-
-vi.mock("@miragon/pulse-widget-shell/widgets", async (original) => ({
-  ...(await original<typeof Widgets>()),
-  useBpmnViewer: (options: UseBpmnViewerOptions): UseBpmnViewerResult => {
-    const containerRef = useRef<HTMLDivElement>(null)
-    const imported = useRef(options.onImported)
-    useEffect(() => {
-      imported.current = options.onImported
-    })
-    useEffect(() => {
-      const layer = containerRef.current
-      if (layer === null) return undefined
-      const done = imported.current?.(fakeViewer(layer) as never)
-      return typeof done === "function" ? done : undefined
-    }, [options.reimportKey])
-    return {
-      containerRef,
-      height: 320,
-      importError: null,
-      zoomIn: () => {},
-      zoomOut: () => {},
-      fit: () => {},
-    }
-  },
+// bpmn-js's viewer, a stand-in whose drawing holds every element (bpmn-js draws in a browser).
+vi.mock("bpmn-js/lib/NavigatedViewer", async () => ({
+  default: (await import("./bpmn-viewer.test-support.js")).FakeViewer,
 }))
 
 let wide = true
 
 beforeEach(() => {
   wide = true
-  drawn.overlays = 0
+  reset()
   window.matchMedia = ((query: string) => ({
     matches: query === WIDE ? wide : false,
     media: query,
@@ -371,13 +328,13 @@ describe("the process screen", () => {
 
   it("stacked, leaves the strips under the bar their height, as measured, beside the list's first rows", async () => {
     wide = false
-    const observed: Array<() => void> = []
+    const observed: HTMLElement[] = []
     vi.stubGlobal(
       "ResizeObserver",
       class {
         constructor(private readonly changed: () => void) {}
-        observe() {
-          observed.push(this.changed)
+        observe(target: HTMLElement) {
+          observed.push(target)
           this.changed()
         }
         disconnect() {}
@@ -395,7 +352,8 @@ describe("the process screen", () => {
       await waitFor(() => {
         expect(frame().style.getPropertyValue("--process-strips")).toBe("41px")
       })
-      expect(observed).toHaveLength(1)
+      // The strips' one observer (the diagram's canvas observes its own size besides).
+      expect(observed.filter((target) => target.dataset.slot === "process-strips")).toHaveLength(1)
     } finally {
       height.mockRestore()
       vi.unstubAllGlobals()
@@ -502,7 +460,7 @@ describe("the process screen", () => {
       INSTANCES_FEED,
     ])
     await waitFor(() => {
-      expect(drawn.overlays).toBeGreaterThan(0)
+      expect(drawn.overlays.length).toBeGreaterThan(0)
     })
   }, 30_000)
 

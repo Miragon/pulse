@@ -63,6 +63,18 @@ export const LIGHT = block(LIGHT_SELECTOR)
 export const DARK = block(DARK_SCOPES)
 export const KONTRAST = block(KONTRAST_SELECTOR)
 export const DARK_KONTRAST = block(DARK_KONTRAST_SELECTOR)
+
+/** The OS's mode: a root that names none of the three mode attributes, on a dark OS. */
+export const OS_DARK_MEDIA = "(prefers-color-scheme: dark)"
+const NAMES_NO_MODE = ":not([data-theme], [data-cd-theme], [data-theme-mode])"
+export const OS_DARK_ROOT = `:root${NAMES_NO_MODE}`
+/** Its copies of the dark roles, of the light roles on an island, of the dark high contrast. */
+export const OS_DARK_SELECTOR = `:root:where(${NAMES_NO_MODE})`
+const OS_LIGHT_SELECTOR = `:where(${OS_DARK_ROOT}) :is(${LIGHT_ISLANDS})`
+const OS_DARK_KONTRAST_SELECTOR = `${OS_DARK_SELECTOR}[data-cd-kontrast="hoch"], ${OS_DARK_SELECTOR} [data-cd-kontrast="hoch"]`
+export const OS_DARK = blockIn(OS_DARK_MEDIA, OS_DARK_SELECTOR)
+export const OS_LIGHT = blockIn(OS_DARK_MEDIA, OS_LIGHT_SELECTOR)
+export const OS_DARK_KONTRAST = blockIn(OS_DARK_MEDIA, OS_DARK_KONTRAST_SELECTOR)
 export const THEME_INLINE = block("@theme inline")
 export const THEME_REFERENCE = block("@theme inline reference")
 /** The comfortable density step: on a coarse pointer, and inside `data-density="comfortable"`. */

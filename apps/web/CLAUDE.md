@@ -243,7 +243,7 @@ server image builds the page beside the server and serves it from `/app/web`.
   it and as what (`src/screens/instance/instance-head.tsx`, an em dash where the caller's read
   failed) with Open caller, where it stands (`HeadlineStrip`), an incident in focus the instance does
   not hold (with a link to the instance), a cut list. Then its diagram (`instance-diagram.tsx`:
-  widget-shell's `useBpmnViewer` on the canvas that follows the theme, the screen's markers, the kit's
+  pulse-ui's `useBpmnViewer` on the canvas that follows the theme, the screen's markers, the kit's
   for an element that waits and an incident, the page's own for an incident in a called instance and
   an element already done and the focus's glow, `src/styles.css`; each call activity's way to what it
   called, one instance a link, several the blocks' `CalledInstanceMenu`, a version it starts a link;
@@ -295,11 +295,11 @@ server image builds the page beside the server and serves it from `/app/web`.
   answered, and its counts count only where read no earlier than the versions (`asOf`), never a
   floor's answer of an earlier read; the owner's decision of 2026-11-19, no fallback to the
   runtime), and what it could not read beside its versions (the counts on its diagram, the processes
-  it calls; never a 0). Its diagram (`process-diagram.tsx`: widget-shell's `useBpmnViewer` on the
-  canvas that follows the theme) draws the blocks' decorations (`useDiagramDecorations`): each
-  element's counts apart, its root incidents, the incidents in the instances it called (quiet, never
-  part of the incident count) and its running instances (`BadgeCluster` with the page's badge,
-  `canvas-badge.tsx` over the canvas's `bpmn-overlay-badge`), the outline of an element with a root
+  it calls; never a 0). Its diagram (`process-diagram.tsx`: pulse-ui's `BpmnDiagram` on the canvas
+  that follows the theme, the one badge scheme) draws the blocks' decorations
+  (`useDiagramDecorations`): each element's counts apart, its root incidents, the incidents in the
+  instances it called (quiet, never part of the incident count) and its running instances
+  (`BadgeCluster` with the kit's `CanvasBadge`), the outline of an element with a root
   incident, each call activity's link to the version it calls (`CallButton` with its address, worded
   by `useCallLabel`: a plain click in place, Ctrl or Cmd, Shift, Alt and the middle button the
   browser's; a process the engine lacks a button that opens nothing), and the element the list is
@@ -406,7 +406,8 @@ server image builds the page beside the server and serves it from `/app/web`.
 ## Rules
 
 - What `src` imports is `web-is-a-page` in `.dependency-cruiser.cjs`: its own modules, `react`,
-  `react-dom`, `lucide-react`, pulse-ui's root and `theme.css`, `@miragon/pulse-widget-shell/widgets`,
+  `react-dom`, `lucide-react`, pulse-ui's root, its BPMN entry `@miragon/pulse-ui/bpmn` and
+  `theme.css`, `@miragon/pulse-widget-shell/widgets`,
   `@miragon/pulse-engine-connector/widgets`, `@miragon/pulse-blocks` and `@miragon/pulse-screens`,
   the screens by type alone (`web-names-screens-by-type`: a rule of a screen comes through the block
   that applies it). Never a server half, the transport, the MCP Apps runtime (ESLint's gate too), a

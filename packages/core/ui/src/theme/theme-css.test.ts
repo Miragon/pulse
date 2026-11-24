@@ -21,6 +21,12 @@ import {
   LIGHT_SELECTOR,
   MODES,
   norm,
+  OS_DARK,
+  OS_DARK_KONTRAST,
+  OS_DARK_MEDIA,
+  OS_DARK_ROOT,
+  OS_DARK_SELECTOR,
+  OS_LIGHT,
   painted,
   read,
   role,
@@ -209,9 +215,34 @@ describe("theme.css: the role-token contract", () => {
   it("follows the NEAREST mode scope for dark: (dark scope, or a dark scope nested in a light island)", () => {
     const D = `:is(${DARK_SCOPES})`
     const L = `:is(${LIGHT_ISLANDS})`
-    expect(rules).toContain(
-      `@custom-variant dark (&:is(${D} *:not(${L} *), ${L} ${D} *:not(${L} ${D} ${L} *)));`,
+    expect(norm(rules)).toContain(
+      norm(`@custom-variant dark {
+        &:is(${D} *:not(${L} *), ${L} ${D} *:not(${L} ${D} ${L} *)) { @slot; }
+        @media ${OS_DARK_MEDIA} { &:is(${OS_DARK_ROOT} *:not(${L} *)) { @slot; } }
+      }`),
     )
+  })
+
+  it("follows the OS where the root names no mode: copies of the dark roles, an island's light roles and the dark high contrast", () => {
+    // Each copy equals its original, so the contrast suites, which read the originals, hold it.
+    expect(OS_DARK).toEqual(DARK)
+    expect(OS_LIGHT).toEqual(LIGHT)
+    expect(OS_DARK_KONTRAST).toEqual(DARK_KONTRAST)
+    // At the original's specificity, after it: (0,1,0) as .dark, a brand's later :root still
+    // wins; the island's (0,1,0) as `:where(dark) :is(island)`; the high contrast (0,2,0).
+    expect(OS_DARK_ROOT).toBe(":root:not([data-theme], [data-cd-theme], [data-theme-mode])")
+    expect(OS_DARK_SELECTOR).toBe(
+      ":root:where(:not([data-theme], [data-cd-theme], [data-theme-mode]))",
+    )
+    const at = (decls: Record<string, string>) =>
+      BLOCKS.find((b) => b.decls === decls)?.offset ?? -1
+    expect(at(OS_DARK)).toBeGreaterThan(at(DARK_KONTRAST))
+    expect(at(OS_LIGHT)).toBeGreaterThan(at(OS_DARK))
+    expect(at(OS_DARK_KONTRAST)).toBeGreaterThan(at(OS_LIGHT))
+    // All three inside ONE query, so a light OS keeps the light roles on the root.
+    const media = rules.lastIndexOf(`@media ${OS_DARK_MEDIA} {`, at(OS_DARK))
+    expect(media).toBeGreaterThan(at(DARK_KONTRAST))
+    expect(rules.slice(media, at(OS_DARK_KONTRAST))).not.toMatch(/\n\}/)
   })
 
   it("takes the guide's own switch as a mode scope: data-cd-theme, on the same weight as .dark", () => {
@@ -361,6 +392,12 @@ describe("theme.css: the role-token contract", () => {
     expect(dark?.selector).toBe(
       `:is(.dark, [data-theme="dark"], [data-cd-theme="dark"]) body, body:is(${DARK_SCOPES}), :where(body) :is(${DARK_SCOPES})`,
     )
+    // The OS's dark root: its body, (0,1,1) as a dark root's, only on a dark OS.
+    const os = schemes.filter((b) => b.decls["color-scheme"] === "dark").at(-1)
+    expect(os?.selector).toBe(":not([data-theme], [data-cd-theme], [data-theme-mode]) > body")
+    expect(rules.lastIndexOf(`@media ${OS_DARK_MEDIA} {`, os?.offset)).toBeGreaterThan(
+      dark?.offset ?? Infinity,
+    )
     // A root color-scheme that differs from the host's iframe paints an opaque
     // canvas behind the view; the host keeps it transparent on purpose.
     for (const b of BLOCKS) {
@@ -375,9 +412,11 @@ describe("theme.css: the role-token contract", () => {
     expect(g.indexOf('@import "tailwindcss";')).toBeGreaterThanOrEqual(0)
     expect(g.indexOf('@import "./theme.css";')).toBeGreaterThan(g.indexOf('@import "tailwindcss";'))
     // The package ships only its CSS from src/: Tailwind reads the class strings in dist/,
-    // where the tarball carries no tests (package.json `files`), so no fixture class leaks in.
+    // where the tarball carries no tests (package.json `files`), so no fixture class leaks in;
+    // never the browser bundle in dist/browser, whose React and icons hold words Tailwind reads
+    // as classes.
     expect(g).toContain('@source "../dist";')
-    expect(g).not.toContain("@source not")
+    expect([...g.matchAll(/@source not "([^"]*)";/g)].map((m) => m[1])).toEqual(["../dist/browser"])
     expect(rules).toContain('@import "./tokens/cd-tokens.generated.css";')
   })
 })

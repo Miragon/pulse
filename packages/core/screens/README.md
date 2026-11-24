@@ -231,6 +231,15 @@ business key matches whole on every dialect (the conformance law
 called instance its caller's business id, so a caller's key finds the instances it called there
 too.
 
+## The forms' version
+
+`ScreenFormat.JSON_VERSION` (1 today) is the version of the screens' JSON forms, the engine
+screen's, the process screen's, the instance list's, the instance screen's and the search's alike.
+A surface that hands a form to a reader it does not ship with sends the version beside it, as the
+Pulse MCP server's model tool `engine_get_screen` does (`formatVersion`), so the reader refuses a
+version it does not know. A key removed or renamed, or a key or code whose meaning changes, takes
+the next version; a key or code added keeps it, and a reader passes over what it does not know.
+
 ## Rules for the browser
 
 The main entry holds what a surface does with a screen's JSON form without reading the engine again:
@@ -295,11 +304,11 @@ numbers.
 
 ## Entries
 
-| Entry                            | Holds                                                                                                                                                                                |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `@miragon/pulse-screens`         | `ProcessFilter`, `FleetSums`, `DiagramDecorations`, `VariableConditionTypes`, `InstanceRows`, `HistoryGaps` and the types of the screens' JSON forms, their codes and `ScreenTarget` |
-| `@miragon/pulse-screens/builder` | `EngineScreen`, `ProcessScreen`, `InstanceList`, `InstanceCounts`, `InstanceQuery`, `InstanceScreen`, `Finder`, `CallLinks`, `ScreenJson` and the types of their models and reads    |
-| `@miragon/pulse-screens/testing` | `WORLD_SCREENS`, the screens of the conformance kit's fixed world, and `ScreenFigures`                                                                                               |
+| Entry                            | Holds                                                                                                                                                                                                |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@miragon/pulse-screens`         | `ProcessFilter`, `FleetSums`, `DiagramDecorations`, `VariableConditionTypes`, `InstanceRows`, `HistoryGaps`, `ScreenFormat` and the types of the screens' JSON forms, their codes and `ScreenTarget` |
+| `@miragon/pulse-screens/builder` | `EngineScreen`, `ProcessScreen`, `InstanceList`, `InstanceCounts`, `InstanceQuery`, `InstanceScreen`, `Finder`, `CallLinks`, `ScreenJson` and the types of their models and reads                    |
+| `@miragon/pulse-screens/testing` | `WORLD_SCREENS`, the screens of the conformance kit's fixed world, and `ScreenFigures`                                                                                                               |
 
 ## Stability
 
@@ -327,7 +336,9 @@ builds the engine screen with `EngineScreen` and `ScreenJson` behind its app-onl
 `engine_screen_process_data`, the instance list with `InstanceList` behind
 `engine_screen_instances_data`, the instance screen with `InstanceScreen` behind
 `engine_screen_instance_data` and what the search finds on an engine with `Finder` behind
-`engine_screen_find_data`, which the server's web app renders with the same blocks, naming
+`engine_screen_find_data`, which the server's web app renders with the same blocks (the engine,
+process and instance screens reach a page outside the web app too, with their version, through
+the model tool `engine_get_screen`), naming
 the screen's JSON form by type alone and applying its rules through the blocks
 (`useDiagramDecorations`, `useInstanceRows`, `MissingHistoryNotice` over `HistoryGaps`,
 `FindResults` and `FindHistoryNotice` over the find screen).

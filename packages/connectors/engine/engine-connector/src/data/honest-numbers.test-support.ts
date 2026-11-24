@@ -32,6 +32,20 @@ export interface BuildCase {
   world?: (request: RecordedRequest) => FakeReply | undefined
 }
 
+/** A case of the rejection table (honest-numbers.test.ts): a build and the reads it may lose. */
+export interface Case extends BuildCase {
+  /** The lookup of the id/key the builder is asked about, answering "nothing there". */
+  unknown?: { read: string; reply: FakeReply }
+  /** Enrichment reads: each failure leaves the build intact, with the read's value null. */
+  enrichment?: Record<string, (data: never) => unknown>
+  /**
+   * Fallback reads: each failure is answered by the read it names, with the same figures (a
+   * version's diagram, which c7-core's element statistics read for its call activities, by a read
+   * of every incident of the version).
+   */
+  fallback?: Record<string, string>
+}
+
 const engines: FakeEngine[] = []
 
 /** Closes the engines of the builds so far: each test file's `afterEach`. */
@@ -192,7 +206,7 @@ export const V1_CALL_ACTIVITIES = {
 }
 
 /** Each build's own: when it read, the engine's address and the times the scan stamps now. */
-const OWN_PER_BUILD = new Set(["fetchedAt", "cockpitUrl", "firstSeen", "latestIncident"])
+const OWN_PER_BUILD = new Set(["fetchedAt", "asOf", "cockpitUrl", "firstSeen", "latestIncident"])
 
 /** An outcome's figures, without what each build has of its own. */
 function figuresOf(outcome: unknown): unknown {

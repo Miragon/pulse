@@ -7,6 +7,7 @@ in the chat.
 | Page                       | What it covers                                                   |
 | -------------------------- | ---------------------------------------------------------------- |
 | [Overview](overview.md)    | The five clients and what they share                             |
+| [Glossary](glossary.md)    | The words every Pulse UI uses, in English and German             |
 | [MCP server](mcp/index.md) | Getting started, usage, reference, operations, architecture      |
 | [Web app](web/index.md)    | The server's views as pages in a browser: sign-in, architecture  |
 | [CLI](cli/index.md)        | Install, commands, configuration, authentication, AI agents      |

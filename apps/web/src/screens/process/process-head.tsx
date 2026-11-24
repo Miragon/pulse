@@ -1,7 +1,14 @@
 import { MissingHistoryNotice, OlderVersionsNotice, VersionPicker } from "@miragon/pulse-blocks"
 import type { InstanceListFilterData, ScopeCountsData } from "@miragon/pulse-screens"
-import { Button, ErrorState, Icon, StatusStrip, WidgetHeader } from "@miragon/pulse-ui"
-import { FreshnessStamp, OpenInCockpitLink } from "@miragon/pulse-widget-shell/widgets"
+import {
+  FreshnessStamp,
+  Button,
+  ErrorState,
+  Icon,
+  StatusStrip,
+  WidgetHeader,
+} from "@miragon/pulse-ui"
+import { OpenInCockpitLink } from "@miragon/pulse-widget-shell/widgets"
 import { Workflow } from "lucide-react"
 import { useT } from "../../messages/index.js"
 import { PageLink, type Navigate } from "../../router/page-link.js"

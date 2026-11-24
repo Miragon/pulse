@@ -55,9 +55,11 @@ const PULSE_UI = {
   root: exportsOf(join(UI_ROOT, "dist/index.d.ts")).map((e) => e.name),
   format: exportsOf(join(UI_ROOT, "dist/format/index.d.ts")).map((e) => e.name),
   tones: exportsOf(join(UI_ROOT, "dist/tones/index.d.ts")).map((e) => e.name),
+  glossary: exportsOf(join(UI_ROOT, "dist/glossary/index.d.ts")).map((e) => e.name),
+  bpmn: exportsOf(join(UI_ROOT, "dist/bpmn/index.d.ts")).map((e) => e.name),
   testing: exportsOf(join(UI_ROOT, "dist/testing/index.d.ts")).map((e) => e.name),
 }
-const KIT = new Set([...PULSE_UI.root, ...PULSE_UI.format, ...PULSE_UI.tones, ...PULSE_UI.testing])
+const KIT = new Set(Object.values(PULSE_UI).flat())
 const WIDGETS = {
   widgets: exportsOf(join(here, "ui/index.ts")),
   testing: exportsOf(join(here, "testing/index.ts")),
@@ -76,6 +78,12 @@ describe("widget-shell exports no pulse-ui name (one kit)", () => {
     for (const name of ["countTone", "severityTone", "SITUATION_TONES", "ToneVariant"]) {
       expect(PULSE_UI.tones, name).toContain(name)
     }
+    for (const name of ["PRODUCT_GLOSSARY", "COUNT_TERMS", "glossaryFindings", "GlossaryRule"]) {
+      expect(PULSE_UI.glossary, name).toContain(name)
+    }
+    for (const name of ["BpmnDiagram", "useBpmnViewer", "BPMN_TOKENS", "readBpmnNames"]) {
+      expect(PULSE_UI.bpmn, name).toContain(name)
+    }
     for (const name of [
       "scanGlyphs",
       "themeStylesheets",
@@ -91,7 +99,7 @@ describe("widget-shell exports no pulse-ui name (one kit)", () => {
     expect(WIDGETS.testing.map((e) => e.name)).toContain("recordingModuleServer")
   })
 
-  it("/widgets and /testing share no name with pulse-ui's root, /format, /tones or /testing", () => {
+  it("/widgets and /testing share no name with pulse-ui's root, /format, /tones, /glossary, /bpmn or /testing", () => {
     expect(SHELL.filter((e) => KIT.has(e.name)).map((e) => e.name)).toEqual([])
   })
 

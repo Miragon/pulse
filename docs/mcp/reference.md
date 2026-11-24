@@ -12,11 +12,21 @@ ones, so a misspelled filter cannot widen the answer to the whole engine.
 
 BPM operations across these domains (`category`): `engines`, `process-definitions`,
 `process-instances`, `tasks`, `external-tasks`, `messages-signals`, `deployments`, `incidents`,
-`jobs`, `history`, `migrations`, `batches`. Highlights:
+`jobs`, `history`, `migrations`, `batches`, `process-numbers`, `screens`. Highlights:
 
 - **Engines:** `list_engines` (each with its `dialect`), `engine_status` (one engine's triage:
   findings, counts, the live verdict from its open root incidents by `ENGINE_HEALTH_*` and findings)
 - **Process definitions:** `list_process_definitions`, `get_process_definition_xml`
+- **Process numbers** to show, every version of a key: `engine_process_stats` (now: running, open
+  root incidents, with incident, jobs without retries, open tasks, started and ended in 24 hours;
+  per day or hour of a `timeZone` (a bare date is that zone's day), at most 48 buckets: started,
+  ended and ended per end event, with the median and P90 duration (nearest rank) overall and per end
+  event, unknown past 50,000 instances) and `engine_activity_counts` (per activity the cockpit's
+  diagram counts, open user tasks and the oldest, each kind's latest incident, the screens' diagram
+  decorations; `version` counts one version on its own diagram). Each figure is the engine's count:
+  `{ atLeast }` where its history time to live may have removed some (`history.keptFrom`), `null`
+  where it writes none (`history.recorded`). No XML: `definitionId` names the diagram, so a page
+  loads both and the diagram in three calls; each answer is kept 30 seconds per caller
 - **Process instances:** `start`, `list`, `inspect_process_instance` (where one instance waits and
   why, running or ended, by id, business key or definition key), `delete`, `modify`,
   `set_*_suspension`, `get_activity_instance_tree` (admin, the ids `modify` takes), variables
@@ -51,6 +61,11 @@ BPM operations across these domains (`category`): `engines`, `process-definition
   from the engine's history (the app-only `engine_activity_statistics_data`, `source` `history`)
 - **Boards:** with `ENGINE_BOARDS_DIR`, `list_engines` names them, `open_cockpit` (`view` `board`,
   its id) shows one, built by `engine_board_data` ([Boards](boards.md), [Camunda 8](camunda8.md))
+- **Screens and boards as JSON** (`screens`): `engine_get_screen` (`screen` `engine`; `process` with
+  `processDefinitionKey` and `version`; `instance` with `processInstanceId`) and `engine_get_board`
+  return a web app screen's or a board's JSON form, `{ formatVersion, data }`, which a page renders
+  with `@miragon/pulse-blocks`; data only, every dialect, built by the web app's and the cockpit's
+  builders, kept 30 s per caller as theirs, an instance's screen read anew on every call
 
 ### Toolsets
 

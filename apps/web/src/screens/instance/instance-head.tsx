@@ -2,6 +2,7 @@ import type { InstanceSlots } from "@miragon/pulse-blocks"
 import { HeadlineStrip, InstanceFacts } from "@miragon/pulse-blocks"
 import type { CallerData, InstanceStateCode } from "@miragon/pulse-screens"
 import {
+  FreshnessStamp,
   Button,
   CopyableId,
   ErrorState,
@@ -12,7 +13,7 @@ import {
   WidgetHeader,
   type StateLabelState,
 } from "@miragon/pulse-ui"
-import { FreshnessStamp, OpenInCockpitLink } from "@miragon/pulse-widget-shell/widgets"
+import { OpenInCockpitLink } from "@miragon/pulse-widget-shell/widgets"
 import { CornerLeftUp, TriangleAlert, Workflow } from "lucide-react"
 import { useT } from "../../messages/index.js"
 import { PageLink, type Navigate } from "../../router/page-link.js"

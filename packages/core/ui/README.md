@@ -15,8 +15,9 @@ npm install @miragon/pulse-ui react react-dom lucide-react tailwindcss
 ```
 
 `react`, `react-dom` and `lucide-react` are required peers; `tailwindcss` is needed for the
-stylesheets only, and `typescript` for the brand gates under `./testing` only. `./format` and
-`./tones` need no peer at runtime.
+stylesheets only, `typescript` for the brand gates under `./testing` only, and `bpmn-js` (pin
+`18.31.1`) for the BPMN diagram under `./bpmn` only. `./format`, `./tones` and `./glossary` need
+no peer at runtime.
 
 ## Minimal example
 
@@ -77,18 +78,88 @@ export function App() {
 }
 ```
 
-Your stylesheet imports Tailwind v4, scans the kit's compiled sources and imports the theme
+Your stylesheet imports Tailwind v4, scans the kit's compiled sources, but not the browser
+bundle (React and the icons in it hold words Tailwind reads as classes), and imports the theme
 after it:
 
 ```css
 @import "tailwindcss";
 @source "../node_modules/@miragon/pulse-ui/dist";
+@source not "../node_modules/@miragon/pulse-ui/dist/browser";
 @import "@miragon/pulse-ui/theme.css";
 ```
 
 Never import `globals.css` next to your own Tailwind entry (two Tailwind layers), and never
 `fonts.css` in an MCP App view: an inlining bundler embeds the font files in every view. Serve
 the fonts by URL with `fontFaces({ baseUrl })` instead.
+
+## Use in a page without a build
+
+A page with no bundler and no Tailwind, a Claude artifact say, loads the kit as one ES module
+and one stylesheet from the package's `dist/browser/`, on a CDN such as jsDelivr:
+
+```html
+<link rel="stylesheet" href="pulse-ui.css" />
+<div id="root"></div>
+<script type="module">
+  import * as ui from "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@<version>/dist/browser/pulse-ui.js"
+
+  const h = ui.createElement
+  const incidents = { situation: "openIncident", label: "4 open incidents" }
+  const cells = [
+    { label: "Running", value: ui.formatCount(1284) },
+    { label: "Open incidents", value: h(ui.CountFigure, incidents, ui.formatCount(4)) },
+  ]
+  const page = h(
+    "main",
+    { className: "flex flex-col gap-section p-gutter" },
+    h(ui.WidgetHeader, { title: "Leasing" }),
+    h(ui.KpiGrid, { cells }),
+  )
+  const root = ui.createRoot(document.getElementById("root"))
+  root.render(h(ui.LocaleProvider, { locale: "en" }, page))
+</script>
+```
+
+- **`pulse-ui.js`** holds React, ReactDOM and the kit, React once: every name of the root entry,
+  React's and ReactDOM's public names (`createElement`, `Fragment`, the hooks, `createRoot`,
+  `createPortal`, …), the JSX runtime's `jsx` and `jsxs`, and `React` and `ReactDOM`. Take React
+  from it only: a second React from another URL breaks every hook. Without a build there is no
+  JSX; `createElement`, as `h` here, writes the same tree. Pin the version you install, as for every
+  `@miragon/pulse-*` package below 1.0.
+- **`lucide.js`** beside it holds every Lucide icon under lucide-react's names, on the same React,
+  for a page that draws icons of its own (`import { Activity } from ".../dist/browser/lucide.js"`);
+  `pulse-ui.js` holds only the icons the kit draws.
+- **`pulse-ui-bpmn.js`** beside it holds the BPMN diagram of `./bpmn` (below) with bpmn-js, on the
+  same React and the kit's contexts, for a page that draws a process
+  (`import { BpmnDiagram } from ".../dist/browser/pulse-ui-bpmn.js"`); it injects its own
+  stylesheet, and `pulse-ui.css` holds its classes.
+- **The words of `./glossary`** need no bundle: `dist/glossary/index.js` imports nothing, so a page
+  imports it as it is (`import { COUNT_TERMS } from ".../dist/glossary/index.js"`).
+- **`pulse-ui.css`** is the theme compiled with every class the kit renders and these layout
+  utilities, each also under `sm:` and `lg:` (a class outside the kit and this list renders
+  nothing):
+
+  | What     | Utilities                                                                                                                                                                                                                                                                           |
+  | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | Display  | `block`, `inline-block`, `inline`, `flex`, `inline-flex`, `grid`, `inline-grid`, `hidden`, `contents`                                                                                                                                                                               |
+  | Flex     | `flex-row`, `flex-col`, `flex-wrap`, `flex-nowrap`, `flex-1`, `flex-auto`, `flex-none`, `grow`, `shrink-0`; `items-`, `justify-` and `self-` with start, center and end, `items-baseline`, `items-stretch`, `justify-between`, `self-stretch`                                       |
+  | Grid     | `grid-cols-1` to `grid-cols-12`, `col-span-1` to `col-span-12`, `col-span-full`                                                                                                                                                                                                     |
+  | Spacing  | `gap`, `gap-x`, `gap-y` with 0, 1, 2, 3, 4, 6, 8, `gutter` or `section`; `p`, `px`, `py`, `pt`, `pr`, `pb`, `pl` with 0 to 4, 6, 8 or `gutter`; `m`, `mx`, `my`, `mt`, `mr`, `mb`, `ml` with 0 to 4, 6 or 8; `mx-auto`, `ml-auto`, `mr-auto`; `space-x`, `space-y` with 1 to 4 or 6 |
+  | Size     | `w-full`, `w-auto`, `w-fit`, `w-1/2`, `w-1/3`, `w-2/3`, `w-1/4`, `w-3/4`, `min-w-0`, `max-w-full`, `max-w-sm` to `max-w-7xl`, `max-w-prose`, `h-full`, `h-auto`, `min-h-0`                                                                                                          |
+  | Type     | `text-title`, `text-section`, `text-body`, `text-dense`, `text-small`, `text-left`, `text-center`, `text-right`, `font-sans`, `font-mono`, `font-normal`, `font-semibold`, `font-bold`, `tabular-nums`, `truncate`, `whitespace-nowrap`, `break-words`                              |
+  | Roles    | `text-foreground`, `text-muted-foreground`, `text-link`, `bg-background`, `bg-card`, `bg-muted`, `border`, `border-t`, `border-b`, `border-l`, `border-r`, `border-border`, `rounded-sm`, `rounded-md`, `rounded-lg`                                                                |
+  | Position | `overflow-hidden`, `overflow-auto`, `overflow-x-auto`, `relative`, `sticky`, `top-0`, `sr-only`                                                                                                                                                                                     |
+
+  It sets the body in the kit's font on the 13 px step, unlayered, so a host's reset before it
+  (a Claude artifact's skeleton) does not win. A Claude artifact loads stylesheets from its own
+  files only: copy `pulse-ui.css` into them. Geist comes from Google Fonts by a `<link>` of the
+  page (`family=Geist:wght@400;600;700&family=Geist+Mono:wght@400;600`); without it the system
+  font renders.
+
+The page is light or dark by the root's `data-theme` (`"light"` or `"dark"`), as an MCP host and
+a Claude artifact write it. With none of `data-theme`, `data-cd-theme` and `data-theme-mode` on
+the root, it follows the OS's setting (`prefers-color-scheme`) with no script of its own.
 
 ## What it provides
 
@@ -106,7 +177,7 @@ the fonts by URL with `fontFaces({ baseUrl })` instead.
 | Fonts and tokens                      | `fontFaces`, `GEIST_FONT_FILES`, `adoptHostFontVariables`, `BPMN_LABEL_STYLE` (bpmn-js's `textRenderer` config: the labels on a BPMN canvas in bpmn-js's own Arial at its sizes, as the modelers draw them), and the tokens as data (`CD_TOKENS`, `ROLE_TOKENS`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | Stylesheets                           | `theme.css` (the Miragon theme without Tailwind's entry, over the vendored `--cd-*` tokens of `cd-tokens.generated.css`), `globals.css` (Tailwind, the theme and the kit's sources in one line), `fonts.css` (opt-in Geist, bundled)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | Brand gates (`./testing`)             | Node only: `catalogTextFindings` (the voice rules over a message catalog), `scanTypeScale` (the five steps, the 13 px floor, weights 400, 600 and 700 only), `scanGlyphs`, `scanIconSizes` (16 and 24 px; 12 px, `DENSE_ICON_SIZE`, only in the files its `allowDense` names with a reason), `scanColors` and `stylesheetColorFindings` over your sources, `scanOutlines` (`outline-hidden` only under a focus state: anywhere else forced colours paint it as a 2 px frame at rest), `stylesheetShapeFindings` over a stylesheet every view inlines, `contrastFindings` with `toneContrastPairs()` / `ROLE_CONTRAST_PAIRS`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| Product words (`./testing`)           | Node only: `PRODUCT_GLOSSARY` (one word per thing in every Pulse UI, the MCP widgets and the VS Code webview), `glossaryFindings` over a catalog, `sourceTexts` for a source tree that keeps its words in code, `blindGlossaryRules`, `unnamedGlossaryTerms`, `BARE_PAUSE_RULE_EN` (the strict pause rule for a UI that pauses nothing of its own) and `COUNT_TERMS`, the one word per count                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Product words (`./glossary`)          | Any runtime, no import, a browser too: `PRODUCT_GLOSSARY` (one word per thing in every Pulse UI, per language each term and the words it replaces), `BARE_PAUSE_RULE_EN` (the strict pause rule for a UI that pauses nothing of its own), `COUNT_TERMS` (the one word per count), and the checks: `glossaryFindings` over a catalog, `blindGlossaryRules`, `unnamedGlossaryTerms`; `./testing` hands out the same names beside `sourceTexts` (a source tree that keeps its words in code as a catalog). The table: [miragon.github.io/pulse/glossary](https://miragon.github.io/pulse/glossary)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 
 `stylesheetShapeFindings` reports a height floor, a forced or inlined font, a raw colour and a
 `--cd-*` token. `contrastFindings` checks WCAG AA in light and dark; `LIGHT_STATUS_EXEMPTION` is
@@ -117,6 +188,240 @@ mounts a view in an MCP host and runs its tool calls is
 [`@miragon/pulse-widget-shell`](https://www.npmjs.com/package/@miragon/pulse-widget-shell), which
 builds on this kit.
 
+## The product's words
+
+`./glossary` holds the words every Pulse UI uses as data, so a page, an agent and the kit's own
+tests read one source. It imports nothing beyond its own files, so it runs in a browser bundle and
+in Node alike, and a page checks its own catalog with it:
+
+```ts
+import { COUNT_TERMS, glossaryFindings, PRODUCT_GLOSSARY } from "@miragon/pulse-ui/glossary"
+
+const de = { kpiIncidents: COUNT_TERMS.incidents.long.de, stuck: "Tote Jobs" }
+glossaryFindings(de, PRODUCT_GLOSSARY.de)
+// [{ key: "stuck", text: "Tote Jobs", use: "Jobs ohne Versuche" }]
+```
+
+A page that pauses nothing of its own adds `BARE_PAUSE_RULE_EN` to the English rules. Every term,
+the words it replaces and the count words are in the generated
+[glossary](https://miragon.github.io/pulse/glossary).
+
+## A dashboard page
+
+A page outside a host (a Claude artifact, a page of your own) reads several sources, and each
+section can fail on its own. Four pieces keep every such page alike, every word from the kit's
+catalogs in English and German:
+
+- `SectionState` renders one section's read from `{ loading, error, data }`: its skeleton only
+  after 400 ms (`SKELETON_DELAY_MS`) with its room held, the content, `empty` for a read that
+  found nothing, a failure in the `ErrorState` box with the raw text under Details and Try again
+  unless it is `permanent`. A refresh keeps the data on screen, its region `aria-busy`; one that
+  fails says so inline above the data it keeps. Under a `SectionStateGroup` a failure several
+  sections share is said once, by the first, whose Try again reads them all again.
+- `PanelGrid` lays out `Panel`s (a card with its `h2` title and scope): one column below 600 px of
+  its own width, two (or `columns={3}`) where it has the room, the panels of a row as tall as each
+  other; `wide` spans a row.
+- `FreshnessStamp` goes into the bar's `freshness`: "As of 14:32", the instant in its title.
+- `describePageError` words a failed call by its code (`PageErrorCode`: `needs_reauth`,
+  `not_connected`, `not_allowed`, `approval_required`, `unavailable`, `tool_error`), so a page
+  maps its transport's errors once. The words name no transport: pass the connector's name and
+  where the viewer manages it (`place`), the claude.ai template passes claude.ai's.
+
+```tsx
+function Tasks({ read }: { read: Read<Task[]> }) {
+  const t = useT()
+  const messages = useUiMessages()
+  const error = read.error && describePageError(read.error, { messages, connector: "Pulse" })
+  return (
+    <Panel title={t("tasks")} hint={t("allVersions")}>
+      <SectionState
+        state={{ loading: read.loading, error, data: read.data }}
+        onRetry={read.retry}
+        empty={<TableEmptyState>{t("noTasks")}</TableEmptyState>}
+      >
+        {(tasks) => <TaskTable tasks={tasks} />}
+      </SectionState>
+    </Panel>
+  )
+}
+
+// The page: its bar with the oldest read, its sections in one group.
+<WidgetHeader title={t("title")} freshness={<FreshnessStamp at={oldestRead} />} />
+<SectionStateGroup>
+  <PanelGrid>
+    <Tasks read={tasks} />
+    <Incidents read={incidents} />
+  </PanelGrid>
+</SectionStateGroup>
+```
+
+## Charts
+
+Four charts in the Pulse look, React and SVG with no chart library: `BarChart` (bars over days
+or categories, grouped, on a fixed axis from zero), `LineChart` (series over time with a
+crosshair), `Sparkline` (a KPI tile's trend) and `MeterRows` (labelled rows with a bar in
+percent and the figure right aligned, for funnels and shares). Each fills its container's width,
+measured with a `ResizeObserver`, and never runs past it, so it fits a 360 px view; the axis
+keeps the labels that fit (the latest always) and writes its numbers through the kit's
+formatters in the view's locale (`unit`: `"count"`, the default, `"duration"` in milliseconds or
+`"percent"`). Values are a `Count`: a lower bound `{ atLeast }` draws to its bound and says
+"at least", an unknown `null` draws nothing and is never a 0. You format the point labels
+(`formatDate`).
+
+```tsx
+import {
+  BarChart,
+  KpiGrid,
+  LineChart,
+  MeterRows,
+  Sparkline,
+  formatCount,
+  formatDate,
+  type Count,
+} from "@miragon/pulse-ui"
+
+interface Day {
+  day: string
+  started: Count
+  ended: Count
+  incidents: Count
+  medianMs: number | null
+}
+
+export function ProcessCharts({ perDay }: { perDay: Day[] }) {
+  const points = perDay.map((d) => ({
+    key: d.day,
+    label: formatDate(d.day),
+    values: { started: d.started, ended: d.ended, incidents: d.incidents, median: d.medianMs },
+  }))
+  return (
+    <>
+      <KpiGrid
+        cells={[
+          {
+            label: "Started",
+            value: formatCount(431),
+            trend: (
+              <Sparkline
+                label="Started per day"
+                categoryLabel="Day"
+                points={points.map((p) => ({
+                  key: p.key,
+                  label: p.label,
+                  value: p.values.started,
+                }))}
+              />
+            ),
+          },
+        ]}
+      />
+      <BarChart
+        label="Started and ended per day"
+        categoryLabel="Day"
+        series={[
+          { key: "started", label: "Started" },
+          { key: "ended", label: "Ended" },
+          { key: "incidents", label: "Open incidents", kind: "incident" },
+        ]}
+        points={points}
+      />
+      <LineChart
+        label="Median duration per day"
+        categoryLabel="Day"
+        unit="duration"
+        series={[{ key: "median", label: "Median" }]}
+        points={points}
+      />
+      <MeterRows
+        label="Outcomes"
+        total={412}
+        rows={[
+          { key: "approved", label: "Approved", value: 301 },
+          { key: "rejected", label: "Rejected", value: 63 },
+        ]}
+      />
+    </>
+  )
+}
+```
+
+The colours are the theme's data-viz ramp, one blue from `--cd-blau` to `--cd-info-soft` in a
+fixed order: a chart's first series takes `--chart-1`, its second `--chart-2`, both 3:1 on every
+surface and told apart by lightness (the second line dashed too), measured in light, dark, high
+contrast and under protan, deutan and tritan vision; a series of `kind: "incident"` is red, the
+one red a chart draws, and nothing is green. Two series is all the ramp holds at 3:1, so a third
+series on the ramp throws: split the chart, or show the shares as `MeterRows`. Under forced
+colours the first series draws in the system's text colour, the second hollow (dashed as a
+line), incidents in its highlight. A legend names two series or more; hovering a point, or the
+arrow keys, Home and End on the focused plot (one tab stop), shows its figures in a tooltip (a
+`Sparkline`'s is placed in the window, so a KPI tile's clipping strip never cuts it); a screen
+reader reads each chart as a visually hidden table, each value in words ("at least 2,000",
+"count unknown"). `MeterRows` shows its figures as text, so it needs neither. Its shares are of
+an exact whole: a lower bound's share says so (`≥ 40%`), no part reads as 0 % or as all unless
+it is, and a whole that is not exact (`total` a lower bound or unknown, or the rows' sum while a
+row is) shows no share at all, its bars comparing the rows.
+
+## The BPMN diagram (`./bpmn`)
+
+A process diagram with Pulse's markers, count badges and legend for any React page, with no host:
+no MCP SDK, no TanStack Query, no zod (its tests bundle the entry to prove it). It draws with
+bpmn-js, an optional peer only this entry imports, and brings its own stylesheet (the canvas in
+the theme, the markers, the badges), so a page imports no CSS for it.
+
+```sh
+npm install @miragon/pulse-ui bpmn-js@18.31.1
+```
+
+```tsx
+import { BpmnDiagram, DiagramLegend } from "@miragon/pulse-ui/bpmn"
+
+export function Diagram({ xml }: { xml: string }) {
+  return (
+    <>
+      <DiagramLegend scope="Badges count every version, drawn on v3." />
+      <BpmnDiagram
+        xml={xml}
+        ariaLabel="Bike Leasing, version 3"
+        decorations={[
+          {
+            elementId: "Activity_DecideOnApplication",
+            counts: [{ kind: "running", count: 33 }],
+            incident: false,
+          },
+          {
+            elementId: "Activity_SendPolicy",
+            counts: [{ kind: "incidents", count: 7 }],
+            incident: true,
+          },
+        ]}
+        onSelect={(element, count) => console.info(element.id, count.kind)}
+      />
+    </>
+  )
+}
+```
+
+- **One badge scheme**, the shared screens': an element's counts sit apart over its top right
+  corner, its open root incidents in red, the incidents in the instances it called in a quiet
+  badge of their own (never part of its incident count), its running instances in blue; only an
+  own root incident outlines the element. `decorations` takes the screens' diagram decorations
+  as they are (`DiagramDecorations.of` of `@miragon/pulse-screens`); `markers` outlines an
+  instance's wait, open task or incident without a count. An element the drawing lacks is
+  skipped without an error.
+- **Counts in words.** Without `onSelect` the badges are a drawing and the page says the counts
+  elsewhere; with it each count is a button named by its element and its figure, and
+  `selectable` draws one that leads nowhere without a button. `nameOf` names an element (default:
+  its name in the XML). `renderCounts` draws a surface's own counts in each element's anchor.
+- **The frame.** Its height is the diagram's own (240 to 560 px), a fixed `height`, or `"fill"`
+  for the box it sits in; `maxHeight` caps it (an MCP view passes widget-shell's
+  `useDiagramMaxHeight`). The zoom bar sits top right, bpmn.io's link bottom right, the fit
+  keeps the drawing clear of both. The canvas follows the theme: light, dark (`data-theme`,
+  `.dark`, or the system's scheme where the page sets no mode), high contrast
+  (`data-cd-kontrast="hoch"`) and forced colours.
+- **For a drawing of your own**: `useBpmnViewer` with `BpmnZoomControls`, the canvas's tokens
+  (`BPMN_TOKENS`, `BPMN_CANVAS_VARS`, `BPMN_OVERLAY_CSS`), `CanvasBadge` (the badge, as the blocks'
+  `Badge` slot) and the one BPMN name reader (`readBpmnNames`, `parseBpmnNames`).
+
 ## Your own brand
 
 The theme maps role variables (`--primary`, `--interaction`, `--link`, `--focus`, `--<tone>`,
@@ -125,13 +430,19 @@ The theme maps role variables (`--primary`, `--interaction`, `--link`, `--focus`
 `--background` and `--muted` its ground (`#F9F7F7` on light), `--card` its surface, `--popover`
 and `--raised` its raised surface, `--accent` its hover, `--border` its line, `--muted-foreground`
 its quiet text, `--scrim` its backdrop. The mode follows `.dark`, `data-theme="dark"` and the
-guide's own `data-cd-theme="dark"`; `data-cd-kontrast="hoch"` switches high contrast (no shadows,
-stronger edges and quiet text, a 3 px focus) and forced colours keep every state visible. Your
-brand overrides role variables only, never a `--cd-*` token, under `:root` AND the dark scopes
+guide's own `data-cd-theme="dark"`; a root with none of `data-theme`, `data-cd-theme` and
+`data-theme-mode` follows the OS (`prefers-color-scheme: dark`), and `data-theme="light"` keeps
+it light. `data-cd-kontrast="hoch"` switches high contrast (no shadows, stronger edges and quiet
+text, a 3 px focus) and forced colours keep every state visible. Your brand overrides role
+variables only, never a `--cd-*` token, under `:root` AND the dark scopes
 (`.dark, [data-theme="dark"], [data-theme-mode="dark"], [data-cd-theme="dark"]`), or a light-only
-value shows in dark. Measure it in a test with `@miragon/pulse-ui/testing`:
+value shows in dark; for a page that follows the OS, also inside
+`@media (prefers-color-scheme: dark)` on
+`:root:where(:not([data-theme], [data-cd-theme], [data-theme-mode]))`.
+Measure it in a test with `@miragon/pulse-ui/testing`:
 `parseThemeVariables(...themeStylesheets(), brandCss)` and `contrastFindings` over
-`toneContrastPairs()` and `ROLE_CONTRAST_PAIRS`.
+`toneContrastPairs()` and `ROLE_CONTRAST_PAIRS`; the values for the OS's dark root are measured
+too (`os-dark`), wherever they resolve a pair apart from the dark scopes' values.
 
 The density roles set the size of controls, rows and bars on every surface, compact by default
 and in `rem` on the guide's shell ladder (`--cd-shell-zeile` 40 px, `--cd-shell-eintrag` 36,

@@ -12,6 +12,7 @@ import { de } from "./messages-de.js"
 import { en } from "./messages-en.js"
 
 export type {
+  BpmnMessages,
   CommonMessages,
   ConditionChipMessages,
   CopyableIdMessages,
@@ -24,6 +25,10 @@ export type {
   StateLabelMessages,
   UiMessages,
   ViewBarMessages,
+  FreshnessMessages,
+  SectionStateMessages,
+  PageErrorMessages,
+  PageErrorParams,
 } from "./message-types.js"
 
 /** A partial override of a {@link UiMessages} catalog, per section. */
@@ -69,6 +74,10 @@ export function resolveUiMessages(
     conditionChip: { ...base.conditionChip, ...override.conditionChip },
     stateLabel: { ...base.stateLabel, ...override.stateLabel },
     count: { ...base.count, ...override.count },
+    freshness: { ...base.freshness, ...override.freshness },
+    sectionState: { ...base.sectionState, ...override.sectionState },
+    pageError: { ...base.pageError, ...override.pageError },
+    bpmn: { ...base.bpmn, ...override.bpmn },
   }
 }
 

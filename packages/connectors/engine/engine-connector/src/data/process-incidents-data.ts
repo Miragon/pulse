@@ -37,6 +37,21 @@ import {
   type IncidentScan,
 } from "./incident-scan.js"
 
+/**
+ * The running instances of a key, every version, as the process detail counts them: one count,
+ * which `engine_process_stats` reads too.
+ */
+export function countRunningInstances(client: Client, key: string): Promise<number> {
+  return getProcessInstancesCount({ client, query: { processDefinitionKey: key } }).then(countOf)
+}
+
+/** The jobs of a key whose retries are used up, every version, as the process detail counts them. */
+export function countFailedJobs(client: Client, key: string): Promise<number> {
+  return getJobsCount({ client, query: { processDefinitionKey: key, noRetriesLeft: true } }).then(
+    countOf,
+  )
+}
+
 export interface ProcessIncidentsOptions {
   baseUrl: string
   cockpitUrl?: string
@@ -62,10 +77,8 @@ export async function buildProcessIncidentsData(
   const [definition, runningInstances, failedJobs, statsByKey, scan] = await Promise.all([
     // Primary: an unknown key is a not-found error, never a view of zeros.
     fetchLatestDefinition(client, key),
-    getProcessInstancesCount({ client, query: { processDefinitionKey: key } }).then(countOf),
-    getJobsCount({ client, query: { processDefinitionKey: key, noRetriesLeft: true } }).then(
-      countOf,
-    ),
+    countRunningInstances(client, key),
+    countFailedJobs(client, key),
     fetchStatsByKey(client, {}),
     scanIncidents(client, byKey),
   ])

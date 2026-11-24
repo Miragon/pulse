@@ -1,14 +1,10 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { useRef } from "react"
-import type * as Widgets from "@miragon/pulse-widget-shell/widgets"
+import type * as Bpmn from "@miragon/pulse-ui/bpmn"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import {
-  TestViewHost,
-  WebApiError,
-  type HostAction,
-  type UseBpmnViewerResult,
-} from "@miragon/pulse-widget-shell/widgets"
+import type { UseBpmnViewerResult } from "@miragon/pulse-ui/bpmn"
+import { TestViewHost, WebApiError, type HostAction } from "@miragon/pulse-widget-shell/widgets"
 import type { InstanceScreenData } from "@miragon/pulse-screens"
 import { NavigationFocus } from "@miragon/pulse-ui"
 import { WORLD_SCREENS } from "@miragon/pulse-screens/testing"
@@ -38,8 +34,8 @@ import { InstanceScreen } from "../src/screens/instance/instance-screen.js"
 const writeText = vi.fn<(text: string) => Promise<void>>()
 
 // The kit's BPMN viewer draws in a real browser alone (test:web); here a canvas that draws nothing.
-vi.mock("@miragon/pulse-widget-shell/widgets", async (original) => ({
-  ...(await original<typeof Widgets>()),
+vi.mock("@miragon/pulse-ui/bpmn", async (original) => ({
+  ...(await original<typeof Bpmn>()),
   useBpmnViewer: (): UseBpmnViewerResult => ({
     containerRef: useRef<HTMLDivElement>(null),
     height: 320,

@@ -53,8 +53,10 @@ as pages of the server, a CLI and two editor hosts for the same engines.
   editor hosts' private `c7-adapter`
 - `packages/connectors/c8/`: the Camunda 8 family: `c8-core` (`C8Runtime`, `C8Failures` over a
   transport port) and the editor hosts' private, read-only `c8-adapter`
-- `packages/core/ui/`: `@miragon/pulse-ui`, the design kit and theme (`theme.css`), framework-free
-  `/format` and `/tones`, the brand gates in `/testing`
+- `packages/core/ui/`: `@miragon/pulse-ui`, the design kit and theme (`theme.css`), the BPMN
+  diagram for any page (`/bpmn`, bpmn-js its optional peer), framework-free `/format` and
+  `/tones`, the brand gates in `/testing`, and its browser bundle for a page without a build
+  (`dist/browser`, `packages/core/ui/scripts/browser-bundle.mjs`)
 - `packages/core/widget-shell/`: the view runtime (`/widgets`), the registrar
   (`createToolRegistrar`), the boot (`/server`) with the web app's sign-in (`src/web`), a module's
   test server (`/testing`)
@@ -70,6 +72,12 @@ as pages of the server, a CLI and two editor hosts for the same engines.
   (`/oauth`)
 - `playground/`: the demo env (CIB seven showcase engine, Compose stack, Fly.io); `docs/`: the
   docs site
+- `templates/composed-server/`: the starter for a server of your own (mirrored to
+  Miragon/pulse-starter); `templates/claude-artifact/`: the template of a Claude artifact on Pulse,
+  a page in claude.ai reading the engine through the server as the viewer's connector
+- `apps/mcp-server/skills/pulse-artifact/`: the Claude Code plugin `pulse-artifact`, listed in
+  `.claude-plugin/marketplace.json` next to the CLI's, whose skill builds such a page from the
+  template
 
 ### Where code goes
 
@@ -80,8 +88,8 @@ Three axes decide where code goes, and they stay apart:
 - **Dialect** (an engine API family): one package family under `packages/connectors/<dialect>/`
   whose core implements engine-core's contract: `c7` (the Camunda 7 REST API all three vendors
   serve) and `c8` (Camunda 8's Orchestration Cluster REST API, read-only; the server offers it in
-  the engine list, the boards and the web app's screens, the chat on boards only:
-  `docs/mcp/camunda8.md`). `DIALECT_FAMILIES` and `ENGINE_DIALECTS` in `.dependency-cruiser.cjs`
+  the engine list, the boards, the web app's screens and their JSON for the model, the chat's
+  views on boards only: `docs/mcp/camunda8.md`). `DIALECT_FAMILIES` and `ENGINE_DIALECTS` in `.dependency-cruiser.cjs`
   name them. A new dialect is a family, never an MCP server app or a module of its own.
 - **Interface** (how a person or an agent reaches an engine): an app under `apps/` with its own
   agent file. Apps never import each other, and no package imports an app; what the editor hosts
@@ -181,7 +189,10 @@ Palettenklassen oder rohe Farben. Ein `--cd-*` steht nur in den Kopien, die
 `.miragon/brand-assets.sha256`); eine weitere kommt mit `brand-assets.mjs --add`, nie als Ausnahme
 im Scan. Setzen mehrere Kopien ein Token im selben Geltungsbereich, hat es überall denselben Wert,
 auch im Doku-Kit (`packages/core/ui/src/theme/token-drift.test.ts`). Die Docs-Site hebt
-`@miragon/docs-starter` mit jedem Kit-Release.
+`@miragon/docs-starter` mit jedem Kit-Release. Nennt die Wurzel weder `data-theme` noch
+`data-cd-theme` noch `data-theme-mode`, folgt `theme.css` dem OS (`prefers-color-scheme`), ohne
+Skript der Seite (#661); ein Host, der eines davon setzt, entscheidet allein, und die Kopien der
+dunklen Rollen hält `theme-css.test.ts` gleich.
 
 UI-Texte gibt es auf Deutsch und Englisch nach Host-Locale. Deutsch folgt brand-tone vollständig:
 du-Ansprache, AI statt `KI`, „CIB seven“, kein Gedankenstrich als Verbinder, normale Groß- und
@@ -206,7 +217,8 @@ nur hier dokumentiert):
   bleibt das Papier weiß; dunkel ist es der Grund, Striche und Beschriftungen im Text, Marker im
   `-hell`-Wert ihres Tons, Zähl-Badges gefüllt auf einem Ring aus Papier. Hoher Kontrast: Marker
   3 px, Badges mit 1-px-Kante statt Ring. `forced-colors`: Systemfarben, weil der Browser SVG nicht
-  umfärbt. Die Werte: `packages/core/widget-shell/src/ui/bpmn-tokens.ts`.
+  umfärbt. Eine Seite ohne Modus an ihrer Wurzel folgt dem System. Die Werte:
+  `packages/core/ui/src/bpmn/bpmn-tokens.ts`.
 - Schrift: Geist, dann die Schrift des Hosts (`adoptHostFontVariables`), dann System. Der Server
   liefert Geist selbst aus (`installFontAssets`, kein CDN, `declareServedFonts` in der CSP); blockt
   ein Host den Ursprung, rendert die Host-Schrift, ohne dass etwas wartet.
@@ -218,9 +230,12 @@ nur hier dokumentiert):
 - Chrome im Rahmen des Hosts (Kopf mit Titel und Aktionen) statt randlosem Canvas.
 - Titel: 13 px in 600 in der 40-px-Leiste; 28 px in 700 als h2 nur auf App-Ebene (Landing,
   Flotte) statt h1 mit 40 px.
-- Data-Viz: eine einfarbige Rampe von `--cd-info-soft` bis `--cd-blau`, Rot nur für Incidents;
-  auf dunklem BPMN-Papier von `--cd-schwarz` bis `--cd-blau`, aufgehellt (aus D10 abgeleitet, die
-  Bestätigung des Owners steht aus).
+- Data-Viz (Owner-Entscheidung 2026-11-24): eine einfarbige Rampe von `--cd-info-soft` bis
+  `--cd-blau`, Rot nur für Incidents, nie Grün; auf dunklem BPMN-Papier von `--cd-schwarz` bis
+  `--cd-blau`, aufgehellt. Die Reihen eines Diagramms unterscheiden sich in der Helligkeit,
+  `--chart-1` vor `--chart-2` (die Reihenfolge steht an den Tokens in `theme.css`); nur diese
+  beiden halten 3:1 auf jeder Fläche, darum zeichnen die Diagramme des Kits höchstens zwei Reihen
+  auf der Rampe (`packages/core/ui/src/theme/chart-ramp.test.ts`).
 - Komet nur auf App-Ebene (Landing, Erststart, „keine Engines“: `KometMark`/`AppEmptyState`); eine
   Kundenmarke blendet ihn mit `--brand-mark-display: none` aus.
 - BPMN-Zoom-Leiste oben rechts, weil unten rechts das bpmn.io-Logo liegt (Lizenzpflicht).
@@ -330,6 +345,13 @@ for every workspace package.
      `@miragon/pulse-blocks`; nothing of it reaches the chat's bundle
      (`apps/mcp-server/test/view-bundle.test.ts`). Where a screen shows a place of the cockpit's,
      the page claims it (`ViewLocation.claims`) and the embedded cockpit renders nothing there.
+   - A screen's or a board's JSON form reaches the model and any page outside the web app as data
+     (owner decision 2026-11-24, #666; D10 holds for the screens as UI): the read-only registrar
+     tools `engine_get_screen` and `engine_get_board` (`src/tools/screens.ts`), marked as their
+     feeds, return `{ formatVersion, data }` from the feeds' own builders and floors
+     (`src/data/json-forms.ts`), never a view and never a builder of their own; the version is the
+     format's (`ScreenFormat.JSON_VERSION`, `BoardVocabulary.JSON_VERSION`), and
+     `src/tools/test-support/screen-forms.ts` holds the forms.
    - The engine module's views are bundle views, never a resource of their own: ESLint blocks
      `registerResource` and `registerAppResource` under `packages/connectors/`. Only a customer's
      module may bring a finished HTML document (invariant 8, the module port).
@@ -397,7 +419,10 @@ for every workspace package.
      through `useActionFeedback()` toasts that name the object and confirms through
      `ConfirmDialog`; nothing to show is `TableEmptyState`. A skeleton shows only after 400 ms
      (`SKELETON_DELAY_MS`), a refresh keeps the content with its region `aria-busy`, and a view's
-     guard keeps its bar and title, so the page keeps its one `h1`.
+     guard keeps its bar and title, so the page keeps its one `h1`. A page outside a host (an
+     artifact) holds the same rules with pulse-ui's `SectionState` under one `SectionStateGroup`
+     and words its transport's refusals once with `describePageError` (#664); the server's error
+     texts stay `describeError`'s.
    - **Inline is a card, not a page** (#396): a list under a host shows the rows that fit the
      host's height, measured (`InlineFitBox`), never estimated; a paged list registers ONE list
      (`PagedRows` + `paged.fit`). An id in a table cell takes one line (`NamedId`, `IdText`), so a
@@ -412,9 +437,14 @@ for every workspace package.
      `format*` helpers and `shortId` in the view's locale (ESLint's date and number gates over
      `WIDGET_TREES`); a count reaches a catalog entry formatted, and the entry puts the noun in the
      right number (`plural(…)`), never a `…One`/`…Other` key pair.
-   - **BPMN** renders through `useBpmnViewer` + `BpmnZoomControls` on the themed canvas, every
-     colour from `bpmn-tokens.ts`. A marker paints its shape's outline, never a label; the canvas
-     alone is the image (`ariaLabel`).
+   - **BPMN** renders through pulse-ui's `./bpmn` entry, which needs no host (owner decision
+     2026-11-24): `BpmnDiagram`, or `useBpmnViewer` + `BpmnZoomControls` for a drawing of a
+     surface's own (the heat), on the themed canvas, every colour from `bpmn-tokens.ts`; a chat view
+     hands it the host's inline budget (`useDiagramMaxHeight`). One badge scheme, the shared
+     screens' (owner decision 2026-11-24): an element's counts apart over its top right corner, root
+     incidents red, the incidents in called instances a quiet badge of their own, running blue; only
+     an own root incident outlines the element (the editors' webview keeps its filled pills). A
+     marker paints its shape's outline, never a label; the canvas alone is the image (`ariaLabel`).
    - **Paged lists** compose `usePagedListView` (an honest total; counts and model contexts read
      the payload on screen, never the request) + `ListTable` + `PagedListFooter`; optimistic state
      resets with `useResetOnChange`, never in an effect. A shared screen's list pages by cursor
@@ -451,7 +481,10 @@ for every workspace package.
      catalogs hold the same keys. One term per thing across the product, the extension included:
      `PRODUCT_GLOSSARY` (each connector's `src/messages/glossary.test.ts`,
      `apps/vscode/test/architecture/product-words.test.ts`, whose promise scan refuses a text that
-     promises a later feature).
+     promises a later feature). The words and `COUNT_TERMS` live once, as browser-safe data in
+     `@miragon/pulse-ui/glossary` (`./testing` hands out the same bindings), and `docs/glossary.md`
+     is generated from them (pulse-ui's `golden:update`), so a page and an agent read the table the
+     gate holds.
    - **Counts mean the same on every surface.** Count words come from `COUNT_TERMS` (owner
      decision E2). "Incidents" are open root incidents (D2): a call activity's copy counts in the
      called process only. "With incident" are the instances that have one, on Camunda 7 read from
@@ -483,10 +516,13 @@ for every workspace package.
      board's numbers degrade per engine and tile instead of failing the call
      (`data/honest-numbers.degrade.test.ts`).
    - **Expensive reads have floors.** What loads the engine's database (the screen feeds, a
-     board's build, the cockpit's element counts) is kept 30 s per caller and arguments
-     (`callerCacheKey`, so a renewed token reads anew), never an answer that misses a part. The
-     process flow's "Throughput" reads a 30-day window cut to the shortest `historyTimeToLive`, one
-     read at a time per engine (`oneAtATime`), outside the cockpit's Refresh.
+     board's build, the cockpit's element counts, a process's numbers of `engine_process_stats`
+     and `engine_activity_counts` over the cockpit's builders) is kept 30 s per caller and
+     arguments (`callerCacheKey`, so a renewed token reads anew), never an answer that misses a
+     part. The process flow's "Throughput" reads a 30-day window cut to the shortest
+     `historyTimeToLive`, one read at a time per engine (`oneAtATime`), outside the cockpit's
+     Refresh; `engine_process_stats` counts per bucket by `/count`, a bucket older than that time
+     to live as a lower bound, every history count unknown where the engine writes no history.
    - **No view payload carries BPMN XML** (a view's `structuredContent` reaches the model on some
      hosts): a view names the version it draws (`diagramDefinitionId`) and reads the XML from
      `engine_bpmn_xml_data`, through the ONE cache `lib/bpmn/definition-xml.ts`.
@@ -595,8 +631,8 @@ for every workspace package.
   bpmn-js, the official MCP SDK where a module types against it, the Pulse libraries as
   `workspace:^`), each also an exact devDependency. A published package imports only what it
   declares (`scripts/published-imports.test.mjs`) and ships no test (`scripts/pack-contents.mjs`).
-  The template pins what it lists as the workspace does (`scripts/template-pins.mjs`): a bump that
-  reaches one directory only goes into both in the same PR. A bump of a package an artifact
+  Each template pins what it lists as the workspace does (`scripts/template-pins.mjs`): a bump that
+  reaches one directory only goes into the others in the same PR. A bump of a package an artifact
   bundles needs `pnpm third-party-licenses` (after `pnpm build`) in the same PR.
 - **The widget `_meta` carries two halves; never hand-write either.** `showToolBinding` stamps
   MCP Apps' and the OpenAI Apps SDK's keys on a view tool, `appOnly` a feed's, `forViews` a model
@@ -616,18 +652,18 @@ for every workspace package.
   equal by `scripts/error-path-goldens.test.mjs`. Each package updates its goldens through its
   `golden:update`, never by hand.
 - **Bundles have shrink-only budgets**: the widget bundle (`test/__golden__/bundle-budget.json`,
-  every view resource inlines it), the web app's page, the VS Code webview and the CLI's npm dist,
-  each in its package's `test/__golden__/bundle-budget.json`; growth needs a `Ratchet-Exception:`
-  trailer that says why.
+  every view resource inlines it), the web app's page, the VS Code webview, pulse-ui's browser
+  bundle and the CLI's npm dist, each in its package's `test/__golden__/bundle-budget.json`; growth
+  needs a `Ratchet-Exception:` trailer that says why.
 - **Federation happens in an external MCP gateway IN FRONT of this server** (dropped
   deliberately in #162: no upstream/proxy mechanics). A gateway that terminates auth is invisible
   to the server, which then boots read-only without a caller, so such a deployment names its
   toolsets in `MCP_ACTIVE_MODULES`.
 - **An artifact ships the licences of the works of others it holds** (owner decision
   2026-11-12): a generated `THIRD_PARTY_LICENSES.txt` beside its `LICENSE` (the CLI, the c7
-  client, the server image, the web app, the .vsix, the Orca plugin), written from what its
-  bundler really holds by `scripts/third-party-licenses.mjs`; each artifact's drift test fails
-  while the file misses a work or lists one no longer held.
+  client, the server image, the web app, the .vsix, the Orca plugin, pulse-ui for its browser
+  bundle), written from what its bundler really holds by `scripts/third-party-licenses.mjs`; each
+  artifact's drift test fails while the file misses a work or lists one no longer held.
 - **The server reads no `PULSE_*` variable.** PulseAudio owns `PULSE_*` and `PULSE_CLI_*` is the
   CLI's; a server setting goes into `ENGINE_*`, `ENGINES_*` or `MCP_*`
   (`scripts/server-env-names.test.mjs`).
@@ -639,8 +675,10 @@ The release workflows hold the publish credentials and no pull request runs them
 
 - **One release-please train.** Conventional commits on `main` drive `release-please.yml`: one
   Release PR bumps every package, app, manifest, template pin and User-Agent in lockstep
-  (`extra-files` in `release-please-config.json`). Merging it creates the release; every publish
-  job waits for approval of the `release` environment.
+  (`extra-files` in `release-please-config.json`), and the pulse-ui version a page without a build
+  loads from jsDelivr in the artifact docs (a generic file's marked versions, held to the release
+  by `pnpm lint:github`). Merging it creates the release; every publish job waits for approval of
+  the `release` environment.
 - **npm:** the twelve libraries and `@miragon/pulse-cli` publish with OIDC trusted publishing (no
   token, provenance attached), packed by `pnpm pack`. A package new to npm is published once by
   hand and gets its trusted publisher before the release that first publishes it. The server app,
@@ -649,7 +687,8 @@ The release workflows hold the publish credentials and no pull request runs them
   neutral core since 0.28.
 - **The starter** reaches customers as `Miragon/pulse-starter`, the read-only mirror of
   `templates/composed-server`, synced after the npm publish; its owners learn of a version from
-  the mirror's releases.
+  the mirror's releases. `templates/claude-artifact` has no mirror: a copy starts from a clone of
+  this repository, and the `pulse-artifact` plugin installs from its marketplace.
 - **The VS Code extension** ships as a .vsix to the Marketplace and Open VSX by trusted
   publishing, **the Orca plugin** into `Miragon/orca-plugins` (off until that repository lists
   `pulse-cockpit` in its `sources.json`), **the server image** to `ghcr.io/miragon/pulse-server`
@@ -674,9 +713,11 @@ The release workflows hold the publish credentials and no pull request runs them
   real server under OAuth with fake identity providers (sign-in, sessions, CSRF, the screens,
   German, dark, 320 px, axe); run it for changes to the web app, widget-shell's `src/web` or the
   page root.
-- **Template** (`scripts/test-template.sh`): packs the libraries and builds and tests
-  `templates/composed-server` against them, once with the fixture module. ESLint, knip and
-  dependency-cruiser skip `templates/`: its composition-root rules are review knowledge.
+- **Template** (`scripts/test-template.sh`): packs the libraries and builds and tests both
+  templates against them, `templates/composed-server` once more with the fixture module and
+  `templates/claude-artifact` down to the three files of its `dist/`. ESLint, knip and
+  dependency-cruiser skip `templates/`: their code rules are review knowledge, and
+  `scripts/artifact-tools.test.mjs` holds the tools the artifact calls.
 - **Engines** (CI `Engines (<flavor>)`): CIB seven and Operaton in Testcontainers running
   `test:engines`; the Camunda 8 suites run locally only until #531.
 - **CI scopes**: `scripts/ci-scopes.mjs` runs each job only for the files that concern it. A new

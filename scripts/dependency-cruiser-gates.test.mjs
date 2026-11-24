@@ -131,6 +131,8 @@ const CLIENT_LEAF = "clients-are-leaves"
 const CLIENT_USERS = "client-consumers"
 const CORE = "core-is-foundation"
 const UI_LEAF = "ui-is-a-leaf"
+const UI_BPMN = "ui-bpmn-in-its-entry-alone"
+const UI_BPMN_ROOT = "ui-bpmn-reaches-the-kit-by-its-root"
 const UI_FOUNDATION = "ui-foundation-entries-import-nothing"
 const SHELL_VIEWS = "widget-shell-views-browser-only"
 const SHELL_HEADLESS = "widget-shell-server-headless"
@@ -286,9 +288,13 @@ const LEAVES = [
   `${SHELL}/src/target.ts`,
   `${UI}/src/target.ts`,
   `${UI}/src/lib.ts`,
+  `${UI}/src/bpmn/diagram.ts`,
+  `${UI}/src/bpmn/marks.ts`,
   `${UI}/src/testing/glyphs.ts`,
   `${UI}/src/tones/situations.ts`,
   `${UI}/src/format/numbers.ts`,
+  `${UI}/src/glossary/rules.ts`,
+  `${UI}/src/glossary/catalog.ts`,
   `${C7}/src/target.ts`,
   `${C7}/src/lib.ts`,
   `${C7}/src/testing/fixture.ts`,
@@ -477,6 +483,7 @@ const SUITES = [
         "react-dom/client",
         "lucide-react",
         "@miragon/pulse-ui",
+        "@miragon/pulse-ui/bpmn",
         "@miragon/pulse-ui/theme.css",
         "@miragon/pulse-widget-shell/widgets",
         "@miragon/pulse-engine-connector/widgets",
@@ -492,6 +499,7 @@ const SUITES = [
         "@miragon/pulse-engine-connector",
         "@miragon/pulse-ui/format",
         "@miragon/pulse-ui/globals.css",
+        "@miragon/pulse-ui/bpmn-x",
         "@miragon/pulse-ui-x",
         "@tanstack/react-query",
         "@modelcontextprotocol/server",
@@ -2255,7 +2263,6 @@ const SUITES = [
         "@tanstack/react-query",
         "zod",
         "prom-client",
-        "bpmn-js",
       ].map((spec) => [UI_SRC, spec, [UI_LEAF]]),
       // The MCP Apps runtime is the host adapter's rule as well.
       [UI_SRC, "@modelcontextprotocol/ext-apps", [UI_LEAF, EXT_APPS]],
@@ -2267,6 +2274,47 @@ const SUITES = [
       [UI_SRC, "./lib.ts", []],
       [ENGINE_CONNECTOR_SRC, "@miragon/pulse-ui", []],
       [SERVER_SRC, "@miragon/pulse-ui", []],
+    ],
+  },
+  {
+    rule: UI_BPMN,
+    title: "pulse-ui's BPMN entry alone imports bpmn-js, and the rest of the kit never imports it",
+    cases: [
+      [UI_SRC, "bpmn-js", [UI_BPMN]],
+      [`${UI}/src/kit/to-viewer.ts`, "bpmn-js/lib/NavigatedViewer", [UI_BPMN]],
+      [`${UI}/src/kit/to-diagram.ts`, "diagram-js", [UI_BPMN]],
+      [`${UI}/src/kit/to-entry.ts`, "../bpmn/diagram.ts", [UI_BPMN]],
+      [`${UI}/src/kit/to-entry-type.ts`, "../bpmn/diagram.ts", [UI_BPMN], "type"],
+      // Allowed: the entry itself, a workspace package of a Pulse UI importing the entry.
+      [`${UI}/src/bpmn/viewer.ts`, "bpmn-js/lib/NavigatedViewer", []],
+      [`${UI}/src/bpmn/index.ts`, "./diagram.ts", []],
+      [`${UI}/src/bpmn/diagram.test.tsx`, "bpmn-js", []],
+    ],
+  },
+  {
+    rule: UI_BPMN_ROOT,
+    title: "pulse-ui's BPMN entry reaches the rest of the kit through its root entry alone",
+    cases: [
+      [`${UI}/src/bpmn/to-lib.ts`, "../lib.ts", [UI_BPMN_ROOT]],
+      [`${UI}/src/bpmn/to-lib-type.ts`, "../lib.ts", [UI_BPMN_ROOT], "type"],
+      [`${UI}/src/bpmn/to-tones.ts`, "../tones/situations.ts", [UI_BPMN_ROOT]],
+      [`${UI}/src/bpmn/to-testing.ts`, "../testing/glyphs.ts", [NO_TESTING, UI_BPMN_ROOT]],
+      ...["radix-ui", "tailwind-merge", "node:fs"].map((spec) => [
+        `${UI}/src/bpmn/to-npm.ts`,
+        spec,
+        [UI_BPMN_ROOT],
+      ]),
+      // A workspace package: the leaf rule bites as well.
+      [`${UI}/src/bpmn/to-shell.ts`, "@miragon/pulse-widget-shell", [UI_LEAF, UI_BPMN_ROOT]],
+      // Allowed: its own folder, the root entry, React, Lucide, bpmn-js; its tests.
+      [`${UI}/src/bpmn/diagram.tsx`, "../index.ts", []],
+      [`${UI}/src/bpmn/diagram.tsx`, "./marks.ts", []],
+      ...["react", "react-dom", "lucide-react", "bpmn-js/lib/NavigatedViewer"].map((spec) => [
+        `${UI}/src/bpmn/diagram.tsx`,
+        spec,
+        [],
+      ]),
+      [`${UI}/src/bpmn/diagram.test.tsx`, "../testing/glyphs.ts", []],
     ],
   },
   {
@@ -2308,6 +2356,21 @@ const SUITES = [
       [UI_SRC, "./format/numbers.ts", []],
       [`${RUNTIME_VIEW}/src/webview/format/time-labels.ts`, "@miragon/pulse-ui/format", []],
       [`${RUNTIME_VIEW}/src/core/views/labels.ts`, "@miragon/pulse-ui/format", []],
+      // The glossary a browser loads as it is: none of the brand gates' Node stack, no other entry.
+      ...["typescript", "node:fs", "react"].map((spec) => [
+        `${UI}/src/glossary/to-npm.ts`,
+        spec,
+        [UI_FOUNDATION],
+      ]),
+      [`${UI}/src/glossary/to-testing.ts`, "../testing/glyphs.ts", [NO_TESTING, UI_FOUNDATION]],
+      [`${UI}/src/glossary/to-format.ts`, "../format/numbers.ts", [UI_FOUNDATION]],
+      [`${UI}/src/glossary/to-kit-type.ts`, "../lib.ts", [UI_FOUNDATION], "type"],
+      // Allowed: its own folder and its tests; ./testing hands it out, and shipped code may use it.
+      [`${UI}/src/glossary/index.ts`, "./rules.ts", []],
+      [`${UI}/src/glossary/glossary-page.test.ts`, "prettier", []],
+      [`${UI}/src/testing/glossary.ts`, "../glossary/index.ts", []],
+      [`${UI}/src/testing/catalog-text.ts`, "../glossary/catalog.ts", []],
+      [ENGINE_CONNECTOR_SRC, "@miragon/pulse-ui/glossary", []],
     ],
   },
   {

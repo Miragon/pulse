@@ -1,9 +1,8 @@
 import { useEffect } from "react"
 import { EngineTable, ProcessesByEngine, type ScreenSlots } from "@miragon/pulse-blocks"
 import type { FleetSumsData } from "@miragon/pulse-screens"
-import { formatCount, Icon, SectionHeading, WidgetHeader } from "@miragon/pulse-ui"
+import { FreshnessStamp, formatCount, Icon, SectionHeading, WidgetHeader } from "@miragon/pulse-ui"
 import {
-  FreshnessStamp,
   isPermanentError,
   QueryFallback,
   TableSkeleton,

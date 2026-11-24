@@ -178,6 +178,19 @@ export const ROLE_CONTRAST_PAIRS: readonly ContrastPair[] = [
     over: "--background",
     min: 3,
   })),
+  // A chart's marks (BarChart, LineChart, Sparkline, MeterRows): its two series on the ramp and
+  // its incidents in red, on the card and the ground it sits on, a meter's track and the hovered
+  // bars' band (muted) and the tooltip whose keys name the series (popover). The series'
+  // lightness apart is the kit's own test (chart-ramp.test.ts).
+  ...(["--chart-1", "--chart-2", "--danger"] as const).flatMap((fg): ContrastPair[] =>
+    (["--card", "--background", "--muted", "--popover"] as const).map((bg) => ({
+      label: `chart mark ${fg} on ${bg.slice(2)}`,
+      fg,
+      bg,
+      ...(bg === "--background" ? { over: "--background" } : {}),
+      min: 3,
+    })),
+  ),
 ]
 
 /**

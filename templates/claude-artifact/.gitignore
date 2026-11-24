@@ -1,0 +1,7 @@
+node_modules/
+dist/
+coverage/
+# The screenshots and the fixtures build `pnpm shot` writes.
+shots/
+# A copy installs from npm with its own lockfile; the template pins every package exactly.
+pnpm-lock.yaml

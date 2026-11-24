@@ -252,6 +252,75 @@ describe("parseThemeVariables", () => {
     )
   })
 
+  /** A brand as the README writes it: role overrides on :root, the dark scopes and the OS's dark. */
+  const DARK_SCOPES = '.dark, [data-theme="dark"], [data-theme-mode="dark"], [data-cd-theme="dark"]'
+  const OS_ROOT = ":root:where(:not([data-theme], [data-cd-theme], [data-theme-mode]))"
+  const PRIMARY_ON_GROUND = [
+    {
+      label: "primary on ground",
+      fg: "--primary",
+      bg: "--background",
+      over: "--background",
+      min: 3,
+    },
+  ]
+
+  it.each([
+    ["as the README writes it", OS_ROOT],
+    ["written compactly", OS_ROOT.replace(/\s+/g, "")],
+    ["as a plain :not()", ":root:not([data-theme], [data-cd-theme], [data-theme-mode])"],
+  ])(
+    "measures a brand's values for the OS's dark root, %s, apart from its dark scopes",
+    (_, root) => {
+      const brand = [
+        ":root { --primary: #0055aa; }",
+        `${DARK_SCOPES} { --primary: #aaccff; }`,
+        `@media (prefers-color-scheme: dark) { ${root} { --primary: #000000; } }`,
+      ].join("\n")
+      const theme = parseThemeVariables(...themeStylesheets(), brand)
+      expect(theme.dark.get("--primary")).toBe("#aaccff")
+      expect(theme.os?.get("--primary")).toBe("#000000")
+      expect(contrastFindings(theme, PRIMARY_ON_GROUND)).toEqual(["os-dark: primary on ground"])
+    },
+  )
+
+  it("measures the OS's dark once where a theme repeats its dark values there, as the kit does", () => {
+    const kit = parseThemeVariables(...themeStylesheets())
+    const pairs = [
+      ...PRIMARY_ON_GROUND,
+      { label: "text", fg: "--foreground", bg: "--card", min: 4.5 },
+    ]
+    expect(measureContrast(kit, pairs).map((r) => r.mode)).toEqual([
+      "light",
+      "light",
+      "dark",
+      "dark",
+    ])
+    // A brand without values of its own for the OS keeps measuring the dark scopes' alone.
+    const brand = `:root { --primary: #0055aa; } ${DARK_SCOPES} { --primary: #aaccff; }`
+    const branded = parseThemeVariables(...themeStylesheets(), brand)
+    expect(measureContrast(branded, PRIMARY_ON_GROUND).map((r) => r.mode)).toEqual([
+      "light",
+      "dark",
+    ])
+  })
+
+  it.each([
+    ["another media query", "@media (prefers-contrast: more) { OS { --x: #000000; } }"],
+    [
+      "a root that names a mode",
+      "@media (prefers-color-scheme: dark) { :root:where(:not(.light, .x)) { --x: #000000; } }",
+    ],
+    [
+      "a root with spaces inside its groups",
+      "@media (prefers-color-scheme: dark) { :root:not([data-theme], .x) { --x: #000000; } }",
+    ],
+  ])("throws on a nested root rule that is not the OS's dark root: %s", (_, rule) => {
+    expect(() =>
+      parseThemeVariables(":root { --x: #ffffff; }", rule.replace("OS", OS_ROOT)),
+    ).toThrow(/Unsupported theme rule/)
+  })
+
   it("throws on unbalanced braces instead of measuring garbage", () => {
     expect(() => parseThemeVariables(":root { --x: #000000;")).toThrow(/Unbalanced/)
     expect(() => parseThemeVariables(":root { --x: #000000; } }")).toThrow(/Unbalanced/)

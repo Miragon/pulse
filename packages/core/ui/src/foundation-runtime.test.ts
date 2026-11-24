@@ -7,12 +7,13 @@ import { afterAll, describe, expect, it } from "vitest"
 
 /**
  * The framework-free entries run in every runtime a Pulse UI has: a browser (the MCP views, the
- * VS Code webview) and Node (the VS Code extension's core). So their files compile against the
- * language alone, without the DOM's or Node's types: a `window`, a `document` or a `process` there
- * fails here, which the import rule `ui-foundation-entries-import-nothing` cannot see.
+ * VS Code webview, a page that loads `./glossary` as it is) and Node (the VS Code extension's
+ * core). So their files compile against the language alone, without the DOM's or Node's types: a
+ * `window`, a `document` or a `process` there fails here, which the import rule
+ * `ui-foundation-entries-import-nothing` cannot see.
  */
 const SRC = fileURLToPath(new URL(".", import.meta.url))
-const FOUNDATION_ENTRIES = ["format", "tones"]
+const FOUNDATION_ENTRIES = ["format", "glossary", "tones"]
 
 const LANGUAGE_ONLY: ts.CompilerOptions = {
   target: ts.ScriptTarget.ES2022,

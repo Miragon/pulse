@@ -24,8 +24,9 @@ Neue Begriffe kommen erst hier hinein, dann in den Test, dann in den Katalog.
 
 ## Gemeinsame Begriffe aller Oberflächen
 
-Die Regeln stehen einmal in pulse-ui (`PRODUCT_GLOSSARY` in `@miragon/pulse-ui/testing`): die
-MCP-Widgets, Pulse for VS Code, Pulse for Orca und diese Bausteine sagen dasselbe.
+Die Regeln stehen einmal in pulse-ui (`PRODUCT_GLOSSARY` in `@miragon/pulse-ui/glossary`, die
+Tabelle daraus: `docs/glossary.md`): die MCP-Widgets, Pulse for VS Code, Pulse for Orca und diese
+Bausteine sagen dasselbe.
 
 | Sache                                                 | Deutsch                                                       | Nicht                                | Englisch                  | Nicht                  |
 | ----------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------ | ------------------------- | ---------------------- |

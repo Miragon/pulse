@@ -6,13 +6,8 @@ import {
   useProcessList,
 } from "@miragon/pulse-blocks"
 import type { ProcessFilterData } from "@miragon/pulse-screens"
-import { Icon, StatusStrip, WidgetHeader } from "@miragon/pulse-ui"
-import {
-  FreshnessStamp,
-  OpenInCockpitLink,
-  useToolQuery,
-  WidgetShell,
-} from "@miragon/pulse-widget-shell/widgets"
+import { FreshnessStamp, Icon, StatusStrip, WidgetHeader } from "@miragon/pulse-ui"
+import { OpenInCockpitLink, useToolQuery, WidgetShell } from "@miragon/pulse-widget-shell/widgets"
 import { Server } from "lucide-react"
 import { useT } from "../../messages/index.js"
 import type { Navigate } from "../../router/page-link.js"

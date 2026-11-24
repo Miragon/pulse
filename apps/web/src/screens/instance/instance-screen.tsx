@@ -1,11 +1,7 @@
 import { useMemo } from "react"
 import { shortId } from "@miragon/pulse-ui"
-import {
-  isPermanentError,
-  parseBpmnNames,
-  useToolQuery,
-  WidgetShell,
-} from "@miragon/pulse-widget-shell/widgets"
+import { parseBpmnNames } from "@miragon/pulse-ui/bpmn"
+import { isPermanentError, useToolQuery, WidgetShell } from "@miragon/pulse-widget-shell/widgets"
 import { useT } from "../../messages/index.js"
 import type { Navigate } from "../../router/page-link.js"
 import type { InstanceTab } from "../../router/routes.js"

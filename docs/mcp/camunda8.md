@@ -4,8 +4,8 @@ The server reads Camunda 8 clusters from 8.9 on, through the Orchestration Clust
 (`/v2`), on [boards](boards.md): a board shows a cluster's counts, lists and diagram beside the
 numbers of your Camunda 7, CIB seven and Operaton engines, in the chat and in the [web
 app](../web/index.md). It reads and never writes. In the chat the engine list, the board and its
-diagram read a cluster, and every other tool, feed and view of the cockpit reads the Camunda 7 REST
-API. The web app reads a cluster whole on its screens (processes, instances, incidents), its
+diagram read a cluster, the model reads its screens and boards as JSON, and every other tool, feed
+and view of the cockpit reads the Camunda 7 REST API. The web app reads a cluster whole on its screens (processes, instances, incidents), its
 incidents and jobs views Camunda 7's alone, as the editors do ([in the
 editors](../vscode/camunda8.md)).
 
@@ -21,12 +21,13 @@ editors](../vscode/camunda8.md)).
 | `engine_screen_process_data`, `engine_screen_instances_data`, `engine_screen_variable_names_data` | The app-only feeds of the web app's process screen: a version, its instances, its variable names; greater, less and a date refused       |
 | `engine_screen_instance_data`, `engine_screen_incident_text_data`                                 | The app-only feeds of the web app's instance screen: an instance and an incident's text                                                  |
 | `engine_screen_find_data`                                                                         | The app-only feed of the web app's search: the instance with a key, those with an exact business id (a called instance has its caller's) |
+| `engine_get_screen`, `engine_get_board`                                                           | The model's reads of its engine, process and instance screens and of a board, as JSON with the form's version                            |
 
 Each tool, feed and view of the cockpit names the dialects it serves, so the server decides at
 startup what it offers: a tool registers only where a configured engine serves it (a write only
 where that engine's profile is not `readOnly`), and its `engine` parameter offers only those
 engines. Beside Camunda 7 engines every tool stays, the Camunda 7 tools offer those engines alone
-and the cockpit every engine; a server of clusters alone lists the ten above in every toolset, with
+and the cockpit every engine; a server of clusters alone lists those above in every toolset, with
 no write and no prompt. The instructions tell the model which engines show on boards only.
 
 A call without `engine` goes to the default engine. Where that is a cluster, a Camunda 7 tool

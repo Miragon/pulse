@@ -1,6 +1,12 @@
-import { Button, formatInstant, formatRelativeTime, Icon, WidgetHeader } from "@miragon/pulse-ui"
 import {
   FreshnessStamp,
+  Button,
+  formatInstant,
+  formatRelativeTime,
+  Icon,
+  WidgetHeader,
+} from "@miragon/pulse-ui"
+import {
   HandOffButton,
   OpenInCockpitLink,
   ViewDataState,

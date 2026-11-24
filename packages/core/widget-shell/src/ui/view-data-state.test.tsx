@@ -1,9 +1,9 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
-import { LocaleProvider } from "@miragon/pulse-ui"
+import { LocaleProvider, SKELETON_DELAY_MS } from "@miragon/pulse-ui"
 import { TestViewHost } from "./test-view-host.js"
-import { SKELETON_DELAY_MS, StartPageLink, ViewDataState } from "./view-data-state.js"
+import { StartPageLink, ViewDataState } from "./view-data-state.js"
 import { WebApiError } from "./web-caller.js"
 
 afterEach(() => {

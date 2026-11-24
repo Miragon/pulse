@@ -15,7 +15,8 @@
  * instance list's POST count) counts what the board's counter of that process (the runtime's GET
  * count) counts. The counts with the jobs without retries ("Running"), from one statistics read with
  * `failedJobs` and `incidents`, are the contract's counts and the jobs the engine counts without
- * `incidents`.
+ * `incidents`. A process's numbers (`engine_process_stats`, `engine_activity_counts`) count what
+ * the history and the runtime hold, as the cockpit counts them (process-numbers.test-support.ts).
  *
  * `pnpm --fail-if-no-match --filter @miragon/pulse-engine-connector test:engines` (Docker); its
  * own container start, since no package shares a Node test helper with another.
@@ -64,6 +65,7 @@ import {
 import { engineStatusForModel } from "./composites.js"
 import { fakeWorldBoard, recordedBoard } from "./compared-boards.test-support.js"
 import { engineImageOf } from "./engine-image.test-support.js"
+import { PROCESS_NUMBER_CHECKS } from "./process-numbers.test-support.js"
 
 const ENGINE_IMAGE = engineImageOf(process.env.PULSE_ENGINE_IMAGE)
 const ENGINE_PORT = 8080
@@ -352,6 +354,10 @@ describe.skipIf(ENGINE_IMAGE.dialect !== "c7")(
       expect([health.status, health.summary.totalIncidents]).toEqual(["warning", roots])
       expect(verdict).toEqual({ status: "warning" })
     })
+
+    for (const [name, check] of PROCESS_NUMBER_CHECKS) {
+      test(name, () => check(prepared().url, boardEngineAt(prepared().url)(C7_BOARD_ENGINE.engine)))
+    }
 
     test("bulk: a batch that cancels one instance reads as such, from the runtime, then the history", async () => {
       const { url, harness } = prepared()

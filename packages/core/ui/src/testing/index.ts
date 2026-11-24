@@ -50,6 +50,7 @@ export {
   parseThemeVariables,
   resolveColor,
   themeStylesheets,
+  type ContrastMode,
   type ContrastPair,
   type ContrastResult,
   type Rgba,

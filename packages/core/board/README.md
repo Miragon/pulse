@@ -198,6 +198,13 @@ contract, so a renderer reads them without the builder. What only a surface know
 its navigation, the diagram's XML) goes beside it, and the surface words every title, number and
 problem in its own language.
 
+`BoardVocabulary.JSON_VERSION` (1 today) is the version of this form, apart from the file's
+`schemaVersion`. A surface that hands a built board to a reader it does not ship with sends the
+version beside it, as the Pulse MCP server's model tool `engine_get_board` does (`formatVersion`),
+so the reader refuses a version it does not know. A key removed or renamed, or a key or code whose
+meaning changes, takes the next version; a key or code added keeps it, and a reader passes over
+what it does not know.
+
 ## A new board
 
 `StarterBoard.of(title, engines)` returns the text of the board Pulse for VS Code's **Pulse: New
@@ -257,7 +264,8 @@ the `@miragon/pulse-engine-core` of the same release.
   [`@miragon/pulse-engine-connector`](https://www.npmjs.com/package/@miragon/pulse-engine-connector),
   reads the board files of `ENGINE_BOARDS_DIR` with the format at boot, builds a board's numbers
   with the builder over each engine's runtime and serves them in their JSON form (`BoardJson.of`)
-  to its cockpit through the app-only feed `engine_board_data`.
+  to its cockpit through the app-only feed `engine_board_data`, and with its version to any page
+  through the model tool `engine_get_board`.
 - [`@miragon/pulse-blocks`](https://www.npmjs.com/package/@miragon/pulse-blocks), Pulse's building
   blocks: a board's tiles over the types of `BoardData`, which the webview of both editors and the
   MCP server's cockpit render.

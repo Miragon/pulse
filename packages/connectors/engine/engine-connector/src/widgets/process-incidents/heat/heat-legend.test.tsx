@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
 import { cleanup, render } from "@testing-library/react"
-import { BPMN_CANVAS_SLOT, BPMN_CANVAS_VARS } from "@miragon/pulse-widget-shell/widgets"
+import { BPMN_CANVAS_SLOT, BPMN_CANVAS_VARS } from "@miragon/pulse-ui/bpmn"
 import { HeatmapLegend } from "./heat-diagram.js"
 
 afterEach(() => {

@@ -16,6 +16,7 @@ export const de: UiMessages = {
     loadFailed: "Der Inhalt konnte nicht geladen werden",
     loadFailedHint: "Versuch es noch mal. Klappt es wieder nicht, frag im Chat nach.",
     loading: "Wird geladen…",
+    noValue: "kein Wert",
   },
   listFooter: {
     showing: ({ shown, total, noun }) => `Zeigt ${shown} von ${total} ${noun}`.trimEnd(),
@@ -64,4 +65,53 @@ export const de: UiMessages = {
     incident: "Incident",
   },
   count: { atLeast: ({ count }) => `mindestens ${count}`, unknown: "Anzahl unbekannt" },
+  freshness: { asOf: ({ time }) => `Stand ${time}` },
+  sectionState: {
+    kept: "Du siehst das vorherige Ergebnis.",
+    sameFailure: "Nicht gelesen, aus demselben Grund wie oben.",
+    sameFailureKept:
+      "Nicht aktualisiert, aus demselben Grund wie oben. Du siehst das vorherige Ergebnis.",
+  },
+  pageError: {
+    needsReauth: ({ connector }) => `Deine Anmeldung bei ${connector} ist abgelaufen`,
+    needsReauthHint: ({ connector, place }) =>
+      `Verbinde ${connector}${at(place)} neu und versuch es dann noch mal.`,
+    notConnected: ({ connector }) => `Diese Seite ist nicht mit ${connector} verbunden`,
+    notConnectedHint: ({ connector, place }) =>
+      `Richte ${connector}${at(place)} ein und versuch es dann noch mal.`,
+    notAllowed: () => "Diese Seite darf das Tool nicht aufrufen, das sie braucht",
+    notAllowedHint: () =>
+      "Eine Einstellung der Seite oder eine Richtlinie deiner Organisation sperrt den Aufruf. Frag die Person, die die Seite veröffentlicht hat.",
+    approvalRequired: () => "Dieser Lesezugriff wartet auf deine Freigabe",
+    approvalRequiredHint: ({ connector }) =>
+      `Erlaube der Seite, ${connector} zu nutzen, wenn du gefragt wirst, und versuch es dann noch mal.`,
+    unavailable: ({ connector }) => `${connector} antwortet nicht`,
+    unavailableHint: () =>
+      "Versuch es gleich noch mal. Klappt es weiter nicht, frag die Person, die den Pulse-Server betreibt.",
+    toolError: ({ connector }) => `${connector} konnte diesen Lesezugriff nicht ausführen`,
+    toolErrorHint: () =>
+      "Versuch es noch mal. Klappt es wieder nicht, frag die Person, die den Pulse-Server betreibt.",
+  },
+  bpmn: {
+    zoomIn: "Vergrößern",
+    zoomOut: "Verkleinern",
+    fit: "An Ansicht anpassen",
+    drawFailed: "Das Diagramm ließ sich nicht zeichnen",
+    drawFailedHint: "Öffne das Modell in deinem Modeler, um es zu prüfen.",
+    countRunning: ({ element, count }) =>
+      `${element}: ${String(count) === "1" ? `${count} Instanz läuft` : `${count} Instanzen laufen`}`,
+    countIncidents: ({ element, count }) =>
+      `${element}: ${count} ${String(count) === "1" ? "Incident" : "Incidents"}`,
+    countIncidentsInCalledInstances: ({ element, count }) =>
+      `${element}: ${count} ${String(count) === "1" ? "Incident" : "Incidents"} in aufgerufenen Instanzen`,
+    legendLabel: "Legende",
+    legendRunning: "wartet hier",
+    legendIncidents: "Incident hier",
+    legendIncidentsInCalledInstances: "Incident in einer aufgerufenen Instanz",
+  },
+}
+
+/** A place after a name, as the page passes it („in claude.ai …“); nothing without one. */
+function at(place: string | undefined): string {
+  return place ? ` ${place}` : ""
 }

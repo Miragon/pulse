@@ -127,7 +127,10 @@ export function createPlugin(
       const register = withServedEngines(withToolsetFilter(recorded, toolset), registry)
       registerEngineTools(register, healthThresholds, config.boards)
       // Deployments are opt-in on top of `admin` (code execution in the JVM).
-      registerTools(register, { allowDeployments: config.allowDeployments })
+      registerTools(register, {
+        allowDeployments: config.allowDeployments,
+        ...(config.boards ? { boards: config.boards } : {}),
+      })
       registerIncidentIssueTools(register, incidentIssueConfig)
       // The prompt drafts through engine_format_incident_issue: where that tool is, it is.
       if (registered.has(ENGINE_FORMAT_INCIDENT_ISSUE)) {

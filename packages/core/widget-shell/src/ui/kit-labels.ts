@@ -4,9 +4,6 @@ import { resolveLanguage, type Locale } from "./host-context.js"
 /** The kit ships no catalog, so its components' few defaults come from here; props override. */
 export interface KitLabels {
   loadingView: string
-  zoomIn: string
-  zoomOut: string
-  fitViewport: string
   retry: string
   /** `useDetailView`'s stale notice. */
   refreshFailed: string
@@ -61,9 +58,6 @@ export interface KitLabels {
 const LABELS: Record<Locale, KitLabels> = {
   en: {
     loadingView: "Loading view…",
-    zoomIn: "Zoom in",
-    zoomOut: "Zoom out",
-    fitViewport: "Fit to viewport",
     retry: "Try again",
     refreshFailed: "Couldn't refresh this view",
     refreshStale: "You're seeing the last loaded state.",
@@ -116,9 +110,6 @@ const LABELS: Record<Locale, KitLabels> = {
   },
   de: {
     loadingView: "Ansicht wird geladen…",
-    zoomIn: "Vergrößern",
-    zoomOut: "Verkleinern",
-    fitViewport: "An Ansicht anpassen",
     retry: "Erneut versuchen",
     refreshFailed: "Die Ansicht konnte nicht aktualisiert werden",
     refreshStale: "Du siehst den zuletzt geladenen Stand.",

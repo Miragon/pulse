@@ -9,7 +9,7 @@ import {
   themeStylesheets,
   type Rgba,
 } from "@miragon/pulse-ui/testing"
-import { BPMN_CANVAS_VARS, type BpmnElement } from "@miragon/pulse-widget-shell/widgets"
+import { BPMN_CANVAS_VARS, type BpmnElement } from "@miragon/pulse-ui/bpmn"
 import {
   buildGradientLut,
   parseColor,
@@ -35,7 +35,7 @@ const rgba = ([r, g, b, a]: readonly number[]): Rgba => ({
 })
 const hex = (value: string): Rgba => rgba([...channels(value), 255])
 const WHITE = hex(CD_TOKENS.weiss)
-/** The light canvas's ramp: widget-shell's BPMN_TOKENS.heat over the vendored tokens. */
+/** The light canvas's ramp: pulse-ui's BPMN_TOKENS.heat over the vendored tokens. */
 const RAMP: HeatRamp = { from: channels(CD_TOKENS["info-soft"]), to: channels(CD_TOKENS.blau) }
 /** The dark canvas's ramp, screened into the drawing. */
 const DARK_RAMP: HeatRamp = { from: channels(CD_TOKENS.schwarz), to: channels(CD_TOKENS.blau) }

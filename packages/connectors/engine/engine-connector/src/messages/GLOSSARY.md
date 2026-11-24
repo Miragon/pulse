@@ -11,7 +11,8 @@ der Zahl). Neue Begriffe kommen erst hier hinein, dann in den Test, dann in den 
 
 Diese Begriffe gelten in jedem Modul gleich, auch in einem, das eine Komposition dazunimmt, und
 in der VS-Code-Erweiterung. Die Regeln stehen einmal in pulse-ui (`PRODUCT_GLOSSARY` in
-`@miragon/pulse-ui/testing`), und `glossary.test.ts` jedes Moduls prüft damit seine Kataloge;
+`@miragon/pulse-ui/glossary`, auch über `@miragon/pulse-ui/testing`; daraus erzeugt:
+`docs/glossary.md`), und `glossary.test.ts` jedes Moduls prüft damit seine Kataloge;
 die Erweiterung prüft ihre Texte im Code (`apps/vscode/test/architecture/product-words.test.ts`).
 
 | Sache                                                 | Deutsch                                                            | Nicht                                | Englisch                           | Nicht                  |
@@ -57,7 +58,7 @@ nie eine Zahl und nie eine Zeile; ein Diagramm zeigt sie getrennt und leise als 
 aufgerufenen Instanzen. Die Versionsbereiche bleiben je Werkzeug, darum nennt der Kopf über einer
 Zahl ihren Bereich. Eine Funktion, die mehr als eine Oberfläche zeigt, zeigt überall dieselben
 Zahlen: ein Builder über einem Lesezugriff. Die Tabelle steht einmal in pulse-ui (`COUNT_TERMS` in
-`@miragon/pulse-ui/testing`).
+`@miragon/pulse-ui/glossary`).
 
 | Zählung                                                    | Deutsch                                              | Nicht         | Englisch                                         | Nicht          |
 | ---------------------------------------------------------- | ---------------------------------------------------- | ------------- | ------------------------------------------------ | -------------- |

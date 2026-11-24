@@ -7,8 +7,8 @@ import {
   ENGINE_PROCESS_INCIDENTS_DATA,
 } from "../tool-names.js"
 import type { ActivityStatisticsData, ProcessIncidentsData } from "../view-models.js"
+import type { DiagramCountKind, DiagramDecoration } from "@miragon/pulse-ui/bpmn"
 import type * as DiagramModule from "./bpmn-diagram.js"
-import type { BpmnHighlight } from "./bpmn-highlights.js"
 import { ProcessDefinitionFlow } from "./process-incidents/flow.js"
 import type { DefinitionScope } from "./process-incidents/feed.js"
 import {
@@ -21,11 +21,11 @@ import {
 let queryClient = createTestQueryClient()
 
 // bpmn-js needs a real layout engine: the stub records what the flow asks it to draw.
-const drawn: Array<{ definitionId: string; highlights: readonly BpmnHighlight[] }> = []
+const drawn: Array<{ definitionId: string; decorations: readonly DiagramDecoration[] }> = []
 vi.mock("./bpmn-diagram.js", async (importOriginal) => ({
   ...(await importOriginal<typeof DiagramModule>()),
-  BpmnDiagram: (props: { definitionId: string; highlights?: readonly BpmnHighlight[] }) => {
-    drawn.push({ definitionId: props.definitionId, highlights: props.highlights ?? [] })
+  BpmnDiagram: (props: { definitionId: string; decorations?: readonly DiagramDecoration[] }) => {
+    drawn.push({ definitionId: props.definitionId, decorations: props.decorations ?? [] })
     return <div data-testid="diagram" data-definition={props.definitionId} />
   },
 }))
@@ -147,8 +147,16 @@ async function chooseRunning() {
 }
 
 const lastDrawn = () => drawn.at(-1)
-const highlightOf = <K extends BpmnHighlight["kind"]>(kind: K) =>
-  lastDrawn()?.highlights.find((h): h is Extract<BpmnHighlight, { kind: K }> => h.kind === kind)
+/** The elements the diagram shows a count of `kind` on, with the count (none of 0). */
+const countsOf = (kind: DiagramCountKind) =>
+  (lastDrawn()?.decorations ?? []).flatMap(({ elementId, counts }) =>
+    counts
+      .filter((count) => count.kind === kind && count.count > 0)
+      .map(({ count }) => ({ elementId, count })),
+  )
+/** The elements the diagram outlines for an own root incident. */
+const outlined = () =>
+  (lastDrawn()?.decorations ?? []).filter((d) => d.incident).map((d) => d.elementId)
 
 describe.each(ENTRIES)("definition view flow: %s", (_entry, props) => {
   it("leads with the incidents and reads what runs only once Running is picked", async () => {
@@ -159,7 +167,8 @@ describe.each(ENTRIES)("definition view flow: %s", (_entry, props) => {
     expect(
       within(group).getByRole("radio", { name: "Incidents" }).getAttribute("aria-checked"),
     ).toBe("true")
-    expect(highlightOf("incident")?.counts).toEqual([{ activityId: "assess", count: 1 }])
+    expect(countsOf("incidents")).toEqual([{ elementId: "assess", count: 1 }])
+    expect(outlined()).toEqual(["assess"])
     expect(screen.getByText("diagram v2 (latest)")).toBeTruthy()
     expect(calls(ENGINE_ACTIVITY_STATISTICS_DATA)).toEqual([])
 
@@ -174,29 +183,24 @@ describe.each(ENTRIES)("definition view flow: %s", (_entry, props) => {
 describe("definition view flow: Running", () => {
   const [, props] = ENTRIES[0]
 
-  it("draws the running count on each element, its incidents, and a failed job without one", async () => {
+  it("draws each element's running count, its own root incidents and those of called instances apart", async () => {
     renderFlow(props)
     await chooseRunning()
     await screen.findByText(/running now/)
 
     expect(lastDrawn()?.definitionId).toBe("leasing:2:d2")
-    expect(highlightOf("instance-count")?.counts).toEqual([
-      { activityId: "sendPolicy", count: 7 },
-      { activityId: "assess", count: 3 },
-      { activityId: "notify", count: 2 },
-      { activityId: "legacyCheck", count: 1 },
+    expect(countsOf("running")).toEqual([
+      { elementId: "sendPolicy", count: 7 },
+      { elementId: "assess", count: 3 },
+      { elementId: "notify", count: 2 },
+      { elementId: "legacyCheck", count: 1 },
     ])
-    expect(highlightOf("incident")).toEqual({
-      kind: "incident",
-      activityIds: ["assess"],
-      counts: [{ activityId: "assess", count: 1 }],
-    })
-    // assess's failed job raised its incident, which already takes the red corner.
-    expect(highlightOf("failed-jobs")?.counts).toEqual([{ activityId: "notify", count: 2 }])
-    // The incidents of the instances notify called: a quiet badge of their own, no outline.
-    expect(highlightOf("called-incident-count")?.counts).toEqual([
-      { activityId: "notify", count: 2 },
-    ])
+    expect(countsOf("incidents")).toEqual([{ elementId: "assess", count: 1 }])
+    // Only an own root incident outlines an element: never what runs there, never a failed job
+    // (the values per activity name notify's) or the incidents of the instances it called.
+    expect(outlined()).toEqual(["assess"])
+    // The incidents of the instances notify called: a quiet badge of their own.
+    expect(countsOf("incidentsInCalledInstances")).toEqual([{ elementId: "notify", count: 2 }])
   })
 
   it("lists the values behind the badges, an element only older versions have marked", async () => {
@@ -241,7 +245,7 @@ describe("definition view flow: Running", () => {
     expect(
       await screen.findByText("No instance of this process is running right now."),
     ).toBeTruthy()
-    expect(highlightOf("instance-count")?.counts).toEqual([])
+    expect(countsOf("running")).toEqual([])
     expect(screen.queryByRole("region", { name: "Values per activity" })).toBeNull()
   })
 

@@ -81,6 +81,12 @@ export const ROLE_TOKENS = [
   "--danger-ink",
   "--info-ink",
   "--destructive",
+  // The data-viz ramp, in the order a chart's series take it (theme.css documents each step).
+  "--chart-1",
+  "--chart-2",
+  "--chart-3",
+  "--chart-4",
+  "--chart-5",
   "--radius-sm",
   "--radius-md",
   "--radius-lg",

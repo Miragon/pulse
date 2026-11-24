@@ -1,5 +1,6 @@
 import { useMemo, type ReactNode } from "react"
 import {
+  FreshnessStamp,
   StatusBadge,
   PagedListFooter,
   WidgetHeader,
@@ -9,7 +10,6 @@ import {
   formatInstant,
 } from "@miragon/pulse-ui"
 import {
-  FreshnessStamp,
   HandOffButton,
   WidgetShell,
   PagedRows,

@@ -1,4 +1,4 @@
-import { BPMN_CANVAS_VARS, type BpmnElement } from "@miragon/pulse-widget-shell/widgets"
+import { BPMN_CANVAS_VARS, type BpmnElement } from "@miragon/pulse-ui/bpmn"
 
 /** The heat layer's math, free of React and viewer state so it is testable. */
 
@@ -71,7 +71,7 @@ export function parseColor(value: string): Rgb | null {
 }
 
 /**
- * The ramp and its blend from the canvas's variables where the diagram sits (widget-shell's
+ * The ramp and its blend from the canvas's variables where the diagram sits (pulse-ui's
  * `BPMN_CANVAS_VARS`, `--cd-*` tokens per mode): the one source the legend's gradient reads too,
  * never a forked hex value. Read at each paint, so a theme that changes repaints in its own ramp.
  * Null when the page declares no canvas.

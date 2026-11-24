@@ -24,9 +24,6 @@ describe("kitLabels: the kit's own strings follow the active locale", () => {
     for (const tag of ["de", "de-AT", "DE-ch"]) {
       expect(rendered(tag)).toEqual({
         loadingView: "Ansicht wird geladen…",
-        zoomIn: "Vergrößern",
-        zoomOut: "Verkleinern",
-        fitViewport: "An Ansicht anpassen",
         retry: "Erneut versuchen",
         refreshFailed: "Die Ansicht konnte nicht aktualisiert werden",
         refreshStale: "Du siehst den zuletzt geladenen Stand.",
@@ -72,9 +69,6 @@ describe("kitLabels: the kit's own strings follow the active locale", () => {
     for (const tag of ["en-US", "fr-FR", undefined]) {
       expect(rendered(tag)).toEqual({
         loadingView: "Loading view…",
-        zoomIn: "Zoom in",
-        zoomOut: "Zoom out",
-        fitViewport: "Fit to viewport",
         retry: "Try again",
         refreshFailed: "Couldn't refresh this view",
         refreshStale: "You're seeing the last loaded state.",

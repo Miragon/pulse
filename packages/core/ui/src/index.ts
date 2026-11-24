@@ -167,6 +167,18 @@ export {
   type SideNavProps,
 } from "./components/SideNav.js"
 
+// Charts: React and SVG, no chart library; the blue ramp (--chart-1, --chart-2) and red for
+// incidents only, a tooltip, a legend for two series and a table for a screen reader each.
+export { BarChart, type BarChartProps } from "./components/charts/BarChart.js"
+export { LineChart, type LineChartProps } from "./components/charts/LineChart.js"
+export {
+  Sparkline,
+  type SparklinePoint,
+  type SparklineProps,
+} from "./components/charts/Sparkline.js"
+export { MeterRows, type MeterRow, type MeterRowsProps } from "./components/charts/MeterRows.js"
+export type { ChartPoint, ChartSeries, ChartUnit } from "./components/charts/chart-types.js"
+
 // Hooks
 export { useDebouncedValue } from "./hooks/use-debounced-value.js"
 export { useResetOnChange } from "./kit/use-reset-on-change.js"
@@ -198,6 +210,7 @@ export {
 export {
   UI_MESSAGES,
   resolveUiMessages,
+  type BpmnMessages,
   type CommonMessages,
   type ConditionChipMessages,
   type CopyableIdMessages,
@@ -296,3 +309,31 @@ export {
   type FormatLocale,
   type TimeOptions,
 } from "./format/index.js"
+
+// Dashboard blocks (Miragon/pulse#664): a section's read in its states, the panels of a page and
+// their grid, when the numbers were read, and the page error vocabulary a page outside a host
+// maps its transport's failures to once.
+export {
+  SectionState,
+  SectionStateGroup,
+  type SectionStateGroupProps,
+  type SectionStateProps,
+  type SectionStateValue,
+} from "./components/SectionState.js"
+export { SKELETON_DELAY_MS } from "./hooks/use-elapsed.js"
+export { Panel, PanelGrid, type PanelGridProps, type PanelProps } from "./components/PanelGrid.js"
+export { FreshnessStamp, type FreshnessStampProps } from "./components/FreshnessStamp.js"
+export {
+  PAGE_ERROR_CODES,
+  describePageError,
+  type DescribePageErrorOptions,
+  type PageError,
+  type PageErrorCode,
+  type SectionFailure,
+} from "./locale/page-errors.js"
+export type {
+  FreshnessMessages,
+  PageErrorMessages,
+  PageErrorParams,
+  SectionStateMessages,
+} from "./locale/ui-messages.js"

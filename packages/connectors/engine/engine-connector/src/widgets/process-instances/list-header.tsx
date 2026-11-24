@@ -1,5 +1,5 @@
-import { formatNumber, StateLabel, WidgetHeader } from "@miragon/pulse-ui"
-import { FreshnessStamp, HandOffButton } from "@miragon/pulse-widget-shell/widgets"
+import { FreshnessStamp, formatNumber, StateLabel, WidgetHeader } from "@miragon/pulse-ui"
+import { HandOffButton } from "@miragon/pulse-widget-shell/widgets"
 import { useHandOff, useHandOffsShown, type HandOff } from "../lib/hand-off.js"
 import { useT } from "../../messages/use-t.js"
 import { instancesFilterFacts, type InstancesListFilters } from "./hand-offs.js"
