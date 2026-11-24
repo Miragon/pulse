@@ -78,9 +78,13 @@ export function FailedScreen({
   return (
     <div className={ScreenFrame.PLAIN}>
       <ContextBar
-        title={engine.name}
+        title={problem.file ?? engine.name}
         engine={engine}
-        freshness={{ kind: "offline", loginRefused: problem.loginRefused }}
+        freshness={
+          problem.file === undefined
+            ? { kind: "offline", loginRefused: problem.loginRefused }
+            : { kind: "none" }
+        }
       />
       <div className={FAILED}>
         <ProblemBox problem={problem} />

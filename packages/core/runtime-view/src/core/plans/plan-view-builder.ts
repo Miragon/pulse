@@ -144,27 +144,32 @@ export class PlanViewBuilder {
   }
 
   private refusalOf({ mapping, refusal }: RefusedMapping): string {
-    const { sourceElementId, targetElementId } = mapping
-    const sourceLabel = this.elements.sourceLabel(sourceElementId)
+    const elements = MigrationElements.elementPairOf(mapping)
+    const sourceLabel = this.elements.sourceLabel(elements.sourceElementId)
     switch (refusal) {
       case "sourceMissing":
-        return `v${this.source} has no element ${sourceElementId}.`
+        return `v${this.source} has no element ${elements.sourceElementId}.`
       case "targetMissing":
-        return `v${this.target} has no element ${targetElementId}.`
+        return `v${this.target} has no element ${elements.targetElementId}.`
       case "otherKind":
-        return `${this.elements.targetLabel(targetElementId)} in v${this.target} is of another kind than ${sourceLabel}.`
+        return `${this.elements.targetLabel(elements.targetElementId)} in v${this.target} is of another kind than ${sourceLabel}.`
       case "otherScope":
-        return `${sourceElementId} names a scope that ${this.elements.scopeOwnerLabel(sourceElementId)} in v${this.source} doesn't have.`
-      default:
-        return `${sourceLabel} in v${this.source} is no element where instances wait, so a migration doesn't map it.`
+        return `${mapping.sourceElementId} names a scope that ${sourceLabel} in v${this.source} doesn't have.`
+      case "otherTargetScope":
+        return `${mapping.sourceElementId} maps only to the same scope of an element in v${this.target}, not to ${mapping.targetElementId}.`
     }
   }
 
   private summary(): string {
     const refused = this.state.refused.length
-    const leftOut = refused > 0 ? ` · ${Labels.count(refused)} left out` : ""
-    const findings = MigrationFacts.findings(this.state.problems.length, this.blocked.length)
-    return `${Labels.count(this.state.mappings.length)} mapped${leftOut} · ${findings} · checked just now`
+    const problems = this.state.problems.length
+    const unmapped = this.blocked.length
+    const onlyLeftOut = refused > 0 && problems === 0 && unmapped === 0
+    return [
+      `${Labels.count(this.state.mappings.length)} mapped`,
+      ...(refused > 0 ? [`${Labels.count(refused)} left out`] : []),
+      ...(onlyLeftOut ? [] : [MigrationFacts.findings(problems, unmapped)]),
+    ].join(" · ")
   }
 
   private verdict(): PlanVerdict {
@@ -196,7 +201,9 @@ export class PlanViewBuilder {
     const { running, withIncident } = this.state
     const run = running === 1 ? "runs" : "run"
     return [
-      `${Labels.plural(running, "instance")} ${run} on v${this.source} now, ${Labels.count(withIncident)} with incident.`,
+      `Pulse reads v${this.source} and v${this.target} of ${this.state.source.bpmnProcessId} on ${this.scene.engine.name} by their numbers.`,
+      `A migration moves only the instances you select in the definition panel, at most ${Labels.count(BULK_CAP)} at a time.`,
+      `${Labels.plural(running, "instance")} ${run} on v${this.source}, ${Labels.count(withIncident)} with incident.`,
       MigrationFacts.ownWay(this.source, running),
       ...this.rows.restartingTimers(),
       ...MigrationFacts.incidents(withIncident, this.target),
@@ -213,7 +220,7 @@ export class PlanViewBuilder {
       PlanViewBuilder.notice(
         "info",
         "This preview starts nothing.",
-        `It reads v${this.source} and v${this.target} of ${this.state.source.bpmnProcessId} on ${this.scene.engine.name} by their numbers and counts what runs on v${this.source} now. A migration moves only the instances you select in the definition panel, at most ${cap} at a time, and its tab asks the engine for its own mapping.`,
+        "Migrating in the definition panel doesn't use this file.",
       ),
       ...(running > BULK_CAP
         ? [

@@ -1,4 +1,8 @@
-import type { MigrationPlanView, PlanMappingRow } from "../../../src/core/protocol/index.js"
+import type {
+  MigrationPlanView,
+  PlanMappingRow,
+  Problem,
+} from "../../../src/core/protocol/index.js"
 import orderXml from "./order-fulfillment.bpmn"
 import { AS_OF, LOCAL_ENGINE } from "./engines.js"
 
@@ -15,13 +19,19 @@ function same(elementId: string, label: string, tokens?: number): PlanMappingRow
 const STARTS_NOTHING = {
   tone: "info",
   title: "This preview starts nothing.",
-  detail:
-    "It reads v6 and v7 of order-fulfillment on local by their numbers and counts what runs on v6 now. A migration moves only the instances you select in the definition panel, at most 1,000 at a time, and its tab asks the engine for its own mapping.",
+  detail: "Migrating in the definition panel doesn't use this file.",
   actions: [],
 } as const
 
+const READS = "Pulse reads v6 and v7 of order-fulfillment on local by their numbers."
+const MOVES =
+  "A migration moves only the instances you select in the definition panel, at most 1,000 at a time."
+const PLAN_FILE = "order-fulfillment-v6-to-v7.migration.json"
+
 const FACTS = [
-  "12 instances run on v6 now, 2 with incident.",
+  READS,
+  MOVES,
+  "12 instances run on v6, 2 with incident.",
   "Each migrates on its own; failed ones stay on v6.",
   "2 have an incident and keep it; retry them on v7.",
   "Called instances stay on their version.",
@@ -33,7 +43,7 @@ export const MIGRATION_PLAN_VIEW: MigrationPlanView = {
   kind: "migrationPlan",
   engine: LOCAL_ENGINE,
   asOf: AS_OF,
-  fileName: "order-fulfillment-v6-to-v7.migration.json",
+  fileName: PLAN_FILE,
   processName: "Order fulfillment",
   bpmnProcessId: "order-fulfillment",
   source: { definitionId: "order-fulfillment:6:91e0", version: 6, diagramXml: orderXml },
@@ -49,7 +59,7 @@ export const MIGRATION_PLAN_VIEW: MigrationPlanView = {
     same("Activity_ShipOrder", "Ship order", 1),
   ],
   focused: "Activity_CheckCredit",
-  summary: "6 mapped · no problems · checked just now",
+  summary: "6 mapped · no problems",
   verdict: {
     fits: true,
     text: "The engine finds no problem in the plan, and every element where instances wait has a mapping in v7.",
@@ -86,13 +96,15 @@ export const BLOCKED_MIGRATION_PLAN_VIEW: MigrationPlanView = {
     same("Event_PaymentReceived", "Payment received"),
   ],
   focused: "Activity_ShipOrder",
-  summary: "4 mapped · 1 left out · 1 problem · checked just now",
+  summary: "4 mapped · 1 left out · 1 problem",
   verdict: {
     fits: false,
     text: "Pulse left out 1 mapping of the plan that doesn't fit v6 and v7 on local; the engine checked the rest.",
   },
   facts: [
-    "1,204 instances run on v6 now, 7 with incident.",
+    READS,
+    MOVES,
+    "1,204 instances run on v6, 7 with incident.",
     "Each migrates on its own; failed ones stay on v6.",
     "7 have an incident and keep it; retry them on v7.",
     "Called instances stay on their version.",
@@ -110,4 +122,11 @@ export const BLOCKED_MIGRATION_PLAN_VIEW: MigrationPlanView = {
     { tone: "info", title: "v7 is not the latest version (v8).", actions: [] },
     { tone: "info", title: "Pulse ignores 1 key of the file: title.", actions: [] },
   ],
+}
+
+export const BROKEN_PLAN_PROBLEM: Problem = {
+  title: `Pulse can't preview ${PLAN_FILE}.`,
+  detail: "The file is not valid JSON.",
+  canEditConnection: false,
+  file: PLAN_FILE,
 }

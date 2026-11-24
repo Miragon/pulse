@@ -5,17 +5,17 @@ import {
   MigrationPlanVocabulary,
   type MigrationPlanDefinition,
   type MigrationPlanNote,
+  type MigrationPlanParse,
   type PlanSide,
 } from "@miragon/pulse-migration-plan"
 import { MigrationPlanning } from "../panels/migration-planning.js"
-import { MigrationReads } from "../panels/migration-reads.js"
 import { Problems } from "../panels/problems.js"
 import type { Snapshot, Unavailable } from "../panels/view-session.js"
 import type { EngineBadge, MigrationPlanView } from "../protocol/index.js"
 import { MigrationElements } from "../views/migration-elements.js"
 import type { PlanContext, PlanSource } from "./plan-context.js"
 import { PlanMappings } from "./plan-mappings.js"
-import { PlanProblems } from "./plan-problems.js"
+import { PlanProblems, type PlanPlace } from "./plan-problems.js"
 import { PlanViewBuilder, type PlanState } from "./plan-view-builder.js"
 
 export interface PlanLoaded extends PlanState, Snapshot<MigrationPlanView> {}
@@ -60,10 +60,21 @@ export class PlanReads {
     } catch {
       return { problem: PlanProblems.unreadable(source.fileName) }
     }
-    const parse = MigrationPlanParser.parse(text)
+    const parse = PlanReads.parse(text)
+    if (parse === undefined) {
+      return { problem: PlanProblems.broken(source.fileName, []) }
+    }
     return "problems" in parse
       ? { problem: PlanProblems.broken(source.fileName, parse.problems) }
       : parse
+  }
+
+  private static parse(text: string): MigrationPlanParse | undefined {
+    try {
+      return MigrationPlanParser.parse(text)
+    } catch {
+      return undefined
+    }
   }
 
   private static async versionsOf(
@@ -71,19 +82,23 @@ export class PlanReads {
     plan: MigrationPlanDefinition,
   ): Promise<PlanVersions | Unavailable> {
     const versions = await context.runtime.listVersions(BpmnProcessId(plan.bpmnProcessId))
-    const source = PlanReads.pick(versions, plan.bpmnProcessId, plan.source, context.engine)
+    const place: PlanPlace = {
+      fileName: context.source.fileName,
+      bpmnProcessId: plan.bpmnProcessId,
+      engine: context.engine,
+    }
+    const source = PlanReads.pick(versions, place, plan.source)
     if ("problem" in source) {
       return source
     }
-    const target = PlanReads.pick(versions, plan.bpmnProcessId, plan.target, context.engine)
+    const target = PlanReads.pick(versions, place, plan.target)
     return "problem" in target ? target : { versions, source, target }
   }
 
   private static pick(
     versions: readonly VersionSummary[],
-    bpmnProcessId: string,
+    place: PlanPlace,
     side: PlanSide,
-    engine: EngineBadge,
   ): VersionSummary | Unavailable {
     const candidates = versions.map((summary) => ({ version: summary.definition.version, summary }))
     const pick = MigrationPlanVersions.pick(candidates, side.version)
@@ -91,11 +106,9 @@ export class PlanReads {
       case "found":
         return pick.candidate.summary
       case "missing":
-        return { problem: PlanProblems.missing(bpmnProcessId, side.version, engine) }
+        return { problem: PlanProblems.missing(place, side.version) }
       default:
-        return {
-          problem: PlanProblems.ambiguous(bpmnProcessId, side.version, pick.count, engine),
-        }
+        return { problem: PlanProblems.ambiguous(place, side.version, pick.count) }
     }
   }
 
@@ -110,9 +123,8 @@ export class PlanReads {
       diagrams.get(target.definition.id),
       runtime.getElementStatistics(source.definition.id),
     ])
-    const tokens = new Set<string>(MigrationReads.tokenElements({ statistics, sourceXml }))
     const elements = new MigrationElements(sourceXml, targetXml)
-    const { accepted, refused } = PlanMappings.split(elements, plan.mappings, tokens)
+    const { accepted, refused } = PlanMappings.split(elements, plan.mappings)
     const check = await MigrationPlanning.check(runtime, {
       sourceDefinitionId: source.definition.id,
       targetDefinitionId: target.definition.id,

@@ -165,6 +165,17 @@ describe("the engine root both editor hosts build from their adapters", () => {
     expect(root.commands(CLUSTER, NO_LOGIN)).toBeUndefined()
   })
 
+  test("says whether the adapter of a target's dialect plans migrations, also for a refused target", () => {
+    const { c7, root } = rootOver()
+    Object.assign(c7.runtimeOfIt, { checkMigration: () => Promise.resolve({ problems: [] }) })
+    const oauth: EngineTarget = { ...SHOP, auth: { kind: "oauth2" } }
+
+    expect(root.plans(SHOP)).toBe(true)
+    expect(root.plans(oauth)).toBe(true)
+    expect(root.runtime(oauth, NO_LOGIN)).toBeInstanceOf(FailingRuntime)
+    expect(root.plans(CLUSTER)).toBe(false)
+  })
+
   test("gives a refused target a failing runtime with the reason and no commands", async () => {
     const { c7, root } = rootOver()
     const oauth: EngineTarget = { ...SHOP, auth: { kind: "oauth2" } }

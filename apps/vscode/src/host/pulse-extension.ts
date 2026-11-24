@@ -22,6 +22,7 @@ import { CompositionRoot } from "./composition-root.js"
 import {
   ConnectionBuilder,
   CredentialStore,
+  type EngineRoot,
   WriteAudit,
 } from "@miragon/pulse-runtime-view/host-kit"
 import { ConnectionRegistry } from "./connections/connection-registry.js"
@@ -96,7 +97,7 @@ export class PulseExtension {
         setCredentials,
         openTargetsFile,
         new OpenEngineOverviewCommand(registry, picker, panels),
-        ...this.navigation(registry, picker, panels),
+        ...this.navigation(registry, picker, panels, root.engines),
       ]),
     )
     await registry.reload()
@@ -141,13 +142,14 @@ export class PulseExtension {
     registry: ConnectionRegistry,
     picker: ConnectionPicker,
     panels: PanelManager,
+    engines: EngineRoot,
   ): Command[] {
     return [
       new OpenDefinitionCommand(registry, panels),
       new OpenInstanceCommand(registry, panels),
       new GoToInstanceCommand(registry, panels),
       new ShowRuntimeDataCommand(registry, panels),
-      new PreviewMigrationPlanCommand(registry, picker, panels),
+      new PreviewMigrationPlanCommand(registry, picker, panels, engines),
     ]
   }
 }

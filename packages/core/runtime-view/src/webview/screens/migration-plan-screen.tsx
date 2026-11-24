@@ -54,7 +54,7 @@ function PlanActions({ view }: { readonly view: MigrationPlanView }) {
       <OpenVersionButton view={view} side={view.target} />
       <HeaderButton
         icon={FileCodeIcon}
-        label="Show file"
+        label="Open file"
         title={`Open ${view.fileName}`}
         intent={{ type: "openPlanFile" }}
       />

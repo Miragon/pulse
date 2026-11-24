@@ -6,8 +6,8 @@ import {
   type ProcessRuntime,
 } from "@miragon/pulse-engine-core"
 import { PatchedRuntime } from "@miragon/pulse-engine-core/testing"
-import { MigrationPlanVocabulary } from "@miragon/pulse-migration-plan"
-import { describe, expect, test } from "vitest"
+import { MigrationPlanParser, MigrationPlanVocabulary } from "@miragon/pulse-migration-plan"
+import { describe, expect, test, vi } from "vitest"
 import type { PlanContext } from "../../src/core/plans/plan-context.js"
 import type { PanelState, WebviewIntent } from "../../src/core/protocol/index.js"
 import { deferred } from "./support/board-fixture.js"
@@ -27,6 +27,9 @@ import { WaitGate } from "./support/wait-gate.js"
 const ORDER = BpmnProcessId("pulse-order")
 const FITS = planText(same(REVIEW, CHARGE))
 const LOOP = "<bpmn:multiInstanceLoopCharacteristics />"
+const SPLIT = "Gateway_Split"
+const JOIN = "Gateway_Join"
+const FORK = `<bpmn:parallelGateway id="${SPLIT}" /><bpmn:parallelGateway id="${JOIN}" />`
 
 type IntentSamples = {
   readonly [Type in WebviewIntent["type"]]: Extract<WebviewIntent, { type: Type }>
@@ -130,6 +133,21 @@ function checking(plans: MigrationPlan[]): (runtime: ProcessRuntime) => ProcessR
     })
 }
 
+function forking(plans: MigrationPlan[]): (runtime: ProcessRuntime) => ProcessRuntime {
+  return (runtime) =>
+    new PatchedRuntime(runtime, {
+      getDiagramXml: async (definitionId) =>
+        (await runtime.getDiagramXml(definitionId))?.replace(
+          "</bpmn:process>",
+          `${FORK}</bpmn:process>`,
+        ),
+      checkMigration: (plan) => {
+        plans.push(plan)
+        return Promise.resolve({ problems: [] })
+      },
+    })
+}
+
 function looping(runtime: ProcessRuntime): ProcessRuntime {
   return new PatchedRuntime(runtime, {
     getDiagramXml: async (definitionId) =>
@@ -166,7 +184,7 @@ describe("opening a migration plan", () => {
       target: { version: 2, definitionId: opened.fixture.world.definitionIds["order@2"] },
       running: 2,
       withIncident: 1,
-      summary: "2 mapped · no problems · checked just now",
+      summary: "2 mapped · no problems",
       verdict: {
         fits: true,
         text: "The engine finds no problem in the plan, and every element where instances wait has a mapping in v2.",
@@ -334,6 +352,7 @@ describe("a file the preview refuses", () => {
       detail:
         "bpmnProcessId must be a BPMN process id: letters, digits, _, . or -, starting with a letter or _, at most 255 characters. And 3 more problems.",
       canEditConnection: false,
+      file: PLAN_FILE,
     })
     expect(opened.fixture.calls).toEqual([])
   })
@@ -348,6 +367,7 @@ describe("a file the preview refuses", () => {
       title: `Pulse can't read ${PLAN_FILE}.`,
       detail: "Check that the file is there and that you may read it.",
       canEditConnection: false,
+      file: PLAN_FILE,
     })
     expect(fixture.source.reads).toBe(1)
   })
@@ -374,6 +394,31 @@ describe("a file the preview refuses", () => {
     expect(state.status === "failed" && state.staleView?.kind).toBe("migrationPlan")
     expect(opened.source.reads).toBe(2)
   })
+
+  test("opens the file it refuses, so you can fix it", async () => {
+    const opened = await openPlan("{ broken")
+
+    await opened.panel.handle({ type: "openPlanFile" })
+
+    expect(opened.fixture.lastState().status).toBe("failed")
+    expect(opened.fixture.effects.openSource).toHaveBeenCalledWith(PLAN_LOCATION)
+  })
+
+  test("names a file the format's parser fails on as the file's problem, never the engine's", async () => {
+    vi.spyOn(MigrationPlanParser, "parse").mockImplementation(() => {
+      throw new RangeError("Maximum call stack size exceeded")
+    })
+
+    const opened = await openPlan(FITS)
+
+    expect(problemOf(opened.fixture.lastState())).toEqual({
+      title: `Pulse can't preview ${PLAN_FILE}.`,
+      detail: "The file holds no plan Pulse can read; write it again with pulse plan-migration.",
+      canEditConnection: false,
+      file: PLAN_FILE,
+    })
+    expect(opened.fixture.calls).toEqual([])
+  })
 })
 
 describe("an engine the plan does not fit", () => {
@@ -396,6 +441,7 @@ describe("an engine the plan does not fit", () => {
       detail:
         "A plan names versions by their numbers, and each engine numbers its own deployments; open the plan on the engine it was written for, or write it again for this engine.",
       canEditConnection: false,
+      file: PLAN_FILE,
     })
     expect(opened.fixture.calls).toEqual(["listVersions"])
   })
@@ -426,6 +472,7 @@ describe("an engine the plan does not fit", () => {
       detail:
         "Each tenant numbers its own versions, and a plan names no tenant, so Pulse can't tell which one it means.",
       canEditConnection: false,
+      file: PLAN_FILE,
     })
   })
 
@@ -472,9 +519,20 @@ describe("an engine the plan does not fit", () => {
     })
   })
 
+  test("sends the pairs of a parallel split and join the engine proposed, and the engine maps them", async () => {
+    const plans: MigrationPlan[] = []
+    const opened = await openPlan(planText(same(REVIEW, CHARGE, SPLIT, JOIN)), forking(plans))
+
+    expect(plans[0]?.mappings).toHaveLength(4)
+    expect(plans[0]?.mappings).toEqual(expect.arrayContaining(same(SPLIT, JOIN)))
+    expect(opened.view().rows.some((row) => row.refused !== undefined)).toBe(false)
+    expect(opened.view().verdict.fits).toBe(true)
+    expect(opened.view().summary).toBe("4 mapped · no problems")
+  })
+
   test("checks a plan whose every pair was left out with no pair", async () => {
     const plans: MigrationPlan[] = []
-    await openPlan(planText(same("Event_OrderReceived")), checking(plans))
+    await openPlan(planText(same("Activity_Gone")), checking(plans))
 
     expect(plans.map((plan) => plan.mappings)).toEqual([[]])
   })
@@ -489,7 +547,7 @@ describe("reading the plan again", () => {
 
     expect(opened.source.reads).toBe(2)
     expect(opened.fixture.calls.filter((call) => call === "listVersions")).toHaveLength(2)
-    expect(opened.view().summary).toBe("2 mapped · no problems · checked just now")
+    expect(opened.view().summary).toBe("2 mapped · no problems")
   })
 
   test("shows the newest load when an older one answers later", async () => {
@@ -517,7 +575,7 @@ describe("reading the plan again", () => {
     first.resolve(undefined)
     await older
 
-    expect(opened.view().summary).toBe("2 mapped · no problems · checked just now")
+    expect(opened.view().summary).toBe("2 mapped · no problems")
   })
 
   test("keeps the plan under the problem when the engine fails", async () => {
@@ -548,5 +606,18 @@ describe("reading the plan again", () => {
 
     expect(planView(opened.fixture.lastState()).summary).toBe(opened.view().summary)
     expect(opened.source.reads).toBe(1)
+  })
+
+  test("publishes the problem again, not the old plan, when the webview is ready after a failed refresh", async () => {
+    const opened = await openPlan(FITS)
+    opened.source.text = "{ broken"
+    await opened.panel.handle({ type: "refresh" })
+
+    await opened.panel.handle({ type: "ready" })
+
+    const state = opened.fixture.lastState()
+    expect(problemOf(state).title).toBe(`Pulse can't preview ${PLAN_FILE}.`)
+    expect(state.status === "failed" && state.staleView?.kind).toBe("migrationPlan")
+    expect(opened.source.reads).toBe(2)
   })
 })

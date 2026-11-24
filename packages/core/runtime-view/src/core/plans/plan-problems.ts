@@ -4,49 +4,65 @@ import { Labels } from "../views/labels.js"
 
 const WHOLE_FILE = "(file)"
 
+export interface PlanPlace {
+  readonly fileName: string
+  readonly bpmnProcessId: string
+  readonly engine: EngineBadge
+}
+
 export class PlanProblems {
   static unreadable(fileName: string): Problem {
     return {
       title: `Pulse can't read ${fileName}.`,
       detail: "Check that the file is there and that you may read it.",
       canEditConnection: false,
+      file: fileName,
     }
   }
 
   static broken(fileName: string, problems: readonly MigrationPlanProblem[]): Problem {
-    const sentences = problems.slice(0, 1).map((problem) => PlanProblems.sentenceOf(problem))
-    const more = problems.length - sentences.length
     return {
       title: `Pulse can't preview ${fileName}.`,
-      detail: [
-        ...sentences,
-        ...(more > 0 ? [`And ${Labels.plural(more, "more problem")}.`] : []),
-      ].join(" "),
+      detail: PlanProblems.detailOf(problems),
       canEditConnection: false,
+      file: fileName,
     }
   }
 
-  static missing(bpmnProcessId: string, version: number, engine: EngineBadge): Problem {
+  static missing({ fileName, bpmnProcessId, engine }: PlanPlace, version: number): Problem {
     return {
       title: `${engine.name} has no v${version} of ${bpmnProcessId}.`,
       detail:
         "A plan names versions by their numbers, and each engine numbers its own deployments; open the plan on the engine it was written for, or write it again for this engine.",
       canEditConnection: false,
+      file: fileName,
     }
   }
 
   static ambiguous(
-    bpmnProcessId: string,
+    { fileName, bpmnProcessId, engine }: PlanPlace,
     version: number,
     count: number,
-    engine: EngineBadge,
   ): Problem {
     return {
       title: `${engine.name} has v${version} of ${bpmnProcessId} ${Labels.plural(count, "time")}.`,
       detail:
         "Each tenant numbers its own versions, and a plan names no tenant, so Pulse can't tell which one it means.",
       canEditConnection: false,
+      file: fileName,
     }
+  }
+
+  private static detailOf(problems: readonly MigrationPlanProblem[]): string {
+    const [first] = problems
+    if (first === undefined) {
+      return "The file holds no plan Pulse can read; write it again with pulse plan-migration."
+    }
+    const more = problems.length - 1
+    return [
+      PlanProblems.sentenceOf(first),
+      ...(more > 0 ? [`And ${Labels.plural(more, "more problem")}.`] : []),
+    ].join(" ")
   }
 
   private static sentenceOf(problem: MigrationPlanProblem): string {

@@ -190,7 +190,10 @@ in `packages/core/runtime-view/src/core/plans` alone (the runtime view's closed 
 repository's `migration-plan-is-a-leaf` and `migration-plan-consumers`, which admit the CLI's
 workflow commands too); the host hands the preview the file's text and never imports the format.
 The preview, `MigrationPlanPanel`, runs on a `PlanContext` without commands, bulk runs or
-confirmations, and `plans-start-nothing` keeps that folder off the write path. The core builds
+confirmations; `plans-start-nothing` keeps that folder from importing a write or a panel that
+brings one in, and the test 'starts nothing' in
+`packages/core/runtime-view/test/core/migration-plan-panel.test.ts` sends it every intent through
+recording commands. The core builds
 the engine tab's numbers and an instance view's (its incident cards, wait rows, path, call links, head strip and markers, the taken flows its own)
 with Pulse's screens,
 `@miragon/pulse-screens` (`packages/core/screens`), through its main entry and `./builder` (the

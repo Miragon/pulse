@@ -6,6 +6,7 @@ import {
   allParts,
   allRoles,
   buttonNamed,
+  findPart,
   findRole,
   getRole,
   mountApp,
@@ -78,9 +79,7 @@ describe("the migration plan preview", () => {
     expect(
       allRoles(harness.root, "button").filter((button) => /migrate/i.test(button.textContent)),
     ).toEqual([])
-    expect(queryPart(harness.root, "migration-summary")?.textContent).toBe(
-      "6 mapped · no problems · checked just now",
-    )
+    expect(queryPart(harness.root, "migration-summary")?.textContent).toBe("6 mapped · no problems")
     expect(queryPart(harness.root, "plan-verdict")?.textContent).toBe(PLAN.verdict.text)
   })
 
@@ -94,12 +93,12 @@ describe("the migration plan preview", () => {
     expect(queryPart(bar, "context-key")?.textContent).toBe("12 running · 2 with incident")
   })
 
-  it("opens each version, shows the file and reads both again from the bar", async () => {
+  it("opens each version and the file and reads both again from the bar", async () => {
     await open(PLAN)
 
     buttonNamed(harness.root, "Open v6").click()
     buttonNamed(harness.root, "Open v7").click()
-    buttonNamed(harness.root, "Show file").click()
+    buttonNamed(harness.root, "Open file").click()
     buttonNamed(harness.root, "Refresh").click()
 
     expect(posted("openDefinition")).toEqual([
@@ -225,9 +224,9 @@ describe("the migration plan preview", () => {
     expect(queryPart(harness.root, "plan-verdict")?.dataset.tone).toBe("neutral")
   })
 
-  it("lists what a migration with this plan does, with no button beside it", async () => {
+  it("lists what a migration from one version to the other does, with no button beside it", async () => {
     await open(BLOCKED)
-    const facts = getRole(harness.root, "list", { name: "What a migration with this plan does" })
+    const facts = getRole(harness.root, "list", { name: "What a migration from v6 to v7 does" })
     const group = getRole(harness.root, "group", { name: "Plan check" })
 
     expect(allRoles(facts, "listitem").map((item) => item.textContent)).toEqual(BLOCKED.facts)
@@ -243,6 +242,21 @@ describe("the migration plan preview", () => {
       BLOCKED.notices.map((notice) => notice.title),
     )
   })
+
+  it.each([720, 1200])(
+    "says whole at %d px that a migration doesn't use the file",
+    async (width) => {
+      harness = mountApp({ width })
+      harness.publish({ status: "ready", view: PLAN, refreshing: false })
+      await findRole(harness.root, "table", { name: "Mapping" })
+      const detail = queryPart(harness.root, "strips")?.querySelector<HTMLElement>(
+        "[data-slot='status-strip'] p > span:last-child",
+      )
+
+      expect(detail?.textContent).toBe("Migrating in the definition panel doesn't use this file.")
+      expect(detail!.scrollWidth).toBeLessThanOrEqual(detail!.clientWidth)
+    },
+  )
 
   it("keeps the plan under the problem when the engine cannot be read again", async () => {
     harness = mountApp()
@@ -260,8 +274,41 @@ describe("the migration plan preview", () => {
     await findRole(harness.root, "table", { name: "Mapping" })
     expect(queryPart(harness.root, "strips")?.textContent).toContain("Couldn't reach local.")
     expect(queryPart(harness.root, "freshness")?.dataset.state).toBe("offline")
-    expect(queryRole(harness.root, "button", { name: "Show file" })).not.toBeNull()
+    expect(queryRole(harness.root, "button", { name: "Open file" })).not.toBeNull()
   })
+
+  it.each([
+    ["on first open", undefined],
+    ["after it showed a plan", PLAN],
+  ])(
+    "names a broken file %s by the file, never as an offline engine, and offers Refresh and Open file",
+    async (_, staleView) => {
+      harness = mountApp()
+      harness.publish({
+        ...FIXTURES["migration-plan-broken"],
+        ...(staleView === undefined ? {} : { staleView }),
+      })
+      const box = await findPart(harness.root, "status-box")
+      const bar = queryPart(harness.root, "context-bar")!
+
+      expect(getRole(bar, "heading", { level: 1 }).textContent).toBe(PLAN.fileName)
+      expect(box.textContent).toContain(`Pulse can't preview ${PLAN.fileName}.`)
+      expect(harness.root.textContent).not.toContain("Offline")
+      expect(queryPart(harness.root, "freshness")).toBeNull()
+      expect(queryRole(harness.root, "table", { name: "Mapping" })).toBeNull()
+      expect(queryPart(harness.root, "plan-verdict")).toBeNull()
+      expect(allRoles(box, "button").map((button) => button.textContent)).toEqual([
+        "Refresh",
+        "Open file",
+      ])
+
+      buttonNamed(box, "Refresh").click()
+      buttonNamed(box, "Open file").click()
+
+      expect(posted("refresh")).toEqual([{ type: "refresh" }])
+      expect(posted("openPlanFile")).toEqual([{ type: "openPlanFile" }])
+    },
+  )
 })
 
 describe("the migration tab's diagrams", () => {

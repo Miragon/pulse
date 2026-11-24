@@ -26,7 +26,7 @@ export interface ElementPair {
 }
 
 export type MappingRefusal =
-  "sourceMissing" | "targetMissing" | "otherKind" | "otherScope" | "notMappable"
+  "sourceMissing" | "targetMissing" | "otherKind" | "otherScope" | "otherTargetScope"
 
 interface ScopedId {
   readonly elementId: string
@@ -70,23 +70,10 @@ export class MigrationElements {
     )
   }
 
-  refusalOf(mapping: ElementPair, tokens: ReadonlySet<string>): MappingRefusal | undefined {
-    if (mapping.sourceElementId.includes(SCOPE_MARK)) {
-      return this.mapsScope(mapping) ? undefined : "otherScope"
-    }
-    return this.pairRefusal(mapping, tokens)
-  }
-
-  mapsScope(mapping: ElementPair): boolean {
-    const source = MigrationElements.scopedOf(mapping.sourceElementId)
-    const target = MigrationElements.scopedOf(mapping.targetElementId)
-    const pair = { sourceElementId: source.elementId, targetElementId: target.elementId }
-    return (
-      source.scope !== undefined &&
-      source.scope === target.scope &&
-      this.sourceNodes.hasOwnLoop(source.elementId) &&
-      this.pairRefusal(pair, new Set()) === undefined
-    )
+  refusalOf(mapping: ElementPair): MappingRefusal | undefined {
+    return mapping.sourceElementId.includes(SCOPE_MARK)
+      ? this.scopeRefusal(mapping)
+      : this.pairRefusal(mapping)
   }
 
   holdsTokens(elementId: string): boolean {
@@ -121,8 +108,14 @@ export class MigrationElements {
     return this.targetNames.get(elementId) ?? elementId
   }
 
-  scopeOwnerLabel(scopedId: string): string {
-    return this.sourceLabel(MigrationElements.scopedOf(scopedId).elementId)
+  static elementPairOf(mapping: ElementPair): ElementPair {
+    if (!mapping.sourceElementId.includes(SCOPE_MARK)) {
+      return mapping
+    }
+    return {
+      sourceElementId: MigrationElements.scopedOf(mapping.sourceElementId).elementId,
+      targetElementId: MigrationElements.scopedOf(mapping.targetElementId).elementId,
+    }
   }
 
   private static scopedOf(id: string): ScopedId {
@@ -132,16 +125,24 @@ export class MigrationElements {
       : { elementId: id.slice(0, mark), scope: id.slice(mark + 1) }
   }
 
-  private pairRefusal(
-    mapping: ElementPair,
-    tokens: ReadonlySet<string>,
-  ): MappingRefusal | undefined {
-    const kind = this.sourceNodes.kindOf(mapping.sourceElementId)
-    if (kind === undefined) {
+  private scopeRefusal(mapping: ElementPair): MappingRefusal | undefined {
+    const source = MigrationElements.scopedOf(mapping.sourceElementId)
+    const target = MigrationElements.scopedOf(mapping.targetElementId)
+    if (this.sourceNodes.kindOf(source.elementId) === undefined) {
       return "sourceMissing"
     }
-    if (!MAPPABLE_KINDS.has(kind) && !tokens.has(mapping.sourceElementId)) {
-      return "notMappable"
+    if (!this.sourceNodes.hasOwnLoop(source.elementId)) {
+      return "otherScope"
+    }
+    if (target.scope !== source.scope) {
+      return "otherTargetScope"
+    }
+    return this.pairRefusal(MigrationElements.elementPairOf(mapping))
+  }
+
+  private pairRefusal(mapping: ElementPair): MappingRefusal | undefined {
+    if (this.sourceNodes.kindOf(mapping.sourceElementId) === undefined) {
+      return "sourceMissing"
     }
     if (this.targetNodes?.kindOf(mapping.targetElementId) === undefined) {
       return "targetMissing"

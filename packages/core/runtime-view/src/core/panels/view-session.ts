@@ -67,6 +67,10 @@ export class ViewSession<View extends PanelView, Loaded extends Snapshot<View>> 
       await this.reload(build)
       return
     }
+    if (this.problem !== undefined) {
+      this.publishFailure(this.problem)
+      return
+    }
     this.publishReady(this.loaded, false)
   }
 

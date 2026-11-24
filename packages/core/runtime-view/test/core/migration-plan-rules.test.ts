@@ -108,7 +108,7 @@ describe("the verdict of a plan", () => {
       fits: false,
       text: "Pulse left out 2 mappings of the plan that don't fit v1 and v2 on shop-dev; the engine checked the rest.",
     })
-    expect(view.summary).toBe("5 mapped · 2 left out · 1 problem · checked just now")
+    expect(view.summary).toBe("5 mapped · 2 left out · 1 problem")
   })
 
   test("then the engine's problems with the first of them", () => {
@@ -122,7 +122,7 @@ describe("the verdict of a plan", () => {
       fits: false,
       text: "The engine finds 2 problems in the plan: Activities have incompatible types.",
     })
-    expect(view.summary).toBe("6 mapped · 2 problems · checked just now")
+    expect(view.summary).toBe("6 mapped · 2 problems")
   })
 
   test("then the elements where instances wait without a mapping", () => {
@@ -132,7 +132,7 @@ describe("the verdict of a plan", () => {
       fits: false,
       text: "Instances wait at Review order, which has no mapping in v2.",
     })
-    expect(view.summary).toBe("5 mapped · 1 without a mapping · checked just now")
+    expect(view.summary).toBe("5 mapped · 1 without a mapping")
   })
 
   test("says the plan fits only when nothing is in its way", () => {
@@ -142,7 +142,16 @@ describe("the verdict of a plan", () => {
       fits: true,
       text: "The engine finds no problem in the plan, and every element where instances wait has a mapping in v2.",
     })
-    expect(view.summary).toBe("6 mapped · no problems · checked just now")
+    expect(view.summary).toBe("6 mapped · no problems")
+  })
+
+  test("says no problems only when it left no pair out", () => {
+    const leftOut = [refused("Gone", "Gone", "sourceMissing")]
+
+    expect(viewOf(state({ refused: leftOut })).summary).toBe("6 mapped · 1 left out")
+    expect(viewOf(state({ mappings: SAME, refused: leftOut })).summary).toBe(
+      "5 mapped · 1 left out · 1 without a mapping",
+    )
   })
 })
 
@@ -168,7 +177,10 @@ describe("the rows of a plan", () => {
     const view = viewOf(
       state({
         mappings: SAME,
-        refused: [refused("Review", "Ship", "otherKind"), refused("Start", "Start", "notMappable")],
+        refused: [
+          refused("Review", "Ship", "otherKind"),
+          refused("Start", "Gone", "targetMissing"),
+        ],
         problems: [{ mapping: SAME[2]!, message: "Paid cannot become Paid." }],
       }),
     )
@@ -186,10 +198,9 @@ describe("the rows of a plan", () => {
       {
         sourceElementId: "Start",
         sourceLabel: "Order placed",
-        targetElementId: "Start",
-        targetLabel: "Order placed",
-        refused:
-          "Order placed in v1 is no element where instances wait, so a migration doesn't map it.",
+        targetElementId: "Gone",
+        targetLabel: "Gone",
+        refused: "v2 has no element Gone.",
       },
       {
         sourceElementId: "Paid",
@@ -214,7 +225,8 @@ describe("the rows of a plan", () => {
         refused: [
           refused("Gone", "Gone", "sourceMissing"),
           refused("Ship", "Lost", "targetMissing"),
-          refused("Review#multiInstanceBody", "Check#multiInstanceBody", "otherScope"),
+          refused("Weigh#multiInstanceBody", "Weigh#multiInstanceBody", "otherScope"),
+          refused("Review#multiInstanceBody", "Review", "otherTargetScope"),
         ],
       }),
     )
@@ -223,10 +235,31 @@ describe("the rows of a plan", () => {
       expect.objectContaining({
         Gone: "v1 has no element Gone.",
         Ship: "v2 has no element Lost.",
+        "Weigh#multiInstanceBody":
+          "Weigh#multiInstanceBody names a scope that Weigh in v1 doesn't have.",
         "Review#multiInstanceBody":
-          "Review#multiInstanceBody names a scope that Review order in v1 doesn't have.",
+          "Review#multiInstanceBody maps only to the same scope of an element in v2, not to Review.",
       }),
     )
+  })
+
+  test("word the refusal of a scope pair by its elements", () => {
+    const view = viewOf(
+      state({
+        mappings: [],
+        refused: [
+          refused("Lost#multiInstanceBody", "Lost#multiInstanceBody", "sourceMissing"),
+          refused("Review#multiInstanceBody", "Gone#multiInstanceBody", "targetMissing"),
+          refused("Pack#multiInstanceBody", "Ship#multiInstanceBody", "otherKind"),
+        ],
+      }),
+    )
+
+    expect(view.rows.slice(0, 3).map((row) => row.refused)).toEqual([
+      "v1 has no element Lost.",
+      "v2 has no element Gone.",
+      "Ship in v2 is of another kind than Pack.",
+    ])
   })
 
   test("flag a token element without a mapping and warn of the timer that starts again", () => {
@@ -244,12 +277,18 @@ describe("the rows of a plan", () => {
   })
 })
 
-describe("what a migration with the plan does", () => {
-  test("is said in the order the tab's dialog says it", () => {
+describe("what a migration from one version to the other does", () => {
+  const READS = "Pulse reads v1 and v2 of shop on shop-dev by their numbers."
+  const MOVES =
+    "A migration moves only the instances you select in the definition panel, at most 1,000 at a time."
+
+  test("says how the preview reads the versions and what a migration moves, then the rest in the order the tab's dialog says it", () => {
     const view = viewOf(state({ mappings: SAME.slice(1) }))
 
     expect(view.facts).toEqual([
-      "3 instances run on v1 now, 1 with incident.",
+      READS,
+      MOVES,
+      "3 instances run on v1, 1 with incident.",
       "Each migrates on its own; failed ones stay on v1.",
       "The timer 3 days at Review order starts again.",
       "1 has an incident and keeps it; retry it on v2.",
@@ -272,10 +311,23 @@ describe("what a migration with the plan does", () => {
     )
 
     expect(view.facts).toEqual([
-      "1 instance runs on v1 now, 0 with incident.",
+      READS,
+      MOVES,
+      "1 instance runs on v1, 0 with incident.",
       "If it fails, it stays on v1.",
       "Migrating can't be undone.",
     ])
+  })
+
+  test("writes a four-digit count with its separator in every fact", () => {
+    const view = viewOf(state({ running: 3000, withIncident: 1204 }))
+
+    expect(view.facts).toEqual(
+      expect.arrayContaining([
+        "3,000 instances run on v1, 1,204 with incident.",
+        "1,204 have an incident and keep it; retry them on v2.",
+      ]),
+    )
   })
 })
 
@@ -283,13 +335,15 @@ describe("the notices of a plan", () => {
   const STARTS_NOTHING = {
     tone: "info",
     title: "This preview starts nothing.",
-    detail:
-      "It reads v1 and v2 of shop on shop-dev by their numbers and counts what runs on v1 now. A migration moves only the instances you select in the definition panel, at most 1,000 at a time, and its tab asks the engine for its own mapping.",
+    detail: "Migrating in the definition panel doesn't use this file.",
     actions: [],
   }
 
-  test("say first that the preview starts nothing", () => {
+  test("say first, in one short line, that the preview starts nothing", () => {
+    const [notice] = viewOf(state()).notices
+
     expect(viewOf(state()).notices).toEqual([STARTS_NOTHING])
+    expect(`${notice?.title ?? ""} ${notice?.detail ?? ""}`.length).toBeLessThanOrEqual(90)
   })
 
   test("warn when more instances run than a migration moves, and name the versions and the ignored keys", () => {
@@ -320,7 +374,7 @@ describe("the notices of a plan", () => {
       { tone: "info", title: "v2 is not the latest version (v3).", actions: [] },
       { tone: "info", title: "Pulse ignores 2 keys of the file: title, $schema.", actions: [] },
     ])
-    expect(view.facts[0]).toBe("1,204 instances run on v1 now, 1 with incident.")
+    expect(view.facts[2]).toBe("1,204 instances run on v1, 1 with incident.")
   })
 
   test("say when the plan goes back to an older version", () => {
@@ -343,6 +397,7 @@ describe("the problems of a plan file", () => {
       title: "Pulse can't preview a.migration.json.",
       detail: "source is missing.",
       canEditConnection: false,
+      file: "a.migration.json",
     })
     expect(
       PlanProblems.broken("a.migration.json", [
@@ -358,6 +413,26 @@ describe("the problems of a plan file", () => {
     expect(PlanProblems.broken("a.migration.json", [MISSING, MISSING]).detail).toBe(
       "source is missing. And 1 more problem.",
     )
-    expect(PlanProblems.broken("a.migration.json", []).detail).toBe("")
+    expect(PlanProblems.broken("a.migration.json", []).detail).toBe(
+      "The file holds no plan Pulse can read; write it again with pulse plan-migration.",
+    )
+  })
+
+  test("each name the plan's file, so the preview offers it instead of a connection", () => {
+    const place = { fileName: "a.migration.json", bpmnProcessId: "shop", engine: ENGINE }
+    const problems = [
+      PlanProblems.unreadable("a.migration.json"),
+      PlanProblems.broken("a.migration.json", [MISSING]),
+      PlanProblems.missing(place, 3),
+      PlanProblems.ambiguous(place, 1, 2),
+    ]
+
+    expect(problems.map((problem) => [problem.file, problem.canEditConnection])).toEqual(
+      Array(4).fill(["a.migration.json", false]),
+    )
+    expect(problems.slice(2).map((problem) => problem.title)).toEqual([
+      "shop-dev has no v3 of shop.",
+      "shop-dev has v1 of shop 2 times.",
+    ])
   })
 })

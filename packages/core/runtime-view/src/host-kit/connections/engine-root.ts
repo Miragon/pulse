@@ -63,6 +63,11 @@ export class EngineRoot implements EngineFactories {
     )
   }
 
+  plans(target: EngineTarget): boolean {
+    const runtime = this.adapters[target.engine].runtime(this.connectionOf(target, NO_CREDENTIALS))
+    return runtime.checkMigration !== undefined
+  }
+
   webUi(target: EngineTarget): EngineWebUi | undefined {
     return target.webUiUrl === undefined
       ? undefined

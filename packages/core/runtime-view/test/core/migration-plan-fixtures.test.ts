@@ -9,9 +9,11 @@ import {
 import { describe, expect, test } from "vitest"
 import {
   BLOCKED_MIGRATION_PLAN_VIEW,
+  BROKEN_PLAN_PROBLEM,
   MIGRATION_PLAN_VIEW,
 } from "../../dev/webview/fixtures/migration-plan.js"
 import orderXml from "../../dev/webview/fixtures/order-fulfillment.bpmn"
+import { PlanProblems } from "../../src/core/plans/plan-problems.js"
 import { PlanViewBuilder, type PlanState } from "../../src/core/plans/plan-view-builder.js"
 import type { MigrationPlanView } from "../../src/core/protocol/index.js"
 
@@ -120,5 +122,11 @@ describe("the dev page's migration plans", () => {
     )
 
     expect(view).toEqual(BLOCKED_MIGRATION_PLAN_VIEW)
+  })
+
+  test("are what the plan's problems make of a file that is not JSON", () => {
+    expect(
+      PlanProblems.broken(MIGRATION_PLAN_VIEW.fileName, [{ path: "(file)", code: "notJson" }]),
+    ).toEqual(BROKEN_PLAN_PROBLEM)
   })
 })

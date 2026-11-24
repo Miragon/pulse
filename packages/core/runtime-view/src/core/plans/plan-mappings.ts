@@ -12,15 +12,11 @@ export interface SplitMappings {
 }
 
 export class PlanMappings {
-  static split(
-    elements: MigrationElements,
-    mappings: readonly ElementPair[],
-    tokens: ReadonlySet<string>,
-  ): SplitMappings {
+  static split(elements: MigrationElements, mappings: readonly ElementPair[]): SplitMappings {
     const accepted: ElementMapping[] = []
     const refused: RefusedMapping[] = []
     for (const mapping of mappings) {
-      const refusal = elements.refusalOf(mapping, tokens)
+      const refusal = elements.refusalOf(mapping)
       if (refusal === undefined) {
         accepted.push({
           sourceElementId: ElementId(mapping.sourceElementId),

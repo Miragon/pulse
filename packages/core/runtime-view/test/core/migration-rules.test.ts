@@ -114,7 +114,6 @@ describe("the elements of a migration", () => {
 
 describe("a pair a plan file brings", () => {
   const elements = new MigrationElements(SOURCE_XML, TARGET_XML)
-  const NONE: ReadonlySet<string> = new Set()
   const LOOPED = SOURCE_XML.replace(
     '<bpmn:userTask id="Review" name="Review order" />',
     '<bpmn:userTask id="Review" name="Review order"><bpmn:multiInstanceLoopCharacteristics /></bpmn:userTask>',
@@ -123,57 +122,88 @@ describe("a pair a plan file brings", () => {
     '<bpmn:subProcess id="Pack" name="Pack"><bpmn:multiInstanceLoopCharacteristics />',
   )
   const looped = new MigrationElements(LOOPED, LOOPED)
+  const MAPPED_BY_THE_ENGINE = `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:camunda="http://camunda.org/schema/1.0/bpmn">
+  <bpmn:process id="shop" isExecutable="true">
+    <bpmn:startEvent id="Start" camunda:asyncBefore="true" />
+    <bpmn:parallelGateway id="Split" />
+    <bpmn:inclusiveGateway id="Merge" />
+    <bpmn:parallelGateway id="Join" />
+    <bpmn:subProcess id="Esp" triggeredByEvent="true">
+      <bpmn:startEvent id="EspStart" isInterrupting="false">
+        <bpmn:messageEventDefinition id="Cancelled" />
+      </bpmn:startEvent>
+    </bpmn:subProcess>
+  </bpmn:process>
+</bpmn:definitions>`
   const of = (sourceElementId: string, targetElementId: string) => ({
     sourceElementId,
     targetElementId,
   })
 
   test("passes the tab's edit check: the source is there and the target is of its kind", () => {
-    expect(elements.refusalOf(of("Review", "Check"), NONE)).toBeUndefined()
-    expect(elements.refusalOf(of("Nowhere", "Check"), NONE)).toBe("sourceMissing")
-    expect(elements.refusalOf(of("Review", "Gone"), NONE)).toBe("targetMissing")
-    expect(elements.refusalOf(of("Review", "Ship"), NONE)).toBe("otherKind")
-    expect(elements.refusalOf(of("Review", "Check#multiInstanceBody"), NONE)).toBe("targetMissing")
-    expect(
-      new MigrationElements(SOURCE_XML, undefined).refusalOf(of("Review", "Review"), NONE),
-    ).toBe("targetMissing")
+    expect(elements.refusalOf(of("Review", "Check"))).toBeUndefined()
+    expect(elements.refusalOf(of("Nowhere", "Check"))).toBe("sourceMissing")
+    expect(elements.refusalOf(of("Review", "Gone"))).toBe("targetMissing")
+    expect(elements.refusalOf(of("Review", "Ship"))).toBe("otherKind")
+    expect(elements.refusalOf(of("Review", "Check#multiInstanceBody"))).toBe("targetMissing")
+    expect(new MigrationElements(SOURCE_XML, undefined).refusalOf(of("Review", "Review"))).toBe(
+      "targetMissing",
+    )
   })
 
-  test("refuses an element no migration maps unless tokens wait there", () => {
-    expect(elements.refusalOf(of("Start", "Start"), NONE)).toBe("notMappable")
-    expect(elements.refusalOf(of("End", "End"), NONE)).toBe("notMappable")
-    expect(elements.refusalOf(of("Start", "Start"), new Set(["Start"]))).toBeUndefined()
+  test("leaves it to the engine which elements a migration maps, with no tokens waiting", () => {
+    const engine = new MigrationElements(MAPPED_BY_THE_ENGINE, MAPPED_BY_THE_ENGINE)
+
+    for (const elementId of ["Split", "Merge", "Join", "EspStart", "Start"]) {
+      expect(engine.refusalOf(of(elementId, elementId))).toBeUndefined()
+    }
+    expect(elements.refusalOf(of("Start", "Start"))).toBeUndefined()
+    expect(elements.refusalOf(of("End", "End"))).toBeUndefined()
   })
 
   test("takes the scope of an element with its own loop, mapped as its element is", () => {
-    const scope = of("Review#multiInstanceBody", "Review#multiInstanceBody")
-
-    expect(looped.mapsScope(scope)).toBe(true)
-    expect(looped.refusalOf(scope, NONE)).toBeUndefined()
-    expect(looped.mapsScope(of("Pack#multiInstanceBody", "Pack#multiInstanceBody"))).toBe(true)
+    expect(
+      looped.refusalOf(of("Review#multiInstanceBody", "Review#multiInstanceBody")),
+    ).toBeUndefined()
+    expect(looped.refusalOf(of("Pack#multiInstanceBody", "Pack#multiInstanceBody"))).toBeUndefined()
   })
 
-  test("refuses a scope the element doesn't have, another scope or an element that doesn't map", () => {
-    expect(
-      elements.refusalOf(of("Review#multiInstanceBody", "Check#multiInstanceBody"), NONE),
-    ).toBe("otherScope")
-    expect(looped.refusalOf(of("Review#multiInstanceBody", "Review#other"), NONE)).toBe(
+  test("names why a scope pair fails: no element, no own loop, another scope, then its element pair", () => {
+    expect(looped.refusalOf(of("Gone#multiInstanceBody", "Gone#multiInstanceBody"))).toBe(
+      "sourceMissing",
+    )
+    expect(looped.refusalOf(of("Gone#multiInstanceBody", "Review"))).toBe("sourceMissing")
+    expect(elements.refusalOf(of("Review#multiInstanceBody", "Check#multiInstanceBody"))).toBe(
       "otherScope",
     )
-    expect(looped.refusalOf(of("Review#multiInstanceBody", "Review"), NONE)).toBe("otherScope")
-    expect(looped.refusalOf(of("Review#multiInstanceBody", "Ship#multiInstanceBody"), NONE)).toBe(
-      "otherScope",
+    expect(elements.refusalOf(of("Review#multiInstanceBody", "Review"))).toBe("otherScope")
+    expect(looped.refusalOf(of("Review#multiInstanceBody", "Review#other"))).toBe(
+      "otherTargetScope",
     )
-    expect(looped.refusalOf(of("Gone#multiInstanceBody", "Gone#multiInstanceBody"), NONE)).toBe(
-      "otherScope",
+    expect(looped.refusalOf(of("Review#multiInstanceBody", "Review"))).toBe("otherTargetScope")
+    expect(looped.refusalOf(of("Review#multiInstanceBody", "Gone"))).toBe("otherTargetScope")
+    expect(looped.refusalOf(of("Review#multiInstanceBody", "Gone#multiInstanceBody"))).toBe(
+      "targetMissing",
+    )
+    expect(looped.refusalOf(of("Review#multiInstanceBody", "Ship#multiInstanceBody"))).toBe(
+      "otherKind",
     )
   })
 
   test("refuses the scope of a task that only sits in a multi-instance sub-process", () => {
-    const nested = of("Weigh#multiInstanceBody", "Weigh#multiInstanceBody")
+    expect(looped.refusalOf(of("Weigh#multiInstanceBody", "Weigh#multiInstanceBody"))).toBe(
+      "otherScope",
+    )
+  })
 
-    expect(looped.mapsScope(nested)).toBe(false)
-    expect(looped.refusalOf(nested, NONE)).toBe("otherScope")
+  test("names the elements of a scope pair, and a pair without a scope as it is", () => {
+    expect(
+      MigrationElements.elementPairOf(of("Review#multiInstanceBody", "Check#multiInstanceBody")),
+    ).toEqual(of("Review", "Check"))
+    expect(MigrationElements.elementPairOf(of("Review", "Check#multiInstanceBody"))).toEqual(
+      of("Review", "Check#multiInstanceBody"),
+    )
   })
 })
 

@@ -40,21 +40,21 @@ A multi-instance element maps its scope too, as `<id>#multiInstanceBody`. The fo
 ## Preview it
 
 On a `.migration.json` file, run **Pulse: Preview Migration Plan…** from the command palette, the
-explorer's context menu or the editor's title bar. Pulse offers the engines that check migration
-plans, which a Camunda 8 cluster doesn't: one opens at once, several give a pick. The preview reads
-the saved file; Refresh, or the command again, reads the file and the engine anew.
+explorer's context menu or the editor's title bar. Pulse offers the engines that check plans, not a
+Camunda 8 cluster or one whose connection it refuses: one opens at once, several give a pick.
+The preview reads the saved file; Refresh, or the command again, reads the file and the engine anew.
 
 The tab draws both versions and lists each element with its target, its tokens and the check, then
 says whether the plan fits. Tokens count what waits at an element across the whole version, active
 or with incident; one instance can hold several, so Pulse never sums them. An element where tokens
 wait without a mapping is flagged. The bar counts the source version's running instances and those
 with incident from the runtime, so every history level reads the same. _Open v1_, _Open v2_ and
-_Show file_ open the definition panel or the file: the preview starts nothing. A migration there
-moves only the instances you select, at most 1,000 at a time, and asks the engine for its mapping.
+_Open file_ open the definition panel or the file: the preview starts nothing. A migration there
+doesn't use the file and moves only the instances you select, at most 1,000 at a time.
 
-Pulse refuses a file it can't read, one over 1,048,576 characters and one with problems, the first
-named with its path; an engine's own plan (`pulse migration generate-plan`, by definition ids) is
-one, as are instance ids, engines, tenants, definition ids and engine options anywhere in it. It
-refuses a version the engine doesn't have or has more than once, one per tenant. A pair that
-doesn't fit (an element that isn't there or no migration maps, a target of another kind, a scope
-the element doesn't have) is left out, named on its row and never sent; the engine checks the rest.
+Pulse refuses a version the engine lacks or has more than once (tenants), a file it can't read, one
+over 1,048,576 characters and one with problems, among them an engine's plan and a `FOREIGN_KEYS`
+name (instance or definition ids, engines, tenants, engine options) at the root, in a side or in a
+mapping; it notes another root key and never reads it. Each names the file and offers Refresh and
+_Open file_. A pair that doesn't fit (a missing element, a target of another kind, a scope its
+element lacks or one mapped to another) is named on its row, never sent; the engine checks the rest.

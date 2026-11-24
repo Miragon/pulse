@@ -41,7 +41,9 @@ list's filter, its counts and a variable condition's type rule, which
 `test/core/process-screen-format.test.ts` holds equal), the core's `src/core/plans` alone the
 migration plan format (`@miragon/pulse-migration-plan`, its main entry: the parser, the words of
 its problems and the rule that resolves a version number; the repository's
-`migration-plan-consumers`), which `plans-start-nothing` keeps off the write path, and no layer a
+`migration-plan-consumers`), which `plans-start-nothing` keeps from importing a write or a panel
+that brings one in, and whose behaviour the test 'starts nothing' in
+`test/core/migration-plan-panel.test.ts` holds, and no layer a
 dialect's core. The webview renders a board's tiles, the engine's
 process list and the instance view's facts, head strip, incident cards, tables of waits, path and
 variables and marker legend with the building blocks under an English `LocaleProvider`, which

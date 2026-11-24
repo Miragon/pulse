@@ -54,7 +54,7 @@ function Panel({ state }: { readonly state: PanelState | undefined }) {
       : { kind: "asOf", at, live: state.live }
     return <ViewScreen view={state.view} freshness={freshness} stale={false} />
   }
-  if (state.staleView === undefined) {
+  if (state.staleView === undefined || state.problem.file !== undefined) {
     return <FailedScreen problem={state.problem} engine={state.engine} />
   }
   return (

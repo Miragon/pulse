@@ -106,9 +106,11 @@ function planUri(path = PLAN): vscode.Uri {
   return Uri.file(path) as unknown as vscode.Uri
 }
 
+const ENGINES = CompositionRoot.create().engines
+
 function built(target: EngineTarget): Connection {
   return new ConnectionBuilder(
-    CompositionRoot.create().engines,
+    ENGINES,
     new WriteAudit({ info: () => undefined }),
     VSCODE_WRITES_WORDING,
   ).build(target, { kind: "none" }, "local", {
@@ -127,6 +129,14 @@ const CLUSTER = built({
   endpoint: "http://localhost:8088/v2",
 })
 const SHOP_SSO = built({ ...LOCAL_TARGET, name: "shop-sso", auth: { kind: "oauth2" } })
+const SHOP_LEGACY = built({ ...LOCAL_TARGET, name: "shop-legacy", auth: { kind: "oauth2" } })
+const CLUSTER_SSO = built({
+  ...LOCAL_TARGET,
+  name: "cluster-sso",
+  engine: "c8",
+  endpoint: "http://cluster.example.com/v2",
+  auth: { kind: "basic" },
+})
 
 function previewOf(connections: readonly Connection[], picked?: Connection) {
   const pick = vi.fn<ConnectionPicker["pick"]>(() => Promise.resolve(picked))
@@ -135,6 +145,7 @@ function previewOf(connections: readonly Connection[], picked?: Connection) {
     new FakeRegistry(connections).asRegistry(),
     { pick } as unknown as ConnectionPicker,
     { openMigrationPlan },
+    ENGINES,
   )
   return { command, pick, openMigrationPlan }
 }
@@ -209,13 +220,14 @@ describe("Preview Migration Plan", () => {
   })
 
   test("says so when no engine checks migration plans, and offers none that doesn't or is refused", async () => {
-    const none = previewOf([CLUSTER, SHOP_SSO])
+    const none = previewOf([CLUSTER, CLUSTER_SSO])
     const one = previewOf([CLUSTER, SHOP_SSO, LOCAL])
 
     await none.command.run(planUri())
     await one.command.run(planUri())
 
     expect("checkMigration" in CLUSTER.runtime).toBe(false)
+    expect("checkMigration" in CLUSTER_SSO.runtime).toBe(true)
     expect("checkMigration" in SHOP_SSO.runtime).toBe(true)
     expect(informed).toEqual([
       "None of the configured engines checks migration plans, so Pulse can't preview one.",
@@ -223,6 +235,33 @@ describe("Preview Migration Plan", () => {
     expect(none.openMigrationPlan).not.toHaveBeenCalled()
     expect(one.pick).not.toHaveBeenCalled()
     expect(one.openMigrationPlan.mock.calls.map(([engine]) => engine)).toEqual([LOCAL])
+  })
+
+  test("names the engines that check plans when Pulse refuses the connection to each of them", async () => {
+    const one = previewOf([SHOP_SSO])
+    const two = previewOf([CLUSTER, SHOP_SSO, SHOP_LEGACY])
+
+    await one.command.run(planUri())
+    await two.command.run(planUri())
+
+    expect(informed).toEqual([
+      "Pulse refuses the connection to shop-sso, so it can't preview a plan there. Expand shop-sso in the Engines view to see why and what to change.",
+      "Pulse refuses the connections to shop-sso and shop-legacy, so it can't preview a plan there. Expand them in the Engines view to see why and what to change.",
+    ])
+    expect(one.openMigrationPlan).not.toHaveBeenCalled()
+    expect(two.pick).not.toHaveBeenCalled()
+  })
+
+  test("says that it lists no engine when there is none", async () => {
+    const { command, pick, openMigrationPlan } = previewOf([])
+
+    await command.run(planUri())
+
+    expect(informed).toEqual([
+      "Pulse lists no engine, so it can't preview a plan. Configure one in the Engines view.",
+    ])
+    expect(pick).not.toHaveBeenCalled()
+    expect(openMigrationPlan).not.toHaveBeenCalled()
   })
 
   test("lets you pick among the engines that check plans, and opens nothing when you cancel", async () => {

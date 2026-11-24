@@ -172,6 +172,12 @@ const PLANTED: Readonly<Record<string, string>> = {
   "src/core/views/migration-requests.ts": "export const request = 1;\n",
   "src/core/panels/bulk-selection.ts": "export const cap = 1;\n",
   "src/core/panels/migration-reads.ts": "export const reads = 1;\n",
+  "src/core/panels/instance-panel.ts": "export const instance = 1;\n",
+  "src/core/panels/definition-panel.ts": "export const definition = 1;\n",
+  "src/core/plans/opens-an-instance.ts":
+    "import { instance } from '../panels/instance-panel.ts';\nexport const opened = instance;\n",
+  "src/core/plans/opens-a-definition.ts":
+    "import { definition } from '../panels/definition-panel.ts';\nexport const opened = definition;\n",
   "src/core/plans/starts-a-bulk.ts":
     "import { write } from '../panels/bulk-write.ts';\nexport const started = write;\n",
   "src/core/plans/opens-the-tab.ts":
@@ -358,6 +364,8 @@ describe("the dependency rules", () => {
         `plans-start-nothing: ${at("src/core/plans/starts-a-bulk.ts")} -> ${at("src/core/panels/bulk-write.ts")}`,
         `plans-start-nothing: ${at("src/core/plans/opens-the-tab.ts")} -> ${at("src/core/panels/migration-preview.ts")}`,
         `plans-start-nothing: ${at("src/core/plans/words-a-request.ts")} -> ${at("src/core/views/migration-requests.ts")}`,
+        `plans-start-nothing: ${at("src/core/plans/opens-an-instance.ts")} -> ${at("src/core/panels/instance-panel.ts")}`,
+        `plans-start-nothing: ${at("src/core/plans/opens-a-definition.ts")} -> ${at("src/core/panels/definition-panel.ts")}`,
         `not-in-allowed: ${at("src/core/renders-blocks.ts")} -> ${blocks}`,
         `not-in-allowed: ${at("src/host-kit/renders-blocks.ts")} -> ${blocks}`,
         `webview-blocks-by-its-entry: ${at("src/webview/reads-a-blocks-subpath.ts")} -> ${blocksSubpath}`,
