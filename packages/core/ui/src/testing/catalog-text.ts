@@ -5,7 +5,10 @@
  * a sentence-initial "Ihre" about an instance takes an `allow` entry.
  */
 
-export type CatalogLanguage = "de" | "en"
+import { sampleParams, type GlossaryLanguage } from "../glossary/catalog.js"
+
+/** The glossary's languages: a catalog is written in one of them. */
+export type CatalogLanguage = GlossaryLanguage
 
 export type CatalogRule =
   | "dash-connector"
@@ -35,17 +38,6 @@ export interface CatalogTextOptions {
   params?: Readonly<Record<string, unknown>>
   /** Shrink-only: an allowance that matches nothing comes back as `unused-allowance`. */
   allow?: readonly CatalogAllowance[]
-}
-
-/** A stand-in parameter object: every property and its own primitive value is `n`. */
-export function sampleParams(n: number): unknown {
-  return new Proxy(Object.create(null) as object, {
-    get: (_target, prop) => {
-      if (prop === Symbol.toPrimitive) return (hint: string) => (hint === "number" ? n : String(n))
-      if (prop === "toString" || prop === "valueOf") return () => String(n)
-      return n
-    },
-  })
 }
 
 function render(value: unknown, n: number, params: unknown): string | undefined {

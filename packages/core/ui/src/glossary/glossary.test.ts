@@ -6,12 +6,15 @@ import {
   glossaryFindings,
   PRODUCT_GLOSSARY,
   unnamedGlossaryTerms,
-} from "./glossary.js"
+} from "./index.js"
 
 describe("PRODUCT_GLOSSARY: the terms every Pulse UI shares", () => {
-  it.each(["de", "en"] as const)("%s: the gate is not blind, each rule catches its probe", (l) => {
-    expect(blindGlossaryRules(PRODUCT_GLOSSARY[l])).toEqual([])
-  })
+  it.each(["de", "en"] as const)(
+    "%s: the gate is not blind, each rule catches its probe and its words",
+    (l) => {
+      expect(blindGlossaryRules(PRODUCT_GLOSSARY[l])).toEqual([])
+    },
+  )
 
   it.each([
     // The engine's noun stays; only the verb has a glossary word.
@@ -77,6 +80,43 @@ describe("PRODUCT_GLOSSARY: the terms every Pulse UI shares", () => {
     ["Invalid profile", "en", "refused"],
   ] as const)("flags %s", (text, language, use) => {
     expect(glossaryFindings({ text }, PRODUCT_GLOSSARY[language]).map((f) => f.use)).toEqual([use])
+  })
+})
+
+describe("PRODUCT_GLOSSARY: the words each term replaces (the glossary's table)", () => {
+  it.each(["de", "en"] as const)("%s: every rule names its words, each once", (language) => {
+    const words = PRODUCT_GLOSSARY[language].flatMap((rule) => rule.replaces)
+    expect(PRODUCT_GLOSSARY[language].filter((rule) => rule.replaces.length === 0)).toEqual([])
+    expect(new Set(words).size).toBe(words.length)
+  })
+
+  it.each(
+    (["de", "en"] as const).flatMap((language) =>
+      PRODUCT_GLOSSARY[language].flatMap((rule) =>
+        rule.replaces.map((word) => [word, language, rule.use] as const),
+      ),
+    ),
+  )("%s (%s) is flagged with its term, %s", (word, language, use) => {
+    expect(glossaryFindings({ word }, PRODUCT_GLOSSARY[language]).map((f) => f.use)).toContain(use)
+  })
+
+  // The words a page got wrong before the glossary was data (#667).
+  it.each([
+    ["de", "Incident", "Vorfall"],
+    ["de", "Geschäftsschlüssel", "Business Key"],
+    ["de", "läuft", "Aktiv"],
+    ["de", "Jobs ohne Versuche", "tote Jobs"],
+    ["en", "jobs without retries", "dead jobs"],
+  ] as const)("%s: %s replaces %s", (language, use, word) => {
+    const replaced = PRODUCT_GLOSSARY[language]
+      .filter((rule) => rule.use === use)
+      .flatMap((rule) => rule.replaces)
+    expect(replaced).toContain(word)
+  })
+
+  it("names a rule that misses a word it says it replaces", () => {
+    const rule = { pattern: /Vorfall/, use: "Incident", probe: "Vorfall", replaces: ["Störung"] }
+    expect(blindGlossaryRules([rule])).toEqual(["Störung"])
   })
 })
 

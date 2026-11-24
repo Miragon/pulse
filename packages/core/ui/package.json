@@ -57,6 +57,10 @@
       "types": "./dist/testing/index.d.ts",
       "import": "./dist/testing/index.js"
     },
+    "./glossary": {
+      "types": "./dist/glossary/index.d.ts",
+      "import": "./dist/glossary/index.js"
+    },
     "./theme.css": "./src/theme.css",
     "./globals.css": "./src/globals.css",
     "./fonts.css": "./src/fonts.css"
@@ -66,7 +70,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
-    "lint:fix": "eslint src --fix"
+    "lint:fix": "eslint src --fix",
+    "golden:update": "GOLDEN_UPDATE=1 vitest run src/glossary/glossary-page.test.ts --coverage.enabled=false"
   },
   "peerDependencies": {
     "lucide-react": "^0.562.0 || ^1.0.0",

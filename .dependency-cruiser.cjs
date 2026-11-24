@@ -729,12 +729,12 @@ const EXT_APPS_HOST_ADAPTER = [
 const VIEW_STACK = `react|react-dom|lucide-react|@tanstack/[^/]+|@miragon/pulse-ui|${EXT_APPS_RUNTIME}|bpmn-js|diagram-js`
 
 /**
- * pulse-ui's framework-free entries, one folder each under src/ (`./format`, `./tones`): the UI
- * foundation every Pulse UI shares at runtime, the VS Code extension's core and webview included.
- * The group names the folder, so an entry imports only its own
- * (ui-foundation-entries-import-nothing).
+ * pulse-ui's framework-free entries, one folder each under src/ (`./format`, `./tones`,
+ * `./glossary`): the UI foundation every Pulse UI shares at runtime, the VS Code extension's core
+ * and webview included, and a page that loads the glossary in a browser as it is. The group names
+ * the folder, so an entry imports only its own (ui-foundation-entries-import-nothing).
  */
-const UI_FOUNDATION_ENTRIES = "^packages/core/ui/src/(format|tones)/"
+const UI_FOUNDATION_ENTRIES = "^packages/core/ui/src/(format|tones|glossary)/"
 
 /** widget-shell's two halves and the protocol modules both import (see the seam rules). */
 const SHELL_SRC = "^packages/core/widget-shell/src/"
@@ -955,13 +955,14 @@ module.exports = {
       name: "ui-foundation-entries-import-nothing",
       severity: "error",
       comment:
-        "pulse-ui's framework-free entries (src/format and src/tones, published as " +
-        "@miragon/pulse-ui/format and @miragon/pulse-ui/tones) " +
+        "pulse-ui's framework-free entries (src/format, src/tones and src/glossary, published as " +
+        "@miragon/pulse-ui/format, @miragon/pulse-ui/tones and @miragon/pulse-ui/glossary) " +
         "import only their own folder: no React, no Radix, no tailwind-merge, no other file of " +
         "the kit, no Node built-in. Framework-free code (the runtime view's core, which Pulse " +
-        "for VS Code and Pulse for Orca run outside the webview) bundles them, so what needs " +
-        "React or a class map stays in the kit's root, which may import them, never the other " +
-        "way round.",
+        "for VS Code and Pulse for Orca run outside the webview) bundles them, and a page loads " +
+        "the glossary in a browser as it is, so what needs React, a class map, typescript or " +
+        "node:fs stays in the kit's root or its ./testing, which may import them, never the " +
+        "other way round.",
       from: { path: UI_FOUNDATION_ENTRIES, pathNot: SRC_TEST_CODE },
       to: { pathNot: "^packages/core/ui/src/$1/" },
     },

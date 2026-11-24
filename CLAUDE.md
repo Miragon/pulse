@@ -457,7 +457,10 @@ for every workspace package.
      catalogs hold the same keys. One term per thing across the product, the extension included:
      `PRODUCT_GLOSSARY` (each connector's `src/messages/glossary.test.ts`,
      `apps/vscode/test/architecture/product-words.test.ts`, whose promise scan refuses a text that
-     promises a later feature).
+     promises a later feature). The words and `COUNT_TERMS` live once, as browser-safe data in
+     `@miragon/pulse-ui/glossary` (`./testing` hands out the same bindings), and `docs/glossary.md`
+     is generated from them (pulse-ui's `golden:update`), so a page and an agent read the table the
+     gate holds.
    - **Counts mean the same on every surface.** Count words come from `COUNT_TERMS` (owner
      decision E2). "Incidents" are open root incidents (D2): a call activity's copy counts in the
      called process only. "With incident" are the instances that have one, on Camunda 7 read from

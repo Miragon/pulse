@@ -289,6 +289,8 @@ const LEAVES = [
   `${UI}/src/testing/glyphs.ts`,
   `${UI}/src/tones/situations.ts`,
   `${UI}/src/format/numbers.ts`,
+  `${UI}/src/glossary/rules.ts`,
+  `${UI}/src/glossary/catalog.ts`,
   `${C7}/src/target.ts`,
   `${C7}/src/lib.ts`,
   `${C7}/src/testing/fixture.ts`,
@@ -2308,6 +2310,21 @@ const SUITES = [
       [UI_SRC, "./format/numbers.ts", []],
       [`${RUNTIME_VIEW}/src/webview/format/time-labels.ts`, "@miragon/pulse-ui/format", []],
       [`${RUNTIME_VIEW}/src/core/views/labels.ts`, "@miragon/pulse-ui/format", []],
+      // The glossary a browser loads as it is: none of the brand gates' Node stack, no other entry.
+      ...["typescript", "node:fs", "react"].map((spec) => [
+        `${UI}/src/glossary/to-npm.ts`,
+        spec,
+        [UI_FOUNDATION],
+      ]),
+      [`${UI}/src/glossary/to-testing.ts`, "../testing/glyphs.ts", [NO_TESTING, UI_FOUNDATION]],
+      [`${UI}/src/glossary/to-format.ts`, "../format/numbers.ts", [UI_FOUNDATION]],
+      [`${UI}/src/glossary/to-kit-type.ts`, "../lib.ts", [UI_FOUNDATION], "type"],
+      // Allowed: its own folder and its tests; ./testing hands it out, and shipped code may use it.
+      [`${UI}/src/glossary/index.ts`, "./rules.ts", []],
+      [`${UI}/src/glossary/glossary-page.test.ts`, "prettier", []],
+      [`${UI}/src/testing/glossary.ts`, "../glossary/index.ts", []],
+      [`${UI}/src/testing/catalog-text.ts`, "../glossary/catalog.ts", []],
+      [ENGINE_CONNECTOR_SRC, "@miragon/pulse-ui/glossary", []],
     ],
   },
   {

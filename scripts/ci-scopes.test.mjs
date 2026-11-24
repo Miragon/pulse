@@ -150,6 +150,11 @@ describe("scopesFor: prose reaches only the checks that read it", () => {
     assert.deepEqual(scopes("docs/mcp/developer.md"), ["brand", "typescript"])
   })
 
+  it("runs pulse-ui's tests for the glossary page, which they generate and hold to the data", () => {
+    assert.deepEqual(scopes("docs/glossary.md"), ["brand", "typescript"])
+    assert.deepEqual(scopes("docs/overview.md"), ["brand"])
+  })
+
   it("runs pnpm lint for every config file lint:configs lints, the docs site's too", () => {
     for (const file of DEFAULT_PROJECT_FILES) {
       assert.ok(scopes(file).includes("typescript"), file)

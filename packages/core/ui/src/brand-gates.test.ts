@@ -34,6 +34,7 @@ const SRC = fileURLToPath(new URL(".", import.meta.url))
 const SCANNED = [
   "components",
   "format",
+  "glossary",
   "hooks",
   "kit",
   "lib",

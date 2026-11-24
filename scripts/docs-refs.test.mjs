@@ -547,6 +547,9 @@ const DOCS_BUDGETS = {
   "index.md": 40,
   "README.md": 40,
   "overview.md": 40,
+  // The product glossary, generated from @miragon/pulse-ui/glossary by pulse-ui's page test: each
+  // language's terms with the words they replace, the strict pause rule, the count words.
+  "glossary.md": 80,
   // The MCP server's pages (docs/mcp/).
   "mcp/index.md": 30,
   "mcp/getting-started.md": 60,

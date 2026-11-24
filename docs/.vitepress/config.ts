@@ -34,7 +34,10 @@ export default miragonDocs({
   sidebar: [
     {
       text: "Pulse",
-      items: [{ text: "Overview", link: "/overview" }],
+      items: [
+        { text: "Overview", link: "/overview" },
+        { text: "Glossary", link: "/glossary" },
+      ],
     },
     {
       text: "MCP server",
