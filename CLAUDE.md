@@ -509,10 +509,13 @@ for every workspace package.
      board's numbers degrade per engine and tile instead of failing the call
      (`data/honest-numbers.degrade.test.ts`).
    - **Expensive reads have floors.** What loads the engine's database (the screen feeds, a
-     board's build, the cockpit's element counts) is kept 30 s per caller and arguments
-     (`callerCacheKey`, so a renewed token reads anew), never an answer that misses a part. The
-     process flow's "Throughput" reads a 30-day window cut to the shortest `historyTimeToLive`, one
-     read at a time per engine (`oneAtATime`), outside the cockpit's Refresh.
+     board's build, the cockpit's element counts, a process's numbers of `engine_process_stats`
+     and `engine_activity_counts` over the cockpit's builders) is kept 30 s per caller and
+     arguments (`callerCacheKey`, so a renewed token reads anew), never an answer that misses a
+     part. The process flow's "Throughput" reads a 30-day window cut to the shortest
+     `historyTimeToLive`, one read at a time per engine (`oneAtATime`), outside the cockpit's
+     Refresh; `engine_process_stats` counts per bucket by `/count`, a bucket older than that time
+     to live as a lower bound, every history count unknown where the engine writes no history.
    - **No view payload carries BPMN XML** (a view's `structuredContent` reaches the model on some
      hosts): a view names the version it draws (`diagramDefinitionId`) and reads the XML from
      `engine_bpmn_xml_data`, through the ONE cache `lib/bpmn/definition-xml.ts`.

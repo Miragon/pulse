@@ -1,0 +1,158 @@
+{
+  "arguments": {
+    "processDefinitionKey": "order"
+  },
+  "result": {
+    "_meta": {
+      "mimeType": "application/json"
+    },
+    "content": [
+      {
+        "textLines": [
+          "{",
+          "  \"engine\": \"prod-eu\",",
+          "  \"processDefinitionKey\": \"order\",",
+          "  \"processDefinitionName\": \"Order\",",
+          "  \"asOf\": \"2026-10-09T14:00:00.000Z\",",
+          "  \"definitionId\": \"order:2:6f1e8a\",",
+          "  \"version\": 2,",
+          "  \"versionsCounted\": 2,",
+          "  \"decorations\": [",
+          "    {",
+          "      \"elementId\": \"approve\",",
+          "      \"counts\": [",
+          "        {",
+          "          \"kind\": \"running\",",
+          "          \"count\": 1,",
+          "          \"scope\": \"running\"",
+          "        }",
+          "      ],",
+          "      \"incident\": false,",
+          "      \"call\": null",
+          "    },",
+          "    {",
+          "      \"elementId\": \"charge\",",
+          "      \"counts\": [",
+          "        {",
+          "          \"kind\": \"incidents\",",
+          "          \"count\": 1,",
+          "          \"scope\": \"withIncident\"",
+          "        }",
+          "      ],",
+          "      \"incident\": true,",
+          "      \"call\": null",
+          "    }",
+          "  ],",
+          "  \"activities\": [",
+          "    {",
+          "      \"activityId\": \"approve\",",
+          "      \"name\": \"Approve order\",",
+          "      \"inDiagram\": true,",
+          "      \"running\": 1,",
+          "      \"openTasks\": 1,",
+          "      \"oldestOpenTask\": \"2026-10-09T13:38:15.498+0000\",",
+          "      \"incidents\": 0,",
+          "      \"incidentsInCalledInstances\": 0,",
+          "      \"failedJobs\": 0,",
+          "      \"latestIncident\": null,",
+          "      \"latestIncidentInCalledInstances\": null",
+          "    },",
+          "    {",
+          "      \"activityId\": \"charge\",",
+          "      \"name\": \"Charge card\",",
+          "      \"inDiagram\": true,",
+          "      \"running\": 0,",
+          "      \"openTasks\": 0,",
+          "      \"oldestOpenTask\": null,",
+          "      \"incidents\": 1,",
+          "      \"incidentsInCalledInstances\": 0,",
+          "      \"failedJobs\": 1,",
+          "      \"latestIncident\": {",
+          "        \"message\": \"Card declined: insufficient funds (order B-7)\",",
+          "        \"at\": \"2026-10-09T13:40:02.112+0000\"",
+          "      },",
+          "      \"latestIncidentInCalledInstances\": null",
+          "    }",
+          "  ]",
+          "}"
+        ],
+        "type": "text"
+      }
+    ],
+    "structuredContent": {
+      "activities": [
+        {
+          "activityId": "approve",
+          "failedJobs": 0,
+          "inDiagram": true,
+          "incidents": 0,
+          "incidentsInCalledInstances": 0,
+          "latestIncident": null,
+          "latestIncidentInCalledInstances": null,
+          "name": "Approve order",
+          "oldestOpenTask": "2026-10-09T13:38:15.498+0000",
+          "openTasks": 1,
+          "running": 1
+        },
+        {
+          "activityId": "charge",
+          "failedJobs": 1,
+          "inDiagram": true,
+          "incidents": 1,
+          "incidentsInCalledInstances": 0,
+          "latestIncident": {
+            "at": "2026-10-09T13:40:02.112+0000",
+            "message": "Card declined: insufficient funds (order B-7)"
+          },
+          "latestIncidentInCalledInstances": null,
+          "name": "Charge card",
+          "oldestOpenTask": null,
+          "openTasks": 0,
+          "running": 0
+        }
+      ],
+      "asOf": "2026-10-09T14:00:00.000Z",
+      "decorations": [
+        {
+          "call": null,
+          "counts": [
+            {
+              "count": 1,
+              "kind": "running",
+              "scope": "running"
+            }
+          ],
+          "elementId": "approve",
+          "incident": false
+        },
+        {
+          "call": null,
+          "counts": [
+            {
+              "count": 1,
+              "kind": "incidents",
+              "scope": "withIncident"
+            }
+          ],
+          "elementId": "charge",
+          "incident": true
+        }
+      ],
+      "definitionId": "order:2:6f1e8a",
+      "engine": "prod-eu",
+      "processDefinitionKey": "order",
+      "processDefinitionName": "Order",
+      "version": 2,
+      "versionsCounted": 2
+    }
+  },
+  "sent": [
+    "GET /engine-rest/incident?processDefinitionKeyIn=order&maxResults=200&sortBy=incidentTimestamp&sortOrder=desc",
+    "GET /engine-rest/process-definition/order%3A1%3A5e0d79/statistics?failedJobs=true&incidents=true",
+    "GET /engine-rest/process-definition/order%3A2%3A6f1e8a/statistics?failedJobs=true&incidents=true",
+    "GET /engine-rest/process-definition?key=order&sortBy=version&sortOrder=desc",
+    "GET /engine-rest/task/count?processDefinitionKey=order&taskDefinitionKey=approve",
+    "GET /engine-rest/task?processDefinitionKey=order&taskDefinitionKey=approve&sortBy=created&sortOrder=asc&maxResults=1"
+  ],
+  "tool": "engine_activity_counts"
+}

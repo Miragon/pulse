@@ -46,7 +46,7 @@ export interface IncidentScan {
 
 export async function scanIncidents(
   client: Client,
-  filter: { processDefinitionKeyIn?: string; incidentType?: string },
+  filter: { processDefinitionKeyIn?: string; processDefinitionId?: string; incidentType?: string },
 ): Promise<IncidentScan> {
   const rows = rowsOf<IncidentRow>(
     await getIncidents({

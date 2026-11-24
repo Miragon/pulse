@@ -1,5 +1,38 @@
 [
   {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Per activity of a process, the cockpit's diagram counts: running tokens, open user tasks (and the oldest), open root incidents, incidents of called instances, jobs without retries, each kind's latest incident; plus the diagram's decorations. definitionId names the diagram counted on (XML: engine_get_process_definition_xml).",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "processDefinitionKey": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "version": {
+          "description": "One version on its own diagram; default: every version on the latest",
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "processDefinitionKey"
+      ],
+      "type": "object"
+    },
+    "name": "engine_activity_counts"
+  },
+  {
     "_meta": {
       "openai/widgetAccessible": true,
       "ui": {
@@ -1712,6 +1745,54 @@
     },
     "name": "engine_process_instances_data",
     "title": "Process instances data (internal)"
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "A process's numbers, every version of its key: now (running, open root incidents, instances with an incident, jobs without retries, open tasks, started and ended in 24 h), and per day or hour bucket started, ended and ended per end event, with median and P90 duration in ms overall and per end event. A count is { atLeast } where history may be removed (history.keptFrom), null unknown (history.recorded false: no history written).",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "bucket": {
+          "enum": [
+            "day",
+            "hour"
+          ],
+          "type": "string"
+        },
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "from": {
+          "description": "Default: 14 days or 24 hours of whole buckets up to to",
+          "type": "string"
+        },
+        "processDefinitionKey": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "timeZone": {
+          "description": "IANA zone of the buckets' days and hours and of a bare date; default UTC",
+          "type": "string"
+        },
+        "to": {
+          "description": "Default and at most: now",
+          "type": "string"
+        }
+      },
+      "required": [
+        "processDefinitionKey",
+        "bucket"
+      ],
+      "type": "object"
+    },
+    "name": "engine_process_stats"
   },
   {
     "_meta": {

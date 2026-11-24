@@ -26,6 +26,7 @@
  * see golden.ts).
  */
 export const EXPECTED_TOOLS_READ_ONLY: readonly string[] = [
+  "engine_activity_counts",
   "engine_activity_incidents_data",
   "engine_activity_statistics_data",
   "engine_board_data",
@@ -60,6 +61,7 @@ export const EXPECTED_TOOLS_READ_ONLY: readonly string[] = [
   "engine_open_cockpit",
   "engine_process_incidents_data",
   "engine_process_instances_data",
+  "engine_process_stats",
   "engine_query_historic_activity_instances",
   "engine_query_historic_incidents",
   "engine_query_historic_process_instances",

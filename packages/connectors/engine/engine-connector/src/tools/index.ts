@@ -12,6 +12,7 @@ import { registerJobTools } from "./jobs.js"
 import { registerHistoryTools } from "./history.js"
 import { registerMigrationTools } from "./migrations.js"
 import { registerBatchTools } from "./batches.js"
+import { registerProcessNumberTools } from "./process-numbers.js"
 
 export interface RegisterToolsOptions {
   /** `ENGINE_ALLOW_DEPLOYMENTS=true`: deploying runs code inside the engine JVM. */
@@ -34,4 +35,6 @@ export function registerTools(
   registerHistoryTools(register)
   registerMigrationTools(register)
   registerBatchTools(register)
+  // A process's numbers ready to show (#665).
+  registerProcessNumberTools(register)
 }

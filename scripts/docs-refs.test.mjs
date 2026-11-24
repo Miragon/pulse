@@ -567,7 +567,8 @@ const DOCS_BUDGETS = {
   // among it), its profile and client, its failures (the incident searches whose failure fails a
   // cluster's processes among them) and the server's legs of the conformance matrix.
   "mcp/camunda8.md": 126,
-  "mcp/reference.md": 160,
+  // Every tool and toolset (a process's numbers for a page among them) and the common settings.
+  "mcp/reference.md": 170,
   // A Claude artifact on Pulse: what it is, the template and its loop, the plugin, publishing,
   // how a page calls the connector (its refusal codes), the reads of one load and what replaces
   // the template's temporary parts.

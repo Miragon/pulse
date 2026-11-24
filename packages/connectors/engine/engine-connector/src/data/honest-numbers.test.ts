@@ -3,7 +3,6 @@ import { dirname } from "node:path"
 import { fileURLToPath } from "node:url"
 import { afterEach, describe, expect, it } from "vitest"
 import { cibsevenProvider } from "../providers/index.js"
-import type { FakeReply } from "../tools/test-support/fake-engine.js"
 import {
   BARE_DEFINITION_ID,
   ENGINE_FAILURE,
@@ -28,9 +27,10 @@ import { buildInstanceDetailData } from "./instance-detail-data.js"
 import { buildActivityIncidentsData, buildProcessIncidentsData } from "./process-incidents-data.js"
 import { buildActivityStatisticsData } from "./activity-statistics-data.js"
 import { buildJobBacklogData } from "./job-backlog-data.js"
+import { PROCESS_NUMBER_CASES } from "./honest-numbers.process-numbers.test-support.js"
 import {
   build,
-  type BuildCase,
+  type Case,
   closeBuildEngines,
   DEGRADE,
   expectFallbacks,
@@ -46,19 +46,6 @@ import { COPY_CASES, HISTORY_ENRICHMENT } from "./honest-numbers.copies.test-sup
 afterEach(closeBuildEngines)
 
 const urls = (baseUrl: string) => ({ baseUrl, provider: cibsevenProvider })
-
-interface Case extends BuildCase {
-  /** The lookup of the id/key the builder is asked about, answering "nothing there". */
-  unknown?: { read: string; reply: FakeReply }
-  /** Enrichment reads: each failure leaves the build intact, with the read's value null. */
-  enrichment?: Record<string, (data: never) => unknown>
-  /**
-   * Fallback reads: each failure is answered by the read it names, with the same figures (a
-   * version's diagram, which c7-core's element statistics read for its call activities, by a read
-   * of every incident of the version).
-   */
-  fallback?: Record<string, string>
-}
 
 const KEY_LOOKUP = "GET /process-definition?key&latestVersion&maxResults&sortBy&sortOrder"
 /** Another process with a root incident, unnamed, so its diagram names it (enrichment). */
@@ -369,6 +356,8 @@ const CASES: Record<string, Case> = {
   },
   // The cross-engine landscape's backlog: four counts, each a figure on screen, none enrichment.
   buildJobBacklogData: { run: (client) => buildJobBacklogData(client) },
+  // A process's numbers, ready to show (#665).
+  ...PROCESS_NUMBER_CASES,
 }
 
 describe.each(Object.entries(CASES))("%s", (_name, builder) => {
