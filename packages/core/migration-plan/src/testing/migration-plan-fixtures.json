@@ -152,7 +152,7 @@
   },
   {
     "name": "version-list",
-    "about": "A schemaVersion that is no number, text, true, false or null is named by its kind, never written out.",
+    "about": "A schemaVersion that is no number, text, true, false or null is cut to […] or {…}, never written out.",
     "file": {
       "schemaVersion": [[2]],
       "bpmnProcessId": "invoice",
@@ -171,7 +171,7 @@
           "path": "schemaVersion",
           "code": "unknownVersion",
           "values": {
-            "found": "a list",
+            "found": "[…]",
             "reads": 1
           }
         }

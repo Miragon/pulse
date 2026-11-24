@@ -58,7 +58,8 @@ from `MigrationPlanProblemCode` and the values its words need. `MigrationPlanPro
 words it in English, the sentence after the path, so a reader may word the codes in its own
 language. What a problem echoes from the file stays short: a key in a path and a `schemaVersion`
 text show their first 40 characters, with `…` after a cut, and a `schemaVersion` that is a list
-or an object is named by its kind (`a list`, `an object`), never written out.
+or an object is cut to `[…]` or `{…}` (an empty one shows as `[]` or `{}`), never written out,
+so no echo is in a language.
 
 `MigrationPlanText.of` is the one writer: the keys in their order, two spaces, the mappings sorted
 by `sourceElementId` in code-unit order and a last line break. It writes only the keys of a plan,

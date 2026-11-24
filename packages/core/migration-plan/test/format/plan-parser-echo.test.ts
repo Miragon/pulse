@@ -36,10 +36,10 @@ function sentencesOf(parsed: MigrationPlanParse): readonly string[] {
 
 describe("a schemaVersion Pulse does not read", () => {
   test.each([
-    ["a list", "[".repeat(DEEP), "]".repeat(DEEP)],
-    ["an object", '{"v":'.repeat(DEEP), `1${"}".repeat(DEEP)}`],
+    ["[…]", "[".repeat(DEEP), "]".repeat(DEEP)],
+    ["{…}", '{"v":'.repeat(DEEP), `1${"}".repeat(DEEP)}`],
   ])(
-    "is named %s when it is nested 10000 deep, and the parse never throws",
+    "is cut to %s when it is nested 10000 deep, and the parse never throws",
     (kind, open, close) => {
       expect(() => withVersion(`${open}${close}`)).not.toThrow()
       expect(withVersion(`${open}${close}`)).toStrictEqual(refusal(kind))
@@ -47,15 +47,15 @@ describe("a schemaVersion Pulse does not read", () => {
   )
 
   test.each([
-    ["[]", "a list"],
-    ["[2]", "a list"],
-    ["{}", "an object"],
-    ['{"major":2}', "an object"],
+    ["[]", "[]"],
+    ["[2]", "[…]"],
+    ["{}", "{}"],
+    ['{"major":2}', "{…}"],
     ["true", "true"],
     ["false", "false"],
     ["null", "null"],
     ["-2", "-2"],
-  ])("words %s by its kind, or as written", (version, found) => {
+  ])("writes %s cut to its kind, or as written, in no language", (version, found) => {
     expect(withVersion(version)).toStrictEqual(refusal(found))
   })
 

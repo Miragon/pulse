@@ -13,9 +13,12 @@ export class PlanEcho {
       return `${JSON.stringify(head)}${head === value ? "" : PlanEcho.CUT}`
     }
     if (Array.isArray(value)) {
-      return "a list"
+      return value.length === 0 ? "[]" : `[${PlanEcho.CUT}]`
     }
-    return typeof value === "object" && value !== null ? "an object" : String(value)
+    if (typeof value === "object" && value !== null) {
+      return Object.keys(value).length === 0 ? "{}" : `{${PlanEcho.CUT}}`
+    }
+    return String(value)
   }
 
   private static head(text: string): string {
