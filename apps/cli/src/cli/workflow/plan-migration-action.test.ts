@@ -172,6 +172,11 @@ describe("pulse plan-migration", () => {
       ["invoice:1:def-1", "1"],
       expect.stringMatching(/^<key> "invoice:1:def-1" must be a BPMN process id/),
     ],
+    [
+      ["a b", "1", "99999999999999999999"],
+      expect.stringMatching(/^<key> "a b" must be a BPMN process id/),
+    ],
+    [["a b", "one"], expect.stringMatching(/^<key> "a b" must be a BPMN process id/)],
     [["invoice", "1", "--map", "a=b", "--unmap", "a"], "--map and --unmap both name a"],
   ])("refuses %j as USAGE, exit 2, before any request", async (args, message) => {
     const { cli, engine } = setup()

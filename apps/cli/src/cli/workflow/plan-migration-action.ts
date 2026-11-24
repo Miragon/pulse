@@ -1,11 +1,11 @@
 /**
- * The action of `pulse plan-migration`: the version arguments as whole numbers, the lists of
- * `--map` and `--unmap`, the read guard, then the plan file and its view.
+ * The action of `pulse plan-migration`: the key, the version arguments as whole numbers, the
+ * lists of `--map` and `--unmap`, the read guard, then the plan file and its view.
  */
 
 import { convertScalar } from "../../operation/values.js"
 import { compact } from "../../util.js"
-import { notAVersion, planMigration } from "../../workflow/plan-migration.js"
+import { checkKey, notAVersion, planMigration } from "../../workflow/plan-migration.js"
 import { planMigrationText } from "../../workflow/plan-migration-text.js"
 import { emitResult, guard, type WorkflowRun } from "./register.js"
 import { list, text } from "./values.js"
@@ -29,6 +29,7 @@ function version(raw: string, name: string, key: string): number {
 export async function runPlanMigration(run: WorkflowRun): Promise<void> {
   const { args, flags } = run.values
   const key = args[0] ?? ""
+  checkKey(key)
   const target = args[2]
   const options = {
     key,

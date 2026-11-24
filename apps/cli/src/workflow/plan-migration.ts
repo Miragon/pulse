@@ -92,7 +92,8 @@ function checkVersion(version: number, name: string, key: string): void {
   throw notAVersion(String(version), name, key)
 }
 
-function checkKey(key: string): void {
+/** The key's rule, checked first, so a version's hint never names a key that is no process id. */
+export function checkKey(key: string): void {
   if (MigrationPlanRules.isProcessId(key)) return
   const rule = MigrationPlanProblems.describe({ path: "key", code: "notAProcessId" })
   throw usageError(
