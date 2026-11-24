@@ -53,7 +53,7 @@ export const PLAN_MIGRATION_DOC: WorkflowDoc = {
   name: "plan-migration",
   usage: "pulse plan-migration <key> <source> [target] [options]",
   summary:
-    "Write a migration plan between two versions of a process as a file for the editors' preview",
+    "Write a migration plan between two versions of a process as a file Pulse for VS Code previews",
   description:
     "Asks the engine for its mapping between two versions of a process (the target defaults to the latest version), applies --unmap and --map, has the engine check the result and writes it as a plan file keyed by the process definition key and the two version numbers, with no engine, no definition id and no instance in it (.pulse/migrations/<key>-v<source>-to-v<target>.migration.json unless --plan-file names one). Pulse for VS Code previews the file on an engine you pick. The command migrates nothing; when the engine finds problems it still writes the file and exits with code 9 (CHECK_FAILED).",
   requests:

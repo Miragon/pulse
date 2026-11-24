@@ -81,10 +81,15 @@ function versionsHint(key: string): string {
   return `List the versions with: pulse process-definition list --key ${key}`
 }
 
+/** `<source> "0" must be a version number from 1 to 2147483647`, the version as typed. */
+export function notAVersion(typed: string, name: string, key: string): PulseCliError {
+  const rule = MigrationPlanProblems.describe({ path: name, code: "notAVersion" })
+  return usageError(`<${name}> "${typed}" ${rule}`, versionsHint(key))
+}
+
 function checkVersion(version: number, name: string, key: string): void {
   if (MigrationPlanRules.isVersion(version)) return
-  const rule = MigrationPlanProblems.describe({ path: name, code: "notAVersion" })
-  throw usageError(`<${name}> "${String(version)}" ${rule}`, versionsHint(key))
+  throw notAVersion(String(version), name, key)
 }
 
 function checkKey(key: string): void {

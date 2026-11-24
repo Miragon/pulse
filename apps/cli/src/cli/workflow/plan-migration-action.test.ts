@@ -159,8 +159,13 @@ describe("pulse plan-migration", () => {
     [["invoice", "one"], '<source> expects an integer, got "one"'],
     [
       ["invoice", "1", "99999999999"],
-      '<target> expects an integer between -2147483648 and 2147483647, got "99999999999"',
+      '<target> "99999999999" must be a version number from 1 to 2147483647',
     ],
+    [
+      ["invoice", "-99999999999999999999"],
+      '<source> "-99999999999999999999" must be a version number from 1 to 2147483647',
+    ],
+    [["invoice", "1", "1.5"], '<target> expects an integer, got "1.5"'],
     [["invoice", "1", "1"], "<source> and <target> are both version 1"],
     [["invoice", "0"], '<source> "0" must be a version number from 1 to 2147483647'],
     [

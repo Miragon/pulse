@@ -16,6 +16,9 @@ const BASE: PlanMigrationOptions = {
 }
 const LOOKUPS = ["GET /process-definition", "GET /process-definition"]
 const OWN = "plans/invoice.migration.json"
+/** The hints of a failing file system call: the default path is pulse's, --plan-file the user's. */
+const DEFAULT_FAILURE = "Check the folder's permissions, or name another path with --plan-file."
+const OWN_FAILURE = "Check --plan-file and the folder's permissions."
 
 function setup(
   files: FakeRuntimeOptions = {},
@@ -166,7 +169,123 @@ describe("planMigration plan file", () => {
     await expect(run()).rejects.toMatchObject({
       code: "USAGE",
       message: `Cannot write ${PLAN_PATH}: ${reason}`,
-      details: { hint: "Check --plan-file and the folder's permissions." },
+      details: { hint: DEFAULT_FAILURE },
     })
+  })
+
+  it("words a failing write of --plan-file with a hint at --plan-file", async () => {
+    const reason = "EACCES: permission denied, open 'plans/invoice.migration.json'"
+    const { run } = setup({ dirs: ["plans"] }, (fs) => ({
+      ...fs,
+      writeFile: () => Promise.reject(new Error(reason)),
+    }))
+    await expect(run({ planFile: OWN })).rejects.toMatchObject({
+      code: "USAGE",
+      message: `Cannot write ${OWN}: ${reason}`,
+      details: { hint: OWN_FAILURE },
+    })
+  })
+})
+
+/** Node's words for `method` (lstat or stat) on a path in a folder the user may not read. */
+function deniedText(method: "linked" | "kind", path: string): string {
+  return `EACCES: permission denied, ${method === "linked" ? "lstat" : "stat"} '${path}'`
+}
+
+/** A file system whose `method` fails from its call after `after` on, like Node's would. */
+function denied(method: "linked" | "kind", after = 0): (fs: FileSystem) => FileSystem {
+  return (fs) => {
+    let calls = 0
+    const fail = (path: string) =>
+      Promise.reject(Object.assign(new Error(deniedText(method, path)), { code: "EACCES" }))
+    return {
+      ...fs,
+      [method]: (path: string) => (++calls > after ? fail(path) : fs[method](path)),
+    }
+  }
+}
+
+describe("planMigration plan file failures", () => {
+  it.each([
+    ["linked", ".pulse"],
+    ["kind", PLAN_PATH],
+  ] as const)(
+    "words a failing %s of the default path (%s) as USAGE, exit 2, before the proposal",
+    async (method, failing) => {
+      const { server, run } = setup({}, denied(method))
+      await expect(run()).rejects.toMatchObject({
+        code: "USAGE",
+        exitCode: 2,
+        message: `Cannot write ${PLAN_PATH}: ${deniedText(method, failing)}`,
+        details: { hint: DEFAULT_FAILURE },
+      })
+      expect(sentRoutes(server)).toEqual(LOOKUPS)
+    },
+  )
+
+  it.each([
+    ["linked", 0, OWN],
+    ["kind", 0, OWN],
+    ["kind", 1, "plans"],
+  ] as const)(
+    "words a failing %s (after %i calls, of %s) of --plan-file as USAGE, exit 2, before any request",
+    async (method, after, failing) => {
+      const { server, run } = setup({ dirs: ["plans"] }, denied(method, after))
+      await expect(run({ planFile: OWN })).rejects.toMatchObject({
+        code: "USAGE",
+        exitCode: 2,
+        message: `Cannot write ${OWN}: ${deniedText(method, failing)}`,
+        details: { hint: OWN_FAILURE },
+      })
+      expect(server.requests).toEqual([])
+    },
+  )
+
+  it.each([
+    ["linked", 3, ".pulse"],
+    ["kind", 1, PLAN_PATH],
+  ] as const)(
+    "words a failing %s right before the write as USAGE and writes nothing",
+    async (method, after, failing) => {
+      const { server, run, runtime } = setup({}, denied(method, after))
+      await expect(run()).rejects.toMatchObject({
+        code: "USAGE",
+        exitCode: 2,
+        message: `Cannot write ${PLAN_PATH}: ${deniedText(method, failing)}`,
+        details: { hint: DEFAULT_FAILURE },
+      })
+      expect(sentRoutes(server)).toContain("POST /migration/validate")
+      expect(runtime.files.has(PLAN_PATH)).toBe(false)
+    },
+  )
+
+  it.each([
+    ["a".repeat(240), 264],
+    ["ä".repeat(120), 264],
+    ["a".repeat(232), 256],
+  ])(
+    "refuses a default file name over 255 bytes after the lookups, before the proposal",
+    async (key, bytes) => {
+      const { server, run, runtime } = setup()
+      const name = `${key}-v1-to-v2.migration.json`
+      await expect(run({ key })).rejects.toMatchObject({
+        code: "USAGE",
+        exitCode: 2,
+        message: `The default file name ${name} has ${String(bytes)} bytes; file systems hold at most 255`,
+        details: { hint: "Name a shorter path with --plan-file." },
+      })
+      expect(sentRoutes(server)).toEqual(LOOKUPS)
+      expect(runtime.dirs.has(".pulse/migrations")).toBe(false)
+    },
+  )
+
+  it("writes a default file name of exactly 255 bytes, and a long key with --plan-file", async () => {
+    const key = "a".repeat(231)
+    const { run, runtime } = setup()
+    await run({ key })
+    expect(runtime.files.has(`.pulse/migrations/${key}-v1-to-v2.migration.json`)).toBe(true)
+    const own = setup({ dirs: ["plans"] })
+    await own.run({ key: "a".repeat(240), planFile: OWN })
+    expect(own.runtime.files.has(OWN)).toBe(true)
   })
 })

@@ -1096,7 +1096,7 @@ exports[`workflow command describe text > renders the description of plan-migrat
   pulse plan-migration <key> <source> [target] [options]
 
 DESCRIPTION
-  Write a migration plan between two versions of a process as a file for the editors' preview
+  Write a migration plan between two versions of a process as a file Pulse for VS Code previews
   Effect: read; writes the plan file; nothing changes on the engine; --dry-run sends nothing and writes nothing
 
   Asks the engine for its mapping between two versions of a process (the target defaults to the
