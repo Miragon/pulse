@@ -17,10 +17,22 @@ const UNKNOWN_KEY = {
   reply: { body: [] },
 }
 
+/**
+ * The stats' range: yesterday and today. Two days make every kind of read 14 days make (the
+ * table keys a read by its route and parameter names, not its values) at a fifth of the requests;
+ * the table builds once per primary read, and 14 days ran past the 5 s test timeout on a loaded CI
+ * runner (main, 2026-11-24).
+ */
+const STATS_FROM = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
+
 export const PROCESS_NUMBER_CASES: Record<string, Case> = {
   buildProcessStatsData: {
     run: (client) =>
-      buildProcessStatsData(client, "fake", { processDefinitionKey: WORLD.key, bucket: "day" }),
+      buildProcessStatsData(client, "fake", {
+        processDefinitionKey: WORLD.key,
+        bucket: "day",
+        from: STATS_FROM,
+      }),
     unknown: UNKNOWN_KEY,
   },
   buildActivityCountsData: {

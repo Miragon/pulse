@@ -132,9 +132,16 @@ const rowsOf = (name: string) =>
     Array.from(row.querySelectorAll("td"), (cell) => cell.textContent),
   )
 
+/**
+ * How long the page may take to read every engine: the first render of the file on a loaded CI
+ * runner took more than waitFor's 1 s and failed the suite (main, 2026-11-24), the file's test
+ * timeout is 60 s.
+ */
+const LOADED_WITHIN = { timeout: 10_000 }
+
 /** The engine table has its rows, the cluster's read. */
 async function loaded() {
-  await waitFor(() => expect(rowsOf("Engines")[2]?.[2]).toBe("Camunda 8.10.9"))
+  await waitFor(() => expect(rowsOf("Engines")[2]?.[2]).toBe("Camunda 8.10.9"), LOADED_WITHIN)
 }
 
 describe("the start page", () => {
