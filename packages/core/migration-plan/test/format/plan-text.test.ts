@@ -99,7 +99,7 @@ describe("the text of a plan", () => {
     [
       "a definition id for the process",
       { ...PLAN, bpmnProcessId: "order-fulfillment:3:def-3" },
-      "bpmnProcessId must be a BPMN process id: letters, digits, _, . or -, starting with a letter or _, at most 255",
+      "bpmnProcessId must be a BPMN process id: letters, digits, _, . or -, starting with a letter or _, at most 255 characters",
     ],
     [
       "one version twice",

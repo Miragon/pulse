@@ -1,4 +1,5 @@
 import type { MigrationPlanProblem, PlanMapping, PlanSide } from "./plan-definition.js"
+import { PlanEcho } from "./plan-echo.js"
 import { MigrationPlanRules } from "./plan-rules.js"
 import { MigrationPlanVocabulary } from "./plan-vocabulary.js"
 
@@ -15,7 +16,8 @@ export class PlanChecks {
   }
 
   static keyPath(path: string, key: string): string {
-    return path === "" ? key : `${path}.${key}`
+    const shown = PlanEcho.key(key)
+    return path === "" ? shown : `${path}.${shown}`
   }
 
   get problems(): readonly MigrationPlanProblem[] {

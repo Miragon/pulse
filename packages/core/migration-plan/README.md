@@ -51,11 +51,14 @@ const written = MigrationPlanText.of({
 })
 ```
 
-`MigrationPlanParser.parse` returns `{ plan, notes }` or `{ problems }`, never both, and any
-problem refuses the file. A problem and a note are data, `{ path, code, values }`: the JSON path
-it is about (`mappings[2].targetElementId`, or `(file)` for the whole text), a code from
-`MigrationPlanProblemCode` and the values its words need. `MigrationPlanProblems.describe` words
-it in English, the sentence after the path, so a reader may word the codes in its own language.
+`MigrationPlanParser.parse` never throws: it returns `{ plan, notes }` or `{ problems }`, never
+both, and any problem refuses the file. A problem and a note are data, `{ path, code, values }`:
+the JSON path it is about (`mappings[2].targetElementId`, or `(file)` for the whole text), a code
+from `MigrationPlanProblemCode` and the values its words need. `MigrationPlanProblems.describe`
+words it in English, the sentence after the path, so a reader may word the codes in its own
+language. What a problem echoes from the file stays short: a key in a path and a `schemaVersion`
+text show their first 40 characters, with `…` after a cut, and a `schemaVersion` that is a list
+or an object is named by its kind (`a list`, `an object`), never written out.
 
 `MigrationPlanText.of` is the one writer: the keys in their order, two spaces, the mappings sorted
 by `sourceElementId` in code-unit order and a last line break. It writes only the keys of a plan,
@@ -108,10 +111,10 @@ What the parser refuses and notes, in its order:
   `pulse migration generate-plan --out-file` writes), as `enginePlan` alone, whose words name
   `pulse plan-migration`.
 - A `schemaVersion` other than 1, as `unknownVersion` alone, whatever else the file holds.
-- A key that names an instance, an engine, a tenant, a definition id or an engine option
-  (`MigrationPlanVocabulary.FOREIGN_KEYS`: `instanceIds`, `tenantId`, `definitionId`,
-  `updateEventTriggers`, `skipIoMappings`, `variables` and the rest), at the root, in a side or
-  in a mapping, as `notInAPlan` and only as that.
+- A name of `MigrationPlanVocabulary.FOREIGN_KEYS` (`instanceIds`, `tenantId`, `definitionId`,
+  `updateEventTriggers`, `skipIoMappings`, `variables` and the rest, keys that name an instance,
+  an engine, a tenant, a definition id or an engine option), at the root, in a side or in a
+  mapping, as `notInAPlan` and only as that; the parser looks for exactly these names.
 - A key a side or a mapping does not know (`unknownKey`), so a key of a newer format never reads
   as nothing.
 - A root key it does not know is a note (`ignoredKey`), and so is a `$schema` that is no text
@@ -121,8 +124,10 @@ The parser reads keys with `Object.keys` and builds new objects, so `__proto__` 
 
 What a plan never holds: instance ids, definition ids or deployment ids, engine or profile names,
 URLs, tenant ids, version tags, credentials, variables, timestamps, engine messages or check
-results, event trigger and skip flags, instance queries. The writer writes none of them, and the
-parser refuses them.
+results, event trigger and skip flags, instance queries. The writer writes none of them. The
+parser refuses an engine's plan, the names in `MigrationPlanVocabulary.FOREIGN_KEYS` at the root,
+in a side and in a mapping, and any other key of a side or a mapping; any other root key it only
+notes, and Pulse never reads its value.
 
 ## The version rule
 

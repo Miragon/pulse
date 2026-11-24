@@ -4,6 +4,7 @@ import type {
   MigrationPlanProblem,
 } from "./plan-definition.js"
 import { PlanChecks } from "./plan-checks.js"
+import { PlanEcho } from "./plan-echo.js"
 import { MigrationPlanVocabulary } from "./plan-vocabulary.js"
 
 type Json = Readonly<Record<string, unknown>>
@@ -41,7 +42,7 @@ export class MigrationPlanParser {
       : {
           path: "schemaVersion",
           code: "unknownVersion",
-          values: { found: JSON.stringify(version), reads },
+          values: { found: PlanEcho.value(version), reads },
         }
   }
 

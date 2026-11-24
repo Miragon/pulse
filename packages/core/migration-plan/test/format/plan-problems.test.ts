@@ -33,7 +33,7 @@ const SENTENCES: readonly (readonly [MigrationPlanProblem | MigrationPlanNote, s
   ],
   [
     { path: "bpmnProcessId", code: "notAProcessId" },
-    "must be a BPMN process id: letters, digits, _, . or -, starting with a letter or _, at most 255",
+    "must be a BPMN process id: letters, digits, _, . or -, starting with a letter or _, at most 255 characters",
   ],
   [
     { path: "source.version", code: "notAVersion" },

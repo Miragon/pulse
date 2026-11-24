@@ -151,6 +151,34 @@
     }
   },
   {
+    "name": "version-list",
+    "about": "A schemaVersion that is no number, text, true, false or null is named by its kind, never written out.",
+    "file": {
+      "schemaVersion": [[2]],
+      "bpmnProcessId": "invoice",
+      "source": {
+        "version": 1
+      },
+      "target": {
+        "version": 2
+      },
+      "mappings": []
+    },
+    "schema": false,
+    "verdict": {
+      "problems": [
+        {
+          "path": "schemaVersion",
+          "code": "unknownVersion",
+          "values": {
+            "found": "a list",
+            "reads": 1
+          }
+        }
+      ]
+    }
+  },
+  {
     "name": "not-json",
     "about": "Text that is not JSON gives no plan.",
     "text": "{ \"bpmnProcessId\": \"invoice\"\n",

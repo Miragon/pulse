@@ -129,6 +129,29 @@ describe("definitionsAtVersion", () => {
       problem,
     })
   })
+
+  it.each([
+    ["an object", {}, "process definitions is not a list"],
+    ["a text", "nope", "process definitions is not a list"],
+    ["null", null, "process definitions is not a list"],
+    [
+      "a list with an item that is no object",
+      [definition(1, "invoice:1:a"), "x"],
+      "process definitions[1] is not an object",
+    ],
+  ])(
+    "fails an answer that is %s as an unexpected answer, never as no definition",
+    async (_name, answer, problem) => {
+      const port = fakePort({ getProcessDefinitions: () => answer })
+
+      expect(await reasonOf(definitionsAtVersion(port, "invoice", 1))).toStrictEqual({
+        kind: "unexpected-answer",
+        operationId: "getProcessDefinitions",
+        problem,
+      })
+      expect(port.calls).toStrictEqual([definitionsAtVersionRequest("invoice", 1)])
+    },
+  )
 })
 
 describe("migrationInstructions", () => {

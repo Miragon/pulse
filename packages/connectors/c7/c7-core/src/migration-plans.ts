@@ -19,7 +19,6 @@ import {
   migrationPlanOf,
 } from "./migration-rows.js"
 import { type EnginePort, type PlannedRequest, pageQuery, type Query } from "./port.js"
-import type { Rec } from "./records.js"
 
 /** One element of the source version mapped onto one element of the target version. */
 export interface ElementPair {
@@ -76,8 +75,7 @@ function versionQuery(key: string, version: VersionQuery): Query {
   return version === "latest" ? { key, latestVersion: "true" } : { key, version: String(version) }
 }
 
-function definitionOf(row: Rec): DefinitionAtVersion {
-  const definition = JsonView.of(row, "process definition")
+function definitionOf(definition: JsonView): DefinitionAtVersion {
   const tenantId = definition.optionalString("tenantId")
   return {
     id: definition.requiredString("id"),
@@ -106,16 +104,22 @@ export function definitionsAtVersionRequest(key: string, version: VersionQuery):
   }
 }
 
-/** The definitions of the process `key` at `version`, every tenant's, at most 10 of them. */
+/**
+ * The definitions of the process `key` at `version`, every tenant's, at most 10 of them, in the
+ * one request `definitionsAtVersionRequest` names. An answer that is no list of objects fails.
+ */
 export function definitionsAtVersion(
   port: EnginePort,
   key: string,
   version: VersionQuery,
 ): Promise<DefinitionsAtVersion> {
   return readable("getProcessDefinitions", async () => {
-    const query = versionQuery(key, version)
-    const { items, truncated } = await port.list("getProcessDefinitions", query, DEFINITIONS_CAP)
-    return { definitions: items.map(definitionOf), more: truncated }
+    const { operationId, input } = definitionsAtVersionRequest(key, version)
+    const rows = JsonView.listOf(await port.json(operationId, input), "process definitions")
+    return {
+      definitions: rows.slice(0, DEFINITIONS_CAP).map(definitionOf),
+      more: rows.length > DEFINITIONS_CAP,
+    }
   })
 }
 

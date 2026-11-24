@@ -332,7 +332,7 @@ describe("a file the preview refuses", () => {
     expect(problemOf(opened.fixture.lastState())).toEqual({
       title: `Pulse can't preview ${PLAN_FILE}.`,
       detail:
-        "bpmnProcessId must be a BPMN process id: letters, digits, _, . or -, starting with a letter or _, at most 255. And 3 more problems.",
+        "bpmnProcessId must be a BPMN process id: letters, digits, _, . or -, starting with a letter or _, at most 255 characters. And 3 more problems.",
       canEditConnection: false,
     })
     expect(opened.fixture.calls).toEqual([])

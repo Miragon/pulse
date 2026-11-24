@@ -12,7 +12,7 @@ export class MigrationPlanProblems {
     notAnObject: "must be an object",
     notAList: "must be a list",
     missing: "is missing",
-    notAProcessId: `must be a BPMN process id: letters, digits, _, . or -, starting with a letter or _, at most ${String(MigrationPlanRules.MAX_ID_LENGTH)}`,
+    notAProcessId: `must be a BPMN process id: letters, digits, _, . or -, starting with a letter or _, at most ${String(MigrationPlanRules.MAX_ID_LENGTH)} characters`,
     notAVersion: `must be a version number from 1 to ${String(MigrationPlanRules.MAX_VERSION)}`,
     sameVersion: "must name another version than source.version",
     notAnElementId: "must be a BPMN element id, or an element id with one # part for its scope",

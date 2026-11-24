@@ -38,7 +38,7 @@ describe("planMigration command line", () => {
   it.each([
     [
       { key: "invoice:1:def-1" },
-      '<key> "invoice:1:def-1" must be a BPMN process id: letters, digits, _, . or -, starting with a letter or _, at most 255',
+      '<key> "invoice:1:def-1" must be a BPMN process id: letters, digits, _, . or -, starting with a letter or _, at most 255 characters',
       "Pass the process definition key, not a definition id; pulse process-definition list lists them.",
     ],
     [
