@@ -53,9 +53,9 @@ export const PLAN_MIGRATION_DOC: WorkflowDoc = {
   name: "plan-migration",
   usage: "pulse plan-migration <key> <source> [target] [options]",
   summary:
-    "Write a migration plan between two versions of a process as a file Pulse for VS Code previews",
+    "Write a migration plan between two versions of a process as a file Pulse for VS Code edits",
   description:
-    "Asks the engine for its mapping between two versions of a process (the target defaults to the latest version), applies --unmap and --map, has the engine check the result and writes it as a plan file keyed by the process definition key and the two version numbers, with no engine, no definition id and no instance in it (.pulse/migrations/<key>-v<source>-to-v<target>.migration.json unless --plan-file names one). Pulse for VS Code previews the file on an engine you pick. The command migrates nothing; when the engine finds problems it still writes the file and exits with code 9 (CHECK_FAILED).",
+    "Asks the engine for its mapping between two versions of a process (the target defaults to the latest version), applies --unmap and --map, has the engine check the result and writes it as a plan file keyed by the process definition key and the two version numbers, with no engine, no definition id and no instance in it (.pulse/migrations/<key>-v<source>-to-v<target>.migration.json unless --plan-file names one). Pulse for VS Code edits the file in diagrams of both versions, checked on an engine you pick. The command migrates nothing; when the engine finds problems it still writes the file and exits with code 9 (CHECK_FAILED).",
   requests:
     "in parallel GET /process-definition?key=&version= for each version (latestVersion=true without a target version; each must name exactly one definition), then POST /migration/generate (updateEventTriggers false), then POST /migration/validate with your changes (one instruction per mapping, updateEventTrigger false)",
   effect: "read",

@@ -356,3 +356,103 @@
   stroke-width: 3px !important;
   stroke-dasharray: 6 3 !important;
 }
+
+.mapping-arrows {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.mapping-arrow {
+  fill: none;
+  stroke: var(--cd-ui-info);
+  stroke-width: 1.5px;
+  stroke-linecap: round;
+  opacity: 0.6;
+}
+
+.mapping-arrow:is([data-focused], [data-drawing]) {
+  stroke-width: 2px;
+  opacity: 1;
+}
+
+.mapping-arrow[data-tone="danger"] {
+  stroke: var(--cd-ui-danger);
+  stroke-dasharray: 6 4;
+}
+
+.mapping-arrow[data-drawing] {
+  stroke-dasharray: 5 4;
+}
+
+.mapping-arrow-head {
+  fill: var(--cd-ui-info);
+}
+
+.mapping-arrow-head[data-tone="danger"] {
+  fill: var(--cd-ui-danger);
+}
+
+.mapping-handles {
+  display: inline-flex;
+  gap: 4px;
+  transform: translateX(-100%);
+}
+
+.mapping-handles:not([data-shown]) {
+  opacity: 0;
+}
+
+.badge-anchor[data-hot] .mapping-handles,
+.mapping-handles:hover,
+.mapping-handles:focus-within {
+  opacity: 1;
+}
+
+.map-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--cd-ui-kontur);
+  border-radius: 3px;
+  background: var(--cd-ui-flaeche-hoch);
+  color: var(--cd-ui-text);
+  cursor: pointer;
+  touch-action: none;
+}
+
+.map-handle[data-kind="map"] {
+  cursor: crosshair;
+}
+
+.map-handle:hover {
+  border-color: var(--cd-ui-link);
+}
+
+.map-handle:focus-visible {
+  outline: 1px solid var(--drilldown-focus-outline-color);
+  outline-offset: 1px;
+}
+
+.djs-element.pulse-counterpart .djs-visual > :first-child {
+  stroke: var(--cd-ui-info) !important;
+  stroke-width: 3px !important;
+}
+
+@media (forced-colors: active) {
+  .mapping-arrow,
+  .djs-element.pulse-counterpart .djs-visual > :first-child {
+    stroke: Highlight !important;
+  }
+
+  .mapping-arrow-head {
+    fill: Highlight;
+  }
+}

@@ -3,12 +3,12 @@ import type { Command } from "./commands/command.js"
 import { CommandRegistrar } from "./commands/command-registrar.js"
 import { ConnectionEditor } from "./commands/connection-editor.js"
 import { ConnectionPicker } from "./commands/connection-picker.js"
+import { EditMigrationPlanCommand } from "./commands/edit-migration-plan-command.js"
 import { GoToInstanceCommand } from "./commands/go-to-instance-command.js"
 import { OpenDefinitionCommand } from "./commands/open-definition-command.js"
 import { OpenEngineOverviewCommand } from "./commands/open-engine-overview-command.js"
 import { OpenInstanceCommand } from "./commands/open-instance-command.js"
 import { OpenTargetsFileCommand } from "./commands/open-targets-file-command.js"
-import { PreviewMigrationPlanCommand } from "./commands/preview-migration-plan-command.js"
 import { RefreshCommand } from "./commands/refresh-command.js"
 import { SetCredentialsCommand } from "./commands/set-credentials-command.js"
 import { ShowRuntimeDataCommand } from "./commands/show-runtime-data-command.js"
@@ -22,7 +22,6 @@ import { CompositionRoot } from "./composition-root.js"
 import {
   ConnectionBuilder,
   CredentialStore,
-  type EngineRoot,
   WriteAudit,
 } from "@miragon/pulse-runtime-view/host-kit"
 import { ConnectionRegistry } from "./connections/connection-registry.js"
@@ -41,6 +40,8 @@ import { PanelManager } from "./panels/panel-manager.js"
 import { SourceNavigation } from "./panels/source-navigation.js"
 import { StackFrameLinks } from "./panels/stack-frame-links.js"
 import { WriteConfirmation } from "./panels/write-confirmation.js"
+import { MigrationPlanEditors } from "./plans/migration-plan-editors.js"
+import { PlanEngines } from "./plans/plan-engines.js"
 import { VsCodeWorkspaceFiles } from "./workspace/vscode-workspace-files.js"
 
 export class PulseExtension {
@@ -97,10 +98,13 @@ export class PulseExtension {
         setCredentials,
         openTargetsFile,
         new OpenEngineOverviewCommand(registry, picker, panels),
-        ...this.navigation(registry, picker, panels, root.engines),
+        ...this.navigation(registry, panels),
       ]),
     )
     await registry.reload()
+    this.context.subscriptions.push(
+      ...this.plans(new PlanEngines(registry, picker, root.engines), panels),
+    )
   }
 
   private views(
@@ -138,18 +142,22 @@ export class PulseExtension {
     ]
   }
 
-  private navigation(
-    registry: ConnectionRegistry,
-    picker: ConnectionPicker,
-    panels: PanelManager,
-    engines: EngineRoot,
-  ): Command[] {
+  private navigation(registry: ConnectionRegistry, panels: PanelManager): Command[] {
     return [
       new OpenDefinitionCommand(registry, panels),
       new OpenInstanceCommand(registry, panels),
       new GoToInstanceCommand(registry, panels),
       new ShowRuntimeDataCommand(registry, panels),
-      new PreviewMigrationPlanCommand(registry, picker, panels, engines),
+    ]
+  }
+
+  private plans(engines: PlanEngines, panels: PanelManager): vscode.Disposable[] {
+    const editors = new MigrationPlanEditors(engines, panels, this.context.workspaceState)
+    return [
+      vscode.window.registerCustomEditorProvider(MigrationPlanEditors.VIEW_TYPE, editors, {
+        supportsMultipleEditorsPerDocument: true,
+      }),
+      CommandRegistrar.register([new EditMigrationPlanCommand(editors)]),
     ]
   }
 }

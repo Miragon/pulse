@@ -6,15 +6,15 @@ advance and retry select a process instance by id, `--business-key` or
 `--process-definition-key <key> --latest`. The views list ready-to-run follow-ups under `next`,
 and `pulse describe <command>` lists every option of a command and the requests it sends.
 
-| Command                | Effect                              | What it does                                                                      |
-| ---------------------- | ----------------------------------- | --------------------------------------------------------------------------------- |
-| `pulse inspect`        | read                                | Where an instance waits and why: wait states, root incidents, variables           |
-| `pulse wait`           | read (write with `--execute-jobs`)  | Waits until the instance is idle or reaches an `--until` condition                |
-| `pulse advance`        | write                               | Completes what the instance waits for                                             |
-| `pulse retry`          | write (bulk for a whole definition) | Sets the retries behind open incidents; `--now` executes the jobs                 |
-| `pulse deploy`         | write                               | Deploys changed files and directories, can start an instance                      |
-| `pulse status`         | read                                | Engine triage: incidents by root cause, overdue jobs, workers, batches            |
-| `pulse plan-migration` | read (writes the plan file)         | Writes a migration plan between two versions as a file Pulse for VS Code previews |
+| Command                | Effect                              | What it does                                                                   |
+| ---------------------- | ----------------------------------- | ------------------------------------------------------------------------------ |
+| `pulse inspect`        | read                                | Where an instance waits and why: wait states, root incidents, variables        |
+| `pulse wait`           | read (write with `--execute-jobs`)  | Waits until the instance is idle or reaches an `--until` condition             |
+| `pulse advance`        | write                               | Completes what the instance waits for                                          |
+| `pulse retry`          | write (bulk for a whole definition) | Sets the retries behind open incidents; `--now` executes the jobs              |
+| `pulse deploy`         | write                               | Deploys changed files and directories, can start an instance                   |
+| `pulse status`         | read                                | Engine triage: incidents by root cause, overdue jobs, workers, batches         |
+| `pulse plan-migration` | read (writes the plan file)         | Writes a migration plan between two versions as a file Pulse for VS Code edits |
 
 The development loop, without a single id passed around:
 

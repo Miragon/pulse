@@ -85,7 +85,7 @@ id, `--business-key` or `--process-definition-key <key> --latest`; `next` lists 
 - `pulse deploy`: deploys changed files and directories, reports the versions in effect.
 - `pulse status`: grouped incidents with root cause, overdue jobs, external task workers.
 - `pulse plan-migration`: writes a migration plan between two versions as a file; Pulse for
-  VS Code previews it.
+  VS Code edits it in diagrams.
 
 ```sh
 pulse deploy bpmn --start --business-key B-1 --var amount=250

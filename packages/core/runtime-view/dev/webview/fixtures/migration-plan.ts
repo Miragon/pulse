@@ -6,10 +6,29 @@ import type {
 import orderXml from "./order-fulfillment.bpmn"
 import { AS_OF, LOCAL_ENGINE } from "./engines.js"
 
+const KINDS: readonly (readonly (readonly [string, string])[])[] = [
+  [
+    ["Activity_ReserveStock", "Reserve stock"],
+    ["Activity_ShipOrder", "Ship order"],
+  ],
+  [["Activity_CheckCredit", "Check credit"]],
+  [["Activity_ApproveOrder", "Approve order"]],
+  [
+    ["Event_WaitForPickup", "Wait for pickup"],
+    ["Event_PaymentReceived", "Payment received"],
+  ],
+]
+
+function candidatesOf(elementId: string): PlanMappingRow["candidates"] {
+  const kind = KINDS.find((members) => members.some(([id]) => id === elementId)) ?? []
+  return kind.map(([id, label]) => ({ elementId: id, label }))
+}
+
 function same(elementId: string, label: string, tokens?: number): PlanMappingRow {
   return {
     sourceElementId: elementId,
     sourceLabel: label,
+    candidates: candidatesOf(elementId),
     targetElementId: elementId,
     targetLabel: label,
     ...(tokens === undefined ? {} : { tokens }),
@@ -18,8 +37,8 @@ function same(elementId: string, label: string, tokens?: number): PlanMappingRow
 
 const STARTS_NOTHING = {
   tone: "info",
-  title: "This preview starts nothing.",
-  detail: "Migrating in the definition panel doesn't use this file.",
+  title: "Your edits change only this file.",
+  detail: "Migrating in the definition panel doesn't use it.",
   actions: [],
 } as const
 
@@ -76,6 +95,7 @@ export const BLOCKED_MIGRATION_PLAN_VIEW: MigrationPlanView = {
     {
       sourceElementId: "Activity_ShipOrder",
       sourceLabel: "Ship order",
+      candidates: candidatesOf("Activity_ShipOrder"),
       targetElementId: "Activity_ShipParcel",
       targetLabel: "Activity_ShipParcel",
       refused: "v7 has no element Activity_ShipParcel.",
@@ -88,6 +108,7 @@ export const BLOCKED_MIGRATION_PLAN_VIEW: MigrationPlanView = {
     {
       sourceElementId: "Activity_ApproveOrder",
       sourceLabel: "Approve order",
+      candidates: candidatesOf("Activity_ApproveOrder"),
       tokens: 3,
       unmappedTokens: true,
     },
@@ -120,12 +141,17 @@ export const BLOCKED_MIGRATION_PLAN_VIEW: MigrationPlanView = {
       actions: [],
     },
     { tone: "info", title: "v7 is not the latest version (v8).", actions: [] },
-    { tone: "info", title: "Pulse ignores 1 key of the file: title.", actions: [] },
+    {
+      tone: "info",
+      title: "Pulse ignores 1 key of the file: title.",
+      detail: "An edit here writes the plan without it.",
+      actions: [],
+    },
   ],
 }
 
 export const BROKEN_PLAN_PROBLEM: Problem = {
-  title: `Pulse can't preview ${PLAN_FILE}.`,
+  title: `Pulse can't read ${PLAN_FILE} as a migration plan.`,
   detail: "The file is not valid JSON.",
   canEditConnection: false,
   file: PLAN_FILE,

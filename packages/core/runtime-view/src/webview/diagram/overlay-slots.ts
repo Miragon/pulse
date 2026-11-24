@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 import { flushSync } from "react-dom"
 
-export type OverlayKind = "badges" | "call" | "actions" | "move"
+export type OverlayKind = "badges" | "call" | "actions" | "move" | "mapping"
 
 export interface OverlaySlot {
   readonly key: string

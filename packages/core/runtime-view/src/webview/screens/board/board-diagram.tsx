@@ -8,7 +8,7 @@ import type {
   ProcessDiagramTile,
 } from "../../../core/protocol/index.js"
 import { RuntimeDiagram } from "../../components/runtime-diagram.js"
-import type { Decorations } from "../../diagram/decoration-layer.js"
+import type { Decorations } from "../../diagram/decorations.js"
 
 export const DiagramXmls = createContext<ReadonlyMap<string, string>>(new Map())
 

@@ -4,8 +4,12 @@ import { MigrationPlanProblems } from "./plan-problems.js"
 import { MigrationPlanVocabulary } from "./plan-vocabulary.js"
 
 export class MigrationPlanText {
-  static of(plan: MigrationPlanDefinition): string {
-    const text = `${JSON.stringify(MigrationPlanText.documentOf(plan), undefined, 2)}\n`
+  static of(plan: MigrationPlanDefinition, options: { readonly schema?: string } = {}): string {
+    const document = {
+      ...(options.schema === undefined ? {} : { $schema: options.schema }),
+      ...MigrationPlanText.documentOf(plan),
+    }
+    const text = `${JSON.stringify(document, undefined, 2)}\n`
     const parsed = MigrationPlanParser.parse(text)
     if ("problems" in parsed) {
       const problems = parsed.problems.map(

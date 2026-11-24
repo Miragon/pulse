@@ -74,9 +74,9 @@ An open `.bpmn` file tells you whether it matches a deployed version. From an in
 
 Tick instances to cancel them or migrate them as one batch. A migration shows both versions with
 the mapping the engine proposes and flags elements where instances would get stuck, before anything
-runs. A plan file of `pulse plan-migration` opens as a preview on an engine you pick
-(_Pulse: Preview Migration Plan…_): tokens, unmapped elements and the engine's check, and it
-migrates nothing.
+runs. A plan file of `pulse plan-migration` opens in a graphical editor on an engine you pick
+(_Pulse: Edit Migration Plan…_): drag a mapping from one version to the other as in the Camunda 7
+Cockpit, see tokens, unmapped elements and the engine's check; it changes only the file.
 
 ## Boards across engines
 

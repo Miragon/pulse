@@ -22,7 +22,7 @@ export class PlanProblems {
 
   static broken(fileName: string, problems: readonly MigrationPlanProblem[]): Problem {
     return {
-      title: `Pulse can't preview ${fileName}.`,
+      title: `Pulse can't read ${fileName} as a migration plan.`,
       detail: PlanProblems.detailOf(problems),
       canEditConnection: false,
       file: fileName,

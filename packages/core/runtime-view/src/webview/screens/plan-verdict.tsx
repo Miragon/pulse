@@ -4,6 +4,7 @@ import type { MigrationPlanView } from "../../core/protocol/index.js"
 
 export function PlanVerdict({ view }: { readonly view: MigrationPlanView }) {
   const { verdict } = view
+  const danger = !verdict.fits && verdict.checking !== true
   return (
     <div
       className="bg-card border-border px-gutter flex flex-none flex-col gap-1 border-t py-2"
@@ -16,12 +17,11 @@ export function PlanVerdict({ view }: { readonly view: MigrationPlanView }) {
       <p
         className="flex min-w-0 items-start gap-1.5"
         data-part="plan-verdict"
-        data-tone={verdict.fits ? "neutral" : "danger"}
+        data-tone={danger ? "danger" : "neutral"}
         aria-live="polite"
+        aria-busy={verdict.checking === true ? true : undefined}
       >
-        {!verdict.fits && (
-          <Icon icon={CircleXIcon} className={cn(TONE_ICON.danger, "mt-0.5 flex-none")} />
-        )}
+        {danger && <Icon icon={CircleXIcon} className={cn(TONE_ICON.danger, "mt-0.5 flex-none")} />}
         <span className="min-w-0">{verdict.text}</span>
       </p>
       <ul

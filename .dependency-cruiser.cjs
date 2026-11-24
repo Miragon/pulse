@@ -513,7 +513,7 @@ const MIGRATION_PLAN = {
 /**
  * Where a surface reads or writes its plan files, the only shipped importers of MIGRATION_PLAN:
  * the CLI's workflow commands (`pulse plan-migration` writes a plan file) and the runtime view's
- * migration plan preview (src/core/plans, which Pulse for VS Code opens; its closed world admits
+ * migration plan editor (src/core/plans, which Pulse for VS Code opens; its closed world admits
  * the edge from the core). Tests import it anywhere.
  */
 const MIGRATION_PLAN_READERS = [
@@ -1296,7 +1296,7 @@ module.exports = {
         "package, no npm package and no Node built-in. It parses and writes the text of a plan " +
         "file a reader hands it: finding, reading and writing the file, the engine a plan is " +
         "checked on and every engine request stay with the reader (the CLI's workflow commands, " +
-        "the runtime view's migration plan preview). Its tests may import vitest and ajv.",
+        "the runtime view's migration plan editor). Its tests may import vitest and ajv.",
       from: { path: `^${escapeRegExp(MIGRATION_PLAN.tree)}/src/`, pathNot: ["[.]test[.]ts$"] },
       to: { pathNot: `^${escapeRegExp(MIGRATION_PLAN.tree)}/src/` },
     },
@@ -1307,9 +1307,10 @@ module.exports = {
         "The migration plan format (@miragon/pulse-migration-plan) may be imported only where a " +
         "surface writes or reads its plan files (MIGRATION_PLAN_READERS): the CLI's workflow " +
         "commands (apps/cli/src/workflow, pulse plan-migration) and the runtime view's migration " +
-        "plan preview (packages/core/runtime-view/src/core/plans), and by tests anywhere. Not the " +
+        "plan editor (packages/core/runtime-view/src/core/plans), and by tests anywhere. Not the " +
         "CLI's command layer or config, not the runtime view's other layers, not the editor " +
-        "hosts' src (they hand the preview the file's text), no connector, no other package and " +
+        "hosts' src (they hand the editor the file's text and write what it hands back), no " +
+        "connector, no other package and " +
         "no other app until it reads a plan file itself, through a rule change of its own. A " +
         "relative escape into packages/core/migration-plan is a violation too.",
       from: {

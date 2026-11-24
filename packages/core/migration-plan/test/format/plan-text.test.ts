@@ -63,6 +63,16 @@ describe("the text of a plan", () => {
     })
   })
 
+  test("keeps a $schema it is given first, and reads back as the same plan with no note", () => {
+    const text = MigrationPlanText.of(PLAN, { schema: "./migration-plan.schema.json" })
+
+    expect(
+      text.startsWith('{\n  "$schema": "./migration-plan.schema.json",\n  "schemaVersion": 1,'),
+    ).toBe(true)
+    expect(MigrationPlanParser.parse(text)).toStrictEqual({ plan: PLAN, notes: [] })
+    expect(MigrationPlanText.of(PLAN, {})).toBe(MigrationPlanText.of(PLAN))
+  })
+
   test("sorts the sources by their code units, not by a language", () => {
     const text = MigrationPlanText.of({
       ...PLAN,

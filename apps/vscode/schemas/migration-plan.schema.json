@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Pulse migration plan",
-  "description": "A plan to migrate the instances of one BPMN process from one version to another, named by the process id and the two version numbers. pulse plan-migration writes it, and Pulse for VS Code previews it on the engine you pick. It names no engine and no instance, and opening it migrates nothing.",
+  "description": "A plan to migrate the instances of one BPMN process from one version to another, named by the process id and the two version numbers. pulse plan-migration writes it, and Pulse for VS Code edits it in diagrams, checked on the engine you pick. It names no engine and no instance, and opening it migrates nothing.",
   "type": "object",
   "additionalProperties": false,
   "required": ["bpmnProcessId", "source", "target", "mappings"],

@@ -78,7 +78,7 @@ describe("workflow commands in help, commands and describe", () => {
       "wait            read    Wait until a process instance is idle, ended, has an incident or reached an activity, or a batc…",
     ])
     expect(lines[7]).toBe(
-      "plan-migration  read    Write a migration plan between two versions of a process as a file Pulse for VS Code previews",
+      "plan-migration  read    Write a migration plan between two versions of a process as a file Pulse for VS Code edits",
     )
     const described = JSON.parse((await cli(["describe", "inspect"])).stdout) as Record<
       string,

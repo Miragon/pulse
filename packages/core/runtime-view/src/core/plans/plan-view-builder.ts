@@ -26,6 +26,8 @@ export interface PlanState extends MigrationState {
   readonly notes: readonly MigrationPlanNote[]
   readonly running: number
   readonly withIncident: number
+  readonly schema: string | undefined
+  readonly refusedWrites: number
 }
 
 export interface PlanScene {
@@ -94,6 +96,7 @@ export class PlanViewBuilder {
       verdict: this.verdict(),
       facts: this.facts(),
       notices: this.notices(),
+      ...(state.refusedWrites > 0 ? { refusedWrites: state.refusedWrites } : {}),
     }
   }
 
@@ -116,6 +119,7 @@ export class PlanViewBuilder {
     return {
       sourceElementId: row.sourceElementId,
       sourceLabel: row.sourceLabel,
+      candidates: row.candidates,
       ...this.targetOf(refused?.mapping.targetElementId ?? row.targetElementId),
       ...(tokens === undefined ? {} : { tokens }),
       ...(refused === undefined ? {} : { refused: this.refusalOf(refused) }),
@@ -130,6 +134,7 @@ export class PlanViewBuilder {
     return {
       sourceElementId,
       sourceLabel: this.elements.sourceLabel(sourceElementId),
+      candidates: this.elements.candidatesFor(sourceElementId),
       ...this.targetOf(targetElementId),
       refused: this.refusalOf(entry),
     }
@@ -169,12 +174,19 @@ export class PlanViewBuilder {
       `${Labels.count(this.state.mappings.length)} mapped`,
       ...(refused > 0 ? [`${Labels.count(refused)} left out`] : []),
       ...(onlyLeftOut ? [] : [MigrationFacts.findings(problems, unmapped)]),
+      ...(this.state.checking ? ["checking…"] : []),
     ].join(" · ")
   }
 
   private verdict(): PlanVerdict {
-    const { refused, problems } = this.state
+    const { refused, problems, checking, checkFailure } = this.state
     const [problem] = problems
+    if (checking) {
+      return { fits: false, checking: true, text: "The engine checks the changed plan." }
+    }
+    if (checkFailure !== undefined) {
+      return { fits: false, text: `Pulse could not check the plan: ${checkFailure}` }
+    }
     if (refused.length > 0) {
       const fit = refused.length === 1 ? "doesn't" : "don't"
       return {
@@ -219,10 +231,19 @@ export class PlanViewBuilder {
     const cap = Labels.count(BULK_CAP)
     const keys = notes.map((note) => note.path).join(", ")
     return [
+      ...(this.state.refusedWrites > 0
+        ? [
+            PlanViewBuilder.notice(
+              "warning",
+              `VS Code didn't change ${this.state.fileName}.`,
+              "Check that the file can be written; the plan shows what the file says.",
+            ),
+          ]
+        : []),
       PlanViewBuilder.notice(
         "info",
-        "This preview starts nothing.",
-        "Migrating in the definition panel doesn't use this file.",
+        "Your edits change only this file.",
+        "Migrating in the definition panel doesn't use it.",
       ),
       ...(running > BULK_CAP
         ? [
@@ -241,6 +262,7 @@ export class PlanViewBuilder {
             PlanViewBuilder.notice(
               "info",
               `Pulse ignores ${Labels.plural(notes.length, "key")} of the file: ${keys}.`,
+              `An edit here writes the plan without ${notes.length === 1 ? "it" : "them"}.`,
             ),
           ]
         : []),

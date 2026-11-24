@@ -5,8 +5,8 @@ move from one version to another: which element of the source version maps onto 
 the target version. It is a JSON file in the repository
 (`.pulse/migrations/<bpmnProcessId>-v<source>-to-v<target>.migration.json`), versioned and
 reviewed like the code. `pulse plan-migration` of the CLI writes it, and Pulse for VS Code
-previews it on an engine you pick; this package holds the format, so both read and write the same
-file the same way.
+edits it in diagrams, checked on an engine you pick; this package holds the format, so both read
+and write the same file the same way.
 Below 1.0: it moves in lockstep with all `@miragon/pulse-*` packages.
 
 ## What it is not
@@ -50,6 +50,9 @@ const written = MigrationPlanText.of({
   mappings: [{ sourceElementId: "check", targetElementId: "review" }],
 })
 ```
+
+`MigrationPlanText.of(plan, { schema })` writes a `$schema` text first when you hand it one, so
+an editor keeps the reference a file carries.
 
 `MigrationPlanParser.parse` never throws: it returns `{ plan, notes }` or `{ problems }`, never
 both, and any problem refuses the file. A problem and a note are data, `{ path, code, values }`:
@@ -202,10 +205,11 @@ parser and the schema; a reader of its own runs them through its path.
 - The CLI: `pulse plan-migration` (`apps/cli/src/workflow/`) checks its arguments with the id and
   version rules, resolves each version number with `MigrationPlanVersions` and writes the file
   with `MigrationPlanText`.
-- Pulse for VS Code: the runtime view's migration plan preview
+- Pulse for VS Code: the runtime view's migration plan editor
   (`packages/core/runtime-view/src/core/plans`) parses the file, words its problems with
-  `MigrationPlanProblems` and resolves the versions on the engine you pick with
-  `MigrationPlanVersions`; the extension ships the JSON Schema for the editor.
+  `MigrationPlanProblems`, resolves the versions on the engine you pick with
+  `MigrationPlanVersions` and writes each edit with `MigrationPlanText`; the extension ships the
+  JSON Schema for the text editor.
 
 The dependency rules hold the readers to those two places (`migration-plan-consumers`) and the
 format to its own modules (`migration-plan-is-a-leaf`); the reasons are in

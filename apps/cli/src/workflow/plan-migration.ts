@@ -118,7 +118,7 @@ function checkedInput(options: PlanMigrationOptions): PlanEdits {
     const suffix = MigrationPlanFiles.SUFFIX
     throw usageError(
       `--plan-file ${planFile} must end in ${suffix}`,
-      `Pulse for VS Code previews files ending in ${suffix}, e.g. --plan-file plans/${key}${suffix}.`,
+      `Pulse for VS Code edits files ending in ${suffix}, e.g. --plan-file plans/${key}${suffix}.`,
     )
   }
   return parseEdits(options.map, options.unmap)

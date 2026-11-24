@@ -25,6 +25,7 @@ const RENDERER_PAINT = "diagram/canvas-roles.ts"
 const DENSE_ICONS_ALLOWED: Readonly<Record<string, string>> = {
   "components/count-badge.tsx": "the incident icon inside a 20 px count badge on the diagram",
   "diagram/code-button.tsx": "the code button, a 20 px overlay on a shape",
+  "diagram/mapping-handles.tsx": "a mapping handle, a 20 px overlay on a shape",
   "diagram/move-badge.tsx": "the move badge, a 20 px overlay on a shape",
   "diagram/move-entry.tsx": "a move entry, a 20 px overlay on a shape",
   "screens/called-instance-link.tsx": "an inline link inside a line of dense text",

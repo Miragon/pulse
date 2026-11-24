@@ -28,7 +28,7 @@ export class SourceNavigation {
     try {
       await vscode.window.showTextDocument(vscode.Uri.parse(location.uri), {
         preview: true,
-        viewColumn: vscode.ViewColumn.Active,
+        viewColumn: location.beside === true ? vscode.ViewColumn.Beside : vscode.ViewColumn.Active,
         selection: new vscode.Range(position, position),
       })
     } catch {

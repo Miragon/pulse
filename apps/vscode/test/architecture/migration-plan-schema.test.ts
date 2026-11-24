@@ -6,6 +6,7 @@ import { MIGRATION_PLAN_FIXTURES } from "@miragon/pulse-migration-plan/testing"
 import { describe, expect, test, vi } from "vitest"
 import type * as vscode from "vscode"
 import { COMMAND } from "../../src/host/commands/command-ids.js"
+import { MigrationPlanEditors } from "../../src/host/plans/migration-plan-editors.js"
 import { PlanFiles } from "../../src/host/plans/plan-files.js"
 import { APP_ROOT } from "./support/files.js"
 
@@ -25,6 +26,11 @@ const manifest = JSON.parse(readFileSync(join(APP_ROOT, "package.json"), "utf8")
     readonly commands: readonly { readonly command: string; readonly title: string }[]
     readonly menus: Readonly<Record<string, readonly MenuEntry[]>>
     readonly jsonValidation: readonly { fileMatch: string; url: string }[]
+    readonly customEditors: readonly {
+      readonly viewType: string
+      readonly selector: readonly { readonly filenamePattern: string }[]
+      readonly priority: string
+    }[]
   }
 }
 
@@ -34,9 +40,9 @@ function uriOf(path: string): vscode.Uri {
   return { path, toString: () => `file://${path}` } as unknown as vscode.Uri
 }
 
-function previewEntries(menu: string): readonly MenuEntry[] {
+function editEntries(menu: string): readonly MenuEntry[] {
   return (manifest.contributes.menus[menu] ?? []).filter(
-    (entry) => entry.command === COMMAND.previewMigrationPlan,
+    (entry) => entry.command === COMMAND.editMigrationPlan,
   )
 }
 
@@ -61,7 +67,7 @@ describe("the migration plan schema the editor validates with", () => {
     expect(readFileSync(join(APP_ROOT, ".vscodeignore"), "utf8").split("\n")).toContain(`!${COPY}`)
   })
 
-  test("holds the format's full plan, whose file lands where the extension validates and previews it", () => {
+  test("holds the format's full plan, whose file lands where the extension validates and edits it", () => {
     const full = MIGRATION_PLAN_FIXTURES.find((fixture) => fixture.name === "full")
     const parsed = MigrationPlanParser.parse(full?.text ?? "")
     const path = "plan" in parsed ? MigrationPlanFiles.pathOf(parsed.plan) : ""
@@ -73,7 +79,7 @@ describe("the migration plan schema the editor validates with", () => {
   })
 })
 
-describe("the plan files the extension previews", () => {
+describe("the plan files the extension edits", () => {
   test("end in the format's suffix, which the host keeps a copy of", () => {
     expect(PlanFiles.SUFFIX).toBe(MigrationPlanFiles.SUFFIX)
   })
@@ -88,19 +94,35 @@ describe("the plan files the extension previews", () => {
     expect(PlanFiles.isPlan(uriOf(path))).toBe(MigrationPlanFiles.isPlanPath(path))
   })
 
-  test("offer the preview in the command palette, the explorer and the editor's title for a plan file only", () => {
+  test("offer the editor in the command palette, the explorer and the text editor's title for a plan file only", () => {
     const command = manifest.contributes.commands.find(
-      (entry) => entry.command === COMMAND.previewMigrationPlan,
+      (entry) => entry.command === COMMAND.editMigrationPlan,
     )
 
-    expect(command?.title).toBe("Preview Migration Plan…")
-    expect(previewEntries("commandPalette")).toEqual([
-      { command: COMMAND.previewMigrationPlan, when: PLAN_FILE },
+    expect(command?.title).toBe("Edit Migration Plan…")
+    expect(editEntries("commandPalette")).toEqual([
+      { command: COMMAND.editMigrationPlan, when: PLAN_FILE },
     ])
-    for (const menu of ["explorer/context", "editor/title"]) {
-      expect(previewEntries(menu), menu).toEqual([
-        { command: COMMAND.previewMigrationPlan, when: PLAN_FILE, group: "navigation@90" },
-      ])
-    }
+    expect(editEntries("explorer/context")).toEqual([
+      { command: COMMAND.editMigrationPlan, when: PLAN_FILE, group: "navigation@90" },
+    ])
+    expect(editEntries("editor/title")).toEqual([
+      {
+        command: COMMAND.editMigrationPlan,
+        when: `${PLAN_FILE} && activeCustomEditorId != ${MigrationPlanEditors.VIEW_TYPE}`,
+        group: "navigation@90",
+      },
+    ])
+  })
+
+  test("open in the graphical editor when you ask for it, and as text otherwise", () => {
+    expect(manifest.contributes.customEditors).toEqual([
+      {
+        viewType: MigrationPlanEditors.VIEW_TYPE,
+        displayName: "Pulse Migration Plan",
+        selector: [{ filenamePattern: `*${MigrationPlanFiles.SUFFIX}` }],
+        priority: "option",
+      },
+    ])
   })
 })
