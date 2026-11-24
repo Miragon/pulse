@@ -44,6 +44,10 @@ describe("the command line checker", () => {
     expect(ok("pulse retry --process-definition-key k --dry-run")).not.toThrow()
     expect(ok("pulse deploy a b --start-key k --var x=1")).not.toThrow()
     expect(ok("pulse status --fail-on warning --stale-after 10m")).not.toThrow()
+    expect(ok("pulse plan-migration invoice 1")).not.toThrow()
+    expect(
+      ok("pulse plan-migration invoice 1 2 --map a=b --unmap c --plan-file p.migration.json"),
+    ).not.toThrow()
     expect(ok("pulse describe inspect")).not.toThrow()
     expect(ok("pulse commands workflow")).not.toThrow()
     expect(ok("pulse guide")).not.toThrow()
@@ -96,6 +100,9 @@ describe("the command line checker", () => {
     expect(ok("pulse deploy")).toThrow()
     expect(ok("pulse retry --process-definition-key k")).toThrow()
     expect(ok("pulse retry a --retries one")).toThrow()
+    expect(ok("pulse plan-migration invoice")).toThrow()
+    expect(ok("pulse plan-migration invoice 1 2 3")).toThrow()
+    expect(ok("pulse plan-migration invoice 1 --nope")).toThrow()
   })
 
   it("finds commands in fenced code blocks only, split at shell operators", () => {

@@ -381,7 +381,7 @@ describe("workflow command help", () => {
 })
 
 describe("workflow command describe", () => {
-  it.each(["inspect", "wait", "advance", "retry", "deploy", "status"])(
+  it.each(["inspect", "wait", "advance", "retry", "deploy", "status", "plan-migration"])(
     "describes the options of %s",
     async (name) => {
       const view = JSON.parse(await output(["describe", name])) as {
@@ -399,7 +399,7 @@ describe("workflow command describe", () => {
 })
 
 describe("workflow command describe text", () => {
-  it.each(["inspect", "wait", "advance", "retry", "deploy", "status"])(
+  it.each(["inspect", "wait", "advance", "retry", "deploy", "status", "plan-migration"])(
     "renders the description of %s",
     async (name) => {
       expect(await output(["describe", name, "-o", "table"])).toMatchSnapshot()

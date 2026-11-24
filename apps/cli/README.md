@@ -63,7 +63,7 @@ pulse deploy bpmn --start --business-key B-1 --var amount=250
 pulse advance --business-key B-1 --var approved=true --wait
 ```
 
-[Workflow commands](https://miragon.github.io/pulse/cli/workflow-commands) explains all six.
+[Workflow commands](https://miragon.github.io/pulse/cli/workflow-commands) explains all seven.
 
 ## Safe on real engines
 
@@ -80,8 +80,8 @@ mode.
 
 ## Every REST operation as a command
 
-Beyond the six workflow commands, every operation of the engine's REST API is a command of its own,
-and `api` sends a raw request:
+Beyond the seven workflow commands, every operation of the engine's REST API is a command of its
+own, and `api` sends a raw request:
 
 | Task                           | Commands                                                                 |
 | ------------------------------ | ------------------------------------------------------------------------ |
@@ -89,7 +89,7 @@ and `api` sends a raw request:
 | Start and follow instances     | `inspect`, `wait`, `process-instance`, `message`, `signal`               |
 | Work on tasks                  | `advance`, `task`, `external-task`                                       |
 | Find and fix what failed       | `status`, `retry`, `incident`, `job`                                     |
-| Change running instances       | `migration`, `modification`, `batch`                                     |
+| Change running instances       | `plan-migration`, `migration`, `modification`, `batch`                   |
 | Look into the history          | `historic-process-instance`, `historic-task-instance` and more           |
 | Administer the engine          | `user`, `group`, `tenant`, `authorization`, `metrics`, `history-cleanup` |
 | Ask the CLI itself             | `guide`, `commands`, `describe`, `--help`                                |

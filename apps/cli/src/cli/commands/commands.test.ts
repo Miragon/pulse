@@ -51,8 +51,8 @@ describe("pulse commands: groups", () => {
     expect(JSON.parse(result.stdout)).toContainEqual({
       group: "workflow",
       description:
-        "Top-level commands that combine several requests (pulse <command>): inspect, wait, advance, retry, deploy, status",
-      commands: 6,
+        "Top-level commands that combine several requests (pulse <command>): inspect, wait, advance, retry, deploy, status, plan-migration",
+      commands: 7,
     })
   })
 
@@ -69,7 +69,7 @@ describe("pulse commands: groups", () => {
       `${"authorization".padEnd(41)}  7         Manage authorizations (permissions of users an…`,
     )
     expect(lines).toHaveLength(55)
-    expect(lines.at(-2)).toMatch(/^workflow +6 +Top-level commands that combine/)
+    expect(lines.at(-2)).toMatch(/^workflow +7 +Top-level commands that combine/)
     expect(Math.max(...lines.map((line) => line.length))).toBe(100)
   })
 

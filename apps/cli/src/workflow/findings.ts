@@ -11,7 +11,8 @@ interface PrintedFinding {
   readonly next?: string
 }
 
-function plural(count: number, word: string): string {
+/** `1 finding`, `2 findings`: a count with its noun in the right number. */
+export function plural(count: number, word: string): string {
   return `${count} ${word}${count === 1 ? "" : "s"}`
 }
 

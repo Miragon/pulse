@@ -15,6 +15,7 @@ function failingFs(error: unknown): FileSystem {
     remove: () => Promise.resolve(false),
     readdir: () => Promise.resolve([]),
     kind: () => Promise.resolve("missing" as const),
+    linked: () => Promise.resolve(false),
   }
 }
 

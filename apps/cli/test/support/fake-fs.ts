@@ -16,6 +16,11 @@ export interface FsOptions {
   readonly foreign?: readonly string[]
   /** The file system has no owners, like on Windows (`ownedByUser` is absent). */
   readonly noOwners?: boolean
+  /**
+   * Paths that are symbolic links themselves (`linked` is true for them); what they name is the
+   * entry of the tree at that path, so a dangling link is a path the tree does not hold.
+   */
+  readonly links?: readonly string[]
 }
 
 const encoder = new TextEncoder()
@@ -33,6 +38,7 @@ export interface FakeTree {
   readonly files: Map<string, StoredFile>
   readonly dirs: Set<string>
   readonly others: ReadonlySet<string>
+  readonly links: ReadonlySet<string>
   readonly dirModes: Map<string, number | undefined>
 }
 
@@ -100,6 +106,7 @@ export function fakeFileSystem(tree: FakeTree): FileSystem {
       return Promise.reject(fsError(kind === "missing" ? "ENOENT" : "ENOTDIR", path))
     },
     kind: (path) => Promise.resolve(pathKind(tree, path)),
+    linked: (path) => Promise.resolve(tree.links.has(withoutSlash(path))),
   }
 }
 

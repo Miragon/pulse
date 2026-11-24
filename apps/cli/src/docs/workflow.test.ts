@@ -9,7 +9,7 @@ const catalog = loadCatalog()
 const UTILITIES = ["commands", "describe", "guide", "api", "ping", "config", "help"]
 
 describe("WORKFLOW_DOCS", () => {
-  it("has the six workflow commands in help order", () => {
+  it("has the seven workflow commands in help order", () => {
     expect(WORKFLOW_DOCS.map((doc) => doc.name)).toEqual([
       "inspect",
       "wait",
@@ -17,6 +17,7 @@ describe("WORKFLOW_DOCS", () => {
       "retry",
       "deploy",
       "status",
+      "plan-migration",
     ])
   })
 
@@ -108,6 +109,7 @@ describe("workflow commands in discovery", () => {
       "retry",
       "deploy",
       "status",
+      "plan-migration",
     ])
     expect(workflow[0]).toMatchObject({
       aliases: [],

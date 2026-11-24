@@ -4,8 +4,8 @@
  * and the docs drift tests. Pure.
  */
 
-import type { Effect } from "../catalog/types.js"
-import type { ArgumentDoc, OptionDoc } from "./options.js"
+import type { ArgumentDoc } from "./options.js"
+import type { WorkflowDoc } from "./workflow-doc.js"
 import {
   ADVANCE_OPTIONS,
   DEPLOY_OPTIONS,
@@ -14,25 +14,9 @@ import {
   STATUS_OPTIONS,
   WAIT_COMMAND_OPTIONS,
 } from "./workflow-options.js"
+import { PLAN_MIGRATION_DOC } from "./workflow-plan-migration.js"
 
-export interface WorkflowDoc {
-  readonly name: string
-  /** `pulse inspect [process-instance-id] [options]` */
-  readonly usage: string
-  readonly summary: string
-  /** What the command does, in paragraphs. */
-  readonly description: string
-  /** The REST calls in order, as prose for `--help`. */
-  readonly requests: string
-  /** The base effect (for `commands --effect` and the guards). */
-  readonly effect: Effect
-  readonly effectNote?: string
-  readonly arguments: readonly ArgumentDoc[]
-  readonly options: readonly OptionDoc[]
-  /** Every operationId the command may send. */
-  readonly calls: readonly string[]
-  readonly examples: readonly string[]
-}
+export type { WorkflowDoc } from "./workflow-doc.js"
 
 const INSTANCE_ARGUMENT: ArgumentDoc = {
   name: "process-instance-id",
@@ -276,6 +260,7 @@ export const WORKFLOW_DOCS: readonly WorkflowDoc[] = [
     ]),
     examples: ["pulse status", "pulse status --process-definition-key payment --fail-on warning"],
   },
+  PLAN_MIGRATION_DOC,
 ]
 
 /** The workflow command of a name. */

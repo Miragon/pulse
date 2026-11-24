@@ -29,7 +29,7 @@ export const GUIDE_TOPICS: readonly GuideTopic[] = [
   {
     name: "workflow",
     summary:
-      "Workflow commands in detail: selection, inspect, wait, advance, retry, deploy, status",
+      "Selection, inspect, wait, advance, retry, deploy, status and plan-migration in detail",
     text: WORKFLOW_PAGE,
   },
   {
@@ -165,6 +165,8 @@ id, \`--business-key\` or \`--process-definition-key <key> --latest\`; \`next\` 
 - \`pulse retry\`: sets the retries behind open incidents; \`--now\` executes the jobs.
 - \`pulse deploy\`: deploys changed files and directories, reports the versions in effect.
 - \`pulse status\`: grouped incidents with root cause, overdue jobs, external task workers.
+- \`pulse plan-migration\`: writes a migration plan between two versions as a file; Pulse for
+  VS Code previews it.
 
 \`\`\`sh
 pulse deploy bpmn --start --business-key B-1 --var amount=250

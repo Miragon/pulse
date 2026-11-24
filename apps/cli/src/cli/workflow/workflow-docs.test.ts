@@ -37,7 +37,15 @@ describe("workflow commands in the CLI", () => {
 describe("workflow commands in help, commands and describe", () => {
   it("documents every workflow command with requests, effect, options, global options and examples", async () => {
     const { cli } = setup()
-    for (const name of ["inspect", "wait", "advance", "retry", "deploy", "status"]) {
+    for (const name of [
+      "inspect",
+      "wait",
+      "advance",
+      "retry",
+      "deploy",
+      "status",
+      "plan-migration",
+    ]) {
       const { stdout, code } = await cli([name, "--help"])
       expect(code).toBe(0)
       expect(stdout).toMatch(new RegExp(`^Usage: pulse ${name} `))
@@ -63,11 +71,15 @@ describe("workflow commands in help, commands and describe", () => {
   it("lists the workflow commands with `commands workflow` and describes one", async () => {
     const { cli } = setup()
     const table = await cli(["commands", "workflow", "-o", "table"])
-    expect(table.stdout.split("\n").slice(0, 3)).toEqual([
-      "COMMAND  EFFECT  SUMMARY",
-      "inspect  read    Show where a process instance waits and why: wait states, incidents with root cause, called instances,…",
-      "wait     read    Wait until a process instance is idle, ended, has an incident or reached an activity, or a batch finis…",
+    const lines = table.stdout.split("\n")
+    expect(lines.slice(0, 3)).toEqual([
+      "COMMAND         EFFECT  SUMMARY",
+      "inspect         read    Show where a process instance waits and why: wait states, incidents with root cause, called ins…",
+      "wait            read    Wait until a process instance is idle, ended, has an incident or reached an activity, or a batc…",
     ])
+    expect(lines[7]).toBe(
+      "plan-migration  read    Write a migration plan between two versions of a process as a file for the editors' preview",
+    )
     const described = JSON.parse((await cli(["describe", "inspect"])).stdout) as Record<
       string,
       unknown
@@ -80,7 +92,7 @@ describe("workflow commands in help, commands and describe", () => {
     expect((await cli(["describe", "retry", "-o", "table"])).stdout).toMatch(
       /^USAGE\n {2}pulse retry \[process-instance-id\] \[options\]\n/,
     )
-    expect(JSON.parse((await cli(["describe", "workflow"])).stdout)).toHaveLength(6)
+    expect(JSON.parse((await cli(["describe", "workflow"])).stdout)).toHaveLength(7)
     const unknown = await cli(["describe", "inspekt"])
     expect(errorOf(unknown.stderr)).toMatchObject({
       code: "USAGE",

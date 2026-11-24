@@ -8,7 +8,8 @@ written for the MCP server, so this file holds the CLI's own. The pages for peop
 ## What the CLI is
 
 - One command per REST operation of a Camunda 7 engine (Operaton, CIB seven, Camunda 7), plus
-  the workflow commands (inspect, wait, advance, retry, deploy, status). The commands are data:
+  the workflow commands (inspect, wait, advance, retry, deploy, status, plan-migration). The
+  commands are data:
   `apps/cli/src/generated/catalog.json`, generated from the one Camunda 7 REST spec of the c7
   family, `packages/connectors/c7/c7-core/spec/api.json` with its patches applied (as c7-client's
   SDK reads it), and from c7-core's route table, each operation's effect, serves every engine.
@@ -19,8 +20,10 @@ written for the MCP server, so this file holds the CLI's own. The pages for peop
   stderr with a documented exit code. A change to any of that is a change to the docs.
 - One runtime dependency, commander. The workflow domain and engine REST rules,
   `@miragon/pulse-c7-core` (`packages/connectors/c7/c7-core`, the core of the Camunda 7 REST
-  dialect family c7), the profile format, `@miragon/pulse-profile` (`packages/core/profile`), and
-  the transport, `@miragon/pulse-http` (`packages/core/http`), are devDependencies that tsdown
+  dialect family c7), the profile format, `@miragon/pulse-profile` (`packages/core/profile`), the
+  transport, `@miragon/pulse-http` (`packages/core/http`), and the migration plan format,
+  `@miragon/pulse-migration-plan` (`packages/core/migration-plan`, private, the file
+  `pulse plan-migration` writes), are devDependencies that tsdown
   bundles, with the root-cause rule c7-core takes from the engine family's core
   (`@miragon/pulse-engine-core`, c7-core's one dependency); everything else that ships is the code
   in `apps/cli/src/`. The built bundle imports only
@@ -65,13 +68,17 @@ package but `@miragon/pulse-c7-core`, and that only from `apps/cli/src/workflow/
 `apps/cli/src/operation/variables.ts` (`autoTypedValue`), and the mapping of HTTP errors,
 `apps/cli/src/http/errors.ts` (the wrong-root rule `isUnknownEndpoint`) (tests anywhere), the
 profile format, `@miragon/pulse-profile`, only from `apps/cli/src/config/` (`CLI_BUNDLES` and
-`profile-consumers` in the root `.dependency-cruiser.cjs`), and the transport,
+`profile-consumers` in the root `.dependency-cruiser.cjs`), the transport,
 `@miragon/pulse-http`, only from `apps/cli/src/http/`, `apps/cli/src/auth/` and
-`apps/cli/src/operation/` (`CLI_BUNDLES` and `http-consumers`), and nothing of the MCP or UI stack.
+`apps/cli/src/operation/` (`CLI_BUNDLES` and `http-consumers`), and the migration plan format,
+`@miragon/pulse-migration-plan`, only from `apps/cli/src/workflow/` (`CLI_BUNDLES` and
+`migration-plan-consumers`), and nothing of the MCP or UI stack.
 The packages return data (next steps, error reasons, a profile's problems, a failure's reason);
 `next-text.ts` and `error-text.ts` in `apps/cli/src/workflow/`,
 `apps/cli/src/config/profile-problems.ts` and `apps/cli/src/http/client.ts` and `errors.ts` word
-them as the CLI prints them.
+them as the CLI prints them; `pulse plan-migration` calls c7-core's migration planning rules
+through `renderedAsync`, so an engine answer they cannot read is CONFIG (exit 3), and writes its
+file only through the format's `MigrationPlanText`, never with the engine's ids or words.
 
 Every engine request goes out through the transport (`createClient` and `send` in
 `apps/cli/src/http/client.ts`, over the connection `clientOf` in `apps/cli/src/cli/session.ts`
@@ -223,7 +230,9 @@ upload glob, each link with a planted break.
   bundle: `@miragon/pulse-board` (owner decision 2026-11-15), the web app's server rules, the
   gate's token rules, the provider's discovery, the generic OpenID Connect provider and the Entra
   ID provider of `@miragon/pulse-widget-shell` (owner decisions 2026-11-16 to 2026-11-18) and the
-  rules of `@miragon/pulse-c8-core` (owner decision 2026-11-17).
+  rules of `@miragon/pulse-c8-core` (owner decision 2026-11-17). The migration plan format the
+  CLI bundles, `@miragon/pulse-migration-plan`, is not mutated: a package joins only by an
+  owner decision, and there is none for it.
 - Coverage floors in `apps/cli/vitest.config.ts` only rise.
 
 ## The command and its second name
