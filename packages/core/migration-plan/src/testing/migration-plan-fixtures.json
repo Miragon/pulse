@@ -1,1 +1,563 @@
-[]
+[
+  {
+    "name": "minimal",
+    "about": "A plan whose mappings are empty is a plan.",
+    "file": {
+      "schemaVersion": 1,
+      "bpmnProcessId": "invoice",
+      "source": {
+        "version": 1
+      },
+      "target": {
+        "version": 2
+      },
+      "mappings": []
+    },
+    "schema": true,
+    "verdict": {
+      "plan": {
+        "bpmnProcessId": "invoice",
+        "source": {
+          "version": 1
+        },
+        "target": {
+          "version": 2
+        },
+        "mappings": []
+      },
+      "notes": []
+    }
+  },
+  {
+    "name": "full",
+    "about": "The text the writer gives: the process, two versions and the mappings sorted by source, a scope pair of a multi-instance element among them.",
+    "file": {
+      "schemaVersion": 1,
+      "bpmnProcessId": "order-fulfillment",
+      "source": {
+        "version": 3
+      },
+      "target": {
+        "version": 4
+      },
+      "mappings": [
+        {
+          "sourceElementId": "Activity_CheckOrder",
+          "targetElementId": "Activity_ReviewOrder"
+        },
+        {
+          "sourceElementId": "Activity_Pack",
+          "targetElementId": "Activity_Pack"
+        },
+        {
+          "sourceElementId": "Activity_Pack#multiInstanceBody",
+          "targetElementId": "Activity_Pack#multiInstanceBody"
+        }
+      ]
+    },
+    "schema": true,
+    "verdict": {
+      "plan": {
+        "bpmnProcessId": "order-fulfillment",
+        "source": {
+          "version": 3
+        },
+        "target": {
+          "version": 4
+        },
+        "mappings": [
+          {
+            "sourceElementId": "Activity_CheckOrder",
+            "targetElementId": "Activity_ReviewOrder"
+          },
+          {
+            "sourceElementId": "Activity_Pack",
+            "targetElementId": "Activity_Pack"
+          },
+          {
+            "sourceElementId": "Activity_Pack#multiInstanceBody",
+            "targetElementId": "Activity_Pack#multiInstanceBody"
+          }
+        ]
+      },
+      "notes": []
+    }
+  },
+  {
+    "name": "no-schema-version",
+    "about": "A plan without schemaVersion reads as version 1.",
+    "file": {
+      "bpmnProcessId": "invoice",
+      "source": {
+        "version": 1
+      },
+      "target": {
+        "version": 2
+      },
+      "mappings": [
+        {
+          "sourceElementId": "approve",
+          "targetElementId": "approve"
+        }
+      ]
+    },
+    "schema": true,
+    "verdict": {
+      "plan": {
+        "bpmnProcessId": "invoice",
+        "source": {
+          "version": 1
+        },
+        "target": {
+          "version": 2
+        },
+        "mappings": [
+          {
+            "sourceElementId": "approve",
+            "targetElementId": "approve"
+          }
+        ]
+      },
+      "notes": []
+    }
+  },
+  {
+    "name": "unknown-version",
+    "about": "A plan of another format version gives that one problem, whatever else it holds.",
+    "file": {
+      "schemaVersion": 2,
+      "bpmnProcessId": "invoice",
+      "source": {
+        "version": 1,
+        "tenantId": "north"
+      },
+      "target": {
+        "version": 2
+      },
+      "mappings": []
+    },
+    "schema": false,
+    "verdict": {
+      "problems": [
+        {
+          "path": "schemaVersion",
+          "code": "unknownVersion",
+          "values": {
+            "found": "2",
+            "reads": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "not-json",
+    "about": "Text that is not JSON gives no plan.",
+    "text": "{ \"bpmnProcessId\": \"invoice\"\n",
+    "schema": false,
+    "verdict": {
+      "problems": [
+        {
+          "path": "(file)",
+          "code": "notJson"
+        }
+      ]
+    }
+  },
+  {
+    "name": "root-array",
+    "about": "A root that is no object gives no plan.",
+    "text": "[]\n",
+    "schema": false,
+    "verdict": {
+      "problems": [
+        {
+          "path": "(file)",
+          "code": "notAnObject"
+        }
+      ]
+    }
+  },
+  {
+    "name": "missing-process",
+    "about": "A plan without its process id gives no plan.",
+    "file": {
+      "schemaVersion": 1,
+      "source": {
+        "version": 1
+      },
+      "target": {
+        "version": 2
+      },
+      "mappings": []
+    },
+    "schema": false,
+    "verdict": {
+      "problems": [
+        {
+          "path": "bpmnProcessId",
+          "code": "missing"
+        }
+      ]
+    }
+  },
+  {
+    "name": "definition-id-as-process",
+    "about": "A definition id where the process id belongs is refused, so a plan never names the deployment of one engine.",
+    "file": {
+      "schemaVersion": 1,
+      "bpmnProcessId": "invoice:1:def-1",
+      "source": {
+        "version": 1
+      },
+      "target": {
+        "version": 2
+      },
+      "mappings": []
+    },
+    "schema": false,
+    "verdict": {
+      "problems": [
+        {
+          "path": "bpmnProcessId",
+          "code": "notAProcessId"
+        }
+      ]
+    }
+  },
+  {
+    "name": "digit-first-process",
+    "about": "A process id that starts with a digit is no BPMN id; only the parser sees it.",
+    "file": {
+      "schemaVersion": 1,
+      "bpmnProcessId": "1invoice",
+      "source": {
+        "version": 1
+      },
+      "target": {
+        "version": 2
+      },
+      "mappings": []
+    },
+    "schema": true,
+    "verdict": {
+      "problems": [
+        {
+          "path": "bpmnProcessId",
+          "code": "notAProcessId"
+        }
+      ]
+    }
+  },
+  {
+    "name": "same-version",
+    "about": "A plan from a version to the same version is refused; only the parser sees it.",
+    "file": {
+      "schemaVersion": 1,
+      "bpmnProcessId": "invoice",
+      "source": {
+        "version": 2
+      },
+      "target": {
+        "version": 2
+      },
+      "mappings": []
+    },
+    "schema": true,
+    "verdict": {
+      "problems": [
+        {
+          "path": "target.version",
+          "code": "sameVersion"
+        }
+      ]
+    }
+  },
+  {
+    "name": "version-zero",
+    "about": "Version numbers start at 1.",
+    "file": {
+      "schemaVersion": 1,
+      "bpmnProcessId": "invoice",
+      "source": {
+        "version": 0
+      },
+      "target": {
+        "version": 2
+      },
+      "mappings": []
+    },
+    "schema": false,
+    "verdict": {
+      "problems": [
+        {
+          "path": "source.version",
+          "code": "notAVersion"
+        }
+      ]
+    }
+  },
+  {
+    "name": "tenant-in-side",
+    "about": "A tenant in a side is refused as no part of a plan, and only as that.",
+    "file": {
+      "schemaVersion": 1,
+      "bpmnProcessId": "invoice",
+      "source": {
+        "version": 1,
+        "tenantId": "north"
+      },
+      "target": {
+        "version": 2
+      },
+      "mappings": []
+    },
+    "schema": false,
+    "verdict": {
+      "problems": [
+        {
+          "path": "source.tenantId",
+          "code": "notInAPlan",
+          "values": {
+            "key": "tenantId"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "unknown-side-key",
+    "about": "A key a side does not know is refused, so a key of a newer format never reads as nothing.",
+    "file": {
+      "schemaVersion": 1,
+      "bpmnProcessId": "invoice",
+      "source": {
+        "version": 1
+      },
+      "target": {
+        "version": 2,
+        "versionTag": "2.0"
+      },
+      "mappings": []
+    },
+    "schema": false,
+    "verdict": {
+      "problems": [
+        {
+          "path": "target.versionTag",
+          "code": "unknownKey",
+          "values": {
+            "choices": ["version"]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "two-scope-parts",
+    "about": "An element id with two scope parts is refused.",
+    "file": {
+      "schemaVersion": 1,
+      "bpmnProcessId": "invoice",
+      "source": {
+        "version": 1
+      },
+      "target": {
+        "version": 2
+      },
+      "mappings": [
+        {
+          "sourceElementId": "a#b#c",
+          "targetElementId": "a"
+        }
+      ]
+    },
+    "schema": false,
+    "verdict": {
+      "problems": [
+        {
+          "path": "mappings[0].sourceElementId",
+          "code": "notAnElementId"
+        }
+      ]
+    }
+  },
+  {
+    "name": "source-twice",
+    "about": "A plan that maps one element twice is refused at the second mapping; only the parser sees it.",
+    "file": {
+      "schemaVersion": 1,
+      "bpmnProcessId": "invoice",
+      "source": {
+        "version": 1
+      },
+      "target": {
+        "version": 2
+      },
+      "mappings": [
+        {
+          "sourceElementId": "check",
+          "targetElementId": "review"
+        },
+        {
+          "sourceElementId": "approve",
+          "targetElementId": "approve"
+        },
+        {
+          "sourceElementId": "check",
+          "targetElementId": "approve"
+        }
+      ]
+    },
+    "schema": true,
+    "verdict": {
+      "problems": [
+        {
+          "path": "mappings[2].sourceElementId",
+          "code": "sourceTwice",
+          "values": {
+            "first": 0
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "engine-plan",
+    "about": "The plan of the engine, as the generic generate command writes it, is refused with that one problem.",
+    "file": {
+      "sourceProcessDefinitionId": "invoice:1:def-1",
+      "targetProcessDefinitionId": "invoice:2:def-2",
+      "instructions": [
+        {
+          "sourceActivityIds": ["approve"],
+          "targetActivityIds": ["approve"],
+          "updateEventTrigger": false
+        }
+      ],
+      "variables": null
+    },
+    "schema": false,
+    "verdict": {
+      "problems": [
+        {
+          "path": "sourceProcessDefinitionId",
+          "code": "enginePlan"
+        }
+      ]
+    }
+  },
+  {
+    "name": "instance-ids",
+    "about": "Instance ids are refused: a plan names no instance.",
+    "file": {
+      "schemaVersion": 1,
+      "bpmnProcessId": "invoice",
+      "source": {
+        "version": 1
+      },
+      "target": {
+        "version": 2
+      },
+      "mappings": [
+        {
+          "sourceElementId": "approve",
+          "targetElementId": "approve"
+        }
+      ],
+      "instanceIds": ["0e6a3c62-9d4b-11ef-8a3e-0242ac120002"]
+    },
+    "schema": false,
+    "verdict": {
+      "problems": [
+        {
+          "path": "instanceIds",
+          "code": "notInAPlan",
+          "values": {
+            "key": "instanceIds"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "title-key",
+    "about": "A root key Pulse does not know is a note, and the plan reads without it.",
+    "file": {
+      "schemaVersion": 1,
+      "bpmnProcessId": "invoice",
+      "source": {
+        "version": 1
+      },
+      "target": {
+        "version": 2
+      },
+      "mappings": [
+        {
+          "sourceElementId": "approve",
+          "targetElementId": "approve"
+        }
+      ],
+      "title": "Approval moves to v2"
+    },
+    "schema": false,
+    "verdict": {
+      "plan": {
+        "bpmnProcessId": "invoice",
+        "source": {
+          "version": 1
+        },
+        "target": {
+          "version": 2
+        },
+        "mappings": [
+          {
+            "sourceElementId": "approve",
+            "targetElementId": "approve"
+          }
+        ]
+      },
+      "notes": [
+        {
+          "path": "title",
+          "code": "ignoredKey"
+        }
+      ]
+    }
+  },
+  {
+    "name": "schema-not-text",
+    "about": "A $schema that is no text is a note, and the plan reads without it.",
+    "file": {
+      "$schema": 1,
+      "schemaVersion": 1,
+      "bpmnProcessId": "invoice",
+      "source": {
+        "version": 1
+      },
+      "target": {
+        "version": 2
+      },
+      "mappings": []
+    },
+    "schema": false,
+    "verdict": {
+      "plan": {
+        "bpmnProcessId": "invoice",
+        "source": {
+          "version": 1
+        },
+        "target": {
+          "version": 2
+        },
+        "mappings": []
+      },
+      "notes": [
+        {
+          "path": "$schema",
+          "code": "schemaNotText"
+        }
+      ]
+    }
+  }
+]
