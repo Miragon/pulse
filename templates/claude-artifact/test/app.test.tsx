@@ -446,11 +446,13 @@ describe("a count on the diagram", () => {
         : label.endsWith("running")
           ? "running"
           : "incidents"
-    const linked = within(diagram)
-      .queryAllByRole("button")
-      .map((button) => button.getAttribute("aria-label") ?? "")
-      .filter((label) => /: \d/.test(label))
-      .map((label) => `${label.slice(0, label.indexOf(":"))} ${kindOf(label)}`)
+    const linked = () =>
+      within(diagram)
+        .queryAllByRole("button")
+        .map((button) => button.getAttribute("aria-label") ?? "")
+        .filter((label) => /: \d/.test(label))
+        .map((label) => `${label.slice(0, label.indexOf(":"))} ${kindOf(label)}`)
+        .sort()
     // Every count the recording holds on an element the drawing has, a button exactly where a row
     // of the page lists it (countTargets), whatever process the recording is of.
     const drawn = new Map(
@@ -468,7 +470,9 @@ describe("a count on the diagram", () => {
         .filter(({ kind }) => countTargets({ id: elementId, type }, kind).length > 0)
         .map(({ kind }) => `${names[elementId] ?? elementId} ${kind}`)
     })
-    expect(linked.sort()).toEqual(expected.sort())
+    // The counts come after the data: the diagram draws them once bpmn-js has imported the XML,
+    // which a loaded CI runner finished after the sections settled (main, 2026-11-24).
+    await waitFor(() => expect(linked()).toEqual(expected.sort()), { timeout: 10_000 })
   })
 
   const task = { id: "Task_Review", type: "bpmn:UserTask" }
