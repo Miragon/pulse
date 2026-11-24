@@ -360,6 +360,13 @@ const CASES: Record<string, Case> = {
   ...PROCESS_NUMBER_CASES,
 }
 
+/**
+ * The tests that build once per read, each build on a fake engine of its own: up to a quarter of a
+ * second here and twenty times that on the CI runner, where `pnpm test` runs every package's suite
+ * at once (a case of `buildProcessStatsData` ran past the 5 s default there, main, 2026-11-24).
+ */
+const PER_READ = { timeout: 30_000 }
+
 describe.each(Object.entries(CASES))("%s", (_name, builder) => {
   const enrichment = builder.enrichment ?? {}
   const fallback = builder.fallback ?? {}
@@ -372,7 +379,7 @@ describe.each(Object.entries(CASES))("%s", (_name, builder) => {
     expect([...reads].filter((read) => !(read in enrichment)).length).toBeGreaterThan(0)
   })
 
-  it("fails (never a confident 0 or []) when ANY primary read fails", async () => {
+  it("fails (never a confident 0 or []) when ANY primary read fails", PER_READ, async () => {
     const { reads } = await build(builder)
     const primary = [...reads].filter((read) => !(read in enrichment) && !(read in fallback))
     const broken = await Promise.all(
@@ -391,6 +398,7 @@ describe.each(Object.entries(CASES))("%s", (_name, builder) => {
 
   it.runIf(Object.keys(enrichment).length > 0)(
     "degrades each failed enrichment read to null",
+    PER_READ,
     async () => {
       const degraded = await Promise.all(
         Object.entries(enrichment).map(async ([read, value]) => ({
@@ -408,6 +416,7 @@ describe.each(Object.entries(CASES))("%s", (_name, builder) => {
 
   it.runIf(Object.keys(fallback).length > 0)(
     "answers each failed fallback read by the read it names, with the same figures",
+    PER_READ,
     () => expectFallbacks(builder, fallback),
   )
 
