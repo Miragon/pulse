@@ -38,7 +38,7 @@
     "@miragon/pulse-screens": "workspace:*",
     "@types/node": "22.20.5",
     "@vitest/coverage-v8": "5.1.1",
-    "testcontainers": "12.2.1",
+    "testcontainers": "12.2.2",
     "typescript": "6.0.3",
     "vitest": "5.1.1"
   }
