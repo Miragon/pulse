@@ -5,6 +5,7 @@ import {
   EmptyState,
   ErrorState,
   Skeleton,
+  SKELETON_DELAY_MS,
   useLocale,
   useUiMessages,
   type StateHeadingLevel,
@@ -20,12 +21,10 @@ import { kitLabels } from "./kit-labels.js"
 import { useErrorWords, useStartPage } from "./view-host.js"
 
 /**
- * How long a load runs before its skeleton shows (the webview's rule): a quick answer replaces
- * nothing with its content, without a skeleton flashing up for a moment.
+ * True once `delayMs` passed since the first render: a load's skeleton waits the kit's
+ * `SKELETON_DELAY_MS` (the webview's rule), so a quick answer replaces nothing with its content
+ * without a skeleton flashing up for a moment.
  */
-export const SKELETON_DELAY_MS = 400
-
-/** True once `delayMs` passed since the first render. */
 function useElapsed(delayMs: number): boolean {
   const [elapsed, setElapsed] = useState(false)
   useEffect(() => {

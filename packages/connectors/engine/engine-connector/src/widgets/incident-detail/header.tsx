@@ -1,4 +1,5 @@
 import {
+  FreshnessStamp,
   Button,
   Icon,
   shortId,
@@ -7,11 +8,7 @@ import {
   WidgetHeader,
   SITUATION_TONES,
 } from "@miragon/pulse-ui"
-import {
-  FreshnessStamp,
-  HandOffButton,
-  OpenInCockpitLink,
-} from "@miragon/pulse-widget-shell/widgets"
+import { HandOffButton, OpenInCockpitLink } from "@miragon/pulse-widget-shell/widgets"
 import { CircleDot, CornerRightDown } from "lucide-react"
 
 import type { IncidentDetailData, IncidentDetailRootCause } from "../../view-models.js"

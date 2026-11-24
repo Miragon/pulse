@@ -403,7 +403,10 @@ for every workspace package.
      through `useActionFeedback()` toasts that name the object and confirms through
      `ConfirmDialog`; nothing to show is `TableEmptyState`. A skeleton shows only after 400 ms
      (`SKELETON_DELAY_MS`), a refresh keeps the content with its region `aria-busy`, and a view's
-     guard keeps its bar and title, so the page keeps its one `h1`.
+     guard keeps its bar and title, so the page keeps its one `h1`. A page outside a host (an
+     artifact) holds the same rules with pulse-ui's `SectionState` under one `SectionStateGroup`
+     and words its transport's refusals once with `describePageError` (#664); the server's error
+     texts stay `describeError`'s.
    - **Inline is a card, not a page** (#396): a list under a host shows the rows that fit the
      host's height, measured (`InlineFitBox`), never estimated; a paged list registers ONE list
      (`PagedRows` + `paged.fit`). An id in a table cell takes one line (`NamedId`, `IdText`), so a

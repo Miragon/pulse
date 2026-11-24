@@ -14,6 +14,7 @@ itself, is spelled out at the prop that uses it. These few stay names, since a p
 of them:
 
 - `UiMessagesOverride`: the kit's own words per part, which a page leaves as they are
+- `UiMessages`: the kit's words in the viewer's language, as `useUiMessages()` returns them
 - `DataTableSelection`: a selection column, as `rowSelection` builds it
 - `ColumnSizing`: columns a reader sizes by dragging, as `useColumnSizing` returns it
 - `BpmnElementRegistry`: bpmn-js's element registry, `viewer.get("elementRegistry")`
@@ -27,10 +28,21 @@ Import each name from the entry its section names, never from a `dist/` path.
 ```ts
 import {
   WidgetHeader,
+  FreshnessStamp,
   Facts,
   type Fact,
   VersionChip,
   SectionHeading,
+  PanelGrid,
+  Panel,
+  SectionStateGroup,
+  SectionState,
+  type SectionStateValue,
+  type SectionFailure,
+  describePageError,
+  type PageError,
+  type PageErrorCode,
+  type DescribePageErrorOptions,
   StatusStrip,
   type StatusStripAction,
   KpiGrid,
@@ -102,6 +114,23 @@ declare function WidgetHeader(props: {
   freshness?: ReactNode
   className?: string
 }): JSX.Element
+```
+
+### FreshnessStamp
+
+```ts
+/**
+ * When a view's or a page's numbers were read, for the freshness slot of its bar (`WidgetHeader`'s
+ * and `ViewBar`'s `freshness`): a clock and "As of 14:32", the time without seconds and its day
+ * before it on another day (`formatClock`), the whole instant in its title (`formatInstant`), in
+ * the kit's words of the nearest `LocaleProvider`. The board's form, one for every view: at the
+ * bar's end in tabular figures, never a fact and never a "Live" pill. Nothing for no time or one
+ * that does not parse, never a guess. A page that reads several sources stamps the oldest read.
+ */
+declare function FreshnessStamp(props: {
+  /** When the numbers were read: an ISO timestamp or a `Date`. */
+  readonly at: string | Date | null | undefined
+}): null | JSX.Element
 ```
 
 ### Facts
@@ -177,6 +206,248 @@ declare function SectionHeading(props: {
   /** Classes for the row, a margin other than the default 12 px below it (`mb-2`, `mb-0`). */
   className?: string
 }): JSX.Element
+```
+
+### PanelGrid
+
+```ts
+/**
+ * A dashboard's rows of panels: one column below 600 px of the grid's own width (a phone, a
+ * narrow host), `columns` side by side where it has the room, the panels of a row as tall as the
+ * tallest, so their ends line up. The gap is the density's section gap (12 px, 16 px on touch).
+ * Columns follow the grid's own width, so a grid inside a narrow frame stacks as on a phone.
+ */
+declare function PanelGrid(props: {
+  /**
+   * How many panels stand side by side where the grid has the room: 2 (default) from 600 px of
+   * its own width, 3 from 900 px (2 between); below 600 px always one.
+   */
+  readonly columns?: 1 | 2 | 3
+  /** The panels (`Panel`), one per section. */
+  readonly children: ReactNode
+  readonly className?: string
+}): JSX.Element
+```
+
+### Panel
+
+```ts
+/**
+ * One section of a dashboard: a card of the compact look (the card's surface, a 1 px line, the
+ * md radius, the density's gutter inside) named by its `SectionHeading`, its content below. A
+ * `section` labelled by its title, so it is a landmark a screen reader lists; with an `id` it
+ * takes the focus a page moves to it.
+ */
+declare function Panel(props: {
+  /** The section's title. */
+  readonly title: ReactNode
+  /** The title's element. Default `"h2"`: a section of the page under its `h1`. */
+  readonly as?: "h2" | "h3" | "h4" | "h5" | "h6"
+  /** The quiet note beside the title: the scope its numbers span ("all versions"). */
+  readonly hint?: ReactNode
+  /** A control at the title's end (a legend, a switch), after the hint. */
+  readonly trailing?: ReactNode
+  /** The section's id: an anchor to scroll to, and a place the page can move the focus to. */
+  readonly id?: string
+  /** Spans the whole row of its `PanelGrid` (a diagram, a wide table). */
+  readonly wide?: boolean
+  readonly className?: string
+  readonly children: ReactNode
+}): JSX.Element
+```
+
+### SectionStateGroup
+
+```ts
+/**
+ * The sections of a page that say a shared failure once: of the `SectionState`s under it that
+ * fail with the same words, the first in the document shows the failure, the others a quiet line
+ * that they were not read for the same reason, and the first one's Try again reads all of them
+ * again. Without a group every section says its own failure.
+ */
+declare function SectionStateGroup(props: {
+  /** The page's sections, at any depth. */
+  readonly children: ReactNode
+}): JSX.Element
+```
+
+### SectionState
+
+```ts
+/**
+ * One section's read on a dashboard, the rendering half of whatever reads it: the skeleton while
+ * the first read runs (after 400 ms, its room held before), the content once read, `empty` for a
+ * read that found nothing, and a failure in the kit's status box with the raw text under Details
+ * and Try again unless it is `permanent`. A read that fails after a good one keeps its data on
+ * screen with the failure inline above it; a read over data on screen marks the region busy and
+ * keeps the data. Under a SectionStateGroup a failure several sections share is said once.
+ * Every word comes from the kit's catalogs or from `state.error`.
+ */
+declare function SectionState<T>(props: {
+  readonly state: SectionStateValue<T>
+  /** Reads the section again: the failure's Try again (none for a `permanent` one). */
+  readonly onRetry: () => void
+  /** The section's skeleton, in the geometry of the loaded content (default: a 96 px block). */
+  readonly skeleton?: ReactNode
+  /** What a read that found nothing shows (`TableEmptyState`, `EmptyState`). */
+  readonly empty?: ReactNode
+  /** Whether read data counts as nothing found, so `empty` shows. Default: `null` or `[]`. */
+  readonly isEmpty?: (data: T) => boolean
+  /** The failure's title element. Default `"p"`: the section's own heading stays its one. */
+  readonly errorTitleAs?: "h1" | "h2" | "h3" | "h4" | "p"
+  readonly className?: string
+  /** The loaded content. */
+  readonly children: (data: T) => ReactNode
+}): JSX.Element
+```
+
+### SectionStateValue
+
+```ts
+/** A section's read as `SectionState` shows it. */
+interface SectionStateValue<T> {
+  /**
+   * A read runs: over data or a failure on screen the region turns busy and they stay. Without
+   * either the section waits for its first read whatever this says.
+   */
+  readonly loading?: boolean
+  /** The last read's failure in words (`describePageError`, your own); none after a good read. */
+  readonly error?: SectionFailure | null
+  /**
+   * The data of the last good read, kept while a later read runs or fails: `undefined` before
+   * the first good read, `null` for a read that found nothing.
+   */
+  readonly data?: T | null
+}
+```
+
+### SectionFailure
+
+```ts
+/**
+ * A failure in words, as `SectionState` and a page's own `ErrorState` show it: what happened,
+ * what you can do, the raw text for "Details" and whether a retry can help.
+ */
+interface SectionFailure {
+  /** What happened, in plain words; never the raw text. */
+  readonly title: string
+  /** What you can do. */
+  readonly hint?: string
+  /** The raw reason, collapsed under "Details". */
+  readonly details?: string
+  /** A refusal no retry changes: its state offers no Try again, its hint names the way out. */
+  readonly permanent?: boolean
+}
+```
+
+### describePageError
+
+```ts
+/**
+ * A page's failed call in the kit's words: what happened and what you can do per code, the raw
+ * text only under "Details", and `permanent` where Try again cannot help. A code the type does
+ * not know (an untyped transport) is worded as `tool_error`, never thrown.
+ */
+declare function describePageError(
+  error: {
+    readonly code:
+      | "needs_reauth"
+      | "not_connected"
+      | "not_allowed"
+      | "approval_required"
+      | "unavailable"
+      | "tool_error"
+    /** The raw text of the failure (the transport's message, the server's error text). */
+    readonly detail?: string | null
+  },
+  props: {
+    /**
+     * The kit's catalog in the viewer's language: `useUiMessages()` in a component,
+     * `resolveUiMessages(locale)` outside one.
+     */
+    readonly messages: UiMessages
+    /** What the page calls its way to Pulse, the name of the viewer's connector. Default "Pulse". */
+    readonly connector?: string
+    /**
+     * Where the viewer manages that connection, a phrase the hint puts after its name as it is
+     * ("in claude.ai, in Settings under Connectors"). Default: none, the hint names no place.
+     */
+    readonly place?: string
+  },
+): {
+  /** What happened, in plain words; never the raw text. */
+  readonly title: string
+  /** What you can do. */
+  readonly hint?: string
+  /** The raw reason, collapsed under "Details". */
+  readonly details?: string
+  /** A refusal no retry changes: its state offers no Try again, its hint names the way out. */
+  readonly permanent?: boolean
+}
+```
+
+### PageError
+
+```ts
+/** A failed call of a page: its code and the raw text behind it, shown under "Details". */
+interface PageError {
+  readonly code:
+    | "needs_reauth"
+    | "not_connected"
+    | "not_allowed"
+    | "approval_required"
+    | "unavailable"
+    | "tool_error"
+  /** The raw text of the failure (the transport's message, the server's error text). */
+  readonly detail?: string | null
+}
+```
+
+### PageErrorCode
+
+```ts
+/**
+ * The page error vocabulary: why a call of a page outside a host gave no data, as one code per
+ * reason, so a page maps its transport's errors once (a claude.ai artifact its runtime's
+ * refusals, a page of your own its fetch) and the kit words them the same everywhere.
+ *
+ * - `needs_reauth`: the sign-in of the page's connection ran out, the viewer has to reconnect
+ * - `not_connected`: the viewer has no connection of the name the page calls, or has to pick one
+ * - `not_allowed`: the page may not call the tool it needs (its declared tools leave it out, or
+ *   a policy of the viewer's organization blocks it); no retry changes that
+ * - `approval_required`: the viewer has not approved the page's access yet
+ * - `unavailable`: the connection or the server does not answer
+ * - `tool_error`: the call reached the server and failed there, the engine's error or the tool's
+ *   own; a page that can classify the server's text (widget-shell's `describeError`) words it
+ *   with that instead
+ */
+type PageErrorCode =
+  | "needs_reauth"
+  | "not_connected"
+  | "not_allowed"
+  | "approval_required"
+  | "unavailable"
+  | "tool_error"
+```
+
+### DescribePageErrorOptions
+
+```ts
+/** What `describePageError` words a failure with: the catalog, the transport's name and place. */
+interface DescribePageErrorOptions {
+  /**
+   * The kit's catalog in the viewer's language: `useUiMessages()` in a component,
+   * `resolveUiMessages(locale)` outside one.
+   */
+  readonly messages: UiMessages
+  /** What the page calls its way to Pulse, the name of the viewer's connector. Default "Pulse". */
+  readonly connector?: string
+  /**
+   * Where the viewer manages that connection, a phrase the hint puts after its name as it is
+   * ("in claude.ai, in Settings under Connectors"). Default: none, the hint names no place.
+   */
+  readonly place?: string
+}
 ```
 
 ### StatusStrip
@@ -1265,7 +1536,6 @@ import {
   BpmnZoomControls,
   parseBpmnNames,
   readBpmnNames,
-  FreshnessStamp,
   describeError,
   type PageHints,
   isPermanentError,
@@ -1406,19 +1676,6 @@ declare function readBpmnNames(xml: string): {
   processes: Record<string, string>
   elements: Record<string, string>
 }
-```
-
-### FreshnessStamp
-
-```ts
-/**
- * When a view's numbers were read, for the freshness slot of its bar (`WidgetHeader`'s and
- * `ViewBar`'s `freshness`): a clock and "As of 14:32", the time without seconds and its day before
- * it on another day (`formatClock`), the whole instant in its title (`formatInstant`). The board's
- * form, one for every route: right-aligned at the bar's end in tabular figures, never a fact.
- * Nothing for no time or one that does not parse, never a guess.
- */
-declare function FreshnessStamp(props: { at: string | null | undefined }): null | JSX.Element
 ```
 
 ### describeError

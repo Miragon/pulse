@@ -58,6 +58,7 @@ describe("the @miragon/pulse-ui entry", () => {
       "Facts",
       "Field",
       "FilterBar",
+      "FreshnessStamp",
       "GEIST_FONT_FILES",
       "GROUP_CARD_INSET",
       "GroupCard",
@@ -81,15 +82,21 @@ describe("the @miragon/pulse-ui entry", () => {
       "NavTab",
       "NavTabs",
       "NavigationFocus",
+      "PAGE_ERROR_CODES",
       "PagedListFooter",
+      "Panel",
+      "PanelGrid",
       "Progress",
       "READ_FAILURE_TONES",
       "ROLE_TOKENS",
       "RowCard",
       "SITUATION_TONES",
+      "SKELETON_DELAY_MS",
       "SearchField",
       "Section",
       "SectionHeading",
+      "SectionState",
+      "SectionStateGroup",
       "SegmentedControl",
       "SideNav",
       "SideNavGroup",
@@ -143,6 +150,7 @@ describe("the @miragon/pulse-ui entry", () => {
       "cn",
       "countTone",
       "createUseT",
+      "describePageError",
       "fontFaces",
       "formatClock",
       "formatCompactCount",
@@ -195,6 +203,9 @@ describe("the @miragon/pulse-ui entry", () => {
       // No consumer outside the kit: KometMark's own clamp, ListFooter's count.
       "KOMET_MIN_SIZE",
       "formatCountIn",
+      // SectionState's wait, its group's context: the delay itself is public (SKELETON_DELAY_MS).
+      "useElapsed",
+      "SectionStateGroupContext",
     ]) {
       expect(ui, name).not.toHaveProperty(name)
     }

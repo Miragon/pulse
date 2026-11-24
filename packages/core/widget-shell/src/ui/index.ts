@@ -19,13 +19,8 @@ export { TextBlock, type TextBlockProps } from "./text-block.js"
 export { ConfirmDialog, type ConfirmDialogProps, type ConfirmTarget } from "./confirm-dialog.js"
 export { useActionFeedback, type ActionFeedback } from "./action-feedback.js"
 export { QueryFallback, TableSkeleton } from "./query-fallback.js"
-export {
-  FreshnessStamp,
-  ViewMeta,
-  formatLookback,
-  type ViewMetaEngines,
-  type ViewMetaParts,
-} from "./view-meta.js"
+// The bar's freshness stamp is the kit's (`FreshnessStamp` in @miragon/pulse-ui).
+export { ViewMeta, formatLookback, type ViewMetaEngines, type ViewMetaParts } from "./view-meta.js"
 // The view runtime: the bundle root, the host seam, the data layer and the test host.
 export {
   mountView,

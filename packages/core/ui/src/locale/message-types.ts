@@ -175,4 +175,64 @@ export interface UiMessages {
   conditionChip: ConditionChipMessages
   stateLabel: StateLabelMessages
   count: CountMessages
+  freshness: FreshnessMessages
+  sectionState: SectionStateMessages
+  pageError: PageErrorMessages
+}
+
+/** The words of `FreshnessStamp`: when the numbers of a view or a page were read. */
+export interface FreshnessMessages {
+  /** The stamp in a bar's freshness slot, e.g. "As of 14:32". The time arrives formatted. */
+  asOf: (params: { time: string }) => string
+}
+
+/**
+ * The words `SectionState` adds to a section's failure: that the section still shows its last
+ * good read, and the quiet line of a section whose failure a section before it already says
+ * (`SectionStateGroup`).
+ */
+export interface SectionStateMessages {
+  /** After a failure's hint, where the section keeps the data of its last good read. */
+  kept: string
+  /** A section without data that failed for the reason a section before it says. */
+  sameFailure: string
+  /** The same for a section that keeps the data of its last good read. */
+  sameFailureKept: string
+}
+
+/**
+ * What the page error words name: `connector` is what the page calls its way to Pulse (the name
+ * of the viewer's connector, "Pulse" by default), `place` where the viewer manages it, a phrase
+ * the hint puts after that name as it is ("in claude.ai, in Settings under Connectors"); without
+ * a place the hint leaves it out.
+ */
+export interface PageErrorParams {
+  connector: string
+  place?: string
+}
+
+/**
+ * The page error vocabulary (`describePageError`): per code of `PageErrorCode` what happened and
+ * what you can do, in words that hold for any transport a page reaches Pulse through; the
+ * transport's names and places come in as {@link PageErrorParams}.
+ */
+export interface PageErrorMessages {
+  /** `needs_reauth`: the sign-in of the page's connection ran out. */
+  needsReauth: (params: PageErrorParams) => string
+  needsReauthHint: (params: PageErrorParams) => string
+  /** `not_connected`: the viewer has no connection of that name, or has to pick one. */
+  notConnected: (params: PageErrorParams) => string
+  notConnectedHint: (params: PageErrorParams) => string
+  /** `not_allowed`: the page may not call the tool it needs; no retry changes that. */
+  notAllowed: (params: PageErrorParams) => string
+  notAllowedHint: (params: PageErrorParams) => string
+  /** `approval_required`: the viewer has not approved the page's access yet. */
+  approvalRequired: (params: PageErrorParams) => string
+  approvalRequiredHint: (params: PageErrorParams) => string
+  /** `unavailable`: the connection or the server does not answer. */
+  unavailable: (params: PageErrorParams) => string
+  unavailableHint: (params: PageErrorParams) => string
+  /** `tool_error`: the server answered with an error, the engine's or the tool's own. */
+  toolError: (params: PageErrorParams) => string
+  toolErrorHint: (params: PageErrorParams) => string
 }

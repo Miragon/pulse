@@ -167,7 +167,7 @@ The template carries a few parts that Pulse will provide instead, under the epic
 The reads shrink too: [#665](https://github.com/Miragon/pulse/issues/665) brings a process's numbers
 per day and per activity, and [#666](https://github.com/Miragon/pulse/issues/666) a screen's
 numbers, each in one call, so a load will need a few calls and add up nothing itself. The freshness
-stamp comes from `@miragon/pulse-widget-shell/widgets` until #664 moves it into pulse-ui.
+stamp comes from `@miragon/pulse-ui` (#664).
 
 ## Rules the tests hold
 

@@ -24,6 +24,10 @@ export type {
   StateLabelMessages,
   UiMessages,
   ViewBarMessages,
+  FreshnessMessages,
+  SectionStateMessages,
+  PageErrorMessages,
+  PageErrorParams,
 } from "./message-types.js"
 
 /** A partial override of a {@link UiMessages} catalog, per section. */
@@ -69,6 +73,9 @@ export function resolveUiMessages(
     conditionChip: { ...base.conditionChip, ...override.conditionChip },
     stateLabel: { ...base.stateLabel, ...override.stateLabel },
     count: { ...base.count, ...override.count },
+    freshness: { ...base.freshness, ...override.freshness },
+    sectionState: { ...base.sectionState, ...override.sectionState },
+    pageError: { ...base.pageError, ...override.pageError },
   }
 }
 

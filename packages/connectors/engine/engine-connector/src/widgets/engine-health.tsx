@@ -1,4 +1,5 @@
 import {
+  FreshnessStamp,
   Button,
   KpiGrid,
   StatusBadge,
@@ -10,7 +11,6 @@ import {
   formatNumber,
 } from "@miragon/pulse-ui"
 import {
-  FreshnessStamp,
   HandOffButton,
   isPermanentError,
   isSessionEnded,

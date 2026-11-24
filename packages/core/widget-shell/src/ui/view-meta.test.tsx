@@ -1,15 +1,9 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
-import { cleanup, render, screen } from "@testing-library/react"
-import { LocaleProvider, formatInstant, setFormatLocale } from "@miragon/pulse-ui"
+import { cleanup, render } from "@testing-library/react"
+import { setFormatLocale } from "@miragon/pulse-ui"
 import { catalogTextFindings } from "@miragon/pulse-ui/testing"
-import {
-  FreshnessStamp,
-  VIEW_META_LABELS,
-  ViewMeta,
-  formatLookback,
-  formatViewMeta,
-} from "./view-meta.js"
+import { VIEW_META_LABELS, ViewMeta, formatLookback, formatViewMeta } from "./view-meta.js"
 
 afterEach(() => {
   cleanup()
@@ -123,38 +117,5 @@ describe("the meta line's words follow the voice rules", () => {
     ["en", VIEW_META_LABELS.en],
   ] as const)("%s", (language, catalog) => {
     expect(catalogTextFindings(catalog, { language })).toEqual([])
-  })
-})
-
-describe("FreshnessStamp: when a view's numbers were read, for its bar's freshness slot", () => {
-  it("says the time without seconds, the whole instant in its title, behind a clock", () => {
-    setFormatLocale({ language: "en", locale: "en-u-hc-h23", timeZone: "Europe/Berlin" })
-    const today = new Date().toISOString()
-    render(<FreshnessStamp at={AS_OF} />)
-    const stamp = document.querySelector("[data-slot='freshness-stamp']")!
-    expect(stamp.textContent).toMatch(/^As of (Oct 10, )?14:32$/)
-    expect(stamp.getAttribute("title")).toBe(formatInstant(AS_OF))
-    expect(stamp.querySelector("svg")?.getAttribute("class")).toContain("lucide-clock")
-    cleanup()
-    render(<FreshnessStamp at={today} />)
-    expect(screen.getByText(/^As of \d\d:\d\d$/)).toBeTruthy()
-  })
-
-  it("speaks the host's language", () => {
-    setFormatLocale({ language: "de", locale: "de-DE", timeZone: "Europe/Berlin" })
-    render(
-      <LocaleProvider locale="de">
-        <FreshnessStamp at={new Date().toISOString()} />
-      </LocaleProvider>,
-    )
-    expect(screen.getByText(/^Stand \d\d:\d\d$/)).toBeTruthy()
-  })
-
-  it("shows nothing for no time or one that does not parse", () => {
-    for (const at of [null, undefined, "", "not a time"]) {
-      const { container } = render(<FreshnessStamp at={at} />)
-      expect(container.innerHTML).toBe("")
-      cleanup()
-    }
   })
 })

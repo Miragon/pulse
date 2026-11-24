@@ -31,8 +31,7 @@ export interface SheetGroup {
  * name, and each own type their blocks name (`Fact` in `Facts`' props, `Translate` in
  * `createUseT`'s), so a reader finds every type a block names in the sheet; the render refuses a
  * sheet that names one it leaves out. A page reaches each through its package's `exports` only;
- * widget-shell's diagram and freshness names move into pulse-ui with Miragon/pulse#662 and #664,
- * and this list with them.
+ * widget-shell's diagram names move into pulse-ui with Miragon/pulse#662, and this list with them.
  */
 export const SHEET: readonly SheetGroup[] = [
   {
@@ -40,10 +39,21 @@ export const SHEET: readonly SheetGroup[] = [
     entry: "packages/core/ui/dist/index.d.ts",
     names: [
       "WidgetHeader",
+      "FreshnessStamp",
       "Facts",
       "Fact",
       "VersionChip",
       "SectionHeading",
+      "PanelGrid",
+      "Panel",
+      "SectionStateGroup",
+      "SectionState",
+      "SectionStateValue",
+      "SectionFailure",
+      "describePageError",
+      "PageError",
+      "PageErrorCode",
+      "DescribePageErrorOptions",
       "StatusStrip",
       "StatusStripAction",
       "KpiGrid",
@@ -127,7 +137,6 @@ export const SHEET: readonly SheetGroup[] = [
       "BpmnZoomControls",
       "parseBpmnNames",
       "readBpmnNames",
-      "FreshnessStamp",
       "describeError",
       "PageHints",
       "isPermanentError",
@@ -148,6 +157,7 @@ export const SHEET: readonly SheetGroup[] = [
  */
 export const NAMED_ONLY: Readonly<Record<string, string>> = {
   UiMessagesOverride: "the kit's own words per part, which a page leaves as they are",
+  UiMessages: "the kit's words in the viewer's language, as `useUiMessages()` returns them",
   DataTableSelection: "a selection column, as `rowSelection` builds it",
   ColumnSizing: "columns a reader sizes by dragging, as `useColumnSizing` returns it",
   BpmnElementRegistry: 'bpmn-js\'s element registry, `viewer.get("elementRegistry")`',

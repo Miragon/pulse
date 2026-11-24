@@ -296,3 +296,31 @@ export {
   type FormatLocale,
   type TimeOptions,
 } from "./format/index.js"
+
+// Dashboard blocks (Miragon/pulse#664): a section's read in its states, the panels of a page and
+// their grid, when the numbers were read, and the page error vocabulary a page outside a host
+// maps its transport's failures to once.
+export {
+  SectionState,
+  SectionStateGroup,
+  type SectionStateGroupProps,
+  type SectionStateProps,
+  type SectionStateValue,
+} from "./components/SectionState.js"
+export { SKELETON_DELAY_MS } from "./hooks/use-elapsed.js"
+export { Panel, PanelGrid, type PanelGridProps, type PanelProps } from "./components/PanelGrid.js"
+export { FreshnessStamp, type FreshnessStampProps } from "./components/FreshnessStamp.js"
+export {
+  PAGE_ERROR_CODES,
+  describePageError,
+  type DescribePageErrorOptions,
+  type PageError,
+  type PageErrorCode,
+  type SectionFailure,
+} from "./locale/page-errors.js"
+export type {
+  FreshnessMessages,
+  PageErrorMessages,
+  PageErrorParams,
+  SectionStateMessages,
+} from "./locale/ui-messages.js"

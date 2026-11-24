@@ -27,6 +27,26 @@ const SAMPLES: Record<string, unknown[]> = {
   edit: [{ label: "amount > 100" }],
   remove: [{ label: "amount > 100" }],
   atLeast: [{ count: "2,000" }],
+  asOf: [{ time: "14:32" }],
+  ...Object.fromEntries(
+    [
+      "needsReauth",
+      "needsReauthHint",
+      "notConnected",
+      "notConnectedHint",
+      "notAllowed",
+      "notAllowedHint",
+      "approvalRequired",
+      "approvalRequiredHint",
+      "unavailable",
+      "unavailableHint",
+      "toolError",
+      "toolErrorHint",
+    ].map((key) => [
+      key,
+      [{ connector: "Pulse", place: "in claude.ai, in Settings under Connectors" }],
+    ]),
+  ),
 }
 
 /** Every message of a catalog as `[path, rendered text]`. */
@@ -188,6 +208,9 @@ describe("resolveUiMessages", () => {
       "copyableId",
       "conditionChip",
       "stateLabel",
+      "freshness",
+      "sectionState",
+      "pageError",
     ] as const) {
       expect(merged[section]).toEqual(UI_MESSAGES.de[section])
     }

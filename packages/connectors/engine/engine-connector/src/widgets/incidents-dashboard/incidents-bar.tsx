@@ -1,6 +1,5 @@
-import { formatNumber, StateLabel, WidgetHeader } from "@miragon/pulse-ui"
+import { FreshnessStamp, formatNumber, StateLabel, WidgetHeader } from "@miragon/pulse-ui"
 import {
-  FreshnessStamp,
   HandOffButton,
   ViewDataState,
   WidgetShell,

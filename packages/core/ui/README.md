@@ -135,6 +135,55 @@ A page that pauses nothing of its own adds `BARE_PAUSE_RULE_EN` to the English r
 the words it replaces and the count words are in the generated
 [glossary](https://miragon.github.io/pulse/glossary).
 
+## A dashboard page
+
+A page outside a host (a Claude artifact, a page of your own) reads several sources, and each
+section can fail on its own. Four pieces keep every such page alike, every word from the kit's
+catalogs in English and German:
+
+- `SectionState` renders one section's read from `{ loading, error, data }`: its skeleton only
+  after 400 ms (`SKELETON_DELAY_MS`) with its room held, the content, `empty` for a read that
+  found nothing, a failure in the `ErrorState` box with the raw text under Details and Try again
+  unless it is `permanent`. A refresh keeps the data on screen, its region `aria-busy`; one that
+  fails says so inline above the data it keeps. Under a `SectionStateGroup` a failure several
+  sections share is said once, by the first, whose Try again reads them all again.
+- `PanelGrid` lays out `Panel`s (a card with its `h2` title and scope): one column below 600 px of
+  its own width, two (or `columns={3}`) where it has the room, the panels of a row as tall as each
+  other; `wide` spans a row.
+- `FreshnessStamp` goes into the bar's `freshness`: "As of 14:32", the instant in its title.
+- `describePageError` words a failed call by its code (`PageErrorCode`: `needs_reauth`,
+  `not_connected`, `not_allowed`, `approval_required`, `unavailable`, `tool_error`), so a page
+  maps its transport's errors once. The words name no transport: pass the connector's name and
+  where the viewer manages it (`place`), the claude.ai template passes claude.ai's.
+
+```tsx
+function Tasks({ read }: { read: Read<Task[]> }) {
+  const t = useT()
+  const messages = useUiMessages()
+  const error = read.error && describePageError(read.error, { messages, connector: "Pulse" })
+  return (
+    <Panel title={t("tasks")} hint={t("allVersions")}>
+      <SectionState
+        state={{ loading: read.loading, error, data: read.data }}
+        onRetry={read.retry}
+        empty={<TableEmptyState>{t("noTasks")}</TableEmptyState>}
+      >
+        {(tasks) => <TaskTable tasks={tasks} />}
+      </SectionState>
+    </Panel>
+  )
+}
+
+// The page: its bar with the oldest read, its sections in one group.
+<WidgetHeader title={t("title")} freshness={<FreshnessStamp at={oldestRead} />} />
+<SectionStateGroup>
+  <PanelGrid>
+    <Tasks read={tasks} />
+    <Incidents read={incidents} />
+  </PanelGrid>
+</SectionStateGroup>
+```
+
 ## Your own brand
 
 The theme maps role variables (`--primary`, `--interaction`, `--link`, `--focus`, `--<tone>`,

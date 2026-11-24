@@ -1,4 +1,5 @@
 import {
+  FreshnessStamp,
   Button,
   Icon,
   StateLabel,
@@ -13,7 +14,7 @@ import {
   formatNumber,
   shortId,
 } from "@miragon/pulse-ui"
-import { FreshnessStamp, HandOffButton, IdText } from "@miragon/pulse-widget-shell/widgets"
+import { HandOffButton, IdText } from "@miragon/pulse-widget-shell/widgets"
 import { Ban, CornerLeftUp, Pause, Play, Workflow } from "lucide-react"
 
 import type { InstanceDetailData } from "../../view-models.js"

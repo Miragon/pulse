@@ -1,5 +1,12 @@
-import { Button, Icon, StatusStrip, VersionChip, WidgetHeader, useLocale } from "@miragon/pulse-ui"
-import { FreshnessStamp } from "@miragon/pulse-widget-shell/widgets"
+import {
+  Button,
+  FreshnessStamp,
+  Icon,
+  StatusStrip,
+  VersionChip,
+  WidgetHeader,
+  useLocale,
+} from "@miragon/pulse-ui"
 import { RefreshCw } from "lucide-react"
 import { readHeader } from "../data/process-dashboard.ts"
 import { describeEngineError } from "../engine/errors.ts"

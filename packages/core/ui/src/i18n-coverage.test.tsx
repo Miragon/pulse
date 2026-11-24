@@ -111,8 +111,11 @@ describe("no English leaks into a German view", () => {
       "count",
       "dataTable",
       "filterBar",
+      "freshness",
       "listFooter",
+      "pageError",
       "searchField",
+      "sectionState",
       "stateLabel",
       "viewBar",
     ])

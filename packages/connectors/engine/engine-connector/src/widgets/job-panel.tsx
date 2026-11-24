@@ -1,5 +1,6 @@
 import { Fragment } from "react"
 import {
+  FreshnessStamp,
   PagedListFooter,
   SegmentedControl,
   Toolbar,
@@ -12,7 +13,6 @@ import {
 import { LIST_PAGE_SIZE, type JobPanelData } from "../view-models.js"
 import {
   type AskAiPrompt,
-  FreshnessStamp,
   HandOffButton,
   ListTable,
   type ListTableColumn,

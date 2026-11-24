@@ -18,7 +18,6 @@ describe("the /widgets entry", () => {
       "BpmnZoomControls",
       "ConfirmDialog",
       "FIT_CONTINUES_ROW",
-      "FreshnessStamp",
       "HAND_OFF_ACTIONS",
       "HandOffButton",
       "HostModelContext",

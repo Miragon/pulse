@@ -204,8 +204,8 @@ epic [#668](https://github.com/Miragon/pulse/issues/668) land; follow this skill
 - [#663](https://github.com/Miragon/pulse/issues/663) charts in the Pulse look: the bar chart and
   the meter rows go.
 - [#664](https://github.com/Miragon/pulse/issues/664) section state, panel grid and freshness
-  stamp in pulse-ui: the section state and the panels go, and the freshness stamp
-  (`FreshnessStamp`, today from widget-shell's `/widgets`) comes from pulse-ui.
+  stamp in pulse-ui: the section state and the panels go; the freshness stamp
+  (`FreshnessStamp`) comes from pulse-ui already.
 - [#665](https://github.com/Miragon/pulse/issues/665) a process's numbers per day and per
   activity, and [#666](https://github.com/Miragon/pulse/issues/666) a screen's JSON form: the
   reads shrink to a few calls, and the running badges count the tokens waiting before an
