@@ -167,6 +167,18 @@ export {
   type SideNavProps,
 } from "./components/SideNav.js"
 
+// Charts: React and SVG, no chart library; the blue ramp (--chart-1, --chart-2) and red for
+// incidents only, a tooltip, a legend for two series and a table for a screen reader each.
+export { BarChart, type BarChartProps } from "./components/charts/BarChart.js"
+export { LineChart, type LineChartProps } from "./components/charts/LineChart.js"
+export {
+  Sparkline,
+  type SparklinePoint,
+  type SparklineProps,
+} from "./components/charts/Sparkline.js"
+export { MeterRows, type MeterRow, type MeterRowsProps } from "./components/charts/MeterRows.js"
+export type { ChartPoint, ChartSeries, ChartUnit } from "./components/charts/chart-types.js"
+
 // Hooks
 export { useDebouncedValue } from "./hooks/use-debounced-value.js"
 export { useResetOnChange } from "./kit/use-reset-on-change.js"

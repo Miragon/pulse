@@ -29,6 +29,7 @@ import {
   type DataTableColumn,
 } from "./index.js"
 import { BLOCK_RENDER_CASES } from "./render-cases-blocks.js"
+import { CHART_RENDER_CASES } from "./render-cases-charts.js"
 import { DASHBOARD_RENDER_CASES } from "./render-cases-dashboard.js"
 import { PRIMITIVE_RENDER_CASES, type RenderCase } from "./render-cases-primitives.js"
 
@@ -96,6 +97,7 @@ export const RENDER_CASES: RenderCase[] = [
   ...PRIMITIVE_RENDER_CASES,
   ...BLOCK_RENDER_CASES,
   ...DASHBOARD_RENDER_CASES,
+  ...CHART_RENDER_CASES,
 
   // ── Composed components ──
   {

@@ -26,6 +26,11 @@ export interface CommonMessages {
   loadFailedHint: string
   /** What a `LoadingState` says while its content loads. */
   loading: string
+  /**
+   * A value no read gave, as a screen reader hears it where the screen shows "—": a chart's
+   * duration or share (a count says {@link CountMessages.unknown}).
+   */
+  noValue: string
 }
 
 /**

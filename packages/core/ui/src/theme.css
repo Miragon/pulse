@@ -406,11 +406,23 @@
   --info-soft: var(--cd-info-soft);
   --info-surface: var(--cd-info-soft);
   --info-ink: var(--cd-info);
+  /* The data-viz ramp (owner decision 2026-11-24): one hue from --cd-blau
+     to --cd-info-soft, in the fixed order a chart's series take it, the
+     step that stands off the surface most first, each next one nearer the
+     surface. --chart-1 is a chart's first series (a sparkline, a meter's
+     fill), --chart-2 its second: both 3:1 or more on the card, the ground,
+     a meter's track and the tooltip, and told apart by lightness, 0.1 or
+     more apart in OKLab lightness and 8 or more in OKLab distance under
+     protan, deutan and tritan vision too (chart-ramp.test.ts). Two series
+     is all the ramp holds at 3:1 on light, so the kit's charts take no
+     third. --chart-3 to --chart-5 fall below 3:1: a fill that carries no
+     figure alone (a band, a wash), never a series. Red (--danger) is for
+     incidents only, never green. */
   --chart-1: var(--cd-blau);
-  --chart-2: var(--cd-gruen);
-  --chart-3: var(--cd-blau-hell);
-  --chart-4: var(--cd-kontur);
-  --chart-5: var(--cd-schwarz);
+  --chart-2: color-mix(in srgb, var(--cd-blau) 72%, var(--cd-info-soft));
+  --chart-3: color-mix(in srgb, var(--cd-blau) 48%, var(--cd-info-soft));
+  --chart-4: color-mix(in srgb, var(--cd-blau) 24%, var(--cd-info-soft));
+  --chart-5: var(--cd-info-soft);
   --sidebar: var(--cd-weiss);
   --sidebar-foreground: var(--cd-schwarz);
   --sidebar-primary: var(--cd-blau);
@@ -479,11 +491,16 @@
   --info-soft: transparent;
   --info-surface: color-mix(in srgb, var(--cd-weiss) 5%, var(--cd-schwarz));
   --info-ink: var(--cd-weiss);
-  --chart-1: var(--cd-blau-hell);
-  --chart-2: var(--cd-gruen);
+  /* The ramp on dark, in the same order: --cd-blau alone is 2.68:1 on a
+     card, so the two series steps are lifted toward --cd-info-soft (the
+     first lighter, standing off the ground most), and --chart-3 to
+     --chart-5 step on toward the ground, from --cd-blau to --cd-schwarz as
+     the heat on the dark BPMN paper does. */
+  --chart-1: color-mix(in srgb, var(--cd-blau) 60%, var(--cd-info-soft));
+  --chart-2: color-mix(in srgb, var(--cd-blau) 85%, var(--cd-info-soft));
   --chart-3: var(--cd-blau);
-  --chart-4: var(--cd-kontur);
-  --chart-5: var(--cd-weiss);
+  --chart-4: color-mix(in srgb, var(--cd-blau) 60%, var(--cd-schwarz));
+  --chart-5: color-mix(in srgb, var(--cd-blau) 30%, var(--cd-schwarz));
   --sidebar: color-mix(in srgb, var(--cd-weiss) 5%, var(--cd-schwarz));
   --sidebar-foreground: var(--cd-weiss);
   --sidebar-primary: var(--cd-blau);
@@ -579,10 +596,11 @@
    of its own: a selected, pressed or checked control and the current link
    or button a 2 px ring inside in Highlight (focus keeps its own outline), a
    card (edged by a shadow ring) and a switch an edge in CanvasText, a status
-   dot, the switch's thumb and a progress bar's fill CanvasText, the bar's
-   track a CanvasText outline. A transparent edge (the kit's
-   buttons) turns visible here, so a button keeps its outline. A light island
-   keeps the colours it is drawn in.
+   dot, the switch's thumb, a progress bar's fill and a meter row's
+   CanvasText, the bar's and the row's track a CanvasText outline (a chart's
+   SVG marks name their system colours themselves: chart-series.ts). A
+   transparent edge (the kit's buttons) turns visible here, so a button keeps
+   its outline. A light island keeps the colours it is drawn in.
    Unlayered, so these win over the utilities. */
 @media (forced-colors: active) {
   :is(
@@ -639,7 +657,8 @@
     .bg-info,
     .bg-muted-foreground,
     [data-slot="switch-thumb"],
-    [data-slot="progress-indicator"]
+    [data-slot="progress-indicator"],
+    [data-slot="meter-fill"]
   ):not([data-theme-mode="light"] *) {
     background-color: CanvasText;
   }
@@ -650,9 +669,13 @@
   svg.lucide:not([data-slot="status-strip"] *, [data-theme-mode="light"] *) {
     color: inherit;
   }
-  /* A progress bar's track shows its extent by an outline; a still
-     indeterminate one (reduced motion) keeps its dashed line, no fill. */
+  /* A progress bar's track and a meter row's show their extent by an
+     outline; a still indeterminate bar (reduced motion) keeps its dashed
+     line, no fill. */
   [data-slot="progress"] {
+    outline: 1px solid CanvasText;
+  }
+  [data-slot="meter-track"] {
     outline: 1px solid CanvasText;
   }
   @media (prefers-reduced-motion: reduce) {

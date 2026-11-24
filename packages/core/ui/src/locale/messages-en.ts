@@ -15,6 +15,7 @@ export const en: UiMessages = {
     loadFailed: "This content couldn't be loaded",
     loadFailedHint: "Try again. If it fails again, ask in the chat.",
     loading: "Loading…",
+    noValue: "no value",
   },
   listFooter: {
     showing: ({ shown, total, noun }) => `Showing ${shown} of ${total} ${noun}`.trimEnd(),

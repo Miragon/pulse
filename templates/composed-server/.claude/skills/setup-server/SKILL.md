@@ -190,17 +190,18 @@ variables there only (`--primary`, `--primary-hover`, `--interaction`,
 `--link`, `--focus`, `--ring`, `--accent`/`--accent-foreground`, `--input`,
 `--<tone>`/`-soft`/`-surface`/`-ink`, radii, shadows, `--font-sans`) in BOTH
 blocks (the host's dark mode matches `:root` too). Miragon blue also sits in
-`--info`, `--chart-1/-3` and `--sidebar-*`; set those too for a single brand.
-The neutrals (surfaces, the text on them, `--border`) are the host's: a host
+`--info`, `--chart-1` to `--chart-5` and `--sidebar-*`; set those too for a
+single brand. The neutrals (surfaces, the text on them, `--border`) are the host's: a host
 that sends SEP-1865 style
 variables writes them inline on `<html>`, so a value set in brand.css shows
 only where the host sends none. Check your colours against a light and a
 dark host surface. Never set the `--cd-*` tokens, never colour a widget with
 palette classes. `server/test/brand.test.ts` measures the role and tone
 pairs (text and each `-foreground` on its fill 4.5:1, edges, dots, icons and
-the focus ring 3:1) in light and dark over the Miragon neutrals; charts, the
-sidebar, radii, shadows and fonts it does not measure. The widgets follow the
-host's theme; there is no theme switch in the app.
+the focus ring 3:1, a chart's two series steps too) in light and dark over
+the Miragon neutrals; the sidebar, radii, shadows and fonts it does not
+measure. The widgets follow the host's theme; there is no theme switch in the
+app.
 
 ## Step 5: Docker and production
 

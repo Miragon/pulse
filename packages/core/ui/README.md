@@ -184,6 +184,112 @@ function Tasks({ read }: { read: Read<Task[]> }) {
 </SectionStateGroup>
 ```
 
+## Charts
+
+Four charts in the Pulse look, React and SVG with no chart library: `BarChart` (bars over days
+or categories, grouped, on a fixed axis from zero), `LineChart` (series over time with a
+crosshair), `Sparkline` (a KPI tile's trend) and `MeterRows` (labelled rows with a bar in
+percent and the figure right aligned, for funnels and shares). Each fills its container's width,
+measured with a `ResizeObserver`, and never runs past it, so it fits a 360 px view; the axis
+keeps the labels that fit (the latest always) and writes its numbers through the kit's
+formatters in the view's locale (`unit`: `"count"`, the default, `"duration"` in milliseconds or
+`"percent"`). Values are a `Count`: a lower bound `{ atLeast }` draws to its bound and says
+"at least", an unknown `null` draws nothing and is never a 0. You format the point labels
+(`formatDate`).
+
+```tsx
+import {
+  BarChart,
+  KpiGrid,
+  LineChart,
+  MeterRows,
+  Sparkline,
+  formatCount,
+  formatDate,
+  type Count,
+} from "@miragon/pulse-ui"
+
+interface Day {
+  day: string
+  started: Count
+  ended: Count
+  incidents: Count
+  medianMs: number | null
+}
+
+export function ProcessCharts({ perDay }: { perDay: Day[] }) {
+  const points = perDay.map((d) => ({
+    key: d.day,
+    label: formatDate(d.day),
+    values: { started: d.started, ended: d.ended, incidents: d.incidents, median: d.medianMs },
+  }))
+  return (
+    <>
+      <KpiGrid
+        cells={[
+          {
+            label: "Started",
+            value: formatCount(431),
+            trend: (
+              <Sparkline
+                label="Started per day"
+                categoryLabel="Day"
+                points={points.map((p) => ({
+                  key: p.key,
+                  label: p.label,
+                  value: p.values.started,
+                }))}
+              />
+            ),
+          },
+        ]}
+      />
+      <BarChart
+        label="Started and ended per day"
+        categoryLabel="Day"
+        series={[
+          { key: "started", label: "Started" },
+          { key: "ended", label: "Ended" },
+          { key: "incidents", label: "Open incidents", kind: "incident" },
+        ]}
+        points={points}
+      />
+      <LineChart
+        label="Median duration per day"
+        categoryLabel="Day"
+        unit="duration"
+        series={[{ key: "median", label: "Median" }]}
+        points={points}
+      />
+      <MeterRows
+        label="Outcomes"
+        total={412}
+        rows={[
+          { key: "approved", label: "Approved", value: 301 },
+          { key: "rejected", label: "Rejected", value: 63 },
+        ]}
+      />
+    </>
+  )
+}
+```
+
+The colours are the theme's data-viz ramp, one blue from `--cd-blau` to `--cd-info-soft` in a
+fixed order: a chart's first series takes `--chart-1`, its second `--chart-2`, both 3:1 on every
+surface and told apart by lightness (the second line dashed too), measured in light, dark, high
+contrast and under protan, deutan and tritan vision; a series of `kind: "incident"` is red, the
+one red a chart draws, and nothing is green. Two series is all the ramp holds at 3:1, so a third
+series on the ramp throws: split the chart, or show the shares as `MeterRows`. Under forced
+colours the first series draws in the system's text colour, the second hollow (dashed as a
+line), incidents in its highlight. A legend names two series or more; hovering a point, or the
+arrow keys, Home and End on the focused plot (one tab stop), shows its figures in a tooltip (a
+`Sparkline`'s is placed in the window, so a KPI tile's clipping strip never cuts it); a screen
+reader reads each chart as a visually hidden table, each value in words ("at least 2,000",
+"count unknown"). `MeterRows` shows its figures as text, so it needs neither. Its shares are of
+an exact whole: a lower bound's share says so (`≥ 40%`), no part reads as 0 % or as all unless
+it is, and a whole that is not exact (`total` a lower bound or unknown, or the rows' sum while a
+row is) shows no share at all, its bars comparing the rows.
+
 ## Your own brand
 
 The theme maps role variables (`--primary`, `--interaction`, `--link`, `--focus`, `--<tone>`,

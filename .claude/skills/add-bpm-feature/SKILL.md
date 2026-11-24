@@ -393,7 +393,9 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   icon tile) + `VersionChip`; `KpiGrid` (KPI strips, neutral tiles: an alarming figure is its
   value's `CountFigure`, through the connector's `AlarmCount`; a clickable cell says what the
   click does in `actionHint`, never `ariaLabel`); `NavTabs`/`NavTab` (a navigation between
-  views, the cockpit head's sections); `Facts`, `StatusStrip`, `StateLabel`, `TabCount`. From
+  views, the cockpit head's sections); `Facts`, `StatusStrip`, `StateLabel`, `TabCount`; the
+  charts `BarChart`, `LineChart`, `Sparkline` and `MeterRows` (the blue ramp, at most two series
+  on it, red only for incidents; never a chart drawn by hand). From
   the view runtime: `WidgetShell` (the view's card, above; split into View + Shell only when the
   body is embedded elsewhere)
 - Where and what (#322 U4, U13): the cockpit's head names the engine and its environment (a

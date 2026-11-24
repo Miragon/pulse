@@ -224,9 +224,12 @@ nur hier dokumentiert):
 - Chrome im Rahmen des Hosts (Kopf mit Titel und Aktionen) statt randlosem Canvas.
 - Titel: 13 px in 600 in der 40-px-Leiste; 28 px in 700 als h2 nur auf App-Ebene (Landing,
   Flotte) statt h1 mit 40 px.
-- Data-Viz: eine einfarbige Rampe von `--cd-info-soft` bis `--cd-blau`, Rot nur für Incidents;
-  auf dunklem BPMN-Papier von `--cd-schwarz` bis `--cd-blau`, aufgehellt (aus D10 abgeleitet, die
-  Bestätigung des Owners steht aus).
+- Data-Viz (Owner-Entscheidung 2026-11-24): eine einfarbige Rampe von `--cd-info-soft` bis
+  `--cd-blau`, Rot nur für Incidents, nie Grün; auf dunklem BPMN-Papier von `--cd-schwarz` bis
+  `--cd-blau`, aufgehellt. Die Reihen eines Diagramms unterscheiden sich in der Helligkeit,
+  `--chart-1` vor `--chart-2` (die Reihenfolge steht an den Tokens in `theme.css`); nur diese
+  beiden halten 3:1 auf jeder Fläche, darum zeichnen die Diagramme des Kits höchstens zwei Reihen
+  auf der Rampe (`packages/core/ui/src/theme/chart-ramp.test.ts`).
 - Komet nur auf App-Ebene (Landing, Erststart, „keine Engines“: `KometMark`/`AppEmptyState`); eine
   Kundenmarke blendet ihn mit `--brand-mark-display: none` aus.
 - BPMN-Zoom-Leiste oben rechts, weil unten rechts das bpmn.io-Logo liegt (Lizenzpflicht).
