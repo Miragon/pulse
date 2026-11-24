@@ -1,15 +1,13 @@
-import { Icon, cn } from "@miragon/pulse-ui"
+import { Icon } from "@miragon/pulse-ui"
 import { MoveRightIcon } from "lucide-react"
-import { useMemo, type ReactNode } from "react"
+import type { ReactNode } from "react"
 import type { MigrationView } from "../../core/protocol/index.js"
 import { ContextBar, type Freshness } from "../components/context-bar.js"
-import { EmptyHint } from "../components/empty-hint.js"
-import { RuntimeDiagram } from "../components/runtime-diagram.js"
-import type { Decorations } from "../diagram/decoration-layer.js"
 import { useHost } from "../host/host-context.js"
 import { BulkStrip } from "./bulk-strip.js"
 import { MappingTable } from "./mapping-table.js"
 import { MigrationActions } from "./migration-actions.js"
+import { MigrationDiagrams } from "./migration-diagrams.js"
 import { NoticeStrips } from "./notices.js"
 import { SplitLayout } from "./split-layout.js"
 import { VersionPicker } from "./version-picker.js"
@@ -19,96 +17,6 @@ export interface MigrationScreenProps {
   readonly freshness: Freshness
   readonly stale: boolean
   readonly problem?: ReactNode
-}
-
-const UNNAMED = (): void => undefined
-
-const DIAGRAM_CELL = "relative min-h-0 min-w-0"
-
-const DIAGRAM_LABEL =
-  "bg-card border-border text-muted-foreground left-gutter absolute top-2 z-[2] rounded-sm border px-1.5 py-0.5 font-semibold tabular-nums"
-
-function useMigrationDecorations(view: MigrationView, stale: boolean) {
-  const focusedRow = view.rows.find((row) => row.sourceElementId === view.focused)
-  const source = useMemo<Decorations>(
-    () => ({
-      badges: [],
-      markers: [],
-      calls: [],
-      stale,
-      focusElementId: view.focused,
-      unmapped: view.rows
-        .filter((row) => row.unmappedTokens === true)
-        .map((row) => row.sourceElementId),
-    }),
-    [stale, view.focused, view.rows],
-  )
-  const target = useMemo<Decorations>(
-    () => ({
-      badges: [],
-      markers: [],
-      calls: [],
-      stale,
-      focusElementId: focusedRow?.targetElementId,
-      candidates: focusedRow?.candidates.map((candidate) => candidate.elementId) ?? [],
-    }),
-    [stale, focusedRow],
-  )
-  return { source, target, focusedRow }
-}
-
-function Diagrams({ view, stale }: { readonly view: MigrationView; readonly stale: boolean }) {
-  const host = useHost()
-  const { source, target } = useMigrationDecorations(view, stale)
-  const focused = view.focused
-  return (
-    <div className="@container/migration h-full overflow-y-auto">
-      <div className="divide-border grid h-full grid-cols-2 divide-x @max-[900px]/migration:h-auto @max-[900px]/migration:min-h-full @max-[900px]/migration:auto-rows-[minmax(300px,1fr)] @max-[900px]/migration:grid-cols-1 @max-[900px]/migration:divide-x-0 @max-[900px]/migration:divide-y">
-        <div className={DIAGRAM_CELL} data-part="migration-diagram">
-          <span className={DIAGRAM_LABEL}>v{view.source.version} · from</span>
-          <RuntimeDiagram
-            xml={view.source.diagramXml}
-            decorations={source}
-            label={`Diagram of v${view.source.version}, the version to migrate from`}
-            keysOnCanvas
-            onSelectElement={(elementId) => {
-              host.post({ type: "focusMapping", sourceElementId: elementId })
-            }}
-            onNames={UNNAMED}
-          />
-        </div>
-        {view.target === undefined ? (
-          <div
-            className={cn(DIAGRAM_CELL, "bg-background grid place-items-center")}
-            data-part="migration-diagram"
-          >
-            <EmptyHint text="Pick the version to migrate to." />
-          </div>
-        ) : (
-          <div className={DIAGRAM_CELL} data-part="migration-diagram">
-            <span className={DIAGRAM_LABEL}>v{view.target.version} · to</span>
-            <RuntimeDiagram
-              xml={view.target.diagramXml}
-              decorations={target}
-              remembersView={false}
-              keysOnCanvas
-              label={`Diagram of v${view.target.version}, the version to migrate to`}
-              onSelectElement={(elementId) => {
-                if (focused !== undefined) {
-                  host.post({
-                    type: "mapElement",
-                    sourceElementId: focused,
-                    targetElementId: elementId,
-                  })
-                }
-              }}
-              onNames={UNNAMED}
-            />
-          </div>
-        )}
-      </div>
-    </div>
-  )
 }
 
 export function MigrationScreen({ view, freshness, stale, problem }: MigrationScreenProps) {
@@ -141,7 +49,18 @@ export function MigrationScreen({ view, freshness, stale, problem }: MigrationSc
         <NoticeStrips notices={view.notices} />
       </div>
       <SplitLayout
-        top={<Diagrams view={view} stale={stale} />}
+        top={
+          <MigrationDiagrams
+            source={view.source}
+            target={view.target}
+            rows={view.rows}
+            focused={view.focused}
+            stale={stale}
+            onMap={(sourceElementId, targetElementId) => {
+              host.post({ type: "mapElement", sourceElementId, targetElementId })
+            }}
+          />
+        }
         bottom={
           <section
             className="bg-card @container/list flex h-full min-h-0 flex-col"

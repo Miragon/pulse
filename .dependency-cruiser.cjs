@@ -44,11 +44,13 @@
  * and src/data, by its main entry (engine-core-consumers,
  * engine-connector-contract-by-its-main-entry).
  * The foundation packages every family builds on live under `packages/core/` (npm names
- * without a role suffix, e.g. `@miragon/pulse-widget-shell`), never one family's code; three of
+ * without a role suffix, e.g. `@miragon/pulse-widget-shell`), never one family's code; some of
  * them are leaves only their consumers import: the profile format (`@miragon/pulse-profile`,
  * PROFILE), read where a surface reads its profiles, the board format (`@miragon/pulse-board`,
  * BOARD), read where a surface reads its board files, the screens' format
- * (`@miragon/pulse-screens`, SCREENS), read where a surface builds or reads a shared screen, and
+ * (`@miragon/pulse-screens`, SCREENS), read where a surface builds or reads a shared screen, the
+ * migration plan format (`@miragon/pulse-migration-plan`, MIGRATION_PLAN), read where the CLI
+ * writes a plan file and the runtime view previews one, and
  * the transport (`@miragon/pulse-http`, HTTP), used where a surface sends its engine requests; the
  * building blocks
  * (`@miragon/pulse-blocks`, BLOCKS) are React on pulse-ui that only the surfaces rendering them
@@ -57,14 +59,16 @@
  * connectors, and the web app (apps/web, `@miragon/pulse-web`) shows their views on pages of the
  * server (web-is-a-page); of the interface apps, the CLI (apps/cli, `@miragon/pulse-cli`) imports no
  * workspace package but the ones CLI_BUNDLES names, which tsdown inlines (its family core, with
- * the main entry of engine-core that core imports, the profile format for its config layer and
- * the transport for its http layer), and the two editor hosts, the VS Code extension
+ * the main entry of engine-core that core imports, the profile format for its config layer, the
+ * transport for its http layer and the migration plan format for its workflow commands), and the
+ * two editor hosts, the VS Code extension
  * (apps/vscode, the unscoped `pulse-cockpit`, because vsce rejects scoped names) and the Orca
  * plugin (apps/orca, `@miragon/pulse-orca`), compose the runtime view (packages/core/runtime-view)
  * with the family adapters (c7-adapter, c8-adapter) and read the contract's ids and read models
  * from engine-core's main entry, all of which esbuild bundles; the runtime view's host kit reads
  * the project files with the profile format, its core and Pulse for VS Code's Boards view the
- * board files with the board format. No package and no app imports an app (the closed-world
+ * board files with the board format, and its core the migration plan files with the migration
+ * plan format. No package and no app imports an app (the closed-world
  * rules of the editor hosts and of the two packages they share live in each one's own
  * .dependency-cruiser.cjs).
  * APP_PACKAGES below names every app's npm name; the
@@ -494,14 +498,39 @@ const HTTP_MAIN_ENTRY = [
 const HTTP_ANY = [`^${escapeRegExp(HTTP.tree)}/`, ...npm(escapeRegExp(HTTP.name))]
 
 /**
+ * The migration plan format (packages/core/migration-plan, npm `@miragon/pulse-migration-plan`,
+ * private): the one parser and writer of the migration plan files
+ * (`.pulse/migrations/*.migration.json`) that `pulse plan-migration` writes and the runtime view
+ * previews, their words, file names and id and version rules. A foundation package and a leaf
+ * like the board format, so it stays out of CORE_BUNDLES too: its own rules are
+ * migration-plan-is-a-leaf and migration-plan-consumers.
+ */
+const MIGRATION_PLAN = {
+  name: "@miragon/pulse-migration-plan",
+  tree: "packages/core/migration-plan",
+}
+
+/**
+ * Where a surface reads or writes its plan files, the only shipped importers of MIGRATION_PLAN:
+ * the CLI's workflow commands (`pulse plan-migration` writes a plan file) and the runtime view's
+ * migration plan preview (src/core/plans, which Pulse for VS Code opens; its closed world admits
+ * the edge from the core). Tests import it anywhere.
+ */
+const MIGRATION_PLAN_READERS = [
+  "^apps/cli/src/workflow/",
+  "^packages/core/runtime-view/src/core/plans/",
+]
+
+/**
  * The workspace packages the CLI may bundle (tsdown inlines what it imports, so the published CLI
  * depends on none of them): its family core, CORE_BUNDLES' entry for apps/cli, the profile
- * format, which its config layer reads the profiles with, and the transport, which its http,
- * auth and operation layers send the engine requests with. The
+ * format, which its config layer reads the profiles with, the transport, which its http,
+ * auth and operation layers send the engine requests with, and the migration plan format, which
+ * its workflow commands write a plan file with. The
  * only workspace packages cli-is-headless lets the CLI import; cli-no-circular and
  * cli-not-to-test hold their trees as part of the CLI.
  */
-const CLI_BUNDLES = [CORE_BUNDLES["^apps/cli/"], PROFILE, HTTP]
+const CLI_BUNDLES = [CORE_BUNDLES["^apps/cli/"], PROFILE, HTTP, MIGRATION_PLAN]
 const CLI_BUNDLE_NAMES = CLI_BUNDLES.map(({ name }) => escapeRegExp(name)).join("|")
 const CLI_BUNDLE_TREES = CLI_BUNDLES.map(({ tree }) => escapeRegExp(tree)).join("|")
 
@@ -1088,7 +1117,8 @@ module.exports = {
         "The CLI (apps/cli) is a terminal interface, not an MCP host: it imports no workspace " +
         "package except the ones CLI_BUNDLES names, which tsdown inlines (" +
         "@miragon/pulse-c7-core, the Camunda 7 REST family's core, " +
-        "@miragon/pulse-profile, the profile format, and @miragon/pulse-http, the transport), " +
+        "@miragon/pulse-profile, the profile format, @miragon/pulse-http, the transport, and " +
+        "@miragon/pulse-migration-plan, the migration plan format), " +
         "and nothing of the MCP/UI/server " +
         "stack (react, react-dom, lucide-react, preact, bpmn-js, diagram-js, " +
         "@modelcontextprotocol, hono, jose, TanStack, prom-client, " +
@@ -1255,6 +1285,44 @@ module.exports = {
         ],
       },
       to: { path: BOARD_BUILDER },
+    },
+    {
+      name: "migration-plan-is-a-leaf",
+      severity: "error",
+      comment:
+        "The migration plan format (packages/core/migration-plan, @miragon/pulse-migration-plan, " +
+        "its main entry and ./testing) has no runtime dependency: its shipped code (the ./testing " +
+        "export and its JSON fixtures included) imports only its own modules, no workspace " +
+        "package, no npm package and no Node built-in. It parses and writes the text of a plan " +
+        "file a reader hands it: finding, reading and writing the file, the engine a plan is " +
+        "checked on and every engine request stay with the reader (the CLI's workflow commands, " +
+        "the runtime view's migration plan preview). Its tests may import vitest and ajv.",
+      from: { path: `^${escapeRegExp(MIGRATION_PLAN.tree)}/src/`, pathNot: ["[.]test[.]ts$"] },
+      to: { pathNot: `^${escapeRegExp(MIGRATION_PLAN.tree)}/src/` },
+    },
+    {
+      name: "migration-plan-consumers",
+      severity: "error",
+      comment:
+        "The migration plan format (@miragon/pulse-migration-plan) may be imported only where a " +
+        "surface writes or reads its plan files (MIGRATION_PLAN_READERS): the CLI's workflow " +
+        "commands (apps/cli/src/workflow, pulse plan-migration) and the runtime view's migration " +
+        "plan preview (packages/core/runtime-view/src/core/plans), and by tests anywhere. Not the " +
+        "CLI's command layer or config, not the runtime view's other layers, not the editor " +
+        "hosts' src (they hand the preview the file's text), no connector, no other package and " +
+        "no other app until it reads a plan file itself, through a rule change of its own. A " +
+        "relative escape into packages/core/migration-plan is a violation too.",
+      from: {
+        pathNot: [
+          ...MIGRATION_PLAN_READERS,
+          `^${escapeRegExp(MIGRATION_PLAN.tree)}/(?:src|test)/`,
+          ...SRC_TEST_CODE,
+          `^${PACKAGE_ROOT}/(?:test|test-host)/`,
+        ],
+      },
+      to: {
+        path: [`^${escapeRegExp(MIGRATION_PLAN.tree)}/`, ...npm(escapeRegExp(MIGRATION_PLAN.name))],
+      },
     },
     {
       name: "screens-format-is-a-leaf",
@@ -1830,7 +1898,8 @@ module.exports = {
       severity: "error",
       comment:
         "The CLI (apps/cli) and the packages CLI_BUNDLES names (c7-core, the profile " +
-        "format, the transport) have no import cycle at all, type-only cycles included (stricter than " +
+        "format, the transport, the migration plan format) have no import cycle at all, type-only " +
+        "cycles included (stricter than " +
         "no-circular above). Extract the shared part into its own module.",
       from: { path: `^(?:apps/cli|${CLI_BUNDLE_TREES})/` },
       to: { circular: true },
@@ -1850,7 +1919,8 @@ module.exports = {
       severity: "error",
       comment:
         "Nothing in the CLI or in the packages CLI_BUNDLES names (c7-core, the profile " +
-        "format, the transport) imports a test file (*.test.ts) of its own tree. Shared test helpers live in " +
+        "format, the transport, the migration plan format) imports a test file (*.test.ts) of its " +
+        "own tree. Shared test helpers live in " +
         "apps/cli/test/support/ and in a bundled package's src/testing/.",
       from: { path: `^(apps/cli|${CLI_BUNDLE_TREES})/` },
       to: { path: "^$1/.*[.]test[.]ts$" },

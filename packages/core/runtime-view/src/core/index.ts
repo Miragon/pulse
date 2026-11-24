@@ -9,6 +9,8 @@ export { DiagramCache } from "./diagrams/diagram-cache.js"
 export { EnginePanel } from "./panels/engine-panel.js"
 export { InstancePanel } from "./panels/instance-panel.js"
 export { MigrationPanel } from "./panels/migration-panel.js"
+export { MigrationPlanPanel } from "./plans/migration-plan-panel.js"
+export type { PlanSource } from "./plans/plan-context.js"
 export type { Panel } from "./panels/panel.js"
 export { StatePublisher } from "./panels/state-publisher.js"
 export type {

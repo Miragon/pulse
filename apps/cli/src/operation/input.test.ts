@@ -29,6 +29,7 @@ function deps(files: Record<string, string> = {}): InputDeps {
     remove: () => Promise.resolve(false),
     readdir: () => Promise.resolve([]),
     kind: () => Promise.resolve("missing" as const),
+    linked: () => Promise.resolve(false),
   }
   return { fs, readStdin: () => Promise.resolve(new Uint8Array()) }
 }

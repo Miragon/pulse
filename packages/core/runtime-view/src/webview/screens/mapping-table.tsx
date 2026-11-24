@@ -1,18 +1,10 @@
-import {
-  DataTable,
-  Icon,
-  NativeSelect,
-  TONE_ICON,
-  Td,
-  cn,
-  type DataTableColumn,
-} from "@miragon/pulse-ui"
-import { CircleXIcon, TriangleAlertIcon } from "lucide-react"
+import { DataTable, NativeSelect, Td, cn, type DataTableColumn } from "@miragon/pulse-ui"
 import type { MappingRow, MigrationView } from "../../core/protocol/index.js"
 import { NoValue } from "../components/no-value.js"
 import { usePendingValue } from "../components/pending-value.js"
 import { CountLabels } from "../format/count-labels.js"
 import { useHost } from "../host/host-context.js"
+import { NoteCell, SourceCell } from "./mapping-cells.js"
 
 interface MappingCellProps {
   readonly row: MappingRow
@@ -48,43 +40,6 @@ function TargetSelect({ row, noteId }: MappingCellProps) {
         </option>
       ))}
     </NativeSelect>
-  )
-}
-
-function NoteCell({ row, noteId }: MappingCellProps) {
-  const note = row.problem ?? row.warning
-  if (note === undefined) {
-    return <NoValue />
-  }
-  const problem = row.problem !== undefined
-  return (
-    <span
-      id={noteId}
-      className="inline-flex items-center gap-1"
-      data-part="mapping-note"
-      data-tone={problem ? "danger" : "warning"}
-    >
-      <Icon
-        icon={problem ? CircleXIcon : TriangleAlertIcon}
-        dense
-        className={problem ? TONE_ICON.danger : TONE_ICON.warning}
-      />
-      {note}
-    </span>
-  )
-}
-
-function SourceCell({ row }: { readonly row: MappingRow }) {
-  return (
-    <span className="inline-flex items-center gap-2">
-      {row.sourceLabel}
-      {row.unmappedTokens === true && (
-        <span className="inline-flex items-center gap-1">
-          <Icon icon={CircleXIcon} className={TONE_ICON.danger} />
-          no mapping
-        </span>
-      )}
-    </span>
   )
 }
 
@@ -126,7 +81,7 @@ function MappingLine({ row, view }: { readonly row: MappingRow; readonly view: M
       }}
     >
       <Td>
-        <SourceCell row={row} />
+        <SourceCell label={row.sourceLabel} unmappedTokens={row.unmappedTokens === true} />
       </Td>
       <Td>
         {view.target === undefined ? <NoValue /> : <TargetSelect row={row} noteId={noteId} />}
@@ -135,7 +90,11 @@ function MappingLine({ row, view }: { readonly row: MappingRow; readonly view: M
         <WaitingText waiting={row.waiting} />
       </Td>
       <Td>
-        <NoteCell row={row} noteId={noteId} />
+        <NoteCell
+          note={row.problem ?? row.warning}
+          tone={row.problem === undefined ? "warning" : "danger"}
+          noteId={noteId}
+        />
       </Td>
     </tr>
   )

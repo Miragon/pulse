@@ -354,6 +354,24 @@ describe.skipIf(process.platform === "win32")("createNodeRuntime().fs.readdir an
     expect(await fs.kind(join(dir, "a.bpmn", "below"))).toBe("missing")
   })
 
+  it("tells a symbolic link, dangling or not, from a file, a directory and a missing path", async () => {
+    await writeFile(join(dir, "a.migration.json"), "{}")
+    await mkdir(join(dir, "sub"))
+    await symlink(join(dir, "a.migration.json"), join(dir, "link.migration.json"))
+    await symlink(join(dir, "sub"), join(dir, "linked-dir"))
+    await symlink(join(dir, "gone"), join(dir, "dangling.migration.json"))
+    expect(await fs.linked(join(dir, "link.migration.json"))).toBe(true)
+    expect(await fs.linked(join(dir, "linked-dir"))).toBe(true)
+    expect(await fs.linked(join(dir, "dangling.migration.json"))).toBe(true)
+    expect(await fs.linked(join(dir, "a.migration.json"))).toBe(false)
+    expect(await fs.linked(join(dir, "sub"))).toBe(false)
+    expect(await fs.linked(join(dir, "missing"))).toBe(false)
+    expect(await fs.linked(join(dir, "a.migration.json", "below"))).toBe(false)
+    await expect(fs.linked(join(dir, "x".repeat(300)))).rejects.toMatchObject({
+      code: "ENAMETOOLONG",
+    })
+  })
+
   it("owns what the current user created, a link itself included; nothing that is missing", async () => {
     await mkdir(join(dir, ".git"))
     await symlink(join(dir, ".git"), join(dir, "linked"))

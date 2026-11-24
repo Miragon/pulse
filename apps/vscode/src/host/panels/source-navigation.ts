@@ -25,11 +25,22 @@ export class SourceNavigation {
 
   async openSource(location: SourceLocation): Promise<void> {
     const position = new vscode.Position(Math.max(location.line - 1, 0), 0)
-    await vscode.window.showTextDocument(vscode.Uri.parse(location.uri), {
-      preview: true,
-      viewColumn: vscode.ViewColumn.Active,
-      selection: new vscode.Range(position, position),
-    })
+    try {
+      await vscode.window.showTextDocument(vscode.Uri.parse(location.uri), {
+        preview: true,
+        viewColumn: vscode.ViewColumn.Active,
+        selection: new vscode.Range(position, position),
+      })
+    } catch {
+      void vscode.window.showErrorMessage(
+        `Pulse can't open ${SourceNavigation.fileNameOf(location.uri)}. Check that the file is there and that you may read it.`,
+      )
+    }
+  }
+
+  private static fileNameOf(uri: string): string {
+    const { path } = vscode.Uri.parse(uri)
+    return path.slice(path.lastIndexOf("/") + 1)
   }
 
   private async focusInModeler(uri: string, elementId: string): Promise<boolean> {

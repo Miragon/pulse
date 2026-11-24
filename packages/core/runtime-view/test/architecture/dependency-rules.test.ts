@@ -159,6 +159,35 @@ const PLANTED: Readonly<Record<string, string>> = {
   "src/core/escapes-into-the-board.ts":
     "import { BoardParser } from '../../../board/src/index.ts';\nexport const parser = BoardParser;\n",
   "../board/src/index.ts": "export const BoardParser = 1;\n",
+  "src/core/plans/reads-a-plan.ts":
+    "import { MigrationPlanParser } from '@miragon/pulse-migration-plan';\nexport const parser = MigrationPlanParser;\n",
+  "src/core/protocol/reads-a-plan.ts":
+    "import type { MigrationPlanDefinition } from '@miragon/pulse-migration-plan';\nexport type Plan = MigrationPlanDefinition;\n",
+  "src/webview/reads-a-plan.ts":
+    "import type { MigrationPlanDefinition } from '@miragon/pulse-migration-plan';\nexport type Plan = MigrationPlanDefinition;\n",
+  "src/host-kit/reads-a-plan.ts":
+    "import { MigrationPlanParser } from '@miragon/pulse-migration-plan';\nexport const parser = MigrationPlanParser;\n",
+  "src/core/panels/bulk-write.ts": "export const write = 1;\n",
+  "src/core/panels/migration-preview.ts": "export const preview = 1;\n",
+  "src/core/views/migration-requests.ts": "export const request = 1;\n",
+  "src/core/panels/bulk-selection.ts": "export const cap = 1;\n",
+  "src/core/panels/migration-reads.ts": "export const reads = 1;\n",
+  "src/core/panels/instance-panel.ts": "export const instance = 1;\n",
+  "src/core/panels/definition-panel.ts": "export const definition = 1;\n",
+  "src/core/plans/opens-an-instance.ts":
+    "import { instance } from '../panels/instance-panel.ts';\nexport const opened = instance;\n",
+  "src/core/plans/opens-a-definition.ts":
+    "import { definition } from '../panels/definition-panel.ts';\nexport const opened = definition;\n",
+  "src/core/plans/starts-a-bulk.ts":
+    "import { write } from '../panels/bulk-write.ts';\nexport const started = write;\n",
+  "src/core/plans/opens-the-tab.ts":
+    "import { preview } from '../panels/migration-preview.ts';\nexport const opened = preview;\n",
+  "src/core/plans/words-a-request.ts":
+    "import { request } from '../views/migration-requests.ts';\nexport const worded = request;\n",
+  "src/core/plans/reads-the-cap.ts":
+    "import { cap } from '../panels/bulk-selection.ts';\nexport const most = cap;\n",
+  "src/core/plans/reads-the-versions.ts":
+    "import { reads } from '../panels/migration-reads.ts';\nexport const versions = reads;\n",
   "src/core/reads-a-screen.ts":
     "import { ProcessFilter } from '@miragon/pulse-screens';\nexport const filter = ProcessFilter;\n",
   "src/core/builds-a-screen.ts":
@@ -203,7 +232,7 @@ const PLANTED: Readonly<Record<string, string>> = {
     '{ "name": "radix-ui", "exports": { ".": { "types": "./index.d.ts" } } }\n',
   "../../../node_modules/radix-ui/index.d.ts": "export declare const Tabs: number;\n",
   "package.json":
-    '{ "name": "@miragon/pulse-runtime-view", "private": true, "dependencies": { "@miragon/pulse-blocks": "workspace:*", "@miragon/pulse-board": "workspace:*", "@miragon/pulse-c7-core": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-profile": "workspace:*", "@miragon/pulse-screens": "workspace:*", "@miragon/pulse-ui": "workspace:*", "bpmn-moddle": "10.3.1", "lucide-react": "1.70.0", "react": "19.3.1", "react-dom": "19.3.1" }, "devDependencies": { "camunda-bpmn-moddle": "8.0.2" } }\n',
+    '{ "name": "@miragon/pulse-runtime-view", "private": true, "dependencies": { "@miragon/pulse-blocks": "workspace:*", "@miragon/pulse-board": "workspace:*", "@miragon/pulse-c7-core": "workspace:*", "@miragon/pulse-engine-core": "workspace:*", "@miragon/pulse-migration-plan": "workspace:*", "@miragon/pulse-profile": "workspace:*", "@miragon/pulse-screens": "workspace:*", "@miragon/pulse-ui": "workspace:*", "bpmn-moddle": "10.3.1", "lucide-react": "1.70.0", "react": "19.3.1", "react-dom": "19.3.1" }, "devDependencies": { "camunda-bpmn-moddle": "8.0.2" } }\n',
 }
 
 const tree = new PlantedTree("packages/core/runtime-view", PLANTED)
@@ -238,6 +267,7 @@ describe("the dependency rules", () => {
     const screens = at("node_modules/@miragon/pulse-screens/dist/index.d.ts")
     const screensBuilder = at("node_modules/@miragon/pulse-screens/dist/builder/index.d.ts")
     const screensTesting = at("node_modules/@miragon/pulse-screens/dist/testing/index.d.ts")
+    const plan = at("node_modules/@miragon/pulse-migration-plan/dist/index.d.ts")
     const blocksSubpath = "@miragon/pulse-blocks/board"
     const blocksSource = "packages/core/blocks/src/index.ts"
     const c7Core = "node_modules/@miragon/pulse-c7-core/dist/index.d.ts"
@@ -328,6 +358,14 @@ describe("the dependency rules", () => {
         `not-in-allowed: ${at("src/host-kit/builds-a-screen.ts")} -> ${screensBuilder}`,
         `not-in-allowed: ${at("src/core/ships-the-world-screens.ts")} -> ${screensTesting}`,
         `not-in-allowed: ${at("src/core/escapes-into-the-screens.ts")} -> packages/core/screens/src/index.ts`,
+        `protocol-imports-nothing: ${at("src/core/protocol/reads-a-plan.ts")} -> ${plan}`,
+        `not-in-allowed: ${at("src/webview/reads-a-plan.ts")} -> ${plan}`,
+        `not-in-allowed: ${at("src/host-kit/reads-a-plan.ts")} -> ${plan}`,
+        `plans-start-nothing: ${at("src/core/plans/starts-a-bulk.ts")} -> ${at("src/core/panels/bulk-write.ts")}`,
+        `plans-start-nothing: ${at("src/core/plans/opens-the-tab.ts")} -> ${at("src/core/panels/migration-preview.ts")}`,
+        `plans-start-nothing: ${at("src/core/plans/words-a-request.ts")} -> ${at("src/core/views/migration-requests.ts")}`,
+        `plans-start-nothing: ${at("src/core/plans/opens-an-instance.ts")} -> ${at("src/core/panels/instance-panel.ts")}`,
+        `plans-start-nothing: ${at("src/core/plans/opens-a-definition.ts")} -> ${at("src/core/panels/definition-panel.ts")}`,
         `not-in-allowed: ${at("src/core/renders-blocks.ts")} -> ${blocks}`,
         `not-in-allowed: ${at("src/host-kit/renders-blocks.ts")} -> ${blocks}`,
         `webview-blocks-by-its-entry: ${at("src/webview/reads-a-blocks-subpath.ts")} -> ${blocksSubpath}`,

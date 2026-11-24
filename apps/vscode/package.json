@@ -131,6 +131,12 @@
         "title": "New Board…",
         "category": "Pulse",
         "icon": "$(add)"
+      },
+      {
+        "command": "pulse.previewMigrationPlan",
+        "title": "Preview Migration Plan…",
+        "category": "Pulse",
+        "icon": "$(preview)"
       }
     ],
     "menus": {
@@ -150,6 +156,10 @@
         {
           "command": "pulse.openBoard",
           "when": "false"
+        },
+        {
+          "command": "pulse.previewMigrationPlan",
+          "when": "resourceFilename =~ /\\.migration\\.json$/"
         }
       ],
       "view/title": [
@@ -191,12 +201,22 @@
           "command": "pulse.showRuntimeData",
           "when": "resourceExtname == .bpmn",
           "group": "navigation@90"
+        },
+        {
+          "command": "pulse.previewMigrationPlan",
+          "when": "resourceFilename =~ /\\.migration\\.json$/",
+          "group": "navigation@90"
         }
       ],
       "editor/title": [
         {
           "command": "pulse.showRuntimeData",
           "when": "resourceExtname == .bpmn",
+          "group": "navigation@90"
+        },
+        {
+          "command": "pulse.previewMigrationPlan",
+          "when": "resourceFilename =~ /\\.migration\\.json$/",
           "group": "navigation@90"
         }
       ]
@@ -276,6 +296,10 @@
       {
         "fileMatch": "**/.pulse/boards/*.board.json",
         "url": "./schemas/board.schema.json"
+      },
+      {
+        "fileMatch": "**/.pulse/migrations/*.migration.json",
+        "url": "./schemas/migration-plan.schema.json"
       }
     ]
   },
@@ -312,6 +336,7 @@
     "@miragon/pulse-runtime-view": "workspace:*"
   },
   "devDependencies": {
+    "@miragon/pulse-migration-plan": "workspace:*",
     "@miragon/pulse-ui": "workspace:*",
     "@types/node": "22.20.5",
     "@types/vscode": "1.101.0",

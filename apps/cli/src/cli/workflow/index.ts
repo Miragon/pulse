@@ -7,6 +7,7 @@ import type { Command } from "commander"
 import { WORKFLOW_DOCS } from "../../docs/workflow.js"
 import type { CliContext } from "../context.js"
 import { runAdvance, runDeploy, runInspect, runRetry, runStatus, runWait } from "./actions.js"
+import { runPlanMigration } from "./plan-migration-action.js"
 import { registerWorkflow, type WorkflowAction } from "./register.js"
 
 const ACTIONS: Readonly<Record<string, WorkflowAction>> = {
@@ -16,6 +17,7 @@ const ACTIONS: Readonly<Record<string, WorkflowAction>> = {
   retry: runRetry,
   deploy: runDeploy,
   status: runStatus,
+  "plan-migration": runPlanMigration,
 }
 
 export function registerWorkflowCommands(program: Command, context: CliContext): void {

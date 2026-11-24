@@ -25,6 +25,10 @@ describe("the board schema the editor validates with", () => {
   test("is the one the extension contributes for board files", () => {
     expect(manifest.contributes.jsonValidation).toEqual([
       { fileMatch: "**/.pulse/boards/*.board.json", url: `./${COPY}` },
+      {
+        fileMatch: "**/.pulse/migrations/*.migration.json",
+        url: "./schemas/migration-plan.schema.json",
+      },
     ])
   })
 

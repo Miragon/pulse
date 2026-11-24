@@ -10,7 +10,7 @@ import type { EnginePort } from "../port.js"
 import { compact } from "../util.js"
 import { definitionRefOfInstance } from "./definition-refs.js"
 import { instanceStateOf } from "./instance-states.js"
-import { JsonView } from "./json-view.js"
+import { JsonView } from "../json-view.js"
 import type { OffsetWindow } from "./offset-paging.js"
 import { optionalTimestampOf } from "./timestamps.js"
 

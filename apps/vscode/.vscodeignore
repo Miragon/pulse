@@ -5,6 +5,7 @@
 !dist/fonts/**
 !media/**
 !schemas/board.schema.json
+!schemas/migration-plan.schema.json
 !package.json
 !MARKETPLACE.md
 !LICENSE

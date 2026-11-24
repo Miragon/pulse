@@ -48,7 +48,12 @@ const BUNDLED_APPS = {
   "@miragon/pulse-cli": {
     dist: "apps/cli/dist",
     budget: "apps/cli/test/__golden__/bundle-budget.json",
-    bundles: ["@miragon/pulse-c7-core", "@miragon/pulse-http", "@miragon/pulse-profile"],
+    bundles: [
+      "@miragon/pulse-c7-core",
+      "@miragon/pulse-http",
+      "@miragon/pulse-migration-plan",
+      "@miragon/pulse-profile",
+    ],
   },
 }
 

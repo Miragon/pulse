@@ -19,9 +19,9 @@ pulse guide auth
 - `pulse commands [group]` and `--search <words>` list commands; `pulse describe` returns
   arguments, options, body schema and examples as JSON. `--dry-run` previews a write.
 - `pulse api <METHOD> <path>` sends a raw request with the same guards, output and errors.
-- The workflow commands (`inspect`, `wait`, `advance`, `retry`, `deploy`, `status`) drive a process
-  instance without passing ids around. `pulse wait` replaces `sleep`; exit code 9 means the
-  process did not reach the expected state.
+- The workflow commands (`inspect`, `wait`, `advance`, `retry`, `deploy`, `status`,
+  `plan-migration`) combine several requests and pass no ids around. `pulse wait` replaces
+  `sleep`; exit code 9 means the process did not reach the expected state.
 - With OAuth, a person logs in once with `pulse auth login`; agents never do. A command that
   needs a login fails with `LOGIN_REQUIRED` (exit 4) and names the command to run.
   `pulse auth status` tells whether the login is usable.

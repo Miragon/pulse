@@ -44,6 +44,7 @@ function memoryFs(files: Record<string, string> = {}) {
     remove: () => Promise.resolve(false),
     readdir: () => Promise.resolve([]),
     kind: () => Promise.resolve("missing" as const),
+    linked: () => Promise.resolve(false),
   }
   return { fs, writes, dirs }
 }

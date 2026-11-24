@@ -63,6 +63,8 @@ as pages of the server, a CLI and two editor hosts for the same engines.
 - `packages/core/profile/`, `packages/core/board/`, `packages/core/screens/`: the profile format,
   the board format with its builder, the shared screens as data with their builders
   (`@miragon/pulse-profile`, `@miragon/pulse-board`, `@miragon/pulse-screens`)
+- `packages/core/migration-plan/`: `@miragon/pulse-migration-plan` (private), the migration plan
+  file `pulse plan-migration` writes and Pulse for VS Code previews
 - `packages/core/blocks/`: `@miragon/pulse-blocks`, the shared building blocks
 - `packages/core/http/`: `@miragon/pulse-http`, the one engine transport and its OAuth client
   (`/oauth`)

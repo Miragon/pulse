@@ -6,7 +6,7 @@
 
 import { incidentRecovery } from "../incident-recovery.js"
 import { compact } from "../util.js"
-import { JsonView } from "./json-view.js"
+import { JsonView } from "../json-view.js"
 
 /** An open incident of the runtime. */
 export interface IncidentRow {

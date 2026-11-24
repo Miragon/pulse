@@ -1,5 +1,5 @@
 /**
- * The reasons of @miragon/pulse-c7-core as the usage and NOT_FOUND errors of the workflow
+ * The reasons of @miragon/pulse-c7-core as the usage, NOT_FOUND and CONFIG errors of the workflow
  * commands: one entry per reason, naming the flags and the ready commands. Pure.
  */
 
@@ -139,6 +139,14 @@ const RENDER: { readonly [K in Kind]: Render<K> } = {
     usageError(
       `External task ${reason.externalTaskId} is locked by worker ${reason.workerId} until ${reason.lockExpirationTime ?? ""}`,
       `Pass --worker-id ${reason.workerId}, or unlock it: \`pulse external-task unlock ${reason.externalTaskId}\`.`,
+    ),
+  "unexpected-answer": (reason) =>
+    new PulseCliError(
+      "CONFIG",
+      `Unexpected answer of the engine to ${reason.operationId}: ${reason.problem}`,
+      {
+        hint: "Check that the URL points to the REST API root of an Operaton, CIB seven or Camunda 7 engine, e.g. http://localhost:8080/engine-rest; `pulse ping` tests the connection.",
+      },
     ),
 }
 

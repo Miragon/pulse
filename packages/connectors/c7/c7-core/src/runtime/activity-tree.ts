@@ -9,7 +9,7 @@
 import type { EnginePort } from "../port.js"
 import { isEngineId } from "./engine-ids.js"
 import { findUnlessGone } from "./find-unless-gone.js"
-import { JsonView } from "./json-view.js"
+import { JsonView } from "../json-view.js"
 
 /** A token that waits before or after an activity of a scope, an asynchronous continuation. */
 export interface TransitionInstanceRow {

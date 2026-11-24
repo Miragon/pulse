@@ -168,6 +168,7 @@ describe("run: help and version", () => {
       "retry",
       "deploy",
       "status",
+      "plan-migration",
     ])
     const groups = section("API groups:")
     expect(groups).toHaveLength(52)

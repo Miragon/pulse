@@ -15,7 +15,7 @@ import { toEngineDate } from "../dates.js"
 import { compact } from "../util.js"
 import type { IncidentScope } from "../with-incident.js"
 import type { HistoricInstanceQuery, VariableQueryCondition } from "./historic-instances.js"
-import { parseExact } from "./raw-json.js"
+import { parseExact } from "../raw-json.js"
 
 const OPERATORS: Readonly<Record<VariableComparison, VariableQueryCondition["operator"]>> = {
   equals: "eq",

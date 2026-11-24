@@ -2,6 +2,7 @@ import {
   ArrowUpRightIcon,
   BanIcon,
   ClipboardListIcon,
+  FileCodeIcon,
   FileTextIcon,
   PencilIcon,
   RotateCcwIcon,
@@ -66,28 +67,36 @@ export function NoticeStrips({ notices }: { readonly notices: readonly Notice[] 
   )
 }
 
-function useProblemActions(problem: Problem) {
+interface ProblemAction extends StatusAction {
+  readonly icon: LucideIcon
+}
+
+function useProblemActions(problem: Problem): ProblemAction[] {
   const host = useHost()
-  const action = (label: string, intent: WebviewIntent): StatusAction => ({
+  const action = (label: string, icon: LucideIcon, intent: WebviewIntent): ProblemAction => ({
     label,
+    icon,
     onClick: () => {
       host.post(intent)
     },
   })
-  const reconnect = action("Reconnect", { type: "refresh" })
+  if (problem.file !== undefined) {
+    return [
+      action("Refresh", RotateCcwIcon, { type: "refresh" }),
+      action("Open file", FileCodeIcon, { type: "openPlanFile" }),
+    ]
+  }
+  const reconnect = action("Reconnect", RotateCcwIcon, { type: "refresh" })
   if (problem.needsCredentials === true) {
-    return [reconnect, action("Set credentials…", { type: "setCredentials" })]
+    return [reconnect, action("Set credentials…", PencilIcon, { type: "setCredentials" })]
   }
   return problem.canEditConnection
-    ? [reconnect, action("Edit connection…", { type: "editConnection" })]
+    ? [reconnect, action("Edit connection…", PencilIcon, { type: "editConnection" })]
     : [reconnect]
 }
 
 export function ProblemStrip({ problem }: { readonly problem: Problem }) {
-  const actions = useProblemActions(problem).map((action) => ({
-    ...action,
-    icon: action.label === "Reconnect" ? RotateCcwIcon : PencilIcon,
-  }))
+  const actions = useProblemActions(problem)
   return (
     <StatusStrip tone="danger" title={problem.title} detail={problem.detail} actions={actions} />
   )

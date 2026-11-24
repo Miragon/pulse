@@ -71,6 +71,7 @@ Pulse's own packages in the bundles, under the MIT licence in LICENSE:
   @miragon/pulse-c8-core
   @miragon/pulse-engine-core
   @miragon/pulse-http
+  @miragon/pulse-migration-plan
   @miragon/pulse-profile
   @miragon/pulse-runtime-view
   @miragon/pulse-screens

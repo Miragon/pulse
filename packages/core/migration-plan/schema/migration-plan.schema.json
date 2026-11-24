@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Pulse migration plan",
+  "description": "A plan to migrate the instances of one BPMN process from one version to another, named by the process id and the two version numbers. pulse plan-migration writes it, and Pulse for VS Code previews it on the engine you pick. It names no engine and no instance, and opening it migrates nothing.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["bpmnProcessId", "source", "target", "mappings"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": {
+      "const": 1,
+      "description": "The version of the plan format; without it a file reads as version 1."
+    },
+    "bpmnProcessId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "pattern": "^[^\\s:/\\\\#]+$",
+      "description": "The id of the process in the BPMN model."
+    },
+    "source": { "$ref": "#/definitions/side" },
+    "target": { "$ref": "#/definitions/side" },
+    "mappings": {
+      "type": "array",
+      "maxItems": 1000,
+      "description": "Each element of the source version that maps onto an element of the target version.",
+      "items": { "$ref": "#/definitions/mapping" }
+    }
+  },
+  "definitions": {
+    "side": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version"],
+      "description": "A version of the process, by its number on an engine.",
+      "properties": {
+        "version": { "type": "integer", "minimum": 1, "maximum": 2147483647 }
+      }
+    },
+    "elementId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 511,
+      "pattern": "^[^\\s:/\\\\#]+(#[^\\s:/\\\\#]+)?$",
+      "description": "A BPMN element id, or an element id with one # part for its scope."
+    },
+    "mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceElementId", "targetElementId"],
+      "properties": {
+        "sourceElementId": { "$ref": "#/definitions/elementId" },
+        "targetElementId": { "$ref": "#/definitions/elementId" }
+      }
+    }
+  }
+}

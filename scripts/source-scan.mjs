@@ -27,13 +27,15 @@ export const APP_SCAN = {
 
 /**
  * The packages only the interface apps bundle (keyed by their directory under packages/): the
- * runtime view the editor hosts share and the family adapters of its contract (c7 and c8). Like
- * an interface app, they carry no tool name and post nothing to an MCP host.
+ * runtime view the editor hosts share, the family adapters of its contract (c7 and c8) and the
+ * migration plan format, which the CLI and the runtime view bundle. Like an interface app, they
+ * carry no tool name and post nothing to an MCP host.
  */
 export const INTERFACE_PACKAGES = [
   "core/runtime-view",
   "connectors/c7/c7-adapter",
   "connectors/c8/c8-adapter",
+  "core/migration-plan",
 ]
 
 /** @param {string} dir */

@@ -4,7 +4,7 @@ import { MAX_STACKTRACE_LINES } from "../inspect.js"
 import type { OperationInput } from "../port.js"
 import { fakeFailure, fakePort, type Route } from "../testing/fake-port.js"
 import { InstanceInspection } from "./instance-inspection.js"
-import { parseExact } from "./raw-json.js"
+import { parseExact } from "../raw-json.js"
 import { inspectedVariablesOf } from "./variable-instances.js"
 
 const SINCE = "2026-10-21T18:00:00.000+0000"

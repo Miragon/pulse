@@ -163,6 +163,17 @@ async function pathKind(path: string): Promise<PathKind> {
   }
 }
 
+/** Whether the entry itself is a symbolic link (lstat); false when it (or its folder) is missing. */
+async function linked(path: string): Promise<boolean> {
+  try {
+    return (await lstat(path)).isSymbolicLink()
+  } catch (error) {
+    const code = errorCode(error)
+    if (code === "ENOENT" || code === "ENOTDIR") return false
+    throw error
+  }
+}
+
 /** A directory entry; a link to a file counts as a file, a link to a directory is not followed. */
 async function entryKind(directory: string, entry: Dirent): Promise<DirectoryEntry["kind"]> {
   if (entry.isDirectory()) return "directory"
@@ -209,6 +220,7 @@ const nodeFileSystem: FileSystem = {
   remove,
   readdir: directoryEntries,
   kind: pathKind,
+  linked,
   ...ownership(),
 }
 

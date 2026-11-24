@@ -7,10 +7,13 @@
  * spec, which request a route is (`routeOf`), whether it only reads (`intentOf`), a transport over
  * routes (`routedTransport`) and the engine failure of an error answer (`failureOf`). The root
  * cause of a failure text is the rule of the engine family's neutral core (`RootCauses` of
- * @miragon/pulse-engine-core, its one runtime dependency), which `causeOf` applies. Runs on a
- * caller's `EnginePort`; returns data and throws `WorkflowError` reasons, and names no command,
- * flag or tool: next steps and error reasons are structured, the caller words them. The pure
- * rules behind these functions that only tests reach are exported from
+ * @miragon/pulse-engine-core, its one runtime dependency), which `causeOf` applies. The migration
+ * planning rules (`definitionsAtVersion`, `proposeMigrationPlan`, `checkMigrationPlan`,
+ * `migrationInstructions`) are the one home of a plan's requests and bodies, for the CLI's plan file
+ * and the contract's `MigrationReader` alike; an answer they cannot read fails as the reason
+ * `unexpected-answer`. Runs on a caller's `EnginePort`; returns data and throws `WorkflowError`
+ * reasons, and names no command, flag or tool: next steps and error reasons are structured, the
+ * caller words them. The pure rules behind these functions that only tests reach are exported from
  * `@miragon/pulse-c7-core/testing`.
  */
 
@@ -184,6 +187,21 @@ export {
   withIncidentBody,
   withIncidentByVersion,
 } from "./with-incident.js"
+export {
+  checkMigrationPlan,
+  type DefinitionAtVersion,
+  type DefinitionsAtVersion,
+  definitionsAtVersion,
+  definitionsAtVersionRequest,
+  type ElementPair,
+  type MigrationInstruction,
+  migrationInstructions,
+  type PlanCheckProblem,
+  type PlannedMigration,
+  type ProposedMigrationPlan,
+  proposeMigrationPlan,
+  type VersionQuery,
+} from "./migration-plans.js"
 export {
   checkRetryCount,
   executeWrite,

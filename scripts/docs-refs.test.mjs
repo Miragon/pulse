@@ -551,6 +551,8 @@ const DOCS_BUDGETS = {
   "vscode/camunda8.md": 125,
   "vscode/usage.md": 80,
   "vscode/boards.md": 70,
+  // A plan file of pulse plan-migration: writing it, its preview, what that counts and refuses.
+  "vscode/migration-plans.md": 60,
   "vscode/architecture.md": 60,
   // Every difference between the MCP cockpit and the webview, a row each: it grows with a
   // feature built on one side and shrinks with one that closes a row; a section a screen of the web

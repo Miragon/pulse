@@ -5,9 +5,12 @@ import type { ConnectionRegistry } from "../connections/connection-registry.js"
 export class ConnectionPicker {
   constructor(private readonly registry: ConnectionRegistry) {}
 
-  async pick(title: string): Promise<Connection | undefined> {
+  async pick(
+    title: string,
+    connections: readonly Connection[] = this.registry.all(),
+  ): Promise<Connection | undefined> {
     const picked = await vscode.window.showQuickPick(
-      this.registry.all().map((connection) => ({
+      connections.map((connection) => ({
         label: connection.target.name,
         description: `${connection.badge.environment} · ${connection.target.endpoint}`,
         connection,

@@ -256,13 +256,17 @@ export function commandLineChecker(globalOptions: readonly GlobalOptionFlags[]) 
     return flags
   }
 
-  /** A workflow command line: its options and the number of positionals. */
+  /**
+   * A workflow command line: its options and the number of positionals, at least the required
+   * arguments and at most all of them (any number for a variadic one).
+   */
   function checkWorkflow(doc: WorkflowDoc, rest: readonly string[]): void {
     const positionals = parseWords(rest, workflowFlags(doc))
-    const [argument] = doc.arguments
-    if (argument === undefined) expect(positionals).toEqual([])
-    else if (argument.variadic) expect(positionals.length).toBeGreaterThan(0)
-    else expect(positionals.length).toBeLessThanOrEqual(1)
+    const required = doc.arguments.filter((argument) => argument.required).length
+    expect(positionals.length).toBeGreaterThanOrEqual(required)
+    if (!doc.arguments.some((argument) => argument.variadic)) {
+      expect(positionals.length).toBeLessThanOrEqual(doc.arguments.length)
+    }
     const definitionOnly =
       doc.name === "retry" &&
       rest.includes("--process-definition-key") &&

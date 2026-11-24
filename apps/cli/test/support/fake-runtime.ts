@@ -37,6 +37,8 @@ export interface FakeRuntimeOptions {
   readonly foreign?: readonly string[]
   /** The file system has no owners, like on Windows (`ownedByUser` is absent). */
   readonly noOwners?: boolean
+  /** Paths that are symbolic links themselves; what they name are the other entries at the path. */
+  readonly links?: readonly string[]
   /** stdin content; without it, reading stdin fails like a terminal would. */
   readonly stdin?: string | Uint8Array
   readonly stdoutTTY?: boolean
@@ -298,7 +300,7 @@ export function fakeRuntime(options: FakeRuntimeOptions = {}): FakeRuntime {
   const randomRequests: number[] = []
   const commandRuns: FakeRuntime["commandRuns"] = []
   const random = options.randomBytes ?? counterBytes()
-  const tree = { files, dirs, others, dirModes }
+  const tree = { files, dirs, others, links: new Set<string>(options.links ?? []), dirModes }
   const fs = withOwners(fakeFileSystem(tree), tree, options)
   const runtime: FakeRuntime = {
     ...streams(options),

@@ -6,12 +6,16 @@ const vscode = vi.hoisted(() => {
     contributed: [] as string[],
     executed: [] as unknown[][],
     shown: [] as unknown[][],
+    errors: [] as string[],
     failFocus: false,
+    failShow: false,
   }
 })
 
 vi.mock("vscode", () => ({
-  Uri: { parse: (uri: string) => ({ parsed: uri }) },
+  Uri: {
+    parse: (uri: string) => ({ parsed: uri, path: decodeURIComponent(new URL(uri).pathname) }),
+  },
   ViewColumn: { Active: -1 },
   extensions: {
     get all() {
@@ -48,19 +52,26 @@ vi.mock("vscode", () => ({
   window: {
     showTextDocument: (...args: unknown[]) => {
       vscode.shown.push(args)
-      return Promise.resolve()
+      return vscode.failShow ? Promise.reject(new Error("file not found")) : Promise.resolve()
+    },
+    showErrorMessage: (message: string) => {
+      vscode.errors.push(message)
+      return Promise.resolve(undefined)
     },
   },
 }))
 
 const MODEL = { uri: "file:///shop/order.bpmn", line: 12 }
+const PARSED = { parsed: MODEL.uri, path: "/shop/order.bpmn" }
 
 describe("the source navigation", () => {
   beforeEach(() => {
     vscode.contributed = []
     vscode.executed = []
     vscode.shown = []
+    vscode.errors = []
     vscode.failFocus = false
+    vscode.failShow = false
   })
 
   test("reveals the element in the BPMN modeler over the panel, even before it ran", async () => {
@@ -69,7 +80,7 @@ describe("the source navigation", () => {
     await new SourceNavigation().openModel(MODEL, "Activity_ChargePayment")
 
     expect(vscode.executed).toEqual([
-      ["vscode.openWith", { parsed: MODEL.uri }, "bpmn-modeler.bpmn", -1],
+      ["vscode.openWith", PARSED, "bpmn-modeler.bpmn", -1],
       ["bpmn-modeler.focusLintElement", MODEL.uri, "Activity_ChargePayment"],
     ])
     expect(vscode.shown).toEqual([])
@@ -80,7 +91,7 @@ describe("the source navigation", () => {
 
     expect(vscode.shown).toEqual([
       [
-        { parsed: MODEL.uri },
+        PARSED,
         {
           preview: true,
           viewColumn: -1,
@@ -102,12 +113,25 @@ describe("the source navigation", () => {
   test("opens the file in its default editor without an element", async () => {
     await new SourceNavigation().openModel({ uri: MODEL.uri, line: 1 })
 
-    expect(vscode.executed).toEqual([["vscode.open", { parsed: MODEL.uri }, -1]])
+    expect(vscode.executed).toEqual([["vscode.open", PARSED, -1]])
   })
 
   test("opens code at its first line", async () => {
     await new SourceNavigation().openSource({ uri: "file:///shop/Worker.java", line: 1 })
 
     expect(vscode.shown[0]?.[1]).toMatchObject({ selection: { start: { line: 0 } } })
+  })
+
+  test("names the file it can't open, for example one that was deleted", async () => {
+    vscode.failShow = true
+
+    await new SourceNavigation().openSource({
+      uri: "file:///shop/.pulse/migrations/order%20flow-v1-to-v2.migration.json?query#line",
+      line: 1,
+    })
+
+    expect(vscode.errors).toEqual([
+      "Pulse can't open order flow-v1-to-v2.migration.json. Check that the file is there and that you may read it.",
+    ])
   })
 })

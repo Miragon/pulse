@@ -320,4 +320,5 @@ export interface Problem {
   readonly canEditConnection: boolean
   readonly needsCredentials?: true
   readonly loginRefused?: "unauthorized" | "forbidden"
+  readonly file?: string
 }

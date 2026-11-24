@@ -266,6 +266,55 @@ exports[`workflow command describe > describes the options of inspect 1`] = `
 }
 `;
 
+exports[`workflow command describe > describes the options of plan-migration 1`] = `
+{
+  "arguments": [
+    {
+      "description": "The process definition key, the BPMN process id the plan names",
+      "name": "key",
+      "required": true,
+    },
+    {
+      "description": "The version number the instances run on",
+      "name": "source",
+      "required": true,
+    },
+    {
+      "description": "The version number they would move to (default: the latest)",
+      "name": "target",
+      "required": false,
+    },
+  ],
+  "examples": [
+    "pulse plan-migration invoice 1 2",
+    "pulse plan-migration order-fulfillment 3 --map Activity_CheckOrder=Activity_ReviewOrder --unmap Activity_Notify",
+    "pulse plan-migration invoice 1 2 --plan-file plans/invoice.migration.json --dry-run",
+  ],
+  "options": [
+    {
+      "description": "Map the element <source> of the source version onto the element <target> of the target version, replacing the engine's mapping of <source> or adding one; comma lists split",
+      "flag": "--map <source>=<target>",
+      "repeatable": true,
+      "required": false,
+      "type": "string",
+    },
+    {
+      "description": "Leave out the engine's mapping of the element <source>; comma lists split",
+      "flag": "--unmap <source>",
+      "repeatable": true,
+      "required": false,
+      "type": "string",
+    },
+    {
+      "description": "Where to write the plan, a path ending in .migration.json (default .pulse/migrations/<key>-v<source>-to-v<target>.migration.json)",
+      "flag": "--plan-file <path>",
+      "required": false,
+      "type": "string",
+    },
+  ],
+}
+`;
+
 exports[`workflow command describe > describes the options of retry 1`] = `
 {
   "arguments": [
@@ -1038,6 +1087,65 @@ exports[`workflow command describe text > renders the description of inspect 2`]
   {
     "command": "historic-incident list",
     "operationId": "getHistoricIncidents",
+  },
+]
+`;
+
+exports[`workflow command describe text > renders the description of plan-migration 1`] = `
+"USAGE
+  pulse plan-migration <key> <source> [target] [options]
+
+DESCRIPTION
+  Write a migration plan between two versions of a process as a file Pulse for VS Code previews
+  Effect: read; writes the plan file; nothing changes on the engine; --dry-run sends nothing and writes nothing
+
+  Asks the engine for its mapping between two versions of a process (the target defaults to the
+  latest version), applies --unmap and --map, has the engine check the result and writes it as a
+  plan file keyed by the process definition key and the two version numbers, with no engine, no
+  definition id and no instance in it (.pulse/migrations/<key>-v<source>-to-v<target>.migration.json
+  unless --plan-file names one). Pulse for VS Code previews the file on an engine you pick. The
+  command migrates nothing; when the engine finds problems it still writes the file and exits with
+  code 9 (CHECK_FAILED).
+
+ARGUMENTS
+  <key>     The process definition key, the BPMN process id the plan names
+  <source>  The version number the instances run on
+  [target]  The version number they would move to (default: the latest)
+
+OPTIONS
+  --map <source>=<target>  Map the element <source> of the source version onto the element <target>
+                           of the target version, replacing the engine's mapping of <source> or
+                           adding one; comma lists split
+  --unmap <source>         Leave out the engine's mapping of the element <source>; comma lists split
+  --plan-file <path>       Where to write the plan, a path ending in .migration.json (default
+                           .pulse/migrations/<key>-v<source>-to-v<target>.migration.json)
+
+REQUESTS
+  getProcessDefinitions  pulse process-definition list
+  generateMigrationPlan  pulse migration generate-plan
+  validateMigrationPlan  pulse migration validate-plan
+
+EXAMPLES
+  pulse plan-migration invoice 1 2
+  pulse plan-migration order-fulfillment 3 --map Activity_CheckOrder=Activity_ReviewOrder --unmap \\
+      Activity_Notify
+  pulse plan-migration invoice 1 2 --plan-file plans/invoice.migration.json --dry-run
+"
+`;
+
+exports[`workflow command describe text > renders the description of plan-migration 2`] = `
+[
+  {
+    "command": "process-definition list",
+    "operationId": "getProcessDefinitions",
+  },
+  {
+    "command": "migration generate-plan",
+    "operationId": "generateMigrationPlan",
+  },
+  {
+    "command": "migration validate-plan",
+    "operationId": "validateMigrationPlan",
   },
 ]
 `;

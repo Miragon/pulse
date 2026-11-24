@@ -59,9 +59,59 @@ export class ThemeIcon {
   ) {}
 }
 
-export const Uri = {
-  from: (components: object): object => components,
-  file: (fsPath: string): object => ({ fsPath }),
+interface UriComponents {
+  readonly scheme: string
+  readonly path: string
+  readonly query?: string
+}
+
+export class Uri {
+  readonly fsPath: string
+
+  private constructor(
+    readonly scheme: string,
+    readonly path: string,
+    readonly query = "",
+  ) {
+    this.fsPath = path
+  }
+
+  static file(fsPath: string): Uri {
+    return new Uri("file", fsPath)
+  }
+
+  static parse(value: string): Uri {
+    const url = new URL(value)
+    return new Uri(url.protocol.slice(0, -1), decodeURIComponent(url.pathname), url.search.slice(1))
+  }
+
+  static from(components: UriComponents): Uri {
+    return new Uri(components.scheme, components.path, components.query)
+  }
+
+  static joinPath(base: Uri, ...parts: string[]): Uri {
+    return new Uri(base.scheme, [base.path, ...parts].join("/"))
+  }
+
+  toString(): string {
+    return `${this.scheme}://${this.path}${this.query === "" ? "" : `?${this.query}`}`
+  }
+}
+
+export class TabInputText {
+  constructor(readonly uri: Uri) {}
+}
+
+export class TabInputCustom {
+  constructor(
+    readonly uri: Uri,
+    readonly viewType: string,
+  ) {}
+}
+
+export enum ViewColumn {
+  Active = -1,
+  Beside = -2,
 }
 
 export class FakeTreeView {
@@ -86,13 +136,25 @@ export const treeViews: FakeTreeView[] = []
 
 export const windowStateChanged = new EventEmitter<{ focused: boolean; active: boolean }>()
 
+export const tabGroups: { activeTabGroup: { activeTab?: { readonly input: unknown } } } = {
+  activeTabGroup: {},
+}
+
+export const informed: string[] = []
+
 export const window = {
   state: { focused: true, active: true },
   onDidChangeWindowState: windowStateChanged.event,
+  tabGroups,
+  activeTextEditor: undefined,
   createTreeView: (): FakeTreeView => {
     const view = new FakeTreeView()
     treeViews.push(view)
     return view
+  },
+  showInformationMessage: (message: string): Promise<undefined> => {
+    informed.push(message)
+    return Promise.resolve(undefined)
   },
 }
 

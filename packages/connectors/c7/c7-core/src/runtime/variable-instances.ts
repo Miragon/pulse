@@ -9,7 +9,7 @@
 import type { EnginePort } from "../port.js"
 import { compact } from "../util.js"
 import { RAW_VARIABLES_QUERY } from "../variables.js"
-import { JsonView } from "./json-view.js"
+import { JsonView } from "../json-view.js"
 
 /** A variable of an instance: its value as JSON text, the engine's type, the element it is local to. */
 export interface VariableRow {

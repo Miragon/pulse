@@ -8,6 +8,7 @@ import { OpenDefinitionCommand } from "./commands/open-definition-command.js"
 import { OpenEngineOverviewCommand } from "./commands/open-engine-overview-command.js"
 import { OpenInstanceCommand } from "./commands/open-instance-command.js"
 import { OpenTargetsFileCommand } from "./commands/open-targets-file-command.js"
+import { PreviewMigrationPlanCommand } from "./commands/preview-migration-plan-command.js"
 import { RefreshCommand } from "./commands/refresh-command.js"
 import { SetCredentialsCommand } from "./commands/set-credentials-command.js"
 import { ShowRuntimeDataCommand } from "./commands/show-runtime-data-command.js"
@@ -21,6 +22,7 @@ import { CompositionRoot } from "./composition-root.js"
 import {
   ConnectionBuilder,
   CredentialStore,
+  type EngineRoot,
   WriteAudit,
 } from "@miragon/pulse-runtime-view/host-kit"
 import { ConnectionRegistry } from "./connections/connection-registry.js"
@@ -95,7 +97,7 @@ export class PulseExtension {
         setCredentials,
         openTargetsFile,
         new OpenEngineOverviewCommand(registry, picker, panels),
-        ...this.navigation(registry, panels),
+        ...this.navigation(registry, picker, panels, root.engines),
       ]),
     )
     await registry.reload()
@@ -136,12 +138,18 @@ export class PulseExtension {
     ]
   }
 
-  private navigation(registry: ConnectionRegistry, panels: PanelManager): Command[] {
+  private navigation(
+    registry: ConnectionRegistry,
+    picker: ConnectionPicker,
+    panels: PanelManager,
+    engines: EngineRoot,
+  ): Command[] {
     return [
       new OpenDefinitionCommand(registry, panels),
       new OpenInstanceCommand(registry, panels),
       new GoToInstanceCommand(registry, panels),
       new ShowRuntimeDataCommand(registry, panels),
+      new PreviewMigrationPlanCommand(registry, picker, panels, engines),
     ]
   }
 }

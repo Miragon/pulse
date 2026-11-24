@@ -126,6 +126,7 @@ describe("registration of every catalog operation", () => {
       "retry",
       "deploy",
       "status",
+      "plan-migration",
       ...catalog.groups.map((group) => group.name).toSorted(),
     ])
   })

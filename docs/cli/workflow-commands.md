@@ -1,20 +1,20 @@
 # Workflow commands
 
-The generated commands map the REST API one to one. Six top-level workflow commands combine
-several requests for the questions a developer, an operator or an agent asks most. They select a
-process instance by id, `--business-key` or `--process-definition-key <key> --latest`, and their
-views list ready-to-run follow-ups under `next`.
+The generated commands map the REST API one to one. Seven top-level workflow commands combine
+several requests for the questions a developer, an operator or an agent asks most. Inspect, wait,
+advance and retry select a process instance by id, `--business-key` or
+`--process-definition-key <key> --latest`. The views list ready-to-run follow-ups under `next`,
+and `pulse describe <command>` lists every option of a command and the requests it sends.
 
-`pulse describe <command>` lists every option of a command and the requests it sends.
-
-| Command         | Effect                              | What it does                                                            |
-| --------------- | ----------------------------------- | ----------------------------------------------------------------------- |
-| `pulse inspect` | read                                | Where an instance waits and why: wait states, root incidents, variables |
-| `pulse wait`    | read (write with `--execute-jobs`)  | Waits until the instance is idle or reaches an `--until` condition      |
-| `pulse advance` | write                               | Completes what the instance waits for                                   |
-| `pulse retry`   | write (bulk for a whole definition) | Sets the retries behind open incidents; `--now` executes the jobs       |
-| `pulse deploy`  | write                               | Deploys changed files and directories, can start an instance            |
-| `pulse status`  | read                                | Engine triage: incidents by root cause, overdue jobs, workers, batches  |
+| Command                | Effect                              | What it does                                                                      |
+| ---------------------- | ----------------------------------- | --------------------------------------------------------------------------------- |
+| `pulse inspect`        | read                                | Where an instance waits and why: wait states, root incidents, variables           |
+| `pulse wait`           | read (write with `--execute-jobs`)  | Waits until the instance is idle or reaches an `--until` condition                |
+| `pulse advance`        | write                               | Completes what the instance waits for                                             |
+| `pulse retry`          | write (bulk for a whole definition) | Sets the retries behind open incidents; `--now` executes the jobs                 |
+| `pulse deploy`         | write                               | Deploys changed files and directories, can start an instance                      |
+| `pulse status`         | read                                | Engine triage: incidents by root cause, overdue jobs, workers, batches            |
+| `pulse plan-migration` | read (writes the plan file)         | Writes a migration plan between two versions as a file Pulse for VS Code previews |
 
 The development loop, without a single id passed around:
 
@@ -55,15 +55,15 @@ Next:
 - **Exit code 9**: every request succeeded, but the process did not reach the expected state
   (`WAIT_TIMEOUT`, `INCIDENT`, `INSTANCE_ENDED`, `JOB_FAILED`, `CHECK_FAILED`). The command still
   prints its view on stdout.
-- **`--dry-run`**: inspect, wait and status send nothing; advance and retry send their reads and
-  preview the writes; deploy previews the upload.
-- **Guards**: inspect, wait and status work in read-only mode; advance, deploy, retry and
-  `wait --execute-jobs` are writes; `retry --process-definition-key` alone is a bulk operation
-  that needs `--yes`.
+- **`--dry-run`**: inspect, wait, status and plan-migration send nothing and write nothing; advance
+  and retry send their reads and preview the writes; deploy previews the upload.
+- **Guards**: inspect, wait, status and plan-migration work in read-only mode; advance, deploy,
+  retry and `wait --execute-jobs` are writes; `retry --process-definition-key` alone is a bulk
+  operation that needs `--yes`.
 - **`status`** groups incidents by cause with the MCP cockpit's mask (ids, numbers and quoted
   values masked) and is critical from 50 open root incidents, 25 of one cause or an overdue job.
-- `advance` needs `--activity-id` when the instance waits at several places; the error lists them
-  with ready commands.
+- `advance` needs `--activity-id` when the instance waits at several places; the error lists them.
+- `plan-migration` writes its file on engine problems too; `--out-file` writes the view.
 - Options worth knowing: `inspect --history --stacktrace`,
   `wait --until ended|incident|task[:key]|activity:<id>` and `--batch <id>`,
   `advance --bpmn-error <code>` or `--fail <message>`, `retry --now`, `deploy --start-key <key>`

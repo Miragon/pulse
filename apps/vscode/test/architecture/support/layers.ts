@@ -20,6 +20,8 @@ export const ENGINE_CORE_SOURCES = "packages/connectors/engine/engine-core/src"
 
 export const BOARD_SOURCES = "packages/core/board/src"
 
+export const MIGRATION_PLAN_SOURCES = "packages/core/migration-plan/src"
+
 export const BLOCKS_SOURCES = "packages/core/blocks/src"
 
 export const SHOWN_PACKAGES: readonly (readonly [string, string])[] = [
@@ -31,5 +33,6 @@ export const SHOWN_PACKAGES: readonly (readonly [string, string])[] = [
   ["the transport", "packages/core/http/src"],
   ["the profile format", "packages/core/profile/src"],
   ["the board format", BOARD_SOURCES],
+  ["the migration plan format", MIGRATION_PLAN_SOURCES],
   ["the building blocks", BLOCKS_SOURCES],
 ]

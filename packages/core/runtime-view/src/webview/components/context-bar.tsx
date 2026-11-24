@@ -50,11 +50,12 @@ function AccessChip({ engine }: { readonly engine: EngineBadge }) {
 }
 
 function HostControls({ engine, freshness }: Pick<ContextBarProps, "engine" | "freshness">) {
+  const stamped = freshness.kind !== "none"
   return (
     <>
       <AccessChip engine={engine} />
-      <span aria-hidden="true" className="border-border h-4 border-l" />
-      {freshness.kind !== "loading" && <LiveButton live={freshness.live} />}
+      {stamped && <span aria-hidden="true" className="border-border h-4 border-l" />}
+      {stamped && freshness.kind !== "loading" && <LiveButton live={freshness.live} />}
       <FreshnessStamp freshness={freshness} />
     </>
   )

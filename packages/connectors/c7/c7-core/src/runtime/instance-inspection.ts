@@ -15,7 +15,7 @@ import type { EnginePort } from "../port.js"
 import { records } from "../records.js"
 import { timelineOf } from "../timeline.js"
 import type { DefinitionView, InstanceView, TimelineEntry } from "../types.js"
-import { JsonView } from "./json-view.js"
+import { JsonView } from "../json-view.js"
 import { readAll } from "./read-all.js"
 
 /** The instance view of `loadInstance` with the version of its definition and its path. */

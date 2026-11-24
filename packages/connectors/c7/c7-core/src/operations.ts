@@ -1,8 +1,8 @@
 /**
- * The operations each composite and the reads of `./runtime` may send, by operation id: the
- * contract with a port adapter that maps operations one by one (the engine connector holds its
- * table equal to the union), and the list `CORE_ROUTES` holds the route of
- * (scripts/generate-routes.ts picks them from the table).
+ * The operations each composite, the migration planning rules and the reads of `./runtime` may
+ * send, by operation id: the contract with a port adapter that maps operations one by one (the
+ * engine connector holds its table equal to the union), and the list `CORE_ROUTES` holds the
+ * route of (scripts/generate-routes.ts picks them from the table).
  */
 
 /** `inspectInstance`: the selection reads, the rounds of the instance view and its root causes. */
@@ -63,6 +63,16 @@ export const WITH_INCIDENT_OPERATIONS = [
 ] as const
 
 /**
+ * The migration planning rules (`migration-plans.ts`): the definitions of a process at a version
+ * number, the plan the engine generates between two of them and its check of a plan.
+ */
+export const MIGRATION_PLAN_OPERATIONS = [
+  "getProcessDefinitions",
+  "generateMigrationPlan",
+  "validateMigrationPlan",
+] as const
+
+/**
  * The reads of the engine contract (`./runtime`): what the engine is, its processes and their
  * versions with "with incident", a version's diagram, the counts on it and the processes it calls,
  * the history's instances and their count with the runtime's "with incident", a version's variable
@@ -112,6 +122,7 @@ export const CORE_OPERATIONS: readonly string[] = [
     ...STATUS_OPERATIONS,
     ...CONDITION_OPERATIONS,
     ...WITH_INCIDENT_OPERATIONS,
+    ...MIGRATION_PLAN_OPERATIONS,
     ...RUNTIME_OPERATIONS,
   ]),
 ].sort()

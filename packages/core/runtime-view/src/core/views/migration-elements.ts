@@ -1,4 +1,3 @@
-import type { ElementMapping } from "@miragon/pulse-engine-core"
 import { ElementNames } from "../bpmn/element-names.js"
 import { FlowNodes } from "../bpmn/flow-nodes.js"
 import type { MappingCandidate } from "../protocol/index.js"
@@ -19,6 +18,20 @@ const MAPPABLE_KINDS: ReadonlySet<string> = new Set([
   "boundaryEvent",
   "eventBasedGateway",
 ])
+const SCOPE_MARK = "#"
+
+export interface ElementPair {
+  readonly sourceElementId: string
+  readonly targetElementId: string
+}
+
+export type MappingRefusal =
+  "sourceMissing" | "targetMissing" | "otherKind" | "otherScope" | "otherTargetScope"
+
+interface ScopedId {
+  readonly elementId: string
+  readonly scope: string | undefined
+}
 
 export class MigrationElements {
   private readonly sourceNodes: FlowNodes
@@ -51,10 +64,16 @@ export class MigrationElements {
       .map((elementId) => ({ elementId, label: this.targetLabel(elementId) }))
   }
 
-  maps(mapping: ElementMapping): boolean {
+  maps(mapping: ElementPair): boolean {
     return this.candidatesFor(mapping.sourceElementId).some(
       (candidate) => candidate.elementId === mapping.targetElementId,
     )
+  }
+
+  refusalOf(mapping: ElementPair): MappingRefusal | undefined {
+    return mapping.sourceElementId.includes(SCOPE_MARK)
+      ? this.scopeRefusal(mapping)
+      : this.pairRefusal(mapping)
   }
 
   holdsTokens(elementId: string): boolean {
@@ -87,5 +106,47 @@ export class MigrationElements {
 
   targetLabel(elementId: string): string {
     return this.targetNames.get(elementId) ?? elementId
+  }
+
+  static elementPairOf(mapping: ElementPair): ElementPair {
+    if (!mapping.sourceElementId.includes(SCOPE_MARK)) {
+      return mapping
+    }
+    return {
+      sourceElementId: MigrationElements.scopedOf(mapping.sourceElementId).elementId,
+      targetElementId: MigrationElements.scopedOf(mapping.targetElementId).elementId,
+    }
+  }
+
+  private static scopedOf(id: string): ScopedId {
+    const mark = id.indexOf(SCOPE_MARK)
+    return mark < 0
+      ? { elementId: id, scope: undefined }
+      : { elementId: id.slice(0, mark), scope: id.slice(mark + 1) }
+  }
+
+  private scopeRefusal(mapping: ElementPair): MappingRefusal | undefined {
+    const source = MigrationElements.scopedOf(mapping.sourceElementId)
+    const target = MigrationElements.scopedOf(mapping.targetElementId)
+    if (this.sourceNodes.kindOf(source.elementId) === undefined) {
+      return "sourceMissing"
+    }
+    if (!this.sourceNodes.hasOwnLoop(source.elementId)) {
+      return "otherScope"
+    }
+    if (target.scope !== source.scope) {
+      return "otherTargetScope"
+    }
+    return this.pairRefusal(MigrationElements.elementPairOf(mapping))
+  }
+
+  private pairRefusal(mapping: ElementPair): MappingRefusal | undefined {
+    if (this.sourceNodes.kindOf(mapping.sourceElementId) === undefined) {
+      return "sourceMissing"
+    }
+    if (this.targetNodes?.kindOf(mapping.targetElementId) === undefined) {
+      return "targetMissing"
+    }
+    return this.maps(mapping) ? undefined : "otherKind"
   }
 }
