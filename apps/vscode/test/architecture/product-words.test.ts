@@ -16,6 +16,7 @@ import {
   ENGINE_CORE_SOURCES,
   HOST_LAYERS,
   HOST_SOURCES,
+  MIGRATION_PLAN_SOURCES,
   RUNTIME_VIEW_LAYERS,
   RUNTIME_VIEW_SOURCES,
   SHOWN_PACKAGES,
@@ -93,6 +94,14 @@ describe("the extension's texts", PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, () => {
     expect(wordFindings(format)).toEqual([])
   })
 
+  test("in the migration plan format, whose problems the preview shows, use the product's words too", () => {
+    const format = join(REPO_ROOT, MIGRATION_PLAN_SOURCES)
+    expect(Object.keys(sourceTexts(format))).toEqual(
+      expect.arrayContaining([expect.stringMatching(/^format\/plan-problems\.ts:/)]),
+    )
+    expect(wordFindings(format)).toEqual([])
+  })
+
   test("in the building blocks, whose board tiles, engine tab, instance view and definition view both editors show, use the product's words too", () => {
     const blocks = join(REPO_ROOT, BLOCKS_SOURCES)
     expect(Object.keys(sourceTexts(blocks))).toEqual(
@@ -152,13 +161,14 @@ describe("the extension's texts", PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, () => {
     },
   )
 
-  test("in the manifest and the board schema, which VS Code shows, promise no later feature", () => {
+  test("in the manifest and the board and plan schemas, which VS Code shows, promise no later feature", () => {
     const texts = manifestTexts()
     expect(Object.keys(texts)).toEqual(
       expect.arrayContaining([
         "package.json.description",
         expect.stringMatching(/^package\.json\.contributes\.commands\[\d+\]\.title$/),
         expect.stringMatching(/^schemas\/board\.schema\.json\..*description$/),
+        expect.stringMatching(/^schemas\/migration-plan\.schema\.json\..*description$/),
       ]),
     )
     expect(PromiseWords.findings(texts, STATE_TEXTS)).toEqual([])

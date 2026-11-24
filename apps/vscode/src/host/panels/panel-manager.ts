@@ -6,6 +6,7 @@ import {
   InstancePanel,
   Labels,
   MigrationPanel,
+  MigrationPlanPanel,
   type DefinitionTarget,
   type LocalModel,
   type MigrationTarget,
@@ -16,6 +17,7 @@ import * as vscode from "vscode"
 import { type Connection, PanelOrigins, PanelTitle } from "@miragon/pulse-runtime-view/host-kit"
 import { EngineBulkRuns } from "../connections/engine-bulk-runs.js"
 import type { LiveWiring } from "../live/live-wiring.js"
+import { PlanFiles } from "../plans/plan-files.js"
 import { ActivePanelFocus, type PanelFocus } from "./active-panel-focus.js"
 import { OpenPanel, THEMES, type SessionFactory } from "./open-panel.js"
 import { VsCodePanelEffects, type PanelHost, type PanelNavigator } from "./vscode-panel-effects.js"
@@ -37,6 +39,7 @@ export class PanelManager implements vscode.Disposable {
   private readonly panels: OpenPanels<Panel> = new Map()
   private readonly models: OpenPanels<DefinitionPanel> = new Map()
   private readonly migrations: OpenPanels<MigrationPanel> = new Map()
+  private readonly plans: OpenPanels<Panel> = new Map()
   private readonly origins = new PanelOrigins((key) => this.openPanel(key) !== undefined)
   private readonly focus = new ActivePanelFocus()
   private readonly bulkRuns = new EngineBulkRuns()
@@ -140,6 +143,26 @@ export class PanelManager implements vscode.Disposable {
     this.open(this.migrations, placement, (context) => new MigrationPanel(context, target))
   }
 
+  openMigrationPlan(connection: Connection, file: vscode.Uri): void {
+    const key = `${connection.target.name}|plan|${file.toString()}`
+    const existing = this.plans.get(key)
+    if (existing !== undefined) {
+      existing.panel.reveal()
+      void existing.session.handle({ type: "refresh" })
+      return
+    }
+    const placement = {
+      key,
+      connection,
+      title: PlanFiles.nameOf(file),
+      column: vscode.ViewColumn.Active,
+      focus: { engineName: connection.target.name },
+    }
+    this.open(this.plans, placement, (context) =>
+      MigrationPlanPanel.over(context, PlanFiles.sourceOf(file)),
+    )
+  }
+
   createWebview(title: string, column: vscode.ViewColumn): vscode.WebviewPanel {
     const panel = vscode.window.createWebviewPanel(VIEW_TYPE, title, column, {
       enableScripts: true,
@@ -197,11 +220,19 @@ export class PanelManager implements vscode.Disposable {
   private openPanel(key: string | undefined): OpenPanel<Panel> | undefined {
     return key === undefined
       ? undefined
-      : (this.panels.get(key) ?? this.models.get(key) ?? this.migrations.get(key))
+      : (this.panels.get(key) ??
+          this.models.get(key) ??
+          this.migrations.get(key) ??
+          this.plans.get(key))
   }
 
   private all(): OpenPanel<Panel>[] {
-    return [...this.panels.values(), ...this.models.values(), ...this.migrations.values()]
+    return [
+      ...this.panels.values(),
+      ...this.models.values(),
+      ...this.migrations.values(),
+      ...this.plans.values(),
+    ]
   }
 
   private rebindAll(): void {

@@ -12,7 +12,13 @@ import {
 } from "@miragon/pulse-ui/testing"
 import { afterAll, describe, expect, test } from "vitest"
 import { PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, REPO_ROOT } from "./support/files.js"
-import { BOARD_SOURCES, ENGINE_CORE_SOURCES, WEBVIEW, WORDED_LAYERS } from "./support/layers.js"
+import {
+  BOARD_SOURCES,
+  ENGINE_CORE_SOURCES,
+  MIGRATION_PLAN_SOURCES,
+  WEBVIEW,
+  WORDED_LAYERS,
+} from "./support/layers.js"
 
 const RENDERER_PAINT = "diagram/canvas-roles.ts"
 
@@ -73,6 +79,10 @@ describe(
 
     test("the texts of the board format, whose problems both editors show, draw no glyph either", () => {
       expect(scanGlyphs(join(REPO_ROOT, BOARD_SOURCES))).toEqual([])
+    })
+
+    test("the texts of the migration plan format, whose problems the preview shows, draw no glyph either", () => {
+      expect(scanGlyphs(join(REPO_ROOT, MIGRATION_PLAN_SOURCES))).toEqual([])
     })
 
     test(`the webview draws icons at the CI sizes, ${CI_ICON_SIZES.join(" and ")} px, or at ${DENSE_ICON_SIZE} px where the named deviation lists it, beside dense text and on the diagram's 20 px overlays`, () => {
