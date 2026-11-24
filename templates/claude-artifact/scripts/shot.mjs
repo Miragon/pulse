@@ -7,7 +7,8 @@
 // at 1240 and 390 px, plus one with a failing section, into shots/. The clock and the time zone
 // are the recording's and the locale is fixed, so two runs differ only where the page does. Needs
 // Chromium once:
-// `pnpm exec playwright install --with-deps chromium`.
+// `pnpm exec playwright install --with-deps chromium`. Where Playwright cannot download it, an
+// installed Chrome or Chromium takes its place: `CHROME_PATH=/path/to/chrome pnpm shot`.
 import { readFileSync } from "node:fs"
 import { mkdir } from "node:fs/promises"
 import { createServer } from "node:http"
@@ -102,7 +103,9 @@ const address = server.address()
 const base = `http://127.0.0.1:${typeof address === "object" && address ? address.port : 0}`
 
 await mkdir(OUT, { recursive: true })
-const browser = await chromium.launch()
+/** An installed Chrome or Chromium where Playwright's own cannot be downloaded (`CHROME_PATH`). */
+const executablePath = process.env.CHROME_PATH || undefined
+const browser = await chromium.launch({ executablePath })
 try {
   for (const shot of SHOTS) {
     const context = await browser.newContext({
