@@ -24,6 +24,7 @@ const FACTS = [
   "12 instances run on v6 now, 2 with incident.",
   "Each migrates on its own; failed ones stay on v6.",
   "2 have an incident and keep it; retry them on v7.",
+  "Called instances stay on their version.",
   "New or unmapped timers and subscriptions start now.",
   "Migrating can't be undone.",
 ]
@@ -67,7 +68,6 @@ export const BLOCKED_MIGRATION_PLAN_VIEW: MigrationPlanView = {
       sourceLabel: "Ship order",
       targetElementId: "Activity_ShipParcel",
       targetLabel: "Activity_ShipParcel",
-      tokens: 1,
       refused: "v7 has no element Activity_ShipParcel.",
     },
     {
@@ -95,6 +95,7 @@ export const BLOCKED_MIGRATION_PLAN_VIEW: MigrationPlanView = {
     "1,204 instances run on v6 now, 7 with incident.",
     "Each migrates on its own; failed ones stay on v6.",
     "7 have an incident and keep it; retry them on v7.",
+    "Called instances stay on their version.",
     "New or unmapped timers and subscriptions start now.",
     "Migrating can't be undone.",
   ],

@@ -19,9 +19,15 @@ export class MigrationPlanning {
     return runtime.checkMigration?.(plan) ?? MigrationPlanning.refused()
   }
 
+  static checks(runtime: ProcessRuntime): boolean {
+    return runtime.checkMigration !== undefined
+  }
+
+  static unsupported(): RuntimeError {
+    return new RuntimeError("unsupported", "This engine does not plan migrations of instances.")
+  }
+
   private static refused(): Promise<never> {
-    return Promise.reject(
-      new RuntimeError("unsupported", "This engine does not plan migrations of instances."),
-    )
+    return Promise.reject(MigrationPlanning.unsupported())
   }
 }

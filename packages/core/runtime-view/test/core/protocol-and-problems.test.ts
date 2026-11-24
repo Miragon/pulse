@@ -158,6 +158,8 @@ describe("every intent shape", () => {
     { type: "openCode", elementId: "Task" },
     { type: "openModel", elementId: "Task" },
     { type: "copy", text: "x", label: "Instance ID" },
+    { type: "openPlanFile" },
+    { type: "focusMapping", sourceElementId: "Task" },
   ])("accepts %o", (intent) => {
     expect(MessageGuards.isWebviewIntent(intent)).toBe(true)
   })
@@ -210,6 +212,8 @@ describe("every intent shape", () => {
     { type: "filterProcesses", filter: { scope: "all", search: 3 } },
     { type: "openProcess", bpmnProcessId: "order" },
     { type: "openProcess", bpmnProcessId: 7, toSide: true },
+    { type: "openPlanFiles" },
+    { type: "focusMapping" },
   ])("rejects %o", (intent) => {
     expect(MessageGuards.isWebviewIntent(intent)).toBe(false)
   })

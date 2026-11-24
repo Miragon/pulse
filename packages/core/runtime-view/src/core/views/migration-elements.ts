@@ -1,4 +1,3 @@
-import type { ElementMapping } from "@miragon/pulse-engine-core"
 import { ElementNames } from "../bpmn/element-names.js"
 import { FlowNodes } from "../bpmn/flow-nodes.js"
 import type { MappingCandidate } from "../protocol/index.js"
@@ -19,6 +18,20 @@ const MAPPABLE_KINDS: ReadonlySet<string> = new Set([
   "boundaryEvent",
   "eventBasedGateway",
 ])
+const SCOPE_MARK = "#"
+
+export interface ElementPair {
+  readonly sourceElementId: string
+  readonly targetElementId: string
+}
+
+export type MappingRefusal =
+  "sourceMissing" | "targetMissing" | "otherKind" | "otherScope" | "notMappable"
+
+interface ScopedId {
+  readonly elementId: string
+  readonly scope: string | undefined
+}
 
 export class MigrationElements {
   private readonly sourceNodes: FlowNodes
@@ -51,9 +64,28 @@ export class MigrationElements {
       .map((elementId) => ({ elementId, label: this.targetLabel(elementId) }))
   }
 
-  maps(mapping: ElementMapping): boolean {
+  maps(mapping: ElementPair): boolean {
     return this.candidatesFor(mapping.sourceElementId).some(
       (candidate) => candidate.elementId === mapping.targetElementId,
+    )
+  }
+
+  refusalOf(mapping: ElementPair, tokens: ReadonlySet<string>): MappingRefusal | undefined {
+    if (mapping.sourceElementId.includes(SCOPE_MARK)) {
+      return this.mapsScope(mapping) ? undefined : "otherScope"
+    }
+    return this.pairRefusal(mapping, tokens)
+  }
+
+  mapsScope(mapping: ElementPair): boolean {
+    const source = MigrationElements.scopedOf(mapping.sourceElementId)
+    const target = MigrationElements.scopedOf(mapping.targetElementId)
+    const pair = { sourceElementId: source.elementId, targetElementId: target.elementId }
+    return (
+      source.scope !== undefined &&
+      source.scope === target.scope &&
+      this.sourceNodes.hasOwnLoop(source.elementId) &&
+      this.pairRefusal(pair, new Set()) === undefined
     )
   }
 
@@ -87,5 +119,33 @@ export class MigrationElements {
 
   targetLabel(elementId: string): string {
     return this.targetNames.get(elementId) ?? elementId
+  }
+
+  scopeOwnerLabel(scopedId: string): string {
+    return this.sourceLabel(MigrationElements.scopedOf(scopedId).elementId)
+  }
+
+  private static scopedOf(id: string): ScopedId {
+    const mark = id.indexOf(SCOPE_MARK)
+    return mark < 0
+      ? { elementId: id, scope: undefined }
+      : { elementId: id.slice(0, mark), scope: id.slice(mark + 1) }
+  }
+
+  private pairRefusal(
+    mapping: ElementPair,
+    tokens: ReadonlySet<string>,
+  ): MappingRefusal | undefined {
+    const kind = this.sourceNodes.kindOf(mapping.sourceElementId)
+    if (kind === undefined) {
+      return "sourceMissing"
+    }
+    if (!MAPPABLE_KINDS.has(kind) && !tokens.has(mapping.sourceElementId)) {
+      return "notMappable"
+    }
+    if (this.targetNodes?.kindOf(mapping.targetElementId) === undefined) {
+      return "targetMissing"
+    }
+    return this.maps(mapping) ? undefined : "otherKind"
   }
 }

@@ -31,7 +31,7 @@ export class ViewSession<View extends PanelView, Loaded extends Snapshot<View>> 
   private closed = false
 
   constructor(
-    private readonly context: PanelContext,
+    private readonly context: Pick<PanelContext, "engine" | "now" | "publish" | "live">,
     private readonly loadingTitle: string,
     private readonly hooks: SessionHooks<View> = {},
   ) {}

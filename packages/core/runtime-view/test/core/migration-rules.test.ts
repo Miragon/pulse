@@ -112,6 +112,71 @@ describe("the elements of a migration", () => {
   })
 })
 
+describe("a pair a plan file brings", () => {
+  const elements = new MigrationElements(SOURCE_XML, TARGET_XML)
+  const NONE: ReadonlySet<string> = new Set()
+  const LOOPED = SOURCE_XML.replace(
+    '<bpmn:userTask id="Review" name="Review order" />',
+    '<bpmn:userTask id="Review" name="Review order"><bpmn:multiInstanceLoopCharacteristics /></bpmn:userTask>',
+  ).replace(
+    '<bpmn:subProcess id="Pack" name="Pack">',
+    '<bpmn:subProcess id="Pack" name="Pack"><bpmn:multiInstanceLoopCharacteristics />',
+  )
+  const looped = new MigrationElements(LOOPED, LOOPED)
+  const of = (sourceElementId: string, targetElementId: string) => ({
+    sourceElementId,
+    targetElementId,
+  })
+
+  test("passes the tab's edit check: the source is there and the target is of its kind", () => {
+    expect(elements.refusalOf(of("Review", "Check"), NONE)).toBeUndefined()
+    expect(elements.refusalOf(of("Nowhere", "Check"), NONE)).toBe("sourceMissing")
+    expect(elements.refusalOf(of("Review", "Gone"), NONE)).toBe("targetMissing")
+    expect(elements.refusalOf(of("Review", "Ship"), NONE)).toBe("otherKind")
+    expect(elements.refusalOf(of("Review", "Check#multiInstanceBody"), NONE)).toBe("targetMissing")
+    expect(
+      new MigrationElements(SOURCE_XML, undefined).refusalOf(of("Review", "Review"), NONE),
+    ).toBe("targetMissing")
+  })
+
+  test("refuses an element no migration maps unless tokens wait there", () => {
+    expect(elements.refusalOf(of("Start", "Start"), NONE)).toBe("notMappable")
+    expect(elements.refusalOf(of("End", "End"), NONE)).toBe("notMappable")
+    expect(elements.refusalOf(of("Start", "Start"), new Set(["Start"]))).toBeUndefined()
+  })
+
+  test("takes the scope of an element with its own loop, mapped as its element is", () => {
+    const scope = of("Review#multiInstanceBody", "Review#multiInstanceBody")
+
+    expect(looped.mapsScope(scope)).toBe(true)
+    expect(looped.refusalOf(scope, NONE)).toBeUndefined()
+    expect(looped.mapsScope(of("Pack#multiInstanceBody", "Pack#multiInstanceBody"))).toBe(true)
+  })
+
+  test("refuses a scope the element doesn't have, another scope or an element that doesn't map", () => {
+    expect(
+      elements.refusalOf(of("Review#multiInstanceBody", "Check#multiInstanceBody"), NONE),
+    ).toBe("otherScope")
+    expect(looped.refusalOf(of("Review#multiInstanceBody", "Review#other"), NONE)).toBe(
+      "otherScope",
+    )
+    expect(looped.refusalOf(of("Review#multiInstanceBody", "Review"), NONE)).toBe("otherScope")
+    expect(looped.refusalOf(of("Review#multiInstanceBody", "Ship#multiInstanceBody"), NONE)).toBe(
+      "otherScope",
+    )
+    expect(looped.refusalOf(of("Gone#multiInstanceBody", "Gone#multiInstanceBody"), NONE)).toBe(
+      "otherScope",
+    )
+  })
+
+  test("refuses the scope of a task that only sits in a multi-instance sub-process", () => {
+    const nested = of("Weigh#multiInstanceBody", "Weigh#multiInstanceBody")
+
+    expect(looped.mapsScope(nested)).toBe(false)
+    expect(looped.refusalOf(nested, NONE)).toBe("otherScope")
+  })
+})
+
 describe("the rows of a migration", () => {
   test("flag an element without a mapping where selected instances wait and the timer that starts again", () => {
     const rows = new MigrationRows(state({ mappings: SAME.slice(1) }))
