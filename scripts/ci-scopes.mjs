@@ -23,7 +23,11 @@ export const SCOPES = [
   "orca",
   "cibseven-example",
   "brand",
+  "plugins",
 ]
+
+/** The apps that ship a Claude Code plugin (apps/<app>/skills/<plugin>/.claude-plugin/plugin.json). */
+export const PLUGIN_APPS = ["cli", "mcp-server"]
 
 const PROSE = /\.(?:md|png|jpe?g|gif|webp)$/
 
@@ -60,7 +64,9 @@ export const PATH_RULES = [
   { pattern: /^\.miragon\/shots\//, scopes: ["brand", "typescript"] },
   { pattern: /^\.miragon\//, scopes: ["brand"] },
   { pattern: /^\.claude\//, scopes: [] },
-  { pattern: /^\.claude-plugin\//, scopes: ["cli"] },
+  // The marketplace: the plugins job validates it and every plugin it lists, and the MCP server's
+  // plugin test (the TypeScript job) reads that it lists the server's plugin.
+  { pattern: /^\.claude-plugin\//, scopes: ["plugins", "typescript"] },
   // The shared editor settings: only the always-on format check reads them.
   { pattern: /^\.vscode\//, scopes: [] },
   { pattern: /^playground\/cibseven-example\//, scopes: ["cibseven-example"] },
@@ -85,6 +91,16 @@ export const PATH_RULES = [
 /** Package files that checks outside the package read too. */
 export const ALSO_READ_BY = [
   { pattern: /^apps\/cli\/README\.md$/, scopes: ["brand"] },
+  // The Claude Code plugins the apps ship (apps/<app>/skills/<plugin>, each listed in
+  // .claude-plugin/marketplace.json): the plugins job validates each and holds its version to its
+  // app's manifest (PLUGIN_APPS). The MCP server's own tests read its plugin, prose included (the
+  // plugin test, the component cheat sheet's golden): the TypeScript job runs them, while the
+  // package rules leave its prose to none. The CLI's prose is code by the package rules.
+  { pattern: /^apps\/mcp-server\/skills\//, scopes: ["plugins", "typescript"] },
+  {
+    pattern: new RegExp(`^apps/(?:${PLUGIN_APPS.join("|")})/(?:skills/|package\\.json$)`),
+    scopes: ["plugins"],
+  },
   // The docs package's manifest: the CLI bundles pages of it, so its licence test reads its
   // name and licence; it pins the docs kit (@miragon/docs-starter), whose tokens the token
   // drift test (pulse-ui) reads.

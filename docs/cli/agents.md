@@ -67,7 +67,8 @@ The plugin lives in
 [`apps/cli/skills/pulse-cli`](https://github.com/Miragon/pulse/tree/main/apps/cli/skills/pulse-cli).
 The npm package ships it too, so
 `claude --plugin-dir "$(npm root -g)/@miragon/pulse-cli/skills/pulse-cli"` loads the installed
-version for one session.
+version for one session. The marketplace also lists `pulse-artifact`, which builds
+[Claude artifacts](../mcp/claude-artifacts.md) on the MCP server.
 
 ## Claude Code skill without the plugin
 

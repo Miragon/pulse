@@ -45,6 +45,7 @@ export default miragonDocs({
         { text: "Usage", link: "/mcp/usage" },
         { text: "Boards", link: "/mcp/boards" },
         { text: "Camunda 8", link: "/mcp/camunda8" },
+        { text: "Claude artifacts", link: "/mcp/claude-artifacts" },
         { text: "Tools and settings", link: "/mcp/reference" },
         { text: "Operations", link: "/mcp/operations" },
         { text: "Identity providers", link: "/mcp/identity-providers" },

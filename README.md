@@ -70,6 +70,9 @@ The Claude Code plugin teaches Claude to use the CLI whenever a task touches an 
 /plugin install pulse-cli@pulse
 ```
 
+A second plugin, `pulse-artifact@pulse`, builds [Claude artifacts](docs/mcp/claude-artifacts.md)
+from a template: live pages in claude.ai that read your engine through the Pulse MCP server.
+
 ## Help and feedback
 
 - **Documentation:** every client, setup step and option is explained at [miragon.github.io/pulse](https://miragon.github.io/pulse/).

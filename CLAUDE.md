@@ -70,6 +70,12 @@ as pages of the server, a CLI and two editor hosts for the same engines.
   (`/oauth`)
 - `playground/`: the demo env (CIB seven showcase engine, Compose stack, Fly.io); `docs/`: the
   docs site
+- `templates/composed-server/`: the starter for a server of your own (mirrored to
+  Miragon/pulse-starter); `templates/claude-artifact/`: the template of a Claude artifact on Pulse,
+  a page in claude.ai reading the engine through the server as the viewer's connector
+- `apps/mcp-server/skills/pulse-artifact/`: the Claude Code plugin `pulse-artifact`, listed in
+  `.claude-plugin/marketplace.json` next to the CLI's, whose skill builds such a page from the
+  template
 
 ### Where code goes
 
@@ -595,8 +601,8 @@ for every workspace package.
   bpmn-js, the official MCP SDK where a module types against it, the Pulse libraries as
   `workspace:^`), each also an exact devDependency. A published package imports only what it
   declares (`scripts/published-imports.test.mjs`) and ships no test (`scripts/pack-contents.mjs`).
-  The template pins what it lists as the workspace does (`scripts/template-pins.mjs`): a bump that
-  reaches one directory only goes into both in the same PR. A bump of a package an artifact
+  Each template pins what it lists as the workspace does (`scripts/template-pins.mjs`): a bump that
+  reaches one directory only goes into the others in the same PR. A bump of a package an artifact
   bundles needs `pnpm third-party-licenses` (after `pnpm build`) in the same PR.
 - **The widget `_meta` carries two halves; never hand-write either.** `showToolBinding` stamps
   MCP Apps' and the OpenAI Apps SDK's keys on a view tool, `appOnly` a feed's, `forViews` a model
@@ -649,7 +655,8 @@ The release workflows hold the publish credentials and no pull request runs them
   neutral core since 0.28.
 - **The starter** reaches customers as `Miragon/pulse-starter`, the read-only mirror of
   `templates/composed-server`, synced after the npm publish; its owners learn of a version from
-  the mirror's releases.
+  the mirror's releases. `templates/claude-artifact` has no mirror: a copy starts from a clone of
+  this repository, and the `pulse-artifact` plugin installs from its marketplace.
 - **The VS Code extension** ships as a .vsix to the Marketplace and Open VSX by trusted
   publishing, **the Orca plugin** into `Miragon/orca-plugins` (off until that repository lists
   `pulse-cockpit` in its `sources.json`), **the server image** to `ghcr.io/miragon/pulse-server`
@@ -674,9 +681,11 @@ The release workflows hold the publish credentials and no pull request runs them
   real server under OAuth with fake identity providers (sign-in, sessions, CSRF, the screens,
   German, dark, 320 px, axe); run it for changes to the web app, widget-shell's `src/web` or the
   page root.
-- **Template** (`scripts/test-template.sh`): packs the libraries and builds and tests
-  `templates/composed-server` against them, once with the fixture module. ESLint, knip and
-  dependency-cruiser skip `templates/`: its composition-root rules are review knowledge.
+- **Template** (`scripts/test-template.sh`): packs the libraries and builds and tests both
+  templates against them, `templates/composed-server` once more with the fixture module and
+  `templates/claude-artifact` down to the three files of its `dist/`. ESLint, knip and
+  dependency-cruiser skip `templates/`: their code rules are review knowledge, and
+  `scripts/artifact-tools.test.mjs` holds the tools the artifact calls.
 - **Engines** (CI `Engines (<flavor>)`): CIB seven and Operaton in Testcontainers running
   `test:engines`; the Camunda 8 suites run locally only until #531.
 - **CI scopes**: `scripts/ci-scopes.mjs` runs each job only for the files that concern it. A new

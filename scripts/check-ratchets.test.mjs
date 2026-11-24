@@ -87,16 +87,20 @@ describe("ratchetKind", () => {
     assert.equal(ratchetKind("docs/package.json"), "workspace-manifest")
   })
 
-  it("checks only the `prettier` key of the starter's manifests, none inside node_modules", () => {
+  it("checks only the `prettier` key of every template's manifests, none inside node_modules", () => {
     for (const rel of [
       "templates/composed-server/package.json",
       "templates/composed-server/server/package.json",
       "templates/composed-server/modules/mcp-notes/package.json",
+      "templates/claude-artifact/package.json",
+      "templates/fixtures/prebuilt-module/package.json",
     ])
       assert.equal(ratchetKind(rel), "template-manifest", rel)
     for (const rel of [
       "templates/composed-server/node_modules/prettier/package.json",
       "templates/composed-server/server/node_modules/zod/package.json",
+      "templates/claude-artifact/node_modules/react/package.json",
+      "templates/package.json.md",
     ])
       assert.equal(ratchetKind(rel), null, rel)
   })
@@ -333,6 +337,26 @@ describe("no `prettier` key in a workspace package.json (read before any .pretti
     }
     assert.deepEqual(
       checkRatchetFile("templates/composed-server/package.json", manifest(), manifest()),
+      [],
+    )
+  })
+
+  it("flags the key in another template's manifest, naming the root config's overrides", () => {
+    for (const [rel, before] of [
+      ["templates/claude-artifact/package.json", manifest()],
+      ["templates/next-template/package.json", null],
+    ]) {
+      const violations = checkRatchetFile(rel, before, manifest({ prettier: { semi: true } }))
+      assert.equal(violations.length, 1, rel)
+      assert.match(
+        violations[0],
+        /package\.json#prettier.*root \.prettierrc\.json `overrides`/,
+        rel,
+      )
+      assert.doesNotMatch(violations[0], /composed-server\/\.prettierrc\.json/, rel)
+    }
+    assert.deepEqual(
+      checkRatchetFile("templates/claude-artifact/package.json", manifest(), manifest()),
       [],
     )
   })

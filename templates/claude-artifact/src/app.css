@@ -1,0 +1,27 @@
+@import "tailwindcss";
+/*
+ * The classes the page renders: its own (this folder) and the compiled kit it imports, pulse-ui,
+ * the building blocks and widget-shell's view half (the BPMN viewer and its zoom bar). The tarballs
+ * ship no tests, so each dist is scanned whole; never pulse-ui's src/testing, which holds palette
+ * classes on purpose.
+ */
+@source "../node_modules/@miragon/pulse-ui/dist";
+@source "../node_modules/@miragon/pulse-blocks/dist";
+@source "../node_modules/@miragon/pulse-widget-shell/dist/ui";
+@source not "../node_modules/@miragon/**/*.test.js";
+/*
+ * pulse-ui's Miragon theme: the vendored corporate-design tokens (--cd-*), the role variables on
+ * top of them in light and dark, the density roles and the font stacks. The page colours through
+ * the role names only and overrides none of them. Never pulse-ui's globals.css (a second Tailwind
+ * entry) or fonts.css (Geist inlined): Geist comes from Google Fonts by the link in src/page.html.
+ */
+@import "@miragon/pulse-ui/theme.css";
+@import "./temporary/diagram.css";
+/*
+ * The artifact's skeleton sets the body in 14px system-ui, unlayered, over the kit's base layer:
+ * the page sets Geist on the type scale's 13 px back, unlayered too, so a part the kit portals to
+ * the body reads as the page does.
+ */
+body {
+  @apply text-dense font-sans;
+}

@@ -1,0 +1,34 @@
+<!doctype html>
+<!--
+  The dev page: the skeleton a Claude artifact wraps its page in (a charset and viewport meta and
+  a small reset), around the page itself, src/page.html, which `pnpm dev` and `pnpm shot` load on
+  the fixtures (fixtures/dev.tsx) and `pnpm build` writes as dist/index.html.
+-->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <style>
+      :root {
+        color-scheme: light;
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+      body {
+        margin: 0;
+        font:
+          14px system-ui,
+          sans-serif;
+      }
+      img {
+        max-width: 100%;
+      }
+      [hidden] {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- artifact-page -->
+  </body>
+</html>

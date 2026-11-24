@@ -16,7 +16,8 @@ import { publishedLibraries } from "./workspace-packages.mjs"
  * This guard reads every backticked reference in the docs, the READMEs, the
  * agent files and the skills (isCheckedDoc below) and checks it against the
  * repo: tool names against the full surface (the admin golden), repo paths against the tree
- * (from the repo root, in a nested file too), the template docs' paths into an installed
+ * (from the repo root, in a nested file too; a template's docs inside that template first), the
+ * template docs' paths into an installed
  * package against what that package ships and where pnpm links it, the identifiers of the skills
  * and of the nested agent files against the sources and the typings of the official MCP SDK
  * (OFFICIAL_TYPINGS; a nested agent file's also against its package's own
@@ -61,9 +62,16 @@ const walk = (dir, keep) =>
 const isDocsPage = (rel) =>
   rel.startsWith("docs/") && rel.endsWith(".md") && !rel.split("/").includes(".vitepress")
 
-/** The house skills and the template's. */
+/**
+ * The house skills, the template's, and the skills of the MCP server's Claude Code plugins with
+ * their references (pulse-artifact: the code of the Claude artifact template it builds pages on).
+ */
 const isSkill = (rel) =>
-  /^(?:templates\/composed-server\/)?\.claude\/skills\/.*SKILL\.md$/.test(rel)
+  /^(?:templates\/composed-server\/)?\.claude\/skills\/.*SKILL\.md$/.test(rel) ||
+  /^apps\/mcp-server\/skills\/[^/]+\/(?:SKILL|references\/[^/]+)\.md$/.test(rel)
+
+/** A skill file of its own (SKILL.md), not a reference file one loads. */
+const isSkillFile = (rel) => isSkill(rel) && rel.endsWith("/SKILL.md")
 
 /**
  * An agent file below the root: a CLAUDE.md or AGENTS.md anywhere under apps/
@@ -78,9 +86,10 @@ const isNestedAgentFile = (rel) => /^(?:apps|packages)\/(?:.+\/)?(?:CLAUDE|AGENT
  * The Markdown this guard reads (`rel` is a repo-relative POSIX path): the
  * root README.md and CLAUDE.md, the docs pages, every package's README.md and
  * agent files, every Markdown file of an app (its READMEs, agent files, ADRs,
- * shipped skills, store listing), the template's README.md and CLAUDE.md and
- * the skills. Never node_modules, and never a CHANGELOG.md: release-please
- * writes it and quotes old commit text.
+ * shipped skills, store listing), the starter template's README.md and
+ * CLAUDE.md, the Claude artifact template's README.md and the skills. Never
+ * node_modules, and never a CHANGELOG.md: release-please writes it and quotes
+ * old commit text.
  */
 function isCheckedDoc(rel) {
   const parts = rel.split("/")
@@ -93,6 +102,7 @@ function isCheckedDoc(rel) {
     /^apps\/.*\.md$/.test(rel) ||
     rel === "templates/composed-server/README.md" ||
     rel === "templates/composed-server/CLAUDE.md" ||
+    rel === "templates/claude-artifact/README.md" ||
     isSkill(rel)
   )
 }
@@ -138,7 +148,8 @@ const identifierDocs = (docs) => [
 
 const repoFiles = listedFiles(REPO_ROOT)
 const docFiles = repoFiles.filter(isCheckedDoc)
-const skillFiles = docFiles.filter(isSkill)
+const skillFiles = docFiles.filter(isSkillFile)
+const skillReferences = docFiles.filter((rel) => isSkill(rel) && !isSkillFile(rel))
 const docsPages = docFiles.filter(isDocsPage)
 
 /**
@@ -184,28 +195,66 @@ describe("tool names in the docs", () => {
   })
 })
 
-describe("repo paths in the docs", () => {
-  const ROOTS = /^(?:apps|packages|docs|scripts|playground|templates|\.claude|\.github)\//
-  // Written by a build or a test run, not checked in.
-  const GENERATED = /(?:^|\/)(?:dist|test-results|node_modules|generated-sources)(?:\/|$)/
-  const pathOf = (token) => token.replace(/:\d+(?:-\d+)?$/, "").replace(/\/$/, "")
-  const isPath = (token) =>
-    ROOTS.test(token) && !/\.\.\.|[*<>{}\s|]/.test(token) && !GENERATED.test(token)
+const PATH_ROOTS = /^(?:apps|packages|docs|scripts|playground|templates|\.claude|\.github)\//
+// Written by a build or a test run, not checked in.
+const GENERATED = /(?:^|\/)(?:dist|test-results|node_modules|generated-sources)(?:\/|$)/
+const pathOf = (token) => token.replace(/:\d+(?:-\d+)?$/, "").replace(/\/$/, "")
+const isPath = (token) =>
+  PATH_ROOTS.test(token) && !/\.\.\.|[*<>{}\s|]/.test(token) && !GENERATED.test(token)
 
+/** The template a doc sits in (`templates/<name>`, not the fixtures), if any. */
+const templateOf = (rel) => /^templates\/(?!fixtures\/)[^/]+(?=\/)/.exec(rel)?.[0]
+
+/**
+ * Whether a backticked path of `ref` (a doc of the repo at `root`) exists: from the repo root, or,
+ * in a template's own docs, inside that template first (`scripts/shot.mjs` in the Claude artifact
+ * template's README is its own script, as in a copy of it).
+ */
+function citedPathExists(ref, root = REPO_ROOT) {
+  const target = pathOf(ref.token)
+  const template = templateOf(ref.file)
+  return (
+    fs.existsSync(path.join(root, target)) ||
+    (template !== undefined && fs.existsSync(path.join(root, template, target)))
+  )
+}
+
+describe("repo paths in the docs", () => {
   it("cites only files and directories that exist", () => {
     const missing = docFiles
       .flatMap((file) => backticked(file))
-      .filter((ref) => isPath(ref.token))
-      .filter((ref) => {
-        const target = pathOf(ref.token)
-        // The template's own docs cite paths inside the template first.
-        const fromTemplate = ref.file.startsWith("templates/composed-server/")
-        return !(
-          fs.existsSync(path.join(REPO_ROOT, target)) ||
-          (fromTemplate && fs.existsSync(path.join(TEMPLATE_ROOT, target)))
-        )
-      })
+      .filter((ref) => isPath(ref.token) && !citedPathExists(ref))
     assert.deepEqual(missing.map(where), [])
+  })
+
+  it("resolves a template doc's paths inside its own template first, and no other doc's", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "docs-paths-"))
+    try {
+      for (const rel of ["templates/page/scripts/shot.mjs", "templates/fixtures/m/scripts/x.mjs"]) {
+        fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true })
+        fs.writeFileSync(path.join(root, rel), "")
+      }
+      const ref = (file, token) => ({ file, line: 1, token })
+      assert.equal(citedPathExists(ref("templates/page/README.md", "scripts/shot.mjs"), root), true)
+      assert.equal(
+        citedPathExists(ref("templates/page/README.md", "templates/page/scripts/shot.mjs"), root),
+        true,
+      )
+      assert.equal(citedPathExists(ref("docs/mcp/page.md", "scripts/shot.mjs"), root), false)
+      assert.equal(
+        citedPathExists(ref("templates/other/README.md", "scripts/shot.mjs"), root),
+        false,
+      )
+      assert.equal(
+        citedPathExists(ref("templates/fixtures/m/README.md", "scripts/x.mjs"), root),
+        false,
+      )
+      assert.equal(templateOf("templates/composed-server/CLAUDE.md"), "templates/composed-server")
+      assert.equal(templateOf("templates/claude-artifact/README.md"), "templates/claude-artifact")
+      assert.equal(templateOf("README.md"), undefined)
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true })
+    }
   })
 })
 
@@ -516,6 +565,10 @@ const DOCS_BUDGETS = {
   // cluster's processes among them) and the server's legs of the conformance matrix.
   "mcp/camunda8.md": 126,
   "mcp/reference.md": 160,
+  // A Claude artifact on Pulse: what it is, the template and its loop, the plugin, publishing,
+  // how a page calls the connector (its refusal codes), the reads of one load and what replaces
+  // the template's temporary parts.
+  "mcp/claude-artifacts.md": 135,
   // The web app's pages (docs/web/): what it shows and for whom, its navigation, its start page
   // (every engine's figures, what runs where, an engine it could not read), its engine screen
   // and its instance screen, the sign-in an operator sets up (variables, the provider's side,
@@ -632,11 +685,15 @@ describe("what the guard reads", () => {
     "apps/vscode/MARKETPLACE.md",
     "apps/cli/skills/pulse-cli/SKILL.md",
     "apps/cli/skills/pulse-cli/commands/status.md",
+    "apps/mcp-server/skills/pulse-artifact/SKILL.md",
+    "apps/mcp-server/skills/pulse-artifact/references/components.md",
+    "apps/mcp-server/skills/pulse-artifact/evals/process-dashboard/prompt.md",
     ".claude/skills/add-bpm-feature/SKILL.md",
     ".claude/skills/shadcn/SKILL.md",
     "templates/composed-server/.claude/skills/add-widget/SKILL.md",
     "templates/composed-server/README.md",
     "templates/composed-server/CLAUDE.md",
+    "templates/claude-artifact/README.md",
   ]) {
     it(`reads ${rel}`, () => {
       assert.equal(isCheckedDoc(rel), true)
@@ -655,6 +712,9 @@ describe("what the guard reads", () => {
     "packages/connectors/engine/engine-connector/src/messages/GLOSSARY.md",
     ".claude/skills/shadcn/rules/forms.md",
     "templates/composed-server/server/README.md",
+    "templates/claude-artifact/fixtures/README.md",
+    "templates/claude-artifact/node_modules/@miragon/pulse-ui/README.md",
+    "templates/fixtures/prebuilt-module/README.md",
     "playground/README.md",
     "TODOS.md",
     "apps/cli/README.txt",
@@ -678,10 +738,17 @@ describe("what the guard reads", () => {
         ".claude/skills/shadcn/SKILL.md",
         ".claude/skills/create-ticket/SKILL.md",
         "templates/composed-server/.claude/skills/add-widget/SKILL.md",
+        "templates/claude-artifact/README.md",
+        "apps/cli/skills/pulse-cli/SKILL.md",
+        "apps/mcp-server/skills/pulse-artifact/SKILL.md",
+        "apps/mcp-server/skills/pulse-artifact/references/components.md",
+        "apps/mcp-server/skills/pulse-artifact/evals/process-dashboard/prompt.md",
       ]),
       [
         ".claude/skills/add-bpm-feature/SKILL.md",
         "templates/composed-server/.claude/skills/add-widget/SKILL.md",
+        "apps/mcp-server/skills/pulse-artifact/SKILL.md",
+        "apps/mcp-server/skills/pulse-artifact/references/components.md",
         "apps/vscode/AGENTS.md",
         "apps/vscode/CLAUDE.md",
         "packages/connectors/engine/engine-domain/AGENTS.md",
@@ -834,6 +901,7 @@ describe("what the guard reads", () => {
       "apps/mcp-server/README.md",
       "apps/mcp-server/test-host/README.md",
       "templates/composed-server/CLAUDE.md",
+      "templates/claude-artifact/README.md",
       ".claude/skills/add-bpm-feature/SKILL.md",
       "templates/composed-server/.claude/skills/setup-server/SKILL.md",
     ]) {
@@ -846,10 +914,16 @@ describe("what the guard reads", () => {
       ".claude/skills/create-ticket/SKILL.md",
       ".claude/skills/mcp-apps-builder/SKILL.md",
       ".claude/skills/shadcn/SKILL.md",
+      "apps/mcp-server/skills/pulse-artifact/SKILL.md",
       "templates/composed-server/.claude/skills/add-widget/SKILL.md",
       "templates/composed-server/.claude/skills/create-module/SKILL.md",
       "templates/composed-server/.claude/skills/setup-server/SKILL.md",
     ])
+    // The plugin skill's references, the generated component cheat sheet among them.
+    assert.ok(
+      skillReferences.includes("apps/mcp-server/skills/pulse-artifact/references/components.md"),
+      skillReferences.join(", "),
+    )
     assert.ok(docsPages.map(pageKey).includes("index.md"))
   })
 })

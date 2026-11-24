@@ -13,6 +13,7 @@ Commands and configs call the server `pulse`.
 | [Usage](./usage.md)                           | Connect an assistant, what to ask, language and theme                                       |
 | [Boards](./boards.md)                         | A board in the chat and the cockpit, the server's board files, one shared with the editors  |
 | [Camunda 8](./camunda8.md)                    | A Camunda 8 cluster on boards in the chat, whole in the web app: its profile, client, tests |
+| [Claude artifacts](./claude-artifacts.md)     | Live pages in claude.ai on Pulse: the template, the Claude Code plugin, publishing          |
 | [Web app](../web/index.md)                    | The server's views as pages in a browser, signed in through its OAuth provider              |
 | [Reference](./reference.md)                   | Every tool, the toolsets and the common settings                                            |
 | [Operations](./operations.md)                 | The Docker image, security, environment variables, toolsets, health routes                  |

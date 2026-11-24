@@ -68,8 +68,8 @@ Editors read only `tsconfig.json`: each widget, host-bundle and test tree has a 
 [Build your own server](build-your-own.md) starts one from
 [Miragon/pulse-starter](https://github.com/Miragon/pulse-starter), the read-only mirror of
 `templates/composed-server/`: change the starter in this repository. CI tests the template against
-the workspace's packed packages, also with a prebuilt module that brings its own HTML view
-(`scripts/test-template.sh`), and each release syncs it to the mirror as a
+the workspace's packed packages, also with a prebuilt module that brings its own HTML view, and
+builds `templates/claude-artifact` the same way (`scripts/test-template.sh`); each release syncs the starter to the mirror as a
 [release](https://github.com/Miragon/pulse-starter/releases) of the same version
 (`.github/workflows/sync-template-mirror.yml`).
 

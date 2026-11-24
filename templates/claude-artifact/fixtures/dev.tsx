@@ -1,0 +1,29 @@
+// The dev and screenshot entry (`pnpm dev`, `pnpm shot`): the page on the recorded fixtures of
+// PROCESS_KEY, through a mock `window.claude`. Never part of dist/app.js.
+// `?fail=engine_status,engine_list_tasks` fails those tools with an engine error, `?fail=needs_reauth`
+// refuses every call with that code of the runtime's (`?fail=engine_status:server_unavailable`
+// one tool), `?delay=800` slows every answer, `?lang=de` renders German.
+import "../src/app.css"
+import { mount, PROCESS_KEY } from "../src/app.tsx"
+import { claudeConnector } from "../src/engine/claude-connector.ts"
+import { installMockClaude, type Fixture } from "./mock-claude.ts"
+
+const recorded = import.meta.glob<Fixture>("./*.json", { eager: true, import: "default" })
+const fixture = recorded[`./${PROCESS_KEY}.json`]
+if (fixture === undefined) {
+  throw new Error(
+    `No fixtures for ${PROCESS_KEY}: record them (pnpm record -- --process ${PROCESS_KEY}).`,
+  )
+}
+
+const params = new URLSearchParams(location.search)
+installMockClaude(fixture, {
+  fail: params.get("fail")?.split(",").filter(Boolean),
+  delayMs: Number(params.get("delay") ?? 0),
+})
+const asOf = new Date(fixture.asOf)
+mount({
+  connector: claudeConnector(),
+  language: params.get("lang") ?? undefined,
+  now: () => asOf,
+})

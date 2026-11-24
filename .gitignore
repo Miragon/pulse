@@ -14,6 +14,10 @@ coverage/
 # The template ships without a lockfile: customers generate and commit their
 # own after copying it out (its Dockerfile expects one).
 templates/composed-server/pnpm-lock.yaml
+# The Claude artifact template (templates/claude-artifact): its install, outside the workspace,
+# writes a lockfile of its own, and `pnpm shot` its screenshots.
+templates/claude-artifact/pnpm-lock.yaml
+templates/claude-artifact/shots/
 miranum-ai/
 # Gradle
 playground/cibseven-example/.gradle/
@@ -41,6 +45,8 @@ packages/connectors/c7/c7-core/spec/patched/
 apps/cli/build/
 apps/cli/*.tgz
 apps/cli/skills/pulse-cli/evals/results/
+# The results of a local eval run of the MCP server's plugin (apps/mcp-server/skills/pulse-artifact).
+apps/mcp-server/skills/pulse-artifact/evals/results/
 
 # The VS Code extension (apps/vscode): the VS Code that @vscode/test-cli and the e2e
 # scripts download, packaged extensions, the browser dev host's build, the e2e

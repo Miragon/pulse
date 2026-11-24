@@ -150,10 +150,40 @@
           "path": "templates/composed-server/modules/mcp-notes/package.json",
           "jsonpath": "$.devDependencies['@miragon/pulse-ui']"
         },
+        {
+          "type": "json",
+          "path": "templates/claude-artifact/package.json",
+          "jsonpath": "$.dependencies['@miragon/pulse-blocks']"
+        },
+        {
+          "type": "json",
+          "path": "templates/claude-artifact/package.json",
+          "jsonpath": "$.dependencies['@miragon/pulse-c7-core']"
+        },
+        {
+          "type": "json",
+          "path": "templates/claude-artifact/package.json",
+          "jsonpath": "$.dependencies['@miragon/pulse-screens']"
+        },
+        {
+          "type": "json",
+          "path": "templates/claude-artifact/package.json",
+          "jsonpath": "$.dependencies['@miragon/pulse-ui']"
+        },
+        {
+          "type": "json",
+          "path": "templates/claude-artifact/package.json",
+          "jsonpath": "$.dependencies['@miragon/pulse-widget-shell']"
+        },
         { "type": "json", "path": "apps/cli/package.json", "jsonpath": "$.version" },
         {
           "type": "json",
           "path": "apps/cli/skills/pulse-cli/.claude-plugin/plugin.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "apps/mcp-server/skills/pulse-artifact/.claude-plugin/plugin.json",
           "jsonpath": "$.version"
         }
       ]

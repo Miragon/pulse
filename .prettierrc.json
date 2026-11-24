@@ -6,7 +6,11 @@
   "plugins": ["prettier-plugin-tailwindcss"],
   "overrides": [
     {
-      "files": ["**/.claude-plugin/*.json", "apps/orca/orca-plugin.json"],
+      "files": [
+        "**/.claude-plugin/*.json",
+        "apps/orca/orca-plugin.json",
+        "templates/claude-artifact/fixtures/*.json"
+      ],
       "options": { "parser": "json-stringify" }
     },
     {

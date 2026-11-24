@@ -4,14 +4,16 @@
 # 25 more in one unmergeable PR).
 version: 2
 updates:
-  # npm dependencies: the pnpm monorepo and the starter template, which pins what the workspace
-  # pins (scripts/template-pins.mjs, in pnpm test). One entry, so a grouped patch or minor bump
-  # moves both directories. A major or a security update can arrive for one directory only: the
-  # pin check then fails until the same pull request bumps the other directory by hand.
+  # npm dependencies: the pnpm monorepo and the two templates, the starter and the Claude
+  # artifact, which pin what the workspace pins (scripts/template-pins.mjs, in pnpm test). One
+  # entry, so a grouped patch or minor bump moves every directory. A major or a security update can
+  # arrive for one directory only: the pin check then fails until the same pull request bumps the
+  # other directories by hand.
   - package-ecosystem: "npm"
     directories:
       - "/"
       - "/templates/composed-server"
+      - "/templates/claude-artifact"
     schedule:
       interval: "weekly"
     cooldown:
@@ -35,7 +37,7 @@ updates:
         update-types:
           - "version-update:semver-minor"
           - "version-update:semver-major"
-      # The template's @miragon/pulse-* pins are the workspace's own version: release-please bumps
+      # The templates' @miragon/pulse-* pins are the workspace's own version: release-please bumps
       # them with the release (extra-files), never a registry update.
       - dependency-name: "@miragon/pulse-*"
       # @types/node types the Node a package runs on: the CLI promises engines.node >=22.12.0 and

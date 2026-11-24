@@ -31,6 +31,7 @@ jobs:
       orca: ${{ steps.scopes.outputs.orca }}
       cibseven-example: ${{ steps.scopes.outputs.cibseven-example }}
       brand: ${{ steps.scopes.outputs.brand }}
+      plugins: ${{ steps.scopes.outputs.plugins }}
     steps:
       # Merge commit + base, diffed by the script.
       - uses: actions/checkout@v7.0.1
@@ -450,6 +451,8 @@ jobs:
       - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         uses: Miragon/pin-npm-dependencies@v1.2.2
 
+  # Both templates, the starter and the Claude artifact, against the packed workspace packages.
+  # The name predates the second one and stays: main's ruleset requires this check by its name.
   template:
     name: Composed-server template (Build + Test)
     needs: changes
@@ -467,7 +470,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # The template against the packed workspace packages.
+      # The templates against the packed workspace packages.
       - run: ./scripts/test-template.sh
 
   # The starter's try-out engine on Linux: what a bump of its Run tag can break, and the network
@@ -789,11 +792,12 @@ jobs:
             exit 1
           fi
 
-  # Validates the marketplace, the CLI plugin and its skill.
-  cli-plugin:
-    name: CLI plugin (validate)
+  # Validates the marketplace and every Claude Code plugin it lists (the CLI's, the MCP server's)
+  # with its skills, and holds each plugin's version to its app's.
+  plugins:
+    name: Claude Code plugins (validate)
     needs: changes
-    if: needs.changes.outputs.cli == 'true'
+    if: needs.changes.outputs.plugins == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -809,29 +813,45 @@ jobs:
           node-version: 24.x
           package-manager-cache: false
 
-      - name: The plugin carries the CLI's version
+      - name: Each plugin carries its app's version
         run: |
-          cli="$(jq -r .version apps/cli/package.json)"
-          plugin="$(jq -r .version apps/cli/skills/pulse-cli/.claude-plugin/plugin.json)"
-          if [ "$cli" != "$plugin" ]; then
-            echo "::error::plugin.json is ${plugin}, apps/cli/package.json is ${cli}"
-            exit 1
-          fi
+          for manifest in apps/*/skills/*/.claude-plugin/plugin.json; do
+            app="${manifest%%/skills/*}"
+            expected="$(jq -r .version "$app/package.json")"
+            plugin="$(jq -r .version "$manifest")"
+            if [ "$expected" != "$plugin" ]; then
+              echo "::error::${manifest} is ${plugin}, ${app}/package.json is ${expected}"
+              exit 1
+            fi
+          done
 
       - name: Install Claude Code
         run: npm install --global --allow-scripts=@anthropic-ai/claude-code @anthropic-ai/claude-code@stable
 
-      - name: Validate the marketplace, the plugin and its skill
+      # Every source the marketplace lists, as a plugin and, from the folder holding it, as its
+      # skills: a source the marketplace names that is gone fails here.
+      - name: Validate the marketplace, its plugins and their skills
         run: |
           claude --version
-          for target in . apps/cli/skills/pulse-cli apps/cli/skills; do
-            claude plugin validate --strict "$target"
+          claude plugin validate --strict .
+          mapfile -t sources < <(jq -r '.plugins[].source' .claude-plugin/marketplace.json)
+          if [ "${#sources[@]}" -eq 0 ]; then
+            echo "::error::.claude-plugin/marketplace.json lists no plugin"
+            exit 1
+          fi
+          for source in "${sources[@]}"; do
+            if [ ! -f "$source/.claude-plugin/plugin.json" ]; then
+              echo "::error::.claude-plugin/marketplace.json lists ${source}, which holds no .claude-plugin/plugin.json"
+              exit 1
+            fi
+            claude plugin validate --strict "$source"
+            claude plugin validate --strict "$(dirname "$source")"
           done
 
-  # The one requirable check of the CLI jobs; skipped passes.
+  # The one requirable check of the CLI jobs and the plugin validation; skipped passes.
   cli:
     name: CLI (all checks)
-    needs: [cli-binaries, cli-image, cli-plugin]
+    needs: [cli-binaries, cli-image, plugins]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
