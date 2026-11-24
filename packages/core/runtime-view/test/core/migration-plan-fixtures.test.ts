@@ -82,6 +82,8 @@ function state(change: Partial<PlanState>): PlanState {
     notes: [],
     running: 12,
     withIncident: 2,
+    schema: undefined,
+    refusedWrites: 0,
     ...change,
   }
 }

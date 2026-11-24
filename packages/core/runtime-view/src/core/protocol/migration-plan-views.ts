@@ -44,4 +44,5 @@ export interface MigrationPlanView {
   readonly verdict: PlanVerdict
   readonly facts: readonly string[]
   readonly notices: readonly Notice[]
+  readonly refusedWrites?: number
 }

@@ -35,7 +35,15 @@ export class MigrationPlanEditors implements vscode.CustomTextEditorProvider {
     const key = document.uri.toString()
     const chosen = this.chosen.get(key)
     this.chosen.delete(key)
+    const closed = { now: false }
+    const closing = panel.onDidDispose(() => {
+      closed.now = true
+    })
     const connection = chosen ?? (await this.engines.choose(TITLE, this.remembered()[key]))
+    closing.dispose()
+    if (closed.now) {
+      return
+    }
     if (connection === undefined) {
       panel.dispose()
       await vscode.commands.executeCommand("vscode.openWith", document.uri, "default")

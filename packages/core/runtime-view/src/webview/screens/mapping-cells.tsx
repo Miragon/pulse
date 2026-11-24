@@ -13,6 +13,7 @@ export interface TargetSelectProps {
   readonly targetElementId?: string | undefined
   readonly targetLabel?: string | undefined
   readonly noteId: string | undefined
+  readonly disabled?: boolean
 }
 
 export function TargetSelect(props: TargetSelectProps) {
@@ -27,6 +28,7 @@ export function TargetSelect(props: TargetSelectProps) {
       className="min-h-control-xs h-control-xs max-w-[280px] px-2"
       aria-label={`Map ${sourceLabel} to`}
       aria-describedby={noteId}
+      disabled={props.disabled === true}
       data-map-select={sourceElementId}
       value={target}
       onFocus={() => {

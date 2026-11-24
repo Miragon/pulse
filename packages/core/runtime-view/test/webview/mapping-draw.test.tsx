@@ -239,6 +239,49 @@ describe("mapping in the diagrams", () => {
     })
   })
 
+  it("offers no edit of a plan shown under a problem", async () => {
+    await page.viewport(1300, 900)
+    harness = mountApp({ width: 1300 })
+    harness.publish({
+      status: "failed",
+      problem: { title: "Couldn't reach local.", detail: "", canEditConnection: true },
+      engine: PLAN.engine,
+      staleView: PLAN,
+    })
+    const table = await findRole(harness.root, "table", { name: "Mapping" })
+    const [source, target] = allParts(harness.root, "migration-diagram")
+    await shapeOf(source!, RESERVE)
+    ;(await hitOf(target!, SHIP)).dispatchEvent(new MouseEvent("click", { bubbles: true }))
+    await nextFrame()
+
+    expect([...table.querySelectorAll("select")].every((select) => select.disabled)).toBe(true)
+    expect(source!.querySelector('[data-part="mapping-handle"]')).toBeNull()
+    expect(posted("mapElement")).toEqual([])
+  })
+
+  it("lets go of a pick the editor could not write", async () => {
+    await open()
+    const select = getRole<HTMLSelectElement>(harness.root, "combobox", {
+      name: "Map Reserve stock to",
+    })
+
+    select.value = SHIP
+    select.dispatchEvent(new Event("change", { bubbles: true }))
+    await nextFrame()
+    expect(select.value).toBe(SHIP)
+    harness.publish({ status: "ready", view: { ...PLAN, refusedWrites: 1 }, refreshing: false })
+
+    await vi.waitFor(() => {
+      expect(
+        getRole<HTMLSelectElement>(harness.root, "combobox", { name: "Map Reserve stock to" })
+          .value,
+      ).toBe(RESERVE)
+    })
+    expect(posted("mapElement")).toEqual([
+      { type: "mapElement", sourceElementId: RESERVE, targetElementId: SHIP },
+    ])
+  })
+
   it("pans and zooms both diagrams together until you set them apart", async () => {
     const { source, target } = await open()
     const zoomOf = (diagram: HTMLElement) => /\d+\s?%/.exec(diagram.textContent)?.[0]

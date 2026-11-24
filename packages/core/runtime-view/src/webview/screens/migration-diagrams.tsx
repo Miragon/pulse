@@ -30,6 +30,7 @@ export interface MigrationDiagramsProps {
   readonly rows: readonly DiagramRow[]
   readonly focused: string | undefined
   readonly stale: boolean
+  readonly editable?: boolean
 }
 
 const DIAGRAM_CELL = "relative min-h-0 min-w-0"
@@ -142,7 +143,7 @@ function ArrowSvg({
   )
 }
 
-function useMappedDiagrams({ rows, focused, stale, target }: MigrationDiagramsProps) {
+function useMappedDiagrams({ rows, focused, stale, target, editable }: MigrationDiagramsProps) {
   const host = useHost()
   const markers = useId()
   const sourceCell = useRef<HTMLDivElement>(null)
@@ -177,7 +178,7 @@ function useMappedDiagrams({ rows, focused, stale, target }: MigrationDiagramsPr
   }
   const mapping = useMappingDecoration(
     rows,
-    target?.version,
+    editable === false ? undefined : target?.version,
     draw.drawing?.from ?? focused,
     draw.start,
   )
@@ -233,7 +234,7 @@ export function MigrationDiagrams(props: MigrationDiagramsProps) {
               onSelect={(elementId) => {
                 const from = draw.drawing?.from ?? focused
                 draw.end()
-                if (from !== undefined) {
+                if (from !== undefined && props.editable !== false) {
                   host.post({
                     type: "mapElement",
                     sourceElementId: from,

@@ -51,6 +51,9 @@ const written = MigrationPlanText.of({
 })
 ```
 
+`MigrationPlanText.of(plan, { schema })` writes a `$schema` text first when you hand it one, so
+an editor keeps the reference a file carries.
+
 `MigrationPlanParser.parse` never throws: it returns `{ plan, notes }` or `{ problems }`, never
 both, and any problem refuses the file. A problem and a note are data, `{ path, code, values }`:
 the JSON path it is about (`mappings[2].targetElementId`, or `(file)` for the whole text), a code

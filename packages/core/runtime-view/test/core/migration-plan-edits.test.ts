@@ -3,6 +3,7 @@ import { PatchedRuntime } from "@miragon/pulse-engine-core/testing"
 import { MigrationPlanParser } from "@miragon/pulse-migration-plan"
 import { describe, expect, test } from "vitest"
 import { MigrationPlanPanel } from "../../src/core/plans/migration-plan-panel.js"
+import { deferred } from "./support/board-fixture.js"
 import { panelFixture } from "./support/panel-fixture.js"
 import {
   CHARGE,
@@ -171,16 +172,86 @@ describe("editing a migration plan", () => {
     ])
   })
 
-  test("keeps the shown plan when the host refuses the edit", async () => {
+  test("keeps the shown plan when the host refuses the edit, says so and counts each refusal", async () => {
     const opened = await openPlan(FITS)
     opened.source.refusesWrites = true
-    const published = opened.fixture.states.length
+
+    await opened.panel.handle({ type: "unmapElement", sourceElementId: CHARGE })
+    await opened.panel.handle({ type: "unmapElement", sourceElementId: CHARGE })
+
+    expect(opened.view()).toMatchObject({ summary: "2 mapped · no problems", refusedWrites: 2 })
+    expect(opened.view().notices[0]).toEqual({
+      tone: "warning",
+      title: `VS Code didn't change ${opened.source.fileName}.`,
+      detail: "Check that the file can be written; the plan shows what the file says.",
+      actions: [],
+    })
+    expect(checksOf(opened.fixture.calls)).toBe(1)
+
+    opened.source.refusesWrites = false
+    await opened.panel.handle({ type: "unmapElement", sourceElementId: CHARGE })
+    expect(opened.view().refusedWrites).toBeUndefined()
+  })
+
+  test("keeps the file's $schema when it writes an edit", async () => {
+    const schema = "../../schemas/migration-plan.schema.json"
+    const withSchema = JSON.stringify({ $schema: schema, ...JSON.parse(FITS) }, undefined, 2)
+    const opened = await openPlan(withSchema)
 
     await opened.panel.handle({ type: "unmapElement", sourceElementId: CHARGE })
 
-    expect(opened.fixture.states).toHaveLength(published + 1)
+    expect(JSON.parse(opened.source.written[0] ?? "{}")).toMatchObject({ $schema: schema })
+    expect(pairsOf(opened.source.written[0])).toEqual([`${REVIEW}>${REVIEW}`])
+  })
+
+  test("writes two quick edits one after the other, the second on the first's plan", async () => {
+    const opened = await openPlan(FITS, withCheckTask())
+
+    await Promise.all([
+      opened.panel.handle({ type: "mapElement", sourceElementId: REVIEW, targetElementId: CHECK }),
+      opened.panel.handle({ type: "unmapElement", sourceElementId: CHARGE }),
+    ])
+
+    expect(opened.source.written.map((text) => pairsOf(text))).toEqual([
+      [`${CHARGE}>${CHARGE}`, `${REVIEW}>${CHECK}`],
+      [`${REVIEW}>${CHECK}`],
+    ])
+  })
+
+  test("applies an edit sent while the plan reads again to the plan it reads, not the one it showed", async () => {
+    const gate = deferred<undefined>()
+    let held = false
+    const opened = await openPlan(
+      FITS,
+      (runtime) =>
+        new PatchedRuntime(runtime, {
+          listVersions: async (id) => {
+            if (held) {
+              await gate.promise
+            }
+            return runtime.listVersions(id)
+          },
+        }),
+    )
+    held = true
+    opened.source.text = planText(same(REVIEW))
+    const reading = opened.panel.handle({ type: "refresh" })
+    const editing = opened.panel.handle({
+      type: "mapElement",
+      sourceElementId: CHARGE,
+      targetElementId: CHARGE,
+    })
+    await WaitGate.settle()
+    expect(opened.source.written).toEqual([])
+
+    gate.resolve(undefined)
+    await Promise.all([reading, editing])
+
+    expect(pairsOf(opened.source.written[0])).toEqual([
+      `${CHARGE}>${CHARGE}`,
+      `${REVIEW}>${REVIEW}`,
+    ])
     expect(opened.view().summary).toBe("2 mapped · no problems")
-    expect(checksOf(opened.fixture.calls)).toBe(1)
   })
 
   test("edits nothing while the file shows a problem", async () => {
@@ -244,6 +315,33 @@ describe("a change of the open document", () => {
     opened.source.text = FITS
     await opened.panel.changed()
     expect(opened.view().summary).toBe("2 mapped · no problems")
+  })
+
+  test("ends a check of a changed plan when reading again fails on the engine", async () => {
+    let failing = false
+    const opened = await openPlan(
+      FITS,
+      (runtime) =>
+        new PatchedRuntime(runtime, {
+          listVersions: (id) =>
+            failing
+              ? Promise.reject(new RuntimeError("engineFailure", "the engine is down"))
+              : runtime.listVersions(id),
+        }),
+    )
+    opened.source.text = planText(same(REVIEW))
+    const changing = opened.panel.changed()
+    failing = true
+    await opened.panel.handle({ type: "refresh" })
+    await changing
+    await WaitGate.settle()
+
+    const last = opened.fixture.lastState()
+    expect(last.status).toBe("failed")
+    expect(last.status === "failed" ? last.staleView : undefined).toMatchObject({
+      verdict: { fits: false },
+      summary: "1 mapped · 1 without a mapping",
+    })
   })
 
   test("says when the engine can't check the changed plan", async () => {

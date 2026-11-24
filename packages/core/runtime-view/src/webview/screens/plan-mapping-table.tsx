@@ -48,7 +48,14 @@ function TokensText({ tokens }: { readonly tokens: number | undefined }) {
   return tokens === undefined ? <NoValue /> : CountLabels.exact(tokens)
 }
 
-function PlanLine({ row, focused }: { readonly row: PlanMappingRow; readonly focused: boolean }) {
+interface PlanLineProps {
+  readonly row: PlanMappingRow
+  readonly focused: boolean
+  readonly editable: boolean
+  readonly writes: number
+}
+
+function PlanLine({ row, focused, editable, writes }: PlanLineProps) {
   const danger = row.refused ?? row.problem
   const note = danger ?? row.warning
   const noteId = note === undefined ? undefined : `plan-note-${row.sourceElementId}`
@@ -62,6 +69,8 @@ function PlanLine({ row, focused }: { readonly row: PlanMappingRow; readonly foc
       </Td>
       <Td>
         <TargetSelect
+          key={writes}
+          disabled={!editable}
           sourceElementId={row.sourceElementId}
           sourceLabel={row.sourceLabel}
           candidates={row.candidates}
@@ -80,7 +89,12 @@ function PlanLine({ row, focused }: { readonly row: PlanMappingRow; readonly foc
   )
 }
 
-export function PlanMappingTable({ view }: { readonly view: MigrationPlanView }) {
+export interface PlanMappingTableProps {
+  readonly view: MigrationPlanView
+  readonly editable: boolean
+}
+
+export function PlanMappingTable({ view, editable }: PlanMappingTableProps) {
   return (
     <DataTable label="Mapping" columns={PlanColumns.of(view)} className="min-h-0 flex-1">
       {view.rows.map((row) => (
@@ -88,6 +102,8 @@ export function PlanMappingTable({ view }: { readonly view: MigrationPlanView })
           key={row.sourceElementId}
           row={row}
           focused={row.sourceElementId === view.focused}
+          editable={editable}
+          writes={view.refusedWrites ?? 0}
         />
       ))}
     </DataTable>

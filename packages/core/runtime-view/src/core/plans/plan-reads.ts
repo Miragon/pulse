@@ -29,6 +29,7 @@ export interface PlanLoaded extends PlanState, Snapshot<MigrationPlanView> {}
 interface ParsedPlan {
   readonly plan: MigrationPlanDefinition
   readonly notes: readonly MigrationPlanNote[]
+  readonly schema: string | undefined
 }
 
 interface PlanVersions {
@@ -62,10 +63,14 @@ export class PlanReads {
     if ("problem" in parsed || !PlanReads.sameVersions(parsed.plan, loaded)) {
       return undefined
     }
-    const { plan, notes } = parsed
+    const { plan, notes, schema } = parsed
     const shown = PlanEdits.keyOf(PlanEdits.mappingsOf(loaded))
     const notesOf = (list: readonly MigrationPlanNote[]) => list.map((note) => note.path).join(",")
-    if (PlanEdits.keyOf(plan.mappings) === shown && notesOf(notes) === notesOf(loaded.notes)) {
+    if (
+      PlanEdits.keyOf(plan.mappings) === shown &&
+      notesOf(notes) === notesOf(loaded.notes) &&
+      schema === loaded.schema
+    ) {
       return "unchanged"
     }
     const elements = new MigrationElements(loaded.sourceXml, loaded.targetXml)
@@ -76,6 +81,8 @@ export class PlanReads {
         mappings: accepted,
         refused,
         notes,
+        schema,
+        refusedWrites: 0,
         problems: PlanReads.stillShown(loaded.problems, accepted),
         checking: true,
         checkFailure: undefined,
@@ -120,7 +127,16 @@ export class PlanReads {
     }
     return "problems" in parse
       ? { problem: PlanProblems.broken(source.fileName, parse.problems) }
-      : parse
+      : { ...parse, schema: PlanReads.schemaOf(text) }
+  }
+
+  private static schemaOf(text: string): string | undefined {
+    const document: unknown = JSON.parse(text)
+    const schema =
+      typeof document === "object" && document !== null
+        ? (document as Readonly<Record<string, unknown>>).$schema
+        : undefined
+    return typeof schema === "string" ? schema : undefined
   }
 
   private static parse(text: string): MigrationPlanParse | undefined {
@@ -168,7 +184,7 @@ export class PlanReads {
 
   private static async checked(
     context: PlanContext,
-    { plan, notes }: ParsedPlan,
+    { plan, notes, schema }: ParsedPlan,
     { versions, source, target }: PlanVersions,
   ): Promise<PlanLoaded> {
     const { runtime, diagrams } = context
@@ -206,6 +222,8 @@ export class PlanReads {
         notes,
         running: source.running,
         withIncident: source.withIncident,
+        schema,
+        refusedWrites: 0,
       },
       context.engine,
     )

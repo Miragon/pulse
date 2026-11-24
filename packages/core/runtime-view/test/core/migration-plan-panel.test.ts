@@ -551,7 +551,7 @@ describe("reading the plan again", () => {
     expect(opened.view().summary).toBe("2 mapped · no problems")
   })
 
-  test("shows the newest load when an older one answers later", async () => {
+  test("reads once more after a read still running, and shows the newest file", async () => {
     const first = deferred<undefined>()
     let call = 0
     const opened = await openPlan(
@@ -572,11 +572,12 @@ describe("reading the plan again", () => {
     await WaitGate.settle()
     opened.source.text = FITS
 
-    await opened.panel.handle({ type: "refresh" })
+    const newer = opened.panel.handle({ type: "refresh" })
     first.resolve(undefined)
-    await older
+    await Promise.all([older, newer])
 
     expect(opened.view().summary).toBe("2 mapped · no problems")
+    expect(opened.source.reads).toBe(3)
   })
 
   test("keeps the plan under the problem when the engine fails", async () => {

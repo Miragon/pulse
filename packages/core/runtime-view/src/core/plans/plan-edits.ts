@@ -1,4 +1,8 @@
-import type { MigrationPlanDefinition, PlanMapping } from "@miragon/pulse-migration-plan"
+import {
+  MigrationPlanText,
+  type MigrationPlanDefinition,
+  type PlanMapping,
+} from "@miragon/pulse-migration-plan"
 import { MigrationElements } from "../views/migration-elements.js"
 import { MigrationRows } from "../views/migration-rows.js"
 import type { PlanState } from "./plan-view-builder.js"
@@ -44,6 +48,14 @@ export class PlanEdits {
     const current = PlanEdits.mappingsOf(state)
     const kept = PlanEdits.without(current, sourceElementId)
     return kept.length === current.length ? undefined : PlanEdits.planOf(state, kept)
+  }
+
+  static textOf(plan: MigrationPlanDefinition, schema: string | undefined): string | undefined {
+    try {
+      return MigrationPlanText.of(plan, schema === undefined ? {} : { schema })
+    } catch {
+      return undefined
+    }
   }
 
   static keyOf(mappings: readonly PlanMapping[]): string {

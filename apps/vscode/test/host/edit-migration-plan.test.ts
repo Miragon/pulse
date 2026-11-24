@@ -317,6 +317,23 @@ describe("the migration plan editor", () => {
     again.close()
   })
 
+  test("leaves an editor alone that you closed while Pulse asked for the engine", async () => {
+    const over = vi.spyOn(MigrationPlanPanel, "over")
+    const shop = fakeConnection("shop-test")
+    const { editors, pick, document, close } = editorsOf([fakeConnection("local"), shop])
+    const panel = fakePanel()
+    pick.mockImplementation(() => {
+      panel.dispose()
+      return Promise.resolve(shop)
+    })
+
+    await editors.resolveCustomTextEditor(asDocument(document), panel)
+
+    expect(panel.webview.html).toBe("")
+    expect(over).not.toHaveBeenCalled()
+    close()
+  })
+
   test("opens the text instead when no engine checks the plan", async () => {
     const { editors, document, close } = editorsOf([])
     const panel = fakePanel()

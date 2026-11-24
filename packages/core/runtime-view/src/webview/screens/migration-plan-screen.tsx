@@ -101,11 +101,12 @@ export function MigrationPlanScreen({ view, freshness, stale, problem }: Migrati
             rows={view.rows}
             focused={view.focused}
             stale={stale}
+            editable={!stale}
           />
         }
         bottom={
           <section className={ScreenFrame.LIST_REGION} aria-label="Mapping and check">
-            <PlanMappingTable view={view} />
+            <PlanMappingTable view={view} editable={!stale} />
             <PlanVerdict view={view} />
           </section>
         }

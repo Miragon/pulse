@@ -1,5 +1,5 @@
 import { BpmnProcessId, DefinitionId, type MigrationPlan } from "@miragon/pulse-engine-core"
-import { MigrationPlanText, type MigrationPlanDefinition } from "@miragon/pulse-migration-plan"
+import type { MigrationPlanDefinition } from "@miragon/pulse-migration-plan"
 import { MigrationChecks, type CheckOutcome } from "../panels/migration-checks.js"
 import type { PanelContext } from "../panels/panel-context.js"
 import type { Panel } from "../panels/panel.js"
@@ -10,10 +10,13 @@ import { PlanEdits } from "./plan-edits.js"
 import { PlanIntents } from "./plan-intents.js"
 import { PlanReads, type PlanLoaded } from "./plan-reads.js"
 
+type PlanChange = (loaded: PlanLoaded) => MigrationPlanDefinition | undefined
+
 export class MigrationPlanPanel implements Panel {
   private readonly session: ViewSession<MigrationPlanView, PlanLoaded>
   private readonly checks: MigrationChecks
   private focusing: string | undefined
+  private queue: Promise<void> = Promise.resolve()
 
   constructor(private readonly context: PlanContext) {
     this.session = new ViewSession(context, context.source.fileName)
@@ -58,24 +61,18 @@ export class MigrationPlanPanel implements Panel {
   async handle(intent: WebviewIntent): Promise<void> {
     switch (intent.type) {
       case "ready":
-        await this.session.resume(() => PlanReads.load(this.context))
+        await this.serially(() => this.session.resume(() => PlanReads.load(this.context)))
         return
       case "refresh":
-        await this.reload()
+        await this.serially(() => this.reload())
         return
       case "focusMapping":
         this.focus(intent.sourceElementId)
         return
       case "mapElement":
-        await this.edit(
-          (state) => PlanEdits.mapped(state, intent.sourceElementId, intent.targetElementId),
-          intent.sourceElementId,
-        )
-        return
       case "unmapElement":
-        await this.edit(
-          (state) => PlanEdits.unmapped(state, intent.sourceElementId),
-          intent.sourceElementId,
+        await this.serially(() =>
+          this.edit(MigrationPlanPanel.changeOf(intent), intent.sourceElementId),
         )
         return
       default:
@@ -83,7 +80,38 @@ export class MigrationPlanPanel implements Panel {
     }
   }
 
-  async changed(): Promise<void> {
+  changed(): Promise<void> {
+    return this.serially(() => this.revise())
+  }
+
+  attend(): void {
+    return undefined
+  }
+
+  nudge(): void {
+    return undefined
+  }
+
+  dispose(): void {
+    this.checks.cancel()
+    this.session.close()
+  }
+
+  private static changeOf(
+    intent: Extract<WebviewIntent, { type: "mapElement" | "unmapElement" }>,
+  ): PlanChange {
+    return intent.type === "mapElement"
+      ? (state) => PlanEdits.mapped(state, intent.sourceElementId, intent.targetElementId)
+      : (state) => PlanEdits.unmapped(state, intent.sourceElementId)
+  }
+
+  private serially(task: () => Promise<void>): Promise<void> {
+    const run = this.queue.then(task)
+    this.queue = run.catch(() => undefined)
+    return run
+  }
+
+  private async revise(): Promise<void> {
     const loaded = this.session.current()
     const revised =
       loaded === undefined || this.session.showsProblem()
@@ -107,19 +135,6 @@ export class MigrationPlanPanel implements Panel {
     })
   }
 
-  attend(): void {
-    return undefined
-  }
-
-  nudge(): void {
-    return undefined
-  }
-
-  dispose(): void {
-    this.checks.cancel()
-    this.session.close()
-  }
-
   private forward(intent: WebviewIntent): void {
     switch (intent.type) {
       case "openDefinition":
@@ -134,35 +149,25 @@ export class MigrationPlanPanel implements Panel {
   }
 
   private async reload(): Promise<void> {
-    this.checks.cancel()
     await this.session.reload(() => PlanReads.load(this.context))
   }
 
-  private async edit(
-    change: (loaded: PlanLoaded) => MigrationPlanDefinition | undefined,
-    focused: string,
-  ): Promise<void> {
+  private async edit(change: PlanChange, focused: string): Promise<void> {
     const loaded = this.session.current()
     const plan = loaded === undefined || this.session.showsProblem() ? undefined : change(loaded)
-    if (plan === undefined) {
+    if (loaded === undefined || plan === undefined) {
       return
     }
-    const text = MigrationPlanPanel.textOf(plan)
+    const text = PlanEdits.textOf(plan, loaded.schema)
     this.focusing = focused
     if (text !== undefined && (await this.context.source.write(text))) {
-      await this.changed()
+      await this.revise()
       return
     }
     this.focusing = undefined
-    this.session.republish()
-  }
-
-  private static textOf(plan: MigrationPlanDefinition): string | undefined {
-    try {
-      return MigrationPlanText.of(plan)
-    } catch {
-      return undefined
-    }
+    this.session.rebuild((shown) =>
+      PlanReads.snapshot({ ...shown, refusedWrites: shown.refusedWrites + 1 }, this.context.engine),
+    )
   }
 
   private checked(plan: MigrationPlan, outcome: CheckOutcome): void {

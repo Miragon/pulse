@@ -26,6 +26,8 @@ export interface PlanState extends MigrationState {
   readonly notes: readonly MigrationPlanNote[]
   readonly running: number
   readonly withIncident: number
+  readonly schema: string | undefined
+  readonly refusedWrites: number
 }
 
 export interface PlanScene {
@@ -94,6 +96,7 @@ export class PlanViewBuilder {
       verdict: this.verdict(),
       facts: this.facts(),
       notices: this.notices(),
+      ...(state.refusedWrites > 0 ? { refusedWrites: state.refusedWrites } : {}),
     }
   }
 
@@ -228,6 +231,15 @@ export class PlanViewBuilder {
     const cap = Labels.count(BULK_CAP)
     const keys = notes.map((note) => note.path).join(", ")
     return [
+      ...(this.state.refusedWrites > 0
+        ? [
+            PlanViewBuilder.notice(
+              "warning",
+              `VS Code didn't change ${this.state.fileName}.`,
+              "Check that the file can be written; the plan shows what the file says.",
+            ),
+          ]
+        : []),
       PlanViewBuilder.notice(
         "info",
         "Your edits change only this file.",
