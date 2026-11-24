@@ -13,7 +13,7 @@ import {
   type ActivityCounts,
   type ProcessStats,
 } from "../src/data/process-dashboard.ts"
-import { claudeConnector } from "../src/engine/claude-connector.ts"
+import { claudeConnector, CONNECTOR_NAME } from "../src/engine/claude-connector.ts"
 import { EngineError, type Connector, type ToolResult } from "../src/engine/connector.ts"
 import { callKey } from "../src/engine/engine.ts"
 import { PAGE_TOOLS } from "../src/engine/tools.ts"
@@ -275,7 +275,7 @@ describe("a page the runtime refuses as a whole", () => {
   it("says a missing connector once, in the sections' place", async () => {
     renderOver(claudeConnector(undefined))
     await settled()
-    expectOneState("This page isn't connected to Pulse")
+    expectOneState(`This page isn't connected to ${CONNECTOR_NAME}`)
     expect(screen.getAllByRole("button", { name: /Try again/ })).toHaveLength(1)
     expect(
       screen.getByText(/in claude\.ai, in Settings under Connectors, then try again/),
@@ -285,7 +285,7 @@ describe("a page the runtime refuses as a whole", () => {
   it("says a refusal of the runtime once, as the mock gives it (?fail=needs_reauth)", async () => {
     renderPage("en-US", ["needs_reauth"])
     await settled()
-    expectOneState("Your sign-in to Pulse has expired")
+    expectOneState(`Your sign-in to ${CONNECTOR_NAME} has expired`)
     expect(screen.getByText(/in Settings under Connectors/)).toBeDefined()
   })
 
@@ -295,7 +295,7 @@ describe("a page the runtime refuses as a whole", () => {
       const throwing = new Map([[tool, "needs_reauth" as const]])
       renderOver(steered({ throwing }))
       await settled()
-      expectOneState("Your sign-in to Pulse has expired")
+      expectOneState(`Your sign-in to ${CONNECTOR_NAME} has expired`)
       throwing.clear()
       fireEvent.click(screen.getByRole("button", { name: /Try again/ }))
       await waitFor(() => {

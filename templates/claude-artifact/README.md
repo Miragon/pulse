@@ -73,7 +73,9 @@ show the loading states.
    you add there is in the next recording. Record again after you change a read.
 4. Look at the page: `pnpm exec playwright install --with-deps chromium` once, then `pnpm shot`
    (and `pnpm shot -- --locale de`), and check every screenshot in `shots/` for overflow,
-   collisions, contrast and a failure where data belongs.
+   collisions, contrast and a failure where data belongs. Where Playwright cannot download its
+   Chromium, `CHROME_PATH` names an installed Chrome or Chromium instead:
+   `CHROME_PATH=/usr/bin/google-chrome pnpm shot`.
 5. `pnpm build`, `pnpm typecheck` and `pnpm test`.
 
 ## How the page reads
