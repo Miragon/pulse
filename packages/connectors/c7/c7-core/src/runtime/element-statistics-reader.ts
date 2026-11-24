@@ -27,7 +27,7 @@ import { callActivityIdsOf } from "./call-activity-tags.js"
 import { type DiagramRead, diagramReadOf } from "./definition-rows.js"
 import { engineIdOf } from "./engine-ids.js"
 import { type IncidentRow, incidentRowsOf } from "./incident-rows.js"
-import { JsonView } from "./json-view.js"
+import { JsonView } from "../json-view.js"
 import { PAGE_SIZE, readAll } from "./read-all.js"
 
 interface ElementCounts {

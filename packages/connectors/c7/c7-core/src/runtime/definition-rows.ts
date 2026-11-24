@@ -12,7 +12,7 @@ import { queryInput } from "../requests.js"
 import { compact } from "../util.js"
 import { isEngineId } from "./engine-ids.js"
 import { findUnlessGone } from "./find-unless-gone.js"
-import { JsonView } from "./json-view.js"
+import { JsonView } from "../json-view.js"
 
 /** A deployed version of a process: its id, key, version and what it names. */
 export interface DefinitionRow {

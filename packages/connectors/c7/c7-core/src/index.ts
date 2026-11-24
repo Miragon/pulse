@@ -10,10 +10,10 @@
  * @miragon/pulse-engine-core, its one runtime dependency), which `causeOf` applies. The migration
  * planning rules (`definitionsAtVersion`, `proposeMigrationPlan`, `checkMigrationPlan`,
  * `migrationInstructions`) are the one home of a plan's requests and bodies, for the CLI's plan file
- * and the contract's `MigrationReader` alike. Runs on a
- * caller's `EnginePort`; returns data and throws `WorkflowError` reasons, and names no command,
- * flag or tool: next steps and error reasons are structured, the caller words them. The pure
- * rules behind these functions that only tests reach are exported from
+ * and the contract's `MigrationReader` alike; an answer they cannot read fails as the reason
+ * `unexpected-answer`. Runs on a caller's `EnginePort`; returns data and throws `WorkflowError`
+ * reasons, and names no command, flag or tool: next steps and error reasons are structured, the
+ * caller words them. The pure rules behind these functions that only tests reach are exported from
  * `@miragon/pulse-c7-core/testing`.
  */
 

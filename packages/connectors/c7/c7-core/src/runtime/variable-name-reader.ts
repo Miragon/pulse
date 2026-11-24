@@ -7,7 +7,7 @@ import type { DefinitionId } from "@miragon/pulse-engine-core"
 import type { EnginePort } from "../port.js"
 import { RAW_VARIABLES_QUERY } from "../variables.js"
 import { readHistoricInstances } from "./historic-instances.js"
-import { JsonView } from "./json-view.js"
+import { JsonView } from "../json-view.js"
 
 /** The newest instances of a version whose variables are named. */
 const SAMPLED_INSTANCES = 50

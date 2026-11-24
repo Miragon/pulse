@@ -7,7 +7,7 @@
 import type { EngineInfo } from "@miragon/pulse-engine-core"
 import type { EnginePort } from "../port.js"
 import { queryInput } from "../requests.js"
-import { JsonView } from "./json-view.js"
+import { JsonView } from "../json-view.js"
 
 /** The product of an engine whose telemetry is not served. */
 const GENERIC_PRODUCT = "Camunda 7 REST API"

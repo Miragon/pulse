@@ -33,5 +33,5 @@ export {
   type HistoricInstanceRow,
   readHistoricInstances,
 } from "./historic-instances.js"
-export { JsonView } from "./json-view.js"
+export { JsonView } from "../json-view.js"
 export type { OffsetWindow } from "./offset-paging.js"

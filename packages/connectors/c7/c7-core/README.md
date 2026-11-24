@@ -94,6 +94,21 @@ missing.
   "none" before a history query by incident answers.
 - **Plans:** the pure parts of retry (`planRetry`, `retriesWrite`), advance (`chooseWait`,
   `advanceSteps`) and wait (`parseCondition`, `decide`, `poll`).
+- **Migration planning:** `definitionsAtVersion`, `proposeMigrationPlan`, `checkMigrationPlan`,
+  `migrationInstructions`, the one home of a migration plan's requests and bodies.
+  `definitionsAtVersion(port, key, version)` reads the definitions of a process at a version
+  number, or at its latest version (`"latest"`), every tenant's, at most 10, `more` when there are
+  more; `definitionsAtVersionRequest` is the request it sends, for a preview.
+  `proposeMigrationPlan(port, source, target)` lets the engine generate its plan between two
+  definitions and keeps the instructions of one source and one target activity, counting the
+  others in `leftOut`; `checkMigrationPlan(port, plan)` has the engine validate a plan, each
+  problem with its mapping where it names one. Both are `POST`s that only read and change no event
+  trigger, and `migrationInstructions(mappings)` is the instructions they and a migration send (one
+  activity a side, `updateEventTrigger: false`). An answer these rules cannot read fails as the
+  `WorkflowError` reason `unexpected-answer` (the operation id and what is wrong in the answer,
+  `instructions is not a list`), so a caller words it as it words every reason and never as its
+  own bug; the contract's `MigrationReader` reads through the same rules and fails such an answer
+  as `RuntimeError("unexpectedResponse")`, as every read of `./runtime` does.
 - **Routes:** the route of each operation of the REST API: method, path template, effect (`read`,
   `write`, `delete`, `bulk`), whether a named engine (`/engine/{name}`) serves it and the media
   types of its answers. `CORE_ROUTES` holds what this package sends, reads only (a plan's writes
@@ -145,8 +160,9 @@ missing.
   batch that cancels or migrates instances from its statistics while the runtime holds it, else from
   the history, counted in items; the failures of a running one from its jobs without retries, at
   most 100, each reason on one line and cut to 300 characters, with the instance it names) and
-  `MigrationReader` (the plan the engine generates between two versions and its check of one,
-  reading `POST`s that change no event trigger; a mapping is one source and one target activity). A
+  `MigrationReader` (the plan the engine generates between two versions and its check of one, over
+  the migration planning rules: `POST`s that change no event trigger; a mapping is one source and
+  one target activity). A
   by-id read of something the engine does not know answers undefined (an engine 404 that names it,
   or a 500 `NullValueException`, as `inspect` reads an instance that ended); a list is read page by
   page until a shorter page, and an answer that is no list fails. A page of the instances without an

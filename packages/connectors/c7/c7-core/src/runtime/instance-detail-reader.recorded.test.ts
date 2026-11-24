@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest"
 import { fakePort, type Route } from "../testing/fake-port.js"
 import { InstanceDetailReader } from "./instance-detail-reader.js"
 import type { InspectView } from "./instance-inspection.js"
-import { parseExact } from "./raw-json.js"
+import { parseExact } from "../raw-json.js"
 
 /**
  * The detail of instances of the Pulse world as recorded engine answers: what the inspection

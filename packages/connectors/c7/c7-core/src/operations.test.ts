@@ -10,9 +10,15 @@ import { type Condition, measure } from "./conditions.js"
 import { readStatus } from "./engine-status.js"
 import { inspectInstance } from "./inspect.js"
 import {
+  checkMigrationPlan,
+  definitionsAtVersion,
+  proposeMigrationPlan,
+} from "./migration-plans.js"
+import {
   CONDITION_OPERATIONS,
   CORE_OPERATIONS,
   INSPECT_OPERATIONS,
+  MIGRATION_PLAN_OPERATIONS,
   RUNTIME_OPERATIONS,
   STATUS_OPERATIONS,
   WITH_INCIDENT_OPERATIONS,
@@ -109,6 +115,25 @@ describe("the with-incident operations", () => {
     await unrecordedIncidents(port)
     const sent = new Set(port.calls.map((call) => call.operationId))
     expect([...sent].sort()).toEqual([...WITH_INCIDENT_OPERATIONS].sort())
+  })
+})
+
+describe("the migration plan operations", () => {
+  it("are all the migration planning rules send", async () => {
+    const plan = { sourceProcessDefinitionId: "order:1:x", targetProcessDefinitionId: "order:2:y" }
+    const port = fakePort(
+      only(MIGRATION_PLAN_OPERATIONS, {
+        getProcessDefinitions: () => [{ id: "order:1:x", version: 1 }],
+        generateMigrationPlan: () => plan,
+        validateMigrationPlan: () => ({}),
+      }),
+    )
+    await definitionsAtVersion(port, "order", 1)
+    await definitionsAtVersion(port, "order", "latest")
+    const proposal = await proposeMigrationPlan(port, "order:1:x", "order:2:y")
+    await checkMigrationPlan(port, proposal)
+    const sent = new Set(port.calls.map((call) => call.operationId))
+    expect([...sent].sort()).toEqual([...MIGRATION_PLAN_OPERATIONS].sort())
   })
 })
 
@@ -219,12 +244,13 @@ async function bulkAndMigrationSends(): Promise<string[]> {
 }
 
 describe("CORE_OPERATIONS", () => {
-  it("is every operation of the composites, the wait, with incident and the runtime, once each, in order", () => {
+  it("is every operation of the composites, the wait, with incident, the migration plans and the runtime, once each, in order", () => {
     const all = new Set<string>([
       ...INSPECT_OPERATIONS,
       ...STATUS_OPERATIONS,
       ...CONDITION_OPERATIONS,
       ...WITH_INCIDENT_OPERATIONS,
+      ...MIGRATION_PLAN_OPERATIONS,
       ...RUNTIME_OPERATIONS,
     ])
     expect(CORE_OPERATIONS).toHaveLength(all.size)
