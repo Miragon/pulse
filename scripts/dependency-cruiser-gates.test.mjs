@@ -45,6 +45,7 @@ const SHELL = "packages/core/widget-shell"
 const UI = "packages/core/ui"
 const PROFILE = "packages/core/profile"
 const BOARD = "packages/core/board"
+const MIGRATION_PLAN = "packages/core/migration-plan"
 const SCREENS = "packages/core/screens"
 const BLOCKS = "packages/core/blocks"
 const HTTP = "packages/core/http"
@@ -74,6 +75,7 @@ const WORKSPACE = {
   [UI]: { name: "@miragon/pulse-ui" },
   [PROFILE]: { name: "@miragon/pulse-profile" },
   [BOARD]: { name: "@miragon/pulse-board" },
+  [MIGRATION_PLAN]: { name: "@miragon/pulse-migration-plan", private: true },
   [SCREENS]: { name: "@miragon/pulse-screens" },
   [BLOCKS]: { name: "@miragon/pulse-blocks" },
   [HTTP]: { name: "@miragon/pulse-http", main: "dist/index.js" },
@@ -150,6 +152,8 @@ const BOARD_USERS = "board-consumers"
 const BOARD_BUILDER = "board-builder-builds-on-the-engine-contract"
 const BOARD_BUILDER_USERS = "board-builder-consumers"
 const BOARD_TESTS = "board-tests-build-on-the-engine-contract"
+const MIGRATION_PLAN_LEAF = "migration-plan-is-a-leaf"
+const MIGRATION_PLAN_USERS = "migration-plan-consumers"
 const SCREENS_LEAF = "screens-format-is-a-leaf"
 const SCREENS_BUILDER = "screens-builder-builds-on-the-engine-contract"
 const SCREENS_TESTS = "screens-tests-build-on-the-engine-contract"
@@ -228,6 +232,8 @@ const PROFILE_SRC = `${PROFILE}/src/index.ts`
 const BOARD_NAME = "@miragon/pulse-board"
 const BOARD_SRC = `${BOARD}/src/index.ts`
 const BOARD_BUILDER_SRC = `${BOARD}/src/builder/index.ts`
+const MIGRATION_PLAN_NAME = "@miragon/pulse-migration-plan"
+const MIGRATION_PLAN_SRC = `${MIGRATION_PLAN}/src/index.ts`
 const SCREENS_NAME = "@miragon/pulse-screens"
 const SCREENS_SRC = `${SCREENS}/src/index.ts`
 const SCREENS_BUILDER_SRC = `${SCREENS}/src/builder/index.ts`
@@ -297,6 +303,8 @@ const LEAVES = [
   `${BOARD}/src/format/lib.ts`,
   `${BOARD}/src/builder/lib.ts`,
   `${BOARD}/dist/builder/index.js`,
+  `${MIGRATION_PLAN}/src/target.ts`,
+  `${MIGRATION_PLAN}/src/format/lib.ts`,
   `${SCREENS}/src/target.ts`,
   `${SCREENS}/src/format/lib.ts`,
   `${SCREENS}/src/builder/lib.ts`,
@@ -360,6 +368,7 @@ const JSON_LEAVES = [
   `${CLI}/src/generated/commands.json`,
   `${CLI}/src/generated/catalog.a.json`,
   `${PROFILE}/src/testing/fixtures.json`,
+  `${MIGRATION_PLAN}/src/testing/fixtures.json`,
 ]
 
 /**
@@ -446,6 +455,14 @@ const SUITES = [
       [
         `${CLI}/src/http/escape-http.ts`,
         "../../../../packages/core/http/src/target.ts",
+        [HEADLESS, DEEP],
+      ],
+      // And the migration plan format (CLI_BUNDLES): its name is exempt, anchored, and its tree
+      // is not (migration-plan-consumers decides where in the CLI it is read).
+      [`${CLI}/src/workflow/plan-x.ts`, `${MIGRATION_PLAN_NAME}x`, [HEADLESS]],
+      [
+        `${CLI}/src/workflow/escape-plan.ts`,
+        "../../../../packages/core/migration-plan/src/target.ts",
         [HEADLESS, DEEP],
       ],
     ],
@@ -741,6 +758,75 @@ const SUITES = [
       [`${RUNTIME_VIEW}/test/core/support/board.ts`, BOARD_NAME, []],
       [`${SHELL}/test/support/board.ts`, BOARD_NAME, []],
       [`${SHELL}/src/board.test.ts`, BOARD_NAME, []],
+    ],
+  },
+  {
+    rule: MIGRATION_PLAN_LEAF,
+    title:
+      "the migration plan format imports only its own modules: no package, no npm module, no built-in",
+    cases: [
+      [MIGRATION_PLAN_SRC, "@miragon/pulse-ui", [MIGRATION_PLAN_LEAF]],
+      [MIGRATION_PLAN_SRC, BOARD_NAME, [MIGRATION_PLAN_LEAF, BOARD_USERS]],
+      [MIGRATION_PLAN_SRC, PROFILE_NAME, [MIGRATION_PLAN_LEAF, PROFILE_USERS]],
+      [MIGRATION_PLAN_SRC, ENGINE_CORE_NAME, [MIGRATION_PLAN_LEAF, CORE, ENGINE_CORE_USERS]],
+      [MIGRATION_PLAN_SRC, C7_CORE, [CORE, MIGRATION_PLAN_LEAF]],
+      [MIGRATION_PLAN_SRC, "@miragon/pulse-cli", [NO_APP, MIGRATION_PLAN_LEAF]],
+      ...["zod", "ajv", "reactive", "node:fs"].map((spec) => [
+        MIGRATION_PLAN_SRC,
+        spec,
+        [MIGRATION_PLAN_LEAF],
+      ]),
+      [
+        `${MIGRATION_PLAN}/src/format/escape.ts`,
+        "../../../ui/src/target.ts",
+        [MIGRATION_PLAN_LEAF, DEEP],
+      ],
+      // The shipped ./testing export is no test file: it loads its fixtures as JSON, no vitest.
+      [`${MIGRATION_PLAN}/src/testing/index.ts`, "vitest", [MIGRATION_PLAN_LEAF]],
+      [`${MIGRATION_PLAN}/src/testing/fixtures.ts`, "./fixtures.json", []],
+      [`${MIGRATION_PLAN}/src/testing/types.ts`, "../format/lib.ts", []],
+      [`${MIGRATION_PLAN}/src/format/parser.ts`, "./lib.ts", []],
+      [`${MIGRATION_PLAN}/src/a.test.ts`, "vitest", []],
+      [`${MIGRATION_PLAN}/test/format/schema.test.ts`, "ajv", []],
+    ],
+  },
+  {
+    rule: MIGRATION_PLAN_USERS,
+    title:
+      "the migration plan format is read where the CLI writes a plan file and the preview reads one",
+    cases: [
+      // Of the CLI only the workflow commands write a plan file: not its root, command layer or
+      // config, nor a look-alike of the workflow layer.
+      [CLI_SRC, MIGRATION_PLAN_NAME, [MIGRATION_PLAN_USERS]],
+      [`${CLI}/src/cli/plan.ts`, MIGRATION_PLAN_NAME, [MIGRATION_PLAN_USERS]],
+      [`${CLI}/src/config/plan.ts`, MIGRATION_PLAN_NAME, [MIGRATION_PLAN_USERS]],
+      [`${CLI}/src/workflowx/plan.ts`, MIGRATION_PLAN_NAME, [MIGRATION_PLAN_USERS]],
+      // Of the runtime view only the preview reads a plan file: not its other core layers, the
+      // webview or the host kit.
+      [`${RUNTIME_VIEW}/src/core/views/plan.ts`, MIGRATION_PLAN_NAME, [MIGRATION_PLAN_USERS]],
+      [`${RUNTIME_VIEW}/src/core/plansx/plan.ts`, MIGRATION_PLAN_NAME, [MIGRATION_PLAN_USERS]],
+      [`${RUNTIME_VIEW}/src/webview/plan.ts`, MIGRATION_PLAN_NAME, [MIGRATION_PLAN_USERS]],
+      [`${RUNTIME_VIEW}/src/host-kit/plan.ts`, MIGRATION_PLAN_NAME, [MIGRATION_PLAN_USERS]],
+      // The editor hosts hand the preview the file's text and read no plan themselves.
+      [`${EXT}/src/host/plan.ts`, MIGRATION_PLAN_NAME, [MIGRATION_PLAN_USERS]],
+      [`${ORCA}/src/worker/plan.ts`, MIGRATION_PLAN_NAME, [MIGRATION_PLAN_USERS]],
+      [`${ENGINE_CONNECTOR}/src/data/plan.ts`, MIGRATION_PLAN_NAME, [MIGRATION_PLAN_USERS]],
+      [SERVER_SRC, MIGRATION_PLAN_NAME, [MIGRATION_PLAN_USERS]],
+      [SHELL_SRC, MIGRATION_PLAN_NAME, [MIGRATION_PLAN_USERS]],
+      [ADAPTER_SRC, MIGRATION_PLAN_NAME, [ADAPTER_FAMILY, MIGRATION_PLAN_USERS]],
+      [
+        `${SERVER}/src/escape-plan.ts`,
+        "../../../packages/core/migration-plan/src/target.ts",
+        [MIGRATION_PLAN_USERS, DEEP],
+      ],
+      // A reader's shipped code reaches no ./testing entry either.
+      [`${CLI}/src/workflow/plan-fixtures.ts`, `${MIGRATION_PLAN_NAME}/testing`, [NO_TESTING]],
+      // Allowed: the readers, and tests anywhere.
+      [`${CLI}/src/workflow/plan.ts`, MIGRATION_PLAN_NAME, []],
+      [`${RUNTIME_VIEW}/src/core/plans/plan.ts`, MIGRATION_PLAN_NAME, []],
+      [`${CLI}/src/workflow/plan.test.ts`, `${MIGRATION_PLAN_NAME}/testing`, []],
+      [`${CLI}/test/support/plan.ts`, MIGRATION_PLAN_NAME, []],
+      [`${RUNTIME_VIEW}/test/core/plan.test.ts`, `${MIGRATION_PLAN_NAME}/testing`, []],
     ],
   },
   {
@@ -2850,6 +2936,9 @@ const SUITES = [
       // And the transport.
       [`${HTTP}/src/type-cycle-a.ts`, "./type-cycle-b.ts", [CLI_CYCLE], "type"],
       [`${HTTP}/src/type-cycle-b.ts`, "./type-cycle-a.ts", [CLI_CYCLE], "type"],
+      // And the migration plan format.
+      [`${MIGRATION_PLAN}/src/type-cycle-a.ts`, "./type-cycle-b.ts", [CLI_CYCLE], "type"],
+      [`${MIGRATION_PLAN}/src/type-cycle-b.ts`, "./type-cycle-a.ts", [CLI_CYCLE], "type"],
       // A core the CLI does not bundle is out of the CLI's rules: no-circular tolerates the type.
       [`${BILLING_CORE}/src/type-cycle-a.ts`, "./type-cycle-b.ts", [], "type"],
       [`${BILLING_CORE}/src/type-cycle-b.ts`, "./type-cycle-a.ts", [], "type"],
@@ -2873,6 +2962,7 @@ const SUITES = [
       [`${C7}/src/c.test.ts`, "./a.test.ts", [CLI_NOT_TEST]],
       [`${PROFILE}/src/c.test.ts`, "./a.test.ts", [CLI_NOT_TEST]],
       [`${HTTP}/src/c.test.ts`, "./a.test.ts", [CLI_NOT_TEST]],
+      [`${MIGRATION_PLAN}/src/c.test.ts`, "./a.test.ts", [CLI_NOT_TEST]],
       // A core the CLI does not bundle is out of the CLI's rules.
       [`${BILLING_CORE}/src/to-test.ts`, "./a.test.ts", []],
       // Each package's own tests only: the CLI's rule never reaches into the core's tree.

@@ -31,5 +31,6 @@ export const SHOWN_PACKAGES: readonly (readonly [string, string])[] = [
   ["the transport", "packages/core/http/src"],
   ["the profile format", "packages/core/profile/src"],
   ["the board format", BOARD_SOURCES],
+  ["the migration plan format", "packages/core/migration-plan/src"],
   ["the building blocks", BLOCKS_SOURCES],
 ]

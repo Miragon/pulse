@@ -1,7 +1,7 @@
 # Migrating instances to another version
 
 - Status: accepted
-- Last reviewed: 2026-10-23
+- Last reviewed: 2026-11-24
 
 ## Context
 
@@ -142,9 +142,9 @@ Three reads and one write, no new port (all three groups): writes already flow t
 | `migrateInstances(plan, ids)`       | `ProcessCommands` | one asynchronous bulk operation of kind `migrateInstances`; ended and unknown ids are skipped; nothing left is `rejected`                  |
 
 The two planning reads are optional, as a pair: an engine that cannot plan has neither and
-gets no migration. The laws are in [runtime-contract.md](runtime-contract.md). A later plan
-file is keyed by BPMN process id and version numbers, not by `DefinitionId`s, which differ per
-engine.
+gets no migration. The laws are in [runtime-contract.md](runtime-contract.md). A plan file is
+keyed by BPMN process id and version numbers, not by `DefinitionId`s, which differ per engine
+([Plan files](#plan-files)).
 
 ### Audit
 
@@ -156,9 +156,33 @@ engine.
 | `migrateInstances … source= target= mappings= count= result=done bulk=<operation id>` (`oplog=none` without a login)                                                       | after the submit           |
 | `migrateInstancesOutcome … bulk=<operation id> phase=finished migrated=37 stillOnSource=4 ended=0 failed=4`                                                                | when the run is worked off |
 
-Element ids are not values; the pairs make a run reproducible in another environment
-until plans exist as files (Markus' condition for "later"). Never the engine's failure
-text: it can carry business data from listeners and expressions.
+Element ids are not values; the pairs make a run reproducible in another environment, and a
+plan file of `pulse plan-migration` carries them before a run (Markus' condition). Never the
+engine's failure text: it can carry business data from listeners and expressions.
+
+### Plan files
+
+`pulse plan-migration` writes `.pulse/migrations/<bpmnProcessId>-v<s>-to-v<t>.migration.json` in
+the format of `@miragon/pulse-migration-plan` (`packages/core/migration-plan`, private, bundled by
+the CLI and the editors): `schemaVersion`, `bpmnProcessId`, `source.version`, `target.version` and
+sorted 1:1 `mappings` of element ids, an `<id>#…` scope pair among them. _Pulse: Preview Migration
+Plan…_ opens `MigrationPlanPanel` on an engine that plans, the only one or the one you pick.
+
+| Condition                     | How it holds                                                                                                                                                                                                                                                              |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| untrusted input               | `MigrationPlanParser` reads at most 1,048,576 characters, refuses an engine's plan (`enginePlan`), instance ids, engines, tenants, definition ids and engine options (`notInAPlan`) and an unknown key of a side or mapping, and notes an unknown root key it never reads |
+| checked like an intent        | each pair must pass the tab's edit check (`MigrationElements.maps`), a scope pair also its element pair on a multi-instance element; a refused pair is shown, decides the verdict and is never sent                                                                       |
+| checked by the engine         | the rest goes to `checkMigration`                                                                                                                                                                                                                                         |
+| no ids, no engine             | two version numbers; a number resolves only when exactly one definition has it (`MigrationPlanVersions`), several (tenants) refuse; the engine is the one you open it on                                                                                                  |
+| starts nothing                | a `PlanContext` without commands, bulk runs or confirmations; `plans-start-nothing` keeps `packages/core/runtime-view/src/core/plans` off the write path; next steps are Open v{s}, Open v{t} and Show file                                                               |
+| cannot lower the confirmation | the tab, its entry (the definition panel's selection, Eva's veto) and its confirmation are unchanged; the file seeds nothing                                                                                                                                              |
+
+The preview counts tokens per element (`active + incidents`, the whole version, never summed),
+the source version's running and with-incident instances (runtime) and the engine's problems; it
+searches no instance, so every history level reads the same. It does not detect another model
+behind the same number: it draws this engine's diagrams and checks the pairs against them, and
+says it matched by number. A key that changes what a plan names, resolves or checks (a tenant, a
+version tag, a model fingerprint) takes `schemaVersion` 2, which a reader of version 1 refuses.
 
 ### Facts from the spikes (Operaton 2.1.5)
 
@@ -183,7 +207,7 @@ text: it can carry business data from listeners and expressions.
 
 | Question                            | Decision                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Plan as a versioned workspace file? | Later (unanimous). The mapping pairs go to the audit now. A file will be untrusted input: checked like an intent and by the engine, it carries no ids and no engine, starts nothing and cannot lower the confirmation.                                                                                                                                                                                                                              |
+| Plan as a versioned workspace file? | Yes, as a preview (2026-11-24, owner to confirm): [Plan files](#plan-files). Migrating from a file stays out; the tab keeps its entry and its own proposal.                                                                                                                                                                                                                                                                                         |
 | Synchronous below a threshold N?    | No: one code path (unanimous after sign-off; 3:3 in the first round). Sophie vetoed a `wait` flag in the contract: Camunda 8 migrates atomically only one instance per request. Aylin, Eva and Jonas withdrew after the spikes: sync names only one failing instance, has no count in its answer and adds a request timeout as an unknown outcome. If users ask for it: an optional `migrateInstancesAtomically?(plan, ids)`, N ≤ 25, never a flag. |
 | Instances with incidents?           | Eligible (unanimous): fixing an instance with a new version is the main case. The dialog says "5 have an incident and keep it; retry them on v3."                                                                                                                                                                                                                                                                                                   |
 | `updateEventTriggers`?              | Fixed `false` (unanimous): due dates stay, nothing fires again; the dialog says which timers start again.                                                                                                                                                                                                                                                                                                                                           |
@@ -199,6 +223,7 @@ text: it can carry business data from listeners and expressions.
   bulk poll goes on, and the tab loads again when the run is worked off or on Refresh,
   keeping the mapping.
 - Out of scope: other process keys, variables in the plan, skipping listeners or
-  input/output mappings, query-based selection, plans as files, `updateEventTriggers`,
+  input/output mappings, query-based selection, migrating from a plan file, plan files in
+  Pulse for Orca, a model fingerprint in the plan (`schemaVersion` 2), `updateEventTriggers`,
   migrating a sub-process scope by itself, adopting a batch after a window reload.
 - Review record: `.context/migration/` (not versioned).

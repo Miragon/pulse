@@ -8,6 +8,7 @@ import { BoardScreen } from "./screens/board/board-screen.js"
 import { DefinitionScreen } from "./screens/definition-screen.js"
 import { EngineScreen } from "./screens/engine-screen.js"
 import { InstanceScreen } from "./screens/instance-screen.js"
+import { MigrationPlanScreen } from "./screens/migration-plan-screen.js"
 import { MigrationScreen } from "./screens/migration-screen.js"
 import { ProblemStrip } from "./screens/notices.js"
 import { BlankScreen, FailedScreen, LoadingScreen } from "./screens/waiting-screens.js"
@@ -25,6 +26,9 @@ function ViewScreen({ view, ...rest }: ViewScreenProps) {
   }
   if (view.kind === "migration") {
     return <MigrationScreen view={view} {...rest} />
+  }
+  if (view.kind === "migrationPlan") {
+    return <MigrationPlanScreen view={view} {...rest} />
   }
   if (view.kind === "board") {
     return <BoardScreen view={view} freshness={rest.freshness} />

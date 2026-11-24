@@ -71,6 +71,7 @@ export class MessageGuards {
     setVariable: (fields) =>
       MessageGuards.isName(fields.name) && MessageGuards.isValue(fields.valueJson),
     openBoardFile: () => true,
+    openPlanFile: () => true,
     openBoardInstance: (fields) =>
       MessageGuards.isName(fields.engine) &&
       MessageGuards.isName(fields.instanceId) &&

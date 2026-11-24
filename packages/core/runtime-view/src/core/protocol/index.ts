@@ -59,6 +59,12 @@ export type {
   MigrateOffer,
   MigrationView,
 } from "./migration-views.js"
+export type {
+  MigrationPlanView,
+  PlanMappingRow,
+  PlanSideView,
+  PlanVerdict,
+} from "./migration-plan-views.js"
 export type { Notice, NoticeAction, Tone } from "./notices.js"
 export type { BackLink, HostMessage, StateMessage, WebviewIntent } from "./messages.js"
 export type { MoveOption, MoveTarget, RefusedTarget } from "./move-models.js"

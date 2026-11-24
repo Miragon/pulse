@@ -312,6 +312,7 @@
     "@miragon/pulse-runtime-view": "workspace:*"
   },
   "devDependencies": {
+    "@miragon/pulse-migration-plan": "workspace:*",
     "@miragon/pulse-ui": "workspace:*",
     "@types/node": "22.20.5",
     "@types/vscode": "1.101.0",

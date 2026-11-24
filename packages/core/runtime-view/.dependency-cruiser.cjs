@@ -13,6 +13,9 @@ const SCREENS_ENTRY = "(^|/)node_modules/@miragon/pulse-screens/dist/index[.]d[.
 const SCREENS_BUILDER_ENTRY =
   "(^|/)node_modules/@miragon/pulse-screens/dist/builder/index[.]d[.]ts$"
 const BLOCKS_ENTRY = "(^|/)node_modules/@miragon/pulse-blocks/dist/index[.]d[.]ts$"
+const MIGRATION_PLAN_ENTRY = "(^|/)node_modules/@miragon/pulse-migration-plan/dist/index[.]d[.]ts$"
+const PLANS = `${PACKAGE}src/core/plans/`
+const WRITE_PATH = `${PACKAGE}src/core/(?:panels/(?:bulk-(?!selection[.]ts$)[^/]+|cancel-instances-action|instance-writes|migrate-instances-action|migration-checks|migration-edits|migration-panel|migration-preview|selection-preview)|views/(?:bulk-requests|migration-requests|write-requests|write-outcomes|move-effects))[.]ts$`
 const BLOCKS =
   "(^|/)node_modules/@miragon/pulse-blocks/|^@miragon/pulse-blocks(/|$)|^packages/core/blocks/"
 const PULSE_UI = "(^|/)node_modules/@miragon/pulse-ui/|^@miragon/pulse-ui(/|$)|^packages/core/ui/"
@@ -131,6 +134,12 @@ module.exports = {
       to: { path: [SCREENS_ENTRY, SCREENS_BUILDER_ENTRY] },
     },
     {
+      comment:
+        "The core reads the migration plan files with Pulse's migration plan format (@miragon/pulse-migration-plan, its main entry: the types of a plan, the parser, the words of its problems and the rule that resolves a version number, no runtime dependency), which the editor hosts bundle with esbuild. The protocol keeps its own view models and imports nothing (protocol-imports-nothing).",
+      from: { path: `${PACKAGE}src/core/` },
+      to: { path: MIGRATION_PLAN_ENTRY },
+    },
+    {
       comment: "The host kit runs in a host's Node and may use Node built-ins.",
       from: { path: `${PACKAGE}src/host-kit/` },
       to: { dependencyTypes: ["core"] },
@@ -141,7 +150,7 @@ module.exports = {
       name: "not-in-allowed",
       severity: "error",
       comment:
-        "No entry of `allowed` in packages/core/runtime-view/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md). A layer uses its own modules and another layer only through its index.ts: the ports, the core, the model adapter and the host kit speak the main entry of @miragon/pulse-engine-core, the engine family's neutral core (never ./testing), the core and the model adapter reach the ports, the model adapter also bpmn-moddle (never a vendor's descriptor, which its family's adapter brings), core and webview @miragon/pulse-ui/tones and their label helpers (core/views/labels.ts, webview/format/) @miragon/pulse-ui/format, the webview protocol types, its rendering libraries, for shared building blocks @miragon/pulse-ui's root and @miragon/pulse-ui/theme.css and the board's tiles and the process list of @miragon/pulse-blocks' main entry, the host kit core, protocol, ports and Node built-ins, its connections also @miragon/pulse-profile's main entry, and the core @miragon/pulse-board's main entry and ./builder and @miragon/pulse-screens' main entry and ./builder. The runtime view knows no editor host and no dialect.",
+        "No entry of `allowed` in packages/core/runtime-view/.dependency-cruiser.cjs permits this import. Move the code to the layer that may make it (table 'Where code goes' in apps/vscode/CLAUDE.md). A layer uses its own modules and another layer only through its index.ts: the ports, the core, the model adapter and the host kit speak the main entry of @miragon/pulse-engine-core, the engine family's neutral core (never ./testing), the core and the model adapter reach the ports, the model adapter also bpmn-moddle (never a vendor's descriptor, which its family's adapter brings), core and webview @miragon/pulse-ui/tones and their label helpers (core/views/labels.ts, webview/format/) @miragon/pulse-ui/format, the webview protocol types, its rendering libraries, for shared building blocks @miragon/pulse-ui's root and @miragon/pulse-ui/theme.css and the board's tiles and the process list of @miragon/pulse-blocks' main entry, the host kit core, protocol, ports and Node built-ins, its connections also @miragon/pulse-profile's main entry, and the core @miragon/pulse-board's main entry and ./builder, @miragon/pulse-screens' main entry and ./builder and @miragon/pulse-migration-plan's main entry. The runtime view knows no editor host and no dialect.",
       from: {},
       to: { path: "^$" },
     },
@@ -224,6 +233,14 @@ module.exports = {
         "The protocol holds JSON-only message and view-model types shared by host and webview. Keep it free of imports outside packages/core/runtime-view/src/core/protocol.",
       from: { path: `${PACKAGE}src/core/protocol/` },
       to: { pathNot: `${PACKAGE}src/core/protocol/` },
+    },
+    {
+      name: "plans-start-nothing",
+      severity: "error",
+      comment:
+        "The migration plan preview starts nothing: it imports no write, bulk run, confirmation or migration tab (apps/vscode/docs/adr/migrations.md, Plan files). The preview in packages/core/runtime-view/src/core/plans reads through its PlanContext alone; a next step it offers is a read of another panel (openDefinition), never a write of its own.",
+      from: { path: PLANS },
+      to: { path: WRITE_PATH },
     },
     {
       name: "src-not-to-dev-dependencies",
