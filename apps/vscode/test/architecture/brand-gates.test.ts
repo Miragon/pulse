@@ -23,7 +23,7 @@ const DENSE_ICONS_ALLOWED: Readonly<Record<string, string>> = {
   "diagram/move-entry.tsx": "a move entry, a 20 px overlay on a shape",
   "screens/called-instance-link.tsx": "an inline link inside a line of dense text",
   "screens/instance-header.tsx": "the caller link inside the header's dense meta line",
-  "screens/mapping-table.tsx": "a warning inside a dense table cell",
+  "screens/mapping-cells.tsx": "a warning inside a dense table cell",
   "screens/move-panel.tsx": "a warning inside a dense list line",
   "screens/variables-tab.tsx": "the shadow warning beside a variable's name in a dense table cell",
 }

@@ -13,6 +13,7 @@ import { ENGINE_VIEW } from "./engine.js"
 import { LOCAL_ENGINE, PROD_ENGINE } from "./engines.js"
 import { INSTANCE_WAITING, INSTANCE_WITH_CALLED_INCIDENT } from "./instance.js"
 import { MIGRATION_VIEW, RUNNING_MIGRATION_VIEW, UNMAPPED_MIGRATION_VIEW } from "./migration.js"
+import { BLOCKED_MIGRATION_PLAN_VIEW, MIGRATION_PLAN_VIEW } from "./migration-plan.js"
 import {
   GATEWAY_INSTANCE,
   MOVABLE_INSTANCE,
@@ -43,6 +44,12 @@ export const FIXTURES = {
   migration: { status: "ready", view: MIGRATION_VIEW, refreshing: false },
   "migration-unmapped": { status: "ready", view: UNMAPPED_MIGRATION_VIEW, refreshing: false },
   "migration-running": { status: "ready", view: RUNNING_MIGRATION_VIEW, refreshing: false },
+  "migration-plan": { status: "ready", view: MIGRATION_PLAN_VIEW, refreshing: false },
+  "migration-plan-blocked": {
+    status: "ready",
+    view: BLOCKED_MIGRATION_PLAN_VIEW,
+    refreshing: false,
+  },
   refreshing: { status: "ready", view: DEFINITION_VIEW, refreshing: true },
   engine: { status: "ready", view: ENGINE_VIEW, refreshing: false },
   board: { status: "ready", view: BOARD_VIEW, refreshing: false },
