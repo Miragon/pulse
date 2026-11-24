@@ -27,23 +27,3 @@ export function fakeConnector(
     },
   }
 }
-
-/** The answer of `engine_list_engines` with one engine. */
-export const ONE_ENGINE = {
-  engines: [{ id: "prod-a", dialect: "c7" }],
-  defaultEngineId: null,
-}
-
-/** A list tool's page of `rows` at `firstResult`, with the engine's count. */
-export function pageOf<T>(rows: readonly T[], args: Record<string, unknown>) {
-  const first = Number(args.firstResult ?? 0)
-  const size = Number(args.maxResults ?? 20)
-  const items = rows.slice(first, first + size)
-  const hasMore = first + items.length < rows.length
-  return {
-    items,
-    totalCount: rows.length,
-    hasMore,
-    ...(hasMore ? { nextOffset: first + items.length } : {}),
-  }
-}

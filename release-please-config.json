@@ -153,21 +153,6 @@
         {
           "type": "json",
           "path": "templates/claude-artifact/package.json",
-          "jsonpath": "$.dependencies['@miragon/pulse-blocks']"
-        },
-        {
-          "type": "json",
-          "path": "templates/claude-artifact/package.json",
-          "jsonpath": "$.dependencies['@miragon/pulse-c7-core']"
-        },
-        {
-          "type": "json",
-          "path": "templates/claude-artifact/package.json",
-          "jsonpath": "$.dependencies['@miragon/pulse-screens']"
-        },
-        {
-          "type": "json",
-          "path": "templates/claude-artifact/package.json",
           "jsonpath": "$.dependencies['@miragon/pulse-ui']"
         },
         {
@@ -185,7 +170,13 @@
           "type": "json",
           "path": "apps/mcp-server/skills/pulse-artifact/.claude-plugin/plugin.json",
           "jsonpath": "$.version"
-        }
+        },
+        {
+          "type": "generic",
+          "path": "apps/mcp-server/skills/pulse-artifact/SKILL.md"
+        },
+        { "type": "generic", "path": "docs/mcp/claude-artifacts.md" },
+        { "type": "generic", "path": "templates/claude-artifact/README.md" }
       ]
     }
   }

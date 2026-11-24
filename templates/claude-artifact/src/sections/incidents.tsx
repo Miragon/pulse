@@ -4,41 +4,41 @@ import {
   formatInstant,
   formatNumber,
   formatRelativeTime,
+  LogText,
   NamedId,
+  Panel,
+  SectionState,
   TableEmptyState,
-  truncate,
   type DataTableColumn,
 } from "@miragon/pulse-ui"
-import { readIncidents, type IncidentGroup } from "../data/process-dashboard.ts"
+import { incidentsOf, readActivities, type ActivityRow } from "../data/process-dashboard.ts"
 import { useEngine, useSection } from "../engine/use-engine.tsx"
 import { useT } from "../messages.ts"
-import { Panel } from "../temporary/panel.tsx"
-import { SectionState } from "../temporary/section-state.tsx"
-import { CutNote } from "./cut-note.tsx"
-import { rowAnchor, useElementNames } from "./names.ts"
-
-/** The longest message a cell holds; its whole text is its title. */
-const MESSAGE_MAX = 400
+import { rowAnchor } from "./anchors.ts"
 
 /**
  * The open root incidents by the activity they were raised at (every version), with the latest
  * message and when it came; under them, what each call activity waits on in the instances it
- * called, which counts as incidents of the called process, never here.
+ * called, which counts as incidents of the called process, never here. `engine_activity_counts`,
+ * shared with the diagram and the open tasks.
  */
 export function IncidentsSection({ processKey }: { readonly processKey: string }) {
   const t = useT()
   const { engine } = useEngine()
-  const section = useSection((engine) => readIncidents(engine, processKey), [processKey])
-  const nameOf = useElementNames(section.data?.process.xml)
+  const section = useSection(
+    (engine) => readActivities(engine, processKey),
+    [processKey],
+    (counts) => counts.asOf,
+  )
   const now = engine.now()
-  const columns: DataTableColumn<IncidentGroup>[] = [
+  const columns: DataTableColumn<ActivityRow>[] = [
     {
       key: "activity",
       label: t("incidents.activity"),
       fill: true,
       cell: (row) => (
         <span id={rowAnchor("incidents", row.activityId)} tabIndex={-1}>
-          <NamedId name={nameOf(row.activityId)} id={row.activityId} />
+          <NamedId name={row.name} id={row.activityId} />
         </span>
       ),
     },
@@ -48,44 +48,38 @@ export function IncidentsSection({ processKey }: { readonly processKey: string }
       align: "right",
       cell: (row) => (
         <CountFigure situation="openIncident" label={t("incidents.why")}>
-          {formatNumber(row.count)}
+          {formatNumber(row.incidents)}
         </CountFigure>
-      ),
-    },
-    {
-      key: "message",
-      label: t("incidents.message"),
-      // On a phone the activity, its count and when keep the row; the message waits for room.
-      className: "max-sm:hidden",
-      cellClassName: "max-sm:hidden",
-      cell: (row) => (
-        <span className="block max-w-48 truncate" title={row.latestMessage ?? undefined}>
-          {truncate(row.latestMessage, MESSAGE_MAX)}
-        </span>
       ),
     },
     {
       key: "latest",
       label: t("incidents.latest"),
       cell: (row) => (
-        <time dateTime={row.latestAt ?? undefined} title={formatInstant(row.latestAt)}>
-          {formatRelativeTime(row.latestAt, now)}
+        <time dateTime={row.latestIncident?.at} title={formatInstant(row.latestIncident?.at)}>
+          {formatRelativeTime(row.latestIncident?.at, now)}
         </time>
       ),
+    },
+    // Last: on a phone the activity, its count and when keep the row in view, and the message,
+    // one line with its whole text behind its disclosure, is what the table's region scrolls to.
+    {
+      key: "message",
+      label: t("incidents.message"),
+      cell: (row) => <LogText kind="message" line text={row.latestIncident?.message} />,
     },
   ]
   return (
     <Panel id="incidents" title={t("incidents.title")} hint={t("scope.allVersions")}>
       <SectionState
-        section={section}
+        state={section.state}
+        onRetry={section.retry}
         skeleton={<DataTable label={t("incidents.label")} columns={columns} skeletonRows={3} />}
       >
-        {(data) => {
-          const own = data.groups.filter((group) => group.kind === "own")
-          const called = data.groups.filter((group) => group.kind === "called")
+        {(counts) => {
+          const { own, called } = incidentsOf(counts)
           return (
             <div className="flex flex-col gap-3">
-              <CutNote cut={data.cut} />
               <DataTable
                 label={t("incidents.label")}
                 columns={columns}
@@ -93,16 +87,16 @@ export function IncidentsSection({ processKey }: { readonly processKey: string }
                 rowKey={(row) => row.activityId}
                 empty={<TableEmptyState variant="done">{t("incidents.empty")}</TableEmptyState>}
               />
-              {called.map((group) => (
+              {called.map((row) => (
                 <p
-                  key={group.activityId}
-                  id={rowAnchor("calledIncidents", group.activityId)}
+                  key={row.activityId}
+                  id={rowAnchor("calledIncidents", row.activityId)}
                   tabIndex={-1}
                   className="text-muted-foreground m-0"
                 >
                   {t("incidents.called", {
-                    activity: nameOf(group.activityId) ?? group.activityId,
-                    count: formatNumber(group.count),
+                    activity: row.name ?? row.activityId,
+                    count: formatNumber(row.incidentsInCalledInstances),
                   })}
                 </p>
               ))}

@@ -2,35 +2,113 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
-import { formatInstant, LocaleProvider } from "@miragon/pulse-ui"
+import { formatDate, formatInstant } from "@miragon/pulse-ui"
+import { readBpmnNames, type DiagramCountKind } from "@miragon/pulse-ui/bpmn"
 import { setFormatLocale } from "@miragon/pulse-ui/format"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { type Fixture, mockClaude } from "../fixtures/mock-claude.ts"
 import { Page, PROCESS_KEY } from "../src/app.tsx"
+import {
+  outcomesOf,
+  type ActivityCounts,
+  type ProcessStats,
+} from "../src/data/process-dashboard.ts"
 import { claudeConnector } from "../src/engine/claude-connector.ts"
 import { EngineError, type Connector, type ToolResult } from "../src/engine/connector.ts"
 import { callKey } from "../src/engine/engine.ts"
-import { translate } from "../src/messages.ts"
-import { CutNote } from "../src/sections/cut-note.tsx"
+import { PAGE_TOOLS } from "../src/engine/tools.ts"
+import { applyFormatLocale, viewerLocale } from "../src/locale.ts"
+import { goTo } from "../src/sections/anchors.ts"
 import { countTargets } from "../src/sections/diagram.tsx"
-import { goTo } from "../src/sections/names.ts"
-import { ElementBadges } from "../src/temporary/process-diagram.tsx"
 
 /**
- * The page over the recorded fixtures, through the page's own connector: its structure and its
- * states, not its numbers, which change with every recording. bpmn-js may fail to draw in
- * happy-dom; the diagram's frame says so then, and the test reads around it (the badges' own
- * component and their targets are held apart).
+ * The page over the recorded fixtures, through the page's own connector: its structure, its
+ * states and its calls, not its numbers, which change with every recording.
  */
+
+// bpmn-js needs a real SVG engine happy-dom lacks: a stand-in viewer over the elements of the XML
+// it imports, so the diagram puts its counts on them as in a browser (the kit's own tests hold
+// the drawing).
+const bpmn = vi.hoisted(() => {
+  class StandInViewer {
+    elements: { id: string; type: string }[] = []
+    readonly opts: { container: HTMLElement }
+    constructor(opts: { container: HTMLElement }) {
+      this.opts = opts
+      opts.container.innerHTML = '<div class="djs-container"><svg tabindex="0"></svg></div>'
+    }
+    private known(id: string) {
+      if (!this.elements.some((element) => element.id === id)) throw new Error(`no element ${id}`)
+    }
+    importXML(xml: string): Promise<{ warnings: string[] }> {
+      this.elements = [...xml.matchAll(/<bpmn:(\w+) id="([^"]+)"/g)].map(([, tag, id]) => ({
+        id: id ?? "",
+        type: `bpmn:${(tag ?? "").charAt(0).toUpperCase()}${(tag ?? "").slice(1)}`,
+      }))
+      return Promise.resolve({ warnings: [] })
+    }
+    get(service: string): unknown {
+      if (service === "canvas") {
+        return {
+          addMarker: (id: string) => {
+            this.known(id)
+          },
+          viewbox: () => ({ x: 0, y: 0, width: 600, height: 300, scale: 1 }),
+          zoom: () => 1,
+          resized: () => {},
+          getContainer: () => this.opts.container,
+          scroll: () => {},
+        }
+      }
+      if (service === "overlays") {
+        return {
+          add: (id: string, overlay: { html: HTMLElement }) => {
+            this.known(id)
+            this.opts.container.querySelector(".djs-container")?.appendChild(overlay.html)
+          },
+        }
+      }
+      if (service === "elementRegistry") return { getAll: () => this.elements }
+      return { on: () => {}, off: () => {} }
+    }
+    destroy() {}
+  }
+  return { StandInViewer }
+})
+
+vi.mock("bpmn-js/lib/NavigatedViewer", () => ({ default: bpmn.StandInViewer }))
 
 const fixture = JSON.parse(
   readFileSync(join(import.meta.dirname, `../fixtures/${PROCESS_KEY}.json`), "utf8"),
 ) as Fixture
 const asOf = new Date(fixture.asOf)
+const counts = fixture.calls.find((call) => call.tool === "engine_activity_counts")?.result
+  .structuredContent as ActivityCounts
+const stats = fixture.calls.find((call) => call.tool === "engine_process_stats")?.result
+  .structuredContent as ProcessStats
+const xml = (
+  fixture.calls.find((call) => call.tool === "engine_get_process_definition_xml")?.result
+    .structuredContent as { bpmn20Xml: string }
+).bpmn20Xml
 
 function renderPage(language: string, fail: string[] = []) {
-  const connector = claudeConnector(mockClaude(fixture, { fail }))
-  return render(<Page connector={connector} language={language} now={() => asOf} />)
+  const mock = mockClaude(fixture, { fail })
+  const view = render(
+    <Page
+      connector={claudeConnector(mock)}
+      language={language}
+      now={() => asOf}
+      timeZone={fixture.timeZone}
+    />,
+  )
+  return { ...view, mock }
+}
+
+/** Renders the page over `connector` on the fixture's clock and zone. */
+function renderOver(connector: Connector, now: () => Date = () => asOf) {
+  return render(
+    <Page connector={connector} language="en-US" now={now} timeZone={fixture.timeZone} />,
+  )
 }
 
 /** An error result as the server sends one, the same text for every tool it hits. */
@@ -39,17 +117,6 @@ function failed(tool: string): ToolResult {
     isError: true,
     content: [{ type: "text", text: `[503 ServiceUnavailable] ${tool} failed (engine prod-a)` }],
   }
-}
-
-/** The arguments that carry a time window: the page reads them from its clock. */
-const WINDOWS = new Set(["startedAfter", "startedBefore", "finishedAfter", "finishedBefore"])
-
-/** A call's key with its time windows aside, so the fixture answers on a later clock too. */
-function timelessKey(tool: string, args: Record<string, unknown>): string {
-  return callKey(
-    tool,
-    Object.fromEntries(Object.entries(args).map(([k, v]) => [k, WINDOWS.has(k) ? "*" : v])),
-  )
 }
 
 /**
@@ -64,14 +131,14 @@ function steered(
   } = {},
 ): Connector {
   const answers = new Map(
-    fixture.calls.map((call) => [timelessKey(call.tool, call.arguments), call.result]),
+    fixture.calls.map((call) => [callKey(call.tool, call.arguments), call.result]),
   )
   return {
     callTool(name, args) {
       const code = options.throwing?.get(name)
       if (code !== undefined) return Promise.reject(new EngineError(code, name, `[${code}] raw`))
       if (options.failing?.has(name)) return Promise.resolve(failed(name))
-      const recorded = answers.get(timelessKey(name, args))
+      const recorded = answers.get(callKey(name, args))
       const result = options.answer?.(name, recorded) ?? recorded
       return Promise.resolve(result ?? failed(`unrecorded ${name}`))
     },
@@ -95,6 +162,8 @@ const SECTION_HEADINGS = [
   "Open incidents by activity",
   "Open tasks",
 ]
+
+const SAME_FAILURE = "Not read, for the same reason as above."
 
 const h2s = () => screen.queryAllByRole("heading", { level: 2 }).map((h) => h.textContent)
 
@@ -126,11 +195,31 @@ describe("the dashboard on the fixtures", () => {
     expect(
       screen.getByRole("table", { name: "Instances started and ended per day, last 14 days" }),
     ).toBeDefined()
-    expect(screen.getByRole("list", { name: /end events reached/i })).toBeDefined()
-    expect(screen.getByText(/shares are of all .* end events reached/)).toBeDefined()
+    if (outcomesOf(stats).outcomes.length > 0) {
+      expect(screen.getByRole("list", { name: /end events/i })).toBeDefined()
+      expect(screen.getByText(/Each share is of the .* instances? that ended/)).toBeDefined()
+    } else {
+      expect(screen.getByText("No instance ended in the last 14 days.")).toBeDefined()
+    }
     const incidents = screen.getByRole("region", { name: "Open incidents by activity" })
     expect(within(incidents).getAllByRole("table").length).toBeGreaterThan(0)
     expect(screen.queryAllByRole("alert")).toEqual([])
+  })
+
+  it("makes at most three calls a load, each tool of PAGE_TOOLS once, and three again on Refresh", async () => {
+    const { mock } = renderPage("en-US")
+    await settled()
+    expect(mock.calls.length).toBeLessThanOrEqual(3)
+    expect(mock.calls.map((call) => call.tool).sort()).toEqual([...PAGE_TOOLS].sort())
+    fireEvent.click(screen.getByRole("button", { name: "Refresh" }))
+    await settled()
+    expect(mock.calls.length).toBeLessThanOrEqual(6)
+    expect(
+      mock.calls
+        .slice(3)
+        .map((call) => call.tool)
+        .sort(),
+    ).toEqual([...PAGE_TOOLS].sort())
   })
 
   it("has one banner: the bar's, never a header around it", async () => {
@@ -156,112 +245,99 @@ describe("the dashboard on the fixtures", () => {
     expect(screen.getByRole("button", { name: "Aktualisieren" })).toBeDefined()
   })
 
-  it("keeps the page when one section fails: the failure in words, Try again, the raw text under Details", async () => {
-    renderPage("en-US", ["engine_status"])
+  it("keeps the page when one call fails: the failure in words once, Try again, the raw text under Details", async () => {
+    renderPage("en-US", ["engine_process_stats"])
     await settled()
-    const alert = await screen.findByRole("alert")
-    expect(alert.textContent).toContain("unreachable")
-    expect(within(alert).getByRole("button", { name: /Try again/ })).toBeDefined()
-    expect(alert.textContent).toContain("Details")
+    const alerts = await screen.findAllByRole("alert")
+    expect(alerts).toHaveLength(1)
+    expect(alerts[0].textContent).toContain("unreachable")
+    expect(within(alerts[0]).getByRole("button", { name: /Try again/ })).toBeDefined()
+    expect(alerts[0].textContent).toContain("Details")
     expect(screen.queryByText("Running instances")).toBeNull()
+    // The chart and the end events read the same call: they say it once, after the tiles.
+    expect(screen.getAllByText(SAME_FAILURE)).toHaveLength(2)
     expect(screen.getByRole("heading", { level: 2, name: "Open tasks" })).toBeDefined()
     expect(screen.getAllByRole("table").length).toBeGreaterThan(0)
   })
 })
 
 describe("a page the runtime refuses as a whole", () => {
-  /** The page's one state: one alert under the bar, no section, the bar without a strip. */
+  /** The page's one state: one alert under the bar, no section, no freshness. */
   function expectOneState(title: string) {
     expect(screen.getAllByText(title)).toHaveLength(1)
     expect(screen.getAllByRole("alert")).toHaveLength(1)
     expect(h2s()).toEqual([title])
     expect(screen.queryAllByRole("table")).toEqual([])
-    expect(document.querySelector('[data-slot="status-strip"]')).toBeNull()
     expect(document.querySelector('[data-slot="freshness-stamp"]')).toBeNull()
     expect(within(screen.getByRole("main")).getByRole("alert").textContent).toContain(title)
   }
 
   it("says a missing connector once, in the sections' place", async () => {
-    render(<Page connector={claudeConnector(undefined)} language="en-US" now={() => asOf} />)
+    renderOver(claudeConnector(undefined))
     await settled()
-    expectOneState("This page has no Pulse connector")
+    expectOneState("This page isn't connected to Pulse")
     expect(screen.getAllByRole("button", { name: /Try again/ })).toHaveLength(1)
-    expect(screen.getByText(/then try again/)).toBeDefined()
+    expect(
+      screen.getByText(/in claude\.ai, in Settings under Connectors, then try again/),
+    ).toBeDefined()
   })
 
   it("says a refusal of the runtime once, as the mock gives it (?fail=needs_reauth)", async () => {
     renderPage("en-US", ["needs_reauth"])
     await settled()
-    expectOneState("Your Pulse connector needs a new sign-in")
+    expectOneState("Your sign-in to Pulse has expired")
     expect(screen.getByText(/in Settings under Connectors/)).toBeDefined()
   })
 
-  it("says an engine it cannot resolve once, and Try again mounts the sections", async () => {
-    const failing = new Set(["engine_list_engines"])
-    render(<Page connector={steered({ failing })} language="en-US" now={() => asOf} />)
-    await settled()
-    const state = within(screen.getByRole("main")).getByRole("alert")
-    expect(state.textContent).toContain("unreachable")
-    expect(screen.getAllByRole("alert")).toHaveLength(1)
-    expect(h2s()).toHaveLength(1)
-    failing.clear()
-    fireEvent.click(within(state).getByRole("button", { name: /Try again/ }))
-    await waitFor(() => {
-      expect(h2s()).toEqual(SECTION_HEADINGS)
-    })
-    await settled()
-    expect(screen.queryAllByRole("alert")).toEqual([])
-  })
-
-  it.each(["engine_status", "engine_list_process_definitions"])(
-    "closes the page when a read past the engine meets a refusal of the connector (%s)",
+  it.each(["engine_process_stats", "engine_activity_counts"])(
+    "closes the page when one read meets a refusal of the connector (%s), and Try again opens it",
     async (tool) => {
       const throwing = new Map([[tool, "needs_reauth" as const]])
-      render(<Page connector={steered({ throwing })} language="en-US" now={() => asOf} />)
+      renderOver(steered({ throwing }))
       await settled()
-      expectOneState("Your Pulse connector needs a new sign-in")
+      expectOneState("Your sign-in to Pulse has expired")
+      throwing.clear()
+      fireEvent.click(screen.getByRole("button", { name: /Try again/ }))
+      await waitFor(() => {
+        expect(h2s()).toEqual(SECTION_HEADINGS)
+      })
+      await settled()
+      expect(screen.queryAllByRole("alert")).toEqual([])
     },
   )
-
-  it("offers no Try again when the page may not resolve its engine", async () => {
-    const throwing = new Map([["engine_list_engines", "not_allowed" as const]])
-    render(<Page connector={steered({ throwing })} language="en-US" now={() => asOf} />)
-    await settled()
-    expectOneState("This page may not call the tool it needs")
-    expect(screen.queryAllByRole("button", { name: /Try again/ })).toEqual([])
-  })
 })
 
 describe("sections that fail alike", () => {
   it("say it once: the first section in full, the next only that it was not read", async () => {
-    const failing = new Set(["engine_list_incidents"])
-    render(<Page connector={steered({ failing })} language="en-US" now={() => asOf} />)
+    const failing = new Set(["engine_activity_counts"])
+    renderOver(steered({ failing }))
     await settled()
     const alerts = screen.getAllByRole("alert")
     expect(alerts).toHaveLength(1)
     const diagram = screen.getByRole("region", { name: /Diagram/ })
     expect(within(diagram).getByRole("alert")).toBe(alerts[0])
     const incidents = screen.getByRole("region", { name: "Open incidents by activity" })
-    expect(within(incidents).getByText("Not read, for the same reason as above.")).toBeDefined()
+    expect(within(incidents).getByText(SAME_FAILURE)).toBeDefined()
+    const tasks = screen.getByRole("region", { name: "Open tasks" })
+    expect(within(tasks).getByText(SAME_FAILURE)).toBeDefined()
     expect(screen.getAllByRole("button", { name: /Try again/ })).toHaveLength(1)
     failing.clear()
     fireEvent.click(within(alerts[0]).getByRole("button", { name: /Try again/ }))
     await waitFor(() => {
       expect(screen.queryAllByRole("alert")).toEqual([])
     })
-    expect(screen.queryByText("Not read, for the same reason as above.")).toBeNull()
+    expect(screen.queryByText(SAME_FAILURE)).toBeNull()
     expect(within(incidents).getAllByRole("table").length).toBeGreaterThan(0)
   })
 
-  it("say it once under the bar when the bar's own read fails alike", async () => {
-    const failing = new Set(["engine_get_process_definition_xml"])
-    render(<Page connector={steered({ failing })} language="en-US" now={() => asOf} />)
+  it("offer no Try again for a call the page may not make", async () => {
+    const throwing = new Map([["engine_process_stats", "not_allowed" as const]])
+    renderOver(steered({ throwing }))
     await settled()
     expect(screen.getAllByRole("alert")).toHaveLength(1)
-    expect(document.querySelectorAll('[data-slot="status-strip"]')).toHaveLength(1)
-    // The diagram, the end events, the incidents and the tasks read the process as the bar does.
-    expect(screen.getAllByText("Not read, for the same reason as above.")).toHaveLength(4)
-    expect(screen.getByText("Running instances")).toBeDefined()
+    expect(screen.getByText("This page may not call the tool it needs")).toBeDefined()
+    expect(screen.queryAllByRole("button", { name: /Try again/ })).toEqual([])
+    expect(screen.getByRole("heading", { level: 2, name: "Open tasks" })).toBeDefined()
   })
 })
 
@@ -269,21 +345,60 @@ describe("the bar's freshness", () => {
   /** The stamp's whole instant, its title. */
   const stamp = () => document.querySelector('[data-slot="freshness-stamp"]')?.getAttribute("title")
 
-  it("shows the oldest read of the sections holding data, so a failed refresh keeps it", async () => {
-    let clock = asOf
-    const later = new Date(asOf.getTime() + 5 * 60_000)
-    const failing = new Set<string>()
-    render(<Page connector={steered({ failing })} language="en-US" now={() => clock} />)
-    await settled()
-    expect(stamp()).toBe(formatInstant(asOf.toISOString()))
+  /** The fixture's answers as the server gives them after a read `ms` later than the recording. */
+  const readLater =
+    (ms: () => number) =>
+    (_tool: string, recorded: ToolResult | undefined): ToolResult | undefined => {
+      const data = recorded?.structuredContent as { asOf?: string } | undefined
+      if (recorded === undefined || data?.asOf === undefined) return undefined
+      const asOfThen = new Date(Date.parse(data.asOf) + ms()).toISOString()
+      return { ...recorded, structuredContent: { ...data, asOf: asOfThen } }
+    }
 
-    clock = later
-    failing.add("engine_status")
+  /** The oldest `asOf` of the page's answers, `ms` after the recorded ones. */
+  const oldestRead = (ms = 0) =>
+    formatInstant(
+      new Date(Math.min(Date.parse(stats.asOf), Date.parse(counts.asOf)) + ms).toISOString(),
+    )
+
+  it("is when the server read the numbers (their asOf), never when an answer arrived", async () => {
+    let clock = asOf
+    let later = 0
+    renderOver(steered({ answer: readLater(() => later) }), () => clock)
+    await settled()
+    expect(stamp()).toBe(oldestRead())
+
+    // A Refresh 20 s on, inside the server's 30 s floor: it answers its first read again.
+    clock = new Date(asOf.getTime() + 20_000)
+    fireEvent.click(screen.getByRole("button", { name: "Refresh" }))
+    await settled()
+    expect(stamp()).toBe(oldestRead())
+
+    // Past the floor the server reads anew, and the stamp moves with that read.
+    later = 5 * 60_000
+    clock = new Date(asOf.getTime() + later)
+    fireEvent.click(screen.getByRole("button", { name: "Refresh" }))
+    await waitFor(() => {
+      expect(stamp()).toBe(oldestRead(later))
+    })
+  })
+
+  it("shows the oldest read of the sections holding data, so a failed refresh keeps it", async () => {
+    const later = 5 * 60_000
+    let moved = 0
+    const failing = new Set<string>()
+    renderOver(steered({ failing, answer: readLater(() => moved) }))
+    await settled()
+    expect(stamp()).toBe(oldestRead())
+
+    moved = later
+    failing.add("engine_process_stats")
     fireEvent.click(screen.getByRole("button", { name: "Refresh" }))
     await settled()
     expect(screen.getAllByRole("alert")).toHaveLength(1)
     expect(screen.getByText("Running instances")).toBeDefined()
-    expect(stamp()).toBe(formatInstant(asOf.toISOString()))
+    // The numbers per day are still the first read's: the bar keeps its stamp.
+    expect(stamp()).toBe(formatInstant(stats.asOf))
 
     failing.clear()
     fireEvent.click(screen.getByRole("button", { name: "Refresh" }))
@@ -291,51 +406,71 @@ describe("the bar's freshness", () => {
       expect(screen.queryAllByRole("alert")).toEqual([])
     })
     await settled()
-    expect(stamp()).toBe(formatInstant(later.toISOString()))
-  })
-})
-
-describe("a section whose reads are cut", () => {
-  it.each([
-    ["cap", "Only the first 1,000 rows were read, so the counts here may be too low."],
-    [
-      "changed",
-      "The list changed while the page read it, so the counts here may be too low. Refresh reads it again.",
-    ],
-    [null, ""],
-  ] as const)("says why its counts may be too low (%s)", (cut, words) => {
-    const { container } = render(
-      <LocaleProvider locale="en" translator={translate}>
-        <CutNote cut={cut} />
-      </LocaleProvider>,
-    )
-    expect(container.textContent).toBe(words)
+    expect(stamp()).toBe(oldestRead(later))
   })
 })
 
 describe("the incidents' anchors", () => {
-  it("hold an activity's own row and its called line apart when it has both", async () => {
-    const answer = (tool: string, recorded: ToolResult | undefined) => {
-      if (tool !== "engine_list_incidents" || recorded === undefined) return undefined
-      const list = recorded.structuredContent as { items: { id: string; activityId: string }[] }
-      const copy = list.items.find((incident) => incident.activityId !== null)
-      if (copy === undefined) return undefined
-      const own = { ...copy, id: "own-root", causeIncidentId: null, rootCauseIncidentId: null }
-      const items = [...list.items, own]
-      return { structuredContent: { ...list, items, totalCount: items.length } }
-    }
-    render(<Page connector={steered({ answer })} language="en-US" now={() => asOf} />)
-    await settled()
-    const ids = [...document.querySelectorAll("[id]")].map((element) => element.id)
-    expect(ids.filter((id, i) => ids.indexOf(id) !== i)).toEqual([])
-    const both = ids.filter((id) => id.startsWith("incidents-row-"))
-    expect(both.length).toBeGreaterThan(0)
-    const called = both.map((id) => id.replace("incidents-row-", "calledIncidents-row-"))
-    expect(called.some((id) => ids.includes(id))).toBe(true)
-  })
+  it.skipIf(counts.activities.length === 0)(
+    "hold an activity's own row and its called line apart when it has both",
+    async () => {
+      const answer = (tool: string, recorded: ToolResult | undefined) => {
+        if (tool !== "engine_activity_counts" || recorded === undefined) return undefined
+        const counts = recorded.structuredContent as ActivityCounts
+        const activities = counts.activities.map((row, i) =>
+          i === 0 ? { ...row, incidents: 2, incidentsInCalledInstances: 3 } : row,
+        )
+        return { structuredContent: { ...counts, activities } }
+      }
+      renderOver(steered({ answer }))
+      await settled()
+      const ids = [...document.querySelectorAll("[id]")].map((element) => element.id)
+      expect(ids.filter((id, i) => ids.indexOf(id) !== i)).toEqual([])
+      const own = ids.filter((id) => id.startsWith("incidents-row-"))
+      expect(own.length).toBeGreaterThan(0)
+      const called = own.map((id) => id.replace("incidents-row-", "calledIncidents-row-"))
+      expect(called.some((id) => ids.includes(id))).toBe(true)
+    },
+  )
 })
 
 describe("a count on the diagram", () => {
+  it("is a button where it leads to a row of the page, words without one elsewhere", async () => {
+    renderPage("en-US")
+    await settled()
+    const diagram = screen.getByRole("region", { name: /Diagram/ })
+    // The kit names each count by its element and its figure: "<element>: 3 incidents".
+    const kindOf = (label: string): DiagramCountKind =>
+      label.includes("in called instances")
+        ? "incidentsInCalledInstances"
+        : label.endsWith("running")
+          ? "running"
+          : "incidents"
+    const linked = within(diagram)
+      .queryAllByRole("button")
+      .map((button) => button.getAttribute("aria-label") ?? "")
+      .filter((label) => /: \d/.test(label))
+      .map((label) => `${label.slice(0, label.indexOf(":"))} ${kindOf(label)}`)
+    // Every count the recording holds on an element the drawing has, a button exactly where a row
+    // of the page lists it (countTargets), whatever process the recording is of.
+    const drawn = new Map(
+      [...xml.matchAll(/<bpmn:(\w+) id="([^"]+)"/g)].map(([, tag = "", id = ""]) => [
+        id,
+        `bpmn:${tag.charAt(0).toUpperCase()}${tag.slice(1)}`,
+      ]),
+    )
+    const names = readBpmnNames(xml).elements
+    const expected = counts.decorations.flatMap(({ elementId, counts: shown }) => {
+      const type = drawn.get(elementId)
+      if (type === undefined) return []
+      return shown
+        .filter(({ count }) => count > 0)
+        .filter(({ kind }) => countTargets({ id: elementId, type }, kind).length > 0)
+        .map(({ kind }) => `${names[elementId] ?? elementId} ${kind}`)
+    })
+    expect(linked.sort()).toEqual(expected.sort())
+  })
+
   const task = { id: "Task_Review", type: "bpmn:UserTask" }
   const call = { id: "Activity_Assess", type: "bpmn:CallActivity" }
 
@@ -347,52 +482,6 @@ describe("a count on the diagram", () => {
       "calledIncidents-row-Activity_Assess",
       "incidents",
     ])
-  })
-
-  function renderBadges(
-    badge: { running: number; incidents: number; incidentsInCalledInstances: number },
-    selectable: (kind: string) => boolean,
-  ) {
-    const onSelect = vi.fn()
-    render(
-      <LocaleProvider locale="en" translator={translate}>
-        <ElementBadges
-          badge={{ elementId: "Activity_Assess", ...badge }}
-          elementName="Assess"
-          selectable={selectable}
-          onSelect={onSelect}
-        />
-      </LocaleProvider>,
-    )
-    return onSelect
-  }
-
-  it("is a button only where it leads somewhere, else the same badge with its words", () => {
-    const onSelect = renderBadges(
-      { running: 54, incidents: 0, incidentsInCalledInstances: 3 },
-      (kind) => kind !== "running",
-    )
-    const buttons = screen.getAllByRole("button")
-    expect(buttons).toHaveLength(1)
-    expect(buttons[0].getAttribute("aria-label")).toContain("3 incidents in called instances")
-    expect(screen.getByText("Assess: 54 instances running")).toBeDefined()
-    const plain = document.querySelector('[data-part="badge-plain"]')
-    expect(plain?.querySelector('[data-kind="running"]')).not.toBeNull()
-    expect(plain?.closest("button")).toBeNull()
-    fireEvent.click(buttons[0])
-    expect(onSelect).toHaveBeenCalledWith("incidentsInCalledInstances")
-  })
-
-  it("names the kind clicked where both kinds of incidents share a scope", () => {
-    const onSelect = renderBadges(
-      { running: 0, incidents: 2, incidentsInCalledInstances: 3 },
-      () => true,
-    )
-    const [own, called] = screen.getAllByRole("button")
-    fireEvent.click(called)
-    expect(onSelect).toHaveBeenLastCalledWith("incidentsInCalledInstances")
-    fireEvent.click(own)
-    expect(onSelect).toHaveBeenLastCalledWith("incidents")
   })
 
   /** A row of a list and its section, each an anchor with `tabIndex` -1. */
@@ -432,5 +521,66 @@ describe("a count on the diagram", () => {
     expect(document.activeElement).toBe(section)
     document.body.innerHTML = ""
     expect(goTo(["tasks-row-Task_Other", "tasks"])).toBe(false)
+  })
+})
+
+describe("the days and their durations", () => {
+  /** The fixture over a connector whose `engine_process_stats` answer `change` rewrites. */
+  const statsAs = (change: (recorded: ProcessStats) => ProcessStats) =>
+    steered({
+      answer: (tool, recorded) =>
+        tool === "engine_process_stats" && recorded !== undefined
+          ? { ...recorded, structuredContent: change(recorded.structuredContent as ProcessStats) }
+          : undefined,
+    })
+
+  const perDay = () => screen.getByRole("region", { name: /Started and ended per day/ })
+
+  it("labels each day in the zone its bucket counts in, whatever the browser's own", () => {
+    applyFormatLocale(viewerLocale("en-US"), "Pacific/Kiritimati")
+    // 12:00 UTC on the 23rd is 02:00 on the 24th at UTC+14.
+    expect(formatDate("2026-11-23T12:00:00.000Z")).toContain("24")
+    applyFormatLocale(viewerLocale("en-US"), "UTC")
+    expect(formatDate("2026-11-23T12:00:00.000Z")).toContain("23")
+  })
+
+  it("says the durations are of the instances that ended since the engine keeps their history", async () => {
+    const since = new Date(Date.parse(stats.range.from) + 6 * 86_400_000).toISOString()
+    renderOver(
+      statsAs((s) => ({ ...s, durations: { from: since, ended: 7, medianMs: 1000, p90Ms: 2000 } })),
+    )
+    await settled()
+    expect(within(perDay()).getByText(new RegExp(`ended since ${formatDate(since)}`))).toBeDefined()
+  })
+
+  it("says no duration is known where the server knows none, never a duration of 0 instances", async () => {
+    renderOver(statsAs((s) => ({ ...s, durations: null })))
+    await settled()
+    expect(within(perDay()).getByText("No duration of these days is known.")).toBeDefined()
+    expect(within(perDay()).queryByText(/Duration of the 0 instances/)).toBeNull()
+  })
+
+  it("says an engine that writes no history leaves its counts unknown, never that none started", async () => {
+    renderOver(
+      statsAs((s) => ({
+        ...s,
+        history: { ...s.history, recorded: false },
+        totals: { started: null, ended: null },
+        buckets: s.buckets.map((b) => ({ ...b, started: null, ended: null, endedAt: {} })),
+        endEvents: s.endEvents.map((event) => ({ ...event, ended: null })),
+        durations: null,
+      })),
+    )
+    await settled()
+    expect(
+      within(perDay()).getByText(
+        "The engine writes no history, so how many instances started and ended is not known.",
+      ),
+    ).toBeDefined()
+    expect(screen.queryByText("No instance started or ended in the last 14 days.")).toBeNull()
+    const outcomes = screen.getByRole("region", { name: /End events reached/ })
+    expect(screen.queryByText("No instance ended in the last 14 days.")).toBeNull()
+    expect(within(outcomes).queryByText(/%/)).toBeNull()
+    expect(within(outcomes).getByText(/no share is shown/)).toBeDefined()
   })
 })

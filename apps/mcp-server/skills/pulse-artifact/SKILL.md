@@ -20,14 +20,19 @@ process engine, BPMN modelling, or a Camunda 8 cluster: the template reads Camun
 
 The template is `templates/claude-artifact` in the Pulse repository
 (https://github.com/Miragon/pulse/tree/main/templates/claude-artifact). An installed plugin holds
-no copy of it, so fetch it:
+no copy of it, so fetch it from the release this skill is of, whose libraries its pins name on npm
+(`main` may build on pieces no release has yet):
+
+<!-- x-release-please-start-version -->
 
 ```sh
-git clone --depth 1 https://github.com/Miragon/pulse
+git clone --depth 1 --branch v0.31.0 https://github.com/Miragon/pulse
 cp -r pulse/templates/claude-artifact my-dashboard && cd my-dashboard
 pnpm install
 pnpm dev        # the example dashboard on the recorded fixtures, no server needed
 ```
+
+<!-- x-release-please-end -->
 
 Its example is a dashboard of the playground's `miraveloLeasing` process. A new dashboard changes
 the one process key, `PROCESS_KEY` in `templates/claude-artifact/src/app.tsx` (and the title in
@@ -37,34 +42,35 @@ Pulse repository serves one) and edits the sections in `templates/claude-artifac
 Paths below are from the repository root; in your copy, drop `templates/claude-artifact/`.
 
 - `templates/claude-artifact/src/engine/`: the only door to the engine. `createEngine` over a
-  `Connector` gives `call`, `count` and `page` with a 30 s cache, the engine resolved once,
-  paging with a cap and the error codes; `useEngine` and `useSection` give each section its own
-  loading, error and ready state. `claude-connector.ts` is the one file that knows the artifact
-  runtime (see "The connector call"); `tools.ts` lists `PAGE_TOOLS`, every tool the page calls.
-- `templates/claude-artifact/src/data/process-dashboard.ts`: every read of the page, plain
-  TypeScript without React, so the recorder runs the very same reads.
-- `templates/claude-artifact/src/temporary/`: what the page carries until the epic's siblings
-  land, each file naming its issue (see "What changes" below).
+  `Connector` gives `call` with a 30 s cache that calls in flight share, and the error codes;
+  `useSection` gives each section its read for pulse-ui's `SectionState`. `claude-connector.ts`
+  is the one file that knows the artifact runtime (see "The connector call"); `tools.ts` lists
+  `PAGE_TOOLS`, every tool the page calls.
+- `templates/claude-artifact/src/data/process-dashboard.ts`: the three calls of a load and what
+  each section shows of them, plain TypeScript without React, so the recorder runs the very same
+  reads.
 - `templates/claude-artifact/fixtures/`: one recording per process and the mock runtime that
   serves it to `pnpm dev`, the tests and the screenshots.
 
 ## Artifact rules
 
-- **Three files.** `pnpm build` writes `dist/index.html`, `dist/app.js` and `dist/app.css`.
+- **Three files.** `pnpm build` writes `dist/index.html`, `dist/app.js` and `dist/pulse-ui.css`.
   Publish `dist/index.html` as the page and the other two as its files, under exactly those
   names. The page has no `<html>`, `<head>` or `<body>`: the publish wraps it in its own skeleton.
 - **One classic script.** `dist/app.js` is one bundle, loaded as `<script src="app.js">`. The
   artifact runs in a sandboxed frame whose origin is `null`, where a module script from the page's
   own files may fail on CORS: never add `type="module"` and never split the bundle.
-- **The skeleton's reset** sets `body` to a 14 px system font and `:root` to a light colour
-  scheme, unlayered, so it beats Tailwind's base. The template's root element sets `font-sans`
-  and a step of the type scale (`text-dense`) and the dark root `color-scheme: dark`; keep both.
+- **One stylesheet, pulse-ui's.** `dist/pulse-ui.css` is the package's `dist/browser/pulse-ui.css`
+  as it ships: the theme, every class the kit renders and its documented layout utilities. The
+  page's own elements use only those (the template's brand test holds every class to it); a class
+  beyond them renders nothing. It sets the body in the kit's font on the 13 px step, unlayered, so
+  it beats the skeleton's reset.
 - **Theme.** The viewer stamps `data-theme="light"` or `"dark"` on the root, or nothing for the
-  system setting. The template's inline theme bridge follows the attribute, else the OS, by the
-  `.dark` class; it never writes `data-theme` and never declares a `--cd-*` token.
-- **Content security policy.** Everything ships in the three files; the only outside resource is
-  the Geist stylesheet from fonts.googleapis.com. No fetch, XHR or WebSocket to any host: the
-  engine comes only through the connector.
+  system setting; pulse-ui's theme follows the attribute, else the OS, with no script of the page.
+- **Content security policy.** Everything ships in the three files; the only outside resources are
+  the Geist stylesheet from fonts.googleapis.com and, without a build, pulse-ui's modules from
+  cdn.jsdelivr.net. No fetch, XHR or WebSocket to any host: the engine comes only through the
+  connector.
 - **Capabilities, after the first publish.** Declare the `mcp` capability for the connector named
   `CONNECTOR_NAME` with exactly the names of `PAGE_TOOLS`, no more: the runtime refuses a call to a
   tool the declaration leaves out. A declaration is the full set, so a new tool in `PAGE_TOOLS`
@@ -88,13 +94,15 @@ const { payload } = await mcp.callTool(CONNECTOR_NAME, tool, args, { cache })
   connector to the Pulse MCP server, as claude.ai shows it under Settings, Connectors.
   `CONNECTOR_NAME` holds it, a constant you set to that name; the `mcp` declaration names the
   same. Then the tool, its arguments and the cache options.
-- **The answer** is the tool's JSON in `payload`, the data the recipes describe (a list's
-  `{ items, totalCount, hasMore, nextOffset }`).
+- **The answer** is the tool's JSON in `payload`, the data the recipes describe.
 - **The runtime caches too.** A call passes `cache: { staleTime: 30000, gcTime: 600000 }`, the
   page's own 30 s (`ANSWER_TTL_MS` in `engine.ts`) as `staleTime`; Refresh, and Try again after a
-  failure, pass `{ staleTime: 0, gcTime: 600000, refresh: true }`, so the engine answers anew.
+  failure, pass `{ staleTime: 0, gcTime: 600000, refresh: true }` past the runtime's cache. The
+  server keeps its own 30 s floor per caller, so a Refresh inside it gets the same read back: date
+  the numbers by each answer's `asOf` (the bar's `FreshnessStamp`), never by when it arrived.
 - **A refusal** rejects with a `code` and a `message`; `RUNTIME_CODES` maps each code onto the
-  page's `EngineError`, and `errors.ts` words it as what the viewer can do:
+  page's `EngineError`, whose codes are pulse-ui's page errors (`PageErrorCode`), and
+  `describePageError` words it with the connector's name and claude.ai's place:
   - `needs_reauth`: reconnect the connector in claude.ai under Settings, Connectors.
   - `server_not_connected`, `selection_required` (the page's `not_connected`): add the connector
     in claude.ai under Settings, Connectors, or pick it when claude.ai asks for one.
@@ -106,109 +114,127 @@ const { payload } = await mcp.callTool(CONNECTOR_NAME, tool, args, { cache })
 - **The one unknown** is how a tool's own error answer (MCP's `isError`, a text such as
   `[ENGINE_PROFILE_REFUSED] …`) arrives: as a result with `isError: true` or as a rejection with a
   code not listed above. The template takes both as `tool_error`, its text classified by
-  `describeError`, so a page works either way.
+  widget-shell's `describeError`, so a page works either way.
+
+## Without a build
+
+A page of a few panels needs no template: one module script loads pulse-ui's browser bundle from
+jsDelivr, and the artifact's one file is `pulse-ui.css`, copied from the same package version
+(`node_modules/@miragon/pulse-ui/dist/browser/pulse-ui.css`, or the URL beside the bundle's). The
+version is the release's; take this skill's version, never `latest`:
+
+<!-- x-release-please-start-version -->
+
+```html
+<link rel="stylesheet" href="pulse-ui.css" />
+<div id="root"></div>
+<script type="module">
+  import * as ui from "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.31.0/dist/browser/pulse-ui.js"
+  const h = ui.createElement
+  const mcp = await window.claude.use("mcp")
+  const cache = { staleTime: 30000, gcTime: 600000 }
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+  const args = { processDefinitionKey: "miraveloLeasing", bucket: "day", timeZone }
+  const { payload: stats } = await mcp.callTool("Pulse", "engine_process_stats", args, { cache })
+  const tile = (label, count) => ({ label, value: h(ui.CountFigure, null, ui.formatCount(count)) })
+  const page = h(
+    "main",
+    { className: "flex flex-col gap-section p-gutter" },
+    h(ui.WidgetHeader, { title: stats.processDefinitionName ?? stats.processDefinitionKey }),
+    h(ui.KpiGrid, {
+      boxed: true,
+      cells: [
+        tile("Running", stats.now.running),
+        tile("Ended in 24 hours", stats.now.endedLast24h),
+      ],
+    }),
+  )
+  const root = ui.createRoot(document.getElementById("root"))
+  root.render(h(ui.LocaleProvider, { locale: "en" }, page))
+</script>
+```
+
+<!-- x-release-please-end -->
+
+`pulse-ui.js` holds React, ReactDOM and the kit, React once: take every hook and `createRoot`
+from it. `pulse-ui-bpmn.js` beside it holds the BPMN diagram on the same React, and
+`dist/glossary/index.js` the product's words with no bundle. The rules below hold here too: a
+refused call worded by `describePageError`, each section through `SectionState`, no class beyond
+the stylesheet's. A page that grows past a few panels, or needs its numbers held by tests, starts
+from the template instead.
 
 ## Design rules that matter on a page
 
-Compose from pulse-ui and the shared blocks (`references/components.md` has every prop and every
-type of the kit a prop names); the brand test of the template runs the kit's gates over your
-sources.
+Compose from pulse-ui (`references/components.md` has every prop and every type of the kit a prop
+names); the brand test of the template runs the kit's gates over your sources.
 
 - **Numbers stay neutral.** KPI tiles (`KpiGrid`) carry no tint; an alarming count is a
   `CountFigure` with `situation` and `label` (or a `CountBadge`), never a red number.
 - **A status is a tone from `SITUATION_TONES`**, a state in a cell a `StateLabel`: running is
   `info`, never green; incidents and jobs without retries `danger`.
-- **One badge scheme on a diagram**, the shared screens': `DiagramDecorations.of` gives each
-  element its counts, `BadgeCluster` draws them and the template's `DiagramLegend` explains them
-  (the blocks' `BadgeLegend` in the page's scope: its badges sum every version); only an element
-  with an own open incident is outlined.
-- **One word per thing.** Count words from `COUNT_TERMS`: "Incidents" are open root incidents,
-  "With incident" the instances that have one, and a count names its version scope ("all
-  versions"). Terms from `PRODUCT_GLOSSARY` (cancelled, suspended, "Incident" in German too). Both
-  live in `packages/core/ui/src/testing/count-terms.ts` and
-  `packages/core/ui/src/testing/glossary.ts`, Node only for now, so the template copies the count
-  words (`templates/claude-artifact/src/temporary/count-terms.ts`) and its brand test holds the
-  copy and your catalogs to them.
+- **Charts** are pulse-ui's: `BarChart` and `LineChart` over days, `MeterRows` for shares,
+  `Sparkline` in a tile. At most two series on the blue ramp, told apart by lightness; red only
+  for a series of `kind: "incident"`; never green. A lower bound (`{ atLeast }`) draws to its
+  bound and says so, an unknown count draws nothing.
+- **One badge scheme on a diagram**, the shared screens': `BpmnDiagram` of
+  `@miragon/pulse-ui/bpmn` draws the `decorations` `engine_activity_counts` answers (each
+  element's counts apart, only an own open incident outlined), and `DiagramLegend` explains them
+  with the page's scope (its badges sum every version on the latest diagram).
+- **One word per thing.** Count words from `COUNT_TERMS` of `@miragon/pulse-ui/glossary`:
+  "Incidents" are open root incidents, "With incident" the instances that have one, and a count
+  names its version scope ("all versions"). Terms from `PRODUCT_GLOSSARY` (cancelled, suspended,
+  "Incident" in German too); `glossaryFindings` holds a catalog to them. Every term is in
+  `docs/glossary.md` (https://miragon.github.io/pulse/glossary).
 - **Dates, durations, numbers and ids** only through the `format*` helpers and `shortId` after
   `setFormatLocale`; never `toFixed`, `toLocaleString` or a hand-built `Intl` formatter.
 - **Words** in English and German after `navigator.language`, through `LocaleProvider` and
   `createUseT`. German says du, AI and „CIB seven“ and uses no dash as a connector; English is
   sentence case without an em dash.
-- **States.** Every section reads through `useSection`: a skeleton after 400 ms, the error in
-  words with the engine's text under Details, the last good data kept when a refresh fails. One
-  failing section never blanks the page. A page the runtime refuses as a whole (the engine not
-  resolved, no sign-in, no connector, no approval) shows one state in the sections' place
-  (`PageGate`); sections that fail alike say it once, with one Try again; the bar's freshness
-  stamp is the oldest read of the sections that show data.
+- **States.** Every section renders its read through `SectionState`: a skeleton after 400 ms, the
+  failure in words with the engine's text under Details, the last good data kept when a refresh
+  fails. One failing section never blanks the page; under one `SectionStateGroup` sections that
+  fail alike say it once, with one Try again. A page the runtime refuses as a whole (no sign-in,
+  no connector, no approval) shows one state in the sections' place (`PageGate`). The sections
+  sit in `Panel`s on a `PanelGrid`, and the bar's `FreshnessStamp` is the oldest `asOf` of the
+  answers the sections show.
 - **Light, dark and 390 px.** Look at the screenshots of all three before you publish.
 
 ## Data recipes
 
-`references/data-recipes.md` says which tool answers what and how each number of the cockpit's
-process detail is read. The rules that make the numbers right:
+`references/data-recipes.md` says which tool answers what. The rules that make the numbers right:
 
-- A count is `maxResults: 1` and the list's `totalCount`, never `maxResults: 0` (refused) and
-  never the length of a page.
-- A list pages by 100 with `firstResult` while `hasMore`, up to a cap (`engine.page`). A cut list
-  keeps the engine's exact `totalCount` as its `total` and comes back `complete: false`; every sum
-  over its rows is then a lower bound, shown as `{ atLeast: sum }` (`formatCount` renders ≥) or
-  under the section's note that its counts may be too low. Never read a cut from `total`.
-- Rows shift between pages when the list changes during the read (an instance starts, an
-  incident is resolved), whatever the order: `engine.page` keeps each row once by its `id`, and a
-  list whose pages disagree with each other or with the engine's count comes back
-  `complete: false` too.
-- An incident is the process's own when `isRootIncident` says so; a copy on a call activity
-  counts as an incident in called instances there, never in the process's own count.
-- "With incident" comes from the runtime (`engine_list_process_instances` with
-  `withIncidents: true`), never from the history.
-- Key-wide numbers span every version; the diagram is the latest version, and its badges sum
-  every version's counts per element. A running badge counts tokens as the cockpit does: one an
-  own root incident at its element holds counts as that incident, not as running; a scope's own
-  row (a multi-instance body, a subprocess, a transaction) counts nowhere; an incident at a
-  multi-instance body (`<id>#multiInstanceBody`) counts on its activity.
-- The end events reached (the template's outcomes section) count since the chart's first day,
-  each share over every end event reached, never over instances: an end event after a
-  non-interrupting branch is reached while the instance runs on.
+- **Three calls a load.** `engine_process_stats` (bucket `"day"`, the viewer's `timeZone`) for the
+  numbers now and per day, `engine_activity_counts` for the counts per activity and the diagram's
+  decorations, `engine_get_process_definition_xml` of the `definitionId` it names. The server
+  counts with the cockpit's builders; the page adds nothing up, pages nothing and counts nothing.
+- A count is a `Count`: exact, `{ atLeast }` where the engine may have removed history, `null`
+  unknown; `formatCount` writes each, the charts draw each, and none is ever a 0.
+- An incident is the process's own when it is a root incident; a copy on a call activity counts
+  as an incident in called instances there, never in the process's own count.
+- "With incident" comes from the runtime, never from the history.
+- Key-wide numbers span every version; the diagram is the latest version, its badges every
+  version's counts per element, the running tokens as the cockpit counts them.
+- The end events reached count the instances that ended and reached each, so an instance that
+  reached two counts at both: each share is of the instances that ended, never of the sum.
 - Never aggregate a rate or a duration across engines; show absolute counts per engine.
-- Today the page aggregates (badges per element, buckets per day) from 24 calls per load;
-  [#665](https://github.com/Miragon/pulse/issues/665) and
-  [#666](https://github.com/Miragon/pulse/issues/666) move that onto the server.
+- A page of the shared blocks (`@miragon/pulse-blocks`) reads a screen's or a board's JSON in one
+  call: `engine_get_screen` or `engine_get_board`.
 
 ## Checklist
 
 1. Record the fixtures from a Pulse MCP server: `pnpm record -- --process <key>`, then delete the
    example's recording, `templates/claude-artifact/fixtures/miraveloLeasing.json`. A recording
-   holds the engine's answers as they came (user ids, business keys, incident messages, the cockpit
-   URL): record against a test engine, or leave the recording out of what you commit.
+   holds the engine's answers as they came (incident messages, the process model): record
+   against a test engine, or leave the recording out of what you commit.
 2. Build the page on them with `pnpm dev`; `pnpm typecheck` and `pnpm test` pass.
 3. `pnpm shot`, then look at every PNG in `shots/`: light, dark, the OS in dark without
    `data-theme`, at 1240 and 390 px. Fix overflow, collisions and any error state.
 4. Set `CONNECTOR_NAME` in `templates/claude-artifact/src/engine/claude-connector.ts` to the
    connector's display name in claude.ai (Settings, Connectors); ask for it when you do not know it.
-5. `pnpm build`: exactly `dist/index.html`, `dist/app.js` (one classic script) and `dist/app.css`.
+5. `pnpm build`: exactly `dist/index.html`, `dist/app.js` (one classic script) and
+   `dist/pulse-ui.css`.
 6. Publish the page with its two files.
 7. Declare `mcp`: the connector's display name, the same as `CONNECTOR_NAME`, and exactly
    `PAGE_TOOLS`.
 8. Open it in claude.ai, allow the access when claude.ai asks, and hold its numbers to the
    cockpit's process detail (`engine_open_cockpit` in the chat).
-
-## What changes
-
-The template carries stand-ins in `templates/claude-artifact/src/temporary/` until the siblings of
-epic [#668](https://github.com/Miragon/pulse/issues/668) land; follow this skill's version:
-
-- [#661](https://github.com/Miragon/pulse/issues/661) pulse-ui as a browser bundle that follows
-  the OS: the build step and the theme bridge go.
-- [#662](https://github.com/Miragon/pulse/issues/662) the BPMN diagram as a public component: the
-  diagram, its legend and its badge CSS go.
-- [#663](https://github.com/Miragon/pulse/issues/663) charts in the Pulse look: the bar chart and
-  the meter rows go.
-- [#664](https://github.com/Miragon/pulse/issues/664) section state, panel grid and freshness
-  stamp in pulse-ui: the section state and the panels go; the freshness stamp
-  (`FreshnessStamp`) comes from pulse-ui already.
-- [#665](https://github.com/Miragon/pulse/issues/665) a process's numbers per day and per
-  activity, and [#666](https://github.com/Miragon/pulse/issues/666) a screen's JSON form: the
-  reads shrink to a few calls, and the running badges count the tokens waiting before an
-  asynchronous step too.
-- [#667](https://github.com/Miragon/pulse/issues/667) the glossary as browser data: the copied
-  count words go.

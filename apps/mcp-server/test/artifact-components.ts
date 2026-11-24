@@ -12,7 +12,7 @@ import ts from "typescript"
  * `golden:update` rewrites it.
  */
 
-const REPO_ROOT = path.join(import.meta.dirname, "..", "..", "..")
+export const REPO_ROOT = path.join(import.meta.dirname, "..", "..", "..")
 
 /** The sheet's file in the plugin, from the repository root. */
 export const SHEET_FILE = "apps/mcp-server/skills/pulse-artifact/references/components.md"
@@ -24,19 +24,29 @@ export interface SheetGroup {
   readonly entry: string
   /** The exported names, in the order the sheet shows them. */
   readonly names: readonly string[]
+  /**
+   * Where a page without a build takes these names: the file of pulse-ui's package that exports
+   * them (from jsDelivr at the release's version), or `null` where no file a page loads holds them.
+   */
+  readonly withoutBuild: string | null
 }
+
+/** pulse-ui's folder: the files a page without a build loads are its package's. */
+export const UI_PACKAGE = "packages/core/ui"
 
 /**
  * The names, by entry: what the template's page imports, the kit pieces the skill's design rules
  * name, and each own type their blocks name (`Fact` in `Facts`' props, `Translate` in
  * `createUseT`'s), so a reader finds every type a block names in the sheet; the render refuses a
  * sheet that names one it leaves out. A page reaches each through its package's `exports` only;
- * the BPMN diagram is pulse-ui's `./bpmn` entry (Miragon/pulse#662).
+ * the BPMN diagram is pulse-ui's `./bpmn` entry (Miragon/pulse#662), the product's words its
+ * `./glossary` entry (#667), the charts (#663) and a dashboard's sections (#664) its root.
  */
 export const SHEET: readonly SheetGroup[] = [
   {
     from: "@miragon/pulse-ui",
     entry: "packages/core/ui/dist/index.d.ts",
+    withoutBuild: "dist/browser/pulse-ui.js",
     names: [
       "WidgetHeader",
       "FreshnessStamp",
@@ -53,6 +63,7 @@ export const SHEET: readonly SheetGroup[] = [
       "describePageError",
       "PageError",
       "PageErrorCode",
+      "PAGE_ERROR_CODES",
       "DescribePageErrorOptions",
       "StatusStrip",
       "StatusStripAction",
@@ -65,11 +76,23 @@ export const SHEET: readonly SheetGroup[] = [
       "CountFigure",
       "CountBadge",
       "StateLabel",
+      "BarChart",
+      "LineChart",
+      "Sparkline",
+      "SparklinePoint",
+      "MeterRows",
+      "MeterRow",
+      "ChartSeries",
+      "ChartPoint",
+      "ChartUnit",
       "DataTable",
       "DataTableColumn",
       "RowActivation",
       "TableEmptyState",
       "NamedId",
+      "LogText",
+      "LogTextKind",
+      "LogTextSize",
       "ErrorState",
       "Skeleton",
       "Button",
@@ -85,6 +108,7 @@ export const SHEET: readonly SheetGroup[] = [
   {
     from: "@miragon/pulse-ui/format",
     entry: "packages/core/ui/dist/format/index.d.ts",
+    withoutBuild: "dist/browser/pulse-ui.js",
     names: [
       "setFormatLocale",
       "Count",
@@ -105,30 +129,28 @@ export const SHEET: readonly SheetGroup[] = [
   {
     from: "@miragon/pulse-ui/tones",
     entry: "packages/core/ui/dist/tones/index.d.ts",
+    withoutBuild: "dist/browser/pulse-ui.js",
     names: ["Situation", "SITUATION_TONES", "VERDICT_TONES"],
   },
   {
-    from: "@miragon/pulse-blocks",
-    entry: "packages/core/blocks/dist/index.d.ts",
-    names: ["BadgeCluster", "BadgeLegend", "CountBadgeProps", "ScreenOpenHow"],
-  },
-  {
-    from: "@miragon/pulse-screens",
-    entry: "packages/core/screens/dist/index.d.ts",
+    from: "@miragon/pulse-ui/glossary",
+    entry: "packages/core/ui/dist/glossary/index.d.ts",
+    withoutBuild: "dist/glossary/index.js",
     names: [
-      "DiagramDecorations",
-      "ElementBadgeData",
-      "ElementDecorationData",
-      "BadgeCountData",
-      "CallLinkData",
-      "CalledInstanceData",
-      "DefinitionRefData",
-      "InstanceScopeCode",
+      "COUNT_TERMS",
+      "CountTerm",
+      "PRODUCT_GLOSSARY",
+      "GlossaryRule",
+      "GlossaryLanguage",
+      "BARE_PAUSE_RULE_EN",
+      "glossaryFindings",
+      "GlossaryFinding",
     ],
   },
   {
     from: "@miragon/pulse-ui/bpmn",
     entry: "packages/core/ui/dist/bpmn/index.d.ts",
+    withoutBuild: "dist/browser/pulse-ui-bpmn.js",
     names: [
       "BpmnDiagram",
       "DiagramDecoration",
@@ -153,12 +175,8 @@ export const SHEET: readonly SheetGroup[] = [
   {
     from: "@miragon/pulse-widget-shell/widgets",
     entry: "packages/core/widget-shell/dist/ui/index.d.ts",
+    withoutBuild: null,
     names: ["describeError", "PageHints", "isPermanentError"],
-  },
-  {
-    from: "@miragon/pulse-c7-core",
-    entry: "packages/connectors/c7/c7-core/dist/index.d.ts",
-    names: ["isRootIncident"],
   },
 ]
 
@@ -176,6 +194,7 @@ export const NAMED_ONLY: Readonly<Record<string, string>> = {
   BpmnElementRegistry: 'bpmn-js\'s element registry, `viewer.get("elementRegistry")`',
   BpmnEventBus: 'bpmn-js\'s event bus, `viewer.get("eventBus")`',
   FitRect: "a box `{ x, y, width, height }` in diagram units, which pulse-ui keeps to itself",
+  ProductRule: "a `GlossaryRule` of the product's own words, with the words it replaces and why",
 }
 
 /** The packages whose declarations count as the kit's own: props from elsewhere (React's DOM props) stay out. */
@@ -582,7 +601,9 @@ ${Object.entries(NAMED_ONLY)
   .map(([name, why]) => `- \`${name}\`: ${why}`)
   .join("\n")}
 
-Import each name from the entry its section names, never from a \`dist/\` path.`
+Import each name from the entry its section names, never from a \`dist/\` path. A page without a
+build has no entries: each section says which file of pulse-ui's package holds its names then
+(the skill's "Without a build"), or that none does.`
 
 const COMPILER_OPTIONS: ts.CompilerOptions = {
   module: ts.ModuleKind.ESNext,
@@ -614,6 +635,38 @@ function cachingHost(): ts.CompilerHost {
   return host
 }
 
+/** Where a section's names come from on a page without a build, in a sentence. */
+function withoutBuildText(group: SheetGroup): string {
+  if (group.withoutBuild === null) {
+    return (
+      "Without a build: no file holds these, since the package has no browser bundle. Such a " +
+      "page words every failure with pulse-ui's `describePageError`, a tool's own error as " +
+      "`tool_error`."
+    )
+  }
+  return `Without a build: \`${group.withoutBuild}\` of \`@miragon/pulse-ui\` exports these names.`
+}
+
+/**
+ * The names of each section a page calls or renders, its types left out (they hold no value at
+ * runtime), by the section's import path: what a page without a build needs the section's file to
+ * export.
+ */
+export function sheetValueNames(groups: readonly SheetGroup[] = SHEET): Map<string, string[]> {
+  const program = ts.createProgram(
+    groups.map((group) => path.join(REPO_ROOT, group.entry)),
+    COMPILER_OPTIONS,
+    cachingHost(),
+  )
+  const writer = new SheetWriter(program, new Set(groups.flatMap((group) => group.names)))
+  return new Map(
+    groups.map((group) => [
+      group.from,
+      group.names.filter((name) => !writer.isType(writer.exported(group.entry, name))),
+    ]),
+  )
+}
+
 /** The sheet as Markdown, before Prettier: `groups` (by default SHEET) from the built declarations. */
 export function renderComponentsSheet(groups: readonly SheetGroup[] = SHEET): string {
   const program = ts.createProgram(
@@ -629,7 +682,7 @@ export function renderComponentsSheet(groups: readonly SheetGroup[] = SHEET): st
     const entries = symbols.map(
       ([name, symbol]) => `### ${name}\n\n\`\`\`ts\n${writer.render(symbol, name)}\n\`\`\``,
     )
-    return `## ${group.from}\n\n${imports}\n\n${entries.join("\n\n")}`
+    return `## ${group.from}\n\n${withoutBuildText(group)}\n\n${imports}\n\n${entries.join("\n\n")}`
   })
   if (writer.missing.size > 0) {
     const named = [...writer.missing].map(([type, by]) => `${type} (named by ${by})`)

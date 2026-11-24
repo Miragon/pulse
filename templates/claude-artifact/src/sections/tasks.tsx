@@ -4,32 +4,37 @@ import {
   formatNumber,
   formatRelativeTime,
   NamedId,
+  Panel,
+  SectionState,
   TableEmptyState,
   type DataTableColumn,
 } from "@miragon/pulse-ui"
-import { readTasks, type TaskGroup } from "../data/process-dashboard.ts"
+import { readActivities, tasksOf, type ActivityRow } from "../data/process-dashboard.ts"
 import { useEngine, useSection } from "../engine/use-engine.tsx"
 import { useT } from "../messages.ts"
-import { Panel } from "../temporary/panel.tsx"
-import { SectionState } from "../temporary/section-state.tsx"
-import { CutNote } from "./cut-note.tsx"
-import { rowAnchor, useElementNames } from "./names.ts"
+import { rowAnchor } from "./anchors.ts"
 
-/** The open tasks by task (every version): how many wait at each, and since when the oldest. */
+/**
+ * The open tasks by task (every version): how many wait at each, and since when the oldest.
+ * `engine_activity_counts`, shared with the diagram and the incidents.
+ */
 export function TasksSection({ processKey }: { readonly processKey: string }) {
   const t = useT()
   const { engine } = useEngine()
-  const section = useSection((engine) => readTasks(engine, processKey), [processKey])
-  const nameOf = useElementNames(section.data?.process.xml)
+  const section = useSection(
+    (engine) => readActivities(engine, processKey),
+    [processKey],
+    (counts) => counts.asOf,
+  )
   const now = engine.now()
-  const columns: DataTableColumn<TaskGroup>[] = [
+  const columns: DataTableColumn<ActivityRow>[] = [
     {
       key: "task",
       label: t("tasks.task"),
       fill: true,
       cell: (row) => (
-        <span id={rowAnchor("tasks", row.taskDefinitionKey)} tabIndex={-1}>
-          <NamedId name={nameOf(row.taskDefinitionKey, row.name)} id={row.taskDefinitionKey} />
+        <span id={rowAnchor("tasks", row.activityId)} tabIndex={-1}>
+          <NamedId name={row.name} id={row.activityId} />
         </span>
       ),
     },
@@ -37,14 +42,14 @@ export function TasksSection({ processKey }: { readonly processKey: string }) {
       key: "count",
       label: t("tasks.count"),
       align: "right",
-      cell: (row) => <span className="tabular-nums">{formatNumber(row.count)}</span>,
+      cell: (row) => <span className="tabular-nums">{formatNumber(row.openTasks)}</span>,
     },
     {
       key: "oldest",
       label: t("tasks.oldest"),
       cell: (row) => (
-        <time dateTime={row.oldestCreated ?? undefined} title={formatInstant(row.oldestCreated)}>
-          {formatRelativeTime(row.oldestCreated, now)}
+        <time dateTime={row.oldestOpenTask ?? undefined} title={formatInstant(row.oldestOpenTask)}>
+          {formatRelativeTime(row.oldestOpenTask, now)}
         </time>
       ),
     },
@@ -52,20 +57,18 @@ export function TasksSection({ processKey }: { readonly processKey: string }) {
   return (
     <Panel id="tasks" title={t("tasks.title")} hint={t("scope.allVersions")}>
       <SectionState
-        section={section}
+        state={section.state}
+        onRetry={section.retry}
         skeleton={<DataTable label={t("tasks.label")} columns={columns} skeletonRows={3} />}
       >
-        {(data) => (
-          <div className="flex flex-col gap-3">
-            <CutNote cut={data.cut} />
-            <DataTable
-              label={t("tasks.label")}
-              columns={columns}
-              rows={data.groups}
-              rowKey={(row) => row.taskDefinitionKey}
-              empty={<TableEmptyState variant="done">{t("tasks.empty")}</TableEmptyState>}
-            />
-          </div>
+        {(counts) => (
+          <DataTable
+            label={t("tasks.label")}
+            columns={columns}
+            rows={tasksOf(counts)}
+            rowKey={(row) => row.activityId}
+            empty={<TableEmptyState variant="done">{t("tasks.empty")}</TableEmptyState>}
+          />
         )}
       </SectionState>
     </Panel>

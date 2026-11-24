@@ -1,3 +1,4 @@
+import type { PageErrorCode } from "@miragon/pulse-ui"
 import type { ToolName } from "./tools.ts"
 
 /**
@@ -29,7 +30,8 @@ export interface ToolResult {
 }
 
 /**
- * Why a call gave no data:
+ * Why a call gave no data, as pulse-ui's page error vocabulary has it (`PageErrorCode`), so the
+ * kit words each code (`describePageError`):
  * - `needs_reauth`: the connector's sign-in ran out, the viewer has to reconnect it
  * - `not_connected`: the viewer has no connector of the name the page calls, or has to pick one
  * - `not_allowed`: the page may not call this tool (its `mcp` capability does not name it, or a
@@ -37,16 +39,14 @@ export interface ToolResult {
  * - `approval_required`: the viewer has not approved the page's access yet
  * - `unavailable`: the connector or the server does not answer
  * - `tool_error`: the call failed otherwise, mostly the server's error (the engine's or the
- *   tool's own), its text classified by the kit
+ *   tool's own), its text classified by widget-shell's `describeError`
  */
-export type EngineErrorCode =
-  | "needs_reauth"
-  | "not_connected"
-  | "not_allowed"
-  | "approval_required"
-  | "unavailable"
-  | "tool_error"
+export type EngineErrorCode = PageErrorCode
 
+/**
+ * Every code, in the order of pulse-ui's `PAGE_ERROR_CODES` (a test holds them equal). Spelled out
+ * here, so the recorder, which runs this file in Node, loads no React with the kit.
+ */
 export const ENGINE_ERROR_CODES: readonly EngineErrorCode[] = [
   "needs_reauth",
   "not_connected",

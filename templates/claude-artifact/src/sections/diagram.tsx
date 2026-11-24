@@ -1,15 +1,17 @@
-import { useMemo } from "react"
-import { DiagramDecorations, type BadgeCountKind } from "@miragon/pulse-screens"
-import { Skeleton } from "@miragon/pulse-ui"
+import { Panel, SectionState, Skeleton } from "@miragon/pulse-ui"
+import {
+  BpmnDiagram,
+  DiagramLegend,
+  type DiagramCountKind,
+  type DiagramElement,
+} from "@miragon/pulse-ui/bpmn"
 import { readDiagram } from "../data/process-dashboard.ts"
 import { useSection } from "../engine/use-engine.tsx"
 import { useT } from "../messages.ts"
-import { DiagramLegend } from "../temporary/diagram-legend.tsx"
-import { Panel } from "../temporary/panel.tsx"
-import { ProcessDiagram, type DrawnElement } from "../temporary/process-diagram.tsx"
-import { SectionState } from "../temporary/section-state.tsx"
-import { CutNote } from "./cut-note.tsx"
-import { goTo, processNameOf, rowAnchor, useElementNames } from "./names.ts"
+import { goTo, rowAnchor } from "./anchors.ts"
+
+/** The diagram's room while its first read runs: about the height it draws in. */
+const SKELETON_HEIGHT = 320
 
 /**
  * Where a count on the diagram leads on this page, the first of these the page holds: an
@@ -19,7 +21,7 @@ import { goTo, processNameOf, rowAnchor, useElementNames } from "./names.ts"
  * instances, so the running instances at any other element lead nowhere: none, and their count is
  * drawn without a button.
  */
-export function countTargets(element: DrawnElement, kind: BadgeCountKind): readonly string[] {
+export function countTargets(element: DiagramElement, kind: DiagramCountKind): readonly string[] {
   switch (kind) {
     case "incidents":
       return [rowAnchor("incidents", element.id), "incidents"]
@@ -31,52 +33,48 @@ export function countTargets(element: DrawnElement, kind: BadgeCountKind): reado
 }
 
 /**
- * The latest version's diagram with every version's counts on it: the root incidents at each
- * element (its outline marked), apart the incidents in the instances a call activity called, and
- * the running activity instances.
+ * The latest version's diagram with every version's counts on it (`engine_activity_counts`, the
+ * cockpit's element counts): the root incidents at each element (its outline marked), apart the
+ * incidents in the instances a call activity called, and the running tokens. Its XML is the third
+ * call of a load, `engine_get_process_definition_xml` of the version the counts name.
  */
 export function DiagramSection({ processKey }: { readonly processKey: string }) {
   const t = useT()
-  const section = useSection((engine) => readDiagram(engine, processKey), [processKey])
-  const data = section.data
-  const version = data?.process.latest?.version
-  const nameOf = useElementNames(data?.process.xml)
-  const decorations = useMemo(
-    () => DiagramDecorations.of({ badges: data?.badges ?? [], calls: [] }),
-    [data?.badges],
+  const section = useSection(
+    (engine) => readDiagram(engine, processKey),
+    [processKey],
+    (diagram) => diagram.counts.asOf,
   )
+  const version = section.data?.counts.version
   return (
     <Panel
       title={t("diagram.title")}
       hint={version === undefined ? undefined : t("diagram.scope", { version })}
-      trailing={version === undefined ? undefined : <DiagramLegend version={version} />}
+      trailing={
+        version === undefined ? undefined : <DiagramLegend scope={t("legend.scope", { version })} />
+      }
     >
-      <SectionState section={section} skeleton={<Skeleton className="h-80 w-full" />}>
-        {(diagram) =>
-          diagram.process.xml === null || diagram.process.latest === null ? (
+      <SectionState
+        state={section.state}
+        onRetry={section.retry}
+        skeleton={<Skeleton className="w-full" style={{ height: SKELETON_HEIGHT }} />}
+      >
+        {({ counts, xml }) =>
+          xml === null ? (
             <p className="text-muted-foreground m-0">{t("diagram.noXml")}</p>
           ) : (
-            <div className="flex flex-col gap-2">
-              <CutNote cut={diagram.cut} />
-              <div className="border-border overflow-hidden rounded-md border">
-                <ProcessDiagram
-                  xml={diagram.process.xml}
-                  decorations={decorations}
-                  badges={diagram.badges}
-                  ariaLabel={t("diagram.label", {
-                    process: processNameOf(diagram.process.xml, processKey),
-                    version: diagram.process.latest.version,
-                  })}
-                  nameOf={(id) => nameOf(id) ?? id}
-                  drawFailed={t("diagram.drawFailed")}
-                  selectable={(element, kind) => countTargets(element, kind).length > 0}
-                  onSelect={(element, kind) => {
-                    goTo(countTargets(element, kind))
-                  }}
-                />
-              </div>
-              <p className="text-muted-foreground m-0">{t("diagram.runningNote")}</p>
-            </div>
+            <BpmnDiagram
+              xml={xml}
+              decorations={counts.decorations}
+              ariaLabel={t("diagram.label", {
+                process: counts.processDefinitionName ?? processKey,
+                version: counts.version,
+              })}
+              selectable={(element, count) => countTargets(element, count.kind).length > 0}
+              onSelect={(element, count) => {
+                goTo(countTargets(element, count.kind))
+              }}
+            />
           )
         }
       </SectionState>

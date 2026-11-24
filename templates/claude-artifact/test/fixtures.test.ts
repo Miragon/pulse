@@ -37,29 +37,35 @@ describe("the recorded fixtures", () => {
   )
 
   it.each(FILES)(
-    "%s: answers every call the dashboard's reads make, through the page's connector",
+    "%s: answers every call the dashboard's reads make, through the page's connector, three in all",
     async (name) => {
       const fixture = JSON.parse(read(name)) as Fixture
       const asOf = new Date(fixture.asOf)
-      const engine = createEngine(claudeConnector(mockClaude(fixture)), { now: () => asOf })
+      const mock = mockClaude(fixture)
+      const engine = createEngine(claudeConnector(mock), {
+        now: () => asOf,
+        timeZone: fixture.timeZone,
+      })
       for (const [section, read] of Object.entries(DASHBOARD_READS)) {
         await expect(read(engine, fixture.process), section).resolves.toBeDefined()
       }
+      expect(fixture.calls).toHaveLength(3)
+      expect(mock.calls.map((call) => call.tool).sort()).toEqual([...PAGE_TOOLS].sort())
     },
   )
 
   it("refuses a call it never recorded with an error that names it, as the server's error", async () => {
     const connector = claudeConnector(mockClaude(pageFixture()))
-    const call = connector.callTool("engine_status", { processDefinitionKeyIn: ["nothing"] })
+    const call = connector.callTool("engine_process_stats", { processDefinitionKey: "nothing" })
     await expect(call).rejects.toMatchObject({
       code: "tool_error",
-      detail: expect.stringContaining("No recorded answer for engine_status") as unknown,
+      detail: expect.stringContaining("No recorded answer for engine_process_stats") as unknown,
     })
   })
 
   it("refuses a connector of another name as the runtime does", async () => {
     const connector = claudeConnector(mockClaude(pageFixture()), "Other")
-    await expect(connector.callTool("engine_list_engines", {})).rejects.toMatchObject({
+    await expect(connector.callTool("engine_activity_counts", {})).rejects.toMatchObject({
       code: "not_connected",
       detail: expect.stringContaining("[server_not_connected]") as unknown,
     })
@@ -74,18 +80,22 @@ describe("the recorded fixtures", () => {
 
   it("fails a tool with an engine error, every call with a runtime code, a tool with a code", async () => {
     const fixture = pageFixture()
-    const listEngines = (fail: string[]) =>
-      claudeConnector(mockClaude(fixture, { fail })).callTool("engine_list_engines", {})
-    await expect(listEngines(["engine_list_engines"])).rejects.toMatchObject({
+    const recorded = fixture.calls.find((call) => call.tool === "engine_activity_counts")
+    const counts = (fail: string[]) =>
+      claudeConnector(mockClaude(fixture, { fail })).callTool(
+        "engine_activity_counts",
+        recorded?.arguments ?? {},
+      )
+    await expect(counts(["engine_activity_counts"])).rejects.toMatchObject({
       code: "tool_error",
       detail: expect.stringContaining("[503 ServiceUnavailable]") as unknown,
     })
-    await expect(listEngines(["needs_reauth"])).rejects.toMatchObject({ code: "needs_reauth" })
-    await expect(listEngines(["engine_list_engines:server_unavailable"])).rejects.toMatchObject({
+    await expect(counts(["needs_reauth"])).rejects.toMatchObject({ code: "needs_reauth" })
+    await expect(counts(["engine_activity_counts:server_unavailable"])).rejects.toMatchObject({
       code: "unavailable",
     })
-    await expect(listEngines(["engine_status:approval_required"])).resolves.toMatchObject({
-      structuredContent: { engines: expect.any(Array) as unknown },
+    await expect(counts(["engine_process_stats:approval_required"])).resolves.toMatchObject({
+      structuredContent: { activities: expect.any(Array) as unknown },
     })
   })
 })

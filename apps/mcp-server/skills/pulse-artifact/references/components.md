@@ -20,10 +20,15 @@ of them:
 - `BpmnElementRegistry`: bpmn-js's element registry, `viewer.get("elementRegistry")`
 - `BpmnEventBus`: bpmn-js's event bus, `viewer.get("eventBus")`
 - `FitRect`: a box `{ x, y, width, height }` in diagram units, which pulse-ui keeps to itself
+- `ProductRule`: a `GlossaryRule` of the product's own words, with the words it replaces and why
 
-Import each name from the entry its section names, never from a `dist/` path.
+Import each name from the entry its section names, never from a `dist/` path. A page without a
+build has no entries: each section says which file of pulse-ui's package holds its names then
+(the skill's "Without a build"), or that none does.
 
 ## @miragon/pulse-ui
+
+Without a build: `dist/browser/pulse-ui.js` of `@miragon/pulse-ui` exports these names.
 
 ```ts
 import {
@@ -42,6 +47,7 @@ import {
   describePageError,
   type PageError,
   type PageErrorCode,
+  PAGE_ERROR_CODES,
   type DescribePageErrorOptions,
   StatusStrip,
   type StatusStripAction,
@@ -54,11 +60,23 @@ import {
   CountFigure,
   CountBadge,
   StateLabel,
+  BarChart,
+  LineChart,
+  Sparkline,
+  type SparklinePoint,
+  MeterRows,
+  type MeterRow,
+  type ChartSeries,
+  type ChartPoint,
+  type ChartUnit,
   DataTable,
   type DataTableColumn,
   type RowActivation,
   TableEmptyState,
   NamedId,
+  LogText,
+  type LogTextKind,
+  type LogTextSize,
   ErrorState,
   Skeleton,
   Button,
@@ -430,6 +448,13 @@ type PageErrorCode =
   | "tool_error"
 ```
 
+### PAGE_ERROR_CODES
+
+```ts
+/** Every PageErrorCode, in the order of its type. */
+declare const PAGE_ERROR_CODES: readonly PageErrorCode[]
+```
+
 ### DescribePageErrorOptions
 
 ```ts
@@ -755,6 +780,202 @@ declare function StateLabel(props: {
 }): JSX.Element
 ```
 
+### BarChart
+
+```ts
+/**
+ * Bars over days or categories in the Pulse look, grouped by point, on a fixed axis from zero:
+ * started and ended per day, say. Each bar is at most 24 px wide with its data end rounded and
+ * 2 px of the surface between the bars of a group; a lower bound draws to its bound, a value
+ * nobody read draws nothing (the tooltip and the table say which). The axis keeps the labels
+ * that fit, the latest always. The plot is one tab stop: hovering a group, or the arrow keys on
+ * it, shows the group's figures in a tooltip. A legend names two series or more; a screen reader
+ * reads the chart as its table. It fills its container's width, measured, and never runs past
+ * it.
+ */
+declare function BarChart(props: {
+  /**
+   * One or two series on the blue ramp, told apart by lightness and by their place in each
+   * group, and any incident series in the danger tone. A third series on the ramp throws.
+   */
+  series: readonly ChartSeries[]
+  /** Names the chart: the plot's accessible name and the caption of its table. */
+  label: string
+  /** What the points are ("Day", "Hour"): the head of the table's first column. */
+  categoryLabel: string
+  /** The points along the axis, in their order (the oldest first). */
+  points: readonly ChartPoint[]
+  /** What the values are; default counts. */
+  unit?: "count" | "duration" | "percent"
+  /** The plot's height in px, default 160; the axis' labels add their line below it. */
+  height?: number
+  className?: string
+}): JSX.Element
+```
+
+### LineChart
+
+```ts
+/**
+ * Series over time in the Pulse look, on a fixed axis from zero: a 2 px line per series, the
+ * second dashed, broken where a point has no value. The plot is one tab stop: the pointer, or
+ * the arrow keys on it, move a crosshair that snaps to the nearest point and shows every
+ * series' figure there in a tooltip. A legend names two series or more; a screen reader reads
+ * the chart as its table. It fills its container's width, measured, and never runs past it.
+ */
+declare function LineChart(props: {
+  /**
+   * One or two series on the blue ramp (the second dashed) and any incident series in the
+   * danger tone. A third series on the ramp throws.
+   */
+  series: readonly ChartSeries[]
+  /** Names the chart: the plot's accessible name and the caption of its table. */
+  label: string
+  /** What the points are ("Day", "Hour"): the head of the table's first column. */
+  categoryLabel: string
+  /** The points along the axis, in their order (the oldest first). */
+  points: readonly ChartPoint[]
+  /** What the values are; default counts. */
+  unit?: "count" | "duration" | "percent"
+  /** The plot's height in px, default 160; the axis' labels add their line below it. */
+  height?: number
+  className?: string
+}): JSX.Element
+```
+
+### Sparkline
+
+```ts
+/**
+ * A trend in a line, for a `KpiGrid` cell's `trend` beside its figure: the ramp's first step on
+ * an axis from zero, no grid and no labels, a dot on the latest value. Hovering it (pressing it
+ * on touch) shows a point's figure above the line, placed in the window so the tile's clipping
+ * frame never cuts it; a screen reader reads it as its table (left out inside a button, whose own
+ * words name it). 112 px wide by default and never wider than its box.
+ */
+declare function Sparkline(props: {
+  /**
+   * What the line counts ("Started per day, last 14 days"): the caption of its table and the
+   * head of the table's value column.
+   */
+  label: string
+  /** What the points are ("Day"): the head of the table's first column. */
+  categoryLabel: string
+  /** The points, oldest first, one per bucket. */
+  points: readonly SparklinePoint[]
+  /** What the values are; default counts. */
+  unit?: "count" | "duration" | "percent"
+  /** The line's height in px, default 24. */
+  height?: number
+  /** Its width: 112 px by default (`w-28`), `w-full` to fill a block. */
+  className?: string
+}): JSX.Element
+```
+
+### SparklinePoint
+
+```ts
+/** One point of a sparkline: a bucket of time and its value. */
+interface SparklinePoint {
+  /** Unique among the line's points. */
+  key: string
+  /** The point's name in its tooltip and its row in the table, formatted by you (`formatDate`). */
+  label: string
+  value: Count
+}
+```
+
+### MeterRows
+
+```ts
+/**
+ * Shares of a whole, one row per part, for funnels and outcomes: the part's name, its count
+ * and its share on one line, a bar of that share under them on the blue ramp over a quiet track,
+ * an incident row's in red. The figures are the rows' text, so a screen reader reads the list as
+ * it is (a lower bound and an unknown count in words) and needs no tooltip or table; the bars
+ * are their picture. A share above the whole fills its bar and says its percentage; a lower
+ * bound's share is one too (`≥ 40%`), and no part reads as 0 % or as all unless it is. A whole
+ * that is not exact (a lower bound, unknown, or the sum of rows one of which is) has no share
+ * that holds: the rows say none, and the bars compare them, the largest a full bar.
+ */
+declare function MeterRows(props: {
+  /** Names the list (its accessible name). */
+  label: string
+  rows: readonly MeterRow[]
+  /**
+   * The whole each share is of: the first step of a funnel, all instances that ended. A count
+   * like the rows': exact, a lower bound `{ atLeast }` or unknown (`null`). Default the sum of
+   * the rows' counts (the parts of one whole), exact only while every row is.
+   */
+  total?: Count
+  className?: string
+}): JSX.Element
+```
+
+### MeterRow
+
+```ts
+/** One row of `MeterRows`: a part of the whole and its count. */
+interface MeterRow {
+  /** Unique among the rows. */
+  key: string
+  /** The part's name (an end event, a step of a funnel). */
+  label: ReactNode
+  /** The part's count: exact, a lower bound `{ atLeast }` or unknown (`null`, no bar). */
+  value: Count
+  /** `"incident"` paints the bar in the danger tone: open incidents only. Default the blue ramp. */
+  kind?: "incident"
+}
+```
+
+### ChartSeries
+
+```ts
+/** One series of a `BarChart` or a `LineChart`. */
+interface ChartSeries {
+  /** The key of this series' value in each point's `values`. */
+  key: string
+  /** Its name in the legend, the tooltip and the head of its column in the table. */
+  label: string
+  /**
+   * `"incident"` paints the series in the danger tone: open incidents only, the one red a chart
+   * draws. Every other series takes the next step of the blue ramp (`--chart-1`, `--chart-2`).
+   */
+  kind?: "incident"
+}
+```
+
+### ChartPoint
+
+```ts
+/** One point on a chart's axis: a bucket of time (a day, an hour) or a category. */
+interface ChartPoint {
+  /** Unique among the chart's points. */
+  key: string
+  /**
+   * The point's label on the axis, short and formatted by you through the kit's formatters
+   * (`formatDate`, `formatTime`). Labels that would collide are left out of the axis, the last
+   * one always kept; the tooltip and the table name every point.
+   */
+  label: string
+  /** The point in full, for its tooltip and its row in the table; default its label. */
+  description?: string
+  /** One value per series key; a missing key is an unknown value (`null`), never a 0. */
+  values: Readonly<Record<string, Count>>
+}
+```
+
+### ChartUnit
+
+```ts
+/**
+ * What a chart's numbers are: counts (the default, `Count`: exact, a lower bound `{ atLeast }`,
+ * unknown `null`), durations in milliseconds, or percent units (3.7 is 3.7 %). The unit picks the
+ * kit formatter that writes the axis, the tooltip and the table.
+ */
+type ChartUnit = "count" | "duration" | "percent"
+```
+
 ### DataTable
 
 ```ts
@@ -939,6 +1160,53 @@ declare function NamedId(props: {
 }): JSX.Element
 ```
 
+### LogText
+
+```ts
+/**
+ * Engine text (an exception, an incident's message) in the kit's one policy: short text whole,
+ * longer text as a preview whose disclosure opens on the whole of it. Its `kind` sets its look: a
+ * `message` is words (the sans, the foreground), `code` what a machine wrote (mono, quiet). With
+ * `line`, for a table row: one line at the row height, cut with an ellipsis where its column
+ * ends, the whole text in its title; a line its column cuts, or a long one, is a disclosure that
+ * opens on the whole text, so a keyboard and a touch reach it too.
+ */
+declare function LogText(props: {
+  text: string | null | undefined
+  /** What the text is: a person's words (`message`) or a machine's (`code`). */
+  kind: "message" | "code"
+  /**
+   * The step of a block, `small` by default; `body` for the message a detail page is about, which
+   * leads its page. A table row's line keeps the caption step.
+   */
+  size?: "small" | "body"
+  /** One line in a table row, the whole text in its title and, where it is cut, its disclosure. */
+  line?: boolean
+  className?: string
+}): JSX.Element
+```
+
+### LogTextKind
+
+```ts
+/**
+ * What engine text is, which sets its look. `message`: words a person reads (an incident's or an
+ * exception's message, a cluster's representative message), in the sans and the foreground, as
+ * the webview's incident facts show it. `code`: what a machine wrote (a stacktrace's lines, a raw
+ * value), in mono and quiet.
+ */
+type LogTextKind = "message" | "code"
+```
+
+### LogTextSize
+
+```ts
+/**
+ * The type step of a block: a caption by default, the body step for a detail page's own message.
+ */
+type LogTextSize = "small" | "body"
+```
+
 ### ErrorState
 
 ```ts
@@ -1105,6 +1373,8 @@ declare function cn(...inputs: ClassValue[]): string
 ```
 
 ## @miragon/pulse-ui/format
+
+Without a build: `dist/browser/pulse-ui.js` of `@miragon/pulse-ui` exports these names.
 
 ```ts
 import {
@@ -1278,6 +1548,8 @@ declare function truncate(value: string | null | undefined, max: number): string
 
 ## @miragon/pulse-ui/tones
 
+Without a build: `dist/browser/pulse-ui.js` of `@miragon/pulse-ui` exports these names.
+
 ```ts
 import { type Situation, SITUATION_TONES, VERDICT_TONES } from "@miragon/pulse-ui/tones"
 ```
@@ -1347,185 +1619,162 @@ declare const VERDICT_TONES: {
 }
 ```
 
-## @miragon/pulse-blocks
+## @miragon/pulse-ui/glossary
+
+Without a build: `dist/glossary/index.js` of `@miragon/pulse-ui` exports these names.
 
 ```ts
 import {
-  BadgeCluster,
-  BadgeLegend,
-  type CountBadgeProps,
-  type ScreenOpenHow,
-} from "@miragon/pulse-blocks"
+  COUNT_TERMS,
+  type CountTerm,
+  PRODUCT_GLOSSARY,
+  type GlossaryRule,
+  type GlossaryLanguage,
+  BARE_PAUSE_RULE_EN,
+  glossaryFindings,
+  type GlossaryFinding,
+} from "@miragon/pulse-ui/glossary"
 ```
 
-### BadgeCluster
+### COUNT_TERMS
 
 ```ts
 /**
- * The counts on an element of a process's diagram, apart: its root incidents, the incidents in the
- * instances it called (never part of the incident count), its running instances. Each is a button
- * that filters the instance list to the element and the count's scope; the surface draws the badge.
+ * The count terms (owner decision E2, 2026-11-08, amended by D2, 2026-11-12 and 2026-11-19): one
+ * word per count, and a word never names two counts. "Incidents" are the open ROOT incidents of the
+ * thing shown on every surface (the chat's cockpit and its views the web app embeds since
+ * 2026-11-21): a copy Camunda 7 holds at a call activity of a called instance's incident is never a
+ * number (nor a row of a process, an activity or a cause), a diagram shows it apart as an incident
+ * in called instances, and an instance counts the root incidents of its tree. "With incident" keeps the reading of 2026-11-14:
+ * an open incident the runtime holds now, so a caller that waits on a failed called instance
+ * counts. A feature more than one surface shows shows the same numbers on every surface, from one
+ * builder over one read. The surfaces may still read a different version scope (one version or
+ * every one), so a count's version scope is always named in the header above it: "all versions"
+ * for every version of a process, the version itself ("v3") for one.
  */
-declare function BadgeCluster(props: {
-  /** The element's counts, the process screen's badge of it (`DiagramDecorations` orders them). */
-  readonly badge: ElementBadgeData
-  /** The element's name, as the surface knows it (else its id). */
-  readonly elementName: string
-  /** The counts are older than the list under them (a refresh runs). */
-  readonly stale?: boolean
-  /** A count's click: the list filtered to the element and the count's scope. */
-  readonly onSelect: (elementId: string, scope: InstanceScopeCode, how: ScreenOpenHow) => void
-  /** The surface's count badge, as its diagram draws one. */
-  readonly Badge: ComponentType<CountBadgeProps>
-}): JSX.Element
+declare const COUNT_TERMS: {
+  readonly incidents: {
+    readonly counts: "the open root incidents of the thing shown"
+    readonly de: "Incidents"
+    readonly en: "Incidents"
+    readonly long: { readonly de: "Offene Incidents"; readonly en: "Open incidents" }
+  }
+  readonly withIncident: {
+    readonly counts: "the instances that have an open incident"
+    readonly de: "Mit Incident"
+    readonly en: "With incident"
+  }
+  readonly allVersions: {
+    readonly counts: "the version scope of a count over every version of a process"
+    readonly de: "alle Versionen"
+    readonly en: "all versions"
+  }
+}
 ```
 
-### BadgeLegend
+### CountTerm
+
+```ts
+/** A word for a count: what it counts, in every Pulse UI that shows it. */
+interface CountTerm {
+  readonly counts: string
+  /**
+   * The same word spelled out, for a label that stands alone, away from the thing it counts on
+   * (a KPI tile): one count, the word in two lengths, never a second count.
+   */
+  readonly long?: Readonly<Record<GlossaryLanguage, string>>
+  // …and the props of the element it renders
+}
+```
+
+### PRODUCT_GLOSSARY
 
 ```ts
 /**
- * The legend of a process's diagram behind a button: which version the badges count, and what each
- * badge says (waiting here, a root incident here, an incident in a called instance), with the
- * surface's sample of each. It opens over the diagram and closes on Escape.
+ * The product glossary, per language: each rule's word (`use`), the words it replaces
+ * (`replaces`, the table at https://miragon.github.io/pulse/glossary) and the pattern that finds
+ * them in a catalog (`glossaryFindings`).
  */
-declare function BadgeLegend(props: {
-  /** The version whose diagram the badges count on. */
-  readonly version: number
-  /** The surface's count badge, as its diagram draws one, shown as each entry's sample. */
-  readonly Badge: ComponentType<CountBadgeProps>
-}): JSX.Element
+declare const PRODUCT_GLOSSARY: Readonly<Record<GlossaryLanguage, readonly ProductRule[]>>
 ```
 
-### CountBadgeProps
+### GlossaryRule
 
 ```ts
 /**
- * The props of the surface's count badge, as its diagram draws one: its kind, its count (none in a
- * legend's sample) and whether the counts are stale. Its look is the canvas's (the editors' filled
- * 20 px pills, the web app's badges on its BPMN canvas).
+ * A rule of the glossary gate: one word per thing. Each rule carries a probe so a broken pattern
+ * fails instead of passing everything; PRODUCT_GLOSSARY holds the terms every Pulse UI shares (the
+ * MCP widgets, the web app, the VS Code webview and a page on the kit), so a user reads one word
+ * per thing across them.
  */
-interface CountBadgeProps {
-  readonly kind: "running" | "incidents" | "incidentsInCalledInstances"
-  readonly count?: number
-  readonly stale?: boolean
-  /** A legend's sample, not a count on the diagram. */
-  readonly legend?: boolean
+interface GlossaryRule {
+  pattern: RegExp
+  /** The word to write instead, its forms joined by ", ". */
+  use: string
+  /** A text with the synonym: the rule is blind if it does not match. */
+  probe: string
+  /** Keys that may keep the word, each with why. */
+  except?: Readonly<Record<string, string>>
+  /**
+   * The words it replaces as a person writes them, each one a text `pattern` catches
+   * (`blindGlossaryRules` holds that): what the glossary's table lists.
+   */
+  replaces?: readonly string[]
+  /**
+   * Where the rule stops, in one sentence for the glossary's table: the uses that keep their word.
+   */
+  note?: string
 }
 ```
 
-### ScreenOpenHow
+### GlossaryLanguage
 
 ```ts
-/** How a target opens: in place, or beside the view (Ctrl or Cmd held) where the surface can. */
-interface ScreenOpenHow {
-  readonly toSide: boolean
+/** A language the product glossary and the kit's catalogs are written in. */
+type GlossaryLanguage = "de" | "en"
+```
+
+### BARE_PAUSE_RULE_EN
+
+```ts
+/**
+ * The strict English pause rule, for a UI that pauses nothing of its own (the MCP widgets and
+ * their kits, a page on the kit: no live updates, no runs), where any "pause" or "halt" means the
+ * engine's suspension. Such a UI runs it beside PRODUCT_GLOSSARY, whose rule spares the VS
+ * Code webview's live updates and bulk runs.
+ */
+declare const BARE_PAUSE_RULE_EN: ProductRule
+```
+
+### glossaryFindings
+
+```ts
+/**
+ * The texts of `catalog` that use a word `rules` replace, each with the term to write instead.
+ * A catalog is any object of strings, functions (rendered with stand-in parameters) and nested
+ * objects, so a page checks its own messages with it, in a browser too. Also reports exceptions
+ * that no longer spare a real use (shrink-only).
+ */
+declare function glossaryFindings(
+  catalog: object,
+  rules: readonly GlossaryRule[],
+): GlossaryFinding[]
+```
+
+### GlossaryFinding
+
+```ts
+interface GlossaryFinding {
+  key: string
+  text: string
+  /** The glossary term to write instead. */
+  use: string
 }
-```
-
-## @miragon/pulse-screens
-
-```ts
-import {
-  DiagramDecorations,
-  type ElementBadgeData,
-  type ElementDecorationData,
-  type BadgeCountData,
-  type CallLinkData,
-  type CalledInstanceData,
-  type DefinitionRefData,
-  type InstanceScopeCode,
-} from "@miragon/pulse-screens"
-```
-
-### DiagramDecorations
-
-```ts
-declare class DiagramDecorations {
-  static of(props: {
-    readonly badges: readonly ElementBadgeData[]
-    readonly calls: readonly CallLinkData[]
-  }): ElementDecorationData[]
-}
-```
-
-### ElementBadgeData
-
-```ts
-interface ElementBadgeData {
-  readonly elementId: string
-  readonly running: number
-  readonly incidents: number
-  readonly incidentsInCalledInstances: number
-}
-```
-
-### ElementDecorationData
-
-```ts
-interface ElementDecorationData {
-  readonly elementId: string
-  readonly counts: readonly BadgeCountData[]
-  readonly incident: boolean
-  readonly call: CallLinkData | null
-}
-```
-
-### BadgeCountData
-
-```ts
-interface BadgeCountData {
-  readonly kind: "running" | "incidents" | "incidentsInCalledInstances"
-  readonly count: number
-  readonly scope: "running" | "withIncident"
-}
-```
-
-### CallLinkData
-
-```ts
-type CallLinkData =
-  | {
-      readonly elementId: string
-      readonly kind: "instances"
-      readonly instances: readonly CalledInstanceData[]
-    }
-  | {
-      readonly elementId: string
-      readonly kind: "definition"
-      readonly definition: DefinitionRefData
-    }
-  | { readonly elementId: string; readonly kind: "missing"; readonly bpmnProcessId: string }
-```
-
-### CalledInstanceData
-
-```ts
-interface CalledInstanceData {
-  readonly id: string
-  readonly bpmnProcessId: string
-  readonly state: "running" | "suspended" | "completed" | "terminated"
-  readonly withIncident: boolean
-}
-```
-
-### DefinitionRefData
-
-```ts
-interface DefinitionRefData {
-  readonly id: string
-  readonly bpmnProcessId: string
-  readonly version: number
-  readonly name?: string
-}
-```
-
-### InstanceScopeCode
-
-```ts
-type InstanceScopeCode = "running" | "ended" | "withIncident" | "all"
 ```
 
 ## @miragon/pulse-ui/bpmn
+
+Without a build: `dist/browser/pulse-ui-bpmn.js` of `@miragon/pulse-ui` exports these names.
 
 ```ts
 import {
@@ -1890,6 +2139,8 @@ declare function readBpmnNames(xml: string): {
 
 ## @miragon/pulse-widget-shell/widgets
 
+Without a build: no file holds these, since the package has no browser bundle. Such a page words every failure with pulse-ui's `describePageError`, a tool's own error as `tool_error`.
+
 ```ts
 import {
   describeError,
@@ -1921,7 +2172,7 @@ declare function describeError(
      */
     pageHints?: Readonly<
       Record<
-        "en" | "de",
+        "de" | "en",
         Readonly<
           Partial<
             Record<
@@ -1980,7 +2231,7 @@ declare function describeError(
  * chat they say what to do there instead. Every other kind's hint is the same in both.
  */
 type PageHints = {
-  readonly en: Readonly<
+  readonly de: Readonly<
     Partial<
       Record<
         | "profileRefused"
@@ -2002,7 +2253,7 @@ type PageHints = {
       >
     >
   >
-  readonly de: Readonly<
+  readonly en: Readonly<
     Partial<
       Record<
         | "profileRefused"
@@ -2034,23 +2285,4 @@ type PageHints = {
  * A failure the view neither retries by itself nor offers Try again for: its hint says the way out.
  */
 declare function isPermanentError(error: unknown): boolean
-```
-
-## @miragon/pulse-c7-core
-
-```ts
-import { isRootIncident } from "@miragon/pulse-c7-core"
-```
-
-### isRootIncident
-
-```ts
-/**
- * Whether `incident` was raised where it is, not copied up from a called instance: it names no
- * root incident but itself (`rootIdOfCopy`, which also decides a missing `rootCauseIncidentId`).
- */
-declare function isRootIncident(incident: {
-  readonly id?: unknown
-  readonly rootCauseIncidentId?: unknown
-}): boolean
 ```

@@ -154,6 +154,10 @@ describe("scopesFor: prose reaches only the checks that read it", () => {
     assert.deepEqual(scopes("docs/mcp/developer.md"), ["brand", "typescript"])
   })
 
+  it("runs lint:github for the artifacts page, whose marked pulse-ui version it holds to the release", () => {
+    assert.deepEqual(scopes("docs/mcp/claude-artifacts.md"), ["brand", "typescript"])
+  })
+
   it("runs pulse-ui's tests for the glossary page, which they generate and hold to the data", () => {
     assert.deepEqual(scopes("docs/glossary.md"), ["brand", "typescript"])
     assert.deepEqual(scopes("docs/overview.md"), ["brand"])
@@ -397,7 +401,7 @@ describe("scopesFor: paths outside the packages", () => {
   it("runs the template's job for the Claude artifact's code and fixtures, nothing for its README", () => {
     for (const file of [
       "templates/claude-artifact/src/app.tsx",
-      "templates/claude-artifact/src/app.css",
+      "templates/claude-artifact/src/page.html",
       "templates/claude-artifact/fixtures/miraveloLeasing.json",
       "templates/claude-artifact/package.json",
     ]) {

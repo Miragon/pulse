@@ -1,9 +1,9 @@
 // The dev and screenshot entry (`pnpm dev`, `pnpm shot`): the page on the recorded fixtures of
-// PROCESS_KEY, through a mock `window.claude`. Never part of dist/app.js.
-// `?fail=engine_status,engine_list_tasks` fails those tools with an engine error, `?fail=needs_reauth`
-// refuses every call with that code of the runtime's (`?fail=engine_status:server_unavailable`
-// one tool), `?delay=800` slows every answer, `?lang=de` renders German.
-import "../src/app.css"
+// PROCESS_KEY, through a mock `window.claude`, on the recording's clock and time zone. Never part
+// of dist/app.js. `?fail=engine_process_stats,engine_activity_counts` fails those tools with an
+// engine error, `?fail=needs_reauth` refuses every call with that code of the runtime's
+// (`?fail=engine_process_stats:server_unavailable` one tool), `?delay=800` slows every answer,
+// `?lang=de` renders German.
 import { mount, PROCESS_KEY } from "../src/app.tsx"
 import { claudeConnector } from "../src/engine/claude-connector.ts"
 import { installMockClaude, type Fixture } from "./mock-claude.ts"
@@ -26,4 +26,5 @@ mount({
   connector: claudeConnector(),
   language: params.get("lang") ?? undefined,
   now: () => asOf,
+  timeZone: fixture.timeZone,
 })

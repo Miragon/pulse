@@ -184,12 +184,13 @@ git_artifact add -A
 )
 
 # What a person publishes as the artifact: exactly these three files (the page, its one script,
-# its one stylesheet). Any other file (a split chunk, a hashed name, a source map, a copied asset)
-# is either one the page loads but nobody publishes, or one published for nothing.
+# its one stylesheet, pulse-ui's own as the packed package ships it). Any other file (a split
+# chunk, a hashed name, a source map, a copied asset) is either one the page loads but nobody
+# publishes, or one published for nothing.
 DIST="$(cd "$ARTIFACT_WORK/dist" && find . -type f | sed 's|^\./||' | LC_ALL=C sort)"
-EXPECTED=$'app.css\napp.js\nindex.html'
+EXPECTED=$'app.js\nindex.html\npulse-ui.css'
 if [[ "$DIST" != "$EXPECTED" ]]; then
-  echo "test-template: templates/claude-artifact's pnpm build wrote other files than dist/index.html, dist/app.js and dist/app.css, the three an artifact publishes:" >&2
+  echo "test-template: templates/claude-artifact's pnpm build wrote other files than dist/index.html, dist/app.js and dist/pulse-ui.css, the three an artifact publishes:" >&2
   echo "$DIST" >&2
   exit 1
 fi

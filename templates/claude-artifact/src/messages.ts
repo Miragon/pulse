@@ -1,10 +1,12 @@
 import { createUseT } from "@miragon/pulse-ui"
-import { COUNT_TERMS } from "./temporary/count-terms.ts"
+import { COUNT_TERMS } from "@miragon/pulse-ui/glossary"
 
 /**
  * The page's words in English and German, the same keys in both (the brand test runs the catalog
- * gates and the product glossary over them). A count reaches an entry formatted, and the entry
- * puts its noun in the right number (`countOf`).
+ * gates and the product glossary over them). The count words are the product's (`COUNT_TERMS` of
+ * pulse-ui's glossary); the words of the kit's parts (a section's states, the diagram's badges and
+ * legend, a refused call) are the kit's own. A count reaches an entry formatted, and the entry puts
+ * its noun in the right number (`countOf`).
  */
 
 /** A text with `{name}` placeholders, or a function of the values (plurals, conditions). */
@@ -21,17 +23,7 @@ export function countOf(count: unknown, one: string, other: string): string {
 export const EN = {
   "page.refresh": "Refresh",
   "page.engine": "Engine",
-  "page.version": "Latest version",
-  "page.missing": "The engine has no process {key}",
-  "page.missingDetail": "Check the process key the page reads, or deploy the process.",
   "scope.allVersions": COUNT_TERMS.allVersions.en,
-  "section.cut": ({ count }) =>
-    `${isOne(count) ? "Only the first row was" : `Only the first ${String(count)} rows were`} read, so the counts here may be too low.`,
-  "section.changed":
-    "The list changed while the page read it, so the counts here may be too low. Refresh reads it again.",
-  "section.sameFailure": "Not read, for the same reason as above.",
-  "section.sameFailureKept":
-    "The refresh failed for the same reason as above, so this shows the numbers read before.",
   "kpi.now": "Now",
   "kpi.last24h": "Last 24 hours",
   "kpi.running": "Running instances",
@@ -47,42 +39,34 @@ export const EN = {
   "diagram.title": "Diagram",
   "diagram.scope": ({ version }) => `Every version's counts on v${String(version)}`,
   "diagram.label": ({ process, version }) => `${String(process)}, version ${String(version)}`,
-  "diagram.drawFailed": "The diagram couldn't be drawn.",
   "diagram.noXml": "The engine has no diagram for this version.",
-  "diagram.runningNote":
-    "Running counts come from the history: a token that waits before an asynchronous step isn't counted yet.",
-  "badge.running": ({ element, count }) =>
-    `${String(element)}: ${countOf(count, "instance", "instances")} running`,
-  "badge.incidents": ({ element, count }) =>
-    `${String(element)}: ${countOf(count, "incident", "incidents")}`,
-  "badge.incidentsInCalledInstances": ({ element, count }) =>
-    `${String(element)}: ${countOf(count, "incident", "incidents")} in called instances`,
-  "legend.label": "Legend",
   "legend.scope": ({ version }) => `Badges count every version, drawn on v${String(version)}.`,
-  "legend.running": "waiting here",
-  "legend.incidents": "incident here",
-  "legend.incidentsInCalledInstances": "incident in a called instance",
   "perDay.title": "Started and ended per day",
   "perDay.scope": "last 14 days",
   "perDay.started": "Started",
   "perDay.ended": "Ended",
   "perDay.chart": "Instances started and ended per day, last 14 days",
-  "perDay.day": ({ day, started, ended }) =>
-    `${String(day)}: ${String(started)} started, ${String(ended)} ended`,
+  "perDay.day": "Day",
   "perDay.median": "Median",
   "perDay.p90": "P90",
-  "perDay.durationScope": "Duration of the instances that ended in these days",
-  "perDay.durationScopeRead": ({ count }) =>
-    `Duration of the ${countOf(count, "instance", "instances")} read that ended in these days`,
+  "perDay.durationScope": ({ count }) =>
+    `Duration of the ${countOf(count, "instance", "instances")} that ended in these days`,
+  "perDay.durationSince": ({ count, date }) =>
+    `Duration of the ${countOf(count, "instance", "instances")} that ended since ${String(date)}, from when the engine keeps their history`,
+  "perDay.durationUnknown": "No duration of these days is known.",
+  "perDay.noHistory":
+    "The engine writes no history, so how many instances started and ended is not known.",
+  "perDay.historyCut": ({ date }) =>
+    `The engine keeps history from ${String(date)}, so the days before count at least what it kept.`,
   "perDay.empty": "No instance started or ended in the last 14 days.",
   "outcomes.title": "End events reached",
   "outcomes.scope": "last 14 days",
-  "outcomes.label": "End events reached in the last 14 days, each with its share",
-  "outcomes.share": "{count} ({percent})",
+  "outcomes.label": "End events the instances that ended in the last 14 days reached",
   "outcomes.shareOf": ({ count }) =>
-    `${isOne(count) ? "The share is of the one end event" : `The shares are of all ${String(count)} end events`} reached. An instance can reach more than one.`,
-  "outcomes.empty": "No end event was reached in the last 14 days.",
-  "outcomes.emptyHint": "The page counts plain end events only.",
+    `Each share is of the ${countOf(count, "instance", "instances")} that ended. An instance can reach more than one end event.`,
+  "outcomes.noShare":
+    "The engine's history of these days is not whole, so no share is shown: the bars compare the end events.",
+  "outcomes.empty": "No instance ended in the last 14 days.",
   "incidents.title": "Open incidents by activity",
   "incidents.label": "Activities with open incidents",
   "incidents.activity": "Activity",
@@ -106,18 +90,7 @@ export type MessageKey = keyof typeof EN
 export const DE: Readonly<Record<MessageKey, Message>> = {
   "page.refresh": "Aktualisieren",
   "page.engine": "Engine",
-  "page.version": "Neueste Version",
-  "page.missing": "Die Engine hat keinen Prozess {key}",
-  "page.missingDetail":
-    "Prüf den Prozessschlüssel, den die Seite liest, oder stell den Prozess bereit.",
   "scope.allVersions": COUNT_TERMS.allVersions.de,
-  "section.cut": ({ count }) =>
-    `Nur ${isOne(count) ? "die erste Zeile wurde" : `die ersten ${String(count)} Zeilen wurden`} gelesen, die Zahlen hier können also zu niedrig sein.`,
-  "section.changed":
-    "Die Liste hat sich geändert, während die Seite sie gelesen hat, die Zahlen hier können also zu niedrig sein. Mit Aktualisieren liest die Seite sie neu.",
-  "section.sameFailure": "Nicht gelesen, aus demselben Grund wie oben.",
-  "section.sameFailureKept":
-    "Die Aktualisierung ist aus demselben Grund wie oben fehlgeschlagen, hier stehen die zuvor gelesenen Zahlen.",
   "kpi.now": "Jetzt",
   "kpi.last24h": "Letzte 24 Stunden",
   "kpi.running": "Laufende Instanzen",
@@ -133,43 +106,36 @@ export const DE: Readonly<Record<MessageKey, Message>> = {
   "diagram.title": "Diagramm",
   "diagram.scope": ({ version }) => `Zahlen aller Versionen auf v${String(version)}`,
   "diagram.label": ({ process, version }) => `${String(process)}, Version ${String(version)}`,
-  "diagram.drawFailed": "Das Diagramm ließ sich nicht zeichnen.",
   "diagram.noXml": "Die Engine hat kein Diagramm zu dieser Version.",
-  "diagram.runningNote":
-    "Die laufenden Zahlen kommen aus der Historie: Ein Token, das vor einem asynchronen Schritt wartet, zählt noch nicht.",
-  "badge.running": ({ element, count }) =>
-    `${String(element)}: ${isOne(count) ? `${String(count)} Instanz läuft` : `${String(count)} Instanzen laufen`}`,
-  "badge.incidents": ({ element, count }) =>
-    `${String(element)}: ${countOf(count, "Incident", "Incidents")}`,
-  "badge.incidentsInCalledInstances": ({ element, count }) =>
-    `${String(element)}: ${countOf(count, "Incident", "Incidents")} in aufgerufenen Instanzen`,
-  "legend.label": "Legende",
   "legend.scope": ({ version }) =>
     `Die Badges zählen alle Versionen, gezeichnet auf v${String(version)}.`,
-  "legend.running": "wartet hier",
-  "legend.incidents": "Incident hier",
-  "legend.incidentsInCalledInstances": "Incident in einer aufgerufenen Instanz",
   "perDay.title": "Gestartet und beendet pro Tag",
   "perDay.scope": "letzte 14 Tage",
   "perDay.started": "Gestartet",
   "perDay.ended": "Beendet",
   "perDay.chart": "Gestartete und beendete Instanzen pro Tag, letzte 14 Tage",
-  "perDay.day": ({ day, started, ended }) =>
-    `${String(day)}: ${String(started)} gestartet, ${String(ended)} beendet`,
+  "perDay.day": "Tag",
   "perDay.median": "Median",
   "perDay.p90": "P90",
-  "perDay.durationScope": "Dauer der Instanzen, die in diesen Tagen beendet wurden",
-  "perDay.durationScopeRead": ({ count }) =>
-    `Dauer ${isOne(count) ? "der einen gelesenen Instanz, die" : `der ${String(count)} gelesenen Instanzen, die`} in diesen Tagen beendet ${isOne(count) ? "wurde" : "wurden"}`,
+  "perDay.durationScope": ({ count }) =>
+    `Dauer ${isOne(count) ? "der einen Instanz, die" : `der ${String(count)} Instanzen, die`} in diesen Tagen beendet ${isOne(count) ? "wurde" : "wurden"}`,
+  "perDay.durationSince": ({ count, date }) =>
+    `Dauer ${isOne(count) ? "der einen Instanz, die" : `der ${String(count)} Instanzen, die`} seit ${String(date)} beendet ${isOne(count) ? "wurde" : "wurden"}, ab da hält die Engine ihre Historie`,
+  "perDay.durationUnknown": "Für diese Tage ist keine Dauer bekannt.",
+  "perDay.noHistory":
+    "Die Engine schreibt keine Historie, deshalb ist nicht bekannt, wie viele Instanzen gestartet und beendet wurden.",
+  "perDay.historyCut": ({ date }) =>
+    `Die Engine hält die Historie ab ${String(date)}, die Tage davor zählen also mindestens, was sie behalten hat.`,
   "perDay.empty": "In den letzten 14 Tagen wurde keine Instanz gestartet oder beendet.",
   "outcomes.title": "Erreichte Endereignisse",
   "outcomes.scope": "letzte 14 Tage",
-  "outcomes.label": "Erreichte Endereignisse der letzten 14 Tage, jedes mit seinem Anteil",
-  "outcomes.share": "{count} ({percent})",
+  "outcomes.label":
+    "Endereignisse, die die in den letzten 14 Tagen beendeten Instanzen erreicht haben",
   "outcomes.shareOf": ({ count }) =>
-    `${isOne(count) ? "Der Anteil bezieht sich auf das eine erreichte Endereignis" : `Die Anteile beziehen sich auf alle ${String(count)} erreichten Endereignisse`}. Eine Instanz kann mehr als eines erreichen.`,
-  "outcomes.empty": "In den letzten 14 Tagen wurde kein Endereignis erreicht.",
-  "outcomes.emptyHint": "Die Seite zählt nur einfache Endereignisse.",
+    `Jeder Anteil bezieht sich auf ${isOne(count) ? "die eine beendete Instanz" : `die ${String(count)} beendeten Instanzen`}. Eine Instanz kann mehr als ein Endereignis erreichen.`,
+  "outcomes.noShare":
+    "Die Historie der Engine zu diesen Tagen ist nicht vollständig, deshalb zeigt die Seite keinen Anteil: Die Balken vergleichen die Endereignisse.",
+  "outcomes.empty": "In den letzten 14 Tagen wurde keine Instanz beendet.",
   "incidents.title": "Offene Incidents nach Aktivität",
   "incidents.label": "Aktivitäten mit offenen Incidents",
   "incidents.activity": "Aktivität",

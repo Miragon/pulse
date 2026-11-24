@@ -1,27 +1,29 @@
-// Records the fixtures of one dashboard: `pnpm record [-- --process <key>]` (default: the
-// PROCESS_KEY of src/app.tsx).
+// Records the fixtures of one dashboard: `pnpm record [-- --process <key>] [--time-zone <zone>]`
+// (default: the PROCESS_KEY of src/app.tsx, this machine's time zone).
 //
 // Connects to a Pulse MCP server (MCP_URL, default http://localhost:8400/mcp, which `pnpm play`
 // serves in the Pulse repo; MCP_TOKEN, when set, as its bearer token, sent over https or to a
 // loopback host only: scripts/token-target.ts), runs every read the dashboard makes
-// (src/data/process-dashboard.ts) in ONE run with the clock fixed at the start, and writes
-// fixtures/<key>.json: each call with its answer. Ids are per engine boot, so a recording is never
-// joined with another; record the whole dashboard again instead.
+// (src/data/process-dashboard.ts, three calls) in ONE run with the clock fixed at the start and
+// the days counted in the time zone, and writes fixtures/<key>.json: the time zone and each call
+// with its answer. Ids are per engine boot, so a recording is never joined with another; record
+// the whole dashboard again instead.
 import { writeFileSync } from "node:fs"
 import { parseArgs } from "node:util"
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client"
 import type { Fixture, RecordedCall } from "../fixtures/mock-claude.ts"
 import { DASHBOARD_READS } from "../src/data/process-dashboard.ts"
 import type { Connector, ToolResult } from "../src/engine/connector.ts"
-import { createEngine } from "../src/engine/engine.ts"
+import { createEngine, viewerTimeZone } from "../src/engine/engine.ts"
 import { pageProcessKey } from "./process-key.ts"
 import { clearTextTokenRefusal } from "./token-target.ts"
 
 const { values } = parseArgs({
   args: process.argv.slice(2).filter((arg) => arg !== "--"),
-  options: { process: { type: "string" } },
+  options: { process: { type: "string" }, "time-zone": { type: "string" } },
 })
 const key = values.process ?? pageProcessKey()
+const timeZone = values["time-zone"] ?? viewerTimeZone()
 const url = new URL(process.env.MCP_URL ?? "http://localhost:8400/mcp")
 const token = process.env.MCP_TOKEN
 const refusal = clearTextTokenRefusal(url, token)
@@ -58,7 +60,7 @@ const connector: Connector = {
 }
 
 const asOf = new Date()
-const engine = createEngine(connector, { now: () => asOf })
+const engine = createEngine(connector, { now: () => asOf, timeZone })
 const outcomes = await Promise.allSettled(
   Object.entries(DASHBOARD_READS).map(async ([section, read]) => {
     await read(engine, key)
@@ -72,10 +74,15 @@ const failed = outcomes.flatMap((outcome, i) =>
     ? [`${Object.keys(DASHBOARD_READS)[i]}: ${String(outcome.reason)}`]
     : [],
 )
+/** The engine the server read: every answer of the page's tools names it. */
+const engineOf = (call: RecordedCall) =>
+  (call.result.structuredContent as { engine?: unknown } | undefined)?.engine
+const engineId = calls.map(engineOf).find((id) => typeof id === "string") ?? "unknown"
 const fixture: Fixture = {
   asOf: asOf.toISOString(),
+  timeZone,
   process: key,
-  engine: await engine.engineId().catch(() => "unknown"),
+  engine: String(engineId),
   calls: calls.sort(
     (a, b) =>
       a.tool.localeCompare(b.tool) ||
@@ -85,6 +92,6 @@ const fixture: Fixture = {
 const file = new URL(`../fixtures/${key}.json`, import.meta.url)
 writeFileSync(file, `${JSON.stringify(fixture, null, 2)}\n`)
 console.log(
-  `Recorded ${String(calls.length)} calls of ${key} on ${fixture.engine} into ${file.pathname}`,
+  `Recorded ${String(calls.length)} calls of ${key} on ${fixture.engine} (${timeZone}) into ${file.pathname}`,
 )
 for (const failure of failed) console.warn(`  a section fails on the fixtures: ${failure}`)

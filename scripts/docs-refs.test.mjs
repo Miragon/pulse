@@ -572,9 +572,9 @@ const DOCS_BUDGETS = {
   // page among them) and the common settings.
   "mcp/reference.md": 175,
   // A Claude artifact on Pulse: what it is, the template and its loop, the plugin, publishing,
-  // how a page calls the connector (its refusal codes), the reads of one load and what replaces
-  // the template's temporary parts.
-  "mcp/claude-artifacts.md": 135,
+  // a page without a build (pulse-ui's browser bundle by the release's version), how a page calls
+  // the connector (its refusal codes) and the three calls of a load.
+  "mcp/claude-artifacts.md": 150,
   // The web app's pages (docs/web/): what it shows and for whom, its navigation, its start page
   // (every engine's figures, what runs where, an engine it could not read), its engine screen
   // and its instance screen, the sign-in an operator sets up (variables, the provider's side,

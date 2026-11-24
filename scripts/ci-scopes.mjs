@@ -54,6 +54,9 @@ export const PATH_RULES = [
   { pattern: /^docs\/mcp\/developer\.md$/, scopes: ["brand", "typescript"] },
   // Generated from @miragon/pulse-ui/glossary, whose page test (pulse-ui) holds it to the data.
   { pattern: /^docs\/glossary\.md$/, scopes: ["brand", "typescript"] },
+  // A generic extra-file of release-please: lint:github holds the pulse-ui version it marks for a
+  // page without a build to the release's.
+  { pattern: /^docs\/mcp\/claude-artifacts\.md$/, scopes: ["brand", "typescript"] },
   { pattern: /^docs\//, scopes: ["brand"] },
   // Read by scripts/server-env-names.test.mjs.
   { pattern: /^\.env\.example$/, scopes: ["typescript"] },

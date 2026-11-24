@@ -1,78 +1,22 @@
+import { describePageError, resolveUiMessages, type SectionFailure } from "@miragon/pulse-ui"
 import {
   describeError,
   isPermanentError,
   type PageHints,
 } from "@miragon/pulse-widget-shell/widgets"
 import { CONNECTOR_NAME } from "./claude-connector.ts"
-import type { EngineError, EngineErrorCode } from "./connector.ts"
-
-/** A failure in words: what happened, what you can do, the raw text for "Details". */
-export interface ErrorWords {
-  title: string
-  hint: string
-  details: string | null
-  /** Whether Try again can help: false for a refusal no retry changes. */
-  retry: boolean
-}
+import type { EngineError } from "./connector.ts"
 
 type Language = "en" | "de"
 
 /**
- * The runtime's codes in words, each what happened and what you can do, `{connector}` the name the
- * page calls the viewer's connector by (`CONNECTOR_NAME`). A hint that says try again comes with
- * Try again (`retry`); the connector asks the runtime anew after a refusal, so a connector
- * connected, picked or reconnected meanwhile answers the next try without a reload.
+ * Where the viewer manages the page's connector, the place pulse-ui's page errors name after the
+ * connector (`describePageError`'s `place`): "Reconnect to Pulse in claude.ai, in Settings under
+ * Connectors, then try again."
  */
-const RUNTIME_WORDS: Readonly<
-  Record<
-    Language,
-    Readonly<Record<Exclude<EngineErrorCode, "tool_error">, readonly [string, string]>>
-  >
-> = {
-  en: {
-    needs_reauth: [
-      "Your Pulse connector needs a new sign-in",
-      "Reconnect {connector} in claude.ai, in Settings under Connectors, then try again.",
-    ],
-    not_connected: [
-      "This page has no Pulse connector",
-      "Add the Pulse MCP server as a connector named {connector} in claude.ai, in Settings under Connectors, or pick it when claude.ai asks for one, then try again.",
-    ],
-    not_allowed: [
-      "This page may not call the tool it needs",
-      "The page's mcp capability doesn't name the tool, or a policy of your organization blocks the access. Ask whoever published the page.",
-    ],
-    approval_required: [
-      "This read waits for your approval",
-      "Allow the page to use {connector} when claude.ai asks, then try again.",
-    ],
-    unavailable: [
-      "The Pulse connector doesn't answer",
-      "Try again in a moment. If it keeps failing, check that the Pulse MCP server runs.",
-    ],
-  },
-  de: {
-    needs_reauth: [
-      "Dein Pulse-Connector braucht eine neue Anmeldung",
-      "Verbinde {connector} in claude.ai neu, in den Einstellungen unter Connectors, und versuch es dann noch mal.",
-    ],
-    not_connected: [
-      "Diese Seite hat keinen Pulse-Connector",
-      "Füge den Pulse-MCP-Server in claude.ai in den Einstellungen unter Connectors als Connector {connector} hinzu oder wähl ihn aus, wenn claude.ai danach fragt, und versuch es dann noch mal.",
-    ],
-    not_allowed: [
-      "Diese Seite darf das Tool nicht aufrufen, das sie braucht",
-      "Die mcp-Fähigkeit der Seite nennt das Tool nicht, oder eine Richtlinie deiner Organisation sperrt den Zugriff. Frag die Person, die die Seite veröffentlicht hat.",
-    ],
-    approval_required: [
-      "Dieser Lesezugriff wartet auf deine Freigabe",
-      "Erlaube der Seite, {connector} zu nutzen, wenn claude.ai fragt, und versuch es dann noch mal.",
-    ],
-    unavailable: [
-      "Der Pulse-Connector antwortet nicht",
-      "Versuch es gleich noch mal. Klappt es weiter nicht, prüf, ob der Pulse-MCP-Server läuft.",
-    ],
-  },
+export const CLAUDE_PLACE: Readonly<Record<Language, string>> = {
+  en: "in claude.ai, in Settings under Connectors",
+  de: "in claude.ai in den Einstellungen unter Connectors",
 }
 
 /**
@@ -121,19 +65,19 @@ export function languageOf(locale: string): Language {
 }
 
 /**
- * A failed call in the viewer's language: the runtime's refusals in the page's own words, the
- * server's errors (`tool_error`) classified by the kit (`describeError`), never the raw text as
- * the title; the raw text only under "Details".
+ * A failed call in the viewer's language, as pulse-ui's `SectionState` and `ErrorState` show it:
+ * the runtime's refusals in the kit's page error words (`describePageError`) with the connector's
+ * name and claude.ai's place, the server's errors (`tool_error`) classified by the kit's
+ * `describeError` with the page's own hints; never the raw text as the title, the raw text only
+ * under "Details", `permanent` where Try again cannot help.
  */
-export function describeEngineError(error: EngineError, locale: string): ErrorWords {
+export function describeEngineError(error: EngineError, locale: string): SectionFailure {
   if (error.code !== "tool_error") {
-    const [title, hint] = RUNTIME_WORDS[languageOf(locale)][error.code]
-    return {
-      title,
-      hint: hint.replaceAll("{connector}", CONNECTOR_NAME),
-      details: error.detail,
-      retry: error.code !== "not_allowed",
-    }
+    return describePageError(error, {
+      messages: resolveUiMessages(locale),
+      connector: CONNECTOR_NAME,
+      place: CLAUDE_PLACE[languageOf(locale)],
+    })
   }
   const described = describeError(error.detail, locale, {
     followUp: "none",
@@ -142,13 +86,13 @@ export function describeEngineError(error: EngineError, locale: string): ErrorWo
   return {
     title: described.title,
     hint: described.hint,
-    details: described.details,
-    retry: !isPermanentError(error.detail),
+    ...(described.details ? { details: described.details } : {}),
+    ...(isPermanentError(error.detail) ? { permanent: true } : {}),
   }
 }
 
 /** Every word of this file, for the brand test's catalog gates. */
 export const ERROR_CATALOGS = {
-  en: { runtime: RUNTIME_WORDS.en, hints: ARTIFACT_HINTS.en },
-  de: { runtime: RUNTIME_WORDS.de, hints: ARTIFACT_HINTS.de },
+  en: { place: CLAUDE_PLACE.en, hints: ARTIFACT_HINTS.en },
+  de: { place: CLAUDE_PLACE.de, hints: ARTIFACT_HINTS.de },
 } as const

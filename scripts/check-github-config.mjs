@@ -477,6 +477,76 @@ export function checkJsonExtraFileForm(config, readText) {
   return errors
 }
 
+/** release-please's generic markers: a version on this line, or on every line of a block. */
+const INLINE_MARKER = /x-release-please-version\b/
+const BLOCK_START = /x-release-please-start-version\b/
+const BLOCK_END = /x-release-please-end\b/
+/** The first version on a line, the one release-please's generic updater rewrites there. */
+const MARKED_VERSION = /\d+\.\d+\.\d+(?:-[\w.]+)?(?:\+[-\w.]+)?/
+
+/**
+ * Every generic entry of extra-files is one release-please's generic updater bumps: its file
+ * marks the versions it holds (`x-release-please-version` on a line, or a block from
+ * `x-release-please-start-version` to `x-release-please-end`), every block is closed, and every
+ * marked line holds the release's version, `version` (the root manifest's). A file without a
+ * marker, or a marked line without the version, would keep the previous release's number after
+ * the bump, silently: a page that loads pulse-ui's browser bundle from a CDN by that number would
+ * load the old kit. `readText` returns a file's text, or undefined for one that does not exist
+ * (checkReleaseExtraFiles names it) (pure).
+ */
+export function checkGenericExtraFiles(config, readText, version) {
+  const files = asList(config?.packages?.["."]?.["extra-files"]).flatMap((entry) =>
+    entry?.type === "generic" && typeof entry.path === "string" ? [entry.path] : [],
+  )
+  const errors = []
+  for (const file of [...new Set(files)].sort()) {
+    const text = readText(file)
+    if (text === undefined) continue
+    let open = null
+    let marked = 0
+    text.split("\n").forEach((line, i) => {
+      const at = `${file}:${String(i + 1)}`
+      if (BLOCK_START.test(line)) {
+        if (open !== null)
+          errors.push(`${at}: a version block opens inside the block of line ${open}`)
+        open = i + 1
+        return
+      }
+      if (BLOCK_END.test(line)) {
+        if (open === null) errors.push(`${at}: x-release-please-end closes no block`)
+        open = null
+        return
+      }
+      if (open === null && !INLINE_MARKER.test(line)) return
+      const found = MARKED_VERSION.exec(line)?.[0]
+      if (found === undefined) {
+        if (open === null) errors.push(`${at}: the line marks a version but holds none`)
+        return
+      }
+      marked += 1
+      if (found !== version) {
+        errors.push(
+          `${at}: marks ${found}, not the release's ${version}: release-please bumps the version ` +
+            `it finds, so this line keeps another number than the release`,
+        )
+      }
+    })
+    if (open !== null) {
+      errors.push(
+        `${file}:${String(open)}: the version block is never closed (x-release-please-end)`,
+      )
+    }
+    if (marked === 0) {
+      errors.push(
+        `release-please-config.json: the generic extra-file ${file} marks no version ` +
+          `(x-release-please-version, or a block from x-release-please-start-version to ` +
+          `x-release-please-end): a release would leave its version behind`,
+      )
+    }
+  }
+  return errors
+}
+
 /**
  * Every Claude Code plugin manifest an app ships (`apps/<app>/skills/<skill>/.claude-plugin/
  * plugin.json`): its version is the release's too, so release-please bumps it with the rest.
@@ -1273,6 +1343,11 @@ export function checkRepo(root) {
       JSON.parse(readFileSync(path.join(root, "release-please-config.json"), "utf8")),
       (rel) => (exists(rel) ? readFileSync(path.join(root, rel), "utf8") : undefined),
     ),
+    ...checkGenericExtraFiles(
+      JSON.parse(readFileSync(path.join(root, "release-please-config.json"), "utf8")),
+      (rel) => (exists(rel) ? readFileSync(path.join(root, rel), "utf8") : undefined),
+      JSON.parse(readFileSync(path.join(root, "package.json"), "utf8")).version,
+    ),
     ...checkReleaseGate(workflows.get(RELEASE_WORKFLOW)),
     ...checkChannelPublishWorkflows(workflows),
     ...checkVscodePublish(
@@ -1300,7 +1375,8 @@ if (isMain) {
   }
   console.log(
     "GitHub config: publish workflow, npm matrix and repositories, release extra-files, " +
-      "plugin versions and template pins in release-please's form, the release gate, the CLI and Orca publish " +
+      "plugin versions and template pins in release-please's form, the versions the generic " +
+      "extra-files mark, the release gate, the CLI and Orca publish " +
       "workflows, the extension's release path, the docs deploy and the CI scopes hold.",
   )
 }

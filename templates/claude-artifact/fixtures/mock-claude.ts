@@ -15,8 +15,10 @@ import { isPageTool } from "../src/engine/tools.ts"
  * kept small (`structuredContent`, or the text of a text-only or error result).
  */
 export interface Fixture {
-  /** When the calls ran: the engine's clock on replay, so the time windows match. */
+  /** When the calls ran: the engine's clock on replay, so relative times read as they did. */
   asOf: string
+  /** The IANA time zone the days were counted in: the page's on replay, so the calls match. */
+  timeZone: string
   process: string
   engine: string
   calls: RecordedCall[]
@@ -31,8 +33,9 @@ export interface RecordedCall {
 export interface MockOptions {
   /**
    * What fails, to see a failure (`?fail=`, comma-separated): a tool's name fails that tool with
-   * an engine error (`engine_status`), a runtime code refuses every call with it (`needs_reauth`),
-   * a tool and a code joined by a colon refuse that tool with it (`engine_status:server_unavailable`).
+   * an engine error (`engine_process_stats`), a runtime code refuses every call with it
+   * (`needs_reauth`), a tool and a code joined by a colon refuse that tool with it
+   * (`engine_process_stats:server_unavailable`).
    */
   fail?: readonly string[]
   /** How long each answer takes, in ms, to see the skeletons (`?delay=800`). */
@@ -75,21 +78,33 @@ function failuresOf(fail: readonly string[]) {
   return { everyCall, tools }
 }
 
+/** A call the page made through the mock: the tool and its arguments, in the order made. */
+export interface MockCall {
+  tool: string
+  arguments: Record<string, unknown>
+}
+
 /**
  * A `window.claude` that serves `fixture` through the page's own connector path
  * (`claude-connector.ts`) in the runtime's shape: `use("mcp")` resolves to the capability, whose
  * `callTool(server, tool, args, options)` finds the recorded answer by the tool and its canonical
  * arguments and resolves `{ payload }`. An unmatched call and a recorded error reject with
  * `{ code, message }`, a connector of another name with the runtime's `server_not_connected` and
- * a tool outside `PAGE_TOOLS` with its `not_in_manifest`.
+ * a tool outside `PAGE_TOOLS` with its `not_in_manifest`. `calls` lists every call that reached
+ * it, so a test counts what one load calls.
  */
-export function mockClaude(fixture: Fixture, options: MockOptions = {}): ClaudeRuntime {
+export function mockClaude(
+  fixture: Fixture,
+  options: MockOptions = {},
+): ClaudeRuntime & { readonly calls: readonly MockCall[] } {
+  const calls: MockCall[] = []
   const answers = new Map(
     fixture.calls.map((call) => [callKey(call.tool, call.arguments), call.result]),
   )
   const { everyCall, tools } = failuresOf(options.fail ?? [])
   const capability: McpCapability = {
     async callTool(server, tool, args) {
+      calls.push({ tool, arguments: args })
       if (options.delayMs) await new Promise((done) => setTimeout(done, options.delayMs))
       if (server !== CONNECTOR_NAME) {
         throw rejection("server_not_connected", `No connector named ${server} is connected.`)
@@ -119,7 +134,7 @@ export function mockClaude(fixture: Fixture, options: MockOptions = {}): ClaudeR
       return answerOf(recorded)
     },
   }
-  return { use: () => Promise.resolve(capability) }
+  return { use: () => Promise.resolve(capability), calls }
 }
 
 /** Installs the mock as `window.claude`. */

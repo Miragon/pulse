@@ -1,45 +1,88 @@
-import { readFileSync } from "node:fs"
+import { readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
+import { BARE_PAUSE_RULE_EN, glossaryFindings, PRODUCT_GLOSSARY } from "@miragon/pulse-ui/glossary"
 import {
-  BARE_PAUSE_RULE_EN,
   catalogTextFindings,
   contrastFindings,
-  COUNT_TERMS,
-  glossaryFindings,
   LIGHT_STATUS_EXEMPTION,
   parseThemeVariables,
-  PRODUCT_GLOSSARY,
   ROLE_CONTRAST_PAIRS,
   scanColors,
   scanGlyphs,
   scanIconSizes,
   scanOutlines,
   scanTypeScale,
-  stylesheetShapeFindings,
   themeStylesheets,
   toneContrastPairs,
 } from "@miragon/pulse-ui/testing"
 import { describe, expect, it } from "vitest"
 import { ERROR_CATALOGS } from "../src/engine/errors.ts"
 import { DE, EN } from "../src/messages.ts"
-import { COUNT_TERMS as COUNT_TERMS_COPY } from "../src/temporary/count-terms.ts"
+import { STYLESHEET } from "../vite.config.ts"
 
 /**
  * pulse-ui's brand gates over the page (ESLint's gates do not reach a template, so these hold it):
  * colours by role only, Lucide icons at 16 or 24 px, the type scale, no hidden outline at rest,
- * the voice rules and the product's words in English and German, the stylesheets' shape and
- * every role pair readable in light and dark.
+ * the voice rules and the product's words in English and German, and the stylesheet the page
+ * ships: pulse-ui's own, holding every class the page's elements name, every role pair readable in
+ * light and dark.
  */
 
 const SRC = join(import.meta.dirname, "../src")
 const SCAN = { timeout: 30_000 }
-const APP_CSS = readFileSync(join(SRC, "app.css"), "utf8")
-const DIAGRAM_CSS = readFileSync(join(SRC, "temporary/diagram.css"), "utf8")
+const KIT_CSS = readFileSync(STYLESHEET, "utf8")
 
-/** The density section's 12 px icon, only where a reason names it. */
-const DENSE_ICONS = {
-  "temporary/canvas-badge.tsx":
-    "the incident icon inside a 22 px count badge on the BPMN canvas, as the web app's badge",
+/** Every source file of the page, by its path under src/. */
+function sources(dir = SRC, prefix = ""): { file: string; text: string }[] {
+  return readdirSync(join(dir), { withFileTypes: true }).flatMap((entry) =>
+    entry.isDirectory()
+      ? sources(join(dir, entry.name), `${prefix}${entry.name}/`)
+      : [{ file: `${prefix}${entry.name}`, text: readFileSync(join(dir, entry.name), "utf8") }],
+  )
+}
+
+/**
+ * The classes a source names on its elements: the string literals of a `className` (or a
+ * column's `cellClassName`), an attribute's value or every literal in its expression (`cn(…)`, a
+ * condition). The page keeps its classes there, so this finds them all.
+ */
+function classesOf(text: string): string[] {
+  const classes: string[] = []
+  const attribute = /[cC]lassName(?:=|:\s*)/g
+  for (let match = attribute.exec(text); match !== null; match = attribute.exec(text)) {
+    let at = match.index + match[0].length
+    let value: string
+    if (text[at] === '"') {
+      const end = text.indexOf('"', at + 1)
+      value = `"${text.slice(at + 1, end)}"`
+    } else if (text[at] === "{") {
+      let depth = 0
+      const start = at
+      for (; at < text.length; at++) {
+        if (text[at] === "{") depth++
+        if (text[at] === "}" && --depth === 0) break
+      }
+      value = text.slice(start, at)
+    } else {
+      continue
+    }
+    for (const literal of value.matchAll(/"([^"]*)"/g)) {
+      classes.push(...literal[1].split(/\s+/).filter(Boolean))
+    }
+  }
+  return classes
+}
+
+/** A class as Tailwind writes its selector: every character past letters, digits, - and _ escaped. */
+const selectorOf = (name: string) => `.${name.replace(/[^\w-]/g, (c) => `\\${c}`)}`
+
+/** Whether `css` holds a rule for the class `name`: its selector, not a longer class's prefix. */
+function holdsClass(css: string, name: string): boolean {
+  const selector = selectorOf(name)
+  for (let at = css.indexOf(selector); at !== -1; at = css.indexOf(selector, at + 1)) {
+    if (!/[\w-]/.test(css[at + selector.length] ?? "")) return true
+  }
+  return false
 }
 
 describe("the page's sources", () => {
@@ -51,8 +94,8 @@ describe("the page's sources", () => {
     expect(scanGlyphs(SRC)).toEqual([])
   })
 
-  it("draw icons at 16 or 24 px, 12 px only on the canvas badge", SCAN, () => {
-    expect(scanIconSizes(SRC, { allowDense: DENSE_ICONS })).toEqual([])
+  it("draw icons at 16 or 24 px", SCAN, () => {
+    expect(scanIconSizes(SRC)).toEqual([])
   })
 
   it("set text on the type scale and its three weights", SCAN, () => {
@@ -61,6 +104,28 @@ describe("the page's sources", () => {
 
   it("hide no outline at rest", SCAN, () => {
     expect(scanOutlines(SRC)).toEqual([])
+  })
+
+  it("keep no stylesheet of their own: the page's one stylesheet is pulse-ui's", () => {
+    expect(sources().filter(({ file }) => file.endsWith(".css"))).toEqual([])
+  })
+
+  it("name only classes pulse-ui.css holds, the kit's and its documented layout utilities", () => {
+    const missing = sources().flatMap(({ file, text }) =>
+      classesOf(text)
+        .filter((name) => !holdsClass(KIT_CSS, name))
+        .map((name) => `${file}: ${name}`),
+    )
+    expect(missing).toEqual([])
+  })
+
+  it("find a class the stylesheet lacks, so the check above can fail", () => {
+    const text = 'className="flex gap-4" className={cn("h-80", ok && "lg:col-span-5")}'
+    expect(classesOf(text)).toEqual(["flex", "gap-4", "h-80", "lg:col-span-5"])
+    expect(holdsClass(KIT_CSS, "lg:col-span-5")).toBe(true)
+    expect(holdsClass(KIT_CSS, "h-80")).toBe(false)
+    expect(holdsClass(KIT_CSS, "gap-1")).toBe(true)
+    expect(holdsClass(".gap-10{}", "gap-1")).toBe(false)
   })
 })
 
@@ -80,35 +145,11 @@ describe("the page's words", () => {
       expect(glossaryFindings(catalog, rules)).toEqual([])
     }
   })
-
-  it("copy pulse-ui's count words exactly, until they are browser data (#667)", () => {
-    for (const term of ["incidents", "withIncident", "allVersions"] as const) {
-      expect(COUNT_TERMS_COPY[term].en).toBe(COUNT_TERMS[term].en)
-      expect(COUNT_TERMS_COPY[term].de).toBe(COUNT_TERMS[term].de)
-    }
-    expect(COUNT_TERMS_COPY.incidents.long).toEqual(COUNT_TERMS.incidents.long)
-  })
 })
 
-describe("the stylesheets", () => {
-  it.each([
-    ["app.css", APP_CSS],
-    ["temporary/diagram.css", DIAGRAM_CSS],
-  ])(
-    "%s keeps its shape: no height floor, no forced or inlined font, no raw colour, no --cd-* token",
-    (file, css) => {
-      expect(stylesheetShapeFindings(css, file)).toEqual([])
-    },
-  )
-
-  it("app.css builds on pulse-ui's theme after Tailwind, never its globals.css", () => {
-    expect(APP_CSS.indexOf('@import "tailwindcss"')).toBe(0)
-    expect(APP_CSS).toContain('@import "@miragon/pulse-ui/theme.css"')
-    expect(APP_CSS).not.toContain("@miragon/pulse-ui/globals.css")
-  })
-
+describe("the stylesheet", () => {
   it("keeps every tone pair and every role pair readable in light and dark", () => {
-    const theme = parseThemeVariables(...themeStylesheets(), APP_CSS, DIAGRAM_CSS)
+    const theme = parseThemeVariables(...themeStylesheets())
     expect(contrastFindings(theme, toneContrastPairs()).sort()).toEqual(LIGHT_STATUS_EXEMPTION)
     expect(contrastFindings(theme, ROLE_CONTRAST_PAIRS)).toEqual([])
   })

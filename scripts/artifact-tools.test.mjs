@@ -175,7 +175,7 @@ describe("artifact-tools: the tools a Claude artifact declares and calls", () =>
   it("fails an unknown tool, an app-only feed, a view tool, a write and a name twice", () => {
     const pageTools = [
       "engine_status",
-      "engine_process_stats",
+      "engine_made_up",
       "engine_bpmn_xml_data",
       "engine_open_cockpit",
       "engine_delete_process_instance",
@@ -186,7 +186,7 @@ describe("artifact-tools: the tools a Claude artifact declares and calls", () =>
         line.replace(`${TOOLS_FILE}: `, ""),
       ),
       [
-        "engine_process_stats is no tool of the server (the admin golden)",
+        "engine_made_up is no tool of the server (the admin golden)",
         "engine_bpmn_xml_data is an app-only feed of the server's own views; a page calls model tools",
         "engine_open_cockpit is a view tool, whose result a host renders; a page reads data",
         "engine_delete_process_instance is not on the read-only floor, so a server without " +

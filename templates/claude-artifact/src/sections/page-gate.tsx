@@ -5,11 +5,10 @@ import { useEngine } from "../engine/use-engine.tsx"
 
 /**
  * The page's sections, or its ONE state when the runtime refuses the page as a whole, as the
- * cockpit's refused engine is its view's one state: the engine every read names could not be
- * resolved, or a read met a refusal of the viewer's connector itself (no sign-in, no connector,
- * no approval). Every section would fail alike, so none mounts, and the bar shows no failure of
- * its own. Its Try again, where one can help, is the bar's Refresh: the engine resolved again,
- * then every section read again.
+ * cockpit's refused engine is its view's one state: a read met a refusal of the viewer's connector
+ * itself (no sign-in, no connector, no approval). Every section would fail alike, so none mounts,
+ * and the bar shows no failure of its own. Its Try again, where one can help, is the bar's
+ * Refresh: the gate opens, then every section reads again.
  */
 export function PageGate({ children }: { readonly children: ReactNode }) {
   const { gate, refresh } = useEngine()
@@ -21,8 +20,8 @@ export function PageGate({ children }: { readonly children: ReactNode }) {
       titleAs="h2"
       title={words.title}
       description={words.hint}
-      details={words.details ?? undefined}
-      onRetry={words.retry ? refresh : undefined}
+      details={words.details}
+      onRetry={words.permanent ? undefined : refresh}
     />
   )
 }

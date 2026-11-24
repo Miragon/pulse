@@ -16,7 +16,10 @@ export function viewerLocale(tag: string | undefined): ViewerLocale {
   return { language: "en", locale: "en" }
 }
 
-/** Sets the formatters' locale (pulse-ui's `format*` helpers) to the viewer's. */
-export function applyFormatLocale({ language, locale }: ViewerLocale): void {
-  setFormatLocale({ language, locale })
+/**
+ * Sets the formatters' locale (pulse-ui's `format*` helpers) to the viewer's, and their time zone
+ * to the one the page counts its days in, so a day's label is the day its bucket counts.
+ */
+export function applyFormatLocale({ language, locale }: ViewerLocale, timeZone: string): void {
+  setFormatLocale({ language, locale, timeZone })
 }

@@ -1,13 +1,27 @@
 import type { ReactNode } from "react"
-import { CountFigure, formatCount, KpiGrid, KpiGridSkeleton, type KpiCell } from "@miragon/pulse-ui"
+import {
+  CountFigure,
+  formatCount,
+  KpiGrid,
+  KpiGridSkeleton,
+  SectionState,
+  type KpiCell,
+} from "@miragon/pulse-ui"
 import type { Count } from "@miragon/pulse-ui/format"
 import type { Situation } from "@miragon/pulse-ui/tones"
-import { readKpis } from "../data/process-dashboard.ts"
+import { readStats } from "../data/process-dashboard.ts"
 import { useSection } from "../engine/use-engine.tsx"
 import { useT } from "../messages.ts"
-import { SectionState } from "../temporary/section-state.tsx"
 
-const ROW = "grid min-w-0 gap-4 lg:grid-cols-[5fr_2fr]"
+/** The two groups side by side from `lg`: what holds now in five tiles, the last 24 hours in two. */
+function Groups({ now, last24h }: { readonly now: ReactNode; readonly last24h: ReactNode }) {
+  return (
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-7">
+      <div className="min-w-0 lg:col-span-5">{now}</div>
+      <div className="min-w-0 lg:col-span-2">{last24h}</div>
+    </div>
+  )
+}
 
 /** Whether a count says there is at least one. */
 function some(count: Count): boolean {
@@ -31,22 +45,28 @@ function figure(count: Count, alarm?: { situation: Situation; label: string }): 
 
 /**
  * The tiles: what runs and what alarms now, and what started and ended in the last 24 hours, each
- * group over every version of the key (its header names the scope).
+ * group over every version of the key (its header names the scope). One call, shared with the
+ * chart and the end events: `engine_process_stats`.
  */
 export function KpiSection({ processKey }: { readonly processKey: string }) {
   const t = useT()
-  const section = useSection((engine) => readKpis(engine, processKey), [processKey])
+  const section = useSection(
+    (engine) => readStats(engine, processKey),
+    [processKey],
+    (stats) => stats.asOf,
+  )
   return (
     <SectionState
-      section={section}
+      state={section.state}
+      onRetry={section.retry}
       skeleton={
-        <div className={ROW}>
-          <KpiGridSkeleton cells={5} boxed />
-          <KpiGridSkeleton cells={2} boxed />
-        </div>
+        <Groups
+          now={<KpiGridSkeleton cells={5} boxed />}
+          last24h={<KpiGridSkeleton cells={2} boxed />}
+        />
       }
     >
-      {(kpis) => {
+      {({ now: kpis }) => {
         const now: KpiCell[] = [
           { label: t("kpi.running"), value: figure(kpis.running) },
           {
@@ -73,22 +93,26 @@ export function KpiSection({ processKey }: { readonly processKey: string }) {
           { label: t("kpi.openTasks"), value: figure(kpis.openTasks) },
         ]
         const last24h: KpiCell[] = [
-          { label: t("kpi.started"), value: figure(kpis.started24h) },
-          { label: t("kpi.ended"), value: figure(kpis.ended24h) },
+          { label: t("kpi.started"), value: figure(kpis.startedLast24h) },
+          { label: t("kpi.ended"), value: figure(kpis.endedLast24h) },
         ]
         return (
-          <div className={ROW}>
-            <KpiGrid
-              boxed
-              header={{ label: t("kpi.now"), badge: t("scope.allVersions") }}
-              cells={now}
-            />
-            <KpiGrid
-              boxed
-              header={{ label: t("kpi.last24h"), badge: t("scope.allVersions") }}
-              cells={last24h}
-            />
-          </div>
+          <Groups
+            now={
+              <KpiGrid
+                boxed
+                header={{ label: t("kpi.now"), badge: t("scope.allVersions") }}
+                cells={now}
+              />
+            }
+            last24h={
+              <KpiGrid
+                boxed
+                header={{ label: t("kpi.last24h"), badge: t("scope.allVersions") }}
+                cells={last24h}
+              />
+            }
+          />
         )
       }}
     </SectionState>

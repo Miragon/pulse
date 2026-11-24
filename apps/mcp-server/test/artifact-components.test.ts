@@ -1,4 +1,5 @@
 import fs from "node:fs"
+import path from "node:path"
 import { describe, expect, it } from "vitest"
 import {
   componentsSheet,
@@ -7,6 +8,9 @@ import {
   SHEET,
   SHEET_FILE,
   SHEET_PATH,
+  REPO_ROOT,
+  sheetValueNames,
+  UI_PACKAGE,
 } from "./artifact-components.js"
 import { UPDATE_COMMAND } from "./golden.js"
 
@@ -88,5 +92,52 @@ describe(SHEET_FILE, { timeout: 120_000 }, () => {
     )
     const unbuilt = [{ ...group, entry: "packages/core/ui/dist/none.d.ts" }]
     expect(() => renderComponentsSheet(unbuilt)).toThrow("is not built")
+  })
+})
+
+/**
+ * The names an ES module exports: the `export { … }` clauses of a bundle as esbuild writes it,
+ * and of a module as tsc does (`export const`, `export function`).
+ */
+function exportedNames(file: string): Set<string> {
+  const code = fs.readFileSync(file, "utf8")
+  const names = new Set<string>()
+  for (const [, list = ""] of code.matchAll(/\bexport\s*\{([^}]*)\}/g)) {
+    for (const part of list.split(",")) {
+      const name = part
+        .trim()
+        .split(/\s+as\s+/)
+        .pop()
+        ?.trim()
+      if (name) names.add(name)
+    }
+  }
+  for (const [, name = ""] of code.matchAll(/\bexport\s+(?:const|let|function|class)\s+(\w+)/g)) {
+    names.add(name)
+  }
+  return names
+}
+
+describe("the sheet's way without a build", { timeout: 120_000 }, () => {
+  it("names, per section, a file of pulse-ui's package that exports every name a page calls", () => {
+    const values = sheetValueNames()
+    for (const group of SHEET) {
+      if (group.withoutBuild === null) continue
+      const file = path.join(REPO_ROOT, UI_PACKAGE, group.withoutBuild)
+      const missing = (values.get(group.from) ?? []).filter(
+        (name) => !exportedNames(file).has(name),
+      )
+      expect(missing, `${group.from} without a build (${group.withoutBuild})`).toEqual([])
+    }
+  })
+
+  it("says where no file holds a section's names, as the browser bundle holds none of widget-shell", () => {
+    const shell = SHEET.find((group) => group.from === "@miragon/pulse-widget-shell/widgets")
+    expect(shell?.withoutBuild).toBeNull()
+    const bundle = exportedNames(path.join(REPO_ROOT, UI_PACKAGE, "dist/browser/pulse-ui.js"))
+    expect(shell?.names.filter((name) => bundle.has(name))).toEqual([])
+    expect(renderComponentsSheet()).toContain(
+      "words every failure with pulse-ui's `describePageError`",
+    )
   })
 })

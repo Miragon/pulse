@@ -4,8 +4,9 @@
 // repo's stylesheet scans skip), serves it in the skeleton a Claude artifact wraps a page in
 // (index.html), and takes full-page screenshots with Playwright's Chromium in light
 // (data-theme="light"), dark (data-theme="dark") and with no data-theme and the OS in dark, each
-// at 1240 and 390 px, plus one with a failing section, into shots/. The clock, the time zone and
-// the locale are fixed, so two runs differ only where the page does. Needs Chromium once:
+// at 1240 and 390 px, plus one with a failing section, into shots/. The clock and the time zone
+// are the recording's and the locale is fixed, so two runs differ only where the page does. Needs
+// Chromium once:
 // `pnpm exec playwright install --with-deps chromium`.
 import { readFileSync } from "node:fs"
 import { mkdir } from "node:fs/promises"
@@ -33,15 +34,26 @@ const SHOTS = [
   { name: "dark", theme: "dark", os: "light" },
   { name: "os-dark", theme: null, os: "dark" },
 ].flatMap((shot) => [1240, 390].map((width) => ({ ...shot, width, fail: "" })))
-SHOTS.push({ name: "failure", theme: "light", os: "light", width: 1240, fail: "engine_status" })
+SHOTS.push({
+  name: "failure",
+  theme: "light",
+  os: "light",
+  width: 1240,
+  fail: "engine_process_stats",
+})
 
 await build({ root: ROOT, mode: "fixtures", logLevel: "warn" })
 
 const skeleton = readFileSync(join(ROOT, "index.html"), "utf8")
 const page = readFileSync(join(SITE, "index.html"), "utf8")
 const TYPES = { ".js": "text/javascript", ".css": "text/css" }
-/** The browser's clock: the fixture's recording time, as the page's engine clock is. */
-const { asOf } = JSON.parse(readFileSync(join(ROOT, `fixtures/${pageProcessKey()}.json`), "utf8"))
+/**
+ * The browser's clock and time zone: the fixture's recording time and zone, as the page's engine
+ * reads them, so the chart's days are the recorded ones and its labels name them.
+ */
+const { asOf, timeZone } = JSON.parse(
+  readFileSync(join(ROOT, `fixtures/${pageProcessKey()}.json`), "utf8"),
+)
 
 /**
  * The theme a request names, as one of the literals Claude stamps on <html>: null (no theme, the
@@ -98,7 +110,7 @@ try {
       deviceScaleFactor: 1,
       colorScheme: shot.os,
       locale,
-      timezoneId: "Europe/Berlin",
+      timezoneId: timeZone,
       reducedMotion: "reduce",
     })
     const tab = await context.newPage()

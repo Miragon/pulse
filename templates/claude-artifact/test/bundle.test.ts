@@ -3,12 +3,13 @@ import { join } from "node:path"
 import { Script } from "node:vm"
 import { describe, expect, it } from "vitest"
 import { pageProcessKey } from "../scripts/process-key.ts"
+import { STYLESHEET } from "../vite.config.ts"
 
 /**
  * What `pnpm build` writes, the three files a Claude artifact publishes (`pnpm test` builds
- * first): the page content without a document around it, one classic script, one stylesheet.
- * The script holds the page and its kit, never the MCP client, ext-apps' runtime, React Query
- * (they only resolve widget-shell's barrel), the fixtures or the mock.
+ * first): the page content without a document around it, one classic script, and pulse-ui's
+ * stylesheet as it ships. The script holds the page and its kit, never the MCP client, ext-apps'
+ * runtime, React Query (they only resolve widget-shell's barrel), the fixtures or the mock.
  */
 
 const DIST = join(import.meta.dirname, "../dist")
@@ -32,10 +33,10 @@ const read = (name: string) => readFileSync(join(DIST, name), "utf8")
 const kb = (name: string) => Math.round(statSync(join(DIST, name)).size / 1024)
 
 describe("dist/", () => {
-  it("holds exactly index.html, app.js and app.css", () => {
-    expect(readdirSync(DIST).sort()).toEqual(["app.css", "app.js", "index.html"])
+  it("holds exactly index.html, app.js and pulse-ui.css", () => {
+    expect(readdirSync(DIST).sort()).toEqual(["app.js", "index.html", "pulse-ui.css"])
     console.info(
-      `dist/: index.html ${String(kb("index.html"))} KB, app.js ${String(kb("app.js"))} KB, app.css ${String(kb("app.css"))} KB`,
+      `dist/: index.html ${String(kb("index.html"))} KB, app.js ${String(kb("app.js"))} KB, pulse-ui.css ${String(kb("pulse-ui.css"))} KB`,
     )
   })
 
@@ -43,15 +44,14 @@ describe("dist/", () => {
     const html = read("index.html")
     expect(html.trimStart().startsWith("<title>")).toBe(true)
     expect(html).not.toMatch(/<(?:!doctype|html|head|body)\b/i)
-    expect(html).toContain('<link rel="stylesheet" href="app.css" />')
+    expect(html).toContain('<link rel="stylesheet" href="pulse-ui.css" />')
     expect(html).toContain('<div id="root"></div>')
     // A classic script after the root: it runs as it is parsed, so the root is there.
     expect(html).toContain('<script src="app.js"></script>')
     expect(html).not.toContain('type="module"')
     expect(html.indexOf('<script src="app.js">')).toBeGreaterThan(html.indexOf('id="root"'))
-    // The theme bridge, inline before the root, so the first paint has the viewer's theme.
-    expect(html.indexOf("prefers-color-scheme")).toBeGreaterThan(-1)
-    expect(html.indexOf("prefers-color-scheme")).toBeLessThan(html.indexOf('id="root"'))
+    // No script of its own before the root: pulse-ui's theme follows data-theme, else the OS.
+    expect(html.match(/<script/g)).toHaveLength(1)
   })
 
   it("index.html loads nothing from a host the artifact's CSP refuses: fonts from Google Fonts only", () => {
@@ -92,15 +92,17 @@ describe("dist/", () => {
     }
   })
 
-  it("app.css is the compiled theme: no font of its own, no import from another host", () => {
-    const css = read("app.css")
+  it("pulse-ui.css is pulse-ui's stylesheet as it ships: the theme following the OS, no font, no other host", () => {
+    const css = read("pulse-ui.css")
+    expect(css).toBe(readFileSync(STYLESHEET, "utf8"))
     expect(css).toContain("--background")
+    expect(css).toContain("prefers-color-scheme:dark")
     expect(css).not.toContain("@font-face")
     expect(css).not.toMatch(/@import|url\(\s*["']?https?:/)
   })
 
   it("stays small enough to load fast (the fixtures alone would pass 1 MB)", () => {
     expect(kb("app.js")).toBeLessThan(900)
-    expect(kb("app.css")).toBeLessThan(200)
+    expect(kb("pulse-ui.css")).toBeLessThan(200)
   })
 })

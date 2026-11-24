@@ -36,13 +36,15 @@ const refusal = (code: string | undefined, message: string) =>
 describe("the artifact's connector (claude-connector.ts)", () => {
   it("calls the tool positionally on the connector the page names and reads the payload", async () => {
     const { runtime, calls } = runtimeOf(() => Promise.resolve({ payload: { items: [] } }))
-    const result = await claudeConnector(runtime).callTool("engine_status", { engine: "prod-a" })
+    const result = await claudeConnector(runtime).callTool("engine_process_stats", {
+      processDefinitionKey: "p",
+    })
     expect(result).toEqual({ structuredContent: { items: [] } })
     expect(calls).toEqual([
       [
         CONNECTOR_NAME,
-        "engine_status",
-        { engine: "prod-a" },
+        "engine_process_stats",
+        { processDefinitionKey: "p" },
         { cache: { staleTime: ANSWER_TTL_MS, gcTime: 600_000 } },
       ],
     ])
@@ -51,8 +53,8 @@ describe("the artifact's connector (claude-connector.ts)", () => {
   it("asks the runtime past its cache for a refresh", async () => {
     const { runtime, calls } = runtimeOf(() => Promise.resolve({ payload: {} }))
     const connector = claudeConnector(runtime)
-    await connector.callTool("engine_status", {}, { refresh: true })
-    await connector.callTool("engine_status", {}, { refresh: false })
+    await connector.callTool("engine_process_stats", {}, { refresh: true })
+    await connector.callTool("engine_process_stats", {}, { refresh: false })
     expect(calls.map((call) => call[3])).toEqual([
       { cache: { staleTime: 0, gcTime: 600_000, refresh: true } },
       { cache: { staleTime: ANSWER_TTL_MS, gcTime: 600_000 } },
@@ -63,9 +65,11 @@ describe("the artifact's connector (claude-connector.ts)", () => {
     "reads the runtime's %s as the page's %s, the code under Details",
     async (code, pageCode) => {
       const { runtime } = runtimeOf(() => refusal(code, "refused"))
-      await expect(claudeConnector(runtime).callTool("engine_status", {})).rejects.toMatchObject({
+      await expect(
+        claudeConnector(runtime).callTool("engine_process_stats", {}),
+      ).rejects.toMatchObject({
         code: pageCode,
-        tool: "engine_status",
+        tool: "engine_process_stats",
         detail: `[${code}] refused`,
       })
     },
@@ -91,7 +95,7 @@ describe("the artifact's connector (claude-connector.ts)", () => {
     const text = "engine prod-a unreachable (ECONNREFUSED)"
     const { runtime } = runtimeOf(() => refusal(code, text))
     const error = await claudeConnector(runtime)
-      .callTool("engine_status", {})
+      .callTool("engine_process_stats", {})
       .catch((thrown: unknown) => thrown)
     expect(error).toMatchObject({ code: "tool_error", detail: text })
     // The kit classifies the engine's text, so the words name the engine, not the raw text.
@@ -108,7 +112,9 @@ describe("the artifact's connector (claude-connector.ts)", () => {
     "reads a rejection without a message (%s) by its code alone",
     async (_, thrown, code, detail) => {
       const { runtime } = runtimeOf(() => Promise.reject(thrown))
-      await expect(claudeConnector(runtime).callTool("engine_status", {})).rejects.toMatchObject({
+      await expect(
+        claudeConnector(runtime).callTool("engine_process_stats", {}),
+      ).rejects.toMatchObject({
         code,
         detail,
       })
@@ -117,31 +123,20 @@ describe("the artifact's connector (claude-connector.ts)", () => {
 
   it("reads a resolved error answer, a text payload and a raw CallToolResult through the engine", async () => {
     const answers: Record<string, McpAnswer> = {
-      engine_list_engines: { payload: { engines: [{ id: "prod-a" }] } },
-      engine_status: { isError: true, content: [{ type: "text", text: "[503] engine down" }] },
-      engine_list_tasks: { payload: '{"items":[]}' },
-      engine_list_incidents: { structuredContent: { items: [{ id: "i1" }] } },
-      engine_list_process_definitions: { isError: true, payload: "no such key" },
-      engine_list_process_instances: {
-        payload: { isError: true, content: [{ type: "text", text: "[503] engine down" }] },
-      },
+      1: { isError: true, content: [{ type: "text", text: "[503] engine down" }] },
+      2: { isError: true, payload: "no such key" },
+      3: { payload: { isError: true, content: [{ type: "text", text: "[503] engine down" }] } },
+      4: { payload: '{"activities":[]}' },
+      5: { structuredContent: { activities: [{ activityId: "a" }] } },
     }
-    const { runtime } = runtimeOf((_, tool) => Promise.resolve(answers[tool]))
+    const { runtime } = runtimeOf((_, _tool, args) => Promise.resolve(answers[String(args.n)]))
     const engine = createEngine(claudeConnector(runtime))
-    await expect(engine.call("engine_status")).rejects.toMatchObject({
-      code: "tool_error",
-      detail: "[503] engine down",
-    })
-    await expect(engine.call("engine_list_process_definitions")).rejects.toMatchObject({
-      code: "tool_error",
-      detail: "no such key",
-    })
-    await expect(engine.call("engine_list_process_instances")).rejects.toMatchObject({
-      code: "tool_error",
-      detail: "[503] engine down",
-    })
-    await expect(engine.call("engine_list_tasks")).resolves.toEqual({ items: [] })
-    await expect(engine.call("engine_list_incidents")).resolves.toEqual({ items: [{ id: "i1" }] })
+    const call = (n: number) => engine.call("engine_activity_counts", { n })
+    await expect(call(1)).rejects.toMatchObject({ code: "tool_error", detail: "[503] engine down" })
+    await expect(call(2)).rejects.toMatchObject({ code: "tool_error", detail: "no such key" })
+    await expect(call(3)).rejects.toMatchObject({ code: "tool_error", detail: "[503] engine down" })
+    await expect(call(4)).resolves.toEqual({ activities: [] })
+    await expect(call(5)).resolves.toEqual({ activities: [{ activityId: "a" }] })
   })
 
   it.each([
@@ -153,9 +148,11 @@ describe("the artifact's connector (claude-connector.ts)", () => {
   ] as [string, ClaudeRuntime | undefined][])(
     "reads %s as a page without a connector",
     async (_, runtime) => {
-      await expect(claudeConnector(runtime).callTool("engine_status", {})).rejects.toMatchObject({
+      await expect(
+        claudeConnector(runtime).callTool("engine_process_stats", {}),
+      ).rejects.toMatchObject({
         code: "not_connected",
-        tool: "engine_status",
+        tool: "engine_process_stats",
       })
     },
   )
@@ -164,15 +161,15 @@ describe("the artifact's connector (claude-connector.ts)", () => {
     let next: () => Promise<McpAnswer> = () => refusal("selection_required", "pick one")
     const { runtime, uses } = runtimeOf(() => next())
     const connector = claudeConnector(runtime)
-    await expect(connector.callTool("engine_status", {})).rejects.toMatchObject({
+    await expect(connector.callTool("engine_process_stats", {})).rejects.toMatchObject({
       code: "not_connected",
     })
     next = () => refusal(undefined, "[503] down")
-    await expect(connector.callTool("engine_status", {})).rejects.toMatchObject({
+    await expect(connector.callTool("engine_process_stats", {})).rejects.toMatchObject({
       code: "tool_error",
     })
     next = () => Promise.resolve({ payload: { ok: true } })
-    await expect(connector.callTool("engine_status", {})).resolves.toEqual({
+    await expect(connector.callTool("engine_process_stats", {})).resolves.toEqual({
       structuredContent: { ok: true },
     })
     expect(uses()).toBe(2)
