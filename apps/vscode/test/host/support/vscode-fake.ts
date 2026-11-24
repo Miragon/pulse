@@ -158,10 +158,76 @@ export const window = {
   },
 }
 
+export class Position {
+  constructor(
+    readonly line: number,
+    readonly character: number,
+  ) {}
+}
+
+export class Range {
+  constructor(
+    readonly start: Position,
+    readonly end: Position,
+  ) {}
+}
+
+export class WorkspaceEdit {
+  readonly replaced: { readonly uri: Uri; readonly range: Range; readonly text: string }[] = []
+
+  replace(uri: Uri, range: Range, text: string): void {
+    this.replaced.push({ uri, range, text })
+  }
+}
+
+export class FakeTextDocument {
+  constructor(
+    readonly uri: Uri,
+    public text: string,
+  ) {}
+
+  getText(): string {
+    return this.text
+  }
+
+  positionAt(offset: number): Position {
+    return new Position(0, offset)
+  }
+}
+
+export const textDocuments: FakeTextDocument[] = []
+export const edits: { refused: boolean; applied: WorkspaceEdit[] } = { refused: false, applied: [] }
+export const executed: unknown[][] = []
+
+export const commands = {
+  executeCommand: (...args: unknown[]): Promise<undefined> => {
+    executed.push(args)
+    return Promise.resolve(undefined)
+  },
+}
+
 export const documentSaved = new EventEmitter<{ readonly uri: { readonly path: string } }>()
+export const documentChanged = new EventEmitter<{ readonly document: FakeTextDocument }>()
 export const debugEnded = new EventEmitter<unknown>()
 export const taskEnded = new EventEmitter<unknown>()
 
-export const workspace = { onDidSaveTextDocument: documentSaved.event }
+export const workspace = {
+  onDidSaveTextDocument: documentSaved.event,
+  onDidChangeTextDocument: documentChanged.event,
+  applyEdit: (edit: WorkspaceEdit): Promise<boolean> => {
+    if (edits.refused) {
+      return Promise.resolve(false)
+    }
+    edits.applied.push(edit)
+    for (const { uri, text } of edit.replaced) {
+      const document = textDocuments.find((open) => open.uri.toString() === uri.toString())
+      if (document !== undefined) {
+        document.text = text
+        documentChanged.fire({ document })
+      }
+    }
+    return Promise.resolve(true)
+  },
+}
 export const debug = { onDidTerminateDebugSession: debugEnded.event }
 export const tasks = { onDidEndTaskProcess: taskEnded.event }

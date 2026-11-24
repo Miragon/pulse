@@ -10,7 +10,7 @@ export const COMMAND = {
   openInstance: "pulse.openInstance",
   openBoard: "pulse.openBoard",
   newBoard: "pulse.newBoard",
-  previewMigrationPlan: "pulse.previewMigrationPlan",
+  editMigrationPlan: "pulse.editMigrationPlan",
 } as const
 
 export type CommandId = (typeof COMMAND)[keyof typeof COMMAND]

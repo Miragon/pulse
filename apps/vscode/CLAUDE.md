@@ -188,10 +188,11 @@ canvas as their slots. The core reads a migration plan file with Pulse's migrati
 `@miragon/pulse-migration-plan` (`packages/core/migration-plan`, private), through its main entry,
 in `packages/core/runtime-view/src/core/plans` alone (the runtime view's closed world; the
 repository's `migration-plan-is-a-leaf` and `migration-plan-consumers`, which admit the CLI's
-workflow commands too); the host hands the preview the file's text and never imports the format.
-The preview, `MigrationPlanPanel`, runs on a `PlanContext` without commands, bulk runs or
-confirmations; `plans-start-nothing` keeps that folder from importing a write or a panel that
-brings one in, and the test 'starts nothing' in
+workflow commands too); the host hands the editor the open document's text, writes back what it
+hands over and never imports the format. The editor, `MigrationPlanPanel` in the custom text editor
+`MigrationPlanEditors`, runs on a `PlanContext` without commands, bulk runs or confirmations;
+`plans-start-nothing` keeps that folder from importing a write or a panel that brings one in, and
+the test 'starts nothing' in
 `packages/core/runtime-view/test/core/migration-plan-panel.test.ts` sends it every intent through
 recording commands. The core builds
 the engine tab's numbers and an instance view's (its incident cards, wait rows, path, call links, head strip and markers, the taken flows its own)
