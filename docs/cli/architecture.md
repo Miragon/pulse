@@ -40,8 +40,8 @@ flowchart TB
 
 dependency-cruiser enforces the boundaries (`pnpm lint:architecture && pnpm lint:architecture:cli`):
 
-- `workflow` imports `engine-port` and `@miragon/pulse-c7-core`, never `engines` or `api`.
-  It turns the package's steps and reasons into the command lines and errors the CLI prints.
+- `workflow` imports `engine-port`, `@miragon/pulse-c7-core` and `@miragon/pulse-migration-plan`,
+  never `engines` or `api`, and turns c7-core's steps and reasons into the CLI's lines and errors.
   Only `operation/dates.ts`, `operation/variables.ts` and `http/errors.ts` import c7-core too.
 - Only `engines/<name>/adapter.ts` imports `api`.
 - Adapters do not import each other. An API does not import another API.

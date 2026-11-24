@@ -121,8 +121,8 @@ no copy, so a chain of calls that one failure stops counts as one (`rootIncident
 
 ## Where next
 
-- [Workflow commands](./workflow-commands.md): `inspect`, `wait`, `advance`, `retry`, `deploy` and
-  `status`, the six commands that combine several requests.
+- [Workflow commands](./workflow-commands.md): `inspect`, `wait`, `advance`, `retry`, `deploy`,
+  `status` and `plan-migration`, the seven commands that combine several requests.
 - [Recipes](./recipes.md): command lines for everyday tasks.
 - [Safety](./safety.md): previews, confirmation and read-only mode.
 - In the CLI: `pulse commands` lists the API groups, `pulse describe <group> <command>`

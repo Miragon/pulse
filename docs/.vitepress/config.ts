@@ -104,6 +104,7 @@ export default miragonDocs({
         { text: "Camunda 8", link: "/vscode/camunda8" },
         { text: "Usage", link: "/vscode/usage" },
         { text: "Boards", link: "/vscode/boards" },
+        { text: "Migration plans", link: "/vscode/migration-plans" },
         { text: "Architecture", link: "/vscode/architecture" },
         { text: "Parity with the MCP cockpit", link: "/vscode/parity" },
       ],
