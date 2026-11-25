@@ -88,9 +88,10 @@ answer 30 seconds per caller. The reads are Camunda 7's (CIB seven, Operaton, Ca
    claude.ai (Settings, Connectors).
 2. `pnpm build`, then publish `dist/index.html` as the artifact's page with `dist/app.js` and
    `dist/pulse-ui.css` as its files.
-3. After the first publish, declare the `mcp` capability: the same connector name and exactly the
-   tools of `PAGE_TOOLS` in `src/engine/tools.ts`. The runtime refuses a call to a tool it does
-   not name.
+3. After the first publish, declare the `mcp` capability as
+   `{ "mcp": { "servers": [{ "server": "<CONNECTOR_NAME>", "tools": [<PAGE_TOOLS>] }] } }`, with
+   exactly the tools of `PAGE_TOOLS` in `src/engine/tools.ts`. The runtime refuses a call to a
+   tool it does not name.
 
 What a viewer is told when the runtime refuses a call, by its code:
 

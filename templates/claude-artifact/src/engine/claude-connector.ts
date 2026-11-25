@@ -13,23 +13,26 @@ import type { ToolName } from "./tools.ts"
  * The only file that knows the artifact runtime: the page's `Connector` over the `mcp` capability
  * of a Claude artifact, which calls a tool on the viewer's own connector to the Pulse MCP server.
  *
- * VERIFIED against the built page of a working artifact that reads an MCP connector this way:
- * 1. `window.claude.use("mcp")` returns a promise of the capability, which is null or undefined
- *    when the page has none.
- * 2. `callTool(server, tool, args, { cache })` takes positional arguments: `server` is the display
- *    name the viewer gave the connector (`CONNECTOR_NAME`, src/page.config.ts), `cache` is
- *    `{ staleTime, gcTime }` and `{ staleTime: 0, gcTime, refresh: true }` for a fresh answer.
- * 3. It resolves to `{ payload }`, the tool's JSON answer (a list tool's `{ items, totalCount,
- *    hasMore, nextOffset }`).
- * 4. A call the runtime refuses rejects with `code` (one of `RUNTIME_CODES` below) and `message`.
+ * VERIFIED on 2026-11-25 by a probe artifact in claude.ai (runtime contract 0.2.99) against a
+ * Pulse MCP server:
+ * 1. `window.claude.use("mcp")` resolves to a frozen namespace (`callTool`, `listTools`,
+ *    `describeTool`, `server`, `invalidate`, `watchTool`).
+ * 2. `callTool(server, tool, args, { cache })` takes positional arguments: `server` is the name
+ *    the runtime knows the connector by (`CONNECTOR_NAME`, src/page.config.ts), the name the
+ *    `mcp` declaration gives it; `{ cache: { refresh: true } }` asks past the runtime's cache.
+ * 3. It resolves to the tool's `CallToolResult` plus `payload`, the tool's JSON
+ *    (`structuredContent`).
+ * 4. Everything else rejects with a plain object `{ code, message, server }`, never an `Error`:
+ *    a runtime refusal with its code (`RUNTIME_CODES` below; `not_in_manifest` for a tool the
+ *    declaration leaves out, without a round trip), and a tool's own error answer, strict input
+ *    included, as `code: "tool_error"` with the tool's text as `message` and the result under
+ *    `result`. A call never resolves with `isError`.
  *
- * STILL UNKNOWN, so the code below stays tolerant: whether a tool's error answer (`isError`)
- * rejects or resolves (a resolved answer with `isError`, and a rejection with any other code or
- * none, is the page's `tool_error`, its text classified by the kit as the server's error), and
- * what `staleTime` and `gcTime` mean exactly (read here as ms, as TanStack Query reads them).
+ * STILL UNKNOWN: what `staleTime` and `gcTime` mean exactly (read here as ms, as TanStack Query
+ * reads them); a call without them came back from the server, not from a cache.
  *
- * Publishing declares the page's `mcp` capability for the connector named `CONNECTOR_NAME` with
- * exactly the tools of `PAGE_TOOLS` (`src/engine/tools.ts`); a call to another tool is refused.
+ * Publishing declares the capability as `{ "mcp": { "servers": [{ "server": CONNECTOR_NAME,
+ * "tools": PAGE_TOOLS }] } }` (`src/engine/tools.ts`); a call to another tool is refused.
  */
 
 /** How long the runtime holds an answer no read uses any more (its cache's `gcTime`), 10 min. */
@@ -41,10 +44,7 @@ export interface CacheOptions {
   refresh?: boolean
 }
 
-/**
- * What a call resolves to: `payload`, maybe with `isError`; a raw `CallToolResult` is tolerated
- * too, as long as how a tool's error answer arrives is not known.
- */
+/** What a call resolves to: the tool's result with `payload`, its JSON. */
 export type McpAnswer = ToolResult & { payload?: unknown }
 
 export interface McpCapability {
@@ -114,27 +114,15 @@ export function runtimeError(
     : new EngineError(code, tool, message ? `[${raw}] ${message}` : `[${raw}]`)
 }
 
-/** A tool's error answer as MCP has it (`isError`), wherever the runtime puts one. */
-function isErrorResult(value: unknown): value is ToolResult {
-  return typeof value === "object" && value !== null && (value as ToolResult).isError === true
-}
-
 /**
- * An answer as the engine reads it (`resultData`): `payload` as the data, a text as the text, an
- * error answer with its text (`isError` on the answer, or a `payload` that is MCP's error result);
- * an answer without `payload` as the raw `CallToolResult` it may be.
+ * An answer as the engine reads it (`resultData`): `payload` as the data, a text payload (a tool
+ * that answers text only) as its text. A tool's error never resolves: it rejects as `tool_error`.
  */
-export function resultOf(answer: McpAnswer | null | undefined): ToolResult {
-  if (answer === null || typeof answer !== "object" || !("payload" in answer)) return answer ?? {}
-  const { payload, isError, content } = answer
-  if (isErrorResult(payload)) {
-    return { isError: true, content: payload.content ?? [{ type: "text", text: "" }] }
-  }
-  if (isError !== true && typeof payload !== "string") return { structuredContent: payload }
-  const text = typeof payload === "string" ? payload : JSON.stringify(payload)
-  return isError === true
-    ? { isError, content: content ?? [{ type: "text", text }] }
-    : { content: [{ type: "text", text }] }
+export function resultOf(answer: McpAnswer): ToolResult {
+  const { payload } = answer
+  return typeof payload === "string"
+    ? { content: [{ type: "text", text: payload }] }
+    : { structuredContent: payload }
 }
 
 /**

@@ -43,20 +43,16 @@ export interface MockOptions {
 }
 
 /**
- * The code a tool's own error is rejected with. How the runtime hands one on is not verified
- * (claude-connector.ts); the mock rejects it with a code outside the runtime's refusals, which
- * the page reads as the server's error and words by its text.
+ * A rejection as the runtime gives one (claude-connector.ts): a plain object with its code, its
+ * message and the connector; a tool's own error as `tool_error` with the tool's result.
  */
-const TOOL_ERROR = "tool_error"
-
-/** A rejection as the runtime gives one: its code and its message. */
-function rejection(code: string, message: string): Error & { code: string } {
-  return Object.assign(new Error(message), { code })
+function rejection(code: string, message: string, result?: ToolResult) {
+  return { code, message, server: CONNECTOR_NAME, ...(result === undefined ? {} : { result }) }
 }
 
 /** A recorded answer as the runtime resolves it, `{ payload }`; an error answer rejects its text. */
 function answerOf(result: ToolResult): McpAnswer {
-  if (result.isError) throw rejection(TOOL_ERROR, resultText(result))
+  if (result.isError) throw rejection("tool_error", resultText(result), result)
   if (result.structuredContent !== undefined) return { payload: result.structuredContent }
   const text = resultText(result)
   try {
@@ -120,14 +116,14 @@ export function mockClaude(
         const code = tools.get(tool)
         if (code !== undefined) throw rejection(code, `The fixture refuses ${tool} (${code}).`)
         throw rejection(
-          TOOL_ERROR,
+          "tool_error",
           `[503 ServiceUnavailable] The fixture fails ${tool} (engine ${fixture.engine})`,
         )
       }
       const recorded = answers.get(callKey(tool, args))
       if (recorded === undefined) {
         throw rejection(
-          TOOL_ERROR,
+          "tool_error",
           `No recorded answer for ${tool} ${JSON.stringify(args)}: record the fixtures again (pnpm record).`,
         )
       }

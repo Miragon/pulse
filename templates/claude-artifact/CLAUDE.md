@@ -7,9 +7,9 @@ reads a process engine through the viewer's connector to the Pulse MCP server an
 ## What a copy sets
 
 `src/page.config.ts` holds the two values: `PROCESS_KEY`, the process the dashboard shows, which
-`pnpm record` records, and `CONNECTOR_NAME`, the display name of the viewer's Pulse connector in
-claude.ai (Settings, Connectors), which the `mcp` declaration names too. Ask for that name when
-you do not know it. The page's title is in `src/page.html`.
+`pnpm record` records, and `CONNECTOR_NAME`, the name the artifact runtime knows the viewer's
+Pulse connector by (as in claude.ai's Settings, Connectors, for example `Miragon-ai-cloud`),
+which the `mcp` declaration names too. Ask for that name when you do not know it. The page's title is in `src/page.html`.
 
 ## The artifact runtime
 
@@ -23,11 +23,13 @@ you do not know it. The page's title is in `src/page.html`.
 - **Content security policy.** Stylesheets load only from the page's files and Google Fonts
   (Geist), and no fetch, XHR or WebSocket reaches any host: everything ships in the three files,
   and the engine comes only through the connector.
-- **Capabilities.** After the first publish, declare the `mcp` capability for the connector named
-  `CONNECTOR_NAME` with exactly the names of `PAGE_TOOLS` (`src/engine/tools.ts`): the runtime
-  refuses a call to a tool the declaration leaves out. A declaration is always the full set, so a
-  new tool in `PAGE_TOOLS` means declaring again, every tool included. Load the
-  `artifact-capabilities` skill before you declare: it gives the declaration's shape.
+- **Capabilities.** After the first publish, declare
+  `{ "mcp": { "servers": [{ "server": CONNECTOR_NAME, "tools": PAGE_TOOLS }] } }` with exactly
+  the names of `PAGE_TOOLS` (`src/engine/tools.ts`): the runtime refuses a call to a tool the
+  declaration leaves out (`not_in_manifest`). A declaration is always the full set, so a new tool
+  in `PAGE_TOOLS` means declaring again, every tool included. Load the `artifact-capabilities`
+  skill before you declare where it is available. `src/engine/claude-connector.ts` records the
+  runtime contract as verified, with its date.
 
 ## Data
 

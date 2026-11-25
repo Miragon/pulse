@@ -29,9 +29,9 @@ function runtimeOf(answer: (...args: Parameters<McpCapability["callTool"]>) => P
   return { runtime, calls, uses: () => uses }
 }
 
-/** A rejection as the runtime gives one. */
+/** A rejection as the runtime gives one: a plain object, never an `Error`. */
 const refusal = (code: string | undefined, message: string) =>
-  Promise.reject(Object.assign(new Error(message), code === undefined ? {} : { code }))
+  Promise.reject({ ...(code === undefined ? {} : { code }), message, server: CONNECTOR_NAME })
 
 describe("the artifact's connector (claude-connector.ts)", () => {
   it("calls the tool positionally on the connector the page names and reads the payload", async () => {
@@ -121,22 +121,35 @@ describe("the artifact's connector (claude-connector.ts)", () => {
     },
   )
 
-  it("reads a resolved error answer, a text payload and a raw CallToolResult through the engine", async () => {
-    const answers: Record<string, McpAnswer> = {
-      1: { isError: true, content: [{ type: "text", text: "[503] engine down" }] },
-      2: { isError: true, payload: "no such key" },
-      3: { payload: { isError: true, content: [{ type: "text", text: "[503] engine down" }] } },
-      4: { payload: '{"activities":[]}' },
-      5: { structuredContent: { activities: [{ activityId: "a" }] } },
+  it("reads the runtime's answer and a tool's error as the probe of 2026-11-25 saw them", async () => {
+    const data = { activities: [{ activityId: "a" }] }
+    const text = 'Invalid arguments for tool engine_activity_counts: Unknown key "n".'
+    const answers: Record<string, () => Promise<McpAnswer>> = {
+      // A result with `payload`, the tool's JSON, next to its `structuredContent`.
+      1: () =>
+        Promise.resolve({
+          _meta: { mimeType: "application/json" },
+          content: [{ type: "text", text: JSON.stringify(data) }],
+          structuredContent: data,
+          payload: data,
+        } as McpAnswer),
+      // A tool that answers text only.
+      2: () => Promise.resolve({ payload: '{"activities":[]}' }),
+      // A tool's error (here strict input) rejects as `tool_error` with the tool's result.
+      3: () =>
+        Promise.reject({
+          code: "tool_error",
+          server: CONNECTOR_NAME,
+          message: text,
+          result: { content: [{ type: "text", text }], isError: true },
+        }),
     }
-    const { runtime } = runtimeOf((_, _tool, args) => Promise.resolve(answers[String(args.n)]))
+    const { runtime } = runtimeOf((_, _tool, args) => answers[String(args.n)]())
     const engine = createEngine(claudeConnector(runtime))
     const call = (n: number) => engine.call("engine_activity_counts", { n })
-    await expect(call(1)).rejects.toMatchObject({ code: "tool_error", detail: "[503] engine down" })
-    await expect(call(2)).rejects.toMatchObject({ code: "tool_error", detail: "no such key" })
-    await expect(call(3)).rejects.toMatchObject({ code: "tool_error", detail: "[503] engine down" })
-    await expect(call(4)).resolves.toEqual({ activities: [] })
-    await expect(call(5)).resolves.toEqual({ activities: [{ activityId: "a" }] })
+    await expect(call(1)).resolves.toEqual(data)
+    await expect(call(2)).resolves.toEqual({ activities: [] })
+    await expect(call(3)).rejects.toMatchObject({ code: "tool_error", detail: text })
   })
 
   it.each([
