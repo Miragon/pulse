@@ -109,11 +109,7 @@ describe("scopesFor: prose reaches only the checks that read it", () => {
 
   it("validates the plugins for the MCP server's plugin, prose included, and runs its tests, not the widget suites", () => {
     const plugin = "apps/mcp-server/skills/pulse-artifact"
-    for (const file of [
-      `${plugin}/SKILL.md`,
-      `${plugin}/references/components.md`,
-      `${plugin}/evals/process-dashboard/prompt.md`,
-    ]) {
+    for (const file of [`${plugin}/SKILL.md`, `${plugin}/evals/process-dashboard/prompt.md`]) {
       assert.deepEqual(scopes(file), ["plugins", "typescript"], file)
     }
     // The manifest is no prose: the package rules run the server's checks as for its code.
@@ -410,7 +406,7 @@ describe("scopesFor: paths outside the packages", () => {
     assert.ok(!scopes("templates/composed-server/server/src/app.ts").includes("starter-engine"))
   })
 
-  it("runs the template's job for the Claude artifact's code and fixtures, nothing for its README", () => {
+  it("runs the template's job for the Claude artifact's code and fixtures, the TypeScript job for its agent file and README", () => {
     for (const file of [
       "templates/claude-artifact/src/app.tsx",
       "templates/claude-artifact/src/page.html",
@@ -419,7 +415,13 @@ describe("scopesFor: paths outside the packages", () => {
     ]) {
       assert.deepEqual(scopes(file), ["template", "typescript"], file)
     }
-    assert.deepEqual(scopes("templates/claude-artifact/README.md"), [])
+    // The MCP server's plugin test reads the agent file, lint:github the README's release tag.
+    for (const file of [
+      "templates/claude-artifact/CLAUDE.md",
+      "templates/claude-artifact/README.md",
+    ]) {
+      assert.deepEqual(scopes(file), ["typescript"], file)
+    }
   })
 
   it("validates the plugins for the marketplace, whose listing the MCP server's plugin test reads", () => {

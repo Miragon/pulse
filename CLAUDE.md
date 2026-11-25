@@ -676,9 +676,9 @@ The release workflows hold the publish credentials and no pull request runs them
 
 - **One release-please train.** Conventional commits on `main` drive `release-please.yml`: one
   Release PR bumps every package, app, manifest, template pin and User-Agent in lockstep
-  (`extra-files` in `release-please-config.json`), and the pulse-ui version a page without a build
-  loads from jsDelivr in the artifact docs (a generic file's marked versions, held to the release
-  by `pnpm lint:github`). Merging it creates the release; every publish job waits for approval of
+  (`extra-files` in `release-please-config.json`), and the release tag the artifact docs clone
+  `templates/claude-artifact` from (a generic file's marked versions, held to the release by
+  `pnpm lint:github`). Merging it creates the release; every publish job waits for approval of
   the `release` environment.
 - **npm:** the twelve libraries and `@miragon/pulse-cli` publish with OIDC trusted publishing (no
   token, provenance attached), packed by `pnpm pack`. A package new to npm is published once by

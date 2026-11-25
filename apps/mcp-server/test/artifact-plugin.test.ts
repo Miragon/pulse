@@ -9,15 +9,19 @@ import { isModelVisible, toolNamesIn, type WireTool } from "./golden.js"
  * skills/pulse-artifact, as the CLI's pulse-cli is, so it holds no package.json (Claude Code
  * would install its dependencies into the plugin); .claude-plugin/plugin.json carries this app's
  * version and release-please bumps it with the app; the repository's marketplace
- * (.claude-plugin/marketplace.json) lists it. The skill teaches the template
+ * (.claude-plugin/marketplace.json) lists it. The skill starts a copy of the template
  * templates/claude-artifact, which an installed plugin does not hold, so it names its GitHub URL
- * too, and it names only tools a page may call: model tools of the read-only floor.
+ * too, and hands over to the copy's agent file (templates/claude-artifact/CLAUDE.md), which
+ * carries the rules in the version the copy pins; both name only tools a page may call: model
+ * tools of the read-only floor.
  */
 
 const REPO_ROOT = path.join(import.meta.dirname, "..", "..", "..")
 const PLUGIN_DIR = "apps/mcp-server/skills/pulse-artifact"
 const TEMPLATE = "templates/claude-artifact"
 const TEMPLATE_URL = `https://github.com/Miragon/pulse/tree/main/${TEMPLATE}`
+/** The copy's agent file the skill hands over to: the rules and the tools a page calls. */
+const TEMPLATE_AGENT_FILE = `${TEMPLATE}/CLAUDE.md`
 
 const read = (rel: string) => fs.readFileSync(path.join(REPO_ROOT, rel), "utf8")
 const exists = (rel: string) => fs.existsSync(path.join(REPO_ROOT, rel))
@@ -47,11 +51,11 @@ const APP = JSON.parse(read("apps/mcp-server/package.json")) as {
 }
 const SKILL = read(`${PLUGIN_DIR}/SKILL.md`)
 
-/** Every Markdown file of the plugin that a session reads: the skill and its references. */
+/** Every Markdown file of the plugin a session reads: the skill and its references, if any. */
+const REFERENCES = path.join(REPO_ROOT, PLUGIN_DIR, "references")
 const SKILL_FILES = [
   `${PLUGIN_DIR}/SKILL.md`,
-  ...fs
-    .readdirSync(path.join(REPO_ROOT, PLUGIN_DIR, "references"))
+  ...(fs.existsSync(REFERENCES) ? fs.readdirSync(REFERENCES) : [])
     .filter((name) => name.endsWith(".md"))
     .map((name) => `${PLUGIN_DIR}/references/${name}`),
 ]
@@ -142,6 +146,11 @@ describe(`${PLUGIN_DIR}/SKILL.md`, () => {
     expect(exists(TEMPLATE)).toBe(true)
   })
 
+  it("hands over to the copy's agent file, which the template holds", () => {
+    expect(SKILL).toContain("`CLAUDE.md`")
+    expect(exists(TEMPLATE_AGENT_FILE)).toBe(true)
+  })
+
   it("names every reference it ships, and ships every reference it names", () => {
     const named = [...SKILL.matchAll(/`(references\/[\w.-]+\.md)`/g)].map((match) => match[1])
     const shipped = SKILL_FILES.filter((file) => file.includes("/references/")).map((file) =>
@@ -154,8 +163,8 @@ describe(`${PLUGIN_DIR}/SKILL.md`, () => {
 describe("the tools the skill names", () => {
   const floor = new Map(READ_ONLY_FLOOR.map((tool) => [tool.name, tool]))
 
-  // The generated component sheet carries the packages' JSDoc, written for their own readers.
-  const written = SKILL_FILES.filter((file) => !file.endsWith("/references/components.md"))
+  // The copy's agent file carries the data rules and the tool table the skill hands over.
+  const written = [...SKILL_FILES, TEMPLATE_AGENT_FILE]
 
   it("are model tools of the read-only floor, which every toolset serves", () => {
     const named = written.flatMap((file) => toolNamesIn(read(file)).map((name) => ({ file, name })))

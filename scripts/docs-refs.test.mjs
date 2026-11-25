@@ -16,10 +16,12 @@ import { publishedLibraries } from "./workspace-packages.mjs"
  * This guard reads every backticked reference in the docs, the READMEs, the
  * agent files and the skills (isCheckedDoc below) and checks it against the
  * repo: tool names against the full surface (the admin golden), repo paths against the tree
- * (from the repo root, in a nested file too; a template's docs inside that template first), the
+ * (from the repo root, in a nested file too; a template's docs inside that template first, and
+ * there also the paths from its own root a copy of it cites, `src/app.tsx`), the
  * template docs' paths into an installed
- * package against what that package ships and where pnpm links it, the identifiers of the skills
- * and of the nested agent files against the sources and the typings of the official MCP SDK
+ * package against what that package ships and where pnpm links it, the identifiers of the skills,
+ * of the nested agent files and of the Claude artifact template's agent file against the sources
+ * and the typings of the official MCP SDK
  * (OFFICIAL_TYPINGS; a nested agent file's also against its package's own
  * tsconfig*.json), and each page of the docs site (every Markdown file under docs/,
  * built by VitePress to https://miragon.github.io/pulse/) against its line
@@ -83,11 +85,17 @@ const isSkillFile = (rel) => isSkill(rel) && rel.endsWith("/SKILL.md")
 const isNestedAgentFile = (rel) => /^(?:apps|packages)\/(?:.+\/)?(?:CLAUDE|AGENTS)\.md$/.test(rel)
 
 /**
+ * The Claude artifact template's agent file: the rules a copy's agent follows, which the
+ * pulse-artifact skill hands over to, so its identifiers are checked as a skill's are.
+ */
+const CLAUDE_ARTIFACT_AGENT_FILE = "templates/claude-artifact/CLAUDE.md"
+
+/**
  * The Markdown this guard reads (`rel` is a repo-relative POSIX path): the
  * root README.md and CLAUDE.md, the docs pages, every package's README.md and
  * agent files, every Markdown file of an app (its READMEs, agent files, ADRs,
  * shipped skills, store listing), the starter template's README.md and
- * CLAUDE.md, the Claude artifact template's README.md and the skills. Never
+ * CLAUDE.md, the Claude artifact template's README.md and CLAUDE.md and the skills. Never
  * node_modules, and never a CHANGELOG.md: release-please writes it and quotes
  * old commit text.
  */
@@ -103,6 +111,7 @@ function isCheckedDoc(rel) {
     rel === "templates/composed-server/README.md" ||
     rel === "templates/composed-server/CLAUDE.md" ||
     rel === "templates/claude-artifact/README.md" ||
+    rel === CLAUDE_ARTIFACT_AGENT_FILE ||
     isSkill(rel)
   )
 }
@@ -135,13 +144,19 @@ function listedFiles(root) {
 /** The checked docs among the listed files of the repo at `root`. */
 const checkedDocs = (root) => listedFiles(root).filter(isCheckedDoc)
 
-/** The docs whose identifiers are checked: the skills and the nested agent files. */
-const identifierDocs = (docs) => [...docs.filter(isSkill), ...docs.filter(isNestedAgentFile)]
+/**
+ * The docs whose identifiers are checked: the skills, the nested agent files and the Claude
+ * artifact template's agent file.
+ */
+const identifierDocs = (docs) => [
+  ...docs.filter(isSkill),
+  ...docs.filter(isNestedAgentFile),
+  ...docs.filter((rel) => rel === CLAUDE_ARTIFACT_AGENT_FILE),
+]
 
 const repoFiles = listedFiles(REPO_ROOT)
 const docFiles = repoFiles.filter(isCheckedDoc)
 const skillFiles = docFiles.filter(isSkillFile)
-const skillReferences = docFiles.filter((rel) => isSkill(rel) && !isSkillFile(rel))
 const docsPages = docFiles.filter(isDocsPage)
 
 /**
@@ -191,11 +206,32 @@ const PATH_ROOTS = /^(?:apps|packages|docs|scripts|playground|templates|\.claude
 // Written by a build or a test run, not checked in.
 const GENERATED = /(?:^|\/)(?:dist|test-results|node_modules|generated-sources)(?:\/|$)/
 const pathOf = (token) => token.replace(/:\d+(?:-\d+)?$/, "").replace(/\/$/, "")
-const isPath = (token) =>
-  PATH_ROOTS.test(token) && !/\.\.\.|[*<>{}\s|]/.test(token) && !GENERATED.test(token)
 
 /** The template a doc sits in (`templates/<name>`, not the fixtures), if any. */
 const templateOf = (rel) => /^templates\/(?!fixtures\/)[^/]+(?=\/)/.exec(rel)?.[0]
+
+/** The folders a template's own docs cite from its root, as a copy of it does (`src/app.tsx`). */
+const TEMPLATE_FOLDERS = /^(?:src|fixtures|test)\//
+
+/**
+ * Whether `ref.token` (backticked in `ref.file`, a doc of the repo at `root`) is a path to check:
+ * one from the repo root (PATH_ROOTS), or, in a template's own docs, one from a folder at that
+ * template's root (TEMPLATE_FOLDERS). A template without that folder leaves such a token alone:
+ * the starter's docs cite a module's `src/` from the module.
+ */
+function isPath(ref, root = REPO_ROOT) {
+  const { token } = ref
+  if (/\.\.\.|[*<>{}\s|]/.test(token) || GENERATED.test(token)) return false
+  if (PATH_ROOTS.test(token)) return true
+  const template = templateOf(ref.file)
+  const folder = TEMPLATE_FOLDERS.exec(token)?.[0]
+  return (
+    template !== undefined &&
+    folder !== undefined &&
+    fs.statSync(path.join(root, template, folder), { throwIfNoEntry: false })?.isDirectory() ===
+      true
+  )
+}
 
 /**
  * Whether a backticked path of `ref` (a doc of the repo at `root`) exists: from the repo root, or,
@@ -215,7 +251,7 @@ describe("repo paths in the docs", () => {
   it("cites only files and directories that exist", () => {
     const missing = docFiles
       .flatMap((file) => backticked(file))
-      .filter((ref) => isPath(ref.token) && !citedPathExists(ref))
+      .filter((ref) => isPath(ref) && !citedPathExists(ref))
     assert.deepEqual(missing.map(where), [])
   })
 
@@ -244,6 +280,41 @@ describe("repo paths in the docs", () => {
       assert.equal(templateOf("templates/composed-server/CLAUDE.md"), "templates/composed-server")
       assert.equal(templateOf("templates/claude-artifact/README.md"), "templates/claude-artifact")
       assert.equal(templateOf("README.md"), undefined)
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it("checks a template doc's paths from the template's own src/, fixtures/ and test/", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "docs-paths-"))
+    try {
+      for (const rel of [
+        "templates/page/src/page.config.ts",
+        "templates/page/fixtures/orders.json",
+        "templates/page/test/app.test.tsx",
+        "templates/starter/modules/notes/src/tools.ts",
+      ]) {
+        fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true })
+        fs.writeFileSync(path.join(root, rel), "")
+      }
+      const ref = (file, token) => ({ file, line: 1, token })
+      const checked = (file, token) => {
+        const cited = ref(file, token)
+        return isPath(cited, root) ? citedPathExists(cited, root) : "unchecked"
+      }
+      assert.equal(checked("templates/page/CLAUDE.md", "src/page.config.ts"), true)
+      assert.equal(checked("templates/page/CLAUDE.md", "fixtures/orders.json"), true)
+      assert.equal(checked("templates/page/README.md", "test/app.test.tsx"), true)
+      assert.equal(checked("templates/page/README.md", "src/"), true)
+      // A gone file is reported, not skipped.
+      assert.equal(checked("templates/page/CLAUDE.md", "src/app.tsx"), false)
+      assert.equal(checked("templates/page/CLAUDE.md", "test/gone.test.ts"), false)
+      // Not a folder of the template's root: the starter cites a module's src/ from the module.
+      assert.equal(checked("templates/starter/CLAUDE.md", "src/tools.ts"), "unchecked")
+      // Outside a template these folders are no root; inside one, no other folder and no build.
+      assert.equal(checked("docs/mcp/page.md", "src/page.config.ts"), "unchecked")
+      assert.equal(checked("templates/page/README.md", "shots/light.png"), "unchecked")
+      assert.equal(checked("templates/page/README.md", "src/dist/app.js"), "unchecked")
     } finally {
       fs.rmSync(root, { recursive: true, force: true })
     }
@@ -563,10 +634,9 @@ const DOCS_BUDGETS = {
   // Every tool family and toolset (a process's numbers and the screens and boards as JSON for a
   // page among them) and the common settings.
   "mcp/reference.md": 175,
-  // A Claude artifact on Pulse: what it is, the template and its loop, the plugin, publishing,
-  // a page without a build (pulse-ui's browser bundle by the release's version), how a page calls
-  // the connector (its refusal codes) and the three calls of a load.
-  "mcp/claude-artifacts.md": 150,
+  // A Claude artifact on Pulse: what it is, the template's start (its README and agent file carry
+  // the rest), the plugin and a pointer to pulse-ui's browser bundle for a page without a build.
+  "mcp/claude-artifacts.md": 66,
   // The web app's pages (docs/web/): what it shows and for whom, its navigation, its start page
   // (every engine's figures, what runs where, an engine it could not read), its engine screen
   // and its instance screen, the sign-in an operator sets up (variables, the provider's side,
@@ -684,7 +754,7 @@ describe("what the guard reads", () => {
     "apps/cli/skills/pulse-cli/SKILL.md",
     "apps/cli/skills/pulse-cli/commands/status.md",
     "apps/mcp-server/skills/pulse-artifact/SKILL.md",
-    "apps/mcp-server/skills/pulse-artifact/references/components.md",
+    "apps/mcp-server/skills/pulse-artifact/references/recipes.md",
     "apps/mcp-server/skills/pulse-artifact/evals/process-dashboard/prompt.md",
     "apps/vscode/skills/pulse-boards/SKILL.md",
     ".claude/skills/create-board/SKILL.md",
@@ -692,6 +762,7 @@ describe("what the guard reads", () => {
     "templates/composed-server/README.md",
     "templates/composed-server/CLAUDE.md",
     "templates/claude-artifact/README.md",
+    "templates/claude-artifact/CLAUDE.md",
   ]) {
     it(`reads ${rel}`, () => {
       assert.equal(isCheckedDoc(rel), true)
@@ -722,7 +793,7 @@ describe("what the guard reads", () => {
     })
   }
 
-  it("checks the identifiers of the skills and of the nested agent files", () => {
+  it("checks the identifiers of the skills, the nested agent files and the artifact template's", () => {
     assert.deepEqual(
       identifierDocs([
         "CLAUDE.md",
@@ -735,19 +806,21 @@ describe("what the guard reads", () => {
         ".claude/skills/create-board/SKILL.md",
         "templates/composed-server/.claude/skills/add-widget/SKILL.md",
         "templates/claude-artifact/README.md",
+        "templates/claude-artifact/CLAUDE.md",
         "apps/cli/skills/pulse-cli/SKILL.md",
         "apps/mcp-server/skills/pulse-artifact/SKILL.md",
-        "apps/mcp-server/skills/pulse-artifact/references/components.md",
+        "apps/mcp-server/skills/pulse-artifact/references/recipes.md",
         "apps/mcp-server/skills/pulse-artifact/evals/process-dashboard/prompt.md",
       ]),
       [
         ".claude/skills/create-board/SKILL.md",
         "templates/composed-server/.claude/skills/add-widget/SKILL.md",
         "apps/mcp-server/skills/pulse-artifact/SKILL.md",
-        "apps/mcp-server/skills/pulse-artifact/references/components.md",
+        "apps/mcp-server/skills/pulse-artifact/references/recipes.md",
         "apps/vscode/AGENTS.md",
         "apps/vscode/CLAUDE.md",
         "packages/connectors/engine/engine-domain/AGENTS.md",
+        "templates/claude-artifact/CLAUDE.md",
       ],
     )
   })
@@ -898,6 +971,7 @@ describe("what the guard reads", () => {
       "apps/mcp-server/test-host/README.md",
       "templates/composed-server/CLAUDE.md",
       "templates/claude-artifact/README.md",
+      "templates/claude-artifact/CLAUDE.md",
       "apps/vscode/skills/pulse-boards/SKILL.md",
       "templates/composed-server/.claude/skills/setup-server/SKILL.md",
     ]) {
@@ -911,11 +985,6 @@ describe("what the guard reads", () => {
       "templates/composed-server/.claude/skills/create-module/SKILL.md",
       "templates/composed-server/.claude/skills/setup-server/SKILL.md",
     ])
-    // The plugin skill's references, the generated component cheat sheet among them.
-    assert.ok(
-      skillReferences.includes("apps/mcp-server/skills/pulse-artifact/references/components.md"),
-      skillReferences.join(", "),
-    )
     assert.ok(docsPages.map(pageKey).includes("index.md"))
   })
 })
