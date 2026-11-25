@@ -551,7 +551,7 @@ const DOCS_BUDGETS = {
   "mcp/operations.md": 120,
   // Each identity provider's side for /mcp and the web app, what a renewal catches, the MCP clients'
   // registration, what the server cannot serve, what was checked and the real-tenant checklist.
-  "mcp/identity-providers.md": 273,
+  "mcp/identity-providers.md": 274,
   "mcp/usage.md": 150,
   // A board in the chat and the cockpit, the server's board files, a board shared with the editors.
   "mcp/boards.md": 70,
