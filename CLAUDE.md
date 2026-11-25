@@ -718,7 +718,8 @@ The release workflows hold the publish credentials and no pull request runs them
   templates against them, `templates/composed-server` once more with the fixture module and
   `templates/claude-artifact` down to the three files of its `dist/`. ESLint, knip and
   dependency-cruiser skip `templates/`: their code rules are review knowledge, and
-  `scripts/artifact-tools.test.mjs` holds the tools the artifact calls.
+  `scripts/artifact-tools.test.mjs` holds the tools the artifact calls, each recorded answer to
+  its tool's output golden by shape and each call's arguments to its input schema.
 - **Engines** (CI `Engines (<flavor>)`): CIB seven and Operaton in Testcontainers running
   `test:engines`; the Camunda 8 suites run locally only until #531.
 - **CI scopes**: `scripts/ci-scopes.mjs` runs each job only for the files that concern it. A new

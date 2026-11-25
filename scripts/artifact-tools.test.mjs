@@ -17,6 +17,9 @@ import { appOnlyFeeds, fullSurface } from "./tool-surface.mjs"
  * (templates/claude-artifact/fixtures/*.json) calls only those tools and, together, every one of
  * them, so the declaration is what a load calls, no more. ESLint and tool-name-refs skip
  * templates/: this guard holds the names.
+ *
+ * The template's tests replay those recordings, so this guard also holds each recorded answer to
+ * its tool's output golden and its arguments to its input schema, or a published page breaks.
  */
 
 const TEMPLATE = "templates/claude-artifact"
@@ -123,6 +126,142 @@ function recordingsOf(root) {
       const file = `${FIXTURES}/${name}`
       return { file, calls: JSON.parse(readFileSync(path.join(root, file), "utf8")).calls }
     })
+}
+
+// The recorded answers and arguments against the server's goldens.
+/** The server's output goldens, recorded in another world, so an answer is held to their shape. */
+const OUTPUT_GOLDENS = "apps/mcp-server/test/__golden__/outputs"
+/** The page tools no output golden pins, each with why; an entry whose tool has one fails. */
+const WITHOUT_OUTPUT_GOLDEN = {
+  engine_get_process_definition_xml: "answers { id, bpmn20Xml }, which no output golden pins",
+}
+/** Objects keyed by data (end event ids), held under `*`; an entry needs a map on both sides. */
+const DATA_KEYED_MAPS = { engine_process_stats: ["buckets[].endedAt"] }
+
+const LACKS = "which the output golden lacks: an extra or renamed key, or a map for DATA_KEYED_MAPS"
+/** The remedies: an answer or input changed on purpose (golden:update), so the page follows. */
+const FOLLOW =
+  `adapt ${TEMPLATE}/src/data/process-dashboard.ts, then pnpm record there ` + "against pnpm play"
+const CALL_REMEDY = `the server refuses this call of a published page: ${FOLLOW}`
+const ANSWER_REMEDY =
+  `a published page reading it breaks: ${FOLLOW}, or add the case the recording shows to the ` +
+  "golden's world (apps/mcp-server/test/engine-goldens)"
+
+const typeOf = (value) => (value === null ? "null" : Array.isArray(value) ? "array" : typeof value)
+
+/** Each key path's JSON types, elements under `[]`, a listed map's values under `*`. */
+function shapeOf(value, maps = [], at = "", shape = new Map()) {
+  // A lower-bound count `{ atLeast: n }` is a number: history may cut any count.
+  const lowerBound = typeof value?.atLeast === "number" && Object.keys(value).length === 1
+  const type = lowerBound ? "number" : typeOf(value)
+  shape.set(at, (shape.get(at) ?? new Set()).add(type))
+  if (type === "array") value.forEach((each) => shapeOf(each, maps, `${at}[]`, shape))
+  const below = (key) => (at ? `${at}.` : "") + (maps.includes(at) ? "*" : key)
+  if (type === "object") {
+    for (const [key, child] of Object.entries(value)) shapeOf(child, maps, below(key), shape)
+  }
+  return shape
+}
+
+/**
+ * What of the `recorded` shape the `golden` lacks, a path or a type. Null matches either side, and
+ * below a path the golden lacks, saw only null or only empty, it tells nothing.
+ */
+function shapeFindings(recorded, golden) {
+  const known = (at) => [...(golden.get(at) ?? [])].filter((type) => type !== "null")
+  const findings = []
+  for (const [at, types] of recorded) {
+    if (!golden.has(at)) {
+      const parent = at.slice(0, Math.max(at.lastIndexOf("."), 0))
+      const open = /(\[\]|\.\*)$/.test(at) || known(parent).length === 0
+      if (!open) findings.push(`holds ${at}, ${LACKS}`)
+      continue
+    }
+    const wrong = [...types].filter((type) => type !== "null" && !known(at).includes(type))
+    if (known(at).length > 0 && wrong.length > 0) {
+      findings.push(
+        `holds ${at || "the answer itself"} as ${wrong.join(" or ")}, where the output golden ` +
+          `holds ${known(at).join(" or ")}`,
+      )
+    }
+  }
+  return findings
+}
+
+/**
+ * What `args` breaks of its tool's input `schema`: a required key, strict input, a JSON type or an
+ * enum, but `engine`'s, which lists the golden's profiles. The root has no JSON Schema validator.
+ */
+function argumentFindings(args, { properties = {}, required = [] }) {
+  if (typeOf(args) !== "object") return [`arguments are ${typeOf(args)}, not an object`]
+  const findings = required
+    .filter((key) => !Object.hasOwn(args, key))
+    .map((key) => `lacks the required ${key}`)
+  for (const [key, value] of Object.entries(args)) {
+    const { type = [], enum: enums } = properties[key] ?? {}
+    const types = [type].flat()
+    const own = [typeOf(value), Number.isInteger(value) && "integer"]
+    if (!Object.hasOwn(properties, key)) {
+      findings.push(`passes ${key}, which the input schema does not take (strict input)`)
+    } else if (types.length > 0 && !types.some((each) => own.includes(each))) {
+      findings.push(`passes ${key} as ${own[0]}, where the schema takes ${types.join(" or ")}`)
+    } else if (enums && key !== "engine" && !enums.includes(value)) {
+      findings.push(`passes ${key} ${JSON.stringify(value)}, not one of ${JSON.stringify(enums)}`)
+    }
+  }
+  return findings
+}
+
+/** The recorded calls against the server's side; a tool off the floor is pageToolFindings'. */
+function recordedFindings(recordings, { goldens, schemas, withoutGolden, dataMaps } = repoSide()) {
+  const findings = []
+  const recordedMaps = new Set()
+  for (const { file, calls } of recordings.filter((each) => Array.isArray(each.calls))) {
+    for (const { tool, arguments: args, result } of calls) {
+      const argLines = schemas.has(tool) ? argumentFindings(args, schemas.get(tool)) : []
+      findings.push(...argLines.map((line) => `${file}: ${tool} ${line}; ${CALL_REMEDY}`))
+      if (!goldens.has(tool) && !Object.hasOwn(withoutGolden, tool)) {
+        findings.push(
+          `${file}: ${tool} has no output golden (${OUTPUT_GOLDENS}/${tool}.json) and ` +
+            "WITHOUT_OUTPUT_GOLDEN does not name it, so nothing holds its answer to the server's",
+        )
+      }
+      if (!goldens.has(tool) || result?.structuredContent === undefined) continue
+      const maps = dataMaps[tool] ?? []
+      const shape = shapeOf(result.structuredContent, maps)
+      maps.filter((at) => shape.get(at)?.has("object")).forEach((at) => recordedMaps.add(tool + at))
+      const lines = shapeFindings(shape, shapeOf(goldens.get(tool), maps))
+      findings.push(...lines.map((line) => `${file}: ${tool}'s answer ${line}; ${ANSWER_REMEDY}`))
+    }
+  }
+  for (const tool of Object.keys(withoutGolden).filter((each) => goldens.has(each))) {
+    findings.push(`WITHOUT_OUTPUT_GOLDEN names ${tool}, which has an output golden: drop it`)
+  }
+  for (const [tool, maps] of Object.entries(dataMaps)) {
+    const golden = shapeOf(goldens.get(tool), maps)
+    for (const at of maps) {
+      const listed = `DATA_KEYED_MAPS lists ${tool} ${at}, where`
+      if (!golden.get(at)?.has("object")) findings.push(`${listed} its output golden holds no map`)
+      if (!recordedMaps.has(tool + at)) findings.push(`${listed} no recorded answer holds a map`)
+    }
+  }
+  return findings
+}
+
+/** The server's side: its output goldens' answers and read-only input schemas, by tool. */
+function repoSide() {
+  const read = (file) => JSON.parse(readFileSync(path.join(REPO_ROOT, file), "utf8"))
+  const tools = readdirSync(path.join(REPO_ROOT, OUTPUT_GOLDENS))
+    .filter((name) => name.endsWith(".json"))
+    .map((name) => name.slice(0, -".json".length))
+  return {
+    goldens: new Map(
+      tools.map((tool) => [tool, read(`${OUTPUT_GOLDENS}/${tool}.json`).result?.structuredContent]),
+    ),
+    schemas: new Map(read(READ_ONLY_GOLDEN).map(({ name, inputSchema }) => [name, inputSchema])),
+    withoutGolden: WITHOUT_OUTPUT_GOLDEN,
+    dataMaps: DATA_KEYED_MAPS,
+  }
 }
 
 const tool = (name, _meta) => ({ name, inputSchema: {}, _meta })
@@ -236,20 +375,134 @@ describe("artifact-tools: the tools a Claude artifact declares and calls", () =>
     const pageTools = pageToolsOf(source)
     assert.ok(pageTools !== undefined, `${TOOLS_FILE} declares no PAGE_TOOLS array literal`)
     assert.ok(pageTools.length > 0, `${TOOLS_FILE}: PAGE_TOOLS is empty`)
-    const readOnly = new Set(
-      JSON.parse(readFileSync(path.join(REPO_ROOT, READ_ONLY_GOLDEN), "utf8")).map(
-        ({ name }) => name,
-      ),
-    )
     assert.deepEqual(
       pageToolFindings({
         pageTools,
         surface: fullSurface(),
         appOnly: appOnlyFeeds(),
-        readOnly,
+        readOnly: new Set(repoSide().schemas.keys()),
         recordings: recordingsOf(REPO_ROOT),
       }),
       [],
     )
+  })
+})
+
+/** Plants violations in the repo's recordings, `expect`ing each finding that `plant` causes. */
+function assertBites(remedy, plant) {
+  const [side, recordings, expected] = [repoSide(), recordingsOf(REPO_ROOT), []]
+  for (const { file, calls } of recordings) {
+    for (const call of calls) {
+      plant(call, side, (line) => expected.push(`${file}: ${call.tool}${line}; ${remedy}`))
+    }
+  }
+  assert.ok(expected.length > 0, "no recorded call to plant a violation in")
+  assert.deepEqual(recordedFindings(recordings, side).sort(), expected.sort())
+  return expected
+}
+
+describe("artifact-tools: the recorded answers and arguments against the server's goldens", () => {
+  it("holds arguments to the input schema: required, strict, typed, in its enum but engine's", () => {
+    const schema = {
+      properties: {
+        engine: { type: "string", enum: ["default"] },
+        key: { type: "string" },
+        bucket: { type: "string", enum: ["day", "hour"] },
+        version: { type: "integer" },
+      },
+      required: ["key", "bucket"],
+    }
+    const cases = [
+      [{ key: "k", bucket: "day", engine: "playground", version: 2 }, []],
+      [undefined, ["arguments are undefined, not an object"]],
+      [
+        { bucket: "week", timeZone: "Europe/Berlin", version: 1.5, engine: 3 },
+        [
+          "lacks the required key",
+          'passes bucket "week", not one of ["day","hour"]',
+          "passes timeZone, which the input schema does not take (strict input)",
+          "passes version as number, where the schema takes integer",
+          "passes engine as number, where the schema takes string",
+        ],
+      ],
+    ]
+    for (const [args, expected] of cases) assert.deepEqual(argumentFindings(args, schema), expected)
+  })
+
+  it("holds answers to the golden's shape, values and data keys aside, null a wildcard", () => {
+    const golden = {
+      items: [{ id: "a", note: null, at: "t" }],
+      endedAt: { E1: 0 },
+      empty: [],
+      now: { running: 1 },
+      byId: { a: 1 },
+    }
+    const answer = {
+      items: [{ id: 7, note: { message: "m" }, at: null }],
+      endedAt: { E2: 3, E3: { atLeast: 1 }, E4: "x" },
+      empty: [{ anything: 1 }],
+      now: { runningInstances: 1 },
+      byId: { b: 1 },
+      extra: { deep: 1 },
+    }
+    const calls = [
+      { tool: "t", result: { structuredContent: answer } },
+      { tool: "t", result: { isError: true } },
+      { tool: "engine_x" },
+      { tool: "engine_w" },
+    ]
+    const findings = recordedFindings([{ file: "p.json", calls }], {
+      goldens: new Map(Object.entries({ t: golden, engine_y: {} })),
+      schemas: new Map(),
+      withoutGolden: { engine_w: "why", engine_y: "why" },
+      dataMaps: { t: ["endedAt", "m"] },
+    })
+    const where = "where the output golden holds"
+    assert.deepEqual(findings, [
+      ...[
+        `items[].id as number, ${where} string`,
+        `endedAt.* as string, ${where} number`,
+        `now.runningInstances, ${LACKS}`,
+        `byId.b, ${LACKS}`,
+        `extra, ${LACKS}`,
+      ].map((line) => `p.json: t's answer holds ${line}; ${ANSWER_REMEDY}`),
+      `p.json: engine_x has no output golden (${OUTPUT_GOLDENS}/engine_x.json) and ` +
+        "WITHOUT_OUTPUT_GOLDEN does not name it, so nothing holds its answer to the server's",
+      "WITHOUT_OUTPUT_GOLDEN names engine_y, which has an output golden: drop it",
+      "DATA_KEYED_MAPS lists t m, where its output golden holds no map",
+      "DATA_KEYED_MAPS lists t m, where no recorded answer holds a map",
+    ])
+  })
+
+  it("holds in the repo: each recorded answer has its golden's shape, each call's arguments its schema", () => {
+    assert.deepEqual(recordedFindings(recordingsOf(REPO_ROOT)), [])
+  })
+
+  it("bites on the repo's recordings: a renamed field and an extra key in each answer a golden holds", () => {
+    assertBites(ANSWER_REMEDY, ({ tool, result }, { goldens }, expect) => {
+      const answer = result?.structuredContent
+      if (!goldens.has(tool) || answer === undefined) return
+      const [first] = Object.keys(answer)
+      Object.assign(answer, { [`${first}Renamed`]: answer[first], plantedExtra: 1 })
+      delete answer[first]
+      expect(`'s answer holds ${first}Renamed, ${LACKS}`)
+      expect(`'s answer holds plantedExtra, ${LACKS}`)
+    })
+  })
+
+  it("bites on the repo's recordings: a missing required key, an unknown key, a value outside an enum", () => {
+    const expected = assertBites(CALL_REMEDY, ({ tool, arguments: args }, { schemas }, expect) => {
+      const { required = [], properties = {} } = schemas.get(tool) ?? {}
+      delete args[required[0]]
+      args.plantedKey = 1
+      expect(` lacks the required ${required[0]}`)
+      expect(" passes plantedKey, which the input schema does not take (strict input)")
+      for (const [key, { enum: options }] of Object.entries(properties)) {
+        if (!options || key === "engine" || !Object.hasOwn(args, key)) continue
+        args[key] = "plantedOutsideEnum"
+        expect(` passes ${key} "plantedOutsideEnum", not one of ${JSON.stringify(options)}`)
+      }
+    })
+    assert.match(expected.join("\n"), /not one of/, "no enum value planted")
   })
 })
