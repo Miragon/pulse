@@ -1,0 +1,15 @@
+{
+  // The tests under test/: the browser bundle's suites (scripts/browser-bundle.mjs, a page over it
+  // in Chromium) and its licence list, which reads the repository's scripts/third-party-licenses.mjs.
+  // They run in Node and hand Chromium callbacks that run in the page, so they see Node's globals
+  // and the DOM's, which src/ keeps apart (tsconfig.json, tsconfig.widgets.json). `tsc` builds
+  // src/ alone, so a build without the repository's scripts/ (the server image's) compiles none of
+  // them.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": ".",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+  },
+  "include": ["test"]
+}

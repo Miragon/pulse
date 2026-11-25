@@ -103,6 +103,9 @@ export const ALSO_READ_BY = [
   // pulse-ui's README: its browser page suite renders the example of "Use in a page without a
   // build" over the bundle, so the example it shows is one that runs.
   { pattern: /^packages\/core\/ui\/README\.md$/, scopes: ["typescript"] },
+  // widget-shell's README: its browser page suite renders the example of "Use in a page without a
+  // build" over its browser bundle in Chromium, so the example it shows is one that runs.
+  { pattern: /^packages\/core\/widget-shell\/README\.md$/, scopes: ["typescript"] },
   // The Claude Code plugins the apps ship (apps/<app>/skills/<plugin>, each listed in
   // .claude-plugin/marketplace.json): the plugins job validates each and holds its version to its
   // app's manifest (PLUGIN_APPS). The MCP server's own tests read its plugin, prose included (the

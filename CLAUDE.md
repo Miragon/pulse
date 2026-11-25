@@ -57,7 +57,9 @@ as pages of the server, a CLI and two editor hosts for the same engines.
   `/tones`, the brand gates in `/testing`, and its browser bundle for a page without a build
   (`dist/browser`, `packages/core/ui/scripts/browser-bundle.mjs`)
 - `packages/core/widget-shell/`: the view runtime (`/widgets`) with a page's section reads
-  (`src/ui/page-reads`), a Claude artifact's caller and mount (`/claude-artifact`), the registrar
+  (`src/ui/page-reads`), a Claude artifact's caller and mount (`/claude-artifact`) and their
+  browser bundle for a page without a build (`dist/browser`,
+  `packages/core/widget-shell/scripts/browser-bundle.mjs`), the registrar
   (`createToolRegistrar`), the boot (`/server`) with the web app's sign-in (`src/web`), a module's
   test server (`/testing`)
 - `packages/core/runtime-view/`: the runtime view both editor hosts compose (private): ports,
@@ -655,18 +657,19 @@ for every workspace package.
   equal by `scripts/error-path-goldens.test.mjs`. Each package updates its goldens through its
   `golden:update`, never by hand.
 - **Bundles have shrink-only budgets**: the widget bundle (`test/__golden__/bundle-budget.json`,
-  every view resource inlines it), the web app's page, the VS Code webview, pulse-ui's browser
-  bundle and the CLI's npm dist, each in its package's `test/__golden__/bundle-budget.json`; growth
-  needs a `Ratchet-Exception:` trailer that says why.
+  every view resource inlines it), the web app's page, the VS Code webview, the browser bundles of
+  pulse-ui and widget-shell and the CLI's npm dist, each in its package's
+  `test/__golden__/bundle-budget.json`; growth needs a `Ratchet-Exception:` trailer that says why.
 - **Federation happens in an external MCP gateway IN FRONT of this server** (dropped
   deliberately in #162: no upstream/proxy mechanics). A gateway that terminates auth is invisible
   to the server, which then boots read-only without a caller, so such a deployment names its
   toolsets in `MCP_ACTIVE_MODULES`.
 - **An artifact ships the licences of the works of others it holds** (owner decision
   2026-11-12): a generated `THIRD_PARTY_LICENSES.txt` beside its `LICENSE` (the CLI, the c7
-  client, the server image, the web app, the .vsix, the Orca plugin, pulse-ui for its browser
-  bundle), written from what its bundler really holds by `scripts/third-party-licenses.mjs`; each
-  artifact's drift test fails while the file misses a work or lists one no longer held.
+  client, the server image, the web app, the .vsix, the Orca plugin, pulse-ui and widget-shell for
+  their browser bundles), written from what its bundler really holds by
+  `scripts/third-party-licenses.mjs`; each artifact's drift test fails while the file misses a
+  work or lists one no longer held.
 - **The server reads no `PULSE_*` variable.** PulseAudio owns `PULSE_*` and `PULSE_CLI_*` is the
   CLI's; a server setting goes into `ENGINE_*`, `ENGINES_*` or `MCP_*`
   (`scripts/server-env-names.test.mjs`).

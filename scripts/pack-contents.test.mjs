@@ -5,6 +5,8 @@ import os from "node:os"
 import path from "node:path"
 import { after, describe, it } from "node:test"
 import {
+  CDN_SIBLING,
+  packedSiblings,
   packFindings,
   relativeSpecifiers,
   tarballFindings,
@@ -46,12 +48,28 @@ const CONNECTOR = {
   "src/messages/use-t.ts": "export const useT = () => {}",
 }
 
-/** packFindings over an in-memory tarball. */
-const findings = (files) =>
+/**
+ * A library with a browser bundle whose module imports a sibling library's from a CDN, as
+ * widget-shell's claude-artifact.js imports pulse-ui.js: three levels up from dist/browser/ is the
+ * scope, so the import lands on pulse-ui's file of that version.
+ */
+const RUNTIME_IMPORT = "../../../pulse-ui@0.32.0/dist/browser/pulse-ui.js"
+const SHELL = {
+  "package.json": JSON.stringify({ name: "@miragon/pulse-widget-shell", version: "0.32.0" }),
+  "dist/browser/claude-artifact.js": `import { useState } from "${RUNTIME_IMPORT}"\nexport { useState }`,
+}
+/** The libraries packed beside it, as packedSiblings reads them. */
+const RUNTIME = new Map([
+  ["@miragon/pulse-ui", { version: "0.32.0", files: new Set(["dist/browser/pulse-ui.js"]) }],
+])
+
+/** packFindings over an in-memory tarball, beside the libraries packed with it. */
+const findings = (files, siblings) =>
   packFindings({
     manifest: JSON.parse(files["package.json"]),
     files: Object.keys(files).sort(),
     read: (file) => files[file],
+    siblings,
   })
 const without = (files, ...drop) =>
   Object.fromEntries(Object.entries(files).filter(([file]) => !drop.includes(file)))
@@ -205,6 +223,49 @@ describe("pack-contents", () => {
     )
   })
 
+  it("passes a browser bundle's import of a sibling library packed beside it at that version", () => {
+    assert.deepEqual(findings(SHELL, RUNTIME), [])
+    assert.deepEqual(CDN_SIBLING.exec(RUNTIME_IMPORT)?.slice(1), [
+      "pulse-ui",
+      "0.32.0",
+      "dist/browser/pulse-ui.js",
+    ])
+  })
+
+  it("fails that import at another version, without the file, or without the library in the run", () => {
+    const at = `dist/browser/claude-artifact.js: imports ${RUNTIME_IMPORT}, @miragon/pulse-ui's file beside it on a CDN`
+    const older = new Map([
+      ["@miragon/pulse-ui", { version: "0.31.0", files: new Set(["dist/browser/pulse-ui.js"]) }],
+    ])
+    assert.deepEqual(findings(SHELL, older), [
+      `${at} at 0.32.0, but this run packs @miragon/pulse-ui 0.31.0: a page loads both by one version`,
+    ])
+    const without = new Map([
+      ["@miragon/pulse-ui", { version: "0.32.0", files: new Set(["dist/browser/lucide.js"]) }],
+    ])
+    assert.deepEqual(findings(SHELL, without), [`${at}, which @miragon/pulse-ui's tarball lacks`])
+    assert.deepEqual(findings(SHELL), [`${at}, but this run packs no @miragon/pulse-ui`])
+  })
+
+  it("holds every other escape to the tarball: deeper, from another folder, another library", () => {
+    const lacks = (file, spec) =>
+      `${file}: imports ${spec}, which the tarball lacks (add it to files)`
+    for (const [file, spec] of [
+      // One level more leaves the scope: nothing a page loads by name.
+      ["dist/browser/claude-artifact.js", `../${RUNTIME_IMPORT}`],
+      // From dist/ three levels up is the CDN's root, not the scope.
+      ["dist/index.js", RUNTIME_IMPORT],
+      ["dist/browser/nested/page.js", RUNTIME_IMPORT],
+      // A library outside Pulse's, and a version that is no exact one.
+      ["dist/browser/claude-artifact.js", "../../../react@19.3.1/dist/browser/react.js"],
+      ["dist/browser/claude-artifact.js", "../../../pulse-ui@latest/dist/browser/pulse-ui.js"],
+      ["dist/browser/claude-artifact.js", "../../../pulse-ui@0.32.0/dist/pulse-ui.js"],
+    ]) {
+      const planted = { ...SHELL, [file]: `import x from "${spec}"\nexport default x` }
+      assert.deepEqual(findings(planted, RUNTIME), [lacks(file, spec)], `${file} ${spec}`)
+    }
+  })
+
   it("reads module specifiers from the AST, not from comments or strings", () => {
     const source = [
       '// import "./commented.js"',
@@ -256,6 +317,22 @@ describe("pack-contents", () => {
       execFileSync("tar", ["-czf", tgz, "-C", dir, "package"])
       return tgz
     }
+
+    it("resolves a CDN-sibling import in the library packed in the same run", () => {
+      const runtime = tarball({
+        "package.json": JSON.stringify({ name: "@miragon/pulse-ui", version: "0.32.0" }),
+        "dist/browser/pulse-ui.js": "export const useState = () => {}",
+      })
+      const shell = tarball(SHELL)
+      const siblings = packedSiblings([runtime, shell])
+      assert.deepEqual([...siblings.keys()], ["@miragon/pulse-ui", "@miragon/pulse-widget-shell"])
+      assert.deepEqual(siblings.get("@miragon/pulse-ui"), {
+        version: "0.32.0",
+        files: new Set(["package.json", "dist/browser/pulse-ui.js"]),
+      })
+      assert.deepEqual(tarballFindings(shell, siblings).findings, [])
+      assert.equal(tarballFindings(shell).findings.length, 1)
+    })
 
     it("reads the tarball the way npm unpacks it", () => {
       assert.deepEqual(tarballFindings(tarball(CONNECTOR)), {

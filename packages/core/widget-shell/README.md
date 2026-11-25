@@ -71,6 +71,7 @@ OS.
 | View runtime    | `./widgets`         | `mountViews`, `mountApp`, `PageView` and `mountPage` for a page outside a chat, the view host (`useViewHost`, `HostModelContext`), the query hooks (`useToolQuery`, `useToolQueries`, `useToolMutation`, `useViewData`), `TestViewHost` for tests, a page's reads (`useSectionRead`, `usePageReads`, `PageGate`, `describePageFailure`, `createPageReader`) and its recordings (`playRecording`, `recordToolCalls`)                                                                                                                                                                                                                                                                                                                           |
 | Host-bound UI   | `./widgets`         | `WidgetShell` and `ListTable` (each with `fill`: on a page's screen it takes the height its flex column leaves it and scrolls in its own region; a chat's view never fills), `PagedRows` with `ListRow` (a row that opens on a click or Enter and copies its id, or what `copyLabel` names, which `ListTable`'s `copyHint` tells a screen reader; on a page a link to what it opens, `href`, a new tab with Ctrl or Cmd or a middle click), `IdCell`/`IdText`, `TextBlock` (engine text to scroll by keyboard and copy whole), `describeError`, `useActionFeedback`, `ConfirmDialog`, the hand-offs (`HAND_OFF_ACTIONS`, `AskAiButton` for one it does not list) and `useDiagramMaxHeight` (a chat card's budget for pulse-ui's BPMN diagram) |
 | Claude artifact | `./claude-artifact` | `mountClaudeArtifact` for a page in claude.ai, its caller over the artifact runtime (`claudeToolCaller`, `CLAUDE_RUNTIME_CODES`) and its words of what to do there (`ARTIFACT_PAGE_HINTS`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Browser bundle  | `dist/browser/`     | `claude-artifact.js`: a page's reads and the Claude artifact's entry as one ES module for a page without a build, on pulse-ui's browser bundle beside it on a CDN (below, Use in a page without a build)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | Module tests    | `./testing`         | `recordingModuleServer` and `testServerContext` for a module's tools, prompts and resources                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | Sign-in tests   | `./testing/oidc`    | `startFakeOidc`: a fake OpenID Connect provider with Keycloak's paths, ADFS's (`flavor: "adfs"`) or an Entra ID tenant's (`flavor: "entra"`), on a loopback port (discovery, its signing key, a login page per user, the code grant with PKCE, refresh, revocation, the end of a session), for a server's sign-in tests; Node only                                                                                                                                                                                                                                                                                                                                                                                                            |
 
@@ -363,6 +364,82 @@ declares it beside the first and names it in its reads,
 `reader.call(tool, args, { connector: "Acme CRM" })`, which the caller passes on as the runtime's
 `server`; each refusal names the connector that refused, and one `<PageGate connector="…">` around
 each connector's sections says it once.
+
+## Use in a page without a build
+
+A page with no bundler (a Claude artifact written as one HTML page, say) loads the page reads and
+the Claude artifact's entry as one ES module from the package's `dist/browser/`, beside
+pulse-ui's browser bundle on the same CDN at the same version:
+
+```html
+<link rel="stylesheet" href="pulse-ui.css" />
+<div id="root"></div>
+<script type="module">
+  import * as ui from "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@<version>/dist/browser/pulse-ui.js"
+  import {
+    mountClaudeArtifact,
+    PageGate,
+    usePageReads,
+    useSectionRead,
+  } from "https://cdn.jsdelivr.net/npm/@miragon/pulse-widget-shell@<version>/dist/browser/claude-artifact.js"
+
+  const h = ui.createElement
+  const stats = (reader) =>
+    reader.call("engine_process_stats", {
+      processDefinitionKey: "orders",
+      bucket: "day",
+      timeZone: reader.timeZone,
+    })
+
+  function Running() {
+    const section = useSectionRead(["stats", "orders"], stats)
+    return h(ui.SectionState, { state: section.state, onRetry: section.retry }, (data) =>
+      h(ui.KpiGrid, { cells: [{ label: "Running", value: ui.formatCount(data.now.running) }] }),
+    )
+  }
+
+  function App() {
+    const { readAt, refresh, reading } = usePageReads()
+    const busy = { "aria-disabled": reading || undefined, onClick: reading ? undefined : refresh }
+    const action = h(ui.Button, { variant: "toolbar", size: "sm", ...busy }, "Refresh")
+    const freshness = readAt && h(ui.FreshnessStamp, { at: readAt })
+    return h(
+      "div",
+      { className: "bg-background text-foreground" },
+      h(ui.WidgetHeader, { title: "Orders", actions: action, freshness }),
+      h(
+        "main",
+        { className: "flex flex-col gap-section p-gutter" },
+        h(PageGate, null, h(ui.SectionStateGroup, null, h(Running))),
+      ),
+    )
+  }
+
+  mountClaudeArtifact(App, { connector: "Pulse" })
+</script>
+```
+
+- **`claude-artifact.js`** holds the page reads (`useSectionRead`, `usePageReads`, `PageGate`,
+  `PageCallError`, `describePageFailure`, `createPageReader`) and the Claude artifact's entry
+  (`mountClaudeArtifact`, `claudeToolCaller`, `CLAUDE_RUNTIME_CODES`, `ARTIFACT_PAGE_HINTS`), with
+  TanStack Query and the part of the view runtime `mountApp` mounts. It holds no React and no
+  kit: it imports both from pulse-ui's `pulse-ui.js` of the same version beside it on the CDN
+  (`../../../pulse-ui@<version>/dist/browser/pulse-ui.js`), so the page and the module run on one
+  React and one copy of the kit's contexts (its locale, its toasts, `SectionStateGroup`). Load
+  both modules from one CDN, jsDelivr or unpkg, at one version, pinned as every
+  `@miragon/pulse-*` package below 1.0, and take React and the kit from that `pulse-ui.js` only:
+  a second React from another URL breaks every hook. Without a build there is no JSX;
+  `createElement`, as `h` here, writes the same tree.
+- **The stylesheet** is pulse-ui's `pulse-ui.css` (pulse-ui's README, "Use in a page without a
+  build"), which the page ships as one of its own files, as a page Claude Code publishes with its
+  files and the Claude artifact template do; its classes are the only ones the page's own
+  elements can use. A page Claude writes in a chat has no files of its own: how it gets the
+  stylesheet there waits for a probe in claude.ai.
+- **The rest** is a Claude artifact's (above): the page declares the `mcp` capability with the
+  tools it calls, reads nothing but through `window.claude` (no fetch, XHR or WebSocket, which the
+  artifact's content security policy refuses anyway), follows claude.ai's theme and speaks the
+  browser's language. `packages/core/widget-shell/test/browser-page.test.ts` renders this example
+  in Chromium, in a sandboxed frame under an artifact's content security policy.
 
 ## The web app
 

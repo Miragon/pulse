@@ -128,8 +128,8 @@
  *                                   bundle size ceilings shrink-only, never
  *                                   removed: the MCP server's widget bundle,
  *                                   the web app's page, the VS Code webview
- *                                   and pulse-ui's browser bundle (gzip), the
- *                                   CLI's dist (raw bytes;
+ *                                   and pulse-ui's and widget-shell's browser
+ *                                   bundles (gzip), the CLI's dist (raw bytes;
  *                                   scripts/published-imports.test.mjs reads
  *                                   it); each file's $comment says what it
  *                                   measures
@@ -2089,7 +2089,7 @@ const BUDGET_GROWTH = {
   "char-budgets": (relPath, name, from, to) =>
     `${relPath} -> "${name}": ${from} -> ${to} model-visible characters. The surface a model reads (tools/list plus the server instructions) is shrink-only: trim descriptions, schemas or instructions, or justify the growth with a Ratchet-Exception trailer.`,
   "bundle-budget": (relPath, name, from, to) =>
-    `${relPath} -> "${name}": ${from} -> ${to} bytes (what the file's $comment says it measures). A shipped bundle's ceiling is shrink-only: every view resource inlines the widget bundle, every first load of the web app downloads its page, the extension ships its webview, every page without a build loads pulse-ui's browser bundle, every npm install of the CLI downloads its dist. Shrink the bundle, or justify the growth with a Ratchet-Exception trailer.`,
+    `${relPath} -> "${name}": ${from} -> ${to} bytes (what the file's $comment says it measures). A shipped bundle's ceiling is shrink-only: every view resource inlines the widget bundle, every first load of the web app downloads its page, the extension ships its webview, every page without a build loads pulse-ui's and widget-shell's browser bundles, every npm install of the CLI downloads its dist. Shrink the bundle, or justify the growth with a Ratchet-Exception trailer.`,
 }
 
 function compareBudgets(kind, relPath, oldJson, newJson) {

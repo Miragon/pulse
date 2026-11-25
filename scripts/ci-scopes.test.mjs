@@ -82,7 +82,7 @@ describe("scopesFor: prose reaches only the checks that read it", () => {
   })
 
   it("runs nothing beyond the always-on checks for a package README or a root Markdown file", () => {
-    assert.deepEqual(scopes("packages/core/widget-shell/README.md", "CLAUDE.md", "TODOS.md"), [])
+    assert.deepEqual(scopes("packages/core/http/README.md", "CLAUDE.md", "TODOS.md"), [])
   })
 
   it("brand-lints the root README and the docs site", () => {
@@ -100,6 +100,10 @@ describe("scopesFor: prose reaches only the checks that read it", () => {
 
   it("runs pulse-ui's suites for its README, whose example the browser page suite renders", () => {
     assert.deepEqual(scopes("packages/core/ui/README.md"), ["typescript"])
+  })
+
+  it("runs widget-shell's suites for its README, whose example its browser page suite renders", () => {
+    assert.deepEqual(scopes("packages/core/widget-shell/README.md"), ["typescript"])
   })
 
   it("treats the CLI's prose as code: its tests read its README and its skills", () => {

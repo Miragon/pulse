@@ -5,7 +5,7 @@ export default mergeConfig(
   sharedConfig,
   defineConfig({
     test: {
-      include: ["src/**/*.test.{ts,tsx}"],
+      include: ["src/**/*.test.{ts,tsx}", "test/**/*.test.ts"],
       coverage: {
         // Ratchet: frozen 2 points under the baseline. Raise when you push
         // coverage up; never lower. Re-baselined UP 2026-08-17: the Postgres
