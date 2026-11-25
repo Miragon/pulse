@@ -37,9 +37,11 @@ export interface OAuthWebClient {
   readonly discoveryIssuer?: string
   /**
    * `false`: the sign-in names no resource (RFC 8707) anywhere, for a provider that names a token's
-   * API by its scope and refuses a resource it does not know (Entra ID, AADSTS9010010).
+   * API by its scope and refuses a resource it does not know (Entra ID, AADSTS9010010). A string:
+   * the resource the sign-in names in place of the gate's, the identifier the provider knows the
+   * API by (ADFS's Web API whose identifier is no URL).
    */
-  readonly resource?: false
+  readonly resource?: false | string
   /**
    * `true`: the code exchange and every refresh name the scopes too, for a provider that refuses a
    * code exchange without them (Entra ID, AADSTS28003) or would renew a token for another API.

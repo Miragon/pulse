@@ -108,7 +108,8 @@ later read fails, for a day after its last good read. The boot refuses a caller 
 value can change (`email`, `upn`, `unique_name`, `preferred_username`, `name`), an `HS*` or `none`
 algorithm, an audience that is no https URL (a client's or a project's id, Okta's `api://default`)
 without a required scope beyond OpenID Connect's own, since an ID token or another app's token
-carries such an audience, and a variable under `MCP_OAUTH_OIDC_` it does not read;
+carries such an audience (ADFS's `microsoft:identityserver:<identifier>` of a Web API needs none,
+only that Web API's access tokens carry it), and a variable under `MCP_OAUTH_OIDC_` it does not read;
 `MCP_WEB_CLIENT_ID` joins a client allowlist, and `_REQUIRED_CLAIMS` names claims every token must
 carry (Keycloak's `sid` and `auth_time`). Its metadata names the issuer alone: the protected resource metadata
 names it, and `/.well-known/oauth-authorization-server` answers 404.
@@ -235,8 +236,9 @@ the generic provider's metadata from the discovery its gate reads. Every grant o
 the gate's resource and only the authorization request the scopes, unless the provider's web client
 says otherwise, as Entra ID needs: `discoveryIssuer` names the issuer the sign-in discovers itself
 and goes through (a callback's `iss` must name it), beside the one the protected resource metadata
-names, `resource: false` sends no resource anywhere and `grantScopes: true` names the scopes at the
-code exchange and every refresh too. `/mcp` answers a request that carries the session cookie with
+names, `resource: false` sends no resource anywhere, a string sends that one in place of the gate's
+(the generic provider's Web API identifier for an ADFS audience) and `grantScopes: true` names the
+scopes at the code exchange and every refresh too. `/mcp` answers a request that carries the session cookie with
 the gate's 401 and its Bearer challenge, and every route under `/app` answers 400 to one that
 carries an Authorization header. `@miragon/pulse-widget-shell/testing/oidc` is the identity
 provider a server's own sign-in tests run against.

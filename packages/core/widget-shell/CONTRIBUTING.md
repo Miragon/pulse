@@ -289,7 +289,8 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   joins) reads its key set and its access tokens' issuer from the provider's discovery at the first
   token (503 until it answers) and refuses at boot a caller claim whose value can change, an
   algorithm with a shared secret or none, and an audience that is no https URL without a required
-  scope. Microsoft Entra ID for one tenant (`oauth-entra.ts`, `MCP_OAUTH_ENTRA_*`: the tenant's id
+  scope, ADFS's audience of a Web API (`microsoft:identityserver:<identifier>`) excepted. Microsoft
+  Entra ID for one tenant (`oauth-entra.ts`, `MCP_OAUTH_ENTRA_*`: the tenant's id
   and the API registration's client id, required, then the scope, the App ID URI, the cloud's
   authority and a client allowlist the web client joins) verifies the tenant's v2.0 and
   `oauth21/2026-08` tokens each against its own key set with the keys tagged for it, takes the

@@ -124,7 +124,11 @@ registered device), never rotates and comes with `refresh_token_expires_in`. ADF
 endpoint; a sign-out goes to `/adfs/oauth2/logout`, the post-logout URI among the server
 application's redirect URIs. ADFS's metadata names no `code_challenge_methods_supported`, so a
 strict MCP client refuses it unless the client overrides discovery (Claude Code's
-`oauth.authServerMetadataUrl`).
+`oauth.authServerMetadataUrl`). A Web API of Pulse's own whose identifier is no URI (the wizard
+proposes the client's id) gets access tokens for `microsoft:identityserver:<identifier>`: name
+that in `MCP_OAUTH_OIDC_AUDIENCE`, with no scope, since no other app's token and no ID token
+(whose `aud` is the client's id bare) carries it. The web sign-in then asks for the identifier at
+every grant.
 
 ## Okta, authentik, Zitadel and PingOne
 

@@ -168,8 +168,8 @@ function merged(old: RenewableTokens, fresh: TokenRecord): SessionTokens {
 
 /**
  * One refresh at the provider's token endpoint, as the confidential client of the sign-in: for the
- * gate's resource unless the web client names none, with its scopes where it names them at every
- * grant, so the provider renews the token for the same API.
+ * gate's resource, or the one the web client names in its place, unless it names none, with its
+ * scopes where it names them at every grant, so the provider renews the token for the same API.
  */
 async function renewed(ctx: WebContext, tokens: RenewableTokens): Promise<Renewal> {
   const metadata = await ctx.metadata()
@@ -185,7 +185,7 @@ async function renewed(ctx: WebContext, tokens: RenewableTokens): Promise<Renewa
   const grant = {
     type: "refresh_token",
     refreshToken: tokens.refreshToken,
-    ...(resource === false ? {} : { resources: [ctx.resource] }),
+    ...(resource === false ? {} : { resources: [resource ?? ctx.resource] }),
     ...(grantScopes === true ? { scopes } : {}),
   } as const
   const limits = { timeoutMs: REFRESH_TIMEOUT_MS }
