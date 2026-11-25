@@ -154,8 +154,6 @@ export const DE: Readonly<Record<MessageKey, Message>> = {
   "tasks.empty": "Keine offenen Aufgaben",
 }
 
-export const CATALOGS = { en: EN, de: DE } as const
-
 /** German for a German locale tag (`de`, `de-AT`), English for every other. */
 export function translate(
   locale: string,

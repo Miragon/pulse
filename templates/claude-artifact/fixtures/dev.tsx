@@ -4,8 +4,9 @@
 // engine error, `?fail=needs_reauth` refuses every call with that code of the runtime's
 // (`?fail=engine_process_stats:server_unavailable` one tool), `?delay=800` slows every answer,
 // `?lang=de` renders German.
-import { mount, PROCESS_KEY } from "../src/app.tsx"
+import { mount } from "../src/app.tsx"
 import { claudeConnector } from "../src/engine/claude-connector.ts"
+import { PROCESS_KEY } from "../src/page.config.ts"
 import { installMockClaude, type Fixture } from "./mock-claude.ts"
 
 const recorded = import.meta.glob<Fixture>("./*.json", { eager: true, import: "default" })

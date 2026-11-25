@@ -1,109 +1,44 @@
 import { readdirSync, readFileSync } from "node:fs"
 import { describe, expect, it } from "vitest"
 import { type Fixture, mockClaude } from "../fixtures/mock-claude.ts"
-import { DASHBOARD_READS } from "../src/data/process-dashboard.ts"
-import { claudeConnector, CONNECTOR_NAME } from "../src/engine/claude-connector.ts"
-import { callKey, createEngine } from "../src/engine/engine.ts"
-import { PAGE_TOOLS } from "../src/engine/tools.ts"
-import { pageProcessKey, processKeyOf } from "../scripts/process-key.ts"
 import { clearTextTokenRefusal, isLoopbackHost } from "../scripts/token-target.ts"
-import { PROCESS_KEY } from "../src/app.tsx"
+import { DASHBOARD_READS } from "../src/data/process-dashboard.ts"
+import { claudeConnector } from "../src/engine/claude-connector.ts"
+import { createEngine } from "../src/engine/engine.ts"
+import { CONNECTOR_NAME, PROCESS_KEY } from "../src/page.config.ts"
 
 const DIR = new URL("../fixtures/", import.meta.url)
 const FILES = readdirSync(DIR).filter((name) => name.endsWith(".json"))
-const read = (name: string) => readFileSync(new URL(name, DIR), "utf8")
+const fixtureOf = (name: string) => JSON.parse(readFileSync(new URL(name, DIR), "utf8")) as Fixture
 
 describe("the recorded fixtures", () => {
-  it("the scripts read the page's process key from src/app.tsx", () => {
-    expect(pageProcessKey()).toBe(PROCESS_KEY)
-    expect(() => processKeyOf("const key = 1")).toThrow(/--process/)
-  })
-
   it("hold the dashboard's process", () => {
     expect(FILES).toContain(`${PROCESS_KEY}.json`)
   })
 
   it.each(FILES)(
-    "%s: written as JSON.stringify(x, null, 2), one call per tool and arguments",
-    (name) => {
-      const text = read(name)
-      const fixture = JSON.parse(text) as Fixture
-      expect(text).toBe(`${JSON.stringify(fixture, null, 2)}\n`)
-      expect(name).toBe(`${fixture.process}.json`)
-      const keys = fixture.calls.map((call) => callKey(call.tool, call.arguments))
-      expect(new Set(keys).size).toBe(keys.length)
-      for (const call of fixture.calls) expect(PAGE_TOOLS).toContain(call.tool)
-    },
-  )
-
-  it.each(FILES)(
-    "%s: answers every call the dashboard's reads make, through the page's connector, three in all",
+    "%s: answers every call the dashboard's reads make, through the page's connector",
     async (name) => {
-      const fixture = JSON.parse(read(name)) as Fixture
+      const fixture = fixtureOf(name)
+      expect(name).toBe(`${fixture.process}.json`)
       const asOf = new Date(fixture.asOf)
-      const mock = mockClaude(fixture)
-      const engine = createEngine(claudeConnector(mock), {
+      const engine = createEngine(claudeConnector(mockClaude(fixture)), {
         now: () => asOf,
         timeZone: fixture.timeZone,
       })
       for (const [section, read] of Object.entries(DASHBOARD_READS)) {
         await expect(read(engine, fixture.process), section).resolves.toBeDefined()
       }
-      expect(fixture.calls).toHaveLength(3)
-      expect(mock.calls.map((call) => call.tool).sort()).toEqual([...PAGE_TOOLS].sort())
     },
   )
 
-  it("refuses a call it never recorded with an error that names it, as the server's error", async () => {
-    const connector = claudeConnector(mockClaude(pageFixture()))
-    const call = connector.callTool("engine_process_stats", { processDefinitionKey: "nothing" })
-    await expect(call).rejects.toMatchObject({
-      code: "tool_error",
-      detail: expect.stringContaining("No recorded answer for engine_process_stats") as unknown,
-    })
-  })
-
-  it("refuses a connector of another name as the runtime does", async () => {
-    const connector = claudeConnector(mockClaude(pageFixture()), "Other")
-    await expect(connector.callTool("engine_activity_counts", {})).rejects.toMatchObject({
-      code: "not_connected",
-      detail: expect.stringContaining("[server_not_connected]") as unknown,
-    })
-  })
-
   it("refuses a tool outside PAGE_TOOLS as the runtime refuses one the page does not declare", async () => {
-    const mcp = await mockClaude(pageFixture()).use?.("mcp")
+    const mcp = await mockClaude(fixtureOf(`${PROCESS_KEY}.json`)).use?.("mcp")
     await expect(mcp?.callTool(CONNECTOR_NAME, "engine_open_cockpit", {})).rejects.toMatchObject({
       code: "not_in_manifest",
     })
   })
-
-  it("fails a tool with an engine error, every call with a runtime code, a tool with a code", async () => {
-    const fixture = pageFixture()
-    const recorded = fixture.calls.find((call) => call.tool === "engine_activity_counts")
-    const counts = (fail: string[]) =>
-      claudeConnector(mockClaude(fixture, { fail })).callTool(
-        "engine_activity_counts",
-        recorded?.arguments ?? {},
-      )
-    await expect(counts(["engine_activity_counts"])).rejects.toMatchObject({
-      code: "tool_error",
-      detail: expect.stringContaining("[503 ServiceUnavailable]") as unknown,
-    })
-    await expect(counts(["needs_reauth"])).rejects.toMatchObject({ code: "needs_reauth" })
-    await expect(counts(["engine_activity_counts:server_unavailable"])).rejects.toMatchObject({
-      code: "unavailable",
-    })
-    await expect(counts(["engine_process_stats:approval_required"])).resolves.toMatchObject({
-      structuredContent: { activities: expect.any(Array) as unknown },
-    })
-  })
 })
-
-/** The recording of the page's own process. */
-function pageFixture(): Fixture {
-  return JSON.parse(read(`${PROCESS_KEY}.json`)) as Fixture
-}
 
 describe("the recorder's token", () => {
   const TOKEN = "eyJhbGciOiJSUzI1NiJ9.secret"

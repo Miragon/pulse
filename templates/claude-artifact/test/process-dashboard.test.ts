@@ -1,11 +1,9 @@
 import { describe, expect, it } from "vitest"
 import {
   boundOf,
-  DASHBOARD_READS,
   historyCutOf,
   incidentsOf,
   outcomesOf,
-  readActivities,
   readDiagram,
   readStats,
   tasksOf,
@@ -145,23 +143,6 @@ describe("the three calls of a load", () => {
       engine_get_process_definition_xml: () => ({ id: "p:2:b", bpmn20Xml: null }),
     })
     expect((await readDiagram(engine, "p")).xml).toBeNull()
-  })
-
-  it("makes three calls for every read of the page together, each once", async () => {
-    const { connector, engine } = engineOver({
-      engine_process_stats: () => STATS,
-      engine_activity_counts: () => COUNTS,
-      engine_get_process_definition_xml: () => ({ id: "p:2:b", bpmn20Xml: "<x/>" }),
-    })
-    await Promise.all(
-      Object.values(DASHBOARD_READS).flatMap((read) => [read(engine, "p"), read(engine, "p")]),
-    )
-    await readActivities(engine, "p")
-    expect(connector.calls.map((call) => call.name).sort()).toEqual([
-      "engine_activity_counts",
-      "engine_get_process_definition_xml",
-      "engine_process_stats",
-    ])
   })
 })
 

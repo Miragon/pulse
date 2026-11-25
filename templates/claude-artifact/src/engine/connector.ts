@@ -43,19 +43,6 @@ export interface ToolResult {
  */
 export type EngineErrorCode = PageErrorCode
 
-/**
- * Every code, in the order of pulse-ui's `PAGE_ERROR_CODES` (a test holds them equal). Spelled out
- * here, so the recorder, which runs this file in Node, loads no React with the kit.
- */
-export const ENGINE_ERROR_CODES: readonly EngineErrorCode[] = [
-  "needs_reauth",
-  "not_connected",
-  "not_allowed",
-  "approval_required",
-  "unavailable",
-  "tool_error",
-]
-
 /** A failed call: its code, the tool it called and the raw text behind it (shown under Details). */
 export class EngineError extends Error {
   readonly code: EngineErrorCode

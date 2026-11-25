@@ -2,28 +2,42 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
-import { formatDate, formatInstant } from "@miragon/pulse-ui"
+import {
+  describePageError,
+  formatCount,
+  formatDate,
+  formatInstant,
+  formatNumber,
+  resolveUiMessages,
+  type PageErrorCode,
+  type SectionFailure,
+} from "@miragon/pulse-ui"
 import { readBpmnNames, type DiagramCountKind } from "@miragon/pulse-ui/bpmn"
 import { setFormatLocale } from "@miragon/pulse-ui/format"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { type Fixture, mockClaude } from "../fixtures/mock-claude.ts"
-import { Page, PROCESS_KEY } from "../src/app.tsx"
+import { Page } from "../src/app.tsx"
 import {
   outcomesOf,
   type ActivityCounts,
   type ProcessStats,
 } from "../src/data/process-dashboard.ts"
-import { claudeConnector, CONNECTOR_NAME } from "../src/engine/claude-connector.ts"
+import { claudeConnector } from "../src/engine/claude-connector.ts"
 import { EngineError, type Connector, type ToolResult } from "../src/engine/connector.ts"
 import { callKey } from "../src/engine/engine.ts"
-import { PAGE_TOOLS } from "../src/engine/tools.ts"
+import { CLAUDE_PLACE, describeEngineError } from "../src/engine/errors.ts"
+import { PAGE_TOOLS, type ToolName } from "../src/engine/tools.ts"
 import { applyFormatLocale, viewerLocale } from "../src/locale.ts"
+import { translate, type MessageKey } from "../src/messages.ts"
+import { CONNECTOR_NAME, PROCESS_KEY } from "../src/page.config.ts"
 import { goTo } from "../src/sections/anchors.ts"
 import { countTargets } from "../src/sections/diagram.tsx"
 
 /**
  * The page over the recorded fixtures, through the page's own connector: its structure, its
- * states and its calls, not its numbers, which change with every recording.
+ * states and its calls, not its numbers, which change with every recording. Its words come from
+ * its catalog and the kit's, never spelled out here, so a copy that rewords the page keeps these
+ * tests.
  */
 
 // bpmn-js needs a real SVG engine happy-dom lacks: a stand-in viewer over the elements of the XML
@@ -145,6 +159,31 @@ function steered(
   }
 }
 
+/** The page's own words in English or German (its catalog). */
+const en = (key: MessageKey, params?: Record<string, unknown>) => translate("en", key, params)
+const de = (key: MessageKey) => translate("de", key)
+
+/** The kit's words in English: its states, its buttons, the diagram's counts. */
+const KIT = resolveUiMessages("en")
+const TRY_AGAIN = KIT.common.retry
+const SAME_FAILURE = KIT.sectionState.sameFailure
+
+/** A refusal of the runtime as the page words it: the kit's page error on this page's connector. */
+const refusal = (code: PageErrorCode) =>
+  describePageError({ code }, { messages: KIT, connector: CONNECTOR_NAME, place: CLAUDE_PLACE.en })
+
+/** How the page words the mock's failure of `tool` under `fail` (`?fail=`). */
+async function failureOf(fail: string[], tool: ToolName): Promise<SectionFailure> {
+  const error = await claudeConnector(mockClaude(fixture, { fail }))
+    .callTool(tool, {})
+    .then(
+      () => undefined,
+      (thrown: unknown) => thrown,
+    )
+  if (!(error instanceof EngineError)) throw new Error(`The mock answered ${tool}.`)
+  return describeEngineError(error, "en-US")
+}
+
 /** Every section has read: no region is busy any more. */
 async function settled() {
   await waitFor(
@@ -155,15 +194,9 @@ async function settled() {
   )
 }
 
-const SECTION_HEADINGS = [
-  "Diagram",
-  "Started and ended per day",
-  "End events reached",
-  "Open incidents by activity",
-  "Open tasks",
-]
-
-const SAME_FAILURE = "Not read, for the same reason as above."
+const SECTION_HEADINGS = (
+  ["diagram.title", "perDay.title", "outcomes.title", "incidents.title", "tasks.title"] as const
+).map((key) => en(key))
 
 const h2s = () => screen.queryAllByRole("heading", { level: 2 }).map((h) => h.textContent)
 
@@ -181,27 +214,26 @@ describe("the dashboard on the fixtures", () => {
     expect(title.textContent).not.toBe("")
     expect(screen.getAllByRole("main")).toHaveLength(1)
     expect(h2s()).toEqual(SECTION_HEADINGS)
-    for (const label of [
-      "Running instances",
-      "Open incidents",
-      "With incident",
-      "Jobs without retries",
-      "Open tasks",
-      "Started",
-      "Ended",
-    ]) {
-      expect(screen.getAllByText(label).length).toBeGreaterThan(0)
+    for (const key of [
+      "kpi.running",
+      "kpi.incidents",
+      "kpi.withIncident",
+      "kpi.failedJobs",
+      "kpi.openTasks",
+      "kpi.started",
+      "kpi.ended",
+    ] as const) {
+      expect(screen.getAllByText(en(key)).length).toBeGreaterThan(0)
     }
-    expect(
-      screen.getByRole("table", { name: "Instances started and ended per day, last 14 days" }),
-    ).toBeDefined()
-    if (outcomesOf(stats).outcomes.length > 0) {
-      expect(screen.getByRole("list", { name: /end events/i })).toBeDefined()
-      expect(screen.getByText(/Each share is of the .* instances? that ended/)).toBeDefined()
+    expect(screen.getByRole("table", { name: en("perDay.chart") })).toBeDefined()
+    const { outcomes, ended } = outcomesOf(stats)
+    if (outcomes.length > 0) {
+      expect(screen.getByRole("list", { name: en("outcomes.label") })).toBeDefined()
+      expect(screen.getByText(en("outcomes.shareOf", { count: formatCount(ended) }))).toBeDefined()
     } else {
-      expect(screen.getByText("No instance ended in the last 14 days.")).toBeDefined()
+      expect(screen.getByText(en("outcomes.empty"))).toBeDefined()
     }
-    const incidents = screen.getByRole("region", { name: "Open incidents by activity" })
+    const incidents = screen.getByRole("region", { name: en("incidents.title") })
     expect(within(incidents).getAllByRole("table").length).toBeGreaterThan(0)
     expect(screen.queryAllByRole("alert")).toEqual([])
   })
@@ -211,7 +243,7 @@ describe("the dashboard on the fixtures", () => {
     await settled()
     expect(mock.calls.length).toBeLessThanOrEqual(3)
     expect(mock.calls.map((call) => call.tool).sort()).toEqual([...PAGE_TOOLS].sort())
-    fireEvent.click(screen.getByRole("button", { name: "Refresh" }))
+    fireEvent.click(screen.getByRole("button", { name: en("page.refresh") }))
     await settled()
     expect(mock.calls.length).toBeLessThanOrEqual(6)
     expect(
@@ -239,10 +271,10 @@ describe("the dashboard on the fixtures", () => {
   it("speaks German to a German viewer", async () => {
     renderPage("de-DE")
     await settled()
-    expect(screen.getAllByText("Offene Incidents").length).toBeGreaterThan(0)
-    expect(screen.getByRole("heading", { level: 2, name: "Diagramm" })).toBeDefined()
-    expect(screen.getByRole("heading", { level: 2, name: "Erreichte Endereignisse" })).toBeDefined()
-    expect(screen.getByRole("button", { name: "Aktualisieren" })).toBeDefined()
+    expect(screen.getAllByText(de("kpi.incidents")).length).toBeGreaterThan(0)
+    expect(screen.getByRole("heading", { level: 2, name: de("diagram.title") })).toBeDefined()
+    expect(screen.getByRole("heading", { level: 2, name: de("outcomes.title") })).toBeDefined()
+    expect(screen.getByRole("button", { name: de("page.refresh") })).toBeDefined()
   })
 
   it("keeps the page when one call fails: the failure in words once, Try again, the raw text under Details", async () => {
@@ -250,14 +282,27 @@ describe("the dashboard on the fixtures", () => {
     await settled()
     const alerts = await screen.findAllByRole("alert")
     expect(alerts).toHaveLength(1)
-    expect(alerts[0].textContent).toContain("unreachable")
-    expect(within(alerts[0]).getByRole("button", { name: /Try again/ })).toBeDefined()
-    expect(alerts[0].textContent).toContain("Details")
-    expect(screen.queryByText("Running instances")).toBeNull()
+    const words = await failureOf(["engine_process_stats"], "engine_process_stats")
+    expect(within(alerts[0]).getByText(words.title)).toBeDefined()
+    expect(within(alerts[0]).getByRole("button", { name: TRY_AGAIN })).toBeDefined()
+    expect(within(alerts[0]).getByText(KIT.common.details)).toBeDefined()
+    expect(within(alerts[0]).getByText(words.details ?? "")).toBeDefined()
+    expect(screen.queryByText(en("kpi.running"))).toBeNull()
     // The chart and the end events read the same call: they say it once, after the tiles.
     expect(screen.getAllByText(SAME_FAILURE)).toHaveLength(2)
-    expect(screen.getByRole("heading", { level: 2, name: "Open tasks" })).toBeDefined()
+    expect(screen.getByRole("heading", { level: 2, name: en("tasks.title") })).toBeDefined()
     expect(screen.getAllByRole("table").length).toBeGreaterThan(0)
+  })
+
+  it("refuses one tool with a runtime code and keeps the rest (?fail=<tool>:<code>)", async () => {
+    renderPage("en-US", ["engine_activity_counts:server_unavailable"])
+    await settled()
+    const alerts = screen.getAllByRole("alert")
+    expect(alerts).toHaveLength(1)
+    const diagram = screen.getByRole("region", { name: en("diagram.title") })
+    expect(within(diagram).getByRole("alert")).toBe(alerts[0])
+    expect(within(alerts[0]).getByText(refusal("unavailable").title)).toBeDefined()
+    expect(screen.getAllByText(en("kpi.running")).length).toBeGreaterThan(0)
   })
 })
 
@@ -275,18 +320,18 @@ describe("a page the runtime refuses as a whole", () => {
   it("says a missing connector once, in the sections' place", async () => {
     renderOver(claudeConnector(undefined))
     await settled()
-    expectOneState(`This page isn't connected to ${CONNECTOR_NAME}`)
-    expect(screen.getAllByRole("button", { name: /Try again/ })).toHaveLength(1)
-    expect(
-      screen.getByText(/in claude\.ai, in Settings under Connectors, then try again/),
-    ).toBeDefined()
+    const words = refusal("not_connected")
+    expectOneState(words.title)
+    expect(screen.getAllByRole("button", { name: TRY_AGAIN })).toHaveLength(1)
+    expect(screen.getByText(words.hint ?? "")).toBeDefined()
   })
 
   it("says a refusal of the runtime once, as the mock gives it (?fail=needs_reauth)", async () => {
     renderPage("en-US", ["needs_reauth"])
     await settled()
-    expectOneState(`Your sign-in to ${CONNECTOR_NAME} has expired`)
-    expect(screen.getByText(/in Settings under Connectors/)).toBeDefined()
+    const words = refusal("needs_reauth")
+    expectOneState(words.title)
+    expect(screen.getByText(words.hint ?? "")).toBeDefined()
   })
 
   it.each(["engine_process_stats", "engine_activity_counts"])(
@@ -295,9 +340,9 @@ describe("a page the runtime refuses as a whole", () => {
       const throwing = new Map([[tool, "needs_reauth" as const]])
       renderOver(steered({ throwing }))
       await settled()
-      expectOneState(`Your sign-in to ${CONNECTOR_NAME} has expired`)
+      expectOneState(refusal("needs_reauth").title)
       throwing.clear()
-      fireEvent.click(screen.getByRole("button", { name: /Try again/ }))
+      fireEvent.click(screen.getByRole("button", { name: TRY_AGAIN }))
       await waitFor(() => {
         expect(h2s()).toEqual(SECTION_HEADINGS)
       })
@@ -314,15 +359,15 @@ describe("sections that fail alike", () => {
     await settled()
     const alerts = screen.getAllByRole("alert")
     expect(alerts).toHaveLength(1)
-    const diagram = screen.getByRole("region", { name: /Diagram/ })
+    const diagram = screen.getByRole("region", { name: en("diagram.title") })
     expect(within(diagram).getByRole("alert")).toBe(alerts[0])
-    const incidents = screen.getByRole("region", { name: "Open incidents by activity" })
+    const incidents = screen.getByRole("region", { name: en("incidents.title") })
     expect(within(incidents).getByText(SAME_FAILURE)).toBeDefined()
-    const tasks = screen.getByRole("region", { name: "Open tasks" })
+    const tasks = screen.getByRole("region", { name: en("tasks.title") })
     expect(within(tasks).getByText(SAME_FAILURE)).toBeDefined()
-    expect(screen.getAllByRole("button", { name: /Try again/ })).toHaveLength(1)
+    expect(screen.getAllByRole("button", { name: TRY_AGAIN })).toHaveLength(1)
     failing.clear()
-    fireEvent.click(within(alerts[0]).getByRole("button", { name: /Try again/ }))
+    fireEvent.click(within(alerts[0]).getByRole("button", { name: TRY_AGAIN }))
     await waitFor(() => {
       expect(screen.queryAllByRole("alert")).toEqual([])
     })
@@ -335,9 +380,9 @@ describe("sections that fail alike", () => {
     renderOver(steered({ throwing }))
     await settled()
     expect(screen.getAllByRole("alert")).toHaveLength(1)
-    expect(screen.getByText("This page may not call the tool it needs")).toBeDefined()
-    expect(screen.queryAllByRole("button", { name: /Try again/ })).toEqual([])
-    expect(screen.getByRole("heading", { level: 2, name: "Open tasks" })).toBeDefined()
+    expect(screen.getByText(refusal("not_allowed").title)).toBeDefined()
+    expect(screen.queryAllByRole("button", { name: TRY_AGAIN })).toEqual([])
+    expect(screen.getByRole("heading", { level: 2, name: en("tasks.title") })).toBeDefined()
   })
 })
 
@@ -370,14 +415,14 @@ describe("the bar's freshness", () => {
 
     // A Refresh 20 s on, inside the server's 30 s floor: it answers its first read again.
     clock = new Date(asOf.getTime() + 20_000)
-    fireEvent.click(screen.getByRole("button", { name: "Refresh" }))
+    fireEvent.click(screen.getByRole("button", { name: en("page.refresh") }))
     await settled()
     expect(stamp()).toBe(oldestRead())
 
     // Past the floor the server reads anew, and the stamp moves with that read.
     later = 5 * 60_000
     clock = new Date(asOf.getTime() + later)
-    fireEvent.click(screen.getByRole("button", { name: "Refresh" }))
+    fireEvent.click(screen.getByRole("button", { name: en("page.refresh") }))
     await waitFor(() => {
       expect(stamp()).toBe(oldestRead(later))
     })
@@ -393,15 +438,15 @@ describe("the bar's freshness", () => {
 
     moved = later
     failing.add("engine_process_stats")
-    fireEvent.click(screen.getByRole("button", { name: "Refresh" }))
+    fireEvent.click(screen.getByRole("button", { name: en("page.refresh") }))
     await settled()
     expect(screen.getAllByRole("alert")).toHaveLength(1)
-    expect(screen.getByText("Running instances")).toBeDefined()
+    expect(screen.getByText(en("kpi.running"))).toBeDefined()
     // The numbers per day are still the first read's: the bar keeps its stamp.
     expect(stamp()).toBe(formatInstant(stats.asOf))
 
     failing.clear()
-    fireEvent.click(screen.getByRole("button", { name: "Refresh" }))
+    fireEvent.click(screen.getByRole("button", { name: en("page.refresh") }))
     await waitFor(() => {
       expect(screen.queryAllByRole("alert")).toEqual([])
     })
@@ -438,21 +483,18 @@ describe("a count on the diagram", () => {
   it("is a button where it leads to a row of the page, words without one elsewhere", async () => {
     renderPage("en-US")
     await settled()
-    const diagram = screen.getByRole("region", { name: /Diagram/ })
-    // The kit names each count by its element and its figure: "<element>: 3 incidents".
-    const kindOf = (label: string): DiagramCountKind =>
-      label.includes("in called instances")
-        ? "incidentsInCalledInstances"
-        : label.endsWith("running")
-          ? "running"
-          : "incidents"
+    const diagram = screen.getByRole("region", { name: en("diagram.title") })
+    // The kit's words of a count ("<element>: 3 incidents"), each count's description.
+    const words: Record<DiagramCountKind, typeof KIT.bpmn.countRunning> = {
+      incidents: KIT.bpmn.countIncidents,
+      incidentsInCalledInstances: KIT.bpmn.countIncidentsInCalledInstances,
+      running: KIT.bpmn.countRunning,
+    }
+    // The kit groups an element's counts under its name; a count that leads somewhere is a button.
     const linked = () =>
       within(diagram)
-        .queryAllByRole("button")
-        .map((button) => button.getAttribute("aria-label") ?? "")
-        .filter((label) => /: \d/.test(label))
-        .map((label) => `${label.slice(0, label.indexOf(":"))} ${kindOf(label)}`)
-        .sort()
+        .queryAllByRole("group")
+        .flatMap((group) => within(group).queryAllByRole("button"))
     // Every count the recording holds on an element the drawing has, a button exactly where a row
     // of the page lists it (countTargets), whatever process the recording is of.
     const drawn = new Map(
@@ -468,11 +510,21 @@ describe("a count on the diagram", () => {
       return shown
         .filter(({ count }) => count > 0)
         .filter(({ kind }) => countTargets({ id: elementId, type }, kind).length > 0)
-        .map(({ kind }) => `${names[elementId] ?? elementId} ${kind}`)
+        .map(({ kind, count }) =>
+          words[kind]({ element: names[elementId] ?? elementId, count: formatCount(count) }),
+        )
     })
     // The counts come after the data: the diagram draws them once bpmn-js has imported the XML,
     // which a loaded CI runner finished after the sections settled (main, 2026-11-24).
-    await waitFor(() => expect(linked()).toEqual(expected.sort()), { timeout: 10_000 })
+    await waitFor(
+      () => {
+        expect(linked()).toHaveLength(expected.length)
+        for (const description of expected) {
+          expect(within(diagram).getByRole("button", { description })).toBeDefined()
+        }
+      },
+      { timeout: 10_000 },
+    )
   })
 
   const task = { id: "Task_Review", type: "bpmn:UserTask" }
@@ -538,8 +590,9 @@ describe("the days and their durations", () => {
           : undefined,
     })
 
-  const perDay = () => screen.getByRole("region", { name: /Started and ended per day/ })
+  const perDay = () => screen.getByRole("region", { name: en("perDay.title") })
 
+  // The page's own wiring (src/locale.ts), not pulse-ui's formatter: the page hands its zone on.
   it("labels each day in the zone its bucket counts in, whatever the browser's own", () => {
     applyFormatLocale(viewerLocale("en-US"), "Pacific/Kiritimati")
     // 12:00 UTC on the 23rd is 02:00 on the 24th at UTC+14.
@@ -554,14 +607,15 @@ describe("the days and their durations", () => {
       statsAs((s) => ({ ...s, durations: { from: since, ended: 7, medianMs: 1000, p90Ms: 2000 } })),
     )
     await settled()
-    expect(within(perDay()).getByText(new RegExp(`ended since ${formatDate(since)}`))).toBeDefined()
+    const scope = en("perDay.durationSince", { count: formatNumber(7), date: formatDate(since) })
+    expect(within(perDay()).getByText(scope)).toBeDefined()
   })
 
   it("says no duration is known where the server knows none, never a duration of 0 instances", async () => {
     renderOver(statsAs((s) => ({ ...s, durations: null })))
     await settled()
-    expect(within(perDay()).getByText("No duration of these days is known.")).toBeDefined()
-    expect(within(perDay()).queryByText(/Duration of the 0 instances/)).toBeNull()
+    expect(within(perDay()).getByText(en("perDay.durationUnknown"))).toBeDefined()
+    expect(within(perDay()).queryByText(en("perDay.durationScope", { count: "0" }))).toBeNull()
   })
 
   it("says an engine that writes no history leaves its counts unknown, never that none started", async () => {
@@ -576,15 +630,11 @@ describe("the days and their durations", () => {
       })),
     )
     await settled()
-    expect(
-      within(perDay()).getByText(
-        "The engine writes no history, so how many instances started and ended is not known.",
-      ),
-    ).toBeDefined()
-    expect(screen.queryByText("No instance started or ended in the last 14 days.")).toBeNull()
-    const outcomes = screen.getByRole("region", { name: /End events reached/ })
-    expect(screen.queryByText("No instance ended in the last 14 days.")).toBeNull()
+    expect(within(perDay()).getByText(en("perDay.noHistory"))).toBeDefined()
+    expect(screen.queryByText(en("perDay.empty"))).toBeNull()
+    const outcomes = screen.getByRole("region", { name: en("outcomes.title") })
+    expect(screen.queryByText(en("outcomes.empty"))).toBeNull()
     expect(within(outcomes).queryByText(/%/)).toBeNull()
-    expect(within(outcomes).getByText(/no share is shown/)).toBeDefined()
+    expect(within(outcomes).getByText(en("outcomes.noShare"))).toBeDefined()
   })
 })

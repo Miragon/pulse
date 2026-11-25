@@ -148,10 +148,6 @@ export const DASHBOARD_READS = {
   diagram: readDiagram,
 } as const
 
-export async function readDashboard(engine: Engine, key: string): Promise<void> {
-  await Promise.all(Object.values(DASHBOARD_READS).map((read) => read(engine, key)))
-}
-
 // What the sections show, from the answers: pure, so the tests hold them apart from the page.
 
 /** The end events reached over the days the chart shows, each with its instances. */

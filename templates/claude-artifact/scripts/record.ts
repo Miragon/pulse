@@ -1,5 +1,5 @@
 // Records the fixtures of one dashboard: `pnpm record [-- --process <key>] [--time-zone <zone>]`
-// (default: the PROCESS_KEY of src/app.tsx, this machine's time zone).
+// (default: PROCESS_KEY of src/page.config.ts, this machine's time zone).
 //
 // Connects to a Pulse MCP server (MCP_URL, default http://localhost:8400/mcp, which `pnpm play`
 // serves in the Pulse repo; MCP_TOKEN, when set, as its bearer token, sent over https or to a
@@ -15,14 +15,14 @@ import type { Fixture, RecordedCall } from "../fixtures/mock-claude.ts"
 import { DASHBOARD_READS } from "../src/data/process-dashboard.ts"
 import type { Connector, ToolResult } from "../src/engine/connector.ts"
 import { createEngine, viewerTimeZone } from "../src/engine/engine.ts"
-import { pageProcessKey } from "./process-key.ts"
+import { PROCESS_KEY } from "../src/page.config.ts"
 import { clearTextTokenRefusal } from "./token-target.ts"
 
 const { values } = parseArgs({
   args: process.argv.slice(2).filter((arg) => arg !== "--"),
   options: { process: { type: "string" }, "time-zone": { type: "string" } },
 })
-const key = values.process ?? pageProcessKey()
+const key = values.process ?? PROCESS_KEY
 const timeZone = values["time-zone"] ?? viewerTimeZone()
 const url = new URL(process.env.MCP_URL ?? "http://localhost:8400/mcp")
 const token = process.env.MCP_TOKEN

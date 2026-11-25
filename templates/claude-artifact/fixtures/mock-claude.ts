@@ -1,13 +1,13 @@
-import type { ToolResult } from "../src/engine/connector.ts"
-import { callKey, resultText } from "../src/engine/engine.ts"
 import {
-  CONNECTOR_NAME,
   RUNTIME_CODES,
   type ClaudeRuntime,
   type McpAnswer,
   type McpCapability,
 } from "../src/engine/claude-connector.ts"
+import type { ToolResult } from "../src/engine/connector.ts"
+import { callKey, resultText } from "../src/engine/engine.ts"
 import { isPageTool } from "../src/engine/tools.ts"
+import { CONNECTOR_NAME } from "../src/page.config.ts"
 
 /**
  * A recording of one dashboard load (`pnpm record`): every call the reads made, in one run (ids are

@@ -1,3 +1,4 @@
+import { CONNECTOR_NAME } from "../page.config.ts"
 import {
   EngineError,
   type CallOptions,
@@ -16,7 +17,7 @@ import type { ToolName } from "./tools.ts"
  * 1. `window.claude.use("mcp")` returns a promise of the capability, which is null or undefined
  *    when the page has none.
  * 2. `callTool(server, tool, args, { cache })` takes positional arguments: `server` is the display
- *    name the viewer gave the connector (`CONNECTOR_NAME` below), `cache` is
+ *    name the viewer gave the connector (`CONNECTOR_NAME`, src/page.config.ts), `cache` is
  *    `{ staleTime, gcTime }` and `{ staleTime: 0, gcTime, refresh: true }` for a fresh answer.
  * 3. It resolves to `{ payload }`, the tool's JSON answer (a list tool's `{ items, totalCount,
  *    hasMore, nextOffset }`).
@@ -30,12 +31,6 @@ import type { ToolName } from "./tools.ts"
  * Publishing declares the page's `mcp` capability for the connector named `CONNECTOR_NAME` with
  * exactly the tools of `PAGE_TOOLS` (`src/engine/tools.ts`); a call to another tool is refused.
  */
-
-/**
- * The display name of the viewer's connector to the Pulse MCP server: the name the viewer gave it
- * in claude.ai, so whoever publishes the page sets it to the name the viewers use.
- */
-export const CONNECTOR_NAME = "Pulse"
 
 /** How long the runtime holds an answer no read uses any more (its cache's `gcTime`), 10 min. */
 const KEEP_MS = 600_000

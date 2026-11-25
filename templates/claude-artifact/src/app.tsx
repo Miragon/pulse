@@ -6,6 +6,7 @@ import { viewerTimeZone } from "./engine/engine.ts"
 import { EngineProvider } from "./engine/use-engine.tsx"
 import { applyFormatLocale, viewerLocale } from "./locale.ts"
 import { translate } from "./messages.ts"
+import { PROCESS_KEY } from "./page.config.ts"
 import { DiagramSection } from "./sections/diagram.tsx"
 import { HeaderSection } from "./sections/header.tsx"
 import { IncidentsSection } from "./sections/incidents.tsx"
@@ -14,13 +15,6 @@ import { OutcomesSection } from "./sections/outcomes.tsx"
 import { PageGate } from "./sections/page-gate.tsx"
 import { PerDaySection } from "./sections/per-day.tsx"
 import { TasksSection } from "./sections/tasks.tsx"
-
-/**
- * The process this dashboard shows, the one place that names it. A dashboard of another process
- * changes this key, records its fixtures (`pnpm record`, which reads the key from this line) and
- * edits the sections.
- */
-export const PROCESS_KEY = "miraveloLeasing"
 
 /**
  * The dashboard: its bar, then the sections behind the page's gate, each reading on its own

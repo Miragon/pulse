@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
   claudeConnector,
-  CONNECTOR_NAME,
   RUNTIME_CODES,
   type ClaudeRuntime,
   type McpAnswer,
@@ -10,6 +9,7 @@ import {
 import type { EngineErrorCode } from "../src/engine/connector.ts"
 import { ANSWER_TTL_MS, createEngine } from "../src/engine/engine.ts"
 import { describeEngineError } from "../src/engine/errors.ts"
+import { CONNECTOR_NAME } from "../src/page.config.ts"
 
 /** A runtime whose capability answers `answer`, recording each call and each `use("mcp")`. */
 function runtimeOf(answer: (...args: Parameters<McpCapability["callTool"]>) => Promise<McpAnswer>) {

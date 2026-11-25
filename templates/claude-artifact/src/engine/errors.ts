@@ -4,7 +4,7 @@ import {
   isPermanentError,
   type PageHints,
 } from "@miragon/pulse-widget-shell/widgets"
-import { CONNECTOR_NAME } from "./claude-connector.ts"
+import { CONNECTOR_NAME } from "../page.config.ts"
 import type { EngineError } from "./connector.ts"
 
 type Language = "en" | "de"
