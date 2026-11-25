@@ -149,6 +149,16 @@ describe("a refresh at the fake ADFS", () => {
     expect(decodeJwt(bare.accessToken).aud).toBe("urn:microsoft:userinfo")
   })
 
+  it("renews for an identifier that is no URI with ADFS's audience of a Web API, the ID token's bare", async () => {
+    const idp = await start()
+    const first = await signIn(idp)
+    const renewed = await refresh(idp, first.refreshToken, [FAKE_OIDC_CLIENT.id])
+    expect(decodeJwt(renewed.accessToken).aud).toBe(
+      `microsoft:identityserver:${FAKE_OIDC_CLIENT.id}`,
+    )
+    expect(decodeJwt(String(renewed.idToken)).aud).toBe(FAKE_OIDC_CLIENT.id)
+  })
+
   it.each(["id_token_hint", "session cookie"] as const)(
     "renews after the session its %s names ended at the end-session endpoint, and not once its grant ended",
     async (by) => {

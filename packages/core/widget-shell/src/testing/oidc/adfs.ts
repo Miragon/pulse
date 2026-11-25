@@ -3,7 +3,8 @@
  * documentation and live farms' discovery documents: its issuer `<serverUrl>/adfs` and the paths
  * under it; a discovery that names `access_token_issuer` (MS-OIDCE) and no PKCE methods, no
  * revocation endpoint and no `iss` in the authorization response; access tokens of that issuer for
- * the one resource a request names (a request without one gets `urn:microsoft:userinfo`), with
+ * the one resource a request names (a request without one gets `urn:microsoft:userinfo`, an
+ * identifier that is no URI `microsoft:identityserver:<identifier>`, as a live farm's do), with
  * `scp`, `appid` and `ver` 1.0 and no caller unless the Web API's issuance transform rule names one
  * (the option `callerClaim`, emitted with the user's `upn`); ID tokens whose `sub` is a hash of the
  * client and the user; the refresh token's lifetime as `refresh_token_expires_in`; and refresh
@@ -24,6 +25,12 @@ export const ADFS_PATHS = {
 
 /** The audience of an ADFS token whose request named no resource. */
 const USERINFO_AUDIENCE = "urn:microsoft:userinfo"
+
+/** The audience of an ADFS token for `resource`: an identifier that is no URI behind ADFS's prefix. */
+const audienceOf = (resource: string | undefined): string => {
+  if (resource === undefined) return USERINFO_AUDIENCE
+  return URL.canParse(resource) ? resource : `microsoft:identityserver:${resource}`
+}
 
 /** ADFS's discovery document, as a farm of 2019 and later publishes it. */
 export function adfsDiscovery(realm: Realm): Record<string, unknown> {
@@ -106,7 +113,7 @@ export async function issueAdfsTokens(
   const accessToken = await sign(
     realm,
     {
-      aud: resource ?? USERINFO_AUDIENCE,
+      aud: audienceOf(resource),
       apptype: "Confidential",
       appid: clientId,
       authmethod: "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport",
