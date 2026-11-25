@@ -69,14 +69,20 @@ export async function readWebSession(
 /**
  * The page's caller of the server's tools over the session `readWebSession` read: it resolves with
  * the tool's result (an `isError` one too) and rejects with a {@link WebApiError} where the API
- * refuses the call, after telling `onSignedOut` when the session is gone.
+ * refuses the call, after telling `onSignedOut` when the session is gone. The web app reads one
+ * server, its own: a call that names another connection is refused before anything is sent, so a
+ * page never reads the wrong server unseen. A call's `refresh` changes nothing, since the API keeps
+ * no answers of its own (the server's floors still hold).
  */
 export function webToolCaller(
   session: Pick<WebSessionInfo, "csrf">,
   options: WebToolCallerOptions = {},
 ): ToolCaller {
   const send = sender(options)
-  return async (name, args): Promise<ToolResult> => {
+  return async (name, args, callOptions): Promise<ToolResult> => {
+    if (callOptions?.connector !== undefined) {
+      throw new Error(`The web app calls its own server only, not ${callOptions.connector}.`)
+    }
     const call: WebCall = { name, arguments: args }
     const response = await send(WEB_PATHS.call, {
       method: "POST",

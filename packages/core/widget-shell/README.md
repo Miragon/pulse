@@ -171,6 +171,21 @@ arguments start it anew (as does another React `key`), and it gives the view its
 `mountPage` is one `PageView` in a `frame` on `mountApp`. Pulse's web app (`apps/web`) is such an
 app.
 
+A page elsewhere (an artifact in claude.ai, say) brings what its place needs through the same
+options. `pageHints` are its words of what to do after a failure (default `PAGE_HINTS`, which lead
+to Pulse's start page), with `connectionPlace`, where its viewer manages the page's connection.
+`timeZone` is the zone its dates and days are in (default, and for a zone the browser does not
+know: the browser's). `documentTheme: true` is for a document that states its theme itself on
+`<html>`'s `data-theme`, as claude.ai stamps it for an explicit choice and leaves it off to follow
+the system: the view reads it and writes no theme onto the document, so the kit's stylesheet
+follows that attribute, else the OS. `now` is the page's clock where its numbers are not read now
+(a recording's `asOf`), which a widget reads as `useViewHost().now`. `mountApp` and `mountPage`
+also take `client`, the page's one query client, where a test hands in `createTestQueryClient()`
+so a failing call fails at once. A view's call hands the page's caller a third argument where it
+names one (`ToolCallOptions`): `refresh` asks past every cache under the caller, `connector` names
+another connection than the caller's own. A caller that reaches one server refuses a call that
+names another, as `webToolCaller` does, so a page never reads the wrong server unseen.
+
 ```ts
 import { mountPage } from "@miragon/pulse-widget-shell/widgets"
 import { engineViews } from "@miragon/pulse-engine-connector/widgets"

@@ -68,6 +68,23 @@ export interface HostChrome {
 }
 
 /**
+ * How a page asks for one call, where its caller can tell (`mountApp`'s `callTool`). A chat's host
+ * takes neither and calls as it always does.
+ */
+export interface ToolCallOptions {
+  /**
+   * Ask the server, past every cache under the caller (a page's Refresh, its Try again): a caller
+   * that keeps answers of its own, as an artifact's runtime does, reads anew.
+   */
+  readonly refresh?: boolean
+  /**
+   * The connection to call, by the name the page knows it under, where it is not the caller's own:
+   * a page that reads two servers names the second. A caller that reaches one server refuses it.
+   */
+  readonly connector?: string
+}
+
+/**
  * The ONE seam between a view and its host. Widgets never import `@modelcontextprotocol/ext-apps`:
  * a chat provides the ext-apps adapter (`mountViews`), a page outside a chat the browser adapter
  * (`mountApp`, `mountPage`), tests `TestViewHost`. Display mode stays in the host-agnostic
@@ -77,9 +94,10 @@ export interface ViewHost {
   /**
    * Calls any server tool by name. RESOLVES with the raw result, an `isError` result included
    * (`decodeToolResult` throws it); rejects only on a transport failure (no host, no
-   * `serverTools` capability, a JSON-RPC error such as an unknown tool).
+   * `serverTools` capability, a JSON-RPC error such as an unknown tool). Only a page's caller
+   * reads `options`; a chat's host calls as it always does.
    */
-  callTool: (name: string, args?: object) => Promise<ToolResult>
+  callTool: (name: string, args?: object, options?: ToolCallOptions) => Promise<ToolResult>
   /** Posts a USER message into the chat (hand-offs, navigation). Fail-soft: never throws. */
   sendFollowUp: (prompt: string) => void
   /** Whether a hand-off posts (`chat`), is copied (`copy`) or shows not at all (`none`). */
@@ -112,6 +130,11 @@ export interface ViewHost {
    * the view leaves its own head to it and shows the page's menu first in its bar. A chat has none.
    */
   chrome?: HostChrome
+  /**
+   * The page's clock, where its numbers are not read now (a recording's `asOf`): what its reads
+   * count from (`mountApp`'s `now`). A chat has none, and neither has a page that reads live.
+   */
+  now?: () => Date
   /** Opens a URL outside the frame. Fail-soft. */
   openExternal: (url: string) => void
   /** One node of the view's model-context tree; nested nodes join into one context. */

@@ -6,7 +6,7 @@
  * views it changes) mounts that app with `mountApp` and shows its views with `PageView`.
  */
 import type { ComponentType, ReactNode } from "react"
-import { mountApp } from "./app-root.js"
+import { mountApp, type MountAppOptions } from "./app-root.js"
 import type { BrowserHostOptions } from "./browser-view-host.js"
 import { PageView, type FailedStart } from "./page-view.js"
 import type { ViewLocation } from "./view-host.js"
@@ -15,7 +15,7 @@ import type { ViewMap } from "./views.js"
 /** A page's own frame around its view: the view, if the page shows one, is its `children`. */
 export type PageFrame = ComponentType<{ children?: ReactNode }>
 
-export interface MountPageOptions extends BrowserHostOptions {
+export interface MountPageOptions extends BrowserHostOptions, Pick<MountAppOptions, "client"> {
   /**
    * The view to show: its view tool's name, a key of the view map. A page with a `frame` may show
    * none: the frame then renders alone and nothing is called.
@@ -48,7 +48,8 @@ export interface MountPageOptions extends BrowserHostOptions {
  * A page whose frame renders alone (a signed-out page, say): no view, so no caller. Its frame runs
  * under the same providers and host as a view's would; a tool it asks for anyway is refused.
  */
-export interface FramePageOptions extends Omit<BrowserHostOptions, "callTool"> {
+export interface FramePageOptions
+  extends Omit<BrowserHostOptions, "callTool">, Pick<MountAppOptions, "client"> {
   view?: undefined
   args?: undefined
   container?: HTMLElement

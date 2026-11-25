@@ -17,17 +17,21 @@ function subscribeOsTheme(onChange: () => void): () => void {
 
 const osPrefersDark = (): boolean => osDarkQuery()?.matches ?? false
 
-/** Host theme, else the OS; no in-app switch. Applied before paint. */
+/**
+ * Host theme, else the OS; no in-app switch. Applied before paint, unless the document states its
+ * theme itself (`ShellHost.documentTheme`): then the theme is only resolved, never written.
+ */
 export function useApplyTheme(): EffectiveTheme {
   const host = useShellHost()
   const osDark = useSyncExternalStore(subscribeOsTheme, osPrefersDark, () => false)
   const theme = resolveTheme(host.theme, osDark)
   useLayoutEffect(() => {
+    if (host.documentTheme) return
     applyDocumentTheme(document.documentElement, {
       theme,
       hostTheme: host.theme,
       hostVariables: host.styleVariables,
     })
-  }, [theme, host.theme, host.styleVariables])
+  }, [theme, host.theme, host.styleVariables, host.documentTheme])
   return theme
 }

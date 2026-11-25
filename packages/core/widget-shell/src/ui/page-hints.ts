@@ -5,8 +5,16 @@ import type { Locale } from "./host-context.js"
  * A page's words of what to do after a failure (`describeError` where its `followUp` is not
  * `chat`), for each kind whose chat words send the reader to the chat: on a page that posts to no
  * chat they say what to do there instead. Every other kind's hint is the same in both.
+ * `connectionPlace` is where the viewer manages the page's connection ("in claude.ai, in Settings
+ * under Connectors"), a phrase the words of a refused connection put after its name as it is
+ * (pulse-ui's `describePageError`, its `place`); a page whose connection has no such place has none.
  */
-export type PageHints = Readonly<Record<Locale, Readonly<Partial<Record<ErrorKind, string>>>>>
+export type PageHints = Readonly<
+  Record<
+    Locale,
+    Readonly<Partial<Record<ErrorKind, string>>> & { readonly connectionPlace?: string }
+  >
+>
 
 /**
  * Only a page's host brings them (`ViewHost.pageHints`: `BrowserViewHost`, and `TestViewHost` off

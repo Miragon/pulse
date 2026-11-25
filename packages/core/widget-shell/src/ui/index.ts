@@ -54,6 +54,7 @@ export {
   type HostChrome,
   type ViewHost,
   type ViewLocation,
+  type ToolCallOptions,
   type ViewPlace,
 } from "./view-host.js"
 export {
