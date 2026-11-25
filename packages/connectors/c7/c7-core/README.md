@@ -154,7 +154,8 @@ missing.
   variable map stands in for when they cannot be read, then the version of each called instance one
   of its root incidents was raised in; each value as `JSON.stringify` writes it, so an integer the
   wire kept as raw JSON keeps its digits), `IncidentSearch` (the root incidents newest first, then by
-  id, with the version each was raised in and the job or external task `incidentRecovery` names),
+  id, across pages too, since incidents raised at one instant are read whole, with the version each
+  was raised in and the job or external task `incidentRecovery` names),
   `IncidentDetailsReader` (the stack trace or error details `CAUSE_OPERATIONS` names, else the
   incident's message, with the root cause by engine-core's `RootCauses`), `BulkOperationReader` (a
   batch that cancels or migrates instances from its statistics while the runtime holds it, else from
@@ -282,7 +283,9 @@ files of the repository, not of the package:
 widget and a refused one, that engine's answers to the board's reads (`C7RecordedAnswer`: method,
 decoded path, query and JSON body, and the JSON answered), recorded from the seeded world on
 Operaton 2.1.5 (made anew on 2026-11-21, when the element statistics read the incidents at call
-activities alone, and again that day, when the definitions read their root incidents), and the board they give in the JSON form of
+activities alone, and again that day, when the definitions read their root incidents; on
+2026-11-25 its incidents' request asks 52 rows rather than 51, which the three it answers do not
+change), and the board they give in the JSON form of
 [`@miragon/pulse-board`](https://www.npmjs.com/package/@miragon/pulse-board) (`BoardData`). It
 ships here because this package makes the requests: the MCP server's engine connector and the
 editors' C7 adapter each serve the answers to their own wire on the transport's recorded engine
