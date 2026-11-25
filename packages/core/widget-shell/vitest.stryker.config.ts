@@ -7,11 +7,12 @@ import base from "./vitest.config.js"
 // rules (the sign-in's seal, cookies, return path and CSRF check, the forward of a page's call, the
 // token's renewal, the build's files, the security headers, the sessions signed out, the session's
 // refusal, the sign-out and the session route), the gate's token rules (the JWT verifier), the
-// identity provider's discovery, the generic OpenID Connect provider, Microsoft Entra ID and a
-// page's calls (src/ui/page-reads/page-reader.ts) are mutated, and src/web's suites, the OAuth
-// suites and the page reader's suite (plain Node) test them, so the rest of the package's suite
-// (the view half under happy-dom included) stays out: mergeConfig appends to a list, so the
-// include is replaced after the merge.
+// identity provider's discovery, the generic OpenID Connect provider, Microsoft Entra ID, a page's
+// calls (src/ui/page-reads/page-reader.ts) and a Claude artifact's caller
+// (src/ui/claude-artifact/claude-tool-caller.ts) are mutated, and src/web's suites, the OAuth
+// suites and the suites of the page reader and the caller (plain Node) test them, so the rest of
+// the package's suite (the view half under happy-dom included) stays out: mergeConfig appends to
+// a list, so the include is replaced after the merge.
 const merged: ViteUserConfig = mergeConfig(
   base,
   defineConfig({ test: { coverage: { enabled: false } } }),
@@ -25,6 +26,7 @@ export default defineConfig({
       "src/web/**/*.test.ts",
       "src/oauth-*.test.ts",
       "src/ui/page-reads/page-reader.test.ts",
+      "src/ui/claude-artifact/claude-tool-caller.test.ts",
     ],
   },
 })

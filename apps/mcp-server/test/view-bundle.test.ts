@@ -63,14 +63,15 @@ describe("the view bundle holds the chat's root alone", { timeout: 120_000 }, ()
   // A page's roots (the web app's app root and the view it shows in it, a page of one view) and an
   // artifact's section reads and recordings come from the same `/widgets` entry; tree-shaking keeps
   // them, their browser adapter included, out of the bundle every view document inlines (its gzip
-  // budget), and nothing of the web app's router reaches it: the chat has no address.
+  // budget), and nothing of the web app's router reaches it: the chat has no address. A Claude
+  // artifact's caller and mount sit in an entry of their own, which no view imports.
   it("carries the ext-apps adapter and no code of a page's roots", async () => {
     const modules = await viewRuntimeModules()
     expect(modules).toEqual(
       expect.arrayContaining(["view-root", "ext-apps-host", "view-runtime", "view-providers"]),
     )
     const pageRoots = ["app-root", "page-view", "page-root", "browser-view-host", "recording"]
-    const pageFolders = ["page-reads/"]
+    const pageFolders = ["page-reads/", "claude-artifact/"]
     expect(
       modules.filter(
         (name) => pageRoots.includes(name) || pageFolders.some((folder) => name.startsWith(folder)),

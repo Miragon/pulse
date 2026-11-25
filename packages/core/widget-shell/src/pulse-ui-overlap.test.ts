@@ -62,9 +62,10 @@ const PULSE_UI = {
 const KIT = new Set(Object.values(PULSE_UI).flat())
 const WIDGETS = {
   widgets: exportsOf(join(here, "ui/index.ts")),
+  claudeArtifact: exportsOf(join(here, "ui/claude-artifact/index.ts")),
   testing: exportsOf(join(here, "testing/index.ts")),
 }
-const SHELL = [...WIDGETS.widgets, ...WIDGETS.testing]
+const SHELL = [...WIDGETS.widgets, ...WIDGETS.claudeArtifact, ...WIDGETS.testing]
 
 describe("widget-shell exports no pulse-ui name (one kit)", () => {
   it("reads the export lists of both packages, values and types", () => {
@@ -103,14 +104,17 @@ describe("widget-shell exports no pulse-ui name (one kit)", () => {
     ]) {
       expect(widgets, name).toContain(name)
     }
+    for (const name of ["mountClaudeArtifact", "ARTIFACT_PAGE_HINTS", "ClaudeRuntime"]) {
+      expect(WIDGETS.claudeArtifact.map((e) => e.name)).toContain(name)
+    }
     expect(WIDGETS.testing.map((e) => e.name)).toContain("recordingModuleServer")
   })
 
-  it("/widgets and /testing share no name with pulse-ui's root, /format, /tones, /glossary, /bpmn or /testing", () => {
+  it("/widgets, /claude-artifact and /testing share no name with pulse-ui's root, /format, /tones, /glossary, /bpmn or /testing", () => {
     expect(SHELL.filter((e) => KIT.has(e.name)).map((e) => e.name)).toEqual([])
   })
 
-  it("/widgets and /testing re-export no pulse-ui piece, under any name", () => {
+  it("/widgets, /claude-artifact and /testing re-export no pulse-ui piece, under any name", () => {
     const reexported = SHELL.filter((e) => e.files.some((file) => file.startsWith(UI_PREFIX)))
     expect(reexported.map((e) => e.name)).toEqual([])
   })

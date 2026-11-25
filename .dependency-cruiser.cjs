@@ -751,6 +751,20 @@ const SHELL_SRC = "^packages/core/widget-shell/src/"
 const SHELL_VIEWS = `${SHELL_SRC}ui/`
 const SHELL_PROTOCOL = `${SHELL_SRC}protocol/`
 
+/**
+ * widget-shell's Claude artifact entry (`@miragon/pulse-widget-shell/claude-artifact`,
+ * src/ui/claude-artifact): the caller over claude.ai's artifact runtime (`window.claude`), the
+ * words in claude.ai's places and the mount. As an import reaches it: by its tree (shape 1),
+ * through an importer's node_modules into its build or src (shape 2, a deep import) or bare by its
+ * entry (shape 3) (widget-shell-claude-artifact-alone).
+ */
+const SHELL_CLAUDE_ARTIFACT = `${SHELL_VIEWS}claude-artifact/`
+const SHELL_CLAUDE_ARTIFACT_IMPORTS = [
+  SHELL_CLAUDE_ARTIFACT,
+  "(?:^|/)node_modules/@miragon/pulse-widget-shell/(?:dist|src)/ui/claude-artifact/",
+  "^@miragon/pulse-widget-shell/claude-artifact$",
+]
+
 /** The CLI's test code: colocated unit tests, and test/ with its fakes and engine suites. */
 const CLI_TEST_CODE = ["[.]test[.]ts$", "^apps/cli/test/"]
 
@@ -1046,6 +1060,20 @@ module.exports = {
         "server and in every view bundle alike; what one half alone needs stays in that half.",
       from: { path: SHELL_PROTOCOL, pathNot: SRC_TEST_CODE },
       to: { pathNot: SHELL_PROTOCOL },
+    },
+    {
+      name: "widget-shell-claude-artifact-alone",
+      severity: "error",
+      comment:
+        "widget-shell's Claude artifact entry (src/ui/claude-artifact, " +
+        "`@miragon/pulse-widget-shell/claude-artifact`) is the one place that speaks to claude.ai's " +
+        "artifact runtime (window.claude) and words a page in claude.ai's places, so nothing " +
+        "outside it imports it, by path or by its entry, not even for a type: not the rest of " +
+        "widget-shell (`/widgets`, the page reads), so no view bundle, no connector's widgets and " +
+        "no web app carries claude.ai. A page in claude.ai imports the entry itself; what every " +
+        "page needs goes into the page reads (src/ui/page-reads), which the entry builds on.",
+      from: { pathNot: [SHELL_CLAUDE_ARTIFACT, ...SRC_TEST_CODE] },
+      to: { path: SHELL_CLAUDE_ARTIFACT_IMPORTS },
     },
     {
       name: "ext-apps-runtime-in-the-adapter",

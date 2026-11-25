@@ -123,8 +123,10 @@ export const MUTATED_PACKAGES = {
     "Microsoft Entra ID (src/oauth-entra.ts) which tenant, version and scope its tokens carry, " +
     "so a surviving mutant there is a security hole; owner decision 2026-11-25: a page's calls " +
     "(src/ui/page-reads/page-reader.ts) decide when an artifact asks past every cache, what it " +
-    "keeps and that a call never retries inside its section's retries, so a surviving mutant " +
-    "there shows old numbers or multiplies the calls on every artifact; only those seventeen " +
+    "keeps and that a call never retries inside its section's retries, and a Claude " +
+    "artifact's caller (src/ui/claude-artifact/claude-tool-caller.ts) which of the runtime's " +
+    "answers is data, a tool's error or a refusal, so a surviving mutant there shows old " +
+    "numbers or wrong words or multiplies the calls on every artifact; only those eighteen " +
     "files are mutated, not the boot, the view runtime or the other routes",
   "packages/connectors/c8/c8-core":
     "owner decision 2026-11-17: c8-core's rules decide the kind of every Camunda 8 failure, the " +

@@ -57,8 +57,9 @@ as pages of the server, a CLI and two editor hosts for the same engines.
   `/tones`, the brand gates in `/testing`, and its browser bundle for a page without a build
   (`dist/browser`, `packages/core/ui/scripts/browser-bundle.mjs`)
 - `packages/core/widget-shell/`: the view runtime (`/widgets`) with a page's section reads
-  (`src/ui/page-reads`), the registrar (`createToolRegistrar`), the boot (`/server`) with the web
-  app's sign-in (`src/web`), a module's test server (`/testing`)
+  (`src/ui/page-reads`), a Claude artifact's caller and mount (`/claude-artifact`), the registrar
+  (`createToolRegistrar`), the boot (`/server`) with the web app's sign-in (`src/web`), a module's
+  test server (`/testing`)
 - `packages/core/runtime-view/`: the runtime view both editor hosts compose (private): ports,
   core, protocol, webview, model reader, host kit
 - `packages/core/profile/`, `packages/core/board/`, `packages/core/screens/`: the profile format,
@@ -575,9 +576,10 @@ for every workspace package.
      and the transport; the formats and the transport are leaves; the CLI imports only what it
      bundles, the editor hosts only the runtime view and the adapters, the web app only the page
      half (`web-is-a-page`); widget-shell's view half stays browser code and its server half
-     headless; a connector's widgets import only browser code, and its `src/data` and lib folders
-     never import its tools, widgets or root; no cross-package deep imports, no shipped code
-     imports `./testing`. Each rule has planted violations in
+     headless, and only a page in claude.ai imports its Claude artifact entry
+     (`widget-shell-claude-artifact-alone`); a connector's widgets import only browser code, and
+     its `src/data` and lib folders never import its tools, widgets or root; no cross-package deep
+     imports, no shipped code imports `./testing`. Each rule has planted violations in
      `scripts/dependency-cruiser-gates.test.mjs`; a new app adds its npm name to `APP_PACKAGES`.
    - **The module port.** Each module exports its definition in `src/module.ts` (config schema,
      `configFromEnv`, `knownEnvVars`, `toolsets`, `instructions`, plugin factory), structurally a
@@ -742,7 +744,8 @@ trailer on every commit that makes the violation; never weaken the checker inste
 
 **Mutation testing** runs nightly (`.github/workflows/mutation-nightly.yml`, never on a pull
 request) over the rules that run on every surface: c7-core, the transport, engine-core's rules,
-the profile format, the board and the screens, widget-shell's web and OAuth rules and a page's
-calls, and c8-core's rules, each package's files in its `stryker.config.json`. A package joins only by an owner
-decision, as an entry in `MUTATED_PACKAGES` (`scripts/check-package-scripts.mjs`). Locally:
+the profile format, the board and the screens, widget-shell's web and OAuth rules, a page's
+calls and a Claude artifact's caller, and c8-core's rules, each package's files in its
+`stryker.config.json`. A package joins only by an owner decision, as an entry in
+`MUTATED_PACKAGES` (`scripts/check-package-scripts.mjs`). Locally:
 `pnpm --fail-if-no-match --filter <package> exec stryker run`.
