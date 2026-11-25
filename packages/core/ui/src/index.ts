@@ -302,6 +302,7 @@ export {
   truncate,
   setFormatLocale,
   getFormatLocale,
+  getFormatTimeZone,
   subscribeFormatLocale,
   type ClockOptions,
   type Count,

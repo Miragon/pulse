@@ -23,7 +23,10 @@ const SERVER_CODE =
 /** A Node built-in stays external, so a leak shows as an import of the output. */
 const NODE_BUILTINS = [...builtinModules, ...builtinModules.map((name) => `node:${name}`)]
 
-/** The page root among them: a page outside a chat mounts its views without ext-apps. */
+/**
+ * The page root among them: a page outside a chat mounts its views without ext-apps, and reads its
+ * sections without it.
+ */
 const BLOCKS = [
   "ListTable",
   "describeError",
@@ -33,6 +36,8 @@ const BLOCKS = [
   "mountPage",
   "mountApp",
   "PageView",
+  "useSectionRead",
+  "PageGate",
 ]
 
 /** Bundles one export of the barrel: the server-side packages in the output, and its imports. */

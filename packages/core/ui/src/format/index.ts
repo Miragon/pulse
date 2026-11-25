@@ -7,6 +7,7 @@
 export {
   setFormatLocale,
   getFormatLocale,
+  getFormatTimeZone,
   subscribeFormatLocale,
   type FormatLocale,
 } from "./locale.js"

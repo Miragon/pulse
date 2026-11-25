@@ -56,9 +56,9 @@ as pages of the server, a CLI and two editor hosts for the same engines.
   diagram for any page (`/bpmn`, bpmn-js its optional peer), framework-free `/format` and
   `/tones`, the brand gates in `/testing`, and its browser bundle for a page without a build
   (`dist/browser`, `packages/core/ui/scripts/browser-bundle.mjs`)
-- `packages/core/widget-shell/`: the view runtime (`/widgets`), the registrar
-  (`createToolRegistrar`), the boot (`/server`) with the web app's sign-in (`src/web`), a module's
-  test server (`/testing`)
+- `packages/core/widget-shell/`: the view runtime (`/widgets`) with a page's section reads
+  (`src/ui/page-reads`), the registrar (`createToolRegistrar`), the boot (`/server`) with the web
+  app's sign-in (`src/web`), a module's test server (`/testing`)
 - `packages/core/runtime-view/`: the runtime view both editor hosts compose (private): ports,
   core, protocol, webview, model reader, host kit
 - `packages/core/profile/`, `packages/core/board/`, `packages/core/screens/`: the profile format,
@@ -742,7 +742,7 @@ trailer on every commit that makes the violation; never weaken the checker inste
 
 **Mutation testing** runs nightly (`.github/workflows/mutation-nightly.yml`, never on a pull
 request) over the rules that run on every surface: c7-core, the transport, engine-core's rules,
-the profile format, the board and the screens, widget-shell's web and OAuth rules and c8-core's
-rules, each package's files in its `stryker.config.json`. A package joins only by an owner
+the profile format, the board and the screens, widget-shell's web and OAuth rules and a page's
+calls, and c8-core's rules, each package's files in its `stryker.config.json`. A package joins only by an owner
 decision, as an entry in `MUTATED_PACKAGES` (`scripts/check-package-scripts.mjs`). Locally:
 `pnpm --fail-if-no-match --filter <package> exec stryker run`.

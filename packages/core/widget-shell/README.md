@@ -67,7 +67,7 @@ OS.
 | Tool authoring | `./server`       | The registrar (`createToolRegistrar`, `withToolErrors`), `showToolBinding`, `OwnViewBinding`, `AppResourceCsp`, `appOnly`, `forViews`, `strictToolInput`, `buildViewResult`, `buildDataFeedResult`, `decodeToolResult`, `createTranslator`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | Server helpers | `./server`       | The BPMN-name readers (`readBpmnNames`, `parseBpmnNames`), the per-caller request info (`callerCacheKey`, `getMcpRequestInfo`, `runWithMcpRequestInfo`), `composedEnvVars`, `viewResourceUri`, `viewPrelude`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | Bundle build   | `./server`       | `VIEW_BUNDLE_DEDUPE`, `viewBundleWatchPlugin`, and the served fonts (`installFontAssets`, `fontAssetsCsp`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| View runtime   | `./widgets`      | `mountViews`, `mountApp`, `PageView` and `mountPage` for a page outside a chat, the view host (`useViewHost`, `HostModelContext`), the query hooks (`useToolQuery`, `useToolQueries`, `useToolMutation`, `useViewData`), `TestViewHost` for tests                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| View runtime   | `./widgets`      | `mountViews`, `mountApp`, `PageView` and `mountPage` for a page outside a chat, the view host (`useViewHost`, `HostModelContext`), the query hooks (`useToolQuery`, `useToolQueries`, `useToolMutation`, `useViewData`), `TestViewHost` for tests, a page's reads (`useSectionRead`, `usePageReads`, `PageGate`, `describePageFailure`, `createPageReader`) and its recordings (`playRecording`, `recordToolCalls`)                                                                                                                                                                                                                                                                                                                           |
 | Host-bound UI  | `./widgets`      | `WidgetShell` and `ListTable` (each with `fill`: on a page's screen it takes the height its flex column leaves it and scrolls in its own region; a chat's view never fills), `PagedRows` with `ListRow` (a row that opens on a click or Enter and copies its id, or what `copyLabel` names, which `ListTable`'s `copyHint` tells a screen reader; on a page a link to what it opens, `href`, a new tab with Ctrl or Cmd or a middle click), `IdCell`/`IdText`, `TextBlock` (engine text to scroll by keyboard and copy whole), `describeError`, `useActionFeedback`, `ConfirmDialog`, the hand-offs (`HAND_OFF_ACTIONS`, `AskAiButton` for one it does not list) and `useDiagramMaxHeight` (a chat card's budget for pulse-ui's BPMN diagram) |
 | Module tests   | `./testing`      | `recordingModuleServer` and `testServerContext` for a module's tools, prompts and resources                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | Sign-in tests  | `./testing/oidc` | `startFakeOidc`: a fake OpenID Connect provider with Keycloak's paths, ADFS's (`flavor: "adfs"`) or an Entra ID tenant's (`flavor: "entra"`), on a loopback port (discovery, its signing key, a login page per user, the code grant with PKCE, refresh, revocation, the end of a session), for a server's sign-in tests; Node only                                                                                                                                                                                                                                                                                                                                                                                                            |
@@ -202,6 +202,115 @@ mountPage(engineViews, {
 
 The MCP bundle never carries them: tree-shaking leaves `mountApp`, `PageView` and `mountPage` out
 of a bundle that mounts with `mountViews`.
+
+## A page's reads
+
+A page of its own outside a chat (a dashboard as an artifact, say) reads its sections through the
+page reads of `./widgets` under `mountApp`, so each section loads, shows and fails on its own and
+the page holds the same rules as a view. `useSectionRead(key, read)` is one section's read: `read`
+makes its calls through a `PageReader` (`reader.call(tool, args)`, `reader.timeZone`,
+`reader.now()`) and its result goes straight to pulse-ui's `SectionState` (`state`, `retry` as its
+`onRetry`). `key` names everything `read` depends on besides the reader, since sections with the
+same key share one read. `usePageReads()` gives the bar its `refresh`, its `readAt` (pulse-ui's
+`FreshnessStamp`), `reading` and the page's clock `now`. `PageGate` around the sections is the
+page's ONE state while a refusal of a connection as a whole stands (no sign-in, no connection, no
+approval): none of its sections mounts, and its Try again is the page's Refresh.
+
+```tsx
+import {
+  Button,
+  FreshnessStamp,
+  SectionState,
+  SectionStateGroup,
+  WidgetHeader,
+} from "@miragon/pulse-ui"
+import {
+  mountApp,
+  PageGate,
+  usePageReads,
+  useSectionRead,
+} from "@miragon/pulse-widget-shell/widgets"
+
+function Running({ processKey }: { processKey: string }) {
+  const section = useSectionRead(["stats", processKey], (reader) =>
+    reader.call<{ now: { running: number } }>("engine_process_stats", {
+      processDefinitionKey: processKey,
+      bucket: "day",
+      timeZone: reader.timeZone,
+    }),
+  )
+  return (
+    <SectionState state={section.state} onRetry={section.retry}>
+      {(stats) => <p>{stats.now.running}</p>}
+    </SectionState>
+  )
+}
+
+function App() {
+  const { readAt, refresh, reading } = usePageReads()
+  const action = (
+    <Button
+      variant="toolbar"
+      size="sm"
+      aria-disabled={reading || undefined}
+      onClick={reading ? undefined : refresh}
+    >
+      Refresh
+    </Button>
+  )
+  return (
+    <>
+      <WidgetHeader
+        title="Orders"
+        actions={action}
+        freshness={readAt && <FreshnessStamp at={readAt} />}
+      />
+      <main>
+        <PageGate>
+          <SectionStateGroup>
+            <Running processKey="orders" />
+          </SectionStateGroup>
+        </PageGate>
+      </main>
+    </>
+  )
+}
+
+mountApp(App, { callTool: (name, args, options) => callServerTool(name, args, options) })
+```
+
+The rules the reads hold, in the page's one query client:
+
+- A call is kept 30 s by connection, tool and arguments (their keys in any order) and shared while
+  it runs, so sections that need the same answer make one call; a failure is never kept. A call
+  asks past every cache under the caller (`refresh`) once the page was refreshed, or where the
+  same call settled before (Try again after a failure, an answer older than 30 s): only a key's
+  first read may come from a cache of the caller's own.
+- A section retries a transient failure as every view's read does (a connection that does not
+  answer, an engine 503), never a refusal and never a permanent error; a call is never retried
+  inside it. A later read that fails keeps the data on screen with the failure beside it.
+- Refresh asks every call fresh from then on, cancels a read that runs, so none joins a call sent
+  without `refresh`, opens a refused gate and reads every section on screen again.
+- `readAt` is the oldest `asOf` of the answers the mounted sections show (a section whose refresh
+  failed keeps its older read; one whose answers name none counts from when it finished, by the
+  page's clock); none while a refusal of a connection stands.
+- A refusal is a `PageCallError` the page's caller rejects with (its `code` one of pulse-ui's
+  `PageErrorCode`, its `connector` the connection that refused), worded by `describePageFailure`:
+  the refusals by pulse-ui's `describePageError` with the connection's name and the page's
+  `connectionPlace`, a server's errors by `describeError` with the page's `pageHints`, the raw text
+  under "Details" only. A refusal of one tool (`not_allowed`) stays in its sections, said once
+  under a `SectionStateGroup`, with no Try again.
+- A read that calls a second connection names it (`reader.call(tool, args, { connector })`), and a
+  page of several connections puts one `<PageGate connector="…">` around each connection's
+  sections; a refusal of a connection no gate covers stays in its sections.
+
+`createPageReader(callTool, options)` is the same reader without React, for a recorder or a test in
+Node. `recordToolCalls(callTool)` records the calls a run answers, kept small (a `ToolRecording`
+holds them with its `asOf` and zone), and `playRecording(recording, options)` replays one: spread
+it into `mountApp`'s options (its caller, its clock and its zone), where `fail` fails a tool
+(`engine_process_stats`), refuses every call with a code (`needs_reauth`) or one tool with one
+(`engine_process_stats:unavailable`), `tools` refuses an undeclared tool `not_allowed` and `delayMs`
+shows the skeletons. A call it holds no answer for answers a tool error that names it.
 
 ## The web app
 

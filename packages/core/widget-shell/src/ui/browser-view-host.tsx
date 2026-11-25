@@ -14,9 +14,10 @@ import type { FollowUp, ToolCallOptions, ViewHost } from "./view-host.js"
 
 /**
  * Calls a server tool for the page, a fetch to the server's `/mcp` endpoint say. RESOLVES with the
- * raw result, an `isError` result included; rejects only on a transport failure. `options` asks
- * past the caller's caches (`refresh`) or names another connection (`connector`); a caller that
- * reaches one server refuses a call that names another.
+ * raw result, an `isError` result included; rejects only on a transport failure, with a
+ * `PageCallError` where the transport knows why it refused (an artifact runtime's refusals), else
+ * with any error. `options` asks past the caller's caches (`refresh`) or names another connection
+ * (`connector`); a caller that reaches one server refuses a call that names another.
  */
 export type ToolCaller = (
   name: string,

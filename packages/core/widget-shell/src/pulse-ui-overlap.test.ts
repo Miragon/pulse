@@ -93,7 +93,14 @@ describe("widget-shell exports no pulse-ui name (one kit)", () => {
       expect(PULSE_UI.testing, name).toContain(name)
     }
     const widgets = WIDGETS.widgets.map((e) => e.name)
-    for (const name of ["WidgetShell", "mountViews", "PagedRows", "useViewData"]) {
+    for (const name of [
+      "WidgetShell",
+      "mountViews",
+      "PagedRows",
+      "useViewData",
+      "useSectionRead",
+      "playRecording",
+    ]) {
       expect(widgets, name).toContain(name)
     }
     expect(WIDGETS.testing.map((e) => e.name)).toContain("recordingModuleServer")

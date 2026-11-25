@@ -167,7 +167,7 @@ export function useViewData<T>(
 }
 
 /** `key`, kept by content: callers build `key`/`args` anew every render. */
-function useStableKey(key: unknown[]): unknown[] {
+export function useStableKey(key: unknown[]): unknown[] {
   const id = hashKey(key)
   const [stable, setStable] = useState({ id, key })
   if (stable.id !== id) setStable({ id, key })
